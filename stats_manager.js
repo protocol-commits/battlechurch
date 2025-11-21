@@ -3,7 +3,7 @@
 
   const BASE_COST = 25;
   const COST_SCALE = 1.1;
-  const PERCENT_INCREMENT = 0.05;
+  const PERCENT_INCREMENT = 0.1;
 
   const STAT_CONFIGS = {
     melee_attack_damage: {
@@ -20,7 +20,7 @@
       label: "Damage Resistance",
       base: 0,
       description: "Reduces damage taken",
-      // We want a flat 5% reduction per upgrade rather than 5% of zero
+      // We want a flat 10% reduction per upgrade rather than 10% of zero
       incrementValue: PERCENT_INCREMENT,
       isResistance: true,
     },

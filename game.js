@@ -4844,15 +4844,16 @@ class CozyNpc {
         : typeof NPC_ARROW_COOLDOWN_DEFAULT === "number"
         ? NPC_ARROW_COOLDOWN_DEFAULT
         : 2.4;
-    const cooldown = extendActive
-      ? Math.max(0.02, baseCooldown / 3)
-      : baseCooldown;
     const statsManager =
       typeof window !== "undefined" ? window.StatsManager : null;
     const emotionalMultiplier =
       typeof statsManager?.getStatMultiplier === "function"
         ? Math.max(1, statsManager.getStatMultiplier("emotional_intelligence") || 1)
         : 1;
+    const effectiveCooldown = extendActive
+      ? Math.max(0.02, baseCooldown / 3)
+      : baseCooldown;
+    const cooldown = Math.max(0.02, effectiveCooldown / emotionalMultiplier);
     const damageMultiplier = extendActive
       ? 2
       : universalBoostActive
@@ -4861,7 +4862,8 @@ class CozyNpc {
     const damage = Math.round(
       NPC_ARROW_DAMAGE * damageMultiplier * emotionalMultiplier,
     );
-    const scale = extendActive ? 2.8 : 1.2;
+    const baseScale = extendActive ? 2.8 : 1.2;
+    const scale = baseScale * emotionalMultiplier;
     // spawn an arrow projectile from NPC toward the enemy
     spawnProjectile("arrow", this.x, this.y, dir.x, dir.y, {
       friendly: true,
