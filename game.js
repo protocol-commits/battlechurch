@@ -5272,6 +5272,7 @@ class Projectile {
     this.homingTarget = config.homingTarget || null;
     this.homingDuration = Math.max(0, config.homingDuration || 0);
     this.homingStrength = Math.max(0, config.homingStrength ?? 0);
+    this.isDivineShot = Boolean(config.isDivineShot);
     if (config.frames && config.frames.length) {
       this.frames = config.frames;
       this.frameDuration = config.frameDuration || 0.05;
@@ -5357,6 +5358,11 @@ class Projectile {
     if (this.onImpact && !this.onImpactTriggered) {
       this.onImpactTriggered = true;
       this.onImpact(this, target);
+    }
+    if (this.isDivineShot) {
+      this.homingTarget = null;
+      this.homingDuration = 0;
+      this.homingStrength = 0;
     }
     if (!this.pierce) this.dead = true;
   }
@@ -5884,6 +5890,8 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   const config = { ...baseConfig, ...overrides };
   const priority = overrides.priority ?? baseConfig.priority ?? 0;
   config.priority = priority;
+  const isDivineShot = overrides.isDivineShot ?? baseConfig.isDivineShot ?? false;
+  config.isDivineShot = isDivineShot;
   if (overrides.damage === undefined && baseConfig && baseConfig.damage !== undefined) {
     config.damage = baseConfig.damage;
   }
@@ -8214,6 +8222,7 @@ const MELEE_BASE_DAMAGE = 500;
         homingDuration: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_DURATION : 0,
         homingStrength: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_STRENGTH : 0,
         priority: DIVINE_SHOT_PROJECTILE_PRIORITY,
+        isDivineShot: true,
       });
       meleeAttackState.cooldown = MELEE_COOLDOWN;
       meleeAttackState.rushDustAccumulator = 0;
