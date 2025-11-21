@@ -76,6 +76,7 @@ if (typeof window !== "undefined" && !window.triggerDamageFlash) {
 }
 const npcs = [];
 const effects = Effects.getActive();
+let divineChargeSparkEffect = null;
 const ambientDecor = [];
 let backgroundImage = null;
 const levelAnnouncements = [];
@@ -108,6 +109,32 @@ const VISITOR_BLOCKER_LINES =
 const KEY_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/keys";
 const TORCH_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/torch";
 const FLAG_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/flag";
+
+function spawnDivineChargeSparkVisual() {
+  if (!player) return null;
+  const frames = assets?.effects?.divineChargeSpark;
+  if (!Array.isArray(frames) || !frames.length) return null;
+  if (divineChargeSparkEffect && !divineChargeSparkEffect.dead) return divineChargeSparkEffect;
+  const x = player.x;
+  const y = player.y - (player.radius || 24) - DIVINE_CHARGE_SPARK_OFFSET;
+  divineChargeSparkEffect = Effects.spawnLoopingEffect(frames, x, y, {
+    frameDuration: DIVINE_CHARGE_SPARK_FRAME_DURATION,
+    scale: DIVINE_CHARGE_SPARK_SCALE,
+  });
+  return divineChargeSparkEffect;
+}
+
+function updateDivineChargeSparkVisual() {
+  if (!divineChargeSparkEffect || divineChargeSparkEffect.dead || !player) return;
+  divineChargeSparkEffect.x = player.x;
+  divineChargeSparkEffect.y = player.y - (player.radius || 24) - DIVINE_CHARGE_SPARK_OFFSET;
+}
+
+function clearDivineChargeSparkVisual() {
+  if (!divineChargeSparkEffect) return;
+  divineChargeSparkEffect.dead = true;
+  divineChargeSparkEffect = null;
+}
 const KEY_SPRITE_FILES = [
   `${KEY_SPRITE_ROOT}/keys_1_1.png`,
   `${KEY_SPRITE_ROOT}/keys_1_2.png`,
@@ -1126,6 +1153,11 @@ const OBSTACLE_LAYOUT = Array.isArray(DECOR_CONFIG.OBSTACLE_LAYOUT)
 const MAGIC_PACK7_ROOT = "assets/sprites/magic-pack-7/sprites";
 const MAGIC_PACK10_ROOT = "assets/sprites/magic-pack-10/sprites";
 const MAGIC_PACK10_SHEETS_ROOT = "assets/sprites/magic-pack-10/spritesheets";
+const DIVINE_CHARGE_SPARK_ROOT = `${MAGIC_PACK10_ROOT}/Sparks`;
+const DIVINE_CHARGE_SPARK_COUNT = 16;
+const DIVINE_CHARGE_SPARK_FRAME_DURATION = 0.06;
+const DIVINE_CHARGE_SPARK_SCALE = 1.5;
+const DIVINE_CHARGE_SPARK_OFFSET = 18;
 const WISDOM_FRAME_START = 9;
 const WISDOM_FRAME_END = 18;
 const WISDOM_FRAME_SOURCES = Array.from(
@@ -2434,6 +2466,11 @@ async function loadAssets() {
       loadImage(`${MAGIC_PACK10_ROOT}/Raybolt/Raybolt${i + 1}.png`).then((img) =>
         extractFrame(img, img.width, img.height, 0),
       ),
+    ),
+  );
+  assets.effects.divineChargeSpark = await Promise.all(
+    Array.from({ length: DIVINE_CHARGE_SPARK_COUNT }, (_, i) =>
+      loadImage(`${DIVINE_CHARGE_SPARK_ROOT}/sparks${i + 1}.png`),
     ),
   );
   assets.npcs = await npcAssetsPromise;
@@ -8090,6 +8127,7 @@ const MELEE_BASE_DAMAGE = 500;
       meleeAttackState.buttonDown = false;
       meleeAttackState.isCharging = false;
       meleeAttackState.awaitRush = false;
+      clearDivineChargeSparkVisual();
       return;
     }
     meleeAttackState.damageRadius = MELEE_DAMAGE_RADIUS;
@@ -8287,6 +8325,7 @@ const MELEE_BASE_DAMAGE = 500;
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = false;
+      clearDivineChargeSparkVisual();
       meleeAttackState.chargeFlashTriggered = false;
       if (
         meleeAttackState.awaitRush &&
@@ -8309,6 +8348,7 @@ const MELEE_BASE_DAMAGE = 500;
           spawnFlashEffect(player.x, player.y - player.radius * 0.5);
           meleeAttackState.chargeFlashTriggered = true;
         }
+        spawnDivineChargeSparkVisual();
       }
     }
 
@@ -8333,6 +8373,12 @@ const MELEE_BASE_DAMAGE = 500;
       if (meleeAttackState.awaitTimer === 0) {
         meleeAttackState.awaitRush = false;
       }
+    }
+
+    if (meleeAttackState.isCharging) {
+      updateDivineChargeSparkVisual();
+    } else {
+      clearDivineChargeSparkVisual();
     }
 
     if (meleeAttackState.isRushing) {
