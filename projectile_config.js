@@ -78,6 +78,12 @@
     },
   };
 
+  Object.values(PROJECTILE_CONFIG).forEach((entry) => {
+    if (entry.priority === undefined) {
+      entry.priority = 0;
+    }
+  });
+
   const ns =
     global.BattlechurchProjectileConfig ||
     (global.BattlechurchProjectileConfig = {});

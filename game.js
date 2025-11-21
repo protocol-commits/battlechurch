@@ -5253,6 +5253,7 @@ class Projectile {
     this.vx = direction.x * this.speed;
     this.vy = direction.y * this.speed;
     this.rotation = Math.atan2(this.vy, this.vx);
+    this.priority = config.priority ?? 0;
     this.life = config.life ?? 5;
     this.radius = config.radius;
     this.pierce = Boolean(config.pierce);
@@ -5881,6 +5882,8 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   const clip = assets.projectiles[type];
   if (!clip) return null;
   const config = { ...baseConfig, ...overrides };
+  const priority = overrides.priority ?? baseConfig.priority ?? 0;
+  config.priority = priority;
   if (overrides.damage === undefined && baseConfig && baseConfig.damage !== undefined) {
     config.damage = baseConfig.damage;
   }
@@ -8065,13 +8068,14 @@ const MELEE_BASE_DAMAGE = 500;
   const RUSH_PUSHBACK_STRENGTH = 50 * WORLD_SCALE;
   const RUSH_COOLDOWN = 3.0;
   const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
-      const RUSH_INVULNERABILITY = 0.4;
-      const DIVINE_SHOT_DAMAGE = 1200;
-      const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
-      const DIVINE_SHOT_LIFE = 2.8;
-      const DIVINE_SHOT_AUTO_AIM_DURATION = 1.6;
-      const DIVINE_SHOT_AUTO_AIM_STRENGTH = 3.2;
-      const DIVINE_SHOT_AUTO_AIM_MIN_DOT = 0.25;
+  const RUSH_INVULNERABILITY = 0.4;
+  const DIVINE_SHOT_DAMAGE = 1200;
+  const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
+  const DIVINE_SHOT_LIFE = 2.8;
+  const DIVINE_SHOT_AUTO_AIM_DURATION = 1.6;
+  const DIVINE_SHOT_AUTO_AIM_STRENGTH = 3.2;
+  const DIVINE_SHOT_AUTO_AIM_MIN_DOT = 0.25;
+  const DIVINE_SHOT_PROJECTILE_PRIORITY = 5;
   if (input && player) {
     const playerAlive = Boolean(player && player.state !== "death");
     if (!playerAlive) {
@@ -8209,6 +8213,7 @@ const MELEE_BASE_DAMAGE = 500;
         homingTarget: targetedEnemy,
         homingDuration: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_DURATION : 0,
         homingStrength: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_STRENGTH : 0,
+        priority: DIVINE_SHOT_PROJECTILE_PRIORITY,
       });
       meleeAttackState.cooldown = MELEE_COOLDOWN;
       meleeAttackState.rushDustAccumulator = 0;
@@ -8447,21 +8452,31 @@ const MELEE_BASE_DAMAGE = 500;
     }
   }
 
+  // Projectile clashes use a priority value so Divine Shot can beat normal shots while
+  // future boss projectiles can be flagged with a higher priority to resist it.
   const friendlyProjectiles = projectiles.filter((proj) => proj.friendly && !proj.dead);
   const hostileProjectiles = projectiles.filter((proj) => !proj.friendly && !proj.dead);
   for (const friendly of friendlyProjectiles) {
     if (friendly.dead) continue;
     for (const hostile of hostileProjectiles) {
       if (hostile.dead) continue;
-      if (projectilesIntersect(friendly, hostile)) {
-        const hostileIsBossProjectile = isBossProjectile(hostile);
-        friendly.dead = true;
-        if (!hostileIsBossProjectile) {
-          hostile.dead = true;
-        }
-        spawnImpactEffect((friendly.x + hostile.x) / 2, (friendly.y + hostile.y) / 2);
-        break;
+      if (!projectilesIntersect(friendly, hostile)) continue;
+      const friendlyPriority = friendly.priority ?? 0;
+      const hostilePriority = hostile.priority ?? 0;
+      let friendlyDies = false;
+      let hostileDies = false;
+      if (friendlyPriority > hostilePriority) {
+        hostileDies = true;
+      } else if (friendlyPriority < hostilePriority) {
+        friendlyDies = true;
+      } else {
+        friendlyDies = true;
+        hostileDies = true;
       }
+      if (hostileDies) hostile.dead = true;
+      if (friendlyDies) friendly.dead = true;
+      spawnImpactEffect((friendly.x + hostile.x) / 2, (friendly.y + hostile.y) / 2);
+      break;
     }
   }
 

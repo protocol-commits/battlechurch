@@ -134,6 +134,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - (31) 2024-11-05 Restored the NPC “Harmony” harp power-up so it now grants a global 50% boost to NPC damage, fire rate, and projectile scale for the buff duration, while still keeping the stat-driven upgrades as the baseline (`game.js`, `powerup_definitions.js`).
 - (32) 2024-11-05 Melee charge now fires after 1.5s of holding the attack button instead of 2.0s, keeping the rush/Divine Shot timing tighter (`game.js`).
 - (33) 2024-11-05 Divine Shot now retains the player’s facing direction but auto-assisted itself toward the nearest enemy in that cone, leveraging a temporary homing window for smoother targeting (`game.js`).
+- (34) 2024-11-05 Divine Shot projectiles gain a priority flag so they dominate every other enemy shot (with the collision loop adjusting by priority), yet the system is ready for future boss projectiles to raise their own priority and beat the Divine Shot when needed (`game.js`, `projectile_config.js`).
 
 ### Updating Protocol
 1. Before touching a major subsystem, log the goal(s) and target files so future sessions understand why the change happened.
