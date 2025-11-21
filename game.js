@@ -1153,6 +1153,8 @@ const OBSTACLE_LAYOUT = Array.isArray(DECOR_CONFIG.OBSTACLE_LAYOUT)
 const MAGIC_PACK7_ROOT = "assets/sprites/magic-pack-7/sprites";
 const MAGIC_PACK10_ROOT = "assets/sprites/magic-pack-10/sprites";
 const MAGIC_PACK10_SHEETS_ROOT = "assets/sprites/magic-pack-10/spritesheets";
+const WEAPONS_PACK_ROOT = "assets/sprites/WeaponsPack";
+const DIVINE_SWORD_PATH = `${WEAPONS_PACK_ROOT}/sword2normal.png`;
 const DIVINE_CHARGE_SPARK_ROOT = `${MAGIC_PACK10_ROOT}/Sparks`;
 const DIVINE_CHARGE_SPARK_COUNT = 16;
 const DIVINE_CHARGE_SPARK_FRAME_DURATION = 0.06;
@@ -2473,6 +2475,8 @@ async function loadAssets() {
       loadImage(`${DIVINE_CHARGE_SPARK_ROOT}/sparks${i + 1}.png`),
     ),
   );
+  assets.weapons = assets.weapons || {};
+  assets.weapons.divineSword = await loadImage(DIVINE_SWORD_PATH).catch(() => null);
   assets.npcs = await npcAssetsPromise;
   const keyFrames = (await keyFramesPromise).filter(Boolean);
   assets.items.keyPickup = {

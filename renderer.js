@@ -1841,16 +1841,15 @@ function drawLevelAnnouncements() {
         const fade = window._meleeAttackState.fade || 0;
         const chargeTimer = window._meleeAttackState.chargeTimer || 0;
         const holdTime = window._meleeAttackState.holdTime || 2;
-        const { WORLD_SCALE: worldScale = 1 } = requireBindings();
+        const { WORLD_SCALE: worldScale = 1, assets } = requireBindings();
         const fadeAlpha = Math.max(0, Math.min(1, fade / 0.25));
         const baseAlpha = fadeAlpha * 0.55;
         const isChargeReady =
           window._meleeAttackState.isCharging && chargeTimer >= Math.max(0.01, holdTime);
         const blinkAlpha = 0.35 + 0.25 * Math.sin(Date.now() * 0.018 * 8);
-        ctx.globalAlpha = isChargeReady ? Math.min(0.9, baseAlpha + blinkAlpha * 0.65) : baseAlpha;
-        ctx.strokeStyle = isChargeReady ? '#ffffff' : '#ffe89b';
-        ctx.fillStyle = isChargeReady ? 'rgba(255,255,255,0.35)' : 'rgba(255,232,155,0.18)';
-        ctx.lineWidth = 4;
+        const chargeAlpha = isChargeReady
+          ? Math.min(0.9, baseAlpha + blinkAlpha * 0.65)
+          : baseAlpha;
         // Find player position
         let px = canvas.width / 2;
         let py = canvas.height / 2;
@@ -1873,15 +1872,43 @@ function drawLevelAnnouncements() {
         const radiusX = 72 * worldScale; // horizontal range (increased)
         const radiusY = 72 * worldScale; // vertical range (increased)
         if (fade > 0) {
-          ctx.beginPath();
-          ctx.ellipse(ax, ay, radiusX, radiusY, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
+          const swordImg = assets?.weapons?.divineSword;
+          if (swordImg) {
+            ctx.save();
+            ctx.globalAlpha = chargeAlpha;
+            const targetAngle = Math.atan2(dir.y, dir.x);
+            const rotation = targetAngle + Math.PI / 4;
+            const normalizedDir = (() => {
+              const len = Math.hypot(dir.x, dir.y) || 1;
+              return { x: dir.x / len, y: dir.y / len };
+            })();
+            const hiltBackOffset = Math.max(player.radius * 0.3, 10 * worldScale);
+            const offsetX = -normalizedDir.x * hiltBackOffset;
+            const offsetY = -normalizedDir.y * hiltBackOffset;
+            ctx.translate(px + offsetX, py + offsetY);
+            ctx.rotate(rotation);
+            const desiredLength = Math.max(player.radius * 2.4, 140 * worldScale);
+            const imgDiag = Math.hypot(swordImg.width, swordImg.height) || 1;
+            const drawScale = (desiredLength / imgDiag) * 5;
+            const drawWidth = swordImg.width * drawScale;
+            const drawHeight = swordImg.height * drawScale;
+            ctx.drawImage(swordImg, 0, -drawHeight, drawWidth, drawHeight);
+            ctx.restore();
+          } else {
+            ctx.globalAlpha = chargeAlpha;
+            ctx.strokeStyle = isChargeReady ? "#ffffff" : "#ffe89b";
+            ctx.fillStyle = isChargeReady ? "rgba(255,255,255,0.35)" : "rgba(255,232,155,0.18)";
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.ellipse(ax, ay, radiusX, radiusY, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          }
           const pushbackAlpha = fadeAlpha * 0.35;
           ctx.globalAlpha = pushbackAlpha;
           ctx.lineWidth = 2;
           ctx.setLineDash([8, 6]);
-          ctx.strokeStyle = 'rgba(255,128,116,0.85)';
+          ctx.strokeStyle = "rgba(255,128,116,0.85)";
           ctx.beginPath();
           ctx.arc(pushbackCenterX, pushbackCenterY, pushbackRadius, 0, Math.PI * 2);
           ctx.stroke();
