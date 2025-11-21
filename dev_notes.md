@@ -131,7 +131,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - (28) 2024-11-05 Respawns now drop the pastor at the top-center of the battlefield with full health so each life truly starts fresh; the death animation still plays when HP reaches 0, and the DOM game over dialog stays mid-screen while the demons roam behind.
 - (29) 2024-11-05 Emotional Intelligence upgrades now also push NPC projectile damage, scale, and fire rate up by 10% per stat level so every boost strengthens their friendly arrows (`game.js`, `stats_manager.js`), keeping the support layer consistent.
 - (30) 2024-11-05 Added a developer hotkey (`K`) that instantly grants 500 keys and surfaces the status via `setDevStatus`, easing progression testing scenarios (`game.js`).
-- (31) 2024-11-05 Removed the NPC “Harmony” extend power-up and all per-NPC timers so every companion now only benefits from the stat-driven damage/rate/scale boosts, keeping the support layer uniform (`game.js`, `powerup_definitions.js`).
+- (31) 2024-11-05 Restored the NPC “Harmony” harp power-up so it now grants a global 50% boost to NPC damage, fire rate, and projectile scale for the buff duration, while still keeping the stat-driven upgrades as the baseline (`game.js`, `powerup_definitions.js`).
 
 ### Updating Protocol
 1. Before touching a major subsystem, log the goal(s) and target files so future sessions understand why the change happened.

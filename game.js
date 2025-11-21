@@ -242,6 +242,9 @@ function getKeyCount() {
   return playerKeyCount;
 }
 
+let npcHarmonyBuffTimer = 0;
+const HARMONY_BUFF_MULTIPLIER = 1.5;
+
 function addKeys(amount = 1) {
   if (!Number.isFinite(amount) || amount === 0) return playerKeyCount;
   playerKeyCount = Math.max(0, Math.round(playerKeyCount + amount));
@@ -3237,6 +3240,7 @@ function applyUtilityPowerUp(powerUp) {
     "#ffffff";
   const initialWeaponTimer = player.weaponPowerTimer;
   let addedExtendSeconds = 0;
+  let floatingText = null;
   switch (effect) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
@@ -3278,11 +3282,14 @@ function applyUtilityPowerUp(powerUp) {
       );
       addedExtendSeconds = Math.max(0, player.weaponPowerTimer - initialWeaponTimer);
       break;
+    case "harmony":
+      npcHarmonyBuffTimer = Math.max(npcHarmonyBuffTimer, duration);
+      floatingText = `NPC Harmony +${Math.round(duration)}s`;
+      break;
     default:
       break;
   }
   triggerPowerUpCooldown();
-  let floatingText = null;
   if (effect === "haste") {
     const multiplier = Number.isFinite(speedMultiplier) ? speedMultiplier : 1.4;
     const percent = Math.round((multiplier - 1) * 100);
@@ -4801,12 +4808,12 @@ class CozyNpc {
       typeof statsManager?.getStatMultiplier === "function"
         ? Math.max(1, statsManager.getStatMultiplier("emotional_intelligence") || 1)
         : 1;
-    const cooldown = Math.max(0.02, baseCooldown / emotionalMultiplier);
-    const damage = Math.round(
-      NPC_ARROW_DAMAGE * emotionalMultiplier,
-    );
+    const harmonyMultiplier = npcHarmonyBuffTimer > 0 ? HARMONY_BUFF_MULTIPLIER : 1;
+    const totalMultiplier = emotionalMultiplier * harmonyMultiplier;
+    const cooldown = Math.max(0.02, baseCooldown / totalMultiplier);
+    const damage = Math.round(NPC_ARROW_DAMAGE * totalMultiplier);
     const baseScale = 1.2;
-    const scale = baseScale * emotionalMultiplier;
+    const scale = baseScale * totalMultiplier;
     // spawn an arrow projectile from NPC toward the enemy
     spawnProjectile("arrow", this.x, this.y, dir.x, dir.y, {
       friendly: true,
@@ -7247,6 +7254,10 @@ function handleDeveloperHotkeys() {
       setDevStatus("Boss battle engaged", 2.3);
     }
   }
+  if (keysJustPressed.has("h")) {
+    const harp = spawnUtilityPowerUp("harmony");
+    setDevStatus(harp ? "Harmony harp spawned" : "No harp spawn", 1.6);
+  }
   if (keysJustPressed.has("o")) {
     enemyDevLabelsVisible = !enemyDevLabelsVisible;
     if (typeof window?.setEnemyDevLabelsVisible === "function") {
@@ -7557,6 +7568,7 @@ function parseFrameList(input) {
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
+  npcHarmonyBuffTimer = Math.max(0, npcHarmonyBuffTimer - dt);
   if (devInspectorActive) devInspectorTimer += dt;
   // autosave dev overrides after short debounce
   if (devOverridesDirty) {

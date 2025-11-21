@@ -108,6 +108,15 @@
       color: "#ffd480",
       extendMultiplier: 1.5,
     },
+    harmony: {
+      src: `${CONRAD_POWERUP_ROOT}/harp.png`,
+      scale: 3.0 * WORLD_SCALE,
+      radius: 28 * WORLD_SCALE,
+      effect: "harmony",
+      duration: 10,
+      label: "Harp of Consolation",
+      color: "#d6b7ff",
+    },
   };
 
   const ns =
