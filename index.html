@@ -1,0 +1,126 @@
+<!-- Battle Church -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="version" content="2025-10-17 22:45 (America/New_York)">
+  <title>Battle Church</title>
+  <link rel="stylesheet" href="style.css?v=2025-10-31-23343445634345553454928">
+</head>
+
+<body>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      document.body.classList.add('touch-enabled');
+      // Prevent pinch and double-tap zoom
+      document.addEventListener('touchstart', function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      let lastTouchEnd = 0;
+      document.addEventListener('touchend', function(e) {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+          e.preventDefault();
+        }
+        lastTouchEnd = now;
+      }, { passive: false });
+    });
+  </script>
+  <script>
+    window.__BATTLECHURCH_WORLD_SCALE = 0.75;
+  </script>
+  <div id="appRoot">
+    <div id="gameWrapper">
+      <canvas id="gameCanvas" width="1280" height="720"></canvas>
+    </div>
+    <div id="touchControls" aria-hidden="true">
+      <div class="touch-row">
+        <div class="joystick-area left">
+          <div class="joystick-base" id="moveStick">
+            <div class="joystick-handle"></div>
+          </div>
+        </div>
+        <div class="center-controls">
+          <button id="virtualSpaceButton" type="button" aria-label="Press Space">Space</button>
+        </div>
+        <div class="button-area right">
+          <button class="ab-button" id="buttonA" type="button" aria-label="A Button">A</button>
+          <button class="ab-button" id="buttonB" type="button" aria-label="B Button">B</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    <!-- Removed right joystick and arrow button controls for future A/B button implementation -->
+    <!-- Only left joystick and space button remain -->
+    <script src="overrides.js?v=2025-10343453453-30d"></script>
+    <script src="input.js?v=2025-10-31-456455463454345456456001"></script>
+    <script src="projectile_config.js?v=2025-11-15-000008"></script>
+    <script src="entities.js"></script>
+    <script src="effects.js?v=2025-10-33453344531-001"></script>
+    <script src="floatingText.js?v=2025-10334545345345-31-001"></script>
+    <script src="spawner.js"></script>
+    <script src="level_data.js?v=2025-11-15-000010"></script>
+    <script src="levels.js?v=2025-10-31345334545345-001"></script>
+    <script src="mission_brief_data.js?v=2025-11-15-000001"></script>
+    <script src="hud.js?v=2025-11-15-000010"></script>
+    <script src="renderer.js?v=2025-10-3453345453531-002"></script>
+    <script src="decor.js?v=2025-10-31-345345453929"></script>
+    <script src="dialog_overlay.js?v=2025-10-31-460034534500000000"></script>
+    <script src="stats_manager.js?v=2025-10-31-457000000000"></script>
+    <script src="upgrade_screen.js?v=2025-10-31-458000000000"></script>
+    <script src="npc_variants.js?v=2025-11-15-000003"></script>
+    <script src="enemy_catalog.js?v=2025-11-16-000001"></script>
+    <script src="enemy_definitions.js?v=2025-11-15-000005"></script>
+    <script src="mini_folk_definitions.js?v=2025-11-15-000006"></script>
+    <script src="powerup_definitions.js?v=2025-11-15-000007"></script>
+    <script src="projectile_config.js?v=2025-11-15-000008"></script>
+    <script src="asset_manifest.js?v=2025-11-15-000009"></script>
+    <script src="npc_dialogue_lines.js?v=2025-11-15-000004"></script>
+    <script src="visitor_blocker_lines.js?v=2025-11-15-000002"></script>
+    <script src="ui_texts.js?v=2025-11-15-000011"></script>
+    <script src="game.js?v=2025-10-31-934553453429"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        var buttonA = document.getElementById('buttonA');
+        if (buttonA) {
+          buttonA.addEventListener('pointerdown', function() {
+            if (window.Input) {
+              window.Input.nesAButtonActive = true;
+            }
+          });
+          buttonA.addEventListener('pointerup', function() {
+            if (window.Input) {
+              window.Input.nesAButtonActive = false;
+            }
+          });
+          buttonA.addEventListener('pointerleave', function() {
+            if (window.Input) {
+              window.Input.nesAButtonActive = false;
+            }
+          });
+        }
+        var buttonB = document.getElementById('buttonB');
+        if (buttonB) {
+          buttonB.addEventListener('pointerdown', function() {
+            if (window.Input) {
+              window.Input.prayerBombClickQueued = true;
+            }
+          });
+          buttonB.addEventListener('pointerup', function() {
+            if (window.Input) {
+              window.Input.prayerBombClickQueued = false;
+            }
+          });
+          buttonB.addEventListener('pointerleave', function() {
+            if (window.Input) {
+              window.Input.prayerBombClickQueued = false;
+            }
+          });
+        }
+      });
+    </script>
+</body>
+</html>

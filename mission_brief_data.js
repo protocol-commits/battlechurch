@@ -1,0 +1,47 @@
+(function(global) {
+  const missionBriefScenarios = [
+    "fighting through deep loneliness",
+    "wrestling with rising anger",
+    "enduring the weight of grief",
+    "resisting destructive habits",
+    "holding back overwhelming anxiety",
+    "pushing through spiritual doubt",
+    "battling a sense of worthlessness",
+    "struggling against persistent guilt",
+    "fighting old wounds resurfacing",
+    "resisting bitterness taking root",
+    "enduring the strain of burnout",
+    "wrestling with fear of failure",
+    "pushing back against shame",
+    "fighting to forgive someone",
+    "resisting the pull of despair",
+    "holding firm against temptation",
+    "enduring a season of confusion",
+    "struggling with broken trust",
+    "wrestling with loneliness after loss",
+    "pushing through overwhelming stress",
+    "battling discouragement setting in",
+    "fighting the urge to withdraw",
+    "resisting resentment toward loved ones",
+    "enduring a crisis of identity",
+    "wrestling with unmet expectations",
+    "fighting through financial pressure",
+    "struggling with feeling forgotten",
+    "resisting hopelessness creeping in",
+    "pushing through relational conflict",
+    "wrestling with regret from the past",
+    "enduring the fear of the future",
+    "struggling to find purpose again",
+    "battling the pull toward isolation",
+    "fighting intrusive negative thoughts",
+    "resisting unhealthy coping habits",
+    "wrestling with jealousy and comparison",
+    "pushing back against apathy",
+    "enduring emotional exhaustion",
+    "struggling with forgiveness of self",
+    "fighting through emotional numbness"
+  ];
+
+  const ns = global.BattlechurchMissionBrief || (global.BattlechurchMissionBrief = {});
+  ns.scenarios = missionBriefScenarios;
+})(typeof window !== "undefined" ? window : globalThis);

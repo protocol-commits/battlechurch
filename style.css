@@ -1,0 +1,434 @@
+body.touch-enabled .touch-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0 32px;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+body.touch-enabled .touch-row > * {
+  pointer-events: auto;
+}
+
+body.touch-enabled .center-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+}
+/* Joystick visual styles */
+body.touch-enabled .joystick-base {
+  touch-action: none;
+  background: #222;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+body.touch-enabled .joystick-handle {
+  touch-action: none;
+  background: #888;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+/* Battle Church | Version 2025-10-30b 22:45 (America/New_York) */
+
+:root {
+  --game-width: 0px;
+  --game-height: 0px;
+  --swatch-dark: #070a16;
+  --swatch-dark-2: #0a0f1f;
+  --swatch-mid: #0f1628;
+  --swatch-light: #f6f0c3;
+  --swatch-accent: #ffd978;
+  --swatch-accent-2: #6ef4ff;
+  --swatch-border: rgba(255, 255, 255, 0.15);
+  --swatch-button-gradient: linear-gradient(135deg, #ffd43a, #ff7c5c);
+}
+
+/* Global reset */
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #000;
+  color: #fff;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Orbitron', sans-serif;
+}
+
+body {
+  font-family: inherit;
+  animation: blink 1.2s infinite;
+}
+
+/* NOTE (2025-10-30): Landscape-phone layout still WIP.
+   - Space button sits correctly in left black letterbox; leave placement alone.
+   - Joysticks must stay inside side letterboxes and be vertically centered; currently they sit low and drift inward.
+   - Tablet + wider phones already look correct; restrict fixes to this media query so we do not regress them.
+   - Touch controls forced visible for testing on desktop—undo once layout finalized. */
+body.touch-enabled #touchControls {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-areas: 'space space' 'left right';
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  pointer-events: auto;
+}
+
+body.touch-enabled .center-controls {
+  grid-area: space;
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 16px;
+  pointer-events: auto;
+}
+
+body.touch-enabled .center-controls button {
+  pointer-events: auto;
+  padding: 10px 18px;
+  font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+}
+
+body.touch-enabled .joystick-area.left {
+  grid-area: left;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-left: 16px;
+  pointer-events: auto;
+}
+
+body.touch-enabled .button-area.right {
+  grid-area: right;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 18px;
+  padding-right: 16px;
+  pointer-events: auto;
+}
+
+body.touch-enabled .ab-button {
+  touch-action: none;
+  pointer-events: auto;
+  width: clamp(44px, 8vw, 60px);
+  height: clamp(44px, 8vw, 60px);
+  border-radius: 50%;
+  background: #e53935;
+  color: #fff;
+  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-family: inherit;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  margin: 0;
+  transition: background 0.2s;
+}
+body.touch-enabled .ab-button#buttonB {
+  background: #43a047;
+}
+body.touch-enabled .ab-button:active {
+  background: #b71c1c;
+}
+
+body.touch-enabled .joystick-base {
+  width: clamp(44px, 8vw, 60px);
+  height: clamp(44px, 8vw, 60px);
+  pointer-events: auto;
+}
+
+body.touch-enabled .joystick-handle {
+  width: clamp(20px, 4.5vw, 30px);
+  height: clamp(20px, 4.5vw, 30px);
+}
+
+.upgrade-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(4, 7, 14, 0.1);
+  background-image: url("assets/backgrounds/church-1108.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 120;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.upgrade-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.upgrade-overlay__panel {
+  width: min(520px, 90vw);
+  padding: 32px;
+  background: var(--swatch-mid);
+  border-radius: 20px;
+  border: 1px solid var(--swatch-border);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65);
+  color: #f2f6ff;
+  font-family: "Press Start 2P", "Courier New", monospace;
+}
+
+.upgrade-overlay__header h2 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 0.06em;
+}
+
+.upgrade-overlay__header p {
+  margin: 6px 0 16px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.upgrade-overlay__keys {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.upgrade-overlay__keys .keys-value {
+  font-size: 26px;
+  color: var(--swatch-accent);
+}
+
+.upgrade-overlay__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.upgrade-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto 110px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.upgrade-row__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.upgrade-row__label {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.upgrade-row__desc {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.upgrade-row__value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #9af7ff;
+}
+
+.upgrade-row__cost {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: right;
+}
+
+.upgrade-row__cost strong {
+  display: block;
+  font-size: 14px;
+  color: var(--swatch-accent);
+}
+
+.upgrade-row__button {
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: none;
+  color: #041b25;
+  background: var(--swatch-button-gradient);
+  cursor: pointer;
+}
+
+.upgrade-row__button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.upgrade-overlay__actions {
+  text-align: center;
+}
+
+.upgrade-overlay__confirm {
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 14px;
+  border: none;
+  background: var(--swatch-accent-2);
+  color: #041b25;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 7, 14, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 130;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.dialog-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dialog-overlay--summary,
+.dialog-overlay--howto {
+  align-items: center;
+  justify-content: center;
+  background-image: url("assets/backgrounds/church-1108.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.dialog-overlay--mission {
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 48px;
+  background: transparent !important;
+  background-image: none !important;
+}
+.dialog-overlay--mission.visible {
+  background: transparent !important;
+  pointer-events: auto;
+}
+.dialog-overlay--pause {
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+.dialog-overlay--gameover {
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: 40px;
+  background: rgba(0, 0, 0, 0.7);
+  background-image: url("assets/backgrounds/game-over.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.dialog-overlay--title {
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 40px;
+  background-image: url("assets/backgrounds/title.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.dialog-overlay--summary .dialog-overlay__panel {
+  width: min(400px, 90vw);
+  margin-top: 32px;
+  background: rgba(8, 16, 28, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.dialog-overlay__panel {
+  width: min(520px, 90vw);
+  padding: 32px;
+  background: var(--swatch-mid);
+  border-radius: 20px;
+  border: 1px solid var(--swatch-border);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65);
+  color: #f2f6ff;
+  font-family: "Press Start 2P", "Courier New", monospace;
+  text-align: center;
+}
+
+.dialog-overlay__title {
+  font-size: 28px;
+  margin: 0;
+  color: var(--swatch-accent);
+}
+
+.dialog-overlay__body {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 12px;
+  white-space: pre-line;
+}
+
+.dialog-overlay__portrait-canvas {
+  width: 100%;
+  height: auto;
+  display: none;
+  margin-top: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.05);
+}
+
+.dialog-overlay--summary .dialog-overlay__portrait-canvas {
+  display: block;
+}
+
+.dialog-overlay__button {
+  margin-top: 28px;
+  padding: 12px 24px;
+  border-radius: 14px;
+  border: none;
+  background: var(--swatch-accent-2);
+  color: #041b25;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.dialog-overlay__button:active {
+  transform: translateY(2px);
+}

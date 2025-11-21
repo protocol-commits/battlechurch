@@ -1,0 +1,13 @@
+# Ignore Mac System Trash
+.DS_Store
+
+# Ignore Passwords
+.vscode/sftp.json
+
+# Ignore Photoshop files (Git hates these)
+*.psd
+*.PSD
+
+# Ignore Zip files (Sprite packs you downloaded)
+*.zip
+*.rar
