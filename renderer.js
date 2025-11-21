@@ -1908,7 +1908,11 @@ function drawLevelAnnouncements() {
           ctx.stroke();
           ctx.restore();
         }
-        if (window._meleeAttackState.buttonDown && chargeTimer > 0) {
+        if (
+          window._meleeAttackState.buttonDown &&
+          chargeTimer > 0 &&
+          !window._meleeAttackState.isCharging
+        ) {
           const progress = Math.min(1, chargeTimer / Math.max(0.0001, holdTime));
           const pulse = 0.6 + 0.2 * Math.sin(Date.now() * 0.03 * 20) * 0.5;
           const radius = Math.max(player.radius * 1.4, 34 * worldScale) + progress * 24 * worldScale;
