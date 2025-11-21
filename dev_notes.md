@@ -132,6 +132,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - (29) 2024-11-05 Emotional Intelligence upgrades now also push NPC projectile damage, scale, and fire rate up by 10% per stat level so every boost strengthens their friendly arrows (`game.js`, `stats_manager.js`), keeping the support layer consistent.
 - (30) 2024-11-05 Added a developer hotkey (`K`) that instantly grants 500 keys and surfaces the status via `setDevStatus`, easing progression testing scenarios (`game.js`).
 - (31) 2024-11-05 Restored the NPC “Harmony” harp power-up so it now grants a global 50% boost to NPC damage, fire rate, and projectile scale for the buff duration, while still keeping the stat-driven upgrades as the baseline (`game.js`, `powerup_definitions.js`).
+- (32) 2024-11-05 Melee charge now fires after 1.5s of holding the attack button instead of 2.0s, keeping the rush/Divine Shot timing tighter (`game.js`).
 
 ### Updating Protocol
 1. Before touching a major subsystem, log the goal(s) and target files so future sessions understand why the change happened.
