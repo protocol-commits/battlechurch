@@ -8270,55 +8270,6 @@ const MELEE_BASE_DAMAGE = 500;
       meleeAttackState.rushDustAccumulator = 0;
     };
 
-    const executeMeleeAttack = (direction) => {
-      meleeAttackState.active = true;
-      meleeAttackState.fade = MELEE_DAMAGE_DURATION;
-      meleeAttackState.cooldown = MELEE_COOLDOWN;
-      const meleeRadius = MELEE_DAMAGE_RADIUS;
-      const pushbackRadius = MELEE_PUSHBACK_RADIUS;
-      const offset = MELEE_OFFSET;
-      const normalized = normalizeVector(direction.x, direction.y);
-      const meleeX = player.x + normalized.x * offset;
-      const meleeY = player.y + normalized.y * offset;
-      const pushbackOffset = offset + (pushbackRadius - MELEE_DAMAGE_RADIUS);
-      const pushbackCenterX = player.x + normalized.x * pushbackOffset;
-      const pushbackCenterY = player.y + normalized.y * pushbackOffset;
-      const meleeBase = MELEE_BASE_DAMAGE;
-      const meleeMultiplier = window.StatsManager
-        ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
-        : 1;
-      const meleeDamage = Math.max(1, Math.round(meleeBase * meleeMultiplier));
-      for (const enemy of enemies) {
-        if (enemy.dead || enemy.state === "death") continue;
-        const dx = enemy.x - meleeX;
-        const dy = enemy.y - meleeY;
-        const dist = Math.hypot(dx, dy);
-        const enemyRadius = enemy.config?.hitRadius || enemy.radius || 0;
-        const damageRange = meleeRadius + enemyRadius;
-        const dxPushback = enemy.x - pushbackCenterX;
-        const dyPushback = enemy.y - pushbackCenterY;
-        const distPushback = Math.hypot(dxPushback, dyPushback);
-        const pushbackRange = pushbackRadius + enemyRadius;
-        if (dist < damageRange) {
-          enemy.takeDamage(meleeDamage);
-          if (enemy.health > 0) {
-            const normX = dist > 0 ? dx / dist : normalized.x;
-            const normY = dist > 0 ? dy / dist : normalized.y;
-            enemy.x += normX * MELEE_DAMAGE_KNOCKBACK;
-            enemy.y += normY * MELEE_DAMAGE_KNOCKBACK;
-          }
-          if (typeof showDamage === "function") {
-            showDamage(enemy, meleeDamage, { color: "#ff4444", critical: true });
-          }
-        } else if (distPushback < pushbackRange) {
-          const normX = distPushback > 0 ? dxPushback / distPushback : normalized.x;
-          const normY = distPushback > 0 ? dyPushback / distPushback : normalized.y;
-          enemy.x += normX * MELEE_PUSHBACK_STRENGTH;
-          enemy.y += normY * MELEE_PUSHBACK_STRENGTH;
-        }
-      }
-    };
-
     const direction = getMeleeDirection();
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     const isButtonDown = Boolean(input.nesAButtonActive);
@@ -8362,11 +8313,10 @@ const MELEE_BASE_DAMAGE = 500;
         // Let the rush finish on its own.
       } else if (meleeAttackState.isCharging) {
         spawnDivineShot(direction);
-      } else if (meleeAttackState.cooldown === 0) {
-        executeMeleeAttack(direction);
       }
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = false;
+      clearDivineChargeSparkVisual();
       meleeAttackState.chargeFlashTriggered = false;
       meleeAttackState.awaitRush = true;
       meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
