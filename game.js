@@ -5246,8 +5246,12 @@ class Projectile {
     this.x = x;
     this.y = y;
     const direction = normalizeVector(dx, dy);
-    this.vx = direction.x * config.speed;
-    this.vy = direction.y * config.speed;
+    const projectorSpeed = Number.isFinite(config.speed)
+      ? config.speed
+      : Math.hypot(direction.x, direction.y);
+    this.speed = Math.max(0, projectorSpeed);
+    this.vx = direction.x * this.speed;
+    this.vy = direction.y * this.speed;
     this.rotation = Math.atan2(this.vy, this.vx);
     this.life = config.life ?? 5;
     this.radius = config.radius;
@@ -5264,6 +5268,9 @@ class Projectile {
     this.friendly = config.friendly ?? true;
     this.source = config.source || null;
     this.hitEntities = new Set();
+    this.homingTarget = config.homingTarget || null;
+    this.homingDuration = Math.max(0, config.homingDuration || 0);
+    this.homingStrength = Math.max(0, config.homingStrength ?? 0);
     if (config.frames && config.frames.length) {
       this.frames = config.frames;
       this.frameDuration = config.frameDuration || 0.05;
@@ -5278,6 +5285,32 @@ class Projectile {
   }
 
   update(dt) {
+    if (this.homingTarget) {
+      if (this.homingTarget.dead || this.homingTarget.departed) {
+        this.homingTarget = null;
+      } else if (this.homingDuration > 0 && this.homingStrength > 0) {
+        const targetDir = normalizeVector(
+          this.homingTarget.x - this.x,
+          this.homingTarget.y - this.y,
+        );
+        const currentDir = normalizeVector(this.vx, this.vy);
+        const blend = Math.min(1, this.homingStrength * dt);
+        const combinedDir = normalizeVector(
+          currentDir.x * (1 - blend) + targetDir.x * blend,
+          currentDir.y * (1 - blend) + targetDir.y * blend,
+        );
+        const currentSpeed = this.speed || Math.hypot(this.vx, this.vy);
+        if ((combinedDir.x !== 0 || combinedDir.y !== 0) && currentSpeed > 0) {
+          this.vx = combinedDir.x * currentSpeed;
+          this.vy = combinedDir.y * currentSpeed;
+          this.rotation = Math.atan2(this.vy, this.vx);
+        }
+        this.homingDuration = Math.max(0, this.homingDuration - dt);
+        if (this.homingDuration <= 0) {
+          this.homingTarget = null;
+        }
+      }
+    }
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.life -= dt;
@@ -8032,10 +8065,13 @@ const MELEE_BASE_DAMAGE = 500;
   const RUSH_PUSHBACK_STRENGTH = 50 * WORLD_SCALE;
   const RUSH_COOLDOWN = 3.0;
   const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
-  const RUSH_INVULNERABILITY = 0.4;
-  const DIVINE_SHOT_DAMAGE = 1200;
-  const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
-  const DIVINE_SHOT_LIFE = 2.8;
+      const RUSH_INVULNERABILITY = 0.4;
+      const DIVINE_SHOT_DAMAGE = 1200;
+      const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
+      const DIVINE_SHOT_LIFE = 2.8;
+      const DIVINE_SHOT_AUTO_AIM_DURATION = 1.6;
+      const DIVINE_SHOT_AUTO_AIM_STRENGTH = 3.2;
+      const DIVINE_SHOT_AUTO_AIM_MIN_DOT = 0.25;
   if (input && player) {
     const playerAlive = Boolean(player && player.state !== "death");
     if (!playerAlive) {
@@ -8129,11 +8165,37 @@ const MELEE_BASE_DAMAGE = 500;
       if (player) player.invulnerableTimer = Math.max(player.invulnerableTimer, RUSH_INVULNERABILITY);
     };
 
+    function findDivineShotTarget(direction) {
+      if (!player || !direction) return null;
+      const normalized = normalizeVector(direction.x, direction.y);
+      if (normalized.x === 0 && normalized.y === 0) return null;
+      let best = null;
+      let bestScore = DIVINE_SHOT_AUTO_AIM_MIN_DOT;
+      const maxDimension = Math.max(canvas.width, canvas.height, 1);
+      for (const enemy of enemies) {
+        if (!enemy || enemy.dead || enemy.state === "death" || enemy.departed) continue;
+        const dx = enemy.x - player.x;
+        const dy = enemy.y - player.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist === 0) continue;
+        const toEnemy = normalizeVector(dx, dy);
+        const dot = normalized.x * toEnemy.x + normalized.y * toEnemy.y;
+        if (dot < DIVINE_SHOT_AUTO_AIM_MIN_DOT) continue;
+        const score = dot - dist / maxDimension;
+        if (score > bestScore) {
+          bestScore = score;
+          best = enemy;
+        }
+      }
+      return best;
+    }
+
     const spawnDivineShot = (direction) => {
       const normalized = normalizeVector(direction.x, direction.y);
       if (normalized.x === 0 && normalized.y === 0) return;
       const startX = player.x + normalized.x * player.radius * 1.4;
       const startY = player.y + normalized.y * player.radius * 1.4;
+      const targetedEnemy = findDivineShotTarget(direction);
       spawnProjectile("fire", startX, startY, normalized.x, normalized.y, {
         damage: DIVINE_SHOT_DAMAGE * 1,
         speed: DIVINE_SHOT_SPEED * 1.25,
@@ -8144,6 +8206,9 @@ const MELEE_BASE_DAMAGE = 500;
         loopFrames: true,
         friendly: true,
         source: player,
+        homingTarget: targetedEnemy,
+        homingDuration: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_DURATION : 0,
+        homingStrength: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_STRENGTH : 0,
       });
       meleeAttackState.cooldown = MELEE_COOLDOWN;
       meleeAttackState.rushDustAccumulator = 0;
