@@ -130,6 +130,8 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - (27) 2024-11-05 Player deaths now trigger a mini-cinematic: after the hero dies with no lives left the scene stays frozen in the final death frame for 5 seconds (enemies wander freely), then three mini-imp swarms pour into the arena while a second-long fade-to-black ramps up, and only once the fade finishes does `gameOver` flip on — at that point we open a DOM “Game Over” dialog (buy-in text + Restart action) instead of drawing the in-canvas banner so the narrative copy always appears once the fade completes.
 - (28) 2024-11-05 Respawns now drop the pastor at the top-center of the battlefield with full health so each life truly starts fresh; the death animation still plays when HP reaches 0, and the DOM game over dialog stays mid-screen while the demons roam behind.
 - (29) 2024-11-05 Emotional Intelligence upgrades now also push NPC projectile damage, scale, and fire rate up by 10% per stat level so every boost strengthens their friendly arrows (`game.js`, `stats_manager.js`), keeping the support layer consistent.
+- (30) 2024-11-05 Added a developer hotkey (`K`) that instantly grants 500 keys and surfaces the status via `setDevStatus`, easing progression testing scenarios (`game.js`).
+- (31) 2024-11-05 Removed the NPC “Harmony” extend power-up and all per-NPC timers so every companion now only benefits from the stat-driven damage/rate/scale boosts, keeping the support layer uniform (`game.js`, `powerup_definitions.js`).
 
 ### Updating Protocol
 1. Before touching a major subsystem, log the goal(s) and target files so future sessions understand why the change happened.

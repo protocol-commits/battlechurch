@@ -705,8 +705,6 @@ const MAGIC_FIREBALL_SPRITE_PATH = `${MAGIC_PACK_ROOT}/fireball/sprites`;
 const MAGIC_FLASH_SPRITE_PATH = `${MAGIC_PACK_ROOT}/flash/sprites`;
 const POWERUP_PLAYFIELD_MARGIN = 140;
 const CONRAD_UTILITY_POWERUP_MAX_HEIGHT = 48 * WORLD_SCALE;
-const NPC_EXTEND_THRESHOLDS = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5];
-
 function resizeCanvas() {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
@@ -763,7 +761,11 @@ Input.initialize({
   moveStickBase,
   aimStickBase,
   virtualSpaceButton,
-  onAnyKeyDown: () => {
+  onAnyKeyDown: (key) => {
+    if (key === "k") {
+      addKeys(500);
+      setDevStatus("Dev: +500 keys");
+    }
     if (!gameStarted && !paused) gameStarted = true;
   },
   shouldUpdatePointer: () => Boolean(player),
@@ -3226,45 +3228,6 @@ function shuffleArray(array) {
   return arr;
 }
 
-function applyNpcExtendPower(duration) {
-  if (!duration || !npcs.length) return 0;
-  const statsManager = typeof window !== "undefined" ? window.StatsManager : null;
-  const emotionalValue =
-    Number.isFinite(statsManager?.getStatValue?.("emotional_intelligence"))
-      ? statsManager.getStatValue("emotional_intelligence")
-      : 1;
-  const boostDuration = Math.max(0.1, duration);
-  const activeNpcs = npcs.filter((npc) => npc && npc.active && !npc.departed);
-  if (!activeNpcs.length) return 0;
-  activeNpcs.forEach((npc) => {
-    npc.npcUtilityAttackDuration = Math.max(npc.npcUtilityAttackDuration || 0, boostDuration);
-    npc.npcUtilityAttackTimer = Math.max(npc.npcUtilityAttackTimer || 0, boostDuration);
-  });
-  const targetCount = Math.max(
-    1,
-    Math.min(
-      NPC_EXTEND_THRESHOLDS.filter((threshold) => emotionalValue >= threshold).length,
-      activeNpcs.length,
-    ),
-  );
-  if (targetCount <= 0) return 0;
-  const candidates = shuffleArray(activeNpcs);
-  if (!candidates.length) return 0;
-  const selected = candidates.slice(0, Math.min(targetCount, candidates.length));
-  selected.forEach((npc) => {
-    npc.npcExtendedAttackDuration = Math.max(npc.npcExtendedAttackDuration || 0, boostDuration);
-    npc.npcExtendedAttackTimer = Math.max(npc.npcExtendedAttackTimer || 0, boostDuration);
-    try {
-      spawnChattyAppeaseEffect(npc.x, npc.y - (npc.radius || 24) / 2, {
-        radius: npc.radius || 24,
-      });
-    } catch (err) {
-      console.warn && console.warn("npc extend effect failed", err);
-    }
-  });
-  return selected.length;
-}
-
 function applyUtilityPowerUp(powerUp) {
   if (!player || !powerUp) return;
   const { effect, duration = 6, speedMultiplier, extendMultiplier } = powerUp.definition;
@@ -3274,7 +3237,6 @@ function applyUtilityPowerUp(powerUp) {
     "#ffffff";
   const initialWeaponTimer = player.weaponPowerTimer;
   let addedExtendSeconds = 0;
-  let npcExtendCount = 0;
   switch (effect) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
@@ -3316,9 +3278,6 @@ function applyUtilityPowerUp(powerUp) {
       );
       addedExtendSeconds = Math.max(0, player.weaponPowerTimer - initialWeaponTimer);
       break;
-    case "npcExtend":
-      npcExtendCount = applyNpcExtendPower(duration);
-      break;
     default:
       break;
   }
@@ -3332,8 +3291,6 @@ function applyUtilityPowerUp(powerUp) {
     }
   } else if (effect === "extend" && addedExtendSeconds > 0.05) {
     floatingText = `Extended Attack +${addedExtendSeconds.toFixed(1)}s`;
-  } else if (effect === "npcExtend" && npcExtendCount > 0) {
-    floatingText = `NPCs Inspired +${npcExtendCount}`;
   }
   if (floatingText) {
     addFloatingText(floatingText, floatingColor, {
@@ -4637,10 +4594,6 @@ class CozyNpc {
     this.faith = this.maxFaith;
     // Per-NPC cooldown timer for firing projectiles (seconds). When <= 0 NPC may fire.
     this.npcArrowCooldown = 0;
-    this.npcExtendedAttackTimer = 0;
-    this.npcExtendedAttackDuration = 0;
-    this.npcUtilityAttackTimer = 0;
-    this.npcUtilityAttackDuration = 0;
     this.faithBarVisible = false;
   this.faithBarTimer = 0; // seconds to force the faith bar visible
     this.drainSource = null;
@@ -4836,8 +4789,6 @@ class CozyNpc {
     }
     if (!best) return false;
     const dir = normalizeVector(best.dx, best.dy);
-    const extendActive = (this.npcExtendedAttackTimer || 0) > 0;
-    const universalBoostActive = (this.npcUtilityAttackTimer || 0) > 0;
     const baseCooldown =
       typeof devTools?.npcFireCooldown === "number"
         ? devTools.npcFireCooldown
@@ -4850,19 +4801,11 @@ class CozyNpc {
       typeof statsManager?.getStatMultiplier === "function"
         ? Math.max(1, statsManager.getStatMultiplier("emotional_intelligence") || 1)
         : 1;
-    const effectiveCooldown = extendActive
-      ? Math.max(0.02, baseCooldown / 3)
-      : baseCooldown;
-    const cooldown = Math.max(0.02, effectiveCooldown / emotionalMultiplier);
-    const damageMultiplier = extendActive
-      ? 2
-      : universalBoostActive
-      ? 1.5
-      : 1;
+    const cooldown = Math.max(0.02, baseCooldown / emotionalMultiplier);
     const damage = Math.round(
-      NPC_ARROW_DAMAGE * damageMultiplier * emotionalMultiplier,
+      NPC_ARROW_DAMAGE * emotionalMultiplier,
     );
-    const baseScale = extendActive ? 2.8 : 1.2;
+    const baseScale = 1.2;
     const scale = baseScale * emotionalMultiplier;
     // spawn an arrow projectile from NPC toward the enemy
     spawnProjectile("arrow", this.x, this.y, dir.x, dir.y, {
@@ -4983,8 +4926,6 @@ class CozyNpc {
     );
   this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
-    this.npcExtendedAttackTimer = Math.max(0, (this.npcExtendedAttackTimer || 0) - dt);
-    this.npcUtilityAttackTimer = Math.max(0, (this.npcUtilityAttackTimer || 0) - dt);
     if (this.statusBubblePersistent) {
       this.statusBubbleTimer = Number.POSITIVE_INFINITY;
     } else if (this.statusBubbleTimer > 0) {
@@ -5279,16 +5220,6 @@ class CozyNpc {
         ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
         : 0;
       this.animator.draw(ctx, this.x, this.y, { flashWhite: flashStrength });
-      if ((this.npcExtendedAttackTimer || 0) > 0) {
-        const pulse = (Math.sin((typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.014) + 1) / 2;
-        const alpha = Math.min(0.55, 0.25 + pulse * 0.25);
-        ctx.save();
-        ctx.globalCompositeOperation = "lighter";
-        ctx.filter = "saturate(1.3) brightness(1.2)";
-        ctx.globalAlpha = alpha;
-        this.animator.draw(ctx, this.x, this.y, { flashWhite: flashStrength });
-        ctx.restore();
-      }
       if (this.shouldShowFaithBar()) {
         this.drawFaithBar();
       }
@@ -7315,10 +7246,6 @@ function handleDeveloperHotkeys() {
     if (levelManager?.devSkipToBoss?.()) {
       setDevStatus("Boss battle engaged", 2.3);
     }
-  }
-  if (keysJustPressed.has("h")) {
-    const harp = spawnUtilityPowerUp("harmony");
-    setDevStatus(harp ? "Harmony harp spawned" : "No harp spawn", 1.6);
   }
   if (keysJustPressed.has("o")) {
     enemyDevLabelsVisible = !enemyDevLabelsVisible;
