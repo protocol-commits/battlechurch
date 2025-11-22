@@ -142,6 +142,9 @@ function isInRestrictedZone(x, y) {
 // ...existing code...
 // Move all requireBindings usage inside drawCongregationScene after requireBindings is defined
 /* Rendering module for Battlechurch */
+const MELEE_SWING_DURATION = 0.4;
+const MELEE_SWING_LENGTH = 200;
+
 (function setupRenderer(window) {
   // Draws a name tag at (x, y)
   function drawNameTag(ctx, name, x, y, fontFamily) {
@@ -1708,7 +1711,6 @@ function drawLevelAnnouncements() {
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);
     }
-    effects.forEach((effect) => effect.draw());
 
       // --- Enemy-player collision and damage logic ---
       if (!visitorStageActive && player && Array.isArray(enemies)) {
@@ -1784,6 +1786,11 @@ function drawLevelAnnouncements() {
       } catch (e) {}
     }
 
+    // Floating damage numbers, power-up labels, etc.
+    try {
+      drawFloatingTextsOverlay(ctx);
+    } catch (e) {}
+
     if (
       damageHitFlash > 0 &&
       player &&
@@ -1809,178 +1816,48 @@ function drawLevelAnnouncements() {
     if (isCongregationStage) {
       drawCongregationScene(levelStatus);
     }
-    drawPauseHint();
+    drawMeleeSwingOverlay(ctx, player);
+    effects.forEach((effect) => effect.draw());
+  }
 
-    if (paused && !gameOver) drawPauseOverlay();
-
-  // Prevent overlay on Congregation screen
-    if (!titleScreenActive && !paused && !gameStarted && !gameOver && !isCongregationStage) drawStartPrompt();
-    drawFloatingTextsOverlay(ctx);
-    drawEnemyHpLabelsOverlay(ctx);
-    if (arenaFadeAlpha > 0) {
-      const alpha = Math.min(1, Math.max(0, arenaFadeAlpha));
-      ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-    }
-      // NES 'A' melee weapon: show a circle next to the player in last movement direction if left arrow is pressed
-      /*
-        === MELEE SWORD (A BUTTON) FUNCTIONALITY ===
-        - The NES 'A' button is our melee weapon trigger.
-        - It represents a sword attack (melee weapon).
-        - When pressed, it shows the melee area (currently an oval) for hit detection.
-        - Animation for the sword swing will be added later.
-        - All logic for hit detection and area is based on this oval.
-        - This is the primary close-range attack for the player.
-      */
-      // Melee circle with fade effect
-  if (window._meleeAttackState && player) {
-        const dir = window.Input.lastMovementDirection || { x: 1, y: 0 };
-        ctx.save();
-        const fade = window._meleeAttackState.fade || 0;
-        const chargeTimer = window._meleeAttackState.chargeTimer || 0;
-        const holdTime = window._meleeAttackState.holdTime || 2;
-        const { WORLD_SCALE: worldScale = 1, assets } = requireBindings();
-        const fadeAlpha = Math.max(0, Math.min(1, fade / 0.25));
-        const baseAlpha = fadeAlpha * 0.55;
-        const isChargeReady =
-          window._meleeAttackState.isCharging && chargeTimer >= Math.max(0.01, holdTime);
-        const blinkAlpha = 0.35 + 0.25 * Math.sin(Date.now() * 0.018 * 8);
-        const chargeAlpha = isChargeReady
-          ? Math.min(0.9, baseAlpha + blinkAlpha * 0.65)
-          : baseAlpha;
-        // Find player position
-        let px = canvas.width / 2;
-        let py = canvas.height / 2;
-        // Account for camera parallax offset
-        const bindings = typeof requireBindings === 'function' ? requireBindings() : null;
-        const cameraOffsetX = bindings && typeof bindings.cameraOffsetX === 'number' ? bindings.cameraOffsetX : 0;
-        if (player && typeof player.x === 'number' && typeof player.y === 'number') {
-          px = player.x - cameraOffsetX;
-          py = player.y;
-        }
-        // Offset oval in last movement direction, but keep it close
-        const damageOffset = 54 * worldScale;
-        const ax = px + dir.x * damageOffset;
-        const ay = py + dir.y * damageOffset;
-        const pushbackRadius = window._meleeAttackState.pushbackRadius || (112 * worldScale);
-        const pushbackOffset = damageOffset + (pushbackRadius - 54);
-        const pushbackCenterX = px + dir.x * pushbackOffset;
-        const pushbackCenterY = py + dir.y * pushbackOffset;
-        // Make the melee area an oval: extended both horizontally and vertically
-        const radiusX = 72 * worldScale; // horizontal range (increased)
-        const radiusY = 72 * worldScale; // vertical range (increased)
-        if (fade > 0) {
-          const swordImg = assets?.weapons?.divineSword;
-          if (swordImg) {
-            ctx.save();
-            ctx.globalAlpha = chargeAlpha;
-            const targetAngle = Math.atan2(dir.y, dir.x);
-            const rotation = targetAngle + Math.PI / 4;
-            const normalizedDir = (() => {
-              const len = Math.hypot(dir.x, dir.y) || 1;
-              return { x: dir.x / len, y: dir.y / len };
-            })();
-            const hiltBackOffset = Math.max(player.radius * 0.3, 10 * worldScale);
-            const offsetX = -normalizedDir.x * hiltBackOffset;
-            const offsetY = -normalizedDir.y * hiltBackOffset;
-            ctx.translate(px + offsetX, py + offsetY);
-            ctx.rotate(rotation);
-            const desiredLength = Math.max(player.radius * 2.4, 140 * worldScale);
-            const imgDiag = Math.hypot(swordImg.width, swordImg.height) || 1;
-            const drawScale = (desiredLength / imgDiag) * 5;
-            const drawWidth = swordImg.width * drawScale;
-            const drawHeight = swordImg.height * drawScale;
-            ctx.drawImage(swordImg, 0, -drawHeight, drawWidth, drawHeight);
-            ctx.restore();
-          } else {
-            ctx.globalAlpha = chargeAlpha;
-            ctx.strokeStyle = isChargeReady ? "#ffffff" : "#ffe89b";
-            ctx.fillStyle = isChargeReady ? "rgba(255,255,255,0.35)" : "rgba(255,232,155,0.18)";
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.ellipse(ax, ay, radiusX, radiusY, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-          }
-          const pushbackAlpha = fadeAlpha * 0.35;
-          ctx.globalAlpha = pushbackAlpha;
-          ctx.lineWidth = 2;
-          ctx.setLineDash([8, 6]);
-          ctx.strokeStyle = "rgba(255,128,116,0.85)";
-          ctx.beginPath();
-          ctx.arc(pushbackCenterX, pushbackCenterY, pushbackRadius, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.setLineDash([]);
-        }
-        const shieldActive =
-          window._meleeAttackState.isRushing ||
-          (player && player.invulnerableTimer > 0 && window._meleeAttackState.rushCooldown > 0);
-        if (shieldActive) {
-        const shieldRadius = Math.max(player.radius * 2.4, 38 * worldScale);
-          const length = Math.hypot(dir.x, dir.y) || 1;
-          const shieldDirX = dir.x / length;
-          const shieldDirY = dir.y / length;
-          const baseAngle = Math.atan2(shieldDirY, shieldDirX);
-          const arcSpan = Math.PI * 0.55;
-          const startAngle = baseAngle - arcSpan / 2;
-          const endAngle = baseAngle + arcSpan / 2;
-          ctx.save();
-          ctx.globalAlpha = 0.75;
-          ctx.strokeStyle = "rgba(220, 244, 255, 0.95)";
-          ctx.lineWidth = 3.2;
-          ctx.beginPath();
-          ctx.arc(px, py, shieldRadius, startAngle, endAngle);
-          ctx.stroke();
-          ctx.restore();
-        }
-        if (
-          window._meleeAttackState.buttonDown &&
-          chargeTimer > 0 &&
-          !window._meleeAttackState.isCharging
-        ) {
-          const progress = Math.min(1, chargeTimer / Math.max(0.0001, holdTime));
-          const pulse = 0.6 + 0.2 * Math.sin(Date.now() * 0.03 * 20) * 0.5;
-          const radius = Math.max(player.radius * 1.4, 34 * worldScale) + progress * 24 * worldScale;
-          ctx.save();
-          ctx.globalAlpha = Math.min(0.72, progress * pulse);
-          ctx.fillStyle = "rgba(255, 236, 140, 0.42)";
-          ctx.beginPath();
-          ctx.arc(px, py, radius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-        }
-        if (window._meleeAttackState.swooshTimer > 0) {
-          const swooshImg = assets?.effects?.meleeSwoosh;
-          if (swooshImg && player) {
-            ctx.save();
-            const dirVec = window._meleeAttackState.swooshDir || { x: 1, y: 0 };
-            const len = Math.hypot(dirVec.x, dirVec.y) || 1;
-            const normalized = { x: dirVec.x / len, y: dirVec.y / len };
-            const angle = Math.atan2(normalized.y, normalized.x) + Math.PI / 4;
-            const offset = player.radius * 0.8;
-            const originX = px - normalized.x * offset;
-            const originY = py - normalized.y * offset;
-            ctx.translate(originX, originY);
-            ctx.rotate(angle);
-            const duration = Math.max(0.001, MELEE_SWING_DURATION);
-            const intensity = Math.min(1, window._meleeAttackState.swooshTimer / duration);
-            ctx.globalAlpha = Math.min(0.9, 0.8 + intensity * 0.2);
-            const targetLength = Math.max(player.radius * 2.2, 64 * worldScale);
-            const imgScale = (targetLength / Math.max(swooshImg.width, swooshImg.height)) * 5;
-            ctx.drawImage(
-              swooshImg,
-              0,
-              -swooshImg.height * imgScale * 0.5,
-              swooshImg.width * imgScale,
-              swooshImg.height * imgScale,
-            );
-            ctx.restore();
-          }
-        }
-        ctx.restore();
-      }
+  function drawMeleeSwingOverlay(ctx, player) {
+    if (!ctx || !player) return;
+    const state = window._meleeAttackState;
+    if (!state || state.swooshTimer <= 0) return;
+    const bindings = requireBindings();
+    const worldScale = bindings?.WORLD_SCALE ?? 1;
+    const assets = bindings?.assets;
+    const cameraOffsetX = bindings?.cameraOffsetX || 0;
+    const cameraOffsetY = bindings?.cameraOffsetY || 0;
+    const shakeX = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.x : 0) || 0;
+    const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
+    const swooshImg = assets?.effects?.meleeSwoosh;
+    if (!swooshImg) return;
+    const dirVec = state.swooshDir || window.Input.lastMovementDirection || { x: 1, y: 0 };
+    const len = Math.hypot(dirVec.x, dirVec.y) || 1;
+    const normalized = { x: dirVec.x / len, y: dirVec.y / len };
+    const angle = Math.atan2(normalized.y, normalized.x);
+    const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
+    const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
+    const drawWidth = swooshImg.width * swingScale;
+    const drawHeight = swooshImg.height * swingScale;
+    const offset = Math.max(player.radius * 0.25, drawHeight * 0.15);
+    const originX = player.x - normalized.x * offset - cameraOffsetX + shakeX;
+    const originY = player.y - normalized.y * offset - cameraOffsetY + shakeY;
+    const duration = Math.max(0.001, MELEE_SWING_DURATION);
+    const intensity = Math.min(1, state.swooshTimer / duration);
+    ctx.save();
+    ctx.translate(originX, originY);
+    ctx.rotate(angle);
+    ctx.globalAlpha = Math.min(0.9, 0.65 + intensity * 0.35);
+    ctx.drawImage(
+      swooshImg,
+      0,
+      -drawHeight * 0.5,
+      drawWidth,
+      drawHeight,
+    );
+    ctx.restore();
   }
 
   function drawFloatingTextsOverlay(context) {

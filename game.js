@@ -1,25 +1,3 @@
-  // Melee circle fade logic
-  if (!window._meleeAttackState)
-    window._meleeAttackState = {
-      active: false,
-      fade: 0,
-      cooldown: 0,
-      damageRadius: 54,
-      pushbackRadius: 80,
-    };
-  const meleeAttackState = window._meleeAttackState;
-  // If melee attack just triggered, start fade timer
-  if (meleeAttackState.active && meleeAttackState.fade <= 0) {
-    meleeAttackState.fade = 0.25; // seconds to show circle
-  }
-  // Fade out timer
-  if (meleeAttackState.fade > 0) {
-    meleeAttackState.fade -= dt;
-    if (meleeAttackState.fade <= 0) {
-      meleeAttackState.fade = 0;
-      // TODO: Hide melee circle visual here (renderer.js should check fade)
-    }
-  }
 /* Top-down adventure sandbox | Version 2025-10-30b */
 
 const canvas = document.getElementById("gameCanvas");
@@ -1153,13 +1131,12 @@ const OBSTACLE_LAYOUT = Array.isArray(DECOR_CONFIG.OBSTACLE_LAYOUT)
 const MAGIC_PACK7_ROOT = "assets/sprites/magic-pack-7/sprites";
 const MAGIC_PACK10_ROOT = "assets/sprites/magic-pack-10/sprites";
 const MAGIC_PACK10_SHEETS_ROOT = "assets/sprites/magic-pack-10/spritesheets";
-const WEAPONS_PACK_ROOT = "assets/sprites/WeaponsPack";
-const DIVINE_SWORD_PATH = `${WEAPONS_PACK_ROOT}/sword2normal.png`;
 const DIVINE_CHARGE_SPARK_ROOT = `${MAGIC_PACK10_ROOT}/Sparks`;
 const DIVINE_CHARGE_SPARK_COUNT = 16;
 const DIVINE_CHARGE_SPARK_FRAME_DURATION = 0.06;
 const DIVINE_CHARGE_SPARK_SCALE = 1.5;
 const DIVINE_CHARGE_SPARK_OFFSET = 18;
+const MELEE_SWOOSH_PATH = "assets/sprites/conrad/actions/swoosh.png";
 const WISDOM_FRAME_START = 9;
 const WISDOM_FRAME_END = 18;
 const WISDOM_FRAME_SOURCES = Array.from(
@@ -2475,8 +2452,7 @@ async function loadAssets() {
       loadImage(`${DIVINE_CHARGE_SPARK_ROOT}/sparks${i + 1}.png`),
     ),
   );
-  assets.weapons = assets.weapons || {};
-  assets.weapons.divineSword = await loadImage(DIVINE_SWORD_PATH).catch(() => null);
+  assets.effects.meleeSwoosh = await loadImage(MELEE_SWOOSH_PATH).catch(() => null);
   assets.npcs = await npcAssetsPromise;
   const keyFrames = (await keyFramesPromise).filter(Boolean);
   assets.items.keyPickup = {
@@ -8082,8 +8058,6 @@ function updateGame(dt) {
       active: false,
       fade: 0,
       cooldown: 0,
-      damageRadius: 54,
-      pushbackRadius: 80,
       buttonDown: false,
       chargeTimer: 0,
       isCharging: false,
@@ -8096,11 +8070,11 @@ function updateGame(dt) {
       chargeFlashTriggered: false,
       awaitRush: false,
       awaitTimer: 0,
+      swooshTimer: 0,
+      swooshDir: { x: 1, y: 0 },
     };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
-const MELEE_DAMAGE_RADIUS = 54 * WORLD_SCALE;
-const MELEE_PUSHBACK_RADIUS = 80 * WORLD_SCALE;
 const MELEE_OFFSET = 54 * WORLD_SCALE;
 const MELEE_DAMAGE_KNOCKBACK = 48 * WORLD_SCALE;
 const MELEE_PUSHBACK_STRENGTH = 36 * WORLD_SCALE;
@@ -8109,6 +8083,7 @@ const MELEE_COOLDOWN = 0.55;
 const MELEE_DOUBLE_TAP_WINDOW = 0.18;
 const MELEE_HOLD_CHARGE_TIME = 1.5;
 const MELEE_BASE_DAMAGE = 500;
+const MELEE_SWING_LENGTH = 200;
   const RUSH_DISTANCE = 150 * WORLD_SCALE;
   const RUSH_SPEED = 1200 * SPEED_SCALE;
   const RUSH_DAMAGE = 250;
@@ -8116,9 +8091,10 @@ const MELEE_BASE_DAMAGE = 500;
   const RUSH_PUSHBACK_RADIUS = 52 * WORLD_SCALE;
   const RUSH_PUSHBACK_STRENGTH = 50 * WORLD_SCALE;
   const RUSH_COOLDOWN = 3.0;
-  const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
-  const RUSH_INVULNERABILITY = 0.4;
-  const DIVINE_SHOT_DAMAGE = 1200;
+const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
+const RUSH_INVULNERABILITY = 0.4;
+const MELEE_SWING_DURATION = 0.4;
+const DIVINE_SHOT_DAMAGE = 1200;
   const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
   const DIVINE_SHOT_LIFE = 2.8;
   const DIVINE_SHOT_AUTO_AIM_DURATION = 1.6;
@@ -8134,8 +8110,6 @@ const MELEE_BASE_DAMAGE = 500;
       clearDivineChargeSparkVisual();
       return;
     }
-    meleeAttackState.damageRadius = MELEE_DAMAGE_RADIUS;
-    meleeAttackState.pushbackRadius = MELEE_PUSHBACK_RADIUS;
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
     meleeAttackState.cooldown = Math.max(0, (meleeAttackState.cooldown || 0) - dt);
     const prevRushCooldown = Math.max(0, meleeAttackState.rushCooldown || 0);
@@ -8244,6 +8218,54 @@ const MELEE_BASE_DAMAGE = 500;
       return best;
     }
 
+    function executeMeleeAttack(direction) {
+      if (!player || !direction) return;
+      const normalized = normalizeVector(direction.x, direction.y);
+      meleeAttackState.active = true;
+      meleeAttackState.fade = MELEE_DAMAGE_DURATION;
+      meleeAttackState.cooldown = MELEE_COOLDOWN;
+      meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
+      meleeAttackState.swooshDir = normalized;
+      const meleeBase = MELEE_BASE_DAMAGE;
+      const meleeStatMultiplier = window.StatsManager
+        ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
+        : 1;
+      const meleeDamage = Math.max(1, Math.round(meleeBase * meleeStatMultiplier));
+      const swooshImg = assets?.effects?.meleeSwoosh;
+      const baseWidth = swooshImg?.width || 64;
+      const baseHeight = swooshImg?.height || 16;
+      const targetLength = MELEE_SWING_LENGTH * WORLD_SCALE * meleeStatMultiplier;
+      const swingScale = targetLength / Math.max(1, baseWidth);
+      const swingLength = baseWidth * swingScale;
+      const swingHeight = baseHeight * swingScale;
+      const swingOffset = Math.max(player.radius * 0.25, swingHeight * 0.15);
+      meleeAttackState.swingLength = swingLength;
+      meleeAttackState.swingHeight = swingHeight;
+      meleeAttackState.swingScale = swingScale;
+      const originX = player.x - normalized.x * swingOffset;
+      const originY = player.y - normalized.y * swingOffset;
+      const perpDir = { x: -normalized.y, y: normalized.x };
+      for (const enemy of enemies) {
+      if (enemy.dead || enemy.state === "death") continue;
+      const relX = enemy.x - originX;
+      const relY = enemy.y - originY;
+      const forward = relX * normalized.x + relY * normalized.y;
+      if (forward < 0 || forward > swingLength) continue;
+      const perp = Math.abs(relX * perpDir.x + relY * perpDir.y);
+      const allowance = enemy.radius || enemy.config?.hitRadius || 0;
+      if (perp > swingHeight / 2 + allowance) continue;
+      enemy.takeDamage(meleeDamage);
+      spawnFlashEffect(enemy.x, enemy.y - (enemy.radius || (enemy.config?.hitRadius || 0)) / 2);
+      if (enemy.health > 0) {
+          enemy.x += normalized.x * MELEE_DAMAGE_KNOCKBACK;
+          enemy.y += normalized.y * MELEE_DAMAGE_KNOCKBACK;
+        }
+        if (typeof showDamage === "function") {
+          showDamage(enemy, meleeDamage, { color: "#ff4444", critical: true });
+        }
+      }
+    }
+
     const spawnDivineShot = (direction) => {
       const normalized = normalizeVector(direction.x, direction.y);
       if (normalized.x === 0 && normalized.y === 0) return;
@@ -8275,6 +8297,7 @@ const MELEE_BASE_DAMAGE = 500;
     const isButtonDown = Boolean(input.nesAButtonActive);
     const wasButtonDown = Boolean(meleeAttackState.buttonDown);
     let rushTriggered = false;
+    let meleeAttackTriggered = false;
 
     if (isButtonDown && !wasButtonDown) {
       meleeAttackState.buttonDown = true;
@@ -8292,6 +8315,10 @@ const MELEE_BASE_DAMAGE = 500;
         rushTriggered = true;
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
+      }
+      if (!rushTriggered) {
+        executeMeleeAttack(direction);
+        meleeAttackTriggered = true;
       }
     }
 
@@ -8313,6 +8340,9 @@ const MELEE_BASE_DAMAGE = 500;
         // Let the rush finish on its own.
       } else if (meleeAttackState.isCharging) {
         spawnDivineShot(direction);
+      }
+      else if (!meleeAttackTriggered) {
+        executeMeleeAttack(direction);
       }
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = false;
@@ -8344,6 +8374,9 @@ const MELEE_BASE_DAMAGE = 500;
       if (meleeAttackState.fade === 0) {
         meleeAttackState.active = false;
       }
+    }
+    if (meleeAttackState.swooshTimer > 0) {
+      meleeAttackState.swooshTimer = Math.max(0, meleeAttackState.swooshTimer - dt);
     }
   }
 
