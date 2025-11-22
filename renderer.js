@@ -1951,6 +1951,34 @@ function drawLevelAnnouncements() {
           ctx.fill();
           ctx.restore();
         }
+        if (window._meleeAttackState.swooshTimer > 0) {
+          const swooshImg = assets?.effects?.meleeSwoosh;
+          if (swooshImg && player) {
+            ctx.save();
+            const dirVec = window._meleeAttackState.swooshDir || { x: 1, y: 0 };
+            const len = Math.hypot(dirVec.x, dirVec.y) || 1;
+            const normalized = { x: dirVec.x / len, y: dirVec.y / len };
+            const angle = Math.atan2(normalized.y, normalized.x) + Math.PI / 4;
+            const offset = player.radius * 0.8;
+            const originX = px - normalized.x * offset;
+            const originY = py - normalized.y * offset;
+            ctx.translate(originX, originY);
+            ctx.rotate(angle);
+            const duration = Math.max(0.001, MELEE_SWING_DURATION);
+            const intensity = Math.min(1, window._meleeAttackState.swooshTimer / duration);
+            ctx.globalAlpha = Math.min(0.9, 0.8 + intensity * 0.2);
+            const targetLength = Math.max(player.radius * 2.2, 64 * worldScale);
+            const imgScale = (targetLength / Math.max(swooshImg.width, swooshImg.height)) * 5;
+            ctx.drawImage(
+              swooshImg,
+              0,
+              -swooshImg.height * imgScale * 0.5,
+              swooshImg.width * imgScale,
+              swooshImg.height * imgScale,
+            );
+            ctx.restore();
+          }
+        }
         ctx.restore();
       }
   }
