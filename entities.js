@@ -952,6 +952,18 @@ class Player {
     return PROJECTILE_CONFIG.fire.cooldownAfterFire * this.fireCooldownMultiplier;
   }
 
+  getMagicDamage() {
+    return Math.max(
+      this.getWisdomMissleDamage(),
+      this.getFaithCannonDamage(),
+      this.getFireDamage(),
+    );
+  }
+
+  getPigDamage() {
+    return this.getFireDamage();
+  }
+
   getArrowProjectileScale() {
     const baseScale = PROJECTILE_CONFIG.arrow.scale || 1;
     return this.isArrowExtendProjectileBuffActive() ? baseScale * 2 : baseScale;
