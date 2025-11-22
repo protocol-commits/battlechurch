@@ -8248,39 +8248,50 @@ const DIVINE_SHOT_DAMAGE = 1200;
       const originX = player.x - normalized.x * swingOffset;
       const originY = player.y - normalized.y * swingOffset;
       const perpDir = { x: -normalized.y, y: normalized.x };
-      for (const enemy of enemies) {
-      if (enemy.dead || enemy.state === "death") continue;
-      const relX = enemy.x - originX;
-      const relY = enemy.y - originY;
-      const forward = relX * normalized.x + relY * normalized.y;
-      if (forward < 0 || forward > swingLength) continue;
-      const perp = Math.abs(relX * perpDir.x + relY * perpDir.y);
-      const allowance = enemy.radius || enemy.config?.hitRadius || 0;
-      if (perp > swingHeight / 2 + allowance) continue;
-      enemy.takeDamage(meleeDamage);
-      spawnFlashEffect(enemy.x, enemy.y - (enemy.radius || (enemy.config?.hitRadius || 0)) / 2);
-      if (enemy.health > 0) {
-        enemy.x += normalized.x * MELEE_DAMAGE_KNOCKBACK;
-        enemy.y += normalized.y * MELEE_DAMAGE_KNOCKBACK;
-      }
-      if (typeof showDamage === "function") {
-        showDamage(enemy, meleeDamage, { color: "#ff4444", critical: true });
-      }
-    }
+      const allowanceRadius = (target) => target?.radius || target?.config?.hitRadius || 0;
+      const hitTarget = (target) => {
+        if (!target || target.dead || target.state === "death") return false;
+        const relX = target.x - originX;
+        const relY = target.y - originY;
+        const forward = relX * normalized.x + relY * normalized.y;
+        if (forward < 0 || forward > swingLength) return false;
+        const perp = Math.abs(relX * perpDir.x + relY * perpDir.y);
+        const allowance = allowanceRadius(target);
+        if (perp > swingHeight / 2 + allowance) return false;
+        if (typeof target.takeDamage === "function") {
+          target.takeDamage(meleeDamage);
+        } else if (typeof target.health === "number") {
+          target.health = Math.max(0, target.health - meleeDamage);
+        }
+        spawnFlashEffect(target.x, target.y - allowance * 0.5);
+        if (target.health > 0 && typeof target.takeDamage === "function") {
+          target.x += normalized.x * MELEE_DAMAGE_KNOCKBACK;
+          target.y += normalized.y * MELEE_DAMAGE_KNOCKBACK;
+        }
+        if (typeof showDamage === "function") {
+          showDamage(target, meleeDamage, { color: "#ff4444", critical: true });
+        }
+        return true;
+      };
 
-    for (const projectile of projectiles) {
-      if (!projectile || projectile.dead || projectile.friendly) continue;
-      const relX = projectile.x - originX;
-      const relY = projectile.y - originY;
-      const forwardProj = relX * normalized.x + relY * normalized.y;
-      if (forwardProj < 0 || forwardProj > swingLength) continue;
-      const perpProj = Math.abs(relX * perpDir.x + relY * perpDir.y);
-      const allowanceProj = projectile.radius || projectile.config?.radius || 0;
-      if (perpProj > swingHeight / 2 + allowanceProj) continue;
-      projectile.dead = true;
-      spawnFlashEffect(projectile.x, projectile.y);
+      for (const enemy of enemies) {
+        hitTarget(enemy);
+      }
+      hitTarget(activeBoss);
+
+      for (const projectile of projectiles) {
+        if (!projectile || projectile.dead || projectile.friendly) continue;
+        const relX = projectile.x - originX;
+        const relY = projectile.y - originY;
+        const forwardProj = relX * normalized.x + relY * normalized.y;
+        if (forwardProj < 0 || forwardProj > swingLength) continue;
+        const perpProj = Math.abs(relX * perpDir.x + relY * perpDir.y);
+        const allowanceProj = projectile.radius || projectile.config?.radius || 0;
+        if (perpProj > swingHeight / 2 + allowanceProj) continue;
+        projectile.dead = true;
+        spawnFlashEffect(projectile.x, projectile.y);
+      }
     }
-  }
 
     const spawnDivineShot = (direction) => {
       const normalized = normalizeVector(direction.x, direction.y);
