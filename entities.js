@@ -682,6 +682,7 @@ class Player {
       spawnProjectile("arrow", originX, originY, direction.x, direction.y, {
         damage: this.getArrowDamage(),
         scale: this.getArrowProjectileScale(),
+        source: this,
       });
       this.state = "attackArrow";
       this.animator.play("attackArrow", { restart: true });
@@ -697,6 +698,7 @@ class Player {
       const originY = this.y + direction.y * originOffset;
       spawnProjectile("heart", originX, originY, direction.x, direction.y, {
         damage: 0,
+        source: this,
       });
       this.state = "attackArrow";
       this.animator.play("attackArrow", { restart: true });
@@ -713,6 +715,7 @@ class Player {
       const originY = this.y + direction.y * originOffset;
       const projectile = spawnProjectile("coin", originX, originY, direction.x, direction.y, {
         frameDuration: COIN_FRAME_DURATION,
+        source: this,
       });
       if (!projectile) return;
       this.state = "attackArrow";
@@ -742,6 +745,7 @@ class Player {
         speed,
         life,
         pierce: true,
+        source: this,
       });
       this.magicCooldown = this.getWisdomMissleCooldown();
       this.state = "attackMagic";
@@ -770,6 +774,7 @@ class Player {
         speed,
         life,
         pierce: false,
+        source: this,
         onImpact: (projectile) => detonateFaithCannonProjectile(projectile, { endOfRange: false }),
         onExpire: (projectile) => {
           detonateFaithCannonProjectile(projectile, { endOfRange: true });
@@ -806,6 +811,7 @@ class Player {
         frames,
         frameDuration: 0.05,
         flipHorizontal: direction.x < 0,
+        source: this,
       });
       this.magicCooldown = this.getFireCooldown();
       this.state = "attackMagic";
