@@ -658,6 +658,8 @@ class Player {
 
   tryAttack(type) {
   if (this.state === "hurt" || this.state === "death") return;
+  const meleeAttackState = window._meleeAttackState;
+  if (meleeAttackState?.projectileBlockTimer > 0) return;
   // Prevent firing projectiles when melee circle is active
   if (window.Input && window.Input.nesAButtonActive) return;
     if (type === "arrow") {

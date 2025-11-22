@@ -8068,11 +8068,12 @@ function updateGame(dt) {
       rushCooldown: 0,
       rushDustAccumulator: 0,
       chargeFlashTriggered: false,
-      awaitRush: false,
-      awaitTimer: 0,
-      swooshTimer: 0,
-      swooshDir: { x: 1, y: 0 },
-    };
+    awaitRush: false,
+    awaitTimer: 0,
+    swooshTimer: 0,
+    swooshDir: { x: 1, y: 0 },
+    projectileBlockTimer: 0,
+  };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
 const MELEE_OFFSET = 54 * WORLD_SCALE;
@@ -8084,6 +8085,7 @@ const MELEE_DOUBLE_TAP_WINDOW = 0.18;
 const MELEE_HOLD_CHARGE_TIME = 1.5;
 const MELEE_BASE_DAMAGE = 500;
 const MELEE_SWING_LENGTH = 200;
+const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
   const RUSH_DISTANCE = 150 * WORLD_SCALE;
   const RUSH_SPEED = 1200 * SPEED_SCALE;
   const RUSH_DAMAGE = 250;
@@ -8221,11 +8223,12 @@ const DIVINE_SHOT_DAMAGE = 1200;
     function executeMeleeAttack(direction) {
       if (!player || !direction) return;
       const normalized = normalizeVector(direction.x, direction.y);
-      meleeAttackState.active = true;
-      meleeAttackState.fade = MELEE_DAMAGE_DURATION;
-      meleeAttackState.cooldown = MELEE_COOLDOWN;
-      meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
-      meleeAttackState.swooshDir = normalized;
+    meleeAttackState.active = true;
+    meleeAttackState.fade = MELEE_DAMAGE_DURATION;
+    meleeAttackState.cooldown = MELEE_COOLDOWN;
+    meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
+    meleeAttackState.swooshDir = normalized;
+    meleeAttackState.projectileBlockTimer = MELEE_SWING_DURATION + MELEE_PROJECTILE_COOLDOWN_AFTER;
       const meleeBase = MELEE_BASE_DAMAGE;
       const meleeStatMultiplier = window.StatsManager
         ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
@@ -8257,14 +8260,27 @@ const DIVINE_SHOT_DAMAGE = 1200;
       enemy.takeDamage(meleeDamage);
       spawnFlashEffect(enemy.x, enemy.y - (enemy.radius || (enemy.config?.hitRadius || 0)) / 2);
       if (enemy.health > 0) {
-          enemy.x += normalized.x * MELEE_DAMAGE_KNOCKBACK;
-          enemy.y += normalized.y * MELEE_DAMAGE_KNOCKBACK;
-        }
-        if (typeof showDamage === "function") {
-          showDamage(enemy, meleeDamage, { color: "#ff4444", critical: true });
-        }
+        enemy.x += normalized.x * MELEE_DAMAGE_KNOCKBACK;
+        enemy.y += normalized.y * MELEE_DAMAGE_KNOCKBACK;
+      }
+      if (typeof showDamage === "function") {
+        showDamage(enemy, meleeDamage, { color: "#ff4444", critical: true });
       }
     }
+
+    for (const projectile of projectiles) {
+      if (!projectile || projectile.dead || projectile.friendly) continue;
+      const relX = projectile.x - originX;
+      const relY = projectile.y - originY;
+      const forwardProj = relX * normalized.x + relY * normalized.y;
+      if (forwardProj < 0 || forwardProj > swingLength) continue;
+      const perpProj = Math.abs(relX * perpDir.x + relY * perpDir.y);
+      const allowanceProj = projectile.radius || projectile.config?.radius || 0;
+      if (perpProj > swingHeight / 2 + allowanceProj) continue;
+      projectile.dead = true;
+      spawnFlashEffect(projectile.x, projectile.y);
+    }
+  }
 
     const spawnDivineShot = (direction) => {
       const normalized = normalizeVector(direction.x, direction.y);
@@ -8377,6 +8393,12 @@ const DIVINE_SHOT_DAMAGE = 1200;
     }
     if (meleeAttackState.swooshTimer > 0) {
       meleeAttackState.swooshTimer = Math.max(0, meleeAttackState.swooshTimer - dt);
+    }
+    if (meleeAttackState.projectileBlockTimer > 0) {
+      meleeAttackState.projectileBlockTimer = Math.max(
+        0,
+        meleeAttackState.projectileBlockTimer - dt,
+      );
     }
   }
 
