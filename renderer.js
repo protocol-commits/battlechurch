@@ -1618,6 +1618,7 @@ function drawLevelAnnouncements() {
 
     obstacles.forEach((obstacle) => obstacle.draw(ctx));
     drawBossHazards(ctx);
+    let battleNpcs = [];
     if (visitorStageActive) {
       drawVisitorActors(visitorSession);
     } else {
@@ -1628,9 +1629,8 @@ function drawLevelAnnouncements() {
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         });
       } else {
-        npcs.forEach((npc) => {
-          if (!npc) return;
-          npc.draw();
+        battleNpcs = npcs.filter(Boolean);
+        battleNpcs.forEach((npc) => {
           if (npc.name) {
             const nameY = npc.y - (npc.radius || 28) * 0.35 - 20;
             dynamicNameTags.push({ name: npc.name, x: npc.x, y: nameY });
@@ -1641,7 +1641,8 @@ function drawLevelAnnouncements() {
     dynamicNameTags.forEach((entry) => {
       drawNameTag(ctx, entry.name, entry.x, entry.y, UI_FONT_FAMILY);
     });
-    if (npcFaithOverlays.length) {
+    let npcFaithOverlayFn = () => {
+      if (!npcFaithOverlays.length) return;
       npcFaithOverlays.forEach((entry) => {
         ctx.save();
         ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
@@ -1678,7 +1679,7 @@ function drawLevelAnnouncements() {
         }
         ctx.restore();
       });
-    }
+    };
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
     animals.forEach((animal) => animal.draw());
     keyPickups.forEach((pickup) => {
@@ -1695,6 +1696,10 @@ function drawLevelAnnouncements() {
       orderedEnemies.forEach((enemy) => enemy.draw());
       if (activeBoss) activeBoss.draw(ctx);
     }
+    if (!visitorStageActive && battleNpcs.length) {
+      drawBattleNpcs(ctx, battleNpcs);
+    }
+    npcFaithOverlayFn();
     projectiles.forEach((projectile) => {
       projectile.draw();
       if (
@@ -1857,6 +1862,36 @@ function drawLevelAnnouncements() {
       drawWidth,
       drawHeight,
     );
+    ctx.restore();
+  }
+
+  function drawBattleNpcs(ctx, npcsToDraw) {
+    if (!ctx || !Array.isArray(npcsToDraw) || !npcsToDraw.length) return;
+    const { visitorSession } = requireBindings();
+    if (visitorSession?.active) return;
+    npcsToDraw.forEach((npc) => {
+      if (!npc) return;
+      if (typeof npc.draw === "function") {
+        npc.draw();
+      }
+      if (npc.state === "lostFaith") {
+        drawLostFaithHighlight(ctx, npc);
+      }
+    });
+  }
+
+  function drawLostFaithHighlight(ctx, npc) {
+    if (!ctx || !npc) return;
+    const radius = (npc.radius || 28) + 10;
+    const time = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const pulse = (Math.sin(time * 0.006) + 1) / 2;
+    ctx.save();
+    ctx.strokeStyle = `rgba(255, 196, 80, ${0.35 + pulse * 0.45})`;
+    ctx.lineWidth = 3 + pulse * 2;
+    ctx.setLineDash([14, 8]);
+    ctx.beginPath();
+    ctx.arc(npc.x, npc.y, radius + pulse * 4, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
