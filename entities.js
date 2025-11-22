@@ -357,6 +357,12 @@ const getPlayerStatValue = (statKey) => {
     : 0;
 };
 
+const getResistanceTimerScale = () => {
+  const resistance = getPlayerStatValue("damage_resistance");
+  const normalized = Math.max(0, Math.min(0.9, resistance));
+  return Math.max(0.1, 1 - normalized);
+};
+
 class Player {
   constructor(x, y, clips) {
     this.x = x;
@@ -412,14 +418,15 @@ class Player {
   }
 
     update(dt) {
-      this.arrowCooldown = Math.max(0, this.arrowCooldown - dt);
-      this.magicCooldown = Math.max(0, this.magicCooldown - dt);
-      this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
-      this.shieldTimer = Math.max(0, this.shieldTimer - dt);
-      this.speedBoostTimer = Math.max(0, this.speedBoostTimer - dt);
-      this.powerExtendTimer = Math.max(0, this.powerExtendTimer - dt);
-      this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
-      this.heartCooldown = Math.max(0, this.heartCooldown - dt);
+    const timerDrainScale = getResistanceTimerScale();
+    this.arrowCooldown = Math.max(0, this.arrowCooldown - dt);
+    this.magicCooldown = Math.max(0, this.magicCooldown - dt);
+    this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
+    this.shieldTimer = Math.max(0, this.shieldTimer - dt * timerDrainScale);
+    this.speedBoostTimer = Math.max(0, this.speedBoostTimer - dt * timerDrainScale);
+    this.powerExtendTimer = Math.max(0, this.powerExtendTimer - dt * timerDrainScale);
+    this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
+    this.heartCooldown = Math.max(0, this.heartCooldown - dt);
       if (this.state === "death") {
         this.animator.update(dt);
         if (typeof this.deathTimer === "number") {
@@ -432,16 +439,16 @@ class Player {
         return;
       }
 
-      this.arrowBuffTimer = Math.max(0, this.arrowBuffTimer - dt);
-      if (this.arrowBuffTimer <= 0) this.arrowDamageMultiplier = 1;
-      this.magicBuffTimer = Math.max(0, this.magicBuffTimer - dt);
-      if (this.magicBuffTimer <= 0) {
-        this.magicCooldownMultiplier = 1;
-        this.magicSpeedMultiplier = 1;
-      }
+    this.arrowBuffTimer = Math.max(0, this.arrowBuffTimer - dt * timerDrainScale);
+    if (this.arrowBuffTimer <= 0) this.arrowDamageMultiplier = 1;
+    this.magicBuffTimer = Math.max(0, this.magicBuffTimer - dt * timerDrainScale);
+    if (this.magicBuffTimer <= 0) {
+      this.magicCooldownMultiplier = 1;
+      this.magicSpeedMultiplier = 1;
+    }
 
     const decayBase = this.powerExtendTimer > 0 ? 0.5 : 1;
-    const weaponDecayFactor = decayBase * 1.35;
+    const weaponDecayFactor = decayBase * 1.35 * timerDrainScale;
     this.weaponPowerTimer = Math.max(0, this.weaponPowerTimer - dt * weaponDecayFactor);
     if (this.weaponPowerTimer <= 0 && this.weaponMode !== "arrow") {
       this.weaponMode = "arrow";
