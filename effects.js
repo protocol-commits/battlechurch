@@ -190,6 +190,17 @@
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.05, scale });
   }
 
+  function spawnBossProjectilePuffEffect(x, y, { radius = null } = {}) {
+    const frames = resolveAssets()?.effects?.visitorHeartHit;
+    if (!frames || !frames.length) return null;
+    let scale = 3.5;
+    if (radius) {
+      const base = Math.max(frames[0].width, frames[0].height) || 1;
+      scale = (radius * 2.5) / base;
+    }
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.05, scale });
+  }
+
   function spawnChattyHeartHitEffect(x, y, { radius = null } = {}) {
     const frames = resolveAssets()?.effects?.chattyHeartHit;
     if (!frames || !frames.length) return null;
@@ -327,6 +338,7 @@
     spawnMagicImpactEffect,
     spawnMagicSplashEffect,
     spawnVisitorHeartHitEffect,
+    spawnBossProjectilePuffEffect,
     spawnChattyHeartHitEffect,
     spawnChattyAppeaseEffect,
     spawnPuffEffect,

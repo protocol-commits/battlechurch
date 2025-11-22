@@ -370,6 +370,7 @@ const spawnImpactEffect = Effects.spawnImpactEffect;
 const spawnFlashEffect = Effects.spawnFlashEffect;
 const spawnMagicImpactEffect = Effects.spawnMagicImpactEffect;
 const spawnVisitorHeartHitEffect = Effects.spawnVisitorHeartHitEffect;
+const spawnBossProjectilePuffEffect = Effects.spawnBossProjectilePuffEffect;
 const spawnChattyHeartHitEffect = Effects.spawnChattyHeartHitEffect;
 const spawnChattyAppeaseEffect = Effects.spawnChattyAppeaseEffect;
 const spawnMagicSplashEffect = Effects.spawnMagicSplashEffect;
@@ -5353,12 +5354,17 @@ class Projectile {
       this.animator.update(dt);
     }
 
-    if (
-      this.x < -this.radius ||
-      this.x > canvas.width + this.radius ||
-      this.y < -this.radius ||
-      this.y > canvas.height + this.radius
-    ) {
+    const outLeft = this.x < -this.radius;
+    const outRight = this.x > canvas.width + this.radius;
+    const outTop = this.y < -this.radius;
+    const outBottom = this.y > canvas.height + this.radius;
+    if (outLeft || outRight || outTop || outBottom) {
+      if (isBossProjectile(this)) {
+        const clampedX = Math.max(0, Math.min(canvas.width, this.x));
+        const clampedY = Math.max(0, Math.min(canvas.height, this.y));
+        const radius = this.radius || this.config?.radius || 40;
+        spawnBossProjectilePuffEffect(clampedX, clampedY, { radius: radius * 2 });
+      }
       this.dead = true;
     }
 
@@ -5980,6 +5986,12 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
       config.flipHorizontal = overrides.flipHorizontal ?? dx < 0;
       config.loopFrames = true;
     }
+  }
+  if (isBossSource && config.friendly === false && !config.onExpire) {
+    config.onExpire = (proj) => {
+      const radius = proj?.radius || proj?.config?.radius || 40;
+      spawnBossProjectilePuffEffect(proj?.x ?? x, proj?.y ?? y, { radius: radius * 2 });
+    };
   }
   const projectile = new Projectile(type, config, clip, x, y, dx, dy);
   projectiles.push(projectile);
