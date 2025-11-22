@@ -1109,10 +1109,12 @@ class Player {
       this.huntsNpcs = huntResolver(type, this.config);
       this.safeTopMargin = Math.max(this.radius * 3.5, 100);
       this.spawnDelay = 0;
+      this.damageFlashTimer = 0;
     }
 
     update(dt) {
       // spawnDelay removed; enemies act immediately after spawning
+      this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
 
       if (this.state === "death") {
         this.animator.update(dt);
@@ -1131,7 +1133,6 @@ class Player {
         }
         return;
       }
-
       if (this.state === "hurt") {
         this.animator.update(dt);
         if (this.animator.isFinished()) {
@@ -1486,6 +1487,7 @@ class Player {
       if (typeof showDamage === "function") {
         showDamage(this, amount, { color: "#ff8181" });
       }
+      this.damageFlashTimer = DAMAGE_FLASH_DURATION;
       if (this.health <= 0) {
         this.health = 0;
         if (this.type === "skeleton" && typeof spawnImpactEffect === "function") {
@@ -1519,7 +1521,11 @@ class Player {
       const flip = this.facing === "left";
       const drawY = this._renderYOverride !== undefined ? this._renderYOverride : this.y;
       if (!ctx) return;
-      this.animator.draw(ctx, this.x, drawY, { flipX: flip });
+      const flashStrength =
+        this.damageFlashTimer > 0
+          ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
+          : 0;
+      this.animator.draw(ctx, this.x, drawY, { flipX: flip, flashWhite: flashStrength });
       const alwaysShow =
         typeof devTools !== "undefined" && Boolean(devTools.alwaysShowEnemyHP);
       const forceShow = Boolean(this.forceShowHpBar);
