@@ -41,6 +41,8 @@
     return typeof deps.enemyTypes === "function" ? deps.enemyTypes() : deps.enemyTypes;
   }
 
+  deps.getSpawnMargin = () => 48;
+
   function resolveAssets() {
     try {
       return deps.getAssets ? deps.getAssets() : null;
@@ -61,6 +63,10 @@
 
   function initialize(options = {}) {
     Object.assign(deps, options || {});
+    deps.getSpawnMargin =
+      typeof options.getSpawnMargin === "function"
+        ? options.getSpawnMargin
+        : deps.getSpawnMargin;
   }
 
   function resetLevelFlags(levelNumber = null) {
