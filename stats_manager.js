@@ -5,6 +5,7 @@
   const COST_SCALE = 1.1;
   const PERCENT_INCREMENT = 0.1;
 
+  const DAMAGE_REDUCTION_DECAY = 0.85;
   const STAT_CONFIGS = {
     melee_attack_damage: {
       label: "Melee Damage",
@@ -20,9 +21,10 @@
       label: "Damage Resistance",
       base: 0,
       description: "Reduces damage taken",
-      // We want a flat 10% reduction per upgrade rather than 10% of zero
       incrementValue: PERCENT_INCREMENT,
       isResistance: true,
+      decayFactor: DAMAGE_REDUCTION_DECAY,
+      isDecaying: true,
     },
     speed: {
       label: "Speed",
@@ -60,11 +62,21 @@
     const config = getStatConfig(key);
     if (!config) return 1;
     const count = upgradeCounts[key] || 0;
+    const increment = getIncrementValue(config);
+    if (config.isResistance && config.isDecaying) {
+      const rawDecay = typeof config.decayFactor === "number" ? config.decayFactor : 1;
+      const decay = rawDecay >= 1 ? Math.max(0.99, rawDecay) : rawDecay;
+      const denominator = 1 - decay;
+      const totalGain =
+        count > 0 && Math.abs(denominator) > Number.EPSILON
+          ? increment * (1 - Math.pow(decay, count)) / denominator
+          : 0;
+      return Math.min(0.9, totalGain);
+    }
     if (config.isResistance) {
-      const value = count * getIncrementValue(config);
+      const value = count * increment;
       return Math.min(0.9, value);
     }
-    const increment = getIncrementValue(config);
     return config.base + count * increment;
   }
 

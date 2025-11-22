@@ -2537,6 +2537,20 @@ function distanceToEdge(x, y, dx, dy) {
   return Math.max(0, maxDistance);
 }
 
+function getDamageResistanceValue() {
+  if (visitorSession?.active) return 0;
+  if (typeof window === "undefined" || !window.StatsManager) return 0;
+  const manager = window.StatsManager;
+  if (typeof manager.getStatValue !== "function") return 0;
+  const value = manager.getStatValue("damage_resistance") || 0;
+  return Math.max(0, Math.min(0.9, value));
+}
+
+function getNpcTimerScale() {
+  const reduction = getDamageResistanceValue();
+  return Math.max(0.1, 1 - reduction);
+}
+
 function beginStartCountdown() {
   if (!START_COUNTDOWN_SEQUENCE.length) {
     needsCountdown = false;
@@ -4796,7 +4810,8 @@ class CozyNpc {
     if (!this.active || this.departed) return false;
     if (this.faith <= 0) return false;
     // countdown
-    this.npcArrowCooldown = Math.max(0, (this.npcArrowCooldown || 0) - dt);
+    const timerScale = getNpcTimerScale();
+    this.npcArrowCooldown = Math.max(0, (this.npcArrowCooldown || 0) - dt * timerScale);
     if (this.npcArrowCooldown > 0) return false;
     if ((this.miniGhostSuppressTimer || 0) > 0) return false;
     // find nearest valid enemy target
@@ -4854,14 +4869,25 @@ class CozyNpc {
     const prevFaith = this.faith;
     const baseDamage = Math.max(1, Math.round(damage || 1));
     const cappedLoss = Math.min(NPC_MAX_FAITH_LOSS_PER_ATTACK, baseDamage);
+    const damageReduction = getDamageResistanceValue();
+    const damageScale = Math.max(0.01, 1 - damageReduction);
+    const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale));
     // Debug: report incoming damage and computed faith loss
     if (typeof console !== 'undefined' && console.debug) {
-      console.debug && console.debug('NPC.sufferAttack', { type: this.type, incomingDamage: damage, baseDamage, cappedLoss, prevFaith });
+      console.debug &&
+        console.debug("NPC.sufferAttack", {
+          type: this.type,
+          incomingDamage: damage,
+          baseDamage,
+          cappedLoss,
+          scaledLoss,
+          prevFaith,
+        });
     }
-    this.faith = Math.max(0, this.faith - cappedLoss);
+    this.faith = Math.max(0, this.faith - scaledLoss);
   // Visual debug: floating text showing faith lost
     try {
-      showDamage(this, cappedLoss, {
+      showDamage(this, scaledLoss, {
         color: "#ffffff",
         fadeDelay: 0.5,
       });
@@ -4949,7 +4975,8 @@ class CozyNpc {
       0,
       (this.miniGhostSuppressTimer || 0) - dt
     );
-  this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt);
+    const timerScale = getNpcTimerScale();
+    this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
     if (this.statusBubblePersistent) {
       this.statusBubbleTimer = Number.POSITIVE_INFINITY;
@@ -7253,7 +7280,8 @@ function updateCozyNpcs(dt) {
 
   for (let i = npcs.length - 1; i >= 0; i -= 1) {
     const npc = npcs[i];
-    npc.damageCooldown = Math.max(0, (npc.damageCooldown || 0) - dt);
+    const timerScale = getNpcTimerScale();
+    npc.damageCooldown = Math.max(0, (npc.damageCooldown || 0) - dt * timerScale);
     npc.update(dt);
 
     // Player-touch restores NPCs to full faith
