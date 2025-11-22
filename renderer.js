@@ -142,7 +142,7 @@ function isInRestrictedZone(x, y) {
 // ...existing code...
 // Move all requireBindings usage inside drawCongregationScene after requireBindings is defined
 /* Rendering module for Battlechurch */
-const MELEE_SWING_DURATION = 0.4;
+const MELEE_SWING_DURATION = 0.2;
 const MELEE_SWING_LENGTH = 200;
 
 (function setupRenderer(window) {
