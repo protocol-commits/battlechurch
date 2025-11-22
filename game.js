@@ -5960,6 +5960,14 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   const isBossSource =
     typeof BossEncounter !== "undefined" && config.source instanceof BossEncounter;
+  if (isBossSource && config.friendly === false) {
+    const direction = normalizeVector(dx, dy);
+    const travel = distanceToEdge(x, y, direction.x, direction.y);
+    const effectiveSpeed = Number.isFinite(config.speed) && config.speed > 0 ? config.speed : 1;
+    const desiredLife = travel > 0 ? travel / effectiveSpeed : 0;
+    const currentLife = Number.isFinite(config.life) ? config.life : 0;
+    config.life = Math.max(currentLife, desiredLife, 1);
+  }
   if (
     isBossSource &&
     (!Array.isArray(overrides.frames) || overrides.frames.length === 0)
