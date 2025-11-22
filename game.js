@@ -5958,6 +5958,21 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   } else {
     config.flipHorizontal = overrides.flipHorizontal ?? dx < 0;
   }
+  const isBossSource =
+    typeof BossEncounter !== "undefined" && config.source instanceof BossEncounter;
+  if (
+    isBossSource &&
+    (!Array.isArray(overrides.frames) || overrides.frames.length === 0)
+  ) {
+    const bossFrames = projectileFrames.fire;
+    if (bossFrames && bossFrames.length) {
+      config.frames = bossFrames;
+      config.frameDuration =
+        config.frameDuration ?? PROJECTILE_FRAME_DURATIONS.fire ?? 0.05;
+      config.flipHorizontal = overrides.flipHorizontal ?? dx < 0;
+      config.loopFrames = true;
+    }
+  }
   const projectile = new Projectile(type, config, clip, x, y, dx, dy);
   projectiles.push(projectile);
   return projectile;
@@ -8281,6 +8296,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
       for (const projectile of projectiles) {
         if (!projectile || projectile.dead || projectile.friendly) continue;
+        if (isBossProjectile(projectile)) continue;
         const relX = projectile.x - originX;
         const relY = projectile.y - originY;
         const forwardProj = relX * normalized.x + relY * normalized.y;
@@ -8540,7 +8556,11 @@ const DIVINE_SHOT_DAMAGE = 1200;
       const hostilePriority = hostile.priority ?? 0;
       let friendlyDies = false;
       let hostileDies = false;
-      if (friendlyPriority > hostilePriority) {
+      const friendlyFromPlayer = Boolean(friendly.source === player);
+      const hostileIsBoss = isBossProjectile(hostile);
+      if (hostileIsBoss && friendlyFromPlayer) {
+        friendlyDies = true;
+      } else if (friendlyPriority > hostilePriority) {
         hostileDies = true;
       } else if (friendlyPriority < hostilePriority) {
         friendlyDies = true;
