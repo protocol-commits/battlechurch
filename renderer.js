@@ -1689,10 +1689,12 @@ function drawLevelAnnouncements() {
   // ...existing code...
     if (!visitorStageActive) {
       enemyHpLabels.length = 0;
-      const orderedEnemies = [...enemies].sort((a, b) => {
-        const orderIndex = (enemy) => (enemy?.type === "miniImp" ? 0 : 1);
-        return orderIndex(a) - orderIndex(b);
-      });
+      const isMiniImpType = (enemy) => {
+        const type = enemy?.type;
+        return type === "miniImp" || type === "miniImpLevel2";
+      };
+      const orderIndex = (enemy) => (isMiniImpType(enemy) ? 0 : 1);
+      const orderedEnemies = [...enemies].sort((a, b) => orderIndex(a) - orderIndex(b));
       orderedEnemies.forEach((enemy) => enemy.draw());
       if (activeBoss) activeBoss.draw(ctx);
     }

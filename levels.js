@@ -28,6 +28,11 @@
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
+  const LEVEL2_MINI_IMP_CHANCE = 0.38;
+  const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
+  const LEVEL2_MINI_IMP_GROUP_FACTOR = 0.55;
+  const LEVEL2_MINI_IMP_MIN_COUNT = 5;
+  const FORCE_LEVEL2_MINI_IMPS = true; // TEMPORARY: ensure level2 variant spawns every horde
 
   const noop = () => {};
   const fallbackRandomChoice = (list) =>
@@ -168,18 +173,50 @@
     const miniImpEntries = [];
     const entries = [];
     let spawned = 0;
+    const level2Eligible = FORCE_LEVEL2_MINI_IMPS || levelNumber >= 2;
+    const level2Chance =
+      FORCE_LEVEL2_MINI_IMPS
+        ? 1
+        : level2Eligible
+        ? Math.min(
+            0.6,
+            LEVEL2_MINI_IMP_CHANCE + Math.min(difficultyRating * 0.03, 0.24),
+          )
+        : 0;
+    let level2GroupsUsed = 0;
     for (let i = 0; i < miniImpGroupCount && spawned < totalEnemies; i += 1) {
       const remaining = totalEnemies - spawned;
       const groupsLeft = miniImpGroupCount - i - 1;
       const reservedForOthers = Math.max(0, groupsLeft * miniImpBaseGroupSize);
       const maxForGroup = Math.max(miniImpBaseGroupSize, remaining - reservedForOthers);
       const groupSize = Math.min(maxForGroup, miniImpGroupSize);
-      miniImpEntries.push({ type: "miniImp", count: groupSize });
-      spawned += groupSize;
+      let assignLevel2 = false;
+      if (
+        level2Eligible &&
+        level2GroupsUsed < (FORCE_LEVEL2_MINI_IMPS ? miniImpGroupCount : LEVEL2_MINI_IMP_MAX_GROUPS) &&
+        groupSize >= LEVEL2_MINI_IMP_MIN_COUNT &&
+        (FORCE_LEVEL2_MINI_IMPS || Math.random() < level2Chance)
+      ) {
+        assignLevel2 = true;
+        level2GroupsUsed += 1;
+      }
+      const actualCount = assignLevel2
+        ? Math.max(
+            LEVEL2_MINI_IMP_MIN_COUNT,
+            Math.floor(groupSize * LEVEL2_MINI_IMP_GROUP_FACTOR),
+          )
+        : groupSize;
+      miniImpEntries.push({
+        type: assignLevel2 ? "miniImpLevel2" : "miniImp",
+        count: actualCount,
+      });
+      spawned += actualCount;
     }
 
     const ensureMiniDemonCount = Math.max(2, Math.floor(difficultyRating));
     let miniDemonSpawned = 0;
+    const isMiniImpTypeChoice = (candidate) =>
+      candidate === "miniImp" || candidate === "miniImpLevel2";
 
     while (spawned < totalEnemies) {
       const progressRatio = spawned / Math.max(1, totalEnemies - 1);
@@ -192,13 +229,13 @@
           type = "miniDemonFireThrower";
         }
       }
-      if (type === "miniImp") {
+      if (isMiniImpTypeChoice(type)) {
         let attempts = 0;
-        while (type === "miniImp" && attempts < 3) {
+        while (isMiniImpTypeChoice(type) && attempts < 3) {
           type = selectEnemyType(levelNumber, tier, helpers);
           attempts += 1;
         }
-        if (type === "miniImp") type = "skeleton";
+        if (isMiniImpTypeChoice(type)) type = "skeleton";
       }
       if (type === "miniDemonFireThrower") {
         miniDemonSpawned += 1;
@@ -632,8 +669,9 @@
       const enemyEntries = Array.isArray(horde?.enemies) ? horde.enemies : [];
       let ensuredMiniGhost = false;
       enemyEntries.forEach(({ type, count }) => {
-        if (type === "miniImp") {
-          spawnMiniImpGroup(count, null, { ignoreCap: true });
+        const isMiniImpTypeEntry = type === "miniImp" || type === "miniImpLevel2";
+        if (isMiniImpTypeEntry) {
+          spawnMiniImpGroup(count, null, { ignoreCap: true }, type);
         } else {
           for (let i = 0; i < count; i += 1) {
             spawnEnemyOfType(type);

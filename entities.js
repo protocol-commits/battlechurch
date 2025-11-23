@@ -29,6 +29,11 @@
   let enemyDefinitions = {};
   let enemyTypesCache = null;
   let playerConfigCache = null;
+  const tintCanvas =
+    typeof document !== "undefined" && document?.createElement
+      ? document.createElement("canvas")
+      : null;
+  const tintContext = tintCanvas ? tintCanvas.getContext("2d") : null;
 
   function buildPlayerConfig(baseConfig) {
     if (baseConfig) return Object.assign({}, baseConfig);
@@ -82,6 +87,11 @@
         const speedFactor = Math.min(1, Math.max(0.8, healthRatio));
         const adjustedSpeed = rawSpeed * speedFactor;
         const scaledSpeed = adjustedSpeed * worldScale;
+        const tintColor = def.tintColor || null;
+        const tintIntensity =
+          typeof def.tintIntensity === "number" && def.tintIntensity >= 0
+            ? def.tintIntensity
+            : 0.75;
         return [
           key,
           {
@@ -104,6 +114,8 @@
             bossTier: def.bossTier || 0,
             preferredTarget: def.preferredTarget || "player",
             specialBehavior: def.specialBehavior || [],
+            tintColor,
+            tintIntensity,
           },
         ];
       }),
@@ -275,6 +287,8 @@
         rotation = 0,
         flashWhite = 0,
         damageFlashIntensity = settings.DAMAGE_FLASH_INTENSITY || 1,
+        tintColor = null,
+        tintIntensity = 1,
       } = options || {};
       if (!this.currentClip) return;
       const clip = this.currentClip;
@@ -337,6 +351,79 @@
         context.filter = prevFilter;
         context.globalAlpha = prevAlpha;
         context.globalCompositeOperation = prevComposite;
+      }
+
+      if (tintColor) {
+        const bufferWidth = Math.max(1, Math.ceil(width));
+        const bufferHeight = Math.max(1, Math.ceil(height));
+        if (tintCanvas && tintContext) {
+          if (tintCanvas.width !== bufferWidth || tintCanvas.height !== bufferHeight) {
+            tintCanvas.width = bufferWidth;
+            tintCanvas.height = bufferHeight;
+          } else {
+            tintContext.clearRect(0, 0, bufferWidth, bufferHeight);
+          }
+          tintContext.globalAlpha = 1;
+          tintContext.globalCompositeOperation = "source-over";
+          tintContext.setTransform(1, 0, 0, 1, 0, 0);
+          tintContext.drawImage(
+            clip.image,
+            sx,
+            sy,
+            clip.frameWidth,
+            clip.frameHeight,
+            0,
+            0,
+            bufferWidth,
+            bufferHeight,
+          );
+          tintContext.globalCompositeOperation = "multiply";
+          tintContext.globalAlpha = Math.max(0, Math.min(1, tintIntensity));
+          tintContext.fillStyle = tintColor;
+          tintContext.fillRect(0, 0, bufferWidth, bufferHeight);
+          tintContext.globalCompositeOperation = "destination-atop";
+          tintContext.globalAlpha = 1;
+          tintContext.drawImage(
+            clip.image,
+            sx,
+            sy,
+            clip.frameWidth,
+            clip.frameHeight,
+            0,
+            0,
+            bufferWidth,
+            bufferHeight,
+          );
+          tintContext.globalCompositeOperation = "source-over";
+          tintContext.globalAlpha = 1;
+          context.drawImage(
+            tintCanvas,
+            -width / 2,
+            -height / 2,
+            width,
+            height,
+          );
+        } else {
+          context.save();
+          context.globalCompositeOperation = "multiply";
+          context.globalAlpha = Math.max(0, Math.min(1, tintIntensity));
+          context.fillStyle = tintColor;
+          context.fillRect(-width / 2, -height / 2, width, height);
+          context.globalCompositeOperation = "destination-atop";
+          context.globalAlpha = 1;
+          context.drawImage(
+            clip.image,
+            sx,
+            sy,
+            clip.frameWidth,
+            clip.frameHeight,
+            -width / 2,
+            -height / 2,
+            width,
+            height,
+          );
+          context.restore();
+        }
       }
 
       context.restore();
@@ -1550,7 +1637,15 @@ class Player {
         this.damageFlashTimer > 0
           ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
           : 0;
-      this.animator.draw(ctx, this.x, drawY, { flipX: flip, flashWhite: flashStrength });
+      const drawOptions = { flipX: flip, flashWhite: flashStrength };
+      const tintColor = this.config?.tintColor;
+      if (tintColor) {
+        drawOptions.tintColor = tintColor;
+        if (typeof this.config?.tintIntensity === "number") {
+          drawOptions.tintIntensity = this.config.tintIntensity;
+        }
+      }
+      this.animator.draw(ctx, this.x, drawY, drawOptions);
       const alwaysShow =
         typeof devTools !== "undefined" && Boolean(devTools.alwaysShowEnemyHP);
       const forceShow = Boolean(this.forceShowHpBar);

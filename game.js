@@ -682,6 +682,7 @@ const PRAYER_BOMB_CHARGE_REQUIRED = 60;
 const PRAYER_BOMB_CHARGE_PER_KILL = 0.5;
 const PRAYER_BOMB_CHARGE_TYPE_MODIFIERS = {
   miniImp: 0.1,
+  miniImpLevel2: 0.1,
 };
 const PRAYER_BOMB_HOLD_TIME = 1.0;
 const HIT_FREEZE_DURATION = 0.08;
@@ -3486,7 +3487,7 @@ function maybeDropKeysFromEnemy(enemy) {
   chance += sizeRatio * KEY_DROP_SIZE_CHANCE_FACTOR;
   const normalizedChance = Math.min(0.95, chance);
   chance = normalizedChance;
-  const popcornTypes = new Set(["miniImp", "miniFireImp", "miniDemon", "miniDemoness"]);
+  const popcornTypes = new Set(["miniImp", "miniImpLevel2", "miniFireImp", "miniDemon", "miniDemoness"]);
   if (popcornTypes.has(enemy.type)) {
     chance *= KEY_DROP_MINION_SCALE;
   }
@@ -3939,7 +3940,10 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
     const type = typeof ent.type === "string" ? ent.type.toLowerCase() : "";
     return type.startsWith("mini");
   };
-  const isMiniImp = (ent) => typeof ent?.type === "string" && ent.type === "miniImp";
+  const isMiniImp = (ent) => {
+    const type = typeof ent?.type === "string" ? ent.type : "";
+    return type === "miniImp" || type === "miniImpLevel2";
+  };
   for (const other of targets) {
     if (other === entity) continue;
     if (other.dead || other.state === "death") continue;

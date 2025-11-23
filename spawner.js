@@ -157,7 +157,7 @@
         deps.spawnCameraShakeMagnitude,
       );
     }
-    if (type === "miniImp") enemy.isPopcorn = true;
+    if (type === "miniImp" || type === "miniImpLevel2") enemy.isPopcorn = true;
     return enemy;
   }
 
@@ -205,7 +205,7 @@
     }
   }
 
-  function spawnMiniImpGroup(count, position = null, options = {}) {
+  function spawnMiniImpGroup(count, position = null, options = {}, type = "miniImp") {
     const base = position || deps.randomSpawnPosition();
     const spread = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
     for (let i = 0; i < count; i += 1) {
@@ -217,7 +217,7 @@
         applyCameraShake: i === 0,
       };
       schedulePortalSpawn(
-        "miniImp",
+        typeof type === "string" && type ? type : "miniImp",
         spawnPos,
         i * (deps.enemySpawnStaggerMs || 0),
         spawnOptions,
@@ -332,9 +332,13 @@
     );
 
     const desiredCount = targetGroups * targetGroupSize;
-    const currentCount = deps.enemies.filter(
-      (enemy) => enemy?.type === "miniImp" && !enemy.dead && enemy.state !== "death",
-    ).length;
+    const currentCount = deps.enemies.filter((enemy) => {
+      if (!enemy) return false;
+      const type = typeof enemy.type === "string" ? enemy.type : "";
+      if (type !== "miniImp" && type !== "miniImpLevel2") return false;
+      if (enemy.dead || enemy.state === "death") return false;
+      return true;
+    }).length;
 
     let toSpawn = Math.max(0, desiredCount - currentCount);
     while (toSpawn > 0 && deps.enemies.length < deps.maxActiveEnemies) {

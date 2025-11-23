@@ -189,6 +189,50 @@ window.__BATTLECHURCH_OVERRIDES = {
       ]
     }
   },
+  "miniImpLevel2": {
+    "idle": {
+      "frames": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    "walk": {
+      "frames": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ]
+    },
+    "attack": {
+      "frames": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ]
+    },
+    "hurt": {
+      "frames": [
+        18,
+        19
+      ]
+    },
+    "death": {
+      "frames": [
+        24,
+        25,
+        26,
+        27,
+        28
+      ]
+    }
+  },
   "miniClawedDemon": {
     "hurt": {
       "frames": [
