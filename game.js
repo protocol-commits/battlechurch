@@ -6051,7 +6051,7 @@ function getEnemySpawnPoints() {
   const offset = ENEMY_SPAWN_MARGIN;
   const width = canvas.width;
   const height = canvas.height;
-  const centerX = width / 2;
+  const centerX = typeof player?.x === "number" ? player.x : width / 2;
   const bufferX = Math.max(width * 1.8, 1200);
   const bufferY = Math.max(height * 1.4, 900);
   return [

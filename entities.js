@@ -1135,7 +1135,6 @@ class Player {
       this.safeTopMargin = Math.max(this.radius * 3.5, 100);
       this.spawnDelay = 0;
       this.damageFlashTimer = 0;
-      this.spawnOffscreenTimer = 0;
     }
 
     update(dt) {
@@ -1177,7 +1176,6 @@ class Player {
         return;
       }
       const target = this.acquireTarget();
-    const spawnGraceActive = this.spawnOffscreenTimer > 0;
       if (!target) {
         this.animator.update(dt);
         return;
@@ -1257,7 +1255,7 @@ class Player {
       }
 
       if (this.isRanged) {
-        this.updateRangedBehavior(dt, dx, dy, distance, targetRadius, spawnGraceActive);
+        this.updateRangedBehavior(dt, dx, dy, distance, targetRadius);
         this.animator.update(dt);
         return;
       }
@@ -1453,7 +1451,7 @@ class Player {
     return { x: Math.cos(angle), y: Math.sin(angle) };
   }
 
-    updateRangedBehavior(dt, dx, dy, distance, targetRadius = 0, spawnGraceActive = false) {
+    updateRangedBehavior(dt, dx, dy, distance, targetRadius = 0) {
       const desiredRange = this.desiredRange;
       const rangeBuffer = Math.max(0, targetRadius * 0.5);
       const minDistance = desiredRange * 0.55 + rangeBuffer;
@@ -1487,7 +1485,7 @@ class Player {
         this.x += moveDir.x * this.config.speed * dt;
         this.y += moveDir.y * this.config.speed * dt;
         if (typeof resolveEntityObstacles === "function") resolveEntityObstacles(this);
-        if (!spawnGraceActive && typeof clampEntityToBounds === "function") clampEntityToBounds(this);
+        if (typeof clampEntityToBounds === "function") clampEntityToBounds(this);
         this.updateFacing(moveDir.x, moveDir.y);
         if (this.state !== "attack") {
           if (this.state !== "walk") {
