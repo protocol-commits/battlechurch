@@ -32,7 +32,9 @@
   const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
   const LEVEL2_MINI_IMP_GROUP_FACTOR = 0.55;
   const LEVEL2_MINI_IMP_MIN_COUNT = 5;
-  const FORCE_LEVEL2_MINI_IMPS = true; // TEMPORARY: ensure level2 variant spawns every horde
+  const FORCE_LEVEL2_MINI_IMPS = false;
+  const MINI_SKELETON_GROUP_MIN = 10;
+  const MINI_SKELETON_GROUP_MAX = 15;
 
   const noop = () => {};
   const fallbackRandomChoice = (list) =>
@@ -53,6 +55,7 @@
     getMonthName: () => "January",
     spawnEnemyOfType: noop,
     spawnMiniImpGroup: noop,
+    spawnMiniSkeletonGroup: noop,
     spawnPowerUpDrops: noop,
     spawnBossForLevel: () => null,
     devClearOpponents: noop,
@@ -178,10 +181,16 @@
       FORCE_LEVEL2_MINI_IMPS
         ? 1
         : level2Eligible
-        ? Math.min(
-            0.6,
-            LEVEL2_MINI_IMP_CHANCE + Math.min(difficultyRating * 0.03, 0.24),
-          )
+        ? (() => {
+            const baseChance = Math.min(
+              0.6,
+              LEVEL2_MINI_IMP_CHANCE + Math.min(difficultyRating * 0.03, 0.24),
+            );
+            let battlePenalty = 0;
+            if (battleIndex <= 0) battlePenalty = 0.75;
+            else if (battleIndex === 1) battlePenalty = 0.4;
+            return Math.max(0, baseChance - battlePenalty);
+          })()
         : 0;
     let level2GroupsUsed = 0;
     for (let i = 0; i < miniImpGroupCount && spawned < totalEnemies; i += 1) {
@@ -291,6 +300,7 @@
       getMonthName,
       spawnEnemyOfType,
       spawnMiniImpGroup,
+      spawnMiniSkeletonGroup,
       spawnPowerUpDrops,
       spawnBossForLevel,
       devClearOpponents,
@@ -668,9 +678,25 @@
       resetStage("hordeActive", hordeActiveDuration);
       const enemyEntries = Array.isArray(horde?.enemies) ? horde.enemies : [];
       let ensuredMiniGhost = false;
+      const spawnSkeletonSwarms = (total) => {
+        let remaining = total;
+        while (remaining > 0) {
+          const desired = Math.floor(
+            randomInRange(MINI_SKELETON_GROUP_MIN, MINI_SKELETON_GROUP_MAX + 1),
+          );
+          let groupSize = Math.min(remaining, desired);
+          if (groupSize < MINI_SKELETON_GROUP_MIN && remaining > MINI_SKELETON_GROUP_MIN) {
+            groupSize = MINI_SKELETON_GROUP_MIN;
+          }
+          spawnMiniSkeletonGroup(groupSize, null, { ignoreCap: true });
+          remaining -= groupSize;
+        }
+      };
       enemyEntries.forEach(({ type, count }) => {
         const isMiniImpTypeEntry = type === "miniImp" || type === "miniImpLevel2";
-        if (isMiniImpTypeEntry) {
+        if (type === "miniSkeleton") {
+          spawnSkeletonSwarms(count);
+        } else if (isMiniImpTypeEntry) {
           spawnMiniImpGroup(count, null, { ignoreCap: true }, type);
         } else {
           for (let i = 0; i < count; i += 1) {

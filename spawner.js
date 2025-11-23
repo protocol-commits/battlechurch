@@ -225,6 +225,26 @@
     }
   }
 
+  function spawnMiniSkeletonGroup(count, position = null, options = {}) {
+    const base = position || deps.randomSpawnPosition();
+    const spread = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
+    for (let i = 0; i < count; i += 1) {
+      const offsetX = deps.randomInRange(-spread * 0.45, spread * 0.45);
+      const offsetY = deps.randomInRange(-spread * 0.45, spread * 0.45);
+      const spawnPos = { x: base.x + offsetX, y: base.y + offsetY };
+      const spawnOptions = {
+        ...(options || {}),
+        applyCameraShake: i === 0,
+      };
+      schedulePortalSpawn(
+        "miniSkeleton",
+        spawnPos,
+        i * (deps.enemySpawnStaggerMs || 0),
+        spawnOptions,
+      );
+    }
+  }
+
   function spawnEnemy() {
     if (deps.enemies.length >= deps.maxActiveEnemies) return;
     const levelManager = resolveLevelManager();
@@ -352,6 +372,7 @@
     spawnEnemyOfType,
     spawnSkeletonGroup,
     spawnMiniImpGroup,
+    spawnMiniSkeletonGroup,
     schedulePortalSpawn,
     spawnEnemy,
     maintainSkeletonHorde,

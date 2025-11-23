@@ -1391,6 +1391,7 @@ const ENEMY_TYPES =
 const spawnEnemyOfType = Spawner.spawnEnemyOfType;
 const spawnSkeletonGroup = Spawner.spawnSkeletonGroup;
 const spawnMiniImpGroup = Spawner.spawnMiniImpGroup;
+const spawnMiniSkeletonGroup = Spawner.spawnMiniSkeletonGroup;
 const schedulePortalSpawn = Spawner.schedulePortalSpawn;
 const spawnEnemy = Spawner.spawnEnemy;
 const maintainSkeletonHorde = Spawner.maintainSkeletonHorde;
@@ -1416,6 +1417,7 @@ Levels.initialize({
   getMonthName,
   spawnEnemyOfType,
   spawnMiniImpGroup,
+  spawnMiniSkeletonGroup,
   spawnPowerUpDrops,
   spawnBossForLevel,
   devClearOpponents,
