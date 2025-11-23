@@ -1822,7 +1822,15 @@ function drawLevelAnnouncements() {
       drawCongregationScene(levelStatus);
     }
     drawMeleeSwingOverlay(ctx, player);
-    effects.forEach((effect) => effect.draw());
+    {
+      const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
+      const shakeX = sharedShakeOffset?.x || 0;
+      const shakeY = sharedShakeOffset?.y || 0;
+      ctx.save();
+      ctx.translate(-cameraOffsetX + shakeX, -cameraOffsetY + shakeY);
+      effects.forEach((effect) => effect.draw());
+      ctx.restore();
+    }
   }
 
   function drawMeleeSwingOverlay(ctx, player) {
