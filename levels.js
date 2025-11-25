@@ -242,37 +242,36 @@
     const hidden = getHiddenSet();
     const mode = resolveValue(scope, "mode") || "weighted";
 
-    // If a dev config exists for this horde, use it
-    if (scope.horde && (scope.horde.entries?.length || scope.horde.weights)) {
-      if (mode === "explicit" && Array.isArray(scope.horde.entries) && scope.horde.entries.length) {
-        const combinedEntries = scope.horde.entries
+    // Collect builder overrides (weighted + explicit can both apply)
+    const explicitEntries = Array.isArray(scope.horde?.entries)
+      ? scope.horde.entries
           .filter((e) => e && e.enemy && !hidden.has(e.enemy))
           .map((e) => ({
             type: e.enemy,
             count: Math.max(1, Math.floor(e.count || 1)),
-          }));
-        return {
-          enemies: mergeEnemyCounts(combinedEntries),
-          powerUps: 1 + Math.floor(difficultyRating / 2),
-          duration: hordeDuration,
-        };
-      }
-      if (mode === "weighted" && scope.horde.weights && Object.keys(scope.horde.weights).length) {
-        const weights = scope.horde.weights;
-        const weightTotal = Object.values(weights).reduce((a, b) => a + (Number(b) || 0), 0) || 1;
-        const combinedEntries = Object.entries(weights)
-          .filter(([type]) => !hidden.has(type))
-          .map(([type, weight]) => {
-            const ratio = Math.max(0, Number(weight) || 0) / weightTotal;
-            const count = Math.max(0, Math.round(totalEnemies * ratio));
-            return { type, count };
-          });
-        return {
-          enemies: mergeEnemyCounts(combinedEntries),
-          powerUps: 1 + Math.floor(difficultyRating / 2),
-          duration: hordeDuration,
-        };
-      }
+          }))
+      : [];
+
+    let weightedEntries = [];
+    if (scope.horde?.weights && Object.keys(scope.horde.weights).length) {
+      const weights = scope.horde.weights;
+      const weightTotal = Object.values(weights).reduce((a, b) => a + (Number(b) || 0), 0) || 1;
+      weightedEntries = Object.entries(weights)
+        .filter(([type]) => !hidden.has(type))
+        .map(([type, weight]) => {
+          const ratio = Math.max(0, Number(weight) || 0) / weightTotal;
+          const count = Math.max(0, Math.round(totalEnemies * ratio));
+          return { type, count };
+        });
+    }
+
+    const mergedExplicitWeighted = mergeEnemyCounts([...weightedEntries, ...explicitEntries]);
+    if (mergedExplicitWeighted.length) {
+      return {
+        enemies: mergedExplicitWeighted,
+        powerUps: 1 + Math.floor(difficultyRating / 2),
+        duration: hordeDuration,
+      };
     }
 
     const miniImpEntries = [];

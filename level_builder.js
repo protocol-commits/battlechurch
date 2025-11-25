@@ -52,6 +52,15 @@
   const thumbCache = {};
   const thumbLoading = new Set();
 
+  function updateScopeFromSelects() {
+    state.scope = {
+      level: Number(els.level.value) || 1,
+      month: Number(els.month.value) || 1,
+      battle: Number(els.battle.value) || 1,
+      horde: Number(els.horde.value) || 1,
+    };
+  }
+
   function basePoolForScope(scope) {
     const levelData =
       (typeof window !== "undefined" && window.BattlechurchLevelData) || {};
@@ -331,52 +340,52 @@
         });
       });
     } else {
-      const container = document.createElement("div");
-      container.innerHTML = `<div style="margin-bottom:8px;">Explicit groups (enemy + count). Formation data saved but not fully previewed here.</div>`;
-      const list = document.createElement("div");
-      entries.forEach((entry, idx) => {
-        const row = document.createElement("div");
-        row.style.display = "grid";
-        row.style.gridTemplateColumns = "1fr 80px 60px";
-        row.style.gap = "6px";
-        row.style.marginBottom = "6px";
-        row.innerHTML = `
-          <input data-exp="enemy" data-idx="${idx}" value="${entry.enemy || ""}" placeholder="enemy key">
-          <input type="number" data-exp="count" data-idx="${idx}" value="${entry.count ?? 1}" min="1">
-          <button data-exp="del" data-idx="${idx}" class="secondary" style="padding:6px;">✕</button>
-        `;
-        list.appendChild(row);
+      // Explicit: show every enemy with a count field (no randomness)
+      const counts = {};
+      (entries || []).forEach((entry) => {
+        if (!entry || !entry.enemy) return;
+        counts[entry.enemy] = (counts[entry.enemy] || 0) + Math.max(0, Number(entry.count) || 0);
       });
-      const addBtn = document.createElement("button");
-      addBtn.textContent = "Add Entry";
-      addBtn.className = "secondary";
-      addBtn.addEventListener("click", () => {
-        hordeObj.entries = hordeObj.entries || [];
-        hordeObj.entries.push({ enemy: "skeleton", count: 1 });
-        renderModeAndWeights();
-        saveToStorage(state.config);
-      });
-      container.appendChild(list);
-      container.appendChild(addBtn);
-      els.content.innerHTML = "";
-      els.content.appendChild(container);
 
-    els.content.querySelectorAll("input[data-exp]").forEach((input) => {
-      input.addEventListener("change", () => {
-        const idx = Number(input.getAttribute("data-idx"));
-        const kind = input.getAttribute("data-exp");
-        hordeObj.entries = hordeObj.entries || [];
-        if (!hordeObj.entries[idx]) hordeObj.entries[idx] = {};
-        if (kind === "enemy") hordeObj.entries[idx].enemy = input.value;
-        if (kind === "count") hordeObj.entries[idx].count = Math.max(1, Number(input.value) || 1);
-        saveToStorage(state.config);
+      const table = document.createElement("table");
+      const header = document.createElement("tr");
+      header.innerHTML = "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Count</th><th>Hide</th>";
+      table.appendChild(header);
+      Object.keys(catalog).forEach((key) => {
+        if (hiddenSet.has(key) && !state.showHidden) return;
+        const row = document.createElement("tr");
+        const thumb = getEnemyThumbnail(key);
+        const countVal = counts[key] ?? 0;
+        row.innerHTML = `
+          <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
+            ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
+          </div></td>
+          <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
+          <td><input type="number" data-exp-count="${key}" value="${countVal}" min="0" style="width:80px;"></td>
+          <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
+        `;
+        table.appendChild(row);
       });
-    });
-      els.content.querySelectorAll("button[data-exp='del']").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const idx = Number(btn.getAttribute("data-idx"));
-          hordeObj.entries.splice(idx, 1);
+      els.content.innerHTML = "";
+      els.content.appendChild(table);
+
+      els.content.querySelectorAll("input[data-exp-count]").forEach((input) => {
+        input.addEventListener("change", () => {
+          const key = input.getAttribute("data-exp-count");
+          const val = Math.max(0, Number(input.value) || 0);
+          const nextCounts = { ...counts, [key]: val };
+          const nextEntries = Object.entries(nextCounts)
+            .filter(([, count]) => count > 0)
+            .map(([enemy, count]) => ({ enemy, count }));
+          hordeObj.entries = nextEntries;
           saveToStorage(state.config);
+        });
+      });
+
+      els.content.querySelectorAll("button[data-hide]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.getAttribute("data-hide");
+          toggleHiddenEnemy(key);
           renderModeAndWeights();
         });
       });
@@ -479,20 +488,31 @@
   }
 
   function refreshUI() {
+    const scopeBefore = { ...state.scope };
     initScopeSelectors();
+    // Reapply previously selected horde if still in range; otherwise clamp.
     const { battleObj } = getActiveScope();
     const hpb =
       battleObj.hordesPerBattle ||
       state.config.structure.defaultHordesPerBattle ||
       6;
     populateSelect(els.horde, hpb);
+    if (scopeBefore.horde && scopeBefore.horde <= hpb) {
+      els.horde.value = String(scopeBefore.horde);
+      state.scope.horde = scopeBefore.horde;
+    } else {
+      state.scope.horde = Number(els.horde.value) || 1;
+    }
     els.hordesPerBattle.value = hpb;
     renderModeAndWeights();
   }
 
   function attachEvents() {
     ["level", "month", "battle", "horde"].forEach((key) => {
-      els[key].addEventListener("change", refreshUI);
+      els[key].addEventListener("change", () => {
+        updateScopeFromSelects();
+        refreshUI();
+      });
     });
     const showHiddenCheckbox = overlay.querySelector("#lb-showHidden");
     if (showHiddenCheckbox) {
