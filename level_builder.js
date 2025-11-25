@@ -212,14 +212,12 @@
       </div>
       <div class="panel" id="lb-sidePanel">
         <h3>Export / Import</h3>
-        <textarea id="lb-json" rows="12" placeholder="Config JSON"></textarea>
+        <textarea id="lb-json" rows="16" placeholder="Config JSON"></textarea>
         <div class="button-row">
           <button id="lb-save" type="button">Save</button>
           <button id="lb-load" class="secondary" type="button">Load JSON</button>
         </div>
         <div id="lb-status" style="margin-top:8px;font-size:12px;color:#9bf0ff;"></div>
-        <h3 style="margin-top:16px;">Global Stats (editable)</h3>
-        <div class="scroll" id="lb-statsArea"></div>
       </div>
     </div>
   `;
@@ -234,7 +232,6 @@
     mode: overlay.querySelector("#lb-mode"),
     hordesPerBattle: overlay.querySelector("#lb-hordesPerBattle"),
     content: overlay.querySelector("#lb-contentArea"),
-    statsArea: overlay.querySelector("#lb-statsArea"),
     json: overlay.querySelector("#lb-json"),
     save: overlay.querySelector("#lb-save"),
     load: overlay.querySelector("#lb-load"),
@@ -262,48 +259,6 @@
     els.month.value = String(state.scope.month);
     els.battle.value = String(state.scope.battle);
     els.horde.value = String(state.scope.horde);
-  }
-
-  function renderStatsEditor() {
-    const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
-    const stats = state.config.globals.enemyStats || {};
-    const hiddenSet = new Set(state.config.globals.hiddenEnemies || []);
-    const frag = document.createDocumentFragment();
-    Object.keys(catalog).forEach((key) => {
-      if (hiddenSet.has(key) && !state.showHidden) return;
-      const row = document.createElement("div");
-      row.style.marginBottom = "6px";
-      const def = catalog[key];
-      const overrides = stats[key] || {};
-      const hp = overrides.health ?? def.health ?? def.maxHealth ?? "";
-      const dmg = overrides.damage ?? def.damage ?? "";
-      const spd = overrides.speed ?? def.speed ?? "";
-      row.innerHTML = `
-        <div style="font-weight:600;margin-bottom:2px;">${key}</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
-          <input data-stat="health" data-key="${key}" type="number" placeholder="HP" value="${hp}">
-          <input data-stat="damage" data-key="${key}" type="number" placeholder="DMG" value="${dmg}">
-          <input data-stat="speed" data-key="${key}" type="number" placeholder="SPD" value="${spd}">
-        </div>
-      `;
-      frag.appendChild(row);
-    });
-    els.statsArea.innerHTML = "";
-    els.statsArea.appendChild(frag);
-    els.statsArea.querySelectorAll("input").forEach((input) => {
-      input.addEventListener("change", () => {
-        const key = input.getAttribute("data-key");
-        const stat = input.getAttribute("data-stat");
-        const val = input.value === "" ? null : Number(input.value);
-        state.config.globals.enemyStats[key] = state.config.globals.enemyStats[key] || {};
-        if (val === null || Number.isNaN(val)) {
-          delete state.config.globals.enemyStats[key][stat];
-        } else {
-          state.config.globals.enemyStats[key][stat] = val;
-        }
-        saveToStorage(state.config);
-      });
-    });
   }
 
   function getActiveScope() {
@@ -373,7 +328,6 @@
           const key = btn.getAttribute("data-hide");
           toggleHiddenEnemy(key);
           renderModeAndWeights();
-          renderStatsEditor();
         });
       });
     } else {
@@ -534,7 +488,6 @@
     populateSelect(els.horde, hpb);
     els.hordesPerBattle.value = hpb;
     renderModeAndWeights();
-    renderStatsEditor();
   }
 
   function attachEvents() {
@@ -546,7 +499,6 @@
       showHiddenCheckbox.addEventListener("change", () => {
         state.showHidden = showHiddenCheckbox.checked;
         renderModeAndWeights();
-        renderStatsEditor();
       });
     }
     els.mode.addEventListener("change", () => {
