@@ -240,11 +240,16 @@
     const miniImpTotal = miniImpGroupCount * miniImpGroupSize;
     const desiredTotal = Math.max(miniImpTotal + 6, baseCount + Math.floor(difficultyRating * 2.5));
     const totalEnemies = Math.max(miniImpTotal, Math.min(maxCount, desiredTotal));
-    const hordeDuration = Math.max(10, 14 + Math.round(difficultyRating * 2));
-
     const scope = getScopeConfig(levelNumber, monthIndex + 1, battleIndex + 1, hordeIndex + 1);
     const hidden = getHiddenSet();
     const mode = resolveValue(scope, "mode") || "weighted";
+    const defaultDuration =
+      resolveValue(scope, "duration") ??
+      (scope.cfg?.structure && scope.cfg.structure.defaultHordeDuration);
+    const durationSeconds = Number.isFinite(defaultDuration)
+      ? defaultDuration
+      : Math.max(10, 14 + Math.round(difficultyRating * 2));
+    const scopedAllKill = Boolean(scope.horde?.allKill);
 
     // Collect builder overrides (weighted + explicit can both apply)
     const delaysWeighted = (scope.horde && scope.horde.delaysWeighted) || {};
@@ -281,7 +286,8 @@
       return {
         enemies: mergedExplicitWeighted,
         powerUps: 1 + Math.floor(difficultyRating / 2),
-        duration: hordeDuration,
+        duration: durationSeconds,
+        allKill: scopedAllKill,
       };
     }
 
@@ -382,12 +388,13 @@
       combinedEntries.push({ type: "miniDemonFireThrower", count: 1 });
     }
 
-    return {
-      enemies: combinedEntries,
-      powerUps: 1 + Math.floor(difficultyRating / 2),
-      duration: hordeDuration,
-    };
-  }
+      return {
+        enemies: combinedEntries,
+        powerUps: 1 + Math.floor(difficultyRating / 2),
+        duration: durationSeconds,
+        allKill: scopedAllKill,
+      };
+    }
 
   function buildLevelDefinition(levelNumber, helpers) {
     const battles = [];
@@ -786,8 +793,10 @@
     function spawnActiveHorde() {
       const horde = state.activeHorde;
       if (!horde) return;
-      const hordeActiveDuration = horde?.duration ?? 12;
-      const finalHorde = state.battleIndex + 1 >= HORDES_PER_BATTLE;
+      const hordeActiveDuration = Number.isFinite(horde?.duration) ? horde.duration : 12;
+      const currentBattle = state.definition?.battles?.[state.monthIndex] || null;
+      const totalHordes = Array.isArray(currentBattle?.hordes) ? currentBattle.hordes.length : HORDES_PER_BATTLE;
+      const finalHorde = state.battleIndex + 1 >= totalHordes;
       if (finalHorde && typeof getPendingPortalSpawnCount === "function") {
         state.pendingPortalSpawnBaseline = getPendingPortalSpawnCount();
       } else {
@@ -1046,41 +1055,47 @@ state.battleIndex = -1;
               beginBattleIntroStage();
             }
             break;
-          case "battleIntro":
-            state.timer -= dt;
-            if (state.timer <= 0) beginHorde();
-            break;
-          case "hordeIntro":
-            state.timer -= dt;
-            if (state.timer <= 0) spawnActiveHorde();
-            break;
-          case "hordeActive": {
-            state.timer = Math.max(0, state.timer - dt);
-            const finalHorde = state.battleIndex + 1 >= HORDES_PER_BATTLE;
-            const enemiesRemain = hasActiveOpponents(false);
-            const timerElapsed = state.timer <= 0;
-            if (!finalHorde) {
-              if (timerElapsed || !enemiesRemain) {
-                handleHordeCleared();
-              }
-            } else if (!enemiesRemain) {
-              const pendingPortalSpawns = typeof getPendingPortalSpawnCount === "function"
-                ? Math.max(0, getPendingPortalSpawnCount() - (state.pendingPortalSpawnBaseline || 0))
-                : 0;
-              if (pendingPortalSpawns <= 0) {
-                handleHordeCleared();
-              }
-            }
-            break;
+      case "battleIntro":
+        state.timer -= dt;
+        if (state.timer <= 0) beginHorde();
+        break;
+      case "hordeIntro":
+        state.timer -= dt;
+        if (state.timer <= 0) spawnActiveHorde();
+        break;
+      case "hordeActive": {
+        state.timer = Math.max(0, state.timer - dt);
+        const battle = currentBattle();
+        const totalHordes = Array.isArray(battle?.hordes) ? battle.hordes.length : HORDES_PER_BATTLE;
+        const finalHorde = state.battleIndex + 1 >= totalHordes;
+        const enemiesRemain = hasActiveOpponents(false);
+        const timerElapsed = state.timer <= 0;
+        const pendingPortalSpawns = typeof getPendingPortalSpawnCount === "function"
+          ? Math.max(0, getPendingPortalSpawnCount() - (state.pendingPortalSpawnBaseline || 0))
+          : 0;
+        const horde = currentHorde();
+        const allKill = finalHorde ? true : Boolean(horde?.allKill);
+        if (!finalHorde) {
+          if (allKill) {
+            if (!enemiesRemain && pendingPortalSpawns <= 0) handleHordeCleared();
+          } else if (timerElapsed || !enemiesRemain) {
+            handleHordeCleared();
           }
-        case "hordeCleared": {
-          state.timer -= dt;
-          const finalHorde = state.battleIndex + 1 >= HORDES_PER_BATTLE;
-          if (finalHorde && state.timer <= 0 && state.finalHordeDelay > 0) {
-            state.finalHordeDelay = Math.max(0, state.finalHordeDelay - dt);
-            if (state.finalHordeDelay > 0) break;
-          }
-          if (state.timer <= 0) {
+        } else {
+          if (!enemiesRemain && pendingPortalSpawns <= 0) handleHordeCleared();
+        }
+        break;
+      }
+    case "hordeCleared": {
+      state.timer -= dt;
+      const battle = currentBattle();
+      const totalHordes = Array.isArray(battle?.hordes) ? battle.hordes.length : HORDES_PER_BATTLE;
+      const finalHorde = state.battleIndex + 1 >= totalHordes;
+      if (finalHorde && state.timer <= 0 && state.finalHordeDelay > 0) {
+        state.finalHordeDelay = Math.max(0, state.finalHordeDelay - dt);
+        if (state.finalHordeDelay > 0) break;
+      }
+      if (state.timer <= 0) {
             if (finalHorde && hasActiveOpponents(true)) break;
             if (finalHorde) {
               handleBattleComplete();

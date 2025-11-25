@@ -9,6 +9,7 @@
       monthsPerLevel: 3,
       battlesPerMonth: 3,
       defaultHordesPerBattle: 6,
+      defaultHordeDuration: 10,
     },
     globals: {
       enemyStats: {},
@@ -51,6 +52,7 @@
   };
   const thumbCache = {};
   const thumbLoading = new Set();
+  const DEFAULT_HORDE_DURATION = 10;
 
   function updateScopeFromSelects() {
     state.scope = {
@@ -98,7 +100,15 @@
   function ensureHorde(battleObj, hordeIdx) {
     battleObj.hordes = battleObj.hordes || [];
     while (battleObj.hordes.length < hordeIdx) {
-      battleObj.hordes.push({ index: battleObj.hordes.length + 1, entries: [], weights: {} });
+      battleObj.hordes.push({
+        index: battleObj.hordes.length + 1,
+        entries: [],
+        weights: {},
+        delaysWeighted: {},
+        delaysExplicit: {},
+        allKill: false,
+        duration: state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION,
+      });
     }
     return battleObj.hordes[hordeIdx - 1];
   }
@@ -129,7 +139,7 @@
       }
       #levelBuilderOverlay .lb-grid {
         display: grid;
-        grid-template-columns: 260px 1fr 340px;
+        grid-template-columns: 260px 1fr;
         gap: 12px;
         height: 100%;
       }
@@ -207,7 +217,9 @@
         <input type="number" id="lb-hordesPerBattle" min="1" max="12" step="1">
         <div class="button-row" style="margin-top:12px;">
           <button id="lb-close" class="secondary">Close (Esc)</button>
+          <button id="lb-save" type="button">Save</button>
         </div>
+        <div id="lb-status" style="margin-top:6px;font-size:12px;color:#9bf0ff;"></div>
       </div>
       <div class="panel" id="lb-mainPanel">
         <h3>Mode & Enemies</h3>
@@ -217,16 +229,10 @@
           <option value="weighted">Weighted (random)</option>
           <option value="explicit">Explicit (fixed groups)</option>
         </select>
+        <label style="margin-top:6px;"><input type="checkbox" id="lb-allKill"> All Kill (require clearing)</label>
+        <label>Horde Duration (s)</label>
+        <input type="number" id="lb-hordeDuration" min="1" step="1">
         <div class="scroll" id="lb-contentArea"></div>
-      </div>
-      <div class="panel" id="lb-sidePanel">
-        <h3>Export / Import</h3>
-        <textarea id="lb-json" rows="16" placeholder="Config JSON"></textarea>
-        <div class="button-row">
-          <button id="lb-save" type="button">Save</button>
-          <button id="lb-load" class="secondary" type="button">Load JSON</button>
-        </div>
-        <div id="lb-status" style="margin-top:8px;font-size:12px;color:#9bf0ff;"></div>
       </div>
     </div>
   `;
@@ -240,12 +246,12 @@
     horde: overlay.querySelector("#lb-horde"),
     mode: overlay.querySelector("#lb-mode"),
     hordesPerBattle: overlay.querySelector("#lb-hordesPerBattle"),
+    allKill: overlay.querySelector("#lb-allKill"),
+    hordeDuration: overlay.querySelector("#lb-hordeDuration"),
     content: overlay.querySelector("#lb-contentArea"),
-    json: overlay.querySelector("#lb-json"),
     save: overlay.querySelector("#lb-save"),
-    load: overlay.querySelector("#lb-load"),
-    close: overlay.querySelector("#lb-close"),
     status: overlay.querySelector("#lb-status"),
+    close: overlay.querySelector("#lb-close"),
   };
 
   function populateSelect(select, count) {
@@ -529,6 +535,19 @@
       state.scope.horde = Number(els.horde.value) || 1;
     }
     els.hordesPerBattle.value = hpb;
+    // Horde flags
+    const { hordeObj } = getActiveScope();
+    if (hordeObj) {
+      if (typeof hordeObj.allKill !== "boolean") hordeObj.allKill = false;
+      if (!Number.isFinite(hordeObj.duration) || hordeObj.duration <= 0) {
+        const defDur = state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION;
+        hordeObj.duration = defDur;
+      }
+      hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
+      hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
+      els.allKill.checked = Boolean(hordeObj.allKill);
+      els.hordeDuration.value = Math.round(hordeObj.duration);
+    }
     renderModeAndWeights();
   }
 
@@ -559,9 +578,21 @@
       saveToStorage(state.config);
       refreshUI();
     });
+    els.allKill.addEventListener("change", () => {
+      const { hordeObj } = getActiveScope();
+      if (!hordeObj) return;
+      hordeObj.allKill = Boolean(els.allKill.checked);
+      saveToStorage(state.config);
+    });
+    els.hordeDuration.addEventListener("change", () => {
+      const { hordeObj } = getActiveScope();
+      if (!hordeObj) return;
+      const val = Math.max(1, Number(els.hordeDuration.value) || DEFAULT_HORDE_DURATION);
+      hordeObj.duration = val;
+      saveToStorage(state.config);
+    });
     els.save.addEventListener("click", () => {
       saveToStorage(state.config);
-      els.json.value = JSON.stringify(state.config, null, 2);
       if (els.status) {
         const now = new Date();
         const hh = String(now.getHours()).padStart(2, "0");
@@ -570,22 +601,11 @@
         els.status.textContent = `Saved ${hh}:${mm}:${ss}`;
       }
     });
-    els.load.addEventListener("click", () => {
-      try {
-        const parsed = JSON.parse(els.json.value || "{}");
-        state.config = parsed;
-        saveToStorage(state.config);
-        refreshUI();
-      } catch (err) {
-        alert("Invalid JSON");
-      }
-    });
     els.close.addEventListener("click", hide);
   }
 
   function show() {
     refreshUI();
-    els.json.value = JSON.stringify(state.config, null, 2);
     overlay.style.display = "block";
   }
 
