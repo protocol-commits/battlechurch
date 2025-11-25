@@ -1384,6 +1384,9 @@ class Player {
     acquireTarget() {
       let bestTarget = null;
       let bestDistSq = Infinity;
+      const npcPriority =
+        Array.isArray(this.config?.specialBehavior) &&
+        this.config.specialBehavior.includes("npcPriority");
       if (this.type === "miniGhost") {
         for (const npc of npcs) {
           if (!npc || npc.departed || !npc.active) continue;
@@ -1413,16 +1416,25 @@ class Player {
       }
 
       if (this.huntsNpcs) {
+        let bestNpc = null;
+        let bestNpcDist = Infinity;
         for (const npc of npcs) {
           if (!npc || npc.departed || !npc.active) continue;
           if (typeof npc.faith === "number" && npc.faith <= 0) continue;
           const dx = npc.x - this.x;
           const dy = npc.y - this.y;
           const distSq = dx * dx + dy * dy;
-          if (distSq < bestDistSq) {
-            bestDistSq = distSq;
-            bestTarget = npc;
+          if (distSq < bestNpcDist) {
+            bestNpcDist = distSq;
+            bestNpc = npc;
           }
+        }
+        if (npcPriority && bestNpc) {
+          bestTarget = bestNpc;
+          bestDistSq = bestNpcDist;
+        } else if (bestNpc && bestNpcDist < bestDistSq) {
+          bestTarget = bestNpc;
+          bestDistSq = bestNpcDist;
         }
       }
 
