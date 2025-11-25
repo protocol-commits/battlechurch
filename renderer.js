@@ -1565,13 +1565,6 @@ function drawLevelAnnouncements() {
     sharedShakeOffset.x = 0;
     sharedShakeOffset.y = 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    // If the explicit How-to-play screen is active, show it and block
-    // congregation/briefing until dismissed.
-    if (howToPlayActive) {
-      drawHowToPlayScene();
-      drawPauseHint();
-      return;
-    }
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
     // If we're in briefing, draw briefing first; otherwise if levelIntro draw congregation
     if (levelStatus?.stage === 'briefing') {

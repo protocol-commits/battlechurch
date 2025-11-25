@@ -37,6 +37,54 @@
   let oneEnemySpawnedLevel1 = false;
   let pendingPortalSpawns = 0;
 
+  function getCanvasSize() {
+    try {
+      const canvas = typeof window !== "undefined" ? window.canvas : null;
+      return {
+        width: canvas?.width || 1280,
+        height: canvas?.height || 720,
+      };
+    } catch (e) {
+      return { width: 1280, height: 720 };
+    }
+  }
+
+  function randomOffscreenPosition(radius = 0, extraMargin = 0) {
+    const { width, height } = getCanvasSize();
+    const marginX = Math.max(140, Math.floor(width * 0.14)) + radius + extraMargin;
+    const marginY = Math.max(120, Math.floor(height * 0.12)) + radius + extraMargin;
+    const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
+    const bottomCutoff = hud + (height - hud) * (1 / 3);
+    const edge = Math.floor(Math.random() * 3);
+    if (edge === 0) {
+      return { x: -marginX, y: deps.randomInRange(bottomCutoff, height - marginY) };
+    }
+    if (edge === 1) {
+      return { x: width + marginX, y: deps.randomInRange(bottomCutoff, height - marginY) };
+    }
+    // bottom edge
+    return { x: deps.randomInRange(marginX, width - marginX), y: height + marginY };
+  }
+
+  function findNonOverlappingSpawn(basePos, radius = 20, attempts = 6) {
+    const enemies = deps.enemies || [];
+    let pos = { x: basePos.x, y: basePos.y };
+    const safeRadius = Math.max(8, radius * 1.25);
+    for (let i = 0; i < attempts; i += 1) {
+      const overlapping = enemies.some((enemy) => {
+        if (!enemy || enemy.dead || enemy.state === "death") return false;
+        const dist = Math.hypot((enemy.x || 0) - pos.x, (enemy.y || 0) - pos.y);
+        const rSum = (enemy.radius || enemy.config?.hitRadius || 20) + safeRadius;
+        return dist < rSum;
+      });
+      if (!overlapping) return pos;
+      const angle = Math.random() * Math.PI * 2;
+      const step = safeRadius * 1.4;
+      pos = { x: pos.x + Math.cos(angle) * step, y: pos.y + Math.sin(angle) * step };
+    }
+    return pos;
+  }
+
   function resolveEnemyTypes() {
     return typeof deps.enemyTypes === "function" ? deps.enemyTypes() : deps.enemyTypes;
   }
@@ -114,7 +162,9 @@
       };
     }
 
-    const spawnPos = position || deps.randomSpawnPosition();
+    const spawnRadius = config.hitRadius || 24;
+    const initialPos = position || randomOffscreenPosition(spawnRadius);
+    const spawnPos = findNonOverlappingSpawn(initialPos, spawnRadius);
     try {
       console.debug &&
         console.debug("Enemy spawn", {
@@ -162,12 +212,12 @@
   }
 
   function schedulePortalSpawn(type, position, delayMs = 0, options = {}) {
-    const { ignoreCap = false } = options || {};
+    const { ignoreCap = false, extraMargin = 0 } = options || {};
     pendingPortalSpawns += 1;
     const spawnPos =
       position && typeof position.x === "number" && typeof position.y === "number"
         ? { x: position.x, y: position.y }
-        : deps.randomSpawnPosition();
+        : randomOffscreenPosition(0, extraMargin);
     let completed = false;
     const markComplete = () => {
       if (completed) return;
@@ -191,7 +241,7 @@
   }
 
   function spawnSkeletonGroup(position, count = deps.skeletonPackSize, options = {}) {
-    const base = position || deps.randomSpawnPosition();
+    const base = position || randomOffscreenPosition();
     for (let i = 0; i < count; i += 1) {
       const offsetX = (Math.random() - 0.5) * 90;
       const offsetY = (Math.random() - 0.5) * 60;
@@ -206,15 +256,19 @@
   }
 
   function spawnMiniImpGroup(count, position = null, options = {}, type = "miniImp") {
-    const base = position || deps.randomSpawnPosition();
-    const spread = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
+    const avgRadius = deps.enemyTypes?.[type]?.hitRadius || 20;
+    const groupExtra = Math.min(800, 30 * Math.sqrt(Math.max(1, count)));
+    const base = position || randomOffscreenPosition(avgRadius, groupExtra);
+    const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
+    const spread = spreadBase * (1 + Math.max(0, count - 1) * 0.06);
     for (let i = 0; i < count; i += 1) {
-      const offsetX = deps.randomInRange(-spread * 0.5, spread * 0.5);
-      const offsetY = deps.randomInRange(-spread * 0.5, spread * 0.5);
+      const offsetX = deps.randomInRange(-spread * 0.6, spread * 0.6);
+      const offsetY = deps.randomInRange(-spread * 0.6, spread * 0.6);
       const spawnPos = { x: base.x + offsetX, y: base.y + offsetY };
       const spawnOptions = {
         ...(options || {}),
         applyCameraShake: i === 0,
+        extraMargin: groupExtra,
       };
       schedulePortalSpawn(
         typeof type === "string" && type ? type : "miniImp",
@@ -226,15 +280,19 @@
   }
 
   function spawnMiniSkeletonGroup(count, position = null, options = {}) {
-    const base = position || deps.randomSpawnPosition();
-    const spread = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
+    const avgRadius = deps.enemyTypes?.miniSkeleton?.hitRadius || 20;
+    const groupExtra = Math.min(800, 30 * Math.sqrt(Math.max(1, count)));
+    const base = position || randomOffscreenPosition(avgRadius, groupExtra);
+    const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
+    const spread = spreadBase * (1 + Math.max(0, count - 1) * 0.06);
     for (let i = 0; i < count; i += 1) {
-      const offsetX = deps.randomInRange(-spread * 0.45, spread * 0.45);
-      const offsetY = deps.randomInRange(-spread * 0.45, spread * 0.45);
+      const offsetX = deps.randomInRange(-spread * 0.55, spread * 0.55);
+      const offsetY = deps.randomInRange(-spread * 0.55, spread * 0.55);
       const spawnPos = { x: base.x + offsetX, y: base.y + offsetY };
       const spawnOptions = {
         ...(options || {}),
         applyCameraShake: i === 0,
+        extraMargin: groupExtra,
       };
       schedulePortalSpawn(
         "miniSkeleton",

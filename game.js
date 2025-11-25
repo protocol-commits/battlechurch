@@ -2667,13 +2667,15 @@ function startGameFromTitle() {
   try {
     if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   } catch (e) {}
-  // Instead of immediately starting briefing/congregation, show a dedicated
-  // "How to play" screen that the player must dismiss with Space. This
-  // guarantees Title -> How-to-play -> Congregation ordering.
   try {
     titleScreenActive = false;
-    howToPlayActive = true;
-    setDevStatus('How to play: press Space to continue', 6);
+    howToPlayActive = false;
+    paused = false;
+    if (levelManager && typeof levelManager.startBriefing === "function") {
+      levelManager.startBriefing(1);
+    } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
+      levelManager.advanceFromBriefing(1);
+    }
     return;
   } catch (e) {}
 }
@@ -2697,29 +2699,6 @@ const GAME_OVER_BODY =
   uiTexts.gameOverBody ||
   "You have no strength to continue the battle.\nThe church and the town are lost to darkness.";
 
-function proceedFromHowToPlay() {
-  howToPlayActive = false;
-  paused = false;
-  keysJustPressed.delete(" ");
-  try {
-    if (levelManager && typeof levelManager.startBriefing === 'function') {
-      levelManager.startBriefing(1);
-    } else if (levelManager && typeof levelManager.advanceFromBriefing === 'function') {
-      levelManager.advanceFromBriefing(1);
-    }
-  } catch (e) {}
-}
-
-function showHowToPlayDialog() {
-  if (!window.DialogOverlay) return;
-  window.DialogOverlay.show({
-    title: "How to Play",
-    body: HOW_TO_PLAY_BODY,
-    buttonText: "Continue (Space)",
-    variant: "howto",
-    onContinue: proceedFromHowToPlay,
-  });
-}
 
 function resumeFromPause() {
   pauseDialogActive = false;
@@ -6122,8 +6101,8 @@ function getEnemySpawnPoints() {
 function randomSpawnPosition() {
   const width = canvas.width;
   const height = canvas.height;
-  const horizontalMargin = 24;
-  const verticalMargin = 18;
+  const horizontalMargin = Math.max(120, Math.floor(width * 0.12));
+  const verticalMargin = Math.max(100, Math.floor(height * 0.12));
   const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
   const edge = Math.floor(Math.random() * 3);
   if (edge === 0) {
@@ -6140,7 +6119,6 @@ function randomSpawnPosition() {
       y: randomInRange(bottomCutoff, height - verticalMargin),
     };
   }
-  // bottom edge
   return {
     x: randomInRange(horizontalMargin, width - horizontalMargin),
     y: height + verticalMargin,
