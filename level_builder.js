@@ -286,6 +286,8 @@
     const scopeMode = hordeObj.mode || battleObj.mode || state.config.globals.mode || "weighted";
     els.mode.value = scopeMode;
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
+    hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
+    hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
     if (!hordeObj.weights || Object.keys(hordeObj.weights).length === 0) {
       const basePool = basePoolForScope(state.scope);
       if (basePool.length) {
@@ -303,19 +305,21 @@
     if (scopeMode === "weighted") {
       const table = document.createElement("table");
       const header = document.createElement("tr");
-      header.innerHTML = "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Weight</th><th>Hide</th>";
+      header.innerHTML = "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Weight</th><th>Delay (s)</th><th>Hide</th>";
       table.appendChild(header);
       Object.keys(catalog).forEach((key) => {
         if (hiddenSet.has(key) && !state.showHidden) return;
         const row = document.createElement("tr");
         const w = weights[key] ?? "";
         const thumb = getEnemyThumbnail(key);
+        const delayVal = hordeObj.delaysWeighted?.[key] ?? 0;
         row.innerHTML = `
           <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
             ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
           </div></td>
           <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
           <td><input type="number" data-weight="${key}" value="${w}" min="0" style="width:80px;"></td>
+          <td><input type="number" data-delay-weighted="${key}" value="${delayVal}" min="0" step="0.1" style="width:80px;"></td>
           <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
         `;
         table.appendChild(row);
@@ -329,6 +333,15 @@
           hordeObj.weights = hordeObj.weights || {};
           if (Number.isNaN(val)) delete hordeObj.weights[key];
           else hordeObj.weights[key] = val;
+          saveToStorage(state.config);
+        });
+      });
+      els.content.querySelectorAll("input[data-delay-weighted]").forEach((input) => {
+        input.addEventListener("change", () => {
+          const key = input.getAttribute("data-delay-weighted");
+          const val = Math.max(0, Number(input.value) || 0);
+          hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
+          hordeObj.delaysWeighted[key] = val;
           saveToStorage(state.config);
         });
       });
@@ -349,19 +362,21 @@
 
       const table = document.createElement("table");
       const header = document.createElement("tr");
-      header.innerHTML = "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Count</th><th>Hide</th>";
+      header.innerHTML = "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Count</th><th>Delay (s)</th><th>Hide</th>";
       table.appendChild(header);
       Object.keys(catalog).forEach((key) => {
         if (hiddenSet.has(key) && !state.showHidden) return;
         const row = document.createElement("tr");
         const thumb = getEnemyThumbnail(key);
         const countVal = counts[key] ?? 0;
+        const delayVal = hordeObj.delaysExplicit?.[key] ?? 0;
         row.innerHTML = `
           <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
             ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
           </div></td>
           <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
           <td><input type="number" data-exp-count="${key}" value="${countVal}" min="0" style="width:80px;"></td>
+          <td><input type="number" data-exp-delay="${key}" value="${delayVal}" min="0" step="0.1" style="width:80px;"></td>
           <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
         `;
         table.appendChild(row);
@@ -378,6 +393,16 @@
             .filter(([, count]) => count > 0)
             .map(([enemy, count]) => ({ enemy, count }));
           hordeObj.entries = nextEntries;
+          saveToStorage(state.config);
+        });
+      });
+
+      els.content.querySelectorAll("input[data-exp-delay]").forEach((input) => {
+        input.addEventListener("change", () => {
+          const key = input.getAttribute("data-exp-delay");
+          const val = Math.max(0, Number(input.value) || 0);
+          hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
+          hordeObj.delaysExplicit[key] = val;
           saveToStorage(state.config);
         });
       });

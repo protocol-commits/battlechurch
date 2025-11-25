@@ -171,13 +171,17 @@
     }
   }
 
-  function mergeEnemyCounts(list) {
+  function mergeEnemyCounts(list, delayMap = {}) {
     const counts = {};
     list.forEach(({ type, count }) => {
       if (!type || !count) return;
       counts[type] = (counts[type] || 0) + count;
     });
-    return Object.entries(counts).map(([type, count]) => ({ type, count }));
+    return Object.entries(counts).map(([type, count]) => ({
+      type,
+      count,
+      delay: Number.isFinite(delayMap[type]) ? delayMap[type] : 0,
+    }));
   }
 
   function selectHordeEnemyType(levelNumber, difficultyTier, helpers) {
@@ -243,12 +247,15 @@
     const mode = resolveValue(scope, "mode") || "weighted";
 
     // Collect builder overrides (weighted + explicit can both apply)
+    const delaysWeighted = (scope.horde && scope.horde.delaysWeighted) || {};
+    const delaysExplicit = (scope.horde && scope.horde.delaysExplicit) || {};
     const explicitEntries = Array.isArray(scope.horde?.entries)
       ? scope.horde.entries
           .filter((e) => e && e.enemy && !hidden.has(e.enemy))
           .map((e) => ({
             type: e.enemy,
             count: Math.max(1, Math.floor(e.count || 1)),
+            delay: Number.isFinite(delaysExplicit[e.enemy]) ? delaysExplicit[e.enemy] : 0,
           }))
       : [];
 
@@ -261,11 +268,15 @@
         .map(([type, weight]) => {
           const ratio = Math.max(0, Number(weight) || 0) / weightTotal;
           const count = Math.max(0, Math.round(totalEnemies * ratio));
-          return { type, count };
+          return {
+            type,
+            count,
+            delay: Number.isFinite(delaysWeighted[type]) ? delaysWeighted[type] : 0,
+          };
         });
     }
 
-    const mergedExplicitWeighted = mergeEnemyCounts([...weightedEntries, ...explicitEntries]);
+    const mergedExplicitWeighted = [...weightedEntries, ...explicitEntries];
     if (mergedExplicitWeighted.length) {
       return {
         enemies: mergedExplicitWeighted,
@@ -799,18 +810,26 @@
           remaining -= groupSize;
         }
       };
-      enemyEntries.forEach(({ type, count }) => {
+      enemyEntries.forEach(({ type, count, delay }) => {
         const isMiniImpTypeEntry = type === "miniImp" || type === "miniImpLevel2";
-        if (type === "miniSkeleton") {
-          spawnSkeletonSwarms(count);
-        } else if (isMiniImpTypeEntry) {
-          spawnMiniImpGroup(count, null, { ignoreCap: true }, type);
-        } else {
-          for (let i = 0; i < count; i += 1) {
-            spawnEnemyOfType(type);
+        const delayMs = Math.max(0, (Number(delay) || 0) * 1000);
+        const spawnTask = () => {
+          if (type === "miniSkeleton") {
+            spawnSkeletonSwarms(count);
+          } else if (isMiniImpTypeEntry) {
+            spawnMiniImpGroup(count, null, { ignoreCap: true }, type);
+          } else {
+            for (let i = 0; i < count; i += 1) {
+              spawnEnemyOfType(type);
+            }
           }
+          if (type === "miniGhost") ensuredMiniGhost = true;
+        };
+        if (delayMs > 0 && typeof setTimeoutFn === "function") {
+          setTimeoutFn(spawnTask, delayMs);
+        } else {
+          spawnTask();
         }
-        if (type === "miniGhost") ensuredMiniGhost = true;
       });
       if (!ensuredMiniGhost) {
         spawnEnemyOfType("miniGhost");
