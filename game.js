@@ -3952,6 +3952,11 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
     const type = typeof ent.type === "string" ? ent.type.toLowerCase() : "";
     return type.startsWith("mini");
   };
+  const getSwarmSpacing = (ent) => {
+    const val = ent?.config?.swarmSpacing;
+    if (Number.isFinite(val) && val > 0) return Math.max(0.25, Math.min(2, val));
+    return 1;
+  };
   const isMiniImp = (ent) => {
     const type = typeof ent?.type === "string" ? ent.type : "";
     return type === "miniImp" || type === "miniImpLevel2";
@@ -3984,7 +3989,11 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
     const dy = entity.y - other.y;
     const distance = Math.hypot(dx, dy);
     const baseRadius = (entity.radius || 0) + (other.radius || 0);
-    const minDistance = baseRadius * overlapScale;
+    let spacingFactor = 1;
+    if (bothEnemies && entity.type === other.type) {
+      spacingFactor = Math.min(getSwarmSpacing(entity), getSwarmSpacing(other));
+    }
+    const minDistance = baseRadius * overlapScale * spacingFactor;
     if (distance > 0 && distance < minDistance) {
       const overlap = minDistance - distance;
       const nx = dx / distance;

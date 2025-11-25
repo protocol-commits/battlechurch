@@ -66,10 +66,10 @@
     return { x: deps.randomInRange(marginX, width - marginX), y: height + marginY };
   }
 
-  function findNonOverlappingSpawn(basePos, radius = 20, attempts = 6) {
+  function findNonOverlappingSpawn(basePos, radius = 20, attempts = 6, spacing = 1) {
     const enemies = deps.enemies || [];
     let pos = { x: basePos.x, y: basePos.y };
-    const safeRadius = Math.max(8, radius * 1.25);
+    const safeRadius = Math.max(8, radius * spacing * 1.25);
     for (let i = 0; i < attempts; i += 1) {
       const overlapping = enemies.some((enemy) => {
         if (!enemy || enemy.dead || enemy.state === "death") return false;
@@ -163,8 +163,9 @@
     }
 
     const spawnRadius = config.hitRadius || 24;
-    const initialPos = position || randomOffscreenPosition(spawnRadius);
-    const spawnPos = findNonOverlappingSpawn(initialPos, spawnRadius);
+    const spacing = Math.max(0.25, Math.min(2, config.swarmSpacing || 1));
+    const initialPos = position || randomOffscreenPosition(spawnRadius, 0);
+    const spawnPos = findNonOverlappingSpawn(initialPos, spawnRadius, 6, spacing);
     try {
       console.debug &&
         console.debug("Enemy spawn", {
@@ -257,10 +258,11 @@
 
   function spawnMiniImpGroup(count, position = null, options = {}, type = "miniImp") {
     const avgRadius = deps.enemyTypes?.[type]?.hitRadius || 20;
-    const groupExtra = Math.min(800, 30 * Math.sqrt(Math.max(1, count)));
+    const spacing = Math.max(0.25, Math.min(2, deps.enemyTypes?.[type]?.swarmSpacing || 1));
+    const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, count))) * spacing;
     const base = position || randomOffscreenPosition(avgRadius, groupExtra);
     const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
-    const spread = spreadBase * (1 + Math.max(0, count - 1) * 0.06);
+    const spread = (spreadBase * (1 + Math.max(0, count - 1) * 0.06)) / spacing;
     for (let i = 0; i < count; i += 1) {
       const offsetX = deps.randomInRange(-spread * 0.6, spread * 0.6);
       const offsetY = deps.randomInRange(-spread * 0.6, spread * 0.6);
@@ -281,10 +283,11 @@
 
   function spawnMiniSkeletonGroup(count, position = null, options = {}) {
     const avgRadius = deps.enemyTypes?.miniSkeleton?.hitRadius || 20;
-    const groupExtra = Math.min(800, 30 * Math.sqrt(Math.max(1, count)));
+    const spacing = Math.max(0.25, Math.min(2, deps.enemyTypes?.miniSkeleton?.swarmSpacing || 1));
+    const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, count))) * spacing;
     const base = position || randomOffscreenPosition(avgRadius, groupExtra);
     const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
-    const spread = spreadBase * (1 + Math.max(0, count - 1) * 0.06);
+    const spread = (spreadBase * (1 + Math.max(0, count - 1) * 0.06)) / spacing;
     for (let i = 0; i < count; i += 1) {
       const offsetX = deps.randomInRange(-spread * 0.55, spread * 0.55);
       const offsetY = deps.randomInRange(-spread * 0.55, spread * 0.55);

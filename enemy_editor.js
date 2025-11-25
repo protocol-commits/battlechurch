@@ -119,6 +119,7 @@
             <th>Speed</th>
             <th>Scale</th>
             <th>Hit Radius</th>
+            <th>Swarm Spacing</th>
             <th>Atk Range</th>
             <th>Cooldown</th>
             <th>Score</th>
@@ -343,6 +344,7 @@
     tr.appendChild(createCellInput(key, "speed"));
     tr.appendChild(createCellInput(key, "scale"));
     tr.appendChild(createCellInput(key, "baseRadius"));
+    tr.appendChild(createCellInput(key, "swarmSpacing"));
     tr.appendChild(createCellInput(key, "attackRange"));
     tr.appendChild(createCellInput(key, "cooldown"));
     tr.appendChild(createCellInput(key, "score"));

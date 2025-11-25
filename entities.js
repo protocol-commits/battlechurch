@@ -116,6 +116,8 @@
             specialBehavior: def.specialBehavior || [],
             tintColor,
             tintIntensity,
+            swarmSpacing:
+              typeof def.swarmSpacing === "number" ? def.swarmSpacing : undefined,
           },
         ];
       }),
