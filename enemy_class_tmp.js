@@ -192,32 +192,7 @@ class Enemy {
   acquireTarget() {
     let bestTarget = null;
     let bestDistSq = Infinity;
-    // Special-case: miniGhosts should prioritize NPCs; only target player when
-    // no valid NPCs are present on-screen.
-    if (this.type === 'miniGhost') {
-      for (const npc of npcs) {
-        // Skip invalid, departed, inactive, or faith-drained NPCs
-        if (!npc || npc.departed || !npc.active) continue;
-        if (typeof npc.faith === 'number' && npc.faith <= 0) continue;
-        const dx = npc.x - this.x;
-        const dy = npc.y - this.y;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < bestDistSq) {
-          bestDistSq = distSq;
-          bestTarget = npc;
-        }
-      }
-      // If no NPC target found, fall back to player
-      if (!bestTarget && player && player.state !== 'death') {
-        const dx = player.x - this.x;
-        const dy = player.y - this.y;
-        bestTarget = player;
-        bestDistSq = dx * dx + dy * dy;
-      }
-      return bestTarget;
-    }
-
-    // Default behavior for other enemies: consider player first, then NPCs
+    // Default behavior: consider player first, then NPCs
     if (player && player.state !== "death") {
       const dx = player.x - this.x;
       const dy = player.y - this.y;

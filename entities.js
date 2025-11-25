@@ -1327,9 +1327,6 @@ class Player {
                   console.debug &&
                     console.debug("Enemy dealing damage to NPC", { enemy: this.type, damage: this.config.damage });
                 } catch (e) {}
-                if (this.type === "miniGhost" && typeof npcTarget.markMiniGhostAttack === "function") {
-                  npcTarget.markMiniGhostAttack();
-                }
                 target.sufferAttack(this.config.damage);
               } else {
                 this._attackLock = null;
@@ -1352,17 +1349,6 @@ class Player {
       if (distance <= this.config.attackRange + targetRadius * 0.2 && this.attackTimer <= 0) {
         this.state = "attack";
         this.animator.play("attack", { restart: true });
-        if (this.type === "miniGhost" && !targetIsPlayer && target) {
-          try {
-            this._attackLock = {
-              target,
-              offsetX: this.x - target.x,
-              offsetY: this.y - target.y,
-            };
-          } catch (e) {
-            this._attackLock = null;
-          }
-        }
         return;
       }
 

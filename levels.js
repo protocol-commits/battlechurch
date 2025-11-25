@@ -883,7 +883,6 @@
       }
       resetStage("hordeActive", hordeActiveDuration);
       const enemyEntries = Array.isArray(horde?.enemies) ? horde.enemies : [];
-      let ensuredMiniGhost = false;
       const spawnSkeletonSwarms = (total) => {
         let remaining = total;
         while (remaining > 0) {
@@ -911,7 +910,6 @@
               spawnEnemyOfType(type);
             }
           }
-          if (type === "miniGhost") ensuredMiniGhost = true;
         };
         if (delayMs > 0 && typeof setTimeoutFn === "function") {
           setTimeoutFn(spawnTask, delayMs);
@@ -919,9 +917,6 @@
           spawnTask();
         }
       });
-      if (!ensuredMiniGhost) {
-        spawnEnemyOfType("miniGhost");
-      }
     }
 
     function handleHordeCleared() {
