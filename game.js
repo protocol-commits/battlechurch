@@ -1259,9 +1259,33 @@ const COIN_HEAL_AMOUNT = NPC_FAITH_RECOVERY_PER_COIN;
 
 const ENEMY_CATALOG =
   (typeof window !== "undefined" && window.BattlechurchEnemyCatalog?.catalog) || {};
+const DEV_LEVEL_BUILDER =
+  (typeof window !== "undefined" && window.BattlechurchLevelBuilder) || null;
+
+function applyDevEnemyOverrides(baseDefs) {
+  const cfg =
+    (typeof DEV_LEVEL_BUILDER?.getConfig === "function" && DEV_LEVEL_BUILDER.getConfig()) ||
+    null;
+  if (!cfg?.globals?.enemyStats) return baseDefs;
+  const overrides = cfg.globals.enemyStats;
+  const merged = {};
+  Object.keys(baseDefs || {}).forEach((key) => {
+    const base = baseDefs[key] || {};
+    const ov = overrides[key];
+    if (!ov) {
+      merged[key] = base;
+    } else {
+      merged[key] = Object.assign({}, base, ov);
+    }
+  });
+  return merged;
+}
+
 const ENEMY_DEFINITIONS =
-  (typeof window !== "undefined" && window.BattlechurchEnemyDefinitions) ||
-  ENEMY_CATALOG;
+  applyDevEnemyOverrides(
+    (typeof window !== "undefined" && window.BattlechurchEnemyDefinitions) ||
+      ENEMY_CATALOG,
+  );
 
 
 // MiniFolk enemies: demons/skellies that run through `spawner` overrides, e.g. miniGhost prefers NPCs, miniDemonLord is bulkier, and the undead minis reuse the same sheet for every state.
@@ -1284,6 +1308,10 @@ const ASSET_MANIFEST =
     characterRoot: CHARACTER_ROOT,
     enemyDefinitions: ENEMY_DEFINITIONS,
   }) || {};
+if (typeof window !== "undefined") {
+  window.ASSET_MANIFEST = ASSET_MANIFEST;
+  window.__BATTLECHURCH_CHARACTER_ROOT = CHARACTER_ROOT;
+}
 // Inject mini folks into the enemies manifest so they are loaded like other enemies.
 // Each mini sprite sheet will be used as a single animation named 'idle' - the
 // loader will infer frame dimensions; game logic will reuse 'walk' and 'attack'

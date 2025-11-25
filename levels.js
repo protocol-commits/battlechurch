@@ -5,6 +5,7 @@
   const levelData =
     (typeof window !== 'undefined' && window.BattlechurchLevelData) || {};
   const HORDE_ENEMY_POOLS = levelData.hordeEnemyPools || [];
+  const levelBuilder = (typeof window !== "undefined" && window.BattlechurchLevelBuilder) || null;
   const HERO_ENCOURAGEMENT_LINES = levelData.heroEncouragementLines || [];
   const NPC_AGREEMENT_LINES = levelData.npcAgreementLines || [];
   const BATTLE_SCENARIOS = levelData.battleScenarios || [];
@@ -44,6 +45,66 @@
   const fallbackRandomInRange = (min, max) => min + Math.random() * (max - min);
   const setTimeoutFn =
     typeof window.setTimeout === "function" ? window.setTimeout.bind(window) : null;
+
+  function getDevConfig() {
+    try {
+      const raw = typeof localStorage !== "undefined" ? localStorage.getItem("battlechurch.devLevelConfig") : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+      }
+    } catch (e) {}
+    if (typeof levelBuilder?.getConfig === "function") {
+      try {
+        return levelBuilder.getConfig() || null;
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  function getHiddenSet() {
+    const cfg = getDevConfig();
+    const list = cfg?.globals?.hiddenEnemies;
+    return new Set(Array.isArray(list) ? list : []);
+  }
+
+  function getScopeConfig(levelIdx, monthIdx, battleIdx, hordeIdx = null) {
+    const cfg = getDevConfig();
+    if (!cfg || !Array.isArray(cfg.levels)) return {};
+    const level = cfg.levels.find((l) => l?.index === levelIdx);
+    if (!level) return {};
+    const month = level.months?.find((m) => m?.index === monthIdx);
+    const battle =
+      month?.battles?.find((b) => b?.index === battleIdx) ||
+      (Array.isArray(month?.battles) ? month.battles[0] : null);
+    const horde =
+      hordeIdx != null
+        ? (battle?.hordes?.find((h) => h?.index === hordeIdx) ||
+            (Array.isArray(battle?.hordes) ? battle.hordes[0] : null))
+        : null;
+    return { cfg, level, month, battle, horde };
+  }
+
+  function resolveValue(scope, key) {
+    const { horde, battle, month, level, cfg } = scope;
+    if (horde && horde[key] !== undefined) return horde[key];
+    if (battle && battle[key] !== undefined) return battle[key];
+    if (month && month[key] !== undefined) return month[key];
+    if (level && level[key] !== undefined) return level[key];
+    if (cfg && cfg.globals && cfg.globals[key] !== undefined) return cfg.globals[key];
+    return undefined;
+  }
+
+  function resolveHordeCount(levelIdx, monthIdx, battleIdx, fallback) {
+    const scope = getScopeConfig(levelIdx, monthIdx, battleIdx, null);
+    const val = resolveValue(scope, "hordesPerBattle");
+    if (Number.isFinite(val) && val > 0) return val;
+    const defaultHpb = scope.cfg?.structure?.defaultHordesPerBattle;
+    if (Number.isFinite(defaultHpb) && defaultHpb > 0) return defaultHpb;
+    return fallback;
+  }
 
   const deps = {
     enemies: [],
@@ -121,6 +182,7 @@
 
   function selectHordeEnemyType(levelNumber, difficultyTier, helpers) {
     const { randomChoice, getAvailableMiniFolkKeys, hasEnemyAsset } = helpers;
+    const hidden = getHiddenSet();
     if (levelNumber === 1) {
       const miniKeys =
         (typeof getAvailableMiniFolkKeys === "function" && getAvailableMiniFolkKeys()) || [];
@@ -130,12 +192,14 @@
       if (available.length) return randomChoice(available);
     }
     const tierIndex = Math.max(0, Math.min(HORDE_ENEMY_POOLS.length - 1, difficultyTier));
-    const pool = HORDE_ENEMY_POOLS[tierIndex] || HORDE_ENEMY_POOLS[0];
-    return randomChoice(pool);
+    const pool = (HORDE_ENEMY_POOLS[tierIndex] || HORDE_ENEMY_POOLS[0]).filter(
+      (name) => !hidden.has(name),
+    );
+    return randomChoice(pool.length ? pool : HORDE_ENEMY_POOLS[0]);
   }
 
-  // createHordeDefinition(level, month, battle, helpers)
-  function createHordeDefinition(levelNumber, monthIndex, battleIndex, helpers) {
+  // createHordeDefinition(level, month, horde, helpers)
+  function createHordeDefinition(levelNumber, monthIndex, hordeIndex, helpers) {
     const {
       randomChoice,
       randomInRange,
@@ -145,6 +209,7 @@
       selectEnemyType,
     } = helpers;
 
+    const battleIndex = monthIndex; // reuse until separate battle tier is surfaced in builder
     const difficultyRating = levelNumber + monthIndex * 0.75 + battleIndex * 0.45;
     const baseCount = 40 + Math.round(difficultyRating * 8);
     const maxCount = 180 + Math.round(levelNumber * 12);
@@ -172,6 +237,43 @@
     const desiredTotal = Math.max(miniImpTotal + 6, baseCount + Math.floor(difficultyRating * 2.5));
     const totalEnemies = Math.max(miniImpTotal, Math.min(maxCount, desiredTotal));
     const hordeDuration = Math.max(10, 14 + Math.round(difficultyRating * 2));
+
+    const scope = getScopeConfig(levelNumber, monthIndex + 1, battleIndex + 1, hordeIndex + 1);
+    const hidden = getHiddenSet();
+    const mode = resolveValue(scope, "mode") || "weighted";
+
+    // If a dev config exists for this horde, use it
+    if (scope.horde && (scope.horde.entries?.length || scope.horde.weights)) {
+      if (mode === "explicit" && Array.isArray(scope.horde.entries) && scope.horde.entries.length) {
+        const combinedEntries = scope.horde.entries
+          .filter((e) => e && e.enemy && !hidden.has(e.enemy))
+          .map((e) => ({
+            type: e.enemy,
+            count: Math.max(1, Math.floor(e.count || 1)),
+          }));
+        return {
+          enemies: mergeEnemyCounts(combinedEntries),
+          powerUps: 1 + Math.floor(difficultyRating / 2),
+          duration: hordeDuration,
+        };
+      }
+      if (mode === "weighted" && scope.horde.weights && Object.keys(scope.horde.weights).length) {
+        const weights = scope.horde.weights;
+        const weightTotal = Object.values(weights).reduce((a, b) => a + (Number(b) || 0), 0) || 1;
+        const combinedEntries = Object.entries(weights)
+          .filter(([type]) => !hidden.has(type))
+          .map(([type, weight]) => {
+            const ratio = Math.max(0, Number(weight) || 0) / weightTotal;
+            const count = Math.max(0, Math.round(totalEnemies * ratio));
+            return { type, count };
+          });
+        return {
+          enemies: mergeEnemyCounts(combinedEntries),
+          powerUps: 1 + Math.floor(difficultyRating / 2),
+          duration: hordeDuration,
+        };
+      }
+    }
 
     const miniImpEntries = [];
     const entries = [];
@@ -251,7 +353,7 @@
       }
       const remaining = totalEnemies - spawned;
       const chunk = Math.min(remaining, 1 + Math.floor(randomInRange(0, Math.min(4, remaining))));
-      entries.push({ type, count: chunk });
+      if (!hidden.has(type)) entries.push({ type, count: chunk });
       spawned += chunk;
     }
 
@@ -279,9 +381,15 @@
 
   function buildLevelDefinition(levelNumber, helpers) {
     const battles = [];
-  for (let battleIndex = 0; battleIndex < MONTHS_PER_LEVEL; battleIndex += 1) {
+    for (let battleIndex = 0; battleIndex < MONTHS_PER_LEVEL; battleIndex += 1) {
       const hordes = [];
-      for (let hordeIndex = 0; hordeIndex < HORDES_PER_BATTLE; hordeIndex += 1) {
+      const hordeCount = resolveHordeCount(
+        levelNumber,
+        battleIndex + 1,
+        battleIndex + 1,
+        HORDES_PER_BATTLE,
+      );
+      for (let hordeIndex = 0; hordeIndex < hordeCount; hordeIndex += 1) {
         hordes.push(createHordeDefinition(levelNumber, battleIndex, hordeIndex, helpers));
       }
       battles.push({ hordes });
