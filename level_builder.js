@@ -618,7 +618,17 @@
     else show();
   }
 
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = (el.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return true;
+    if (el.isContentEditable) return true;
+    return false;
+  }
+
   document.addEventListener("keydown", (e) => {
+    if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) return;
+    if (isTypingTarget(e.target)) return;
     if (e.key && e.key.toLowerCase() === "l" && !overlay.contains(document.activeElement)) {
       e.preventDefault();
       toggle();

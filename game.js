@@ -1261,10 +1261,13 @@ const ENEMY_CATALOG =
   (typeof window !== "undefined" && window.BattlechurchEnemyCatalog?.catalog) || {};
 const DEV_LEVEL_BUILDER =
   (typeof window !== "undefined" && window.BattlechurchLevelBuilder) || null;
+const DEV_ENEMY_EDITOR =
+  (typeof window !== "undefined" && window.BattlechurchEnemyEditor) || null;
 
 function applyDevEnemyOverrides(baseDefs) {
   const cfg =
     (typeof DEV_LEVEL_BUILDER?.getConfig === "function" && DEV_LEVEL_BUILDER.getConfig()) ||
+    (typeof DEV_ENEMY_EDITOR?.getConfig === "function" && DEV_ENEMY_EDITOR.getConfig()) ||
     null;
   if (!cfg?.globals?.enemyStats) return baseDefs;
   const overrides = cfg.globals.enemyStats;
@@ -7393,6 +7396,10 @@ function updateCozyNpcs(dt) {
 // spawnVampire and updateVampires removed
 
 function handleDeveloperHotkeys() {
+  if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) {
+    keysJustPressed.clear();
+    return;
+  }
   if (!keysJustPressed.size) return;
   if (keysJustPressed.has("1")) {
     devTools.godMode = !devTools.godMode;
