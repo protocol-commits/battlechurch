@@ -222,13 +222,8 @@
         <div id="lb-status" style="margin-top:6px;font-size:12px;color:#9bf0ff;"></div>
       </div>
       <div class="panel" id="lb-mainPanel">
-        <h3>Mode & Enemies</h3>
+        <h3>Enemies</h3>
         <label><input type="checkbox" id="lb-showHidden"> Show hidden enemies</label>
-        <label>Mode</label>
-        <select id="lb-mode">
-          <option value="weighted">Weighted (random)</option>
-          <option value="explicit">Explicit (fixed groups)</option>
-        </select>
         <label style="margin-top:6px;"><input type="checkbox" id="lb-allKill"> All Kill (require clearing)</label>
         <label>Horde Duration (s)</label>
         <input type="number" id="lb-hordeDuration" min="1" step="1">
@@ -244,7 +239,6 @@
     month: overlay.querySelector("#lb-month"),
     battle: overlay.querySelector("#lb-battle"),
     horde: overlay.querySelector("#lb-horde"),
-    mode: overlay.querySelector("#lb-mode"),
     hordesPerBattle: overlay.querySelector("#lb-hordesPerBattle"),
     allKill: overlay.querySelector("#lb-allKill"),
     hordeDuration: overlay.querySelector("#lb-hordeDuration"),
@@ -288,9 +282,7 @@
   }
 
   function renderModeAndWeights() {
-    const { battleObj, hordeObj } = getActiveScope();
-    const scopeMode = hordeObj.mode || battleObj.mode || state.config.globals.mode || "weighted";
-    els.mode.value = scopeMode;
+    const { hordeObj } = getActiveScope();
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
     hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
     hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
@@ -307,120 +299,88 @@
     const weights = hordeObj.weights || {};
     const entries = hordeObj.entries || [];
     const hiddenSet = new Set(state.config.globals.hiddenEnemies || []);
+    const counts = {};
+    (entries || []).forEach((entry) => {
+      if (!entry || !entry.enemy) return;
+      counts[entry.enemy] = (counts[entry.enemy] || 0) + Math.max(0, Number(entry.count) || 0);
+    });
 
-    if (scopeMode === "weighted") {
-      const table = document.createElement("table");
-      const header = document.createElement("tr");
-      header.innerHTML = "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Weight</th><th>Delay (s)</th><th>Hide</th>";
-      table.appendChild(header);
-      Object.keys(catalog).forEach((key) => {
-        if (hiddenSet.has(key) && !state.showHidden) return;
-        const row = document.createElement("tr");
-        const w = weights[key] ?? "";
-        const thumb = getEnemyThumbnail(key);
-        const delayVal = hordeObj.delaysWeighted?.[key] ?? 0;
-        row.innerHTML = `
-          <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
-            ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
-          </div></td>
-          <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
-          <td><input type="number" data-weight="${key}" value="${w}" min="0" style="width:80px;"></td>
-          <td><input type="number" data-delay-weighted="${key}" value="${delayVal}" min="0" step="0.1" style="width:80px;"></td>
-          <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
-        `;
-        table.appendChild(row);
-      });
-      els.content.innerHTML = "";
-      els.content.appendChild(table);
-      els.content.querySelectorAll("input[data-weight]").forEach((input) => {
-        input.addEventListener("change", () => {
-          const key = input.getAttribute("data-weight");
-          const val = Number(input.value);
-          hordeObj.weights = hordeObj.weights || {};
-          if (Number.isNaN(val)) delete hordeObj.weights[key];
-          else hordeObj.weights[key] = val;
-          saveToStorage(state.config);
-        });
-      });
-      els.content.querySelectorAll("input[data-delay-weighted]").forEach((input) => {
-        input.addEventListener("change", () => {
-          const key = input.getAttribute("data-delay-weighted");
-          const val = Math.max(0, Number(input.value) || 0);
-          hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
-          hordeObj.delaysWeighted[key] = val;
-          saveToStorage(state.config);
-        });
-      });
-      els.content.querySelectorAll("button[data-hide]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const key = btn.getAttribute("data-hide");
-          toggleHiddenEnemy(key);
-          renderModeAndWeights();
-        });
-      });
-    } else {
-      // Explicit: show every enemy with a count field (no randomness)
-      const counts = {};
-      (entries || []).forEach((entry) => {
-        if (!entry || !entry.enemy) return;
-        counts[entry.enemy] = (counts[entry.enemy] || 0) + Math.max(0, Number(entry.count) || 0);
-      });
+    const table = document.createElement("table");
+    const header = document.createElement("tr");
+    header.innerHTML =
+      "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Weight</th><th>Delay (s)</th><th>Count</th><th>Delay (s)</th><th>Hide</th>";
+    table.appendChild(header);
+    Object.keys(catalog).forEach((key) => {
+      if (hiddenSet.has(key) && !state.showHidden) return;
+      const row = document.createElement("tr");
+      const thumb = getEnemyThumbnail(key);
+      const weightVal = weights[key] ?? "";
+      const delayWeight = hordeObj.delaysWeighted?.[key] ?? 0;
+      const countVal = counts[key] ?? 0;
+      const delayExplicit = hordeObj.delaysExplicit?.[key] ?? 0;
+      row.innerHTML = `
+        <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
+          ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
+        </div></td>
+        <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
+        <td><input type="number" data-weight="${key}" value="${weightVal}" min="0" style="width:80px;"></td>
+        <td><input type="number" data-delay-weighted="${key}" value="${delayWeight}" min="0" step="0.1" style="width:80px;"></td>
+        <td><input type="number" data-exp-count="${key}" value="${countVal}" min="0" style="width:80px;"></td>
+        <td><input type="number" data-exp-delay="${key}" value="${delayExplicit}" min="0" step="0.1" style="width:80px;"></td>
+        <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
+      `;
+      table.appendChild(row);
+    });
+    els.content.innerHTML = "";
+    els.content.appendChild(table);
 
-      const table = document.createElement("table");
-      const header = document.createElement("tr");
-      header.innerHTML = "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Count</th><th>Delay (s)</th><th>Hide</th>";
-      table.appendChild(header);
-      Object.keys(catalog).forEach((key) => {
-        if (hiddenSet.has(key) && !state.showHidden) return;
-        const row = document.createElement("tr");
-        const thumb = getEnemyThumbnail(key);
-        const countVal = counts[key] ?? 0;
-        const delayVal = hordeObj.delaysExplicit?.[key] ?? 0;
-        row.innerHTML = `
-          <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
-            ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
-          </div></td>
-          <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
-          <td><input type="number" data-exp-count="${key}" value="${countVal}" min="0" style="width:80px;"></td>
-          <td><input type="number" data-exp-delay="${key}" value="${delayVal}" min="0" step="0.1" style="width:80px;"></td>
-          <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
-        `;
-        table.appendChild(row);
+    els.content.querySelectorAll("input[data-weight]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.getAttribute("data-weight");
+        const val = Number(input.value);
+        hordeObj.weights = hordeObj.weights || {};
+        if (Number.isNaN(val)) delete hordeObj.weights[key];
+        else hordeObj.weights[key] = val;
+        saveToStorage(state.config);
       });
-      els.content.innerHTML = "";
-      els.content.appendChild(table);
-
-      els.content.querySelectorAll("input[data-exp-count]").forEach((input) => {
-        input.addEventListener("change", () => {
-          const key = input.getAttribute("data-exp-count");
-          const val = Math.max(0, Number(input.value) || 0);
-          const nextCounts = { ...counts, [key]: val };
-          const nextEntries = Object.entries(nextCounts)
-            .filter(([, count]) => count > 0)
-            .map(([enemy, count]) => ({ enemy, count }));
-          hordeObj.entries = nextEntries;
-          saveToStorage(state.config);
-        });
+    });
+    els.content.querySelectorAll("input[data-delay-weighted]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.getAttribute("data-delay-weighted");
+        const val = Math.max(0, Number(input.value) || 0);
+        hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
+        hordeObj.delaysWeighted[key] = val;
+        saveToStorage(state.config);
       });
-
-      els.content.querySelectorAll("input[data-exp-delay]").forEach((input) => {
-        input.addEventListener("change", () => {
-          const key = input.getAttribute("data-exp-delay");
-          const val = Math.max(0, Number(input.value) || 0);
-          hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
-          hordeObj.delaysExplicit[key] = val;
-          saveToStorage(state.config);
-        });
+    });
+    els.content.querySelectorAll("input[data-exp-count]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.getAttribute("data-exp-count");
+        const val = Math.max(0, Number(input.value) || 0);
+        const nextCounts = { ...counts, [key]: val };
+        const nextEntries = Object.entries(nextCounts)
+          .filter(([, count]) => count > 0)
+          .map(([enemy, count]) => ({ enemy, count }));
+        hordeObj.entries = nextEntries;
+        saveToStorage(state.config);
       });
-
-      els.content.querySelectorAll("button[data-hide]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const key = btn.getAttribute("data-hide");
-          toggleHiddenEnemy(key);
-          renderModeAndWeights();
-        });
+    });
+    els.content.querySelectorAll("input[data-exp-delay]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const key = input.getAttribute("data-exp-delay");
+        const val = Math.max(0, Number(input.value) || 0);
+        hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
+        hordeObj.delaysExplicit[key] = val;
+        saveToStorage(state.config);
       });
-    }
+    });
+    els.content.querySelectorAll("button[data-hide]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-hide");
+        toggleHiddenEnemy(key);
+        renderModeAndWeights();
+      });
+    });
   }
 
   function getEnemyThumbnail(key) {
@@ -565,12 +525,6 @@
         renderModeAndWeights();
       });
     }
-    els.mode.addEventListener("change", () => {
-      const { hordeObj } = getActiveScope();
-      hordeObj.mode = els.mode.value;
-      saveToStorage(state.config);
-      renderModeAndWeights();
-    });
     els.hordesPerBattle.addEventListener("change", () => {
       const val = Math.max(1, Number(els.hordesPerBattle.value) || 1);
       const { battleObj } = getActiveScope();
