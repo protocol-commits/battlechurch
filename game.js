@@ -6524,18 +6524,16 @@ function assignHomeWanderTarget(entity, bounds, radius = 140) {
 }
 
 function getCongregationSpawnAreaSpecs(total = CONGREGATION_MEMBER_COUNT) {
-  const home = getNpcHomeBounds();
-  const diameter = home.radius * 2;
-  const areaWidth = Math.max(120, diameter);
-  const areaHeight = Math.max(120, diameter);
+  const paddingX = 60;
+  const paddingTop = HUD_HEIGHT + 140;
+  const paddingBottom = 100;
+  const areaWidth = Math.max(120, canvas.width - paddingX * 2);
+  const areaHeight = Math.max(120, canvas.height - paddingTop - paddingBottom);
   const bounds = {
-    x: home.x,
-    y: home.y,
-    radius: home.radius,
-    minX: home.x - home.radius,
-    maxX: home.x + home.radius,
-    minY: home.y - home.radius,
-    maxY: home.y + home.radius,
+    minX: paddingX,
+    maxX: paddingX + areaWidth,
+    minY: paddingTop,
+    maxY: paddingTop + areaHeight,
   };
   const minColumns = 5;
   const totalCount = Math.max(1, total);
@@ -6548,22 +6546,11 @@ function getCongregationSpawnAreaSpecs(total = CONGREGATION_MEMBER_COUNT) {
 
 function congregationStyleGridPosition(index, total, { jitterRatio = 0.3 } = {}) {
   const spec = getCongregationSpawnAreaSpecs(Math.max(1, total));
-  const point = gridSpreadPosition(index, total, spec.bounds, {
+  return gridSpreadPosition(index, total, spec.bounds, {
     columns: spec.columns,
     rows: spec.rows,
     jitterRatio,
   });
-  const dx = point.x - spec.bounds.x;
-  const dy = point.y - spec.bounds.y;
-  const dist = Math.hypot(dx, dy) || 1;
-  if (dist > spec.bounds.radius) {
-    const scale = spec.bounds.radius / dist;
-    return {
-      x: spec.bounds.x + dx * scale,
-      y: spec.bounds.y + dy * scale,
-    };
-  }
-  return point;
 }
 
 function ensureChattyAssignments() {
@@ -7110,7 +7097,7 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
   const total = Math.max(0, count);
   if (total === 0) return;
   const spec = getCongregationSpawnAreaSpecs(total);
-  const { bounds } = spec;
+  const { bounds, columns, rows, cellWidth, cellHeight } = spec;
 
   congregationWanderBounds = bounds;
 
@@ -7130,10 +7117,12 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
     });
     animator.setState("walk", { restart: true });
     animator.setMoving(true);
-    const angle = Math.random() * Math.PI * 2;
-    const radius = Math.random() * bounds.radius * 0.95;
-    const baseX = bounds.x + Math.cos(angle) * radius;
-    const baseY = bounds.y + Math.sin(angle) * radius;
+    const column = i % columns;
+    const row = Math.floor(i / columns);
+    const jitterX = (Math.random() - 0.5) * cellWidth * 0.3;
+    const jitterY = (Math.random() - 0.5) * cellHeight * 0.3;
+    const baseX = bounds.minX + cellWidth * (column + 0.5) + jitterX;
+    const baseY = bounds.minY + cellHeight * (row + 0.5) + jitterY;
     // Assign name from list, fallback to Noname X
     let name = window.npcNamesList[window.npcNameIndex] || `Noname ${i + 1}`;
     window.npcNameIndex++;
@@ -7161,10 +7150,8 @@ function clearCongregationMembers() {
 
 function assignCongregationTarget(member, { immediate = false } = {}) {
   if (!congregationWanderBounds) return;
-  const angle = Math.random() * Math.PI * 2;
-  const radius = Math.random() * congregationWanderBounds.radius * 0.95;
-  member.targetX = congregationWanderBounds.x + Math.cos(angle) * radius;
-  member.targetY = congregationWanderBounds.y + Math.sin(angle) * radius;
+  member.targetX = randomInRange(congregationWanderBounds.minX, congregationWanderBounds.maxX);
+  member.targetY = randomInRange(congregationWanderBounds.minY, congregationWanderBounds.maxY);
   member.wanderPause = immediate ? 0 : randomInRange(0.6, 1.8);
 }
 
@@ -7202,14 +7189,8 @@ function updatePlayerDuringCongregation(dt) {
 
 function clampToWanderBounds(member) {
   if (!congregationWanderBounds || !member) return;
-  const dx = member.baseX - congregationWanderBounds.x;
-  const dy = member.baseY - congregationWanderBounds.y;
-  const dist = Math.hypot(dx, dy) || 0;
-  if (dist > congregationWanderBounds.radius) {
-    const scale = congregationWanderBounds.radius / dist;
-    member.baseX = congregationWanderBounds.x + dx * scale;
-    member.baseY = congregationWanderBounds.y + dy * scale;
-  }
+  member.baseX = Math.max(congregationWanderBounds.minX, Math.min(congregationWanderBounds.maxX, member.baseX));
+  member.baseY = Math.max(congregationWanderBounds.minY, Math.min(congregationWanderBounds.maxY, member.baseY));
 }
 
 function resolveCongregationCollisions() {
