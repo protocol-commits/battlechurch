@@ -489,6 +489,8 @@
       pendingPortalSpawnBaseline: 0,
       keyRushContext: null,
       pendingBossRestore: false,
+      npcRushActive: false,
+      npcRushTimer: 0,
     };
 
     function resetStage(stage, duration = 0) {
@@ -551,6 +553,8 @@
       };
       state.battleNpcStartCount = 0;
       state.waitingForCongregation = true;
+      state.npcRushActive = false;
+      state.npcRushTimer = 0;
       state.visitorMinigamePlayed = false;
       state.pendingVisitorMinigame = false;
       state.visitorResumeAction = null;
@@ -573,6 +577,7 @@
 
     function beginBattle() {
       clearStagePowerUps();
+      finishNpcRush();
       state.waitingForCongregation = false;
       clearCongregationMembers();
       state.monthIndex += 1;
@@ -712,7 +717,72 @@
       beginBattle();
     }
 
-  function startBriefing(levelNumber = 1) {
+    function startNpcRush() {
+      const home = typeof getNpcHomeBounds === "function" ? getNpcHomeBounds() : null;
+      const members = typeof congregationMembers !== "undefined" ? congregationMembers : null;
+      if (!home || !Array.isArray(members) || members.length === 0) {
+        state.npcRushActive = false;
+        state.npcRushTimer = 0;
+        return false;
+      }
+      state.npcRushActive = true;
+      state.npcRushTimer = 1.8;
+      members.forEach((member) => {
+        if (!member) return;
+        if (!Number.isFinite(member.__rushBaseSpeed)) member.__rushBaseSpeed = member.speed || 28;
+        member.speed = (member.__rushBaseSpeed || 28) * 6;
+        member.targetX = home.x;
+        member.targetY = home.y;
+      });
+      return true;
+    }
+
+    function finishNpcRush() {
+      state.npcRushActive = false;
+      state.npcRushTimer = 0;
+      const members = typeof congregationMembers !== "undefined" ? congregationMembers : null;
+      if (Array.isArray(members)) {
+        members.forEach((member) => {
+          if (!member) return;
+          if (Number.isFinite(member.__rushBaseSpeed)) {
+            member.speed = member.__rushBaseSpeed;
+          }
+          delete member.__rushBaseSpeed;
+        });
+      }
+    }
+
+    function updateNpcRush(dt) {
+      if (!state.npcRushActive) return false;
+      const home = typeof getNpcHomeBounds === "function" ? getNpcHomeBounds() : null;
+      const members = typeof congregationMembers !== "undefined" ? congregationMembers : null;
+      if (!home || !Array.isArray(members) || members.length === 0) {
+        finishNpcRush();
+        return true;
+      }
+      state.npcRushTimer = Math.max(0, state.npcRushTimer - dt);
+      let allInside = true;
+      members.forEach((member) => {
+        if (!member) return;
+        if (!Number.isFinite(member.__rushBaseSpeed)) member.__rushBaseSpeed = member.speed || 28;
+        member.speed = (member.__rushBaseSpeed || 28) * 6;
+        member.targetX = home.x;
+        member.targetY = home.y;
+        const dx = (member.baseX ?? member.x ?? home.x) - home.x;
+        const dy = (member.baseY ?? member.y ?? home.y) - home.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > home.radius * 0.82) {
+          allInside = false;
+        }
+      });
+      if (state.npcRushTimer <= 0 || allInside) {
+        finishNpcRush();
+        return true;
+      }
+      return false;
+    }
+
+    function startBriefing(levelNumber = 1) {
       // Prepare level data but DO NOT queue the month announcement yet. The
       // announcement should appear after the instructions (briefing) screen
       // when the player advances. This avoids showing the 'January...' text
@@ -732,15 +802,24 @@
       };
       state.battleNpcStartCount = 0;
       state.waitingForCongregation = true;
+      state.npcRushActive = false;
+      state.npcRushTimer = 0;
       state.currentBattleScenario = "";
       state.currentBossTheme = "";
       buildCongregationMembers();
-      resetStage("briefing", 0);
-      setDevStatus('Briefing: press Space to continue', 4.0);
+      resetStage("levelIntro", 0);
+      const rushing = startNpcRush();
+      if (!rushing) {
+        resetStage("briefing", 0);
+        setDevStatus('Briefing: press Space to continue', 4.0);
+      } else {
+        setDevStatus("NPCs gathering...", 2.0);
+      }
     }
 
     function advanceFromBriefing() {
       if (state.stage !== "briefing") return;
+      finishNpcRush();
       // Queue the month intro announcement now that the player has finished
       // reading the instructions, then enter the normal levelIntro flow.
       // When advancing from briefing the upcoming month is the first month
@@ -1035,12 +1114,22 @@ state.battleIndex = -1;
         state.visitorResumeAction = null;
         state.keyRushContext = null;
         state.pendingBossRestore = false;
+        state.npcRushActive = false;
+        state.npcRushTimer = 0;
       },
       update(dt) {
         if (!state.active) return;
         processConversation(dt);
         switch (state.stage) {
           case "levelIntro":
+            if (state.waitingForCongregation && state.npcRushActive) {
+              const done = updateNpcRush(dt);
+              if (done) {
+                resetStage("briefing", 0);
+                setDevStatus('Briefing: press Space to continue', 4.0);
+              }
+              break;
+            }
             if (!state.waitingForCongregation) {
               state.timer -= dt;
               if (state.timer <= 0) beginBattle();

@@ -189,14 +189,14 @@ let lastLevelNumber = null;
 
 function getNpcHomeBounds() {
   const centerX = canvas.width / 2;
-  const centerY = (canvas.height + HUD_HEIGHT) / 2;
-  const spreadX = Math.max(120, canvas.width * 0.18);
-  const spreadY = Math.max(120, (canvas.height - HUD_HEIGHT) * 0.18);
-  const minX = Math.max(NPC_RADIUS + 40, centerX - spreadX);
-  const maxX = Math.min(canvas.width - NPC_RADIUS - 40, centerX + spreadX);
-  const minY = Math.max(HUD_HEIGHT + NPC_RADIUS + 30, centerY - spreadY);
-  const maxY = Math.min(canvas.height - NPC_RADIUS - 40, centerY + spreadY);
-  return { minX, maxX, minY, maxY };
+  const playableHeight = canvas.height - HUD_HEIGHT;
+  const centerY = HUD_HEIGHT + playableHeight * (1 / 3);
+  const radius = Math.max(140, Math.min(centerX * 0.6, playableHeight * 0.25));
+  const minX = Math.max(0, centerX - radius);
+  const maxX = Math.min(canvas.width, centerX + radius);
+  const minY = Math.max(HUD_HEIGHT, centerY - radius);
+  const maxY = Math.min(canvas.height, centerY + radius);
+  return { x: centerX, y: centerY, radius, minX, maxX, minY, maxY };
 }
 
 function getActiveUtilityPowerUpCount() {
@@ -2988,11 +2988,11 @@ function rebuildAmbientDecor() {
   if (maxX <= minX || maxY <= minY) return;
 
   const homeBounds = getNpcHomeBounds();
-  const isInsideHome = (x, y) =>
-    x >= homeBounds.minX &&
-    x <= homeBounds.maxX &&
-    y >= homeBounds.minY &&
-    y <= homeBounds.maxY;
+  const isInsideHome = (x, y) => {
+    const dx = x - homeBounds.x;
+    const dy = y - homeBounds.y;
+    return Math.hypot(dx, dy) <= homeBounds.radius;
+  };
 
   const spanX = maxX - minX;
   const spanY = maxY - minY;
@@ -3111,11 +3111,11 @@ function spawnUtilityPowerUp(type = null, position = null) {
   const maxY = Math.max(minY, canvas.height - areaPadding);
   const homeBounds = getNpcHomeBounds();
 
-  const isInsideHome = (x, y) =>
-    x >= homeBounds.minX &&
-    x <= homeBounds.maxX &&
-    y >= homeBounds.minY &&
-    y <= homeBounds.maxY;
+  const isInsideHome = (x, y) => {
+    const dx = x - homeBounds.x;
+    const dy = y - homeBounds.y;
+    return Math.hypot(dx, dy) <= homeBounds.radius;
+  };
 
   const spanX = Math.max(0, maxX - minX);
   const spanY = Math.max(0, maxY - minY);
@@ -3127,14 +3127,10 @@ function spawnUtilityPowerUp(type = null, position = null) {
     spawnX = Math.max(minX, Math.min(maxX, position?.x ?? minX));
     spawnY = Math.max(minY, Math.min(maxY, position?.y ?? minY));
     if (isInsideHome(spawnX, spawnY)) {
-      const centerX = (homeBounds.minX + homeBounds.maxX) / 2;
-      const centerY = (homeBounds.minY + homeBounds.maxY) / 2;
-      if (spawnX >= homeBounds.minX && spawnX <= homeBounds.maxX) {
-        spawnY = spawnY < centerY ? homeBounds.minY - 24 : homeBounds.maxY + 24;
-      }
-      if (spawnY >= homeBounds.minY && spawnY <= homeBounds.maxY) {
-        spawnX = spawnX < centerX ? homeBounds.minX - 24 : homeBounds.maxX + 24;
-      }
+      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
+      const pushDist = homeBounds.radius + 28;
+      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
+      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
       spawnX = Math.max(minX, Math.min(maxX, spawnX));
       spawnY = Math.max(minY, Math.min(maxY, spawnY));
     }
@@ -3146,23 +3142,10 @@ function spawnUtilityPowerUp(type = null, position = null) {
       attempts += 1;
     } while (isInsideHome(spawnX, spawnY) && attempts < 50);
     if (isInsideHome(spawnX, spawnY)) {
-      const horizontalGap =
-        spawnX < homeBounds.minX
-          ? homeBounds.minX - spawnX
-          : spawnX > homeBounds.maxX
-          ? spawnX - homeBounds.maxX
-          : 0;
-      const verticalGap =
-        spawnY < homeBounds.minY
-          ? homeBounds.minY - spawnY
-          : spawnY > homeBounds.maxY
-          ? spawnY - homeBounds.maxY
-          : 0;
-      if (horizontalGap >= verticalGap) {
-        spawnX = spawnX < homeBounds.minX ? homeBounds.minX - 24 : homeBounds.maxX + 24;
-      } else {
-        spawnY = spawnY < homeBounds.minY ? homeBounds.minY - 24 : homeBounds.maxY + 24;
-      }
+      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
+      const pushDist = homeBounds.radius + 28;
+      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
+      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
       spawnX = Math.max(minX, Math.min(maxX, spawnX));
       spawnY = Math.max(minY, Math.min(maxY, spawnY));
     }
@@ -5194,20 +5177,17 @@ class CozyNpc {
 
   getRandomWalkPoint() {
     const bounds = getNpcHomeBounds();
-    const { minX, maxX, minY, maxY } = bounds;
     return {
-      x: randomInRange(minX, maxX),
-      y: randomInRange(minY, maxY),
+      x: randomInRange(bounds.x - bounds.radius, bounds.x + bounds.radius),
+      y: randomInRange(bounds.y - bounds.radius, bounds.y + bounds.radius),
     };
   }
 
   getReturnPoint() {
-    const { minX, maxX, minY, maxY } = getNpcHomeBounds();
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
+    const { x: centerX, y: centerY, radius } = getNpcHomeBounds();
     return {
-      x: randomInRange(Math.max(minX, centerX - 60), Math.min(maxX, centerX + 60)),
-      y: randomInRange(Math.max(minY, centerY - 60), Math.min(maxY, centerY + 60)),
+      x: randomInRange(centerX - Math.min(60, radius), centerX + Math.min(60, radius)),
+      y: randomInRange(centerY - Math.min(60, radius), centerY + Math.min(60, radius)),
     };
   }
 
@@ -6544,16 +6524,18 @@ function assignHomeWanderTarget(entity, bounds, radius = 140) {
 }
 
 function getCongregationSpawnAreaSpecs(total = CONGREGATION_MEMBER_COUNT) {
-  const paddingX = 60;
-  const paddingTop = HUD_HEIGHT + 140;
-  const paddingBottom = 100;
-  const areaWidth = Math.max(120, canvas.width - paddingX * 2);
-  const areaHeight = Math.max(120, canvas.height - paddingTop - paddingBottom);
+  const home = getNpcHomeBounds();
+  const diameter = home.radius * 2;
+  const areaWidth = Math.max(120, diameter);
+  const areaHeight = Math.max(120, diameter);
   const bounds = {
-    minX: paddingX,
-    maxX: paddingX + areaWidth,
-    minY: paddingTop,
-    maxY: paddingTop + areaHeight,
+    x: home.x,
+    y: home.y,
+    radius: home.radius,
+    minX: home.x - home.radius,
+    maxX: home.x + home.radius,
+    minY: home.y - home.radius,
+    maxY: home.y + home.radius,
   };
   const minColumns = 5;
   const totalCount = Math.max(1, total);
@@ -6566,11 +6548,22 @@ function getCongregationSpawnAreaSpecs(total = CONGREGATION_MEMBER_COUNT) {
 
 function congregationStyleGridPosition(index, total, { jitterRatio = 0.3 } = {}) {
   const spec = getCongregationSpawnAreaSpecs(Math.max(1, total));
-  return gridSpreadPosition(index, total, spec.bounds, {
+  const point = gridSpreadPosition(index, total, spec.bounds, {
     columns: spec.columns,
     rows: spec.rows,
     jitterRatio,
   });
+  const dx = point.x - spec.bounds.x;
+  const dy = point.y - spec.bounds.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  if (dist > spec.bounds.radius) {
+    const scale = spec.bounds.radius / dist;
+    return {
+      x: spec.bounds.x + dx * scale,
+      y: spec.bounds.y + dy * scale,
+    };
+  }
+  return point;
 }
 
 function ensureChattyAssignments() {
@@ -7117,7 +7110,7 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
   const total = Math.max(0, count);
   if (total === 0) return;
   const spec = getCongregationSpawnAreaSpecs(total);
-  const { bounds, columns, rows, cellWidth, cellHeight } = spec;
+  const { bounds } = spec;
 
   congregationWanderBounds = bounds;
 
@@ -7137,12 +7130,10 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
     });
     animator.setState("walk", { restart: true });
     animator.setMoving(true);
-    const column = i % columns;
-    const row = Math.floor(i / columns);
-    const jitterX = (Math.random() - 0.5) * cellWidth * 0.3;
-    const jitterY = (Math.random() - 0.5) * cellHeight * 0.3;
-    const baseX = bounds.minX + cellWidth * (column + 0.5) + jitterX;
-    const baseY = bounds.minY + cellHeight * (row + 0.5) + jitterY;
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.random() * bounds.radius * 0.95;
+    const baseX = bounds.x + Math.cos(angle) * radius;
+    const baseY = bounds.y + Math.sin(angle) * radius;
     // Assign name from list, fallback to Noname X
     let name = window.npcNamesList[window.npcNameIndex] || `Noname ${i + 1}`;
     window.npcNameIndex++;
@@ -7170,8 +7161,10 @@ function clearCongregationMembers() {
 
 function assignCongregationTarget(member, { immediate = false } = {}) {
   if (!congregationWanderBounds) return;
-  member.targetX = randomInRange(congregationWanderBounds.minX, congregationWanderBounds.maxX);
-  member.targetY = randomInRange(congregationWanderBounds.minY, congregationWanderBounds.maxY);
+  const angle = Math.random() * Math.PI * 2;
+  const radius = Math.random() * congregationWanderBounds.radius * 0.95;
+  member.targetX = congregationWanderBounds.x + Math.cos(angle) * radius;
+  member.targetY = congregationWanderBounds.y + Math.sin(angle) * radius;
   member.wanderPause = immediate ? 0 : randomInRange(0.6, 1.8);
 }
 
@@ -7209,8 +7202,14 @@ function updatePlayerDuringCongregation(dt) {
 
 function clampToWanderBounds(member) {
   if (!congregationWanderBounds || !member) return;
-  member.baseX = Math.max(congregationWanderBounds.minX, Math.min(congregationWanderBounds.maxX, member.baseX));
-  member.baseY = Math.max(congregationWanderBounds.minY, Math.min(congregationWanderBounds.maxY, member.baseY));
+  const dx = member.baseX - congregationWanderBounds.x;
+  const dy = member.baseY - congregationWanderBounds.y;
+  const dist = Math.hypot(dx, dy) || 0;
+  if (dist > congregationWanderBounds.radius) {
+    const scale = congregationWanderBounds.radius / dist;
+    member.baseX = congregationWanderBounds.x + dx * scale;
+    member.baseY = congregationWanderBounds.y + dy * scale;
+  }
 }
 
 function resolveCongregationCollisions() {
