@@ -2,6 +2,7 @@
   if (!window || !document) return;
 
   const STORAGE_KEY = "battlechurch.devLevelConfig";
+  const SYNC_ENDPOINT = "http://localhost:4100/level-config";
   const DEFAULTS = {
     meta: { version: 1 },
     structure: {
@@ -24,16 +25,26 @@
     return obj ? JSON.parse(JSON.stringify(obj)) : null;
   }
 
+  function normalizeConfig(raw) {
+    const cfg = raw && typeof raw === "object" ? raw : {};
+    return {
+      meta: cfg.meta || deepClone(DEFAULTS.meta),
+      structure: { ...deepClone(DEFAULTS.structure), ...(cfg.structure || {}) },
+      globals: { ...deepClone(DEFAULTS.globals), ...(cfg.globals || {}) },
+      levels: Array.isArray(cfg.levels) ? cfg.levels : [],
+    };
+  }
+
   function loadFromStorage() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return deepClone(DEFAULTS);
+      if (!raw) return normalizeConfig(DEFAULTS);
       const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed;
+      if (parsed && typeof parsed === "object") return normalizeConfig(parsed);
     } catch (err) {
       console.warn("LevelBuilder: failed to parse storage", err);
     }
-    return deepClone(DEFAULTS);
+    return normalizeConfig(DEFAULTS);
   }
 
   function saveToStorage(cfg) {
@@ -217,6 +228,7 @@
         <input type="number" id="lb-hordesPerBattle" min="1" max="12" step="1">
         <div class="button-row" style="margin-top:12px;">
           <button id="lb-close" class="secondary">Close (Esc)</button>
+          <button id="lb-load" class="secondary" type="button">Load from file</button>
           <button id="lb-save" type="button">Save</button>
         </div>
         <div id="lb-status" style="margin-top:6px;font-size:12px;color:#9bf0ff;"></div>
@@ -243,6 +255,7 @@
     allKill: overlay.querySelector("#lb-allKill"),
     hordeDuration: overlay.querySelector("#lb-hordeDuration"),
     content: overlay.querySelector("#lb-contentArea"),
+    load: overlay.querySelector("#lb-load"),
     save: overlay.querySelector("#lb-save"),
     status: overlay.querySelector("#lb-status"),
     close: overlay.querySelector("#lb-close"),
@@ -478,6 +491,76 @@
     saveToStorage(state.config);
   }
 
+  function setStatus(text, isError = false) {
+    if (!els || !els.status) return;
+    els.status.textContent = text || "";
+    els.status.style.color = isError ? "#ffb3b3" : "#9bf0ff";
+  }
+
+  function formatNow() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    const ss = String(now.getSeconds()).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  async function fetchServerConfig() {
+    try {
+      const res = await fetch(SYNC_ENDPOINT, { method: "GET" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const payload = await res.json();
+      const cfg =
+        (payload && payload.config) ||
+        (payload && payload.data && payload.data.devLevelConfig);
+      if (cfg && typeof cfg === "object") return normalizeConfig(cfg);
+    } catch (err) {
+      console.warn("LevelBuilder: failed to pull file config", err);
+    }
+    return null;
+  }
+
+  async function saveConfigToServer(cfg) {
+    try {
+      const res = await fetch(SYNC_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ config: cfg }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return true;
+    } catch (err) {
+      console.warn("LevelBuilder: failed to save file config", err);
+      return false;
+    }
+  }
+
+  async function syncFromServer(options = {}) {
+    const { showStatus = false } = options;
+    const cfg = await fetchServerConfig();
+    if (cfg) {
+      state.config = cfg;
+      saveToStorage(state.config);
+      refreshUI();
+      if (showStatus) setStatus(`Loaded from level_data.js (${formatNow()})`);
+      return true;
+    }
+    if (showStatus) {
+      setStatus("File sync unavailable (run dev_level_server.js)", true);
+    }
+    return false;
+  }
+
+  async function persistConfig() {
+    saveToStorage(state.config);
+    const timestamp = formatNow();
+    const savedMsg = `Saved locally ${timestamp}`;
+    setStatus(savedMsg);
+    const ok = await saveConfigToServer(state.config);
+    if (ok) setStatus(`Saved to level_data.js ${timestamp}`);
+    else setStatus(`${savedMsg} (run dev_level_server.js to sync)`, true);
+  }
+
   function refreshUI() {
     const scopeBefore = { ...state.scope };
     initScopeSelectors();
@@ -545,15 +628,13 @@
       hordeObj.duration = val;
       saveToStorage(state.config);
     });
+    if (els.load) {
+      els.load.addEventListener("click", () => {
+        syncFromServer({ showStatus: true });
+      });
+    }
     els.save.addEventListener("click", () => {
-      saveToStorage(state.config);
-      if (els.status) {
-        const now = new Date();
-        const hh = String(now.getHours()).padStart(2, "0");
-        const mm = String(now.getMinutes()).padStart(2, "0");
-        const ss = String(now.getSeconds()).padStart(2, "0");
-        els.status.textContent = `Saved ${hh}:${mm}:${ss}`;
-      }
+      persistConfig();
     });
     els.close.addEventListener("click", hide);
   }
@@ -593,6 +674,7 @@
   });
 
   attachEvents();
+  syncFromServer();
 
   window.BattlechurchLevelBuilder = {
     getConfig: () => state.config,

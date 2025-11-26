@@ -54,6 +54,9 @@
         if (parsed && typeof parsed === "object") return parsed;
       }
     } catch (e) {}
+    if (levelData && typeof levelData === "object" && levelData.devLevelConfig) {
+      return levelData.devLevelConfig;
+    }
     if (typeof levelBuilder?.getConfig === "function") {
       try {
         return levelBuilder.getConfig() || null;
