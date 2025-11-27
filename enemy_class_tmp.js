@@ -20,9 +20,13 @@ class Enemy {
     this.scoreGranted = false;
     this.radius = this.config.hitRadius;
     this.displayName = this.config.displayName || this.type;
+    this.preferredTarget = this.config.preferredTarget || "player";
     this.touchCooldown = 0;
     this.isRanged = Boolean(this.config.ranged);
     this.preferEdges = Boolean(this.config.preferEdges);
+    this.targetClosestAny =
+      Array.isArray(this.config.specialBehavior) &&
+      this.config.specialBehavior.includes("closestAny");
     this.projectileType = this.config.projectileType || null;
     this.projectileCooldown = this.config.projectileCooldown || this.config.attackCooldown || 1.5;
     this.desiredRange = this.config.desiredRange || this.config.attackRange || 300;
@@ -192,25 +196,51 @@ class Enemy {
   acquireTarget() {
     let bestTarget = null;
     let bestDistSq = Infinity;
-    // Default behavior: consider player first, then NPCs
-    if (player && player.state !== "death") {
-      const dx = player.x - this.x;
-      const dy = player.y - this.y;
-      bestTarget = player;
-      bestDistSq = dx * dx + dy * dy;
-    }
+    const behaviors = Array.isArray(this.config?.specialBehavior) ? this.config.specialBehavior : [];
+    const targetClosestAny = behaviors.includes("closestAny") || this.targetClosestAny;
+    const preferNpc = this.preferredTarget === "npc";
 
-    if (this.huntsNpcs) {
+    const considerNpc = (npc) => {
+      if (!npc || npc.departed || !npc.active) return;
+      if (typeof npc.faith === "number" && npc.faith <= 0) return;
+      const dx = npc.x - this.x;
+      const dy = npc.y - this.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < bestDistSq) {
+        bestDistSq = distSq;
+        bestTarget = npc;
+      }
+    };
+
+    if (targetClosestAny) {
+      if (player && player.state !== "death") {
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        bestTarget = player;
+        bestDistSq = dx * dx + dy * dy;
+      }
       for (const npc of npcs) {
-        // Skip invalid, departed, inactive, or faith-drained NPCs
-        if (!npc || npc.departed || !npc.active) continue;
-        if (typeof npc.faith === 'number' && npc.faith <= 0) continue;
-        const dx = npc.x - this.x;
-        const dy = npc.y - this.y;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < bestDistSq) {
-          bestDistSq = distSq;
-          bestTarget = npc;
+        considerNpc(npc);
+      }
+    } else if (preferNpc) {
+      for (const npc of npcs) {
+        considerNpc(npc);
+      }
+      if (!bestTarget && player && player.state !== "death") {
+        bestTarget = player;
+      }
+    } else {
+      // Default behavior: consider player first, then NPCs
+      if (player && player.state !== "death") {
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        bestTarget = player;
+        bestDistSq = dx * dx + dy * dy;
+      }
+
+      if (this.huntsNpcs || this.preferredTarget === "npc") {
+        for (const npc of npcs) {
+          considerNpc(npc);
         }
       }
     }

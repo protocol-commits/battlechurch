@@ -355,7 +355,8 @@
       const stamp = `${String(now.getHours()).padStart(2, "0")}:${String(
         now.getMinutes(),
       ).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
-      setStatus(`Saved ${stamp}`);
+      setStatus(`Saved ${stamp} — exporting enemy_catalog.js`);
+      exportFile(state.cfg);
       renderTable();
     } else {
       setStatus("Save failed", true);

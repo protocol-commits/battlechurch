@@ -1270,19 +1270,32 @@ function applyDevEnemyOverrides(baseDefs) {
     (typeof DEV_LEVEL_BUILDER?.getConfig === "function" && DEV_LEVEL_BUILDER.getConfig()) ||
     (typeof DEV_ENEMY_EDITOR?.getConfig === "function" && DEV_ENEMY_EDITOR.getConfig()) ||
     null;
-  if (!cfg?.globals?.enemyStats) return baseDefs;
-  const overrides = cfg.globals.enemyStats;
-  const merged = {};
-  Object.keys(baseDefs || {}).forEach((key) => {
-    const base = baseDefs[key] || {};
-    const ov = overrides[key];
-    if (!ov) {
-      merged[key] = base;
-    } else {
-      merged[key] = Object.assign({}, base, ov);
-    }
-  });
-  return merged;
+
+  // Start with base definitions.
+  const nextDefs = { ...(baseDefs || {}) };
+
+  // Layer in full catalog entries from the enemy editor, if present.
+  if (cfg?.catalog && typeof cfg.catalog === "object") {
+    Object.keys(cfg.catalog).forEach((k) => {
+      const next = cfg.catalog[k];
+      if (next && typeof next === "object") {
+        nextDefs[k] = Object.assign({}, nextDefs[k] || {}, next);
+      }
+    });
+  }
+
+  // Apply per-stat overrides from level builder / enemy editor globals.enemyStats.
+  const overrides = cfg?.globals?.enemyStats;
+  if (overrides && typeof overrides === "object") {
+    Object.keys(overrides).forEach((key) => {
+      const ov = overrides[key];
+      if (ov && typeof ov === "object") {
+        nextDefs[key] = Object.assign({}, nextDefs[key] || {}, ov);
+      }
+    });
+  }
+
+  return nextDefs;
 }
 
 const ENEMY_DEFINITIONS =
