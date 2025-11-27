@@ -4127,7 +4127,10 @@ function createEnemyInstance(type, config, clips, x, y) {
 }
 
 function shouldEnemyHuntNpcs(type, config = {}) {
-  if (Array.isArray(config.specialBehavior) && config.specialBehavior.includes("npcPriority")) {
+  if (
+    Array.isArray(config.specialBehavior) &&
+    (config.specialBehavior.includes("npcPriority") || config.specialBehavior.includes("closestAny"))
+  ) {
     return true;
   }
   if (type === "skeleton") return true;

@@ -141,7 +141,7 @@
                       },
                       {
                         "enemy": "slime",
-                        "count": 3
+                        "count": 4
                       }
                     ],
                     "weights": {
