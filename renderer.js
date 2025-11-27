@@ -1704,7 +1704,12 @@ function drawLevelAnnouncements() {
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < er + pr) {
             // Only damage if cooldown expired
-            if (!enemy._playerTouchCooldown || now - enemy._playerTouchCooldown > 1200) {
+            const isDeadLike =
+              enemy.state === "death" ||
+              enemy.dead ||
+              enemy.ignoreEntityCollisions ||
+              (typeof enemy.health === "number" && enemy.health <= 0);
+            if (!isDeadLike && (!enemy._playerTouchCooldown || now - enemy._playerTouchCooldown > 1200)) {
               enemy._playerTouchCooldown = now;
               if (typeof player.takeDamage === 'function') {
                 const dmg = enemy.config?.damage || enemy.damage || 1;
