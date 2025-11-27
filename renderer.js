@@ -341,7 +341,7 @@ function drawLevelAnnouncements() {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
       const missionTitle = monthName || "Mission Brief";
-      const missionBrief = `${nameSentence} need your help with ${scenario}.`;
+      const missionBrief = `${nameSentence} need your help battling the enemy attacks as they face ${scenario}.`;
       const missionId = `mission_${missionTitle}_${missionBrief}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
