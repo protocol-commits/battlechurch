@@ -206,6 +206,7 @@
       const label = document.createElement("label");
       label.style.display = "block";
       label.style.fontSize = "11px";
+      label.style.whiteSpace = "nowrap";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = tags.has(tag);
