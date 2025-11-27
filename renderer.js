@@ -679,6 +679,21 @@ function drawLevelAnnouncements() {
     // intentionally disabled – dev spawn markers removed per request
   }
 
+  // Homebase bounds debug: draws the NPC home area border so it can be tweaked.
+  function drawNpcHomeBounds(ctx) {
+    if (typeof getNpcHomeBounds !== "function") return;
+    const bounds = getNpcHomeBounds();
+    if (!bounds) return;
+    ctx.save();
+    ctx.setLineDash([8, 6]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(120, 220, 255, 0.9)";
+    ctx.beginPath();
+    ctx.arc(bounds.x, bounds.y, bounds.radius * 0.75, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawBackground(effectiveCameraX, effectiveCameraY = 0) {
     const {
       ctx,
@@ -1587,7 +1602,7 @@ function drawLevelAnnouncements() {
 
   // ...existing code...
   drawSpawnPointDebug(ctx);
-  // drawNpcHomeBounds intentionally omitted (development-only)
+  drawNpcHomeBounds(ctx);
 
     obstacles.forEach((obstacle) => obstacle.draw(ctx));
     drawBossHazards(ctx);
@@ -1759,7 +1774,7 @@ function drawLevelAnnouncements() {
 
   // ...existing code...
   drawSpawnPointDebug(ctx);
-  // drawNpcHomeBounds intentionally omitted (development-only)
+  drawNpcHomeBounds(ctx);
   // drawAimAssistOverlay(); // Aim assist cone hidden for now
     if (pointerState.active) drawReticle();
 
