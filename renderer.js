@@ -745,34 +745,13 @@ function drawLevelAnnouncements() {
     ctx.textAlign = "center";
     ctx.font = `bold 42px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "#ffe89b";
-    ctx.fillText("Meet Your Congregation", canvas.width / 2, titleY);
-    ctx.font = `18px ${UI_FONT_FAMILY}`;
+    ctx.fillText("Smite the hordes — save your flock.", canvas.width / 2, titleY);
+    ctx.font = `17px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "#f0f6ff";
-    const levelNumber = levelStatus?.level || 1;
-    const monthLabel =
-      levelStatus?.month || (typeof getMonthName === "function" ? getMonthName(levelNumber) : "January");
-    ctx.fillText(`Level ${levelNumber} · ${monthLabel} · Members: ${memberCount}`, canvas.width / 2, titleY + 32);
+    ctx.fillText("Protect and grow your church or the townpeople fall to the powers of darkness.", canvas.width / 2, titleY + 30);
+    ctx.font = `19px ${UI_FONT_FAMILY}`;
+    ctx.fillText(`Current Members: ${memberCount}`, canvas.width / 2, titleY + 56);
     ctx.globalAlpha = 1;
-
-    const panelWidth = Math.min(canvas.width * 0.36, 360);
-    const panelHeight = 140;
-    const panelX = 24;
-    const panelY = 24;
-    ctx.fillStyle = "rgba(8, 12, 30, 0.86)";
-    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
-    ctx.strokeStyle = "rgba(255, 222, 142, 0.45)";
-    ctx.lineWidth = 1.3;
-    ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    ctx.textAlign = "left";
-    ctx.font = `16px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#ffd976";
-    ctx.fillText("Arena Ready", panelX + 18, panelY + 34);
-    ctx.font = `13px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#f0f6ff";
-    ctx.fillText(`Battle ${Math.max(1, levelStatus?.battle || 1)}`, panelX + 18, panelY + 58);
-    ctx.fillText(`Horde ${Math.max(1, levelStatus?.horde || 1)}`, panelX + 18, panelY + 78);
-    ctx.fillText("No enemies spawned yet", panelX + 18, panelY + 100);
-    ctx.fillText("Move around once to greet everyone!", panelX + 18, panelY + 120);
 
     const footerWidth = Math.min(canvas.width * 0.3, 320);
     const footerX = canvas.width - footerWidth - 24;

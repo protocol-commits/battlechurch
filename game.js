@@ -7791,10 +7791,11 @@ function updateGame(dt) {
     if (respawnTimer <= 0) {
       const oldPlayer = player;
       const respawnX = canvas.width / 2;
-      player = createPlayerInstance(respawnX, HUD_HEIGHT + 40, assets.player);
+      const respawnY = HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5;
+      player = createPlayerInstance(respawnX, respawnY, assets.player);
       player.x = respawnX;
       const respawnTop = HUD_HEIGHT + Math.max(player.radius + 16, 28);
-      player.y = respawnTop;
+      player.y = Math.max(respawnTop, respawnY);
       player.shieldTimer = 0;
       player.invulnerableTimer = RESPAWN_SHIELD_DURATION;
       player.health = player.maxHealth;
@@ -9141,7 +9142,11 @@ function restartGame() {
   floatingTexts.forEach((ft) => {
     if (!ft.critical) ft.life = 0;
   });
-  player = createPlayerInstance(canvas.width / 2, HUD_HEIGHT + 80, assets.player);
+  player = createPlayerInstance(
+    canvas.width / 2,
+    HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5,
+    assets.player,
+  );
   player.health = player.maxHealth;
   heroLives = 3;
   resetCozyNpcs(5);
@@ -9200,7 +9205,11 @@ async function init() {
     assets = await loadAssets();
     rebuildObstacles();
     rebuildAmbientDecor();
-  player = createPlayerInstance(canvas.width / 2, HUD_HEIGHT + 80, assets.player);
+  player = createPlayerInstance(
+    canvas.width / 2,
+    HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5,
+    assets.player,
+  );
   player.health = player.maxHealth;
     heroLives = 3;
     playerRespawnPending = false;
