@@ -216,12 +216,20 @@
     return spawnRayboltEffect(x, y, radius || 40);
   }
 
+  let deathExplosionToggle = false;
+
   function spawnEnemyDeathExplosion(x, y, { radius = null } = {}) {
-    const frames = resolveAssets()?.effects?.enemyDeathExplosion;
+    const assets = resolveAssets();
+    const variants = [];
+    if (assets?.effects?.enemyDeathExplosion?.length) variants.push(assets.effects.enemyDeathExplosion);
+    if (assets?.effects?.enemyDeathExplosionAlt?.length) variants.push(assets.effects.enemyDeathExplosionAlt);
+    if (!variants.length) return null;
+    deathExplosionToggle = !deathExplosionToggle;
+    const frames = variants[deathExplosionToggle ? 0 : variants.length > 1 ? 1 : 0] || variants[0];
     if (!frames || !frames.length) return null;
-    let scale = 1.8;
+    const base = Math.max(frames[0].width, frames[0].height) || 1;
+    let scale = 2.6;
     if (radius) {
-      const base = Math.max(frames[0].width, frames[0].height) || 1;
       scale = (radius * 2) / base;
     }
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale });

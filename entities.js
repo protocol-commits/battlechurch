@@ -1581,9 +1581,6 @@ class Player {
       this.damageFlashTimer = DAMAGE_FLASH_DURATION;
       if (this.health <= 0) {
         this.health = 0;
-        if (this.type === "skeleton" && typeof spawnImpactEffect === "function") {
-          spawnImpactEffect(this.x, this.y - this.config.hitRadius / 2);
-        }
         if (this.state !== "death") {
           this.state = "death";
           this.animator.play("death", { restart: true, loop: false });

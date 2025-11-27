@@ -355,9 +355,6 @@ class Enemy {
     showDamage(this, amount, { color: "#ff8181" });
       if (this.health <= 0) {
       this.health = 0;
-      if (this.type === "skeleton") {
-        spawnImpactEffect(this.x, this.y - this.config.hitRadius / 2);
-      }
       // Guard: avoid re-entering death if already set elsewhere
       if (this.state !== 'death') {
         this.state = "death";
