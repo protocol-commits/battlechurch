@@ -4260,11 +4260,13 @@ class Animal {
     const alpha = this.spawnBlinkTimer > 0
       ? 0.18 + 0.25 * spawnPulse
       : 0.08 + 0.18 * basePulse;
+    const brightnessBoost = 1.5;
+    const boostedAlpha = Math.min(1, alpha * brightnessBoost);
     const gradient = ctx.createRadialGradient(0, 0, 4, 0, 0, glowRadius * 0.8);
     gradient.addColorStop(0, "rgba(255, 255, 255, 0.32)");
     gradient.addColorStop(0.45, "rgba(255, 244, 190, 0.22)");
     gradient.addColorStop(1, "rgba(255, 244, 150, 0)");
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = boostedAlpha;
     ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
@@ -4353,23 +4355,31 @@ class UtilityPowerUp {
 
   draw(context) {
     if (!this.active || !this.visible) return;
-    const width = this.image.width * this.scale;
-    const height = this.image.height * this.scale;
+    const sprite = this.frames && this.frames.length ? this.frames[this.frameIndex] : this.image;
+    const width = (sprite ? sprite.width : this.image.width) * this.scale;
+    const height = (sprite ? sprite.height : this.image.height) * this.scale;
     context.save();
     context.translate(this.x, this.y);
-    context.drawImage(this.image, -width / 2, -height / 2, width, height);
-    const glowRadius = Math.max(width, height);
+    context.drawImage(sprite || this.image, -width / 2, -height / 2, width, height);
+    let glowRadius = Math.max(width, height);
+    if (this.effect === "cannonWeapon") {
+      glowRadius = Math.max(width, height);
+    } else if (this.effect === "wisdomWeapon") {
+      glowRadius *= 1.25;
+    }
     const spawnPulse = (Math.sin(performance.now() * 0.02) + 1) / 2;
     const basePulse = (Math.sin(performance.now() * 0.01) + 1) / 2;
     const alpha = this.spawnBlinkTimer > 0
       ? 0.18 + 0.25 * spawnPulse
       : 0.08 + 0.18 * basePulse;
+    const brightnessBoost = 1.5;
+    const boostedAlpha = Math.min(1, alpha * brightnessBoost);
     const gradient = context.createRadialGradient(0, 0, 4, 0, 0, glowRadius * 0.8);
     gradient.addColorStop(0, "rgba(255, 255, 255, 0.32)");
     gradient.addColorStop(0.45, "rgba(255, 244, 190, 0.22)");
     gradient.addColorStop(1, "rgba(255, 244, 150, 0)");
     context.save();
-    context.globalAlpha = alpha;
+    context.globalAlpha = boostedAlpha;
     context.fillStyle = gradient;
     context.beginPath();
     context.arc(0, 0, glowRadius, 0, Math.PI * 2);
