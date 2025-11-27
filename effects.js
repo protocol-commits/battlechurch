@@ -228,9 +228,9 @@
     const frames = variants[deathExplosionToggle ? 0 : variants.length > 1 ? 1 : 0] || variants[0];
     if (!frames || !frames.length) return null;
     const base = Math.max(frames[0].width, frames[0].height) || 1;
-    let scale = 2.6;
+    let scale = 3.4; // bigger default flame
     if (radius) {
-      scale = (radius * 2) / base;
+      scale = (radius * 2.8) / base; // slightly overscale relative to enemy size
     }
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale });
   }
