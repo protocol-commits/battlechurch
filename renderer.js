@@ -687,10 +687,21 @@ function drawLevelAnnouncements() {
     ctx.save();
     ctx.setLineDash([8, 6]);
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(120, 220, 255, 0.9)";
+    ctx.strokeStyle = "rgba(120, 220, 255, 0.1)";
     ctx.beginPath();
-    ctx.arc(bounds.x, bounds.y, bounds.radius * 0.75, 0, Math.PI * 2);
-    ctx.stroke();
+    const rx = bounds.radius * 0.9; // horizontal radius
+    const ry = bounds.radius * 0.6; // vertical radius
+    if (typeof ctx.ellipse === "function") {
+      ctx.ellipse(bounds.x, bounds.y, rx, ry, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.save();
+      ctx.translate(bounds.x, bounds.y);
+      ctx.scale(rx / Math.max(1, ry), 1);
+      ctx.arc(0, 0, ry, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.restore();
   }
 
