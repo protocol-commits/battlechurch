@@ -1,38 +1,93 @@
 (function setupEnemyEditor(window, document) {
   if (!window || !document) return;
 
-  const STORAGE_KEY = "battlechurch.devLevelConfig";
+  const STORAGE_KEY = "battlechurch.devEnemyCatalog";
   const OVERLAY_ID = "enemyEditorOverlay";
   const HOTKEY = "e";
+  const TAGS = [
+    "swarmable",
+    "ranged",
+    "npcPriority",
+    "mini",
+    "popcorn",
+    "elite",
+    "bossImmune",
+    "preferEdges",
+    "closestAny",
+  ];
+
+  function deepClone(obj) {
+    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
+  }
+
+  function baseCatalog() {
+    return deepClone((window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {});
+  }
 
   function loadConfig() {
+    let cfg = null;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return {};
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === "object") return parsed;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") cfg = parsed;
+      }
     } catch (e) {
-      console.warn("EnemyEditor: failed to load config", e);
+      console.warn("EnemyEditor: failed to load from localStorage", e);
     }
-    return {};
+    if (!cfg) {
+      cfg = { catalog: baseCatalog(), hiddenEnemies: [] };
+    }
+    cfg.catalog = cfg.catalog || baseCatalog();
+    cfg.hiddenEnemies = Array.isArray(cfg.hiddenEnemies) ? cfg.hiddenEnemies : [];
+    return cfg;
+  }
+
+  function applyRuntime(cfg) {
+    try {
+      if (window.BattlechurchEnemyCatalog) {
+        window.BattlechurchEnemyCatalog.catalog = deepClone(cfg.catalog);
+      }
+      if (window.BattlechurchEnemyDefinitions) {
+        Object.assign(window.BattlechurchEnemyDefinitions, deepClone(cfg.catalog));
+      }
+    } catch (e) {
+      console.warn("EnemyEditor: failed to apply runtime catalog", e);
+    }
   }
 
   function saveConfig(cfg) {
+    const next = deepClone(cfg);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg || {}));
-      return true;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch (e) {
-      console.warn("EnemyEditor: failed to save", e);
+      console.warn("EnemyEditor: failed to save to localStorage", e);
       return false;
     }
+    applyRuntime(next);
+    return true;
   }
 
-  function getOverrides(cfg) {
-    cfg.globals = cfg.globals || {};
-    cfg.globals.enemyStats = cfg.globals.enemyStats || {};
-    return cfg.globals.enemyStats;
+  function exportFile(cfg) {
+    const data = deepClone(cfg.catalog || {});
+    const body = `(function(global) {\n  const ENEMY_CATALOG = ${JSON.stringify(data, null, 2)};\n  const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});\n  ns.catalog = ENEMY_CATALOG;\n  const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});\n  Object.assign(defs, ENEMY_CATALOG);\n})(typeof window !== "undefined" ? window : globalThis);\n`;
+    const blob = new Blob([body], { type: "application/javascript" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "enemy_catalog.js";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
+  let state = {
+    cfg: loadConfig(),
+    showHidden: false,
+  };
+
+  // UI
   const overlay = document.createElement("div");
   overlay.id = OVERLAY_ID;
   overlay.innerHTML = `
@@ -40,7 +95,7 @@
       #${OVERLAY_ID} {
         position: fixed;
         inset: 0;
-        background: rgba(6,10,18,0.94);
+        background: rgba(6, 10, 18, 0.94);
         color: #e8f4ff;
         font-family: "Inter", Arial, sans-serif;
         z-index: 10000;
@@ -48,18 +103,25 @@
         padding: 16px;
         box-sizing: border-box;
       }
-      #${OVERLAY_ID} .header {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        margin-bottom: 10px;
+      #${OVERLAY_ID} .grid {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 12px;
+        height: 100%;
       }
-      #${OVERLAY_ID} input, #${OVERLAY_ID} select {
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.14);
-        border-radius: 6px;
-        color: #e8f4ff;
-        padding: 6px 8px;
+      #${OVERLAY_ID} .panel {
+        background: rgba(18, 28, 44, 0.85);
+        border: 1px solid rgba(120, 170, 220, 0.35);
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      #${OVERLAY_ID} h3 {
+        margin: 0 0 10px 0;
+        font-size: 15px;
+        letter-spacing: 0.3px;
       }
       #${OVERLAY_ID} button {
         background: #2b74ff;
@@ -73,125 +135,132 @@
       #${OVERLAY_ID} button.secondary {
         background: rgba(255,255,255,0.08);
       }
+      #${OVERLAY_ID} .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #${OVERLAY_ID} .status {
+        font-size: 12px;
+        color: #9bf0ff;
+        min-height: 18px;
+      }
+      #${OVERLAY_ID} .table-wrap {
+        overflow: auto;
+        flex: 1;
+      }
       #${OVERLAY_ID} table {
         width: 100%;
         border-collapse: collapse;
         font-size: 12px;
       }
       #${OVERLAY_ID} th, #${OVERLAY_ID} td {
-        border-bottom: 1px solid rgba(255,255,255,0.08);
         padding: 6px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
         text-align: left;
+        vertical-align: middle;
       }
-      #${OVERLAY_ID} .thumb {
-        width: 72px;
-        height: 72px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 8px;
+      #${OVERLAY_ID} input[type="number"] {
+        width: 80px;
+        padding: 4px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.06);
+        color: #e8f4ff;
+      }
+      #${OVERLAY_ID} .tag-list {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
+        flex-wrap: wrap;
+        gap: 6px 10px;
       }
-      #${OVERLAY_ID} .scroll {
-        overflow: auto;
-        height: calc(100vh - 110px);
-      }
-      #${OVERLAY_ID} .status {
-        font-size: 12px;
-        color: #9bf0ff;
+      #${OVERLAY_ID} .tag-list label {
+        white-space: nowrap;
       }
     </style>
-    <div class="header">
-      <button id="ee-close" class="secondary">Close (Esc)</button>
-      <button id="ee-save">Save</button>
-      <div id="ee-status" class="status"></div>
-    </div>
-    <div class="scroll">
-      <table id="ee-table">
-        <thead>
-          <tr>
-            <th>Sprite</th>
-            <th>Name</th>
-            <th>HP</th>
-            <th>DMG</th>
-            <th>Speed</th>
-            <th>Scale</th>
-            <th>Hit Radius</th>
-            <th>Swarm Spacing</th>
-            <th>Atk Range</th>
-            <th>Cooldown</th>
-            <th>Score</th>
-            <th>Boss</th>
-            <th>Tags</th>
-            <th>Reset</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <div class="grid">
+      <div class="panel">
+        <h3>Enemy Editor</h3>
+        <div class="controls">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+            <input type="checkbox" id="ee-showHidden">
+            Show hidden
+          </label>
+          <div class="status" id="ee-status"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="ee-save">Save</button>
+            <button id="ee-export" class="secondary">Export file</button>
+            <button id="ee-close" class="secondary">Close (Esc)</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table id="ee-table">
+            <thead>
+              <tr>
+                <th>Hide</th>
+                <th>Name</th>
+                <th>HP</th>
+                <th>DMG</th>
+                <th>Speed</th>
+                <th>Scale</th>
+                <th>Hit Radius</th>
+                <th>Atk Range</th>
+                <th>Cooldown</th>
+                <th>Score</th>
+                <th>Boss</th>
+                <th>Tags</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   `;
   document.body.appendChild(overlay);
 
   const els = {
-    close: overlay.querySelector("#ee-close"),
-    save: overlay.querySelector("#ee-save"),
+    showHidden: overlay.querySelector("#ee-showHidden"),
     status: overlay.querySelector("#ee-status"),
+    save: overlay.querySelector("#ee-save"),
+    exportBtn: overlay.querySelector("#ee-export"),
+    close: overlay.querySelector("#ee-close"),
     tbody: overlay.querySelector("#ee-table tbody"),
   };
 
-  let cfg = loadConfig();
-  let overrides = getOverrides(cfg);
-  let catalog =
-    (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) ||
-    {};
-  let currentCatalog = catalog;
-
-  const rows = {};
-  const animTimers = {};
-  const imageCache = new Map(); // key -> { image, frameWidth, frameHeight, frameMap }
-  let assetRefreshTimer = null;
-
-  function setStatus(text) {
+  function setStatus(text, isError = false) {
     if (!els.status) return;
-    els.status.textContent = text;
+    els.status.textContent = text || "";
+    els.status.style.color = isError ? "#ffb3b3" : "#9bf0ff";
   }
 
-  function getBaseDef(key) {
-    return catalog[key] || {};
+  function markHidden(key, hidden) {
+    const list = new Set(state.cfg.hiddenEnemies || []);
+    if (hidden) list.add(key);
+    else list.delete(key);
+    state.cfg.hiddenEnemies = Array.from(list);
   }
 
-  function getEffective(key) {
-    return Object.assign({}, getBaseDef(key), overrides[key] || {});
-  }
-
-  function resetEnemy(key) {
-    delete overrides[key];
-    renderRow(key);
-    saveConfig(cfg);
-  }
-
-  function applyValue(key, field, value) {
-    overrides[key] = overrides[key] || {};
-    if (value === "" || value === null || Number.isNaN(value)) {
-      delete overrides[key][field];
-    } else {
-      overrides[key][field] = value;
+  function ensureEnemy(key) {
+    state.cfg.catalog = state.cfg.catalog || {};
+    if (!state.cfg.catalog[key]) {
+      const base = (baseCatalog() || {})[key] || {};
+      state.cfg.catalog[key] = deepClone(base);
     }
+    return state.cfg.catalog[key];
   }
 
-  function createCellInput(key, field, type = "number") {
+  function createNumberInput(key, field) {
     const td = document.createElement("td");
-    const eff = getEffective(key);
-    const base = eff[field];
+    const enemy = ensureEnemy(key);
     const input = document.createElement("input");
-    input.type = type;
-    input.value = base ?? "";
-    input.style.width = "80px";
+    input.type = "number";
+    input.value = enemy[field] ?? "";
     input.addEventListener("change", () => {
       const val = input.value === "" ? null : Number(input.value);
-      applyValue(key, field, val);
+      if (val === null || Number.isNaN(val)) delete enemy[field];
+      else enemy[field] = val;
     });
     td.appendChild(input);
     return td;
@@ -199,250 +268,111 @@
 
   function createTagsCell(key) {
     const td = document.createElement("td");
-    const eff = getEffective(key);
-    const tags = new Set(eff.specialBehavior || []);
-    const tagList = [
-      "swarmable",
-      "ranged",
-      "npcPriority",
-      "mini",
-      "popcorn",
-      "elite",
-      "bossImmune",
-      "preferEdges",
-      "closestAny",
-    ];
-    tagList.forEach((tag) => {
+    const enemy = ensureEnemy(key);
+    const tags = new Set(enemy.specialBehavior || []);
+    const wrap = document.createElement("div");
+    wrap.className = "tag-list";
+    TAGS.forEach((tag) => {
       const label = document.createElement("label");
-      label.style.display = "block";
-      label.style.fontSize = "11px";
-      label.style.whiteSpace = "nowrap";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = tags.has(tag);
       cb.addEventListener("change", () => {
-        const next = new Set(tags);
-        if (cb.checked) next.add(tag);
-        else next.delete(tag);
-        overrides[key] = overrides[key] || {};
-        overrides[key].specialBehavior = Array.from(next);
+        if (cb.checked) tags.add(tag);
+        else tags.delete(tag);
+        enemy.specialBehavior = Array.from(tags);
       });
       label.appendChild(cb);
       label.append(" " + tag);
-      td.appendChild(label);
+      wrap.appendChild(label);
     });
+    td.appendChild(wrap);
     return td;
   }
 
-  function renderSpriteCell(key) {
+  function createHiddenCell(key) {
     const td = document.createElement("td");
-    const wrap = document.createElement("div");
-    wrap.className = "thumb";
-    wrap.dataset.key = key;
-    td.appendChild(wrap);
-
-    // animate using existing assets or manifest fallback
-    try {
-      const assets = window.assets || {};
-      const enemyAssets = assets.enemies?.[key];
-      let clip = enemyAssets?.walk || enemyAssets?.idle;
-
-      const manifestEntry =
-        (window.ASSET_MANIFEST && window.ASSET_MANIFEST.enemies && window.ASSET_MANIFEST.enemies[key]) ||
-        null;
-
-      const cached = imageCache.get(key);
-
-      // If clip missing, try manifest + cached image
-      if ((!clip || !clip.image) && manifestEntry) {
-        if (cached && cached.image) {
-          clip = {
-            image: cached.image,
-            frameWidth: manifestEntry.idle?.frameWidth || cached.frameWidth || 100,
-            frameHeight: manifestEntry.idle?.frameHeight || cached.frameHeight || 100,
-            frameMap: cached.frameMap || manifestEntry.idle?.frameMap,
-            frameCount: manifestEntry.idle?.frameCount,
-            renderScale: manifestEntry.idle?.renderScale,
-          };
-        } else if (!thumbLoading.has(key) && manifestEntry.idle?.src) {
-          thumbLoading.add(key);
-          const img = new Image();
-          img.onload = () => {
-            imageCache.set(key, {
-              image: img,
-              frameWidth: manifestEntry.idle.frameWidth || 100,
-              frameHeight: manifestEntry.idle.frameHeight || 100,
-              frameMap: manifestEntry.idle.frameMap || null,
-            });
-            thumbLoading.delete(key);
-            renderRow(key);
-          };
-          img.onerror = () => {
-            thumbLoading.delete(key);
-          };
-          img.src = manifestEntry.idle.src;
-        }
-      }
-
-      if (clip?.image && clip.frameWidth && clip.frameHeight) {
-        const canvas = document.createElement("canvas");
-        canvas.width = 72;
-        canvas.height = 72;
-        wrap.appendChild(canvas);
-        let frame = 0;
-        let frames = [];
-        if (clip.frameMap && clip.frameMap.length) frames = clip.frameMap;
-        else if (cached?.frameMap && cached.frameMap.length) frames = cached.frameMap;
-        else {
-          const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-          const rows = Math.max(1, Math.floor(clip.image.height / clip.frameHeight));
-          const count = Math.max(1, cols * rows);
-          frames = Array.from({ length: count }, (_, i) => i);
-        }
-        const ctx = canvas.getContext("2d");
-        const draw = () => {
-          const idx = frames[frame % frames.length] || 0;
-          const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-          const sx = (idx % cols) * clip.frameWidth;
-          const sy = Math.floor(idx / cols) * clip.frameHeight;
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          const eff = getEffective(key);
-          const scale = eff.scale || 1;
-          const renderScale = (clip.renderScale && clip.renderScale > 0 ? clip.renderScale : 1) * scale;
-          const dw = clip.frameWidth * renderScale;
-          const dh = clip.frameHeight * renderScale;
-          ctx.drawImage(
-            clip.image,
-            sx,
-            sy,
-            clip.frameWidth,
-            clip.frameHeight,
-            (canvas.width - dw) / 2,
-            (canvas.height - dh) / 2,
-            dw,
-            dh,
-          );
-          frame += 1;
-        };
-        draw();
-        const timer = setInterval(draw, 100);
-        animTimers[key] = timer;
-      } else {
-        wrap.textContent = "N/A";
-      }
-    } catch (e) {
-      // ignore
-    }
-
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = (state.cfg.hiddenEnemies || []).includes(key);
+    cb.addEventListener("change", () => {
+      markHidden(key, cb.checked);
+      renderTable();
+    });
+    td.appendChild(cb);
     return td;
   }
 
   function renderRow(key) {
-    let tr = rows[key];
-    if (!tr) {
-      tr = document.createElement("tr");
-      rows[key] = tr;
-      els.tbody.appendChild(tr);
-    } else {
-      tr.innerHTML = "";
-    }
-    tr.appendChild(renderSpriteCell(key));
+    const enemy = ensureEnemy(key);
+    if (!enemy) return;
+    const tr = document.createElement("tr");
+    tr.appendChild(createHiddenCell(key));
     const nameTd = document.createElement("td");
     nameTd.textContent = key;
     tr.appendChild(nameTd);
-    tr.appendChild(createCellInput(key, "health"));
-    tr.appendChild(createCellInput(key, "damage"));
-    tr.appendChild(createCellInput(key, "speed"));
-    tr.appendChild(createCellInput(key, "scale"));
-    tr.appendChild(createCellInput(key, "baseRadius"));
-    tr.appendChild(createCellInput(key, "swarmSpacing"));
-    tr.appendChild(createCellInput(key, "attackRange"));
-    tr.appendChild(createCellInput(key, "cooldown"));
-    tr.appendChild(createCellInput(key, "score"));
-    tr.appendChild(createCellInput(key, "bossTier"));
+    tr.appendChild(createNumberInput(key, "health"));
+    tr.appendChild(createNumberInput(key, "damage"));
+    tr.appendChild(createNumberInput(key, "speed"));
+    tr.appendChild(createNumberInput(key, "scale"));
+    tr.appendChild(createNumberInput(key, "baseRadius"));
+    tr.appendChild(createNumberInput(key, "attackRange"));
+    tr.appendChild(createNumberInput(key, "cooldown"));
+    tr.appendChild(createNumberInput(key, "score"));
+    tr.appendChild(createNumberInput(key, "bossTier"));
     tr.appendChild(createTagsCell(key));
-
-    const resetTd = document.createElement("td");
-    const resetBtn = document.createElement("button");
-    resetBtn.textContent = "Reset";
-    resetBtn.className = "secondary";
-    resetBtn.style.padding = "6px 8px";
-    resetBtn.addEventListener("click", () => resetEnemy(key));
-    resetTd.appendChild(resetBtn);
-    tr.appendChild(resetTd);
+    els.tbody.appendChild(tr);
   }
 
   function renderTable() {
     els.tbody.innerHTML = "";
-    Object.keys(animTimers).forEach((k) => {
-      clearInterval(animTimers[k]);
-      delete animTimers[k];
+    const hidden = new Set(state.cfg.hiddenEnemies || []);
+    const keys = Object.keys(state.cfg.catalog || {}).sort();
+    keys.forEach((key) => {
+      if (!state.showHidden && hidden.has(key)) return;
+      renderRow(key);
     });
-    currentCatalog =
-      (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) ||
-      catalog ||
-      {};
-    Object.keys(currentCatalog).forEach((key) => renderRow(key));
   }
 
   function show() {
-    cfg = loadConfig();
-    overrides = getOverrides(cfg);
-    catalog =
-      (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) ||
-      {};
+    state.cfg = loadConfig();
+    state.showHidden = false;
+    if (els.showHidden) els.showHidden.checked = false;
     renderTable();
     overlay.style.display = "block";
     setStatus("");
-    window.__BC_ENEMY_EDITOR_ACTIVE = true;
-    if (!assetRefreshTimer) {
-      assetRefreshTimer = setInterval(() => {
-        const ready = window.assets?.enemies && Object.keys(window.assets.enemies).length > 0;
-        if (ready) {
-          clearInterval(assetRefreshTimer);
-          assetRefreshTimer = null;
-          renderTable();
-        }
-      }, 400);
-    }
   }
 
   function hide() {
-    Object.keys(animTimers).forEach((k) => clearInterval(animTimers[k]));
     overlay.style.display = "none";
-    window.__BC_ENEMY_EDITOR_ACTIVE = false;
-    if (assetRefreshTimer) {
-      clearInterval(assetRefreshTimer);
-      assetRefreshTimer = null;
-    }
+    setStatus("");
   }
 
-  function save() {
-    cfg.globals = cfg.globals || {};
-    cfg.globals.enemyStats = overrides;
-    const ok = saveConfig(cfg);
+  function handleSave() {
+    const ok = saveConfig(state.cfg);
     if (ok) {
       const now = new Date();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mm = String(now.getMinutes()).padStart(2, "0");
-      const ss = String(now.getSeconds()).padStart(2, "0");
-      setStatus(`Saved ${hh}:${mm}:${ss}`);
-      // Apply to runtime definitions if possible
-      if (window.BattlechurchEnemyDefinitions && typeof window.applyDevEnemyOverrides === "function") {
-        try {
-          window.BattlechurchEnemyDefinitions = window.applyDevEnemyOverrides(
-            window.BattlechurchEnemyDefinitions,
-          );
-        } catch (e) {}
-      }
+      const stamp = `${String(now.getHours()).padStart(2, "0")}:${String(
+        now.getMinutes(),
+      ).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`;
+      setStatus(`Saved ${stamp}`);
+      renderTable();
     } else {
-      setStatus("Save failed");
+      setStatus("Save failed", true);
     }
   }
 
-  // filter removed
-  els.close.addEventListener("click", hide);
-  els.save.addEventListener("click", save);
+  if (els.showHidden) {
+    els.showHidden.addEventListener("change", () => {
+      state.showHidden = Boolean(els.showHidden.checked);
+      renderTable();
+    });
+  }
+  if (els.save) els.save.addEventListener("click", handleSave);
+  if (els.exportBtn) {
+    els.exportBtn.addEventListener("click", () => exportFile(state.cfg));
+  }
+  if (els.close) els.close.addEventListener("click", hide);
 
   document.addEventListener("keydown", (e) => {
     if (e.key && e.key.toLowerCase() === HOTKEY && !overlay.contains(document.activeElement)) {
@@ -457,6 +387,7 @@
   window.BattlechurchEnemyEditor = {
     show,
     hide,
-    getConfig: () => cfg,
+    getConfig: () => state.cfg,
+    save: handleSave,
   };
 })(typeof window !== "undefined" ? window : null, typeof document !== "undefined" ? document : null);
