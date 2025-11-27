@@ -4278,6 +4278,7 @@ class Animal {
 
 class UtilityPowerUp {
   constructor(definition, x, y) {
+    // Uses the same glow logic as weapon power-ups for visual consistency.
     this.type = definition.type;
     this.definition = definition;
     this.image = definition.image;
