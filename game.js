@@ -8537,7 +8537,10 @@ const DIVINE_SHOT_DAMAGE = 1200;
           // Flash sprite hit animation (flash1-14) now used for all friendly spark hits.
           spawnFlashEffect(enemy.x, enemy.y - enemy.config.hitRadius / 2);
         }
-        if (enemy.health <= 0 && prevHealth > 0 && projectile.type === "arrow") {
+        if (enemy.health > 0) {
+          const puffRadius = (enemy.config?.hitRadius || enemy.radius || 24) * 0.6;
+          spawnPuffEffect(enemy.x, enemy.y, puffRadius);
+        } else if (prevHealth > 0 && projectile.type === "arrow") {
           spawnImpactEffect(enemy.x, enemy.y - enemy.config.hitRadius / 2);
         }
         projectile.onHit(enemy);
