@@ -5201,16 +5201,16 @@ class CozyNpc {
   getRandomWalkPoint() {
     const bounds = getNpcHomeBounds();
     return {
-      x: randomInRange(bounds.x - bounds.radius, bounds.x + bounds.radius),
-      y: randomInRange(bounds.y - bounds.radius, bounds.y + bounds.radius),
+      x: randomInRange(bounds.x - bounds.radius * 0.8, bounds.x + bounds.radius * 0.8),
+      y: randomInRange(bounds.y - bounds.radius * 0.8, bounds.y + bounds.radius * 0.8),
     };
   }
 
   getReturnPoint() {
     const { x: centerX, y: centerY, radius } = getNpcHomeBounds();
     return {
-      x: randomInRange(centerX - Math.min(60, radius), centerX + Math.min(60, radius)),
-      y: randomInRange(centerY - Math.min(60, radius), centerY + Math.min(60, radius)),
+      x: randomInRange(centerX - Math.min(60, radius * 0.8), centerX + Math.min(60, radius * 0.8)),
+      y: randomInRange(centerY - Math.min(60, radius * 0.8), centerY + Math.min(60, radius * 0.8)),
     };
   }
 
