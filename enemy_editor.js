@@ -201,7 +201,17 @@
     const td = document.createElement("td");
     const eff = getEffective(key);
     const tags = new Set(eff.specialBehavior || []);
-    const tagList = ["swarmable", "ranged", "npcPriority", "mini", "popcorn", "elite", "bossImmune", "preferEdges"];
+    const tagList = [
+      "swarmable",
+      "ranged",
+      "npcPriority",
+      "mini",
+      "popcorn",
+      "elite",
+      "bossImmune",
+      "preferEdges",
+      "closestAny",
+    ];
     tagList.forEach((tag) => {
       const label = document.createElement("label");
       label.style.display = "block";
