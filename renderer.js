@@ -340,14 +340,15 @@ function drawLevelAnnouncements() {
       } else if (npcNames.length > 2) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
-      const missionBrief = `In ${monthName}, ${nameSentence} need your help ${scenario}.`;
-      const missionId = `mission_${monthName}_${missionBrief}`;
+      const missionTitle = monthName || "Mission Brief";
+      const missionBrief = `${nameSentence} need your help with ${scenario}.`;
+      const missionId = `mission_${missionTitle}_${missionBrief}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
       }
       showMissionBriefDialog(
-        "Mission Brief",
+        missionTitle,
         missionBrief,
         missionId,
       );

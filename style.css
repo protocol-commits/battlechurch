@@ -333,14 +333,14 @@ body.touch-enabled .joystick-handle {
   background-repeat: no-repeat;
 }
 .dialog-overlay--mission {
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 48px;
-  background: transparent !important;
+  padding: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 32%), radial-gradient(circle at 80% 60%, rgba(110,244,255,0.12), transparent 38%), rgba(0, 0, 0, 0.72) !important;
   background-image: none !important;
 }
 .dialog-overlay--mission.visible {
-  background: transparent !important;
+  background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.08), transparent 32%), radial-gradient(circle at 80% 60%, rgba(110,244,255,0.12), transparent 38%), rgba(0, 0, 0, 0.72) !important;
   pointer-events: auto;
 }
 .dialog-overlay--pause {
@@ -387,11 +387,29 @@ body.touch-enabled .joystick-handle {
   font-family: "Press Start 2P", "Courier New", monospace;
   text-align: center;
 }
+.dialog-overlay--mission .dialog-overlay__panel {
+  width: min(1100px, 94vw);
+  padding: clamp(36px, 5vw, 80px);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #ffffff;
+  font-family: "Orbitron", sans-serif;
+  text-align: left;
+}
 
 .dialog-overlay__title {
   font-size: 28px;
   margin: 0;
   color: var(--swatch-accent);
+}
+.dialog-overlay--mission .dialog-overlay__title {
+  font-size: clamp(48px, 6vw, 88px);
+  line-height: 1.02;
+  color: #ffffff;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .dialog-overlay__body {
@@ -399,6 +417,15 @@ body.touch-enabled .joystick-handle {
   color: rgba(255, 255, 255, 0.8);
   margin-top: 12px;
   white-space: pre-line;
+}
+.dialog-overlay--mission .dialog-overlay__body {
+  font-size: clamp(26px, 3vw, 44px);
+  line-height: 1.2;
+  color: #f7f9ff;
+  margin-top: 22px;
+  max-width: 960px;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 .dialog-overlay__portrait-canvas {
