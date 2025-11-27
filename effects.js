@@ -216,6 +216,17 @@
     return spawnRayboltEffect(x, y, radius || 40);
   }
 
+  function spawnEnemyDeathExplosion(x, y, { radius = null } = {}) {
+    const frames = resolveAssets()?.effects?.enemyDeathExplosion;
+    if (!frames || !frames.length) return null;
+    let scale = 1.8;
+    if (radius) {
+      const base = Math.max(frames[0].width, frames[0].height) || 1;
+      scale = (radius * 2) / base;
+    }
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale });
+  }
+
 
 
   function spawnPuffEffect(x, y, radius = null) {
@@ -341,6 +352,7 @@
     spawnBossProjectilePuffEffect,
     spawnChattyHeartHitEffect,
     spawnChattyAppeaseEffect,
+    spawnEnemyDeathExplosion,
     spawnPuffEffect,
     spawnSmokeEffect,
     spawnImpactDustEffect,

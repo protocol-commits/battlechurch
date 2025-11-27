@@ -362,6 +362,16 @@ class Enemy {
       if (this.state !== 'death') {
         this.state = "death";
         this.animator.play("death", { restart: true, loop: false });
+        this.ignoreEntityCollisions = true;
+        this.canDealDamage = false;
+        this.touchCooldown = Infinity;
+        this.attackTimer = Infinity;
+        if (typeof spawnEnemyDeathExplosion === "function") {
+          const radius = this.config.hitRadius || this.radius || 24;
+          spawnEnemyDeathExplosion(this.x, this.y, { radius });
+        }
+        this.config.hitRadius = 0;
+        this.radius = 0;
         // compute a fallback death timer from clip info so we can force finish
         try {
           const clip = this.animator.currentClip || {};

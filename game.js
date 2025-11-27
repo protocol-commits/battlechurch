@@ -380,6 +380,7 @@ const spawnSmokeEffect = Effects.spawnSmokeEffect;
 const spawnImpactDustEffect = Effects.spawnImpactDustEffect;
 const spawnRayboltEffect = Effects.spawnRayboltEffect;
 const spawnPrayerBombGlow = Effects.spawnPrayerBombGlow;
+const spawnEnemyDeathExplosion = Effects.spawnEnemyDeathExplosion;
 
 function mergeInspectorOverrides(source) {
   if (!source || typeof source !== 'object') return;
@@ -2462,6 +2463,9 @@ async function loadAssets() {
       loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`),
     ),
   ); // Impact spark now uses the fireball flash sprites (flash1-14) instead of the legacy vfx-d pack.
+  assets.effects.enemyDeathExplosion = await loadImage(
+    "assets/sprites/explosions/16/Explosion VFX 16(48x48).png",
+  ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
   assets.effects.magicSplash = await Promise.all(
     Array.from({ length: FLASH_FRAME_COUNT }, (_, i) =>
       loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`).then((img) =>
