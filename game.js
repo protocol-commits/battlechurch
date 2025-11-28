@@ -152,6 +152,18 @@ visitorSession.activeChatty = new Set();
 visitorSession.lockingBlockers = new Set();
 visitorSession.movementLock = false;
 
+// Track per-season congregation changes (3-month blocks)
+const seasonStats = {
+  seasonNumber: 1,
+  monthlyAdded: 0, // sum of member deltas from monthly recaps
+  lost: 0, // total NPCs lost across the season
+  bossBonus: 0, // bonus from boss win
+  bossBonusApplied: false,
+  recapShown: false,
+  startCongregation: null,
+  visitorAdded: 0,
+};
+
 function isPlayerMovementLocked() {
   return Boolean(visitorSession.active && visitorSession.movementLock);
 }
@@ -1191,7 +1203,7 @@ const NPC_FAITH_RETURN_THRESHOLD = NPC_MAX_FAITH * 0.96;
 const NPC_STARTING_FAITH_RATIO = 1; // start NPCs at 100% faith
 const NPC_FAITH_PER_ENEMY_KILL = 0; // default faith gained per enemy kill
 const NPC_FAITH_KILL_REWARD_EXCLUSIONS = new Set(["miniGhost"]); // enemy kills that should not reward NPC faith
-const NPC_ARROW_COOLDOWN_DEFAULT = 1.2; // default seconds between NPC shots
+const NPC_ARROW_COOLDOWN_DEFAULT = 0.8; // faster default seconds between NPC shots
 const NPC_ARROW_RANGE_DEFAULT = 520; // maximum range NPC will attempt to shoot
 const NPC_ARROW_DAMAGE = 10; // damage dealt by NPC arrows
 const NPC_MAX_FAITH_LOSS_PER_ATTACK = 25;
@@ -2775,14 +2787,29 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   pendingUpgradeAfterSummary = Boolean(upgradeAfter);
   const summary = levelManager?.getLastBattleSummary?.() || {};
+  const status = levelManager?.getStatus?.() || null;
   const savedNames = Array.isArray(summary.savedNames)
     ? summary.savedNames.filter(Boolean)
     : [];
   const lostNames = Array.isArray(summary.lostNames)
     ? summary.lostNames.filter(Boolean)
     : [];
+  const levelNumber = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+  const currentSeasonNumber = levelNumber; // one season per level (3 months each)
+  if (seasonStats.seasonNumber !== currentSeasonNumber) {
+    seasonStats.seasonNumber = currentSeasonNumber;
+    seasonStats.monthlyAdded = 0;
+    seasonStats.lost = 0;
+    seasonStats.bossBonus = 0;
+    seasonStats.bossBonusApplied = false;
+    seasonStats.recapShown = false;
+    seasonStats.visitorAdded = 0;
+    seasonStats.startCongregation = getCongregationSize();
+  }
   const monthLabel =
     (levelManager?.getStatus?.() && levelManager.getStatus().month) || "This Month";
+  const localMonthNumber = status?.battle || 1; // battle is 1-based month within the level
+  const stage = status?.stage || "";
   const memberDelta = (() => {
     if (savedCount >= 5) return 3;
     if (savedCount === 4) return 2;
@@ -2791,10 +2818,53 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     if (savedCount === 1) return -1;
     return -2;
   })();
+  if (seasonStats.startCongregation == null) {
+    seasonStats.startCongregation = getCongregationSize();
+  }
   if (!summary.congregationDeltaApplied) {
     adjustCongregationSize(memberDelta);
     summary.congregationDeltaApplied = true;
     summary.congregationDelta = memberDelta;
+  }
+  seasonStats.monthlyAdded += memberDelta;
+  seasonStats.lost += Math.max(0, lostCount || 0);
+  const monthsPerLevel = typeof MONTHS_PER_LEVEL === "number" ? MONTHS_PER_LEVEL : 3;
+  const isSeasonEnd = localMonthNumber >= monthsPerLevel;
+  const isLevelSummaryStage = stage === "levelSummary";
+  if (isSeasonEnd && isLevelSummaryStage && !seasonStats.recapShown) {
+    const preBossSize = getCongregationSize();
+    if (!seasonStats.bossBonusApplied) {
+      const bossBonus = levelNumber * 2 * Math.max(0, heroLives);
+      adjustCongregationSize(bossBonus);
+      seasonStats.bossBonus = bossBonus;
+      seasonStats.bossBonusApplied = true;
+    }
+    const startMonthIndex = (currentSeasonNumber - 1) * monthsPerLevel + 1;
+    const endMonthIndex = startMonthIndex + monthsPerLevel - 1;
+    const seasonTitle = `Season ${currentSeasonNumber} (${getMonthName(startMonthIndex)} - ${getMonthName(endMonthIndex)})`;
+    const battleAndVisitorGain = seasonStats.monthlyAdded + (seasonStats.visitorAdded || 0);
+    const totalAdded = battleAndVisitorGain + (seasonStats.bossBonus || 0);
+    const totalLost = seasonStats.lost;
+    const currentSize = getCongregationSize();
+    const lines = [];
+    lines.push(`Boss victory bonus: +${seasonStats.bossBonus} (Level ${levelNumber} x 2 x ${heroLives} lives left)`);
+    lines.push(`Gained from battles + visitor minigames: ${battleAndVisitorGain >= 0 ? "+" : ""}${battleAndVisitorGain}`);
+    lines.push(`Lost: ${totalLost}`);
+    lines.push(`Congregation Size: ${preBossSize + (seasonStats.bossBonus || 0)} (matches pre-boss total plus boss bonus)`);
+    const body = lines.join("\n\n");
+    seasonStats.recapShown = true;
+    window.DialogOverlay.show({
+      title: seasonTitle,
+      body,
+      buttonText: "Continue (Space)",
+      variant: "mission",
+      portraits: null,
+      onContinue: () => {
+        dismissCurrentLevelAnnouncement();
+        window.DialogOverlay.consumeAction();
+      },
+    });
+    return true;
   }
   const congregationTotal = getCongregationSize();
   const lines = [];
@@ -4934,7 +5004,7 @@ class CozyNpc {
     const totalMultiplier = emotionalMultiplier * harmonyMultiplier;
     const cooldown = Math.max(0.02, baseCooldown / totalMultiplier);
     const damage = Math.round(NPC_ARROW_DAMAGE * totalMultiplier);
-    const baseScale = 1.2;
+    const baseScale = 1.6; // larger NPC projectiles
     const scale = baseScale * totalMultiplier;
     // spawn an arrow projectile from NPC toward the enemy
     spawnProjectile("arrow", this.x, this.y, dir.x, dir.y, {
@@ -7052,6 +7122,7 @@ function markVisitorGuestSaved(guest) {
       visitorSession.newMemberNames.push(guest.name || "");
     }
   }
+  seasonStats.visitorAdded = (seasonStats.visitorAdded || 0) + 1;
   adjustCongregationSize(1);
   spawnRayboltEffect(guest.x, guest.y - guest.radius / 2, (guest.radius || 28) * 1.5);
   addFloatingTextAt(guest.x, guest.y - guest.radius - 32, "I love it here!", "#ffe37a", {
