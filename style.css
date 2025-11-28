@@ -164,11 +164,10 @@ body.touch-enabled .joystick-handle {
 .upgrade-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(4, 7, 14, 0.1);
-  background-image: url("assets/backgrounds/church-1108.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 217, 120, 0.08), transparent 30%),
+    radial-gradient(circle at 80% 60%, rgba(110, 244, 255, 0.1), transparent 36%),
+    rgba(4, 7, 14, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,58 +183,60 @@ body.touch-enabled .joystick-handle {
 }
 
 .upgrade-overlay__panel {
-  width: min(520px, 90vw);
-  padding: 32px;
-  background: var(--swatch-mid);
-  border-radius: 20px;
-  border: 1px solid var(--swatch-border);
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65);
+  width: min(640px, 92vw);
+  padding: 40px;
+  background: linear-gradient(145deg, rgba(12, 20, 36, 0.94), rgba(9, 14, 26, 0.92));
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.75);
   color: #f2f6ff;
   font-family: "Press Start 2P", "Courier New", monospace;
 }
 
 .upgrade-overlay__header h2 {
   margin: 0;
-  font-size: 24px;
-  letter-spacing: 0.06em;
+  font-size: 32px;
+  letter-spacing: 0.08em;
 }
 
 .upgrade-overlay__header p {
-  margin: 6px 0 16px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  margin: 10px 0 20px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.03em;
 }
 
 .upgrade-overlay__keys {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 14px;
-  font-size: 12px;
+  margin-bottom: 18px;
+  font-size: 14px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
 }
 
 .upgrade-overlay__keys .keys-value {
-  font-size: 26px;
+  font-size: 34px;
   color: var(--swatch-accent);
+  text-shadow: 0 0 18px rgba(255, 217, 120, 0.4);
 }
 
 .upgrade-overlay__grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 22px;
 }
 
 .upgrade-row {
   display: grid;
-  grid-template-columns: 1fr auto auto 110px;
+  grid-template-columns: 1fr auto auto 130px;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .upgrade-row__info {
@@ -244,43 +245,46 @@ body.touch-enabled .joystick-handle {
 }
 
 .upgrade-row__label {
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
 .upgrade-row__desc {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.74);
+  letter-spacing: 0.02em;
 }
 
 .upgrade-row__value {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: #9af7ff;
 }
 
 .upgrade-row__cost {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
   text-align: right;
 }
 
 .upgrade-row__cost strong {
   display: block;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--swatch-accent);
 }
 
 .upgrade-row__button {
-  padding: 6px 14px;
-  border-radius: 12px;
-  font-size: 11px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   border: none;
   color: #041b25;
   background: var(--swatch-button-gradient);
   cursor: pointer;
+  box-shadow: 0 10px 25px rgba(255, 217, 120, 0.2);
 }
 
 .upgrade-row__button:disabled {
@@ -294,15 +298,16 @@ body.touch-enabled .joystick-handle {
 
 .upgrade-overlay__confirm {
   width: 100%;
-  padding: 12px 0;
-  border-radius: 14px;
+  padding: 14px 0;
+  border-radius: 16px;
   border: none;
   background: var(--swatch-accent-2);
   color: #041b25;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.08em;
   cursor: pointer;
+  box-shadow: 0 12px 28px rgba(110, 244, 255, 0.25);
 }
 
 .dialog-overlay {
