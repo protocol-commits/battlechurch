@@ -589,13 +589,13 @@
       buildCongregationMembers();
     }
 
-    function beginBattle() {
-      clearStagePowerUps();
-      finishNpcRush();
-      state.waitingForCongregation = false;
-      clearCongregationMembers();
-      state.monthIndex += 1;
-      state.battleIndex = -1;
+  function beginBattle() {
+    clearStagePowerUps();
+    finishNpcRush();
+    state.waitingForCongregation = false;
+    clearCongregationMembers();
+    state.monthIndex += 1;
+    state.battleIndex = -1;
   const battleNumber = state.monthIndex + 1;
   const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
   const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;

@@ -253,6 +253,53 @@ function computeFormationAnchors(count) {
   formationState.anchors = anchors;
   return anchors;
 }
+
+function resetFormationSwaps() {
+  if (formationState?.swappedThisBattle) {
+    formationState.swappedThisBattle.clear();
+  }
+}
+
+function maybeSwapNpcPositions() {
+  // Only run during active battles; skip if no formation selected.
+  if (!npcs || !npcs.length) return;
+  const status =
+    typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
+  const activeStages = new Set(["hordeActive", "bossActive", "keyRush"]);
+  if (!status || !activeStages.has(status.stage)) return;
+  if (!formationState?.current) return;
+  const swapped = formationState.swappedThisBattle || new Set();
+  formationState.swappedThisBattle = swapped;
+  // Candidates: active NPCs not departed/drained
+  const active = npcs.filter(
+    (npc) => npc && npc.active && !npc.departed && npc.state !== "drained",
+  );
+  if (active.length < 2) return;
+  // Find lowest faith below 25% that has not swapped yet
+  let low = null;
+  for (const npc of active) {
+    if (npc.faith <= npc.maxFaith * 0.25 && !swapped.has(npc)) {
+      if (!low || npc.faith < low.faith) low = npc;
+    }
+  }
+  if (!low) return;
+  // Pick healthiest above 40% faith
+  const healthy = active
+    .filter((npc) => npc.faith >= npc.maxFaith * 0.4 && npc !== low)
+    .sort((a, b) => b.faith - a.faith);
+  if (!healthy.length) return;
+  const target = healthy[0];
+  // Swap anchors and set new targets so they walk to swapped spots
+  const lowAnchor = low.formationAnchor ? { ...low.formationAnchor } : null;
+  const hiAnchor = target.formationAnchor ? { ...target.formationAnchor } : null;
+  if (!lowAnchor || !hiAnchor) return;
+  low.formationAnchor = hiAnchor;
+  target.formationAnchor = lowAnchor;
+  low.target = low.getRandomWalkPoint();
+  target.target = target.getRandomWalkPoint();
+  swapped.add(low);
+  swapped.add(target);
+}
 const MAX_ACTIVE_ENEMIES = 120;
 const SKELETON_MIN_COUNT = 4;
 const SKELETON_PACK_SIZE = 4;
@@ -1595,6 +1642,7 @@ const formationState = {
   bonuses: { defense: 0, rof: 0, damage: 0 },
   anchors: [],
   jitterRadius: 12,
+  swappedThisBattle: new Set(),
 };
 
 function resolveWeaponPowerupConfig(effect, def = {}) {
@@ -6464,6 +6512,7 @@ function applyFormationAnchors() {
   const anchors = computeFormationAnchors(npcs.length);
   if (!anchors.length) return;
   const jitter = formationState?.jitterRadius ?? 0;
+  resetFormationSwaps();
   npcs.forEach((npc, idx) => {
     const anchor = anchors[idx % anchors.length];
     if (!anchor || !npc) return;
@@ -6475,6 +6524,7 @@ function applyFormationAnchors() {
     npc.baseX = npc.x;
     npc.baseY = npc.y;
     npc.target = npc.getRandomWalkPoint();
+    npc.hasSwappedThisBattle = false;
   });
 }
 
@@ -7533,6 +7583,7 @@ function resolveCongregationMemberCollisions() {
 
 function updateCozyNpcs(dt) {
   if (npcsSuspended) return;
+  maybeSwapNpcPositions();
   function applyEnemyCollisionDamageToNpc(npcEntity) {
     if (!npcEntity || npcEntity.departed || !npcEntity.active) return;
     if ((npcEntity.damageCooldown || 0) > 0) return;
