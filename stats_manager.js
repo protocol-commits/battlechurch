@@ -8,33 +8,33 @@
   const DAMAGE_REDUCTION_DECAY = 0.85;
   const STAT_CONFIGS = {
     melee_attack_damage: {
-      label: "Melee Damage",
+      label: "Theology",
       base: 1,
-      description: "Close-range sword damage",
+      description: "Increases sword power",
     },
     projectile_attack_damage: {
-      label: "Projectile Damage",
+      label: "Preaching",
       base: 1,
-      description: "Ranged weapon power",
+      description: "Increases ranged power",
     },
     damage_resistance: {
-      label: "Damage Resistance",
+      label: "Perseverance",
       base: 0,
-      description: "Reduces damage taken",
+      description: "Increases armor and extends power-up duration for you and your congregation",
       incrementValue: PERCENT_INCREMENT,
       isResistance: true,
       decayFactor: DAMAGE_REDUCTION_DECAY,
       isDecaying: true,
     },
     speed: {
-      label: "Speed",
+      label: "Diligence",
       base: 1,
-      description: "Movement speed",
+      description: "Increases speed",
     },
     emotional_intelligence: {
-      label: "Emotional Intelligence",
+      label: "Shepherding",
       base: 1,
-      description: "Boosts NPC/Visitor projectiles",
+      description: "Increases congregation attack power and improves visitor welcoming",
     },
   };
 
