@@ -237,11 +237,58 @@ function showMissionBriefDialog(title, body, identifier) {
   missionBriefOverlayState.shown = false;
   missionBriefOverlayState.active = true;
   window.isMissionBriefOverlayActive = true;
+  if (typeof window.clearFormationSelection === "function") {
+    window.clearFormationSelection();
+  }
+  const formationOptions = [
+    { key: "circle", label: "Bible Study (Circle)", desc: "Defense +20%" },
+    { key: "line", label: "Book Study (Line)", desc: "Rate of fire +20%" },
+    { key: "crescent", label: "Support Group (Crescent)", desc: "Damage +20%" },
+  ];
+  const buttonsHtml = formationOptions
+    .map(
+      (opt) =>
+        `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.35);color:#fff;text-align:left;">
+          <div style="font-weight:800;font-size:18px;">${opt.label}</div>
+          <div style="opacity:0.8;font-size:14px;">${opt.desc}</div>
+        </button>`,
+    )
+    .join("");
+  const bodyHtml = `
+    <div style="margin:12px 0 16px;font-size:18px;line-height:1.4;">${body}</div>
+    <div style="margin-top:8px;font-size:14px;opacity:0.85;">Choose a formation to begin this month:</div>
+    <div class="formation-picker">${buttonsHtml}</div>
+  `;
   window.DialogOverlay.show({
     title,
-    body,
-    buttonText: "Continue (Space)",
+    bodyHtml,
+    buttonText: "Confirm Formation",
     variant: "mission",
+    onRender: ({ overlay, buttonEl }) => {
+      if (buttonEl) buttonEl.disabled = true;
+      const picker = overlay.querySelector(".formation-picker");
+      if (!picker) return;
+      picker.querySelectorAll(".formation-option").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const key = btn.getAttribute("data-formation");
+          if (typeof window.selectFormation === "function") {
+            window.selectFormation(key);
+          }
+          picker.querySelectorAll(".formation-option").forEach((b) => {
+            b.style.borderColor = b === btn ? "#ffd978" : "rgba(255,255,255,0.3)";
+            b.style.background = b === btn ? "rgba(255,217,120,0.12)" : "rgba(0,0,0,0.35)";
+          });
+          if (typeof window.applyFormationAnchors === "function") {
+            try { window.applyFormationAnchors(); } catch (e) {}
+          }
+          if (buttonEl) {
+            buttonEl.disabled = false;
+            // Auto-advance once a formation is picked so Space is not required.
+            buttonEl.click();
+          }
+        });
+      });
+    },
     onContinue: () => {
       missionBriefOverlayState.active = false;
       missionBriefOverlayState.shown = true;

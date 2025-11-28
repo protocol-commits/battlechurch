@@ -171,6 +171,10 @@ function isPlayerMovementLocked() {
 if (typeof window !== "undefined") {
   window.Battlechurch = window.Battlechurch || {};
   window.Battlechurch.isPlayerMovementLocked = isPlayerMovementLocked;
+  window.selectFormation = selectFormation;
+  window.clearFormationSelection = clearFormationSelection;
+  window.getFormationBonuses = getFormationBonuses;
+  window.applyFormationAnchors = applyFormationAnchors;
 }
 let heroLives = 3;
 let enemyDevLabelsVisible = true;
@@ -182,6 +186,73 @@ const devTools = {
   npcFireCooldown: 1.2, // seconds between NPC arrow shots when at full faith
   npcFaithPerEnemy: 0, // faith gained by NPCs per enemy defeated
 };
+
+function clearFormationSelection() {
+  formationState.current = null;
+  formationState.bonuses = { defense: 0, rof: 0, damage: 0 };
+}
+
+function selectFormation(key) {
+  const preset = FORMATION_PRESETS[key];
+  if (!preset) return null;
+  formationState.current = preset.key;
+  formationState.bonuses = { ...preset.bonuses };
+  return preset;
+}
+
+function getFormationBonuses() {
+  return formationState?.bonuses || { defense: 0, rof: 0, damage: 0 };
+}
+
+function computeFormationAnchors(count) {
+  const anchors = [];
+  const home = getNpcHomeBounds();
+  if (!home) return anchors;
+  const cx = home.x;
+  const cy = home.y;
+  const rx = (home.maxX - home.minX) / 2;
+  const ry = (home.maxY - home.minY) / 2;
+  const presetKey = formationState.current || "circle";
+  switch (presetKey) {
+    case "line": {
+      const spacing = Math.max(30, (rx * 2) / Math.max(1, count));
+      const startX = cx - (spacing * (count - 1)) / 2;
+      for (let i = 0; i < count; i += 1) {
+        anchors.push({ x: startX + spacing * i, y: cy });
+      }
+      break;
+    }
+    case "crescent": {
+      const radius = Math.min(rx, ry) * 0.45;
+      // Smile: arc that faces left/right/bottom; use angles from 210° to -30°
+      const start = (210 * Math.PI) / 180;
+      const end = (-30 * Math.PI) / 180;
+      for (let i = 0; i < count; i += 1) {
+        const t = count === 1 ? 0.5 : i / (count - 1);
+        const angle = start + (end - start) * t;
+        anchors.push({
+          x: cx + Math.cos(angle) * radius,
+          y: cy + Math.sin(angle) * radius,
+        });
+      }
+      break;
+    }
+    case "circle":
+    default: {
+      const radius = Math.min(rx, ry) * 0.38;
+      for (let i = 0; i < count; i += 1) {
+        const angle = (Math.PI * 2 * i) / Math.max(1, count);
+        anchors.push({
+          x: cx + Math.cos(angle) * radius,
+          y: cy + Math.sin(angle) * radius,
+        });
+      }
+      break;
+    }
+  }
+  formationState.anchors = anchors;
+  return anchors;
+}
 const MAX_ACTIVE_ENEMIES = 120;
 const SKELETON_MIN_COUNT = 4;
 const SKELETON_PACK_SIZE = 4;
@@ -1513,6 +1584,18 @@ const ENEMY_SPAWN_DEBUG_BOX_SIZE = 80;
 const ENEMY_SPAWN_PUFF_DURATION = 0;
 const WEAPON_POWERUP_EFFECTS = new Set(["wisdomWeapon", "scriptureWeapon", "cannonWeapon"]);
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
+// Formation presets and state
+const FORMATION_PRESETS = {
+  circle: { key: "circle", label: "Bible Study (Circle)", bonuses: { defense: 0.2 } },
+  line: { key: "line", label: "Book Study (Line)", bonuses: { rof: 0.2 } },
+  crescent: { key: "crescent", label: "Support Group (Crescent)", bonuses: { damage: 0.2 } },
+};
+const formationState = {
+  current: null,
+  bonuses: { defense: 0, rof: 0, damage: 0 },
+  anchors: [],
+  jitterRadius: 12,
+};
 
 function resolveWeaponPowerupConfig(effect, def = {}) {
   const defaults = weaponPowerupConfig[effect] || {};
@@ -5001,14 +5084,15 @@ class CozyNpc {
         : 2.4;
     const statsManager =
       typeof window !== "undefined" ? window.StatsManager : null;
+    const formation = getFormationBonuses();
     const emotionalMultiplier =
       typeof statsManager?.getStatMultiplier === "function"
         ? Math.max(1, statsManager.getStatMultiplier("emotional_intelligence") || 1)
         : 1;
     const harmonyMultiplier = npcHarmonyBuffTimer > 0 ? HARMONY_BUFF_MULTIPLIER : 1;
-    const totalMultiplier = emotionalMultiplier * harmonyMultiplier;
+    const totalMultiplier = emotionalMultiplier * harmonyMultiplier * (1 + (formation.rof || 0));
     const cooldown = Math.max(0.02, baseCooldown / totalMultiplier);
-    const damage = Math.round(NPC_ARROW_DAMAGE * totalMultiplier);
+    const damage = Math.round(NPC_ARROW_DAMAGE * totalMultiplier * (1 + (formation.damage || 0)));
     const baseScale = 1.6; // larger NPC projectiles
     const scale = baseScale * totalMultiplier;
     // spawn an arrow projectile from NPC toward the enemy
@@ -5035,7 +5119,9 @@ class CozyNpc {
     const cappedLoss = Math.min(NPC_MAX_FAITH_LOSS_PER_ATTACK, baseDamage);
     const damageReduction = getDamageResistanceValue();
     const damageScale = Math.max(0.01, 1 - damageReduction);
-    const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale));
+    const formation = getFormationBonuses();
+    const defenseScale = Math.max(0.01, 1 - (formation.defense || 0));
+    const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale * defenseScale));
     // Debug: report incoming damage and computed faith loss
     if (typeof console !== 'undefined' && console.debug) {
       console.debug &&
@@ -5330,6 +5416,14 @@ class CozyNpc {
 
   getRandomWalkPoint() {
     const bounds = getNpcHomeBounds();
+    const anchor = this.formationAnchor || null;
+    const jitter = formationState?.jitterRadius ?? 0;
+    if (anchor) {
+      return {
+        x: clamp(anchor.x + randomInRange(-jitter, jitter), bounds.minX, bounds.maxX),
+        y: clamp(anchor.y + randomInRange(-jitter, jitter), bounds.minY, bounds.maxY),
+      };
+    }
     return {
       x: randomInRange(bounds.x - bounds.radius * 0.8, bounds.x + bounds.radius * 0.8),
       y: randomInRange(bounds.y - bounds.radius * 0.8, bounds.y + bounds.radius * 0.8),
@@ -6208,6 +6302,10 @@ function randomInRange(min, max) {
   return min + Math.random() * (max - min);
 }
 
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function getEnemySpawnPoints() {
   const offset = ENEMY_SPAWN_MARGIN;
   const width = canvas.width;
@@ -6359,6 +6457,25 @@ function resetCozyNpcs(count = 5) {
   for (let i = 0; i < targetCount; i += 1) {
     if (!spawnCozyNpc()) break;
   }
+}
+
+function applyFormationAnchors() {
+  if (!npcs.length) return;
+  const anchors = computeFormationAnchors(npcs.length);
+  if (!anchors.length) return;
+  const jitter = formationState?.jitterRadius ?? 0;
+  npcs.forEach((npc, idx) => {
+    const anchor = anchors[idx % anchors.length];
+    if (!anchor || !npc) return;
+    npc.formationAnchor = { ...anchor };
+    const jitX = randomInRange(-jitter, jitter);
+    const jitY = randomInRange(-jitter, jitter);
+    npc.x = anchor.x + jitX;
+    npc.y = anchor.y + jitY;
+    npc.baseX = npc.x;
+    npc.baseY = npc.y;
+    npc.target = npc.getRandomWalkPoint();
+  });
 }
 
 function resetCongregationSize() {

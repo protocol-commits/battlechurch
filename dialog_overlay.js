@@ -36,6 +36,7 @@
     onContinue = null,
     variant = "",
     portraits = null,
+    onRender = null,
   }) {
     if (!overlay) return;
     titleEl.textContent = title;
@@ -62,6 +63,11 @@
     if (variant === "recap" && portraitCanvas) {
       portraitCanvas.classList.add("hidden");
     }
+    if (typeof onRender === "function") {
+      try {
+        onRender({ overlay, bodyEl, buttonEl: button, variant });
+      } catch (e) {}
+    }
     visible = true;
   }
 
@@ -78,6 +84,7 @@
   }
 
   function handleContinue() {
+    if (button.disabled) return;
     consumedAction = true;
     if (continueCallback) continueCallback();
     hide();
@@ -121,6 +128,7 @@
   function handleKeyDown(event) {
     if (!visible) return;
     if (event.code === "Space" || event.keyCode === 32) {
+      if (button.disabled) return;
       event.preventDefault();
       handleContinue();
     }

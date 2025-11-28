@@ -617,6 +617,11 @@
         state.awaitingNpcProcession = false;
         beginBattleIntroStage();
       }
+      if (typeof window.applyFormationAnchors === "function") {
+        try {
+          window.applyFormationAnchors();
+        } catch (e) {}
+      }
     }
 
     function beginBattleIntroStage() {
