@@ -190,6 +190,7 @@
   function selectHordeEnemyType(levelNumber, difficultyTier, helpers) {
     const { randomChoice, getAvailableMiniFolkKeys, hasEnemyAsset } = helpers;
     const hidden = getHiddenSet();
+    const fallbackType = "miniImp";
     if (levelNumber === 1) {
       const miniKeys =
         (typeof getAvailableMiniFolkKeys === "function" && getAvailableMiniFolkKeys()) || [];
@@ -199,10 +200,11 @@
       if (available.length) return randomChoice(available);
     }
     const tierIndex = Math.max(0, Math.min(HORDE_ENEMY_POOLS.length - 1, difficultyTier));
-    const pool = (HORDE_ENEMY_POOLS[tierIndex] || HORDE_ENEMY_POOLS[0]).filter(
-      (name) => !hidden.has(name),
-    );
-    return randomChoice(pool.length ? pool : HORDE_ENEMY_POOLS[0]);
+    const tierPool = Array.isArray(HORDE_ENEMY_POOLS[tierIndex]) ? HORDE_ENEMY_POOLS[tierIndex] : [];
+    const defaultPool = Array.isArray(HORDE_ENEMY_POOLS[0]) ? HORDE_ENEMY_POOLS[0] : [];
+    const pool = (tierPool.length ? tierPool : defaultPool).filter((name) => !hidden.has(name));
+    const picked = randomChoice(pool.length ? pool : defaultPool);
+    return picked || fallbackType;
   }
 
   // createHordeDefinition(level, month, horde, helpers)

@@ -393,6 +393,101 @@ window.BattlechurchLevelData = {
                   "index": 2,
                   "entries": [],
                   "weights": {}
+                },
+                {
+                  "index": 3,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 4,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 5,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 6,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": true,
+                  "duration": 10
+                }
+              ]
+            },
+            {
+              "index": 3,
+              "hordes": [
+                {
+                  "index": 1,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 2,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 3,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 4,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 5,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 6,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": true,
+                  "duration": 10
                 }
               ]
             }
@@ -406,12 +501,379 @@ window.BattlechurchLevelData = {
               "hordes": [
                 {
                   "index": 1,
-                  "entries": [],
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
                   "weights": {
-                    "slime": 1,
-                    "skeleton": 1,
-                    "archer": 1
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "allKill": false,
+                  "duration": 10,
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
                   }
+                },
+                {
+                  "index": 2,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 3,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 4,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 5,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 6,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": true,
+                  "duration": 10
+                }
+              ]
+            },
+            {
+              "index": 2,
+              "hordes": [
+                {
+                  "index": 1,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 2,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 3,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 4,
+                  "entries": [],
+                  "weights": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 5,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 6,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": true,
+                  "duration": 10
+                }
+              ]
+            },
+            {
+              "index": 3,
+              "hordes": [
+                {
+                  "index": 1,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 2,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 3,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 4,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 5,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": false,
+                  "duration": 10
+                },
+                {
+                  "index": 6,
+                  "entries": [
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    }
+                  ],
+                  "weights": {
+                    "miniImp": 80,
+                    "miniImpLevel2": 10,
+                    "miniFireImp": 10
+                  },
+                  "delaysWeighted": {},
+                  "delaysExplicit": {
+                    "slime": 5,
+                    "miniDemonTormentor": 5
+                  },
+                  "allKill": true,
+                  "duration": 10
                 }
               ]
             }
