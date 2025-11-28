@@ -7616,7 +7616,10 @@ function updateCozyNpcs(dt) {
 
     // Player-touch restores NPCs to full faith
     try {
+      const status = typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
+      const inKeyRush = status?.stage === "keyRush";
       if (
+        ((npc.state === "lostFaith" || npc.state === "drained") || inKeyRush) &&
         player &&
         npc &&
         !npc.departed &&
@@ -7627,26 +7630,18 @@ function updateCozyNpcs(dt) {
         const distance = Math.hypot(dx, dy);
         const touchRadius = (npc.radius || 20) + (player.radius || 24) * 0.7;
         if (distance <= touchRadius) {
-          // Restore NPC faith up to 50% of their max when touched by the player.
+          // Restore up to 50% max faith when touched by the player (drained or not).
           const maxFaith = npc.maxFaith || 1;
-          let restoredFaith = false;
-          if (npc.faith <= 0) {
-            restoredFaith = npc.receiveFaith(maxFaith, {
+          const targetHalf = Math.floor(maxFaith * 0.5);
+          const missingToHalf = Math.max(0, targetHalf - (npc.faith || 0));
+          if (missingToHalf > 0) {
+            const restoredFaith = npc.receiveFaith(missingToHalf, {
               allowFromZero: true,
               bypassSuppression: true,
             });
-          } else {
-            const targetHalf = Math.floor(maxFaith * 0.5);
-            const missingToHalf = Math.max(0, targetHalf - (npc.faith || 0));
-            if (missingToHalf > 0) {
-              restoredFaith = npc.receiveFaith(missingToHalf, {
-                allowFromZero: true,
-                bypassSuppression: true,
-              });
+            if (restoredFaith) {
+              spawnFlashEffect(npc.x, npc.y - npc.radius / 2);
             }
-          }
-          if (restoredFaith) {
-            spawnFlashEffect(npc.x, npc.y - npc.radius / 2);
           }
         }
       }
