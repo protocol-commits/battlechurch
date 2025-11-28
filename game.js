@@ -7314,7 +7314,8 @@ function updateCozyNpcs(dt) {
       if (distance > overlapRadius) continue;
       const enemyDamage = enemy.config?.damage ?? enemy.config?.attackDamage ?? 0;
       if (!enemyDamage) continue;
-      const scaled = Math.max(1, Math.round(enemyDamage * 0.75));
+      // Apply the full configured enemy damage to NPCs (no reduction).
+      const scaled = Math.max(1, Math.round(enemyDamage));
       npcEntity.sufferAttack(scaled, { sourceType: enemy.type });
       damageApplied = true;
       break;
