@@ -2476,6 +2476,9 @@ async function loadAssets() {
       loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`),
     ),
   ); // Impact spark now uses the fireball flash sprites (flash1-14) instead of the legacy vfx-d pack.
+  assets.effects.puff = await loadImage(
+    "assets/sprites/explosions/28-puff/Explosion VFX 28(16x16).png",
+  ).then((img) => extractFrames(img, 16, 16));
   assets.effects.enemyDeathExplosion = await loadImage(
     "assets/sprites/explosions/16/Explosion VFX 16(48x48).png",
   ).then((img) => extractFrames(img, 48, 48).slice(0, 10));

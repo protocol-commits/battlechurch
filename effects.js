@@ -250,12 +250,12 @@
 
 
   function spawnPuffEffect(x, y, radius = null) {
-    const frames = resolveAssets()?.effects?.verticalPuff;
+    const frames = resolveAssets()?.effects?.puff;
     if (!frames || !frames.length) return null;
-    let scale = 2.6;
+    let scale = 1.4;
     if (radius) {
       const baseSize = Math.max(frames[0].width, frames[0].height) || 1;
-      scale = (radius * 2) / baseSize;
+      scale = (radius * 1.6) / baseSize;
     }
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale });
   }
