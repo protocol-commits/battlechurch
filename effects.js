@@ -172,7 +172,17 @@
   }
 
   function spawnMagicSplashEffect(x, y, radius) {
-    const frames = resolveAssets()?.effects?.magicSplash;
+    // Use the explosion variants for splash hits so repeated splashes feel varied.
+    const assets = resolveAssets();
+    const variants = [];
+    if (assets?.effects?.enemyDeathExplosion?.length)
+      variants.push(assets.effects.enemyDeathExplosion);
+    if (assets?.effects?.enemyDeathExplosionAlt?.length)
+      variants.push(assets.effects.enemyDeathExplosionAlt);
+    if (assets?.effects?.enemyDeathExplosionAlt2?.length)
+      variants.push(assets.effects.enemyDeathExplosionAlt2);
+    if (!variants.length) return null;
+    const frames = variants[Math.floor(Math.random() * variants.length)];
     if (!frames || !frames.length) return null;
     const baseSize = Math.max(frames[0].width, frames[0].height) || 1;
     const scale = (radius * 2) / baseSize;
