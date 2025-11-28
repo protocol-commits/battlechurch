@@ -566,6 +566,17 @@
   // Compute global month number so Level 2 shows Apr/May/Jun etc.
   const globalMonthNumberForLevelStart = (levelNumber - 1) * MONTHS_PER_LEVEL + 1;
   const monthName = getMonthName(globalMonthNumberForLevelStart);
+  // For levels beyond the first, skip the level-intro overlay and start the next battle immediately.
+  if (levelNumber > 1) {
+    state.waitingForCongregation = false;
+    state.npcRushActive = false;
+    state.npcRushTimer = 0;
+    state.timer = 0;
+    resetStage("levelIntro", 0);
+    buildCongregationMembers();
+    beginBattle();
+    return;
+  }
   console.info && console.info('queueAnnouncement', { title: `Level ${levelNumber}: ${monthName}`, level: levelNumber, monthIndex: 0, monthName });
   queueLevelAnnouncement(`Level ${levelNumber}: ${monthName}`, "A new month of ministry begins", {
         duration: MONTH_INTRO_DURATION,
@@ -1320,9 +1331,11 @@ state.battleIndex = -1;
       getStatus() {
       const battleNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 0;
       const hordeNumber = state.battleIndex >= 0 ? state.battleIndex + 1 : 0;
+      const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+      const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
       return {
         level: state.level || 1,
-        month: getMonthName((state.monthIndex >= 0 ? state.monthIndex + 1 : state.level || 1)),
+        month: getMonthName(globalMonthNumber),
         battle: battleNumber,
         horde: hordeNumber,
         stage: state.stage,
