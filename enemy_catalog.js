@@ -579,7 +579,7 @@
     "assetBaseName": "Mini Clawed Demon",
     "health": 45,
     "maxHealth": 45,
-    "damage": 5,
+    "damage": 15,
     "speed": 135,
     "baseRadius": 12,
     "scale": 5.8,
