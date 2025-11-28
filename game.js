@@ -2774,15 +2774,53 @@ let pendingUpgradeAfterSummary = false;
 function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAfter, portraits = {}) {
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   pendingUpgradeAfterSummary = Boolean(upgradeAfter);
-  const title = announcement?.title || "Battle Summary";
-  const subtitle = announcement?.subtitle || "Battle cleared";
-  const body = `${subtitle}\nSaved NPCs: ${savedCount}\nLost NPCs: ${lostCount}`;
+  const summary = levelManager?.getLastBattleSummary?.() || {};
+  const savedNames = Array.isArray(summary.savedNames)
+    ? summary.savedNames.filter(Boolean)
+    : [];
+  const lostNames = Array.isArray(summary.lostNames)
+    ? summary.lostNames.filter(Boolean)
+    : [];
+  const monthLabel =
+    (levelManager?.getStatus?.() && levelManager.getStatus().month) || "This Month";
+  const memberDelta = (() => {
+    if (savedCount >= 5) return 3;
+    if (savedCount === 4) return 2;
+    if (savedCount === 3) return 1;
+    if (savedCount === 2) return 0;
+    if (savedCount === 1) return -1;
+    return -2;
+  })();
+  if (!summary.congregationDeltaApplied) {
+    adjustCongregationSize(memberDelta);
+    summary.congregationDeltaApplied = true;
+    summary.congregationDelta = memberDelta;
+  }
+  const congregationTotal = getCongregationSize();
+  const lines = [];
+  if (savedNames.length) {
+    const names = savedNames.join(", ");
+    const verb = savedNames.length === 1 ? "is" : "are";
+    lines.push(`${names} ${verb} still with us after the struggle.`);
+  }
+  if (lostNames.length) {
+    const names = lostNames.join(", ");
+    const verb = lostNames.length === 1 ? "has" : "have";
+    lines.push(`${names} ${verb} left the church.`);
+  }
+  const deltaVerb = memberDelta >= 0 ? "brought in" : "lost";
+  const deltaNumber = Math.abs(memberDelta);
+  const deltaDisplay = `${memberDelta >= 0 ? "+" : "-"}${deltaNumber}`;
+  const deltaNoun = deltaNumber === 1 ? "member" : "members";
+  lines.push(`Your work ${deltaVerb} ${deltaDisplay} ${deltaNoun}.`);
+  lines.push(`Current Congregation Size: ${congregationTotal}`);
+  const body = lines.join("\n\n");
   window.DialogOverlay.show({
-    title,
+    title: `${monthLabel} Recap`,
     body,
     buttonText: "Continue (Space)",
-    variant: "summary",
-    portraits,
+    variant: "mission",
+    portraits: null,
     onContinue: () => {
       dismissCurrentLevelAnnouncement();
       window.DialogOverlay.consumeAction();

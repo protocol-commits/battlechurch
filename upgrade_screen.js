@@ -3,10 +3,10 @@
   const StatsManager = window.StatsManager;
 
   const overlay = document.createElement("div");
-  overlay.className = "upgrade-overlay hidden";
+  overlay.className = "upgrade-overlay hidden magazine-overlay";
   overlay.setAttribute("aria-hidden", "true");
   overlay.innerHTML = `
-    <div class="upgrade-overlay__panel">
+    <div class="upgrade-overlay__panel magazine-panel">
       <div class="upgrade-overlay__header">
         <h2>Stat Upgrade</h2>
         <p>Spend keys to boost your stats before the next battle.</p>

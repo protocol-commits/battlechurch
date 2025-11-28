@@ -28,10 +28,22 @@
   let consumedAction = false;
   let visible = false;
 
-  function show({ title = "", body = "", buttonText = "Continue (Space)", onContinue = null, variant = "", portraits = null }) {
+  function show({
+    title = "",
+    body = "",
+    bodyHtml = "",
+    buttonText = "Continue (Space)",
+    onContinue = null,
+    variant = "",
+    portraits = null,
+  }) {
     if (!overlay) return;
     titleEl.textContent = title;
-    bodyEl.textContent = body;
+    if (bodyHtml) {
+      bodyEl.innerHTML = bodyHtml;
+    } else {
+      bodyEl.textContent = body;
+    }
     button.textContent = buttonText;
     continueCallback = typeof onContinue === "function" ? onContinue : null;
     overlay.classList.remove("hidden");
@@ -45,6 +57,9 @@
       portraitCanvas.classList.remove("hidden");
       drawPortraits(portraitCanvas, portraits.saved, portraits.lost);
     } else if (portraitCanvas) {
+      portraitCanvas.classList.add("hidden");
+    }
+    if (variant === "recap" && portraitCanvas) {
       portraitCanvas.classList.add("hidden");
     }
     visible = true;
