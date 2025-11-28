@@ -223,14 +223,16 @@
     const variants = [];
     if (assets?.effects?.enemyDeathExplosion?.length) variants.push(assets.effects.enemyDeathExplosion);
     if (assets?.effects?.enemyDeathExplosionAlt?.length) variants.push(assets.effects.enemyDeathExplosionAlt);
+    if (assets?.effects?.enemyDeathExplosionAlt2?.length) variants.push(assets.effects.enemyDeathExplosionAlt2);
     if (!variants.length) return null;
     deathExplosionToggle = !deathExplosionToggle;
-    const frames = variants[deathExplosionToggle ? 0 : variants.length > 1 ? 1 : 0] || variants[0];
+    const index = deathExplosionToggle ? 0 : Math.min(variants.length - 1, 1);
+    const frames = variants[index] || variants[0];
     if (!frames || !frames.length) return null;
     const base = Math.max(frames[0].width, frames[0].height) || 1;
-    let scale = 3.4; // bigger default flame
+    let scale = 4.2; // even bigger default flame
     if (radius) {
-      scale = (radius * 2.8) / base; // slightly overscale relative to enemy size
+      scale = (radius * 3.2) / base; // more overscale relative to enemy size
     }
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale });
   }
