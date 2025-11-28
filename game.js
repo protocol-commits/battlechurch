@@ -2811,6 +2811,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const localMonthNumber = status?.battle || 1; // battle is 1-based month within the level
   const stage = status?.stage || "";
   const memberDelta = (() => {
+    const noNpcResults =
+      (!Number.isFinite(savedCount) || savedCount <= 0) &&
+      (!Number.isFinite(lostCount) || lostCount <= 0);
+    if (noNpcResults) return 0;
     if (savedCount >= 5) return 3;
     if (savedCount === 4) return 2;
     if (savedCount === 3) return 1;
@@ -2847,14 +2851,15 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     const totalLost = seasonStats.lost;
     const currentSize = getCongregationSize();
     const lines = [];
-    lines.push(`Boss victory bonus: +${seasonStats.bossBonus} (Level ${levelNumber} x 2 x ${heroLives} lives left)`);
-    lines.push(`Gained from battles + visitor minigames: ${battleAndVisitorGain >= 0 ? "+" : ""}${battleAndVisitorGain}`);
-    lines.push(`Lost: ${totalLost}`);
-    lines.push(`Congregation Size: ${preBossSize + (seasonStats.bossBonus || 0)} (matches pre-boss total plus boss bonus)`);
+    lines.push(`Members Gained: ${battleAndVisitorGain}`);
+    lines.push(`Members Lost: ${totalLost}`);
+    lines.push(`Boss Victory Bonus: ${seasonStats.bossBonus}`);
+    const finalSize = preBossSize + (seasonStats.bossBonus || 0);
+    lines.push(`Congregation Size: ${finalSize}`);
     const body = lines.join("\n\n");
     seasonStats.recapShown = true;
     window.DialogOverlay.show({
-      title: seasonTitle,
+      title: `Season ${currentSeasonNumber}\n(${getMonthName(startMonthIndex)} - ${getMonthName(endMonthIndex)})`,
       body,
       buttonText: "Continue (Space)",
       variant: "mission",
