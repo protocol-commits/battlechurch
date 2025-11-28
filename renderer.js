@@ -223,11 +223,11 @@ const MELEE_SWING_LENGTH = 200;
     return typeof explicitValue === "number" ? explicitValue : cameraOffsetX;
   }
 
-const missionBriefOverlayState = {
-  id: null,
-  shown: false,
-  active: false,
-};
+  const missionBriefOverlayState = {
+    id: null,
+    shown: false,
+    active: false,
+  };
 
 function showMissionBriefDialog(title, body, identifier) {
   if (!window.DialogOverlay) return false;
@@ -248,15 +248,16 @@ function showMissionBriefDialog(title, body, identifier) {
   const buttonsHtml = formationOptions
     .map(
       (opt) =>
-        `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;margin:8px 0;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.35);color:#fff;text-align:left;">
-          <div style="font-weight:800;font-size:18px;">${opt.label}</div>
-          <div style="opacity:0.8;font-size:14px;">${opt.desc}</div>
+        `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;padding:16px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.3);color:#fff;text-align:left;">
+          <div style="font-weight:900;font-size:22px;letter-spacing:0.04em;">${opt.label.split("(")[0]}</div>
+          <div style="opacity:0.8;font-size:14px;margin-top:4px;">Formation: ${opt.label.includes("(") ? opt.label.split("(")[1].replace(")", "") : ""}</div>
+          <div style="opacity:0.9;font-size:15px;margin-top:10px;">${opt.desc}</div>
         </button>`,
     )
     .join("");
   const bodyHtml = `
-    <div style="margin:12px 0 16px;font-size:18px;line-height:1.4;">${body}</div>
-    <div style="margin-top:8px;font-size:14px;opacity:0.85;">Choose a formation to begin this month:</div>
+    <div style="margin:12px 0 10px;font-size:28px;line-height:1.3;font-weight:700;">${body}</div>
+    <div style="margin:4px 0 12px;font-size:18px;opacity:0.9;">How would you like to minister to them?</div>
     <div class="formation-picker">${buttonsHtml}</div>
   `;
   window.DialogOverlay.show({
@@ -266,8 +267,17 @@ function showMissionBriefDialog(title, body, identifier) {
     variant: "mission",
     onRender: ({ overlay, buttonEl }) => {
       if (buttonEl) buttonEl.disabled = true;
+      const titleEl = overlay.querySelector(".dialog-overlay__title");
+      if (titleEl) {
+        titleEl.style.marginTop = "12px";
+        titleEl.style.fontSize = "56px";
+        titleEl.style.letterSpacing = "0.08em";
+      }
       const picker = overlay.querySelector(".formation-picker");
       if (!picker) return;
+      picker.style.display = "grid";
+      picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
+      picker.style.gap = "14px";
       picker.querySelectorAll(".formation-option").forEach((btn) => {
         btn.addEventListener("click", () => {
           const key = btn.getAttribute("data-formation");
@@ -275,8 +285,8 @@ function showMissionBriefDialog(title, body, identifier) {
             window.selectFormation(key);
           }
           picker.querySelectorAll(".formation-option").forEach((b) => {
-            b.style.borderColor = b === btn ? "#ffd978" : "rgba(255,255,255,0.3)";
-            b.style.background = b === btn ? "rgba(255,217,120,0.12)" : "rgba(0,0,0,0.35)";
+            b.style.borderColor = b === btn ? "#ffd978" : "rgba(255,255,255,0.25)";
+            b.style.background = b === btn ? "rgba(255,217,120,0.16)" : "rgba(0,0,0,0.3)";
           });
           if (typeof window.applyFormationAnchors === "function") {
             try { window.applyFormationAnchors(); } catch (e) {}
