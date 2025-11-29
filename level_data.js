@@ -121,8 +121,7 @@ window.BattlechurchLevelData = {
                       "count": 1
                     },
                     {
-                      "enemy": "miniImpLevel2",
-                      "count": 20
+                      
                     },
                     {
                       "enemy": "miniDemonTormentor",
@@ -146,7 +145,7 @@ window.BattlechurchLevelData = {
                     "orc": 0,
                     "eliteOrc": 0,
                     "miniDemonLord": 0,
-                    "miniImpLevel2": 5,
+                    "miniImpLevel2": 0,
                     "miniLich": 0,
                     "miniNecromancer": 0,
                     "miniDeathKnight": 0,
@@ -176,13 +175,13 @@ window.BattlechurchLevelData = {
                   },
                   "mode": "explicit",
                   "delays": {
-                    "miniImpLevel2": 7,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 11,
                     "slime": 10,
                     "skeleton": 15
                   },
                   "delaysWeighted": {
-                    "miniImpLevel2": 5,
+                    "miniImpLevel2": 0,
                     "slime": 0
                   },
                   "delaysExplicit": {
@@ -191,7 +190,7 @@ window.BattlechurchLevelData = {
                     "orc": 0,
                     "eliteOrc": 0,
                     "miniDemoness": 8,
-                    "miniImpLevel2": 5,
+                    "miniImpLevel2": 0,
                     "skeleton": 0
                   },
                   "allKill": false,
@@ -214,7 +213,7 @@ window.BattlechurchLevelData = {
                     "skeleton": 0,
                     "archer": 0,
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10,
                     "armoredSkeleton": 0,
                     "greatswordSkeleton": 0,
@@ -249,7 +248,7 @@ window.BattlechurchLevelData = {
                     "skeleton": 0,
                     "archer": 0,
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10,
                     "armoredSkeleton": 0,
                     "greatswordSkeleton": 0,
@@ -284,7 +283,7 @@ window.BattlechurchLevelData = {
                     "skeleton": 0,
                     "archer": 0,
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10,
                     "armoredSkeleton": 0,
                     "greatswordSkeleton": 0,
@@ -318,7 +317,7 @@ window.BattlechurchLevelData = {
                     "skeleton": 0,
                     "archer": 0,
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10,
                     "armoredSkeleton": 0,
                     "greatswordSkeleton": 0,
@@ -335,8 +334,7 @@ window.BattlechurchLevelData = {
                   "index": 6,
                   "entries": [
                     {
-                      "enemy": "miniImpLevel2",
-                      "count": 10
+                      
                     },
                     {
                       "enemy": "miniDemonLord",
@@ -356,13 +354,13 @@ window.BattlechurchLevelData = {
                     "skeleton": 1,
                     "archer": 1,
                     "miniImp": 90,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
                   "delaysExplicit": {
                     "miniImp": 8,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniDemonLord": 9,
                     "miniHighDemon": 10,
                     "miniFireImp": 5
@@ -509,7 +507,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "allKill": false,
@@ -530,7 +528,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -551,7 +549,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -572,7 +570,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -593,7 +591,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -614,7 +612,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -640,7 +638,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -661,7 +659,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -682,7 +680,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -712,7 +710,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -733,7 +731,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -759,7 +757,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -780,7 +778,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -801,7 +799,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -822,7 +820,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -843,7 +841,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
@@ -864,7 +862,7 @@ window.BattlechurchLevelData = {
                   ],
                   "weights": {
                     "miniImp": 80,
-                    "miniImpLevel2": 10,
+                    "miniImpLevel2": 0,
                     "miniFireImp": 10
                   },
                   "delaysWeighted": {},
