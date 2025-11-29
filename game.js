@@ -1641,7 +1641,7 @@ const formationState = {
   current: null,
   bonuses: { defense: 0, rof: 0, damage: 0 },
   anchors: [],
-  jitterRadius: 12,
+  jitterRadius: 28,
   swappedThisBattle: new Set(),
 };
 
