@@ -27,12 +27,14 @@
 
   function normalizeConfig(raw) {
     const cfg = raw && typeof raw === "object" ? raw : {};
-    return {
+    const merged = {
       meta: cfg.meta || deepClone(DEFAULTS.meta),
       structure: { ...deepClone(DEFAULTS.structure), ...(cfg.structure || {}) },
       globals: { ...deepClone(DEFAULTS.globals), ...(cfg.globals || {}) },
       levels: Array.isArray(cfg.levels) ? cfg.levels : [],
     };
+    purgeEnemy(merged, "miniImpLevel2");
+    return merged;
   }
 
   function loadFromStorage() {
@@ -53,6 +55,52 @@
     } catch (err) {
       console.warn("LevelBuilder: failed to save", err);
     }
+  }
+
+  function purgeEnemy(cfg, enemyKey) {
+    if (!cfg || !enemyKey) return;
+    // Remove from globals weights/delays
+    if (cfg.globals?.enemyStats && cfg.globals.enemyStats[enemyKey]) {
+      delete cfg.globals.enemyStats[enemyKey];
+    }
+    // Remove from structure if present in pools
+    if (Array.isArray(cfg.structure?.hordeEnemyPools)) {
+      cfg.structure.hordeEnemyPools = cfg.structure.hordeEnemyPools.map((pool) =>
+        Array.isArray(pool) ? pool.filter((e) => e !== enemyKey) : pool,
+      );
+    }
+    // Walk levels
+    (cfg.levels || []).forEach((lvl) => {
+      (lvl.months || []).forEach((m) => {
+        (m.battles || []).forEach((b) => {
+          (b.hordes || []).forEach((h) => {
+            if (Array.isArray(h.entries)) {
+              h.entries = h.entries
+                .map((en) => (en && en.enemy === enemyKey ? { ...en, count: 0 } : en))
+                .filter(Boolean);
+            }
+            if (h.weights && Object.prototype.hasOwnProperty.call(h.weights, enemyKey)) {
+              h.weights[enemyKey] = 0;
+            }
+            if (h.delays && Object.prototype.hasOwnProperty.call(h.delays, enemyKey)) {
+              h.delays[enemyKey] = 0;
+            }
+            if (
+              h.delaysWeighted &&
+              Object.prototype.hasOwnProperty.call(h.delaysWeighted, enemyKey)
+            ) {
+              h.delaysWeighted[enemyKey] = 0;
+            }
+            if (
+              h.delaysExplicit &&
+              Object.prototype.hasOwnProperty.call(h.delaysExplicit, enemyKey)
+            ) {
+              h.delaysExplicit[enemyKey] = 0;
+            }
+          });
+        });
+      });
+    });
   }
 
   const state = {
@@ -548,6 +596,7 @@
     const { showStatus = false } = options;
     const cfg = await fetchServerConfig();
     if (cfg) {
+      purgeEnemy(cfg, "miniImpLevel2");
       state.config = cfg;
       saveToStorage(state.config);
       refreshUI();
