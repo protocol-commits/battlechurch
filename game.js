@@ -4042,7 +4042,10 @@ function applyShieldImpact(target) {
 }
 
 function detonateWisdomMissleProjectile(projectile) {
-  const radius = MAGIC_SPLASH_RADIUS;
+  let radius = MAGIC_SPLASH_RADIUS;
+  if (projectile?.source?.isCozyNpc) {
+    radius = MAGIC_SPLASH_RADIUS * 0.5;
+  }
   const centerX = projectile.x;
   const centerY = projectile.y;
   const baseDamage = projectile.getDamage() * MAGIC_SPLASH_DAMAGE_MULTIPLIER;
@@ -4070,7 +4073,10 @@ function detonateWisdomMissleProjectile(projectile) {
 
 function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) {
   if (!projectile || projectile.dead) return;
-  const radius = FAITH_CANNON_SPLASH_RADIUS;
+  let radius = FAITH_CANNON_SPLASH_RADIUS;
+  if (projectile?.source?.isCozyNpc) {
+    radius = FAITH_CANNON_SPLASH_RADIUS * 0.5;
+  }
   const centerX = projectile.x;
   const centerY = projectile.y;
   const splashDamage = projectile.getDamage() * FAITH_CANNON_SPLASH_DAMAGE_MULTIPLIER;
@@ -5202,7 +5208,10 @@ class CozyNpc {
 
     const baseCfg = PROJECTILE_CONFIG[weaponMode] || PROJECTILE_CONFIG.arrow;
     if (weaponMode !== "arrow" && baseCfg?.cooldownAfterFire) {
-      baseCooldown = baseCfg.cooldownAfterFire;
+      // NPC power weapons fire at 25% of the player base fire rate (4x cooldown),
+      // except wisdom NPC power, which is 50% (2x cooldown) to avoid being too slow.
+      const npcRateScale = weaponMode === "wisdom_missle" ? 2 : 4;
+      baseCooldown = baseCfg.cooldownAfterFire * npcRateScale;
     }
 
     const cooldown = Math.max(0.02, (baseCooldown * npcCooldownMult) / totalMultiplier);
@@ -5218,7 +5227,7 @@ class CozyNpc {
       (1 + (formation.damage || 0));
     damage = Math.max(1, Math.round(damage));
 
-    const baseScale = weaponMode === "arrow" ? 1.6 : (baseCfg?.scale || 2) * 0.8;
+    const baseScale = weaponMode === "arrow" ? 1.6 : (baseCfg?.scale || 2) * 0.5;
     const scale = baseScale * totalMultiplier;
     const speedOverride =
       weaponMode === "arrow"
