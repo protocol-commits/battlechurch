@@ -5222,18 +5222,21 @@ class CozyNpc {
     const scale = baseScale * totalMultiplier;
     const speedOverride =
       weaponMode === "arrow"
-        ? undefined
+        ? null
         : (baseCfg?.speed || 0) * npcSpeedMult;
 
     // spawn projectile from NPC toward the enemy
-    spawnProjectile(weaponMode, this.x, this.y, dir.x, dir.y, {
+    const shotOverrides = {
       friendly: true,
       damage,
       source: this,
       scale,
-      speed: speedOverride,
       flipHorizontal: dir.x < 0,
-    });
+    };
+    if (speedOverride && speedOverride > 0) {
+      shotOverrides.speed = speedOverride;
+    }
+    spawnProjectile(weaponMode, this.x, this.y, dir.x, dir.y, shotOverrides);
     // set cooldown (use devTools value if present)
     this.npcArrowCooldown = cooldown;
     this.updateFaithVisibility(true);
