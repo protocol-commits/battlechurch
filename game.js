@@ -204,6 +204,31 @@ function getFormationBonuses() {
   return formationState?.bonuses || { defense: 0, rof: 0, damage: 0 };
 }
 
+function resolveNpcWeaponPowerup(effect, def = {}) {
+  const base = resolveWeaponPowerupConfig(effect, def);
+  // NPC versions: weaker damage, keep duration and cooldown/speed multipliers
+  return {
+    ...base,
+    damageMultiplier: (base.damageMultiplier ?? 1) * 0.2,
+  };
+}
+
+function applyNpcWeaponPowerup(effect, def = {}) {
+  const cfg = resolveNpcWeaponPowerup(effect, def);
+  const mapping = {
+    npcScriptureWeapon: "fire",
+    npcWisdomWeapon: "wisdom_missle",
+    npcFaithWeapon: "faith_cannon",
+  };
+  const mode = mapping[effect] || null;
+  if (!mode) return;
+  npcWeaponState.mode = mode;
+  npcWeaponState.timer = cfg.duration || 0;
+  npcWeaponState.damageMultiplier = cfg.damageMultiplier ?? 1;
+  npcWeaponState.cooldownMultiplier = cfg.cooldownMultiplier ?? 1;
+  npcWeaponState.speedMultiplier = cfg.speedMultiplier ?? 1;
+}
+
 function computeFormationAnchors(count) {
   const anchors = [];
   const home = getNpcHomeBounds();
@@ -1629,13 +1654,27 @@ const ENEMY_SPAWN_MARGIN = 140;
 const ENEMY_SPAWN_JITTER = 26;
 const ENEMY_SPAWN_DEBUG_BOX_SIZE = 80;
 const ENEMY_SPAWN_PUFF_DURATION = 0;
-const WEAPON_POWERUP_EFFECTS = new Set(["wisdomWeapon", "scriptureWeapon", "cannonWeapon"]);
+const WEAPON_POWERUP_EFFECTS = new Set([
+  "wisdomWeapon",
+  "scriptureWeapon",
+  "cannonWeapon",
+  "npcScriptureWeapon",
+  "npcWisdomWeapon",
+  "npcFaithWeapon",
+]);
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 // Formation presets and state
 const FORMATION_PRESETS = {
   circle: { key: "circle", label: "Bible Study (Circle)", bonuses: { defense: 0.2 } },
   line: { key: "line", label: "Book Study (Line)", bonuses: { rof: 0.2 } },
   crescent: { key: "crescent", label: "Support Group (Crescent)", bonuses: { damage: 0.2 } },
+};
+const npcWeaponState = {
+  mode: null,
+  timer: 0,
+  damageMultiplier: 1,
+  cooldownMultiplier: 1,
+  speedMultiplier: 1,
 };
 const formationState = {
   current: null,
@@ -3514,6 +3553,21 @@ function applyAnimalEffect(animal) {
       showWeaponPowerupConfigText(config);
       break;
     }
+    case "npcScriptureWeapon": {
+      applyNpcWeaponPowerup("npcScriptureWeapon", def);
+      showWeaponPowerupConfigText({ text: "NPC Scripture", textColor: "#ffa45a" });
+      break;
+    }
+    case "npcWisdomWeapon": {
+      applyNpcWeaponPowerup("npcWisdomWeapon", def);
+      showWeaponPowerupConfigText({ text: "NPC Wisdom", textColor: "#9bf0ff" });
+      break;
+    }
+    case "npcFaithWeapon": {
+      applyNpcWeaponPowerup("npcFaithWeapon", def);
+      showWeaponPowerupConfigText({ text: "NPC Faith", textColor: "#ff9bf7" });
+      break;
+    }
     default:
       break;
   }
@@ -5124,7 +5178,7 @@ class CozyNpc {
     }
     if (!best) return false;
     const dir = normalizeVector(best.dx, best.dy);
-    const baseCooldown =
+    let baseCooldown =
       typeof devTools?.npcFireCooldown === "number"
         ? devTools.npcFireCooldown
         : typeof NPC_ARROW_COOLDOWN_DEFAULT === "number"
@@ -5139,16 +5193,45 @@ class CozyNpc {
         : 1;
     const harmonyMultiplier = npcHarmonyBuffTimer > 0 ? HARMONY_BUFF_MULTIPLIER : 1;
     const totalMultiplier = emotionalMultiplier * harmonyMultiplier * (1 + (formation.rof || 0));
-    const cooldown = Math.max(0.02, baseCooldown / totalMultiplier);
-    const damage = Math.round(NPC_ARROW_DAMAGE * totalMultiplier * (1 + (formation.damage || 0)));
-    const baseScale = 1.6; // larger NPC projectiles
+
+    // NPC weapon power-up handling
+    const weaponMode = npcWeaponState.mode || "arrow";
+    const npcDamageMult = npcWeaponState.damageMultiplier || 1;
+    const npcCooldownMult = npcWeaponState.cooldownMultiplier || 1;
+    const npcSpeedMult = npcWeaponState.speedMultiplier || 1;
+
+    const baseCfg = PROJECTILE_CONFIG[weaponMode] || PROJECTILE_CONFIG.arrow;
+    if (weaponMode !== "arrow" && baseCfg?.cooldownAfterFire) {
+      baseCooldown = baseCfg.cooldownAfterFire;
+    }
+
+    const cooldown = Math.max(0.02, (baseCooldown * npcCooldownMult) / totalMultiplier);
+
+    let damageBase =
+      weaponMode === "arrow"
+        ? NPC_ARROW_DAMAGE
+        : (baseCfg?.damage ?? NPC_ARROW_DAMAGE);
+    let damage =
+      damageBase *
+      (weaponMode === "arrow" ? 1 : npcDamageMult) *
+      totalMultiplier *
+      (1 + (formation.damage || 0));
+    damage = Math.max(1, Math.round(damage));
+
+    const baseScale = weaponMode === "arrow" ? 1.6 : (baseCfg?.scale || 2) * 0.8;
     const scale = baseScale * totalMultiplier;
-    // spawn an arrow projectile from NPC toward the enemy
-    spawnProjectile("arrow", this.x, this.y, dir.x, dir.y, {
+    const speedOverride =
+      weaponMode === "arrow"
+        ? undefined
+        : (baseCfg?.speed || 0) * npcSpeedMult;
+
+    // spawn projectile from NPC toward the enemy
+    spawnProjectile(weaponMode, this.x, this.y, dir.x, dir.y, {
       friendly: true,
       damage,
       source: this,
       scale,
+      speed: speedOverride,
       flipHorizontal: dir.x < 0,
     });
     // set cooldown (use devTools value if present)
@@ -7583,6 +7666,15 @@ function resolveCongregationMemberCollisions() {
 
 function updateCozyNpcs(dt) {
   if (npcsSuspended) return;
+  if (npcWeaponState.timer > 0) {
+    npcWeaponState.timer = Math.max(0, npcWeaponState.timer - dt);
+    if (npcWeaponState.timer <= 0) {
+      npcWeaponState.mode = null;
+      npcWeaponState.damageMultiplier = 1;
+      npcWeaponState.cooldownMultiplier = 1;
+      npcWeaponState.speedMultiplier = 1;
+    }
+  }
   maybeSwapNpcPositions();
   function applyEnemyCollisionDamageToNpc(npcEntity) {
     if (!npcEntity || npcEntity.departed || !npcEntity.active) return;
