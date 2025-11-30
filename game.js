@@ -403,7 +403,7 @@ function getKeyCount() {
 }
 
 let npcHarmonyBuffTimer = 0;
-const HARMONY_BUFF_MULTIPLIER = 1.5;
+const HARMONY_BUFF_MULTIPLIER = 2.25;
 
 function addKeys(amount = 1) {
   if (!Number.isFinite(amount) || amount === 0) return playerKeyCount;
