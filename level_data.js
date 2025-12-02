@@ -128,6 +128,10 @@
                       {
                         "enemy": "miniImpLevel3",
                         "count": 3
+                      },
+                      {
+                        "enemy": "miniImpLevel2",
+                        "count": 50
                       }
                     ],
                     "weights": {
@@ -170,7 +174,7 @@
                       "miniReaper": 0,
                       "miniGhost": 0,
                       "miniDemonFireKeeper": 0,
-                      "miniImpLevel3": 33
+                      "miniImpLevel3": 50
                     },
                     "mode": "explicit",
                     "delays": {
@@ -189,7 +193,7 @@
                       "orc": 0,
                       "eliteOrc": 0,
                       "miniDemoness": 8,
-                      "miniImpLevel2": 0,
+                      "miniImpLevel2": 5,
                       "skeleton": 0,
                       "miniImpLevel3": 7
                     },

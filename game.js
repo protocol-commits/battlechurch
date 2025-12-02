@@ -4277,12 +4277,19 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
   };
   const getSwarmSpacing = (ent) => {
     const val = ent?.config?.swarmSpacing;
-    if (Number.isFinite(val) && val > 0) return Math.max(0.25, Math.min(2, val));
+    const swarmTag = Array.isArray(ent?.config?.specialBehavior || [])
+      ? (ent.config.specialBehavior || []).includes("swarmable")
+      : false;
+    if (Number.isFinite(val) && val > 0) {
+      if (val <= 1) return Math.max(0.1, val * 0.4);
+      return Math.max(0.25, Math.min(2, val));
+    }
+    if (swarmTag) return 0.4;
     return 1;
   };
   const isMiniImp = (ent) => {
     const type = typeof ent?.type === "string" ? ent.type : "";
-    return type === "miniImp" || type === "miniImpLevel2";
+    return type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3";
   };
   for (const other of targets) {
     if (other === entity) continue;

@@ -493,7 +493,8 @@
       "popcorn",
       "closestAny",
       "swarmable"
-    ]
+    ],
+    "swarmSpacing": 0.1
   },
   "miniImpLevel2": {
     "displayName": "Imp Lieutenant",
@@ -522,7 +523,8 @@
       "swarmable"
     ],
     "tintColor": "#7ec6ff",
-    "tintIntensity": 0.75
+    "tintIntensity": 0.75,
+    "swarmSpacing": 0.1
   },
   "miniFireImp": {
     "displayName": "Fire Imp",
@@ -1032,7 +1034,8 @@
       "popcorn",
       "closestAny",
       "swarmable"
-    ]
+    ],
+    "swarmSpacing": 0.1
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});

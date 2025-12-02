@@ -163,7 +163,7 @@
     }
 
     const spawnRadius = config.hitRadius || 24;
-    const spacing = Math.max(0.25, Math.min(2, config.swarmSpacing || 1));
+    const spacing = computeSwarmSpacing(config.swarmSpacing);
     const initialPos = position || randomOffscreenPosition(spawnRadius, 0);
     const spawnPos = findNonOverlappingSpawn(initialPos, spawnRadius, 6, spacing);
     try {
@@ -258,7 +258,7 @@
 
   function spawnMiniImpGroup(count, position = null, options = {}, type = "miniImp") {
     const avgRadius = deps.enemyTypes?.[type]?.hitRadius || 20;
-    const spacing = Math.max(0.25, Math.min(2, deps.enemyTypes?.[type]?.swarmSpacing || 1));
+    const spacing = computeSwarmSpacing(deps.enemyTypes?.[type]?.swarmSpacing);
     const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, count))) * spacing;
     const base = position || randomOffscreenPosition(avgRadius, groupExtra);
     const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
@@ -283,7 +283,7 @@
 
   function spawnMiniSkeletonGroup(count, position = null, options = {}) {
     const avgRadius = deps.enemyTypes?.miniSkeleton?.hitRadius || 20;
-    const spacing = Math.max(0.25, Math.min(2, deps.enemyTypes?.miniSkeleton?.swarmSpacing || 1));
+    const spacing = computeSwarmSpacing(deps.enemyTypes?.miniSkeleton?.swarmSpacing);
     const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, count))) * spacing;
     const base = position || randomOffscreenPosition(avgRadius, groupExtra);
     const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
@@ -353,6 +353,14 @@
     const position = deps.randomSpawnPosition();
     if (selection === "skeleton") spawnSkeletonGroup(position, deps.skeletonPackSize);
     else spawnEnemyOfType(selection, position);
+  }
+
+  function computeSwarmSpacing(val) {
+    if (Number.isFinite(val) && val > 0) {
+      if (val <= 1) return Math.max(0.1, val * 0.4);
+      return Math.max(0.25, Math.min(2, val));
+    }
+    return 0.4;
   }
 
   function maintainSkeletonHorde() {
