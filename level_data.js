@@ -132,14 +132,10 @@
                       {
                         "enemy": "miniImpLevel3",
                         "count": 3
-                      },
-                      {
-                        "enemy": "miniImpLevel2",
-                        "count": 20
                       }
                     ],
                     "weights": {
-                      "miniImp": 50,
+                      "miniImp": 33,
                       "miniFireImp": 5,
                       "miniDemoness": 0,
                       "miniClawedDemon": 0,
@@ -151,7 +147,7 @@
                       "orc": 0,
                       "eliteOrc": 0,
                       "miniDemonLord": 0,
-                      "miniImpLevel2": 50,
+                      "miniImpLevel2": 33,
                       "miniLich": 0,
                       "miniNecromancer": 0,
                       "miniDeathKnight": 0,
@@ -178,7 +174,7 @@
                       "miniReaper": 0,
                       "miniGhost": 0,
                       "miniDemonFireKeeper": 0,
-                      "miniImpLevel3": 0
+                      "miniImpLevel3": 33
                     },
                     "mode": "explicit",
                     "delays": {
@@ -197,11 +193,11 @@
                       "orc": 0,
                       "eliteOrc": 0,
                       "miniDemoness": 8,
-                      "miniImpLevel2": 5,
+                      "miniImpLevel2": 0,
                       "skeleton": 0,
                       "miniImpLevel3": 7
                     },
-                    "allKill": true,
+                    "allKill": false,
                     "duration": 15
                   },
                   {

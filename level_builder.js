@@ -27,12 +27,19 @@
 
   function normalizeConfig(raw) {
     const cfg = raw && typeof raw === "object" ? raw : {};
-    return {
+    const merged = {
       meta: cfg.meta || deepClone(DEFAULTS.meta),
       structure: { ...deepClone(DEFAULTS.structure), ...(cfg.structure || {}) },
       globals: { ...deepClone(DEFAULTS.globals), ...(cfg.globals || {}) },
       levels: Array.isArray(cfg.levels) ? cfg.levels : [],
     };
+    // Ensure new enemies show up even if they were hidden in older configs.
+    if (Array.isArray(merged.globals.hiddenEnemies)) {
+      merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
+        (key) => key !== "miniImpLevel3",
+      );
+    }
+    return merged;
   }
 
   function loadFromStorage() {

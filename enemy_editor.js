@@ -38,7 +38,14 @@
     if (!cfg) {
       cfg = { catalog: baseCatalog(), hiddenEnemies: [] };
     }
-    cfg.catalog = cfg.catalog || baseCatalog();
+    const base = baseCatalog();
+    cfg.catalog = cfg.catalog || base;
+    // Merge in any newly added enemies from the base catalog so they appear in the editor.
+    Object.keys(base).forEach((key) => {
+      if (!cfg.catalog[key]) {
+        cfg.catalog[key] = deepClone(base[key]);
+      }
+    });
     cfg.hiddenEnemies = Array.isArray(cfg.hiddenEnemies) ? cfg.hiddenEnemies : [];
     return cfg;
   }

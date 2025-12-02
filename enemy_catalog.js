@@ -500,50 +500,27 @@
     "assetBaseName": "Mini Imp",
     "health": 20,
     "maxHealth": 20,
-    "damage": 10,
-    "speed": 130,
-    "baseRadius": 9,
-    "scale": 4.8,
-    "attackBonus": 24,
-    "cooldown": 0.9,
-    "score": 24,
-    "ranged": false,
-    "projectileType": null,
-    "preferEdges": false,
-    "desiredRange": 34,
-    "projectileCooldown": 0.9,
-    "bossTier": 0,
-    "preferredTarget": "player",
-    "specialBehavior": [
-      "mini",
-      "closestAny"
-    ]
-  },
-  "miniImpLevel3": {
-    "displayName": "Imp Commander",
-    "assetFolder": "Mini Imp",
-    "assetBaseName": "Mini Imp",
-    "health": 30,
-    "maxHealth": 30,
     "damage": 15,
-    "speed": 140,
+    "speed": 100,
     "baseRadius": 10,
-    "scale": 5.2,
-    "attackBonus": 30,
-    "cooldown": 0.85,
+    "scale": 4,
+    "attackBonus": 20,
+    "cooldown": 0.9,
     "score": 36,
     "ranged": false,
     "projectileType": null,
     "preferEdges": false,
     "desiredRange": 36,
-    "projectileCooldown": 0.85,
+    "projectileCooldown": 0.9,
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "popcorn",
+      "elite",
       "closestAny"
-    ]
+    ],
+    "tintColor": "#7ec6ff",
+    "tintIntensity": 0.75
   },
   "miniFireImp": {
     "displayName": "Fire Imp",
@@ -1026,6 +1003,32 @@
     "specialBehavior": [
       "mini",
       "heavy"
+    ]
+  },
+  "miniImpLevel3": {
+    "displayName": "Imp Commander",
+    "assetFolder": "Mini Imp",
+    "assetBaseName": "Mini Imp",
+    "health": 30,
+    "maxHealth": 30,
+    "damage": 15,
+    "speed": 80,
+    "baseRadius": 10,
+    "scale": 4,
+    "attackBonus": 30,
+    "cooldown": 0.85,
+    "score": 36,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 36,
+    "projectileCooldown": 0.85,
+    "bossTier": 0,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "mini",
+      "popcorn",
+      "closestAny"
     ]
   }
 };
