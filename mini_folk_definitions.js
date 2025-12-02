@@ -1,7 +1,8 @@
 (function(global) {
   const miniFolks = [
     { key: "miniImp", src: "assets/sprites/MinifolksDemons/Without outline/MiniImp.png" },
-    { key: "miniImpLevel2", src: "assets/sprites/MinifolksDemons/Without outline/MiniImp.png" },
+    { key: "miniImpLevel2", src: "assets/sprites/MinifolksDemons/Without outline/MiniImpLevel2.png" },
+    { key: "miniImpLevel3", src: "assets/sprites/MinifolksDemons/Without outline/MiniImpLevel3.png" },
     { key: "miniFireImp", src: "assets/sprites/MinifolksDemons/Without outline/MiniFireImp.png" },
     { key: "miniDemoness", src: "assets/sprites/MinifolksDemons/Without outline/MiniDemoness.png" },
     { key: "miniClawedDemon", src: "assets/sprites/MinifolksDemons/Without outline/MiniClawedDemon.png" },

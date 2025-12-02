@@ -27,14 +27,12 @@
 
   function normalizeConfig(raw) {
     const cfg = raw && typeof raw === "object" ? raw : {};
-    const merged = {
+    return {
       meta: cfg.meta || deepClone(DEFAULTS.meta),
       structure: { ...deepClone(DEFAULTS.structure), ...(cfg.structure || {}) },
       globals: { ...deepClone(DEFAULTS.globals), ...(cfg.globals || {}) },
       levels: Array.isArray(cfg.levels) ? cfg.levels : [],
     };
-    purgeEnemy(merged, "miniImpLevel2");
-    return merged;
   }
 
   function loadFromStorage() {
@@ -596,7 +594,6 @@
     const { showStatus = false } = options;
     const cfg = await fetchServerConfig();
     if (cfg) {
-      purgeEnemy(cfg, "miniImpLevel2");
       state.config = cfg;
       saveToStorage(state.config);
       refreshUI();

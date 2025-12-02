@@ -1747,7 +1747,7 @@ function drawLevelAnnouncements() {
       enemyHpLabels.length = 0;
       const isMiniImpType = (enemy) => {
         const type = enemy?.type;
-        return type === "miniImp" || type === "miniImpLevel2";
+        return type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3";
       };
       const orderIndex = (enemy) => (isMiniImpType(enemy) ? 0 : 1);
       const orderedEnemies = [...enemies].sort((a, b) => orderIndex(a) - orderIndex(b));

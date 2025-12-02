@@ -3809,7 +3809,14 @@ function maybeDropKeysFromEnemy(enemy) {
   chance += sizeRatio * KEY_DROP_SIZE_CHANCE_FACTOR;
   const normalizedChance = Math.min(0.95, chance);
   chance = normalizedChance;
-  const popcornTypes = new Set(["miniImp", "miniImpLevel2", "miniFireImp", "miniDemon", "miniDemoness"]);
+  const popcornTypes = new Set([
+    "miniImp",
+    "miniImpLevel2",
+    "miniImpLevel3",
+    "miniFireImp",
+    "miniDemon",
+    "miniDemoness",
+  ]);
   if (popcornTypes.has(enemy.type)) {
     chance *= KEY_DROP_MINION_SCALE;
   }

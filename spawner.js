@@ -208,7 +208,7 @@
         deps.spawnCameraShakeMagnitude,
       );
     }
-    if (type === "miniImp" || type === "miniImpLevel2") enemy.isPopcorn = true;
+    if (type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3") enemy.isPopcorn = true;
     return enemy;
   }
 
@@ -416,7 +416,7 @@
     const currentCount = deps.enemies.filter((enemy) => {
       if (!enemy) return false;
       const type = typeof enemy.type === "string" ? enemy.type : "";
-      if (type !== "miniImp" && type !== "miniImpLevel2") return false;
+      if (type !== "miniImp" && type !== "miniImpLevel2" && type !== "miniImpLevel3") return false;
       if (enemy.dead || enemy.state === "death") return false;
       return true;
     }).length;

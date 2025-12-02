@@ -348,7 +348,7 @@
     const ensureMiniDemonCount = Math.max(2, Math.floor(difficultyRating));
     let miniDemonSpawned = 0;
     const isMiniImpTypeChoice = (candidate) =>
-      candidate === "miniImp" || candidate === "miniImpLevel2";
+      candidate === "miniImp" || candidate === "miniImpLevel2" || candidate === "miniImpLevel3";
 
     while (spawned < totalEnemies) {
       const progressRatio = spawned / Math.max(1, totalEnemies - 1);
