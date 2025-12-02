@@ -132,6 +132,10 @@
                       {
                         "enemy": "miniImpLevel2",
                         "count": 50
+                      },
+                      {
+                        "enemy": "miniFireImp",
+                        "count": 100
                       }
                     ],
                     "weights": {
@@ -189,13 +193,14 @@
                     },
                     "delaysExplicit": {
                       "slime": 0,
-                      "miniImp": 7,
+                      "miniImp": 1,
                       "orc": 0,
                       "eliteOrc": 0,
                       "miniDemoness": 8,
                       "miniImpLevel2": 5,
                       "skeleton": 0,
-                      "miniImpLevel3": 7
+                      "miniImpLevel3": 7,
+                      "miniFireImp": 9
                     },
                     "allKill": false,
                     "duration": 15

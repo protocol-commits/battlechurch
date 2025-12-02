@@ -155,20 +155,31 @@
       #${OVERLAY_ID} .table-wrap {
         overflow: auto;
         flex: 1;
+        max-height: 100%;
       }
       #${OVERLAY_ID} table {
         width: 100%;
         border-collapse: collapse;
         font-size: 12px;
+        table-layout: fixed;
       }
       #${OVERLAY_ID} th, #${OVERLAY_ID} td {
-        padding: 6px;
+        padding: 4px 6px;
         border-bottom: 1px solid rgba(255,255,255,0.08);
         text-align: left;
         vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #${OVERLAY_ID} thead th {
+        position: sticky;
+        top: 0;
+        background: rgba(18, 28, 44, 0.95);
+        z-index: 2;
       }
       #${OVERLAY_ID} input[type="number"] {
-        width: 80px;
+        width: 70px;
         padding: 4px 6px;
         border-radius: 4px;
         border: 1px solid rgba(255,255,255,0.18);
@@ -183,6 +194,19 @@
       #${OVERLAY_ID} .tag-list label {
         white-space: nowrap;
       }
+      #${OVERLAY_ID} th:first-child, #${OVERLAY_ID} td:first-child { width: 46px; text-align:center; }
+      #${OVERLAY_ID} th:nth-child(2), #${OVERLAY_ID} td:nth-child(2) { width: 120px; }
+      #${OVERLAY_ID} th:nth-child(3), #${OVERLAY_ID} td:nth-child(3) { width: 60px; }
+      #${OVERLAY_ID} th:nth-child(4), #${OVERLAY_ID} td:nth-child(4) { width: 60px; }
+      #${OVERLAY_ID} th:nth-child(5), #${OVERLAY_ID} td:nth-child(5) { width: 60px; }
+      #${OVERLAY_ID} th:nth-child(6), #${OVERLAY_ID} td:nth-child(6) { width: 60px; }
+      #${OVERLAY_ID} th:nth-child(7), #${OVERLAY_ID} td:nth-child(7) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(8), #${OVERLAY_ID} td:nth-child(8) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(9), #${OVERLAY_ID} td:nth-child(9) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(10), #${OVERLAY_ID} td:nth-child(10) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 60px; }
+      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 80px; }
+      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 260px; }
     </style>
     <div class="grid">
       <div class="panel">
