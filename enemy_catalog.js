@@ -587,7 +587,7 @@
     "damage": 15,
     "speed": 100,
     "baseRadius": 12,
-    "scale": 5.8,
+    "scale": 3.5,
     "attackBonus": 24,
     "cooldown": 1.3,
     "score": 55,
@@ -600,8 +600,10 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "closestAny"
-    ]
+      "closestAny",
+      "swarmable"
+    ],
+    "swarmSpacing": 0.1
   },
   "miniHighDemon": {
     "displayName": "High Demon",
@@ -704,9 +706,10 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "ranged",
-      "closestAny"
-    ]
+      "closestAny",
+      "swarmable"
+    ],
+    "swarmSpacing": 0.1
   },
   "miniDemonFireKeeper": {
     "displayName": "Demon Fire Keeper",
@@ -717,7 +720,7 @@
     "damage": 5,
     "speed": 100,
     "baseRadius": 12,
-    "scale": 4.8,
+    "scale": 4,
     "attackBonus": 24,
     "cooldown": 1.6,
     "score": 70,
@@ -730,9 +733,9 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "ranged",
       "closestAny"
-    ]
+    ],
+    "swarmSpacing": 0.1
   },
   "miniSuccubus": {
     "displayName": "Succubus",
