@@ -491,7 +491,8 @@
     "specialBehavior": [
       "mini",
       "popcorn",
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ]
   },
   "miniImpLevel2": {
@@ -517,7 +518,8 @@
     "specialBehavior": [
       "mini",
       "elite",
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ],
     "tintColor": "#7ec6ff",
     "tintIntensity": 0.75
@@ -1028,7 +1030,8 @@
     "specialBehavior": [
       "mini",
       "popcorn",
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ]
   }
 };

@@ -216,6 +216,7 @@
                 <th>Cooldown</th>
                 <th>Score</th>
                 <th>Boss</th>
+                <th>Swarm Spacing</th>
                 <th>Tags</th>
               </tr>
             </thead>
@@ -288,12 +289,38 @@
         if (cb.checked) tags.add(tag);
         else tags.delete(tag);
         enemy.specialBehavior = Array.from(tags);
+        renderTable(); // refresh to reflect swarm spacing availability
       });
       label.appendChild(cb);
       label.append(" " + tag);
       wrap.appendChild(label);
     });
     td.appendChild(wrap);
+    return td;
+  }
+
+  function createSwarmSpacingCell(key) {
+    const td = document.createElement("td");
+    const enemy = ensureEnemy(key);
+    const tags = new Set(enemy.specialBehavior || []);
+    const isSwarmable = tags.has("swarmable");
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0.1";
+    input.max = "5";
+    input.step = "0.05";
+    input.placeholder = isSwarmable ? "1" : "n/a";
+    input.disabled = !isSwarmable;
+    input.value = isSwarmable && enemy.swarmSpacing !== undefined ? enemy.swarmSpacing : "";
+    input.addEventListener("change", () => {
+      const val = input.value === "" ? null : Number(input.value);
+      if (val === null || Number.isNaN(val)) {
+        delete enemy.swarmSpacing;
+      } else {
+        enemy.swarmSpacing = Math.max(0.1, Math.min(5, val));
+      }
+    });
+    td.appendChild(input);
     return td;
   }
 
@@ -327,6 +354,7 @@
     tr.appendChild(createNumberInput(key, "cooldown"));
     tr.appendChild(createNumberInput(key, "score"));
     tr.appendChild(createNumberInput(key, "bossTier"));
+    tr.appendChild(createSwarmSpacingCell(key));
     tr.appendChild(createTagsCell(key));
     els.tbody.appendChild(tr);
   }

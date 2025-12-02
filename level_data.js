@@ -126,16 +126,12 @@
                         "count": 1
                       },
                       {
-                        "enemy": "miniImp",
-                        "count": 20
-                      },
-                      {
                         "enemy": "miniImpLevel3",
                         "count": 3
                       }
                     ],
                     "weights": {
-                      "miniImp": 33,
+                      "miniImp": 0,
                       "miniFireImp": 5,
                       "miniDemoness": 0,
                       "miniClawedDemon": 0,
@@ -147,7 +143,7 @@
                       "orc": 0,
                       "eliteOrc": 0,
                       "miniDemonLord": 0,
-                      "miniImpLevel2": 33,
+                      "miniImpLevel2": 50,
                       "miniLich": 0,
                       "miniNecromancer": 0,
                       "miniDeathKnight": 0,
