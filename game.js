@@ -207,9 +207,12 @@ function getFormationBonuses() {
 function resolveNpcWeaponPowerup(effect, def = {}) {
   const base = resolveWeaponPowerupConfig(effect, def);
   // NPC versions: weaker damage, keep duration and cooldown/speed multipliers
+  let baseFactor = 0.2;
+  if (effect === "npcWisdomWeapon") baseFactor = 0.3;
+  if (effect === "npcFaithWeapon") baseFactor = 0.24; // +20% over 0.2
   return {
     ...base,
-    damageMultiplier: (base.damageMultiplier ?? 1) * 0.2,
+    damageMultiplier: (base.damageMultiplier ?? 1) * baseFactor,
   };
 }
 
