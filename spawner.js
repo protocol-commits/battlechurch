@@ -22,7 +22,7 @@
     randomInRange: defaultRandomInRange,
     getLevelManager: () => null,
     miniFolks: [],
-    maxActiveEnemies: 120,
+    maxActiveEnemies: Number.POSITIVE_INFINITY,
     skeletonMinCount: 4,
     skeletonPackSize: 4,
     miniImpBaseGroupSize: 48,
