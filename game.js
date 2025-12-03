@@ -135,6 +135,10 @@ const visitorSession = {
   summaryActive: false,
   newMemberPortraits: [],
   introActive: false,
+  summaryReason: null,
+  awaitingSummaryConfirm: false,
+  usedNpcIds: new Set(),
+  recapShown: false,
 };
 const keyRushState = {
   active: false,
@@ -6685,10 +6689,13 @@ function beginVisitorSession(options = {}) {
   visitorSession.summaryActive = false;
   visitorSession.summaryReason = null;
   visitorSession.awaitingSummaryConfirm = false;
+  visitorSession.summaryReason = null;
+  visitorSession.awaitingSummaryConfirm = false;
   visitorSession.newMemberPortraits = [];
   visitorSession.newMemberNames = [];
   visitorSession.introActive = true;
   visitorSession.usedNpcIds = new Set();
+  visitorSession.recapShown = false;
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
   bossHazards.splice(0, bossHazards.length);
@@ -6750,6 +6757,7 @@ function endVisitorSession({ reason = "completed" } = {}) {
   visitorSession.awaitingSummaryConfirm = false;
   visitorSession.introActive = false;
   visitorSession.newMemberPortraits = [];
+  visitorSession.recapShown = false;
   clearAllPowerUps();
   clearKeyPickups();
   if (player && player.overrideWeaponMode === "heart") {
@@ -8308,12 +8316,24 @@ function updateGame(dt) {
     return;
   }
   if (visitorSession.active && visitorSession.summaryActive) {
-    if (wasActionJustPressed("restart") || wasActionJustPressed("pause")) {
-      const reason = visitorSession.summaryReason || "summary";
-      visitorSession.summaryReason = null;
-      visitorSession.awaitingSummaryConfirm = false;
-      completeVisitorSession(reason);
-      keysJustPressed.delete(" ");
+    if (!visitorSession.recapShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
+      const saved = visitorSession.savedVisitors || 0;
+      const title = "Visitor Recap";
+      const body = `You welcomed ${saved} new members.\nCongregation Count: ${getCongregationSize()}`;
+      visitorSession.recapShown = true;
+      window.DialogOverlay.show({
+        title,
+        body,
+        buttonText: "Continue (Space)",
+        variant: "mission",
+        onContinue: () => {
+          const reason = visitorSession.summaryReason || "summary";
+          visitorSession.summaryReason = null;
+          visitorSession.awaitingSummaryConfirm = false;
+          completeVisitorSession(reason);
+          keysJustPressed.delete(" ");
+        },
+      });
     }
     return;
   }
