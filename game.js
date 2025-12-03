@@ -4576,29 +4576,13 @@ class Animal {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.drawImage(sprite || this.image, -width / 2, -height / 2, width, height);
-    let glowRadius = Math.max(width, height);
-    if (this.effect === "cannonWeapon") {
-      glowRadius = Math.max(width, height);
-    } else if (this.effect === "wisdomWeapon") {
-      glowRadius *= 1.25;
-    }
-    const spawnPulse = (Math.sin(performance.now() * 0.02) + 1) / 2;
-    const basePulse = (Math.sin(performance.now() * 0.01) + 1) / 2;
-    const alpha = this.spawnBlinkTimer > 0
-      ? 0.18 + 0.25 * spawnPulse
-      : 0.08 + 0.18 * basePulse;
-    const brightnessBoost = 1.5;
-    const boostedAlpha = Math.min(1, alpha * brightnessBoost);
-    const gradient = ctx.createRadialGradient(0, 0, 4, 0, 0, glowRadius * 0.8);
-    gradient.addColorStop(0, "rgba(255, 255, 255, 0.32)");
-    gradient.addColorStop(0.45, "rgba(255, 244, 190, 0.22)");
-    gradient.addColorStop(1, "rgba(255, 244, 150, 0)");
-    ctx.globalAlpha = boostedAlpha;
-    ctx.fillStyle = gradient;
+    // Highlight ring to keep powerups visible
+    const ringR = (this.radius || Math.max(width, height) / 2) * 1.4;
+    ctx.strokeStyle = "rgba(255, 221, 80, 0.9)";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 }
@@ -4689,31 +4673,13 @@ class UtilityPowerUp {
     context.save();
     context.translate(this.x, this.y);
     context.drawImage(sprite || this.image, -width / 2, -height / 2, width, height);
-    let glowRadius = Math.max(width, height);
-    if (this.effect === "cannonWeapon") {
-      glowRadius = Math.max(width, height);
-    } else if (this.effect === "wisdomWeapon") {
-      glowRadius *= 1.25;
-    }
-    const spawnPulse = (Math.sin(performance.now() * 0.02) + 1) / 2;
-    const basePulse = (Math.sin(performance.now() * 0.01) + 1) / 2;
-    const alpha = this.spawnBlinkTimer > 0
-      ? 0.18 + 0.25 * spawnPulse
-      : 0.08 + 0.18 * basePulse;
-    const brightnessBoost = 1.5;
-    const boostedAlpha = Math.min(1, alpha * brightnessBoost);
-    const gradient = context.createRadialGradient(0, 0, 4, 0, 0, glowRadius * 0.8);
-    gradient.addColorStop(0, "rgba(255, 255, 255, 0.32)");
-    gradient.addColorStop(0.45, "rgba(255, 244, 190, 0.22)");
-    gradient.addColorStop(1, "rgba(255, 244, 150, 0)");
-    context.save();
-    context.globalAlpha = boostedAlpha;
-    context.fillStyle = gradient;
+    // Highlight ring to keep pickups visible
+    const ringR = (this.radius || Math.max(width, height) / 2) * 1.4;
+    context.strokeStyle = "rgba(255, 221, 80, 0.9)";
+    context.lineWidth = 2;
     context.beginPath();
-    context.arc(0, 0, glowRadius, 0, Math.PI * 2);
-    context.fill();
-    context.restore();
-
+    context.arc(0, 0, ringR, 0, Math.PI * 2);
+    context.stroke();
     context.restore();
   }
 

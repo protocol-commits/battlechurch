@@ -1736,12 +1736,6 @@ function drawLevelAnnouncements() {
         ctx.restore();
       });
     };
-    utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
-    animals.forEach((animal) => animal.draw());
-    keyPickups.forEach((pickup) => {
-      if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
-    });
-
   // ...existing code...
     if (!visitorStageActive) {
       enemyHpLabels.length = 0;
@@ -1757,6 +1751,12 @@ function drawLevelAnnouncements() {
     if (!visitorStageActive && battleNpcs.length) {
       drawBattleNpcs(ctx, battleNpcs);
     }
+    // Draw pickups above enemies/NPCs
+    utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
+    animals.forEach((animal) => animal.draw());
+    keyPickups.forEach((pickup) => {
+      if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
+    });
     npcFaithOverlayFn();
     projectiles.forEach((projectile) => {
       projectile.draw();
