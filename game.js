@@ -6663,7 +6663,7 @@ function beginVisitorSession(options = {}) {
   if (visitorSession.active) return false;
   const { duration = VISITOR_SESSION_DURATION, autoTriggered = false, onComplete = null, level = 0 } = options || {};
   const congregationCount = Math.max(1, getCongregationSize());
-  const targetVisitors = Math.max(1, Math.min(10, congregationCount));
+  const targetVisitors = 10;
   const areaSpec = getCongregationSpawnAreaSpecs(Math.max(congregationCount, targetVisitors));
   const bounds = areaSpec.bounds;
   visitorSession.active = true;
@@ -6688,6 +6688,7 @@ function beginVisitorSession(options = {}) {
   visitorSession.newMemberPortraits = [];
   visitorSession.newMemberNames = [];
   visitorSession.introActive = true;
+  visitorSession.usedNpcIds = new Set();
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
   bossHazards.splice(0, bossHazards.length);
@@ -7087,6 +7088,45 @@ function createVisitorGuest(bounds, index = 0, total = VISITOR_GUEST_COUNT) {
   return guest;
 }
 
+function createVisitorFromNpcOffscreen(bounds, npc, side = "left") {
+  if (!npc || !npc.appearance) return null;
+  const appearance = npc.appearance;
+  const animator = new CozyNpcAnimator({
+    animations: appearance.animations,
+    shadow: appearance.shadow ?? null,
+  });
+  animator.setState("walk", { restart: true });
+  animator.setMoving(true);
+  const margin = 60;
+  const startX = side === "left" ? bounds.minX - margin : bounds.maxX + margin;
+  const startY = randomInRange(bounds.minY, bounds.maxY);
+  const targetX = (bounds.minX + bounds.maxX) / 2 + randomInRange(-40, 40);
+  const targetY = (bounds.minY + bounds.maxY) / 2 + randomInRange(-40, 40);
+  const name = npc.name || `Guest ${Math.floor(Math.random() * 1000)}`;
+  const guest = {
+    id: `guest_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
+    type: "guest",
+    animator,
+    appearance,
+    radius: NPC_RADIUS,
+    maxFaith: VISITOR_GUEST_MAX_FAITH,
+    faith: 0,
+    x: startX,
+    y: startY,
+    targetX,
+    targetY,
+    speed: randomInRange(44, 62),
+    saved: false,
+    highlightTimer: 0,
+    portrait: null,
+    homeX: targetX,
+    homeY: targetY,
+    wanderRadius: 120,
+    name,
+  };
+  return guest;
+}
+
 function createVisitorBlocker(bounds, index = 0, total = VISITOR_GUEST_COUNT) {
   const appearance = createRandomNpcLayers();
   if (!appearance) return null;
@@ -7175,6 +7215,33 @@ function updateVisitorSession(dt) {
 function updateVisitorGuests(dt) {
   const bounds = visitorSession.bounds || getNpcHomeBounds();
   const guests = visitorSession.visitors;
+  // Maintain at least 3 unsaved visitors by spawning new ones offscreen (left/right).
+  const unsaved = guests.filter((g) => g && !g.saved);
+  const needed = Math.max(0, 3 - unsaved.length);
+  if (needed > 0) {
+    const used = visitorSession.usedNpcIds instanceof Set ? visitorSession.usedNpcIds : (visitorSession.usedNpcIds = new Set());
+    const candidates = npcs.filter(
+      (npc) =>
+        npc &&
+        npc.active &&
+        !npc.departed &&
+        npc.state !== "lostFaith" &&
+        npc.state !== "drained" &&
+        !used.has(npc.id || npc.name),
+    );
+    for (let i = 0; i < needed; i += 1) {
+      if (!candidates.length) break;
+      const side = Math.random() < 0.5 ? "left" : "right";
+      const idx = Math.floor(Math.random() * candidates.length);
+      const npc = candidates.splice(idx, 1)[0];
+      const guest = createVisitorFromNpcOffscreen(bounds, npc, side);
+      if (guest) {
+        visitorSession.visitors.push(guest);
+        if (npc.id) used.add(npc.id);
+        else if (npc.name) used.add(npc.name);
+      }
+    }
+  }
   guests.forEach((guest) => {
     guest.animator.update(dt);
     const dx = (guest.targetX ?? guest.x) - guest.x;
