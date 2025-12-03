@@ -603,7 +603,7 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.1
+    "swarmSpacing": 0.5
   },
   "miniHighDemon": {
     "displayName": "High Demon",
@@ -654,8 +654,10 @@
     "specialBehavior": [
       "mini",
       "boss",
-      "closestAny"
-    ]
+      "closestAny",
+      "swarmable"
+    ],
+    "swarmSpacing": 1
   },
   "miniDemonLord": {
     "displayName": "Demon Lord",
@@ -709,7 +711,7 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.1
+    "swarmSpacing": 1
   },
   "miniDemonFireKeeper": {
     "displayName": "Demon Fire Keeper",

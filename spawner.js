@@ -55,24 +55,30 @@
     const marginY = Math.max(120, Math.floor(height * 0.12)) + radius + extraMargin;
     const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
     const playHeight = height - hud;
-    const jitter = 60;
+    const jitter = 120;
     const portals = [
-      // Upper left/right roughly 1/3 down the playfield, offscreen on X
+      // Left/right roughly 1/3 down the playfield, offscreen on X
       { x: -marginX, y: hud + playHeight * (1 / 3) },
       { x: width + marginX, y: hud + playHeight * (1 / 3) },
-      // Bottom left/right corners offscreen
-      { x: -marginX, y: height + marginY },
-      { x: width + marginX, y: height + marginY },
-      // Bottom middle offscreen
-      { x: width / 2, y: height + marginY },
+      // Bottom middle offscreen with generous spread
+      { x: width / 2, y: height + marginY, jitterX: 320, jitterY: 180 },
     ];
     const base = portals[Math.floor(Math.random() * portals.length)];
-    const angle = Math.random() * Math.PI * 2;
-    const dist = Math.random() * jitter;
-    return {
-      x: base.x + Math.cos(angle) * dist,
-      y: base.y + Math.sin(angle) * dist,
-    };
+    if (base.jitterX || base.jitterY) {
+      const jitterX = base.jitterX ?? jitter;
+      const jitterY = base.jitterY ?? jitter;
+      return {
+        x: base.x + (Math.random() * 2 - 1) * jitterX,
+        y: base.y + (Math.random() * 2 - 1) * jitterY,
+      };
+    } else {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * jitter;
+      return {
+        x: base.x + Math.cos(angle) * dist,
+        y: base.y + Math.sin(angle) * dist,
+      };
+    }
   }
 
   function findNonOverlappingSpawn(basePos, radius = 20, attempts = 6, spacing = 1) {
