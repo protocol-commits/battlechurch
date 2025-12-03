@@ -115,6 +115,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniDemonFireKeeper",
                       "count": 20
+                    },
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
                     }
                   ],
                   "weights": {
@@ -192,6 +196,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniDemonFireKeeper",
                       "count": 20
+                    },
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
                     }
                   ],
                   "weights": {
@@ -263,6 +271,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniDemonFireKeeper",
                       "count": 20
+                    },
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
                     }
                   ],
                   "weights": {
