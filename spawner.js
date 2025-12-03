@@ -54,16 +54,25 @@
     const marginX = Math.max(140, Math.floor(width * 0.14)) + radius + extraMargin;
     const marginY = Math.max(120, Math.floor(height * 0.12)) + radius + extraMargin;
     const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
-    const bottomCutoff = hud + (height - hud) * (1 / 3);
-    const edge = Math.floor(Math.random() * 3);
-    if (edge === 0) {
-      return { x: -marginX, y: deps.randomInRange(bottomCutoff, height - marginY) };
-    }
-    if (edge === 1) {
-      return { x: width + marginX, y: deps.randomInRange(bottomCutoff, height - marginY) };
-    }
-    // bottom edge
-    return { x: deps.randomInRange(marginX, width - marginX), y: height + marginY };
+    const playHeight = height - hud;
+    const jitter = 60;
+    const portals = [
+      // Upper left/right roughly 1/3 down the playfield, offscreen on X
+      { x: -marginX, y: hud + playHeight * (1 / 3) },
+      { x: width + marginX, y: hud + playHeight * (1 / 3) },
+      // Bottom left/right corners offscreen
+      { x: -marginX, y: height + marginY },
+      { x: width + marginX, y: height + marginY },
+      // Bottom middle offscreen
+      { x: width / 2, y: height + marginY },
+    ];
+    const base = portals[Math.floor(Math.random() * portals.length)];
+    const angle = Math.random() * Math.PI * 2;
+    const dist = Math.random() * jitter;
+    return {
+      x: base.x + Math.cos(angle) * dist,
+      y: base.y + Math.sin(angle) * dist,
+    };
   }
 
   function findNonOverlappingSpawn(basePos, radius = 20, attempts = 6, spacing = 1) {
