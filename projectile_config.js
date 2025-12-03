@@ -16,7 +16,7 @@
       damage: 10,
       life: 1.2,
       radius: 20 * WORLD_SCALE,
-      scale: 2 * WORLD_SCALE,
+      scale: 4 * WORLD_SCALE,
       pierce: false,
     },
     heart: {
