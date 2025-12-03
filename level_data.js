@@ -344,37 +344,17 @@ window.BattlechurchLevelData = {
                   "index": 4,
                   "entries": [
                     {
-                      "enemy": "miniDemoness",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "miniDemonTormentor",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "slime",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "miniImpLevel3",
-                      "count": 100
-                    },
-                    {
-                      "enemy": "miniImpLevel2",
-                      "count": 150
-                    },
-                    {
-                      "enemy": "miniFireImp",
-                      "count": 100
+                      "enemy": "miniDemonFireKeeper",
+                      "count": 20
                     },
                     {
                       "enemy": "miniImp",
-                      "count": 100
+                      "count": 50
                     }
                   ],
                   "weights": {
-                    "miniImp": 50,
-                    "miniFireImp": 5,
+                    "miniImp": 100,
+                    "miniFireImp": 0,
                     "miniDemoness": 0,
                     "miniClawedDemon": 0,
                     "miniHighDemon": 0,
@@ -385,7 +365,7 @@ window.BattlechurchLevelData = {
                     "orc": 0,
                     "eliteOrc": 0,
                     "miniDemonLord": 0,
-                    "miniImpLevel2": 50,
+                    "miniImpLevel2": 0,
                     "miniLich": 0,
                     "miniNecromancer": 0,
                     "miniDeathKnight": 0,
@@ -412,7 +392,7 @@ window.BattlechurchLevelData = {
                     "miniReaper": 0,
                     "miniGhost": 0,
                     "miniDemonFireKeeper": 0,
-                    "miniImpLevel3": 50
+                    "miniImpLevel3": 0
                   },
                   "delaysWeighted": {
                     "miniImpLevel2": 0,
@@ -427,7 +407,9 @@ window.BattlechurchLevelData = {
                     "miniImpLevel2": 5,
                     "skeleton": 0,
                     "miniImpLevel3": 7,
-                    "miniFireImp": 9
+                    "miniFireImp": 9,
+                    "miniClawedDemon": 8,
+                    "miniDemonFireKeeper": 5
                   },
                   "allKill": false,
                   "duration": 15
@@ -436,37 +418,17 @@ window.BattlechurchLevelData = {
                   "index": 5,
                   "entries": [
                     {
-                      "enemy": "miniDemoness",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "miniDemonTormentor",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "slime",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "miniImpLevel3",
-                      "count": 100
-                    },
-                    {
-                      "enemy": "miniImpLevel2",
-                      "count": 150
-                    },
-                    {
-                      "enemy": "miniFireImp",
-                      "count": 100
+                      "enemy": "miniDemonFireKeeper",
+                      "count": 20
                     },
                     {
                       "enemy": "miniImp",
-                      "count": 100
+                      "count": 50
                     }
                   ],
                   "weights": {
-                    "miniImp": 50,
-                    "miniFireImp": 5,
+                    "miniImp": 100,
+                    "miniFireImp": 0,
                     "miniDemoness": 0,
                     "miniClawedDemon": 0,
                     "miniHighDemon": 0,
@@ -477,7 +439,7 @@ window.BattlechurchLevelData = {
                     "orc": 0,
                     "eliteOrc": 0,
                     "miniDemonLord": 0,
-                    "miniImpLevel2": 50,
+                    "miniImpLevel2": 0,
                     "miniLich": 0,
                     "miniNecromancer": 0,
                     "miniDeathKnight": 0,
@@ -504,7 +466,7 @@ window.BattlechurchLevelData = {
                     "miniReaper": 0,
                     "miniGhost": 0,
                     "miniDemonFireKeeper": 0,
-                    "miniImpLevel3": 50
+                    "miniImpLevel3": 0
                   },
                   "delaysWeighted": {
                     "miniImpLevel2": 0,
@@ -519,7 +481,9 @@ window.BattlechurchLevelData = {
                     "miniImpLevel2": 5,
                     "skeleton": 0,
                     "miniImpLevel3": 7,
-                    "miniFireImp": 9
+                    "miniFireImp": 9,
+                    "miniClawedDemon": 8,
+                    "miniDemonFireKeeper": 5
                   },
                   "allKill": false,
                   "duration": 15
@@ -528,37 +492,17 @@ window.BattlechurchLevelData = {
                   "index": 6,
                   "entries": [
                     {
-                      "enemy": "miniDemoness",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "miniDemonTormentor",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "slime",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "miniImpLevel3",
-                      "count": 100
-                    },
-                    {
-                      "enemy": "miniImpLevel2",
-                      "count": 150
-                    },
-                    {
-                      "enemy": "miniFireImp",
-                      "count": 100
+                      "enemy": "miniDemonFireKeeper",
+                      "count": 20
                     },
                     {
                       "enemy": "miniImp",
-                      "count": 100
+                      "count": 50
                     }
                   ],
                   "weights": {
-                    "miniImp": 50,
-                    "miniFireImp": 5,
+                    "miniImp": 100,
+                    "miniFireImp": 0,
                     "miniDemoness": 0,
                     "miniClawedDemon": 0,
                     "miniHighDemon": 0,
@@ -569,7 +513,7 @@ window.BattlechurchLevelData = {
                     "orc": 0,
                     "eliteOrc": 0,
                     "miniDemonLord": 0,
-                    "miniImpLevel2": 50,
+                    "miniImpLevel2": 0,
                     "miniLich": 0,
                     "miniNecromancer": 0,
                     "miniDeathKnight": 0,
@@ -596,7 +540,7 @@ window.BattlechurchLevelData = {
                     "miniReaper": 0,
                     "miniGhost": 0,
                     "miniDemonFireKeeper": 0,
-                    "miniImpLevel3": 50
+                    "miniImpLevel3": 0
                   },
                   "delaysWeighted": {
                     "miniImpLevel2": 0,
@@ -611,7 +555,9 @@ window.BattlechurchLevelData = {
                     "miniImpLevel2": 5,
                     "skeleton": 0,
                     "miniImpLevel3": 7,
-                    "miniFireImp": 9
+                    "miniFireImp": 9,
+                    "miniClawedDemon": 8,
+                    "miniDemonFireKeeper": 5
                   },
                   "allKill": false,
                   "duration": 15

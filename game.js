@@ -4276,8 +4276,9 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
     return type.startsWith("mini");
   };
   const getSwarmSpacing = (ent) => {
-    const val = ent?.config?.swarmSpacing;
-    const swarmTag = Array.isArray(ent?.config?.specialBehavior || [])
+    if (!ent || !ent.config) return 1;
+    const val = ent.config.swarmSpacing;
+    const swarmTag = Array.isArray(ent.config.specialBehavior || [])
       ? (ent.config.specialBehavior || []).includes("swarmable")
       : false;
     if (Number.isFinite(val) && val > 0) {

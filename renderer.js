@@ -741,6 +741,7 @@ function drawLevelAnnouncements() {
     if (typeof getNpcHomeBounds !== "function") return;
     const bounds = getNpcHomeBounds();
     if (!bounds) return;
+    return; // Border hidden per request; keep code for future toggles.
     ctx.save();
     ctx.setLineDash([8, 6]);
     ctx.lineWidth = 2;
