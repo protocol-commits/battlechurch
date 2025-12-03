@@ -5845,7 +5845,8 @@ class Projectile {
   }
 
   draw() {
-    const shouldGlow = this.friendly;
+    // Disable projectile glow to reduce overdraw/perf cost
+    const shouldGlow = false;
     if (this.frames) {
       const frame = this.frames[this.frameIndex];
       if (!frame) return;
