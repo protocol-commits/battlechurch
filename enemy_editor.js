@@ -302,6 +302,7 @@
     const td = document.createElement("td");
     const enemy = ensureEnemy(key);
     const tags = new Set(enemy.specialBehavior || []);
+    if (enemy.ranged) tags.add("ranged");
     const wrap = document.createElement("div");
     wrap.className = "tag-list";
     TAGS.forEach((tag) => {
@@ -313,6 +314,7 @@
         if (cb.checked) tags.add(tag);
         else tags.delete(tag);
         enemy.specialBehavior = Array.from(tags);
+        enemy.ranged = tags.has("ranged");
         renderTable(); // refresh to reflect swarm spacing availability
       });
       label.appendChild(cb);
