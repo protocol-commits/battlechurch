@@ -523,8 +523,6 @@
       "swarmable",
       "popcorn"
     ],
-    "tintColor": "#7ec6ff",
-    "tintIntensity": 0.75,
     "swarmSpacing": 0.1
   },
   "miniFireImp": {
