@@ -13,13 +13,13 @@
       levels: 4,
       monthsPerLevel: 3,
       battlesPerMonth: 3,
-      defaultHordesPerBattle: 6,
-      defaultHordeDuration: 10,
+      defaultHordesPerBattle: 10,
+      defaultHordeDuration: 4,
     },
     globals: {
       enemyStats: {},
       enemyTags: {},
-      mode: "weighted",
+      mode: "explicit",
       hiddenEnemies: [],
     },
     levels: [],
@@ -56,6 +56,18 @@
       console.warn("LevelBuilder: failed to parse storage", err);
     }
     return normalizeConfig(DEFAULTS);
+  }
+
+  function loadFromFileConfig() {
+    const fileConfig =
+      (typeof window !== "undefined" && window.BattlechurchLevelData) || null;
+    if (fileConfig && typeof fileConfig === "object") {
+      const normalized = normalizeConfig(fileConfig);
+      state.config = normalized;
+      saveToStorage(state.config);
+      return true;
+    }
+    return false;
   }
 
   function saveToStorage(cfg) {
@@ -115,7 +127,7 @@
   const state = {
     config: loadFromStorage(),
     scope: { level: 1, month: 1, battle: 1, horde: 1 },
-    mode: "weighted",
+    mode: "explicit",
     showHidden: false,
     copyBuffer: null, // holds a copied horde payload
   };
@@ -128,7 +140,7 @@
       level: Number(els.level.value) || 1,
       month: Number(els.month.value) || 1,
       battle: Number(els.battle.value) || 1,
-      horde: Number(els.horde.value) || 1,
+      horde: 1,
     };
   }
 
@@ -173,8 +185,10 @@
         index: battleObj.hordes.length + 1,
         entries: [],
         weights: {},
+        delays: {},
         delaysWeighted: {},
         delaysExplicit: {},
+        mode: "explicit",
         allKill: false,
         duration: state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION,
       });
@@ -206,9 +220,9 @@
         padding: 16px;
         box-sizing: border-box;
       }
-      #levelBuilderOverlay .lb-grid {
-        display: grid;
-        grid-template-columns: 260px 1fr;
+      #levelBuilderOverlay .lb-shell {
+        display: flex;
+        flex-direction: column;
         gap: 12px;
         height: 100%;
       }
@@ -238,6 +252,26 @@
         border: 1px solid rgba(255, 255, 255, 0.18);
         background: rgba(255, 255, 255, 0.06);
         color: #e8f4ff;
+      }
+      #levelBuilderOverlay .lb-topbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-end;
+      }
+      #levelBuilderOverlay .lb-topbar .group {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+      }
+      #levelBuilderOverlay .lb-topbar label {
+        margin: 0 6px 0 0;
+      }
+      #levelBuilderOverlay .lb-topbar select,
+      #levelBuilderOverlay .lb-topbar input {
+        width: auto;
+        min-width: 72px;
+        margin: 0;
       }
       #levelBuilderOverlay table {
         width: 100%;
@@ -271,37 +305,35 @@
         flex: 1;
       }
     </style>
-    <div class="lb-grid">
-      <div class="panel" id="lb-navPanel">
-        <h3>Scope</h3>
-        <label>Level</label>
-        <select id="lb-level"></select>
-        <label>Month</label>
-        <select id="lb-month"></select>
-        <label>Battle</label>
-        <select id="lb-battle"></select>
-        <label>Horde</label>
-        <select id="lb-horde"></select>
-        <label>Hordes per Battle</label>
-        <input type="number" id="lb-hordesPerBattle" min="1" max="12" step="1">
-        <div class="button-row" style="margin-top:12px;">
-          <button id="lb-close" class="secondary">Close (Esc)</button>
-          <button id="lb-load" class="secondary" type="button">Load from file</button>
-          <button id="lb-save" type="button">Save</button>
-          <button id="lb-saveAs" type="button" class="secondary">Save As...</button>
+    <div class="lb-shell">
+      <div class="panel" id="lb-topPanel">
+        <div class="lb-topbar">
+          <div class="group">
+            <label>Level</label>
+            <select id="lb-level"></select>
+            <label>Month</label>
+            <select id="lb-month"></select>
+            <label>Battle</label>
+            <select id="lb-battle"></select>
+          </div>
+          <div class="group">
+            <label><input type="checkbox" id="lb-showHidden"> Show hidden enemies</label>
+          </div>
+          <div class="group">
+            <label>Horde Duration (s)</label>
+            <input type="number" id="lb-hordeDuration" min="1" step="1">
+          </div>
+          <div class="group">
+            <button id="lb-close" class="secondary">Close (Esc)</button>
+            <button id="lb-load" class="secondary" type="button">Load from file</button>
+            <button id="lb-save" type="button">Save</button>
+            <button id="lb-saveAs" type="button" class="secondary">Save As...</button>
+          </div>
         </div>
-        <div class="button-row" style="margin-top:8px;">
-          <button id="lb-copy" type="button" class="secondary">Copy Horde</button>
-          <button id="lb-paste" type="button">Paste Horde</button>
-        </div>
-        <div id="lb-status" style="margin-top:6px;font-size:12px;color:#9bf0ff;"></div>
+        <div id="lb-status" style="margin-top:8px;font-size:12px;color:#9bf0ff;"></div>
       </div>
       <div class="panel" id="lb-mainPanel">
         <h3>Enemies</h3>
-        <label><input type="checkbox" id="lb-showHidden"> Show hidden enemies</label>
-        <label style="margin-top:6px;"><input type="checkbox" id="lb-allKill"> All Kill (require clearing)</label>
-        <label>Horde Duration (s)</label>
-        <input type="number" id="lb-hordeDuration" min="1" step="1">
         <div class="scroll" id="lb-contentArea"></div>
       </div>
     </div>
@@ -313,16 +345,11 @@
     level: overlay.querySelector("#lb-level"),
     month: overlay.querySelector("#lb-month"),
     battle: overlay.querySelector("#lb-battle"),
-    horde: overlay.querySelector("#lb-horde"),
-    hordesPerBattle: overlay.querySelector("#lb-hordesPerBattle"),
-    allKill: overlay.querySelector("#lb-allKill"),
     hordeDuration: overlay.querySelector("#lb-hordeDuration"),
     content: overlay.querySelector("#lb-contentArea"),
     load: overlay.querySelector("#lb-load"),
     save: overlay.querySelector("#lb-save"),
     saveAs: overlay.querySelector("#lb-saveAs"),
-    copy: overlay.querySelector("#lb-copy"),
-    paste: overlay.querySelector("#lb-paste"),
     status: overlay.querySelector("#lb-status"),
     close: overlay.querySelector("#lb-close"),
   };
@@ -342,11 +369,9 @@
     populateSelect(els.level, s.levels);
     populateSelect(els.month, s.monthsPerLevel);
     populateSelect(els.battle, s.battlesPerMonth);
-    populateSelect(els.horde, Math.max(1, s.defaultHordesPerBattle));
     els.level.value = String(state.scope.level);
     els.month.value = String(state.scope.month);
     els.battle.value = String(state.scope.battle);
-    els.horde.value = String(state.scope.horde);
   }
 
   function getActiveScope() {
@@ -354,102 +379,69 @@
       level: Number(els.level.value) || 1,
       month: Number(els.month.value) || 1,
       battle: Number(els.battle.value) || 1,
-      horde: Number(els.horde.value) || 1,
+      horde: 1,
     };
     state.scope = scope;
     return getOrCreateScope(scope);
   }
 
   function renderModeAndWeights() {
-    const { hordeObj } = getActiveScope();
+    const { battleObj } = getActiveScope();
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
-    hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
-    hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
-    if (!hordeObj.weights || Object.keys(hordeObj.weights).length === 0) {
-      const basePool = basePoolForScope(state.scope);
-      if (basePool.length) {
-        hordeObj.weights = {};
-        basePool.forEach((name) => {
-          hordeObj.weights[name] = 1;
-        });
-        saveToStorage(state.config);
-      }
-    }
-    const weights = hordeObj.weights || {};
-    const entries = hordeObj.entries || [];
     const hiddenSet = new Set(state.config.globals.hiddenEnemies || []);
-    const counts = {};
-    (entries || []).forEach((entry) => {
-      if (!entry || !entry.enemy) return;
-      counts[entry.enemy] = (counts[entry.enemy] || 0) + Math.max(0, Number(entry.count) || 0);
-    });
+    const hordeCount = state.config.structure.defaultHordesPerBattle || 10;
+    const hordes = Array.isArray(battleObj?.hordes) ? battleObj.hordes : [];
 
     const table = document.createElement("table");
     const header = document.createElement("tr");
+    const hordeHeaders = Array.from({ length: hordeCount }, (_, idx) => {
+      const label = idx === hordeCount - 1 ? `H${idx + 1}*` : `H${idx + 1}`;
+      return `<th style="min-width:64px;text-align:center;">${label}</th>`;
+    }).join("");
     header.innerHTML =
-      "<th style=\"width:60px;\">Sprite</th><th>Enemy</th><th>Weight</th><th>Delay (s)</th><th>Count</th><th>Delay (s)</th><th>Hide</th>";
+      `<th style="width:60px;">Sprite</th><th>Enemy</th>${hordeHeaders}<th>Hide</th>`;
     table.appendChild(header);
     Object.keys(catalog).forEach((key) => {
       if (hiddenSet.has(key) && !state.showHidden) return;
       const row = document.createElement("tr");
       const thumb = getEnemyThumbnail(key);
-      const weightVal = weights[key] ?? "";
-      const delayWeight = hordeObj.delaysWeighted?.[key] ?? 0;
-      const countVal = counts[key] ?? 0;
-      const delayExplicit = hordeObj.delaysExplicit?.[key] ?? 0;
+      const cells = [];
+      for (let i = 0; i < hordeCount; i += 1) {
+        const horde = hordes[i];
+        const entries = Array.isArray(horde?.entries) ? horde.entries : [];
+        const match = entries.find((entry) => entry && entry.enemy === key);
+        const countVal = match ? Number(match.count) || 0 : 0;
+        cells.push(
+          `<td style="text-align:center;"><input type="number" data-exp-count="${key}" data-horde="${i + 1}" value="${countVal}" min="0" style="width:60px;"></td>`,
+        );
+      }
       row.innerHTML = `
         <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
           ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
         </div></td>
         <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
-        <td><input type="number" data-weight="${key}" value="${weightVal}" min="0" style="width:80px;"></td>
-        <td><input type="number" data-delay-weighted="${key}" value="${delayWeight}" min="0" step="0.1" style="width:80px;"></td>
-        <td><input type="number" data-exp-count="${key}" value="${countVal}" min="0" style="width:80px;"></td>
-        <td><input type="number" data-exp-delay="${key}" value="${delayExplicit}" min="0" step="0.1" style="width:80px;"></td>
+        ${cells.join("")}
         <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
       `;
       table.appendChild(row);
     });
     els.content.innerHTML = "";
     els.content.appendChild(table);
-
-    els.content.querySelectorAll("input[data-weight]").forEach((input) => {
-      input.addEventListener("change", () => {
-        const key = input.getAttribute("data-weight");
-        const val = Number(input.value);
-        hordeObj.weights = hordeObj.weights || {};
-        if (Number.isNaN(val)) delete hordeObj.weights[key];
-        else hordeObj.weights[key] = val;
-        saveToStorage(state.config);
-      });
-    });
-    els.content.querySelectorAll("input[data-delay-weighted]").forEach((input) => {
-      input.addEventListener("change", () => {
-        const key = input.getAttribute("data-delay-weighted");
-        const val = Math.max(0, Number(input.value) || 0);
-        hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
-        hordeObj.delaysWeighted[key] = val;
-        saveToStorage(state.config);
-      });
-    });
     els.content.querySelectorAll("input[data-exp-count]").forEach((input) => {
       input.addEventListener("change", () => {
         const key = input.getAttribute("data-exp-count");
         const val = Math.max(0, Number(input.value) || 0);
-        const nextCounts = { ...counts, [key]: val };
-        const nextEntries = Object.entries(nextCounts)
-          .filter(([, count]) => count > 0)
-          .map(([enemy, count]) => ({ enemy, count }));
-        hordeObj.entries = nextEntries;
-        saveToStorage(state.config);
-      });
-    });
-    els.content.querySelectorAll("input[data-exp-delay]").forEach((input) => {
-      input.addEventListener("change", () => {
-        const key = input.getAttribute("data-exp-delay");
-        const val = Math.max(0, Number(input.value) || 0);
-        hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
-        hordeObj.delaysExplicit[key] = val;
+        const hordeIndex = Math.max(1, Number(input.getAttribute("data-horde") || 1));
+        const horde = hordes[hordeIndex - 1];
+        if (!horde) return;
+        horde.entries = Array.isArray(horde.entries) ? horde.entries : [];
+        const idx = horde.entries.findIndex((entry) => entry && entry.enemy === key);
+        if (val > 0) {
+          if (idx >= 0) horde.entries[idx].count = val;
+          else horde.entries.push({ enemy: key, count: val });
+        } else if (idx >= 0) {
+          horde.entries.splice(idx, 1);
+        }
         saveToStorage(state.config);
       });
     });
@@ -639,41 +631,46 @@
   function refreshUI() {
     const scopeBefore = { ...state.scope };
     initScopeSelectors();
-    // Reapply previously selected horde if still in range; otherwise clamp.
     const { battleObj } = getActiveScope();
-    const hpb =
-      battleObj.hordesPerBattle ||
-      state.config.structure.defaultHordesPerBattle ||
-      6;
-    populateSelect(els.horde, hpb);
-    if (scopeBefore.horde && scopeBefore.horde <= hpb) {
-      els.horde.value = String(scopeBefore.horde);
-      state.scope.horde = scopeBefore.horde;
-    } else {
-      state.scope.horde = Number(els.horde.value) || 1;
+    const hpb = state.config.structure.defaultHordesPerBattle || 10;
+    battleObj.hordesPerBattle = hpb;
+    battleObj.hordes = battleObj.hordes || [];
+    while (battleObj.hordes.length < hpb) {
+      battleObj.hordes.push({
+        index: battleObj.hordes.length + 1,
+        entries: [],
+        weights: {},
+        delays: {},
+        delaysWeighted: {},
+        delaysExplicit: {},
+        mode: "explicit",
+        allKill: false,
+        duration: state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION,
+      });
     }
-    els.hordesPerBattle.value = hpb;
-    // Horde flags
-    const { hordeObj } = getActiveScope();
-    if (hordeObj) {
-      if (typeof hordeObj.allKill !== "boolean") hordeObj.allKill = false;
-      if (!Number.isFinite(hordeObj.duration) || hordeObj.duration <= 0) {
-        const defDur = state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION;
-        hordeObj.duration = defDur;
+    battleObj.hordes = battleObj.hordes.slice(0, hpb);
+    const defaultDuration = state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION;
+    battleObj.hordes.forEach((horde, idx) => {
+      horde.index = idx + 1;
+      horde.mode = "explicit";
+      horde.weights = {};
+      horde.delays = {};
+      horde.delaysWeighted = {};
+      horde.delaysExplicit = {};
+      horde.allKill = idx === hpb - 1;
+      if (!Number.isFinite(horde.duration) || horde.duration <= 0) {
+        horde.duration = defaultDuration;
       }
-      hordeObj.delaysWeighted = hordeObj.delaysWeighted || {};
-      hordeObj.delaysExplicit = hordeObj.delaysExplicit || {};
-      els.allKill.checked = Boolean(hordeObj.allKill);
-      els.hordeDuration.value = Math.round(hordeObj.duration);
-    }
-    if (els.paste) {
-      els.paste.disabled = !state.copyBuffer;
+    });
+    if (els.hordeDuration) {
+      const baseDuration = battleObj.hordes[0]?.duration || defaultDuration;
+      els.hordeDuration.value = Math.round(baseDuration);
     }
     renderModeAndWeights();
   }
 
   function attachEvents() {
-    ["level", "month", "battle", "horde"].forEach((key) => {
+    ["level", "month", "battle"].forEach((key) => {
       els[key].addEventListener("change", () => {
         updateScopeFromSelects();
         refreshUI();
@@ -686,74 +683,15 @@
         renderModeAndWeights();
       });
     }
-    els.hordesPerBattle.addEventListener("change", () => {
-      const val = Math.max(1, Number(els.hordesPerBattle.value) || 1);
-      const { battleObj } = getActiveScope();
-      battleObj.hordesPerBattle = val;
-      saveToStorage(state.config);
-      refreshUI();
-    });
-    els.allKill.addEventListener("change", () => {
-      const { hordeObj } = getActiveScope();
-      if (!hordeObj) return;
-      hordeObj.allKill = Boolean(els.allKill.checked);
-      saveToStorage(state.config);
-    });
     els.hordeDuration.addEventListener("change", () => {
-      const { hordeObj } = getActiveScope();
-      if (!hordeObj) return;
       const val = Math.max(1, Number(els.hordeDuration.value) || DEFAULT_HORDE_DURATION);
-      hordeObj.duration = val;
+      const { battleObj } = getActiveScope();
+      if (!battleObj || !Array.isArray(battleObj.hordes)) return;
+      battleObj.hordes.forEach((horde) => {
+        horde.duration = val;
+      });
       saveToStorage(state.config);
     });
-    if (els.copy) {
-      els.copy.addEventListener("click", () => {
-        const { hordeObj } = getActiveScope();
-        if (!hordeObj) {
-          setStatus("No horde available to copy", true);
-          return;
-        }
-        state.copyBuffer = deepClone({
-          entries: hordeObj.entries || [],
-          weights: hordeObj.weights || {},
-          delaysWeighted: hordeObj.delaysWeighted || {},
-          delaysExplicit: hordeObj.delaysExplicit || {},
-          allKill: Boolean(hordeObj.allKill),
-          duration: hordeObj.duration,
-        });
-        setStatus("Horde copied");
-        if (els.paste) els.paste.disabled = false;
-      });
-    }
-    if (els.paste) {
-      els.paste.addEventListener("click", () => {
-        if (!state.copyBuffer) {
-          setStatus("No horde copied yet", true);
-          return;
-        }
-        const { hordeObj } = getActiveScope();
-        if (!hordeObj) {
-          setStatus("No target horde to paste into", true);
-          return;
-        }
-        const src = state.copyBuffer;
-        hordeObj.entries = deepClone(src.entries || []);
-        hordeObj.weights = deepClone(src.weights || {});
-        hordeObj.delaysWeighted = deepClone(src.delaysWeighted || {});
-        hordeObj.delaysExplicit = deepClone(src.delaysExplicit || {});
-        hordeObj.allKill = Boolean(src.allKill);
-        hordeObj.duration = src.duration || hordeObj.duration;
-        saveToStorage(state.config);
-        renderModeAndWeights();
-        if (els.hordeDuration) {
-          els.hordeDuration.value = Math.round(hordeObj.duration);
-        }
-        if (els.allKill) {
-          els.allKill.checked = Boolean(hordeObj.allKill);
-        }
-        setStatus("Horde pasted");
-      });
-    }
     if (els.load) {
       els.load.addEventListener("click", () => {
         syncFromServer({ showStatus: true });
@@ -795,6 +733,7 @@
   }
 
   function show() {
+    loadFromFileConfig();
     refreshUI();
     overlay.style.display = "block";
   }
