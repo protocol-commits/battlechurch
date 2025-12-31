@@ -114,6 +114,9 @@
       damageMultiplier: 1,
       text: "Wield Wisdom",
       textColor: "#9bf0ff",
+      hudTitle: "Wisdom Weapon",
+      description: "Fires wisdom missiles with faster shots and speed.",
+      hudDuration: 2.6,
     },
     cannonWeapon: {
       duration: 8,
@@ -123,6 +126,9 @@
       damageMultiplier: 1,
       text: "Unleash Faith",
       textColor: "#ff9bf7",
+      hudTitle: "Faith Cannon",
+      description: "Cannon blasts with splash damage and faster fire rate.",
+      hudDuration: 2.6,
     },
     scriptureWeapon: {
       duration: 8,
@@ -132,6 +138,9 @@
       damageMultiplier: 1,
       text: "Quote Scripture",
       textColor: "#ffa45a",
+      hudTitle: "Scripture Fire",
+      description: "Piercing fire shots with higher speed.",
+      hudDuration: 2.6,
     },
   };
 })(typeof window !== "undefined" ? window : globalThis);

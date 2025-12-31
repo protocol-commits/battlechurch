@@ -39,6 +39,10 @@
       getKeyCount,
       getCongregationSize,
       initialCongregationSize,
+      weaponPickupAnnouncement,
+      npcWeaponState,
+      npcHarmonyBuffTimer,
+      npcHarmonyBuffDuration,
     } = bindings;
     if (!ctx || !canvas) return;
 
@@ -50,25 +54,91 @@
     const stats = levelManager?.getStats ? levelManager.getStats() : null;
     const bossStage = levelManager?.isBossStage?.() || false;
 
-    const columnPadding = 24;
-    const columnGap = 28;
-    const minColumnWidth = 200;
-    let columnWidth = Math.min(Math.max(minColumnWidth, canvas.width - columnPadding * 2), 420);
-    if (columnWidth < minColumnWidth) columnWidth = minColumnWidth;
-    let totalWidth = columnWidth;
-    if (totalWidth > canvas.width - columnPadding * 2) {
-      columnWidth = Math.max(160, canvas.width - columnPadding * 2);
-      totalWidth = columnWidth;
-    }
-    let startX = Math.max(columnPadding, (canvas.width - totalWidth) / 2);
+    const columnPadding = 16;
+    const columnGap = 12;
+    const totalGap = columnGap * 3;
+    const availableWidth = Math.max(0, canvas.width - columnPadding * 2 - totalGap);
+    const columnWidth = Math.max(20, Math.floor(availableWidth / 4));
+    const startX = Math.max(columnPadding, Math.floor((canvas.width - (columnWidth * 4 + totalGap)) / 2));
+    const columnXs = [
+      startX,
+      startX + columnWidth + columnGap,
+      startX + (columnWidth + columnGap) * 2,
+      startX + (columnWidth + columnGap) * 3,
+    ];
     const panelHeight = hudHeight - 18;
     const panelY = 8;
     const panelPaddingX = 16;
 
+    const fitFontSize = (text, baseSize, maxWidth, fontWeight = '') => {
+      if (!text) return baseSize;
+      ctx.font = `${fontWeight}${baseSize}px ${UI_FONT_FAMILY}`;
+      const width = ctx.measureText(text).width || 0;
+      if (!width || width <= maxWidth) return baseSize;
+      const scale = maxWidth / width;
+      return Math.max(10, Math.floor(baseSize * scale));
+    };
+
+    const getWeaponBaseLabel = (mode) => {
+      switch (mode) {
+        case 'wisdom_missle':
+          return 'Wisdom Missile';
+        case 'faith_cannon':
+          return 'Faith Cannon';
+        case 'fire':
+          return 'Scripture Fire';
+        case 'heart':
+          return 'Heart Charm';
+        case 'arrow':
+        default:
+          return 'Default';
+      }
+    };
+
+    const buildMultiplierTag = (multipliers) => {
+      if (!multipliers) return '';
+      const tags = [];
+      if (Number.isFinite(multipliers.damage) && Math.abs(multipliers.damage - 1) > 0.01) {
+        tags.push(`DMG x${multipliers.damage.toFixed(2)}`);
+      }
+      if (Number.isFinite(multipliers.cooldown) && Math.abs(multipliers.cooldown - 1) > 0.01) {
+        tags.push(`CD x${multipliers.cooldown.toFixed(2)}`);
+      }
+      if (Number.isFinite(multipliers.speed) && Math.abs(multipliers.speed - 1) > 0.01) {
+        tags.push(`SPD x${multipliers.speed.toFixed(2)}`);
+      }
+      if (!tags.length) return '';
+      return ` (${tags.join(', ')})`;
+    };
+
+    const getWeaponLabel = (mode, multipliers) => {
+      const base = getWeaponBaseLabel(mode);
+      const tag = buildMultiplierTag(multipliers);
+      return `${base}${tag}`;
+    };
+
+    const drawMeterRow = (x, y, width, label, ratio, color) => {
+      const barHeight = 6;
+      const labelY = y + 2;
+      const barY = y + 14;
+      const barWidth = Math.max(60, width - 8);
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.fillText(label, x, labelY);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(x, barY, barWidth, barHeight);
+      ctx.fillStyle = color || '#ffffff';
+      ctx.fillRect(x, barY, Math.max(0, Math.floor(barWidth * Math.max(0, Math.min(1, ratio || 0)))), barHeight);
+      ctx.restore();
+    };
+
     const drawTopHPAndLives = () => {
-      const hpBarX = 12;
+      const hpBarX = columnXs[0] + 6;
       const hpBarY = 20;
-      const hpBarWidth = Math.min(210, Math.floor(canvas.width * 0.22));
+      const hpBarWidth = Math.min(210, Math.max(120, columnWidth - 12));
       const hpBarHeight = 18;
       ctx.fillStyle = 'rgba(30,40,60,0.55)';
       ctx.lineWidth = 2.5;
@@ -111,7 +181,9 @@
         const centerY = hpBarY + hpBarHeight / 2;
         const livesToShow = Math.max(0, Math.min(6, heroLives - 1));
         let offsetX = baseX;
+        const maxX = columnXs[0] + columnWidth - 6;
         for (let i = 0; i < livesToShow; i += 1) {
+          if (offsetX + 18 > maxX) break;
           if (player && player.animator && player.animator.currentClip && player.animator.currentClip.image) {
             const clip = player.animator.currentClip;
             const img = clip.image;
@@ -124,8 +196,8 @@
             }
             const frameX = (effIdx % cols) * clip.frameWidth;
             const frameY = Math.floor(effIdx / cols) * clip.frameHeight;
-            const drawW = 26;
-            const drawH = 26;
+            const drawW = 20;
+            const drawH = 20;
             ctx.save();
             ctx.beginPath();
             ctx.arc(offsetX + drawW / 2, centerY, drawW / 2, 0, Math.PI * 2);
@@ -142,7 +214,7 @@
               drawH,
             );
             ctx.restore();
-            offsetX += drawW + 4;
+            offsetX += drawW + 3;
           }
         }
       } catch (e) {}
@@ -152,9 +224,9 @@
 
     const drawPrayerBombMeter = () => {
       if (!player) return;
-      const meterX = 12;
+      const meterX = columnXs[0] + 6;
       const meterY = 44;
-      const meterWidth = Math.min(210, Math.floor(canvas.width * 0.22));
+      const meterWidth = Math.min(210, Math.max(120, columnWidth - 12));
       const meterHeight = 18;
       const meterRadius = 6;
       ctx.save();
@@ -194,8 +266,126 @@
 
     drawPrayerBombMeter();
 
-    const boardWidth = 120;
-    const boardX = canvas.width - boardWidth - 12;
+    const drawPlayerInfo = () => {
+      if (!player) return;
+      const x = columnXs[1] + 6;
+      const width = columnWidth - 12;
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.fillText('PLAYER', x, panelY + 14);
+      ctx.restore();
+
+      const rows = [];
+      const weaponMode = player.overrideWeaponMode || player.weaponMode || 'arrow';
+      const weaponDuration = Math.max(0.001, player.weaponPowerDuration || 0);
+      const weaponTimer = Math.max(0, player.weaponPowerTimer || 0);
+      const weaponRatio = weaponDuration > 0 ? weaponTimer / weaponDuration : 0;
+      let playerMultipliers = null;
+      if (weaponMode === 'wisdom_missle') {
+        playerMultipliers = {
+          cooldown: player.magicCooldownMultiplier,
+          speed: player.magicSpeedMultiplier,
+        };
+      } else if (weaponMode === 'faith_cannon') {
+        playerMultipliers = {
+          damage: player.faithCannonDamageMultiplier,
+          cooldown: player.faithCannonCooldownMultiplier,
+          speed: player.faithCannonSpeedMultiplier,
+        };
+      } else if (weaponMode === 'fire') {
+        playerMultipliers = {
+          damage: player.fireDamageMultiplier,
+          cooldown: player.fireCooldownMultiplier,
+          speed: player.fireSpeedMultiplier,
+        };
+      }
+      rows.push({
+        label: `Weapon: ${getWeaponLabel(weaponMode, playerMultipliers)}`,
+        ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
+        color: '#7fd4ff',
+      });
+
+      const utilityRows = [];
+      if (player.shieldTimer > 0) {
+        const duration = Math.max(0.001, player.shieldDuration || 0);
+        utilityRows.push({
+          label: 'Shield (Blocks damage)',
+          ratio: duration > 0 ? player.shieldTimer / duration : 0,
+          color: '#aef5ff',
+        });
+      }
+      if (player.speedBoostTimer > 0) {
+        const duration = Math.max(0.001, player.speedBoostDuration || 0);
+        utilityRows.push({
+          label: 'Haste (Move speed)',
+          ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
+          color: '#9bff86',
+        });
+      }
+      if (player.powerExtendTimer > 0) {
+        const duration = Math.max(0.001, player.powerExtendDuration || 0);
+        utilityRows.push({
+          label: 'Extend (Weapon timer)',
+          ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
+          color: '#ffd480',
+        });
+      }
+      rows.push(...utilityRows.slice(0, 2));
+
+      const rowYs = [panelY + 24, panelY + 46, panelY + 68];
+      rows.slice(0, rowYs.length).forEach((row, idx) => {
+        drawMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
+      });
+    };
+
+    const drawNpcInfo = () => {
+      const x = columnXs[2] + 6;
+      const width = columnWidth - 12;
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.fillText('CONGREGANTS', x, panelY + 14);
+      ctx.restore();
+
+      const rows = [];
+      const npcMode = npcWeaponState?.mode || 'arrow';
+      const npcTimer = Math.max(0, npcWeaponState?.timer || 0);
+      const npcDuration = Math.max(0.001, npcWeaponState?.duration || npcTimer || 0);
+      const npcMultipliers = npcMode === 'arrow'
+        ? null
+        : {
+            damage: npcWeaponState?.damageMultiplier,
+            cooldown: npcWeaponState?.cooldownMultiplier,
+            speed: npcWeaponState?.speedMultiplier,
+          };
+      rows.push({
+        label: `Weapon: ${getWeaponLabel(npcMode, npcMultipliers)}`,
+        ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
+        color: '#ffd08a',
+      });
+      if (npcHarmonyBuffTimer > 0) {
+        const duration = Math.max(0.001, npcHarmonyBuffDuration || npcHarmonyBuffTimer || 0);
+        rows.push({
+          label: 'Harmony (NPC boost)',
+          ratio: duration > 0 ? npcHarmonyBuffTimer / duration : 0,
+          color: '#d6b7ff',
+        });
+      }
+
+      const rowYs = [panelY + 24, panelY + 46, panelY + 68];
+      rows.slice(0, rowYs.length).forEach((row, idx) => {
+        drawMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
+      });
+    };
+
+    drawPlayerInfo();
+    drawNpcInfo();
+
+    const boardWidth = Math.max(40, columnWidth - 12);
+    const boardX = columnXs[3] + 6;
     const boardY = panelY + 18;
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;

@@ -123,6 +123,8 @@
       duration: 9,
       label: "Shield of Faith",
       color: "#aef5ff",
+      hudTitle: "Shield of Faith",
+      description: "Blocks damage for a short time.",
     },
     haste: {
       src: `${CONRAD_POWERUP_ROOT}/speed.png`,
@@ -133,6 +135,8 @@
       label: "Gospel of Peach",
       color: "#9bff86",
       speedMultiplier: 1.4,
+      hudTitle: "Gospel of Peach",
+      description: "Move faster for a short time.",
     },
     extender: {
       src: `${CONRAD_POWERUP_ROOT}/sword.png`,
@@ -143,6 +147,8 @@
       label: "Sword of the Spirit",
       color: "#ffd480",
       extendMultiplier: 1.5,
+      hudTitle: "Sword of the Spirit",
+      description: "Extends your current weapon power.",
     },
     harmony: {
       src: `${CONRAD_POWERUP_ROOT}/harp.png`,
@@ -152,6 +158,8 @@
       duration: 10,
       label: "Harp of Consolation",
       color: "#d6b7ff",
+      hudTitle: "Harp of Consolation",
+      description: "Boosts NPC harmony briefly.",
     },
   };
 

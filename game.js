@@ -63,6 +63,13 @@ let activeBoss = null;
 const bossHazards = [];
 let titleScreenActive = true;
 const devStatus = { text: "", timer: 0 };
+const weaponPickupAnnouncement = {
+  title: "",
+  description: "",
+  color: "#ffffff",
+  timer: 0,
+  duration: 0,
+};
 let evacuatedNpcCount = 0;
 let npcsSuspended = false;
 const congregationMembers = [];
@@ -231,6 +238,7 @@ function applyNpcWeaponPowerup(effect, def = {}) {
   if (!mode) return;
   npcWeaponState.mode = mode;
   npcWeaponState.timer = cfg.duration || 0;
+  npcWeaponState.duration = cfg.duration || 0;
   npcWeaponState.damageMultiplier = cfg.damageMultiplier ?? 1;
   npcWeaponState.cooldownMultiplier = cfg.cooldownMultiplier ?? 1;
   npcWeaponState.speedMultiplier = cfg.speedMultiplier ?? 1;
@@ -410,6 +418,7 @@ function getKeyCount() {
 }
 
 let npcHarmonyBuffTimer = 0;
+let npcHarmonyBuffDuration = 0;
 const HARMONY_BUFF_MULTIPLIER = 2.25;
 
 function addKeys(amount = 1) {
@@ -978,6 +987,7 @@ Renderer.initialize({
   get canvas() { return canvas; },
   get ctx() { return ctx; },
   levelAnnouncements,
+  weaponPickupAnnouncement,
   HUD_HEIGHT,
   UI_FONT_FAMILY,
   bossHazards,
@@ -1020,6 +1030,9 @@ Renderer.initialize({
   getKeyCount: () => getKeyCount(),
   WORLD_SCALE,
   get damageHitFlash() { return damageHitFlash; },
+  get npcWeaponState() { return npcWeaponState; },
+  get npcHarmonyBuffTimer() { return npcHarmonyBuffTimer; },
+  get npcHarmonyBuffDuration() { return npcHarmonyBuffDuration; },
   get postDeathSequenceActive() { return postDeathSequenceActive; },
   get heroLives() { return heroLives; },
   get hpFlashTimer() { return hpFlashTimer; },
@@ -1679,6 +1692,7 @@ const FORMATION_PRESETS = {
 const npcWeaponState = {
   mode: null,
   timer: 0,
+  duration: 0,
   damageMultiplier: 1,
   cooldownMultiplier: 1,
   speedMultiplier: 1,
@@ -1707,11 +1721,29 @@ function resolveWeaponPowerupConfig(effect, def = {}) {
     textColor: overrides.textColor ?? defaults.textColor ?? "#fff",
     statusBgColor: overrides.statusBgColor ?? defaults.statusBgColor,
     statusLife: overrides.statusLife ?? defaults.statusLife,
+    hudTitle: overrides.hudTitle ?? defaults.hudTitle ?? overrides.text ?? defaults.text ?? effect,
+    description: overrides.description ?? defaults.description ?? "",
+    hudDuration: overrides.hudDuration ?? defaults.hudDuration ?? 2.6,
   };
+}
+
+function setWeaponPickupAnnouncement({ title, description, color, duration } = {}) {
+  if (!title && !description) return;
+  weaponPickupAnnouncement.title = title || "";
+  weaponPickupAnnouncement.description = description || "";
+  weaponPickupAnnouncement.color = color || "#ffffff";
+  weaponPickupAnnouncement.duration = Number.isFinite(duration) ? duration : 2.6;
+  weaponPickupAnnouncement.timer = weaponPickupAnnouncement.duration;
 }
 
 function showWeaponPowerupConfigText(config) {
   showWeaponPowerupFloatingText(config.text, config.textColor || "#fff");
+  setWeaponPickupAnnouncement({
+    title: config.hudTitle || config.text || "Weapon Power Up",
+    description: config.description || "",
+    color: config.textColor || "#fff",
+    duration: config.hudDuration,
+  });
 }
 
 function getWeaponPowerName(effect, fallback = "Weapon") {
@@ -3562,17 +3594,29 @@ function applyAnimalEffect(animal) {
     }
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
-      showWeaponPowerupConfigText({ text: "NPC Scripture", textColor: "#ffa45a" });
+      showWeaponPowerupConfigText({
+        text: "NPC Scripture",
+        textColor: "#ffa45a",
+        description: "NPCs fire scripture shots for a short time.",
+      });
       break;
     }
     case "npcWisdomWeapon": {
       applyNpcWeaponPowerup("npcWisdomWeapon", def);
-      showWeaponPowerupConfigText({ text: "NPC Wisdom", textColor: "#9bf0ff" });
+      showWeaponPowerupConfigText({
+        text: "NPC Wisdom",
+        textColor: "#9bf0ff",
+        description: "NPCs launch wisdom missiles temporarily.",
+      });
       break;
     }
     case "npcFaithWeapon": {
       applyNpcWeaponPowerup("npcFaithWeapon", def);
-      showWeaponPowerupConfigText({ text: "NPC Faith", textColor: "#ff9bf7" });
+      showWeaponPowerupConfigText({
+        text: "NPC Faith",
+        textColor: "#ff9bf7",
+        description: "NPCs fire faith cannon blasts briefly.",
+      });
       break;
     }
     default:
@@ -3593,6 +3637,11 @@ function shuffleArray(array) {
 function applyUtilityPowerUp(powerUp) {
   if (!player || !powerUp) return;
   const { effect, duration = 6, speedMultiplier, extendMultiplier } = powerUp.definition;
+  setWeaponPickupAnnouncement({
+    title: powerUp.definition.hudTitle || powerUp.definition.label || "Power Up",
+    description: powerUp.definition.description || "",
+    color: powerUp.definition.color || "#ffffff",
+  });
   const floatingColor =
     powerUp.definition.statBoostColor ??
     powerUp.definition.color ??
@@ -3603,9 +3652,11 @@ function applyUtilityPowerUp(powerUp) {
   switch (effect) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
+      player.shieldDuration = Math.max(player.shieldDuration || 0, duration);
       break;
     case "haste":
       player.speedBoostTimer = Math.max(player.speedBoostTimer, duration);
+      player.speedBoostDuration = Math.max(player.speedBoostDuration || 0, duration);
       break;
     case "extend":
       const extendDuration = Math.max(
@@ -3643,6 +3694,7 @@ function applyUtilityPowerUp(powerUp) {
       break;
     case "harmony":
       npcHarmonyBuffTimer = Math.max(npcHarmonyBuffTimer, duration);
+      npcHarmonyBuffDuration = Math.max(npcHarmonyBuffDuration, duration);
       floatingText = `NPC Harmony +${Math.round(duration)}s`;
       break;
     default:
@@ -7742,6 +7794,7 @@ function updateCozyNpcs(dt) {
     npcWeaponState.timer = Math.max(0, npcWeaponState.timer - dt);
     if (npcWeaponState.timer <= 0) {
       npcWeaponState.mode = null;
+      npcWeaponState.duration = 0;
       npcWeaponState.damageMultiplier = 1;
       npcWeaponState.cooldownMultiplier = 1;
       npcWeaponState.speedMultiplier = 1;
@@ -8187,6 +8240,9 @@ function updateGame(dt) {
   handleDeveloperHotkeys();
   npcHarmonyBuffTimer = Math.max(0, npcHarmonyBuffTimer - dt);
   if (devInspectorActive) devInspectorTimer += dt;
+  if (!paused && weaponPickupAnnouncement.timer > 0) {
+    weaponPickupAnnouncement.timer = Math.max(0, weaponPickupAnnouncement.timer - dt);
+  }
   // autosave dev overrides after short debounce
   if (devOverridesDirty) {
     devOverridesSaveTimer += dt;
@@ -9634,6 +9690,12 @@ function restartGame() {
   miniImpWaveDispatched = false;
   arenaFadeTimer = 0;
   arenaFadeAlpha = 0;
+  npcWeaponState.mode = null;
+  npcWeaponState.timer = 0;
+  npcWeaponState.duration = 0;
+  npcWeaponState.damageMultiplier = 1;
+  npcWeaponState.cooldownMultiplier = 1;
+  npcWeaponState.speedMultiplier = 1;
   floatingTexts.forEach((ft) => {
     if (!ft.critical) ft.life = 0;
   });
@@ -9649,6 +9711,11 @@ function restartGame() {
   spawnWeaponDrops();
   heroRescueCooldown = 0;
   levelAnnouncements.length = 0;
+  weaponPickupAnnouncement.timer = 0;
+  weaponPickupAnnouncement.title = "";
+  weaponPickupAnnouncement.description = "";
+  npcHarmonyBuffTimer = 0;
+  npcHarmonyBuffDuration = 0;
   levelManager = Levels.createLevelManager();
   levelManager.begin();
   titleScreenActive = true;
@@ -9724,6 +9791,17 @@ async function init() {
     heroRescueCooldown = 0;
     lastTime = performance.now();
     levelAnnouncements.length = 0;
+    weaponPickupAnnouncement.timer = 0;
+    weaponPickupAnnouncement.title = "";
+    weaponPickupAnnouncement.description = "";
+    npcHarmonyBuffTimer = 0;
+    npcHarmonyBuffDuration = 0;
+    npcWeaponState.mode = null;
+    npcWeaponState.timer = 0;
+    npcWeaponState.duration = 0;
+    npcWeaponState.damageMultiplier = 1;
+    npcWeaponState.cooldownMultiplier = 1;
+    npcWeaponState.speedMultiplier = 1;
     bossHazards.length = 0;
     activeBoss = null;
     npcsSuspended = false;

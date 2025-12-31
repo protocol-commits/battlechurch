@@ -498,7 +498,9 @@ class Player {
       settings.PRAYER_BOMB_CHARGE_REQUIRED || defaults.PRAYER_BOMB_CHARGE_REQUIRED || 60;
     this.overrideWeaponMode = null;
     this.shieldTimer = 0;
+    this.shieldDuration = 0;
     this.speedBoostTimer = 0;
+    this.speedBoostDuration = 0;
     this.powerExtendTimer = 0;
     this.powerExtendDuration = 0;
     this.damageFlashTimer = 0;
