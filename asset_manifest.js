@@ -103,7 +103,7 @@
       },
       projectiles: {
         arrow: {
-          src: `assets/sprites/MinifolksWeapons/minifireball.png`,
+          src: `assets/sprites/MiniFolksWeapons/minifireball.png`,
           frameWidth: 20,
           frameHeight: 16,
           frameRate: 12,
@@ -118,14 +118,14 @@
           loop: false,
         },
         weaponMiniLichSpell: {
-          src: `assets/sprites/MinifolksWeapons/minilichspell.png`,
+          src: `assets/sprites/MiniFolksWeapons/minilichspell.png`,
           frameWidth: 0,
           frameHeight: 0,
           frameRate: 12,
           loop: true,
         },
         weaponMiniTrident: {
-          src: `assets/sprites/MinifolksWeapons/minitrident.png`,
+          src: `assets/sprites/MiniFolksWeapons/minitrident.png`,
           frameWidth: 0,
           frameHeight: 0,
           frameRate: 12,
