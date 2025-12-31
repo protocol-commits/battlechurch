@@ -373,8 +373,8 @@
   },
   "orcRider": {
     "displayName": "Orc Rider",
-    "assetFolder": "Orc Rider",
-    "assetBaseName": "Orc Rider",
+    "assetFolder": "Orc rider",
+    "assetBaseName": "Orc rider",
     "health": 280,
     "maxHealth": 280,
     "damage": 5,
