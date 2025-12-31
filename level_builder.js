@@ -3,6 +3,10 @@
 
   const STORAGE_KEY = "battlechurch.devLevelConfig";
   const SYNC_ENDPOINT = "http://localhost:4100/level-config";
+  const IS_LOCALHOST = (() => {
+    const host = String(window.location?.hostname || "").toLowerCase();
+    return host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
+  })();
   const DEFAULTS = {
     meta: { version: 1 },
     structure: {
@@ -568,6 +572,7 @@
   }
 
   async function fetchServerConfig() {
+    if (!IS_LOCALHOST) return null;
     try {
       const res = await fetch(SYNC_ENDPOINT, { method: "GET" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -583,6 +588,7 @@
   }
 
   async function saveConfigToServer(cfg) {
+    if (!IS_LOCALHOST) return false;
     try {
       const res = await fetch(SYNC_ENDPOINT, {
         method: "POST",
@@ -599,6 +605,12 @@
 
   async function syncFromServer(options = {}) {
     const { showStatus = false } = options;
+    if (!IS_LOCALHOST) {
+      if (showStatus) {
+        setStatus("File sync disabled (not running locally)", true);
+      }
+      return false;
+    }
     const cfg = await fetchServerConfig();
     if (cfg) {
       state.config = cfg;
@@ -618,6 +630,7 @@
     const timestamp = formatNow();
     const savedMsg = `Saved locally ${timestamp}`;
     setStatus(savedMsg);
+    if (!IS_LOCALHOST) return;
     const ok = await saveConfigToServer(state.config);
     if (ok) setStatus(`Saved to level_data.js ${timestamp}`);
     else setStatus(`${savedMsg} (run dev_level_server.js to sync)`, true);
