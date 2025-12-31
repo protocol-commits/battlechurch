@@ -13,7 +13,7 @@
       levels: 4,
       monthsPerLevel: 3,
       battlesPerMonth: 3,
-      defaultHordesPerBattle: 10,
+      defaultHordesPerBattle: 20,
       defaultHordeDuration: 4,
     },
     globals: {

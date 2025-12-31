@@ -17,7 +17,8 @@
   const LEVELS_PER_GAME = 4;
   const MONTHS_PER_LEVEL = 3;
   const BATTLES_PER_MONTH = 3;
-  const HORDES_PER_BATTLE = 6;
+  const HORDES_PER_BATTLE =
+    levelData?.structure?.defaultHordesPerBattle || 20;
   const BETWEEN_BATTLE_PAUSE = 3;
   const BETWEEN_HORDE_PAUSE = 2.3;
   const LEVEL_INTRO_DURATION = 2.6;
@@ -47,15 +48,8 @@
     typeof window.setTimeout === "function" ? window.setTimeout.bind(window) : null;
 
   function getDevConfig() {
-    try {
-      const raw = typeof localStorage !== "undefined" ? localStorage.getItem("battlechurch.devLevelConfig") : null;
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === "object") return parsed;
-      }
-    } catch (e) {}
-    if (levelData && typeof levelData === "object" && levelData.devLevelConfig) {
-      return levelData.devLevelConfig;
+    if (levelData && typeof levelData === "object" && Object.keys(levelData).length) {
+      return levelData;
     }
     if (typeof levelBuilder?.getConfig === "function") {
       try {
@@ -64,6 +58,13 @@
         return null;
       }
     }
+    try {
+      const raw = typeof localStorage !== "undefined" ? localStorage.getItem("battlechurch.devLevelConfig") : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") return parsed;
+      }
+    } catch (e) {}
     return null;
   }
 
@@ -107,6 +108,12 @@
     const defaultHpb = scope.cfg?.structure?.defaultHordesPerBattle;
     if (Number.isFinite(defaultHpb) && defaultHpb > 0) return defaultHpb;
     return fallback;
+  }
+
+  function getBattleHordeCount(battle) {
+    return Array.isArray(battle?.hordes) && battle.hordes.length
+      ? battle.hordes.length
+      : HORDES_PER_BATTLE;
   }
 
   const deps = {
@@ -257,39 +264,32 @@
     const scopedAllKill = Boolean(scope.horde?.allKill);
 
     // Collect builder overrides (weighted + explicit can both apply)
-    const delaysWeighted = (scope.horde && scope.horde.delaysWeighted) || {};
-    const delaysExplicit = (scope.horde && scope.horde.delaysExplicit) || {};
     const explicitEntries = Array.isArray(scope.horde?.entries)
       ? scope.horde.entries
           .filter((e) => e && e.enemy && !hidden.has(e.enemy))
           .map((e) => ({
             type: e.enemy,
             count: Math.max(1, Math.floor(e.count || 1)),
-            delay: Number.isFinite(delaysExplicit[e.enemy]) ? delaysExplicit[e.enemy] : 0,
+            delay: 0,
           }))
       : [];
 
-    let weightedEntries = [];
-    if (scope.horde?.weights && Object.keys(scope.horde.weights).length) {
-      const weights = scope.horde.weights;
-      const weightTotal = Object.values(weights).reduce((a, b) => a + (Number(b) || 0), 0) || 1;
-      weightedEntries = Object.entries(weights)
-        .filter(([type]) => !hidden.has(type))
-        .map(([type, weight]) => {
-          const ratio = Math.max(0, Number(weight) || 0) / weightTotal;
-          const count = Math.max(0, Math.round(totalEnemies * ratio));
-          return {
-            type,
-            count,
-            delay: Number.isFinite(delaysWeighted[type]) ? delaysWeighted[type] : 0,
-          };
-        });
-    }
+    const weightedEntries = [];
 
     const mergedExplicitWeighted = [...weightedEntries, ...explicitEntries];
     if (mergedExplicitWeighted.length) {
       return {
         enemies: mergedExplicitWeighted,
+        powerUps: 1 + Math.floor(difficultyRating / 2),
+        duration: durationSeconds,
+        allKill: scopedAllKill,
+      };
+    }
+
+    // When a level config is present, always rely on builder data.
+    if (scope.cfg && scope.horde) {
+      return {
+        enemies: [],
         powerUps: 1 + Math.floor(difficultyRating / 2),
         duration: durationSeconds,
         allKill: scopedAllKill,
@@ -462,6 +462,13 @@
     };
     helperConfig.selectEnemyType = (levelNumber, tier) =>
       selectHordeEnemyType(levelNumber, tier, helperConfig);
+    const HORDE_BANNER_LINES = [
+      "Here they come!",
+      "Hold the line!",
+      "Tougher enemies appear!",
+      "Wave incoming!",
+      "Brace yourself!",
+    ];
 
     const state = {
       active: false,
@@ -869,6 +876,20 @@
       resetStage("hordeIntro", HORDE_INTRO_DURATION);
       const hordeLabel = `${state.monthIndex + 1}-${state.battleIndex + 1}`;
       setDevStatus(`Horde ${hordeLabel}`, HORDE_INTRO_DURATION + 0.6);
+      try {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const line = typeof randomChoice === "function"
+          ? randomChoice(HORDE_BANNER_LINES)
+          : HORDE_BANNER_LINES[0];
+        const battleNum = state.monthIndex + 1;
+        const hordeNum = state.battleIndex + 1;
+        const bannerText = `BATTLE ${battleNum}  HORDE ${hordeNum}\n${line}`;
+        window.__BATTLECHURCH_HORDE_BANNER = {
+          text: String(bannerText).toUpperCase(),
+          start: now,
+          duration: 5000,
+        };
+      } catch (e) {}
       scheduleConversation(0.4, () => {
         heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
       });
@@ -895,7 +916,7 @@
       if (!horde) return;
       const hordeActiveDuration = Number.isFinite(horde?.duration) ? horde.duration : 12;
       const currentBattle = state.definition?.battles?.[state.monthIndex] || null;
-      const totalHordes = Array.isArray(currentBattle?.hordes) ? currentBattle.hordes.length : HORDES_PER_BATTLE;
+      const totalHordes = getBattleHordeCount(currentBattle);
       const finalHorde = state.battleIndex + 1 >= totalHordes;
       if (finalHorde && typeof getPendingPortalSpawnCount === "function") {
         state.pendingPortalSpawnBaseline = getPendingPortalSpawnCount();
@@ -943,7 +964,7 @@
     function handleHordeCleared() {
       const battleNumber = state.monthIndex + 1;
       const hordeNumber = state.battleIndex + 1;
-      const finalHorde = hordeNumber >= HORDES_PER_BATTLE;
+      const finalHorde = hordeNumber >= getBattleHordeCount(currentBattle());
       state.pendingPortalSpawnBaseline = 0;
       spawnPowerUpDrops(state.activeHorde?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
@@ -1171,7 +1192,7 @@ state.battleIndex = -1;
       case "hordeActive": {
         state.timer = Math.max(0, state.timer - dt);
         const battle = currentBattle();
-        const totalHordes = Array.isArray(battle?.hordes) ? battle.hordes.length : HORDES_PER_BATTLE;
+        const totalHordes = getBattleHordeCount(battle);
         const finalHorde = state.battleIndex + 1 >= totalHordes;
         const enemiesRemain = hasActiveOpponents(false);
         const timerElapsed = state.timer <= 0;
@@ -1194,7 +1215,7 @@ state.battleIndex = -1;
     case "hordeCleared": {
       state.timer -= dt;
       const battle = currentBattle();
-      const totalHordes = Array.isArray(battle?.hordes) ? battle.hordes.length : HORDES_PER_BATTLE;
+      const totalHordes = getBattleHordeCount(battle);
       const finalHorde = state.battleIndex + 1 >= totalHordes;
       if (finalHorde && state.timer <= 0 && state.finalHordeDelay > 0) {
         state.finalHordeDelay = Math.max(0, state.finalHordeDelay - dt);
@@ -1404,7 +1425,7 @@ state.battleIndex = -1;
           return true;
         }
   devClearOpponents();
-  state.battleIndex = HORDES_PER_BATTLE - 1;
+  state.battleIndex = getBattleHordeCount(currentBattle()) - 1;
         state.activeHorde = null;
         handleBattleComplete();
         state.timer = 0;
@@ -1440,7 +1461,7 @@ state.battleIndex = -1;
         if (state.stage === "battleIntermission" || state.stage === "hordeCleared") {
           devClearOpponents();
           state.battleIndex = MONTHS_PER_LEVEL - 1;
-          state.battleIndex = HORDES_PER_BATTLE - 1; // set last horde index
+          state.battleIndex = getBattleHordeCount(currentBattle()) - 1; // set last horde index
           state.activeHorde = null;
           beginBossIntro();
           state.timer = 0;
@@ -1448,7 +1469,7 @@ state.battleIndex = -1;
         }
         devClearOpponents();
         state.battleIndex = MONTHS_PER_LEVEL - 1;
-        state.battleIndex = HORDES_PER_BATTLE - 1; // fallback assignment
+        state.battleIndex = getBattleHordeCount(currentBattle()) - 1; // fallback assignment
         state.activeHorde = null;
         handleBattleComplete();
         state.timer = 0;
@@ -1464,7 +1485,7 @@ state.battleIndex = -1;
         }
         devClearOpponents({ includeBoss: true });
         state.monthIndex = MONTHS_PER_LEVEL - 1;
-        state.battleIndex = HORDES_PER_BATTLE - 1;
+        state.battleIndex = getBattleHordeCount(currentBattle()) - 1;
         beginBossIntro();
         state.timer = 0;
         return true;
