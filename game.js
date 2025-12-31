@@ -4535,6 +4535,20 @@ function shouldEnemyHuntNpcs(type, config = {}) {
   return false;
 }
 
+function drawPickupLabel(context, text, x, y, color = "#ffffff") {
+  if (!context || !text) return;
+  context.save();
+  context.font = `12px ${UI_FONT_FAMILY}`;
+  context.textAlign = "center";
+  context.textBaseline = "bottom";
+  context.lineWidth = 3;
+  context.strokeStyle = "rgba(0, 0, 0, 0.75)";
+  context.fillStyle = color;
+  context.strokeText(text, x, y);
+  context.fillText(text, x, y);
+  context.restore();
+}
+
 class Animal {
   constructor(definition) {
     this.type = definition.type;
@@ -4641,6 +4655,11 @@ class Animal {
     ctx.arc(0, 0, ringR, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
+    const label = this.definition?.label || "";
+    if (label) {
+      const labelY = this.y - height / 2 - 6;
+      drawPickupLabel(ctx, label, this.x, labelY, this.definition?.color || "#ffffff");
+    }
   }
 }
 
@@ -4738,6 +4757,11 @@ class UtilityPowerUp {
     context.arc(0, 0, ringR, 0, Math.PI * 2);
     context.stroke();
     context.restore();
+    const label = this.label || this.definition?.label || "";
+    if (label) {
+      const labelY = this.y - height / 2 - 6;
+      drawPickupLabel(context, label, this.x, labelY, this.color || "#ffffff");
+    }
   }
 
   hitTest(entity) {
