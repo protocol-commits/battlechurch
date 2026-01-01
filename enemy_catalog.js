@@ -373,8 +373,8 @@
   },
   "orcRider": {
     "displayName": "Orc Rider",
-    "assetFolder": "Orc rider",
-    "assetBaseName": "Orc rider",
+    "assetFolder": "Orc Rider",
+    "assetBaseName": "Orc Rider",
     "health": 280,
     "maxHealth": 280,
     "damage": 5,
@@ -523,6 +523,8 @@
       "swarmable",
       "popcorn"
     ],
+    "tintColor": "#7ec6ff",
+    "tintIntensity": 0.75,
     "swarmSpacing": 0.1
   },
   "miniFireImp": {
