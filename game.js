@@ -161,6 +161,7 @@ const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const KEY_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const INTRO_MUSIC_SRC = "assets/music/war-full.mp3";
 const BATTLE_MUSIC_SRC = "assets/music/battle4.wav";
+const RECAP_MUSIC_SRC = "assets/music/inspiringtrailer.wav";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/utility/utility9.mp3";
@@ -219,10 +220,14 @@ const npcHurtSfxPool = [];
 const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
+  recap: typeof Audio !== "undefined" ? new Audio(RECAP_MUSIC_SRC) : null,
   introStarted: false,
   battleStarted: false,
+  recapStarted: false,
   introStopped: false,
   battleStopped: false,
+  recapStopped: false,
+  battlePrimed: false,
   awaitingUserGesture: false,
   unlocked: false,
   fadeHandles: new Map(),
@@ -231,6 +236,10 @@ if (musicState.intro) musicState.intro.preload = "auto";
 if (musicState.battle) {
   musicState.battle.preload = "auto";
   musicState.battle.loop = true;
+}
+if (musicState.recap) {
+  musicState.recap.preload = "auto";
+  musicState.recap.loop = true;
 }
 
 function playDefaultArrowSfx(volume = 0.6) {
@@ -801,9 +810,25 @@ function stopIntroMusic() {
 }
 
 function startBattleMusic() {
-  if (!musicState.battle || musicState.battleStarted || musicState.battleStopped) return;
+  if (!musicState.battle) return;
+  cancelFade(musicState.battle);
+  musicState.battleStopped = false;
   musicState.battleStarted = true;
   playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+}
+
+function startRecapMusic() {
+  if (!musicState.recap || !musicState.unlocked) return;
+  if (musicState.recapStarted && !musicState.recapStopped) return;
+  musicState.recapStarted = true;
+  musicState.recapStopped = false;
+  playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+}
+
+function stopRecapMusic() {
+  if (!musicState.recap || musicState.recapStopped) return;
+  musicState.recapStopped = true;
+  fadeAudio(musicState.recap, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
 }
 
 function stopBattleMusicFast() {
@@ -812,17 +837,33 @@ function stopBattleMusicFast() {
   fadeAudio(musicState.battle, { to: 0, durationMs: MUSIC_FADE_FAST_MS, stopOnZero: true });
 }
 
+function fadeOutBattleMusic() {
+  if (!musicState.battle || musicState.battleStopped) return;
+  musicState.battleStopped = true;
+  musicState.battleStarted = false;
+  fadeAudio(musicState.battle, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+}
+
 function pauseAllMusic() {
   if (musicState.intro) musicState.intro.pause();
   if (musicState.battle) musicState.battle.pause();
+  if (musicState.recap) musicState.recap.pause();
 }
 
 function resumeBattleMusicIfNeeded() {
   if (!musicState.unlocked) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const stage = status?.stage || "";
-  const shouldPlay = Boolean(status?.level === 1 && stage !== "levelSummary");
-  if (shouldPlay && !musicState.battleStopped) {
+  const shouldPlay =
+    stage === "npcArrival" ||
+    stage === "battleIntro" ||
+    stage === "hordeIntro" ||
+    stage === "hordeActive" ||
+    stage === "hordeCleared" ||
+    stage === "bossIntro" ||
+    stage === "bossActive" ||
+    musicState.battlePrimed;
+  if (shouldPlay) {
     if (!musicState.battleStarted) {
       startBattleMusic();
     } else if (musicState.battle && musicState.battle.paused) {
@@ -833,7 +874,16 @@ function resumeBattleMusicIfNeeded() {
 
 function shouldStartBattleMusicNow() {
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-  return Boolean(status?.level === 1 && status?.stage === "levelIntro");
+  return Boolean(
+    status?.stage === "npcArrival" ||
+      status?.stage === "battleIntro" ||
+      status?.stage === "hordeIntro" ||
+      status?.stage === "hordeActive" ||
+      status?.stage === "hordeCleared" ||
+      status?.stage === "bossIntro" ||
+      status?.stage === "bossActive" ||
+      musicState.battlePrimed,
+  );
 }
 
 function unlockMusicOnGesture() {
@@ -871,10 +921,18 @@ function resetMusicState() {
     musicState.battle.currentTime = 0;
     musicState.battle.volume = 0;
   }
+  if (musicState.recap) {
+    cancelFade(musicState.recap);
+    musicState.recap.pause();
+    musicState.recap.currentTime = 0;
+    musicState.recap.volume = 0;
+  }
   musicState.introStarted = false;
   musicState.battleStarted = false;
+  musicState.recapStarted = false;
   musicState.introStopped = false;
   musicState.battleStopped = false;
+  musicState.recapStopped = false;
   musicState.awaitingUserGesture = false;
   musicState.unlocked = false;
 }
@@ -882,6 +940,12 @@ function resetMusicState() {
 if (typeof window !== "undefined") {
   window.stopIntroMusic = stopIntroMusic;
   window.stopBattleMusicFast = stopBattleMusicFast;
+  window.fadeOutBattleMusic = fadeOutBattleMusic;
+  window.startBattleMusicFromFormation = () => {
+    musicState.battlePrimed = true;
+    musicState.unlocked = true;
+    startBattleMusic();
+  };
   window.pauseAllMusic = pauseAllMusic;
   window.resumeBattleMusicIfNeeded = resumeBattleMusicIfNeeded;
 }
@@ -3899,6 +3963,7 @@ let pendingUpgradeAfterSummary = false;
 function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAfter, portraits = {}) {
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   pendingUpgradeAfterSummary = Boolean(upgradeAfter);
+  startRecapMusic();
   const summary = levelManager?.getLastBattleSummary?.() || {};
   const status = levelManager?.getStatus?.() || null;
   const savedNames = Array.isArray(summary.savedNames)
@@ -9285,14 +9350,33 @@ function updateGame(dt) {
 
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   let stage = levelStatus?.stage;
-  if (levelStatus?.level === 1 && stage === "levelIntro") {
+  const battleShouldPlay =
+    stage === "npcArrival" ||
+    stage === "battleIntro" ||
+    stage === "hordeIntro" ||
+    stage === "hordeActive" ||
+    stage === "hordeCleared" ||
+    stage === "bossIntro" ||
+    stage === "bossActive" ||
+    musicState.battlePrimed;
+  if (battleShouldPlay) {
+    if (stage && stage !== "briefing") {
+      musicState.battlePrimed = false;
+    }
+    if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
     if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
-    if (musicState.unlocked && !musicState.battleStarted && !musicState.battleStopped) {
+    if (musicState.unlocked && !musicState.battleStarted) {
       startBattleMusic();
     }
+  } else if (musicState.battleStarted && !musicState.battleStopped) {
+    fadeOutBattleMusic();
   }
-  if (stage === "levelSummary" && musicState.battleStarted && !musicState.battleStopped) {
-    stopBattleMusicFast();
+  if (
+    stage === "levelIntro" ||
+    stage === "briefing" ||
+    stage === "npcArrival"
+  ) {
+    if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
   }
   // reset mini spawn flag when level changes
   const currentLevelNumber = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
