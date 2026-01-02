@@ -2347,10 +2347,10 @@ function loadImage(src) {
     const originalSrc = src;
     const cached = assetSrcResolutionCache.get(originalSrc) || null;
     const image = new Image();
-    let triedFallback = false;
-    let fallbackSrc = null;
+    let fallbackIndex = 0;
+    const fallbackCandidates = [];
 
-    const computeLowercaseFallback = (input) => {
+    const computeLowercaseFilenameFallback = (input) => {
       try {
         const parts = input.split("/");
         const filename = parts.pop() || "";
@@ -2365,9 +2365,24 @@ function loadImage(src) {
       return null;
     };
 
+    const computeLowercasePathFallback = (input) => {
+      try {
+        const parts = input.split("/").map((part) => part.toLowerCase());
+        return parts.join("/");
+      } catch (e) {
+        return null;
+      }
+    };
+
     if (!cached) {
-      const fallbackCandidate = computeLowercaseFallback(originalSrc);
-      if (fallbackCandidate) fallbackSrc = withAssetVersion(fallbackCandidate);
+      const lowerFile = computeLowercaseFilenameFallback(originalSrc);
+      if (lowerFile && lowerFile !== originalSrc) {
+        fallbackCandidates.push(withAssetVersion(lowerFile));
+      }
+      const lowerPath = computeLowercasePathFallback(originalSrc);
+      if (lowerPath && lowerPath !== originalSrc) {
+        fallbackCandidates.push(withAssetVersion(lowerPath));
+      }
     }
 
     image.onload = () => {
@@ -2378,11 +2393,14 @@ function loadImage(src) {
     };
 
     image.onerror = () => {
-      if (!cached && !triedFallback && fallbackSrc && fallbackSrc !== image.src) {
-        triedFallback = true;
-        assetSrcResolutionCache.set(originalSrc, fallbackSrc);
-        image.src = fallbackSrc;
-        return;
+      if (!cached && fallbackIndex < fallbackCandidates.length) {
+        const next = fallbackCandidates[fallbackIndex];
+        fallbackIndex += 1;
+        if (next && next !== image.src) {
+          assetSrcResolutionCache.set(originalSrc, next);
+          image.src = next;
+          return;
+        }
       }
       reject(new Error(`Failed to load image: ${image.src}`));
     };
