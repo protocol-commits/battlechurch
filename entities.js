@@ -1643,9 +1643,14 @@ class Player {
         if (this.state !== "death") {
           this.state = "death";
           this.animator.play("death", { restart: true, loop: false });
+          const highHealth = (this.maxHealth || 0) > 400;
+          const playHighHealthDeathSfx =
+            typeof window !== "undefined" ? window.playHighHealthEnemyDeathSfx : null;
           const playDeathSfx =
             typeof window !== "undefined" ? window.playEnemyDeathSfx : null;
-          if (typeof playDeathSfx === "function") {
+          if (highHealth && typeof playHighHealthDeathSfx === "function") {
+            playHighHealthDeathSfx(1.0);
+          } else if (typeof playDeathSfx === "function") {
             playDeathSfx(0.35);
           }
           this.ignoreEntityCollisions = true;

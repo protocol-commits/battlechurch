@@ -166,6 +166,8 @@ const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/utility/utility9.mp3";
 const CHATTY_HIT_SFX_SRC = "assets/sfx/utility/utility3.mp3";
 const VISITOR_SAVED_SFX_SRC = "assets/sfx/utility/utility17.mp3";
+const NPC_HURT_SFX_SRC = "assets/sfx/npcs/ow1.wav";
+const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9.wav";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
   { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
@@ -188,6 +190,7 @@ const KEY_PICKUP_SFX_POOL_SIZE = 4;
 const VISITOR_HIT_SFX_POOL_SIZE = 4;
 const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
+const NPC_HURT_SFX_POOL_SIZE = 4;
 const MUSIC_VOLUME_INTRO = 0.65;
 const MUSIC_VOLUME_BATTLE = 0.7;
 const MUSIC_FADE_OUT_MS = 1200;
@@ -211,6 +214,7 @@ const keyPickupSfxPool = [];
 const visitorHitSfxPool = [];
 const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
+const npcHurtSfxPool = [];
 const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
@@ -283,6 +287,52 @@ function playEnemyHitSfx(volume = 1) {
 
 if (typeof window !== "undefined") {
   window.playEnemyHitSfx = playEnemyHitSfx;
+}
+
+function playHighHealthEnemyDeathSfx(volume = 1.0) {
+  if (typeof Audio === "undefined") return;
+  const channel = enemyDeathGruntChannel;
+  if (channel && !channel.paused && !channel.ended) return;
+  const audio = channel || new Audio();
+  try {
+    audio.src = HIGH_HEALTH_DEATH_GRUNT_SRC;
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playHighHealthEnemyDeathSfx = playHighHealthEnemyDeathSfx;
+}
+
+function playNpcHurtSfx(volume = 0.6) {
+  if (typeof Audio === "undefined") return;
+  let audio = npcHurtSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (npcHurtSfxPool.length < NPC_HURT_SFX_POOL_SIZE) {
+      audio = new Audio(NPC_HURT_SFX_SRC);
+      audio.preload = "auto";
+      npcHurtSfxPool.push(audio);
+    } else {
+      audio = npcHurtSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playNpcHurtSfx = playNpcHurtSfx;
 }
 
 function playEnemyDeathSfx(volume = 0.35) {
@@ -6199,6 +6249,9 @@ class CozyNpc {
         fadeDelay: 0.5,
       });
     } catch (e) {}
+    if (typeof playNpcHurtSfx === "function") {
+      playNpcHurtSfx(0.6);
+    }
     spawnFlashEffect(this.x, this.y - this.radius / 2);
     this.damageFlashTimer = DAMAGE_FLASH_DURATION;
     this.faithBarTimer = 2.4;
@@ -7101,7 +7154,10 @@ class BossEncounter {
   this.state = "death";
   // Ensure boss death animation plays once and does not loop
   this.animator.play("death", { restart: true, loop: false });
-    if (typeof playEnemyDeathSfx === "function") {
+    const highHealth = (this.maxHealth || 0) > 400;
+    if (highHealth && typeof playHighHealthEnemyDeathSfx === "function") {
+      playHighHealthEnemyDeathSfx(1.0);
+    } else if (typeof playEnemyDeathSfx === "function") {
       playEnemyDeathSfx(0.4);
     }
     this.dying = true;
