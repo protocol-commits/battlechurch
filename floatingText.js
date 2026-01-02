@@ -87,6 +87,7 @@
       offsetY = 0,
       persist = false,
       critical = false,
+      priority = 0,
       style,
       bubbleTheme = "default",
       bgColor = null,
@@ -122,6 +123,7 @@
       fontSize,
       fontWeight,
       fontFamily,
+      priority,
       fadeDelay,
       fadeLength,
       fadeDelayRemaining: fadeDelay,
@@ -159,6 +161,7 @@
     fontSize = null,
     fontWeight = null,
     fadeDelay = 0,
+    priority = 0,
   } = {}) {
     if (!entity) return;
     const rounded = Math.round(amount);
@@ -184,6 +187,7 @@
         fontSize: finalFontSize,
         fontWeight: finalFontWeight,
         fadeDelay,
+        priority,
       },
     );
   }

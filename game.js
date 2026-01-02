@@ -7063,14 +7063,22 @@ class BossEncounter {
     }
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, options = {}) {
     if (this.invalid || this.removed || this.state === "death") return;
     this.health = Math.max(0, this.health - amount);
     spawnImpactEffect(this.x, this.y - this.radius / 2);
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx();
     }
-    showDamage(this, amount, { color: "#ff9191" });
+    const damageText = options?.damageText || null;
+    showDamage(this, amount, {
+      color: damageText?.color || "#ff9191",
+      fontSize: damageText?.fontSize || null,
+      fontWeight: damageText?.fontWeight || null,
+      offsetY: damageText?.offsetY || 0,
+      fadeDelay: damageText?.fadeDelay || 0,
+      priority: damageText?.priority || 0,
+    });
     if (this.health <= 0) {
       this.beginDeath();
       return;
@@ -9586,6 +9594,8 @@ function updateGame(dt) {
       fade: 0,
       cooldown: 0,
       buttonDown: false,
+      didAttackThisPress: false,
+      swingId: 0,
       chargeTimer: 0,
       isCharging: false,
       isRushing: false,
@@ -9680,7 +9690,12 @@ const DIVINE_SHOT_DAMAGE = 1200;
         const dist = Math.hypot(dx, dy);
         const enemyRadius = enemy.config?.hitRadius || enemy.radius || 0;
         if (dist < RUSH_RADIUS + enemyRadius) {
-          enemy.takeDamage(RUSH_DAMAGE);
+          const canTakeDamage = typeof enemy.takeDamage === "function";
+          if (canTakeDamage) {
+            enemy.takeDamage(RUSH_DAMAGE);
+          } else if (typeof enemy.health === "number") {
+            enemy.health = Math.max(0, enemy.health - RUSH_DAMAGE);
+          }
           const pushDx = enemy.x - player.x;
           const pushDy = enemy.y - player.y;
           const pushDist = Math.hypot(pushDx, pushDy) || 1;
@@ -9690,7 +9705,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
           enemy.x += pushNormX * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
           enemy.y += pushNormY * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
           spawnFlashEffect(enemy.x, enemy.y - enemyRadius / 2);
-          if (typeof showDamage === "function") {
+          if (!canTakeDamage && typeof showDamage === "function") {
             showDamage(enemy, RUSH_DAMAGE, { color: "#ffc8a2" });
           }
           meleeAttackState.rushHitEntities?.add(enemy);
@@ -9750,6 +9765,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
     function executeMeleeAttack(direction) {
       if (!player || !direction) return;
       const normalized = normalizeVector(direction.x, direction.y);
+      meleeAttackState.swingId = (meleeAttackState.swingId || 0) + 1;
     meleeAttackState.active = true;
     meleeAttackState.fade = MELEE_DAMAGE_DURATION;
     meleeAttackState.cooldown = MELEE_COOLDOWN;
@@ -9781,6 +9797,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
       const allowanceRadius = (target) => target?.radius || target?.config?.hitRadius || 0;
       const hitTarget = (target) => {
         if (!target || target.dead || target.state === "death") return false;
+        if (target._lastMeleeSwingId === meleeAttackState.swingId) return false;
         const prevHealth =
           typeof target.health === "number" ? target.health : null;
         const relX = target.x - originX;
@@ -9790,11 +9807,19 @@ const DIVINE_SHOT_DAMAGE = 1200;
         const perp = Math.abs(relX * perpDir.x + relY * perpDir.y);
         const allowance = allowanceRadius(target);
         if (perp > swingHeight / 2 + allowance) return false;
-        if (typeof target.takeDamage === "function") {
-          target.takeDamage(meleeDamage);
+        const canTakeDamage = typeof target.takeDamage === "function";
+        const meleeDamageText = {
+          color: "#ffe66b",
+          fontSize: 26,
+          fontWeight: "800",
+          priority: 5,
+        };
+        if (canTakeDamage) {
+          target.takeDamage(meleeDamage, { damageText: meleeDamageText });
         } else if (typeof target.health === "number") {
           target.health = Math.max(0, target.health - meleeDamage);
         }
+        target._lastMeleeSwingId = meleeAttackState.swingId;
         if (
           prevHealth !== null &&
           prevHealth > 0 &&
@@ -9810,8 +9835,13 @@ const DIVINE_SHOT_DAMAGE = 1200;
           target.x += normalized.x * MELEE_DAMAGE_KNOCKBACK;
           target.y += normalized.y * MELEE_DAMAGE_KNOCKBACK;
         }
-        if (typeof showDamage === "function") {
-          showDamage(target, meleeDamage, { color: "#ff4444", critical: true });
+        if (!canTakeDamage && typeof showDamage === "function") {
+          showDamage(target, meleeDamage, {
+            color: meleeDamageText.color,
+            fontSize: meleeDamageText.fontSize,
+            fontWeight: meleeDamageText.fontWeight,
+            priority: meleeDamageText.priority,
+          });
         }
         return true;
       };
@@ -9871,6 +9901,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
     if (isButtonDown && !wasButtonDown) {
       meleeAttackState.buttonDown = true;
+      meleeAttackState.didAttackThisPress = false;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = false;
       clearDivineChargeSparkVisual();
@@ -9889,6 +9920,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
       if (!rushTriggered) {
         executeMeleeAttack(direction);
         meleeAttackTriggered = true;
+        meleeAttackState.didAttackThisPress = true;
       }
     }
 
@@ -9911,8 +9943,9 @@ const DIVINE_SHOT_DAMAGE = 1200;
       } else if (meleeAttackState.isCharging) {
         spawnDivineShot(direction);
       }
-      else if (!meleeAttackTriggered) {
+      else if (!meleeAttackTriggered && !meleeAttackState.didAttackThisPress) {
         executeMeleeAttack(direction);
+        meleeAttackState.didAttackThisPress = true;
       }
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = false;

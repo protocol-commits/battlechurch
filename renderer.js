@@ -1865,6 +1865,9 @@ function drawLevelAnnouncements() {
     try {
       drawFloatingTextsOverlay(ctx);
     } catch (e) {}
+    try {
+      drawEnemyHpLabelsOverlay(ctx);
+    } catch (e) {}
 
     if (
       damageHitFlash > 0 &&
@@ -1978,7 +1981,10 @@ function drawLevelAnnouncements() {
     const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    floatingTexts.forEach((ft) => {
+    const orderedTexts = floatingTexts
+      .slice()
+      .sort((a, b) => (a.priority || 0) - (b.priority || 0));
+    orderedTexts.forEach((ft) => {
       const drawX = ft.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
       const drawY = ft.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
       ctx.save();
@@ -2131,9 +2137,7 @@ function drawLevelAnnouncements() {
     enemyHpLabels.forEach((entry) => {
       const drawX = entry.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
       const drawY = entry.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
-      const label = `${entry.name} | ${Math.round(entry.hp || 0)} | ${Math.round(
-        entry.damage || 0,
-      )}`;
+      const label = `${Math.round(entry.hp || 0)}`;
       ctx.strokeText(label, drawX, drawY);
       ctx.fillStyle = "#ff6b6b";
       ctx.fillText(label, drawX, drawY);

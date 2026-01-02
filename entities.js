@@ -1619,11 +1619,19 @@ class Player {
       }
     }
 
-    takeDamage(amount) {
+    takeDamage(amount, options = {}) {
       if (this.state === "death") return;
       this.health -= amount;
+      const damageText = options?.damageText || null;
       if (typeof showDamage === "function") {
-        showDamage(this, amount, { color: "#ff8181" });
+        showDamage(this, amount, {
+          color: damageText?.color || "#ff8181",
+          fontSize: damageText?.fontSize || null,
+          fontWeight: damageText?.fontWeight || null,
+          offsetY: damageText?.offsetY || 0,
+          fadeDelay: damageText?.fadeDelay || 0,
+          priority: damageText?.priority || 0,
+        });
       }
       const playHitSfx = typeof window !== "undefined" ? window.playEnemyHitSfx : null;
       if (typeof playHitSfx === "function") {
@@ -1697,10 +1705,11 @@ class Player {
         this.drawHealthBars();
       }
       if (this.state !== "death") {
-        const labelY = drawY - (this.config?.hitRadius || 0) - 8;
+        const hitRadius = this.config?.hitRadius || 0;
+        const labelY = drawY - (hitRadius > 0 ? hitRadius * 0.6 : 6);
         if (typeof window !== "undefined" && Array.isArray(window.__battlechurchEnemyHpLabels)) {
           const hpValue = Math.max(0, Math.round(this.health || 0));
-          if (hpValue >= 15) {
+          if (hpValue > 100) {
             window.__battlechurchEnemyHpLabels.push({
               x: this.x,
               y: labelY,
