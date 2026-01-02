@@ -60,7 +60,7 @@
     }
   })();
 
-  const isTouchCapable = true;
+  const isTouchCapable = false;
 
   let canvas = null;
   let touchControlsRoot = null;

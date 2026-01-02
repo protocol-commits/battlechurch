@@ -1,3 +1,7 @@
+#touchControls {
+  display: none;
+}
+
 body.touch-enabled .touch-row {
   position: absolute;
   left: 0;

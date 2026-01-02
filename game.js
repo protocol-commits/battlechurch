@@ -168,6 +168,7 @@ const CHATTY_HIT_SFX_SRC = "assets/sfx/utility/utility3.mp3";
 const VISITOR_SAVED_SFX_SRC = "assets/sfx/utility/utility17.mp3";
 const NPC_HURT_SFX_SRC = "assets/sfx/npcs/ow1.wav";
 const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9.wav";
+const DIVINE_SHOT_SFX_SRC = "assets/sfx/rpg/Magic/fireball_whoosh_01.wav";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
   { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
@@ -472,6 +473,36 @@ function playFireballCastSfx(volume = 0.55) {
 
 if (typeof window !== "undefined") {
   window.playFireballCastSfx = playFireballCastSfx;
+}
+
+function playDivineShotSfx(volume = 1.0) {
+  if (typeof Audio === "undefined") return;
+  const src = DIVINE_SHOT_SFX_SRC;
+  let audio = fireballSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (fireballSfxPool.length < FIREBALL_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      fireballSfxPool.push(audio);
+    } else {
+      audio = fireballSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playDivineShotSfx = playDivineShotSfx;
 }
 
 function playWisdomCastSfx(volume = 0.55) {
@@ -9928,6 +9959,9 @@ const DIVINE_SHOT_DAMAGE = 1200;
       const startX = player.x + normalized.x * player.radius * 1.4;
       const startY = player.y + normalized.y * player.radius * 1.4;
       const targetedEnemy = findDivineShotTarget(direction);
+      if (typeof playDivineShotSfx === "function") {
+        playDivineShotSfx(1.0);
+      }
       spawnProjectile("fire", startX, startY, normalized.x, normalized.y, {
         damage: DIVINE_SHOT_DAMAGE * 1,
         speed: DIVINE_SHOT_SPEED * 1.25,

@@ -844,17 +844,29 @@ function drawLevelAnnouncements() {
     ctx.fillText(`Current Members: ${memberCount}`, canvas.width / 2, titleY + 56);
     ctx.globalAlpha = 1;
 
-    const footerWidth = Math.min(canvas.width * 0.3, 320);
-    const footerX = canvas.width - footerWidth - 24;
-    const footerY = canvas.height - 68;
-    ctx.fillStyle = "rgba(12, 18, 30, 0.8)";
-    ctx.fillRect(footerX, footerY, footerWidth, 44);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    const footerPadding = 22;
+    const footerWidth = canvas.width - footerPadding * 2;
+    const footerHeight = 88;
+    const footerX = footerPadding;
+    const footerY = canvas.height - footerHeight - 16;
+    ctx.fillStyle = "rgba(10, 14, 24, 0.86)";
+    ctx.fillRect(footerX, footerY, footerWidth, footerHeight);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
     ctx.lineWidth = 1;
-    ctx.strokeRect(footerX, footerY, footerWidth, 44);
-    ctx.font = `12px ${UI_FONT_FAMILY}`;
+    ctx.strokeRect(footerX, footerY, footerWidth, footerHeight);
+    ctx.font = `14px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "#f3f6ff";
+    ctx.textAlign = "left";
+    const lineX = footerX + 18;
+    let lineY = footerY + 26;
+    ctx.fillText("WASD: Move", lineX, lineY);
+    lineY += 20;
+    ctx.fillText("Left Arrow: Sword (double tap = Rush, hold = Charge)", lineX, lineY);
+    lineY += 20;
+    ctx.fillText("Right Arrow: Prayer Bomb", lineX, lineY);
     ctx.fillStyle = "#ffe89b";
-    ctx.fillText("Press Space when ready to begin.", footerX + 16, footerY + 26);
+    ctx.textAlign = "right";
+    ctx.fillText("Press Space when ready to begin.", footerX + footerWidth - 18, footerY + footerHeight - 20);
     ctx.restore();
   }
 
@@ -1851,7 +1863,7 @@ function drawLevelAnnouncements() {
   drawSpawnPointDebug(ctx);
   drawNpcHomeBounds(ctx);
   // drawAimAssistOverlay(); // Aim assist cone hidden for now
-    if (pointerState.active) drawReticle();
+    // Reticle hidden while auto-aim is active.
 
     ctx.restore();
 
