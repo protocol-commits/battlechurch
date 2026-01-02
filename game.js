@@ -159,6 +159,8 @@ const FAITH_HIT_SFX_SRCS = [
 ];
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const KEY_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
+const INTRO_MUSIC_SRC = "assets/music/war-full.mp3";
+const BATTLE_MUSIC_SRC = "assets/music/battle4.wav";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/utility/utility9.mp3";
@@ -186,6 +188,10 @@ const KEY_PICKUP_SFX_POOL_SIZE = 4;
 const VISITOR_HIT_SFX_POOL_SIZE = 4;
 const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
+const MUSIC_VOLUME_INTRO = 0.65;
+const MUSIC_VOLUME_BATTLE = 0.7;
+const MUSIC_FADE_OUT_MS = 1200;
+const MUSIC_FADE_FAST_MS = 450;
 const arrowSfxPool = [];
 const enemyHitSfxPool = [];
 const enemyDeathSfxPool = [];
@@ -205,6 +211,20 @@ const keyPickupSfxPool = [];
 const visitorHitSfxPool = [];
 const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
+const musicState = {
+  intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
+  battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
+  introStarted: false,
+  battleStarted: false,
+  introStopped: false,
+  battleStopped: false,
+  fadeHandles: new Map(),
+};
+if (musicState.intro) musicState.intro.preload = "auto";
+if (musicState.battle) {
+  musicState.battle.preload = "auto";
+  musicState.battle.loop = true;
+}
 
 function playDefaultArrowSfx(volume = 0.6) {
   if (typeof Audio === "undefined") return;
@@ -639,6 +659,93 @@ function playEnemySpawnSfx(volume = 0.55, options = {}) {
 
 if (typeof window !== "undefined") {
   window.playEnemySpawnSfx = playEnemySpawnSfx;
+}
+
+function cancelFade(audio) {
+  if (!audio) return;
+  const prev = musicState.fadeHandles.get(audio);
+  if (prev) cancelAnimationFrame(prev);
+  musicState.fadeHandles.delete(audio);
+}
+
+function fadeAudio(audio, { to = 0, durationMs = 800, stopOnZero = true } = {}) {
+  if (!audio) return;
+  cancelFade(audio);
+  const from = Number.isFinite(audio.volume) ? audio.volume : 0;
+  if (durationMs <= 0 || from === to) {
+    audio.volume = to;
+    if (stopOnZero && to === 0) audio.pause();
+    return;
+  }
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - start) / durationMs);
+    audio.volume = from + (to - from) * t;
+    if (t < 1) {
+      const handle = requestAnimationFrame(step);
+      musicState.fadeHandles.set(audio, handle);
+      return;
+    }
+    musicState.fadeHandles.delete(audio);
+    if (stopOnZero && to === 0) audio.pause();
+  };
+  const handle = requestAnimationFrame(step);
+  musicState.fadeHandles.set(audio, handle);
+}
+
+function playMusic(audio, { volume = 0.7, loop = false } = {}) {
+  if (!audio) return;
+  audio.loop = loop;
+  audio.volume = volume;
+  try {
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+function startIntroMusic() {
+  if (!musicState.intro || musicState.introStarted || musicState.introStopped) return;
+  musicState.introStarted = true;
+  playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
+}
+
+function stopIntroMusic() {
+  if (!musicState.intro || musicState.introStopped) return;
+  musicState.introStopped = true;
+  fadeAudio(musicState.intro, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+}
+
+function startBattleMusic() {
+  if (!musicState.battle || musicState.battleStarted || musicState.battleStopped) return;
+  musicState.battleStarted = true;
+  playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+}
+
+function stopBattleMusicFast() {
+  if (!musicState.battle || musicState.battleStopped) return;
+  musicState.battleStopped = true;
+  fadeAudio(musicState.battle, { to: 0, durationMs: MUSIC_FADE_FAST_MS, stopOnZero: true });
+}
+
+function resetMusicState() {
+  if (musicState.intro) {
+    cancelFade(musicState.intro);
+    musicState.intro.pause();
+    musicState.intro.currentTime = 0;
+    musicState.intro.volume = 0;
+  }
+  if (musicState.battle) {
+    cancelFade(musicState.battle);
+    musicState.battle.pause();
+    musicState.battle.currentTime = 0;
+    musicState.battle.volume = 0;
+  }
+  musicState.introStarted = false;
+  musicState.battleStarted = false;
+  musicState.introStopped = false;
+  musicState.battleStopped = false;
 }
 
 function playVisitorHitSfx(volume = 0.55) {
@@ -3538,6 +3645,7 @@ const TITLE_OVERLAY_BODY =
 function showTitleDialog() {
   if (!window.DialogOverlay || titleDialogActive) return;
   titleDialogActive = true;
+  startIntroMusic();
   window.DialogOverlay.show({
     title: "Battle Church",
     body: TITLE_OVERLAY_BODY,
@@ -3555,6 +3663,7 @@ function startGameFromTitle() {
   paused = true;
   needsCountdown = false;
   gameStarted = false;
+  startIntroMusic();
   if (window.StatsManager) window.StatsManager.resetStats();
   // Clear any previously queued announcements so the congregation doesn't show
   // immediately (init/restart may have queued them at startup).
@@ -3566,8 +3675,12 @@ function startGameFromTitle() {
     howToPlayActive = false;
     paused = false;
     if (levelManager && typeof levelManager.startBriefing === "function") {
+      stopIntroMusic();
+      startBattleMusic();
       levelManager.startBriefing(1);
     } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
+      stopIntroMusic();
+      startBattleMusic();
       levelManager.advanceFromBriefing(1);
     }
     return;
@@ -8219,8 +8332,10 @@ function markVisitorGuestSaved(guest) {
 
 function applyHeartToEntity(entity, options = {}) {
   if (!entity) return;
+  if (typeof playEnemyHitSfx === "function") {
+    playEnemyHitSfx();
+  }
   if (entity.type === "guest") {
-    playVisitorHitSfx(0.55);
     if (entity.saved) {
       spawnVisitorHeartHitEffect(entity.x, entity.y - entity.radius / 2, { radius: entity.radius || 28 });
       return;
@@ -8248,9 +8363,6 @@ function applyHeartToEntity(entity, options = {}) {
   }
   if (entity.type === "blocker") {
     const isActiveChatty = Boolean(entity.isChatty && entity.crowding && !entity.quieted);
-    if (isActiveChatty) {
-      playChattyHitSfx(0.55);
-    }
     entity.hitsTaken = (entity.hitsTaken || 0) + 1;
     if (options.flash) {
       if (isActiveChatty) {
@@ -9015,6 +9127,13 @@ function updateGame(dt) {
 
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   let stage = levelStatus?.stage;
+  if (levelStatus?.level === 1 && stage === "levelIntro") {
+    if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
+    if (!musicState.battleStarted && !musicState.battleStopped) startBattleMusic();
+  }
+  if (stage === "levelSummary" && musicState.battleStarted && !musicState.battleStopped) {
+    stopBattleMusicFast();
+  }
   // reset mini spawn flag when level changes
   const currentLevelNumber = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
   if (lastLevelNumber === null) lastLevelNumber = currentLevelNumber;
@@ -10389,6 +10508,7 @@ function onPlayerDeath() {
 
 function restartGame() {
   endVisitorSession({ reason: "reset" });
+  resetMusicState();
   resetCongregationSize();
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
@@ -10496,6 +10616,7 @@ async function applySavedManualGrids() {
 
 async function init() {
   try {
+    resetMusicState();
     resetCongregationSize();
     assets = await loadAssets();
     rebuildObstacles();

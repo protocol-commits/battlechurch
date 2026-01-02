@@ -803,6 +803,11 @@ class Player {
         damage: 0,
         source: this,
       });
+      const playArrowSfx =
+        typeof window !== "undefined" ? window.playDefaultArrowSfx : null;
+      if (typeof playArrowSfx === "function") {
+        playArrowSfx(0.55);
+      }
       this.state = "attackArrow";
       this.animator.play("attackArrow", { restart: true });
       this.heartCooldown = this.config.arrowCooldown * 0.8;
