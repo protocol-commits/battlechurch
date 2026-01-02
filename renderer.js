@@ -1656,42 +1656,6 @@ function drawLevelAnnouncements() {
     ctx.translate(-effectiveCameraX, effectiveCameraY);
 
     const bandImg = assets?.backgroundLayers?.floor || null;
-    const drawHordeBanner = () => {
-      const banner = typeof window !== "undefined" ? window.__BATTLECHURCH_HORDE_BANNER : null;
-      if (!banner || !banner.text) return;
-      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-      const elapsed = now - (banner.start || 0);
-      if (elapsed > (banner.duration || 0)) {
-        if (typeof window !== "undefined") window.__BATTLECHURCH_HORDE_BANNER = null;
-        return;
-      }
-      const life = Math.max(0, Math.min(1, 1 - elapsed / Math.max(1, banner.duration || 1)));
-      const alpha = 0.25 + 0.35 * life;
-      const baseSize = Math.max(120, Math.min(240, Math.floor(canvas.width * 0.2)));
-      const maxWidth = canvas.width * 0.9;
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      const lines = String(banner.text).split("\\n");
-      let fontSize = baseSize;
-      ctx.font = `900 ${fontSize}px ${UI_FONT_FAMILY}`;
-      const widest = Math.max(...lines.map((line) => ctx.measureText(line).width || 0));
-      if (widest > maxWidth && widest > 0) {
-        fontSize = Math.max(48, Math.floor(fontSize * (maxWidth / widest)));
-        ctx.font = `900 ${fontSize}px ${UI_FONT_FAMILY}`;
-      }
-      ctx.fillStyle = "rgba(255,255,255,0.98)";
-      const x = canvas.width / 2;
-      const y = canvas.height * 0.5;
-      const lineHeight = Math.max(48, Math.floor(fontSize * 1.05));
-      const blockHeight = lineHeight * lines.length;
-      const startY = y - blockHeight / 2 + lineHeight / 2;
-      lines.forEach((line, idx) => {
-        ctx.fillText(line, x, startY + idx * lineHeight);
-      });
-      ctx.restore();
-    };
     if (bandImg) {
       ctx.save();
       const imgW = bandImg.width || 1;
@@ -1704,8 +1668,6 @@ function drawLevelAnnouncements() {
     } else {
       console.debug && console.debug("drawGame: band image missing", { layer: assets?.backgroundLayers?.floor });
     }
-
-    drawHordeBanner();
 
   // ...existing code...
   drawSpawnPointDebug(ctx);

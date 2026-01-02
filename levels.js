@@ -462,14 +462,6 @@
     };
     helperConfig.selectEnemyType = (levelNumber, tier) =>
       selectHordeEnemyType(levelNumber, tier, helperConfig);
-    const HORDE_BANNER_LINES = [
-      "Here they come!",
-      "Hold the line!",
-      "Tougher enemies appear!",
-      "Wave incoming!",
-      "Brace yourself!",
-    ];
-
     const state = {
       active: false,
       level: 0,
@@ -876,20 +868,6 @@
       resetStage("hordeIntro", HORDE_INTRO_DURATION);
       const hordeLabel = `${state.monthIndex + 1}-${state.battleIndex + 1}`;
       setDevStatus(`Horde ${hordeLabel}`, HORDE_INTRO_DURATION + 0.6);
-      try {
-        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-        const line = typeof randomChoice === "function"
-          ? randomChoice(HORDE_BANNER_LINES)
-          : HORDE_BANNER_LINES[0];
-        const battleNum = state.monthIndex + 1;
-        const hordeNum = state.battleIndex + 1;
-        const bannerText = `BATTLE ${battleNum}  HORDE ${hordeNum}\n${line}`;
-        window.__BATTLECHURCH_HORDE_BANNER = {
-          text: String(bannerText).toUpperCase(),
-          start: now,
-          duration: 5000,
-        };
-      } catch (e) {}
       scheduleConversation(0.4, () => {
         heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
       });
