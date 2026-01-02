@@ -159,8 +159,7 @@ const FAITH_HIT_SFX_SRCS = [
 ];
 const POWERUP_PICKUP_SFX_SRC =
   "assets/sfx/rpg/Sword/Sword against sword/sword_against_sword_12.wav";
-const MENU_SELECT_SFX_SRC =
-  "assets/sfx/rpg/Sword/Sword against sword/sword_against_sword_1.wav";
+const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
