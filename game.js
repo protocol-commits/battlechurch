@@ -222,7 +222,7 @@ if (typeof window !== "undefined") {
   window.playDefaultArrowSfx = playDefaultArrowSfx;
 }
 
-function playEnemyHitSfx(volume = 0.5) {
+function playEnemyHitSfx(volume = 1) {
   if (typeof Audio === "undefined") return;
   const src =
     ENEMY_HIT_SFX_SRCS[Math.floor(Math.random() * ENEMY_HIT_SFX_SRCS.length)];
@@ -6753,7 +6753,7 @@ class BossEncounter {
     this.health = Math.max(0, this.health - amount);
     spawnImpactEffect(this.x, this.y - this.radius / 2);
     if (typeof playEnemyHitSfx === "function") {
-      playEnemyHitSfx(0.275);
+      playEnemyHitSfx();
     }
     showDamage(this, amount, { color: "#ff9191" });
     if (this.health <= 0) {
