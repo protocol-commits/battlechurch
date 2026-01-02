@@ -8555,9 +8555,6 @@ function markVisitorGuestSaved(guest) {
 
 function applyHeartToEntity(entity, options = {}) {
   if (!entity) return;
-  if (typeof playEnemyHitSfx === "function") {
-    playEnemyHitSfx();
-  }
   if (entity.type === "guest") {
     if (entity.saved) {
       spawnVisitorHeartHitEffect(entity.x, entity.y - entity.radius / 2, { radius: entity.radius || 28 });

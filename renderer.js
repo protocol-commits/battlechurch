@@ -290,6 +290,9 @@ function showMissionBriefDialog(title, body, identifier) {
           if (typeof window.selectFormation === "function") {
             window.selectFormation(key);
           }
+          if (typeof window.startBattleMusicFromFormation === "function") {
+            window.startBattleMusicFromFormation();
+          }
           picker.querySelectorAll(".formation-option").forEach((b) => {
             b.style.borderColor = b === btn ? "#ffd978" : "rgba(255,255,255,0.25)";
             b.style.background = b === btn ? "rgba(255,217,120,0.16)" : "rgba(0,0,0,0.3)";
