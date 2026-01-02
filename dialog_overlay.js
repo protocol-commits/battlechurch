@@ -86,6 +86,9 @@
   function handleContinue() {
     if (button.disabled) return;
     consumedAction = true;
+    if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+      window.playMenuAdvanceSfx(0.55);
+    }
     if (continueCallback) continueCallback();
     hide();
   }

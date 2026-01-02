@@ -94,6 +94,516 @@ const VISITOR_BLOCKER_LINES =
 const KEY_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/keys";
 const TORCH_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/torch";
 const FLAG_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/flag";
+const DEFAULT_ARROW_SFX_SRC = "assets/sfx/rpg/Magic/fireball_release_3.wav";
+const ENEMY_HIT_SFX_SRCS = [
+  "assets/sfx/rpg/Impacts/impact_5.wav",
+  "assets/sfx/rpg/Impacts/impact_6.wav",
+  "assets/sfx/rpg/Impacts/impact_7.wav",
+  "assets/sfx/rpg/Impacts/impact_8.wav",
+];
+const ENEMY_DEATH_MONSTER_SRCS = [
+  "assets/sfx/rpg/Monsters/monster_5.wav",
+  "assets/sfx/rpg/Monsters/monster_6.wav",
+  "assets/sfx/rpg/Monsters/monster_7.wav",
+  "assets/sfx/rpg/Monsters/monster_8.wav",
+  "assets/sfx/rpg/Monsters/monster_9.wav",
+];
+const ENEMY_DEATH_GRUNT_SRCS = [
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_13.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_14.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_15.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_16.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_17.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_18.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_19.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_20.wav",
+  "assets/sfx/rpg/Battle Grunts/Battle_grunt_21.wav",
+];
+const ENEMY_DEATH_SFX_SRCS = [
+  ...ENEMY_DEATH_MONSTER_SRCS,
+  ...ENEMY_DEATH_GRUNT_SRCS,
+];
+const SWORD_SWING_SFX_SRC = "assets/sfx/rpg/Sword/sword_swosh_9.wav";
+const SWORD_KILL_SFX_SRCS = [
+  "assets/sfx/rpg/Impacts/impact_5.wav",
+  "assets/sfx/rpg/Impacts/impact_6.wav",
+  "assets/sfx/rpg/Impacts/impact_7.wav",
+  "assets/sfx/rpg/Impacts/impact_8.wav",
+];
+const FIREBALL_CAST_SFX_SRCS = [
+  "assets/sfx/rpg/Magic/fireball_whoosh_04.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_05.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_06.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_07.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_08.wav",
+];
+const WISDOM_CAST_SFX_SRCS = [
+  "assets/sfx/rpg/Magic/fireball_whoosh_01.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_02.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_03.wav",
+];
+const WISDOM_HIT_SFX_SRCS = [
+  "assets/sfx/rpg/Explosions/Explosions_38.wav",
+  "assets/sfx/rpg/Explosions/Explosions_39.wav",
+  "assets/sfx/rpg/Explosions/Explosions_40.wav",
+];
+const FAITH_CANNON_SFX_SRCS = [
+  "assets/sfx/rpg/Magic/fireball_whoosh_04.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_05.wav",
+  "assets/sfx/rpg/Magic/fireball_whoosh_06.wav",
+];
+const FAITH_HIT_SFX_SRCS = [
+  "assets/sfx/rpg/Explosions/Explosions_22.wav",
+  "assets/sfx/rpg/Explosions/Explosions_23.wav",
+  "assets/sfx/rpg/Explosions/Explosions_24.wav",
+];
+const POWERUP_PICKUP_SFX_SRC =
+  "assets/sfx/rpg/Sword/Sword against sword/sword_against_sword_12.wav";
+const MENU_SELECT_SFX_SRC =
+  "assets/sfx/rpg/Sword/Sword against sword/sword_against_sword_1.wav";
+const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
+const ENEMY_SPAWN_HIGH_SFX = [
+  { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
+  { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
+  { minHealth: 300, src: "assets/sfx/rpg/Monsters/monster_10.wav" },
+];
+const ARROW_SFX_POOL_SIZE = 6;
+const ENEMY_HIT_SFX_POOL_SIZE = 8;
+const ENEMY_DEATH_SFX_POOL_SIZE = 6;
+const SWORD_SFX_POOL_SIZE = 4;
+const SWORD_KILL_SFX_POOL_SIZE = 6;
+const FIREBALL_SFX_POOL_SIZE = 6;
+const WISDOM_SFX_POOL_SIZE = 4;
+const FAITH_CANNON_SFX_POOL_SIZE = 4;
+const POWERUP_PICKUP_SFX_POOL_SIZE = 4;
+const WISDOM_HIT_SFX_POOL_SIZE = 5;
+const FAITH_HIT_SFX_POOL_SIZE = 5;
+const MENU_SELECT_SFX_POOL_SIZE = 4;
+const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
+const arrowSfxPool = [];
+const enemyHitSfxPool = [];
+const enemyDeathSfxPool = [];
+const enemyDeathGruntChannel =
+  typeof Audio !== "undefined" ? new Audio() : null;
+const swordSfxPool = [];
+const swordKillSfxPool = [];
+const fireballSfxPool = [];
+const wisdomSfxPool = [];
+const faithCannonSfxPool = [];
+const powerupPickupSfxPool = [];
+const wisdomHitSfxPool = [];
+const faithHitSfxPool = [];
+const menuSelectSfxPool = [];
+const enemySpawnSfxPool = [];
+
+function playDefaultArrowSfx(volume = 0.6) {
+  if (typeof Audio === "undefined") return;
+  let audio = arrowSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (arrowSfxPool.length < ARROW_SFX_POOL_SIZE) {
+      audio = new Audio(DEFAULT_ARROW_SFX_SRC);
+      audio.preload = "auto";
+      arrowSfxPool.push(audio);
+    } else {
+      audio = arrowSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playDefaultArrowSfx = playDefaultArrowSfx;
+}
+
+function playEnemyHitSfx(volume = 0.5) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    ENEMY_HIT_SFX_SRCS[Math.floor(Math.random() * ENEMY_HIT_SFX_SRCS.length)];
+  let audio = enemyHitSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (enemyHitSfxPool.length < ENEMY_HIT_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      enemyHitSfxPool.push(audio);
+    } else {
+      audio = enemyHitSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playEnemyHitSfx = playEnemyHitSfx;
+}
+
+function playEnemyDeathSfx(volume = 0.35) {
+  if (typeof Audio === "undefined") return;
+  const gruntChannel = enemyDeathGruntChannel;
+  const isGruntPlaying = enemyDeathSfxPool.some(
+    (entry) =>
+      entry.src &&
+      ENEMY_DEATH_GRUNT_SRCS.some((grunt) => entry.src.includes(grunt)) &&
+      !entry.paused &&
+      !entry.ended,
+  );
+  let src = ENEMY_DEATH_SFX_SRCS[Math.floor(Math.random() * ENEMY_DEATH_SFX_SRCS.length)];
+  const gruntBusy =
+    gruntChannel && !gruntChannel.paused && !gruntChannel.ended;
+  if (ENEMY_DEATH_GRUNT_SRCS.includes(src) && (isGruntPlaying || gruntBusy)) {
+    if (!ENEMY_DEATH_MONSTER_SRCS.length) return;
+    src = ENEMY_DEATH_MONSTER_SRCS[Math.floor(Math.random() * ENEMY_DEATH_MONSTER_SRCS.length)];
+  }
+  const isGrunt = ENEMY_DEATH_GRUNT_SRCS.includes(src);
+  let audio = null;
+  if (isGrunt && gruntChannel) {
+    audio = gruntChannel;
+    audio.src = src;
+  } else {
+    audio = enemyDeathSfxPool.find(
+      (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+    );
+    if (!audio) {
+      if (enemyDeathSfxPool.length < ENEMY_DEATH_SFX_POOL_SIZE) {
+        audio = new Audio(src);
+        audio.preload = "auto";
+        enemyDeathSfxPool.push(audio);
+      } else {
+        audio = enemyDeathSfxPool[0];
+        audio.src = src;
+      }
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = isGrunt ? volume * 0.6 : volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playEnemyDeathSfx = playEnemyDeathSfx;
+}
+
+function playSwordSwingSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  let audio = swordSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (swordSfxPool.length < SWORD_SFX_POOL_SIZE) {
+      audio = new Audio(SWORD_SWING_SFX_SRC);
+      audio.preload = "auto";
+      swordSfxPool.push(audio);
+    } else {
+      audio = swordSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playSwordSwingSfx = playSwordSwingSfx;
+}
+
+function playSwordKillSfx(volume = 0.7) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    SWORD_KILL_SFX_SRCS[Math.floor(Math.random() * SWORD_KILL_SFX_SRCS.length)];
+  let audio = swordKillSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (swordKillSfxPool.length < SWORD_KILL_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      swordKillSfxPool.push(audio);
+    } else {
+      audio = swordKillSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playSwordKillSfx = playSwordKillSfx;
+}
+
+function playFireballCastSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    FIREBALL_CAST_SFX_SRCS[Math.floor(Math.random() * FIREBALL_CAST_SFX_SRCS.length)];
+  let audio = fireballSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (fireballSfxPool.length < FIREBALL_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      fireballSfxPool.push(audio);
+    } else {
+      audio = fireballSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playFireballCastSfx = playFireballCastSfx;
+}
+
+function playWisdomCastSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    WISDOM_CAST_SFX_SRCS[Math.floor(Math.random() * WISDOM_CAST_SFX_SRCS.length)];
+  let audio = wisdomSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (wisdomSfxPool.length < WISDOM_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      wisdomSfxPool.push(audio);
+    } else {
+      audio = wisdomSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playWisdomCastSfx = playWisdomCastSfx;
+}
+
+function playWisdomHitSfx(volume = 0.8) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    WISDOM_HIT_SFX_SRCS[Math.floor(Math.random() * WISDOM_HIT_SFX_SRCS.length)];
+  let audio = wisdomHitSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (wisdomHitSfxPool.length < WISDOM_HIT_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      wisdomHitSfxPool.push(audio);
+    } else {
+      audio = wisdomHitSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playWisdomHitSfx = playWisdomHitSfx;
+}
+
+function playFaithCannonSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    FAITH_CANNON_SFX_SRCS[Math.floor(Math.random() * FAITH_CANNON_SFX_SRCS.length)];
+  let audio = faithCannonSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (faithCannonSfxPool.length < FAITH_CANNON_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      faithCannonSfxPool.push(audio);
+    } else {
+      audio = faithCannonSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playFaithCannonSfx = playFaithCannonSfx;
+}
+
+function playFaithHitSfx(volume = 0.8) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    FAITH_HIT_SFX_SRCS[Math.floor(Math.random() * FAITH_HIT_SFX_SRCS.length)];
+  let audio = faithHitSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (faithHitSfxPool.length < FAITH_HIT_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      faithHitSfxPool.push(audio);
+    } else {
+      audio = faithHitSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playFaithHitSfx = playFaithHitSfx;
+}
+
+function playPowerupPickupSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  let audio = powerupPickupSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (powerupPickupSfxPool.length < POWERUP_PICKUP_SFX_POOL_SIZE) {
+      audio = new Audio(POWERUP_PICKUP_SFX_SRC);
+      audio.preload = "auto";
+      powerupPickupSfxPool.push(audio);
+    } else {
+      audio = powerupPickupSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  // Keep separate hooks so we can swap SFX independently later.
+  window.playWeaponPowerupPickupSfx = playPowerupPickupSfx;
+  window.playUtilityPowerupPickupSfx = playPowerupPickupSfx;
+}
+
+function playMenuSelectSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  let audio = menuSelectSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (menuSelectSfxPool.length < MENU_SELECT_SFX_POOL_SIZE) {
+      audio = new Audio(MENU_SELECT_SFX_SRC);
+      audio.preload = "auto";
+      menuSelectSfxPool.push(audio);
+    } else {
+      audio = menuSelectSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  // Separate hooks so menu pick vs advance can diverge later.
+  window.playMenuItemPickSfx = playMenuSelectSfx;
+  window.playMenuAdvanceSfx = playMenuSelectSfx;
+}
+
+function playEnemySpawnSfx(volume = 0.55, options = {}) {
+  if (typeof Audio === "undefined") return;
+  const maxHealth =
+    Number.isFinite(options?.maxHealth) ? options.maxHealth : null;
+  let src = ENEMY_SPAWN_SFX_SRC;
+  if (maxHealth !== null) {
+    const match = ENEMY_SPAWN_HIGH_SFX.find((entry) => maxHealth > entry.minHealth);
+    if (match) src = match.src;
+  }
+  let audio = enemySpawnSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (enemySpawnSfxPool.length < ENEMY_SPAWN_SFX_POOL_SIZE) {
+      audio = new Audio(ENEMY_SPAWN_SFX_SRC);
+      audio.preload = "auto";
+      enemySpawnSfxPool.push(audio);
+    } else {
+      audio = enemySpawnSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playEnemySpawnSfx = playEnemySpawnSfx;
+}
 
 function spawnDivineChargeSparkVisual() {
   if (!player) return null;
@@ -1596,17 +2106,18 @@ const ENEMY_TYPES =
     applyCameraShake,
     spawnCameraShakeDuration: SPAWN_CAMERA_SHAKE_DURATION,
     spawnCameraShakeMagnitude: SPAWN_CAMERA_SHAKE_MAGNITUDE,
+    playEnemySpawnSfx: typeof playEnemySpawnSfx === "function" ? playEnemySpawnSfx : null,
     getLevelManager: () => levelManager,
-  miniFolks: MINIFOLKS,
-  maxActiveEnemies: MAX_ACTIVE_ENEMIES,
-  skeletonMinCount: SKELETON_MIN_COUNT,
-  skeletonPackSize: SKELETON_PACK_SIZE,
-  miniImpBaseGroupSize: MINI_IMP_BASE_GROUP_SIZE,
-  miniImpMaxGroupSize: MINI_IMP_MAX_GROUP_SIZE,
-  miniImpMinGroupsPerHorde: MINI_IMP_MIN_GROUPS_PER_HORDE,
-  enemySpawnStaggerMs: ENEMY_GROUP_SPAWN_STAGGER_MS,
-  worldScale: WORLD_SCALE,
-});
+    miniFolks: MINIFOLKS,
+    maxActiveEnemies: MAX_ACTIVE_ENEMIES,
+    skeletonMinCount: SKELETON_MIN_COUNT,
+    skeletonPackSize: SKELETON_PACK_SIZE,
+    miniImpBaseGroupSize: MINI_IMP_BASE_GROUP_SIZE,
+    miniImpMaxGroupSize: MINI_IMP_MAX_GROUP_SIZE,
+    miniImpMinGroupsPerHorde: MINI_IMP_MIN_GROUPS_PER_HORDE,
+    enemySpawnStaggerMs: ENEMY_GROUP_SPAWN_STAGGER_MS,
+    worldScale: WORLD_SCALE,
+  });
 
 const spawnEnemyOfType = Spawner.spawnEnemyOfType;
 const spawnSkeletonGroup = Spawner.spawnSkeletonGroup;
@@ -3530,6 +4041,9 @@ function showWeaponPowerupFloatingText(text, color = "#fff") {
 function applyAnimalEffect(animal) {
   if (!player) return;
   const def = animal.definition;
+  if (typeof window !== "undefined" && typeof window.playWeaponPowerupPickupSfx === "function") {
+    window.playWeaponPowerupPickupSfx(0.55);
+  }
   switch (animal.effect) {
     case "heal": {
       const healAmount =
@@ -3636,6 +4150,9 @@ function shuffleArray(array) {
 
 function applyUtilityPowerUp(powerUp) {
   if (!player || !powerUp) return;
+  if (typeof window !== "undefined" && typeof window.playUtilityPowerupPickupSfx === "function") {
+    window.playUtilityPowerupPickupSfx(0.55);
+  }
   const { effect, duration = 6, speedMultiplier, extendMultiplier } = powerUp.definition;
   setWeaponPickupAnnouncement({
     title: powerUp.definition.hudTitle || powerUp.definition.label || "Power Up",
@@ -4114,6 +4631,9 @@ function detonateWisdomMissleProjectile(projectile) {
   }
   const centerX = projectile.x;
   const centerY = projectile.y;
+  if (typeof playWisdomHitSfx === "function") {
+    playWisdomHitSfx(0.8);
+  }
   const baseDamage = projectile.getDamage() * MAGIC_SPLASH_DAMAGE_MULTIPLIER;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
@@ -4145,6 +4665,9 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
   }
   const centerX = projectile.x;
   const centerY = projectile.y;
+  if (typeof playFaithHitSfx === "function") {
+    playFaithHitSfx(0.8);
+  }
   const splashDamage = projectile.getDamage() * FAITH_CANNON_SPLASH_DAMAGE_MULTIPLIER;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
@@ -5310,6 +5833,18 @@ class CozyNpc {
       shotOverrides.speed = speedOverride;
     }
     spawnProjectile(weaponMode, this.x, this.y, dir.x, dir.y, shotOverrides);
+    if (weaponMode === "arrow" && typeof playDefaultArrowSfx === "function") {
+      playDefaultArrowSfx(0.55);
+    }
+    if (weaponMode === "fire" && typeof playFireballCastSfx === "function") {
+      playFireballCastSfx(0.55);
+    }
+    if (weaponMode === "wisdom_missle" && typeof playWisdomCastSfx === "function") {
+      playWisdomCastSfx(0.55);
+    }
+    if (weaponMode === "faith_cannon" && typeof playFaithCannonSfx === "function") {
+      playFaithCannonSfx(0.55);
+    }
     // set cooldown (use devTools value if present)
     this.npcArrowCooldown = cooldown;
     this.updateFaithVisibility(true);
@@ -6217,6 +6752,9 @@ class BossEncounter {
     if (this.invalid || this.removed || this.state === "death") return;
     this.health = Math.max(0, this.health - amount);
     spawnImpactEffect(this.x, this.y - this.radius / 2);
+    if (typeof playEnemyHitSfx === "function") {
+      playEnemyHitSfx(0.275);
+    }
     showDamage(this, amount, { color: "#ff9191" });
     if (this.health <= 0) {
       this.beginDeath();
@@ -6240,6 +6778,9 @@ class BossEncounter {
   this.state = "death";
   // Ensure boss death animation plays once and does not loop
   this.animator.play("death", { restart: true, loop: false });
+    if (typeof playEnemyDeathSfx === "function") {
+      playEnemyDeathSfx(0.4);
+    }
     this.dying = true;
     lastEnemyDeathPosition = { x: this.x, y: this.y };
     if (!this.deathNotified) {
@@ -8448,6 +8989,9 @@ function updateGame(dt) {
     }
     if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
       dismissCurrentLevelAnnouncement();
+      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+        window.playMenuAdvanceSfx(0.55);
+      }
       keysJustPressed.delete(" ");
     }
     return;
@@ -8468,12 +9012,18 @@ function updateGame(dt) {
         const status = levelManager?.getStatus ? levelManager.getStatus() : null;
         if (status?.stage === 'briefing' && typeof levelManager.advanceFromBriefing === 'function') {
           levelManager.advanceFromBriefing();
+          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+            window.playMenuAdvanceSfx(0.55);
+          }
           paused = false; // unpause to begin levelIntro visuals
           keysJustPressed.delete(' ');
           levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
           stage = levelStatus?.stage;
         } else if (wasActionJustPressed("pause")) {
           levelManager?.advanceFromCongregation?.();
+          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+            window.playMenuAdvanceSfx(0.55);
+          }
           keysJustPressed.delete(" ");
           levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
           stage = levelStatus?.stage;
@@ -8878,6 +9428,9 @@ const DIVINE_SHOT_DAMAGE = 1200;
     meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
     meleeAttackState.swooshDir = normalized;
     meleeAttackState.projectileBlockTimer = MELEE_SWING_DURATION + MELEE_PROJECTILE_COOLDOWN_AFTER;
+      if (typeof playSwordSwingSfx === "function") {
+        playSwordSwingSfx(0.55);
+      }
       const meleeBase = MELEE_BASE_DAMAGE;
       const meleeStatMultiplier = window.StatsManager
         ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
@@ -8900,6 +9453,8 @@ const DIVINE_SHOT_DAMAGE = 1200;
       const allowanceRadius = (target) => target?.radius || target?.config?.hitRadius || 0;
       const hitTarget = (target) => {
         if (!target || target.dead || target.state === "death") return false;
+        const prevHealth =
+          typeof target.health === "number" ? target.health : null;
         const relX = target.x - originX;
         const relY = target.y - originY;
         const forward = relX * normalized.x + relY * normalized.y;
@@ -8911,6 +9466,16 @@ const DIVINE_SHOT_DAMAGE = 1200;
           target.takeDamage(meleeDamage);
         } else if (typeof target.health === "number") {
           target.health = Math.max(0, target.health - meleeDamage);
+        }
+        if (
+          prevHealth !== null &&
+          prevHealth > 0 &&
+          typeof target.health === "number" &&
+          target.health <= 0
+        ) {
+          if (typeof playSwordKillSfx === "function") {
+            playSwordKillSfx(0.7);
+          }
         }
         spawnFlashEffect(target.x, target.y - allowance * 0.5);
         if (target.health > 0 && typeof target.takeDamage === "function") {

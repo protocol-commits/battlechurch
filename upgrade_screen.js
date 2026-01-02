@@ -41,12 +41,13 @@
     const cost = StatsManager.getUpgradeCost(statKey);
     const currentKeys = getKeyCount();
     if (currentKeys < cost) {
-      return;
+      return false;
     }
     window.addKeys?.(-cost);
     StatsManager.applyUpgrade(statKey);
     renderRows();
     updateKeyDisplay();
+    return true;
   }
 
   function createRow(statKey) {
@@ -118,6 +119,9 @@
     if (event.code === "Space" || event.keyCode === 32) {
       event.preventDefault();
       consumedAction = true;
+      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+        window.playMenuAdvanceSfx(0.55);
+      }
       hide();
     }
   }
@@ -127,7 +131,10 @@
     if (!button || !visible) return;
     const statKey = button.getAttribute("data-stat");
     if (!statKey) return;
-    attemptPurchase(statKey);
+    const purchased = attemptPurchase(statKey);
+    if (purchased && typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+      window.playMenuItemPickSfx(0.55);
+    }
   }
 
   overlay.addEventListener("click", (event) => {
@@ -137,7 +144,12 @@
   });
 
   gridElement.addEventListener("click", handleGridClick);
-  confirmButton.addEventListener("click", hide);
+  confirmButton.addEventListener("click", () => {
+    if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+      window.playMenuAdvanceSfx(0.55);
+    }
+    hide();
+  });
   window.addEventListener("keydown", handleKeyDown, { passive: false });
 
   window.UpgradeScreen = {

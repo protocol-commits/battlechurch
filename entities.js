@@ -782,6 +782,11 @@ class Player {
         scale: this.getArrowProjectileScale(),
         source: this,
       });
+      const playArrowSfx =
+        typeof window !== "undefined" ? window.playDefaultArrowSfx : null;
+      if (typeof playArrowSfx === "function") {
+        playArrowSfx(0.7);
+      }
       this.state = "attackArrow";
       this.animator.play("attackArrow", { restart: true });
       this.arrowCooldown = this.getArrowCooldown();
@@ -845,6 +850,11 @@ class Player {
         pierce: true,
         source: this,
       });
+      const playWisdomSfx =
+        typeof window !== "undefined" ? window.playWisdomCastSfx : null;
+      if (typeof playWisdomSfx === "function") {
+        playWisdomSfx(0.55);
+      }
       this.magicCooldown = this.getWisdomMissleCooldown();
       this.state = "attackMagic";
       this.animator.play("attackMagic", { restart: true });
@@ -878,6 +888,11 @@ class Player {
           detonateFaithCannonProjectile(projectile, { endOfRange: true });
         },
       });
+      const playFaithSfx =
+        typeof window !== "undefined" ? window.playFaithCannonSfx : null;
+      if (typeof playFaithSfx === "function") {
+        playFaithSfx(0.55);
+      }
       this.magicCooldown = this.getFaithCannonCooldown();
       this.state = "attackMagic";
       this.animator.play("attackMagic", { restart: true });
@@ -911,6 +926,11 @@ class Player {
         flipHorizontal: direction.x < 0,
         source: this,
       });
+      const playFireballSfx =
+        typeof window !== "undefined" ? window.playFireballCastSfx : null;
+      if (typeof playFireballSfx === "function") {
+        playFireballSfx(0.6);
+      }
       this.magicCooldown = this.getFireCooldown();
       this.state = "attackMagic";
       this.animator.play("attackMagic", { restart: true });
@@ -1600,12 +1620,21 @@ class Player {
       if (typeof showDamage === "function") {
         showDamage(this, amount, { color: "#ff8181" });
       }
+      const playHitSfx = typeof window !== "undefined" ? window.playEnemyHitSfx : null;
+      if (typeof playHitSfx === "function") {
+        playHitSfx(0.3);
+      }
       this.damageFlashTimer = DAMAGE_FLASH_DURATION;
       if (this.health <= 0) {
         this.health = 0;
         if (this.state !== "death") {
           this.state = "death";
           this.animator.play("death", { restart: true, loop: false });
+          const playDeathSfx =
+            typeof window !== "undefined" ? window.playEnemyDeathSfx : null;
+          if (typeof playDeathSfx === "function") {
+            playDeathSfx(0.35);
+          }
           this.ignoreEntityCollisions = true;
           this.canDealDamage = false;
           this.touchCooldown = Infinity;

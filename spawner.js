@@ -212,6 +212,13 @@
     } catch (error) {
       console.debug?.("Spawner.spawnEnemyOfType: puff effect failed", error);
     }
+    if (typeof deps.playEnemySpawnSfx === "function") {
+      deps.playEnemySpawnSfx(0.55, {
+        maxHealth: Number.isFinite(instanceConfig?.maxHealth)
+          ? instanceConfig.maxHealth
+          : instanceConfig?.health,
+      });
+    }
     if (
       options.applyCameraShake !== false &&
       typeof deps.applyCameraShake === "function" &&

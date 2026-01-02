@@ -281,6 +281,9 @@ function showMissionBriefDialog(title, body, identifier) {
       picker.querySelectorAll(".formation-option").forEach((btn) => {
         btn.addEventListener("click", () => {
           const key = btn.getAttribute("data-formation");
+          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
+          }
           if (typeof window.selectFormation === "function") {
             window.selectFormation(key);
           }
