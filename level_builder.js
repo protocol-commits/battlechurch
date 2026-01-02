@@ -131,8 +131,12 @@
     showHidden: false,
     copyBuffer: null, // holds a copied horde payload
   };
+  const THUMB_SIZE = 48;
   const thumbCache = {};
   const thumbLoading = new Set();
+  const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
+  const thumbFallbackImages = new Map();
+  const thumbImageListeners = new WeakSet();
   const DEFAULT_HORDE_DURATION = 10;
 
   function updateScopeFromSelects() {
@@ -417,7 +421,9 @@
       }
       row.innerHTML = `
         <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
-          ${thumb ? `<img src="${thumb}" style="max-width:100%;max-height:100%;">` : ""}
+          <canvas class="enemy-thumb" data-thumb-key="${key}"${
+            thumb ? ` data-thumb-fallback="${thumb}"` : ""
+          } width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div></td>
         <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
         ${cells.join("")}
@@ -427,6 +433,7 @@
     });
     els.content.innerHTML = "";
     els.content.appendChild(table);
+    initThumbAnimations();
     els.content.querySelectorAll("input[data-exp-count]").forEach((input) => {
       input.addEventListener("change", () => {
         const key = input.getAttribute("data-exp-count");
@@ -462,6 +469,9 @@
       const enemyAssets = assets.enemies?.[key];
       const clip = enemyAssets?.idle || enemyAssets?.walk;
       if (clip?.image) {
+        const inferredSize = inferFrameSizeForClip(clip, key);
+        const frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
+        const frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
         const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
         const stateOverride = overrideMap.idle || overrideMap.walk || {};
         const mappedFrames =
@@ -469,8 +479,6 @@
           stateOverride.frames ||
           null;
         const frameIndex = mappedFrames && mappedFrames.length ? mappedFrames[0] : 0;
-        const frameWidth = clip.frameWidth || clip.image.width;
-        const frameHeight = clip.frameHeight || clip.image.height;
         const cols = Math.max(1, Math.floor(clip.image.width / Math.max(1, frameWidth)));
         const sx = (frameIndex % cols) * frameWidth;
         const sy = Math.floor(frameIndex / cols) * frameHeight;
@@ -504,8 +512,9 @@
       img.onload = () => {
         try {
           const entry = manifestEntry.idle;
-          const frameW = entry.frameWidth || 100;
-          const frameH = entry.frameHeight || 100;
+          const inferredSize = inferFrameSizeForManifestEntry(entry, img, key);
+          const frameW = inferredSize.frameWidth || entry.frameWidth || 100;
+          const frameH = inferredSize.frameHeight || entry.frameHeight || 100;
           const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
           const stateOverride = overrideMap.idle || overrideMap.walk || {};
           const mappedFrames = stateOverride.frames || null;
@@ -534,6 +543,289 @@
       img.src = manifestEntry.idle.src;
     }
     return null;
+  }
+
+  function inferFrameSizeForManifestEntry(entry, image, key) {
+    if (!entry || !image) return { frameWidth: 0, frameHeight: 0 };
+    const fallbackClip = {
+      image,
+      frameWidth: entry.frameWidth || 0,
+      frameHeight: entry.frameHeight || 0,
+      src: entry.src,
+    };
+    return inferFrameSizeForClip(fallbackClip, key);
+  }
+
+  function inferFrameSizeForClip(clip, key) {
+    const w = clip?.image?.width || 0;
+    const h = clip?.image?.height || 0;
+    let frameWidth = Number.isFinite(clip?.frameWidth) && clip.frameWidth > 0 ? clip.frameWidth : 0;
+    let frameHeight = Number.isFinite(clip?.frameHeight) && clip.frameHeight > 0 ? clip.frameHeight : 0;
+    if (frameWidth && frameHeight) return { frameWidth, frameHeight };
+    if (!w || !h) return { frameWidth: 0, frameHeight: 0 };
+    const overrideFrames = getOverrideFramesForKey(key);
+    const overrideMax =
+      Array.isArray(overrideFrames) && overrideFrames.length
+        ? Math.max(...overrideFrames.map((v) => (Number.isFinite(v) ? v : -1)))
+        : -1;
+    const srcBase = (clip?.image?.src || clip?.src || "").split("/").pop() || "";
+    const normalizedSrc = String(srcBase).trim().toLowerCase();
+    const manualOverrides = {
+      "minifireimp.png": { cols: 2, rows: 2 },
+      "minihighdemon.png": { cols: 2, rows: 2 },
+      "minidemonlord.png": { cols: 2, rows: 2 },
+      "minidemonfirekeeper.png": { cols: 1, rows: 1 },
+      "miniskeleton.png": { cols: 1, rows: 1 },
+      "minizombie.png": { cols: 1, rows: 1 },
+      "minizombiebutcher.png": { cols: 4, rows: 4 },
+    };
+    const override = manualOverrides[normalizedSrc];
+    if (override) {
+      if (override.frameWidth && override.frameHeight) {
+        frameWidth = override.frameWidth;
+        frameHeight = override.frameHeight;
+      } else if (override.cols && override.rows) {
+        frameWidth = Math.floor(w / override.cols);
+        frameHeight = Math.floor(h / override.rows);
+      }
+    }
+    if (!frameWidth || !frameHeight) {
+      const neededFrames = overrideMax >= 0 ? overrideMax + 1 : 0;
+      const maxCols = Math.max(1, Math.min(32, Math.floor(w / 8)));
+      const maxRows = Math.max(1, Math.min(32, Math.floor(h / 8)));
+      const colsCandidates = [];
+      const rowsCandidates = [];
+      for (let c = 1; c <= maxCols; c += 1) {
+        if (w % c === 0) colsCandidates.push(c);
+      }
+      for (let r = 1; r <= maxRows; r += 1) {
+        if (h % r === 0) rowsCandidates.push(r);
+      }
+      const commonCols = colsCandidates.length ? colsCandidates : [1, 2, 3, 4, 5, 6, 8, 10, 12];
+      const commonRows = rowsCandidates.length ? rowsCandidates : [1, 2, 3, 4, 5, 6];
+      let best = null;
+      for (const cols of commonCols) {
+        for (const rows of commonRows) {
+          if (w % cols !== 0 || h % rows !== 0) continue;
+          const fw = w / cols;
+          const fh = h / rows;
+          if (fw < 8 || fh < 8 || fw > 512 || fh > 512) continue;
+          const frameCount = cols * rows;
+          if (frameCount <= 1) continue;
+          if (neededFrames && frameCount < neededFrames) continue;
+          const extra = neededFrames ? frameCount - neededFrames : 0;
+          const squareness = Math.abs(fw - fh);
+          const score = extra * 3 + squareness + (fw + fh) / 256 - Math.log(frameCount);
+          if (!best || score < best.score) {
+            best = { fw: Math.floor(fw), fh: Math.floor(fh), score };
+          }
+        }
+      }
+      if (best) {
+        frameWidth = best.fw;
+        frameHeight = best.fh;
+      }
+    }
+    if (!frameWidth || !frameHeight) {
+      const gcd = (a, b) => {
+        let x = Math.abs(a) | 0;
+        let y = Math.abs(b) | 0;
+        while (y) {
+          const t = y;
+          y = x % y;
+          x = t;
+        }
+        return x || 1;
+      };
+      const g = gcd(w, h);
+      if (g > 1 && w % g === 0 && h % g === 0) {
+        frameWidth = g;
+        frameHeight = g;
+      } else {
+        frameHeight = h;
+        frameWidth = frameHeight;
+      }
+    }
+    return { frameWidth, frameHeight };
+  }
+
+  function getOverrideFramesForKey(key) {
+    if (!key) return null;
+    const overrides = window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key];
+    if (!overrides || typeof overrides !== "object") return null;
+    if (overrides.walk && Array.isArray(overrides.walk.frames) && overrides.walk.frames.length) {
+      return overrides.walk.frames;
+    }
+    if (overrides.idle && Array.isArray(overrides.idle.frames) && overrides.idle.frames.length) {
+      return overrides.idle.frames;
+    }
+    return null;
+  }
+
+  function stopThumbAnimations() {
+    if (thumbAnimState.rafId) {
+      cancelAnimationFrame(thumbAnimState.rafId);
+      thumbAnimState.rafId = null;
+    }
+    thumbAnimState.items = [];
+  }
+
+  function isImageReady(img) {
+    return Boolean(img && img.complete && img.naturalWidth > 0);
+  }
+
+  function ensureThumbImageReady(img) {
+    if (!img) return false;
+    if (isImageReady(img)) return true;
+    if (!thumbImageListeners.has(img)) {
+      thumbImageListeners.add(img);
+      img.addEventListener(
+        "load",
+        () => {
+          if (overlay.style.display === "block") initThumbAnimations();
+        },
+        { once: true },
+      );
+    }
+    return false;
+  }
+
+  function getThumbClipData(key) {
+    const assets = window.assets || {};
+    const enemyAssets = assets.enemies?.[key];
+    const clip = enemyAssets?.idle || enemyAssets?.walk;
+    if (!clip || !clip.image) return null;
+    if (!ensureThumbImageReady(clip.image)) return null;
+    const inferredSize = inferFrameSizeForClip(clip, key);
+    const frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
+    const frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
+    const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
+    const stateOverride = (enemyAssets?.idle && overrideMap.idle) || overrideMap.idle || overrideMap.walk || {};
+    const frameMap =
+      (Array.isArray(clip.frameMap) && clip.frameMap.length && clip.frameMap) ||
+      (Array.isArray(stateOverride.frames) && stateOverride.frames.length ? stateOverride.frames : null);
+    const cols = Math.max(1, Math.floor(clip.image.width / Math.max(1, frameWidth)));
+    const rows = Math.max(1, Math.floor(clip.image.height / Math.max(1, frameHeight)));
+    const frameCount = frameMap ? frameMap.length : Math.max(1, clip.frameCount || cols * rows);
+    const frameRate = Number.isFinite(clip.frameRate) && clip.frameRate > 0 ? clip.frameRate : 6;
+    const renderScale = Number.isFinite(clip.renderScale) && clip.renderScale > 0 ? clip.renderScale : 1;
+    return {
+      clip,
+      frameMap,
+      frameWidth,
+      frameHeight,
+      frameCount,
+      frameRate,
+      cols,
+      renderScale,
+    };
+  }
+
+  function drawFallbackThumb(canvas, url) {
+    if (!canvas || !url) return;
+    let img = thumbFallbackImages.get(url);
+    if (!img) {
+      img = new Image();
+      img.src = url;
+      thumbFallbackImages.set(url, img);
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    };
+    if (isImageReady(img)) draw();
+    else {
+      img.addEventListener(
+        "load",
+        () => {
+          if (canvas.isConnected) draw();
+        },
+        { once: true },
+      );
+    }
+  }
+
+  function drawThumbFrame(item) {
+    const { canvas, ctx, clip, frameWidth, frameHeight, cols, frameMap, renderScale } = item;
+    const framePos = frameMap
+      ? frameMap[item.frameIndex % frameMap.length]
+      : item.frameIndex;
+    const sx = (framePos % cols) * frameWidth;
+    const sy = Math.floor(framePos / cols) * frameHeight;
+    const baseSize = Math.max(frameWidth, frameHeight) * renderScale;
+    const scale = THUMB_SIZE / Math.max(1, baseSize);
+    const dw = frameWidth * renderScale * scale;
+    const dh = frameHeight * renderScale * scale;
+    const dx = (THUMB_SIZE - dw) / 2;
+    const dy = (THUMB_SIZE - dh) / 2;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(clip.image, sx, sy, frameWidth, frameHeight, dx, dy, dw, dh);
+  }
+
+  function stepThumbAnimations(now) {
+    if (!thumbAnimState.items.length) return;
+    const delta = Math.max(0, now - thumbAnimState.lastTime);
+    thumbAnimState.lastTime = now;
+    thumbAnimState.items.forEach((item) => {
+      if (!item.shouldAnimate) {
+        drawThumbFrame(item);
+        return;
+      }
+      item.accumulator += delta;
+      while (item.accumulator >= item.frameDuration) {
+        item.accumulator -= item.frameDuration;
+        item.frameIndex = (item.frameIndex + 1) % item.frameCount;
+      }
+      drawThumbFrame(item);
+    });
+    thumbAnimState.rafId = requestAnimationFrame(stepThumbAnimations);
+  }
+
+  function initThumbAnimations() {
+    stopThumbAnimations();
+    if (!els || !els.content) return;
+    const canvases = els.content.querySelectorAll("canvas[data-thumb-key]");
+    const items = [];
+    canvases.forEach((canvas) => {
+      const key = canvas.getAttribute("data-thumb-key");
+      if (!key) return;
+      const data = getThumbClipData(key);
+      if (!data) {
+        const fallback = canvas.getAttribute("data-thumb-fallback");
+        if (fallback) drawFallbackThumb(canvas, fallback);
+        return;
+      }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const frameDuration = 1000 / Math.max(1, data.frameRate);
+      const shouldAnimate = data.frameRate > 0 && data.frameCount > 1;
+      const item = {
+        canvas,
+        ctx,
+        clip: data.clip,
+        frameMap: data.frameMap,
+        frameWidth: data.frameWidth,
+        frameHeight: data.frameHeight,
+        cols: data.cols,
+        frameCount: data.frameCount,
+        frameDuration,
+        frameIndex: 0,
+        accumulator: 0,
+        renderScale: data.renderScale,
+        shouldAnimate,
+      };
+      drawThumbFrame(item);
+      items.push(item);
+    });
+    thumbAnimState.items = items;
+    if (items.some((item) => item.shouldAnimate)) {
+      thumbAnimState.lastTime = performance.now();
+      thumbAnimState.rafId = requestAnimationFrame(stepThumbAnimations);
+    }
   }
 
   function toggleHiddenEnemy(key) {
@@ -740,6 +1032,7 @@
 
   function hide() {
     overlay.style.display = "none";
+    stopThumbAnimations();
   }
 
   function toggle() {
