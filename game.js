@@ -2374,10 +2374,27 @@ function loadImage(src) {
       }
     };
 
+    const computeLowercaseDirsFallback = (input) => {
+      try {
+        const parts = input.split("/");
+        if (parts.length <= 1) return null;
+        const filename = parts.pop() || "";
+        const lowered = parts.map((part) => part.toLowerCase());
+        lowered.push(filename);
+        return lowered.join("/");
+      } catch (e) {
+        return null;
+      }
+    };
+
     if (!cached) {
       const lowerFile = computeLowercaseFilenameFallback(originalSrc);
       if (lowerFile && lowerFile !== originalSrc) {
         fallbackCandidates.push(withAssetVersion(lowerFile));
+      }
+      const lowerDirs = computeLowercaseDirsFallback(originalSrc);
+      if (lowerDirs && lowerDirs !== originalSrc) {
+        fallbackCandidates.push(withAssetVersion(lowerDirs));
       }
       const lowerPath = computeLowercasePathFallback(originalSrc);
       if (lowerPath && lowerPath !== originalSrc) {
@@ -2397,7 +2414,6 @@ function loadImage(src) {
         const next = fallbackCandidates[fallbackIndex];
         fallbackIndex += 1;
         if (next && next !== image.src) {
-          assetSrcResolutionCache.set(originalSrc, next);
           image.src = next;
           return;
         }
