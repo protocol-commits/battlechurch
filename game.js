@@ -218,6 +218,8 @@ const musicState = {
   battleStarted: false,
   introStopped: false,
   battleStopped: false,
+  awaitingUserGesture: false,
+  unlocked: false,
   fadeHandles: new Map(),
 };
 if (musicState.intro) musicState.intro.preload = "auto";
@@ -729,6 +731,52 @@ function stopBattleMusicFast() {
   fadeAudio(musicState.battle, { to: 0, durationMs: MUSIC_FADE_FAST_MS, stopOnZero: true });
 }
 
+function pauseAllMusic() {
+  if (musicState.intro) musicState.intro.pause();
+  if (musicState.battle) musicState.battle.pause();
+}
+
+function resumeBattleMusicIfNeeded() {
+  if (!musicState.unlocked) return;
+  const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  const stage = status?.stage || "";
+  const shouldPlay = Boolean(status?.level === 1 && stage !== "levelSummary");
+  if (shouldPlay && !musicState.battleStopped) {
+    if (!musicState.battleStarted) {
+      startBattleMusic();
+    } else if (musicState.battle && musicState.battle.paused) {
+      playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+    }
+  }
+}
+
+function shouldStartBattleMusicNow() {
+  const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  return Boolean(status?.level === 1 && status?.stage === "levelIntro");
+}
+
+function unlockMusicOnGesture() {
+  if (musicState.unlocked) return;
+  musicState.unlocked = true;
+  if (!musicState.introStarted && !musicState.introStopped) {
+    startIntroMusic();
+  } else if (!musicState.battleStarted && !musicState.battleStopped && shouldStartBattleMusicNow()) {
+    startBattleMusic();
+  }
+}
+
+function startMusicOnFirstClick() {
+  if (musicState.awaitingUserGesture) return;
+  musicState.awaitingUserGesture = true;
+  const handler = () => {
+    musicState.awaitingUserGesture = false;
+    unlockMusicOnGesture();
+  };
+  window.addEventListener("pointerdown", handler, { once: true });
+  window.addEventListener("touchstart", handler, { once: true });
+  window.addEventListener("keydown", handler, { once: true });
+}
+
 function resetMusicState() {
   if (musicState.intro) {
     cancelFade(musicState.intro);
@@ -746,6 +794,15 @@ function resetMusicState() {
   musicState.battleStarted = false;
   musicState.introStopped = false;
   musicState.battleStopped = false;
+  musicState.awaitingUserGesture = false;
+  musicState.unlocked = false;
+}
+
+if (typeof window !== "undefined") {
+  window.stopIntroMusic = stopIntroMusic;
+  window.stopBattleMusicFast = stopBattleMusicFast;
+  window.pauseAllMusic = pauseAllMusic;
+  window.resumeBattleMusicIfNeeded = resumeBattleMusicIfNeeded;
 }
 
 function playVisitorHitSfx(volume = 0.55) {
@@ -3716,12 +3773,18 @@ function resumeFromPause() {
   if (window.DialogOverlay && window.DialogOverlay.isVisible()) {
     window.DialogOverlay.hide();
   }
+  if (typeof window !== "undefined" && typeof window.resumeBattleMusicIfNeeded === "function") {
+    window.resumeBattleMusicIfNeeded();
+  }
 }
 
 function showPauseDialog() {
   if (!window.DialogOverlay || pauseDialogActive) return;
   pauseDialogActive = true;
   window.isPauseOverlayActive = true;
+  if (typeof window !== "undefined" && typeof window.pauseAllMusic === "function") {
+    window.pauseAllMusic();
+  }
   window.DialogOverlay.show({
     title: "Paused",
     body: PAUSE_BODY,
@@ -9129,7 +9192,9 @@ function updateGame(dt) {
   let stage = levelStatus?.stage;
   if (levelStatus?.level === 1 && stage === "levelIntro") {
     if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
-    if (!musicState.battleStarted && !musicState.battleStopped) startBattleMusic();
+    if (musicState.unlocked && !musicState.battleStarted && !musicState.battleStopped) {
+      startBattleMusic();
+    }
   }
   if (stage === "levelSummary" && musicState.battleStarted && !musicState.battleStopped) {
     stopBattleMusicFast();
@@ -10617,6 +10682,7 @@ async function applySavedManualGrids() {
 async function init() {
   try {
     resetMusicState();
+    if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();
     assets = await loadAssets();
     rebuildObstacles();

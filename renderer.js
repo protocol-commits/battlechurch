@@ -237,6 +237,9 @@ function showMissionBriefDialog(title, body, identifier) {
   missionBriefOverlayState.shown = false;
   missionBriefOverlayState.active = true;
   window.isMissionBriefOverlayActive = true;
+  if (typeof window.stopIntroMusic === "function") {
+    window.stopIntroMusic();
+  }
   if (typeof window.clearFormationSelection === "function") {
     window.clearFormationSelection();
   }
