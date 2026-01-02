@@ -157,10 +157,13 @@ const FAITH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_23.wav",
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
-const POWERUP_PICKUP_SFX_SRC =
-  "assets/sfx/rpg/Sword/Sword against sword/sword_against_sword_12.wav";
+const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
+const KEY_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
+const VISITOR_HIT_SFX_SRC = "assets/sfx/utility/utility9.mp3";
+const CHATTY_HIT_SFX_SRC = "assets/sfx/utility/utility3.mp3";
+const VISITOR_SAVED_SFX_SRC = "assets/sfx/utility/utility17.mp3";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
   { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
@@ -179,6 +182,10 @@ const WISDOM_HIT_SFX_POOL_SIZE = 5;
 const FAITH_HIT_SFX_POOL_SIZE = 5;
 const MENU_SELECT_SFX_POOL_SIZE = 4;
 const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
+const KEY_PICKUP_SFX_POOL_SIZE = 4;
+const VISITOR_HIT_SFX_POOL_SIZE = 4;
+const CHATTY_HIT_SFX_POOL_SIZE = 4;
+const VISITOR_SAVED_SFX_POOL_SIZE = 4;
 const arrowSfxPool = [];
 const enemyHitSfxPool = [];
 const enemyDeathSfxPool = [];
@@ -194,6 +201,10 @@ const wisdomHitSfxPool = [];
 const faithHitSfxPool = [];
 const menuSelectSfxPool = [];
 const enemySpawnSfxPool = [];
+const keyPickupSfxPool = [];
+const visitorHitSfxPool = [];
+const chattyHitSfxPool = [];
+const visitorSavedSfxPool = [];
 
 function playDefaultArrowSfx(volume = 0.6) {
   if (typeof Audio === "undefined") return;
@@ -515,7 +526,7 @@ if (typeof window !== "undefined") {
   window.playFaithHitSfx = playFaithHitSfx;
 }
 
-function playPowerupPickupSfx(volume = 0.55) {
+function playPowerupPickupSfx(volume = 1.2) {
   if (typeof Audio === "undefined") return;
   let audio = powerupPickupSfxPool.find((entry) => entry.paused || entry.ended);
   if (!audio) {
@@ -541,6 +552,32 @@ if (typeof window !== "undefined") {
   // Keep separate hooks so we can swap SFX independently later.
   window.playWeaponPowerupPickupSfx = playPowerupPickupSfx;
   window.playUtilityPowerupPickupSfx = playPowerupPickupSfx;
+}
+
+function playKeyPickupSfx(volume = 0.2) {
+  if (typeof Audio === "undefined") return;
+  let audio = keyPickupSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (keyPickupSfxPool.length < KEY_PICKUP_SFX_POOL_SIZE) {
+      audio = new Audio(KEY_PICKUP_SFX_SRC);
+      audio.preload = "auto";
+      keyPickupSfxPool.push(audio);
+    } else {
+      audio = keyPickupSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playKeyPickupSfx = playKeyPickupSfx;
 }
 
 function playMenuSelectSfx(volume = 0.55) {
@@ -602,6 +639,72 @@ function playEnemySpawnSfx(volume = 0.55, options = {}) {
 
 if (typeof window !== "undefined") {
   window.playEnemySpawnSfx = playEnemySpawnSfx;
+}
+
+function playVisitorHitSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  let audio = visitorHitSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (visitorHitSfxPool.length < VISITOR_HIT_SFX_POOL_SIZE) {
+      audio = new Audio(VISITOR_HIT_SFX_SRC);
+      audio.preload = "auto";
+      visitorHitSfxPool.push(audio);
+    } else {
+      audio = visitorHitSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+function playChattyHitSfx(volume = 0.55) {
+  if (typeof Audio === "undefined") return;
+  let audio = chattyHitSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (chattyHitSfxPool.length < CHATTY_HIT_SFX_POOL_SIZE) {
+      audio = new Audio(CHATTY_HIT_SFX_SRC);
+      audio.preload = "auto";
+      chattyHitSfxPool.push(audio);
+    } else {
+      audio = chattyHitSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+function playVisitorSavedSfx(volume = 0.6) {
+  if (typeof Audio === "undefined") return;
+  let audio = visitorSavedSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (visitorSavedSfxPool.length < VISITOR_SAVED_SFX_POOL_SIZE) {
+      audio = new Audio(VISITOR_SAVED_SFX_SRC);
+      audio.preload = "auto";
+      visitorSavedSfxPool.push(audio);
+    } else {
+      audio = visitorSavedSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
 }
 
 function spawnDivineChargeSparkVisual() {
@@ -4469,6 +4572,9 @@ function updateKeyPickups(dt) {
       }
       if (distance <= (player.radius || 24) + pickup.radius) {
         addKeys(pickup.value);
+        if (typeof window !== "undefined" && typeof window.playKeyPickupSfx === "function") {
+          window.playKeyPickupSfx(0.2);
+        }
         addFloatingTextAt(player.x, player.y - player.radius - 24, `${pickup.value}`, "#ffe570", {
           life: 0.9,
           vy: -18,
@@ -8090,6 +8196,7 @@ function showBlockerSpeech(blocker) {
 function markVisitorGuestSaved(guest) {
   if (!guest || guest.saved) return;
   guest.saved = true;
+  playVisitorSavedSfx(0.6);
   if (visitorSession) {
     visitorSession.savedVisitors = (visitorSession.savedVisitors || 0) + 1;
     visitorSession.newMemberPortraits = visitorSession.newMemberPortraits || [];
@@ -8113,6 +8220,7 @@ function markVisitorGuestSaved(guest) {
 function applyHeartToEntity(entity, options = {}) {
   if (!entity) return;
   if (entity.type === "guest") {
+    playVisitorHitSfx(0.55);
     if (entity.saved) {
       spawnVisitorHeartHitEffect(entity.x, entity.y - entity.radius / 2, { radius: entity.radius || 28 });
       return;
@@ -8140,6 +8248,9 @@ function applyHeartToEntity(entity, options = {}) {
   }
   if (entity.type === "blocker") {
     const isActiveChatty = Boolean(entity.isChatty && entity.crowding && !entity.quieted);
+    if (isActiveChatty) {
+      playChattyHitSfx(0.55);
+    }
     entity.hitsTaken = (entity.hitsTaken || 0) + 1;
     if (options.flash) {
       if (isActiveChatty) {
