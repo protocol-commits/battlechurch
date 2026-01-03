@@ -409,7 +409,7 @@ function showMissionBriefDialog(title, body, identifier) {
         if (prompt) prompt.style.display = "block";
         if (!picker) return;
         picker.style.display = "grid";
-        picker.style.gridTemplateColumns = "1fr";
+        picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
         picker.style.gap = "14px";
       };
       const typeFormationOptions = async () => {
