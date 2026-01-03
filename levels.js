@@ -30,6 +30,7 @@
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
+  const ACT_BREAK_DELAY = 5.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
   const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
   const LEVEL2_MINI_IMP_GROUP_FACTOR = 0.55;
@@ -72,6 +73,31 @@
     const cfg = getDevConfig();
     const list = cfg?.globals?.hiddenEnemies;
     return new Set(Array.isArray(list) ? list : []);
+  }
+
+  function getGlobalList(key) {
+    const cfg = getDevConfig();
+    const list = cfg?.globals?.[key];
+    return Array.isArray(list) ? list : [];
+  }
+
+  function getGlobalMap(key) {
+    const cfg = getDevConfig();
+    const map = cfg?.globals?.[key];
+    return map && typeof map === "object" ? map : {};
+  }
+
+  function isGlobalAllKillHorde(hordeNumber) {
+    const list = getGlobalList("allKillHordes");
+    return list.includes(hordeNumber);
+  }
+
+  function getFloorTextForHorde(hordeNumber) {
+    const map = getGlobalMap("floorTextByHorde");
+    if (map[hordeNumber] !== undefined) return map[hordeNumber];
+    const stringKey = String(hordeNumber);
+    if (map[stringKey] !== undefined) return map[stringKey];
+    return null;
   }
 
   function getScopeConfig(levelIdx, monthIdx, battleIdx, hordeIdx = null) {
@@ -252,6 +278,7 @@
     const miniImpTotal = miniImpGroupCount * miniImpGroupSize;
     const desiredTotal = Math.max(miniImpTotal + 6, baseCount + Math.floor(difficultyRating * 2.5));
     const totalEnemies = Math.max(miniImpTotal, Math.min(maxCount, desiredTotal));
+    const hordeNumber = hordeIndex + 1;
     const scope = getScopeConfig(levelNumber, monthIndex + 1, battleIndex + 1, hordeIndex + 1);
     const hidden = getHiddenSet();
     const mode = resolveValue(scope, "mode") || "weighted";
@@ -261,7 +288,9 @@
     const durationSeconds = Number.isFinite(defaultDuration)
       ? defaultDuration
       : Math.max(10, 14 + Math.round(difficultyRating * 2));
-    const scopedAllKill = Boolean(scope.horde?.allKill);
+    const scopedAllKill = scope.horde?.allKill === true;
+    const globalAllKill = isGlobalAllKillHorde(hordeNumber);
+    const resolvedAllKill = scopedAllKill || globalAllKill;
 
     // Collect builder overrides (weighted + explicit can both apply)
     const explicitEntries = Array.isArray(scope.horde?.entries)
@@ -282,7 +311,7 @@
         enemies: mergedExplicitWeighted,
         powerUps: 1 + Math.floor(difficultyRating / 2),
         duration: durationSeconds,
-        allKill: scopedAllKill,
+        allKill: resolvedAllKill,
       };
     }
 
@@ -292,7 +321,7 @@
         enemies: [],
         powerUps: 1 + Math.floor(difficultyRating / 2),
         duration: durationSeconds,
-        allKill: scopedAllKill,
+        allKill: resolvedAllKill,
       };
     }
 
@@ -397,7 +426,7 @@
         enemies: combinedEntries,
         powerUps: 1 + Math.floor(difficultyRating / 2),
         duration: durationSeconds,
-        allKill: scopedAllKill,
+        allKill: resolvedAllKill,
       };
     }
 
@@ -866,6 +895,14 @@
       state.activeHorde = currentHorde();
       if (!state.activeHorde) return;
       resetStage("hordeIntro", HORDE_INTRO_DURATION);
+      const hordeNumber = state.battleIndex + 1;
+      const floorText = getFloorTextForHorde(hordeNumber);
+      if (floorText) {
+        queueLevelAnnouncement(floorText, "", {
+          duration: HORDE_INTRO_DURATION,
+          skipMissionBrief: true,
+        });
+      }
       const hordeLabel = `${state.monthIndex + 1}-${state.battleIndex + 1}`;
       setDevStatus(`Horde ${hordeLabel}`, HORDE_INTRO_DURATION + 0.6);
       scheduleConversation(0.4, () => {
@@ -950,6 +987,11 @@
 
       if (!finalHorde) {
         state.finalHordeDelay = 0;
+        if (isGlobalAllKillHorde(hordeNumber)) {
+          resetStage("hordeCleared", ACT_BREAK_DELAY);
+          setDevStatus(`Act break after Horde ${battleNumber}-${hordeNumber}`, ACT_BREAK_DELAY);
+          return;
+        }
         setDevStatus(`Horde ${battleNumber}-${hordeNumber} advancing`, 1.2);
         beginHorde();
         spawnActiveHorde();
@@ -1178,7 +1220,9 @@ state.battleIndex = -1;
           ? Math.max(0, getPendingPortalSpawnCount() - (state.pendingPortalSpawnBaseline || 0))
           : 0;
         const horde = currentHorde();
-        const allKill = finalHorde ? true : Boolean(horde?.allKill);
+        const allKill = finalHorde
+          ? true
+          : (horde?.allKill === true || isGlobalAllKillHorde(state.battleIndex + 1));
         if (!finalHorde) {
           if (allKill) {
             if (!enemiesRemain && pendingPortalSpawns <= 0) handleHordeCleared();
@@ -1205,10 +1249,11 @@ state.battleIndex = -1;
               handleBattleComplete();
             } else {
               beginHorde();
+              spawnActiveHorde();
             }
           }
-          break;
-        }
+        break;
+      }
         case "battleIntermission":
           state.timer -= dt;
           if (state.timer <= 0) {

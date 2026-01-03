@@ -4926,12 +4926,14 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     }
   }
   const requiresConfirm = Boolean(options.requiresConfirm);
+  const skipMissionBrief = Boolean(options.skipMissionBrief);
   const announcement = {
     title,
     subtitle,
     duration,
     timer: duration,
     requiresConfirm,
+    skipMissionBrief,
   };
   levelAnnouncements.push(announcement);
 }

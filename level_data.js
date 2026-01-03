@@ -62,6 +62,15 @@ window.BattlechurchLevelData = {
     },
     "enemyTags": {},
     "mode": "weighted",
+    "allKillHordes": [
+      7,
+      14
+    ],
+    "floorTextByHorde": {
+      "1": "Ready...",
+      "8": "Keep the Faith!",
+      "15": "Finish This!"
+    },
     "hiddenEnemies": [
       "lancer",
       "priest",

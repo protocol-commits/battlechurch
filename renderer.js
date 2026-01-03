@@ -384,7 +384,8 @@ function drawLevelAnnouncements() {
   // "Jordan, Julia, Felix, Sue and Bobby need your help [scenario]."
   // This is NOT the tally/battle summary popup.
   // =============================
-  if (!isBattleSummary && Array.isArray(window.npcs) && window.npcs.length) {
+  const skipMissionBrief = Boolean(levelAnnouncements[0].skipMissionBrief);
+  if (!skipMissionBrief && !isBattleSummary && Array.isArray(window.npcs) && window.npcs.length) {
     const npcNames = window.npcs.map(npc => npc.name).filter(Boolean);
     if (window.DialogOverlay?.isVisible?.()) {
       ctx.restore();
@@ -440,7 +441,7 @@ function drawLevelAnnouncements() {
         if (isBattleSummary && monthName) {
           const clearedSuffix = /cleared/i.test(title) ? ' Cleared' : '';
           displayTitle = `Level ${levelNumber} — ${monthName}${clearedSuffix}`;
-        } else if (!isBattleSummary) {
+        } else if (!isBattleSummary && !skipMissionBrief) {
           displayTitle = 'Mission Brief';
         }
       } catch (e) {}
