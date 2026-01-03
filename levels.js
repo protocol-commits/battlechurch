@@ -30,7 +30,15 @@
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
-  const ACT_BREAK_DELAY = 5.0;
+  const ACT_BREAK_DELAY = 2.0;
+  const ACT_BREAK_FADE_IN = 0.45;
+  const ACT_BREAK_FADE_OUT = 0.45;
+  const ACT_BREAK_HOLD_SECONDS = 0.8;
+  const ACT_BREAK_FADE_TOTAL = ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT + ACT_BREAK_HOLD_SECONDS;
+  const ACT_BREAK_PRE_FADE_DELAY = 1.0;
+  const ACT_BREAK_MESSAGE_LEAD = 0.5;
+  const ACT_BREAK_MESSAGE = "Good job. See you next week!";
+  const KEY_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
   const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
   const LEVEL2_MINI_IMP_GROUP_FACTOR = 0.55;
@@ -180,6 +188,8 @@
     onNpcLost: noop,
     prepareNpcProcession: noop,
     isNpcProcessionComplete: () => true,
+    startActBreakFade: noop,
+    startKeyRushEndFade: noop,
     getAvailableMiniFolkKeys: () => [],
     hasEnemyAsset: () => true,
     miniImpBaseGroupSize: 48,
@@ -479,6 +489,8 @@
       restoreNpcsAfterBoss,
       heroSay,
       npcCheer,
+      startActBreakFade,
+      startKeyRushEndFade,
       getAvailableMiniFolkKeys,
       hasEnemyAsset,
       miniImpBaseGroupSize,
@@ -517,6 +529,7 @@
         savedPortraits: [],
       },
   lastBattleSummary: null,
+      keyRushFadeTimer: 0,
       conversationQueue: [],
       currentBattleScenario: "",
       currentBossTheme: "",
@@ -1007,16 +1020,39 @@
       if (!finalHorde) {
         state.finalHordeDelay = 0;
         if (isGlobalAllKillHorde(hordeNumber)) {
+          const preFadeDelay = ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
+          queueLevelAnnouncement(ACT_BREAK_MESSAGE, "", {
+            duration: preFadeDelay,
+            skipMissionBrief: true,
+          });
+          if (typeof startActBreakFade === "function") {
+            if (typeof setTimeoutFn === "function") {
+              setTimeoutFn(() => startActBreakFade(ACT_BREAK_HOLD_SECONDS), preFadeDelay * 1000);
+            } else {
+              startActBreakFade(ACT_BREAK_HOLD_SECONDS);
+            }
+          }
           const nextHordeNumber = hordeNumber + 1;
           const floorText = getFloorTextForHorde(nextHordeNumber);
+          const actBreakTotal = ACT_BREAK_DELAY + ACT_BREAK_FADE_TOTAL + preFadeDelay;
           if (floorText) {
-            queueLevelAnnouncement(floorText, "", {
-              duration: ACT_BREAK_DELAY,
-              skipMissionBrief: true,
-            });
+            const delayMs = (preFadeDelay + ACT_BREAK_FADE_TOTAL) * 1000;
+            if (typeof setTimeoutFn === "function") {
+              setTimeoutFn(() => {
+                queueLevelAnnouncement(floorText, "", {
+                  duration: ACT_BREAK_DELAY,
+                  skipMissionBrief: true,
+                });
+              }, delayMs);
+            } else {
+              queueLevelAnnouncement(floorText, "", {
+                duration: ACT_BREAK_DELAY,
+                skipMissionBrief: true,
+              });
+            }
           }
-          resetStage("hordeCleared", ACT_BREAK_DELAY);
-          setDevStatus(`Act break after Horde ${battleNumber}-${hordeNumber}`, ACT_BREAK_DELAY);
+          resetStage("hordeCleared", actBreakTotal);
+          setDevStatus(`Act break after Horde ${battleNumber}-${hordeNumber}`, actBreakTotal);
           return;
         }
         setDevStatus(`Horde ${battleNumber}-${hordeNumber} advancing`, 1.2);
@@ -1318,6 +1354,18 @@ state.battleIndex = -1;
           state.timer -= dt;
           if (state.timer <= 0) {
             state.timer = 0;
+            if (state.keyRushFadeTimer <= 0) {
+              state.keyRushFadeTimer = KEY_RUSH_FADE_DURATION;
+              if (typeof startKeyRushEndFade === "function") {
+                startKeyRushEndFade(KEY_RUSH_FADE_DURATION);
+              }
+            }
+          }
+          if (state.keyRushFadeTimer > 0) {
+            state.keyRushFadeTimer = Math.max(0, state.keyRushFadeTimer - dt);
+            if (state.keyRushFadeTimer > 0) break;
+          }
+          if (state.timer <= 0) {
             if (state.keyRushContext === "boss") {
               state.keyRushContext = null;
               if (state.pendingBossRestore) {

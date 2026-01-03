@@ -45,6 +45,15 @@ let postDeathTimer = 0;
 let miniImpWaveDispatched = false;
 let arenaFadeTimer = 0;
 let arenaFadeAlpha = 0;
+let actBreakFadeTimer = 0;
+let actBreakFadeDuration = 0;
+let actBreakFadeAlpha = 0;
+const ACT_BREAK_FADE_IN = 0.8;
+const ACT_BREAK_FADE_OUT = 0.8;
+const ACT_BREAK_HOLD_SECONDS = 2;
+let keyRushFadeTimer = 0;
+let keyRushFadeDuration = 0;
+let keyRushFadeAlpha = 0;
 let damageHitFlash = 0;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
@@ -842,6 +851,21 @@ function fadeOutBattleMusic() {
   musicState.battleStopped = true;
   musicState.battleStarted = false;
   fadeAudio(musicState.battle, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+}
+
+function startActBreakFade(holdSeconds = ACT_BREAK_HOLD_SECONDS) {
+  const hold = Math.max(0, Number(holdSeconds) || 0);
+  const total = ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT + hold;
+  actBreakFadeDuration = Math.max(total, ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT);
+  actBreakFadeTimer = actBreakFadeDuration;
+  actBreakFadeAlpha = 0;
+}
+
+function startKeyRushEndFade(duration = 1) {
+  const total = Math.max(0.1, Number(duration) || 1);
+  keyRushFadeDuration = total;
+  keyRushFadeTimer = total;
+  keyRushFadeAlpha = 0;
 }
 
 function pauseAllMusic() {
@@ -1961,6 +1985,8 @@ Renderer.initialize({
   get gameStarted() { return gameStarted; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
+  get actBreakFadeAlpha() { return actBreakFadeAlpha; },
+  get keyRushFadeAlpha() { return keyRushFadeAlpha; },
 });
 function bootInputAndResize() {
   resizeCanvas();
@@ -2580,6 +2606,8 @@ Levels.initialize({
   onNpcLost: handleNpcLostFromCongregation,
   prepareNpcProcession,
   isNpcProcessionComplete: areNpcProcessionsComplete,
+  startActBreakFade,
+  startKeyRushEndFade,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
   hasEnemyAsset: (key) => Boolean(ASSET_MANIFEST.enemies?.[key]),
   miniImpBaseGroupSize: MINI_IMP_BASE_GROUP_SIZE,
@@ -3911,6 +3939,7 @@ function startGameFromTitle() {
   paused = true;
   needsCountdown = false;
   gameStarted = false;
+  resetYearNpcPool();
   startIntroMusic();
   if (window.StatsManager) window.StatsManager.resetStats();
   // Clear any previously queued announcements so the congregation doesn't show
@@ -7746,20 +7775,52 @@ function createRandomNpcLayers() {
   };
 }
 
-function createCozyNpc() {
-  const appearance = createRandomNpcLayers();
-  if (!appearance) return null;
-  // Assign a name from the global NPC name list
-  if (!window.npcNameIndex) window.npcNameIndex = 0;
+function ensureNpcNamesList() {
   if (!window.npcNamesList) {
     window.npcNamesList = [
       "Aaron", "Abby", "Adam", "Alex", "Ben", "Blake", "Brock", "Brad", "Carl", "Chris", "Clara", "Cody", "Dave", "Derek", "Diana", "Drew", "Emma", "Emily", "Ethan", "Erin", "Frank", "Felix", "Fiona", "Fred", "Gabe", "Gary", "Gavin", "Greg", "Hank", "Helen", "Henry", "Holly", "Isaac", "Irene", "Ivan", "Janet", "Jesse", "Jill", "Jonah", "Karen", "Katie", "Kelly", "Kevin", "Lance", "Laura", "Linda", "Logan", "Mason", "Megan", "Miles", "Micah", "Naomi", "Nancy", "Nolan", "Oscar", "Owen", "Olive", "Paige", "Peter", "Perry", "Quinn", "Riley", "Robin", "Roger", "Rose", "Sarah", "Simon", "Scott", "Steve", "Terry", "Tony", "Trent", "Todd", "Ulis", "Vince", "Vicky", "Vera", "Wade", "Wendy", "Wayne", "Xena", "Yael", "Yuri", "Zack", "Zane", "Zelda"
     ];
   }
-  const name = window.npcNamesList[window.npcNameIndex % window.npcNamesList.length];
-  window.npcNameIndex++;
+}
+
+function resetYearNpcPool() {
+  ensureNpcNamesList();
+  window.npcYearNamePool = shuffleArray(window.npcNamesList);
+  window.npcYearNamesUsed = new Set();
+}
+
+function pickYearNpcName() {
+  ensureNpcNamesList();
+  if (!Array.isArray(window.npcYearNamePool) || !window.npcYearNamePool.length) {
+    resetYearNpcPool();
+  }
+  if (!(window.npcYearNamesUsed instanceof Set)) {
+    window.npcYearNamesUsed = new Set();
+  }
+  while (window.npcYearNamePool.length) {
+    const name = window.npcYearNamePool.shift();
+    if (!window.npcYearNamesUsed.has(name)) {
+      window.npcYearNamesUsed.add(name);
+      return name;
+    }
+  }
+  const remaining = window.npcNamesList.filter((name) => !window.npcYearNamesUsed.has(name));
+  if (remaining.length) {
+    window.npcYearNamePool = shuffleArray(remaining);
+    return pickYearNpcName();
+  }
+  resetYearNpcPool();
+  const fallback = window.npcYearNamePool.shift();
+  if (fallback) window.npcYearNamesUsed.add(fallback);
+  return fallback;
+}
+
+function createCozyNpc() {
+  const appearance = createRandomNpcLayers();
+  if (!appearance) return null;
+  const name = pickYearNpcName();
   const npc = new CozyNpc({ appearance });
-  npc.name = name;
+  npc.name = name || "Friend";
   return npc;
 }
 
@@ -9434,6 +9495,29 @@ function updateGame(dt) {
   } else {
     arenaFadeAlpha = 0;
   }
+  if (actBreakFadeTimer > 0) {
+    actBreakFadeTimer = Math.max(0, actBreakFadeTimer - dt);
+    const elapsed = actBreakFadeDuration - actBreakFadeTimer;
+    const fadeIn = Math.min(actBreakFadeDuration, ACT_BREAK_FADE_IN);
+    const fadeOut = Math.min(actBreakFadeDuration, ACT_BREAK_FADE_OUT);
+    if (elapsed < fadeIn) {
+      actBreakFadeAlpha = fadeIn > 0 ? Math.min(1, elapsed / fadeIn) : 1;
+    } else if (actBreakFadeTimer <= fadeOut) {
+      actBreakFadeAlpha = fadeOut > 0 ? Math.min(1, actBreakFadeTimer / fadeOut) : 0;
+    } else {
+      actBreakFadeAlpha = 1;
+    }
+  } else {
+    actBreakFadeAlpha = 0;
+  }
+  if (keyRushFadeTimer > 0) {
+    keyRushFadeTimer = Math.max(0, keyRushFadeTimer - dt);
+    const progress = Math.min(1, Math.max(0, 1 - keyRushFadeTimer / keyRushFadeDuration));
+    const up = progress <= 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
+    keyRushFadeAlpha = Math.max(0, Math.min(1, up));
+  } else {
+    keyRushFadeAlpha = 0;
+  }
   const deathFreezeActive = postDeathSequenceActive;
   if (deathFreezeActive) {
     keysJustPressed.clear();
@@ -10892,6 +10976,7 @@ function restartGame() {
   endVisitorSession({ reason: "reset" });
   resetMusicState();
   resetCongregationSize();
+  resetYearNpcPool();
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
   animals.splice(0, animals.length);
@@ -10925,6 +11010,12 @@ function restartGame() {
   miniImpWaveDispatched = false;
   arenaFadeTimer = 0;
   arenaFadeAlpha = 0;
+  actBreakFadeTimer = 0;
+  actBreakFadeDuration = 0;
+  actBreakFadeAlpha = 0;
+  keyRushFadeTimer = 0;
+  keyRushFadeDuration = 0;
+  keyRushFadeAlpha = 0;
   npcWeaponState.mode = null;
   npcWeaponState.timer = 0;
   npcWeaponState.duration = 0;

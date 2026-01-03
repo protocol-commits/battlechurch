@@ -1218,30 +1218,21 @@ function drawLevelAnnouncements() {
       ctx,
       canvas,
       UI_FONT_FAMILY,
+      HUD_HEIGHT = 54,
     } = requireBindings();
     const remaining =
       rushState?.active && rushState.timer > 0
         ? rushState.timer
         : Math.max(0, levelStatus?.timer || 0);
     if (remaining <= 0) return;
-    const centerX = canvas.width / 2;
-    const panelWidth = Math.min(canvas.width * 0.4, 420);
-    const panelHeight = 64;
-    const panelX = centerX - panelWidth / 2;
-    const panelY = 12;
-    ctx.save();
-    ctx.fillStyle = "rgba(10, 16, 32, 0.78)";
-    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
-    ctx.strokeStyle = "rgba(255, 220, 120, 0.4)";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    const panelY = getAnnouncementTitleY(HUD_HEIGHT, 200);
     const label = rushState?.reason === "boss" ? "Treasure Overflow!" : "Key Rush!";
     const subtitle =
       rushState?.reason === "boss" ? "Celebrate the victory—collect every key!" : "Grab as many keys as you can!";
     drawAnnouncementText(ctx, canvas, {
       title: label,
       subtitle,
-      yBase: panelY + 24,
+      yBase: panelY,
       titleSize: TEXT_STYLES.h3.size,
       weight: TEXT_STYLES.h3.weight,
       subtitleSize: TEXT_STYLES.body.size,
@@ -1779,11 +1770,14 @@ function drawLevelAnnouncements() {
       keyRushState,
       isModalActive,
       arenaFadeAlpha,
+      actBreakFadeAlpha,
+      keyRushFadeAlpha,
       damageHitFlash,
       postDeathSequenceActive,
       heroLives,
     } = requireBindings();
     const dynamicNameTags = [];
+    const npcFadeAlpha = Math.max(0, 1 - Math.min(1, actBreakFadeAlpha));
     npcFaithOverlays.length = 0;
     if (titleScreenActive) {
       drawTitleScreen();
@@ -1855,11 +1849,14 @@ function drawLevelAnnouncements() {
       drawVisitorActors(visitorSession);
     } else {
       if (isCongregationStage) {
+        ctx.save();
+        ctx.globalAlpha *= npcFadeAlpha;
         congregationMembers.forEach((member) => {
           member.animator.draw(ctx, member.x, member.y);
           const nameY = member.y - (member.radius || 28) * 0.35 - 20;
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         });
+        ctx.restore();
       } else {
         battleNpcs = npcs.filter(Boolean);
         battleNpcs.forEach((npc) => {
@@ -1870,11 +1867,18 @@ function drawLevelAnnouncements() {
         });
       }
     }
-    dynamicNameTags.forEach((entry) => {
-      drawNameTag(ctx, entry.name, entry.x, entry.y, UI_FONT_FAMILY);
-    });
+    if (dynamicNameTags.length) {
+      ctx.save();
+      ctx.globalAlpha *= npcFadeAlpha;
+      dynamicNameTags.forEach((entry) => {
+        drawNameTag(ctx, entry.name, entry.x, entry.y, UI_FONT_FAMILY);
+      });
+      ctx.restore();
+    }
     let npcFaithOverlayFn = () => {
       if (!npcFaithOverlays.length) return;
+      ctx.save();
+      ctx.globalAlpha *= npcFadeAlpha;
       npcFaithOverlays.forEach((entry) => {
         ctx.save();
         ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
@@ -1911,6 +1915,7 @@ function drawLevelAnnouncements() {
         }
         ctx.restore();
       });
+      ctx.restore();
     };
   // ...existing code...
     if (!visitorStageActive) {
@@ -1925,7 +1930,7 @@ function drawLevelAnnouncements() {
       if (activeBoss) activeBoss.draw(ctx);
     }
     if (!visitorStageActive && battleNpcs.length) {
-      drawBattleNpcs(ctx, battleNpcs);
+      drawBattleNpcs(ctx, battleNpcs, npcFadeAlpha);
     }
     // Draw pickups above enemies/NPCs
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
@@ -2052,6 +2057,19 @@ function drawLevelAnnouncements() {
       ctx.restore();
     }
 
+    if (actBreakFadeAlpha > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.5, actBreakFadeAlpha * 0.5)})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+    if (keyRushFadeAlpha > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.5, keyRushFadeAlpha * 0.5)})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
     drawHUD();
     if (levelStatus?.stage === "keyRush" || keyRushState?.active) {
       drawKeyRushOverlay(levelStatus, keyRushState);
@@ -2115,10 +2133,12 @@ function drawLevelAnnouncements() {
     ctx.restore();
   }
 
-  function drawBattleNpcs(ctx, npcsToDraw) {
+  function drawBattleNpcs(ctx, npcsToDraw, alpha = 1) {
     if (!ctx || !Array.isArray(npcsToDraw) || !npcsToDraw.length) return;
     const { visitorSession } = requireBindings();
     if (visitorSession?.active) return;
+    ctx.save();
+    ctx.globalAlpha *= Math.max(0, Math.min(1, alpha));
     npcsToDraw.forEach((npc) => {
       if (!npc) return;
       if (typeof npc.draw === "function") {
@@ -2128,6 +2148,7 @@ function drawLevelAnnouncements() {
         drawLostFaithHighlight(ctx, npc);
       }
     });
+    ctx.restore();
   }
 
   function drawLostFaithHighlight(ctx, npc) {
