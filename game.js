@@ -1067,6 +1067,7 @@ const visitorSession = {
   awaitingSummaryConfirm: false,
   usedNpcIds: new Set(),
   recapShown: false,
+  introShown: false,
 };
 const keyRushState = {
   active: false,
@@ -3844,15 +3845,37 @@ const TITLE_OVERLAY_BODY =
     "You have one year to save the church... and the town.",
   ].join(" ");
 
+function typewriterElement(overlay, selector, text, msPerChar = 18) {
+  if (!overlay) return;
+  const target = overlay.querySelector(selector);
+  if (!target) return;
+  if (target.__typeTimer) clearInterval(target.__typeTimer);
+  target.textContent = "";
+  let idx = 0;
+  const payload = String(text || "");
+  target.__typeTimer = setInterval(() => {
+    idx += 1;
+    target.textContent = payload.slice(0, idx);
+    if (idx >= payload.length) {
+      clearInterval(target.__typeTimer);
+      target.__typeTimer = null;
+    }
+  }, msPerChar);
+}
+
 function showTitleDialog() {
   if (!window.DialogOverlay || titleDialogActive) return;
   titleDialogActive = true;
   startIntroMusic();
   window.DialogOverlay.show({
     title: "Battle Church",
-    body: TITLE_OVERLAY_BODY,
+    body: "",
     buttonText: "Continue (Space)",
     variant: "title",
+    onRender: ({ overlay }) => {
+      typewriterElement(overlay, ".dialog-overlay__title", "Battle Church", 18);
+      typewriterElement(overlay, ".dialog-overlay__body", TITLE_OVERLAY_BODY, 18);
+    },
     onContinue: () => {
       titleDialogActive = false;
       startGameFromTitle();
@@ -3956,13 +3979,31 @@ function showGameOverDialog() {
 
 let pendingUpgradeAfterSummary = false;
 
+function startMissionTypewriter(overlay, text, msPerChar = 18) {
+  if (!overlay) return;
+  const target = overlay.querySelector(".mission-brief-text") || overlay.querySelector(".dialog-overlay__body");
+  if (!target) return;
+  if (overlay.__missionTypeTimer) clearInterval(overlay.__missionTypeTimer);
+  target.textContent = "";
+  let idx = 0;
+  const payload = String(text || "");
+  overlay.__missionTypeTimer = setInterval(() => {
+    idx += 1;
+    target.textContent = payload.slice(0, idx);
+    if (idx >= payload.length) {
+      clearInterval(overlay.__missionTypeTimer);
+      overlay.__missionTypeTimer = null;
+    }
+  }, msPerChar);
+}
+
 function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAfter, portraits = {}) {
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   pendingUpgradeAfterSummary = Boolean(upgradeAfter);
   startRecapMusic();
-  const startRecapTypewriter = (overlay, text, msPerChar = 16) => {
+  const startRecapTypewriter = (overlay, text, msPerChar = 18) => {
     if (!overlay) return;
-    const target = overlay.querySelector(".recap-typewriter");
+    const target = overlay.querySelector(".mission-brief-text") || overlay.querySelector(".dialog-overlay__body");
     if (!target) return;
     if (overlay.__recapTypeTimer) clearInterval(overlay.__recapTypeTimer);
     target.textContent = "";
@@ -4054,11 +4095,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     seasonStats.recapShown = true;
     window.DialogOverlay.show({
       title: `Season ${currentSeasonNumber}\n(${getMonthName(startMonthIndex)} - ${getMonthName(endMonthIndex)})`,
-      bodyHtml: `<div class="recap-typewriter" style="white-space:pre-line;"></div>`,
+      bodyHtml: `<div class="mission-brief-text"></div>`,
       buttonText: "Continue (Space)",
       variant: "mission",
       portraits: null,
-      onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 38),
+      onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
       onContinue: () => {
         dismissCurrentLevelAnnouncement();
         window.DialogOverlay.consumeAction();
@@ -4086,11 +4127,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const body = lines.join("\n\n");
   window.DialogOverlay.show({
     title: `${monthLabel} Recap`,
-    bodyHtml: `<div class="recap-typewriter" style="white-space:pre-line;"></div>`,
+    bodyHtml: `<div class="mission-brief-text"></div>`,
     buttonText: "Continue (Space)",
     variant: "mission",
     portraits: null,
-    onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 38),
+    onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
     onContinue: () => {
       dismissCurrentLevelAnnouncement();
       window.DialogOverlay.consumeAction();
@@ -7805,6 +7846,7 @@ function beginVisitorSession(options = {}) {
   visitorSession.lockingBlockers = new Set();
   visitorSession.movementLock = false;
   visitorSession.summaryActive = false;
+  visitorSession.introShown = false;
   visitorSession.summaryReason = null;
   visitorSession.awaitingSummaryConfirm = false;
   visitorSession.summaryReason = null;
@@ -9474,9 +9516,10 @@ function updateGame(dt) {
       visitorSession.recapShown = true;
       window.DialogOverlay.show({
         title,
-        body,
+      bodyHtml: `<div class="dialog-overlay__body"></div>`,
         buttonText: "Continue (Space)",
         variant: "mission",
+        onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
         onContinue: () => {
           const reason = visitorSession.summaryReason || "summary";
           visitorSession.summaryReason = null;
@@ -9489,6 +9532,22 @@ function updateGame(dt) {
     return;
   }
   if (visitorSession.active && visitorSession.introActive) {
+    if (!visitorSession.introShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
+      const title = "Welcome Visitors";
+      const body = "Welcome the visitors while politely keeping your members happy.";
+      visitorSession.introShown = true;
+      window.DialogOverlay.show({
+        title,
+        bodyHtml: `<div class="dialog-overlay__body"></div>`,
+        buttonText: "Continue (Space)",
+        variant: "mission",
+        onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
+        onContinue: () => {
+          visitorSession.introActive = false;
+          keysJustPressed.delete(" ");
+        },
+      });
+    }
     if (
       wasActionJustPressed("restart") ||
       wasActionJustPressed("pause") ||

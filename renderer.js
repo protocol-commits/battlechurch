@@ -218,6 +218,13 @@ const MELEE_SWING_LENGTH = 200;
   portraitTimer: 0,
   };
   const SHOW_TEXT_SOURCE_LABELS = true;
+  const TEXT_STYLES = {
+    h1: { size: 56, weight: 900, lineHeight: 1.05 },
+    h2: { size: 40, weight: 800, lineHeight: 1.2 },
+    h3: { size: 28, weight: 700, lineHeight: 1.2 },
+    body: { size: 20, weight: 600, lineHeight: 1.3 },
+  };
+  const announcementReveal = new Map();
 
   function drawDevLabel(ctx, text, x, y, alpha, fontFamily) {
     if (!SHOW_TEXT_SOURCE_LABELS || !text) return;
@@ -227,6 +234,115 @@ const MELEE_SWING_LENGTH = 200;
     ctx.textAlign = "center";
     ctx.fillText(text, x, y);
     ctx.restore();
+  }
+
+  function drawAnnouncementText(ctx, canvas, {
+    title,
+    subtitle,
+    yBase,
+    alpha = 1,
+    titleSize = TEXT_STYLES.h2.size,
+    subtitleSize = TEXT_STYLES.body.size,
+    lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+    weight = TEXT_STYLES.h2.weight,
+    subtitleWeight = TEXT_STYLES.body.weight,
+    typewriter = false,
+  }) {
+    const wrapText = (text, maxWidth) => {
+      const words = String(text || "").split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = "";
+      words.forEach((word) => {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width <= maxWidth || !line) {
+          line = test;
+        } else {
+          lines.push(line);
+          line = word;
+        }
+      });
+      if (line) lines.push(line);
+      return lines;
+    };
+    const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
+    ctx.save();
+    ctx.globalAlpha = 0.98 * alpha;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `${weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    const titleText = String(title || "");
+    const subtitleText = String(subtitle || "");
+    const maxWidth = canvas.width * 0.84;
+    const titleLineHeight = Math.round(titleSize * TEXT_STYLES.h2.lineHeight);
+    const subtitleLineHeight = Math.round(subtitleSize * TEXT_STYLES.body.lineHeight);
+    const titleLines = titleText ? wrapText(titleText, maxWidth) : [];
+    const subtitleLines = subtitleText ? wrapText(subtitleText, maxWidth) : [];
+    let displayTitle = titleText;
+    let displaySubtitle = subtitleText;
+    if (typewriter) {
+      const now = performance.now();
+      const key = `${titleText}||${subtitleText}`;
+      let entry = announcementReveal.get(key);
+      if (!entry) {
+        entry = { titleProgress: 0, subtitleProgress: 0, lastTime: now };
+        announcementReveal.set(key, entry);
+      }
+      const dt = Math.max(0, now - (entry.lastTime || now));
+      entry.lastTime = now;
+      const titleRate = 18;
+      const subtitleRate = 18;
+      if (entry.titleProgress < titleText.length) {
+        entry.titleProgress = Math.min(
+          titleText.length,
+          entry.titleProgress + Math.max(1, Math.floor(dt / titleRate)),
+        );
+      } else if (subtitleText) {
+        entry.subtitleProgress = Math.min(
+          subtitleText.length,
+          entry.subtitleProgress + Math.max(1, Math.floor(dt / subtitleRate)),
+        );
+      }
+      displayTitle = titleText.slice(0, entry.titleProgress);
+      displaySubtitle = subtitleText.slice(0, entry.subtitleProgress);
+    }
+    ctx.textAlign = "left";
+    ctx.font = `${weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    const fullTitleWidths = titleLines.map((line) => ctx.measureText(line).width || 0);
+    const titleBlockWidth = fullTitleWidths.length ? Math.max(...fullTitleWidths) : 0;
+    const titleX = canvas.width / 2 - titleBlockWidth / 2;
+    let remainingTitle = displayTitle.length;
+    let currentY = yBase;
+    titleLines.forEach((line) => {
+      if (!line) return;
+      const visible = remainingTitle <= 0 ? "" : line.slice(0, remainingTitle);
+      remainingTitle = Math.max(0, remainingTitle - line.length);
+      if (visible) ctx.fillText(visible, titleX, currentY);
+      currentY += titleLineHeight;
+    });
+    if (subtitleLines.length) {
+      currentY += Math.max(0, lineGap - titleLineHeight);
+      ctx.font = `${subtitleWeight} ${subtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      const fullSubtitleWidths = subtitleLines.map((line) => ctx.measureText(line).width || 0);
+      const subtitleBlockWidth = fullSubtitleWidths.length ? Math.max(...fullSubtitleWidths) : 0;
+      const subtitleX = canvas.width / 2 - subtitleBlockWidth / 2;
+      let remainingSubtitle = displaySubtitle.length;
+      subtitleLines.forEach((line) => {
+        const visible = remainingSubtitle <= 0 ? "" : line.slice(0, remainingSubtitle);
+        remainingSubtitle = Math.max(0, remainingSubtitle - line.length);
+        if (visible) ctx.fillText(visible, subtitleX, currentY);
+        currentY += subtitleLineHeight;
+      });
+    }
+    ctx.restore();
+  }
+
+  function getAnnouncementYBase(HUD_HEIGHT) {
+    return HUD_HEIGHT + 170;
+  }
+
+  function getAnnouncementTitleY(HUD_HEIGHT, boxHeight) {
+    const yBase = getAnnouncementYBase(HUD_HEIGHT);
+    const boxY = yBase - boxHeight / 2;
+    return boxY + 46;
   }
 
   function resolveCameraX(explicitValue) {
@@ -264,15 +380,15 @@ function showMissionBriefDialog(title, body, identifier) {
     .map(
       (opt) =>
         `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;padding:16px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.3);color:#fff;text-align:left;">
-          <div style="font-weight:900;font-size:22px;letter-spacing:0.04em;">${opt.label.split("(")[0]}</div>
-          <div style="opacity:0.8;font-size:14px;margin-top:4px;">Formation: ${opt.label.includes("(") ? opt.label.split("(")[1].replace(")", "") : ""}</div>
-          <div style="opacity:0.9;font-size:15px;margin-top:10px;">${opt.desc}</div>
+          <div style="font-weight:var(--ui-h3-weight);font-size:var(--ui-h3-size);line-height:var(--ui-h3-line);letter-spacing:0.02em;">${opt.label.split("(")[0]}</div>
+          <div style="opacity:0.9;font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:4px;">Formation: ${opt.label.includes("(") ? opt.label.split("(")[1].replace(")", "") : ""}</div>
+          <div style="opacity:0.9;font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:10px;">${opt.desc}</div>
         </button>`,
     )
     .join("");
   const bodyHtml = `
-    <div class="mission-brief-text" style="margin:12px 0 10px;font-size:40px;line-height:1.2;font-weight:800;"></div>
-    <div class="formation-prompt" style="margin:4px 0 12px;font-size:18px;opacity:0.9;display:none;">How would you like to minister to them?</div>
+    <div class="mission-brief-text"></div>
+    <div class="formation-prompt" style="margin:4px 0 12px;opacity:0.9;display:none;">How would you like to minister to them?</div>
     <div class="formation-picker" style="display:none;">${buttonsHtml}</div>
   `;
   window.DialogOverlay.show({
@@ -285,8 +401,6 @@ function showMissionBriefDialog(title, body, identifier) {
       const titleEl = overlay.querySelector(".dialog-overlay__title");
       if (titleEl) {
         titleEl.style.marginTop = "12px";
-        titleEl.style.fontSize = "56px";
-        titleEl.style.letterSpacing = "0.08em";
       }
       const textEl = overlay.querySelector(".mission-brief-text");
       const prompt = overlay.querySelector(".formation-prompt");
@@ -413,7 +527,7 @@ function drawLevelAnnouncements() {
     const alpha = timer > fadeStart
       ? 1
       : Math.max(0, Math.min(1, timer / Math.max(0.001, fadeDuration)));
-    const yBase = HUD_HEIGHT + 170;
+    const yBase = getAnnouncementYBase(HUD_HEIGHT);
     ctx.save();
     ctx.textAlign = "center";
   // Make the announcement panel large enough for portraits and text;
@@ -785,11 +899,13 @@ function drawLevelAnnouncements() {
 
   return;
     }
-    const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.98 * alpha})`;
-    ctx.font = `900 52px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    const titleY = boxY + 46;
-    ctx.fillText(displayTitle || "", canvas.width / 2, titleY);
+    const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight);
+    drawAnnouncementText(ctx, canvas, {
+      title: displayTitle || "",
+      yBase: titleY,
+      alpha,
+      typewriter: true,
+    });
     drawDevLabel(ctx, "DEV: AnnouncementPanelTitle", canvas.width / 2, titleY + 22, alpha, UI_FONT_FAMILY);
     // Subtitle display removed as requested.
     ctx.restore();
@@ -896,32 +1012,33 @@ function drawLevelAnnouncements() {
       congregationMembers,
     } = requireBindings();
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
-    const titleY = HUD_HEIGHT + 44;
-    ctx.save();
-    ctx.globalAlpha = 0.92;
-    ctx.textAlign = "center";
-    ctx.font = `bold 42px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#ffe89b";
-    ctx.fillText("Smite the hordes — save your flock.", canvas.width / 2, titleY);
-    ctx.font = `17px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#f0f6ff";
-    ctx.fillText("Protect and grow your church or the townpeople fall to the powers of darkness.", canvas.width / 2, titleY + 30);
-    ctx.font = `19px ${UI_FONT_FAMILY}`;
-    ctx.fillText(`Current Members: ${memberCount}`, canvas.width / 2, titleY + 56);
-    ctx.globalAlpha = 1;
+    const titleY = getAnnouncementTitleY(HUD_HEIGHT, 220);
+    drawAnnouncementText(ctx, canvas, {
+      title: "Smite the hordes — save your flock.",
+      subtitle: "Protect and grow your church or the townpeople fall to the powers of darkness.",
+      yBase: titleY,
+      subtitleSize: TEXT_STYLES.h3.size,
+      subtitleWeight: TEXT_STYLES.h3.weight,
+      lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+      alpha: 1,
+      typewriter: true,
+    });
+    drawAnnouncementText(ctx, canvas, {
+      title: `Current Members: ${memberCount}`,
+      yBase: titleY + 70,
+      titleSize: TEXT_STYLES.h3.size,
+      weight: TEXT_STYLES.h3.weight,
+      alpha: 1,
+      typewriter: true,
+    });
 
     const footerPadding = 22;
     const footerWidth = canvas.width - footerPadding * 2;
     const footerHeight = 88;
     const footerX = footerPadding;
     const footerY = canvas.height - footerHeight - 16;
-    ctx.fillStyle = "rgba(10, 14, 24, 0.86)";
-    ctx.fillRect(footerX, footerY, footerWidth, footerHeight);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(footerX, footerY, footerWidth, footerHeight);
-    ctx.font = `14px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#f3f6ff";
+    ctx.font = `${TEXT_STYLES.body.weight} ${TEXT_STYLES.body.size}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "#ffffff";
     ctx.textAlign = "left";
     const lineX = footerX + 18;
     let lineY = footerY + 26;
@@ -930,7 +1047,7 @@ function drawLevelAnnouncements() {
     ctx.fillText("Left Arrow: Sword (double tap = Rush, hold = Charge)", lineX, lineY);
     lineY += 20;
     ctx.fillText("Right Arrow: Prayer Bomb", lineX, lineY);
-    ctx.fillStyle = "#ffe89b";
+    ctx.fillStyle = "#ffffff";
     ctx.textAlign = "right";
     ctx.fillText("Press Space when ready to begin.", footerX + footerWidth - 18, footerY + footerHeight - 20);
     ctx.restore();
@@ -1138,16 +1255,20 @@ function drawLevelAnnouncements() {
     ctx.strokeStyle = "rgba(255, 220, 120, 0.4)";
     ctx.lineWidth = 1.5;
     ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#ffe8a6";
-    ctx.font = `22px ${UI_FONT_FAMILY}`;
     const label = rushState?.reason === "boss" ? "Treasure Overflow!" : "Key Rush!";
-    ctx.fillText(label, centerX, panelY + 24);
-    ctx.font = `14px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#f8fbff";
     const subtitle =
       rushState?.reason === "boss" ? "Celebrate the victory—collect every key!" : "Grab as many keys as you can!";
-    ctx.fillText(subtitle, centerX, panelY + panelHeight - 12);
+    drawAnnouncementText(ctx, canvas, {
+      title: label,
+      subtitle,
+      yBase: panelY + 24,
+      titleSize: TEXT_STYLES.h3.size,
+      weight: TEXT_STYLES.h3.weight,
+      subtitleSize: TEXT_STYLES.body.size,
+      lineGap: Math.round(TEXT_STYLES.h3.size * TEXT_STYLES.h3.lineHeight),
+      alpha: 1,
+      typewriter: true,
+    });
     ctx.restore();
 
     const remainingSeconds = Math.ceil(remaining);
@@ -1155,7 +1276,7 @@ function drawLevelAnnouncements() {
     ctx.globalAlpha = 0.3;
     ctx.fillStyle = "#ffffff";
     const fontSize = Math.min(canvas.width, canvas.height) * 0.45;
-    ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${TEXT_STYLES.h1.weight} ${fontSize}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.fillText(String(remainingSeconds), canvas.width / 2, canvas.height / 2 + fontSize * 0.35);
     ctx.restore();
@@ -1232,22 +1353,7 @@ function drawLevelAnnouncements() {
   }
 
   function drawVisitorIntroOverlay() {
-    const {
-      ctx,
-      canvas,
-      UI_FONT_FAMILY,
-    } = requireBindings();
-    ctx.save();
-    ctx.fillStyle = "rgba(4, 8, 14, 0.88)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#ffe89b";
-    ctx.font = `48px ${UI_FONT_FAMILY}`;
-    ctx.fillText("Welcome Visitors", canvas.width / 2, canvas.height / 2 - 40);
-    ctx.font = `20px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#f1f5ff";
-    ctx.fillText("Welcome the visitors while politely keeping your members happy.", canvas.width / 2, canvas.height / 2);
-    ctx.restore();
+    return;
   }
 
   function drawBriefingScene(levelStatus) {

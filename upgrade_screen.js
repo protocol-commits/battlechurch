@@ -8,8 +8,7 @@
   overlay.innerHTML = `
     <div class="upgrade-overlay__panel magazine-panel">
       <div class="upgrade-overlay__header">
-        <h2>Stat Upgrade</h2>
-        <p>Spend keys to boost your stats before the next battle.</p>
+        <h1>Stat Upgrade</h1>
       </div>
       <div class="upgrade-overlay__keys">
         <span class="keys-label">Keys</span>
@@ -27,6 +26,7 @@
   const gridElement = overlay.querySelector("[data-upgrade-grid]");
   const keysElement = overlay.querySelector("[data-upgrade-keys]");
   const confirmButton = overlay.querySelector("[data-upgrade-confirm]");
+  const headerTitle = overlay.querySelector(".upgrade-overlay__header h1");
 
   let onCloseCallback = null;
   let visible = false;
@@ -87,6 +87,22 @@
     keysElement.textContent = getKeyCount();
   }
 
+  function typewriter(el, text, msPerChar = 18) {
+    if (!el) return;
+    if (el.__typeTimer) clearInterval(el.__typeTimer);
+    el.textContent = "";
+    let idx = 0;
+    const payload = String(text || "");
+    el.__typeTimer = setInterval(() => {
+      idx += 1;
+      el.textContent = payload.slice(0, idx);
+      if (idx >= payload.length) {
+        clearInterval(el.__typeTimer);
+        el.__typeTimer = null;
+      }
+    }, msPerChar);
+  }
+
   function show(callback) {
     if (!overlay) return;
     renderRows();
@@ -96,6 +112,7 @@
     overlay.classList.add("visible");
     overlay.setAttribute("aria-hidden", "false");
     visible = true;
+    if (headerTitle) typewriter(headerTitle, headerTitle.textContent || "", 18);
   }
 
   function hide() {

@@ -68,8 +68,8 @@ window.BattlechurchLevelData = {
     ],
     "floorTextByHorde": {
       "1": "Let's deal with our issues",
-      "8": "Let's take a deep look inside",
-      "15": "Let's finish this!"
+      "8": "Great job. Now let's face some deeper issues.",
+      "15": "Let's finish our study by honestly rooting out our problems."
     },
     "hiddenEnemies": [
       "lancer",

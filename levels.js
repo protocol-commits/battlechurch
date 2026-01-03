@@ -100,6 +100,14 @@
     return null;
   }
 
+  function formatNameList(names) {
+    const clean = (Array.isArray(names) ? names : []).filter(Boolean);
+    if (!clean.length) return "";
+    if (clean.length === 1) return clean[0];
+    if (clean.length === 2) return `${clean[0]} and ${clean[1]}`;
+    return `${clean.slice(0, -1).join(", ")} and ${clean[clean.length - 1]}`;
+  }
+
   function getScopeConfig(levelIdx, monthIdx, battleIdx, hordeIdx = null) {
     const cfg = getDevConfig();
     if (!cfg || !Array.isArray(cfg.levels)) return {};
@@ -902,16 +910,17 @@
       state.activeHorde = currentHorde();
       if (!state.activeHorde) return;
       const hordeNumber = state.battleIndex + 1;
-      const introDuration = hordeNumber === 1 ? 2.0 : HORDE_INTRO_DURATION;
+      const introDuration = hordeNumber === 1 ? 4.0 : HORDE_INTRO_DURATION;
       resetStage("hordeIntro", introDuration);
       if (hordeNumber === 1) {
-        const floorText = getFloorTextForHorde(hordeNumber);
-        if (floorText) {
-          queueLevelAnnouncement(floorText, "", {
-            duration: introDuration,
-            skipMissionBrief: true,
-          });
-        }
+        const names = formatNameList(npcs.map((npc) => npc?.name || ""));
+        const title = names
+          ? `Welcome ${names}, let's deal with lies, temptation and sin.`
+          : "Welcome, let's deal with lies, temptation and sin.";
+        queueLevelAnnouncement(title, "", {
+          duration: introDuration,
+          skipMissionBrief: true,
+        });
       }
       const hordeLabel = `${state.monthIndex + 1}-${state.battleIndex + 1}`;
       setDevStatus(`Horde ${hordeLabel}`, introDuration + 0.6);
