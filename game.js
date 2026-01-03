@@ -4023,6 +4023,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     const target = overlay.querySelector(".mission-brief-text") || overlay.querySelector(".dialog-overlay__body");
     if (!target) return;
     if (overlay.__recapTypeTimer) clearInterval(overlay.__recapTypeTimer);
+    target.textContent = text;
+    const fullHeight = target.scrollHeight;
+    if (fullHeight) {
+      target.style.minHeight = `${fullHeight}px`;
+    }
     target.textContent = "";
     let idx = 0;
     const payload = String(text || "");

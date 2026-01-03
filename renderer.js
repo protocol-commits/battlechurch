@@ -379,10 +379,10 @@ function showMissionBriefDialog(title, body, identifier) {
   const buttonsHtml = formationOptions
     .map(
       (opt) =>
-        `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;padding:16px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.3);color:#fff;text-align:left;">
+        `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;padding:18px;border-radius:16px;border:none;background:var(--swatch-accent-2);color:var(--ui-text-color-dark);text-align:center;box-shadow:0 12px 28px rgba(110,244,255,0.25);">
           <div style="font-weight:var(--ui-h3-weight);font-size:var(--ui-h3-size);line-height:var(--ui-h3-line);letter-spacing:0.02em;">${opt.label.split("(")[0]}</div>
-          <div style="opacity:0.9;font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:4px;">Formation: ${opt.label.includes("(") ? opt.label.split("(")[1].replace(")", "") : ""}</div>
-          <div style="opacity:0.9;font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:10px;">${opt.desc}</div>
+          <div style="font-weight:var(--ui-body-weight);font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:6px;">Formation: ${opt.label.includes("(") ? opt.label.split("(")[1].replace(")", "") : ""}</div>
+          <div style="font-weight:var(--ui-body-weight);font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:10px;">${opt.desc}</div>
         </button>`,
     )
     .join("");
@@ -394,10 +394,10 @@ function showMissionBriefDialog(title, body, identifier) {
   window.DialogOverlay.show({
     title: devTitle,
     bodyHtml,
-    buttonText: "Confirm Formation",
+    buttonText: "",
     variant: "mission",
     onRender: ({ overlay, buttonEl }) => {
-      if (buttonEl) buttonEl.disabled = true;
+      if (buttonEl) buttonEl.style.display = "none";
       const titleEl = overlay.querySelector(".dialog-overlay__title");
       if (titleEl) {
         titleEl.style.marginTop = "12px";
@@ -412,29 +412,16 @@ function showMissionBriefDialog(title, body, identifier) {
         picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
         picker.style.gap = "14px";
       };
-      const typeFormationOptions = async () => {
-        if (!picker) return;
-        const buttons = Array.from(picker.querySelectorAll(".formation-option"));
-        for (const button of buttons) {
-          const labelEl = button.querySelector("div:nth-child(1)");
-          const formationEl = button.querySelector("div:nth-child(2)");
-          const descEl = button.querySelector("div:nth-child(3)");
-          const labelText = labelEl ? labelEl.textContent : "";
-          const formationText = formationEl ? formationEl.textContent : "";
-          const descText = descEl ? descEl.textContent : "";
-          if (labelEl) labelEl.textContent = "";
-          if (formationEl) formationEl.textContent = "";
-          if (descEl) descEl.textContent = "";
-          await typeText(labelEl, labelText, 16);
-          await typeText(formationEl, formationText, 12);
-          await typeText(descEl, descText, 10);
-        }
-      };
       const typeText = (el, text, msPerChar = 18) =>
         new Promise((resolve) => {
           if (!el) {
             resolve();
             return;
+          }
+          el.textContent = text;
+          const fullHeight = el.scrollHeight;
+          if (fullHeight) {
+            el.style.minHeight = `${fullHeight}px`;
           }
           el.textContent = "";
           let idx = 0;
@@ -458,7 +445,6 @@ function showMissionBriefDialog(title, body, identifier) {
             if (prompt) prompt.style.display = "block";
             typeText(prompt, promptText, 18).then(() => {
               revealFormationUi();
-              typeFormationOptions();
             });
           }, 2000);
         });
@@ -467,7 +453,6 @@ function showMissionBriefDialog(title, body, identifier) {
           if (prompt) prompt.style.display = "block";
           typeText(prompt, promptText, 18).then(() => {
             revealFormationUi();
-            typeFormationOptions();
           });
         }, 2000);
       }
@@ -485,8 +470,10 @@ function showMissionBriefDialog(title, body, identifier) {
             window.startBattleMusicFromFormation();
           }
           picker.querySelectorAll(".formation-option").forEach((b) => {
-            b.style.borderColor = b === btn ? "#ffd978" : "rgba(255,255,255,0.25)";
-            b.style.background = b === btn ? "rgba(255,217,120,0.16)" : "rgba(0,0,0,0.3)";
+            b.style.background = b === btn ? "var(--swatch-accent)" : "var(--swatch-accent-2)";
+            b.style.boxShadow = b === btn
+              ? "0 12px 28px rgba(255,217,120,0.3)"
+              : "0 12px 28px rgba(110,244,255,0.25)";
           });
           if (typeof window.applyFormationAnchors === "function") {
             try { window.applyFormationAnchors(); } catch (e) {}
