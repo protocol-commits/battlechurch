@@ -217,7 +217,7 @@ const MELEE_SWING_LENGTH = 200;
   revealedLost: 0,
   portraitTimer: 0,
   };
-  const SHOW_TEXT_SOURCE_LABELS = true;
+  const SHOW_TEXT_SOURCE_LABELS = false;
   const TEXT_STYLES = {
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
     h2: { size: 40, weight: 800, lineHeight: 1.2 },
@@ -409,7 +409,7 @@ function showMissionBriefDialog(title, body, identifier) {
         if (prompt) prompt.style.display = "block";
         if (!picker) return;
         picker.style.display = "grid";
-        picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
+        picker.style.gridTemplateColumns = "1fr";
         picker.style.gap = "14px";
       };
       const typeFormationOptions = async () => {
@@ -1014,8 +1014,8 @@ function drawLevelAnnouncements() {
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
     const titleY = getAnnouncementTitleY(HUD_HEIGHT, 220);
     drawAnnouncementText(ctx, canvas, {
-      title: "Smite the hordes — save your flock.",
-      subtitle: "Protect and grow your church or the townpeople fall to the powers of darkness.",
+      title: "Welcome Pastor. We're pleased to meet you!",
+      subtitle: "",
       yBase: titleY,
       subtitleSize: TEXT_STYLES.h3.size,
       subtitleWeight: TEXT_STYLES.h3.weight,
@@ -1023,14 +1023,7 @@ function drawLevelAnnouncements() {
       alpha: 1,
       typewriter: true,
     });
-    drawAnnouncementText(ctx, canvas, {
-      title: `Current Members: ${memberCount}`,
-      yBase: titleY + 70,
-      titleSize: TEXT_STYLES.h3.size,
-      weight: TEXT_STYLES.h3.weight,
-      alpha: 1,
-      typewriter: true,
-    });
+    void memberCount;
 
     const footerPadding = 22;
     const footerWidth = canvas.width - footerPadding * 2;

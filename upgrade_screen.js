@@ -65,12 +65,8 @@
           <div class="upgrade-row__desc">${description}</div>
         </div>
         <div class="upgrade-row__value">${value}</div>
-        <div class="upgrade-row__cost">
-          <span>Next:</span>
-          <strong>${cost} keys</strong>
-        </div>
         <button type="button" class="upgrade-row__button" ${isDisabled} data-stat="${statKey}">
-          Upgrade
+          Upgrade +${cost} keys
         </button>
       </div>
     `;

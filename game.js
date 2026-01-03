@@ -3850,15 +3850,32 @@ function typewriterElement(overlay, selector, text, msPerChar = 18) {
   const target = overlay.querySelector(selector);
   if (!target) return;
   if (target.__typeTimer) clearInterval(target.__typeTimer);
-  target.textContent = "";
   let idx = 0;
   const payload = String(text || "");
+  const previousDisplay = target.style.display;
+  const previousTextAlign = target.style.textAlign;
+  const previousWidth = target.style.width;
+  const previousMaxWidth = target.style.maxWidth;
+  const previousWhiteSpace = target.style.whiteSpace;
+  target.style.display = "inline-block";
+  target.style.textAlign = "left";
+  target.style.maxWidth = "100%";
+  target.style.whiteSpace = "pre-line";
+  target.textContent = payload;
+  const fullWidth = Math.ceil(target.getBoundingClientRect().width || 0);
+  target.style.width = fullWidth ? `${fullWidth}px` : target.style.width;
+  target.textContent = "";
   target.__typeTimer = setInterval(() => {
     idx += 1;
     target.textContent = payload.slice(0, idx);
     if (idx >= payload.length) {
       clearInterval(target.__typeTimer);
       target.__typeTimer = null;
+      target.style.display = previousDisplay;
+      target.style.textAlign = previousTextAlign;
+      target.style.width = previousWidth;
+      target.style.maxWidth = previousMaxWidth;
+      target.style.whiteSpace = previousWhiteSpace;
     }
   }, msPerChar);
 }

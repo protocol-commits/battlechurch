@@ -8,7 +8,7 @@
     <div class="dialog-overlay__panel">
       <div class="dialog-overlay__header">
         <h2 class="dialog-overlay__title"></h2>
-        <p class="dialog-overlay__body"></p>
+        <div class="dialog-overlay__body"></div>
       </div>
       <canvas class="dialog-overlay__portrait-canvas" width="360" height="160"></canvas>
       <div class="dialog-overlay__actions">
@@ -39,6 +39,8 @@
     onRender = null,
   }) {
     if (!overlay) return;
+    if (titleEl) titleEl.style.cssText = "";
+    if (bodyEl) bodyEl.style.cssText = "";
     titleEl.textContent = title;
     if (bodyHtml) {
       bodyEl.innerHTML = bodyHtml;
