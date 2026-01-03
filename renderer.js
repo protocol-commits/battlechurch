@@ -407,7 +407,12 @@ function drawLevelAnnouncements() {
   const { title, subtitle, timer, duration, requiresConfirm } = levelAnnouncements[0];
   const now = performance.now();
   const levelStatus = (typeof requireBindings === 'function') ? requireBindings().levelManager?.getStatus?.() : null;
-    const alpha = Math.max(0, Math.min(1, timer / duration));
+    const ANNOUNCEMENT_FADE_DURATION = 1.5;
+    const fadeDuration = Math.min(duration, ANNOUNCEMENT_FADE_DURATION);
+    const fadeStart = Math.max(0, duration - fadeDuration);
+    const alpha = timer > fadeStart
+      ? 1
+      : Math.max(0, Math.min(1, timer / Math.max(0.001, fadeDuration)));
     const yBase = HUD_HEIGHT + 170;
     ctx.save();
     ctx.textAlign = "center";
@@ -424,24 +429,7 @@ function drawLevelAnnouncements() {
     const boxY = yBase - boxHeight / 2;
     const radius = 24;
 
-    const drawRoundedPanel = (fillStyle, strokeStyle, bx = boxX, by = boxY, bw = boxWidth, bh = boxHeight) => {
-      ctx.beginPath();
-      ctx.moveTo(bx + radius, by);
-      ctx.lineTo(bx + bw - radius, by);
-      ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + radius);
-      ctx.lineTo(bx + bw, by + bh - radius);
-      ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - radius, by + bh);
-      ctx.lineTo(bx + radius, by + bh);
-      ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - radius);
-      ctx.lineTo(bx, by + radius);
-      ctx.quadraticCurveTo(bx, by, bx + radius, by);
-      ctx.closePath();
-      ctx.fillStyle = fillStyle;
-      ctx.fill();
-      ctx.strokeStyle = strokeStyle;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    };
+    const drawRoundedPanel = () => {};
 
   // If this is a Battle-cleared announcement (post-battle), render a special animated tally
     // Only treat announcements whose title indicates a cleared battle (e.g., 'Battle 1 Cleared')
@@ -797,11 +785,9 @@ function drawLevelAnnouncements() {
 
   return;
     }
-    ctx.fillStyle = `rgba(12, 28, 46, ${0.4 * alpha})`;
-    ctx.fillRect(boxX + 6, boxY + 6, boxWidth - 12, boxHeight - 12);
-
-    ctx.fillStyle = `rgba(241, 245, 255, ${0.92 * alpha})`;
-    ctx.font = `40px ${UI_FONT_FAMILY}`;
+    const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.98 * alpha})`;
+    ctx.font = `900 52px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const titleY = boxY + 46;
     ctx.fillText(displayTitle || "", canvas.width / 2, titleY);
     drawDevLabel(ctx, "DEV: AnnouncementPanelTitle", canvas.width / 2, titleY + 22, alpha, UI_FONT_FAMILY);

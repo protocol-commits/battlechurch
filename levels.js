@@ -901,17 +901,20 @@
       state.battleIndex += 1;
       state.activeHorde = currentHorde();
       if (!state.activeHorde) return;
-      resetStage("hordeIntro", HORDE_INTRO_DURATION);
       const hordeNumber = state.battleIndex + 1;
-      const floorText = getFloorTextForHorde(hordeNumber);
-      if (floorText) {
-        queueLevelAnnouncement(floorText, "", {
-          duration: HORDE_INTRO_DURATION,
-          skipMissionBrief: true,
-        });
+      const introDuration = hordeNumber === 1 ? 2.0 : HORDE_INTRO_DURATION;
+      resetStage("hordeIntro", introDuration);
+      if (hordeNumber === 1) {
+        const floorText = getFloorTextForHorde(hordeNumber);
+        if (floorText) {
+          queueLevelAnnouncement(floorText, "", {
+            duration: introDuration,
+            skipMissionBrief: true,
+          });
+        }
       }
       const hordeLabel = `${state.monthIndex + 1}-${state.battleIndex + 1}`;
-      setDevStatus(`Horde ${hordeLabel}`, HORDE_INTRO_DURATION + 0.6);
+      setDevStatus(`Horde ${hordeLabel}`, introDuration + 0.6);
       scheduleConversation(0.4, () => {
         heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
       });
@@ -995,6 +998,14 @@
       if (!finalHorde) {
         state.finalHordeDelay = 0;
         if (isGlobalAllKillHorde(hordeNumber)) {
+          const nextHordeNumber = hordeNumber + 1;
+          const floorText = getFloorTextForHorde(nextHordeNumber);
+          if (floorText) {
+            queueLevelAnnouncement(floorText, "", {
+              duration: ACT_BREAK_DELAY,
+              skipMissionBrief: true,
+            });
+          }
           resetStage("hordeCleared", ACT_BREAK_DELAY);
           setDevStatus(`Act break after Horde ${battleNumber}-${hordeNumber}`, ACT_BREAK_DELAY);
           return;

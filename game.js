@@ -4081,7 +4081,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   lines.push(`Their total remaining health was ${Math.round(totalNpcFaith)}. [${formatDelta(healthReward)}]`);
   const invitedCount = Math.max(0, memberDelta) + healthReward;
   lines.push(`They have in turn invited ${invitedCount} people to join the church.`);
-  lines.push(`Current Congregation Size: ${congregationTotal}`);
+  const totalDelta = memberDelta + healthReward;
+  lines.push(`Current Congregation Size: [${formatDelta(totalDelta)}] ${congregationTotal}`);
   const body = lines.join("\n\n");
   window.DialogOverlay.show({
     title: `${monthLabel} Recap`,

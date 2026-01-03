@@ -67,9 +67,9 @@ window.BattlechurchLevelData = {
       14
     ],
     "floorTextByHorde": {
-      "1": "Ready...",
-      "8": "Keep the Faith!",
-      "15": "Finish This!"
+      "1": "Let's deal with our issues",
+      "8": "Let's take a deep look inside",
+      "15": "Let's finish this!"
     },
     "hiddenEnemies": [
       "lancer",
