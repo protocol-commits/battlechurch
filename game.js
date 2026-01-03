@@ -159,7 +159,7 @@ const FAITH_HIT_SFX_SRCS = [
 ];
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const KEY_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
-const INTRO_MUSIC_SRC = "assets/music/war-full.mp3";
+const INTRO_MUSIC_SRC = "assets/music/stings-logo.wav";
 const BATTLE_MUSIC_SRC = "assets/music/battle4.wav";
 const RECAP_MUSIC_SRC = "assets/music/inspiringtrailer.wav";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
@@ -239,7 +239,7 @@ if (musicState.battle) {
 }
 if (musicState.recap) {
   musicState.recap.preload = "auto";
-  musicState.recap.loop = true;
+  musicState.recap.loop = false;
 }
 
 function playDefaultArrowSfx(volume = 0.6) {
@@ -822,7 +822,7 @@ function startRecapMusic() {
   if (musicState.recapStarted && !musicState.recapStopped) return;
   musicState.recapStarted = true;
   musicState.recapStopped = false;
-  playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+  playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: false });
 }
 
 function stopRecapMusic() {
@@ -3877,12 +3877,8 @@ function startGameFromTitle() {
     howToPlayActive = false;
     paused = false;
     if (levelManager && typeof levelManager.startBriefing === "function") {
-      stopIntroMusic();
-      startBattleMusic();
       levelManager.startBriefing(1);
     } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
-      stopIntroMusic();
-      startBattleMusic();
       levelManager.advanceFromBriefing(1);
     }
     return;
@@ -3964,6 +3960,23 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   pendingUpgradeAfterSummary = Boolean(upgradeAfter);
   startRecapMusic();
+  const startRecapTypewriter = (overlay, text, msPerChar = 16) => {
+    if (!overlay) return;
+    const target = overlay.querySelector(".recap-typewriter");
+    if (!target) return;
+    if (overlay.__recapTypeTimer) clearInterval(overlay.__recapTypeTimer);
+    target.textContent = "";
+    let idx = 0;
+    const payload = String(text || "");
+    overlay.__recapTypeTimer = setInterval(() => {
+      idx += 1;
+      target.textContent = payload.slice(0, idx);
+      if (idx >= payload.length) {
+        clearInterval(overlay.__recapTypeTimer);
+        overlay.__recapTypeTimer = null;
+      }
+    }, msPerChar);
+  };
   const summary = levelManager?.getLastBattleSummary?.() || {};
   const status = levelManager?.getStatus?.() || null;
   const savedNames = Array.isArray(summary.savedNames)
@@ -4003,12 +4016,15 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (seasonStats.startCongregation == null) {
     seasonStats.startCongregation = getCongregationSize();
   }
+  const totalNpcFaith = Number.isFinite(summary?.totalNpcFaith) ? summary.totalNpcFaith : 0;
+  const healthReward = Math.min(5, Math.floor(totalNpcFaith / 100));
   if (!summary.congregationDeltaApplied) {
-    adjustCongregationSize(memberDelta);
+    adjustCongregationSize(memberDelta + healthReward);
     summary.congregationDeltaApplied = true;
     summary.congregationDelta = memberDelta;
+    summary.healthReward = healthReward;
   }
-  seasonStats.monthlyAdded += memberDelta;
+  seasonStats.monthlyAdded += memberDelta + healthReward;
   seasonStats.lost += Math.max(0, lostCount || 0);
   const monthsPerLevel = typeof MONTHS_PER_LEVEL === "number" ? MONTHS_PER_LEVEL : 3;
   const isSeasonEnd = localMonthNumber >= monthsPerLevel;
@@ -4038,10 +4054,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     seasonStats.recapShown = true;
     window.DialogOverlay.show({
       title: `Season ${currentSeasonNumber}\n(${getMonthName(startMonthIndex)} - ${getMonthName(endMonthIndex)})`,
-      body,
+      bodyHtml: `<div class="recap-typewriter" style="white-space:pre-line;"></div>`,
       buttonText: "Continue (Space)",
       variant: "mission",
       portraits: null,
+      onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 38),
       onContinue: () => {
         dismissCurrentLevelAnnouncement();
         window.DialogOverlay.consumeAction();
@@ -4051,29 +4068,28 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   }
   const congregationTotal = getCongregationSize();
   const lines = [];
+  const formatDelta = (value) => `${value >= 0 ? "+" : "-"}${Math.abs(value)}`;
   if (savedNames.length) {
     const names = savedNames.join(", ");
-    const verb = savedNames.length === 1 ? "is" : "are";
-    lines.push(`${names} ${verb} still with us after the struggle.`);
+    lines.push(`You successfully ministered to ${names}. [${formatDelta(memberDelta)}]`);
   }
   if (lostNames.length) {
     const names = lostNames.join(", ");
     const verb = lostNames.length === 1 ? "has" : "have";
     lines.push(`${names} ${verb} left the church.`);
   }
-  const deltaVerb = memberDelta >= 0 ? "brought in" : "lost";
-  const deltaNumber = Math.abs(memberDelta);
-  const deltaDisplay = `${memberDelta >= 0 ? "+" : "-"}${deltaNumber}`;
-  const deltaNoun = deltaNumber === 1 ? "member" : "members";
-  lines.push(`Your work ${deltaVerb} ${deltaDisplay} ${deltaNoun}.`);
+  lines.push(`Their total remaining health was ${Math.round(totalNpcFaith)}. [${formatDelta(healthReward)}]`);
+  const invitedCount = Math.max(0, memberDelta) + healthReward;
+  lines.push(`They have in turn invited ${invitedCount} people to join the church.`);
   lines.push(`Current Congregation Size: ${congregationTotal}`);
   const body = lines.join("\n\n");
   window.DialogOverlay.show({
     title: `${monthLabel} Recap`,
-    body,
+    bodyHtml: `<div class="recap-typewriter" style="white-space:pre-line;"></div>`,
     buttonText: "Continue (Space)",
     variant: "mission",
     portraits: null,
+    onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 38),
     onContinue: () => {
       dismissCurrentLevelAnnouncement();
       window.DialogOverlay.consumeAction();
@@ -6262,7 +6278,9 @@ class CozyNpc {
     const npcSpeedMult = npcWeaponState.speedMultiplier || 1;
 
     const baseCfg = PROJECTILE_CONFIG[weaponMode] || PROJECTILE_CONFIG.arrow;
-    if (weaponMode !== "arrow" && baseCfg?.cooldownAfterFire) {
+    if (weaponMode === "fire") {
+      baseCooldown = 1.0;
+    } else if (weaponMode !== "arrow" && baseCfg?.cooldownAfterFire) {
       // NPC power weapons fire at 25% of the player base fire rate (4x cooldown),
       // except wisdom NPC power, which is 50% (2x cooldown) to avoid being too slow.
       const npcRateScale = weaponMode === "wisdom_missle" ? 2 : 4;

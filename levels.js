@@ -660,7 +660,7 @@
       const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
       const monthName = getMonthName(globalMonthNumber);
       console.info && console.info('queueAnnouncement', { title: `Level ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
-      const missionBriefTitle = getFloorTextForHorde(1);
+      const missionBriefTitle = monthName;
       queueLevelAnnouncement(`Level ${state.level} — ${monthName}`, state.currentBattleScenario, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
@@ -683,6 +683,7 @@
   const battleLostPortraits = [];
   let savedNames = [];
   let lostNames = [];
+  let totalNpcFaith = 0;
 
   // Capture portraits for survivors and lost NPCs when NPC objects exist.
   if (npcs.length) {
@@ -699,6 +700,9 @@
             if (!npc.departed && npc.active) {
               saved.push(p);
               savedNames.push(npc.name || "");
+              if (Number.isFinite(npc.faith)) {
+                totalNpcFaith += Math.max(0, npc.faith);
+              }
             } else {
               lost.push(p);
             }
@@ -750,12 +754,13 @@
 
       if (battleSaved > 0) state.stats.npcsRescued += battleSaved;
       state.lastBattleSummary = {
-  savedCount: battleSaved,
-  lostCount: battleLost,
-  savedPortraits: battleSavedPortraits,
-  lostPortraits: battleLostPortraits,
-  savedNames: savedNames,
-  lostNames: lostNames,
+        savedCount: battleSaved,
+        lostCount: battleLost,
+        savedPortraits: battleSavedPortraits,
+        lostPortraits: battleLostPortraits,
+        savedNames: savedNames,
+        lostNames: lostNames,
+        totalNpcFaith: Math.round(totalNpcFaith),
       };
       npcs.splice(0, npcs.length);
       state.battleNpcStartCount = 0;

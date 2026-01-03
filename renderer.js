@@ -248,9 +248,7 @@ function showMissionBriefDialog(title, body, identifier) {
   missionBriefOverlayState.shown = false;
   missionBriefOverlayState.active = true;
   window.isMissionBriefOverlayActive = true;
-  const devTitle = SHOW_TEXT_SOURCE_LABELS
-    ? `${title || ""}${title ? " " : ""}[DEV: BriefOverlayTitle]`
-    : title;
+  const devTitle = title;
   if (typeof window.stopIntroMusic === "function") {
     window.stopIntroMusic();
   }
@@ -273,9 +271,9 @@ function showMissionBriefDialog(title, body, identifier) {
     )
     .join("");
   const bodyHtml = `
-    <div style="margin:12px 0 10px;font-size:28px;line-height:1.3;font-weight:700;">${body}</div>
-    <div style="margin:4px 0 12px;font-size:18px;opacity:0.9;">How would you like to minister to them?</div>
-    <div class="formation-picker">${buttonsHtml}</div>
+    <div class="mission-brief-text" style="margin:12px 0 10px;font-size:40px;line-height:1.2;font-weight:800;"></div>
+    <div class="formation-prompt" style="margin:4px 0 12px;font-size:18px;opacity:0.9;display:none;">How would you like to minister to them?</div>
+    <div class="formation-picker" style="display:none;">${buttonsHtml}</div>
   `;
   window.DialogOverlay.show({
     title: devTitle,
@@ -290,11 +288,76 @@ function showMissionBriefDialog(title, body, identifier) {
         titleEl.style.fontSize = "56px";
         titleEl.style.letterSpacing = "0.08em";
       }
+      const textEl = overlay.querySelector(".mission-brief-text");
+      const prompt = overlay.querySelector(".formation-prompt");
       const picker = overlay.querySelector(".formation-picker");
+      const revealFormationUi = () => {
+        if (prompt) prompt.style.display = "block";
+        if (!picker) return;
+        picker.style.display = "grid";
+        picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
+        picker.style.gap = "14px";
+      };
+      const typeFormationOptions = async () => {
+        if (!picker) return;
+        const buttons = Array.from(picker.querySelectorAll(".formation-option"));
+        for (const button of buttons) {
+          const labelEl = button.querySelector("div:nth-child(1)");
+          const formationEl = button.querySelector("div:nth-child(2)");
+          const descEl = button.querySelector("div:nth-child(3)");
+          const labelText = labelEl ? labelEl.textContent : "";
+          const formationText = formationEl ? formationEl.textContent : "";
+          const descText = descEl ? descEl.textContent : "";
+          if (labelEl) labelEl.textContent = "";
+          if (formationEl) formationEl.textContent = "";
+          if (descEl) descEl.textContent = "";
+          await typeText(labelEl, labelText, 16);
+          await typeText(formationEl, formationText, 12);
+          await typeText(descEl, descText, 10);
+        }
+      };
+      const typeText = (el, text, msPerChar = 18) =>
+        new Promise((resolve) => {
+          if (!el) {
+            resolve();
+            return;
+          }
+          el.textContent = "";
+          let idx = 0;
+          const timer = setInterval(() => {
+            idx += 1;
+            el.textContent = text.slice(0, idx);
+            if (idx >= text.length) {
+              clearInterval(timer);
+              resolve();
+            }
+          }, msPerChar);
+          el.__typeTimer = timer;
+        });
+      if (overlay.__missionBriefTypeTimer) clearInterval(overlay.__missionBriefTypeTimer);
+      if (overlay.__missionBriefDelayTimer) clearTimeout(overlay.__missionBriefDelayTimer);
+      const promptText = "How would you like to minister to them?";
+      if (textEl) {
+        const bodyText = String(body || "");
+        typeText(textEl, bodyText, 18).then(() => {
+          overlay.__missionBriefDelayTimer = setTimeout(() => {
+            if (prompt) prompt.style.display = "block";
+            typeText(prompt, promptText, 18).then(() => {
+              revealFormationUi();
+              typeFormationOptions();
+            });
+          }, 2000);
+        });
+      } else {
+        overlay.__missionBriefDelayTimer = setTimeout(() => {
+          if (prompt) prompt.style.display = "block";
+          typeText(prompt, promptText, 18).then(() => {
+            revealFormationUi();
+            typeFormationOptions();
+          });
+        }, 2000);
+      }
       if (!picker) return;
-      picker.style.display = "grid";
-      picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
-      picker.style.gap = "14px";
       picker.querySelectorAll(".formation-option").forEach((btn) => {
         btn.addEventListener("click", () => {
           const key = btn.getAttribute("data-formation");

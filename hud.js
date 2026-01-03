@@ -1,7 +1,6 @@
 (function(global) {
   const scoreboardIconSources = {
     congregation: "assets/sprites/conrad/powerups/dove.png",
-    lost: "assets/sprites/conrad/powerups/cup.png",
     keys: "assets/sprites/conrad/powerups/harp.png",
     enemies: "assets/sprites/conrad/powerups/sword.png",
   };
@@ -409,7 +408,6 @@
     const textX = iconX - iconPadding;
     const entries = [
       { value: congregationTotal, icon: scoreboardIcons.congregation },
-      { value: lostCount, icon: scoreboardIcons.lost },
       { value: keyCount, icon: scoreboardIcons.keys },
       { value: enemyKills, icon: scoreboardIcons.enemies },
     ];
