@@ -217,7 +217,7 @@ const MELEE_SWING_LENGTH = 200;
   revealedLost: 0,
   portraitTimer: 0,
   };
-  const SHOW_TEXT_SOURCE_LABELS = false;
+  const SHOW_TEXT_SOURCE_LABELS = true;
   const TEXT_STYLES = {
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
     h2: { size: 40, weight: 800, lineHeight: 1.2 },
@@ -229,9 +229,17 @@ const MELEE_SWING_LENGTH = 200;
   function drawDevLabel(ctx, text, x, y, alpha, fontFamily) {
     if (!SHOW_TEXT_SOURCE_LABELS || !text) return;
     ctx.save();
-    ctx.font = `12px ${fontFamily}`;
-    ctx.fillStyle = `rgba(160, 190, 220, ${0.9 * alpha})`;
+    ctx.font = `11px ${fontFamily}`;
     ctx.textAlign = "center";
+    const metrics = ctx.measureText(text);
+    const textWidth = metrics.width || 0;
+    const paddingX = 6;
+    const paddingY = 4;
+    const boxWidth = textWidth + paddingX * 2;
+    const boxHeight = 14 + paddingY;
+    ctx.fillStyle = `rgba(5, 10, 18, ${0.6 * alpha})`;
+    ctx.fillRect(x - boxWidth / 2, y - boxHeight + 2, boxWidth, boxHeight);
+    ctx.fillStyle = `rgba(200, 220, 245, ${0.95 * alpha})`;
     ctx.fillText(text, x, y);
     ctx.restore();
   }
@@ -288,8 +296,8 @@ const MELEE_SWING_LENGTH = 200;
       }
       const dt = Math.max(0, now - (entry.lastTime || now));
       entry.lastTime = now;
-      const titleRate = 18;
-      const subtitleRate = 18;
+      const titleRate = 80;
+      const subtitleRate = 80;
       if (entry.titleProgress < titleText.length) {
         entry.titleProgress = Math.min(
           titleText.length,
@@ -396,6 +404,7 @@ function showMissionBriefDialog(title, body, identifier) {
     bodyHtml,
     buttonText: "",
     variant: "mission",
+    devLabel: "DEV: MonthlyBrief",
     onRender: ({ overlay, buttonEl }) => {
       if (buttonEl) buttonEl.style.display = "none";
       const titleEl = overlay.querySelector(".dialog-overlay__title");
@@ -893,7 +902,9 @@ function drawLevelAnnouncements() {
       alpha,
       typewriter: true,
     });
-    drawDevLabel(ctx, "DEV: AnnouncementPanelTitle", canvas.width / 2, titleY + 22, alpha, UI_FONT_FAMILY);
+    if (SHOW_TEXT_SOURCE_LABELS) {
+      drawDevLabel(ctx, "DEV: BattleAnnouncement", canvas.width / 2, titleY - 32, alpha, UI_FONT_FAMILY);
+    }
     // Subtitle display removed as requested.
     ctx.restore();
   }
@@ -1010,6 +1021,9 @@ function drawLevelAnnouncements() {
       alpha: 1,
       typewriter: true,
     });
+    if (SHOW_TEXT_SOURCE_LABELS) {
+      drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, titleY - 32, 1, UI_FONT_FAMILY);
+    }
     void memberCount;
 
     const footerPadding = 22;
@@ -1240,6 +1254,9 @@ function drawLevelAnnouncements() {
       alpha: 1,
       typewriter: true,
     });
+    if (SHOW_TEXT_SOURCE_LABELS) {
+      drawDevLabel(ctx, "DEV: KeyRush", canvas.width / 2, panelY - 32, 1, UI_FONT_FAMILY);
+    }
     ctx.restore();
 
     const remainingSeconds = Math.ceil(remaining);

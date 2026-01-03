@@ -6,6 +6,7 @@
   overlay.setAttribute("aria-hidden", "true");
   overlay.innerHTML = `
     <div class="dialog-overlay__panel">
+      <div class="dialog-overlay__dev-label" data-dev-label></div>
       <div class="dialog-overlay__header">
         <h2 class="dialog-overlay__title"></h2>
         <div class="dialog-overlay__body"></div>
@@ -36,11 +37,18 @@
     onContinue = null,
     variant = "",
     portraits = null,
+    devLabel = "",
     onRender = null,
   }) {
     if (!overlay) return;
     if (titleEl) titleEl.style.cssText = "";
     if (bodyEl) bodyEl.style.cssText = "";
+    const devLabelEl = overlay.querySelector("[data-dev-label]");
+    if (devLabelEl) {
+      const labelText = String(devLabel || "").trim();
+      devLabelEl.textContent = labelText;
+      devLabelEl.style.display = labelText ? "block" : "none";
+    }
     titleEl.textContent = title;
     if (bodyHtml) {
       bodyEl.innerHTML = bodyHtml;

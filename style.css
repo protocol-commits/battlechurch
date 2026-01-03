@@ -288,6 +288,13 @@ body.touch-enabled .joystick-handle {
   color: var(--ui-text-color);
   font-family: var(--ui-font-family);
 }
+.upgrade-overlay__dev-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 10px;
+}
 
 .upgrade-overlay__header h1 {
   margin: 0;
@@ -483,6 +490,13 @@ body.touch-enabled .joystick-handle {
   color: var(--ui-text-color);
   font-family: var(--ui-font-family);
   text-align: center;
+}
+.dialog-overlay__dev-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 10px;
 }
 .dialog-overlay__header {
   display: flex;

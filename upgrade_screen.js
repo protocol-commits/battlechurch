@@ -7,6 +7,7 @@
   overlay.setAttribute("aria-hidden", "true");
   overlay.innerHTML = `
     <div class="upgrade-overlay__panel magazine-panel">
+      <div class="upgrade-overlay__dev-label">DEV: UpgradeScreen</div>
       <div class="upgrade-overlay__header">
         <h1>Stat Upgrade</h1>
       </div>
