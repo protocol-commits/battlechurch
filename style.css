@@ -483,6 +483,10 @@ body.touch-enabled .joystick-handle {
   font-family: "Orbitron", sans-serif;
   text-align: left;
 }
+.dialog-overlay--title .dialog-overlay__panel,
+.dialog-overlay--pause .dialog-overlay__panel {
+  font-family: "Orbitron", sans-serif;
+}
 
 .dialog-overlay__title {
   font-size: 28px;

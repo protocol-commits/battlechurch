@@ -154,7 +154,7 @@ const MELEE_SWING_LENGTH = 200;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffe89b';
-    ctx.fillText(name.toUpperCase(), x, y);
+    ctx.fillText(name, x, y);
     ctx.restore();
   }
   if (!window) return;
@@ -775,7 +775,7 @@ function drawLevelAnnouncements() {
         ctx.textAlign = "center";
         ctx.globalAlpha = 0.6;
         ctx.fillStyle = "#fff";
-        ctx.fillText(name.toUpperCase(), px + iconSize / 2, py - 10);
+        ctx.fillText(name, px + iconSize / 2, py - 10);
         ctx.restore();
       }
     }
@@ -1101,7 +1101,7 @@ function drawLevelAnnouncements() {
               ctx.textAlign = "center";
               ctx.globalAlpha = 0.6;
               ctx.fillStyle = "#fff";
-              ctx.fillText(name.toUpperCase(), startX + portraitSize / 2, startY + row * (portraitSize + portraitSpacing) - 10);
+              ctx.fillText(name, startX + portraitSize / 2, startY + row * (portraitSize + portraitSpacing) - 10);
               ctx.restore();
             }
             startX += portraitSize + portraitSpacing;
