@@ -217,6 +217,17 @@ const MELEE_SWING_LENGTH = 200;
   revealedLost: 0,
   portraitTimer: 0,
   };
+  const SHOW_TEXT_SOURCE_LABELS = true;
+
+  function drawDevLabel(ctx, text, x, y, alpha, fontFamily) {
+    if (!SHOW_TEXT_SOURCE_LABELS || !text) return;
+    ctx.save();
+    ctx.font = `12px ${fontFamily}`;
+    ctx.fillStyle = `rgba(160, 190, 220, ${0.9 * alpha})`;
+    ctx.textAlign = "center";
+    ctx.fillText(text, x, y);
+    ctx.restore();
+  }
 
   function resolveCameraX(explicitValue) {
     const { cameraOffsetX } = requireBindings();
@@ -237,6 +248,9 @@ function showMissionBriefDialog(title, body, identifier) {
   missionBriefOverlayState.shown = false;
   missionBriefOverlayState.active = true;
   window.isMissionBriefOverlayActive = true;
+  const devTitle = SHOW_TEXT_SOURCE_LABELS
+    ? `${title || ""}${title ? " " : ""}[DEV: BriefOverlayTitle]`
+    : title;
   if (typeof window.stopIntroMusic === "function") {
     window.stopIntroMusic();
   }
@@ -264,7 +278,7 @@ function showMissionBriefDialog(title, body, identifier) {
     <div class="formation-picker">${buttonsHtml}</div>
   `;
   window.DialogOverlay.show({
-    title,
+    title: devTitle,
     bodyHtml,
     buttonText: "Confirm Formation",
     variant: "mission",
@@ -407,7 +421,12 @@ function drawLevelAnnouncements() {
       } else if (npcNames.length > 2) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
-      const missionTitle = monthName || "Mission Brief";
+      const announcement = levelAnnouncements[0] || null;
+      const missionTitle =
+        (announcement && announcement.missionBriefTitle) ||
+        (announcement && announcement.title) ||
+        monthName ||
+        "";
       const missionBrief = `${nameSentence} need your help battling the enemy attacks as they face ${scenario}.`;
       const missionId = `mission_${missionTitle}_${missionBrief}`;
       if (window.UpgradeScreen?.isVisible?.()) {
@@ -435,14 +454,11 @@ function drawLevelAnnouncements() {
     const currentLevelStatus = lm?.getStatus ? lm.getStatus() : null;
     const monthName = currentLevelStatus?.month || (requireBindings().getMonthName ? requireBindings().getMonthName(currentLevelStatus?.level || 1) : null);
     const levelNumber = currentLevelStatus?.level || 1;
-      // Force 'Mission Brief' for any non-battle-summary announcement
       let displayTitle = title;
       try {
         if (isBattleSummary && monthName) {
           const clearedSuffix = /cleared/i.test(title) ? ' Cleared' : '';
           displayTitle = `Level ${levelNumber} — ${monthName}${clearedSuffix}`;
-        } else if (!isBattleSummary && !skipMissionBrief) {
-          displayTitle = 'Mission Brief';
         }
       } catch (e) {}
     if (isBattleSummary) {
@@ -724,12 +740,9 @@ function drawLevelAnnouncements() {
     ctx.fillStyle = `rgba(241, 245, 255, ${0.92 * alpha})`;
     ctx.font = `40px ${UI_FONT_FAMILY}`;
     const titleY = boxY + 46;
-    let fallbackTitle = title;
-    if (!isBattleSummary) {
-      fallbackTitle = 'Mission Brief';
-    }
-    ctx.fillText(fallbackTitle, canvas.width / 2, titleY);
-  // Subtitle display removed as requested.
+    ctx.fillText(displayTitle || "", canvas.width / 2, titleY);
+    drawDevLabel(ctx, "DEV: AnnouncementPanelTitle", canvas.width / 2, titleY + 22, alpha, UI_FONT_FAMILY);
+    // Subtitle display removed as requested.
     ctx.restore();
   }
 
@@ -1543,6 +1556,11 @@ function drawLevelAnnouncements() {
     const marginX = 16;
     const marginY = canvas.height - 24;
     ctx.fillText(breadcrumb, marginX, marginY);
+    if (SHOW_TEXT_SOURCE_LABELS) {
+      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(170, 198, 224, 0.92)";
+      ctx.fillText("DEV: ArenaBreadcrumb", marginX, marginY - 12);
+    }
     if (detailText) {
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "rgba(210, 222, 242, 0.9)";

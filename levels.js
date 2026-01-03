@@ -660,9 +660,11 @@
       const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
       const monthName = getMonthName(globalMonthNumber);
       console.info && console.info('queueAnnouncement', { title: `Level ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
+      const missionBriefTitle = getFloorTextForHorde(1);
       queueLevelAnnouncement(`Level ${state.level} — ${monthName}`, state.currentBattleScenario, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
+        missionBriefTitle,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
       setDevStatus(`Level ${state.level} — ${monthName} forming`, BATTLE_INTRO_DURATION + 0.5);
