@@ -3890,6 +3890,12 @@ function showTitleDialog() {
     buttonText: "Continue (Space)",
     variant: "title",
     onRender: ({ overlay }) => {
+      const bodyEl = overlay.querySelector(".dialog-overlay__body");
+      if (bodyEl) {
+        bodyEl.style.textAlign = "left";
+        bodyEl.style.display = "block";
+        bodyEl.style.width = "100%";
+      }
       typewriterElement(overlay, ".dialog-overlay__title", "Battle Church", 18);
       typewriterElement(overlay, ".dialog-overlay__body", TITLE_OVERLAY_BODY, 18);
     },

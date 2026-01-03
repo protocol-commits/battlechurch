@@ -579,7 +579,7 @@ function drawLevelAnnouncements() {
         (announcement && announcement.title) ||
         monthName ||
         "";
-      const missionBrief = `${nameSentence} need your help battling the enemy attacks as they face ${scenario}.`;
+      const missionBrief = `${nameSentence} have approached you needing your help ${scenario}.`;
       const missionId = `mission_${missionTitle}_${missionBrief}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
