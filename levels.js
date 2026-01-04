@@ -347,47 +347,15 @@
     const miniImpEntries = [];
     const entries = [];
     let spawned = 0;
-    const level2Eligible = FORCE_LEVEL2_MINI_IMPS || levelNumber >= 2;
-    const level2Chance =
-      FORCE_LEVEL2_MINI_IMPS
-        ? 1
-        : level2Eligible
-        ? (() => {
-            const baseChance = Math.min(
-              0.6,
-              LEVEL2_MINI_IMP_CHANCE + Math.min(difficultyRating * 0.03, 0.24),
-            );
-            let battlePenalty = 0;
-            if (battleIndex <= 0) battlePenalty = 0.75;
-            else if (battleIndex === 1) battlePenalty = 0.4;
-            return Math.max(0, baseChance - battlePenalty);
-          })()
-        : 0;
-    let level2GroupsUsed = 0;
     for (let i = 0; i < miniImpGroupCount && spawned < totalEnemies; i += 1) {
       const remaining = totalEnemies - spawned;
       const groupsLeft = miniImpGroupCount - i - 1;
       const reservedForOthers = Math.max(0, groupsLeft * miniImpBaseGroupSize);
       const maxForGroup = Math.max(miniImpBaseGroupSize, remaining - reservedForOthers);
       const groupSize = Math.min(maxForGroup, miniImpGroupSize);
-      let assignLevel2 = false;
-      if (
-        level2Eligible &&
-        level2GroupsUsed < (FORCE_LEVEL2_MINI_IMPS ? miniImpGroupCount : LEVEL2_MINI_IMP_MAX_GROUPS) &&
-        groupSize >= LEVEL2_MINI_IMP_MIN_COUNT &&
-        (FORCE_LEVEL2_MINI_IMPS || Math.random() < level2Chance)
-      ) {
-        assignLevel2 = true;
-        level2GroupsUsed += 1;
-      }
-      const actualCount = assignLevel2
-        ? Math.max(
-            LEVEL2_MINI_IMP_MIN_COUNT,
-            Math.floor(groupSize * LEVEL2_MINI_IMP_GROUP_FACTOR),
-          )
-        : groupSize;
+      const actualCount = groupSize;
       miniImpEntries.push({
-        type: assignLevel2 ? "miniImpLevel2" : "miniImp",
+        type: "miniImp",
         count: actualCount,
       });
       spawned += actualCount;

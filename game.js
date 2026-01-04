@@ -54,6 +54,7 @@ const ACT_BREAK_HOLD_SECONDS = 2;
 let keyRushFadeTimer = 0;
 let keyRushFadeDuration = 0;
 let keyRushFadeAlpha = 0;
+let keyRushFadeHold = false;
 let damageHitFlash = 0;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
@@ -866,6 +867,7 @@ function startKeyRushEndFade(duration = 1) {
   keyRushFadeDuration = total;
   keyRushFadeTimer = total;
   keyRushFadeAlpha = 0;
+  keyRushFadeHold = false;
 }
 
 function pauseAllMusic() {
@@ -9519,6 +9521,12 @@ function updateGame(dt) {
     keyRushFadeTimer = Math.max(0, keyRushFadeTimer - dt);
     const progress = Math.min(1, Math.max(0, 1 - keyRushFadeTimer / keyRushFadeDuration));
     keyRushFadeAlpha = Math.max(0, Math.min(1, progress));
+    if (keyRushFadeTimer === 0) {
+      keyRushFadeHold = true;
+      keyRushFadeAlpha = 1;
+    }
+  } else if (keyRushFadeHold) {
+    keyRushFadeAlpha = 1;
   } else {
     keyRushFadeAlpha = 0;
   }
@@ -9559,6 +9567,12 @@ function updateGame(dt) {
   ) {
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
   }
+  if (keyRushFadeHold && (stage !== "keyRush" || isAnyDialogActive())) {
+    keyRushFadeHold = false;
+    keyRushFadeDuration = 0;
+    keyRushFadeAlpha = 0;
+  }
+
   // reset mini spawn flag when level changes
   const currentLevelNumber = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
   if (lastLevelNumber === null) lastLevelNumber = currentLevelNumber;
@@ -11022,6 +11036,7 @@ function restartGame() {
   keyRushFadeTimer = 0;
   keyRushFadeDuration = 0;
   keyRushFadeAlpha = 0;
+  keyRushFadeHold = false;
   npcWeaponState.mode = null;
   npcWeaponState.timer = 0;
   npcWeaponState.duration = 0;
