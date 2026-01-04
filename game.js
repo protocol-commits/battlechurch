@@ -55,6 +55,8 @@ let keyRushFadeTimer = 0;
 let keyRushFadeDuration = 0;
 let keyRushFadeAlpha = 0;
 let keyRushFadeHold = false;
+let keyRushFadeReleaseTimer = 0;
+let keyRushBlackout = false;
 let damageHitFlash = 0;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
@@ -868,6 +870,8 @@ function startKeyRushEndFade(duration = 1) {
   keyRushFadeTimer = total;
   keyRushFadeAlpha = 0;
   keyRushFadeHold = false;
+  keyRushFadeReleaseTimer = 0;
+  keyRushBlackout = true;
 }
 
 function pauseAllMusic() {
@@ -1989,6 +1993,7 @@ Renderer.initialize({
   get arenaFadeAlpha() { return arenaFadeAlpha; },
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
   get keyRushFadeAlpha() { return keyRushFadeAlpha; },
+  get keyRushBlackout() { return keyRushBlackout; },
 });
 function bootInputAndResize() {
   resizeCanvas();
@@ -4164,6 +4169,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       portraits: null,
       onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
       onContinue: () => {
+        keyRushBlackout = false;
         dismissCurrentLevelAnnouncement();
         window.DialogOverlay.consumeAction();
       },
@@ -4197,6 +4203,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     portraits: null,
     onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
     onContinue: () => {
+      keyRushBlackout = false;
       dismissCurrentLevelAnnouncement();
       window.DialogOverlay.consumeAction();
     },
@@ -9521,9 +9528,10 @@ function updateGame(dt) {
     keyRushFadeTimer = Math.max(0, keyRushFadeTimer - dt);
     const progress = Math.min(1, Math.max(0, 1 - keyRushFadeTimer / keyRushFadeDuration));
     keyRushFadeAlpha = Math.max(0, Math.min(1, progress));
-    if (keyRushFadeTimer === 0) {
+    if (keyRushFadeTimer <= 0) {
       keyRushFadeHold = true;
       keyRushFadeAlpha = 1;
+      keyRushBlackout = true;
     }
   } else if (keyRushFadeHold) {
     keyRushFadeAlpha = 1;
@@ -9567,10 +9575,18 @@ function updateGame(dt) {
   ) {
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
   }
-  if (keyRushFadeHold && (stage !== "keyRush" || isAnyDialogActive())) {
-    keyRushFadeHold = false;
-    keyRushFadeDuration = 0;
-    keyRushFadeAlpha = 0;
+  if (keyRushFadeHold) {
+    if (window.DialogOverlay?.isVisible?.()) {
+      if (keyRushFadeReleaseTimer <= 0) {
+        keyRushFadeReleaseTimer = 0.2;
+      }
+      keyRushFadeReleaseTimer = Math.max(0, keyRushFadeReleaseTimer - dt);
+      if (keyRushFadeReleaseTimer <= 0) {
+        keyRushFadeHold = false;
+        keyRushFadeDuration = 0;
+        keyRushFadeAlpha = 0;
+      }
+    }
   }
 
   // reset mini spawn flag when level changes
@@ -11037,6 +11053,8 @@ function restartGame() {
   keyRushFadeDuration = 0;
   keyRushFadeAlpha = 0;
   keyRushFadeHold = false;
+  keyRushFadeReleaseTimer = 0;
+  keyRushBlackout = false;
   npcWeaponState.mode = null;
   npcWeaponState.timer = 0;
   npcWeaponState.duration = 0;

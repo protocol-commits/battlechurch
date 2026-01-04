@@ -1805,6 +1805,7 @@ function drawLevelAnnouncements() {
       arenaFadeAlpha,
       actBreakFadeAlpha,
       keyRushFadeAlpha,
+      keyRushBlackout,
       damageHitFlash,
       postDeathSequenceActive,
       heroLives,
@@ -1812,6 +1813,13 @@ function drawLevelAnnouncements() {
     const dynamicNameTags = [];
     const npcFadeAlpha = Math.max(0, 1 - Math.min(1, actBreakFadeAlpha));
     npcFaithOverlays.length = 0;
+    if (keyRushBlackout) {
+      ctx.save();
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      return;
+    }
     if (titleScreenActive) {
       drawTitleScreen();
       if (!window.DialogOverlay?.isVisible()) {
@@ -1823,7 +1831,8 @@ function drawLevelAnnouncements() {
     const pauseOverlayActive = Boolean(window.isPauseOverlayActive);
     if (isModalActive && !missionOverlayActive && !pauseOverlayActive) {
       ctx.save();
-      ctx.fillStyle = "rgba(6, 8, 16, 0.92)";
+      const modalBlackout = keyRushBlackout ? 1 : (keyRushFadeAlpha > 0 ? Math.min(1, keyRushFadeAlpha) : 0.92);
+      ctx.fillStyle = `rgba(0, 0, 0, ${modalBlackout})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
       return;
@@ -2099,6 +2108,12 @@ function drawLevelAnnouncements() {
     if (keyRushFadeAlpha > 0) {
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, keyRushFadeAlpha)})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+    if (keyRushBlackout) {
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
