@@ -625,6 +625,9 @@ function drawLevelAnnouncements() {
         }
       } catch (e) {}
     if (isBattleSummary) {
+      // Legacy recap renderer disabled; dialog overlay handles recaps now.
+      ctx.restore();
+      return;
       // attempt to read the per-battle summary and cumulative stats recorded by the level manager
       const battleSummary = requireBindings().levelManager?.getLastBattleSummary?.() || null;
       const stats = requireBindings().levelManager?.getStats?.() || {};
