@@ -872,7 +872,7 @@ function startKeyRushEndFade(duration = 1) {
   keyRushFadeAlpha = 0;
   keyRushFadeHold = false;
   keyRushFadeReleaseTimer = 0;
-  keyRushBlackout = true;
+  keyRushBlackout = false;
 }
 
 function pauseAllMusic() {
