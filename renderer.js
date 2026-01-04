@@ -1842,6 +1842,9 @@ function drawLevelAnnouncements() {
       ctx.save();
       ctx.translate(-cameraOffsetX + shakeX, -cameraOffsetY + shakeY);
       effects.forEach((effect) => effect.draw());
+      if (player && player.shieldTimer > 0) {
+        player.draw();
+      }
       ctx.restore();
     }
   }
