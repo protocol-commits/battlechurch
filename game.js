@@ -4171,6 +4171,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
       onContinue: () => {
         keyRushBlackout = false;
+        keyRushFadeHold = false;
+        keyRushFadeTimer = 0;
+        keyRushFadeDuration = 0;
+        keyRushFadeAlpha = 0;
         dismissCurrentLevelAnnouncement();
         window.DialogOverlay.consumeAction();
       },
@@ -4205,6 +4209,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
     onContinue: () => {
       keyRushBlackout = false;
+      keyRushFadeHold = false;
+      keyRushFadeTimer = 0;
+      keyRushFadeDuration = 0;
+      keyRushFadeAlpha = 0;
       dismissCurrentLevelAnnouncement();
       window.DialogOverlay.consumeAction();
     },
