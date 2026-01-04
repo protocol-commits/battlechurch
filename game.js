@@ -9518,8 +9518,7 @@ function updateGame(dt) {
   if (keyRushFadeTimer > 0) {
     keyRushFadeTimer = Math.max(0, keyRushFadeTimer - dt);
     const progress = Math.min(1, Math.max(0, 1 - keyRushFadeTimer / keyRushFadeDuration));
-    const up = progress <= 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-    keyRushFadeAlpha = Math.max(0, Math.min(1, up));
+    keyRushFadeAlpha = Math.max(0, Math.min(1, progress));
   } else {
     keyRushFadeAlpha = 0;
   }

@@ -38,6 +38,7 @@
   const ACT_BREAK_PRE_FADE_DELAY = 1.0;
   const ACT_BREAK_MESSAGE_LEAD = 0.5;
   const ACT_BREAK_MESSAGE = "Good job. See you next week!";
+  const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
   const KEY_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
   const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
@@ -1034,19 +1035,20 @@
           }
           const nextHordeNumber = hordeNumber + 1;
           const floorText = getFloorTextForHorde(nextHordeNumber);
-          const actBreakTotal = ACT_BREAK_DELAY + ACT_BREAK_FADE_TOTAL + preFadeDelay;
+          const announcementHold = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA;
+          const actBreakTotal = announcementHold + ACT_BREAK_FADE_TOTAL + preFadeDelay;
           if (floorText) {
             const delayMs = (preFadeDelay + ACT_BREAK_FADE_TOTAL) * 1000;
             if (typeof setTimeoutFn === "function") {
               setTimeoutFn(() => {
                 queueLevelAnnouncement(floorText, "", {
-                  duration: ACT_BREAK_DELAY,
+                  duration: announcementHold,
                   skipMissionBrief: true,
                 });
               }, delayMs);
             } else {
               queueLevelAnnouncement(floorText, "", {
-                duration: ACT_BREAK_DELAY,
+                duration: announcementHold,
                 skipMissionBrief: true,
               });
             }

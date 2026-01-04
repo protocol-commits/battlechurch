@@ -296,18 +296,20 @@ const MELEE_SWING_LENGTH = 200;
       }
       const dt = Math.max(0, now - (entry.lastTime || now));
       entry.lastTime = now;
-      const titleRate = 80;
-      const subtitleRate = 80;
+      const titleRate = 18;
+      const subtitleRate = 18;
       if (entry.titleProgress < titleText.length) {
-        entry.titleProgress = Math.min(
-          titleText.length,
-          entry.titleProgress + Math.max(1, Math.floor(dt / titleRate)),
-        );
+        entry.titleTimer = (entry.titleTimer || 0) + dt;
+        while (entry.titleTimer >= titleRate && entry.titleProgress < titleText.length) {
+          entry.titleProgress += 1;
+          entry.titleTimer -= titleRate;
+        }
       } else if (subtitleText) {
-        entry.subtitleProgress = Math.min(
-          subtitleText.length,
-          entry.subtitleProgress + Math.max(1, Math.floor(dt / subtitleRate)),
-        );
+        entry.subtitleTimer = (entry.subtitleTimer || 0) + dt;
+        while (entry.subtitleTimer >= subtitleRate && entry.subtitleProgress < subtitleText.length) {
+          entry.subtitleProgress += 1;
+          entry.subtitleTimer -= subtitleRate;
+        }
       }
       displayTitle = titleText.slice(0, entry.titleProgress);
       displaySubtitle = subtitleText.slice(0, entry.subtitleProgress);
@@ -665,7 +667,8 @@ function drawLevelAnnouncements() {
   const lostCols = Math.min(5, computeGridWidth) || 1;
   const lostRows = Math.ceil(lostToShowCount / lostCols);
   // estimate extra height needed for portrait grids (saved above tally, lost below)
-  const extraPortraitHeight = Math.max(0, savedRows) * (computeIconSize + computeSpacing) + Math.max(0, lostRows) * (computeIconSize + computeSpacing) + 40;
+  const buttonReserve = 64;
+  const extraPortraitHeight = Math.max(0, savedRows) * (computeIconSize + computeSpacing) + Math.max(0, lostRows) * (computeIconSize + computeSpacing) + 40 + buttonReserve;
       // increase boxHeight to fit portraits while respecting maxPanelH
       boxHeight = Math.min(maxPanelH, Math.max(boxHeight, (hasSubtitle ? 280 : 220) + extraPortraitHeight));
   const boxX = canvas.width / 2 - boxWidth / 2;
@@ -891,6 +894,19 @@ function drawLevelAnnouncements() {
     }
     cursorY += rowsL * (iconSize + spacing) + 6;
   }
+  const buttonWidth = Math.min(260, boxWidth - 80);
+  const buttonHeight = 38;
+  const buttonX = boxX + (boxWidth - buttonWidth) / 2;
+  const buttonY = boxY + boxHeight - buttonHeight - 18;
+  ctx.save();
+  ctx.fillStyle = "rgba(110, 244, 255, 0.9)";
+  roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 12, true, false);
+  ctx.fillStyle = "#0a0f1f";
+  ctx.font = `18px ${UI_FONT_FAMILY}`;
+  ctx.textAlign = "center";
+  ctx.fillText("Continue (Space)", buttonX + buttonWidth / 2, buttonY + buttonHeight - 12);
+  ctx.restore();
+
   ctx.restore();
 
   return;
@@ -2082,7 +2098,7 @@ function drawLevelAnnouncements() {
     }
     if (keyRushFadeAlpha > 0) {
       ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.5, keyRushFadeAlpha * 0.5)})`;
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, keyRushFadeAlpha)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
