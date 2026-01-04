@@ -1813,13 +1813,6 @@ function drawLevelAnnouncements() {
     const dynamicNameTags = [];
     const npcFadeAlpha = Math.max(0, 1 - Math.min(1, actBreakFadeAlpha));
     npcFaithOverlays.length = 0;
-    if (keyRushBlackout) {
-      ctx.save();
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-      return;
-    }
     if (titleScreenActive) {
       drawTitleScreen();
       if (!window.DialogOverlay?.isVisible()) {
@@ -2077,13 +2070,15 @@ function drawLevelAnnouncements() {
       } catch (e) {}
     }
 
-    // Floating damage numbers, power-up labels, etc.
-    try {
-      drawFloatingTextsOverlay(ctx);
-    } catch (e) {}
-    try {
-      drawEnemyHpLabelsOverlay(ctx);
-    } catch (e) {}
+    if (!keyRushBlackout && !(keyRushHardBlackoutTimer > 0)) {
+      // Floating damage numbers, power-up labels, etc.
+      try {
+        drawFloatingTextsOverlay(ctx);
+      } catch (e) {}
+      try {
+        drawEnemyHpLabelsOverlay(ctx);
+      } catch (e) {}
+    }
 
     if (
       damageHitFlash > 0 &&
@@ -2130,7 +2125,7 @@ function drawLevelAnnouncements() {
       drawCongregationScene(levelStatus);
     }
     drawMeleeSwingOverlay(ctx, player);
-    {
+    if (!keyRushBlackout && !(keyRushHardBlackoutTimer > 0)) {
       const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
       const shakeX = sharedShakeOffset?.x || 0;
       const shakeY = sharedShakeOffset?.y || 0;

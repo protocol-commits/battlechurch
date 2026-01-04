@@ -1558,6 +1558,23 @@ state.battleIndex = -1;
         state.timer = 0;
         return true;
       },
+      devSkipToKeyRush() {
+        if (!state.active) {
+          beginLevel(1);
+        }
+        devClearOpponents({ includeBoss: true });
+        state.activeHorde = null;
+        state.pendingPortalSpawnBaseline = 0;
+        state.finalHordeDelay = 0;
+        if (state.monthIndex < 0) state.monthIndex = 0;
+        if (state.battleIndex < 0) {
+          state.battleIndex = getBattleHordeCount(currentBattle()) - 1;
+        }
+        const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+        const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);
+        beginKeyRushPhase(monthName);
+        return true;
+      },
       advanceFromCongregation,
     };
   }

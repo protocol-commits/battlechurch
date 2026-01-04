@@ -57,6 +57,7 @@ let keyRushFadeAlpha = 0;
 let keyRushFadeHold = false;
 let keyRushFadeReleaseTimer = 0;
 let keyRushBlackout = false;
+let keyRushHardBlackoutTimer = 0;
 let damageHitFlash = 0;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
@@ -9136,6 +9137,11 @@ function handleDeveloperHotkeys() {
       setDevStatus("Boss battle engaged", 2.3);
     }
   }
+  if (keysJustPressed.has("6")) {
+    if (levelManager?.devSkipToKeyRush?.()) {
+      setDevStatus("Key rush engaged", 2.0);
+    }
+  }
   if (keysJustPressed.has("h")) {
     const harp = spawnUtilityPowerUp("harmony");
     setDevStatus(harp ? "Harmony harp spawned" : "No harp spawn", 1.6);
@@ -9537,6 +9543,18 @@ function updateGame(dt) {
     keyRushFadeAlpha = 1;
   } else {
     keyRushFadeAlpha = 0;
+  }
+  const hardBlackoutActive = keyRushHardBlackoutTimer > 0 || keyRushBlackout;
+  if (hardBlackoutActive) {
+    if (keyRushHardBlackoutTimer > 0) {
+      keyRushHardBlackoutTimer = Math.max(0, keyRushHardBlackoutTimer - dt);
+    }
+    try {
+      Effects.clear();
+      floatingTexts.forEach((ft) => {
+        if (!ft.critical) ft.life = 0;
+      });
+    } catch (e) {}
   }
   const deathFreezeActive = postDeathSequenceActive;
   if (deathFreezeActive) {
