@@ -151,10 +151,10 @@
       radius: 28 * WORLD_SCALE,
       effect: "extend",
       duration: 10,
-      label: "Sword of the Spirit",
+      label: "Endurance",
       color: "#ffd480",
       extendMultiplier: 1.5,
-      hudTitle: "Sword of the Spirit",
+      hudTitle: "Endurance",
       description: "Extends your current weapon power.",
     },
     harmony: {

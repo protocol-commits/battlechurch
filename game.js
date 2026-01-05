@@ -5663,7 +5663,7 @@ function drawPickupLabel(context, text, x, y, color = "#ffffff") {
 const POWERUP_ICON_STYLES = {
   player: { shape: "square", color: "#4DB2FF", accent: "#6BC5FF" },
   npc: { shape: "square", color: "#FF6B6B", accent: "#FF8B8B" },
-  utility: { shape: "circle", color: "#F2A341", accent: "#F7C06D" },
+  utility: { shape: "circle", color: "#FFD166", accent: "#FFE08A" },
 };
 const POWERUP_ICON_OUTLINE = "rgba(10, 15, 31, 0.7)";
 const POWERUP_ICON_TEXT_COLOR = "#ffffff";
@@ -5705,9 +5705,9 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
   }
 
   const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
-  const pulse = (Math.sin(t * 2.4) + 1) * 0.5;
-  const shimmerAlpha = 0.35 + pulse * 0.55;
-  if (shimmerAlpha > 0.2) {
+  const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
+  const shimmerAlpha = Math.max(0.12, pulse * 0.65);
+  if (shimmerAlpha > 0.12) {
     context.save();
     context.globalAlpha *= shimmerAlpha;
     context.beginPath();
@@ -5718,12 +5718,12 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
       roundRect(context, -half, -half, size, size, radius, false, false);
     }
     context.clip();
-    const shimmerWidth = size * 0.85;
-    const offset = ((t * 1.3) % 1) * (size + shimmerWidth) - (size + shimmerWidth) / 2;
+    const shimmerWidth = size * 0.6;
+    const offset = ((t * 0.9) % 1) * (size + shimmerWidth) - (size + shimmerWidth) / 2;
     context.rotate(-0.45);
     const grad = context.createLinearGradient(offset - shimmerWidth, 0, offset + shimmerWidth, 0);
     grad.addColorStop(0, "rgba(255,255,255,0)");
-    grad.addColorStop(0.5, "rgba(255,255,255,0.95)");
+    grad.addColorStop(0.5, "rgba(255,255,255,0.85)");
     grad.addColorStop(1, "rgba(255,255,255,0)");
     context.fillStyle = grad;
     context.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
