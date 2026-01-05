@@ -5695,16 +5695,39 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
   gradient.addColorStop(0, accent || color);
   gradient.addColorStop(1, color);
   context.fillStyle = gradient;
-  context.strokeStyle = POWERUP_ICON_OUTLINE;
-  context.lineWidth = 2;
   if (shape === "circle") {
     context.beginPath();
     context.arc(0, 0, half, 0, Math.PI * 2);
     context.fill();
-    context.stroke();
   } else {
     const radius = Math.max(6, Math.round(size * 0.16));
-    roundRect(context, -half, -half, size, size, radius, true, true);
+    roundRect(context, -half, -half, size, size, radius, true, false);
+  }
+
+  const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+  const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
+  const shimmerAlpha = Math.max(0.12, pulse * 0.65);
+  if (shimmerAlpha > 0.12) {
+    context.save();
+    context.globalAlpha *= shimmerAlpha;
+    context.beginPath();
+    if (shape === "circle") {
+      context.arc(0, 0, half, 0, Math.PI * 2);
+    } else {
+      const radius = Math.max(6, Math.round(size * 0.16));
+      roundRect(context, -half, -half, size, size, radius, false, false);
+    }
+    context.clip();
+    const shimmerWidth = size * 0.6;
+    const offset = ((t * 0.9) % 1) * (size + shimmerWidth) - (size + shimmerWidth) / 2;
+    context.rotate(-0.45);
+    const grad = context.createLinearGradient(offset - shimmerWidth, 0, offset + shimmerWidth, 0);
+    grad.addColorStop(0, "rgba(255,255,255,0)");
+    grad.addColorStop(0.5, "rgba(255,255,255,0.85)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    context.fillStyle = grad;
+    context.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
+    context.restore();
   }
 
   const lines = splitPowerupLabel(text);
@@ -5714,9 +5737,9 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
     context.fillStyle = POWERUP_ICON_TEXT_COLOR;
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.shadowColor = "rgba(0, 0, 0, 0.5)";
-    context.shadowBlur = 2;
-    context.shadowOffsetY = 1;
+    context.shadowColor = "transparent";
+    context.shadowBlur = 0;
+    context.shadowOffsetY = 0;
     const fitText = () => {
       context.font = `700 ${fontSize}px ${UI_FONT_FAMILY}`;
       return lines.every((line) => context.measureText(line).width <= maxWidth);
