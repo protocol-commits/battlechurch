@@ -56,6 +56,8 @@
       bodyEl.textContent = body;
     }
     button.textContent = buttonText;
+    button.style.display = buttonText ? "inline-block" : "none";
+    button.disabled = false;
     continueCallback = typeof onContinue === "function" ? onContinue : null;
     overlay.classList.remove("hidden");
     overlay.classList.add("visible");
