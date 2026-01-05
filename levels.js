@@ -930,6 +930,7 @@
     function spawnActiveHorde() {
       const horde = state.activeHorde;
       if (!horde) return;
+      const hordeNumber = state.battleIndex + 1;
       const hordeActiveDuration = Number.isFinite(horde?.duration) ? horde.duration : 12;
       const currentBattle = state.definition?.battles?.[state.monthIndex] || null;
       const totalHordes = getBattleHordeCount(currentBattle);
@@ -975,6 +976,16 @@
           spawnTask();
         }
       });
+
+      if ([3, 10, 16].includes(hordeNumber)) {
+        const floorText = getFloorTextForHorde(hordeNumber);
+        if (floorText) {
+          queueLevelAnnouncement(floorText, "", {
+            duration: 2.2,
+            skipMissionBrief: true,
+          });
+        }
+      }
     }
 
     function handleHordeCleared() {
