@@ -5765,6 +5765,8 @@ class Animal {
     this.height = spriteHeight * this.scale;
     this.x = Math.random() * (canvas.width - 200) + 100;
     this.y = Math.random() * (canvas.height - 200) + 100;
+    this.baseY = this.y;
+    this.floatTimer = 0;
     this.active = true;
     this.life =
       typeof definition.life === "number" && Number.isFinite(definition.life)
@@ -5802,6 +5804,11 @@ class Animal {
       }
       this.x += Math.cos(this.direction) * this.speed * dt;
       this.y += Math.sin(this.direction) * this.speed * dt;
+      this.baseY = this.y;
+    }
+    if (this.speed <= 0) {
+      this.floatTimer += dt * 2;
+      this.y = this.baseY + Math.sin(this.floatTimer) * 6;
     }
     resolveEntityObstacles(this);
     clampEntityToBounds(this);

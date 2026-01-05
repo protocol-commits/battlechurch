@@ -139,10 +139,10 @@
       radius: 28 * WORLD_SCALE,
       effect: "haste",
       duration: 8,
-      label: "Gospel of Peach",
+      label: "Speed Boost",
       color: "#9bff86",
       speedMultiplier: 1.4,
-      hudTitle: "Gospel of Peach",
+      hudTitle: "Speed Boost",
       description: "Move faster for a short time.",
     },
     extender: {

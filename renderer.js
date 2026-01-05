@@ -1186,7 +1186,7 @@ function drawLevelAnnouncements() {
         items: [
           "heart_1.png ➜ heal",
           "Shield of Faith (Chests)",
-          "Gospel of Peach (Flasks)",
+          "Speed Boost (Flasks)",
           "Sword of the Spirit (Torches)",
         ],
       },
