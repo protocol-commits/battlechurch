@@ -4607,13 +4607,7 @@ function spawnWeaponPowerAnimal(position = null) {
 }
 
 function showWeaponPowerupFloatingText(text, color = "#fff") {
-  addFloatingText(text, color, {
-    speechBubble: false,
-    vy: -32,
-    life: 1.4,
-    offsetY: -player.radius - 48,
-    style: "plain",
-  });
+  return;
 }
 
 function applyAnimalEffect(animal) {

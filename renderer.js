@@ -997,73 +997,11 @@ function drawLevelAnnouncements() {
   }
 
   function drawPlayerWeaponMeter(player) {
-    if (!player) return;
-    const mode = player.weaponMode;
-    if (!mode || mode === "arrow") return;
-    const timer = Math.max(0, player.weaponPowerTimer || 0);
-    const duration = Math.max(0.001, player.weaponPowerDuration || 0.001);
-    if (timer <= 0) return;
-    const ratio = Math.max(0, Math.min(1, timer / duration));
-    const width = 60;
-    const height = 8;
-    const barX = player.x - width / 2;
-    const barY = player.y - (player.radius || 24) - 46;
-    ctx.save();
-    ctx.fillStyle = "rgba(18, 20, 30, 0.75)";
-    roundRect(ctx, barX, barY, width, height, 5, true, false);
-    const colorMap = {
-      magic: "#9bf0ff",
-      pig: "#ff96f7",
-      fire: "#ffb15a",
-    };
-    const fillWidth = Math.max(0, Math.floor((width - 4) * ratio));
-    const baseColor = colorMap[mode] || "#ffd35c";
-    ctx.fillStyle = baseColor;
-    roundRect(ctx, barX + 2, barY + 2, fillWidth, height - 4, 4, true, false);
-    if (player.powerExtendTimer > 0 && fillWidth > 3) {
-      const pulse = (Math.sin(performance.now() * 0.02) + 1) / 2;
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.08 + pulse * 0.12})`;
-      roundRect(
-        ctx,
-        barX + 2,
-        barY + 2,
-        fillWidth,
-        height - 4,
-        4,
-        true,
-        false,
-      );
-    }
-    ctx.restore();
+    return;
   }
 
   function drawPlayerExtendMeter(player) {
-    if (!player) return;
-    const timer = player.powerExtendTimer || 0;
-    const duration = Math.max(0.001, player.powerExtendDuration || timer);
-    if (timer <= 0 || duration <= 0) return;
-    const mode = player.weaponMode;
-    if (mode && mode !== "arrow") return;
-    const ratio = Math.max(0, Math.min(1, timer / duration));
-    const width = 60;
-    const height = 8;
-    const barX = player.x - width / 2;
-    const barY = player.y - (player.radius || 24) - 46;
-    ctx.save();
-    ctx.fillStyle = "rgba(10, 16, 32, 0.75)";
-    roundRect(ctx, barX, barY, width, height, 5, true, false);
-    ctx.fillStyle = "rgba(255, 192, 113, 0.95)";
-    roundRect(
-      ctx,
-      barX + 2,
-      barY + 2,
-      Math.max(0, Math.floor((width - 4) * ratio)),
-      height - 4,
-      4,
-      true,
-      false,
-    );
-    ctx.restore();
+    return;
   }
 
   function drawVisitorIntroOverlay() {
