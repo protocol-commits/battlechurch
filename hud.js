@@ -115,6 +115,26 @@
       const tag = buildMultiplierTag(multipliers);
       return `${base}${tag}`;
     };
+    const getNpcWeaponBaseLabel = (mode) => {
+      switch (mode) {
+        case 'wisdom_missle':
+          return 'Teach Them Wisdom';
+        case 'faith_cannon':
+          return 'Focus Their Faith';
+        case 'fire':
+          return 'Explain Relevant Scripture';
+        case 'heart':
+          return 'Heart Charm';
+        case 'arrow':
+        default:
+          return 'Default';
+      }
+    };
+    const getNpcWeaponLabel = (mode, multipliers) => {
+      const base = getNpcWeaponBaseLabel(mode);
+      const tag = buildMultiplierTag(multipliers);
+      return `${base}${tag}`;
+    };
 
     const drawMeterRow = (x, y, width, label, ratio, color) => {
       const barHeight = 6;
@@ -361,7 +381,7 @@
             speed: npcWeaponState?.speedMultiplier,
           };
       rows.push({
-        label: `Weapon: ${getWeaponLabel(npcMode, npcMultipliers)}`,
+        label: `Weapon: ${getNpcWeaponLabel(npcMode, npcMultipliers)}`,
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
         color: '#ffd08a',
       });
