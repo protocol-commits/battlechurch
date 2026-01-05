@@ -5660,6 +5660,80 @@ function drawPickupLabel(context, text, x, y, color = "#ffffff") {
   context.restore();
 }
 
+const POWERUP_ICON_STYLES = {
+  player: { shape: "square", color: "#4DB2FF", accent: "#6BC5FF" },
+  npc: { shape: "square", color: "#FF6B6B", accent: "#FF8B8B" },
+  utility: { shape: "circle", color: "#FFD166", accent: "#FFE08A" },
+};
+const POWERUP_ICON_OUTLINE = "rgba(10, 15, 31, 0.7)";
+const POWERUP_ICON_TEXT_COLOR = "#ffffff";
+
+function resolvePowerupIconCategory(effect = "") {
+  if (String(effect).startsWith("npc")) return "npc";
+  if (WEAPON_POWERUP_EFFECTS.has(effect)) return "player";
+  return "utility";
+}
+
+function splitPowerupLabel(text) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  if (words.length === 1) return [words[0]];
+  if (words.length === 2) return [words[0], words[1]];
+  if (words.length === 3) return [`${words[0]} ${words[1]}`, words[2]];
+  if (words.length === 4) return [`${words[0]} ${words[1]}`, `${words[2]} ${words[3]}`];
+  const mid = Math.ceil(words.length / 2);
+  return [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
+}
+
+function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
+  if (!context) return;
+  const half = size / 2;
+  context.save();
+  context.translate(x, y);
+  const gradient = context.createLinearGradient(0, -half, 0, half);
+  gradient.addColorStop(0, accent || color);
+  gradient.addColorStop(1, color);
+  context.fillStyle = gradient;
+  context.strokeStyle = POWERUP_ICON_OUTLINE;
+  context.lineWidth = 2;
+  if (shape === "circle") {
+    context.beginPath();
+    context.arc(0, 0, half, 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+  } else {
+    const radius = Math.max(6, Math.round(size * 0.16));
+    roundRect(context, -half, -half, size, size, radius, true, true);
+  }
+
+  const lines = splitPowerupLabel(text);
+  if (lines.length) {
+    const maxWidth = size * 0.82;
+    let fontSize = Math.round(size * 0.22);
+    context.fillStyle = POWERUP_ICON_TEXT_COLOR;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.shadowColor = "rgba(0, 0, 0, 0.5)";
+    context.shadowBlur = 2;
+    context.shadowOffsetY = 1;
+    const fitText = () => {
+      context.font = `700 ${fontSize}px ${UI_FONT_FAMILY}`;
+      return lines.every((line) => context.measureText(line).width <= maxWidth);
+    };
+    while (fontSize > 8 && !fitText()) {
+      fontSize -= 1;
+    }
+    context.font = `700 ${fontSize}px ${UI_FONT_FAMILY}`;
+    const lineHeight = Math.round(fontSize * 0.92);
+    const totalHeight = lineHeight * lines.length;
+    const startY = -totalHeight / 2 + lineHeight / 2;
+    lines.forEach((line, idx) => {
+      context.fillText(line, 0, startY + idx * lineHeight);
+    });
+  }
+  context.restore();
+}
+
 class Animal {
   constructor(definition) {
     this.type = definition.type;
@@ -5752,25 +5826,18 @@ class Animal {
 
   draw() {
     if (!this.active || !this.visible) return;
-    const sprite = this.frames && this.frames.length ? this.frames[this.frameIndex] : this.image;
-    const width = (sprite ? sprite.width : this.image.width) * this.scale;
-    const height = (sprite ? sprite.height : this.image.height) * this.scale;
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.drawImage(sprite || this.image, -width / 2, -height / 2, width, height);
-    // Highlight ring to keep powerups visible
-    const ringR = (this.radius || Math.max(width, height) / 2) * 1.4;
-    ctx.strokeStyle = "rgba(255, 221, 80, 0.9)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, ringR, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-    const label = this.definition?.label || "";
-    if (label) {
-      const labelY = this.y - height / 2 - 6;
-      drawPickupLabel(ctx, label, this.x, labelY, this.definition?.color || "#ffffff");
-    }
+    const styleKey = resolvePowerupIconCategory(this.effect);
+    const style = POWERUP_ICON_STYLES[styleKey] || POWERUP_ICON_STYLES.utility;
+    const size = Math.max(44, (this.radius || 24) * 2);
+    drawPowerupIcon(ctx, {
+      x: this.x,
+      y: this.y,
+      size,
+      shape: style.shape,
+      color: style.color,
+      accent: style.accent,
+      text: this.definition?.label || "",
+    });
   }
 }
 
@@ -5854,25 +5921,17 @@ class UtilityPowerUp {
 
   draw(context) {
     if (!this.active || !this.visible) return;
-    const sprite = this.frames && this.frames.length ? this.frames[this.frameIndex] : this.image;
-    const width = (sprite ? sprite.width : this.image.width) * this.scale;
-    const height = (sprite ? sprite.height : this.image.height) * this.scale;
-    context.save();
-    context.translate(this.x, this.y);
-    context.drawImage(sprite || this.image, -width / 2, -height / 2, width, height);
-    // Highlight ring to keep pickups visible
-    const ringR = (this.radius || Math.max(width, height) / 2) * 1.4;
-    context.strokeStyle = "rgba(255, 221, 80, 0.9)";
-    context.lineWidth = 2;
-    context.beginPath();
-    context.arc(0, 0, ringR, 0, Math.PI * 2);
-    context.stroke();
-    context.restore();
-    const label = this.label || this.definition?.label || "";
-    if (label) {
-      const labelY = this.y - height / 2 - 6;
-      drawPickupLabel(context, label, this.x, labelY, this.color || "#ffffff");
-    }
+    const style = POWERUP_ICON_STYLES.utility;
+    const size = Math.max(44, (this.radius || 24) * 2);
+    drawPowerupIcon(context, {
+      x: this.x,
+      y: this.y,
+      size,
+      shape: style.shape,
+      color: style.color,
+      accent: style.accent,
+      text: this.label || this.definition?.label || "",
+    });
   }
 
   hitTest(entity) {
