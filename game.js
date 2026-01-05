@@ -256,25 +256,7 @@ if (musicState.recap) {
 }
 
 function playDefaultArrowSfx(volume = 0.6) {
-  if (typeof Audio === "undefined") return;
-  let audio = arrowSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (arrowSfxPool.length < ARROW_SFX_POOL_SIZE) {
-      audio = new Audio(DEFAULT_ARROW_SFX_SRC);
-      audio.preload = "auto";
-      arrowSfxPool.push(audio);
-    } else {
-      audio = arrowSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  return;
 }
 
 if (typeof window !== "undefined") {
