@@ -5690,6 +5690,7 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
   const half = size / 2;
   context.save();
   context.translate(x, y);
+  context.globalAlpha *= 0.8;
   const gradient = context.createLinearGradient(0, -half, 0, half);
   gradient.addColorStop(0, accent || color);
   gradient.addColorStop(1, color);
@@ -5731,6 +5732,27 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
       context.fillText(line, 0, startY + idx * lineHeight);
     });
   }
+  context.restore();
+}
+
+function drawPowerupShadow(context, x, y, size, heightOffset = 0) {
+  if (!context) return;
+  const clampedOffset = Math.max(0, Math.min(16, Math.abs(heightOffset)));
+  const scale = Math.max(0.72, 1 - clampedOffset * 0.02);
+  const shadowWidth = size * 0.85 * scale;
+  const shadowHeight = Math.max(6, size * 0.22 * scale);
+  const shadowY = y + size * 0.5;
+  context.save();
+  context.fillStyle = "rgba(0, 0, 0, 0.45)";
+  context.beginPath();
+  if (typeof context.ellipse === "function") {
+    context.ellipse(x, shadowY, shadowWidth / 2, shadowHeight / 2, 0, 0, Math.PI * 2);
+  } else {
+    context.translate(x, shadowY);
+    context.scale(shadowWidth / 2, shadowHeight / 2);
+    context.arc(0, 0, 1, 0, Math.PI * 2);
+  }
+  context.fill();
   context.restore();
 }
 
@@ -5808,7 +5830,7 @@ class Animal {
     }
     if (this.speed <= 0) {
       this.floatTimer += dt * 2;
-      this.y = this.baseY + Math.sin(this.floatTimer) * 6;
+      this.y = this.baseY + Math.sin(this.floatTimer) * 6 - 10;
     }
     resolveEntityObstacles(this);
     clampEntityToBounds(this);
@@ -5836,6 +5858,9 @@ class Animal {
     const styleKey = resolvePowerupIconCategory(this.effect);
     const style = POWERUP_ICON_STYLES[styleKey] || POWERUP_ICON_STYLES.utility;
     const size = Math.max(44, (this.radius || 24) * 2);
+    const shadowY = Number.isFinite(this.baseY) ? this.baseY : this.y;
+    const offset = Number.isFinite(this.baseY) ? this.y - this.baseY : 0;
+    drawPowerupShadow(ctx, this.x, shadowY, size, offset);
     drawPowerupIcon(ctx, {
       x: this.x,
       y: this.y,
@@ -5907,7 +5932,7 @@ class UtilityPowerUp {
   update(dt) {
     if (!this.active) return;
     this.floatTimer += dt * 2;
-    this.y = this.baseY + Math.sin(this.floatTimer) * 6;
+    this.y = this.baseY + Math.sin(this.floatTimer) * 6 - 10;
     this.life -= dt;
     const exiting = this.life <= this.blinkWindow;
     if (this.spawnBlinkTimer > 0) {
@@ -5930,6 +5955,9 @@ class UtilityPowerUp {
     if (!this.active || !this.visible) return;
     const style = POWERUP_ICON_STYLES.utility;
     const size = Math.max(44, (this.radius || 24) * 2);
+    const shadowY = Number.isFinite(this.baseY) ? this.baseY : this.y;
+    const offset = Number.isFinite(this.baseY) ? this.y - this.baseY : 0;
+    drawPowerupShadow(context, this.x, shadowY, size, offset);
     drawPowerupIcon(context, {
       x: this.x,
       y: this.y,
