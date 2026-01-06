@@ -1710,13 +1710,6 @@ function drawLevelAnnouncements() {
 
     ctx.restore();
 
-    // Cool color grade to unify mixed-source art (screen space, after fog).
-    ctx.save();
-    ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "rgba(12, 24, 44, 0.22)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
-
     if (!visitorStageActive) {
       try {
         drawMissionBriefInArena();
@@ -1790,6 +1783,13 @@ function drawLevelAnnouncements() {
       }
       ctx.restore();
     }
+
+    // Cool color grade to unify mixed-source art (screen space, after HUD).
+    ctx.save();
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = "rgba(12, 24, 44, 0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
   }
 
   function drawMeleeSwingOverlay(ctx, player) {
