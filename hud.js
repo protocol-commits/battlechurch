@@ -16,7 +16,7 @@
     ctx.textAlign = align;
     ctx.lineWidth = Math.max(1, Math.round(Math.max(1, parseInt(String(font), 10)) / 8));
     ctx.strokeStyle = 'rgba(0,0,0,0.95)';
-    ctx.fillStyle = fillColor || '#ffffff';
+    ctx.fillStyle = fillColor || '#EAF6FF';
     try {
       ctx.strokeText(text, x, y);
     } catch (err) {}
@@ -44,6 +44,17 @@
       npcHarmonyBuffDuration,
     } = bindings;
     if (!ctx || !canvas) return;
+
+    const PALETTE = {
+      deepNavy: "#0A0F1F",
+      slate: "#233152",
+      ice: "#9BD9FF",
+      softWhite: "#EAF6FF",
+      gold: "#FFC86A",
+      crimson: "#FF6B6B",
+      teal: "#5FE3C0",
+      muted: "#8FA3BF",
+    };
 
     ctx.save();
     ctx.translate(sharedShakeOffset.x, sharedShakeOffset.y);
@@ -144,12 +155,12 @@
       ctx.save();
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillText(label, x, labelY);
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillStyle = 'rgba(234,246,255,0.18)';
       ctx.fillRect(x, barY, barWidth, barHeight);
-      ctx.fillStyle = color || '#ffffff';
+      ctx.fillStyle = color || PALETTE.softWhite;
       ctx.fillRect(x, barY, Math.max(0, Math.floor(barWidth * Math.max(0, Math.min(1, ratio || 0)))), barHeight);
       ctx.restore();
     };
@@ -159,9 +170,9 @@
       const hpBarY = 20;
       const hpBarWidth = Math.min(210, Math.max(120, columnWidth - 12));
       const hpBarHeight = 18;
-      ctx.fillStyle = 'rgba(30,40,60,0.55)';
+      ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#e6e6e6';
+      ctx.strokeStyle = PALETTE.ice;
       roundRect(ctx, hpBarX, hpBarY, hpBarWidth, hpBarHeight, 6, true, true);
       const hpRatio = Math.max(0, (player?.health ?? 0) / (player?.maxHealth || 1));
       const hpFillColor = hpFlashTimer > 0 ? (() => {
@@ -169,7 +180,7 @@
         const g = Math.round(140 + 90 * pulse);
         const b = Math.round(80 + 20 * (1 - pulse));
         return `rgb(255, ${g}, ${b})`;
-      })() : '#ff5a5a';
+      })() : PALETTE.crimson;
       ctx.fillStyle = hpFillColor;
       roundRect(
         ctx,
@@ -192,7 +203,7 @@
         hpBarY + hpBarHeight / 2 + 4,
         `12px ${UI_FONT_FAMILY}`,
         'center',
-        '#ffffff',
+        PALETTE.softWhite,
       );
 
       try {
@@ -250,17 +261,17 @@
       const meterRadius = 6;
       ctx.save();
       ctx.globalAlpha = 0.95;
-      ctx.fillStyle = 'rgba(30,40,60,0.55)';
+      ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#e6e6e6';
+      ctx.strokeStyle = PALETTE.ice;
       roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
       const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : ratio >= 1;
       const fillWidth = Math.max(0, Math.floor((meterWidth - 4) * ratio));
-      const baseColor = '#7fc7ff';
+      const baseColor = PALETTE.ice;
       if (ready) {
         const pulse = (Math.sin(performance.now() * 0.01) + 1) / 2;
-        ctx.fillStyle = pulse > 0.5 ? '#ffdb73' : baseColor;
+        ctx.fillStyle = pulse > 0.5 ? PALETTE.gold : baseColor;
       } else {
         ctx.fillStyle = baseColor;
       }
@@ -276,8 +287,8 @@
       );
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = ready
-        ? (Math.sin(performance.now() * 0.01) > 0 ? '#fff7c2' : '#ffe08b')
-        : 'rgba(230, 240, 255, 0.92)';
+        ? (Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : "#FFDCA0")
+        : 'rgba(234, 246, 255, 0.9)';
       ctx.textAlign = 'center';
       ctx.fillText('Prayer', meterX + meterWidth / 2, meterY + meterHeight / 2 + 4);
       ctx.restore();
@@ -291,7 +302,7 @@
       const width = columnWidth - 12;
       ctx.save();
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillText('PLAYER', x, panelY + 14);
       ctx.restore();
@@ -323,7 +334,7 @@
       rows.push({
         label: `Weapon: ${getWeaponLabel(weaponMode, playerMultipliers)}`,
         ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
-        color: '#7fd4ff',
+        color: PALETTE.ice,
       });
 
       const utilityRows = [];
@@ -332,7 +343,7 @@
         utilityRows.push({
           label: 'Shield (Blocks damage)',
           ratio: duration > 0 ? player.shieldTimer / duration : 0,
-          color: '#aef5ff',
+          color: PALETTE.ice,
         });
       }
       if (player.speedBoostTimer > 0) {
@@ -340,7 +351,7 @@
         utilityRows.push({
           label: 'Haste (Move speed)',
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
-          color: '#9bff86',
+          color: PALETTE.teal,
         });
       }
       if (player.powerExtendTimer > 0) {
@@ -348,7 +359,7 @@
         utilityRows.push({
           label: 'Extend (Weapon timer)',
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
-          color: '#ffd480',
+          color: PALETTE.gold,
         });
       }
       rows.push(...utilityRows.slice(0, 2));
@@ -364,7 +375,7 @@
       const width = columnWidth - 12;
       ctx.save();
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillText('CONGREGANTS', x, panelY + 14);
       ctx.restore();
@@ -383,14 +394,14 @@
       rows.push({
         label: `Weapon: ${getNpcWeaponLabel(npcMode, npcMultipliers)}`,
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
-        color: '#ffd08a',
+        color: PALETTE.gold,
       });
       if (npcHarmonyBuffTimer > 0) {
         const duration = Math.max(0.001, npcHarmonyBuffDuration || npcHarmonyBuffTimer || 0);
         rows.push({
           label: 'Harmony (NPC boost)',
           ratio: duration > 0 ? npcHarmonyBuffTimer / duration : 0,
-          color: '#d6b7ff',
+          color: PALETTE.teal,
         });
       }
 
@@ -418,7 +429,7 @@
     ctx.translate(boardX, boardY);
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#f7fbff';
+    ctx.fillStyle = PALETTE.softWhite;
     ctx.font = `12px ${UI_FONT_FAMILY}`;
     const iconSize = 18;
     const iconPadding = 6;

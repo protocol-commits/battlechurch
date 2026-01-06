@@ -79,7 +79,7 @@ const devStatus = { text: "", timer: 0 };
 const weaponPickupAnnouncement = {
   title: "",
   description: "",
-  color: "#ffffff",
+  color: "#EAF6FF",
   timer: 0,
   duration: 0,
 };
@@ -2672,7 +2672,7 @@ function setWeaponPickupAnnouncement({ title, description, color, duration } = {
   if (!title && !description) return;
   weaponPickupAnnouncement.title = title || "";
   weaponPickupAnnouncement.description = description || "";
-  weaponPickupAnnouncement.color = color || "#ffffff";
+  weaponPickupAnnouncement.color = color || "#EAF6FF";
   weaponPickupAnnouncement.duration = Number.isFinite(duration) ? duration : 2.6;
   weaponPickupAnnouncement.timer = weaponPickupAnnouncement.duration;
 }
@@ -2739,7 +2739,7 @@ function buildEnemyTypesFallback(defs) {
 }
 
 const HEALTH_BAR_ROW_HITS = [3, 6, 12, 24, 48];
-const HEALTH_BAR_COLORS = ["#ff4d4d", "#ff9f43", "#ffe66b", "#a8ff82", "#7de0ff"];
+const HEALTH_BAR_COLORS = ["#ff4d4d", "#ff9f43", "#FFC86A", "#a8ff82", "#9BD9FF"];
 
 class Obstacle {
   constructor(asset, xRatio, yRatio) {
@@ -4622,7 +4622,7 @@ function applyAnimalEffect(animal) {
         typeof def.healAmount === "number" ? def.healAmount : Math.round(HERO_HEALTH_PER_HEART);
       player.health = Math.min(player.maxHealth, player.health + healAmount);
       addStatusText(player, "Health Up!", {
-        color: "#5cff8d",
+        color: "#5FE3C0",
         bgColor: "rgba(30, 70, 50, 0.85)",
         life: 1.8,
       });
@@ -4691,7 +4691,7 @@ function applyAnimalEffect(animal) {
       applyNpcWeaponPowerup("npcWisdomWeapon", def);
       showWeaponPowerupConfigText({
         text: "Teach Them Wisdom",
-        textColor: "#9bf0ff",
+        textColor: "#9BD9FF",
         description: "NPCs launch wisdom missiles temporarily.",
       });
       break;
@@ -4729,12 +4729,12 @@ function applyUtilityPowerUp(powerUp) {
   setWeaponPickupAnnouncement({
     title: powerUp.definition.hudTitle || powerUp.definition.label || "Power Up",
     description: powerUp.definition.description || "",
-    color: powerUp.definition.color || "#ffffff",
+    color: powerUp.definition.color || "#EAF6FF",
   });
   const floatingColor =
     powerUp.definition.statBoostColor ??
     powerUp.definition.color ??
-    "#ffffff";
+    "#EAF6FF";
   const initialWeaponTimer = player.weaponPowerTimer;
   let addedExtendSeconds = 0;
   let floatingText = null;
@@ -5640,7 +5640,7 @@ function shouldEnemyHuntNpcs(type, config = {}) {
   return false;
 }
 
-function drawPickupLabel(context, text, x, y, color = "#ffffff") {
+function drawPickupLabel(context, text, x, y, color = "#EAF6FF") {
   if (!context || !text) return;
   context.save();
   context.font = `12px ${UI_FONT_FAMILY}`;
@@ -5655,12 +5655,12 @@ function drawPickupLabel(context, text, x, y, color = "#ffffff") {
 }
 
 const POWERUP_ICON_STYLES = {
-  player: { shape: "square", color: "#2C7FCC", accent: "#4B96DA" },
-  npc: { shape: "square", color: "#C94B4B", accent: "#E06A6A" },
-  utility: { shape: "circle", color: "#B86E1E", accent: "#D38A3D" },
+  player: { shape: "square", color: "#2B4C73", accent: "#3C5F8C" },
+  npc: { shape: "square", color: "#C14C4C", accent: "#E06A6A" },
+  utility: { shape: "circle", color: "#B7742A", accent: "#D08D42" },
 };
 const POWERUP_ICON_OUTLINE = "rgba(10, 15, 31, 0.7)";
-const POWERUP_ICON_TEXT_COLOR = "#ffffff";
+const POWERUP_ICON_TEXT_COLOR = "#EAF6FF";
 
 function resolvePowerupIconCategory(effect = "") {
   if (String(effect).startsWith("npc")) return "npc";
@@ -6336,7 +6336,7 @@ class CozyNpc {
     this.animator.setState("walk", { restart: true });
     this.animator.setMoving(true);
     this.updateFaithVisibility(true);
-    this.setStatusBubble("I'm outta here!", { color: "#ffbcbc", persist: true, critical: true });
+    this.setStatusBubble("I'm outta here!", { color: "#FF6B6B", persist: true, critical: true });
     if (typeof captureNpcPortrait === "function") {
       this.pendingLossPortrait = captureNpcPortrait(this);
     } else {
@@ -6355,7 +6355,7 @@ class CozyNpc {
     this.animator.setMoving(true);
     this.updateFaithVisibility(this.faith < this.maxFaith);
     const returnLine = randomChoice(NPC_RETURN_LINES) || "I'm heading back.";
-    this.setStatusBubble(returnLine, { color: "#d7f5ff", duration: 2.6 });
+    this.setStatusBubble(returnLine, { color: "#9BD9FF", duration: 2.6 });
     this.pendingLossPortrait = null;
     this.lossRecorded = false;
     if (announce && this.recoveryTextCooldown <= 0) {
@@ -6581,7 +6581,7 @@ class CozyNpc {
   // Visual debug: floating text showing faith lost
     try {
       showDamage(this, scaledLoss, {
-        color: "#ffffff",
+        color: "#EAF6FF",
         fadeDelay: 0.5,
       });
     } catch (e) {}
@@ -6617,7 +6617,7 @@ class CozyNpc {
     }
   }
 
-  setStatusBubble(message, { color = "#f1f5ff", duration = 2.5, persist = false, critical = false } = {}) {
+  setStatusBubble(message, { color = "#EAF6FF", duration = 2.5, persist = false, critical = false } = {}) {
     if (this.statusBubble) this.statusBubble.life = 0;
     if (!message) {
       this.statusBubble = null;
@@ -6937,7 +6937,7 @@ class CozyNpc {
     ctx.strokeStyle = NPC_FAITH_BORDER_COLOR;
     ctx.lineWidth = 1;
     ctx.strokeRect(barX + 0.5, barY + 0.5, width - 1, height - 1);
-    ctx.fillStyle = '#9bf0ff';
+    ctx.fillStyle = '#9BD9FF';
     ctx.fillRect(barX + 2, barY + 2, (width - 4) * ratio, height - 4);
     if (ratio <= 0) {
       try {
@@ -7360,7 +7360,7 @@ class BossEncounter {
         y: this.y + Math.sin(angle) * offset,
       });
     }
-    addFloatingTextAt(this.x, this.y - this.radius - 30, "Arise!", "#ffcb71", {
+    addFloatingTextAt(this.x, this.y - this.radius - 30, "Arise!", "#FFC86A", {
       speechBubble: true,
       vy: 0,
       life: 1.8,
@@ -7461,7 +7461,7 @@ class BossEncounter {
     }
     const damageText = options?.damageText || null;
     showDamage(this, amount, {
-      color: damageText?.color || "#ff9191",
+      color: damageText?.color || "#FF6B6B",
       fontSize: damageText?.fontSize || null,
       fontWeight: damageText?.fontWeight || null,
       offsetY: damageText?.offsetY || 0,
@@ -7638,7 +7638,7 @@ class BossEncounter {
     context.save();
     context.fillStyle = "rgba(0,0,0,0.6)";
     context.fillRect(this.x - width / 2, this.y - this.radius - 40, width, height);
-    context.fillStyle = "#ff5757";
+    context.fillStyle = "#FF6B6B";
     context.fillRect(
       this.x - width / 2 + 3,
       this.y - this.radius - 40 + 3,
@@ -8702,7 +8702,7 @@ function updateVisitorBlockers(dt) {
         visitorSession.lockingBlockers.delete(blocker.id);
         visitorSession.movementLock = visitorSession.lockingBlockers.size > 0;
         visitorSession.quietedBlockers += 1;
-        addFloatingTextAt(blocker.x, blocker.y - blocker.radius - 18, "Thanks, pastor!", "#d7f5ff", {
+        addFloatingTextAt(blocker.x, blocker.y - blocker.radius - 18, "Thanks, pastor!", "#9BD9FF", {
           life: 0.9,
           vy: 0,
           speechBubble: true,
@@ -8818,7 +8818,7 @@ function markVisitorGuestSaved(guest) {
   seasonStats.visitorAdded = (seasonStats.visitorAdded || 0) + 1;
   adjustCongregationSize(1);
   spawnRayboltEffect(guest.x, guest.y - guest.radius / 2, (guest.radius || 28) * 1.5);
-  addFloatingTextAt(guest.x, guest.y - guest.radius - 32, "I love it here!", "#ffe37a", {
+  addFloatingTextAt(guest.x, guest.y - guest.radius - 32, "I love it here!", "#FFC86A", {
     life: 1.3,
     vy: 0,
     speechBubble: true,
@@ -8835,7 +8835,7 @@ function applyHeartToEntity(entity, options = {}) {
     }
     entity.faith = Math.min(entity.maxFaith, entity.faith + HEART_FAITH_PER_HIT);
     entity.highlightTimer = 0.4;
-    addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Welcome +1", "#ff9ed9", {
+    addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Welcome +1", "#5FE3C0", {
       life: 0.6,
       vy: -18,
     });
@@ -8861,7 +8861,7 @@ function applyHeartToEntity(entity, options = {}) {
       if (isActiveChatty) {
         try {
           if (typeof entity.animator?.flash === "function") {
-            entity.animator.flash({ color: "#8bd7ff", duration: 0.35, intensity: 1.6 });
+            entity.animator.flash({ color: "#9BD9FF", duration: 0.35, intensity: 1.6 });
           }
         } catch (e) {}
         spawnMagicImpactEffect(entity.x, entity.y - (entity.radius || 26) / 2);
@@ -8893,7 +8893,7 @@ function applyHeartToEntity(entity, options = {}) {
         entity.speechBubble = null;
       }
       visitorSession.quietedBlockers += 1;
-      addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Thanks, pastor!", "#d7f5ff", {
+      addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Thanks, pastor!", "#9BD9FF", {
         life: 0.9,
         vy: 0,
         speechBubble: true,
@@ -8918,7 +8918,7 @@ function boostVisitorFaithFromPrayerBomb(ratio = 0.5) {
     guest.faith = nextFaith;
     guest.highlightTimer = 0.6;
     const percent = Math.round((gain / maxFaith) * 100);
-    addFloatingTextAt(guest.x, guest.y - guest.radius - 24, `Prayer Boost +${percent}%`, "#ffe9ff", {
+    addFloatingTextAt(guest.x, guest.y - guest.radius - 24, `Prayer Boost +${percent}%`, "#EAF6FF", {
       life: 0.9,
       vy: -14,
     });
@@ -9459,7 +9459,7 @@ function showFrameEntryUI(key, state, callback) {
     container.style.border = '2px solid rgba(120,200,255,0.9)';
     container.style.padding = '12px';
     container.style.borderRadius = '8px';
-    container.style.color = '#eaf8ff';
+    container.style.color = '#EAF6FF';
     container.style.fontFamily = UI_FONT_FAMILY;
     container.style.minWidth = '360px';
     container.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
@@ -9478,7 +9478,7 @@ function showFrameEntryUI(key, state, callback) {
     input.style.border = '1px solid rgba(120,200,255,0.35)';
     input.style.borderRadius = '4px';
     input.style.background = 'rgba(12,18,28,0.9)';
-    input.style.color = '#eaf8ff';
+    input.style.color = '#EAF6FF';
     container.appendChild(input);
 
     const buttons = document.createElement('div');
@@ -9721,7 +9721,7 @@ function updateGame(dt) {
     respawnIndicatorTimer -= dt;
     if (player && respawnIndicatorTimer <= 0) {
       addStatusText(player, "Exhausted", {
-        color: "#ff9b9b",
+        color: "#FF6B6B",
         bgColor: "rgba(60, 20, 20, 0.88)",
         life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
         offsetY: player.radius + 34,
@@ -10229,7 +10229,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
           enemy.y += pushNormY * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
           spawnFlashEffect(enemy.x, enemy.y - enemyRadius / 2);
           if (!canTakeDamage && typeof showDamage === "function") {
-            showDamage(enemy, RUSH_DAMAGE, { color: "#ffc8a2" });
+            showDamage(enemy, RUSH_DAMAGE, { color: "#FFC86A" });
           }
           meleeAttackState.rushHitEntities?.add(enemy);
         }
@@ -10337,7 +10337,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
         if (perp > swingHeight / 2 + allowance) return false;
         const canTakeDamage = typeof target.takeDamage === "function";
         const meleeDamageText = {
-          color: "#ffe66b",
+          color: "#FFC86A",
           fontSize: 26,
           fontWeight: "800",
           priority: 5,
@@ -10756,7 +10756,7 @@ function drawDevInspector() {
   ctx.strokeStyle = 'rgba(120,200,255,0.9)';
   ctx.lineWidth = 2;
   ctx.strokeRect(px, py, panelW, panelH);
-  ctx.fillStyle = '#eaf8ff';
+  ctx.fillStyle = '#EAF6FF';
   ctx.font = `18px ${UI_FONT_FAMILY}`;
   ctx.textAlign = 'left';
   const headerY = py + 28;
@@ -10772,7 +10772,7 @@ function drawDevInspector() {
       ctx.fillStyle = 'rgba(10,14,20,0.88)';
       const lw = Math.min(420, ctx.measureText(label).width + 18);
       ctx.fillRect(px + padding, py + 40 - 14, lw, 20);
-      ctx.fillStyle = '#9bdcff';
+      ctx.fillStyle = '#9BD9FF';
       ctx.fillText(label, px + padding + 6, py + 40);
     }
   } catch (e) {}
@@ -10796,7 +10796,7 @@ function drawDevInspector() {
   ctx.fillRect(prevX, btnY, btnW, btnH);
   ctx.strokeStyle = 'rgba(120,200,255,0.9)';
   ctx.strokeRect(prevX, btnY, btnW, btnH);
-  ctx.fillStyle = '#dff7ff';
+  ctx.fillStyle = '#EAF6FF';
   ctx.font = `13px ${UI_FONT_FAMILY}`;
   ctx.textAlign = 'center';
   ctx.fillText('Prev Key', prevX + btnW / 2, btnY + btnH / 2 + 5);
@@ -10807,7 +10807,7 @@ function drawDevInspector() {
   ctx.fillRect(nextX, btnY, btnW, btnH);
   ctx.strokeStyle = 'rgba(120,200,255,0.9)';
   ctx.strokeRect(nextX, btnY, btnW, btnH);
-  ctx.fillStyle = '#dff7ff';
+  ctx.fillStyle = '#EAF6FF';
   ctx.fillText('Next Key', nextX + btnW / 2, btnY + btnH / 2 + 5);
   ctx.restore();
   // grid
@@ -10816,7 +10816,7 @@ function drawDevInspector() {
   ctx.fillRect(gridBtnX, btnY, btnW, btnH);
   ctx.strokeStyle = 'rgba(120,200,255,0.9)';
   ctx.strokeRect(gridBtnX, btnY, btnW, btnH);
-  ctx.fillStyle = '#dff7ff';
+  ctx.fillStyle = '#EAF6FF';
   ctx.fillText('Grid', gridBtnX + btnW / 2, btnY + btnH / 2 + 5);
   ctx.restore();
   // type frames
@@ -10832,7 +10832,7 @@ function drawDevInspector() {
   // Determine a single representative clip (use idle if available or first)
   const clip = clips.walk || clips.idle || Object.values(clips)[0];
   if (!clip) {
-    ctx.fillStyle = '#cfe8ff';
+    ctx.fillStyle = '#9BD9FF';
     ctx.font = `14px ${UI_FONT_FAMILY}`;
     ctx.fillText('No sprite sheet available for this key.', px + padding, py + 60);
     ctx.restore();
@@ -10841,7 +10841,7 @@ function drawDevInspector() {
 
   // Defensive: ensure image and frame sizes are valid before attempting grid math
   if (!clip.image || !Number.isFinite(clip.frameWidth) || clip.frameWidth <= 0 || !Number.isFinite(clip.frameHeight) || clip.frameHeight <= 0) {
-    ctx.fillStyle = '#cfe8ff';
+    ctx.fillStyle = '#9BD9FF';
     ctx.font = `14px ${UI_FONT_FAMILY}`;
     ctx.fillText('Sprite not ready: frame size unknown. Try saving again or wait a moment.', px + padding, py + 60);
     // attempt to trigger a reload of this key's clips in background (non-blocking)
@@ -10862,7 +10862,7 @@ function drawDevInspector() {
   // Defensive: ensure clip has a valid image and frame sizes
   const badFrame = !clip.image || !Number.isFinite(clip.frameWidth) || clip.frameWidth <= 0 || !Number.isFinite(clip.frameHeight) || clip.frameHeight <= 0;
   if (badFrame) {
-    ctx.fillStyle = '#ffcdb0';
+    ctx.fillStyle = '#FFC86A';
     ctx.font = `14px ${UI_FONT_FAMILY}`;
     ctx.fillText('Invalid sprite/frame size for this sheet — check console for details.', px + padding, py + 60);
     try {
@@ -10908,7 +10908,7 @@ function drawDevInspector() {
 
   // Draw prompt area - if in flow, prompt which state to select
   ctx.font = `14px ${UI_FONT_FAMILY}`;
-  ctx.fillStyle = '#9edcff';
+  ctx.fillStyle = '#9BD9FF';
   if (devInspectorFlowActive) {
     devInspectorSelectedState = stateList[devInspectorCurrentStateIndex] || stateList[0] || null;
     ctx.fillText(`Pick frames for: ${(devInspectorSelectedState || 'walk').toUpperCase()}  —  Click cells to toggle. Press Enter when done.`, px + padding, py + 52);
@@ -10968,7 +10968,7 @@ function drawDevInspector() {
   ctx.textBaseline = 'bottom';
   ctx.fillStyle = 'rgba(0,0,0,0.45)';
   ctx.fillRect(ix + cellW - 28, iy + cellH - 18, 26, 16);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#EAF6FF';
   ctx.fillText(String(r * cols + c + 1), ix + cellW - 6, iy + cellH - 4);
   ctx.restore();
     }
@@ -10995,7 +10995,7 @@ function drawDevInspector() {
       // small status label
       ctx.save();
       ctx.font = `13px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = '#bfffd8';
+      ctx.fillStyle = '#5FE3C0';
       const label = `Clicked: #${lastInspectorClick.globalIndex + 1} (c${c} r${r})`;
       ctx.fillText(label, gridX + 8, gridY - 6);
       ctx.restore();
@@ -11025,7 +11025,7 @@ function drawDevInspector() {
         ctx.strokeRect(sx - 6, previewY - 6, boxW + 12, previewH + 28);
       }
       // label
-      ctx.fillStyle = '#9edcff';
+      ctx.fillStyle = '#9BD9FF';
       ctx.fillText(st.toUpperCase(), sx, previewY - 12);
       // draw an animated thumbnail for this state
       try {
@@ -11062,7 +11062,7 @@ function drawDevInspector() {
           // placeholder box
           ctx.fillStyle = 'rgba(255,255,255,0.02)';
           ctx.fillRect(sx, previewY, Math.min(boxW - 8, 72), previewH);
-          ctx.fillStyle = '#9edcff';
+          ctx.fillStyle = '#9BD9FF';
           ctx.fillText('No frames', sx + 6, previewY + previewH / 2 + 4);
         }
       } catch (e) {
@@ -11081,7 +11081,7 @@ function drawDevInspector() {
     const col = colorMap[st] || '#fff';
     ctx.fillStyle = col;
     ctx.fillRect(lx, legendY - 12, 18, 12);
-    ctx.fillStyle = '#eaf8ff';
+    ctx.fillStyle = '#EAF6FF';
     ctx.fillText(st.toUpperCase(), lx + 22, legendY - 2);
     lx += 120;
   }
@@ -11127,7 +11127,7 @@ function onPlayerDeath() {
       respawnIndicatorTimer = 0;
       if (player) {
         addStatusText(player, "Exhausted", {
-          color: "#ff9b9b",
+          color: "#FF6B6B",
           bgColor: "rgba(60, 20, 20, 0.88)",
           life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
           offsetY: player.radius + 34,
@@ -11376,7 +11376,7 @@ async function init() {
     ctx.save();
     ctx.fillStyle = "#0b0e16";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#ff7676";
+    ctx.fillStyle = "#FF6B6B";
     ctx.font = `28px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.fillText("Failed to start Battlefield Church", canvas.width / 2, canvas.height / 2 - 20);

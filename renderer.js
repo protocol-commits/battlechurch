@@ -153,7 +153,7 @@ const MELEE_SWING_LENGTH = 200;
     ctx.font = `bold 12px ${fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffe89b';
+    ctx.fillStyle = '#FFC86A';
     ctx.fillText(name, x, y);
     ctx.restore();
   }
@@ -275,7 +275,7 @@ const MELEE_SWING_LENGTH = 200;
     const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
     ctx.save();
     ctx.globalAlpha = 0.98 * alpha;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#EAF6FF";
     ctx.font = `${weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const titleText = String(title || "");
     const subtitleText = String(subtitle || "");
@@ -756,7 +756,7 @@ function drawLevelAnnouncements() {
     const footerX = footerPadding;
     const footerY = canvas.height - footerHeight - 16;
     ctx.font = `${TEXT_STYLES.body.weight} ${TEXT_STYLES.body.size}px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#EAF6FF";
     ctx.textAlign = "left";
     const lineX = footerX + 18;
     let lineY = footerY + 26;
@@ -765,7 +765,7 @@ function drawLevelAnnouncements() {
     ctx.fillText("Left Arrow: Sword (double tap = Rush, hold = Charge)", lineX, lineY);
     lineY += 20;
     ctx.fillText("Right Arrow: Prayer Bomb", lineX, lineY);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#EAF6FF";
     ctx.textAlign = "right";
     ctx.fillText("Press Space when ready to begin.", footerX + footerWidth - 18, footerY + footerHeight - 20);
     ctx.restore();
@@ -832,7 +832,7 @@ function drawLevelAnnouncements() {
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.lineWidth = 1;
     ctx.strokeRect(barX + 0.5, barY + 0.5, width - 1, height - 1);
-    ctx.fillStyle = actor.saved ? "#ffde85" : "#ff9ed9";
+    ctx.fillStyle = actor.saved ? "#FFC86A" : "#5FE3C0";
     ctx.fillRect(barX + 2, barY + 2, (width - 4) * ratio, height - 4);
     ctx.restore();
   }
@@ -857,7 +857,7 @@ function drawLevelAnnouncements() {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
     ctx.textAlign = "center";
-    ctx.fillStyle = "#ffe89b";
+    ctx.fillStyle = "#FFC86A";
     ctx.font = `22px ${UI_FONT_FAMILY}`;
     ctx.fillText("Visitation Hour", centerX, panelY + 24);
     const remaining = Math.max(0, visitorState.timer || 0);
@@ -868,7 +868,7 @@ function drawLevelAnnouncements() {
     const savedText = `Visitors: ${visitorState.savedVisitors || 0}/${visitorState.targetVisitors || 0}`;
     const calmText = `Members Calmed: ${visitorState.quietedBlockers || 0}`;
     ctx.font = `14px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#f7fbff";
+    ctx.fillStyle = "#EAF6FF";
     const statusLine = [
       `Timer ${timerText}`,
       savedText,
@@ -885,7 +885,7 @@ function drawLevelAnnouncements() {
       if (remainingSeconds > 0 && remainingSeconds <= 10) {
         ctx.save();
         ctx.globalAlpha = 0.32;
-        ctx.fillStyle = "#ffffff";
+        ctx.fillStyle = "#EAF6FF";
         const fontSize = Math.min(canvas.width, canvas.height) * 0.45;
         ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
@@ -901,7 +901,7 @@ function drawLevelAnnouncements() {
       ctx.lineWidth = 2;
       ctx.strokeRect(overlayPadding, overlayPadding, canvas.width - overlayPadding * 2, canvas.height - overlayPadding * 2);
       ctx.textAlign = "center";
-      ctx.fillStyle = "#ffe89b";
+      ctx.fillStyle = "#FFC86A";
       ctx.font = `46px ${UI_FONT_FAMILY}`;
       ctx.fillText("Time's Up! Welcome new members!", centerX, HUD_HEIGHT + 140);
       const portraits = Array.isArray(visitorState.newMemberPortraits) ? visitorState.newMemberPortraits : [];
@@ -944,7 +944,7 @@ function drawLevelAnnouncements() {
         }
       } else {
         ctx.font = `24px ${UI_FONT_FAMILY}`;
-        ctx.fillStyle = "#f7fbff";
+        ctx.fillStyle = "#EAF6FF";
         ctx.fillText("No new members this round.", centerX, HUD_HEIGHT + 220);
       }
       ctx.restore();
@@ -986,7 +986,7 @@ function drawLevelAnnouncements() {
     const remainingSeconds = Math.ceil(remaining);
     ctx.save();
     ctx.globalAlpha = 0.3;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#EAF6FF";
     const fontSize = Math.min(canvas.width, canvas.height) * 0.45;
     ctx.font = `${TEXT_STYLES.h1.weight} ${fontSize}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
@@ -1014,12 +1014,12 @@ function drawLevelAnnouncements() {
   // Removed dark translucent overlay for Mission Brief popup
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#f4f7ff';
+    ctx.fillStyle = '#EAF6FF';
     ctx.font = `44px ${UI_FONT_FAMILY}`;
     ctx.fillText('How to Play', canvas.width / 2, HUD_HEIGHT + 60);
 
     ctx.font = `18px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = '#d8e8ff';
+    ctx.fillStyle = '#EAF6FF';
     const lines = [
       'Move with WASD, aim with arrow keys or mouse.',
       'Use Prayer Bombs to clear enemies, collect coins to heal NPCs.',
@@ -1044,12 +1044,12 @@ function drawLevelAnnouncements() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#f8fbff';
+  ctx.fillStyle = '#EAF6FF';
     ctx.font = `48px ${UI_FONT_FAMILY}`;
     ctx.fillText('How to play', canvas.width / 2, HUD_HEIGHT + 66);
 
     ctx.font = `18px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = '#dfefff';
+    ctx.fillStyle = '#EAF6FF';
     const lines = [
       'Move with WASD or the virtual stick.',
       'Aim with mouse or right stick; press Space to start.',
@@ -1099,7 +1099,7 @@ function drawLevelAnnouncements() {
     ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.textAlign = "center";
-    ctx.fillStyle = label === "FIGHT!" ? "#ffdd5c" : "#f1f5ff";
+    ctx.fillStyle = label === "FIGHT!" ? "#FFC86A" : "#EAF6FF";
     const fontSize = label === "FIGHT!" ? 64 : 72;
     ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
     ctx.fillText(label, canvas.width / 2, canvas.height / 2);
@@ -1178,14 +1178,14 @@ function drawLevelAnnouncements() {
 
     const headerCenterX = canvas.width / 2;
     ctx.textAlign = "center";
-    ctx.fillStyle = "#f4f7ff";
+    ctx.fillStyle = "#EAF6FF";
     ctx.font = `40px ${UI_FONT_FAMILY}`;
     ctx.fillText("Battlefield Church", headerCenterX, cardY + 56);
     ctx.font = `20px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#ffe89b";
+    ctx.fillStyle = "#FFC86A";
     ctx.fillText("Save Your Flock", headerCenterX, cardY + 86);
     ctx.font = `22px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#c2d7ff";
+    ctx.fillStyle = "#9BD9FF";
     ctx.fillText("Paused - Review Your Toolkit", headerCenterX, cardY + 114);
 
     ctx.textBaseline = "top";
@@ -1567,7 +1567,7 @@ function drawLevelAnnouncements() {
         ctx.strokeStyle = typeof NPC_FAITH_BORDER_COLOR !== "undefined" ? NPC_FAITH_BORDER_COLOR : "#24698f";
         ctx.lineWidth = 1;
         ctx.strokeRect(entry.x + 0.5, entry.y + 0.5, entry.width - 1, entry.height - 1);
-        ctx.fillStyle = "#9bf0ff";
+        ctx.fillStyle = "#9BD9FF";
         ctx.fillRect(entry.x + 2, entry.y + 2, Math.max(0, entry.width - 4) * entry.ratio, entry.height - 4);
         if (entry.ratio <= 0) {
           try {

@@ -33,7 +33,7 @@ body.touch-enabled .joystick-base {
   touch-action: none;
   background: #222;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid #EAF6FF;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   display: flex;
   align-items: center;
@@ -45,7 +45,7 @@ body.touch-enabled .joystick-handle {
   touch-action: none;
   background: #888;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid #EAF6FF;
   box-shadow: 0 1px 4px rgba(0,0,0,0.18);
   position: absolute;
   left: 50%;
@@ -57,17 +57,17 @@ body.touch-enabled .joystick-handle {
 :root {
   --game-width: 0px;
   --game-height: 0px;
-  --swatch-dark: #070a16;
-  --swatch-dark-2: #0a0f1f;
-  --swatch-mid: #0f1628;
-  --swatch-light: #f6f0c3;
-  --swatch-accent: #ffd978;
-  --swatch-accent-2: #6ef4ff;
-  --swatch-border: rgba(255, 255, 255, 0.15);
-  --swatch-button-gradient: linear-gradient(135deg, #ffd43a, #ff7c5c);
+  --swatch-dark: #0A0F1F;
+  --swatch-dark-2: #0A0F1F;
+  --swatch-mid: #233152;
+  --swatch-light: #EAF6FF;
+  --swatch-accent: #FFC86A;
+  --swatch-accent-2: #9BD9FF;
+  --swatch-border: rgba(234, 246, 255, 0.15);
+  --swatch-button-gradient: linear-gradient(135deg, #FFC86A, #FF6B6B);
   --ui-font-family: "Orbitron", sans-serif;
-  --ui-text-color: #ffffff;
-  --ui-text-color-dark: #0a0f1f;
+  --ui-text-color: #EAF6FF;
+  --ui-text-color-dark: #0A0F1F;
   --ui-h1-size: 56px;
   --ui-h1-weight: 900;
   --ui-h1-line: 1.05;
@@ -87,7 +87,7 @@ html, body {
   margin: 0;
   padding: 0;
   background-color: #000;
-  color: #fff;
+  color: #EAF6FF;
   height: 100%;
   overflow: hidden;
   font-family: 'Orbitron', sans-serif;
@@ -153,20 +153,20 @@ body.touch-enabled .ab-button {
   width: clamp(44px, 8vw, 60px);
   height: clamp(44px, 8vw, 60px);
   border-radius: 50%;
-  background: #e53935;
-  color: #fff;
+  background: #FF6B6B;
+  color: #EAF6FF;
   font-size: clamp(1.1rem, 2vw, 1.5rem);
   font-family: inherit;
-  border: 2px solid #fff;
+  border: 2px solid #EAF6FF;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   margin: 0;
   transition: background 0.2s;
 }
 body.touch-enabled .ab-button#buttonB {
-  background: #43a047;
+  background: #5FE3C0;
 }
 body.touch-enabled .ab-button:active {
-  background: #b71c1c;
+  background: #FF6B6B;
 }
 
 body.touch-enabled .joystick-base {
@@ -182,8 +182,8 @@ body.touch-enabled .joystick-handle {
 
 .magazine-overlay {
   background:
-    radial-gradient(circle at 20% 20%, rgba(255, 217, 120, 0.08), transparent 30%),
-    radial-gradient(circle at 80% 60%, rgba(110, 244, 255, 0.1), transparent 36%),
+    radial-gradient(circle at 20% 20%, rgba(255, 200, 106, 0.08), transparent 30%),
+    radial-gradient(circle at 80% 60%, rgba(155, 217, 255, 0.1), transparent 36%),
     rgba(4, 7, 14, 0.7);
 }
 
@@ -194,7 +194,7 @@ body.touch-enabled .joystick-handle {
   border-radius: 26px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 26px 70px rgba(0, 0, 0, 0.75);
-  color: #f2f6ff;
+  color: #EAF6FF;
   font-family: "Orbitron", sans-serif;
 }
 
@@ -234,7 +234,7 @@ body.touch-enabled .joystick-handle {
 .mag-names {
   font-size: clamp(18px, 2vw, 24px);
   font-weight: 700;
-  color: #fdf7d3;
+  color: #FFC86A;
   word-break: break-word;
 }
 
@@ -249,15 +249,15 @@ body.touch-enabled .joystick-handle {
   display: inline-block;
   padding: 6px 12px;
   border-radius: 12px;
-  background: rgba(255, 217, 120, 0.16);
-  border: 1px solid rgba(255, 217, 120, 0.4);
-  color: #ffd978;
+  background: rgba(255, 200, 106, 0.16);
+  border: 1px solid rgba(255, 200, 106, 0.4);
+  color: #FFC86A;
   font-weight: 800;
   letter-spacing: 0.08em;
 }
 
 .mag-highlight {
-  color: #ffffff;
+  color: #EAF6FF;
 }
 
 .upgrade-overlay {
@@ -384,7 +384,7 @@ body.touch-enabled .joystick-handle {
   color: var(--ui-text-color-dark);
   background: var(--swatch-button-gradient);
   cursor: pointer;
-  box-shadow: 0 10px 25px rgba(255, 217, 120, 0.2);
+  box-shadow: 0 10px 25px rgba(255, 200, 106, 0.2);
 }
 
 .upgrade-row__button:disabled {
@@ -406,7 +406,7 @@ body.touch-enabled .joystick-handle {
   font-size: var(--ui-body-size);
   font-weight: var(--ui-body-weight);
   cursor: pointer;
-  box-shadow: 0 12px 28px rgba(110, 244, 255, 0.25);
+  box-shadow: 0 12px 28px rgba(155, 217, 255, 0.25);
 }
 
 .dialog-overlay {
