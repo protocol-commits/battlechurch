@@ -3309,36 +3309,6 @@ async function loadCozyNpcAssets(cache) {
         } catch (error) {
           hurtImage = null;
         }
-
-        if (baseKey === "beard" && walkImage && walkImage.width && walkImage.height) {
-          const walkVariantWidth = NPC_FRAME_WIDTH * NPC_COZY_WALK_FRAME_COUNT;
-          const walkColors = Math.max(1, Math.floor(walkImage.width / walkVariantWidth));
-          let hurtColors = walkColors;
-          if (hurtImage && hurtImage.width && hurtImage.height) {
-            const hurtVariantWidth = NPC_FRAME_WIDTH;
-            hurtColors = Math.max(1, Math.floor(hurtImage.width / hurtVariantWidth));
-          }
-          const colorCount = Math.max(1, Math.min(walkColors, hurtColors));
-          for (let idx = 0; idx < colorCount; idx += 1) {
-            const key = `${baseKey}__c${idx}`;
-            walkMap[key] = {
-              __sourceImage: walkImage,
-              __frameOffsetX: idx * walkVariantWidth,
-              __frameOffsetY: 0,
-            };
-            if (hurtImage) {
-              hurtMap[key] = {
-                __sourceImage: hurtImage,
-                __frameOffsetX: idx * NPC_FRAME_WIDTH,
-                __frameOffsetY: 0,
-              };
-            } else {
-              hurtMap[key] = walkMap[key];
-            }
-          }
-          continue;
-        }
-
         if (walkImage) {
           walkMap[baseKey] = walkImage;
           hurtMap[baseKey] = hurtImage || walkImage;
@@ -7985,20 +7955,8 @@ function createRandomNpcLayers(gender = null) {
   const selectedHair = randomChoice(matchingHairKeys.length ? matchingHairKeys : hairKeys);
   const selectedClothing = randomChoice(matchingClothesKeys.length ? matchingClothesKeys : clothesKeys);
   let selectedAccessory = null;
-  const accessoryCandidates = accessoryKeys.filter((key) => {
-    if (String(gender) !== "male" && key.startsWith("beard")) return false;
-    return true;
-  });
-  if (accessoryCandidates.length && Math.random() < 0.35) {
-    selectedAccessory = randomChoice(accessoryCandidates);
-  }
-  const hairMatch = String(selectedHair || "").match(/__c(\d+)/);
-  const hairColorIndex = hairMatch ? Number(hairMatch[1]) : null;
-  if (selectedAccessory && String(selectedAccessory).startsWith("beard") && Number.isFinite(hairColorIndex)) {
-    const beardKey = `beard__c${hairColorIndex}`;
-    if (walk.accessories && walk.accessories[beardKey]) {
-      selectedAccessory = beardKey;
-    }
+  if (accessoryKeys.length && Math.random() < 0.35) {
+    selectedAccessory = randomChoice(accessoryKeys);
   }
 
   const collectLayer = (collection, key) => {

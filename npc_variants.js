@@ -37,7 +37,6 @@
   ];
 
   const accessoryVariants = [
-    "beard_walk.png",
     "glasses_sun_walk.png",
     "glasses_walk.png",
     "hat_cowboy_walk.png",
