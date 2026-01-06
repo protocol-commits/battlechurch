@@ -1673,9 +1673,9 @@ function drawLevelAnnouncements() {
         });
       }
 
-  // Draw static fog effect on left/right edges (AFTER all gameplay entities, BEFORE overlays)
-  ctx.save();
-  ctx.globalAlpha = 1.0;
+    // Draw static fog effect on left/right edges (AFTER all gameplay entities, BEFORE overlays)
+    ctx.save();
+    ctx.globalAlpha = 1.0;
   // Left fog (spills outside playable field)
   const fogWidth = 180;
   const fogGradientLeft = ctx.createLinearGradient(-fogWidth, 0, fogWidth, 0);
@@ -1707,6 +1707,13 @@ function drawLevelAnnouncements() {
   drawNpcHomeBounds(ctx);
   // drawAimAssistOverlay(); // Aim assist cone hidden for now
     // Reticle hidden while auto-aim is active.
+
+    // Cool color grade to unify mixed-source art.
+    ctx.save();
+    ctx.globalAlpha = 1.0;
+    ctx.fillStyle = "rgba(12, 24, 44, 0.22)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
 
     ctx.restore();
 
