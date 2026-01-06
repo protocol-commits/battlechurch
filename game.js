@@ -1968,6 +1968,7 @@ Renderer.initialize({
   get npcWeaponState() { return npcWeaponState; },
   get npcHarmonyBuffTimer() { return npcHarmonyBuffTimer; },
   get npcHarmonyBuffDuration() { return npcHarmonyBuffDuration; },
+  get powerupIconStyles() { return POWERUP_ICON_STYLES; },
   get postDeathSequenceActive() { return postDeathSequenceActive; },
   get heroLives() { return heroLives; },
   get hpFlashTimer() { return hpFlashTimer; },

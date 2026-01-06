@@ -42,6 +42,7 @@
       npcWeaponState,
       npcHarmonyBuffTimer,
       npcHarmonyBuffDuration,
+      powerupIconStyles,
     } = bindings;
     if (!ctx || !canvas) return;
 
@@ -54,6 +55,12 @@
       crimson: "#FF6B6B",
       teal: "#5FE3C0",
       muted: "#8FA3BF",
+    };
+
+    const getIconStyleColor = (key, fallback) => {
+      if (!powerupIconStyles || !key) return fallback;
+      const style = powerupIconStyles[key];
+      return style && style.color ? style.color : fallback;
     };
 
     ctx.save();
@@ -348,7 +355,7 @@
       rows.push({
         label: getWeaponLabel(weaponMode),
         ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
-        color: PALETTE.ice,
+        color: weaponMode === 'arrow' ? PALETTE.ice : getIconStyleColor('player', PALETTE.ice),
       });
 
       const utilityRows = [];
@@ -357,7 +364,7 @@
         utilityRows.push({
           label: 'Shield (Blocks damage)',
           ratio: duration > 0 ? player.shieldTimer / duration : 0,
-          color: PALETTE.ice,
+          color: getIconStyleColor('utility', PALETTE.ice),
         });
       }
       if (player.speedBoostTimer > 0) {
@@ -365,7 +372,7 @@
         utilityRows.push({
           label: 'Haste (Move speed)',
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
-          color: PALETTE.teal,
+          color: getIconStyleColor('utility', PALETTE.teal),
         });
       }
       if (player.powerExtendTimer > 0) {
@@ -373,7 +380,7 @@
         utilityRows.push({
           label: 'Extend (Weapon timer)',
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
-          color: PALETTE.gold,
+          color: getIconStyleColor('utility', PALETTE.gold),
         });
       }
       rows.push(...utilityRows.slice(0, 2));
@@ -408,14 +415,14 @@
       rows.push({
         label: getNpcWeaponLabel(npcMode),
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
-        color: PALETTE.gold,
+        color: npcMode === 'arrow' ? PALETTE.gold : getIconStyleColor('npc', PALETTE.gold),
       });
       if (npcHarmonyBuffTimer > 0) {
         const duration = Math.max(0.001, npcHarmonyBuffDuration || npcHarmonyBuffTimer || 0);
         rows.push({
           label: 'Harmony (NPC boost)',
           ratio: duration > 0 ? npcHarmonyBuffTimer / duration : 0,
-          color: PALETTE.teal,
+          color: getIconStyleColor('utility', PALETTE.teal),
         });
       }
 
