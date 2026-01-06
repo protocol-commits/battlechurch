@@ -3231,6 +3231,64 @@ async function loadCozyNpcAssets(cache) {
     const walkRoot = `${NPC_WALK_ROOT}/${folder}`;
     const hurtRoot = `${NPC_COZY_HURT_ROOT}/${folder}`;
 
+    if (folder === "hair") {
+      const walkMap = {};
+      const hurtMap = {};
+      for (const filename of filenames) {
+        const baseKey = makeWalkKey(filename);
+        const walkSrc = `${walkRoot}/${filename}`;
+        const hurtFilename = mapHurtFilename(filename);
+        const hurtSrc = `${hurtRoot}/${hurtFilename}`;
+        let walkImage = null;
+        let hurtImage = null;
+        try {
+          walkImage = await loadCachedImage(cache, walkSrc);
+        } catch (error) {
+          walkImage = null;
+        }
+        try {
+          hurtImage = await loadCachedImage(cache, hurtSrc);
+        } catch (error) {
+          hurtImage = null;
+        }
+
+        if (walkImage && walkImage.width && walkImage.height) {
+          const walkVariantWidth = NPC_FRAME_WIDTH * NPC_COZY_WALK_FRAME_COUNT;
+          const walkColors = Math.max(1, Math.floor(walkImage.width / walkVariantWidth));
+          let hurtColors = walkColors;
+          if (hurtImage && hurtImage.width && hurtImage.height) {
+            const hurtVariantWidth = NPC_FRAME_WIDTH;
+            hurtColors = Math.max(1, Math.floor(hurtImage.width / hurtVariantWidth));
+          }
+          const colorCount = Math.max(1, Math.min(walkColors, hurtColors));
+          for (let idx = 0; idx < colorCount; idx += 1) {
+            const key = `${baseKey}__c${idx}`;
+            walkMap[key] = {
+              __sourceImage: walkImage,
+              __frameOffsetX: idx * walkVariantWidth,
+              __frameOffsetY: 0,
+            };
+            if (hurtImage) {
+              hurtMap[key] = {
+                __sourceImage: hurtImage,
+                __frameOffsetX: idx * NPC_FRAME_WIDTH,
+                __frameOffsetY: 0,
+              };
+            } else {
+              hurtMap[key] = walkMap[key];
+            }
+          }
+          continue;
+        }
+        // Final fallback to single-color hair sprites (no variants).
+        if (walkImage) {
+          walkMap[baseKey] = walkImage;
+          hurtMap[baseKey] = hurtImage || walkImage;
+        }
+      }
+      return { walk: walkMap, hurt: hurtMap };
+    }
+
     const walkEntries = await Promise.all(
       filenames.map(async (filename) => {
         const src = `${walkRoot}/${filename}`;
@@ -6160,10 +6218,13 @@ class CozyNpcAnimator {
     context.save();
     context.translate(x, y);
     data.layers.forEach((image) => {
+      const source = image && image.__sourceImage ? image.__sourceImage : image;
+      const offsetX = image && typeof image.__frameOffsetX === "number" ? image.__frameOffsetX : 0;
+      const offsetY = image && typeof image.__frameOffsetY === "number" ? image.__frameOffsetY : 0;
       context.drawImage(
-        image,
-        sx,
-        sy,
+        source,
+        sx + offsetX,
+        sy + offsetY,
         this.frameWidth,
         this.frameHeight,
         -drawWidth / 2,
@@ -6181,10 +6242,13 @@ class CozyNpcAnimator {
       context.globalAlpha = flashAmount;
       context.filter = `brightness(${(1 + flashAmount * 1.4).toFixed(2)}) saturate(${(1 + flashAmount * 0.9).toFixed(2)})`;
       data.layers.forEach((image) => {
+        const source = image && image.__sourceImage ? image.__sourceImage : image;
+        const offsetX = image && typeof image.__frameOffsetX === "number" ? image.__frameOffsetX : 0;
+        const offsetY = image && typeof image.__frameOffsetY === "number" ? image.__frameOffsetY : 0;
         context.drawImage(
-          image,
-          sx,
-          sy,
+          source,
+          sx + offsetX,
+          sy + offsetY,
           this.frameWidth,
           this.frameHeight,
           -drawWidth / 2,
