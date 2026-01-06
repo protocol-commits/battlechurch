@@ -121,10 +121,9 @@
       return ` (${tags.join(', ')})`;
     };
 
-    const getWeaponLabel = (mode, multipliers) => {
+    const getWeaponLabel = (mode) => {
       const base = getWeaponBaseLabel(mode);
-      const tag = buildMultiplierTag(multipliers);
-      return `${base}${tag}`;
+      return base;
     };
     const getNpcWeaponBaseLabel = (mode) => {
       switch (mode) {
@@ -141,10 +140,9 @@
           return 'Default';
       }
     };
-    const getNpcWeaponLabel = (mode, multipliers) => {
+    const getNpcWeaponLabel = (mode) => {
       const base = getNpcWeaponBaseLabel(mode);
-      const tag = buildMultiplierTag(multipliers);
-      return `${base}${tag}`;
+      return base;
     };
 
     const drawMeterRow = (x, y, width, label, ratio, color) => {
@@ -332,7 +330,7 @@
         };
       }
       rows.push({
-        label: `Weapon: ${getWeaponLabel(weaponMode, playerMultipliers)}`,
+        label: `Weapon: ${getWeaponLabel(weaponMode)}`,
         ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
         color: PALETTE.ice,
       });
@@ -392,7 +390,7 @@
             speed: npcWeaponState?.speedMultiplier,
           };
       rows.push({
-        label: `Weapon: ${getNpcWeaponLabel(npcMode, npcMultipliers)}`,
+        label: `Weapon: ${getNpcWeaponLabel(npcMode)}`,
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
         color: PALETTE.gold,
       });

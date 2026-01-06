@@ -4883,7 +4883,7 @@ function applyUtilityPowerUp(powerUp) {
       floatingText = `Speed +${percent}%`;
     }
   } else if (effect === "extend" && addedExtendSeconds > 0.05) {
-    floatingText = `Extended Attack +${addedExtendSeconds.toFixed(1)}s`;
+    floatingText = null;
   }
   if (floatingText) {
     addFloatingText(floatingText, floatingColor, {
