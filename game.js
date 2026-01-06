@@ -5655,9 +5655,9 @@ function drawPickupLabel(context, text, x, y, color = "#ffffff") {
 }
 
 const POWERUP_ICON_STYLES = {
-  player: { shape: "square", color: "#4DB2FF", accent: "#6BC5FF" },
-  npc: { shape: "square", color: "#FF6B6B", accent: "#FF8B8B" },
-  utility: { shape: "circle", color: "#FFD166", accent: "#FFE08A" },
+  player: { shape: "square", color: "#2C7FCC", accent: "#4B96DA" },
+  npc: { shape: "square", color: "#C94B4B", accent: "#E06A6A" },
+  utility: { shape: "circle", color: "#B86E1E", accent: "#D38A3D" },
 };
 const POWERUP_ICON_OUTLINE = "rgba(10, 15, 31, 0.7)";
 const POWERUP_ICON_TEXT_COLOR = "#ffffff";
@@ -5735,13 +5735,13 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
     context.shadowBlur = 0;
     context.shadowOffsetY = 0;
     const fitText = () => {
-      context.font = `700 ${fontSize}px ${UI_FONT_FAMILY}`;
+      context.font = `800 ${fontSize}px ${UI_FONT_FAMILY}`;
       return lines.every((line) => context.measureText(line).width <= maxWidth);
     };
     while (fontSize > 8 && !fitText()) {
       fontSize -= 1;
     }
-    context.font = `700 ${fontSize}px ${UI_FONT_FAMILY}`;
+    context.font = `800 ${fontSize}px ${UI_FONT_FAMILY}`;
     const lineHeight = Math.round(fontSize * 0.92);
     const totalHeight = lineHeight * lines.length;
     const startY = -totalHeight / 2 + lineHeight / 2;

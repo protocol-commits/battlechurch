@@ -628,9 +628,7 @@ function drawLevelAnnouncements() {
       alpha,
       typewriter: true,
     });
-    if (SHOW_TEXT_SOURCE_LABELS) {
-      drawDevLabel(ctx, "DEV: BattleAnnouncement", canvas.width / 2, titleY - 32, alpha, UI_FONT_FAMILY);
-    }
+    // Dev label hidden for announcements per request.
     // Subtitle display removed as requested.
     ctx.restore();
   }

@@ -897,8 +897,8 @@
       if (hordeNumber === 1) {
         const names = formatNameList(npcs.map((npc) => npc?.name || ""));
         const title = names
-          ? `Welcome ${names}, let's deal with lies, temptation and sin.`
-          : "Welcome, let's deal with lies, temptation and sin.";
+          ? `Welcome ${names}, let's fight the lies, temptations and sin together!`
+          : "Let's fight the lies, temptations and sin together!";
         queueLevelAnnouncement(title, "", {
           duration: introDuration,
           skipMissionBrief: true,
