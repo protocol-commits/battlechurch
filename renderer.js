@@ -346,7 +346,9 @@ const MELEE_SWING_LENGTH = 200;
   }
 
   function getAnnouncementYBase(HUD_HEIGHT) {
-    return HUD_HEIGHT + 170;
+    const { canvas } = requireBindings();
+    const lowerThird = Math.floor(canvas.height * 0.84);
+    return Math.max(HUD_HEIGHT + 120, lowerThird);
   }
 
   function getAnnouncementTitleY(HUD_HEIGHT, boxHeight) {
