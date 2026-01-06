@@ -101,7 +101,7 @@
           return 'Heart Charm';
         case 'arrow':
         default:
-          return 'Default';
+          return 'Default Weapon';
       }
     };
 
@@ -137,7 +137,7 @@
           return 'Heart Charm';
         case 'arrow':
         default:
-          return 'Default';
+          return 'Default Weapon';
       }
     };
     const getNpcWeaponLabel = (mode) => {
@@ -145,21 +145,37 @@
       return base;
     };
 
-    const drawMeterRow = (x, y, width, label, ratio, color) => {
-      const barHeight = 6;
-      const labelY = y + 2;
-      const barY = y + 14;
+    const drawPillMeterRow = (x, y, width, label, ratio, color) => {
+      const barHeight = 18;
       const barWidth = Math.max(60, width - 8);
+      const barX = x;
+      const barY = y + 2;
+      const clampedRatio = Math.max(0, Math.min(1, ratio || 0));
       ctx.save();
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = PALETTE.softWhite;
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = 'rgba(10,15,31,0.6)';
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = PALETTE.ice;
+      roundRect(ctx, barX, barY, barWidth, barHeight, 6, true, true);
+      const fillWidth = Math.max(0, Math.floor((barWidth - 4) * clampedRatio));
+      if (fillWidth > 0) {
+        ctx.fillStyle = color || PALETTE.softWhite;
+        roundRect(
+          ctx,
+          barX + 2,
+          barY + 2,
+          fillWidth,
+          barHeight - 4,
+          5,
+          true,
+          false,
+        );
+      }
       ctx.font = `11px ${UI_FONT_FAMILY}`;
-      ctx.fillText(label, x, labelY);
-      ctx.fillStyle = 'rgba(234,246,255,0.18)';
-      ctx.fillRect(x, barY, barWidth, barHeight);
-      ctx.fillStyle = color || PALETTE.softWhite;
-      ctx.fillRect(x, barY, Math.max(0, Math.floor(barWidth * Math.max(0, Math.min(1, ratio || 0)))), barHeight);
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, barX + barWidth / 2, barY + barHeight / 2 + 1);
       ctx.restore();
     };
 
@@ -330,7 +346,7 @@
         };
       }
       rows.push({
-        label: `Weapon: ${getWeaponLabel(weaponMode)}`,
+        label: getWeaponLabel(weaponMode),
         ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
         color: PALETTE.ice,
       });
@@ -364,7 +380,7 @@
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
       rows.slice(0, rowYs.length).forEach((row, idx) => {
-        drawMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
       });
     };
 
@@ -390,7 +406,7 @@
             speed: npcWeaponState?.speedMultiplier,
           };
       rows.push({
-        label: `Weapon: ${getNpcWeaponLabel(npcMode)}`,
+        label: getNpcWeaponLabel(npcMode),
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
         color: PALETTE.gold,
       });
@@ -405,7 +421,7 @@
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
       rows.slice(0, rowYs.length).forEach((row, idx) => {
-        drawMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
       });
     };
 
