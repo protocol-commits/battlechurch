@@ -9008,12 +9008,8 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
   congregationWanderBounds = bounds;
 
   // Name assignment setup
-  if (!window.npcNamesList) {
-    window.npcNamesList = [
-      "Aaron", "Abby", "Adam", "Alan", "Alex", "Alice", "Allen", "Amber", "Andre", "April", "Ariel", "Ashley", "Avery", "Ben", "Benny", "Beth", "Blake", "Brady", "Brian", "Brock", "Caleb", "Carla", "Carol", "Casey", "Cathy", "Chris", "Cindy", "Clara", "Cliff", "Cody", "Colin", "Craig", "Daisy", "David", "Derek", "Diana", "Diane", "Donna", "Dylan", "Edith", "Elise", "Ellen", "Emily", "Emma", "Erick", "Ethan", "Felix", "Fiona", "Frank", "Fred", "Gabe", "Gavin", "Glenn", "Grace", "Grant", "Greg", "Henry", "Irene", "Isaac", "Jackie", "James", "Janet", "Jason", "Jenna", "Jesse", "Jill", "Jimmy", "Jonah", "Jonas", "Julie", "Julia", "Karen", "Katie", "Kelly", "Kevin", "Kyle", "Lance", "Laura", "Linda", "Logan", "Lucas", "Lucy", "Maddie", "Maria", "Mason", "Megan", "Micah", "Miles", "Naomi", "Nancy", "Oscar", "Owen", "Peter", "Quinn", "Riley", "Robin", "Sarah", "Simon", "Terry", "Tony"
-    ];
-    window.npcNameIndex = 0;
-  }
+  ensureNpcNamesList();
+  if (!Number.isFinite(window.npcNameIndex)) window.npcNameIndex = 0;
   for (let i = 0; i < total; i += 1) {
     const appearance = createRandomNpcLayers();
     if (!appearance) break;
@@ -9029,8 +9025,10 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
     const jitterY = (Math.random() - 0.5) * cellHeight * 0.3;
     const baseX = bounds.minX + cellWidth * (column + 0.5) + jitterX;
     const baseY = bounds.minY + cellHeight * (row + 0.5) + jitterY;
-    // Assign name from list, fallback to Noname X
-    let name = window.npcNamesList[window.npcNameIndex] || `Noname ${i + 1}`;
+    const nameList = window.npcNamesList || [];
+    const listLen = Math.max(1, nameList.length);
+    // Assign name from list with wraparound to avoid Noname fallbacks.
+    let name = nameList[window.npcNameIndex % listLen] || `Friend ${i + 1}`;
     window.npcNameIndex++;
     const member = {
       animator,
