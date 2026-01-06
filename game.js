@@ -3289,6 +3289,64 @@ async function loadCozyNpcAssets(cache) {
       return { walk: walkMap, hurt: hurtMap };
     }
 
+    if (folder === "acc") {
+      const walkMap = {};
+      const hurtMap = {};
+      for (const filename of filenames) {
+        const baseKey = makeWalkKey(filename);
+        const walkSrc = `${walkRoot}/${filename}`;
+        const hurtFilename = mapHurtFilename(filename);
+        const hurtSrc = `${hurtRoot}/${hurtFilename}`;
+        let walkImage = null;
+        let hurtImage = null;
+        try {
+          walkImage = await loadCachedImage(cache, walkSrc);
+        } catch (error) {
+          walkImage = null;
+        }
+        try {
+          hurtImage = await loadCachedImage(cache, hurtSrc);
+        } catch (error) {
+          hurtImage = null;
+        }
+
+        if (baseKey === "beard" && walkImage && walkImage.width && walkImage.height) {
+          const walkVariantWidth = NPC_FRAME_WIDTH * NPC_COZY_WALK_FRAME_COUNT;
+          const walkColors = Math.max(1, Math.floor(walkImage.width / walkVariantWidth));
+          let hurtColors = walkColors;
+          if (hurtImage && hurtImage.width && hurtImage.height) {
+            const hurtVariantWidth = NPC_FRAME_WIDTH;
+            hurtColors = Math.max(1, Math.floor(hurtImage.width / hurtVariantWidth));
+          }
+          const colorCount = Math.max(1, Math.min(walkColors, hurtColors));
+          for (let idx = 0; idx < colorCount; idx += 1) {
+            const key = `${baseKey}__c${idx}`;
+            walkMap[key] = {
+              __sourceImage: walkImage,
+              __frameOffsetX: idx * walkVariantWidth,
+              __frameOffsetY: 0,
+            };
+            if (hurtImage) {
+              hurtMap[key] = {
+                __sourceImage: hurtImage,
+                __frameOffsetX: idx * NPC_FRAME_WIDTH,
+                __frameOffsetY: 0,
+              };
+            } else {
+              hurtMap[key] = walkMap[key];
+            }
+          }
+          continue;
+        }
+
+        if (walkImage) {
+          walkMap[baseKey] = walkImage;
+          hurtMap[baseKey] = hurtImage || walkImage;
+        }
+      }
+      return { walk: walkMap, hurt: hurtMap };
+    }
+
     const walkEntries = await Promise.all(
       filenames.map(async (filename) => {
         const src = `${walkRoot}/${filename}`;
@@ -7896,7 +7954,17 @@ function randomSpawnPosition() {
   };
 }
 
-function createRandomNpcLayers() {
+function getGenderedVariantBases(folder, gender) {
+  const normalized = normalizeNpcGender(gender);
+  const byGender = folder === "hair" ? npcVariants.hairByGender : npcVariants.clothingByGender;
+  if (!byGender) return null;
+  const base = byGender[normalized] || [];
+  const unisex = byGender.unisex || [];
+  const combined = [...base, ...unisex].filter(Boolean);
+  return combined.map((entry) => entry.replace("_walk.png", "").replace(".png", ""));
+}
+
+function createRandomNpcLayers(gender = null) {
   if (!assets?.npcs) return null;
   const { walk, hurt, eyes, shadow } = assets.npcs;
   if (!walk?.base || !hurt?.base) return null;
@@ -7905,11 +7973,32 @@ function createRandomNpcLayers() {
   const clothesKeys = Object.keys(walk.clothes || {});
   const accessoryKeys = Object.keys(walk.accessories || {});
 
-  const selectedHair = randomChoice(hairKeys);
-  const selectedClothing = randomChoice(clothesKeys);
+  const genderHairBases = getGenderedVariantBases("hair", gender);
+  const genderClothingBases = getGenderedVariantBases("clothes", gender);
+  const matchingHairKeys = genderHairBases
+    ? hairKeys.filter((key) => genderHairBases.some((base) => key === base || key.startsWith(`${base}__`)))
+    : hairKeys;
+  const matchingClothesKeys = genderClothingBases
+    ? clothesKeys.filter((key) => genderClothingBases.includes(key))
+    : clothesKeys;
+
+  const selectedHair = randomChoice(matchingHairKeys.length ? matchingHairKeys : hairKeys);
+  const selectedClothing = randomChoice(matchingClothesKeys.length ? matchingClothesKeys : clothesKeys);
   let selectedAccessory = null;
-  if (accessoryKeys.length && Math.random() < 0.35) {
-    selectedAccessory = randomChoice(accessoryKeys);
+  const accessoryCandidates = accessoryKeys.filter((key) => {
+    if (String(gender) !== "male" && key.startsWith("beard")) return false;
+    return true;
+  });
+  if (accessoryCandidates.length && Math.random() < 0.35) {
+    selectedAccessory = randomChoice(accessoryCandidates);
+  }
+  const hairMatch = String(selectedHair || "").match(/__c(\d+)/);
+  const hairColorIndex = hairMatch ? Number(hairMatch[1]) : null;
+  if (selectedAccessory && String(selectedAccessory).startsWith("beard") && Number.isFinite(hairColorIndex)) {
+    const beardKey = `beard__c${hairColorIndex}`;
+    if (walk.accessories && walk.accessories[beardKey]) {
+      selectedAccessory = beardKey;
+    }
   }
 
   const collectLayer = (collection, key) => {
@@ -7955,52 +8044,95 @@ function createRandomNpcLayers() {
   };
 }
 
+function normalizeNpcGender(gender) {
+  if (gender === "male" || gender === "female") return gender;
+  return Math.random() < 0.5 ? "male" : "female";
+}
+
 function ensureNpcNamesList() {
-  if (!window.npcNamesList) {
-    window.npcNamesList = [
-      "Aaron", "Abby", "Adam", "Alex", "Ben", "Blake", "Brock", "Brad", "Carl", "Chris", "Clara", "Cody", "Dave", "Derek", "Diana", "Drew", "Emma", "Emily", "Ethan", "Erin", "Frank", "Felix", "Fiona", "Fred", "Gabe", "Gary", "Gavin", "Greg", "Hank", "Helen", "Henry", "Holly", "Isaac", "Irene", "Ivan", "Janet", "Jesse", "Jill", "Jonah", "Karen", "Katie", "Kelly", "Kevin", "Lance", "Laura", "Linda", "Logan", "Mason", "Megan", "Miles", "Micah", "Naomi", "Nancy", "Nolan", "Oscar", "Owen", "Olive", "Paige", "Peter", "Perry", "Quinn", "Riley", "Robin", "Roger", "Rose", "Sarah", "Simon", "Scott", "Steve", "Terry", "Tony", "Trent", "Todd", "Ulis", "Vince", "Vicky", "Vera", "Wade", "Wendy", "Wayne", "Xena", "Yael", "Yuri", "Zack", "Zane", "Zelda"
+  if (!window.npcNamesByGender) {
+    const maleNames = [
+      "Aaron", "Adam", "Alex", "Ben", "Blake", "Brock", "Brad", "Carl", "Chris", "Cody", "Dave",
+      "Derek", "Drew", "Ethan", "Frank", "Felix", "Fred", "Gabe", "Gary", "Gavin", "Greg", "Hank",
+      "Henry", "Isaac", "Ivan", "Jesse", "Jonah", "Kevin", "Lance", "Logan", "Mason", "Miles", "Micah",
+      "Nolan", "Oscar", "Owen", "Peter", "Perry", "Quinn", "Robin", "Roger", "Simon", "Scott", "Steve",
+      "Terry", "Tony", "Trent", "Todd", "Ulis", "Vince", "Wade", "Wayne", "Zack", "Zane", "Yuri",
     ];
+    const femaleNames = [
+      "Abby", "Clara", "Diana", "Emma", "Emily", "Erin", "Fiona", "Helen", "Holly", "Irene", "Janet",
+      "Jill", "Karen", "Katie", "Kelly", "Laura", "Linda", "Megan", "Naomi", "Nancy", "Olive", "Paige",
+      "Rose", "Sarah", "Vicky", "Vera", "Wendy", "Xena", "Yael", "Zelda", "Erick", "Grace", "Avery",
+      "Ashley", "Daisy", "Elise", "Ellen", "Jenna", "Julie", "Julia", "Lucy", "Maddie", "Maria",
+    ];
+    window.npcNamesByGender = {
+      male: maleNames,
+      female: femaleNames,
+    };
+    window.npcNamesList = [...maleNames, ...femaleNames];
   }
+}
+
+function pickNameForGender(gender) {
+  ensureNpcNamesList();
+  const normalized = normalizeNpcGender(gender);
+  const list = window.npcNamesByGender?.[normalized] || window.npcNamesList || [];
+  const key = `${normalized}NameIndex`;
+  if (!Number.isFinite(window[key])) window[key] = 0;
+  const name = list[window[key] % Math.max(1, list.length)] || "Friend";
+  window[key] += 1;
+  return name;
 }
 
 function resetYearNpcPool() {
   ensureNpcNamesList();
-  window.npcYearNamePool = shuffleArray(window.npcNamesList);
-  window.npcYearNamesUsed = new Set();
+  window.npcYearNamePoolByGender = {
+    male: shuffleArray(window.npcNamesByGender?.male || []),
+    female: shuffleArray(window.npcNamesByGender?.female || []),
+  };
+  window.npcYearNamesUsedByGender = {
+    male: new Set(),
+    female: new Set(),
+  };
 }
 
-function pickYearNpcName() {
+function pickYearNpcName(gender) {
   ensureNpcNamesList();
-  if (!Array.isArray(window.npcYearNamePool) || !window.npcYearNamePool.length) {
+  const normalized = normalizeNpcGender(gender);
+  if (!window.npcYearNamePoolByGender || !window.npcYearNamePoolByGender[normalized]?.length) {
     resetYearNpcPool();
   }
-  if (!(window.npcYearNamesUsed instanceof Set)) {
-    window.npcYearNamesUsed = new Set();
+  if (!window.npcYearNamesUsedByGender || !(window.npcYearNamesUsedByGender[normalized] instanceof Set)) {
+    resetYearNpcPool();
   }
-  while (window.npcYearNamePool.length) {
-    const name = window.npcYearNamePool.shift();
-    if (!window.npcYearNamesUsed.has(name)) {
-      window.npcYearNamesUsed.add(name);
+  const pool = window.npcYearNamePoolByGender[normalized] || [];
+  const used = window.npcYearNamesUsedByGender[normalized];
+  while (pool.length) {
+    const name = pool.shift();
+    if (!used.has(name)) {
+      used.add(name);
       return name;
     }
   }
-  const remaining = window.npcNamesList.filter((name) => !window.npcYearNamesUsed.has(name));
+  const list = window.npcNamesByGender?.[normalized] || [];
+  const remaining = list.filter((name) => !used.has(name));
   if (remaining.length) {
-    window.npcYearNamePool = shuffleArray(remaining);
-    return pickYearNpcName();
+    window.npcYearNamePoolByGender[normalized] = shuffleArray(remaining);
+    return pickYearNpcName(normalized);
   }
   resetYearNpcPool();
-  const fallback = window.npcYearNamePool.shift();
-  if (fallback) window.npcYearNamesUsed.add(fallback);
+  const fallback = window.npcYearNamePoolByGender[normalized]?.shift();
+  if (fallback) used.add(fallback);
   return fallback;
 }
 
 function createCozyNpc() {
-  const appearance = createRandomNpcLayers();
+  const gender = normalizeNpcGender();
+  const appearance = createRandomNpcLayers(gender);
   if (!appearance) return null;
-  const name = pickYearNpcName();
+  const name = pickYearNpcName(gender);
   const npc = new CozyNpc({ appearance });
   npc.name = name || "Friend";
+  npc.gender = gender;
   return npc;
 }
 
@@ -8480,7 +8612,8 @@ function releaseChattyBlocker(blocker) {
 function createVisitorGuest(bounds, index = 0, total = VISITOR_GUEST_COUNT) {
   // NOTE: Names are assigned to visitor guests via 'name', but currently not showing up in-game.
   // TODO: Fix visitor NPC name display in future update.
-  const appearance = createRandomNpcLayers();
+  const gender = normalizeNpcGender();
+  const appearance = createRandomNpcLayers(gender);
   if (!appearance) return null;
   const animator = new CozyNpcAnimator({
     animations: appearance.animations,
@@ -8490,15 +8623,7 @@ function createVisitorGuest(bounds, index = 0, total = VISITOR_GUEST_COUNT) {
   animator.setMoving(true);
   const spawnPoint = congregationStyleGridPosition(index, total);
   // Assign a name from the global NPC name list
-  if (!window.npcNameIndex) window.npcNameIndex = 0;
-  if (!window.npcNamesList) {
-    window.npcNamesList = [
-      // fallback names if not set elsewhere
-      "Aaron", "Abby", "Adam", "Alan", "Alex", "Alice", "Allen", "Amber", "Andre", "April", "Ariel", "Ashley", "Avery", "Ben", "Benny", "Beth", "Blake", "Brady", "Brian", "Brock", "Caleb", "Carla", "Carol", "Casey", "Cathy", "Chris", "Cindy", "Clara", "Cliff", "Cody", "Colin", "Craig", "Daisy", "David", "Derek", "Diana", "Diane", "Donna", "Dylan", "Edith", "Elise", "Ellen", "Emily", "Emma", "Erick", "Ethan", "Felix", "Fiona", "Frank", "Fred", "Gabe", "Gavin", "Glenn", "Grace", "Grant", "Greg", "Henry", "Irene", "Isaac", "Jackie", "James", "Janet", "Jason", "Jenna", "Jesse", "Jill", "Jimmy", "Jonah", "Jonas", "Julie", "Julia", "Karen", "Katie", "Kelly", "Kevin", "Kyle", "Lance", "Laura", "Linda", "Logan", "Lucas", "Lucy", "Maddie", "Maria", "Mason", "Megan", "Micah", "Miles", "Naomi", "Nancy", "Oscar", "Owen", "Peter", "Quinn", "Riley", "Robin", "Sarah", "Simon", "Terry", "Tony"
-    ];
-  }
-  const name = window.npcNamesList[window.npcNameIndex % window.npcNamesList.length];
-  window.npcNameIndex++;
+  const name = pickNameForGender(gender);
   const guest = {
     id: `guest_${Date.now()}_${index}`,
     type: "guest",
@@ -8519,6 +8644,7 @@ function createVisitorGuest(bounds, index = 0, total = VISITOR_GUEST_COUNT) {
     homeY: spawnPoint.y,
     wanderRadius: 120,
     name,
+    gender,
   };
   assignHomeWanderTarget(guest, bounds, guest.wanderRadius);
   guest.portrait = captureVisitorPortrait(guest);
@@ -9011,7 +9137,8 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
   ensureNpcNamesList();
   if (!Number.isFinite(window.npcNameIndex)) window.npcNameIndex = 0;
   for (let i = 0; i < total; i += 1) {
-    const appearance = createRandomNpcLayers();
+    const gender = normalizeNpcGender();
+    const appearance = createRandomNpcLayers(gender);
     if (!appearance) break;
     const animator = new CozyNpcAnimator({
       animations: appearance.animations,
@@ -9025,11 +9152,7 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
     const jitterY = (Math.random() - 0.5) * cellHeight * 0.3;
     const baseX = bounds.minX + cellWidth * (column + 0.5) + jitterX;
     const baseY = bounds.minY + cellHeight * (row + 0.5) + jitterY;
-    const nameList = window.npcNamesList || [];
-    const listLen = Math.max(1, nameList.length);
-    // Assign name from list with wraparound to avoid Noname fallbacks.
-    let name = nameList[window.npcNameIndex % listLen] || `Friend ${i + 1}`;
-    window.npcNameIndex++;
+    const name = pickNameForGender(gender) || `Friend ${i + 1}`;
     const member = {
       animator,
       x: baseX,
@@ -9041,6 +9164,7 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
       wanderPause: Math.random() * 1.5,
       speed: randomInRange(22, 36) * WORLD_SCALE,
       name,
+      gender,
     };
     assignCongregationTarget(member, { immediate: true });
     congregationMembers.push(member);
