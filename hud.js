@@ -10,6 +10,8 @@
     img.src = src;
     scoreboardIcons[key] = img;
   });
+  const defaultWeaponIcon = new Image();
+  defaultWeaponIcon.src = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png";
 
   function drawOutlinedText(ctx, text, x, y, font, align, fillColor) {
     ctx.font = font;
@@ -152,17 +154,24 @@
       return base;
     };
 
-    const drawPillMeterRow = (x, y, width, label, ratio, color) => {
+    const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage) => {
       const barHeight = 18;
       const barWidth = Math.max(60, width - 8);
       const barX = x;
       const barY = y + 2;
       const clampedRatio = Math.max(0, Math.min(1, ratio || 0));
+      const iconSize = 16;
+      const iconGap = 8;
       ctx.save();
       ctx.globalAlpha = 0.95;
       ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
+      if (iconImage && iconImage.complete) {
+        const iconX = barX - iconSize - iconGap;
+        const iconY = barY + barHeight / 2 - iconSize / 2;
+        ctx.drawImage(iconImage, iconX, iconY, iconSize, iconSize);
+      }
       roundRect(ctx, barX, barY, barWidth, barHeight, 6, true, true);
       const fillWidth = Math.max(0, Math.floor((barWidth - 4) * clampedRatio));
       if (fillWidth > 0) {
@@ -333,6 +342,13 @@
       const weaponDuration = Math.max(0.001, player.weaponPowerDuration || 0);
       const weaponTimer = Math.max(0, player.weaponPowerTimer || 0);
       const weaponRatio = weaponDuration > 0 ? weaponTimer / weaponDuration : 0;
+      const weaponIcon = (() => {
+        if (!assets || !assets.animals) return defaultWeaponIcon;
+        if (weaponMode === 'wisdom_missle') return assets.animals.wisdom?.iconImage || defaultWeaponIcon;
+        if (weaponMode === 'faith_cannon') return assets.animals.faith?.iconImage || defaultWeaponIcon;
+        if (weaponMode === 'fire') return assets.animals.scripture?.iconImage || defaultWeaponIcon;
+        return defaultWeaponIcon;
+      })();
       let playerMultipliers = null;
       if (weaponMode === 'wisdom_missle') {
         playerMultipliers = {
@@ -356,6 +372,7 @@
         label: getWeaponLabel(weaponMode),
         ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
         color: weaponMode === 'arrow' ? PALETTE.ice : getIconStyleColor('player', PALETTE.ice),
+        iconImage: weaponIcon,
       });
 
       const utilityRows = [];
@@ -365,6 +382,7 @@
           label: 'Shield (Blocks damage)',
           ratio: duration > 0 ? player.shieldTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.ice),
+          iconImage: assets?.utility?.shield?.iconImage || null,
         });
       }
       if (player.speedBoostTimer > 0) {
@@ -373,6 +391,7 @@
           label: 'Haste (Move speed)',
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
+          iconImage: assets?.utility?.haste?.iconImage || null,
         });
       }
       if (player.powerExtendTimer > 0) {
@@ -381,13 +400,14 @@
           label: 'Extend (Weapon timer)',
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.gold),
+          iconImage: assets?.utility?.extender?.iconImage || null,
         });
       }
       rows.push(...utilityRows.slice(0, 2));
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
       rows.slice(0, rowYs.length).forEach((row, idx) => {
-        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage);
       });
     };
 
@@ -405,6 +425,13 @@
       const npcMode = npcWeaponState?.mode || 'arrow';
       const npcTimer = Math.max(0, npcWeaponState?.timer || 0);
       const npcDuration = Math.max(0.001, npcWeaponState?.duration || npcTimer || 0);
+      const npcWeaponIcon = (() => {
+        if (!assets || !assets.animals) return defaultWeaponIcon;
+        if (npcMode === 'wisdom_missle') return assets.animals.npcWisdom?.iconImage || defaultWeaponIcon;
+        if (npcMode === 'faith_cannon') return assets.animals.npcFaith?.iconImage || defaultWeaponIcon;
+        if (npcMode === 'fire') return assets.animals.npcScripture?.iconImage || defaultWeaponIcon;
+        return defaultWeaponIcon;
+      })();
       const npcMultipliers = npcMode === 'arrow'
         ? null
         : {
@@ -416,6 +443,7 @@
         label: getNpcWeaponLabel(npcMode),
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
         color: npcMode === 'arrow' ? PALETTE.gold : getIconStyleColor('npc', PALETTE.gold),
+        iconImage: npcWeaponIcon,
       });
       if (npcHarmonyBuffTimer > 0) {
         const duration = Math.max(0.001, npcHarmonyBuffDuration || npcHarmonyBuffTimer || 0);
@@ -423,12 +451,13 @@
           label: 'Harmony (NPC boost)',
           ratio: duration > 0 ? npcHarmonyBuffTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
+          iconImage: assets?.utility?.harmony?.iconImage || null,
         });
       }
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
       rows.slice(0, rowYs.length).forEach((row, idx) => {
-        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage);
       });
     };
 

@@ -173,7 +173,7 @@
       effect: "harmony",
       duration: 10,
       label: "Unify Them",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I09_Herb.png",
+      iconSrc: "assets/sprites/pixel-art-pack/Items/I10_Flower.png",
       color: "#5FE3C0",
       hudTitle: "Unify Them",
       description: "Boosts NPC harmony briefly.",
