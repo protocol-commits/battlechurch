@@ -10144,17 +10144,21 @@ function updateGame(dt) {
   try {
     const stageName = levelStatus?.stage;
     const battleStageAllowsPowerUps =
-      stageName === "battleIntro" ||
+      stageName === "hordeIntro" ||
       stageName === "hordeActive" ||
       stageName === "bossActive" ||
       stageName === "visitorMinigame";
+    const powerUpsEnabled = typeof levelManager?.arePowerUpsEnabled === "function"
+      ? levelManager.arePowerUpsEnabled()
+      : true;
     const shouldEnsurePowerUp =
       !titleScreenActive &&
       !paused &&
       !gameOver &&
       player &&
       player.state !== "death" &&
-      battleStageAllowsPowerUps;
+      battleStageAllowsPowerUps &&
+      powerUpsEnabled;
     const delayingForNpcProcession = stageName === "npcArrival" && npcProcessionActive;
     if (shouldEnsurePowerUp && !delayingForNpcProcession) {
       if (canSpawnUtilityPowerUp()) {

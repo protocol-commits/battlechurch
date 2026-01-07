@@ -25,6 +25,7 @@
   const BATTLE_INTRO_DURATION = 3.0;
   const HORDE_INTRO_DURATION = 2.8;
   const HORDE_CLEAR_DURATION = 2.2;
+  const ANNOUNCEMENT_FADE_DURATION = 1.5;
   const KEY_RUSH_DURATION = 5;
   const BOSS_KEY_RUSH_DURATION = 10;
   const LEVEL_SUMMARY_DURATION = 5;
@@ -514,6 +515,7 @@
       pendingBossRestore: false,
       npcRushActive: false,
       npcRushTimer: 0,
+      powerUpsEnabled: false,
     };
 
     function resetStage(stage, duration = 0) {
@@ -646,6 +648,7 @@
 
     function beginBattleIntroStage() {
       state.awaitingNpcProcession = false;
+      state.powerUpsEnabled = false;
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
       const monthName = getMonthName(globalMonthNumber);
@@ -877,14 +880,6 @@
       });
       resetStage("levelIntro", MONTH_INTRO_DURATION);
       setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
-      // --- Power-up spawn logic ---
-      // Power-ups now spawn only after the user has hit space to continue from the mission brief.
-      // Tweak this as needed for pacing.
-      setTimeout(() => {
-        if (typeof spawnPowerUpDrops === "function") {
-          spawnPowerUpDrops();
-        }
-      }, 2000);
     }
 
     function beginHorde() {
@@ -903,6 +898,20 @@
           duration: introDuration,
           skipMissionBrief: true,
         });
+        const spawnDelay = Math.max(0, introDuration - ANNOUNCEMENT_FADE_DURATION);
+        if (typeof setTimeoutFn === "function") {
+          setTimeoutFn(() => {
+            state.powerUpsEnabled = true;
+            if (typeof spawnPowerUpDrops === "function") {
+              spawnPowerUpDrops();
+            }
+          }, spawnDelay * 1000);
+        } else if (typeof spawnPowerUpDrops === "function") {
+          state.powerUpsEnabled = true;
+          spawnPowerUpDrops();
+        }
+      } else {
+        state.powerUpsEnabled = true;
       }
       const hordeLabel = `${state.monthIndex + 1}-${state.battleIndex + 1}`;
       setDevStatus(`Horde ${hordeLabel}`, introDuration + 0.6);
@@ -1473,6 +1482,9 @@ state.battleIndex = -1;
       },
       getLastBattleSummary() {
         return state.lastBattleSummary || null;
+      },
+      arePowerUpsEnabled() {
+        return Boolean(state.powerUpsEnabled);
       },
       acknowledgeAnnouncement() {
         if (typeof state.timer === "number" && state.timer > 0) {
