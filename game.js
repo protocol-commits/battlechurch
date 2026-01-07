@@ -11355,7 +11355,6 @@ function restartGame() {
   heroLives = 3;
   resetCozyNpcs(5);
   clearCongregationMembers();
-  spawnWeaponDrops();
   heroRescueCooldown = 0;
   levelAnnouncements.length = 0;
   weaponPickupAnnouncement.timer = 0;
@@ -11427,7 +11426,6 @@ async function init() {
     respawnTimer = 0;
     respawnIndicatorTimer = 0;
     backgroundImage = assets.background;
-    spawnWeaponDrops();
     utilityPowerUps.length = 0;
     resetCozyNpcs(5);
     clearCongregationMembers();
