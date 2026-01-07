@@ -1748,6 +1748,23 @@ function drawLevelAnnouncements() {
     }
 
     drawHUD();
+    const graceHudFlyEffects = requireBindings().graceHudFlyEffects;
+    if (graceHudFlyEffects && graceHudFlyEffects.length) {
+      ctx.save();
+      graceHudFlyEffects.forEach((effect) => {
+        if (!effect || !effect.frame) return;
+        const size = effect.size || 16;
+        ctx.globalAlpha = typeof effect.alpha === "number" ? effect.alpha : 1;
+        ctx.drawImage(
+          effect.frame,
+          effect.x - size / 2,
+          effect.y - size / 2,
+          size,
+          size,
+        );
+      });
+      ctx.restore();
+    }
     if (levelStatus?.stage === "graceRush" || graceRushState?.active) {
       drawGraceRushOverlay(levelStatus, graceRushState);
     }

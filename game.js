@@ -17,6 +17,7 @@ const obstacles = [];
 const animals = [];
 const utilityPowerUps = [];
 const gracePickups = [];
+const graceHudFlyEffects = [];
 const POWERUP_RESPAWN_DELAY = 5;
 const POWERUP_ACTIVE_LIFETIME = 8;
 const POWERUP_BLINK_DURATION = 2;
@@ -1344,6 +1345,7 @@ function clearAllPowerUps() {
 
 function clearGracePickups() {
   gracePickups.splice(0, gracePickups.length);
+  graceHudFlyEffects.splice(0, graceHudFlyEffects.length);
 }
 
 function getGraceCount() {
@@ -1971,6 +1973,7 @@ Renderer.initialize({
   get npcHarmonyBuffTimer() { return npcHarmonyBuffTimer; },
   get npcHarmonyBuffDuration() { return npcHarmonyBuffDuration; },
   get powerupIconStyles() { return POWERUP_ICON_STYLES; },
+  get graceHudFlyEffects() { return graceHudFlyEffects; },
   get postDeathSequenceActive() { return postDeathSequenceActive; },
   get heroLives() { return heroLives; },
   get hpFlashTimer() { return hpFlashTimer; },
@@ -4997,6 +5000,44 @@ function spawnGracePickup(x, y, options = {}) {
   return pickup;
 }
 
+function spawnGraceHudFlyEffect(pickup) {
+  const target = typeof window !== "undefined" ? window.__hudGraceIconPos : null;
+  const frame = pickup?.frames?.[0];
+  if (!target || !frame) return;
+  const startX = pickup.x - cameraOffsetX;
+  const startY = pickup.y;
+  graceHudFlyEffects.push({
+    frame,
+    startX,
+    startY,
+    x: startX,
+    y: startY,
+    targetX: target.x,
+    targetY: target.y,
+    timer: 0,
+    duration: 0.45,
+    size: Math.max(14, frame.width || 16),
+    alpha: 1,
+  });
+}
+
+function updateGraceHudFlyEffects(dt) {
+  if (!graceHudFlyEffects.length) return;
+  for (let i = graceHudFlyEffects.length - 1; i >= 0; i -= 1) {
+    const effect = graceHudFlyEffects[i];
+    if (!effect) continue;
+    effect.timer += dt;
+    const t = Math.min(1, effect.timer / Math.max(0.001, effect.duration));
+    const ease = 1 - Math.pow(1 - t, 3);
+    effect.x = effect.startX + (effect.targetX - effect.startX) * ease;
+    effect.y = effect.startY + (effect.targetY - effect.startY) * ease;
+    effect.alpha = Math.max(0, 1 - t * 0.15);
+    if (t >= 1) {
+      graceHudFlyEffects.splice(i, 1);
+    }
+  }
+}
+
 function spawnGraceBurst(count = 10, { centerX = canvas.width / 2, centerY = (canvas.height + HUD_HEIGHT) / 2, spread = 220 } = {}) {
   for (let i = 0; i < count; i += 1) {
     const angle = Math.random() * Math.PI * 2;
@@ -5091,6 +5132,7 @@ function updateGracePickups(dt) {
         if (typeof window !== "undefined" && typeof window.playGracePickupSfx === "function") {
           window.playGracePickupSfx(0.2);
         }
+        spawnGraceHudFlyEffect(pickup);
         addFloatingTextAt(player.x, player.y - player.radius - 24, `${pickup.value}`, "#ffe570", {
           life: 0.9,
           vy: -18,
@@ -10175,6 +10217,7 @@ function updateGame(dt) {
   updateAnimals(dt);
   updateUtilityPowerUps(dt);
   updateGracePickups(dt);
+  updateGraceHudFlyEffects(dt);
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   // Ensure power-ups obey spawn rules per stage

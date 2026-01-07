@@ -498,6 +498,12 @@
       ctx.fillText(text, textX, y);
       if (entry.icon && entry.icon.complete) {
         ctx.drawImage(entry.icon, iconX, y - iconSize / 2, iconSize, iconSize);
+        if (entry.icon === scoreboardIcons.grace && typeof window !== 'undefined') {
+          window.__hudGraceIconPos = {
+            x: boardX + iconX + iconSize / 2,
+            y: boardY + y,
+          };
+        }
       }
     });
     ctx.restore();
