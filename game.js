@@ -5142,7 +5142,18 @@ function spawnPowerupHudFlyEffect({ x, y, iconImage, targetKey }) {
 }
 
 function updatePowerupHudFlyEffects(dt) {
-  if (!powerupHudFlyEffects.length) return;
+  if (!powerupHudFlyEffects.length) {
+    if (typeof window !== "undefined") {
+      window.__hudPowerupIconInFlight = {};
+    }
+    return;
+  }
+  if (typeof window !== "undefined") {
+    window.__hudPowerupIconInFlight = {};
+    powerupHudFlyEffects.forEach((effect) => {
+      if (effect?.targetKey) window.__hudPowerupIconInFlight[effect.targetKey] = true;
+    });
+  }
   for (let i = powerupHudFlyEffects.length - 1; i >= 0; i -= 1) {
     const effect = powerupHudFlyEffects[i];
     if (!effect) continue;

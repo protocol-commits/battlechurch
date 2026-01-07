@@ -167,16 +167,21 @@
       ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
+      const inFlight = iconKey && typeof window !== 'undefined'
+        ? window.__hudPowerupIconInFlight?.[iconKey]
+        : false;
       if (iconImage && iconImage.complete) {
         const iconX = barX - iconSize - iconGap;
         const iconY = barY + barHeight / 2 - iconSize / 2;
-        ctx.drawImage(iconImage, iconX, iconY, iconSize, iconSize);
         if (iconKey && typeof window !== 'undefined') {
           window.__hudPowerupIconPos = window.__hudPowerupIconPos || {};
           window.__hudPowerupIconPos[iconKey] = {
             x: iconX + iconSize / 2,
             y: iconY + iconSize / 2,
           };
+        }
+        if (!inFlight) {
+          ctx.drawImage(iconImage, iconX, iconY, iconSize, iconSize);
         }
       }
       roundRect(ctx, barX, barY, barWidth, barHeight, 6, true, true);
