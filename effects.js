@@ -299,6 +299,17 @@
     return add(new PrayerBombGlow(x, y, radius));
   }
 
+  function spawnPrayerBombExplosion(x, y, { radius = null } = {}) {
+    const frames = resolveAssets()?.effects?.prayerBombExplosion;
+    if (!frames || !frames.length) return null;
+    let scale = 2.4;
+    if (radius) {
+      const base = Math.max(frames[0].width, frames[0].height) || 1;
+      scale = (radius * 2) / base;
+    }
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.05, scale });
+  }
+
   function spawnLoopingEffect(frames, x, y, options = {}) {
     return spawnEffectFromFrames(frames, x, y, Object.assign({}, options, { loop: true }));
   }
@@ -379,6 +390,7 @@
     spawnRayboltEffect,
     spawnSplashDebugCircle,
     spawnPrayerBombGlow,
+    spawnPrayerBombExplosion,
     spawnLoopingEffect,
     Effect,
     DebugCircle,

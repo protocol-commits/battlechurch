@@ -64,6 +64,8 @@ let playerDeathFadeAlpha = 0;
 const PLAYER_DEATH_FADE_TARGET = 0.5;
 const PLAYER_DEATH_FADE_SPEED = 6;
 let damageHitFlash = 0;
+let prayerBombRainTimer = 0;
+let prayerBombRainSpawnTimer = 0;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
   window.triggerDamageFlash = () => {
@@ -1571,7 +1573,51 @@ const spawnSmokeEffect = Effects.spawnSmokeEffect;
 const spawnImpactDustEffect = Effects.spawnImpactDustEffect;
 const spawnRayboltEffect = Effects.spawnRayboltEffect;
 const spawnPrayerBombGlow = Effects.spawnPrayerBombGlow;
+const spawnPrayerBombExplosion = Effects.spawnPrayerBombExplosion;
 const spawnEnemyDeathExplosion = Effects.spawnEnemyDeathExplosion;
+
+function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB_BOSS_DAMAGE_SCALE } = {}) {
+  const hits = [];
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const hitRadius = enemy.config?.hitRadius || enemy.radius || 0;
+    const distance = Math.hypot(enemy.x - x, enemy.y - y);
+    if (distance <= radius + hitRadius * 0.8) {
+      enemy.takeDamage(damage);
+      if (enemy.dead || enemy.state === "death" || (Number.isFinite(enemy.health) && enemy.health <= 0)) {
+        enemy.killedByPrayerBomb = true;
+      }
+      hits.push(enemy);
+    }
+  });
+  let bossHit = false;
+  if (typeof activeBoss !== "undefined" && activeBoss && !activeBoss.dead && activeBoss.state !== "death") {
+    const bossRadius = activeBoss.radius || 0;
+    const bossDistance = Math.hypot(activeBoss.x - x, activeBoss.y - y);
+    if (bossDistance <= radius + bossRadius * 0.8) {
+      activeBoss.takeDamage(damage * bossScale);
+      bossHit = true;
+    }
+  }
+  return { hits, bossHit };
+}
+
+function startPrayerBombFireRain(duration = PRAYER_BOMB_RAIN_DURATION) {
+  prayerBombRainTimer = Math.max(prayerBombRainTimer, Number(duration) || 0);
+  prayerBombRainSpawnTimer = 0;
+}
+
+function updatePrayerBombFireRain(dt) {
+  if (prayerBombRainTimer <= 0) return;
+  prayerBombRainTimer = Math.max(0, prayerBombRainTimer - dt);
+  prayerBombRainSpawnTimer -= dt;
+  while (prayerBombRainSpawnTimer <= 0 && prayerBombRainTimer > 0) {
+    prayerBombRainSpawnTimer += PRAYER_BOMB_RAIN_INTERVAL;
+    const pos = randomSpreadPosition();
+    spawnPrayerBombExplosion(pos.x, pos.y, { radius: PRAYER_BOMB_RAIN_RADIUS });
+    applyPrayerBombDamageAt(pos.x, pos.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+  }
+}
 
 function mergeInspectorOverrides(source) {
   if (!source || typeof source !== 'object') return;
@@ -1871,6 +1917,16 @@ const SPAWN_CAMERA_SHAKE_MAGNITUDE =
 const PRAYER_BOMB_RADIUS = 520 * WORLD_SCALE;
 const PRAYER_BOMB_DAMAGE_MULTIPLIER = 12.0;
 const PRAYER_BOMB_CHARGE_REQUIRED = 60;
+const PRAYER_BOMB_LEVEL1_THRESHOLD = 0.5;
+const PRAYER_BOMB_LEVEL2_THRESHOLD = 0.8;
+const PRAYER_BOMB_LEVEL3_THRESHOLD = 1.0;
+const PRAYER_BOMB_LEVEL2_DAMAGE = 400;
+const PRAYER_BOMB_LEVEL3_DAMAGE = 1000;
+const PRAYER_BOMB_LEVEL2_RADIUS = PRAYER_BOMB_RADIUS * 1.35;
+const PRAYER_BOMB_RAIN_DURATION = 5;
+const PRAYER_BOMB_RAIN_INTERVAL = 0.12;
+const PRAYER_BOMB_RAIN_RADIUS = 160 * WORLD_SCALE;
+const PRAYER_BOMB_BOSS_DAMAGE_SCALE = 0.5;
 const PRAYER_BOMB_CHARGE_PER_KILL = 0.5;
 const PRAYER_BOMB_CHARGE_TYPE_MODIFIERS = {
   miniImp: 0.1,
@@ -3873,6 +3929,9 @@ async function loadAssets() {
   assets.effects.enemyDeathExplosionAlt2 = await loadImage(
     "assets/sprites/explosions/3/Explosion VFX 3(48x48).png",
   ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
+  assets.effects.prayerBombExplosion = await loadImage(
+    "assets/sprites/explosions/Explosion VFX 21/Explosion VFX 21(64x64).png",
+  ).then((img) => extractFrames(img, 64, 64));
   assets.effects.magicSplash = await Promise.all(
     Array.from({ length: FLASH_FRAME_COUNT }, (_, i) =>
       loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`).then((img) =>
@@ -8981,6 +9040,7 @@ function updateVisitorSession(dt) {
   updateVisitorBlockers(dt);
   updateVisitorProjectiles(dt);
   updateBossHazards(dt);
+  updatePrayerBombFireRain(dt);
   updateFloatingTexts(dt);
   updateLevelAnnouncements(dt);
   updateDevStatus(dt);
@@ -9673,8 +9733,21 @@ function handleDeveloperHotkeys() {
   }
   if (keysJustPressed.has("b")) {
     if (player && typeof player.addPrayerCharge === "function") {
-      player.addPrayerCharge(player.prayerChargeRequired || PRAYER_BOMB_CHARGE_REQUIRED || 60);
-      setDevStatus("Prayer bomb energized", 2.0);
+      const required = Math.max(1, player.prayerChargeRequired || PRAYER_BOMB_CHARGE_REQUIRED || 60);
+      const ratio = Math.max(0, Math.min(1, (player.prayerCharge || 0) / required));
+      let targetRatio = PRAYER_BOMB_LEVEL1_THRESHOLD || 0.5;
+      if (ratio >= (PRAYER_BOMB_LEVEL1_THRESHOLD || 0.5) && ratio < (PRAYER_BOMB_LEVEL2_THRESHOLD || 0.8)) {
+        targetRatio = PRAYER_BOMB_LEVEL2_THRESHOLD || 0.8;
+      } else if (ratio >= (PRAYER_BOMB_LEVEL2_THRESHOLD || 0.8)) {
+        targetRatio = PRAYER_BOMB_LEVEL3_THRESHOLD || 1.0;
+      }
+      player.prayerCharge = Math.min(required, Math.max(0, Math.round(required * targetRatio)));
+      const levelLabel = targetRatio >= (PRAYER_BOMB_LEVEL3_THRESHOLD || 1.0)
+        ? "Prayer bomb maxed"
+        : targetRatio >= (PRAYER_BOMB_LEVEL2_THRESHOLD || 0.8)
+        ? "Prayer bomb level 2"
+        : "Prayer bomb level 1";
+      setDevStatus(levelLabel, 2.0);
     }
   }
   if (keysJustPressed.has("F4")) {
@@ -11626,6 +11699,8 @@ function restartGame() {
   endVisitorSession({ reason: "reset" });
   resetMusicState();
   stopPlayerDeathBell();
+  prayerBombRainTimer = 0;
+  prayerBombRainSpawnTimer = 0;
   resetCongregationSize();
   resetYearNpcPool();
   enemies.splice(0, enemies.length);

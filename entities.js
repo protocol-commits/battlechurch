@@ -945,35 +945,109 @@ class Player {
 
   castPrayerBomb() {
     if (this.invulnerableTimer > 0 || gameOver) return false;
-    if (!this.isPrayerBombReady()) return false;
-    const radius = PRAYER_BOMB_RADIUS;
-    const baseDamage = Math.max(
-      this.getMagicDamage(),
-      this.getPigDamage(),
-      this.getFireDamage(),
-    ) * PRAYER_BOMB_DAMAGE_MULTIPLIER;
-    const struckEnemies = [];
-    enemies.forEach((enemy) => {
-      if (enemy.dead || enemy.state === "death") return;
-      const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y);
-      const threshold = radius + (enemy.config?.hitRadius || enemy.radius || 0) * 0.8;
-      if (distance <= threshold) {
-        enemy.takeDamage(baseDamage);
-        if (enemy.dead || enemy.state === "death" || (Number.isFinite(enemy.health) && enemy.health <= 0)) {
-          enemy.killedByPrayerBomb = true;
+    const ratio = this.getPrayerChargeRatio();
+    const level1Threshold =
+      typeof PRAYER_BOMB_LEVEL1_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL1_THRESHOLD : 0.5;
+    const level2Threshold =
+      typeof PRAYER_BOMB_LEVEL2_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL2_THRESHOLD : 0.8;
+    const level3Threshold =
+      typeof PRAYER_BOMB_LEVEL3_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL3_THRESHOLD : 1.0;
+    if (ratio < level1Threshold) return false;
+    const level = ratio >= level3Threshold ? 3 : ratio >= level2Threshold ? 2 : 1;
+    const bossScale =
+      typeof PRAYER_BOMB_BOSS_DAMAGE_SCALE === "number" ? PRAYER_BOMB_BOSS_DAMAGE_SCALE : 0.5;
+    if (level === 1) {
+      const radius = PRAYER_BOMB_RADIUS;
+      const baseDamage = Math.max(
+        this.getMagicDamage(),
+        this.getPigDamage(),
+        this.getFireDamage(),
+      ) * PRAYER_BOMB_DAMAGE_MULTIPLIER;
+      const struckEnemies = [];
+      enemies.forEach((enemy) => {
+        if (enemy.dead || enemy.state === "death") return;
+        const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+        const threshold = radius + (enemy.config?.hitRadius || enemy.radius || 0) * 0.8;
+        if (distance <= threshold) {
+          enemy.takeDamage(baseDamage);
+          if (enemy.dead || enemy.state === "death" || (Number.isFinite(enemy.health) && enemy.health <= 0)) {
+            enemy.killedByPrayerBomb = true;
+          }
+          struckEnemies.push(enemy);
         }
-        struckEnemies.push(enemy);
-      }
-    });
-    if (struckEnemies.length) {
-      struckEnemies.forEach((enemy) => {
-        spawnRayboltEffect(enemy.x, enemy.y - enemy.config.hitRadius / 2, enemy.config.hitRadius * 1.2);
       });
+      let bossHit = false;
+      if (typeof activeBoss !== "undefined" && activeBoss && !activeBoss.dead && activeBoss.state !== "death") {
+        const bossRadius = activeBoss.radius || 0;
+        const bossDistance = Math.hypot(activeBoss.x - this.x, activeBoss.y - this.y);
+        if (bossDistance <= radius + bossRadius * 0.8) {
+          activeBoss.takeDamage(baseDamage * bossScale);
+          bossHit = true;
+        }
+      }
+      if (struckEnemies.length) {
+        struckEnemies.forEach((enemy) => {
+          spawnRayboltEffect(enemy.x, enemy.y - enemy.config.hitRadius / 2, enemy.config.hitRadius * 1.2);
+        });
+      } else if (bossHit) {
+        spawnRayboltEffect(activeBoss.x, activeBoss.y - (activeBoss.radius || 0) / 2, (activeBoss.radius || 60) * 1.2);
+      } else {
+        spawnRayboltEffect(this.x, this.y, radius);
+      }
+      spawnSplashDebugCircle(this.x, this.y, radius);
+      spawnPrayerBombGlow(this.x, this.y, radius);
+    } else if (level === 2) {
+      const radius =
+        typeof PRAYER_BOMB_LEVEL2_RADIUS === "number" ? PRAYER_BOMB_LEVEL2_RADIUS : PRAYER_BOMB_RADIUS * 1.35;
+      const damage =
+        typeof PRAYER_BOMB_LEVEL2_DAMAGE === "number" ? PRAYER_BOMB_LEVEL2_DAMAGE : 400;
+      const struckEnemies = [];
+      enemies.forEach((enemy) => {
+        if (enemy.dead || enemy.state === "death") return;
+        const distance = Math.hypot(enemy.x - this.x, enemy.y - this.y);
+        const threshold = radius + (enemy.config?.hitRadius || enemy.radius || 0) * 0.8;
+        if (distance <= threshold) {
+          enemy.takeDamage(damage);
+          if (enemy.dead || enemy.state === "death" || (Number.isFinite(enemy.health) && enemy.health <= 0)) {
+            enemy.killedByPrayerBomb = true;
+          }
+          struckEnemies.push(enemy);
+        }
+      });
+      let bossHit = false;
+      if (typeof activeBoss !== "undefined" && activeBoss && !activeBoss.dead && activeBoss.state !== "death") {
+        const bossRadius = activeBoss.radius || 0;
+        const bossDistance = Math.hypot(activeBoss.x - this.x, activeBoss.y - this.y);
+        if (bossDistance <= radius + bossRadius * 0.8) {
+          activeBoss.takeDamage(damage * bossScale);
+          bossHit = true;
+        }
+      }
+      if (struckEnemies.length) {
+        struckEnemies.forEach((enemy) => {
+          if (typeof spawnPrayerBombExplosion === "function") {
+            spawnPrayerBombExplosion(enemy.x, enemy.y, { radius: enemy.config?.hitRadius || enemy.radius || 48 });
+          }
+        });
+      }
+      if (bossHit) {
+        if (typeof spawnPrayerBombExplosion === "function") {
+          spawnPrayerBombExplosion(activeBoss.x, activeBoss.y, { radius: activeBoss.radius || 80 });
+        }
+      }
+      if (!struckEnemies.length && !bossHit) {
+        if (typeof spawnPrayerBombExplosion === "function") {
+          spawnPrayerBombExplosion(this.x, this.y, { radius });
+        }
+      }
     } else {
-      spawnRayboltEffect(this.x, this.y, radius);
+      if (typeof startPrayerBombFireRain === "function") {
+        startPrayerBombFireRain(PRAYER_BOMB_RAIN_DURATION);
+      }
+      if (typeof spawnPrayerBombExplosion === "function") {
+        spawnPrayerBombExplosion(this.x, this.y, { radius: PRAYER_BOMB_RAIN_RADIUS });
+      }
     }
-    spawnSplashDebugCircle(this.x, this.y, radius);
-    spawnPrayerBombGlow(this.x, this.y, radius);
     try {
       if (typeof window !== "undefined" && typeof window.boostVisitorFaithFromPrayerBomb === "function") {
         window.boostVisitorFaithFromPrayerBomb();
@@ -1006,7 +1080,11 @@ class Player {
   }
 
   isPrayerBombReady() {
-    return (this.prayerCharge || 0) >= Math.max(1, this.prayerChargeRequired || 1);
+    const required = Math.max(1, this.prayerChargeRequired || 1);
+    const ratio = (this.prayerCharge || 0) / required;
+    const level1Threshold =
+      typeof PRAYER_BOMB_LEVEL1_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL1_THRESHOLD : 0.5;
+    return ratio >= level1Threshold;
   }
 
   getAimDirection() {
