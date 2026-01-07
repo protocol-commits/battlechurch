@@ -1,7 +1,7 @@
 (function(global) {
   const scoreboardIconSources = {
     congregation: "assets/sprites/conrad/powerups/dove.png",
-    keys: "assets/sprites/conrad/powerups/harp.png",
+    keys: "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
     enemies: "assets/sprites/conrad/powerups/sword.png",
   };
   const scoreboardIcons = {};

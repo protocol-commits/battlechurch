@@ -1056,7 +1056,7 @@ function clearDivineChargeSparkVisual() {
   divineChargeSparkEffect = null;
 }
 const KEY_SPRITE_FILES = [
-  "assets/sprites/pixel-art-pack/Items/I60_Gem_S.png",
+  "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
 ];
 const visitorSession = {
   active: false,
@@ -3569,7 +3569,14 @@ async function loadAssets() {
         }
       }
       const imageRef = baseFrame || (frames && frames[0]) || null;
-      assets.animals[key] = { image: imageRef, frames, ...def };
+      let iconImage = null;
+      if (def.iconSrc) {
+        if (!cache.has(def.iconSrc)) {
+          cache.set(def.iconSrc, loadImage(def.iconSrc));
+        }
+        iconImage = await cache.get(def.iconSrc);
+      }
+      assets.animals[key] = { image: imageRef, frames, iconImage, ...def };
     },
   );
 
@@ -3579,7 +3586,14 @@ async function loadAssets() {
         cache.set(def.src, loadImage(def.src));
       }
       const image = await cache.get(def.src);
-      assets.utility[key] = { image, ...def };
+      let iconImage = null;
+      if (def.iconSrc) {
+        if (!cache.has(def.iconSrc)) {
+          cache.set(def.iconSrc, loadImage(def.iconSrc));
+        }
+        iconImage = await cache.get(def.iconSrc);
+      }
+      assets.utility[key] = { image, iconImage, ...def };
     },
   );
 
@@ -5741,7 +5755,7 @@ function splitPowerupLabel(text) {
   return [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
 }
 
-function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
+function drawPowerupIcon(context, { x, y, size, shape, color, accent, text, iconImage }) {
   if (!context) return;
   const half = size / 2;
   context.save();
@@ -5786,7 +5800,17 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text }) {
     context.restore();
   }
 
-  const lines = splitPowerupLabel(text);
+  if (iconImage) {
+    const iconSize = size * 0.6;
+    const iconX = -iconSize / 2;
+    const iconY = -iconSize / 2;
+    context.save();
+    context.globalAlpha *= 0.9;
+    context.drawImage(iconImage, iconX, iconY, iconSize, iconSize);
+    context.restore();
+  }
+
+  const lines = iconImage ? [] : splitPowerupLabel(text);
   if (lines.length) {
     const maxWidth = size * 0.82;
     let fontSize = Math.round(size * 0.22);
@@ -5948,6 +5972,7 @@ class Animal {
       color: style.color,
       accent: style.accent,
       text: this.definition?.label || "",
+      iconImage: this.definition?.iconImage || null,
     });
   }
 }
@@ -6045,6 +6070,7 @@ class UtilityPowerUp {
       color: style.color,
       accent: style.accent,
       text: this.label || this.definition?.label || "",
+      iconImage: this.definition?.iconImage || null,
     });
   }
 
