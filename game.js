@@ -1056,10 +1056,7 @@ function clearDivineChargeSparkVisual() {
   divineChargeSparkEffect = null;
 }
 const KEY_SPRITE_FILES = [
-  `${KEY_SPRITE_ROOT}/keys_1_1.png`,
-  `${KEY_SPRITE_ROOT}/keys_1_2.png`,
-  `${KEY_SPRITE_ROOT}/keys_1_3.png`,
-  `${KEY_SPRITE_ROOT}/keys_1_4.png`,
+  "assets/sprites/pixel-art-pack/Items/I60_Gem_S.png",
 ];
 const visitorSession = {
   active: false,
