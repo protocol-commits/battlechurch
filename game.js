@@ -4788,7 +4788,7 @@ function applyAnimalEffect(animal) {
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
       showWeaponPowerupConfigText({
-        text: "Explain Relevant Scripture",
+        text: "Quote Scripture",
         textColor: "#ffa45a",
         description: "NPCs fire scripture shots for a short time.",
       });
@@ -4797,7 +4797,7 @@ function applyAnimalEffect(animal) {
     case "npcWisdomWeapon": {
       applyNpcWeaponPowerup("npcWisdomWeapon", def);
       showWeaponPowerupConfigText({
-        text: "Teach Them Wisdom",
+        text: "Apply Wisdom",
         textColor: "#9BD9FF",
         description: "NPCs launch wisdom missiles temporarily.",
       });
@@ -4806,7 +4806,7 @@ function applyAnimalEffect(animal) {
     case "npcFaithWeapon": {
       applyNpcWeaponPowerup("npcFaithWeapon", def);
       showWeaponPowerupConfigText({
-        text: "Focus Their Faith",
+        text: "Act in Faith",
         textColor: "#ff9bf7",
         description: "NPCs fire faith cannon blasts briefly.",
       });

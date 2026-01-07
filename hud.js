@@ -101,11 +101,11 @@
     const getWeaponBaseLabel = (mode) => {
       switch (mode) {
         case 'wisdom_missle':
-          return 'Wisdom Missile';
+          return 'Apply Wisdom';
         case 'faith_cannon':
-          return 'Faith Cannon';
+          return 'Act in Faith';
         case 'fire':
-          return 'Scripture Fire';
+          return 'Quote Scripture';
         case 'heart':
           return 'Heart Charm';
         case 'arrow':
@@ -137,11 +137,11 @@
     const getNpcWeaponBaseLabel = (mode) => {
       switch (mode) {
         case 'wisdom_missle':
-          return 'Teach Them Wisdom';
+          return 'Apply Wisdom';
         case 'faith_cannon':
-          return 'Focus Their Faith';
+          return 'Act in Faith';
         case 'fire':
-          return 'Explain Relevant Scripture';
+          return 'Quote Scripture';
         case 'heart':
           return 'Heart Charm';
         case 'arrow':
@@ -379,7 +379,7 @@
       if (player.shieldTimer > 0) {
         const duration = Math.max(0.001, player.shieldDuration || 0);
         utilityRows.push({
-          label: 'Shield (Blocks damage)',
+          label: 'Shield of Faith',
           ratio: duration > 0 ? player.shieldTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.ice),
           iconImage: assets?.utility?.shield?.iconImage || null,
@@ -388,7 +388,7 @@
       if (player.speedBoostTimer > 0) {
         const duration = Math.max(0.001, player.speedBoostDuration || 0);
         utilityRows.push({
-          label: 'Haste (Move speed)',
+          label: 'Haste',
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.haste?.iconImage || null,
@@ -397,7 +397,7 @@
       if (player.powerExtendTimer > 0) {
         const duration = Math.max(0.001, player.powerExtendDuration || 0);
         utilityRows.push({
-          label: 'Extend (Weapon timer)',
+          label: 'Sword of the Spirit (extends weapons)',
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.gold),
           iconImage: assets?.utility?.extender?.iconImage || null,
@@ -448,7 +448,7 @@
       if (npcHarmonyBuffTimer > 0) {
         const duration = Math.max(0.001, npcHarmonyBuffDuration || npcHarmonyBuffTimer || 0);
         rows.push({
-          label: 'Harmony (NPC boost)',
+          label: 'Encourage One Another',
           ratio: duration > 0 ? npcHarmonyBuffTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.harmony?.iconImage || null,
