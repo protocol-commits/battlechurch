@@ -217,7 +217,7 @@ const MELEE_SWING_LENGTH = 200;
   revealedLost: 0,
   portraitTimer: 0,
   };
-  const SHOW_TEXT_SOURCE_LABELS = true;
+  const SHOW_TEXT_SOURCE_LABELS = false;
   const TEXT_STYLES = {
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
     h2: { size: 40, weight: 800, lineHeight: 1.2 },
@@ -412,7 +412,7 @@ function showMissionBriefDialog(title, body, identifier) {
     bodyHtml,
     buttonText: "",
     variant: "mission",
-    devLabel: "DEV: MonthlyBrief",
+    devLabel: "",
     onRender: ({ overlay, buttonEl }) => {
       if (buttonEl) buttonEl.style.display = "none";
       const titleEl = overlay.querySelector(".dialog-overlay__title");

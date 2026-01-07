@@ -110,7 +110,7 @@
           return 'Heart Charm';
         case 'arrow':
         default:
-          return 'Default Weapon';
+          return '';
       }
     };
 
@@ -146,7 +146,7 @@
           return 'Heart Charm';
         case 'arrow':
         default:
-          return 'Default Weapon';
+          return '';
       }
     };
     const getNpcWeaponLabel = (mode) => {
@@ -363,7 +363,7 @@
         if (weaponMode === 'wisdom_missle') return assets.animals.wisdom?.iconImage || defaultWeaponIcon;
         if (weaponMode === 'faith_cannon') return assets.animals.faith?.iconImage || defaultWeaponIcon;
         if (weaponMode === 'fire') return assets.animals.scripture?.iconImage || defaultWeaponIcon;
-        return defaultWeaponIcon;
+        return null;
       })();
       let playerMultipliers = null;
       if (weaponMode === 'wisdom_missle') {
@@ -434,11 +434,16 @@
     const drawNpcInfo = () => {
       const x = columnXs[2] + 6;
       const width = columnWidth - 12;
+      const congregationProvider = typeof getCongregationSize === 'function' ? getCongregationSize : null;
+      const baselineCongregation = typeof initialCongregationSize === 'number' ? initialCongregationSize : 0;
+      const congregationTotal = congregationProvider
+        ? congregationProvider()
+        : Math.max(0, (baselineCongregation || 0) - (stats?.npcsLost ?? 0));
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText('CONGREGANTS', x, panelY + 14);
+      ctx.fillText(`Congregation: ${congregationTotal}`, x, panelY + 14);
       ctx.restore();
 
       const rows = [];
@@ -450,7 +455,7 @@
         if (npcMode === 'wisdom_missle') return assets.animals.npcWisdom?.iconImage || defaultWeaponIcon;
         if (npcMode === 'faith_cannon') return assets.animals.npcFaith?.iconImage || defaultWeaponIcon;
         if (npcMode === 'fire') return assets.animals.npcScripture?.iconImage || defaultWeaponIcon;
-        return defaultWeaponIcon;
+        return null;
       })();
       const npcMultipliers = npcMode === 'arrow'
         ? null
@@ -491,11 +496,6 @@
     const boardY = panelY + 18;
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
-    const congregationProvider = typeof getCongregationSize === 'function' ? getCongregationSize : null;
-    const baselineCongregation = typeof initialCongregationSize === 'number' ? initialCongregationSize : 0;
-    const congregationTotal = congregationProvider
-      ? congregationProvider()
-      : Math.max(0, (baselineCongregation || 0) - (stats?.npcsLost ?? 0));
     const graceCount = typeof getGraceCount === 'function' ? getGraceCount() : 0;
     ctx.save();
     ctx.translate(boardX, boardY);
@@ -510,7 +510,6 @@
     const iconX = Math.max(rowHeight, boardWidth - iconSize - 4);
     const textX = iconX - iconPadding;
     const entries = [
-      { value: congregationTotal, icon: scoreboardIcons.congregation },
       { value: graceCount, icon: scoreboardIcons.grace },
       { value: enemyKills, icon: scoreboardIcons.enemies },
     ];

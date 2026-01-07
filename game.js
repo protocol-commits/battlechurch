@@ -4016,7 +4016,7 @@ function showTitleDialog() {
     body: "",
     buttonText: "Continue (Space)",
     variant: "title",
-    devLabel: "DEV: TitleScreen",
+    devLabel: "",
     onRender: ({ overlay }) => {
       const bodyEl = overlay.querySelector(".dialog-overlay__body");
       if (bodyEl) {
@@ -4106,7 +4106,7 @@ function showPauseDialog() {
     body: PAUSE_BODY,
     buttonText: "Continue (Space)",
     variant: "pause",
-    devLabel: "DEV: PauseScreen",
+    devLabel: "",
     onContinue: () => {
       resumeFromPause();
     },
@@ -4122,7 +4122,7 @@ function showGameOverDialog() {
       body: GAME_OVER_BODY,
       buttonText: "Restart (Space)",
       variant: "gameover",
-      devLabel: "DEV: GameOver",
+      devLabel: "",
       onContinue: () => {
       window.gameOverDialogActive = false;
       window.gameOverDialogShown = false;
@@ -4257,7 +4257,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       bodyHtml: `<div class="mission-brief-text"></div>`,
       buttonText: "Continue (Space)",
       variant: "mission",
-      devLabel: "DEV: SeasonRecap",
+      devLabel: "",
       portraits: null,
       onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
       onContinue: () => {
@@ -4295,7 +4295,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     bodyHtml: `<div class="mission-brief-text"></div>`,
     buttonText: "Continue (Space)",
     variant: "mission",
-    devLabel: "DEV: MonthlyRecap",
+    devLabel: "",
     portraits: null,
     onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
     onContinue: () => {
@@ -10118,7 +10118,7 @@ function updateGame(dt) {
         bodyHtml: `<div class="dialog-overlay__body"></div>`,
         buttonText: "Continue (Space)",
         variant: "mission",
-        devLabel: "DEV: VisitorRecap",
+        devLabel: "",
         onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
         onContinue: () => {
           const reason = visitorSession.summaryReason || "summary";
@@ -10141,7 +10141,7 @@ function updateGame(dt) {
         bodyHtml: `<div class="dialog-overlay__body"></div>`,
         buttonText: "Continue (Space)",
         variant: "mission",
-        devLabel: "DEV: VisitorIntro",
+        devLabel: "",
         onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
         onContinue: () => {
           visitorSession.introActive = false;
