@@ -1,8 +1,13 @@
 (function(global) {
+  const prayerSpark = {
+    timer: 0,
+    lastRatio: 0,
+    lastTime: 0,
+  };
   const scoreboardIconSources = {
     congregation: "assets/sprites/conrad/powerups/dove.png",
     grace: "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
-    enemies: "assets/sprites/conrad/powerups/sword.png",
+    enemies: "assets/sprites/pixel-art-pack/Weapons/W01_Blade.png",
   };
   const scoreboardIcons = {};
   Object.entries(scoreboardIconSources).forEach(([key, src]) => {
@@ -313,8 +318,15 @@
       roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
       const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : ratio >= 1;
+      const now = performance.now() * 0.001;
+      const dt = prayerSpark.lastTime ? Math.min(0.1, Math.max(0, now - prayerSpark.lastTime)) : 0;
+      prayerSpark.lastTime = now;
+      if (ratio > prayerSpark.lastRatio + 0.002) {
+        prayerSpark.timer = 0.45;
+      }
+      prayerSpark.lastRatio = ratio;
       const fillWidth = Math.max(0, Math.floor((meterWidth - 4) * ratio));
-      const baseColor = PALETTE.ice;
+      const baseColor = PALETTE.muted;
       if (ready) {
         const pulse = (Math.sin(performance.now() * 0.01) + 1) / 2;
         ctx.fillStyle = pulse > 0.5 ? PALETTE.gold : baseColor;
@@ -331,12 +343,59 @@
         true,
         false,
       );
+      if (prayerSpark.timer > 0 && fillWidth > 0) {
+        prayerSpark.timer = Math.max(0, prayerSpark.timer - dt);
+        const sparkAlpha = Math.min(1, prayerSpark.timer / 0.45);
+        const sparkX = meterX + 2 + fillWidth;
+        const sparkY = meterY + 2;
+        const sparkW = 10;
+        const sparkH = meterHeight - 4;
+        const gradient = ctx.createLinearGradient(sparkX - sparkW, 0, sparkX, 0);
+        gradient.addColorStop(0, "rgba(255, 220, 140, 0)");
+        gradient.addColorStop(1, `rgba(255, 225, 180, ${1.25 * sparkAlpha})`);
+        ctx.save();
+        ctx.globalAlpha = sparkAlpha;
+        ctx.fillStyle = gradient;
+        ctx.fillRect(sparkX - sparkW, sparkY, sparkW, sparkH);
+        ctx.restore();
+      }
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = ready
-        ? (Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : "#FFDCA0")
-        : 'rgba(234, 246, 255, 0.9)';
+        ? (Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.ice)
+        : PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.fillText('Prayer', meterX + meterWidth / 2, meterY + meterHeight / 2 + 4);
+      ctx.restore();
+
+      const graceCount = typeof getGraceCount === 'function' ? getGraceCount() : 0;
+      const enemyKills = stats?.enemiesDefeated ?? 0;
+      const iconSize = 16;
+      const gap = 6;
+      const rowY = meterY + meterHeight + 14;
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      let x = meterX + 4;
+      if (scoreboardIcons.grace && scoreboardIcons.grace.complete) {
+        ctx.drawImage(scoreboardIcons.grace, x, rowY - iconSize / 2, iconSize, iconSize);
+        if (typeof window !== 'undefined') {
+          window.__hudGraceIconPos = {
+            x: x + iconSize / 2,
+            y: rowY,
+          };
+        }
+        x += iconSize + gap;
+      }
+      const graceText = `${graceCount}`;
+      ctx.fillText(graceText, x, rowY);
+      x += ctx.measureText(graceText).width + 14;
+      if (scoreboardIcons.enemies && scoreboardIcons.enemies.complete) {
+        ctx.drawImage(scoreboardIcons.enemies, x, rowY - iconSize / 2, iconSize, iconSize);
+        x += iconSize + gap;
+      }
+      ctx.fillText(`${enemyKills}`, x, rowY);
       ctx.restore();
     };
 
@@ -491,43 +550,8 @@
     drawPlayerInfo();
     drawNpcInfo();
 
-    const boardWidth = Math.max(40, columnWidth - 12);
-    const boardX = columnXs[3] + 6;
-    const boardY = panelY + 18;
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
-    const graceCount = typeof getGraceCount === 'function' ? getGraceCount() : 0;
-    ctx.save();
-    ctx.translate(boardX, boardY);
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = PALETTE.softWhite;
-    ctx.font = `12px ${UI_FONT_FAMILY}`;
-    const iconSize = 18;
-    const iconPadding = 6;
-    const rowHeight = 20;
-    const enemyKills = stats?.enemiesDefeated ?? 0;
-    const iconX = Math.max(rowHeight, boardWidth - iconSize - 4);
-    const textX = iconX - iconPadding;
-    const entries = [
-      { value: graceCount, icon: scoreboardIcons.grace },
-      { value: enemyKills, icon: scoreboardIcons.enemies },
-    ];
-    entries.forEach((entry, idx) => {
-      const y = 22 + idx * rowHeight;
-      const text = `${entry.value}`;
-      ctx.fillText(text, textX, y);
-      if (entry.icon && entry.icon.complete) {
-        ctx.drawImage(entry.icon, iconX, y - iconSize / 2, iconSize, iconSize);
-        if (entry.icon === scoreboardIcons.grace && typeof window !== 'undefined') {
-          window.__hudGraceIconPos = {
-            x: boardX + iconX + iconSize / 2,
-            y: boardY + y,
-          };
-        }
-      }
-    });
-    ctx.restore();
   }
 
   const ns = global.BattlechurchHUD || (global.BattlechurchHUD = {});
