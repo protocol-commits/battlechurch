@@ -154,7 +154,7 @@
       return base;
     };
 
-    const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage) => {
+    const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage, iconKey) => {
       const barHeight = 18;
       const barWidth = Math.max(60, width - 8);
       const barX = x;
@@ -171,6 +171,13 @@
         const iconX = barX - iconSize - iconGap;
         const iconY = barY + barHeight / 2 - iconSize / 2;
         ctx.drawImage(iconImage, iconX, iconY, iconSize, iconSize);
+        if (iconKey && typeof window !== 'undefined') {
+          window.__hudPowerupIconPos = window.__hudPowerupIconPos || {};
+          window.__hudPowerupIconPos[iconKey] = {
+            x: iconX + iconSize / 2,
+            y: iconY + iconSize / 2,
+          };
+        }
       }
       roundRect(ctx, barX, barY, barWidth, barHeight, 6, true, true);
       const fillWidth = Math.max(0, Math.floor((barWidth - 4) * clampedRatio));
@@ -280,6 +287,10 @@
       } catch (e) {}
     };
 
+    if (typeof window !== 'undefined') {
+      window.__hudPowerupIconPos = {};
+    }
+
     drawTopHPAndLives();
 
     const drawPrayerBombMeter = () => {
@@ -373,6 +384,7 @@
         ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
         color: weaponMode === 'arrow' ? PALETTE.ice : getIconStyleColor('player', PALETTE.ice),
         iconImage: weaponIcon,
+        iconKey: 'playerWeapon',
       });
 
       const utilityRows = [];
@@ -383,6 +395,7 @@
           ratio: duration > 0 ? player.shieldTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.ice),
           iconImage: assets?.utility?.shield?.iconImage || null,
+          iconKey: 'utilityShield',
         });
       }
       if (player.speedBoostTimer > 0) {
@@ -392,6 +405,7 @@
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.haste?.iconImage || null,
+          iconKey: 'utilityHaste',
         });
       }
       if (player.powerExtendTimer > 0) {
@@ -401,13 +415,14 @@
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.gold),
           iconImage: assets?.utility?.extender?.iconImage || null,
+          iconKey: 'utilityExtend',
         });
       }
       rows.push(...utilityRows.slice(0, 2));
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
       rows.slice(0, rowYs.length).forEach((row, idx) => {
-        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey);
       });
     };
 
@@ -444,6 +459,7 @@
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
         color: npcMode === 'arrow' ? PALETTE.gold : getIconStyleColor('npc', PALETTE.gold),
         iconImage: npcWeaponIcon,
+        iconKey: 'npcWeapon',
       });
       if (npcHarmonyBuffTimer > 0) {
         const duration = Math.max(0.001, npcHarmonyBuffDuration || npcHarmonyBuffTimer || 0);
@@ -452,12 +468,13 @@
           ratio: duration > 0 ? npcHarmonyBuffTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.harmony?.iconImage || null,
+          iconKey: 'npcHarmony',
         });
       }
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
       rows.slice(0, rowYs.length).forEach((row, idx) => {
-        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey);
       });
     };
 

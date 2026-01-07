@@ -1765,6 +1765,23 @@ function drawLevelAnnouncements() {
       });
       ctx.restore();
     }
+    const powerupHudFlyEffects = requireBindings().powerupHudFlyEffects;
+    if (powerupHudFlyEffects && powerupHudFlyEffects.length) {
+      ctx.save();
+      powerupHudFlyEffects.forEach((effect) => {
+        if (!effect || !effect.image) return;
+        const size = effect.size || 16;
+        ctx.globalAlpha = typeof effect.alpha === "number" ? effect.alpha : 1;
+        ctx.drawImage(
+          effect.image,
+          effect.x - size / 2,
+          effect.y - size / 2,
+          size,
+          size,
+        );
+      });
+      ctx.restore();
+    }
     if (levelStatus?.stage === "graceRush" || graceRushState?.active) {
       drawGraceRushOverlay(levelStatus, graceRushState);
     }

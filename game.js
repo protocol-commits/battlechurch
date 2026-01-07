@@ -18,6 +18,7 @@ const animals = [];
 const utilityPowerUps = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
+const powerupHudFlyEffects = [];
 const POWERUP_RESPAWN_DELAY = 5;
 const POWERUP_ACTIVE_LIFETIME = 8;
 const POWERUP_BLINK_DURATION = 2;
@@ -1340,6 +1341,7 @@ function clearAllPowerUps() {
     powerUp.life = 0;
   });
   utilityPowerUps.splice(0, utilityPowerUps.length);
+  powerupHudFlyEffects.splice(0, powerupHudFlyEffects.length);
   powerUpRespawnTimer = 0;
 }
 
@@ -1974,6 +1976,7 @@ Renderer.initialize({
   get npcHarmonyBuffDuration() { return npcHarmonyBuffDuration; },
   get powerupIconStyles() { return POWERUP_ICON_STYLES; },
   get graceHudFlyEffects() { return graceHudFlyEffects; },
+  get powerupHudFlyEffects() { return powerupHudFlyEffects; },
   get postDeathSequenceActive() { return postDeathSequenceActive; },
   get heroLives() { return heroLives; },
   get hpFlashTimer() { return hpFlashTimer; },
@@ -4747,6 +4750,12 @@ function applyAnimalEffect(animal) {
         bgColor: config.statusBgColor,
         life: config.statusLife,
       });
+      spawnPowerupHudFlyEffect({
+        x: animal.x,
+        y: animal.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(animal.effect),
+      });
       break;
     }
     case "wisdomWeapon": {
@@ -4760,6 +4769,12 @@ function applyAnimalEffect(animal) {
       player.magicBuffTimer = config.duration;
       player.magicCooldown = 0;
       showWeaponPowerupConfigText(config);
+      spawnPowerupHudFlyEffect({
+        x: animal.x,
+        y: animal.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(animal.effect),
+      });
       break;
     }
     case "cannonWeapon": {
@@ -4773,6 +4788,12 @@ function applyAnimalEffect(animal) {
       player.faithCannonDamageMultiplier = config.damageMultiplier;
       player.magicCooldown = 0;
       showWeaponPowerupConfigText(config);
+      spawnPowerupHudFlyEffect({
+        x: animal.x,
+        y: animal.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(animal.effect),
+      });
       break;
     }
     case "scriptureWeapon": {
@@ -4786,6 +4807,12 @@ function applyAnimalEffect(animal) {
       player.fireDamageMultiplier = config.damageMultiplier;
       player.magicCooldown = 0;
       showWeaponPowerupConfigText(config);
+      spawnPowerupHudFlyEffect({
+        x: animal.x,
+        y: animal.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(animal.effect),
+      });
       break;
     }
     case "npcScriptureWeapon": {
@@ -4794,6 +4821,12 @@ function applyAnimalEffect(animal) {
         text: "Quote Scripture",
         textColor: "#ffa45a",
         description: "NPCs fire scripture shots for a short time.",
+      });
+      spawnPowerupHudFlyEffect({
+        x: animal.x,
+        y: animal.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(animal.effect),
       });
       break;
     }
@@ -4804,6 +4837,12 @@ function applyAnimalEffect(animal) {
         textColor: "#9BD9FF",
         description: "NPCs launch wisdom missiles temporarily.",
       });
+      spawnPowerupHudFlyEffect({
+        x: animal.x,
+        y: animal.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(animal.effect),
+      });
       break;
     }
     case "npcFaithWeapon": {
@@ -4812,6 +4851,12 @@ function applyAnimalEffect(animal) {
         text: "Act in Faith",
         textColor: "#ff9bf7",
         description: "NPCs fire faith cannon blasts briefly.",
+      });
+      spawnPowerupHudFlyEffect({
+        x: animal.x,
+        y: animal.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(animal.effect),
       });
       break;
     }
@@ -4845,10 +4890,22 @@ function applyUtilityPowerUp(powerUp) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
       player.shieldDuration = Math.max(player.shieldDuration || 0, duration);
+      spawnPowerupHudFlyEffect({
+        x: powerUp.x,
+        y: powerUp.y,
+        iconImage: powerUp.definition?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(effect),
+      });
       break;
     case "haste":
       player.speedBoostTimer = Math.max(player.speedBoostTimer, duration);
       player.speedBoostDuration = Math.max(player.speedBoostDuration || 0, duration);
+      spawnPowerupHudFlyEffect({
+        x: powerUp.x,
+        y: powerUp.y,
+        iconImage: powerUp.definition?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(effect),
+      });
       break;
     case "extend":
       const extendDuration = Math.max(
@@ -4882,10 +4939,22 @@ function applyUtilityPowerUp(powerUp) {
         player.weaponPowerTimer,
         player.weaponPowerDuration,
       );
+      spawnPowerupHudFlyEffect({
+        x: powerUp.x,
+        y: powerUp.y,
+        iconImage: powerUp.definition?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(effect),
+      });
       break;
     case "harmony":
       npcHarmonyBuffTimer = Math.max(npcHarmonyBuffTimer, duration);
       npcHarmonyBuffDuration = Math.max(npcHarmonyBuffDuration, duration);
+      spawnPowerupHudFlyEffect({
+        x: powerUp.x,
+        y: powerUp.y,
+        iconImage: powerUp.definition?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(effect),
+      });
       break;
     default:
       break;
@@ -5034,6 +5103,68 @@ function updateGraceHudFlyEffects(dt) {
     effect.alpha = Math.max(0, 1 - t * 0.15);
     if (t >= 1) {
       graceHudFlyEffects.splice(i, 1);
+    }
+  }
+}
+
+function getPowerupHudTargetKey(effect) {
+  if (!effect) return null;
+  if (effect === "shield") return "utilityShield";
+  if (effect === "haste") return "utilityHaste";
+  if (effect === "extend") return "utilityExtend";
+  if (effect === "harmony") return "npcHarmony";
+  if (String(effect).startsWith("npc")) return "npcWeapon";
+  if (WEAPON_POWERUP_EFFECTS.has(effect) || effect === "arrowBuff") return "playerWeapon";
+  return null;
+}
+
+function spawnPowerupHudFlyEffect({ x, y, iconImage, targetKey }) {
+  const targetMap = typeof window !== "undefined" ? window.__hudPowerupIconPos : null;
+  const target = targetMap ? targetMap[targetKey] : null;
+  if (!iconImage || !iconImage.complete) return;
+  const startX = x - cameraOffsetX;
+  const startY = y;
+  powerupHudFlyEffects.push({
+    image: iconImage,
+    startX,
+    startY,
+    x: startX,
+    y: startY,
+    targetX: target ? target.x : startX,
+    targetY: target ? target.y : startY,
+    targetKey,
+    targetReady: Boolean(target),
+    timer: 0,
+    duration: 0.5,
+    size: Math.max(16, iconImage.width || 16),
+    alpha: 1,
+  });
+}
+
+function updatePowerupHudFlyEffects(dt) {
+  if (!powerupHudFlyEffects.length) return;
+  for (let i = powerupHudFlyEffects.length - 1; i >= 0; i -= 1) {
+    const effect = powerupHudFlyEffects[i];
+    if (!effect) continue;
+    if (!effect.targetReady) {
+      const targetMap = typeof window !== "undefined" ? window.__hudPowerupIconPos : null;
+      const target = targetMap ? targetMap[effect.targetKey] : null;
+      if (target) {
+        effect.targetX = target.x;
+        effect.targetY = target.y;
+        effect.targetReady = true;
+      } else {
+        continue;
+      }
+    }
+    effect.timer += dt;
+    const t = Math.min(1, effect.timer / Math.max(0.001, effect.duration));
+    const ease = 1 - Math.pow(1 - t, 3);
+    effect.x = effect.startX + (effect.targetX - effect.startX) * ease;
+    effect.y = effect.startY + (effect.targetY - effect.startY) * ease;
+    effect.alpha = Math.max(0, 1 - t * 0.2);
+    if (t >= 1) {
+      powerupHudFlyEffects.splice(i, 1);
     }
   }
 }
@@ -10218,6 +10349,7 @@ function updateGame(dt) {
   updateUtilityPowerUps(dt);
   updateGracePickups(dt);
   updateGraceHudFlyEffects(dt);
+  updatePowerupHudFlyEffects(dt);
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   // Ensure power-ups obey spawn rules per stage
