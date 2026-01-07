@@ -1747,6 +1747,14 @@ function drawLevelAnnouncements() {
       ctx.restore();
     }
 
+    const playerDeathFadeAlpha = requireBindings().playerDeathFadeAlpha || 0;
+    if (playerDeathFadeAlpha > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.5, playerDeathFadeAlpha)})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
     drawHUD();
     const graceHudFlyEffects = requireBindings().graceHudFlyEffects;
     if (graceHudFlyEffects && graceHudFlyEffects.length) {

@@ -60,6 +60,9 @@ let graceRushFadeHold = false;
 let graceRushFadeReleaseTimer = 0;
 let graceRushBlackout = false;
 let graceRushHardBlackoutTimer = 0;
+let playerDeathFadeAlpha = 0;
+const PLAYER_DEATH_FADE_TARGET = 0.5;
+const PLAYER_DEATH_FADE_SPEED = 6;
 let damageHitFlash = 0;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
@@ -2062,6 +2065,7 @@ Renderer.initialize({
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
   get graceRushFadeAlpha() { return graceRushFadeAlpha; },
   get graceRushBlackout() { return graceRushBlackout; },
+  get playerDeathFadeAlpha() { return playerDeathFadeAlpha; },
 });
 function bootInputAndResize() {
   resizeCanvas();
@@ -9967,6 +9971,14 @@ function parseFrameList(input) {
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
+  if (player) {
+    const target = player.state === "death" ? PLAYER_DEATH_FADE_TARGET : 0;
+    const step = Math.min(1, dt * PLAYER_DEATH_FADE_SPEED);
+    playerDeathFadeAlpha += (target - playerDeathFadeAlpha) * step;
+    if (Math.abs(playerDeathFadeAlpha - target) < 0.01) {
+      playerDeathFadeAlpha = target;
+    }
+  }
   if (playerDeathBellFadeTimer > 0 && playerDeathBellAudio) {
     playerDeathBellFadeTimer = Math.max(0, playerDeathBellFadeTimer - dt);
     if (playerDeathBellFadeTimer <= PLAYER_DEATH_BELL_FADE_DURATION) {
@@ -10171,7 +10183,7 @@ function updateGame(dt) {
     if (respawnTimer <= 0) {
       const oldPlayer = player;
       const respawnX = canvas.width / 2;
-      const respawnY = HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5;
+      const respawnY = HUD_HEIGHT + 40;
       player = createPlayerInstance(respawnX, respawnY, assets.player);
       player.x = respawnX;
       const respawnTop = HUD_HEIGHT + Math.max(player.radius + 16, 28);
