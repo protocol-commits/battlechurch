@@ -313,7 +313,7 @@ body.touch-enabled .joystick-handle {
   line-height: var(--ui-body-line);
 }
 
-.upgrade-overlay__keys .keys-value {
+.upgrade-overlay__keys .grace-value {
   font-size: var(--ui-h3-size);
   font-weight: var(--ui-h3-weight);
   color: var(--ui-text-color);

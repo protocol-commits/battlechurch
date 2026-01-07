@@ -93,8 +93,8 @@
     return Math.max(1, Math.round(BASE_COST * Math.pow(COST_SCALE, count)));
   }
 
-  function canUpgrade(key, currentKeys) {
-    return Number.isFinite(currentKeys) && currentKeys >= getUpgradeCost(key);
+  function canUpgrade(key, currentGrace) {
+    return Number.isFinite(currentGrace) && currentGrace >= getUpgradeCost(key);
   }
 
   function applyUpgrade(key) {

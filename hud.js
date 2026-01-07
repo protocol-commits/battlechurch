@@ -1,7 +1,7 @@
 (function(global) {
   const scoreboardIconSources = {
     congregation: "assets/sprites/conrad/powerups/dove.png",
-    keys: "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
+    grace: "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
     enemies: "assets/sprites/conrad/powerups/sword.png",
   };
   const scoreboardIcons = {};
@@ -37,7 +37,7 @@
       hpFlashTimer,
       visitorSession,
       assets,
-      getKeyCount,
+      getGraceCount,
       getCongregationSize,
       initialCongregationSize,
       weaponPickupAnnouncement,
@@ -474,7 +474,7 @@
     const congregationTotal = congregationProvider
       ? congregationProvider()
       : Math.max(0, (baselineCongregation || 0) - (stats?.npcsLost ?? 0));
-    const keyCount = typeof getKeyCount === 'function' ? getKeyCount() : 0;
+    const graceCount = typeof getGraceCount === 'function' ? getGraceCount() : 0;
     ctx.save();
     ctx.translate(boardX, boardY);
     ctx.textAlign = 'right';
@@ -489,7 +489,7 @@
     const textX = iconX - iconPadding;
     const entries = [
       { value: congregationTotal, icon: scoreboardIcons.congregation },
-      { value: keyCount, icon: scoreboardIcons.keys },
+      { value: graceCount, icon: scoreboardIcons.grace },
       { value: enemyKills, icon: scoreboardIcons.enemies },
     ];
     entries.forEach((entry, idx) => {

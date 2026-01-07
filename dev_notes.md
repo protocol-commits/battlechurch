@@ -3,20 +3,20 @@
 This file keeps context on the ongoing mission, the major systems we touch, and the experiments we've tried so future sessions don't restart from scratch.
 
 ### Project Overview
-- Genre: top-down battle/sandbox hybrid with a church/congregation theme (Battlechurch). The player defends a flock of NPCs, picks up keys/power-ups, and clears months/battles/hordes while story/visitor beats play out.
-- Loop: prepare via mission briefs → face hordes of enemies → trigger key rushes/bosses → manage NPC evacuations/visitor minigames → repeat per level/month/battle hierarchy.
+- Genre: top-down battle/sandbox hybrid with a church/congregation theme (Battlechurch). The player defends a flock of NPCs, picks up grace/power-ups, and clears months/battles/hordes while story/visitor beats play out.
+- Loop: prepare via mission briefs → face hordes of enemies → trigger grace rushes/bosses → manage NPC evacuations/visitor minigames → repeat per level/month/battle hierarchy.
 - Input: keyboard, pointer, and optional virtual sticks with NES-inspired button emulation for debugging (`ArrowLeft`/`ArrowRight` queue buttons and `space` toggles pause/restart).
 - Visuals/UI: HUD, floating speech/status bubbles, mission brief popups, mini-boss teaser, restricted zones visualization, congregational chatter overlays, and touch controls styled in `style.css`.
 - Assets: kept in `assets/` with sprite sheets referenced by modules; runtime overrides live in `overrides.js`, which also publishes `__BATTLECHURCH_ASSET_VERSION` to bust caches.
 
 ### Module Summary
-- `game.js`: orchestrates the canvas, main loops, entity arrays (enemies, projectiles, animals, NPCs, power-ups, keys), player state, visitor sessions, key rushes, boss fights, hero lives/respawns, congregational procession, and dev status text; defines numerous constants for spawn rates, power-up timers, and NPC behavior. TODO markers remind us to hook melee Circle visuals and restricted-zone checks into renderers.
+- `game.js`: orchestrates the canvas, main loops, entity arrays (enemies, projectiles, animals, NPCs, power-ups, grace), player state, visitor sessions, grace rushes, boss fights, hero lives/respawns, congregational procession, and dev status text; defines numerous constants for spawn rates, power-up timers, and NPC behavior. TODO markers remind us to hook melee Circle visuals and restricted-zone checks into renderers.
 - `renderer.js`: handles every draw: mission briefs, HUD, announcements, mini-boss previews, restricted zone highlights, congregational scenes, and dev overlays (e.g., weapon meter above player). Contains scenario lists, popup logic, warning descriptions, and instructions for contributors editing mission scripts.
 - `spawner.js`: dependency-injected spawner for enemies (with caps, staggered portal spawns, skeleton packs, and mini-folk scaling), all configured through an options object (`getAssets`, `createEnemyInstance`, `spawnPuffEffect` hooks). Supports skeleton groups, portal scheduling, audio/puff spawn, and level flag resets.
 - **Portal-style spawns**: the old idea to keep enemies off-screen (spawnX ≈ ±2600) ran into `clampEntityToBounds`/collision logic, which snaps them back into the arena before the `spawnOffscreenTimer` can protect them. We tried logging spawns, adding timers, and widening the clamps, but the clamp still fires too early. The current approach spawns enemies just outside the visible edges (+/−24 px) and doubles the puff radius so the portal effect masks the pop until they walk in.
 - **Spawn note**: left/right hordes still pop inside the visible bounds even though `randomSpawnPosition()` yields coordinates like ±2600, because `clampEntityToBounds`/collision resolution immediately repositions a freshly spawned enemy before the `spawnOffscreenTimer` can protect it. We logged the spawn positions, added timers/`ignoreWorldBounds` guards, and widened clamp margins, but something still runs too early—future work should gate every clamp/collision path on that timer or fall back to a portal effect instead of forcing actual off-screen movement.
 - `entities.js`: builds player/enemy configs, exposes `Animator`/`AnimationClip`, and provides utility math (normalization, radius calculations, movement-lock checks). Responsible for scaling enemy health, relating to global settings, and forging re-usable data for the entity factory.
-- `levels.js`: progression manager that feeds months/battles/hordes with narrative text, battle announcers, timing constants (intros, clears, pauses), key rush durations, portrait history caps, and hooks to spawn enemies/power-ups, evacuate NPCs, or trigger visitor minigames. Maintains dependency injection for score reads, hero sayings, and congregation resets.
+- `levels.js`: progression manager that feeds months/battles/hordes with narrative text, battle announcers, timing constants (intros, clears, pauses), grace rush durations, portrait history caps, and hooks to spawn enemies/power-ups, evacuate NPCs, or trigger visitor minigames. Maintains dependency injection for score reads, hero sayings, and congregation resets.
 - `input.js`: registers keyboard, mouse, pointer, and virtual stick listeners; tracks pointer/canvas coordinates, movement direction for melee facing, NES ‘A/B’ test toggles, inspector callbacks, and virtual joystick dead zones/pointer IDs; prevents default for navigation keys and dispatches queued prayer bombs.
 - `effects.js`: maintains visual effects (impact, magic, glow, debug circles) via resolvers that fetch `ctx` and sprites; includes helper classes `Effect`, `DebugCircle`, `PrayerBombGlow`, and functions to spawn each particle type.
 - `floatingText.js`: speech/status bubble orchestrator; adds damage popups, hero/NPC taunts, status updates, and auto-prunes non-critical bubbles when the cap is met; exposes hooks to set player resolver and max bubble count.
@@ -35,7 +35,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - Restricted zones are defined in `renderer.js`, but player/enemy/power-up code currently lacks enforcement; plan to check `isInRestrictedZone` before moving/spawning to avoid weird overlaps.
 - Mission Brief logic relies on `missionBriefScenarios` (renderer) and a `stage === 'briefing'` flag; confirm the `levels.js` flow sets that stage before each month so the popup renders once.
 - Visitor session tracking uses sets for chatty visitors and locking blockers plus auto-triggered minigames; when adjusting boss or NPC logic, make sure `visitorSession` flags (like `movementLock`, `quietedBlockers`) stay consistent.
-- Power-up respawn and key rush durations are encoded in `game.js` constants; any balancing tweaks should update both gameplay logic and HUD rendering in `renderer.js`.
+- Power-up respawn and grace rush durations are encoded in `game.js` constants; any balancing tweaks should update both gameplay logic and HUD rendering in `renderer.js`.
 - `spawner.js` depends on injected callbacks (`createEnemyInstance`, `spawnPuffEffect`), so aligning `enemy_class_tmp.js` with those hooks is next when consolidating enemy creation.
 - Input inspector hooks (`onInspectorClick`, `shouldHandleInspectorClick`, `onAnyKeyDown`) remain stubbed; hook them to dev tools or debugging overlays only when needed to avoid disrupting gameplay on release builds.
 
@@ -46,7 +46,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 
 ### Item Power-Ups
 - Utility power-ups (heal, shield, faith boosts) are singleton spawns: `canSpawnUtilityPowerUp()` ensures only one is live, and they rely on timers such as `POWERUP_ACTIVE_LIFETIME`, `POWERUP_BLINK_DURATION`, and `POWERUP_RESPAWN_DELAY`.
-- Keys behave like items with attraction/physics constants (`KEY_PICKUP_ATTRACT_DISTANCE`, `KEY_PICKUP_GRAVITY`, etc.) and are used for upgrades post-battle; HUD should indicate remaining key pickups before they disappear.
+- Grace behaves like items with attraction/physics constants (`GRACE_PICKUP_ATTRACT_DISTANCE`, `GRACE_PICKUP_GRAVITY`, etc.) and is used for upgrades post-battle; HUD should indicate remaining grace pickups before they disappear.
 - Other collectible items include visitor hearts and mission-specific buffs; align spawn logic with `utilityPowerUps`, `animals`, and `keyPickups` arrays to avoid overlapping restricted areas.
 
 ### NPC System (The Flock)
@@ -87,7 +87,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
   - Player collects visitor NPCs while chatty NPCs block movement; Emotional Intelligence stat reduces distraction duration.
   - Visitor Hour is the only time congregation score increases.
 - **Progression & Upgrades**
-  - Keys earned during battles roll over and are spent on stat upgrades after each battle (Sword of the Spirit, Shield of Faith, Shoes of Peace, Heart of Compassion).
+  - Grace earned during battles rolls over and is spent on stat upgrades after each battle (Sword of the Spirit, Shield of Faith, Shoes of Peace, Heart of Compassion).
   - Stats feed into NPC firepower, Faith Meter resilience, and prayer bomb potency.
 - **Scoring**
   - Score equals remaining congregation size; decreases when NPCs are lost and increases only during Visitor Hour.
@@ -116,9 +116,9 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - (13) 2024-11-03 Added temporary invulnerability while rushing and for 0.25s afterwards to give the dash a cinematic, protective feel, and rendered a directional shield arc in front of the hero while rushing to show the coverage; the arc is now just the outer circumference facing the rush direction so it reads more like a partial shield instead of a filled wedge.
 - (14) 2024-11-03 Redesigned the upper-right scoreboard as a tight icon-and-count grid: the torch/NPC icon shows congregation size, the flag animation (fallback to the red X) marks NPCs lost, and the animated key icon sits next to the key tally—no textual labels, icon-and-number columns stay compact, and the scoreboard counts are kept flush with the left HUD styling.
 - (15) 2024-11-04 Camera shake now caches its offset each frame so HUD drawing reuses the same translation that `drawGame` applied, and the renderer resets the canvas transform before each world draw so any stray jiggle can’t permanently shift the view—this keeps HUD/scene alignment steady once the camera jiggle ends.
-- (16) 2024-11-04 Added a persistent stat-upgrade layer: `stats_manager.js` tracks five stats (melee, projectile, resistance, speed, emotional intelligence) with 10% base bumps and a 50×1.1 scaling cost per purchase, `upgrade_screen.js` renders a modal after every battle summary so players can spend keys, and `game.js`/`entities.js` now read those values for damage, resistance, movement, and enemy projectile power.
+- (16) 2024-11-04 Added a persistent stat-upgrade layer: `stats_manager.js` tracks five stats (melee, projectile, resistance, speed, emotional intelligence) with 10% base bumps and a 50×1.1 scaling cost per purchase, `upgrade_screen.js` renders a modal after every battle summary so players can spend grace, and `game.js`/`entities.js` now read those values for damage, resistance, movement, and enemy projectile power.
 - (17) 2024-11-04 Tightened the A-button double-tap window to 0.18s so the rush happens only when the player quickly taps the melee button twice (classic double-tap timing), keeping the normal single-melee path responsive.
-- (18) 2024-11-04 Key drops now scale with enemy size: larger foes are more likely to spill keys and can drop extra stacks on top of the normal random count, so tankier enemies reward the player with more currency.
+- (18) 2024-11-04 Grace drops now scale with enemy size: larger foes are more likely to spill grace and can drop extra stacks on top of the normal random count, so tankier enemies reward the player with more currency.
 - (19) 2024-11-04 Upgrade pause now clears lingering pickups/power-ups/effects before the modal appears so the visitor mini-game isn’t buried under leftover key sprites after a boss or big wave.
 - (20) 2024-11-04 Added a shared dialog overlay (swatch-driven blur box + continue button) and now the title screen uses it so the first “Press Space to continue” panel is rendered in DOM instead of canvas; tested with the new controller before rolling out to the other screens.
 - (21) 2024-11-04 How-to-play now reuses the same dialog overlay with descriptive text; clicking or hitting Space runs the existing briefing start logic, so the overlay is the single “Press Space to continue” surface for both title and tutorial screens (the canvas-based text is now suppressed whenever the overlay is visible).
@@ -130,7 +130,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - (27) 2024-11-05 Player deaths now trigger a mini-cinematic: after the hero dies with no lives left the scene stays frozen in the final death frame for 5 seconds (enemies wander freely), then three mini-imp swarms pour into the arena while a second-long fade-to-black ramps up, and only once the fade finishes does `gameOver` flip on — at that point we open a DOM “Game Over” dialog (buy-in text + Restart action) instead of drawing the in-canvas banner so the narrative copy always appears once the fade completes.
 - (28) 2024-11-05 Respawns now drop the pastor at the top-center of the battlefield with full health so each life truly starts fresh; the death animation still plays when HP reaches 0, and the DOM game over dialog stays mid-screen while the demons roam behind.
 - (29) 2024-11-05 Emotional Intelligence upgrades now also push NPC projectile damage, scale, and fire rate up by 10% per stat level so every boost strengthens their friendly arrows (`game.js`, `stats_manager.js`), keeping the support layer consistent.
-- (30) 2024-11-05 Added a developer hotkey (`K`) that instantly grants 500 keys and surfaces the status via `setDevStatus`, easing progression testing scenarios (`game.js`).
+- (30) 2024-11-05 Added a developer hotkey (`K`) that instantly grants 500 grace and surfaces the status via `setDevStatus`, easing progression testing scenarios (`game.js`).
 - (31) 2024-11-05 Restored the NPC “Harmony” harp power-up so it now grants a global 50% boost to NPC damage, fire rate, and projectile scale for the buff duration, while still keeping the stat-driven upgrades as the baseline (`game.js`, `powerup_definitions.js`).
 - (32) 2024-11-05 Melee charge now fires after 1.5s of holding the attack button instead of 2.0s, keeping the rush/Divine Shot timing tighter (`game.js`).
 - (33) 2024-11-05 Divine Shot now retains the player’s facing direction but auto-assisted itself toward the nearest enemy in that cone, leveraging a temporary homing window for smoother targeting (`game.js`).
@@ -185,4 +185,4 @@ Future Codex instances should update this file whenever the focus shifts so the 
 
 ### Cleanup Backlog
 - (None currently pending)
-- **Scoreboard:** the upper-right board in `hud.js:221` is what we call “the scoreboard”; it now renders a tight icon-and-value grid (icons are preloaded via `scoreboardIconSources`) for Congregation/Lost/Keys/Enemies so any future HUD tweaks should start there.
+- **Scoreboard:** the upper-right board in `hud.js:221` is what we call “the scoreboard”; it now renders a tight icon-and-value grid (icons are preloaded via `scoreboardIconSources`) for Congregation/Lost/Grace/Enemies so any future HUD tweaks should start there.

@@ -105,7 +105,7 @@
   */
 // ...existing code...
 // --- Restricted Zones System ---
-// Define areas where entities cannot go (player, enemies, powerups, keys, etc.)
+// Define areas where entities cannot go (player, enemies, powerups, grace, etc.)
 // Each zone is a function: (x, y) => true if point is inside restricted area
 const restrictedZones = [
   // Upper-left diagonal zone: from (0,0) down to (0,266), up to (475,0)
@@ -130,7 +130,7 @@ function isInRestrictedZone(x, y) {
 }
 
 // Example usage: Prevent entities from entering restricted zones
-// (You will need to call isInRestrictedZone(x, y) in movement, spawn, and collision logic for player, enemies, powerups, keys, etc.)
+// (You will need to call isInRestrictedZone(x, y) in movement, spawn, and collision logic for player, enemies, powerups, grace, etc.)
 // Example:
 // if (isInRestrictedZone(player.x, player.y)) { /* prevent movement or reposition */ }
 // ...existing code...
@@ -957,7 +957,7 @@ function drawLevelAnnouncements() {
     }
   }
 
-  function drawKeyRushOverlay(levelStatus, rushState) {
+  function drawGraceRushOverlay(levelStatus, rushState) {
     const {
       ctx,
       canvas,
@@ -1417,7 +1417,7 @@ function drawLevelAnnouncements() {
       npcs,
       utilityPowerUps,
       animals,
-      keyPickups,
+      gracePickups,
       enemies,
       activeBoss,
       projectiles,
@@ -1432,12 +1432,12 @@ function drawLevelAnnouncements() {
       getCongregationSize,
       initialCongregationSize,
       visitorSession,
-      keyRushState,
+      graceRushState,
       isModalActive,
       arenaFadeAlpha,
       actBreakFadeAlpha,
-      keyRushFadeAlpha,
-      keyRushBlackout,
+      graceRushFadeAlpha,
+      graceRushBlackout,
       damageHitFlash,
       postDeathSequenceActive,
       heroLives,
@@ -1456,7 +1456,7 @@ function drawLevelAnnouncements() {
     const pauseOverlayActive = Boolean(window.isPauseOverlayActive);
     if (isModalActive && !missionOverlayActive && !pauseOverlayActive) {
       ctx.save();
-      const modalBlackout = keyRushBlackout ? 1 : (keyRushFadeAlpha > 0 ? Math.min(1, keyRushFadeAlpha) : 0.92);
+      const modalBlackout = graceRushBlackout ? 1 : (graceRushFadeAlpha > 0 ? Math.min(1, graceRushFadeAlpha) : 0.92);
       ctx.fillStyle = `rgba(0, 0, 0, ${modalBlackout})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
@@ -1602,7 +1602,7 @@ function drawLevelAnnouncements() {
     // Draw pickups above enemies/NPCs
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
     animals.forEach((animal) => animal.draw());
-    keyPickups.forEach((pickup) => {
+    gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
     npcFaithOverlayFn();
@@ -1704,7 +1704,7 @@ function drawLevelAnnouncements() {
       } catch (e) {}
     }
 
-    if (!keyRushBlackout && !(keyRushHardBlackoutTimer > 0)) {
+    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       // Floating damage numbers, power-up labels, etc.
       try {
         drawFloatingTextsOverlay(ctx);
@@ -1734,13 +1734,13 @@ function drawLevelAnnouncements() {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
-    if (keyRushFadeAlpha > 0) {
+    if (graceRushFadeAlpha > 0) {
       ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, keyRushFadeAlpha)})`;
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, graceRushFadeAlpha)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
-    if (keyRushBlackout) {
+    if (graceRushBlackout) {
       ctx.save();
       ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1748,8 +1748,8 @@ function drawLevelAnnouncements() {
     }
 
     drawHUD();
-    if (levelStatus?.stage === "keyRush" || keyRushState?.active) {
-      drawKeyRushOverlay(levelStatus, keyRushState);
+    if (levelStatus?.stage === "graceRush" || graceRushState?.active) {
+      drawGraceRushOverlay(levelStatus, graceRushState);
     }
     if (visitorStageActive) {
       drawVisitorOverlay(visitorSession);
@@ -1759,7 +1759,7 @@ function drawLevelAnnouncements() {
       drawCongregationScene(levelStatus);
     }
     drawMeleeSwingOverlay(ctx, player);
-    if (!keyRushBlackout && !(keyRushHardBlackoutTimer > 0)) {
+    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
       const shakeX = sharedShakeOffset?.x || 0;
       const shakeY = sharedShakeOffset?.y || 0;

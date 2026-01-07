@@ -12,8 +12,8 @@
         <h1>Stat Upgrade</h1>
       </div>
       <div class="upgrade-overlay__keys">
-        <span class="keys-label">Keys</span>
-        <span class="keys-value" data-upgrade-keys>0</span>
+        <span class="grace-label">Grace</span>
+        <span class="grace-value" data-upgrade-grace>0</span>
       </div>
       <div class="upgrade-overlay__grid" data-upgrade-grid></div>
       <div class="upgrade-overlay__actions">
@@ -25,7 +25,7 @@
   document.body.appendChild(overlay);
 
   const gridElement = overlay.querySelector("[data-upgrade-grid]");
-  const keysElement = overlay.querySelector("[data-upgrade-keys]");
+  const graceElement = overlay.querySelector("[data-upgrade-grace]");
   const confirmButton = overlay.querySelector("[data-upgrade-confirm]");
   const headerTitle = overlay.querySelector(".upgrade-overlay__header h1");
 
@@ -33,21 +33,21 @@
   let visible = false;
   let consumedAction = false;
 
-  function getKeyCount() {
-    return typeof window.getKeyCount === "function" ? window.getKeyCount() : 0;
+  function getGraceCount() {
+    return typeof window.getGraceCount === "function" ? window.getGraceCount() : 0;
   }
 
   function attemptPurchase(statKey) {
     if (!StatsManager) return;
     const cost = StatsManager.getUpgradeCost(statKey);
-    const currentKeys = getKeyCount();
-    if (currentKeys < cost) {
+    const currentGrace = getGraceCount();
+    if (currentGrace < cost) {
       return false;
     }
-    window.addKeys?.(-cost);
+    window.addGrace?.(-cost);
     StatsManager.applyUpgrade(statKey);
     renderRows();
-    updateKeyDisplay();
+    updateGraceDisplay();
     return true;
   }
 
@@ -57,7 +57,7 @@
     const description = StatsManager.getStatDescription(statKey);
     const value = StatsManager.getStatDisplayString(statKey);
     const cost = StatsManager.getUpgradeCost(statKey);
-    const canAfford = getKeyCount() >= cost;
+    const canAfford = getGraceCount() >= cost;
     const isDisabled = !canAfford ? "disabled" : "";
     return `
       <div class="upgrade-row">
@@ -67,7 +67,7 @@
         </div>
         <div class="upgrade-row__value">${value}</div>
         <button type="button" class="upgrade-row__button" ${isDisabled} data-stat="${statKey}">
-          Upgrade +${cost} keys
+          Upgrade +${cost} grace
         </button>
       </div>
     `;
@@ -79,9 +79,9 @@
     gridElement.innerHTML = rows;
   }
 
-  function updateKeyDisplay() {
-    if (!keysElement) return;
-    keysElement.textContent = getKeyCount();
+  function updateGraceDisplay() {
+    if (!graceElement) return;
+    graceElement.textContent = getGraceCount();
   }
 
   function typewriter(el, text, msPerChar = 18) {
@@ -103,7 +103,7 @@
   function show(callback) {
     if (!overlay) return;
     renderRows();
-    updateKeyDisplay();
+    updateGraceDisplay();
     onCloseCallback = typeof callback === "function" ? callback : null;
     overlay.classList.remove("hidden");
     overlay.classList.add("visible");

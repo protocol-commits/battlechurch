@@ -16,28 +16,28 @@ const projectiles = [];
 const obstacles = [];
 const animals = [];
 const utilityPowerUps = [];
-const keyPickups = [];
+const gracePickups = [];
 const POWERUP_RESPAWN_DELAY = 5;
 const POWERUP_ACTIVE_LIFETIME = 8;
 const POWERUP_BLINK_DURATION = 2;
 const POWERUP_SPAWN_BLINK_DURATION = 1.2;
 let powerUpRespawnTimer = 0;
-let playerKeyCount = 0;
-const KEY_PICKUP_RADIUS = 18;
-const KEY_PICKUP_FRAME_DURATION = 0.08;
-const KEY_PICKUP_LIFETIME = 8;
-const KEY_PICKUP_ATTRACT_DISTANCE = 170;
-const KEY_PICKUP_ATTRACT_FORCE = 460;
-const KEY_PICKUP_GRAVITY = 520;
-const KEY_PICKUP_AIR_DRAG = 0.88;
-const KEY_PICKUP_FLOOR_Y = () => canvas.height - 36;
-const KEY_DROP_BASE_CHANCE = 0.18;
-const KEY_DROP_HIGH_VALUE_BONUS = 0.12;
-const KEY_DROP_MINION_SCALE = 0.35;
-const KEY_DROP_MAX_STACK = 3;
-const KEY_DROP_SIZE_CHANCE_FACTOR = 0.15; // additional chance per relative size unit
-const KEY_DROP_SIZE_STACK_FACTOR = 0.9; // extra stacks per size bucket
-const KEY_RUSH_DURATION = 5;
+let playerGraceCount = 0;
+const GRACE_PICKUP_RADIUS = 18;
+const GRACE_PICKUP_FRAME_DURATION = 0.08;
+const GRACE_PICKUP_LIFETIME = 8;
+const GRACE_PICKUP_ATTRACT_DISTANCE = 170;
+const GRACE_PICKUP_ATTRACT_FORCE = 460;
+const GRACE_PICKUP_GRAVITY = 520;
+const GRACE_PICKUP_AIR_DRAG = 0.88;
+const GRACE_PICKUP_FLOOR_Y = () => canvas.height - 36;
+const GRACE_DROP_BASE_CHANCE = 0.18;
+const GRACE_DROP_HIGH_VALUE_BONUS = 0.12;
+const GRACE_DROP_MINION_SCALE = 0.35;
+const GRACE_DROP_MAX_STACK = 3;
+const GRACE_DROP_SIZE_CHANCE_FACTOR = 0.15; // additional chance per relative size unit
+const GRACE_DROP_SIZE_STACK_FACTOR = 0.9; // extra stacks per size bucket
+const GRACE_RUSH_DURATION = 5;
 const POST_DEATH_HANG = 5;
 const ARENA_FADE_DURATION = 2;
 let postDeathSequenceActive = false;
@@ -51,13 +51,13 @@ let actBreakFadeAlpha = 0;
 const ACT_BREAK_FADE_IN = 0.8;
 const ACT_BREAK_FADE_OUT = 0.8;
 const ACT_BREAK_HOLD_SECONDS = 2;
-let keyRushFadeTimer = 0;
-let keyRushFadeDuration = 0;
-let keyRushFadeAlpha = 0;
-let keyRushFadeHold = false;
-let keyRushFadeReleaseTimer = 0;
-let keyRushBlackout = false;
-let keyRushHardBlackoutTimer = 0;
+let graceRushFadeTimer = 0;
+let graceRushFadeDuration = 0;
+let graceRushFadeAlpha = 0;
+let graceRushFadeHold = false;
+let graceRushFadeReleaseTimer = 0;
+let graceRushBlackout = false;
+let graceRushHardBlackoutTimer = 0;
 let damageHitFlash = 0;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
@@ -105,7 +105,7 @@ const VISITOR_BLOCKER_LINES =
     window.BattlechurchVisitorBlocker &&
     window.BattlechurchVisitorBlocker.blockerLines) ||
   [];
-const KEY_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/keys";
+const GRACE_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/keys";
 const TORCH_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/torch";
 const FLAG_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/flag";
 const DEFAULT_ARROW_SFX_SRC = "assets/sfx/rpg/Magic/fireball_release_3.wav";
@@ -172,7 +172,7 @@ const FAITH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
-const KEY_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
+const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const INTRO_MUSIC_SRC = "assets/music/stings-logo.wav";
 const BATTLE_MUSIC_SRC = "assets/music/battle4.wav";
 const RECAP_MUSIC_SRC = "assets/music/inspiringtrailer.wav";
@@ -202,7 +202,7 @@ const WISDOM_HIT_SFX_POOL_SIZE = 5;
 const FAITH_HIT_SFX_POOL_SIZE = 5;
 const MENU_SELECT_SFX_POOL_SIZE = 4;
 const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
-const KEY_PICKUP_SFX_POOL_SIZE = 4;
+const GRACE_PICKUP_SFX_POOL_SIZE = 4;
 const VISITOR_HIT_SFX_POOL_SIZE = 4;
 const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
@@ -226,7 +226,7 @@ const wisdomHitSfxPool = [];
 const faithHitSfxPool = [];
 const menuSelectSfxPool = [];
 const enemySpawnSfxPool = [];
-const keyPickupSfxPool = [];
+const gracePickupSfxPool = [];
 const visitorHitSfxPool = [];
 const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
@@ -662,16 +662,16 @@ if (typeof window !== "undefined") {
   window.playUtilityPowerupPickupSfx = playPowerupPickupSfx;
 }
 
-function playKeyPickupSfx(volume = 0.2) {
+function playGracePickupSfx(volume = 0.2) {
   if (typeof Audio === "undefined") return;
-  let audio = keyPickupSfxPool.find((entry) => entry.paused || entry.ended);
+  let audio = gracePickupSfxPool.find((entry) => entry.paused || entry.ended);
   if (!audio) {
-    if (keyPickupSfxPool.length < KEY_PICKUP_SFX_POOL_SIZE) {
-      audio = new Audio(KEY_PICKUP_SFX_SRC);
+    if (gracePickupSfxPool.length < GRACE_PICKUP_SFX_POOL_SIZE) {
+      audio = new Audio(GRACE_PICKUP_SFX_SRC);
       audio.preload = "auto";
-      keyPickupSfxPool.push(audio);
+      gracePickupSfxPool.push(audio);
     } else {
-      audio = keyPickupSfxPool[0];
+      audio = gracePickupSfxPool[0];
     }
   }
   try {
@@ -685,7 +685,7 @@ function playKeyPickupSfx(volume = 0.2) {
 }
 
 if (typeof window !== "undefined") {
-  window.playKeyPickupSfx = playKeyPickupSfx;
+  window.playGracePickupSfx = playGracePickupSfx;
 }
 
 function playMenuSelectSfx(volume = 0.55) {
@@ -848,14 +848,14 @@ function startActBreakFade(holdSeconds = ACT_BREAK_HOLD_SECONDS) {
   actBreakFadeAlpha = 0;
 }
 
-function startKeyRushEndFade(duration = 1) {
+function startGraceRushEndFade(duration = 1) {
   const total = Math.max(0.1, Number(duration) || 1);
-  keyRushFadeDuration = total;
-  keyRushFadeTimer = total;
-  keyRushFadeAlpha = 0;
-  keyRushFadeHold = false;
-  keyRushFadeReleaseTimer = 0;
-  keyRushBlackout = false;
+  graceRushFadeDuration = total;
+  graceRushFadeTimer = total;
+  graceRushFadeAlpha = 0;
+  graceRushFadeHold = false;
+  graceRushFadeReleaseTimer = 0;
+  graceRushBlackout = false;
 }
 
 function pauseAllMusic() {
@@ -1055,7 +1055,7 @@ function clearDivineChargeSparkVisual() {
   divineChargeSparkEffect.dead = true;
   divineChargeSparkEffect = null;
 }
-const KEY_SPRITE_FILES = [
+const GRACE_SPRITE_FILES = [
   "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
 ];
 const visitorSession = {
@@ -1080,7 +1080,7 @@ const visitorSession = {
   recapShown: false,
   introShown: false,
 };
-const keyRushState = {
+const graceRushState = {
   active: false,
   timer: 0,
   duration: 0,
@@ -1238,7 +1238,7 @@ function maybeSwapNpcPositions() {
   if (!npcs || !npcs.length) return;
   const status =
     typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
-  const activeStages = new Set(["hordeActive", "bossActive", "keyRush"]);
+  const activeStages = new Set(["hordeActive", "bossActive", "graceRush"]);
   if (!status || !activeStages.has(status.stage)) return;
   if (!formationState?.current) return;
   const swapped = formationState.swappedThisBattle || new Set();
@@ -1342,68 +1342,72 @@ function clearAllPowerUps() {
   powerUpRespawnTimer = 0;
 }
 
-function clearKeyPickups() {
-  keyPickups.splice(0, keyPickups.length);
+function clearGracePickups() {
+  gracePickups.splice(0, gracePickups.length);
 }
 
-function getKeyCount() {
-  return playerKeyCount;
+function getGraceCount() {
+  return playerGraceCount;
 }
 
 let npcHarmonyBuffTimer = 0;
 let npcHarmonyBuffDuration = 0;
 const HARMONY_BUFF_MULTIPLIER = 2.25;
 
-function addKeys(amount = 1) {
-  if (!Number.isFinite(amount) || amount === 0) return playerKeyCount;
-  playerKeyCount = Math.max(0, Math.round(playerKeyCount + amount));
-  return playerKeyCount;
+function addGrace(amount = 1) {
+  if (!Number.isFinite(amount) || amount === 0) return playerGraceCount;
+  playerGraceCount = Math.max(0, Math.round(playerGraceCount + amount));
+  return playerGraceCount;
+}
+if (typeof window !== "undefined") {
+  window.getGraceCount = getGraceCount;
+  window.addGrace = addGrace;
 }
 
-function startBattleKeyRush(duration = KEY_RUSH_DURATION, options = {}) {
-  keyRushState.active = true;
-  keyRushState.timer = Math.max(0, duration);
-  keyRushState.duration = Math.max(0, duration);
-  keyRushState.reason = options.reason || "battle";
-  keyRushState.burstAmount = Math.max(1, Math.round(options.burstAmount ?? (keyRushState.reason === "boss" ? 26 : 16)));
-  keyRushState.spawnInterval = Math.max(
+function startBattleGraceRush(duration = GRACE_RUSH_DURATION, options = {}) {
+  graceRushState.active = true;
+  graceRushState.timer = Math.max(0, duration);
+  graceRushState.duration = Math.max(0, duration);
+  graceRushState.reason = options.reason || "battle";
+  graceRushState.burstAmount = Math.max(1, Math.round(options.burstAmount ?? (graceRushState.reason === "boss" ? 26 : 16)));
+  graceRushState.spawnInterval = Math.max(
     0.2,
-    Number.isFinite(options.spawnInterval) ? options.spawnInterval : keyRushState.reason === "boss" ? 0.65 : 1.1,
+    Number.isFinite(options.spawnInterval) ? options.spawnInterval : graceRushState.reason === "boss" ? 0.65 : 1.1,
   );
-  keyRushState.spawnTimer = 0;
-  keyRushState.centerX = Number.isFinite(options.centerX) ? options.centerX : null;
-  keyRushState.centerY = Number.isFinite(options.centerY) ? options.centerY : null;
+  graceRushState.spawnTimer = 0;
+  graceRushState.centerX = Number.isFinite(options.centerX) ? options.centerX : null;
+  graceRushState.centerY = Number.isFinite(options.centerY) ? options.centerY : null;
   lastEnemyDeathPosition = null;
 }
 
-function updateKeyRushState(dt) {
-  if (!keyRushState.active) return;
+function updateGraceRushState(dt) {
+  if (!graceRushState.active) return;
   const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
-  if (levelStatus?.stage !== "keyRush") {
-    keyRushState.active = false;
-    keyRushState.timer = 0;
-    keyRushState.spawnTimer = 0;
-    keyRushState.centerX = null;
-    keyRushState.centerY = null;
+  if (levelStatus?.stage !== "graceRush") {
+    graceRushState.active = false;
+    graceRushState.timer = 0;
+    graceRushState.spawnTimer = 0;
+    graceRushState.centerX = null;
+    graceRushState.centerY = null;
     return;
   }
-  keyRushState.timer = Math.max(0, keyRushState.timer - dt);
-  keyRushState.spawnTimer = (keyRushState.spawnTimer || 0) - dt;
-  if (keyRushState.spawnTimer <= 0) {
-    spawnVictoryKeyBurst({
-      reason: keyRushState.reason,
-      amount: keyRushState.burstAmount,
-      centerX: keyRushState.centerX,
-      centerY: keyRushState.centerY,
+  graceRushState.timer = Math.max(0, graceRushState.timer - dt);
+  graceRushState.spawnTimer = (graceRushState.spawnTimer || 0) - dt;
+  if (graceRushState.spawnTimer <= 0) {
+    spawnVictoryGraceBurst({
+      reason: graceRushState.reason,
+      amount: graceRushState.burstAmount,
+      centerX: graceRushState.centerX,
+      centerY: graceRushState.centerY,
     });
-    keyRushState.spawnTimer = keyRushState.spawnInterval;
+    graceRushState.spawnTimer = graceRushState.spawnInterval;
   }
-  if (keyRushState.timer <= 0) {
-    keyRushState.active = false;
-    keyRushState.timer = 0;
-    keyRushState.spawnTimer = 0;
-    keyRushState.centerX = null;
-    keyRushState.centerY = null;
+  if (graceRushState.timer <= 0) {
+    graceRushState.active = false;
+    graceRushState.timer = 0;
+    graceRushState.spawnTimer = 0;
+    graceRushState.centerX = null;
+    graceRushState.centerY = null;
   }
 }
 
@@ -1878,8 +1882,8 @@ Input.initialize({
   virtualSpaceButton,
   onAnyKeyDown: (key) => {
     if (key === "k") {
-      addKeys(500);
-      setDevStatus("Dev: +500 keys");
+      addGrace(500);
+      setDevStatus("Dev: +500 grace");
     }
     if (!gameStarted && !paused) gameStarted = true;
   },
@@ -1941,7 +1945,7 @@ Renderer.initialize({
   npcs,
   utilityPowerUps,
   animals,
-  keyPickups,
+  gracePickups,
   enemies,
   get activeBoss() { return activeBoss; },
   projectiles,
@@ -1959,8 +1963,8 @@ Renderer.initialize({
   getStartCountdownLabel,
   aimState,
   aimAssist,
-  get keyRushState() { return keyRushState; },
-  getKeyCount: () => getKeyCount(),
+  get graceRushState() { return graceRushState; },
+  getGraceCount: () => getGraceCount(),
   WORLD_SCALE,
   get damageHitFlash() { return damageHitFlash; },
   get npcWeaponState() { return npcWeaponState; },
@@ -1974,8 +1978,8 @@ Renderer.initialize({
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
-  get keyRushFadeAlpha() { return keyRushFadeAlpha; },
-  get keyRushBlackout() { return keyRushBlackout; },
+  get graceRushFadeAlpha() { return graceRushFadeAlpha; },
+  get graceRushBlackout() { return graceRushBlackout; },
 });
 function bootInputAndResize() {
   resizeCanvas();
@@ -2583,9 +2587,9 @@ Levels.initialize({
   buildCongregationMembers,
   clearCongregationMembers,
   clearPowerUps: clearAllPowerUps,
-  clearKeys: clearKeyPickups,
-  spawnVictoryKeyBurst,
-  startBattleKeyRush,
+  clearGrace: clearGracePickups,
+  spawnVictoryGraceBurst,
+  startBattleGraceRush,
   getLastEnemyDeathPosition,
   spawnAnimals: spawnWeaponDrops,
   evacuateNpcsForBoss,
@@ -2596,7 +2600,7 @@ Levels.initialize({
   prepareNpcProcession,
   isNpcProcessionComplete: areNpcProcessionsComplete,
   startActBreakFade,
-  startKeyRushEndFade,
+  startGraceRushEndFade,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
   hasEnemyAsset: (key) => Boolean(ASSET_MANIFEST.enemies?.[key]),
   miniImpBaseGroupSize: MINI_IMP_BASE_GROUP_SIZE,
@@ -3428,7 +3432,7 @@ async function loadAssets() {
   const coinAssetsPromise = loadCoinAssets(cache);
   const ambientDecorPromise = loadAmbientDecorAssets(cache);
   const keyFramesPromise = Promise.all(
-    KEY_SPRITE_FILES.map(async (src) => {
+    GRACE_SPRITE_FILES.map(async (src) => {
       if (!cache.has(src)) {
         cache.set(src, loadImage(src));
       }
@@ -3811,7 +3815,7 @@ async function loadAssets() {
   assets.effects.meleeSwoosh = await loadImage(MELEE_SWOOSH_PATH).catch(() => null);
   assets.npcs = await npcAssetsPromise;
   const keyFrames = (await keyFramesPromise).filter(Boolean);
-  assets.items.keyPickup = {
+  assets.items.gracePickup = {
     frames: keyFrames,
     icon: keyFrames[0] || null,
   };
@@ -4251,11 +4255,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       portraits: null,
       onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
       onContinue: () => {
-        keyRushBlackout = false;
-        keyRushFadeHold = false;
-        keyRushFadeTimer = 0;
-        keyRushFadeDuration = 0;
-        keyRushFadeAlpha = 0;
+        graceRushBlackout = false;
+        graceRushFadeHold = false;
+        graceRushFadeTimer = 0;
+        graceRushFadeDuration = 0;
+        graceRushFadeAlpha = 0;
         dismissCurrentLevelAnnouncement();
         window.DialogOverlay.consumeAction();
       },
@@ -4289,11 +4293,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     portraits: null,
     onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
     onContinue: () => {
-      keyRushBlackout = false;
-      keyRushFadeHold = false;
-      keyRushFadeTimer = 0;
-      keyRushFadeDuration = 0;
-      keyRushFadeAlpha = 0;
+      graceRushBlackout = false;
+      graceRushFadeHold = false;
+      graceRushFadeTimer = 0;
+      graceRushFadeDuration = 0;
+      graceRushFadeAlpha = 0;
       dismissCurrentLevelAnnouncement();
       window.DialogOverlay.consumeAction();
     },
@@ -4950,23 +4954,23 @@ function updateAnimals(dt) {
   }
 }
 
-function spawnKeyPickup(x, y, options = {}) {
-  const frames = assets?.items?.keyPickup?.frames;
+function spawnGracePickup(x, y, options = {}) {
+  const frames = assets?.items?.gracePickup?.frames;
   if (!frames || !frames.length) return null;
   const pickup = {
     x,
     y,
-    radius: options.radius || KEY_PICKUP_RADIUS,
+    radius: options.radius || GRACE_PICKUP_RADIUS,
     frames,
     frameIndex: Math.floor(Math.random() * frames.length),
-    frameTimer: Math.random() * KEY_PICKUP_FRAME_DURATION,
-    frameDuration: KEY_PICKUP_FRAME_DURATION,
+    frameTimer: Math.random() * GRACE_PICKUP_FRAME_DURATION,
+    frameDuration: GRACE_PICKUP_FRAME_DURATION,
     bobTimer: Math.random() * Math.PI * 2,
     value: Math.max(1, Math.round(options.value || 1)),
-    life: options.life || KEY_PICKUP_LIFETIME,
+    life: options.life || GRACE_PICKUP_LIFETIME,
     vx: options.vx ?? (options.scatter ? randomInRange(-90, 90) : 0),
     vy: options.vy ?? (options.scatter ? randomInRange(-180, -60) : 0),
-    gravity: options.gravity ?? KEY_PICKUP_GRAVITY,
+    gravity: options.gravity ?? GRACE_PICKUP_GRAVITY,
     collected: false,
     spawnBlink: 0.2,
     blinkTimer: 0,
@@ -4989,21 +4993,21 @@ function spawnKeyPickup(x, y, options = {}) {
     context.drawImage(frame, -size / 2, -size / 2, size, size);
     context.restore();
   };
-  keyPickups.push(pickup);
+  gracePickups.push(pickup);
   return pickup;
 }
 
-function spawnKeyBurst(count = 10, { centerX = canvas.width / 2, centerY = (canvas.height + HUD_HEIGHT) / 2, spread = 220 } = {}) {
+function spawnGraceBurst(count = 10, { centerX = canvas.width / 2, centerY = (canvas.height + HUD_HEIGHT) / 2, spread = 220 } = {}) {
   for (let i = 0; i < count; i += 1) {
     const angle = Math.random() * Math.PI * 2;
     const distance = Math.random() * spread * 0.8;
     const x = centerX + Math.cos(angle) * distance;
     const y = centerY + Math.sin(angle) * distance;
-    spawnKeyPickup(x, y, { scatter: true });
+    spawnGracePickup(x, y, { scatter: true });
   }
 }
 
-function spawnVictoryKeyBurst(options = {}) {
+function spawnVictoryGraceBurst(options = {}) {
   const { amount = 20, reason = "battle", centerX: overrideX = null, centerY: overrideY = null } = options || {};
   const area = getPlayfieldBounds();
   const centerX =
@@ -5014,20 +5018,20 @@ function spawnVictoryKeyBurst(options = {}) {
     reason === "boss"
       ? Math.max(area.maxX - area.minX, area.maxY - area.minY) * 0.6
       : Math.min(area.maxX - area.minX, area.maxY - area.minY) * 0.4;
-  spawnKeyBurst(amount, { centerX, centerY, spread });
+  spawnGraceBurst(amount, { centerX, centerY, spread });
 }
 
-function maybeDropKeysFromEnemy(enemy) {
+function maybeDropGraceFromEnemy(enemy) {
   if (!enemy || visitorSession?.active) return;
-  const framesAvailable = assets?.items?.keyPickup?.frames;
+  const framesAvailable = assets?.items?.gracePickup?.frames;
   if (!framesAvailable || !framesAvailable.length) return;
-  let chance = KEY_DROP_BASE_CHANCE;
+  let chance = GRACE_DROP_BASE_CHANCE;
   if (enemy.config?.score && enemy.config.score >= 120) {
-    chance += KEY_DROP_HIGH_VALUE_BONUS;
+    chance += GRACE_DROP_HIGH_VALUE_BONUS;
   }
   const referenceRadius = enemy.radius || enemy.config?.radius || 24;
   const sizeRatio = Math.max(0, referenceRadius - 24) / 48;
-  chance += sizeRatio * KEY_DROP_SIZE_CHANCE_FACTOR;
+  chance += sizeRatio * GRACE_DROP_SIZE_CHANCE_FACTOR;
   const normalizedChance = Math.min(0.95, chance);
   chance = normalizedChance;
   const popcornTypes = new Set([
@@ -5039,21 +5043,21 @@ function maybeDropKeysFromEnemy(enemy) {
     "miniDemoness",
   ]);
   if (popcornTypes.has(enemy.type)) {
-    chance *= KEY_DROP_MINION_SCALE;
+    chance *= GRACE_DROP_MINION_SCALE;
   }
   if (Math.random() > chance) return;
   const stacks = 1 +
-    Math.floor(Math.random() * KEY_DROP_MAX_STACK) +
-    Math.floor(sizeRatio * KEY_DROP_SIZE_STACK_FACTOR * KEY_DROP_MAX_STACK);
+    Math.floor(Math.random() * GRACE_DROP_MAX_STACK) +
+    Math.floor(sizeRatio * GRACE_DROP_SIZE_STACK_FACTOR * GRACE_DROP_MAX_STACK);
   for (let i = 0; i < stacks; i += 1) {
-    spawnKeyPickup(enemy.x, enemy.y, { scatter: true });
+    spawnGracePickup(enemy.x, enemy.y, { scatter: true });
   }
 }
 
-function updateKeyPickups(dt) {
-  if (!keyPickups.length) return;
-  for (let i = keyPickups.length - 1; i >= 0; i -= 1) {
-    const pickup = keyPickups[i];
+function updateGracePickups(dt) {
+  if (!gracePickups.length) return;
+  for (let i = gracePickups.length - 1; i >= 0; i -= 1) {
+    const pickup = gracePickups[i];
     if (!pickup) continue;
     pickup.frameTimer += dt;
     pickup.bobTimer += dt * 3;
@@ -5062,8 +5066,8 @@ function updateKeyPickups(dt) {
       pickup.frameTimer -= pickup.frameDuration;
       pickup.frameIndex = (pickup.frameIndex + 1) % pickup.frames.length;
     }
-    pickup.vx *= KEY_PICKUP_AIR_DRAG;
-    pickup.vy *= KEY_PICKUP_AIR_DRAG;
+    pickup.vx *= GRACE_PICKUP_AIR_DRAG;
+    pickup.vy *= GRACE_PICKUP_AIR_DRAG;
     pickup.x += pickup.vx * dt;
     pickup.y += pickup.vy * dt;
     pickup.life -= dt;
@@ -5077,27 +5081,27 @@ function updateKeyPickups(dt) {
       const dx = player.x - pickup.x;
       const dy = player.y - pickup.y;
       const distance = Math.hypot(dx, dy);
-      if (distance < KEY_PICKUP_ATTRACT_DISTANCE && player.state !== "death") {
-        const attract = KEY_PICKUP_ATTRACT_FORCE * (1 - distance / KEY_PICKUP_ATTRACT_DISTANCE);
+      if (distance < GRACE_PICKUP_ATTRACT_DISTANCE && player.state !== "death") {
+        const attract = GRACE_PICKUP_ATTRACT_FORCE * (1 - distance / GRACE_PICKUP_ATTRACT_DISTANCE);
         pickup.vx += (dx / Math.max(distance, 0.001)) * attract * dt;
         pickup.vy += (dy / Math.max(distance, 0.001)) * attract * dt;
       }
       if (distance <= (player.radius || 24) + pickup.radius) {
-        addKeys(pickup.value);
-        if (typeof window !== "undefined" && typeof window.playKeyPickupSfx === "function") {
-          window.playKeyPickupSfx(0.2);
+        addGrace(pickup.value);
+        if (typeof window !== "undefined" && typeof window.playGracePickupSfx === "function") {
+          window.playGracePickupSfx(0.2);
         }
         addFloatingTextAt(player.x, player.y - player.radius - 24, `${pickup.value}`, "#ffe570", {
           life: 0.9,
           vy: -18,
         });
         spawnImpactEffect(player.x, player.y - player.radius / 2);
-        keyPickups.splice(i, 1);
+        gracePickups.splice(i, 1);
         continue;
       }
     }
     if (pickup.life <= 0) {
-      keyPickups.splice(i, 1);
+      gracePickups.splice(i, 1);
     }
   }
 }
@@ -7600,7 +7604,7 @@ class BossEncounter {
       spawnImpactDustEffect(this.x, this.y, this.radius * 1.2);
       this.deathNotified = true;
     }
-    spawnVictoryKeyBurst({ reason: "boss", amount: 70, centerX: this.x, centerY: this.y });
+    spawnVictoryGraceBurst({ reason: "boss", amount: 70, centerX: this.x, centerY: this.y });
     this.deathExplosionTimer = 5;
     this.deathPostDelay = 3;
     this.deathExplosionAccumulator = 0;
@@ -8221,7 +8225,7 @@ function beginVisitorSession(options = {}) {
   projectiles.splice(0, projectiles.length);
   bossHazards.splice(0, bossHazards.length);
   clearAllPowerUps();
-  clearKeyPickups();
+  clearGracePickups();
   activeBoss = null;
   if (player) {
     const centerX = (bounds.minX + bounds.maxX) / 2;
@@ -8280,7 +8284,7 @@ function endVisitorSession({ reason = "completed" } = {}) {
   visitorSession.newMemberPortraits = [];
   visitorSession.recapShown = false;
   clearAllPowerUps();
-  clearKeyPickups();
+  clearGracePickups();
   if (player && player.overrideWeaponMode === "heart") {
     player.overrideWeaponMode = null;
   }
@@ -9294,9 +9298,9 @@ function updateCozyNpcs(dt) {
     // Player-touch restores NPCs to full faith
     try {
       const status = typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
-      const inKeyRush = status?.stage === "keyRush";
-      if (
-        ((npc.state === "lostFaith" || npc.state === "drained") || inKeyRush) &&
+    const inGraceRush = status?.stage === "graceRush";
+    if (
+      ((npc.state === "lostFaith" || npc.state === "drained") || inGraceRush) &&
         player &&
         npc &&
         !npc.departed &&
@@ -9385,8 +9389,8 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("6")) {
-    if (levelManager?.devSkipToKeyRush?.()) {
-      setDevStatus("Key rush engaged", 2.0);
+    if (levelManager?.devSkipToGraceRush?.()) {
+      setDevStatus("Grace rush engaged", 2.0);
     }
   }
   if (keysJustPressed.has("h")) {
@@ -9727,7 +9731,7 @@ function updateGame(dt) {
     return;
   }
   if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible()) {
-    clearKeyPickups();
+    clearGracePickups();
     clearAllPowerUps();
     Effects.clear();
     window.UpgradeScreen.show(() => {});
@@ -9777,24 +9781,24 @@ function updateGame(dt) {
   } else {
     actBreakFadeAlpha = 0;
   }
-  if (keyRushFadeTimer > 0) {
-    keyRushFadeTimer = Math.max(0, keyRushFadeTimer - dt);
-    const progress = Math.min(1, Math.max(0, 1 - keyRushFadeTimer / keyRushFadeDuration));
-    keyRushFadeAlpha = Math.max(0, Math.min(1, progress));
-    if (keyRushFadeTimer <= 0) {
-      keyRushFadeHold = true;
-      keyRushFadeAlpha = 1;
-      keyRushBlackout = true;
+  if (graceRushFadeTimer > 0) {
+    graceRushFadeTimer = Math.max(0, graceRushFadeTimer - dt);
+    const progress = Math.min(1, Math.max(0, 1 - graceRushFadeTimer / graceRushFadeDuration));
+    graceRushFadeAlpha = Math.max(0, Math.min(1, progress));
+    if (graceRushFadeTimer <= 0) {
+      graceRushFadeHold = true;
+      graceRushFadeAlpha = 1;
+      graceRushBlackout = true;
     }
-  } else if (keyRushFadeHold) {
-    keyRushFadeAlpha = 1;
+  } else if (graceRushFadeHold) {
+    graceRushFadeAlpha = 1;
   } else {
-    keyRushFadeAlpha = 0;
+    graceRushFadeAlpha = 0;
   }
-  const hardBlackoutActive = keyRushHardBlackoutTimer > 0 || keyRushBlackout;
+  const hardBlackoutActive = graceRushHardBlackoutTimer > 0 || graceRushBlackout;
   if (hardBlackoutActive) {
-    if (keyRushHardBlackoutTimer > 0) {
-      keyRushHardBlackoutTimer = Math.max(0, keyRushHardBlackoutTimer - dt);
+    if (graceRushHardBlackoutTimer > 0) {
+      graceRushHardBlackoutTimer = Math.max(0, graceRushHardBlackoutTimer - dt);
     }
     try {
       Effects.clear();
@@ -9840,16 +9844,16 @@ function updateGame(dt) {
   ) {
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
   }
-  if (keyRushFadeHold) {
+  if (graceRushFadeHold) {
     if (window.DialogOverlay?.isVisible?.()) {
-      if (keyRushFadeReleaseTimer <= 0) {
-        keyRushFadeReleaseTimer = 0.2;
+      if (graceRushFadeReleaseTimer <= 0) {
+        graceRushFadeReleaseTimer = 0.2;
       }
-      keyRushFadeReleaseTimer = Math.max(0, keyRushFadeReleaseTimer - dt);
-      if (keyRushFadeReleaseTimer <= 0) {
-        keyRushFadeHold = false;
-        keyRushFadeDuration = 0;
-        keyRushFadeAlpha = 0;
+      graceRushFadeReleaseTimer = Math.max(0, graceRushFadeReleaseTimer - dt);
+      if (graceRushFadeReleaseTimer <= 0) {
+        graceRushFadeHold = false;
+        graceRushFadeDuration = 0;
+        graceRushFadeAlpha = 0;
       }
     }
   }
@@ -10170,8 +10174,8 @@ function updateGame(dt) {
   updateCozyNpcs(dt);
   updateAnimals(dt);
   updateUtilityPowerUps(dt);
-  updateKeyPickups(dt);
-  updateKeyRushState(dt);
+  updateGracePickups(dt);
+  updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   // Ensure power-ups obey spawn rules per stage
   try {
@@ -10258,7 +10262,7 @@ function updateGame(dt) {
           } catch (e) {}
         }
         lastEnemyDeathPosition = { x: enemy.x, y: enemy.y };
-        maybeDropKeysFromEnemy(enemy);
+        maybeDropGraceFromEnemy(enemy);
         enemies.splice(i, 1);
     }
   }
@@ -11322,17 +11326,17 @@ function restartGame() {
   projectiles.splice(0, projectiles.length);
   animals.splice(0, animals.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
-  clearKeyPickups();
+  clearGracePickups();
   window.StatsManager?.resetStats?.();
-  playerKeyCount = 0;
+  playerGraceCount = 0;
   Spawner.resetAllFlags();
   Effects.clear();
   rebuildAmbientDecor();
   bossHazards.splice(0, bossHazards.length);
   activeBoss = null;
-  keyRushState.active = false;
-  keyRushState.timer = 0;
-  keyRushState.duration = 0;
+  graceRushState.active = false;
+  graceRushState.timer = 0;
+  graceRushState.duration = 0;
   lastEnemyDeathPosition = null;
   cancelStartCountdown();
   needsCountdown = false;
@@ -11354,12 +11358,12 @@ function restartGame() {
   actBreakFadeTimer = 0;
   actBreakFadeDuration = 0;
   actBreakFadeAlpha = 0;
-  keyRushFadeTimer = 0;
-  keyRushFadeDuration = 0;
-  keyRushFadeAlpha = 0;
-  keyRushFadeHold = false;
-  keyRushFadeReleaseTimer = 0;
-  keyRushBlackout = false;
+  graceRushFadeTimer = 0;
+  graceRushFadeDuration = 0;
+  graceRushFadeAlpha = 0;
+  graceRushFadeHold = false;
+  graceRushFadeReleaseTimer = 0;
+  graceRushBlackout = false;
   npcWeaponState.mode = null;
   npcWeaponState.timer = 0;
   npcWeaponState.duration = 0;

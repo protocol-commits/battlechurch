@@ -26,8 +26,8 @@
   const HORDE_INTRO_DURATION = 2.8;
   const HORDE_CLEAR_DURATION = 2.2;
   const ANNOUNCEMENT_FADE_DURATION = 1.5;
-  const KEY_RUSH_DURATION = 5;
-  const BOSS_KEY_RUSH_DURATION = 10;
+  const GRACE_RUSH_DURATION = 5;
+  const BOSS_GRACE_RUSH_DURATION = 10;
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
@@ -40,7 +40,7 @@
   const ACT_BREAK_MESSAGE_LEAD = 0.5;
   const ACT_BREAK_MESSAGE = "\"Good job. See you next week!\"";
   const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
-  const KEY_RUSH_FADE_DURATION = 1.0;
+  const GRACE_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
   const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
   const LEVEL2_MINI_IMP_GROUP_FACTOR = 0.55;
@@ -178,9 +178,9 @@
     buildCongregationMembers: noop,
     clearCongregationMembers: noop,
     clearPowerUps: noop,
-    clearKeys: noop,
-    spawnVictoryKeyBurst: noop,
-    startBattleKeyRush: noop,
+    clearGrace: noop,
+    spawnVictoryGraceBurst: noop,
+    startBattleGraceRush: noop,
     getLastEnemyDeathPosition: () => null,
     spawnAnimals: noop,
     evacuateNpcsForBoss: noop,
@@ -191,7 +191,7 @@
     prepareNpcProcession: noop,
     isNpcProcessionComplete: () => true,
     startActBreakFade: noop,
-    startKeyRushEndFade: noop,
+    startGraceRushEndFade: noop,
     getAvailableMiniFolkKeys: () => [],
     hasEnemyAsset: () => true,
     miniImpBaseGroupSize: 48,
@@ -218,11 +218,11 @@
         console.warn && console.warn("clearPowerUps hook failed", err);
       }
     }
-    if (typeof deps.clearKeys === "function") {
+    if (typeof deps.clearGrace === "function") {
       try {
-        deps.clearKeys();
+        deps.clearGrace();
       } catch (err) {
-        console.warn && console.warn("clearKeys hook failed", err);
+        console.warn && console.warn("clearGrace hook failed", err);
       }
     }
   }
@@ -460,7 +460,7 @@
       heroSay,
       npcCheer,
       startActBreakFade,
-      startKeyRushEndFade,
+      startGraceRushEndFade,
       getAvailableMiniFolkKeys,
       hasEnemyAsset,
       miniImpBaseGroupSize,
@@ -499,7 +499,7 @@
         savedPortraits: [],
       },
   lastBattleSummary: null,
-      keyRushFadeTimer: 0,
+      graceRushFadeTimer: 0,
       conversationQueue: [],
       currentBattleScenario: "",
       currentBossTheme: "",
@@ -511,7 +511,7 @@
       visitorResumeAction: null,
       finalHordeDelay: 0,
       pendingPortalSpawnBaseline: 0,
-      keyRushContext: null,
+      graceRushContext: null,
       pendingBossRestore: false,
       npcRushActive: false,
       npcRushTimer: 0,
@@ -583,7 +583,7 @@
       state.visitorMinigamePlayed = false;
       state.pendingVisitorMinigame = false;
       state.visitorResumeAction = null;
-      state.keyRushContext = null;
+      state.graceRushContext = null;
       state.pendingBossRestore = false;
   // Compute global month number so Level 2 shows Apr/May/Jun etc.
   const globalMonthNumberForLevelStart = (levelNumber - 1) * MONTHS_PER_LEVEL + 1;
@@ -1051,31 +1051,31 @@
         return;
       }
 
-      beginKeyRushPhase(monthName);
+      beginGraceRushPhase(monthName);
     }
 
-    function beginKeyRushPhase(monthName) {
-      resetStage("keyRush", KEY_RUSH_DURATION);
+    function beginGraceRushPhase(monthName) {
+      resetStage("graceRush", GRACE_RUSH_DURATION);
       state.finalHordeDelay = 0;
-      state.keyRushContext = "battle";
-      setDevStatus(`Key Rush – ${monthName}`, KEY_RUSH_DURATION);
-      queueLevelAnnouncement("Key Rush!", "Grab as many keys as you can!", {
+      state.graceRushContext = "battle";
+      setDevStatus(`Grace Abounds – ${monthName}`, GRACE_RUSH_DURATION);
+      queueLevelAnnouncement("Grace Abounds", "Gather as much grace as you can!", {
         duration: 2.6,
         skipMissionBrief: true,
       });
       const lastPos = typeof deps.getLastEnemyDeathPosition === "function"
         ? deps.getLastEnemyDeathPosition()
         : null;
-      if (typeof deps.spawnVictoryKeyBurst === "function") {
-        deps.spawnVictoryKeyBurst({
+      if (typeof deps.spawnVictoryGraceBurst === "function") {
+        deps.spawnVictoryGraceBurst({
           reason: "battle",
           amount: 36,
           centerX: lastPos?.x,
           centerY: lastPos?.y,
         });
       }
-      if (typeof deps.startBattleKeyRush === "function") {
-        deps.startBattleKeyRush(KEY_RUSH_DURATION, {
+      if (typeof deps.startBattleGraceRush === "function") {
+        deps.startBattleGraceRush(GRACE_RUSH_DURATION, {
           reason: "battle",
           burstAmount: 16,
           spawnInterval: 1.1,
@@ -1086,7 +1086,7 @@
     }
 
     function handleBattleComplete() {
-      state.keyRushContext = null;
+      state.graceRushContext = null;
       clearStagePowerUps();
       state.finalHordeDelay = 0;
   finalizeBattleNpcResults();
@@ -1122,27 +1122,27 @@
       evacuateNpcsForBoss();
     }
 
-    function beginBossKeyRush() {
+    function beginBossGraceRush() {
       const lastPos = typeof deps.getLastEnemyDeathPosition === "function"
         ? deps.getLastEnemyDeathPosition()
         : null;
-      resetStage("keyRush", BOSS_KEY_RUSH_DURATION);
-      state.keyRushContext = "boss";
-      setDevStatus("Treasure Overflow!", BOSS_KEY_RUSH_DURATION);
-      queueLevelAnnouncement("Treasure Overflow!", "Celebrate the victory—collect every key!", {
+      resetStage("graceRush", BOSS_GRACE_RUSH_DURATION);
+      state.graceRushContext = "boss";
+      setDevStatus("Treasure Overflow!", BOSS_GRACE_RUSH_DURATION);
+      queueLevelAnnouncement("Treasure Overflow!", "Celebrate the victory—collect every grace!", {
         duration: 2.6,
         skipMissionBrief: true,
       });
-      if (typeof deps.spawnVictoryKeyBurst === "function") {
-        deps.spawnVictoryKeyBurst({
+      if (typeof deps.spawnVictoryGraceBurst === "function") {
+        deps.spawnVictoryGraceBurst({
           reason: "boss",
           amount: 90,
           centerX: lastPos?.x,
           centerY: lastPos?.y,
         });
       }
-      if (typeof deps.startBattleKeyRush === "function") {
-        deps.startBattleKeyRush(BOSS_KEY_RUSH_DURATION, {
+      if (typeof deps.startBattleGraceRush === "function") {
+        deps.startBattleGraceRush(BOSS_GRACE_RUSH_DURATION, {
           reason: "boss",
           burstAmount: 28,
           spawnInterval: 0.65,
@@ -1155,7 +1155,7 @@
       clearStagePowerUps();
       state.boss = null;
       setDevStatus("Boss defeated", 3.5);
-      beginBossKeyRush();
+      beginBossGraceRush();
     }
 
     function beginVisitorMinigame(onResume) {
@@ -1189,7 +1189,7 @@
     }
 
     function handleLevelCleared() {
-      state.keyRushContext = null;
+      state.graceRushContext = null;
       clearStagePowerUps();
       const scoreValue =
         typeof getScore === "function" ? Number(getScore()) || 0 : state.stats.enemiesDefeated;
@@ -1230,7 +1230,7 @@ state.battleIndex = -1;
         state.pendingVisitorMinigame = false;
         state.visitorMinigamePlayed = false;
         state.visitorResumeAction = null;
-        state.keyRushContext = null;
+        state.graceRushContext = null;
         state.pendingBossRestore = false;
         state.npcRushActive = false;
         state.npcRushTimer = 0;
@@ -1348,31 +1348,31 @@ state.battleIndex = -1;
               }
             }
             break;
-        case "keyRush":
+        case "graceRush":
           state.timer -= dt;
           if (state.timer <= 0) {
             state.timer = 0;
-            if (state.keyRushFadeTimer <= 0) {
-              state.keyRushFadeTimer = KEY_RUSH_FADE_DURATION;
-              if (typeof startKeyRushEndFade === "function") {
-                startKeyRushEndFade(KEY_RUSH_FADE_DURATION);
-              }
+            if (state.graceRushFadeTimer <= 0) {
+              state.graceRushFadeTimer = GRACE_RUSH_FADE_DURATION;
+      if (typeof startGraceRushEndFade === "function") {
+        startGraceRushEndFade(GRACE_RUSH_FADE_DURATION);
+      }
             }
           }
-          if (state.keyRushFadeTimer > 0) {
-            state.keyRushFadeTimer = Math.max(0, state.keyRushFadeTimer - dt);
-            if (state.keyRushFadeTimer > 0) break;
+          if (state.graceRushFadeTimer > 0) {
+            state.graceRushFadeTimer = Math.max(0, state.graceRushFadeTimer - dt);
+            if (state.graceRushFadeTimer > 0) break;
           }
           if (state.timer <= 0) {
-            if (state.keyRushContext === "boss") {
-              state.keyRushContext = null;
+            if (state.graceRushContext === "boss") {
+              state.graceRushContext = null;
               if (state.pendingBossRestore) {
                 restoreNpcsAfterBoss();
                 state.pendingBossRestore = false;
               }
               handleLevelCleared();
             } else {
-              state.keyRushContext = null;
+              state.graceRushContext = null;
               handleBattleComplete();
             }
           }
@@ -1501,7 +1501,7 @@ state.battleIndex = -1;
           state.timer = 0;
           return true;
         }
-        if (state.stage === "keyRush") {
+        if (state.stage === "graceRush") {
           state.timer = 0;
           handleBattleComplete();
           return true;
@@ -1540,7 +1540,7 @@ state.battleIndex = -1;
           onBossDefeated();
           return true;
         }
-        if (state.stage === "keyRush") {
+        if (state.stage === "graceRush") {
           state.timer = 0;
           handleBattleComplete();
           return true;
@@ -1589,7 +1589,7 @@ state.battleIndex = -1;
         state.timer = 0;
         return true;
       },
-      devSkipToKeyRush() {
+      devSkipToGraceRush() {
         if (!state.active) {
           beginLevel(1);
         }
@@ -1603,7 +1603,7 @@ state.battleIndex = -1;
         }
         const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
         const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);
-        beginKeyRushPhase(monthName);
+        beginGraceRushPhase(monthName);
         return true;
       },
       advanceFromCongregation,
