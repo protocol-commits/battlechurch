@@ -184,6 +184,8 @@ const VISITOR_HIT_SFX_SRC = "assets/sfx/utility/utility9.mp3";
 const CHATTY_HIT_SFX_SRC = "assets/sfx/utility/utility3.mp3";
 const VISITOR_SAVED_SFX_SRC = "assets/sfx/utility/utility17.mp3";
 const NPC_HURT_SFX_SRC = "assets/sfx/npcs/ow1.wav";
+const PLAYER_HURT_SFX_SRC = "assets/sfx/rpg/player/ouch_voice.wav";
+const PLAYER_DEATH_BELL_SFX_SRC = "assets/sfx/rpg/player/bells-2.wav";
 const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9.wav";
 const DIVINE_SHOT_SFX_SRC = "assets/sfx/rpg/Magic/fireball_whoosh_01.wav";
 const ENEMY_SPAWN_HIGH_SFX = [
@@ -209,6 +211,9 @@ const VISITOR_HIT_SFX_POOL_SIZE = 4;
 const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
 const NPC_HURT_SFX_POOL_SIZE = 4;
+const PLAYER_HURT_SFX_POOL_SIZE = 4;
+const PLAYER_DEATH_BELL_FADE_DELAY = 7;
+const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
 const MUSIC_VOLUME_BATTLE = 0.7;
 const MUSIC_FADE_OUT_MS = 1200;
@@ -233,6 +238,10 @@ const visitorHitSfxPool = [];
 const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
 const npcHurtSfxPool = [];
+const playerHurtSfxPool = [];
+const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
+let playerDeathBellFadeTimer = 0;
+let playerDeathBellFadeVolume = 1;
 const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
@@ -341,6 +350,58 @@ function playNpcHurtSfx(volume = 0.6) {
 
 if (typeof window !== "undefined") {
   window.playNpcHurtSfx = playNpcHurtSfx;
+}
+
+function playPlayerHurtSfx(volume = 1.0) {
+  if (typeof Audio === "undefined") return;
+  let audio = playerHurtSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (playerHurtSfxPool.length < PLAYER_HURT_SFX_POOL_SIZE) {
+      audio = new Audio(PLAYER_HURT_SFX_SRC);
+      audio.preload = "auto";
+      playerHurtSfxPool.push(audio);
+    } else {
+      audio = playerHurtSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playPlayerHurtSfx = playPlayerHurtSfx;
+}
+
+function playPlayerDeathBell(volume = 1.0) {
+  if (!playerDeathBellAudio) return;
+  try {
+    playerDeathBellAudio.pause();
+    playerDeathBellAudio.currentTime = 0;
+    playerDeathBellAudio.volume = volume;
+    playerDeathBellAudio.playbackRate = 1;
+    playerDeathBellAudio.loop = false;
+    const playPromise = playerDeathBellAudio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+  playerDeathBellFadeTimer = PLAYER_DEATH_BELL_FADE_DELAY + PLAYER_DEATH_BELL_FADE_DURATION;
+  playerDeathBellFadeVolume = volume;
+}
+
+function stopPlayerDeathBell() {
+  if (!playerDeathBellAudio) return;
+  try {
+    playerDeathBellAudio.pause();
+    playerDeathBellAudio.currentTime = 0;
+  } catch (err) {}
+  playerDeathBellFadeTimer = 0;
 }
 
 function playEnemyDeathSfx(volume = 0.35) {
@@ -9891,6 +9952,19 @@ function parseFrameList(input) {
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
+  if (playerDeathBellFadeTimer > 0 && playerDeathBellAudio) {
+    playerDeathBellFadeTimer = Math.max(0, playerDeathBellFadeTimer - dt);
+    if (playerDeathBellFadeTimer <= PLAYER_DEATH_BELL_FADE_DURATION) {
+      const t = playerDeathBellFadeTimer / Math.max(0.001, PLAYER_DEATH_BELL_FADE_DURATION);
+      playerDeathBellAudio.volume = Math.max(0, Math.min(1, playerDeathBellFadeVolume * t));
+      if (playerDeathBellFadeTimer <= 0.001) {
+        try {
+          playerDeathBellAudio.pause();
+          playerDeathBellAudio.currentTime = 0;
+        } catch (err) {}
+      }
+    }
+  }
   npcHarmonyBuffTimer = Math.max(0, npcHarmonyBuffTimer - dt);
   if (devInspectorActive) devInspectorTimer += dt;
   if (!paused && weaponPickupAnnouncement.timer > 0) {
@@ -11484,6 +11558,7 @@ function onPlayerDeath() {
     return;
   }
   heroLives = 0;
+  playPlayerDeathBell(1.0);
   playerRespawnPending = false;
   respawnTimer = 0;
   respawnIndicatorTimer = 0;
@@ -11506,6 +11581,7 @@ function onPlayerDeath() {
 function restartGame() {
   endVisitorSession({ reason: "reset" });
   resetMusicState();
+  stopPlayerDeathBell();
   resetCongregationSize();
   resetYearNpcPool();
   enemies.splice(0, enemies.length);

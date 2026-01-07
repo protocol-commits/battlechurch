@@ -1140,6 +1140,9 @@ class Player {
     if (typeof window !== "undefined" && typeof window.triggerDamageFlash === "function") {
       window.triggerDamageFlash();
     }
+    if (typeof window !== "undefined" && typeof window.playPlayerHurtSfx === "function") {
+      window.playPlayerHurtSfx(1.0);
+    }
     spawnFlashEffect(this.x, this.y - this.radius / 2);
     this.damageFlashTimer = DAMAGE_FLASH_DURATION;
     hitFreezeTimer = HIT_FREEZE_DURATION;
