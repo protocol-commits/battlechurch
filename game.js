@@ -1576,6 +1576,13 @@ const spawnPrayerBombGlow = Effects.spawnPrayerBombGlow;
 const spawnPrayerBombExplosion = Effects.spawnPrayerBombExplosion;
 const spawnEnemyDeathExplosion = Effects.spawnEnemyDeathExplosion;
 
+function triggerPrayerBombExplosionAt(x, y, radius, damage) {
+  if (typeof spawnPrayerBombExplosion === "function") {
+    spawnPrayerBombExplosion(x, y, { radius });
+  }
+  applyPrayerBombDamageAt(x, y, radius, damage);
+}
+
 function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB_BOSS_DAMAGE_SCALE } = {}) {
   const hits = [];
   enemies.forEach((enemy) => {
@@ -1607,6 +1614,37 @@ function startPrayerBombFireRain(duration = PRAYER_BOMB_RAIN_DURATION) {
   prayerBombRainSpawnTimer = 0;
 }
 
+function spawnPrayerBombFireball(target) {
+  if (!target) return;
+  const startY = HUD_HEIGHT + 8;
+  const startX = target.x + randomInRange(-40, 40);
+  const dx = target.x - startX;
+  const dy = target.y - startY;
+  const dir = normalizeVector(dx, dy);
+  const speed = 900 * WORLD_SCALE;
+  const travel = Math.max(40, Math.hypot(dx, dy));
+  const life = travel / speed;
+  const proj = spawnProjectile("fire", startX, startY, dir.x, dir.y, {
+    speed,
+    life,
+    damage: 0,
+    radius: 18,
+    scale: 2.6,
+    loopFrames: true,
+    pierce: false,
+    friendly: true,
+    onImpact: (proj) => {
+      triggerPrayerBombExplosionAt(proj.x, proj.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+    },
+    onExpire: (proj) => {
+      triggerPrayerBombExplosionAt(proj.x, proj.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+    },
+  });
+  if (!proj) {
+    triggerPrayerBombExplosionAt(target.x, target.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+  }
+}
+
 function updatePrayerBombFireRain(dt) {
   if (prayerBombRainTimer <= 0) return;
   prayerBombRainTimer = Math.max(0, prayerBombRainTimer - dt);
@@ -1614,9 +1652,12 @@ function updatePrayerBombFireRain(dt) {
   while (prayerBombRainSpawnTimer <= 0 && prayerBombRainTimer > 0) {
     prayerBombRainSpawnTimer += PRAYER_BOMB_RAIN_INTERVAL;
     const pos = randomSpreadPosition();
-    spawnPrayerBombExplosion(pos.x, pos.y, { radius: PRAYER_BOMB_RAIN_RADIUS });
-    applyPrayerBombDamageAt(pos.x, pos.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+    spawnPrayerBombFireball(pos);
   }
+}
+
+if (typeof window !== "undefined") {
+  window.startPrayerBombFireRain = startPrayerBombFireRain;
 }
 
 function mergeInspectorOverrides(source) {
@@ -1927,6 +1968,9 @@ const PRAYER_BOMB_RAIN_DURATION = 5;
 const PRAYER_BOMB_RAIN_INTERVAL = 0.12;
 const PRAYER_BOMB_RAIN_RADIUS = 160 * WORLD_SCALE;
 const PRAYER_BOMB_BOSS_DAMAGE_SCALE = 0.5;
+if (typeof window !== "undefined") {
+  window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
+}
 const PRAYER_BOMB_CHARGE_PER_KILL = 0.5;
 const PRAYER_BOMB_CHARGE_TYPE_MODIFIERS = {
   miniImp: 0.1,
@@ -9040,7 +9084,6 @@ function updateVisitorSession(dt) {
   updateVisitorBlockers(dt);
   updateVisitorProjectiles(dt);
   updateBossHazards(dt);
-  updatePrayerBombFireRain(dt);
   updateFloatingTexts(dt);
   updateLevelAnnouncements(dt);
   updateDevStatus(dt);
@@ -10044,6 +10087,11 @@ function parseFrameList(input) {
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
+  if (typeof window !== "undefined" && window.__pendingPrayerBombRain) {
+    window.__pendingPrayerBombRain = 0;
+    startPrayerBombFireRain(PRAYER_BOMB_RAIN_DURATION);
+  }
+  updatePrayerBombFireRain(dt);
   if (player) {
     const target = player.state === "death" ? PLAYER_DEATH_FADE_TARGET : 0;
     const step = Math.min(1, dt * PLAYER_DEATH_FADE_SPEED);

@@ -1041,8 +1041,14 @@ class Player {
         }
       }
     } else {
-      if (typeof startPrayerBombFireRain === "function") {
-        startPrayerBombFireRain(PRAYER_BOMB_RAIN_DURATION);
+      if (typeof window !== "undefined" && typeof window.startPrayerBombFireRain === "function") {
+        const duration = typeof window.PRAYER_BOMB_RAIN_DURATION === "number"
+          ? window.PRAYER_BOMB_RAIN_DURATION
+          : 5;
+        window.startPrayerBombFireRain(duration);
+      }
+      if (typeof window !== "undefined") {
+        window.__pendingPrayerBombRain = (window.__pendingPrayerBombRain || 0) + 1;
       }
       if (typeof spawnPrayerBombExplosion === "function") {
         spawnPrayerBombExplosion(this.x, this.y, { radius: PRAYER_BOMB_RAIN_RADIUS });
