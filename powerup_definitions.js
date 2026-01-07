@@ -15,18 +15,6 @@
   const CONRAD_POWERUP_ROOT = "assets/sprites/conrad/powerups";
 
   const weaponDropDefs = {
-    heal: {
-      src: `${CUTE_VALLEY_COLLECTIBLE_ROOT}heart_1.png`,
-      frameWidth: 16,
-      frameHeight: 16,
-      frameRate: 8,
-      scale: 6.24 * WORLD_SCALE,
-      radius: 24 * WORLD_SCALE,
-      effect: "heal",
-      label: "Health",
-      healAmount: Math.round(3 * HERO_HEALTH_PER_HEART),
-      speed: 0,
-    },
     faith: {
       src: `${VALLEY_OBJECTS_PATH}torch.png`,
       frameWidth: 16,

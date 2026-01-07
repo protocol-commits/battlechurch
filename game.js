@@ -242,6 +242,12 @@ const playerHurtSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
+let playerDeathBellResume = null;
+let playerDeathBellActive = false;
+if (playerDeathBellAudio) {
+  playerDeathBellAudio.preload = "auto";
+  playerDeathBellAudio.volume = 1;
+}
 const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
@@ -380,6 +386,13 @@ if (typeof window !== "undefined") {
 
 function playPlayerDeathBell(volume = 1.0) {
   if (!playerDeathBellAudio) return;
+  playerDeathBellResume = {
+    intro: Boolean(musicState.intro && !musicState.intro.paused && !musicState.introStopped),
+    battle: Boolean(musicState.battle && !musicState.battle.paused && !musicState.battleStopped),
+    recap: Boolean(musicState.recap && !musicState.recap.paused && !musicState.recapStopped),
+  };
+  playerDeathBellActive = true;
+  pauseAllMusic();
   try {
     playerDeathBellAudio.pause();
     playerDeathBellAudio.currentTime = 0;
@@ -402,6 +415,8 @@ function stopPlayerDeathBell() {
     playerDeathBellAudio.currentTime = 0;
   } catch (err) {}
   playerDeathBellFadeTimer = 0;
+  playerDeathBellResume = null;
+  playerDeathBellActive = false;
 }
 
 function playEnemyDeathSfx(volume = 0.35) {
@@ -9962,6 +9977,19 @@ function updateGame(dt) {
           playerDeathBellAudio.pause();
           playerDeathBellAudio.currentTime = 0;
         } catch (err) {}
+        if (playerDeathBellResume) {
+          if (playerDeathBellResume.intro && musicState.intro) {
+            playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
+          }
+          if (playerDeathBellResume.battle && musicState.battle) {
+            playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+          }
+          if (playerDeathBellResume.recap && musicState.recap) {
+            playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: false });
+          }
+          playerDeathBellResume = null;
+        }
+        playerDeathBellActive = false;
       }
     }
   }
@@ -10074,33 +10102,37 @@ function updateGame(dt) {
 
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   let stage = levelStatus?.stage;
-  const battleShouldPlay =
-    stage === "npcArrival" ||
-    stage === "battleIntro" ||
-    stage === "hordeIntro" ||
-    stage === "hordeActive" ||
-    stage === "hordeCleared" ||
-    stage === "bossIntro" ||
-    stage === "bossActive" ||
-    musicState.battlePrimed;
-  if (battleShouldPlay) {
-    if (stage && stage !== "briefing") {
-      musicState.battlePrimed = false;
+  if (playerDeathBellActive) {
+    pauseAllMusic();
+  } else {
+    const battleShouldPlay =
+      stage === "npcArrival" ||
+      stage === "battleIntro" ||
+      stage === "hordeIntro" ||
+      stage === "hordeActive" ||
+      stage === "hordeCleared" ||
+      stage === "bossIntro" ||
+      stage === "bossActive" ||
+      musicState.battlePrimed;
+    if (battleShouldPlay) {
+      if (stage && stage !== "briefing") {
+        musicState.battlePrimed = false;
+      }
+      if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+      if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
+      if (musicState.unlocked && !musicState.battleStarted) {
+        startBattleMusic();
+      }
+    } else if (musicState.battleStarted && !musicState.battleStopped) {
+      fadeOutBattleMusic();
     }
-    if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
-    if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
-    if (musicState.unlocked && !musicState.battleStarted) {
-      startBattleMusic();
+    if (
+      stage === "levelIntro" ||
+      stage === "briefing" ||
+      stage === "npcArrival"
+    ) {
+      if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
     }
-  } else if (musicState.battleStarted && !musicState.battleStopped) {
-    fadeOutBattleMusic();
-  }
-  if (
-    stage === "levelIntro" ||
-    stage === "briefing" ||
-    stage === "npcArrival"
-  ) {
-    if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
   }
   if (graceRushFadeHold) {
     if (window.DialogOverlay?.isVisible?.()) {

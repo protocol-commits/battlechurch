@@ -1154,6 +1154,9 @@ class Player {
       if (this.state !== 'death') {
         this.state = "death";
         this.animator.play("death", { restart: true, loop: false });
+        if (typeof window !== "undefined" && typeof window.playPlayerDeathBell === "function") {
+          window.playPlayerDeathBell(1.0);
+        }
         // compute fallback death timer
         try {
           const clip = this.animator.currentClip || {};
