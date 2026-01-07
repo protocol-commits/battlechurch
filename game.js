@@ -88,6 +88,7 @@ let npcsSuspended = false;
 const congregationMembers = [];
 let congregationWanderBounds = null;
 let npcProcessionActive = false;
+let powerUpsClearedForCongregation = false;
 const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
 const INITIAL_CONGREGATION_SIZE = CONGREGATION_MEMBER_COUNT;
@@ -4313,6 +4314,10 @@ function createFloorPattern() {
 const floorPattern = createFloorPattern();
 
 function spawnPowerUpDrops(count = 1) {
+  const stageName = levelManager?.getStatus?.().stage;
+  if (stageName === "levelIntro" || stageName === "briefing" || stageName === "npcArrival") {
+    return;
+  }
   const animalEntries = Object.entries(assets?.animals || {});
   const hasAnimals = animalEntries.length > 0;
   const hasUtility = Object.keys(assets?.utility || {}).length > 0;
@@ -9974,6 +9979,10 @@ function updateGame(dt) {
   let congregationStageActive = stage === "levelIntro";
   let playerUpdatedDuringCongregation = false;
   if (congregationStageActive) {
+    if (!powerUpsClearedForCongregation) {
+      clearAllPowerUps();
+      powerUpsClearedForCongregation = true;
+    }
     updateCongregationMembers(dt);
     resolveCongregationMemberCollisions();
     updatePlayerDuringCongregation(dt);
@@ -10007,6 +10016,7 @@ function updateGame(dt) {
     congregationStageActive = stage === "levelIntro";
     if (!congregationStageActive) {
       playerUpdatedDuringCongregation = false;
+      powerUpsClearedForCongregation = false;
     }
   }
 
@@ -10158,7 +10168,8 @@ function updateGame(dt) {
       player &&
       player.state !== "death" &&
       battleStageAllowsPowerUps &&
-      powerUpsEnabled;
+      powerUpsEnabled &&
+      !congregationStageActive;
     const delayingForNpcProcession = stageName === "npcArrival" && npcProcessionActive;
     if (shouldEnsurePowerUp && !delayingForNpcProcession) {
       if (canSpawnUtilityPowerUp()) {
