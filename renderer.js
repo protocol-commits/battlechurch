@@ -965,26 +965,6 @@ function drawLevelAnnouncements() {
         ? rushState.timer
         : Math.max(0, levelStatus?.timer || 0);
     if (remaining <= 0) return;
-    const panelY = getAnnouncementTitleY(HUD_HEIGHT, 200);
-    const label = rushState?.reason === "boss" ? "Treasure Overflow!" : "Key Rush!";
-    const subtitle =
-      rushState?.reason === "boss" ? "Celebrate the victory—collect every key!" : "Grab as many keys as you can!";
-    drawAnnouncementText(ctx, canvas, {
-      title: label,
-      subtitle,
-      yBase: panelY,
-      titleSize: TEXT_STYLES.h3.size,
-      weight: TEXT_STYLES.h3.weight,
-      subtitleSize: TEXT_STYLES.body.size,
-      lineGap: Math.round(TEXT_STYLES.h3.size * TEXT_STYLES.h3.lineHeight),
-      alpha: 1,
-      typewriter: true,
-    });
-    if (SHOW_TEXT_SOURCE_LABELS) {
-      drawDevLabel(ctx, "DEV: KeyRush", canvas.width / 2, panelY - 32, 1, UI_FONT_FAMILY);
-    }
-    ctx.restore();
-
     const remainingSeconds = Math.ceil(remaining);
     ctx.save();
     ctx.globalAlpha = 0.3;
@@ -1704,6 +1684,13 @@ function drawLevelAnnouncements() {
     ctx.fillRect(0, canvas.height - fogHeight, canvas.width, fogHeight);
   ctx.restore();
 
+  // Cool color grade to unify mixed-source art (screen space, under HUD/overlays).
+  ctx.save();
+  ctx.globalAlpha = 1.0;
+  ctx.fillStyle = "rgba(12, 24, 44, 0.22)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
   // ...existing code...
   drawSpawnPointDebug(ctx);
   drawNpcHomeBounds(ctx);
@@ -1786,12 +1773,6 @@ function drawLevelAnnouncements() {
       ctx.restore();
     }
 
-    // Cool color grade to unify mixed-source art (screen space, after HUD).
-    ctx.save();
-    ctx.globalAlpha = 1.0;
-    ctx.fillStyle = "rgba(12, 24, 44, 0.22)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.restore();
   }
 
   function drawMeleeSwingOverlay(ctx, player) {

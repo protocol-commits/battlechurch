@@ -4818,13 +4818,6 @@ function applyUtilityPowerUp(powerUp) {
     description: powerUp.definition.description || "",
     color: powerUp.definition.color || "#EAF6FF",
   });
-  const floatingColor =
-    powerUp.definition.statBoostColor ??
-    powerUp.definition.color ??
-    "#EAF6FF";
-  const initialWeaponTimer = player.weaponPowerTimer;
-  let addedExtendSeconds = 0;
-  let floatingText = null;
   switch (effect) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
@@ -4866,35 +4859,15 @@ function applyUtilityPowerUp(powerUp) {
         player.weaponPowerTimer,
         player.weaponPowerDuration,
       );
-      addedExtendSeconds = Math.max(0, player.weaponPowerTimer - initialWeaponTimer);
       break;
     case "harmony":
       npcHarmonyBuffTimer = Math.max(npcHarmonyBuffTimer, duration);
       npcHarmonyBuffDuration = Math.max(npcHarmonyBuffDuration, duration);
-      floatingText = `NPC Harmony +${Math.round(duration)}s`;
       break;
     default:
       break;
   }
   triggerPowerUpCooldown();
-  if (effect === "haste") {
-    const multiplier = Number.isFinite(speedMultiplier) ? speedMultiplier : 1.4;
-    const percent = Math.round((multiplier - 1) * 100);
-    if (percent > 0) {
-      floatingText = `Speed +${percent}%`;
-    }
-  } else if (effect === "extend" && addedExtendSeconds > 0.05) {
-    floatingText = null;
-  }
-  if (floatingText) {
-    addFloatingText(floatingText, floatingColor, {
-      speechBubble: false,
-      vy: -32,
-      life: 1.4,
-      offsetY: -player.radius - 48,
-      style: "plain",
-    });
-  }
 }
 
 function evacuateNpcsForBoss() {

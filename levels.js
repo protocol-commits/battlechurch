@@ -1050,6 +1050,10 @@
       state.finalHordeDelay = 0;
       state.keyRushContext = "battle";
       setDevStatus(`Key Rush – ${monthName}`, KEY_RUSH_DURATION);
+      queueLevelAnnouncement("Key Rush!", "Grab as many keys as you can!", {
+        duration: 2.6,
+        skipMissionBrief: true,
+      });
       const lastPos = typeof deps.getLastEnemyDeathPosition === "function"
         ? deps.getLastEnemyDeathPosition()
         : null;
@@ -1116,6 +1120,10 @@
       resetStage("keyRush", BOSS_KEY_RUSH_DURATION);
       state.keyRushContext = "boss";
       setDevStatus("Treasure Overflow!", BOSS_KEY_RUSH_DURATION);
+      queueLevelAnnouncement("Treasure Overflow!", "Celebrate the victory—collect every key!", {
+        duration: 2.6,
+        skipMissionBrief: true,
+      });
       if (typeof deps.spawnVictoryKeyBurst === "function") {
         deps.spawnVictoryKeyBurst({
           reason: "boss",
