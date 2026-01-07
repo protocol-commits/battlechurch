@@ -316,8 +316,14 @@
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
       roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);
+      const innerX = meterX + 2;
+      const innerY = meterY + 2;
+      const innerW = meterWidth - 4;
+      const innerH = meterHeight - 4;
+      const segmentStops = [0.5, 0.8];
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
-      const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : ratio >= 1;
+      const clampedRatio = Math.max(0, Math.min(1, ratio));
+      const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : clampedRatio >= 1;
       const now = performance.now() * 0.001;
       const dt = prayerSpark.lastTime ? Math.min(0.1, Math.max(0, now - prayerSpark.lastTime)) : 0;
       prayerSpark.lastTime = now;
@@ -325,28 +331,62 @@
         prayerSpark.timer = 0.45;
       }
       prayerSpark.lastRatio = ratio;
-      const fillWidth = Math.max(0, Math.floor((meterWidth - 4) * ratio));
-      const baseColor = PALETTE.muted;
-      if (ready) {
-        const pulse = (Math.sin(performance.now() * 0.01) + 1) / 2;
-        ctx.fillStyle = pulse > 0.5 ? PALETTE.gold : baseColor;
-      } else {
-        ctx.fillStyle = baseColor;
+      const totalWidth = Math.max(0, Math.floor(innerW * clampedRatio));
+      const seg1Max = Math.floor(innerW * 0.5);
+      const seg2Max = Math.floor(innerW * 0.8);
+      const seg1Width = Math.min(totalWidth, seg1Max);
+      const seg2Width = Math.min(Math.max(0, totalWidth - seg1Max), seg2Max - seg1Max);
+      const seg3Width = Math.max(0, totalWidth - seg2Max);
+      if (seg1Width > 0) {
+        ctx.fillStyle = PALETTE.slate;
+        roundRect(
+          ctx,
+          innerX,
+          innerY,
+          seg1Width,
+          innerH,
+          Math.max(2, meterRadius - 2),
+          true,
+          false,
+        );
       }
-      roundRect(
-        ctx,
-        meterX + 2,
-        meterY + 2,
-        fillWidth,
-        meterHeight - 4,
-        Math.max(2, meterRadius - 2),
-        true,
-        false,
-      );
-      if (prayerSpark.timer > 0 && fillWidth > 0) {
+      if (seg2Width > 0) {
+        ctx.fillStyle = PALETTE.ice;
+        ctx.fillRect(innerX + seg1Max, innerY, seg2Width, innerH);
+      }
+      if (seg3Width > 0) {
+        const flash = Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.softWhite;
+        ctx.fillStyle = clampedRatio >= 1 ? flash : PALETTE.gold;
+        ctx.fillRect(innerX + seg2Max, innerY, seg3Width, innerH);
+      }
+      ctx.save();
+      ctx.strokeStyle = 'rgba(234, 246, 255, 0.55)';
+      ctx.lineWidth = 2;
+      segmentStops.forEach((stop) => {
+        const sx = innerX + Math.round(innerW * stop);
+        ctx.beginPath();
+        ctx.moveTo(sx, innerY);
+        ctx.lineTo(sx, innerY + innerH);
+        ctx.stroke();
+      });
+      ctx.restore();
+      ctx.save();
+      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const seg1Center = innerX + seg1Max * 0.5;
+      const seg2Center = innerX + seg1Max + (seg2Max - seg1Max) * 0.5;
+      const seg3Center = innerX + seg2Max + (innerW - seg2Max) * 0.5;
+      const textY = innerY + innerH / 2 + 0.5;
+      ctx.fillText('Prayer', seg1Center, textY);
+      ctx.fillText('2', seg2Center, textY);
+      ctx.fillText('3', seg3Center, textY);
+      ctx.restore();
+      if (prayerSpark.timer > 0 && totalWidth > 0) {
         prayerSpark.timer = Math.max(0, prayerSpark.timer - dt);
         const sparkAlpha = Math.min(1, prayerSpark.timer / 0.45);
-        const sparkX = meterX + 2 + fillWidth;
+        const sparkX = meterX + 2 + totalWidth;
         const sparkY = meterY + 2;
         const sparkW = 10;
         const sparkH = meterHeight - 4;
@@ -364,7 +404,6 @@
         ? (Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.ice)
         : PALETTE.softWhite;
       ctx.textAlign = 'center';
-      ctx.fillText('Prayer', meterX + meterWidth / 2, meterY + meterHeight / 2 + 4);
       ctx.restore();
 
       const graceCount = typeof getGraceCount === 'function' ? getGraceCount() : 0;
