@@ -1548,19 +1548,43 @@ function drawLevelAnnouncements() {
       ctx.globalAlpha *= npcFadeAlpha;
       npcFaithOverlays.forEach((entry) => {
         ctx.save();
+        const radius = Math.max(6, Math.floor(entry.height / 2));
         ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-        ctx.fillRect(entry.x, entry.y, entry.width, entry.height);
+        roundRect(ctx, entry.x, entry.y, entry.width, entry.height, radius, true, false);
         ctx.strokeStyle = typeof NPC_FAITH_BORDER_COLOR !== "undefined" ? NPC_FAITH_BORDER_COLOR : "#24698f";
         ctx.lineWidth = 1;
-        ctx.strokeRect(entry.x + 0.5, entry.y + 0.5, entry.width - 1, entry.height - 1);
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        roundRect(ctx, entry.x + 0.5, entry.y + 0.5, entry.width - 1, entry.height - 1, radius, false, true);
         ctx.fillStyle = "#9BD9FF";
-        ctx.fillRect(entry.x + 2, entry.y + 2, Math.max(0, entry.width - 4) * entry.ratio, entry.height - 4);
+        const fillW = Math.max(0, entry.width - 4) * entry.ratio;
+        if (fillW > 0) {
+          roundRect(
+            ctx,
+            entry.x + 2,
+            entry.y + 2,
+            fillW,
+            entry.height - 4,
+            Math.max(4, Math.floor((entry.height - 4) / 2)),
+            true,
+            false,
+          );
+        }
         if (entry.ratio <= 0) {
           try {
             const t = typeof performance !== "undefined" ? performance.now() : Date.now();
             const alpha = 0.25 + Math.abs(Math.sin(t * 0.005)) * 0.45;
             ctx.fillStyle = `rgba(255,60,60,${alpha.toFixed(3)})`;
-            ctx.fillRect(entry.x + 2, entry.y + 2, entry.width - 4, entry.height - 4);
+            roundRect(
+              ctx,
+              entry.x + 2,
+              entry.y + 2,
+              entry.width - 4,
+              entry.height - 4,
+              Math.max(4, Math.floor((entry.height - 4) / 2)),
+              true,
+              false,
+            );
           } catch (err) {}
         }
         if (entry.ratio >= 0.999) {
@@ -1571,11 +1595,29 @@ function drawLevelAnnouncements() {
             ctx.save();
             ctx.globalCompositeOperation = "lighter";
             ctx.fillStyle = `rgba(255,230,80,${alpha.toFixed(3)})`;
-            ctx.fillRect(entry.x + 2, entry.y + 2, entry.width - 4, entry.height - 4);
+            roundRect(
+              ctx,
+              entry.x + 2,
+              entry.y + 2,
+              entry.width - 4,
+              entry.height - 4,
+              Math.max(4, Math.floor((entry.height - 4) / 2)),
+              true,
+              false,
+            );
             try {
               ctx.strokeStyle = `rgba(255,230,120,${(Math.min(1, alpha * 0.95)).toFixed(3)})`;
               ctx.lineWidth = 1;
-              ctx.strokeRect(entry.x + 2.5, entry.y + 2.5, entry.width - 5, entry.height - 5);
+              roundRect(
+                ctx,
+                entry.x + 2.5,
+                entry.y + 2.5,
+                entry.width - 5,
+                entry.height - 5,
+                Math.max(4, Math.floor((entry.height - 5) / 2)),
+                false,
+                true,
+              );
             } catch (err) {}
             ctx.restore();
           } catch (err) {}

@@ -2500,7 +2500,7 @@ const NPC_ARROW_DAMAGE = 10; // damage dealt by NPC arrows
 const NPC_MAX_FAITH_LOSS_PER_ATTACK = 25;
 // make faith bars slightly smaller and closer to the NPC for better layout
 const NPC_FAITH_BAR_WIDTH = 40;
-const NPC_FAITH_BAR_HEIGHT = 7;
+const NPC_FAITH_BAR_HEIGHT = 12;
 function resolveSwatchColor(propertyName, fallback) {
   if (typeof window === "undefined" || typeof document === "undefined") return fallback;
   try {
@@ -7398,19 +7398,43 @@ class CozyNpc {
       return;
     }
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-    ctx.fillRect(barX, barY, width, height);
+    const radius = Math.max(6, Math.floor(height / 2));
+    ctx.fillStyle = 'rgba(10, 15, 31, 0.6)';
+    roundRect(ctx, barX, barY, width, height, radius, true, false);
     ctx.strokeStyle = NPC_FAITH_BORDER_COLOR;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(barX + 0.5, barY + 0.5, width - 1, height - 1);
-    ctx.fillStyle = '#9BD9FF';
-    ctx.fillRect(barX + 2, barY + 2, (width - 4) * ratio, height - 4);
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    roundRect(ctx, barX + 0.5, barY + 0.5, width - 1, height - 1, radius, false, true);
+    const fillW = Math.max(0, Math.floor((width - 4) * ratio));
+    if (fillW > 0) {
+      ctx.fillStyle = '#9BD9FF';
+      roundRect(
+        ctx,
+        barX + 2,
+        barY + 2,
+        fillW,
+        height - 4,
+        Math.max(4, Math.floor((height - 4) / 2)),
+        true,
+        false,
+      );
+    }
     if (ratio <= 0) {
       try {
         const t = typeof performance !== 'undefined' ? performance.now() : Date.now();
         const alpha = 0.25 + Math.abs(Math.sin(t * 0.005)) * 0.45;
         ctx.fillStyle = `rgba(255,60,60,${alpha.toFixed(3)})`;
-        ctx.fillRect(barX + 2, barY + 2, width - 4, height - 4);
+        roundRect(
+          ctx,
+          barX + 2,
+          barY + 2,
+          width - 4,
+          height - 4,
+          Math.max(4, Math.floor((height - 4) / 2)),
+          true,
+          false,
+        );
       } catch (e) {}
     }
     if (ratio >= 0.999) {
@@ -7421,11 +7445,29 @@ class CozyNpc {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.fillStyle = `rgba(255,230,80,${alpha.toFixed(3)})`;
-        ctx.fillRect(barX + 2, barY + 2, width - 4, height - 4);
+        roundRect(
+          ctx,
+          barX + 2,
+          barY + 2,
+          width - 4,
+          height - 4,
+          Math.max(4, Math.floor((height - 4) / 2)),
+          true,
+          false,
+        );
         try {
           ctx.strokeStyle = `rgba(255,230,120,${(Math.min(1, alpha * 0.95)).toFixed(3)})`;
           ctx.lineWidth = 1;
-          ctx.strokeRect(barX + 2.5, barY + 2.5, width - 5, height - 5);
+          roundRect(
+            ctx,
+            barX + 2.5,
+            barY + 2.5,
+            width - 5,
+            height - 5,
+            Math.max(4, Math.floor((height - 5) / 2)),
+            false,
+            true,
+          );
         } catch (e) {}
         ctx.restore();
       } catch (e) {}
