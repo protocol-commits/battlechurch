@@ -1829,6 +1829,20 @@ function drawLevelAnnouncements() {
       ctx.restore();
     }
 
+    const prayerBombFadeTimer = requireBindings().prayerBombScreenFadeTimer || 0;
+    if (prayerBombFadeTimer > 0) {
+      const prayerBombFadeDuration = Math.max(0.001, requireBindings().prayerBombScreenFadeDuration || 0.8);
+      const maxAlpha = Math.min(0.8, Math.max(0, requireBindings().prayerBombScreenDarkenAlpha || 0.35));
+      const t = Math.min(1, Math.max(0, prayerBombFadeTimer / prayerBombFadeDuration));
+      const alpha = maxAlpha * t;
+      if (alpha > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+    }
+
     drawHUD();
     const graceHudFlyEffects = requireBindings().graceHudFlyEffects;
     if (graceHudFlyEffects && graceHudFlyEffects.length) {

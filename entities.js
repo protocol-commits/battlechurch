@@ -984,7 +984,18 @@ class Player {
     const level = ratio >= level3Threshold ? 3 : ratio >= level2Threshold ? 2 : 1;
     const bossScale =
       typeof PRAYER_BOMB_BOSS_DAMAGE_SCALE === "number" ? PRAYER_BOMB_BOSS_DAMAGE_SCALE : 0.5;
+    const playPrayerBombSfx =
+      typeof window !== "undefined" ? window.playPrayerBombSfx : null;
+    const triggerPrayerBombScreenDarken =
+      typeof window !== "undefined" ? window.triggerPrayerBombScreenDarken : null;
+    if (typeof triggerPrayerBombScreenDarken === "function") {
+      const duration = level === 3 ? 2.4 : 1.6;
+      triggerPrayerBombScreenDarken(duration);
+    }
     if (level === 1) {
+      if (typeof playPrayerBombSfx === "function") {
+        playPrayerBombSfx(0.85);
+      }
       const radius = PRAYER_BOMB_RADIUS;
       const baseDamage =
         typeof PRAYER_BOMB_LEVEL1_DAMAGE === "number"
@@ -1028,6 +1039,9 @@ class Player {
       spawnSplashDebugCircle(this.x, this.y, radius);
       spawnPrayerBombGlow(this.x, this.y, radius);
     } else if (level === 2) {
+      if (typeof playPrayerBombSfx === "function") {
+        playPrayerBombSfx(0.85);
+      }
       const radius =
         typeof PRAYER_BOMB_LEVEL2_RADIUS === "number" ? PRAYER_BOMB_LEVEL2_RADIUS : PRAYER_BOMB_RADIUS * 1.35;
       const damage =

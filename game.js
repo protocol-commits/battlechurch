@@ -66,6 +66,8 @@ const PLAYER_DEATH_FADE_SPEED = 6;
 let damageHitFlash = 0;
 let prayerBombRainTimer = 0;
 let prayerBombRainSpawnTimer = 0;
+let prayerBombScreenFadeTimer = 0;
+let prayerBombScreenFadeDuration = 0.8;
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
   window.triggerDamageFlash = () => {
@@ -167,6 +169,11 @@ const WISDOM_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_39.wav",
   "assets/sfx/rpg/Explosions/Explosions_40.wav",
 ];
+const PRAYER_BOMB_RAIN_SFX_SRCS = [
+  "assets/sfx/rpg/Explosions/Explosions_38.wav",
+  "assets/sfx/rpg/Explosions/Explosions_39.wav",
+  "assets/sfx/rpg/Explosions/Explosions_40.wav",
+];
 const FAITH_CANNON_SFX_SRCS = [
   "assets/sfx/rpg/Magic/fireball_whoosh_04.wav",
   "assets/sfx/rpg/Magic/fireball_whoosh_05.wav",
@@ -177,6 +184,7 @@ const FAITH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_23.wav",
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
+const PRAYER_BOMB_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const INTRO_MUSIC_SRC = "assets/music/stings-logo.wav";
@@ -208,6 +216,8 @@ const FAITH_CANNON_SFX_POOL_SIZE = 4;
 const POWERUP_PICKUP_SFX_POOL_SIZE = 4;
 const WISDOM_HIT_SFX_POOL_SIZE = 5;
 const FAITH_HIT_SFX_POOL_SIZE = 5;
+const PRAYER_BOMB_SFX_POOL_SIZE = 4;
+const PRAYER_BOMB_RAIN_SFX_POOL_SIZE = 4;
 const MENU_SELECT_SFX_POOL_SIZE = 4;
 const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
 const GRACE_PICKUP_SFX_POOL_SIZE = 4;
@@ -235,6 +245,8 @@ const faithCannonSfxPool = [];
 const powerupPickupSfxPool = [];
 const wisdomHitSfxPool = [];
 const faithHitSfxPool = [];
+const prayerBombSfxPool = [];
+const prayerBombRainSfxPool = [];
 const menuSelectSfxPool = [];
 const enemySpawnSfxPool = [];
 const gracePickupSfxPool = [];
@@ -386,6 +398,63 @@ function playPlayerHurtSfx(volume = 1.0) {
 
 if (typeof window !== "undefined") {
   window.playPlayerHurtSfx = playPlayerHurtSfx;
+}
+
+function playPrayerBombSfx(volume = 0.7) {
+  if (typeof Audio === "undefined") return;
+  let audio = prayerBombSfxPool.find((entry) => entry.paused || entry.ended);
+  if (!audio) {
+    if (prayerBombSfxPool.length < PRAYER_BOMB_SFX_POOL_SIZE) {
+      audio = new Audio(PRAYER_BOMB_SFX_SRC);
+      audio.preload = "auto";
+      prayerBombSfxPool.push(audio);
+    } else {
+      audio = prayerBombSfxPool[0];
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playPrayerBombSfx = playPrayerBombSfx;
+}
+
+function playPrayerBombRainSfx(volume = 0.6) {
+  if (typeof Audio === "undefined") return;
+  const src =
+    PRAYER_BOMB_RAIN_SFX_SRCS[Math.floor(Math.random() * PRAYER_BOMB_RAIN_SFX_SRCS.length)];
+  let audio = prayerBombRainSfxPool.find(
+    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
+  );
+  if (!audio) {
+    if (prayerBombRainSfxPool.length < PRAYER_BOMB_RAIN_SFX_POOL_SIZE) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      prayerBombRainSfxPool.push(audio);
+    } else {
+      audio = prayerBombRainSfxPool[0];
+      audio.src = src;
+    }
+  }
+  try {
+    audio.currentTime = 0;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  } catch (err) {}
+}
+
+if (typeof window !== "undefined") {
+  window.playPrayerBombRainSfx = playPrayerBombRainSfx;
 }
 
 function playPlayerDeathBell(volume = 1.0) {
@@ -1634,6 +1703,17 @@ function startPrayerBombFireRain(duration = PRAYER_BOMB_RAIN_DURATION) {
   prayerBombRainSpawnTimer = 0;
 }
 
+function triggerPrayerBombScreenDarken(duration = 0.8) {
+  const safeDuration = Math.max(0.2, Number(duration) || 0.8);
+  prayerBombScreenFadeDuration = safeDuration;
+  prayerBombScreenFadeTimer = Math.max(prayerBombScreenFadeTimer, safeDuration);
+}
+
+function handlePrayerBombRainImpact() {
+  triggerPrayerBombScreenDarken(PRAYER_BOMB_RAIN_DARKEN_DURATION);
+  applyCameraShake(PRAYER_BOMB_RAIN_SHAKE_DURATION, PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE);
+}
+
 function spawnPrayerBombFireball(target) {
   if (!target) return;
   const startY = HUD_HEIGHT + 8;
@@ -1654,13 +1734,25 @@ function spawnPrayerBombFireball(target) {
     pierce: false,
     friendly: true,
     onImpact: (proj) => {
+      if (typeof window !== "undefined" && typeof window.playPrayerBombRainSfx === "function") {
+        window.playPrayerBombRainSfx(0.75);
+      }
+      handlePrayerBombRainImpact();
       triggerPrayerBombExplosionAt(proj.x, proj.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
     },
     onExpire: (proj) => {
+      if (typeof window !== "undefined" && typeof window.playPrayerBombRainSfx === "function") {
+        window.playPrayerBombRainSfx(0.75);
+      }
+      handlePrayerBombRainImpact();
       triggerPrayerBombExplosionAt(proj.x, proj.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
     },
   });
   if (!proj) {
+    if (typeof window !== "undefined" && typeof window.playPrayerBombRainSfx === "function") {
+      window.playPrayerBombRainSfx(0.75);
+    }
+    handlePrayerBombRainImpact();
     triggerPrayerBombExplosionAt(target.x, target.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
   }
 }
@@ -1678,6 +1770,7 @@ function updatePrayerBombFireRain(dt) {
 
 if (typeof window !== "undefined") {
   window.startPrayerBombFireRain = startPrayerBombFireRain;
+  window.triggerPrayerBombScreenDarken = triggerPrayerBombScreenDarken;
 }
 
 function mergeInspectorOverrides(source) {
@@ -1989,6 +2082,10 @@ const PRAYER_BOMB_RAIN_DURATION = 7;
 const PRAYER_BOMB_RAIN_INTERVAL = 0.12;
 const PRAYER_BOMB_RAIN_RADIUS = 160 * WORLD_SCALE;
 const PRAYER_BOMB_BOSS_DAMAGE_SCALE = 0.5;
+const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = 0.65;
+const PRAYER_BOMB_RAIN_DARKEN_DURATION = 0.5;
+const PRAYER_BOMB_RAIN_SHAKE_DURATION = 0.12;
+const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = 10;
 if (typeof window !== "undefined") {
   window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
 }
@@ -2328,6 +2425,9 @@ Renderer.initialize({
   get graceRushFadeAlpha() { return graceRushFadeAlpha; },
   get graceRushBlackout() { return graceRushBlackout; },
   get playerDeathFadeAlpha() { return playerDeathFadeAlpha; },
+  get prayerBombScreenFadeTimer() { return prayerBombScreenFadeTimer; },
+  get prayerBombScreenFadeDuration() { return prayerBombScreenFadeDuration; },
+  get prayerBombScreenDarkenAlpha() { return PRAYER_BOMB_SCREEN_DARKEN_ALPHA; },
 });
 function bootInputAndResize() {
   resizeCanvas();
@@ -2646,6 +2746,7 @@ function resolveSwatchColor(propertyName, fallback) {
     return fallback;
   }
 }
+const GRACE_FLOAT_TEXT_COLOR = resolveSwatchColor("--swatch-accent-2", "#9BD9FF");
 const NPC_FAITH_BORDER_COLOR = resolveSwatchColor("--swatch-light", "rgba(255, 255, 255, 0.25)");
 const NPC_HURT_VARIANT_REMAP = {
   overalls: "overall",
@@ -5640,7 +5741,7 @@ function updateGracePickups(dt) {
           window.playGracePickupSfx(0.2);
         }
         spawnGraceHudFlyEffect(pickup);
-        addFloatingTextAt(player.x, player.y - player.radius - 24, `${pickup.value}`, "#ffe570", {
+        addFloatingTextAt(player.x, player.y - player.radius - 24, `${pickup.value}`, GRACE_FLOAT_TEXT_COLOR, {
           life: 0.9,
           vy: -18,
         });
@@ -10813,6 +10914,7 @@ function updateGame(dt) {
   hpFlashTimer = Math.max(0, hpFlashTimer - dt);
   damageHitFlash = Math.max(0, damageHitFlash - dt);
   heroRescueCooldown = Math.max(0, heroRescueCooldown - dt);
+  prayerBombScreenFadeTimer = Math.max(0, prayerBombScreenFadeTimer - dt);
 
   if (window.DialogOverlay?.consumeAction?.() || window.UpgradeScreen?.consumeAction?.()) {
     return;
