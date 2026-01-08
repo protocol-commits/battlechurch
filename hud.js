@@ -239,6 +239,22 @@
         true,
         false,
       );
+      if (hpRatio > 0 && hpRatio <= 0.25) {
+        try {
+          const alpha = Math.abs(Math.sin(performance.now() * 0.01)) * 0.65;
+          ctx.fillStyle = `rgba(255,60,60,${alpha.toFixed(3)})`;
+          roundRect(
+            ctx,
+            hpBarX + 2,
+            hpBarY + 2,
+            hpBarWidth - 4,
+            hpBarHeight - 4,
+            5,
+            true,
+            false,
+          );
+        } catch (err) {}
+      }
 
       const hpValueText = player && Number.isFinite(player.health)
         ? `${Math.max(0, Math.round(player.health))}/${Math.round(player.maxHealth || 0)}`
