@@ -150,7 +150,7 @@ const MELEE_SWING_LENGTH = 200;
   function drawNameTag(ctx, name, x, y, fontFamily) {
     if (!name) return;
     ctx.save();
-    ctx.font = `bold 12px ${fontFamily}`;
+    ctx.font = `12px ${fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#FFC86A';
