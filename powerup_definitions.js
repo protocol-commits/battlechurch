@@ -7,8 +7,7 @@
   const HERO_MAX_HEALTH = 100;
   const HERO_BASE_HEARTS = 6;
   const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
-  const UTILITY_POWERUP_ROOT = "assets/sprites/dungeon-assets/items";
-  const CONRAD_POWERUP_ROOT = "assets/sprites/conrad/powerups";
+  const UTILITY_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Items";
 
   const weaponDropDefs = {
     faith: {
@@ -49,10 +48,10 @@
     },
     wisdom: {
       frameSources: [
-        `${UTILITY_POWERUP_ROOT}/coin/coin_1.png`,
-        `${UTILITY_POWERUP_ROOT}/coin/coin_2.png`,
-        `${UTILITY_POWERUP_ROOT}/coin/coin_3.png`,
-        `${UTILITY_POWERUP_ROOT}/coin/coin_4.png`,
+        `${UTILITY_POWERUP_ROOT}/I57_Coin.png`,
+        `${UTILITY_POWERUP_ROOT}/I57_Coin.png`,
+        `${UTILITY_POWERUP_ROOT}/I57_Coin.png`,
+        `${UTILITY_POWERUP_ROOT}/I57_Coin.png`,
       ],
       frameRate: 8,
       effect: "wisdomWeapon",
@@ -68,7 +67,7 @@
       speed: 0,
     },
     npcScripture: {
-      src: `${CONRAD_POWERUP_ROOT}/bible.png`,
+      src: `${UTILITY_POWERUP_ROOT}/I25_Book.png`,
       effect: "npcScriptureWeapon",
       duration: 10,
       scale: 0.24 * WORLD_SCALE,
@@ -82,7 +81,7 @@
       speed: 0,
     },
     npcWisdom: {
-      src: `${CONRAD_POWERUP_ROOT}/apple.png`,
+      src: `${UTILITY_POWERUP_ROOT}/I07_Apple.png`,
       effect: "npcWisdomWeapon",
       duration: 10,
       scale: 0.24 * WORLD_SCALE,
@@ -96,7 +95,7 @@
       speed: 0,
     },
     npcFaith: {
-      src: `${CONRAD_POWERUP_ROOT}/drink.png`,
+      src: `${UTILITY_POWERUP_ROOT}/I02_HP_Potion_M.png`,
       effect: "npcFaithWeapon",
       duration: 9,
       scale: 0.26 * WORLD_SCALE,
@@ -113,7 +112,7 @@
 
   const utilityPowerupDefs = {
     shield: {
-      src: `${CONRAD_POWERUP_ROOT}/shield.png`,
+      src: `${UTILITY_POWERUP_ROOT}/I28_Idol.png`,
       scale: 3.2 * WORLD_SCALE,
       radius: 30 * WORLD_SCALE,
       effect: "shield",
@@ -125,7 +124,7 @@
       description: "Blocks damage for a short time.",
     },
     haste: {
-      src: `${CONRAD_POWERUP_ROOT}/speed.png`,
+      src: `${UTILITY_POWERUP_ROOT}/I27_Rune.png`,
       scale: 3.0 * WORLD_SCALE,
       radius: 28 * WORLD_SCALE,
       effect: "haste",
@@ -138,7 +137,7 @@
       description: "Move faster for a short time.",
     },
     extender: {
-      src: `${CONRAD_POWERUP_ROOT}/sword.png`,
+      src: `${UTILITY_POWERUP_ROOT}/I36_Hammer.png`,
       scale: 2.8 * WORLD_SCALE,
       radius: 28 * WORLD_SCALE,
       effect: "extend",
@@ -151,7 +150,7 @@
       description: "Extends your current weapon power.",
     },
     harmony: {
-      src: `${CONRAD_POWERUP_ROOT}/harp.png`,
+      src: `${UTILITY_POWERUP_ROOT}/I10_Flower.png`,
       scale: 3.0 * WORLD_SCALE,
       radius: 28 * WORLD_SCALE,
       effect: "harmony",

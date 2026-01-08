@@ -113,9 +113,9 @@ const VISITOR_BLOCKER_LINES =
     window.BattlechurchVisitorBlocker &&
     window.BattlechurchVisitorBlocker.blockerLines) ||
   [];
-const GRACE_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/keys";
-const TORCH_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/torch";
-const FLAG_SPRITE_ROOT = "assets/sprites/dungeon-assets/items/flag";
+const ITEM_SPRITE_ROOT = "assets/sprites/pixel-art-pack/Items";
+const TORCH_SPRITE_FILE = `${ITEM_SPRITE_ROOT}/I43_Torch.png`;
+const FLAG_SPRITE_FILE = `${ITEM_SPRITE_ROOT}/I28_Idol.png`;
 const DEFAULT_ARROW_SFX_SRC = "assets/sfx/rpg/Magic/fireball_release_3.wav";
 const ENEMY_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Impacts/impact_5.wav",
@@ -2686,7 +2686,6 @@ const WISDOM_FRAME_SOURCES = Array.from(
   (_, index) => `${MAGIC_FIREBALL_SPRITE_PATH}/fireball${WISDOM_FRAME_START + index}.png`,
 ); // Wisdom projectile uses frames 9-18 from the fireball sprite sheet.
 const FLASH_FRAME_COUNT = 14;
-const UTILITY_POWERUP_ROOT = "assets/sprites/dungeon-assets/items";
 const COIN_FRAME_DURATION = 0.08;
 const PROJECTILE_FRAME_DURATIONS = {
   fire: 0.05,
@@ -2794,7 +2793,12 @@ function getMonthName(levelNumber) {
   return MONTH_NAMES[(levelNumber - 1) % MONTH_NAMES.length];
 }
 
-const COIN_ASSET_ROOT = "assets/sprites/dungeon-assets/items/coin";
+const COIN_FRAME_FILES = [
+  "I57_Coin.png",
+  "I57_Coin.png",
+  "I57_Coin.png",
+  "I57_Coin.png",
+];
 const COIN_HEAL_AMOUNT = NPC_FAITH_RECOVERY_PER_COIN;
 // Enemy catalog: grouped by archetype so it’s easy to see ranges vs bruisers vs NPC-focus.
 // The Entities module later applies the health-based slow-down on every entry.
@@ -3823,9 +3827,8 @@ async function loadCozyNpcAssets(cache) {
 // Vampire assets and logic removed per request
 
 async function loadCoinAssets(cache) {
-  const frameFiles = ["coin_1.png", "coin_2.png", "coin_3.png", "coin_4.png"];
   const frames = await Promise.all(
-    frameFiles.map((file) => loadCachedImage(cache, `${COIN_ASSET_ROOT}/${file}`)),
+    COIN_FRAME_FILES.map((file) => loadCachedImage(cache, `${ITEM_SPRITE_ROOT}/${file}`)),
   );
   return { coinFrames: frames };
 }
@@ -3864,34 +3867,36 @@ async function loadAssets() {
     }),
   );
   const torchFramesPromise = Promise.all(
-    [1, 2, 3, 4].map(async (idx) => {
-      const src = `${TORCH_SPRITE_ROOT}/torch_${idx}.png`;
-      if (!cache.has(src)) {
-        cache.set(src, loadImage(src));
-      }
-      try {
-        const img = await cache.get(src);
-        return extractFrame(img, img.width, img.height, 0);
-      } catch (err) {
-        console.warn && console.warn("Failed to load torch frame", src, err);
-        return null;
-      }
-    }),
+    [TORCH_SPRITE_FILE, TORCH_SPRITE_FILE, TORCH_SPRITE_FILE, TORCH_SPRITE_FILE].map(
+      async (src) => {
+        if (!cache.has(src)) {
+          cache.set(src, loadImage(src));
+        }
+        try {
+          const img = await cache.get(src);
+          return extractFrame(img, img.width, img.height, 0);
+        } catch (err) {
+          console.warn && console.warn("Failed to load torch frame", src, err);
+          return null;
+        }
+      },
+    ),
   );
   const flagFramesPromise = Promise.all(
-    [1, 2, 3, 4].map(async (idx) => {
-      const src = `${FLAG_SPRITE_ROOT}/flag_${idx}.png`;
-      if (!cache.has(src)) {
-        cache.set(src, loadImage(src));
-      }
-      try {
-        const img = await cache.get(src);
-        return extractFrame(img, img.width, img.height, 0);
-      } catch (err) {
-        console.warn && console.warn("Failed to load flag frame", src, err);
-        return null;
-      }
-    }),
+    [FLAG_SPRITE_FILE, FLAG_SPRITE_FILE, FLAG_SPRITE_FILE, FLAG_SPRITE_FILE].map(
+      async (src) => {
+        if (!cache.has(src)) {
+          cache.set(src, loadImage(src));
+        }
+        try {
+          const img = await cache.get(src);
+          return extractFrame(img, img.width, img.height, 0);
+        } catch (err) {
+          console.warn && console.warn("Failed to load flag frame", src, err);
+          return null;
+        }
+      },
+    ),
   );
 
   const playerEntries = Object.entries(ASSET_MANIFEST.player).map(

@@ -5,7 +5,7 @@
     lastTime: 0,
   };
   const scoreboardIconSources = {
-    congregation: "assets/sprites/conrad/powerups/dove.png",
+    congregation: "assets/sprites/pixel-art-pack/Items/I28_Idol.png",
     grace: "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
     enemies: "assets/sprites/pixel-art-pack/Weapons/W01_Blade.png",
   };
