@@ -359,7 +359,7 @@
         );
       }
       if (seg2Fill > 0) {
-        ctx.fillStyle = PALETTE.ice;
+        ctx.fillStyle = PALETTE.muted;
         ctx.fillRect(
           seg2Start,
           innerY,
@@ -369,7 +369,7 @@
       }
       if (seg3Fill > 0) {
         const flash = Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.softWhite;
-        ctx.fillStyle = clampedRatio >= 1 ? flash : PALETTE.gold;
+        ctx.fillStyle = clampedRatio >= 1 ? flash : PALETTE.ice;
         ctx.fillRect(
           seg3Start,
           innerY,
