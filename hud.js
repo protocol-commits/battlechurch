@@ -21,12 +21,7 @@
   function drawOutlinedText(ctx, text, x, y, font, align, fillColor) {
     ctx.font = font;
     ctx.textAlign = align;
-    ctx.lineWidth = Math.max(1, Math.round(Math.max(1, parseInt(String(font), 10)) / 8));
-    ctx.strokeStyle = 'rgba(0,0,0,0.95)';
     ctx.fillStyle = fillColor || '#EAF6FF';
-    try {
-      ctx.strokeText(text, x, y);
-    } catch (err) {}
     ctx.fillText(text, x, y);
   }
 
@@ -204,7 +199,7 @@
           false,
         );
       }
-      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -227,7 +222,7 @@
         const g = Math.round(140 + 90 * pulse);
         const b = Math.round(80 + 20 * (1 - pulse));
         return `rgb(255, ${g}, ${b})`;
-      })() : PALETTE.crimson;
+      })() : '#B23A3A';
       ctx.fillStyle = hpFillColor;
       roundRect(
         ctx,
@@ -256,18 +251,14 @@
         } catch (err) {}
       }
 
-      const hpValueText = player && Number.isFinite(player.health)
-        ? `${Math.max(0, Math.round(player.health))}/${Math.round(player.maxHealth || 0)}`
-        : '--';
-      drawOutlinedText(
-        ctx,
-        hpValueText,
-        hpBarX + hpBarWidth / 2,
-        hpBarY + hpBarHeight / 2 + 4,
-        `12px ${UI_FONT_FAMILY}`,
-        'center',
-        PALETTE.softWhite,
-      );
+      const hpValueText = 'Health';
+      ctx.save();
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(hpValueText, hpBarX + hpBarWidth / 2, hpBarY + hpBarHeight / 2 + 1);
+      ctx.restore();
 
       try {
         const baseX = hpBarX + hpBarWidth + 6;
@@ -475,7 +466,7 @@
       ctx.restore();
 
       ctx.save();
-      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -503,7 +494,7 @@
         ctx.fillRect(sparkX - sparkW, sparkY, sparkW, sparkH);
         ctx.restore();
       }
-      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = ready
         ? (Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.ice)
         : PALETTE.softWhite;
