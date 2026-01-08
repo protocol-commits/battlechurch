@@ -365,6 +365,7 @@
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
       const clampedRatio = Math.max(0, Math.min(1, ratio));
       const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : clampedRatio >= 1;
+      const prayerSegmentColors = ["#14345A", "#1F4F79", "#2C6A99"];
       const now = performance.now() * 0.001;
       const dt = prayerSpark.lastTime ? Math.min(0.1, Math.max(0, now - prayerSpark.lastTime)) : 0;
       prayerSpark.lastTime = now;
@@ -387,9 +388,11 @@
       const seg3Width = Math.max(0, innerW - seg2Max - segGap);
       const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.008);
       const fullPulse = clampedRatio >= 1;
+      const fullPulseAlpha = 0.2 + pulse * 0.45;
+      const fullPulseBrightAlpha = 0.35 + pulse * 0.6;
 
       if (seg1Fill > 0) {
-        ctx.fillStyle = PALETTE.slate;
+        ctx.fillStyle = prayerSegmentColors[0];
         roundRect(
           ctx,
           seg1Start,
@@ -420,7 +423,7 @@
       }
       if (fullPulse && seg1Width > 0) {
         ctx.save();
-        ctx.globalAlpha = 0.2 + pulse * 0.45;
+        ctx.globalAlpha = fullPulseAlpha;
         ctx.fillStyle = PALETTE.gold;
         roundRect(
           ctx,
@@ -435,7 +438,7 @@
         ctx.restore();
       }
       if (seg2Fill > 0) {
-        ctx.fillStyle = PALETTE.muted;
+        ctx.fillStyle = prayerSegmentColors[1];
         ctx.fillRect(
           seg2Start,
           innerY,
@@ -458,7 +461,7 @@
       }
       if (fullPulse && seg2Width > 0) {
         ctx.save();
-        ctx.globalAlpha = 0.2 + pulse * 0.45;
+        ctx.globalAlpha = fullPulseAlpha;
         ctx.fillStyle = PALETTE.gold;
         ctx.fillRect(
           seg2Start,
@@ -469,7 +472,7 @@
         ctx.restore();
       }
       if (seg3Fill > 0) {
-        ctx.fillStyle = clampedRatio >= 1 ? PALETTE.gold : PALETTE.ice;
+        ctx.fillStyle = prayerSegmentColors[2];
         ctx.fillRect(
           seg3Start,
           innerY,
@@ -480,7 +483,7 @@
       }
       if (fullPulse && seg3Width > 0) {
         ctx.save();
-        ctx.globalAlpha = 0.2 + pulse * 0.45;
+        ctx.globalAlpha = fullPulseBrightAlpha;
         ctx.fillStyle = PALETTE.gold;
         ctx.fillRect(
           seg3Start,
