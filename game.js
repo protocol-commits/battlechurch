@@ -4653,6 +4653,56 @@ const PAUSE_BODY =
     "Your congregation will hold its place while you choose to keep fighting.",
   ].join(" ");
 
+const PAUSE_HOTKEYS_HTML = `
+  <div class="pause-hotkeys">
+    <div class="pause-hotkeys__column">
+      <div class="pause-hotkeys__title">Controls</div>
+      <ul class="pause-hotkeys__list">
+        <li>WASD: Move</li>
+        <li>Double-tap WASD: Rush</li>
+        <li>Arrow keys: Aim</li>
+        <li>Mouse: Aim</li>
+        <li>Left Arrow: Melee (hold to charge)</li>
+        <li>Right Arrow: Prayer bomb</li>
+        <li>Right-click: Prayer bomb</li>
+        <li>Space: Pause / Resume</li>
+      </ul>
+    </div>
+    <div class="pause-hotkeys__column">
+      <div class="pause-hotkeys__title">Developer</div>
+      <ul class="pause-hotkeys__list">
+        <li>1: Toggle God mode</li>
+        <li>2: Clear all enemies</li>
+        <li>3: Skip current horde</li>
+        <li>F4: Skip battle sequence</li>
+        <li>5: Skip to boss</li>
+        <li>6: Start grace rush</li>
+        <li>B: Boost prayer bomb tier</li>
+        <li>H: Spawn Harmony harp</li>
+        <li>M: Spawn random MiniFolk</li>
+        <li>O: Toggle enemy labels</li>
+        <li>V: Toggle visitor session</li>
+        <li>Y: Save overrides</li>
+        <li>E: Export overrides</li>
+        <li>I: Import overrides</li>
+      </ul>
+      <div class="pause-hotkeys__title">Inspector</div>
+      <ul class="pause-hotkeys__list">
+        <li>F: Toggle frame inspector</li>
+        <li>, / ArrowLeft: Prev target</li>
+        <li>. / ArrowRight: Next target</li>
+        <li>+ / -: Zoom in / out</li>
+        <li>0: Reset zoom</li>
+        <li>R: Reset overrides</li>
+        <li>Enter: Cycle state / confirm pick</li>
+        <li>T: Type frame list</li>
+        <li>S: Show overrides (silent)</li>
+      </ul>
+    </div>
+  </div>
+  <div class="pause-hotkeys__note">Press Continue or Space to resume.</div>
+`;
+
 const GAME_OVER_BODY =
   uiTexts.gameOverBody ||
   "You have no strength to continue the battle.\nThe church and the town are lost to darkness.";
@@ -4681,7 +4731,7 @@ function showPauseDialog() {
   }
   window.DialogOverlay.show({
     title: "Paused",
-    body: PAUSE_BODY,
+    bodyHtml: PAUSE_HOTKEYS_HTML,
     buttonText: "Continue (Space)",
     variant: "pause",
     devLabel: "",

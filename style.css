@@ -479,6 +479,39 @@ body.touch-enabled .joystick-handle {
   justify-content: center;
   background: transparent;
 }
+.dialog-overlay--pause .dialog-overlay__body {
+  text-align: left;
+  white-space: normal;
+}
+.pause-hotkeys {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+.pause-hotkeys__title {
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 240, 205, 0.95);
+  margin: 6px 0 8px;
+}
+.pause-hotkeys__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(234, 246, 255, 0.92);
+}
+.pause-hotkeys__list li {
+  margin: 0 0 6px;
+}
+.pause-hotkeys__note {
+  margin-top: 10px;
+  font-size: 12px;
+  text-align: center;
+  color: rgba(180, 210, 255, 0.9);
+}
 .dialog-overlay--gameover {
   align-items: center;
   justify-content: flex-start;

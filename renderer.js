@@ -1082,9 +1082,17 @@ function drawLevelAnnouncements() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const sections = [
-      { title: "Move", items: ["WASD"] },
+      { title: "Move", items: ["WASD", "Double-tap WASD to rush"] },
       { title: "Aim", items: ["Arrow keys", "Mouse cursor"] },
-      { title: "Prayer Bomb", items: ["Hold A + D for 1 sec", "Right-click to cast"] },
+      {
+        title: "Hotkeys",
+        items: [
+          "Space: Pause / Resume",
+          "Left Arrow: Melee (hold to charge)",
+          "Right Arrow: Prayer bomb",
+          "Right-click: Prayer bomb",
+        ],
+      },
       {
         title: "Utility Power Ups",
         items: [
@@ -1105,12 +1113,34 @@ function drawLevelAnnouncements() {
       {
         title: "Developer Hotkeys",
         items: [
-          "F: Toggle frame inspector",
           "1: Toggle God mode",
           "2: Clear all enemies",
           "3: Skip current horde",
-          "4: Skip battle sequence",
+          "F4: Skip battle sequence",
+          "5: Skip to boss",
+          "6: Start grace rush",
+          "B: Boost prayer bomb tier",
+          "H: Spawn Harmony harp",
           "M: Spawn random MiniFolk",
+          "O: Toggle enemy labels",
+          "V: Toggle visitor session",
+          "Y: Save overrides",
+          "E: Export overrides",
+          "I: Import overrides",
+        ],
+      },
+      {
+        title: "Inspector Hotkeys",
+        items: [
+          "F: Toggle frame inspector",
+          ", / ArrowLeft: Prev target",
+          ". / ArrowRight: Next target",
+          "+ / - : Zoom in / out",
+          "0: Reset zoom",
+          "R: Reset overrides",
+          "Enter: Cycle state / confirm pick",
+          "T: Type frame list",
+          "S: Show overrides (silent)",
         ],
       },
     ];
@@ -1121,7 +1151,10 @@ function drawLevelAnnouncements() {
     const itemLineHeight = 20;
     const maxCardWidth = Math.min(canvas.width - 120, 820);
     const useTwoColumns = maxCardWidth >= 640 && canvas.width >= 720;
-    const columns = useTwoColumns ? [sections.slice(0, 3), sections.slice(3)] : [sections];
+    const splitIndex = Math.ceil(sections.length / 2);
+    const columns = useTwoColumns
+      ? [sections.slice(0, splitIndex), sections.slice(splitIndex)]
+      : [sections];
     const columnCount = columns.length;
     const columnGap = 22;
     const panelWidth = useTwoColumns
@@ -1673,6 +1706,9 @@ function drawLevelAnnouncements() {
         drawCannonSplashDebug(ctx, projectile.x, projectile.y, cannonSplashRadius);
       }
     });
+    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
+      effects.forEach((effect) => effect.draw());
+    }
     if (player) {
       player.draw();
       drawPlayerWeaponMeter(player);
@@ -1871,18 +1907,7 @@ function drawLevelAnnouncements() {
       drawCongregationScene(levelStatus);
     }
     drawMeleeSwingOverlay(ctx, player);
-    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
-      const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
-      const shakeX = sharedShakeOffset?.x || 0;
-      const shakeY = sharedShakeOffset?.y || 0;
-      ctx.save();
-      ctx.translate(-cameraOffsetX + shakeX, -cameraOffsetY + shakeY);
-      effects.forEach((effect) => effect.draw());
-      if (player && player.shieldTimer > 0) {
-        player.draw();
-      }
-      ctx.restore();
-    }
+    // Effects are drawn earlier in the world pass so the player stays on top.
 
   }
 
