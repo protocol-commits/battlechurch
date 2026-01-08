@@ -1985,7 +1985,7 @@ const WISDOM_HIT_SHAKE_DURATION = 0.15;
 const WISDOM_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.40;
 const FAITH_HIT_SHAKE_DURATION = 0.15;
 const FAITH_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.25;
-const DAMAGE_FLASH_DURATION = 0.24;
+const DAMAGE_FLASH_DURATION = 0.6;
 const DAMAGE_FLASH_INTENSITY = 1.35;
 const SHIELD_SMALL_DAMAGE = 999;
 const SHIELD_LARGE_DAMAGE = 220;
@@ -7375,7 +7375,7 @@ class CozyNpc {
     const width = NPC_FAITH_BAR_WIDTH;
     const height = NPC_FAITH_BAR_HEIGHT;
     const barX = this.x - width / 2;
-    const barY = this.y - this.radius - 8;
+    const barY = this.y - this.radius - 4;
     if (LOG_NPC_FAITH_BAR && typeof console !== 'undefined' && console.debug) {
       console.debug &&
         console.debug('NPC.drawFaithBar', {
@@ -7396,6 +7396,9 @@ class CozyNpc {
         x: barX,
         y: barY,
         owner: this,
+        damageFlash: this.damageFlashTimer > 0
+          ? Math.min(1, this.damageFlashTimer / DAMAGE_FLASH_DURATION)
+          : 0,
       });
       return;
     }
@@ -7448,6 +7451,27 @@ class CozyNpc {
           true,
           false,
         );
+      } catch (e) {}
+    }
+    if (this.damageFlashTimer > 0) {
+      try {
+        const t = (performance.now ? performance.now() : Date.now());
+        const blinkOn = Math.sin(t * 0.03) > 0;
+        if (blinkOn) {
+          ctx.globalCompositeOperation = "destination-out";
+          ctx.fillStyle = "rgba(0,0,0,0.9)";
+          roundRect(
+            ctx,
+            barX + 2,
+            barY + 2,
+            width - 4,
+            height - 4,
+            Math.max(4, Math.floor((height - 4) / 2)),
+            true,
+            false,
+          );
+          ctx.globalCompositeOperation = "source-over";
+        }
       } catch (e) {}
     }
     // No special highlight for full health; keep the same fill color.

@@ -1526,12 +1526,6 @@ function drawLevelAnnouncements() {
         ctx.restore();
       } else {
         battleNpcs = npcs.filter(Boolean);
-        battleNpcs.forEach((npc) => {
-          if (npc.name) {
-            const nameY = npc.y - (npc.radius || 28) - 16;
-            dynamicNameTags.push({ name: npc.name, x: npc.x, y: nameY });
-          }
-        });
       }
     }
     if (dynamicNameTags.length) {
@@ -1594,6 +1588,27 @@ function drawLevelAnnouncements() {
           );
         } catch (err) {}
       }
+      if (entry.damageFlash > 0) {
+        try {
+          const t = (performance.now ? performance.now() : Date.now());
+          const blinkOn = Math.sin(t * 0.03) > 0;
+          if (blinkOn) {
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.fillStyle = "rgba(0,0,0,0.9)";
+            roundRect(
+              ctx,
+              entry.x + 2,
+              entry.y + 2,
+              entry.width - 4,
+              entry.height - 4,
+              Math.max(4, Math.floor((entry.height - 4) / 2)),
+              true,
+              false,
+            );
+          }
+          ctx.globalCompositeOperation = "source-over";
+        } catch (err) {}
+      }
       // No special highlight for full faith; keep the same fill color.
       ctx.restore();
     };
@@ -1628,8 +1643,7 @@ function drawLevelAnnouncements() {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
     const shouldDepthSortNpcUi = !visitorStageActive && battleNpcs.length && !isCongregationStage;
-    const hasOverlayOwners = npcFaithOverlays.some((entry) => entry && entry.owner);
-    if (shouldDepthSortNpcUi && hasOverlayOwners) {
+    if (shouldDepthSortNpcUi) {
       const overlayByOwner = new Map();
       npcFaithOverlays.forEach((entry) => {
         if (entry?.owner) overlayByOwner.set(entry.owner, entry);
@@ -1639,7 +1653,7 @@ function drawLevelAnnouncements() {
       ctx.globalAlpha *= npcFadeAlpha;
       sortedNpcs.forEach((npc) => {
         if (npc?.name) {
-          const nameY = npc.y - (npc.radius || 28) - 16;
+          const nameY = npc.y - (npc.radius || 28) - 10;
           drawNameTag(ctx, npc.name, npc.x, nameY, UI_FONT_FAMILY);
         }
         const overlay = overlayByOwner.get(npc);
@@ -1952,12 +1966,13 @@ function drawLevelAnnouncements() {
       }
       ctx.globalAlpha = alpha;
       const style = ft.style || (ft.speechBubble ? "speech" : "plain");
-      const fontSize = style === "speech" ? 14 : ft.fontSize || 14;
+      const fontSize = style === "speech" ? 12 : ft.fontSize || 14;
       const fontWeight = ft.fontWeight || (style === "speech" ? "400" : "600");
       const fontFamily = ft.fontFamily || UI_FONT_FAMILY;
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.textAlign = "center";
       if (style === "speech") {
+        ctx.textBaseline = "middle";
         const metrics = ctx.measureText(ft.text);
         const bubbleWidth = metrics.width + 10 * 2;
         const bubbleHeight = 28;
@@ -2023,9 +2038,6 @@ function drawLevelAnnouncements() {
         ctx.stroke();
         ctx.restore();
         ctx.fillStyle = ft.color;
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
-        ctx.lineWidth = 2;
-        ctx.strokeText(ft.text, drawX, bubbleY + bubbleHeight / 2);
         ctx.fillText(ft.text, drawX, bubbleY + bubbleHeight / 2);
       } else if (style === "status") {
         ctx.textBaseline = "middle";
