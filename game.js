@@ -6892,6 +6892,17 @@ class CozyNpc {
         });
     }
     this.faith = Math.max(0, this.faith - scaledLoss);
+    if (scaledLoss > 0 && (this.maxFaith || 0) > 0) {
+      const startRatio = prevFaith / this.maxFaith;
+      const endRatio = this.faith / this.maxFaith;
+      this.faithDamageFlash = {
+        startRatio,
+        endRatio,
+        timer: 1.0,
+        duration: 1.0,
+        flashes: 3,
+      };
+    }
   // Visual debug: floating text showing faith lost
     try {
       showDamage(this, scaledLoss, {
@@ -6988,6 +6999,9 @@ class CozyNpc {
     const timerScale = getNpcTimerScale();
     this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
+    if (this.faithDamageFlash?.timer > 0) {
+      this.faithDamageFlash.timer = Math.max(0, this.faithDamageFlash.timer - dt);
+    }
     if (this.statusBubblePersistent) {
       this.statusBubbleTimer = Number.POSITIVE_INFINITY;
     } else if (this.statusBubbleTimer > 0) {
@@ -7256,16 +7270,22 @@ class CozyNpc {
     const fillW = Math.max(0, Math.floor((width - 4) * ratio));
     if (fillW > 0) {
       ctx.fillStyle = NPC_FAITH_FILL_COLOR;
-      roundRect(
-        ctx,
-        barX + 2,
-        barY + 2,
-        fillW,
-        height - 4,
-        Math.max(4, Math.floor((height - 4) / 2)),
-        true,
-        false,
-      );
+      ctx.fillRect(barX + 2, barY + 2, fillW, height - 4);
+    }
+    const faithFlash = this.faithDamageFlash;
+    if (faithFlash?.timer > 0 && faithFlash.duration > 0) {
+      const startRatio = Math.max(0, Math.min(1, faithFlash.startRatio || 0));
+      const endRatio = Math.max(0, Math.min(1, faithFlash.endRatio || 0));
+      const delta = Math.max(0, startRatio - endRatio);
+      if (delta > 0) {
+        const progress = 1 - faithFlash.timer / faithFlash.duration;
+        const pulse = Math.abs(Math.sin(progress * Math.PI * (faithFlash.flashes || 3)));
+        const alpha = 0.2 + 0.8 * pulse;
+        const segmentX = barX + 2 + Math.floor((width - 4) * endRatio);
+        const segmentW = Math.max(1, Math.floor((width - 4) * delta));
+        ctx.fillStyle = `rgba(255, 246, 170, ${alpha.toFixed(3)})`;
+        ctx.fillRect(segmentX, barY + 2, segmentW, height - 4);
+      }
     }
     if (ratio > 0 && ratio <= 0.33) {
       try {
@@ -7833,7 +7853,19 @@ class BossEncounter {
 
   takeDamage(amount, options = {}) {
     if (this.invalid || this.removed || this.state === "death") return;
+    const prevHealth = this.health;
     this.health = Math.max(0, this.health - amount);
+    if (amount > 0 && (this.maxHealth || 0) > 0) {
+      const startRatio = prevHealth / this.maxHealth;
+      const endRatio = this.health / this.maxHealth;
+      this.hpDamageFlash = {
+        startRatio,
+        endRatio,
+        timer: 1.0,
+        duration: 1.0,
+        flashes: 3,
+      };
+    }
     const impactX = Number.isFinite(options.hitX)
       ? options.hitX
       : Number.isFinite(options.x)
@@ -7956,6 +7988,9 @@ class BossEncounter {
 
   update(dt) {
     if (!this.isActive()) return;
+    if (this.hpDamageFlash?.timer > 0) {
+      this.hpDamageFlash.timer = Math.max(0, this.hpDamageFlash.timer - dt);
+    }
 
     if (this.state === "death") {
       this.animator.update(dt);
@@ -8047,7 +8082,22 @@ class BossEncounter {
     const fillWidth = Math.max(0, Math.floor((width - 4) * ratio));
     if (fillWidth > 0) {
       context.fillStyle = "#B23A3A";
-      roundRect(context, barX + 2, barY + 2, fillWidth, height - 4, 5, true, false);
+      context.fillRect(barX + 2, barY + 2, fillWidth, height - 4);
+    }
+    const hpFlash = this.hpDamageFlash;
+    if (hpFlash?.timer > 0 && hpFlash.duration > 0) {
+      const startRatio = Math.max(0, Math.min(1, hpFlash.startRatio || 0));
+      const endRatio = Math.max(0, Math.min(1, hpFlash.endRatio || 0));
+      const delta = Math.max(0, startRatio - endRatio);
+      if (delta > 0) {
+        const progress = 1 - hpFlash.timer / hpFlash.duration;
+        const pulse = Math.abs(Math.sin(progress * Math.PI * (hpFlash.flashes || 3)));
+        const alpha = 0.2 + 0.8 * pulse;
+        const segmentX = barX + 2 + Math.floor((width - 4) * endRatio);
+        const segmentW = Math.max(1, Math.floor((width - 4) * delta));
+        context.fillStyle = `rgba(255, 246, 170, ${alpha.toFixed(3)})`;
+        context.fillRect(segmentX, barY + 2, segmentW, height - 4);
+      }
     }
     context.font = `12px ${UI_FONT_FAMILY}`;
     context.fillStyle = "#EAF6FF";

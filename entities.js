@@ -529,6 +529,9 @@ class Player {
     this.speedBoostTimer = Math.max(0, this.speedBoostTimer - dt * timerDrainScale);
     this.powerExtendTimer = Math.max(0, this.powerExtendTimer - dt * timerDrainScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
+    if (this.hpDamageFlash?.timer > 0) {
+      this.hpDamageFlash.timer = Math.max(0, this.hpDamageFlash.timer - dt);
+    }
     this.heartCooldown = Math.max(0, this.heartCooldown - dt);
       if (this.state === "death") {
         this.animator.update(dt);
@@ -1235,6 +1238,7 @@ class Player {
     if (this.invulnerableTimer > 0 || gameOver) return;
     if (this.state === "death") return;
     const baseDamage = amount;
+    const prevHealth = this.health;
     const resistanceBonus = getPlayerStatValue("damage_resistance");
     const reductionFactor = 1 - Math.min(0.8, (this.armorReduction || 0) + resistanceBonus);
     const appliedDamage = Math.max(1, Math.round(baseDamage * reductionFactor));
@@ -1244,6 +1248,17 @@ class Player {
       fadeDelay: 0.5,
     });
     this.health = Math.max(0, this.health - appliedDamage);
+    if (appliedDamage > 0 && (this.maxHealth || 0) > 0) {
+      const startRatio = prevHealth / this.maxHealth;
+      const endRatio = this.health / this.maxHealth;
+      this.hpDamageFlash = {
+        startRatio,
+        endRatio,
+        timer: 1.0,
+        duration: 1.0,
+        flashes: 3,
+      };
+    }
     this.invulnerableTimer = 1.1;
     hpFlashTimer = 0.6;
     if (typeof window !== "undefined" && typeof window.triggerDamageFlash === "function") {

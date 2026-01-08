@@ -224,16 +224,27 @@
         return `rgb(255, ${g}, ${b})`;
       })() : '#B23A3A';
       ctx.fillStyle = hpFillColor;
-      roundRect(
-        ctx,
+      ctx.fillRect(
         hpBarX + 2,
         hpBarY + 2,
         Math.max(6, Math.floor((hpBarWidth - 4) * hpRatio)),
         hpBarHeight - 4,
-        5,
-        true,
-        false,
       );
+      const hpFlash = player?.hpDamageFlash;
+      if (hpFlash?.timer > 0 && hpFlash.duration > 0) {
+        const startRatio = Math.max(0, Math.min(1, hpFlash.startRatio || 0));
+        const endRatio = Math.max(0, Math.min(1, hpFlash.endRatio || 0));
+        const delta = Math.max(0, startRatio - endRatio);
+        if (delta > 0) {
+          const progress = 1 - hpFlash.timer / hpFlash.duration;
+          const pulse = Math.abs(Math.sin(progress * Math.PI * (hpFlash.flashes || 3)));
+          const alpha = 0.2 + 0.8 * pulse;
+          const segmentX = hpBarX + 2 + Math.floor((hpBarWidth - 4) * endRatio);
+          const segmentW = Math.max(1, Math.floor((hpBarWidth - 4) * delta));
+          ctx.fillStyle = `rgba(255, 246, 170, ${alpha.toFixed(3)})`;
+          ctx.fillRect(segmentX, hpBarY + 2, segmentW, hpBarHeight - 4);
+        }
+      }
       if (hpRatio > 0 && hpRatio <= 0.25) {
         try {
           const alpha = Math.abs(Math.sin(performance.now() * 0.01)) * 0.65;
