@@ -14,7 +14,7 @@ let player = null;
 const enemies = [];
 const projectiles = [];
 const obstacles = [];
-const animals = [];
+const weaponPickups = [];
 const utilityPowerUps = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
@@ -75,7 +75,6 @@ if (typeof window !== "undefined" && !window.triggerDamageFlash) {
 const npcs = [];
 const effects = Effects.getActive();
 let divineChargeSparkEffect = null;
-const ambientDecor = [];
 let backgroundImage = null;
 const levelAnnouncements = [];
 let levelManager = null;
@@ -1394,7 +1393,7 @@ function canSpawnUtilityPowerUp() {
 }
 
 function getActiveWeaponPowerUpCount() {
-  return animals.filter((animal) => animal && animal.effect && isWeaponPowerEffect(animal.effect)).length;
+  return weaponPickups.filter((pickup) => pickup && pickup.effect && isWeaponPowerEffect(pickup.effect)).length;
 }
 
 function canSpawnWeaponPowerUp() {
@@ -1406,14 +1405,14 @@ function triggerPowerUpCooldown() {
 }
 
 function clearAllPowerUps() {
-  animals.forEach((animal) => {
-    if (!animal) return;
-    animal.active = false;
-    animal.expired = true;
-    animal.visible = false;
-    animal.life = 0;
+  weaponPickups.forEach((pickup) => {
+    if (!pickup) return;
+    pickup.active = false;
+    pickup.expired = true;
+    pickup.visible = false;
+    pickup.life = 0;
   });
-  animals.splice(0, animals.length);
+  weaponPickups.splice(0, weaponPickups.length);
   utilityPowerUps.forEach((powerUp) => {
     if (!powerUp) return;
     powerUp.active = false;
@@ -2038,7 +2037,6 @@ function resizeCanvas() {
   }
 
   positionObstacles();
-  positionAmbientDecor();
   if (player) {
     resolveEntityObstacles(player);
     player.clampToBounds();
@@ -2048,9 +2046,9 @@ function resizeCanvas() {
     resolveEntityObstacles(enemy);
     clampEntityToBounds(enemy);
   });
-  animals.forEach((animal) => {
-    resolveEntityObstacles(animal);
-    clampEntityToBounds(animal);
+  weaponPickups.forEach((pickup) => {
+    resolveEntityObstacles(pickup);
+    clampEntityToBounds(pickup);
   });
   Input.updateTouchLayout();
 }
@@ -2129,7 +2127,7 @@ Renderer.initialize({
   obstacles,
   npcs,
   utilityPowerUps,
-  animals,
+  weaponPickups,
   gracePickups,
   enemies,
   get activeBoss() { return activeBoss; },
@@ -2381,40 +2379,18 @@ function handleInspectorClick(cx, cy) {
 }
 
 const PLAYER_SPRITE_PATH = "assets/sprites/conrad/characters/";
-const DECOR_PATH = "assets/sprites/cute-sprites/Outdoor decoration/";
 const BACKGROUND_IMAGE_PATH = "assets/backgrounds/church-1108.png";
 const BACKGROUND_FAR_PATH = "assets/backgrounds/far-bg.png";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.png";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
-const ANIMAL_ROOT = "assets/sprites/cute-sprites/Animals";
 const CUTE_VALLEY_COLLECTIBLE_ROOT = "assets/sprites/cute-valley/Collectible/";
 
 const DECOR_CONFIG = (typeof window !== "undefined" && window.WorldDecor) || {};
 
 const VALLEY_OBJECTS_PATH =
   DECOR_CONFIG.VALLEY_OBJECTS_PATH || "assets/sprites/cute-valley/Objects/";
-const AMBIENT_CANDLE_COUNT =
-  typeof DECOR_CONFIG.AMBIENT_CANDLE_COUNT === "number"
-    ? DECOR_CONFIG.AMBIENT_CANDLE_COUNT
-    : 4;
-const AMBIENT_DECOR_MARGIN =
-  typeof DECOR_CONFIG.AMBIENT_DECOR_MARGIN === "number"
-    ? DECOR_CONFIG.AMBIENT_DECOR_MARGIN
-    : 80;
-const AMBIENT_CANDLE_FRAME_DURATION =
-  typeof DECOR_CONFIG.AMBIENT_CANDLE_FRAME_DURATION === "number"
-    ? DECOR_CONFIG.AMBIENT_CANDLE_FRAME_DURATION
-    : 0.18;
-const AMBIENT_CANDLE_EFFECT_SCALE =
-  (typeof DECOR_CONFIG.AMBIENT_CANDLE_EFFECT_SCALE === "number"
-    ? DECOR_CONFIG.AMBIENT_CANDLE_EFFECT_SCALE
-    : 4.8) * WORLD_SCALE;
-const AMBIENT_DECOR_COLLISION_PADDING =
-  (typeof DECOR_CONFIG.AMBIENT_DECOR_COLLISION_PADDING === "number"
-    ? DECOR_CONFIG.AMBIENT_DECOR_COLLISION_PADDING
-    : 12) * WORLD_SCALE;
 
 const RAW_OBSTACLE_DEFS = DECOR_CONFIG.OBSTACLE_DEFS || {};
 
@@ -2780,7 +2756,7 @@ Levels.initialize({
   spawnVictoryGraceBurst,
   startBattleGraceRush,
   getLastEnemyDeathPosition,
-  spawnAnimals: spawnWeaponDrops,
+  spawnWeaponPickups: spawnWeaponDrops,
   evacuateNpcsForBoss,
   restoreNpcsAfterBoss,
   heroSay,
@@ -3593,13 +3569,6 @@ async function loadCoinAssets(cache) {
   return { coinFrames: frames };
 }
 
-async function loadAmbientDecorAssets(cache) {
-  const candleSrc = `${VALLEY_OBJECTS_PATH}candle_1.png`;
-  const image = await loadCachedImage(cache, candleSrc);
-  const frames = extractFrames(image, 16, 16);
-  return { candleFrames: frames };
-}
-
 async function loadAssets() {
   const cache = new Map();
   const assets = {
@@ -3607,7 +3576,7 @@ async function loadAssets() {
     projectiles: {},
     enemies: {},
     obstacles: {},
-    animals: {},
+    weaponPickups: {},
     utility: {},
     effects: {},
   background: null,
@@ -3619,7 +3588,6 @@ async function loadAssets() {
   projectileFrames = {};
   const npcAssetsPromise = loadCozyNpcAssets(cache);
   const coinAssetsPromise = loadCoinAssets(cache);
-  const ambientDecorPromise = loadAmbientDecorAssets(cache);
   const keyFramesPromise = Promise.all(
     GRACE_SPRITE_FILES.map(async (src) => {
       if (!cache.has(src)) {
@@ -3769,7 +3737,7 @@ async function loadAssets() {
         }
         iconImage = await cache.get(def.iconSrc);
       }
-      assets.animals[key] = { image: imageRef, frames, iconImage, ...def };
+      assets.weaponPickups[key] = { image: imageRef, frames, iconImage, ...def };
     },
   );
 
@@ -3826,7 +3794,6 @@ async function loadAssets() {
     backgroundPromise,
   npcAssetsPromise,
   coinAssetsPromise,
-  ambientDecorPromise,
   farPromise,
   midPromise,
     floorPromise,
@@ -3865,8 +3832,6 @@ async function loadAssets() {
     console.debug && console.debug('miniTrident frame extraction failed', e);
   }
 
-  const ambientDecorAssets = await ambientDecorPromise;
-  assets.effects.candle = ambientDecorAssets.candleFrames || [];
 
   // Extract frames for miniFireball projectile (2 rows x 4 cols expected).
   try {
@@ -4525,10 +4490,10 @@ function spawnPowerUpDrops(count = 1) {
   if (stageName === "levelIntro" || stageName === "briefing" || stageName === "npcArrival") {
     return;
   }
-  const animalEntries = Object.entries(assets?.animals || {});
-  const hasAnimals = animalEntries.length > 0;
+  const weaponPickupEntries = Object.entries(assets?.weaponPickups || {});
+  const hasWeaponPickups = weaponPickupEntries.length > 0;
   const hasUtility = Object.keys(assets?.utility || {}).length > 0;
-  if (!hasAnimals && !hasUtility) return;
+  if (!hasWeaponPickups && !hasUtility) return;
   for (let i = 0; i < count; i += 1) {
     const spawnUtility = hasUtility && Math.random() < 0.45;
     if (spawnUtility) {
@@ -4537,7 +4502,7 @@ function spawnPowerUpDrops(count = 1) {
       }
       continue;
     }
-    if (!hasAnimals) {
+    if (!hasWeaponPickups) {
       if (canSpawnUtilityPowerUp()) {
         spawnUtilityPowerUp();
       }
@@ -4547,16 +4512,16 @@ function spawnPowerUpDrops(count = 1) {
       if (canSpawnUtilityPowerUp()) spawnUtilityPowerUp();
       continue;
     }
-    const [type, def] = animalEntries[Math.floor(Math.random() * animalEntries.length)];
+    const [type, def] = weaponPickupEntries[Math.floor(Math.random() * weaponPickupEntries.length)];
     if (isWeaponPowerEffect(def?.effect) && !canSpawnWeaponPowerUp()) {
       if (canSpawnUtilityPowerUp()) spawnUtilityPowerUp();
       continue;
     }
-    const animal = new Animal({ ...def, type });
+    const pickup = new WeaponPickup({ ...def, type });
     const padding = 120;
-    animal.x = Math.random() * (canvas.width - padding * 2) + padding;
-    animal.y = Math.random() * (canvas.height - padding * 2) + padding;
-    animals.push(animal);
+    pickup.x = Math.random() * (canvas.width - padding * 2) + padding;
+    pickup.y = Math.random() * (canvas.height - padding * 2) + padding;
+    weaponPickups.push(pickup);
   }
 }
 
@@ -4695,136 +4660,13 @@ function positionObstacles() {
   obstacles.forEach((obstacle) => obstacle.updatePosition());
 }
 
-function disposeAmbientDecor() {
-  ambientDecor.forEach(({ effect }) => {
-    if (effect && typeof effect === "object") {
-      effect.dead = true;
-    }
-  });
-  ambientDecor.forEach((decor) => {
-    decor.effect = null;
-  });
-  ambientDecor.splice(0, ambientDecor.length);
-}
-
-function rebuildAmbientDecor() {
-  disposeAmbientDecor();
-  const frames = assets?.effects?.candle;
-  if (!frames || !frames.length) return;
-
-  const firstFrame = frames[0] || null;
-  const baseFrameSize = firstFrame ? Math.max(firstFrame.width || 0, firstFrame.height || 0) : 16;
-  const effectScale = AMBIENT_CANDLE_EFFECT_SCALE;
-  const collisionRadius = Math.max(8 * WORLD_SCALE, (baseFrameSize * effectScale) * 0.5);
-
-  const minX = AMBIENT_DECOR_MARGIN;
-  const maxX = Math.max(minX, canvas.width - AMBIENT_DECOR_MARGIN);
-  const minY = Math.max(HUD_HEIGHT + AMBIENT_DECOR_MARGIN, AMBIENT_DECOR_MARGIN);
-  const maxY = Math.max(minY, canvas.height - AMBIENT_DECOR_MARGIN);
-  if (maxX <= minX || maxY <= minY) return;
-
-  const homeBounds = getNpcHomeBounds();
-  const isInsideHome = (x, y) => {
-    const dx = x - homeBounds.x;
-    const dy = y - homeBounds.y;
-    return Math.hypot(dx, dy) <= homeBounds.radius;
-  };
-
-  const spanX = maxX - minX;
-  const spanY = maxY - minY;
-  const desired = Math.max(0, AMBIENT_CANDLE_COUNT);
-  const maxAttempts = desired * 15;
-  let attempts = 0;
-
-  const collidesWithObstacle = (x, y, radius) => {
-    if (!obstacles.length) return false;
-    for (const obstacle of obstacles) {
-      const dx = x - obstacle.x;
-      const dy = y - obstacle.y;
-      const minDistance = radius + obstacle.collisionRadius + AMBIENT_DECOR_COLLISION_PADDING;
-      if (Math.hypot(dx, dy) < minDistance) return true;
-    }
-    return false;
-  };
-
-  while (ambientDecor.length < desired && attempts < maxAttempts) {
-    attempts += 1;
-    const rawX = minX + (spanX > 0 ? Math.random() * spanX : 0);
-    const rawY = minY + (spanY > 0 ? Math.random() * spanY : 0);
-    if (isInsideHome(rawX, rawY)) continue;
-    if (collidesWithObstacle(rawX, rawY, collisionRadius)) continue;
-    if (ambientDecor.some((decor) => {
-      const dx = rawX - decor.x;
-      const dy = rawY - decor.y;
-      return Math.hypot(dx, dy) < (collisionRadius + (decor.radius || 0) + AMBIENT_DECOR_COLLISION_PADDING * 0.5);
-    })) {
-      continue;
-    }
-
-    const effect = Effects.spawnLoopingEffect(frames, rawX, rawY, {
-      frameDuration: AMBIENT_CANDLE_FRAME_DURATION,
-      scale: effectScale,
-    });
-    if (!effect) continue;
-
-    ambientDecor.push({
-      type: "candle",
-      xRatio: canvas.width > 0 ? rawX / canvas.width : 0.5,
-      yRatio: canvas.height > 0 ? rawY / canvas.height : 0.5,
-      x: rawX,
-      y: rawY,
-      radius: collisionRadius,
-      effectScale,
-      frameDuration: AMBIENT_CANDLE_FRAME_DURATION,
-      frames,
-      effect,
-    });
-  }
-}
-
-function positionAmbientDecor() {
-  if (!ambientDecor.length) return;
-  const fallbackFrames = assets?.effects?.candle || [];
-  if (!fallbackFrames.length && ambientDecor.every((decor) => !decor.frames || !decor.frames.length)) {
-    disposeAmbientDecor();
-    return;
-  }
-
-  ambientDecor.forEach((decor) => {
-    const frames = (decor.frames && decor.frames.length) ? decor.frames : fallbackFrames;
-    if (!frames || !frames.length) return;
-    const x = decor.xRatio * canvas.width;
-    const y = decor.yRatio * canvas.height;
-    decor.x = x;
-    decor.y = y;
-    const isActive = decor.effect && !decor.effect.dead && effects.includes(decor.effect);
-    const effectScale = decor.effectScale ?? AMBIENT_CANDLE_EFFECT_SCALE;
-    const frameDuration = decor.frameDuration ?? AMBIENT_CANDLE_FRAME_DURATION;
-
-    if (!isActive) {
-      const newEffect = Effects.spawnLoopingEffect(frames, x, y, {
-        frameDuration,
-        scale: effectScale,
-      });
-      decor.effect = newEffect || null;
-      return;
-    }
-
-    decor.effect.x = x;
-    decor.effect.y = y;
-    if (typeof decor.effect.scale === "number" && decor.effect.scale !== effectScale) {
-      decor.effect.scale = effectScale;
-    }
-  });
-}
-
 function spawnWeaponDrops(minCount = 1) {
   if (!canSpawnWeaponPowerUp()) return;
-  const entries = Object.entries(assets.animals || {});
+  const entries = Object.entries(assets.weaponPickups || {});
   if (!entries.length) return;
-  while (animals.length < minCount && canSpawnWeaponPowerUp()) {
+  while (weaponPickups.length < minCount && canSpawnWeaponPowerUp()) {
     const [type, def] = entries[Math.floor(Math.random() * entries.length)];
-    animals.push(new Animal({ ...def, type }));
+    weaponPickups.push(new WeaponPickup({ ...def, type }));
   }
 }
 
@@ -4893,29 +4735,29 @@ function spawnUtilityPowerUp(type = null, position = null) {
   return powerUp;
 }
 
-function spawnWeaponPowerAnimal(position = null) {
-  if (!assets?.animals) return null;
-  const entries = Object.entries(assets.animals).filter(([, def]) => isWeaponPowerEffect(def?.effect));
+function spawnWeaponPickup(position = null) {
+  if (!assets?.weaponPickups) return null;
+  const entries = Object.entries(assets.weaponPickups).filter(([, def]) => isWeaponPowerEffect(def?.effect));
   if (!entries.length || !canSpawnWeaponPowerUp()) return null;
   const [type, def] = entries[Math.floor(Math.random() * entries.length)];
-  const animal = new Animal({ ...def, type });
-  if (position?.x !== undefined) animal.x = position.x;
-  if (position?.y !== undefined) animal.y = position.y;
-  animals.push(animal);
-  return animal;
+  const pickup = new WeaponPickup({ ...def, type });
+  if (position?.x !== undefined) pickup.x = position.x;
+  if (position?.y !== undefined) pickup.y = position.y;
+  weaponPickups.push(pickup);
+  return pickup;
 }
 
 function showWeaponPowerupFloatingText(text, color = "#fff") {
   return;
 }
 
-function applyAnimalEffect(animal) {
+function applyWeaponPickupEffect(pickup) {
   if (!player) return;
-  const def = animal.definition;
+  const def = pickup.definition;
   if (typeof window !== "undefined" && typeof window.playWeaponPowerupPickupSfx === "function") {
     window.playWeaponPowerupPickupSfx(0.55);
   }
-  switch (animal.effect) {
+  switch (pickup.effect) {
     case "heal": {
       const healAmount =
         typeof def.healAmount === "number" ? def.healAmount : Math.round(HERO_HEALTH_PER_HEART);
@@ -4937,10 +4779,10 @@ function applyAnimalEffect(animal) {
         life: config.statusLife,
       });
       spawnPowerupHudFlyEffect({
-        x: animal.x,
-        y: animal.y,
+        x: pickup.x,
+        y: pickup.y,
         iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(animal.effect),
+        targetKey: getPowerupHudTargetKey(pickup.effect),
       });
       break;
     }
@@ -4956,10 +4798,10 @@ function applyAnimalEffect(animal) {
       player.magicCooldown = 0;
       showWeaponPowerupConfigText(config);
       spawnPowerupHudFlyEffect({
-        x: animal.x,
-        y: animal.y,
+        x: pickup.x,
+        y: pickup.y,
         iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(animal.effect),
+        targetKey: getPowerupHudTargetKey(pickup.effect),
       });
       break;
     }
@@ -4975,10 +4817,10 @@ function applyAnimalEffect(animal) {
       player.magicCooldown = 0;
       showWeaponPowerupConfigText(config);
       spawnPowerupHudFlyEffect({
-        x: animal.x,
-        y: animal.y,
+        x: pickup.x,
+        y: pickup.y,
         iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(animal.effect),
+        targetKey: getPowerupHudTargetKey(pickup.effect),
       });
       break;
     }
@@ -4994,10 +4836,10 @@ function applyAnimalEffect(animal) {
       player.magicCooldown = 0;
       showWeaponPowerupConfigText(config);
       spawnPowerupHudFlyEffect({
-        x: animal.x,
-        y: animal.y,
+        x: pickup.x,
+        y: pickup.y,
         iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(animal.effect),
+        targetKey: getPowerupHudTargetKey(pickup.effect),
       });
       break;
     }
@@ -5009,10 +4851,10 @@ function applyAnimalEffect(animal) {
         description: "NPCs fire scripture shots for a short time.",
       });
       spawnPowerupHudFlyEffect({
-        x: animal.x,
-        y: animal.y,
+        x: pickup.x,
+        y: pickup.y,
         iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(animal.effect),
+        targetKey: getPowerupHudTargetKey(pickup.effect),
       });
       break;
     }
@@ -5024,10 +4866,10 @@ function applyAnimalEffect(animal) {
         description: "NPCs launch wisdom missiles temporarily.",
       });
       spawnPowerupHudFlyEffect({
-        x: animal.x,
-        y: animal.y,
+        x: pickup.x,
+        y: pickup.y,
         iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(animal.effect),
+        targetKey: getPowerupHudTargetKey(pickup.effect),
       });
       break;
     }
@@ -5039,10 +4881,10 @@ function applyAnimalEffect(animal) {
         description: "NPCs fire faith cannon blasts briefly.",
       });
       spawnPowerupHudFlyEffect({
-        x: animal.x,
-        y: animal.y,
+        x: pickup.x,
+        y: pickup.y,
         iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(animal.effect),
+        targetKey: getPowerupHudTargetKey(pickup.effect),
       });
       break;
     }
@@ -5182,32 +5024,32 @@ function updateUtilityPowerUps(dt) {
   }
 }
 
-function updateAnimals(dt) {
-  animals.forEach((animal) => {
-    if (!animal) return;
-    animal.update(dt);
-    if (!animal.active) return;
-    resolveEntityCollisions(animal, animals, { allowPush: true, overlapScale: 1 });
-    resolveEntityCollisions(animal, enemies, { allowPush: true, overlapScale: 1 });
-    resolveEntityCollisions(animal, [player], { allowPush: true, overlapScale: 1 });
-    clampEntityToBounds(animal);
+function updateWeaponPickups(dt) {
+  weaponPickups.forEach((pickup) => {
+    if (!pickup) return;
+    pickup.update(dt);
+    if (!pickup.active) return;
+    resolveEntityCollisions(pickup, weaponPickups, { allowPush: true, overlapScale: 1 });
+    resolveEntityCollisions(pickup, enemies, { allowPush: true, overlapScale: 1 });
+    resolveEntityCollisions(pickup, [player], { allowPush: true, overlapScale: 1 });
+    clampEntityToBounds(pickup);
   });
 
-  for (let i = animals.length - 1; i >= 0; i -= 1) {
-    const animal = animals[i];
-    if (!animal) continue;
-    if (animal.expired || !animal.active) {
-      animals.splice(i, 1);
+  for (let i = weaponPickups.length - 1; i >= 0; i -= 1) {
+    const pickup = weaponPickups[i];
+    if (!pickup) continue;
+    if (pickup.expired || !pickup.active) {
+      weaponPickups.splice(i, 1);
       triggerPowerUpCooldown();
       continue;
     }
     if (!player) continue;
-    const dx = animal.x - player.x;
-    const dy = animal.y - player.y;
+    const dx = pickup.x - player.x;
+    const dy = pickup.y - player.y;
     const distance = Math.hypot(dx, dy);
-    if (distance <= (animal.radius || 0) + player.radius) {
-      applyAnimalEffect(animal);
-      animals.splice(i, 1);
+    if (distance <= (pickup.radius || 0) + player.radius) {
+      applyWeaponPickupEffect(pickup);
+      weaponPickups.splice(i, 1);
     }
   }
 }
@@ -5817,8 +5659,7 @@ function resolveEntityObstacles(entity) {
   if (!entity || entity?.ignoreWorldBounds) return;
   if (entity?.ignoreObstacles) return;
   const hasStaticObstacles = obstacles.length > 0;
-  const hasAmbientObstacles = ambientDecor.length > 0;
-  if (!hasStaticObstacles && !hasAmbientObstacles) return;
+  if (!hasStaticObstacles) return;
   const maxIterations = 5;
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     let adjusted = false;
@@ -5845,24 +5686,6 @@ function resolveEntityObstacles(entity) {
               obstacleX: obstacle.x,
               obstacleY: obstacle.y,
             });
-        }
-      }
-    }
-    if (hasAmbientObstacles) {
-      for (const decor of ambientDecor) {
-        const radius = decor.radius || 0;
-        if (radius <= 0) continue;
-        const dx = entity.x - decor.x;
-        const dy = entity.y - decor.y;
-        const distance = Math.hypot(dx, dy);
-        const minDistance = (entity.radius || 0) + radius;
-        if (distance < minDistance && minDistance > 0) {
-          const overlap = minDistance - (distance || 0);
-          const nx = distance === 0 ? 1 : dx / distance;
-          const ny = distance === 0 ? 0 : dy / distance;
-          entity.x += nx * overlap;
-          entity.y += ny * overlap;
-          adjusted = true;
         }
       }
     }
@@ -5984,8 +5807,7 @@ function devClearOpponents({ includeBoss = false } = {}) {
 
 function computeObstacleAvoidance(entity) {
   const hasStaticObstacles = obstacles.length > 0;
-  const hasAmbientObstacles = ambientDecor.length > 0;
-  if (!hasStaticObstacles && !hasAmbientObstacles) return { x: 0, y: 0 };
+  if (!hasStaticObstacles) return { x: 0, y: 0 };
   let steerX = 0;
   let steerY = 0;
   const applyObstacle = (ox, oy, radius) => {
@@ -6005,11 +5827,6 @@ function computeObstacleAvoidance(entity) {
   if (hasStaticObstacles) {
     for (const obstacle of obstacles) {
       applyObstacle(obstacle.x, obstacle.y, obstacle.collisionRadius);
-    }
-  }
-  if (hasAmbientObstacles) {
-    for (const decor of ambientDecor) {
-      applyObstacle(decor.x, decor.y, decor.radius || 0);
     }
   }
   return { x: steerX, y: steerY };
@@ -6233,7 +6050,7 @@ function drawPowerupShadow(context, x, y, size, heightOffset = 0) {
   context.restore();
 }
 
-class Animal {
+class WeaponPickup {
   constructor(definition) {
     this.type = definition.type;
     this.definition = definition;
@@ -9749,12 +9566,12 @@ function updateCozyNpcs(dt) {
       const leaving = npc.state === "lostFaith";
       if (!leaving) {
         // NPCs should collide with the player (can be pushed), enemies (allow push),
-        // other animals, and utility power-ups so they can't pass through pickups.
+        // other weapon pickups, and utility power-ups so they can't pass through pickups.
         if (player && !npc.departed && npc.active) {
           resolveEntityCollisions(npc, [player], { allowPush: true, overlapScale: 0.85 });
         }
         resolveEntityCollisions(npc, enemies, { allowPush: true, overlapScale: 0.85 });
-        resolveEntityCollisions(npc, animals, { allowPush: true, overlapScale: 0.9 });
+        resolveEntityCollisions(npc, weaponPickups, { allowPush: true, overlapScale: 0.9 });
         resolveEntityCollisions(npc, utilityPowerUps, { allowPush: false, overlapScale: 0.9 });
         // Respect world obstacles (trees, walls, etc.) so NPCs don't walk through them.
         resolveEntityObstacles(npc);
@@ -10638,7 +10455,7 @@ function updateGame(dt) {
 
   // vampire updates and shield impacts removed
   updateCozyNpcs(dt);
-  updateAnimals(dt);
+  updateWeaponPickups(dt);
   updateUtilityPowerUps(dt);
   updateGracePickups(dt);
   updateGraceHudFlyEffects(dt);
@@ -10671,7 +10488,7 @@ function updateGame(dt) {
         spawnUtilityPowerUp();
       }
       if (battleStageAllowsPowerUps && canSpawnWeaponPowerUp()) {
-        spawnWeaponPowerAnimal();
+        spawnWeaponPickup();
       }
     }
   } catch (err) {
@@ -11796,14 +11613,13 @@ function restartGame() {
   resetYearNpcPool();
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
-  animals.splice(0, animals.length);
+  weaponPickups.splice(0, weaponPickups.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
   clearGracePickups();
   window.StatsManager?.resetStats?.();
   playerGraceCount = 0;
   Spawner.resetAllFlags();
   Effects.clear();
-  rebuildAmbientDecor();
   bossHazards.splice(0, bossHazards.length);
   activeBoss = null;
   graceRushState.active = false;
@@ -11918,7 +11734,6 @@ async function init() {
     }
     assets = await loadAssets();
     rebuildObstacles();
-    rebuildAmbientDecor();
   player = createPlayerInstance(
     canvas.width / 2,
     HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5,

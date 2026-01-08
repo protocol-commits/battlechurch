@@ -1416,7 +1416,7 @@ function drawLevelAnnouncements() {
       congregationMembers,
       npcs,
       utilityPowerUps,
-      animals,
+      weaponPickups,
       gracePickups,
       enemies,
       activeBoss,
@@ -1638,7 +1638,7 @@ function drawLevelAnnouncements() {
     }
     // Draw pickups above enemies/NPCs
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
-    animals.forEach((animal) => animal.draw());
+    weaponPickups.forEach((pickup) => pickup.draw());
     gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });

@@ -552,10 +552,10 @@
       const weaponTimer = Math.max(0, player.weaponPowerTimer || 0);
       const weaponRatio = weaponDuration > 0 ? weaponTimer / weaponDuration : 0;
       const weaponIcon = (() => {
-        if (!assets || !assets.animals) return defaultWeaponIcon;
-        if (weaponMode === 'wisdom_missle') return assets.animals.wisdom?.iconImage || defaultWeaponIcon;
-        if (weaponMode === 'faith_cannon') return assets.animals.faith?.iconImage || defaultWeaponIcon;
-        if (weaponMode === 'fire') return assets.animals.scripture?.iconImage || defaultWeaponIcon;
+        if (!assets || !assets.weaponPickups) return defaultWeaponIcon;
+        if (weaponMode === 'wisdom_missle') return assets.weaponPickups.wisdom?.iconImage || defaultWeaponIcon;
+        if (weaponMode === 'faith_cannon') return assets.weaponPickups.faith?.iconImage || defaultWeaponIcon;
+        if (weaponMode === 'fire') return assets.weaponPickups.scripture?.iconImage || defaultWeaponIcon;
         return null;
       })();
       let playerMultipliers = null;
@@ -644,10 +644,10 @@
       const npcTimer = Math.max(0, npcWeaponState?.timer || 0);
       const npcDuration = Math.max(0.001, npcWeaponState?.duration || npcTimer || 0);
       const npcWeaponIcon = (() => {
-        if (!assets || !assets.animals) return defaultWeaponIcon;
-        if (npcMode === 'wisdom_missle') return assets.animals.npcWisdom?.iconImage || defaultWeaponIcon;
-        if (npcMode === 'faith_cannon') return assets.animals.npcFaith?.iconImage || defaultWeaponIcon;
-        if (npcMode === 'fire') return assets.animals.npcScripture?.iconImage || defaultWeaponIcon;
+        if (!assets || !assets.weaponPickups) return defaultWeaponIcon;
+        if (npcMode === 'wisdom_missle') return assets.weaponPickups.npcWisdom?.iconImage || defaultWeaponIcon;
+        if (npcMode === 'faith_cannon') return assets.weaponPickups.npcFaith?.iconImage || defaultWeaponIcon;
+        if (npcMode === 'fire') return assets.weaponPickups.npcScripture?.iconImage || defaultWeaponIcon;
         return null;
       })();
       const npcMultipliers = npcMode === 'arrow'

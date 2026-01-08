@@ -10,7 +10,7 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 - Assets: kept in `assets/` with sprite sheets referenced by modules; runtime overrides live in `overrides.js`, which also publishes `__BATTLECHURCH_ASSET_VERSION` to bust caches.
 
 ### Module Summary
-- `game.js`: orchestrates the canvas, main loops, entity arrays (enemies, projectiles, animals, NPCs, power-ups, grace), player state, visitor sessions, grace rushes, boss fights, hero lives/respawns, congregational procession, and dev status text; defines numerous constants for spawn rates, power-up timers, and NPC behavior. TODO markers remind us to hook melee Circle visuals and restricted-zone checks into renderers.
+- `game.js`: orchestrates the canvas, main loops, entity arrays (enemies, projectiles, weapon pick-ups, NPCs, power-ups, grace), player state, visitor sessions, grace rushes, boss fights, hero lives/respawns, congregational procession, and dev status text; defines numerous constants for spawn rates, power-up timers, and NPC behavior. TODO markers remind us to hook melee Circle visuals and restricted-zone checks into renderers.
 - `renderer.js`: handles every draw: mission briefs, HUD, announcements, mini-boss previews, restricted zone highlights, congregational scenes, and dev overlays (e.g., weapon meter above player). Contains scenario lists, popup logic, warning descriptions, and instructions for contributors editing mission scripts.
 - `spawner.js`: dependency-injected spawner for enemies (with caps, staggered portal spawns, skeleton packs, and mini-folk scaling), all configured through an options object (`getAssets`, `createEnemyInstance`, `spawnPuffEffect` hooks). Supports skeleton groups, portal scheduling, audio/puff spawn, and level flag resets.
 - **Portal-style spawns**: the old idea to keep enemies off-screen (spawnX ≈ ±2600) ran into `clampEntityToBounds`/collision logic, which snaps them back into the arena before the `spawnOffscreenTimer` can protect them. We tried logging spawns, adding timers, and widening the clamps, but the clamp still fires too early. The current approach spawns enemies just outside the visible edges (+/−24 px) and doubles the puff radius so the portal effect masks the pop until they walk in.
@@ -41,13 +41,13 @@ This file keeps context on the ongoing mission, the major systems we touch, and 
 
 ### Weapon Power-Ups
 - Scripture, Wisdom, and Faith power-ups grant temporary weapon multipliers by setting `player.weaponPowerTimer`/`player.weaponPowerDuration` (default 8s in `game.js`). The HUD in `renderer.js` shows a meter above the hero that should pause while Sword/Faith Rush/Divine Shot animations lock input.
-- These power-ups spawn as animals, so `canSpawnWeaponPowerUp()` and the `animals` array in `game.js` must honor `powerUpRespawnTimer` before allowing another active effect.
+- These power-ups spawn as weapon pick-ups, so `canSpawnWeaponPowerUp()` and the `weaponPickups` array in `game.js` must honor `powerUpRespawnTimer` before allowing another active effect.
 - Weapon boosts increase DPS, add projectile effects, or modify auto-fire behavior depending on the picked-up power-up definition.
 
 ### Item Power-Ups
 - Utility power-ups (heal, shield, faith boosts) are singleton spawns: `canSpawnUtilityPowerUp()` ensures only one is live, and they rely on timers such as `POWERUP_ACTIVE_LIFETIME`, `POWERUP_BLINK_DURATION`, and `POWERUP_RESPAWN_DELAY`.
 - Grace behaves like items with attraction/physics constants (`GRACE_PICKUP_ATTRACT_DISTANCE`, `GRACE_PICKUP_GRAVITY`, etc.) and is used for upgrades post-battle; HUD should indicate remaining grace pickups before they disappear.
-- Other collectible items include visitor hearts and mission-specific buffs; align spawn logic with `utilityPowerUps`, `animals`, and `keyPickups` arrays to avoid overlapping restricted areas.
+- Other collectible items include visitor hearts and mission-specific buffs; align spawn logic with `utilityPowerUps`, `weaponPickups`, and `gracePickups` arrays to avoid overlapping restricted areas.
 
 ### NPC System (The Flock)
 - Every battle begins with five NPCs stored in the `npcs` array; they fire projectiles to support the player and act as living weapon upgrades.
