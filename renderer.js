@@ -1542,87 +1542,67 @@ function drawLevelAnnouncements() {
       });
       ctx.restore();
     }
-    let npcFaithOverlayFn = () => {
-      if (!npcFaithOverlays.length) return;
+    const drawNpcFaithOverlayEntry = (entry) => {
       ctx.save();
-      ctx.globalAlpha *= npcFadeAlpha;
-      npcFaithOverlays.forEach((entry) => {
-        ctx.save();
-        const radius = Math.max(6, Math.floor(entry.height / 2));
-        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-        roundRect(ctx, entry.x, entry.y, entry.width, entry.height, radius, true, false);
-        ctx.strokeStyle = typeof NPC_FAITH_BORDER_COLOR !== "undefined" ? NPC_FAITH_BORDER_COLOR : "#24698f";
-        ctx.lineWidth = 1;
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-        roundRect(ctx, entry.x + 0.5, entry.y + 0.5, entry.width - 1, entry.height - 1, radius, false, true);
-        ctx.fillStyle = "#9BD9FF";
-        const fillW = Math.max(0, entry.width - 4) * entry.ratio;
-        if (fillW > 0) {
+      const radius = Math.max(6, Math.floor(entry.height / 2));
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      roundRect(ctx, entry.x, entry.y, entry.width, entry.height, radius, true, false);
+      ctx.fillStyle = typeof NPC_FAITH_FILL_COLOR !== "undefined" ? NPC_FAITH_FILL_COLOR : "#9BD9FF";
+      const fillW = Math.max(0, entry.width - 4) * entry.ratio;
+      if (fillW > 0) {
+        roundRect(
+          ctx,
+          entry.x + 2,
+          entry.y + 2,
+          fillW,
+          entry.height - 4,
+          Math.max(4, Math.floor((entry.height - 4) / 2)),
+          true,
+          false,
+        );
+      }
+      if (entry.ratio > 0 && entry.ratio <= 0.33) {
+        try {
+          const t = typeof performance !== "undefined" ? performance.now() : Date.now();
+          const alpha = Math.abs(Math.sin(t * 0.01)) * 0.65;
+          ctx.fillStyle = `rgba(255,60,60,${alpha.toFixed(3)})`;
           roundRect(
             ctx,
             entry.x + 2,
             entry.y + 2,
-            fillW,
+            entry.width - 4,
             entry.height - 4,
             Math.max(4, Math.floor((entry.height - 4) / 2)),
             true,
             false,
           );
-        }
-        if (entry.ratio <= 0) {
-          try {
-            const t = typeof performance !== "undefined" ? performance.now() : Date.now();
-            const alpha = 0.25 + Math.abs(Math.sin(t * 0.005)) * 0.45;
-            ctx.fillStyle = `rgba(255,60,60,${alpha.toFixed(3)})`;
-            roundRect(
-              ctx,
-              entry.x + 2,
-              entry.y + 2,
-              entry.width - 4,
-              entry.height - 4,
-              Math.max(4, Math.floor((entry.height - 4) / 2)),
-              true,
-              false,
-            );
-          } catch (err) {}
-        }
-        if (entry.ratio >= 0.999) {
-          try {
-            const t = typeof performance !== "undefined" ? performance.now() : Date.now();
-            const raw = 0.6 + Math.abs(Math.sin(t * 0.008)) * 0.4;
-            const alpha = Math.max(0.6, Math.min(1, raw));
-            ctx.save();
-            ctx.globalCompositeOperation = "lighter";
-            ctx.fillStyle = `rgba(255,230,80,${alpha.toFixed(3)})`;
-            roundRect(
-              ctx,
-              entry.x + 2,
-              entry.y + 2,
-              entry.width - 4,
-              entry.height - 4,
-              Math.max(4, Math.floor((entry.height - 4) / 2)),
-              true,
-              false,
-            );
-            try {
-              ctx.strokeStyle = `rgba(255,230,120,${(Math.min(1, alpha * 0.95)).toFixed(3)})`;
-              ctx.lineWidth = 1;
-              roundRect(
-                ctx,
-                entry.x + 2.5,
-                entry.y + 2.5,
-                entry.width - 5,
-                entry.height - 5,
-                Math.max(4, Math.floor((entry.height - 5) / 2)),
-                false,
-                true,
-              );
-            } catch (err) {}
-            ctx.restore();
-          } catch (err) {}
-        }
-        ctx.restore();
+        } catch (err) {}
+      } else if (entry.ratio <= 0) {
+        try {
+          const t = typeof performance !== "undefined" ? performance.now() : Date.now();
+          const alpha = 0.25 + Math.abs(Math.sin(t * 0.005)) * 0.45;
+          ctx.fillStyle = `rgba(255,60,60,${alpha.toFixed(3)})`;
+          roundRect(
+            ctx,
+            entry.x + 2,
+            entry.y + 2,
+            entry.width - 4,
+            entry.height - 4,
+            Math.max(4, Math.floor((entry.height - 4) / 2)),
+            true,
+            false,
+          );
+        } catch (err) {}
+      }
+      // No special highlight for full faith; keep the same fill color.
+      ctx.restore();
+    };
+    let npcFaithOverlayFn = () => {
+      if (!npcFaithOverlays.length) return;
+      ctx.save();
+      ctx.globalAlpha *= npcFadeAlpha;
+      npcFaithOverlays.forEach((entry) => {
+        drawNpcFaithOverlayEntry(entry);
       });
       ctx.restore();
     };
@@ -1647,7 +1627,28 @@ function drawLevelAnnouncements() {
     gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
-    npcFaithOverlayFn();
+    const shouldDepthSortNpcUi = !visitorStageActive && battleNpcs.length && !isCongregationStage;
+    const hasOverlayOwners = npcFaithOverlays.some((entry) => entry && entry.owner);
+    if (shouldDepthSortNpcUi && hasOverlayOwners) {
+      const overlayByOwner = new Map();
+      npcFaithOverlays.forEach((entry) => {
+        if (entry?.owner) overlayByOwner.set(entry.owner, entry);
+      });
+      const sortedNpcs = [...battleNpcs].sort((a, b) => (a?.y || 0) - (b?.y || 0));
+      ctx.save();
+      ctx.globalAlpha *= npcFadeAlpha;
+      sortedNpcs.forEach((npc) => {
+        if (npc?.name) {
+          const nameY = npc.y - (npc.radius || 28) - 16;
+          drawNameTag(ctx, npc.name, npc.x, nameY, UI_FONT_FAMILY);
+        }
+        const overlay = overlayByOwner.get(npc);
+        if (overlay) drawNpcFaithOverlayEntry(overlay);
+      });
+      ctx.restore();
+    } else {
+      npcFaithOverlayFn();
+    }
     projectiles.forEach((projectile) => {
       projectile.draw();
       if (
