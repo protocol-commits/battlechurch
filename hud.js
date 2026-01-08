@@ -344,6 +344,7 @@
       const seg2Width = Math.max(0, seg2Max - seg1Max - segGap);
       const seg3Start = innerX + seg2Max + segGap + 1;
       const seg3Width = Math.max(0, innerW - seg2Max - 1);
+      const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.008);
 
       if (seg1Fill > 0) {
         ctx.fillStyle = PALETTE.slate;
@@ -358,6 +359,22 @@
           false,
         );
       }
+      if (clampedRatio >= 0.5 && seg1Width > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.28 + pulse * 0.35;
+        ctx.fillStyle = PALETTE.gold;
+        roundRect(
+          ctx,
+          seg1Start,
+          innerY,
+          seg1Width,
+          innerH,
+          Math.max(2, meterRadius - 2),
+          true,
+          false,
+        );
+        ctx.restore();
+      }
       if (seg2Fill > 0) {
         ctx.fillStyle = PALETTE.muted;
         ctx.fillRect(
@@ -366,6 +383,18 @@
           Math.min(seg2Width, seg2Fill),
           innerH,
         );
+      }
+      if (clampedRatio >= 0.8 && seg2Width > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.28 + pulse * 0.35;
+        ctx.fillStyle = PALETTE.gold;
+        ctx.fillRect(
+          seg2Start,
+          innerY,
+          seg2Width,
+          innerH,
+        );
+        ctx.restore();
       }
       if (seg3Fill > 0) {
         const flash = Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.softWhite;
