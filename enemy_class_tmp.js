@@ -137,9 +137,6 @@ class Enemy {
             if (targetStillValid && hasFaith) {
               // log before calling sufferAttack
               console.debug && console.debug('Enemy dealing damage to NPC', { enemy: this.type, damage: this.config.damage });
-              if (this.type === "miniGhost" && typeof npcTarget.markMiniGhostAttack === "function") {
-                npcTarget.markMiniGhostAttack();
-              }
               target.sufferAttack(this.config.damage);
             } else {
               // target invalid or faith drained; clear any attack lock so minighost will re-acquire
@@ -163,18 +160,6 @@ class Enemy {
     if (distance <= this.config.attackRange + targetRadius * 0.2 && this.attackTimer <= 0) {
       this.state = "attack";
       this.animator.play("attack", { restart: true });
-      // If we're a miniGhost attacking an NPC, lock our position relative to that NPC
-      if (this.type === 'miniGhost' && !targetIsPlayer && target) {
-        try {
-          this._attackLock = {
-            target: target,
-            offsetX: this.x - target.x,
-            offsetY: this.y - target.y,
-          };
-        } catch (e) {
-          this._attackLock = null;
-        }
-      }
       return;
     }
 

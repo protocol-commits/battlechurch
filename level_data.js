@@ -72,13 +72,6 @@ window.BattlechurchLevelData = {
       "werewolf",
       "werebear",
       "miniSuccubus",
-      "miniZombie",
-      "miniZombieButcher",
-      "miniReaper",
-      "miniLich",
-      "miniNecromancer",
-      "miniDeathKnight",
-      "miniDreadKnight",
       "archer",
       "swordsman",
       "skeletonArcher",
@@ -89,9 +82,6 @@ window.BattlechurchLevelData = {
       "armoredOrc",
       "armoredAxeman",
       "skeleton",
-      "miniSkeletonArcher",
-      "miniSkeleton",
-      "miniGhost",
       "slime"
     ],
     "allKillHordes": [

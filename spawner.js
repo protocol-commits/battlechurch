@@ -303,31 +303,6 @@
     }
   }
 
-  function spawnMiniSkeletonGroup(count, position = null, options = {}) {
-    const avgRadius = deps.enemyTypes?.miniSkeleton?.hitRadius || 20;
-    const spacing = computeSwarmSpacing(deps.enemyTypes?.miniSkeleton?.swarmSpacing);
-    const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, count))) * spacing;
-    const base = position || randomOffscreenPosition(avgRadius, groupExtra);
-    const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
-    const spread = (spreadBase * (1 + Math.max(0, count - 1) * 0.06)) / spacing;
-    for (let i = 0; i < count; i += 1) {
-      const offsetX = deps.randomInRange(-spread * 0.55, spread * 0.55);
-      const offsetY = deps.randomInRange(-spread * 0.55, spread * 0.55);
-      const spawnPos = { x: base.x + offsetX, y: base.y + offsetY };
-      const spawnOptions = {
-        ...(options || {}),
-        applyCameraShake: i === 0,
-        extraMargin: groupExtra,
-      };
-      schedulePortalSpawn(
-        "miniSkeleton",
-        spawnPos,
-        i * (deps.enemySpawnStaggerMs || 0),
-        spawnOptions,
-      );
-    }
-  }
-
   function spawnEnemy() {
     if (deps.enemies.length >= deps.maxActiveEnemies) return;
     const levelManager = resolveLevelManager();
@@ -463,7 +438,6 @@
     spawnEnemyOfType,
     spawnSkeletonGroup,
     spawnMiniImpGroup,
-    spawnMiniSkeletonGroup,
     schedulePortalSpawn,
     spawnEnemy,
     maintainSkeletonHorde,

@@ -170,7 +170,6 @@
     getMonthName: () => "January",
     spawnEnemyOfType: noop,
     spawnMiniImpGroup: noop,
-    spawnMiniSkeletonGroup: noop,
     spawnPowerUpDrops: noop,
     spawnBossForLevel: () => null,
     devClearOpponents: noop,
@@ -447,7 +446,6 @@
       getMonthName,
       spawnEnemyOfType,
       spawnMiniImpGroup,
-      spawnMiniSkeletonGroup,
       spawnPowerUpDrops,
       spawnBossForLevel,
       devClearOpponents,
@@ -951,27 +949,11 @@
       }
       resetStage("hordeActive", hordeActiveDuration);
       const enemyEntries = Array.isArray(horde?.enemies) ? horde.enemies : [];
-      const spawnSkeletonSwarms = (total) => {
-        let remaining = total;
-        while (remaining > 0) {
-          const desired = Math.floor(
-            randomInRange(MINI_SKELETON_GROUP_MIN, MINI_SKELETON_GROUP_MAX + 1),
-          );
-          let groupSize = Math.min(remaining, desired);
-          if (groupSize < MINI_SKELETON_GROUP_MIN && remaining > MINI_SKELETON_GROUP_MIN) {
-            groupSize = MINI_SKELETON_GROUP_MIN;
-          }
-          spawnMiniSkeletonGroup(groupSize, null, { ignoreCap: true });
-          remaining -= groupSize;
-        }
-      };
       enemyEntries.forEach(({ type, count, delay }) => {
         const isMiniImpTypeEntry = type === "miniImp" || type === "miniImpLevel2";
         const delayMs = Math.max(0, (Number(delay) || 0) * 1000);
         const spawnTask = () => {
-          if (type === "miniSkeleton") {
-            spawnSkeletonSwarms(count);
-          } else if (isMiniImpTypeEntry) {
+          if (isMiniImpTypeEntry) {
             spawnMiniImpGroup(count, null, { ignoreCap: true }, type);
           } else {
             for (let i = 0; i < count; i += 1) {

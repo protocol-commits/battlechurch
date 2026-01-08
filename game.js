@@ -2729,7 +2729,7 @@ const NPC_FAITH_RETURN_THRESHOLD = NPC_MAX_FAITH * 0.96;
 // NPC helper tuning
 const NPC_STARTING_FAITH_RATIO = 1; // start NPCs at 100% faith
 const NPC_FAITH_PER_ENEMY_KILL = 0; // default faith gained per enemy kill
-const NPC_FAITH_KILL_REWARD_EXCLUSIONS = new Set(["miniGhost"]); // enemy kills that should not reward NPC faith
+const NPC_FAITH_KILL_REWARD_EXCLUSIONS = new Set(); // enemy kills that should not reward NPC faith
 const NPC_ARROW_COOLDOWN_DEFAULT = 0.8; // faster default seconds between NPC shots
 const NPC_ARROW_RANGE_DEFAULT = 520; // maximum range NPC will attempt to shoot
 const NPC_ARROW_DAMAGE = 10; // damage dealt by NPC arrows
@@ -2845,7 +2845,7 @@ const ENEMY_DEFINITIONS_RAW =
       ENEMY_CATALOG,
   );
 
-// MiniFolk enemies: demons/skellies that run through `spawner` overrides, e.g. miniGhost prefers NPCs, miniDemonLord is bulkier, and the undead minis reuse the same sheet for every state.
+// MiniFolk enemies: demons that run through `spawner` overrides, e.g. miniDemonLord is bulkier.
 const MINIFOLKS =
   (typeof window !== "undefined" && window.BattlechurchMiniFolks?.list) ||
   [];
@@ -2981,7 +2981,6 @@ const ENEMY_TYPES =
 const spawnEnemyOfType = Spawner.spawnEnemyOfType;
 const spawnSkeletonGroup = Spawner.spawnSkeletonGroup;
 const spawnMiniImpGroup = Spawner.spawnMiniImpGroup;
-const spawnMiniSkeletonGroup = Spawner.spawnMiniSkeletonGroup;
 const schedulePortalSpawn = Spawner.schedulePortalSpawn;
 const spawnEnemy = Spawner.spawnEnemy;
 const maintainSkeletonHorde = Spawner.maintainSkeletonHorde;
@@ -3007,7 +3006,6 @@ Levels.initialize({
   getMonthName,
   spawnEnemyOfType,
   spawnMiniImpGroup,
-  spawnMiniSkeletonGroup,
   spawnPowerUpDrops,
   spawnBossForLevel,
   devClearOpponents,
@@ -7013,7 +7011,6 @@ class CozyNpc {
     this.returnTarget = null;
     this.recoveryTextCooldown = 0;
     this.departed = false;
-    this.miniGhostSuppressTimer = 0;
     this.needsPlayerRestore = false;
     this.animator.setState("walk", { restart: true });
     this.statusBubble = null;
@@ -7051,10 +7048,6 @@ class CozyNpc {
     if (this.drainSource !== vampire) return;
     this.drainSource = null;
     this.updateFaithVisibility(true);
-  }
-
-  markMiniGhostAttack() {
-    this.miniGhostSuppressTimer = Math.max(this.miniGhostSuppressTimer || 0, 1.6);
   }
 
   loseFaith() {
@@ -7132,8 +7125,7 @@ class CozyNpc {
 
   receiveFaith(amount, options = {}) {
     if (!this.active || this.departed) return false;
-    const { bypassSuppression = false, allowFromZero = false } = options;
-    if (!bypassSuppression && (this.miniGhostSuppressTimer || 0) > 0) return false;
+    const { allowFromZero = false } = options;
     if (this.needsPlayerRestore && !allowFromZero) return false;
     if (typeof amount !== "number" || amount <= 0) return false;
     const prevFaith = this.faith;
@@ -7185,7 +7177,6 @@ class CozyNpc {
     const timerScale = getNpcTimerScale();
     this.npcArrowCooldown = Math.max(0, (this.npcArrowCooldown || 0) - dt * timerScale);
     if (this.npcArrowCooldown > 0) return false;
-    if ((this.miniGhostSuppressTimer || 0) > 0) return false;
     // find nearest valid enemy target
     let best = null;
     let bestDist = Infinity;
@@ -7409,10 +7400,6 @@ class CozyNpc {
   update(dt) {
     if (this.departed) return;
     this.recoveryTextCooldown = Math.max(0, this.recoveryTextCooldown - dt);
-    this.miniGhostSuppressTimer = Math.max(
-      0,
-      (this.miniGhostSuppressTimer || 0) - dt
-    );
     const timerScale = getNpcTimerScale();
     this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
@@ -10066,7 +10053,7 @@ function updateCozyNpcs(dt) {
     let damageApplied = false;
     for (const enemy of enemies) {
       if (!enemy || enemy.dead || enemy.state === "death") continue;
-      if (enemy.type === "miniGhost" || enemy.type === "ghost") continue;
+      if (enemy.type === "ghost") continue;
       const dx = enemy.x - npcEntity.x;
       const dy = enemy.y - npcEntity.y;
       const distance = Math.hypot(dx, dy);
@@ -11551,18 +11538,6 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
   projectiles.forEach((projectile) => projectile.update(dt));
 
-  function adjustNpcArrowDamageAgainstGhost(projectile, enemy, baseDamage) {
-    if (
-      projectile.type === "arrow" &&
-      enemy.type === "miniGhost" &&
-      projectile.source instanceof CozyNpc
-    ) {
-      const reduced = Math.round(baseDamage * 0.5);
-      return Math.max(1, reduced);
-    }
-    return baseDamage;
-  }
-
   for (const projectile of projectiles) {
     if (projectile.dead) continue;
 
@@ -11585,8 +11560,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
         }
 
         const prevHealth = enemy.health;
-        let projectileDamage = projectile.getDamage();
-        projectileDamage = adjustNpcArrowDamageAgainstGhost(projectile, enemy, projectileDamage);
+        const projectileDamage = projectile.getDamage();
         enemy.takeDamage(projectileDamage);
   // no arrow-hit gating for health bars
         if (
