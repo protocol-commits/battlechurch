@@ -314,12 +314,12 @@
       ctx.globalAlpha = 0.95;
       ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
-      ctx.strokeStyle = PALETTE.ice;
+      ctx.strokeStyle = 'rgba(0,0,0,0)';
       roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);
       const innerX = meterX + 2;
-      const innerY = meterY + 2;
+      const innerY = meterY + 1;
       const innerW = meterWidth - 4;
-      const innerH = meterHeight - 4;
+      const innerH = meterHeight - 2;
       const segmentStops = [0.5, 0.8];
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
       const clampedRatio = Math.max(0, Math.min(1, ratio));
@@ -332,52 +332,111 @@
       }
       prayerSpark.lastRatio = ratio;
       const totalWidth = Math.max(0, Math.floor(innerW * clampedRatio));
+      const segGap = 2;
       const seg1Max = Math.floor(innerW * 0.5);
       const seg2Max = Math.floor(innerW * 0.8);
-      const seg1Width = Math.min(totalWidth, seg1Max);
-      const seg2Width = Math.min(Math.max(0, totalWidth - seg1Max), seg2Max - seg1Max);
-      const seg3Width = Math.max(0, totalWidth - seg2Max);
-      if (seg1Width > 0) {
+      const seg1Fill = Math.min(totalWidth, seg1Max);
+      const seg2Fill = Math.min(Math.max(0, totalWidth - seg1Max), seg2Max - seg1Max);
+      const seg3Fill = Math.max(0, totalWidth - seg2Max);
+      const seg1Start = innerX;
+      const seg1Width = Math.max(0, seg1Max - segGap);
+      const seg2Start = innerX + seg1Max + segGap;
+      const seg2Width = Math.max(0, seg2Max - seg1Max - segGap);
+      const seg3Start = innerX + seg2Max + segGap + 1;
+      const seg3Width = Math.max(0, innerW - seg2Max - 1);
+
+      if (seg1Fill > 0) {
         ctx.fillStyle = PALETTE.slate;
         roundRect(
           ctx,
-          innerX,
+          seg1Start,
           innerY,
-          seg1Width,
+          Math.min(seg1Width, seg1Fill),
           innerH,
           Math.max(2, meterRadius - 2),
           true,
           false,
         );
       }
-      if (seg2Width > 0) {
+      if (seg2Fill > 0) {
         ctx.fillStyle = PALETTE.ice;
-        ctx.fillRect(innerX + seg1Max, innerY, seg2Width, innerH);
+        ctx.fillRect(
+          seg2Start,
+          innerY,
+          Math.min(seg2Width, seg2Fill),
+          innerH,
+        );
       }
-      if (seg3Width > 0) {
+      if (seg3Fill > 0) {
         const flash = Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.softWhite;
         ctx.fillStyle = clampedRatio >= 1 ? flash : PALETTE.gold;
-        ctx.fillRect(innerX + seg2Max, innerY, seg3Width, innerH);
+        ctx.fillRect(
+          seg3Start,
+          innerY,
+          Math.min(seg3Width, seg3Fill),
+          innerH,
+        );
       }
       ctx.save();
-      ctx.strokeStyle = 'rgba(234, 246, 255, 0.55)';
-      ctx.lineWidth = 2;
-      segmentStops.forEach((stop) => {
-        const sx = innerX + Math.round(innerW * stop);
+      const outerGap = 2;
+      const seg1Span = Math.floor(meterWidth * 0.5);
+      const seg2Span = Math.floor(meterWidth * 0.3);
+      const seg3Span = meterWidth - seg1Span - seg2Span;
+      const seg1X = meterX;
+      const seg1W = Math.max(0, seg1Span - outerGap);
+      const seg2X = meterX + seg1Span + outerGap;
+      const seg2W = Math.max(0, seg2Span - outerGap * 2);
+      const seg3X = meterX + seg1Span + seg2Span + outerGap;
+      const seg3W = Math.max(0, seg3Span - outerGap);
+      const strokeSegment = (x, w, { leftRound = false, rightRound = false } = {}) => {
+        const r = meterRadius;
         ctx.beginPath();
-        ctx.moveTo(sx, innerY);
-        ctx.lineTo(sx, innerY + innerH);
+        ctx.moveTo(x + (leftRound ? r : 0), meterY);
+        ctx.lineTo(x + w - (rightRound ? r : 0), meterY);
+        if (rightRound) {
+          ctx.quadraticCurveTo(x + w, meterY, x + w, meterY + r);
+        } else {
+          ctx.lineTo(x + w, meterY);
+          ctx.lineTo(x + w, meterY + r);
+        }
+        ctx.lineTo(x + w, meterY + meterHeight - (rightRound ? r : 0));
+        if (rightRound) {
+          ctx.quadraticCurveTo(x + w, meterY + meterHeight, x + w - r, meterY + meterHeight);
+        } else {
+          ctx.lineTo(x + w, meterY + meterHeight);
+          ctx.lineTo(x + w - r, meterY + meterHeight);
+        }
+        ctx.lineTo(x + (leftRound ? r : 0), meterY + meterHeight);
+        if (leftRound) {
+          ctx.quadraticCurveTo(x, meterY + meterHeight, x, meterY + meterHeight - r);
+        } else {
+          ctx.lineTo(x, meterY + meterHeight);
+          ctx.lineTo(x, meterY + meterHeight - r);
+        }
+        ctx.lineTo(x, meterY + r);
+        if (leftRound) {
+          ctx.quadraticCurveTo(x, meterY, x + r, meterY);
+        } else {
+          ctx.lineTo(x, meterY);
+          ctx.lineTo(x + r, meterY);
+        }
         ctx.stroke();
-      });
+      };
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = PALETTE.ice;
+      strokeSegment(seg1X, seg1W, { leftRound: true, rightRound: false });
+      strokeSegment(seg2X, seg2W, { leftRound: false, rightRound: false });
+      strokeSegment(seg3X, seg3W, { leftRound: false, rightRound: true });
       ctx.restore();
+
       ctx.save();
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const seg1Center = innerX + seg1Max * 0.5;
-      const seg2Center = innerX + seg1Max + (seg2Max - seg1Max) * 0.5;
-      const seg3Center = innerX + seg2Max + (innerW - seg2Max) * 0.5;
+      const seg1Center = seg1Start + seg1Width * 0.5;
+      const seg2Center = seg2Start + seg2Width * 0.5;
+      const seg3Center = seg3Start + seg3Width * 0.5;
       const textY = innerY + innerH / 2 + 0.5;
       ctx.fillText('Prayer', seg1Center, textY);
       ctx.fillText('2', seg2Center, textY);
