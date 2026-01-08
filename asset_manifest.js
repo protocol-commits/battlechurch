@@ -42,7 +42,7 @@
       playerSpritePath = "assets/sprites/conrad/characters/",
       projectilePath = "assets/sprites/rpg-sprites/",
       magicPackRoot = "assets/sprites/magic-pack/sprites",
-      heartProjectileSrc = "assets/sprites/cute-valley/Collectible/heart_2.png",
+      heartProjectileSrc = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png",
       characterRoot = "assets/sprites/rpg-sprites/Characters(100x100)",
       enemyDefinitions = {},
     } = config;

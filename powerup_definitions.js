@@ -1,7 +1,4 @@
 (function(global) {
-  const DECOR_CONFIG = (typeof window !== "undefined" && window.WorldDecor) || {};
-  const VALLEY_OBJECTS_PATH =
-    DECOR_CONFIG.VALLEY_OBJECTS_PATH || "assets/sprites/cute-valley/Objects/";
   const DEFAULT_WORLD_SCALE = 1.0;
   const WORLD_SCALE =
     (typeof window !== "undefined" && window.__BATTLECHURCH_WORLD_SCALE !== undefined)
@@ -10,13 +7,12 @@
   const HERO_MAX_HEALTH = 100;
   const HERO_BASE_HEARTS = 6;
   const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
-  const CUTE_VALLEY_COLLECTIBLE_ROOT = "assets/sprites/cute-valley/Collectible/";
   const UTILITY_POWERUP_ROOT = "assets/sprites/dungeon-assets/items";
   const CONRAD_POWERUP_ROOT = "assets/sprites/conrad/powerups";
 
   const weaponDropDefs = {
     faith: {
-      src: `${VALLEY_OBJECTS_PATH}torch.png`,
+      src: "assets/sprites/pixel-art-pack/Items/I41_Candle.png",
       frameWidth: 16,
       frameHeight: 16,
       frameRate: 8,
@@ -35,7 +31,7 @@
       // for wisdom/flash hits so the animation is tracked next to the fireball assets above.
     },
     scripture: {
-      src: `${VALLEY_OBJECTS_PATH}book.png`,
+      src: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
       frameWidth: 16,
       frameHeight: 16,
       frameRate: 4,

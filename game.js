@@ -1999,7 +1999,7 @@ const LOG_NPC_FAITH_BAR = false;
 const COIN_COOLDOWN = projectileSettings.coinCooldown ?? 0.4;
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const HEART_PROJECTILE_SRC =
-  projectileSettings.heartProjectileSrc || "assets/sprites/cute-valley/Collectible/heart_2.png";
+  projectileSettings.heartProjectileSrc || "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png";
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/rpg-sprites/";
 const MAGIC_PACK_ROOT =
@@ -2385,12 +2385,7 @@ const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.png";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
-const CUTE_VALLEY_COLLECTIBLE_ROOT = "assets/sprites/cute-valley/Collectible/";
-
 const DECOR_CONFIG = (typeof window !== "undefined" && window.WorldDecor) || {};
-
-const VALLEY_OBJECTS_PATH =
-  DECOR_CONFIG.VALLEY_OBJECTS_PATH || "assets/sprites/cute-valley/Objects/";
 
 const RAW_OBSTACLE_DEFS = DECOR_CONFIG.OBSTACLE_DEFS || {};
 
