@@ -1520,7 +1520,7 @@ function drawLevelAnnouncements() {
         ctx.globalAlpha *= npcFadeAlpha;
         congregationMembers.forEach((member) => {
           member.animator.draw(ctx, member.x, member.y);
-          const nameY = member.y - (member.radius || 28) - 10;
+          const nameY = member.y - (member.radius || 28) - 2;
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         });
         ctx.restore();
