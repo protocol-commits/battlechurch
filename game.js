@@ -7622,6 +7622,14 @@ class BossEncounter {
     clampEntityToBounds(this);
   }
 
+  getHpBarMetrics() {
+    return {
+      width: 260,
+      height: 18,
+      offsetY: 130,
+    };
+  }
+
   isActive() {
     return !this.invalid && !this.removed;
   }
@@ -7840,11 +7848,17 @@ class BossEncounter {
       playEnemyHitSfx();
     }
     const damageText = options?.damageText || null;
+    const hpBar = this.getHpBarMetrics();
+    const defaultDamageOffset =
+      (hpBar?.offsetY || 0) + (hpBar?.height || 0) / 2;
     showDamage(this, amount, {
       color: damageText?.color || "#FF6B6B",
       fontSize: damageText?.fontSize || null,
       fontWeight: damageText?.fontWeight || null,
-      offsetY: damageText?.offsetY || 0,
+      offsetY:
+        typeof damageText?.offsetY === "number"
+          ? damageText.offsetY
+          : defaultDamageOffset,
       fadeDelay: damageText?.fadeDelay || 0,
       priority: damageText?.priority || 0,
     });
@@ -8013,18 +8027,30 @@ class BossEncounter {
 
   drawHealthBar(context) {
     const ratio = this.maxHealth > 0 ? Math.max(0, this.health / this.maxHealth) : 0;
-    const width = 260;
-    const height = 16;
+    const metrics = this.getHpBarMetrics();
+    const width = metrics.width;
+    const height = metrics.height;
+    const barX = this.x - width / 2;
+    const barY = this.y - this.radius + metrics.offsetY;
+    const labelName = this.config?.displayName || this.type || "Boss";
+    const hpValue = Math.max(0, Math.round(this.health));
+    const hpMax = Math.max(1, Math.round(this.maxHealth || 1));
+    const label = `${labelName} (${hpValue}/${hpMax})`;
     context.save();
-    context.fillStyle = "rgba(0,0,0,0.6)";
-    context.fillRect(this.x - width / 2, this.y - this.radius - 40, width, height);
-    context.fillStyle = "#FF6B6B";
-    context.fillRect(
-      this.x - width / 2 + 3,
-      this.y - this.radius - 40 + 3,
-      (width - 6) * ratio,
-      height - 6,
-    );
+    context.fillStyle = "rgba(10,15,31,0.6)";
+    context.lineWidth = 2.5;
+    context.strokeStyle = "#9BD9FF";
+    roundRect(context, barX, barY, width, height, 6, true, true);
+    const fillWidth = Math.max(0, Math.floor((width - 4) * ratio));
+    if (fillWidth > 0) {
+      context.fillStyle = "#B23A3A";
+      roundRect(context, barX + 2, barY + 2, fillWidth, height - 4, 5, true, false);
+    }
+    context.font = `12px ${UI_FONT_FAMILY}`;
+    context.fillStyle = "#EAF6FF";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(label, barX + width / 2, barY + height / 2 + 1);
     context.restore();
   }
 }
@@ -10893,7 +10919,6 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
       for (const projectile of projectiles) {
         if (!projectile || projectile.dead || projectile.friendly) continue;
-        if (isBossProjectile(projectile)) continue;
         const relX = projectile.x - originX;
         const relY = projectile.y - originY;
         const forwardProj = relX * normalized.x + relY * normalized.y;
