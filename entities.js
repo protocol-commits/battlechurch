@@ -1866,7 +1866,8 @@ class Player {
         const labelY = drawY - (hitRadius > 0 ? hitRadius * 0.6 : 6);
         if (typeof window !== "undefined" && Array.isArray(window.__battlechurchEnemyHpLabels)) {
           const hpValue = Math.max(0, Math.round(this.health || 0));
-          if (hpValue > 100) {
+          const forceLabels = Boolean(window.__battlechurchShowEnemyDevLabels);
+          if (forceLabels || hpValue > 100) {
             window.__battlechurchEnemyHpLabels.push({
               x: this.x,
               y: labelY,

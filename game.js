@@ -1292,7 +1292,7 @@ if (typeof window !== "undefined") {
   };
 }
 let heroLives = 3;
-let enemyDevLabelsVisible = true;
+let enemyDevLabelsVisible = false;
 const devTools = {
   godMode: false,
   showCombatDebug: false,
@@ -2811,43 +2811,11 @@ const DEV_ENEMY_EDITOR =
   (typeof window !== "undefined" && window.BattlechurchEnemyEditor) || null;
 
 function applyDevEnemyOverrides(baseDefs) {
-  const cfg =
-    (typeof DEV_LEVEL_BUILDER?.getConfig === "function" && DEV_LEVEL_BUILDER.getConfig()) ||
-    (typeof DEV_ENEMY_EDITOR?.getConfig === "function" && DEV_ENEMY_EDITOR.getConfig()) ||
-    null;
-
-  // Start with base definitions.
-  const nextDefs = { ...(baseDefs || {}) };
-
-  // Layer in full catalog entries from the enemy editor, if present.
-  if (cfg?.catalog && typeof cfg.catalog === "object") {
-    Object.keys(cfg.catalog).forEach((k) => {
-      const next = cfg.catalog[k];
-      if (next && typeof next === "object") {
-        nextDefs[k] = Object.assign({}, nextDefs[k] || {}, next);
-      }
-    });
-  }
-
-  // Apply per-stat overrides from level builder / enemy editor globals.enemyStats.
-  const overrides = cfg?.globals?.enemyStats;
-  if (overrides && typeof overrides === "object") {
-    Object.keys(overrides).forEach((key) => {
-      const ov = overrides[key];
-      if (ov && typeof ov === "object") {
-        nextDefs[key] = Object.assign({}, nextDefs[key] || {}, ov);
-      }
-    });
-  }
-
-  return nextDefs;
+  return { ...(baseDefs || {}) };
 }
 
 const ENEMY_DEFINITIONS_RAW =
-  applyDevEnemyOverrides(
-    (typeof window !== "undefined" && window.BattlechurchEnemyDefinitions) ||
-      ENEMY_CATALOG,
-  );
+  applyDevEnemyOverrides(ENEMY_CATALOG);
 
 // MiniFolk enemies: demons that run through `spawner` overrides, e.g. miniDemonLord is bulkier.
 const MINIFOLKS =

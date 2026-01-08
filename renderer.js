@@ -1322,13 +1322,15 @@ function drawLevelAnnouncements() {
 
   const enemyHpLabels = [];
   const npcFaithOverlays = [];
-  let showEnemyDevLabels = true;
+  let showEnemyDevLabels = false;
   let showCannonSplashRadius = true;
   if (typeof window !== "undefined") {
     window.__battlechurchEnemyHpLabels = enemyHpLabels;
     window.__battlechurchNpcFaithOverlays = npcFaithOverlays;
+    window.__battlechurchShowEnemyDevLabels = showEnemyDevLabels;
     window.setEnemyDevLabelsVisible = (value) => {
       showEnemyDevLabels = Boolean(value);
+      window.__battlechurchShowEnemyDevLabels = showEnemyDevLabels;
     };
     window.setCannonSplashRadiusVisible = (value) => {
       showCannonSplashRadius = Boolean(value);
