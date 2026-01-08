@@ -663,7 +663,7 @@ class Player {
       const activeWeapon = this.getActiveWeaponMode();
       let targetEntity = null;
       let minDistSq = Infinity;
-      const weaponRange = 400; // You may want to use weapon-specific range
+      const weaponRange = 400 * (isBossStageActive() ? 3 : 1); // You may want to use weapon-specific range
 
   // Collect possible targets: enemies, bosses, visitors, chatty NPCs
   let possibleTargets = [];

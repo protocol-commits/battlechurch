@@ -7442,7 +7442,7 @@ class Projectile {
 
     const bossStage =
       this.friendly &&
-      this.source === player &&
+      this.source?.isPlayer &&
       levelManager?.getStatus &&
       ["bossIntro", "bossActive"].includes(levelManager.getStatus().stage);
     const bossRangeMultiplier = bossStage ? 3 : 1;
@@ -8035,6 +8035,11 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   const clip = assets.projectiles[type];
   if (!clip) return null;
   const config = { ...baseConfig, ...overrides };
+  const bossStageActive =
+    levelManager?.getStatus &&
+    ["bossIntro", "bossActive"].includes(levelManager.getStatus().stage);
+  const bossRangeMultiplier =
+    bossStageActive && config.friendly && config.source?.isPlayer ? 3 : 1;
   const priority = overrides.priority ?? baseConfig.priority ?? 0;
   config.priority = priority;
   const isDivineShot = overrides.isDivineShot ?? baseConfig.isDivineShot ?? false;
@@ -8054,6 +8059,17 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
       : 1;
     const baseDamage = config.damage ?? baseConfig?.damage ?? 1;
     config.damage = Math.max(1, Math.round(baseDamage * multiplier));
+  }
+  if (bossRangeMultiplier > 1) {
+    if (Number.isFinite(config.life)) {
+      config.life *= bossRangeMultiplier;
+    } else if (Number.isFinite(config.speed) && config.speed > 0) {
+      const direction = normalizeVector(dx, dy);
+      const travel = distanceToEdge(x, y, direction.x, direction.y);
+      if (travel > 0) {
+        config.life = (travel / config.speed) * bossRangeMultiplier;
+      }
+    }
   }
   let inspectorFrames = null;
   if (!Array.isArray(overrides.frames)) {
