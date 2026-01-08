@@ -11303,7 +11303,6 @@ const DIVINE_SHOT_DAMAGE = 1200;
       if (normalized.x === 0 && normalized.y === 0) return;
       const startX = player.x + normalized.x * player.radius * 1.4;
       const startY = player.y + normalized.y * player.radius * 1.4;
-      const targetedEnemy = findDivineShotTarget(direction);
       if (typeof playDivineShotSfx === "function") {
         playDivineShotSfx(1.0);
       }
@@ -11317,9 +11316,9 @@ const DIVINE_SHOT_DAMAGE = 1200;
         loopFrames: true,
         friendly: true,
         source: player,
-        homingTarget: targetedEnemy,
-        homingDuration: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_DURATION : 0,
-        homingStrength: targetedEnemy ? DIVINE_SHOT_AUTO_AIM_STRENGTH : 0,
+        homingTarget: null,
+        homingDuration: 0,
+        homingStrength: 0,
         priority: DIVINE_SHOT_PROJECTILE_PRIORITY,
         isDivineShot: true,
       });
