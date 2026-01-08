@@ -881,6 +881,17 @@ function startIntroMusic() {
   playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
 }
 
+function triggerIntroMusicFromInput() {
+  if (!musicState.intro || musicState.introStopped) return;
+  if (!musicState.introStarted) {
+    startIntroMusic();
+    return;
+  }
+  if (musicState.intro.paused) {
+    playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
+  }
+}
+
 function stopIntroMusic() {
   if (!musicState.intro || musicState.introStopped) return;
   musicState.introStopped = true;
@@ -2065,6 +2076,148 @@ function resizeCanvas() {
 let gameStarted = false;
 let titleDialogActive = false;
 let pauseDialogActive = false;
+const TITLE_MENU_PAGES = {
+  howto: {
+    title: "How to Play",
+    tabs: [
+      {
+        key: "movement",
+        label: "Movement",
+        sections: [
+          {
+            heading: "Player Movement",
+            lines: [
+              { text: "WASD - Move" },
+              { text: "Dash - Double-tap any movement direction" },
+            ],
+          },
+          {
+            heading: "Aiming",
+            lines: [
+              {
+                text: "Projectiles are auto-aimed.",
+                sublines: ["You focus on positioning and timing, not twin-stick nonsense."],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: "actions",
+        label: "Actions",
+        sections: [
+          {
+            heading: "ACTION BUTTON (A / Left Arrow)",
+            lines: [
+              {
+                text: "Your melee and special attacks are all on one button. Timing matters.",
+              },
+              {
+                text: "Tap - Sword Strike",
+                sublines: ["Quick melee attack for close threats."],
+              },
+              {
+                text: "Double-Tap - Rush Attack",
+                sublines: ["A fast lunge that cuts through enemies."],
+              },
+              {
+                text: "Hold & Release - Fireball",
+                sublines: ["A charged projectile for crowd control or priority targets."],
+              },
+            ],
+          },
+          {
+            heading: "PRAYER BOMB (B Button / Right Arrow)",
+            lines: [
+              {
+                text: "Prayer Bomb Button - Unleash a powerful area attack.",
+                sublines: ["Limited uses. Don't waste it."],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        key: "score",
+        label: "Score",
+        sections: [
+          {
+            heading: "SCORE",
+            lines: [
+              {
+                text: "Score = Congregation Count",
+                sublines: [
+                  "Your score reflects the size and health of your congregation.",
+                  "Protect them, grow them, and you win. Let them fall, and you feel it.",
+                ],
+              },
+            ],
+          },
+          {
+            heading: "HOW TO INCREASE CONGREGATION",
+            lines: [
+              {
+                text: "Save Congregants During Battle",
+                sublines: ["Rescue and keep them alive. Up to +3 per battle."],
+              },
+              {
+                text: "Congregation Health After Battle",
+                sublines: [
+                  "The healthier your people are when the fight ends, the more your congregation grows.",
+                  "Up to +5 per battle.",
+                ],
+              },
+              {
+                text: "Visitor Hour",
+                sublines: ["Successfully guide visitors to safety to grow your flock."],
+              },
+              {
+                text: "Boss Battles",
+                sublines: ["Defeating a boss brings a major boost to your congregation."],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  tips: {
+    title: "Tips",
+    sections: [
+      {
+        heading: "",
+        lines: [
+          "Go after tougher enemies with the sword.",
+          "Since Congregation health adds to the score, use the Prayer Bomb wisely to keep them safe.",
+          "More to come.",
+        ],
+      },
+    ],
+  },
+  settings: {
+    title: "Settings",
+    sections: [
+      {
+        heading: "",
+        lines: ["Music Volume", "SFX Volume", "Mute All", "Keybinds", "Screen Shake"],
+      },
+    ],
+  },
+  about: {
+    title: "About",
+    sections: [
+      {
+        heading: "",
+        lines: [
+          "Battlechurch Game",
+          "Created by the Battlechurch team.",
+          "Art, music, and SFX from licensed packs and original sources.",
+          "Thank you for playing.",
+        ],
+      },
+    ],
+  },
+};
 
 Input.initialize({
   canvas,
@@ -4160,20 +4313,113 @@ function typewriterElement(overlay, selector, text, msPerChar = 18) {
   }, msPerChar);
 }
 
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderTitlePageSections(sections) {
+  return sections
+    .map((section) => {
+      const heading = escapeHtml(section.heading || "");
+      const lines = Array.isArray(section.lines) ? section.lines : [];
+      const body = lines
+        .map((line) => {
+          if (line && typeof line === "object") {
+            const main = escapeHtml(line.text || "");
+            const sublines = Array.isArray(line.sublines) ? line.sublines : [];
+            const subHtml = sublines.length
+              ? `<ul class="title-page__sublist">${sublines
+                  .map((sub) => `<li>${escapeHtml(sub)}</li>`)
+                  .join("")}</ul>`
+              : "";
+            return `<li>${main}${subHtml}</li>`;
+          }
+          return `<li>${escapeHtml(line)}</li>`;
+        })
+        .join("");
+      return `
+        <section class="title-page__card">
+          ${heading ? `<div class="title-page__heading">${heading}</div>` : ""}
+          <ul class="title-page__list">${body}</ul>
+        </section>
+      `;
+    })
+    .join("");
+}
+
+function renderTitlePageBody(page) {
+  if (!page) return "";
+  if (Array.isArray(page.tabs) && page.tabs.length) {
+    const tabs = page.tabs;
+    const tabsHtml = tabs
+      .map(
+        (tab, index) =>
+          `<button class="title-page__tab${index === 0 ? " is-active" : ""}" type="button" data-title-tab="${escapeHtml(
+            tab.key || "",
+          )}">${escapeHtml(tab.label || "")}</button>`,
+      )
+      .join("");
+    const panelsHtml = tabs
+      .map((tab, index) => {
+        const panelSections = renderTitlePageSections(tab.sections || []);
+        return `
+          <div class="title-page__panel${index === 0 ? " is-active" : ""}" data-title-panel="${escapeHtml(
+            tab.key || "",
+          )}">
+            ${panelSections}
+          </div>
+        `;
+      })
+      .join("");
+    const backTab = `<button class="title-page__tab" type="button" data-title-action="back">Back</button>`;
+    return `
+      <div class="title-page__eyebrow">${escapeHtml(page.title || "")}</div>
+      <div class="title-page__tabs">${tabsHtml}${backTab}</div>
+      <div class="title-page__scroll title-page__scroll--columns">${panelsHtml}</div>
+    `;
+  }
+  if (Array.isArray(page.sections)) {
+    return `
+      <div class="title-page__bar">
+        <button class="title-page__tab" type="button" data-title-action="back">Back</button>
+      </div>
+      <div class="title-page__scroll">${renderTitlePageSections(page.sections)}</div>
+    `;
+  }
+  return "";
+}
+
 function showTitleDialog() {
   if (!window.DialogOverlay || titleDialogActive) return;
   titleDialogActive = true;
   startIntroMusic();
+  const buttonDefs = [
+    { key: "howto", label: "How to Play" },
+    { key: "tips", label: "Tips" },
+    { key: "settings", label: "Settings" },
+    { key: "about", label: "About" },
+  ];
+  const buttonsHtml = buttonDefs
+    .map(
+      (btn) =>
+        `<button class="title-menu__button" data-title-page="${btn.key}">${btn.label}</button>`,
+    )
+    .join("");
   window.DialogOverlay.show({
     title: "Smite the hordes. Save your flock. Grow your church.",
-    body: "",
-    buttonText: "Continue (Space)",
+    bodyHtml: `<div class="title-menu">${buttonsHtml}</div>`,
+    buttonText: "Play (Space)",
     variant: "title",
     devLabel: "",
     onRender: ({ overlay }) => {
       const bodyEl = overlay.querySelector(".dialog-overlay__body");
       if (bodyEl) {
-        bodyEl.style.textAlign = "left";
+        bodyEl.style.textAlign = "center";
         bodyEl.style.display = "block";
         bodyEl.style.width = "100%";
       }
@@ -4183,11 +4429,79 @@ function showTitleDialog() {
         "Smite the hordes. Save your flock. Grow your church.",
         18,
       );
-      typewriterElement(overlay, ".dialog-overlay__body", TITLE_OVERLAY_BODY, 18);
+      if (overlay.__titleMenuHandler) {
+        overlay.removeEventListener("click", overlay.__titleMenuHandler);
+      }
+      const handler = (event) => {
+        const button = event.target.closest("[data-title-page]");
+        if (!button) return;
+        triggerIntroMusicFromInput();
+        const pageKey = button.getAttribute("data-title-page");
+        if (!pageKey) return;
+        titleDialogActive = false;
+        showTitlePageDialog(pageKey);
+      };
+      overlay.__titleMenuHandler = handler;
+      overlay.addEventListener("click", handler);
     },
     onContinue: () => {
       titleDialogActive = false;
+      triggerIntroMusicFromInput();
       startGameFromTitle();
+    },
+  });
+}
+
+function showTitlePageDialog(pageKey) {
+  if (!window.DialogOverlay) return;
+  const page = TITLE_MENU_PAGES[pageKey];
+  if (!page) return;
+  window.DialogOverlay.show({
+    title: page.title,
+    bodyHtml: `<div class="title-page">${renderTitlePageBody(page)}</div>`,
+    buttonText: "",
+    variant: "title-page",
+    devLabel: "",
+    onRender: ({ overlay }) => {
+      const bodyEl = overlay.querySelector(".dialog-overlay__body");
+      if (bodyEl) bodyEl.style.textAlign = "left";
+      const tabButtons = overlay.querySelectorAll("[data-title-tab]");
+      if (overlay.__titlePageTabHandler) {
+        overlay.removeEventListener("click", overlay.__titlePageTabHandler);
+      }
+      const handler = (event) => {
+        const actionBtn = event.target.closest("[data-title-action]");
+        if (actionBtn) {
+          const action = actionBtn.getAttribute("data-title-action");
+          if (action === "back") {
+            triggerIntroMusicFromInput();
+            titleDialogActive = false;
+            if (window.DialogOverlay?.hide) {
+              window.DialogOverlay.hide();
+            }
+            return;
+          }
+        }
+        const button = event.target.closest("[data-title-tab]");
+        if (!button) return;
+        const key = button.getAttribute("data-title-tab");
+        if (!key) return;
+        const tabs = overlay.querySelectorAll(".title-page__tab");
+        tabs.forEach((tab) =>
+          tab.classList.toggle("is-active", tab.getAttribute("data-title-tab") === key),
+        );
+        const panels = overlay.querySelectorAll(".title-page__panel");
+        panels.forEach((panel) =>
+          panel.classList.toggle("is-active", panel.getAttribute("data-title-panel") === key),
+        );
+        const scroll = overlay.querySelector(".title-page__scroll");
+        if (scroll) scroll.scrollTop = 0;
+      };
+      overlay.__titlePageTabHandler = handler;
+      overlay.addEventListener("click", handler);
+    },
+    onContinue: () => {
+      titleDialogActive = false;
     },
   });
 }
