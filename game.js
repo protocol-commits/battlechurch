@@ -1511,6 +1511,7 @@ let score = 0;
 let spawnTimer = 0;
 let gameOver = false;
 let lastTime = performance.now();
+let gameLoopStarted = false;
 paused = true;
 let hpFlashTimer = 0;
 let hitFreezeTimer = 0;
@@ -11910,6 +11911,11 @@ async function init() {
     resetMusicState();
     if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();
+    if (!gameLoopStarted) {
+      gameLoopStarted = true;
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
     assets = await loadAssets();
     rebuildObstacles();
     rebuildAmbientDecor();
@@ -11999,7 +12005,6 @@ async function init() {
   }
   // DEV: To manually spawn test minifolks, set `devTools.testSpawnMini = true`
   // in the console and press 'm' to spawn one, or call spawnEnemyOfType(...) directly.
-    requestAnimationFrame(gameLoop);
   } catch (error) {
     console.error(error);
     ctx.save();
