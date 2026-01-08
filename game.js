@@ -4488,7 +4488,10 @@ function spawnPowerUpDrops(count = 1) {
   if (stageName === "levelIntro" || stageName === "briefing" || stageName === "npcArrival") {
     return;
   }
-  const weaponPickupEntries = Object.entries(assets?.weaponPickups || {});
+  const isBossStage = stageName === "bossIntro" || stageName === "bossActive";
+  const weaponPickupEntries = Object.entries(assets?.weaponPickups || {}).filter(([, def]) =>
+    isBossStage ? !isNpcWeaponPowerup(def) : true,
+  );
   const hasWeaponPickups = weaponPickupEntries.length > 0;
   const hasUtility = Object.keys(assets?.utility || {}).length > 0;
   if (!hasWeaponPickups && !hasUtility) return;
@@ -4660,7 +4663,11 @@ function positionObstacles() {
 
 function spawnWeaponDrops(minCount = 1) {
   if (!canSpawnWeaponPowerUp()) return;
-  const entries = Object.entries(assets.weaponPickups || {});
+  const stageName = levelManager?.getStatus?.().stage;
+  const isBossStage = stageName === "bossIntro" || stageName === "bossActive";
+  const entries = Object.entries(assets.weaponPickups || {}).filter(([, def]) =>
+    isBossStage ? !isNpcWeaponPowerup(def) : true,
+  );
   if (!entries.length) return;
   while (weaponPickups.length < minCount && canSpawnWeaponPowerUp()) {
     const [type, def] = entries[Math.floor(Math.random() * entries.length)];
@@ -4670,6 +4677,11 @@ function spawnWeaponDrops(minCount = 1) {
 
 function isWeaponPowerEffect(effect) {
   return WEAPON_POWERUP_EFFECTS.has(effect);
+}
+
+function isNpcWeaponPowerup(def) {
+  const effect = typeof def?.effect === "string" ? def.effect : "";
+  return effect.startsWith("npc");
 }
 
 function spawnUtilityPowerUp(type = null, position = null) {
@@ -4735,7 +4747,11 @@ function spawnUtilityPowerUp(type = null, position = null) {
 
 function spawnWeaponPickup(position = null) {
   if (!assets?.weaponPickups) return null;
-  const entries = Object.entries(assets.weaponPickups).filter(([, def]) => isWeaponPowerEffect(def?.effect));
+  const stageName = levelManager?.getStatus?.().stage;
+  const isBossStage = stageName === "bossIntro" || stageName === "bossActive";
+  const entries = Object.entries(assets.weaponPickups).filter(([, def]) =>
+    isWeaponPowerEffect(def?.effect) && (!isBossStage || !isNpcWeaponPowerup(def)),
+  );
   if (!entries.length || !canSpawnWeaponPowerUp()) return null;
   const [type, def] = entries[Math.floor(Math.random() * entries.length)];
   const pickup = new WeaponPickup({ ...def, type });

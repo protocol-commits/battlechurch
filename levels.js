@@ -1343,6 +1343,10 @@ state.battleIndex = -1;
                 state.boss = boss;
                 resetStage("bossActive");
                 setDevStatus("Boss phase 1 engaged", 3.5);
+                state.powerUpsEnabled = true;
+                if (typeof spawnPowerUpDrops === "function") {
+                  spawnPowerUpDrops(1);
+                }
               } else {
                 onBossDefeated();
               }
