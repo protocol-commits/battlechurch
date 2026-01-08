@@ -1023,7 +1023,11 @@ class Player {
         const bossRadius = activeBoss.radius || 0;
         const bossDistance = Math.hypot(activeBoss.x - this.x, activeBoss.y - this.y);
         if (bossDistance <= radius + bossRadius * 0.8) {
-          activeBoss.takeDamage(baseDamage * bossScale);
+          const bossDamage =
+            typeof PRAYER_BOMB_LEVEL1_BOSS_DAMAGE === "number"
+              ? PRAYER_BOMB_LEVEL1_BOSS_DAMAGE
+              : baseDamage * bossScale;
+          activeBoss.takeDamage(bossDamage);
           bossHit = true;
         }
       }
@@ -1064,7 +1068,11 @@ class Player {
         const bossRadius = activeBoss.radius || 0;
         const bossDistance = Math.hypot(activeBoss.x - this.x, activeBoss.y - this.y);
         if (bossDistance <= radius + bossRadius * 0.8) {
-          activeBoss.takeDamage(damage * bossScale);
+          const bossDamage =
+            typeof PRAYER_BOMB_LEVEL2_BOSS_DAMAGE === "number"
+              ? PRAYER_BOMB_LEVEL2_BOSS_DAMAGE
+              : damage * bossScale;
+          activeBoss.takeDamage(bossDamage);
           bossHit = true;
         }
       }

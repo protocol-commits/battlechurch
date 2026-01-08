@@ -756,24 +756,6 @@ function drawLevelAnnouncements() {
     }
     void memberCount;
 
-    const footerPadding = 22;
-    const footerWidth = canvas.width - footerPadding * 2;
-    const footerHeight = 88;
-    const footerX = footerPadding;
-    const footerY = canvas.height - footerHeight - 16;
-    ctx.font = `${TEXT_STYLES.body.weight} ${TEXT_STYLES.body.size}px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#EAF6FF";
-    ctx.textAlign = "left";
-    const lineX = footerX + 18;
-    let lineY = footerY + 26;
-    ctx.fillText("WASD: Move", lineX, lineY);
-    lineY += 20;
-    ctx.fillText("Left Arrow: Sword (double tap = Rush, hold = Charge)", lineX, lineY);
-    lineY += 20;
-    ctx.fillText("Right Arrow: Prayer Bomb", lineX, lineY);
-    ctx.fillStyle = "#EAF6FF";
-    ctx.textAlign = "right";
-    ctx.fillText("Press Space when ready to begin.", footerX + footerWidth - 18, footerY + footerHeight - 20);
     ctx.restore();
   }
 
