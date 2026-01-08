@@ -4123,12 +4123,7 @@ function getStartCountdownLabel() {
 
 const uiTexts =
   (typeof window !== "undefined" && window.BattlechurchUIText) || {};
-const TITLE_OVERLAY_BODY =
-  uiTexts.titleBody ||
-  [
-    "Wage war against the powers of darkness as they attack your flock with temptation, lies, and despair.",
-    "You have one year to save the church... and the town.",
-  ].join(" ");
+const TITLE_OVERLAY_BODY = "";
 
 function typewriterElement(overlay, selector, text, msPerChar = 18) {
   if (!overlay) return;
@@ -4170,7 +4165,7 @@ function showTitleDialog() {
   titleDialogActive = true;
   startIntroMusic();
   window.DialogOverlay.show({
-    title: "Battle Church",
+    title: "Smite the hordes. Save your flock. Grow your church.",
     body: "",
     buttonText: "Continue (Space)",
     variant: "title",
@@ -4182,7 +4177,12 @@ function showTitleDialog() {
         bodyEl.style.display = "block";
         bodyEl.style.width = "100%";
       }
-      typewriterElement(overlay, ".dialog-overlay__title", "Battle Church", 18);
+      typewriterElement(
+        overlay,
+        ".dialog-overlay__title",
+        "Smite the hordes. Save your flock. Grow your church.",
+        18,
+      );
       typewriterElement(overlay, ".dialog-overlay__body", TITLE_OVERLAY_BODY, 18);
     },
     onContinue: () => {
