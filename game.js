@@ -1961,10 +1961,11 @@ const PRAYER_BOMB_CHARGE_REQUIRED = 60;
 const PRAYER_BOMB_LEVEL1_THRESHOLD = 0.5;
 const PRAYER_BOMB_LEVEL2_THRESHOLD = 0.8;
 const PRAYER_BOMB_LEVEL3_THRESHOLD = 1.0;
+const PRAYER_BOMB_LEVEL1_DAMAGE = 250;
 const PRAYER_BOMB_LEVEL2_DAMAGE = 400;
 const PRAYER_BOMB_LEVEL3_DAMAGE = 1000;
-const PRAYER_BOMB_LEVEL2_RADIUS = PRAYER_BOMB_RADIUS * 1.35;
-const PRAYER_BOMB_RAIN_DURATION = 5;
+const PRAYER_BOMB_LEVEL2_RADIUS = Math.max(0, Math.hypot(CANVAS_BASE_WIDTH, CANVAS_BASE_HEIGHT));
+const PRAYER_BOMB_RAIN_DURATION = 7;
 const PRAYER_BOMB_RAIN_INTERVAL = 0.12;
 const PRAYER_BOMB_RAIN_RADIUS = 160 * WORLD_SCALE;
 const PRAYER_BOMB_BOSS_DAMAGE_SCALE = 0.5;
@@ -10087,10 +10088,6 @@ function parseFrameList(input) {
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
-  if (typeof window !== "undefined" && window.__pendingPrayerBombRain) {
-    window.__pendingPrayerBombRain = 0;
-    startPrayerBombFireRain(PRAYER_BOMB_RAIN_DURATION);
-  }
   updatePrayerBombFireRain(dt);
   if (player) {
     const target = player.state === "death" ? PLAYER_DEATH_FADE_TARGET : 0;

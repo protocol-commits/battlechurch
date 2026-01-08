@@ -958,11 +958,14 @@ class Player {
       typeof PRAYER_BOMB_BOSS_DAMAGE_SCALE === "number" ? PRAYER_BOMB_BOSS_DAMAGE_SCALE : 0.5;
     if (level === 1) {
       const radius = PRAYER_BOMB_RADIUS;
-      const baseDamage = Math.max(
-        this.getMagicDamage(),
-        this.getPigDamage(),
-        this.getFireDamage(),
-      ) * PRAYER_BOMB_DAMAGE_MULTIPLIER;
+      const baseDamage =
+        typeof PRAYER_BOMB_LEVEL1_DAMAGE === "number"
+          ? PRAYER_BOMB_LEVEL1_DAMAGE
+          : Math.max(
+              this.getMagicDamage(),
+              this.getPigDamage(),
+              this.getFireDamage(),
+            ) * PRAYER_BOMB_DAMAGE_MULTIPLIER;
       const struckEnemies = [];
       enemies.forEach((enemy) => {
         if (enemy.dead || enemy.state === "death") return;
@@ -1046,9 +1049,6 @@ class Player {
           ? window.PRAYER_BOMB_RAIN_DURATION
           : 5;
         window.startPrayerBombFireRain(duration);
-      }
-      if (typeof window !== "undefined") {
-        window.__pendingPrayerBombRain = (window.__pendingPrayerBombRain || 0) + 1;
       }
       if (typeof spawnPrayerBombExplosion === "function") {
         spawnPrayerBombExplosion(this.x, this.y, { radius: PRAYER_BOMB_RAIN_RADIUS });
