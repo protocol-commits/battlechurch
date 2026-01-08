@@ -154,6 +154,18 @@
       return base;
     };
 
+    const applyMeterGloss = (x, y, width, height, leftAlpha = 0.22, rightAlpha = 0.18) => {
+      if (width <= 0 || height <= 0) return;
+      ctx.save();
+      ctx.globalCompositeOperation = 'source-atop';
+      const gradient = ctx.createLinearGradient(x, 0, x + width, 0);
+      gradient.addColorStop(0, `rgba(0, 0, 0, ${rightAlpha})`);
+      gradient.addColorStop(1, `rgba(255, 255, 255, ${leftAlpha})`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, y, width, height);
+      ctx.restore();
+    };
+
     const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage, iconKey) => {
       const barHeight = 18;
       const barWidth = Math.max(60, width - 8);
@@ -198,6 +210,7 @@
           true,
           false,
         );
+        applyMeterGloss(barX + 2, barY + 2, fillWidth, barHeight - 4);
       }
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = PALETTE.softWhite;
@@ -225,6 +238,12 @@
       })() : '#B23A3A';
       ctx.fillStyle = hpFillColor;
       ctx.fillRect(
+        hpBarX + 2,
+        hpBarY + 2,
+        Math.max(6, Math.floor((hpBarWidth - 4) * hpRatio)),
+        hpBarHeight - 4,
+      );
+      applyMeterGloss(
         hpBarX + 2,
         hpBarY + 2,
         Math.max(6, Math.floor((hpBarWidth - 4) * hpRatio)),
@@ -376,6 +395,7 @@
           true,
           false,
         );
+        applyMeterGloss(seg1Start, innerY, Math.min(seg1Width, seg1Fill), innerH);
       }
       if (clampedRatio >= 0.5 && seg1Width > 0) {
         ctx.save();
@@ -401,6 +421,7 @@
           Math.min(seg2Width, seg2Fill),
           innerH,
         );
+        applyMeterGloss(seg2Start, innerY, Math.min(seg2Width, seg2Fill), innerH);
       }
       if (clampedRatio >= 0.8 && seg2Width > 0) {
         ctx.save();
@@ -423,6 +444,7 @@
           Math.min(seg3Width, seg3Fill),
           innerH,
         );
+        applyMeterGloss(seg3Start, innerY, Math.min(seg3Width, seg3Fill), innerH);
       }
       ctx.save();
       const outerGap = 2;
