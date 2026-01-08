@@ -197,20 +197,20 @@
         }
       }
       roundRect(ctx, barX, barY, barWidth, barHeight, 6, true, true);
-      const fillWidth = Math.max(0, Math.floor((barWidth - 4) * clampedRatio));
+      const fillWidth = Math.max(0, Math.floor((barWidth - 2) * clampedRatio));
       if (fillWidth > 0) {
         ctx.fillStyle = color || PALETTE.softWhite;
         roundRect(
           ctx,
-          barX + 2,
-          barY + 2,
+          barX + 1,
+          barY + 1,
           fillWidth,
-          barHeight - 4,
-          5,
+          barHeight - 2,
+          6,
           true,
           false,
         );
-        applyMeterGloss(barX + 2, barY + 2, fillWidth, barHeight - 4);
+        applyMeterGloss(barX + 1, barY + 1, fillWidth, barHeight - 2);
       }
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = PALETTE.softWhite;
@@ -237,17 +237,21 @@
         return `rgb(255, ${g}, ${b})`;
       })() : '#B23A3A';
       ctx.fillStyle = hpFillColor;
-      ctx.fillRect(
-        hpBarX + 2,
-        hpBarY + 2,
-        Math.max(6, Math.floor((hpBarWidth - 4) * hpRatio)),
-        hpBarHeight - 4,
+      roundRect(
+        ctx,
+        hpBarX + 1,
+        hpBarY + 1,
+        Math.max(6, Math.floor((hpBarWidth - 2) * hpRatio)),
+        hpBarHeight - 2,
+        6,
+        true,
+        false,
       );
       applyMeterGloss(
-        hpBarX + 2,
-        hpBarY + 2,
-        Math.max(6, Math.floor((hpBarWidth - 4) * hpRatio)),
-        hpBarHeight - 4,
+        hpBarX + 1,
+        hpBarY + 1,
+        Math.max(6, Math.floor((hpBarWidth - 2) * hpRatio)),
+        hpBarHeight - 2,
       );
       const hpFlash = player?.hpDamageFlash;
       if (hpFlash?.timer > 0 && hpFlash.duration > 0) {
@@ -270,11 +274,11 @@
           ctx.fillStyle = `rgba(255,60,60,${alpha.toFixed(3)})`;
           roundRect(
             ctx,
-            hpBarX + 2,
-            hpBarY + 2,
-            hpBarWidth - 4,
-            hpBarHeight - 4,
-            5,
+            hpBarX + 1,
+            hpBarY + 1,
+            hpBarWidth - 2,
+            hpBarHeight - 2,
+            6,
             true,
             false,
           );
@@ -375,12 +379,12 @@
       const seg1Fill = Math.min(totalWidth, seg1Max);
       const seg2Fill = Math.min(Math.max(0, totalWidth - seg1Max), seg2Max - seg1Max);
       const seg3Fill = Math.max(0, totalWidth - seg2Max);
-      const seg1Start = innerX;
-      const seg1Width = Math.max(0, seg1Max - segGap);
-      const seg2Start = innerX + seg1Max + segGap;
-      const seg2Width = Math.max(0, seg2Max - seg1Max - segGap);
-      const seg3Start = innerX + seg2Max + segGap + 1;
-      const seg3Width = Math.max(0, innerW - seg2Max - 1);
+      const seg1Start = innerX - 1;
+      const seg1Width = Math.max(0, seg1Max - segGap + 1);
+      const seg2Start = innerX + seg1Max + segGap - 1;
+      const seg2Width = Math.max(0, seg2Max - seg1Max - segGap + 2);
+      const seg3Start = innerX + seg2Max + segGap;
+      const seg3Width = Math.max(0, innerW - seg2Max);
       const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.008);
 
       if (seg1Fill > 0) {
