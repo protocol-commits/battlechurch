@@ -2574,17 +2574,20 @@ function applyDevEnemyOverrides(baseDefs) {
   return nextDefs;
 }
 
-const ENEMY_DEFINITIONS =
+const ENEMY_DEFINITIONS_RAW =
   applyDevEnemyOverrides(
     (typeof window !== "undefined" && window.BattlechurchEnemyDefinitions) ||
       ENEMY_CATALOG,
   );
 
-
 // MiniFolk enemies: demons/skellies that run through `spawner` overrides, e.g. miniGhost prefers NPCs, miniDemonLord is bulkier, and the undead minis reuse the same sheet for every state.
 const MINIFOLKS =
   (typeof window !== "undefined" && window.BattlechurchMiniFolks?.list) ||
   [];
+const MINIFOLK_KEYS = new Set(MINIFOLKS.map((entry) => entry.key));
+const ENEMY_DEFINITIONS = Object.fromEntries(
+  Object.entries(ENEMY_DEFINITIONS_RAW).filter(([key]) => MINIFOLK_KEYS.has(key)),
+);
 
 const powerupDefinitions =
   (typeof window !== "undefined" && window.BattlechurchPowerupDefinitions) ||
@@ -4520,7 +4523,7 @@ function spawnPowerUpDrops(count = 1) {
   }
 }
 
-const BOSS_TYPE_POOL = ["eliteOrc", "orcRider", "armoredSkeleton", "knightTemplar", "werebear"];
+const BOSS_TYPE_POOL = ["miniDemonLord", "miniHighDemon"];
 
 function logBossSpriteIssue(payload) {
   try {
@@ -4569,14 +4572,14 @@ function resolveBossClips(type) {
 }
 
 function chooseBossType(levelNumber) {
-  if (!BOSS_TYPE_POOL.length) return "eliteOrc";
+  if (!BOSS_TYPE_POOL.length) return "miniDemonLord";
   const offset = Math.floor((levelNumber - 1) / 2);
   const index = (offset + Math.floor(Math.random() * BOSS_TYPE_POOL.length)) % BOSS_TYPE_POOL.length;
   return BOSS_TYPE_POOL[index];
 }
 
 function spawnBossForLevel(levelNumber) {
-  const fallbackType = "eliteOrc";
+  const fallbackType = "miniDemonLord";
   const attempted = new Set();
   const trySpawn = (type) => {
     if (!type) return null;
