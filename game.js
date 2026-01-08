@@ -5535,12 +5535,14 @@ function detonateWisdomMissleProjectile(projectile) {
     const distance = Math.hypot(activeBoss.x - centerX, activeBoss.y - centerY);
     const threshold = radius + (activeBoss.radius || 0) * 0.6;
     if (distance <= threshold) {
-      activeBoss.takeDamage(baseDamage);
+      activeBoss.takeDamage(baseDamage, {
+        hitX: centerX,
+        hitY: centerY,
+        skipImpactEffect: true,
+      });
     }
   }
   spawnMagicSplashEffect(centerX, centerY, radius);
-  // Wisdom impact sparks now use the flash1-14 sheet (same asset path as the projectile loader).
-  spawnFlashEffect(centerX, centerY - radius / 2);
   projectile.dead = true;
   applyCameraShake(WISDOM_HIT_SHAKE_DURATION, WISDOM_HIT_SHAKE_MAGNITUDE);
 }
@@ -5572,7 +5574,11 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
     const distance = Math.hypot(activeBoss.x - centerX, activeBoss.y - centerY);
     const threshold = radius + (activeBoss.radius || 0) * 0.6;
     if (distance <= threshold) {
-      activeBoss.takeDamage(splashDamage);
+      activeBoss.takeDamage(splashDamage, {
+        hitX: centerX,
+        hitY: centerY,
+        skipImpactEffect: true,
+      });
     }
   }
   if (endOfRange) {
@@ -7798,7 +7804,19 @@ class BossEncounter {
   takeDamage(amount, options = {}) {
     if (this.invalid || this.removed || this.state === "death") return;
     this.health = Math.max(0, this.health - amount);
-    spawnImpactEffect(this.x, this.y - this.radius / 2);
+    const impactX = Number.isFinite(options.hitX)
+      ? options.hitX
+      : Number.isFinite(options.x)
+        ? options.x
+        : this.x;
+    const impactY = Number.isFinite(options.hitY)
+      ? options.hitY
+      : Number.isFinite(options.y)
+        ? options.y
+        : this.y;
+    if (!options.skipImpactEffect) {
+      spawnImpactEffect(impactX, impactY);
+    }
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx();
     }
@@ -11042,12 +11060,15 @@ const DIVINE_SHOT_DAMAGE = 1200;
         enemy.takeDamage(projectileDamage);
   // no arrow-hit gating for health bars
         if (
+          projectile.type === "arrow" ||
           projectile.type === "fire" ||
           projectile.type === "heart" ||
           projectile.type === "faith_cannon"
         ) {
           // Flash sprite hit animation (flash1-14) now used for all friendly spark hits.
-          spawnFlashEffect(enemy.x, enemy.y - enemy.config.hitRadius / 2);
+          const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
+          const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
+          spawnFlashEffect(hitX, hitY);
         }
         if (enemy.health > 0) {
           const puffRadius = (enemy.config?.hitRadius || enemy.radius || 24) * 0.6;
@@ -11071,13 +11092,20 @@ const DIVINE_SHOT_DAMAGE = 1200;
           } else if (projectile.type === "faith_cannon") {
             detonateFaithCannonProjectile(projectile, { endOfRange: false });
           } else {
-            activeBoss.takeDamage(projectile.getDamage(), projectile);
+            const hitX = Number.isFinite(projectile.x) ? projectile.x : activeBoss.x;
+            const hitY = Number.isFinite(projectile.y) ? projectile.y : activeBoss.y;
+            activeBoss.takeDamage(projectile.getDamage(), {
+              hitX,
+              hitY,
+              skipImpactEffect: true,
+            });
             if (
+              projectile.type === "arrow" ||
               projectile.type === "fire" ||
               projectile.type === "heart" ||
               projectile.type === "faith_cannon"
             ) {
-              spawnFlashEffect(activeBoss.x, activeBoss.y - activeBoss.radius / 2);
+              spawnFlashEffect(hitX, hitY);
             }
             projectile.onHit(activeBoss);
             if (!projectile.pierce) projectile.dead = true;
