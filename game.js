@@ -7623,10 +7623,13 @@ class BossEncounter {
   }
 
   getHpBarMetrics() {
+    const baseOffset = 130;
+    const name = this.config?.displayName || "";
+    const offsetY = name === "High Demon" ? baseOffset - 25 : baseOffset;
     return {
       width: 260,
       height: 18,
-      offsetY: 130,
+      offsetY,
     };
   }
 
@@ -11231,7 +11234,13 @@ const DIVINE_SHOT_DAMAGE = 1200;
       }
       if (hostileDies) hostile.dead = true;
       if (friendlyDies) friendly.dead = true;
-      spawnImpactEffect((friendly.x + hostile.x) / 2, (friendly.y + hostile.y) / 2);
+      const hitX = (friendly.x + hostile.x) / 2;
+      const hitY = (friendly.y + hostile.y) / 2;
+      spawnImpactEffect(hitX, hitY);
+      spawnFlashEffect(hitX, hitY);
+      if (typeof playEnemyHitSfx === "function") {
+        playEnemyHitSfx(0.35);
+      }
       break;
     }
   }
