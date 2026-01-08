@@ -383,9 +383,10 @@
       const seg1Width = Math.max(0, seg1Max - segGap + 1);
       const seg2Start = innerX + seg1Max + segGap - 1;
       const seg2Width = Math.max(0, seg2Max - seg1Max - segGap + 2);
-      const seg3Start = innerX + seg2Max + segGap;
-      const seg3Width = Math.max(0, innerW - seg2Max);
+      const seg3Start = innerX + seg2Max + segGap + 1;
+      const seg3Width = Math.max(0, innerW - seg2Max - segGap);
       const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.008);
+      const fullPulse = clampedRatio >= 1;
 
       if (seg1Fill > 0) {
         ctx.fillStyle = PALETTE.slate;
@@ -404,6 +405,22 @@
       if (clampedRatio >= 0.5 && seg1Width > 0) {
         ctx.save();
         ctx.globalAlpha = 0.28 + pulse * 0.35;
+        ctx.fillStyle = PALETTE.gold;
+        roundRect(
+          ctx,
+          seg1Start,
+          innerY,
+          seg1Width,
+          innerH,
+          Math.max(2, meterRadius - 2),
+          true,
+          false,
+        );
+        ctx.restore();
+      }
+      if (fullPulse && seg1Width > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.2 + pulse * 0.45;
         ctx.fillStyle = PALETTE.gold;
         roundRect(
           ctx,
@@ -439,9 +456,20 @@
         );
         ctx.restore();
       }
+      if (fullPulse && seg2Width > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.2 + pulse * 0.45;
+        ctx.fillStyle = PALETTE.gold;
+        ctx.fillRect(
+          seg2Start,
+          innerY,
+          seg2Width,
+          innerH,
+        );
+        ctx.restore();
+      }
       if (seg3Fill > 0) {
-        const flash = Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.softWhite;
-        ctx.fillStyle = clampedRatio >= 1 ? flash : PALETTE.ice;
+        ctx.fillStyle = clampedRatio >= 1 ? PALETTE.gold : PALETTE.ice;
         ctx.fillRect(
           seg3Start,
           innerY,
@@ -449,6 +477,18 @@
           innerH,
         );
         applyMeterGloss(seg3Start, innerY, Math.min(seg3Width, seg3Fill), innerH);
+      }
+      if (fullPulse && seg3Width > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.2 + pulse * 0.45;
+        ctx.fillStyle = PALETTE.gold;
+        ctx.fillRect(
+          seg3Start,
+          innerY,
+          seg3Width,
+          innerH,
+        );
+        ctx.restore();
       }
       ctx.save();
       const outerGap = 2;
