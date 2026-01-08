@@ -7669,8 +7669,10 @@ class BossEncounter {
     clampEntityToBounds(this);
     this.updateFacing(nx, ny);
     if (this.state !== "attack" && this.state !== "hurt") {
-      this.state = "walk";
-      this.animator.play("walk");
+      if (this.state !== "walk") {
+        this.state = "walk";
+        this.animator.play("walk");
+      }
     }
   }
 
