@@ -7445,7 +7445,7 @@ class Projectile {
       this.source?.isPlayer &&
       levelManager?.getStatus &&
       ["bossIntro", "bossActive"].includes(levelManager.getStatus().stage);
-    const bossRangeMultiplier = bossStage ? 3 : 1;
+    const bossRangeMultiplier = bossStage ? 1.5 : 1;
     const extraX = canvas.width * (bossRangeMultiplier - 1) * 0.5;
     const extraY = canvas.height * (bossRangeMultiplier - 1) * 0.5;
     const outLeft = this.x < -this.radius - extraX;
@@ -8039,7 +8039,7 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
     levelManager?.getStatus &&
     ["bossIntro", "bossActive"].includes(levelManager.getStatus().stage);
   const bossRangeMultiplier =
-    bossStageActive && config.friendly && config.source?.isPlayer ? 3 : 1;
+    bossStageActive && config.friendly && config.source?.isPlayer ? 1.5 : 1;
   const priority = overrides.priority ?? baseConfig.priority ?? 0;
   config.priority = priority;
   const isDivineShot = overrides.isDivineShot ?? baseConfig.isDivineShot ?? false;

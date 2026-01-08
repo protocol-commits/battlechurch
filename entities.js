@@ -663,7 +663,7 @@ class Player {
       const activeWeapon = this.getActiveWeaponMode();
       let targetEntity = null;
       let minDistSq = Infinity;
-      const weaponRange = 400 * (isBossStageActive() ? 3 : 1); // You may want to use weapon-specific range
+      const weaponRange = 400 * (isBossStageActive() ? 1.5 : 1); // You may want to use weapon-specific range
 
   // Collect possible targets: enemies, bosses, visitors, chatty NPCs
   let possibleTargets = [];
@@ -772,7 +772,7 @@ class Player {
   if (meleeAttackState?.projectileBlockTimer > 0) return;
   // Prevent firing projectiles when melee circle is active
   if (window.Input && window.Input.nesAButtonActive) return;
-  const bossRangeMultiplier = isBossStageActive() ? 3 : 1;
+  const bossRangeMultiplier = isBossStageActive() ? 1.5 : 1;
     if (type === "arrow") {
       if (this.arrowCooldown > 0) return;
       let direction = this.getAimDirection();
