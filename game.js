@@ -1201,6 +1201,15 @@ if (typeof window !== "undefined") {
   window.clearFormationSelection = clearFormationSelection;
   window.getFormationBonuses = getFormationBonuses;
   window.applyFormationAnchors = applyFormationAnchors;
+  window.Battlechurch.isBossStageActive = () => {
+    try {
+      if (levelManager?.getStatus) {
+        const stage = levelManager.getStatus().stage;
+        return stage === "bossIntro" || stage === "bossActive";
+      }
+    } catch (e) {}
+    return false;
+  };
 }
 let heroLives = 3;
 let enemyDevLabelsVisible = true;
@@ -7431,10 +7440,18 @@ class Projectile {
       this.animator.update(dt);
     }
 
-    const outLeft = this.x < -this.radius;
-    const outRight = this.x > canvas.width + this.radius;
-    const outTop = this.y < -this.radius;
-    const outBottom = this.y > canvas.height + this.radius;
+    const bossStage =
+      this.friendly &&
+      this.source === player &&
+      levelManager?.getStatus &&
+      ["bossIntro", "bossActive"].includes(levelManager.getStatus().stage);
+    const bossRangeMultiplier = bossStage ? 3 : 1;
+    const extraX = canvas.width * (bossRangeMultiplier - 1) * 0.5;
+    const extraY = canvas.height * (bossRangeMultiplier - 1) * 0.5;
+    const outLeft = this.x < -this.radius - extraX;
+    const outRight = this.x > canvas.width + this.radius + extraX;
+    const outTop = this.y < -this.radius - extraY;
+    const outBottom = this.y > canvas.height + this.radius + extraY;
     if (outLeft || outRight || outTop || outBottom) {
       if (isBossProjectile(this)) {
         const clampedX = Math.max(0, Math.min(canvas.width, this.x));

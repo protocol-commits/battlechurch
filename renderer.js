@@ -1335,9 +1335,26 @@ function drawLevelAnnouncements() {
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
     if (!levelStatus) return;
     const monthName = levelStatus.month || "January";
+    const stage = levelStatus.stage || "";
     const battleNumber = Math.max(1, levelStatus.battle || 1);
     const hordeNumber = Math.max(1, levelStatus.horde || 1);
-  const breadcrumb = [`Level ${levelStatus.level || 1}`, `${monthName}`, `Battle ${battleNumber}`, `Horde ${hordeNumber}`].join(" / ");
+    const crumbParts = [`Level ${levelStatus.level || 1}`, `${monthName}`];
+    if (stage === "bossIntro") {
+      crumbParts.push("Boss Intro");
+    } else if (stage === "bossActive") {
+      crumbParts.push("Boss Battle");
+    } else if (stage === "graceRush") {
+      crumbParts.push("Grace Abounds");
+    } else if (stage === "levelIntro") {
+      crumbParts.push("Level Intro");
+    } else if (stage === "briefing") {
+      crumbParts.push("Briefing");
+    } else if (stage === "npcArrival") {
+      crumbParts.push("Congregation");
+    } else {
+      crumbParts.push(`Battle ${battleNumber}`, `Horde ${hordeNumber}`);
+    }
+    const breadcrumb = crumbParts.join(" / ");
     const detailText = "";
 
     ctx.save();

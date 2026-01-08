@@ -24,6 +24,18 @@
         typeof window.Battlechurch.isPlayerMovementLocked === "function" &&
         window.Battlechurch.isPlayerMovementLocked(),
     );
+  const isBossStageActive = () => {
+    try {
+      if (
+        typeof window !== "undefined" &&
+        window.Battlechurch &&
+        typeof window.Battlechurch.isBossStageActive === "function"
+      ) {
+        return Boolean(window.Battlechurch.isBossStageActive());
+      }
+    } catch (e) {}
+    return false;
+  };
 
   let settings = Object.assign({}, defaults);
   let enemyDefinitions = {};
@@ -760,6 +772,7 @@ class Player {
   if (meleeAttackState?.projectileBlockTimer > 0) return;
   // Prevent firing projectiles when melee circle is active
   if (window.Input && window.Input.nesAButtonActive) return;
+  const bossRangeMultiplier = isBossStageActive() ? 3 : 1;
     if (type === "arrow") {
       if (this.arrowCooldown > 0) return;
       let direction = this.getAimDirection();
@@ -780,6 +793,9 @@ class Player {
       spawnProjectile("arrow", originX, originY, direction.x, direction.y, {
         damage: this.getArrowDamage(),
         scale: this.getArrowProjectileScale(),
+        life: Number.isFinite(PROJECTILE_CONFIG.arrow?.life)
+          ? PROJECTILE_CONFIG.arrow.life * bossRangeMultiplier
+          : undefined,
         source: this,
       });
       const playArrowSfx =
@@ -801,6 +817,9 @@ class Player {
       const originY = this.y + direction.y * originOffset;
       spawnProjectile("heart", originX, originY, direction.x, direction.y, {
         damage: 0,
+        life: Number.isFinite(PROJECTILE_CONFIG.heart?.life)
+          ? PROJECTILE_CONFIG.heart.life * bossRangeMultiplier
+          : undefined,
         source: this,
       });
       const playArrowSfx =
@@ -823,6 +842,9 @@ class Player {
       const originY = this.y + direction.y * originOffset;
       const projectile = spawnProjectile("coin", originX, originY, direction.x, direction.y, {
         frameDuration: COIN_FRAME_DURATION,
+        life: Number.isFinite(PROJECTILE_CONFIG.coin?.life)
+          ? PROJECTILE_CONFIG.coin.life * bossRangeMultiplier
+          : undefined,
         source: this,
       });
       if (!projectile) return;
@@ -847,7 +869,7 @@ class Player {
       if (!canSpawnWisdomMissleProjectile()) return;
       const speed = this.getWisdomMissleSpeed();
       const travel = distanceToEdge(originX, originY, direction.x, direction.y);
-      const life = travel / speed;
+      const life = (travel * bossRangeMultiplier) / speed;
       spawnProjectile("wisdom_missle", originX, originY, direction.x, direction.y, {
         damage: this.getWisdomMissleDamage(),
         speed,
@@ -881,7 +903,10 @@ class Player {
       if (!canSpawnFaithCannonProjectile()) return;
       const speed = this.getFaithCannonSpeed();
       const travel = distanceToEdge(originX, originY, direction.x, direction.y);
-      const life = Math.min(travel / speed, FAITH_CANNON_PROJECTILE_RANGE / speed);
+      const life = Math.min(
+        (travel * bossRangeMultiplier) / speed,
+        (FAITH_CANNON_PROJECTILE_RANGE * bossRangeMultiplier) / speed,
+      );
       spawnProjectile("faith_cannon", originX, originY, direction.x, direction.y, {
         damage: this.getFaithCannonDamage(),
         speed,
@@ -919,7 +944,7 @@ class Player {
       if (!canSpawnFireProjectile()) return;
       const speed = this.getFireSpeed();
       const travel = distanceToEdge(originX, originY, direction.x, direction.y);
-      const life = travel / speed;
+      const life = (travel * bossRangeMultiplier) / speed;
       const frames = assets?.projectiles?.fire?.frames;
       spawnProjectile("fire", originX, originY, direction.x, direction.y, {
         damage: this.getFireDamage(),
