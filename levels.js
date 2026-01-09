@@ -990,6 +990,9 @@
         state.finalHordeDelay = 0;
         if (isGlobalAllKillHorde(hordeNumber)) {
           const preFadeDelay = ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
+          if (typeof deps.rotateNpcPositionsForActBreak === "function") {
+            deps.rotateNpcPositionsForActBreak();
+          }
           queueLevelAnnouncement(ACT_BREAK_MESSAGE, "", {
             duration: preFadeDelay,
             skipMissionBrief: true,

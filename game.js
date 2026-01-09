@@ -1407,45 +1407,47 @@ function resetFormationSwaps() {
   }
 }
 
-function maybeSwapNpcPositions() {
+function rotateNpcPositionsForActBreak() {
+  if (!npcs || !npcs.length) return;
+  resetFormationSwaps();
+  const swaps = Math.min(3, Math.floor(npcs.length / 2));
+  for (let i = 0; i < swaps; i += 1) {
+    maybeSwapNpcPositions({ force: true });
+  }
+}
+
+function maybeSwapNpcPositions(options = {}) {
   // Only run during active battles; skip if no formation selected.
   if (!npcs || !npcs.length) return;
   const status =
     typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
   const activeStages = new Set(["hordeActive", "bossActive", "graceRush"]);
-  if (!status || !activeStages.has(status.stage)) return;
+  const forceSwap = Boolean(options.force);
+  if (!forceSwap && (!status || !activeStages.has(status.stage))) return;
   if (!formationState?.current) return;
-  const swapped = formationState.swappedThisBattle || new Set();
-  formationState.swappedThisBattle = swapped;
   // Candidates: active NPCs not departed/drained
   const active = npcs.filter(
     (npc) => npc && npc.active && !npc.departed && npc.state !== "drained",
   );
   if (active.length < 2) return;
-  // Find lowest faith below 25% that has not swapped yet
+  // Find lowest and highest faith to rotate who is taking damage.
   let low = null;
+  let high = null;
   for (const npc of active) {
-    if (npc.faith <= npc.maxFaith * 0.25 && !swapped.has(npc)) {
-      if (!low || npc.faith < low.faith) low = npc;
-    }
+    if (!low || npc.faith < low.faith) low = npc;
+    if (!high || npc.faith > high.faith) high = npc;
   }
   if (!low) return;
-  // Pick healthiest above 40% faith
-  const healthy = active
-    .filter((npc) => npc.faith >= npc.maxFaith * 0.4 && npc !== low)
-    .sort((a, b) => b.faith - a.faith);
-  if (!healthy.length) return;
-  const target = healthy[0];
+  if (!high || high === low) return;
+  if (!forceSwap && high.faith - low.faith < 1) return;
   // Swap anchors and set new targets so they walk to swapped spots
   const lowAnchor = low.formationAnchor ? { ...low.formationAnchor } : null;
-  const hiAnchor = target.formationAnchor ? { ...target.formationAnchor } : null;
+  const hiAnchor = high.formationAnchor ? { ...high.formationAnchor } : null;
   if (!lowAnchor || !hiAnchor) return;
   low.formationAnchor = hiAnchor;
-  target.formationAnchor = lowAnchor;
+  high.formationAnchor = lowAnchor;
   low.target = low.getRandomWalkPoint();
-  target.target = target.getRandomWalkPoint();
-  swapped.add(low);
-  swapped.add(target);
+  high.target = high.getRandomWalkPoint();
 }
 const MAX_ACTIVE_ENEMIES = 120;
 const SKELETON_MIN_COUNT = 4;
@@ -2994,6 +2996,7 @@ Levels.initialize({
   isNpcProcessionComplete: areNpcProcessionsComplete,
   startActBreakFade,
   startGraceRushEndFade,
+  rotateNpcPositionsForActBreak,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
   hasEnemyAsset: (key) => Boolean(ASSET_MANIFEST.enemies?.[key]),
   miniImpBaseGroupSize: MINI_IMP_BASE_GROUP_SIZE,
