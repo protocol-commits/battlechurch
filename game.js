@@ -2344,6 +2344,16 @@ Input.initialize({
       addGrace(500);
       setDevStatus("Dev: +500 grace");
     }
+    if (key === "h" && titleScreenActive) {
+      const editor = window.BattlechurchHitboxEditor;
+      const next = typeof editor?.toggle === "function" ? editor.toggle() : false;
+      if (next && window.DialogOverlay?.isVisible?.()) {
+        window.DialogOverlay.hide();
+      }
+      return;
+    }
+    const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
+    if (hitboxEditorActive) return;
     if (!gameStarted && !paused) gameStarted = true;
   },
   shouldUpdatePointer: () => Boolean(player),
@@ -2937,6 +2947,30 @@ const PLAYER_CONFIG = ENTITIES_BOOTSTRAP?.PLAYER_CONFIG || BASE_PLAYER_CONFIG;
 const ENEMY_TYPES =
   ENTITIES_BOOTSTRAP?.ENEMY_TYPES || buildEnemyTypesFallback(ENEMY_DEFINITIONS);
 
+function applyHitboxChange(key, sourceHitbox) {
+  if (!key || !ENEMY_CATALOG || !ENEMY_CATALOG[key]) return;
+  const def = ENEMY_CATALOG[key];
+  if (sourceHitbox && typeof sourceHitbox === "object") {
+    def.hitbox = { ...sourceHitbox };
+  }
+  const scale = (def.scale || 1) * WORLD_SCALE;
+  const scaled = buildScaledHitbox(def, scale);
+  if (ENEMY_TYPES && ENEMY_TYPES[key]) {
+    ENEMY_TYPES[key].hitbox = scaled;
+  }
+  if (Array.isArray(enemies)) {
+    enemies.forEach((enemy) => {
+      if (enemy && enemy.type === key) {
+        enemy.config.hitbox = scaled;
+      }
+    });
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.__battlechurchApplyHitboxChange = applyHitboxChange;
+}
+
 // Developer/testing: restrict automatic MiniFolk spawns on level 1 to a single
 
   Spawner.initialize({
@@ -3122,6 +3156,24 @@ function roundEnemyDamageToFive(value) {
   return Math.max(5, Math.ceil(raw / 5) * 5);
 }
 
+function buildScaledHitbox(def, scale) {
+  const raw = def && def.hitbox ? def.hitbox : null;
+  if (!raw) return null;
+  const width = Number(raw.width);
+  const height = Number(raw.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+    return null;
+  }
+  const offsetX = Number.isFinite(raw.offsetX) ? raw.offsetX : 0;
+  const offsetY = Number.isFinite(raw.offsetY) ? raw.offsetY : 0;
+  return {
+    width: width * scale,
+    height: height * scale,
+    offsetX: offsetX * scale,
+    offsetY: offsetY * scale,
+  };
+}
+
 function buildEnemyTypesFallback(defs) {
   if (!defs || typeof defs !== "object") return {};
   return Object.fromEntries(
@@ -3149,6 +3201,7 @@ function buildEnemyTypesFallback(defs) {
           preferEdges: Boolean(def.preferEdges),
           desiredRange: def.desiredRange || attackRange,
           projectileCooldown: def.projectileCooldown || def.cooldown,
+          hitbox: buildScaledHitbox(def, scale),
         },
       ];
     }),
@@ -7923,6 +7976,40 @@ class CozyNpc {
 
 // Vampire class removed
 
+function getEnemyHitboxRadius(enemy) {
+  if (!enemy) return 0;
+  const hitbox = enemy.config?.hitbox || null;
+  if (hitbox && Number.isFinite(hitbox.width) && Number.isFinite(hitbox.height)) {
+    return Math.max(hitbox.width, hitbox.height) * 0.5;
+  }
+  return enemy.config?.hitRadius || enemy.radius || 0;
+}
+
+function getEnemyHitboxRect(enemy) {
+  if (!enemy) return null;
+  const hitbox = enemy.config?.hitbox || null;
+  if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return null;
+  const width = hitbox.width;
+  const height = hitbox.height;
+  if (width <= 0 || height <= 0) return null;
+  const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+  const offsetY = Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+  return {
+    x: enemy.x + offsetX - width / 2,
+    y: enemy.y + offsetY - height / 2,
+    width,
+    height,
+  };
+}
+
+function circleIntersectsRect(cx, cy, radius, rect) {
+  const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
+  const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
+  const dx = cx - closestX;
+  const dy = cy - closestY;
+  return dx * dx + dy * dy <= radius * radius;
+}
+
 class Projectile {
   constructor(type, config, clip, x, y, dx, dy) {
     this.type = type;
@@ -8065,6 +8152,11 @@ class Projectile {
   }
 
   hitTest(enemy) {
+    const hitbox = getEnemyHitboxRect(enemy);
+    if (hitbox) {
+      const radius = Math.max(0, this.radius || 0);
+      return circleIntersectsRect(this.x, this.y, radius, hitbox);
+    }
     const dx = enemy.x - this.x;
     const dy = enemy.y - this.y;
     const distance = Math.hypot(dx, dy);
@@ -10873,7 +10965,8 @@ function updateGame(dt) {
   }
 
   if (titleScreenActive) {
-    if (!window.DialogOverlay?.isVisible()) {
+    const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
+    if (!hitboxEditorActive && !window.DialogOverlay?.isVisible()) {
       showTitleDialog();
     }
     keysJustPressed.delete(" ");
@@ -11476,7 +11569,11 @@ const DIVINE_SHOT_DAMAGE = 1200;
       const originX = player.x - normalized.x * swingOffset;
       const originY = player.y - normalized.y * swingOffset;
       const perpDir = { x: -normalized.y, y: normalized.x };
-      const allowanceRadius = (target) => target?.radius || target?.config?.hitRadius || 0;
+      const allowanceRadius = (target) => {
+        if (!target) return 0;
+        if (target.config || target.type) return getEnemyHitboxRadius(target);
+        return target.radius || 0;
+      };
       const hitTarget = (target) => {
         if (!target || target.dead || target.state === "death") return false;
         if (target._lastMeleeSwingId === meleeAttackState.swingId) return false;
@@ -12443,6 +12540,14 @@ async function init() {
       requestAnimationFrame(gameLoop);
     }
     assets = await loadAssets();
+    if (window.BattlechurchHitboxEditor?.initialize) {
+      window.BattlechurchHitboxEditor.initialize({
+        getAssets: () => assets,
+        getEnemyCatalog: () => ENEMY_CATALOG,
+        getEnemyTypes: () => ENEMY_TYPES,
+        onHitboxChange: applyHitboxChange,
+      });
+    }
     rebuildObstacles();
   player = createPlayerInstance(
     canvas.width / 2,

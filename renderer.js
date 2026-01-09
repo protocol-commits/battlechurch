@@ -1547,7 +1547,7 @@ function drawLevelAnnouncements() {
     npcFaithOverlays.length = 0;
     if (titleScreenActive) {
       drawTitleScreen();
-      if (!window.DialogOverlay?.isVisible()) {
+      if (!window.__battlechurchHitboxEditorActive && !window.DialogOverlay?.isVisible()) {
         showTitleDialog();
       }
       return;

@@ -80,6 +80,23 @@
   function buildEnemyTypes(defs) {
     if (!defs || typeof defs !== "object") return {};
     const worldScale = settings.WORLD_SCALE || 1;
+    const buildScaledHitbox = (def, scale) => {
+      const raw = def && def.hitbox ? def.hitbox : null;
+      if (!raw) return null;
+      const width = Number(raw.width);
+      const height = Number(raw.height);
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return null;
+      }
+      const offsetX = Number.isFinite(raw.offsetX) ? raw.offsetX : 0;
+      const offsetY = Number.isFinite(raw.offsetY) ? raw.offsetY : 0;
+      return {
+        width: width * scale,
+        height: height * scale,
+        offsetX: offsetX * scale,
+        offsetY: offsetY * scale,
+      };
+    };
     return Object.fromEntries(
       Object.entries(defs).map(([key, def]) => {
         const scale = (def.scale || 1) * worldScale;
@@ -128,6 +145,7 @@
             specialBehavior: def.specialBehavior || [],
             tintColor,
             tintIntensity,
+            hitbox: buildScaledHitbox(def, scale),
             swarmSpacing:
               typeof def.swarmSpacing === "number" ? def.swarmSpacing : undefined,
           },
