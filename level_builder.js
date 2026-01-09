@@ -24,6 +24,18 @@
     },
     levels: [],
   };
+  const REMOVED_ENEMIES = new Set([
+    "miniSkeleton",
+    "miniSkeletonArcher",
+    "miniZombie",
+    "miniZombieButcher",
+    "miniReaper",
+    "miniGhost",
+    "miniLich",
+    "miniNecromancer",
+    "miniDeathKnight",
+    "miniDreadKnight",
+  ]);
 
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -41,6 +53,9 @@
     if (Array.isArray(merged.globals.hiddenEnemies)) {
       merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
         (key) => key !== "miniImpLevel3",
+      );
+      merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
+        (key) => !REMOVED_ENEMIES.has(key),
       );
     }
     return merged;
@@ -90,6 +105,9 @@
         Array.isArray(pool) ? pool.filter((e) => e !== enemyKey) : pool,
       );
     }
+    if (Array.isArray(cfg.globals?.hiddenEnemies)) {
+      cfg.globals.hiddenEnemies = cfg.globals.hiddenEnemies.filter((key) => key !== enemyKey);
+    }
     // Walk levels
     (cfg.levels || []).forEach((lvl) => {
       (lvl.months || []).forEach((m) => {
@@ -131,6 +149,7 @@
     showHidden: false,
     copyBuffer: null, // holds a copied horde payload
   };
+  REMOVED_ENEMIES.forEach((key) => purgeEnemy(state.config, key));
   const THUMB_SIZE = 48;
   const thumbCache = {};
   const thumbLoading = new Set();
