@@ -419,9 +419,7 @@ window.__BATTLECHURCH_OVERRIDES = {
         0,
         1,
         2,
-        3,
-        65,
-        75
+        3
       ]
     }
   },
@@ -584,6 +582,18 @@ window.__BATTLECHURCH_OVERRIDES = {
 
 // Optional: manual grid overrides for sprite sheets needing explicit cols/rows.
 window.__BATTLECHURCH_MANUAL_GRIDS = {
+  "miniimp.png": {
+    "cols": 6,
+    "rows": 5
+  },
+  "miniimplevel2.png": {
+    "cols": 6,
+    "rows": 5
+  },
+  "miniimplevel3.png": {
+    "cols": 6,
+    "rows": 5
+  },
   "minifireimp.png": {
     "cols": 9,
     "rows": 6

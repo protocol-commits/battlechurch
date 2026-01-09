@@ -507,10 +507,12 @@
 
   function inferFrameSizeForManifestEntry(entry, image, key) {
     if (!entry || !image) return { frameWidth: 0, frameHeight: 0 };
+    const overrideFrames = getOverrideFramesForKey(key);
+    const useOverrideSizing = Array.isArray(overrideFrames) && overrideFrames.length > 0;
     const fallbackClip = {
       image,
-      frameWidth: entry.frameWidth || 0,
-      frameHeight: entry.frameHeight || 0,
+      frameWidth: useOverrideSizing ? 0 : entry.frameWidth || 0,
+      frameHeight: useOverrideSizing ? 0 : entry.frameHeight || 0,
       src: entry.src,
     };
     return inferFrameSizeForClip(fallbackClip, key);
