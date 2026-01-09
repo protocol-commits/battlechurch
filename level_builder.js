@@ -36,6 +36,7 @@
     "miniDeathKnight",
     "miniDreadKnight",
   ]);
+  const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -658,7 +659,10 @@
     const manifestEntry =
       (window.ASSET_MANIFEST && window.ASSET_MANIFEST.enemies && window.ASSET_MANIFEST.enemies[key]) ||
       null;
-    const entry = manifestEntry?.idle || manifestEntry?.walk || null;
+    const prefersWalk = WALK_FIRST_KEYS.has(key);
+    const entry = prefersWalk
+      ? manifestEntry?.walk || manifestEntry?.idle || null
+      : manifestEntry?.idle || manifestEntry?.walk || null;
     if (!entry?.src) return null;
     let img = manifestThumbImages.get(entry.src);
     if (!img) {
@@ -671,7 +675,9 @@
     const frameWidth = inferred.frameWidth || entry.frameWidth || 100;
     const frameHeight = inferred.frameHeight || entry.frameHeight || 100;
     const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
-    const stateOverride = overrideMap.idle || overrideMap.walk || {};
+    const stateOverride = prefersWalk
+      ? overrideMap.walk || overrideMap.idle || {}
+      : overrideMap.idle || overrideMap.walk || {};
     const frameMap =
       (Array.isArray(stateOverride.frames) && stateOverride.frames.length ? stateOverride.frames : null);
     const cols = Math.max(1, Math.floor(img.width / Math.max(1, frameWidth)));
@@ -695,7 +701,8 @@
   function getThumbClipData(key) {
     const assets = window.assets || {};
     const enemyAssets = assets.enemies?.[key];
-    const clip = enemyAssets?.idle || enemyAssets?.walk;
+    const prefersWalk = WALK_FIRST_KEYS.has(key);
+    const clip = prefersWalk ? enemyAssets?.walk || enemyAssets?.idle : enemyAssets?.idle || enemyAssets?.walk;
     if (!clip || !clip.image) {
       return getManifestClipData(key);
     }
@@ -706,7 +713,9 @@
     const frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
     const frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
     const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
-    const stateOverride = (enemyAssets?.idle && overrideMap.idle) || overrideMap.idle || overrideMap.walk || {};
+    const stateOverride = prefersWalk
+      ? overrideMap.walk || overrideMap.idle || {}
+      : (enemyAssets?.idle && overrideMap.idle) || overrideMap.idle || overrideMap.walk || {};
     const frameMap =
       (Array.isArray(clip.frameMap) && clip.frameMap.length && clip.frameMap) ||
       (Array.isArray(stateOverride.frames) && stateOverride.frames.length ? stateOverride.frames : null);
