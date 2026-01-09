@@ -10235,7 +10235,7 @@ function handleDeveloperHotkeys() {
       setDevStatus(levelLabel, 2.0);
     }
   }
-  if (keysJustPressed.has("F4")) {
+  if (keysJustPressed.has("4")) {
     if (levelManager?.devSkipBattle?.()) {
       setDevStatus("Battle sequence skipped", 2.5);
     }
