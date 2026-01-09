@@ -2305,10 +2305,10 @@ const TITLE_MENU_PAGES = {
         sections: [
           {
             heading: "",
-            paragraphs: [
-              "You are the new pastor of the last church in a dying town.",
-              "You have one year to prove to the denomination that the church should remain open.",
-              "Stand with your congregation through seasons of spiritual warfare.",
+            paragraphsHtml: [
+              "You are the <span class=\"howto-highlight\">new pastor</span> of the last church in a dying town.",
+              "You have <span class=\"howto-highlight\">one year</span> to prove to the denomination that the church should remain open.",
+              "Faithful shepherding through <span class=\"howto-highlight\">spiritual warfare</span> draws others in and strengthens the town.",
             ],
           },
         ],
@@ -4403,6 +4403,26 @@ function typewriterElement(overlay, selector, text, msPerChar = 18) {
   }, msPerChar);
 }
 
+function typewriterText(target, text, msPerChar = 18, onComplete = null) {
+  if (!target) return;
+  if (target.__typeTimer) clearInterval(target.__typeTimer);
+  const payload = String(text || "");
+  const previousWhiteSpace = target.style.whiteSpace;
+  target.style.whiteSpace = "pre-line";
+  target.textContent = "";
+  let idx = 0;
+  target.__typeTimer = setInterval(() => {
+    idx += 1;
+    target.textContent = payload.slice(0, idx);
+    if (idx >= payload.length) {
+      clearInterval(target.__typeTimer);
+      target.__typeTimer = null;
+      target.style.whiteSpace = previousWhiteSpace;
+      if (typeof onComplete === "function") onComplete();
+    }
+  }, msPerChar);
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -4455,6 +4475,9 @@ function renderTitlePageBody(page) {
       .map((section) => {
         const heading = escapeHtml(section.heading || "");
         const paragraphs = Array.isArray(section.paragraphs) ? section.paragraphs : null;
+        const paragraphsHtml = Array.isArray(section.paragraphsHtml)
+          ? section.paragraphsHtml
+          : null;
         const lines = Array.isArray(section.lines) ? section.lines : [];
         const listBody = lines
           .map((line) => {
@@ -4471,9 +4494,9 @@ function renderTitlePageBody(page) {
             return `<li>${escapeHtml(line)}</li>`;
           })
           .join("");
-        const paragraphBody = paragraphs
-          ? `<div class="howto-paragraphs">${paragraphs
-              .map((text) => `<p>${escapeHtml(text)}</p>`)
+        const paragraphBody = paragraphs || paragraphsHtml
+          ? `<div class="howto-paragraphs">${(paragraphsHtml || paragraphs)
+              .map((text) => `<p>${paragraphsHtml ? text : escapeHtml(text)}</p>`)
               .join("")}</div>`
           : `<ul class="howto-list">${listBody}</ul>`;
         return `
@@ -4591,6 +4614,20 @@ function showTitleDialog() {
       if (overlay.__titleMenuHandler) {
         overlay.removeEventListener("click", overlay.__titleMenuHandler);
       }
+      const startStoryTypewriter = () => {
+        if (page.layout !== "howto") return;
+        const panel = overlay.querySelector('.howto-panel[data-title-panel="story"]');
+        if (!panel || !panel.classList.contains("is-active")) return;
+        const paragraphs = panel.querySelector(".howto-paragraphs");
+        if (!paragraphs) return;
+        const html = paragraphs.__typeHtml || paragraphs.innerHTML;
+        paragraphs.__typeHtml = html;
+        const lines = Array.from(paragraphs.querySelectorAll("p")).map((p) => p.textContent.trim());
+        const text = lines.join("\n\n");
+        typewriterText(paragraphs, text, 6, () => {
+          paragraphs.innerHTML = html;
+        });
+      };
       const handler = (event) => {
         const actionBtn = event.target.closest("[data-title-action]");
         if (actionBtn) {
@@ -4681,6 +4718,9 @@ function showTitlePageDialog(pageKey) {
         );
         const scroll = overlay.querySelector(".title-page__scroll") || overlay.querySelector(".howto-content");
         if (scroll) scroll.scrollTop = 0;
+        if (key === "story") {
+          startStoryTypewriter();
+        }
       };
       overlay.__titlePageTabHandler = handler;
       overlay.addEventListener("click", handler);

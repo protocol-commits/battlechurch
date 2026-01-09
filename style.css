@@ -943,6 +943,10 @@ body.touch-enabled .joystick-handle {
 .howto-sublist li:last-child {
   margin-bottom: 0;
 }
+.howto-highlight {
+  color: #ffd978;
+  font-weight: 700;
+}
 
 @media (max-width: 900px) {
   .howto-layout {
