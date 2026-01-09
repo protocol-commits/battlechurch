@@ -151,10 +151,8 @@
   };
   REMOVED_ENEMIES.forEach((key) => purgeEnemy(state.config, key));
   const THUMB_SIZE = 48;
-  const thumbCache = {};
-  const thumbLoading = new Set();
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
-  const thumbFallbackImages = new Map();
+  const manifestThumbImages = new Map();
   const thumbImageListeners = new WeakSet();
   const DEFAULT_HORDE_DURATION = 10;
 
@@ -457,7 +455,6 @@
     Object.keys(catalog).forEach((key) => {
       if (hiddenSet.has(key) && !state.showHidden) return;
       const row = document.createElement("tr");
-      const thumb = getEnemyThumbnail(key);
       const cells = [];
       for (let i = 0; i < hordeCount; i += 1) {
         const horde = hordes[i];
@@ -470,9 +467,7 @@
       }
       row.innerHTML = `
         <td class="lb-sticky lb-sticky--sprite"><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
-          <canvas class="enemy-thumb" data-thumb-key="${key}"${
-            thumb ? ` data-thumb-fallback="${thumb}"` : ""
-          } width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
+          <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div></td>
         <td class="lb-sticky lb-sticky--enemy">${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
         ${cells.join("")}
@@ -510,90 +505,6 @@
     });
   }
 
-  function getEnemyThumbnail(key) {
-    const MAX_THUMB = 144; // 3x original 48px target
-    if (thumbCache.hasOwnProperty(key)) return thumbCache[key];
-    try {
-      const assets = window.assets || {};
-      const enemyAssets = assets.enemies?.[key];
-      const clip = enemyAssets?.idle || enemyAssets?.walk;
-      if (clip?.image) {
-        const inferredSize = inferFrameSizeForClip(clip, key);
-        const frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
-        const frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
-        const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
-        const stateOverride = overrideMap.idle || overrideMap.walk || {};
-        const mappedFrames =
-          (Array.isArray(clip.frameMap) && clip.frameMap.length && clip.frameMap) ||
-          stateOverride.frames ||
-          null;
-        const frameIndex = mappedFrames && mappedFrames.length ? mappedFrames[0] : 0;
-        const cols = Math.max(1, Math.floor(clip.image.width / Math.max(1, frameWidth)));
-        const sx = (frameIndex % cols) * frameWidth;
-        const sy = Math.floor(frameIndex / cols) * frameHeight;
-        const canvas = document.createElement("canvas");
-        const scale = MAX_THUMB / Math.max(1, frameHeight);
-        canvas.width = Math.max(1, Math.round(frameWidth * scale));
-        canvas.height = Math.max(1, Math.round(frameHeight * scale));
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(
-          clip.image,
-          sx,
-          sy,
-          frameWidth,
-          frameHeight,
-          0,
-          0,
-          canvas.width,
-          canvas.height,
-        );
-        const url = canvas.toDataURL();
-        thumbCache[key] = url;
-        return url;
-      }
-    } catch (e) {}
-    const manifestEntry =
-      (window.ASSET_MANIFEST && window.ASSET_MANIFEST.enemies && window.ASSET_MANIFEST.enemies[key]) ||
-      null;
-    if (manifestEntry && manifestEntry.idle && !thumbLoading.has(key)) {
-      thumbLoading.add(key);
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const entry = manifestEntry.idle;
-          const inferredSize = inferFrameSizeForManifestEntry(entry, img, key);
-          const frameW = inferredSize.frameWidth || entry.frameWidth || 100;
-          const frameH = inferredSize.frameHeight || entry.frameHeight || 100;
-          const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
-          const stateOverride = overrideMap.idle || overrideMap.walk || {};
-          const mappedFrames = stateOverride.frames || null;
-          const frameIndex = mappedFrames && mappedFrames.length ? mappedFrames[0] : 0;
-          const cols = Math.max(1, Math.floor(img.width / Math.max(1, frameW)));
-          const sx = (frameIndex % cols) * frameW;
-          const sy = Math.floor(frameIndex / cols) * frameH;
-          const canvas = document.createElement("canvas");
-          const scale = MAX_THUMB / Math.max(1, frameH);
-          canvas.width = Math.max(1, Math.round(frameW * scale));
-          canvas.height = Math.max(1, Math.round(frameH * scale));
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, sx, sy, frameW, frameH, 0, 0, canvas.width, canvas.height);
-          thumbCache[key] = canvas.toDataURL();
-          thumbLoading.delete(key);
-          if (overlay.style.display === "block") {
-            renderModeAndWeights();
-          }
-        } catch (err) {
-          thumbLoading.delete(key);
-        }
-      };
-      img.onerror = () => {
-        thumbLoading.delete(key);
-      };
-      img.src = manifestEntry.idle.src;
-    }
-    return null;
-  }
-
   function inferFrameSizeForManifestEntry(entry, image, key) {
     if (!entry || !image) return { frameWidth: 0, frameHeight: 0 };
     const fallbackClip = {
@@ -619,6 +530,8 @@
         : -1;
     const srcBase = (clip?.image?.src || clip?.src || "").split("/").pop() || "";
     const normalizedSrc = String(srcBase).trim().toLowerCase();
+    const manualGridOverrides =
+      (typeof window !== "undefined" && window.__BATTLECHURCH_MANUAL_GRIDS) || {};
     const manualOverrides = {
       "minifireimp.png": { cols: 2, rows: 2 },
       "minihighdemon.png": { cols: 2, rows: 2 },
@@ -628,7 +541,7 @@
       "minizombie.png": { cols: 1, rows: 1 },
       "minizombiebutcher.png": { cols: 4, rows: 4 },
     };
-    const override = manualOverrides[normalizedSrc];
+    const override = manualGridOverrides[normalizedSrc] || manualOverrides[normalizedSrc];
     if (override) {
       if (override.frameWidth && override.frameHeight) {
         frameWidth = override.frameWidth;
@@ -739,12 +652,54 @@
     return false;
   }
 
+  function getManifestClipData(key) {
+    const manifestEntry =
+      (window.ASSET_MANIFEST && window.ASSET_MANIFEST.enemies && window.ASSET_MANIFEST.enemies[key]) ||
+      null;
+    const entry = manifestEntry?.idle || manifestEntry?.walk || null;
+    if (!entry?.src) return null;
+    let img = manifestThumbImages.get(entry.src);
+    if (!img) {
+      img = new Image();
+      img.src = entry.src;
+      manifestThumbImages.set(entry.src, img);
+    }
+    if (!ensureThumbImageReady(img)) return null;
+    const inferred = inferFrameSizeForManifestEntry(entry, img, key);
+    const frameWidth = inferred.frameWidth || entry.frameWidth || 100;
+    const frameHeight = inferred.frameHeight || entry.frameHeight || 100;
+    const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
+    const stateOverride = overrideMap.idle || overrideMap.walk || {};
+    const frameMap =
+      (Array.isArray(stateOverride.frames) && stateOverride.frames.length ? stateOverride.frames : null);
+    const cols = Math.max(1, Math.floor(img.width / Math.max(1, frameWidth)));
+    const rows = Math.max(1, Math.floor(img.height / Math.max(1, frameHeight)));
+    const frameCount = frameMap ? frameMap.length : Math.max(1, entry.frameCount || cols * rows);
+    const frameRate = Number.isFinite(entry.frameRate) && entry.frameRate > 0 ? entry.frameRate : 6;
+    const renderScale =
+      Number.isFinite(entry.renderScale) && entry.renderScale > 0 ? entry.renderScale : 1;
+    return {
+      clip: { image: img, frameWidth, frameHeight, frameRate, renderScale },
+      frameMap,
+      frameWidth,
+      frameHeight,
+      frameCount,
+      frameRate,
+      cols,
+      renderScale,
+    };
+  }
+
   function getThumbClipData(key) {
     const assets = window.assets || {};
     const enemyAssets = assets.enemies?.[key];
     const clip = enemyAssets?.idle || enemyAssets?.walk;
-    if (!clip || !clip.image) return null;
-    if (!ensureThumbImageReady(clip.image)) return null;
+    if (!clip || !clip.image) {
+      return getManifestClipData(key);
+    }
+    if (!ensureThumbImageReady(clip.image)) {
+      return getManifestClipData(key);
+    }
     const inferredSize = inferFrameSizeForClip(clip, key);
     const frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
     const frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
@@ -768,33 +723,6 @@
       cols,
       renderScale,
     };
-  }
-
-  function drawFallbackThumb(canvas, url) {
-    if (!canvas || !url) return;
-    let img = thumbFallbackImages.get(url);
-    if (!img) {
-      img = new Image();
-      img.src = url;
-      thumbFallbackImages.set(url, img);
-    }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    };
-    if (isImageReady(img)) draw();
-    else {
-      img.addEventListener(
-        "load",
-        () => {
-          if (canvas.isConnected) draw();
-        },
-        { once: true },
-      );
-    }
   }
 
   function drawThumbFrame(item) {
@@ -843,11 +771,7 @@
       const key = canvas.getAttribute("data-thumb-key");
       if (!key) return;
       const data = getThumbClipData(key);
-      if (!data) {
-        const fallback = canvas.getAttribute("data-thumb-fallback");
-        if (fallback) drawFallbackThumb(canvas, fallback);
-        return;
-      }
+      if (!data) return;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const frameDuration = 1000 / Math.max(1, data.frameRate);
