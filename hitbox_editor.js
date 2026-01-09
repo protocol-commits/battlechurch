@@ -20,6 +20,7 @@
     getEnemyTypes: () => ({}),
     onHitboxChange: null,
   };
+  let baseCatalogSnapshot = null;
 
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;
@@ -380,8 +381,45 @@
 
   function exportCatalog() {
     const catalog = getCatalog();
-    const data = deepClone(catalog || {});
-    const body = `(function(global) {\\n  const ENEMY_CATALOG = ${JSON.stringify(data, null, 2)};\\n  const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});\\n  ns.catalog = ENEMY_CATALOG;\\n  const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});\\n  Object.assign(defs, ENEMY_CATALOG);\\n})(typeof window !== \\"undefined\\" ? window : globalThis);\\n`;
+    const base = baseCatalogSnapshot || catalog || {};
+    const merged = deepClone(base || {});
+    const numericKeys = new Set([
+      "health",
+      "maxHealth",
+      "damage",
+      "speed",
+      "baseRadius",
+      "scale",
+      "attackBonus",
+      "cooldown",
+      "desiredRange",
+      "projectileCooldown",
+      "score",
+      "bossTier",
+    ]);
+    Object.keys(catalog || {}).forEach((key) => {
+      const live = catalog[key];
+      if (!merged[key]) merged[key] = deepClone(live);
+      if (!live || typeof live !== "object") return;
+      Object.keys(live).forEach((prop) => {
+        const value = live[prop];
+        if (value === null || value === undefined) return;
+        if (numericKeys.has(prop) && !Number.isFinite(Number(value))) return;
+        merged[key][prop] = value;
+      });
+      if (live.hitbox && typeof live.hitbox === "object") {
+        merged[key].hitbox = deepClone(live.hitbox);
+      }
+    });
+    const data = deepClone(merged || {});
+    const body = `(function(global) {
+  const ENEMY_CATALOG = ${JSON.stringify(data, null, 2)};
+  const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
+  ns.catalog = ENEMY_CATALOG;
+  const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});
+  Object.assign(defs, ENEMY_CATALOG);
+})(typeof window !== "undefined" ? window : globalThis);
+`;
     const blob = new Blob([body], { type: "application/javascript" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -553,6 +591,7 @@
       bindings.getEnemyCatalog = options.getEnemyCatalog || bindings.getEnemyCatalog;
       bindings.getEnemyTypes = options.getEnemyTypes || bindings.getEnemyTypes;
       bindings.onHitboxChange = options.onHitboxChange || bindings.onHitboxChange;
+      baseCatalogSnapshot = deepClone(bindings.getEnemyCatalog());
       setActive(false);
     },
     toggle,

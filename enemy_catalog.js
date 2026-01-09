@@ -613,7 +613,7 @@
         "width": 16,
         "height": 16,
         "offsetX": 0,
-        "offsetY": 0
+        "offsetY": 7
       }
     },
     "miniImpLevel2": {
