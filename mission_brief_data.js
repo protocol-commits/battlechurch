@@ -14,7 +14,7 @@
     "the slow decline of a loved one’s health",
     "financial pressure they can’t escape",
     "starting over after everything fell apart",
-    "carrying responsibilities they never expected"
+    "carrying overwhelming and unfair responsibilities"
   ];
 
   const ns = global.BattlechurchMissionBrief || (global.BattlechurchMissionBrief = {});

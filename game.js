@@ -3045,7 +3045,7 @@ const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 const FORMATION_PRESETS = {
   circle: { key: "circle", label: "Bible Study", bonuses: { damage: 0.2 } },
   line: { key: "line", label: "Book Study", bonuses: { rof: 0.2 } },
-  crescent: { key: "crescent", label: "Support Group", bonuses: { powerupDuration: 0.2 } },
+  crescent: { key: "crescent", label: "Shared Burdens", bonuses: { powerupDuration: 0.2 } },
 };
 const npcWeaponState = {
   mode: null,
@@ -4757,13 +4757,9 @@ const PAUSE_HOTKEYS_HTML = `
         <li>5: Skip to boss</li>
         <li>6: Start grace rush</li>
         <li>B: Boost prayer bomb tier</li>
-        <li>H: Spawn Harmony harp</li>
-        <li>M: Spawn random MiniFolk</li>
+        <li>K: +500 Grace points</li>
         <li>O: Toggle enemy labels</li>
         <li>V: Toggle visitor session</li>
-        <li>Y: Save overrides</li>
-        <li>E: Export overrides</li>
-        <li>I: Import overrides</li>
       </ul>
     </div>
   </div>
@@ -10294,10 +10290,6 @@ function handleDeveloperHotkeys() {
       setDevStatus("Grace rush engaged", 2.0);
     }
   }
-  if (keysJustPressed.has("h")) {
-    const harp = spawnUtilityPowerUp("harmony");
-    setDevStatus(harp ? "Harmony harp spawned" : "No harp spawn", 1.6);
-  }
   if (keysJustPressed.has("o")) {
     enemyDevLabelsVisible = !enemyDevLabelsVisible;
     if (typeof window?.setEnemyDevLabelsVisible === "function") {
@@ -10330,17 +10322,6 @@ function handleDeveloperHotkeys() {
   if (keysJustPressed.has("4")) {
     if (levelManager?.devSkipBattle?.()) {
       setDevStatus("Session sequence skipped", 2.5);
-    }
-  }
-  if (keysJustPressed.has("m")) {
-    // Spawn a random MiniFolk for testing
-    const miniKeys = MINIFOLKS.map((m) => m.key).filter((k) => assets.enemies?.[k]);
-    if (miniKeys.length) {
-      const key = miniKeys[Math.floor(Math.random() * miniKeys.length)];
-      spawnEnemyOfType(key, randomSpawnPosition());
-      setDevStatus(`Spawned ${key}`, 1.8);
-    } else {
-      setDevStatus("No MiniFolks loaded", 1.8);
     }
   }
   if (keysJustPressed.has("f")) {
@@ -12507,8 +12488,6 @@ async function init() {
   } catch (e) {
     // ignore
   }
-  // DEV: To manually spawn test minifolks, set `devTools.testSpawnMini = true`
-  // in the console and press 'm' to spawn one, or call spawnEnemyOfType(...) directly.
   } catch (error) {
     console.error(error);
     ctx.save();
