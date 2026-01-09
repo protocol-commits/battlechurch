@@ -2278,27 +2278,19 @@ const TITLE_MENU_PAGES = {
           },
         ],
       },
-    ],
-  },
-  tips: {
-    title: "Tips",
-    sections: [
       {
-        heading: "",
-        lines: [
-          "Go after tougher enemies with the sword.",
-          "Since Congregation health adds to the score, use the Prayer Bomb wisely to keep them safe.",
-          "More to come.",
+        key: "tips",
+        label: "Tips",
+        sections: [
+          {
+            heading: "",
+            lines: [
+              "Go after tougher enemies with the sword.",
+              "Since Congregation health adds to the score, use the Prayer Bomb wisely to keep them safe.",
+              "More to come.",
+            ],
+          },
         ],
-      },
-    ],
-  },
-  settings: {
-    title: "Settings",
-    sections: [
-      {
-        heading: "",
-        lines: ["Music Volume", "SFX Volume", "Mute All", "Keybinds", "Screen Shake"],
       },
     ],
   },
@@ -4474,20 +4466,19 @@ function showTitleDialog() {
   startIntroMusic();
   const buttonDefs = [
     { key: "howto", label: "How to Play" },
-    { key: "tips", label: "Tips" },
-    { key: "settings", label: "Settings" },
     { key: "about", label: "About" },
+    { key: "play", label: "Play", action: "play" },
   ];
   const buttonsHtml = buttonDefs
     .map(
       (btn) =>
-        `<button class="title-menu__button" data-title-page="${btn.key}">${btn.label}</button>`,
+        `<button class="title-menu__button" data-${btn.action ? "title-action" : "title-page"}="${btn.action || btn.key}">${btn.label}</button>`,
     )
     .join("");
   window.DialogOverlay.show({
-    title: "Smite the hordes. Save your flock. Grow your church.",
-    bodyHtml: `<div class="title-menu">${buttonsHtml}</div>`,
-    buttonText: "Play (Space)",
+    title: "Spiritual Warfare",
+    bodyHtml: `<div style="font-size:28px;letter-spacing:0.02em;margin:0 0 12px;color:rgba(234,246,255,0.92);">Smite the horde. Save your flock. Grow your church.</div><div class="title-menu">${buttonsHtml}</div>`,
+    buttonText: "",
     variant: "title",
     devLabel: "",
     onRender: ({ overlay }) => {
@@ -4496,17 +4487,28 @@ function showTitleDialog() {
         bodyEl.style.textAlign = "center";
         bodyEl.style.display = "block";
         bodyEl.style.width = "100%";
+        bodyEl.style.marginTop = "0";
       }
       typewriterElement(
         overlay,
         ".dialog-overlay__title",
-        "Smite the hordes. Save your flock. Grow your church.",
+        "Spiritual Warfare",
         18,
       );
       if (overlay.__titleMenuHandler) {
         overlay.removeEventListener("click", overlay.__titleMenuHandler);
       }
       const handler = (event) => {
+        const actionBtn = event.target.closest("[data-title-action]");
+        if (actionBtn) {
+          const action = actionBtn.getAttribute("data-title-action");
+          if (action === "play") {
+            triggerIntroMusicFromInput();
+            titleDialogActive = false;
+            startGameFromTitle();
+            return;
+          }
+        }
         const button = event.target.closest("[data-title-page]");
         if (!button) return;
         triggerIntroMusicFromInput();
