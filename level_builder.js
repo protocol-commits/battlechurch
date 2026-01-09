@@ -327,6 +327,40 @@
         overflow: auto;
         flex: 1;
       }
+      #levelBuilderOverlay .lb-table {
+        width: max-content;
+        border-collapse: collapse;
+      }
+      #levelBuilderOverlay .lb-table th,
+      #levelBuilderOverlay .lb-table td {
+        padding: 4px 6px;
+        border-bottom: 1px solid rgba(120, 170, 220, 0.2);
+      }
+      #levelBuilderOverlay .lb-horde-cell {
+        min-width: 36px;
+        width: 36px;
+        text-align: center;
+      }
+      #levelBuilderOverlay .lb-horde-input {
+        width: 34px;
+        text-align: center;
+        padding: 2px 4px;
+      }
+      #levelBuilderOverlay .lb-sticky {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: rgba(18, 28, 44, 0.98);
+      }
+      #levelBuilderOverlay .lb-sticky--sprite {
+        left: 0;
+        min-width: 72px;
+        max-width: 72px;
+      }
+      #levelBuilderOverlay .lb-sticky--enemy {
+        left: 72px;
+        min-width: 180px;
+      }
     </style>
     <div class="lb-shell">
       <div class="panel" id="lb-topPanel">
@@ -411,13 +445,14 @@
     const hordes = Array.isArray(battleObj?.hordes) ? battleObj.hordes : [];
 
     const table = document.createElement("table");
+    table.className = "lb-table";
     const header = document.createElement("tr");
     const hordeHeaders = Array.from({ length: hordeCount }, (_, idx) => {
       const label = idx === hordeCount - 1 ? `H${idx + 1}*` : `H${idx + 1}`;
-      return `<th style="min-width:64px;text-align:center;">${label}</th>`;
+      return `<th class="lb-horde-cell">${label}</th>`;
     }).join("");
     header.innerHTML =
-      `<th style="width:60px;">Sprite</th><th>Enemy</th>${hordeHeaders}<th>Hide</th>`;
+      `<th class="lb-sticky lb-sticky--sprite">Sprite</th><th class="lb-sticky lb-sticky--enemy">Enemy</th>${hordeHeaders}<th>Hide</th>`;
     table.appendChild(header);
     Object.keys(catalog).forEach((key) => {
       if (hiddenSet.has(key) && !state.showHidden) return;
@@ -430,16 +465,16 @@
         const match = entries.find((entry) => entry && entry.enemy === key);
         const countVal = match ? Number(match.count) || 0 : 0;
         cells.push(
-          `<td style="text-align:center;"><input type="number" data-exp-count="${key}" data-horde="${i + 1}" value="${countVal}" min="0" style="width:60px;"></td>`,
+          `<td class="lb-horde-cell"><input class="lb-horde-input" type="number" data-exp-count="${key}" data-horde="${i + 1}" value="${countVal}" min="0"></td>`,
         );
       }
       row.innerHTML = `
-        <td><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
+        <td class="lb-sticky lb-sticky--sprite"><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
           <canvas class="enemy-thumb" data-thumb-key="${key}"${
             thumb ? ` data-thumb-fallback="${thumb}"` : ""
           } width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div></td>
-        <td>${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
+        <td class="lb-sticky lb-sticky--enemy">${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
         ${cells.join("")}
         <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
       `;
