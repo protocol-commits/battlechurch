@@ -1310,7 +1310,7 @@ function clearFormationSelection() {
 function selectFormation(key) {
   const preset = FORMATION_PRESETS[key];
   if (!preset) return null;
-  formationState.current = preset.key;
+  formationState.current = "circle";
   formationState.bonuses = { ...preset.bonuses };
   return preset;
 }

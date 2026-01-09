@@ -889,7 +889,7 @@
       resetStage("hordeIntro", introDuration);
       if (hordeNumber === 1) {
         const names = formatNameList(npcs.map((npc) => npc?.name || ""));
-        const title = "\"This upcoming week, let's face lies, temptation and sin.\"";
+        const title = "\"I'll stand with you,\nfacing lies, temptation, and sin together.\"";
         queueLevelAnnouncement(title, "", {
           duration: introDuration,
           skipMissionBrief: true,

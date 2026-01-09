@@ -372,7 +372,7 @@ const MELEE_SWING_LENGTH = 200;
     active: false,
   };
 
-function showMissionBriefDialog(title, body, identifier) {
+function showMissionBriefDialog(title, body, identifier, highlight = null) {
   if (!window.DialogOverlay) return false;
   if (missionBriefOverlayState.id === identifier && missionBriefOverlayState.shown) return false;
   if (missionBriefOverlayState.active) return true;
@@ -407,6 +407,13 @@ function showMissionBriefDialog(title, body, identifier) {
       stat: "NPC Powerup Duration +20%",
     },
   ];
+  const escapeHtml = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   const buttonsHtml = formationOptions
     .map(
       (opt) =>
@@ -453,7 +460,7 @@ function showMissionBriefDialog(title, body, identifier) {
         picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
         picker.style.gap = "14px";
       };
-      const typeText = (el, text, msPerChar = 18) =>
+      const typeText = (el, text, msPerChar = 8) =>
         new Promise((resolve) => {
           if (!el) {
             resolve();
@@ -482,10 +489,16 @@ function showMissionBriefDialog(title, body, identifier) {
       const promptDelayMs = 400;
       if (textEl) {
         const bodyText = String(body || "");
-        typeText(textEl, bodyText, 18).then(() => {
+        typeText(textEl, bodyText, 8).then(() => {
+          if (highlight && textEl) {
+            const prefix = escapeHtml(highlight.prefix || "");
+            const text = escapeHtml(highlight.text || "");
+            const suffix = escapeHtml(highlight.suffix || "");
+            textEl.innerHTML = `${prefix}<span class="mission-brief-problem">${text}</span>${suffix}`;
+          }
           overlay.__missionBriefDelayTimer = setTimeout(() => {
             if (prompt) prompt.style.display = "block";
-            typeText(prompt, promptText, 18).then(() => {
+            typeText(prompt, promptText, 8).then(() => {
               revealFormationUi();
             });
           }, promptDelayMs);
@@ -493,7 +506,7 @@ function showMissionBriefDialog(title, body, identifier) {
       } else {
         overlay.__missionBriefDelayTimer = setTimeout(() => {
           if (prompt) prompt.style.display = "block";
-          typeText(prompt, promptText, 18).then(() => {
+          typeText(prompt, promptText, 8).then(() => {
             revealFormationUi();
           });
         }, promptDelayMs);
@@ -619,6 +632,11 @@ function drawLevelAnnouncements() {
         missionTitle,
         missionBrief,
         missionId,
+        {
+          prefix: `${nameSentence} have been battling with `,
+          text: scenario,
+          suffix: ".",
+        },
       );
       ctx.restore();
       return;

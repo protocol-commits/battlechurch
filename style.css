@@ -643,6 +643,11 @@ body.touch-enabled .joystick-handle {
   column-gap: 0;
   width: 100%;
 }
+.mission-brief-problem {
+  color: #ffd978;
+  font-weight: 700;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
 
 .dialog-overlay__portrait-canvas {
   width: 100%;
