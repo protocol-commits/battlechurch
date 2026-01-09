@@ -1563,6 +1563,16 @@ state.battleIndex = -1;
         state.timer = 0;
         return true;
       },
+      devSkipLevel() {
+        if (!state.active) return false;
+        devClearOpponents({ includeBoss: true });
+        state.activeHorde = null;
+        state.pendingPortalSpawnBaseline = 0;
+        state.finalHordeDelay = 0;
+        const nextLevel = Math.max(1, (state.level || 1) + 1);
+        beginLevel(nextLevel);
+        return true;
+      },
       devSkipToBoss() {
         if (!state.active) return false;
         if (state.stage === "bossActive") {

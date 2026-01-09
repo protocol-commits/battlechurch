@@ -4752,8 +4752,8 @@ const PAUSE_HOTKEYS_HTML = `
       <ul class="pause-hotkeys__list">
         <li>1: Toggle God mode</li>
         <li>2: Clear all enemies</li>
-        <li>3: Skip current horde</li>
-        <li>4: Skip session sequence</li>
+        <li>3: Skip Month</li>
+        <li>4: Skip Level</li>
         <li>5: Skip to boss</li>
         <li>6: Start grace rush</li>
         <li>B: Boost prayer bomb tier</li>
@@ -10320,8 +10320,8 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("4")) {
-    if (levelManager?.devSkipBattle?.()) {
-      setDevStatus("Session sequence skipped", 2.5);
+    if (levelManager?.devSkipLevel?.()) {
+      setDevStatus("Level skipped", 2.5);
     }
   }
   if (keysJustPressed.has("f")) {
