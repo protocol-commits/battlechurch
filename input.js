@@ -74,6 +74,8 @@
 
   let listenersAttached = false;
   let prayerBombClickQueued = false;
+  let canvasClickQueued = false;
+  let canvasClickPos = null;
 
   function normalizeKey(key) {
     if (typeof key !== "string") return key;
@@ -167,6 +169,11 @@
   }
 
   function handleCanvasClick(event, isPointer) {
+    if (event.button === 0 || typeof event.button === "undefined") {
+      const coords = getCanvasCoordinates(event);
+      canvasClickQueued = true;
+      canvasClickPos = coords;
+    }
     if (event.button === 2) {
       prayerBombClickQueued = true;
     }
@@ -366,6 +373,14 @@
     return true;
   }
 
+  function consumeCanvasClick() {
+    if (!canvasClickQueued) return null;
+    canvasClickQueued = false;
+    const pos = canvasClickPos;
+    canvasClickPos = null;
+    return pos;
+  }
+
   function clearJustPressed() {
     keysJustPressed.clear();
   }
@@ -413,6 +428,7 @@
     wasActionJustPressed,
     triggerVirtualKeyPress,
     consumePrayerBombClick,
+    consumeCanvasClick,
     clearJustPressed,
     get keysJustPressed() {
       return keysJustPressed;

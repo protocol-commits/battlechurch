@@ -2183,6 +2183,7 @@ let pauseDialogActive = false;
 const TITLE_MENU_PAGES = {
   howto: {
     title: "How to Play",
+    layout: "howto",
     tabs: [
       {
         key: "movement",
@@ -2195,6 +2196,12 @@ const TITLE_MENU_PAGES = {
               { text: "Dash - Double-tap any movement direction" },
             ],
           },
+        ],
+      },
+      {
+        key: "actions",
+        label: "Actions",
+        sections: [
           {
             heading: "Aiming",
             lines: [
@@ -2204,12 +2211,6 @@ const TITLE_MENU_PAGES = {
               },
             ],
           },
-        ],
-      },
-      {
-        key: "actions",
-        label: "Actions",
-        sections: [
           {
             heading: "ACTION BUTTON (A / Left Arrow)",
             lines: [
@@ -2297,18 +2298,35 @@ const TITLE_MENU_PAGES = {
           },
         ],
       },
-    ],
-  },
-  about: {
-    title: "About",
-    sections: [
       {
-        heading: "",
-        lines: [
-          "Battlechurch Game",
-          "Created by the Battlechurch team.",
-          "Art, music, and SFX from licensed packs and original sources.",
-          "Thank you for playing.",
+        key: "story",
+        label: "Story",
+        layout: "single",
+        sections: [
+          {
+            heading: "",
+            paragraphs: [
+              "You are the new pastor of the last church in a dying town.",
+              "You have one year to prove to the denomination that the church should remain open.",
+              "Stand with your congregation through seasons of spiritual warfare.",
+            ],
+          },
+        ],
+      },
+      {
+        key: "about",
+        label: "About",
+        layout: "single",
+        sections: [
+          {
+            heading: "",
+            paragraphs: [
+              "Under development.",
+              "Made by Conrad.",
+              "Art, music, and SFX from licensed packs and original sources.",
+              "I'd appreciate play testing.",
+            ],
+          },
         ],
       },
     ],
@@ -4398,8 +4416,9 @@ function renderTitlePageSections(sections) {
   return sections
     .map((section) => {
       const heading = escapeHtml(section.heading || "");
+      const paragraphs = Array.isArray(section.paragraphs) ? section.paragraphs : null;
       const lines = Array.isArray(section.lines) ? section.lines : [];
-      const body = lines
+      const listBody = lines
         .map((line) => {
           if (line && typeof line === "object") {
             const main = escapeHtml(line.text || "");
@@ -4414,10 +4433,15 @@ function renderTitlePageSections(sections) {
           return `<li>${escapeHtml(line)}</li>`;
         })
         .join("");
+      const paragraphBody = paragraphs
+        ? `<div class="title-page__paragraphs">${paragraphs
+            .map((text) => `<p>${escapeHtml(text)}</p>`)
+            .join("")}</div>`
+        : `<ul class="title-page__list">${listBody}</ul>`;
       return `
-        <section class="title-page__card">
+        <section class="title-page__section">
           ${heading ? `<div class="title-page__heading">${heading}</div>` : ""}
-          <ul class="title-page__list">${body}</ul>
+          ${paragraphBody}
         </section>
       `;
     })
@@ -4426,33 +4450,97 @@ function renderTitlePageSections(sections) {
 
 function renderTitlePageBody(page) {
   if (!page) return "";
+  const renderHowtoSections = (sections) =>
+    sections
+      .map((section) => {
+        const heading = escapeHtml(section.heading || "");
+        const paragraphs = Array.isArray(section.paragraphs) ? section.paragraphs : null;
+        const lines = Array.isArray(section.lines) ? section.lines : [];
+        const listBody = lines
+          .map((line) => {
+            if (line && typeof line === "object") {
+              const main = escapeHtml(line.text || "");
+              const sublines = Array.isArray(line.sublines) ? line.sublines : [];
+              const subHtml = sublines.length
+                ? `<ul class="howto-sublist">${sublines
+                    .map((sub) => `<li>${escapeHtml(sub)}</li>`)
+                    .join("")}</ul>`
+                : "";
+              return `<li>${main}${subHtml}</li>`;
+            }
+            return `<li>${escapeHtml(line)}</li>`;
+          })
+          .join("");
+        const paragraphBody = paragraphs
+          ? `<div class="howto-paragraphs">${paragraphs
+              .map((text) => `<p>${escapeHtml(text)}</p>`)
+              .join("")}</div>`
+          : `<ul class="howto-list">${listBody}</ul>`;
+        return `
+          <section class="howto-section">
+            ${heading ? `<div class="howto-heading">${heading}</div>` : ""}
+            ${paragraphBody}
+          </section>
+        `;
+      })
+      .join("");
   if (Array.isArray(page.tabs) && page.tabs.length) {
     const tabs = page.tabs;
     const tabsHtml = tabs
-      .map(
-        (tab, index) =>
-          `<button class="title-page__tab${index === 0 ? " is-active" : ""}" type="button" data-title-tab="${escapeHtml(
-            tab.key || "",
-          )}">${escapeHtml(tab.label || "")}</button>`,
-      )
+      .map((tab, index) => {
+        const buttonClass = page.layout === "howto"
+          ? "howto-nav__item"
+          : "title-page__tab";
+        return `<button class="${buttonClass}${index === 0 ? " is-active" : ""}" type="button" data-title-tab="${escapeHtml(
+          tab.key || "",
+        )}">${escapeHtml(tab.label || "")}</button>`;
+      })
       .join("");
     const panelsHtml = tabs
       .map((tab, index) => {
-        const panelSections = renderTitlePageSections(tab.sections || []);
+        const isHowto = page.layout === "howto";
+        const panelSections = isHowto
+          ? renderHowtoSections(tab.sections || [])
+          : renderTitlePageSections(tab.sections || []);
+        const layout = tab.layout ? ` data-title-layout="${escapeHtml(tab.layout)}"` : "";
+        const panelClass = isHowto ? "howto-panel" : "title-page__panel";
+        const activeClass = index === 0 ? " is-active" : "";
         return `
-          <div class="title-page__panel${index === 0 ? " is-active" : ""}" data-title-panel="${escapeHtml(
+          <div class="${panelClass}${activeClass}" data-title-panel="${escapeHtml(
             tab.key || "",
-          )}">
+          )}"${layout}>
             ${panelSections}
           </div>
         `;
       })
       .join("");
     const backTab = `<button class="title-page__tab" type="button" data-title-action="back">Back</button>`;
+    if (page.layout === "howto") {
+      return `
+        <div class="howto-shell">
+          <header class="howto-header">
+            <div class="howto-header__label">Guide</div>
+            <h2 class="howto-header__title">${escapeHtml(page.title || "")}</h2>
+            <div class="howto-header__rule"></div>
+          </header>
+          <div class="howto-layout">
+            <nav class="howto-nav">
+              ${tabsHtml}
+              <button class="howto-nav__item howto-nav__item--back" type="button" data-title-action="back">Back</button>
+            </nav>
+            <main class="howto-content">
+              ${panelsHtml}
+            </main>
+          </div>
+        </div>
+      `;
+    }
     return `
-      <div class="title-page__eyebrow">${escapeHtml(page.title || "")}</div>
-      <div class="title-page__tabs">${tabsHtml}${backTab}</div>
-      <div class="title-page__scroll title-page__scroll--columns">${panelsHtml}</div>
+      <div class="title-page">
+        <div class="title-page__eyebrow">${escapeHtml(page.title || "")}</div>
+        <div class="title-page__tabs">${tabsHtml}${backTab}</div>
+        <div class="title-page__scroll title-page__scroll--columns">${panelsHtml}</div>
+      </div>
     `;
   }
   if (Array.isArray(page.sections)) {
@@ -4472,7 +4560,6 @@ function showTitleDialog() {
   startIntroMusic();
   const buttonDefs = [
     { key: "howto", label: "How to Play" },
-    { key: "about", label: "About" },
     { key: "play", label: "Play", action: "play" },
   ];
   const buttonsHtml = buttonDefs
@@ -4549,8 +4636,9 @@ function showTitlePageDialog(pageKey) {
   if (!window.DialogOverlay) return;
   const page = TITLE_MENU_PAGES[pageKey];
   if (!page) return;
+  const dialogTitle = page.layout === "howto" ? "" : page.title;
   window.DialogOverlay.show({
-    title: page.title,
+    title: dialogTitle,
     bodyHtml: `<div class="title-page">${renderTitlePageBody(page)}</div>`,
     buttonText: "",
     variant: "title-page",
@@ -4558,6 +4646,10 @@ function showTitlePageDialog(pageKey) {
     onRender: ({ overlay }) => {
       const bodyEl = overlay.querySelector(".dialog-overlay__body");
       if (bodyEl) bodyEl.style.textAlign = "left";
+      if (page.layout === "howto") {
+        const titleEl = overlay.querySelector(".dialog-overlay__title");
+        if (titleEl) titleEl.style.display = "none";
+      }
       const tabButtons = overlay.querySelectorAll("[data-title-tab]");
       if (overlay.__titlePageTabHandler) {
         overlay.removeEventListener("click", overlay.__titlePageTabHandler);
@@ -4579,15 +4671,15 @@ function showTitlePageDialog(pageKey) {
         if (!button) return;
         const key = button.getAttribute("data-title-tab");
         if (!key) return;
-        const tabs = overlay.querySelectorAll(".title-page__tab");
+        const tabs = overlay.querySelectorAll("[data-title-tab]");
         tabs.forEach((tab) =>
           tab.classList.toggle("is-active", tab.getAttribute("data-title-tab") === key),
         );
-        const panels = overlay.querySelectorAll(".title-page__panel");
+        const panels = overlay.querySelectorAll("[data-title-panel]");
         panels.forEach((panel) =>
           panel.classList.toggle("is-active", panel.getAttribute("data-title-panel") === key),
         );
-        const scroll = overlay.querySelector(".title-page__scroll");
+        const scroll = overlay.querySelector(".title-page__scroll") || overlay.querySelector(".howto-content");
         if (scroll) scroll.scrollTop = 0;
       };
       overlay.__titlePageTabHandler = handler;
@@ -10867,6 +10959,23 @@ function updateGame(dt) {
   let congregationStageActive = stage === "levelIntro";
   let playerUpdatedDuringCongregation = false;
   if (congregationStageActive) {
+    const clickPos = Input.consumeCanvasClick?.();
+    const buttonBounds = typeof window !== "undefined" ? window.__congregationPlayButtonBounds : null;
+    if (clickPos && buttonBounds) {
+      const inside =
+        clickPos.x >= buttonBounds.x &&
+        clickPos.x <= buttonBounds.x + buttonBounds.width &&
+        clickPos.y >= buttonBounds.y &&
+        clickPos.y <= buttonBounds.y + buttonBounds.height;
+      if (inside && typeof levelManager?.advanceFromCongregation === "function") {
+        levelManager.advanceFromCongregation();
+        if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+          window.playMenuAdvanceSfx(0.55);
+        }
+        levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+        stage = levelStatus?.stage;
+      }
+    }
     if (!powerUpsClearedForCongregation) {
       clearAllPowerUps();
       powerUpsClearedForCongregation = true;

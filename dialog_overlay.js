@@ -67,6 +67,10 @@
     overlay.classList.remove("hidden");
     overlay.classList.add("visible");
     overlay.setAttribute("aria-hidden", "false");
+    if (variantClass) {
+      overlay.classList.remove(variantClass);
+      variantClass = null;
+    }
     if (variant) {
       variantClass = `dialog-overlay--${variant}`;
       overlay.classList.add(variantClass);

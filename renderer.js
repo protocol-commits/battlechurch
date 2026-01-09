@@ -787,6 +787,40 @@ function drawLevelAnnouncements() {
     }
     void memberCount;
 
+    const buttonText = "Play (Space)";
+    const buttonWidth = Math.min(260, canvas.width * 0.6);
+    const buttonHeight = 52;
+    const buttonX = canvas.width / 2 - buttonWidth / 2;
+    const buttonY = Math.min(canvas.height - 110, titleY + 120);
+    if (typeof window !== "undefined") {
+      window.__congregationPlayButtonBounds = {
+        x: buttonX,
+        y: buttonY,
+        width: buttonWidth,
+        height: buttonHeight,
+      };
+    }
+    ctx.save();
+    ctx.fillStyle = "#9BD9FF";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+    ctx.fillStyle = "#0b111a";
+    ctx.textAlign = "center";
+    ctx.font = `18px ${UI_FONT_FAMILY}`;
+    ctx.textBaseline = "alphabetic";
+    const mainTextY = buttonY + buttonHeight / 2 - 2;
+    ctx.fillText(buttonText, canvas.width / 2, mainTextY);
+    ctx.font = `10px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(
+      "Smite the hordes. Save your flock. Grow your church.",
+      canvas.width / 2,
+      mainTextY + 14,
+    );
+    ctx.restore();
+
     ctx.restore();
   }
 
