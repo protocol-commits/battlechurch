@@ -28,6 +28,7 @@
   let variantClass = null;
   let consumedAction = false;
   let visible = false;
+  let hideTimer = null;
 
   function show({
     title = "",
@@ -59,6 +60,10 @@
     button.style.display = buttonText ? "inline-block" : "none";
     button.disabled = false;
     continueCallback = typeof onContinue === "function" ? onContinue : null;
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
     overlay.classList.remove("hidden");
     overlay.classList.add("visible");
     overlay.setAttribute("aria-hidden", "false");
@@ -90,8 +95,14 @@
     overlay.setAttribute("aria-hidden", "true");
     visible = false;
     if (variantClass) {
-      overlay.classList.remove(variantClass);
-      variantClass = null;
+      const classToRemove = variantClass;
+      hideTimer = setTimeout(() => {
+        overlay.classList.remove(classToRemove);
+        if (variantClass === classToRemove) {
+          variantClass = null;
+        }
+        hideTimer = null;
+      }, 200);
     }
   }
 

@@ -1304,7 +1304,7 @@ const devTools = {
 
 function clearFormationSelection() {
   formationState.current = null;
-  formationState.bonuses = { defense: 0, rof: 0, damage: 0 };
+  formationState.bonuses = { rof: 0, damage: 0, powerupDuration: 0 };
 }
 
 function selectFormation(key) {
@@ -1316,7 +1316,7 @@ function selectFormation(key) {
 }
 
 function getFormationBonuses() {
-  return formationState?.bonuses || { defense: 0, rof: 0, damage: 0 };
+  return formationState?.bonuses || { rof: 0, damage: 0, powerupDuration: 0 };
 }
 
 function resolveNpcWeaponPowerup(effect, def = {}) {
@@ -1333,6 +1333,9 @@ function resolveNpcWeaponPowerup(effect, def = {}) {
 
 function applyNpcWeaponPowerup(effect, def = {}) {
   const cfg = resolveNpcWeaponPowerup(effect, def);
+  const formation = getFormationBonuses();
+  const durationScale = 1 + (formation.powerupDuration || 0);
+  const scaledDuration = (cfg.duration || 0) * durationScale;
   const mapping = {
     npcScriptureWeapon: "fire",
     npcWisdomWeapon: "wisdom_missle",
@@ -1341,8 +1344,8 @@ function applyNpcWeaponPowerup(effect, def = {}) {
   const mode = mapping[effect] || null;
   if (!mode) return;
   npcWeaponState.mode = mode;
-  npcWeaponState.timer = cfg.duration || 0;
-  npcWeaponState.duration = cfg.duration || 0;
+  npcWeaponState.timer = scaledDuration || 0;
+  npcWeaponState.duration = scaledDuration || 0;
   npcWeaponState.damageMultiplier = cfg.damageMultiplier ?? 1;
   npcWeaponState.cooldownMultiplier = cfg.cooldownMultiplier ?? 1;
   npcWeaponState.speedMultiplier = cfg.speedMultiplier ?? 1;
@@ -3019,9 +3022,9 @@ const WEAPON_POWERUP_EFFECTS = new Set([
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 // Formation presets and state
 const FORMATION_PRESETS = {
-  circle: { key: "circle", label: "Bible Study (Circle)", bonuses: { defense: 0.2 } },
-  line: { key: "line", label: "Book Study (Line)", bonuses: { rof: 0.2 } },
-  crescent: { key: "crescent", label: "Support Group (Crescent)", bonuses: { damage: 0.2 } },
+  circle: { key: "circle", label: "Bible Study", bonuses: { damage: 0.2 } },
+  line: { key: "line", label: "Book Study", bonuses: { rof: 0.2 } },
+  crescent: { key: "crescent", label: "Support Group", bonuses: { powerupDuration: 0.2 } },
 };
 const npcWeaponState = {
   mode: null,
@@ -3033,7 +3036,7 @@ const npcWeaponState = {
 };
 const formationState = {
   current: null,
-  bonuses: { defense: 0, rof: 0, damage: 0 },
+  bonuses: { rof: 0, damage: 0, powerupDuration: 0 },
   anchors: [],
   jitterRadius: 28,
   swappedThisBattle: new Set(),
@@ -4505,6 +4508,9 @@ function showTitleDialog() {
           if (action === "play") {
             triggerIntroMusicFromInput();
             titleDialogActive = false;
+            if (window.DialogOverlay?.hide) {
+              window.DialogOverlay.hide();
+            }
             startGameFromTitle();
             return;
           }
@@ -4514,6 +4520,14 @@ function showTitleDialog() {
         triggerIntroMusicFromInput();
         const pageKey = button.getAttribute("data-title-page");
         if (!pageKey) return;
+        if (pageKey === "play") {
+          titleDialogActive = false;
+          if (window.DialogOverlay?.hide) {
+            window.DialogOverlay.hide();
+          }
+          startGameFromTitle();
+          return;
+        }
         titleDialogActive = false;
         showTitlePageDialog(pageKey);
       };
@@ -7309,9 +7323,7 @@ class CozyNpc {
     const cappedLoss = Math.min(NPC_MAX_FAITH_LOSS_PER_ATTACK, baseDamage);
     const damageReduction = getDamageResistanceValue();
     const damageScale = Math.max(0.01, 1 - damageReduction);
-    const formation = getFormationBonuses();
-    const defenseScale = Math.max(0.01, 1 - (formation.defense || 0));
-    const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale * defenseScale));
+    const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale));
     // Debug: report incoming damage and computed faith loss
     if (typeof console !== 'undefined' && console.debug) {
       console.debug &&

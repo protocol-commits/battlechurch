@@ -388,17 +388,32 @@ function showMissionBriefDialog(title, body, identifier) {
     window.clearFormationSelection();
   }
   const formationOptions = [
-    { key: "circle", label: "Bible Study (Circle)", desc: "Defense +20%" },
-    { key: "line", label: "Book Study (Line)", desc: "Rate of fire +20%" },
-    { key: "crescent", label: "Support Group (Crescent)", desc: "Damage +20%" },
+    {
+      key: "circle",
+      label: "Bible Study",
+      desc: "Anchor them in Scripture.",
+      stat: "NPC Damage +20%",
+    },
+    {
+      key: "line",
+      label: "Book Study",
+      desc: "Focus their understanding.",
+      stat: "NPC Rate of Fire +20%",
+    },
+    {
+      key: "crescent",
+      label: "Support Group",
+      desc: "Bear one another's burdens.",
+      stat: "NPC Powerup Duration +20%",
+    },
   ];
   const buttonsHtml = formationOptions
     .map(
       (opt) =>
         `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;padding:18px;border-radius:16px;border:none;background:var(--swatch-accent-2);color:var(--ui-text-color-dark);text-align:center;box-shadow:0 12px 28px rgba(110,244,255,0.25);">
-          <div style="font-weight:var(--ui-h3-weight);font-size:var(--ui-h3-size);line-height:var(--ui-h3-line);letter-spacing:0.02em;">${opt.label.split("(")[0]}</div>
-          <div style="font-weight:var(--ui-body-weight);font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:6px;">Formation: ${opt.label.includes("(") ? opt.label.split("(")[1].replace(")", "") : ""}</div>
+          <div style="font-weight:var(--ui-h3-weight);font-size:var(--ui-h3-size);line-height:var(--ui-h3-line);letter-spacing:0.02em;">${opt.label}</div>
           <div style="font-weight:var(--ui-body-weight);font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:10px;">${opt.desc}</div>
+          <div style="font-weight:var(--ui-body-weight);font-size:12px;line-height:1.3;margin-top:8px;color:rgba(20, 32, 54, 0.75);">${opt.stat || ""}</div>
         </button>`,
     )
     .join("");
@@ -407,6 +422,15 @@ function showMissionBriefDialog(title, body, identifier) {
     <div class="formation-prompt" style="margin:4px 0 12px;opacity:0.9;display:none;">How would you like to minister to them?</div>
     <div class="formation-picker" style="display:none;">${buttonsHtml}</div>
   `;
+  const finishMissionBrief = (shouldHide = false) => {
+    missionBriefOverlayState.active = false;
+    missionBriefOverlayState.shown = true;
+    dismissCurrentLevelAnnouncement();
+    window.isMissionBriefOverlayActive = false;
+    if (shouldHide && window.DialogOverlay?.hide) {
+      window.DialogOverlay.hide();
+    }
+  };
   window.DialogOverlay.show({
     title: devTitle,
     bodyHtml,
@@ -455,6 +479,7 @@ function showMissionBriefDialog(title, body, identifier) {
       if (overlay.__missionBriefTypeTimer) clearInterval(overlay.__missionBriefTypeTimer);
       if (overlay.__missionBriefDelayTimer) clearTimeout(overlay.__missionBriefDelayTimer);
       const promptText = "How would you like to minister to them?";
+      const promptDelayMs = 400;
       if (textEl) {
         const bodyText = String(body || "");
         typeText(textEl, bodyText, 18).then(() => {
@@ -463,7 +488,7 @@ function showMissionBriefDialog(title, body, identifier) {
             typeText(prompt, promptText, 18).then(() => {
               revealFormationUi();
             });
-          }, 2000);
+          }, promptDelayMs);
         });
       } else {
         overlay.__missionBriefDelayTimer = setTimeout(() => {
@@ -471,7 +496,7 @@ function showMissionBriefDialog(title, body, identifier) {
           typeText(prompt, promptText, 18).then(() => {
             revealFormationUi();
           });
-        }, 2000);
+        }, promptDelayMs);
       }
       if (!picker) return;
       picker.querySelectorAll(".formation-option").forEach((btn) => {
@@ -486,28 +511,16 @@ function showMissionBriefDialog(title, body, identifier) {
           if (typeof window.startBattleMusicFromFormation === "function") {
             window.startBattleMusicFromFormation();
           }
-          picker.querySelectorAll(".formation-option").forEach((b) => {
-            b.style.background = b === btn ? "var(--swatch-accent)" : "var(--swatch-accent-2)";
-            b.style.boxShadow = b === btn
-              ? "0 12px 28px rgba(255,217,120,0.3)"
-              : "0 12px 28px rgba(110,244,255,0.25)";
-          });
           if (typeof window.applyFormationAnchors === "function") {
             try { window.applyFormationAnchors(); } catch (e) {}
           }
-          if (buttonEl) {
-            buttonEl.disabled = false;
-            // Auto-advance once a formation is picked so Space is not required.
-            buttonEl.click();
-          }
+          // Auto-advance once a formation is picked so Space is not required.
+          finishMissionBrief(true);
         });
       });
     },
     onContinue: () => {
-      missionBriefOverlayState.active = false;
-      missionBriefOverlayState.shown = true;
-      dismissCurrentLevelAnnouncement();
-      window.isMissionBriefOverlayActive = false;
+      finishMissionBrief(false);
     },
   });
   return true;
@@ -596,7 +609,7 @@ function drawLevelAnnouncements() {
         (announcement && announcement.title) ||
         monthName ||
         "";
-      const missionBrief = `${nameSentence} have approached you needing your help ${scenario}.`;
+      const missionBrief = `${nameSentence} have been battling with ${scenario}.`;
       const missionId = `mission_${missionTitle}_${missionBrief}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
