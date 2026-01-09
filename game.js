@@ -4670,18 +4670,6 @@ const PAUSE_HOTKEYS_HTML = `
         <li>E: Export overrides</li>
         <li>I: Import overrides</li>
       </ul>
-      <div class="pause-hotkeys__title">Inspector</div>
-      <ul class="pause-hotkeys__list">
-        <li>F: Toggle frame inspector</li>
-        <li>, / ArrowLeft: Prev target</li>
-        <li>. / ArrowRight: Next target</li>
-        <li>+ / -: Zoom in / out</li>
-        <li>0: Reset zoom</li>
-        <li>R: Reset overrides</li>
-        <li>Enter: Cycle state / confirm pick</li>
-        <li>T: Type frame list</li>
-        <li>S: Show overrides (silent)</li>
-      </ul>
     </div>
   </div>
   <div class="pause-hotkeys__note">Press Continue or Space to resume.</div>
