@@ -1384,8 +1384,13 @@ function drawLevelAnnouncements() {
     if (!levelStatus) return;
     const monthName = levelStatus.month || "January";
     const stage = levelStatus.stage || "";
-    const battleNumber = Math.max(1, levelStatus.battle || 1);
     const hordeNumber = Math.max(1, levelStatus.horde || 1);
+    const sessionNumber =
+      hordeNumber <= 7
+        ? 1
+        : hordeNumber <= 14
+        ? 2
+        : 3;
     const crumbParts = [`Level ${levelStatus.level || 1}`, `${monthName}`];
     if (stage === "bossIntro") {
       crumbParts.push("Boss Intro");
@@ -1400,7 +1405,7 @@ function drawLevelAnnouncements() {
     } else if (stage === "npcArrival") {
       crumbParts.push("Congregation");
     } else {
-      crumbParts.push(`Battle ${battleNumber}`, `Horde ${hordeNumber}`);
+      crumbParts.push(`Session ${sessionNumber}`, `Horde ${hordeNumber}`);
     }
     const breadcrumb = crumbParts.join(" / ");
     const detailText = "";
