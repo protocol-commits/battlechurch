@@ -38,7 +38,7 @@
   const ACT_BREAK_FADE_TOTAL = ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT + ACT_BREAK_HOLD_SECONDS;
   const ACT_BREAK_PRE_FADE_DELAY = 1.0;
   const ACT_BREAK_MESSAGE_LEAD = 0.5;
-  const ACT_BREAK_MESSAGE = "\"Good job. See you next week!\"";
+  const ACT_BREAK_MESSAGE = "\"Good session. See you next week.\"";
   const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
   const GRACE_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
@@ -889,9 +889,7 @@
       resetStage("hordeIntro", introDuration);
       if (hordeNumber === 1) {
         const names = formatNameList(npcs.map((npc) => npc?.name || ""));
-        const title = names
-          ? `"Welcome ${names}, let's fight the lies, temptations and sin together!"`
-          : "\"Let's fight the lies, temptations and sin together!\"";
+        const title = "\"This upcoming week, let's face lies, temptation and sin.\"";
         queueLevelAnnouncement(title, "", {
           duration: introDuration,
           skipMissionBrief: true,
