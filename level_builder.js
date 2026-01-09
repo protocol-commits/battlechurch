@@ -162,7 +162,7 @@
     state.scope = {
       level: Number(els.level.value) || 1,
       month: Number(els.month.value) || 1,
-      battle: Number(els.battle.value) || 1,
+      battle: 1,
       horde: 1,
     };
   }
@@ -188,7 +188,7 @@
   function ensureMonth(levelObj, monthIdx) {
     levelObj.months = levelObj.months || [];
     while (levelObj.months.length < monthIdx) {
-      levelObj.months.push({ index: levelObj.months.length + 1, battles: [] });
+    levelObj.months.push({ index: levelObj.months.length + 1, battles: [] });
     }
     return levelObj.months[monthIdx - 1];
   }
@@ -222,7 +222,7 @@
   function getOrCreateScope(scope) {
     const levelObj = ensureLevel(scope.level);
     const monthObj = ensureMonth(levelObj, scope.month);
-    const battleObj = ensureBattle(monthObj, scope.battle);
+    const battleObj = ensureBattle(monthObj, 1);
     const hordeObj = ensureHorde(battleObj, scope.horde);
     return { levelObj, monthObj, battleObj, hordeObj };
   }
@@ -336,8 +336,6 @@
             <select id="lb-level"></select>
             <label>Month</label>
             <select id="lb-month"></select>
-            <label>Battle</label>
-            <select id="lb-battle"></select>
           </div>
           <div class="group">
             <label><input type="checkbox" id="lb-showHidden"> Show hidden enemies</label>
@@ -367,7 +365,6 @@
     overlay,
     level: overlay.querySelector("#lb-level"),
     month: overlay.querySelector("#lb-month"),
-    battle: overlay.querySelector("#lb-battle"),
     hordeDuration: overlay.querySelector("#lb-hordeDuration"),
     content: overlay.querySelector("#lb-contentArea"),
     load: overlay.querySelector("#lb-load"),
@@ -391,17 +388,15 @@
     const s = state.config.structure;
     populateSelect(els.level, s.levels);
     populateSelect(els.month, s.monthsPerLevel);
-    populateSelect(els.battle, s.battlesPerMonth);
     els.level.value = String(state.scope.level);
     els.month.value = String(state.scope.month);
-    els.battle.value = String(state.scope.battle);
   }
 
   function getActiveScope() {
     const scope = {
       level: Number(els.level.value) || 1,
       month: Number(els.month.value) || 1,
-      battle: Number(els.battle.value) || 1,
+      battle: 1,
       horde: 1,
     };
     state.scope = scope;
@@ -981,7 +976,7 @@
   }
 
   function attachEvents() {
-    ["level", "month", "battle"].forEach((key) => {
+    ["level", "month"].forEach((key) => {
       els[key].addEventListener("change", () => {
         updateScopeFromSelects();
         refreshUI();
