@@ -643,19 +643,31 @@ class Player {
       }
     }
 
-    let pointerApplied = false;
-    if (aimState.usingPointer && pointerState.active) {
-      pointerApplied = this.updateAimFromPointer();
+    const meleeAttackState = window._meleeAttackState;
+    let meleeFacingLocked = false;
+    if (meleeAttackState && meleeAttackState.swooshTimer > 0) {
+      const dir = meleeAttackState.swooshDir || window.Input?.lastMovementDirection || { x: 1, y: 0 };
+      const { x, y } = normalizeVector(dir.x, dir.y);
+      this.aim = { x, y };
+      this.updateFacing(x, y);
+      meleeFacingLocked = true;
     }
 
-    if (!pointerApplied) {
-      const hasKeyboardAim = !aimState.usingPointer && (aimState.x !== 0 || aimState.y !== 0);
-      if (hasKeyboardAim) {
-        this.aim = { x: aimState.x, y: aimState.y };
-        this.updateFacing(aimState.x, aimState.y);
-      } else if (moving) {
-        this.aim = { x: moveX, y: moveY };
-        this.updateFacing(moveX, moveY);
+    if (!meleeFacingLocked) {
+      let pointerApplied = false;
+      if (aimState.usingPointer && pointerState.active) {
+        pointerApplied = this.updateAimFromPointer();
+      }
+
+      if (!pointerApplied) {
+        const hasKeyboardAim = !aimState.usingPointer && (aimState.x !== 0 || aimState.y !== 0);
+        if (hasKeyboardAim) {
+          this.aim = { x: aimState.x, y: aimState.y };
+          this.updateFacing(aimState.x, aimState.y);
+        } else if (moving) {
+          this.aim = { x: moveX, y: moveY };
+          this.updateFacing(moveX, moveY);
+        }
       }
     }
 
@@ -718,7 +730,7 @@ class Player {
       }
 
       // Set aim to closest valid target if in range
-      if (targetEntity) {
+      if (targetEntity && !meleeFacingLocked) {
         const dx = targetEntity.x - this.x;
         const dy = targetEntity.y - this.y;
         const norm = normalizeVector(dx, dy);

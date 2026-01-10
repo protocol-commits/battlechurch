@@ -11615,6 +11615,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
     function executeMeleeAttack(direction) {
       if (!player || !direction) return;
+      player.updateFacing(direction.x, direction.y);
       if (player.animator) {
         player.state = "attackMelee";
         player.animator.play("attackMelee", { restart: true });
