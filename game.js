@@ -11454,6 +11454,9 @@ function updateGame(dt) {
     swooshTimer: 0,
     swooshDir: { x: 1, y: 0 },
     projectileBlockTimer: 0,
+    rushLockTimer: 0,
+    rushDamageEnabled: false,
+    lastMeleePressTime: 0,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -11461,12 +11464,14 @@ const MELEE_OFFSET = 54 * WORLD_SCALE;
 const MELEE_DAMAGE_KNOCKBACK = 48 * WORLD_SCALE;
 const MELEE_PUSHBACK_STRENGTH = 36 * WORLD_SCALE;
 const MELEE_DAMAGE_DURATION = 0.25;
-const MELEE_COOLDOWN = 0.55;
+const MELEE_COOLDOWN = 0.4;
 const MELEE_DOUBLE_TAP_WINDOW = 0.18;
 const MELEE_HOLD_CHARGE_TIME = 1.5;
 const MELEE_BASE_DAMAGE = 50;
 const MELEE_SWING_LENGTH = 200;
 const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
+const DASH_MELEE_WINDOW = 0.25;
+const MELEE_RUSH_LOCKOUT = 1.0;
   const RUSH_DISTANCE = 150 * WORLD_SCALE;
   const RUSH_SPEED = 1200 * SPEED_SCALE;
   const RUSH_DAMAGE = 250;
@@ -11536,30 +11541,33 @@ const DIVINE_SHOT_DAMAGE = 1200;
         const dist = Math.hypot(dx, dy);
         const enemyRadius = getEnemyHitboxRadius(enemy);
         if (dist < RUSH_RADIUS + enemyRadius) {
-          const canTakeDamage = typeof enemy.takeDamage === "function";
-          if (canTakeDamage) {
-            enemy.takeDamage(RUSH_DAMAGE);
-          } else if (typeof enemy.health === "number") {
-            enemy.health = Math.max(0, enemy.health - RUSH_DAMAGE);
+          if (meleeAttackState.rushDamageEnabled) {
+            const canTakeDamage = typeof enemy.takeDamage === "function";
+            if (canTakeDamage) {
+              enemy.takeDamage(RUSH_DAMAGE);
+            } else if (typeof enemy.health === "number") {
+              enemy.health = Math.max(0, enemy.health - RUSH_DAMAGE);
+            }
+            const pushDx = center.x - player.x;
+            const pushDy = center.y - player.y;
+            const pushDist = Math.hypot(pushDx, pushDy) || 1;
+            const pushNormX = pushDx / pushDist;
+            const pushNormY = pushDy / pushDist;
+            const overlapPush = Math.max(0, RUSH_PUSHBACK_RADIUS + enemyRadius - dist);
+            enemy.x += pushNormX * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
+            enemy.y += pushNormY * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
+            spawnFlashEffect(enemy.x, enemy.y - enemyRadius / 2);
+            if (!canTakeDamage && typeof showDamage === "function") {
+              showDamage(enemy, RUSH_DAMAGE, { color: "#FFC86A" });
+            }
+            meleeAttackState.rushHitEntities?.add(enemy);
           }
-          const pushDx = center.x - player.x;
-          const pushDy = center.y - player.y;
-          const pushDist = Math.hypot(pushDx, pushDy) || 1;
-          const pushNormX = pushDx / pushDist;
-          const pushNormY = pushDy / pushDist;
-          const overlapPush = Math.max(0, RUSH_PUSHBACK_RADIUS + enemyRadius - dist);
-          enemy.x += pushNormX * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
-          enemy.y += pushNormY * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
-          spawnFlashEffect(enemy.x, enemy.y - enemyRadius / 2);
-          if (!canTakeDamage && typeof showDamage === "function") {
-            showDamage(enemy, RUSH_DAMAGE, { color: "#FFC86A" });
-          }
-          meleeAttackState.rushHitEntities?.add(enemy);
         }
       }
       if (meleeAttackState.rushDistanceRemaining <= 0) {
         meleeAttackState.isRushing = false;
         meleeAttackState.rushHitEntities = null;
+        meleeAttackState.rushDamageEnabled = false;
         meleeAttackState.rushCooldown = RUSH_COOLDOWN;
         if (player && meleeAttackState.rushInvulnerable) {
           player.invulnerableTimer = Math.max(player.invulnerableTimer, RUSH_INVULNERABILITY);
@@ -11567,7 +11575,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
       }
     };
 
-    const startRush = (direction, grantInvulnerability = true) => {
+    const startRush = (direction, grantInvulnerability = true, enableDamage = true) => {
       if (!direction || (direction.x === 0 && direction.y === 0)) return;
       const normalized = normalizeVector(direction.x, direction.y);
       meleeAttackState.isRushing = true;
@@ -11575,6 +11583,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
       meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
       meleeAttackState.rushHitEntities = new Set();
       meleeAttackState.cooldown = MELEE_COOLDOWN;
+      meleeAttackState.rushDamageEnabled = enableDamage;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = false;
       meleeAttackState.active = false;
@@ -11615,6 +11624,10 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
     function executeMeleeAttack(direction) {
       if (!player || !direction) return;
+      meleeAttackState.rushLockTimer = Math.max(
+        meleeAttackState.rushLockTimer || 0,
+        MELEE_RUSH_LOCKOUT,
+      );
       player.updateFacing(direction.x, direction.y);
       if (typeof player.applySwordSlashFrameMap === "function") {
         player.applySwordSlashFrameMap();
@@ -11767,6 +11780,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
     if (!meleeAttackState.isRushing && meleeAttackState.rushCooldown === 0 && keysJustPressed) {
       const dashWindowMs = DASH_DOUBLE_TAP_WINDOW * 1000;
+      const meleeWindowMs = DASH_MELEE_WINDOW * 1000;
       const dashKeyMap = {
         w: { x: 0, y: -1 },
         a: { x: -1, y: 0 },
@@ -11777,7 +11791,18 @@ const DIVINE_SHOT_DAMAGE = 1200;
         if (!keysJustPressed.has(key)) continue;
         const lastTap = meleeAttackState.dashTapTimes?.[key] || 0;
         if (lastTap > 0 && now - lastTap <= dashWindowMs) {
-          startRush(dashKeyMap[key], false);
+          const meleeHeld = Boolean(input?.nesAButtonActive);
+          const recentMelee = now - (meleeAttackState.lastMeleePressTime || 0) <= meleeWindowMs;
+          const enableDamage = meleeHeld || recentMelee;
+          startRush(dashKeyMap[key], false, enableDamage);
+          if (enableDamage && player && player.animator) {
+            player.updateFacing(dashKeyMap[key].x, dashKeyMap[key].y);
+            if (typeof player.applySwordSlashFrameMap === "function") {
+              player.applySwordSlashFrameMap();
+            }
+            player.state = "attackMelee";
+            player.animator.play("attackMelee", { restart: true });
+          }
           meleeAttackState.dashTapTimes[key] = 0;
           dashTriggered = true;
           break;
@@ -11787,24 +11812,26 @@ const DIVINE_SHOT_DAMAGE = 1200;
     }
 
     if (isButtonDown && !wasButtonDown) {
+      meleeAttackState.lastMeleePressTime = now;
       meleeAttackState.buttonDown = true;
       meleeAttackState.didAttackThisPress = false;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = false;
       clearDivineChargeSparkVisual();
       meleeAttackState.chargeFlashTriggered = false;
-      if (
-        meleeAttackState.awaitRush &&
-        meleeAttackState.awaitTimer > 0 &&
-        !meleeAttackState.isRushing &&
-        meleeAttackState.rushCooldown === 0
-      ) {
-        startRush(direction, true);
+      if (meleeAttackState.isRushing && !meleeAttackState.rushDamageEnabled) {
+        meleeAttackState.rushDamageEnabled = true;
+        if (player && player.animator) {
+          player.updateFacing(direction.x, direction.y);
+          if (typeof player.applySwordSlashFrameMap === "function") {
+            player.applySwordSlashFrameMap();
+          }
+          player.state = "attackMelee";
+          player.animator.play("attackMelee", { restart: true });
+        }
         rushTriggered = true;
-        meleeAttackState.awaitRush = false;
-        meleeAttackState.awaitTimer = 0;
       }
-      if (!rushTriggered) {
+      if (!rushTriggered && meleeAttackState.cooldown <= 0) {
         executeMeleeAttack(direction);
         meleeAttackTriggered = true;
         meleeAttackState.didAttackThisPress = true;
@@ -11830,7 +11857,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
       } else if (meleeAttackState.isCharging) {
         spawnDivineShot(direction);
       }
-      else if (!meleeAttackTriggered && !meleeAttackState.didAttackThisPress) {
+      else if (!meleeAttackTriggered && !meleeAttackState.didAttackThisPress && meleeAttackState.cooldown <= 0) {
         executeMeleeAttack(direction);
         meleeAttackState.didAttackThisPress = true;
       }
@@ -11838,15 +11865,9 @@ const DIVINE_SHOT_DAMAGE = 1200;
       meleeAttackState.isCharging = false;
       clearDivineChargeSparkVisual();
       meleeAttackState.chargeFlashTriggered = false;
-      meleeAttackState.awaitRush = true;
-      meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
     }
-
-    if (meleeAttackState.awaitRush) {
-      meleeAttackState.awaitTimer = Math.max(0, meleeAttackState.awaitTimer - dt);
-      if (meleeAttackState.awaitTimer === 0) {
-        meleeAttackState.awaitRush = false;
-      }
+    if (meleeAttackState.rushLockTimer > 0) {
+      meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
     }
 
     if (meleeAttackState.isCharging) {

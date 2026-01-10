@@ -1982,7 +1982,7 @@ function drawLevelAnnouncements() {
   function drawMeleeSwingOverlay(ctx, player) {
     if (!ctx || !player) return;
     const state = window._meleeAttackState;
-    if (!state || state.swooshTimer <= 0) return;
+    if (!state || (state.swooshTimer <= 0 && !state.isRushing && !state.rushDamageEnabled)) return;
     const bindings = requireBindings();
     const worldScale = bindings?.WORLD_SCALE ?? 1;
     const assets = bindings?.assets;
@@ -1992,7 +1992,11 @@ function drawLevelAnnouncements() {
     const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
     const swooshImg = assets?.effects?.meleeSwoosh;
     if (!swooshImg) return;
-    const dirVec = state.swooshDir || window.Input.lastMovementDirection || { x: 1, y: 0 };
+    const dirVec =
+      (state.isRushing && state.rushDir) ||
+      state.swooshDir ||
+      window.Input.lastMovementDirection ||
+      { x: 1, y: 0 };
     const len = Math.hypot(dirVec.x, dirVec.y) || 1;
     const normalized = { x: dirVec.x / len, y: dirVec.y / len };
     const angle = Math.atan2(normalized.y, normalized.x);
@@ -2004,7 +2008,9 @@ function drawLevelAnnouncements() {
     const originX = player.x - normalized.x * offset - cameraOffsetX + shakeX;
     const originY = player.y - normalized.y * offset - cameraOffsetY + shakeY;
     const duration = Math.max(0.001, MELEE_SWING_DURATION);
-    const intensity = Math.min(1, state.swooshTimer / duration);
+    const intensity = state.swooshTimer > 0
+      ? Math.min(1, state.swooshTimer / duration)
+      : 0.85;
     ctx.save();
     ctx.translate(originX, originY);
     ctx.rotate(angle);
@@ -2016,6 +2022,19 @@ function drawLevelAnnouncements() {
       drawWidth,
       drawHeight,
     );
+    if (state.isRushing || state.rushDamageEnabled) {
+      const overscale = 1.6;
+      const frontWidth = drawWidth * overscale;
+      const frontHeight = drawHeight * overscale;
+      ctx.globalAlpha = Math.min(0.85, 0.45 + intensity * 0.35);
+      ctx.drawImage(
+        swooshImg,
+        drawWidth * 0.06,
+        -frontHeight * 0.5,
+        frontWidth,
+        frontHeight,
+      );
+    }
     ctx.restore();
   }
 

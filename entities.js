@@ -1385,8 +1385,10 @@ class Player {
       ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
       : 0;
   this.animator.draw(ctx, this.x, drawY, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
-    if (this.shieldTimer > 0) {
-      const shieldAlpha = Math.max(0.2, Math.min(0.6, this.shieldTimer / 6));
+    const rushActive = Boolean(window?._meleeAttackState?.isRushing);
+    if (this.shieldTimer > 0 || rushActive) {
+      const shieldAlpha =
+        this.shieldTimer > 0 ? Math.max(0.2, Math.min(0.6, this.shieldTimer / 6)) : 0.45;
       const clip = this.animator?.currentClip || null;
       const animatorScale = Number.isFinite(this.animator?.scale) && this.animator.scale > 0
         ? this.animator.scale
