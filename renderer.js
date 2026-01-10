@@ -659,11 +659,14 @@ function drawLevelAnnouncements() {
     return;
   }
     const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight);
+    const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
     drawAnnouncementText(ctx, canvas, {
       title: displayTitle || "",
       yBase: titleY,
       alpha,
       typewriter: true,
+      titleSize: isTownIntro ? TEXT_STYLES.h1.size : TEXT_STYLES.h2.size,
+      weight: isTownIntro ? TEXT_STYLES.h1.weight : TEXT_STYLES.h2.weight,
     });
     // Dev label hidden for announcements per request.
     // Subtitle display removed as requested.
@@ -715,7 +718,20 @@ function drawLevelAnnouncements() {
       ctx,
       canvas,
       assets,
+      levelAnnouncements,
     } = requireBindings();
+    if (Array.isArray(levelAnnouncements) && levelAnnouncements.length) {
+      const current = levelAnnouncements[0];
+      if (current && current.townIntro && assets?.backgrounds?.townIntro) {
+        const img = assets.backgrounds.townIntro;
+        ctx.save();
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        return;
+      }
+    }
     const cameraX = resolveCameraX(effectiveCameraX);
     ctx.fillStyle = "#0b111a";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1562,10 +1578,23 @@ function drawLevelAnnouncements() {
       ctx.restore();
       return;
     }
+    const townIntroActive = Boolean(levelAnnouncements?.[0]?.townIntro);
     sharedShakeOffset.x = 0;
     sharedShakeOffset.y = 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+    if (townIntroActive) {
+      const effectiveCameraX = resolveCameraX();
+      drawBackground(effectiveCameraX, 0);
+      drawLevelAnnouncements();
+      ctx.save();
+      ctx.font = `18px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(230, 238, 255, 0.92)";
+      ctx.textAlign = "center";
+      ctx.fillText("Continue (Space)", canvas.width / 2, canvas.height - 40);
+      ctx.restore();
+      return;
+    }
     // If we're in briefing, draw briefing first; otherwise if levelIntro draw congregation
     if (levelStatus?.stage === 'briefing') {
       drawBriefingScene(levelStatus);

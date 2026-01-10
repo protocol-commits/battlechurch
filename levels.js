@@ -560,7 +560,7 @@
       return activeEnemies || bossAlive;
     }
 
-    function beginLevel(levelNumber) {
+    function beginLevel(levelNumber, options = {}) {
       state.level = levelNumber;
       state.monthIndex = -1;
       state.battleIndex = -1;
@@ -597,13 +597,24 @@
     beginBattle();
     return;
   }
-  console.info && console.info('queueAnnouncement', { title: `Level ${levelNumber}: ${monthName}`, level: levelNumber, monthIndex: 0, monthName });
-  queueLevelAnnouncement(`Level ${levelNumber}: ${monthName}`, "A new month of ministry begins", {
-        duration: MONTH_INTRO_DURATION,
-        requiresConfirm: true,
-      });
-      resetStage("levelIntro", MONTH_INTRO_DURATION);
-      setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
+  const skipIntroAnnouncement =
+    Boolean(options && options.skipIntroAnnouncement) ||
+    Boolean(typeof window !== "undefined" && window.__skipInitialMonthAnnouncement);
+  if (skipIntroAnnouncement && typeof window !== "undefined") {
+    window.__skipInitialMonthAnnouncement = false;
+  }
+  if (!skipIntroAnnouncement) {
+    console.info && console.info('queueAnnouncement', { title: `Level ${levelNumber}: ${monthName}`, level: levelNumber, monthIndex: 0, monthName });
+    queueLevelAnnouncement(`Level ${levelNumber}: ${monthName}`, "A new month of ministry begins", {
+          duration: MONTH_INTRO_DURATION,
+          requiresConfirm: true,
+        });
+    resetStage("levelIntro", MONTH_INTRO_DURATION);
+    setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
+  } else {
+    resetStage("levelIntro", 0);
+    setDevStatus(`Preparing ${monthName}`, 2.0);
+  }
       state.currentBattleScenario = "";
       state.currentBossTheme = "";
       buildCongregationMembers();
@@ -762,6 +773,14 @@
       if (!state.waitingForCongregation) return;
       state.waitingForCongregation = false;
       beginBattle();
+    }
+
+    function setWaitingForCongregation(value) {
+      state.waitingForCongregation = Boolean(value);
+      if (!state.waitingForCongregation) {
+        state.npcRushActive = false;
+        state.npcRushTimer = 0;
+      }
     }
 
     function startNpcRush() {
@@ -1199,7 +1218,10 @@
 
     return {
       begin() {
-        beginLevel(1);
+      beginLevel(1);
+      },
+      beginFromTownIntro(levelNumber = 1) {
+        beginLevel(levelNumber, { skipIntroAnnouncement: true });
       },
       reset() {
         state.active = false;
@@ -1603,6 +1625,7 @@ state.battleIndex = -1;
         beginGraceRushPhase(monthName);
         return true;
       },
+      setWaitingForCongregation,
       advanceFromCongregation,
     };
   }

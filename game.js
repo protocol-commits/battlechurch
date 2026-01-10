@@ -78,6 +78,9 @@ const npcs = [];
 const effects = Effects.getActive();
 let divineChargeSparkEffect = null;
 let backgroundImage = null;
+let pendingTownIntroStart = false;
+let townIntroDismissedAt = 0;
+let suppressInitialAnnouncements = false;
 const levelAnnouncements = [];
 let levelManager = null;
 let activeBoss = null;
@@ -2682,6 +2685,7 @@ const BACKGROUND_FAR_PATH = "assets/backgrounds/far-bg.png";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.png";
+const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/game-over.png";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
 const DECOR_CONFIG = (typeof window !== "undefined" && window.WorldDecor) || {};
 
@@ -3902,6 +3906,7 @@ async function loadAssets() {
     utility: {},
     effects: {},
   background: null,
+  backgrounds: { townIntro: null },
   backgroundLayers: { far: null, mid: null, floor: null },
   npcs: null,
     vampire: null,
@@ -4091,6 +4096,15 @@ async function loadAssets() {
       console.error(error);
       assets.background = null;
     });
+  const townIntroPromise = loadImage(TOWN_INTRO_BACKGROUND_PATH)
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
+      assets.backgrounds.townIntro = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
+      assets.backgrounds.townIntro = null;
+    });
 
   // layered backgrounds (optional)
   const farPromise = loadImage(BACKGROUND_FAR_PATH)
@@ -4116,6 +4130,7 @@ async function loadAssets() {
     ...weaponDropEntries,
     ...utilityEntries,
     backgroundPromise,
+    townIntroPromise,
   npcAssetsPromise,
   coinAssetsPromise,
   farPromise,
@@ -4805,6 +4820,55 @@ function showTitlePageDialog(pageKey) {
   });
 }
 
+function showTownIntroDialog() {
+  if (!window.DialogOverlay) return false;
+  const body =
+    "Your church is the last light in a town under siege.\nYou have one year to prevent its collapse.";
+  window.DialogOverlay.show({
+    title: "",
+    bodyHtml: `<div class="town-intro-text"></div>`,
+    buttonText: "Continue (Space)",
+    variant: "town-intro",
+    devLabel: "",
+    onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
+    onContinue: () => {
+      if (window.DialogOverlay?.hide) {
+        window.DialogOverlay.hide();
+      }
+      paused = false;
+      if (levelManager && typeof levelManager.startBriefing === "function") {
+        levelManager.startBriefing(1);
+      } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
+        levelManager.advanceFromBriefing(1);
+      }
+    },
+  });
+  return true;
+}
+
+function queueTownIntroAnnouncement() {
+  const text =
+    "Your church is the last light in a town under siege.\nYou have one year to prevent its collapse.";
+  pendingTownIntroStart = true;
+  queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
+}
+
+function queueInitialMonthAnnouncementFromCongregation() {
+  const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  const levelNumber = status?.level || 1;
+  const globalMonthNumberForLevelStart = (levelNumber - 1) * MONTHS_PER_LEVEL + 1;
+  const monthName = getMonthName(globalMonthNumberForLevelStart);
+  suppressInitialAnnouncements = false;
+  if (levelManager && typeof levelManager.setWaitingForCongregation === "function") {
+    levelManager.setWaitingForCongregation(false);
+  }
+  queueLevelAnnouncement(`Level ${levelNumber}: ${monthName}`, "A new month of ministry begins", {
+    duration: MONTH_INTRO_DURATION,
+    requiresConfirm: true,
+  });
+  setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
+}
+
 function startGameFromTitle() {
   // Ensure title is hidden and game is paused while we enter briefing.
   paused = true;
@@ -4821,12 +4885,13 @@ function startGameFromTitle() {
   try {
     titleScreenActive = false;
     howToPlayActive = false;
-    paused = false;
-    if (levelManager && typeof levelManager.startBriefing === "function") {
-      levelManager.startBriefing(1);
-    } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
-      levelManager.advanceFromBriefing(1);
+    if (typeof setTimeout === "function") {
+      setTimeout(() => {
+        queueTownIntroAnnouncement();
+      }, 0);
+      return;
     }
+    queueTownIntroAnnouncement();
     return;
   } catch (e) {}
 }
@@ -6003,6 +6068,9 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   }
   const requiresConfirm = Boolean(options.requiresConfirm);
   const skipMissionBrief = Boolean(options.skipMissionBrief);
+  const townIntro = Boolean(options.townIntro);
+  const allowDuringSuppression = Boolean(options.allowDuringSuppression);
+  if (suppressInitialAnnouncements && !allowDuringSuppression) return;
   const missionBriefTitle =
     typeof options.missionBriefTitle === "string" && options.missionBriefTitle.trim().length
       ? options.missionBriefTitle
@@ -6015,6 +6083,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     requiresConfirm,
     skipMissionBrief,
     missionBriefTitle,
+    townIntro,
   };
   levelAnnouncements.push(announcement);
 }
@@ -6038,10 +6107,29 @@ function dismissCurrentLevelAnnouncement() {
     return;
   }
   levelAnnouncements.shift();
+  if (current.townIntro) {
+    pendingTownIntroStart = true;
+    townIntroDismissedAt =
+      typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    suppressInitialAnnouncements = true;
+    paused = false;
+    if (levelManager && typeof levelManager.beginFromTownIntro === "function") {
+      levelManager.beginFromTownIntro(1);
+    } else if (levelManager && typeof levelManager.begin === "function") {
+      levelManager.begin();
+    } else if (levelManager && typeof levelManager.startBriefing === "function") {
+      levelManager.startBriefing(1);
+    } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
+      levelManager.advanceFromBriefing(1);
+    }
+    if (Array.isArray(levelAnnouncements)) {
+      levelAnnouncements.length = 0;
+    }
+  }
   if (levelManager?.acknowledgeAnnouncement) {
     try { levelManager.acknowledgeAnnouncement(); } catch (e) {}
   }
-  if (levelManager?.getStatus) {
+  if (levelManager?.getStatus && !current.townIntro) {
     try {
       const status = levelManager.getStatus();
       if (status?.stage === "levelIntro" && typeof levelManager.advanceFromCongregation === "function") {
@@ -11157,6 +11245,15 @@ function updateGame(dt) {
         clickPos.y >= buttonBounds.y &&
         clickPos.y <= buttonBounds.y + buttonBounds.height;
       if (inside && typeof levelManager?.advanceFromCongregation === "function") {
+        const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+        if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
+          Input.consumeCanvasClick?.();
+          return;
+        }
+        if (pendingTownIntroStart) {
+          pendingTownIntroStart = false;
+          suppressInitialAnnouncements = false;
+        }
         levelManager.advanceFromCongregation();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
@@ -11189,6 +11286,17 @@ function updateGame(dt) {
           levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
           stage = levelStatus?.stage;
         } else if (wasActionJustPressed("pause")) {
+          const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+          if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
+            keysJustPressed.delete(" ");
+            keysJustPressed.delete("pause");
+            keysJustPressed.delete("restart");
+            return;
+          }
+          if (pendingTownIntroStart) {
+            pendingTownIntroStart = false;
+            suppressInitialAnnouncements = false;
+          }
           levelManager?.advanceFromCongregation?.();
           if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
             window.playMenuAdvanceSfx(0.55);
