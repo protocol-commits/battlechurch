@@ -58,7 +58,7 @@
           renderScale: 100 / 320,
         },
         walk: {
-          src: `${playerSpritePath}pastor1-walk-animation.png`,
+          src: `${playerSpritePath}pastor1-walk-4.png`,
           frameWidth: 271,
           frameHeight: 320,
           frameRate: 10,

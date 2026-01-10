@@ -787,6 +787,27 @@ class Player {
     }
   }
 
+  applySwordSlashFrameMap() {
+    const animator = this.animator;
+    if (!animator) return;
+    const useShort = this.powerExtendTimer > 0;
+    const clipNames = ["attackMelee", "attackArrow", "attackMagic"];
+    clipNames.forEach((name) => {
+      const clip = animator.clips?.[name];
+      if (!clip) return;
+      if (!clip._defaultFrameMap) {
+        clip._defaultFrameMap = Array.isArray(clip.frameMap)
+          ? clip.frameMap.slice()
+          : null;
+      }
+      if (useShort) {
+        clip.frameMap = [2, 3];
+      } else if (clip._defaultFrameMap) {
+        clip.frameMap = clip._defaultFrameMap.slice();
+      }
+    });
+  }
+
   isAttacking() {
     return (
       this.state === "attackArrow" ||
@@ -806,6 +827,7 @@ class Player {
   if (meleeAttackState?.projectileBlockTimer > 0) return;
   // Prevent firing projectiles when melee circle is active
   if (window.Input && window.Input.nesAButtonActive) return;
+  this.applySwordSlashFrameMap();
   const bossRangeMultiplier = isBossStageActive() ? 1.5 : 1;
     if (type === "arrow") {
       if (this.arrowCooldown > 0) return;
