@@ -168,6 +168,7 @@ const MELEE_SWING_LENGTH = 200;
     return bindings;
   }
 
+
   function drawNpcProfileIcon(ctx, member, x, y, size = 34) {
     if (!ctx || !member) return;
     const clip = member.animator?.currentClip;
