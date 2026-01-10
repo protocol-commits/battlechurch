@@ -11456,7 +11456,6 @@ function updateGame(dt) {
     projectileBlockTimer: 0,
     rushLockTimer: 0,
     rushDamageEnabled: false,
-    lastMeleePressTime: 0,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -11472,7 +11471,6 @@ const MELEE_SWING_LENGTH = 200;
 const MELEE_SWOOSH_DAMAGE_SCALE = 1.2;
 const MELEE_SWOOSH_ARC_SCALE = 1.5;
 const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
-const DASH_MELEE_WINDOW = 0.25;
 const MELEE_RUSH_LOCKOUT = 1.0;
   const RUSH_DISTANCE = 150 * WORLD_SCALE;
   const RUSH_SPEED = 1200 * SPEED_SCALE;
@@ -11564,7 +11562,7 @@ const DIVINE_SHOT_DAMAGE = 1000;
             const pushDist = Math.hypot(pushDx, pushDy) || 1;
             const pushNormX = pushDx / pushDist;
             const pushNormY = pushDy / pushDist;
-            const overlapPush = Math.max(0, RUSH_PUSHBACK_RADIUS + enemyRadius - dist);
+            const overlapPush = Math.max(0, RUSH_PUSHBACK_RADIUS + enemyRadius - Math.abs(along));
             enemy.x += pushNormX * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
             enemy.y += pushNormY * Math.min(overlapPush, RUSH_PUSHBACK_STRENGTH * 0.5);
             spawnFlashEffect(enemy.x, enemy.y - enemyRadius / 2);
@@ -11812,7 +11810,6 @@ const DIVINE_SHOT_DAMAGE = 1000;
 
     if (!meleeAttackState.isRushing && meleeAttackState.rushCooldown === 0 && keysJustPressed) {
       const dashWindowMs = DASH_DOUBLE_TAP_WINDOW * 1000;
-      const meleeWindowMs = DASH_MELEE_WINDOW * 1000;
       const dashKeyMap = {
         w: { x: 0, y: -1 },
         a: { x: -1, y: 0 },
@@ -11823,11 +11820,9 @@ const DIVINE_SHOT_DAMAGE = 1000;
         if (!keysJustPressed.has(key)) continue;
         const lastTap = meleeAttackState.dashTapTimes?.[key] || 0;
         if (lastTap > 0 && now - lastTap <= dashWindowMs) {
-          const meleeHeld = Boolean(input?.nesAButtonActive);
-          const recentMelee = now - (meleeAttackState.lastMeleePressTime || 0) <= meleeWindowMs;
-          const enableDamage = meleeHeld || recentMelee;
+          const enableDamage = true;
           startRush(dashKeyMap[key], false, enableDamage);
-          if (enableDamage && player && player.animator) {
+          if (player && player.animator) {
             player.updateFacing(dashKeyMap[key].x, dashKeyMap[key].y);
             if (typeof player.applySwordSlashFrameMap === "function") {
               player.applySwordSlashFrameMap();
@@ -11844,7 +11839,6 @@ const DIVINE_SHOT_DAMAGE = 1000;
     }
 
     if (isButtonDown && !wasButtonDown) {
-      meleeAttackState.lastMeleePressTime = now;
       meleeAttackState.buttonDown = true;
       meleeAttackState.didAttackThisPress = false;
       meleeAttackState.chargeTimer = 0;
