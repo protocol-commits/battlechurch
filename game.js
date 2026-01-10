@@ -199,9 +199,9 @@ const BATTLE_MUSIC_SRC = "assets/music/battle4.wav";
 const RECAP_MUSIC_SRC = "assets/music/inspiringtrailer.wav";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
-const VISITOR_HIT_SFX_SRC = "assets/sfx/utility/utility9.mp3";
+const VISITOR_HIT_SFX_SRC = "assets/sfx/npcs/fireball_release_1.wav";
 const CHATTY_HIT_SFX_SRC = "assets/sfx/utility/utility3.mp3";
-const VISITOR_SAVED_SFX_SRC = "assets/sfx/utility/utility17.mp3";
+const VISITOR_SAVED_SFX_SRC = "assets/sfx/npcs/healing_spell_2.wav";
 const NPC_HURT_SFX_SRC = "assets/sfx/npcs/ow1.wav";
 const PLAYER_HURT_SFX_SRC = "assets/sfx/rpg/player/ouch_voice.wav";
 const PLAYER_DEATH_BELL_SFX_SRC = "assets/sfx/rpg/player/bells-2.wav";
@@ -1185,7 +1185,7 @@ function playChattyHitSfx(volume = 0.55) {
   } catch (err) {}
 }
 
-function playVisitorSavedSfx(volume = 0.6) {
+function playVisitorSavedSfx(volume = 0.85) {
   if (typeof Audio === "undefined") return;
   let audio = visitorSavedSfxPool.find((entry) => entry.paused || entry.ended);
   if (!audio) {
@@ -10139,6 +10139,7 @@ function updateVisitorProjectiles(dt) {
           projectile.hitEntities.add(entity);
         }
         applyHeartToEntity(entity, { flash: true });
+        playVisitorHitSfx(0.85);
         projectile.onHit(entity);
         if (projectile.dead) break;
       }
@@ -10167,7 +10168,7 @@ function showBlockerSpeech(blocker) {
 function markVisitorGuestSaved(guest) {
   if (!guest || guest.saved) return;
   guest.saved = true;
-  playVisitorSavedSfx(0.6);
+  playVisitorSavedSfx(0.85);
   if (visitorSession) {
     visitorSession.savedVisitors = (visitorSession.savedVisitors || 0) + 1;
     visitorSession.newMemberPortraits = visitorSession.newMemberPortraits || [];
@@ -11090,33 +11091,43 @@ function updateGame(dt) {
   if (playerDeathBellActive) {
     pauseAllMusic();
   } else {
-    const battleShouldPlay =
-      stage === "npcArrival" ||
-      stage === "battleIntro" ||
-      stage === "hordeIntro" ||
-      stage === "hordeActive" ||
-      stage === "hordeCleared" ||
-      stage === "bossIntro" ||
-      stage === "bossActive" ||
-      musicState.battlePrimed;
-    if (battleShouldPlay) {
-      if (stage && stage !== "briefing") {
-        musicState.battlePrimed = false;
+    if (visitorSession?.active) {
+      if (musicState.battleStarted && !musicState.battleStopped) {
+        fadeOutBattleMusic();
       }
-      if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
-      if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
-      if (musicState.unlocked && !musicState.battleStarted) {
-        startBattleMusic();
+      if (musicState.introStarted && !musicState.introStopped) {
+        stopIntroMusic();
       }
-    } else if (musicState.battleStarted && !musicState.battleStopped) {
-      fadeOutBattleMusic();
-    }
-    if (
-      stage === "levelIntro" ||
-      stage === "briefing" ||
-      stage === "npcArrival"
-    ) {
-      if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+      startVisitorMusic();
+    } else {
+      const battleShouldPlay =
+        stage === "npcArrival" ||
+        stage === "battleIntro" ||
+        stage === "hordeIntro" ||
+        stage === "hordeActive" ||
+        stage === "hordeCleared" ||
+        stage === "bossIntro" ||
+        stage === "bossActive" ||
+        musicState.battlePrimed;
+      if (battleShouldPlay) {
+        if (stage && stage !== "briefing") {
+          musicState.battlePrimed = false;
+        }
+        if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+        if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
+        if (musicState.unlocked && !musicState.battleStarted) {
+          startBattleMusic();
+        }
+      } else if (musicState.battleStarted && !musicState.battleStopped) {
+        fadeOutBattleMusic();
+      }
+      if (
+        stage === "levelIntro" ||
+        stage === "briefing" ||
+        stage === "npcArrival"
+      ) {
+        if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+      }
     }
   }
   if (graceRushFadeHold) {
