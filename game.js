@@ -2924,7 +2924,7 @@ for (const mini of MINIFOLKS) {
 }
 
 const { AnimationClip, Animator } = window.Entities || {};
-const PLAYER_BASE_SCALE = .9;
+const PLAYER_BASE_SCALE = 1.08;
 const PLAYER_SCALE = PLAYER_BASE_SCALE * WORLD_SCALE;
 const PLAYER_COLLISION_RADIUS = 12;
 const PLAYER_FRAME_SIZE = 100;
@@ -11615,6 +11615,10 @@ const DIVINE_SHOT_DAMAGE = 1200;
 
     function executeMeleeAttack(direction) {
       if (!player || !direction) return;
+      if (player.animator) {
+        player.state = "attackMelee";
+        player.animator.play("attackMelee", { restart: true });
+      }
       const normalized = normalizeVector(direction.x, direction.y);
       meleeAttackState.swingId = (meleeAttackState.swingId || 0) + 1;
     meleeAttackState.active = true;

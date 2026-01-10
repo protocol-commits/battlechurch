@@ -779,7 +779,8 @@ class Player {
     return (
       this.state === "attackArrow" ||
       this.state === "attackMagic" ||
-      this.state === "attackPrayer"
+      this.state === "attackPrayer" ||
+      this.state === "attackMelee"
     );
   }
 
