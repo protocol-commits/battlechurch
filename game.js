@@ -6092,6 +6092,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     typeof options.missionBriefTitle === "string" && options.missionBriefTitle.trim().length
       ? options.missionBriefTitle
       : null;
+  const bossMissionBrief = Boolean(options.bossMissionBrief);
   const announcement = {
     title,
     subtitle,
@@ -6101,6 +6102,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     skipMissionBrief,
     missionBriefTitle,
     townIntro,
+    bossMissionBrief,
   };
   levelAnnouncements.push(announcement);
 }

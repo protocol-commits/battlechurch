@@ -7,6 +7,10 @@
     const host = String(window.location?.hostname || "").toLowerCase();
     return host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
   })();
+  const ENABLE_FILE_SYNC =
+    IS_LOCALHOST &&
+    (window.__levelBuilderEnableSync === true ||
+      localStorage.getItem("battlechurch.enableLevelSync") === "true");
   const DEFAULTS = {
     meta: { version: 1 },
     structure: {
@@ -840,7 +844,7 @@
   }
 
   async function fetchServerConfig() {
-    if (!IS_LOCALHOST) return null;
+    if (!ENABLE_FILE_SYNC) return null;
     try {
       const res = await fetch(SYNC_ENDPOINT, { method: "GET" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -849,14 +853,12 @@
         (payload && payload.config) ||
         (payload && payload.data && payload.data.devLevelConfig);
       if (cfg && typeof cfg === "object") return normalizeConfig(cfg);
-    } catch (err) {
-      console.warn("LevelBuilder: failed to pull file config", err);
-    }
+    } catch (err) {}
     return null;
   }
 
   async function saveConfigToServer(cfg) {
-    if (!IS_LOCALHOST) return false;
+    if (!ENABLE_FILE_SYNC) return false;
     try {
       const res = await fetch(SYNC_ENDPOINT, {
         method: "POST",
@@ -865,15 +867,13 @@
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return true;
-    } catch (err) {
-      console.warn("LevelBuilder: failed to save file config", err);
-      return false;
-    }
+    } catch (err) {}
+    return false;
   }
 
   async function syncFromServer(options = {}) {
     const { showStatus = false } = options;
-    if (!IS_LOCALHOST) {
+    if (!ENABLE_FILE_SYNC) {
       if (showStatus) {
         setStatus("File sync disabled (not running locally)", true);
       }

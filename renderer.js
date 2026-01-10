@@ -373,7 +373,7 @@ const MELEE_SWING_LENGTH = 200;
     active: false,
   };
 
-function showMissionBriefDialog(title, body, identifier, highlight = null) {
+function showMissionBriefDialog(title, body, identifier, highlight = null, options = {}) {
   if (!window.DialogOverlay) return false;
   if (missionBriefOverlayState.id === identifier && missionBriefOverlayState.shown) return false;
   if (missionBriefOverlayState.active) return true;
@@ -388,6 +388,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null) {
   if (typeof window.clearFormationSelection === "function") {
     window.clearFormationSelection();
   }
+  const showFormation = options?.showFormation !== false;
   const formationOptions = [
     {
       key: "circle",
@@ -442,11 +443,11 @@ function showMissionBriefDialog(title, body, identifier, highlight = null) {
   window.DialogOverlay.show({
     title: devTitle,
     bodyHtml,
-    buttonText: "",
+    buttonText: showFormation ? "" : "Continue (Space)",
     variant: "mission",
     devLabel: "",
     onRender: ({ overlay, buttonEl }) => {
-      if (buttonEl) buttonEl.style.display = "none";
+      if (buttonEl) buttonEl.style.display = showFormation ? "none" : "inline-flex";
       const titleEl = overlay.querySelector(".dialog-overlay__title");
       if (titleEl) {
         titleEl.style.marginTop = "12px";
@@ -454,7 +455,12 @@ function showMissionBriefDialog(title, body, identifier, highlight = null) {
       const textEl = overlay.querySelector(".mission-brief-text");
       const prompt = overlay.querySelector(".formation-prompt");
       const picker = overlay.querySelector(".formation-picker");
+      if (!showFormation) {
+        if (prompt) prompt.style.display = "none";
+        if (picker) picker.style.display = "none";
+      }
       const revealFormationUi = () => {
+        if (!showFormation) return;
         if (prompt) prompt.style.display = "block";
         if (!picker) return;
         picker.style.display = "grid";
@@ -512,7 +518,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null) {
           });
         }, promptDelayMs);
       }
-      if (!picker) return;
+      if (!picker || !showFormation) return;
       picker.querySelectorAll(".formation-option").forEach((btn) => {
         btn.addEventListener("click", () => {
           const key = btn.getAttribute("data-formation");
@@ -540,7 +546,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null) {
   return true;
 }
 
-function drawLevelAnnouncements() {
+  function drawLevelAnnouncements() {
     const {
       ctx,
       canvas,
@@ -548,10 +554,31 @@ function drawLevelAnnouncements() {
       HUD_HEIGHT,
       UI_FONT_FAMILY,
     } = requireBindings();
-    if (!levelAnnouncements.length) return;
+    if (!levelAnnouncements.length) {
+      const lm = requireBindings().levelManager;
+      const status = lm?.getStatus ? lm.getStatus() : null;
+      if (status?.stage === "bossIntro" || status?.stage === "bossActive") {
+        if (!window.DialogOverlay?.isVisible?.() && !missionBriefOverlayState.active) {
+          const monthName = status?.month || "";
+          const missionTitle = monthName || "Boss Battle";
+          const missionBrief = "You are personally being spiritually attacked.";
+          const missionId = `mission_${status?.level || 1}_${missionTitle}_${missionBrief}`;
+          showMissionBriefDialog(
+            missionTitle,
+            missionBrief,
+            missionId,
+            null,
+            { showFormation: false },
+          );
+        }
+      }
+      return;
+    }
   const { title, subtitle, timer, duration, requiresConfirm } = levelAnnouncements[0];
   const now = performance.now();
   const levelStatus = (typeof requireBindings === 'function') ? requireBindings().levelManager?.getStatus?.() : null;
+  const lm = requireBindings().levelManager;
+  const currentLevelStatus = lm?.getStatus ? lm.getStatus() : null;
     const ANNOUNCEMENT_FADE_DURATION = 1.5;
     const fadeDuration = Math.min(duration, ANNOUNCEMENT_FADE_DURATION);
     const fadeStart = Math.max(0, duration - fadeDuration);
@@ -595,6 +622,31 @@ function drawLevelAnnouncements() {
   // This is NOT the tally/battle summary popup.
   // =============================
   const skipMissionBrief = Boolean(levelAnnouncements[0].skipMissionBrief);
+  const isBossMonthIntro = currentLevelStatus?.stage === "bossIntro";
+  const isBossMissionBrief = Boolean(levelAnnouncements[0].bossMissionBrief);
+  if (!skipMissionBrief && !isBattleSummary && (isBossMonthIntro || isBossMissionBrief)) {
+    const monthName = currentLevelStatus?.month || "";
+    const missionTitle =
+      (levelAnnouncements[0] && levelAnnouncements[0].missionBriefTitle) ||
+      (levelAnnouncements[0] && levelAnnouncements[0].title) ||
+      monthName ||
+      "";
+    const missionBrief = "You are personally being spiritually attacked.";
+    const missionId = `mission_${missionTitle}_${missionBrief}`;
+    if (window.DialogOverlay?.isVisible?.()) {
+      ctx.restore();
+      return;
+    }
+    showMissionBriefDialog(
+      missionTitle,
+      missionBrief,
+      missionId,
+      null,
+      { showFormation: false },
+    );
+    ctx.restore();
+    return;
+  }
   if (!skipMissionBrief && !isBattleSummary && Array.isArray(window.npcs) && window.npcs.length) {
     const npcNames = window.npcs.map(npc => npc.name).filter(Boolean);
     if (window.DialogOverlay?.isVisible?.()) {
@@ -606,8 +658,6 @@ function drawLevelAnnouncements() {
         levelAnnouncements[0].missionBriefScenario = missionBriefScenarios[Math.floor(Math.random() * missionBriefScenarios.length)];
       }
       const scenario = levelAnnouncements[0].missionBriefScenario;
-      const lm = requireBindings().levelManager;
-      const currentLevelStatus = lm?.getStatus ? lm.getStatus() : null;
       const monthName = currentLevelStatus?.month || (requireBindings().getMonthName ? requireBindings().getMonthName(currentLevelStatus?.level || 1) : null);
       let nameSentence = '';
       if (npcNames.length === 1) {
@@ -644,8 +694,6 @@ function drawLevelAnnouncements() {
     }
   }
   // Battle summary popups are handled by the dialog overlay (not canvas).
-  const lm = requireBindings().levelManager;
-  const currentLevelStatus = lm?.getStatus ? lm.getStatus() : null;
   const monthName = currentLevelStatus?.month || (requireBindings().getMonthName ? requireBindings().getMonthName(currentLevelStatus?.level || 1) : null);
   const levelNumber = currentLevelStatus?.level || 1;
   let displayTitle = title;

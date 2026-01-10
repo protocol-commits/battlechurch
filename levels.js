@@ -1126,9 +1126,13 @@
 
     function beginBossIntro() {
       state.currentBossTheme = randomChoice(BOSS_BATTLE_THEMES);
+      const bossMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + MONTHS_PER_LEVEL;
+      const bossMonthName = getMonthName(bossMonthNumber);
       queueLevelAnnouncement(state.currentBossTheme, "A personal battle begins", {
         duration: LEVEL_INTRO_DURATION,
         requiresConfirm: true,
+        missionBriefTitle: bossMonthName,
+        bossMissionBrief: true,
       });
       resetStage("bossIntro", LEVEL_INTRO_DURATION);
       setDevStatus(state.currentBossTheme, LEVEL_INTRO_DURATION + 1);
@@ -1532,7 +1536,7 @@ state.battleIndex = -1;
       devSkipHorde() {
         if (!state.active) return false;
         if (state.stage === "bossActive") {
-          devClearOpponents({ includeBoss: true });
+          onBossDefeated();
           return true;
         }
         if (state.stage === "bossIntro") {
@@ -1541,7 +1545,11 @@ state.battleIndex = -1;
         }
         if (state.stage === "graceRush") {
           state.timer = 0;
-          handleBattleComplete();
+          if (state.graceRushContext === "boss") {
+            handleLevelCleared();
+          } else {
+            handleBattleComplete();
+          }
           return true;
         }
         if (state.stage === "npcArrival") {
@@ -1571,7 +1579,7 @@ state.battleIndex = -1;
       devSkipBattle() {
         if (!state.active) return false;
         if (state.stage === "bossActive") {
-          devClearOpponents({ includeBoss: true });
+          onBossDefeated();
           return true;
         }
         if (state.stage === "bossIntro") {
@@ -1580,7 +1588,11 @@ state.battleIndex = -1;
         }
         if (state.stage === "graceRush") {
           state.timer = 0;
-          handleBattleComplete();
+          if (state.graceRushContext === "boss") {
+            handleLevelCleared();
+          } else {
+            handleBattleComplete();
+          }
           return true;
         }
         if (state.stage === "npcArrival") {
