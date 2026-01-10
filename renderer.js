@@ -815,7 +815,7 @@ function drawLevelAnnouncements() {
     ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
     ctx.textBaseline = "alphabetic";
     ctx.fillText(
-      "Smite the hordes. Save your flock. Grow your church.",
+      "Smite the hordes. Save your flock. Survive the year.",
       canvas.width / 2,
       mainTextY + 14,
     );

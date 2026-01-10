@@ -983,6 +983,14 @@ function startRecapMusic() {
   playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: false });
 }
 
+function startVisitorMusic() {
+  if (!musicState.recap || !musicState.unlocked) return;
+  if (musicState.recapStarted && !musicState.recapStopped) return;
+  musicState.recapStarted = true;
+  musicState.recapStopped = false;
+  playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+}
+
 function stopRecapMusic() {
   if (!musicState.recap || musicState.recapStopped) return;
   musicState.recapStopped = true;
@@ -4659,7 +4667,7 @@ function showTitleDialog() {
     .join("");
   window.DialogOverlay.show({
     title: "Spiritual Warfare",
-    bodyHtml: `<div style="font-size:28px;letter-spacing:0.02em;margin:0 0 12px;color:rgba(234,246,255,0.92);">Smite the horde. Save your flock. Grow your church.</div><div class="title-menu">${buttonsHtml}</div>`,
+    bodyHtml: `<div style="font-size:28px;letter-spacing:0.02em;margin:0 0 12px;color:rgba(234,246,255,0.92);">Smite the hordes. Save your flock. Survive the year.</div><div class="title-menu">${buttonsHtml}</div>`,
     buttonText: "",
     variant: "title",
     devLabel: "",
@@ -9327,9 +9335,10 @@ function beginVisitorSession(options = {}) {
   spawnVisitorGuests(bounds);
   spawnVisitorBlockers(bounds);
   if (player) {
-    player.overrideWeaponMode = "heart";
     player.arrowCooldown = 0;
   }
+  stopBattleMusicFast();
+  startVisitorMusic();
   setDevStatus("Welcoming new visitors...", 3.2);
   return true;
 }
@@ -9374,8 +9383,9 @@ function endVisitorSession({ reason = "completed" } = {}) {
   visitorSession.recapShown = false;
   clearAllPowerUps();
   clearGracePickups();
-  if (player && player.overrideWeaponMode === "heart") {
-    player.overrideWeaponMode = null;
+  stopRecapMusic();
+  if (typeof window !== "undefined" && typeof window.resumeBattleMusicIfNeeded === "function") {
+    window.resumeBattleMusicIfNeeded();
   }
   if (reason !== "reset" && reason !== "devCancel") {
     const message =
@@ -10004,9 +10014,10 @@ function updateVisitorProjectiles(dt) {
       projectile.dead = true;
       return;
     }
-    if (projectile.type !== "heart" || projectile.dead) return;
+    if (projectile.dead) return;
     for (const entity of checkList) {
       if (!entity || entity.removed) continue;
+      if (projectile.hitEntities && projectile.hitEntities.has(entity)) continue;
       if (visitorSession.movementLock) {
         const activeChatty =
           entity.type === "blocker" &&
@@ -10019,9 +10030,12 @@ function updateVisitorProjectiles(dt) {
       const dx = entity.x - projectile.x;
       const dy = entity.y - projectile.y;
       if (Math.hypot(dx, dy) <= hitRadius) {
-        projectile.dead = true;
+        if (projectile.hitEntities) {
+          projectile.hitEntities.add(entity);
+        }
         applyHeartToEntity(entity, { flash: true });
-        break;
+        projectile.onHit(entity);
+        if (projectile.dead) break;
       }
     }
   });

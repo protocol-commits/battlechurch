@@ -726,25 +726,19 @@ class Player {
         this.updateFacing(norm.x, norm.y);
         // Optionally update reticle position here
 
-        // Visitor mini-game: fire hearts at visitors/chatty NPCs
-        const isVisitor = typeof visitorSession !== 'undefined' && Array.isArray(visitorSession.visitors) && visitorSession.visitors.includes(targetEntity);
-        const isChattyNPC = targetEntity.chatty === true;
-        if ((isVisitor || isChattyNPC) && this.heartCooldown <= 0) {
+        // Autofire using the player's current weapon, including during visitor sessions.
+        if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
+          this.tryAttack("arrow");
+        } else if (activeWeapon === "coin" && this.arrowCooldown <= 0) {
+          this.tryAttack("coin");
+        } else if (activeWeapon === "heart" && this.heartCooldown <= 0) {
           this.tryAttack("heart");
-          this.state = "attackArrow";
-          this.animator.play("attackArrow", { restart: true });
-          this.heartCooldown = this.config.arrowCooldown * 0.8; // match heart cooldown logic
-        } else {
-          // Regular autofire for enemies
-          if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
-            this.tryAttack("arrow");
-          } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
-            this.tryAttack("wisdom_missle");
-          } else if (activeWeapon === "faith_cannon" && this.magicCooldown <= 0) {
-            this.tryAttack("faith_cannon");
-          } else if (activeWeapon === "fire" && this.magicCooldown <= 0) {
-            this.tryAttack("fire");
-          }
+        } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
+          this.tryAttack("wisdom_missle");
+        } else if (activeWeapon === "faith_cannon" && this.magicCooldown <= 0) {
+          this.tryAttack("faith_cannon");
+        } else if (activeWeapon === "fire" && this.magicCooldown <= 0) {
+          this.tryAttack("fire");
         }
       } else if (moving) {
         // No target: face movement direction
