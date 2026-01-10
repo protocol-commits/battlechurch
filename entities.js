@@ -97,11 +97,17 @@
         offsetY: offsetY * scale,
       };
     };
+    const getHitboxRadius = (hitbox, fallback) => {
+      if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return fallback;
+      return Math.max(hitbox.width, hitbox.height) * 0.5;
+    };
     return Object.fromEntries(
       Object.entries(defs).map(([key, def]) => {
         const scale = (def.scale || 1) * worldScale;
         const baseRadius = def.baseRadius || 14;
-        const hitRadius = baseRadius * scale;
+        const hitbox = buildScaledHitbox(def, scale);
+        const baseHitRadius = baseRadius * scale;
+        const hitRadius = getHitboxRadius(hitbox, baseHitRadius);
         const attackRange = def.attackRange ?? hitRadius + (def.attackBonus ?? 30);
         const displayName = def.displayName || def.folder || key;
         const referenceHealth = 120;
@@ -145,7 +151,7 @@
             specialBehavior: def.specialBehavior || [],
             tintColor,
             tintIntensity,
-            hitbox: buildScaledHitbox(def, scale),
+            hitbox,
             swarmSpacing:
               typeof def.swarmSpacing === "number" ? def.swarmSpacing : undefined,
           },
@@ -1404,7 +1410,12 @@ class Player {
       this.attackTimer = 0;
       this.dead = false;
       this.scoreGranted = false;
-      this.radius = this.config.hitRadius;
+      const hitbox = this.config.hitbox || null;
+      if (hitbox && Number.isFinite(hitbox.width) && Number.isFinite(hitbox.height)) {
+        this.radius = Math.max(hitbox.width, hitbox.height) * 0.5;
+      } else {
+        this.radius = this.config.hitRadius;
+      }
       this.displayName = this.config.displayName || this.type;
       this.preferredTarget = this.config.preferredTarget || "player";
       this.touchCooldown = 0;
@@ -1880,7 +1891,7 @@ class Player {
         this.drawHealthBars();
       }
       if (this.state !== "death") {
-        const hitRadius = this.config?.hitRadius || 0;
+        const hitRadius = this.radius || 0;
         const labelY = drawY - (hitRadius > 0 ? hitRadius * 0.6 : 6);
         if (typeof window !== "undefined" && Array.isArray(window.__battlechurchEnemyHpLabels)) {
           const hpValue = Math.max(0, Math.round(this.health || 0));
@@ -1908,7 +1919,7 @@ class Player {
           const info = `hp:${Math.round(this.health || 0)}/${Math.round(this.maxHealth || 0)} dmg:${
             this.config?.damage || 0
           }`;
-          ctx.fillText(info, this.x - 28, this.y - (this.config?.hitRadius || 20) - 40);
+          ctx.fillText(info, this.x - 28, this.y - (this.radius || 20) - 40);
           ctx.strokeStyle = "rgba(255,255,255,0.12)";
           ctx.beginPath();
           ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -1919,10 +1930,10 @@ class Player {
     }
 
     drawHealthBars() {
-      const baseWidth = Math.min(110, Math.max(48, this.config.hitRadius * 1.4));
+      const baseWidth = Math.min(110, Math.max(48, (this.radius || 0) * 1.4));
       const rowHeight = 6;
       const gap = 2;
-      const baseY = this.y - this.config.hitRadius - 10;
+      const baseY = this.y - (this.radius || 0) - 10;
       let remaining = this.health;
       ctx.save();
       for (let row = 0; row < HEALTH_BAR_ROW_HITS.length && remaining > 0; row += 1) {

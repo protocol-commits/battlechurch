@@ -1681,8 +1681,9 @@ function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB
   const hits = [];
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
-    const hitRadius = enemy.config?.hitRadius || enemy.radius || 0;
-    const distance = Math.hypot(enemy.x - x, enemy.y - y);
+    const hitRadius = getEnemyHitboxRadius(enemy);
+    const center = getEnemyHitboxCenter(enemy);
+    const distance = Math.hypot(center.x - x, center.y - y);
     if (distance <= radius + hitRadius * 0.8) {
       enemy.takeDamage(damage);
       if (enemy.dead || enemy.state === "death" || (Number.isFinite(enemy.health) && enemy.health <= 0)) {
@@ -2955,13 +2956,18 @@ function applyHitboxChange(key, sourceHitbox) {
   }
   const scale = (def.scale || 1) * WORLD_SCALE;
   const scaled = buildScaledHitbox(def, scale);
+  const scaledRadius = getHitboxRadius(scaled, (def.baseRadius || 14) * scale);
   if (ENEMY_TYPES && ENEMY_TYPES[key]) {
     ENEMY_TYPES[key].hitbox = scaled;
+    ENEMY_TYPES[key].hitRadius = scaledRadius;
   }
   if (Array.isArray(enemies)) {
     enemies.forEach((enemy) => {
       if (enemy && enemy.type === key) {
         enemy.config.hitbox = scaled;
+        enemy.config.hitRadius = scaledRadius;
+        enemy.radius = scaledRadius;
+        enemy.safeTopMargin = Math.max(enemy.radius * 3.5, 100);
       }
     });
   }
@@ -3174,13 +3180,20 @@ function buildScaledHitbox(def, scale) {
   };
 }
 
+function getHitboxRadius(hitbox, fallback = 0) {
+  if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return fallback;
+  return Math.max(hitbox.width, hitbox.height) * 0.5;
+}
+
 function buildEnemyTypesFallback(defs) {
   if (!defs || typeof defs !== "object") return {};
   return Object.fromEntries(
     Object.entries(defs).map(([key, def]) => {
       const scale = def.scale * WORLD_SCALE;
       const baseRadius = def.baseRadius || 14;
-      const hitRadius = baseRadius * scale;
+      const hitbox = buildScaledHitbox(def, scale);
+      const baseHitRadius = baseRadius * scale;
+      const hitRadius = getHitboxRadius(hitbox, baseHitRadius);
       const attackRange = def.attackRange ?? hitRadius + (def.attackBonus ?? 30);
       const displayName = def.displayName || def.folder || key;
       return [
@@ -3201,7 +3214,7 @@ function buildEnemyTypesFallback(defs) {
           preferEdges: Boolean(def.preferEdges),
           desiredRange: def.desiredRange || attackRange,
           projectileCooldown: def.projectileCooldown || def.cooldown,
-          hitbox: buildScaledHitbox(def, scale),
+          hitbox,
         },
       ];
     }),
@@ -6077,10 +6090,11 @@ function applyEnemyTouchDamage(enemy) {
   if ((enemy.touchCooldown || 0) > 0) return;
 
   if (player && player.state !== "death") {
-    const dx = enemy.x - player.x;
-    const dy = enemy.y - player.y;
+    const center = getEnemyHitboxCenter(enemy);
+    const dx = center.x - player.x;
+    const dy = center.y - player.y;
     const distance = Math.hypot(dx, dy);
-    const threshold = enemy.radius + player.radius * 0.65;
+    const threshold = getEnemyHitboxRadius(enemy) + player.radius * 0.65;
     if (distance <= threshold) {
       if (player.invulnerableTimer > 0) {
         enemy.touchCooldown = Math.max(enemy.touchCooldown || 0, 0.35);
@@ -6099,10 +6113,11 @@ function applyEnemyTouchDamage(enemy) {
   if (Array.isArray(npcs) && npcs.length) {
     for (const npc of npcs) {
       if (!npc || npc.departed) continue;
-      const dx = enemy.x - npc.x;
-      const dy = enemy.y - npc.y;
+      const center = getEnemyHitboxCenter(enemy);
+      const dx = center.x - npc.x;
+      const dy = center.y - npc.y;
       const distance = Math.hypot(dx, dy);
-      const threshold = enemy.radius + (npc.radius || 24);
+      const threshold = getEnemyHitboxRadius(enemy) + (npc.radius || 24);
       if (distance <= threshold) {
         enemy.touchCooldown = 1.2;
         return;
@@ -6115,9 +6130,10 @@ function applyEnemyTouchDamage(enemy) {
 function applyShieldImpact(target) {
   if (!player || player.shieldTimer <= 0) return false;
   if (!target || target.dead || target.state === "death") return false;
-  const targetRadius = target.config?.hitRadius || target.radius || 30;
-  const dx = target.x - player.x;
-  const dy = target.y - player.y;
+  const targetRadius = getEnemyHitboxRadius(target) || target.radius || 30;
+  const center = getEnemyHitboxCenter(target);
+  const dx = center.x - player.x;
+  const dy = center.y - player.y;
   const distance = Math.hypot(dx, dy);
   const shieldReach = player.radius * 1.6 + targetRadius;
   if (distance > shieldReach) return false;
@@ -6160,8 +6176,9 @@ function detonateWisdomMissleProjectile(projectile) {
   const baseDamage = projectile.getDamage() * MAGIC_SPLASH_DAMAGE_MULTIPLIER;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
-    const distance = Math.hypot(enemy.x - centerX, enemy.y - centerY);
-    const threshold = radius + (enemy.config?.hitRadius || enemy.radius || 0) * 0.6;
+    const center = getEnemyHitboxCenter(enemy);
+    const distance = Math.hypot(center.x - centerX, center.y - centerY);
+    const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;
     if (distance <= threshold) {
       enemy.takeDamage(baseDamage);
     }
@@ -6196,8 +6213,9 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
   const splashDamage = projectile.getDamage() * FAITH_CANNON_SPLASH_DAMAGE_MULTIPLIER;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
-    const distance = Math.hypot(enemy.x - centerX, enemy.y - centerY);
-    const threshold = radius + (enemy.config?.hitRadius || enemy.radius || 0) * 0.6;
+    const center = getEnemyHitboxCenter(enemy);
+    const distance = Math.hypot(center.x - centerX, center.y - centerY);
+    const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;
     if (distance <= threshold) {
       enemy.takeDamage(splashDamage);
     }
@@ -6266,8 +6284,9 @@ function updateAimAssist() {
   let bestPriority = Infinity;
   let bestDistance = Infinity;
   candidates.forEach(({ entity, kind }) => {
-    const vx = entity.x - origin.x;
-    const vy = entity.y - origin.y;
+    const center = kind === "enemy" ? getEnemyHitboxCenter(entity) : { x: entity.x, y: entity.y };
+    const vx = center.x - origin.x;
+    const vy = center.y - origin.y;
     const distance = Math.hypot(vx, vy);
     if (!distance || distance > length) return;
     const cosAngle = (vx * forward.x + vy * forward.y) / distance;
@@ -6290,10 +6309,13 @@ function clampEntityToBounds(entity) {
   const radius = Math.max(entity.radius || 0, 0);
   if (entity?.spawnOffscreenTimer > 0) return;
   if (entity?.ignoreWorldBounds) return;
+  const offset = getEntityCollisionOffset(entity);
+  const centerX = (entity?.x || 0) + offset.x;
+  const centerY = (entity?.y || 0) + offset.y;
   const lateralMargin = Math.max(radius, 16);
   const verticalMargin = Math.max(radius, 16);
-  const clampedX = Math.max(lateralMargin, Math.min(canvas.width - lateralMargin, entity.x));
-  entity.x = clampedX;
+  const clampedX = Math.max(lateralMargin, Math.min(canvas.width - lateralMargin, centerX));
+  entity.x = clampedX - offset.x;
   // Reduce the default top padding so the playable area's upper boundary moves
   // up and the player can get closer to the HUD. Use a smaller radius-based
   // multiplier and a low absolute minimum to avoid clipping into HUD.
@@ -6306,7 +6328,8 @@ function clampEntityToBounds(entity) {
   // consistent top padding so entities don't clip into HUD elements.
   const topLimit = HUD_HEIGHT + topPadding;
   const bottomLimit = canvas.height - verticalMargin;
-  entity.y = Math.max(topLimit, Math.min(bottomLimit, entity.y));
+  const clampedY = Math.max(topLimit, Math.min(bottomLimit, centerY));
+  entity.y = clampedY - offset.y;
 }
 
 function resolveEntityObstacles(entity) {
@@ -6315,13 +6338,16 @@ function resolveEntityObstacles(entity) {
   if (entity?.ignoreObstacles) return;
   const hasStaticObstacles = obstacles.length > 0;
   if (!hasStaticObstacles) return;
+  const offset = getEntityCollisionOffset(entity);
   const maxIterations = 5;
   for (let iteration = 0; iteration < maxIterations; iteration += 1) {
     let adjusted = false;
     if (hasStaticObstacles) {
       for (const obstacle of obstacles) {
-        const dx = entity.x - obstacle.x;
-        const dy = entity.y - obstacle.y;
+        const centerX = (entity.x || 0) + offset.x;
+        const centerY = (entity.y || 0) + offset.y;
+        const dx = centerX - obstacle.x;
+        const dy = centerY - obstacle.y;
         const distance = Math.hypot(dx, dy);
         const minDistance = (entity.radius || 0) + obstacle.collisionRadius;
         if (distance < minDistance && minDistance > 0) {
@@ -6353,8 +6379,6 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
   if (!entity || entity?.spawnOffscreenTimer > 0) return;
   if (!entity || entity?.ignoreWorldBounds) return;
   if (entity?.ignoreEntityCollisions) return;
-  const isEnemyEntity = (ent) =>
-    Boolean(ent && !ent.isCozyNpc && !ent.isPlayer && typeof ent.type === "string");
   const hasMiniBehavior = (ent) => {
     if (!ent) return false;
     const behavior = Array.isArray(ent.config?.specialBehavior)
@@ -6401,12 +6425,14 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
       } else if (otherIsMiniImp && entityIsMini && !entityIsMiniImp) {
         continue;
       }
-      if (entityIsMini !== otherIsMini) {
-        continue;
-      }
+    if (entityIsMini !== otherIsMini) {
+      continue;
     }
-    const dx = entity.x - other.x;
-    const dy = entity.y - other.y;
+  }
+    const entityCenter = getEntityCollisionCenter(entity);
+    const otherCenter = getEntityCollisionCenter(other);
+    const dx = entityCenter.x - otherCenter.x;
+    const dy = entityCenter.y - otherCenter.y;
     const distance = Math.hypot(dx, dy);
     const baseRadius = (entity.radius || 0) + (other.radius || 0);
     let spacingFactor = 1;
@@ -6467,8 +6493,9 @@ function computeObstacleAvoidance(entity) {
   let steerY = 0;
   const applyObstacle = (ox, oy, radius) => {
     if (!radius || radius <= 0) return;
-    const dx = entity.x - ox;
-    const dy = entity.y - oy;
+    const center = getEntityCollisionCenter(entity);
+    const dx = center.x - ox;
+    const dy = center.y - oy;
     const distance = Math.hypot(dx, dy);
     if (distance === 0) return;
     const buffer = 12;
@@ -7985,6 +8012,37 @@ function getEnemyHitboxRadius(enemy) {
   return enemy.config?.hitRadius || enemy.radius || 0;
 }
 
+function getEnemyHitboxCenter(enemy) {
+  const hitbox = enemy?.config?.hitbox || null;
+  const offsetX = hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+  const offsetY = hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+  return {
+    x: (enemy?.x || 0) + offsetX,
+    y: (enemy?.y || 0) + offsetY,
+  };
+}
+
+function isEnemyEntity(ent) {
+  return Boolean(ent && !ent.isCozyNpc && !ent.isPlayer && typeof ent.type === "string");
+}
+
+function getEntityCollisionOffset(entity) {
+  if (!isEnemyEntity(entity)) return { x: 0, y: 0 };
+  const hitbox = entity?.config?.hitbox || null;
+  return {
+    x: hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0,
+    y: hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0,
+  };
+}
+
+function getEntityCollisionCenter(entity) {
+  const offset = getEntityCollisionOffset(entity);
+  return {
+    x: (entity?.x || 0) + offset.x,
+    y: (entity?.y || 0) + offset.y,
+  };
+}
+
 function getEnemyHitboxRect(enemy) {
   if (!enemy) return null;
   const hitbox = enemy.config?.hitbox || null;
@@ -7994,9 +8052,10 @@ function getEnemyHitboxRect(enemy) {
   if (width <= 0 || height <= 0) return null;
   const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
   const offsetY = Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+  const center = getEnemyHitboxCenter(enemy);
   return {
-    x: enemy.x + offsetX - width / 2,
-    y: enemy.y + offsetY - height / 2,
+    x: center.x - width / 2,
+    y: center.y - height / 2,
     width,
     height,
   };
@@ -8157,10 +8216,11 @@ class Projectile {
       const radius = Math.max(0, this.radius || 0);
       return circleIntersectsRect(this.x, this.y, radius, hitbox);
     }
-    const dx = enemy.x - this.x;
-    const dy = enemy.y - this.y;
+    const center = getEnemyHitboxCenter(enemy);
+    const dx = center.x - this.x;
+    const dy = center.y - this.y;
     const distance = Math.hypot(dx, dy);
-    const threshold = this.radius + (enemy.radius || enemy.config?.hitRadius || 0) * 0.6;
+    const threshold = this.radius + getEnemyHitboxRadius(enemy) * 0.6;
     return distance <= threshold;
   }
 
@@ -10302,10 +10362,11 @@ function updateCozyNpcs(dt) {
     for (const enemy of enemies) {
       if (!enemy || enemy.dead || enemy.state === "death") continue;
       if (enemy.type === "ghost") continue;
-      const dx = enemy.x - npcEntity.x;
-      const dy = enemy.y - npcEntity.y;
+      const center = getEnemyHitboxCenter(enemy);
+      const dx = center.x - npcEntity.x;
+      const dy = center.y - npcEntity.y;
       const distance = Math.hypot(dx, dy);
-      const overlapRadius = (enemy.radius || 0) + (npcEntity.radius || 0);
+      const overlapRadius = getEnemyHitboxRadius(enemy) + (npcEntity.radius || 0);
       if (distance > overlapRadius) continue;
       const enemyDamage = enemy.config?.damage ?? enemy.config?.attackDamage ?? 0;
       if (!enemyDamage) continue;
@@ -11455,10 +11516,11 @@ const DIVINE_SHOT_DAMAGE = 1200;
       for (const enemy of enemies) {
         if (!enemy || enemy.dead || enemy.state === "death") continue;
         if (meleeAttackState.rushHitEntities?.has(enemy)) continue;
-        const dx = enemy.x - player.x;
-        const dy = enemy.y - player.y;
+        const center = getEnemyHitboxCenter(enemy);
+        const dx = center.x - player.x;
+        const dy = center.y - player.y;
         const dist = Math.hypot(dx, dy);
-        const enemyRadius = enemy.config?.hitRadius || enemy.radius || 0;
+        const enemyRadius = getEnemyHitboxRadius(enemy);
         if (dist < RUSH_RADIUS + enemyRadius) {
           const canTakeDamage = typeof enemy.takeDamage === "function";
           if (canTakeDamage) {
@@ -11466,8 +11528,8 @@ const DIVINE_SHOT_DAMAGE = 1200;
           } else if (typeof enemy.health === "number") {
             enemy.health = Math.max(0, enemy.health - RUSH_DAMAGE);
           }
-          const pushDx = enemy.x - player.x;
-          const pushDy = enemy.y - player.y;
+          const pushDx = center.x - player.x;
+          const pushDy = center.y - player.y;
           const pushDist = Math.hypot(pushDx, pushDy) || 1;
           const pushNormX = pushDx / pushDist;
           const pushNormY = pushDy / pushDist;
@@ -11579,8 +11641,9 @@ const DIVINE_SHOT_DAMAGE = 1200;
         if (target._lastMeleeSwingId === meleeAttackState.swingId) return false;
         const prevHealth =
           typeof target.health === "number" ? target.health : null;
-        const relX = target.x - originX;
-        const relY = target.y - originY;
+        const targetPos = target.config || target.type ? getEnemyHitboxCenter(target) : { x: target.x, y: target.y };
+        const relX = targetPos.x - originX;
+        const relY = targetPos.y - originY;
         const forward = relX * normalized.x + relY * normalized.y;
         if (forward < 0 || forward > swingLength) return false;
         const perp = Math.abs(relX * perpDir.x + relY * perpDir.y);
@@ -11609,7 +11672,7 @@ const DIVINE_SHOT_DAMAGE = 1200;
             playSwordKillSfx(0.7);
           }
         }
-        spawnFlashEffect(target.x, target.y - allowance * 0.5);
+        spawnFlashEffect(targetPos.x, targetPos.y - allowance * 0.5);
         if (target.health > 0 && typeof target.takeDamage === "function") {
           target.x += normalized.x * MELEE_DAMAGE_KNOCKBACK;
           target.y += normalized.y * MELEE_DAMAGE_KNOCKBACK;
@@ -11830,8 +11893,9 @@ const DIVINE_SHOT_DAMAGE = 1200;
           spawnFlashEffect(hitX, hitY);
         }
         if (enemy.health > 0) {
-          const puffRadius = (enemy.config?.hitRadius || enemy.radius || 24) * 0.6;
-          spawnPuffEffect(enemy.x, enemy.y, puffRadius);
+          const puffRadius = Math.max(24, getEnemyHitboxRadius(enemy)) * 0.6;
+          const center = getEnemyHitboxCenter(enemy);
+          spawnPuffEffect(center.x, center.y, puffRadius);
         }
         projectile.onHit(enemy);
         if (projectile.dead) break;
