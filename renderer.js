@@ -2001,9 +2001,10 @@ function drawLevelAnnouncements() {
     const normalized = { x: dirVec.x / len, y: dirVec.y / len };
     const angle = Math.atan2(normalized.y, normalized.x);
     const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
+    const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
     const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
     const drawWidth = swooshImg.width * swingScale;
-    const drawHeight = swooshImg.height * swingScale;
+    const drawHeight = swooshImg.height * swingScale * arcScale;
     const offset = Math.max(player.radius * 0.25, drawHeight * 0.15);
     const originX = player.x - normalized.x * offset - cameraOffsetX + shakeX;
     const originY = player.y - normalized.y * offset - cameraOffsetY + shakeY;

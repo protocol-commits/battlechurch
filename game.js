@@ -11469,6 +11469,8 @@ const MELEE_DOUBLE_TAP_WINDOW = 0.18;
 const MELEE_HOLD_CHARGE_TIME = 1.5;
 const MELEE_BASE_DAMAGE = 50;
 const MELEE_SWING_LENGTH = 200;
+const MELEE_SWOOSH_DAMAGE_SCALE = 1.2;
+const MELEE_SWOOSH_ARC_SCALE = 1.5;
 const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
 const DASH_MELEE_WINDOW = 0.25;
 const MELEE_RUSH_LOCKOUT = 1.0;
@@ -11483,7 +11485,7 @@ const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
 const RUSH_INVULNERABILITY = 0.4;
 const DASH_DOUBLE_TAP_WINDOW = MELEE_DOUBLE_TAP_WINDOW;
 const MELEE_SWING_DURATION = 0.2;
-const DIVINE_SHOT_DAMAGE = 1200;
+const DIVINE_SHOT_DAMAGE = 1000;
   const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
   const DIVINE_SHOT_LIFE = 2.8;
   const DIVINE_SHOT_AUTO_AIM_DURATION = 1.6;
@@ -11532,15 +11534,24 @@ const DIVINE_SHOT_DAMAGE = 1200;
         const dustY = player.y - direction.y * 12;
         spawnImpactDustEffect(dustX, dustY + player.radius * 0.6, player.radius);
       }
+      const norm = normalizeVector(direction.x, direction.y);
+      const perp = { x: -norm.y, y: norm.x };
       for (const enemy of enemies) {
         if (!enemy || enemy.dead || enemy.state === "death") continue;
         if (meleeAttackState.rushHitEntities?.has(enemy)) continue;
         const center = getEnemyHitboxCenter(enemy);
         const dx = center.x - player.x;
         const dy = center.y - player.y;
-        const dist = Math.hypot(dx, dy);
         const enemyRadius = getEnemyHitboxRadius(enemy);
-        if (dist < RUSH_RADIUS + enemyRadius) {
+        const along = dx * norm.x + dy * norm.y;
+        const perpDist = Math.abs(dx * perp.x + dy * perp.y);
+        const alongRadius = RUSH_RADIUS + enemyRadius;
+        const perpRadius = RUSH_RADIUS * MELEE_SWOOSH_ARC_SCALE + enemyRadius;
+        const hit =
+          (along * along) / (alongRadius * alongRadius) +
+            (perpDist * perpDist) / (perpRadius * perpRadius) <=
+          1;
+        if (hit) {
           if (meleeAttackState.rushDamageEnabled) {
             const canTakeDamage = typeof enemy.takeDamage === "function";
             if (canTakeDamage) {
@@ -11659,6 +11670,8 @@ const DIVINE_SHOT_DAMAGE = 1200;
       const swingScale = targetLength / Math.max(1, baseWidth);
       const swingLength = baseWidth * swingScale;
       const swingHeight = baseHeight * swingScale;
+      const damageLength = swingLength * MELEE_SWOOSH_DAMAGE_SCALE;
+      const damageHeight = swingHeight * MELEE_SWOOSH_DAMAGE_SCALE * MELEE_SWOOSH_ARC_SCALE;
       const swingOffset = Math.max(player.radius * 0.25, swingHeight * 0.15);
       meleeAttackState.swingLength = swingLength;
       meleeAttackState.swingHeight = swingHeight;
@@ -11680,10 +11693,10 @@ const DIVINE_SHOT_DAMAGE = 1200;
         const relX = targetPos.x - originX;
         const relY = targetPos.y - originY;
         const forward = relX * normalized.x + relY * normalized.y;
-        if (forward < 0 || forward > swingLength) return false;
+        if (forward < 0 || forward > damageLength) return false;
         const perp = Math.abs(relX * perpDir.x + relY * perpDir.y);
         const allowance = allowanceRadius(target);
-        if (perp > swingHeight / 2 + allowance) return false;
+        if (perp > damageHeight / 2 + allowance) return false;
         const canTakeDamage = typeof target.takeDamage === "function";
         const meleeDamageText = {
           color: "#FFC86A",
@@ -11747,6 +11760,22 @@ const DIVINE_SHOT_DAMAGE = 1200;
       if (normalized.x === 0 && normalized.y === 0) return;
       const startX = player.x + normalized.x * player.radius * 1.4;
       const startY = player.y + normalized.y * player.radius * 1.4;
+      if (player && player.animator) {
+        player.updateFacing(normalized.x, normalized.y);
+        if (typeof player.applySwordSlashFrameMap === "function") {
+          player.applySwordSlashFrameMap();
+        }
+        player.state = "attackMelee";
+        player.animator.play("attackMelee", { restart: true });
+      }
+      const swooshImg = assets?.effects?.meleeSwoosh;
+      const baseSwooshScale = swooshImg
+        ? (MELEE_SWING_LENGTH * WORLD_SCALE) / Math.max(1, swooshImg.width)
+        : 0.4;
+      const swooshScale = baseSwooshScale * 1.6;
+      const swooshRadius = swooshImg
+        ? Math.max(32, swooshImg.height * swooshScale * 0.25)
+        : 56;
       if (typeof playDivineShotSfx === "function") {
         playDivineShotSfx(1.0);
       }
@@ -11755,9 +11784,12 @@ const DIVINE_SHOT_DAMAGE = 1200;
         speed: DIVINE_SHOT_SPEED * 1.25,
         life: DIVINE_SHOT_LIFE * 2,
         pierce: true,
-        radius: 56,
-        scale: 5.2,
+        radius: swooshRadius,
+        scale: swooshScale,
+        frames: swooshImg ? [swooshImg] : null,
+        frameDuration: 0.08,
         loopFrames: true,
+        flipHorizontal: normalized.x < 0,
         friendly: true,
         source: player,
         homingTarget: null,
