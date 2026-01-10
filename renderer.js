@@ -1608,15 +1608,16 @@ function drawLevelAnnouncements() {
       const zoomDuration = Math.max(0.001, TOWN_INTRO_ZOOM_DURATION || 0.5);
       const fadeDuration = Math.max(0.001, TOWN_INTRO_FADE_DURATION || 0.5);
       const zoomProgress = Math.min(1, Math.max(0, townIntroTransitionTimer / zoomDuration));
+      const fadeStart = zoomDuration * 0.4;
       const fadeProgress = Math.min(
         1,
-        Math.max(0, (townIntroTransitionTimer - zoomDuration) / fadeDuration),
+        Math.max(0, (townIntroTransitionTimer - fadeStart) / fadeDuration),
       );
       const easedZoom = zoomProgress * zoomProgress * (3 - 2 * zoomProgress);
       const easedFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
       const focusX = 0.7 + (0.75 - 0.7) * easedZoom;
       const focusY = 0.52 + (0.56 - 0.52) * easedZoom;
-      const scale = 1 + 0.25 * easedZoom;
+      const scale = 1 + 1.25 * easedZoom;
       if (fadeProgress <= 0) {
         ctx.save();
         ctx.fillStyle = "#0b111a";
