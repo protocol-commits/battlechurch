@@ -735,7 +735,7 @@ function drawLevelAnnouncements() {
       if (current && current.townIntro && assets?.backgrounds?.townIntro) {
         const img = assets.backgrounds.townIntro;
         ctx.save();
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        drawCoverImage(ctx, canvas, img, 1, 0.5, 0.5);
         ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
