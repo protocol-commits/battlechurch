@@ -11223,6 +11223,25 @@ function updateGame(dt) {
       }
       return;
     }
+    if (currentAnnouncement.townIntro) {
+      const clickPos = Input.consumeCanvasClick?.();
+      const buttonBounds = typeof window !== "undefined" ? window.__townIntroPlayButtonBounds : null;
+      if (clickPos && buttonBounds) {
+        const inside =
+          clickPos.x >= buttonBounds.x &&
+          clickPos.x <= buttonBounds.x + buttonBounds.width &&
+          clickPos.y >= buttonBounds.y &&
+          clickPos.y <= buttonBounds.y + buttonBounds.height;
+        if (inside) {
+          dismissCurrentLevelAnnouncement();
+          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+            window.playMenuAdvanceSfx(0.55);
+          }
+          keysJustPressed.delete(" ");
+          return;
+        }
+      }
+    }
     if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
       dismissCurrentLevelAnnouncement();
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {

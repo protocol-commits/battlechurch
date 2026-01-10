@@ -1588,10 +1588,28 @@ function drawLevelAnnouncements() {
       drawBackground(effectiveCameraX, 0);
       drawLevelAnnouncements();
       ctx.save();
-      ctx.font = `18px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "rgba(230, 238, 255, 0.92)";
+      const buttonText = "Play (Space)";
+      const buttonWidth = Math.min(240, canvas.width * 0.5);
+      const buttonHeight = 50;
+      const buttonX = Math.max(24, canvas.width - buttonWidth - 40);
+      const buttonY = Math.max(24, canvas.height - buttonHeight - 40);
+      if (typeof window !== "undefined") {
+        window.__townIntroPlayButtonBounds = {
+          x: buttonX,
+          y: buttonY,
+          width: buttonWidth,
+          height: buttonHeight,
+        };
+      }
+      ctx.fillStyle = "#9BD9FF";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
-      ctx.fillText("Continue (Space)", canvas.width / 2, canvas.height - 40);
+      ctx.font = `18px ${UI_FONT_FAMILY}`;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
       ctx.restore();
       return;
     }
