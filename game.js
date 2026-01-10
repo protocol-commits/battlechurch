@@ -80,6 +80,10 @@ let divineChargeSparkEffect = null;
 let backgroundImage = null;
 let pendingTownIntroStart = false;
 let townIntroDismissedAt = 0;
+const TOWN_INTRO_ZOOM_DURATION = 0.5;
+const TOWN_INTRO_FADE_DURATION = 0.5;
+let townIntroTransitionActive = false;
+let townIntroTransitionTimer = 0;
 let suppressInitialAnnouncements = false;
 const levelAnnouncements = [];
 let levelManager = null;
@@ -2467,6 +2471,10 @@ Renderer.initialize({
   get prayerBombScreenFadeTimer() { return prayerBombScreenFadeTimer; },
   get prayerBombScreenFadeDuration() { return prayerBombScreenFadeDuration; },
   get prayerBombScreenDarkenAlpha() { return PRAYER_BOMB_SCREEN_DARKEN_ALPHA; },
+  get townIntroTransitionActive() { return townIntroTransitionActive; },
+  get townIntroTransitionTimer() { return townIntroTransitionTimer; },
+  TOWN_INTRO_ZOOM_DURATION,
+  TOWN_INTRO_FADE_DURATION,
 });
 function bootInputAndResize() {
   resizeCanvas();
@@ -4853,6 +4861,13 @@ function queueTownIntroAnnouncement() {
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
 
+function startTownIntroTransition() {
+  if (townIntroTransitionActive) return;
+  townIntroTransitionActive = true;
+  townIntroTransitionTimer = 0;
+  dismissCurrentLevelAnnouncement();
+}
+
 function queueInitialMonthAnnouncementFromCongregation() {
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const levelNumber = status?.level || 1;
@@ -4874,6 +4889,8 @@ function startGameFromTitle() {
   paused = true;
   needsCountdown = false;
   gameStarted = false;
+  townIntroTransitionActive = false;
+  townIntroTransitionTimer = 0;
   resetYearNpcPool();
   startIntroMusic();
   if (window.StatsManager) window.StatsManager.resetStats();
@@ -10898,6 +10915,22 @@ function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
   updatePrayerBombFireRain(dt);
+  if (townIntroTransitionActive) {
+    townIntroTransitionTimer = Math.min(
+      TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION,
+      townIntroTransitionTimer + dt,
+    );
+    if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
+      townIntroTransitionTimer = TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION;
+    }
+    if (townIntroTransitionTimer >= TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION) {
+      townIntroTransitionActive = false;
+    }
+    keysJustPressed.delete(" ");
+    keysJustPressed.delete("pause");
+    keysJustPressed.delete("restart");
+    return;
+  }
   if (player) {
     const target = player.state === "death" ? PLAYER_DEATH_FADE_TARGET : 0;
     const step = Math.min(1, dt * PLAYER_DEATH_FADE_SPEED);
@@ -11233,7 +11266,7 @@ function updateGame(dt) {
           clickPos.y >= buttonBounds.y &&
           clickPos.y <= buttonBounds.y + buttonBounds.height;
         if (inside) {
-          dismissCurrentLevelAnnouncement();
+          startTownIntroTransition();
           if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
             window.playMenuAdvanceSfx(0.55);
           }
@@ -11243,7 +11276,11 @@ function updateGame(dt) {
       }
     }
     if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-      dismissCurrentLevelAnnouncement();
+      if (currentAnnouncement.townIntro) {
+        startTownIntroTransition();
+      } else {
+        dismissCurrentLevelAnnouncement();
+      }
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
       }
