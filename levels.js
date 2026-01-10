@@ -14,8 +14,13 @@
 
 
   // New hierarchy: LEVELS -> MONTHS -> BATTLES -> HORDES
-  const LEVELS_PER_GAME = 4;
-  const MONTHS_PER_LEVEL = 3;
+  const LEVELS_PER_GAME = Number.isFinite(levelData?.structure?.levels)
+    ? levelData.structure.levels
+    : 4;
+  const MONTHS_PER_LEVEL = Number.isFinite(levelData?.structure?.monthsPerLevel)
+    ? levelData.structure.monthsPerLevel
+    : 3;
+  const BATTLE_MONTHS_PER_LEVEL = Math.max(1, MONTHS_PER_LEVEL - 1);
   const BATTLES_PER_MONTH = 3;
   const HORDES_PER_BATTLE =
     levelData?.structure?.defaultHordesPerBattle || 24;
@@ -57,6 +62,10 @@
   const fallbackRandomInRange = (min, max) => min + Math.random() * (max - min);
   const setTimeoutFn =
     typeof window.setTimeout === "function" ? window.setTimeout.bind(window) : null;
+  if (typeof window !== "undefined") {
+    window.MONTHS_PER_LEVEL = MONTHS_PER_LEVEL;
+    window.LEVELS_PER_GAME = LEVELS_PER_GAME;
+  }
 
   function getDevConfig() {
     if (levelData && typeof levelData === "object" && Object.keys(levelData).length) {
@@ -419,7 +428,7 @@
 
   function buildLevelDefinition(levelNumber, helpers) {
     const battles = [];
-    for (let battleIndex = 0; battleIndex < MONTHS_PER_LEVEL; battleIndex += 1) {
+    for (let battleIndex = 0; battleIndex < BATTLE_MONTHS_PER_LEVEL; battleIndex += 1) {
       const hordes = [];
       const hordeCount = resolveHordeCount(
         levelNumber,
@@ -514,6 +523,7 @@
       npcRushActive: false,
       npcRushTimer: 0,
       powerUpsEnabled: false,
+      lastClearedWasBoss: false,
     };
 
     function resetStage(stage, duration = 0) {
@@ -583,7 +593,8 @@
       state.visitorResumeAction = null;
       state.graceRushContext = null;
       state.pendingBossRestore = false;
-  // Compute global month number so Level 2 shows Apr/May/Jun etc.
+      state.lastClearedWasBoss = false;
+  // Compute global month number so Level 2 shows May/Jun/Jul etc.
   const globalMonthNumberForLevelStart = (levelNumber - 1) * MONTHS_PER_LEVEL + 1;
   const monthName = getMonthName(globalMonthNumberForLevelStart);
   // For levels beyond the first, skip the level-intro overlay and start the next battle immediately.
@@ -1156,6 +1167,7 @@
     function onBossDefeated() {
       clearStagePowerUps();
       state.boss = null;
+      state.lastClearedWasBoss = true;
       setDevStatus("Boss defeated", 3.5);
       beginBossGraceRush();
     }
@@ -1196,7 +1208,9 @@
       const scoreValue =
         typeof getScore === "function" ? Number(getScore()) || 0 : state.stats.enemiesDefeated;
       const summarySubtitle = `Score ${scoreValue.toFixed(0)} • Enemies ${state.stats.enemiesDefeated} • NPCs saved ${state.stats.npcsRescued}`;
-  const localMonthNumberForStatus = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+  const localMonthNumberForStatus = state.lastClearedWasBoss
+    ? MONTHS_PER_LEVEL
+    : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
   const summaryMonthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumberForStatus);
   console.info && console.info('queueAnnouncement', { title: `Level ${state.level} — ${summaryMonthName} Cleared`, level: state.level, monthIndex: state.monthIndex, monthName: summaryMonthName });
       queueLevelAnnouncement(
@@ -1210,6 +1224,7 @@
       resetStage("levelSummary", LEVEL_SUMMARY_DURATION);
       setDevStatus(`Level ${state.level} cleared`, LEVEL_SUMMARY_DURATION);
       state.currentBossTheme = "";
+      state.lastClearedWasBoss = false;
       if (state.pendingBossRestore) {
         restoreNpcsAfterBoss();
         state.pendingBossRestore = false;
@@ -1239,6 +1254,7 @@ state.battleIndex = -1;
         state.pendingBossRestore = false;
         state.npcRushActive = false;
         state.npcRushTimer = 0;
+        state.lastClearedWasBoss = false;
       },
       update(dt) {
         if (!state.active) return;
@@ -1333,7 +1349,7 @@ state.battleIndex = -1;
                 return;
               }
             }
-            if (state.monthIndex + 1 >= MONTHS_PER_LEVEL) {
+            if (state.monthIndex + 1 >= BATTLE_MONTHS_PER_LEVEL) {
               beginBossIntro();
             } else {
               beginBattle();
@@ -1395,7 +1411,12 @@ state.battleIndex = -1;
           case "levelSummary":
             state.timer -= dt;
             if (state.timer <= 0) {
-              beginLevel(state.level + 1);
+              if (state.level >= LEVELS_PER_GAME) {
+                resetStage("idle", 0);
+                state.active = false;
+              } else {
+                beginLevel(state.level + 1);
+              }
             }
             break;
           default:
@@ -1462,20 +1483,28 @@ state.battleIndex = -1;
         return state.stage === "bossIntro" || state.stage === "bossActive";
       },
       getStatus() {
-      const battleNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 0;
-      const hordeNumber = state.battleIndex >= 0 ? state.battleIndex + 1 : 0;
-      const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
-      const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
-      return {
-        level: state.level || 1,
-        month: getMonthName(globalMonthNumber),
-        battle: battleNumber,
-        horde: hordeNumber,
-        stage: state.stage,
-        bossPhase: state.boss?.phase || 0,
-        battleScenario: state.currentBattleScenario,
-        bossTheme: state.currentBossTheme,
-      };
+        const isBossStage =
+          state.stage === "bossIntro" ||
+          state.stage === "bossActive" ||
+          state.graceRushContext === "boss";
+        const battleNumber = isBossStage
+          ? MONTHS_PER_LEVEL
+          : (state.monthIndex >= 0 ? state.monthIndex + 1 : 0);
+        const hordeNumber = state.battleIndex >= 0 ? state.battleIndex + 1 : 0;
+        const localMonthNumber = isBossStage
+          ? MONTHS_PER_LEVEL
+          : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
+        const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
+        return {
+          level: state.level || 1,
+          month: getMonthName(globalMonthNumber),
+          battle: battleNumber,
+          horde: hordeNumber,
+          stage: state.stage,
+          bossPhase: state.boss?.phase || 0,
+          battleScenario: state.currentBattleScenario,
+          bossTheme: state.currentBossTheme,
+        };
       },
       getCurrentHorde() {
         return currentHorde();
@@ -1561,14 +1590,14 @@ state.battleIndex = -1;
         }
         if (state.stage === "levelIntro" && state.waitingForCongregation) {
           state.waitingForCongregation = false;
-          state.battleIndex = MONTHS_PER_LEVEL - 1;
+          state.battleIndex = BATTLE_MONTHS_PER_LEVEL - 1;
           beginBossIntro();
           state.timer = 0;
           return true;
         }
         if (state.stage === "battleIntermission" || state.stage === "hordeCleared") {
           devClearOpponents();
-          state.battleIndex = MONTHS_PER_LEVEL - 1;
+          state.battleIndex = BATTLE_MONTHS_PER_LEVEL - 1;
           state.battleIndex = getBattleHordeCount(currentBattle()) - 1; // set last horde index
           state.activeHorde = null;
           beginBossIntro();
@@ -1576,7 +1605,7 @@ state.battleIndex = -1;
           return true;
         }
         devClearOpponents();
-        state.battleIndex = MONTHS_PER_LEVEL - 1;
+        state.battleIndex = BATTLE_MONTHS_PER_LEVEL - 1;
         state.battleIndex = getBattleHordeCount(currentBattle()) - 1; // fallback assignment
         state.activeHorde = null;
         handleBattleComplete();
@@ -1602,7 +1631,7 @@ state.battleIndex = -1;
           return true;
         }
         devClearOpponents({ includeBoss: true });
-        state.monthIndex = MONTHS_PER_LEVEL - 1;
+        state.monthIndex = BATTLE_MONTHS_PER_LEVEL - 1;
         state.battleIndex = getBattleHordeCount(currentBattle()) - 1;
         beginBossIntro();
         state.timer = 0;

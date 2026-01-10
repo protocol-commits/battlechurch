@@ -1273,7 +1273,7 @@ visitorSession.activeChatty = new Set();
 visitorSession.lockingBlockers = new Set();
 visitorSession.movementLock = false;
 
-// Track per-season congregation changes (3-month blocks)
+// Track per-season congregation changes (4-month blocks)
 const seasonStats = {
   seasonNumber: 1,
   monthlyAdded: 0, // sum of member deltas from monthly recaps
@@ -5073,7 +5073,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     ? summary.lostNames.filter(Boolean)
     : [];
   const levelNumber = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
-  const currentSeasonNumber = levelNumber; // one season per level (3 months each)
+  const currentSeasonNumber = levelNumber; // one season per level (4 months each)
   if (seasonStats.seasonNumber !== currentSeasonNumber) {
     seasonStats.seasonNumber = currentSeasonNumber;
     seasonStats.monthlyAdded = 0;

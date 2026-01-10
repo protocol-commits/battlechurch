@@ -4,8 +4,8 @@ window.BattlechurchLevelData = {
     "version": 1
   },
   "structure": {
-    "levels": 4,
-    "monthsPerLevel": 3,
+    "levels": 3,
+    "monthsPerLevel": 4,
     "battlesPerMonth": 3,
     "defaultHordesPerBattle": 24,
     "defaultHordeDuration": 4
