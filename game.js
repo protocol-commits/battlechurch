@@ -5084,8 +5084,15 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     seasonStats.visitorAdded = 0;
     seasonStats.startCongregation = getCongregationSize();
   }
+  const monthLabelFromAnnouncement = (() => {
+    const titleText = String(announcement?.title || "");
+    const match = titleText.match(/—\s*([^]+?)\s*Cleared/i);
+    return match && match[1] ? match[1].trim() : null;
+  })();
   const monthLabel =
-    (levelManager?.getStatus?.() && levelManager.getStatus().month) || "This Month";
+    monthLabelFromAnnouncement ||
+    (levelManager?.getStatus?.() && levelManager.getStatus().month) ||
+    "This Month";
   const localMonthNumber = status?.battle || 1; // battle is 1-based month within the level
   const stage = status?.stage || "";
   const memberDelta = (() => {
