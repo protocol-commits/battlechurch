@@ -1589,6 +1589,7 @@ function drawLevelAnnouncements() {
       return;
     }
     const townIntroActive = Boolean(levelAnnouncements?.[0]?.townIntro);
+    let townIntroOverlay = null;
     sharedShakeOffset.x = 0;
     sharedShakeOffset.y = 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1616,24 +1617,22 @@ function drawLevelAnnouncements() {
       const focusX = 0.7 + (0.75 - 0.7) * easedZoom;
       const focusY = 0.52 + (0.56 - 0.52) * easedZoom;
       const scale = 1 + 0.25 * easedZoom;
-      ctx.save();
-      ctx.fillStyle = "#0b111a";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawCoverImage(ctx, canvas, img, scale, focusX, focusY);
-      ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-      if (fadeProgress > 0) {
+      if (fadeProgress <= 0) {
         ctx.save();
-        ctx.globalAlpha = easedFade;
-        const effectiveCameraX = resolveCameraX();
-        drawBackground(effectiveCameraX, 0);
-        if (levelStatus?.stage === "levelIntro") {
-          drawCongregationScene(levelStatus);
-        }
+        ctx.fillStyle = "#0b111a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawCoverImage(ctx, canvas, img, scale, focusX, focusY);
+        ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
+        return;
       }
-      return;
+      townIntroOverlay = {
+        alpha: Math.max(0, Math.min(1, 1 - easedFade)),
+        focusX,
+        focusY,
+        scale,
+      };
     }
     if (townIntroActive) {
       const effectiveCameraX = resolveCameraX();
@@ -2075,6 +2074,17 @@ function drawLevelAnnouncements() {
     }
     drawMeleeSwingOverlay(ctx, player);
     // Effects are drawn earlier in the world pass so the player stays on top.
+    if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
+      ctx.save();
+      ctx.globalAlpha = townIntroOverlay.alpha;
+      ctx.fillStyle = "#0b111a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const img = assets?.backgrounds?.townIntro || null;
+      drawCoverImage(ctx, canvas, img, townIntroOverlay.scale, townIntroOverlay.focusX, townIntroOverlay.focusY);
+      ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
 
   }
 

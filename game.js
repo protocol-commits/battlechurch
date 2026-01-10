@@ -81,7 +81,7 @@ let backgroundImage = null;
 let pendingTownIntroStart = false;
 let townIntroDismissedAt = 0;
 const TOWN_INTRO_ZOOM_DURATION = 0.5;
-const TOWN_INTRO_FADE_DURATION = 0.5;
+const TOWN_INTRO_FADE_DURATION = 2.0;
 let townIntroTransitionActive = false;
 let townIntroTransitionTimer = 0;
 let suppressInitialAnnouncements = false;
@@ -10926,6 +10926,19 @@ function updateGame(dt) {
     if (townIntroTransitionTimer >= TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION) {
       townIntroTransitionActive = false;
     }
+    try {
+      const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+      if (status?.stage === "levelIntro") {
+        if (!powerUpsClearedForCongregation) {
+          clearAllPowerUps();
+          powerUpsClearedForCongregation = true;
+        }
+        updateCongregationMembers(dt);
+        resolveCongregationMemberCollisions();
+        updatePlayerDuringCongregation(dt);
+        resolveCongregationCollisions();
+      }
+    } catch (e) {}
     keysJustPressed.delete(" ");
     keysJustPressed.delete("pause");
     keysJustPressed.delete("restart");
