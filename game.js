@@ -2516,6 +2516,7 @@ Renderer.initialize({
   get epilogueTitle() { return epilogueTitle; },
   get epilogueText() { return epilogueText; },
   get epilogueBackgroundKey() { return epilogueBackgroundKey; },
+  get speedrunTimer() { return speedrunTimer; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
@@ -4965,6 +4966,7 @@ function startGameFromTitle() {
   gameStarted = false;
   townIntroTransitionActive = false;
   townIntroTransitionTimer = 0;
+  startSpeedrunTimer();
   resetYearNpcPool();
   startIntroMusic();
   if (window.StatsManager) window.StatsManager.resetStats();
@@ -5097,6 +5099,41 @@ let epilogueActive = false;
 let epilogueTitle = "Epilogue";
 let epilogueText = "";
 let epilogueBackgroundKey = "epilogue";
+const speedrunTimer = {
+  visible: true,
+  running: false,
+  startTime: null,
+  sectionStart: null,
+  currentSection: null,
+  totalElapsed: 0,
+  sectionElapsed: 0,
+  splits: [],
+};
+
+function getSpeedrunSectionName(levelStatus) {
+  const stage = levelStatus?.stage;
+  if (
+    pendingTownIntroStart ||
+    townIntroTransitionActive ||
+    levelAnnouncements[0]?.townIntro ||
+    stage === "briefing" ||
+    stage === "levelIntro"
+  ) {
+    return "Intro";
+  }
+  return levelStatus?.month || "Unknown";
+}
+
+function startSpeedrunTimer() {
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  speedrunTimer.running = true;
+  speedrunTimer.startTime = now;
+  speedrunTimer.sectionStart = now;
+  speedrunTimer.currentSection = "Intro";
+  speedrunTimer.totalElapsed = 0;
+  speedrunTimer.sectionElapsed = 0;
+  speedrunTimer.splits = [];
+}
 
 function startMissionTypewriter(overlay, text, msPerChar = 18) {
   if (!overlay) return;
@@ -10704,6 +10741,10 @@ function handleDeveloperHotkeys() {
       setDevStatus("Grace rush engaged", 2.0);
     }
   }
+  if (keysJustPressed.has("t")) {
+    speedrunTimer.visible = !speedrunTimer.visible;
+    setDevStatus(speedrunTimer.visible ? "Timer shown" : "Timer hidden", 2.0);
+  }
   if (keysJustPressed.has("c")) {
     adjustCongregationSize(5);
     setDevStatus("Congregation +5", 2.0);
@@ -10863,44 +10904,6 @@ function handleDeveloperHotkeys() {
     }
   }
 
-  // Hotkey: typed frames fallback (press 'f')
-  if (keysJustPressed.has("t")) {
-    const inspectorTargets = getDevInspectorTargets();
-    if (!inspectorTargets.length) {
-      setDevStatus('No inspector sprites loaded', 1.6);
-    } else {
-      const target = inspectorTargets[devInspectorIndex % inspectorTargets.length];
-      const stateList = ensureInspectorState(target);
-      const key = target.key;
-      const defaultState = stateList[0] || 'walk';
-      const targetState = devInspectorFlowActive
-        ? (stateList[devInspectorCurrentStateIndex] || defaultState)
-        : (devInspectorSelectedState || defaultState);
-      // show in-canvas input UI for frames (less intrusive than window.prompt)
-      showFrameEntryUI(key, targetState, (raw) => {
-        if (raw === null) {
-          setDevStatus('Frame entry cancelled', 1.2);
-          return;
-        }
-        const frames = parseFrameList(raw);
-        if (frames.length) {
-          devInspectorOverrides[key] = devInspectorOverrides[key] || {};
-          devInspectorOverrides[key][targetState] = { frames: frames.map((i) => i - 1) };
-          const reloadPromise = target.kind === 'weapon'
-            ? reloadProjectileClipForKey(key)
-            : reloadEnemyClipsForKey(key);
-          reloadPromise.then(() => {
-            markOverridesDirty();
-            setDevStatus(`Set ${targetState} frames: [${frames.join(',')}] for ${target.label || key}`, 2.6);
-          }).catch(() => {
-            setDevStatus('Failed to reload sprite after frame change', 2.6);
-          });
-        } else {
-          setDevStatus('No valid frames parsed', 1.6);
-        }
-      });
-    }
-  }
 }
 
 function isAnyDialogActive() {
@@ -11203,6 +11206,25 @@ function updateGame(dt) {
 
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   let stage = levelStatus?.stage;
+  if (speedrunTimer.running) {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const currentSection = getSpeedrunSectionName(levelStatus);
+    if (speedrunTimer.startTime == null) {
+      speedrunTimer.startTime = now;
+      speedrunTimer.sectionStart = now;
+      speedrunTimer.currentSection = currentSection;
+      speedrunTimer.splits = [];
+    } else if (speedrunTimer.currentSection !== currentSection && currentSection) {
+      const duration = Math.max(0, now - (speedrunTimer.sectionStart || now));
+      speedrunTimer.splits.push({ name: speedrunTimer.currentSection, duration });
+      speedrunTimer.sectionStart = now;
+      speedrunTimer.currentSection = currentSection;
+    }
+    if (speedrunTimer.startTime != null) {
+      speedrunTimer.totalElapsed = Math.max(0, now - speedrunTimer.startTime);
+      speedrunTimer.sectionElapsed = Math.max(0, now - (speedrunTimer.sectionStart || now));
+    }
+  }
   if (playerDeathBellActive) {
     pauseAllMusic();
   } else {
@@ -12925,6 +12947,13 @@ function restartGame() {
   titleScreenActive = true;
   paused = true;
   gameStarted = false;
+  speedrunTimer.running = false;
+  speedrunTimer.startTime = null;
+  speedrunTimer.sectionStart = null;
+  speedrunTimer.currentSection = null;
+  speedrunTimer.totalElapsed = 0;
+  speedrunTimer.sectionElapsed = 0;
+  speedrunTimer.splits = [];
 }
 
 function gameLoop(timestamp) {

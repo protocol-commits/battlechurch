@@ -1271,7 +1271,6 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
           "0: Reset zoom",
           "R: Reset overrides",
           "Enter: Cycle state / confirm pick",
-          "T: Type frame list",
           "S: Show overrides (silent)",
         ],
       },
@@ -2205,6 +2204,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       drawCongregationScene(levelStatus);
     }
     drawMeleeSwingOverlay(ctx, player);
+    drawSpeedrunTimer();
     // Effects are drawn earlier in the world pass so the player stays on top.
     if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
       ctx.save();
@@ -2276,6 +2276,40 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         frontWidth,
         frontHeight,
       );
+    }
+    ctx.restore();
+  }
+
+  function drawSpeedrunTimer() {
+    const { ctx, canvas, speedrunTimer } = requireBindings();
+    if (!ctx || !canvas || !speedrunTimer || !speedrunTimer.visible) return;
+    const formatTime = (ms) => {
+      const total = Math.max(0, Math.floor(ms / 1000));
+      const minutes = Math.floor(total / 60);
+      const seconds = total % 60;
+      return `${minutes}:${String(seconds).padStart(2, "0")}`;
+    };
+    const lines = [];
+    lines.push(`Total: ${formatTime(speedrunTimer.totalElapsed || 0)}`);
+    const sectionName = speedrunTimer.currentSection || "Section";
+    lines.push(`${sectionName}: ${formatTime(speedrunTimer.sectionElapsed || 0)}`);
+    const recent = Array.isArray(speedrunTimer.splits) ? speedrunTimer.splits.slice(-3) : [];
+    recent.forEach((split) => {
+      if (!split || !split.name) return;
+      lines.push(`${split.name} ${formatTime(split.duration || 0)}`);
+    });
+    ctx.save();
+    ctx.font = "10px 'Orbitron', sans-serif";
+    ctx.fillStyle = "rgba(234, 246, 255, 0.8)";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "bottom";
+    const lineHeight = 12;
+    const padding = 10;
+    let y = canvas.height - padding;
+    for (let i = 0; i < lines.length; i += 1) {
+      const line = lines[i];
+      ctx.fillText(line, canvas.width - padding, y);
+      y -= lineHeight;
     }
     ctx.restore();
   }

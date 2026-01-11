@@ -578,74 +578,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    },
-                    {
-                      "enemy": "miniClawedDemon",
-                      "count": 10
-                    },
-                    {
-                      "enemy": "miniHighDemon",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -1148,66 +1080,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 51
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 51
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 51
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -1709,66 +1581,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 53
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 53
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 53
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -2277,66 +2089,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 54
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 54
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 54
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -2839,66 +2591,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 56
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 56
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 56
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -3400,66 +3092,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 57
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 57
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 57
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -3968,66 +3600,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 59
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 59
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 59
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -4530,66 +4102,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 61
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 61
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 61
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -5091,66 +4603,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 63
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 63
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 63
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -5664,66 +5116,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 65
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 65
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 65
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -6226,66 +5618,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 67
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 67
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 67
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -6787,66 +6119,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 69
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 69
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 69
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -7355,66 +6627,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 71
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 71
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 71
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -7917,66 +7129,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 73
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 73
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 73
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -8478,66 +7630,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 75
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 75
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 75
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -9046,66 +8138,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 77
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 77
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 77
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -9608,66 +8640,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 80
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 80
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 80
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -10169,66 +9141,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 82
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 82
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 82
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -10742,66 +9654,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 85
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 85
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 85
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -11304,66 +10156,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 87
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 87
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 87
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -11865,66 +10657,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 90
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 90
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 90
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -12433,66 +11165,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 93
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 93
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 93
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -12995,66 +11667,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 95
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 95
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 95
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -13556,66 +12168,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 98
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 98
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 98
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -14124,66 +12676,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 101
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 101
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 101
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -14686,66 +13178,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 104
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 104
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 104
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -15247,66 +13679,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 107
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 107
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 107
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -15820,66 +14192,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 111
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 111
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 111
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -16382,66 +14694,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 114
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 114
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 114
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -16943,66 +15195,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 117
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 117
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 117
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -17511,66 +15703,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 121
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 121
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 121
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -18073,66 +16205,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 125
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 125
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 125
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -18634,66 +16706,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 128
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 128
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 128
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
@@ -19202,66 +17214,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 132
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 132
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 132
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -19764,66 +17716,6 @@ window.BattlechurchLevelData = {
                   "delaysExplicit": {},
                   "allKill": false,
                   "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 136
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 136
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 136
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
-                  "duration": 4
                 }
               ],
               "hordesPerBattle": 21
@@ -20325,66 +18217,6 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 22,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 140
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 23,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 140
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": false,
-                  "duration": 4
-                },
-                {
-                  "index": 24,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 140
-                    },
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 2
-                    }
-                  ],
-                  "mode": "explicit",
-                  "weights": {},
-                  "delays": {},
-                  "delaysWeighted": {},
-                  "delaysExplicit": {},
-                  "allKill": true,
                   "duration": 4
                 }
               ],
