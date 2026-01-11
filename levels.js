@@ -23,7 +23,7 @@
   const BATTLE_MONTHS_PER_LEVEL = Math.max(1, MONTHS_PER_LEVEL - 1);
   const BATTLES_PER_MONTH = 3;
   const HORDES_PER_BATTLE =
-    levelData?.structure?.defaultHordesPerBattle || 24;
+    levelData?.structure?.defaultHordesPerBattle || 21;
   const BETWEEN_BATTLE_PAUSE = 3;
   const BETWEEN_HORDE_PAUSE = 2.3;
   const LEVEL_INTRO_DURATION = 2.6;
