@@ -571,6 +571,7 @@
     }
 
     function beginLevel(levelNumber, options = {}) {
+      const totalEnemiesDefeated = state.stats?.enemiesDefeated || 0;
       state.level = levelNumber;
       state.monthIndex = -1;
       state.battleIndex = -1;
@@ -578,7 +579,7 @@
       state.active = true;
       state.boss = null;
       state.stats = {
-        enemiesDefeated: 0,
+        enemiesDefeated: totalEnemiesDefeated,
         npcsRescued: 0,
         npcsLost: 0,
         lostPortraits: [],
@@ -860,18 +861,19 @@
     }
 
     function startBriefing(levelNumber = 1) {
+      const totalEnemiesDefeated = state.stats?.enemiesDefeated || 0;
       // Prepare level data but DO NOT queue the month announcement yet. The
       // announcement should appear after the instructions (briefing) screen
       // when the player advances. This avoids showing the 'January...' text
       // at the same time as the instructions.
       state.level = levelNumber;
-  state.monthIndex = -1;
-  state.battleIndex = -1;
+      state.monthIndex = -1;
+      state.battleIndex = -1;
       state.definition = buildLevelDefinition(levelNumber, helperConfig);
       state.active = true;
       state.boss = null;
       state.stats = {
-        enemiesDefeated: 0,
+        enemiesDefeated: totalEnemiesDefeated,
         npcsRescued: 0,
         npcsLost: 0,
         lostPortraits: [],
