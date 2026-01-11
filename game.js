@@ -4905,7 +4905,7 @@ function showTitlePageDialog(pageKey) {
 function showTownIntroDialog() {
   if (!window.DialogOverlay) return false;
   const body =
-    "Your church is the last light in a town under siege. Grow your congregation in one year, or the town falls with you.";
+    "The church you've been assigned to is the last light in a town under spiritual siege. Grow your congregation in one year, or the town falls with you.";
   window.DialogOverlay.show({
     title: "",
     bodyHtml: `<div class="town-intro-text"></div>`,
@@ -4930,7 +4930,7 @@ function showTownIntroDialog() {
 
 function queueTownIntroAnnouncement() {
   const text =
-    "Your church is the last light in a town under siege. Grow your congregation in one year, or the town falls with you.";
+    "The church you've been assigned to is the last light in a town under spiritual siege. Grow your congregation in one year, or the town falls with you.";
   pendingTownIntroStart = true;
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
