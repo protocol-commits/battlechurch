@@ -10704,13 +10704,6 @@ function handleDeveloperHotkeys() {
       setDevStatus("Grace rush engaged", 2.0);
     }
   }
-  if (keysJustPressed.has("f")) {
-    const state = window.__battlechurchCongregationFadeState;
-    if (state) {
-      state.debug = !state.debug;
-      setDevStatus(state.debug ? "Congregation fade debug on" : "Congregation fade debug off", 2.0);
-    }
-  }
   if (keysJustPressed.has("c")) {
     adjustCongregationSize(5);
     setDevStatus("Congregation +5", 2.0);

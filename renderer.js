@@ -1473,11 +1473,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     active: false,
     memberCount: 0,
     token: 0,
-    debug: false,
   };
-  if (typeof window !== "undefined") {
-    window.__battlechurchCongregationFadeState = congregationFadeState;
-  }
 
   function drawHUD() {
     window.BattlechurchHUD?.draw?.(requireBindings(), sharedShakeOffset, roundRect);
@@ -1822,12 +1818,6 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         congregationFadeState.token += 1;
       }
       ctx.save();
-      let hiddenCount = 0;
-      let fadedInCount = 0;
-      let scheduledCount = 0;
-      let waitingCount = 0;
-      let debugHideCount = 0;
-      let debugSample = "";
       congregationMembers.forEach((member) => {
         if (!member) return;
         if (member.__congregationFadeToken !== congregationFadeState.token) {
@@ -1844,58 +1834,20 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
           start: member.__congregationFadeStart,
           duration: member.__congregationFadeDuration,
         };
-        if (!debugSample && member.__congregationFadeToken === congregationFadeState.token) {
-          debugSample = `start:${Math.round(member.__congregationFadeStart || 0)} dur:${Math.round(member.__congregationFadeDuration || 0)}`;
-        }
         let alpha = 1;
         if (entry && entry.duration > 0) {
-          scheduledCount += 1;
-          if (now < entry.start) waitingCount += 1;
           const t = (now - entry.start) / entry.duration;
           if (t <= 0) alpha = 0;
           else if (t >= 1) alpha = 1;
           else alpha = t;
         }
         const drawAlpha = npcFadeAlpha * alpha;
-        if (alpha <= 0) hiddenCount += 1;
-        else if (alpha >= 1) fadedInCount += 1;
         if (drawAlpha > 0) {
           member.animator.draw(ctx, member.x, member.y, { alpha: drawAlpha });
           const nameY = member.y - (member.radius || 28) - 2;
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         }
       });
-      if (congregationFadeState.debug) {
-        ctx.save();
-        ctx.fillStyle = "rgba(8, 12, 20, 0.65)";
-        ctx.fillRect(14, 70, 320, 96);
-        ctx.fillStyle = "#EAF6FF";
-        ctx.font = "12px 'Orbitron', sans-serif";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        debugHideCount = Math.max(0, Math.ceil(congregationMembers.length / 3));
-        ctx.fillText(
-          `Congregation fade: ${hiddenCount} hidden / ${fadedInCount} shown`,
-          24,
-          90,
-        );
-        ctx.fillText(
-          `Members: ${congregationMembers.length}  Token: ${congregationFadeState.token}`,
-          24,
-          112,
-        );
-        ctx.fillText(
-          `Scheduled: ${scheduledCount}  Waiting: ${waitingCount}`,
-          24,
-          134,
-        );
-        ctx.fillText(
-          `Hide target: ${debugHideCount}  Sample: ${debugSample || "n/a"}`,
-          24,
-          156,
-        );
-        ctx.restore();
-      }
       ctx.restore();
     } else {
       battleNpcs = npcs.filter(Boolean);
