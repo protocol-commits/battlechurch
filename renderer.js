@@ -1469,6 +1469,15 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     };
   }
   let sharedShakeOffset = { x: 0, y: 0 };
+  const congregationFadeState = {
+    active: false,
+    memberCount: 0,
+    token: 0,
+    debug: false,
+  };
+  if (typeof window !== "undefined") {
+    window.__battlechurchCongregationFadeState = congregationFadeState;
+  }
 
   function drawHUD() {
     window.BattlechurchHUD?.draw?.(requireBindings(), sharedShakeOffset, roundRect);
@@ -1805,18 +1814,92 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     if (visitorStageActive) {
       drawVisitorActors(visitorSession);
     } else {
-      if (isCongregationStage) {
-        ctx.save();
-        ctx.globalAlpha *= npcFadeAlpha;
-        congregationMembers.forEach((member) => {
-          member.animator.draw(ctx, member.x, member.y);
+    if (isCongregationStage) {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (!congregationFadeState.active || congregationFadeState.memberCount !== congregationMembers.length) {
+        congregationFadeState.active = true;
+        congregationFadeState.memberCount = congregationMembers.length;
+        congregationFadeState.token += 1;
+      }
+      ctx.save();
+      let hiddenCount = 0;
+      let fadedInCount = 0;
+      let scheduledCount = 0;
+      let waitingCount = 0;
+      let debugHideCount = 0;
+      let debugSample = "";
+      congregationMembers.forEach((member) => {
+        if (!member) return;
+        if (member.__congregationFadeToken !== congregationFadeState.token) {
+          member.__congregationFadeToken = congregationFadeState.token;
+          if (Math.random() < 0.5) {
+            member.__congregationFadeStart = now + 1000 + Math.random() * 4000;
+            member.__congregationFadeDuration = 1200;
+          } else {
+            member.__congregationFadeStart = now;
+            member.__congregationFadeDuration = 0;
+          }
+        }
+        const entry = {
+          start: member.__congregationFadeStart,
+          duration: member.__congregationFadeDuration,
+        };
+        if (!debugSample && member.__congregationFadeToken === congregationFadeState.token) {
+          debugSample = `start:${Math.round(member.__congregationFadeStart || 0)} dur:${Math.round(member.__congregationFadeDuration || 0)}`;
+        }
+        let alpha = 1;
+        if (entry && entry.duration > 0) {
+          scheduledCount += 1;
+          if (now < entry.start) waitingCount += 1;
+          const t = (now - entry.start) / entry.duration;
+          if (t <= 0) alpha = 0;
+          else if (t >= 1) alpha = 1;
+          else alpha = t;
+        }
+        const drawAlpha = npcFadeAlpha * alpha;
+        if (alpha <= 0) hiddenCount += 1;
+        else if (alpha >= 1) fadedInCount += 1;
+        if (drawAlpha > 0) {
+          member.animator.draw(ctx, member.x, member.y, { alpha: drawAlpha });
           const nameY = member.y - (member.radius || 28) - 2;
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
-        });
+        }
+      });
+      if (congregationFadeState.debug) {
+        ctx.save();
+        ctx.fillStyle = "rgba(8, 12, 20, 0.65)";
+        ctx.fillRect(14, 70, 320, 96);
+        ctx.fillStyle = "#EAF6FF";
+        ctx.font = "12px 'Orbitron', sans-serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        debugHideCount = Math.max(0, Math.ceil(congregationMembers.length / 3));
+        ctx.fillText(
+          `Congregation fade: ${hiddenCount} hidden / ${fadedInCount} shown`,
+          24,
+          90,
+        );
+        ctx.fillText(
+          `Members: ${congregationMembers.length}  Token: ${congregationFadeState.token}`,
+          24,
+          112,
+        );
+        ctx.fillText(
+          `Scheduled: ${scheduledCount}  Waiting: ${waitingCount}`,
+          24,
+          134,
+        );
+        ctx.fillText(
+          `Hide target: ${debugHideCount}  Sample: ${debugSample || "n/a"}`,
+          24,
+          156,
+        );
         ctx.restore();
-      } else {
-        battleNpcs = npcs.filter(Boolean);
       }
+      ctx.restore();
+    } else {
+      battleNpcs = npcs.filter(Boolean);
+    }
     }
     if (dynamicNameTags.length) {
       ctx.save();
@@ -1825,6 +1908,11 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         drawNameTag(ctx, entry.name, entry.x, entry.y, UI_FONT_FAMILY);
       });
       ctx.restore();
+    }
+    if (!isCongregationStage) {
+      congregationFadeState.active = false;
+      congregationFadeState.memberCount = 0;
+      congregationFadeState.token = 0;
     }
     const drawNpcFaithOverlayEntry = (entry) => {
       ctx.save();

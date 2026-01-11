@@ -7296,7 +7296,7 @@ class CozyNpcAnimator {
   }
 
   draw(context, x, y, options = {}) {
-    const { flashWhite = 0 } = options || {};
+    const { flashWhite = 0, alpha = 1 } = options || {};
     const data = this.stateData;
     if (!data || !data.layers || !data.layers.length) return;
     const framesPerDirection = Math.max(1, data.framesPerDirection || 1);
@@ -7312,7 +7312,7 @@ class CozyNpcAnimator {
       const shadowWidth = this.shadow.width * this.scale;
       const shadowHeight = this.shadow.height * this.scale * 0.8;
       context.save();
-      context.globalAlpha = 0.35;
+      context.globalAlpha = 0.35 * alpha;
       context.drawImage(
         this.shadow,
         x - shadowWidth / 2,
@@ -7324,6 +7324,7 @@ class CozyNpcAnimator {
     }
 
     context.save();
+    context.globalAlpha = alpha;
     context.translate(x, y);
     data.layers.forEach((image) => {
       const source = image && image.__sourceImage ? image.__sourceImage : image;
@@ -7347,7 +7348,7 @@ class CozyNpcAnimator {
       const prevAlpha = context.globalAlpha;
       const prevFilter = context.filter || 'none';
       context.globalCompositeOperation = 'lighter';
-      context.globalAlpha = flashAmount;
+      context.globalAlpha = flashAmount * alpha;
       context.filter = `brightness(${(1 + flashAmount * 1.4).toFixed(2)}) saturate(${(1 + flashAmount * 0.9).toFixed(2)})`;
       data.layers.forEach((image) => {
         const source = image && image.__sourceImage ? image.__sourceImage : image;
@@ -10701,6 +10702,13 @@ function handleDeveloperHotkeys() {
   if (keysJustPressed.has("6")) {
     if (levelManager?.devSkipToGraceRush?.()) {
       setDevStatus("Grace rush engaged", 2.0);
+    }
+  }
+  if (keysJustPressed.has("f")) {
+    const state = window.__battlechurchCongregationFadeState;
+    if (state) {
+      state.debug = !state.debug;
+      setDevStatus(state.debug ? "Congregation fade debug on" : "Congregation fade debug off", 2.0);
     }
   }
   if (keysJustPressed.has("c")) {
