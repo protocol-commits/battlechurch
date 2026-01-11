@@ -1005,6 +1005,49 @@ function startEpilogueMusic() {
   playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
 }
 
+function activateEpilogue() {
+  const finalSize = getCongregationSize();
+  const badEnding = finalSize < 70;
+  const grew = finalSize > INITIAL_CONGREGATION_SIZE;
+  const introLine = grew
+    ? `Over the course of the year, you grew your church to ${finalSize} members.`
+    : `Over the course of the year your congregation shrunk to ${finalSize} members.`;
+  const middleLine =
+    "Unfortunately, the demonimation has chosen to close your church leaving the town in darknesss.";
+  const ministryOptions = [
+    "rehab clinics",
+    "food pantries",
+    "tutoring and school boards",
+    "city council involvement",
+    "elder care",
+    "recovery housing",
+    "community mediation",
+  ];
+  for (let i = ministryOptions.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = ministryOptions[i];
+    ministryOptions[i] = ministryOptions[j];
+    ministryOptions[j] = tmp;
+  }
+  const pickedMinistries = ministryOptions.slice(0, 3);
+  const ministrySentence = `${pickedMinistries[0]}, ${pickedMinistries[1]}, and ${pickedMinistries[2]}.`;
+  const positiveLine =
+    "Because of your hard work, the members of your church made a difference in the town.\n\n" +
+    "In the years that followed, your church members went in the community and ministered in " +
+    `${ministrySentence}\n\n` +
+    "The town is thriving and has become a place of light and hope for all it's residents and families.\n\n" +
+    "Thank you for your faithful service!";
+  const endLine = badEnding ? "Try again." : "";
+  epilogueTitle = "Epilogue";
+  epilogueBackgroundKey = badEnding ? "gameOver" : "epilogue";
+  epilogueText = badEnding
+    ? [introLine, middleLine, endLine].filter(Boolean).join(" ")
+    : positiveLine;
+  epilogueActive = true;
+  pauseAllMusic();
+  startEpilogueMusic();
+}
+
 function stopRecapMusic() {
   if (!musicState.recap || musicState.recapStopped) return;
   musicState.recapStopped = true;
@@ -2472,6 +2515,7 @@ Renderer.initialize({
   get epilogueActive() { return epilogueActive; },
   get epilogueTitle() { return epilogueTitle; },
   get epilogueText() { return epilogueText; },
+  get epilogueBackgroundKey() { return epilogueBackgroundKey; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
@@ -4132,6 +4176,15 @@ async function loadAssets() {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
       assets.backgrounds.epilogue = null;
     });
+  const gameOverBackgroundPromise = loadImage("assets/backgrounds/game-over.png")
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
+      assets.backgrounds.gameOver = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
+      assets.backgrounds.gameOver = null;
+    });
 
   // layered backgrounds (optional)
   const farPromise = loadImage(BACKGROUND_FAR_PATH)
@@ -4159,6 +4212,7 @@ async function loadAssets() {
     backgroundPromise,
     townIntroPromise,
     epiloguePromise,
+    gameOverBackgroundPromise,
   npcAssetsPromise,
   coinAssetsPromise,
   farPromise,
@@ -5042,6 +5096,7 @@ let pendingUpgradeAfterSummary = false;
 let epilogueActive = false;
 let epilogueTitle = "Epilogue";
 let epilogueText = "";
+let epilogueBackgroundKey = "epilogue";
 
 function startMissionTypewriter(overlay, text, msPerChar = 18) {
   if (!overlay) return;
@@ -5065,26 +5120,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   const isFinalYear = Boolean(announcement?.finalYear);
   pendingUpgradeAfterSummary = Boolean(upgradeAfter) && !isFinalYear;
-  const activateEpilogue = () => {
-    const finalSize = getCongregationSize();
-    const grew = finalSize > INITIAL_CONGREGATION_SIZE;
-    const introLine = grew
-      ? `Over the course of the year, you grew your church to ${finalSize} members.`
-      : `Over the course of the year your congregation shrunk to ${finalSize} members.`;
-    const middleLine =
-      "Unfortunately, the demonimation has chosen to close your church leaving the town in darknesss.";
-    const positiveLine = grew
-      ? "Congradulations, the members of your church are going out into the town and making a idfference. Thank you for your faithful service!"
-      : "";
-    const endLine = "The End.";
-    epilogueTitle = "Epilogue";
-    epilogueText = [introLine, middleLine, positiveLine, endLine]
-      .filter(Boolean)
-      .join(" ");
-    epilogueActive = true;
-    pauseAllMusic();
-    startEpilogueMusic();
-  };
   startRecapMusic();
   const startRecapTypewriter = (overlay, text, msPerChar = 18) => {
     if (!overlay) return;
@@ -10659,6 +10694,14 @@ function handleDeveloperHotkeys() {
     if (levelManager?.devSkipToGraceRush?.()) {
       setDevStatus("Grace rush engaged", 2.0);
     }
+  }
+  if (keysJustPressed.has("c")) {
+    adjustCongregationSize(5);
+    setDevStatus("Congregation +5", 2.0);
+  }
+  if (keysJustPressed.has("9")) {
+    activateEpilogue();
+    setDevStatus("Epilogue engaged", 2.0);
   }
   if (keysJustPressed.has("o")) {
     enemyDevLabelsVisible = !enemyDevLabelsVisible;

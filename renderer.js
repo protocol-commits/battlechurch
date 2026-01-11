@@ -1585,10 +1585,13 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       assets,
       epilogueTitle,
       epilogueText,
+      epilogueBackgroundKey,
       HUD_HEIGHT,
     } = requireBindings();
     ctx.save();
-    const epilogueImage = assets?.backgrounds?.epilogue || null;
+    const epilogueImage = epilogueBackgroundKey
+      ? assets?.backgrounds?.[epilogueBackgroundKey] || null
+      : assets?.backgrounds?.epilogue || null;
     if (epilogueImage) {
       drawCoverImage(ctx, canvas, epilogueImage, 1, 0.5, 0.5);
     } else {
