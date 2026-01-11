@@ -258,24 +258,19 @@ const MELEE_SWING_LENGTH = 200;
     typewriter = false,
   }) {
     const wrapText = (text, maxWidth) => {
-      const raw = String(text || "");
-      const paragraphs = raw.split("\n");
+      const words = String(text || "").split(/\s+/).filter(Boolean);
       const lines = [];
-      paragraphs.forEach((para, idx) => {
-        const words = para.split(/\s+/).filter(Boolean);
-        let line = "";
-        words.forEach((word) => {
-          const test = line ? `${line} ${word}` : word;
-          if (ctx.measureText(test).width <= maxWidth || !line) {
-            line = test;
-          } else {
-            lines.push(line);
-            line = word;
-          }
-        });
-        if (line) lines.push(line);
-        if (idx < paragraphs.length - 1) lines.push("\n");
+      let line = "";
+      words.forEach((word) => {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width <= maxWidth || !line) {
+          line = test;
+        } else {
+          lines.push(line);
+          line = word;
+        }
       });
+      if (line) lines.push(line);
       return lines;
     };
     const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
@@ -332,10 +327,6 @@ const MELEE_SWING_LENGTH = 200;
     let remainingTitle = displayTitle.length;
     let currentY = yBase;
     titleLines.forEach((line) => {
-      if (line === "\n") {
-        currentY += Math.round(titleLineHeight * 0.5);
-        return;
-      }
       if (!line) return;
       const visible = remainingTitle <= 0 ? "" : line.slice(0, remainingTitle);
       remainingTitle = Math.max(0, remainingTitle - line.length);
@@ -350,10 +341,6 @@ const MELEE_SWING_LENGTH = 200;
       const subtitleX = canvas.width / 2 - subtitleBlockWidth / 2;
       let remainingSubtitle = displaySubtitle.length;
       subtitleLines.forEach((line) => {
-        if (line === "\n") {
-          currentY += Math.round(subtitleLineHeight * 0.5);
-          return;
-        }
         const visible = remainingSubtitle <= 0 ? "" : line.slice(0, remainingSubtitle);
         remainingSubtitle = Math.max(0, remainingSubtitle - line.length);
         if (visible) ctx.fillText(visible, subtitleX, currentY);
@@ -370,7 +357,7 @@ const MELEE_SWING_LENGTH = 200;
   }
 
   function getAnnouncementTitleY(HUD_HEIGHT, boxHeight) {
-    const yBase = getAnnouncementYBase(HUD_HEIGHT);
+    let yBase = getAnnouncementYBase(HUD_HEIGHT);
     const boxY = yBase - boxHeight / 2;
     return boxY + 46;
   }
@@ -720,14 +707,15 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     ctx.restore();
     return;
   }
-    const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight);
     const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
+    const titleYOffset = isTownIntro ? -40 : 0;
+    const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight) + titleYOffset;
     drawAnnouncementText(ctx, canvas, {
       title: displayTitle || "",
       yBase: titleY,
       alpha,
       typewriter: true,
-      titleSize: isTownIntro ? TEXT_STYLES.h1.size : TEXT_STYLES.h2.size,
+      titleSize: isTownIntro ? Math.max(20, TEXT_STYLES.h1.size * 0.85) : TEXT_STYLES.h2.size,
       weight: isTownIntro ? TEXT_STYLES.h1.weight : TEXT_STYLES.h2.weight,
     });
     // Dev label hidden for announcements per request.
@@ -862,10 +850,10 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     const titleY = getAnnouncementTitleY(HUD_HEIGHT, 220);
     drawAnnouncementText(ctx, canvas, {
       title: "Welcome Pastor. We're pleased to meet you!",
-      subtitle: "",
+      subtitle: "Current Congregation Size: 50",
       yBase: titleY,
-      subtitleSize: TEXT_STYLES.h3.size,
-      subtitleWeight: TEXT_STYLES.h3.weight,
+      subtitleSize: TEXT_STYLES.body.size,
+      subtitleWeight: TEXT_STYLES.body.weight,
       lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
       alpha: 1,
       typewriter: true,
@@ -903,7 +891,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
     ctx.textBaseline = "alphabetic";
     ctx.fillText(
-      "Smite the hordes. Save your flock. Survive the year.",
+      "Smite the hordes. Save your flock. Save the town.",
       canvas.width / 2,
       mainTextY + 14,
     );

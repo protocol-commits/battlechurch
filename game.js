@@ -4764,7 +4764,7 @@ function showTitleDialog() {
     .join("");
   window.DialogOverlay.show({
     title: "Spiritual Warfare",
-    bodyHtml: `<div style="font-size:28px;letter-spacing:0.02em;margin:0 0 12px;color:rgba(234,246,255,0.92);">Smite the hordes. Save your flock. Survive the year.</div><div class="title-menu">${buttonsHtml}</div>`,
+    bodyHtml: `<div style="font-size:28px;letter-spacing:0.02em;margin:0 0 12px;color:rgba(234,246,255,0.92);">Smite the hordes. Save your flock. Save the town.</div><div class="title-menu">${buttonsHtml}</div>`,
     buttonText: "",
     variant: "title",
     devLabel: "",
@@ -4905,7 +4905,7 @@ function showTitlePageDialog(pageKey) {
 function showTownIntroDialog() {
   if (!window.DialogOverlay) return false;
   const body =
-    "Your church is the last light in a town under siege.\nYou have one year to prevent its collapse.";
+    "Your church is the last light in a town under siege. Grow your congregation in one year, or the town falls with you.";
   window.DialogOverlay.show({
     title: "",
     bodyHtml: `<div class="town-intro-text"></div>`,
@@ -4930,7 +4930,7 @@ function showTownIntroDialog() {
 
 function queueTownIntroAnnouncement() {
   const text =
-    "Your church is the last light in a town under siege.\nYou have one year to prevent its collapse.";
+    "Your church is the last light in a town under siege. Grow your congregation in one year, or the town falls with you.";
   pendingTownIntroStart = true;
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
