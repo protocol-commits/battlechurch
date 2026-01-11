@@ -998,6 +998,13 @@ function startVisitorMusic() {
   playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
 }
 
+function startEpilogueMusic() {
+  if (!musicState.recap || !musicState.unlocked) return;
+  musicState.recapStarted = true;
+  musicState.recapStopped = false;
+  playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+}
+
 function stopRecapMusic() {
   if (!musicState.recap || musicState.recapStopped) return;
   musicState.recapStopped = true;
@@ -2462,6 +2469,9 @@ Renderer.initialize({
   get heroLives() { return heroLives; },
   get hpFlashTimer() { return hpFlashTimer; },
   get gameStarted() { return gameStarted; },
+  get epilogueActive() { return epilogueActive; },
+  get epilogueTitle() { return epilogueTitle; },
+  get epilogueText() { return epilogueText; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
@@ -4113,6 +4123,15 @@ async function loadAssets() {
       if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
       assets.backgrounds.townIntro = null;
     });
+  const epiloguePromise = loadImage("assets/backgrounds/epilogue.png")
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
+      assets.backgrounds.epilogue = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
+      assets.backgrounds.epilogue = null;
+    });
 
   // layered backgrounds (optional)
   const farPromise = loadImage(BACKGROUND_FAR_PATH)
@@ -4139,6 +4158,7 @@ async function loadAssets() {
     ...utilityEntries,
     backgroundPromise,
     townIntroPromise,
+    epiloguePromise,
   npcAssetsPromise,
   coinAssetsPromise,
   farPromise,
@@ -5019,6 +5039,9 @@ function showGameOverDialog() {
 }
 
 let pendingUpgradeAfterSummary = false;
+let epilogueActive = false;
+let epilogueTitle = "Epilogue";
+let epilogueText = "";
 
 function startMissionTypewriter(overlay, text, msPerChar = 18) {
   if (!overlay) return;
@@ -5040,7 +5063,28 @@ function startMissionTypewriter(overlay, text, msPerChar = 18) {
 
 function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAfter, portraits = {}) {
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
-  pendingUpgradeAfterSummary = Boolean(upgradeAfter);
+  const isFinalYear = Boolean(announcement?.finalYear);
+  pendingUpgradeAfterSummary = Boolean(upgradeAfter) && !isFinalYear;
+  const activateEpilogue = () => {
+    const finalSize = getCongregationSize();
+    const grew = finalSize > INITIAL_CONGREGATION_SIZE;
+    const introLine = grew
+      ? `Over the course of the year, you grew your church to ${finalSize} members.`
+      : `Over the course of the year your congregation shrunk to ${finalSize} members.`;
+    const middleLine =
+      "Unfortunately, the demonimation has chosen to close your church leaving the town in darknesss.";
+    const positiveLine = grew
+      ? "Congradulations, the members of your church are going out into the town and making a idfference. Thank you for your faithful service!"
+      : "";
+    const endLine = "The End.";
+    epilogueTitle = "Epilogue";
+    epilogueText = [introLine, middleLine, positiveLine, endLine]
+      .filter(Boolean)
+      .join(" ");
+    epilogueActive = true;
+    pauseAllMusic();
+    startEpilogueMusic();
+  };
   startRecapMusic();
   const startRecapTypewriter = (overlay, text, msPerChar = 18) => {
     if (!overlay) return;
@@ -5162,6 +5206,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
         graceRushFadeAlpha = 0;
         dismissCurrentLevelAnnouncement();
         window.DialogOverlay.consumeAction();
+        if (isFinalYear) activateEpilogue();
       },
     });
     return true;
@@ -5200,6 +5245,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       graceRushFadeAlpha = 0;
       dismissCurrentLevelAnnouncement();
       window.DialogOverlay.consumeAction();
+      if (isFinalYear) activateEpilogue();
     },
   });
   return true;
@@ -6100,6 +6146,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
       ? options.missionBriefTitle
       : null;
   const bossMissionBrief = Boolean(options.bossMissionBrief);
+  const finalYear = Boolean(options.finalYear);
   const announcement = {
     title,
     subtitle,
@@ -6110,6 +6157,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     missionBriefTitle,
     townIntro,
     bossMissionBrief,
+    finalYear,
   };
   levelAnnouncements.push(announcement);
 }
@@ -10924,6 +10972,12 @@ function parseFrameList(input) {
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
+  if (epilogueActive) {
+    if (wasActionJustPressed("restart")) {
+      restartGame();
+    }
+    return;
+  }
   updatePrayerBombFireRain(dt);
   if (townIntroTransitionActive) {
     townIntroTransitionTimer = Math.min(

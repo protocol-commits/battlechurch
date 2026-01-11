@@ -1578,12 +1578,51 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     }
   }
 
+  function drawEpilogueScreen() {
+    const {
+      ctx,
+      canvas,
+      assets,
+      epilogueTitle,
+      epilogueText,
+      HUD_HEIGHT,
+    } = requireBindings();
+    ctx.save();
+    const epilogueImage = assets?.backgrounds?.epilogue || null;
+    if (epilogueImage) {
+      drawCoverImage(ctx, canvas, epilogueImage, 1, 0.5, 0.5);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#070a16");
+      gradient.addColorStop(1, "#121b33");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    ctx.fillStyle = "rgba(6, 10, 18, 0.35)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const yBase = Math.max(HUD_HEIGHT + 120, Math.floor(canvas.height * 0.28));
+    drawAnnouncementText(ctx, canvas, {
+      title: epilogueTitle || "Epilogue",
+      subtitle: epilogueText || "",
+      yBase,
+      alpha: 1,
+      titleSize: TEXT_STYLES.h1.size,
+      subtitleSize: TEXT_STYLES.body.size,
+      weight: TEXT_STYLES.h1.weight,
+      subtitleWeight: TEXT_STYLES.body.weight,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      typewriter: true,
+    });
+    ctx.restore();
+  }
+
   function drawGame() {
     const {
       ctx,
       canvas,
       howToPlayActive,
       titleScreenActive,
+      epilogueActive,
       levelManager,
       gameOver,
       assets,
@@ -1620,6 +1659,10 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     const dynamicNameTags = [];
     const npcFadeAlpha = Math.max(0, 1 - Math.min(1, actBreakFadeAlpha));
     npcFaithOverlays.length = 0;
+    if (epilogueActive) {
+      drawEpilogueScreen();
+      return;
+    }
     if (titleScreenActive) {
       drawTitleScreen();
       if (!window.__battlechurchHitboxEditorActive && !window.DialogOverlay?.isVisible()) {
