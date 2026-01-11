@@ -1006,7 +1006,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
 
     if (!visitorState.summaryActive) {
       const remainingSeconds = Math.ceil(visitorState.timer || 0);
-      if (remainingSeconds > 0 && remainingSeconds <= 10) {
+      if (remainingSeconds > 0) {
         ctx.save();
         ctx.globalAlpha = 0.32;
         ctx.fillStyle = "#EAF6FF";
