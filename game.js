@@ -1035,7 +1035,7 @@ function activateEpilogue() {
     "Because of your hard work, the members of your church made a difference in the town.\n\n" +
     "In the years that followed, your church members went in the community and ministered in " +
     `${ministrySentence}\n\n` +
-    "The town is thriving and has become a place of light and hope for all it's residents and families.\n\n" +
+    "\nThe town is thriving and has become a place of light and hope for all it's residents and families.\n\n" +
     "Thank you for your faithful service!";
   const endLine = badEnding ? "Try again." : "";
   epilogueTitle = "Epilogue";

@@ -258,19 +258,24 @@ const MELEE_SWING_LENGTH = 200;
     typewriter = false,
   }) {
     const wrapText = (text, maxWidth) => {
-      const words = String(text || "").split(/\s+/).filter(Boolean);
+      const raw = String(text || "");
+      const paragraphs = raw.split("\n");
       const lines = [];
-      let line = "";
-      words.forEach((word) => {
-        const test = line ? `${line} ${word}` : word;
-        if (ctx.measureText(test).width <= maxWidth || !line) {
-          line = test;
-        } else {
-          lines.push(line);
-          line = word;
-        }
+      paragraphs.forEach((para, idx) => {
+        const words = para.split(/\s+/).filter(Boolean);
+        let line = "";
+        words.forEach((word) => {
+          const test = line ? `${line} ${word}` : word;
+          if (ctx.measureText(test).width <= maxWidth || !line) {
+            line = test;
+          } else {
+            lines.push(line);
+            line = word;
+          }
+        });
+        if (line) lines.push(line);
+        if (idx < paragraphs.length - 1) lines.push("\n");
       });
-      if (line) lines.push(line);
       return lines;
     };
     const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
@@ -327,6 +332,10 @@ const MELEE_SWING_LENGTH = 200;
     let remainingTitle = displayTitle.length;
     let currentY = yBase;
     titleLines.forEach((line) => {
+      if (line === "\n") {
+        currentY += Math.round(titleLineHeight * 0.5);
+        return;
+      }
       if (!line) return;
       const visible = remainingTitle <= 0 ? "" : line.slice(0, remainingTitle);
       remainingTitle = Math.max(0, remainingTitle - line.length);
@@ -341,6 +350,10 @@ const MELEE_SWING_LENGTH = 200;
       const subtitleX = canvas.width / 2 - subtitleBlockWidth / 2;
       let remainingSubtitle = displaySubtitle.length;
       subtitleLines.forEach((line) => {
+        if (line === "\n") {
+          currentY += Math.round(subtitleLineHeight * 0.5);
+          return;
+        }
         const visible = remainingSubtitle <= 0 ? "" : line.slice(0, remainingSubtitle);
         remainingSubtitle = Math.max(0, remainingSubtitle - line.length);
         if (visible) ctx.fillText(visible, subtitleX, currentY);
