@@ -10667,6 +10667,14 @@ function updateCozyNpcs(dt) {
 // spawnVampire and updateVampires removed
 
 function handleDeveloperHotkeys() {
+  if (
+    typeof window !== "undefined" &&
+    window.location &&
+    window.location.hostname &&
+    !["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname)
+  ) {
+    return;
+  }
   if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) {
     keysJustPressed.clear();
     return;
