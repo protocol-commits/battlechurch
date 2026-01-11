@@ -885,16 +885,11 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     ctx.textAlign = "center";
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
-    const mainTextY = buttonY + buttonHeight / 2 - 2;
+    const mainTextY = buttonY + buttonHeight / 2 + 6;
     ctx.fillText(buttonText, canvas.width / 2, mainTextY);
     ctx.font = `10px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText(
-      "Smite the hordes. Save your flock. Save the town.",
-      canvas.width / 2,
-      mainTextY + 14,
-    );
     ctx.restore();
 
     ctx.restore();
