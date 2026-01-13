@@ -371,30 +371,7 @@ function playPooledSfx(pool, src, maxPoolSize, options = {}) {
 }
 
 function playEnemyHitSfx(volume = 1) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    ENEMY_HIT_SFX_SRCS[Math.floor(Math.random() * ENEMY_HIT_SFX_SRCS.length)];
-  let audio = enemyHitSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (enemyHitSfxPool.length < ENEMY_HIT_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      enemyHitSfxPool.push(audio);
-    } else {
-      audio = enemyHitSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(enemyHitSfxPool, ENEMY_HIT_SFX_SRCS, ENEMY_HIT_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -446,30 +423,7 @@ if (typeof window !== "undefined") {
 }
 
 function playPrayerBombRainSfx(volume = 0.6) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    PRAYER_BOMB_RAIN_SFX_SRCS[Math.floor(Math.random() * PRAYER_BOMB_RAIN_SFX_SRCS.length)];
-  let audio = prayerBombRainSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (prayerBombRainSfxPool.length < PRAYER_BOMB_RAIN_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      prayerBombRainSfxPool.push(audio);
-    } else {
-      audio = prayerBombRainSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(prayerBombRainSfxPool, PRAYER_BOMB_RAIN_SFX_SRCS, PRAYER_BOMB_RAIN_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -563,25 +517,7 @@ if (typeof window !== "undefined") {
 }
 
 function playSwordSwingSfx(volume = 0.55) {
-  if (typeof Audio === "undefined") return;
-  let audio = swordSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (swordSfxPool.length < SWORD_SFX_POOL_SIZE) {
-      audio = new Audio(SWORD_SWING_SFX_SRC);
-      audio.preload = "auto";
-      swordSfxPool.push(audio);
-    } else {
-      audio = swordSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(swordSfxPool, SWORD_SWING_SFX_SRC, SWORD_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
@@ -589,30 +525,7 @@ if (typeof window !== "undefined") {
 }
 
 function playSwordKillSfx(volume = 0.7) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    SWORD_KILL_SFX_SRCS[Math.floor(Math.random() * SWORD_KILL_SFX_SRCS.length)];
-  let audio = swordKillSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (swordKillSfxPool.length < SWORD_KILL_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      swordKillSfxPool.push(audio);
-    } else {
-      audio = swordKillSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(swordKillSfxPool, SWORD_KILL_SFX_SRCS, SWORD_KILL_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -620,30 +533,7 @@ if (typeof window !== "undefined") {
 }
 
 function playFireballCastSfx(volume = 0.55) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    FIREBALL_CAST_SFX_SRCS[Math.floor(Math.random() * FIREBALL_CAST_SFX_SRCS.length)];
-  let audio = fireballSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (fireballSfxPool.length < FIREBALL_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      fireballSfxPool.push(audio);
-    } else {
-      audio = fireballSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(fireballSfxPool, FIREBALL_CAST_SFX_SRCS, FIREBALL_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -681,30 +571,7 @@ if (typeof window !== "undefined") {
 }
 
 function playWisdomCastSfx(volume = 0.55) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    WISDOM_CAST_SFX_SRCS[Math.floor(Math.random() * WISDOM_CAST_SFX_SRCS.length)];
-  let audio = wisdomSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (wisdomSfxPool.length < WISDOM_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      wisdomSfxPool.push(audio);
-    } else {
-      audio = wisdomSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(wisdomSfxPool, WISDOM_CAST_SFX_SRCS, WISDOM_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -712,30 +579,7 @@ if (typeof window !== "undefined") {
 }
 
 function playWisdomHitSfx(volume = 0.8) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    WISDOM_HIT_SFX_SRCS[Math.floor(Math.random() * WISDOM_HIT_SFX_SRCS.length)];
-  let audio = wisdomHitSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (wisdomHitSfxPool.length < WISDOM_HIT_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      wisdomHitSfxPool.push(audio);
-    } else {
-      audio = wisdomHitSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(wisdomHitSfxPool, WISDOM_HIT_SFX_SRCS, WISDOM_HIT_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -743,30 +587,7 @@ if (typeof window !== "undefined") {
 }
 
 function playFaithCannonSfx(volume = 0.55) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    FAITH_CANNON_SFX_SRCS[Math.floor(Math.random() * FAITH_CANNON_SFX_SRCS.length)];
-  let audio = faithCannonSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (faithCannonSfxPool.length < FAITH_CANNON_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      faithCannonSfxPool.push(audio);
-    } else {
-      audio = faithCannonSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(faithCannonSfxPool, FAITH_CANNON_SFX_SRCS, FAITH_CANNON_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -774,30 +595,7 @@ if (typeof window !== "undefined") {
 }
 
 function playFaithHitSfx(volume = 0.8) {
-  if (typeof Audio === "undefined") return;
-  const src =
-    FAITH_HIT_SFX_SRCS[Math.floor(Math.random() * FAITH_HIT_SFX_SRCS.length)];
-  let audio = faithHitSfxPool.find(
-    (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
-  );
-  if (!audio) {
-    if (faithHitSfxPool.length < FAITH_HIT_SFX_POOL_SIZE) {
-      audio = new Audio(src);
-      audio.preload = "auto";
-      faithHitSfxPool.push(audio);
-    } else {
-      audio = faithHitSfxPool[0];
-      audio.src = src;
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(faithHitSfxPool, FAITH_HIT_SFX_SRCS, FAITH_HIT_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -805,25 +603,7 @@ if (typeof window !== "undefined") {
 }
 
 function playPowerupPickupSfx(volume = 1.2) {
-  if (typeof Audio === "undefined") return;
-  let audio = powerupPickupSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (powerupPickupSfxPool.length < POWERUP_PICKUP_SFX_POOL_SIZE) {
-      audio = new Audio(POWERUP_PICKUP_SFX_SRC);
-      audio.preload = "auto";
-      powerupPickupSfxPool.push(audio);
-    } else {
-      audio = powerupPickupSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(powerupPickupSfxPool, POWERUP_PICKUP_SFX_SRC, POWERUP_PICKUP_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
@@ -833,25 +613,7 @@ if (typeof window !== "undefined") {
 }
 
 function playGracePickupSfx(volume = 0.2) {
-  if (typeof Audio === "undefined") return;
-  let audio = gracePickupSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (gracePickupSfxPool.length < GRACE_PICKUP_SFX_POOL_SIZE) {
-      audio = new Audio(GRACE_PICKUP_SFX_SRC);
-      audio.preload = "auto";
-      gracePickupSfxPool.push(audio);
-    } else {
-      audio = gracePickupSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(gracePickupSfxPool, GRACE_PICKUP_SFX_SRC, GRACE_PICKUP_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
@@ -859,25 +621,7 @@ if (typeof window !== "undefined") {
 }
 
 function playMenuSelectSfx(volume = 0.55) {
-  if (typeof Audio === "undefined") return;
-  let audio = menuSelectSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (menuSelectSfxPool.length < MENU_SELECT_SFX_POOL_SIZE) {
-      audio = new Audio(MENU_SELECT_SFX_SRC);
-      audio.preload = "auto";
-      menuSelectSfxPool.push(audio);
-    } else {
-      audio = menuSelectSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(menuSelectSfxPool, MENU_SELECT_SFX_SRC, MENU_SELECT_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
@@ -887,7 +631,6 @@ if (typeof window !== "undefined") {
 }
 
 function playEnemySpawnSfx(volume = 0.55, options = {}) {
-  if (typeof Audio === "undefined") return;
   const maxHealth =
     Number.isFinite(options?.maxHealth) ? options.maxHealth : null;
   let src = ENEMY_SPAWN_SFX_SRC;
@@ -895,24 +638,7 @@ function playEnemySpawnSfx(volume = 0.55, options = {}) {
     const match = ENEMY_SPAWN_HIGH_SFX.find((entry) => maxHealth > entry.minHealth);
     if (match) src = match.src;
   }
-  let audio = enemySpawnSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (enemySpawnSfxPool.length < ENEMY_SPAWN_SFX_POOL_SIZE) {
-      audio = new Audio(ENEMY_SPAWN_SFX_SRC);
-      audio.preload = "auto";
-      enemySpawnSfxPool.push(audio);
-    } else {
-      audio = enemySpawnSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(enemySpawnSfxPool, src, ENEMY_SPAWN_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
@@ -1204,69 +930,15 @@ if (typeof window !== "undefined") {
 }
 
 function playVisitorHitSfx(volume = 0.55) {
-  if (typeof Audio === "undefined") return;
-  let audio = visitorHitSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (visitorHitSfxPool.length < VISITOR_HIT_SFX_POOL_SIZE) {
-      audio = new Audio(VISITOR_HIT_SFX_SRC);
-      audio.preload = "auto";
-      visitorHitSfxPool.push(audio);
-    } else {
-      audio = visitorHitSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(visitorHitSfxPool, VISITOR_HIT_SFX_SRC, VISITOR_HIT_SFX_POOL_SIZE, { volume });
 }
 
 function playChattyHitSfx(volume = 0.55) {
-  if (typeof Audio === "undefined") return;
-  let audio = chattyHitSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (chattyHitSfxPool.length < CHATTY_HIT_SFX_POOL_SIZE) {
-      audio = new Audio(CHATTY_HIT_SFX_SRC);
-      audio.preload = "auto";
-      chattyHitSfxPool.push(audio);
-    } else {
-      audio = chattyHitSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(chattyHitSfxPool, CHATTY_HIT_SFX_SRC, CHATTY_HIT_SFX_POOL_SIZE, { volume });
 }
 
 function playVisitorSavedSfx(volume = 0.85) {
-  if (typeof Audio === "undefined") return;
-  let audio = visitorSavedSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (visitorSavedSfxPool.length < VISITOR_SAVED_SFX_POOL_SIZE) {
-      audio = new Audio(VISITOR_SAVED_SFX_SRC);
-      audio.preload = "auto";
-      visitorSavedSfxPool.push(audio);
-    } else {
-      audio = visitorSavedSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(visitorSavedSfxPool, VISITOR_SAVED_SFX_SRC, VISITOR_SAVED_SFX_POOL_SIZE, { volume });
 }
 
 function spawnDivineChargeSparkVisual() {
