@@ -1393,7 +1393,6 @@ const addFloatingTextAt = FloatingText.addAt;
 const showDamage = FloatingText.showDamage;
 const heroSay = FloatingText.heroSay;
 const npcCheer = FloatingText.npcCheer;
-const vampireTaunt = FloatingText.vampireTaunt;
 const addStatusText = FloatingText.addStatusText;
 const updateFloatingTexts = FloatingText.update;
 
@@ -2570,9 +2569,7 @@ const NPC_HURT_FILENAME_OVERRIDES = {
   "mask_clown_red_walk.png": "mask_clown_hurt.png",
 };
 const NPC_DAMAGE_COOLDOWN = 1.5;
-const NPC_DAMAGE_COOLDOWN_EXCEPTIONS = ["vampire", "ghost"];
-
-// Vampire taunts removed
+const NPC_DAMAGE_COOLDOWN_EXCEPTIONS = ["ghost"];
 
 const npcDialogue =
   (typeof window !== "undefined" && window.BattlechurchNpcDialogue) || {};
@@ -3660,8 +3657,6 @@ async function loadCozyNpcAssets(cache) {
   };
 }
 
-// Vampire assets and logic removed per request
-
 async function loadCoinAssets(cache) {
   const frames = await Promise.all(
     COIN_FRAME_FILES.map((file) => loadCachedImage(cache, `${ITEM_SPRITE_ROOT}/${file}`)),
@@ -3683,9 +3678,8 @@ async function loadAssets() {
   backgrounds: { townIntro: null },
   backgroundLayers: { far: null, mid: null, floor: null },
   npcs: null,
-    vampire: null,
-    items: {},
-  };
+  items: {},
+};
   projectileFrames = {};
   const npcAssetsPromise = loadCozyNpcAssets(cache);
   const coinAssetsPromise = loadCoinAssets(cache);
@@ -6173,9 +6167,7 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
       enemy.takeDamage(splashDamage);
     }
   });
-  // vampire damage handling removed
-  
-  // vampire damage handling removed
+
   if (activeBoss && !activeBoss.dead && !activeBoss.removed) {
     const distance = Math.hypot(activeBoss.x - centerX, activeBoss.y - centerY);
     const threshold = radius + (activeBoss.radius || 0) * 0.6;
@@ -6224,7 +6216,6 @@ function updateAimAssist() {
     if (enemy.dead || enemy.state === "death") return;
     candidates.push({ entity: enemy, kind: "enemy" });
   });
-  // vampire candidates removed from aim assist
   // NPCs are intentionally excluded from aim-assist candidates to keep
   // player aim under direct control and avoid auto-targeting friendly NPCs.
 
@@ -6432,7 +6423,6 @@ function devClearOpponents({ includeBoss = false } = {}) {
       enemy.state = "death";
     }
   });
-  // vampire clearing removed
   if (includeBoss && activeBoss && typeof activeBoss.takeDamage === "function") {
     activeBoss.takeDamage(activeBoss.health + (activeBoss.maxHealth || 0) + 9999);
   }
@@ -7220,34 +7210,11 @@ class CozyNpc {
     return this.faith < this.maxFaith || this.state === "drained";
   }
 
-  isDraining() {
-    return Boolean(this.drainSource && !this.drainSource.dead && !this.drainSource.removed);
-  }
-
-  startDrain(vampire) {
-    if (!this.active || this.state === "lostFaith" || this.state === "departed") return;
-    this.state = "drained";
-    this.drainSource = vampire;
-    this.animator.setState("hurt", { restart: true });
-    this.animator.setMoving(false);
-    this.idleTimer = 0;
-    this.stuckTimer = 0;
-    this.updateFaithVisibility(true);
-    triggerHeroRescueCall();
-  }
-
-  stopDrain(vampire) {
-    if (this.drainSource !== vampire) return;
-    this.drainSource = null;
-    this.updateFaithVisibility(true);
-  }
-
   loseFaith() {
     if (this.state === "lostFaith" || this.state === "departed") return;
     this.faith = 0;
     this.needsPlayerRestore = true;
     this.state = "lostFaith";
-    this.drainSource = null;
     this.exitTarget = this.exitTarget || this.getExitPoint();
     this.animator.setState("walk", { restart: true });
     this.animator.setMoving(true);
@@ -7265,7 +7232,6 @@ class CozyNpc {
     if (this.departed) return;
     this.needsPlayerRestore = false;
     this.state = "returning";
-    this.drainSource = null;
     this.returnTarget = this.getReturnPoint();
     this.animator.setState("walk", { restart: true });
     this.animator.setMoving(true);
@@ -7325,12 +7291,6 @@ class CozyNpc {
     if (allowFromZero && this.faith > 0) {
       this.needsPlayerRestore = false;
     }
-    if (this.drainSource && this.faith >= NPC_FAITH_RETURN_THRESHOLD) {
-      const vampire = this.drainSource;
-      if (vampire && typeof vampire.releaseDrain === "function") {
-        vampire.releaseDrain();
-      }
-    }
     const fullFaith = this.faith >= this.maxFaith - 0.01;
     if (this.state === "lostFaith") {
       // If the NPC is in the process of leaving due to lost faith, any
@@ -7347,9 +7307,6 @@ class CozyNpc {
       }
       this.updateFaithVisibility(true);
       return this.faith > prevFaith;
-    }
-    if (this.state === "drained" && !this.isDraining() && this.faith >= NPC_FAITH_RETURN_THRESHOLD) {
-      this.beginReturn({ announce: true });
     }
     if (fullFaith && this.state !== "wander") {
       this.faith = this.maxFaith;
@@ -7955,8 +7912,6 @@ class CozyNpc {
     }
 }
 
-// Vampire class removed
-
 function getEnemyHitboxRadius(enemy) {
   if (!enemy) return 0;
   const hitbox = enemy.config?.hitbox || null;
@@ -8488,7 +8443,6 @@ class BossEncounter {
     if (player.shieldTimer > 0) {
       applyShieldImpact(this);
       this.touchCooldown = Math.max(this.touchCooldown, SHIELD_LARGE_COOLDOWN);
-      this.playTaunt();
       return;
     }
     const damage = this.phase === 3 ? 3 : 2;
@@ -8496,7 +8450,6 @@ class BossEncounter {
     this.touchCooldown = 2.2 - this.phase * 0.3;
     cameraShakeTimer = CAMERA_SHAKE_DURATION;
     cameraShakeMagnitude = CAMERA_SHAKE_INTENSITY * 1.2;
-    this.playTaunt();
   }
 
   checkPhaseTransition() {
@@ -8572,12 +8525,6 @@ class BossEncounter {
       this.animator.play("hurt", { restart: true });
     }
     this.checkPhaseTransition();
-  }
-
-  playTaunt() {
-    if (this.tauntCooldown > 0) return;
-    vampireTaunt(this);
-    this.tauntCooldown = 3.2;
   }
 
   beginDeath() {
@@ -10413,8 +10360,6 @@ function updateCozyNpcs(dt) {
   }
 }
 
-// spawnVampire and updateVampires removed
-
 function handleDeveloperHotkeys() {
   if (
     typeof window !== "undefined" &&
@@ -11375,7 +11320,6 @@ function updateGame(dt) {
     }
   }
 
-  // vampire updates and shield impacts removed
   updateCozyNpcs(dt);
   updateWeaponPickups(dt);
   updateUtilityPowerUps(dt);
@@ -12018,10 +11962,8 @@ const DIVINE_SHOT_DAMAGE = 1000;
       if (projectile.dead) continue;
 
   // coins are friendly projectiles but no longer auto-heal NPCs via hits
-  // continue handling vampires and other friendly projectile collisions
-  // vampire projectile handling removed
 
-      if (!projectile.dead && activeBoss && !activeBoss.dead && !activeBoss.defeated) {
+  if (!projectile.dead && activeBoss && !activeBoss.dead && !activeBoss.defeated) {
         if (!projectile.hitEntities.has(activeBoss) && projectile.hitTest(activeBoss)) {
           projectile.hitEntities.add(activeBoss);
           if (projectile.type === "wisdom_missle") {
@@ -12334,7 +12276,6 @@ function drawDevInspector() {
   const gridH = rows * cellH + Math.max(0, rows - 1) * gridPadding;
   const gridX = px + (panelW - gridW) / 2;
   const gridY = py + 64;
-  // debug seam overlay removed
 
   // Draw prompt area - if in flow, prompt which state to select
   ctx.font = `14px ${UI_FONT_FAMILY}`;

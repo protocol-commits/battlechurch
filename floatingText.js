@@ -217,26 +217,6 @@
     });
   }
 
-  function vampireTaunt(entity) {
-    if (!entity) return;
-    const TAUNTS = [
-      "Your faith is failing!",
-      "Kneel before your new master!",
-      "Hope cannot save you!",
-      "I will shatter your light!",
-    ];
-    const chooser = typeof window.randomChoice === "function" ? window.randomChoice : null;
-    const line = chooser ? chooser(TAUNTS) : TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
-    addAt(entity.x, entity.y - (entity.radius || 60) - 24, line, "#ffb3b3", {
-      speechBubble: true,
-      vy: 0,
-      life: 1.8,
-      entity,
-      offsetY: -(entity.radius || 60) - 24,
-      bubbleTheme: "evil",
-    });
-  }
-
   function addStatusText(entity, text, {
     color = "#f4f8ff",
     bgColor = "rgba(40, 52, 70, 0.9)",
@@ -300,7 +280,6 @@
     showDamage,
     heroSay,
     npcCheer,
-    vampireTaunt,
     addStatusText,
     update,
     clear,

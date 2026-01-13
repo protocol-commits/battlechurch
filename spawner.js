@@ -338,11 +338,6 @@
       if (name === "skeleton") return Array(6).fill(name);
       if (name === "archer") return Array(5).fill(name);
       if (name === "skeletonArcher") return Array(4).fill(name);
-      if (name === "vampire") {
-        const availableNpcs = (deps.npcs || []).some((npc) => !npc?.departed);
-        if (!availableNpcs) return [];
-        return Array(Math.max(2, (deps.npcs || []).length * 2)).fill(name);
-      }
       return [name];
     });
 
