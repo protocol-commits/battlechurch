@@ -2118,6 +2118,14 @@ const CANVAS_BASE_WIDTH = 1280;
 const CANVAS_BASE_HEIGHT = 720;
 const HUD_HEIGHT = 43;
 const UI_FONT_FAMILY = "'Orbitron', sans-serif";
+
+// Debug overlay toggle (DEV-ONLY)
+const DEBUG = true;
+let debugOverlayVisible = false;
+let debugOverlayData = null;
+let debugOverlayTimer = null;
+let debugOverlayUpdateAccumulator = 0;
+const DEBUG_OVERLAY_UPDATE_INTERVAL = 0.25; // Update 4 times per second
 const BASE_ASPECT_RATIO = CANVAS_BASE_WIDTH / CANVAS_BASE_HEIGHT;
 const TARGET_ASPECT_RATIO = (typeof window !== 'undefined' && window.__BATTLECHURCH_ASPECT_RATIO !== undefined)
   ? Number(window.__BATTLECHURCH_ASPECT_RATIO) || BASE_ASPECT_RATIO
@@ -2407,6 +2415,10 @@ Input.initialize({
   aimStickBase,
   virtualSpaceButton,
   onAnyKeyDown: (key) => {
+    if (key === "m" && DEBUG) {
+      toggleDebugOverlay();
+      return;
+    }
     if (key === "k") {
       addGrace(500);
       setDevStatus("Dev: +500 grace");
@@ -2531,6 +2543,7 @@ Renderer.initialize({
   get townIntroTransitionTimer() { return townIntroTransitionTimer; },
   TOWN_INTRO_ZOOM_DURATION,
   TOWN_INTRO_FADE_DURATION,
+  renderDebugOverlay,
 });
 function bootInputAndResize() {
   resizeCanvas();
@@ -11028,6 +11041,15 @@ function parseFrameList(input) {
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
+
+  // Update debug overlay data periodically
+  if (DEBUG && debugOverlayVisible) {
+    debugOverlayUpdateAccumulator += dt;
+    if (debugOverlayUpdateAccumulator >= DEBUG_OVERLAY_UPDATE_INTERVAL) {
+      debugOverlayUpdateAccumulator = 0;
+      updateDebugOverlayData();
+    }
+  }
   if (epilogueActive) {
     if (wasActionJustPressed("restart")) {
       restartGame();
@@ -12870,6 +12892,7 @@ function onPlayerDeath() {
 
 
 function restartGame() {
+  teardownGame();
   endVisitorSession({ reason: "reset" });
   resetMusicState();
   stopPlayerDeathBell();
@@ -12955,6 +12978,10 @@ function restartGame() {
   speedrunTimer.totalElapsed = 0;
   speedrunTimer.sectionElapsed = 0;
   speedrunTimer.splits = [];
+  if (typeof Input !== "undefined" && typeof Input.initialize === "function") {
+    Input.initialize({ canvas });
+  }
+  startGameLoop();
 }
 
 function gameLoop(timestamp) {
@@ -12984,6 +13011,106 @@ function startGameLoop() {
   gameLoopStarted = true;
   lastTime = performance.now();
   gameLoopHandle = requestAnimationFrame(gameLoop);
+}
+
+function teardownGame() {
+  stopGameLoop();
+  if (typeof Input !== "undefined" && typeof Input.detachListeners === "function") {
+    Input.detachListeners();
+  }
+}
+
+// Debug overlay functions (DEV-ONLY)
+function toggleDebugOverlay() {
+  if (!DEBUG) return;
+  debugOverlayVisible = !debugOverlayVisible;
+  if (debugOverlayVisible && !debugOverlayData) {
+    updateDebugOverlayData();
+  }
+}
+
+function updateDebugOverlayData() {
+  if (!DEBUG || !debugOverlayVisible) return;
+
+  // Calculate FPS from last frame delta
+  const fps = lastTime > 0 ? Math.round(1000 / (performance.now() - lastTime)) : 0;
+
+  // Get heap memory if available (Chrome)
+  let heapUsed = "N/A";
+  let heapTotal = "N/A";
+  if (typeof performance !== "undefined" && performance.memory) {
+    heapUsed = (performance.memory.usedJSHeapSize / 1048576).toFixed(1);
+    heapTotal = (performance.memory.totalJSHeapSize / 1048576).toFixed(1);
+  }
+
+  // Count audio pools
+  const audioPools = [
+    arrowSfxPool, enemyHitSfxPool, enemyDeathSfxPool, swordSfxPool,
+    swordKillSfxPool, fireballSfxPool, wisdomSfxPool, faithCannonSfxPool,
+    powerupPickupSfxPool, wisdomHitSfxPool, faithHitSfxPool, prayerBombSfxPool,
+    prayerBombRainSfxPool, menuSelectSfxPool, enemySpawnSfxPool, gracePickupSfxPool,
+    visitorHitSfxPool, chattyHitSfxPool, visitorSavedSfxPool, npcHurtSfxPool,
+    playerHurtSfxPool
+  ];
+  const totalAudioInstances = audioPools.reduce((sum, pool) => sum + pool.length, 0);
+
+  debugOverlayData = {
+    fps,
+    heapUsed,
+    heapTotal,
+    enemies: enemies.length,
+    npcs: npcs.length,
+    projectiles: projectiles.length,
+    gracePickups: gracePickups.length,
+    weaponPickups: weaponPickups.length,
+    utilityPowerUps: utilityPowerUps.length,
+    effects: effects.length,
+    floatingTexts: floatingTexts.length,
+    audioPools: audioPools.length,
+    audioInstances: totalAudioInstances
+  };
+}
+
+function renderDebugOverlay(ctx) {
+  if (!DEBUG || !debugOverlayVisible || !debugOverlayData) return;
+
+  const data = debugOverlayData;
+  const x = canvas.width - 10;
+  const startY = 20;
+  const lineHeight = 16;
+  const fontSize = 12;
+
+  ctx.save();
+  ctx.font = `${fontSize}px monospace`;
+  ctx.textAlign = "right";
+  ctx.textBaseline = "top";
+
+  const lines = [
+    `FPS: ${data.fps}`,
+    `Heap: ${data.heapUsed} / ${data.heapTotal} MB`,
+    `Enemies: ${data.enemies}`,
+    `NPCs: ${data.npcs}`,
+    `Projectiles: ${data.projectiles}`,
+    `Grace: ${data.gracePickups}`,
+    `Weapons: ${data.weaponPickups}`,
+    `Powerups: ${data.utilityPowerUps}`,
+    `Effects: ${data.effects}`,
+    `Texts: ${data.floatingTexts}`,
+    `Audio Pools: ${data.audioPools}`,
+    `Audio Instances: ${data.audioInstances}`
+  ];
+
+  lines.forEach((line, i) => {
+    const y = startY + i * lineHeight;
+    // Shadow for readability
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillText(line, x + 1, y + 1);
+    // Text
+    ctx.fillStyle = "#00ff00";
+    ctx.fillText(line, x, y);
+  });
+
+  ctx.restore();
 }
 
 // Apply any saved manual grid overrides by reloading matching enemy clips
@@ -13131,3 +13258,14 @@ async function init() {
 }
 
 init();
+
+// Stop game loop when page is hidden to prevent resource leaks
+if (typeof document !== "undefined" && document.addEventListener) {
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopGameLoop();
+    } else if (!titleScreenActive && !gameOver) {
+      startGameLoop();
+    }
+  });
+}

@@ -385,6 +385,23 @@
     keysJustPressed.clear();
   }
 
+  function detachListeners() {
+    if (!listenersAttached) return;
+
+    window.removeEventListener("keydown", handleKeyDown);
+    window.removeEventListener("keyup", handleKeyUp);
+
+    if (canvas) {
+      canvas.removeEventListener("mousemove", handleMouseMove);
+      canvas.removeEventListener("mouseleave", handleMouseLeave);
+      canvas.removeEventListener("contextmenu", preventContextMenu);
+      canvas.removeEventListener("mousedown", handleMouseDown);
+      canvas.removeEventListener("pointerdown", handlePointerDown);
+    }
+
+    listenersAttached = false;
+  }
+
   function initialize(options = {}) {
     if (options.canvas) canvas = options.canvas;
     if (!canvas) throw new Error("Input.initialize requires a canvas element");
@@ -422,6 +439,7 @@
 
   window.Input = {
     initialize,
+    detachListeners,
     initializeVirtualControls,
     updateTouchLayout,
     isActionActive,

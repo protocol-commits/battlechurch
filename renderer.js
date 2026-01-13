@@ -2218,6 +2218,12 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       ctx.restore();
     }
 
+    // Debug overlay (DEV-ONLY)
+    const bindings = requireBindings();
+    if (bindings && typeof bindings.renderDebugOverlay === "function") {
+      bindings.renderDebugOverlay(ctx);
+    }
+
   }
 
   function drawMeleeSwingOverlay(ctx, player) {
