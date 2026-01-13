@@ -304,6 +304,72 @@ if (typeof window !== "undefined") {
   window.playDefaultArrowSfx = playDefaultArrowSfx;
 }
 
+/**
+ * Play audio from a pool with automatic management
+ * @param {Array} pool - The audio pool array to manage
+ * @param {string|string[]} src - Audio source path(s). If array, picks randomly
+ * @param {number} maxPoolSize - Maximum number of Audio instances in pool
+ * @param {Object} options - Playback options
+ * @param {number} options.volume - Volume (0-1), default 1.0
+ * @param {number} options.playbackRate - Playback speed, default 1.0
+ * @param {boolean} options.matchSrc - If true, only reuse audio with matching src
+ * @returns {Audio|null} The audio element played, or null if failed
+ */
+function playPooledSfx(pool, src, maxPoolSize, options = {}) {
+  const {
+    volume = 1.0,
+    playbackRate = 1.0,
+    matchSrc = false
+  } = options;
+
+  if (typeof Audio === "undefined") return null;
+
+  // Handle random source selection from array
+  const selectedSrc = Array.isArray(src)
+    ? src[Math.floor(Math.random() * src.length)]
+    : src;
+
+  // Find available audio element
+  let audio = null;
+  if (matchSrc) {
+    // Only reuse audio with matching source
+    audio = pool.find(
+      (entry) => entry.src && entry.src.includes(selectedSrc) && (entry.paused || entry.ended)
+    );
+  } else {
+    // Reuse any available audio
+    audio = pool.find((entry) => entry.paused || entry.ended);
+  }
+
+  if (!audio) {
+    // Create new audio if pool not full
+    if (pool.length < maxPoolSize) {
+      audio = new Audio(selectedSrc);
+      audio.preload = "auto";
+      pool.push(audio);
+    } else {
+      // Reuse oldest audio from pool
+      audio = pool[0];
+      if (audio.src !== selectedSrc) {
+        audio.src = selectedSrc;
+      }
+    }
+  }
+
+  try {
+    audio.currentTime = 0;
+    audio.volume = Math.max(0, Math.min(1, volume));
+    audio.playbackRate = playbackRate;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+    return audio;
+  } catch (err) {
+    return null;
+  }
+}
+
 function playEnemyHitSfx(volume = 1) {
   if (typeof Audio === "undefined") return;
   const src =
@@ -356,25 +422,7 @@ if (typeof window !== "undefined") {
 }
 
 function playNpcHurtSfx(volume = 0.6) {
-  if (typeof Audio === "undefined") return;
-  let audio = npcHurtSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (npcHurtSfxPool.length < NPC_HURT_SFX_POOL_SIZE) {
-      audio = new Audio(NPC_HURT_SFX_SRC);
-      audio.preload = "auto";
-      npcHurtSfxPool.push(audio);
-    } else {
-      audio = npcHurtSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(npcHurtSfxPool, NPC_HURT_SFX_SRC, NPC_HURT_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
@@ -382,25 +430,7 @@ if (typeof window !== "undefined") {
 }
 
 function playPlayerHurtSfx(volume = 1.0) {
-  if (typeof Audio === "undefined") return;
-  let audio = playerHurtSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (playerHurtSfxPool.length < PLAYER_HURT_SFX_POOL_SIZE) {
-      audio = new Audio(PLAYER_HURT_SFX_SRC);
-      audio.preload = "auto";
-      playerHurtSfxPool.push(audio);
-    } else {
-      audio = playerHurtSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(playerHurtSfxPool, PLAYER_HURT_SFX_SRC, PLAYER_HURT_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
@@ -408,25 +438,7 @@ if (typeof window !== "undefined") {
 }
 
 function playPrayerBombSfx(volume = 0.7) {
-  if (typeof Audio === "undefined") return;
-  let audio = prayerBombSfxPool.find((entry) => entry.paused || entry.ended);
-  if (!audio) {
-    if (prayerBombSfxPool.length < PRAYER_BOMB_SFX_POOL_SIZE) {
-      audio = new Audio(PRAYER_BOMB_SFX_SRC);
-      audio.preload = "auto";
-      prayerBombSfxPool.push(audio);
-    } else {
-      audio = prayerBombSfxPool[0];
-    }
-  }
-  try {
-    audio.currentTime = 0;
-    audio.volume = volume;
-    const playPromise = audio.play();
-    if (playPromise && typeof playPromise.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  } catch (err) {}
+  playPooledSfx(prayerBombSfxPool, PRAYER_BOMB_SFX_SRC, PRAYER_BOMB_SFX_POOL_SIZE, { volume });
 }
 
 if (typeof window !== "undefined") {
