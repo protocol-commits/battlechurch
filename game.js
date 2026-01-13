@@ -2126,6 +2126,19 @@ let debugOverlayData = null;
 let debugOverlayTimer = null;
 let debugOverlayUpdateAccumulator = 0;
 const DEBUG_OVERLAY_UPDATE_INTERVAL = 0.25; // Update 4 times per second
+
+// Audio creation counter (DEV-ONLY) - tracks ALL Audio objects created
+let audioCreatedTotal = 0;
+if (DEBUG && typeof window !== "undefined" && typeof window.Audio !== "undefined") {
+  const OriginalAudio = window.Audio;
+  window.Audio = function(...args) {
+    audioCreatedTotal++;
+    return new OriginalAudio(...args);
+  };
+  // Preserve prototype chain
+  window.Audio.prototype = OriginalAudio.prototype;
+}
+
 const BASE_ASPECT_RATIO = CANVAS_BASE_WIDTH / CANVAS_BASE_HEIGHT;
 const TARGET_ASPECT_RATIO = (typeof window !== 'undefined' && window.__BATTLECHURCH_ASPECT_RATIO !== undefined)
   ? Number(window.__BATTLECHURCH_ASPECT_RATIO) || BASE_ASPECT_RATIO
@@ -13067,7 +13080,8 @@ function updateDebugOverlayData() {
     effects: effects.length,
     floatingTexts: floatingTexts.length,
     audioPools: audioPools.length,
-    audioInstances: totalAudioInstances
+    audioInstances: totalAudioInstances,
+    audioCreatedTotal: audioCreatedTotal
   };
 }
 
@@ -13097,7 +13111,8 @@ function renderDebugOverlay(ctx) {
     `Effects: ${data.effects}`,
     `Texts: ${data.floatingTexts}`,
     `Audio Pools: ${data.audioPools}`,
-    `Audio Instances: ${data.audioInstances}`
+    `Audio Instances: ${data.audioInstances}`,
+    `Audio Created (total): ${data.audioCreatedTotal}`
   ];
 
   lines.forEach((line, i) => {
