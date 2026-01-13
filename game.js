@@ -1670,6 +1670,7 @@ let spawnTimer = 0;
 let gameOver = false;
 let lastTime = performance.now();
 let gameLoopStarted = false;
+let gameLoopHandle = null;
 paused = true;
 let hpFlashTimer = 0;
 let hitFreezeTimer = 0;
@@ -12964,7 +12965,25 @@ function gameLoop(timestamp) {
   Renderer.drawFrame();
   keysJustPressed.clear();
 
-  requestAnimationFrame(gameLoop);
+  gameLoopHandle = requestAnimationFrame(gameLoop);
+}
+
+function stopGameLoop() {
+  if (gameLoopHandle !== null) {
+    cancelAnimationFrame(gameLoopHandle);
+    gameLoopHandle = null;
+  }
+  gameLoopStarted = false;
+}
+
+function startGameLoop() {
+  if (gameLoopStarted) {
+    return;
+  }
+  stopGameLoop();
+  gameLoopStarted = true;
+  lastTime = performance.now();
+  gameLoopHandle = requestAnimationFrame(gameLoop);
 }
 
 // Apply any saved manual grid overrides by reloading matching enemy clips
@@ -12999,11 +13018,7 @@ async function init() {
     resetMusicState();
     if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();
-    if (!gameLoopStarted) {
-      gameLoopStarted = true;
-      lastTime = performance.now();
-      requestAnimationFrame(gameLoop);
-    }
+    startGameLoop();
     assets = await loadAssets();
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
