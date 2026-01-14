@@ -3664,6 +3664,396 @@ async function loadCoinAssets(cache) {
   return { coinFrames: frames };
 }
 
+async function loadPlayerAssets(cache, assets) {
+  const playerEntries = Object.entries(ASSET_MANIFEST.player).map(
+    async ([key, def]) => {
+      assets.player[key] = await loadAnimationClip(def, cache);
+    },
+  );
+  await Promise.all(playerEntries);
+}
+
+async function loadProjectileAssets(cache, assets) {
+  const projectileEntries = Object.entries(ASSET_MANIFEST.projectiles).map(
+    async ([key, def]) => {
+      assets.projectiles[key] = await loadAnimationClip(def, cache);
+    },
+  );
+  await Promise.all(projectileEntries);
+}
+
+async function loadEnemyAssets(cache, assets) {
+  const enemyTypes = Object.entries(ASSET_MANIFEST.enemies).map(
+    async ([enemyName, enemyDefs]) => {
+      assets.enemies[enemyName] = {};
+      const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
+        const clip = await loadAnimationClip(def, cache);
+        assets.enemies[enemyName][state] = clip;
+      });
+      await Promise.all(loaders);
+      try {
+        if (MINIFOLKS.some((m) => m.key === enemyName)) {
+          const maps = generateDefaultFrameMapsForMini(enemyName, assets.enemies[enemyName]);
+          if (maps) {
+            for (const [st, arr] of Object.entries(maps)) {
+              if (assets.enemies[enemyName][st] && (!assets.enemies[enemyName][st].frameMap || !assets.enemies[enemyName][st].frameMap.length)) {
+                assets.enemies[enemyName][st].frameMap = arr.slice();
+              }
+            }
+          }
+        }
+        try {
+          if (enemyName === 'miniDemonFireThrower' && assets.enemies[enemyName]) {
+            const idleMap = [0, 1, 2, 3];
+            const walkMap = [8, 9, 10, 11, 12, 13];
+            if (assets.enemies[enemyName].idle) assets.enemies[enemyName].idle.frameMap = idleMap.slice();
+            if (assets.enemies[enemyName].walk) assets.enemies[enemyName].walk.frameMap = walkMap.slice();
+            console.info && console.info('Applied explicit frameMap for miniDemonFireThrower', { idleMap, walkMap });
+          }
+        } catch (e) {}
+      } catch (e) {}
+    },
+  );
+  await Promise.all(enemyTypes);
+}
+
+async function loadObstacleAssets(cache, assets) {
+  const obstacleEntries = Object.entries(OBSTACLE_DEFS).map(
+    async ([key, def]) => {
+      if (!cache.has(def.src)) {
+        cache.set(def.src, loadImage(def.src));
+      }
+      const image = await cache.get(def.src);
+      assets.obstacles[key] = {
+        image,
+        scale: def.scale,
+        collisionRadius: def.collisionRadius,
+      };
+    },
+  );
+  await Promise.all(obstacleEntries);
+}
+
+async function loadWeaponDropAssets(cache, assets) {
+  const weaponDropEntries = Object.entries(WEAPON_DROP_DEFS).map(
+    async ([key, def]) => {
+      let frames = null;
+      let baseFrame = null;
+      if (Array.isArray(def.frameSources) && def.frameSources.length) {
+        frames = [];
+        for (const src of def.frameSources) {
+          if (!cache.has(src)) {
+            cache.set(src, loadImage(src));
+          }
+          const img = await cache.get(src);
+          frames.push(img);
+        }
+        baseFrame = frames[0] || null;
+      } else if (def.src) {
+        if (!cache.has(def.src)) {
+          cache.set(def.src, loadImage(def.src));
+        }
+        const image = await cache.get(def.src);
+        const fw = def.frameWidth || 0;
+        const fh = def.frameHeight || 0;
+        if (fw > 0 && fh > 0) {
+          frames = extractFrames(image, fw, fh);
+          const index = Math.max(0, def.frameIndex || 0);
+          baseFrame = frames[index] || frames[0] || image;
+        } else {
+          baseFrame = extractFrame(image, fw, fh, def.frameIndex || 0);
+        }
+      }
+      const imageRef = baseFrame || (frames && frames[0]) || null;
+      let iconImage = null;
+      if (def.iconSrc) {
+        if (!cache.has(def.iconSrc)) {
+          cache.set(def.iconSrc, loadImage(def.iconSrc));
+        }
+        iconImage = await cache.get(def.iconSrc);
+      }
+      assets.weaponPickups[key] = { image: imageRef, frames, iconImage, ...def };
+    },
+  );
+  await Promise.all(weaponDropEntries);
+}
+
+async function loadUtilityAssets(cache, assets) {
+  const utilityEntries = Object.entries(UTILITY_POWERUP_DEFS).map(
+    async ([key, def]) => {
+      if (!cache.has(def.src)) {
+        cache.set(def.src, loadImage(def.src));
+      }
+      const image = await cache.get(def.src);
+      let iconImage = null;
+      if (def.iconSrc) {
+        if (!cache.has(def.iconSrc)) {
+          cache.set(def.iconSrc, loadImage(def.iconSrc));
+        }
+        iconImage = await cache.get(def.iconSrc);
+      }
+      assets.utility[key] = { image, iconImage, ...def };
+    },
+  );
+  await Promise.all(utilityEntries);
+}
+
+async function loadProjectileFrames(cache, assets, projectileFrames) {
+  // Coin frames
+  projectileFrames.coin = assets.items.coinFrames || [];
+  if (assets.items.coinFrames?.length) {
+    assets.projectiles.coin = { frames: assets.items.coinFrames };
+  }
+
+  // Faith cannon frames
+  const faithCannonClip = assets.projectiles?.faith_cannon;
+  if (faithCannonClip && faithCannonClip.image) {
+    const faithCannonFrames = extractFrames(
+      faithCannonClip.image,
+      faithCannonClip.frameWidth || faithCannonClip.image.width,
+      faithCannonClip.frameHeight || faithCannonClip.image.height,
+    );
+    if (faithCannonFrames.length) {
+      projectileFrames.faith_cannon = faithCannonFrames;
+    }
+  }
+
+  // Mini trident frames
+  try {
+    const tridentClip = assets.projectiles?.miniTrident;
+    if (tridentClip && tridentClip.image) {
+      const frames = getFramesForClip(tridentClip);
+      if (frames && frames.length) {
+        projectileFrames.miniTrident = frames;
+      }
+    }
+  } catch (e) {
+    console.debug && console.debug('miniTrident frame extraction failed', e);
+  }
+
+  // Mini fireball frames
+  try {
+    const pclip = assets.projectiles?.miniFireball;
+    if (pclip && pclip.image) {
+      let frameW = pclip.frameWidth || 0;
+      let frameH = pclip.frameHeight || 0;
+      const imgW = pclip.image.width;
+      const imgH = pclip.image.height;
+      if ((!frameW || !frameH) && imgW > 0 && imgH > 0) {
+        if (imgW % 4 === 0 && imgH % 2 === 0) {
+          frameW = Math.floor(imgW / 4);
+          frameH = Math.floor(imgH / 2);
+        }
+      }
+      if ((!frameW || !frameH) && imgW > 0 && imgH > 0) {
+        const g = gcd(imgW, imgH);
+        if (g > 1) {
+          frameW = frameW || g;
+          frameH = frameH || g;
+        }
+      }
+      if (frameW > 0 && frameH > 0) {
+        const cols = Math.max(1, Math.floor(imgW / frameW));
+        const rows = Math.max(1, Math.floor(imgH / frameH));
+        const total = pclip.frameCount || cols * rows;
+        projectileFrames.miniFireball = [];
+        for (let i = 0; i < total; i += 1) {
+          const frameCanvas = extractFrame(pclip.image, frameW, frameH, i);
+          projectileFrames.miniFireball.push(frameCanvas);
+        }
+        if (projectileFrames.miniFireball.length) {
+          assets.projectiles.miniFireball = { frames: projectileFrames.miniFireball };
+        }
+      } else {
+        console.debug && console.debug('miniFireball extraction skipped; metadata', {
+          src: pclip.image?.src,
+          imgW,
+          imgH,
+          frameWidth: pclip.frameWidth,
+          frameHeight: pclip.frameHeight,
+          inferredFrameW: frameW,
+          inferredFrameH: frameH,
+        });
+      }
+    }
+  } catch (e) {
+    // ignore frame extraction failures
+  }
+
+  // Fire and wisdom missile frames
+  projectileFrames.fire = await Promise.all(
+    Array.from({ length: 5 }, (_, i) =>
+      loadImage(`${MAGIC_PACK_ROOT}/fire-missile/sprites/fire-missile${i + 1}.png`),
+    ),
+  );
+  projectileFrames.wisdom_missle = await Promise.all(
+    WISDOM_FRAME_SOURCES.map((src) => loadImage(src)),
+  );
+}
+
+async function loadEffectAssets(cache, assets) {
+  assets.effects.verticalPuff = await Promise.all(
+    Array.from({ length: 9 }, (_, i) =>
+      loadImage(`${MAGIC_PACK_ROOT}/vertical-puff/sprites/vertical-puff${i + 1}.png`).then(
+        (img) => extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
+  assets.effects.impactDust = await Promise.all(
+    Array.from({ length: 10 }, (_, i) =>
+      loadImage(`${MAGIC_PACK_ROOT}/impact-dust/sprites/impact-dust${i + 1}.png`).then((img) =>
+        extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
+  assets.effects.flash = await Promise.all(
+    Array.from({ length: 14 }, (_, i) =>
+      loadImage(`${MAGIC_PACK_ROOT}/flash/sprites/flash${i + 1}.png`).then((img) =>
+        extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
+  assets.effects.visitorHeartHit = await Promise.all(
+    Array.from({ length: 6 }, (_, i) =>
+      loadImage(`${MAGIC_PACK_ROOT}/puff/sprites/puff${i + 1}.png`).then((img) =>
+        extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
+  assets.effects.magicImpact = await Promise.all(
+    Array.from({ length: FLASH_FRAME_COUNT }, (_, i) =>
+      loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`),
+    ),
+  );
+  assets.effects.puff = await loadImage(
+    "assets/sprites/explosions/28-puff/Explosion VFX 28(16x16).png",
+  ).then((img) => extractFrames(img, 16, 16));
+  assets.effects.enemyDeathExplosion = await loadImage(
+    "assets/sprites/explosions/16/Explosion VFX 16(48x48).png",
+  ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
+  assets.effects.enemyDeathExplosionAlt = await loadImage(
+    "assets/sprites/explosions/17/Explosion VFX 17(48x64).png",
+  ).then((img) => extractFrames(img, 48, 64).slice(0, 10));
+  assets.effects.enemyDeathExplosionAlt2 = await loadImage(
+    "assets/sprites/explosions/3/Explosion VFX 3(48x48).png",
+  ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
+  assets.effects.prayerBombExplosion = await loadImage(
+    "assets/sprites/explosions/Explosion VFX 21/Explosion VFX 21(64x64).png",
+  ).then((img) => extractFrames(img, 64, 64));
+  assets.effects.magicSplash = await Promise.all(
+    Array.from({ length: FLASH_FRAME_COUNT }, (_, i) =>
+      loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`).then((img) =>
+        extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
+  assets.effects.chattyHeartHit = await loadImage(`${MAGIC_PACK10_SHEETS_ROOT}/ray.png`).then((img) =>
+    extractFrames(img, 78, 64),
+  );
+  assets.effects.chattyAppease = await loadImage(`${MAGIC_PACK10_SHEETS_ROOT}/blast.png`).then((img) =>
+    extractFrames(img, 64, 64),
+  );
+  assets.effects.raybolt = await Promise.all(
+    Array.from({ length: 10 }, (_, i) =>
+      loadImage(`${MAGIC_PACK10_ROOT}/Raybolt/Raybolt${i + 1}.png`).then((img) =>
+        extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
+  assets.effects.divineChargeSpark = await Promise.all(
+    Array.from({ length: DIVINE_CHARGE_SPARK_COUNT }, (_, i) =>
+      loadImage(`${DIVINE_CHARGE_SPARK_ROOT}/sparks${i + 1}.png`),
+    ),
+  );
+  assets.effects.meleeSwoosh = await loadImage(MELEE_SWOOSH_PATH).catch(() => null);
+  assets.effects.smoke = await Promise.all(
+    Array.from({ length: 17 }, (_, i) =>
+      loadImage(`${MAGIC_PACK_ROOT}/Smoke/sprites/smoke${i + 1}.png`).then((img) =>
+        extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
+}
+
+async function loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromise, flagFramesPromise) {
+  const keyFrames = (await keyFramesPromise).filter(Boolean);
+  assets.items.gracePickup = {
+    frames: keyFrames,
+    icon: keyFrames[0] || null,
+  };
+  const torchFrames = (await torchFramesPromise).filter(Boolean);
+  assets.items.torch = {
+    frames: torchFrames,
+    icon: torchFrames[0] || null,
+  };
+  const flagFrames = (await flagFramesPromise).filter(Boolean);
+  assets.items.flag = {
+    frames: flagFrames,
+    icon: flagFrames[0] || null,
+  };
+}
+
+async function loadBackgroundAssets(cache, assets) {
+  const backgroundPromise = loadImage(BACKGROUND_IMAGE_PATH)
+    .then((image) => {
+      assets.background = image;
+    })
+    .catch((error) => {
+      console.error(error);
+      assets.background = null;
+    });
+  const townIntroPromise = loadImage(TOWN_INTRO_BACKGROUND_PATH)
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
+      assets.backgrounds.townIntro = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
+      assets.backgrounds.townIntro = null;
+    });
+  const epiloguePromise = loadImage("assets/backgrounds/epilogue.png")
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
+      assets.backgrounds.epilogue = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
+      assets.backgrounds.epilogue = null;
+    });
+  const gameOverBackgroundPromise = loadImage("assets/backgrounds/game-over.png")
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
+      assets.backgrounds.gameOver = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
+      assets.backgrounds.gameOver = null;
+    });
+  const farPromise = loadImage(BACKGROUND_FAR_PATH)
+    .then((img) => { assets.backgroundLayers.far = img; })
+    .catch(() => { assets.backgroundLayers.far = null; });
+  const midPromise = loadImage(BACKGROUND_MID_PATH)
+    .then((img) => { assets.backgroundLayers.mid = img; })
+    .catch(() => { assets.backgroundLayers.mid = null; });
+  const floorPromise = loadImage("assets/backgrounds/floor.png")
+    .then((img) => { assets.backgroundLayers.floor = img; })
+    .catch(() => { assets.backgroundLayers.floor = null; });
+  const titleBackgroundPromise = loadImage(TITLE_BACKGROUND_PATH)
+    .then((img) => { assets.titleBackground = img; })
+    .catch(() => { assets.titleBackground = null; });
+
+  await Promise.all([
+    backgroundPromise,
+    townIntroPromise,
+    epiloguePromise,
+    gameOverBackgroundPromise,
+    farPromise,
+    midPromise,
+    floorPromise,
+    titleBackgroundPromise,
+  ]);
+}
+
 async function loadAssets() {
   const cache = new Map();
   const assets = {
@@ -3730,398 +4120,25 @@ async function loadAssets() {
     ),
   );
 
-  const playerEntries = Object.entries(ASSET_MANIFEST.player).map(
-    async ([key, def]) => {
-      assets.player[key] = await loadAnimationClip(def, cache);
-    },
-  );
-
-  const projectileEntries = Object.entries(ASSET_MANIFEST.projectiles).map(
-    async ([key, def]) => {
-      assets.projectiles[key] = await loadAnimationClip(def, cache);
-    },
-  );
-
-  const enemyTypes = Object.entries(ASSET_MANIFEST.enemies).map(
-    async ([enemyName, enemyDefs]) => {
-      assets.enemies[enemyName] = {};
-      const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
-        const clip = await loadAnimationClip(def, cache);
-        // If there are developer overrides for this key/state, they'll be
-        // applied later via reloadEnemyClipsForKey during init(). But if the
-        // overrides are missing and this is a MiniFolk, attach reasonable
-        // default frameMaps so idle/walk don't cycle the entire sheet.
-        assets.enemies[enemyName][state] = clip;
-      });
-      await Promise.all(loaders);
-      // After clips loaded, apply default maps for MiniFolk when no overrides
-      try {
-        if (MINIFOLKS.some((m) => m.key === enemyName)) {
-          const maps = generateDefaultFrameMapsForMini(enemyName, assets.enemies[enemyName]);
-          if (maps) {
-            for (const [st, arr] of Object.entries(maps)) {
-              if (assets.enemies[enemyName][st] && (!assets.enemies[enemyName][st].frameMap || !assets.enemies[enemyName][st].frameMap.length)) {
-                assets.enemies[enemyName][st].frameMap = arr.slice();
-              }
-            }
-          }
-        }
-          // Developer-provided explicit maps: ensure miniDemonFireThrower has proper idle/walk maps
-          try {
-            if (enemyName === 'miniDemonFireThrower' && assets.enemies[enemyName]) {
-              // Frame Developer: grid 8x7, idle frames 1-4, walk frames 9-14 (1-based)
-              const idleMap = [0, 1, 2, 3];
-              const walkMap = [8, 9, 10, 11, 12, 13];
-              if (assets.enemies[enemyName].idle) assets.enemies[enemyName].idle.frameMap = idleMap.slice();
-              if (assets.enemies[enemyName].walk) assets.enemies[enemyName].walk.frameMap = walkMap.slice();
-              console.info && console.info('Applied explicit frameMap for miniDemonFireThrower', { idleMap, walkMap });
-            }
-          } catch (e) {}
-      } catch (e) {
-        // ignore
-      }
-    },
-  );
-
-  const obstacleEntries = Object.entries(OBSTACLE_DEFS).map(
-    async ([key, def]) => {
-      if (!cache.has(def.src)) {
-        cache.set(def.src, loadImage(def.src));
-      }
-      const image = await cache.get(def.src);
-      assets.obstacles[key] = {
-        image,
-        scale: def.scale,
-        collisionRadius: def.collisionRadius,
-      };
-    },
-  );
-
-  const weaponDropEntries = Object.entries(WEAPON_DROP_DEFS).map(
-    async ([key, def]) => {
-      let frames = null;
-      let baseFrame = null;
-      if (Array.isArray(def.frameSources) && def.frameSources.length) {
-        frames = [];
-        for (const src of def.frameSources) {
-          if (!cache.has(src)) {
-            cache.set(src, loadImage(src));
-          }
-          const img = await cache.get(src);
-          frames.push(img);
-        }
-        baseFrame = frames[0] || null;
-      } else if (def.src) {
-        if (!cache.has(def.src)) {
-          cache.set(def.src, loadImage(def.src));
-        }
-        const image = await cache.get(def.src);
-        const fw = def.frameWidth || 0;
-        const fh = def.frameHeight || 0;
-        if (fw > 0 && fh > 0) {
-          frames = extractFrames(image, fw, fh);
-          const index = Math.max(0, def.frameIndex || 0);
-          baseFrame = frames[index] || frames[0] || image;
-        } else {
-          baseFrame = extractFrame(image, fw, fh, def.frameIndex || 0);
-        }
-      }
-      const imageRef = baseFrame || (frames && frames[0]) || null;
-      let iconImage = null;
-      if (def.iconSrc) {
-        if (!cache.has(def.iconSrc)) {
-          cache.set(def.iconSrc, loadImage(def.iconSrc));
-        }
-        iconImage = await cache.get(def.iconSrc);
-      }
-      assets.weaponPickups[key] = { image: imageRef, frames, iconImage, ...def };
-    },
-  );
-
-  const utilityEntries = Object.entries(UTILITY_POWERUP_DEFS).map(
-    async ([key, def]) => {
-      if (!cache.has(def.src)) {
-        cache.set(def.src, loadImage(def.src));
-      }
-      const image = await cache.get(def.src);
-      let iconImage = null;
-      if (def.iconSrc) {
-        if (!cache.has(def.iconSrc)) {
-          cache.set(def.iconSrc, loadImage(def.iconSrc));
-        }
-        iconImage = await cache.get(def.iconSrc);
-      }
-      assets.utility[key] = { image, iconImage, ...def };
-    },
-  );
-
-
-  const backgroundPromise = loadImage(BACKGROUND_IMAGE_PATH)
-    .then((image) => {
-      assets.background = image;
-    })
-    .catch((error) => {
-      console.error(error);
-      assets.background = null;
-    });
-  const townIntroPromise = loadImage(TOWN_INTRO_BACKGROUND_PATH)
-    .then((img) => {
-      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
-      assets.backgrounds.townIntro = img;
-    })
-    .catch(() => {
-      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
-      assets.backgrounds.townIntro = null;
-    });
-  const epiloguePromise = loadImage("assets/backgrounds/epilogue.png")
-    .then((img) => {
-      if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
-      assets.backgrounds.epilogue = img;
-    })
-    .catch(() => {
-      if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
-      assets.backgrounds.epilogue = null;
-    });
-  const gameOverBackgroundPromise = loadImage("assets/backgrounds/game-over.png")
-    .then((img) => {
-      if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
-      assets.backgrounds.gameOver = img;
-    })
-    .catch(() => {
-      if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
-      assets.backgrounds.gameOver = null;
-    });
-
-  // layered backgrounds (optional)
-  const farPromise = loadImage(BACKGROUND_FAR_PATH)
-    .then((img) => { assets.backgroundLayers.far = img; })
-    .catch(() => { assets.backgroundLayers.far = null; });
-  const midPromise = loadImage(BACKGROUND_MID_PATH)
-    .then((img) => { assets.backgroundLayers.mid = img; })
-    .catch(() => { assets.backgroundLayers.mid = null; });
-  // Swap to use floor.png for the floor background
-  const floorPromise = loadImage("assets/backgrounds/floor.png")
-    .then((img) => { assets.backgroundLayers.floor = img; })
-    .catch(() => { assets.backgroundLayers.floor = null; });
-
-
-  const titleBackgroundPromise = loadImage(TITLE_BACKGROUND_PATH)
-    .then((img) => { assets.titleBackground = img; })
-    .catch(() => { assets.titleBackground = null; });
   await Promise.all([
-    ...playerEntries,
-    ...projectileEntries,
-    ...enemyTypes,
-    ...obstacleEntries,
-    ...weaponDropEntries,
-    ...utilityEntries,
-    backgroundPromise,
-    townIntroPromise,
-    epiloguePromise,
-    gameOverBackgroundPromise,
-  npcAssetsPromise,
-  coinAssetsPromise,
-  farPromise,
-  midPromise,
-    floorPromise,
-    titleBackgroundPromise,
-    
+    loadPlayerAssets(cache, assets),
+    loadProjectileAssets(cache, assets),
+    loadEnemyAssets(cache, assets),
+    loadObstacleAssets(cache, assets),
+    loadWeaponDropAssets(cache, assets),
+    loadUtilityAssets(cache, assets),
+    loadBackgroundAssets(cache, assets),
+    npcAssetsPromise,
+    coinAssetsPromise,
   ]);
 
   assets.npcs = await npcAssetsPromise;
   assets.items = await coinAssetsPromise;
-  projectileFrames.coin = assets.items.coinFrames || [];
-  if (assets.items.coinFrames?.length) {
-    assets.projectiles.coin = { frames: assets.items.coinFrames };
-  }
 
-  const faithCannonClip = assets.projectiles?.faith_cannon;
-  if (faithCannonClip && faithCannonClip.image) {
-    const faithCannonFrames = extractFrames(
-      faithCannonClip.image,
-      faithCannonClip.frameWidth || faithCannonClip.image.width,
-      faithCannonClip.frameHeight || faithCannonClip.image.height,
-    );
-    if (faithCannonFrames.length) {
-      projectileFrames.faith_cannon = faithCannonFrames;
-    }
-  }
+  await loadProjectileFrames(cache, assets, projectileFrames);
+  await loadEffectAssets(cache, assets);
+  await loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromise, flagFramesPromise);
 
-  try {
-    const tridentClip = assets.projectiles?.miniTrident;
-    if (tridentClip && tridentClip.image) {
-      const frames = getFramesForClip(tridentClip);
-      if (frames && frames.length) {
-        projectileFrames.miniTrident = frames;
-      }
-    }
-  } catch (e) {
-    console.debug && console.debug('miniTrident frame extraction failed', e);
-  }
-
-
-  // Extract frames for miniFireball projectile (2 rows x 4 cols expected).
-  try {
-    const pclip = assets.projectiles?.miniFireball;
-    if (pclip && pclip.image) {
-      // Ensure we have usable frameWidth/frameHeight; if loader failed to infer,
-      // apply a sensible fallback for the known miniFireball layout (4 cols x 2 rows).
-      let frameW = pclip.frameWidth || 0;
-      let frameH = pclip.frameHeight || 0;
-      const imgW = pclip.image.width;
-      const imgH = pclip.image.height;
-      if ((!frameW || !frameH) && imgW > 0 && imgH > 0) {
-        if (imgW % 4 === 0 && imgH % 2 === 0) {
-          frameW = Math.floor(imgW / 4);
-          frameH = Math.floor(imgH / 2);
-        }
-      }
-      // Final guard: if still missing, attempt gcd fallback as a square-ish grid
-      if ((!frameW || !frameH) && imgW > 0 && imgH > 0) {
-        const g = gcd(imgW, imgH);
-        if (g > 1) {
-          frameW = frameW || g;
-          frameH = frameH || g;
-        }
-      }
-
-      if (frameW > 0 && frameH > 0) {
-        const cols = Math.max(1, Math.floor(imgW / frameW));
-        const rows = Math.max(1, Math.floor(imgH / frameH));
-        const total = pclip.frameCount || cols * rows;
-        projectileFrames.miniFireball = [];
-        for (let i = 0; i < total; i += 1) {
-          const frameCanvas = extractFrame(pclip.image, frameW, frameH, i);
-          projectileFrames.miniFireball.push(frameCanvas);
-        }
-        // prefer using frames array for miniFireball
-        if (projectileFrames.miniFireball.length) {
-          assets.projectiles.miniFireball = { frames: projectileFrames.miniFireball };
-        }
-      } else {
-        // log metadata to help debugging in the browser console
-        console.debug && console.debug('miniFireball extraction skipped; metadata', {
-          src: pclip.image?.src,
-          imgW,
-          imgH,
-          frameWidth: pclip.frameWidth,
-          frameHeight: pclip.frameHeight,
-          inferredFrameW: frameW,
-          inferredFrameH: frameH,
-        });
-      }
-    }
-  } catch (e) {
-    // ignore frame extraction failures
-  }
-
-  assets.effects.verticalPuff = await Promise.all(
-    Array.from({ length: 9 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/vertical-puff/sprites/vertical-puff${i + 1}.png`).then(
-        (img) => extractFrame(img, img.width, img.height, 0),
-      ),
-    ),
-  );
-  assets.effects.impactDust = await Promise.all(
-    Array.from({ length: 10 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/impact-dust/sprites/impact-dust${i + 1}.png`).then((img) =>
-        extractFrame(img, img.width, img.height, 0),
-      ),
-    ),
-  );
-  assets.effects.flash = await Promise.all(
-    Array.from({ length: 14 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/flash/sprites/flash${i + 1}.png`).then((img) =>
-        extractFrame(img, img.width, img.height, 0),
-      ),
-    ),
-  );
-  assets.effects.visitorHeartHit = await Promise.all(
-    Array.from({ length: 6 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/puff/sprites/puff${i + 1}.png`).then((img) =>
-        extractFrame(img, img.width, img.height, 0),
-      ),
-    ),
-  );
-  projectileFrames.fire = await Promise.all(
-    Array.from({ length: 5 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/fire-missile/sprites/fire-missile${i + 1}.png`),
-    ),
-  );
-  projectileFrames.wisdom_missle = await Promise.all(
-    WISDOM_FRAME_SOURCES.map((src) => loadImage(src)),
-  ); // Projectile frames mirror the same Fireball9-18 set so the weapon/path lines up.
-  assets.effects.magicImpact = await Promise.all(
-    Array.from({ length: FLASH_FRAME_COUNT }, (_, i) =>
-      loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`),
-    ),
-  ); // Impact spark now uses the fireball flash sprites (flash1-14) instead of the legacy vfx-d pack.
-  assets.effects.puff = await loadImage(
-    "assets/sprites/explosions/28-puff/Explosion VFX 28(16x16).png",
-  ).then((img) => extractFrames(img, 16, 16));
-  assets.effects.enemyDeathExplosion = await loadImage(
-    "assets/sprites/explosions/16/Explosion VFX 16(48x48).png",
-  ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
-  assets.effects.enemyDeathExplosionAlt = await loadImage(
-    "assets/sprites/explosions/17/Explosion VFX 17(48x64).png",
-  ).then((img) => extractFrames(img, 48, 64).slice(0, 10));
-  assets.effects.enemyDeathExplosionAlt2 = await loadImage(
-    "assets/sprites/explosions/3/Explosion VFX 3(48x48).png",
-  ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
-  assets.effects.prayerBombExplosion = await loadImage(
-    "assets/sprites/explosions/Explosion VFX 21/Explosion VFX 21(64x64).png",
-  ).then((img) => extractFrames(img, 64, 64));
-  assets.effects.magicSplash = await Promise.all(
-    Array.from({ length: FLASH_FRAME_COUNT }, (_, i) =>
-      loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`).then((img) =>
-        extractFrame(img, img.width, img.height, 0),
-      ),
-    ),
-  ); // Magic splash mirrors the flash hit frames so wisdom/faith hits show the same spark.
-  assets.effects.chattyHeartHit = await loadImage(`${MAGIC_PACK10_SHEETS_ROOT}/ray.png`).then((img) =>
-    extractFrames(img, 78, 64),
-  );
-  assets.effects.chattyAppease = await loadImage(`${MAGIC_PACK10_SHEETS_ROOT}/blast.png`).then((img) =>
-    extractFrames(img, 64, 64),
-  );
-  assets.effects.raybolt = await Promise.all(
-    Array.from({ length: 10 }, (_, i) =>
-      loadImage(`${MAGIC_PACK10_ROOT}/Raybolt/Raybolt${i + 1}.png`).then((img) =>
-        extractFrame(img, img.width, img.height, 0),
-      ),
-    ),
-  );
-  assets.effects.divineChargeSpark = await Promise.all(
-    Array.from({ length: DIVINE_CHARGE_SPARK_COUNT }, (_, i) =>
-      loadImage(`${DIVINE_CHARGE_SPARK_ROOT}/sparks${i + 1}.png`),
-    ),
-  );
-  assets.effects.meleeSwoosh = await loadImage(MELEE_SWOOSH_PATH).catch(() => null);
-  assets.npcs = await npcAssetsPromise;
-  const keyFrames = (await keyFramesPromise).filter(Boolean);
-  assets.items.gracePickup = {
-    frames: keyFrames,
-    icon: keyFrames[0] || null,
-  };
-  const torchFrames = (await torchFramesPromise).filter(Boolean);
-  assets.items.torch = {
-    frames: torchFrames,
-    icon: torchFrames[0] || null,
-  };
-  const flagFrames = (await flagFramesPromise).filter(Boolean);
-  assets.items.flag = {
-    frames: flagFrames,
-    icon: flagFrames[0] || null,
-  };
-  // load smoke frames (magic-pack Smoke sprites)
-  assets.effects.smoke = await Promise.all(
-    Array.from({ length: 17 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/Smoke/sprites/smoke${i + 1}.png`).then((img) =>
-        // frames are single images, keep as-is
-        extractFrame(img, img.width, img.height, 0),
-      ),
-    ),
-  );
   return assets;
 }
 
