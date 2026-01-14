@@ -11320,6 +11320,222 @@ function updateEnemiesAndEntities(dt) {
   });
 }
 
+function processDeadEnemies() {
+  for (let i = enemies.length - 1; i >= 0; i -= 1) {
+    const enemy = enemies[i];
+    if (!enemy.dead) continue;
+
+    if (!enemy.scoreGranted) {
+      const explicitScore = enemy.config && typeof enemy.config.score === 'number' ? enemy.config.score : null;
+      const typeDef = ENEMY_TYPES && ENEMY_TYPES[enemy.type];
+      const typeScore = typeDef && typeof typeDef.score === 'number' ? typeDef.score : null;
+      const awarded = explicitScore ?? typeScore ?? 0;
+      if (awarded > 0) score += awarded;
+      enemy.scoreGranted = true;
+    }
+
+    const killedByPrayer = Boolean(enemy.killedByPrayerBomb);
+    if (!killedByPrayer && player && typeof player.addPrayerCharge === "function") {
+      const modifier = PRAYER_BOMB_CHARGE_TYPE_MODIFIERS[enemy.type] ?? 1;
+      const chargeAmount = PRAYER_BOMB_CHARGE_PER_KILL * modifier;
+      if (chargeAmount > 0) player.addPrayerCharge(chargeAmount);
+    }
+    if (enemy.killedByPrayerBomb) {
+      delete enemy.killedByPrayerBomb;
+    }
+
+    const skipFaithReward = NPC_FAITH_KILL_REWARD_EXCLUSIONS.has(enemy.type);
+    if (!skipFaithReward) {
+      try {
+        const faithPerNpc =
+          typeof devTools?.npcFaithPerEnemy === "number"
+            ? devTools.npcFaithPerEnemy
+            : NPC_FAITH_PER_ENEMY_KILL;
+        if (faithPerNpc && npcs && npcs.length) {
+          for (const npc of npcs) {
+            if (!npc || !npc.active || npc.departed) continue;
+            if (typeof npc.faith === "number") {
+              const maxFaith = npc.maxFaith || NPC_MAX_FAITH;
+              if (npc.faith <= 0) continue;
+              if (npc.faith >= maxFaith) continue;
+            }
+            npc.receiveFaith(faithPerNpc);
+          }
+        }
+      } catch (e) {}
+    }
+
+    lastEnemyDeathPosition = { x: enemy.x, y: enemy.y };
+    maybeDropGraceFromEnemy(enemy);
+    enemies.splice(i, 1);
+  }
+}
+
+function processProjectileCollisions(dt) {
+  projectiles.forEach((projectile) => projectile.update(dt));
+
+  for (const projectile of projectiles) {
+    if (projectile.dead) continue;
+
+    if (projectile.friendly) {
+      // Friendly projectiles hitting enemies
+      for (const enemy of enemies) {
+        if (enemy.dead || enemy.state === "death") continue;
+        if (projectile.hitEntities.has(enemy)) continue;
+        if (!projectile.hitTest(enemy)) continue;
+        projectile.hitEntities.add(enemy);
+
+        if (projectile.type === "wisdom_missle") {
+          detonateWisdomMissleProjectile(projectile);
+          break;
+        }
+
+        if (projectile.type === "faith_cannon") {
+          detonateFaithCannonProjectile(projectile, { endOfRange: false });
+          break;
+        }
+
+        const prevHealth = enemy.health;
+        const projectileDamage = projectile.getDamage();
+        enemy.takeDamage(projectileDamage);
+
+        if (
+          projectile.type === "arrow" ||
+          projectile.type === "fire" ||
+          projectile.type === "heart" ||
+          projectile.type === "faith_cannon"
+        ) {
+          const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
+          const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
+          spawnFlashEffect(hitX, hitY);
+        }
+        if (enemy.health > 0) {
+          const puffRadius = Math.max(24, getEnemyHitboxRadius(enemy)) * 0.6;
+          const center = getEnemyHitboxCenter(enemy);
+          spawnPuffEffect(center.x, center.y, puffRadius);
+        }
+        projectile.onHit(enemy);
+        if (projectile.dead) break;
+      }
+
+      if (projectile.dead) continue;
+
+      // Friendly projectiles hitting boss
+      if (!projectile.dead && activeBoss && !activeBoss.dead && !activeBoss.defeated) {
+        if (!projectile.hitEntities.has(activeBoss) && projectile.hitTest(activeBoss)) {
+          projectile.hitEntities.add(activeBoss);
+          if (projectile.type === "wisdom_missle") {
+            detonateWisdomMissleProjectile(projectile);
+          } else if (projectile.type === "faith_cannon") {
+            detonateFaithCannonProjectile(projectile, { endOfRange: false });
+          } else {
+            const hitX = Number.isFinite(projectile.x) ? projectile.x : activeBoss.x;
+            const hitY = Number.isFinite(projectile.y) ? projectile.y : activeBoss.y;
+            activeBoss.takeDamage(projectile.getDamage(), {
+              hitX,
+              hitY,
+              skipImpactEffect: true,
+            });
+            if (
+              projectile.type === "arrow" ||
+              projectile.type === "fire" ||
+              projectile.type === "heart" ||
+              projectile.type === "faith_cannon"
+            ) {
+              spawnFlashEffect(hitX, hitY);
+            }
+            projectile.onHit(activeBoss);
+            if (!projectile.pierce) projectile.dead = true;
+          }
+        }
+      }
+    } else {
+      // Hostile projectiles hitting player
+      if (player && player.state !== "death" && projectile.hitTest(player)) {
+        if (player.shieldTimer > 0) {
+          projectile.dead = true;
+          spawnFlashEffect(player.x, player.y - player.radius / 2);
+        } else {
+          const damage = Math.max(1, Math.round(projectile.getDamage() || 1));
+          player.takeDamage(damage);
+          projectile.onHit(player);
+          projectile.dead = true;
+        }
+        continue;
+      }
+
+      // Hostile projectiles hitting NPCs
+      if (!projectile.dead && npcs.length) {
+        for (const npc of npcs) {
+          if (projectile.dead) break;
+          if (!npc.active || npc.departed) continue;
+          if (!projectile.hitTest(npc)) continue;
+          if (!projectile.hitEntities.has(npc)) {
+            projectile.hitEntities.add(npc);
+            const damage = Math.max(1, Math.round(projectile.getDamage() || 1));
+            if (typeof npc.sufferAttack === "function") {
+              npc.sufferAttack(damage, { sourceType: projectile.source?.type });
+            }
+            projectile.onHit(npc);
+          }
+          projectile.dead = true;
+        }
+      }
+    }
+  }
+}
+
+function processProjectileClashing() {
+  const friendlyProjectiles = projectiles.filter((proj) => proj.friendly && !proj.dead);
+  const hostileProjectiles = projectiles.filter((proj) => !proj.friendly && !proj.dead);
+
+  for (const friendly of friendlyProjectiles) {
+    if (friendly.dead) continue;
+    for (const hostile of hostileProjectiles) {
+      if (hostile.dead) continue;
+      if (!projectilesIntersect(friendly, hostile)) continue;
+
+      const friendlyPriority = friendly.priority ?? 0;
+      const hostilePriority = hostile.priority ?? 0;
+      let friendlyDies = false;
+      let hostileDies = false;
+      const friendlyFromPlayer = Boolean(friendly.source === player);
+      const hostileIsBoss = isBossProjectile(hostile);
+
+      if (hostileIsBoss && friendlyFromPlayer) {
+        friendlyDies = true;
+      } else if (friendlyPriority > hostilePriority) {
+        hostileDies = true;
+      } else if (friendlyPriority < hostilePriority) {
+        friendlyDies = true;
+      } else {
+        friendlyDies = true;
+        hostileDies = true;
+      }
+
+      if (hostileDies) hostile.dead = true;
+      if (friendlyDies) friendly.dead = true;
+
+      const hitX = (friendly.x + hostile.x) / 2;
+      const hitY = (friendly.y + hostile.y) / 2;
+      spawnImpactEffect(hitX, hitY);
+      spawnFlashEffect(hitX, hitY);
+      if (typeof playEnemyHitSfx === "function") {
+        playEnemyHitSfx(0.35);
+      }
+      break;
+    }
+  }
+}
+
+function cleanupDeadProjectiles() {
+  for (let i = projectiles.length - 1; i >= 0; i -= 1) {
+    if (projectiles[i].dead) {
+      projectiles.splice(i, 1);
+    }
+  }
+}
+
 function updateGame(dt) {
   if (!player) return;
   handleDeveloperHotkeys();
@@ -11501,52 +11717,7 @@ function updateGame(dt) {
     maintainSkeletonHorde();
   }
 
-  for (let i = enemies.length - 1; i >= 0; i -= 1) {
-    const enemy = enemies[i];
-    if (enemy.dead) {
-      if (!enemy.scoreGranted) {
-        // Prefer explicit config score if present (synthesized for MiniFolks)
-        const explicitScore = enemy.config && typeof enemy.config.score === 'number' ? enemy.config.score : null;
-        const typeDef = ENEMY_TYPES && ENEMY_TYPES[enemy.type];
-        const typeScore = typeDef && typeof typeDef.score === 'number' ? typeDef.score : null;
-        const awarded = explicitScore ?? typeScore ?? 0;
-        if (awarded > 0) score += awarded;
-        enemy.scoreGranted = true;
-      }
-        const killedByPrayer = Boolean(enemy.killedByPrayerBomb);
-        if (!killedByPrayer && player && typeof player.addPrayerCharge === "function") {
-          const modifier = PRAYER_BOMB_CHARGE_TYPE_MODIFIERS[enemy.type] ?? 1;
-          const chargeAmount = PRAYER_BOMB_CHARGE_PER_KILL * modifier;
-          if (chargeAmount > 0) player.addPrayerCharge(chargeAmount);
-        }
-        if (enemy.killedByPrayerBomb) {
-          delete enemy.killedByPrayerBomb;
-        }
-        const skipFaithReward = NPC_FAITH_KILL_REWARD_EXCLUSIONS.has(enemy.type);
-        if (!skipFaithReward) {
-          try {
-            const faithPerNpc =
-              typeof devTools?.npcFaithPerEnemy === "number"
-                ? devTools.npcFaithPerEnemy
-                : NPC_FAITH_PER_ENEMY_KILL;
-            if (faithPerNpc && npcs && npcs.length) {
-              for (const npc of npcs) {
-                if (!npc || !npc.active || npc.departed) continue;
-                if (typeof npc.faith === "number") {
-                  const maxFaith = npc.maxFaith || NPC_MAX_FAITH;
-                  if (npc.faith <= 0) continue; // drained NPCs must be personally rescued
-                  if (npc.faith >= maxFaith) continue;
-                }
-                npc.receiveFaith(faithPerNpc);
-              }
-            }
-          } catch (e) {}
-        }
-        lastEnemyDeathPosition = { x: enemy.x, y: enemy.y };
-        maybeDropGraceFromEnemy(enemy);
-        enemies.splice(i, 1);
-    }
-  }
+  processDeadEnemies();
 
     // Melee attack logic: only trigger once per key press, deal damage once, and disappear
   if (!window._meleeAttackState)
@@ -12042,160 +12213,9 @@ const DIVINE_SHOT_DAMAGE = 1000;
     }
   }
 
-  projectiles.forEach((projectile) => projectile.update(dt));
-
-  for (const projectile of projectiles) {
-    if (projectile.dead) continue;
-
-  if (projectile.friendly) {
-
-      for (const enemy of enemies) {
-        if (enemy.dead || enemy.state === "death") continue;
-        if (projectile.hitEntities.has(enemy)) continue;
-        if (!projectile.hitTest(enemy)) continue;
-        projectile.hitEntities.add(enemy);
-
-        if (projectile.type === "wisdom_missle") {
-          detonateWisdomMissleProjectile(projectile);
-          break;
-        }
-
-        if (projectile.type === "faith_cannon") {
-          detonateFaithCannonProjectile(projectile, { endOfRange: false });
-          break;
-        }
-
-        const prevHealth = enemy.health;
-        const projectileDamage = projectile.getDamage();
-        enemy.takeDamage(projectileDamage);
-  // no arrow-hit gating for health bars
-        if (
-          projectile.type === "arrow" ||
-          projectile.type === "fire" ||
-          projectile.type === "heart" ||
-          projectile.type === "faith_cannon"
-        ) {
-          // Flash sprite hit animation (flash1-14) now used for all friendly spark hits.
-          const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
-          const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
-          spawnFlashEffect(hitX, hitY);
-        }
-        if (enemy.health > 0) {
-          const puffRadius = Math.max(24, getEnemyHitboxRadius(enemy)) * 0.6;
-          const center = getEnemyHitboxCenter(enemy);
-          spawnPuffEffect(center.x, center.y, puffRadius);
-        }
-        projectile.onHit(enemy);
-        if (projectile.dead) break;
-      }
-
-      if (projectile.dead) continue;
-
-  // coins are friendly projectiles but no longer auto-heal NPCs via hits
-
-  if (!projectile.dead && activeBoss && !activeBoss.dead && !activeBoss.defeated) {
-        if (!projectile.hitEntities.has(activeBoss) && projectile.hitTest(activeBoss)) {
-          projectile.hitEntities.add(activeBoss);
-          if (projectile.type === "wisdom_missle") {
-            detonateWisdomMissleProjectile(projectile);
-          } else if (projectile.type === "faith_cannon") {
-            detonateFaithCannonProjectile(projectile, { endOfRange: false });
-          } else {
-            const hitX = Number.isFinite(projectile.x) ? projectile.x : activeBoss.x;
-            const hitY = Number.isFinite(projectile.y) ? projectile.y : activeBoss.y;
-            activeBoss.takeDamage(projectile.getDamage(), {
-              hitX,
-              hitY,
-              skipImpactEffect: true,
-            });
-            if (
-              projectile.type === "arrow" ||
-              projectile.type === "fire" ||
-              projectile.type === "heart" ||
-              projectile.type === "faith_cannon"
-            ) {
-              spawnFlashEffect(hitX, hitY);
-            }
-            projectile.onHit(activeBoss);
-            if (!projectile.pierce) projectile.dead = true;
-          }
-        }
-      }
-    } else {
-      if (player && player.state !== "death" && projectile.hitTest(player)) {
-        if (player.shieldTimer > 0) {
-          projectile.dead = true;
-          spawnFlashEffect(player.x, player.y - player.radius / 2);
-        } else {
-          const damage = Math.max(1, Math.round(projectile.getDamage() || 1));
-          player.takeDamage(damage);
-          projectile.onHit(player);
-          projectile.dead = true;
-        }
-        continue;
-      }
-      if (!projectile.dead && npcs.length) {
-        for (const npc of npcs) {
-          if (projectile.dead) break;
-          if (!npc.active || npc.departed) continue;
-          if (!projectile.hitTest(npc)) continue;
-          if (!projectile.hitEntities.has(npc)) {
-            projectile.hitEntities.add(npc);
-            const damage = Math.max(1, Math.round(projectile.getDamage() || 1));
-            if (typeof npc.sufferAttack === "function") {
-              npc.sufferAttack(damage, { sourceType: projectile.source?.type });
-            }
-            projectile.onHit(npc);
-          }
-          projectile.dead = true;
-        }
-      }
-    }
-  }
-
-  // Projectile clashes use a priority value so Divine Shot can beat normal shots while
-  // future boss projectiles can be flagged with a higher priority to resist it.
-  const friendlyProjectiles = projectiles.filter((proj) => proj.friendly && !proj.dead);
-  const hostileProjectiles = projectiles.filter((proj) => !proj.friendly && !proj.dead);
-  for (const friendly of friendlyProjectiles) {
-    if (friendly.dead) continue;
-    for (const hostile of hostileProjectiles) {
-      if (hostile.dead) continue;
-      if (!projectilesIntersect(friendly, hostile)) continue;
-      const friendlyPriority = friendly.priority ?? 0;
-      const hostilePriority = hostile.priority ?? 0;
-      let friendlyDies = false;
-      let hostileDies = false;
-      const friendlyFromPlayer = Boolean(friendly.source === player);
-      const hostileIsBoss = isBossProjectile(hostile);
-      if (hostileIsBoss && friendlyFromPlayer) {
-        friendlyDies = true;
-      } else if (friendlyPriority > hostilePriority) {
-        hostileDies = true;
-      } else if (friendlyPriority < hostilePriority) {
-        friendlyDies = true;
-      } else {
-        friendlyDies = true;
-        hostileDies = true;
-      }
-      if (hostileDies) hostile.dead = true;
-      if (friendlyDies) friendly.dead = true;
-      const hitX = (friendly.x + hostile.x) / 2;
-      const hitY = (friendly.y + hostile.y) / 2;
-      spawnImpactEffect(hitX, hitY);
-      spawnFlashEffect(hitX, hitY);
-      if (typeof playEnemyHitSfx === "function") {
-        playEnemyHitSfx(0.35);
-      }
-      break;
-    }
-  }
-
-  for (let i = projectiles.length - 1; i >= 0; i -= 1) {
-    if (projectiles[i].dead) {
-      projectiles.splice(i, 1);
-    }
-  }
+  processProjectileCollisions(dt);
+  processProjectileClashing();
+  cleanupDeadProjectiles();
 }
 
 function getFramesForClip(clip) {
