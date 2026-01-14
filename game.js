@@ -10697,11 +10697,7 @@ function parseFrameList(input) {
   return Array.from(out).sort((a,b) => a - b);
 }
 
-function updateGame(dt) {
-  if (!player) return;
-  handleDeveloperHotkeys();
-
-  // Update debug overlay data periodically
+function updateDebugSystems(dt) {
   if (DEBUG && debugOverlayVisible) {
     debugOverlayUpdateAccumulator += dt;
     if (debugOverlayUpdateAccumulator >= DEBUG_OVERLAY_UPDATE_INTERVAL) {
@@ -10709,42 +10705,48 @@ function updateGame(dt) {
       updateDebugOverlayData();
     }
   }
-  if (epilogueActive) {
-    if (wasActionJustPressed("restart")) {
-      restartGame();
+  if (devInspectorActive) devInspectorTimer += dt;
+  if (devOverridesDirty) {
+    devOverridesSaveTimer += dt;
+    if (devOverridesSaveTimer > 0.8) {
+      saveDevOverrides(true);
     }
-    return;
   }
-  updatePrayerBombFireRain(dt);
-  if (townIntroTransitionActive) {
-    townIntroTransitionTimer = Math.min(
-      TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION,
-      townIntroTransitionTimer + dt,
-    );
-    if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-      townIntroTransitionTimer = TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION;
-    }
-    if (townIntroTransitionTimer >= TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION) {
-      townIntroTransitionActive = false;
-    }
-    try {
-      const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-      if (status?.stage === "levelIntro") {
-        if (!powerUpsClearedForCongregation) {
-          clearAllPowerUps();
-          powerUpsClearedForCongregation = true;
-        }
-        updateCongregationMembers(dt);
-        resolveCongregationMemberCollisions();
-        updatePlayerDuringCongregation(dt);
-        resolveCongregationCollisions();
+}
+
+function updateTownIntroTransition(dt) {
+  if (!townIntroTransitionActive) return false;
+
+  townIntroTransitionTimer = Math.min(
+    TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION,
+    townIntroTransitionTimer + dt,
+  );
+  if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
+    townIntroTransitionTimer = TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION;
+  }
+  if (townIntroTransitionTimer >= TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION) {
+    townIntroTransitionActive = false;
+  }
+  try {
+    const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+    if (status?.stage === "levelIntro") {
+      if (!powerUpsClearedForCongregation) {
+        clearAllPowerUps();
+        powerUpsClearedForCongregation = true;
       }
-    } catch (e) {}
-    keysJustPressed.delete(" ");
-    keysJustPressed.delete("pause");
-    keysJustPressed.delete("restart");
-    return;
-  }
+      updateCongregationMembers(dt);
+      resolveCongregationMemberCollisions();
+      updatePlayerDuringCongregation(dt);
+      resolveCongregationCollisions();
+    }
+  } catch (e) {}
+  keysJustPressed.delete(" ");
+  keysJustPressed.delete("pause");
+  keysJustPressed.delete("restart");
+  return true;
+}
+
+function updateDeathFadeEffects(dt) {
   if (player) {
     const target = player.state === "death" ? PLAYER_DEATH_FADE_TARGET : 0;
     const step = Math.min(1, dt * PLAYER_DEATH_FADE_SPEED);
@@ -10753,6 +10755,9 @@ function updateGame(dt) {
       playerDeathFadeAlpha = target;
     }
   }
+}
+
+function updateDeathBellAudio(dt) {
   if (playerDeathBellFadeTimer > 0 && playerDeathBellAudio) {
     playerDeathBellFadeTimer = Math.max(0, playerDeathBellFadeTimer - dt);
     if (playerDeathBellFadeTimer <= PLAYER_DEATH_BELL_FADE_DURATION) {
@@ -10779,28 +10784,18 @@ function updateGame(dt) {
       }
     }
   }
-  npcHarmonyBuffTimer = Math.max(0, npcHarmonyBuffTimer - dt);
-  if (devInspectorActive) devInspectorTimer += dt;
-  if (!paused && weaponPickupAnnouncement.timer > 0) {
-    weaponPickupAnnouncement.timer = Math.max(0, weaponPickupAnnouncement.timer - dt);
-  }
-  // autosave dev overrides after short debounce
-  if (devOverridesDirty) {
-    devOverridesSaveTimer += dt;
-    if (devOverridesSaveTimer > 0.8) {
-      saveDevOverrides(true);
-    }
-  }
+}
 
+function checkDialogOverlays() {
   if (window.DialogOverlay?.consumeAction?.() || window.UpgradeScreen?.consumeAction?.()) {
     keysJustPressed.delete(" ");
     keysJustPressed.delete("pause");
     keysJustPressed.delete("restart");
-    return;
+    return true;
   }
   if (isAnyDialogActive()) {
     keysJustPressed.delete(" ");
-    return;
+    return true;
   }
   if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible()) {
     clearGracePickups();
@@ -10809,8 +10804,12 @@ function updateGame(dt) {
     window.UpgradeScreen.show(() => {});
     pendingUpgradeAfterSummary = false;
     keysJustPressed.delete(" ");
-    return;
+    return true;
   }
+  return false;
+}
+
+function updatePostDeathSequence(dt) {
   if (postDeathSequenceActive) {
     postDeathTimer = Math.max(0, postDeathTimer - dt);
     if (postDeathTimer <= 0 && !miniImpWaveDispatched) {
@@ -10838,6 +10837,9 @@ function updateGame(dt) {
   } else {
     arenaFadeAlpha = 0;
   }
+}
+
+function updateFadeEffects(dt) {
   if (actBreakFadeTimer > 0) {
     actBreakFadeTimer = Math.max(0, actBreakFadeTimer - dt);
     const elapsed = actBreakFadeDuration - actBreakFadeTimer;
@@ -10853,6 +10855,7 @@ function updateGame(dt) {
   } else {
     actBreakFadeAlpha = 0;
   }
+
   if (graceRushFadeTimer > 0) {
     graceRushFadeTimer = Math.max(0, graceRushFadeTimer - dt);
     const progress = Math.min(1, Math.max(0, 1 - graceRushFadeTimer / graceRushFadeDuration));
@@ -10867,6 +10870,7 @@ function updateGame(dt) {
   } else {
     graceRushFadeAlpha = 0;
   }
+
   const hardBlackoutActive = graceRushHardBlackoutTimer > 0 || graceRushBlackout;
   if (hardBlackoutActive) {
     if (graceRushHardBlackoutTimer > 0) {
@@ -10879,350 +10883,359 @@ function updateGame(dt) {
       });
     } catch (e) {}
   }
-  const deathFreezeActive = postDeathSequenceActive;
-  if (deathFreezeActive) {
-    keysJustPressed.clear();
-  }
+}
 
-  window.postDeathSequenceActive = postDeathSequenceActive;
-
-  let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
-  let stage = levelStatus?.stage;
-  if (speedrunTimer.running) {
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-    const currentSection = getSpeedrunSectionName(levelStatus);
-    if (speedrunTimer.startTime == null) {
-      speedrunTimer.startTime = now;
-      speedrunTimer.sectionStart = now;
-      speedrunTimer.currentSection = currentSection;
-      speedrunTimer.splits = [];
-    } else if (speedrunTimer.currentSection !== currentSection && currentSection) {
-      const duration = Math.max(0, now - (speedrunTimer.sectionStart || now));
-      speedrunTimer.splits.push({ name: speedrunTimer.currentSection, duration });
-      speedrunTimer.sectionStart = now;
-      speedrunTimer.currentSection = currentSection;
-    }
-    if (speedrunTimer.startTime != null) {
-      speedrunTimer.totalElapsed = Math.max(0, now - speedrunTimer.startTime);
-      speedrunTimer.sectionElapsed = Math.max(0, now - (speedrunTimer.sectionStart || now));
-    }
+function updateSpeedrunTimer(levelStatus) {
+  if (!speedrunTimer.running) return;
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const currentSection = getSpeedrunSectionName(levelStatus);
+  if (speedrunTimer.startTime == null) {
+    speedrunTimer.startTime = now;
+    speedrunTimer.sectionStart = now;
+    speedrunTimer.currentSection = currentSection;
+    speedrunTimer.splits = [];
+  } else if (speedrunTimer.currentSection !== currentSection && currentSection) {
+    const duration = Math.max(0, now - (speedrunTimer.sectionStart || now));
+    speedrunTimer.splits.push({ name: speedrunTimer.currentSection, duration });
+    speedrunTimer.sectionStart = now;
+    speedrunTimer.currentSection = currentSection;
   }
+  if (speedrunTimer.startTime != null) {
+    speedrunTimer.totalElapsed = Math.max(0, now - speedrunTimer.startTime);
+    speedrunTimer.sectionElapsed = Math.max(0, now - (speedrunTimer.sectionStart || now));
+  }
+}
+
+function updateMusicState(levelStatus) {
+  const stage = levelStatus?.stage;
   if (playerDeathBellActive) {
     pauseAllMusic();
-  } else {
-    if (visitorSession?.active) {
-      if (musicState.battleStarted && !musicState.battleStopped) {
-        fadeOutBattleMusic();
-      }
-      if (musicState.introStarted && !musicState.introStopped) {
-        stopIntroMusic();
-      }
-      startVisitorMusic();
-    } else {
-      const battleShouldPlay =
-        stage === "npcArrival" ||
-        stage === "battleIntro" ||
-        stage === "hordeIntro" ||
-        stage === "hordeActive" ||
-        stage === "hordeCleared" ||
-        stage === "bossIntro" ||
-        stage === "bossActive" ||
-        musicState.battlePrimed;
-      if (battleShouldPlay) {
-        if (stage && stage !== "briefing") {
-          musicState.battlePrimed = false;
-        }
-        if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
-        if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
-        if (musicState.unlocked && !musicState.battleStarted) {
-          startBattleMusic();
-        }
-      } else if (musicState.battleStarted && !musicState.battleStopped) {
-        fadeOutBattleMusic();
-      }
-      if (
-        stage === "levelIntro" ||
-        stage === "briefing" ||
-        stage === "npcArrival"
-      ) {
-        if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
-      }
-    }
+    return;
   }
-  if (graceRushFadeHold) {
-    if (window.DialogOverlay?.isVisible?.()) {
-      if (graceRushFadeReleaseTimer <= 0) {
-        graceRushFadeReleaseTimer = 0.2;
-      }
-      graceRushFadeReleaseTimer = Math.max(0, graceRushFadeReleaseTimer - dt);
-      if (graceRushFadeReleaseTimer <= 0) {
-        graceRushFadeHold = false;
-        graceRushFadeDuration = 0;
-        graceRushFadeAlpha = 0;
-      }
+  if (visitorSession?.active) {
+    if (musicState.battleStarted && !musicState.battleStopped) {
+      fadeOutBattleMusic();
     }
+    if (musicState.introStarted && !musicState.introStopped) {
+      stopIntroMusic();
+    }
+    startVisitorMusic();
+    return;
   }
+  const battleShouldPlay =
+    stage === "npcArrival" ||
+    stage === "battleIntro" ||
+    stage === "hordeIntro" ||
+    stage === "hordeActive" ||
+    stage === "hordeCleared" ||
+    stage === "bossIntro" ||
+    stage === "bossActive" ||
+    musicState.battlePrimed;
+  if (battleShouldPlay) {
+    if (stage && stage !== "briefing") {
+      musicState.battlePrimed = false;
+    }
+    if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+    if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
+    if (musicState.unlocked && !musicState.battleStarted) {
+      startBattleMusic();
+    }
+  } else if (musicState.battleStarted && !musicState.battleStopped) {
+    fadeOutBattleMusic();
+  }
+  if (
+    stage === "levelIntro" ||
+    stage === "briefing" ||
+    stage === "npcArrival"
+  ) {
+    if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+  }
+}
 
-  // reset mini spawn flag when level changes
+function updateGraceRushFadeRelease(dt) {
+  if (!graceRushFadeHold) return;
+  if (window.DialogOverlay?.isVisible?.()) {
+    if (graceRushFadeReleaseTimer <= 0) {
+      graceRushFadeReleaseTimer = 0.2;
+    }
+    graceRushFadeReleaseTimer = Math.max(0, graceRushFadeReleaseTimer - dt);
+    if (graceRushFadeReleaseTimer <= 0) {
+      graceRushFadeHold = false;
+      graceRushFadeDuration = 0;
+      graceRushFadeAlpha = 0;
+    }
+  }
+}
+
+function updateLevelManagement() {
   const currentLevelNumber = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
   if (lastLevelNumber === null) lastLevelNumber = currentLevelNumber;
   if (currentLevelNumber !== lastLevelNumber) {
     Spawner.resetLevelFlags(currentLevelNumber);
     lastLevelNumber = currentLevelNumber;
   }
+}
 
-  if (playerRespawnPending) {
-    respawnTimer = Math.max(0, respawnTimer - dt);
-    respawnIndicatorTimer -= dt;
-    if (player && respawnIndicatorTimer <= 0) {
-      addStatusText(player, "Exhausted", {
-        color: "#FF6B6B",
-        bgColor: "rgba(60, 20, 20, 0.88)",
-        life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
-        offsetY: player.radius + 34,
-      });
-      respawnIndicatorTimer = RESPAWN_STATUS_INTERVAL;
-    }
-    if (respawnTimer <= 0) {
-      const oldPlayer = player;
-      const respawnX = canvas.width / 2;
-      const respawnY = HUD_HEIGHT + 40;
-      player = createPlayerInstance(respawnX, respawnY, assets.player);
-      player.x = respawnX;
-      const respawnTop = HUD_HEIGHT + Math.max(player.radius + 16, 28);
-      player.y = Math.max(respawnTop, respawnY);
-      player.shieldTimer = 0;
-      player.invulnerableTimer = RESPAWN_SHIELD_DURATION;
-      player.health = player.maxHealth;
-      player.state = "idle";
-      playerRespawnPending = false;
-      respawnIndicatorTimer = 0;
-      floatingTexts.forEach((ft) => {
-        if (ft.entity === oldPlayer && !ft.critical) ft.life = 0;
-      });
-    }
+function updatePlayerRespawn(dt) {
+  if (!playerRespawnPending) return false;
+  respawnTimer = Math.max(0, respawnTimer - dt);
+  respawnIndicatorTimer -= dt;
+  if (player && respawnIndicatorTimer <= 0) {
+    addStatusText(player, "Exhausted", {
+      color: "#FF6B6B",
+      bgColor: "rgba(60, 20, 20, 0.88)",
+      life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
+      offsetY: player.radius + 34,
+    });
+    respawnIndicatorTimer = RESPAWN_STATUS_INTERVAL;
   }
-
-  if (titleScreenActive) {
-    const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
-    if (!hitboxEditorActive && !window.DialogOverlay?.isVisible()) {
-      showTitleDialog();
-    }
-    keysJustPressed.delete(" ");
-    return;
+  if (respawnTimer <= 0) {
+    const oldPlayer = player;
+    const respawnX = canvas.width / 2;
+    const respawnY = HUD_HEIGHT + 40;
+    player = createPlayerInstance(respawnX, respawnY, assets.player);
+    player.x = respawnX;
+    const respawnTop = HUD_HEIGHT + Math.max(player.radius + 16, 28);
+    player.y = Math.max(respawnTop, respawnY);
+    player.shieldTimer = 0;
+    player.invulnerableTimer = RESPAWN_SHIELD_DURATION;
+    player.health = player.maxHealth;
+    player.state = "idle";
+    playerRespawnPending = false;
+    respawnIndicatorTimer = 0;
+    floatingTexts.forEach((ft) => {
+      if (ft.entity === oldPlayer && !ft.critical) ft.life = 0;
+    });
   }
+  return true;
+}
 
-  // If the how-to-play screen is active, Space should dismiss it and begin
-  // the briefing/congregation flow.
-  if (howToPlayActive) {
-    if (!window.DialogOverlay?.isVisible()) {
-      showHowToPlayDialog();
-    }
-    keysJustPressed.delete(" ");
-    return;
+function handleTitleScreen() {
+  if (!titleScreenActive) return false;
+  const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
+  if (!hitboxEditorActive && !window.DialogOverlay?.isVisible()) {
+    showTitleDialog();
   }
+  keysJustPressed.delete(" ");
+  return true;
+}
 
-  if (visitorSession.active && keysJustPressed.has("7")) {
-    visitorSession.summaryReason = visitorSession.summaryReason || "skipped";
-    completeVisitorSession("skipped");
+function handleHowToPlayScreen() {
+  if (!howToPlayActive) return false;
+  if (!window.DialogOverlay?.isVisible()) {
+    showHowToPlayDialog();
+  }
+  keysJustPressed.delete(" ");
+  return true;
+}
+
+function handleVisitorSessionSkip() {
+  if (!visitorSession.active || !keysJustPressed.has("7")) return false;
+  visitorSession.summaryReason = visitorSession.summaryReason || "skipped";
+  completeVisitorSession("skipped");
+  keysJustPressed.delete(" ");
+  keysJustPressed.delete("7");
+  return true;
+}
+
+function handleVisitorSummary() {
+  if (!visitorSession.active || !visitorSession.summaryActive) return false;
+  if (!visitorSession.recapShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
+    const saved = visitorSession.savedVisitors || 0;
+    const title = "Visitor Recap";
+    const body = `You welcomed ${saved} new members.\nCongregation Count: ${getCongregationSize()}`;
+    visitorSession.recapShown = true;
+    window.DialogOverlay.show({
+      title,
+      bodyHtml: `<div class="dialog-overlay__body"></div>`,
+      buttonText: "Continue (Space)",
+      variant: "mission",
+      devLabel: "",
+      onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
+      onContinue: () => {
+        const reason = visitorSession.summaryReason || "summary";
+        visitorSession.summaryReason = null;
+        visitorSession.awaitingSummaryConfirm = false;
+        completeVisitorSession(reason);
+        keysJustPressed.delete(" ");
+      },
+    });
+  }
+  return true;
+}
+
+function handleVisitorIntro() {
+  if (!visitorSession.active || !visitorSession.introActive) return false;
+  if (!visitorSession.introShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
+    const title = "Welcome Visitors";
+    const body = "Welcome the visitors while politely keeping your members happy.";
+    visitorSession.introShown = true;
+    window.DialogOverlay.show({
+      title,
+      bodyHtml: `<div class="dialog-overlay__body"></div>`,
+      buttonText: "Continue (Space)",
+      variant: "mission",
+      devLabel: "",
+      onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
+      onContinue: () => {
+        visitorSession.introActive = false;
+        keysJustPressed.delete(" ");
+      },
+    });
+  }
+  if (
+    wasActionJustPressed("restart") ||
+    wasActionJustPressed("pause") ||
+    keysJustPressed.has("7")
+  ) {
+    visitorSession.introActive = false;
     keysJustPressed.delete(" ");
     keysJustPressed.delete("7");
-    return;
   }
-  if (visitorSession.active && visitorSession.summaryActive) {
-    if (!visitorSession.recapShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
-      const saved = visitorSession.savedVisitors || 0;
-      const title = "Visitor Recap";
-      const body = `You welcomed ${saved} new members.\nCongregation Count: ${getCongregationSize()}`;
-      visitorSession.recapShown = true;
-      window.DialogOverlay.show({
-        title,
-        bodyHtml: `<div class="dialog-overlay__body"></div>`,
-        buttonText: "Continue (Space)",
-        variant: "mission",
-        devLabel: "",
-        onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
-        onContinue: () => {
-          const reason = visitorSession.summaryReason || "summary";
-          visitorSession.summaryReason = null;
-          visitorSession.awaitingSummaryConfirm = false;
-          completeVisitorSession(reason);
-          keysJustPressed.delete(" ");
-        },
-      });
-    }
-    return;
-  }
-  if (visitorSession.active && visitorSession.introActive) {
-    if (!visitorSession.introShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
-      const title = "Welcome Visitors";
-      const body = "Welcome the visitors while politely keeping your members happy.";
-      visitorSession.introShown = true;
-      window.DialogOverlay.show({
-        title,
-        bodyHtml: `<div class="dialog-overlay__body"></div>`,
-        buttonText: "Continue (Space)",
-        variant: "mission",
-        devLabel: "",
-        onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
-        onContinue: () => {
-          visitorSession.introActive = false;
-          keysJustPressed.delete(" ");
-        },
-      });
-    }
-    if (
-      wasActionJustPressed("restart") ||
-      wasActionJustPressed("pause") ||
-      keysJustPressed.has("7")
-    ) {
-      visitorSession.introActive = false;
-      keysJustPressed.delete(" ");
-      keysJustPressed.delete("7");
-    }
-    return;
-  }
-  if (levelAnnouncements.length && levelAnnouncements[0].requiresConfirm) {
-    const currentAnnouncement = levelAnnouncements[0];
-    const isSummary = isBattleSummaryAnnouncement(currentAnnouncement);
-    if (isSummary) {
-      if (!window.DialogOverlay?.isVisible()) {
-        const battleSummary = levelManager?.getLastBattleSummary?.() || {};
-        const savedCount = Number.isFinite(battleSummary?.savedCount) ? battleSummary.savedCount : 0;
-        const lostCount = Number.isFinite(battleSummary?.lostCount) ? battleSummary.lostCount : 0;
-        const upgradeAfter = Boolean(window.UpgradeScreen);
-        const portraits = {
-          saved: Array.isArray(battleSummary.savedPortraits) ? battleSummary.savedPortraits : [],
-          lost: Array.isArray(battleSummary.lostPortraits) ? battleSummary.lostPortraits : [],
-        };
-        showBattleSummaryDialog(currentAnnouncement, savedCount, lostCount, upgradeAfter, portraits);
-      }
-      return;
-    }
-    if (currentAnnouncement.townIntro) {
-      const clickPos = Input.consumeCanvasClick?.();
-      const buttonBounds = typeof window !== "undefined" ? window.__townIntroPlayButtonBounds : null;
-      if (clickPos && buttonBounds) {
-        const inside =
-          clickPos.x >= buttonBounds.x &&
-          clickPos.x <= buttonBounds.x + buttonBounds.width &&
-          clickPos.y >= buttonBounds.y &&
-          clickPos.y <= buttonBounds.y + buttonBounds.height;
-        if (inside) {
-          startTownIntroTransition();
-          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-            window.playMenuAdvanceSfx(0.55);
-          }
-          keysJustPressed.delete(" ");
-          return;
-        }
-      }
-    }
-    if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-      if (currentAnnouncement.townIntro) {
-        startTownIntroTransition();
-      } else {
-        dismissCurrentLevelAnnouncement();
-      }
-      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-        window.playMenuAdvanceSfx(0.55);
-      }
-      keysJustPressed.delete(" ");
-    }
-    return;
-  }
+  return true;
+}
 
-  let congregationStageActive = stage === "levelIntro";
-  let playerUpdatedDuringCongregation = false;
-  if (congregationStageActive) {
+function handleLevelAnnouncements() {
+  if (!levelAnnouncements.length || !levelAnnouncements[0].requiresConfirm) return false;
+  const currentAnnouncement = levelAnnouncements[0];
+  const isSummary = isBattleSummaryAnnouncement(currentAnnouncement);
+  if (isSummary) {
+    if (!window.DialogOverlay?.isVisible()) {
+      const battleSummary = levelManager?.getLastBattleSummary?.() || {};
+      const savedCount = Number.isFinite(battleSummary?.savedCount) ? battleSummary.savedCount : 0;
+      const lostCount = Number.isFinite(battleSummary?.lostCount) ? battleSummary.lostCount : 0;
+      const upgradeAfter = Boolean(window.UpgradeScreen);
+      const portraits = {
+        saved: Array.isArray(battleSummary.savedPortraits) ? battleSummary.savedPortraits : [],
+        lost: Array.isArray(battleSummary.lostPortraits) ? battleSummary.lostPortraits : [],
+      };
+      showBattleSummaryDialog(currentAnnouncement, savedCount, lostCount, upgradeAfter, portraits);
+    }
+    return true;
+  }
+  if (currentAnnouncement.townIntro) {
     const clickPos = Input.consumeCanvasClick?.();
-    const buttonBounds = typeof window !== "undefined" ? window.__congregationPlayButtonBounds : null;
+    const buttonBounds = typeof window !== "undefined" ? window.__townIntroPlayButtonBounds : null;
     if (clickPos && buttonBounds) {
       const inside =
         clickPos.x >= buttonBounds.x &&
         clickPos.x <= buttonBounds.x + buttonBounds.width &&
         clickPos.y >= buttonBounds.y &&
         clickPos.y <= buttonBounds.y + buttonBounds.height;
-      if (inside && typeof levelManager?.advanceFromCongregation === "function") {
+      if (inside) {
+        startTownIntroTransition();
+        if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+          window.playMenuAdvanceSfx(0.55);
+        }
+        keysJustPressed.delete(" ");
+        return true;
+      }
+    }
+  }
+  if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
+    if (currentAnnouncement.townIntro) {
+      startTownIntroTransition();
+    } else {
+      dismissCurrentLevelAnnouncement();
+    }
+    if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+      window.playMenuAdvanceSfx(0.55);
+    }
+    keysJustPressed.delete(" ");
+  }
+  return true;
+}
+
+function updateCongregationStage(dt, levelStatus) {
+  let stage = levelStatus?.stage;
+  let congregationStageActive = stage === "levelIntro";
+  if (!congregationStageActive) return { updated: false, levelStatus };
+
+  const clickPos = Input.consumeCanvasClick?.();
+  const buttonBounds = typeof window !== "undefined" ? window.__congregationPlayButtonBounds : null;
+  if (clickPos && buttonBounds) {
+    const inside =
+      clickPos.x >= buttonBounds.x &&
+      clickPos.x <= buttonBounds.x + buttonBounds.width &&
+      clickPos.y >= buttonBounds.y &&
+      clickPos.y <= buttonBounds.y + buttonBounds.height;
+    if (inside && typeof levelManager?.advanceFromCongregation === "function") {
+      const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
+        Input.consumeCanvasClick?.();
+        return { updated: true, levelStatus };
+      }
+      if (pendingTownIntroStart) {
+        pendingTownIntroStart = false;
+        suppressInitialAnnouncements = false;
+      }
+      levelManager.advanceFromCongregation();
+      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+        window.playMenuAdvanceSfx(0.55);
+      }
+      levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+      stage = levelStatus?.stage;
+    }
+  }
+  if (!powerUpsClearedForCongregation) {
+    clearAllPowerUps();
+    powerUpsClearedForCongregation = true;
+  }
+  updateCongregationMembers(dt);
+  resolveCongregationMemberCollisions();
+  updatePlayerDuringCongregation(dt);
+  resolveCongregationCollisions();
+
+  if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
+    try {
+      const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+      if (status?.stage === 'briefing' && typeof levelManager.advanceFromBriefing === 'function') {
+        levelManager.advanceFromBriefing();
+        if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+          window.playMenuAdvanceSfx(0.55);
+        }
+        paused = false;
+        keysJustPressed.delete(' ');
+        levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+        stage = levelStatus?.stage;
+      } else if (wasActionJustPressed("pause")) {
         const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
         if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
-          Input.consumeCanvasClick?.();
-          return;
+          keysJustPressed.delete(" ");
+          keysJustPressed.delete("pause");
+          keysJustPressed.delete("restart");
+          return { updated: true, levelStatus };
         }
         if (pendingTownIntroStart) {
           pendingTownIntroStart = false;
           suppressInitialAnnouncements = false;
         }
-        levelManager.advanceFromCongregation();
+        levelManager?.advanceFromCongregation?.();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
         }
+        keysJustPressed.delete(" ");
         levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
         stage = levelStatus?.stage;
       }
-    }
-    if (!powerUpsClearedForCongregation) {
-      clearAllPowerUps();
-      powerUpsClearedForCongregation = true;
-    }
-    updateCongregationMembers(dt);
-    resolveCongregationMemberCollisions();
-    updatePlayerDuringCongregation(dt);
-    playerUpdatedDuringCongregation = true;
-    resolveCongregationCollisions();
-    // Allow Space (restart/pause action) to advance from briefing->congregation
-    if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-      // If the level manager is in briefing, advance it; otherwise advance congregation.
-      try {
-        const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-        if (status?.stage === 'briefing' && typeof levelManager.advanceFromBriefing === 'function') {
-          levelManager.advanceFromBriefing();
-          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-            window.playMenuAdvanceSfx(0.55);
-          }
-          paused = false; // unpause to begin levelIntro visuals
-          keysJustPressed.delete(' ');
-          levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
-          stage = levelStatus?.stage;
-        } else if (wasActionJustPressed("pause")) {
-          const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-          if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
-            keysJustPressed.delete(" ");
-            keysJustPressed.delete("pause");
-            keysJustPressed.delete("restart");
-            return;
-          }
-          if (pendingTownIntroStart) {
-            pendingTownIntroStart = false;
-            suppressInitialAnnouncements = false;
-          }
-          levelManager?.advanceFromCongregation?.();
-          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-            window.playMenuAdvanceSfx(0.55);
-          }
-          keysJustPressed.delete(" ");
-          levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
-          stage = levelStatus?.stage;
-        }
-      } catch (e) {}
-    }
-    congregationStageActive = stage === "levelIntro";
-    if (!congregationStageActive) {
-      playerUpdatedDuringCongregation = false;
-      powerUpsClearedForCongregation = false;
-    }
+    } catch (e) {}
   }
+  congregationStageActive = stage === "levelIntro";
+  if (!congregationStageActive) {
+    powerUpsClearedForCongregation = false;
+  }
+  return { updated: true, levelStatus };
+}
 
+function updateCameraAndVisualEffects(dt) {
   if (cameraShakeTimer > 0) {
     cameraShakeTimer = Math.max(0, cameraShakeTimer - dt);
   }
 
-  // Parallax camera offset: allow the player to shift the arena a little left/right
   try {
     const desired = player.x - canvas.width / 2;
     const clamped = Math.max(-CAMERA_SCROLL_LIMIT, Math.min(CAMERA_SCROLL_LIMIT, desired));
     cameraOffsetX += (clamped - cameraOffsetX) * Math.min(1, dt * 8);
-    // map cameraOffsetX to per-layer pan (floor will not parallax independently)
     backgroundPan.mid = backgroundPan.mid || { x: 0 };
     backgroundPan.far = backgroundPan.far || { x: 0 };
     backgroundPan.mid.x = cameraOffsetX * 0.45;
@@ -11237,9 +11250,11 @@ function updateGame(dt) {
   damageHitFlash = Math.max(0, damageHitFlash - dt);
   heroRescueCooldown = Math.max(0, heroRescueCooldown - dt);
   prayerBombScreenFadeTimer = Math.max(0, prayerBombScreenFadeTimer - dt);
+}
 
+function handlePauseMenu() {
   if (window.DialogOverlay?.consumeAction?.() || window.UpgradeScreen?.consumeAction?.()) {
-    return;
+    return true;
   }
   const overlayActive = Boolean(
     window.DialogOverlay?.isVisible?.() || window.UpgradeScreen?.isVisible?.(),
@@ -11255,52 +11270,33 @@ function updateGame(dt) {
       resumeFromPause();
     }
   }
+  return false;
+}
 
-  if (gameOver) {
-    player.animator.update(dt);
-    if (wasActionJustPressed("restart")) restartGame();
-    return;
-  }
-
-  if (paused) return;
-
-  if (!gameOver && levelManager && !congregationStageActive) {
-    levelManager.update(dt);
-    levelStatus = levelManager.getStatus ? levelManager.getStatus() : null;
-    stage = levelStatus?.stage;
-  }
-
-  if (!playerUpdatedDuringCongregation) {
-    if (!deathFreezeActive) {
-      updateAimFromKeyboard();
-      updateAimAssist();
-      player.update(dt);
-    } else {
-      updateAimAssist();
-      if (player && player.state === "death") {
-        player.animator.update(dt);
-      }
-    }
-  } else {
-    // already updated aim above; ensure aim overlays still receive the latest data
+function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
+  if (playerUpdatedDuringCongregation) {
     updateAimAssist();
-  }
-  if (gameOver) return;
-  resolveEntityObstacles(player);
-  resolveEntityCollisions(player, enemies, { allowPush: false, overlapScale: 0.6 });
-  clampEntityToBounds(player);
-
-  if (visitorSession.active) {
-    updateVisitorSession(dt);
     return;
   }
+  if (!deathFreezeActive) {
+    updateAimFromKeyboard();
+    updateAimAssist();
+    player.update(dt);
+  } else {
+    updateAimAssist();
+    if (player && player.state === "death") {
+      player.animator.update(dt);
+    }
+  }
+}
 
+function updateEnemiesAndEntities(dt) {
   if (!levelManager?.isActive()) {
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
       const difficulty = Math.min(1.4, 1 + score / 2200);
-  spawnEnemy();
-  spawnTimer = 4.0 / difficulty;
+      spawnEnemy();
+      spawnTimer = 4.0 / difficulty;
     }
   }
 
@@ -11322,6 +11318,123 @@ function updateGame(dt) {
     resolveEntityObstacles(enemy);
     clampEntityToBounds(enemy);
   });
+}
+
+function updateGame(dt) {
+  if (!player) return;
+  handleDeveloperHotkeys();
+
+  updateDebugSystems(dt);
+
+  if (epilogueActive) {
+    if (wasActionJustPressed("restart")) {
+      restartGame();
+    }
+    return;
+  }
+
+  updatePrayerBombFireRain(dt);
+
+  if (updateTownIntroTransition(dt)) {
+    return;
+  }
+
+  updateDeathFadeEffects(dt);
+  updateDeathBellAudio(dt);
+  npcHarmonyBuffTimer = Math.max(0, npcHarmonyBuffTimer - dt);
+  if (!paused && weaponPickupAnnouncement.timer > 0) {
+    weaponPickupAnnouncement.timer = Math.max(0, weaponPickupAnnouncement.timer - dt);
+  }
+
+  if (checkDialogOverlays()) {
+    return;
+  }
+
+  updatePostDeathSequence(dt);
+  updateFadeEffects(dt);
+
+  const deathFreezeActive = postDeathSequenceActive;
+  if (deathFreezeActive) {
+    keysJustPressed.clear();
+  }
+
+  window.postDeathSequenceActive = postDeathSequenceActive;
+
+  let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+  updateSpeedrunTimer(levelStatus);
+  updateMusicState(levelStatus);
+  updateGraceRushFadeRelease(dt);
+  updateLevelManagement();
+
+  if (updatePlayerRespawn(dt)) {
+    // Player respawn is in progress, continue with rest of update
+  }
+
+  if (handleTitleScreen()) {
+    return;
+  }
+
+  if (handleHowToPlayScreen()) {
+    return;
+  }
+
+  if (handleVisitorSessionSkip()) {
+    return;
+  }
+
+  if (handleVisitorSummary()) {
+    return;
+  }
+
+  if (handleVisitorIntro()) {
+    return;
+  }
+
+  if (handleLevelAnnouncements()) {
+    return;
+  }
+
+  let stage = levelStatus?.stage;
+  const congregationResult = updateCongregationStage(dt, levelStatus);
+  const playerUpdatedDuringCongregation = congregationResult.updated;
+  if (congregationResult.updated) {
+    levelStatus = congregationResult.levelStatus;
+    stage = levelStatus?.stage;
+  }
+  const congregationStageActive = stage === "levelIntro";
+
+  updateCameraAndVisualEffects(dt);
+
+  if (handlePauseMenu()) {
+    return;
+  }
+
+  if (gameOver) {
+    player.animator.update(dt);
+    if (wasActionJustPressed("restart")) restartGame();
+    return;
+  }
+
+  if (paused) return;
+
+  if (!gameOver && levelManager && !congregationStageActive) {
+    levelManager.update(dt);
+    levelStatus = levelManager.getStatus ? levelManager.getStatus() : null;
+    stage = levelStatus?.stage;
+  }
+
+  updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
+  if (gameOver) return;
+  resolveEntityObstacles(player);
+  resolveEntityCollisions(player, enemies, { allowPush: false, overlapScale: 0.6 });
+  clampEntityToBounds(player);
+
+  if (visitorSession.active) {
+    updateVisitorSession(dt);
+    return;
+  }
+
+  updateEnemiesAndEntities(dt);
 
   if (player.shieldTimer > 0) {
     enemies.forEach((enemy) => {
