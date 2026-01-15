@@ -170,6 +170,13 @@
           frameRate: 0,
           loop: false,
         },
+        divine_shot: {
+          src: `assets/sprites/conrad/actions/swoosh.png`,
+          frameWidth: 200,
+          frameHeight: 200,
+          frameRate: 0,
+          loop: false,
+        },
       },
       enemies: createEnemyManifest(enemyDefinitions, characterRoot),
     };

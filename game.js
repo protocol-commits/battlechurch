@@ -77,6 +77,7 @@ if (typeof window !== "undefined" && !window.triggerDamageFlash) {
 const npcs = [];
 const effects = Effects.getActive();
 let divineChargeSparkEffect = null;
+let divineChargeFlashEffect = null;
 let backgroundImage = null;
 let pendingTownIntroStart = false;
 let townIntroDismissedAt = 0;
@@ -955,16 +956,44 @@ function spawnDivineChargeSparkVisual() {
   return divineChargeSparkEffect;
 }
 
-function updateDivineChargeSparkVisual() {
-  if (!divineChargeSparkEffect || divineChargeSparkEffect.dead || !player) return;
-  divineChargeSparkEffect.x = player.x;
-  divineChargeSparkEffect.y = player.y - (player.radius || 24) - DIVINE_CHARGE_SPARK_OFFSET;
+function updateDivineChargeSparkVisual(dt, chargeTimer, holdTime) {
+  if (!player) return;
+
+  // Create charge effect if it doesn't exist
+  if (!divineChargeSparkEffect || divineChargeSparkEffect.dead) {
+    const frames = assets?.effects?.divineChargeSpark;
+    if (!Array.isArray(frames) || !frames.length) return;
+    const x = player.x;
+    const y = player.y - (player.radius || 24) - DIVINE_CHARGE_SPARK_OFFSET;
+    divineChargeSparkEffect = Effects.spawnLoopingEffect(frames, x, y, {
+      frameDuration: DIVINE_CHARGE_SPARK_FRAME_DURATION,
+      scale: DIVINE_CHARGE_SPARK_SCALE,
+    });
+  }
+
+  // Update position to be in front of player in attack direction
+  if (divineChargeSparkEffect) {
+    const dir = getMeleeAttackDirection();
+    const angle = Math.atan2(dir.y, dir.x);
+    const offset = 40;
+    divineChargeSparkEffect.x = player.x + Math.cos(angle) * offset;
+    divineChargeSparkEffect.y = player.y + Math.sin(angle) * offset;
+
+    // Scale effect based on charge progress
+    const chargePercent = Math.min(1, chargeTimer / holdTime);
+    divineChargeSparkEffect.scale = DIVINE_CHARGE_SPARK_SCALE * (0.5 + chargePercent * 0.5);
+  }
 }
 
 function clearDivineChargeSparkVisual() {
-  if (!divineChargeSparkEffect) return;
-  divineChargeSparkEffect.dead = true;
-  divineChargeSparkEffect = null;
+  if (divineChargeSparkEffect) {
+    divineChargeSparkEffect.dead = true;
+    divineChargeSparkEffect = null;
+  }
+  if (divineChargeFlashEffect) {
+    divineChargeFlashEffect.dead = true;
+    divineChargeFlashEffect = null;
+  }
 }
 const GRACE_SPRITE_FILES = [
   "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
@@ -8219,24 +8248,53 @@ class Projectile {
       ctx.drawImage(frame, -width / 2, -height / 2, width, height);
       ctx.restore();
     } else if (this.animator) {
-      ctx.save();
-      ctx.translate(this.x, this.y);
-      ctx.rotate(this.rotation);
-      if (shouldGlow) {
-        let glowOptions = undefined;
-        let suppressGlow = false;
-        if (this.type === "faith_cannon") {
-          glowOptions = { radiusScale: 0.2, baseAlpha: 0.12 };
-        } else if (this.type === "heart") {
-          suppressGlow = true;
+      // Special handling for divine shot - draw as glowing golden orb
+      if (this.type === "divine_shot") {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Draw outer glow
+        const glowSize = 80;
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize);
+        gradient.addColorStop(0, "rgba(255, 255, 200, 0.8)");
+        gradient.addColorStop(0.5, "rgba(255, 215, 0, 0.5)");
+        gradient.addColorStop(1, "rgba(255, 215, 0, 0)");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(-glowSize, -glowSize, glowSize * 2, glowSize * 2);
+
+        // Draw golden orb
+        const orbRadius = 25;
+        const orbGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, orbRadius);
+        orbGradient.addColorStop(0, "#FFFFFF");
+        orbGradient.addColorStop(0.3, "#FFFFCC");
+        orbGradient.addColorStop(0.7, "#FFD700");
+        orbGradient.addColorStop(1, "#FFA500");
+        ctx.fillStyle = orbGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, orbRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        if (shouldGlow) {
+          let glowOptions = undefined;
+          let suppressGlow = false;
+          if (this.type === "faith_cannon") {
+            glowOptions = { radiusScale: 0.2, baseAlpha: 0.12 };
+          } else if (this.type === "heart") {
+            suppressGlow = true;
+          }
+          if (!suppressGlow) {
+            const size = (this.radius || 18) * 2.2;
+            drawProjectileGlow(size, size, glowOptions);
+          }
         }
-        if (!suppressGlow) {
-          const size = (this.radius || 18) * 2.2;
-          drawProjectileGlow(size, size, glowOptions);
-        }
+        ctx.restore();
+        this.animator.draw(ctx, this.x, this.y, { rotation: this.rotation, scale: this.scale });
       }
-      ctx.restore();
-      this.animator.draw(ctx, this.x, this.y, { rotation: this.rotation, scale: this.scale });
     }
   }
 }
@@ -11572,6 +11630,288 @@ function cleanupDeadProjectiles() {
   }
 }
 
+// ============================================================================
+// MELEE ATTACK SYSTEM - Helper Functions
+// ============================================================================
+
+function getMeleeAttackDirection() {
+  const input = window.Input;
+  if (!input || !player) return { x: 1, y: 0 };
+
+  let dir = input.lastMovementDirection || { x: 1, y: 0 };
+  if (dir.x === 0 && dir.y === 0) {
+    const aim = player.aim || { x: 1, y: 0 };
+    dir = { x: aim.x, y: aim.y };
+  }
+  return normalizeVector(dir.x, dir.y);
+}
+
+function updateRushMovement(dt, direction, meleeAttackState) {
+  if (!meleeAttackState.isRushing || !player) return;
+
+  const movement = Math.min(meleeAttackState.rushDistanceRemaining, RUSH_SPEED * dt);
+  player.x += direction.x * movement;
+  player.y += direction.y * movement;
+  resolveEntityObstacles(player);
+  clampEntityToBounds(player);
+  meleeAttackState.rushDistanceRemaining -= movement;
+  meleeAttackState.rushDustAccumulator += movement;
+
+  while (meleeAttackState.rushDustAccumulator >= RUSH_DUST_SPACING) {
+    meleeAttackState.rushDustAccumulator -= RUSH_DUST_SPACING;
+    Effects.addCustomEffect({
+      type: "custom",
+      x: player.x,
+      y: player.y + player.radius * 0.5,
+      vx: 0,
+      vy: 0,
+      life: 0.3,
+      maxLife: 0.3,
+      radius: 16,
+      alpha: 0.6,
+      color: "#FFD700",
+      update(dt) {
+        this.life = Math.max(0, this.life - dt);
+        this.alpha = 0.6 * (this.life / this.maxLife);
+        this.radius = 16 + (1 - this.life / this.maxLife) * 12;
+      },
+      render(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      },
+    });
+  }
+
+  if (meleeAttackState.rushDistanceRemaining <= 0) {
+    meleeAttackState.isRushing = false;
+    meleeAttackState.rushDamageEnabled = false;
+    meleeAttackState.rushInvulnerable = false;
+    player.invulnerableTimer = 0;
+    meleeAttackState.rushHitEntities = null;
+    meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+  }
+}
+
+function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY) {
+  meleeAttackState.active = true;
+  meleeAttackState.fade = MELEE_DAMAGE_DURATION;
+  meleeAttackState.swingId += 1;
+  meleeAttackState.didAttackThisPress = true;
+  meleeAttackState.cooldown = MELEE_COOLDOWN;
+  meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
+  meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
+
+  // Trigger player attack animation
+  if (player && player.animator) {
+    player.state = "attackMelee";
+    player.animator.play("attackMelee", { restart: true });
+  }
+
+  const hitEnemies = [];
+  enemies.forEach((enemy) => {
+    if (enemy.dead || enemy.state === "death") return;
+    const dx = enemy.x - swingCenterX;
+    const dy = enemy.y - swingCenterY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const hitRadius = getEnemyHitboxRadius(enemy);
+    if (dist > MELEE_SWING_RANGE + hitRadius) return;
+    const dotProduct = dx * dir.x + dy * dir.y;
+    if (dotProduct < 0) return;
+    hitEnemies.push(enemy);
+    const damage = Math.round(MELEE_BASE_DAMAGE);
+    enemy.takeDamage(damage);
+    if (!enemy.dead && enemy.state !== "death") {
+      const pushAngle = Math.atan2(dy, dx);
+      enemy.vx = Math.cos(pushAngle) * MELEE_PUSHBACK_STRENGTH;
+      enemy.vy = Math.sin(pushAngle) * MELEE_PUSHBACK_STRENGTH;
+    }
+    spawnFlashEffect(enemy.x, enemy.y);
+  });
+  if (hitEnemies.length > 0) {
+    if (typeof playEnemyHitSfx === "function") {
+      playEnemyHitSfx(0.6);
+    }
+  } else {
+    if (typeof playSwordSfx === "function") {
+      playSwordSfx(0.5);
+    }
+  }
+  meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+}
+
+function executeSwooshAttack(dir, meleeAttackState, angleRad) {
+  meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
+  meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
+
+  // Trigger player attack animation
+  if (player && player.animator) {
+    player.state = "attackMelee";
+    player.animator.play("attackMelee", { restart: true });
+  }
+
+  const swooshAngle = angleRad;
+  const swooshSpread = Math.PI * 0.35 * MELEE_SWOOSH_ARC_SCALE;
+  const swooshStartAngle = swooshAngle - swooshSpread;
+  const swooshEndAngle = swooshAngle + swooshSpread;
+  const swooshDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
+  enemies.forEach((enemy) => {
+    if (enemy.dead || enemy.state === "death") return;
+    const dx = enemy.x - player.x;
+    const dy = enemy.y - player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > MELEE_SWING_RANGE) return;
+    const enemyAngle = Math.atan2(dy, dx);
+    let angleDiff = enemyAngle - swooshAngle;
+    while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+    while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+    if (Math.abs(angleDiff) > swooshSpread) return;
+    enemy.takeDamage(swooshDamage);
+    if (!enemy.dead && enemy.state !== "death") {
+      const pushAngle = Math.atan2(dy, dx);
+      enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
+      enemy.vy = Math.sin(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
+    }
+    spawnFlashEffect(enemy.x, enemy.y);
+    if (typeof playEnemyHitSfx === "function") {
+      playEnemyHitSfx(0.6);
+    }
+  });
+  if (typeof playSwooshSfx === "function") {
+    playSwooshSfx(0.6);
+  }
+  meleeAttackState.cooldown = MELEE_COOLDOWN;
+  meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+  meleeAttackState.awaitRush = true;
+  meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
+}
+
+function executeRushAttack(dir, meleeAttackState) {
+  meleeAttackState.isRushing = true;
+  meleeAttackState.rushDir = { x: dir.x, y: dir.y };
+  meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
+  meleeAttackState.rushDustAccumulator = 0;
+  meleeAttackState.rushHitEntities = new Set();
+  meleeAttackState.rushCooldown = RUSH_COOLDOWN;
+  meleeAttackState.rushDamageEnabled = true;
+  meleeAttackState.rushInvulnerable = true;
+  player.invulnerableTimer = RUSH_INVULNERABILITY;
+  meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
+  if (typeof playSwooshSfx === "function") {
+    playSwooshSfx(0.7);
+  }
+}
+
+function executeDivineShot(dir, meleeAttackState, angleRad) {
+  const spawnX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
+  const spawnY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+  const vx = Math.cos(angleRad) * DIVINE_SHOT_SPEED;
+  const vy = Math.sin(angleRad) * DIVINE_SHOT_SPEED;
+
+  spawnProjectile("divine_shot", spawnX, spawnY, vx, vy, {
+    friendly: true,
+    damage: DIVINE_SHOT_DAMAGE,
+    life: DIVINE_SHOT_LIFE,
+    source: player,
+    autoAimDuration: DIVINE_SHOT_AUTO_AIM_DURATION,
+    autoAimStrength: DIVINE_SHOT_AUTO_AIM_STRENGTH,
+    autoAimMinDot: DIVINE_SHOT_AUTO_AIM_MIN_DOT,
+    priority: DIVINE_SHOT_PROJECTILE_PRIORITY,
+    isDivineShot: true,
+  });
+
+  if (typeof playDivineShotSfx === "function") {
+    playDivineShotSfx(0.6);
+  }
+}
+
+function updateMeleeTimers(dt, meleeAttackState) {
+  meleeAttackState.cooldown = Math.max(0, (meleeAttackState.cooldown || 0) - dt);
+
+  const prevRushCooldown = Math.max(0, meleeAttackState.rushCooldown || 0);
+  meleeAttackState.rushCooldown = Math.max(0, prevRushCooldown - dt);
+  const rushReadyNow = meleeAttackState.rushCooldown === 0 && !meleeAttackState.isRushing;
+  if (prevRushCooldown > 0 && rushReadyNow && player) {
+    spawnFlashEffect(player.x, player.y + (player.radius || 24));
+  }
+
+  if (meleeAttackState.active && meleeAttackState.fade > 0) {
+    meleeAttackState.fade = Math.max(0, meleeAttackState.fade - dt);
+    if (meleeAttackState.fade === 0) {
+      meleeAttackState.active = false;
+    }
+  }
+
+  if (meleeAttackState.swooshTimer > 0) {
+    meleeAttackState.swooshTimer = Math.max(0, meleeAttackState.swooshTimer - dt);
+  }
+
+  if (meleeAttackState.projectileBlockTimer > 0) {
+    meleeAttackState.projectileBlockTimer = Math.max(0, meleeAttackState.projectileBlockTimer - dt);
+  }
+
+  meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
+}
+
+function updateChargeState(dt, meleeAttackState) {
+  if (!meleeAttackState.isCharging) return;
+
+  console.log("UPDATE CHARGE - timer:", meleeAttackState.chargeTimer, "holdTime:", meleeAttackState.holdTime, "dt:", dt);
+  meleeAttackState.chargeTimer += dt;
+  const chargeComplete = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
+  if (chargeComplete && !meleeAttackState.chargeFlashTriggered) {
+    console.log("CHARGE COMPLETE!");
+    meleeAttackState.chargeFlashTriggered = true;
+    if (typeof playChargeCompleteSfx === "function") {
+      playChargeCompleteSfx(0.6);
+    }
+
+    // Stop the Raybolt animation and spawn flash effect to show charge is ready
+    if (player && divineChargeSparkEffect) {
+      const sparkX = divineChargeSparkEffect.x;
+      const sparkY = divineChargeSparkEffect.y;
+
+      // Kill the Raybolt effect
+      divineChargeSparkEffect.dead = true;
+      divineChargeSparkEffect = null;
+
+      // Spawn flash effect
+      const flashFrames = [];
+      for (let i = 1; i <= 14; i++) {
+        const img = new Image();
+        img.src = `assets/sprites/magic-pack/sprites/flash/sprites/flash${i}.png`;
+        flashFrames.push(img);
+      }
+      if (divineChargeFlashEffect && !divineChargeFlashEffect.dead) {
+        divineChargeFlashEffect.dead = true;
+      }
+      divineChargeFlashEffect = Effects.spawnLoopingEffect(flashFrames, sparkX, sparkY, {
+        frameDuration: 0.03,
+        scale: 2.0,
+      });
+    }
+  }
+
+  // Only show Raybolt after melee swing animation completes (0.2s) and before charge complete
+  const MELEE_SWING_DURATION = 0.2;
+  if (!chargeComplete && meleeAttackState.chargeTimer >= MELEE_SWING_DURATION) {
+    updateDivineChargeSparkVisual(dt, meleeAttackState.chargeTimer, meleeAttackState.holdTime);
+  }
+
+  // Update flash position if it exists
+  if (divineChargeFlashEffect && !divineChargeFlashEffect.dead && player) {
+    const dir = getMeleeAttackDirection();
+    const angle = Math.atan2(dir.y, dir.x);
+    const offset = 40;
+    divineChargeFlashEffect.x = player.x + Math.cos(angle) * offset;
+    divineChargeFlashEffect.y = player.y + Math.sin(angle) * offset;
+  }
+}
+
 function updateMeleeAttackSystem(dt) {
   // Melee attack logic: only trigger once per key press, deal damage once, and disappear
   if (!window._meleeAttackState)
@@ -11614,74 +11954,11 @@ function updateMeleeAttackSystem(dt) {
       return;
     }
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
-    meleeAttackState.cooldown = Math.max(0, (meleeAttackState.cooldown || 0) - dt);
-    const prevRushCooldown = Math.max(0, meleeAttackState.rushCooldown || 0);
-    meleeAttackState.rushCooldown = Math.max(0, prevRushCooldown - dt);
-    const rushReadyNow = meleeAttackState.rushCooldown === 0 && !meleeAttackState.isRushing;
-    if (prevRushCooldown > 0 && rushReadyNow && player) {
-      spawnFlashEffect(player.x, player.y + (player.radius || 24));
-    }
-
-    const getMeleeDirection = () => {
-      let dir = input.lastMovementDirection || { x: 1, y: 0 };
-      if (dir.x === 0 && dir.y === 0) {
-        const aim = player.aim || { x: 1, y: 0 };
-        dir = { x: aim.x, y: aim.y };
-      }
-      return normalizeVector(dir.x, dir.y);
-    };
-
-    const performRushMovement = (direction) => {
-      if (!meleeAttackState.isRushing || !player) return;
-      const movement = Math.min(meleeAttackState.rushDistanceRemaining, RUSH_SPEED * dt);
-      player.x += direction.x * movement;
-      player.y += direction.y * movement;
-      resolveEntityObstacles(player);
-      clampEntityToBounds(player);
-      meleeAttackState.rushDistanceRemaining -= movement;
-      meleeAttackState.rushDustAccumulator += movement;
-      while (meleeAttackState.rushDustAccumulator >= RUSH_DUST_SPACING) {
-        meleeAttackState.rushDustAccumulator -= RUSH_DUST_SPACING;
-        Effects.addCustomEffect({
-          type: "custom",
-          x: player.x,
-          y: player.y + player.radius * 0.5,
-          vx: 0,
-          vy: 0,
-          life: 0.3,
-          maxLife: 0.3,
-          radius: 16,
-          alpha: 0.6,
-          color: "#FFD700",
-          update(dt) {
-            this.life = Math.max(0, this.life - dt);
-            this.alpha = 0.6 * (this.life / this.maxLife);
-            this.radius = 16 + (1 - this.life / this.maxLife) * 12;
-          },
-          render(ctx) {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          },
-        });
-      }
-      if (meleeAttackState.rushDistanceRemaining <= 0) {
-        meleeAttackState.isRushing = false;
-        meleeAttackState.rushDamageEnabled = false;
-        meleeAttackState.rushInvulnerable = false;
-        player.invulnerableTimer = 0;
-        meleeAttackState.rushHitEntities = null;
-        meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
-      }
-    };
+    updateMeleeTimers(dt, meleeAttackState);
 
     if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
-      performRushMovement(direction);
+      updateRushMovement(dt, direction, meleeAttackState);
       if (meleeAttackState.rushDamageEnabled && meleeAttackState.rushHitEntities) {
         enemies.forEach((enemy) => {
           if (enemy.dead || enemy.state === "death") return;
@@ -11706,31 +11983,20 @@ function updateMeleeAttackSystem(dt) {
       }
     }
 
-    const dir = getMeleeDirection();
+    const dir = getMeleeAttackDirection();
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
       !meleeAttackState.isRushing &&
       meleeAttackState.rushLockTimer <= 0;
     const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && !meleeAttackState.isRushing;
     const rushLockActive = meleeAttackState.rushLockTimer > 0;
-    meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
+    console.log("awaitRush:", meleeAttackState.awaitRush, "spaceJustPressed:", spaceJustPressed);
     if (meleeAttackState.awaitRush) {
       meleeAttackState.awaitTimer -= dt;
       if (spaceJustPressed && !rushLockActive) {
+        console.log("RUSH TRIGGERED");
         if (meleeAttackState.rushCooldown <= 0) {
-          meleeAttackState.isRushing = true;
-          meleeAttackState.rushDir = { x: dir.x, y: dir.y };
-          meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
-          meleeAttackState.rushDustAccumulator = 0;
-          meleeAttackState.rushHitEntities = new Set();
-          meleeAttackState.rushCooldown = RUSH_COOLDOWN;
-          meleeAttackState.rushDamageEnabled = true;
-          meleeAttackState.rushInvulnerable = true;
-          player.invulnerableTimer = RUSH_INVULNERABILITY;
-          meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
-          if (typeof playSwooshSfx === "function") {
-            playSwooshSfx(0.7);
-          }
+          executeRushAttack(dir, meleeAttackState);
         }
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
@@ -11740,43 +12006,32 @@ function updateMeleeAttackSystem(dt) {
       }
     }
 
+    console.log("Checking charge start - spaceJustPressed:", spaceJustPressed, "buttonDown:", meleeAttackState.buttonDown);
     if (spaceJustPressed && !meleeAttackState.buttonDown && !rushLockActive) {
+      console.log("CHARGE START - spaceJustPressed:", spaceJustPressed, "buttonDown:", meleeAttackState.buttonDown, "rushLockActive:", rushLockActive);
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = true;
       meleeAttackState.chargeFlashTriggered = false;
+      console.log("CHARGE ACTIVATED - isCharging:", meleeAttackState.isCharging, "holdTime:", meleeAttackState.holdTime);
     }
     if (!spaceHeld && meleeAttackState.buttonDown) {
+      console.log("BUTTON RELEASED - spaceHeld:", spaceHeld, "chargeTimer:", meleeAttackState.chargeTimer, "holdTime:", meleeAttackState.holdTime);
       meleeAttackState.buttonDown = false;
       const fullyCharged = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
+      console.log("fullyCharged:", fullyCharged, "isCharging:", meleeAttackState.isCharging);
       if (meleeAttackState.isCharging) {
+        console.log("DIVINE: INSIDE isCharging block");
         meleeAttackState.isCharging = false;
+        console.log("DIVINE: About to clear visual");
         clearDivineChargeSparkVisual();
+        console.log("DIVINE: Visual cleared, fullyCharged:", fullyCharged);
         if (fullyCharged) {
+          console.log("DIVINE: FIRING DIVINE SHOT!");
           const angleRad = Math.atan2(dir.y, dir.x);
-          const spawnX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
-          const spawnY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-          const projectile = createProjectile({
-            type: "divine_shot",
-            x: spawnX,
-            y: spawnY,
-            vx: Math.cos(angleRad) * DIVINE_SHOT_SPEED,
-            vy: Math.sin(angleRad) * DIVINE_SHOT_SPEED,
-            friendly: true,
-            damage: DIVINE_SHOT_DAMAGE,
-            life: DIVINE_SHOT_LIFE,
-            radius: 18,
-            color: "#FFD700",
-            source: player,
-            autoAimDuration: DIVINE_SHOT_AUTO_AIM_DURATION,
-            autoAimStrength: DIVINE_SHOT_AUTO_AIM_STRENGTH,
-            autoAimMinDot: DIVINE_SHOT_AUTO_AIM_MIN_DOT,
-            priority: DIVINE_SHOT_PROJECTILE_PRIORITY,
-          });
-          projectiles.push(projectile);
-          if (typeof playDivineShotSfx === "function") {
-            playDivineShotSfx(0.6);
-          }
+          console.log("DIVINE: Angle:", angleRad, "dir:", dir);
+          executeDivineShot(dir, meleeAttackState, angleRad);
+          console.log("DIVINE: executeDivineShot call completed");
         } else if (meleeAttackState.cooldown <= 0) {
           const angleRad = Math.atan2(dir.y, dir.x);
           const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
@@ -11800,125 +12055,16 @@ function updateMeleeAttackSystem(dt) {
           }
           const shouldSwoosh = doubleTapDetected;
           if (shouldSwoosh) {
-            meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
-            meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
-
-            // Trigger player attack animation
-            if (player && player.animator) {
-              player.state = "attackMelee";
-              player.animator.play("attackMelee", { restart: true });
-            }
-
-            const swooshAngle = angleRad;
-            const swooshSpread = Math.PI * 0.35 * MELEE_SWOOSH_ARC_SCALE;
-            const swooshStartAngle = swooshAngle - swooshSpread;
-            const swooshEndAngle = swooshAngle + swooshSpread;
-            const swooshDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
-            enemies.forEach((enemy) => {
-              if (enemy.dead || enemy.state === "death") return;
-              const dx = enemy.x - player.x;
-              const dy = enemy.y - player.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist > MELEE_SWING_RANGE) return;
-              const enemyAngle = Math.atan2(dy, dx);
-              let angleDiff = enemyAngle - swooshAngle;
-              while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-              while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-              if (Math.abs(angleDiff) > swooshSpread) return;
-              enemy.takeDamage(swooshDamage);
-              if (!enemy.dead && enemy.state !== "death") {
-                const pushAngle = Math.atan2(dy, dx);
-                enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
-                enemy.vy = Math.sin(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
-              }
-              spawnFlashEffect(enemy.x, enemy.y);
-              if (typeof playEnemyHitSfx === "function") {
-                playEnemyHitSfx(0.6);
-              }
-            });
-            if (typeof playSwooshSfx === "function") {
-              playSwooshSfx(0.6);
-            }
-            meleeAttackState.cooldown = MELEE_COOLDOWN;
-            meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
-            meleeAttackState.awaitRush = true;
-            meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
+            executeSwooshAttack(dir, meleeAttackState, angleRad);
           } else {
-            meleeAttackState.active = true;
-            meleeAttackState.fade = MELEE_DAMAGE_DURATION;
-            meleeAttackState.swingId += 1;
-            meleeAttackState.didAttackThisPress = true;
-            meleeAttackState.cooldown = MELEE_COOLDOWN;
-            meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
-            meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
-
-            // Trigger player attack animation
-            if (player && player.animator) {
-              player.state = "attackMelee";
-              player.animator.play("attackMelee", { restart: true });
-            }
-
-            const hitEnemies = [];
-            enemies.forEach((enemy) => {
-              if (enemy.dead || enemy.state === "death") return;
-              const dx = enemy.x - swingCenterX;
-              const dy = enemy.y - swingCenterY;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const hitRadius = getEnemyHitboxRadius(enemy);
-              if (dist > MELEE_SWING_RANGE + hitRadius) return;
-              const dotProduct = dx * dir.x + dy * dir.y;
-              if (dotProduct < 0) return;
-              hitEnemies.push(enemy);
-              const damage = Math.round(MELEE_BASE_DAMAGE);
-              enemy.takeDamage(damage);
-              if (!enemy.dead && enemy.state !== "death") {
-                const pushAngle = Math.atan2(dy, dx);
-                enemy.vx = Math.cos(pushAngle) * MELEE_PUSHBACK_STRENGTH;
-                enemy.vy = Math.sin(pushAngle) * MELEE_PUSHBACK_STRENGTH;
-              }
-              spawnFlashEffect(enemy.x, enemy.y);
-            });
-            if (hitEnemies.length > 0) {
-              if (typeof playEnemyHitSfx === "function") {
-                playEnemyHitSfx(0.6);
-              }
-            } else {
-              if (typeof playSwordSfx === "function") {
-                playSwordSfx(0.5);
-              }
-            }
-            meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+            executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
           }
         }
       }
     }
-    if (meleeAttackState.isCharging) {
-      meleeAttackState.chargeTimer += dt;
-      const chargeComplete = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
-      if (chargeComplete && !meleeAttackState.chargeFlashTriggered) {
-        meleeAttackState.chargeFlashTriggered = true;
-        if (typeof playChargeCompleteSfx === "function") {
-          playChargeCompleteSfx(0.6);
-        }
-      }
-      updateDivineChargeSparkVisual(dt, meleeAttackState.chargeTimer, meleeAttackState.holdTime);
-    } else {
+    updateChargeState(dt, meleeAttackState);
+    if (!meleeAttackState.isCharging) {
       clearDivineChargeSparkVisual();
-    }
-    if (meleeAttackState.active && meleeAttackState.fade > 0) {
-      meleeAttackState.fade = Math.max(0, meleeAttackState.fade - dt);
-      if (meleeAttackState.fade === 0) {
-        meleeAttackState.active = false;
-      }
-    }
-    if (meleeAttackState.swooshTimer > 0) {
-      meleeAttackState.swooshTimer = Math.max(0, meleeAttackState.swooshTimer - dt);
-    }
-    if (meleeAttackState.projectileBlockTimer > 0) {
-      meleeAttackState.projectileBlockTimer = Math.max(
-        0,
-        meleeAttackState.projectileBlockTimer - dt,
-      );
     }
   }
 }

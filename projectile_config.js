@@ -67,6 +67,16 @@
       scale: 1.8 * WORLD_SCALE,
       pierce: false,
     },
+    divine_shot: {
+      speed: 690 * WORLD_SCALE,
+      damage: 1000,
+      life: 3.0,
+      radius: 60 * WORLD_SCALE,
+      scale: 2.5,
+      pierce: true,
+      priority: 100,
+      isDivineShot: true,
+    },
     coin: {
       speed: 460 * WORLD_SCALE,
       damage: 0,
