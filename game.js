@@ -1800,8 +1800,8 @@ const SPEED_SCALE = Math.max(0.01, WORLD_SCALE);
 
 // Melee Attack System Constants
 // Note: MELEE_SWING_LENGTH (200) is defined in renderer.js
-// For hitbox calculations, we use MELEE_SWING_LENGTH * WORLD_SCALE to match the visual
-const MELEE_SWING_RANGE = MELEE_SWING_LENGTH * WORLD_SCALE; // Scaled hitbox range
+// For hitbox calculations, we need a much smaller range to match the actual swoosh visual
+const MELEE_SWING_RANGE = 80 * WORLD_SCALE; // Reduced to match swoosh sprite visual (was 200 * WORLD_SCALE)
 const MELEE_OFFSET = 54 * WORLD_SCALE;
 const MELEE_DAMAGE_KNOCKBACK = 48 * WORLD_SCALE;
 const MELEE_PUSHBACK_STRENGTH = 36 * WORLD_SCALE;
@@ -1811,7 +1811,7 @@ const MELEE_DOUBLE_TAP_WINDOW = 0.18;
 const MELEE_HOLD_CHARGE_TIME = 1.5;
 const MELEE_BASE_DAMAGE = 100;
 const MELEE_SWOOSH_DAMAGE_SCALE = 1.2;
-const MELEE_SWOOSH_ARC_SCALE = 1.5;
+const MELEE_SWOOSH_ARC_SCALE = 2.5; // Increased from 1.5 to make swoosh taller/wider perpendicular to attack direction
 const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
 const MELEE_RUSH_LOCKOUT = 1.0;
 const RUSH_DISTANCE = 150 * WORLD_SCALE;
