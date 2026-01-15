@@ -1550,6 +1550,121 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     ctx.restore();
   }
 
+  function drawChapterBreakScreen() {
+    const {
+      ctx,
+      canvas,
+      chapterBreakImage,
+      chapterBreakActNumber,
+      actBreakFadeAlpha,
+      UI_FONT_FAMILY,
+    } = requireBindings();
+
+    console.log("drawChapterBreakScreen called - actNumber:", chapterBreakActNumber, "fadeAlpha:", actBreakFadeAlpha, "hasImage:", !!chapterBreakImage);
+
+    // Draw background image
+    if (chapterBreakImage) {
+      ctx.save();
+      ctx.drawImage(chapterBreakImage, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    } else {
+      // Fallback: dark background
+      ctx.save();
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
+    // Define text based on act number
+    const actTitle = `Act ${chapterBreakActNumber}`;
+    const villainText = chapterBreakActNumber === 2
+      ? "This new pastor is foiling our plans. Send in reinforcements."
+      : "This pastor is strong. I will take care of this myself.";
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Draw Act title (normal styling)
+    const titleY = centerY - 120;
+    ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.fillText(actTitle, centerX, titleY);
+
+    // Draw villain text (evil blood red with strong glow to pop over busy background)
+    const textY = centerY + 20;
+    const maxWidth = canvas.width * 0.8;
+
+    // Word wrap the villain text
+    const words = villainText.split(' ');
+    const lines = [];
+    let currentLine = '';
+    ctx.font = `bold 36px ${UI_FONT_FAMILY}`;
+
+    for (const word of words) {
+      const testLine = currentLine ? `${currentLine} ${word}` : word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && currentLine) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    // Draw each line with evil styling
+    const lineHeight = 48;
+    const startY = textY - ((lines.length - 1) * lineHeight) / 2;
+
+    for (let i = 0; i < lines.length; i++) {
+      const lineY = startY + i * lineHeight;
+
+      // Draw outer glow (golden yellow) for visibility on red background
+      ctx.shadowColor = "rgba(255, 215, 0, 1)"; // Gold
+      ctx.shadowBlur = 30;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = "#8B0000"; // Blood red
+      ctx.fillText(lines[i], centerX, lineY);
+
+      // Draw second layer (brighter yellow glow)
+      ctx.shadowColor = "rgba(255, 255, 100, 0.9)"; // Bright yellow
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = "#8B0000";
+      ctx.fillText(lines[i], centerX, lineY);
+
+      // Draw third layer (white glow for extra pop)
+      ctx.shadowColor = "rgba(255, 255, 255, 0.7)";
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "#8B0000";
+      ctx.fillText(lines[i], centerX, lineY);
+
+      // Draw text again without shadow for solid color
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#8B0000";
+      ctx.fillText(lines[i], centerX, lineY);
+    }
+
+    // Draw "Press Space to Continue" button
+    const buttonText = "Press Space to Continue";
+    const buttonY = canvas.height - 100;
+    ctx.font = `20px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+    ctx.shadowBlur = 8;
+    ctx.fillText(buttonText, centerX, buttonY);
+
+    ctx.restore();
+  }
+
   function drawTitleScreen() {
     const {
       ctx,
@@ -1671,6 +1786,11 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       if (!window.__battlechurchHitboxEditorActive && !window.DialogOverlay?.isVisible()) {
         showTitleDialog();
       }
+      return;
+    }
+    const chapterBreakState = requireBindings();
+    if (chapterBreakState.chapterBreakActive) {
+      drawChapterBreakScreen();
       return;
     }
     const missionOverlayActive = Boolean(window.isMissionBriefOverlayActive);

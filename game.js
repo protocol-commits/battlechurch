@@ -53,6 +53,10 @@ let actBreakFadeAlpha = 0;
 const ACT_BREAK_FADE_IN = 0.8;
 const ACT_BREAK_FADE_OUT = 0.8;
 const ACT_BREAK_HOLD_SECONDS = 2;
+let chapterBreakActive = false;
+let chapterBreakActNumber = 2;
+let chapterBreakImage = null;
+let lastCompletedLevel = 0;
 let graceRushFadeTimer = 0;
 let graceRushFadeDuration = 0;
 let graceRushFadeAlpha = 0;
@@ -2306,6 +2310,9 @@ Renderer.initialize({
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
+  get chapterBreakActive() { return chapterBreakActive; },
+  get chapterBreakActNumber() { return chapterBreakActNumber; },
+  get chapterBreakImage() { return chapterBreakImage; },
   get graceRushFadeAlpha() { return graceRushFadeAlpha; },
   get graceRushBlackout() { return graceRushBlackout; },
   get playerDeathFadeAlpha() { return playerDeathFadeAlpha; },
@@ -4097,6 +4104,24 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
       assets.backgrounds.epilogue = null;
     });
+  const act2Promise = loadImage("assets/backgrounds/act2.png")
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = {};
+      assets.backgrounds.act2 = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = {};
+      assets.backgrounds.act2 = null;
+    });
+  const act3Promise = loadImage("assets/backgrounds/act3.jpg")
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = {};
+      assets.backgrounds.act3 = img;
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = {};
+      assets.backgrounds.act3 = null;
+    });
   const gameOverBackgroundPromise = loadImage("assets/backgrounds/game-over.png")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
@@ -4123,6 +4148,8 @@ async function loadBackgroundAssets(cache, assets) {
     backgroundPromise,
     townIntroPromise,
     epiloguePromise,
+    act2Promise,
+    act3Promise,
     gameOverBackgroundPromise,
     farPromise,
     midPromise,
@@ -4956,6 +4983,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   const isFinalYear = Boolean(announcement?.finalYear);
   pendingUpgradeAfterSummary = Boolean(upgradeAfter) && !isFinalYear;
+  // Track which level was just completed for chapter breaks
+  if (pendingUpgradeAfterSummary) {
+    lastCompletedLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+    console.log("Level completed, lastCompletedLevel set to:", lastCompletedLevel);
+  }
   startRecapMusic();
   const startRecapTypewriter = (overlay, text, msPerChar = 18) => {
     if (!overlay) return;
@@ -10932,6 +10964,34 @@ function updateDeathBellAudio(dt) {
   }
 }
 
+function showChapterBreak(actNumber) {
+  console.log("showChapterBreak called with actNumber:", actNumber);
+  chapterBreakActive = true;
+  chapterBreakActNumber = actNumber;
+  chapterBreakImage = actNumber === 2 ? assets?.backgrounds?.act2 : assets?.backgrounds?.act3;
+  console.log("chapterBreakActive set to true, image:", chapterBreakImage ? "loaded" : "null");
+  keysJustPressed.delete(" ");
+}
+
+function handleChapterBreak() {
+  if (!chapterBreakActive) return false;
+
+  // Check for space press to dismiss immediately
+  if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
+    chapterBreakActive = false;
+    chapterBreakImage = null;
+    if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+      window.playMenuAdvanceSfx(0.55);
+    }
+    keysJustPressed.delete(" ");
+    console.log("Chapter break dismissed by user");
+    return false;
+  }
+
+  // Continue blocking game loop while chapter break is active
+  return true;
+}
+
 function checkDialogOverlays() {
   if (window.DialogOverlay?.consumeAction?.() || window.UpgradeScreen?.consumeAction?.()) {
     keysJustPressed.delete(" ");
@@ -10947,7 +11007,24 @@ function checkDialogOverlays() {
     clearGracePickups();
     clearAllPowerUps();
     Effects.clear();
-    window.UpgradeScreen.show(() => {});
+
+    // Check if we need to show chapter break after upgrade
+    // lastCompletedLevel was set when the battle summary showed
+    console.log("CHAPTER BREAK CHECK - lastCompletedLevel:", lastCompletedLevel);
+    // Show chapter break after level 1 (month 4) and level 2 (month 8)
+    // Level 1 complete → Act 2, Level 2 complete → Act 3
+    if (lastCompletedLevel === 1 || lastCompletedLevel === 2) {
+      const actNumber = lastCompletedLevel + 1; // Level 1 done → Act 2, Level 2 done → Act 3
+      console.log("SHOWING CHAPTER BREAK for Act", actNumber);
+      window.UpgradeScreen.show(() => {
+        console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
+        showChapterBreak(actNumber);
+      });
+    } else {
+      console.log("NO CHAPTER BREAK - lastCompletedLevel is", lastCompletedLevel);
+      window.UpgradeScreen.show(() => {});
+    }
+
     pendingUpgradeAfterSummary = false;
     keysJustPressed.delete(" ");
     return true;
@@ -12192,6 +12269,10 @@ function updateGame(dt) {
   updatePostDeathSequence(dt);
   updateFadeEffects(dt);
 
+  if (handleChapterBreak()) {
+    return;
+  }
+
   const deathFreezeActive = postDeathSequenceActive;
   if (deathFreezeActive) {
     keysJustPressed.clear();
@@ -12855,6 +12936,10 @@ function restartGame() {
   actBreakFadeTimer = 0;
   actBreakFadeDuration = 0;
   actBreakFadeAlpha = 0;
+  chapterBreakActive = false;
+  chapterBreakActNumber = 2;
+  chapterBreakImage = null;
+  lastCompletedLevel = 0;
   graceRushFadeTimer = 0;
   graceRushFadeDuration = 0;
   graceRushFadeAlpha = 0;
