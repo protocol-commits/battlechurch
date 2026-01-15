@@ -11840,6 +11840,7 @@ function updateMeleeAttackSystem(dt) {
               playSwooshSfx(0.6);
             }
             meleeAttackState.cooldown = MELEE_COOLDOWN;
+            meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
             meleeAttackState.awaitRush = true;
             meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
           } else {
@@ -11886,6 +11887,7 @@ function updateMeleeAttackSystem(dt) {
                 playSwordSfx(0.5);
               }
             }
+            meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
           }
         }
       }

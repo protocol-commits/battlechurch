@@ -738,19 +738,25 @@ class Player {
         this.updateFacing(norm.x, norm.y);
         // Optionally update reticle position here
 
+        // Check if melee attack is blocking projectile firing
+        const meleeState = window._meleeAttackState;
+        const meleeBlocking = meleeState && meleeState.projectileBlockTimer > 0;
+
         // Autofire using the player's current weapon, including during visitor sessions.
-        if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
-          this.tryAttack("arrow");
-        } else if (activeWeapon === "coin" && this.arrowCooldown <= 0) {
-          this.tryAttack("coin");
-        } else if (activeWeapon === "heart" && this.heartCooldown <= 0) {
-          this.tryAttack("heart");
-        } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
-          this.tryAttack("wisdom_missle");
-        } else if (activeWeapon === "faith_cannon" && this.magicCooldown <= 0) {
-          this.tryAttack("faith_cannon");
-        } else if (activeWeapon === "fire" && this.magicCooldown <= 0) {
-          this.tryAttack("fire");
+        if (!meleeBlocking) {
+          if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
+            this.tryAttack("arrow");
+          } else if (activeWeapon === "coin" && this.arrowCooldown <= 0) {
+            this.tryAttack("coin");
+          } else if (activeWeapon === "heart" && this.heartCooldown <= 0) {
+            this.tryAttack("heart");
+          } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
+            this.tryAttack("wisdom_missle");
+          } else if (activeWeapon === "faith_cannon" && this.magicCooldown <= 0) {
+            this.tryAttack("faith_cannon");
+          } else if (activeWeapon === "fire" && this.magicCooldown <= 0) {
+            this.tryAttack("fire");
+          }
         }
       } else if (moving) {
         // No target: face movement direction
