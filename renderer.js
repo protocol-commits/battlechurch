@@ -2284,7 +2284,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       );
     }
     // DEBUG: Draw rectangle matching the swoosh sprite hitbox
-    const DEBUG_MELEE_HITBOX = true;
+    const DEBUG_MELEE_HITBOX = false;
     if (DEBUG_MELEE_HITBOX && state.swooshTimer > 0) {
       ctx.strokeStyle = "#FF0000";
       ctx.lineWidth = 3;
