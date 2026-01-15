@@ -1,5 +1,4 @@
 /* Top-down adventure sandbox | Version 2025-10-30b */
-console.log("[GAME.JS] Loading game.js...");
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -1800,6 +1799,9 @@ const WORLD_SCALE =
 const SPEED_SCALE = Math.max(0.01, WORLD_SCALE);
 
 // Melee Attack System Constants
+// Note: MELEE_SWING_LENGTH (200) is defined in renderer.js
+// For hitbox calculations, we use MELEE_SWING_LENGTH * WORLD_SCALE to match the visual
+const MELEE_SWING_RANGE = MELEE_SWING_LENGTH * WORLD_SCALE; // Scaled hitbox range
 const MELEE_OFFSET = 54 * WORLD_SCALE;
 const MELEE_DAMAGE_KNOCKBACK = 48 * WORLD_SCALE;
 const MELEE_PUSHBACK_STRENGTH = 36 * WORLD_SCALE;
@@ -2177,7 +2179,6 @@ const aimState = Input.aimState;
 const virtualInput = Input.virtualInput;
 const keysJustPressed = Input.keysJustPressed;
 const keysPressed = Input.keysPressed;
-console.log("[GAME.JS] keysJustPressed reference:", keysJustPressed, "Input.keysJustPressed:", Input.keysJustPressed, "same?", keysJustPressed === Input.keysJustPressed);
 window.consumePauseAction = () => {
   keysJustPressed.delete("pause");
   keysJustPressed.delete("restart");
@@ -11573,10 +11574,6 @@ function cleanupDeadProjectiles() {
 
 function updateMeleeAttackSystem(dt) {
   // Melee attack logic: only trigger once per key press, deal damage once, and disappear
-  if (!window._meleeAttackSystemDebugLogged) {
-    console.log("[MELEE] updateMeleeAttackSystem is being called, keysJustPressed:", keysJustPressed);
-    window._meleeAttackSystemDebugLogged = true;
-  }
   if (!window._meleeAttackState)
     window._meleeAttackState = {
       active: false,
@@ -11710,17 +11707,10 @@ function updateMeleeAttackSystem(dt) {
     }
 
     const dir = getMeleeDirection();
-    const contents = Array.from(keysJustPressed);
-    if (contents.length > 0) {
-      console.log("[MELEE CHECK] keysJustPressed contents:", contents, "has ArrowLeft:", keysJustPressed.has("ArrowLeft"), "isRushing:", meleeAttackState.isRushing, "rushLockTimer:", meleeAttackState.rushLockTimer, "buttonDown:", meleeAttackState.buttonDown);
-    }
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
       !meleeAttackState.isRushing &&
       meleeAttackState.rushLockTimer <= 0;
-    if (contents.length > 0) {
-      console.log("[MELEE CHECK] spaceJustPressed:", spaceJustPressed);
-    }
     const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && !meleeAttackState.isRushing;
     const rushLockActive = meleeAttackState.rushLockTimer > 0;
     meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
@@ -11750,18 +11740,13 @@ function updateMeleeAttackSystem(dt) {
       }
     }
 
-    if (contents.length > 0) {
-      console.log("[MELEE CHECK] Before trigger check - spaceJustPressed:", spaceJustPressed, "buttonDown:", meleeAttackState.buttonDown, "rushLockActive:", rushLockActive);
-    }
     if (spaceJustPressed && !meleeAttackState.buttonDown && !rushLockActive) {
-      console.log("[MELEE TRIGGER] MELEE ACTIVATED!");
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = true;
       meleeAttackState.chargeFlashTriggered = false;
     }
     if (!spaceHeld && meleeAttackState.buttonDown) {
-      console.log("[MELEE RELEASE] Key released! fullyCharged check, chargeTimer:", meleeAttackState.chargeTimer, "holdTime:", meleeAttackState.holdTime, "cooldown:", meleeAttackState.cooldown);
       meleeAttackState.buttonDown = false;
       const fullyCharged = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
       if (meleeAttackState.isCharging) {
@@ -11793,7 +11778,6 @@ function updateMeleeAttackSystem(dt) {
             playDivineShotSfx(0.6);
           }
         } else if (meleeAttackState.cooldown <= 0) {
-          console.log("[MELEE ATTACK] Executing basic melee attack");
           const angleRad = Math.atan2(dir.y, dir.x);
           const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
           const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
@@ -11815,9 +11799,7 @@ function updateMeleeAttackSystem(dt) {
             }
           }
           const shouldSwoosh = doubleTapDetected;
-          console.log("[MELEE ATTACK] shouldSwoosh:", shouldSwoosh, "doubleTapDetected:", doubleTapDetected);
           if (shouldSwoosh) {
-            console.log("[MELEE ATTACK] Executing SWOOSH attack");
             meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
             meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
 
@@ -11837,7 +11819,7 @@ function updateMeleeAttackSystem(dt) {
               const dx = enemy.x - player.x;
               const dy = enemy.y - player.y;
               const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist > MELEE_SWING_LENGTH) return;
+              if (dist > MELEE_SWING_RANGE) return;
               const enemyAngle = Math.atan2(dy, dx);
               let angleDiff = enemyAngle - swooshAngle;
               while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
@@ -11861,7 +11843,6 @@ function updateMeleeAttackSystem(dt) {
             meleeAttackState.awaitRush = true;
             meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
           } else {
-            console.log("[MELEE ATTACK] Executing BASIC attack (no swoosh)");
             meleeAttackState.active = true;
             meleeAttackState.fade = MELEE_DAMAGE_DURATION;
             meleeAttackState.swingId += 1;
@@ -11883,7 +11864,7 @@ function updateMeleeAttackSystem(dt) {
               const dy = enemy.y - swingCenterY;
               const dist = Math.sqrt(dx * dx + dy * dy);
               const hitRadius = getEnemyHitboxRadius(enemy);
-              if (dist > MELEE_SWING_LENGTH + hitRadius) return;
+              if (dist > MELEE_SWING_RANGE + hitRadius) return;
               const dotProduct = dx * dir.x + dy * dir.y;
               if (dotProduct < 0) return;
               hitEnemies.push(enemy);

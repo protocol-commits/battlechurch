@@ -2283,6 +2283,22 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         frontHeight,
       );
     }
+    // DEBUG: Draw rectangle matching the swoosh sprite hitbox
+    const DEBUG_MELEE_HITBOX = true;
+    if (DEBUG_MELEE_HITBOX && state.swooshTimer > 0) {
+      ctx.strokeStyle = "#FF0000";
+      ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.8;
+
+      // Draw rectangle at the exact position and size of the swoosh sprite
+      ctx.strokeRect(
+        0,
+        -drawHeight * 0.5,
+        drawWidth,
+        drawHeight
+      );
+    }
+
     ctx.restore();
   }
 
