@@ -100,6 +100,9 @@
   function handleKeyDown(event) {
     if (PREVENT_DEFAULT_KEYS.has(event.key)) event.preventDefault();
     const key = normalizeKey(event.key);
+    if (event.key === "ArrowLeft") {
+      console.log("[INPUT] ArrowLeft keydown - normalized:", key, "keysDown.has:", keysDown.has(key), "will add to keysJustPressed:", !keysDown.has(key));
+    }
     if (!keysDown.has(key)) keysJustPressed.add(key);
     keysDown.add(key);
     // NES 'B' button: right arrow triggers prayer bomb
