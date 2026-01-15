@@ -78,6 +78,14 @@ const npcs = [];
 const effects = Effects.getActive();
 let divineChargeSparkEffect = null;
 let divineChargeFlashEffect = null;
+let playerDashState = {
+  isDashing: false,
+  dashDir: { x: 0, y: 0 },
+  dashDistanceRemaining: 0,
+  dashDustAccumulator: 0,
+  lastTapTimes: { w: 0, a: 0, s: 0, d: 0 },
+  dashCooldown: 0,
+};
 let backgroundImage = null;
 let pendingTownIntroStart = false;
 let townIntroDismissedAt = 0;
@@ -1853,6 +1861,10 @@ const RUSH_COOLDOWN = 3.0;
 const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
 const RUSH_INVULNERABILITY = 0.4;
 const DASH_DOUBLE_TAP_WINDOW = MELEE_DOUBLE_TAP_WINDOW;
+const DASH_DISTANCE = 200 * WORLD_SCALE;
+const DASH_SPEED = 1400 * SPEED_SCALE;
+const DASH_DUST_SPACING = 20 * WORLD_SCALE;
+const DASH_COOLDOWN = 0.5;
 const DIVINE_SHOT_DAMAGE = 1000;
 const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
 const DIVINE_SHOT_LIFE = 2.8;
@@ -10283,6 +10295,46 @@ function updatePlayerDuringCongregation(dt) {
   if (!player) return;
   updateAimFromKeyboard();
   updateAimAssist();
+
+  // Handle WASD double-tap dash
+  if (!playerDashState.isDashing) {
+    playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
+
+    if (playerDashState.dashCooldown <= 0) {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const keyMap = {
+        w: { x: 0, y: -1 },
+        a: { x: -1, y: 0 },
+        s: { x: 0, y: 1 },
+        d: { x: 1, y: 0 },
+      };
+
+      for (const [key, direction] of Object.entries(keyMap)) {
+        const isPressed = keysJustPressed.has(key) || keysJustPressed.has(key.toUpperCase());
+        if (isPressed) {
+          const lastTap = playerDashState.lastTapTimes[key] || 0;
+          const timeSinceLastTap = now - lastTap;
+
+          if (timeSinceLastTap < DASH_DOUBLE_TAP_WINDOW * 1000) {
+            // Double-tap detected! Start dash
+            playerDashState.isDashing = true;
+            playerDashState.dashDir = direction;
+            playerDashState.dashDistanceRemaining = DASH_DISTANCE;
+            playerDashState.dashDustAccumulator = 0;
+            break;
+          }
+
+          playerDashState.lastTapTimes[key] = now;
+        }
+      }
+    }
+  }
+
+  // Update dash movement
+  if (playerDashState.isDashing) {
+    updateDashMovement(dt);
+  }
+
   player.update(dt);
   clampEntityToBounds(player);
 }
@@ -11375,6 +11427,46 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
   if (!deathFreezeActive) {
     updateAimFromKeyboard();
     updateAimAssist();
+
+    // Handle WASD double-tap dash
+    if (!playerDashState.isDashing) {
+      playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
+
+      if (playerDashState.dashCooldown <= 0) {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const keyMap = {
+          w: { x: 0, y: -1 },
+          a: { x: -1, y: 0 },
+          s: { x: 0, y: 1 },
+          d: { x: 1, y: 0 },
+        };
+
+        for (const [key, direction] of Object.entries(keyMap)) {
+          const isPressed = keysJustPressed.has(key) || keysJustPressed.has(key.toUpperCase());
+          if (isPressed) {
+            const lastTap = playerDashState.lastTapTimes[key] || 0;
+            const timeSinceLastTap = now - lastTap;
+
+            if (timeSinceLastTap < DASH_DOUBLE_TAP_WINDOW * 1000) {
+              // Double-tap detected! Start dash
+              playerDashState.isDashing = true;
+              playerDashState.dashDir = direction;
+              playerDashState.dashDistanceRemaining = DASH_DISTANCE;
+              playerDashState.dashDustAccumulator = 0;
+              break;
+            }
+
+            playerDashState.lastTapTimes[key] = now;
+          }
+        }
+      }
+    }
+
+    // Update dash movement
+    if (playerDashState.isDashing) {
+      updateDashMovement(dt);
+    }
+
     player.update(dt);
   } else {
     updateAimAssist();
@@ -11646,6 +11738,30 @@ function getMeleeAttackDirection() {
   return normalizeVector(dir.x, dir.y);
 }
 
+function updateDashMovement(dt) {
+  if (!playerDashState.isDashing || !player) return;
+
+  const movement = Math.min(playerDashState.dashDistanceRemaining, DASH_SPEED * dt);
+  player.x += playerDashState.dashDir.x * movement;
+  player.y += playerDashState.dashDir.y * movement;
+  resolveEntityObstacles(player);
+  clampEntityToBounds(player);
+  playerDashState.dashDistanceRemaining -= movement;
+  playerDashState.dashDustAccumulator += movement;
+
+  // Spawn puff dust effects along the path
+  while (playerDashState.dashDustAccumulator >= DASH_DUST_SPACING) {
+    playerDashState.dashDustAccumulator -= DASH_DUST_SPACING;
+    spawnPuffEffect(player.x, player.y, 20 * WORLD_SCALE);
+  }
+
+  // End dash when distance complete
+  if (playerDashState.dashDistanceRemaining <= 0) {
+    playerDashState.isDashing = false;
+    playerDashState.dashCooldown = DASH_COOLDOWN;
+  }
+}
+
 function updateRushMovement(dt, direction, meleeAttackState) {
   if (!meleeAttackState.isRushing || !player) return;
 
@@ -11860,11 +11976,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
 function updateChargeState(dt, meleeAttackState) {
   if (!meleeAttackState.isCharging) return;
 
-  console.log("UPDATE CHARGE - timer:", meleeAttackState.chargeTimer, "holdTime:", meleeAttackState.holdTime, "dt:", dt);
   meleeAttackState.chargeTimer += dt;
   const chargeComplete = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
   if (chargeComplete && !meleeAttackState.chargeFlashTriggered) {
-    console.log("CHARGE COMPLETE!");
     meleeAttackState.chargeFlashTriggered = true;
     if (typeof playChargeCompleteSfx === "function") {
       playChargeCompleteSfx(0.6);
@@ -11932,7 +12046,6 @@ function updateMeleeAttackSystem(dt) {
       rushDustAccumulator: 0,
       chargeFlashTriggered: false,
       rushInvulnerable: false,
-      dashTapTimes: { w: 0, a: 0, s: 0, d: 0 },
     awaitRush: false,
     awaitTimer: 0,
     swooshTimer: 0,
@@ -12006,56 +12119,33 @@ function updateMeleeAttackSystem(dt) {
       }
     }
 
-    console.log("Checking charge start - spaceJustPressed:", spaceJustPressed, "buttonDown:", meleeAttackState.buttonDown);
     if (spaceJustPressed && !meleeAttackState.buttonDown && !rushLockActive) {
-      console.log("CHARGE START - spaceJustPressed:", spaceJustPressed, "buttonDown:", meleeAttackState.buttonDown, "rushLockActive:", rushLockActive);
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = true;
       meleeAttackState.chargeFlashTriggered = false;
-      console.log("CHARGE ACTIVATED - isCharging:", meleeAttackState.isCharging, "holdTime:", meleeAttackState.holdTime);
     }
     if (!spaceHeld && meleeAttackState.buttonDown) {
-      console.log("BUTTON RELEASED - spaceHeld:", spaceHeld, "chargeTimer:", meleeAttackState.chargeTimer, "holdTime:", meleeAttackState.holdTime);
       meleeAttackState.buttonDown = false;
       const fullyCharged = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
-      console.log("fullyCharged:", fullyCharged, "isCharging:", meleeAttackState.isCharging);
       if (meleeAttackState.isCharging) {
-        console.log("DIVINE: INSIDE isCharging block");
         meleeAttackState.isCharging = false;
-        console.log("DIVINE: About to clear visual");
         clearDivineChargeSparkVisual();
-        console.log("DIVINE: Visual cleared, fullyCharged:", fullyCharged);
         if (fullyCharged) {
-          console.log("DIVINE: FIRING DIVINE SHOT!");
           const angleRad = Math.atan2(dir.y, dir.x);
-          console.log("DIVINE: Angle:", angleRad, "dir:", dir);
           executeDivineShot(dir, meleeAttackState, angleRad);
-          console.log("DIVINE: executeDivineShot call completed");
         } else if (meleeAttackState.cooldown <= 0) {
           const angleRad = Math.atan2(dir.y, dir.x);
           const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
           const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-          const currentKeys = {
-            w: keysPressed.has("w") || keysPressed.has("W"),
-            a: keysPressed.has("a") || keysPressed.has("A"),
-            s: keysPressed.has("s") || keysPressed.has("S"),
-            d: keysPressed.has("d") || keysPressed.has("D"),
-          };
-          let doubleTapDetected = false;
-          const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-          for (const key of ["w", "a", "s", "d"]) {
-            if (currentKeys[key]) {
-              const lastTap = meleeAttackState.dashTapTimes[key] || 0;
-              if (now - lastTap < DASH_DOUBLE_TAP_WINDOW * 1000) {
-                doubleTapDetected = true;
-              }
-              meleeAttackState.dashTapTimes[key] = now;
-            }
-          }
-          const shouldSwoosh = doubleTapDetected;
+
+          // Check if player is dashing when pressing melee
+          const shouldSwoosh = playerDashState.isDashing;
           if (shouldSwoosh) {
             executeSwooshAttack(dir, meleeAttackState, angleRad);
+            // End the dash when swoosh is triggered
+            playerDashState.isDashing = false;
+            playerDashState.dashCooldown = DASH_COOLDOWN;
           } else {
             executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
           }
