@@ -451,6 +451,9 @@
     get keysJustPressed() {
       return keysJustPressed;
     },
+    get keysPressed() {
+      return keysDown;
+    },
     get pointerState() {
       return pointerState;
     },
