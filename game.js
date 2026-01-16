@@ -40,6 +40,7 @@ const GRACE_DROP_MAX_STACK = 3;
 const GRACE_DROP_SIZE_CHANCE_FACTOR = 0.15; // additional chance per relative size unit
 const GRACE_DROP_SIZE_STACK_FACTOR = 0.9; // extra stacks per size bucket
 const GRACE_RUSH_DURATION = 5;
+const GRACE_BONUS_MULTIPLIER = 5;
 const POST_DEATH_HANG = 5;
 const ARENA_FADE_DURATION = 2;
 let postDeathSequenceActive = false;
@@ -5245,6 +5246,15 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const invitedCount = Math.max(0, memberDelta) + healthReward;
   lines.push(`They have in turn invited ${invitedCount} people to join the church.`);
   const totalDelta = memberDelta + healthReward;
+  const graceBonusCongregants = Math.max(0, totalDelta);
+  const graceBonus = graceBonusCongregants * GRACE_BONUS_MULTIPLIER;
+  if (graceBonus > 0 && !summary.graceBonusApplied) {
+    addGrace(graceBonus);
+    summary.graceBonusApplied = true;
+    summary.graceBonus = graceBonus;
+  }
+  lines.push(`Total Congregants Added: ${totalDelta}`);
+  lines.push(`Bonus Grace: ${graceBonusCongregants} congregants x ${GRACE_BONUS_MULTIPLIER} = ${graceBonus} Grace.`);
   lines.push(`Current Congregation Size: [${formatDelta(totalDelta)}] ${congregationTotal}`);
   const body = lines.join("\n\n");
   window.DialogOverlay.show({
