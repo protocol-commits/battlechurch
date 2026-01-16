@@ -5196,7 +5196,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const lines = [];
   const formatDelta = (value) => `${value >= 0 ? "+" : "-"}${Math.abs(value)}`;
   if (isBossSummary) {
-    lines.push(`Boss Defeated: +${bossBonus} Congregants (Health ${Math.round(bossHealth)} / 10)`);
+    lines.push(`Pastor's Health: ${Math.round(bossHealth)}`);
+    lines.push(`Your work has brought in: ${bossBonus} new congregants`);
   } else {
     if (savedNames.length) {
       const names = savedNames.join(", ");
