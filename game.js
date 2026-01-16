@@ -8303,7 +8303,7 @@ class Projectile {
           const meleeStatMultiplier = window.StatsManager
             ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
             : 1;
-          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE * meleeStatMultiplier * 0.6;
+          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE * meleeStatMultiplier;
           const scale = targetWidth / Math.max(1, swooshImg.width);
           const targetHeight = swooshImg.height * scale * MELEE_SWOOSH_ARC_SCALE;
           ctx.save();
@@ -8311,15 +8311,6 @@ class Projectile {
           ctx.globalAlpha = 0.85;
           ctx.drawImage(
             swooshImg,
-            -targetWidth / 2,
-            -targetHeight / 2,
-            targetWidth,
-            targetHeight,
-          );
-          ctx.globalAlpha = 0.8;
-          ctx.strokeStyle = "#FF3B30";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(
             -targetWidth / 2,
             -targetHeight / 2,
             targetWidth,
