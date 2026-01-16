@@ -3043,6 +3043,12 @@ Levels.initialize({
   miniImpMaxGroupSize: MINI_IMP_MAX_GROUP_SIZE,
   miniImpMinGroupsPerHorde: MINI_IMP_MIN_GROUPS_PER_HORDE,
   getScore: () => score,
+  isPostBattleFlowBlocked: () =>
+    Boolean(
+      levelAnnouncements.length ||
+      window.DialogOverlay?.isVisible?.() ||
+      window.UpgradeScreen?.isVisible?.(),
+    ),
   startVisitorMinigame: startPostBossVisitorSession,
   getPendingPortalSpawnCount,
 });

@@ -526,6 +526,7 @@
       npcRushTimer: 0,
       powerUpsEnabled: false,
       lastClearedWasBoss: false,
+      skipPostBattleAdvance: false,
     };
 
     function resetStage(stage, duration = 0) {
@@ -1351,6 +1352,16 @@ state.battleIndex = -1;
         break;
       }
         case "battleIntermission":
+          if (
+            state.skipPostBattleAdvance &&
+            typeof deps.isPostBattleFlowBlocked === "function" &&
+            deps.isPostBattleFlowBlocked()
+          ) {
+            break;
+          }
+          if (state.skipPostBattleAdvance) {
+            state.skipPostBattleAdvance = false;
+          }
           state.timer -= dt;
           if (state.timer <= 0) {
             if (state.pendingVisitorMinigame) {
@@ -1545,44 +1556,45 @@ state.battleIndex = -1;
       },
       devSkipHorde() {
         if (!state.active) return false;
-        if (state.stage === "bossActive") {
-          onBossDefeated();
-          return true;
-        }
-        if (state.stage === "bossIntro") {
-          state.timer = 0;
-          return true;
-        }
-        if (state.stage === "graceRush") {
-          state.timer = 0;
-          if (state.graceRushContext === "boss") {
-            handleLevelCleared();
-          } else {
-            handleBattleComplete();
-          }
-          return true;
-        }
-        if (state.stage === "npcArrival") {
+        const finalizeSkipState = () => {
+          devClearOpponents({ includeBoss: true });
+          state.activeHorde = null;
+          state.pendingPortalSpawnBaseline = 0;
+          state.finalHordeDelay = 0;
           state.awaitingNpcProcession = false;
-          beginBattleIntroStage();
-          return true;
+          state.waitingForCongregation = false;
+          state.npcRushActive = false;
+          if (state.monthIndex < 0) {
+            state.monthIndex = 0;
+          }
+          const battle = currentBattle();
+          const totalHordes = getBattleHordeCount(battle);
+          if (Number.isFinite(totalHordes) && totalHordes > 0) {
+            state.battleIndex = totalHordes - 1;
+          } else {
+            state.battleIndex = Math.max(0, state.battleIndex);
+          }
+          if (!Number.isFinite(state.battleNpcStartCount) || state.battleNpcStartCount <= 0) {
+            const survivors = npcs.filter((npc) => !npc.departed && npc.active).length;
+            state.battleNpcStartCount = survivors > 0 ? survivors : 5;
+          }
+        };
+        const bossContext =
+          state.stage === "bossActive" ||
+          state.stage === "bossIntro" ||
+          (state.stage === "graceRush" && state.graceRushContext === "boss");
+        finalizeSkipState();
+        if (bossContext) {
+          state.boss = null;
+          state.lastClearedWasBoss = true;
+          state.pendingBossRestore = true;
+          handleLevelCleared();
+        } else {
+          handleBattleComplete();
+          state.pendingVisitorMinigame = false;
+          state.visitorMinigamePlayed = true;
+          state.skipPostBattleAdvance = true;
         }
-        if (state.stage === "battleIntermission" || state.stage === "hordeCleared") {
-          state.timer = 0;
-          return true;
-        }
-        if (state.stage === "levelIntro" && state.waitingForCongregation) {
-          beginBattle();
-          return true;
-        }
-        if (state.battleIndex < 0) {
-          beginBattle();
-          return true;
-        }
-  devClearOpponents();
-  state.battleIndex = getBattleHordeCount(currentBattle()) - 1;
-        state.activeHorde = null;
-        handleBattleComplete();
         state.timer = 0;
         return true;
       },
