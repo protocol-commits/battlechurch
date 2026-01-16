@@ -1840,7 +1840,7 @@ const WORLD_SCALE =
 const SPEED_SCALE = Math.max(0.01, WORLD_SCALE);
 
 // Melee Attack System Constants
-// Note: MELEE_SWING_LENGTH (200) is defined in renderer.js
+const MELEE_SWING_LENGTH_BASE = 200;
 // For hitbox calculations, we need a much smaller range to match the actual swoosh visual
 const MELEE_SWING_RANGE = 80 * WORLD_SCALE; // Reduced to match swoosh sprite visual (was 200 * WORLD_SCALE)
 const MELEE_OFFSET = 54 * WORLD_SCALE;
@@ -8297,26 +8297,36 @@ class Projectile {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Draw outer glow
-        const glowSize = 80;
-        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, glowSize);
-        gradient.addColorStop(0, "rgba(255, 255, 200, 0.8)");
-        gradient.addColorStop(0.5, "rgba(255, 215, 0, 0.5)");
-        gradient.addColorStop(1, "rgba(255, 215, 0, 0)");
-        ctx.fillStyle = gradient;
-        ctx.fillRect(-glowSize, -glowSize, glowSize * 2, glowSize * 2);
-
-        // Draw golden orb
-        const orbRadius = 25;
-        const orbGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, orbRadius);
-        orbGradient.addColorStop(0, "#FFFFFF");
-        orbGradient.addColorStop(0.3, "#FFFFCC");
-        orbGradient.addColorStop(0.7, "#FFD700");
-        orbGradient.addColorStop(1, "#FFA500");
-        ctx.fillStyle = orbGradient;
-        ctx.beginPath();
-        ctx.arc(0, 0, orbRadius, 0, Math.PI * 2);
-        ctx.fill();
+        // Overlay the melee swoosh sprite for charged shots.
+        const swooshImg = assets?.effects?.meleeSwoosh;
+        if (swooshImg) {
+          const meleeStatMultiplier = window.StatsManager
+            ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
+            : 1;
+          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE * meleeStatMultiplier;
+          const scale = targetWidth / Math.max(1, swooshImg.width);
+          const targetHeight = swooshImg.height * scale * MELEE_SWOOSH_ARC_SCALE;
+          ctx.save();
+          ctx.rotate(this.rotation || 0);
+          ctx.globalAlpha = 0.85;
+          ctx.drawImage(
+            swooshImg,
+            -targetWidth / 2,
+            -targetHeight / 2,
+            targetWidth,
+            targetHeight,
+          );
+          ctx.globalAlpha = 0.8;
+          ctx.strokeStyle = "#FF3B30";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(
+            -targetWidth / 2,
+            -targetHeight / 2,
+            targetWidth,
+            targetHeight,
+          );
+          ctx.restore();
+        }
 
         ctx.restore();
       } else {
