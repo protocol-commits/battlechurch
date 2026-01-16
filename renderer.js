@@ -2194,8 +2194,13 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     fogGradientBottom.addColorStop(0.35, 'rgba(40,0,0,0.85)');
     fogGradientBottom.addColorStop(1, 'rgba(0,0,0,0.0)');
     ctx.fillStyle = fogGradientBottom;
-    ctx.fillRect(0, canvas.height - fogHeight, canvas.width, fogHeight);
+  ctx.fillRect(0, canvas.height - fogHeight, canvas.width, fogHeight);
   ctx.restore();
+
+  const ashOverlay = requireBindings().ashOverlay;
+  if (ashOverlay && typeof ashOverlay.draw === "function") {
+    ashOverlay.draw(ctx);
+  }
 
   // Color grade disabled per request.
 

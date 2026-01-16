@@ -91,6 +91,7 @@ let playerDashState = {
   dashCooldown: 0,
 };
 let backgroundImage = null;
+let ashOverlay = null;
 let pendingTownIntroStart = false;
 let townIntroDismissedAt = 0;
 const TOWN_INTRO_ZOOM_DURATION = 1.0;
@@ -2011,6 +2012,14 @@ function resizeCanvas() {
     pointerState.y = CANVAS_BASE_HEIGHT / 2;
   }
 
+  if (typeof window !== "undefined" && window.AshOverlay) {
+    if (!ashOverlay) {
+      ashOverlay = new window.AshOverlay(canvas.width, canvas.height);
+    } else {
+      ashOverlay.resize(canvas.width, canvas.height);
+    }
+  }
+
   positionObstacles();
   if (player) {
     resolveEntityObstacles(player);
@@ -2306,6 +2315,7 @@ Renderer.initialize({
   get epilogueTitle() { return epilogueTitle; },
   get epilogueText() { return epilogueText; },
   get epilogueBackgroundKey() { return epilogueBackgroundKey; },
+  get ashOverlay() { return ashOverlay; },
   get speedrunTimer() { return speedrunTimer; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
@@ -12242,6 +12252,10 @@ function updateGame(dt) {
   handleDeveloperHotkeys();
 
   updateDebugSystems(dt);
+
+  if (ashOverlay) {
+    ashOverlay.update(dt * 1000);
+  }
 
   if (epilogueActive) {
     if (wasActionJustPressed("restart")) {
