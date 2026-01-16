@@ -1232,6 +1232,7 @@
           duration: LEVEL_SUMMARY_DURATION,
           requiresConfirm: true,
           finalYear: state.level >= LEVELS_PER_GAME,
+          levelSummary: true,
         },
       );
       resetStage("levelSummary", LEVEL_SUMMARY_DURATION);

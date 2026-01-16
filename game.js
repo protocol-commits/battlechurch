@@ -57,6 +57,7 @@ let chapterBreakActive = false;
 let chapterBreakActNumber = 2;
 let chapterBreakImage = null;
 let lastCompletedLevel = 0;
+let lastSummaryWasLevelEnd = false;
 let graceRushFadeTimer = 0;
 let graceRushFadeDuration = 0;
 let graceRushFadeAlpha = 0;
@@ -5096,9 +5097,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
   const isFinalYear = Boolean(announcement?.finalYear);
   pendingUpgradeAfterSummary = Boolean(upgradeAfter) && !isFinalYear;
-  // Track which level was just completed for chapter breaks
-  if (pendingUpgradeAfterSummary) {
+  // Track which level was just completed for chapter breaks (boss/level summary only)
+  if (announcement?.levelSummary) {
     lastCompletedLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+    lastSummaryWasLevelEnd = true;
     console.log("Level completed, lastCompletedLevel set to:", lastCompletedLevel);
   }
   startRecapMusic();
@@ -11127,7 +11129,7 @@ function checkDialogOverlays() {
     console.log("CHAPTER BREAK CHECK - lastCompletedLevel:", lastCompletedLevel);
     // Show chapter break after level 1 (month 4) and level 2 (month 8)
     // Level 1 complete → Act 2, Level 2 complete → Act 3
-    if (lastCompletedLevel === 1 || lastCompletedLevel === 2) {
+    if (lastSummaryWasLevelEnd && (lastCompletedLevel === 1 || lastCompletedLevel === 2)) {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Act 2, Level 2 done → Act 3
       console.log("SHOWING CHAPTER BREAK for Act", actNumber);
       window.UpgradeScreen.show(() => {
@@ -11140,6 +11142,7 @@ function checkDialogOverlays() {
     }
 
     pendingUpgradeAfterSummary = false;
+    lastSummaryWasLevelEnd = false;
     keysJustPressed.delete(" ");
     return true;
   }
