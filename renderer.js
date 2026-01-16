@@ -624,7 +624,12 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   const skipMissionBrief = Boolean(levelAnnouncements[0].skipMissionBrief);
   const isBossMonthIntro = currentLevelStatus?.stage === "bossIntro";
   const isBossMissionBrief = Boolean(levelAnnouncements[0].bossMissionBrief);
+  const congregationOverlayActive = Boolean(requireBindings().congregationOverlay?.active);
   if (!skipMissionBrief && !isBattleSummary && (isBossMonthIntro || isBossMissionBrief)) {
+    if (congregationOverlayActive) {
+      ctx.restore();
+      return;
+    }
     const monthName = currentLevelStatus?.month || "";
     const missionTitle =
       (levelAnnouncements[0] && levelAnnouncements[0].missionBriefTitle) ||
@@ -648,6 +653,10 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     return;
   }
   if (!skipMissionBrief && !isBattleSummary && Array.isArray(window.npcs) && window.npcs.length) {
+    if (congregationOverlayActive) {
+      ctx.restore();
+      return;
+    }
     const npcNames = window.npcs.map(npc => npc.name).filter(Boolean);
     if (window.DialogOverlay?.isVisible?.()) {
       ctx.restore();
@@ -1854,6 +1863,22 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       const effectiveCameraX = resolveCameraX();
       drawBackground(effectiveCameraX, 0);
       drawLevelAnnouncements();
+      {
+        const { UI_FONT_FAMILY } = requireBindings();
+        const centerX = canvas.width / 2;
+        const titleY = HUD_HEIGHT + 36;
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        ctx.fillText("Act I", centerX, titleY);
+        ctx.restore();
+      }
       ctx.save();
       const buttonText = "Play (Space)";
       const buttonWidth = Math.min(240, canvas.width * 0.5);
@@ -2330,6 +2355,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     }
     drawMeleeSwingOverlay(ctx, player);
     drawSpeedrunTimer();
+    drawCongregationOverlay();
     // Effects are drawn earlier in the world pass so the player stays on top.
     if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
       ctx.save();
@@ -2457,6 +2483,39 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       const line = lines[i];
       ctx.fillText(line, canvas.width - padding, y);
       y -= lineHeight;
+    }
+    ctx.restore();
+  }
+
+  function drawCongregationOverlay() {
+    const { ctx, canvas, UI_FONT_FAMILY, congregationOverlay } = requireBindings();
+    if (!ctx || !canvas || !congregationOverlay?.active) return;
+    const phase = congregationOverlay.phase || 0;
+    const isNumberPhase = phase === 2;
+    const showCountWord = phase >= 1;
+    const maxWordSize = Math.min(canvas.width * 0.18, canvas.height * 0.2, 160);
+    const maxNumberSize = Math.min(canvas.width * 0.35, canvas.height * 0.4, 260);
+    const wordFontSize = maxWordSize;
+    const numberFontSize = maxNumberSize;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#FFF3D6";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetX = 4;
+    ctx.shadowOffsetY = 4;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const lineGap = Math.round(wordFontSize * 0.7);
+    ctx.font = `900 ${Math.round(wordFontSize)}px ${UI_FONT_FAMILY}`;
+    ctx.fillText("CONGREGATION", centerX, centerY - lineGap);
+    if (showCountWord) {
+      ctx.fillText("COUNT", centerX, centerY);
+    }
+    if (isNumberPhase) {
+      ctx.font = `900 ${Math.round(numberFontSize)}px ${UI_FONT_FAMILY}`;
+      ctx.fillText(String(congregationOverlay.countValue ?? 0), centerX, centerY + numberFontSize * 0.6);
     }
     ctx.restore();
   }

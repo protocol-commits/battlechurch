@@ -221,6 +221,8 @@ const PLAYER_HURT_SFX_SRC = "assets/sfx/rpg/player/ouch_voice.wav";
 const PLAYER_DEATH_BELL_SFX_SRC = "assets/sfx/rpg/player/bells-2.wav";
 const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9.wav";
 const DIVINE_SHOT_SFX_SRC = "assets/sfx/rpg/Magic/fireball_whoosh_01.wav";
+const CONGREGATION_OVERLAY_WORD_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
+const CONGREGATION_OVERLAY_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
   { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
@@ -247,6 +249,7 @@ const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
 const NPC_HURT_SFX_POOL_SIZE = 4;
 const PLAYER_HURT_SFX_POOL_SIZE = 4;
+const CONGREGATION_OVERLAY_SFX_POOL_SIZE = 4;
 const PLAYER_DEATH_BELL_FADE_DELAY = 7;
 const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
@@ -276,6 +279,7 @@ const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
 const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
+const congregationOverlaySfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
@@ -2316,6 +2320,7 @@ Renderer.initialize({
   get epilogueText() { return epilogueText; },
   get epilogueBackgroundKey() { return epilogueBackgroundKey; },
   get ashOverlay() { return ashOverlay; },
+  get congregationOverlay() { return congregationOverlay; },
   get speedrunTimer() { return speedrunTimer; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
@@ -2670,6 +2675,102 @@ const npcDialogue =
 const NPC_STRUGGLE_LINES = npcDialogue.struggleLines || [];
 const NPC_RETURN_LINES = npcDialogue.returnLines || [];
 
+const CONGREGATION_OVERLAY_PHASE_1_DURATION = 0.6;
+const CONGREGATION_OVERLAY_PHASE_2_DURATION = 0.6;
+const CONGREGATION_OVERLAY_PHASE_3_DURATION = 0.8;
+const CONGREGATION_OVERLAY_HOLD_DURATION = 1.0;
+const CONGREGATION_OVERLAY_TOTAL_DURATION =
+  CONGREGATION_OVERLAY_PHASE_1_DURATION +
+  CONGREGATION_OVERLAY_PHASE_2_DURATION +
+  CONGREGATION_OVERLAY_PHASE_3_DURATION +
+  CONGREGATION_OVERLAY_HOLD_DURATION;
+const congregationOverlay = {
+  active: false,
+  timer: 0,
+  phase: 0,
+  countTo: 0,
+  countValue: 0,
+  lastPhase: -1,
+  playedFinal: false,
+};
+
+function playCongregationOverlayWordSfx() {
+  playPooledSfx(
+    congregationOverlaySfxPool,
+    CONGREGATION_OVERLAY_WORD_SFX_SRC,
+    CONGREGATION_OVERLAY_SFX_POOL_SIZE,
+    { volume: 0.6 },
+  );
+}
+
+function playCongregationOverlayFinalSfx() {
+  playPooledSfx(
+    congregationOverlaySfxPool,
+    CONGREGATION_OVERLAY_FINAL_SFX_SRC,
+    CONGREGATION_OVERLAY_SFX_POOL_SIZE,
+    { volume: 0.7 },
+  );
+}
+
+function triggerCongregationOverlay(targetCount) {
+  const count = Number.isFinite(targetCount) ? Math.max(0, Math.round(targetCount)) : 0;
+  congregationOverlay.active = true;
+  congregationOverlay.timer = 0;
+  congregationOverlay.phase = 0;
+  congregationOverlay.countTo = count;
+  congregationOverlay.countValue = 0;
+  congregationOverlay.lastPhase = -1;
+  congregationOverlay.playedFinal = false;
+}
+
+function updateCongregationOverlay(dt) {
+  if (!congregationOverlay.active) return;
+  congregationOverlay.timer += dt;
+  const t = congregationOverlay.timer;
+  const phase1End = CONGREGATION_OVERLAY_PHASE_1_DURATION;
+  const phase2End = phase1End + CONGREGATION_OVERLAY_PHASE_2_DURATION;
+  const phase3End = phase2End + CONGREGATION_OVERLAY_PHASE_3_DURATION;
+  const holdEnd = phase3End + CONGREGATION_OVERLAY_HOLD_DURATION;
+  let phase = 0;
+  if (t >= phase2End) phase = 2;
+  else if (t >= phase1End) phase = 1;
+  if (phase !== congregationOverlay.lastPhase) {
+    if (phase === 0 || phase === 1) {
+      playCongregationOverlayWordSfx();
+    }
+    congregationOverlay.lastPhase = phase;
+  }
+  congregationOverlay.phase = phase;
+  if (phase === 2) {
+    const progress = Math.min(1, Math.max(0, (t - phase2End) / CONGREGATION_OVERLAY_PHASE_3_DURATION));
+    const value = Math.min(
+      congregationOverlay.countTo,
+      Math.max(0, Math.floor(congregationOverlay.countTo * progress)),
+    );
+    congregationOverlay.countValue = value;
+    if (!congregationOverlay.playedFinal && progress >= 1) {
+      congregationOverlay.playedFinal = true;
+      playCongregationOverlayFinalSfx();
+    }
+    if (progress >= 1) {
+      congregationOverlay.countValue = congregationOverlay.countTo;
+    }
+  } else {
+    congregationOverlay.countValue = 0;
+  }
+  if (t >= holdEnd) {
+    congregationOverlay.active = false;
+  }
+}
+
+function getMonthIndexFromName(name) {
+  if (!name) return null;
+  const idx = MONTH_NAMES.findIndex(
+    (entry) => String(entry).toLowerCase() === String(name).toLowerCase(),
+  );
+  return idx >= 0 ? idx + 1 : null;
+}
+
 function isNoCooldownDamageSource(type) {
   if (!type) return false;
   const normalized = String(type).toLowerCase();
@@ -2931,6 +3032,8 @@ Levels.initialize({
   isNpcProcessionComplete: areNpcProcessionsComplete,
   startActBreakFade,
   startGraceRushEndFade,
+  triggerCongregationOverlay,
+  getCongregationSize,
   rotateNpcPositionsForActBreak,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
   hasEnemyAsset: (key) => Boolean(ASSET_MANIFEST.enemies?.[key]),
@@ -12257,6 +12360,8 @@ function updateGame(dt) {
     ashOverlay.update(dt * 1000);
   }
 
+  updateCongregationOverlay(dt);
+
   if (epilogueActive) {
     if (wasActionJustPressed("restart")) {
       restartGame();
@@ -12991,6 +13096,13 @@ function restartGame() {
   titleScreenActive = true;
   paused = true;
   gameStarted = false;
+  congregationOverlay.active = false;
+  congregationOverlay.timer = 0;
+  congregationOverlay.phase = 0;
+  congregationOverlay.countTo = 0;
+  congregationOverlay.countValue = 0;
+  congregationOverlay.lastPhase = -1;
+  congregationOverlay.playedFinal = false;
   speedrunTimer.running = false;
   speedrunTimer.startTime = null;
   speedrunTimer.sectionStart = null;
