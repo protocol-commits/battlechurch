@@ -5164,7 +5164,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     "This Month";
   const localMonthNumber = status?.battle || 1; // battle is 1-based month within the level
   const stage = status?.stage || "";
-  const memberDelta = (() => {
+  const isBossSummary = Boolean(announcement?.levelSummary) || stage === "levelSummary";
+  const memberDelta = isBossSummary ? 0 : (() => {
     const noNpcResults =
       (!Number.isFinite(savedCount) || savedCount <= 0) &&
       (!Number.isFinite(lostCount) || lostCount <= 0);
@@ -5180,78 +5181,37 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     seasonStats.startCongregation = getCongregationSize();
   }
   const totalNpcFaith = Number.isFinite(summary?.totalNpcFaith) ? summary.totalNpcFaith : 0;
-  const healthReward = Math.min(5, Math.floor(totalNpcFaith / 100));
+  const healthReward = isBossSummary ? 0 : Math.min(5, Math.floor(totalNpcFaith / 100));
+  const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
+  const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
   if (!summary.congregationDeltaApplied) {
-    adjustCongregationSize(memberDelta + healthReward);
+    adjustCongregationSize(memberDelta + healthReward + bossBonus);
     summary.congregationDeltaApplied = true;
     summary.congregationDelta = memberDelta;
     summary.healthReward = healthReward;
   }
   seasonStats.monthlyAdded += memberDelta + healthReward;
   seasonStats.lost += Math.max(0, lostCount || 0);
-  const monthsPerLevel = typeof MONTHS_PER_LEVEL === "number" ? MONTHS_PER_LEVEL : 3;
-  const isSeasonEnd = localMonthNumber >= monthsPerLevel;
-  const isLevelSummaryStage = stage === "levelSummary";
-  if (isSeasonEnd && isLevelSummaryStage && !seasonStats.recapShown) {
-    const preBossSize = getCongregationSize();
-    if (!seasonStats.bossBonusApplied) {
-      const bossBonus = levelNumber * 2 * Math.max(0, heroLives);
-      adjustCongregationSize(bossBonus);
-      seasonStats.bossBonus = bossBonus;
-      seasonStats.bossBonusApplied = true;
-    }
-    const startMonthIndex = (currentSeasonNumber - 1) * monthsPerLevel + 1;
-    const endMonthIndex = startMonthIndex + monthsPerLevel - 1;
-    const seasonTitle = `Season ${currentSeasonNumber} (${getMonthName(startMonthIndex)} - ${getMonthName(endMonthIndex)})`;
-    const battleAndVisitorGain = seasonStats.monthlyAdded + (seasonStats.visitorAdded || 0);
-    const totalAdded = battleAndVisitorGain + (seasonStats.bossBonus || 0);
-    const totalLost = seasonStats.lost;
-    const currentSize = getCongregationSize();
-    const lines = [];
-    lines.push(`Members Gained: ${battleAndVisitorGain}`);
-    lines.push(`Members Lost: ${totalLost}`);
-    lines.push(`Boss Victory Bonus: ${seasonStats.bossBonus}`);
-    const finalSize = preBossSize + (seasonStats.bossBonus || 0);
-    lines.push(`Congregation Size: ${finalSize}`);
-    const body = lines.join("\n\n");
-    seasonStats.recapShown = true;
-    window.DialogOverlay.show({
-      title: `Season ${currentSeasonNumber}\n(${getMonthName(startMonthIndex)} - ${getMonthName(endMonthIndex)})`,
-      bodyHtml: `<div class="mission-brief-text"></div>`,
-      buttonText: "Continue (Space)",
-      variant: "mission",
-      devLabel: "",
-      portraits: null,
-      onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
-      onContinue: () => {
-        graceRushBlackout = false;
-        graceRushFadeHold = false;
-        graceRushFadeTimer = 0;
-        graceRushFadeDuration = 0;
-        graceRushFadeAlpha = 0;
-        dismissCurrentLevelAnnouncement();
-        window.DialogOverlay.consumeAction();
-        if (isFinalYear) activateEpilogue();
-      },
-    });
-    return true;
-  }
   const congregationTotal = getCongregationSize();
   const lines = [];
   const formatDelta = (value) => `${value >= 0 ? "+" : "-"}${Math.abs(value)}`;
-  if (savedNames.length) {
-    const names = savedNames.join(", ");
-    lines.push(`You successfully ministered to ${names}. [${formatDelta(memberDelta)}]`);
+  if (isBossSummary) {
+    lines.push(`Boss Defeated: +${bossBonus} Congregants (Health ${Math.round(bossHealth)} / 10)`);
+  } else {
+    if (savedNames.length) {
+      const names = savedNames.join(", ");
+      lines.push(`You successfully ministered to ${names}. [${formatDelta(memberDelta)}]`);
+    }
+    if (lostNames.length) {
+      const names = lostNames.join(", ");
+      const verb = lostNames.length === 1 ? "has" : "have";
+      lines.push(`${names} ${verb} left the church.`);
+    }
+    lines.push(`Their total remaining health was ${Math.round(totalNpcFaith)}. [${formatDelta(healthReward)}]`);
+    const invitedCount = Math.max(0, memberDelta) + healthReward;
+    lines.push(`They have in turn invited ${invitedCount} people to join the church.`);
   }
-  if (lostNames.length) {
-    const names = lostNames.join(", ");
-    const verb = lostNames.length === 1 ? "has" : "have";
-    lines.push(`${names} ${verb} left the church.`);
-  }
-  lines.push(`Their total remaining health was ${Math.round(totalNpcFaith)}. [${formatDelta(healthReward)}]`);
-  const invitedCount = Math.max(0, memberDelta) + healthReward;
-  lines.push(`They have in turn invited ${invitedCount} people to join the church.`);
-  const totalDelta = memberDelta + healthReward;
+  const totalDelta = memberDelta + healthReward + bossBonus;
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = graceBonusCongregants * GRACE_BONUS_MULTIPLIER;
   if (graceBonus > 0 && !summary.graceBonusApplied) {
@@ -6181,6 +6141,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
       : null;
   const bossMissionBrief = Boolean(options.bossMissionBrief);
   const finalYear = Boolean(options.finalYear);
+  const levelSummary = Boolean(options.levelSummary);
   const announcement = {
     title,
     subtitle,
@@ -6192,6 +6153,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     townIntro,
     bossMissionBrief,
     finalYear,
+    levelSummary,
   };
   levelAnnouncements.push(announcement);
 }
