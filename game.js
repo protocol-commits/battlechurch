@@ -8303,7 +8303,7 @@ class Projectile {
           const meleeStatMultiplier = window.StatsManager
             ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
             : 1;
-          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE * meleeStatMultiplier;
+          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE * meleeStatMultiplier * 0.6;
           const scale = targetWidth / Math.max(1, swooshImg.width);
           const targetHeight = swooshImg.height * scale * MELEE_SWOOSH_ARC_SCALE;
           ctx.save();
