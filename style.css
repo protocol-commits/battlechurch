@@ -189,6 +189,12 @@ body.touch-enabled .center-controls button {
   font-size: clamp(0.65rem, 1.8vw, 0.85rem);
 }
 
+.arc-label-space {
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 body.touch-enabled .joystick-area.left {
   grid-area: left;
   display: flex;
@@ -232,20 +238,20 @@ body.touch-enabled .button-area.right {
 }
 
 .arc-segment.arc-a {
-  stroke: var(--swatch-accent);
+  stroke: #7FCBFF;
 }
 
 .arc-segment.arc-b {
-  stroke: var(--swatch-accent-2);
+  stroke: #BFE6FF;
 }
 
 .arc-segment.arc-c {
-  stroke: var(--swatch-light);
+  stroke: #FF6B6B;
   stroke-width: 40px;
 }
 
 .arc-segment.arc-s {
-  stroke: var(--swatch-mid);
+  stroke: #FFB36A;
   stroke-width: 40px;
 }
 
