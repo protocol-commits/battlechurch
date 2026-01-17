@@ -123,6 +123,15 @@ body {
   animation: blink 1.2s infinite;
 }
 
+body.layout-mobile,
+body.layout-square,
+body.layout-rotate-warning {
+  --ui-h1-size: 36px;
+  --ui-h2-size: 28px;
+  --ui-h3-size: 20px;
+  --ui-body-size: 16px;
+}
+
 #appRoot {
   position: relative;
   width: var(--viewport-width, 100vw);
@@ -384,8 +393,11 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .upgrade-overlay {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  left: var(--game-left, 0px);
+  top: var(--game-top, 0px);
+  width: var(--game-width, 100%);
+  height: var(--game-height, 100%);
   background: transparent;
   display: flex;
   align-items: center;
@@ -423,7 +435,8 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .upgrade-overlay__panel {
-  width: min(820px, 92vw);
+  width: min(820px, 92%);
+  max-height: 92%;
   padding: 40px;
   background: rgba(8, 12, 20, 0.35);
   border-radius: 24px;
@@ -434,6 +447,8 @@ body.layout-rotate-warning #rotatePrompt {
   position: relative;
   z-index: 2;
   backdrop-filter: blur(6px);
+  box-sizing: border-box;
+  overflow: auto;
 }
 .upgrade-overlay__dev-label {
   display: none;
@@ -553,8 +568,11 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .dialog-overlay {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  left: var(--game-left, 0px);
+  top: var(--game-top, 0px);
+  width: var(--game-width, 100%);
+  height: var(--game-height, 100%);
   background: rgba(4, 7, 14, 0);
   display: flex;
   align-items: center;
@@ -599,10 +617,10 @@ body.layout-rotate-warning #rotatePrompt {
   background-image: none !important;
 }
 .dialog-overlay--title-page .dialog-overlay__panel {
-  width: min(960px, 94vw);
+  width: min(960px, 94%);
   max-width: 960px;
-  max-height: 100vh;
-  overflow: hidden;
+  max-height: 92%;
+  overflow: auto;
   padding: 18px clamp(18px, 3vw, 48px) 24px;
   background: transparent;
   border: none;
@@ -686,7 +704,7 @@ body.layout-rotate-warning #rotatePrompt {
   background-repeat: no-repeat;
 }
 .dialog-overlay--town-intro .dialog-overlay__panel {
-  width: min(980px, 92vw);
+  width: min(980px, 92%);
   background: rgba(8, 16, 28, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
@@ -715,7 +733,7 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .dialog-overlay--summary .dialog-overlay__panel {
-  width: min(400px, 90vw);
+  width: min(400px, 90%);
   margin-top: 32px;
   background: rgba(8, 16, 28, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -723,7 +741,8 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .dialog-overlay__panel {
-  width: min(520px, 90vw);
+  width: min(520px, 90%);
+  max-height: 92%;
   padding: 32px;
   background: var(--swatch-mid);
   border-radius: 20px;
@@ -732,6 +751,8 @@ body.layout-rotate-warning #rotatePrompt {
   color: var(--ui-text-color);
   font-family: var(--ui-font-family);
   text-align: center;
+  box-sizing: border-box;
+  overflow: auto;
 }
 .dialog-overlay__dev-label {
   font-size: 11px;
@@ -747,7 +768,7 @@ body.layout-rotate-warning #rotatePrompt {
   width: 100%;
 }
 .dialog-overlay--mission .dialog-overlay__panel {
-  width: min(960px, 94vw);
+  width: min(960px, 94%);
   max-width: 960px;
   padding: clamp(36px, 5vw, 80px);
   background: transparent;

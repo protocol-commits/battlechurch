@@ -22,7 +22,8 @@
     </div>
   `;
 
-  document.body.appendChild(overlay);
+  const root = document.getElementById("appRoot") || document.body;
+  root.appendChild(overlay);
 
   const gridElement = overlay.querySelector("[data-upgrade-grid]");
   const graceElement = overlay.querySelector("[data-upgrade-grace]");

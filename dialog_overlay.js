@@ -18,7 +18,8 @@
     </div>
   `;
 
-  document.body.appendChild(overlay);
+  const root = document.getElementById("appRoot") || document.body;
+  root.appendChild(overlay);
 
   const titleEl = overlay.querySelector(".dialog-overlay__title");
   const bodyEl = overlay.querySelector(".dialog-overlay__body");
