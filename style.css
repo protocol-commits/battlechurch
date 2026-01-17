@@ -225,7 +225,7 @@ body.touch-enabled .button-area.right {
 .arc-segment {
   fill: none;
   stroke-width: var(--arc-thickness);
-  stroke-linecap: round;
+  stroke-linecap: butt;
   opacity: 0.8;
   transition: opacity 0.12s ease-out, filter 0.12s ease-out;
   pointer-events: none;
