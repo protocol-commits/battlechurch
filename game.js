@@ -2961,7 +2961,7 @@ const CAMERA_SCROLL_LIMIT = 56; // reduced: subtle parallax only
 
 const BASE_PLAYER_CONFIG = {
   scale: PLAYER_SCALE,
-  speed: 260 * SPEED_SCALE,
+  speed: 299 * SPEED_SCALE,
   arrowCooldown: 0.35 / 2,
   maxHealth: HERO_MAX_HEALTH,
   radius: PLAYER_COLLISION_RADIUS * PLAYER_SCALE,
