@@ -1917,6 +1917,7 @@ const MOBILE_MAX_DIMENSION = 900;
 const SLAB_ASPECT_MIN = 1.9;
 const SQUARE_ASPECT_MAX = 1.4;
 const ROTATE_ASPECT_MAX = 0.8;
+const ROTATE_ROW_HEIGHT = 40;
 const ASSET_CACHE_BUSTER = (typeof window !== 'undefined' && window.__BATTLECHURCH_ASSET_VERSION !== undefined)
   ? String(window.__BATTLECHURCH_ASSET_VERSION)
   : '2025-10-30a';
@@ -2000,15 +2001,15 @@ function resizeCanvas() {
   const viewportMin = Math.min(viewportWidth, viewportHeight);
   const viewportAspect = viewportWidth / Math.max(1, viewportHeight);
   const isMobile = viewportMin <= MOBILE_MAX_DIMENSION;
-  const shouldRotate = isMobile && viewportAspect < ROTATE_ASPECT_MAX;
-  const layoutWidth = shouldRotate ? viewportHeight : viewportWidth;
-  const layoutHeight = shouldRotate ? viewportWidth : viewportHeight;
-  const layoutAspect = layoutWidth / Math.max(1, layoutHeight);
+  const isRotateWarning = isMobile && viewportAspect < ROTATE_ASPECT_MAX;
+  const layoutWidth = viewportWidth;
+  const layoutHeight = viewportHeight;
+  const layoutAspect = viewportAspect;
   const isSlabLayout = isMobile && layoutAspect >= SLAB_ASPECT_MIN;
   const isSquareLayout = isMobile && layoutAspect <= SQUARE_ASPECT_MAX;
   const scaleWidth = layoutWidth / CANVAS_BASE_WIDTH;
   const scaleHeight = layoutHeight / CANVAS_BASE_HEIGHT;
-  const scale = isSquareLayout ? scaleWidth : Math.min(scaleWidth, scaleHeight);
+  const scale = isSquareLayout || isRotateWarning ? scaleWidth : Math.min(scaleWidth, scaleHeight);
   canvasScale = Math.max(0.1, scale);
 
   canvas.width = CANVAS_BASE_WIDTH;
@@ -2024,10 +2025,11 @@ function resizeCanvas() {
   }
   if (typeof document !== 'undefined' && document.documentElement) {
     const gameLeft = Math.floor((layoutWidth - cssWidth) / 2);
-    const gameTop = isSquareLayout ? 0 : Math.floor((layoutHeight - cssHeight) / 2);
+    const gameTop = (isSquareLayout || isRotateWarning) ? 0 : Math.floor((layoutHeight - cssHeight) / 2);
     const gutterWidth = Math.max(0, gameLeft);
     const gutterHeight = Math.max(0, Math.floor((layoutHeight - cssHeight) / 2));
-    const controlsHeight = Math.max(0, layoutHeight - cssHeight);
+    const rotateRowHeight = isRotateWarning ? ROTATE_ROW_HEIGHT : 0;
+    const controlsHeight = Math.max(0, layoutHeight - cssHeight - rotateRowHeight);
 
     document.documentElement.style.setProperty('--viewport-width', `${viewportWidth}px`);
     document.documentElement.style.setProperty('--viewport-height', `${viewportHeight}px`);
@@ -2040,21 +2042,22 @@ function resizeCanvas() {
     document.documentElement.style.setProperty('--gutter-width', `${gutterWidth}px`);
     document.documentElement.style.setProperty('--gutter-height', `${gutterHeight}px`);
     document.documentElement.style.setProperty('--controls-height', `${controlsHeight}px`);
+    document.documentElement.style.setProperty('--rotate-row-height', `${rotateRowHeight}px`);
 
     if (document.body) {
       document.body.classList.toggle('layout-mobile', isMobile);
       document.body.classList.toggle('layout-slab', isSlabLayout);
       document.body.classList.toggle('layout-square', isSquareLayout);
-      document.body.classList.toggle('layout-rotated', shouldRotate);
+      document.body.classList.toggle('layout-rotate-warning', isRotateWarning);
     }
   }
   if (typeof window !== 'undefined') {
     window.__BATTLECHURCH_LAYOUT = {
-      rotated: shouldRotate,
+      rotated: false,
       layoutWidth,
       layoutHeight,
       gameLeft: Math.floor((layoutWidth - cssWidth) / 2),
-      gameTop: isSquareLayout ? 0 : Math.floor((layoutHeight - cssHeight) / 2),
+      gameTop: (isSquareLayout || isRotateWarning) ? 0 : Math.floor((layoutHeight - cssHeight) / 2),
       gameWidth: cssWidth,
       gameHeight: cssHeight,
     };

@@ -126,46 +126,6 @@ body.touch-enabled #touchControls {
   pointer-events: auto;
 }
 
-body.layout-rotated #appRoot {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: var(--layout-width, 100vh);
-  height: var(--layout-height, 100vw);
-  transform-origin: top left;
-  transform: translateY(var(--layout-width, 100vh)) rotate(90deg);
-}
-
-body.layout-square #appRoot {
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-body.layout-square.touch-enabled #touchControls {
-  position: relative;
-  inset: auto;
-  width: 100%;
-  height: var(--controls-height, 0px);
-  background: #000;
-  display: block;
-}
-
-body.layout-square.touch-enabled .touch-row {
-  position: relative;
-  bottom: auto;
-  left: 0;
-  right: 0;
-  padding: 0 24px;
-  height: 100%;
-  align-items: center;
-}
-
-body.layout-slab.touch-enabled .touch-row {
-  padding-left: calc(var(--gutter-width, 0px) + 16px);
-  padding-right: calc(var(--gutter-width, 0px) + 16px);
-}
-
 /* NOTE (2025-10-30): Landscape-phone layout still WIP.
    - Space button sits correctly in left black letterbox; leave placement alone.
    - Joysticks must stay inside side letterboxes and be vertically centered; currently they sit low and drift inward.
@@ -246,6 +206,56 @@ body.touch-enabled .joystick-base {
 body.touch-enabled .joystick-handle {
   width: clamp(20px, 4.5vw, 30px);
   height: clamp(20px, 4.5vw, 30px);
+}
+
+body.layout-square #appRoot,
+body.layout-rotate-warning #appRoot {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+body.layout-square.touch-enabled #touchControls,
+body.layout-rotate-warning.touch-enabled #touchControls {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: var(--controls-height, 0px);
+  background: #000;
+  display: block;
+}
+
+body.layout-square.touch-enabled .touch-row,
+body.layout-rotate-warning.touch-enabled .touch-row {
+  position: relative;
+  bottom: auto;
+  left: 0;
+  right: 0;
+  padding: 0 24px;
+  height: 100%;
+  align-items: center;
+}
+
+body.layout-slab.touch-enabled .touch-row {
+  padding-left: calc(var(--gutter-width, 0px) + 16px);
+  padding-right: calc(var(--gutter-width, 0px) + 16px);
+}
+
+#rotatePrompt {
+  display: none;
+  width: 100%;
+  height: var(--rotate-row-height, 0px);
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  color: #EAF6FF;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.layout-rotate-warning #rotatePrompt {
+  display: flex;
 }
 
 .magazine-overlay {

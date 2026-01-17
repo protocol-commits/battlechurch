@@ -89,21 +89,6 @@
 
   function getCanvasCoordinates(event) {
     if (!canvas) return { x: 0, y: 0 };
-    const layout = window.__BATTLECHURCH_LAYOUT;
-    if (layout && layout.rotated) {
-      const layoutWidth = Number(layout.layoutWidth) || 0;
-      const gameLeft = Number(layout.gameLeft) || 0;
-      const gameTop = Number(layout.gameTop) || 0;
-      const gameWidth = Number(layout.gameWidth) || canvas.width;
-      const gameHeight = Number(layout.gameHeight) || canvas.height;
-      const layoutX = layoutWidth - event.clientY;
-      const layoutY = event.clientX;
-      const localX = layoutX - gameLeft;
-      const localY = layoutY - gameTop;
-      const scaleX = gameWidth ? canvas.width / gameWidth : 1;
-      const scaleY = gameHeight ? canvas.height / gameHeight : 1;
-      return { x: localX * scaleX, y: localY * scaleY };
-    }
     const rect = canvas.getBoundingClientRect();
     const scaleX = rect.width ? canvas.width / rect.width : 1;
     const scaleY = rect.height ? canvas.height / rect.height : 1;
