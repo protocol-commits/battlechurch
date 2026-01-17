@@ -10457,6 +10457,12 @@ function updatePlayerDuringCongregation(dt) {
     }
   }
 
+  if (keysJustPressed.has("ArrowUp")) {
+    if (tryStartDash(getDashButtonDirection())) {
+      keysJustPressed.delete("ArrowUp");
+    }
+  }
+
   // Update dash movement
   if (playerDashState.isDashing) {
     updateDashMovement(dt);
@@ -11092,10 +11098,12 @@ function checkDialogOverlays() {
     keysJustPressed.delete(" ");
     keysJustPressed.delete("pause");
     keysJustPressed.delete("restart");
+    keysJustPressed.delete("ArrowUp");
     return true;
   }
   if (isAnyDialogActive()) {
     keysJustPressed.delete(" ");
+    keysJustPressed.delete("ArrowUp");
     return true;
   }
   if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible()) {
@@ -11635,6 +11643,12 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       }
     }
 
+    if (keysJustPressed.has("ArrowUp")) {
+      if (tryStartDash(getDashButtonDirection())) {
+        keysJustPressed.delete("ArrowUp");
+      }
+    }
+
     // Update dash movement
     if (playerDashState.isDashing) {
       updateDashMovement(dt);
@@ -11909,6 +11923,30 @@ function getMeleeAttackDirection() {
     dir = { x: aim.x, y: aim.y };
   }
   return normalizeVector(dir.x, dir.y);
+}
+
+function getDashButtonDirection() {
+  const input = window.Input;
+  if (!input || !player) return { x: 1, y: 0 };
+  let dir = input.movementDirection || { x: 0, y: 0 };
+  if (dir.x === 0 && dir.y === 0) {
+    dir = input.lastMovementDirection || { x: 1, y: 0 };
+  }
+  if (dir.x === 0 && dir.y === 0) {
+    const aim = player.aim || { x: 1, y: 0 };
+    dir = { x: aim.x, y: aim.y };
+  }
+  return normalizeVector(dir.x, dir.y);
+}
+
+function tryStartDash(direction) {
+  if (playerDashState.isDashing || playerDashState.dashCooldown > 0) return false;
+  if (!direction || (direction.x === 0 && direction.y === 0)) return false;
+  playerDashState.isDashing = true;
+  playerDashState.dashDir = direction;
+  playerDashState.dashDistanceRemaining = DASH_DISTANCE;
+  playerDashState.dashDustAccumulator = 0;
+  return true;
 }
 
 function updateDashMovement(dt) {
