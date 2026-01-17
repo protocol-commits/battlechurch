@@ -9466,8 +9466,9 @@ function areNpcProcessionsComplete() {
 function beginVisitorSession(options = {}) {
   if (visitorSession.active) return false;
   const { duration = VISITOR_SESSION_DURATION, autoTriggered = false, onComplete = null, level = 0 } = options || {};
-  const congregationCount = Math.max(1, getCongregationSize());
-  const targetVisitors = 10;
+  // Always use initial congregation size for consistent minigame difficulty
+  const congregationCount = INITIAL_CONGREGATION_SIZE;
+  const targetVisitors = VISITOR_GUEST_COUNT;
   const areaSpec = getCongregationSpawnAreaSpecs(Math.max(congregationCount, targetVisitors));
   const bounds = areaSpec.bounds;
   visitorSession.active = true;
@@ -9600,7 +9601,8 @@ function spawnVisitorGuests(bounds) {
 }
 
 function spawnVisitorBlockers(bounds) {
-  const baseCount = Math.max(1, getCongregationSize());
+  // Always use initial congregation size for consistent minigame difficulty
+  const baseCount = INITIAL_CONGREGATION_SIZE;
   for (let i = 0; i < baseCount; i += 1) {
     const blocker = createVisitorBlocker(bounds, i, baseCount);
     if (blocker) visitorSession.blockers.push(blocker);
