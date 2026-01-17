@@ -2389,8 +2389,8 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     const shakeX = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.x : 0) || 0;
     const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
     const swooshImg = assets?.effects?.meleeSwoosh;
-    if (!swooshImg) return;
     if (state.spinTimer > 0) {
+      if (!swooshImg) return;
       const duration = Math.max(0.001, state.spinDuration || 0.45);
       const progress = 1 - Math.min(1, state.spinTimer / duration);
       const facingLeft = player.facing === "left" || player.flipHorizontal === true;
@@ -2418,6 +2418,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       ctx.restore();
       return;
     }
+    if (!swooshImg) return;
     const dirVec =
       (state.isRushing && state.rushDir) ||
       state.swooshDir ||
@@ -2441,6 +2442,27 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     ctx.save();
     ctx.translate(originX, originY);
     ctx.rotate(angle);
+    if (state.isRushing || state.rushDamageEnabled) {
+      const overscale = 1.6;
+      const frontWidth = drawWidth * overscale;
+      const frontHeight = drawHeight * overscale;
+      const frontX = drawWidth * 0.06;
+      const playerRadius = player.radius || 0;
+      const playerOffset = offset;
+      const minX = Math.min(0, frontX, playerOffset - playerRadius);
+      const maxX = Math.max(drawWidth, frontX + frontWidth, playerOffset + playerRadius);
+      const minY = Math.min(-drawHeight * 0.5, -frontHeight * 0.5, -playerRadius);
+      const maxY = Math.max(drawHeight * 0.5, frontHeight * 0.5, playerRadius);
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 107, 107, 0.9)";
+      ctx.lineWidth = 3;
+      ctx.fillStyle = "rgba(255, 107, 107, 0.18)";
+      ctx.beginPath();
+      ctx.rect(minX, minY, maxX - minX, maxY - minY);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.globalAlpha = Math.min(0.9, 0.65 + intensity * 0.35);
     ctx.drawImage(
       swooshImg,

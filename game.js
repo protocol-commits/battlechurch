@@ -90,6 +90,8 @@ let playerDashState = {
   dashDir: { x: 0, y: 0 },
   dashDistanceRemaining: 0,
   dashDustAccumulator: 0,
+  pendingDashTimer: 0,
+  pendingDashDir: { x: 1, y: 0 },
   dashCooldown: 0,
 };
 let backgroundImage = null;
@@ -1879,6 +1881,8 @@ const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
 const DASH_DUST_SPACING = 20 * WORLD_SCALE;
 const DASH_COOLDOWN = 2.0;
+const DASH_COMBO_GRACE = 0.12;
+const RUSH_HITBOX_DEBUG_DURATION = 0.12;
 const DIVINE_SHOT_DAMAGE = 1000;
 const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
 const DIVINE_SHOT_LIFE = 2.8;
@@ -2390,6 +2394,8 @@ Renderer.initialize({
   get prayerBombScreenFadeTimer() { return prayerBombScreenFadeTimer; },
   get prayerBombScreenFadeDuration() { return prayerBombScreenFadeDuration; },
   get prayerBombScreenDarkenAlpha() { return PRAYER_BOMB_SCREEN_DARKEN_ALPHA; },
+  get RUSH_RADIUS() { return RUSH_RADIUS; },
+  get meleeAttackState() { return window._meleeAttackState; },
   get townIntroTransitionActive() { return townIntroTransitionActive; },
   get townIntroTransitionTimer() { return townIntroTransitionTimer; },
   TOWN_INTRO_ZOOM_DURATION,
@@ -10460,18 +10466,27 @@ function updatePlayerDuringCongregation(dt) {
   if (!player) return;
   updateAimFromKeyboard();
   updateAimAssist();
-  playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
 
-  if (keysJustPressed.has("ArrowDown")) {
-    const comboSpinActive =
-      (keysPressed.has("ArrowLeft")) ||
-      (window.Input?.peekComboSwipe?.() && window.Input.peekComboSwipe().from === "A" && window.Input.peekComboSwipe().to === "B");
-    if (comboSpinActive) {
-      // Skip dash so the melee system can consume the combo.
-    } else if (tryStartDash(getDashButtonDirection())) {
-      keysJustPressed.delete("ArrowDown");
+    if (keysJustPressed.has("ArrowDown")) {
+      playerDashState.pendingDashTimer = DASH_COMBO_GRACE;
+      playerDashState.pendingDashDir = getDashButtonDirection();
     }
-  }
+    if (playerDashState.pendingDashTimer > 0) {
+      const comboSwipe = window.Input?.peekComboSwipe?.();
+      const comboSwipeActive =
+        keysPressed.has("ArrowLeft") ||
+        (comboSwipe && ((comboSwipe.from === "A" && comboSwipe.to === "B") || (comboSwipe.from === "B" && comboSwipe.to === "A")));
+      if (comboSwipeActive) {
+        playerDashState.pendingDashTimer = 0;
+      } else {
+        playerDashState.pendingDashTimer = Math.max(0, playerDashState.pendingDashTimer - dt);
+        if (playerDashState.pendingDashTimer === 0) {
+          if (tryStartDash(playerDashState.pendingDashDir)) {
+            keysJustPressed.delete("ArrowDown");
+          }
+        }
+      }
+    }
 
   // Update dash movement
   if (playerDashState.isDashing) {
@@ -11618,16 +11633,25 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
   if (!deathFreezeActive) {
     updateAimFromKeyboard();
     updateAimAssist();
-    playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
 
     if (keysJustPressed.has("ArrowDown")) {
-      const comboSpinActive =
-        (keysPressed.has("ArrowLeft")) ||
-        (window.Input?.peekComboSwipe?.() && window.Input.peekComboSwipe().from === "A" && window.Input.peekComboSwipe().to === "B");
-      if (comboSpinActive) {
-        // Skip dash so the melee system can consume the combo.
-      } else if (tryStartDash(getDashButtonDirection())) {
-        keysJustPressed.delete("ArrowDown");
+      playerDashState.pendingDashTimer = DASH_COMBO_GRACE;
+      playerDashState.pendingDashDir = getDashButtonDirection();
+    }
+    if (playerDashState.pendingDashTimer > 0) {
+      const comboSwipe = window.Input?.peekComboSwipe?.();
+      const comboSwipeActive =
+        keysPressed.has("ArrowLeft") ||
+        (comboSwipe && ((comboSwipe.from === "A" && comboSwipe.to === "B") || (comboSwipe.from === "B" && comboSwipe.to === "A")));
+      if (comboSwipeActive) {
+        playerDashState.pendingDashTimer = 0;
+      } else {
+        playerDashState.pendingDashTimer = Math.max(0, playerDashState.pendingDashTimer - dt);
+        if (playerDashState.pendingDashTimer === 0) {
+          if (tryStartDash(playerDashState.pendingDashDir)) {
+            keysJustPressed.delete("ArrowDown");
+          }
+        }
       }
     }
 
@@ -11921,6 +11945,36 @@ function getDashButtonDirection() {
   return normalizeVector(dir.x, dir.y);
 }
 
+function setSharedBButtonCooldown(duration) {
+  const next = Math.max(
+    Number(duration) || 0,
+    playerDashState?.dashCooldown || 0,
+    window._meleeAttackState?.rushCooldown || 0,
+    window._meleeAttackState?.spinCooldown || 0,
+  );
+  if (playerDashState) playerDashState.dashCooldown = next;
+  if (window._meleeAttackState) {
+    window._meleeAttackState.rushCooldown = next;
+    window._meleeAttackState.spinCooldown = next;
+  }
+}
+
+function updateSharedBButtonCooldown(dt) {
+  const current = Math.max(
+    playerDashState?.dashCooldown || 0,
+    window._meleeAttackState?.rushCooldown || 0,
+    window._meleeAttackState?.spinCooldown || 0,
+  );
+  if (current <= 0) return false;
+  const next = Math.max(0, current - dt);
+  if (playerDashState) playerDashState.dashCooldown = next;
+  if (window._meleeAttackState) {
+    window._meleeAttackState.rushCooldown = next;
+    window._meleeAttackState.spinCooldown = next;
+  }
+  return next === 0;
+}
+
 function tryStartDash(direction) {
   if (playerDashState.isDashing || playerDashState.dashCooldown > 0) return false;
   if (!direction || (direction.x === 0 && direction.y === 0)) return false;
@@ -11928,6 +11982,7 @@ function tryStartDash(direction) {
   playerDashState.dashDir = direction;
   playerDashState.dashDistanceRemaining = DASH_DISTANCE;
   playerDashState.dashDustAccumulator = 0;
+  setSharedBButtonCooldown(DASH_COOLDOWN);
   return true;
 }
 
@@ -11951,18 +12006,83 @@ function updateDashMovement(dt) {
   // End dash when distance complete
   if (playerDashState.dashDistanceRemaining <= 0) {
     playerDashState.isDashing = false;
-    playerDashState.dashCooldown = DASH_COOLDOWN;
+    setSharedBButtonCooldown(DASH_COOLDOWN);
   }
+}
+
+function applyRushDamageFromSwoosh(direction, meleeAttackState) {
+  if (!meleeAttackState.rushDamageEnabled || !meleeAttackState.rushHitEntities) return;
+  if (!player) return;
+  const swooshImg = assets?.effects?.meleeSwoosh;
+  if (!swooshImg || !swooshImg.width || !swooshImg.height) return;
+  const dir = normalizeVector(direction.x, direction.y);
+  const angle = Math.atan2(dir.y, dir.x);
+  const targetLength = (meleeAttackState.swingLength ?? MELEE_SWING_LENGTH) * WORLD_SCALE;
+  const swingScale = meleeAttackState.swingScale ?? targetLength / Math.max(1, swooshImg.width);
+  const drawWidth = swooshImg.width * swingScale;
+  const drawHeight = swooshImg.height * swingScale * MELEE_SWOOSH_ARC_SCALE;
+  const overscale = 1.6;
+  const frontWidth = drawWidth * overscale;
+  const frontHeight = drawHeight * overscale;
+  const frontX = drawWidth * 0.06;
+  const offset = Math.max(player.radius * 0.25, drawHeight * 0.15);
+  const minX = Math.min(0, frontX, offset - player.radius);
+  const maxX = Math.max(drawWidth, frontX + frontWidth, offset + player.radius);
+  const minY = Math.min(-drawHeight * 0.5, -frontHeight * 0.5, -player.radius);
+  const maxY = Math.max(drawHeight * 0.5, frontHeight * 0.5, player.radius);
+  const cos = Math.cos(-angle);
+  const sin = Math.sin(-angle);
+  enemies.forEach((enemy) => {
+    if (enemy.dead || enemy.state === "death") return;
+    if (meleeAttackState.rushHitEntities.has(enemy)) return;
+    const relX = enemy.x - player.x;
+    const relY = enemy.y - player.y;
+    const localX = relX * cos - relY * sin;
+    const localY = relX * sin + relY * cos;
+    const hitRadius = getEnemyHitboxRadius(enemy) || enemy.radius || 0;
+    const hit = circleIntersectsRect(localX, localY, hitRadius, {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    });
+    if (!hit) return;
+    meleeAttackState.rushHitEntities.add(enemy);
+    const damage = Math.round(RUSH_DAMAGE);
+    enemy.takeDamage(damage);
+    if (!enemy.dead && enemy.state !== "death") {
+      const pushAngle = Math.atan2(relY, relX);
+      enemy.vx = Math.cos(pushAngle) * RUSH_PUSHBACK_STRENGTH;
+      enemy.vy = Math.sin(pushAngle) * RUSH_PUSHBACK_STRENGTH;
+    }
+    spawnFlashEffect(enemy.x, enemy.y);
+    if (typeof playEnemyHitSfx === "function") {
+      playEnemyHitSfx(0.6);
+    }
+  });
 }
 
 function updateRushMovement(dt, direction, meleeAttackState) {
   if (!meleeAttackState.isRushing || !player) return;
 
+  const startX = player.x;
+  const startY = player.y;
   const movement = Math.min(meleeAttackState.rushDistanceRemaining, RUSH_SPEED * dt);
   player.x += direction.x * movement;
   player.y += direction.y * movement;
   resolveEntityObstacles(player);
   clampEntityToBounds(player);
+  meleeAttackState.rushSegment = {
+    x1: startX,
+    y1: startY,
+    x2: player.x,
+    y2: player.y,
+  };
+  meleeAttackState.rushHitboxTimer = Math.max(
+    meleeAttackState.rushHitboxTimer || 0,
+    RUSH_HITBOX_DEBUG_DURATION,
+  );
+  applyRushDamageFromSwoosh(direction, meleeAttackState);
   meleeAttackState.rushDistanceRemaining -= movement;
   meleeAttackState.rushDustAccumulator += movement;
 
@@ -12080,7 +12200,7 @@ function executeRushAttack(dir, meleeAttackState) {
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
   meleeAttackState.rushDustAccumulator = 0;
   meleeAttackState.rushHitEntities = new Set();
-  meleeAttackState.rushCooldown = RUSH_COOLDOWN;
+  setSharedBButtonCooldown(RUSH_COOLDOWN);
   meleeAttackState.rushDamageEnabled = true;
   meleeAttackState.rushInvulnerable = true;
   player.invulnerableTimer = RUSH_INVULNERABILITY;
@@ -12093,7 +12213,7 @@ function executeRushAttack(dir, meleeAttackState) {
 function executeSpinAttack(meleeAttackState) {
   if (!player) return;
   const dir = getMeleeAttackDirection();
-  meleeAttackState.spinCooldown = MELEE_SPIN_COOLDOWN;
+  setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
   meleeAttackState.buttonDown = false;
   meleeAttackState.isCharging = false;
   meleeAttackState.chargeTimer = 0;
@@ -12139,10 +12259,8 @@ function executeDivineShot(dir, meleeAttackState, angleRad) {
 function updateMeleeTimers(dt, meleeAttackState) {
   meleeAttackState.cooldown = Math.max(0, (meleeAttackState.cooldown || 0) - dt);
 
-  const prevRushCooldown = Math.max(0, meleeAttackState.rushCooldown || 0);
-  meleeAttackState.rushCooldown = Math.max(0, prevRushCooldown - dt);
-  const rushReadyNow = meleeAttackState.rushCooldown === 0 && !meleeAttackState.isRushing;
-  if (prevRushCooldown > 0 && rushReadyNow && player) {
+  const readyNow = updateSharedBButtonCooldown(dt) && !meleeAttackState.isRushing;
+  if (readyNow && player) {
     spawnFlashEffect(player.x, player.y + (player.radius || 24));
   }
 
@@ -12159,15 +12277,15 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.spinTimer > 0) {
     meleeAttackState.spinTimer = Math.max(0, meleeAttackState.spinTimer - dt);
   }
-  if (meleeAttackState.spinCooldown > 0) {
-    meleeAttackState.spinCooldown = Math.max(0, meleeAttackState.spinCooldown - dt);
-  }
 
   if (meleeAttackState.projectileBlockTimer > 0) {
     meleeAttackState.projectileBlockTimer = Math.max(0, meleeAttackState.projectileBlockTimer - dt);
   }
 
   meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
+  if (meleeAttackState.rushHitboxTimer > 0) {
+    meleeAttackState.rushHitboxTimer = Math.max(0, meleeAttackState.rushHitboxTimer - dt);
+  }
 }
 
 function updateChargeState(dt, meleeAttackState) {
@@ -12247,6 +12365,8 @@ function updateMeleeAttackSystem(dt) {
       spinDuration: 0,
       spinHitEntities: null,
       spinCooldown: 0,
+      rushHitboxTimer: 0,
+      rushSegment: null,
     awaitRush: false,
     awaitTimer: 0,
     swooshTimer: 0,
@@ -12269,33 +12389,22 @@ function updateMeleeAttackSystem(dt) {
     }
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
     updateMeleeTimers(dt, meleeAttackState);
+    if (!meleeAttackState.lastComboTimes) {
+      meleeAttackState.lastComboTimes = { A: 0, B: 0 };
+    }
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (keysJustPressed.has("ArrowLeft")) meleeAttackState.lastComboTimes.A = now;
+    if (keysJustPressed.has("ArrowDown")) meleeAttackState.lastComboTimes.B = now;
+    const comboWindowMs = MELEE_DOUBLE_TAP_WINDOW * 1000;
+    const aRecent = now - meleeAttackState.lastComboTimes.A <= comboWindowMs;
+    const bRecent = now - meleeAttackState.lastComboTimes.B <= comboWindowMs;
+    const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
+    const comboSpinKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.A < meleeAttackState.lastComboTimes.B;
     updateArcControlCooldowns();
 
     if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
       updateRushMovement(dt, direction, meleeAttackState);
-      if (meleeAttackState.rushDamageEnabled && meleeAttackState.rushHitEntities) {
-        enemies.forEach((enemy) => {
-          if (enemy.dead || enemy.state === "death") return;
-          if (meleeAttackState.rushHitEntities.has(enemy)) return;
-          const dx = enemy.x - player.x;
-          const dy = enemy.y - player.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > RUSH_RADIUS) return;
-          meleeAttackState.rushHitEntities.add(enemy);
-          const damage = Math.round(RUSH_DAMAGE);
-          enemy.takeDamage(damage);
-          if (!enemy.dead && enemy.state !== "death") {
-            const angle = Math.atan2(dy, dx);
-            enemy.vx = Math.cos(angle) * RUSH_PUSHBACK_STRENGTH;
-            enemy.vy = Math.sin(angle) * RUSH_PUSHBACK_STRENGTH;
-          }
-          spawnFlashEffect(enemy.x, enemy.y);
-          if (typeof playEnemyHitSfx === "function") {
-            playEnemyHitSfx(0.6);
-          }
-        });
-      }
     }
 
     if (meleeAttackState.spinTimer > 0) {
@@ -12350,22 +12459,24 @@ function updateMeleeAttackSystem(dt) {
     const comboRush =
       (!meleeAttackState.isRushing &&
         meleeAttackState.rushLockTimer <= 0 &&
-        meleeAttackState.rushCooldown <= 0 &&
-        ((keysPressed.has("ArrowDown") && keysJustPressed.has("ArrowLeft")) ||
+        playerDashState.dashCooldown <= 0 &&
+        (comboRushKeyOrder ||
           (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
     const comboSpin =
       (!meleeAttackState.isRushing &&
         meleeAttackState.rushLockTimer <= 0 &&
-        meleeAttackState.spinCooldown <= 0 &&
-        ((keysPressed.has("ArrowLeft") && keysJustPressed.has("ArrowDown")) ||
+        playerDashState.dashCooldown <= 0 &&
+        (comboSpinKeyOrder ||
           (comboSwipe && comboSwipe.from === "A" && comboSwipe.to === "B")));
     if (comboRush) {
+      playerDashState.pendingDashTimer = 0;
       executeRushAttack(getDashButtonDirection(), meleeAttackState);
       meleeAttackState.awaitRush = false;
       meleeAttackState.awaitTimer = 0;
       keysJustPressed.delete("ArrowLeft");
     }
     if (comboSpin) {
+      playerDashState.pendingDashTimer = 0;
       executeSpinAttack(meleeAttackState);
       keysJustPressed.delete("ArrowDown");
     }
@@ -12380,7 +12491,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.awaitTimer -= dt;
       if (spaceJustPressed && !rushLockActive) {
         console.log("RUSH TRIGGERED");
-        if (meleeAttackState.rushCooldown <= 0) {
+        if (playerDashState.dashCooldown <= 0) {
           executeRushAttack(dir, meleeAttackState);
         }
         meleeAttackState.awaitRush = false;
@@ -12417,7 +12528,7 @@ function updateMeleeAttackSystem(dt) {
             executeSwooshAttack(dir, meleeAttackState, angleRad);
             // End the dash when swoosh is triggered
             playerDashState.isDashing = false;
-            playerDashState.dashCooldown = DASH_COOLDOWN;
+            setSharedBButtonCooldown(DASH_COOLDOWN);
           } else {
             executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
           }
