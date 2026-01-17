@@ -241,6 +241,12 @@ body.touch-enabled .button-area.right {
 
 .arc-segment.arc-c {
   stroke: var(--swatch-light);
+  stroke-width: 40px;
+}
+
+.arc-segment.arc-s {
+  stroke: var(--swatch-mid);
+  stroke-width: 40px;
 }
 
 .arc-segment.is-active {

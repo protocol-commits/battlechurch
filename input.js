@@ -358,6 +358,7 @@
     const segmentMap = {
       A: { key: "ArrowLeft", setNesA: true },
       B: { key: "ArrowUp" },
+      S: { key: " " },
       C: { key: "ArrowRight", setPrayerBomb: true },
     };
 
@@ -387,20 +388,31 @@
       const styles = window.getComputedStyle(arcEl);
       const thickness =
         parseFloat(styles.getPropertyValue("--arc-thickness")) || size * 0.35;
-      const innerRadius = Math.max(0, size - thickness);
-      const outerRadius = size;
+      const innerRadius = Math.max(0, size - 70);
+      const innerHalf = thickness * 0.5;
+      const innerBandMin = Math.max(0, innerRadius - innerHalf);
+      const innerBandMax = innerRadius + innerHalf;
+      const outerRadius = Math.max(0, size - 10);
+      const outerBandThickness = 40;
+      const outerBandMin = Math.max(0, outerRadius - outerBandThickness * 0.5);
+      const outerBandMax = outerRadius + outerBandThickness * 0.5;
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
       const dx = x - size;
       const dy = y - size;
       const dist = Math.hypot(dx, dy);
-      if (dist < innerRadius || dist > outerRadius) return null;
+      if (dist < innerBandMin || dist > outerBandMax) return null;
       let deg = Math.atan2(dy, dx) * (180 / Math.PI);
       if (deg < 0) deg += 360;
       if (deg < 180 || deg > 270) return null;
+      if (dist >= outerBandMin && dist <= outerBandMax) {
+        if (deg < 250) return "S";
+        return "C";
+      }
+      if (dist < innerBandMin || dist > innerBandMax) return null;
       if (deg < 225) return "A";
       if (deg < 255) return "B";
-      return "C";
+      return null;
     };
 
     const start = (event) => {
