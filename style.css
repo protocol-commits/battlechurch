@@ -248,6 +248,16 @@ body.touch-enabled .button-area.right {
   filter: drop-shadow(0 0 12px var(--arc-glow));
 }
 
+.arc-segment.is-cooldown {
+  opacity: 0.25;
+  filter: none;
+}
+
+.arc-segment.is-cooldown.is-active {
+  opacity: 0.35;
+  filter: none;
+}
+
 .arc-label {
   fill: var(--swatch-dark);
   font-family: var(--ui-font-family);
@@ -256,6 +266,10 @@ body.touch-enabled .button-area.right {
   text-anchor: middle;
   dominant-baseline: middle;
   pointer-events: none;
+}
+
+.arc-label.is-cooldown {
+  opacity: 0.4;
 }
 
 body.touch-enabled .joystick-base {

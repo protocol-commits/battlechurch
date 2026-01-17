@@ -1865,6 +1865,7 @@ const MELEE_SWOOSH_ARC_SCALE = 2.5; // Increased from 1.5 to make swoosh taller/
 const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
 const MELEE_RUSH_LOCKOUT = 1.0;
 const MELEE_SPIN_DURATION = 0.45;
+const MELEE_SPIN_COOLDOWN = 2.0;
 const MELEE_SPIN_DAMAGE_MULTIPLIER = 2;
 const RUSH_DISTANCE = 150 * WORLD_SCALE;
 const RUSH_SPEED = 1200 * SPEED_SCALE;
@@ -1879,7 +1880,7 @@ const DASH_DOUBLE_TAP_WINDOW = MELEE_DOUBLE_TAP_WINDOW;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
 const DASH_DUST_SPACING = 20 * WORLD_SCALE;
-const DASH_COOLDOWN = 0.5;
+const DASH_COOLDOWN = 2.0;
 const DIVINE_SHOT_DAMAGE = 1000;
 const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
 const DIVINE_SHOT_LIFE = 2.8;
@@ -12158,6 +12159,7 @@ function executeRushAttack(dir, meleeAttackState) {
 function executeSpinAttack(meleeAttackState) {
   if (!player) return;
   const dir = getMeleeAttackDirection();
+  meleeAttackState.spinCooldown = MELEE_SPIN_COOLDOWN;
   meleeAttackState.buttonDown = false;
   meleeAttackState.isCharging = false;
   meleeAttackState.chargeTimer = 0;
@@ -12222,6 +12224,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   }
   if (meleeAttackState.spinTimer > 0) {
     meleeAttackState.spinTimer = Math.max(0, meleeAttackState.spinTimer - dt);
+  }
+  if (meleeAttackState.spinCooldown > 0) {
+    meleeAttackState.spinCooldown = Math.max(0, meleeAttackState.spinCooldown - dt);
   }
 
   if (meleeAttackState.projectileBlockTimer > 0) {
@@ -12307,6 +12312,7 @@ function updateMeleeAttackSystem(dt) {
       spinTimer: 0,
       spinDuration: 0,
       spinHitEntities: null,
+      spinCooldown: 0,
     awaitRush: false,
     awaitTimer: 0,
     swooshTimer: 0,
@@ -12329,6 +12335,7 @@ function updateMeleeAttackSystem(dt) {
     }
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
     updateMeleeTimers(dt, meleeAttackState);
+    updateArcControlCooldowns();
 
     if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
@@ -12415,6 +12422,7 @@ function updateMeleeAttackSystem(dt) {
     const comboSpin =
       (!meleeAttackState.isRushing &&
         meleeAttackState.rushLockTimer <= 0 &&
+        meleeAttackState.spinCooldown <= 0 &&
         ((keysPressed.has("ArrowLeft") && keysJustPressed.has("ArrowUp")) ||
           (comboSwipe && comboSwipe.from === "A" && comboSwipe.to === "B")));
     if (comboRush) {
@@ -12487,6 +12495,15 @@ function updateMeleeAttackSystem(dt) {
       clearDivineChargeSparkVisual();
     }
   }
+}
+
+function updateArcControlCooldowns() {
+  if (!arcControl) return;
+  const dashCooling = playerDashState && playerDashState.dashCooldown > 0;
+  const bSegment = arcControl.querySelector(".arc-segment.arc-b");
+  const bLabel = arcControl.querySelector(".arc-label[data-seg=\"B\"]");
+  if (bSegment) bSegment.classList.toggle("is-cooldown", dashCooling);
+  if (bLabel) bLabel.classList.toggle("is-cooldown", dashCooling);
 }
 
 function updateGame(dt) {
