@@ -346,6 +346,10 @@
     return swipe;
   }
 
+  function peekComboSwipe() {
+    return comboSwipe;
+  }
+
   function configureArcControl(arcEl) {
     if (!arcEl) return;
     const segmentEls = Array.from(arcEl.querySelectorAll(".arc-segment"));
@@ -594,6 +598,7 @@
     consumePrayerBombClick,
     consumeCanvasClick,
     consumeComboSwipe,
+    peekComboSwipe,
     clearJustPressed,
     get keysJustPressed() {
       return keysJustPressed;

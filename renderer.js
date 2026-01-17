@@ -2380,7 +2380,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   function drawMeleeSwingOverlay(ctx, player) {
     if (!ctx || !player) return;
     const state = window._meleeAttackState;
-    if (!state || (state.swooshTimer <= 0 && !state.isRushing && !state.rushDamageEnabled)) return;
+    if (!state || (state.swooshTimer <= 0 && !state.isRushing && !state.rushDamageEnabled && state.spinTimer <= 0)) return;
     const bindings = requireBindings();
     const worldScale = bindings?.WORLD_SCALE ?? 1;
     const assets = bindings?.assets;
@@ -2390,6 +2390,31 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
     const swooshImg = assets?.effects?.meleeSwoosh;
     if (!swooshImg) return;
+    if (state.spinTimer > 0) {
+      const duration = Math.max(0.001, state.spinDuration || 0.45);
+      const progress = 1 - Math.min(1, state.spinTimer / duration);
+      const angle = progress * Math.PI * 2;
+      const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
+      const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
+      const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
+      const drawWidth = swooshImg.width * swingScale;
+      const drawHeight = swooshImg.height * swingScale * arcScale;
+      const originX = player.x - cameraOffsetX + shakeX;
+      const originY = player.y - cameraOffsetY + shakeY;
+      ctx.save();
+      ctx.translate(originX, originY);
+      ctx.rotate(angle);
+      ctx.globalAlpha = 0.75;
+      ctx.drawImage(
+        swooshImg,
+        0,
+        -drawHeight * 0.5,
+        drawWidth,
+        drawHeight,
+      );
+      ctx.restore();
+      return;
+    }
     const dirVec =
       (state.isRushing && state.rushDir) ||
       state.swooshDir ||
