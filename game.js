@@ -12164,28 +12164,12 @@ function executeSpinAttack(meleeAttackState) {
   meleeAttackState.awaitTimer = 0;
   meleeAttackState.spinTimer = MELEE_SPIN_DURATION;
   meleeAttackState.spinDuration = MELEE_SPIN_DURATION;
-  meleeAttackState.spinDamageApplied = true;
+  meleeAttackState.spinHitEntities = new Set();
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
   if (player && player.animator) {
     player.state = "attackMelee";
     player.animator.play("attackMelee", { restart: true });
   }
-  const spinRange = MELEE_SWING_RANGE * 1.1;
-  const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
-  enemies.forEach((enemy) => {
-    if (enemy.dead || enemy.state === "death") return;
-    const dx = enemy.x - player.x;
-    const dy = enemy.y - player.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > spinRange) return;
-    enemy.takeDamage(spinDamage);
-    if (!enemy.dead && enemy.state !== "death") {
-      const pushAngle = Math.atan2(dy, dx);
-      enemy.vx = Math.cos(pushAngle) * MELEE_PUSHBACK_STRENGTH;
-      enemy.vy = Math.sin(pushAngle) * MELEE_PUSHBACK_STRENGTH;
-    }
-    spawnFlashEffect(enemy.x, enemy.y);
-  });
   if (typeof playSwooshSfx === "function") {
     playSwooshSfx(0.7);
   }
@@ -12320,7 +12304,7 @@ function updateMeleeAttackSystem(dt) {
       rushInvulnerable: false,
       spinTimer: 0,
       spinDuration: 0,
-      spinDamageApplied: false,
+      spinHitEntities: null,
     awaitRush: false,
     awaitTimer: 0,
     swooshTimer: 0,
@@ -12344,7 +12328,7 @@ function updateMeleeAttackSystem(dt) {
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
     updateMeleeTimers(dt, meleeAttackState);
 
-  if (meleeAttackState.isRushing && player) {
+    if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
       updateRushMovement(dt, direction, meleeAttackState);
       if (meleeAttackState.rushDamageEnabled && meleeAttackState.rushHitEntities) {
@@ -12369,31 +12353,78 @@ function updateMeleeAttackSystem(dt) {
           }
         });
       }
-  }
+    }
 
-  const dir = getMeleeAttackDirection();
-  const comboSwipe = input?.consumeComboSwipe?.();
-  const comboRush =
-    (!meleeAttackState.isRushing &&
-      meleeAttackState.rushLockTimer <= 0 &&
-      meleeAttackState.rushCooldown <= 0 &&
-      ((keysPressed.has("ArrowUp") && keysJustPressed.has("ArrowLeft")) ||
-        (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
-  const comboSpin =
-    (!meleeAttackState.isRushing &&
-      meleeAttackState.rushLockTimer <= 0 &&
-      ((keysPressed.has("ArrowLeft") && keysJustPressed.has("ArrowUp")) ||
-        (comboSwipe && comboSwipe.from === "A" && comboSwipe.to === "B")));
-  if (comboRush) {
-    executeRushAttack(getDashButtonDirection(), meleeAttackState);
-    meleeAttackState.awaitRush = false;
-    meleeAttackState.awaitTimer = 0;
-    keysJustPressed.delete("ArrowLeft");
-  }
-  if (comboSpin) {
-    executeSpinAttack(meleeAttackState);
-    keysJustPressed.delete("ArrowUp");
-  }
+    if (meleeAttackState.spinTimer > 0) {
+      const duration = Math.max(0.001, meleeAttackState.spinDuration || MELEE_SPIN_DURATION);
+      const progress = 1 - Math.min(1, meleeAttackState.spinTimer / duration);
+      const angle = progress * Math.PI * 2;
+      const targetLength = (meleeAttackState.swingLength ?? MELEE_SWING_LENGTH) * WORLD_SCALE;
+      const swooshImg = assets?.effects?.meleeSwoosh;
+      let drawWidth = targetLength;
+      let drawHeight = targetLength * 0.6 * MELEE_SWOOSH_ARC_SCALE;
+      if (swooshImg) {
+        const swingScale = meleeAttackState.swingScale ?? targetLength / Math.max(1, swooshImg.width);
+        drawWidth = swooshImg.width * swingScale;
+        drawHeight = swooshImg.height * swingScale * MELEE_SWOOSH_ARC_SCALE;
+      }
+      const hitSet = meleeAttackState.spinHitEntities || new Set();
+      meleeAttackState.spinHitEntities = hitSet;
+      const cos = Math.cos(-angle);
+      const sin = Math.sin(-angle);
+      enemies.forEach((enemy) => {
+        if (enemy.dead || enemy.state === "death") return;
+        if (hitSet.has(enemy)) return;
+        const relX = enemy.x - player.x;
+        const relY = enemy.y - player.y;
+        const localX = relX * cos - relY * sin;
+        const localY = relX * sin + relY * cos;
+        const hitRadius = getEnemyHitboxRadius(enemy) || enemy.radius || 0;
+        const hit = circleIntersectsRect(localX, localY, hitRadius, {
+          x: 0,
+          y: -drawHeight * 0.5,
+          width: drawWidth,
+          height: drawHeight,
+        });
+        if (!hit) return;
+        hitSet.add(enemy);
+        const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
+        enemy.takeDamage(spinDamage);
+        if (!enemy.dead && enemy.state !== "death") {
+          const pushAngle = Math.atan2(relY, relX);
+          enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
+          enemy.vy = Math.sin(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
+        }
+        spawnFlashEffect(enemy.x, enemy.y);
+        if (typeof playEnemyHitSfx === "function") {
+          playEnemyHitSfx(0.6);
+        }
+      });
+    }
+
+    const dir = getMeleeAttackDirection();
+    const comboSwipe = input?.consumeComboSwipe?.();
+    const comboRush =
+      (!meleeAttackState.isRushing &&
+        meleeAttackState.rushLockTimer <= 0 &&
+        meleeAttackState.rushCooldown <= 0 &&
+        ((keysPressed.has("ArrowUp") && keysJustPressed.has("ArrowLeft")) ||
+          (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
+    const comboSpin =
+      (!meleeAttackState.isRushing &&
+        meleeAttackState.rushLockTimer <= 0 &&
+        ((keysPressed.has("ArrowLeft") && keysJustPressed.has("ArrowUp")) ||
+          (comboSwipe && comboSwipe.from === "A" && comboSwipe.to === "B")));
+    if (comboRush) {
+      executeRushAttack(getDashButtonDirection(), meleeAttackState);
+      meleeAttackState.awaitRush = false;
+      meleeAttackState.awaitTimer = 0;
+      keysJustPressed.delete("ArrowLeft");
+    }
+    if (comboSpin) {
+      executeSpinAttack(meleeAttackState);
+      keysJustPressed.delete("ArrowUp");
+    }
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
       !meleeAttackState.isRushing &&
@@ -13094,6 +13125,8 @@ function onPlayerDeath() {
         });
       }
     }
+
+
     damageHitFlash = 0;
     return;
   }

@@ -2393,7 +2393,9 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     if (state.spinTimer > 0) {
       const duration = Math.max(0.001, state.spinDuration || 0.45);
       const progress = 1 - Math.min(1, state.spinTimer / duration);
-      const angle = progress * Math.PI * 2;
+      const facingLeft = player.facing === "left" || player.flipHorizontal === true;
+      const spinDirection = facingLeft ? -1 : 1;
+      const angle = progress * Math.PI * 2 * spinDirection;
       const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
       const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
       const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
@@ -2459,22 +2461,6 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         frontHeight,
       );
     }
-    // DEBUG: Draw rectangle matching the swoosh sprite hitbox
-    const DEBUG_MELEE_HITBOX = false;
-    if (DEBUG_MELEE_HITBOX && state.swooshTimer > 0) {
-      ctx.strokeStyle = "#FF0000";
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.8;
-
-      // Draw rectangle at the exact position and size of the swoosh sprite
-      ctx.strokeRect(
-        0,
-        -drawHeight * 0.5,
-        drawWidth,
-        drawHeight
-      );
-    }
-
     ctx.restore();
   }
 
