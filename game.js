@@ -90,7 +90,6 @@ let playerDashState = {
   dashDir: { x: 0, y: 0 },
   dashDistanceRemaining: 0,
   dashDustAccumulator: 0,
-  lastTapTimes: { w: 0, a: 0, s: 0, d: 0 },
   dashCooldown: 0,
 };
 let backgroundImage = null;
@@ -1876,7 +1875,6 @@ const RUSH_PUSHBACK_STRENGTH = 50 * WORLD_SCALE;
 const RUSH_COOLDOWN = 3.0;
 const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
 const RUSH_INVULNERABILITY = 0.4;
-const DASH_DOUBLE_TAP_WINDOW = MELEE_DOUBLE_TAP_WINDOW;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
 const DASH_DUST_SPACING = 20 * WORLD_SCALE;
@@ -10460,40 +10458,7 @@ function updatePlayerDuringCongregation(dt) {
   if (!player) return;
   updateAimFromKeyboard();
   updateAimAssist();
-
-  // Handle WASD double-tap dash
-  if (!playerDashState.isDashing) {
-    playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
-
-    if (playerDashState.dashCooldown <= 0) {
-      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-      const keyMap = {
-        w: { x: 0, y: -1 },
-        a: { x: -1, y: 0 },
-        s: { x: 0, y: 1 },
-        d: { x: 1, y: 0 },
-      };
-
-      for (const [key, direction] of Object.entries(keyMap)) {
-        const isPressed = keysJustPressed.has(key) || keysJustPressed.has(key.toUpperCase());
-        if (isPressed) {
-          const lastTap = playerDashState.lastTapTimes[key] || 0;
-          const timeSinceLastTap = now - lastTap;
-
-          if (timeSinceLastTap < DASH_DOUBLE_TAP_WINDOW * 1000) {
-            // Double-tap detected! Start dash
-            playerDashState.isDashing = true;
-            playerDashState.dashDir = direction;
-            playerDashState.dashDistanceRemaining = DASH_DISTANCE;
-            playerDashState.dashDustAccumulator = 0;
-            break;
-          }
-
-          playerDashState.lastTapTimes[key] = now;
-        }
-      }
-    }
-  }
+  playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
 
   if (keysJustPressed.has("ArrowUp")) {
     const comboSpinActive =
@@ -11651,40 +11616,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
   if (!deathFreezeActive) {
     updateAimFromKeyboard();
     updateAimAssist();
-
-    // Handle WASD double-tap dash
-    if (!playerDashState.isDashing) {
-      playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
-
-      if (playerDashState.dashCooldown <= 0) {
-        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-        const keyMap = {
-          w: { x: 0, y: -1 },
-          a: { x: -1, y: 0 },
-          s: { x: 0, y: 1 },
-          d: { x: 1, y: 0 },
-        };
-
-        for (const [key, direction] of Object.entries(keyMap)) {
-          const isPressed = keysJustPressed.has(key) || keysJustPressed.has(key.toUpperCase());
-          if (isPressed) {
-            const lastTap = playerDashState.lastTapTimes[key] || 0;
-            const timeSinceLastTap = now - lastTap;
-
-            if (timeSinceLastTap < DASH_DOUBLE_TAP_WINDOW * 1000) {
-              // Double-tap detected! Start dash
-              playerDashState.isDashing = true;
-              playerDashState.dashDir = direction;
-              playerDashState.dashDistanceRemaining = DASH_DISTANCE;
-              playerDashState.dashDustAccumulator = 0;
-              break;
-            }
-
-            playerDashState.lastTapTimes[key] = now;
-          }
-        }
-      }
-    }
+    playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
 
     if (keysJustPressed.has("ArrowUp")) {
       const comboSpinActive =
