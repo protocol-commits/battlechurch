@@ -2395,7 +2395,8 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       const progress = 1 - Math.min(1, state.spinTimer / duration);
       const facingLeft = player.facing === "left" || player.flipHorizontal === true;
       const spinDirection = facingLeft ? -1 : 1;
-      const angle = progress * Math.PI * 2 * spinDirection;
+      const startAngle = -Math.PI * 0.5;
+      const angle = startAngle + progress * Math.PI * 2 * spinDirection;
       const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
       const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
       const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
