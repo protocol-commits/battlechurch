@@ -227,8 +227,15 @@
     const magnitude = Math.min(1, Math.hypot(normalizedX, normalizedY));
     if (magnitude > virtualInput.deadZone) {
       const normalized = normalizeVector(normalizedX, normalizedY);
-      state.x = normalized.x * magnitude;
-      state.y = normalized.y * magnitude;
+      if (state === virtualInput.movement) {
+        const angle = Math.atan2(normalized.y, normalized.x);
+        const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+        state.x = Math.cos(snapped) * magnitude;
+        state.y = Math.sin(snapped) * magnitude;
+      } else {
+        state.x = normalized.x * magnitude;
+        state.y = normalized.y * magnitude;
+      }
       state.active = true;
       // Update movementDirection and lastMovementDirection for joystick
       if (state === virtualInput.movement) {
