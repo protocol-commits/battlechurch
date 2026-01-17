@@ -205,6 +205,7 @@ body.touch-enabled .joystick-area.left {
   position: relative;
   width: 50%;
   height: 100%;
+  touch-action: none;
 }
 
 body.touch-enabled .joystick-area.left::before {

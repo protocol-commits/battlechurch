@@ -226,7 +226,8 @@
     const normalizedX = radius > 0 ? offsetX / radius : 0;
     const normalizedY = radius > 0 ? offsetY / radius : 0;
     const magnitude = Math.min(1, Math.hypot(normalizedX, normalizedY));
-    if (magnitude > virtualInput.deadZone) {
+    const deadZone = state === virtualInput.movement ? Math.min(virtualInput.deadZone, 0.06) : virtualInput.deadZone;
+    if (magnitude > deadZone) {
       const normalized = normalizeVector(normalizedX, normalizedY);
       if (state === virtualInput.movement) {
         const angle = Math.atan2(normalized.y, normalized.x);
