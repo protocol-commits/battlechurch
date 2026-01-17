@@ -398,8 +398,9 @@
       let deg = Math.atan2(dy, dx) * (180 / Math.PI);
       if (deg < 0) deg += 360;
       if (deg < 180 || deg > 270) return null;
-      const index = Math.min(2, Math.max(0, Math.floor((deg - 180) / 30)));
-      return ["A", "B", "C"][index];
+      if (deg < 225) return "A";
+      if (deg < 255) return "B";
+      return "C";
     };
 
     const start = (event) => {
