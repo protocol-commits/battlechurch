@@ -1913,6 +1913,10 @@ const BASE_ASPECT_RATIO = CANVAS_BASE_WIDTH / CANVAS_BASE_HEIGHT;
 const TARGET_ASPECT_RATIO = (typeof window !== 'undefined' && window.__BATTLECHURCH_ASPECT_RATIO !== undefined)
   ? Number(window.__BATTLECHURCH_ASPECT_RATIO) || BASE_ASPECT_RATIO
   : BASE_ASPECT_RATIO;
+const MOBILE_MAX_DIMENSION = 900;
+const SLAB_ASPECT_MIN = 1.9;
+const SQUARE_ASPECT_MAX = 1.4;
+const ROTATE_ASPECT_MAX = 0.8;
 const ASSET_CACHE_BUSTER = (typeof window !== 'undefined' && window.__BATTLECHURCH_ASSET_VERSION !== undefined)
   ? String(window.__BATTLECHURCH_ASSET_VERSION)
   : '2025-10-30a';
@@ -1993,9 +1997,19 @@ const CONRAD_UTILITY_POWERUP_MAX_HEIGHT = 48 * WORLD_SCALE;
 function resizeCanvas() {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const scaleWidth = viewportWidth / CANVAS_BASE_WIDTH;
-  const scaleHeight = viewportHeight / CANVAS_BASE_HEIGHT;
-  canvasScale = Math.max(0.1, Math.min(scaleWidth, scaleHeight));
+  const viewportMin = Math.min(viewportWidth, viewportHeight);
+  const viewportAspect = viewportWidth / Math.max(1, viewportHeight);
+  const isMobile = viewportMin <= MOBILE_MAX_DIMENSION;
+  const shouldRotate = isMobile && viewportAspect < ROTATE_ASPECT_MAX;
+  const layoutWidth = shouldRotate ? viewportHeight : viewportWidth;
+  const layoutHeight = shouldRotate ? viewportWidth : viewportHeight;
+  const layoutAspect = layoutWidth / Math.max(1, layoutHeight);
+  const isSlabLayout = isMobile && layoutAspect >= SLAB_ASPECT_MIN;
+  const isSquareLayout = isMobile && layoutAspect <= SQUARE_ASPECT_MAX;
+  const scaleWidth = layoutWidth / CANVAS_BASE_WIDTH;
+  const scaleHeight = layoutHeight / CANVAS_BASE_HEIGHT;
+  const scale = isSquareLayout ? scaleWidth : Math.min(scaleWidth, scaleHeight);
+  canvasScale = Math.max(0.1, scale);
 
   canvas.width = CANVAS_BASE_WIDTH;
   canvas.height = CANVAS_BASE_HEIGHT;
@@ -2009,8 +2023,41 @@ function resizeCanvas() {
     gameWrapper.style.height = `${cssHeight}px`;
   }
   if (typeof document !== 'undefined' && document.documentElement) {
+    const gameLeft = Math.floor((layoutWidth - cssWidth) / 2);
+    const gameTop = isSquareLayout ? 0 : Math.floor((layoutHeight - cssHeight) / 2);
+    const gutterWidth = Math.max(0, gameLeft);
+    const gutterHeight = Math.max(0, Math.floor((layoutHeight - cssHeight) / 2));
+    const controlsHeight = Math.max(0, layoutHeight - cssHeight);
+
+    document.documentElement.style.setProperty('--viewport-width', `${viewportWidth}px`);
+    document.documentElement.style.setProperty('--viewport-height', `${viewportHeight}px`);
+    document.documentElement.style.setProperty('--layout-width', `${layoutWidth}px`);
+    document.documentElement.style.setProperty('--layout-height', `${layoutHeight}px`);
     document.documentElement.style.setProperty('--game-width', `${cssWidth}px`);
     document.documentElement.style.setProperty('--game-height', `${cssHeight}px`);
+    document.documentElement.style.setProperty('--game-left', `${gameLeft}px`);
+    document.documentElement.style.setProperty('--game-top', `${gameTop}px`);
+    document.documentElement.style.setProperty('--gutter-width', `${gutterWidth}px`);
+    document.documentElement.style.setProperty('--gutter-height', `${gutterHeight}px`);
+    document.documentElement.style.setProperty('--controls-height', `${controlsHeight}px`);
+
+    if (document.body) {
+      document.body.classList.toggle('layout-mobile', isMobile);
+      document.body.classList.toggle('layout-slab', isSlabLayout);
+      document.body.classList.toggle('layout-square', isSquareLayout);
+      document.body.classList.toggle('layout-rotated', shouldRotate);
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.__BATTLECHURCH_LAYOUT = {
+      rotated: shouldRotate,
+      layoutWidth,
+      layoutHeight,
+      gameLeft: Math.floor((layoutWidth - cssWidth) / 2),
+      gameTop: isSquareLayout ? 0 : Math.floor((layoutHeight - cssHeight) / 2),
+      gameWidth: cssWidth,
+      gameHeight: cssHeight,
+    };
   }
 
   if (!pointerState.active) {
