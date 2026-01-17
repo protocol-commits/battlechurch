@@ -8,6 +8,7 @@ body.touch-enabled .touch-row {
   right: 0;
   bottom: 32px;
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -38,7 +39,18 @@ body.touch-enabled .joystick-base {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--touch-joystick-size);
+  height: var(--touch-joystick-size);
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+}
+
+body.touch-enabled .joystick-base.is-active {
+  opacity: 1;
 }
 
 body.touch-enabled .joystick-handle {
@@ -51,6 +63,8 @@ body.touch-enabled .joystick-handle {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  width: var(--touch-joystick-handle-size);
+  height: var(--touch-joystick-handle-size);
 }
 /* Battle Church | Version 2025-10-30b 22:45 (America/New_York) */
 
@@ -80,6 +94,14 @@ body.touch-enabled .joystick-handle {
   --ui-body-size: 20px;
   --ui-body-weight: 400;
   --ui-body-line: 1.3;
+  --touch-button-size: 72px;
+  --touch-button-fan-x: 36px;
+  --touch-button-fan-y: 32px;
+  --touch-joystick-size: 96px;
+  --touch-joystick-handle-size: 44px;
+  --touch-glow-red: rgba(255, 107, 107, 0.65);
+  --touch-glow-teal: rgba(95, 227, 192, 0.65);
+  --touch-glow-blue: rgba(123, 170, 255, 0.6);
 }
 
 /* Global reset */
@@ -162,15 +184,18 @@ body.touch-enabled .joystick-area.left {
   align-items: center;
   padding-left: 16px;
   pointer-events: auto;
+  position: relative;
+  width: 50%;
+  height: 100%;
 }
 
 body.touch-enabled .button-area.right {
   grid-area: right;
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 18px;
+  display: block;
+  position: relative;
+  width: calc(var(--touch-button-size) * 2.3);
+  height: calc(var(--touch-button-size) * 2.1);
+  margin-left: auto;
   padding-right: 16px;
   pointer-events: auto;
 }
@@ -178,34 +203,63 @@ body.touch-enabled .button-area.right {
 body.touch-enabled .ab-button {
   touch-action: none;
   pointer-events: auto;
-  width: clamp(44px, 8vw, 60px);
-  height: clamp(44px, 8vw, 60px);
+  width: var(--touch-button-size);
+  height: var(--touch-button-size);
   border-radius: 50%;
   background: #FF6B6B;
   color: #EAF6FF;
-  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-size: 18px;
   font-family: inherit;
   border: 2px solid #EAF6FF;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
   margin: 0;
-  transition: background 0.2s;
+  position: absolute;
+  transition: background 0.12s ease-out, box-shadow 0.12s ease-out, transform 0.12s ease-out;
 }
+
+body.touch-enabled .ab-button.is-active {
+  transform: scale(1.04);
+}
+
+body.touch-enabled .button-area.right #buttonA {
+  right: 0;
+  bottom: 0;
+}
+
+body.touch-enabled .button-area.right #buttonB {
+  right: var(--touch-button-fan-x);
+  bottom: var(--touch-button-fan-y);
+}
+
+body.touch-enabled .button-area.right #buttonC {
+  right: calc(var(--touch-button-fan-x) * 2);
+  bottom: calc(var(--touch-button-fan-y) * 2);
+}
+
 body.touch-enabled .ab-button#buttonB {
   background: #5FE3C0;
 }
-body.touch-enabled .ab-button:active {
-  background: #FF6B6B;
+body.touch-enabled .ab-button#buttonC {
+  background: #7BAAFF;
+}
+
+body.touch-enabled .ab-button#buttonA.is-active {
+  box-shadow: 0 0 18px var(--touch-glow-red), 0 0 28px rgba(0,0,0,0.35);
+  background: #FF8585;
+}
+
+body.touch-enabled .ab-button#buttonB.is-active {
+  box-shadow: 0 0 18px var(--touch-glow-teal), 0 0 28px rgba(0,0,0,0.35);
+  background: #7CF0D3;
+}
+
+body.touch-enabled .ab-button#buttonC.is-active {
+  box-shadow: 0 0 18px var(--touch-glow-blue), 0 0 28px rgba(0,0,0,0.35);
+  background: #9BB8FF;
 }
 
 body.touch-enabled .joystick-base {
-  width: clamp(44px, 8vw, 60px);
-  height: clamp(44px, 8vw, 60px);
   pointer-events: auto;
-}
-
-body.touch-enabled .joystick-handle {
-  width: clamp(20px, 4.5vw, 30px);
-  height: clamp(20px, 4.5vw, 30px);
 }
 
 body.layout-square #appRoot,

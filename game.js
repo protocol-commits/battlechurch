@@ -8,6 +8,9 @@ const touchControlsRoot = document.getElementById("touchControls");
 const moveStickBase = document.getElementById("moveStick");
 const aimStickBase = document.getElementById("aimStick");
 const virtualSpaceButton = document.getElementById("virtualSpaceButton");
+const virtualButtonA = document.getElementById("buttonA");
+const virtualButtonB = document.getElementById("buttonB");
+const virtualButtonC = document.getElementById("buttonC");
 
 let assets = null;
 let player = null;
@@ -2255,6 +2258,9 @@ Input.initialize({
   moveStickBase,
   aimStickBase,
   virtualSpaceButton,
+  virtualButtonA,
+  virtualButtonB,
+  virtualButtonC,
   onAnyKeyDown: (key) => {
     if (key === "m" && DEBUG) {
       toggleDebugOverlay();

@@ -49,6 +49,7 @@
         <div class="button-area right">
           <button class="ab-button" id="buttonA" type="button" aria-label="A Button">A</button>
           <button class="ab-button" id="buttonB" type="button" aria-label="B Button">B</button>
+          <button class="ab-button" id="buttonC" type="button" aria-label="C Button">C</button>
         </div>
       </div>
     </div>
@@ -87,45 +88,5 @@
     <script src="visitor_blocker_lines.js"></script>
     <script src="ui_texts.js"></script>
     <script src="game.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        var buttonA = document.getElementById('buttonA');
-        if (buttonA) {
-          buttonA.addEventListener('pointerdown', function() {
-            if (window.Input) {
-              window.Input.nesAButtonActive = true;
-            }
-          });
-          buttonA.addEventListener('pointerup', function() {
-            if (window.Input) {
-              window.Input.nesAButtonActive = false;
-            }
-          });
-          buttonA.addEventListener('pointerleave', function() {
-            if (window.Input) {
-              window.Input.nesAButtonActive = false;
-            }
-          });
-        }
-        var buttonB = document.getElementById('buttonB');
-        if (buttonB) {
-          buttonB.addEventListener('pointerdown', function() {
-            if (window.Input) {
-              window.Input.prayerBombClickQueued = true;
-            }
-          });
-          buttonB.addEventListener('pointerup', function() {
-            if (window.Input) {
-              window.Input.prayerBombClickQueued = false;
-            }
-          });
-          buttonB.addEventListener('pointerleave', function() {
-            if (window.Input) {
-              window.Input.prayerBombClickQueued = false;
-            }
-          });
-        }
-      });
-    </script>
 </body>
 </html>

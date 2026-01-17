@@ -38,7 +38,7 @@
 
   const virtualInput = {
     enabled: false,
-    deadZone: 0.18,
+    deadZone: 0.12,
     movement: { x: 0, y: 0, active: false, pointerId: null },
     aim: { x: 0, y: 0, active: false, pointerId: null },
   };
@@ -60,13 +60,16 @@
     }
   })();
 
-  const isTouchCapable = false;
+  const isTouchCapable = true;
 
   let canvas = null;
   let touchControlsRoot = null;
   let moveStickBase = null;
   let aimStickBase = null;
   let virtualSpaceButton = null;
+  let virtualButtonA = null;
+  let virtualButtonB = null;
+  let virtualButtonC = null;
   let onAnyKeyDown = null;
   let shouldUpdatePointer = null;
   let shouldHandleInspectorClick = null;
@@ -260,38 +263,103 @@
     const handle = baseEl?.querySelector(".joystick-handle");
     if (!baseEl || !handle) return;
     const state = virtualInput[controlKey];
-    const reset = () => resetVirtualJoystick(handle, state);
+    const anchorEl = controlKey === "movement" ? baseEl.parentElement : baseEl;
+    const reset = () => {
+      resetVirtualJoystick(handle, state);
+      if (controlKey === "movement") {
+        baseEl.classList.remove("is-active");
+      }
+    };
 
-    baseEl.addEventListener("pointerdown", (event) => {
+    const setBasePosition = (event) => {
+      if (controlKey !== "movement" || !anchorEl) return;
+      const rect = anchorEl.getBoundingClientRect();
+      baseEl.style.left = `${event.clientX - rect.left}px`;
+      baseEl.style.top = `${event.clientY - rect.top}px`;
+      baseEl.classList.add("is-active");
+    };
+
+    const start = (event) => {
       if (!virtualInput.enabled) return;
       if (state.pointerId !== null) return;
       state.pointerId = event.pointerId;
+      setBasePosition(event);
       try {
-        baseEl.setPointerCapture(event.pointerId);
+        anchorEl.setPointerCapture(event.pointerId);
       } catch (e) {}
       updateVirtualJoystick(baseEl, handle, state, event);
       event.preventDefault();
-    });
+    };
 
-    baseEl.addEventListener("pointermove", (event) => {
+    const move = (event) => {
       if (state.pointerId !== event.pointerId) return;
       updateVirtualJoystick(baseEl, handle, state, event);
       event.preventDefault();
-    });
+    };
 
     const release = (event) => {
       if (state.pointerId !== event.pointerId) return;
       try {
-        baseEl.releasePointerCapture(event.pointerId);
+        anchorEl.releasePointerCapture(event.pointerId);
       } catch (e) {}
       reset();
       event.preventDefault();
     };
 
-    baseEl.addEventListener("pointerup", release);
-    baseEl.addEventListener("pointercancel", release);
-    baseEl.addEventListener("pointerleave", (event) => {
+    anchorEl.addEventListener("pointerdown", start);
+    anchorEl.addEventListener("pointermove", move);
+    anchorEl.addEventListener("pointerup", release);
+    anchorEl.addEventListener("pointercancel", release);
+    anchorEl.addEventListener("pointerleave", (event) => {
       if (state.pointerId !== event.pointerId) return;
+      release(event);
+    });
+  }
+
+  function pressVirtualKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
+    if (!keysDown.has(key)) keysJustPressed.add(key);
+    keysDown.add(key);
+    if (setNesA) nesAButtonActive = true;
+    if (setPrayerBomb) prayerBombClickQueued = true;
+  }
+
+  function releaseVirtualKey(key, { setNesA = false } = {}) {
+    keysDown.delete(key);
+    if (setNesA) nesAButtonActive = false;
+  }
+
+  function configureVirtualButton(buttonEl, { key, setNesA = false, setPrayerBomb = false } = {}) {
+    if (!buttonEl || !key) return;
+    let pointerId = null;
+
+    const start = (event) => {
+      if (!virtualInput.enabled) return;
+      if (pointerId !== null) return;
+      pointerId = event.pointerId;
+      try {
+        buttonEl.setPointerCapture(event.pointerId);
+      } catch (e) {}
+      buttonEl.classList.add("is-active");
+      pressVirtualKey(key, { setNesA, setPrayerBomb });
+      event.preventDefault();
+    };
+
+    const release = (event) => {
+      if (pointerId !== event.pointerId) return;
+      pointerId = null;
+      try {
+        buttonEl.releasePointerCapture(event.pointerId);
+      } catch (e) {}
+      buttonEl.classList.remove("is-active");
+      releaseVirtualKey(key, { setNesA });
+      event.preventDefault();
+    };
+
+    buttonEl.addEventListener("pointerdown", start);
+    buttonEl.addEventListener("pointerup", release);
+    buttonEl.addEventListener("pointercancel", release);
+    buttonEl.addEventListener("pointerleave", (event) => {
+      if (pointerId !== event.pointerId) return;
       release(event);
     });
   }
@@ -316,6 +384,15 @@
       virtualSpaceButton.addEventListener("click", () => {
         triggerVirtualKeyPress(" ");
       });
+    }
+    if (virtualButtonA) {
+      configureVirtualButton(virtualButtonA, { key: "ArrowLeft", setNesA: true });
+    }
+    if (virtualButtonB) {
+      configureVirtualButton(virtualButtonB, { key: "ArrowUp" });
+    }
+    if (virtualButtonC) {
+      configureVirtualButton(virtualButtonC, { key: "ArrowRight", setPrayerBomb: true });
     }
     updateTouchLayout();
   }
@@ -409,6 +486,9 @@
     moveStickBase = options.moveStickBase || moveStickBase;
     aimStickBase = options.aimStickBase || aimStickBase;
     virtualSpaceButton = options.virtualSpaceButton || virtualSpaceButton;
+    virtualButtonA = options.virtualButtonA || virtualButtonA;
+    virtualButtonB = options.virtualButtonB || virtualButtonB;
+    virtualButtonC = options.virtualButtonC || virtualButtonC;
     onAnyKeyDown = typeof options.onAnyKeyDown === "function" ? options.onAnyKeyDown : onAnyKeyDown;
     shouldUpdatePointer = typeof options.shouldUpdatePointer === "function" ? options.shouldUpdatePointer : shouldUpdatePointer;
     shouldHandleInspectorClick = typeof options.shouldHandleInspectorClick === "function"
