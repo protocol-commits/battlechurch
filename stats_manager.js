@@ -34,7 +34,7 @@
     emotional_intelligence: {
       label: "Shepherding",
       base: 1,
-      description: "Increases congregation attack power and improves visitor welcoming",
+      description: "Increases congregation power",
     },
   };
 

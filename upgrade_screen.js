@@ -8,12 +8,12 @@
   overlay.innerHTML = `
     <div class="upgrade-overlay__panel magazine-panel">
       <div class="upgrade-overlay__dev-label">DEV: UpgradeScreen</div>
-      <div class="upgrade-overlay__header">
+    <div class="upgrade-overlay__header">
         <h1>Stat Upgrade</h1>
-      </div>
-      <div class="upgrade-overlay__keys">
-        <span class="grace-label">Grace</span>
-        <span class="grace-value" data-upgrade-grace>0</span>
+        <div class="upgrade-overlay__grace">
+          <span class="grace-label">Grace</span>
+          <span class="grace-value" data-upgrade-grace>0</span>
+        </div>
       </div>
       <div class="upgrade-overlay__grid" data-upgrade-grid></div>
       <div class="upgrade-overlay__actions">
@@ -76,7 +76,10 @@
 
   function renderRows() {
     if (!gridElement || !StatsManager) return;
-    const rows = StatsManager.getStatKeys().map((key) => createRow(key)).join("");
+    const rows = StatsManager.getStatKeys()
+      .filter((key) => key !== "damage_resistance")
+      .map((key) => createRow(key))
+      .join("");
     gridElement.innerHTML = rows;
   }
 
