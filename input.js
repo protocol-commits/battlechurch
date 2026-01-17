@@ -67,9 +67,7 @@
   let moveStickBase = null;
   let aimStickBase = null;
   let virtualSpaceButton = null;
-  let virtualButtonA = null;
-  let virtualButtonB = null;
-  let virtualButtonC = null;
+  let arcControl = null;
   let onAnyKeyDown = null;
   let shouldUpdatePointer = null;
   let shouldHandleInspectorClick = null;
@@ -323,43 +321,97 @@
     if (setPrayerBomb) prayerBombClickQueued = true;
   }
 
-  function releaseVirtualKey(key, { setNesA = false } = {}) {
+  function releaseVirtualKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
     keysDown.delete(key);
     if (setNesA) nesAButtonActive = false;
+    if (setPrayerBomb) prayerBombClickQueued = false;
   }
 
-  function configureVirtualButton(buttonEl, { key, setNesA = false, setPrayerBomb = false } = {}) {
-    if (!buttonEl || !key) return;
-    let pointerId = null;
+  function configureArcControl(arcEl) {
+    if (!arcEl) return;
+    const segmentEls = Array.from(arcEl.querySelectorAll(".arc-segment"));
+    if (!segmentEls.length) return;
+    const arcState = { pointerId: null, activeSegment: null };
+    const segmentMap = {
+      A: { key: "ArrowLeft", setNesA: true },
+      B: { key: "ArrowUp" },
+      C: { key: "ArrowRight", setPrayerBomb: true },
+    };
+
+    const setActiveSegment = (seg) => {
+      if (seg === arcState.activeSegment) return;
+      if (arcState.activeSegment) {
+        const prevCfg = segmentMap[arcState.activeSegment];
+        if (prevCfg) releaseVirtualKey(prevCfg.key, prevCfg);
+      }
+      arcState.activeSegment = seg;
+      segmentEls.forEach((el) => {
+        el.classList.toggle("is-active", el.dataset.seg === seg);
+      });
+      if (seg) {
+        const cfg = segmentMap[seg];
+        if (cfg) pressVirtualKey(cfg.key, cfg);
+      }
+    };
+
+    const getSegmentFromEvent = (event) => {
+      const rect = arcEl.getBoundingClientRect();
+      const size = Math.min(rect.width, rect.height);
+      if (!size) return null;
+      const styles = window.getComputedStyle(arcEl);
+      const thickness =
+        parseFloat(styles.getPropertyValue("--arc-thickness")) || size * 0.35;
+      const innerRadius = Math.max(0, size - thickness);
+      const outerRadius = size;
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const dx = x - size;
+      const dy = y - size;
+      const dist = Math.hypot(dx, dy);
+      if (dist < innerRadius || dist > outerRadius) return null;
+      let deg = Math.atan2(dy, dx) * (180 / Math.PI);
+      if (deg < 0) deg += 360;
+      if (deg < 180 || deg > 270) return null;
+      const index = Math.min(2, Math.max(0, Math.floor((deg - 180) / 30)));
+      return ["A", "B", "C"][index];
+    };
 
     const start = (event) => {
       if (!virtualInput.enabled) return;
-      if (pointerId !== null) return;
-      pointerId = event.pointerId;
+      if (arcState.pointerId !== null) return;
+      const seg = getSegmentFromEvent(event);
+      if (!seg) return;
+      arcState.pointerId = event.pointerId;
       try {
-        buttonEl.setPointerCapture(event.pointerId);
+        arcEl.setPointerCapture(event.pointerId);
       } catch (e) {}
-      buttonEl.classList.add("is-active");
-      pressVirtualKey(key, { setNesA, setPrayerBomb });
+      setActiveSegment(seg);
+      event.preventDefault();
+    };
+
+    const move = (event) => {
+      if (arcState.pointerId !== event.pointerId) return;
+      const seg = getSegmentFromEvent(event);
+      setActiveSegment(seg);
       event.preventDefault();
     };
 
     const release = (event) => {
-      if (pointerId !== event.pointerId) return;
-      pointerId = null;
+      if (arcState.pointerId !== event.pointerId) return;
+      arcState.pointerId = null;
       try {
-        buttonEl.releasePointerCapture(event.pointerId);
+        arcEl.releasePointerCapture(event.pointerId);
       } catch (e) {}
-      buttonEl.classList.remove("is-active");
-      releaseVirtualKey(key, { setNesA });
+      setActiveSegment(null);
       event.preventDefault();
     };
 
-    buttonEl.addEventListener("pointerdown", start);
-    buttonEl.addEventListener("pointerup", release);
-    buttonEl.addEventListener("pointercancel", release);
-    buttonEl.addEventListener("pointerleave", (event) => {
-      if (pointerId !== event.pointerId) return;
+    arcEl.addEventListener("pointerdown", start);
+    arcEl.addEventListener("pointermove", move);
+    arcEl.addEventListener("pointerup", release);
+    arcEl.addEventListener("pointercancel", release);
+    arcEl.addEventListener("pointerleave", (event) => {
+      if (arcState.pointerId !== event.pointerId) return;
       release(event);
     });
   }
@@ -385,14 +437,8 @@
         triggerVirtualKeyPress(" ");
       });
     }
-    if (virtualButtonA) {
-      configureVirtualButton(virtualButtonA, { key: "ArrowLeft", setNesA: true });
-    }
-    if (virtualButtonB) {
-      configureVirtualButton(virtualButtonB, { key: "ArrowUp" });
-    }
-    if (virtualButtonC) {
-      configureVirtualButton(virtualButtonC, { key: "ArrowRight", setPrayerBomb: true });
+    if (arcControl) {
+      configureArcControl(arcControl);
     }
     updateTouchLayout();
   }
@@ -486,9 +532,7 @@
     moveStickBase = options.moveStickBase || moveStickBase;
     aimStickBase = options.aimStickBase || aimStickBase;
     virtualSpaceButton = options.virtualSpaceButton || virtualSpaceButton;
-    virtualButtonA = options.virtualButtonA || virtualButtonA;
-    virtualButtonB = options.virtualButtonB || virtualButtonB;
-    virtualButtonC = options.virtualButtonC || virtualButtonC;
+    arcControl = options.arcControl || arcControl;
     onAnyKeyDown = typeof options.onAnyKeyDown === "function" ? options.onAnyKeyDown : onAnyKeyDown;
     shouldUpdatePointer = typeof options.shouldUpdatePointer === "function" ? options.shouldUpdatePointer : shouldUpdatePointer;
     shouldHandleInspectorClick = typeof options.shouldHandleInspectorClick === "function"

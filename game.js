@@ -8,9 +8,7 @@ const touchControlsRoot = document.getElementById("touchControls");
 const moveStickBase = document.getElementById("moveStick");
 const aimStickBase = document.getElementById("aimStick");
 const virtualSpaceButton = document.getElementById("virtualSpaceButton");
-const virtualButtonA = document.getElementById("buttonA");
-const virtualButtonB = document.getElementById("buttonB");
-const virtualButtonC = document.getElementById("buttonC");
+const arcControl = document.getElementById("arcControl");
 
 let assets = null;
 let player = null;
@@ -2258,9 +2256,7 @@ Input.initialize({
   moveStickBase,
   aimStickBase,
   virtualSpaceButton,
-  virtualButtonA,
-  virtualButtonB,
-  virtualButtonC,
+  arcControl,
   onAnyKeyDown: (key) => {
     if (key === "m" && DEBUG) {
       toggleDebugOverlay();
@@ -12042,32 +12038,7 @@ function updateRushMovement(dt, direction, meleeAttackState) {
 
   while (meleeAttackState.rushDustAccumulator >= RUSH_DUST_SPACING) {
     meleeAttackState.rushDustAccumulator -= RUSH_DUST_SPACING;
-    Effects.addCustomEffect({
-      type: "custom",
-      x: player.x,
-      y: player.y + player.radius * 0.5,
-      vx: 0,
-      vy: 0,
-      life: 0.3,
-      maxLife: 0.3,
-      radius: 16,
-      alpha: 0.6,
-      color: "#FFD700",
-      update(dt) {
-        this.life = Math.max(0, this.life - dt);
-        this.alpha = 0.6 * (this.life / this.maxLife);
-        this.radius = 16 + (1 - this.life / this.maxLife) * 12;
-      },
-      render(ctx) {
-        ctx.save();
-        ctx.globalAlpha = this.alpha;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      },
-    });
+    spawnPuffEffect(player.x, player.y + player.radius * 0.5, 18 * WORLD_SCALE);
   }
 
   if (meleeAttackState.rushDistanceRemaining <= 0) {
