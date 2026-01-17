@@ -419,10 +419,10 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   const buttonsHtml = formationOptions
     .map(
       (opt) =>
-        `<button class="formation-option" data-formation="${opt.key}" style="display:block;width:100%;padding:18px;border-radius:16px;border:none;background:var(--swatch-accent-2);color:var(--ui-text-color-dark);text-align:center;box-shadow:0 12px 28px rgba(110,244,255,0.25);">
-          <div style="font-weight:var(--ui-h3-weight);font-size:var(--ui-h3-size);line-height:var(--ui-h3-line);letter-spacing:0.02em;">${opt.label}</div>
-          <div style="font-weight:var(--ui-body-weight);font-size:var(--ui-body-size);line-height:var(--ui-body-line);margin-top:10px;">${opt.desc}</div>
-          <div style="font-weight:var(--ui-body-weight);font-size:12px;line-height:1.3;margin-top:8px;color:rgba(20, 32, 54, 0.75);">${opt.stat || ""}</div>
+        `<button class="formation-option" data-formation="${opt.key}">
+          <span class="formation-option__label">${opt.label}</span>
+          <span class="formation-option__desc">${opt.desc}</span>
+          <span class="formation-option__stat">${opt.stat || ""}</span>
         </button>`,
     )
     .join("");
@@ -464,8 +464,8 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         if (prompt) prompt.style.display = "block";
         if (!picker) return;
         picker.style.display = "grid";
-        picker.style.gridTemplateColumns = "repeat(auto-fit, minmax(220px, 1fr))";
-        picker.style.gap = "14px";
+        picker.style.gridTemplateColumns = "repeat(3, minmax(0, 1fr))";
+        picker.style.gap = "10px";
       };
       const typeText = (el, text, msPerChar = 8) =>
         new Promise((resolve) => {

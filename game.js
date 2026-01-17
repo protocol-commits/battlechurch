@@ -5004,35 +5004,17 @@ const PAUSE_BODY =
   ].join(" ");
 
 const PAUSE_HOTKEYS_HTML = `
-  <div class="pause-hotkeys">
-    <div class="pause-hotkeys__column">
-      <div class="pause-hotkeys__title">Controls</div>
-      <ul class="pause-hotkeys__list">
-        <li>WASD: Move</li>
-        <li>Double-tap WASD: Rush</li>
-        <li>Arrow keys: Aim</li>
-        <li>Mouse: Aim</li>
-        <li>Left Arrow: Melee (hold to charge)</li>
-        <li>Right Arrow: Prayer bomb</li>
-        <li>Right-click: Prayer bomb</li>
-        <li>Space: Pause / Resume</li>
-      </ul>
-    </div>
-    <div class="pause-hotkeys__column">
-      <div class="pause-hotkeys__title">Developer</div>
-      <ul class="pause-hotkeys__list">
-        <li>1: Toggle God mode</li>
-        <li>2: Clear all enemies</li>
-        <li>3: Skip Month</li>
-        <li>4: Skip Level</li>
-        <li>5: Skip to boss</li>
-        <li>6: Start grace rush</li>
-        <li>B: Boost prayer bomb tier</li>
-        <li>K: +500 Grace points</li>
-        <li>O: Toggle enemy labels</li>
-        <li>V: Toggle visitor session</li>
-      </ul>
-    </div>
+  <div class="pause-hotkeys pause-hotkeys--single">
+    <div class="pause-hotkeys__title">Controls</div>
+    <ul class="pause-hotkeys__list pause-hotkeys__list--compact">
+      <li>Joystick/WASD: Move</li>
+      <li>Arc or Arrow keys: Aim</li>
+      <li>A/Left Arrow: Melee (hold to charge)</li>
+      <li>B/Up Arrow: Dash</li>
+      <li>C/Right Arrow: Prayer bomb</li>
+      <li>Mouse: Aim</li>
+      <li>Space: Pause / Resume</li>
+    </ul>
   </div>
   <div class="pause-hotkeys__note">Press Continue or Space to resume.</div>
 `;

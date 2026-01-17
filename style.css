@@ -651,6 +651,10 @@ body.layout-rotate-warning #rotatePrompt {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 18px;
 }
+
+.pause-hotkeys--single {
+  grid-template-columns: 1fr;
+}
 .pause-hotkeys__title {
   font-size: 16px;
   letter-spacing: 0.02em;
@@ -674,6 +678,18 @@ body.layout-rotate-warning #rotatePrompt {
   font-size: 12px;
   text-align: center;
   color: rgba(180, 210, 255, 0.9);
+}
+
+body.layout-mobile .pause-hotkeys__title,
+body.layout-square .pause-hotkeys__title,
+body.layout-rotate-warning .pause-hotkeys__title {
+  font-size: 13px;
+}
+
+body.layout-mobile .pause-hotkeys__list,
+body.layout-square .pause-hotkeys__list,
+body.layout-rotate-warning .pause-hotkeys__list {
+  font-size: 11px;
 }
 .dialog-overlay--gameover {
   align-items: center;
@@ -846,10 +862,86 @@ body.layout-rotate-warning #rotatePrompt {
   column-gap: 0;
   width: 100%;
 }
+
+body.layout-mobile .mission-brief-text,
+body.layout-square .mission-brief-text,
+body.layout-rotate-warning .mission-brief-text {
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+body.layout-mobile .dialog-overlay--mission .dialog-overlay__body,
+body.layout-square .dialog-overlay--mission .dialog-overlay__body,
+body.layout-rotate-warning .dialog-overlay--mission .dialog-overlay__body {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+body.layout-mobile .dialog-overlay--mission .dialog-overlay__title,
+body.layout-square .dialog-overlay--mission .dialog-overlay__title,
+body.layout-rotate-warning .dialog-overlay--mission .dialog-overlay__title {
+  font-size: 26px;
+  line-height: 1.1;
+}
 .mission-brief-problem {
   color: #ffd978;
   font-weight: 700;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.formation-picker {
+  width: 100%;
+}
+
+.formation-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: none;
+  background: var(--swatch-accent-2);
+  color: var(--ui-text-color-dark);
+  text-align: center;
+  box-shadow: 0 10px 20px rgba(110, 244, 255, 0.2);
+  font-family: var(--ui-font-family);
+  white-space: normal;
+}
+
+.formation-option__label,
+.formation-option__desc,
+.formation-option__stat {
+  display: block;
+  margin: 0;
+  padding: 0;
+  line-height: 1.05;
+  white-space: normal;
+}
+
+.formation-option__label {
+  font-weight: var(--ui-h3-weight);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.formation-option__desc {
+  font-weight: var(--ui-body-weight);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.formation-option__stat {
+  font-weight: var(--ui-body-weight);
+  font-size: 10px;
+  margin-top: 2px;
+  color: rgba(20, 32, 54, 0.75);
+}
+
+body.layout-mobile .formation-picker,
+body.layout-square .formation-picker,
+body.layout-rotate-warning .formation-picker {
+  gap: 8px;
 }
 
 .dialog-overlay__portrait-canvas {
