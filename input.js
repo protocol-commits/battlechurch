@@ -357,7 +357,7 @@
     const arcState = { pointerId: null, activeSegment: null };
     const segmentMap = {
       A: { key: "ArrowLeft", setNesA: true },
-      B: { key: "ArrowUp" },
+      B: { key: "ArrowDown" },
       S: { key: " " },
       C: { key: "ArrowRight", setPrayerBomb: true },
     };

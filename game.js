@@ -10462,14 +10462,14 @@ function updatePlayerDuringCongregation(dt) {
   updateAimAssist();
   playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
 
-  if (keysJustPressed.has("ArrowUp")) {
+  if (keysJustPressed.has("ArrowDown")) {
     const comboSpinActive =
       (keysPressed.has("ArrowLeft")) ||
       (window.Input?.peekComboSwipe?.() && window.Input.peekComboSwipe().from === "A" && window.Input.peekComboSwipe().to === "B");
     if (comboSpinActive) {
       // Skip dash so the melee system can consume the combo.
     } else if (tryStartDash(getDashButtonDirection())) {
-      keysJustPressed.delete("ArrowUp");
+      keysJustPressed.delete("ArrowDown");
     }
   }
 
@@ -11108,12 +11108,12 @@ function checkDialogOverlays() {
     keysJustPressed.delete(" ");
     keysJustPressed.delete("pause");
     keysJustPressed.delete("restart");
-    keysJustPressed.delete("ArrowUp");
+    keysJustPressed.delete("ArrowDown");
     return true;
   }
   if (isAnyDialogActive()) {
     keysJustPressed.delete(" ");
-    keysJustPressed.delete("ArrowUp");
+    keysJustPressed.delete("ArrowDown");
     return true;
   }
   if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible()) {
@@ -11620,14 +11620,14 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     updateAimAssist();
     playerDashState.dashCooldown = Math.max(0, playerDashState.dashCooldown - dt);
 
-    if (keysJustPressed.has("ArrowUp")) {
+    if (keysJustPressed.has("ArrowDown")) {
       const comboSpinActive =
         (keysPressed.has("ArrowLeft")) ||
         (window.Input?.peekComboSwipe?.() && window.Input.peekComboSwipe().from === "A" && window.Input.peekComboSwipe().to === "B");
       if (comboSpinActive) {
         // Skip dash so the melee system can consume the combo.
       } else if (tryStartDash(getDashButtonDirection())) {
-        keysJustPressed.delete("ArrowUp");
+        keysJustPressed.delete("ArrowDown");
       }
     }
 
@@ -12351,13 +12351,13 @@ function updateMeleeAttackSystem(dt) {
       (!meleeAttackState.isRushing &&
         meleeAttackState.rushLockTimer <= 0 &&
         meleeAttackState.rushCooldown <= 0 &&
-        ((keysPressed.has("ArrowUp") && keysJustPressed.has("ArrowLeft")) ||
+        ((keysPressed.has("ArrowDown") && keysJustPressed.has("ArrowLeft")) ||
           (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
     const comboSpin =
       (!meleeAttackState.isRushing &&
         meleeAttackState.rushLockTimer <= 0 &&
         meleeAttackState.spinCooldown <= 0 &&
-        ((keysPressed.has("ArrowLeft") && keysJustPressed.has("ArrowUp")) ||
+        ((keysPressed.has("ArrowLeft") && keysJustPressed.has("ArrowDown")) ||
           (comboSwipe && comboSwipe.from === "A" && comboSwipe.to === "B")));
     if (comboRush) {
       executeRushAttack(getDashButtonDirection(), meleeAttackState);
@@ -12367,7 +12367,7 @@ function updateMeleeAttackSystem(dt) {
     }
     if (comboSpin) {
       executeSpinAttack(meleeAttackState);
-      keysJustPressed.delete("ArrowUp");
+      keysJustPressed.delete("ArrowDown");
     }
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
