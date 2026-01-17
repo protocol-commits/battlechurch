@@ -207,6 +207,20 @@ body.touch-enabled .joystick-area.left {
   height: 100%;
 }
 
+body.touch-enabled .joystick-area.left::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  width: 140px;
+  height: 140px;
+  border-radius: 18px;
+  background: rgba(234, 246, 255, 0.08);
+  border: 1px solid rgba(234, 246, 255, 0.18);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
 body.touch-enabled .button-area.right {
   grid-area: right;
   display: flex;
