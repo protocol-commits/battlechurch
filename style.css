@@ -881,18 +881,25 @@ body.layout-rotate-warning .upgrade-overlay__panel {
   width: 100%;
 }
 
+.dialog-overlay--mission .mission-brief-text {
+  line-height: 1.1;
+  margin: 8px 0 6px;
+}
+
 body.layout-mobile .mission-brief-text,
 body.layout-square .mission-brief-text,
 body.layout-rotate-warning .mission-brief-text {
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: 14px;
+  line-height: 1.1;
+  margin: 6px 0 4px;
 }
 
 body.layout-mobile .dialog-overlay--mission .dialog-overlay__body,
 body.layout-square .dialog-overlay--mission .dialog-overlay__body,
 body.layout-rotate-warning .dialog-overlay--mission .dialog-overlay__body {
   font-size: 14px;
-  line-height: 1.35;
+  line-height: 1.25;
+  margin-top: 10px;
 }
 
 body.layout-mobile .dialog-overlay--mission .dialog-overlay__title,
@@ -994,6 +1001,12 @@ body.layout-rotate-warning .formation-picker {
   font-weight: var(--ui-body-weight);
   cursor: pointer;
   transition: transform 0.12s ease;
+}
+
+body.layout-mobile .dialog-overlay--mission .dialog-overlay__button,
+body.layout-square .dialog-overlay--mission .dialog-overlay__button,
+body.layout-rotate-warning .dialog-overlay--mission .dialog-overlay__button {
+  margin-top: 12px;
 }
 
 .dialog-overlay__button:active {
