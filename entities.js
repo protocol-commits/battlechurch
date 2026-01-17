@@ -645,8 +645,10 @@ class Player {
 
     const meleeAttackState = window._meleeAttackState;
     let meleeFacingLocked = false;
-    if (meleeAttackState && meleeAttackState.swooshTimer > 0) {
-      const dir = meleeAttackState.swooshDir || window.Input?.lastMovementDirection || { x: 1, y: 0 };
+    if (meleeAttackState && (meleeAttackState.swooshTimer > 0 || meleeAttackState.spinTimer > 0)) {
+      const dir = meleeAttackState.spinTimer > 0
+        ? (meleeAttackState.spinFacingDir || meleeAttackState.swooshDir || window.Input?.lastMovementDirection || { x: 1, y: 0 })
+        : (meleeAttackState.swooshDir || window.Input?.lastMovementDirection || { x: 1, y: 0 });
       const { x, y } = normalizeVector(dir.x, dir.y);
       this.aim = { x, y };
       this.updateFacing(x, y);

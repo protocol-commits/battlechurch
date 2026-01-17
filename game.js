@@ -12157,6 +12157,7 @@ function executeRushAttack(dir, meleeAttackState) {
 
 function executeSpinAttack(meleeAttackState) {
   if (!player) return;
+  const dir = getMeleeAttackDirection();
   meleeAttackState.buttonDown = false;
   meleeAttackState.isCharging = false;
   meleeAttackState.chargeTimer = 0;
@@ -12165,6 +12166,7 @@ function executeSpinAttack(meleeAttackState) {
   meleeAttackState.spinTimer = MELEE_SPIN_DURATION;
   meleeAttackState.spinDuration = MELEE_SPIN_DURATION;
   meleeAttackState.spinHitEntities = new Set();
+  meleeAttackState.spinFacingDir = { x: dir.x, y: dir.y };
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
   if (player && player.animator) {
     player.state = "attackMelee";
