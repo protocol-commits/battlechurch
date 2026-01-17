@@ -77,6 +77,7 @@
   let prayerBombClickQueued = false;
   let canvasClickQueued = false;
   let canvasClickPos = null;
+  let comboSwipe = null;
 
   function normalizeKey(key) {
     if (typeof key !== "string") return key;
@@ -334,6 +335,17 @@
     if (setPrayerBomb) prayerBombClickQueued = false;
   }
 
+  function queueComboSwipe(from, to) {
+    comboSwipe = { from, to, time: typeof performance !== "undefined" ? performance.now() : Date.now() };
+  }
+
+  function consumeComboSwipe() {
+    if (!comboSwipe) return null;
+    const swipe = comboSwipe;
+    comboSwipe = null;
+    return swipe;
+  }
+
   function configureArcControl(arcEl) {
     if (!arcEl) return;
     const segmentEls = Array.from(arcEl.querySelectorAll(".arc-segment"));
@@ -347,6 +359,9 @@
 
     const setActiveSegment = (seg) => {
       if (seg === arcState.activeSegment) return;
+      if (arcState.activeSegment && seg && arcState.activeSegment !== seg) {
+        queueComboSwipe(arcState.activeSegment, seg);
+      }
       if (arcState.activeSegment) {
         const prevCfg = segmentMap[arcState.activeSegment];
         if (prevCfg) releaseVirtualKey(prevCfg.key, prevCfg);
@@ -578,6 +593,7 @@
     triggerVirtualKeyPress,
     consumePrayerBombClick,
     consumeCanvasClick,
+    consumeComboSwipe,
     clearJustPressed,
     get keysJustPressed() {
       return keysJustPressed;

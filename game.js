@@ -1865,7 +1865,7 @@ const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
 const MELEE_RUSH_LOCKOUT = 1.0;
 const RUSH_DISTANCE = 150 * WORLD_SCALE;
 const RUSH_SPEED = 1200 * SPEED_SCALE;
-const RUSH_DAMAGE = 250;
+const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
 const RUSH_RADIUS = 50 * WORLD_SCALE;
 const RUSH_PUSHBACK_RADIUS = 52 * WORLD_SCALE;
 const RUSH_PUSHBACK_STRENGTH = 50 * WORLD_SCALE;
@@ -12317,6 +12317,19 @@ function updateMeleeAttackSystem(dt) {
     }
 
     const dir = getMeleeAttackDirection();
+    const comboSwipe = input?.consumeComboSwipe?.();
+    const comboRush =
+      (!meleeAttackState.isRushing &&
+        meleeAttackState.rushLockTimer <= 0 &&
+        meleeAttackState.rushCooldown <= 0 &&
+        ((keysPressed.has("ArrowUp") && keysJustPressed.has("ArrowLeft")) ||
+          (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
+    if (comboRush) {
+      executeRushAttack(getDashButtonDirection(), meleeAttackState);
+      meleeAttackState.awaitRush = false;
+      meleeAttackState.awaitTimer = 0;
+      keysJustPressed.delete("ArrowLeft");
+    }
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
       !meleeAttackState.isRushing &&
