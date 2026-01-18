@@ -4208,9 +4208,13 @@ async function loadEffectAssets(cache, assets) {
       loadImage(`${MAGIC_FLASH_SPRITE_PATH}/flash${i + 1}.png`),
     ),
   );
-  assets.effects.puff = await loadImage(
-    "assets/sprites/explosions/28-puff/Explosion VFX 28(16x16).png",
-  ).then((img) => extractFrames(img, 16, 16));
+  assets.effects.puff = await Promise.all(
+    Array.from({ length: 6 }, (_, i) =>
+      loadImage(`${MAGIC_PACK_ROOT}/puff/sprites/puff${i + 1}.png`).then((img) =>
+        extractFrame(img, img.width, img.height, 0),
+      ),
+    ),
+  );
   assets.effects.enemyDeathExplosion = await loadImage(
     "assets/sprites/explosions/16/Explosion VFX 16(48x48).png",
   ).then((img) => extractFrames(img, 48, 48).slice(0, 10));

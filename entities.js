@@ -1500,10 +1500,11 @@ class Player {
             }
             this.health = 0;
             this.state = "death";
-            this.animator.play("death", { restart: true, loop: false });
+            this.dead = true;
             this.ignoreEntityCollisions = true;
             this.touchCooldown = Infinity;
             this.attackTimer = Infinity;
+            return;
           } else {
             this._orbiting = false;
             this.orbitParent = null;
@@ -1935,6 +1936,24 @@ class Player {
       this.damageFlashTimer = DAMAGE_FLASH_DURATION;
       if (this.health <= 0) {
         this.health = 0;
+        if (this.type === "tormentorFlame") {
+          if (typeof spawnPuffEffect === "function") {
+            const puffRadius = Math.max(18, (this.radius || 12) * 1.4);
+            spawnPuffEffect(this.x, this.y, puffRadius);
+          }
+          this.state = "death";
+          this.dead = true;
+          this.ignoreEntityCollisions = true;
+          this.canDealDamage = false;
+          this.touchCooldown = Infinity;
+          this.attackTimer = Infinity;
+          this.config.hitRadius = 0;
+          this.radius = 0;
+          if (levelManager && typeof levelManager.notifyEnemyDefeated === "function") {
+            levelManager.notifyEnemyDefeated();
+          }
+          return;
+        }
         if (this.state !== "death") {
           this.state = "death";
           this.animator.play("death", { restart: true, loop: false });
