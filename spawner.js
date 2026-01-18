@@ -191,6 +191,9 @@
         });
     } catch (error) {}
     const instanceConfig = { ...config };
+    if (type === "bat") {
+      instanceConfig.scale = 1.5;
+    }
 
     const enemy = deps.createEnemyInstance(
       type,
