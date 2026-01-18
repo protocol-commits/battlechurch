@@ -327,6 +327,7 @@
         damageFlashIntensity = settings.DAMAGE_FLASH_INTENSITY || 1,
         tintColor = null,
         tintIntensity = 1,
+        blur = 0,
       } = options || {};
       if (!this.currentClip) return;
       const clip = this.currentClip;
@@ -349,6 +350,9 @@
 
       context.save();
       context.globalAlpha = alpha;
+      if (blur > 0) {
+        context.filter = `blur(${blur}px)`;
+      }
       context.translate(x, y);
       context.rotate(rotation);
       if (flipX) context.scale(-1, 1);
@@ -1968,6 +1972,19 @@ class Player {
           ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
           : 0;
       const drawOptions = { flipX: flip, flashWhite: flashStrength };
+      let baseAlpha = 1;
+      if (typeof this.config?.alpha === "number") {
+        baseAlpha = Math.max(0, Math.min(1, this.config.alpha));
+      }
+      if (this.type === "tormentorFlame") {
+        baseAlpha = Math.min(baseAlpha, 0.75);
+      }
+      if (baseAlpha < 1) {
+        drawOptions.alpha = baseAlpha;
+      }
+      if (typeof this.config?.blur === "number" && this.config.blur > 0) {
+        drawOptions.blur = this.config.blur;
+      }
       const tintColor = this.config?.tintColor;
       if (tintColor) {
         drawOptions.tintColor = tintColor;

@@ -861,6 +861,8 @@
     "speed": 72,
     "baseRadius": 8,
     "scale": 1.4,
+    "alpha": 0.75,
+    "blur": 0.8,
     "attackBonus": 16,
     "cooldown": 0.9,
     "score": 18,
