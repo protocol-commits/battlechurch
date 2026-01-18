@@ -859,7 +859,6 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     const titleY = getAnnouncementTitleY(HUD_HEIGHT, 220);
     drawAnnouncementText(ctx, canvas, {
       title: "Welcome Pastor. We're pleased to meet you!",
-      subtitle: "Current Congregation Size: 50",
       yBase: titleY,
       subtitleSize: TEXT_STYLES.body.size,
       subtitleWeight: TEXT_STYLES.body.weight,
