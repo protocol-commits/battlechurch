@@ -716,6 +716,39 @@
       "offsetY": 7
     }
   },
+  "bat": {
+    "displayName": "Bat",
+    "assetFolder": "Bat",
+    "assetBaseName": "Bat",
+    "health": 40,
+    "maxHealth": 40,
+    "damage": 5,
+    "speed": 170,
+    "baseRadius": 8,
+    "scale": 3.2,
+    "attackBonus": 20,
+    "cooldown": 0.6,
+    "score": 22,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 36,
+    "projectileCooldown": 0.6,
+    "bossTier": 0,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "mini",
+      "closestAny",
+      "swarmable"
+    ],
+    "swarmSpacing": 0.05,
+    "hitbox": {
+      "width": 16,
+      "height": 12,
+      "offsetX": 0,
+      "offsetY": 6
+    }
+  },
   "miniClawedDemon": {
     "displayName": "Clawed Demon",
     "assetFolder": "Mini Clawed Demon",

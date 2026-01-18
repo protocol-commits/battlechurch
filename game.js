@@ -1883,6 +1883,9 @@ const DASH_DUST_SPACING = 20 * WORLD_SCALE;
 const DASH_COOLDOWN = 2.0;
 const DASH_COMBO_GRACE = 0.12;
 const RUSH_HITBOX_DEBUG_DURATION = 0.12;
+const BAT_SPAWN_COUNT = 10;
+const BAT_SCATTER_DURATION = 0.35;
+const BAT_SCATTER_SPEED_MULTIPLIER = 2.0;
 const DIVINE_SHOT_DAMAGE = 1000;
 const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
 const DIVINE_SHOT_LIFE = 2.8;
@@ -2916,41 +2919,50 @@ if (typeof window !== "undefined") {
 // loader will infer frame dimensions; game logic will reuse 'walk' and 'attack'
 // by playing the same clip where needed so the characters animate.
 for (const mini of MINIFOLKS) {
+  const isBat = mini.key === "bat";
+  const frameWidth = isBat ? 34 : 0;
+  const frameHeight = isBat ? 34 : 0;
+  const frameMap = isBat ? [0, 1, 2, 3] : undefined;
   ASSET_MANIFEST.enemies[mini.key] = {
     idle: {
       src: mini.src,
-      frameWidth: 0,
-      frameHeight: 0,
+      frameWidth,
+      frameHeight,
       frameRate: 8,
       loop: true,
+      frameMap,
     },
     walk: {
       src: mini.src,
-      frameWidth: 0,
-      frameHeight: 0,
+      frameWidth,
+      frameHeight,
       frameRate: 10,
       loop: true,
+      frameMap,
     },
     attack: {
       src: mini.src,
-      frameWidth: 0,
-      frameHeight: 0,
+      frameWidth,
+      frameHeight,
       frameRate: 12,
       loop: false,
+      frameMap,
     },
     hurt: {
       src: mini.src,
-      frameWidth: 0,
-      frameHeight: 0,
+      frameWidth,
+      frameHeight,
       frameRate: 10,
       loop: false,
+      frameMap,
     },
     death: {
       src: mini.src,
-      frameWidth: 0,
-      frameHeight: 0,
+      frameWidth,
+      frameHeight,
       frameRate: 10,
       loop: false,
+      frameMap,
     },
   };
 }
@@ -11703,6 +11715,28 @@ function processDeadEnemies() {
   for (let i = enemies.length - 1; i >= 0; i -= 1) {
     const enemy = enemies[i];
     if (!enemy.dead) continue;
+
+    if (enemy.type === "miniDemoness" && !enemy.batBurstSpawned) {
+      enemy.batBurstSpawned = true;
+      const smokeScale = Math.max(0.9, (enemy.radius || 24) / 24);
+      if (typeof spawnSmokeEffect === "function") {
+        spawnSmokeEffect(enemy.x, enemy.y, smokeScale);
+      }
+      for (let b = 0; b < BAT_SPAWN_COUNT; b += 1) {
+        const angle = (Math.PI * 2 * b) / BAT_SPAWN_COUNT + Math.random() * 0.35;
+        const spawnPos = {
+          x: enemy.x + Math.cos(angle) * 12,
+          y: enemy.y + Math.sin(angle) * 12,
+        };
+        const bat = spawnEnemyOfType("bat", spawnPos, { applyCameraShake: false });
+        if (bat) {
+          const speed = (bat.config?.speed || 120) * BAT_SCATTER_SPEED_MULTIPLIER;
+          bat.scatterTimer = BAT_SCATTER_DURATION;
+          bat.scatterVx = Math.cos(angle) * speed;
+          bat.scatterVy = Math.sin(angle) * speed;
+        }
+      }
+    }
 
     if (!enemy.scoreGranted) {
       const explicitScore = enemy.config && typeof enemy.config.score === 'number' ? enemy.config.score : null;

@@ -5,6 +5,7 @@
     { key: "miniImpLevel3", src: "assets/sprites/MinifolksDemons/Without outline/MiniImpLevel3.png" },
     { key: "miniFireImp", src: "assets/sprites/MinifolksDemons/Without outline/MiniFireImp.png" },
     { key: "miniDemoness", src: "assets/sprites/MinifolksDemons/Without outline/MiniDemoness.png" },
+    { key: "bat", src: "assets/sprites/enemies/bat.png" },
     { key: "miniClawedDemon", src: "assets/sprites/MinifolksDemons/Without outline/MiniClawedDemon.png" },
     { key: "miniHighDemon", src: "assets/sprites/MinifolksDemons/Without outline/MiniHighDemon.png" },
     { key: "miniDemonTormentor", src: "assets/sprites/MinifolksDemons/Without outline/MiniDemonTormentor.png" },

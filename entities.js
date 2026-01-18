@@ -1475,6 +1475,9 @@ class Player {
       this.safeTopMargin = Math.max(this.radius * 3.5, 100);
       this.spawnDelay = 0;
       this.damageFlashTimer = 0;
+      this.scatterTimer = 0;
+      this.scatterVx = 0;
+      this.scatterVy = 0;
     }
 
     update(dt) {
@@ -1509,6 +1512,17 @@ class Player {
 
       this.shieldHitCooldown = Math.max(0, (this.shieldHitCooldown || 0) - dt);
       this.tauntCooldown = Math.max(0, (this.tauntCooldown || 0) - dt);
+
+      if (this.scatterTimer > 0) {
+        this.scatterTimer = Math.max(0, this.scatterTimer - dt);
+        this.x += this.scatterVx * dt;
+        this.y += this.scatterVy * dt;
+        if (typeof resolveEntityObstacles === "function") resolveEntityObstacles(this);
+        if (typeof clampEntityToBounds === "function") clampEntityToBounds(this);
+        this.updateFacing(this.scatterVx, this.scatterVy);
+        this.animator.update(dt);
+        return;
+      }
 
       const cinematicActive = Boolean(window?.postDeathSequenceActive);
       if (cinematicActive) {
