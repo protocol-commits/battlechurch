@@ -11737,7 +11737,7 @@ function releaseTormentorFlame(flame) {
   flame._orbiting = false;
   flame.orbitParent = null;
   flame.touchCooldown = 0;
-  flame.ignoreEntityCollisions = false;
+  flame.ignoreEntityCollisions = true;
   flame.ignoreWorldBounds = false;
   flame.attackTimer = 0;
   if (flame.animator) {

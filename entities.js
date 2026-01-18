@@ -1482,6 +1482,9 @@ class Player {
       this.scatterTimer = 0;
       this.scatterVx = 0;
       this.scatterVy = 0;
+      if (this.type === "tormentorFlame") {
+        this.ignoreEntityCollisions = true;
+      }
     }
 
     update(dt) {
@@ -1490,14 +1493,27 @@ class Player {
 
       if (this._orbiting && this.orbitParent) {
         if (this.orbitParent.dead || this.orbitParent.state === "death") {
-          this._orbiting = false;
-          this.orbitParent = null;
-          this.ignoreEntityCollisions = false;
-          this.ignoreWorldBounds = false;
-          this.touchCooldown = 0;
-          this.attackTimer = 0;
-          if (this.animator && this.config?.scale) {
-            this.animator.scale = this.config.scale;
+          if (this.type === "tormentorFlame") {
+            if (typeof spawnPuffEffect === "function") {
+              const puffRadius = Math.max(18, (this.radius || 12) * 1.4);
+              spawnPuffEffect(this.x, this.y, puffRadius);
+            }
+            this.health = 0;
+            this.state = "death";
+            this.animator.play("death", { restart: true, loop: false });
+            this.ignoreEntityCollisions = true;
+            this.touchCooldown = Infinity;
+            this.attackTimer = Infinity;
+          } else {
+            this._orbiting = false;
+            this.orbitParent = null;
+            this.ignoreEntityCollisions = false;
+            this.ignoreWorldBounds = false;
+            this.touchCooldown = 0;
+            this.attackTimer = 0;
+            if (this.animator && this.config?.scale) {
+              this.animator.scale = this.config.scale;
+            }
           }
         } else {
           const angle = (this.orbitAngle || 0) + (this.orbitSpeed || 0) * dt;
