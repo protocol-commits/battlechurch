@@ -468,6 +468,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       const textEl = overlay.querySelector(".mission-brief-text");
       const prompt = overlay.querySelector(".formation-prompt");
       const picker = overlay.querySelector(".formation-picker");
+      const contentWidth = "84%";
       if (!showFormation) {
         if (prompt) prompt.style.display = "none";
         if (picker) picker.style.display = "none";
@@ -477,6 +478,8 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         if (prompt) prompt.style.display = "block";
         if (!picker) return;
         picker.style.display = "grid";
+        picker.style.width = contentWidth;
+        picker.style.margin = "0 0 0 8%";
         picker.style.gridTemplateColumns = "repeat(3, minmax(0, 1fr))";
         picker.style.gap = "10px";
       };
@@ -512,6 +515,10 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       }
       if (textEl) {
         textEl.style.display = useAnnouncementText ? "none" : "block";
+      }
+      if (prompt) {
+        prompt.style.width = contentWidth;
+        prompt.style.margin = "4px 0 12px 8%";
       }
       if (useAnnouncementText && announcementCanvas) {
         const renderAnnouncement = () => {

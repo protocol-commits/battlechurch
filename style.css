@@ -1003,19 +1003,19 @@ body.layout-rotate-warning .dialog-overlay--mission .dialog-overlay__title {
 
 .formation-option__label {
   font-weight: var(--ui-h3-weight);
-  font-size: 15px;
+  font-size: 20px;
   letter-spacing: 0.02em;
 }
 
 .formation-option__desc {
   font-weight: var(--ui-body-weight);
-  font-size: 12px;
+  font-size: 14px;
   margin-top: 2px;
 }
 
 .formation-option__stat {
   font-weight: var(--ui-body-weight);
-  font-size: 10px;
+  font-size: 14px;
   margin-top: 2px;
   color: rgba(20, 32, 54, 0.75);
 }
@@ -1037,9 +1037,9 @@ body.layout-rotate-warning .formation-picker {
 }
 
 .formation-prompt {
-  font-size: var(--ui-h3-size);
-  font-weight: var(--ui-h3-weight);
-  line-height: var(--ui-h3-line);
+  font-size: var(--ui-h2-size);
+  font-weight: var(--ui-h2-weight);
+  line-height: var(--ui-h2-line);
   color: var(--ui-text-color);
 }
 
