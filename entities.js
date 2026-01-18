@@ -1933,7 +1933,9 @@ class Player {
       if (typeof playHitSfx === "function") {
         playHitSfx(0.3);
       }
-      this.damageFlashTimer = DAMAGE_FLASH_DURATION;
+      if (this.type !== "tormentorFlame") {
+        this.damageFlashTimer = DAMAGE_FLASH_DURATION;
+      }
       if (this.health <= 0) {
         this.health = 0;
         if (this.type === "tormentorFlame") {
@@ -1993,6 +1995,9 @@ class Player {
           levelManager.notifyEnemyDefeated();
         }
       } else {
+        if (this.type === "tormentorFlame") {
+          return;
+        }
         this.state = "hurt";
         this.animator.play("hurt", { restart: true });
       }

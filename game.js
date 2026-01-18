@@ -8216,6 +8216,18 @@ function getEnemyHitboxCenter(enemy) {
   };
 }
 
+function spawnEnemyHitEffect(enemy, hitX = null, hitY = null) {
+  if (!enemy) return;
+  const x = Number.isFinite(hitX) ? hitX : enemy.x;
+  const y = Number.isFinite(hitY) ? hitY : enemy.y;
+  if (enemy.type === "tormentorFlame") {
+    const puffRadius = Math.max(18, (getEnemyHitboxRadius(enemy) || enemy.radius || 12) * 0.9);
+    spawnPuffEffect(x, y, puffRadius);
+    return;
+  }
+  spawnFlashEffect(x, y);
+}
+
 function isEnemyEntity(ent) {
   return Boolean(ent && !ent.isCozyNpc && !ent.isPlayer && typeof ent.type === "string");
 }
@@ -11986,9 +11998,9 @@ function processProjectileCollisions(dt) {
         ) {
           const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
           const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
-          spawnFlashEffect(hitX, hitY);
+          spawnEnemyHitEffect(enemy, hitX, hitY);
         }
-        if (enemy.health > 0) {
+        if (enemy.health > 0 && enemy.type !== "tormentorFlame") {
           const puffRadius = Math.max(24, getEnemyHitboxRadius(enemy)) * 0.6;
           const center = getEnemyHitboxCenter(enemy);
           spawnPuffEffect(center.x, center.y, puffRadius);
@@ -12255,7 +12267,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       enemy.vx = Math.cos(pushAngle) * RUSH_PUSHBACK_STRENGTH;
       enemy.vy = Math.sin(pushAngle) * RUSH_PUSHBACK_STRENGTH;
     }
-    spawnFlashEffect(enemy.x, enemy.y);
+    spawnEnemyHitEffect(enemy);
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx(0.6);
     }
@@ -12334,7 +12346,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       enemy.vx = Math.cos(pushAngle) * MELEE_PUSHBACK_STRENGTH;
       enemy.vy = Math.sin(pushAngle) * MELEE_PUSHBACK_STRENGTH;
     }
-    spawnFlashEffect(enemy.x, enemy.y);
+    spawnEnemyHitEffect(enemy);
   });
   if (hitEnemies.length > 0) {
     if (typeof playEnemyHitSfx === "function") {
@@ -12380,7 +12392,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
       enemy.vy = Math.sin(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
     }
-    spawnFlashEffect(enemy.x, enemy.y);
+    spawnEnemyHitEffect(enemy);
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx(0.6);
     }
@@ -12647,7 +12659,7 @@ function updateMeleeAttackSystem(dt) {
           enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
           enemy.vy = Math.sin(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
         }
-        spawnFlashEffect(enemy.x, enemy.y);
+        spawnEnemyHitEffect(enemy);
         if (typeof playEnemyHitSfx === "function") {
           playEnemyHitSfx(0.6);
         }

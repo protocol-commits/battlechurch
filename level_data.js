@@ -111,10 +111,6 @@ window.BattlechurchLevelData = {
                   "index": 1,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
-                    {
                       "enemy": "miniDemonFireKeeper",
                       "count": 1
                     },
@@ -135,10 +131,6 @@ window.BattlechurchLevelData = {
                   "index": 2,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
-                    {
                       "enemy": "miniDemonFireThrower",
                       "count": 1
                     },
@@ -158,10 +150,6 @@ window.BattlechurchLevelData = {
                 {
                   "index": 3,
                   "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
                     {
                       "enemy": "miniDemonFireKeeper",
                       "count": 1
@@ -187,10 +175,6 @@ window.BattlechurchLevelData = {
                   "index": 4,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
-                    {
                       "enemy": "miniDemonFireThrower",
                       "count": 1
                     },
@@ -210,10 +194,6 @@ window.BattlechurchLevelData = {
                 {
                   "index": 5,
                   "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
                     {
                       "enemy": "miniDemonFireKeeper",
                       "count": 1
@@ -243,10 +223,6 @@ window.BattlechurchLevelData = {
                   "index": 6,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
-                    {
                       "enemy": "miniDemonFireThrower",
                       "count": 1
                     }
@@ -262,10 +238,6 @@ window.BattlechurchLevelData = {
                 {
                   "index": 7,
                   "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    },
                     {
                       "enemy": "miniDemonFireKeeper",
                       "count": 1
