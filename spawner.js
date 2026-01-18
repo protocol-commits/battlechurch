@@ -209,29 +209,32 @@
     enemy.initialSpawnY = spawnPos.y;
 
     deps.enemies.push(enemy);
-    try {
-      const puffRadius = (enemy.config?.hitRadius || enemy.radius || 32) * 2;
-      deps.spawnPuffEffect(spawnPos.x, spawnPos.y, puffRadius);
-    } catch (error) {
-      console.debug?.("Spawner.spawnEnemyOfType: puff effect failed", error);
-    }
-    if (typeof deps.playEnemySpawnSfx === "function") {
-      deps.playEnemySpawnSfx(0.55, {
-        maxHealth: Number.isFinite(instanceConfig?.maxHealth)
-          ? instanceConfig.maxHealth
-          : instanceConfig?.health,
-      });
-    }
-    if (
-      options.applyCameraShake !== false &&
-      typeof deps.applyCameraShake === "function" &&
-      deps.spawnCameraShakeMagnitude > 0 &&
-      deps.spawnCameraShakeDuration > 0
-    ) {
-      deps.applyCameraShake(
-        deps.spawnCameraShakeDuration,
-        deps.spawnCameraShakeMagnitude,
-      );
+    const skipSpawnEffects = options.skipSpawnEffects === true;
+    if (!skipSpawnEffects) {
+      try {
+        const puffRadius = (enemy.config?.hitRadius || enemy.radius || 32) * 2;
+        deps.spawnPuffEffect(spawnPos.x, spawnPos.y, puffRadius);
+      } catch (error) {
+        console.debug?.("Spawner.spawnEnemyOfType: puff effect failed", error);
+      }
+      if (typeof deps.playEnemySpawnSfx === "function") {
+        deps.playEnemySpawnSfx(0.55, {
+          maxHealth: Number.isFinite(instanceConfig?.maxHealth)
+            ? instanceConfig.maxHealth
+            : instanceConfig?.health,
+        });
+      }
+      if (
+        options.applyCameraShake !== false &&
+        typeof deps.applyCameraShake === "function" &&
+        deps.spawnCameraShakeMagnitude > 0 &&
+        deps.spawnCameraShakeDuration > 0
+      ) {
+        deps.applyCameraShake(
+          deps.spawnCameraShakeDuration,
+          deps.spawnCameraShakeMagnitude,
+        );
+      }
     }
     if (type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3") enemy.isPopcorn = true;
     return enemy;

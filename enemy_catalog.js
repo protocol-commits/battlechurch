@@ -825,12 +825,13 @@
     "baseRadius": 14,
     "scale": 7,
     "attackBonus": 34,
+    "attackRange": 170,
     "cooldown": 1.8,
     "score": 240,
     "ranged": false,
     "projectileType": null,
     "preferEdges": false,
-    "desiredRange": 130,
+    "desiredRange": 170,
     "projectileCooldown": 1.8,
     "bossTier": 2,
     "preferredTarget": "player",
@@ -844,6 +845,40 @@
     "hitbox": {
       "width": 24,
       "height": 20,
+      "offsetX": 0,
+      "offsetY": 6
+    }
+  },
+  "tormentorFlame": {
+    "displayName": "Tormentor Flame",
+    "assetFolder": "Tormentor Flame",
+    "assetBaseName": "Tormentor Flame",
+    "health": 90,
+    "maxHealth": 90,
+    "damage": 5,
+    "speed": 72,
+    "baseRadius": 8,
+    "scale": 1.4,
+    "attackBonus": 16,
+    "cooldown": 0.9,
+    "score": 18,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 30,
+    "projectileCooldown": 0.9,
+    "bossTier": 0,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "mini",
+      "closestAny",
+      "swarmable",
+      "tormentorFlame"
+    ],
+    "swarmSpacing": 0.2,
+    "hitbox": {
+      "width": 16,
+      "height": 18,
       "offsetX": 0,
       "offsetY": 6
     }

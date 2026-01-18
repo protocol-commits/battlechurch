@@ -1484,6 +1484,46 @@ class Player {
       // spawnDelay removed; enemies act immediately after spawning
       this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
 
+      if (this._orbiting && this.orbitParent) {
+        if (this.orbitParent.dead || this.orbitParent.state === "death") {
+          this._orbiting = false;
+          this.orbitParent = null;
+          this.ignoreEntityCollisions = false;
+          this.ignoreWorldBounds = false;
+          this.touchCooldown = 0;
+          this.attackTimer = 0;
+          if (this.animator && this.config?.scale) {
+            this.animator.scale = this.config.scale;
+          }
+        } else {
+          const angle = (this.orbitAngle || 0) + (this.orbitSpeed || 0) * dt;
+          this.orbitAngle = angle;
+          const radiusX = this.orbitRadiusX || 0;
+          const radiusY = this.orbitRadiusY || 0;
+          const depth = (Math.sin(angle) + 1) * 0.5;
+          const lift = (1 - depth) * (this.orbitLift || 6);
+          const offsetY = this.orbitOffsetY || 0;
+          this.x = this.orbitParent.x + Math.cos(angle) * radiusX;
+          this.y = this.orbitParent.y + offsetY + Math.sin(angle) * radiusY - lift;
+          this.ignoreEntityCollisions = true;
+          this.ignoreWorldBounds = true;
+          this.touchCooldown = Infinity;
+          this.updateFacing(Math.cos(angle), Math.sin(angle));
+          if (this.state !== "walk") {
+            this.state = "walk";
+            this.animator.play("walk");
+          }
+          if (this.animator) {
+            const scale = this.config?.scale || 1;
+            const minScale = this.orbitScaleMin || 0.85;
+            const maxScale = this.orbitScaleMax || 1.15;
+            this.animator.scale = scale * (minScale + depth * (maxScale - minScale));
+            this.animator.update(dt);
+          }
+          return;
+        }
+      }
+
       if (this.state === "death") {
         this.animator.update(dt);
         if (typeof this.deathTimer === "number") {

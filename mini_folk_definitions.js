@@ -9,6 +9,7 @@
     { key: "miniClawedDemon", src: "assets/sprites/MinifolksDemons/Without outline/MiniClawedDemon.png" },
     { key: "miniHighDemon", src: "assets/sprites/MinifolksDemons/Without outline/MiniHighDemon.png" },
     { key: "miniDemonTormentor", src: "assets/sprites/MinifolksDemons/Without outline/MiniDemonTormentor.png" },
+    { key: "tormentorFlame", src: "assets/sprites/fire/Group-4-1.png" },
     { key: "miniDemonLord", src: "assets/sprites/MinifolksDemons/Without outline/MiniDemonLord.png" },
     { key: "miniDemonFireThrower", src: "assets/sprites/MinifolksDemons/Without outline/MiniDemonFireThrower.png" },
     { key: "miniDemonFireKeeper", src: "assets/sprites/MinifolksDemons/Without outline/MiniDemonFireKeeper.png" },

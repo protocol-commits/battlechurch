@@ -1886,6 +1886,11 @@ const RUSH_HITBOX_DEBUG_DURATION = 0.12;
 const BAT_SPAWN_COUNT = 10;
 const BAT_SCATTER_DURATION = 0.35;
 const BAT_SCATTER_SPEED_MULTIPLIER = 2.0;
+const TORMENTOR_FLAME_MAX = 3;
+const TORMENTOR_FLAME_RESPAWN_INTERVAL = 7.0;
+const TORMENTOR_FLAME_ORBIT_SPEED = 2.6;
+const TORMENTOR_FLAME_ORBIT_SCALE_MIN = 0.9;
+const TORMENTOR_FLAME_ORBIT_SCALE_MAX = 1.08;
 const DIVINE_SHOT_DAMAGE = 1000;
 const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
 const DIVINE_SHOT_LIFE = 2.8;
@@ -2920,9 +2925,10 @@ if (typeof window !== "undefined") {
 // by playing the same clip where needed so the characters animate.
 for (const mini of MINIFOLKS) {
   const isBat = mini.key === "bat";
-  const frameWidth = isBat ? 34 : 0;
-  const frameHeight = isBat ? 34 : 0;
-  const frameMap = isBat ? [0, 1, 2, 3] : undefined;
+  const isTormentorFlame = mini.key === "tormentorFlame";
+  const frameWidth = isBat ? 34 : isTormentorFlame ? 32 : 0;
+  const frameHeight = isBat ? 34 : isTormentorFlame ? 48 : 0;
+  const frameMap = isBat ? [0, 1, 2, 3] : isTormentorFlame ? Array.from({ length: 14 }, (_, i) => i) : undefined;
   ASSET_MANIFEST.enemies[mini.key] = {
     idle: {
       src: mini.src,
@@ -6308,6 +6314,7 @@ function triggerHeroRescueCall() {
 
 function applyEnemyTouchDamage(enemy) {
   if (!enemy || enemy.state === "death") return;
+  if (enemy._orbiting) return;
   if ((enemy.touchCooldown || 0) > 0) return;
 
   if (player && player.state !== "death") {
@@ -11681,6 +11688,137 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
   }
 }
 
+function getTormentorFlameOrbitSettings(enemy) {
+  const hitboxRect = getEnemyHitboxRect(enemy);
+  const hitboxWidth = hitboxRect ? hitboxRect.width : (enemy?.radius || 16) * 2;
+  const hitboxHeight = hitboxRect ? hitboxRect.height : (enemy?.radius || 16) * 2;
+  const baseRadius = Math.max(12, hitboxWidth * 0.45);
+  const topOffset = hitboxRect ? hitboxRect.y - (enemy?.y || 0) : -(hitboxHeight * 0.5);
+  return {
+    radiusX: baseRadius * 0.9,
+    radiusY: baseRadius * 0.45,
+    offsetY: topOffset + hitboxHeight * 0.2,
+    lift: Math.max(4, baseRadius * 0.35),
+  };
+}
+
+function assignTormentorFlameToOrbit(enemy, flame, slotIndex) {
+  if (!enemy || !flame) return;
+  const seedAngle =
+    typeof enemy.tormentorFlameSeedAngle === "number"
+      ? enemy.tormentorFlameSeedAngle
+      : (enemy.tormentorFlameSeedAngle = Math.random() * Math.PI * 2);
+  const angle = seedAngle + (Math.PI * 2 * slotIndex) / TORMENTOR_FLAME_MAX;
+  const settings = getTormentorFlameOrbitSettings(enemy);
+  flame._orbiting = true;
+  flame.orbitParent = enemy;
+  flame.orbitSlotIndex = slotIndex;
+  flame.orbitAngle = angle;
+  flame.orbitSpeed = TORMENTOR_FLAME_ORBIT_SPEED;
+  flame.orbitRadiusX = settings.radiusX;
+  flame.orbitRadiusY = settings.radiusY;
+  flame.orbitOffsetY = settings.offsetY;
+  flame.orbitLift = settings.lift;
+  flame.orbitScaleMin = TORMENTOR_FLAME_ORBIT_SCALE_MIN;
+  flame.orbitScaleMax = TORMENTOR_FLAME_ORBIT_SCALE_MAX;
+  flame.spawnOffscreenTimer = 0;
+  flame.ignoreEntityCollisions = true;
+  flame.ignoreWorldBounds = true;
+  flame.touchCooldown = Infinity;
+  flame.attackTimer = 0;
+  if (flame.animator) {
+    flame.state = "walk";
+    flame.animator.play("walk");
+  }
+}
+
+function releaseTormentorFlame(flame) {
+  if (!flame) return;
+  flame._orbiting = false;
+  flame.orbitParent = null;
+  flame.touchCooldown = 0;
+  flame.ignoreEntityCollisions = false;
+  flame.ignoreWorldBounds = false;
+  flame.attackTimer = 0;
+  if (flame.animator) {
+    flame.state = "walk";
+    flame.animator.play("walk");
+    if (flame.config?.scale) {
+      flame.animator.scale = flame.config.scale;
+    }
+  }
+}
+
+function updateTormentorFlames(enemy, dt) {
+  if (!enemy || enemy.dead || enemy.state === "death") return;
+  if (!enemy.tormentorFlameSlots) {
+    enemy.tormentorFlameSlots = new Array(TORMENTOR_FLAME_MAX).fill(null);
+    enemy.tormentorFlameRespawnTimer = TORMENTOR_FLAME_RESPAWN_INTERVAL;
+    enemy.tormentorFlameLaunchIndex = 0;
+    for (let i = 0; i < TORMENTOR_FLAME_MAX; i += 1) {
+      const flame = spawnEnemyOfType(
+        "tormentorFlame",
+        { x: enemy.x, y: enemy.y },
+        { applyCameraShake: false, skipSpawnEffects: true },
+      );
+      if (!flame) continue;
+      assignTormentorFlameToOrbit(enemy, flame, i);
+      enemy.tormentorFlameSlots[i] = flame;
+    }
+  }
+
+  for (let i = 0; i < enemy.tormentorFlameSlots.length; i += 1) {
+    const flame = enemy.tormentorFlameSlots[i];
+    if (!flame || flame.dead || flame.state === "death") {
+      enemy.tormentorFlameSlots[i] = null;
+      continue;
+    }
+    if (!flame._orbiting || flame.orbitParent !== enemy) {
+      enemy.tormentorFlameSlots[i] = null;
+    }
+  }
+
+  enemy.tormentorFlameRespawnTimer = Math.max(
+    0,
+    (enemy.tormentorFlameRespawnTimer || 0) - dt,
+  );
+  if (enemy.tormentorFlameRespawnTimer <= 0) {
+    const emptyIndex = enemy.tormentorFlameSlots.findIndex((slot) => !slot);
+    if (emptyIndex !== -1) {
+      const flame = spawnEnemyOfType(
+        "tormentorFlame",
+        { x: enemy.x, y: enemy.y },
+        { applyCameraShake: false, skipSpawnEffects: true },
+      );
+      if (flame) {
+        assignTormentorFlameToOrbit(enemy, flame, emptyIndex);
+        enemy.tormentorFlameSlots[emptyIndex] = flame;
+      }
+    }
+    enemy.tormentorFlameRespawnTimer = TORMENTOR_FLAME_RESPAWN_INTERVAL;
+  }
+
+  if (enemy.state === "attack") {
+    if (!enemy.tormentorFlameAttackLatch) {
+      const slots = enemy.tormentorFlameSlots;
+      const startIndex = enemy.tormentorFlameLaunchIndex || 0;
+      for (let offset = 0; offset < slots.length; offset += 1) {
+        const idx = (startIndex + offset) % slots.length;
+        const flame = slots[idx];
+        if (flame && flame._orbiting && flame.orbitParent === enemy) {
+          releaseTormentorFlame(flame);
+          enemy.tormentorFlameLaunchIndex = (idx + 1) % slots.length;
+          slots[idx] = null;
+          break;
+        }
+      }
+      enemy.tormentorFlameAttackLatch = true;
+    }
+  } else {
+    enemy.tormentorFlameAttackLatch = false;
+  }
+}
+
 function updateEnemiesAndEntities(dt) {
   if (!levelManager?.isActive()) {
     spawnTimer -= dt;
@@ -11693,6 +11831,13 @@ function updateEnemiesAndEntities(dt) {
 
   enemies.forEach((enemy) => {
     enemy.update(dt);
+    if (enemy.type === "miniDemonTormentor") {
+      updateTormentorFlames(enemy, dt);
+    }
+    if (enemy._orbiting && enemy.orbitParent) {
+      enemy.spawnOffscreenTimer = 0;
+      return;
+    }
     enemy.spawnOffscreenTimer = Math.max(0, (enemy.spawnOffscreenTimer || 0) - dt);
     if (enemy.spawnOffscreenTimer <= 0) {
       enemy.ignoreWorldBounds = false;
