@@ -857,9 +857,10 @@ body.layout-rotate-warning .upgrade-overlay__panel {
   width: 100%;
 }
 .dialog-overlay--mission .dialog-overlay__panel {
-  width: min(960px, 94%);
-  max-width: 960px;
-  padding: clamp(36px, 5vw, 80px);
+  width: 100%;
+  max-width: none;
+  max-height: 100%;
+  padding: clamp(32px, 4vw, 72px);
   background: transparent;
   border: none;
   box-shadow: none;
@@ -921,6 +922,7 @@ body.layout-rotate-warning .upgrade-overlay__panel {
   max-width: none;
   letter-spacing: 0.01em;
   text-transform: none;
+  width: 100%;
 }
 
 
