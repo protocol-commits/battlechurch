@@ -1736,7 +1736,7 @@ class Player {
     }
 
     chooseEdgePosition() {
-      const margin = 120;
+      const margin = Number.isFinite(this.config?.edgeMargin) ? this.config.edgeMargin : 120;
       if (!canvas) return { x: margin, y: margin };
       const minY = HUD_HEIGHT + margin;
       const maxY = Math.max(minY, canvas.height - margin);
@@ -1853,9 +1853,10 @@ class Player {
         const edgeDx = this.edgeTarget.x - this.x;
         const edgeDy = this.edgeTarget.y - this.y;
         const edgeDist = Math.hypot(edgeDx, edgeDy);
+        const edgeWeight = Number.isFinite(this.config?.edgeWeight) ? this.config.edgeWeight : 1;
         if (edgeDist > 48) {
-          moveX += edgeDx / edgeDist;
-          moveY += edgeDy / edgeDist;
+          moveX += (edgeDx / edgeDist) * edgeWeight;
+          moveY += (edgeDy / edgeDist) * edgeWeight;
         }
       }
 

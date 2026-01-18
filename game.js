@@ -11798,6 +11798,23 @@ function updateTormentorFlames(enemy, dt) {
     enemy.tormentorFlameRespawnTimer = TORMENTOR_FLAME_RESPAWN_INTERVAL;
   }
 
+  if (enemy.isRanged && enemy.attackTimer <= 0 && enemy.state !== "hurt") {
+    const target = typeof enemy.acquireTarget === "function" ? enemy.acquireTarget() : null;
+    if (target) {
+      const dx = target.x - enemy.x;
+      const dy = target.y - enemy.y;
+      const distance = Math.hypot(dx, dy);
+      const targetRadius = target === player ? (player?.radius || 0) : target.radius || NPC_RADIUS;
+      const desiredRange = enemy.desiredRange || enemy.config?.attackRange || 180;
+      const rangeBuffer = Math.max(0, targetRadius * 0.5);
+      if (distance <= desiredRange * 1.1 + rangeBuffer) {
+        enemy.state = "attack";
+        enemy.animator?.play("attack", { restart: true });
+        enemy.attackTimer = enemy.projectileCooldown || enemy.config?.attackCooldown || 1.5;
+      }
+    }
+  }
+
   if (enemy.state === "attack") {
     if (!enemy.tormentorFlameAttackLatch) {
       const slots = enemy.tormentorFlameSlots;
