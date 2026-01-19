@@ -256,6 +256,139 @@ const MELEE_SWING_LENGTH = 200;
     ctx.restore();
   }
 
+  const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
+
+  function getAnnouncementTextLayout(ctx, canvas, {
+    title,
+    subtitle,
+    titleSize = TEXT_STYLES.h2.size,
+    subtitleSize = TEXT_STYLES.body.size,
+    lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+    weight = TEXT_STYLES.h2.weight,
+    maxWidthScale = 0.96,
+  }) {
+    const scaleHint = Math.min(
+      1,
+      Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)),
+    );
+    const effectiveTitleSize = Math.round(titleSize * scaleHint);
+    const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
+    const effectiveLineGap = Math.round(lineGap * scaleHint);
+    const wrapText = (text, maxWidth) => {
+      const words = String(text || "").split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = "";
+      words.forEach((word) => {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width <= maxWidth || !line) {
+          line = test;
+        } else {
+          lines.push(line);
+          line = word;
+        }
+      });
+      if (line) lines.push(line);
+      return lines;
+    };
+    const maxWidth = canvas.width * maxWidthScale;
+    ctx.save();
+    ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    const titleLines = title ? wrapText(title, maxWidth) : [];
+    const subtitleLines = subtitle ? wrapText(subtitle, maxWidth) : [];
+    ctx.restore();
+    const titleLineHeight = Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
+    const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
+    const gapAfterTitle = subtitleLines.length ? Math.max(0, effectiveLineGap - titleLineHeight) : 0;
+    const textBlockHeight =
+      titleLines.length * titleLineHeight +
+      gapAfterTitle +
+      subtitleLines.length * subtitleLineHeight;
+    return {
+      effectiveTitleSize,
+      effectiveSubtitleSize,
+      effectiveLineGap,
+      titleLines,
+      subtitleLines,
+      titleLineHeight,
+      subtitleLineHeight,
+      gapAfterTitle,
+      textBlockHeight,
+      maxWidth,
+    };
+  }
+
+  function getAnnouncementScreenLayout(ctx, canvas, options = {}) {
+    const {
+      title = "",
+      subtitle = "",
+      titleSize = TEXT_STYLES.h2.size,
+      subtitleSize = TEXT_STYLES.body.size,
+      lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+      weight = TEXT_STYLES.h2.weight,
+      maxWidthScale = 0.96,
+      virtualWidth = 1280,
+      virtualHeight = 720,
+      position = "lowerThird",
+      topMargin = 90,
+      bottomMargin = 70,
+      rowGap = 40,
+      buttonHeight = 64,
+      buttonCount = 0,
+      promptSize = 0,
+      promptGap = 18,
+      HUD_HEIGHT = 54,
+    } = options;
+    const scale = Math.min(canvas.width / virtualWidth, canvas.height / virtualHeight);
+    const offsetX = Math.round((canvas.width - virtualWidth * scale) / 2);
+    const offsetY = Math.round((canvas.height - virtualHeight * scale) / 2);
+    const virtualCanvas = { width: virtualWidth, height: virtualHeight };
+    const textLayout = getAnnouncementTextLayout(ctx, virtualCanvas, {
+      title,
+      subtitle,
+      titleSize,
+      subtitleSize,
+      lineGap,
+      weight,
+      maxWidthScale,
+    });
+    const promptLineHeight = promptSize
+      ? Math.round(promptSize * TEXT_STYLES.h2.lineHeight)
+      : 0;
+    const buttonBlockHeight = buttonCount
+      ? (promptLineHeight
+          ? promptLineHeight + promptGap + buttonHeight
+          : rowGap + buttonHeight)
+      : 0;
+    const stackHeight = textLayout.textBlockHeight + buttonBlockHeight;
+    const stackTopY = getAnnouncementScreenTopY({
+      canvasHeight: virtualHeight,
+      HUD_HEIGHT,
+      blockHeight: stackHeight,
+      position,
+      topMargin,
+      bottomMargin,
+    });
+    const titleY = stackTopY + textLayout.titleLineHeight;
+    const promptY = promptLineHeight
+      ? stackTopY + textLayout.textBlockHeight + promptLineHeight
+      : null;
+    const buttonY = buttonCount
+      ? stackTopY +
+        textLayout.textBlockHeight +
+        (promptLineHeight ? promptLineHeight + promptGap : rowGap)
+      : null;
+    return {
+      scale,
+      offsetX,
+      offsetY,
+      virtualCanvas,
+      titleY,
+      promptY,
+      buttonY,
+      textLayout,
+    };
+  }
+
   function drawAnnouncementText(ctx, canvas, {
     title,
     subtitle,
@@ -295,7 +428,6 @@ const MELEE_SWING_LENGTH = 200;
       if (line) lines.push(line);
       return lines;
     };
-    const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
     ctx.save();
     ctx.globalAlpha = 0.98 * alpha;
     ctx.fillStyle = "#EAF6FF";
@@ -428,6 +560,29 @@ const MELEE_SWING_LENGTH = 200;
     const yBase = Math.max(HUD_HEIGHT + 120, lowerThird);
     const boxY = yBase - boxHeight / 2;
     return boxY + 46;
+  }
+
+  // Announcement Screen Engine position presets for future screens.
+  function getAnnouncementScreenTopY({
+    canvasHeight,
+    HUD_HEIGHT = 54,
+    blockHeight,
+    position = "lowerThird",
+    topMargin = 90,
+    bottomMargin = 90,
+  }) {
+    if (position === "top") {
+      return topMargin;
+    }
+    if (position === "bottom") {
+      return Math.max(topMargin, canvasHeight - bottomMargin - blockHeight);
+    }
+    if (position === "center") {
+      return Math.max(topMargin, Math.round(canvasHeight / 2 - blockHeight / 2));
+    }
+    // Default: lower third.
+    const lowerThirdY = Math.floor(canvasHeight * 0.84) - blockHeight;
+    return Math.max(topMargin, Math.round(lowerThirdY));
   }
 
   function resolveCameraX(explicitValue) {
@@ -652,21 +807,33 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     showFormation = true,
     uiFontFamily = "sans-serif",
   } = options;
-  const virtualWidth = 1280;
-  const virtualHeight = 720;
-  const scale = Math.min(canvas.width / virtualWidth, canvas.height / virtualHeight);
-  const offsetX = Math.round((canvas.width - virtualWidth * scale) / 2);
-  const offsetY = Math.round((canvas.height - virtualHeight * scale) / 2);
-  const virtualCanvas = { width: virtualWidth, height: virtualHeight };
+  const promptSize = showFormation ? Math.round(TEXT_STYLES.h2.size * 0.9) : 0;
+  const buttonHeight = showFormation ? 120 : 72;
   ctx.save();
-  ctx.translate(offsetX, offsetY);
-  ctx.scale(scale, scale);
-
-  const titleY = 120;
-  drawAnnouncementText(ctx, virtualCanvas, {
+  const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
     subtitle,
-    yBase: titleY,
+    titleSize: TEXT_STYLES.h1.size,
+    subtitleSize: TEXT_STYLES.h2.size,
+    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    weight: TEXT_STYLES.h1.weight,
+    maxWidthScale: 0.96,
+    position: "top",
+    topMargin: 90,
+    bottomMargin: 70,
+    rowGap: 40,
+    buttonHeight,
+    buttonCount: showFormation ? 3 : 1,
+    promptSize,
+    promptGap: 18,
+  });
+  ctx.translate(layout.offsetX, layout.offsetY);
+  ctx.scale(layout.scale, layout.scale);
+
+  drawAnnouncementText(ctx, layout.virtualCanvas, {
+    title,
+    subtitle,
+    yBase: layout.titleY,
     titleSize: TEXT_STYLES.h1.size,
     subtitleSize: TEXT_STYLES.h2.size,
     weight: TEXT_STYLES.h1.weight,
@@ -719,30 +886,28 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         },
       ];
   const buttonCount = buttonConfigs.length;
-  const bottomPadding = 70;
-  const buttonHeight = showFormation ? 120 : 72;
   const buttonGap = showFormation ? 22 : 0;
   const sidePadding = 90;
-  const totalAvailable = virtualWidth - sidePadding * 2;
+  const totalAvailable = layout.virtualCanvas.width - sidePadding * 2;
   const buttonWidth = showFormation
     ? Math.floor((totalAvailable - buttonGap * (buttonCount - 1)) / buttonCount)
     : Math.min(420, totalAvailable);
   const buttonRowWidth = showFormation
     ? buttonWidth * buttonCount + buttonGap * (buttonCount - 1)
     : buttonWidth;
-  const buttonStartX = Math.round((virtualWidth - buttonRowWidth) / 2);
-  const buttonY = Math.round(virtualHeight - bottomPadding - buttonHeight);
-  const promptY = buttonY - 32;
+  const buttonStartX = Math.round((layout.virtualCanvas.width - buttonRowWidth) / 2);
+  const buttonY = Math.round(layout.buttonY || 0);
+  const promptY = layout.promptY;
 
-  if (promptText) {
+  if (promptText && promptY) {
     ctx.save();
     ctx.fillStyle = "#EAF6FF";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.font = `${TEXT_STYLES.h2.weight} ${Math.round(TEXT_STYLES.h2.size * 0.9)}px 'Orbitron', sans-serif`;
+    ctx.font = `${TEXT_STYLES.h2.weight} ${promptSize}px 'Orbitron', sans-serif`;
     ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
     ctx.shadowBlur = 18;
-    ctx.fillText(promptText, virtualWidth / 2, promptY);
+    ctx.fillText(promptText, layout.virtualCanvas.width / 2, promptY);
     ctx.restore();
   }
 
@@ -773,10 +938,10 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
 
     bounds.push({
       key: config.key,
-      x: offsetX + x * scale,
-      y: offsetY + buttonY * scale,
-      width: buttonWidth * scale,
-      height: buttonHeight * scale,
+      x: layout.offsetX + x * layout.scale,
+      y: layout.offsetY + buttonY * layout.scale,
+      width: buttonWidth * layout.scale,
+      height: buttonHeight * layout.scale,
     });
   });
 
@@ -1942,60 +2107,34 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     }
 
 
-    const virtualWidth = 1280;
-    const virtualHeight = 720;
-    const scale = Math.min(canvas.width / virtualWidth, canvas.height / virtualHeight);
-    const offsetX = Math.round((canvas.width - virtualWidth * scale) / 2);
-    const offsetY = Math.round((canvas.height - virtualHeight * scale) / 2);
-    const virtualCanvas = { width: virtualWidth, height: virtualHeight };
-    ctx.save();
-    ctx.translate(offsetX, offsetY);
-    ctx.scale(scale, scale);
     const titleText = "Spiritual Warfare";
     const subtitleText = "Smite the hordes. Save your flock. Save the town.";
-    const maxWidth = virtualWidth * 0.92;
     const titleSize = TEXT_STYLES.h1.size;
     const subtitleSize = TEXT_STYLES.h2.size;
-    const titleLineHeight = Math.round(titleSize * TEXT_STYLES.h2.lineHeight);
-    const subtitleLineHeight = Math.round(subtitleSize * TEXT_STYLES.body.lineHeight);
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
-    const wrapTextLocal = (text, font) => {
-      ctx.font = font;
-      const words = String(text || "").split(/\s+/).filter(Boolean);
-      const lines = [];
-      let line = "";
-      words.forEach((word) => {
-        const test = line ? `${line} ${word}` : word;
-        if (ctx.measureText(test).width <= maxWidth || !line) {
-          line = test;
-        } else {
-          lines.push(line);
-          line = word;
-        }
-      });
-      if (line) lines.push(line);
-      return lines;
-    };
-    const titleLines = wrapTextLocal(
-      titleText,
-      `${TEXT_STYLES.h1.weight} ${titleSize}px 'Orbitron', sans-serif`,
-    );
-    const subtitleLines = wrapTextLocal(
-      subtitleText,
-      `${TEXT_STYLES.h2.weight} ${subtitleSize}px 'Orbitron', sans-serif`,
-    );
-    const topMargin = 90;
-    const titleY = topMargin + titleLineHeight;
-    const gapAfterTitle = subtitleLines.length ? Math.max(0, lineGap - titleLineHeight) : 0;
-    const textBottomY =
-      titleY +
-      titleLines.length * titleLineHeight +
-      gapAfterTitle +
-      subtitleLines.length * subtitleLineHeight;
-    drawAnnouncementText(ctx, virtualCanvas, {
+    const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
       subtitle: subtitleText,
-      yBase: titleY,
+      titleSize,
+      subtitleSize,
+      lineGap,
+      weight: TEXT_STYLES.h1.weight,
+      maxWidthScale: 0.92,
+      position: "bottom",
+      topMargin: 90,
+      bottomMargin: 70,
+      rowGap: 40,
+      buttonHeight: 64,
+      buttonCount: 2,
+      HUD_HEIGHT: HUD_HEIGHT || 54,
+    });
+    ctx.save();
+    ctx.translate(layout.offsetX, layout.offsetY);
+    ctx.scale(layout.scale, layout.scale);
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title: titleText,
+      subtitle: subtitleText,
+      yBase: layout.titleY,
       alpha: 1,
       titleSize,
       subtitleSize,
@@ -2012,12 +2151,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     const buttonHeight = 64;
     const buttonGap = 28;
     const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
-    const startX = Math.round(virtualWidth / 2 - rowWidth / 2);
-    const rowGap = 40;
-    const bottomPadding = 70;
-    const desiredButtonY = textBottomY + rowGap;
-    const maxButtonY = virtualHeight - bottomPadding - buttonHeight;
-    const buttonY = Math.min(desiredButtonY, maxButtonY);
+    const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
+    const buttonY = Math.round(layout.buttonY || 0);
     const bounds = [];
     buttonConfigs.forEach((config, index) => {
       const x = startX + index * (buttonWidth + buttonGap);
@@ -2034,10 +2169,10 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       ctx.restore();
       bounds.push({
         key: config.key,
-        x: offsetX + x * scale,
-        y: offsetY + buttonY * scale,
-        width: buttonWidth * scale,
-        height: buttonHeight * scale,
+        x: layout.offsetX + x * layout.scale,
+        y: layout.offsetY + buttonY * layout.scale,
+        width: buttonWidth * layout.scale,
+        height: buttonHeight * layout.scale,
       });
     });
     if (typeof window !== "undefined") {
