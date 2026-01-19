@@ -60,7 +60,18 @@
     }
   })();
 
-  const isTouchCapable = true;
+  const isTouchCapable = (() => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0) return true;
+      if (typeof window !== "undefined" && "ontouchstart" in window) return true;
+      if (typeof window !== "undefined" && window.matchMedia) {
+        return window.matchMedia("(pointer: coarse)").matches;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  })();
 
   let canvas = null;
   let touchControlsRoot = null;

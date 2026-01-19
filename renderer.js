@@ -2385,7 +2385,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     if (townIntroActive) {
       const effectiveCameraX = resolveCameraX();
       drawBackground(effectiveCameraX, 0);
-      drawLevelAnnouncements();
+      // Chapter Break (aka Act Break) screen: Act I/II/III + exterior shot.
+      const announcementTitle = levelAnnouncements?.[0]?.title || "";
       {
         const { UI_FONT_FAMILY } = requireBindings();
         const centerX = canvas.width / 2;
@@ -2402,18 +2403,69 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         ctx.fillText("Act I", centerX, titleY);
         ctx.restore();
       }
+      {
+        const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+        const layout = getAnnouncementScreenLayout(ctx, canvas, {
+          title: announcementTitle,
+          subtitle: "",
+          titleSize,
+          subtitleSize: TEXT_STYLES.h2.size,
+          lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+          weight: TEXT_STYLES.h1.weight,
+          maxWidthScale: 0.92,
+          position: "bottom",
+          topMargin: 90,
+          bottomMargin: 80,
+          rowGap: 32,
+          buttonHeight: 50,
+          buttonCount: 1,
+          HUD_HEIGHT,
+        });
+        ctx.save();
+        ctx.translate(layout.offsetX, layout.offsetY);
+        ctx.scale(layout.scale, layout.scale);
+        drawAnnouncementText(ctx, layout.virtualCanvas, {
+          title: announcementTitle,
+          yBase: layout.titleY,
+          alpha: 1,
+          typewriter: true,
+          titleSize,
+          weight: TEXT_STYLES.h1.weight,
+          maxWidthScale: 0.92,
+        });
+        ctx.restore();
+      }
       ctx.save();
       const buttonText = "Play (Space)";
-      const buttonWidth = Math.min(240, canvas.width * 0.5);
+      const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+      const layout = getAnnouncementScreenLayout(ctx, canvas, {
+        title: announcementTitle,
+        subtitle: "",
+        titleSize,
+        subtitleSize: TEXT_STYLES.h2.size,
+        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+        weight: TEXT_STYLES.h1.weight,
+        maxWidthScale: 0.92,
+        position: "bottom",
+        topMargin: 90,
+        bottomMargin: 80,
+        rowGap: 32,
+        buttonHeight: 50,
+        buttonCount: 1,
+        HUD_HEIGHT,
+      });
+      ctx.translate(layout.offsetX, layout.offsetY);
+      ctx.scale(layout.scale, layout.scale);
+      const buttonWidth = Math.min(240, layout.virtualCanvas.width * 0.5);
       const buttonHeight = 50;
-      const buttonX = Math.max(24, canvas.width - buttonWidth - 40);
-      const buttonY = Math.max(24, canvas.height - buttonHeight - 40);
+      const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+      const buttonY = Math.round(layout.buttonY || 0);
       if (typeof window !== "undefined") {
         window.__townIntroPlayButtonBounds = {
-          x: buttonX,
-          y: buttonY,
-          width: buttonWidth,
-          height: buttonHeight,
+          x: layout.offsetX + buttonX * layout.scale,
+          y: layout.offsetY + buttonY * layout.scale,
+          width: buttonWidth * layout.scale,
+          height: buttonHeight * layout.scale,
         };
       }
       ctx.fillStyle = "#9BD9FF";
