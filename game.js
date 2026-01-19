@@ -11400,35 +11400,25 @@ function handleTitleScreen() {
   const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
   if (!hitboxEditorActive && !window.DialogOverlay?.isVisible()) {
     startIntroMusic();
-    const clickPos = Input.consumeCanvasClick?.();
-    const buttonBounds =
-      typeof window !== "undefined" ? window.__titleMenuButtonBounds : null;
-    if (clickPos && Array.isArray(buttonBounds)) {
-      const hit = buttonBounds.find(
-        (btn) =>
-          clickPos.x >= btn.x &&
-          clickPos.x <= btn.x + btn.width &&
-          clickPos.y >= btn.y &&
-          clickPos.y <= btn.y + btn.height,
-      );
-      if (hit) {
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "title"
+        ? window.__announcementButtons.buttons
+        : null;
+    const handled = handleAnnouncementButtons({
+      key: "title",
+      buttons,
+      allowSpace: true,
+      onActivate: (button) => {
         triggerIntroMusicFromInput();
-        if (hit.key === "play") {
+        if (button.key === "play") {
           startGameFromTitle();
-        } else if (hit.key === "howto") {
+        } else if (button.key === "howto") {
           titleDialogActive = true;
           showTitlePageDialog("howto");
         }
-        keysJustPressed.delete(" ");
-        return true;
-      }
-    }
-    if (keysJustPressed.has(" ")) {
-      triggerIntroMusicFromInput();
-      startGameFromTitle();
-      keysJustPressed.delete(" ");
-      return true;
-    }
+      },
+    });
+    if (handled) return true;
   }
   keysJustPressed.delete(" ");
   return true;
@@ -11509,55 +11499,98 @@ function handleVisitorIntro() {
   return true;
 }
 
+function getAnnouncementNavDirection() {
+  let direction = 0;
+  const leftKeys = ["arrowleft", "a", "arrowup", "w"];
+  const rightKeys = ["arrowright", "d", "arrowdown", "s"];
+  if (leftKeys.some((key) => keysJustPressed.has(key))) direction = -1;
+  if (rightKeys.some((key) => keysJustPressed.has(key))) direction = 1;
+  if (direction !== 0) {
+    leftKeys.forEach((key) => keysJustPressed.delete(key));
+    rightKeys.forEach((key) => keysJustPressed.delete(key));
+  }
+  return direction;
+}
+
+function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true }) {
+  if (!Array.isArray(buttons) || buttons.length === 0) return false;
+  const focus = typeof window !== "undefined" ? window.__announcementFocus : null;
+  let focusIndex = focus && focus.key === key ? focus.index : 0;
+  if (!Number.isFinite(focusIndex) || focusIndex < 0 || focusIndex >= buttons.length) {
+    focusIndex = 0;
+  }
+  const direction = getAnnouncementNavDirection();
+  if (direction !== 0 && buttons.length > 1) {
+    focusIndex = (focusIndex + direction + buttons.length) % buttons.length;
+  }
+  if (typeof window !== "undefined") {
+    window.__announcementFocus = { key, index: focusIndex };
+  }
+  const clickPos = Input.consumeCanvasClick?.();
+  if (clickPos) {
+    const hitIndex = buttons.findIndex(
+      (btn) =>
+        clickPos.x >= btn.x &&
+        clickPos.x <= btn.x + btn.width &&
+        clickPos.y >= btn.y &&
+        clickPos.y <= btn.y + btn.height,
+    );
+    if (hitIndex >= 0) {
+      focusIndex = hitIndex;
+      if (typeof window !== "undefined") {
+        window.__announcementFocus = { key, index: focusIndex };
+      }
+      if (typeof onActivate === "function") {
+        onActivate(buttons[hitIndex], hitIndex);
+      }
+      return true;
+    }
+  }
+  const confirmKeys = [" ", "enter"];
+  if (allowSpace && confirmKeys.some((k) => keysJustPressed.has(k))) {
+    confirmKeys.forEach((k) => keysJustPressed.delete(k));
+    if (typeof onActivate === "function") {
+      onActivate(buttons[focusIndex], focusIndex);
+    }
+    return true;
+  }
+  return false;
+}
+
 function handleLevelAnnouncements() {
   const missionButtons =
     typeof window !== "undefined" ? window.__missionBriefButtonBounds : null;
   const missionActive =
     typeof window !== "undefined" ? window.__missionBriefActive : false;
   if (missionActive && Array.isArray(missionButtons) && missionButtons.length) {
-    const clickPos = Input.consumeCanvasClick?.();
-    if (clickPos) {
-      const hit = missionButtons.find(
-        (btn) =>
-          clickPos.x >= btn.x &&
-          clickPos.x <= btn.x + btn.width &&
-          clickPos.y >= btn.y &&
-          clickPos.y <= btn.y + btn.height,
-      );
-      if (hit) {
-        if (hit.key === "continue") {
+    const handled = handleAnnouncementButtons({
+      key: "missionBrief",
+      buttons: missionButtons,
+      allowSpace: true,
+      onActivate: (button) => {
+        if (button.key === "continue") {
           dismissCurrentLevelAnnouncement();
           if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
             window.playMenuAdvanceSfx(0.55);
           }
-        } else {
-          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
-            window.playMenuItemPickSfx(0.55);
-          }
-          if (typeof window.selectFormation === "function") {
-            window.selectFormation(hit.key);
-          }
-          if (typeof window.startBattleMusicFromFormation === "function") {
-            window.startBattleMusicFromFormation();
-          }
-          if (typeof window.applyFormationAnchors === "function") {
-            try { window.applyFormationAnchors(); } catch (e) {}
-          }
-          dismissCurrentLevelAnnouncement();
+          return;
         }
-        keysJustPressed.delete(" ");
-        return true;
-      }
-    }
-    const canContinue = missionButtons.some((btn) => btn.key === "continue");
-    if (canContinue && keysJustPressed.has(" ")) {
-      dismissCurrentLevelAnnouncement();
-      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-        window.playMenuAdvanceSfx(0.55);
-      }
-      keysJustPressed.delete(" ");
-      return true;
-    }
+        if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.55);
+        }
+        if (typeof window.selectFormation === "function") {
+          window.selectFormation(button.key);
+        }
+        if (typeof window.startBattleMusicFromFormation === "function") {
+          window.startBattleMusicFromFormation();
+        }
+        if (typeof window.applyFormationAnchors === "function") {
+          try { window.applyFormationAnchors(); } catch (e) {}
+        }
+        dismissCurrentLevelAnnouncement();
+      },
+    });
+    if (handled) return true;
   }
   if (!levelAnnouncements.length || !levelAnnouncements[0].requiresConfirm) return false;
   const currentAnnouncement = levelAnnouncements[0];
@@ -11577,23 +11610,22 @@ function handleLevelAnnouncements() {
     return true;
   }
   if (currentAnnouncement.townIntro) {
-    const clickPos = Input.consumeCanvasClick?.();
-    const buttonBounds = typeof window !== "undefined" ? window.__townIntroPlayButtonBounds : null;
-    if (clickPos && buttonBounds) {
-      const inside =
-        clickPos.x >= buttonBounds.x &&
-        clickPos.x <= buttonBounds.x + buttonBounds.width &&
-        clickPos.y >= buttonBounds.y &&
-        clickPos.y <= buttonBounds.y + buttonBounds.height;
-      if (inside) {
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak"
+        ? window.__announcementButtons.buttons
+        : null;
+    const handled = handleAnnouncementButtons({
+      key: "chapterBreak",
+      buttons,
+      allowSpace: true,
+      onActivate: () => {
         startTownIntroTransition();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
         }
-        keysJustPressed.delete(" ");
-        return true;
-      }
-    }
+      },
+    });
+    if (handled) return true;
   }
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
     if (currentAnnouncement.townIntro) {
@@ -11614,19 +11646,20 @@ function updateCongregationStage(dt, levelStatus) {
   let congregationStageActive = stage === "levelIntro";
   if (!congregationStageActive) return { updated: false, levelStatus };
 
-  const clickPos = Input.consumeCanvasClick?.();
-  const buttonBounds = typeof window !== "undefined" ? window.__congregationPlayButtonBounds : null;
-  if (clickPos && buttonBounds) {
-    const inside =
-      clickPos.x >= buttonBounds.x &&
-      clickPos.x <= buttonBounds.x + buttonBounds.width &&
-      clickPos.y >= buttonBounds.y &&
-      clickPos.y <= buttonBounds.y + buttonBounds.height;
-    if (inside && typeof levelManager?.advanceFromCongregation === "function") {
+  const buttons =
+    typeof window !== "undefined" && window.__announcementButtons?.key === "congregation"
+      ? window.__announcementButtons.buttons
+      : null;
+  const handled = handleAnnouncementButtons({
+    key: "congregation",
+    buttons,
+    allowSpace: true,
+    onActivate: () => {
+      if (typeof levelManager?.advanceFromCongregation !== "function") return;
       const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
       if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
         Input.consumeCanvasClick?.();
-        return { updated: true, levelStatus };
+        return;
       }
       if (pendingTownIntroStart) {
         pendingTownIntroStart = false;
@@ -11638,8 +11671,9 @@ function updateCongregationStage(dt, levelStatus) {
       }
       levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
       stage = levelStatus?.stage;
-    }
-  }
+    },
+  });
+  if (handled) return { updated: true, levelStatus };
   if (!powerUpsClearedForCongregation) {
     clearAllPowerUps();
     powerUpsClearedForCongregation = true;

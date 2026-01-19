@@ -258,6 +258,12 @@ const MELEE_SWING_LENGTH = 200;
 
   const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
 
+  function isAnnouncementButtonFocused(screenKey, index) {
+    if (typeof window === "undefined") return false;
+    const focus = window.__announcementFocus;
+    return Boolean(focus && focus.key === screenKey && focus.index === index);
+  }
+
   function wrapAnnouncementText(ctx, text, maxWidth) {
     const paragraphs = String(text || "").split("\n");
     const lines = [];
@@ -905,17 +911,22 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   }
 
   const bounds = [];
-  buttonConfigs.forEach((config, index) => {
-    const x = showFormation ? buttonStartX + index * (buttonWidth + buttonGap) : buttonStartX;
-    ctx.save();
-    ctx.fillStyle = "#9BD9FF";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-    ctx.lineWidth = 2;
-    roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
-    ctx.fillStyle = "#0b111a";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `600 ${showFormation ? 28 : 24}px ${uiFontFamily}`;
+    buttonConfigs.forEach((config, index) => {
+      const x = showFormation ? buttonStartX + index * (buttonWidth + buttonGap) : buttonStartX;
+      ctx.save();
+      ctx.fillStyle = "#9BD9FF";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
+      if (isAnnouncementButtonFocused("missionBrief", index)) {
+        ctx.strokeStyle = "#FFC86A";
+        ctx.lineWidth = 3;
+        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+      }
+      ctx.fillStyle = "#0b111a";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `600 ${showFormation ? 28 : 24}px ${uiFontFamily}`;
     ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 40);
     if (config.desc) {
       ctx.font = `16px ${uiFontFamily}`;
@@ -941,6 +952,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   if (typeof window !== "undefined") {
     window.__missionBriefActive = true;
     window.__missionBriefButtonBounds = bounds;
+    window.__announcementButtons = { key: "missionBrief", buttons: bounds };
   }
 
   ctx.restore();
@@ -1339,11 +1351,28 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         width: buttonWidth * layout.scale,
         height: buttonHeight * layout.scale,
       };
+      window.__announcementButtons = {
+        key: "congregation",
+        buttons: [
+          {
+            key: "play",
+            x: layout.offsetX + buttonX * layout.scale,
+            y: layout.offsetY + buttonY * layout.scale,
+            width: buttonWidth * layout.scale,
+            height: buttonHeight * layout.scale,
+          },
+        ],
+      };
     }
     ctx.fillStyle = "#9BD9FF";
     ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     ctx.lineWidth = 2;
     roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+    if (isAnnouncementButtonFocused("congregation", 0)) {
+      ctx.strokeStyle = "#FFC86A";
+      ctx.lineWidth = 3;
+      roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+    }
     ctx.fillStyle = "#0b111a";
     ctx.textAlign = "center";
     ctx.font = `18px ${UI_FONT_FAMILY}`;
@@ -2205,6 +2234,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
       ctx.lineWidth = 2;
       roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      if (isAnnouncementButtonFocused("title", index)) {
+        ctx.strokeStyle = "#FFC86A";
+        ctx.lineWidth = 3;
+        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+      }
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
@@ -2221,6 +2255,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     });
     if (typeof window !== "undefined") {
       window.__titleMenuButtonBounds = bounds;
+      window.__announcementButtons = { key: "title", buttons: bounds };
     }
     ctx.restore();
     if (devInspectorActive && typeof drawDevInspector === "function") {
@@ -2309,6 +2344,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       postDeathSequenceActive,
       heroLives,
     } = requireBindings();
+    if (typeof window !== "undefined") {
+      window.__announcementButtons = null;
+    }
     const dynamicNameTags = [];
     const npcFadeAlpha = Math.max(0, 1 - Math.min(1, actBreakFadeAlpha));
     npcFaithOverlays.length = 0;
@@ -2467,11 +2505,28 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           width: buttonWidth * layout.scale,
           height: buttonHeight * layout.scale,
         };
+        window.__announcementButtons = {
+          key: "chapterBreak",
+          buttons: [
+            {
+              key: "play",
+              x: layout.offsetX + buttonX * layout.scale,
+              y: layout.offsetY + buttonY * layout.scale,
+              width: buttonWidth * layout.scale,
+              height: buttonHeight * layout.scale,
+            },
+          ],
+        };
       }
       ctx.fillStyle = "#9BD9FF";
       ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
       ctx.lineWidth = 2;
       roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      if (isAnnouncementButtonFocused("chapterBreak", 0)) {
+        ctx.strokeStyle = "#FFC86A";
+        ctx.lineWidth = 3;
+        roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+      }
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
       ctx.font = `18px ${UI_FONT_FAMILY}`;
