@@ -257,6 +257,8 @@ const MELEE_SWING_LENGTH = 200;
     subtitleWeight = TEXT_STYLES.body.weight,
     typewriter = false,
   }) {
+    // "Announcement Text" refers to this renderer's font/size/wrap style.
+    // "Announcement Text Engine" means this renderer at full-width on the main canvas.
     const wrapText = (text, maxWidth) => {
       const words = String(text || "").split(/\s+/).filter(Boolean);
       const lines = [];
