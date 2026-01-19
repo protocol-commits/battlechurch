@@ -11762,10 +11762,33 @@ function handlePauseMenu() {
   if (!overlayActive && wasActionJustPressed("pause")) {
     paused = !paused;
     if (paused && !gameOver) {
-      showPauseDialog();
+      window.isPauseOverlayActive = true;
+      if (typeof window !== "undefined" && typeof window.pauseAllMusic === "function") {
+        window.pauseAllMusic();
+      }
     } else if (!paused) {
       resumeFromPause();
     }
+  }
+  if (paused && !gameOver) {
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "pause"
+        ? window.__announcementButtons.buttons
+        : null;
+    const handled = handleAnnouncementButtons({
+      key: "pause",
+      buttons,
+      allowSpace: true,
+      onActivate: (button) => {
+        if (button.key === "restart") {
+          window.isPauseOverlayActive = false;
+          restartGame();
+          return;
+        }
+        resumeFromPause();
+      },
+    });
+    if (handled) return true;
   }
   return false;
 }

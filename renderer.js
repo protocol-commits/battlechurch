@@ -1703,158 +1703,92 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   }
 
   function drawPauseOverlay() {
-    const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
+    const { ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT = 54 } = requireBindings();
     if (window.DialogOverlay?.isVisible()) return;
     ctx.save();
-    ctx.fillStyle = "rgba(4, 7, 14, 0.86)";
+    ctx.fillStyle = "rgba(4, 7, 14, 0.78)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const sections = [
-      { title: "Move", items: ["WASD", "Double-tap WASD to rush"] },
-      { title: "Aim", items: ["Arrow keys", "Mouse cursor"] },
-      {
-        title: "Hotkeys",
-        items: [
-          "Space: Pause / Resume",
-          "Left Arrow: Melee (hold to charge)",
-          "Right Arrow: Prayer bomb",
-          "Right-click: Prayer bomb",
-        ],
-      },
-      {
-        title: "Utility Power Ups",
-        items: [
-          "heart_1.png ➜ heal",
-          "Shield of Faith (Chests)",
-          "Speed Boost (Flasks)",
-          "Sword of the Spirit (Torches)",
-        ],
-      },
-      {
-        title: "Weapons",
-        items: [
-          "book.png ➜ Wisdom",
-          "coin_1-4.png ➜ Faith",
-          "torch.png ➜ Scripture",
-        ],
-      },
-      {
-        title: "Developer Hotkeys",
-        items: [
-          "1: Toggle God mode",
-          "2: Clear all enemies",
-          "3: Skip Month",
-          "4: Skip Level",
-          "5: Skip to boss",
-          "6: Start grace rush",
-          "B: Boost prayer bomb tier",
-          "K: +500 Grace points",
-          "O: Toggle enemy labels",
-          "V: Toggle visitor session",
-        ],
-      },
-      {
-        title: "Inspector Hotkeys",
-        items: [
-          "F: Toggle frame inspector",
-          ", / ArrowLeft: Prev target",
-          ". / ArrowRight: Next target",
-          "+ / - : Zoom in / out",
-          "0: Reset zoom",
-          "R: Reset overrides",
-          "Enter: Cycle state / confirm pick",
-          "S: Show overrides (silent)",
-        ],
-      },
-    ];
-
-    const panelGap = 20;
-    const panelPadding = 18;
-    const titleHeight = 22;
-    const itemLineHeight = 20;
-    const maxCardWidth = Math.min(canvas.width - 120, 820);
-    const useTwoColumns = maxCardWidth >= 640 && canvas.width >= 720;
-    const splitIndex = Math.ceil(sections.length / 2);
-    const columns = useTwoColumns
-      ? [sections.slice(0, splitIndex), sections.slice(splitIndex)]
-      : [sections];
-    const columnCount = columns.length;
-    const columnGap = 22;
-    const panelWidth = useTwoColumns
-      ? Math.min(360, (maxCardWidth - columnGap * (columnCount + 1)) / columnCount)
-      : maxCardWidth - columnGap * 2;
-
-    const measurePanel = (section) =>
-      panelPadding * 2 + titleHeight + section.items.length * itemLineHeight;
-
-    const columnHeights = columns.map((column) =>
-      column.reduce((total, section, index) => {
-        const panelHeight = measurePanel(section);
-        return total + panelHeight + (index > 0 ? panelGap : 0);
-      }, 0),
-    );
-
-    const maxColumnHeight = Math.max(...columnHeights, 0);
-    const headerHeight = 120;
-    const footerHeight = 80;
-    const cardHeight = headerHeight + maxColumnHeight + footerHeight;
-    ctx.restore();
-
-    const headerCenterX = canvas.width / 2;
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#EAF6FF";
-    ctx.font = `40px ${UI_FONT_FAMILY}`;
-    ctx.fillText("Battlefield Church", headerCenterX, cardY + 56);
-    ctx.font = `20px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#FFC86A";
-    ctx.fillText("Save Your Flock", headerCenterX, cardY + 86);
-    ctx.font = `22px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#9BD9FF";
-    ctx.fillText("Paused - Review Your Toolkit", headerCenterX, cardY + 114);
-
-    ctx.textBaseline = "top";
-    ctx.textAlign = "left";
-    const contentTop = cardY + headerHeight;
-    const startX = cardX + columnGap;
-
-    const drawPanel = (x, y, section) => {
-      const panelHeight = measurePanel(section);
-      const radius = 18;
-      const r = Math.min(radius, panelWidth / 2, panelHeight / 2);
-      ctx.save();
-      drawRoundedRect(x, y, panelWidth, panelHeight, r);
-      ctx.fillStyle = "rgba(20, 32, 54, 0.88)";
-      ctx.strokeStyle = "rgba(140, 186, 255, 0.35)";
-      ctx.lineWidth = 1.6;
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.save();
-      ctx.fillStyle = "#f7f8ff";
-      ctx.font = `18px ${UI_FONT_FAMILY}`;
-      ctx.fillText(section.title, x + panelPadding, y + panelPadding - 2);
-      ctx.font = `14px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "rgba(210, 220, 255, 0.9)";
-      let textY = y + panelPadding + titleHeight;
-      section.items.forEach((item) => {
-        ctx.fillText(`• ${item}`, x + panelPadding, textY);
-        textY += itemLineHeight;
-      });
-      ctx.restore();
-
-      return panelHeight;
-    };
-
-    columns.forEach((column, columnIndex) => {
-      let y = contentTop;
-      const x = startX + columnIndex * (panelWidth + columnGap);
-      column.forEach((section) => {
-        const panelHeight = drawPanel(x, y, section);
-        y += panelHeight + panelGap;
-      });
+    const titleText = "Paused";
+    const subtitleText = "Take a breather. Resume when you're ready.";
+    const titleSize = TEXT_STYLES.h1.size;
+    const subtitleSize = TEXT_STYLES.h2.size;
+    const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    const layout = getAnnouncementScreenLayout(ctx, canvas, {
+      title: titleText,
+      subtitle: subtitleText,
+      titleSize,
+      subtitleSize,
+      lineGap,
+      weight: TEXT_STYLES.h1.weight,
+      maxWidthScale: 0.9,
+      position: "center",
+      topMargin: 90,
+      bottomMargin: 90,
+      rowGap: 32,
+      buttonHeight: 64,
+      buttonCount: 2,
+      HUD_HEIGHT,
+    });
+    ctx.save();
+    ctx.translate(layout.offsetX, layout.offsetY);
+    ctx.scale(layout.scale, layout.scale);
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title: titleText,
+      subtitle: subtitleText,
+      yBase: layout.titleY,
+      alpha: 1,
+      titleSize,
+      subtitleSize,
+      weight: TEXT_STYLES.h1.weight,
+      subtitleWeight: TEXT_STYLES.h2.weight,
+      lineGap,
+      typewriter: false,
+      maxWidthScale: 0.9,
     });
 
+    const buttonConfigs = [
+      { key: "resume", label: "Resume" },
+      { key: "restart", label: "Restart" },
+    ];
+    const buttonWidth = 240;
+    const buttonHeight = 64;
+    const buttonGap = 28;
+    const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
+    const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
+    const buttonY = Math.round(layout.buttonY || 0);
+    const bounds = [];
+    buttonConfigs.forEach((config, index) => {
+      const x = startX + index * (buttonWidth + buttonGap);
+      ctx.save();
+      ctx.fillStyle = "#9BD9FF";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      if (isAnnouncementButtonFocused("pause", index)) {
+        ctx.strokeStyle = "#FFC86A";
+        ctx.lineWidth = 3;
+        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+      }
+      ctx.fillStyle = "#0b111a";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
+      ctx.restore();
+      bounds.push({
+        key: config.key,
+        x: layout.offsetX + x * layout.scale,
+        y: layout.offsetY + buttonY * layout.scale,
+        width: buttonWidth * layout.scale,
+        height: buttonHeight * layout.scale,
+      });
+    });
+    if (typeof window !== "undefined") {
+      window.__announcementButtons = { key: "pause", buttons: bounds };
+    }
+
+    ctx.restore();
     ctx.restore();
   }
 
@@ -2987,6 +2921,10 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     drawSpeedrunTimer();
     drawCongregationOverlay();
     // Effects are drawn earlier in the world pass so the player stays on top.
+    if (paused && !gameOver) {
+      drawPauseOverlay();
+      return;
+    }
     if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
       ctx.save();
       ctx.globalAlpha = townIntroOverlay.alpha;
