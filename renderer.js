@@ -258,6 +258,29 @@ const MELEE_SWING_LENGTH = 200;
 
   const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
 
+  function wrapAnnouncementText(ctx, text, maxWidth) {
+    const paragraphs = String(text || "").split("\n");
+    const lines = [];
+    paragraphs.forEach((para, index) => {
+      const words = para.split(/\s+/).filter(Boolean);
+      let line = "";
+      words.forEach((word) => {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width <= maxWidth || !line) {
+          line = test;
+        } else {
+          lines.push(line);
+          line = word;
+        }
+      });
+      if (line) lines.push(line);
+      if (index < paragraphs.length - 1) {
+        lines.push("");
+      }
+    });
+    return lines;
+  }
+
   function getAnnouncementTextLayout(ctx, canvas, {
     title,
     subtitle,
@@ -274,27 +297,11 @@ const MELEE_SWING_LENGTH = 200;
     const effectiveTitleSize = Math.round(titleSize * scaleHint);
     const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
     const effectiveLineGap = Math.round(lineGap * scaleHint);
-    const wrapText = (text, maxWidth) => {
-      const words = String(text || "").split(/\s+/).filter(Boolean);
-      const lines = [];
-      let line = "";
-      words.forEach((word) => {
-        const test = line ? `${line} ${word}` : word;
-        if (ctx.measureText(test).width <= maxWidth || !line) {
-          line = test;
-        } else {
-          lines.push(line);
-          line = word;
-        }
-      });
-      if (line) lines.push(line);
-      return lines;
-    };
     const maxWidth = canvas.width * maxWidthScale;
     ctx.save();
     ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    const titleLines = title ? wrapText(title, maxWidth) : [];
-    const subtitleLines = subtitle ? wrapText(subtitle, maxWidth) : [];
+    const titleLines = title ? wrapAnnouncementText(ctx, title, maxWidth) : [];
+    const subtitleLines = subtitle ? wrapAnnouncementText(ctx, subtitle, maxWidth) : [];
     ctx.restore();
     const titleLineHeight = Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
     const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
@@ -412,22 +419,7 @@ const MELEE_SWING_LENGTH = 200;
     const effectiveLineGap = Math.round(lineGap * scaleHint);
     // "Announcement Text" refers to this renderer's font/size/wrap style.
     // "Announcement Text Engine" means this renderer at full-width on the main canvas.
-    const wrapText = (text, maxWidth) => {
-      const words = String(text || "").split(/\s+/).filter(Boolean);
-      const lines = [];
-      let line = "";
-      words.forEach((word) => {
-        const test = line ? `${line} ${word}` : word;
-        if (ctx.measureText(test).width <= maxWidth || !line) {
-          line = test;
-        } else {
-          lines.push(line);
-          line = word;
-        }
-      });
-      if (line) lines.push(line);
-      return lines;
-    };
+    const wrapText = (text, maxWidth) => wrapAnnouncementText(ctx, text, maxWidth);
     ctx.save();
     ctx.globalAlpha = 0.98 * alpha;
     ctx.fillStyle = "#EAF6FF";
@@ -807,12 +799,14 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     showFormation = true,
     uiFontFamily = "sans-serif",
   } = options;
-  const promptSize = showFormation ? Math.round(TEXT_STYLES.h2.size * 0.9) : 0;
+  const promptText = "How would you like to minister to them?";
+  const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
+  const promptSize = 0;
   const buttonHeight = showFormation ? 120 : 72;
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
-    subtitle,
+    subtitle: combinedSubtitle,
     titleSize: TEXT_STYLES.h1.size,
     subtitleSize: TEXT_STYLES.h2.size,
     lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
@@ -832,7 +826,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
 
   drawAnnouncementText(ctx, layout.virtualCanvas, {
     title,
-    subtitle,
+    subtitle: combinedSubtitle,
     yBase: layout.titleY,
     titleSize: TEXT_STYLES.h1.size,
     subtitleSize: TEXT_STYLES.h2.size,
@@ -845,7 +839,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     maxWidthScale: 0.96,
   });
 
-  const revealComplete = isAnnouncementRevealComplete(title, subtitle);
+  const revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
   if (!revealComplete) {
     if (typeof window !== "undefined") {
       window.__missionBriefActive = false;
@@ -855,7 +849,6 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     return;
   }
 
-  const promptText = showFormation ? "How would you like to minister to them?" : "";
   const buttonConfigs = showFormation
     ? [
         {
@@ -899,7 +892,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const buttonY = Math.round(layout.buttonY || 0);
   const promptY = layout.promptY;
 
-  if (promptText && promptY) {
+  if (!showFormation && promptText && promptY) {
     ctx.save();
     ctx.fillStyle = "#EAF6FF";
     ctx.textAlign = "center";
@@ -1128,16 +1121,46 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     return;
   }
     const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
-    const titleYOffset = isTownIntro ? -40 : 0;
-    const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight) + titleYOffset;
-    drawAnnouncementText(ctx, canvas, {
-      title: displayTitle || "",
-      yBase: titleY,
-      alpha,
-      typewriter: true,
-      titleSize: isTownIntro ? Math.max(20, TEXT_STYLES.h1.size * 0.85) : TEXT_STYLES.h2.size,
-      weight: isTownIntro ? TEXT_STYLES.h1.weight : TEXT_STYLES.h2.weight,
-    });
+    if (isTownIntro) {
+      const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+      const layout = getAnnouncementScreenLayout(ctx, canvas, {
+        title: displayTitle || "",
+        subtitle: "",
+        titleSize,
+        subtitleSize: TEXT_STYLES.h2.size,
+        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+        weight: TEXT_STYLES.h1.weight,
+        maxWidthScale: 0.92,
+        position: "bottom",
+        topMargin: 90,
+        bottomMargin: 80,
+        buttonCount: 0,
+        HUD_HEIGHT,
+      });
+      ctx.save();
+      ctx.translate(layout.offsetX, layout.offsetY);
+      ctx.scale(layout.scale, layout.scale);
+      drawAnnouncementText(ctx, layout.virtualCanvas, {
+        title: displayTitle || "",
+        yBase: layout.titleY,
+        alpha,
+        typewriter: true,
+        titleSize,
+        weight: TEXT_STYLES.h1.weight,
+        maxWidthScale: 0.92,
+      });
+      ctx.restore();
+    } else {
+      const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight);
+      drawAnnouncementText(ctx, canvas, {
+        title: displayTitle || "",
+        yBase: titleY,
+        alpha,
+        typewriter: true,
+        titleSize: TEXT_STYLES.h2.size,
+        weight: TEXT_STYLES.h2.weight,
+      });
+    }
     // Dev label hidden for announcements per request.
     // Subtitle display removed as requested.
     ctx.restore();
@@ -1267,35 +1290,56 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       congregationMembers,
     } = requireBindings();
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
-    const titleY = getAnnouncementTitleY(HUD_HEIGHT, 220);
-    drawAnnouncementText(ctx, canvas, {
-      title: "Welcome Pastor. We're pleased to meet you!",
-      yBase: titleY,
-      titleSize: TEXT_STYLES.h1.size,
+    const titleText = "Welcome Pastor. We're pleased to meet you!";
+    const titleSize = TEXT_STYLES.h1.size;
+    const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    const layout = getAnnouncementScreenLayout(ctx, canvas, {
+      title: titleText,
+      subtitle: "",
+      titleSize,
+      subtitleSize: TEXT_STYLES.h2.size,
+      lineGap,
       weight: TEXT_STYLES.h1.weight,
-      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      maxWidthScale: 0.92,
+      position: "bottom",
+      topMargin: 90,
+      bottomMargin: 90,
+      rowGap: 36,
+      buttonHeight: 52,
+      buttonCount: 1,
+      HUD_HEIGHT,
+    });
+    ctx.save();
+    ctx.translate(layout.offsetX, layout.offsetY);
+    ctx.scale(layout.scale, layout.scale);
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title: titleText,
+      yBase: layout.titleY,
+      titleSize,
+      weight: TEXT_STYLES.h1.weight,
+      lineGap,
       alpha: 1,
       typewriter: true,
+      maxWidthScale: 0.92,
     });
     if (SHOW_TEXT_SOURCE_LABELS) {
-      drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, titleY - 32, 1, UI_FONT_FAMILY);
+      drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
     }
     void memberCount;
 
     const buttonText = "Play (Space)";
-    const buttonWidth = Math.min(260, canvas.width * 0.6);
+    const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
     const buttonHeight = 52;
-    const buttonX = canvas.width / 2 - buttonWidth / 2;
-    const buttonY = Math.min(canvas.height - 110, titleY + 120);
+    const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+    const buttonY = Math.round(layout.buttonY || 0);
     if (typeof window !== "undefined") {
       window.__congregationPlayButtonBounds = {
-        x: buttonX,
-        y: buttonY,
-        width: buttonWidth,
-        height: buttonHeight,
+        x: layout.offsetX + buttonX * layout.scale,
+        y: layout.offsetY + buttonY * layout.scale,
+        width: buttonWidth * layout.scale,
+        height: buttonHeight * layout.scale,
       };
     }
-    ctx.save();
     ctx.fillStyle = "#9BD9FF";
     ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     ctx.lineWidth = 2;
@@ -1305,7 +1349,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
     const mainTextY = buttonY + buttonHeight / 2 + 6;
-    ctx.fillText(buttonText, canvas.width / 2, mainTextY);
+    ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
     ctx.font = `10px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
     ctx.textBaseline = "alphabetic";
