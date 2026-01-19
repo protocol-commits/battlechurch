@@ -1888,6 +1888,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       devInspectorActive,
       drawDevInspector,
       assets,
+      HUD_HEIGHT,
     } = requireBindings();
     ctx.save();
     const titleImage = assets?.titleBackground || null;
@@ -1902,6 +1903,19 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     }
 
 
+    const titleY = getAnnouncementTitleY(HUD_HEIGHT || 54, 260);
+    drawAnnouncementText(ctx, canvas, {
+      title: "Spiritual Warfare",
+      subtitle: "Smite the hordes. Save your flock. Save the town.",
+      yBase: titleY,
+      alpha: 1,
+      titleSize: TEXT_STYLES.h1.size,
+      subtitleSize: TEXT_STYLES.h2.size,
+      weight: TEXT_STYLES.h1.weight,
+      subtitleWeight: TEXT_STYLES.h2.weight,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      typewriter: true,
+    });
     ctx.restore();
     if (devInspectorActive && typeof drawDevInspector === "function") {
       try { drawDevInspector(); } catch (e) {}

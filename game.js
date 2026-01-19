@@ -4793,12 +4793,14 @@ function showTitleDialog() {
     )
     .join("");
   window.DialogOverlay.show({
-    title: "Spiritual Warfare",
-    bodyHtml: `<div style="font-size:28px;letter-spacing:0.02em;margin:0 0 12px;color:rgba(234,246,255,0.92);">Smite the hordes. Save your flock. Save the town.</div><div class="title-menu">${buttonsHtml}</div>`,
+    title: "",
+    bodyHtml: `<div class="title-menu">${buttonsHtml}</div>`,
     buttonText: "",
     variant: "title",
     devLabel: "",
     onRender: ({ overlay }) => {
+      overlay.style.setProperty("background", "transparent", "important");
+      overlay.style.setProperty("background-image", "none", "important");
       const bodyEl = overlay.querySelector(".dialog-overlay__body");
       if (bodyEl) {
         bodyEl.style.textAlign = "center";
@@ -4806,12 +4808,8 @@ function showTitleDialog() {
         bodyEl.style.width = "100%";
         bodyEl.style.marginTop = "0";
       }
-      typewriterElement(
-        overlay,
-        ".dialog-overlay__title",
-        "Spiritual Warfare",
-        18,
-      );
+      const titleEl = overlay.querySelector(".dialog-overlay__title");
+      if (titleEl) titleEl.style.display = "none";
       if (overlay.__titleMenuHandler) {
         overlay.removeEventListener("click", overlay.__titleMenuHandler);
       }
