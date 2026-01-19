@@ -2151,8 +2151,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       typewriter: true,
     });
     const buttonConfigs = [
-      { key: "howto", label: "How to Play" },
       { key: "play", label: "Play" },
+      { key: "howto", label: "How to Play" },
     ];
     const buttonWidth = 280;
     const buttonHeight = 64;
