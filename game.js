@@ -11481,6 +11481,55 @@ function handleVisitorIntro() {
 }
 
 function handleLevelAnnouncements() {
+  const missionButtons =
+    typeof window !== "undefined" ? window.__missionBriefButtonBounds : null;
+  const missionActive =
+    typeof window !== "undefined" ? window.__missionBriefActive : false;
+  if (missionActive && Array.isArray(missionButtons) && missionButtons.length) {
+    const clickPos = Input.consumeCanvasClick?.();
+    if (clickPos) {
+      const hit = missionButtons.find(
+        (btn) =>
+          clickPos.x >= btn.x &&
+          clickPos.x <= btn.x + btn.width &&
+          clickPos.y >= btn.y &&
+          clickPos.y <= btn.y + btn.height,
+      );
+      if (hit) {
+        if (hit.key === "continue") {
+          dismissCurrentLevelAnnouncement();
+          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+            window.playMenuAdvanceSfx(0.55);
+          }
+        } else {
+          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
+          }
+          if (typeof window.selectFormation === "function") {
+            window.selectFormation(hit.key);
+          }
+          if (typeof window.startBattleMusicFromFormation === "function") {
+            window.startBattleMusicFromFormation();
+          }
+          if (typeof window.applyFormationAnchors === "function") {
+            try { window.applyFormationAnchors(); } catch (e) {}
+          }
+          dismissCurrentLevelAnnouncement();
+        }
+        keysJustPressed.delete(" ");
+        return true;
+      }
+    }
+    const canContinue = missionButtons.some((btn) => btn.key === "continue");
+    if (canContinue && keysJustPressed.has(" ")) {
+      dismissCurrentLevelAnnouncement();
+      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+        window.playMenuAdvanceSfx(0.55);
+      }
+      keysJustPressed.delete(" ");
+      return true;
+    }
+  }
   if (!levelAnnouncements.length || !levelAnnouncements[0].requiresConfirm) return false;
   const currentAnnouncement = levelAnnouncements[0];
   const isSummary = isBattleSummaryAnnouncement(currentAnnouncement);

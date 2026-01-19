@@ -637,6 +637,150 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   return true;
 }
 
+function drawMissionBriefScreen(ctx, canvas, options = {}) {
+  const {
+    title = "",
+    subtitle = "",
+    highlight = null,
+    showFormation = true,
+    uiFontFamily = "sans-serif",
+  } = options;
+  const virtualWidth = 1280;
+  const virtualHeight = 720;
+  const scale = Math.min(canvas.width / virtualWidth, canvas.height / virtualHeight);
+  const offsetX = Math.round((canvas.width - virtualWidth * scale) / 2);
+  const offsetY = Math.round((canvas.height - virtualHeight * scale) / 2);
+  const virtualCanvas = { width: virtualWidth, height: virtualHeight };
+  ctx.save();
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(scale, scale);
+
+  const titleY = 120;
+  drawAnnouncementText(ctx, virtualCanvas, {
+    title,
+    subtitle,
+    yBase: titleY,
+    titleSize: TEXT_STYLES.h1.size,
+    subtitleSize: TEXT_STYLES.h2.size,
+    weight: TEXT_STYLES.h1.weight,
+    subtitleWeight: TEXT_STYLES.h2.weight,
+    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    alpha: 1,
+    typewriter: true,
+    highlight,
+    maxWidthScale: 0.96,
+  });
+
+  const revealComplete = isAnnouncementRevealComplete(title, subtitle);
+  if (!revealComplete) {
+    if (typeof window !== "undefined") {
+      window.__missionBriefActive = false;
+      window.__missionBriefButtonBounds = null;
+    }
+    ctx.restore();
+    return;
+  }
+
+  const promptText = showFormation ? "How would you like to minister to them?" : "";
+  const buttonConfigs = showFormation
+    ? [
+        {
+          key: "circle",
+          label: "Bible Study",
+          desc: "Anchor them in Scripture.",
+          stat: "Congregation Damage +20%",
+        },
+        {
+          key: "line",
+          label: "Book Study",
+          desc: "Focus their understanding.",
+          stat: "Congregation Rate of Fire +20%",
+        },
+        {
+          key: "crescent",
+          label: "Shared Burdens",
+          desc: "Guided group support.",
+          stat: "Congregation Powerup Duration +20%",
+        },
+      ]
+    : [
+        {
+          key: "continue",
+          label: "Continue (Space)",
+          desc: "",
+          stat: "",
+        },
+      ];
+  const buttonCount = buttonConfigs.length;
+  const bottomPadding = 70;
+  const buttonHeight = showFormation ? 120 : 72;
+  const buttonGap = showFormation ? 22 : 0;
+  const sidePadding = 90;
+  const totalAvailable = virtualWidth - sidePadding * 2;
+  const buttonWidth = showFormation
+    ? Math.floor((totalAvailable - buttonGap * (buttonCount - 1)) / buttonCount)
+    : Math.min(420, totalAvailable);
+  const buttonRowWidth = showFormation
+    ? buttonWidth * buttonCount + buttonGap * (buttonCount - 1)
+    : buttonWidth;
+  const buttonStartX = Math.round((virtualWidth - buttonRowWidth) / 2);
+  const buttonY = Math.round(virtualHeight - bottomPadding - buttonHeight);
+  const promptY = buttonY - 32;
+
+  if (promptText) {
+    ctx.save();
+    ctx.fillStyle = "#EAF6FF";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `${TEXT_STYLES.h2.weight} ${Math.round(TEXT_STYLES.h2.size * 0.9)}px 'Orbitron', sans-serif`;
+    ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+    ctx.shadowBlur = 18;
+    ctx.fillText(promptText, virtualWidth / 2, promptY);
+    ctx.restore();
+  }
+
+  const bounds = [];
+  buttonConfigs.forEach((config, index) => {
+    const x = showFormation ? buttonStartX + index * (buttonWidth + buttonGap) : buttonStartX;
+    ctx.save();
+    ctx.fillStyle = "#9BD9FF";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
+    ctx.fillStyle = "#0b111a";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `600 ${showFormation ? 28 : 24}px ${uiFontFamily}`;
+    ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 40);
+    if (config.desc) {
+      ctx.font = `16px ${uiFontFamily}`;
+      ctx.fillStyle = "rgba(11, 17, 26, 0.78)";
+      ctx.fillText(config.desc, x + buttonWidth / 2, buttonY + 66);
+    }
+    if (config.stat) {
+      ctx.font = `15px ${uiFontFamily}`;
+      ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
+      ctx.fillText(config.stat, x + buttonWidth / 2, buttonY + 90);
+    }
+    ctx.restore();
+
+    bounds.push({
+      key: config.key,
+      x: offsetX + x * scale,
+      y: offsetY + buttonY * scale,
+      width: buttonWidth * scale,
+      height: buttonHeight * scale,
+    });
+  });
+
+  if (typeof window !== "undefined") {
+    window.__missionBriefActive = true;
+    window.__missionBriefButtonBounds = bounds;
+  }
+
+  ctx.restore();
+}
+
   function drawLevelAnnouncements() {
     const {
       ctx,
@@ -645,6 +789,10 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       HUD_HEIGHT,
       UI_FONT_FAMILY,
     } = requireBindings();
+    if (typeof window !== "undefined") {
+      window.__missionBriefActive = false;
+      window.__missionBriefButtonBounds = null;
+    }
     if (!levelAnnouncements.length) {
       const lm = requireBindings().levelManager;
       const status = lm?.getStatus ? lm.getStatus() : null;
@@ -655,16 +803,12 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         const monthName = status?.month || "";
         const missionTitle = monthName || "Boss Battle";
         const missionBrief = "You are personally being spiritually attacked.";
-        if (!dialogVisible && !missionActive) {
-          const missionId = `mission_${status?.level || 1}_${missionTitle}_${missionBrief}`;
-          showMissionBriefDialog(
-            missionTitle,
-            missionBrief,
-            missionId,
-            null,
-            { showFormation: false, useAnnouncementText: true },
-          );
-        }
+        drawMissionBriefScreen(ctx, canvas, {
+          title: missionTitle,
+          subtitle: missionBrief,
+          showFormation: false,
+          uiFontFamily: UI_FONT_FAMILY,
+        });
       }
       return;
     }
@@ -737,35 +881,12 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       monthName ||
       "";
     const missionBrief = "You are personally being spiritually attacked.";
-    const missionY = Math.max((HUD_HEIGHT || 54) + 90, 120);
-    drawAnnouncementText(ctx, canvas, {
+    drawMissionBriefScreen(ctx, canvas, {
       title: missionTitle,
       subtitle: missionBrief,
-      yBase: missionY,
-      titleSize: TEXT_STYLES.h1.size,
-      subtitleSize: TEXT_STYLES.h2.size,
-      weight: TEXT_STYLES.h1.weight,
-      subtitleWeight: TEXT_STYLES.h2.weight,
-      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-      alpha: 1,
-      typewriter: true,
+      showFormation: false,
+      uiFontFamily: UI_FONT_FAMILY,
     });
-    if (
-      window.__missionBriefRevealKey === `mission_${missionTitle}_${missionBrief}` &&
-      isAnnouncementRevealComplete(missionTitle, missionBrief)
-    ) {
-      window.__missionBriefRevealFormation?.();
-    }
-    if (!dialogVisible && !missionActive) {
-      const missionId = `mission_${missionTitle}_${missionBrief}`;
-      showMissionBriefDialog(
-        missionTitle,
-        missionBrief,
-        missionId,
-        null,
-        { showFormation: false, useAnnouncementText: true },
-      );
-    }
     ctx.restore();
     return;
   }
@@ -802,47 +923,20 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         monthName ||
         "";
       const missionBrief = `${nameSentence} have been battling with ${scenario}.`;
-      const missionY = Math.max((HUD_HEIGHT || 54) + 90, 120);
-      drawAnnouncementText(ctx, canvas, {
-        title: missionTitle,
-        subtitle: missionBrief,
-        yBase: missionY,
-        titleSize: TEXT_STYLES.h1.size,
-        subtitleSize: TEXT_STYLES.h2.size,
-        weight: TEXT_STYLES.h1.weight,
-        subtitleWeight: TEXT_STYLES.h2.weight,
-        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-        alpha: 1,
-        typewriter: true,
-        highlight: {
-          text: scenario,
-          color: "#ffd978",
-        },
-      });
-      if (
-        window.__missionBriefRevealKey === `mission_${missionTitle}_${missionBrief}` &&
-        isAnnouncementRevealComplete(missionTitle, missionBrief)
-      ) {
-        window.__missionBriefRevealFormation?.();
-      }
-      const missionId = `mission_${missionTitle}_${missionBrief}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
       }
-      if (!dialogVisible && !missionActive) {
-        showMissionBriefDialog(
-          missionTitle,
-          missionBrief,
-          missionId,
-          {
-            prefix: `${nameSentence} have been battling with `,
-            text: scenario,
-            suffix: ".",
-          },
-          { useAnnouncementText: true },
-        );
-      }
+      drawMissionBriefScreen(ctx, canvas, {
+        title: missionTitle,
+        subtitle: missionBrief,
+        highlight: {
+          text: scenario,
+          color: "#ffd978",
+        },
+        showFormation: true,
+        uiFontFamily: UI_FONT_FAMILY,
+      });
       ctx.restore();
       return;
     }
