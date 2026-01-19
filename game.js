@@ -2111,6 +2111,7 @@ function resizeCanvas() {
 let gameStarted = false;
 let titleDialogActive = false;
 let pauseDialogActive = false;
+let howToPlayPageIndex = 0;
 const TITLE_MENU_PAGES = {
   howto: {
     title: "How to Play",
@@ -2345,6 +2346,8 @@ Renderer.initialize({
   get cameraShakeMagnitude() { return cameraShakeMagnitude; },
   get titleScreenActive() { return titleScreenActive; },
   get howToPlayActive() { return howToPlayActive; },
+  get howToPlayPages() { return HOW_TO_PLAY_PAGES; },
+  get howToPlayPageIndex() { return howToPlayPageIndex; },
   get levelManager() { return levelManager; },
   get gameOver() { return gameOver; },
   obstacles,
@@ -5023,6 +5026,27 @@ const HOW_TO_PLAY_BODY =
     "Use the space bar or virtual Space button for the Upgrade/Continue screens.",
     "Keep the flock alive and stay within the fog as the horde advances.",
   ].join(" ");
+
+const HOW_TO_PLAY_PAGES = [
+  {
+    title: "Controls",
+    body: [
+      "Movement (Keyboard): WASD.",
+      "Movement (Mobile): Left thumb.",
+      "",
+      "Buttons (Keyboard): A Left Arrow, B Down Arrow, C Right Arrow.",
+      "Buttons (Mobile): A Sword, B Dash, C Prayer Bomb.",
+    ].join("\n"),
+  },
+  {
+    title: "Story",
+    body: [
+      "You are the new pastor of the last church in a dying town.",
+      "You have one year to prove the church should remain open.",
+      "Spiritual warfare draws people in and strengthens the town.",
+    ].join("\n"),
+  },
+];
 
 const PAUSE_BODY =
   uiTexts.pauseBody ||
@@ -11413,8 +11437,9 @@ function handleTitleScreen() {
         if (button.key === "play") {
           startGameFromTitle();
         } else if (button.key === "howto") {
-          titleDialogActive = true;
-          showTitlePageDialog("howto");
+          titleScreenActive = false;
+          howToPlayActive = true;
+          howToPlayPageIndex = 0;
         }
       },
     });
@@ -11426,9 +11451,34 @@ function handleTitleScreen() {
 
 function handleHowToPlayScreen() {
   if (!howToPlayActive) return false;
-  if (!window.DialogOverlay?.isVisible()) {
-    showHowToPlayDialog();
-  }
+  const buttons =
+    typeof window !== "undefined" && window.__announcementButtons?.key === "howto"
+      ? window.__announcementButtons.buttons
+      : null;
+  const handled = handleAnnouncementButtons({
+    key: "howto",
+    buttons,
+    allowSpace: true,
+    onActivate: (button) => {
+      if (button.key === "back") {
+        howToPlayActive = false;
+        titleScreenActive = true;
+        return;
+      }
+      if (button.key === "prev") {
+        howToPlayPageIndex = Math.max(0, howToPlayPageIndex - 1);
+        return;
+      }
+      if (button.key === "next") {
+        howToPlayPageIndex = Math.min(HOW_TO_PLAY_PAGES.length - 1, howToPlayPageIndex + 1);
+        return;
+      }
+      if (button.key === "play") {
+        startGameFromTitle();
+      }
+    },
+  });
+  if (handled) return true;
   keysJustPressed.delete(" ");
   return true;
 }

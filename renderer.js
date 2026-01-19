@@ -1312,7 +1312,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize: TEXT_STYLES.h2.size,
       lineGap,
       weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 0.92,
+      maxWidthScale: 0.98,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 90,
@@ -1332,7 +1332,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       lineGap,
       alpha: 1,
       typewriter: true,
-      maxWidthScale: 0.92,
+      maxWidthScale: 0.98,
     });
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
@@ -1712,7 +1712,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     const titleText = "Paused";
     const subtitleText = "Take a breather. Resume when you're ready.";
     const titleSize = TEXT_STYLES.h1.size;
-    const subtitleSize = TEXT_STYLES.h2.size;
+    const isDenseBody = titleText === "Controls" || titleText === "Story";
+    const subtitleSize = isDenseBody
+      ? TEXT_STYLES.body.size
+      : Math.round(TEXT_STYLES.h2.size * 0.85);
+    const subtitleWeight = isDenseBody ? TEXT_STYLES.body.weight : TEXT_STYLES.h2.weight;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
@@ -2117,7 +2121,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     const titleText = "Spiritual Warfare";
     const subtitleText = "Smite the hordes. Save your flock. Save the town.";
     const titleSize = TEXT_STYLES.h1.size;
-    const subtitleSize = TEXT_STYLES.h2.size;
+    const isDenseBody = titleText === "Controls" || titleText === "Story";
+    const subtitleSize = isDenseBody
+      ? TEXT_STYLES.body.size
+      : TEXT_STYLES.h2.size;
+    const subtitleWeight = isDenseBody ? TEXT_STYLES.body.weight : TEXT_STYLES.h2.weight;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
@@ -2146,7 +2154,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       titleSize,
       subtitleSize,
       weight: TEXT_STYLES.h1.weight,
-      subtitleWeight: TEXT_STYLES.h2.weight,
+      subtitleWeight,
       lineGap,
       typewriter: true,
     });
@@ -2195,6 +2203,153 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     if (devInspectorActive && typeof drawDevInspector === "function") {
       try { drawDevInspector(); } catch (e) {}
     }
+  }
+
+  function drawHowToPlayScreen() {
+    const {
+      ctx,
+      canvas,
+      UI_FONT_FAMILY,
+      assets,
+      howToPlayPages,
+      howToPlayPageIndex,
+      HUD_HEIGHT,
+    } = requireBindings();
+    ctx.save();
+    const titleImage = assets?.titleBackground || null;
+    if (titleImage) {
+      drawCoverImage(ctx, canvas, titleImage, 1, 0.5, 0.5);
+      ctx.fillStyle = "rgba(6, 10, 18, 0.45)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#070a16");
+      gradient.addColorStop(1, "#121b33");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    const pages = Array.isArray(howToPlayPages) ? howToPlayPages : [];
+    const pageIndex = Math.max(0, Math.min(pages.length - 1, howToPlayPageIndex || 0));
+    const page = pages[pageIndex] || { title: "", body: "" };
+    const titleText = page.title || "How to Play";
+    const subtitleText = page.body || "";
+    const titleSize = TEXT_STYLES.h1.size;
+    const denseTitles = new Set(["controls", "story"]);
+    const isDenseBody = denseTitles.has(String(titleText || "").toLowerCase());
+    const subtitleSize = isDenseBody ? 20 : TEXT_STYLES.h2.size;
+    const subtitleWeight = isDenseBody ? 600 : TEXT_STYLES.h2.weight;
+    const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    const scaleHint = Math.min(
+      1,
+      Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)),
+    );
+    const titleLineHeight = Math.round(titleSize * scaleHint * TEXT_STYLES.h2.lineHeight);
+    const subtitleLineHeight = Math.round(subtitleSize * scaleHint * TEXT_STYLES.body.lineHeight);
+    const maxWidth = canvas.width * 0.98;
+    const wrapLines = (text, fontWeight, fontSize) => {
+      ctx.save();
+      ctx.font = `${fontWeight} ${Math.round(fontSize * scaleHint)}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      const lines = wrapAnnouncementText(ctx, text, maxWidth);
+      ctx.restore();
+      return lines;
+    };
+    const titleLines = wrapLines(titleText, TEXT_STYLES.h1.weight, titleSize);
+    const subtitleLines = wrapLines(subtitleText, subtitleWeight, subtitleSize);
+    const gapAfterTitle = subtitleLines.length
+      ? Math.max(0, Math.round(lineGap * scaleHint) - titleLineHeight)
+      : 0;
+    const textBlockHeight =
+      titleLines.length * titleLineHeight +
+      gapAfterTitle +
+      subtitleLines.length * subtitleLineHeight;
+    const rowGap = 54;
+    const buttonHeight = 64;
+
+    const buttonConfigs = [];
+    if (pageIndex === 0) {
+      buttonConfigs.push({ key: "back", label: "Back" });
+    } else {
+      buttonConfigs.push({ key: "prev", label: "Previous" });
+    }
+    if (pageIndex < pages.length - 1) {
+      buttonConfigs.push({ key: "next", label: "Next" });
+    } else {
+      buttonConfigs.push({ key: "play", label: "Play" });
+    }
+
+    const layout = getAnnouncementScreenLayout(ctx, canvas, {
+      title: titleText,
+      subtitle: subtitleText,
+      titleSize,
+      subtitleSize,
+      lineGap,
+      weight: TEXT_STYLES.h1.weight,
+      maxWidthScale: 0.98,
+      position: "top",
+      topMargin: 90,
+      bottomMargin: 70,
+      rowGap,
+      buttonHeight,
+      buttonCount: buttonConfigs.length,
+      HUD_HEIGHT: HUD_HEIGHT || 54,
+    });
+
+    ctx.save();
+    ctx.translate(layout.offsetX, layout.offsetY);
+    ctx.scale(layout.scale, layout.scale);
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title: titleText,
+      subtitle: subtitleText,
+      yBase: layout.titleY,
+      alpha: 1,
+      titleSize,
+      subtitleSize,
+      weight: TEXT_STYLES.h1.weight,
+      subtitleWeight,
+      lineGap,
+      typewriter: false,
+      maxWidthScale: 0.98,
+    });
+
+    const buttonWidth = 260;
+    const buttonGap = 28;
+    const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
+    const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
+    const minButtonY = Math.round(layout.titleY + textBlockHeight + rowGap);
+    const buttonY = Math.round(Math.max(layout.buttonY || 0, minButtonY));
+    const bounds = [];
+    buttonConfigs.forEach((config, index) => {
+      const x = startX + index * (buttonWidth + buttonGap);
+      ctx.save();
+      ctx.fillStyle = "#9BD9FF";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      if (isAnnouncementButtonFocused("howto", index)) {
+        ctx.strokeStyle = "#FFC86A";
+        ctx.lineWidth = 3;
+        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+      }
+      ctx.fillStyle = "#0b111a";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
+      ctx.restore();
+      bounds.push({
+        key: config.key,
+        x: layout.offsetX + x * layout.scale,
+        y: layout.offsetY + buttonY * layout.scale,
+        width: buttonWidth * layout.scale,
+        height: buttonHeight * layout.scale,
+      });
+    });
+    if (typeof window !== "undefined") {
+      window.__announcementButtons = { key: "howto", buttons: bounds };
+    }
+    ctx.restore();
+    ctx.restore();
   }
 
   function drawEpilogueScreen() {
@@ -2286,6 +2441,10 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     npcFaithOverlays.length = 0;
     if (epilogueActive) {
       drawEpilogueScreen();
+      return;
+    }
+    if (howToPlayActive) {
+      drawHowToPlayScreen();
       return;
     }
     if (titleScreenActive) {
