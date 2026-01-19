@@ -227,6 +227,17 @@ const MELEE_SWING_LENGTH = 200;
   };
   const announcementReveal = new Map();
 
+  function isAnnouncementRevealComplete(title, subtitle = "") {
+    const key = `${String(title || "")}||${String(subtitle || "")}`;
+    const entry = announcementReveal.get(key);
+    if (!entry) return false;
+    const titleDone = entry.titleProgress >= String(title || "").length;
+    const subtitleDone = String(subtitle || "").length
+      ? entry.subtitleProgress >= String(subtitle || "").length
+      : true;
+    return titleDone && subtitleDone;
+  }
+
   function drawDevLabel(ctx, text, x, y, alpha, fontFamily) {
     if (!SHOW_TEXT_SOURCE_LABELS || !text) return;
     ctx.save();
@@ -256,7 +267,16 @@ const MELEE_SWING_LENGTH = 200;
     weight = TEXT_STYLES.h2.weight,
     subtitleWeight = TEXT_STYLES.body.weight,
     typewriter = false,
+    highlight = null,
+    maxWidthScale = 0.96,
   }) {
+    const scaleHint = Math.min(
+      1,
+      Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)),
+    );
+    const effectiveTitleSize = Math.round(titleSize * scaleHint);
+    const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
+    const effectiveLineGap = Math.round(lineGap * scaleHint);
     // "Announcement Text" refers to this renderer's font/size/wrap style.
     // "Announcement Text Engine" means this renderer at full-width on the main canvas.
     const wrapText = (text, maxWidth) => {
@@ -279,16 +299,16 @@ const MELEE_SWING_LENGTH = 200;
     ctx.save();
     ctx.globalAlpha = 0.98 * alpha;
     ctx.fillStyle = "#EAF6FF";
-    ctx.font = `${weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
     ctx.shadowBlur = 20;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     const titleText = String(title || "");
     const subtitleText = String(subtitle || "");
-    const maxWidth = canvas.width * 0.84;
-    const titleLineHeight = Math.round(titleSize * TEXT_STYLES.h2.lineHeight);
-    const subtitleLineHeight = Math.round(subtitleSize * TEXT_STYLES.body.lineHeight);
+    const maxWidth = canvas.width * maxWidthScale;
+    const titleLineHeight = Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
+    const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
     const titleLines = titleText ? wrapText(titleText, maxWidth) : [];
     const subtitleLines = subtitleText ? wrapText(subtitleText, maxWidth) : [];
     let displayTitle = titleText;
@@ -322,7 +342,7 @@ const MELEE_SWING_LENGTH = 200;
       displaySubtitle = subtitleText.slice(0, entry.subtitleProgress);
     }
     ctx.textAlign = "left";
-    ctx.font = `${weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const fullTitleWidths = titleLines.map((line) => ctx.measureText(line).width || 0);
     const titleBlockWidth = fullTitleWidths.length ? Math.max(...fullTitleWidths) : 0;
     const titleX = canvas.width / 2 - titleBlockWidth / 2;
@@ -336,17 +356,56 @@ const MELEE_SWING_LENGTH = 200;
       currentY += titleLineHeight;
     });
     if (subtitleLines.length) {
-      currentY += Math.max(0, lineGap - titleLineHeight);
-    ctx.font = `${subtitleWeight} ${subtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      currentY += Math.max(0, effectiveLineGap - titleLineHeight);
+    ctx.font = `${subtitleWeight} ${effectiveSubtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       const fullSubtitleWidths = subtitleLines.map((line) => ctx.measureText(line).width || 0);
       const subtitleBlockWidth = fullSubtitleWidths.length ? Math.max(...fullSubtitleWidths) : 0;
       const subtitleX = canvas.width / 2 - subtitleBlockWidth / 2;
       let remainingSubtitle = displaySubtitle.length;
+      const highlightText = highlight?.text ? String(highlight.text) : "";
+      const highlightColor = highlight?.color || "#ffd978";
+      const fullSubtitleText = subtitleText;
+      let highlightStart = -1;
+      let highlightEnd = -1;
+      if (highlightText) {
+        highlightStart = fullSubtitleText.indexOf(highlightText);
+        if (highlightStart >= 0) {
+          highlightEnd = highlightStart + highlightText.length;
+        }
+      }
+      let globalIndex = 0;
       subtitleLines.forEach((line) => {
         const visible = remainingSubtitle <= 0 ? "" : line.slice(0, remainingSubtitle);
         remainingSubtitle = Math.max(0, remainingSubtitle - line.length);
-        if (visible) ctx.fillText(visible, subtitleX, currentY);
+        if (visible) {
+          if (highlightStart >= 0 && highlightEnd > globalIndex && highlightStart < globalIndex + visible.length) {
+            const localStart = Math.max(0, highlightStart - globalIndex);
+            const localEnd = Math.min(visible.length, highlightEnd - globalIndex);
+            const before = visible.slice(0, localStart);
+            const mid = visible.slice(localStart, localEnd);
+            const after = visible.slice(localEnd);
+            let cursorX = subtitleX;
+            ctx.fillStyle = "#EAF6FF";
+            if (before) {
+              ctx.fillText(before, cursorX, currentY);
+              cursorX += ctx.measureText(before).width || 0;
+            }
+            if (mid) {
+              ctx.fillStyle = highlightColor;
+              ctx.fillText(mid, cursorX, currentY);
+              cursorX += ctx.measureText(mid).width || 0;
+            }
+            if (after) {
+              ctx.fillStyle = "#EAF6FF";
+              ctx.fillText(after, cursorX, currentY);
+            }
+          } else {
+            ctx.fillStyle = "#EAF6FF";
+            ctx.fillText(visible, subtitleX, currentY);
+          }
+        }
         currentY += subtitleLineHeight;
+        globalIndex += line.length + 1;
       });
     }
     ctx.restore();
@@ -383,6 +442,8 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   missionBriefOverlayState.shown = false;
   missionBriefOverlayState.active = true;
   window.isMissionBriefOverlayActive = true;
+  window.__missionBriefRevealKey = identifier;
+  window.__missionBriefFormationShown = false;
   const devTitle = title;
   if (typeof window.stopIntroMusic === "function") {
     window.stopIntroMusic();
@@ -430,10 +491,8 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     )
     .join("");
   const bodyHtml = `
-    <canvas class="mission-brief-announcement"></canvas>
-    <div class="mission-brief-text"></div>
-    <div class="formation-prompt" style="margin:4px 0 12px;opacity:0.9;display:none;">How would you like to minister to them?</div>
-    <div class="formation-picker" style="display:none;">${buttonsHtml}</div>
+    <div class="mission-brief-prompt">How would you like to minister to them?</div>
+    <div class="formation-picker">${buttonsHtml}</div>
   `;
   const finishMissionBrief = (shouldHide = false) => {
     missionBriefOverlayState.active = false;
@@ -459,6 +518,34 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         overlay.style.removeProperty("background");
         overlay.style.removeProperty("background-image");
       }
+      const bodyEl = overlay.querySelector(".dialog-overlay__body");
+      if (bodyEl && useAnnouncementText) {
+        bodyEl.style.display = "flex";
+        bodyEl.style.flexDirection = "column";
+        bodyEl.style.alignItems = "center";
+        bodyEl.style.paddingTop = "0";
+        bodyEl.style.width = "100%";
+        bodyEl.style.boxSizing = "border-box";
+        bodyEl.style.marginTop = "0";
+        bodyEl.style.position = "absolute";
+        bodyEl.style.left = "0";
+        bodyEl.style.right = "0";
+        bodyEl.style.bottom = "6vh";
+        bodyEl.style.paddingLeft = "6%";
+        bodyEl.style.paddingRight = "6%";
+      } else if (bodyEl) {
+        bodyEl.style.display = "";
+        bodyEl.style.flexDirection = "";
+        bodyEl.style.alignItems = "";
+        bodyEl.style.paddingTop = "";
+        bodyEl.style.boxSizing = "";
+        bodyEl.style.position = "";
+        bodyEl.style.left = "";
+        bodyEl.style.right = "";
+        bodyEl.style.bottom = "";
+        bodyEl.style.paddingLeft = "";
+        bodyEl.style.paddingRight = "";
+      }
       const titleEl = overlay.querySelector(".dialog-overlay__title");
       if (titleEl) {
         titleEl.style.marginTop = "12px";
@@ -466,25 +553,16 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
           titleEl.style.display = "none";
         }
       }
-      const announcementCanvas = overlay.querySelector(".mission-brief-announcement");
-      const textEl = overlay.querySelector(".mission-brief-text");
-      const prompt = overlay.querySelector(".formation-prompt");
+      const prompt = overlay.querySelector(".mission-brief-prompt");
       const picker = overlay.querySelector(".formation-picker");
       const contentWidth = "84%";
-      if (!showFormation) {
-        if (prompt) prompt.style.display = "none";
-        if (picker) picker.style.display = "none";
-      }
-      const revealFormationUi = () => {
-        if (!showFormation) return;
-        if (prompt) prompt.style.display = "block";
-        if (!picker) return;
-        picker.style.display = "grid";
-        picker.style.width = contentWidth;
-        picker.style.margin = "0 0 0 8%";
+      if (picker) {
+        picker.style.display = showFormation ? "grid" : "none";
         picker.style.gridTemplateColumns = "repeat(3, minmax(0, 1fr))";
         picker.style.gap = "10px";
-      };
+        picker.style.width = contentWidth;
+        picker.style.margin = "0 auto";
+      }
       const typeText = (el, text, msPerChar = 8) =>
         new Promise((resolve) => {
           if (!el) {
@@ -510,208 +588,26 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         });
       if (overlay.__missionBriefTypeTimer) clearInterval(overlay.__missionBriefTypeTimer);
       if (overlay.__missionBriefDelayTimer) clearTimeout(overlay.__missionBriefDelayTimer);
-      const promptText = "How would you like to minister to them?";
-      const promptDelayMs = 400;
-      if (announcementCanvas) {
-        announcementCanvas.style.display = useAnnouncementText ? "block" : "none";
-      }
-      if (textEl) {
-        textEl.style.display = useAnnouncementText ? "none" : "block";
-      }
-      if (prompt) {
-        prompt.style.width = contentWidth;
-        prompt.style.margin = "4px 0 12px 8%";
-      }
-      if (useAnnouncementText && announcementCanvas) {
-        const renderAnnouncement = () => {
-          const reveal =
-            announcementCanvas.__typeReveal || { title: 0, subtitle: 0, last: performance.now(), titleTimer: 0, subtitleTimer: 0 };
-          const now = performance.now();
-          const dt = Math.max(0, now - reveal.last);
-          reveal.last = now;
-          const titleRate = 18;
-          const subtitleRate = 18;
-          const fullTitle = String(title || "");
-          const fullSubtitle = String(body || "");
-          if (reveal.title < fullTitle.length) {
-            reveal.titleTimer += dt;
-            while (reveal.titleTimer >= titleRate && reveal.title < fullTitle.length) {
-              reveal.title += 1;
-              reveal.titleTimer -= titleRate;
-            }
-          } else if (reveal.subtitle < fullSubtitle.length) {
-            reveal.subtitleTimer += dt;
-            while (reveal.subtitleTimer >= subtitleRate && reveal.subtitle < fullSubtitle.length) {
-              reveal.subtitle += 1;
-              reveal.subtitleTimer -= subtitleRate;
-            }
-          }
-          announcementCanvas.__typeReveal = reveal;
-          const panel = overlay.querySelector(".dialog-overlay__panel");
-          const rect = (panel || overlay).getBoundingClientRect();
-          const maxWidth = Math.max(320, rect.width * 0.96);
-          const baseHeight = Math.max(220, Math.min(380, rect.height * 0.48));
-          const dpr = window.devicePixelRatio || 1;
-          const aCtx = announcementCanvas.getContext("2d");
-          if (!aCtx) return;
-          const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
-          const titleText = fullTitle.slice(0, reveal.title);
-          const subtitleText = fullSubtitle.slice(0, reveal.subtitle);
-          const wrapText = (text, maxWidthPx) => {
-            const words = String(text || "").split(/\s+/).filter(Boolean);
-            const lines = [];
-            let line = "";
-            words.forEach((word) => {
-              const test = line ? `${line} ${word}` : word;
-              if (aCtx.measureText(test).width <= maxWidthPx || !line) {
-                line = test;
-              } else {
-                lines.push(line);
-                line = word;
-              }
-            });
-            if (line) lines.push(line);
-            return lines;
-          };
-          const titleSize = TEXT_STYLES.h1.size;
-          const titleWeight = TEXT_STYLES.h1.weight;
-          const subtitleSize = TEXT_STYLES.h2.size;
-          const subtitleWeight = TEXT_STYLES.h2.weight;
-          const titleLineHeight = Math.round(titleSize * TEXT_STYLES.h1.lineHeight);
-          const subtitleLineHeight = Math.round(subtitleSize * TEXT_STYLES.h2.lineHeight);
-          const lineGap = Math.round(subtitleSize * TEXT_STYLES.h2.lineHeight);
-          const maxTextWidth = maxWidth * 0.84;
-          aCtx.font = `${titleWeight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-          const fullTitleLines = fullTitle ? wrapText(fullTitle, maxTextWidth) : [];
-          aCtx.font = `${subtitleWeight} ${subtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-          const fullSubtitleLines = fullSubtitle ? wrapText(fullSubtitle, maxTextWidth) : [];
-          const titleLines = titleText ? wrapText(titleText, maxTextWidth) : [];
-          const subtitleLines = subtitleText ? wrapText(subtitleText, maxTextWidth) : [];
-          const subtitleHeight =
-            fullSubtitleLines.length * subtitleLineHeight +
-            (fullSubtitleLines.length ? lineGap : 0);
-          const titleHeight = fullTitleLines.length * titleLineHeight;
-          const requiredHeight = titleHeight + subtitleHeight + 36;
-          const targetHeight = Math.max(baseHeight, requiredHeight);
-
-          announcementCanvas.width = Math.floor(maxWidth * dpr);
-          announcementCanvas.height = Math.floor(targetHeight * dpr);
-          announcementCanvas.style.width = `${Math.floor(maxWidth)}px`;
-          announcementCanvas.style.height = `${Math.floor(targetHeight)}px`;
-          announcementCanvas.style.display = "block";
-          announcementCanvas.style.margin = "0 auto 12px";
-          aCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          aCtx.clearRect(0, 0, maxWidth, targetHeight);
-          aCtx.fillStyle = "#EAF6FF";
-          aCtx.shadowColor = "rgba(6, 10, 18, 0.85)";
-          aCtx.shadowBlur = 20;
-          aCtx.shadowOffsetX = 0;
-          aCtx.shadowOffsetY = 0;
-          const yBase = Math.max(100, Math.floor(targetHeight * 0.45));
-          let currentY = yBase;
-          aCtx.textAlign = "left";
-          aCtx.font = `${titleWeight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-          titleLines.forEach((line) => {
-            if (!line) return;
-            const lineX = maxWidth * 0.08;
-            aCtx.fillStyle = "#EAF6FF";
-            aCtx.fillText(line, lineX, currentY);
-            currentY += titleLineHeight;
-          });
-          if (subtitleLines.length) {
-            currentY += Math.max(0, lineGap - titleLineHeight);
-            aCtx.font = `${subtitleWeight} ${subtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-            const highlightText = highlight?.text ? String(highlight.text) : "";
-            const prefixText = highlight?.prefix ? String(highlight.prefix) : "";
-            const highlightColor = "#ffd978";
-            let highlightStart = -1;
-            let highlightEnd = -1;
-            if (highlightText) {
-              if (prefixText && subtitleText.startsWith(prefixText)) {
-                highlightStart = prefixText.length;
-              } else {
-                highlightStart = subtitleText.indexOf(highlightText);
-              }
-              if (highlightStart >= 0) {
-                highlightEnd = highlightStart + highlightText.length;
-              }
-            }
-            let globalIndex = 0;
-            subtitleLines.forEach((line) => {
-              if (!line) {
-                currentY += subtitleLineHeight;
-                globalIndex += 1;
-                return;
-              }
-              const lineX = maxWidth * 0.08;
-              if (highlightStart >= 0 && highlightEnd > globalIndex && highlightStart < globalIndex + line.length) {
-                const localStart = Math.max(0, highlightStart - globalIndex);
-                const localEnd = Math.min(line.length, highlightEnd - globalIndex);
-                const before = line.slice(0, localStart);
-                const mid = line.slice(localStart, localEnd);
-                const after = line.slice(localEnd);
-                let cursorX = lineX;
-                aCtx.fillStyle = "#EAF6FF";
-                if (before) {
-                  aCtx.fillText(before, cursorX, currentY);
-                  cursorX += aCtx.measureText(before).width || 0;
-                }
-                if (mid) {
-                  aCtx.fillStyle = highlightColor;
-                  aCtx.fillText(mid, cursorX, currentY);
-                  cursorX += aCtx.measureText(mid).width || 0;
-                }
-                if (after) {
-                  aCtx.fillStyle = "#EAF6FF";
-                  aCtx.fillText(after, cursorX, currentY);
-                }
-              } else {
-                aCtx.fillStyle = "#EAF6FF";
-                aCtx.fillText(line, lineX, currentY);
-              }
-              currentY += subtitleLineHeight;
-              globalIndex += line.length + 1;
-            });
-          }
-        };
-        const tickAnnouncement = () => {
-          renderAnnouncement();
-          if (announcementCanvas.__typeReveal) {
-            const doneTitle = announcementCanvas.__typeReveal.title >= title.length;
-            const doneSubtitle = announcementCanvas.__typeReveal.subtitle >= body.length;
-            if (!(doneTitle && doneSubtitle)) {
-              overlay.__missionBriefAnnouncementFrame = requestAnimationFrame(tickAnnouncement);
-            }
-          }
-        };
-        if (overlay.__missionBriefAnnouncementFrame) {
-          cancelAnimationFrame(overlay.__missionBriefAnnouncementFrame);
+      if (useAnnouncementText) {
+        if (prompt) {
+          prompt.style.display = "none";
+          prompt.style.width = contentWidth;
+          prompt.style.margin = "0 auto 12px";
         }
-        overlay.__missionBriefAnnouncementFrame = requestAnimationFrame(tickAnnouncement);
-      }
-      if (textEl && !useAnnouncementText) {
-        const bodyText = String(body || "");
-        typeText(textEl, bodyText, 8).then(() => {
-          if (highlight && textEl) {
-            const prefix = escapeHtml(highlight.prefix || "");
-            const text = escapeHtml(highlight.text || "");
-            const suffix = escapeHtml(highlight.suffix || "");
-            textEl.innerHTML = `${prefix}<span class="mission-brief-problem">${text}</span>${suffix}`;
-          }
-          overlay.__missionBriefDelayTimer = setTimeout(() => {
-            if (prompt) prompt.style.display = "block";
-            typeText(prompt, promptText, 8).then(() => {
-              revealFormationUi();
-            });
-          }, promptDelayMs);
-        });
-      } else {
-        overlay.__missionBriefDelayTimer = setTimeout(() => {
-          if (prompt) prompt.style.display = "block";
-          typeText(prompt, promptText, 8).then(() => {
-            revealFormationUi();
-          });
-        }, promptDelayMs);
+        if (picker) picker.style.display = "none";
+        window.__missionBriefRevealFormation = () => {
+          if (window.__missionBriefFormationShown) return;
+          window.__missionBriefFormationShown = true;
+          if (prompt) prompt.style.display = showFormation ? "block" : "none";
+          if (picker) picker.style.display = showFormation ? "grid" : "none";
+        };
+        if (window.__missionBriefFormationTimer) {
+          clearTimeout(window.__missionBriefFormationTimer);
+        }
+        const estimateMs = (String(title || "").length + String(body || "").length) * 18 + 600;
+        window.__missionBriefFormationTimer = setTimeout(() => {
+          window.__missionBriefRevealFormation?.();
+        }, Math.min(8000, Math.max(1200, estimateMs)));
       }
       if (!picker || !showFormation) return;
       picker.querySelectorAll(".formation-option").forEach((btn) => {
@@ -841,6 +737,25 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       monthName ||
       "";
     const missionBrief = "You are personally being spiritually attacked.";
+    const missionY = Math.max((HUD_HEIGHT || 54) + 90, 120);
+    drawAnnouncementText(ctx, canvas, {
+      title: missionTitle,
+      subtitle: missionBrief,
+      yBase: missionY,
+      titleSize: TEXT_STYLES.h1.size,
+      subtitleSize: TEXT_STYLES.h2.size,
+      weight: TEXT_STYLES.h1.weight,
+      subtitleWeight: TEXT_STYLES.h2.weight,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      alpha: 1,
+      typewriter: true,
+    });
+    if (
+      window.__missionBriefRevealKey === `mission_${missionTitle}_${missionBrief}` &&
+      isAnnouncementRevealComplete(missionTitle, missionBrief)
+    ) {
+      window.__missionBriefRevealFormation?.();
+    }
     if (!dialogVisible && !missionActive) {
       const missionId = `mission_${missionTitle}_${missionBrief}`;
       showMissionBriefDialog(
@@ -887,6 +802,29 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         monthName ||
         "";
       const missionBrief = `${nameSentence} have been battling with ${scenario}.`;
+      const missionY = Math.max((HUD_HEIGHT || 54) + 90, 120);
+      drawAnnouncementText(ctx, canvas, {
+        title: missionTitle,
+        subtitle: missionBrief,
+        yBase: missionY,
+        titleSize: TEXT_STYLES.h1.size,
+        subtitleSize: TEXT_STYLES.h2.size,
+        weight: TEXT_STYLES.h1.weight,
+        subtitleWeight: TEXT_STYLES.h2.weight,
+        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+        alpha: 1,
+        typewriter: true,
+        highlight: {
+          text: scenario,
+          color: "#ffd978",
+        },
+      });
+      if (
+        window.__missionBriefRevealKey === `mission_${missionTitle}_${missionBrief}` &&
+        isAnnouncementRevealComplete(missionTitle, missionBrief)
+      ) {
+        window.__missionBriefRevealFormation?.();
+      }
       const missionId = `mission_${missionTitle}_${missionBrief}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
@@ -1067,9 +1005,9 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     drawAnnouncementText(ctx, canvas, {
       title: "Welcome Pastor. We're pleased to meet you!",
       yBase: titleY,
-      subtitleSize: TEXT_STYLES.body.size,
-      subtitleWeight: TEXT_STYLES.body.weight,
-      lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+      titleSize: TEXT_STYLES.h1.size,
+      weight: TEXT_STYLES.h1.weight,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
       alpha: 1,
       typewriter: true,
     });
