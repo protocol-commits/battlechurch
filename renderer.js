@@ -423,6 +423,13 @@ const MELEE_SWING_LENGTH = 200;
     return boxY + 46;
   }
 
+  function getAnnouncementTitleYForCanvas(canvasHeight, HUD_HEIGHT, boxHeight) {
+    const lowerThird = Math.floor(canvasHeight * 0.84);
+    const yBase = Math.max(HUD_HEIGHT + 120, lowerThird);
+    const boxY = yBase - boxHeight / 2;
+    return boxY + 46;
+  }
+
   function resolveCameraX(explicitValue) {
     const { cameraOffsetX } = requireBindings();
     return typeof explicitValue === "number" ? explicitValue : cameraOffsetX;
@@ -1935,19 +1942,107 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     }
 
 
-    const titleY = getAnnouncementTitleY(HUD_HEIGHT || 54, 260);
-    drawAnnouncementText(ctx, canvas, {
-      title: "Spiritual Warfare",
-      subtitle: "Smite the hordes. Save your flock. Save the town.",
+    const virtualWidth = 1280;
+    const virtualHeight = 720;
+    const scale = Math.min(canvas.width / virtualWidth, canvas.height / virtualHeight);
+    const offsetX = Math.round((canvas.width - virtualWidth * scale) / 2);
+    const offsetY = Math.round((canvas.height - virtualHeight * scale) / 2);
+    const virtualCanvas = { width: virtualWidth, height: virtualHeight };
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    ctx.scale(scale, scale);
+    const titleText = "Spiritual Warfare";
+    const subtitleText = "Smite the hordes. Save your flock. Save the town.";
+    const maxWidth = virtualWidth * 0.92;
+    const titleSize = TEXT_STYLES.h1.size;
+    const subtitleSize = TEXT_STYLES.h2.size;
+    const titleLineHeight = Math.round(titleSize * TEXT_STYLES.h2.lineHeight);
+    const subtitleLineHeight = Math.round(subtitleSize * TEXT_STYLES.body.lineHeight);
+    const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    const wrapTextLocal = (text, font) => {
+      ctx.font = font;
+      const words = String(text || "").split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = "";
+      words.forEach((word) => {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width <= maxWidth || !line) {
+          line = test;
+        } else {
+          lines.push(line);
+          line = word;
+        }
+      });
+      if (line) lines.push(line);
+      return lines;
+    };
+    const titleLines = wrapTextLocal(
+      titleText,
+      `${TEXT_STYLES.h1.weight} ${titleSize}px 'Orbitron', sans-serif`,
+    );
+    const subtitleLines = wrapTextLocal(
+      subtitleText,
+      `${TEXT_STYLES.h2.weight} ${subtitleSize}px 'Orbitron', sans-serif`,
+    );
+    const topMargin = 90;
+    const titleY = topMargin + titleLineHeight;
+    const gapAfterTitle = subtitleLines.length ? Math.max(0, lineGap - titleLineHeight) : 0;
+    const textBottomY =
+      titleY +
+      titleLines.length * titleLineHeight +
+      gapAfterTitle +
+      subtitleLines.length * subtitleLineHeight;
+    drawAnnouncementText(ctx, virtualCanvas, {
+      title: titleText,
+      subtitle: subtitleText,
       yBase: titleY,
       alpha: 1,
-      titleSize: TEXT_STYLES.h1.size,
-      subtitleSize: TEXT_STYLES.h2.size,
+      titleSize,
+      subtitleSize,
       weight: TEXT_STYLES.h1.weight,
       subtitleWeight: TEXT_STYLES.h2.weight,
-      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      lineGap,
       typewriter: true,
     });
+    const buttonConfigs = [
+      { key: "howto", label: "How to Play" },
+      { key: "play", label: "Play" },
+    ];
+    const buttonWidth = 280;
+    const buttonHeight = 64;
+    const buttonGap = 28;
+    const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
+    const startX = Math.round(virtualWidth / 2 - rowWidth / 2);
+    const rowGap = 40;
+    const bottomPadding = 70;
+    const desiredButtonY = textBottomY + rowGap;
+    const maxButtonY = virtualHeight - bottomPadding - buttonHeight;
+    const buttonY = Math.min(desiredButtonY, maxButtonY);
+    const bounds = [];
+    buttonConfigs.forEach((config, index) => {
+      const x = startX + index * (buttonWidth + buttonGap);
+      ctx.save();
+      ctx.fillStyle = "#9BD9FF";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      ctx.fillStyle = "#0b111a";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
+      ctx.restore();
+      bounds.push({
+        key: config.key,
+        x: offsetX + x * scale,
+        y: offsetY + buttonY * scale,
+        width: buttonWidth * scale,
+        height: buttonHeight * scale,
+      });
+    });
+    if (typeof window !== "undefined") {
+      window.__titleMenuButtonBounds = bounds;
+    }
     ctx.restore();
     if (devInspectorActive && typeof drawDevInspector === "function") {
       try { drawDevInspector(); } catch (e) {}
@@ -2044,9 +2139,6 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     }
     if (titleScreenActive) {
       drawTitleScreen();
-      if (!window.__battlechurchHitboxEditorActive && !window.DialogOverlay?.isVisible()) {
-        showTitleDialog();
-      }
       return;
     }
     const chapterBreakState = requireBindings();

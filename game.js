@@ -11399,7 +11399,36 @@ function handleTitleScreen() {
   if (!titleScreenActive) return false;
   const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
   if (!hitboxEditorActive && !window.DialogOverlay?.isVisible()) {
-    showTitleDialog();
+    startIntroMusic();
+    const clickPos = Input.consumeCanvasClick?.();
+    const buttonBounds =
+      typeof window !== "undefined" ? window.__titleMenuButtonBounds : null;
+    if (clickPos && Array.isArray(buttonBounds)) {
+      const hit = buttonBounds.find(
+        (btn) =>
+          clickPos.x >= btn.x &&
+          clickPos.x <= btn.x + btn.width &&
+          clickPos.y >= btn.y &&
+          clickPos.y <= btn.y + btn.height,
+      );
+      if (hit) {
+        triggerIntroMusicFromInput();
+        if (hit.key === "play") {
+          startGameFromTitle();
+        } else if (hit.key === "howto") {
+          titleDialogActive = true;
+          showTitlePageDialog("howto");
+        }
+        keysJustPressed.delete(" ");
+        return true;
+      }
+    }
+    if (keysJustPressed.has(" ")) {
+      triggerIntroMusicFromInput();
+      startGameFromTitle();
+      keysJustPressed.delete(" ");
+      return true;
+    }
   }
   keysJustPressed.delete(" ");
   return true;
