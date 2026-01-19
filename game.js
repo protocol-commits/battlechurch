@@ -5041,9 +5041,9 @@ const HOW_TO_PLAY_PAGES = [
   {
     title: "Story",
     body: [
-      "You are the new pastor of the last church in a dying town.",
-      "You have one year to prove the church should remain open.",
-      "Spiritual warfare draws people in and strengthens the town.",
+      "You are the new pastor to the last church in a town under spiritual attack.",
+      "Smite the hordes, save your flock, grow your church, save the town.",
+      "The more you save your flock, the more the congregation grows, the stronger you become.",
     ].join("\n"),
   },
 ];
