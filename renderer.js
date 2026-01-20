@@ -2223,10 +2223,15 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       HUD_HEIGHT,
     } = requireBindings();
     ctx.save();
+    const townIntroImage = assets?.backgrounds?.townIntro || null;
     const titleImage = assets?.titleBackground || null;
-    if (titleImage) {
+    if (townIntroImage) {
+      drawCoverImage(ctx, canvas, townIntroImage, 1, 0.5, 0.5);
+      ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (titleImage) {
       drawCoverImage(ctx, canvas, titleImage, 1, 0.5, 0.5);
-      ctx.fillStyle = "rgba(6, 10, 18, 0.45)";
+      ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     } else {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -2239,55 +2244,62 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     const pages = Array.isArray(howToPlayPages) ? howToPlayPages : [];
     const pageIndex = Math.max(0, Math.min(pages.length - 1, howToPlayPageIndex || 0));
     const page = pages[pageIndex] || { title: "", body: "" };
-    const titleText = "How to Play";
-    const subtitleText = `${page.title || ""}\n${page.body || ""}`.trim();
-    const titleSize = TEXT_STYLES.h1.size;
-    const subtitleSize = TEXT_STYLES.h2.size;
-    const subtitleWeight = TEXT_STYLES.h2.weight;
-    const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    const titleText = page.title || "";
+    const bodyText = page.body || "";
 
-    const leftButton = pageIndex === 0 ? { key: "back", label: "Back" } : { key: "prev", label: "Previous" };
-    const rightButton = pageIndex < pages.length - 1 ? { key: "next", label: "Next" } : { key: "play", label: "Play" };
-    const buttonConfigs = [leftButton, rightButton];
+    {
+      const centerX = canvas.width / 2;
+      const titleY = HUD_HEIGHT + 36;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
+      ctx.fillText(titleText, centerX, titleY);
+      ctx.restore();
+    }
 
+    const bodySize = Math.max(20, TEXT_STYLES.h2.size * 0.95);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
-      title: titleText,
-      subtitle: subtitleText,
-      titleSize,
-      subtitleSize,
-      lineGap,
-      weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 0.98,
+      title: bodyText,
+      subtitle: "",
+      titleSize: bodySize,
+      subtitleSize: TEXT_STYLES.h2.size,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      weight: TEXT_STYLES.h2.weight,
+      maxWidthScale: 0.92,
       position: "bottom",
       topMargin: 90,
-      bottomMargin: 70,
-      rowGap: 40,
-      buttonHeight: 64,
-      buttonCount: buttonConfigs.length,
+      bottomMargin: 80,
+      rowGap: 32,
+      buttonHeight: 50,
+      buttonCount: 2,
       HUD_HEIGHT: HUD_HEIGHT || 54,
     });
-
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
     drawAnnouncementText(ctx, layout.virtualCanvas, {
-      title: titleText,
-      subtitle: subtitleText,
+      title: bodyText,
       yBase: layout.titleY,
       alpha: 1,
-      titleSize,
-      subtitleSize,
-      weight: TEXT_STYLES.h1.weight,
-      subtitleWeight,
-      lineGap,
-      typewriter: false,
-      maxWidthScale: 0.98,
+      typewriter: true,
+      titleSize: bodySize,
+      weight: TEXT_STYLES.h2.weight,
+      maxWidthScale: 0.92,
       blockAlign: "full",
     });
 
-    const buttonWidth = 280;
-    const buttonHeight = 64;
-    const buttonGap = 28;
+    const leftButton = pageIndex === 0 ? { key: "back", label: "Back" } : { key: "prev", label: "Previous" };
+    const rightButton = pageIndex < pages.length - 1 ? { key: "next", label: "Next" } : { key: "play", label: "Play" };
+    const buttonConfigs = [leftButton, rightButton];
+    const buttonWidth = 240;
+    const buttonHeight = 50;
+    const buttonGap = 24;
     const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
     const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
     const buttonY = Math.round(layout.buttonY || 0);
@@ -2296,7 +2308,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       const x = startX + index * (buttonWidth + buttonGap);
       ctx.save();
       ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
       ctx.lineWidth = 2;
       roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
       if (isAnnouncementButtonFocused("howto", index)) {
@@ -2307,8 +2319,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `600 22px ${UI_FONT_FAMILY}`;
-      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
+      ctx.font = `18px ${UI_FONT_FAMILY}`;
+      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
       ctx.restore();
       bounds.push({
         key: config.key,

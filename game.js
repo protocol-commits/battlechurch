@@ -5032,13 +5032,13 @@ const HOW_TO_PLAY_PAGES = [
     title: "Controls",
     body: [
       "Movement (Keyboard): WASD. Movement (Mobile): Left thumb. Buttons (Keyboard): A Left Arrow, B Down Arrow, C Right Arrow. Buttons (Mobile): A Sword, B Dash, C Prayer Bomb.",
-    ].join("\n"),
+    ].join(" "),
   },
   {
     title: "Story",
     body: [
       "You are the new pastor to the last church in a town under spiritual attack. Smite the hordes, save your flock, grow your church, save the town. The more you save your flock, the more the congregation grows, the stronger you become.",
-    ].join("\n"),
+    ].join(" "),
   },
 ];
 
