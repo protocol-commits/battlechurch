@@ -8417,8 +8417,7 @@ class Projectile {
   }
 
   draw() {
-    // Disable projectile glow to reduce overdraw/perf cost
-    const shouldGlow = false;
+    const shouldGlow = this.friendly;
     if (this.frames) {
       const frame = this.frames[this.frameIndex];
       if (!frame) return;
@@ -8497,20 +8496,55 @@ class Projectile {
   }
 }
 
-function drawProjectileGlow(width, height, { radiusScale = 0.7, baseAlpha = 0.2, colorCenter, colorMid, colorEdge } = {}) {
+let projectileGlowSprite = null;
+
+function getProjectileGlowSprite() {
+  if (projectileGlowSprite) return projectileGlowSprite;
+  if (typeof document === "undefined") return null;
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const localCtx = canvas.getContext("2d");
+  if (!localCtx) return null;
+  const center = size / 2;
+  const gradient = localCtx.createRadialGradient(center, center, 2, center, center, center);
+  gradient.addColorStop(0, "rgba(255, 222, 140, 0.32)");
+  gradient.addColorStop(0.45, "rgba(255, 190, 110, 0.18)");
+  gradient.addColorStop(0.75, "rgba(255, 170, 95, 0.08)");
+  gradient.addColorStop(1, "rgba(255, 160, 80, 0)");
+  localCtx.fillStyle = gradient;
+  localCtx.beginPath();
+  localCtx.arc(center, center, center, 0, Math.PI * 2);
+  localCtx.fill();
+  projectileGlowSprite = canvas;
+  return projectileGlowSprite;
+}
+
+function drawProjectileGlow(width, height, { radiusScale = 0.95, baseAlpha = 0.2, colorCenter, colorMid, colorEdge } = {}) {
   const pulse = (Math.sin(performance.now() * 0.025) + 1) / 2;
   const alpha = baseAlpha + 0.25 * pulse;
   const radius = Math.max(width, height) * radiusScale;
-  const gradient = ctx.createRadialGradient(0, 0, 2, 0, 0, radius);
-  gradient.addColorStop(0, colorCenter || "rgba(255, 255, 255, 0.35)");
-  gradient.addColorStop(0.5, colorMid || "rgba(170, 235, 255, 0.3)");
-  gradient.addColorStop(1, colorEdge || "rgba(140, 210, 255, 0)");
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(0, 0, radius, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.globalCompositeOperation = "lighter";
+  if (colorCenter || colorMid || colorEdge) {
+    const gradient = ctx.createRadialGradient(0, 0, 2, 0, 0, radius);
+    gradient.addColorStop(0, colorCenter || "rgba(255, 222, 140, 0.32)");
+    gradient.addColorStop(0.45, colorMid || "rgba(255, 190, 110, 0.18)");
+    gradient.addColorStop(0.75, "rgba(255, 170, 95, 0.08)");
+    gradient.addColorStop(1, colorEdge || "rgba(255, 160, 80, 0)");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    const sprite = getProjectileGlowSprite();
+    const drawSize = radius * 2;
+    if (sprite) {
+      ctx.drawImage(sprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+    }
+  }
   ctx.restore();
 }
 
