@@ -1017,14 +1017,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   ctx.restore();
 
   const title = "Stat Upgrade";
-  const subtitle = `You have ${graceCount} Grace to spend.`;
+  const staticSubtitle = "Spend Grace to upgrade your stats.";
   const buttonHeight = 120;
   const buttonCount = stats.length;
 
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
-    subtitle,
+    subtitle: staticSubtitle,
     titleSize: TEXT_STYLES.h1.size,
     subtitleSize: TEXT_STYLES.h2.size,
     lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
@@ -1040,9 +1040,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   ctx.translate(layout.offsetX, layout.offsetY);
   ctx.scale(layout.scale, layout.scale);
 
+  // Draw static title and subtitle with typewriter
   drawAnnouncementText(ctx, layout.virtualCanvas, {
     title,
-    subtitle,
+    subtitle: staticSubtitle,
     yBase: layout.titleY,
     titleSize: TEXT_STYLES.h1.size,
     subtitleSize: TEXT_STYLES.h2.size,
@@ -1055,7 +1056,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     blockAlign: "center",
   });
 
-  const revealComplete = isAnnouncementRevealComplete(title, subtitle);
+  const revealComplete = isAnnouncementRevealComplete(title, staticSubtitle);
   if (!revealComplete) {
     window.__upgradeScreenButtons = { buttons: [] };
     ctx.restore();
@@ -1068,7 +1069,26 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   const buttonWidth = Math.floor((totalAvailable - buttonGap * (buttonCount - 1)) / buttonCount);
   const buttonRowWidth = buttonWidth * buttonCount + buttonGap * (buttonCount - 1);
   const buttonStartX = Math.round((layout.virtualCanvas.width - buttonRowWidth) / 2);
-  const buttonY = Math.round(layout.buttonY || 0);
+
+  // Grace row height
+  const graceRowHeight = 50;
+  const baseButtonY = Math.round(layout.buttonY || 0);
+
+  // Draw dynamic grace count as its own row
+  const graceText = `Grace Available: ${graceCount}`;
+  const graceY = baseButtonY + 10;
+  ctx.save();
+  ctx.fillStyle = "#FFC86A";
+  ctx.font = `${TEXT_STYLES.h2.weight} ${TEXT_STYLES.h2.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+  ctx.shadowBlur = 20;
+  ctx.fillText(graceText, layout.virtualCanvas.width / 2, graceY);
+  ctx.restore();
+
+  // Buttons start after grace row
+  const buttonY = baseButtonY + graceRowHeight;
 
   const bounds = [];
   stats.forEach((stat, index) => {

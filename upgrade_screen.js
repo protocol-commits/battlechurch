@@ -85,23 +85,47 @@
   function handleKeyDown(event) {
     if (!visible) return;
     const stats = getStats();
-    const totalButtons = stats.length + 1; // stats + continue
+    const statCount = stats.length;
+    const continueIndex = statCount; // Continue button is after all stats
+    const isOnContinue = focusedIndex === continueIndex;
 
     if (event.code === "ArrowLeft" || event.code === "KeyA") {
       event.preventDefault();
-      focusedIndex = (focusedIndex - 1 + totalButtons) % totalButtons;
-      window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
-      if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+      if (!isOnContinue && statCount > 0) {
+        // Cycle within upgrade buttons
+        focusedIndex = (focusedIndex - 1 + statCount) % statCount;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+      }
     } else if (event.code === "ArrowRight" || event.code === "KeyD") {
       event.preventDefault();
-      focusedIndex = (focusedIndex + 1) % totalButtons;
-      window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
-      if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+      if (!isOnContinue && statCount > 0) {
+        // Cycle within upgrade buttons
+        focusedIndex = (focusedIndex + 1) % statCount;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+      }
+    } else if (event.code === "ArrowDown" || event.code === "KeyS") {
+      event.preventDefault();
+      if (!isOnContinue) {
+        // Move to Continue button
+        focusedIndex = continueIndex;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+      }
+    } else if (event.code === "ArrowUp" || event.code === "KeyW") {
+      event.preventDefault();
+      if (isOnContinue && statCount > 0) {
+        // Move back to first upgrade button
+        focusedIndex = 0;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+      }
     } else if (event.code === "Space" || event.code === "Enter" || event.keyCode === 32) {
       event.preventDefault();
       consumedAction = true;
 
-      if (focusedIndex < stats.length) {
+      if (focusedIndex < statCount) {
         // Upgrade stat
         const stat = stats[focusedIndex];
         if (stat && getGraceCount() >= stat.cost) {
