@@ -5251,25 +5251,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   seasonStats.monthlyAdded += memberDelta + healthReward;
   seasonStats.lost += Math.max(0, lostCount || 0);
   const congregationTotal = getCongregationSize();
-  const lines = [];
-  const formatDelta = (value) => `${value >= 0 ? "+" : "-"}${Math.abs(value)}`;
-  if (isBossSummary) {
-    lines.push(`Pastor's Health: ${Math.round(bossHealth)}`);
-    lines.push(`Your work has brought in: ${bossBonus} new congregants (Health / 10)`);
-  } else {
-    if (savedNames.length) {
-      const names = savedNames.join(", ");
-      lines.push(`You successfully ministered to ${names}. [${formatDelta(memberDelta)}]`);
-    }
-    if (lostNames.length) {
-      const names = lostNames.join(", ");
-      const verb = lostNames.length === 1 ? "has" : "have";
-      lines.push(`${names} ${verb} left the church.`);
-    }
-    lines.push(`Their total remaining health was ${Math.round(totalNpcFaith)}. [${formatDelta(healthReward)}]`);
-    const invitedCount = Math.max(0, memberDelta) + healthReward;
-    lines.push(`They have in turn invited ${invitedCount} people to join the church.`);
-  }
+  const formatDelta = (value) => `${value >= 0 ? "+" : ""}${value}`;
   const totalDelta = memberDelta + healthReward + bossBonus;
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = graceBonusCongregants * GRACE_BONUS_MULTIPLIER;
@@ -5278,10 +5260,22 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     summary.graceBonusApplied = true;
     summary.graceBonus = graceBonus;
   }
-  lines.push(`Total Congregants Added: ${totalDelta}`);
-  lines.push(`Bonus Grace: ${graceBonusCongregants} congregants x ${GRACE_BONUS_MULTIPLIER} = ${graceBonus} Grace.`);
-  lines.push(`Current Congregation Size: [${formatDelta(totalDelta)}] ${congregationTotal}`);
-  const body = lines.join("\n\n");
+  let paragraph = "";
+  if (isBossSummary) {
+    paragraph = `Pastor's Health: ${Math.round(bossHealth)}. Your work has brought in ${bossBonus} new congregants (${formatDelta(bossBonus)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${congregationTotal}`;
+  } else {
+    if (savedNames.length) {
+      const names = savedNames.join(", ");
+      paragraph += `You ministered to ${names} (${formatDelta(memberDelta)}). `;
+    }
+    if (lostNames.length) {
+      const names = lostNames.join(", ");
+      const verb = lostNames.length === 1 ? "has" : "have";
+      paragraph += `${names} ${verb} left the church. `;
+    }
+    paragraph += `Their remaining health was ${Math.round(totalNpcFaith)} (${formatDelta(healthReward)}). In turn, they've invited ${memberDelta + healthReward} people to join the congregation. Current Congregation Size: (${formatDelta(totalDelta)}) ${congregationTotal}`;
+  }
+  const body = `${paragraph}\n\nBonus Grace: ${graceBonusCongregants} x ${GRACE_BONUS_MULTIPLIER} = ${graceBonus}`;
   if (announcement) {
     announcement.recapTitle = `${monthLabel} Recap`;
     announcement.recapBody = body;

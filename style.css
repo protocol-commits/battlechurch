@@ -704,9 +704,6 @@ body.layout-rotate-warning #rotatePrompt {
   text-align: left;
   margin: 0 auto;
 }
-.dialog-overlay--title-page .dialog-overlay__header {
-  align-items: flex-start;
-}
 .dialog-overlay--title-page .dialog-overlay__body {
   margin-top: 0;
   font-size: var(--ui-body-size);
@@ -809,9 +806,6 @@ body.layout-rotate-warning .upgrade-overlay__panel {
   font-family: "Orbitron", sans-serif;
   text-align: center;
 }
-.dialog-overlay--town-intro .dialog-overlay__header {
-  align-items: center;
-}
 .dialog-overlay--town-intro .dialog-overlay__body {
   margin-top: 0;
 }
@@ -851,19 +845,9 @@ body.layout-rotate-warning .upgrade-overlay__panel {
   text-align: center;
   box-sizing: border-box;
   overflow: auto;
-}
-.dialog-overlay__dev-label {
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
-  margin-bottom: 10px;
-}
-.dialog-overlay__header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100%;
 }
 .dialog-overlay--mission .dialog-overlay__panel {
   width: 100%;
@@ -876,9 +860,6 @@ body.layout-rotate-warning .upgrade-overlay__panel {
   color: var(--ui-text-color);
   font-family: var(--ui-font-family);
   text-align: left;
-}
-.dialog-overlay--mission .dialog-overlay__header {
-  align-items: flex-start;
 }
 .dialog-overlay--title .dialog-overlay__panel,
 .dialog-overlay--pause .dialog-overlay__panel {
@@ -919,6 +900,7 @@ body.layout-rotate-warning .upgrade-overlay__panel {
   line-height: var(--ui-body-line);
   color: var(--ui-text-color);
   margin-top: 12px;
+  margin-bottom: 16px;
   white-space: pre-line;
   column-count: 1;
   column-gap: 0;
@@ -1049,15 +1031,6 @@ body.layout-rotate-warning .formation-picker {
   gap: 8px;
 }
 
-.dialog-overlay__portrait-canvas {
-  width: 100%;
-  height: auto;
-  display: none;
-  margin-top: 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.05);
-}
 
 .formation-prompt {
   font-size: var(--ui-h2-size);
@@ -1099,9 +1072,6 @@ body.layout-rotate-warning .formation-picker {
   color: var(--ui-text-color);
 }
 
-.dialog-overlay--summary .dialog-overlay__portrait-canvas {
-  display: block;
-}
 
 .dialog-overlay__button {
   margin-top: 28px;
@@ -1114,6 +1084,7 @@ body.layout-rotate-warning .formation-picker {
   font-weight: var(--ui-body-weight);
   cursor: pointer;
   transition: transform 0.12s ease;
+  flex-shrink: 0;
 }
 
 body.layout-mobile .dialog-overlay--mission .dialog-overlay__button,
