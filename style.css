@@ -693,8 +693,8 @@ body.layout-rotate-warning #rotatePrompt {
   background-image: none !important;
 }
 .dialog-overlay--title-page .dialog-overlay__panel {
-  width: min(960px, 94%);
-  max-width: 960px;
+  width: min(1200px, 96%);
+  max-width: 1200px;
   max-height: 92%;
   overflow: auto;
   padding: 18px clamp(18px, 3vw, 48px) 24px;
@@ -886,7 +886,8 @@ body.layout-rotate-warning .upgrade-overlay__panel {
 }
 
 .dialog-overlay--title .dialog-overlay__panel {
-  width: min(1200px, 96vw);
+  width: 95%;
+  max-width: none;
   background: transparent;
   border: none;
   box-shadow: none;

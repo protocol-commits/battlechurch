@@ -437,7 +437,7 @@ const MELEE_SWING_LENGTH = 200;
     ctx.shadowOffsetY = 0;
     const titleText = String(title || "");
     const subtitleText = String(subtitle || "");
-    const fullBlockPadding = blockAlign === "full" ? 0 : 24;
+    const fullBlockPadding = (blockAlign === "full" || blockAlign === "fullCenter") ? 0 : 24;
     let maxWidth = canvas.width * maxWidthScale;
     if (blockAlign === "full" || blockAlign === "fullCenter") {
       maxWidth = Math.max(0, canvas.width - fullBlockPadding * 2);
@@ -2131,7 +2131,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ctx.save();
     const titleImage = assets?.titleBackground || null;
     if (titleImage) {
-      ctx.drawImage(titleImage, 0, 0, canvas.width, canvas.height);
+      drawCoverImage(ctx, canvas, titleImage, 1, 0.5, 0.5);
     } else {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, "#070a16");
@@ -2140,16 +2140,15 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-
-    const titleText = "Spiritual Warfare";
-    const subtitleText = "Smite the hordes. Save your flock. Save the town.";
+    const titleText = "";
+    const subtitleText = "";
     const titleSize = TEXT_STYLES.h1.size;
-    const isDenseBody = titleText === "Controls" || titleText === "Story";
-    const subtitleSize = isDenseBody
-      ? TEXT_STYLES.body.size
-      : TEXT_STYLES.h2.size;
-    const subtitleWeight = isDenseBody ? TEXT_STYLES.body.weight : TEXT_STYLES.h2.weight;
+    const subtitleSize = TEXT_STYLES.h2.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    const buttonConfigs = [
+      { key: "play", label: "Play" },
+      { key: "howto", label: "How to Play" },
+    ];
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
       subtitle: subtitleText,
@@ -2157,36 +2156,19 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize,
       lineGap,
       weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 1,
+      maxWidthScale: 0.98,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 70,
       rowGap: 40,
       buttonHeight: 64,
-      buttonCount: 2,
+      buttonCount: buttonConfigs.length,
       HUD_HEIGHT: HUD_HEIGHT || 54,
     });
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
-    drawAnnouncementText(ctx, layout.virtualCanvas, {
-      title: titleText,
-      subtitle: subtitleText,
-      yBase: layout.titleY,
-      alpha: 1,
-      titleSize,
-      subtitleSize,
-      weight: TEXT_STYLES.h1.weight,
-      subtitleWeight,
-      lineGap,
-      typewriter: true,
-      maxWidthScale: 1,
-      blockAlign: "fullCenter",
-    });
-    const buttonConfigs = [
-      { key: "play", label: "Play" },
-      { key: "howto", label: "How to Play" },
-    ];
+    // Title screen shows only background art and buttons.
     const buttonWidth = 280;
     const buttonHeight = 64;
     const buttonGap = 28;
