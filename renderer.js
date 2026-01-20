@@ -415,6 +415,7 @@ const MELEE_SWING_LENGTH = 200;
     typewriter = false,
     highlight = null,
     maxWidthScale = 0.96,
+    blockAlign = "center",
   }) {
     const scaleHint = Math.min(
       1,
@@ -436,7 +437,11 @@ const MELEE_SWING_LENGTH = 200;
     ctx.shadowOffsetY = 0;
     const titleText = String(title || "");
     const subtitleText = String(subtitle || "");
-    const maxWidth = canvas.width * maxWidthScale;
+    const fullBlockPadding = 24;
+    let maxWidth = canvas.width * maxWidthScale;
+    if (blockAlign === "full" || blockAlign === "fullCenter") {
+      maxWidth = Math.max(0, canvas.width - fullBlockPadding * 2);
+    }
     const titleLineHeight = Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
     const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
     const titleLines = titleText ? wrapText(titleText, maxWidth) : [];
@@ -472,25 +477,40 @@ const MELEE_SWING_LENGTH = 200;
       displaySubtitle = subtitleText.slice(0, entry.subtitleProgress);
     }
     ctx.textAlign = "left";
-    ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    const fullTitleWidths = titleLines.map((line) => ctx.measureText(line).width || 0);
-    const titleBlockWidth = fullTitleWidths.length ? Math.max(...fullTitleWidths) : 0;
-    const titleX = canvas.width / 2 - titleBlockWidth / 2;
+    const blockLeft = (blockAlign === "full" || blockAlign === "fullCenter")
+      ? fullBlockPadding
+      : Math.round(canvas.width / 2 - maxWidth / 2);
+    let titleX = blockLeft;
+    let subtitleX = blockLeft;
+    const centerLines = blockAlign === "fullCenter";
+    if (blockAlign === "center") {
+      ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      const fullTitleWidths = titleLines.map((line) => ctx.measureText(line).width || 0);
+      const titleBlockWidth = fullTitleWidths.length ? Math.max(...fullTitleWidths) : 0;
+      titleX = canvas.width / 2 - titleBlockWidth / 2;
+    }
     let remainingTitle = displayTitle.length;
     let currentY = yBase;
     titleLines.forEach((line) => {
       if (!line) return;
       const visible = remainingTitle <= 0 ? "" : line.slice(0, remainingTitle);
       remainingTitle = Math.max(0, remainingTitle - line.length);
-      if (visible) ctx.fillText(visible, titleX, currentY);
+      if (visible) {
+        const lineX = centerLines
+          ? canvas.width / 2 - (ctx.measureText(visible).width || 0) / 2
+          : titleX;
+        ctx.fillText(visible, lineX, currentY);
+      }
       currentY += titleLineHeight;
     });
     if (subtitleLines.length) {
       currentY += Math.max(0, effectiveLineGap - titleLineHeight);
     ctx.font = `${subtitleWeight} ${effectiveSubtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      const fullSubtitleWidths = subtitleLines.map((line) => ctx.measureText(line).width || 0);
-      const subtitleBlockWidth = fullSubtitleWidths.length ? Math.max(...fullSubtitleWidths) : 0;
-      const subtitleX = canvas.width / 2 - subtitleBlockWidth / 2;
+      if (blockAlign === "center") {
+        const fullSubtitleWidths = subtitleLines.map((line) => ctx.measureText(line).width || 0);
+        const subtitleBlockWidth = fullSubtitleWidths.length ? Math.max(...fullSubtitleWidths) : 0;
+        subtitleX = canvas.width / 2 - subtitleBlockWidth / 2;
+      }
       let remainingSubtitle = displaySubtitle.length;
       const highlightText = highlight?.text ? String(highlight.text) : "";
       const highlightColor = highlight?.color || "#ffd978";
@@ -507,6 +527,9 @@ const MELEE_SWING_LENGTH = 200;
       subtitleLines.forEach((line) => {
         const visible = remainingSubtitle <= 0 ? "" : line.slice(0, remainingSubtitle);
         remainingSubtitle = Math.max(0, remainingSubtitle - line.length);
+        const lineBaseX = centerLines
+          ? canvas.width / 2 - (ctx.measureText(visible).width || 0) / 2
+          : subtitleX;
         if (visible) {
           if (highlightStart >= 0 && highlightEnd > globalIndex && highlightStart < globalIndex + visible.length) {
             const localStart = Math.max(0, highlightStart - globalIndex);
@@ -514,7 +537,7 @@ const MELEE_SWING_LENGTH = 200;
             const before = visible.slice(0, localStart);
             const mid = visible.slice(localStart, localEnd);
             const after = visible.slice(localEnd);
-            let cursorX = subtitleX;
+            let cursorX = lineBaseX;
             ctx.fillStyle = "#EAF6FF";
             if (before) {
               ctx.fillText(before, cursorX, currentY);
@@ -531,7 +554,7 @@ const MELEE_SWING_LENGTH = 200;
             }
           } else {
             ctx.fillStyle = "#EAF6FF";
-            ctx.fillText(visible, subtitleX, currentY);
+            ctx.fillText(visible, lineBaseX, currentY);
           }
         }
         currentY += subtitleLineHeight;
@@ -1312,7 +1335,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize: TEXT_STYLES.h2.size,
       lineGap,
       weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 0.98,
+      maxWidthScale: 1,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 90,
@@ -1332,7 +1355,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       lineGap,
       alpha: 1,
       typewriter: true,
-      maxWidthScale: 0.98,
+      maxWidthScale: 1,
     });
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
@@ -2157,6 +2180,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleWeight,
       lineGap,
       typewriter: true,
+      maxWidthScale: 0.92,
+      blockAlign: "fullCenter",
     });
     const buttonConfigs = [
       { key: "play", label: "Play" },
@@ -2232,51 +2257,16 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     const pages = Array.isArray(howToPlayPages) ? howToPlayPages : [];
     const pageIndex = Math.max(0, Math.min(pages.length - 1, howToPlayPageIndex || 0));
     const page = pages[pageIndex] || { title: "", body: "" };
-    const titleText = page.title || "How to Play";
-    const subtitleText = page.body || "";
+    const titleText = "How to Play";
+    const subtitleText = `${page.title || ""}\n${page.body || ""}`.trim();
     const titleSize = TEXT_STYLES.h1.size;
-    const denseTitles = new Set(["controls", "story"]);
-    const isDenseBody = denseTitles.has(String(titleText || "").toLowerCase());
-    const subtitleSize = isDenseBody ? 20 : TEXT_STYLES.h2.size;
-    const subtitleWeight = isDenseBody ? 600 : TEXT_STYLES.h2.weight;
+    const subtitleSize = TEXT_STYLES.h2.size;
+    const subtitleWeight = TEXT_STYLES.h2.weight;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
-    const scaleHint = Math.min(
-      1,
-      Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)),
-    );
-    const titleLineHeight = Math.round(titleSize * scaleHint * TEXT_STYLES.h2.lineHeight);
-    const subtitleLineHeight = Math.round(subtitleSize * scaleHint * TEXT_STYLES.body.lineHeight);
-    const maxWidth = canvas.width * 0.98;
-    const wrapLines = (text, fontWeight, fontSize) => {
-      ctx.save();
-      ctx.font = `${fontWeight} ${Math.round(fontSize * scaleHint)}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      const lines = wrapAnnouncementText(ctx, text, maxWidth);
-      ctx.restore();
-      return lines;
-    };
-    const titleLines = wrapLines(titleText, TEXT_STYLES.h1.weight, titleSize);
-    const subtitleLines = wrapLines(subtitleText, subtitleWeight, subtitleSize);
-    const gapAfterTitle = subtitleLines.length
-      ? Math.max(0, Math.round(lineGap * scaleHint) - titleLineHeight)
-      : 0;
-    const textBlockHeight =
-      titleLines.length * titleLineHeight +
-      gapAfterTitle +
-      subtitleLines.length * subtitleLineHeight;
-    const rowGap = 54;
-    const buttonHeight = 64;
 
-    const buttonConfigs = [];
-    if (pageIndex === 0) {
-      buttonConfigs.push({ key: "back", label: "Back" });
-    } else {
-      buttonConfigs.push({ key: "prev", label: "Previous" });
-    }
-    if (pageIndex < pages.length - 1) {
-      buttonConfigs.push({ key: "next", label: "Next" });
-    } else {
-      buttonConfigs.push({ key: "play", label: "Play" });
-    }
+    const leftButton = pageIndex === 0 ? { key: "back", label: "Back" } : { key: "prev", label: "Previous" };
+    const rightButton = pageIndex < pages.length - 1 ? { key: "next", label: "Next" } : { key: "play", label: "Play" };
+    const buttonConfigs = [leftButton, rightButton];
 
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
@@ -2286,11 +2276,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       lineGap,
       weight: TEXT_STYLES.h1.weight,
       maxWidthScale: 0.98,
-      position: "top",
+      position: "bottom",
       topMargin: 90,
       bottomMargin: 70,
-      rowGap,
-      buttonHeight,
+      rowGap: 40,
+      buttonHeight: 64,
       buttonCount: buttonConfigs.length,
       HUD_HEIGHT: HUD_HEIGHT || 54,
     });
@@ -2310,14 +2300,15 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       lineGap,
       typewriter: false,
       maxWidthScale: 0.98,
+      blockAlign: "full",
     });
 
-    const buttonWidth = 260;
+    const buttonWidth = 280;
+    const buttonHeight = 64;
     const buttonGap = 28;
     const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
     const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
-    const minButtonY = Math.round(layout.titleY + textBlockHeight + rowGap);
-    const buttonY = Math.round(Math.max(layout.buttonY || 0, minButtonY));
+    const buttonY = Math.round(layout.buttonY || 0);
     const bounds = [];
     buttonConfigs.forEach((config, index) => {
       const x = startX + index * (buttonWidth + buttonGap);
