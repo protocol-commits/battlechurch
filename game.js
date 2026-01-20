@@ -9853,7 +9853,7 @@ function congregationStyleGridPosition(index, total, { jitterRatio = 0.3 } = {})
 function ensureChattyAssignments() {
   if (visitorSession.summaryActive) return;
   if (!Array.isArray(visitorSession.blockers)) return;
-  const desired = 2;
+  const desired = 1;
   if (!(visitorSession.activeChatty instanceof Set)) {
     visitorSession.activeChatty = new Set();
   }
