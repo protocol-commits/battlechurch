@@ -544,6 +544,7 @@ class Player {
     this.powerExtendTimer = 0;
     this.powerExtendDuration = 0;
     this.damageFlashTimer = 0;
+    this.projectileGlowTimer = 0;
     this.lockedPosition = null;
     this.safeTopMargin = Math.max(this.radius * 2, 8);
   }
@@ -557,6 +558,7 @@ class Player {
     this.speedBoostTimer = Math.max(0, this.speedBoostTimer - dt * timerDrainScale);
     this.powerExtendTimer = Math.max(0, this.powerExtendTimer - dt * timerDrainScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
+    this.projectileGlowTimer = Math.max(0, (this.projectileGlowTimer || 0) - dt);
     if (this.hpDamageFlash?.timer > 0) {
       this.hpDamageFlash.timer = Math.max(0, this.hpDamageFlash.timer - dt);
     }
@@ -1396,6 +1398,19 @@ class Player {
     const flashStrength = this.damageFlashTimer > 0
       ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
       : 0;
+    const glowTimer = this.projectileGlowTimer || 0;
+    if (glowTimer > 0 && typeof drawProjectileGlow === "function") {
+      const strength = Math.min(1, glowTimer / 0.22);
+      const glowSize = Math.max(this.radius * 3.4, 84);
+      ctx.save();
+      ctx.translate(this.x, drawY);
+      drawProjectileGlow(glowSize, glowSize, {
+        radiusScale: 1.2,
+        baseAlpha: 0.26 * strength,
+        pulseScale: 0.3 * strength,
+      });
+      ctx.restore();
+    }
   this.animator.draw(ctx, this.x, drawY, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
     const rushActive = Boolean(window?._meleeAttackState?.isRushing);
     if (this.shieldTimer > 0 || rushActive) {

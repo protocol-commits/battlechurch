@@ -7470,6 +7470,7 @@ class CozyNpc {
     this.lossRecorded = false;
     this.damageFlashTimer = 0;
     this.damageCooldown = 0;
+    this.projectileGlowTimer = 0;
   }
 
   needsAid() {
@@ -7817,6 +7818,7 @@ class CozyNpc {
     const timerScale = getNpcTimerScale();
     this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
+    this.projectileGlowTimer = Math.max(0, (this.projectileGlowTimer || 0) - dt);
     if (this.faithDamageFlash?.timer > 0) {
       this.faithDamageFlash.timer = Math.max(0, this.faithDamageFlash.timer - dt);
     }
@@ -8168,6 +8170,19 @@ class CozyNpc {
       const flashStrength = this.damageFlashTimer > 0
         ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
         : 0;
+      const glowTimer = this.projectileGlowTimer || 0;
+      if (glowTimer > 0 && typeof drawProjectileGlow === "function") {
+        const strength = Math.min(1, glowTimer / 0.22);
+        const glowSize = Math.max(this.radius * 3.2, 76);
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        drawProjectileGlow(glowSize, glowSize, {
+          radiusScale: 1.2,
+          baseAlpha: 0.24 * strength,
+          pulseScale: 0.28 * strength,
+        });
+        ctx.restore();
+      }
       this.animator.draw(ctx, this.x, this.y, { flashWhite: flashStrength });
       if (this.shouldShowFaithBar()) {
         this.drawFaithBar();
@@ -8521,9 +8536,13 @@ function getProjectileGlowSprite() {
   return projectileGlowSprite;
 }
 
-function drawProjectileGlow(width, height, { radiusScale = 0.95, baseAlpha = 0.2, colorCenter, colorMid, colorEdge } = {}) {
+function drawProjectileGlow(
+  width,
+  height,
+  { radiusScale = 0.95, baseAlpha = 0.2, pulseScale = 0.25, colorCenter, colorMid, colorEdge } = {},
+) {
   const pulse = (Math.sin(performance.now() * 0.025) + 1) / 2;
-  const alpha = baseAlpha + 0.25 * pulse;
+  const alpha = baseAlpha + pulseScale * pulse;
   const radius = Math.max(width, height) * radiusScale;
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -9089,6 +9108,13 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   config.friendly = overrides.friendly ?? true;
   config.source = overrides.source || null;
+  if (
+    config.friendly &&
+    config.source &&
+    (config.source.isPlayer || config.source.isCozyNpc)
+  ) {
+    config.source.projectileGlowTimer = Math.max(config.source.projectileGlowTimer || 0, 0.22);
+  }
   if (config.friendly === false && window.StatsManager) {
     const manager = window.StatsManager;
     const multiplier = manager.getStatMultiplier
