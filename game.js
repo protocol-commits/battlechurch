@@ -5181,9 +5181,9 @@ function startMissionTypewriter(overlay, text, msPerChar = 18) {
 }
 
 function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAfter, portraits = {}) {
-  if (!window.DialogOverlay || window.DialogOverlay.isVisible()) return false;
+  if (announcement?.recapPrepared) return true;
   const isFinalYear = Boolean(announcement?.finalYear);
-  pendingUpgradeAfterSummary = Boolean(upgradeAfter) && !isFinalYear;
+  const shouldUpgradeAfter = Boolean(upgradeAfter);
   // Track which level was just completed for chapter breaks (boss/level summary only)
   if (announcement?.levelSummary) {
     lastCompletedLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
@@ -5191,28 +5191,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     console.log("Level completed, lastCompletedLevel set to:", lastCompletedLevel);
   }
   startRecapMusic();
-  const startRecapTypewriter = (overlay, text, msPerChar = 18) => {
-    if (!overlay) return;
-    const target = overlay.querySelector(".mission-brief-text") || overlay.querySelector(".dialog-overlay__body");
-    if (!target) return;
-    if (overlay.__recapTypeTimer) clearInterval(overlay.__recapTypeTimer);
-    target.textContent = text;
-    const fullHeight = target.scrollHeight;
-    if (fullHeight) {
-      target.style.minHeight = `${fullHeight}px`;
-    }
-    target.textContent = "";
-    let idx = 0;
-    const payload = String(text || "");
-    overlay.__recapTypeTimer = setInterval(() => {
-      idx += 1;
-      target.textContent = payload.slice(0, idx);
-      if (idx >= payload.length) {
-        clearInterval(overlay.__recapTypeTimer);
-        overlay.__recapTypeTimer = null;
-      }
-    }, msPerChar);
-  };
   const summary = levelManager?.getLastBattleSummary?.() || {};
   const status = levelManager?.getStatus?.() || null;
   const savedNames = Array.isArray(summary.savedNames)
@@ -5304,25 +5282,13 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   lines.push(`Bonus Grace: ${graceBonusCongregants} congregants x ${GRACE_BONUS_MULTIPLIER} = ${graceBonus} Grace.`);
   lines.push(`Current Congregation Size: [${formatDelta(totalDelta)}] ${congregationTotal}`);
   const body = lines.join("\n\n");
-  window.DialogOverlay.show({
-    title: `${monthLabel} Recap`,
-    bodyHtml: `<div class="mission-brief-text"></div>`,
-    buttonText: "Continue (Space)",
-    variant: "mission",
-    devLabel: "",
-    portraits: null,
-    onRender: ({ overlay }) => startRecapTypewriter(overlay, body, 18),
-    onContinue: () => {
-      graceRushBlackout = false;
-      graceRushFadeHold = false;
-      graceRushFadeTimer = 0;
-      graceRushFadeDuration = 0;
-      graceRushFadeAlpha = 0;
-      dismissCurrentLevelAnnouncement();
-      window.DialogOverlay.consumeAction();
-      if (isFinalYear) activateEpilogue();
-    },
-  });
+  if (announcement) {
+    announcement.recapTitle = `${monthLabel} Recap`;
+    announcement.recapBody = body;
+    announcement.recapFinalYear = isFinalYear;
+    announcement.recapUpgradeAfter = shouldUpgradeAfter;
+    announcement.recapPrepared = true;
+  }
   return true;
 }
 
@@ -11640,17 +11606,36 @@ function handleLevelAnnouncements() {
   const currentAnnouncement = levelAnnouncements[0];
   const isSummary = isBattleSummaryAnnouncement(currentAnnouncement);
   if (isSummary) {
-    if (!window.DialogOverlay?.isVisible()) {
+    if (!currentAnnouncement.recapPrepared) {
       const battleSummary = levelManager?.getLastBattleSummary?.() || {};
       const savedCount = Number.isFinite(battleSummary?.savedCount) ? battleSummary.savedCount : 0;
       const lostCount = Number.isFinite(battleSummary?.lostCount) ? battleSummary.lostCount : 0;
       const upgradeAfter = Boolean(window.UpgradeScreen);
-      const portraits = {
-        saved: Array.isArray(battleSummary.savedPortraits) ? battleSummary.savedPortraits : [],
-        lost: Array.isArray(battleSummary.lostPortraits) ? battleSummary.lostPortraits : [],
-      };
-      showBattleSummaryDialog(currentAnnouncement, savedCount, lostCount, upgradeAfter, portraits);
+      showBattleSummaryDialog(currentAnnouncement, savedCount, lostCount, upgradeAfter);
     }
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "recap"
+        ? window.__announcementButtons.buttons
+        : null;
+    const handled = handleAnnouncementButtons({
+      key: "recap",
+      buttons,
+      allowSpace: true,
+      onActivate: () => {
+        graceRushBlackout = false;
+        graceRushFadeHold = false;
+        graceRushFadeTimer = 0;
+        graceRushFadeDuration = 0;
+        graceRushFadeAlpha = 0;
+        pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter) && !currentAnnouncement.recapFinalYear;
+        dismissCurrentLevelAnnouncement();
+        if (currentAnnouncement.recapFinalYear) activateEpilogue();
+        if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+          window.playMenuAdvanceSfx(0.55);
+        }
+      },
+    });
+    if (handled) return true;
     return true;
   }
   if (currentAnnouncement.townIntro) {

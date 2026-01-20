@@ -827,6 +827,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     highlight = null,
     showFormation = true,
     uiFontFamily = "sans-serif",
+    buttonKey = "missionBrief",
+    setMissionBriefActive = true,
   } = options;
   const promptText = "How would you like to minister to them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
@@ -871,8 +873,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
   if (!revealComplete) {
     if (typeof window !== "undefined") {
-      window.__missionBriefActive = false;
-      window.__missionBriefButtonBounds = null;
+      if (setMissionBriefActive) {
+        window.__missionBriefActive = false;
+        window.__missionBriefButtonBounds = null;
+      }
+      window.__announcementButtons = { key: buttonKey, buttons: [] };
     }
     ctx.restore();
     return;
@@ -973,9 +978,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   });
 
   if (typeof window !== "undefined") {
-    window.__missionBriefActive = true;
-    window.__missionBriefButtonBounds = bounds;
-    window.__announcementButtons = { key: "missionBrief", buttons: bounds };
+    if (setMissionBriefActive) {
+      window.__missionBriefActive = true;
+      window.__missionBriefButtonBounds = bounds;
+    }
+    window.__announcementButtons = { key: buttonKey, buttons: bounds };
   }
 
   ctx.restore();
@@ -1048,8 +1055,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   // detect battle summary announcements (e.g., 'Battle 1 Cleared' or 'Level 1 — January Cleared')
   const isBattleSummary = (
     requiresConfirm
-    && titleStr.includes('cleared')
-    && (titleStr.includes('battle') || titleStr.includes('level'))
+    && (titleStr.includes('cleared') || (titleStr.includes('horde') && titleStr.includes('cleared')))
   );
   // =============================
   // MISSION BRIEF POPUP SCREEN
@@ -1152,6 +1158,22 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     }
   } catch (e) {}
   if (isBattleSummary) {
+    let summaryTitle = levelAnnouncements?.[0]?.recapTitle || "";
+    if (!summaryTitle) {
+      const titleText = displayTitle || title || "";
+      const match = titleText.match(/—\s*([^]+?)\s*Cleared/i);
+      const monthLabel = match && match[1] ? match[1].trim() : "";
+      summaryTitle = monthLabel ? `${monthLabel} Recap` : "Monthly Recap";
+    }
+    const summaryBody = levelAnnouncements?.[0]?.recapBody || "";
+    drawMissionBriefScreen(ctx, canvas, {
+      title: summaryTitle,
+      subtitle: summaryBody,
+      showFormation: false,
+      uiFontFamily: UI_FONT_FAMILY,
+      buttonKey: "recap",
+      setMissionBriefActive: false,
+    });
     ctx.restore();
     return;
   }
