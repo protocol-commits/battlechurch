@@ -389,7 +389,13 @@
       });
       if (seg) {
         const cfg = segmentMap[seg];
-        if (cfg) pressVirtualKey(cfg.key, cfg);
+        const upgradeSelect =
+          seg === "A" && typeof window !== "undefined" && window.UpgradeScreen?.isVisible?.();
+        if (upgradeSelect && typeof window.UpgradeScreen?.selectFocused === "function") {
+          window.UpgradeScreen.selectFocused();
+        } else if (cfg) {
+          pressVirtualKey(cfg.key, cfg);
+        }
       }
     };
 

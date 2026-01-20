@@ -123,25 +123,29 @@
       }
     } else if (event.code === "Space" || event.code === "Enter" || event.keyCode === 32) {
       event.preventDefault();
-      consumedAction = true;
-
-      if (focusedIndex < statCount) {
-        // Upgrade stat
-        const stat = stats[focusedIndex];
-        if (stat && getGraceCount() >= stat.cost) {
-          const purchased = attemptPurchase(stat.key);
-          if (purchased && typeof window.playMenuItemPickSfx === "function") {
-            window.playMenuItemPickSfx(0.55);
-          }
-        }
-      } else {
-        // Continue button
-        if (typeof window.playMenuAdvanceSfx === "function") {
-          window.playMenuAdvanceSfx(0.55);
-        }
-        hide();
-      }
+      activateFocused();
     }
+  }
+
+  function activateFocused() {
+    if (!visible) return;
+    const stats = getStats();
+    const statCount = stats.length;
+    consumedAction = true;
+    if (focusedIndex < statCount) {
+      const stat = stats[focusedIndex];
+      if (stat && getGraceCount() >= stat.cost) {
+        const purchased = attemptPurchase(stat.key);
+        if (purchased && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.55);
+        }
+      }
+      return;
+    }
+    if (typeof window.playMenuAdvanceSfx === "function") {
+      window.playMenuAdvanceSfx(0.55);
+    }
+    hide();
   }
 
   function handleClick(event) {
@@ -183,6 +187,7 @@
     draw,
     isVisible: () => visible,
     refresh: () => {},
+    selectFocused: activateFocused,
     consumeAction() {
       const wasConsumed = consumedAction;
       consumedAction = false;
