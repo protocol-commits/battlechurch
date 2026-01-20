@@ -437,7 +437,7 @@ const MELEE_SWING_LENGTH = 200;
     ctx.shadowOffsetY = 0;
     const titleText = String(title || "");
     const subtitleText = String(subtitle || "");
-    const fullBlockPadding = 24;
+    const fullBlockPadding = blockAlign === "full" ? 0 : 24;
     let maxWidth = canvas.width * maxWidthScale;
     if (blockAlign === "full" || blockAlign === "fullCenter") {
       maxWidth = Math.max(0, canvas.width - fullBlockPadding * 2);
@@ -2157,7 +2157,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize,
       lineGap,
       weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 0.92,
+      maxWidthScale: 1,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 70,
@@ -2180,7 +2180,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleWeight,
       lineGap,
       typewriter: true,
-      maxWidthScale: 0.92,
+      maxWidthScale: 1,
       blockAlign: "fullCenter",
     });
     const buttonConfigs = [
