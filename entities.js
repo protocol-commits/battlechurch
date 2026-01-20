@@ -2047,6 +2047,25 @@ class Player {
           drawOptions.tintIntensity = this.config.tintIntensity;
         }
       }
+      const hasFlameTag = Array.isArray(this.config?.specialBehavior)
+        ? this.config.specialBehavior.includes("tormentorFlame")
+        : this.type === "tormentorFlame";
+      if (hasFlameTag && this.state !== "death" && typeof drawProjectileGlow === "function") {
+        const clip = this.animator?.currentClip;
+        const clipScale =
+          (Number.isFinite(this.animator?.scale) ? this.animator.scale : 1) *
+          (Number.isFinite(clip?.renderScale) ? clip.renderScale : 1);
+        const frameSize =
+          clip && Number.isFinite(clip.frameWidth) && Number.isFinite(clip.frameHeight)
+            ? Math.max(clip.frameWidth, clip.frameHeight) * clipScale
+            : 0;
+        const baseRadius = Math.max(10, this.radius || 0);
+        const glowSize = Math.max(frameSize * 1.1, baseRadius * 2.8, 46);
+        ctx.save();
+        ctx.translate(this.x, drawY);
+        drawProjectileGlow(glowSize, glowSize, { radiusScale: 1.05, baseAlpha: 0.18, pulseScale: 0.16 });
+        ctx.restore();
+      }
       this.animator.draw(ctx, this.x, drawY, drawOptions);
       const alwaysShow =
         typeof devTools !== "undefined" && Boolean(devTools.alwaysShowEnemyHP);
