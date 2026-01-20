@@ -5277,7 +5277,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   }
   const body = `${paragraph}\n\nBonus Grace: ${graceBonusCongregants} x ${GRACE_BONUS_MULTIPLIER} = ${graceBonus}`;
   if (announcement) {
-    announcement.recapTitle = `${monthLabel} Recap`;
+    announcement.recapTitle = `${monthLabel} Congregational Report`;
     announcement.recapBody = body;
     announcement.recapFinalYear = isFinalYear;
     announcement.recapUpgradeAfter = shouldUpgradeAfter;
@@ -13753,6 +13753,9 @@ function gameLoop(timestamp) {
 
   updateGame(delta);
   Renderer.drawFrame();
+  if (window.UpgradeScreen?.isVisible?.()) {
+    window.UpgradeScreen.draw();
+  }
   keysJustPressed.clear();
 
   gameLoopHandle = requestAnimationFrame(gameLoop);

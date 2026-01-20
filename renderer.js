@@ -995,6 +995,167 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   ctx.restore();
 }
 
+function drawUpgradeScreen(ctx, canvas, options = {}) {
+  const {
+    graceCount = 0,
+    stats = [],
+    uiFontFamily = "sans-serif",
+  } = options;
+
+  // Draw background
+  const { assets } = requireBindings();
+  const backgroundImage = assets?.backgrounds?.gameOver || null;
+  ctx.save();
+  if (backgroundImage) {
+    drawCoverImage(ctx, canvas, backgroundImage, 1, 0.5, 0.5);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.restore();
+
+  const title = "Stat Upgrade";
+  const subtitle = `You have ${graceCount} Grace to spend.`;
+  const buttonHeight = 120;
+  const buttonCount = stats.length;
+
+  ctx.save();
+  const layout = getAnnouncementScreenLayout(ctx, canvas, {
+    title,
+    subtitle,
+    titleSize: TEXT_STYLES.h1.size,
+    subtitleSize: TEXT_STYLES.h2.size,
+    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    weight: TEXT_STYLES.h1.weight,
+    maxWidthScale: 0.96,
+    position: "top",
+    topMargin: 90,
+    bottomMargin: 70,
+    rowGap: 40,
+    buttonHeight,
+    buttonCount: buttonCount + 1,
+  });
+  ctx.translate(layout.offsetX, layout.offsetY);
+  ctx.scale(layout.scale, layout.scale);
+
+  drawAnnouncementText(ctx, layout.virtualCanvas, {
+    title,
+    subtitle,
+    yBase: layout.titleY,
+    titleSize: TEXT_STYLES.h1.size,
+    subtitleSize: TEXT_STYLES.h2.size,
+    weight: TEXT_STYLES.h1.weight,
+    subtitleWeight: TEXT_STYLES.h2.weight,
+    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    alpha: 1,
+    typewriter: true,
+    maxWidthScale: 0.96,
+    blockAlign: "center",
+  });
+
+  const revealComplete = isAnnouncementRevealComplete(title, subtitle);
+  if (!revealComplete) {
+    window.__upgradeScreenButtons = { buttons: [] };
+    ctx.restore();
+    return;
+  }
+
+  const buttonGap = 18;
+  const sidePadding = 60;
+  const totalAvailable = layout.virtualCanvas.width - sidePadding * 2;
+  const buttonWidth = Math.floor((totalAvailable - buttonGap * (buttonCount - 1)) / buttonCount);
+  const buttonRowWidth = buttonWidth * buttonCount + buttonGap * (buttonCount - 1);
+  const buttonStartX = Math.round((layout.virtualCanvas.width - buttonRowWidth) / 2);
+  const buttonY = Math.round(layout.buttonY || 0);
+
+  const bounds = [];
+  stats.forEach((stat, index) => {
+    const x = buttonStartX + index * (buttonWidth + buttonGap);
+    const canAfford = graceCount >= stat.cost;
+
+    ctx.save();
+    ctx.fillStyle = canAfford ? "#9BD9FF" : "rgba(155, 217, 255, 0.4)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
+
+    if (isAnnouncementButtonFocused("upgradeScreen", index)) {
+      ctx.strokeStyle = "#FFC86A";
+      ctx.lineWidth = 3;
+      roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+    }
+
+    ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `600 24px ${uiFontFamily}`;
+    ctx.fillText(stat.label, x + buttonWidth / 2, buttonY + 32);
+
+    ctx.font = `14px ${uiFontFamily}`;
+    ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.78)" : "rgba(11, 17, 26, 0.4)";
+    ctx.fillText(stat.description, x + buttonWidth / 2, buttonY + 54);
+
+    ctx.font = `600 18px ${uiFontFamily}`;
+    ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
+    ctx.fillText(`Current: ${stat.value}`, x + buttonWidth / 2, buttonY + 80);
+
+    ctx.font = `15px ${uiFontFamily}`;
+    ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.7)" : "rgba(11, 17, 26, 0.4)";
+    ctx.fillText(`Cost: ${stat.cost} Grace`, x + buttonWidth / 2, buttonY + 102);
+
+    ctx.restore();
+
+    bounds.push({
+      key: stat.key,
+      x: layout.offsetX + x * layout.scale,
+      y: layout.offsetY + buttonY * layout.scale,
+      width: buttonWidth * layout.scale,
+      height: buttonHeight * layout.scale,
+      canAfford,
+    });
+  });
+
+  const continueY = buttonY + buttonHeight + 30;
+  const continueWidth = Math.min(420, totalAvailable);
+  const continueX = Math.round((layout.virtualCanvas.width - continueWidth) / 2);
+  const continueHeight = 56;
+
+  ctx.save();
+  ctx.fillStyle = "#9BD9FF";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, continueX, continueY, continueWidth, continueHeight, 18, true, true);
+
+  if (isAnnouncementButtonFocused("upgradeScreen", buttonCount)) {
+    ctx.strokeStyle = "#FFC86A";
+    ctx.lineWidth = 3;
+    roundRect(ctx, continueX - 3, continueY - 3, continueWidth + 6, continueHeight + 6, 20, false, true);
+  }
+
+  ctx.fillStyle = "#0b111a";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `600 24px ${uiFontFamily}`;
+  ctx.fillText("Continue (Space)", continueX + continueWidth / 2, continueY + continueHeight / 2);
+  ctx.restore();
+
+  bounds.push({
+    key: "continue",
+    x: layout.offsetX + continueX * layout.scale,
+    y: layout.offsetY + continueY * layout.scale,
+    width: continueWidth * layout.scale,
+    height: continueHeight * layout.scale,
+  });
+
+  if (typeof window !== "undefined") {
+    window.__upgradeScreenButtons = { buttons: bounds };
+  }
+
+  ctx.restore();
+}
+
   function drawLevelAnnouncements() {
     const {
       ctx,
@@ -1170,7 +1331,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       const titleText = displayTitle || title || "";
       const match = titleText.match(/—\s*([^]+?)\s*Cleared/i);
       const monthLabel = match && match[1] ? match[1].trim() : "";
-      summaryTitle = monthLabel ? `${monthLabel} Recap` : "Monthly Recap";
+      summaryTitle = monthLabel ? `${monthLabel} Congregational Report` : "Congregational Report";
     }
     const summaryBody = levelAnnouncements?.[0]?.recapBody || "";
     drawMissionBriefScreen(ctx, canvas, {
@@ -3505,5 +3666,6 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     initialize,
     drawFrame,
     drawCountdownOverlay,
+    drawUpgradeScreen,
   };
 })(typeof window !== "undefined" ? window : null);

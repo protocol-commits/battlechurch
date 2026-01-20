@@ -2,126 +2,56 @@
   if (!window || !document) return;
   const StatsManager = window.StatsManager;
 
-  const overlay = document.createElement("div");
-  overlay.className = "upgrade-overlay hidden magazine-overlay";
-  overlay.setAttribute("aria-hidden", "true");
-  overlay.innerHTML = `
-    <div class="upgrade-overlay__panel magazine-panel">
-      <div class="upgrade-overlay__dev-label">DEV: UpgradeScreen</div>
-    <div class="upgrade-overlay__header">
-        <h1>Stat Upgrade</h1>
-        <div class="upgrade-overlay__grace">
-          <span class="grace-label">Grace</span>
-          <span class="grace-value" data-upgrade-grace>0</span>
-        </div>
-      </div>
-      <div class="upgrade-overlay__grid" data-upgrade-grid></div>
-      <div class="upgrade-overlay__actions">
-        <button type="button" class="upgrade-overlay__confirm" data-upgrade-confirm>Continue (Space)</button>
-      </div>
-    </div>
-  `;
-
-  const root = document.getElementById("appRoot") || document.body;
-  root.appendChild(overlay);
-
-  const gridElement = overlay.querySelector("[data-upgrade-grid]");
-  const graceElement = overlay.querySelector("[data-upgrade-grace]");
-  const confirmButton = overlay.querySelector("[data-upgrade-confirm]");
-  const headerTitle = overlay.querySelector(".upgrade-overlay__header h1");
-
   let onCloseCallback = null;
   let visible = false;
   let consumedAction = false;
+  let focusedIndex = 0;
 
   function getGraceCount() {
     return typeof window.getGraceCount === "function" ? window.getGraceCount() : 0;
   }
 
+  function getStats() {
+    if (!StatsManager) return [];
+    return StatsManager.getStatKeys()
+      .filter((key) => key !== "damage_resistance")
+      .map((key) => ({
+        key,
+        label: StatsManager.getStatLabel(key),
+        description: StatsManager.getStatDescription(key),
+        value: StatsManager.getStatDisplayString(key),
+        cost: StatsManager.getUpgradeCost(key),
+      }));
+  }
+
   function attemptPurchase(statKey) {
-    if (!StatsManager) return;
+    if (!StatsManager) return false;
     const cost = StatsManager.getUpgradeCost(statKey);
     const currentGrace = getGraceCount();
-    if (currentGrace < cost) {
-      return false;
-    }
+    if (currentGrace < cost) return false;
     window.addGrace?.(-cost);
     StatsManager.applyUpgrade(statKey);
-    renderRows();
-    updateGraceDisplay();
     return true;
   }
 
-  function createRow(statKey) {
-    if (!StatsManager) return "";
-    const label = StatsManager.getStatLabel(statKey);
-    const description = StatsManager.getStatDescription(statKey);
-    const value = StatsManager.getStatDisplayString(statKey);
-    const cost = StatsManager.getUpgradeCost(statKey);
-    const canAfford = getGraceCount() >= cost;
-    const isDisabled = !canAfford ? "disabled" : "";
-    return `
-      <div class="upgrade-row">
-        <div class="upgrade-row__info">
-          <div class="upgrade-row__label">${label}</div>
-          <div class="upgrade-row__desc">${description}</div>
-        </div>
-        <div class="upgrade-row__value">${value}</div>
-        <button type="button" class="upgrade-row__button" ${isDisabled} data-stat="${statKey}">
-          Upgrade +${cost} grace
-        </button>
-      </div>
-    `;
-  }
-
-  function renderRows() {
-    if (!gridElement || !StatsManager) return;
-    const rows = StatsManager.getStatKeys()
-      .filter((key) => key !== "damage_resistance")
-      .map((key) => createRow(key))
-      .join("");
-    gridElement.innerHTML = rows;
-  }
-
-  function updateGraceDisplay() {
-    if (!graceElement) return;
-    graceElement.textContent = getGraceCount();
-  }
-
-  function typewriter(el, text, msPerChar = 18) {
-    if (!el) return;
-    if (el.__typeTimer) clearInterval(el.__typeTimer);
-    el.textContent = "";
-    let idx = 0;
-    const payload = String(text || "");
-    el.__typeTimer = setInterval(() => {
-      idx += 1;
-      el.textContent = payload.slice(0, idx);
-      if (idx >= payload.length) {
-        clearInterval(el.__typeTimer);
-        el.__typeTimer = null;
-      }
-    }, msPerChar);
-  }
-
   function show(callback) {
-    if (!overlay) return;
-    renderRows();
-    updateGraceDisplay();
     onCloseCallback = typeof callback === "function" ? callback : null;
-    overlay.classList.remove("hidden");
-    overlay.classList.add("visible");
-    overlay.setAttribute("aria-hidden", "false");
     visible = true;
-    if (headerTitle) typewriter(headerTitle, headerTitle.textContent || "", 18);
+    focusedIndex = 0;
+    if (typeof window !== "undefined") {
+      window.__upgradeScreenActive = true;
+      window.__announcementFocus = { key: "upgradeScreen", index: 0 };
+    }
   }
 
   function hide() {
-    if (!overlay || !visible) return;
-    overlay.classList.remove("visible");
-    overlay.classList.add("hidden");
-    overlay.setAttribute("aria-hidden", "true");
+    if (!visible) return;
     visible = false;
+    if (typeof window !== "undefined") {
+      window.__upgradeScreenActive = false;
+      window.__upgradeScreenButtons = null;
+      window.__announcementFocus = null;
+    }
     if (typeof window.consumePauseAction === "function") {
       window.consumePauseAction();
     }
@@ -132,54 +62,103 @@
     }
   }
 
+  function draw() {
+    if (!visible) return;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+
+    const stats = getStats();
+    const graceCount = getGraceCount();
+    const uiFontFamily = window.UI_FONT_FAMILY || "'Orbitron', sans-serif";
+
+    // Use renderer's drawUpgradeScreen
+    if (window.Renderer?.drawUpgradeScreen) {
+      window.Renderer.drawUpgradeScreen(ctx, canvas, {
+        graceCount,
+        stats,
+        uiFontFamily,
+      });
+    }
+  }
+
   function handleKeyDown(event) {
     if (!visible) return;
-    if (event.code === "Space" || event.keyCode === 32) {
+    const stats = getStats();
+    const totalButtons = stats.length + 1; // stats + continue
+
+    if (event.code === "ArrowLeft" || event.code === "KeyA") {
+      event.preventDefault();
+      focusedIndex = (focusedIndex - 1 + totalButtons) % totalButtons;
+      window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+      if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+    } else if (event.code === "ArrowRight" || event.code === "KeyD") {
+      event.preventDefault();
+      focusedIndex = (focusedIndex + 1) % totalButtons;
+      window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+      if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+    } else if (event.code === "Space" || event.code === "Enter" || event.keyCode === 32) {
       event.preventDefault();
       consumedAction = true;
-      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-        window.playMenuAdvanceSfx(0.55);
+
+      if (focusedIndex < stats.length) {
+        // Upgrade stat
+        const stat = stats[focusedIndex];
+        if (stat && getGraceCount() >= stat.cost) {
+          const purchased = attemptPurchase(stat.key);
+          if (purchased && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
+          }
+        }
+      } else {
+        // Continue button
+        if (typeof window.playMenuAdvanceSfx === "function") {
+          window.playMenuAdvanceSfx(0.55);
+        }
+        hide();
       }
-      hide();
     }
   }
 
-  function handleGridClick(event) {
-    const button = event.target.closest(".upgrade-row__button");
-    if (!button || !visible) return;
-    const statKey = button.getAttribute("data-stat");
-    if (!statKey) return;
-    const purchased = attemptPurchase(statKey);
-    if (purchased && typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
-      window.playMenuItemPickSfx(0.55);
+  function handleClick(event) {
+    if (!visible) return;
+    const buttons = window.__upgradeScreenButtons?.buttons;
+    if (!Array.isArray(buttons) || !buttons.length) return;
+
+    const canvas = document.getElementById("gameCanvas");
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    for (let i = 0; i < buttons.length; i++) {
+      const btn = buttons[i];
+      if (x >= btn.x && x <= btn.x + btn.width && y >= btn.y && y <= btn.y + btn.height) {
+        if (btn.key === "continue") {
+          if (typeof window.playMenuAdvanceSfx === "function") {
+            window.playMenuAdvanceSfx(0.55);
+          }
+          hide();
+        } else if (btn.canAfford !== false) {
+          const purchased = attemptPurchase(btn.key);
+          if (purchased && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
+          }
+        }
+        break;
+      }
     }
   }
 
-  overlay.addEventListener("click", (event) => {
-    if (event.target === overlay) {
-      return;
-    }
-  });
-
-  gridElement.addEventListener("click", handleGridClick);
-  confirmButton.addEventListener("click", () => {
-    if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-      window.playMenuAdvanceSfx(0.55);
-    }
-    hide();
-  });
   window.addEventListener("keydown", handleKeyDown, { passive: false });
+  document.addEventListener("click", handleClick);
 
   window.UpgradeScreen = {
     show,
     hide,
+    draw,
     isVisible: () => visible,
-    refresh: () => {
-      if (visible) {
-        renderRows();
-        updateKeyDisplay();
-      }
-    },
+    refresh: () => {},
     consumeAction() {
       const wasConsumed = consumedAction;
       consumedAction = false;
