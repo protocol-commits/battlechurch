@@ -670,6 +670,9 @@ body.layout-rotate-warning #rotatePrompt {
   background-position: center;
   background-repeat: no-repeat;
 }
+.dialog-overlay--howto .dialog-overlay__panel {
+  width: min(900px, 94%);
+}
 .dialog-overlay--mission {
   align-items: center;
   justify-content: center;
