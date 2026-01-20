@@ -2271,7 +2271,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize: TEXT_STYLES.h2.size,
       lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
       weight: TEXT_STYLES.h2.weight,
-      maxWidthScale: 0.92,
+      maxWidthScale: 0.86,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 80,
@@ -2290,8 +2290,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       typewriter: true,
       titleSize: bodySize,
       weight: TEXT_STYLES.h2.weight,
-      maxWidthScale: 0.92,
-      blockAlign: "full",
+      maxWidthScale: 0.86,
+      blockAlign: "fullCenter",
     });
 
     const leftButton = pageIndex === 0 ? { key: "back", label: "Back" } : { key: "prev", label: "Previous" };
