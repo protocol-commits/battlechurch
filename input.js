@@ -38,9 +38,11 @@
 
   const virtualInput = {
     enabled: false,
+    configured: false,
     deadZone: 0.12,
     movement: { x: 0, y: 0, active: false, pointerId: null },
     aim: { x: 0, y: 0, active: false, pointerId: null },
+    virtualKeysDown: new Set(),
   };
 
   const aimState = {
@@ -335,14 +337,18 @@
   }
 
   function pressVirtualKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
-    if (!keysDown.has(key)) keysJustPressed.add(key);
-    keysDown.add(key);
+    const normalized = normalizeKey(key);
+    if (!keysDown.has(normalized)) keysJustPressed.add(normalized);
+    keysDown.add(normalized);
+    virtualInput.virtualKeysDown.add(normalized);
     if (setNesA) nesAButtonActive = true;
     if (setPrayerBomb) prayerBombClickQueued = true;
   }
 
   function releaseVirtualKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
-    keysDown.delete(key);
+    const normalized = normalizeKey(key);
+    keysDown.delete(normalized);
+    virtualInput.virtualKeysDown.delete(normalized);
     if (setNesA) nesAButtonActive = false;
     if (setPrayerBomb) prayerBombClickQueued = false;
   }
@@ -473,16 +479,8 @@
     });
   }
 
-  function initializeVirtualControls() {
-    if (virtualInput.enabled) return;
-    if (!touchControlsRoot) return;
-    const shouldEnable = FORCE_TOUCH_CONTROLS || isTouchCapable;
-    if (!shouldEnable) {
-      touchControlsRoot.setAttribute("aria-hidden", "true");
-      return;
-    }
-    virtualInput.enabled = true;
-    touchControlsRoot.setAttribute("aria-hidden", "false");
+  function ensureVirtualControlsConfigured() {
+    if (virtualInput.configured) return;
     if (moveStickBase) {
       configureVirtualJoystick(moveStickBase, "movement");
     }
@@ -497,12 +495,84 @@
     if (arcControl) {
       configureArcControl(arcControl);
     }
+    virtualInput.configured = true;
+  }
+
+  function resetVirtualControlsState() {
+    const moveHandle = moveStickBase?.querySelector(".joystick-handle");
+    const aimHandle = aimStickBase?.querySelector(".joystick-handle");
+    if (moveHandle) resetVirtualJoystick(moveHandle, virtualInput.movement);
+    if (aimHandle) resetVirtualJoystick(aimHandle, virtualInput.aim);
+    if (moveStickBase) moveStickBase.classList.remove("is-active");
+    virtualInput.movement.active = false;
+    virtualInput.aim.active = false;
+    virtualInput.movement.pointerId = null;
+    virtualInput.aim.pointerId = null;
+    virtualInput.movement.x = 0;
+    virtualInput.movement.y = 0;
+    virtualInput.aim.x = 0;
+    virtualInput.aim.y = 0;
+    const hasKeyboardMovement = ["w", "a", "s", "d"].some((key) => keysDown.has(key));
+    if (!hasKeyboardMovement) {
+      movementDirection.x = 0;
+      movementDirection.y = 0;
+    }
+    if (virtualInput.virtualKeysDown.size) {
+      virtualInput.virtualKeysDown.forEach((key) => {
+        keysDown.delete(key);
+      });
+      virtualInput.virtualKeysDown.clear();
+    }
+    nesAButtonActive = false;
+  }
+
+  function setVirtualControlsVisible(visible) {
+    if (!touchControlsRoot) return;
+    if (visible) {
+      if (virtualInput.enabled) {
+        updateTouchLayout();
+        return;
+      }
+      ensureVirtualControlsConfigured();
+      virtualInput.enabled = true;
+      touchControlsRoot.setAttribute("aria-hidden", "false");
+      updateTouchLayout();
+      return;
+    }
+    if (!virtualInput.enabled) {
+      updateTouchLayout();
+      return;
+    }
+    virtualInput.enabled = false;
+    touchControlsRoot.setAttribute("aria-hidden", "true");
+    resetVirtualControlsState();
     updateTouchLayout();
   }
 
+  function toggleVirtualControls() {
+    setVirtualControlsVisible(!virtualInput.enabled);
+  }
+
+  function initializeVirtualControls() {
+    if (virtualInput.enabled) return;
+    if (!touchControlsRoot) return;
+    const shouldEnable = FORCE_TOUCH_CONTROLS || isTouchCapable;
+    if (!shouldEnable) {
+      touchControlsRoot.setAttribute("aria-hidden", "true");
+      updateTouchLayout();
+      return;
+    }
+    setVirtualControlsVisible(true);
+  }
+
   function updateTouchLayout() {
-    if (!virtualInput.enabled) return;
     if (!document || !document.body) return;
+    if (!virtualInput.enabled) {
+      document.body.classList.remove("touch-enabled");
+      document.body.classList.remove("touch-mobile");
+      document.body.classList.remove("touch-tablet");
+      return;
+    }
     document.body.classList.add("touch-enabled");
     const viewportWidth = window.innerWidth;
     const isMobileLayout = viewportWidth <= 720;
@@ -551,6 +621,11 @@
     if (!prayerBombClickQueued) return false;
     prayerBombClickQueued = false;
     return true;
+  }
+
+  function peekCanvasClick() {
+    if (!canvasClickQueued) return null;
+    return canvasClickPos;
   }
 
   function consumeCanvasClick() {
@@ -627,10 +702,13 @@
     wasActionJustPressed,
     triggerVirtualKeyPress,
     consumePrayerBombClick,
+    peekCanvasClick,
     consumeCanvasClick,
     consumeComboSwipe,
     peekComboSwipe,
     clearJustPressed,
+    setVirtualControlsVisible,
+    toggleVirtualControls,
     get keysJustPressed() {
       return keysJustPressed;
     },
