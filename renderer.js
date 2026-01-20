@@ -437,14 +437,16 @@ const MELEE_SWING_LENGTH = 200;
     ctx.shadowOffsetY = 0;
     const titleText = String(title || "");
     const subtitleText = String(subtitle || "");
-    const fullBlockPadding = (blockAlign === "full" || blockAlign === "fullCenter") ? 0 : 24;
+    const fullBlockPadding = (blockAlign === "full" || blockAlign === "fullCenter") ? 48 : 24;
     let maxWidth = canvas.width * maxWidthScale;
     if (blockAlign === "full" || blockAlign === "fullCenter") {
-      maxWidth = Math.max(0, canvas.width - fullBlockPadding * 2);
+      maxWidth = Math.max(0, canvas.width * maxWidthScale - fullBlockPadding * 2);
     }
     const titleLineHeight = Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
     const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
+    ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const titleLines = titleText ? wrapText(titleText, maxWidth) : [];
+    ctx.font = `${subtitleWeight} ${effectiveSubtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const subtitleLines = subtitleText ? wrapText(subtitleText, maxWidth) : [];
     let displayTitle = titleText;
     let displaySubtitle = subtitleText;
@@ -829,6 +831,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     uiFontFamily = "sans-serif",
     buttonKey = "missionBrief",
     setMissionBriefActive = true,
+    titleSize = TEXT_STYLES.h1.size,
+    titleWeight = TEXT_STYLES.h1.weight,
     bodySize = TEXT_STYLES.h2.size,
     bodyWeight = TEXT_STYLES.h2.weight,
   } = options;
@@ -840,10 +844,10 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
     subtitle: combinedSubtitle,
-    titleSize: TEXT_STYLES.h1.size,
+    titleSize,
     subtitleSize: bodySize,
-    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-    weight: TEXT_STYLES.h1.weight,
+    lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
+    weight: titleWeight,
     maxWidthScale: 0.96,
     position: "top",
     topMargin: 90,
@@ -861,15 +865,16 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     title,
     subtitle: combinedSubtitle,
     yBase: layout.titleY,
-    titleSize: TEXT_STYLES.h1.size,
+    titleSize,
     subtitleSize: bodySize,
-    weight: TEXT_STYLES.h1.weight,
+    weight: titleWeight,
     subtitleWeight: bodyWeight,
-    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
     alpha: 1,
     typewriter: true,
     highlight,
     maxWidthScale: 0.96,
+    blockAlign: showFormation ? "center" : "full",
   });
 
   const revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
@@ -1175,8 +1180,6 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       uiFontFamily: UI_FONT_FAMILY,
       buttonKey: "recap",
       setMissionBriefActive: false,
-      bodySize: 18,
-      bodyWeight: TEXT_STYLES.body.weight,
     });
     ctx.restore();
     return;
