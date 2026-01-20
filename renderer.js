@@ -829,6 +829,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     uiFontFamily = "sans-serif",
     buttonKey = "missionBrief",
     setMissionBriefActive = true,
+    bodySize = TEXT_STYLES.h2.size,
+    bodyWeight = TEXT_STYLES.h2.weight,
   } = options;
   const promptText = "How would you like to minister to them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
@@ -839,7 +841,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     title,
     subtitle: combinedSubtitle,
     titleSize: TEXT_STYLES.h1.size,
-    subtitleSize: TEXT_STYLES.h2.size,
+    subtitleSize: bodySize,
     lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
     weight: TEXT_STYLES.h1.weight,
     maxWidthScale: 0.96,
@@ -860,9 +862,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     subtitle: combinedSubtitle,
     yBase: layout.titleY,
     titleSize: TEXT_STYLES.h1.size,
-    subtitleSize: TEXT_STYLES.h2.size,
+    subtitleSize: bodySize,
     weight: TEXT_STYLES.h1.weight,
-    subtitleWeight: TEXT_STYLES.h2.weight,
+    subtitleWeight: bodyWeight,
     lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
     alpha: 1,
     typewriter: true,
@@ -1173,6 +1175,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       uiFontFamily: UI_FONT_FAMILY,
       buttonKey: "recap",
       setMissionBriefActive: false,
+      bodySize: 18,
+      bodyWeight: TEXT_STYLES.body.weight,
     });
     ctx.restore();
     return;
