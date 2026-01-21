@@ -1,6 +1,24 @@
 (function (window, document) {
   if (!window || !document) return;
   const StatsManager = window.StatsManager;
+  const STAT_UNLOCKS = {
+    melee_attack_damage: [
+      { label: "Move 1", name: "Spin Attack", threshold: 3 },
+      { label: "Move 2", name: "Rush Attack", threshold: 6 },
+    ],
+    speed: [
+      { label: "Move 1", name: "Phase", threshold: 3 },
+      { label: "Move 2", name: "Double Dash", threshold: 6 },
+    ],
+    projectile_attack_damage: [
+      { label: "Move 1", name: "ABC", threshold: 3 },
+      { label: "Move 2", name: "DEF", threshold: 6 },
+    ],
+    emotional_intelligence: [
+      { label: "Move 1", name: "GHI", threshold: 3 },
+      { label: "Move 2", name: "JKL", threshold: 6 },
+    ],
+  };
 
   let onCloseCallback = null;
   let visible = false;
@@ -21,6 +39,8 @@
         description: StatsManager.getStatDescription(key),
         value: StatsManager.getStatDisplayString(key),
         cost: StatsManager.getUpgradeCost(key),
+        upgradeCount: StatsManager.getUpgradeCount(key),
+        unlocks: STAT_UNLOCKS[key] || [],
       }));
   }
 

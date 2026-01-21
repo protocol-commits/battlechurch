@@ -995,6 +995,29 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   ctx.restore();
 }
 
+const UPGRADE_ICON_SOURCES = {
+  category: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
+  move: "assets/sprites/pixel-art-pack/Items/I27_Rune.png",
+};
+let upgradeCategoryIcon = null;
+let upgradeMoveIcon = null;
+
+function getUpgradeIcon(kind) {
+  if (typeof Image === "undefined") return null;
+  if (kind === "category") {
+    if (!upgradeCategoryIcon) {
+      upgradeCategoryIcon = new Image();
+      upgradeCategoryIcon.src = UPGRADE_ICON_SOURCES.category;
+    }
+    return upgradeCategoryIcon;
+  }
+  if (!upgradeMoveIcon) {
+    upgradeMoveIcon = new Image();
+    upgradeMoveIcon.src = UPGRADE_ICON_SOURCES.move;
+  }
+  return upgradeMoveIcon;
+}
+
 function drawUpgradeScreen(ctx, canvas, options = {}) {
   const {
     graceCount = 0,
@@ -1016,10 +1039,19 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   }
   ctx.restore();
 
-  const title = "Stat Upgrade";
-  const staticSubtitle = "Spend Grace to upgrade your stats.";
-  const buttonHeight = 120;
+  const title = "Level Up";
+  const staticSubtitle = "";
+  const buttonHeight = 176;
   const buttonCount = stats.length;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const fitTextSize = (text, size, maxWidth) => {
+    if (!text) return size;
+    ctx.font = `${size}px ${uiFontFamily}`;
+    const width = ctx.measureText(text).width || 0;
+    if (!width || width <= maxWidth) return size;
+    const scale = maxWidth / width;
+    return Math.max(9, Math.floor(size * scale));
+  };
 
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -1094,6 +1126,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   stats.forEach((stat, index) => {
     const x = buttonStartX + index * (buttonWidth + buttonGap);
     const canAfford = graceCount >= stat.cost;
+    const cardPaddingX = 16;
+    const cardPaddingY = 14;
+    const innerX = x + cardPaddingX;
+    const innerW = buttonWidth - cardPaddingX * 2;
+    const headerTop = buttonY + cardPaddingY + 10;
 
     ctx.save();
     ctx.fillStyle = canAfford ? "#9BD9FF" : "rgba(155, 217, 255, 0.4)";
@@ -1107,23 +1144,147 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
     }
 
+    const categoryIconSize = 26;
+    const categoryIconX = x + buttonWidth / 2 - categoryIconSize / 2;
+    const categoryIconY = buttonY - Math.round(categoryIconSize * 0.45);
+    ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.22)" : "rgba(11, 17, 26, 0.12)";
+    ctx.strokeStyle = canAfford ? "rgba(11, 17, 26, 0.35)" : "rgba(11, 17, 26, 0.2)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, categoryIconX, categoryIconY, categoryIconSize, categoryIconSize, 5, true, true);
+    const categoryIcon = getUpgradeIcon("category");
+    if (categoryIcon && categoryIcon.complete) {
+      const pad = 2;
+      ctx.drawImage(
+        categoryIcon,
+        categoryIconX + pad,
+        categoryIconY + pad,
+        categoryIconSize - pad * 2,
+        categoryIconSize - pad * 2,
+      );
+    }
+
     ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.font = `600 24px ${uiFontFamily}`;
-    ctx.fillText(stat.label, x + buttonWidth / 2, buttonY + 32);
+    const titleSize = fitTextSize(stat.label, 22, innerW);
+    ctx.font = `700 ${titleSize}px ${uiFontFamily}`;
+    const titleY = headerTop + 18;
+    ctx.fillText(stat.label, x + buttonWidth / 2, titleY);
 
-    ctx.font = `14px ${uiFontFamily}`;
+    ctx.font = `13px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.78)" : "rgba(11, 17, 26, 0.4)";
-    ctx.fillText(stat.description, x + buttonWidth / 2, buttonY + 54);
+    const descriptionY = titleY + 18;
+    ctx.fillText(stat.description, x + buttonWidth / 2, descriptionY);
 
-    ctx.font = `600 18px ${uiFontFamily}`;
+    const valueY = descriptionY + 22;
+    ctx.font = `600 16px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
-    ctx.fillText(`Current: ${stat.value}`, x + buttonWidth / 2, buttonY + 80);
+    ctx.textAlign = "center";
+    ctx.fillText(`Current: ${stat.value}`, x + buttonWidth / 2, valueY);
 
-    ctx.font = `15px ${uiFontFamily}`;
+    const costY = valueY + 18;
+    ctx.font = `14px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.7)" : "rgba(11, 17, 26, 0.4)";
-    ctx.fillText(`Cost: ${stat.cost} Grace`, x + buttonWidth / 2, buttonY + 102);
+    ctx.textAlign = "center";
+    ctx.fillText(`Cost: ${stat.cost}`, x + buttonWidth / 2, costY);
+
+    const unlocks = Array.isArray(stat.unlocks) ? stat.unlocks : [];
+    if (unlocks.length) {
+      const unlockTop = costY + 10;
+      const unlockLineY = unlockTop - 6;
+      const iconSize = 18;
+      const iconY = unlockTop + 6;
+      const labelY = unlockTop + 40;
+      const pipY = unlockTop + 54;
+      const progressY = unlockTop + 68;
+      ctx.save();
+      ctx.strokeStyle = "rgba(11, 17, 26, 0.2)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(innerX, unlockLineY);
+      ctx.lineTo(innerX + innerW, unlockLineY);
+      ctx.stroke();
+
+      const colGap = 12;
+      const colWidth = (innerW - colGap) / 2;
+      const colCenters = [
+        innerX + colWidth / 2,
+        innerX + colWidth + colGap + colWidth / 2,
+      ];
+      const upgradeCount = Number.isFinite(stat.upgradeCount) ? stat.upgradeCount : 0;
+      const pipRadius = 2.6;
+      const pipGap = 6;
+      const pipCount = 3;
+      unlocks.slice(0, 2).forEach((unlock, idx) => {
+        const colCenter = colCenters[idx];
+        const threshold = Number.isFinite(unlock.threshold) ? unlock.threshold : 3;
+        const unlocked = upgradeCount >= threshold;
+        const labelText = unlocked && unlock.name ? unlock.name : "???";
+        const labelSize = fitTextSize(labelText, 11, colWidth - 4);
+        ctx.font = `600 ${labelSize}px ${uiFontFamily}`;
+        ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.7)" : "rgba(11, 17, 26, 0.45)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(labelText, colCenter, labelY);
+
+        ctx.fillStyle = unlocked
+          ? "rgba(11, 17, 26, 0.35)"
+          : "rgba(11, 17, 26, 0.18)";
+        ctx.strokeStyle = unlocked
+          ? "rgba(11, 17, 26, 0.45)"
+          : "rgba(11, 17, 26, 0.28)";
+        ctx.lineWidth = 1;
+        roundRect(
+          ctx,
+          colCenter - iconSize / 2,
+          iconY,
+          iconSize,
+          iconSize,
+          4,
+          true,
+          true,
+        );
+        const moveIcon = getUpgradeIcon("move");
+        if (moveIcon && moveIcon.complete) {
+          const pad = 2;
+          ctx.drawImage(
+            moveIcon,
+            colCenter - iconSize / 2 + pad,
+            iconY + pad,
+            iconSize - pad * 2,
+            iconSize - pad * 2,
+          );
+        }
+        if (!unlocked) {
+          ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.65)" : "rgba(11, 17, 26, 0.45)";
+          ctx.font = `700 12px ${uiFontFamily}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("?", colCenter, iconY + iconSize / 2 + 0.5);
+        }
+
+        const tierStart = Math.max(0, threshold - 3);
+        const progress = clamp(upgradeCount - tierStart, 0, 3);
+        const pipRowWidth = pipCount * pipRadius * 2 + (pipCount - 1) * pipGap;
+        const pipStartX = colCenter - pipRowWidth / 2 + pipRadius;
+        for (let i = 0; i < pipCount; i += 1) {
+          const pipX = pipStartX + i * (pipRadius * 2 + pipGap);
+          const filled = i < progress;
+          ctx.fillStyle = filled
+            ? (canAfford ? "rgba(11, 17, 26, 0.8)" : "rgba(11, 17, 26, 0.5)")
+            : "rgba(11, 17, 26, 0.18)";
+          ctx.beginPath();
+          ctx.arc(pipX, pipY, pipRadius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.textAlign = "center";
+        ctx.font = `10px ${uiFontFamily}`;
+        ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.6)" : "rgba(11, 17, 26, 0.4)";
+        ctx.fillText(`${progress}/3`, colCenter, progressY);
+      });
+      ctx.restore();
+    }
 
     ctx.restore();
 
