@@ -1526,6 +1526,7 @@ state.battleIndex = -1;
           battle: battleNumber,
           horde: hordeNumber,
           stage: state.stage,
+          pendingVisitorMinigame: Boolean(state.pendingVisitorMinigame),
           bossPhase: state.boss?.phase || 0,
           battleScenario: state.currentBattleScenario,
           bossTheme: state.currentBossTheme,
@@ -1591,8 +1592,6 @@ state.battleIndex = -1;
           handleLevelCleared();
         } else {
           handleBattleComplete();
-          state.pendingVisitorMinigame = false;
-          state.visitorMinigamePlayed = true;
           state.skipPostBattleAdvance = true;
         }
         state.timer = 0;

@@ -45,6 +45,7 @@ const GRACE_BONUS_MULTIPLIER = 5;
 const POST_DEATH_HANG = 5;
 const ARENA_FADE_DURATION = 2;
 let postDeathSequenceActive = false;
+let pendingExteriorShotAfterVisitor = false;
 let postDeathTimer = 0;
 let miniImpWaveDispatched = false;
 let arenaFadeTimer = 0;
@@ -4981,9 +4982,17 @@ function queueTownIntroAnnouncement() {
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
 
-function queueExteriorShotAnnouncement() {
+function queueExteriorShotAnnouncement({ force = false } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
+  const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  const visitorActive =
+    visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
+  if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
+    pendingExteriorShotAfterVisitor = true;
+    return;
+  }
+  pendingExteriorShotAfterVisitor = false;
   if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) return;
   queueLevelAnnouncement(monthName, "", {
     duration: 1.4,
@@ -9692,6 +9701,9 @@ function endVisitorSession({ reason = "completed" } = {}) {
           ? "Well done! Welcome new members!"
           : "Visitors welcomed";
     setDevStatus(message, 2.8);
+  }
+  if (pendingExteriorShotAfterVisitor) {
+    queueExteriorShotAnnouncement({ force: true });
   }
   const callback = visitorSession.onComplete;
   visitorSession.onComplete = null;
