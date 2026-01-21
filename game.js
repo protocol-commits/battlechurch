@@ -4986,7 +4986,7 @@ function queueExteriorShotAnnouncement() {
   if (!monthName) return;
   if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) return;
   queueLevelAnnouncement(monthName, "", {
-    duration: 2.6,
+    duration: 1.4,
     requiresConfirm: true,
     skipMissionBrief: true,
     exteriorShot: true,
