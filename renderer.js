@@ -1529,7 +1529,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
     const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
     if (isTownIntro || isExteriorShot) {
-      const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+      const titleSize = Math.max(28, TEXT_STYLES.h1.size * 1.35);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: displayTitle || "",
         subtitle: "",
@@ -3006,7 +3006,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
         weight: TEXT_STYLES.h1.weight,
         maxWidthScale: 0.92,
-        position: "bottom",
+        position: "center",
         topMargin: 90,
         bottomMargin: 80,
         buttonCount: 0,
