@@ -1139,8 +1139,8 @@
       const bossMonthName = getMonthName(bossMonthNumber);
       queueLevelAnnouncement(state.currentBossTheme, "A personal battle begins", {
         duration: LEVEL_INTRO_DURATION,
-        requiresConfirm: true,
-        missionBriefTitle: bossMonthName,
+        requiresConfirm: false,
+        missionBriefTitle: "Boss Brief",
         bossMissionBrief: true,
       });
       resetStage("bossIntro", LEVEL_INTRO_DURATION);

@@ -828,6 +828,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     subtitle = "",
     highlight = null,
     showFormation = true,
+    showButtons = true,
     uiFontFamily = "sans-serif",
     buttonKey = "missionBrief",
     setMissionBriefActive = true,
@@ -839,7 +840,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const promptText = "How would you like to minister to them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
   const promptSize = 0;
-  const buttonHeight = showFormation ? 120 : 72;
+  const displayButtons = showButtons !== false;
+  const buttonHeight = displayButtons ? (showFormation ? 120 : 72) : 0;
+  const layoutButtonCount = displayButtons ? (showFormation ? 3 : 1) : 0;
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
@@ -854,7 +857,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     bottomMargin: showFormation ? 70 : 100,
     rowGap: showFormation ? 40 : 60,
     buttonHeight,
-    buttonCount: showFormation ? 3 : 1,
+    buttonCount: layoutButtonCount,
     promptSize,
     promptGap: 18,
   });
@@ -879,6 +882,17 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
 
   const revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
   if (!revealComplete) {
+    if (typeof window !== "undefined") {
+      if (setMissionBriefActive) {
+        window.__missionBriefActive = false;
+        window.__missionBriefButtonBounds = null;
+      }
+      window.__announcementButtons = { key: buttonKey, buttons: [] };
+    }
+    ctx.restore();
+    return;
+  }
+  if (!displayButtons) {
     if (typeof window !== "undefined") {
       if (setMissionBriefActive) {
         window.__missionBriefActive = false;
@@ -1357,12 +1371,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         const missionActive = Boolean(missionBriefOverlayState.active);
         if (dialogVisible && !missionActive) return;
         const monthName = status?.month || "";
-        const missionTitle = monthName || "Boss Battle";
-        const missionBrief = "You are personally being spiritually attacked.";
+        const missionTitle = "Boss Brief";
+        const missionBrief = "You are being personally attacked.";
         drawMissionBriefScreen(ctx, canvas, {
           title: missionTitle,
           subtitle: missionBrief,
           showFormation: false,
+          showButtons: false,
           uiFontFamily: UI_FONT_FAMILY,
         });
       }
@@ -1435,11 +1450,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       (levelAnnouncements[0] && levelAnnouncements[0].title) ||
       monthName ||
       "";
-    const missionBrief = "You are personally being spiritually attacked.";
+    const missionBrief = "You are being personally attacked.";
     drawMissionBriefScreen(ctx, canvas, {
       title: missionTitle,
       subtitle: missionBrief,
       showFormation: false,
+      showButtons: false,
       uiFontFamily: UI_FONT_FAMILY,
     });
     ctx.restore();
