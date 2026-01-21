@@ -1527,7 +1527,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     return;
   }
     const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
-    if (isTownIntro) {
+    const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
+    if (isTownIntro || isExteriorShot) {
       const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: displayTitle || "",
@@ -1631,7 +1632,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     } = requireBindings();
     if (Array.isArray(levelAnnouncements) && levelAnnouncements.length) {
       const current = levelAnnouncements[0];
-      if (current && current.townIntro && assets?.backgrounds?.townIntro) {
+      if (current && (current.townIntro || current.exteriorShot) && assets?.backgrounds?.townIntro) {
         const img = assets.backgrounds.townIntro;
         ctx.save();
         drawCoverImage(ctx, canvas, img, 1, 0.5, 0.5);
@@ -2823,6 +2824,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const townIntroActive = Boolean(levelAnnouncements?.[0]?.townIntro);
+    const exteriorShotActive = Boolean(levelAnnouncements?.[0]?.exteriorShot);
     let townIntroOverlay = null;
     sharedShakeOffset.x = 0;
     sharedShakeOffset.y = 0;
@@ -2981,6 +2983,47 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.font = `18px ${UI_FONT_FAMILY}`;
       ctx.textBaseline = "alphabetic";
       ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
+      ctx.restore();
+      return;
+    }
+    if (exteriorShotActive) {
+      const announcementTitle = levelAnnouncements?.[0]?.title || "";
+      const img = assets?.backgrounds?.townIntro || null;
+      ctx.save();
+      ctx.fillStyle = "#0b111a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (img) {
+        drawCoverImage(ctx, canvas, img, 1, 0.5, 0.5);
+        ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+      const layout = getAnnouncementScreenLayout(ctx, canvas, {
+        title: announcementTitle,
+        subtitle: "",
+        titleSize,
+        subtitleSize: TEXT_STYLES.h2.size,
+        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+        weight: TEXT_STYLES.h1.weight,
+        maxWidthScale: 0.92,
+        position: "bottom",
+        topMargin: 90,
+        bottomMargin: 80,
+        buttonCount: 0,
+        HUD_HEIGHT,
+      });
+      ctx.save();
+      ctx.translate(layout.offsetX, layout.offsetY);
+      ctx.scale(layout.scale, layout.scale);
+      drawAnnouncementText(ctx, layout.virtualCanvas, {
+        title: announcementTitle,
+        yBase: layout.titleY,
+        alpha: 1,
+        typewriter: true,
+        titleSize,
+        weight: TEXT_STYLES.h1.weight,
+        maxWidthScale: 0.92,
+      });
       ctx.restore();
       return;
     }

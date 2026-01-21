@@ -2872,6 +2872,19 @@ function getMonthName(levelNumber) {
   return MONTH_NAMES[(levelNumber - 1) % MONTH_NAMES.length];
 }
 
+function getUpcomingMonthName() {
+  const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  const currentMonth = status?.month;
+  if (!currentMonth) return "";
+  const idx = MONTH_NAMES.findIndex(
+    (name) => name.toLowerCase() === String(currentMonth).toLowerCase(),
+  );
+  if (idx >= 0) {
+    return MONTH_NAMES[(idx + 1) % MONTH_NAMES.length];
+  }
+  return String(currentMonth);
+}
+
 const COIN_FRAME_FILES = [
   "I57_Coin.png",
   "I57_Coin.png",
@@ -4968,6 +4981,18 @@ function queueTownIntroAnnouncement() {
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
 
+function queueExteriorShotAnnouncement() {
+  const monthName = getUpcomingMonthName();
+  if (!monthName) return;
+  if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) return;
+  queueLevelAnnouncement(monthName, "", {
+    duration: 2.6,
+    requiresConfirm: true,
+    skipMissionBrief: true,
+    exteriorShot: true,
+  });
+}
+
 function startTownIntroTransition() {
   if (townIntroTransitionActive) return;
   townIntroTransitionActive = true;
@@ -6176,6 +6201,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   const requiresConfirm = Boolean(options.requiresConfirm);
   const skipMissionBrief = Boolean(options.skipMissionBrief);
   const townIntro = Boolean(options.townIntro);
+  const exteriorShot = Boolean(options.exteriorShot);
   const allowDuringSuppression = Boolean(options.allowDuringSuppression);
   if (suppressInitialAnnouncements && !allowDuringSuppression) return;
   const missionBriefTitle =
@@ -6194,6 +6220,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     skipMissionBrief,
     missionBriefTitle,
     townIntro,
+    exteriorShot,
     bossMissionBrief,
     finalYear,
     levelSummary,
@@ -6204,6 +6231,17 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
 function updateLevelAnnouncements(dt) {
   for (let i = levelAnnouncements.length - 1; i >= 0; i -= 1) {
     const announcement = levelAnnouncements[i];
+    if (announcement.exteriorShot) {
+      announcement.timer -= dt;
+      if (announcement.timer <= 0) {
+        if (i === 0) {
+          startTownIntroTransition();
+          return;
+        }
+        levelAnnouncements.splice(i, 1);
+      }
+      continue;
+    }
     if (announcement.requiresConfirm) continue;
     announcement.timer -= dt;
     if (announcement.timer <= 0) {
@@ -6242,7 +6280,7 @@ function dismissCurrentLevelAnnouncement() {
   if (levelManager?.acknowledgeAnnouncement) {
     try { levelManager.acknowledgeAnnouncement(); } catch (e) {}
   }
-  if (levelManager?.getStatus && !current.townIntro) {
+  if (levelManager?.getStatus && !current.townIntro && !current.exteriorShot) {
     try {
       const status = levelManager.getStatus();
       if (status?.stage === "levelIntro" && typeof levelManager.advanceFromCongregation === "function") {
@@ -11219,11 +11257,14 @@ function checkDialogOverlays() {
       console.log("SHOWING CHAPTER BREAK for Act", actNumber);
       window.UpgradeScreen.show(() => {
         console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
+        queueExteriorShotAnnouncement();
         showChapterBreak(actNumber);
       });
     } else {
       console.log("NO CHAPTER BREAK - lastCompletedLevel is", lastCompletedLevel);
-      window.UpgradeScreen.show(() => {});
+      window.UpgradeScreen.show(() => {
+        queueExteriorShotAnnouncement();
+      });
     }
 
     pendingUpgradeAfterSummary = false;
@@ -11717,11 +11758,37 @@ function handleLevelAnnouncements() {
     if (handled) return true;
     return true;
   }
+  if (currentAnnouncement.exteriorShot) {
+    const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    const lastTick = currentAnnouncement._lastTick || now;
+    const dt = Math.max(0, (now - lastTick) / 1000);
+    currentAnnouncement._lastTick = now;
+    currentAnnouncement.timer = Math.max(0, (currentAnnouncement.timer || 0) - dt);
+    if (currentAnnouncement.timer <= 0) {
+      startTownIntroTransition();
+      return true;
+    }
+    const clickPos = Input.consumeCanvasClick?.();
+    if (clickPos) {
+      startTownIntroTransition();
+      return true;
+    }
+    const skipKeys = ["enter"];
+    if (wasActionJustPressed("pause") || wasActionJustPressed("restart") || skipKeys.some((k) => keysJustPressed.has(k))) {
+      skipKeys.forEach((k) => keysJustPressed.delete(k));
+      keysJustPressed.delete(" ");
+      keysJustPressed.delete("pause");
+      keysJustPressed.delete("restart");
+      startTownIntroTransition();
+      return true;
+    }
+    return true;
+  }
   if (currentAnnouncement.townIntro) {
     const buttons =
       typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak"
         ? window.__announcementButtons.buttons
-        : null;
+      : null;
     const handled = handleAnnouncementButtons({
       key: "chapterBreak",
       buttons,
