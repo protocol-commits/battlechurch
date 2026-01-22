@@ -3669,7 +3669,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
     const missionOverlayActive = Boolean(window.isMissionBriefOverlayActive);
     const pauseOverlayActive = Boolean(window.isPauseOverlayActive);
-    if (isModalActive && !missionOverlayActive && !pauseOverlayActive) {
+    // Check if recap/summary announcement is active - should show arena behind it
+    const recapAnnouncementActive = Boolean(
+      levelAnnouncements?.[0]?.requiresConfirm &&
+      (levelAnnouncements[0]?.recapData || levelAnnouncements[0]?.recapPrepared)
+    );
+    if (isModalActive && !missionOverlayActive && !pauseOverlayActive && !recapAnnouncementActive) {
       ctx.save();
       const modalBlackout = graceRushBlackout ? 1 : (graceRushFadeAlpha > 0 ? Math.min(1, graceRushFadeAlpha) : 0.92);
       ctx.fillStyle = `rgba(0, 0, 0, ${modalBlackout})`;
