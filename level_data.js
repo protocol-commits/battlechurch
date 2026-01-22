@@ -89,7 +89,7 @@ window.BattlechurchLevelData = {
       14
     ],
     "floorTextByHorde": {
-      "1": "\"Let's deal with our issues\"",
+      "1": "\"We're going to face this together.\"",
       "3": "More lies appear...",
       "8": "\"This week, stay strong in the faith.\"",
       "10": "More temptations appear...",

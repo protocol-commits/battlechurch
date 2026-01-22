@@ -2146,7 +2146,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         (announcement && announcement.title) ||
         monthName ||
         "";
-      const missionBrief = `${nameSentence} are facing ${scenarioTitle}.`;
+      const missionBrief = `${nameSentence} have come to you seeking guidance through ${scenarioTitle}.`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
