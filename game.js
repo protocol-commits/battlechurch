@@ -13355,6 +13355,10 @@ function updateGame(dt) {
     stage = levelStatus?.stage;
   }
 
+  // Process pickups BEFORE player update so weapon changes apply immediately
+  updateWeaponPickups(dt);
+  updateUtilityPowerUps(dt);
+
   updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
   if (gameOver) return;
   resolveEntityObstacles(player);
@@ -13383,8 +13387,6 @@ function updateGame(dt) {
   }
 
   updateCozyNpcs(dt);
-  updateWeaponPickups(dt);
-  updateUtilityPowerUps(dt);
   updateGracePickups(dt);
   updateGraceHudFlyEffects(dt);
   updatePowerupHudFlyEffects(dt);
