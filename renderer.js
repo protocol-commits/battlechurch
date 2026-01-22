@@ -4068,29 +4068,26 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   // drawAimAssistOverlay(); // Aim assist cone hidden for now
     // Reticle hidden while auto-aim is active.
 
-    ctx.restore();
-
-    // Screen-space overlays (arena ash + fog) should not move with the camera.
     const fogWidth = 180;
     const fogHeight = 90;
+    const arenaWidth = canvas.width - fogWidth * 2;
     const arenaHeight = canvas.height - fogHeight;
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
       if (typeof ashOverlay.setBounds === "function") {
-        ashOverlay.setBounds(
-          fogWidth,
-          0,
-          canvas.width - fogWidth * 2,
-          arenaHeight
-        );
+        ashOverlay.setBounds(fogWidth, 0, arenaWidth, arenaHeight);
       }
       ctx.save();
       ctx.beginPath();
-      ctx.rect(fogWidth, 0, canvas.width - fogWidth * 2, arenaHeight);
+      ctx.rect(fogWidth, 0, arenaWidth, arenaHeight);
       ctx.clip();
       ashOverlay.draw(ctx);
       ctx.restore();
     }
+
+    ctx.restore();
+
+    // Screen-space fog should not move with the camera.
 
     ctx.save();
     ctx.globalAlpha = 1.0;

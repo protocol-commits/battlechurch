@@ -1,5 +1,5 @@
 class AshOverlay {
-  constructor(width, height, particleCount = 220) {
+  constructor(width, height, particleCount = 100) {
     this.width = width;
     this.height = height;
     this.viewX = 0;
