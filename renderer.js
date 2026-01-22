@@ -4522,7 +4522,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (isNumberPhase) {
       ctx.font = `900 ${Math.round(numberFontSize)}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(String(congregationOverlay.countValue ?? 0), centerX, centerY + numberFontSize * 0.9);
+      ctx.fillText(String(congregationOverlay.countValue ?? 0), centerX, centerY + lineGap + 35);
     }
     ctx.restore();
   }
