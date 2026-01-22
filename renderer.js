@@ -2345,12 +2345,51 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       ctx.translate(0, effectiveCameraY);
       const rawFloorPan = Math.floor(cameraX * 0.7);
-      const pan = ((rawFloorPan % floor.width) + floor.width) % floor.width;
+      const floorPan = ((rawFloorPan % floor.width) + floor.width) % floor.width;
       const drawY = canvas.height - floor.height;
-      ctx.drawImage(floor, -pan, drawY, floor.width, floor.height);
-      ctx.drawImage(floor, -pan + floor.width, drawY, floor.width, floor.height);
+      ctx.drawImage(floor, -floorPan, drawY, floor.width, floor.height);
+      ctx.drawImage(floor, -floorPan + floor.width, drawY, floor.width, floor.height);
       ctx.restore();
     }
+  }
+
+  function drawArenaGodRays(ctx, canvas, floorHeight) {
+    if (!ctx || !canvas) return;
+    const time = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const breath = 0.7 + 0.3 * Math.sin(time * 0.0005);
+    const topY = -40;
+    const bottomY = canvas.height - Math.max(60, floorHeight * 0.2);
+    const rayWidth = 90;
+    const raySlant = 220; // How far left the ray travels as it goes down
+    const rayGap = 140;
+    const rayCount = 4;
+    // Start rays from upper right, going off-screen right
+    const baseX = canvas.width - 80;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < rayCount; i += 1) {
+      const localBreath = 0.15 + 0.1 * Math.sin(time * 0.0007 + i * 2.1);
+      const alpha = (0.12 + localBreath) * breath;
+      // Each ray starts further right (off screen) and lands further left
+      const topX = baseX + i * rayGap;
+      const bottomX = topX - raySlant;
+      // Vertical gradient: bright at top, fades toward floor
+      const gradient = ctx.createLinearGradient(topX, topY, bottomX, bottomY);
+      gradient.addColorStop(0, `rgba(255, 240, 200, ${alpha.toFixed(3)})`);
+      gradient.addColorStop(0.3, `rgba(255, 235, 180, ${(alpha * 0.6).toFixed(3)})`);
+      gradient.addColorStop(0.6, `rgba(255, 230, 160, ${(alpha * 0.25).toFixed(3)})`);
+      gradient.addColorStop(1, "rgba(255, 230, 160, 0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      // Draw parallelogram: top right to bottom left
+      ctx.moveTo(topX, topY);
+      ctx.lineTo(topX + rayWidth, topY);
+      ctx.lineTo(bottomX + rayWidth, bottomY);
+      ctx.lineTo(bottomX, bottomY);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function getCameraShakeOffset() {
@@ -3806,6 +3845,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const drawX = Math.round((canvas.width - imgW) / 2);
       const drawY = canvas.height - imgH;
       ctx.drawImage(bandImg, 0, 0, imgW, imgH, drawX, drawY, imgW, imgH);
+      // Draw God rays on top of the floor, locked to floor position
+      drawArenaGodRays(ctx, canvas, imgH);
       ctx.restore();
     } else {
       console.debug && console.debug("drawGame: band image missing", { layer: assets?.backgroundLayers?.floor });
