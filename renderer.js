@@ -1181,6 +1181,8 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     ) {
       window.playRecapFinalSfx(0.7);
       recapTallyState.finalSfxPlayed = true;
+    } else {
+      recapTallyState.finalSfxPlayed = true;
     }
     recapTallyState.done = true;
     return;
@@ -1240,6 +1242,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     if (current.kind === "grace" && recapData.graceBonus > 0 && !recapData.graceSpawned) {
       spawnRecapGraceEffects(recapData.graceBonus, spawnBounds);
       recapData.graceSpawned = true;
+      recapTallyState.finalSfxPlayed = true;
     }
     recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
     recapTallyState.phase = "post";
