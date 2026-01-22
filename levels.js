@@ -782,6 +782,7 @@
         savedNames: savedNames,
         lostNames: lostNames,
         totalNpcFaith: Math.round(totalNpcFaith),
+        battleScenario: state.currentBattleScenario,
       };
       npcs.splice(0, npcs.length);
       state.battleNpcStartCount = 0;

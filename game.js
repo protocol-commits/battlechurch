@@ -213,6 +213,8 @@ const FAITH_HIT_SFX_SRCS = [
 const PRAYER_BOMB_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
+const RECAP_TICK_SFX_SRC = "assets/sfx/utility/utility9.mp3";
+const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const INTRO_MUSIC_SRC = "assets/music/stings-logo.wav";
 const BATTLE_MUSIC_SRC = "assets/music/battle4.wav";
 const RECAP_MUSIC_SRC = "assets/music/inspiringtrailer.wav";
@@ -249,6 +251,8 @@ const PRAYER_BOMB_RAIN_SFX_POOL_SIZE = 4;
 const MENU_SELECT_SFX_POOL_SIZE = 4;
 const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
 const GRACE_PICKUP_SFX_POOL_SIZE = 4;
+const RECAP_TICK_SFX_POOL_SIZE = 6;
+const RECAP_FINAL_SFX_POOL_SIZE = 3;
 const VISITOR_HIT_SFX_POOL_SIZE = 4;
 const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
@@ -279,6 +283,8 @@ const prayerBombRainSfxPool = [];
 const menuSelectSfxPool = [];
 const enemySpawnSfxPool = [];
 const gracePickupSfxPool = [];
+const recapTickSfxPool = [];
+const recapFinalSfxPool = [];
 const visitorHitSfxPool = [];
 const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
@@ -651,6 +657,19 @@ if (typeof window !== "undefined") {
   // Separate hooks so menu pick vs advance can diverge later.
   window.playMenuItemPickSfx = playMenuSelectSfx;
   window.playMenuAdvanceSfx = playMenuSelectSfx;
+}
+
+function playRecapTickSfx(volume = 0.5) {
+  playPooledSfx(recapTickSfxPool, RECAP_TICK_SFX_SRC, RECAP_TICK_SFX_POOL_SIZE, { volume });
+}
+
+function playRecapFinalSfx(volume = 0.7) {
+  playPooledSfx(recapFinalSfxPool, RECAP_FINAL_SFX_SRC, RECAP_FINAL_SFX_POOL_SIZE, { volume });
+}
+
+if (typeof window !== "undefined") {
+  window.playRecapTickSfx = playRecapTickSfx;
+  window.playRecapFinalSfx = playRecapFinalSfx;
 }
 
 function playEnemySpawnSfx(volume = 0.55, options = {}) {
@@ -5235,6 +5254,13 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const lostNames = Array.isArray(summary.lostNames)
     ? summary.lostNames.filter(Boolean)
     : [];
+  const formatNameList = (names) => {
+    const list = Array.isArray(names) ? names.filter(Boolean) : [];
+    if (!list.length) return "";
+    if (list.length === 1) return list[0];
+    if (list.length === 2) return `${list[0]} and ${list[1]}`;
+    return `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
+  };
   const levelNumber = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
   const currentSeasonNumber = levelNumber; // one season per level (4 months each)
   if (seasonStats.seasonNumber !== currentSeasonNumber) {
@@ -5292,9 +5318,70 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = graceBonusCongregants * GRACE_BONUS_MULTIPLIER;
   if (graceBonus > 0 && !summary.graceBonusApplied) {
-    addGrace(graceBonus);
-    summary.graceBonusApplied = true;
+    summary.graceBonusApplied = false;
     summary.graceBonus = graceBonus;
+  }
+  const recapLines = [];
+  const scenario =
+    summary?.battleScenario ||
+    status?.battleScenario ||
+    (typeof window !== "undefined" ? window.__lastMissionBriefScenario : null) ||
+    announcement?.missionBriefScenario ||
+    "a crisis";
+  if (!isBossSummary) {
+    if (memberDelta !== 0 || savedNames.length || lostNames.length) {
+      const nameSentence = formatNameList(savedNames) || "the congregation";
+      let helpLabel = `Helped ${nameSentence} with ${scenario}`;
+      if (memberDelta < 0) {
+        const lostSentence = formatNameList(lostNames);
+        helpLabel = lostSentence ? `${lostSentence} left the church` : "Members left the church";
+      }
+      recapLines.push({
+        label: `Helped members with ${scenario}`,
+        delta: memberDelta,
+        kind: "congregation",
+        affectsTotal: true,
+      });
+    }
+    if (healthReward !== 0) {
+      recapLines.push({
+        label: "Congregation Health Bonus",
+        delta: healthReward,
+        kind: "congregation",
+        affectsTotal: true,
+      });
+    }
+  }
+  if (bossBonus !== 0) {
+    recapLines.push({
+      label: "Pastor's Health Bonus",
+      delta: bossBonus,
+      kind: "congregation",
+      affectsTotal: true,
+    });
+  }
+  recapLines.push({
+    label: "Bonus Grace",
+    delta: graceBonus,
+    kind: "grace",
+    affectsTotal: false,
+    prefix: `Bonus Grace: ${graceBonusCongregants} x ${GRACE_BONUS_MULTIPLIER} = `,
+  });
+  const recapTitle = `${monthLabel} Recap`;
+  const recapStartCount = Math.round(congregationTotal - totalDelta);
+  if (announcement) {
+    announcement.recapData = {
+      id: `${announcement.title || monthLabel || "recap"}|${levelNumber}|${localMonthNumber}`,
+      title: recapTitle,
+      startCount: recapStartCount,
+      totalDelta,
+      totalCount: congregationTotal,
+      lines: recapLines,
+      graceBonus,
+      graceBonusCongregants,
+      graceApplied: false,
+      graceAppliedCount: 0,
+    };
   }
   let paragraph = "";
   if (isBossSummary) {
@@ -5313,7 +5400,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   }
   const body = `${paragraph}\n\nBonus Grace: ${graceBonusCongregants} x ${GRACE_BONUS_MULTIPLIER} = ${graceBonus}`;
   if (announcement) {
-    announcement.recapTitle = `${monthLabel} Congregational Report`;
+    announcement.recapTitle = recapTitle;
     announcement.recapBody = body;
     announcement.recapFinalYear = isFinalYear;
     announcement.recapUpgradeAfter = shouldUpgradeAfter;
@@ -11760,6 +11847,17 @@ function handleLevelAnnouncements() {
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
         pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter) && !currentAnnouncement.recapFinalYear;
+        const recapData = currentAnnouncement.recapData;
+        if (recapData && !recapData.graceApplied && recapData.graceBonus > 0) {
+          const appliedCount = Number.isFinite(recapData.graceAppliedCount)
+            ? recapData.graceAppliedCount
+            : 0;
+          const remaining = Math.max(0, recapData.graceBonus - appliedCount);
+          if (remaining > 0) {
+            addGrace(remaining);
+          }
+          recapData.graceApplied = true;
+        }
         dismissCurrentLevelAnnouncement();
         if (currentAnnouncement.recapFinalYear) activateEpilogue();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {

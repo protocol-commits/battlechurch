@@ -218,6 +218,24 @@ const MELEE_SWING_LENGTH = 200;
   revealedLost: 0,
   portraitTimer: 0,
   };
+  const recapTallyState = {
+    id: null,
+    stepIndex: 0,
+    phase: "line",
+    lineValue: 0,
+    lineTarget: null,
+    totalValue: 0,
+    totalTarget: null,
+    stepProgress: 0,
+    lastUpdate: 0,
+    done: false,
+    finalSfxPlayed: false,
+    pauseTimer: 0,
+    flashTimer: 0,
+    graceEffects: [],
+  };
+  const RECAP_LINE_PAUSE = 1.0;
+  const RECAP_FLASH_DURATION = 0.6;
   const SHOW_TEXT_SOURCE_LABELS = false;
   const TEXT_STYLES = {
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
@@ -1009,6 +1027,345 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   ctx.restore();
 }
 
+function resetRecapTallyState(recapData) {
+  recapTallyState.id = recapData?.id || null;
+  recapTallyState.stepIndex = 0;
+  recapTallyState.phase = "line";
+  recapTallyState.lineValue = 0;
+  recapTallyState.lineTarget = null;
+  recapTallyState.totalValue = Number.isFinite(recapData?.startCount) ? recapData.startCount : 0;
+  recapTallyState.totalTarget = null;
+  recapTallyState.stepProgress = 0;
+  recapTallyState.lastUpdate = performance.now();
+  recapTallyState.done = false;
+  recapTallyState.finalSfxPlayed = false;
+  recapTallyState.pauseTimer = 0;
+  recapTallyState.flashTimer = 0;
+  recapTallyState.graceEffects = [];
+}
+
+function spawnRecapGraceEffects(count, spawnBounds) {
+  const target = typeof window !== "undefined" ? window.__hudGraceIconPos : null;
+  if (!target || !Number.isFinite(count) || count <= 0) return;
+  const safeCount = Math.max(0, Math.round(count));
+  const bounds = spawnBounds || { x: 0, y: 0, width: 0, height: 0 };
+  const baseX = bounds.x + bounds.width / 2;
+  const baseY = bounds.y + bounds.height / 2;
+  const targetX = Number.isFinite(bounds.targetX) ? bounds.targetX : target.x;
+  const targetY = Number.isFinite(bounds.targetY) ? bounds.targetY : target.y;
+  for (let i = 0; i < safeCount; i += 1) {
+    const jitterX = (Math.random() - 0.5) * Math.max(40, bounds.width * 0.6);
+    const jitterY = (Math.random() - 0.5) * Math.max(40, bounds.height * 0.6);
+    const startX = baseX + jitterX;
+    const startY = baseY + jitterY;
+    recapTallyState.graceEffects.push({
+      x: startX,
+      y: startY,
+      startX,
+      startY,
+      targetX,
+      targetY,
+      timer: 0,
+      duration: 0.55 + Math.random() * 0.2,
+      size: 18,
+      alpha: 1,
+      applied: false,
+    });
+  }
+}
+
+function updateRecapGraceEffects(dt, recapData) {
+  if (!recapTallyState.graceEffects.length) return;
+  for (let i = recapTallyState.graceEffects.length - 1; i >= 0; i -= 1) {
+    const effect = recapTallyState.graceEffects[i];
+    if (!effect) continue;
+    effect.timer += dt;
+    const t = Math.min(1, effect.timer / Math.max(0.001, effect.duration));
+    const ease = 1 - Math.pow(1 - t, 3);
+    effect.x = effect.startX + (effect.targetX - effect.startX) * ease;
+    effect.y = effect.startY + (effect.targetY - effect.startY) * ease;
+    effect.alpha = Math.max(0, 1 - t * 0.15);
+    if (t >= 1) {
+      if (!effect.applied && recapData) {
+        effect.applied = true;
+        if (typeof window?.addGrace === "function") {
+          window.addGrace(1);
+        }
+        recapData.graceAppliedCount = (recapData.graceAppliedCount || 0) + 1;
+        if (recapData.graceAppliedCount >= recapData.graceBonus) {
+          recapData.graceApplied = true;
+        }
+      }
+      recapTallyState.graceEffects.splice(i, 1);
+    }
+  }
+}
+
+function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
+  if (!recapData) return;
+  const now = performance.now();
+  if (recapTallyState.id !== recapData.id) {
+    resetRecapTallyState(recapData);
+  }
+  if (!allowAdvance) {
+    recapTallyState.lastUpdate = now;
+    return;
+  }
+  const lines = Array.isArray(recapData.lines) ? recapData.lines : [];
+  const current = lines[recapTallyState.stepIndex];
+  if (!current) {
+    if (!recapTallyState.finalSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
+      window.playRecapFinalSfx(0.7);
+      recapTallyState.finalSfxPlayed = true;
+    }
+    recapTallyState.done = true;
+    return;
+  }
+  const dt = Math.max(0, (now - (recapTallyState.lastUpdate || now)) / 1000);
+  recapTallyState.lastUpdate = now;
+  if (recapTallyState.flashTimer > 0) {
+    recapTallyState.flashTimer = Math.max(0, recapTallyState.flashTimer - dt);
+  }
+  updateRecapGraceEffects(dt, recapData);
+  if (recapTallyState.done) {
+    return;
+  }
+  if (recapTallyState.pauseTimer > 0) {
+    recapTallyState.pauseTimer = Math.max(0, recapTallyState.pauseTimer - dt);
+    return;
+  }
+
+  const advanceStep = () => {
+    recapTallyState.stepIndex += 1;
+    recapTallyState.phase = "line";
+    recapTallyState.lineValue = 0;
+    recapTallyState.lineTarget = null;
+    recapTallyState.totalTarget = null;
+    recapTallyState.stepProgress = 0;
+    recapTallyState.pauseTimer = 0;
+    if (recapTallyState.stepIndex >= lines.length) {
+      recapTallyState.done = true;
+      if (!recapTallyState.finalSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
+        window.playRecapFinalSfx(0.7);
+        recapTallyState.finalSfxPlayed = true;
+      }
+    }
+  };
+
+  const targetValue = Number.isFinite(current.delta) ? Math.round(current.delta) : 0;
+  if (recapTallyState.phase === "line") {
+    recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+    recapTallyState.phase = "lineHold";
+    return;
+  }
+  if (recapTallyState.phase === "lineHold") {
+    recapTallyState.phase = "value";
+  }
+  if (recapTallyState.phase === "value") {
+    if (current.affectsTotal !== false) {
+      recapTallyState.totalValue += targetValue;
+    }
+    recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+    if (typeof window?.playRecapFinalSfx === "function") {
+      window.playRecapFinalSfx(0.7);
+    }
+    if (current.kind === "grace" && recapData.graceBonus > 0 && !recapData.graceApplied) {
+      spawnRecapGraceEffects(recapData.graceBonus, spawnBounds);
+    }
+    recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+    recapTallyState.phase = "post";
+    return;
+  }
+  advanceStep();
+}
+
+function drawRecapBonusScreen(ctx, canvas, options = {}) {
+  const {
+    title = "",
+    recapData = null,
+    uiFontFamily = "sans-serif",
+    buttonKey = "recap",
+  } = options;
+
+  const titleSize = TEXT_STYLES.h1.size;
+  const bodySize = TEXT_STYLES.h3.size;
+  const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+  ctx.save();
+  const layout = getAnnouncementScreenLayout(ctx, canvas, {
+    title,
+    subtitle: "",
+    titleSize,
+    subtitleSize: TEXT_STYLES.h2.size,
+    lineGap,
+    weight: TEXT_STYLES.h1.weight,
+    maxWidthScale: 0.94,
+    position: "top",
+    topMargin: 90,
+    bottomMargin: 100,
+    rowGap: 36,
+    buttonHeight: 72,
+    buttonCount: 1,
+  });
+  ctx.translate(layout.offsetX, layout.offsetY);
+  ctx.scale(layout.scale, layout.scale);
+
+  drawAnnouncementText(ctx, layout.virtualCanvas, {
+    title,
+    subtitle: "",
+    yBase: layout.titleY,
+    titleSize,
+    subtitleSize: TEXT_STYLES.h2.size,
+    weight: TEXT_STYLES.h1.weight,
+    subtitleWeight: TEXT_STYLES.h2.weight,
+    lineGap,
+    alpha: 1,
+    typewriter: true,
+    maxWidthScale: 0.94,
+    blockAlign: "center",
+  });
+
+  if (recapData && !recapData.id) {
+    const lineCount = Array.isArray(recapData.lines) ? recapData.lines.length : 0;
+    recapData.id = `recap-${title}-${recapData.startCount || 0}-${recapData.totalCount || 0}-${lineCount}`;
+  }
+  const revealComplete = isAnnouncementRevealComplete(title, "");
+  const contentWidth = Math.round(layout.virtualCanvas.width * 0.88);
+  const contentX = Math.round((layout.virtualCanvas.width - contentWidth) / 2);
+  const lineSpacing = Math.round(bodySize * 1.4);
+  const titleBlockHeight = layout.textLayout?.textBlockHeight || 0;
+  let cursorY = Math.round(layout.titleY + titleBlockHeight + 28);
+  const spawnBounds = {
+    x: contentX,
+    y: cursorY,
+    width: contentWidth,
+    height: Math.max(80, lineSpacing * 2),
+    targetX: null,
+    targetY: null,
+  };
+  const graceTarget = typeof window !== "undefined" ? window.__hudGraceIconPos : null;
+  if (graceTarget) {
+    spawnBounds.targetX = (graceTarget.x - layout.offsetX) / layout.scale;
+    spawnBounds.targetY = (graceTarget.y - layout.offsetY) / layout.scale;
+  }
+  updateRecapTallyState(recapData, revealComplete, spawnBounds);
+
+  const formatSigned = (value) => {
+    const numeric = Number.isFinite(value) ? Math.round(value) : 0;
+    return `${numeric >= 0 ? "+" : ""}${numeric}`;
+  };
+
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+  ctx.shadowBlur = 18;
+  const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
+  ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  const totalValue = recapTallyState.totalValue;
+  ctx.fillStyle = recapTallyState.flashTimer > 0 ? "#FFD978" : "#EAF6FF";
+  ctx.fillText(`Congregation Count: ${Math.round(totalValue || 0)}`, contentX, cursorY);
+  cursorY += Math.round(countSize * 1.1);
+
+  const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
+  const activeIndex = recapTallyState.stepIndex;
+  const maxVisible = recapTallyState.done ? lines.length : Math.min(lines.length, activeIndex + 1);
+  ctx.fillStyle = "#EAF6FF";
+  ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  for (let i = 0; i < maxVisible; i += 1) {
+    const line = lines[i];
+    let lineText = "";
+    if (line.kind === "grace") {
+      const prefix = line.prefix || "Bonus Grace: ";
+      const displayValue = Math.max(0, Math.round(line.delta || 0));
+      const showValue =
+        recapTallyState.done ||
+        i < activeIndex ||
+        recapTallyState.phase === "value" ||
+        recapTallyState.phase === "post";
+      lineText = showValue ? `${prefix}${displayValue}` : prefix;
+    } else {
+      const showValue =
+        recapTallyState.done ||
+        i < activeIndex ||
+        recapTallyState.phase === "value" ||
+        recapTallyState.phase === "post";
+      lineText = showValue ? `${line.label}: ${formatSigned(line.delta)}` : `${line.label}`;
+    }
+    ctx.fillText(lineText, contentX, cursorY);
+    cursorY += lineSpacing;
+  }
+
+  if (recapTallyState.graceEffects.length) {
+    const frame = requireBindings().assets?.items?.gracePickup?.frames?.[0];
+    const size = frame ? Math.max(16, frame.width || 18) : 18;
+    recapTallyState.graceEffects.forEach((effect) => {
+      ctx.save();
+      ctx.globalAlpha = effect.alpha;
+      if (frame) {
+        ctx.drawImage(frame, effect.x - size / 2, effect.y - size / 2, size, size);
+      } else {
+        ctx.fillStyle = "#FFD978";
+        ctx.beginPath();
+        ctx.arc(effect.x, effect.y, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+  }
+  ctx.restore();
+
+  if (!revealComplete) {
+    if (typeof window !== "undefined") {
+      window.__missionBriefActive = false;
+      window.__missionBriefButtonBounds = null;
+      window.__announcementButtons = { key: buttonKey, buttons: [] };
+    }
+    ctx.restore();
+    return;
+  }
+
+  const buttonWidth = Math.min(420, Math.round(layout.virtualCanvas.width * 0.6));
+  const buttonHeight = 72;
+  const buttonX = Math.round((layout.virtualCanvas.width - buttonWidth) / 2);
+  const buttonY = Math.round(Math.max(layout.buttonY || 0, cursorY + 16));
+
+  ctx.save();
+  ctx.fillStyle = "#9BD9FF";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, true, true);
+  if (isAnnouncementButtonFocused(buttonKey, 0)) {
+    ctx.strokeStyle = "#FFC86A";
+    ctx.lineWidth = 3;
+    roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+  }
+  ctx.fillStyle = "#0b111a";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `600 24px ${uiFontFamily}`;
+  ctx.fillText("Continue (Space)", buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+  ctx.restore();
+
+  if (typeof window !== "undefined") {
+    window.__missionBriefActive = false;
+    window.__missionBriefButtonBounds = null;
+    window.__announcementButtons = {
+      key: buttonKey,
+      buttons: [
+        {
+          key: "continue",
+          x: layout.offsetX + buttonX * layout.scale,
+          y: layout.offsetY + buttonY * layout.scale,
+          width: buttonWidth * layout.scale,
+          height: buttonHeight * layout.scale,
+        },
+      ],
+    };
+  }
+
+  ctx.restore();
+}
+
 const UPGRADE_ICON_SOURCES = {
   category: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
   move: "assets/sprites/pixel-art-pack/Items/I27_Rune.png",
@@ -1478,6 +1835,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         levelAnnouncements[0].missionBriefScenario = missionBriefScenarios[Math.floor(Math.random() * missionBriefScenarios.length)];
       }
       const scenario = levelAnnouncements[0].missionBriefScenario;
+      if (typeof window !== "undefined") {
+        window.__lastMissionBriefScenario = scenario;
+      }
       const monthName = currentLevelStatus?.month || (requireBindings().getMonthName ? requireBindings().getMonthName(currentLevelStatus?.level || 1) : null);
       let nameSentence = '';
       if (npcNames.length === 1) {
@@ -1523,24 +1883,37 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
   } catch (e) {}
   if (isBattleSummary) {
-    let summaryTitle = levelAnnouncements?.[0]?.recapTitle || "";
+    const recapData = levelAnnouncements?.[0]?.recapData || null;
+    let summaryTitle = recapData?.title || levelAnnouncements?.[0]?.recapTitle || "";
     if (!summaryTitle) {
       const titleText = displayTitle || title || "";
       const match = titleText.match(/—\s*([^]+?)\s*Cleared/i);
       const monthLabel = match && match[1] ? match[1].trim() : "";
-      summaryTitle = monthLabel ? `${monthLabel} Congregational Report` : "Congregational Report";
+      summaryTitle = monthLabel ? `${monthLabel} Recap` : "Recap";
     }
-    const summaryBody = levelAnnouncements?.[0]?.recapBody || "";
-    drawMissionBriefScreen(ctx, canvas, {
-      title: summaryTitle,
-      subtitle: summaryBody,
-      showFormation: false,
-      uiFontFamily: UI_FONT_FAMILY,
-      buttonKey: "recap",
-      setMissionBriefActive: false,
-    });
+    if (recapData) {
+      drawRecapBonusScreen(ctx, canvas, {
+        title: summaryTitle,
+        recapData,
+        uiFontFamily: UI_FONT_FAMILY,
+        buttonKey: "recap",
+      });
+    } else {
+      const summaryBody = levelAnnouncements?.[0]?.recapBody || "";
+      drawMissionBriefScreen(ctx, canvas, {
+        title: summaryTitle,
+        subtitle: summaryBody,
+        showFormation: false,
+        uiFontFamily: UI_FONT_FAMILY,
+        buttonKey: "recap",
+        setMissionBriefActive: false,
+      });
+    }
     ctx.restore();
     return;
+  }
+  if (recapTallyState.id) {
+    recapTallyState.id = null;
   }
     const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
     const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
