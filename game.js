@@ -5360,7 +5360,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     }
     const match = scenarioRecap.match(/^(.*)\+N\s+Congregants\s*$/);
     if (match) {
-      const base = match[1].trim().replace(/[:\\s]*$/, "");
+      const base = match[1].trim().replace(/[.:\\s]*$/, "");
       return { label: `${base}:` };
     }
     return { label: scenarioRecap.trim() };

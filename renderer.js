@@ -253,8 +253,16 @@ const MELEE_SWING_LENGTH = 200;
     graceFlySfxPlayed: false,
     showContinue: false,
     continueTimer: 0,
+    headerPhase: "title",
+    headerTimer: 0,
+    showCount: false,
+    allowLines: false,
+    titleSfxPlayed: false,
+    countSfxPlayed: false,
+    lineSfxIndex: -1,
   };
   const RECAP_LINE_PAUSE = 1.0;
+  const RECAP_FIRST_LINE_PAUSE = 2.0;
   const RECAP_FLASH_DURATION = 0.6;
   const RECAP_CONTINUE_DELAY = 1.0;
   const SHOW_TEXT_SOURCE_LABELS = false;
@@ -1068,6 +1076,13 @@ function resetRecapTallyState(recapData) {
   recapTallyState.graceFlySfxPlayed = false;
   recapTallyState.showContinue = false;
   recapTallyState.continueTimer = 0;
+  recapTallyState.headerPhase = "title";
+  recapTallyState.headerTimer = 0;
+  recapTallyState.showCount = false;
+  recapTallyState.allowLines = false;
+  recapTallyState.titleSfxPlayed = false;
+  recapTallyState.countSfxPlayed = false;
+  recapTallyState.lineSfxIndex = -1;
 }
 
 function spawnRecapGraceEffects(count, spawnBounds) {
@@ -1079,12 +1094,14 @@ function spawnRecapGraceEffects(count, spawnBounds) {
   const baseY = bounds.y + bounds.height / 2;
   const targetX = Number.isFinite(bounds.targetX) ? bounds.targetX : target.x;
   const targetY = Number.isFinite(bounds.targetY) ? bounds.targetY : target.y;
+  const effects = [];
   for (let i = 0; i < safeCount; i += 1) {
     const jitterX = (Math.random() - 0.5) * Math.max(120, bounds.width * 0.8);
     const jitterY = (Math.random() - 0.5) * Math.max(120, bounds.height * 0.8);
     const startX = baseX + jitterX;
     const startY = baseY + jitterY;
-    recapTallyState.graceEffects.push({
+    const dist = Math.hypot(targetX - startX, targetY - startY);
+    effects.push({
       x: startX,
       y: startY,
       startX,
@@ -1092,13 +1109,21 @@ function spawnRecapGraceEffects(count, spawnBounds) {
       targetX,
       targetY,
       timer: 0,
-      delay: 1.0,
+      delay: 0,
       duration: 0.55 + Math.random() * 0.2,
       size: 18,
       alpha: 1,
       applied: false,
+      dist,
     });
   }
+  const maxDist = effects.reduce((max, effect) => Math.max(max, effect.dist || 0), 0) || 1;
+  effects.forEach((effect) => {
+    const distFactor = Math.min(1, Math.max(0, effect.dist / maxDist));
+    effect.delay = 0.4 + distFactor * 0.8;
+    delete effect.dist;
+    recapTallyState.graceEffects.push(effect);
+  });
   recapTallyState.graceFlySfxPlayed = false;
 }
 
@@ -1189,6 +1214,37 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
   if (recapTallyState.flashTimer > 0) {
     recapTallyState.flashTimer = Math.max(0, recapTallyState.flashTimer - dt);
   }
+  if (!recapTallyState.allowLines) {
+    if (allowAdvance && !recapTallyState.titleSfxPlayed) {
+      if (typeof window?.playRecapFinalSfx === "function") {
+        window.playRecapFinalSfx(0.7);
+      }
+      recapTallyState.titleSfxPlayed = true;
+      recapTallyState.headerPhase = "titleHold";
+      recapTallyState.headerTimer = 1.0;
+    }
+    if (recapTallyState.headerPhase === "titleHold") {
+      recapTallyState.headerTimer = Math.max(0, recapTallyState.headerTimer - dt);
+      if (recapTallyState.headerTimer <= 0) {
+        recapTallyState.showCount = true;
+        if (!recapTallyState.countSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
+          window.playRecapFinalSfx(0.7);
+          recapTallyState.countSfxPlayed = true;
+        }
+        recapTallyState.headerPhase = "countHold";
+        recapTallyState.headerTimer = 1.0;
+      }
+    } else if (recapTallyState.headerPhase === "countHold") {
+      recapTallyState.headerTimer = Math.max(0, recapTallyState.headerTimer - dt);
+      if (recapTallyState.headerTimer <= 0) {
+        recapTallyState.allowLines = true;
+        recapTallyState.headerPhase = "lines";
+      }
+    }
+    updateRecapGraceEffects(dt, recapData);
+    updateRecapGhostEffects(dt);
+    return;
+  }
   updateRecapGraceEffects(dt, recapData);
   updateRecapGhostEffects(dt);
   if (!recapTallyState.showContinue) {
@@ -1242,7 +1298,15 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
 
   const targetValue = Number.isFinite(current.delta) ? Math.round(current.delta) : 0;
   if (recapTallyState.phase === "line") {
-    recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+    if (
+      recapTallyState.lineSfxIndex !== recapTallyState.stepIndex &&
+      typeof window?.playRecapFinalSfx === "function"
+    ) {
+      window.playRecapFinalSfx(0.7);
+      recapTallyState.lineSfxIndex = recapTallyState.stepIndex;
+    }
+    recapTallyState.pauseTimer =
+      recapTallyState.stepIndex === 0 ? RECAP_FIRST_LINE_PAUSE : RECAP_LINE_PAUSE;
     recapTallyState.phase = "lineHold";
     return;
   }
@@ -1333,13 +1397,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const contentWidth = Math.round(layout.virtualCanvas.width * 0.88);
   const contentX = Math.round((layout.virtualCanvas.width - contentWidth) / 2);
   const lineSpacing = Math.round(bodySize * 1.4);
+  const sectionGap = Math.round(bodySize * 0.35);
   const titleBlockHeight = layout.textLayout?.textBlockHeight || 0;
   let cursorY = Math.round(layout.titleY + titleBlockHeight + 28);
   const spawnBounds = {
     x: contentX,
-    y: cursorY,
+    y: Math.round(layout.virtualCanvas.height * 0.67),
     width: contentWidth,
-    height: Math.max(80, lineSpacing * 2),
+    height: Math.round(layout.virtualCanvas.height * 0.28),
     targetX: null,
     targetY: null,
   };
@@ -1364,14 +1429,40 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const totalValue = recapTallyState.totalValue;
   const countLabel = "Congregation Count:";
-  ctx.fillStyle = "#EAF6FF";
-  ctx.fillText(countLabel, contentX, cursorY);
-  const labelWidth = ctx.measureText(countLabel).width;
-  const countNumberX = contentX + labelWidth + 12;
-  ctx.fillStyle = recapTallyState.flashTimer > 0 ? "#FFD978" : "#EAF6FF";
-  ctx.fillText(`${Math.round(totalValue || 0)}`, countNumberX, cursorY);
-  const countNumberY = cursorY;
-  cursorY += Math.round(countSize * 1.1);
+  let countNumberX = contentX;
+  let countNumberY = cursorY;
+  if (recapTallyState.showCount) {
+    ctx.fillStyle = "#EAF6FF";
+    ctx.fillText(countLabel, contentX, cursorY);
+    const labelWidth = ctx.measureText(countLabel).width;
+    countNumberX = contentX + labelWidth + 12;
+    ctx.fillStyle = recapTallyState.flashTimer > 0 ? "#FFD978" : "#EAF6FF";
+    ctx.fillText(`${Math.round(totalValue || 0)}`, countNumberX, cursorY);
+    countNumberY = cursorY;
+    cursorY += Math.round(countSize * 1.1);
+  }
+
+  if (!recapTallyState.showCount) {
+    ctx.restore();
+    if (typeof window !== "undefined") {
+      window.__missionBriefActive = false;
+      window.__missionBriefButtonBounds = null;
+      window.__announcementButtons = { key: buttonKey, buttons: [] };
+    }
+    ctx.restore();
+    return;
+  }
+
+  if (!recapTallyState.allowLines) {
+    ctx.restore();
+    if (typeof window !== "undefined") {
+      window.__missionBriefActive = false;
+      window.__missionBriefButtonBounds = null;
+      window.__announcementButtons = { key: buttonKey, buttons: [] };
+    }
+    ctx.restore();
+    return;
+  }
 
   const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
   const activeIndex = recapTallyState.stepIndex;
@@ -1380,6 +1471,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
+    const isLastLine = i === maxVisible - 1;
     if (line.kind === "grace") {
       const prefix = line.prefix || "Bonus Grace: ";
       const displayValue = Math.max(0, Math.round(line.delta || 0));
@@ -1395,6 +1487,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         ctx.fillText(textLine, contentX, cursorY);
         cursorY += lineSpacing;
       });
+      if (!isLastLine) cursorY += sectionGap;
       continue;
     }
 
@@ -1462,6 +1555,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       }
       cursorY += lineSpacing;
     }
+    if (!isLastLine) cursorY += sectionGap;
   }
 
   if (recapTallyState.ghostEffects.length) {
