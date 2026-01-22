@@ -996,6 +996,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         ctx.strokeStyle = "#FFC86A";
         ctx.lineWidth = 3;
         roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
       }
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
@@ -1466,6 +1467,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     ctx.strokeStyle = "#FFC86A";
     ctx.lineWidth = 3;
     roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+    drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, 0.45);
   }
   ctx.fillStyle = "#0b111a";
   ctx.textAlign = "center";
@@ -2284,6 +2286,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.strokeStyle = "#FFC86A";
       ctx.lineWidth = 3;
       roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+      drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
     }
     ctx.fillStyle = "#0b111a";
     ctx.textAlign = "center";
@@ -2685,6 +2688,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.strokeStyle = "#FFC86A";
         ctx.lineWidth = 3;
         roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
@@ -2791,6 +2795,45 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.closePath();
     if (fill) ctx.fill();
     if (stroke) ctx.stroke();
+  }
+
+  function drawButtonReflection(ctx, x, y, width, height, radius, alpha = 0.95) {
+    ctx.save();
+    let r = radius;
+    if (typeof r === "number") r = { tl: r, tr: r, br: r, bl: r };
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + width - r.tr, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r.tr);
+    ctx.lineTo(x + width, y + height - r.br);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r.br, y + height);
+    ctx.lineTo(x + r.bl, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+    ctx.closePath();
+    ctx.clip();
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const t = ((now * 0.001 * 0.45) % 1);
+    const sweepWidth = Math.max(50, width * 0.7);
+    const sweepX = x - sweepWidth + (width + sweepWidth * 2) * t;
+    const sweepGradient = ctx.createLinearGradient(sweepX, y, sweepX + sweepWidth, y + height);
+    sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+    sweepGradient.addColorStop(0.4, `rgba(255, 255, 255, ${1 * alpha})`);
+    sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = sweepGradient;
+    ctx.fillRect(x, y, width, height);
+
+    const t2 = ((now * 0.001 * 0.9 + 0.35) % 1);
+    const sweepWidth2 = Math.max(34, width * 0.35);
+    const sweepX2 = x - sweepWidth2 + (width + sweepWidth2 * 2) * t2;
+    const sweepGradient2 = ctx.createLinearGradient(sweepX2, y, sweepX2 + sweepWidth2, y + height);
+    sweepGradient2.addColorStop(0, "rgba(255, 255, 255, 0)");
+    sweepGradient2.addColorStop(0.5, `rgba(255, 255, 255, ${0.75 * alpha})`);
+    sweepGradient2.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = sweepGradient2;
+    ctx.fillRect(x, y, width, height);
+    ctx.restore();
   }
 
   const enemyHpLabels = [];
@@ -3076,6 +3119,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.strokeStyle = "#FFC86A";
         ctx.lineWidth = 3;
         roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
@@ -3204,6 +3248,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.strokeStyle = "#FFC86A";
         ctx.lineWidth = 3;
         roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
