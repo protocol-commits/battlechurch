@@ -262,7 +262,7 @@ const MELEE_SWING_LENGTH = 200;
     lineSfxIndex: -1,
   };
   const RECAP_LINE_PAUSE = 1.0;
-  const RECAP_FIRST_LINE_PAUSE = 2.0;
+  const RECAP_FIRST_LINE_PAUSE = 1.0;
   const RECAP_FLASH_DURATION = 0.6;
   const RECAP_CONTINUE_DELAY = 1.0;
   const SHOW_TEXT_SOURCE_LABELS = false;
@@ -1341,7 +1341,10 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       recapData.graceSpawned = true;
       recapTallyState.finalSfxPlayed = true;
     }
-    recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+    // Skip the extra pause if value is shown inline (not on its own line)
+    if (current.forceValueLine) {
+      recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+    }
     recapTallyState.phase = "post";
     return;
   }

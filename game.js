@@ -5373,7 +5373,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       ];
     }
     const single = baseText.replace(/[.:\s]*$/, "");
-    return [{ label: `${single}:`, delta: deltaValue, forceValueLine: true }];
+    return [{ label: `${single}:`, delta: deltaValue }];
   };
   if (!isBossSummary) {
     if (memberDelta !== 0 || savedNames.length || lostNames.length) {
