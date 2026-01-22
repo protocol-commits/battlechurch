@@ -5344,6 +5344,26 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     (typeof window !== "undefined" ? window.__lastMissionBriefScenario : null) ||
     announcement?.missionBriefScenario ||
     "a crisis";
+  const scenarioTitle =
+    typeof scenario === "string"
+      ? scenario
+      : scenario && typeof scenario === "object" && typeof scenario.title === "string"
+        ? scenario.title
+        : "a crisis";
+  const scenarioRecap =
+    scenario && typeof scenario === "object" && typeof scenario.recap === "string"
+      ? scenario.recap
+      : null;
+  const formatRecapScenario = () => {
+    if (!scenarioRecap) {
+      return { label: `Helped members with ${scenarioTitle}:` };
+    }
+    const match = scenarioRecap.match(/^(.*)\\+N\\s+Congregants\\s*$/);
+    if (match) {
+      return { label: match[1].trim(), valueSuffix: " Congregants" };
+    }
+    return { label: scenarioRecap.trim() };
+  };
   if (!isBossSummary) {
     if (memberDelta !== 0 || savedNames.length || lostNames.length) {
       const nameSentence = formatNameList(savedNames) || "the congregation";
@@ -5353,7 +5373,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
         helpLabel = lostSentence ? `${lostSentence} left the church` : "Members left the church";
       }
       recapLines.push({
-        label: `Helped members with ${scenario}:`,
+        ...formatRecapScenario(),
         delta: memberDelta,
         kind: "congregation",
         affectsTotal: true,

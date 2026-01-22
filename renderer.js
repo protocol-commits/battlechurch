@@ -86,6 +86,20 @@
       window.BattlechurchMissionBrief.scenarios) ||
     [];
 
+  function getScenarioTitle(scenario) {
+    if (!scenario) return "";
+    if (typeof scenario === "string") return scenario;
+    if (typeof scenario === "object" && typeof scenario.title === "string") return scenario.title;
+    return "";
+  }
+
+  function formatScenarioForSentence(text) {
+    if (!text) return "";
+    const trimmed = String(text).trim();
+    if (!trimmed) return "";
+    return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+  }
+
   /*
    MISSION BRIEF SCREEN
    --------------------
@@ -1389,7 +1403,9 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.fillText(labelText, contentX, cursorY);
       if (showValue) {
         const labelWidth = ctx.measureText(labelText).width;
-        const valueText = formatSigned(line.delta);
+        const valuePrefix = line.valuePrefix || "";
+        const valueSuffix = line.valueSuffix || "";
+        const valueText = `${valuePrefix}${formatSigned(line.delta)}${valueSuffix}`;
         const valueX = contentX + labelWidth + 10;
         const highlightValue =
           recapTallyState.flashTimer > 0 &&
@@ -1957,6 +1973,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         levelAnnouncements[0].missionBriefScenario = missionBriefScenarios[Math.floor(Math.random() * missionBriefScenarios.length)];
       }
       const scenario = levelAnnouncements[0].missionBriefScenario;
+      const scenarioTitle = formatScenarioForSentence(getScenarioTitle(scenario)) || "a crisis";
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = scenario;
       }
@@ -1975,7 +1992,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         (announcement && announcement.title) ||
         monthName ||
         "";
-      const missionBrief = `${nameSentence} have been battling with ${scenario}.`;
+      const missionBrief = `${nameSentence} are facing ${scenarioTitle}.`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
@@ -1984,7 +2001,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         title: missionTitle,
         subtitle: missionBrief,
         highlight: {
-          text: scenario,
+          text: scenarioTitle,
           color: "#ffd978",
         },
         showFormation: true,
