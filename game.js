@@ -5354,16 +5354,26 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     scenario && typeof scenario === "object" && typeof scenario.recap === "string"
       ? scenario.recap
       : null;
-  const formatRecapScenario = () => {
+  const formatRecapScenarioLines = (deltaValue) => {
     if (!scenarioRecap) {
-      return { label: `Helped members with ${scenarioTitle}:` };
+      return [{ label: `Helped members with ${scenarioTitle}:`, delta: deltaValue, forceValueLine: true }];
     }
     const match = scenarioRecap.match(/^(.*)\+N\s+Congregants\s*$/);
-    if (match) {
-      const base = match[1].trim().replace(/[.:\s]*$/, "");
-      return { label: `${base}:` };
+    const baseText = match ? match[1].trim() : scenarioRecap.trim();
+    const parts = baseText
+      .split("\n")
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (parts.length >= 2) {
+      const firstLine = parts[0].replace(/[.:\s]*$/, "");
+      const secondLine = parts.slice(1).join(" ").replace(/[.:\s]*$/, "");
+      return [
+        { label: `${firstLine}.`, delta: 0, skipValue: true, affectsTotal: false },
+        { label: `${secondLine}:`, delta: deltaValue, forceValueLine: false, forceInlineValue: true },
+      ];
     }
-    return { label: scenarioRecap.trim() };
+    const single = baseText.replace(/[.:\s]*$/, "");
+    return [{ label: `${single}:`, delta: deltaValue, forceValueLine: true }];
   };
   if (!isBossSummary) {
     if (memberDelta !== 0 || savedNames.length || lostNames.length) {
@@ -5373,11 +5383,13 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
         const lostSentence = formatNameList(lostNames);
         helpLabel = lostSentence ? `${lostSentence} left the church` : "Members left the church";
       }
-      recapLines.push({
-        ...formatRecapScenario(),
-        delta: memberDelta,
-        kind: "congregation",
-        affectsTotal: true,
+      const scenarioLines = formatRecapScenarioLines(memberDelta);
+      scenarioLines.forEach((line) => {
+        recapLines.push({
+          kind: "congregation",
+          affectsTotal: true,
+          ...line,
+        });
       });
     }
     if (healthReward !== 0) {

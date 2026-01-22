@@ -1311,6 +1311,11 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     return;
   }
   if (recapTallyState.phase === "lineHold") {
+    if (current && current.skipValue) {
+      recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+      recapTallyState.phase = "post";
+      return;
+    }
     recapTallyState.phase = "value";
   }
   if (recapTallyState.phase === "value") {
@@ -1481,7 +1486,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         recapTallyState.phase === "value" ||
         recapTallyState.phase === "post";
       const lineText = showValue ? `${prefix}${displayValue}` : prefix;
-      const wrapped = wrapText(ctx, lineText, contentWidth);
+      const graceChunks = String(lineText).split("\n");
+      const wrapped = graceChunks.flatMap((chunk) => wrapText(ctx, chunk, contentWidth));
       wrapped.forEach((textLine) => {
         ctx.fillStyle = "#EAF6FF";
         ctx.fillText(textLine, contentX, cursorY);
@@ -1492,12 +1498,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     }
 
     const showValue =
-      recapTallyState.done ||
-      i < activeIndex ||
-      recapTallyState.phase === "value" ||
-      recapTallyState.phase === "post";
+      !line.skipValue &&
+      (recapTallyState.done ||
+        i < activeIndex ||
+        recapTallyState.phase === "value" ||
+        recapTallyState.phase === "post");
     const labelText = line.label || "";
-    const labelLines = wrapText(ctx, labelText, contentWidth);
+    const labelChunks = String(labelText).split("\n");
+    const labelLines = labelChunks.flatMap((chunk) => wrapText(ctx, chunk, contentWidth));
     let valueText = "";
     let valueX = 0;
     let valueY = 0;
@@ -1514,6 +1522,13 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         valueX = contentX + lastWidth + 10;
         valueY = cursorY + lineSpacing * Math.max(0, labelLines.length - 1);
       }
+    }
+    if (showValue && line.forceInlineValue) {
+      const lastLine = labelLines[labelLines.length - 1] || "";
+      const lastWidth = ctx.measureText(lastLine).width;
+      valueInline = true;
+      valueX = contentX + lastWidth + 10;
+      valueY = cursorY + lineSpacing * Math.max(0, labelLines.length - 1);
     }
     if (line.forceValueLine) {
       valueInline = false;
