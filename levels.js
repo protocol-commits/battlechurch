@@ -682,6 +682,9 @@
       }
       console.info && console.info('queueAnnouncement', { title: `Level ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
       const missionBriefTitle = monthName;
+      if (typeof window !== "undefined") {
+        window.__lastMissionBriefScenario = state.currentBattleScenario;
+      }
       queueLevelAnnouncement(`Level ${state.level} — ${monthName}`, state.currentBattleScenario, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,

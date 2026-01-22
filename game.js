@@ -205,6 +205,7 @@ const FAITH_CANNON_SFX_SRCS = [
   "assets/sfx/rpg/Magic/fireball_whoosh_05.wav",
   "assets/sfx/rpg/Magic/fireball_whoosh_06.wav",
 ];
+const RECAP_GRACE_FLY_SFX_SRC = "assets/sfx/rpg/Magic/fireball_whoosh_05.wav";
 const FAITH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_22.wav",
   "assets/sfx/rpg/Explosions/Explosions_23.wav",
@@ -253,6 +254,7 @@ const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
 const GRACE_PICKUP_SFX_POOL_SIZE = 4;
 const RECAP_TICK_SFX_POOL_SIZE = 6;
 const RECAP_FINAL_SFX_POOL_SIZE = 3;
+const RECAP_GRACE_FLY_SFX_POOL_SIZE = 6;
 const VISITOR_HIT_SFX_POOL_SIZE = 4;
 const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
@@ -285,6 +287,7 @@ const enemySpawnSfxPool = [];
 const gracePickupSfxPool = [];
 const recapTickSfxPool = [];
 const recapFinalSfxPool = [];
+const recapGraceFlySfxPool = [];
 const visitorHitSfxPool = [];
 const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
@@ -670,6 +673,19 @@ function playRecapFinalSfx(volume = 0.7) {
 if (typeof window !== "undefined") {
   window.playRecapTickSfx = playRecapTickSfx;
   window.playRecapFinalSfx = playRecapFinalSfx;
+}
+
+function playRecapGraceFlySfx(volume = 0.5) {
+  playPooledSfx(
+    recapGraceFlySfxPool,
+    RECAP_GRACE_FLY_SFX_SRC,
+    RECAP_GRACE_FLY_SFX_POOL_SIZE,
+    { volume },
+  );
+}
+
+if (typeof window !== "undefined") {
+  window.playRecapGraceFlySfx = playRecapGraceFlySfx;
 }
 
 function playEnemySpawnSfx(volume = 0.55, options = {}) {
@@ -5337,7 +5353,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
         helpLabel = lostSentence ? `${lostSentence} left the church` : "Members left the church";
       }
       recapLines.push({
-        label: `Helped members with ${scenario}`,
+        label: `Helped members with ${scenario}:`,
         delta: memberDelta,
         kind: "congregation",
         affectsTotal: true,
@@ -5345,7 +5361,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     }
     if (healthReward !== 0) {
       recapLines.push({
-        label: "Congregation Health Bonus",
+        label: "Congregation Health Bonus:",
         delta: healthReward,
         kind: "congregation",
         affectsTotal: true,
@@ -6322,6 +6338,15 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     finalYear,
     levelSummary,
   };
+  if (
+    missionBriefTitle &&
+    !bossMissionBrief &&
+    typeof subtitle === "string" &&
+    subtitle.trim().length &&
+    typeof window !== "undefined"
+  ) {
+    window.__lastMissionBriefScenario = subtitle.trim();
+  }
   levelAnnouncements.push(announcement);
 }
 

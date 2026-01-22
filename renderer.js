@@ -233,6 +233,10 @@ const MELEE_SWING_LENGTH = 200;
     pauseTimer: 0,
     flashTimer: 0,
     graceEffects: [],
+    lastAppliedIndex: -1,
+    ghostEffects: [],
+    pendingGhost: null,
+    graceFlySfxPlayed: false,
   };
   const RECAP_LINE_PAUSE = 1.0;
   const RECAP_FLASH_DURATION = 0.6;
@@ -1042,6 +1046,10 @@ function resetRecapTallyState(recapData) {
   recapTallyState.pauseTimer = 0;
   recapTallyState.flashTimer = 0;
   recapTallyState.graceEffects = [];
+  recapTallyState.lastAppliedIndex = -1;
+  recapTallyState.ghostEffects = [];
+  recapTallyState.pendingGhost = null;
+  recapTallyState.graceFlySfxPlayed = false;
 }
 
 function spawnRecapGraceEffects(count, spawnBounds) {
@@ -1073,10 +1081,18 @@ function spawnRecapGraceEffects(count, spawnBounds) {
       applied: false,
     });
   }
+  recapTallyState.graceFlySfxPlayed = false;
 }
 
 function updateRecapGraceEffects(dt, recapData) {
   if (!recapTallyState.graceEffects.length) return;
+  if (!recapTallyState.graceFlySfxPlayed) {
+    const anyMoving = recapTallyState.graceEffects.some((effect) => effect && effect.delay <= 0);
+    if (anyMoving && typeof window?.playRecapGraceFlySfx === "function") {
+      window.playRecapGraceFlySfx(0.6);
+      recapTallyState.graceFlySfxPlayed = true;
+    }
+  }
   for (let i = recapTallyState.graceEffects.length - 1; i >= 0; i -= 1) {
     const effect = recapTallyState.graceEffects[i];
     if (!effect) continue;
@@ -1106,6 +1122,38 @@ function updateRecapGraceEffects(dt, recapData) {
   }
 }
 
+function spawnRecapGhostEffect(text, startX, startY, endX, endY) {
+  if (!text) return;
+  recapTallyState.ghostEffects.push({
+    text,
+    startX,
+    startY,
+    endX,
+    endY,
+    timer: 0,
+    duration: 0.55,
+    alpha: 1,
+  });
+}
+
+function updateRecapGhostEffects(dt) {
+  if (!recapTallyState.ghostEffects.length) return;
+  for (let i = recapTallyState.ghostEffects.length - 1; i >= 0; i -= 1) {
+    const effect = recapTallyState.ghostEffects[i];
+    if (!effect) continue;
+    effect.timer += dt;
+    const t = Math.min(1, effect.timer / Math.max(0.001, effect.duration));
+    const ease = 1 - Math.pow(1 - t, 3);
+    const arc = 18 * Math.sin(Math.PI * t);
+    effect.x = effect.startX + (effect.endX - effect.startX) * ease;
+    effect.y = effect.startY + (effect.endY - effect.startY) * ease - arc;
+    effect.alpha = Math.max(0, 1 - t * 0.65);
+    if (t >= 1) {
+      recapTallyState.ghostEffects.splice(i, 1);
+    }
+  }
+}
+
 function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
   if (!recapData) return;
   const now = performance.now();
@@ -1124,8 +1172,13 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.flashTimer = Math.max(0, recapTallyState.flashTimer - dt);
   }
   updateRecapGraceEffects(dt, recapData);
+  updateRecapGhostEffects(dt);
   if (!current) {
-    if (!recapTallyState.finalSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
+    if (
+      !recapTallyState.finalSfxPlayed &&
+      typeof window?.playRecapFinalSfx === "function" &&
+      !(recapData && recapData.graceBonus > 0)
+    ) {
       window.playRecapFinalSfx(0.7);
       recapTallyState.finalSfxPlayed = true;
     }
@@ -1167,10 +1220,20 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.phase = "value";
   }
   if (recapTallyState.phase === "value") {
-    if (current.affectsTotal !== false) {
+    const affectsTotal = current.affectsTotal !== false;
+    if (affectsTotal) {
       recapTallyState.totalValue += targetValue;
     }
-    recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+    recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+    if (affectsTotal) {
+      recapTallyState.pendingGhost = {
+        index: recapTallyState.stepIndex,
+        value: targetValue,
+      };
+    }
+    if (affectsTotal) {
+      recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+    }
     if (typeof window?.playRecapFinalSfx === "function") {
       window.playRecapFinalSfx(0.7);
     }
@@ -1268,8 +1331,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
   ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const totalValue = recapTallyState.totalValue;
+  const countLabel = "Congregation Count:";
+  ctx.fillStyle = "#EAF6FF";
+  ctx.fillText(countLabel, contentX, cursorY);
+  const labelWidth = ctx.measureText(countLabel).width;
+  const countNumberX = contentX + labelWidth + 12;
   ctx.fillStyle = recapTallyState.flashTimer > 0 ? "#FFD978" : "#EAF6FF";
-  ctx.fillText(`Congregation Count: ${Math.round(totalValue || 0)}`, contentX, cursorY);
+  ctx.fillText(`${Math.round(totalValue || 0)}`, countNumberX, cursorY);
+  const countNumberY = cursorY;
   cursorY += Math.round(countSize * 1.1);
 
   const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
@@ -1289,16 +1358,50 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         recapTallyState.phase === "value" ||
         recapTallyState.phase === "post";
       lineText = showValue ? `${prefix}${displayValue}` : prefix;
+      ctx.fillStyle = "#EAF6FF";
+      ctx.fillText(lineText, contentX, cursorY);
     } else {
       const showValue =
         recapTallyState.done ||
         i < activeIndex ||
         recapTallyState.phase === "value" ||
         recapTallyState.phase === "post";
-      lineText = showValue ? `${line.label}: ${formatSigned(line.delta)}` : `${line.label}`;
+      const labelText = line.label || "";
+      ctx.fillStyle = "#EAF6FF";
+      ctx.fillText(labelText, contentX, cursorY);
+      if (showValue) {
+        const labelWidth = ctx.measureText(labelText).width;
+        const valueText = formatSigned(line.delta);
+        const valueX = contentX + labelWidth + 10;
+        const highlightValue =
+          recapTallyState.flashTimer > 0 &&
+          recapTallyState.lastAppliedIndex === i;
+        ctx.fillStyle = highlightValue ? "#FFD978" : "#EAF6FF";
+        ctx.fillText(valueText, valueX, cursorY);
+        if (
+          recapTallyState.pendingGhost &&
+          recapTallyState.pendingGhost.index === i &&
+          recapTallyState.pendingGhost.value === line.delta
+        ) {
+          spawnRecapGhostEffect(valueText, valueX, cursorY, countNumberX, countNumberY);
+          recapTallyState.pendingGhost = null;
+        }
+      }
     }
-    ctx.fillText(lineText, contentX, cursorY);
     cursorY += lineSpacing;
+  }
+
+  if (recapTallyState.ghostEffects.length) {
+    ctx.save();
+    ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    recapTallyState.ghostEffects.forEach((effect) => {
+      ctx.globalAlpha = effect.alpha;
+      ctx.fillStyle = "#FFD978";
+      ctx.fillText(effect.text, effect.x, effect.y);
+    });
+    ctx.restore();
   }
 
   if (recapTallyState.graceEffects.length) {
