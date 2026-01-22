@@ -932,7 +932,7 @@
       resetStage("hordeIntro", introDuration);
       if (hordeNumber === 1) {
         const names = formatNameList(npcs.map((npc) => npc?.name || ""));
-        const title = "\"I'll stand with you,\nfacing lies, temptation, and sin together.\"";
+        const title = "\"I'll stand with you, facing lies, temptation, and sin together.\"";
         queueLevelAnnouncement(title, "", {
           duration: introDuration,
           skipMissionBrief: true,
