@@ -17,10 +17,6 @@
       recap: "Through ongoing marital conflict, they learned perseverance, and modeled commitment during difficulty. +N Congregants",
     },
     {
-      title: "Miscarriage or stillbirth",
-      recap: "Through miscarriage or stillbirth, they learned compassion, and helped others endure silent grief. +N Congregants",
-    },
-    {
       title: "Loss of a job",
       recap: "Through loss of a job, they learned resilience, and encouraged others facing instability. +N Congregants",
     },
@@ -65,32 +61,20 @@
       recap: "Through parenting a child with special needs, they learned advocacy, and improved care for vulnerable children. +N Congregants",
     },
     {
-      title: "Parenting a rebellious or troubled teenager",
-      recap: "Through parenting a rebellious or troubled teenager, they learned understanding, and rebuilt strained relationships. +N Congregants",
+      title: "Parenting a troubled child",
+      recap: "Through parenting a troubled child, they learned understanding, and rebuilt strained relationships. +N Congregants",
     },
     {
       title: "Betrayal by a close friend",
       recap: "Through betrayal by a close friend, they learned forgiveness, and helped restore broken trust. +N Congregants",
     },
     {
-      title: "Public failure or humiliation",
-      recap: "Through public failure or humiliation, they learned humility, and gave others permission to start again. +N Congregants",
+      title: "Deep loneliness",
+      recap: "Through deep loneliness, they learned hospitality, and created welcoming spaces. +N Congregants",
     },
     {
-      title: "Social isolation or deep loneliness",
-      recap: "Through social isolation or deep loneliness, they learned hospitality, and created welcoming spaces. +N Congregants",
-    },
-    {
-      title: "Workplace hostility or injustice",
-      recap: "Through workplace hostility or injustice, they learned courage, and supported others facing mistreatment. +N Congregants",
-    },
-    {
-      title: "Burnout from overwork or caregiving",
-      recap: "Through burnout from overwork or caregiving, they learned limits, and helped others avoid collapse. +N Congregants",
-    },
-    {
-      title: "Loss of purpose after retirement or major life change",
-      recap: "Through loss of purpose after retirement or major life change, they learned perspective, and steadied others in transition. +N Congregants",
+      title: "Workplace hostility",
+      recap: "Through workplace hostility, they learned courage, and supported others facing mistreatment. +N Congregants",
     },
   ];
 

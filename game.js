@@ -5358,9 +5358,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     if (!scenarioRecap) {
       return { label: `Helped members with ${scenarioTitle}:` };
     }
-    const match = scenarioRecap.match(/^(.*)\\+N\\s+Congregants\\s*$/);
+    const match = scenarioRecap.match(/^(.*)\+N\s+Congregants\s*$/);
     if (match) {
-      return { label: match[1].trim(), valueSuffix: " Congregants" };
+      const base = match[1].trim().replace(/[:\\s]*$/, "");
+      return { label: `${base}:` };
     }
     return { label: scenarioRecap.trim() };
   };

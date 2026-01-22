@@ -1380,7 +1380,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
-    let lineText = "";
     if (line.kind === "grace") {
       const prefix = line.prefix || "Bonus Grace: ";
       const displayValue = Math.max(0, Math.round(line.delta || 0));
@@ -1389,40 +1388,80 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         i < activeIndex ||
         recapTallyState.phase === "value" ||
         recapTallyState.phase === "post";
-      lineText = showValue ? `${prefix}${displayValue}` : prefix;
+      const lineText = showValue ? `${prefix}${displayValue}` : prefix;
+      const wrapped = wrapText(ctx, lineText, contentWidth);
+      wrapped.forEach((textLine) => {
+        ctx.fillStyle = "#EAF6FF";
+        ctx.fillText(textLine, contentX, cursorY);
+        cursorY += lineSpacing;
+      });
+      continue;
+    }
+
+    const showValue =
+      recapTallyState.done ||
+      i < activeIndex ||
+      recapTallyState.phase === "value" ||
+      recapTallyState.phase === "post";
+    const labelText = line.label || "";
+    const labelLines = wrapText(ctx, labelText, contentWidth);
+    let valueText = "";
+    let valueX = 0;
+    let valueY = 0;
+    let valueInline = false;
+    if (showValue) {
+      const valuePrefix = line.valuePrefix || "";
+      const valueSuffix = line.valueSuffix || "";
+      valueText = `${valuePrefix}${formatSigned(line.delta)}${valueSuffix}`;
+      const lastLine = labelLines[labelLines.length - 1] || "";
+      const lastWidth = ctx.measureText(lastLine).width;
+      const valueWidth = ctx.measureText(valueText).width;
+      if (lastWidth + 10 + valueWidth <= contentWidth) {
+        valueInline = true;
+        valueX = contentX + lastWidth + 10;
+        valueY = cursorY + lineSpacing * Math.max(0, labelLines.length - 1);
+      }
+    }
+
+    labelLines.forEach((textLine, idx) => {
       ctx.fillStyle = "#EAF6FF";
-      ctx.fillText(lineText, contentX, cursorY);
-    } else {
-      const showValue =
-        recapTallyState.done ||
-        i < activeIndex ||
-        recapTallyState.phase === "value" ||
-        recapTallyState.phase === "post";
-      const labelText = line.label || "";
-      ctx.fillStyle = "#EAF6FF";
-      ctx.fillText(labelText, contentX, cursorY);
-      if (showValue) {
-        const labelWidth = ctx.measureText(labelText).width;
-        const valuePrefix = line.valuePrefix || "";
-        const valueSuffix = line.valueSuffix || "";
-        const valueText = `${valuePrefix}${formatSigned(line.delta)}${valueSuffix}`;
-        const valueX = contentX + labelWidth + 10;
+      ctx.fillText(textLine, contentX, cursorY);
+      if (showValue && valueInline && idx === labelLines.length - 1) {
         const highlightValue =
           recapTallyState.flashTimer > 0 &&
           recapTallyState.lastAppliedIndex === i;
         ctx.fillStyle = highlightValue ? "#FFD978" : "#EAF6FF";
-        ctx.fillText(valueText, valueX, cursorY);
+        ctx.fillText(valueText, valueX, valueY);
         if (
           recapTallyState.pendingGhost &&
           recapTallyState.pendingGhost.index === i &&
           recapTallyState.pendingGhost.value === line.delta
         ) {
-          spawnRecapGhostEffect(valueText, valueX, cursorY, countNumberX, countNumberY);
+          spawnRecapGhostEffect(valueText, valueX, valueY, countNumberX, countNumberY);
           recapTallyState.pendingGhost = null;
         }
       }
+      cursorY += lineSpacing;
+    });
+
+    if (showValue && !valueInline) {
+      const highlightValue =
+        recapTallyState.flashTimer > 0 &&
+        recapTallyState.lastAppliedIndex === i;
+      valueX = contentX;
+      valueY = cursorY;
+      ctx.fillStyle = highlightValue ? "#FFD978" : "#EAF6FF";
+      ctx.fillText(valueText, valueX, valueY);
+      if (
+        recapTallyState.pendingGhost &&
+        recapTallyState.pendingGhost.index === i &&
+        recapTallyState.pendingGhost.value === line.delta
+      ) {
+        spawnRecapGhostEffect(valueText, valueX, valueY, countNumberX, countNumberY);
+        recapTallyState.pendingGhost = null;
+      }
+      cursorY += lineSpacing;
     }
-    cursorY += lineSpacing;
   }
 
   if (recapTallyState.ghostEffects.length) {
