@@ -2438,9 +2438,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       buildGodRayCache(canvas.width, canvas.height, floorHeight);
     }
 
-    // Animate with breathing effect via globalAlpha
+    // Animate with organic breathing - layered waves create irregular pulses
     const time = typeof performance !== "undefined" ? performance.now() : Date.now();
-    const breath = 0.7 + 0.3 * Math.sin(time * 0.0005);
+    const wave1 = Math.sin(time * 0.0004);           // Base slow wave
+    const wave2 = Math.sin(time * 0.00067) * 0.5;    // Medium wave, irrational ratio
+    const wave3 = Math.sin(time * 0.00023) * 0.7;    // Very slow drift
+    const wave4 = Math.sin(time * 0.0011) * 0.25;    // Faster flutter
+    const combined = (wave1 + wave2 + wave3 + wave4) / 2.45;
+    const breath = 0.55 + 0.4 * combined; // Range roughly 0.35 to 0.95
 
     // Floor band is in translated context (1:1 with camera), so match that
     const parallaxOffset = Math.floor(cameraX);
