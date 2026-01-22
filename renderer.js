@@ -3905,6 +3905,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.translate(-effectiveCameraX, effectiveCameraY);
 
     const bandImg = assets?.backgroundLayers?.floor || null;
+    const floorBandHeight = bandImg?.height || 200;
     if (bandImg) {
       ctx.save();
       const imgW = bandImg.width || 1;
@@ -3913,8 +3914,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const drawX = Math.round((canvas.width - imgW) / 2);
       const drawY = canvas.height - imgH;
       ctx.drawImage(bandImg, 0, 0, imgW, imgH, drawX, drawY, imgW, imgH);
-      // Draw God rays on top of the floor, locked to floor position
-      drawArenaGodRays(ctx, canvas, imgH, effectiveCameraX);
       ctx.restore();
     } else {
       console.debug && console.debug("drawGame: band image missing", { layer: assets?.backgroundLayers?.floor });
@@ -4132,6 +4131,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);
     }
+
+    // Draw god rays above characters so light appears between viewer and characters
+    drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX);
 
       // --- Enemy-player collision and damage logic ---
       if (!visitorStageActive && player && Array.isArray(enemies)) {
