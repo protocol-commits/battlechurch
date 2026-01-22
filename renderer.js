@@ -237,9 +237,12 @@ const MELEE_SWING_LENGTH = 200;
     ghostEffects: [],
     pendingGhost: null,
     graceFlySfxPlayed: false,
+    showContinue: false,
+    continueTimer: 0,
   };
   const RECAP_LINE_PAUSE = 1.0;
   const RECAP_FLASH_DURATION = 0.6;
+  const RECAP_CONTINUE_DELAY = 1.0;
   const SHOW_TEXT_SOURCE_LABELS = false;
   const TEXT_STYLES = {
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
@@ -1050,6 +1053,8 @@ function resetRecapTallyState(recapData) {
   recapTallyState.ghostEffects = [];
   recapTallyState.pendingGhost = null;
   recapTallyState.graceFlySfxPlayed = false;
+  recapTallyState.showContinue = false;
+  recapTallyState.continueTimer = 0;
 }
 
 function spawnRecapGraceEffects(count, spawnBounds) {
@@ -1173,6 +1178,16 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
   }
   updateRecapGraceEffects(dt, recapData);
   updateRecapGhostEffects(dt);
+  if (!recapTallyState.showContinue) {
+    const graceDone =
+      recapData?.graceBonus > 0 ? recapData.graceAppliedCount >= recapData.graceBonus : true;
+    if (recapTallyState.done && graceDone) {
+      recapTallyState.continueTimer += dt;
+      if (recapTallyState.continueTimer >= RECAP_CONTINUE_DELAY) {
+        recapTallyState.showContinue = true;
+      }
+    }
+  }
   if (!current) {
     if (
       !recapTallyState.finalSfxPlayed &&
@@ -1301,6 +1316,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     recapData.id = `recap-${title}-${recapData.startCount || 0}-${recapData.totalCount || 0}-${lineCount}`;
   }
   const revealComplete = isAnnouncementRevealComplete(title, "");
+  const canShowContinue = revealComplete && recapTallyState.showContinue;
   const contentWidth = Math.round(layout.virtualCanvas.width * 0.88);
   const contentX = Math.round((layout.virtualCanvas.width - contentWidth) / 2);
   const lineSpacing = Math.round(bodySize * 1.4);
@@ -1426,7 +1442,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   }
   ctx.restore();
 
-  if (!revealComplete) {
+  if (!canShowContinue) {
     if (typeof window !== "undefined") {
       window.__missionBriefActive = false;
       window.__missionBriefButtonBounds = null;
