@@ -4060,41 +4060,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         });
       }
 
-    // Draw static fog effect on left/right edges (AFTER all gameplay entities, BEFORE overlays)
-    ctx.save();
-    ctx.globalAlpha = 1.0;
-  // Left fog (spills outside playable field)
-  const fogWidth = 180;
-  const fogGradientLeft = ctx.createLinearGradient(-fogWidth, 0, fogWidth, 0);
-  fogGradientLeft.addColorStop(0, 'rgba(40,0,0,0.98)');
-  fogGradientLeft.addColorStop(0.35, 'rgba(40,0,0,0.85)');
-  fogGradientLeft.addColorStop(1, 'rgba(40,0,0,0.0)');
-  ctx.fillStyle = fogGradientLeft;
-  ctx.fillRect(-fogWidth, 0, fogWidth * 2, canvas.height);
-  // Right fog (spills outside playable field)
-  const fogGradientRight = ctx.createLinearGradient(canvas.width - fogWidth, 0, canvas.width + fogWidth, 0);
-  fogGradientRight.addColorStop(0, 'rgba(40,0,0,0.0)');
-  fogGradientRight.addColorStop(0.65, 'rgba(40,0,0,0.85)');
-  fogGradientRight.addColorStop(1, 'rgba(40,0,0,0.98)');
-  ctx.fillStyle = fogGradientRight;
-  ctx.fillRect(canvas.width - fogWidth, 0, fogWidth * 2, canvas.height);
-
-    // Bottom fog (spills up from bottom edge)
-    const fogHeight = 90;
-    const fogGradientBottom = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - fogHeight);
-    fogGradientBottom.addColorStop(0, 'rgba(40,0,0,0.98)');
-    fogGradientBottom.addColorStop(0.35, 'rgba(40,0,0,0.85)');
-    fogGradientBottom.addColorStop(1, 'rgba(0,0,0,0.0)');
-    ctx.fillStyle = fogGradientBottom;
-  ctx.fillRect(0, canvas.height - fogHeight, canvas.width, fogHeight);
-  ctx.restore();
-
-  const ashOverlay = requireBindings().ashOverlay;
-  if (ashOverlay && typeof ashOverlay.draw === "function") {
-    ashOverlay.draw(ctx);
-  }
-
-  // Color grade disabled per request.
+    // Color grade disabled per request.
 
   // ...existing code...
   drawSpawnPointDebug(ctx);
@@ -4102,6 +4068,50 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   // drawAimAssistOverlay(); // Aim assist cone hidden for now
     // Reticle hidden while auto-aim is active.
 
+    ctx.restore();
+
+    // Screen-space overlays (arena ash + fog) should not move with the camera.
+    const fogWidth = 180;
+    const fogHeight = 90;
+    const arenaHeight = canvas.height - fogHeight;
+    const ashOverlay = requireBindings().ashOverlay;
+    if (ashOverlay && typeof ashOverlay.draw === "function") {
+      if (typeof ashOverlay.setBounds === "function") {
+        ashOverlay.setBounds(
+          fogWidth,
+          0,
+          canvas.width - fogWidth * 2,
+          arenaHeight
+        );
+      }
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(fogWidth, 0, canvas.width - fogWidth * 2, arenaHeight);
+      ctx.clip();
+      ashOverlay.draw(ctx);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = 1.0;
+    const fogGradientLeft = ctx.createLinearGradient(-fogWidth, 0, fogWidth, 0);
+    fogGradientLeft.addColorStop(0, 'rgba(40,0,0,0.98)');
+    fogGradientLeft.addColorStop(0.35, 'rgba(40,0,0,0.85)');
+    fogGradientLeft.addColorStop(1, 'rgba(40,0,0,0.0)');
+    ctx.fillStyle = fogGradientLeft;
+    ctx.fillRect(-fogWidth, 0, fogWidth * 2, canvas.height);
+    const fogGradientRight = ctx.createLinearGradient(canvas.width - fogWidth, 0, canvas.width + fogWidth, 0);
+    fogGradientRight.addColorStop(0, 'rgba(40,0,0,0.0)');
+    fogGradientRight.addColorStop(0.65, 'rgba(40,0,0,0.85)');
+    fogGradientRight.addColorStop(1, 'rgba(40,0,0,0.98)');
+    ctx.fillStyle = fogGradientRight;
+    ctx.fillRect(canvas.width - fogWidth, 0, fogWidth * 2, canvas.height);
+    const fogGradientBottom = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - fogHeight);
+    fogGradientBottom.addColorStop(0, 'rgba(40,0,0,0.98)');
+    fogGradientBottom.addColorStop(0.35, 'rgba(40,0,0,0.85)');
+    fogGradientBottom.addColorStop(1, 'rgba(0,0,0,0.0)');
+    ctx.fillStyle = fogGradientBottom;
+    ctx.fillRect(0, canvas.height - fogHeight, canvas.width, fogHeight);
     ctx.restore();
 
     if (!visitorStageActive) {
