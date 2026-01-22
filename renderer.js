@@ -993,9 +993,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       ctx.lineWidth = 2;
       roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
       if (isAnnouncementButtonFocused("missionBrief", index)) {
-        ctx.strokeStyle = "#FFC86A";
-        ctx.lineWidth = 3;
-        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
       }
       ctx.fillStyle = "#0b111a";
@@ -1464,9 +1462,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.lineWidth = 2;
   roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, true, true);
   if (isAnnouncementButtonFocused(buttonKey, 0)) {
-    ctx.strokeStyle = "#FFC86A";
-    ctx.lineWidth = 3;
-    roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+    drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
     drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, 0.45);
   }
   ctx.fillStyle = "#0b111a";
@@ -1640,9 +1636,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
 
     if (isAnnouncementButtonFocused("upgradeScreen", index)) {
-      ctx.strokeStyle = "#FFC86A";
-      ctx.lineWidth = 3;
-      roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+      drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
     }
 
     const categoryIconSize = 26;
@@ -1811,9 +1805,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   roundRect(ctx, continueX, continueY, continueWidth, continueHeight, 18, true, true);
 
   if (isAnnouncementButtonFocused("upgradeScreen", buttonCount)) {
-    ctx.strokeStyle = "#FFC86A";
-    ctx.lineWidth = 3;
-    roundRect(ctx, continueX - 3, continueY - 3, continueWidth + 6, continueHeight + 6, 20, false, true);
+    drawFocusRing(ctx, continueX - 3, continueY - 3, continueWidth + 6, continueHeight + 6, 20);
   }
 
   ctx.fillStyle = "#0b111a";
@@ -2283,9 +2275,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.lineWidth = 2;
     roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
     if (isAnnouncementButtonFocused("congregation", 0)) {
-      ctx.strokeStyle = "#FFC86A";
-      ctx.lineWidth = 3;
-      roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+      drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
       drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
     }
     ctx.fillStyle = "#0b111a";
@@ -2685,9 +2675,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.lineWidth = 2;
       roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
       if (isAnnouncementButtonFocused("pause", index)) {
-        ctx.strokeStyle = "#FFC86A";
-        ctx.lineWidth = 3;
-        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
       ctx.fillStyle = "#0b111a";
@@ -2833,6 +2821,36 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     sweepGradient2.addColorStop(1, "rgba(255, 255, 255, 0)");
     ctx.fillStyle = sweepGradient2;
     ctx.fillRect(x, y, width, height);
+    ctx.restore();
+  }
+
+  function drawFocusRing(ctx, x, y, width, height, radius, color = "#FFC86A") {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const pulse = (Math.sin(now * 0.01) + 1) / 2;
+    const glowAlpha = 0.65 + 0.35 * pulse;
+    const glowBlur = 26 + 18 * pulse;
+    ctx.save();
+    ctx.fillStyle = `rgba(255, 200, 106, ${0.18 + 0.18 * pulse})`;
+    roundRect(ctx, x - 4, y - 4, width + 8, height + 8, radius + 4, true, false);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.shadowColor = `rgba(255, 200, 106, ${glowAlpha})`;
+    ctx.shadowBlur = glowBlur;
+    roundRect(ctx, x, y, width, height, radius, false, true);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = `rgba(255, 200, 106, ${0.85 + 0.15 * pulse})`;
+    ctx.lineWidth = 3;
+    const inset = 3;
+    roundRect(
+      ctx,
+      x + inset,
+      y + inset,
+      width - inset * 2,
+      height - inset * 2,
+      Math.max(0, radius - inset),
+      false,
+      true
+    );
     ctx.restore();
   }
 
@@ -3116,9 +3134,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.lineWidth = 2;
       roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
       if (isAnnouncementButtonFocused("title", index)) {
-        ctx.strokeStyle = "#FFC86A";
-        ctx.lineWidth = 3;
-        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
       ctx.fillStyle = "#0b111a";
@@ -3245,9 +3261,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.lineWidth = 2;
       roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
       if (isAnnouncementButtonFocused("howto", index)) {
-        ctx.strokeStyle = "#FFC86A";
-        ctx.lineWidth = 3;
-        roundRect(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
       ctx.fillStyle = "#0b111a";
@@ -3536,9 +3550,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.lineWidth = 2;
       roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
       if (isAnnouncementButtonFocused("chapterBreak", 0)) {
-        ctx.strokeStyle = "#FFC86A";
-        ctx.lineWidth = 3;
-        roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18, false, true);
+        drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
       }
       ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
