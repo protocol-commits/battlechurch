@@ -4156,14 +4156,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#FFF3D6";
+    ctx.fillStyle = "#FFFFFF";
     ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
     ctx.shadowBlur = 16;
     ctx.shadowOffsetX = 4;
     ctx.shadowOffsetY = 4;
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const lineGap = Math.round(wordFontSize * 0.7);
+    const lineGap = Math.round(wordFontSize * 1.1);
     ctx.font = `900 ${Math.round(wordFontSize)}px ${UI_FONT_FAMILY}`;
     ctx.fillText("CONGREGATION", centerX, centerY - lineGap);
     if (showCountWord) {
@@ -4171,7 +4171,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (isNumberPhase) {
       ctx.font = `900 ${Math.round(numberFontSize)}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(String(congregationOverlay.countValue ?? 0), centerX, centerY + numberFontSize * 0.6);
+      ctx.fillText(String(congregationOverlay.countValue ?? 0), centerX, centerY + numberFontSize * 0.9);
     }
     ctx.restore();
   }
