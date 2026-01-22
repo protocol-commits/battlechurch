@@ -1054,8 +1054,8 @@ function spawnRecapGraceEffects(count, spawnBounds) {
   const targetX = Number.isFinite(bounds.targetX) ? bounds.targetX : target.x;
   const targetY = Number.isFinite(bounds.targetY) ? bounds.targetY : target.y;
   for (let i = 0; i < safeCount; i += 1) {
-    const jitterX = (Math.random() - 0.5) * Math.max(40, bounds.width * 0.6);
-    const jitterY = (Math.random() - 0.5) * Math.max(40, bounds.height * 0.6);
+    const jitterX = (Math.random() - 0.5) * Math.max(120, bounds.width * 0.8);
+    const jitterY = (Math.random() - 0.5) * Math.max(120, bounds.height * 0.8);
     const startX = baseX + jitterX;
     const startY = baseY + jitterY;
     recapTallyState.graceEffects.push({
@@ -1066,6 +1066,7 @@ function spawnRecapGraceEffects(count, spawnBounds) {
       targetX,
       targetY,
       timer: 0,
+      delay: 1.0,
       duration: 0.55 + Math.random() * 0.2,
       size: 18,
       alpha: 1,
@@ -1079,6 +1080,10 @@ function updateRecapGraceEffects(dt, recapData) {
   for (let i = recapTallyState.graceEffects.length - 1; i >= 0; i -= 1) {
     const effect = recapTallyState.graceEffects[i];
     if (!effect) continue;
+    if (effect.delay > 0) {
+      effect.delay = Math.max(0, effect.delay - dt);
+      continue;
+    }
     effect.timer += dt;
     const t = Math.min(1, effect.timer / Math.max(0.001, effect.duration));
     const ease = 1 - Math.pow(1 - t, 3);
@@ -1113,6 +1118,12 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
   }
   const lines = Array.isArray(recapData.lines) ? recapData.lines : [];
   const current = lines[recapTallyState.stepIndex];
+  const dt = Math.max(0, (now - (recapTallyState.lastUpdate || now)) / 1000);
+  recapTallyState.lastUpdate = now;
+  if (recapTallyState.flashTimer > 0) {
+    recapTallyState.flashTimer = Math.max(0, recapTallyState.flashTimer - dt);
+  }
+  updateRecapGraceEffects(dt, recapData);
   if (!current) {
     if (!recapTallyState.finalSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
       window.playRecapFinalSfx(0.7);
@@ -1121,12 +1132,6 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.done = true;
     return;
   }
-  const dt = Math.max(0, (now - (recapTallyState.lastUpdate || now)) / 1000);
-  recapTallyState.lastUpdate = now;
-  if (recapTallyState.flashTimer > 0) {
-    recapTallyState.flashTimer = Math.max(0, recapTallyState.flashTimer - dt);
-  }
-  updateRecapGraceEffects(dt, recapData);
   if (recapTallyState.done) {
     return;
   }
@@ -1169,8 +1174,9 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     if (typeof window?.playRecapFinalSfx === "function") {
       window.playRecapFinalSfx(0.7);
     }
-    if (current.kind === "grace" && recapData.graceBonus > 0 && !recapData.graceApplied) {
+    if (current.kind === "grace" && recapData.graceBonus > 0 && !recapData.graceSpawned) {
       spawnRecapGraceEffects(recapData.graceBonus, spawnBounds);
+      recapData.graceSpawned = true;
     }
     recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
     recapTallyState.phase = "post";

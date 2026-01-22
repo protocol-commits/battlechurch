@@ -5381,6 +5381,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       graceBonusCongregants,
       graceApplied: false,
       graceAppliedCount: 0,
+      graceSpawned: false,
     };
   }
   let paragraph = "";
