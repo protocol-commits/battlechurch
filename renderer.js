@@ -2353,42 +2353,105 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
   }
 
-  function drawArenaGodRays(ctx, canvas, floorHeight) {
+  // Cached offscreen canvas for god rays
+  const godRayCache = {
+    canvas: null,
+    screenWidth: 0,
+    height: 0,
+    floorHeight: 0,
+    padding: 400, // Extra width for parallax movement
+  };
+
+  function buildGodRayCache(screenWidth, height, floorHeight) {
+    const padding = godRayCache.padding;
+    const cacheWidth = screenWidth + padding * 2;
+
+    if (!godRayCache.canvas) {
+      godRayCache.canvas = document.createElement("canvas");
+    }
+    godRayCache.canvas.width = cacheWidth;
+    godRayCache.canvas.height = height;
+    godRayCache.screenWidth = screenWidth;
+    godRayCache.height = height;
+    godRayCache.floorHeight = floorHeight;
+
+    const offCtx = godRayCache.canvas.getContext("2d");
+    offCtx.clearRect(0, 0, cacheWidth, height);
+
+    const topY = -40;
+    const baseBottomY = height - Math.max(60, floorHeight * 0.2);
+    const rayWidth = 50;
+    const baseSlant = 220;
+    const rayGap = 60;
+    const depthOffset = 104;
+    const rayCount = 4;
+    // Position rays relative to the padded canvas (right side + padding offset)
+    const baseX = screenWidth + padding - 40;
+
+    offCtx.globalCompositeOperation = "lighter";
+
+    for (let i = 0; i < rayCount; i += 1) {
+      // Bake slight per-ray variation into the cached texture
+      const baseAlpha = 0.18 + i * 0.02;
+      const topX = baseX + i * rayGap;
+      const bottomX = topX - baseSlant;
+      const bottomY = baseBottomY - (rayCount - 1 - i) * depthOffset;
+
+      // Soft layers for feathered edges
+      const layers = [
+        { widthMult: 2.0, alphaMult: 0.15 },
+        { widthMult: 1.5, alphaMult: 0.25 },
+        { widthMult: 1.0, alphaMult: 0.6 },
+      ];
+
+      for (const layer of layers) {
+        const layerWidth = rayWidth * layer.widthMult;
+        const layerAlpha = baseAlpha * layer.alphaMult;
+        const offsetX = (layerWidth - rayWidth) / 2;
+
+        const gradient = offCtx.createLinearGradient(topX, topY, bottomX, bottomY);
+        gradient.addColorStop(0, `rgba(255, 240, 200, ${layerAlpha.toFixed(3)})`);
+        gradient.addColorStop(0.3, `rgba(255, 235, 180, ${(layerAlpha * 0.6).toFixed(3)})`);
+        gradient.addColorStop(0.6, `rgba(255, 230, 160, ${(layerAlpha * 0.25).toFixed(3)})`);
+        gradient.addColorStop(1, "rgba(255, 230, 160, 0)");
+        offCtx.fillStyle = gradient;
+        offCtx.beginPath();
+        offCtx.moveTo(topX - offsetX, topY);
+        offCtx.lineTo(topX - offsetX + layerWidth, topY);
+        offCtx.lineTo(bottomX - offsetX + layerWidth, bottomY);
+        offCtx.lineTo(bottomX - offsetX, bottomY);
+        offCtx.closePath();
+        offCtx.fill();
+      }
+    }
+  }
+
+  function drawArenaGodRays(ctx, canvas, floorHeight, cameraX = 0) {
     if (!ctx || !canvas) return;
+
+    // Rebuild cache if canvas size or floor height changed
+    if (
+      godRayCache.screenWidth !== canvas.width ||
+      godRayCache.height !== canvas.height ||
+      godRayCache.floorHeight !== floorHeight
+    ) {
+      buildGodRayCache(canvas.width, canvas.height, floorHeight);
+    }
+
+    // Animate with breathing effect via globalAlpha
     const time = typeof performance !== "undefined" ? performance.now() : Date.now();
     const breath = 0.7 + 0.3 * Math.sin(time * 0.0005);
-    const topY = -40;
-    const bottomY = canvas.height - Math.max(60, floorHeight * 0.2);
-    const rayWidth = 90;
-    const raySlant = 220; // How far left the ray travels as it goes down
-    const rayGap = 140;
-    const rayCount = 4;
-    // Start rays from upper right, going off-screen right
-    const baseX = canvas.width - 80;
+
+    // Floor band is in translated context (1:1 with camera), so match that
+    const parallaxOffset = Math.floor(cameraX);
+    const drawX = -godRayCache.padding - parallaxOffset;
+
     ctx.save();
+    // Reset transform to screen space, then apply parallax offset
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = "lighter";
-    for (let i = 0; i < rayCount; i += 1) {
-      const localBreath = 0.15 + 0.1 * Math.sin(time * 0.0007 + i * 2.1);
-      const alpha = (0.12 + localBreath) * breath;
-      // Each ray starts further right (off screen) and lands further left
-      const topX = baseX + i * rayGap;
-      const bottomX = topX - raySlant;
-      // Vertical gradient: bright at top, fades toward floor
-      const gradient = ctx.createLinearGradient(topX, topY, bottomX, bottomY);
-      gradient.addColorStop(0, `rgba(255, 240, 200, ${alpha.toFixed(3)})`);
-      gradient.addColorStop(0.3, `rgba(255, 235, 180, ${(alpha * 0.6).toFixed(3)})`);
-      gradient.addColorStop(0.6, `rgba(255, 230, 160, ${(alpha * 0.25).toFixed(3)})`);
-      gradient.addColorStop(1, "rgba(255, 230, 160, 0)");
-      ctx.fillStyle = gradient;
-      ctx.beginPath();
-      // Draw parallelogram: top right to bottom left
-      ctx.moveTo(topX, topY);
-      ctx.lineTo(topX + rayWidth, topY);
-      ctx.lineTo(bottomX + rayWidth, bottomY);
-      ctx.lineTo(bottomX, bottomY);
-      ctx.closePath();
-      ctx.fill();
-    }
+    ctx.globalAlpha = breath;
+    ctx.drawImage(godRayCache.canvas, drawX, 0);
     ctx.restore();
   }
 
@@ -3846,7 +3909,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const drawY = canvas.height - imgH;
       ctx.drawImage(bandImg, 0, 0, imgW, imgH, drawX, drawY, imgW, imgH);
       // Draw God rays on top of the floor, locked to floor position
-      drawArenaGodRays(ctx, canvas, imgH);
+      drawArenaGodRays(ctx, canvas, imgH, effectiveCameraX);
       ctx.restore();
     } else {
       console.debug && console.debug("drawGame: band image missing", { layer: assets?.backgroundLayers?.floor });
