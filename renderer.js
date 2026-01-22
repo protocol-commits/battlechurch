@@ -1515,6 +1515,9 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         valueY = cursorY + lineSpacing * Math.max(0, labelLines.length - 1);
       }
     }
+    if (line.forceValueLine) {
+      valueInline = false;
+    }
 
     labelLines.forEach((textLine, idx) => {
       ctx.fillStyle = "#EAF6FF";
