@@ -3275,7 +3275,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textBaseline = "middle";
 
     // Draw Act title (normal styling)
-    const titleY = centerY - 60;
+    const titleY = Math.round(canvas.height * 0.26);
     ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "#FFFFFF";
     ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
@@ -4257,13 +4257,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
-    if (graceRushFadeAlpha > 0) {
+    if (!recapAnnouncementActive && graceRushFadeAlpha > 0) {
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, graceRushFadeAlpha)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
-    if (graceRushBlackout) {
+    if (!recapAnnouncementActive && graceRushBlackout) {
       ctx.save();
       ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
