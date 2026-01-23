@@ -3270,7 +3270,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
 
     ctx.save();
     ctx.textAlign = "center";
@@ -3285,71 +3284,73 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
     ctx.fillText(actTitle, centerX, titleY);
+    ctx.restore();
 
-    // Draw villain text (evil blood red with strong glow to pop over busy background)
-    const textY = centerY + 20;
-    const maxWidth = canvas.width * 0.8;
+    const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+    const layout = getAnnouncementScreenLayout(ctx, canvas, {
+      title: villainText,
+      subtitle: "",
+      titleSize,
+      subtitleSize: TEXT_STYLES.h2.size,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      weight: TEXT_STYLES.h1.weight,
+      maxWidthScale: 0.92,
+      position: "bottom",
+      topMargin: 90,
+      bottomMargin: 80,
+      rowGap: 32,
+      buttonHeight: 50,
+      buttonCount: 1,
+      HUD_HEIGHT,
+    });
+    ctx.save();
+    ctx.translate(layout.offsetX, layout.offsetY);
+    ctx.scale(layout.scale, layout.scale);
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title: villainText,
+      yBase: layout.titleY,
+      alpha: 1,
+      typewriter: true,
+      titleSize,
+      weight: TEXT_STYLES.h1.weight,
+      maxWidthScale: 0.92,
+    });
+    ctx.restore();
 
-    // Word wrap the villain text
-    const words = villainText.split(' ');
-    const lines = [];
-    let currentLine = '';
-    ctx.font = `bold 36px ${UI_FONT_FAMILY}`;
-
-    for (const word of words) {
-      const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > maxWidth && currentLine) {
-        lines.push(currentLine);
-        currentLine = word;
-      } else {
-        currentLine = testLine;
-      }
+    ctx.save();
+    const buttonText = "Play (Space)";
+    const buttonWidth = Math.min(240, layout.virtualCanvas.width * 0.5);
+    const buttonHeight = 50;
+    const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+    const buttonY = Math.round(layout.buttonY || 0);
+    if (typeof window !== "undefined") {
+      window.__announcementButtons = {
+        key: "chapterBreak",
+        buttons: [
+          {
+            key: "play",
+            x: layout.offsetX + buttonX * layout.scale,
+            y: layout.offsetY + buttonY * layout.scale,
+            width: buttonWidth * layout.scale,
+            height: buttonHeight * layout.scale,
+          },
+        ],
+      };
     }
-    if (currentLine) lines.push(currentLine);
-
-    // Draw each line with evil styling
-    const lineHeight = 48;
-    const startY = textY - ((lines.length - 1) * lineHeight) / 2;
-
-    for (let i = 0; i < lines.length; i++) {
-      const lineY = startY + i * lineHeight;
-
-      // Draw outer glow (golden yellow) for visibility on red background
-      ctx.shadowColor = "rgba(255, 215, 0, 1)"; // Gold
-      ctx.shadowBlur = 30;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.fillStyle = "#8B0000"; // Blood red
-      ctx.fillText(lines[i], centerX, lineY);
-
-      // Draw second layer (brighter yellow glow)
-      ctx.shadowColor = "rgba(255, 255, 100, 0.9)"; // Bright yellow
-      ctx.shadowBlur = 20;
-      ctx.fillStyle = "#8B0000";
-      ctx.fillText(lines[i], centerX, lineY);
-
-      // Draw third layer (white glow for extra pop)
-      ctx.shadowColor = "rgba(255, 255, 255, 0.7)";
-      ctx.shadowBlur = 12;
-      ctx.fillStyle = "#8B0000";
-      ctx.fillText(lines[i], centerX, lineY);
-
-      // Draw text again without shadow for solid color
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = "#8B0000";
-      ctx.fillText(lines[i], centerX, lineY);
+    ctx.translate(layout.offsetX, layout.offsetY);
+    ctx.scale(layout.scale, layout.scale);
+    ctx.fillStyle = "#9BD9FF";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+    if (isAnnouncementButtonFocused("chapterBreak", 0)) {
+      drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
     }
-
-    // Draw "Press Space to Continue" button
-    const buttonText = "Press Space to Continue";
-    const buttonY = canvas.height - 100;
-    ctx.font = `20px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-    ctx.shadowBlur = 8;
-    ctx.fillText(buttonText, centerX, buttonY);
-
+    ctx.fillStyle = "#0b111a";
+    ctx.textAlign = "center";
+    ctx.font = `18px ${UI_FONT_FAMILY}`;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
     ctx.restore();
   }
 
@@ -3567,9 +3568,15 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       epilogueTitle,
       epilogueText,
       epilogueBackgroundKey,
+      epilogueScroll,
+      creditsContent,
       HUD_HEIGHT,
+      UI_FONT_FAMILY,
     } = requireBindings();
+
     ctx.save();
+
+    // Draw background
     const epilogueImage = epilogueBackgroundKey
       ? assets?.backgrounds?.[epilogueBackgroundKey] || null
       : assets?.backgrounds?.epilogue || null;
@@ -3582,21 +3589,185 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
-    ctx.fillStyle = "rgba(6, 10, 18, 0.35)";
+    ctx.fillStyle = "rgba(6, 10, 18, 0.55)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    const yBase = Math.max(HUD_HEIGHT + 120, Math.floor(canvas.height * 0.28));
-    drawAnnouncementText(ctx, canvas, {
-      title: epilogueTitle || "Epilogue",
-      subtitle: epilogueText || "",
-      yBase,
-      alpha: 1,
-      titleSize: TEXT_STYLES.h1.size,
-      subtitleSize: TEXT_STYLES.body.size,
+
+    // Scale factor for responsive text
+    const scaleHint = Math.min(1, Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)));
+
+    // Text styling
+    const headingSize = Math.round(TEXT_STYLES.h1.size * scaleHint);
+    const labelSize = Math.round(TEXT_STYLES.h3.size * scaleHint);
+    const bodySize = Math.round(TEXT_STYLES.body.size * 1.1 * scaleHint);
+    const nameSize = Math.round(TEXT_STYLES.h2.size * scaleHint);
+    const lineHeight = 1.5;
+    const maxWidth = canvas.width * 0.85;
+    const centerX = canvas.width / 2;
+
+    // Calculate content heights and build render list
+    const renderItems = [];
+    let totalHeight = 0;
+    const startY = canvas.height; // Start at bottom of screen
+
+    // Add epilogue title
+    renderItems.push({
+      type: "heading",
+      text: epilogueTitle || "Epilogue",
+      y: totalHeight,
+      size: headingSize,
       weight: TEXT_STYLES.h1.weight,
-      subtitleWeight: TEXT_STYLES.body.weight,
-      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-      typewriter: true,
+      color: "#ffd978",
     });
+    totalHeight += headingSize * lineHeight + 40;
+
+    // Add epilogue text (wrap it)
+    ctx.font = `${TEXT_STYLES.body.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    const epilogueLines = wrapAnnouncementText(ctx, epilogueText || "", maxWidth);
+    epilogueLines.forEach((line) => {
+      renderItems.push({
+        type: "body",
+        text: line,
+        y: totalHeight,
+        size: bodySize,
+        weight: TEXT_STYLES.body.weight,
+        color: "#EAF6FF",
+      });
+      totalHeight += bodySize * lineHeight;
+    });
+
+    // Add spacing before credits - big visual break
+    totalHeight += 250;
+
+    // Mark where credits start
+    const creditsStartY = totalHeight;
+
+    // Track "Thank you for playing!" position
+    let thankYouItemY = 0;
+
+    // Add credits content
+    (creditsContent || []).forEach((item) => {
+      if (item.type === "spacer") {
+        totalHeight += item.height || 40;
+        return;
+      }
+
+      let size, weight, color;
+      switch (item.type) {
+        case "heading":
+          size = headingSize;
+          weight = TEXT_STYLES.h1.weight;
+          color = "#ffd978";
+          break;
+        case "label":
+          size = labelSize;
+          weight = TEXT_STYLES.h3.weight;
+          color = "rgba(255, 255, 255, 0.6)";
+          break;
+        case "name":
+          size = nameSize;
+          weight = TEXT_STYLES.h2.weight;
+          color = "#FFFFFF";
+          break;
+        case "thankyou":
+          size = nameSize;
+          weight = TEXT_STYLES.h2.weight;
+          color = "#ffd978";
+          thankYouItemY = totalHeight; // Track this position
+          break;
+        default: // credit
+          size = bodySize;
+          weight = TEXT_STYLES.body.weight;
+          color = "#EAF6FF";
+      }
+
+      renderItems.push({
+        type: item.type,
+        text: item.text,
+        y: totalHeight,
+        size,
+        weight,
+        color,
+      });
+      totalHeight += size * lineHeight;
+    });
+
+    // Store content height for scroll calculations
+    epilogueScroll.contentHeight = totalHeight;
+    epilogueScroll.canvasHeight = canvas.height;
+    epilogueScroll.creditsStartY = creditsStartY;
+    epilogueScroll.thankYouY = thankYouItemY;
+
+    // Calculate scroll position - text starts at bottom and scrolls up
+    const scrollOffset = epilogueScroll.scrollY;
+    const fadeZoneHeight = 80;
+
+    // Calculate "Thank you" screen position and fade-out effect
+    const thankYouScreenY = startY + thankYouItemY - scrollOffset;
+    const thankYouTargetY = canvas.height * 0.35; // Where "Thank you" should settle
+    const fadeOutThreshold = canvas.height * 0.5; // Start fading when thank you reaches here
+    const thankYouReached = thankYouScreenY <= fadeOutThreshold;
+    const fadeOutProgress = thankYouReached
+      ? Math.min(1, (fadeOutThreshold - thankYouScreenY) / (fadeOutThreshold - thankYouTargetY))
+      : 0;
+
+    // Render all items with scroll offset
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    renderItems.forEach((item) => {
+      const itemY = startY + item.y - scrollOffset;
+
+      // Skip if off screen
+      if (itemY < -item.size * 2 || itemY > canvas.height + item.size) return;
+
+      // Calculate fade alpha for top edge
+      let alpha = 1;
+      if (itemY < HUD_HEIGHT + fadeZoneHeight) {
+        alpha = Math.max(0, (itemY - HUD_HEIGHT) / fadeZoneHeight);
+      }
+
+      // Fade out items above "Thank you" when it reaches center
+      if (item.type !== "thankyou" && fadeOutProgress > 0) {
+        alpha *= (1 - fadeOutProgress);
+      }
+
+      if (alpha <= 0) return;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = `${item.weight} ${item.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.fillStyle = item.color;
+      ctx.fillText(item.text, centerX, itemY);
+      ctx.restore();
+    });
+
+    // Check if "Thank you" has reached its final position
+    const thankYouSettled = thankYouScreenY <= thankYouTargetY;
+
+    // Update phase and show button when "Thank you" settles
+    if (thankYouSettled && !epilogueScroll.showButton) {
+      epilogueScroll.showButton = true;
+      epilogueScroll.phase = "done";
+    }
+
+    // Draw "Press Space to Restart" button when done
+    if (epilogueScroll.showButton) {
+      const buttonY = canvas.height - 100;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `600 ${Math.round(22 * scaleHint)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowBlur = 8;
+      ctx.fillText("Press Space to Restart", centerX, buttonY);
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 

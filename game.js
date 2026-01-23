@@ -831,14 +831,22 @@ function activateEpilogue() {
     "Because of your hard work, the members of your church made a difference in the town.\n\n" +
     "In the years that followed, your church members went in the community and ministered in " +
     `${ministrySentence}\n\n` +
-    "\nThe town is thriving and has become a place of light and hope for all it's residents and families.\n\n" +
-    "Thank you for your faithful service!";
+    "The town is thriving and has become a place of light and hope for all its residents and families.\n\n" +
+    "Thank you for your faithful service.\n\n\n\n" +
+    "Other towns need a pastor like you...";
   const endLine = badEnding ? "Try again." : "";
   epilogueTitle = "Epilogue";
   epilogueBackgroundKey = badEnding ? "gameOver" : "epilogue";
   epilogueText = badEnding
     ? [introLine, middleLine, endLine].filter(Boolean).join(" ")
     : positiveLine;
+  // Reset scroll state for epilogue/credits sequence
+  epilogueScroll.phase = "epilogue";
+  epilogueScroll.scrollY = 0;
+  epilogueScroll.delayTimer = 0;
+  epilogueScroll.contentHeight = 0;
+  epilogueScroll.showButton = false;
+  epilogueScroll.paused = false;
   epilogueActive = true;
   pauseAllMusic();
   startEpilogueMusic();
@@ -2278,6 +2286,8 @@ Renderer.initialize({
   get epilogueTitle() { return epilogueTitle; },
   get epilogueText() { return epilogueText; },
   get epilogueBackgroundKey() { return epilogueBackgroundKey; },
+  get epilogueScroll() { return epilogueScroll; },
+  get creditsContent() { return CREDITS_CONTENT; },
   get ashOverlay() { return ashOverlay; },
   get congregationOverlay() { return congregationOverlay; },
   get speedrunTimer() { return speedrunTimer; },
@@ -4755,6 +4765,42 @@ let epilogueActive = false;
 let epilogueTitle = "Epilogue";
 let epilogueText = "";
 let epilogueBackgroundKey = "epilogue";
+
+// Scrolling epilogue/credits system
+const epilogueScroll = {
+  phase: "epilogue", // "epilogue" | "credits" | "done"
+  scrollY: 0,
+  scrollSpeed: 40, // pixels per second
+  startDelay: 1.5, // seconds before scrolling starts
+  delayTimer: 0,
+  contentHeight: 0,
+  canvasHeight: 0,
+  creditsStartY: 0,
+  thankYouY: 0, // Y position of "Thank you for playing!" item
+  showButton: false,
+  paused: false,
+};
+
+const CREDITS_CONTENT = [
+  { type: "heading", text: "Credits" },
+  { type: "spacer", height: 40 },
+  { type: "label", text: "Created by" },
+  { type: "name", text: "Conrad Tolosa" },
+  { type: "spacer", height: 60 },
+  { type: "label", text: "Art" },
+  { type: "credit", text: "Pixel Art Pack by [Asset Creator]" },
+  { type: "credit", text: "Additional sprites and backgrounds" },
+  { type: "spacer", height: 60 },
+  { type: "label", text: "Music & Sound" },
+  { type: "credit", text: "Music from licensed packs" },
+  { type: "credit", text: "Sound effects from various sources" },
+  { type: "spacer", height: 60 },
+  { type: "label", text: "Special Thanks" },
+  { type: "credit", text: "Playtesters and supporters" },
+  { type: "spacer", height: 100 },
+  { type: "thankyou", text: "Thank you for playing!" },
+  { type: "spacer", height: 200 },
+];
 const speedrunTimer = {
   visible: true,
   running: false,
@@ -10929,6 +10975,24 @@ function showChapterBreak(actNumber) {
 function handleChapterBreak() {
   if (!chapterBreakActive) return false;
 
+  const buttons =
+    typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak"
+      ? window.__announcementButtons.buttons
+      : null;
+  const handled = handleAnnouncementButtons({
+    key: "chapterBreak",
+    buttons,
+    allowSpace: true,
+    onActivate: () => {
+      chapterBreakActive = false;
+      chapterBreakImage = null;
+      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+        window.playMenuAdvanceSfx(0.55);
+      }
+    },
+  });
+  if (handled) return false;
+
   // Check for space press to dismiss immediately
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
     chapterBreakActive = false;
@@ -12811,7 +12875,23 @@ function updateGame(dt) {
   updateCongregationOverlay(dt);
 
   if (epilogueActive) {
-    if (wasActionJustPressed("restart")) {
+    // Toggle pause with spacebar (before scrolling is complete)
+    if (!epilogueScroll.showButton && keysJustPressed.has(" ")) {
+      epilogueScroll.paused = !epilogueScroll.paused;
+      keysJustPressed.delete(" ");
+    }
+    // Update epilogue/credits scroll
+    if (epilogueScroll.phase !== "done" && !epilogueScroll.paused) {
+      // Handle start delay
+      if (epilogueScroll.delayTimer < epilogueScroll.startDelay) {
+        epilogueScroll.delayTimer += dt;
+      } else {
+        // Scroll the content
+        epilogueScroll.scrollY += epilogueScroll.scrollSpeed * dt;
+      }
+    }
+    // Allow restart/continue when button is shown
+    if (epilogueScroll.showButton && wasActionJustPressed("restart")) {
       restartGame();
     }
     return;
