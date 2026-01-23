@@ -24,6 +24,8 @@
   let visible = false;
   let consumedAction = false;
   let focusedIndex = 0;
+  let navHoldDir = null;
+  let navHoldTimer = 0;
 
   function getGraceCount() {
     return typeof window.getGraceCount === "function" ? window.getGraceCount() : 0;
@@ -58,6 +60,8 @@
     onCloseCallback = typeof callback === "function" ? callback : null;
     visible = true;
     focusedIndex = 0;
+    navHoldDir = null;
+    navHoldTimer = 0;
     if (typeof window !== "undefined") {
       window.__upgradeScreenActive = true;
       window.__announcementFocus = { key: "upgradeScreen", index: 0 };
@@ -67,6 +71,8 @@
   function hide() {
     if (!visible) return;
     visible = false;
+    navHoldDir = null;
+    navHoldTimer = 0;
     if (typeof window !== "undefined") {
       window.__upgradeScreenActive = false;
       window.__upgradeScreenButtons = null;
@@ -147,6 +153,76 @@
     }
   }
 
+  function moveFocus(direction) {
+    if (!visible) return;
+    const stats = getStats();
+    const statCount = stats.length;
+    const continueIndex = statCount;
+    const isOnContinue = focusedIndex === continueIndex;
+    let moved = false;
+
+    if (direction === "left" && !isOnContinue && statCount > 0) {
+      focusedIndex = (focusedIndex - 1 + statCount) % statCount;
+      moved = true;
+    } else if (direction === "right" && !isOnContinue && statCount > 0) {
+      focusedIndex = (focusedIndex + 1) % statCount;
+      moved = true;
+    } else if (direction === "down" && !isOnContinue) {
+      focusedIndex = continueIndex;
+      moved = true;
+    } else if (direction === "up" && isOnContinue && statCount > 0) {
+      focusedIndex = 0;
+      moved = true;
+    }
+
+    if (moved) {
+      window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+      if (typeof window.playMenuMoveSfx === "function") {
+        window.playMenuMoveSfx(0.4);
+      }
+    }
+  }
+
+  function update(dt) {
+    if (!visible) return;
+    const input = window.Input;
+    if (!input || typeof input.isActionActive !== "function") return;
+    if (input.virtualInput?.enabled) {
+      const confirmKeys = [" ", "enter"];
+      if (confirmKeys.some((k) => input.keysJustPressed?.has(k))) {
+        confirmKeys.forEach((k) => input.keysJustPressed?.delete(k));
+        activateFocused();
+        return;
+      }
+    }
+    let dir = null;
+    if (input.isActionActive("left")) dir = "left";
+    else if (input.isActionActive("right")) dir = "right";
+    else if (input.isActionActive("down")) dir = "down";
+    else if (input.isActionActive("up")) dir = "up";
+
+    if (!dir) {
+      navHoldDir = null;
+      navHoldTimer = 0;
+      return;
+    }
+
+    const initialDelay = 0.28;
+    const repeatDelay = 0.14;
+    if (dir !== navHoldDir) {
+      navHoldDir = dir;
+      navHoldTimer = -initialDelay;
+      moveFocus(dir);
+      return;
+    }
+
+    navHoldTimer += dt;
+    if (navHoldTimer >= 0) {
+      moveFocus(dir);
+      navHoldTimer -= repeatDelay;
+    }
+  }
+
   function activateFocused() {
     if (!visible) return;
     const stats = getStats();
@@ -168,16 +244,10 @@
     hide();
   }
 
-  function handleClick(event) {
+  function handleCanvasPoint(x, y) {
     if (!visible) return;
     const buttons = window.__upgradeScreenButtons?.buttons;
     if (!Array.isArray(buttons) || !buttons.length) return;
-
-    const canvas = document.getElementById("gameCanvas");
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
 
     for (let i = 0; i < buttons.length; i++) {
       const btn = buttons[i];
@@ -198,6 +268,21 @@
     }
   }
 
+  function handleClick(event) {
+    if (!visible) return;
+    const canvas = document.getElementById("gameCanvas");
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    handleCanvasPoint(x, y);
+  }
+
+  function handleCanvasClick(pos) {
+    if (!pos || typeof pos.x !== "number" || typeof pos.y !== "number") return;
+    handleCanvasPoint(pos.x, pos.y);
+  }
+
   window.addEventListener("keydown", handleKeyDown, { passive: false });
   document.addEventListener("click", handleClick);
 
@@ -208,6 +293,8 @@
     isVisible: () => visible,
     refresh: () => {},
     selectFocused: activateFocused,
+    update,
+    handleCanvasClick,
     consumeAction() {
       const wasConsumed = consumedAction;
       consumedAction = false;

@@ -12977,6 +12977,16 @@ function updateGame(dt) {
     weaponPickupAnnouncement.timer = Math.max(0, weaponPickupAnnouncement.timer - dt);
   }
 
+  if (window.UpgradeScreen?.isVisible?.() && typeof Input?.consumeCanvasClick === "function") {
+    const clickPos = Input.consumeCanvasClick();
+    if (clickPos && typeof window.UpgradeScreen.handleCanvasClick === "function") {
+      window.UpgradeScreen.handleCanvasClick(clickPos);
+    }
+    if (typeof window.UpgradeScreen.update === "function") {
+      window.UpgradeScreen.update(dt);
+    }
+  }
+
   if (checkDialogOverlays()) {
     return;
   }
