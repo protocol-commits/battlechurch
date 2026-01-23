@@ -228,10 +228,12 @@ const MELEE_SWING_LENGTH = 200;
     currentAnnouncementId: null,
     textProgress: 0,
     lastTime: 0,
-  revealedSaved: 0,
-  revealedLost: 0,
-  portraitTimer: 0,
+    revealedSaved: 0,
+    revealedLost: 0,
+    portraitTimer: 0,
   };
+  let recapCongregationPreviewBuilt = false;
+  let recapCongregationLastTime = 0;
   const recapTallyState = {
     id: null,
     stepIndex: 0,
@@ -3889,6 +3891,93 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       drawVisitorIntroOverlay();
       drawPauseHint();
       return;
+    }
+    if (recapAnnouncementActive) {
+      const {
+        buildCongregationMembers,
+        getCongregationSize,
+        updateCongregationMembers,
+      } = requireBindings();
+      if (
+        !recapCongregationPreviewBuilt &&
+        Array.isArray(congregationMembers) &&
+        congregationMembers.length === 0 &&
+        typeof buildCongregationMembers === "function"
+      ) {
+        const targetBase =
+          typeof getCongregationSize === "function" ? getCongregationSize() : null;
+        const targetCount = Math.max(
+          1,
+          Math.min(50, Number.isFinite(targetBase) ? Math.round(targetBase) : 50),
+        );
+        buildCongregationMembers(targetCount);
+        recapCongregationPreviewBuilt =
+          Array.isArray(congregationMembers) && congregationMembers.length > 0;
+        recapCongregationLastTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+      } else if (recapCongregationPreviewBuilt && typeof updateCongregationMembers === "function") {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        const dt = Math.max(0, Math.min(0.05, (now - recapCongregationLastTime) / 1000));
+        recapCongregationLastTime = now;
+        updateCongregationMembers(dt);
+      }
+      const effectiveCameraX = resolveCameraX();
+      const effectiveCameraY = 0;
+      drawBackground(effectiveCameraX, effectiveCameraY);
+
+      ctx.save();
+      ctx.translate(-effectiveCameraX, effectiveCameraY);
+      if (Array.isArray(congregationMembers) && congregationMembers.length) {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (!congregationFadeState.active || congregationFadeState.memberCount !== congregationMembers.length) {
+          congregationFadeState.active = true;
+          congregationFadeState.memberCount = congregationMembers.length;
+          congregationFadeState.token += 1;
+        }
+        congregationMembers.forEach((member) => {
+          if (!member) return;
+          if (member.__congregationFadeToken !== congregationFadeState.token) {
+            member.__congregationFadeToken = congregationFadeState.token;
+            if (Math.random() < 0.5) {
+              member.__congregationFadeStart = now + 1000 + Math.random() * 4000;
+              member.__congregationFadeDuration = 1200;
+            } else {
+              member.__congregationFadeStart = now;
+              member.__congregationFadeDuration = 0;
+            }
+          }
+          const entry = {
+            start: member.__congregationFadeStart,
+            duration: member.__congregationFadeDuration,
+          };
+          let alpha = 1;
+          if (entry && entry.duration > 0) {
+            const t = (now - entry.start) / entry.duration;
+            if (t <= 0) alpha = 0;
+            else if (t >= 1) alpha = 1;
+            else alpha = t;
+          }
+          const drawAlpha = npcFadeAlpha * alpha;
+          if (drawAlpha > 0) {
+            member.animator.draw(ctx, member.x, member.y, { alpha: drawAlpha });
+          }
+        });
+      } else {
+        congregationFadeState.active = false;
+        congregationFadeState.memberCount = 0;
+        congregationFadeState.token = 0;
+      }
+      ctx.restore();
+
+      drawHUD();
+      drawLevelAnnouncements();
+      return;
+    }
+    if (recapCongregationPreviewBuilt) {
+      const { clearCongregationMembers } = requireBindings();
+      if (typeof clearCongregationMembers === "function") {
+        clearCongregationMembers();
+      }
+      recapCongregationPreviewBuilt = false;
     }
     const visitorStageActive = Boolean(visitorSession?.active || levelStatus?.stage === "visitorMinigame");
     const isCongregationStage = levelStatus?.stage === "levelIntro" && !gameOver && !visitorStageActive;
