@@ -808,23 +808,15 @@ function getFinalEndingState() {
   return { finalSize, badEnding, grew };
 }
 
-function showPastorFinalDialog() {
+function queuePastorFinalAnnouncement() {
   const { badEnding } = getFinalEndingState();
-  const body = badEnding
+  const line = badEnding
     ? "I heard from the denomination, and unfortunately they can't justify keeping this church open any longer. We have to close."
     : "I heard from the denomination, and they've decided to keep this church open. I look forward to spending more time with you all and continuing the great work we're doing to restore this town!";
-  if (!window.DialogOverlay) {
-    activateEpilogue();
-    return;
-  }
-  window.DialogOverlay.show({
-    title: "",
-    body,
-    buttonText: "Continue (Space)",
-    variant: "town-intro",
-    onContinue: () => {
-      activateEpilogue();
-    },
+  queueLevelAnnouncement(line, "", {
+    requiresConfirm: true,
+    skipMissionBrief: true,
+    pastorFinal: true,
   });
 }
 
@@ -5985,6 +5977,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
       : null;
   const bossMissionBrief = Boolean(options.bossMissionBrief);
   const finalYear = Boolean(options.finalYear);
+  const pastorFinal = Boolean(options.pastorFinal);
   const levelSummary = Boolean(options.levelSummary);
   const announcement = {
     title,
@@ -5999,6 +5992,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     bossMissionBrief,
     finalYear,
     levelSummary,
+    pastorFinal,
   };
   if (
     missionBriefTitle &&
@@ -10616,6 +10610,27 @@ function handleDeveloperHotkeys() {
       setDevStatus("Grace rush engaged", 2.0);
     }
   }
+  if (keysJustPressed.has("8")) {
+    const targetLevel = Number.isFinite(window.LEVELS_PER_GAME) ? window.LEVELS_PER_GAME : null;
+    if (!levelManager?.isActive?.()) {
+      setDevStatus("Final boss skip failed (level inactive)", 2.0);
+    } else if (!Number.isFinite(targetLevel) || targetLevel <= 0) {
+      setDevStatus("Final boss skip failed (no level count)", 2.0);
+    } else {
+      let currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+      let guard = 0;
+      while (currentLevel < targetLevel && guard < 10) {
+        if (!levelManager?.devSkipLevel?.()) break;
+        currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : currentLevel + 1;
+        guard += 1;
+      }
+      if (levelManager?.devSkipToBoss?.()) {
+        setDevStatus("Final boss engaged", 2.4);
+      } else {
+        setDevStatus("Final boss skip failed", 2.0);
+      }
+    }
+  }
   if (keysJustPressed.has("t")) {
     speedrunTimer.visible = !speedrunTimer.visible;
     setDevStatus(speedrunTimer.visible ? "Timer shown" : "Timer hidden", 2.0);
@@ -11566,7 +11581,7 @@ function handleLevelAnnouncements() {
         }
         dismissCurrentLevelAnnouncement();
         if (currentAnnouncement.recapFinalYear) {
-          showPastorFinalDialog();
+          queuePastorFinalAnnouncement();
         }
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
@@ -11574,6 +11589,22 @@ function handleLevelAnnouncements() {
       },
     });
     if (handled) return true;
+    return true;
+  }
+  if (currentAnnouncement.pastorFinal) {
+    const clickPos = Input.consumeCanvasClick?.();
+    if (clickPos) {
+      dismissCurrentLevelAnnouncement();
+      activateEpilogue();
+      return true;
+    }
+    const confirmKeys = [" ", "enter"];
+    if (confirmKeys.some((k) => keysJustPressed.has(k))) {
+      confirmKeys.forEach((k) => keysJustPressed.delete(k));
+      dismissCurrentLevelAnnouncement();
+      activateEpilogue();
+      return true;
+    }
     return true;
   }
   if (currentAnnouncement.exteriorShot) {

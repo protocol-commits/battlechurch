@@ -2212,7 +2212,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   }
     const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
     const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
-    if (isTownIntro || isExteriorShot) {
+    const isPastorFinal = Boolean(levelAnnouncements[0]?.pastorFinal);
+    if (isTownIntro || isExteriorShot || isPastorFinal) {
       const titleSize = Math.max(28, TEXT_STYLES.h1.size * 1.35);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: displayTitle || "",
@@ -3836,12 +3837,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
     const missionOverlayActive = Boolean(window.isMissionBriefOverlayActive);
     const pauseOverlayActive = Boolean(window.isPauseOverlayActive);
-    // Check if recap/summary announcement is active - should show arena behind it
+    // Check if recap/summary or pastor-final announcement is active - should show arena behind it
     const recapAnnouncementActive = Boolean(
       levelAnnouncements?.[0]?.requiresConfirm &&
       (levelAnnouncements[0]?.recapData || levelAnnouncements[0]?.recapPrepared)
     );
-    if (isModalActive && !missionOverlayActive && !pauseOverlayActive && !recapAnnouncementActive) {
+    const pastorFinalActive = Boolean(levelAnnouncements?.[0]?.pastorFinal);
+    const congregationAnnouncementActive = recapAnnouncementActive || pastorFinalActive;
+    if (isModalActive && !missionOverlayActive && !pauseOverlayActive && !congregationAnnouncementActive) {
       ctx.save();
       const modalBlackout = graceRushBlackout ? 1 : (graceRushFadeAlpha > 0 ? Math.min(1, graceRushFadeAlpha) : 0.92);
       ctx.fillStyle = `rgba(0, 0, 0, ${modalBlackout})`;
@@ -4063,7 +4066,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       drawPauseHint();
       return;
     }
-    if (recapAnnouncementActive) {
+    if (congregationAnnouncementActive) {
       const {
         buildCongregationMembers,
         getCongregationSize,
@@ -4137,13 +4140,21 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         congregationFadeState.memberCount = 0;
         congregationFadeState.token = 0;
       }
+      const isBossRecap = Boolean(levelAnnouncements?.[0]?.levelSummary);
+      if (isBossRecap) {
+        const { player } = requireBindings();
+        if (player) {
+          player.draw();
+        }
+      }
       ctx.restore();
 
+      drawHUD();
       drawHUD();
       drawLevelAnnouncements();
       return;
     }
-    if (recapCongregationPreviewBuilt) {
+    if (recapCongregationPreviewBuilt && !congregationAnnouncementActive) {
       const { clearCongregationMembers } = requireBindings();
       if (typeof clearCongregationMembers === "function") {
         clearCongregationMembers();
@@ -4517,13 +4528,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
-    if (!recapAnnouncementActive && graceRushFadeAlpha > 0) {
+    if (!congregationAnnouncementActive && graceRushFadeAlpha > 0) {
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, graceRushFadeAlpha)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
-    if (!recapAnnouncementActive && graceRushBlackout) {
+    if (!congregationAnnouncementActive && graceRushBlackout) {
       ctx.save();
       ctx.fillStyle = "rgba(0, 0, 0, 1)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
