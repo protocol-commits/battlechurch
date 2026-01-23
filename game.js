@@ -801,10 +801,35 @@ function startEpilogueMusic() {
   playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
 }
 
-function activateEpilogue() {
+function getFinalEndingState() {
   const finalSize = getCongregationSize();
   const badEnding = finalSize < 70;
   const grew = finalSize > INITIAL_CONGREGATION_SIZE;
+  return { finalSize, badEnding, grew };
+}
+
+function showPastorFinalDialog() {
+  const { badEnding } = getFinalEndingState();
+  const body = badEnding
+    ? "I heard from the denomination, and unfortunately they can't justify keeping this church open any longer. We have to close."
+    : "I heard from the denomination, and they've decided to keep this church open. I look forward to spending more time with you all and continuing the great work we're doing to restore this town!";
+  if (!window.DialogOverlay) {
+    activateEpilogue();
+    return;
+  }
+  window.DialogOverlay.show({
+    title: "",
+    body,
+    buttonText: "Continue (Space)",
+    variant: "town-intro",
+    onContinue: () => {
+      activateEpilogue();
+    },
+  });
+}
+
+function activateEpilogue() {
+  const { finalSize, badEnding, grew } = getFinalEndingState();
   const introLine = grew
     ? `Over the course of the year, you grew your church to ${finalSize} members.`
     : `Over the course of the year your congregation shrunk to ${finalSize} members.`;
@@ -11540,7 +11565,9 @@ function handleLevelAnnouncements() {
           recapData.graceApplied = true;
         }
         dismissCurrentLevelAnnouncement();
-        if (currentAnnouncement.recapFinalYear) activateEpilogue();
+        if (currentAnnouncement.recapFinalYear) {
+          showPastorFinalDialog();
+        }
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
         }
