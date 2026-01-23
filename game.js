@@ -820,6 +820,22 @@ function queuePastorFinalAnnouncement() {
   });
 }
 
+const PASTOR_BOSS_POST_RECAP_LINES = {
+  default: "Great job, everyone. Now let's go out there and love our neighbors as ourselves.",
+};
+
+function queuePastorBossPostRecapAnnouncement(levelNumber, upgradeAfter = false) {
+  const line =
+    PASTOR_BOSS_POST_RECAP_LINES[levelNumber] || PASTOR_BOSS_POST_RECAP_LINES.default;
+  queueLevelAnnouncement(line, "", {
+    requiresConfirm: true,
+    skipMissionBrief: true,
+    pastorPostRecap: true,
+    pastorPostRecapDelay: 0.6,
+    pastorPostRecapUpgradeAfter: upgradeAfter,
+  });
+}
+
 function activateEpilogue() {
   const { finalSize, badEnding, grew } = getFinalEndingState();
   const introLine = grew
@@ -5982,6 +5998,11 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   const bossMissionBrief = Boolean(options.bossMissionBrief);
   const finalYear = Boolean(options.finalYear);
   const pastorFinal = Boolean(options.pastorFinal);
+  const pastorPostRecap = Boolean(options.pastorPostRecap);
+  const pastorPostRecapDelay = Number.isFinite(options.pastorPostRecapDelay)
+    ? Math.max(0, options.pastorPostRecapDelay)
+    : 0;
+  const pastorPostRecapUpgradeAfter = Boolean(options.pastorPostRecapUpgradeAfter);
   const levelSummary = Boolean(options.levelSummary);
   const announcement = {
     title,
@@ -5997,6 +6018,9 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     finalYear,
     levelSummary,
     pastorFinal,
+    pastorPostRecap,
+    pastorPostRecapDelay,
+    pastorPostRecapUpgradeAfter,
   };
   if (
     missionBriefTitle &&
@@ -11597,7 +11621,16 @@ function handleLevelAnnouncements() {
         graceRushFadeTimer = 0;
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
-        pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter) && !currentAnnouncement.recapFinalYear;
+        if (currentAnnouncement.recapFinalYear) {
+          pendingUpgradeAfterSummary = false;
+          queuePastorFinalAnnouncement();
+        } else if (currentAnnouncement.levelSummary) {
+          pendingUpgradeAfterSummary = false;
+          const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
+          queuePastorBossPostRecapAnnouncement(targetLevel, Boolean(currentAnnouncement.recapUpgradeAfter));
+        } else {
+          pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter);
+        }
         const recapData = currentAnnouncement.recapData;
         if (recapData && !recapData.graceApplied && recapData.graceBonus > 0) {
           const appliedCount = Number.isFinite(recapData.graceAppliedCount)
@@ -11610,9 +11643,6 @@ function handleLevelAnnouncements() {
           recapData.graceApplied = true;
         }
         dismissCurrentLevelAnnouncement();
-        if (currentAnnouncement.recapFinalYear) {
-          queuePastorFinalAnnouncement();
-        }
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
         }
@@ -11622,6 +11652,7 @@ function handleLevelAnnouncements() {
     return true;
   }
   if (currentAnnouncement.pastorFinal) {
+    if (!currentAnnouncement._revealComplete) return true;
     const buttons =
       typeof window !== "undefined" && window.__announcementButtons?.key === "pastorFinal"
         ? window.__announcementButtons.buttons
@@ -11640,6 +11671,45 @@ function handleLevelAnnouncements() {
     if (clickPos) {
       dismissCurrentLevelAnnouncement();
       activateEpilogue();
+      return true;
+    }
+    return true;
+  }
+  if (currentAnnouncement.pastorPostRecap) {
+    if (currentAnnouncement.pastorPostRecapDelay) {
+      const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+      const lastTick = currentAnnouncement._lastTick || now;
+      const dt = Math.max(0, (now - lastTick) / 1000);
+      currentAnnouncement._lastTick = now;
+      const remaining =
+        typeof currentAnnouncement.pastorPostRecapDelayRemaining === "number"
+          ? currentAnnouncement.pastorPostRecapDelayRemaining
+          : currentAnnouncement.pastorPostRecapDelay;
+      const nextRemaining = Math.max(0, remaining - dt);
+      currentAnnouncement.pastorPostRecapDelayRemaining = nextRemaining;
+      if (nextRemaining > 0) {
+        return true;
+      }
+    }
+    if (!currentAnnouncement._revealComplete) return true;
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "pastorPostRecap"
+        ? window.__announcementButtons.buttons
+        : null;
+    const handled = handleAnnouncementButtons({
+      key: "pastorPostRecap",
+      buttons,
+      allowSpace: true,
+      onActivate: () => {
+        pendingUpgradeAfterSummary = Boolean(currentAnnouncement.pastorPostRecapUpgradeAfter);
+        dismissCurrentLevelAnnouncement();
+      },
+    });
+    if (handled) return true;
+    const clickPos = Input.consumeCanvasClick?.();
+    if (clickPos) {
+      pendingUpgradeAfterSummary = Boolean(currentAnnouncement.pastorPostRecapUpgradeAfter);
+      dismissCurrentLevelAnnouncement();
       return true;
     }
     return true;

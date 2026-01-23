@@ -2177,6 +2177,18 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       displayTitle = `Level ${levelNumber} — ${monthName}${clearedSuffix}`;
     }
   } catch (e) {}
+  const pastorDelayRemaining = levelAnnouncements[0]?.pastorPostRecapDelayRemaining || 0;
+  const canRenderAnnouncement = !(levelAnnouncements[0]?.pastorPostRecap && pastorDelayRemaining > 0);
+  const revealComplete = canRenderAnnouncement
+    ? isAnnouncementRevealComplete(displayTitle || title || "", subtitle || "")
+    : false;
+  if (levelAnnouncements[0]) {
+    levelAnnouncements[0]._revealComplete = revealComplete;
+  }
+  if (!canRenderAnnouncement) {
+    ctx.restore();
+    return;
+  }
   if (isBattleSummary) {
     const recapData = levelAnnouncements?.[0]?.recapData || null;
     let summaryTitle = recapData?.title || levelAnnouncements?.[0]?.recapTitle || "";
@@ -2213,11 +2225,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const isTownIntro = Boolean(levelAnnouncements[0]?.townIntro);
     const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
     const isPastorFinal = Boolean(levelAnnouncements[0]?.pastorFinal);
-    if (isTownIntro || isExteriorShot || isPastorFinal) {
-      const titleSize = isPastorFinal
+    const isPastorPostRecap = Boolean(levelAnnouncements[0]?.pastorPostRecap);
+    const isPastorSpeech = isPastorFinal || isPastorPostRecap;
+    if (isTownIntro || isExteriorShot || isPastorSpeech) {
+      const titleSize = isPastorSpeech
         ? Math.max(20, TEXT_STYLES.h2.size * 0.95)
         : Math.max(28, TEXT_STYLES.h1.size * 1.35);
-      const buttonCount = isPastorFinal ? 1 : 0;
+      const buttonCount = isPastorSpeech ? 1 : 0;
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: displayTitle || "",
         subtitle: "",
@@ -2230,7 +2244,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         topMargin: 90,
         bottomMargin: 80,
         rowGap: 32,
-        buttonHeight: isPastorFinal ? 50 : 0,
+        buttonHeight: isPastorSpeech ? 50 : 0,
         buttonCount,
         HUD_HEIGHT,
       });
@@ -2246,15 +2260,16 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         weight: TEXT_STYLES.h1.weight,
         maxWidthScale: 0.92,
       });
-      if (isPastorFinal) {
+      if (isPastorSpeech) {
         const buttonText = "Continue (Space)";
         const buttonWidth = Math.min(240, layout.virtualCanvas.width * 0.5);
         const buttonHeight = 50;
         const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
         const buttonY = Math.round(layout.buttonY || 0);
+        const buttonKey = isPastorFinal ? "pastorFinal" : "pastorPostRecap";
         if (typeof window !== "undefined") {
           window.__announcementButtons = {
-            key: "pastorFinal",
+            key: buttonKey,
             buttons: [
               {
                 key: "continue",
@@ -2270,7 +2285,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
         ctx.lineWidth = 2;
         roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
-        if (isAnnouncementButtonFocused("pastorFinal", 0)) {
+        if (isAnnouncementButtonFocused(buttonKey, 0)) {
           drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         }
         ctx.fillStyle = "#0b111a";
@@ -3881,7 +3896,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       (levelAnnouncements[0]?.recapData || levelAnnouncements[0]?.recapPrepared)
     );
     const pastorFinalActive = Boolean(levelAnnouncements?.[0]?.pastorFinal);
-    const congregationAnnouncementActive = recapAnnouncementActive || pastorFinalActive;
+    const pastorPostRecapActive = Boolean(levelAnnouncements?.[0]?.pastorPostRecap);
+    const congregationAnnouncementActive =
+      recapAnnouncementActive || pastorFinalActive || pastorPostRecapActive;
     if (isModalActive && !missionOverlayActive && !pauseOverlayActive && !congregationAnnouncementActive) {
       ctx.save();
       const modalBlackout = graceRushBlackout ? 1 : (graceRushFadeAlpha > 0 ? Math.min(1, graceRushFadeAlpha) : 0.92);
