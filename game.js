@@ -4537,7 +4537,7 @@ function escapeHtml(value) {
 function showTownIntroDialog() {
   if (!window.DialogOverlay) return false;
   const body =
-    "Your assigned church is the last light in a dying town under spiritual attack. Grow your congregation in one year, or the town falls with you.";
+    "You are the new pastor to the last church in a town under spiritual attack. Grow your congregation in one year, or the town falls with you.";
   window.DialogOverlay.show({
     title: "",
     bodyHtml: `<div class="town-intro-text"></div>`,
@@ -4562,7 +4562,7 @@ function showTownIntroDialog() {
 
 function queueTownIntroAnnouncement() {
   const text =
-    "Your assigned church is the last light in a dying town under spiritual attack. Grow your congregation in one year, or the town falls with you.";
+    "You are the new pastor to the last church in a town under spiritual attack. Grow your congregation in one year, or the town falls with you.";
   pendingTownIntroStart = true;
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
@@ -4652,14 +4652,19 @@ const HOW_TO_PLAY_PAGES = [
   {
     title: "Controls",
     body: [
-      "Movement (Keyboard): WASD. Movement (Mobile): Left thumb. Buttons (Keyboard): A Left Arrow, B Down Arrow, C Right Arrow. Buttons (Mobile): A Sword, B Dash, C Prayer Bomb.",
-    ].join(" "),
+      "Movement: WASD or Left Joystick",
+      "A Button / Left Arrow: Melee Attack",
+      "B Button / Down Arrow: Dash",
+      "C Button / Right Arrow: Prayer Bomb",
+    ].join("\n"),
   },
   {
     title: "Story",
     body: [
-      "You are the new pastor to the last church in a town under spiritual attack. Smite the hordes, save your flock, grow your church, save the town. The more you save your flock, the more the congregation grows, the stronger you become.",
-    ].join(" "),
+      "You are the new pastor to the last church in a town under spiritual attack.",
+      "Smite the hordes, save your flock, grow your church, save the town.",
+      "The more you save your flock, the more the congregation grows, the stronger you become.",
+    ].join("\n"),
   },
 ];
 

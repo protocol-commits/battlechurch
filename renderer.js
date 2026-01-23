@@ -3258,9 +3258,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
     // Define text based on act number
     const actTitle = `Act ${chapterBreakActNumber}`;
-    const villainText = chapterBreakActNumber === 2
-      ? "This new pastor is foiling our plans. Send in reinforcements."
-      : "This pastor is strong. I will take care of this myself.";
+    let villainText;
+    if (chapterBreakActNumber === 1) {
+      villainText = "You are the new pastor to the last church in a town under spiritual attack.";
+    } else if (chapterBreakActNumber === 2) {
+      villainText = "This new pastor is foiling our plans. Send in reinforcements.";
+    } else {
+      villainText = "This pastor is strong. I will take care of this myself.";
+    }
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
@@ -3270,7 +3275,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textBaseline = "middle";
 
     // Draw Act title (normal styling)
-    const titleY = centerY - 120;
+    const titleY = centerY - 60;
     ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "#FFFFFF";
     ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
@@ -3727,7 +3732,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       {
         const { UI_FONT_FAMILY } = requireBindings();
         const centerX = canvas.width / 2;
-        const titleY = HUD_HEIGHT + 36;
+        const titleY = Math.round(canvas.height * 0.26);
         ctx.save();
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
