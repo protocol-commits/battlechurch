@@ -811,8 +811,8 @@ function getFinalEndingState() {
 function queuePastorFinalAnnouncement() {
   const { badEnding } = getFinalEndingState();
   const line = badEnding
-    ? "I heard from the denomination, and unfortunately they can't justify keeping this church open any longer. We have to close."
-    : "I heard from the denomination, and they've decided to keep this church open. I look forward to spending more time with you all and continuing the great work we're doing to restore this town!";
+    ? "\"I heard from the denomination, and unfortunately they can't justify keeping this church open any longer. We have to close.\""
+    : "\"I heard from the denomination, and they've decided to keep this church open. I look forward to spending more time with you all and continuing to bring love, joy, and peace into this town!\"";
   queueLevelAnnouncement(line, "", {
     requiresConfirm: true,
     skipMissionBrief: true,
@@ -2293,6 +2293,8 @@ Renderer.initialize({
   get powerupIconStyles() { return POWERUP_ICON_STYLES; },
   get graceHudFlyEffects() { return graceHudFlyEffects; },
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
+  updatePlayerDuringCongregation,
+  resolveCongregationCollisions,
   get touchControlsVisible() { return Boolean(Input?.virtualInput?.enabled); },
   get touchControlsAvailable() { return Boolean(touchControlsRoot); },
   get postDeathSequenceActive() { return postDeathSequenceActive; },
@@ -11592,15 +11594,22 @@ function handleLevelAnnouncements() {
     return true;
   }
   if (currentAnnouncement.pastorFinal) {
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "pastorFinal"
+        ? window.__announcementButtons.buttons
+        : null;
+    const handled = handleAnnouncementButtons({
+      key: "pastorFinal",
+      buttons,
+      allowSpace: true,
+      onActivate: () => {
+        dismissCurrentLevelAnnouncement();
+        activateEpilogue();
+      },
+    });
+    if (handled) return true;
     const clickPos = Input.consumeCanvasClick?.();
     if (clickPos) {
-      dismissCurrentLevelAnnouncement();
-      activateEpilogue();
-      return true;
-    }
-    const confirmKeys = [" ", "enter"];
-    if (confirmKeys.some((k) => keysJustPressed.has(k))) {
-      confirmKeys.forEach((k) => keysJustPressed.delete(k));
       dismissCurrentLevelAnnouncement();
       activateEpilogue();
       return true;

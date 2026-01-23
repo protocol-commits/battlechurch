@@ -2214,7 +2214,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
     const isPastorFinal = Boolean(levelAnnouncements[0]?.pastorFinal);
     if (isTownIntro || isExteriorShot || isPastorFinal) {
-      const titleSize = Math.max(28, TEXT_STYLES.h1.size * 1.35);
+      const titleSize = isPastorFinal
+        ? Math.max(20, TEXT_STYLES.h2.size * 0.95)
+        : Math.max(28, TEXT_STYLES.h1.size * 1.35);
+      const buttonCount = isPastorFinal ? 1 : 0;
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: displayTitle || "",
         subtitle: "",
@@ -2226,7 +2229,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         position: "bottom",
         topMargin: 90,
         bottomMargin: 80,
-        buttonCount: 0,
+        rowGap: 32,
+        buttonHeight: isPastorFinal ? 50 : 0,
+        buttonCount,
         HUD_HEIGHT,
       });
       ctx.save();
@@ -2241,6 +2246,39 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         weight: TEXT_STYLES.h1.weight,
         maxWidthScale: 0.92,
       });
+      if (isPastorFinal) {
+        const buttonText = "Continue (Space)";
+        const buttonWidth = Math.min(240, layout.virtualCanvas.width * 0.5);
+        const buttonHeight = 50;
+        const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+        const buttonY = Math.round(layout.buttonY || 0);
+        if (typeof window !== "undefined") {
+          window.__announcementButtons = {
+            key: "pastorFinal",
+            buttons: [
+              {
+                key: "continue",
+                x: layout.offsetX + buttonX * layout.scale,
+                y: layout.offsetY + buttonY * layout.scale,
+                width: buttonWidth * layout.scale,
+                height: buttonHeight * layout.scale,
+              },
+            ],
+          };
+        }
+        ctx.fillStyle = "#9BD9FF";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.lineWidth = 2;
+        roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+        if (isAnnouncementButtonFocused("pastorFinal", 0)) {
+          drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
+        }
+        ctx.fillStyle = "#0b111a";
+        ctx.textAlign = "center";
+        ctx.font = `18px ${UI_FONT_FAMILY}`;
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
+      }
       ctx.restore();
     } else {
       const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight);
@@ -4071,6 +4109,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         buildCongregationMembers,
         getCongregationSize,
         updateCongregationMembers,
+        updatePlayerDuringCongregation,
+        resolveCongregationCollisions,
       } = requireBindings();
       if (
         !recapCongregationPreviewBuilt &&
@@ -4093,6 +4133,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         const dt = Math.max(0, Math.min(0.05, (now - recapCongregationLastTime) / 1000));
         recapCongregationLastTime = now;
         updateCongregationMembers(dt);
+        if (typeof updatePlayerDuringCongregation === "function") {
+          updatePlayerDuringCongregation(dt);
+        }
+        if (typeof resolveCongregationCollisions === "function") {
+          resolveCongregationCollisions();
+        }
       }
       const effectiveCameraX = resolveCameraX();
       const effectiveCameraY = 0;
@@ -4141,7 +4187,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         congregationFadeState.token = 0;
       }
       const isBossRecap = Boolean(levelAnnouncements?.[0]?.levelSummary);
-      if (isBossRecap) {
+      const isPastorFinal = Boolean(levelAnnouncements?.[0]?.pastorFinal);
+      if (isBossRecap || isPastorFinal) {
         const { player } = requireBindings();
         if (player) {
           player.draw();
