@@ -2214,6 +2214,8 @@ const aimState = Input.aimState;
 const virtualInput = Input.virtualInput;
 const keysJustPressed = Input.keysJustPressed;
 const keysPressed = Input.keysPressed;
+let announcementNavHoldDir = null;
+let announcementNavNextTime = 0;
 window.consumePauseAction = () => {
   keysJustPressed.delete("pause");
   keysJustPressed.delete("restart");
@@ -11437,8 +11439,34 @@ function getAnnouncementNavDirection() {
   if (direction !== 0) {
     leftKeys.forEach((key) => keysJustPressed.delete(key));
     rightKeys.forEach((key) => keysJustPressed.delete(key));
+    return direction;
   }
-  return direction;
+  if (typeof Input === "undefined" || !Input.virtualInput?.enabled || typeof Input.isActionActive !== "function") {
+    announcementNavHoldDir = null;
+    announcementNavNextTime = 0;
+    return 0;
+  }
+  const leftActive = Input.isActionActive("left") || Input.isActionActive("up");
+  const rightActive = Input.isActionActive("right") || Input.isActionActive("down");
+  const nextDir = leftActive ? -1 : rightActive ? 1 : 0;
+  if (!nextDir) {
+    announcementNavHoldDir = null;
+    announcementNavNextTime = 0;
+    return 0;
+  }
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const initialDelayMs = 280;
+  const repeatDelayMs = 140;
+  if (announcementNavHoldDir !== nextDir) {
+    announcementNavHoldDir = nextDir;
+    announcementNavNextTime = now + initialDelayMs;
+    return nextDir;
+  }
+  if (now >= announcementNavNextTime) {
+    announcementNavNextTime = now + repeatDelayMs;
+    return nextDir;
+  }
+  return 0;
 }
 
 function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true }) {
