@@ -2564,7 +2564,7 @@ const BACKGROUND_IMAGE_PATH = "assets/backgrounds/church-1108.png";
 const BACKGROUND_FAR_PATH = "assets/backgrounds/far-bg.png";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
-const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.png";
+const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
 const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/game-over.png";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
 const DECOR_CONFIG = (typeof window !== "undefined" && window.WorldDecor) || {};
@@ -10602,13 +10602,16 @@ function updateCozyNpcs(dt) {
 }
 
 function handleDeveloperHotkeys() {
-  if (
-    typeof window !== "undefined" &&
-    window.location &&
-    window.location.hostname &&
-    !["localhost", "127.0.0.1", "0.0.0.0"].includes(window.location.hostname)
-  ) {
-    return;
+  if (typeof window !== "undefined" && window.location) {
+    const host = window.location.hostname || "";
+    const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(host);
+    const isFile = window.location.protocol === "file:";
+    if (!isLocalHost && !isFile) {
+      const params = new URLSearchParams(window.location.search || "");
+      if (params.get("dev") !== "1") {
+        return;
+      }
+    }
   }
   if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) {
     keysJustPressed.clear();
@@ -13991,8 +13994,21 @@ async function init() {
     resetMusicState();
     if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();
+    // Preload title background FIRST so it appears immediately
+    let preloadedTitleBg = null;
+    try {
+      preloadedTitleBg = await loadImage(TITLE_BACKGROUND_PATH);
+      // Set temporary assets so title screen can render while other assets load
+      assets = { titleBackground: preloadedTitleBg };
+    } catch (e) {
+      console.warn("Failed to preload title background:", e);
+    }
     startGameLoop();
     assets = await loadAssets();
+    // Preserve preloaded title background if loadAssets didn't get it
+    if (preloadedTitleBg && !assets.titleBackground) {
+      assets.titleBackground = preloadedTitleBg;
+    }
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
         getAssets: () => assets,
