@@ -3526,12 +3526,15 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const titleSize = TEXT_STYLES.h1.size;
     const subtitleSize = TEXT_STYLES.h2.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
-    // Show "Loading..." on Play button until assets are ready
-    const playLabel = assetsLoaded ? "Play" : "Loading...";
-    const buttonConfigs = [
-      { key: "play", label: playLabel },
-      { key: "howto", label: "How to Play" },
-    ];
+    // Only show Loading button while loading, both buttons when ready
+    const buttonConfigs = assetsLoaded
+      ? [
+          { key: "play", label: "Play" },
+          { key: "howto", label: "How to Play" },
+        ]
+      : [
+          { key: "play", label: "Loading..." },
+        ];
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
       subtitle: subtitleText,
@@ -3563,11 +3566,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const progress = Math.max(0, Math.min(100, loadingProgress || 0));
     buttonConfigs.forEach((config, index) => {
       const x = startX + index * (buttonWidth + buttonGap);
-      const isPlayButton = config.key === "play";
-      const isLoading = isPlayButton && !assetsLoaded;
+      const isLoading = config.key === "play" && !assetsLoaded;
       ctx.save();
       if (isLoading) {
-        // Play button as loading meter: dark background with fill
+        // Loading button as progress meter: dark background with fill
         ctx.fillStyle = "rgba(40, 50, 70, 0.9)";
         ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
         ctx.lineWidth = 2;
