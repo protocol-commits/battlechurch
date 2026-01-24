@@ -724,7 +724,7 @@
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText(`Congregation: ${congregationTotal}`, x, panelY + 14);
+      ctx.fillText(`CONGREGATION: ${congregationTotal}`, x, panelY + 14);
       ctx.restore();
 
       const rows = [];

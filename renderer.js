@@ -2554,8 +2554,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       lineGap,
       weight: TEXT_STYLES.h1.weight,
       maxWidthScale: 1,
-      position: "bottom",
-      topMargin: 90,
+      position: "top",
+      topMargin: 70,
       bottomMargin: 90,
       rowGap: 36,
       buttonHeight: 52,
@@ -2584,7 +2584,15 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
     const buttonHeight = 52;
     const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
-    const buttonY = Math.round(layout.buttonY || 0);
+    const buttonTopY = getAnnouncementScreenTopY({
+      canvasHeight: layout.virtualCanvas.height,
+      HUD_HEIGHT,
+      blockHeight: buttonHeight,
+      position: "bottom",
+      topMargin: 90,
+      bottomMargin: 90,
+    });
+    const buttonY = Math.round(buttonTopY);
     if (typeof window !== "undefined") {
       window.__congregationPlayButtonBounds = {
         x: layout.offsetX + buttonX * layout.scale,
