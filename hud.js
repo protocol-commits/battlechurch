@@ -47,6 +47,8 @@
       powerupIconStyles,
       touchControlsVisible,
       touchControlsAvailable,
+      DASH_COOLDOWN,
+      playerDashState,
     } = bindings;
     if (!ctx || !canvas) return;
 
@@ -617,7 +619,55 @@
         ctx.drawImage(scoreboardIcons.enemies, x, rowY - iconSize / 2, iconSize, iconSize);
         x += iconSize + gap;
       }
-      ctx.fillText(`${enemyKills}`, x, rowY);
+      const enemyText = `${enemyKills}`;
+      ctx.fillText(enemyText, x, rowY);
+      x += ctx.measureText(enemyText).width;
+      const dashCooldown = playerDashState?.dashCooldown || 0;
+      const dashDuration = Math.max(0.001, DASH_COOLDOWN || 0);
+      const dashReady = dashCooldown <= 0;
+      const dashRatio = dashReady ? 1 : Math.max(0, Math.min(1, 1 - dashCooldown / dashDuration));
+      const dashMeterRight = meterX + meterWidth;
+      const dashMeterGap = 12;
+      const dashAvailable = dashMeterRight - (x + dashMeterGap);
+      const dashMeterMin = 70;
+      const dashMeterMax = 140;
+      if (dashAvailable > 40) {
+        const dashMeterWidth = Math.min(dashMeterMax, Math.max(dashMeterMin, dashAvailable));
+        const dashMeterX = dashMeterRight - dashMeterWidth;
+        const dashMeterHeight = 12;
+        const dashMeterY = Math.round(rowY - dashMeterHeight / 2);
+        const dashRadius = 6;
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = 'rgba(10,15,31,0.6)';
+        ctx.strokeStyle = 'rgba(155, 217, 255, 0.45)';
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, dashMeterX, dashMeterY, dashMeterWidth, dashMeterHeight, dashRadius, true, true);
+        const dashInnerX = dashMeterX + 2;
+        const dashInnerY = dashMeterY + 2;
+        const dashInnerW = dashMeterWidth - 4;
+        const dashInnerH = dashMeterHeight - 4;
+        const dashFillW = Math.max(0, Math.floor(dashInnerW * dashRatio));
+        if (dashFillW > 0) {
+          ctx.fillStyle = dashReady ? PALETTE.gold : PALETTE.teal;
+          roundRect(ctx, dashInnerX, dashInnerY, dashFillW, dashInnerH, Math.max(2, dashRadius - 2), true, false);
+        }
+        if (dashReady) {
+          const pulse = 0.35 + 0.35 * Math.sin(performance.now() * 0.01);
+          ctx.save();
+          ctx.globalAlpha = pulse;
+          ctx.strokeStyle = PALETTE.gold;
+          ctx.lineWidth = 1;
+          roundRect(ctx, dashMeterX + 1, dashMeterY + 1, dashMeterWidth - 2, dashMeterHeight - 2, dashRadius, false, true);
+          ctx.restore();
+        }
+        ctx.fillStyle = dashReady ? "#0b111a" : PALETTE.softWhite;
+        ctx.font = `9px ${UI_FONT_FAMILY}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('DASH', dashMeterX + dashMeterWidth / 2, rowY + 0.5);
+        ctx.restore();
+      }
       ctx.restore();
     };
 

@@ -2306,6 +2306,8 @@ Renderer.initialize({
   get graceRushState() { return graceRushState; },
   getGraceCount: () => getGraceCount(),
   WORLD_SCALE,
+  get DASH_COOLDOWN() { return DASH_COOLDOWN; },
+  get playerDashState() { return playerDashState; },
   get damageHitFlash() { return damageHitFlash; },
   get npcWeaponState() { return npcWeaponState; },
   get npcHarmonyBuffTimer() { return npcHarmonyBuffTimer; },
