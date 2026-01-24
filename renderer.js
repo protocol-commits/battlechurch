@@ -3559,13 +3559,37 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
     const buttonY = Math.round(layout.buttonY || 0);
     const bounds = [];
+    const { loadingProgress } = requireBindings();
+    const progress = Math.max(0, Math.min(100, loadingProgress || 0));
     buttonConfigs.forEach((config, index) => {
       const x = startX + index * (buttonWidth + buttonGap);
+      const isPlayButton = config.key === "play";
+      const isLoading = isPlayButton && !assetsLoaded;
       ctx.save();
-      ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.lineWidth = 2;
-      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      if (isLoading) {
+        // Play button as loading meter: dark background with fill
+        ctx.fillStyle = "rgba(40, 50, 70, 0.9)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 2;
+        roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+        // Progress fill (clipped to button shape)
+        const fillWidth = buttonWidth * (progress / 100);
+        if (fillWidth > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(x, buttonY, buttonWidth, buttonHeight, 16);
+          ctx.clip();
+          ctx.fillStyle = "#9BD9FF";
+          ctx.fillRect(x, buttonY, fillWidth, buttonHeight);
+          ctx.restore();
+        }
+      } else {
+        // Normal button
+        ctx.fillStyle = "#9BD9FF";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.lineWidth = 2;
+        roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      }
       if (isAnnouncementButtonFocused("title", index)) {
         drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
@@ -3587,24 +3611,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof window !== "undefined") {
       window.__titleMenuButtonBounds = bounds;
       window.__announcementButtons = { key: "title", buttons: bounds };
-    }
-    // Draw loading progress bar when assets are loading
-    if (!assetsLoaded) {
-      const { loadingProgress } = requireBindings();
-      const barWidth = 200;
-      const barHeight = 8;
-      const barX = layout.virtualCanvas.width / 2 - barWidth / 2;
-      const barY = buttonY + buttonHeight + 24;
-      // Background
-      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-      roundRect(ctx, barX, barY, barWidth, barHeight, 4, true, false);
-      // Progress fill
-      const progress = Math.max(0, Math.min(100, loadingProgress || 0));
-      const fillWidth = (barWidth - 4) * (progress / 100);
-      if (fillWidth > 0) {
-        ctx.fillStyle = "#9BD9FF";
-        roundRect(ctx, barX + 2, barY + 2, fillWidth, barHeight - 4, 2, true, false);
-      }
     }
     ctx.restore();
     if (devInspectorActive && typeof drawDevInspector === "function") {
