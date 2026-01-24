@@ -1355,6 +1355,20 @@ function getNpcHomeBounds() {
   return { x: centerX, y: centerY, radius, minX, maxX, minY, maxY };
 }
 
+function pushPointOutsideNpcHome(x, y, padding = 28) {
+  const homeBounds = getNpcHomeBounds();
+  if (!homeBounds) return { x, y };
+  const dx = x - homeBounds.x;
+  const dy = y - homeBounds.y;
+  if (Math.hypot(dx, dy) > homeBounds.radius) return { x, y };
+  const angle = Math.atan2(dy, dx) || 0;
+  const pushDist = homeBounds.radius + padding;
+  return {
+    x: homeBounds.x + Math.cos(angle) * pushDist,
+    y: homeBounds.y + Math.sin(angle) * pushDist,
+  };
+}
+
 function getActiveUtilityPowerUpCount() {
   return utilityPowerUps.filter((p) => p && !p.collected && !p.dead).length;
 }
@@ -5166,6 +5180,10 @@ function spawnPowerUpDrops(count = 1) {
     const padding = 120;
     pickup.x = Math.random() * (canvas.width - padding * 2) + padding;
     pickup.y = Math.random() * (canvas.height - padding * 2) + padding;
+    const pushed = pushPointOutsideNpcHome(pickup.x, pickup.y);
+    pickup.x = Math.max(padding, Math.min(canvas.width - padding, pushed.x));
+    pickup.y = Math.max(padding, Math.min(canvas.height - padding, pushed.y));
+    pickup.baseY = pickup.y;
     weaponPickups.push(pickup);
   }
 }
@@ -5401,6 +5419,11 @@ function spawnWeaponPickup(position = null) {
   const pickup = new WeaponPickup({ ...def, type });
   if (position?.x !== undefined) pickup.x = position.x;
   if (position?.y !== undefined) pickup.y = position.y;
+  const pushed = pushPointOutsideNpcHome(pickup.x, pickup.y);
+  pickup.x = pushed.x;
+  pickup.y = pushed.y;
+  pickup.baseY = pickup.y;
+  clampEntityToBounds(pickup);
   weaponPickups.push(pickup);
   return pickup;
 }
@@ -6821,6 +6844,9 @@ class WeaponPickup {
     this.height = spriteHeight * this.scale;
     this.x = Math.random() * (canvas.width - 200) + 100;
     this.y = Math.random() * (canvas.height - 200) + 100;
+    const pushed = pushPointOutsideNpcHome(this.x, this.y);
+    this.x = pushed.x;
+    this.y = pushed.y;
     this.baseY = this.y;
     this.floatTimer = 0;
     this.active = true;
