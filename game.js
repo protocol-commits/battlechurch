@@ -4994,7 +4994,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const formatDelta = (value) => `${value >= 0 ? "+" : ""}${value}`;
   const totalDelta = memberDelta + healthReward + bossBonus;
   const graceBonusCongregants = Math.max(0, totalDelta);
-  const graceBonus = graceBonusCongregants * GRACE_BONUS_MULTIPLIER;
+  const graceBonus = 0;
   if (graceBonus > 0 && !summary.graceBonusApplied) {
     summary.graceBonusApplied = false;
     summary.graceBonus = graceBonus;
@@ -5071,13 +5071,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       affectsTotal: true,
     });
   }
-  recapLines.push({
-    label: "Bonus Grace",
-    delta: graceBonus,
-    kind: "grace",
-    affectsTotal: false,
-    prefix: `Bonus Grace: ${graceBonusCongregants} x ${GRACE_BONUS_MULTIPLIER} = `,
-  });
   const recapTitle = `${monthLabel} Recap`;
   const recapStartCount = Math.round(congregationTotal - totalDelta);
   if (announcement) {
@@ -5110,7 +5103,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     }
     paragraph += `Their remaining health was ${Math.round(totalNpcFaith)} (${formatDelta(healthReward)}). In turn, they've invited ${memberDelta + healthReward} people to join the congregation. Current Congregation Size: (${formatDelta(totalDelta)}) ${congregationTotal}`;
   }
-  const body = `${paragraph}\n\nBonus Grace: ${graceBonusCongregants} x ${GRACE_BONUS_MULTIPLIER} = ${graceBonus}`;
+  const body = paragraph;
   if (announcement) {
     announcement.recapTitle = recapTitle;
     announcement.recapBody = body;
