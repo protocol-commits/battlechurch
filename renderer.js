@@ -3212,6 +3212,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   };
 
   function drawHUD() {
+    // Hide HUD when congregation overlay is showing
+    if (requireBindings().congregationOverlay?.active) return;
     window.BattlechurchHUD?.draw?.(requireBindings(), sharedShakeOffset, roundRect);
   }
 
