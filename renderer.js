@@ -3212,9 +3212,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   };
 
   function drawHUD() {
-    // Hide HUD when congregation overlay is showing
-    if (requireBindings().congregationOverlay?.active) return;
-    window.BattlechurchHUD?.draw?.(requireBindings(), sharedShakeOffset, roundRect);
+    // Hide HUD when congregation intro screen is showing ("Welcome Pastor")
+    const bindings = requireBindings();
+    const levelStatus = bindings.levelManager?.getStatus?.();
+    if (levelStatus?.stage === "levelIntro") return;
+    window.BattlechurchHUD?.draw?.(bindings, sharedShakeOffset, roundRect);
   }
 
   function drawMissionBriefInArena() {
