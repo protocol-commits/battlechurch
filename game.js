@@ -6357,11 +6357,16 @@ function updateAimAssist() {
     if (enemy.dead || enemy.state === "death") return;
     candidates.push({ entity: enemy, kind: "enemy" });
   });
+  projectiles.forEach((projectile) => {
+    if (!projectile || projectile.dead || projectile.friendly) return;
+    candidates.push({ entity: projectile, kind: "projectile" });
+  });
   // NPCs are intentionally excluded from aim-assist candidates to keep
   // player aim under direct control and avoid auto-targeting friendly NPCs.
 
   const priorityForKind = (kind) => {
     if (kind === "npc") return 0;
+    if (kind === "projectile") return 0;
     return 1;
   };
 
@@ -7471,17 +7476,28 @@ class CozyNpc {
     const timerScale = getNpcTimerScale();
     this.npcArrowCooldown = Math.max(0, (this.npcArrowCooldown || 0) - dt * timerScale);
     if (this.npcArrowCooldown > 0) return false;
-    // find nearest valid enemy target
+    // find nearest valid enemy or hostile projectile target
     let best = null;
     let bestDist = Infinity;
+    const maxRange = typeof NPC_ARROW_RANGE_DEFAULT === 'number' ? NPC_ARROW_RANGE_DEFAULT : 520;
     for (const e of enemies) {
       if (!e || e.dead || e.state === 'death') continue;
       const dx = e.x - this.x;
       const dy = e.y - this.y;
       const d = Math.hypot(dx, dy);
-      if (d < bestDist && d <= (typeof NPC_ARROW_RANGE_DEFAULT === 'number' ? NPC_ARROW_RANGE_DEFAULT : 520)) {
+      if (d < bestDist && d <= maxRange) {
         bestDist = d;
         best = { e, dx, dy, d };
+      }
+    }
+    for (const proj of projectiles) {
+      if (!proj || proj.dead || proj.friendly) continue;
+      const dx = proj.x - this.x;
+      const dy = proj.y - this.y;
+      const d = Math.hypot(dx, dy);
+      if (d < bestDist && d <= maxRange) {
+        bestDist = d;
+        best = { e: proj, dx, dy, d };
       }
     }
     if (!best) return false;
