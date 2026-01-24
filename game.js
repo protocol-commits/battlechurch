@@ -11531,29 +11531,6 @@ function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true
   return false;
 }
 
-function handleHudTouchToggle() {
-  if (typeof window === "undefined") return false;
-  if (typeof Input?.peekCanvasClick !== "function") return false;
-  const bounds = window.__hudTouchToggleBounds;
-  if (!bounds) return false;
-  const clickPos = Input.peekCanvasClick();
-  if (!clickPos) return false;
-  const isHit =
-    clickPos.x >= bounds.x &&
-    clickPos.x <= bounds.x + bounds.width &&
-    clickPos.y >= bounds.y &&
-    clickPos.y <= bounds.y + bounds.height;
-  if (!isHit) return false;
-  Input.consumeCanvasClick?.();
-  if (typeof Input.setVirtualControlsVisible === "function") {
-    Input.setVirtualControlsVisible(!Input.virtualInput?.enabled);
-  }
-  if (typeof window.playMenuItemPickSfx === "function") {
-    window.playMenuItemPickSfx(0.45);
-  }
-  return true;
-}
-
 function handleLevelAnnouncements() {
   const missionButtons =
     typeof window !== "undefined" ? window.__missionBriefButtonBounds : null;
@@ -13126,7 +13103,6 @@ function updateGame(dt) {
     return;
   }
 
-  handleHudTouchToggle();
 
   if (handleLevelAnnouncements()) {
     return;

@@ -772,45 +772,6 @@
     drawPlayerInfo();
     drawNpcInfo();
 
-    const drawTouchControlsToggle = () => {
-      if (touchControlsAvailable === false) return;
-      const maxToggleWidth = Math.max(0, canvas.width - columnPadding * 2);
-      const toggleWidth = Math.min(
-        maxToggleWidth,
-        Math.min(170, Math.max(120, Math.floor(canvas.width * 0.18))),
-      );
-      if (toggleWidth < 60) return;
-      const toggleHeight = 22;
-      const toggleX = canvas.width - columnPadding - toggleWidth;
-      const toggleY = panelY + 6;
-      ctx.save();
-      ctx.globalAlpha = 0.95;
-      ctx.fillStyle = 'rgba(10,15,31,0.6)';
-      ctx.strokeStyle = touchControlsVisible ? PALETTE.gold : PALETTE.ice;
-      ctx.lineWidth = 2;
-      roundRect(ctx, toggleX, toggleY, toggleWidth, toggleHeight, 9, true, true);
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `11px ${UI_FONT_FAMILY}`;
-      ctx.fillText('Touch', toggleX + 10, toggleY + toggleHeight / 2 + 0.5);
-      ctx.textAlign = 'right';
-      ctx.fillStyle = touchControlsVisible ? PALETTE.gold : PALETTE.muted;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText(touchControlsVisible ? 'On' : 'Off', toggleX + toggleWidth - 10, toggleY + toggleHeight / 2 + 0.5);
-      ctx.restore();
-      if (typeof window !== 'undefined') {
-        window.__hudTouchToggleBounds = {
-          x: toggleX + shakeX,
-          y: toggleY + shakeY,
-          width: toggleWidth,
-          height: toggleHeight,
-        };
-      }
-    };
-
-    drawTouchControlsToggle();
-
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
   }
