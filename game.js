@@ -8309,7 +8309,7 @@ class Projectile {
   }
 
   draw() {
-    const shouldGlow = this.friendly;
+    const shouldGlow = this.friendly || this.type === "miniTrident";
     if (this.frames) {
       const frame = this.frames[this.frameIndex];
       if (!frame) return;
@@ -12347,6 +12347,47 @@ function processProjectileCollisions(dt) {
             projectile.onHit(npc);
           }
           projectile.dead = true;
+        }
+      }
+    }
+  }
+
+  const meleeAttackState = window._meleeAttackState;
+  if (player && meleeAttackState) {
+    const meleeActive =
+      meleeAttackState.swooshTimer > 0 ||
+      meleeAttackState.spinTimer > 0 ||
+      meleeAttackState.isRushing ||
+      meleeAttackState.rushDamageEnabled;
+    if (meleeActive) {
+      const dirVec =
+        (meleeAttackState.isRushing && meleeAttackState.rushDir) ||
+        meleeAttackState.swooshDir ||
+        window.Input?.lastMovementDirection ||
+        { x: 1, y: 0 };
+      const len = Math.hypot(dirVec.x, dirVec.y) || 1;
+      const normalized = { x: dirVec.x / len, y: dirVec.y / len };
+      const swooshAngle = Math.atan2(normalized.y, normalized.x);
+      const swooshSpread = Math.PI * 0.35 * MELEE_SWOOSH_ARC_SCALE;
+      for (const projectile of projectiles) {
+        if (projectile.dead || projectile.friendly) continue;
+        const dx = projectile.x - player.x;
+        const dy = projectile.y - player.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist <= MELEE_CLOSE_RANGE) {
+          projectile.dead = true;
+        } else if (meleeAttackState.spinTimer > 0) {
+          if (dist <= MELEE_SWING_RANGE) projectile.dead = true;
+        } else if (dist <= MELEE_SWING_RANGE) {
+          const enemyAngle = Math.atan2(dy, dx);
+          let angleDiff = enemyAngle - swooshAngle;
+          while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+          while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+          if (Math.abs(angleDiff) <= swooshSpread) projectile.dead = true;
+        }
+        if (projectile.dead) {
+          spawnImpactEffect(projectile.x, projectile.y);
+          spawnFlashEffect(projectile.x, projectile.y);
         }
       }
     }

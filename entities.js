@@ -1799,13 +1799,19 @@ class Player {
         ? PROJECTILE_CONFIG
         : {};
       const baseConfig = projectileConfig[this.projectileType] || {};
+      const baseSpeedScale = this.config.projectileSpeedMultiplier ?? 0.9;
+      const speedScale = this.type === "miniFireImp" ? baseSpeedScale * 0.5 : baseSpeedScale;
       const spawnOverrides = {
         friendly: false,
         damage: Math.max(1, this.config.damage || baseConfig.damage || 1),
-        speed: (baseConfig.speed || 520) * 0.9,
+        speed: (baseConfig.speed || 520) * speedScale,
         radius: baseConfig.radius || 20,
         source: this,
       };
+      if (this.type === "miniFireImp") {
+        const baseLife = baseConfig.life || 1.2;
+        spawnOverrides.life = baseLife / Math.max(0.05, speedScale);
+      }
       if (this.projectileType === "miniFireball") {
         try {
           this._miniFireAlt = !this._miniFireAlt;
@@ -1843,7 +1849,7 @@ class Player {
           spawnOverrides.loopFrames = false;
           spawnOverrides.flipHorizontal = false;
         }
-        spawnOverrides.speed = baseConfig.speed || spawnOverrides.speed;
+        spawnOverrides.speed = (baseConfig.speed || spawnOverrides.speed) * speedScale;
         spawnOverrides.radius = baseConfig.radius || spawnOverrides.radius;
         spawnOverrides.scale = baseConfig.scale || spawnOverrides.scale;
       }

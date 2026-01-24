@@ -261,13 +261,14 @@ class Enemy {
     const originX = this.x + dir.x * offset;
     const originY = this.y + dir.y * offset;
   const baseConfig = PROJECTILE_CONFIG[this.projectileType] || {};
+  const speedScale = this.config.projectileSpeedMultiplier ?? 0.9;
   const spawnOverrides = {
     friendly: false,
-      damage: Math.max(1, this.config.damage || baseConfig.damage || 1),
-      speed: (baseConfig.speed || 520) * 0.9,
-      radius: baseConfig.radius || 20,
-      source: this,
-    };
+    damage: Math.max(1, this.config.damage || baseConfig.damage || 1),
+    speed: (baseConfig.speed || 520) * speedScale,
+    radius: baseConfig.radius || 20,
+    source: this,
+  };
     // Special-case miniFireball: alternate between row 0 and row 1 animations
     if (this.projectileType === 'miniFireball') {
       try {

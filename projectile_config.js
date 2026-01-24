@@ -52,7 +52,7 @@
       cooldownAfterFire: 0.6,
     },
     miniTrident: {
-      speed: 420 * WORLD_SCALE,
+      speed: 205 * WORLD_SCALE,
       damage: 8,
       radius: 18 * WORLD_SCALE,
       scale: 2.0 * WORLD_SCALE,
