@@ -110,6 +110,7 @@ let activeBoss = null;
 const bossHazards = [];
 let titleScreenActive = true;
 let assetsLoaded = false;
+let loadingProgress = 0; // 0-100
 const devStatus = { text: "", timer: 0 };
 const weaponPickupAnnouncement = {
   title: "",
@@ -2293,6 +2294,7 @@ Renderer.initialize({
   get cameraShakeMagnitude() { return cameraShakeMagnitude; },
   get titleScreenActive() { return titleScreenActive; },
   get assetsLoaded() { return assetsLoaded; },
+  get loadingProgress() { return loadingProgress; },
   get howToPlayActive() { return howToPlayActive; },
   get howToPlayPages() { return HOW_TO_PLAY_PAGES; },
   get howToPlayPageIndex() { return howToPlayPageIndex; },
@@ -4401,6 +4403,8 @@ async function loadAssets() {
     ),
   );
 
+  // Track loading progress (5 stages total)
+  loadingProgress = 10;
   await Promise.all([
     loadPlayerAssets(cache, assets),
     loadProjectileAssets(cache, assets),
@@ -4412,13 +4416,18 @@ async function loadAssets() {
     npcAssetsPromise,
     coinAssetsPromise,
   ]);
+  loadingProgress = 50;
 
   assets.npcs = await npcAssetsPromise;
   assets.items = await coinAssetsPromise;
+  loadingProgress = 60;
 
   await loadProjectileFrames(cache, assets, projectileFrames);
+  loadingProgress = 75;
   await loadEffectAssets(cache, assets);
+  loadingProgress = 90;
   await loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromise, flagFramesPromise);
+  loadingProgress = 100;
 
   return assets;
 }

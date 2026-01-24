@@ -3588,6 +3588,24 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       window.__titleMenuButtonBounds = bounds;
       window.__announcementButtons = { key: "title", buttons: bounds };
     }
+    // Draw loading progress bar when assets are loading
+    if (!assetsLoaded) {
+      const { loadingProgress } = requireBindings();
+      const barWidth = 200;
+      const barHeight = 8;
+      const barX = layout.virtualCanvas.width / 2 - barWidth / 2;
+      const barY = buttonY + buttonHeight + 24;
+      // Background
+      ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+      roundRect(ctx, barX, barY, barWidth, barHeight, 4, true, false);
+      // Progress fill
+      const progress = Math.max(0, Math.min(100, loadingProgress || 0));
+      const fillWidth = (barWidth - 4) * (progress / 100);
+      if (fillWidth > 0) {
+        ctx.fillStyle = "#9BD9FF";
+        roundRect(ctx, barX + 2, barY + 2, fillWidth, barHeight - 4, 2, true, false);
+      }
+    }
     ctx.restore();
     if (devInspectorActive && typeof drawDevInspector === "function") {
       try { drawDevInspector(); } catch (e) {}
