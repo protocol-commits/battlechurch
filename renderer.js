@@ -2562,6 +2562,82 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       buttonCount: 1,
       HUD_HEIGHT,
     });
+    const drawInstructionButtons = () => {
+      const leftItems = [
+        {
+          key: "WASD",
+          action: "MOVE",
+          isActive: (pressed) => ["w", "a", "s", "d"].some((k) => pressed?.has?.(k)),
+        },
+      ];
+      const rightItems = [
+        { key: "LEFT ARROW", action: "SWORD", isActive: (pressed) => pressed?.has?.("ArrowLeft") },
+        { key: "DOWN ARROW", action: "DASH", isActive: (pressed) => pressed?.has?.("ArrowDown") },
+        { key: "RIGHT ARROW", action: "PRAYER BOMB", isActive: (pressed) => pressed?.has?.("ArrowRight") },
+      ];
+      const buttonGap = 12;
+      const buttonHeight = 34;
+      const keyHeight = 22;
+      const startY = 28;
+      const sidePadding = 80;
+      const pressedKeys = typeof window !== "undefined" ? window.Input?.keysPressed : null;
+
+      const measureButton = (item) => {
+        ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+        const keyWidth = Math.max(70, Math.ceil(ctx.measureText(item.key).width) + 16);
+        ctx.font = `600 12px ${UI_FONT_FAMILY}`;
+        const actionWidth = Math.ceil(ctx.measureText(item.action).width);
+        const buttonWidth = keyWidth + actionWidth + 30;
+        return { keyWidth, actionWidth, buttonWidth };
+      };
+
+      const drawGroup = (items, startX) => {
+        let cursorX = startX;
+        for (const item of items) {
+          const { keyWidth, buttonWidth } = measureButton(item);
+          const active = typeof item.isActive === "function" ? item.isActive(pressedKeys) : false;
+
+          ctx.globalAlpha = 0.95;
+          ctx.fillStyle = active ? "rgba(155, 217, 255, 0.28)" : "rgba(10, 15, 31, 0.65)";
+          ctx.strokeStyle = active ? "rgba(255, 200, 106, 0.9)" : "rgba(155, 217, 255, 0.45)";
+          ctx.lineWidth = 1.5;
+          ctx.shadowColor = active ? "rgba(255, 200, 106, 0.35)" : "rgba(0, 0, 0, 0)";
+          ctx.shadowBlur = active ? 8 : 0;
+          roundRect(ctx, cursorX, startY, buttonWidth, buttonHeight, 12, true, true);
+
+          const keyX = cursorX + 10;
+          const keyY = startY + (buttonHeight - keyHeight) / 2;
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = active ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.12)";
+          ctx.strokeStyle = active ? "rgba(255, 255, 255, 0.35)" : "rgba(255, 255, 255, 0.2)";
+          ctx.lineWidth = 1;
+          roundRect(ctx, keyX, keyY, keyWidth, keyHeight, 8, true, true);
+
+          ctx.fillStyle = active ? "#FFFFFF" : "#EAF6FF";
+          ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+          ctx.fillText(item.key, keyX + 8, startY + buttonHeight / 2 + 0.5);
+
+          ctx.fillStyle = active ? "#FFE2A3" : "#FFC86A";
+          ctx.font = `600 12px ${UI_FONT_FAMILY}`;
+          ctx.fillText(item.action, keyX + keyWidth + 10, startY + buttonHeight / 2 + 0.5);
+
+          cursorX += buttonWidth + buttonGap;
+        }
+      };
+
+      ctx.save();
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const leftStartX = sidePadding;
+      const rightGroupWidth = rightItems.reduce((sum, item, index) => {
+        const { buttonWidth } = measureButton(item);
+        return sum + buttonWidth + (index ? buttonGap : 0);
+      }, 0);
+      const rightStartX = Math.max(sidePadding, layout.virtualCanvas.width - sidePadding - rightGroupWidth);
+      drawGroup(leftItems, leftStartX);
+      drawGroup(rightItems, rightStartX);
+      ctx.restore();
+    };
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
@@ -2575,6 +2651,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       typewriter: true,
       maxWidthScale: 1,
     });
+    drawInstructionButtons();
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
     }
