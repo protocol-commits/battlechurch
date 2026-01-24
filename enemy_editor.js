@@ -437,7 +437,13 @@
   if (els.close) els.close.addEventListener("click", hide);
 
   document.addEventListener("keydown", (e) => {
-    if (e.key && e.key.toLowerCase() === HOTKEY && !overlay.contains(document.activeElement)) {
+    if (
+      e.key &&
+      e.key.toLowerCase() === HOTKEY &&
+      e.shiftKey &&
+      e.ctrlKey &&
+      !overlay.contains(document.activeElement)
+    ) {
       e.preventDefault();
       show();
     }

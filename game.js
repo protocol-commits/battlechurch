@@ -2197,11 +2197,13 @@ Input.initialize({
   virtualSpaceButton,
   arcControl,
   onAnyKeyDown: (key) => {
-    if (key === "m" && DEBUG) {
+    const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
+    const devCombo = Boolean(modifiers && modifiers.shift && modifiers.ctrl);
+    if (key === "m" && DEBUG && devCombo) {
       toggleDebugOverlay();
       return;
     }
-    if (key === "k") {
+    if (key === "k" && devCombo) {
       addGrace(500);
       setDevStatus("Dev: +500 grace");
     }
@@ -10602,22 +10604,13 @@ function updateCozyNpcs(dt) {
 }
 
 function handleDeveloperHotkeys() {
-  if (typeof window !== "undefined" && window.location) {
-    const host = window.location.hostname || "";
-    const isLocalHost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(host);
-    const isFile = window.location.protocol === "file:";
-    if (!isLocalHost && !isFile) {
-      const params = new URLSearchParams(window.location.search || "");
-      if (params.get("dev") !== "1") {
-        return;
-      }
-    }
-  }
   if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) {
     keysJustPressed.clear();
     return;
   }
   if (!keysJustPressed.size) return;
+  const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
+  if (!modifiers || !modifiers.shift || !modifiers.ctrl) return;
   if (keysJustPressed.has("1")) {
     devTools.godMode = !devTools.godMode;
     setDevStatus(devTools.godMode ? "God mode enabled" : "God mode disabled", 2.5);
@@ -10675,14 +10668,11 @@ function handleDeveloperHotkeys() {
     setDevStatus("Epilogue engaged", 2.0);
   }
   if (keysJustPressed.has("o")) {
-    enemyDevLabelsVisible = !enemyDevLabelsVisible;
-    if (typeof window?.setEnemyDevLabelsVisible === "function") {
-      window.setEnemyDevLabelsVisible(enemyDevLabelsVisible);
+    if (typeof Input?.setVirtualControlsVisible === "function") {
+      const nextEnabled = !Input.virtualInput?.enabled;
+      Input.setVirtualControlsVisible(nextEnabled);
+      setDevStatus(`Touch controls ${nextEnabled ? "ON" : "OFF"}`, 1.4);
     }
-    setDevStatus(
-      `Enemy labels ${enemyDevLabelsVisible ? "ON" : "OFF"}`,
-      1.4,
-    );
   }
   if (keysJustPressed.has("b")) {
     if (player && typeof player.addPrayerCharge === "function") {

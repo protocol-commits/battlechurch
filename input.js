@@ -22,6 +22,12 @@
 
   const keysDown = new Set();
   const keysJustPressed = new Set();
+  const modifierState = {
+    shift: false,
+    ctrl: false,
+    alt: false,
+    meta: false,
+  };
 
     // NES 'A' button test: true if left arrow is held
     let nesAButtonActive = false;
@@ -113,6 +119,10 @@
   }
 
   function handleKeyDown(event) {
+    modifierState.shift = Boolean(event.shiftKey);
+    modifierState.ctrl = Boolean(event.ctrlKey);
+    modifierState.alt = Boolean(event.altKey);
+    modifierState.meta = Boolean(event.metaKey);
     if (PREVENT_DEFAULT_KEYS.has(event.key)) event.preventDefault();
     const key = normalizeKey(event.key);
     if (!keysDown.has(key)) keysJustPressed.add(key);
@@ -146,6 +156,10 @@
   }
 
   function handleKeyUp(event) {
+    modifierState.shift = Boolean(event.shiftKey);
+    modifierState.ctrl = Boolean(event.ctrlKey);
+    modifierState.alt = Boolean(event.altKey);
+    modifierState.meta = Boolean(event.metaKey);
     const key = normalizeKey(event.key);
     keysDown.delete(key);
       if (event.key === "ArrowLeft") {
@@ -723,6 +737,9 @@
     },
     get virtualInput() {
       return virtualInput;
+    },
+    get modifiers() {
+      return { ...modifierState };
     },
       // NES 'A' button test flag
       get nesAButtonActive() {

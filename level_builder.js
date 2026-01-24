@@ -1035,7 +1035,13 @@
   document.addEventListener("keydown", (e) => {
     if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) return;
     if (isTypingTarget(e.target)) return;
-    if (e.key && e.key.toLowerCase() === "l" && !overlay.contains(document.activeElement)) {
+    if (
+      e.key &&
+      e.key.toLowerCase() === "l" &&
+      e.shiftKey &&
+      e.ctrlKey &&
+      !overlay.contains(document.activeElement)
+    ) {
       e.preventDefault();
       toggle();
     }
