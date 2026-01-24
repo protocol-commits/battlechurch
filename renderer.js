@@ -2502,6 +2502,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const wave4 = Math.sin(time * 0.0011) * 0.25;    // Faster flutter
     const combined = (wave1 + wave2 + wave3 + wave4) / 2.45;
     const breath = 0.55 + 0.4 * combined; // Range roughly 0.35 to 0.95
+    const intensity = Math.min(1, breath * 1.35);
 
     // Floor band is in translated context (1:1 with camera), so match that
     const parallaxOffset = Math.floor(cameraX);
@@ -2511,7 +2512,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     // Reset transform to screen space, then apply parallax offset
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalCompositeOperation = "lighter";
-    ctx.globalAlpha = breath;
+    ctx.globalAlpha = intensity;
     ctx.drawImage(godRayCache.canvas, drawX, 0);
     ctx.restore();
   }
