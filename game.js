@@ -14070,6 +14070,8 @@ async function init() {
     resetMusicState();
     if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();
+    // Ensure canvas is sized before drawing
+    resizeCanvas();
     // Preload title background FIRST so it appears immediately
     let preloadedTitleBg = null;
     try {
