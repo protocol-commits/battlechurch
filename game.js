@@ -6062,6 +6062,10 @@ function updateLevelAnnouncements(dt) {
 
 function dismissCurrentLevelAnnouncement() {
   if (!levelAnnouncements.length) return;
+  // Clear any pending prayer bomb input to prevent accidental activation after dismissal
+  if (typeof Input !== "undefined" && "prayerBombClickQueued" in Input) {
+    Input.prayerBombClickQueued = false;
+  }
   const current = levelAnnouncements[0];
   if (!current.requiresConfirm) {
     levelAnnouncements.shift();
@@ -11768,6 +11772,10 @@ function updateCongregationStage(dt, levelStatus) {
         pendingTownIntroStart = false;
         suppressInitialAnnouncements = false;
       }
+      // Clear any pending prayer bomb input to prevent accidental activation
+      if (typeof Input !== "undefined" && "prayerBombClickQueued" in Input) {
+        Input.prayerBombClickQueued = false;
+      }
       levelManager.advanceFromCongregation();
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
@@ -11809,6 +11817,10 @@ function updateCongregationStage(dt, levelStatus) {
         if (pendingTownIntroStart) {
           pendingTownIntroStart = false;
           suppressInitialAnnouncements = false;
+        }
+        // Clear any pending prayer bomb input to prevent accidental activation
+        if (typeof Input !== "undefined" && "prayerBombClickQueued" in Input) {
+          Input.prayerBombClickQueued = false;
         }
         levelManager?.advanceFromCongregation?.();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
