@@ -157,7 +157,7 @@ function isInRestrictedZone(x, y) {
 // Move all requireBindings usage inside drawCongregationScene after requireBindings is defined
 /* Rendering module for Battlechurch */
 const MELEE_SWING_DURATION = 0.2;
-const MELEE_SWING_LENGTH = 200;
+const MELEE_SWING_LENGTH = 260;
 
 (function setupRenderer(window) {
   // Draws a name tag at (x, y)
@@ -4796,12 +4796,64 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (!state || (state.swooshTimer <= 0 && !state.isRushing && !state.rushDamageEnabled && state.spinTimer <= 0)) return;
     const bindings = requireBindings();
     const worldScale = bindings?.WORLD_SCALE ?? 1;
+    const closeRange = bindings?.MELEE_CLOSE_RANGE ?? 0;
+    const meleeRange = bindings?.MELEE_SWING_RANGE ?? 0;
     const assets = bindings?.assets;
     const cameraOffsetX = bindings?.cameraOffsetX || 0;
     const cameraOffsetY = bindings?.cameraOffsetY || 0;
     const shakeX = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.x : 0) || 0;
     const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
     const swooshImg = assets?.effects?.meleeSwoosh;
+    const showMeleeHitboxDebug = false;
+    if (showMeleeHitboxDebug && closeRange > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = "rgba(255, 200, 106, 0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(
+        player.x - cameraOffsetX + shakeX,
+        player.y - cameraOffsetY + shakeY,
+        closeRange,
+        0,
+        Math.PI * 2,
+      );
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (showMeleeHitboxDebug && meleeRange > 0) {
+      const dirVec =
+        (state.isRushing && state.rushDir) ||
+        state.swooshDir ||
+        window.Input.lastMovementDirection ||
+        { x: 1, y: 0 };
+      const len = Math.hypot(dirVec.x, dirVec.y) || 1;
+      const normalized = { x: dirVec.x / len, y: dirVec.y / len };
+      const angle = Math.atan2(normalized.y, normalized.x);
+      const swooshSpread = Math.PI * 0.35 * (bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5);
+      const originX = player.x - cameraOffsetX + shakeX;
+      const originY = player.y - cameraOffsetY + shakeY;
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(110, 210, 255, 0.75)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(originX, originY, meleeRange, angle - Math.PI / 2, angle + Math.PI / 2);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 200, 106, 0.18)";
+      ctx.strokeStyle = "rgba(255, 200, 106, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(originX, originY);
+      ctx.arc(originX, originY, meleeRange, angle - swooshSpread, angle + swooshSpread);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
     if (state.spinTimer > 0) {
       if (!swooshImg) return;
       const duration = Math.max(0.001, state.spinDuration || 0.45);

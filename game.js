@@ -1941,9 +1941,10 @@ const WORLD_SCALE =
 const SPEED_SCALE = Math.max(0.01, WORLD_SCALE);
 
 // Melee Attack System Constants
-const MELEE_SWING_LENGTH_BASE = 200;
+const MELEE_SWING_LENGTH_BASE = 260;
 // For hitbox calculations, we need a much smaller range to match the actual swoosh visual
-const MELEE_SWING_RANGE = 80 * WORLD_SCALE; // Reduced to match swoosh sprite visual (was 200 * WORLD_SCALE)
+const MELEE_SWING_RANGE = 104 * WORLD_SCALE; // Reduced to match swoosh sprite visual (was 200 * WORLD_SCALE)
+const MELEE_CLOSE_RANGE = 60 * WORLD_SCALE;
 const MELEE_OFFSET = 54 * WORLD_SCALE;
 const MELEE_DAMAGE_KNOCKBACK = 48 * WORLD_SCALE;
 const MELEE_PUSHBACK_STRENGTH = 36 * WORLD_SCALE;
@@ -2320,6 +2321,8 @@ Renderer.initialize({
   get graceRushState() { return graceRushState; },
   getGraceCount: () => getGraceCount(),
   WORLD_SCALE,
+  get MELEE_SWING_RANGE() { return MELEE_SWING_RANGE; },
+  get MELEE_CLOSE_RANGE() { return MELEE_CLOSE_RANGE; },
   get DASH_COOLDOWN() { return DASH_COOLDOWN; },
   get playerDashState() { return playerDashState; },
   get damageHitFlash() { return damageHitFlash; },
@@ -12611,7 +12614,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     const hitRadius = getEnemyHitboxRadius(enemy);
     if (dist > MELEE_SWING_RANGE + hitRadius) return;
     const dotProduct = dx * dir.x + dy * dir.y;
-    if (dotProduct < 0) return;
+    if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
     hitEnemies.push(enemy);
     const damage = Math.round(MELEE_BASE_DAMAGE);
     enemy.takeDamage(damage);
@@ -12659,7 +12662,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     let angleDiff = enemyAngle - swooshAngle;
     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-    if (Math.abs(angleDiff) > swooshSpread) return;
+    if (Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE) return;
     enemy.takeDamage(swooshDamage);
     if (!enemy.dead && enemy.state !== "death") {
       const pushAngle = Math.atan2(dy, dx);
