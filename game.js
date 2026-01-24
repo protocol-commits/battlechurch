@@ -969,9 +969,9 @@ function shouldStartBattleMusicNow() {
 function unlockMusicOnGesture() {
   if (musicState.unlocked) return;
   musicState.unlocked = true;
-  if (!musicState.introStarted && !musicState.introStopped) {
-    startIntroMusic();
-  } else if (!musicState.battleStarted && !musicState.battleStopped && shouldStartBattleMusicNow()) {
+  // Don't auto-start intro music on first click - wait for Play button
+  // But do start battle music if we're already in a battle
+  if (!musicState.battleStarted && !musicState.battleStopped && shouldStartBattleMusicNow()) {
     startBattleMusic();
   }
 }
@@ -11378,7 +11378,6 @@ function handleTitleScreen() {
   if (!titleScreenActive) return false;
   const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
   if (!hitboxEditorActive && !window.DialogOverlay?.isVisible()) {
-    startIntroMusic();
     const buttons =
       typeof window !== "undefined" && window.__announcementButtons?.key === "title"
         ? window.__announcementButtons.buttons
@@ -11388,7 +11387,6 @@ function handleTitleScreen() {
       buttons,
       allowSpace: true,
       onActivate: (button) => {
-        triggerIntroMusicFromInput();
         if (button.key === "play") {
           startGameFromTitle();
         } else if (button.key === "howto") {
