@@ -109,6 +109,7 @@ let levelManager = null;
 let activeBoss = null;
 const bossHazards = [];
 let titleScreenActive = true;
+let assetsLoaded = false;
 const devStatus = { text: "", timer: 0 };
 const weaponPickupAnnouncement = {
   title: "",
@@ -2291,6 +2292,7 @@ Renderer.initialize({
   CAMERA_SHAKE_DURATION,
   get cameraShakeMagnitude() { return cameraShakeMagnitude; },
   get titleScreenActive() { return titleScreenActive; },
+  get assetsLoaded() { return assetsLoaded; },
   get howToPlayActive() { return howToPlayActive; },
   get howToPlayPages() { return HOW_TO_PLAY_PAGES; },
   get howToPlayPageIndex() { return howToPlayPageIndex; },
@@ -4682,6 +4684,8 @@ function queueInitialMonthAnnouncementFromCongregation() {
 }
 
 function startGameFromTitle() {
+  // Don't start if assets haven't loaded yet
+  if (!assetsLoaded) return;
   // Ensure title is hidden and game is paused while we enter briefing.
   paused = true;
   needsCountdown = false;
@@ -13091,6 +13095,12 @@ function updateArcControlCooldowns() {
 }
 
 function updateGame(dt) {
+  // Handle title screen even before player/assets are loaded
+  if (titleScreenActive) {
+    if (handleTitleScreen()) {
+      return;
+    }
+  }
   if (!player) return;
   handleDeveloperHotkeys();
 
@@ -14068,6 +14078,7 @@ async function init() {
     if (preloadedTitleBg && !assets.titleBackground) {
       assets.titleBackground = preloadedTitleBg;
     }
+    assetsLoaded = true;
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
         getAssets: () => assets,

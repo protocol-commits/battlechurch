@@ -3507,6 +3507,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       drawDevInspector,
       assets,
       HUD_HEIGHT,
+      assetsLoaded,
     } = requireBindings();
     ctx.save();
     const titleImage = assets?.titleBackground || null;
@@ -3525,8 +3526,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const titleSize = TEXT_STYLES.h1.size;
     const subtitleSize = TEXT_STYLES.h2.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    // Show "Loading..." on Play button until assets are ready
+    const playLabel = assetsLoaded ? "Play" : "Loading...";
     const buttonConfigs = [
-      { key: "play", label: "Play" },
+      { key: "play", label: playLabel },
       { key: "howto", label: "How to Play" },
     ];
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
