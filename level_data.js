@@ -281,10 +281,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniDemonFireThrower",
                       "count": 1
-                    },
-                    {
-                      "enemy": "miniDemonTormentor",
-                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -420,7 +416,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "enemy": "miniHighDemon",
-                      "count": 1
+                      "count": 2
                     }
                   ],
                   "mode": "explicit",
@@ -436,11 +432,11 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 55
+                      "count": 60
                     },
                     {
-                      "enemy": "miniDemonLord",
-                      "count": 1
+                      "enemy": "miniClawedDemon",
+                      "count": 10
                     }
                   ],
                   "mode": "explicit",
@@ -456,11 +452,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 55
-                    },
-                    {
-                      "enemy": "miniClawedDemon",
-                      "count": 7
+                      "count": 60
                     },
                     {
                       "enemy": "miniFireImp",
@@ -480,7 +472,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 55
+                      "count": 60
                     },
                     {
                       "enemy": "miniHighDemon",
@@ -500,11 +492,11 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 55
+                      "count": 60
                     },
                     {
                       "enemy": "miniClawedDemon",
-                      "count": 8
+                      "count": 10
                     }
                   ],
                   "mode": "explicit",
@@ -520,7 +512,11 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 55
+                      "count": 60
+                    },
+                    {
+                      "enemy": "miniDemoness",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -536,7 +532,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 55
+                      "count": 60
                     },
                     {
                       "enemy": "miniClawedDemon",
@@ -560,11 +556,19 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 55
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonLord",
                       "count": 1
+                    },
+                    {
+                      "enemy": "miniClawedDemon",
+                      "count": 10
+                    },
+                    {
+                      "enemy": "miniHighDemon",
+                      "count": 3
                     }
                   ],
                   "mode": "explicit",
@@ -1747,7 +1751,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "enemy": "miniHighDemon",
-                      "count": 1
+                      "count": 2
                     }
                   ],
                   "mode": "explicit",
@@ -1819,6 +1823,10 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "enemy": "miniDemonFireThrower",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "miniDemoness",
                       "count": 1
                     }
                   ],
@@ -1911,6 +1919,10 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "enemy": "miniHighDemon",
+                      "count": 2
+                    },
+                    {
+                      "enemy": "miniDemoness",
                       "count": 1
                     }
                   ],
@@ -1927,7 +1939,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 57
+                      "count": 65
                     },
                     {
                       "enemy": "miniDemonLord",
@@ -1951,11 +1963,15 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 57
+                      "count": 65
                     },
                     {
                       "enemy": "miniFireImp",
                       "count": 3
+                    },
+                    {
+                      "enemy": "miniDemoness",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -1971,7 +1987,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 57
+                      "count": 65
                     },
                     {
                       "enemy": "miniHighDemon",
@@ -1991,7 +2007,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 57
+                      "count": 65
                     },
                     {
                       "enemy": "miniClawedDemon",
@@ -2011,7 +2027,11 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 57
+                      "count": 65
+                    },
+                    {
+                      "enemy": "miniDemoness",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -2027,7 +2047,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 57
+                      "count": 65
                     },
                     {
                       "enemy": "miniClawedDemon",
@@ -2051,10 +2071,14 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 57
+                      "count": 65
                     },
                     {
                       "enemy": "miniDemonLord",
+                      "count": 2
+                    },
+                    {
+                      "enemy": "miniDemoness",
                       "count": 1
                     }
                   ],
@@ -3086,7 +3110,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireKeeper",
@@ -3110,7 +3134,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireThrower",
@@ -3134,7 +3158,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireKeeper",
@@ -3158,7 +3182,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireThrower",
@@ -3182,7 +3206,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireKeeper",
@@ -3210,7 +3234,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireThrower",
@@ -3230,7 +3254,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireKeeper",
@@ -3258,7 +3282,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireThrower",
@@ -3266,6 +3290,10 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "enemy": "miniDemoness",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "miniDemonTormentor",
                       "count": 1
                     }
                   ],
@@ -3282,7 +3310,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireKeeper",
@@ -3310,10 +3338,14 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireThrower",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "miniDemoness",
                       "count": 1
                     }
                   ],
@@ -3330,7 +3362,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonFireKeeper",
@@ -3354,7 +3386,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniDemonTormentor",
@@ -3362,6 +3394,10 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "enemy": "miniDemonFireThrower",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "miniDemoness",
                       "count": 1
                     }
                   ],
@@ -3378,7 +3414,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniFireImp",
@@ -3402,7 +3438,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 53
+                      "count": 60
                     },
                     {
                       "enemy": "miniClawedDemon",
@@ -3426,10 +3462,18 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 58
+                      "count": 70
                     },
                     {
                       "enemy": "miniDemonLord",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "miniDemoness",
                       "count": 1
                     }
                   ],
@@ -3446,7 +3490,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 58
+                      "count": 70
                     },
                     {
                       "enemy": "miniClawedDemon",
@@ -3470,7 +3514,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 58
+                      "count": 70
                     },
                     {
                       "enemy": "miniHighDemon",
@@ -3490,11 +3534,15 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 58
+                      "count": 70
                     },
                     {
                       "enemy": "miniClawedDemon",
                       "count": 8
+                    },
+                    {
+                      "enemy": "miniDemonTormentor",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -3510,7 +3558,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 58
+                      "count": 70
                     }
                   ],
                   "mode": "explicit",
@@ -3526,7 +3574,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 58
+                      "count": 70
                     },
                     {
                       "enemy": "miniClawedDemon",
@@ -3550,10 +3598,14 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniImp",
-                      "count": 58
+                      "count": 70
                     },
                     {
                       "enemy": "miniDemonLord",
+                      "count": 3
+                    },
+                    {
+                      "enemy": "miniDemonTormentor",
                       "count": 1
                     }
                   ],
@@ -4567,6 +4619,248 @@ window.BattlechurchLevelData = {
                   "delaysWeighted": {},
                   "delaysExplicit": {},
                   "allKill": false,
+                  "duration": 4
+                }
+              ],
+              "hordesPerBattle": 21
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "battles": [
+            {
+              "index": 1,
+              "hordes": [
+                {
+                  "index": 1,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 2,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 3,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 4,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 5,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 6,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 7,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 8,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 9,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 10,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 11,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 12,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 13,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 14,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 15,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 16,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 17,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 18,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 19,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 20,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": false,
+                  "duration": 4
+                },
+                {
+                  "index": 21,
+                  "entries": [],
+                  "weights": {},
+                  "delays": {},
+                  "delaysWeighted": {},
+                  "delaysExplicit": {},
+                  "mode": "explicit",
+                  "allKill": true,
                   "duration": 4
                 }
               ],
