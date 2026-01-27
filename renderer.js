@@ -3549,10 +3549,15 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const buttonConfigs = assetsLoaded
       ? [
           { key: "play", label: "Play" },
-          { key: "howto", label: "How to Play" },
+          { key: "map", label: "Map" },
+          { key: "settings", label: "Settings" },
+          { key: "leaderboard", label: "Leaderboard" },
         ]
       : [
           { key: "play", label: "Loading..." },
+          { key: "map", label: "Map" },
+          { key: "settings", label: "Settings" },
+          { key: "leaderboard", label: "Leaderboard" },
         ];
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
@@ -3574,7 +3579,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
     // Title screen shows only background art and buttons.
-    const buttonWidth = 280;
+    const buttonWidth = Math.min(240, Math.floor(layout.virtualCanvas.width / buttonConfigs.length) - 24);
     const buttonHeight = 64;
     const buttonGap = 28;
     const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
@@ -3991,6 +3996,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       canvas,
       howToPlayActive,
       titleScreenActive,
+      mapActive,
       epilogueActive,
       levelManager,
       gameOver,
@@ -4037,6 +4043,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (howToPlayActive) {
       drawHowToPlayScreen();
+      return;
+    }
+    if (mapActive) {
+      if (window.MapScreen?.draw) {
+        window.MapScreen.draw(ctx, canvas);
+      }
       return;
     }
     if (titleScreenActive) {

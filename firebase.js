@@ -72,6 +72,21 @@ async function loadBestScore() {
   return bestScoreCache;
 }
 
+async function loadPlayerDoc() {
+  await initCloud();
+  if (!user) return null;
+  const snap = await getDoc(doc(db, "players", user.uid));
+  if (!snap.exists()) return null;
+  return snap.data() || null;
+}
+
+async function savePlayerDoc(data) {
+  await initCloud();
+  if (!user || !data || typeof data !== "object") return false;
+  await setDoc(doc(db, "players", user.uid), data, { merge: true });
+  return true;
+}
+
 async function saveBestScore(score) {
   const numericScore = Number(score);
   if (!Number.isFinite(numericScore)) return false;
@@ -92,4 +107,6 @@ window.Cloud = {
   initCloud,
   loadBestScore,
   saveBestScore,
+  loadPlayerDoc,
+  savePlayerDoc,
 };

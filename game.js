@@ -2205,6 +2205,8 @@ function resizeCanvas() {
 let gameStarted = false;
 let pauseDialogActive = false;
 let howToPlayPageIndex = 0;
+let mapActive = false;
+let activeTownId = null;
 let bestScoreSaveQueued = false;
 let cloudInitAttempted = false;
 
@@ -2308,6 +2310,7 @@ Renderer.initialize({
   CAMERA_SHAKE_DURATION,
   get cameraShakeMagnitude() { return cameraShakeMagnitude; },
   get titleScreenActive() { return titleScreenActive; },
+  get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get loadingProgress() { return loadingProgress; },
   get howToPlayActive() { return howToPlayActive; },
@@ -2405,6 +2408,11 @@ window.addEventListener("resize", () => {
   resizeCanvas();
   Input.updateTouchLayout();
 }, { passive: true });
+
+if (typeof window !== "undefined") {
+  window.startRunForTown = startRunForTown;
+  window.exitMapScreen = exitMapScreen;
+}
 
 function handleInspectorClick(cx, cy) {
   const targets = getDevInspectorTargets();
@@ -4739,6 +4747,21 @@ function startGameFromTitle() {
     queueTownIntroAnnouncement();
     return;
   } catch (e) {}
+}
+
+function startRunForTown(townId) {
+  activeTownId = townId || null;
+  mapActive = false;
+  if (typeof window !== "undefined") {
+    window.activeTownId = activeTownId;
+  }
+  startGameFromTitle();
+}
+
+function exitMapScreen() {
+  mapActive = false;
+  titleScreenActive = true;
+  howToPlayActive = false;
 }
 
 const HOW_TO_PLAY_BODY =
@@ -11409,10 +11432,19 @@ function handleTitleScreen() {
       onActivate: (button) => {
         if (button.key === "play") {
           startGameFromTitle();
+        } else if (button.key === "map") {
+          titleScreenActive = false;
+          howToPlayActive = false;
+          mapActive = true;
+          if (window.MapScreen) window.MapScreen.open();
         } else if (button.key === "howto") {
           titleScreenActive = false;
           howToPlayActive = true;
           howToPlayPageIndex = 0;
+        } else if (button.key === "settings") {
+          setDevStatus("Settings coming soon", 1.8);
+        } else if (button.key === "leaderboard") {
+          setDevStatus("Leaderboard coming soon", 1.8);
         }
       },
     });
@@ -11683,6 +11715,9 @@ function handleLevelAnnouncements() {
           if (!bestScoreSaveQueued && window.Cloud?.saveBestScore) {
             bestScoreSaveQueued = true;
             window.Cloud.saveBestScore(finalScore).catch(() => {});
+          }
+          if (window.MapScreen?.recordTownCompletion) {
+            window.MapScreen.recordTownCompletion(activeTownId, finalScore);
           }
         }
         if (currentAnnouncement.recapFinalYear) {
@@ -13146,6 +13181,12 @@ function updateGame(dt) {
     if (handleTitleScreen()) {
       return;
     }
+  }
+  if (mapActive) {
+    if (window.MapScreen) {
+      window.MapScreen.update(dt);
+    }
+    return;
   }
   if (!player) return;
   handleDeveloperHotkeys();

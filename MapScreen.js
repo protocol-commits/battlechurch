@@ -1,0 +1,506 @@
+(function setupMapScreen(window) {
+  if (!window) return;
+
+  const MAP_IMAGE_PRIMARY = "file:///Users/conradtolosa/Apps/battlechurch/battlechurch-game/assets/backgrounds/map.jpg";
+  const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
+  const HIT_RADIUS_BASE = 10;
+
+  let mapImage = null;
+  let mapImageLoaded = false;
+  let mapImageFailed = false;
+
+  const state = {
+    active: false,
+    mapRect: { x: 0, y: 0, w: 0, h: 0 },
+    selectedTownId: null,
+    panelOpen: false,
+    panelFocus: 0,
+    playerDoc: null,
+    mapProgress: null,
+    loading: false,
+    lastMapLoad: 0,
+    lastPulseTime: 0,
+  };
+
+  function loadMapImage() {
+    if (mapImage || mapImageLoaded || mapImageFailed) return;
+    mapImage = new Image();
+    mapImage.onload = () => {
+      mapImageLoaded = true;
+    };
+    mapImage.onerror = () => {
+      if (mapImage && mapImage.src === MAP_IMAGE_PRIMARY) {
+        mapImage.src = MAP_IMAGE_FALLBACK;
+        return;
+      }
+      mapImageFailed = true;
+    };
+    mapImage.src = MAP_IMAGE_PRIMARY;
+  }
+
+  function ensureProgress() {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return null;
+    if (!state.mapProgress) {
+      state.mapProgress = {
+        towns: {},
+        unlockedTownIds: [],
+      };
+    }
+    if (!Array.isArray(state.mapProgress.unlockedTownIds)) {
+      state.mapProgress.unlockedTownIds = [];
+    }
+    if (!state.mapProgress.towns || typeof state.mapProgress.towns !== "object") {
+      state.mapProgress.towns = {};
+    }
+    if (!state.mapProgress.unlockedTownIds.length) {
+      const firstTownId = mapData.getFirstTownId();
+      if (firstTownId) state.mapProgress.unlockedTownIds.push(firstTownId);
+    }
+    return state.mapProgress;
+  }
+
+  async function loadPlayerProgress() {
+    if (state.loading) return;
+    state.loading = true;
+    try {
+      if (window.Cloud?.initCloud) {
+        await window.Cloud.initCloud();
+      }
+      if (window.Cloud?.loadPlayerDoc) {
+        state.playerDoc = await window.Cloud.loadPlayerDoc();
+      }
+      state.mapProgress = state.playerDoc?.mapProgress || null;
+      const progress = ensureProgress();
+      if (!state.playerDoc?.mapProgress && window.Cloud?.savePlayerDoc) {
+        await window.Cloud.savePlayerDoc({ mapProgress: progress });
+      }
+      if (!state.selectedTownId) {
+        state.selectedTownId = pickInitialTown();
+      }
+    } catch (e) {
+      // swallow errors for offline/local runs
+    } finally {
+      state.loading = false;
+      state.lastMapLoad = Date.now();
+    }
+  }
+
+  function isTownUnlocked(townId) {
+    const progress = ensureProgress();
+    if (!progress) return false;
+    return progress.unlockedTownIds.includes(townId);
+  }
+
+  function getTownStars(townId) {
+    const progress = ensureProgress();
+    const townEntry = progress?.towns?.[townId];
+    return Number.isFinite(townEntry?.stars) ? townEntry.stars : 0;
+  }
+
+  function getTownById(townId) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return null;
+    return mapData.towns.find((town) => town.id === townId) || null;
+  }
+
+  function getDistrictById(districtId) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return null;
+    return mapData.districts.find((district) => district.id === districtId) || null;
+  }
+
+  function getTownPosition(town, rect) {
+    return {
+      x: rect.x + town.x * rect.w,
+      y: rect.y + town.y * rect.h,
+    };
+  }
+
+  function computeMapRect(canvas) {
+    if (!mapImageLoaded || !mapImage) {
+      state.mapRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
+      return state.mapRect;
+    }
+    const scale = Math.min(canvas.width / mapImage.width, canvas.height / mapImage.height);
+    const w = mapImage.width * scale;
+    const h = mapImage.height * scale;
+    const x = (canvas.width - w) / 2;
+    const y = (canvas.height - h) / 2;
+    state.mapRect = { x, y, w, h };
+    return state.mapRect;
+  }
+
+  function drawMapBackground(ctx, canvas) {
+    const rect = computeMapRect(canvas);
+    if (mapImageLoaded && mapImage) {
+      ctx.drawImage(mapImage, rect.x, rect.y, rect.w, rect.h);
+    } else {
+      ctx.fillStyle = "#0b111a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    return rect;
+  }
+
+  function drawTownNode(ctx, town, rect, pulse) {
+    const position = getTownPosition(town, rect);
+    const dpr = window.devicePixelRatio || 1;
+    const radius = HIT_RADIUS_BASE * dpr;
+    const unlocked = isTownUnlocked(town.id);
+    const selected = state.selectedTownId === town.id;
+    const starCount = getTownStars(town.id);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = unlocked ? "#FFD978" : "rgba(255,255,255,0.2)";
+    ctx.fill();
+    if (selected && unlocked) {
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.stroke();
+      if (pulse) {
+        ctx.beginPath();
+        ctx.arc(position.x, position.y, radius + 6 + pulse, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,217,120,0.55)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+
+    if (starCount > 0) {
+      const starText = "★".repeat(Math.min(3, starCount));
+      ctx.save();
+      ctx.font = `600 ${Math.round(14 * (rect.w / 1280))}px serif`;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(starText, position.x + radius + 6, position.y - radius - 4);
+      ctx.restore();
+    }
+
+    if (selected) {
+      ctx.save();
+      ctx.font = `600 ${Math.round(16 * (rect.w / 1280))}px serif`;
+      ctx.fillStyle = unlocked ? "#FFFFFF" : "rgba(255,255,255,0.6)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+      ctx.shadowBlur = 10;
+      ctx.fillText(town.name, position.x, position.y - radius - 10);
+      ctx.restore();
+    }
+  }
+
+  function findTownAtPosition(point, rect) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return null;
+    const dpr = window.devicePixelRatio || 1;
+    const radius = HIT_RADIUS_BASE * dpr;
+    for (const town of mapData.towns) {
+      const pos = getTownPosition(town, rect);
+      const dx = point.x - pos.x;
+      const dy = point.y - pos.y;
+      if (Math.hypot(dx, dy) <= radius) return town;
+    }
+    return null;
+  }
+
+  function getUnlockedTowns() {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return [];
+    return mapData.towns.filter((town) => isTownUnlocked(town.id));
+  }
+
+  function pickInitialTown() {
+    const unlocked = getUnlockedTowns();
+    if (!unlocked.length) return null;
+    return unlocked[0].id;
+  }
+
+  function pickNextTown(direction) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData || !state.selectedTownId) return state.selectedTownId;
+    const currentTown = getTownById(state.selectedTownId);
+    if (!currentTown) return state.selectedTownId;
+    const rect = state.mapRect;
+    const currentPos = getTownPosition(currentTown, rect);
+    const candidates = getUnlockedTowns().filter((town) => town.id !== currentTown.id);
+    let best = null;
+    let bestScore = Infinity;
+    candidates.forEach((town) => {
+      const pos = getTownPosition(town, rect);
+      const dx = pos.x - currentPos.x;
+      const dy = pos.y - currentPos.y;
+      if (direction === "left" && dx >= 0) return;
+      if (direction === "right" && dx <= 0) return;
+      if (direction === "up" && dy >= 0) return;
+      if (direction === "down" && dy <= 0) return;
+      const score = dx * dx + dy * dy + Math.abs(direction === "left" || direction === "right" ? dy : dx);
+      if (score < bestScore) {
+        bestScore = score;
+        best = town;
+      }
+    });
+    return best ? best.id : state.selectedTownId;
+  }
+
+  function openTownPanel(townId) {
+    if (!isTownUnlocked(townId)) return;
+    state.selectedTownId = townId;
+    state.panelOpen = true;
+    state.panelFocus = 0;
+  }
+
+  function closeTownPanel() {
+    state.panelOpen = false;
+  }
+
+  function drawTownPanel(ctx, canvas) {
+    if (!state.panelOpen || !state.selectedTownId) return;
+    const town = getTownById(state.selectedTownId);
+    if (!town) return;
+    const district = getDistrictById(town.districtId);
+    const stars = getTownStars(town.id);
+    const panelW = Math.min(520, canvas.width * 0.7);
+    const panelH = 220;
+    const panelX = canvas.width / 2 - panelW / 2;
+    const panelY = canvas.height - panelH - 40;
+
+    ctx.save();
+    ctx.fillStyle = "rgba(8, 12, 20, 0.85)";
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.lineWidth = 2;
+    ctx.fillRect(panelX, panelY, panelW, panelH);
+    ctx.strokeRect(panelX, panelY, panelW, panelH);
+
+    ctx.fillStyle = "#FFD978";
+    ctx.font = "600 22px serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(town.name, canvas.width / 2, panelY + 16);
+
+    ctx.fillStyle = "#EAF6FF";
+    ctx.font = "500 16px serif";
+    ctx.fillText(district ? district.name : "", canvas.width / 2, panelY + 46);
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "500 16px serif";
+    ctx.fillText(`Stars: ${stars}`, canvas.width / 2, panelY + 76);
+
+    const buttonW = 140;
+    const buttonH = 44;
+    const gap = 20;
+    const buttonY = panelY + panelH - 70;
+    const totalW = buttonW * 2 + gap;
+    const startX = canvas.width / 2 - totalW / 2;
+    const buttons = [
+      { label: "Play", x: startX, key: "play" },
+      { label: "Back", x: startX + buttonW + gap, key: "back" },
+    ];
+
+    buttons.forEach((btn, index) => {
+      ctx.save();
+      ctx.fillStyle = "#9BD9FF";
+      ctx.strokeStyle = "rgba(255,255,255,0.3)";
+      ctx.lineWidth = 2;
+      ctx.fillRect(btn.x, buttonY, buttonW, buttonH);
+      ctx.strokeRect(btn.x, buttonY, buttonW, buttonH);
+      if (index === state.panelFocus) {
+        ctx.strokeStyle = "#FFD978";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(btn.x - 2, buttonY - 2, buttonW + 4, buttonH + 4);
+      }
+      ctx.fillStyle = "#0b111a";
+      ctx.font = "600 16px serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(btn.label, btn.x + buttonW / 2, buttonY + buttonH / 2);
+      ctx.restore();
+    });
+
+    state.panelButtons = buttons.map((btn, index) => ({
+      key: btn.key,
+      x: btn.x,
+      y: buttonY,
+      width: buttonW,
+      height: buttonH,
+      index,
+    }));
+
+    ctx.restore();
+  }
+
+  function handlePanelInput(keysJustPressed) {
+    if (!state.panelOpen) return false;
+    if (keysJustPressed.has("a") || keysJustPressed.has("d") || keysJustPressed.has("w") || keysJustPressed.has("s")) {
+      state.panelFocus = state.panelFocus === 0 ? 1 : 0;
+    }
+    if (keysJustPressed.has(" ")) {
+      const selection = state.panelButtons?.[state.panelFocus];
+      if (selection?.key === "play") {
+        startRunForTown(state.selectedTownId);
+      } else {
+        closeTownPanel();
+        if (typeof window.exitMapScreen === "function") {
+          window.exitMapScreen();
+        }
+      }
+    }
+    return true;
+  }
+
+  function startRunForTown(townId) {
+    if (typeof window.startRunForTown === "function") {
+      window.startRunForTown(townId);
+      return;
+    }
+    if (typeof window.startGameFromTitle === "function") {
+      window.startGameFromTitle();
+    }
+  }
+
+  function handleMapInput() {
+    const input = window.Input;
+    if (!input) return;
+    const keysJustPressed = input.keysJustPressed;
+    if (!keysJustPressed?.size) return;
+
+    if (state.panelOpen) {
+      if (handlePanelInput(keysJustPressed)) {
+        keysJustPressed.clear();
+        return;
+      }
+    }
+
+    if (keysJustPressed.has("w")) state.selectedTownId = pickNextTown("up");
+    if (keysJustPressed.has("s")) state.selectedTownId = pickNextTown("down");
+    if (keysJustPressed.has("a")) state.selectedTownId = pickNextTown("left");
+    if (keysJustPressed.has("d")) state.selectedTownId = pickNextTown("right");
+
+    if (keysJustPressed.has(" ")) {
+      if (state.selectedTownId) {
+        openTownPanel(state.selectedTownId);
+      }
+    }
+
+    keysJustPressed.clear();
+  }
+
+  function handleMapClicks(rect) {
+    const input = window.Input;
+    if (!input?.consumeCanvasClick) return;
+    const click = input.consumeCanvasClick();
+    if (!click) return;
+    if (state.panelOpen && state.panelButtons) {
+      const hit = state.panelButtons.find(
+        (btn) => click.x >= btn.x && click.x <= btn.x + btn.width && click.y >= btn.y && click.y <= btn.y + btn.height,
+      );
+    if (hit) {
+      if (hit.key === "play") {
+        startRunForTown(state.selectedTownId);
+      } else {
+        closeTownPanel();
+        if (typeof window.exitMapScreen === "function") {
+          window.exitMapScreen();
+        }
+      }
+      return;
+    }
+    }
+    const town = findTownAtPosition(click, rect);
+    if (town && isTownUnlocked(town.id)) {
+      openTownPanel(town.id);
+    }
+  }
+
+  function updateSelectionFromHover(rect) {
+    const input = window.Input;
+    if (!input?.pointerState) return;
+    const town = findTownAtPosition(input.pointerState, rect);
+    if (town && isTownUnlocked(town.id)) {
+      state.selectedTownId = town.id;
+    }
+  }
+
+  async function recordTownCompletion(townId, congregationCount) {
+    if (!townId) return;
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return;
+    if (!state.mapProgress) {
+      await loadPlayerProgress();
+    }
+    const progress = ensureProgress();
+    const stars = mapData.calculateStars(congregationCount);
+    const currentStars = Number.isFinite(progress.towns?.[townId]?.stars)
+      ? progress.towns[townId].stars
+      : 0;
+    if (!progress.towns[townId]) progress.towns[townId] = { stars: 0 };
+    progress.towns[townId].stars = Math.max(currentStars, stars);
+
+    const town = getTownById(townId);
+    const districts = mapData.getDistricts();
+    const districtIndex = districts.findIndex((d) => d.id === town?.districtId);
+    if (districtIndex >= 0) {
+      const townsInDistrict = mapData.getTownsByDistrict(districts[districtIndex].id);
+      const townIndex = townsInDistrict.findIndex((t) => t.id === townId);
+      const unlockIds = new Set(progress.unlockedTownIds);
+      if (townIndex >= 0 && townIndex < townsInDistrict.length - 1) {
+        unlockIds.add(townsInDistrict[townIndex + 1].id);
+      } else if (districtIndex < districts.length - 1) {
+        const nextDistrictTowns = mapData.getTownsByDistrict(districts[districtIndex + 1].id);
+        if (nextDistrictTowns.length) unlockIds.add(nextDistrictTowns[0].id);
+      }
+      progress.unlockedTownIds = Array.from(unlockIds);
+    }
+
+    if (window.Cloud?.savePlayerDoc) {
+      try {
+        await window.Cloud.savePlayerDoc({ mapProgress: progress });
+      } catch (e) {}
+    }
+  }
+
+  function open() {
+    state.active = true;
+    state.panelOpen = false;
+    if (!state.selectedTownId) state.selectedTownId = pickInitialTown();
+    loadPlayerProgress();
+  }
+
+  function close() {
+    state.active = false;
+    state.panelOpen = false;
+  }
+
+  function update(dt) {
+    if (!state.active) return;
+    loadMapImage();
+    handleMapInput();
+  }
+
+  function draw(ctx, canvas) {
+    if (!state.active) return;
+    ctx.save();
+    const rect = drawMapBackground(ctx, canvas);
+    updateSelectionFromHover(rect);
+    const pulse = Math.sin((Date.now() / 1000) * 3) * 2;
+    const mapData = window.BattlechurchMapData;
+    if (mapData) {
+      mapData.towns.forEach((town) => drawTownNode(ctx, town, rect, pulse));
+    }
+    handleMapClicks(rect);
+    drawTownPanel(ctx, canvas);
+    ctx.restore();
+  }
+
+  window.MapScreen = {
+    open,
+    close,
+    update,
+    draw,
+    recordTownCompletion,
+    get mapRect() { return { ...state.mapRect }; },
+  };
+})(typeof window !== "undefined" ? window : null);
