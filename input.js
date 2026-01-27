@@ -125,8 +125,18 @@
     modifierState.meta = Boolean(event.metaKey);
     if (PREVENT_DEFAULT_KEYS.has(event.key)) event.preventDefault();
     const key = normalizeKey(event.key);
+    const codeKey = (() => {
+      if (typeof event.code !== "string") return null;
+      if (event.code.startsWith("Digit")) return event.code.slice(5);
+      if (event.code.startsWith("Numpad")) return event.code.slice(6);
+      return null;
+    })();
     if (!keysDown.has(key)) keysJustPressed.add(key);
     keysDown.add(key);
+    if (codeKey && !keysDown.has(codeKey)) {
+      keysJustPressed.add(codeKey);
+      keysDown.add(codeKey);
+    }
     // NES 'B' button: right arrow triggers prayer bomb
     if (event.key === "ArrowRight") {
       prayerBombClickQueued = true;
@@ -161,7 +171,16 @@
     modifierState.alt = Boolean(event.altKey);
     modifierState.meta = Boolean(event.metaKey);
     const key = normalizeKey(event.key);
+    const codeKey = (() => {
+      if (typeof event.code !== "string") return null;
+      if (event.code.startsWith("Digit")) return event.code.slice(5);
+      if (event.code.startsWith("Numpad")) return event.code.slice(6);
+      return null;
+    })();
     keysDown.delete(key);
+    if (codeKey) {
+      keysDown.delete(codeKey);
+    }
       if (event.key === "ArrowLeft") {
         nesAButtonActive = false;
       }

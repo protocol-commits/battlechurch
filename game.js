@@ -10684,7 +10684,10 @@ function handleDeveloperHotkeys() {
   }
   if (!keysJustPressed.size) return;
   const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
-  if (!modifiers || !modifiers.shift || !modifiers.ctrl) return;
+  const pressed = typeof Input !== "undefined" ? Input.keysPressed : null;
+  const shiftHeld = Boolean(modifiers?.shift || pressed?.has?.("Shift"));
+  const ctrlHeld = Boolean(modifiers?.ctrl || pressed?.has?.("Control"));
+  if (!shiftHeld || !ctrlHeld) return;
   if (keysJustPressed.has("1")) {
     devTools.godMode = !devTools.godMode;
     setDevStatus(devTools.godMode ? "God mode enabled" : "God mode disabled", 2.5);
