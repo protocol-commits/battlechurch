@@ -3524,14 +3524,19 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof window !== "undefined") {
       const bestScoreValue = Number.isFinite(window.bestScore) ? window.bestScore : null;
       const bestText = `Best: ${bestScoreValue == null ? "--" : Math.round(bestScoreValue)}`;
+      const uidText = window.cloudUid ? `UID: ${window.cloudUid}` : "UID: --";
+      const debugScale = Math.min(1, canvas.width / 1280);
       ctx.save();
       ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      ctx.font = `600 ${Math.round(18 * Math.min(1, canvas.width / 1280))}px ${UI_FONT_FAMILY}`;
+      ctx.font = `600 ${Math.round(18 * debugScale)}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "#EAF6FF";
       ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
       ctx.shadowBlur = 10;
       ctx.fillText(bestText, canvas.width - 28, 22);
+      ctx.font = `500 ${Math.round(14 * debugScale)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(234, 246, 255, 0.8)";
+      ctx.fillText(uidText, canvas.width - 28, 44);
       ctx.restore();
     }
 

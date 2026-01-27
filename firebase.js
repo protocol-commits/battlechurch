@@ -50,6 +50,9 @@ async function initCloud() {
       await signInAnonymously(auth);
     }
     await ensureUser();
+    if (typeof window !== "undefined") {
+      window.cloudUid = user?.uid || null;
+    }
     return user;
   })();
   return initPromise;
