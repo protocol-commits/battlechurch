@@ -2205,6 +2205,21 @@ function resizeCanvas() {
 let gameStarted = false;
 let pauseDialogActive = false;
 let howToPlayPageIndex = 0;
+let bestScoreSaveQueued = false;
+let cloudInitAttempted = false;
+
+function tryBootstrapCloud() {
+  if (cloudInitAttempted) return;
+  if (!window.Cloud?.initCloud || !window.Cloud?.loadBestScore) {
+    setTimeout(tryBootstrapCloud, 250);
+    return;
+  }
+  cloudInitAttempted = true;
+  window.Cloud.initCloud().catch(() => {});
+  window.Cloud.loadBestScore().then((value) => {
+    window.bestScore = Number.isFinite(value) ? value : null;
+  }).catch(() => {});
+}
 
 Input.initialize({
   canvas,
@@ -2380,8 +2395,10 @@ function bootInputAndResize() {
 
 if (document.readyState === "complete" || document.readyState === "interactive") {
   setTimeout(bootInputAndResize, 0);
+  setTimeout(tryBootstrapCloud, 0);
 } else {
   window.addEventListener("load", bootInputAndResize);
+  window.addEventListener("load", tryBootstrapCloud);
 }
 
 window.addEventListener("resize", () => {
@@ -11647,6 +11664,25 @@ function handleLevelAnnouncements() {
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
         if (currentAnnouncement.recapFinalYear) {
+          const recapData = currentAnnouncement.recapData;
+          const finalScore = Number.isFinite(recapData?.totalCount)
+            ? recapData.totalCount
+            : getCongregationSize();
+          if (typeof window !== "undefined") {
+            window.lastRunScore = finalScore;
+            if (Number.isFinite(finalScore)) {
+              const existingBest = Number.isFinite(window.bestScore) ? window.bestScore : null;
+              if (existingBest == null || finalScore > existingBest) {
+                window.bestScore = finalScore;
+              }
+            }
+          }
+          if (!bestScoreSaveQueued && window.Cloud?.saveBestScore) {
+            bestScoreSaveQueued = true;
+            window.Cloud.saveBestScore(finalScore).catch(() => {});
+          }
+        }
+        if (currentAnnouncement.recapFinalYear) {
           pendingUpgradeAfterSummary = false;
           queuePastorFinalAnnouncement();
         } else if (currentAnnouncement.levelSummary) {
@@ -13828,6 +13864,7 @@ function restartGame() {
   needsCountdown = false;
   hpFlashTimer = 0;
   score = 0;
+  bestScoreSaveQueued = false;
   spawnTimer = 3.6;
   gameOver = false;
   paused = true;
