@@ -13170,8 +13170,11 @@ function updateGame(dt) {
       if (epilogueScroll.delayTimer < epilogueScroll.startDelay) {
         epilogueScroll.delayTimer += dt;
       } else {
-        // Scroll the content
-        epilogueScroll.scrollY += epilogueScroll.scrollSpeed * dt;
+        // Scroll the content (hold S to fast-forward)
+        const fastForward =
+          (typeof Input !== "undefined" && Input.keysPressed?.has?.("s")) || false;
+        const speedMultiplier = fastForward ? 3 : 1;
+        epilogueScroll.scrollY += epilogueScroll.scrollSpeed * dt * speedMultiplier;
       }
     }
     // Allow restart/continue when button is shown

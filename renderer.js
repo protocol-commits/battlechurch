@@ -3935,27 +3935,23 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof window !== "undefined") {
       const lastRunScore = Number.isFinite(window.lastRunScore) ? window.lastRunScore : null;
       const bestScoreValue = Number.isFinite(window.bestScore) ? window.bestScore : null;
-      const scoreAlpha = thankYouScreenY <= thankYouTargetY ? 1 : 0;
-      if (scoreAlpha > 0) {
-        const scoreTextSize = Math.round(bodySize * 0.85);
-        const lineGap = Math.round(scoreTextSize * 1.2);
-        const latestText = `Latest Run: ${lastRunScore == null ? "--" : Math.round(lastRunScore)}`;
-        const bestText = `Personal Best: ${bestScoreValue == null ? "--" : Math.round(bestScoreValue)}`;
-        const rightX = canvas.width - 28;
-        const topY = 22;
-        ctx.save();
-        ctx.globalAlpha = scoreAlpha;
-        ctx.textAlign = "right";
-        ctx.textBaseline = "top";
-        ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
-        ctx.shadowBlur = 12;
-        ctx.font = `600 ${scoreTextSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-        ctx.fillStyle = "#EAF6FF";
-        ctx.fillText(latestText, rightX, topY);
-        ctx.fillStyle = "#FFD978";
-        ctx.fillText(bestText, rightX, topY + lineGap);
-        ctx.restore();
-      }
+      const scoreTextSize = Math.round(bodySize * 0.85);
+      const lineGap = Math.round(scoreTextSize * 1.2);
+      const latestText = `Latest Run: ${lastRunScore == null ? "--" : Math.round(lastRunScore)}`;
+      const bestText = `Personal Best: ${bestScoreValue == null ? "--" : Math.round(bestScoreValue)}`;
+      const rightX = canvas.width - 28;
+      const topY = 22;
+      ctx.save();
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
+      ctx.shadowBlur = 12;
+      ctx.font = `600 ${scoreTextSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.fillStyle = "#EAF6FF";
+      ctx.fillText(latestText, rightX, topY);
+      ctx.fillStyle = "#FFD978";
+      ctx.fillText(bestText, rightX, topY + lineGap);
+      ctx.restore();
     }
 
     // Check if "Thank you" has reached its final position
