@@ -4,6 +4,7 @@
   const MAP_IMAGE_PRIMARY = "file:///Users/conradtolosa/Apps/battlechurch/battlechurch-game/assets/backgrounds/map.jpg";
   const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
   const HIT_RADIUS_BASE = 10;
+  const UI_FONT_FAMILY = "'Orbitron', sans-serif";
   const IS_LOCAL_HOST =
     typeof window !== "undefined" &&
     (window.location?.hostname === "localhost" || window.location?.hostname === "127.0.0.1");
@@ -24,6 +25,23 @@
     lastMapLoad: 0,
     lastPulseTime: 0,
   };
+
+  function roundRect(ctx, x, y, width, height, radius, fill = true, stroke = true) {
+    if (!ctx) return;
+    ctx.beginPath();
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + width - r, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+    ctx.lineTo(x + width, y + height - r);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+    ctx.lineTo(x + r, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
 
   function loadMapImage() {
     if (mapImage || mapImageLoaded || mapImageFailed) return;
@@ -202,34 +220,23 @@
     }
     ctx.restore();
 
-    if (starCount > 0) {
-      const starText = "★".repeat(Math.min(3, starCount));
-      ctx.save();
-      ctx.font = `600 ${Math.round(14 * (rect.w / 1280))}px serif`;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.fillText(starText, position.x + radius + 6, position.y - radius - 4);
-      ctx.restore();
-    }
-
     const bestCount = getTownBestCount(town.id);
     if (bestCount != null) {
       ctx.save();
-      ctx.font = `600 ${Math.round(14 * (rect.w / 1280))}px serif`;
+      const nameSize = Math.round(14 * (rect.w / 1280));
+      const countSize = Math.round(12 * (rect.w / 1280));
+      const stars = "★".repeat(Math.max(1, Math.min(3, starCount)));
+      ctx.font = `600 ${nameSize}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "#FFFFFF";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
-      ctx.fillText(town.name, position.x, position.y - radius - 10);
-      ctx.font = `500 ${Math.round(12 * (rect.w / 1280))}px serif`;
-      ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
-      ctx.fillText(`${Math.round(bestCount)} Star Count`, position.x, position.y - radius - 10 + 16);
+      ctx.fillText(`${town.name} (${Math.round(bestCount)}) ${stars}`, position.x, position.y - radius - 10);
       ctx.restore();
     } else if (selected) {
       ctx.save();
-      ctx.font = `600 ${Math.round(16 * (rect.w / 1280))}px serif`;
+      ctx.font = `600 ${Math.round(16 * (rect.w / 1280))}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = unlocked ? "#FFFFFF" : "rgba(255,255,255,0.6)";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -259,7 +266,7 @@
     ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
     ctx.shadowBlur = 12;
     ctx.fillStyle = "#FFD978";
-    ctx.font = `700 ${headerSize}px serif`;
+    ctx.font = `700 ${headerSize}px ${UI_FONT_FAMILY}`;
     ctx.fillText("Greyhaven", rect.x + rect.w / 2, rect.y + Math.max(12, rect.h * 0.04));
 
     const districts = mapData.getDistricts();
@@ -269,7 +276,7 @@
       const x = rect.x + thirdWidth * index + thirdWidth / 2;
       const y = rect.y + Math.max(54, rect.h * 0.12);
       ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
-      ctx.font = `600 ${districtSize}px serif`;
+      ctx.font = `600 ${districtSize}px ${UI_FONT_FAMILY}`;
       ctx.fillText(district.name, x, y);
     });
     ctx.restore();
@@ -354,21 +361,20 @@
     ctx.fillStyle = "rgba(8, 12, 20, 0.85)";
     ctx.strokeStyle = "rgba(255,255,255,0.2)";
     ctx.lineWidth = 2;
-    ctx.fillRect(panelX, panelY, panelW, panelH);
-    ctx.strokeRect(panelX, panelY, panelW, panelH);
+    roundRect(ctx, panelX, panelY, panelW, panelH, 16, true, true);
 
     ctx.fillStyle = "#FFD978";
-    ctx.font = "600 22px serif";
+    ctx.font = `600 22px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(town.name, canvas.width / 2, panelY + 16);
 
     ctx.fillStyle = "#EAF6FF";
-    ctx.font = "500 16px serif";
+    ctx.font = `500 16px ${UI_FONT_FAMILY}`;
     ctx.fillText(district ? district.name : "", canvas.width / 2, panelY + 46);
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "500 16px serif";
+    ctx.font = `500 16px ${UI_FONT_FAMILY}`;
     ctx.fillText(`Stars: ${stars}`, canvas.width / 2, panelY + 76);
 
     const buttonW = 140;
@@ -387,15 +393,14 @@
       ctx.fillStyle = "#9BD9FF";
       ctx.strokeStyle = "rgba(255,255,255,0.3)";
       ctx.lineWidth = 2;
-      ctx.fillRect(btn.x, buttonY, buttonW, buttonH);
-      ctx.strokeRect(btn.x, buttonY, buttonW, buttonH);
+      roundRect(ctx, btn.x, buttonY, buttonW, buttonH, 16, true, true);
       if (index === state.panelFocus) {
         ctx.strokeStyle = "#FFD978";
         ctx.lineWidth = 3;
-        ctx.strokeRect(btn.x - 2, buttonY - 2, buttonW + 4, buttonH + 4);
+        roundRect(ctx, btn.x - 2, buttonY - 2, buttonW + 4, buttonH + 4, 18, false, true);
       }
       ctx.fillStyle = "#0b111a";
-      ctx.font = "600 16px serif";
+      ctx.font = `600 16px ${UI_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(btn.label, btn.x + buttonW / 2, buttonY + buttonH / 2);
