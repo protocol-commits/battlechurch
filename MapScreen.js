@@ -4,6 +4,9 @@
   const MAP_IMAGE_PRIMARY = "file:///Users/conradtolosa/Apps/battlechurch/battlechurch-game/assets/backgrounds/map.jpg";
   const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
   const HIT_RADIUS_BASE = 10;
+  const IS_LOCAL_HOST =
+    typeof window !== "undefined" &&
+    (window.location?.hostname === "localhost" || window.location?.hostname === "127.0.0.1");
 
   let mapImage = null;
   let mapImageLoaded = false;
@@ -41,6 +44,9 @@
   function ensureProgress() {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return null;
+    if (IS_LOCAL_HOST) {
+      return buildLocalProgress(mapData);
+    }
     if (!state.mapProgress) {
       state.mapProgress = {
         towns: {},
@@ -60,10 +66,31 @@
     return state.mapProgress;
   }
 
+  function buildLocalProgress(mapData) {
+    const towns = mapData.towns || [];
+    const unlockedTownIds = towns.map((town) => town.id);
+    const townEntries = {};
+    towns.forEach((town) => {
+      townEntries[town.id] = {
+        stars: mapData.calculateStars(100),
+        bestCount: 100,
+      };
+    });
+    return {
+      towns: townEntries,
+      unlockedTownIds,
+    };
+  }
+
   async function loadPlayerProgress() {
     if (state.loading) return;
     state.loading = true;
     try {
+      if (IS_LOCAL_HOST) {
+        state.mapProgress = ensureProgress();
+        state.selectedTownId = state.selectedTownId || pickInitialTown();
+        return;
+      }
       if (window.Cloud?.initCloud) {
         await window.Cloud.initCloud();
       }
@@ -211,6 +238,41 @@
       ctx.fillText(town.name, position.x, position.y - radius - 10);
       ctx.restore();
     }
+  }
+
+  function isDistrictUnlocked(districtId) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return false;
+    const towns = mapData.getTownsByDistrict(districtId);
+    return towns.some((town) => isTownUnlocked(town.id));
+  }
+
+  function drawMapLabels(ctx, canvas, rect) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return;
+    const scale = rect.w / 1280;
+    const headerSize = Math.round(32 * scale);
+    const districtSize = Math.round(20 * scale);
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = "#FFD978";
+    ctx.font = `700 ${headerSize}px serif`;
+    ctx.fillText("Greyhaven", rect.x + rect.w / 2, rect.y + Math.max(12, rect.h * 0.04));
+
+    const districts = mapData.getDistricts();
+    const thirdWidth = rect.w / Math.max(1, districts.length);
+    districts.forEach((district, index) => {
+      if (!isDistrictUnlocked(district.id)) return;
+      const x = rect.x + thirdWidth * index + thirdWidth / 2;
+      const y = rect.y + Math.max(54, rect.h * 0.12);
+      ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
+      ctx.font = `600 ${districtSize}px serif`;
+      ctx.fillText(district.name, x, y);
+    });
+    ctx.restore();
   }
 
   function findTownAtPosition(point, rect) {
@@ -363,9 +425,6 @@
         startRunForTown(state.selectedTownId);
       } else {
         closeTownPanel();
-        if (typeof window.exitMapScreen === "function") {
-          window.exitMapScreen();
-        }
       }
     }
     return true;
@@ -422,9 +481,6 @@
         startRunForTown(state.selectedTownId);
       } else {
         closeTownPanel();
-        if (typeof window.exitMapScreen === "function") {
-          window.exitMapScreen();
-        }
       }
       return;
     }
@@ -510,6 +566,7 @@
     if (!state.active) return;
     ctx.save();
     const rect = drawMapBackground(ctx, canvas);
+    drawMapLabels(ctx, canvas, rect);
     updateSelectionFromHover(rect);
     const pulse = Math.sin((Date.now() / 1000) * 3) * 2;
     const mapData = window.BattlechurchMapData;
