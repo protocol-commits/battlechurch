@@ -10,7 +10,7 @@
 
   const towns = [
     // Westreach (northwest)
-    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.14, y: 0.18 }, // move me later
+    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.1, y: 0.14 }, // move me later
     { id: "stone_ridge", name: "Stone Ridge", districtId: "northwest", x: 0.3, y: 0.26 }, // move me later
     { id: "northvale", name: "Northvale", districtId: "northwest", x: 0.16, y: 0.36 }, // move me later
     { id: "briarfield", name: "Briarfield", districtId: "northwest", x: 0.36, y: 0.4 }, // move me later
@@ -35,7 +35,7 @@
 
     // Rivergate (southeast)
     { id: "havenridge", name: "Havenridge", districtId: "southeast", x: 0.6, y: 0.58 }, // move me later
-    { id: "duston", name: "Duston", districtId: "southeast", x: 0.8, y: 0.68 }, // move me later
+    { id: "duston", name: "Duston", districtId: "southeast", x: 0.72, y: 0.68 }, // move me later
     { id: "southbank", name: "Southbank", districtId: "southeast", x: 0.56, y: 0.74 }, // move me later
     { id: "fordham", name: "Fordham", districtId: "southeast", x: 0.86, y: 0.6 }, // move me later
     { id: "clearford", name: "Clearford", districtId: "southeast", x: 0.64, y: 0.84 }, // move me later
