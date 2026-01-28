@@ -11445,6 +11445,12 @@ function handleTitleScreen() {
           setDevStatus("Settings coming soon", 1.8);
         } else if (button.key === "leaderboard") {
           setDevStatus("Leaderboard coming soon", 1.8);
+        } else if (button.key === "auth") {
+          if (window.cloudAuthProvider === "google") {
+            window.Cloud?.signOut?.().catch?.(() => {});
+          } else {
+            window.Cloud?.signInWithGoogle?.().catch?.(() => {});
+          }
         }
       },
     });

@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInAnonymously, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 import { doc, getDoc, getFirestore, setDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -18,6 +18,7 @@ let db = null;
 let user = null;
 let initPromise = null;
 let bestScoreCache = null;
+let authListenerBound = false;
 
 async function ensureUser() {
   if (user) return user;
@@ -40,12 +41,26 @@ async function ensureUser() {
   return user;
 }
 
+function updateAuthGlobals(nextUser) {
+  if (typeof window === "undefined") return;
+  window.cloudUid = nextUser?.uid || null;
+  window.cloudIsAnonymous = Boolean(nextUser?.isAnonymous);
+  window.cloudAuthProvider = nextUser?.isAnonymous ? "anonymous" : (nextUser ? "google" : null);
+}
+
 async function initCloud() {
   if (initPromise) return initPromise;
   initPromise = (async () => {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    if (!authListenerBound) {
+      authListenerBound = true;
+      onAuthStateChanged(auth, (nextUser) => {
+        user = nextUser || null;
+        updateAuthGlobals(user);
+      });
+    }
     if (!auth.currentUser) {
       await signInAnonymously(auth);
     }
@@ -103,10 +118,54 @@ async function saveBestScore(score) {
   return true;
 }
 
+async function signInWithGoogle() {
+  await initCloud();
+  if (!auth) return null;
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    user = result?.user || auth.currentUser || null;
+    updateAuthGlobals(user);
+    bestScoreCache = null;
+    const best = await loadBestScore();
+    if (typeof window !== "undefined") {
+      window.bestScore = Number.isFinite(best) ? best : null;
+    }
+    return user;
+  } catch (err) {
+    await signInAnonymously(auth);
+    user = auth.currentUser || null;
+    updateAuthGlobals(user);
+    bestScoreCache = null;
+    const best = await loadBestScore();
+    if (typeof window !== "undefined") {
+      window.bestScore = Number.isFinite(best) ? best : null;
+    }
+    return user;
+  }
+}
+
+async function signOutCloud() {
+  await initCloud();
+  if (!auth) return null;
+  await signOut(auth);
+  await signInAnonymously(auth);
+  user = auth.currentUser || null;
+  updateAuthGlobals(user);
+  bestScoreCache = null;
+  const best = await loadBestScore();
+  if (typeof window !== "undefined") {
+    window.bestScore = Number.isFinite(best) ? best : null;
+  }
+  return user;
+}
+
 window.Cloud = {
   initCloud,
   loadBestScore,
   saveBestScore,
   loadPlayerDoc,
   savePlayerDoc,
+  signInWithGoogle,
+  signOut: signOutCloud,
 };

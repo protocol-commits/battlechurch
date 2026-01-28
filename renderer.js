@@ -3546,18 +3546,24 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const subtitleSize = TEXT_STYLES.h2.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     // Only show Loading button while loading, both buttons when ready
+    const authLabel =
+      typeof window !== "undefined" && window.cloudAuthProvider === "google"
+        ? "Sign Out"
+        : "Sign in with Google";
     const buttonConfigs = assetsLoaded
       ? [
           { key: "play", label: "Play" },
           { key: "map", label: "Map" },
           { key: "settings", label: "Settings" },
           { key: "leaderboard", label: "Leaderboard" },
+          { key: "auth", label: authLabel },
         ]
       : [
           { key: "play", label: "Loading..." },
           { key: "map", label: "Map" },
           { key: "settings", label: "Settings" },
           { key: "leaderboard", label: "Leaderboard" },
+          { key: "auth", label: authLabel },
         ];
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
