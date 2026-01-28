@@ -204,8 +204,14 @@
     ctx.save();
     ctx.beginPath();
     ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
+    ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+    ctx.shadowBlur = 10;
     ctx.fillStyle = unlocked ? "#FFD978" : "rgba(255,255,255,0.2)";
     ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.stroke();
     if (selected && unlocked) {
       ctx.lineWidth = 3;
       ctx.strokeStyle = "rgba(255,255,255,0.9)";
@@ -270,15 +276,7 @@
     ctx.fillText("Greyhaven", rect.x + rect.w / 2, rect.y + Math.max(12, rect.h * 0.04));
 
     const districts = mapData.getDistricts();
-    const thirdWidth = rect.w / Math.max(1, districts.length);
-    districts.forEach((district, index) => {
-      if (!isDistrictUnlocked(district.id)) return;
-      const x = rect.x + thirdWidth * index + thirdWidth / 2;
-      const y = rect.y + Math.max(54, rect.h * 0.12);
-      ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
-      ctx.font = `600 ${districtSize}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(district.name, x, y);
-    });
+    void districts;
     ctx.restore();
   }
 
