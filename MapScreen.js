@@ -98,6 +98,12 @@
     return Number.isFinite(townEntry?.stars) ? townEntry.stars : 0;
   }
 
+  function getTownBestCount(townId) {
+    const progress = ensureProgress();
+    const townEntry = progress?.towns?.[townId];
+    return Number.isFinite(townEntry?.bestCount) ? townEntry.bestCount : null;
+  }
+
   function getTownById(townId) {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return null;
@@ -180,7 +186,21 @@
       ctx.restore();
     }
 
-    if (selected) {
+    const bestCount = getTownBestCount(town.id);
+    if (bestCount != null) {
+      ctx.save();
+      ctx.font = `600 ${Math.round(14 * (rect.w / 1280))}px serif`;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+      ctx.shadowBlur = 10;
+      ctx.fillText(town.name, position.x, position.y - radius - 10);
+      ctx.font = `500 ${Math.round(12 * (rect.w / 1280))}px serif`;
+      ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
+      ctx.fillText(`${Math.round(bestCount)} Star Count`, position.x, position.y - radius - 10 + 16);
+      ctx.restore();
+    } else if (selected) {
       ctx.save();
       ctx.font = `600 ${Math.round(16 * (rect.w / 1280))}px serif`;
       ctx.fillStyle = unlocked ? "#FFFFFF" : "rgba(255,255,255,0.6)";
@@ -436,8 +456,14 @@
     const currentStars = Number.isFinite(progress.towns?.[townId]?.stars)
       ? progress.towns[townId].stars
       : 0;
+    const currentBest = Number.isFinite(progress.towns?.[townId]?.bestCount)
+      ? progress.towns[townId].bestCount
+      : null;
     if (!progress.towns[townId]) progress.towns[townId] = { stars: 0 };
     progress.towns[townId].stars = Math.max(currentStars, stars);
+    if (currentBest == null || congregationCount > currentBest) {
+      progress.towns[townId].bestCount = congregationCount;
+    }
 
     const town = getTownById(townId);
     const districts = mapData.getDistricts();
