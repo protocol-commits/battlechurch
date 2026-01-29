@@ -103,10 +103,12 @@
 
   function buildLocalProgress(mapData) {
     const towns = mapData.towns || [];
-    const unlockedTownIds = towns.map((town) => town.id);
+    const completedCount = 11;
+    const completedIds = towns.slice(0, completedCount).map((town) => town.id);
+    const unlockedTownIds = completedIds.slice();
     const townEntries = {};
-    towns.forEach((town) => {
-      townEntries[town.id] = {
+    completedIds.forEach((townId) => {
+      townEntries[townId] = {
         stars: mapData.calculateStars(100),
         bestCount: 100,
       };
