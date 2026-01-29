@@ -14215,6 +14215,9 @@ async function init() {
       assets.titleBackground = preloadedTitleBg;
     }
     assetsLoaded = true;
+    if (window.MapScreen?.setAssets) {
+      window.MapScreen.setAssets(assets);
+    }
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
         getAssets: () => assets,

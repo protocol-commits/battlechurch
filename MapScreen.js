@@ -12,6 +12,8 @@
   let mapImage = null;
   let mapImageLoaded = false;
   let mapImageFailed = false;
+  let mapAssets = null;
+  let miniImpAnimator = null;
 
   const state = {
     active: false,
@@ -57,6 +59,21 @@
       mapImageFailed = true;
     };
     mapImage.src = MAP_IMAGE_PRIMARY;
+  }
+
+  function setAssets(assets) {
+    mapAssets = assets || null;
+    miniImpAnimator = null;
+  }
+
+  function getMiniImpAnimator() {
+    if (miniImpAnimator) return miniImpAnimator;
+    const clips = mapAssets?.enemies?.miniImp || null;
+    const Animator = window.Entities?.Animator || null;
+    if (!clips || !Animator) return null;
+    miniImpAnimator = new Animator(clips, 1);
+    miniImpAnimator.play("walk", { restart: true, loop: true });
+    return miniImpAnimator;
   }
 
   function ensureProgress() {
@@ -227,6 +244,18 @@
     ctx.restore();
 
     const bestCount = getTownBestCount(town.id);
+    if (bestCount == null) {
+      const animator = getMiniImpAnimator();
+      const clip = animator?.currentClip || null;
+      if (animator && clip) {
+        const targetSize = radius * 1.25;
+        const baseSize = Math.max(clip.frameWidth || 1, clip.frameHeight || 1);
+        animator.scale = baseSize > 0 ? targetSize / baseSize : 1;
+        animator.draw(ctx, position.x, position.y, {
+          alpha: unlocked ? 0.95 : 0.6,
+        });
+      }
+    }
     if (bestCount != null) {
       ctx.save();
       const nameSize = Math.round(14 * (rect.w / 1280));
@@ -613,6 +642,10 @@
     if (!state.active) return;
     loadMapImage();
     handleMapInput();
+    const animator = getMiniImpAnimator();
+    if (animator) {
+      animator.update(dt);
+    }
   }
 
   function draw(ctx, canvas) {
@@ -639,6 +672,7 @@
     recordTownCompletion,
     getNextTownInOrder,
     selectTown,
+    setAssets,
     get mapRect() { return { ...state.mapRect }; },
   };
 })(typeof window !== "undefined" ? window : null);
