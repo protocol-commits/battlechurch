@@ -11462,9 +11462,8 @@ function handleTitleScreen() {
       buttons,
       allowSpace: true,
       onActivate: (button) => {
-        if (button.key === "play") {
-          startGameFromTitle();
-        } else if (button.key === "map") {
+        if (button.key === "play" || button.key === "map") {
+          // Play button now goes to map screen so player must pick a town
           titleScreenActive = false;
           howToPlayActive = false;
           mapActive = true;
@@ -11517,7 +11516,10 @@ function handleHowToPlayScreen() {
         return;
       }
       if (button.key === "play") {
-        startGameFromTitle();
+        // Play button from how-to-play also goes to map screen
+        howToPlayActive = false;
+        mapActive = true;
+        if (window.MapScreen) window.MapScreen.open();
       }
     },
   });
