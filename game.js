@@ -4773,6 +4773,29 @@ function exitMapScreen() {
   howToPlayActive = false;
 }
 
+function returnToMapWithNextTown() {
+  // Stop the game and return to map screen with next town selected
+  paused = true;
+  gameStarted = false;
+  titleScreenActive = false;
+  howToPlayActive = false;
+  mapActive = true;
+  // Clear any pending announcements
+  try {
+    if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  } catch (e) {}
+  // Reset level manager
+  if (levelManager?.reset) levelManager.reset();
+  // Select and open map with next town
+  if (window.MapScreen) {
+    const nextTownId = window.MapScreen.getNextTownInOrder(activeTownId);
+    if (nextTownId) {
+      window.MapScreen.selectTown(nextTownId);
+    }
+    window.MapScreen.open();
+  }
+}
+
 const HOW_TO_PLAY_BODY =
   uiTexts.howToPlayBody ||
   [
@@ -11713,7 +11736,8 @@ function handleLevelAnnouncements() {
         graceRushFadeTimer = 0;
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
-        if (currentAnnouncement.recapFinalYear) {
+        // Record town completion and save score for ALL completed towns
+        if (currentAnnouncement.levelSummary) {
           const recapData = currentAnnouncement.recapData;
           const finalScore = Number.isFinite(recapData?.totalCount)
             ? recapData.totalCount
@@ -11815,15 +11839,17 @@ function handleLevelAnnouncements() {
       buttons,
       allowSpace: true,
       onActivate: () => {
-        pendingUpgradeAfterSummary = Boolean(currentAnnouncement.pastorPostRecapUpgradeAfter);
         dismissCurrentLevelAnnouncement();
+        // Return to map screen with next town selected
+        returnToMapWithNextTown();
       },
     });
     if (handled) return true;
     const clickPos = Input.consumeCanvasClick?.();
     if (clickPos) {
-      pendingUpgradeAfterSummary = Boolean(currentAnnouncement.pastorPostRecapUpgradeAfter);
       dismissCurrentLevelAnnouncement();
+      // Return to map screen with next town selected
+      returnToMapWithNextTown();
       return true;
     }
     return true;

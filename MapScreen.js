@@ -503,6 +503,43 @@
     }
   }
 
+  function getNextTownInOrder(townId) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData || !townId) return null;
+    const town = getTownById(townId);
+    if (!town) return null;
+
+    // Capital (Highgate) is the final town - no next town
+    if (town.type === "capital") return null;
+
+    const districts = mapData.getDistricts();
+    const districtIndex = districts.findIndex((d) => d.id === town.districtId);
+    if (districtIndex < 0) return null;
+
+    const townsInDistrict = mapData.getTownsByDistrict(districts[districtIndex].id);
+    const townIndex = townsInDistrict.findIndex((t) => t.id === townId);
+
+    // Next town in same district
+    if (townIndex >= 0 && townIndex < townsInDistrict.length - 1) {
+      return townsInDistrict[townIndex + 1].id;
+    }
+
+    // First town in next district
+    if (districtIndex < districts.length - 1) {
+      const nextDistrictTowns = mapData.getTownsByDistrict(districts[districtIndex + 1].id);
+      if (nextDistrictTowns.length) return nextDistrictTowns[0].id;
+    }
+
+    // All districts done - go to capital (Highgate)
+    const capital = mapData.towns.find((t) => t.type === "capital");
+    return capital ? capital.id : null;
+  }
+
+  function selectTown(townId) {
+    if (!townId) return;
+    state.selectedTownId = townId;
+  }
+
   async function recordTownCompletion(townId, congregationCount) {
     if (!townId) return;
     const mapData = window.BattlechurchMapData;
@@ -587,6 +624,8 @@
     update,
     draw,
     recordTownCompletion,
+    getNextTownInOrder,
+    selectTown,
     get mapRect() { return { ...state.mapRect }; },
   };
 })(typeof window !== "undefined" ? window : null);
