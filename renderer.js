@@ -3573,14 +3573,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const buttonConfigs = assetsLoaded
       ? [
           { key: "play", label: "Play" },
-          { key: "map", label: "Map" },
           { key: "settings", label: "Settings" },
           { key: "leaderboard", label: "Leaderboard" },
           { key: "auth", label: authLabel },
         ]
       : [
           { key: "play", label: "Loading..." },
-          { key: "map", label: "Map" },
           { key: "settings", label: "Settings" },
           { key: "leaderboard", label: "Leaderboard" },
           { key: "auth", label: authLabel },
