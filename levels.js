@@ -25,11 +25,11 @@
   const HORDES_PER_BATTLE =
     levelData?.structure?.defaultHordesPerBattle || 21;
   const BETWEEN_BATTLE_PAUSE = 3;
-  const BETWEEN_HORDE_PAUSE = 2.3;
+  const BETWEEN_WAVE_PAUSE = 2.3;
   const LEVEL_INTRO_DURATION = 2.6;
   const BATTLE_INTRO_DURATION = 3.0;
-  const HORDE_INTRO_DURATION = 2.8;
-  const HORDE_CLEAR_DURATION = 2.2;
+  const WAVE_INTRO_DURATION = 2.8;
+  const WAVE_CLEAR_DURATION = 2.2;
   const ANNOUNCEMENT_FADE_DURATION = 1.5;
   const GRACE_RUSH_DURATION = 5;
   const BOSS_GRACE_RUSH_DURATION = 10;
@@ -106,12 +106,12 @@
     return map && typeof map === "object" ? map : {};
   }
 
-  function isGlobalAllKillHorde(hordeNumber) {
+  function isGlobalAllKillWave(hordeNumber) {
     const list = getGlobalList("allKillHordes");
     return list.includes(hordeNumber);
   }
 
-  function getFloorTextForHorde(hordeNumber) {
+  function getFloorTextForWave(hordeNumber) {
     const map = getGlobalMap("floorTextByHorde");
     if (map[hordeNumber] !== undefined) return map[hordeNumber];
     const stringKey = String(hordeNumber);
@@ -176,7 +176,7 @@
     randomInRange: fallbackRandomInRange,
     queueLevelAnnouncement: noop,
     setDevStatus: noop,
-    getMonthName: () => "January",
+    getMonthName: () => "Mission 1",
     spawnEnemyOfType: noop,
     spawnMiniImpGroup: noop,
     spawnPowerUpDrops: noop,
@@ -319,7 +319,7 @@
       ? defaultDuration
       : Math.max(10, 14 + Math.round(difficultyRating * 2));
     const scopedAllKill = scope.horde?.allKill === true;
-    const globalAllKill = isGlobalAllKillHorde(hordeNumber);
+    const globalAllKill = isGlobalAllKillWave(hordeNumber);
     const resolvedAllKill = scopedAllKill || globalAllKill;
 
     // Collect builder overrides (weighted + explicit can both apply)
@@ -494,11 +494,11 @@
       active: false,
       level: 0,
       monthIndex: -1, // was battleIndex
-      battleIndex: -1, // was hordeIndex
+      waveIndex: -1, // tracks current wave within a mission (was battleIndex/hordeIndex)
       stage: "idle",
       timer: 0,
       definition: null,
-      activeHorde: null,
+      activeWave: null,
       boss: null,
       stats: {
         enemiesDefeated: 0,
@@ -518,7 +518,7 @@
       visitorMinigamePlayed: false,
       pendingVisitorMinigame: false,
       visitorResumeAction: null,
-      finalHordeDelay: 0,
+      finalWaveDelay: 0,
       pendingPortalSpawnBaseline: 0,
       graceRushContext: null,
       pendingBossRestore: false,
@@ -560,10 +560,10 @@
       return state.definition.battles[state.monthIndex] || null;
     }
 
-    function currentHorde() {
+    function currentWave() {
       const battle = currentBattle();
       if (!battle) return null;
-      return battle.hordes[state.battleIndex] || null;
+      return battle.hordes[state.waveIndex] || null;
     }
 
     function hasActiveOpponents(includeBoss = true) {
@@ -577,7 +577,7 @@
       const totalEnemiesDefeated = state.stats?.enemiesDefeated || 0;
       state.level = levelNumber;
       state.monthIndex = -1;
-      state.battleIndex = -1;
+      state.waveIndex = -1;
       state.definition = buildLevelDefinition(levelNumber, helperConfig);
       state.active = true;
       state.boss = null;
@@ -619,8 +619,8 @@
     window.__skipInitialMonthAnnouncement = false;
   }
   if (!skipIntroAnnouncement) {
-    console.info && console.info('queueAnnouncement', { title: `Level ${levelNumber}: ${monthName}`, level: levelNumber, monthIndex: 0, monthName });
-    queueLevelAnnouncement(`Level ${levelNumber}: ${monthName}`, "A new month of ministry begins", {
+    console.info && console.info('queueAnnouncement', { title: `Battle ${levelNumber}: ${monthName}`, level: levelNumber, monthIndex: 0, monthName });
+    queueLevelAnnouncement(`Battle ${levelNumber}: ${monthName}`, "A new mission begins", {
           duration: MONTH_INTRO_DURATION,
           requiresConfirm: true,
         });
@@ -641,7 +641,7 @@
     state.waitingForCongregation = false;
     clearCongregationMembers();
     state.monthIndex += 1;
-    state.battleIndex = -1;
+    state.waveIndex = -1;
   const battleNumber = state.monthIndex + 1;
   const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
   const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
@@ -680,18 +680,18 @@
         const count = typeof deps.getCongregationSize === "function" ? deps.getCongregationSize() : 0;
         deps.triggerCongregationOverlay(count);
       }
-      console.info && console.info('queueAnnouncement', { title: `Level ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
+      console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
       const missionBriefTitle = monthName;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
-      queueLevelAnnouncement(`Level ${state.level} — ${monthName}`, state.currentBattleScenario, {
+      queueLevelAnnouncement(`Battle ${state.level} — ${monthName}`, state.currentBattleScenario, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
         missionBriefTitle,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
-      setDevStatus(`Level ${state.level} — ${monthName} forming`, BATTLE_INTRO_DURATION + 0.5);
+      setDevStatus(`Battle ${state.level} — ${monthName} forming`, BATTLE_INTRO_DURATION + 0.5);
     }
 
     function finalizeBattleNpcResults() {
@@ -767,7 +767,7 @@
           }));
         } catch (e) {
           try { console.info && console.info('finalizeBattleNpcResults', {
-            battleIndex: state.battleIndex,
+            battleIndex: state.waveIndex,
             startCount: startCount,
             survivors: survivors,
             battleSaved,
@@ -879,7 +879,7 @@
       // at the same time as the instructions.
       state.level = levelNumber;
       state.monthIndex = -1;
-      state.battleIndex = -1;
+      state.waveIndex = -1;
       state.definition = buildLevelDefinition(levelNumber, helperConfig);
       state.active = true;
       state.boss = null;
@@ -915,7 +915,7 @@
       // When advancing from briefing the upcoming month is the first month
       // of the level; use month index fallback to 1.
       const monthName = getMonthName((state.monthIndex >= 0 ? state.monthIndex + 1 : 1));
-      queueLevelAnnouncement(monthName, "A new month of ministry begins", {
+      queueLevelAnnouncement(monthName, "A new mission begins", {
         duration: MONTH_INTRO_DURATION,
         requiresConfirm: true,
       });
@@ -923,14 +923,14 @@
       setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
     }
 
-    function beginHorde() {
-      state.battleIndex += 1;
-      state.activeHorde = currentHorde();
-      if (!state.activeHorde) return;
-      const hordeNumber = state.battleIndex + 1;
-      const introDuration = hordeNumber === 1 ? 4.0 : HORDE_INTRO_DURATION;
-      resetStage("hordeIntro", introDuration);
-      if (hordeNumber === 1) {
+    function beginWave() {
+      state.waveIndex += 1;
+      state.activeWave = currentWave();
+      if (!state.activeWave) return;
+      const waveNumber = state.waveIndex + 1;
+      const introDuration = waveNumber === 1 ? 4.0 : WAVE_INTRO_DURATION;
+      resetStage("waveIntro", introDuration);
+      if (waveNumber === 1) {
         const names = formatNameList(npcs.map((npc) => npc?.name || ""));
         const title = "\"We're going to face this together.\"";
         queueLevelAnnouncement(title, "", {
@@ -952,8 +952,8 @@
       } else {
         state.powerUpsEnabled = true;
       }
-      const hordeLabel = `${state.monthIndex + 1}-${state.battleIndex + 1}`;
-      setDevStatus(`Horde ${hordeLabel}`, introDuration + 0.6);
+      const waveLabel = `${state.monthIndex + 1}-${state.waveIndex + 1}`;
+      setDevStatus(`Wave ${waveLabel}`, introDuration + 0.6);
       scheduleConversation(0.4, () => {
         heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
       });
@@ -975,20 +975,20 @@
       });
     }
 
-    function spawnActiveHorde() {
-      const horde = state.activeHorde;
+    function spawnActiveWave() {
+      const horde = state.activeWave;
       if (!horde) return;
-      const hordeNumber = state.battleIndex + 1;
-      const hordeActiveDuration = Number.isFinite(horde?.duration) ? horde.duration : 12;
+      const waveNumber = state.waveIndex + 1;
+      const waveActiveDuration = Number.isFinite(horde?.duration) ? horde.duration : 12;
       const currentBattle = state.definition?.battles?.[state.monthIndex] || null;
       const totalHordes = getBattleHordeCount(currentBattle);
-      const finalHorde = state.battleIndex + 1 >= totalHordes;
-      if (finalHorde && typeof getPendingPortalSpawnCount === "function") {
+      const finalWave = state.waveIndex + 1 >= totalHordes;
+      if (finalWave && typeof getPendingPortalSpawnCount === "function") {
         state.pendingPortalSpawnBaseline = getPendingPortalSpawnCount();
       } else {
         state.pendingPortalSpawnBaseline = 0;
       }
-      resetStage("hordeActive", hordeActiveDuration);
+      resetStage("waveActive", waveActiveDuration);
       const enemyEntries = Array.isArray(horde?.enemies) ? horde.enemies : [];
       enemyEntries.forEach(({ type, count, delay }) => {
         const isMiniImpTypeEntry = type === "miniImp" || type === "miniImpLevel2";
@@ -1009,8 +1009,8 @@
         }
       });
 
-      if ([3, 10, 16].includes(hordeNumber)) {
-        const floorText = getFloorTextForHorde(hordeNumber);
+      if ([3, 10, 16].includes(waveNumber)) {
+        const floorText = getFloorTextForWave(waveNumber);
         if (floorText) {
           queueLevelAnnouncement(floorText, "", {
             duration: 2.2,
@@ -1020,18 +1020,18 @@
       }
     }
 
-    function handleHordeCleared() {
+    function handleWaveCleared() {
       const battleNumber = state.monthIndex + 1;
-      const hordeNumber = state.battleIndex + 1;
-      const finalHorde = hordeNumber >= getBattleHordeCount(currentBattle());
+      const waveNumber = state.waveIndex + 1;
+      const finalWave = waveNumber >= getBattleHordeCount(currentBattle());
       state.pendingPortalSpawnBaseline = 0;
-      spawnPowerUpDrops(state.activeHorde?.powerUps || 1);
+      spawnPowerUpDrops(state.activeWave?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);
 
-      if (!finalHorde) {
-        state.finalHordeDelay = 0;
-        if (isGlobalAllKillHorde(hordeNumber)) {
+      if (!finalWave) {
+        state.finalWaveDelay = 0;
+        if (isGlobalAllKillWave(waveNumber)) {
           const preFadeDelay = ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
           if (typeof deps.rotateNpcPositionsForActBreak === "function") {
             deps.rotateNpcPositionsForActBreak();
@@ -1047,8 +1047,8 @@
               startActBreakFade(ACT_BREAK_HOLD_SECONDS);
             }
           }
-          const nextHordeNumber = hordeNumber + 1;
-          const floorText = getFloorTextForHorde(nextHordeNumber);
+          const nextWaveNumber = waveNumber + 1;
+          const floorText = getFloorTextForWave(nextWaveNumber);
           const announcementHold = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA;
           const actBreakTotal = announcementHold + ACT_BREAK_FADE_TOTAL + preFadeDelay;
           if (floorText) {
@@ -1067,13 +1067,13 @@
               });
             }
           }
-          resetStage("hordeCleared", actBreakTotal);
-          setDevStatus(`Act break after Horde ${battleNumber}-${hordeNumber}`, actBreakTotal);
+          resetStage("waveCleared", actBreakTotal);
+          setDevStatus(`Act break after Wave ${battleNumber}-${waveNumber}`, actBreakTotal);
           return;
         }
-        setDevStatus(`Horde ${battleNumber}-${hordeNumber} advancing`, 1.2);
-        beginHorde();
-        spawnActiveHorde();
+        setDevStatus(`Wave ${battleNumber}-${waveNumber} advancing`, 1.2);
+        beginWave();
+        spawnActiveWave();
         return;
       }
 
@@ -1082,7 +1082,7 @@
 
     function beginGraceRushPhase(monthName) {
       resetStage("graceRush", GRACE_RUSH_DURATION);
-      state.finalHordeDelay = 0;
+      state.finalWaveDelay = 0;
       state.graceRushContext = "battle";
       setDevStatus(`Grace Abounds – ${monthName}`, GRACE_RUSH_DURATION);
       queueLevelAnnouncement("Grace Abounds", "Gather as much grace as you can!", {
@@ -1114,15 +1114,15 @@
     function handleBattleComplete() {
       state.graceRushContext = null;
       clearStagePowerUps();
-      state.finalHordeDelay = 0;
+      state.finalWaveDelay = 0;
   finalizeBattleNpcResults();
   // Also call after normal battle completion, not just hotkey skip
       const flavor = HORDE_CLEAR_LINES[state.monthIndex % HORDE_CLEAR_LINES.length];
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);
-      console.info && console.info('queueAnnouncement', { title: `Level ${state.level} — ${monthName} Cleared`, level: state.level, monthIndex: state.monthIndex, monthName });
+      console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${monthName} Cleared`, level: state.level, monthIndex: state.monthIndex, monthName });
       queueLevelAnnouncement(
-        `Level ${state.level} — ${monthName} Cleared`,
+        `Battle ${state.level} — ${monthName} Cleared`,
         flavor,
         {
           duration: BETWEEN_BATTLE_PAUSE,
@@ -1130,7 +1130,7 @@
         },
       );
       resetStage("battleIntermission", BETWEEN_BATTLE_PAUSE);
-      setDevStatus(`Level ${state.level} — ${monthName} secured`, BETWEEN_BATTLE_PAUSE);
+      setDevStatus(`Battle ${state.level} — ${monthName} secured`, BETWEEN_BATTLE_PAUSE);
       if (!state.visitorMinigamePlayed && state.monthIndex === 1) {
         state.pendingVisitorMinigame = true;
         state.visitorMinigamePlayed = true;
@@ -1229,9 +1229,9 @@
     ? MONTHS_PER_LEVEL
     : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
   const summaryMonthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumberForStatus);
-  console.info && console.info('queueAnnouncement', { title: `Level ${state.level} — ${summaryMonthName} Cleared`, level: state.level, monthIndex: state.monthIndex, monthName: summaryMonthName });
+  console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${summaryMonthName} Cleared`, level: state.level, monthIndex: state.monthIndex, monthName: summaryMonthName });
       queueLevelAnnouncement(
-        `Level ${state.level} — ${summaryMonthName} Cleared`,
+        `Battle ${state.level} — ${summaryMonthName} Cleared`,
         summarySubtitle,
         {
           duration: LEVEL_SUMMARY_DURATION,
@@ -1241,7 +1241,7 @@
         },
       );
       resetStage("levelSummary", LEVEL_SUMMARY_DURATION);
-      setDevStatus(`Level ${state.level} cleared`, LEVEL_SUMMARY_DURATION);
+      setDevStatus(`Battle ${state.level} cleared`, LEVEL_SUMMARY_DURATION);
       state.currentBossTheme = "";
       state.lastClearedWasBoss = false;
       if (state.pendingBossRestore) {
@@ -1260,11 +1260,11 @@
       reset() {
         state.active = false;
 state.monthIndex = -1;
-state.battleIndex = -1;
+state.waveIndex = -1;
         state.stage = "idle";
         state.timer = 0;
         state.definition = null;
-        state.activeHorde = null;
+        state.activeWave = null;
         state.boss = null;
         state.pendingVisitorMinigame = false;
         state.visitorMinigamePlayed = false;
@@ -1304,53 +1304,53 @@ state.battleIndex = -1;
             break;
       case "battleIntro":
         state.timer -= dt;
-        if (state.timer <= 0) beginHorde();
+        if (state.timer <= 0) beginWave();
         break;
-      case "hordeIntro":
+      case "waveIntro":
         state.timer -= dt;
-        if (state.timer <= 0) spawnActiveHorde();
+        if (state.timer <= 0) spawnActiveWave();
         break;
-      case "hordeActive": {
+      case "waveActive": {
         state.timer = Math.max(0, state.timer - dt);
         const battle = currentBattle();
         const totalHordes = getBattleHordeCount(battle);
-        const finalHorde = state.battleIndex + 1 >= totalHordes;
+        const finalWave = state.waveIndex + 1 >= totalHordes;
         const enemiesRemain = hasActiveOpponents(false);
         const timerElapsed = state.timer <= 0;
         const pendingPortalSpawns = typeof getPendingPortalSpawnCount === "function"
           ? Math.max(0, getPendingPortalSpawnCount() - (state.pendingPortalSpawnBaseline || 0))
           : 0;
-        const horde = currentHorde();
-        const allKill = finalHorde
+        const horde = currentWave();
+        const allKill = finalWave
           ? true
-          : (horde?.allKill === true || isGlobalAllKillHorde(state.battleIndex + 1));
-        if (!finalHorde) {
+          : (horde?.allKill === true || isGlobalAllKillWave(state.waveIndex + 1));
+        if (!finalWave) {
           if (allKill) {
-            if (!enemiesRemain && pendingPortalSpawns <= 0) handleHordeCleared();
+            if (!enemiesRemain && pendingPortalSpawns <= 0) handleWaveCleared();
           } else if (timerElapsed || !enemiesRemain) {
-            handleHordeCleared();
+            handleWaveCleared();
           }
         } else {
-          if (!enemiesRemain && pendingPortalSpawns <= 0) handleHordeCleared();
+          if (!enemiesRemain && pendingPortalSpawns <= 0) handleWaveCleared();
         }
         break;
       }
-    case "hordeCleared": {
+    case "waveCleared": {
       state.timer -= dt;
       const battle = currentBattle();
       const totalHordes = getBattleHordeCount(battle);
-      const finalHorde = state.battleIndex + 1 >= totalHordes;
-      if (finalHorde && state.timer <= 0 && state.finalHordeDelay > 0) {
-        state.finalHordeDelay = Math.max(0, state.finalHordeDelay - dt);
-        if (state.finalHordeDelay > 0) break;
+      const finalWave = state.waveIndex + 1 >= totalHordes;
+      if (finalWave && state.timer <= 0 && state.finalWaveDelay > 0) {
+        state.finalWaveDelay = Math.max(0, state.finalWaveDelay - dt);
+        if (state.finalWaveDelay > 0) break;
       }
       if (state.timer <= 0) {
-            if (finalHorde && hasActiveOpponents(true)) break;
-            if (finalHorde) {
+            if (finalWave && hasActiveOpponents(true)) break;
+            if (finalWave) {
               handleBattleComplete();
             } else {
-              beginHorde();
-              spawnActiveHorde();
+              beginWave();
+              spawnActiveWave();
             }
           }
         break;
@@ -1519,7 +1519,7 @@ state.battleIndex = -1;
         const battleNumber = isBossStage
           ? MONTHS_PER_LEVEL
           : (state.monthIndex >= 0 ? state.monthIndex + 1 : 0);
-        const hordeNumber = state.battleIndex >= 0 ? state.battleIndex + 1 : 0;
+        const waveNumber = state.waveIndex >= 0 ? state.waveIndex + 1 : 0;
         const localMonthNumber = isBossStage
           ? MONTHS_PER_LEVEL
           : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
@@ -1528,7 +1528,7 @@ state.battleIndex = -1;
           level: state.level || 1,
           month: getMonthName(globalMonthNumber),
           battle: battleNumber,
-          horde: hordeNumber,
+          wave: waveNumber,
           stage: state.stage,
           pendingVisitorMinigame: Boolean(state.pendingVisitorMinigame),
           bossPhase: state.boss?.phase || 0,
@@ -1536,11 +1536,11 @@ state.battleIndex = -1;
           bossTheme: state.currentBossTheme,
         };
       },
-      getCurrentHorde() {
-        return currentHorde();
+      getCurrentWave() {
+        return currentWave();
       },
-      getHordeTimer() {
-        return state.stage === "hordeActive" ? state.timer : null;
+      getWaveTimer() {
+        return state.stage === "waveActive" ? state.timer : null;
       },
       getLevelNumber() {
         return state.level || 1;
@@ -1559,13 +1559,13 @@ state.battleIndex = -1;
           state.timer = Math.min(state.timer, 0.001);
         }
       },
-      devSkipHorde() {
+      devSkipWave() {
         if (!state.active) return false;
         const finalizeSkipState = () => {
           devClearOpponents({ includeBoss: true });
-          state.activeHorde = null;
+          state.activeWave = null;
           state.pendingPortalSpawnBaseline = 0;
-          state.finalHordeDelay = 0;
+          state.finalWaveDelay = 0;
           state.awaitingNpcProcession = false;
           state.waitingForCongregation = false;
           state.npcRushActive = false;
@@ -1575,9 +1575,9 @@ state.battleIndex = -1;
           const battle = currentBattle();
           const totalHordes = getBattleHordeCount(battle);
           if (Number.isFinite(totalHordes) && totalHordes > 0) {
-            state.battleIndex = totalHordes - 1;
+            state.waveIndex = totalHordes - 1;
           } else {
-            state.battleIndex = Math.max(0, state.battleIndex);
+            state.waveIndex = Math.max(0, state.waveIndex);
           }
           if (!Number.isFinite(state.battleNpcStartCount) || state.battleNpcStartCount <= 0) {
             const survivors = npcs.filter((npc) => !npc.departed && npc.active).length;
@@ -1627,24 +1627,24 @@ state.battleIndex = -1;
         }
         if (state.stage === "levelIntro" && state.waitingForCongregation) {
           state.waitingForCongregation = false;
-          state.battleIndex = BATTLE_MONTHS_PER_LEVEL - 1;
+          state.waveIndex = BATTLE_MONTHS_PER_LEVEL - 1;
           beginBossIntro();
           state.timer = 0;
           return true;
         }
-        if (state.stage === "battleIntermission" || state.stage === "hordeCleared") {
+        if (state.stage === "battleIntermission" || state.stage === "waveCleared") {
           devClearOpponents();
-          state.battleIndex = BATTLE_MONTHS_PER_LEVEL - 1;
-          state.battleIndex = getBattleHordeCount(currentBattle()) - 1; // set last horde index
-          state.activeHorde = null;
+          state.waveIndex = BATTLE_MONTHS_PER_LEVEL - 1;
+          state.waveIndex = getBattleHordeCount(currentBattle()) - 1; // set last horde index
+          state.activeWave = null;
           beginBossIntro();
           state.timer = 0;
           return true;
         }
         devClearOpponents();
-        state.battleIndex = BATTLE_MONTHS_PER_LEVEL - 1;
-        state.battleIndex = getBattleHordeCount(currentBattle()) - 1; // fallback assignment
-        state.activeHorde = null;
+        state.waveIndex = BATTLE_MONTHS_PER_LEVEL - 1;
+        state.waveIndex = getBattleHordeCount(currentBattle()) - 1; // fallback assignment
+        state.activeWave = null;
         handleBattleComplete();
         state.timer = 0;
         beginBossIntro();
@@ -1654,9 +1654,9 @@ state.battleIndex = -1;
       devSkipLevel() {
         if (!state.active) return false;
         devClearOpponents({ includeBoss: true });
-        state.activeHorde = null;
+        state.activeWave = null;
         state.pendingPortalSpawnBaseline = 0;
-        state.finalHordeDelay = 0;
+        state.finalWaveDelay = 0;
         const nextLevel = Math.max(1, (state.level || 1) + 1);
         beginLevel(nextLevel);
         return true;
@@ -1669,7 +1669,7 @@ state.battleIndex = -1;
         }
         devClearOpponents({ includeBoss: true });
         state.monthIndex = BATTLE_MONTHS_PER_LEVEL - 1;
-        state.battleIndex = getBattleHordeCount(currentBattle()) - 1;
+        state.waveIndex = getBattleHordeCount(currentBattle()) - 1;
         beginBossIntro();
         state.timer = 0;
         return true;
@@ -1679,12 +1679,12 @@ state.battleIndex = -1;
           beginLevel(1);
         }
         devClearOpponents({ includeBoss: true });
-        state.activeHorde = null;
+        state.activeWave = null;
         state.pendingPortalSpawnBaseline = 0;
-        state.finalHordeDelay = 0;
+        state.finalWaveDelay = 0;
         if (state.monthIndex < 0) state.monthIndex = 0;
-        if (state.battleIndex < 0) {
-          state.battleIndex = getBattleHordeCount(currentBattle()) - 1;
+        if (state.waveIndex < 0) {
+          state.waveIndex = getBattleHordeCount(currentBattle()) - 1;
         }
         const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
         const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);

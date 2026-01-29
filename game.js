@@ -841,8 +841,8 @@ function queuePastorBossPostRecapAnnouncement(levelNumber, upgradeAfter = false)
 function activateEpilogue() {
   const { finalSize, badEnding, grew } = getFinalEndingState();
   const introLine = grew
-    ? `Over the course of the year, you grew your church to ${finalSize} members.`
-    : `Over the course of the year your congregation shrunk to ${finalSize} members.`;
+    ? `Over the course of the campaign, you grew your church to ${finalSize} members.`
+    : `Over the course of the campaign your congregation shrunk to ${finalSize} members.`;
   const middleLine =
     "Unfortunately, the demonimation has chosen to close your church leaving the town in darknesss.";
   const ministryOptions = [
@@ -937,9 +937,9 @@ function resumeBattleMusicIfNeeded() {
   const shouldPlay =
     stage === "npcArrival" ||
     stage === "battleIntro" ||
-    stage === "hordeIntro" ||
-    stage === "hordeActive" ||
-    stage === "hordeCleared" ||
+    stage === "waveIntro" ||
+    stage === "waveActive" ||
+    stage === "waveCleared" ||
     stage === "bossIntro" ||
     stage === "bossActive" ||
     musicState.battlePrimed;
@@ -957,9 +957,9 @@ function shouldStartBattleMusicNow() {
   return Boolean(
     status?.stage === "npcArrival" ||
       status?.stage === "battleIntro" ||
-      status?.stage === "hordeIntro" ||
-      status?.stage === "hordeActive" ||
-      status?.stage === "hordeCleared" ||
+      status?.stage === "waveIntro" ||
+      status?.stage === "waveActive" ||
+      status?.stage === "waveCleared" ||
       status?.stage === "bossIntro" ||
       status?.stage === "bossActive" ||
       musicState.battlePrimed,
@@ -1300,7 +1300,7 @@ function maybeSwapNpcPositions(options = {}) {
   if (!npcs || !npcs.length) return;
   const status =
     typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
-  const activeStages = new Set(["hordeActive", "bossActive", "graceRush"]);
+  const activeStages = new Set(["waveActive", "bossActive", "graceRush"]);
   const forceSwap = Boolean(options.force);
   if (!forceSwap && (!status || !activeStages.has(status.stage))) return;
   if (!formationState?.current) return;
@@ -2821,12 +2821,19 @@ function updateCongregationOverlay(dt) {
   }
 }
 
-function getMonthIndexFromName(name) {
+function getMissionIndexFromName(name) {
   if (!name) return null;
-  const idx = MONTH_NAMES.findIndex(
-    (entry) => String(entry).toLowerCase() === String(name).toLowerCase(),
-  );
-  return idx >= 0 ? idx + 1 : null;
+  // Parse "Mission X" format to get mission number
+  const match = String(name).match(/Mission\s*(\d+)/i);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return null;
+}
+
+// Alias for backwards compatibility
+function getMonthIndexFromName(name) {
+  return getMissionIndexFromName(name);
 }
 
 function isNoCooldownDamageSource(type) {
@@ -2835,37 +2842,39 @@ function isNoCooldownDamageSource(type) {
   return NPC_DAMAGE_COOLDOWN_EXCEPTIONS.some((token) => normalized.includes(token));
 }
 
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+// Mission names replace calendar month names in the new terminology
+// Each Battle has multiple Missions (default 3)
+const MISSIONS_PER_BATTLE = (typeof window !== "undefined" && window.MONTHS_PER_LEVEL) || 3;
 
-function getMonthName(levelNumber) {
-  if (!Number.isFinite(levelNumber) || levelNumber <= 0) return "January";
-  return MONTH_NAMES[(levelNumber - 1) % MONTH_NAMES.length];
+function getMissionName(globalMissionNumber) {
+  if (!Number.isFinite(globalMissionNumber) || globalMissionNumber <= 0) return "Mission 1";
+  // Calculate which mission within the current battle (1-indexed)
+  const missionInBattle = ((globalMissionNumber - 1) % MISSIONS_PER_BATTLE) + 1;
+  return `Mission ${missionInBattle}`;
 }
 
-function getUpcomingMonthName() {
+// Alias for backwards compatibility
+function getMonthName(levelNumber) {
+  return getMissionName(levelNumber);
+}
+
+function getUpcomingMissionName() {
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-  const currentMonth = status?.month;
-  if (!currentMonth) return "";
-  const idx = MONTH_NAMES.findIndex(
-    (name) => name.toLowerCase() === String(currentMonth).toLowerCase(),
-  );
-  if (idx >= 0) {
-    return MONTH_NAMES[(idx + 1) % MONTH_NAMES.length];
+  const currentMission = status?.month;
+  if (!currentMission) return "";
+  // Parse "Mission X" format to get next mission
+  const match = String(currentMission).match(/Mission\s*(\d+)/i);
+  if (match) {
+    const currentNum = parseInt(match[1], 10);
+    const nextNum = (currentNum % MISSIONS_PER_BATTLE) + 1;
+    return `Mission ${nextNum}`;
   }
-  return String(currentMonth);
+  return String(currentMission);
+}
+
+// Alias for backwards compatibility
+function getUpcomingMonthName() {
+  return getUpcomingMissionName();
 }
 
 const COIN_FRAME_FILES = [
@@ -4669,7 +4678,7 @@ function showTownIntroDialog() {
 
 function queueTownIntroAnnouncement() {
   const text =
-    "You are the new pastor to the last church in a town under spiritual attack. Grow your congregation in one year, or the town falls with you.";
+    "You are the new pastor to the last church in a town under spiritual attack. Grow your congregation in one campaign, or the town falls with you.";
   pendingTownIntroStart = true;
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
@@ -10720,7 +10729,7 @@ function handleDeveloperHotkeys() {
     setDevStatus("All hostiles eliminated", 2.0);
   }
   if (keysJustPressed.has("3")) {
-    if (levelManager?.devSkipHorde?.()) {
+    if (levelManager?.devSkipWave?.()) {
       setDevStatus("Battle skipped", 2.0);
     }
   }
@@ -11332,9 +11341,9 @@ function updateMusicState(levelStatus) {
   const battleShouldPlay =
     stage === "npcArrival" ||
     stage === "battleIntro" ||
-    stage === "hordeIntro" ||
-    stage === "hordeActive" ||
-    stage === "hordeCleared" ||
+    stage === "waveIntro" ||
+    stage === "waveActive" ||
+    stage === "waveCleared" ||
     stage === "bossIntro" ||
     stage === "bossActive" ||
     musicState.battlePrimed;
@@ -13377,8 +13386,8 @@ function updateGame(dt) {
   try {
     const stageName = levelStatus?.stage;
     const battleStageAllowsPowerUps =
-      stageName === "hordeIntro" ||
-      stageName === "hordeActive" ||
+      stageName === "waveIntro" ||
+      stageName === "waveActive" ||
       stageName === "bossActive" ||
       stageName === "visitorMinigame";
     const powerUpsEnabled = typeof levelManager?.arePowerUpsEnabled === "function"

@@ -1,7 +1,7 @@
 (function(global) {
   const TITLE_OVERLAY_BODY = [
     "Wage war against the powers of darkness as they attack your flock with temptation, lies, and despair.",
-    "You have one year to save the church... and the town.",
+    "You have one campaign to save the church... and the town.",
   ].join(" ");
 
   const HOW_TO_PLAY_BODY = [

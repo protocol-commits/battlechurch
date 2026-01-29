@@ -2174,7 +2174,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   try {
     if (isBattleSummary && monthName) {
       const clearedSuffix = /cleared/i.test(title) ? ' Cleared' : '';
-      displayTitle = `Level ${levelNumber} — ${monthName}${clearedSuffix}`;
+      displayTitle = `Battle ${levelNumber} — ${monthName}${clearedSuffix}`;
     }
   } catch (e) {}
   const pastorDelayRemaining = levelAnnouncements[0]?.pastorPostRecapDelayRemaining || 0;
@@ -3316,14 +3316,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (!levelStatus) return;
     const monthName = levelStatus.month || "January";
     const stage = levelStatus.stage || "";
-    const hordeNumber = Math.max(1, levelStatus.horde || 1);
+    const waveNumber = Math.max(1, levelStatus.wave || 1);
     const sessionNumber =
-      hordeNumber <= 7
+      waveNumber <= 7
         ? 1
-        : hordeNumber <= 14
+        : waveNumber <= 14
         ? 2
         : 3;
-    const crumbParts = [`Level ${levelStatus.level || 1}`, `${monthName}`];
+    const crumbParts = [`Battle ${levelStatus.level || 1}`, `${monthName}`];
     if (stage === "bossIntro") {
       crumbParts.push("Boss Intro");
     } else if (stage === "bossActive") {
@@ -3331,13 +3331,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     } else if (stage === "graceRush") {
       crumbParts.push("Grace Abounds");
     } else if (stage === "levelIntro") {
-      crumbParts.push("Level Intro");
+      crumbParts.push("Battle Intro");
     } else if (stage === "briefing") {
       crumbParts.push("Briefing");
     } else if (stage === "npcArrival") {
       crumbParts.push("Congregation");
     } else {
-      crumbParts.push(`Session ${sessionNumber}`, `Horde ${hordeNumber}`);
+      crumbParts.push(`Session ${sessionNumber}`, `Wave ${waveNumber}`);
     }
     const breadcrumb = crumbParts.join(" / ");
     const detailText = "";
@@ -3402,8 +3402,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
-    // Define text based on act number
-    const actTitle = `Act ${chapterBreakActNumber}`;
+    // Define text based on battle number
+    const battleTitle = `Battle ${chapterBreakActNumber}`;
     let villainText;
     if (chapterBreakActNumber === 1) {
       villainText = "You are the new pastor to the last church in a town under spiritual attack.";
@@ -3419,7 +3419,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Draw Act title (normal styling)
+    // Draw Battle title (normal styling)
     const titleY = Math.round(canvas.height * 0.26);
     ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "#FFFFFF";
@@ -3427,7 +3427,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowBlur = 12;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
-    ctx.fillText(actTitle, centerX, titleY);
+    ctx.fillText(battleTitle, centerX, titleY);
     ctx.restore();
 
     const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
@@ -4149,7 +4149,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (townIntroActive) {
       const effectiveCameraX = resolveCameraX();
       drawBackground(effectiveCameraX, 0);
-      // Chapter Break (aka Act Break) screen: Act I/II/III + exterior shot.
+      // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
       {
         const { UI_FONT_FAMILY } = requireBindings();
@@ -4164,7 +4164,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowBlur = 12;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
-        ctx.fillText("Act I", centerX, titleY);
+        ctx.fillText("Battle I", centerX, titleY);
         ctx.restore();
       }
       {

@@ -396,11 +396,11 @@
           ? levelManager.getStatus()?.battle || 1
           : 1),
     );
-    const hordeNumber = Math.max(
+    const waveNumber = Math.max(
       1,
-      (currentStatus && currentStatus.horde) ||
+      (currentStatus && currentStatus.wave) ||
         (levelManager && typeof levelManager.getStatus === "function"
-          ? levelManager.getStatus()?.horde || 1
+          ? levelManager.getStatus()?.wave || 1
           : 1),
     );
 
@@ -408,7 +408,7 @@
       deps.miniImpMinGroupsPerHorde +
       Math.max(0, Math.floor((levelNumber - 1) / 2)) +
       Math.max(0, Math.floor((battleNumber - 1) / 2));
-    const targetGroups = Math.min(6, baseGroups + Math.max(0, Math.floor((hordeNumber - 1) / 2)));
+    const targetGroups = Math.min(6, baseGroups + Math.max(0, Math.floor((waveNumber - 1) / 2)));
     let targetGroupSize =
       deps.miniImpBaseGroupSize +
       Math.floor(levelNumber * 1.1) +
