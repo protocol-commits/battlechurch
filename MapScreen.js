@@ -306,31 +306,44 @@
     return unlocked[0].id;
   }
 
+  function getOrderedUnlockedTowns() {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return [];
+    const districts = mapData.getDistricts(); // Already sorted by order: NW, NE, SW, SE
+    const ordered = [];
+    // Add towns district by district
+    districts.forEach((district) => {
+      const townsInDistrict = mapData.getTownsByDistrict(district.id);
+      townsInDistrict.forEach((town) => {
+        if (isTownUnlocked(town.id)) {
+          ordered.push(town);
+        }
+      });
+    });
+    // Add capital last
+    const capital = mapData.towns.find((t) => t.type === "capital");
+    if (capital && isTownUnlocked(capital.id)) {
+      ordered.push(capital);
+    }
+    return ordered;
+  }
+
   function pickNextTown(direction) {
     const mapData = window.BattlechurchMapData;
     if (!mapData || !state.selectedTownId) return state.selectedTownId;
-    const currentTown = getTownById(state.selectedTownId);
-    if (!currentTown) return state.selectedTownId;
-    const rect = state.mapRect;
-    const currentPos = getTownPosition(currentTown, rect);
-    const candidates = getUnlockedTowns().filter((town) => town.id !== currentTown.id);
-    let best = null;
-    let bestScore = Infinity;
-    candidates.forEach((town) => {
-      const pos = getTownPosition(town, rect);
-      const dx = pos.x - currentPos.x;
-      const dy = pos.y - currentPos.y;
-      if (direction === "left" && dx >= 0) return;
-      if (direction === "right" && dx <= 0) return;
-      if (direction === "up" && dy >= 0) return;
-      if (direction === "down" && dy <= 0) return;
-      const score = dx * dx + dy * dy + Math.abs(direction === "left" || direction === "right" ? dy : dx);
-      if (score < bestScore) {
-        bestScore = score;
-        best = town;
-      }
-    });
-    return best ? best.id : state.selectedTownId;
+    const ordered = getOrderedUnlockedTowns();
+    if (!ordered.length) return state.selectedTownId;
+    const currentIndex = ordered.findIndex((t) => t.id === state.selectedTownId);
+    if (currentIndex < 0) return ordered[0].id;
+    // Right/Down = next in sequence, Left/Up = previous in sequence
+    const forward = direction === "right" || direction === "down";
+    let nextIndex;
+    if (forward) {
+      nextIndex = (currentIndex + 1) % ordered.length;
+    } else {
+      nextIndex = (currentIndex - 1 + ordered.length) % ordered.length;
+    }
+    return ordered[nextIndex].id;
   }
 
   function openTownPanel(townId) {
