@@ -17,6 +17,9 @@
   const LEVELS_PER_GAME = Number.isFinite(levelData?.structure?.levels)
     ? levelData.structure.levels
     : 4;
+  // Final campaign level - Highgate (capital) is the 25th town
+  // Epilogue only plays after completing all 25 towns
+  const FINAL_CAMPAIGN_LEVEL = 25;
   const MONTHS_PER_LEVEL = Number.isFinite(levelData?.structure?.monthsPerLevel)
     ? levelData.structure.monthsPerLevel
     : 3;
@@ -1236,7 +1239,7 @@
         {
           duration: LEVEL_SUMMARY_DURATION,
           requiresConfirm: true,
-          finalYear: state.level >= LEVELS_PER_GAME,
+          finalYear: state.level >= FINAL_CAMPAIGN_LEVEL,
           levelSummary: true,
         },
       );
