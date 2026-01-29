@@ -250,10 +250,10 @@
       const animator = getMiniImpAnimator();
       const clip = animator?.currentClip || null;
       if (animator && clip) {
-        const targetSize = radius * 1.25;
+        const targetSize = radius * 3.75;
         const baseSize = Math.max(clip.frameWidth || 1, clip.frameHeight || 1);
         animator.scale = baseSize > 0 ? targetSize / baseSize : 1;
-        animator.draw(ctx, position.x, position.y, {
+        animator.draw(ctx, position.x, position.y - 15, {
           alpha: unlocked ? 0.95 : 0.6,
         });
       }
