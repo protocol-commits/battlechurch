@@ -3323,7 +3323,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         : waveNumber <= 14
         ? 2
         : 3;
-    const crumbParts = [`Battle ${levelStatus.level || 1}`, `${monthName}`];
+    // Get town name from activeTownId
+    const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
+    const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+    const townData = activeTownId && mapData?.towns
+      ? mapData.towns.find((t) => t.id === activeTownId)
+      : null;
+    const townName = townData?.name || "Unknown Town";
+    const crumbParts = [townName, `Battle ${levelStatus.level || 1}`, `${monthName}`];
     if (stage === "bossIntro") {
       crumbParts.push("Boss Intro");
     } else if (stage === "bossActive") {
