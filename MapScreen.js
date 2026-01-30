@@ -98,6 +98,7 @@
       const firstTownId = mapData.getFirstTownId();
       if (firstTownId) state.mapProgress.unlockedTownIds.push(firstTownId);
     }
+    ensureNextTownUnlocked(state.mapProgress, mapData);
     return state.mapProgress;
   }
 
@@ -113,10 +114,12 @@
         bestCount: 100,
       };
     });
-    return {
+    const progress = {
       towns: townEntries,
       unlockedTownIds,
     };
+    ensureNextTownUnlocked(progress, mapData);
+    return progress;
   }
 
   async function loadPlayerProgress() {
@@ -553,6 +556,21 @@
     if (town && isTownUnlocked(town.id)) {
       state.selectedTownId = town.id;
     }
+  }
+
+  function ensureNextTownUnlocked(progress, mapData) {
+    if (!progress || !mapData) return;
+    const firstTownId = mapData.getFirstTownId();
+    if (!firstTownId) return;
+    const completedSet = new Set(Object.keys(progress.towns || {}));
+    let current = firstTownId;
+    while (current && completedSet.has(current)) {
+      current = getNextTownInOrder(current);
+    }
+    if (!current) return;
+    const unlockIds = new Set(progress.unlockedTownIds || []);
+    unlockIds.add(current);
+    progress.unlockedTownIds = Array.from(unlockIds);
   }
 
   function getNextTownInOrder(townId) {
