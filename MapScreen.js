@@ -219,13 +219,22 @@
     const unlocked = isTownUnlocked(town.id);
     const selected = state.selectedTownId === town.id;
     const starCount = getTownStars(town.id);
+    const bestCount = getTownBestCount(town.id);
 
     ctx.save();
     ctx.beginPath();
     ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
     ctx.shadowBlur = 10;
-    ctx.fillStyle = unlocked ? "#FFD978" : "rgba(255,255,255,0.2)";
+    if (bestCount == null) {
+      const glow = ctx.createRadialGradient(position.x, position.y, 2, position.x, position.y, radius + 6);
+      glow.addColorStop(0, "#FFD27A");
+      glow.addColorStop(0.6, "#F09A2B");
+      glow.addColorStop(1, "#C76616");
+      ctx.fillStyle = glow;
+    } else {
+      ctx.fillStyle = unlocked ? "#FFD978" : "rgba(255,255,255,0.2)";
+    }
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.lineWidth = 2;
@@ -245,7 +254,6 @@
     }
     ctx.restore();
 
-    const bestCount = getTownBestCount(town.id);
     if (bestCount == null) {
       const animator = getMiniImpAnimator();
       const clip = animator?.currentClip || null;
