@@ -3515,6 +3515,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       assets,
       HUD_HEIGHT,
       assetsLoaded,
+      mapReady,
     } = requireBindings();
     ctx.save();
     const titleImage = assets?.titleBackground || null;
@@ -3565,24 +3566,37 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const titleSize = TEXT_STYLES.h1.size;
     const subtitleSize = TEXT_STYLES.h2.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
-    // Only show Loading button while loading, both buttons when ready
+    // Show Loading while loading, Map when map-ready but gameplay loading, Play when fully ready
     const authLabel =
       typeof window !== "undefined" && window.cloudAuthProvider === "google"
         ? "Sign Out"
         : "Sign in with Google";
-    const buttonConfigs = assetsLoaded
-      ? [
-          { key: "play", label: "Play" },
-          { key: "settings", label: "Settings" },
-          { key: "leaderboard", label: "Leaderboard" },
-          { key: "auth", label: authLabel },
-        ]
-      : [
-          { key: "play", label: "Loading..." },
-          { key: "settings", label: "Settings" },
-          { key: "leaderboard", label: "Leaderboard" },
-          { key: "auth", label: authLabel },
-        ];
+    let buttonConfigs;
+    if (assetsLoaded) {
+      // Fully loaded - show Play button
+      buttonConfigs = [
+        { key: "play", label: "Play" },
+        { key: "settings", label: "Settings" },
+        { key: "leaderboard", label: "Leaderboard" },
+        { key: "auth", label: authLabel },
+      ];
+    } else if (mapReady) {
+      // Map ready but gameplay still loading - allow map browsing
+      buttonConfigs = [
+        { key: "map", label: "Map" },
+        { key: "settings", label: "Settings" },
+        { key: "leaderboard", label: "Leaderboard" },
+        { key: "auth", label: authLabel },
+      ];
+    } else {
+      // Still loading title/map assets
+      buttonConfigs = [
+        { key: "play", label: "Loading..." },
+        { key: "settings", label: "Settings" },
+        { key: "leaderboard", label: "Leaderboard" },
+        { key: "auth", label: authLabel },
+      ];
+    }
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
       subtitle: subtitleText,
@@ -3614,7 +3628,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const progress = Math.max(0, Math.min(100, loadingProgress || 0));
     buttonConfigs.forEach((config, index) => {
       const x = startX + index * (buttonWidth + buttonGap);
-      const isLoading = config.key === "play" && !assetsLoaded;
+      // Show loading progress on play button (fully loading) or map button (gameplay loading)
+      const isLoading = (config.key === "play" && !assetsLoaded) ||
+                        (config.key === "map" && mapReady && !assetsLoaded);
       ctx.save();
       if (isLoading) {
         // Loading button as progress meter: dark background with fill

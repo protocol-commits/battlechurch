@@ -482,17 +482,39 @@
     const buttonY = panelY + panelH - 70;
     const totalW = buttonW * 2 + gap;
     const startX = canvas.width / 2 - totalW / 2;
+    // Check if gameplay assets are still loading
+    const isLoading = typeof window !== "undefined" && !window.gameAssetsLoaded;
+    const loadProgress = (typeof window !== "undefined" && window.gameLoadingProgress) || 0;
     const buttons = [
-      { label: "Play", x: startX, key: "play" },
-      { label: "Back", x: startX + buttonW + gap, key: "back" },
+      { label: isLoading ? "Loading..." : "Play", x: startX, key: "play", isLoading },
+      { label: "Back", x: startX + buttonW + gap, key: "back", isLoading: false },
     ];
 
     buttons.forEach((btn, index) => {
       ctx.save();
-      ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255,255,255,0.3)";
-      ctx.lineWidth = 2;
-      roundRect(ctx, btn.x, buttonY, buttonW, buttonH, 16, true, true);
+      if (btn.isLoading) {
+        // Loading button with progress bar
+        ctx.fillStyle = "rgba(40, 50, 70, 0.9)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 2;
+        roundRect(ctx, btn.x, buttonY, buttonW, buttonH, 16, true, true);
+        // Progress fill
+        const fillWidth = buttonW * (loadProgress / 100);
+        if (fillWidth > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(btn.x, buttonY, buttonW, buttonH, 16);
+          ctx.clip();
+          ctx.fillStyle = "#9BD9FF";
+          ctx.fillRect(btn.x, buttonY, fillWidth, buttonH);
+          ctx.restore();
+        }
+      } else {
+        ctx.fillStyle = "#9BD9FF";
+        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+        ctx.lineWidth = 2;
+        roundRect(ctx, btn.x, buttonY, buttonW, buttonH, 16, true, true);
+      }
       if (index === state.panelFocus) {
         ctx.strokeStyle = "#FFD978";
         ctx.lineWidth = 3;

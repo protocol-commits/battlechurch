@@ -110,6 +110,8 @@ let activeBoss = null;
 const bossHazards = [];
 let titleScreenActive = true;
 let assetsLoaded = false;
+let mapReady = false; // True when title/map can be used (before full gameplay assets)
+let gameplayAssetsPromise = null; // Promise for background gameplay asset loading
 let loadingProgress = 0; // 0-100
 const devStatus = { text: "", timer: 0 };
 const weaponPickupAnnouncement = {
@@ -2312,6 +2314,7 @@ Renderer.initialize({
   get titleScreenActive() { return titleScreenActive; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
+  get mapReady() { return mapReady; },
   get loadingProgress() { return loadingProgress; },
   get howToPlayActive() { return howToPlayActive; },
   get howToPlayPages() { return HOW_TO_PLAY_PAGES; },
@@ -2412,6 +2415,15 @@ window.addEventListener("resize", () => {
 if (typeof window !== "undefined") {
   window.startRunForTown = startRunForTown;
   window.exitMapScreen = exitMapScreen;
+  // Expose loading state for MapScreen to check
+  Object.defineProperty(window, "gameAssetsLoaded", {
+    get: () => assetsLoaded,
+    enumerable: true,
+  });
+  Object.defineProperty(window, "gameLoadingProgress", {
+    get: () => loadingProgress,
+    enumerable: true,
+  });
 }
 
 function handleInspectorClick(cx, cy) {
@@ -3975,9 +3987,28 @@ async function loadProjectileAssets(cache, assets) {
   await Promise.all(projectileEntries);
 }
 
-async function loadEnemyAssets(cache, assets) {
-  const enemyTypes = Object.entries(ASSET_MANIFEST.enemies).map(
-    async ([enemyName, enemyDefs]) => {
+// Load only the enemies needed for MapScreen (miniImp, miniDemonLord)
+async function loadMapEnemyAssets(cache, assets) {
+  const mapEnemies = ['miniImp', 'miniDemonLord'];
+  const enemyTypes = Object.entries(ASSET_MANIFEST.enemies)
+    .filter(([enemyName]) => mapEnemies.includes(enemyName))
+    .map(async ([enemyName, enemyDefs]) => {
+      assets.enemies[enemyName] = {};
+      const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
+        const clip = await loadAnimationClip(def, cache);
+        assets.enemies[enemyName][state] = clip;
+      });
+      await Promise.all(loaders);
+    });
+  await Promise.all(enemyTypes);
+}
+
+// Load all remaining enemies (excludes already-loaded map enemies)
+async function loadEnemyAssets(cache, assets, skipMapEnemies = false) {
+  const mapEnemies = ['miniImp', 'miniDemonLord'];
+  const enemyTypes = Object.entries(ASSET_MANIFEST.enemies)
+    .filter(([enemyName]) => !skipMapEnemies || !mapEnemies.includes(enemyName))
+    .map(async ([enemyName, enemyDefs]) => {
       assets.enemies[enemyName] = {};
       const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
         const clip = await loadAnimationClip(def, cache);
@@ -4371,7 +4402,8 @@ async function loadBackgroundAssets(cache, assets) {
   ]);
 }
 
-async function loadAssets() {
+// Phase 1: Load only what's needed for title screen and map navigation
+async function loadTitleMapAssets() {
   const cache = new Map();
   const assets = {
     player: {},
@@ -4381,12 +4413,26 @@ async function loadAssets() {
     weaponPickups: {},
     utility: {},
     effects: {},
-  background: null,
-  backgrounds: { townIntro: null },
-  backgroundLayers: { far: null, mid: null, floor: null },
-  npcs: null,
-  items: {},
-};
+    background: null,
+    backgrounds: { townIntro: null },
+    backgroundLayers: { far: null, mid: null, floor: null },
+    npcs: null,
+    items: {},
+  };
+  // Load title background
+  try {
+    assets.titleBackground = await loadImage(TITLE_BACKGROUND_PATH);
+  } catch (e) {
+    console.warn("Failed to load title background:", e);
+  }
+  // Load map screen enemy animations (miniImp, miniDemonLord)
+  await loadMapEnemyAssets(cache, assets);
+  loadingProgress = 15;
+  return { assets, cache };
+}
+
+// Phase 2: Load all remaining gameplay assets
+async function loadGameplayAssets(cache, assets) {
   projectileFrames = {};
   const npcAssetsPromise = loadCozyNpcAssets(cache);
   const coinAssetsPromise = loadCoinAssets(cache);
@@ -4437,12 +4483,12 @@ async function loadAssets() {
     ),
   );
 
-  // Track loading progress (5 stages total)
-  loadingProgress = 10;
+  // Track loading progress (continues from phase 1 at 15%)
+  loadingProgress = 20;
   await Promise.all([
     loadPlayerAssets(cache, assets),
     loadProjectileAssets(cache, assets),
-    loadEnemyAssets(cache, assets),
+    loadEnemyAssets(cache, assets, true), // Skip map enemies (already loaded)
     loadObstacleAssets(cache, assets),
     loadWeaponDropAssets(cache, assets),
     loadUtilityAssets(cache, assets),
@@ -4450,19 +4496,27 @@ async function loadAssets() {
     npcAssetsPromise,
     coinAssetsPromise,
   ]);
-  loadingProgress = 50;
+  loadingProgress = 60;
 
   assets.npcs = await npcAssetsPromise;
   assets.items = await coinAssetsPromise;
-  loadingProgress = 60;
-
-  await loadProjectileFrames(cache, assets, projectileFrames);
   loadingProgress = 75;
-  await loadEffectAssets(cache, assets);
-  loadingProgress = 90;
-  await loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromise, flagFramesPromise);
+
+  // Load frames and effects in parallel (they're independent)
+  await Promise.all([
+    loadProjectileFrames(cache, assets, projectileFrames),
+    loadEffectAssets(cache, assets),
+    loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromise, flagFramesPromise),
+  ]);
   loadingProgress = 100;
 
+  return assets;
+}
+
+// Backwards-compatible wrapper that loads everything
+async function loadAssets() {
+  const { assets, cache } = await loadTitleMapAssets();
+  await loadGameplayAssets(cache, assets);
   return assets;
 }
 
@@ -14199,25 +14253,26 @@ async function init() {
     resetCongregationSize();
     // Ensure canvas is sized before drawing
     resizeCanvas();
-    // Preload title background FIRST so it appears immediately
-    let preloadedTitleBg = null;
-    try {
-      preloadedTitleBg = await loadImage(TITLE_BACKGROUND_PATH);
-      // Set temporary assets so title screen can render while other assets load
-      assets = { titleBackground: preloadedTitleBg };
-    } catch (e) {
-      console.warn("Failed to preload title background:", e);
-    }
-    startGameLoop();
-    assets = await loadAssets();
-    // Preserve preloaded title background if loadAssets didn't get it
-    if (preloadedTitleBg && !assets.titleBackground) {
-      assets.titleBackground = preloadedTitleBg;
-    }
-    assetsLoaded = true;
+
+    // TWO-PHASE LOADING: Load title/map assets first for faster initial display
+    // Phase 1: Load title background and map-essential assets
+    const { assets: titleMapAssets, cache } = await loadTitleMapAssets();
+    assets = titleMapAssets;
+    mapReady = true; // Title screen and map navigation can now work
+
+    // Give MapScreen the partial assets so map animations work
     if (window.MapScreen?.setAssets) {
       window.MapScreen.setAssets(assets);
     }
+
+    startGameLoop();
+
+    // Phase 2: Load remaining gameplay assets in background
+    gameplayAssetsPromise = loadGameplayAssets(cache, assets);
+
+    // Wait for gameplay assets before allowing actual gameplay
+    await gameplayAssetsPromise;
+    assetsLoaded = true;
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
         getAssets: () => assets,
