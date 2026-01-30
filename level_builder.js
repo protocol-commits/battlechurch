@@ -28,19 +28,7 @@
     },
     levels: [],
   };
-  const REMOVED_ENEMIES = new Set([
-    "miniSkeleton",
-    "miniSkeletonArcher",
-    "miniZombie",
-    "miniZombieButcher",
-    "miniReaper",
-    "miniGhost",
-    "miniLich",
-    "miniNecromancer",
-    "miniDeathKnight",
-    "miniDreadKnight",
-  ]);
-  const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
+const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -58,9 +46,6 @@
     if (Array.isArray(merged.globals.hiddenEnemies)) {
       merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
         (key) => key !== "miniImpLevel3",
-      );
-      merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
-        (key) => !REMOVED_ENEMIES.has(key),
       );
     }
     return merged;
@@ -98,55 +83,6 @@
     }
   }
 
-  function purgeEnemy(cfg, enemyKey) {
-    if (!cfg || !enemyKey) return;
-    // Remove from globals weights/delays
-    if (cfg.globals?.enemyStats && cfg.globals.enemyStats[enemyKey]) {
-      delete cfg.globals.enemyStats[enemyKey];
-    }
-    // Remove from structure if present in pools
-    if (Array.isArray(cfg.structure?.hordeEnemyPools)) {
-      cfg.structure.hordeEnemyPools = cfg.structure.hordeEnemyPools.map((pool) =>
-        Array.isArray(pool) ? pool.filter((e) => e !== enemyKey) : pool,
-      );
-    }
-    if (Array.isArray(cfg.globals?.hiddenEnemies)) {
-      cfg.globals.hiddenEnemies = cfg.globals.hiddenEnemies.filter((key) => key !== enemyKey);
-    }
-    // Walk levels
-    (cfg.levels || []).forEach((lvl) => {
-      (lvl.months || []).forEach((m) => {
-        (m.battles || []).forEach((b) => {
-          (b.hordes || []).forEach((h) => {
-            if (Array.isArray(h.entries)) {
-              h.entries = h.entries
-                .map((en) => (en && en.enemy === enemyKey ? { ...en, count: 0 } : en))
-                .filter(Boolean);
-            }
-            if (h.weights && Object.prototype.hasOwnProperty.call(h.weights, enemyKey)) {
-              h.weights[enemyKey] = 0;
-            }
-            if (h.delays && Object.prototype.hasOwnProperty.call(h.delays, enemyKey)) {
-              h.delays[enemyKey] = 0;
-            }
-            if (
-              h.delaysWeighted &&
-              Object.prototype.hasOwnProperty.call(h.delaysWeighted, enemyKey)
-            ) {
-              h.delaysWeighted[enemyKey] = 0;
-            }
-            if (
-              h.delaysExplicit &&
-              Object.prototype.hasOwnProperty.call(h.delaysExplicit, enemyKey)
-            ) {
-              h.delaysExplicit[enemyKey] = 0;
-            }
-          });
-        });
-      });
-    });
-  }
-
   const state = {
     config: loadFromStorage(),
     scope: { level: 1, month: 1, battle: 1, horde: 1 },
@@ -154,7 +90,6 @@
     showHidden: false,
     copyBuffer: null, // holds a copied horde payload
   };
-  REMOVED_ENEMIES.forEach((key) => purgeEnemy(state.config, key));
   const THUMB_SIZE = 48;
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
   const manifestThumbImages = new Map();
