@@ -67,6 +67,11 @@
     return 0;
   }
 
+  function getDefaultTownStartCount(townId) {
+    void townId;
+    return 50;
+  }
+
   function getDistricts() {
     return districts.slice().sort((a, b) => a.order - b.order);
   }
@@ -91,6 +96,7 @@
     towns,
     futureUnusedTowns,
     calculateStars,
+    getDefaultTownStartCount,
     getDistricts,
     getTowns,
     getTownsByDistrict,

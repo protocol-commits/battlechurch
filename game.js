@@ -132,6 +132,7 @@ const CONGREGATION_MEMBER_COUNT = 50;
 const INITIAL_CONGREGATION_SIZE = CONGREGATION_MEMBER_COUNT;
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
+let townStartCongregation = INITIAL_CONGREGATION_SIZE;
 const NPC_PROCESSION_ENTRY_MARGIN = 220;
 const VISITOR_GUEST_COUNT = 10;
 const VISITOR_SESSION_DURATION = 30;
@@ -4783,6 +4784,12 @@ function queueInitialMonthAnnouncementFromCongregation() {
 function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
+  if (typeof window !== "undefined" && window.MapScreen?.getTownStartCount) {
+    const nextStart = window.MapScreen.getTownStartCount(activeTownId);
+    townStartCongregation = Number.isFinite(nextStart) ? nextStart : INITIAL_CONGREGATION_SIZE;
+  } else {
+    townStartCongregation = INITIAL_CONGREGATION_SIZE;
+  }
   // Ensure title is hidden and game is paused while we enter briefing.
   paused = true;
   needsCountdown = false;
@@ -4816,6 +4823,9 @@ function startRunForTown(townId) {
   mapActive = false;
   if (typeof window !== "undefined") {
     window.activeTownId = activeTownId;
+    if (window.MapScreen?.ensureTownStartCount) {
+      window.MapScreen.ensureTownStartCount(activeTownId).catch(() => {});
+    }
   }
   startGameFromTitle();
 }
@@ -9520,7 +9530,9 @@ function applyFormationAnchors() {
 }
 
 function resetCongregationSize() {
-  congregationSize = INITIAL_CONGREGATION_SIZE;
+  congregationSize = Number.isFinite(townStartCongregation)
+    ? townStartCongregation
+    : INITIAL_CONGREGATION_SIZE;
 }
 
 function adjustCongregationSize(delta) {

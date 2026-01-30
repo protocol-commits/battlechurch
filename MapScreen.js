@@ -158,6 +158,7 @@
       townEntries[townId] = {
         stars: mapData.calculateStars(100),
         bestCount: 100,
+        startCount: mapData.getDefaultTownStartCount(townId),
       };
     });
     const progress = {
@@ -197,6 +198,35 @@
       state.loading = false;
       state.lastMapLoad = Date.now();
     }
+  }
+
+  function getTownStartCount(townId) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return 50;
+    const progress = ensureProgress();
+    const entry = progress?.towns?.[townId || ""] || null;
+    if (Number.isFinite(entry?.startCount)) return entry.startCount;
+    return mapData.getDefaultTownStartCount(townId);
+  }
+
+  async function ensureTownStartCount(townId) {
+    if (!townId) return getTownStartCount(townId);
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return 50;
+    if (!state.mapProgress) {
+      await loadPlayerProgress();
+    }
+    const progress = ensureProgress();
+    if (!progress.towns[townId]) progress.towns[townId] = { stars: 0 };
+    if (!Number.isFinite(progress.towns[townId].startCount)) {
+      progress.towns[townId].startCount = mapData.getDefaultTownStartCount(townId);
+      if (window.Cloud?.savePlayerDoc) {
+        try {
+          await window.Cloud.savePlayerDoc({ mapProgress: progress });
+        } catch (e) {}
+      }
+    }
+    return progress.towns[townId].startCount;
   }
 
   function isTownUnlocked(townId) {
@@ -781,6 +811,8 @@
     getNextTownInOrder,
     selectTown,
     setAssets,
+    getTownStartCount,
+    ensureTownStartCount,
     get mapRect() { return { ...state.mapRect }; },
   };
 })(typeof window !== "undefined" ? window : null);
