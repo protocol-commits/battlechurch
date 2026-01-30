@@ -4791,7 +4791,6 @@ function startGameFromTitle() {
   townIntroTransitionTimer = 0;
   startSpeedrunTimer();
   resetYearNpcPool();
-  startIntroMusic();
   if (window.StatsManager) window.StatsManager.resetStats();
   // Clear any previously queued announcements so the congregation doesn't show
   // immediately (init/restart may have queued them at startup).
@@ -13280,6 +13279,9 @@ function updateGame(dt) {
     }
   }
   if (mapActive) {
+    if (!musicState.introStarted && !musicState.introStopped) {
+      startIntroMusic();
+    }
     if (window.MapScreen) {
       window.MapScreen.update(dt);
     }
