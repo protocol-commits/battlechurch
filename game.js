@@ -11807,7 +11807,11 @@ function handleLevelAnnouncements() {
         graceRushFadeTimer = 0;
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
-        // Record town completion and save score for ALL completed towns
+        // Determine if this is the final level of the current town
+        const levelsPerTown = Number.isFinite(window.LEVELS_PER_GAME) ? window.LEVELS_PER_GAME : 3;
+        const isFinalTownLevel = lastCompletedLevel >= levelsPerTown;
+
+        // Record town completion and save score only for FINAL level of town
         if (currentAnnouncement.levelSummary) {
           const recapData = currentAnnouncement.recapData;
           const finalScore = Number.isFinite(recapData?.totalCount)
@@ -11826,17 +11830,23 @@ function handleLevelAnnouncements() {
             bestScoreSaveQueued = true;
             window.Cloud.saveBestScore(finalScore).catch(() => {});
           }
-          if (window.MapScreen?.recordTownCompletion) {
+          // Only record town completion on the FINAL level of the town
+          if (isFinalTownLevel && window.MapScreen?.recordTownCompletion) {
             window.MapScreen.recordTownCompletion(activeTownId, finalScore);
           }
         }
         if (currentAnnouncement.recapFinalYear) {
+          // Campaign final (Level 25 / capital)
           pendingUpgradeAfterSummary = false;
           queuePastorFinalAnnouncement();
-        } else if (currentAnnouncement.levelSummary) {
+        } else if (currentAnnouncement.levelSummary && isFinalTownLevel) {
+          // Final level of this town - show pastor post-recap then return to map
           pendingUpgradeAfterSummary = false;
           const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
           queuePastorBossPostRecapAnnouncement(targetLevel, Boolean(currentAnnouncement.recapUpgradeAfter));
+        } else if (currentAnnouncement.levelSummary) {
+          // Mid-town level (Level 1 or 2) - trigger upgrade screen + chapter break
+          pendingUpgradeAfterSummary = true;
         } else {
           pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter);
         }
