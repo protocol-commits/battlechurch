@@ -2628,7 +2628,7 @@ const BACKGROUND_FAR_PATH = "assets/backgrounds/far-bg.png";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
-const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/game-over.png";
+const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/game-over.jpg";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
 const DECOR_CONFIG = (typeof window !== "undefined" && window.WorldDecor) || {};
 
@@ -4367,7 +4367,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.act3 = null;
     });
-  const gameOverBackgroundPromise = loadImage("assets/backgrounds/game-over.png")
+  const gameOverBackgroundPromise = loadImage("assets/backgrounds/game-over.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
       assets.backgrounds.gameOver = img;
