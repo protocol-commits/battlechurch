@@ -4790,6 +4790,7 @@ function startGameFromTitle() {
   } else {
     townStartCongregation = INITIAL_CONGREGATION_SIZE;
   }
+  resetCongregationSize();
   // Ensure title is hidden and game is paused while we enter briefing.
   paused = true;
   needsCountdown = false;
