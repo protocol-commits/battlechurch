@@ -320,13 +320,19 @@
     ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
     ctx.stroke();
     if (selected && unlocked) {
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "rgba(255,255,255,0.9)";
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
       ctx.stroke();
       if (pulse) {
+        const glowRadius = radius + 12 + pulse * 2;
         ctx.beginPath();
-        ctx.arc(position.x, position.y, radius + 6 + pulse, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255,217,120,0.55)";
+        ctx.arc(position.x, position.y, glowRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 217, 120, 0.7)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(position.x, position.y, glowRadius + 8, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
         ctx.lineWidth = 2;
         ctx.stroke();
       }
@@ -465,6 +471,9 @@
 
   function openTownPanel(townId) {
     if (!isTownUnlocked(townId)) return;
+    if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+      window.playMenuItemPickSfx(0.55);
+    }
     state.selectedTownId = townId;
     state.panelOpen = true;
     state.panelFocus = 0;
@@ -573,12 +582,21 @@
     if (!state.panelOpen) return false;
     if (keysJustPressed.has("a") || keysJustPressed.has("d") || keysJustPressed.has("w") || keysJustPressed.has("s")) {
       state.panelFocus = state.panelFocus === 0 ? 1 : 0;
+      if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+        window.playMenuItemPickSfx(0.55);
+      }
     }
     if (keysJustPressed.has(" ")) {
       const selection = state.panelButtons?.[state.panelFocus];
       if (selection?.key === "play") {
+        if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.55);
+        }
         startRunForTown(state.selectedTownId);
       } else {
+        if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.55);
+        }
         closeTownPanel();
       }
     }
@@ -601,6 +619,7 @@
     const keysJustPressed = input.keysJustPressed;
     if (!keysJustPressed?.size) return;
 
+    const prevSelection = state.selectedTownId;
     if (state.panelOpen) {
       if (handlePanelInput(keysJustPressed)) {
         keysJustPressed.clear();
@@ -612,6 +631,12 @@
     if (keysJustPressed.has("s")) state.selectedTownId = pickNextTown("down");
     if (keysJustPressed.has("a")) state.selectedTownId = pickNextTown("left");
     if (keysJustPressed.has("d")) state.selectedTownId = pickNextTown("right");
+
+    if (state.selectedTownId && state.selectedTownId !== prevSelection) {
+      if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+        window.playMenuItemPickSfx(0.55);
+      }
+    }
 
     if (keysJustPressed.has(" ")) {
       if (state.selectedTownId) {
@@ -631,17 +656,25 @@
       const hit = state.panelButtons.find(
         (btn) => click.x >= btn.x && click.x <= btn.x + btn.width && click.y >= btn.y && click.y <= btn.y + btn.height,
       );
-    if (hit) {
-      if (hit.key === "play") {
-        startRunForTown(state.selectedTownId);
-      } else {
-        closeTownPanel();
-      }
+      if (hit) {
+        if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.55);
+        }
+        if (hit.key === "play") {
+          startRunForTown(state.selectedTownId);
+        } else {
+          closeTownPanel();
+        }
       return;
     }
     }
     const town = findTownAtPosition(click, rect);
     if (town && isTownUnlocked(town.id)) {
+      if (town.id !== state.selectedTownId) {
+        if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.55);
+        }
+      }
       openTownPanel(town.id);
     }
   }
@@ -651,7 +684,12 @@
     if (!input?.pointerState) return;
     const town = findTownAtPosition(input.pointerState, rect);
     if (town && isTownUnlocked(town.id)) {
-      state.selectedTownId = town.id;
+      if (town.id !== state.selectedTownId) {
+        state.selectedTownId = town.id;
+        if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.4);
+        }
+      }
     }
   }
 
