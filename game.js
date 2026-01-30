@@ -4340,7 +4340,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
       assets.backgrounds.townIntro = null;
     });
-  const epiloguePromise = loadImage("assets/backgrounds/epilogue.png")
+  const epiloguePromise = loadImage("assets/backgrounds/epilogue.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
       assets.backgrounds.epilogue = img;
@@ -4349,7 +4349,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
       assets.backgrounds.epilogue = null;
     });
-  const act2Promise = loadImage("assets/backgrounds/act2.png")
+  const act2Promise = loadImage("assets/backgrounds/act2.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.act2 = img;
