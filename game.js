@@ -10213,7 +10213,8 @@ function updateVisitorBlockers(dt) {
         const dx = player.x - blocker.x;
         const dy = player.y - blocker.y;
         const dist = Math.hypot(dx, dy) || 1;
-        const speed = blocker.speed * 2.0;
+        const speedScale = blocker.isChatty ? 0.7 : 1;
+        const speed = blocker.speed * 2.0 * speedScale;
         blocker.x += (dx / dist) * speed * dt;
         blocker.y += (dy / dist) * speed * dt;
         blocker.animator.setDirectionFromVector(dx, dy);
@@ -10288,8 +10289,9 @@ function wanderBlocker(blocker, bounds, dt) {
   } else {
     const nx = dx / dist;
     const ny = dy / dist;
-    blocker.x += nx * blocker.speed * 0.8 * dt;
-    blocker.y += ny * blocker.speed * 0.8 * dt;
+    const speedScale = blocker.isChatty ? 0.7 : 1;
+    blocker.x += nx * blocker.speed * 0.8 * speedScale * dt;
+    blocker.y += ny * blocker.speed * 0.8 * speedScale * dt;
     blocker.animator.setDirectionFromVector(nx, ny);
     blocker.animator.setMoving(true);
   }
