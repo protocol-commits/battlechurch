@@ -4732,8 +4732,9 @@ function showTownIntroDialog() {
 }
 
 function queueTownIntroAnnouncement() {
-  const text =
-    "You are the new pastor to the last church in a town under spiritual attack. Grow your congregation in one campaign, or the town falls with you.";
+  const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+  const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
+  const text = `${townName} is under siege. Smite the hordes. Defend its church. Protect its people.`;
   pendingTownIntroStart = true;
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
