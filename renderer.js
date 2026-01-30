@@ -4089,6 +4089,19 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       if (window.MapScreen?.draw) {
         window.MapScreen.draw(ctx, canvas);
       }
+      drawAnnouncementText(ctx, canvas, {
+        title: "Smite the hordes. Defend the churches. Protect the people.",
+        subtitle: "",
+        yBase: Math.round(canvas.height * 0.06),
+        titleSize: TEXT_STYLES.h2.size,
+        subtitleSize: TEXT_STYLES.body.size,
+        lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+        weight: TEXT_STYLES.h2.weight,
+        subtitleWeight: TEXT_STYLES.body.weight,
+        typewriter: true,
+        maxWidthScale: 0.9,
+        blockAlign: "center",
+      });
       return;
     }
     if (titleScreenActive) {

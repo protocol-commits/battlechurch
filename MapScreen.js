@@ -391,7 +391,6 @@
     ctx.shadowBlur = 12;
     ctx.fillStyle = "#FFD978";
     ctx.font = `700 ${headerSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillText("Greyhaven", rect.x + rect.w / 2, rect.y + Math.max(12, rect.h * 0.04));
 
     const districts = mapData.getDistricts();
     void districts;
