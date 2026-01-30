@@ -13,7 +13,7 @@
   let mapImageLoaded = false;
   let mapImageFailed = false;
   let mapAssets = null;
-  let miniImpAnimator = null;
+  const townAnimators = new Map();
 
   const state = {
     active: false,
@@ -63,17 +63,63 @@
 
   function setAssets(assets) {
     mapAssets = assets || null;
-    miniImpAnimator = null;
+    townAnimators.clear();
   }
 
-  function getMiniImpAnimator() {
-    if (miniImpAnimator) return miniImpAnimator;
-    const clips = mapAssets?.enemies?.miniImp || null;
+  function getMiniImpClips() {
+    return mapAssets?.enemies?.miniImp || null;
+  }
+
+  function getMiniDemonLordClips() {
+    return mapAssets?.enemies?.miniDemonLord || null;
+  }
+
+  function updateAnimatorCycle(animator, dt, state, minHold, maxHold) {
+    if (!animator || !state) return;
+    state.timer += dt;
+    if (animator.currentName === "walk") {
+      if (state.timer >= state.hold) {
+        state.timer = 0;
+        animator.play("attack", { restart: true, loop: false });
+      }
+    } else if (animator.currentName === "attack") {
+      if (animator.isFinished?.()) {
+        animator.play("walk", { restart: true, loop: true });
+        state.hold = minHold + Math.random() * Math.max(0.1, maxHold - minHold);
+      }
+    } else {
+      animator.play("walk", { restart: true, loop: true });
+      state.timer = 0;
+    }
+  }
+
+  function getTownAnimatorState(town, bestCount) {
+    if (!town) return null;
+    const key = town.id;
+    const isCapital = town.type === "capital";
+    const shouldShow = isCapital || bestCount == null;
+    if (!shouldShow) {
+      if (townAnimators.has(key)) townAnimators.delete(key);
+      return null;
+    }
+    if (townAnimators.has(key)) return townAnimators.get(key);
     const Animator = window.Entities?.Animator || null;
-    if (!clips || !Animator) return null;
-    miniImpAnimator = new Animator(clips, 1);
-    miniImpAnimator.play("walk", { restart: true, loop: true });
-    return miniImpAnimator;
+    const clips = isCapital ? getMiniDemonLordClips() : getMiniImpClips();
+    if (!Animator || !clips) return null;
+    const animator = new Animator(clips, 1);
+    animator.play("walk", { restart: true, loop: true });
+    if (!animator) return null;
+    const minHold = isCapital ? 1.4 : 1.0;
+    const maxHold = isCapital ? 2.6 : 2.0;
+    const state = {
+      animator,
+      timer: Math.random() * 1.2,
+      hold: minHold + Math.random() * (maxHold - minHold),
+      minHold,
+      maxHold,
+    };
+    townAnimators.set(key, state);
+    return state;
   }
 
   function ensureProgress() {
@@ -257,17 +303,17 @@
     }
     ctx.restore();
 
-    if (bestCount == null) {
-      const animator = getMiniImpAnimator();
-      const clip = animator?.currentClip || null;
-      if (animator && clip) {
-        const targetSize = radius * 3.75;
-        const baseSize = Math.max(clip.frameWidth || 1, clip.frameHeight || 1);
-        animator.scale = baseSize > 0 ? targetSize / baseSize : 1;
-        animator.draw(ctx, position.x, position.y - 15, {
-          alpha: 1,
-        });
-      }
+    const animState = getTownAnimatorState(town, bestCount);
+    const animator = animState?.animator || null;
+    const clip = animator?.currentClip || null;
+    if (animator && clip && (town.type === "capital" || bestCount == null)) {
+      const baseTarget = town.type === "capital" ? radius * 4.2 : radius * 3.75;
+      const baseSize = Math.max(clip.frameWidth || 1, clip.frameHeight || 1);
+      animator.scale = baseSize > 0 ? baseTarget / baseSize : 1;
+      animator.draw(ctx, position.x, position.y - 15, {
+        alpha: 1,
+        flipX: true,
+      });
     }
     if (bestCount != null) {
       ctx.save();
@@ -670,9 +716,21 @@
     if (!state.active) return;
     loadMapImage();
     handleMapInput();
-    const animator = getMiniImpAnimator();
-    if (animator) {
-      animator.update(dt);
+    const mapData = window.BattlechurchMapData;
+    if (mapData) {
+      mapData.towns.forEach((town) => {
+        const bestCount = getTownBestCount(town.id);
+        const animState = getTownAnimatorState(town, bestCount);
+        if (!animState) return;
+        animState.animator.update(dt);
+        updateAnimatorCycle(
+          animState.animator,
+          dt,
+          animState,
+          animState.minHold,
+          animState.maxHold,
+        );
+      });
     }
   }
 
