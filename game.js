@@ -2372,6 +2372,10 @@ Renderer.initialize({
   get epilogueBackgroundKey() { return epilogueBackgroundKey; },
   get epilogueScroll() { return epilogueScroll; },
   get creditsContent() { return CREDITS_CONTENT; },
+  get townVictoryActive() { return townVictoryActive; },
+  get townVictoryTownName() { return townVictoryTownName; },
+  get townVictoryScore() { return townVictoryScore; },
+  get townVictoryScroll() { return townVictoryScroll; },
   get ashOverlay() { return ashOverlay; },
   get congregationOverlay() { return congregationOverlay; },
   get speedrunTimer() { return speedrunTimer; },
@@ -4988,6 +4992,30 @@ const epilogueScroll = {
   showButton: false,
   paused: false,
 };
+
+// Town Victory scene (mini-epilogue after completing a town)
+let townVictoryActive = false;
+let townVictoryTownName = "";
+let townVictoryScore = 0;
+const townVictoryScroll = {
+  scrollY: 0,
+  scrollSpeed: 35, // pixels per second (slightly slower than epilogue)
+  startDelay: 1.0, // seconds before scrolling starts
+  delayTimer: 0,
+  contentHeight: 0,
+  showButton: false,
+};
+
+function activateTownVictory(townName, score) {
+  townVictoryTownName = townName || "this town";
+  townVictoryScore = Number.isFinite(score) ? score : 0;
+  townVictoryScroll.scrollY = 0;
+  townVictoryScroll.delayTimer = 0;
+  townVictoryScroll.contentHeight = 0;
+  townVictoryScroll.showButton = false;
+  townVictoryActive = true;
+  // Continue recap music - don't change music
+}
 
 const CREDITS_CONTENT = [
   { type: "heading", text: "Credits" },
@@ -11921,16 +11949,22 @@ function handleLevelAnnouncements() {
       allowSpace: true,
       onActivate: () => {
         dismissCurrentLevelAnnouncement();
-        // Return to map screen with next town selected
-        returnToMapWithNextTown();
+        // Activate town victory scene before returning to map
+        const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+        const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
+        const score = typeof window !== "undefined" && Number.isFinite(window.lastRunScore) ? window.lastRunScore : 0;
+        activateTownVictory(townName, score);
       },
     });
     if (handled) return true;
     const clickPos = Input.consumeCanvasClick?.();
     if (clickPos) {
       dismissCurrentLevelAnnouncement();
-      // Return to map screen with next town selected
-      returnToMapWithNextTown();
+      // Activate town victory scene before returning to map
+      const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+      const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
+      const score = typeof window !== "undefined" && Number.isFinite(window.lastRunScore) ? window.lastRunScore : 0;
+      activateTownVictory(townName, score);
       return true;
     }
     return true;
@@ -13346,6 +13380,35 @@ function updateGame(dt) {
     // Allow restart/continue when button is shown
     if (epilogueScroll.showButton && wasActionJustPressed("restart")) {
       restartGame();
+    }
+    return;
+  }
+
+  // Town Victory scene update (mini-epilogue after completing a town)
+  if (townVictoryActive) {
+    // Update scroll
+    if (!townVictoryScroll.showButton) {
+      // Handle start delay
+      if (townVictoryScroll.delayTimer < townVictoryScroll.startDelay) {
+        townVictoryScroll.delayTimer += dt;
+      } else {
+        // Scroll the content (hold spacebar to fast-forward - no skipping)
+        const fastForward =
+          (typeof Input !== "undefined" && Input.keysPressed?.has?.(" ")) || false;
+        const speedMultiplier = fastForward ? 3 : 1;
+        townVictoryScroll.scrollY += townVictoryScroll.scrollSpeed * dt * speedMultiplier;
+      }
+    }
+    // Consume spacebar press to prevent it from doing anything else
+    keysJustPressed.delete(" ");
+    // Allow continue when button is shown
+    if (townVictoryScroll.showButton) {
+      const continuePressed = wasActionJustPressed("restart") || keysJustPressed.has(" ");
+      if (continuePressed) {
+        keysJustPressed.delete(" ");
+        townVictoryActive = false;
+        returnToMapWithNextTown();
+      }
     }
     return;
   }

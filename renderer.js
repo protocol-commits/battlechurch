@@ -4030,6 +4030,148 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawTownVictoryScreen() {
+    const {
+      ctx,
+      canvas,
+      assets,
+      townVictoryTownName,
+      townVictoryScore,
+      townVictoryScroll,
+      HUD_HEIGHT,
+      UI_FONT_FAMILY,
+    } = requireBindings();
+
+    ctx.save();
+
+    // Draw epilogue background (restored town image)
+    const bgImage = assets?.backgrounds?.epilogue || null;
+    if (bgImage) {
+      drawCoverImage(ctx, canvas, bgImage, 1, 0.5, 0.5);
+    } else {
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#1a2a40");
+      gradient.addColorStop(1, "#0a1520");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    // Slight overlay for text readability
+    ctx.fillStyle = "rgba(6, 10, 18, 0.45)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Scale factor for responsive text
+    const scaleHint = Math.min(1, Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)));
+
+    // Text styling
+    const headingSize = Math.round(TEXT_STYLES.h1.size * scaleHint);
+    const bodySize = Math.round(TEXT_STYLES.body.size * 1.15 * scaleHint);
+    const scoreSize = Math.round(TEXT_STYLES.h2.size * 0.9 * scaleHint);
+    const lineHeight = 1.6;
+    const maxWidth = canvas.width * 0.8;
+    const centerX = canvas.width / 2;
+
+    // Build the text content
+    const townName = townVictoryTownName || "this town";
+    const score = Number.isFinite(townVictoryScore) ? Math.round(townVictoryScore) : 0;
+
+    const lines = [
+      { type: "heading", text: `Hope Returns to ${townName}`, size: headingSize, color: "#ffd978" },
+      { type: "spacer", height: 50 },
+      { type: "body", text: "The darkness has been driven back.", size: bodySize, color: "#EAF6FF" },
+      { type: "body", text: "Your congregation stood firm in faith.", size: bodySize, color: "#EAF6FF" },
+      { type: "spacer", height: 30 },
+      { type: "body", text: "The people of this town can rebuild,", size: bodySize, color: "#EAF6FF" },
+      { type: "body", text: "free from the hordes that once threatened them.", size: bodySize, color: "#EAF6FF" },
+      { type: "spacer", height: 50 },
+      { type: "score", text: `Final Congregation: ${score}`, size: scoreSize, color: "#ffd978" },
+      { type: "spacer", height: 40 },
+      { type: "body", text: "But other towns still need your help...", size: bodySize, color: "#c8dce8" },
+      { type: "spacer", height: 80 },
+    ];
+
+    // Calculate total content height
+    let totalHeight = 0;
+    lines.forEach((item) => {
+      if (item.type === "spacer") {
+        totalHeight += item.height || 40;
+      } else {
+        totalHeight += item.size * lineHeight;
+      }
+    });
+
+    // Store content height for scroll calculations
+    townVictoryScroll.contentHeight = totalHeight;
+
+    // Calculate scroll position - text starts at bottom and scrolls up
+    const startY = canvas.height;
+    const scrollOffset = townVictoryScroll.scrollY;
+    const fadeZoneHeight = 80;
+
+    // Calculate when last item reaches center - that's when we show the button
+    const lastItemTargetY = canvas.height * 0.45;
+    const lastItemScreenY = startY + totalHeight - scrollOffset;
+    const scrollComplete = lastItemScreenY <= lastItemTargetY + 100;
+
+    // Update showButton state
+    if (scrollComplete && !townVictoryScroll.showButton) {
+      townVictoryScroll.showButton = true;
+    }
+
+    // Render all items with scroll offset
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    let currentY = 0;
+    lines.forEach((item) => {
+      if (item.type === "spacer") {
+        currentY += item.height || 40;
+        return;
+      }
+
+      const itemY = startY + currentY - scrollOffset;
+      currentY += item.size * lineHeight;
+
+      // Skip if off screen
+      if (itemY < -item.size * 2 || itemY > canvas.height + item.size) return;
+
+      // Calculate fade alpha for top edge
+      let alpha = 1;
+      if (itemY < HUD_HEIGHT + fadeZoneHeight) {
+        alpha = Math.max(0, (itemY - HUD_HEIGHT) / fadeZoneHeight);
+      }
+
+      if (alpha <= 0) return;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const weight = item.type === "heading" || item.type === "score" ? TEXT_STYLES.h1.weight : TEXT_STYLES.body.weight;
+      ctx.font = `${weight} ${item.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.fillStyle = item.color;
+      ctx.fillText(item.text, centerX, itemY);
+      ctx.restore();
+    });
+
+    // Draw "Continue" button when scroll is complete
+    if (townVictoryScroll.showButton) {
+      const buttonY = canvas.height - 80;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `600 ${Math.round(24 * scaleHint)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowBlur = 8;
+      ctx.fillText("Press Space to Continue", centerX, buttonY);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
   function drawGame() {
     const {
       ctx,
@@ -4079,6 +4221,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     npcFaithOverlays.length = 0;
     if (epilogueActive) {
       drawEpilogueScreen();
+      return;
+    }
+    const townVictoryState = requireBindings();
+    if (townVictoryState.townVictoryActive) {
+      drawTownVictoryScreen();
       return;
     }
     if (howToPlayActive) {
