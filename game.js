@@ -4855,7 +4855,7 @@ function returnToMapWithNextTown() {
   } catch (e) {}
   // Reset level manager
   if (levelManager?.reset) levelManager.reset();
-  // Select and open map with next town
+  // Select next town and open map
   if (window.MapScreen) {
     const nextTownId = window.MapScreen.getNextTownInOrder(activeTownId);
     if (nextTownId) {
