@@ -224,6 +224,7 @@ const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const INTRO_MUSIC_SRC = "assets/music/title-music.mp3";
 const BATTLE_MUSIC_SRC = "assets/music/battle-music.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
+const EXTERIOR_MUSIC_SRC = "assets/music/piano-build-music.mp3";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/npcs/fireball_release_1.wav";
@@ -312,12 +313,15 @@ const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
   recap: typeof Audio !== "undefined" ? new Audio(RECAP_MUSIC_SRC) : null,
+  exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
   introStarted: false,
   battleStarted: false,
   recapStarted: false,
+  exteriorStarted: false,
   introStopped: false,
   battleStopped: false,
   recapStopped: false,
+  exteriorStopped: false,
   battlePrimed: false,
   awaitingUserGesture: false,
   unlocked: false,
@@ -331,6 +335,10 @@ if (musicState.battle) {
 if (musicState.recap) {
   musicState.recap.preload = "auto";
   musicState.recap.loop = false;
+}
+if (musicState.exterior) {
+  musicState.exterior.preload = "auto";
+  musicState.exterior.loop = false;
 }
 
 function playDefaultArrowSfx(volume = 0.6) {
@@ -758,10 +766,35 @@ function startIntroMusic() {
   playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
 }
 
+function startExteriorMusic() {
+  if (!musicState.exterior) return;
+  pauseAllMusic();
+  musicState.introStarted = false;
+  musicState.battleStarted = false;
+  musicState.recapStarted = false;
+  musicState.introStopped = false;
+  musicState.battleStopped = false;
+  musicState.recapStopped = false;
+  musicState.exteriorStopped = false;
+  musicState.exteriorStarted = true;
+  cancelFade(musicState.exterior);
+  try {
+    musicState.exterior.currentTime = 0;
+  } catch (e) {}
+  playMusic(musicState.exterior, { volume: MUSIC_VOLUME_INTRO, loop: false });
+}
+
+function stopExteriorMusic() {
+  if (!musicState.exterior || musicState.exteriorStopped) return;
+  musicState.exteriorStopped = true;
+  fadeAudio(musicState.exterior, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+}
+
 function startMapMusic() {
   if (!musicState.intro) return;
   if (musicState.battleStarted && !musicState.battleStopped) fadeOutBattleMusic();
   if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+  if (musicState.exteriorStarted && !musicState.exteriorStopped) stopExteriorMusic();
   musicState.introStopped = false;
   musicState.introStarted = true;
   cancelFade(musicState.intro);
@@ -788,6 +821,7 @@ function stopIntroMusic() {
 function startBattleMusic() {
   if (!musicState.battle) return;
   cancelFade(musicState.battle);
+  if (musicState.exteriorStarted && !musicState.exteriorStopped) stopExteriorMusic();
   musicState.battleStopped = false;
   musicState.battleStarted = true;
   playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
@@ -941,6 +975,7 @@ function pauseAllMusic() {
   if (musicState.intro) musicState.intro.pause();
   if (musicState.battle) musicState.battle.pause();
   if (musicState.recap) musicState.recap.pause();
+  if (musicState.exterior) musicState.exterior.pause();
 }
 
 function resumeBattleMusicIfNeeded() {
@@ -1020,12 +1055,20 @@ function resetMusicState() {
     musicState.recap.currentTime = 0;
     musicState.recap.volume = 0;
   }
+  if (musicState.exterior) {
+    cancelFade(musicState.exterior);
+    musicState.exterior.pause();
+    musicState.exterior.currentTime = 0;
+    musicState.exterior.volume = 0;
+  }
   musicState.introStarted = false;
   musicState.battleStarted = false;
   musicState.recapStarted = false;
+  musicState.exteriorStarted = false;
   musicState.introStopped = false;
   musicState.battleStopped = false;
   musicState.recapStopped = false;
+  musicState.exteriorStopped = false;
   musicState.awaitingUserGesture = false;
   musicState.unlocked = false;
 }
@@ -1035,6 +1078,7 @@ if (typeof window !== "undefined") {
   window.stopBattleMusicFast = stopBattleMusicFast;
   window.fadeOutBattleMusic = fadeOutBattleMusic;
   window.startMapMusic = startMapMusic;
+  window.startExteriorMusic = startExteriorMusic;
   window.startBattleMusicFromFormation = () => {
     musicState.battlePrimed = true;
     musicState.unlocked = true;
@@ -4728,6 +4772,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     skipMissionBrief: true,
     exteriorShot: true,
   });
+  if (typeof startExteriorMusic === "function") {
+    startExteriorMusic();
+  }
 }
 
 function startTownIntroTransition() {
@@ -11944,6 +11991,12 @@ function handleLevelAnnouncements() {
     return true;
   }
   if (currentAnnouncement.exteriorShot) {
+    if (!currentAnnouncement._musicStarted) {
+      currentAnnouncement._musicStarted = true;
+      if (typeof startExteriorMusic === "function") {
+        startExteriorMusic();
+      }
+    }
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     const lastTick = currentAnnouncement._lastTick || now;
     const dt = Math.max(0, (now - lastTick) / 1000);

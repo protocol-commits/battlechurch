@@ -680,6 +680,9 @@
   }
 
   function startRunForTown(townId) {
+    if (typeof window.startExteriorMusic === "function") {
+      window.startExteriorMusic();
+    }
     if (typeof window.startRunForTown === "function") {
       window.startRunForTown(townId);
       return;
