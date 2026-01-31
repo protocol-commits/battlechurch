@@ -1682,17 +1682,27 @@ state.waveIndex = -1;
         beginLevel(nextLevel);
         return true;
       },
-      devSkipToBoss() {
+      devSkipToBoss({ showExterior = true } = {}) {
         if (!state.active) return false;
         if (state.stage === "bossActive") {
           devClearOpponents({ includeBoss: true });
-          return true;
+          return { success: true, needsExteriorShot: false };
         }
         devClearOpponents({ includeBoss: true });
         state.monthIndex = BATTLE_MONTHS_PER_LEVEL - 1;
         state.waveIndex = getBattleHordeCount(currentBattle()) - 1;
+        if (showExterior) {
+          // Set stage to battleIntermission with long timer - exterior shot will trigger boss
+          resetStage("battleIntermission", 99999);
+          return { success: true, needsExteriorShot: true };
+        }
         beginBossIntro();
         state.timer = 0;
+        return { success: true, needsExteriorShot: false };
+      },
+      triggerBossIntro() {
+        if (!state.active) return false;
+        beginBossIntro();
         return true;
       },
       devSkipToGraceRush() {

@@ -46,6 +46,7 @@ const POST_DEATH_HANG = 5;
 const ARENA_FADE_DURATION = 2;
 let postDeathSequenceActive = false;
 let pendingExteriorShotAfterVisitor = false;
+let pendingBossIntroAfterExterior = false;
 let mapAmbientFadeQueued = false;
 let postDeathTimer = 0;
 let miniImpWaveDispatched = false;
@@ -847,6 +848,8 @@ function stopIntroMusic() {
 
 function startBattleMusic() {
   if (!musicState.battle) return;
+  // If boss exterior music is playing, don't start regular battle music - let boss music continue
+  if (musicState.exteriorBossStarted && !musicState.exteriorBossStopped) return;
   cancelFade(musicState.battle);
   if (musicState.exteriorStarted && !musicState.exteriorStopped) stopExteriorMusic();
   musicState.battleStopped = false;
@@ -4825,7 +4828,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
       ? window.MONTHS_PER_LEVEL
       : 4;
-  const isBossExterior = Number.isFinite(status?.battle) && status.battle >= bossBattleNumber;
+  // Check if this is a boss exterior - either by battle number OR by pending boss flag (from dev hotkey 5)
+  const isBossExterior = pendingBossIntroAfterExterior ||
+    (Number.isFinite(status?.battle) && status.battle >= bossBattleNumber);
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
@@ -4884,6 +4889,7 @@ function startGameFromTitle() {
   gameStarted = false;
   townIntroTransitionActive = false;
   townIntroTransitionTimer = 0;
+  pendingBossIntroAfterExterior = false;
   startSpeedrunTimer();
   resetYearNpcPool();
   if (window.StatsManager) window.StatsManager.resetStats();
@@ -4931,6 +4937,7 @@ function returnToMapWithNextTown() {
   titleScreenActive = false;
   howToPlayActive = false;
   mapActive = true;
+  pendingBossIntroAfterExterior = false;
   // Clear any pending announcements
   try {
     if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
@@ -10938,8 +10945,15 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("5")) {
-    if (levelManager?.devSkipToBoss?.()) {
-      setDevStatus("Boss battle engaged", 2.3);
+    const result = levelManager?.devSkipToBoss?.();
+    if (result?.success) {
+      if (result.needsExteriorShot) {
+        pendingBossIntroAfterExterior = true;
+        queueExteriorShotAnnouncement({ force: true });
+        setDevStatus("Boss exterior shot", 2.3);
+      } else {
+        setDevStatus("Boss battle engaged", 2.3);
+      }
     }
   }
   if (keysJustPressed.has("6")) {
@@ -11277,6 +11291,13 @@ function updateTownIntroTransition(dt) {
   }
   if (townIntroTransitionTimer >= TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION) {
     townIntroTransitionActive = false;
+    // Check if we need to trigger boss intro after exterior shot (dev hotkey 5)
+    if (pendingBossIntroAfterExterior) {
+      pendingBossIntroAfterExterior = false;
+      if (levelManager?.triggerBossIntro) {
+        levelManager.triggerBossIntro();
+      }
+    }
   }
   try {
     const status = levelManager?.getStatus ? levelManager.getStatus() : null;
@@ -12073,7 +12094,9 @@ function handleLevelAnnouncements() {
           typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
             ? window.MONTHS_PER_LEVEL
             : 4;
-        const isBossExterior = Number.isFinite(status?.battle) && status.battle >= bossBattleNumber;
+        // Check if this is a boss exterior - either by battle number OR by pending boss flag (from dev hotkey 5)
+        const isBossExterior = pendingBossIntroAfterExterior ||
+          (Number.isFinite(status?.battle) && status.battle >= bossBattleNumber);
         startExteriorMusic({ boss: isBossExterior });
       }
     }
