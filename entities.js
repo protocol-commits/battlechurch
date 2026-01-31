@@ -1801,6 +1801,7 @@ class Player {
       const baseConfig = projectileConfig[this.projectileType] || {};
       const baseSpeedScale = this.config.projectileSpeedMultiplier ?? 0.9;
       const speedScale = this.type === "miniFireImp" ? baseSpeedScale * 0.5 : baseSpeedScale;
+      const spawnType = this.projectileType === "miniFireball" ? "arrow" : this.projectileType;
       const spawnOverrides = {
         friendly: false,
         damage: Math.max(1, this.config.damage || baseConfig.damage || 1),
@@ -1812,35 +1813,10 @@ class Player {
         const baseLife = baseConfig.life || 1.2;
         spawnOverrides.life = baseLife / Math.max(0.05, speedScale);
       }
-      if (this.projectileType === "miniFireball") {
-        try {
-          this._miniFireAlt = !this._miniFireAlt;
-          const clip = assets?.projectiles?.miniFireball;
-          if (clip && clip.image && clip.frameWidth > 0 && clip.frameHeight > 0) {
-            const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-            const rows = Math.max(1, Math.floor(clip.image.height / clip.frameHeight));
-            const rowToUse = this._miniFireAlt ? 1 : 0;
-            const frames = [];
-            for (let c = 0; c < cols; c += 1) {
-              const idx = rowToUse * cols + c;
-              frames.push(projectileFrames.miniFireball ? projectileFrames.miniFireball[idx] : null);
-            }
-            const filtered = frames.filter(Boolean);
-            if (filtered.length) {
-              spawnOverrides.frames = filtered;
-              spawnOverrides.frameDuration = 0.06;
-              spawnOverrides.loopFrames = true;
-              spawnOverrides.flipHorizontal = dir.x < 0;
-            } else {
-              console.debug &&
-                console.debug("miniFireball per-row frames empty, falling back to clip", {
-                  type: this.type,
-                  src: clip?.image?.src,
-                });
-            }
-          }
-        } catch (e) {}
-      } else if (this.projectileType === "miniTrident") {
+      if (this.projectileType === "miniFireball" && Number.isFinite(baseConfig.life)) {
+        spawnOverrides.life = baseConfig.life;
+      }
+      if (this.projectileType === "miniTrident") {
         const frames = projectileFrames.miniTrident ||
           (typeof getFramesForClip === "function" ? getFramesForClip(assets?.projectiles?.miniTrident) : null);
         if (frames && frames.length) {
@@ -1853,7 +1829,7 @@ class Player {
         spawnOverrides.radius = baseConfig.radius || spawnOverrides.radius;
         spawnOverrides.scale = baseConfig.scale || spawnOverrides.scale;
       }
-      const projectile = spawnProjectile(this.projectileType, originX, originY, dir.x, dir.y, spawnOverrides);
+      const projectile = spawnProjectile(spawnType, originX, originY, dir.x, dir.y, spawnOverrides);
       if (projectile) {
         projectile.hitEntities.add(this);
         this.state = "attack";

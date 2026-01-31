@@ -4160,53 +4160,9 @@ async function loadProjectileFrames(cache, assets, projectileFrames) {
     console.debug && console.debug('miniTrident frame extraction failed', e);
   }
 
-  // Mini fireball frames
-  try {
-    const pclip = assets.projectiles?.miniFireball;
-    if (pclip && pclip.image) {
-      let frameW = pclip.frameWidth || 0;
-      let frameH = pclip.frameHeight || 0;
-      const imgW = pclip.image.width;
-      const imgH = pclip.image.height;
-      if ((!frameW || !frameH) && imgW > 0 && imgH > 0) {
-        if (imgW % 4 === 0 && imgH % 2 === 0) {
-          frameW = Math.floor(imgW / 4);
-          frameH = Math.floor(imgH / 2);
-        }
-      }
-      if ((!frameW || !frameH) && imgW > 0 && imgH > 0) {
-        const g = gcd(imgW, imgH);
-        if (g > 1) {
-          frameW = frameW || g;
-          frameH = frameH || g;
-        }
-      }
-      if (frameW > 0 && frameH > 0) {
-        const cols = Math.max(1, Math.floor(imgW / frameW));
-        const rows = Math.max(1, Math.floor(imgH / frameH));
-        const total = pclip.frameCount || cols * rows;
-        projectileFrames.miniFireball = [];
-        for (let i = 0; i < total; i += 1) {
-          const frameCanvas = extractFrame(pclip.image, frameW, frameH, i);
-          projectileFrames.miniFireball.push(frameCanvas);
-        }
-        if (projectileFrames.miniFireball.length) {
-          assets.projectiles.miniFireball = { frames: projectileFrames.miniFireball };
-        }
-      } else {
-        console.debug && console.debug('miniFireball extraction skipped; metadata', {
-          src: pclip.image?.src,
-          imgW,
-          imgH,
-          frameWidth: pclip.frameWidth,
-          frameHeight: pclip.frameHeight,
-          inferredFrameW: frameW,
-          inferredFrameH: frameH,
-        });
-      }
-    }
-  } catch (e) {
-    // ignore frame extraction failures
+  // Mini fireball uses the exact same clip as the player's default arrow projectile.
+  if (assets.projectiles?.arrow) {
+    assets.projectiles.miniFireball = assets.projectiles.arrow;
   }
 
   // Fire and wisdom missile frames

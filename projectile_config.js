@@ -64,7 +64,7 @@
       damage: 5,
       life: 2.4,
       radius: 18 * WORLD_SCALE,
-      scale: 1.8 * WORLD_SCALE,
+      scale: 3.6 * WORLD_SCALE,
       pierce: false,
     },
     divine_shot: {

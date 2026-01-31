@@ -269,38 +269,7 @@ class Enemy {
     radius: baseConfig.radius || 20,
     source: this,
   };
-    // Special-case miniFireball: alternate between row 0 and row 1 animations
-    if (this.projectileType === 'miniFireball') {
-      try {
-        // toggle per-instance flag
-        this._miniFireAlt = !this._miniFireAlt;
-        const clip = assets.projectiles?.miniFireball;
-        if (clip && clip.image && clip.frameWidth > 0 && clip.frameHeight > 0) {
-          const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-          const rows = Math.max(1, Math.floor(clip.image.height / clip.frameHeight));
-          const rowCount = Math.max(1, rows);
-          const rowToUse = this._miniFireAlt ? 1 : 0;
-          const frames = [];
-          for (let c = 0; c < cols; c += 1) {
-            const idx = rowToUse * cols + c;
-            frames.push(projectileFrames.miniFireball ? projectileFrames.miniFireball[idx] : null);
-          }
-          // remove any nulls (safety)
-          const filtered = frames.filter(Boolean);
-          if (filtered.length) {
-    spawnOverrides.frames = filtered;
-    spawnOverrides.frameDuration = 0.06;
-    spawnOverrides.loopFrames = true;
-    spawnOverrides.flipHorizontal = dir.x < 0;
-          } else {
-            // fallback: do not override frames so spawnProjectile uses clip/animator
-            console.debug && console.debug('miniFireball per-row frames empty, falling back to clip', { type: this.type, src: clip?.image?.src });
-          }
-        }
-      } catch (e) {
-        // ignore and fall back to default spawn
-      }
-    }
+    // Keep miniFireball using the same clip/frames as the player's default projectile.
     const projectile = spawnProjectile(this.projectileType, originX, originY, dir.x, dir.y, spawnOverrides);
     if (projectile) {
       projectile.hitEntities.add(this);
