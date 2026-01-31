@@ -26,7 +26,83 @@
     loading: false,
     lastMapLoad: 0,
     lastPulseTime: 0,
+    ambient: {
+      active: false,
+      nextAt: 0,
+      lastAt: 0,
+    },
   };
+
+  const MAP_AMBIENT_SRCS = [
+    "assets/sfx/rpg/Monsters/monster_1.wav",
+    "assets/sfx/rpg/Monsters/monster_1.wav",
+    "assets/sfx/rpg/Monsters/monster_10.wav",
+    "assets/sfx/rpg/Monsters/monster_11.wav",
+    "assets/sfx/rpg/Monsters/monster_12.wav",
+  ];
+  const MAP_AMBIENT_POOL_MAX = 4;
+  const mapAmbientPools = new Map();
+
+  function playMapAmbientSfx(src, volume = 0.45) {
+    if (typeof Audio === "undefined") return null;
+    let pool = mapAmbientPools.get(src);
+    if (!pool) {
+      pool = [];
+      mapAmbientPools.set(src, pool);
+    }
+    let audio = pool.find((a) => a && a.paused);
+    if (!audio && pool.length < MAP_AMBIENT_POOL_MAX) {
+      audio = new Audio(src);
+      audio.preload = "auto";
+      pool.push(audio);
+    }
+    if (!audio) return null;
+    audio.volume = volume;
+    audio.currentTime = 0;
+    try {
+      const playPromise = audio.play();
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {});
+      }
+    } catch (e) {}
+    return audio;
+  }
+
+  function stopMapAmbient() {
+    state.ambient.active = false;
+    state.ambient.nextAt = 0;
+    state.ambient.lastAt = 0;
+    for (const pool of mapAmbientPools.values()) {
+      pool.forEach((audio) => {
+        if (!audio) return;
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+        } catch (e) {}
+      });
+    }
+  }
+
+  function startMapAmbient() {
+    state.ambient.active = true;
+    state.ambient.nextAt = 0;
+    state.ambient.lastAt = 0;
+  }
+
+  function updateMapAmbient() {
+    if (!state.ambient.active) return;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (!state.ambient.nextAt) {
+      state.ambient.nextAt = now + 600 + Math.random() * 900;
+      return;
+    }
+    if (now < state.ambient.nextAt) return;
+    const src = MAP_AMBIENT_SRCS[Math.floor(Math.random() * MAP_AMBIENT_SRCS.length)];
+    playMapAmbientSfx(src, 0.45);
+    const gap = 700 + Math.random() * 1400;
+    state.ambient.lastAt = now;
+    state.ambient.nextAt = now + gap;
+  }
 
   function roundRect(ctx, x, y, width, height, radius, fill = true, stroke = true) {
     if (!ctx) return;
@@ -794,17 +870,23 @@
     state.panelOpen = false;
     if (!state.selectedTownId) state.selectedTownId = pickInitialTown();
     loadPlayerProgress();
+    if (typeof window.startMapMusic === "function") {
+      window.startMapMusic();
+    }
+    startMapAmbient();
   }
 
   function close() {
     state.active = false;
     state.panelOpen = false;
+    stopMapAmbient();
   }
 
   function update(dt) {
     if (!state.active) return;
     loadMapImage();
     handleMapInput();
+    updateMapAmbient();
     const mapData = window.BattlechurchMapData;
     if (mapData) {
       mapData.towns.forEach((town) => {

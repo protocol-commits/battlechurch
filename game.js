@@ -223,7 +223,7 @@ const RECAP_TICK_SFX_SRC = "assets/sfx/utility/utility9.mp3";
 const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const INTRO_MUSIC_SRC = "assets/music/title-music.mp3";
 const BATTLE_MUSIC_SRC = "assets/music/battle-music.mp3";
-const RECAP_MUSIC_SRC = "assets/music/inspirational-music.mp3";
+const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/npcs/fireball_release_1.wav";
@@ -758,6 +758,16 @@ function startIntroMusic() {
   playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
 }
 
+function startMapMusic() {
+  if (!musicState.intro) return;
+  if (musicState.battleStarted && !musicState.battleStopped) fadeOutBattleMusic();
+  if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+  musicState.introStopped = false;
+  musicState.introStarted = true;
+  cancelFade(musicState.intro);
+  playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
+}
+
 function triggerIntroMusicFromInput() {
   if (!musicState.intro || musicState.introStopped) return;
   if (!musicState.introStarted) {
@@ -1024,6 +1034,7 @@ if (typeof window !== "undefined") {
   window.stopIntroMusic = stopIntroMusic;
   window.stopBattleMusicFast = stopBattleMusicFast;
   window.fadeOutBattleMusic = fadeOutBattleMusic;
+  window.startMapMusic = startMapMusic;
   window.startBattleMusicFromFormation = () => {
     musicState.battlePrimed = true;
     musicState.unlocked = true;
