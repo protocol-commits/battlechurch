@@ -2478,6 +2478,7 @@ Renderer.initialize({
   get howToPlayPages() { return HOW_TO_PLAY_PAGES; },
   get howToPlayPageIndex() { return howToPlayPageIndex; },
   get levelManager() { return levelManager; },
+  get pendingBossIntroAfterExterior() { return pendingBossIntroAfterExterior; },
   get gameOver() { return gameOver; },
   obstacles,
   npcs,
@@ -4870,7 +4871,6 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     1,
     Number.isFinite(status?.battle) ? status.battle : 1,
   );
-  const battleTitle = battleHeadings[battleNumber] || monthName;
   const bossBattleNumber =
     typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
       ? window.MONTHS_PER_LEVEL
@@ -4878,6 +4878,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   // Check if this is a boss exterior - either by battle number OR by pending boss flag (from dev hotkey 5)
   const isBossExterior = pendingBossIntroAfterExterior ||
     (Number.isFinite(status?.battle) && status.battle >= bossBattleNumber);
+  const battleTitle = isBossExterior
+    ? `Mission ${bossBattleNumber}`
+    : (battleHeadings[battleNumber] || monthName);
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
@@ -11498,7 +11501,6 @@ function checkDialogOverlays() {
       console.log("SHOWING CHAPTER BREAK for Act", actNumber);
       window.UpgradeScreen.show(() => {
         console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
-        queueExteriorShotAnnouncement();
         showChapterBreak(actNumber);
       });
     } else {

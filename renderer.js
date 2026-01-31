@@ -4356,12 +4356,19 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         2: "Battle 2: Hold Your Ground",
         3: "Battle 3: Liberate the Town!",
       };
-      const battleNumber = Math.max(
-        1,
-        Number.isFinite(levelStatus?.battle) ? levelStatus.battle : 1,
+      const pendingBossIntroAfterExterior = Boolean(
+        typeof requireBindings().pendingBossIntroAfterExterior !== "undefined" &&
+          requireBindings().pendingBossIntroAfterExterior,
       );
+      const inferredUpcomingNumber = Math.max(
+        1,
+        (Number.isFinite(levelStatus?.battle) ? levelStatus.battle : 0) + 1,
+      );
+      const upcomingNumber = pendingBossIntroAfterExterior ? 4 : inferredUpcomingNumber;
       const battleHeading =
-        battleHeadings[battleNumber] || `Battle ${battleNumber}`;
+        upcomingNumber <= 3
+          ? (battleHeadings[upcomingNumber] || `Battle ${upcomingNumber}`)
+          : `Mission ${upcomingNumber}`;
       {
         const { UI_FONT_FAMILY } = requireBindings();
         const centerX = canvas.width / 2;
