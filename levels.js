@@ -1161,8 +1161,8 @@
         : null;
       resetStage("graceRush", BOSS_GRACE_RUSH_DURATION);
       state.graceRushContext = "boss";
-      setDevStatus("Treasure Overflow!", BOSS_GRACE_RUSH_DURATION);
-      queueLevelAnnouncement("Treasure Overflow!", "Celebrate the victory—collect every grace!", {
+      setDevStatus("Grace Overflow!", BOSS_GRACE_RUSH_DURATION);
+      queueLevelAnnouncement("Grace Overflow!", "Celebrate the victory—collect every grace!", {
         duration: 2.6,
         skipMissionBrief: true,
       });
