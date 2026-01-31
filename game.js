@@ -4853,7 +4853,7 @@ function showTownIntroDialog() {
 function queueTownIntroAnnouncement() {
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
-  const text = `${townName} is under siege. Smite the hordes. Defend its church. Protect its people.`;
+  const text = `${townName} is under siege. Stop its collapse. Secure a foothold.`;
   pendingTownIntroStart = true;
   queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
