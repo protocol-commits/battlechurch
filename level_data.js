@@ -121,6 +121,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniClawedDemon",
                       "count": 20
+                    },
+                    {
+                      "enemy": "miniDemonFireThrower",
+                      "count": 10
                     }
                   ],
                   "weights": {},
@@ -136,7 +140,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniDemonFireThrower",
-                      "count": 1
+                      "count": 10
                     },
                     {
                       "enemy": "miniFireImp",
@@ -169,6 +173,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
+                    },
+                    {
+                      "enemy": "miniDemonFireThrower",
+                      "count": 10
                     }
                   ],
                   "weights": {},
@@ -184,7 +192,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniDemonFireThrower",
-                      "count": 1
+                      "count": 10
                     },
                     {
                       "enemy": "miniImp",
@@ -213,6 +221,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
+                    },
+                    {
+                      "enemy": "miniDemonFireThrower",
+                      "count": 10
                     }
                   ],
                   "weights": {},
@@ -228,7 +240,7 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniDemonFireThrower",
-                      "count": 1
+                      "count": 10
                     },
                     {
                       "enemy": "miniImp",

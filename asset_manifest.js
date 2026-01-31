@@ -163,6 +163,14 @@
           frameRate: 0,
           loop: false,
         },
+        miniFireball: {
+          src: "assets/sprites/MiniFolksWeapons/minifireball.png",
+          frameWidth: 20,
+          frameHeight: 16,
+          frameRate: 12,
+          loop: true,
+          frameMap: [5, 6, 7],
+        },
         fire: {
           src: `${magicPackRoot}/fire-missile/sprites/fire-missile1.png`,
           frameWidth: 32,
