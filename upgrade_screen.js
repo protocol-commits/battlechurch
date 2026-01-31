@@ -26,6 +26,7 @@
   let focusedIndex = 0;
   let navHoldDir = null;
   let navHoldTimer = 0;
+  let navCooldown = 0;
 
   function getGraceCount() {
     return typeof window.getGraceCount === "function" ? window.getGraceCount() : 0;
@@ -122,6 +123,7 @@
         focusedIndex = (focusedIndex - 1 + statCount) % statCount;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
       }
     } else if (event.code === "ArrowRight" || event.code === "KeyD") {
       event.preventDefault();
@@ -130,6 +132,7 @@
         focusedIndex = (focusedIndex + 1) % statCount;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
       }
     } else if (event.code === "ArrowDown" || event.code === "KeyS") {
       event.preventDefault();
@@ -138,6 +141,7 @@
         focusedIndex = continueIndex;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
       }
     } else if (event.code === "ArrowUp" || event.code === "KeyW") {
       event.preventDefault();
@@ -146,6 +150,7 @@
         focusedIndex = 0;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
       }
     } else if (event.code === "Space" || event.code === "Enter" || event.keyCode === 32) {
       event.preventDefault();
@@ -187,6 +192,10 @@
     if (!visible) return;
     const input = window.Input;
     if (!input || typeof input.isActionActive !== "function") return;
+    if (navCooldown > 0) {
+      navCooldown = Math.max(0, navCooldown - dt);
+      return;
+    }
     if (input.virtualInput?.enabled) {
       const confirmKeys = [" ", "enter"];
       if (confirmKeys.some((k) => input.keysJustPressed?.has(k))) {
