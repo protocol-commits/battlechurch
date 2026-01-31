@@ -8,6 +8,8 @@ class AshOverlay {
     this.viewHeight = height;
     this.count = Math.max(40, particleCount);
     this.emberRatio = 0.55;
+    this.embersOnly = false;
+    this.intensity = 1;
     this.particles = new Array(this.count);
     this._seedParticles();
   }
@@ -92,30 +94,34 @@ class AshOverlay {
     if (!ctx) return;
 
     // Ash (source-over, very subtle).
-    ctx.save();
-    ctx.translate(this.viewX || 0, this.viewY || 0);
-    ctx.globalCompositeOperation = "source-over";
-    for (let i = 0; i < this.particles.length; i += 1) {
-      const p = this.particles[i];
-      if (p.isEmber) continue;
-      ctx.globalAlpha = p.alpha * (p.alphaScale ?? 1);
-      ctx.fillStyle = p.color;
-      if (p.shape === 0) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = p.size * 0.6;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x + p.len, p.y + p.len * 0.35);
-        ctx.stroke();
+    if (!this.embersOnly) {
+      ctx.save();
+      ctx.translate(this.viewX || 0, this.viewY || 0);
+      ctx.globalCompositeOperation = "source-over";
+      for (let i = 0; i < this.particles.length; i += 1) {
+        const p = this.particles[i];
+        if (p.isEmber) continue;
+        ctx.globalAlpha = p.alpha * (p.alphaScale ?? 1);
+        ctx.fillStyle = p.color;
+        if (p.shape === 0) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.strokeStyle = p.color;
+          ctx.lineWidth = p.size * 0.6;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x + p.len, p.y + p.len * 0.35);
+          ctx.stroke();
+        }
       }
+      ctx.restore();
     }
-    ctx.restore();
 
     // Embers (lighten blend, still subtle).
+    const intensity = Math.max(0.1, this.intensity || 1);
+    const sizeScale = 1 + (intensity - 1) * 0.6;
     ctx.save();
     ctx.translate(this.viewX || 0, this.viewY || 0);
     ctx.globalCompositeOperation = "lighter";
@@ -123,13 +129,30 @@ class AshOverlay {
       const p = this.particles[i];
       if (!p.isEmber) continue;
       const flicker = 0.6 + 0.4 * Math.sin(p.t * 4.2);
-      ctx.globalAlpha = p.alpha * (p.alphaScale ?? 1) * flicker;
+      ctx.globalAlpha = Math.min(1, p.alpha * (p.alphaScale ?? 1) * flicker * intensity);
       ctx.fillStyle = p.color;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size * 1.2, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, p.size * 1.2 * sizeScale, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
+  }
+
+  setEmberRatio(ratio) {
+    const next = Math.max(0, Math.min(1, Number(ratio)));
+    if (!Number.isFinite(next)) return;
+    this.emberRatio = next;
+    this._seedParticles();
+  }
+
+  setEmbersOnly(value) {
+    this.embersOnly = Boolean(value);
+  }
+
+  setIntensity(scale) {
+    const next = Number(scale);
+    if (!Number.isFinite(next) || next <= 0) return;
+    this.intensity = next;
   }
 
   _seedParticles() {

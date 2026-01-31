@@ -2228,6 +2228,15 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const isPastorPostRecap = Boolean(levelAnnouncements[0]?.pastorPostRecap);
     const isPastorSpeech = isPastorFinal || isPastorPostRecap;
     if (isTownIntro || isExteriorShot || isPastorSpeech) {
+      if (isExteriorShot) {
+        const fireOverlay = requireBindings().fireOverlay;
+        if (fireOverlay && typeof fireOverlay.draw === "function") {
+          if (typeof fireOverlay.setBounds === "function") {
+            fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+          }
+          fireOverlay.draw(ctx);
+        }
+      }
       const titleSize = isPastorSpeech
         ? Math.max(20, TEXT_STYLES.h2.size * 0.95)
         : Math.max(28, TEXT_STYLES.h1.size * 1.35);
@@ -3528,6 +3537,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    const fireOverlay = requireBindings().fireOverlay;
+    if (fireOverlay && typeof fireOverlay.draw === "function") {
+      if (typeof fireOverlay.setBounds === "function") {
+        fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+      }
+      fireOverlay.draw(ctx);
+    }
 
     if (typeof window !== "undefined") {
       const bestScoreValue = Number.isFinite(window.bestScore) ? window.bestScore : null;
@@ -4343,6 +4359,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (townIntroActive) {
       const effectiveCameraX = resolveCameraX();
       drawBackground(effectiveCameraX, 0);
+      const fireOverlay = requireBindings().fireOverlay;
+      if (fireOverlay && typeof fireOverlay.draw === "function") {
+        if (typeof fireOverlay.setBounds === "function") {
+          fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+        }
+        fireOverlay.draw(ctx);
+      }
       // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
       {
@@ -4463,6 +4486,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         drawCoverImage(ctx, canvas, img, 1, 0.5, 0.5);
         ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      const fireOverlay = requireBindings().fireOverlay;
+      if (fireOverlay && typeof fireOverlay.draw === "function") {
+        if (typeof fireOverlay.setBounds === "function") {
+          fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+        }
+        fireOverlay.draw(ctx);
       }
       const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {

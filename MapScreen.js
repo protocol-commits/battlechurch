@@ -953,6 +953,13 @@
     if (!state.active) return;
     ctx.save();
     const rect = drawMapBackground(ctx, canvas);
+    const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
+    if (fireOverlay && typeof fireOverlay.draw === "function") {
+      if (typeof fireOverlay.setBounds === "function") {
+        fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+      }
+      fireOverlay.draw(ctx);
+    }
     drawMapLabels(ctx, canvas, rect);
     updateSelectionFromHover(rect);
     const pulse = Math.sin((Date.now() / 1000) * 3) * 2;

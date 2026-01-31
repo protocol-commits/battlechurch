@@ -98,6 +98,7 @@ let playerDashState = {
 };
 let backgroundImage = null;
 let ashOverlay = null;
+let fireOverlay = null;
 let pendingTownIntroStart = false;
 let townIntroDismissedAt = 0;
 const TOWN_INTRO_ZOOM_DURATION = 1.0;
@@ -2263,8 +2264,16 @@ function resizeCanvas() {
   if (typeof window !== "undefined" && window.AshOverlay) {
     if (!ashOverlay) {
       ashOverlay = new window.AshOverlay(canvas.width, canvas.height);
+      fireOverlay = new window.AshOverlay(canvas.width, canvas.height, 300);
+      fireOverlay.setEmbersOnly(true);
+      fireOverlay.setEmberRatio(1);
+      fireOverlay.setIntensity(1);
+      window.fireOverlay = fireOverlay;
     } else {
       ashOverlay.resize(canvas.width, canvas.height);
+      if (fireOverlay) {
+        fireOverlay.resize(canvas.width, canvas.height);
+      }
     }
   }
 
@@ -2457,6 +2466,7 @@ Renderer.initialize({
   get townVictoryScore() { return townVictoryScore; },
   get townVictoryScroll() { return townVictoryScroll; },
   get ashOverlay() { return ashOverlay; },
+  get fireOverlay() { return fireOverlay; },
   get congregationOverlay() { return congregationOverlay; },
   get speedrunTimer() { return speedrunTimer; },
   get isModalActive() { return isAnyDialogActive(); },
@@ -13400,6 +13410,9 @@ function updateArcControlCooldowns() {
 function updateGame(dt) {
   if (window.MapScreen?.updateAmbient) {
     window.MapScreen.updateAmbient(dt);
+  }
+  if (fireOverlay) {
+    fireOverlay.update(dt * 1000);
   }
   // Handle title screen even before player/assets are loaded
   if (titleScreenActive) {
