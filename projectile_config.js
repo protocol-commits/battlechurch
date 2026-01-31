@@ -55,7 +55,7 @@
       speed: 205 * WORLD_SCALE,
       damage: 8,
       radius: 18 * WORLD_SCALE,
-      scale: 6.0 * WORLD_SCALE,
+      scale: 4.0 * WORLD_SCALE,
       pierce: false,
       cooldownAfterFire: 1.4,
     },

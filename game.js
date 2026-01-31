@@ -12678,6 +12678,9 @@ function processProjectileClashing() {
         friendlyDies = true;
         hostileDies = true;
       }
+      if (hostileDies && hostile.type === "miniTrident") {
+        spawnFlashEffect(hostile.x, hostile.y);
+      }
 
       if (hostileDies) hostile.dead = true;
       if (friendlyDies) friendly.dead = true;
