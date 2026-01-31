@@ -30,6 +30,9 @@
       active: false,
       nextAt: 0,
       lastAt: 0,
+      fadeOut: false,
+      fadeStart: 0,
+      fadeDuration: 900,
     },
   };
 
@@ -42,6 +45,7 @@
   ];
   const MAP_AMBIENT_POOL_MAX = 4;
   const mapAmbientPools = new Map();
+  const mapAmbientActive = [];
 
   function playMapAmbientSfx(src, volume = 0.45) {
     if (typeof Audio === "undefined") return null;
@@ -58,6 +62,7 @@
     }
     if (!audio) return null;
     audio.volume = volume;
+    audio.__mapAmbientBaseVolume = volume;
     audio.currentTime = 0;
     try {
       const playPromise = audio.play();
@@ -65,13 +70,22 @@
         playPromise.catch(() => {});
       }
     } catch (e) {}
+    mapAmbientActive.push(audio);
     return audio;
   }
 
-  function stopMapAmbient() {
+  function stopMapAmbient({ fade = false } = {}) {
+    if (fade) {
+      state.ambient.fadeOut = true;
+      state.ambient.fadeStart =
+        typeof performance !== "undefined" ? performance.now() : Date.now();
+      return;
+    }
     state.ambient.active = false;
+    state.ambient.fadeOut = false;
     state.ambient.nextAt = 0;
     state.ambient.lastAt = 0;
+    mapAmbientActive.length = 0;
     for (const pool of mapAmbientPools.values()) {
       pool.forEach((audio) => {
         if (!audio) return;
@@ -85,13 +99,41 @@
 
   function startMapAmbient() {
     state.ambient.active = true;
+    state.ambient.fadeOut = false;
     state.ambient.nextAt = 0;
     state.ambient.lastAt = 0;
   }
 
   function updateMapAmbient() {
-    if (!state.ambient.active) return;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (state.ambient.fadeOut) {
+      const t = state.ambient.fadeStart ? (now - state.ambient.fadeStart) / state.ambient.fadeDuration : 1;
+      const factor = Math.max(0, 1 - t);
+      for (let i = mapAmbientActive.length - 1; i >= 0; i -= 1) {
+        const audio = mapAmbientActive[i];
+        if (!audio) {
+          mapAmbientActive.splice(i, 1);
+          continue;
+        }
+        const base = Number.isFinite(audio.__mapAmbientBaseVolume) ? audio.__mapAmbientBaseVolume : 0.45;
+        audio.volume = base * factor;
+        if (t >= 1) {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+          } catch (e) {}
+          mapAmbientActive.splice(i, 1);
+        }
+      }
+      if (t >= 1) {
+        state.ambient.active = false;
+        state.ambient.fadeOut = false;
+        state.ambient.nextAt = 0;
+        state.ambient.lastAt = 0;
+      }
+      return;
+    }
+    if (!state.ambient.active) return;
     if (!state.ambient.nextAt) {
       state.ambient.nextAt = now + 600 + Math.random() * 900;
       return;
@@ -889,7 +931,6 @@
     if (!state.active) return;
     loadMapImage();
     handleMapInput();
-    updateMapAmbient();
     const mapData = window.BattlechurchMapData;
     if (mapData) {
       mapData.towns.forEach((town) => {
@@ -935,6 +976,9 @@
     setAssets,
     getTownStartCount,
     ensureTownStartCount,
+    updateAmbient: updateMapAmbient,
+    startAmbient: startMapAmbient,
+    stopAmbient: stopMapAmbient,
     get mapRect() { return { ...state.mapRect }; },
   };
 })(typeof window !== "undefined" ? window : null);

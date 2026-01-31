@@ -46,6 +46,7 @@ const POST_DEATH_HANG = 5;
 const ARENA_FADE_DURATION = 2;
 let postDeathSequenceActive = false;
 let pendingExteriorShotAfterVisitor = false;
+let mapAmbientFadeQueued = false;
 let postDeathTimer = 0;
 let miniImpWaveDispatched = false;
 let arenaFadeTimer = 0;
@@ -12058,6 +12059,10 @@ function updateCongregationStage(dt, levelStatus) {
   let stage = levelStatus?.stage;
   let congregationStageActive = stage === "levelIntro";
   if (!congregationStageActive) return { updated: false, levelStatus };
+  if (!mapAmbientFadeQueued && typeof window !== "undefined" && window.MapScreen?.stopAmbient) {
+    mapAmbientFadeQueued = true;
+    window.MapScreen.stopAmbient({ fade: true });
+  }
 
   const buttons =
     typeof window !== "undefined" && window.__announcementButtons?.key === "congregation"
@@ -12141,6 +12146,7 @@ function updateCongregationStage(dt, levelStatus) {
   congregationStageActive = stage === "levelIntro";
   if (!congregationStageActive) {
     powerUpsClearedForCongregation = false;
+    mapAmbientFadeQueued = false;
   }
   return { updated: true, levelStatus };
 }
@@ -13362,6 +13368,9 @@ function updateArcControlCooldowns() {
 }
 
 function updateGame(dt) {
+  if (window.MapScreen?.updateAmbient) {
+    window.MapScreen.updateAmbient(dt);
+  }
   // Handle title screen even before player/assets are loaded
   if (titleScreenActive) {
     if (handleTitleScreen()) {
