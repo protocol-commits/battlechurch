@@ -225,6 +225,7 @@ const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const INTRO_MUSIC_SRC = "assets/music/title-music.mp3";
 const BATTLE_MUSIC_SRC = "assets/music/battle-music.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
+const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/piano-build-music.mp3";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
@@ -314,14 +315,17 @@ const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
   recap: typeof Audio !== "undefined" ? new Audio(RECAP_MUSIC_SRC) : null,
+  visitor: typeof Audio !== "undefined" ? new Audio(VISITOR_MUSIC_SRC) : null,
   exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
   introStarted: false,
   battleStarted: false,
   recapStarted: false,
+  visitorStarted: false,
   exteriorStarted: false,
   introStopped: false,
   battleStopped: false,
   recapStopped: false,
+  visitorStopped: false,
   exteriorStopped: false,
   battlePrimed: false,
   awaitingUserGesture: false,
@@ -336,6 +340,10 @@ if (musicState.battle) {
 if (musicState.recap) {
   musicState.recap.preload = "auto";
   musicState.recap.loop = false;
+}
+if (musicState.visitor) {
+  musicState.visitor.preload = "auto";
+  musicState.visitor.loop = true;
 }
 if (musicState.exterior) {
   musicState.exterior.preload = "auto";
@@ -836,11 +844,11 @@ function startRecapMusic() {
 }
 
 function startVisitorMusic() {
-  if (!musicState.recap || !musicState.unlocked) return;
-  if (musicState.recapStarted && !musicState.recapStopped) return;
-  musicState.recapStarted = true;
-  musicState.recapStopped = false;
-  playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+  if (!musicState.visitor || !musicState.unlocked) return;
+  if (musicState.visitorStarted && !musicState.visitorStopped) return;
+  musicState.visitorStarted = true;
+  musicState.visitorStopped = false;
+  playMusic(musicState.visitor, { volume: MUSIC_VOLUME_BATTLE, loop: true });
 }
 
 function startEpilogueMusic() {
@@ -940,6 +948,12 @@ function stopRecapMusic() {
   fadeAudio(musicState.recap, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
 }
 
+function stopVisitorMusic() {
+  if (!musicState.visitor || musicState.visitorStopped) return;
+  musicState.visitorStopped = true;
+  fadeAudio(musicState.visitor, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+}
+
 function stopBattleMusicFast() {
   if (!musicState.battle || musicState.battleStopped) return;
   musicState.battleStopped = true;
@@ -975,6 +989,7 @@ function pauseAllMusic() {
   if (musicState.intro) musicState.intro.pause();
   if (musicState.battle) musicState.battle.pause();
   if (musicState.recap) musicState.recap.pause();
+  if (musicState.visitor) musicState.visitor.pause();
   if (musicState.exterior) musicState.exterior.pause();
 }
 
@@ -1057,6 +1072,12 @@ function resetMusicState() {
     musicState.recap.currentTime = 0;
     musicState.recap.volume = 0;
   }
+  if (musicState.visitor) {
+    cancelFade(musicState.visitor);
+    musicState.visitor.pause();
+    musicState.visitor.currentTime = 0;
+    musicState.visitor.volume = 0;
+  }
   if (musicState.exterior) {
     cancelFade(musicState.exterior);
     musicState.exterior.pause();
@@ -1066,10 +1087,12 @@ function resetMusicState() {
   musicState.introStarted = false;
   musicState.battleStarted = false;
   musicState.recapStarted = false;
+  musicState.visitorStarted = false;
   musicState.exteriorStarted = false;
   musicState.introStopped = false;
   musicState.battleStopped = false;
   musicState.recapStopped = false;
+  musicState.visitorStopped = false;
   musicState.exteriorStopped = false;
   musicState.awaitingUserGesture = false;
   musicState.unlocked = false;
@@ -9730,6 +9753,7 @@ function endVisitorSession({ reason = "completed" } = {}) {
   clearAllPowerUps();
   clearGracePickups();
   stopRecapMusic();
+  stopVisitorMusic();
   if (typeof window !== "undefined" && typeof window.resumeBattleMusicIfNeeded === "function") {
     window.resumeBattleMusicIfNeeded();
   }
@@ -11479,6 +11503,9 @@ function updateMusicState(levelStatus) {
     if (musicState.introStarted && !musicState.introStopped) {
       stopIntroMusic();
     }
+    if (musicState.recapStarted && !musicState.recapStopped) {
+      stopRecapMusic();
+    }
     startVisitorMusic();
     return;
   }
@@ -11496,6 +11523,7 @@ function updateMusicState(levelStatus) {
       musicState.battlePrimed = false;
     }
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+    if (musicState.visitorStarted && !musicState.visitorStopped) stopVisitorMusic();
     if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
     if (musicState.unlocked && !musicState.battleStarted) {
       startBattleMusic();
@@ -11509,6 +11537,7 @@ function updateMusicState(levelStatus) {
     stage === "npcArrival"
   ) {
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
+    if (musicState.visitorStarted && !musicState.visitorStopped) stopVisitorMusic();
   }
 }
 
