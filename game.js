@@ -228,6 +228,7 @@ const BATTLE_MUSIC_SRC = "assets/music/battle-music.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/piano-build-music.mp3";
+const EXTERIOR_BOSS_MUSIC_SRC = "assets/music/boss-fight-3.mp3";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/npcs/fireball_release_1.wav";
@@ -318,16 +319,20 @@ const musicState = {
   recap: typeof Audio !== "undefined" ? new Audio(RECAP_MUSIC_SRC) : null,
   visitor: typeof Audio !== "undefined" ? new Audio(VISITOR_MUSIC_SRC) : null,
   exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
+  exteriorBoss: typeof Audio !== "undefined" ? new Audio(EXTERIOR_BOSS_MUSIC_SRC) : null,
   introStarted: false,
   battleStarted: false,
   recapStarted: false,
   visitorStarted: false,
   exteriorStarted: false,
+  exteriorBossStarted: false,
   introStopped: false,
   battleStopped: false,
   recapStopped: false,
   visitorStopped: false,
   exteriorStopped: false,
+  exteriorBossStopped: false,
+  exteriorKind: "normal",
   battlePrimed: false,
   awaitingUserGesture: false,
   unlocked: false,
@@ -349,6 +354,10 @@ if (musicState.visitor) {
 if (musicState.exterior) {
   musicState.exterior.preload = "auto";
   musicState.exterior.loop = false;
+}
+if (musicState.exteriorBoss) {
+  musicState.exteriorBoss.preload = "auto";
+  musicState.exteriorBoss.loop = false;
 }
 
 function playDefaultArrowSfx(volume = 0.6) {
@@ -776,8 +785,9 @@ function startIntroMusic() {
   playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
 }
 
-function startExteriorMusic() {
-  if (!musicState.exterior) return;
+function startExteriorMusic({ boss = false } = {}) {
+  const target = boss ? musicState.exteriorBoss : musicState.exterior;
+  if (!target) return;
   if (musicState.battleStarted && !musicState.battleStopped) fadeOutBattleMusic();
   if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
   if (musicState.recapStarted && !musicState.recapStopped && musicState.recap) {
@@ -785,18 +795,26 @@ function startExteriorMusic() {
     musicState.recapStopped = true;
   }
   musicState.exteriorStopped = false;
-  musicState.exteriorStarted = true;
-  cancelFade(musicState.exterior);
+  musicState.exteriorBossStopped = false;
+  musicState.exteriorStarted = !boss;
+  musicState.exteriorBossStarted = Boolean(boss);
+  musicState.exteriorKind = boss ? "boss" : "normal";
+  cancelFade(target);
   try {
-    musicState.exterior.currentTime = 0;
+    target.currentTime = 0;
   } catch (e) {}
-  playMusic(musicState.exterior, { volume: MUSIC_VOLUME_INTRO, loop: false });
+  playMusic(target, { volume: MUSIC_VOLUME_INTRO, loop: false });
 }
 
 function stopExteriorMusic() {
-  if (!musicState.exterior || musicState.exteriorStopped) return;
-  musicState.exteriorStopped = true;
-  fadeAudio(musicState.exterior, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+  if (musicState.exterior && !musicState.exteriorStopped) {
+    musicState.exteriorStopped = true;
+    fadeAudio(musicState.exterior, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+  }
+  if (musicState.exteriorBoss && !musicState.exteriorBossStopped) {
+    musicState.exteriorBossStopped = true;
+    fadeAudio(musicState.exteriorBoss, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+  }
 }
 
 function startMapMusic() {
@@ -992,6 +1010,7 @@ function pauseAllMusic() {
   if (musicState.recap) musicState.recap.pause();
   if (musicState.visitor) musicState.visitor.pause();
   if (musicState.exterior) musicState.exterior.pause();
+  if (musicState.exteriorBoss) musicState.exteriorBoss.pause();
 }
 
 function resumeBattleMusicIfNeeded() {
@@ -1085,16 +1104,25 @@ function resetMusicState() {
     musicState.exterior.currentTime = 0;
     musicState.exterior.volume = 0;
   }
+  if (musicState.exteriorBoss) {
+    cancelFade(musicState.exteriorBoss);
+    musicState.exteriorBoss.pause();
+    musicState.exteriorBoss.currentTime = 0;
+    musicState.exteriorBoss.volume = 0;
+  }
   musicState.introStarted = false;
   musicState.battleStarted = false;
   musicState.recapStarted = false;
   musicState.visitorStarted = false;
   musicState.exteriorStarted = false;
+  musicState.exteriorBossStarted = false;
   musicState.introStopped = false;
   musicState.battleStopped = false;
   musicState.recapStopped = false;
   musicState.visitorStopped = false;
   musicState.exteriorStopped = false;
+  musicState.exteriorBossStopped = false;
+  musicState.exteriorKind = "normal";
   musicState.awaitingUserGesture = false;
   musicState.unlocked = false;
 }
@@ -4793,6 +4821,11 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  const bossBattleNumber =
+    typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
+      ? window.MONTHS_PER_LEVEL
+      : 4;
+  const isBossExterior = Number.isFinite(status?.battle) && status.battle >= bossBattleNumber;
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
@@ -4808,7 +4841,7 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     exteriorShot: true,
   });
   if (typeof startExteriorMusic === "function") {
-    startExteriorMusic();
+    startExteriorMusic({ boss: isBossExterior });
   }
 }
 
@@ -12035,7 +12068,13 @@ function handleLevelAnnouncements() {
     if (!currentAnnouncement._musicStarted) {
       currentAnnouncement._musicStarted = true;
       if (typeof startExteriorMusic === "function") {
-        startExteriorMusic();
+        const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+        const bossBattleNumber =
+          typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
+            ? window.MONTHS_PER_LEVEL
+            : 4;
+        const isBossExterior = Number.isFinite(status?.battle) && status.battle >= bossBattleNumber;
+        startExteriorMusic({ boss: isBossExterior });
       }
     }
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
