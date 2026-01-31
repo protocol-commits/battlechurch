@@ -981,6 +981,7 @@ function pauseAllMusic() {
 
 function resumeBattleMusicIfNeeded() {
   if (!musicState.unlocked) return;
+  if (!formationState?.current) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const stage = status?.stage || "";
   const shouldPlay =
@@ -1003,6 +1004,7 @@ function resumeBattleMusicIfNeeded() {
 
 function shouldStartBattleMusicNow() {
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  if (!formationState?.current) return false;
   return Boolean(
     status?.stage === "npcArrival" ||
       status?.stage === "battleIntro" ||
@@ -11490,7 +11492,7 @@ function updateMusicState(levelStatus) {
     stage === "bossIntro" ||
     stage === "bossActive" ||
     musicState.battlePrimed;
-  if (battleShouldPlay) {
+  if (battleShouldPlay && formationState?.current) {
     if (stage && stage !== "briefing") {
       musicState.battlePrimed = false;
     }
