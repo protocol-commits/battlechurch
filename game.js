@@ -230,6 +230,7 @@ const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/piano-build-music.mp3";
 const EXTERIOR_BOSS_MUSIC_SRC = "assets/music/boss-fight-3.mp3";
+const BOSS_DEATH_MUSIC_SRC = "assets/music/boss-fight-2.mp3";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/npcs/fireball_release_1.wav";
@@ -321,18 +322,21 @@ const musicState = {
   visitor: typeof Audio !== "undefined" ? new Audio(VISITOR_MUSIC_SRC) : null,
   exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
   exteriorBoss: typeof Audio !== "undefined" ? new Audio(EXTERIOR_BOSS_MUSIC_SRC) : null,
+  bossDeath: typeof Audio !== "undefined" ? new Audio(BOSS_DEATH_MUSIC_SRC) : null,
   introStarted: false,
   battleStarted: false,
   recapStarted: false,
   visitorStarted: false,
   exteriorStarted: false,
   exteriorBossStarted: false,
+  bossDeathStarted: false,
   introStopped: false,
   battleStopped: false,
   recapStopped: false,
   visitorStopped: false,
   exteriorStopped: false,
   exteriorBossStopped: false,
+  bossDeathStopped: false,
   exteriorKind: "normal",
   battlePrimed: false,
   awaitingUserGesture: false,
@@ -359,6 +363,10 @@ if (musicState.exterior) {
 if (musicState.exteriorBoss) {
   musicState.exteriorBoss.preload = "auto";
   musicState.exteriorBoss.loop = false;
+}
+if (musicState.bossDeath) {
+  musicState.bossDeath.preload = "auto";
+  musicState.bossDeath.loop = false;
 }
 
 function playDefaultArrowSfx(volume = 0.6) {
@@ -850,6 +858,7 @@ function startBattleMusic() {
   if (!musicState.battle) return;
   // If boss exterior music is playing, don't start regular battle music - let boss music continue
   if (musicState.exteriorBossStarted && !musicState.exteriorBossStopped) return;
+  if (musicState.bossDeathStarted && !musicState.bossDeathStopped) return;
   cancelFade(musicState.battle);
   if (musicState.exteriorStarted && !musicState.exteriorStopped) stopExteriorMusic();
   musicState.battleStopped = false;
@@ -857,9 +866,28 @@ function startBattleMusic() {
   playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
 }
 
+function startBossDeathMusic() {
+  if (!musicState.bossDeath) return;
+  if (musicState.bossDeathStarted && !musicState.bossDeathStopped) return;
+  if (musicState.battleStarted && !musicState.battleStopped) fadeOutBattleMusic();
+  if (musicState.exteriorStarted && !musicState.exteriorStopped) stopExteriorMusic();
+  if (musicState.exteriorBossStarted && !musicState.exteriorBossStopped) stopExteriorMusic();
+  musicState.bossDeathStarted = true;
+  musicState.bossDeathStopped = false;
+  cancelFade(musicState.bossDeath);
+  try {
+    musicState.bossDeath.currentTime = 0;
+  } catch (e) {}
+  playMusic(musicState.bossDeath, { volume: MUSIC_VOLUME_BATTLE, loop: false });
+}
+
 function startRecapMusic() {
   if (!musicState.recap || !musicState.unlocked) return;
   if (musicState.recapStarted && !musicState.recapStopped) return;
+  if (musicState.bossDeathStarted && !musicState.bossDeathStopped && musicState.bossDeath) {
+    musicState.bossDeathStopped = true;
+    fadeAudio(musicState.bossDeath, { to: 0, durationMs: 900, stopOnZero: true });
+  }
   musicState.recapStarted = true;
   musicState.recapStopped = false;
   playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: false });
@@ -1014,6 +1042,7 @@ function pauseAllMusic() {
   if (musicState.visitor) musicState.visitor.pause();
   if (musicState.exterior) musicState.exterior.pause();
   if (musicState.exteriorBoss) musicState.exteriorBoss.pause();
+  if (musicState.bossDeath) musicState.bossDeath.pause();
 }
 
 function resumeBattleMusicIfNeeded() {
@@ -1113,18 +1142,26 @@ function resetMusicState() {
     musicState.exteriorBoss.currentTime = 0;
     musicState.exteriorBoss.volume = 0;
   }
+  if (musicState.bossDeath) {
+    cancelFade(musicState.bossDeath);
+    musicState.bossDeath.pause();
+    musicState.bossDeath.currentTime = 0;
+    musicState.bossDeath.volume = 0;
+  }
   musicState.introStarted = false;
   musicState.battleStarted = false;
   musicState.recapStarted = false;
   musicState.visitorStarted = false;
   musicState.exteriorStarted = false;
   musicState.exteriorBossStarted = false;
+  musicState.bossDeathStarted = false;
   musicState.introStopped = false;
   musicState.battleStopped = false;
   musicState.recapStopped = false;
   musicState.visitorStopped = false;
   musicState.exteriorStopped = false;
   musicState.exteriorBossStopped = false;
+  musicState.bossDeathStopped = false;
   musicState.exteriorKind = "normal";
   musicState.awaitingUserGesture = false;
   musicState.unlocked = false;
@@ -9049,6 +9086,7 @@ class BossEncounter {
     this.state = "death";
     // Ensure boss death animation plays once and does not loop
     this.animator.play("death", { restart: true, loop: false });
+    startBossDeathMusic();
     if (!this.victoryAnnounced) {
       queueLevelAnnouncement("Victory!", "The boss has fallen.", {
         duration: 2.0,
