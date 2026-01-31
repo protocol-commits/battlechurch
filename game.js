@@ -4973,6 +4973,7 @@ function showGameOverDialog() {
 }
 
 let pendingUpgradeAfterSummary = false;
+let pendingPastorPostRecapAfterUpgrade = false;
 let epilogueActive = false;
 let epilogueTitle = "Epilogue";
 let epilogueText = "";
@@ -11317,12 +11318,19 @@ function checkDialogOverlays() {
     clearAllPowerUps();
     Effects.clear();
 
+    // Check if this is final town level - show pastor post-recap after upgrade
+    if (pendingPastorPostRecapAfterUpgrade) {
+      console.log("FINAL TOWN LEVEL - showing upgrade then pastor post-recap");
+      const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
+      window.UpgradeScreen.show(() => {
+        queuePastorBossPostRecapAnnouncement(targetLevel, false);
+      });
+      pendingPastorPostRecapAfterUpgrade = false;
     // Check if we need to show chapter break after upgrade
     // lastCompletedLevel was set when the battle summary showed
-    console.log("CHAPTER BREAK CHECK - lastCompletedLevel:", lastCompletedLevel);
     // Show chapter break after level 1 (month 4) and level 2 (month 8)
     // Level 1 complete → Act 2, Level 2 complete → Act 3
-    if (lastSummaryWasLevelEnd && (lastCompletedLevel === 1 || lastCompletedLevel === 2)) {
+    } else if (lastSummaryWasLevelEnd && (lastCompletedLevel === 1 || lastCompletedLevel === 2)) {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Act 2, Level 2 done → Act 3
       console.log("SHOWING CHAPTER BREAK for Act", actNumber);
       window.UpgradeScreen.show(() => {
@@ -11868,10 +11876,9 @@ function handleLevelAnnouncements() {
           pendingUpgradeAfterSummary = false;
           queuePastorFinalAnnouncement();
         } else if (currentAnnouncement.levelSummary && isFinalTownLevel) {
-          // Final level of this town - show pastor post-recap then return to map
-          pendingUpgradeAfterSummary = false;
-          const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
-          queuePastorBossPostRecapAnnouncement(targetLevel, Boolean(currentAnnouncement.recapUpgradeAfter));
+          // Final level of this town - show upgrade screen first, then pastor post-recap
+          pendingUpgradeAfterSummary = true;
+          pendingPastorPostRecapAfterUpgrade = true;
         } else if (currentAnnouncement.levelSummary) {
           // Mid-town level (Level 1 or 2) - trigger upgrade screen + chapter break
           pendingUpgradeAfterSummary = true;
