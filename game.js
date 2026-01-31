@@ -8973,14 +8973,14 @@ class BossEncounter {
     if (ratio <= 0.33 && !this.phaseNotified[3]) {
       this.phase = 3;
       this.phaseNotified[3] = true;
-      queueLevelAnnouncement("Phase 3", "The tyrant is enraged!", 2.2);
+      queueLevelAnnouncement("Phase 3", "Phase 3 Text Here", 2.2);
       this.hazardTimer = 2.5;
       this.summonTimer = 4.5;
       setDevStatus("Boss phase 3 – enraged", 3.5);
     } else if (ratio <= 0.66 && !this.phaseNotified[2]) {
       this.phase = Math.max(this.phase, 2);
       this.phaseNotified[2] = true;
-      queueLevelAnnouncement("Phase 2", "Reinforcements arrive!", 2.2);
+      queueLevelAnnouncement("Phase 2", "Phase 2 Text Here", 2.2);
       this.summonTimer = 2;
       setDevStatus("Boss phase 2 – reinforcements", 3.5);
     }

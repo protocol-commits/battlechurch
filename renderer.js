@@ -2023,7 +2023,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         if (dialogVisible && !missionActive) return;
         const monthName = status?.month || "";
         const missionTitle = "Boss Brief";
-        const missionBrief = "You are being personally attacked.";
+        const missionBrief = "Boss Battle Text Here";
         drawMissionBriefScreen(ctx, canvas, {
           title: missionTitle,
           subtitle: missionBrief,
@@ -2101,7 +2101,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       (levelAnnouncements[0] && levelAnnouncements[0].title) ||
       monthName ||
       "";
-    const missionBrief = "You are being personally attacked.";
+    const missionBrief = "Boss Battle Text Here";
     drawMissionBriefScreen(ctx, canvas, {
       title: missionTitle,
       subtitle: missionBrief,

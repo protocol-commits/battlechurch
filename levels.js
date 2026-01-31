@@ -1162,7 +1162,7 @@
       state.currentBossTheme = randomChoice(BOSS_BATTLE_THEMES);
       const bossMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + MONTHS_PER_LEVEL;
       const bossMonthName = getMonthName(bossMonthNumber);
-      queueLevelAnnouncement(state.currentBossTheme, "A personal battle begins", {
+      queueLevelAnnouncement(state.currentBossTheme, "Boss Battle Text Here", {
         duration: LEVEL_INTRO_DURATION,
         requiresConfirm: false,
         missionBriefTitle: "Boss Brief",
@@ -1207,6 +1207,10 @@
       state.boss = null;
       state.lastClearedWasBoss = true;
       setDevStatus("Boss defeated", 3.5);
+      queueLevelAnnouncement("Victory!", "Victory Text Here", {
+        duration: 2.0,
+        skipMissionBrief: true,
+      });
       beginBossGraceRush();
     }
 
