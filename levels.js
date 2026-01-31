@@ -809,6 +809,24 @@
       }
     }
 
+    function skipGraceRush() {
+      if (state.stage !== "graceRush") return false;
+      state.timer = 0;
+      state.graceRushFadeTimer = 0;
+      if (state.graceRushContext === "boss") {
+        state.graceRushContext = null;
+        if (state.pendingBossRestore) {
+          restoreNpcsAfterBoss();
+          state.pendingBossRestore = false;
+        }
+        handleLevelCleared();
+      } else {
+        state.graceRushContext = null;
+        handleBattleComplete();
+      }
+      return true;
+    }
+
     function startNpcRush() {
       const home = typeof getNpcHomeBounds === "function" ? getNpcHomeBounds() : null;
       const members = typeof congregationMembers !== "undefined" ? congregationMembers : null;
@@ -1696,6 +1714,7 @@ state.waveIndex = -1;
       },
       setWaitingForCongregation,
       advanceFromCongregation,
+      skipGraceRush,
     };
   }
 
