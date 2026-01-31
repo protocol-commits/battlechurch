@@ -4861,6 +4861,16 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  const battleHeadings = {
+    1: "Battle 1: Breach the Defenses",
+    2: "Battle 2: Hold Your Ground",
+    3: "Battle 3: Liberate the Town!",
+  };
+  const battleNumber = Math.max(
+    1,
+    Number.isFinite(status?.battle) ? status.battle : 1,
+  );
+  const battleTitle = battleHeadings[battleNumber] || monthName;
   const bossBattleNumber =
     typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
       ? window.MONTHS_PER_LEVEL
@@ -4876,7 +4886,7 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   }
   pendingExteriorShotAfterVisitor = false;
   if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) return;
-  queueLevelAnnouncement(monthName, "", {
+  queueLevelAnnouncement(battleTitle, "", {
     duration: 1.4,
     requiresConfirm: true,
     skipMissionBrief: true,

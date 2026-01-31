@@ -3396,7 +3396,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     // Define text based on battle number
-    const battleTitle = `Battle ${chapterBreakActNumber}`;
+    const battleTitles = {
+      1: "Battle 1: Breach the Defenses",
+      2: "Battle 2: Hold Your Ground",
+      3: "Battle 3: Liberate the Town!",
+    };
+    const battleTitle =
+      battleTitles[chapterBreakActNumber] || `Battle ${chapterBreakActNumber}`;
     let villainText;
     if (chapterBreakActNumber === 1) {
       villainText = "You are the new pastor to the last church in a town under spiritual attack.";
@@ -4345,6 +4351,17 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
       // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
+      const battleHeadings = {
+        1: "Battle 1: Breach the Defenses",
+        2: "Battle 2: Hold Your Ground",
+        3: "Battle 3: Liberate the Town!",
+      };
+      const battleNumber = Math.max(
+        1,
+        Number.isFinite(levelStatus?.battle) ? levelStatus.battle : 1,
+      );
+      const battleHeading =
+        battleHeadings[battleNumber] || `Battle ${battleNumber}`;
       {
         const { UI_FONT_FAMILY } = requireBindings();
         const centerX = canvas.width / 2;
@@ -4358,7 +4375,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowBlur = 12;
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
-        ctx.fillText("Battle I", centerX, titleY);
+        ctx.fillText(battleHeading, centerX, titleY);
         ctx.restore();
       }
       {
