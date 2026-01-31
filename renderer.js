@@ -4102,15 +4102,15 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     // Store content height for scroll calculations
     townVictoryScroll.contentHeight = totalHeight;
 
-    // Calculate scroll position - text starts at bottom and scrolls up
-    const startY = canvas.height;
+    // Calculate scroll position - text starts vertically centered
+    const startY = (canvas.height - totalHeight) / 2 + canvas.height * 0.15;
     const scrollOffset = townVictoryScroll.scrollY;
     const fadeZoneHeight = 80;
 
-    // Calculate when last item reaches center - that's when we show the button
-    const lastItemTargetY = canvas.height * 0.45;
+    // Calculate when text has scrolled enough (final line at ~35% from top)
+    const finalTargetY = canvas.height * 0.30;
     const lastItemScreenY = startY + totalHeight - scrollOffset;
-    const scrollComplete = lastItemScreenY <= lastItemTargetY + 100;
+    const scrollComplete = lastItemScreenY <= finalTargetY + totalHeight * 0.3;
 
     // Update showButton state
     if (scrollComplete && !townVictoryScroll.showButton) {
@@ -4157,15 +4157,28 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
     // Draw "Continue" button when scroll is complete
     if (townVictoryScroll.showButton) {
-      const buttonY = canvas.height - 80;
+      const buttonWidth = Math.min(360, Math.round(canvas.width * 0.4));
+      const buttonHeight = Math.round(60 * scaleHint);
+      const buttonX = Math.round((canvas.width - buttonWidth) / 2);
+      const buttonY = canvas.height - 100;
+
       ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "#9BD9FF";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, true, true);
+      // Add focus ring effect
+      ctx.strokeStyle = "#FFD978";
+      ctx.lineWidth = 3;
+      roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#0b111a";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = `600 ${Math.round(24 * scaleHint)}px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-      ctx.shadowBlur = 8;
-      ctx.fillText("Press Space to Continue", centerX, buttonY);
+      ctx.font = `600 ${Math.round(22 * scaleHint)}px ${UI_FONT_FAMILY}`;
+      ctx.fillText("Continue (Space)", buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
       ctx.restore();
     }
 

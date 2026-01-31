@@ -13386,8 +13386,20 @@ function updateGame(dt) {
 
   // Town Victory scene update (mini-epilogue after completing a town)
   if (townVictoryActive) {
-    // Update scroll
-    if (!townVictoryScroll.showButton) {
+    // Allow continue when button is shown (check FIRST before consuming keys)
+    if (townVictoryScroll.showButton) {
+      const spacePressed = keysJustPressed.has(" ") || keysJustPressed.has("enter");
+      const actionPressed = wasActionJustPressed("restart");
+      const clickPos = Input.consumeCanvasClick?.();
+      if (spacePressed || actionPressed || clickPos) {
+        keysJustPressed.delete(" ");
+        keysJustPressed.delete("enter");
+        townVictoryActive = false;
+        returnToMapWithNextTown();
+        return;
+      }
+    } else {
+      // Update scroll (only when button not yet shown)
       // Handle start delay
       if (townVictoryScroll.delayTimer < townVictoryScroll.startDelay) {
         townVictoryScroll.delayTimer += dt;
@@ -13397,17 +13409,6 @@ function updateGame(dt) {
           (typeof Input !== "undefined" && Input.keysPressed?.has?.(" ")) || false;
         const speedMultiplier = fastForward ? 3 : 1;
         townVictoryScroll.scrollY += townVictoryScroll.scrollSpeed * dt * speedMultiplier;
-      }
-    }
-    // Consume spacebar press to prevent it from doing anything else
-    keysJustPressed.delete(" ");
-    // Allow continue when button is shown
-    if (townVictoryScroll.showButton) {
-      const continuePressed = wasActionJustPressed("restart") || keysJustPressed.has(" ");
-      if (continuePressed) {
-        keysJustPressed.delete(" ");
-        townVictoryActive = false;
-        returnToMapWithNextTown();
       }
     }
     return;
