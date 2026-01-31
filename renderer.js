@@ -2015,23 +2015,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       window.__missionBriefButtonBounds = null;
     }
     if (!levelAnnouncements.length) {
-      const lm = requireBindings().levelManager;
-      const status = lm?.getStatus ? lm.getStatus() : null;
-      if (status?.stage === "bossIntro" || status?.stage === "bossActive") {
-        const dialogVisible = Boolean(window.DialogOverlay?.isVisible?.());
-        const missionActive = Boolean(missionBriefOverlayState.active);
-        if (dialogVisible && !missionActive) return;
-        const monthName = status?.month || "";
-        const missionTitle = "Boss Brief";
-        const missionBrief = "Boss Battle Text Here";
-        drawMissionBriefScreen(ctx, canvas, {
-          title: missionTitle,
-          subtitle: missionBrief,
-          showFormation: false,
-          showButtons: false,
-          uiFontFamily: UI_FONT_FAMILY,
-        });
-      }
       return;
     }
   const { title, subtitle, timer, duration, requiresConfirm } = levelAnnouncements[0];
@@ -2081,10 +2064,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   // This is NOT the tally/battle summary popup.
   // =============================
   const skipMissionBrief = Boolean(levelAnnouncements[0].skipMissionBrief);
-  const isBossMonthIntro = currentLevelStatus?.stage === "bossIntro";
-  const isBossMissionBrief = Boolean(levelAnnouncements[0].bossMissionBrief);
+  const hasAnnouncement = Boolean(levelAnnouncements && levelAnnouncements.length);
+  const isBossMonthIntro = currentLevelStatus?.stage === "bossIntro" && hasAnnouncement;
+  const isBossMissionBrief = Boolean(levelAnnouncements[0]?.bossMissionBrief);
   const congregationOverlayActive = Boolean(requireBindings().congregationOverlay?.active);
-  if (!skipMissionBrief && !isBattleSummary && (isBossMonthIntro || isBossMissionBrief)) {
+  if (!skipMissionBrief && !isBattleSummary && hasAnnouncement && (isBossMonthIntro || isBossMissionBrief)) {
     if (congregationOverlayActive) {
       ctx.restore();
       return;
@@ -2095,18 +2079,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
       return;
     }
-    const monthName = currentLevelStatus?.month || "";
-    const missionTitle =
-      (levelAnnouncements[0] && levelAnnouncements[0].missionBriefTitle) ||
-      (levelAnnouncements[0] && levelAnnouncements[0].title) ||
-      monthName ||
-      "";
-    const missionBrief = "Boss Battle Text Here";
     drawMissionBriefScreen(ctx, canvas, {
-      title: missionTitle,
-      subtitle: missionBrief,
+      title: "Boss Battle",
+      subtitle: "Boss intro text goes here",
       showFormation: false,
-      showButtons: false,
+      showButtons: true,
       uiFontFamily: UI_FONT_FAMILY,
     });
     ctx.restore();

@@ -1162,14 +1162,13 @@
       state.currentBossTheme = randomChoice(BOSS_BATTLE_THEMES);
       const bossMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + MONTHS_PER_LEVEL;
       const bossMonthName = getMonthName(bossMonthNumber);
-      queueLevelAnnouncement(state.currentBossTheme, "Boss Battle Text Here", {
+      queueLevelAnnouncement("Boss Battle", "", {
         duration: LEVEL_INTRO_DURATION,
-        requiresConfirm: false,
-        missionBriefTitle: "Boss Brief",
+        requiresConfirm: true,
         bossMissionBrief: true,
       });
       resetStage("bossIntro", LEVEL_INTRO_DURATION);
-      setDevStatus(state.currentBossTheme, LEVEL_INTRO_DURATION + 1);
+      setDevStatus("Boss Battle", LEVEL_INTRO_DURATION + 1);
       evacuateNpcsForBoss();
     }
 
@@ -1207,10 +1206,6 @@
       state.boss = null;
       state.lastClearedWasBoss = true;
       setDevStatus("Boss defeated", 3.5);
-      queueLevelAnnouncement("Victory!", "Victory Text Here", {
-        duration: 2.0,
-        skipMissionBrief: true,
-      });
       beginBossGraceRush();
     }
 

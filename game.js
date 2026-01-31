@@ -8767,6 +8767,7 @@ class BossEncounter {
     this.deathExplosionTimer = 0;
     this.deathExplosionAccumulator = 0;
     this.deathPostDelay = 0;
+    this.victoryAnnounced = false;
     this.safeTopMargin = Math.max(this.radius * 0.8, 160);
     const spawnX = Math.max(this.radius + 20, canvas.width - this.radius - 36);
     const playfieldCenterY = HUD_HEIGHT + (canvas.height - HUD_HEIGHT) / 2;
@@ -9044,10 +9045,18 @@ class BossEncounter {
   }
 
   beginDeath() {
-  if (this.state === "death") return;
-  this.state = "death";
-  // Ensure boss death animation plays once and does not loop
-  this.animator.play("death", { restart: true, loop: false });
+    if (this.state === "death") return;
+    this.state = "death";
+    // Ensure boss death animation plays once and does not loop
+    this.animator.play("death", { restart: true, loop: false });
+    if (!this.victoryAnnounced) {
+      queueLevelAnnouncement("Victory!", "The boss has fallen.", {
+        duration: 2.0,
+        skipMissionBrief: true,
+        allowDuringSuppression: true,
+      });
+      this.victoryAnnounced = true;
+    }
     const highHealth = (this.maxHealth || 0) > 400;
     if (highHealth && typeof playHighHealthEnemyDeathSfx === "function") {
       playHighHealthEnemyDeathSfx(1.0);
@@ -9069,16 +9078,18 @@ class BossEncounter {
     this.deathPostDelay = 3;
     this.deathExplosionAccumulator = 0;
     eliminateActiveEnemiesForBossVictory();
-  // compute fallback death timer from clip (prefer explicit frameMap length)
-  try {
-    const clip = this.animator.currentClip || {};
-    const framesFromMap = Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap.length : null;
-    const frames = framesFromMap || (clip.frameCount || 0) || 10;
-    const rate = clip && clip.frameRate ? clip.frameRate : 8;
-    const expected = Math.max(0.05, frames / Math.max(0.0001, rate));
-    this.deathTimer = expected + 0.3;
-    console.debug && console.debug('Boss death initiated', { frames, rate, expected, deathTimer: this.deathTimer });
-  } catch (e) {}
+    // compute fallback death timer from clip (prefer explicit frameMap length)
+    try {
+      const clip = this.animator.currentClip || {};
+      const framesFromMap =
+        Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap.length : null;
+      const frames = framesFromMap || clip.frameCount || 0 || 10;
+      const rate = clip && clip.frameRate ? clip.frameRate : 8;
+      const expected = Math.max(0.05, frames / Math.max(0.0001, rate));
+      this.deathTimer = expected + 0.3;
+      console.debug &&
+        console.debug("Boss death initiated", { frames, rate, expected, deathTimer: this.deathTimer });
+    } catch (e) {}
   }
 
   spawnDeathExplosionBurst() {
