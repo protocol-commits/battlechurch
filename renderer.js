@@ -690,21 +690,21 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   const formationOptions = [
     {
       key: "circle",
-      label: "Bible Study",
-      desc: "Anchor them in Scripture.",
-      stat: "Congregation Damage +20%",
+      label: "DAMAGE",
+      desc: "Focused teaching and practical insight",
+      stat: "+Damage",
     },
     {
       key: "line",
-      label: "Book Study",
-      desc: "Focus their understanding.",
-      stat: "Congregation Rate of Fire +20%",
+      label: "ATTACK",
+      desc: "Scripture study and shared prayer",
+      stat: "+Rate of Fire",
     },
     {
       key: "crescent",
-      label: "Shared Burdens",
-      desc: "Guided group support.",
-      stat: "Congregation Powerup Duration +20%",
+      label: "SUPPORT",
+      desc: "Guided group sharing and mutual support",
+      stat: "+Power-up duration",
     },
   ];
   const escapeHtml = (value) =>
@@ -725,7 +725,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     )
     .join("");
   const bodyHtml = `
-    <div class="mission-brief-prompt">How would you like to minister to them?</div>
+    <div class="mission-brief-prompt">How will you focus them?</div>
     <div class="formation-picker">${buttonsHtml}</div>
   `;
   const finishMissionBrief = (shouldHide = false) => {
@@ -886,7 +886,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     bodySize = TEXT_STYLES.h2.size,
     bodyWeight = TEXT_STYLES.h2.weight,
   } = options;
-  const promptText = "How would you like to minister to them?";
+  const promptText = "How will you focus them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
   const promptSize = 0;
   const displayButtons = showButtons !== false;
@@ -957,21 +957,21 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ? [
         {
           key: "circle",
-          label: "Bible Study",
-          desc: "Anchor them in Scripture.",
-          stat: "Congregation Damage +20%",
+          label: "DAMAGE",
+          desc: "Focused teaching and practical insight",
+          stat: "+Damage",
         },
         {
           key: "line",
-          label: "Book Study",
-          desc: "Focus their understanding.",
-          stat: "Congregation Rate of Fire +20%",
+          label: "ATTACK",
+          desc: "Scripture study and shared prayer",
+          stat: "+Rate of Fire",
         },
         {
           key: "crescent",
-          label: "Shared Burdens",
-          desc: "Guided group support.",
-          stat: "Congregation Powerup Duration +20%",
+          label: "SUPPORT",
+          desc: "Guided group sharing and mutual support",
+          stat: "+Power-up duration",
         },
       ]
     : [
