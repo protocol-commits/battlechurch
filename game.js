@@ -769,13 +769,12 @@ function startIntroMusic() {
 
 function startExteriorMusic() {
   if (!musicState.exterior) return;
-  pauseAllMusic();
-  musicState.introStarted = false;
-  musicState.battleStarted = false;
-  musicState.recapStarted = false;
-  musicState.introStopped = false;
-  musicState.battleStopped = false;
-  musicState.recapStopped = false;
+  if (musicState.battleStarted && !musicState.battleStopped) fadeOutBattleMusic();
+  if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
+  if (musicState.recapStarted && !musicState.recapStopped && musicState.recap) {
+    fadeAudio(musicState.recap, { to: 0, durationMs: 700, stopOnZero: true });
+    musicState.recapStopped = true;
+  }
   musicState.exteriorStopped = false;
   musicState.exteriorStarted = true;
   cancelFade(musicState.exterior);
