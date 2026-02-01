@@ -4862,15 +4862,16 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-  const battleHeadings = {
+  const orderHeadings = {
     1: "Order 1: Breach the Defenses",
     2: "Order 2: Hold Your Ground",
     3: "Order 3: Liberate the Town!",
   };
-  const battleNumber = Math.max(
+  const missionNumber = Math.max(
     1,
     Number.isFinite(status?.battle) ? status.battle : 1,
   );
+  const orderNumber = Math.max(1, Number.isFinite(status?.level) ? status.level : 1);
   const bossBattleNumber =
     typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
       ? window.MONTHS_PER_LEVEL
@@ -4880,11 +4881,11 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     (Number.isFinite(status?.battle) && status.battle >= bossBattleNumber);
   const battleTitle = isBossExterior
     ? `Mission ${bossBattleNumber}`
-    : (battleHeadings[battleNumber] || monthName);
+    : (orderHeadings[orderNumber] || monthName);
   const upcomingMissionNumber = isBossExterior
     ? bossBattleNumber
     : Math.max(1, (Number.isFinite(status?.battle) ? status.battle : 0) + 1);
-  const upcomingOrderNumber = Math.max(1, Number.isFinite(status?.level) ? status.level : 1);
+  const upcomingOrderNumber = orderNumber;
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
