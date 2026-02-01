@@ -4863,9 +4863,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const battleHeadings = {
-    1: "Battle 1: Breach the Defenses",
-    2: "Battle 2: Hold Your Ground",
-    3: "Battle 3: Liberate the Town!",
+    1: "Order 1: Breach the Defenses",
+    2: "Order 2: Hold Your Ground",
+    3: "Order 3: Liberate the Town!",
   };
   const battleNumber = Math.max(
     1,
@@ -4881,6 +4881,10 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   const battleTitle = isBossExterior
     ? `Mission ${bossBattleNumber}`
     : (battleHeadings[battleNumber] || monthName);
+  const upcomingMissionNumber = isBossExterior
+    ? bossBattleNumber
+    : Math.max(1, (Number.isFinite(status?.battle) ? status.battle : 0) + 1);
+  const upcomingOrderNumber = Math.max(1, Number.isFinite(status?.level) ? status.level : 1);
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
@@ -4894,6 +4898,8 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     requiresConfirm: true,
     skipMissionBrief: true,
     exteriorShot: true,
+    upcomingMissionNumber,
+    upcomingOrderNumber,
   });
   if (typeof startExteriorMusic === "function") {
     startExteriorMusic({ boss: isBossExterior });

@@ -3397,12 +3397,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
     // Define text based on battle number
     const battleTitles = {
-      1: "Battle 1: Breach the Defenses",
-      2: "Battle 2: Hold Your Ground",
-      3: "Battle 3: Liberate the Town!",
+      1: "Order 1: Breach the Defenses",
+      2: "Order 2: Hold Your Ground",
+      3: "Order 3: Liberate the Town!",
     };
     const battleTitle =
-      battleTitles[chapterBreakActNumber] || `Battle ${chapterBreakActNumber}`;
+      battleTitles[chapterBreakActNumber] || `Order ${chapterBreakActNumber}`;
     let villainText;
     if (chapterBreakActNumber === 1) {
       villainText = "You are the new pastor to the last church in a town under spiritual attack.";
@@ -4352,23 +4352,22 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
       const battleHeadings = {
-        1: "Battle 1: Breach the Defenses",
-        2: "Battle 2: Hold Your Ground",
-        3: "Battle 3: Liberate the Town!",
+        1: "Order 1: Breach the Defenses",
+        2: "Order 2: Hold Your Ground",
+        3: "Order 3: Liberate the Town!",
       };
-      const pendingBossIntroAfterExterior = Boolean(
-        typeof requireBindings().pendingBossIntroAfterExterior !== "undefined" &&
-          requireBindings().pendingBossIntroAfterExterior,
-      );
+      const announcement = levelAnnouncements?.[0] || {};
       const inferredUpcomingNumber = Math.max(
         1,
         (Number.isFinite(levelStatus?.battle) ? levelStatus.battle : 0) + 1,
       );
-      const upcomingNumber = pendingBossIntroAfterExterior ? 4 : inferredUpcomingNumber;
-      const battleHeading =
-        upcomingNumber <= 3
-          ? (battleHeadings[upcomingNumber] || `Battle ${upcomingNumber}`)
-          : `Mission ${upcomingNumber}`;
+      const upcomingNumber = Number.isFinite(announcement.upcomingMissionNumber)
+        ? announcement.upcomingMissionNumber
+        : inferredUpcomingNumber;
+      const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
+        ? announcement.upcomingOrderNumber
+        : Math.max(1, Number.isFinite(levelStatus?.level) ? levelStatus.level : 1);
+      const battleHeading = battleHeadings[orderNumber] || `Order ${orderNumber}`;
       {
         const { UI_FONT_FAMILY } = requireBindings();
         const centerX = canvas.width / 2;
@@ -4383,6 +4382,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
         ctx.fillText(battleHeading, centerX, titleY);
+        const missionLine = upcomingNumber > 1 ? `Mission ${upcomingNumber}` : "";
+        if (missionLine) {
+          ctx.font = `bold 34px ${UI_FONT_FAMILY}`;
+          ctx.fillText(missionLine, centerX, titleY + 52);
+        }
         ctx.restore();
       }
       {
