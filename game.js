@@ -6347,6 +6347,13 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   const finalYear = Boolean(options.finalYear);
   const pastorFinal = Boolean(options.pastorFinal);
   const pastorPostRecap = Boolean(options.pastorPostRecap);
+  const missionNumber = Number.isFinite(options.missionNumber) ? options.missionNumber : null;
+  const upcomingMissionNumber = Number.isFinite(options.upcomingMissionNumber)
+    ? options.upcomingMissionNumber
+    : null;
+  const upcomingOrderNumber = Number.isFinite(options.upcomingOrderNumber)
+    ? options.upcomingOrderNumber
+    : null;
   const pastorPostRecapDelay = Number.isFinite(options.pastorPostRecapDelay)
     ? Math.max(0, options.pastorPostRecapDelay)
     : 0;
@@ -6363,6 +6370,9 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     townIntro,
     exteriorShot,
     bossMissionBrief,
+    missionNumber,
+    upcomingMissionNumber,
+    upcomingOrderNumber,
     finalYear,
     levelSummary,
     pastorFinal,

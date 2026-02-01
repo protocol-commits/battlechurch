@@ -684,7 +684,14 @@
         deps.triggerCongregationOverlay(count);
       }
       console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
-      const missionBriefTitle = monthName;
+      const orderHeadings = {
+        1: "Breach the Defenses",
+        2: "Hold Your Ground",
+        3: "Liberate the Town!",
+      };
+      const orderTitle = orderHeadings[state.level] || `Order ${state.level}`;
+      const missionNumber = Math.max(1, localMonthNumber);
+      const missionBriefTitle = `Order ${state.level}: ${orderTitle}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
@@ -692,6 +699,7 @@
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
         missionBriefTitle,
+        missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
       setDevStatus(`Battle ${state.level} — ${monthName} forming`, BATTLE_INTRO_DURATION + 0.5);
