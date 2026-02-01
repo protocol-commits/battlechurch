@@ -23,7 +23,7 @@
   const MONTHS_PER_LEVEL = Number.isFinite(levelData?.structure?.monthsPerLevel)
     ? levelData.structure.monthsPerLevel
     : 3;
-  const BATTLE_MONTHS_PER_LEVEL = Math.max(1, MONTHS_PER_LEVEL - 1);
+  const BATTLE_MONTHS_PER_LEVEL = Math.max(1, MONTHS_PER_LEVEL);
   const BATTLES_PER_MONTH = 3;
   const HORDES_PER_BATTLE =
     levelData?.structure?.defaultHordesPerBattle || 21;
@@ -525,6 +525,7 @@
       pendingPortalSpawnBaseline: 0,
       graceRushContext: null,
       pendingBossRestore: false,
+      pendingBossAfterFinalWave: false,
       npcRushActive: false,
       npcRushTimer: 0,
       powerUpsEnabled: false,
@@ -600,6 +601,7 @@
       state.visitorResumeAction = null;
       state.graceRushContext = null;
       state.pendingBossRestore = false;
+      state.pendingBossAfterFinalWave = false;
       state.lastClearedWasBoss = false;
   // Compute global month number so Level 2 shows May/Jun/Jul etc.
   const globalMonthNumberForLevelStart = (levelNumber - 1) * MONTHS_PER_LEVEL + 1;
@@ -1057,6 +1059,7 @@
       spawnPowerUpDrops(state.activeWave?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);
+      const finalMissionBeforeBoss = localMonthNumber >= BATTLE_MONTHS_PER_LEVEL;
 
       if (!finalWave) {
         state.finalWaveDelay = 0;
@@ -1103,6 +1106,17 @@
         setDevStatus(`Wave ${battleNumber}-${waveNumber} advancing`, 1.2);
         beginWave();
         spawnActiveWave();
+        return;
+      }
+
+      if (finalMissionBeforeBoss) {
+        state.finalWaveDelay = 0;
+        state.pendingBossAfterFinalWave = true;
+        if (typeof startActBreakFade === "function") {
+          startActBreakFade(ACT_BREAK_HOLD_SECONDS);
+        }
+        resetStage("waveCleared", ACT_BREAK_FADE_TOTAL);
+        setDevStatus(`Boss incoming after Wave ${battleNumber}-${waveNumber}`, ACT_BREAK_FADE_TOTAL);
         return;
       }
 
@@ -1375,7 +1389,12 @@ state.waveIndex = -1;
       if (state.timer <= 0) {
             if (finalWave && hasActiveOpponents(true)) break;
             if (finalWave) {
-              handleBattleComplete();
+              if (state.pendingBossAfterFinalWave) {
+                state.pendingBossAfterFinalWave = false;
+                beginBossIntro();
+              } else {
+                handleBattleComplete();
+              }
             } else {
               beginWave();
               spawnActiveWave();
