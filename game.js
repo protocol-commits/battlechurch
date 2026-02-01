@@ -11452,6 +11452,13 @@ function handleChapterBreak() {
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
       }
+      // Clear any mission brief announcements that were queued while chapter break was showing
+      // The exterior shot should come before the mission brief
+      while (levelAnnouncements.length && levelAnnouncements[0].missionBriefTitle) {
+        levelAnnouncements.shift();
+      }
+      // Queue exterior shot for the next Order's first mission
+      queueExteriorShotAnnouncement();
     },
   });
   if (handled) return false;
@@ -11463,6 +11470,13 @@ function handleChapterBreak() {
     if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
       window.playMenuAdvanceSfx(0.55);
     }
+    // Clear any mission brief announcements that were queued while chapter break was showing
+    // The exterior shot should come before the mission brief
+    while (levelAnnouncements.length && levelAnnouncements[0].missionBriefTitle) {
+      levelAnnouncements.shift();
+    }
+    // Queue exterior shot for the next Order's first mission
+    queueExteriorShotAnnouncement();
     keysJustPressed.delete(" ");
     console.log("Chapter break dismissed by user");
     return false;

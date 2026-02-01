@@ -2356,14 +2356,24 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     } = requireBindings();
     if (Array.isArray(levelAnnouncements) && levelAnnouncements.length) {
       const current = levelAnnouncements[0];
-      if (current && (current.townIntro || current.exteriorShot) && assets?.backgrounds?.townIntro) {
-        const img = assets.backgrounds.townIntro;
-        ctx.save();
-        drawCoverImage(ctx, canvas, img, 1, 0.5, 0.5);
-        ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
-        return;
+      if (current && (current.townIntro || current.exteriorShot)) {
+        // Determine which background to use based on current Order
+        // Order 1 uses townIntro, Order 2 uses act2, Order 3 uses act3
+        const orderNumber = current.upcomingOrderNumber || 1;
+        let img = assets?.backgrounds?.townIntro;
+        if (orderNumber === 2 && assets?.backgrounds?.act2) {
+          img = assets.backgrounds.act2;
+        } else if (orderNumber >= 3 && assets?.backgrounds?.act3) {
+          img = assets.backgrounds.act3;
+        }
+        if (img) {
+          ctx.save();
+          drawCoverImage(ctx, canvas, img, 1, 0.5, 0.5);
+          ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.restore();
+          return;
+        }
       }
     }
     const cameraX = resolveCameraX(effectiveCameraX);
