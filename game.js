@@ -14419,7 +14419,7 @@ function restartGame() {
   });
   player = createPlayerInstance(
     canvas.width / 2,
-    HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5,
+    HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5 - 175,
     assets.player,
   );
   player.health = player.maxHealth;
@@ -14657,7 +14657,7 @@ async function init() {
     rebuildObstacles();
   player = createPlayerInstance(
     canvas.width / 2,
-    HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5,
+    HUD_HEIGHT + (canvas.height - HUD_HEIGHT) * 0.5 - 175,
     assets.player,
   );
   player.health = player.maxHealth;
