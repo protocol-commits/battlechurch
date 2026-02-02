@@ -244,6 +244,7 @@ const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9
 const DIVINE_SHOT_SFX_SRC = "assets/sfx/rpg/Magic/fireball_whoosh_01.wav";
 const CONGREGATION_OVERLAY_WORD_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_OVERLAY_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
+const CONGREGATION_COUNT_POP_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_40.wav";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
   { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
@@ -274,6 +275,7 @@ const VISITOR_SAVED_SFX_POOL_SIZE = 4;
 const NPC_HURT_SFX_POOL_SIZE = 4;
 const PLAYER_HURT_SFX_POOL_SIZE = 4;
 const CONGREGATION_OVERLAY_SFX_POOL_SIZE = 4;
+const CONGREGATION_COUNT_POP_SFX_POOL_SIZE = 3;
 const PLAYER_DEATH_BELL_FADE_DELAY = 7;
 const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
@@ -307,6 +309,7 @@ const visitorSavedSfxPool = [];
 const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
 const congregationOverlaySfxPool = [];
+const congregationCountPopSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
@@ -2947,6 +2950,18 @@ function playCongregationOverlayFinalSfx() {
   );
 }
 
+function playCongregationCountPopSfx(volume = 0.6) {
+  playPooledSfx(
+    congregationCountPopSfxPool,
+    CONGREGATION_COUNT_POP_SFX_SRC,
+    CONGREGATION_COUNT_POP_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
+}
+
+if (typeof window !== "undefined") {
+  window.playCongregationCountPopSfx = playCongregationCountPopSfx;
+}
 function triggerCongregationOverlay(targetCount) {
   const count = Number.isFinite(targetCount) ? Math.max(0, Math.round(targetCount)) : 0;
   congregationOverlay.active = true;

@@ -2680,7 +2680,42 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const wordSize = Math.min(canvas.width * 0.14, canvas.height * 0.16, 140);
     const numberSize = Math.min(canvas.width * 0.28, canvas.height * 0.32, 220);
     const countCenterX = layout.virtualCanvas.width / 2;
-    const countCenterY = layout.titleY + Math.round(wordSize * 1.5);
+    const countCenterY = layout.titleY + Math.round(wordSize * 1.6);
+    const countKey = `congregation-count-${Math.round(countValue || 0)}`;
+    let entry = announcementReveal.get(countKey);
+    if (!entry) {
+      entry = {
+        phase: 0,
+        timer: 0,
+        lastTime: typeof performance !== "undefined" ? performance.now() : Date.now(),
+        sfxPhase: -1,
+      };
+      announcementReveal.set(countKey, entry);
+    }
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const dt = Math.max(0, (now - (entry.lastTime || now)) / 1000);
+    entry.lastTime = now;
+    entry.timer += dt;
+    if (entry.phase === 0) {
+      if (isAnnouncementRevealComplete(titleText, "", "")) {
+        entry.phase = 1;
+        entry.timer = 0;
+      }
+    } else if (entry.phase === 1 && entry.timer >= 0.5) {
+      entry.phase = 2;
+      entry.timer = 0;
+    } else if (entry.phase === 2 && entry.timer >= 0.4) {
+      entry.phase = 3;
+      entry.timer = 0;
+    } else if (entry.phase === 3 && entry.timer >= 0.4) {
+      entry.phase = 4;
+    }
+    if (entry.phase > 0 && entry.phase !== entry.sfxPhase) {
+      entry.sfxPhase = entry.phase;
+      if (typeof window !== "undefined" && typeof window.playCongregationCountPopSfx === "function") {
+        window.playCongregationCountPopSfx(0.6);
+      }
+    }
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -2689,10 +2724,18 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowBlur = 16;
     ctx.shadowOffsetX = 4;
     ctx.shadowOffsetY = 4;
-    ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
-    ctx.fillText("CONGREGATION COUNT", countCenterX, countCenterY);
-    ctx.font = `900 ${Math.round(numberSize)}px ${UI_FONT_FAMILY}`;
-    ctx.fillText(String(Math.max(0, Math.round(countValue || 0))), countCenterX, countCenterY + wordSize * 1.05);
+    if (entry.phase >= 2) {
+      ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
+      ctx.fillText("CONGREGATION", countCenterX, countCenterY);
+    }
+    if (entry.phase >= 3) {
+      ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
+      ctx.fillText("COUNT:", countCenterX, countCenterY + wordSize * 1.05);
+    }
+    if (entry.phase >= 4) {
+      ctx.font = `900 ${Math.round(numberSize)}px ${UI_FONT_FAMILY}`;
+      ctx.fillText(String(Math.max(0, Math.round(countValue || 0))), countCenterX, countCenterY + wordSize * 2.05);
+    }
     ctx.restore();
     drawInstructionButtons();
     if (SHOW_TEXT_SOURCE_LABELS) {
