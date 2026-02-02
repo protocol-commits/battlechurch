@@ -1174,10 +1174,6 @@
       );
       resetStage("battleIntermission", BETWEEN_BATTLE_PAUSE);
       setDevStatus(`Battle ${state.level} — ${monthName} secured`, BETWEEN_BATTLE_PAUSE);
-      if (!state.visitorMinigamePlayed && state.monthIndex === 1) {
-        state.pendingVisitorMinigame = true;
-        state.visitorMinigamePlayed = true;
-      }
     }
 
     function beginBossIntro() {
@@ -1730,6 +1726,10 @@ state.waveIndex = -1;
         if (!state.active) return false;
         beginBossIntro();
         return true;
+      },
+      triggerVisitorMinigame(onResume) {
+        if (!state.active) return false;
+        return beginVisitorMinigame(onResume);
       },
       devSkipToGraceRush() {
         if (!state.active) {

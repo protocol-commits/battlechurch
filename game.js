@@ -106,6 +106,7 @@ const TOWN_INTRO_ZOOM_DURATION = 1.0;
 const TOWN_INTRO_FADE_DURATION = 2.0;
 let townIntroTransitionActive = false;
 let townIntroTransitionTimer = 0;
+let townVisitorMinigamePlayed = false;
 let suppressInitialAnnouncements = false;
 const levelAnnouncements = [];
 let levelManager = null;
@@ -4933,6 +4934,7 @@ function queueInitialMonthAnnouncementFromCongregation() {
 function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
+  townVisitorMinigamePlayed = false;
   if (typeof window !== "undefined" && window.MapScreen?.getTownStartCount) {
     const nextStart = window.MapScreen.getTownStartCount(activeTownId);
     townStartCongregation = Number.isFinite(nextStart) ? nextStart : INITIAL_CONGREGATION_SIZE;
@@ -4995,6 +4997,7 @@ function returnToMapWithNextTown() {
   howToPlayActive = false;
   mapActive = true;
   pendingBossIntroAfterExterior = false;
+  townVisitorMinigamePlayed = false;
   // Clear any pending announcements
   try {
     if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
@@ -11532,6 +11535,15 @@ function checkDialogOverlays() {
       console.log("SHOWING CHAPTER BREAK for Act", actNumber);
       window.UpgradeScreen.show(() => {
         console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
+        if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
+          townVisitorMinigamePlayed = true;
+          if (levelManager?.triggerVisitorMinigame) {
+            const started = levelManager.triggerVisitorMinigame(() => {
+              showChapterBreak(actNumber);
+            });
+            if (started) return;
+          }
+        }
         showChapterBreak(actNumber);
       });
     } else {
