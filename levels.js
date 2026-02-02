@@ -681,10 +681,6 @@
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
       const monthName = getMonthName(globalMonthNumber);
-      if (typeof deps.triggerCongregationOverlay === "function") {
-        const count = typeof deps.getCongregationSize === "function" ? deps.getCongregationSize() : 0;
-        deps.triggerCongregationOverlay(count);
-      }
       console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
       const orderHeadings = {
         1: "Breach the Defenses",

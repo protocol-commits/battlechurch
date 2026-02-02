@@ -2564,6 +2564,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       UI_FONT_FAMILY,
       HUD_HEIGHT = 54,
       getMonthName,
+      getCongregationSize,
       congregationMembers,
     } = requireBindings();
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
@@ -2675,6 +2676,24 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       typewriter: true,
       maxWidthScale: 1,
     });
+    const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
+    const wordSize = Math.min(canvas.width * 0.14, canvas.height * 0.16, 140);
+    const numberSize = Math.min(canvas.width * 0.28, canvas.height * 0.32, 220);
+    const countCenterX = layout.virtualCanvas.width / 2;
+    const countCenterY = layout.titleY + Math.round(wordSize * 1.5);
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetX = 4;
+    ctx.shadowOffsetY = 4;
+    ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
+    ctx.fillText("CONGREGATION COUNT", countCenterX, countCenterY);
+    ctx.font = `900 ${Math.round(numberSize)}px ${UI_FONT_FAMILY}`;
+    ctx.fillText(String(Math.max(0, Math.round(countValue || 0))), countCenterX, countCenterY + wordSize * 1.05);
+    ctx.restore();
     drawInstructionButtons();
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
