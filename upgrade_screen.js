@@ -105,6 +105,7 @@
         graceCount,
         stats,
         uiFontFamily,
+        backgroundMode: "transparent",
       });
     }
   }

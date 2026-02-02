@@ -1692,21 +1692,30 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     graceCount = 0,
     stats = [],
     uiFontFamily = "sans-serif",
+    backgroundMode = "image",
+    dimAlpha = 0,
   } = options;
 
   // Draw background
-  const { assets } = requireBindings();
-  const backgroundImage = assets?.backgrounds?.gameOver || null;
-  ctx.save();
-  if (backgroundImage) {
-    drawCoverImage(ctx, canvas, backgroundImage, 1, 0.5, 0.5);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+  if (backgroundMode !== "transparent") {
+    const { assets } = requireBindings();
+    const backgroundImage = assets?.backgrounds?.gameOver || null;
+    ctx.save();
+    if (backgroundImage) {
+      drawCoverImage(ctx, canvas, backgroundImage, 1, 0.5, 0.5);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    ctx.restore();
+  } else if (dimAlpha > 0) {
+    ctx.save();
+    ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, Math.min(1, dimAlpha))})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-  } else {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
   }
-  ctx.restore();
 
   const title = "Level Up";
   const staticSubtitle = "";
@@ -4289,6 +4298,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
     const missionOverlayActive = Boolean(window.isMissionBriefOverlayActive);
     const pauseOverlayActive = Boolean(window.isPauseOverlayActive);
+    const upgradeOverlayActive = Boolean(window.UpgradeScreen?.isVisible?.());
     // Check if recap/summary or pastor-final announcement is active - should show arena behind it
     const recapAnnouncementActive = Boolean(
       levelAnnouncements?.[0]?.requiresConfirm &&
@@ -4298,7 +4308,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const pastorPostRecapActive = Boolean(levelAnnouncements?.[0]?.pastorPostRecap);
     const congregationAnnouncementActive =
       recapAnnouncementActive || pastorFinalActive || pastorPostRecapActive;
-    if (isModalActive && !missionOverlayActive && !pauseOverlayActive && !congregationAnnouncementActive) {
+    if (
+      isModalActive &&
+      !missionOverlayActive &&
+      !pauseOverlayActive &&
+      !congregationAnnouncementActive &&
+      !upgradeOverlayActive
+    ) {
       ctx.save();
       const modalBlackout = graceRushBlackout ? 1 : (graceRushFadeAlpha > 0 ? Math.min(1, graceRushFadeAlpha) : 0.92);
       ctx.fillStyle = `rgba(0, 0, 0, ${modalBlackout})`;
