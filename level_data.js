@@ -117,14 +117,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
-                    },
-                    {
-                      "enemy": "miniClawedDemon",
-                      "count": 20
-                    },
-                    {
-                      "enemy": "miniDemonFireThrower",
-                      "count": 10
                     }
                   ],
                   "weights": {},
@@ -138,10 +130,6 @@ window.BattlechurchLevelData = {
                 {
                   "index": 2,
                   "entries": [
-                    {
-                      "enemy": "miniDemonFireThrower",
-                      "count": 10
-                    },
                     {
                       "enemy": "miniFireImp",
                       "count": 3
@@ -173,10 +161,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
-                    },
-                    {
-                      "enemy": "miniDemonFireThrower",
-                      "count": 10
                     }
                   ],
                   "weights": {},
@@ -190,10 +174,6 @@ window.BattlechurchLevelData = {
                 {
                   "index": 4,
                   "entries": [
-                    {
-                      "enemy": "miniDemonFireThrower",
-                      "count": 10
-                    },
                     {
                       "enemy": "miniImp",
                       "count": 50
@@ -221,10 +201,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
-                    },
-                    {
-                      "enemy": "miniDemonFireThrower",
-                      "count": 10
                     }
                   ],
                   "weights": {},
@@ -238,10 +214,6 @@ window.BattlechurchLevelData = {
                 {
                   "index": 6,
                   "entries": [
-                    {
-                      "enemy": "miniDemonFireThrower",
-                      "count": 10
-                    },
                     {
                       "enemy": "miniImp",
                       "count": 50
