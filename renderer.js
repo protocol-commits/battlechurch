@@ -1085,6 +1085,10 @@ function resetRecapTallyState(recapData) {
   recapTallyState.titleSfxPlayed = false;
   recapTallyState.countSfxPlayed = false;
   recapTallyState.lineSfxIndex = -1;
+  recapTallyState.revealedCount = Math.min(30, CONGREGATION_MEMBER_COUNT);
+  recapTallyState.visibleBonusCount = 0;
+  recapTallyState.lastRevealIndex = -1;
+  recapTallyState.bonusNpcs = [];
 }
 
 function spawnRecapGraceEffects(count, spawnBounds) {
@@ -1326,6 +1330,18 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       recapTallyState.totalValue += targetValue;
     }
     recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+    if (
+      affectsTotal &&
+      current.kind === "congregation" &&
+      targetValue > 0 &&
+      recapTallyState.lastRevealIndex !== recapTallyState.stepIndex
+    ) {
+      recapTallyState.visibleBonusCount = Math.max(
+        0,
+        (recapTallyState.visibleBonusCount || 0) + targetValue,
+      );
+      recapTallyState.lastRevealIndex = recapTallyState.stepIndex;
+    }
     if (affectsTotal) {
       recapTallyState.pendingGhost = {
         index: recapTallyState.stepIndex,
@@ -4586,10 +4602,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ) {
         const targetBase =
           typeof getCongregationSize === "function" ? getCongregationSize() : null;
-        const targetCount = Math.max(
-          1,
-          Math.min(50, Number.isFinite(targetBase) ? Math.round(targetBase) : 50),
-        );
+        const targetCount = 30;
         buildCongregationMembers(targetCount);
         recapCongregationPreviewBuilt =
           Array.isArray(congregationMembers) && congregationMembers.length > 0;
@@ -4613,40 +4626,73 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       ctx.translate(-effectiveCameraX, effectiveCameraY);
       if (Array.isArray(congregationMembers) && congregationMembers.length) {
-        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-        if (!congregationFadeState.active || congregationFadeState.memberCount !== congregationMembers.length) {
-          congregationFadeState.active = true;
-          congregationFadeState.memberCount = congregationMembers.length;
-          congregationFadeState.token += 1;
-        }
         congregationMembers.forEach((member) => {
           if (!member) return;
-          if (member.__congregationFadeToken !== congregationFadeState.token) {
-            member.__congregationFadeToken = congregationFadeState.token;
-            if (Math.random() < 0.5) {
-              member.__congregationFadeStart = now + 1000 + Math.random() * 4000;
-              member.__congregationFadeDuration = 1200;
-            } else {
-              member.__congregationFadeStart = now;
-              member.__congregationFadeDuration = 0;
-            }
-          }
-          const entry = {
-            start: member.__congregationFadeStart,
-            duration: member.__congregationFadeDuration,
-          };
-          let alpha = 1;
-          if (entry && entry.duration > 0) {
-            const t = (now - entry.start) / entry.duration;
-            if (t <= 0) alpha = 0;
-            else if (t >= 1) alpha = 1;
-            else alpha = t;
-          }
-          const drawAlpha = npcFadeAlpha * alpha;
+          const drawAlpha = npcFadeAlpha;
           if (drawAlpha > 0) {
             member.animator.draw(ctx, member.x, member.y, { alpha: drawAlpha });
           }
         });
+
+        const recapStartCount = Number.isFinite(levelAnnouncements?.[0]?.recapData?.startCount)
+          ? Math.round(levelAnnouncements[0].recapData.startCount)
+          : null;
+        const startCount =
+          Number.isFinite(recapStartCount) && recapStartCount > 0
+            ? Math.min(recapStartCount, congregationMembers.length)
+            : Math.min(congregationMembers.length, CONGREGATION_MEMBER_COUNT);
+        const bonusCount = Math.max(
+          0,
+          Math.min(
+            congregationMembers.length,
+            Number.isFinite(recapTallyState.visibleBonusCount)
+              ? recapTallyState.visibleBonusCount
+              : 0,
+          ),
+        );
+        if (bonusCount > 0) {
+          const spacingX = 34;
+          const spacingY = 38;
+          const maxCols = 6;
+          const regionLeft = canvas.width * 0.8;
+          const regionTop = canvas.height * 0.8;
+          const regionWidth = canvas.width * 0.2;
+          const regionHeight = canvas.height * 0.2;
+          const baseX = regionLeft + regionWidth * 0.5;
+          const baseY = regionTop + regionHeight * 0.5;
+          const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+          const bonusNpcs = recapTallyState.bonusNpcs || [];
+          while (bonusNpcs.length < bonusCount) {
+            const idx = bonusNpcs.length;
+            const col = idx % maxCols;
+            const row = Math.floor(idx / maxCols);
+            bonusNpcs.push({
+              col,
+              row,
+              phase: Math.random() * Math.PI * 2,
+              speed: 0.8 + Math.random() * 0.6,
+              radius: 4 + Math.random() * 6,
+            });
+          }
+          if (bonusNpcs.length > bonusCount) bonusNpcs.length = bonusCount;
+          recapTallyState.bonusNpcs = bonusNpcs;
+          for (let i = 0; i < bonusCount; i += 1) {
+            const member = congregationMembers[i % congregationMembers.length];
+            if (!member) continue;
+            const npc = bonusNpcs[i];
+            const col = npc.col;
+            const row = npc.row;
+            const baseDrawX = baseX - col * spacingX + effectiveCameraX;
+            const baseDrawY = baseY - row * spacingY;
+            const wobble = nowSec * npc.speed + npc.phase;
+            const drawX = baseDrawX + Math.cos(wobble) * npc.radius;
+            const drawY = baseDrawY + Math.sin(wobble * 1.2) * npc.radius;
+            const drawAlpha = npcFadeAlpha;
+            if (drawAlpha > 0) {
+              member.animator.draw(ctx, drawX, drawY, { alpha: drawAlpha });
+            }
+          }
+        }
       } else {
         congregationFadeState.active = false;
         congregationFadeState.memberCount = 0;
