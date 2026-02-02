@@ -2568,7 +2568,18 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       congregationMembers,
     } = requireBindings();
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
-    const titleText = "Welcome Pastor. We're pleased to meet you!";
+    const fullTitleText = "Welcome Pastor. We're pleased to meet you!";
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const introKey = `levelIntro-${levelStatus?.level || 1}-${levelStatus?.battle || 0}`;
+    if (!congregationIntroState.active || congregationIntroState.key !== introKey) {
+      congregationIntroState.active = true;
+      congregationIntroState.key = introKey;
+      congregationIntroState.startTime = now;
+    }
+    const introElapsed = Math.max(0, (now - (congregationIntroState.startTime || now)) / 1000);
+    const typewriterDelay = 2.0;
+    const typewriterReady = introElapsed >= typewriterDelay;
+    const titleText = typewriterReady ? fullTitleText : "";
     const titleSize = TEXT_STYLES.h1.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -2673,7 +2684,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       weight: TEXT_STYLES.h1.weight,
       lineGap,
       alpha: 1,
-      typewriter: true,
+      typewriter: typewriterReady,
       maxWidthScale: 1,
     });
     const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
@@ -2687,21 +2698,25 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       entry = {
         phase: 0,
         timer: 0,
-        lastTime: typeof performance !== "undefined" ? performance.now() : Date.now(),
+        lastTime: now,
         sfxPhase: -1,
       };
       announcementReveal.set(countKey, entry);
     }
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const dt = Math.max(0, (now - (entry.lastTime || now)) / 1000);
     entry.lastTime = now;
-    entry.timer += dt;
+    if (!typewriterReady) {
+      entry.timer = 0;
+      entry.phase = 0;
+    } else {
+      entry.timer += dt;
+    }
     if (entry.phase === 0) {
-      if (isAnnouncementRevealComplete(titleText, "", "")) {
+      if (typewriterReady && isAnnouncementRevealComplete(fullTitleText, "", "")) {
         entry.phase = 1;
         entry.timer = 0;
       }
-    } else if (entry.phase === 1 && entry.timer >= 0.5) {
+    } else if (entry.phase === 1 && entry.timer >= 1.0) {
       entry.phase = 2;
       entry.timer = 0;
     } else if (entry.phase === 2 && entry.timer >= 0.4) {
@@ -2730,11 +2745,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (entry.phase >= 3) {
       ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
-      ctx.fillText("COUNT:", countCenterX, countCenterY + wordSize * 1.05);
-    }
-    if (entry.phase >= 4) {
-      ctx.font = `900 ${Math.round(numberSize)}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(String(Math.max(0, Math.round(countValue || 0))), countCenterX, countCenterY + wordSize * 2.05);
+      if (entry.phase >= 4) {
+        const countText = `COUNT: ${Math.max(0, Math.round(countValue || 0))}`;
+        ctx.fillText(countText, countCenterX, countCenterY + wordSize * 1.05);
+      } else {
+        ctx.fillText("COUNT:", countCenterX, countCenterY + wordSize * 1.05);
+      }
     }
     ctx.restore();
     drawInstructionButtons();
@@ -3381,6 +3397,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     active: false,
     memberCount: 0,
     token: 0,
+  };
+  const congregationIntroState = {
+    active: false,
+    key: null,
+    startTime: 0,
   };
 
   function drawHUD() {
