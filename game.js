@@ -4887,6 +4887,8 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     ? bossBattleNumber
     : Math.max(1, (Number.isFinite(status?.battle) ? status.battle : 0) + 1);
   const upcomingOrderNumber = orderNumber;
+  const shouldShowExterior = upcomingMissionNumber === 1;
+  if (!shouldShowExterior) return;
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
