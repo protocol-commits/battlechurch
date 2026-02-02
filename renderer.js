@@ -2129,17 +2129,15 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
       const announcement = levelAnnouncements[0] || null;
-      const orderLine =
-        (announcement && announcement.missionBriefTitle) ||
-        (announcement && announcement.title) ||
-        monthName ||
-        "";
       const missionNumber = Number.isFinite(announcement?.missionNumber)
         ? announcement.missionNumber
         : null;
-      const missionTitle = missionNumber ? `Mission ${missionNumber}` : orderLine;
+      const missionTitle =
+        missionNumber
+          ? `Mission ${missionNumber}`
+          : (announcement && announcement.title) || monthName || "";
       const missionBriefBase = `${nameSentence} have come to you seeking guidance through ${scenarioTitle}.`;
-      const missionBrief = orderLine ? `${orderLine}\n${missionBriefBase}` : missionBriefBase;
+      const missionBrief = missionBriefBase;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
