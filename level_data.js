@@ -85,15 +85,15 @@ window.BattlechurchLevelData = {
       "slime"
     ],
     "allKillHordes": [
-      7,
-      14
+      5,
+      12
     ],
     "floorTextByHorde": {
       "1": "\"We're going to face this together.\"",
       "3": "More lies appear...",
-      "8": "\"This week, stay strong in the faith.\"",
+      "6": "\"This week, stay strong in the faith.\"",
       "10": "More temptations appear...",
-      "15": "\"In our final week, face your struggles head on.\"",
+      "13": "\"In our final week, face your struggles head on.\"",
       "16": "More sin appears..."
     }
   },
