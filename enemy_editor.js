@@ -9,9 +9,6 @@
     "ranged",
     "npcPriority",
     "mini",
-    "popcorn",
-    "elite",
-    "bossImmune",
     "preferEdges",
     "closestAny",
   ];
@@ -204,9 +201,8 @@
       #${OVERLAY_ID} th:nth-child(8), #${OVERLAY_ID} td:nth-child(8) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(9), #${OVERLAY_ID} td:nth-child(9) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(10), #${OVERLAY_ID} td:nth-child(10) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 60px; }
-      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 80px; }
-      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 260px; }
+      #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 80px; }
+      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 260px; }
     </style>
     <div class="grid">
       <div class="panel">
@@ -239,7 +235,6 @@
                 <th>Atk Range</th>
                 <th>Cooldown</th>
                 <th>Score</th>
-                <th>Boss</th>
                 <th>Swarm Spacing</th>
                 <th>Tags</th>
               </tr>
@@ -379,7 +374,6 @@
     tr.appendChild(createNumberInput(key, "attackRange"));
     tr.appendChild(createNumberInput(key, "cooldown"));
     tr.appendChild(createNumberInput(key, "score"));
-    tr.appendChild(createNumberInput(key, "bossTier"));
     tr.appendChild(createSwarmSpacingCell(key));
     tr.appendChild(createTagsCell(key));
     els.tbody.appendChild(tr);
