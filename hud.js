@@ -4,6 +4,11 @@
     lastRatio: 0,
     lastTime: 0,
   };
+  const townProgressSpark = {
+    timer: 0,
+    lastRatio: 0,
+    lastTime: 0,
+  };
   const townProgressAnim = {
     animator: null,
     lastTime: 0,
@@ -922,7 +927,7 @@
 
       const meterX = x;
       const meterY = panelY + 26;
-      const meterWidth = Math.min(210, Math.max(120, width));
+      const meterWidth = Math.max(60, columnWidth - 12);
       const meterHeight = 18;
       const meterRadius = 6;
       ctx.save();
@@ -935,47 +940,48 @@
       const innerY = meterY + 1;
       const innerW = meterWidth - 4;
       const innerH = meterHeight - 2;
+      const now = performance.now() * 0.001;
+      const dt = townProgressSpark.lastTime ? Math.min(0.1, Math.max(0, now - townProgressSpark.lastTime)) : 0;
+      townProgressSpark.lastTime = now;
+      if (progressRatio > townProgressSpark.lastRatio + 0.002) {
+        townProgressSpark.timer = 0.45;
+      }
+      townProgressSpark.lastRatio = progressRatio;
       const fillW = Math.floor(innerW * progressRatio);
       const battleColors = ["#1B3A5B", "#245071", "#2D6588"];
+      const outerGap = 2;
+      const span1 = Math.floor(innerW * (battleTotals[0] / totalUnits));
+      const span2 = Math.floor(innerW * (battleTotals[1] / totalUnits));
+      const span3 = Math.max(0, innerW - span1 - span2);
+      const seg1Start = innerX;
+      const seg1Width = Math.max(0, span1 - outerGap);
+      const seg2Start = innerX + span1 + outerGap;
+      const seg2Width = Math.max(0, span2 - outerGap * 2);
+      const seg3Start = innerX + span1 + span2 + outerGap;
+      const seg3Width = Math.max(0, span3 - outerGap);
+
+      const segWidths = [seg1Width, seg2Width, seg3Width];
+      const segStarts = [seg1Start, seg2Start, seg3Start];
       let remaining = fillW;
-      let cursor = innerX;
-      battleTotals.forEach((battleTotal, idx) => {
-        const segW = idx === battleTotals.length - 1
-          ? innerX + innerW - cursor
-          : Math.max(0, Math.floor(innerW * (battleTotal / totalUnits)));
-        const drawW = Math.min(segW, remaining);
+      for (let i = 0; i < segStarts.length; i += 1) {
+        const drawW = Math.min(segWidths[i], remaining);
         if (drawW > 0) {
-          ctx.fillStyle = battleColors[idx] || battleColors[battleColors.length - 1];
-          if (idx === 0) {
-            roundRect(ctx, cursor, innerY, drawW, innerH, Math.max(2, meterRadius - 2), true, false);
-          } else if (idx === battleTotals.length - 1 && drawW === segW) {
-            roundRect(ctx, cursor, innerY, drawW, innerH, Math.max(2, meterRadius - 2), true, false);
+          ctx.fillStyle = battleColors[i] || battleColors[battleColors.length - 1];
+          if (i === 0) {
+            roundRect(ctx, segStarts[i], innerY, drawW, innerH, Math.max(2, meterRadius - 2), true, false);
+          } else if (i === segStarts.length - 1 && drawW === segWidths[i]) {
+            roundRect(ctx, segStarts[i], innerY, drawW, innerH, Math.max(2, meterRadius - 2), true, false);
           } else {
-            ctx.fillRect(cursor, innerY, drawW, innerH);
+            ctx.fillRect(segStarts[i], innerY, drawW, innerH);
           }
-          applyMeterGloss(cursor, innerY, drawW, innerH);
+          applyMeterGloss(segStarts[i], innerY, drawW, innerH);
         }
         remaining -= drawW;
-        cursor += segW;
-      });
+      }
 
-      const segGap = 2;
-      const segStops = [];
-      let acc = 0;
-      battleTotals.forEach((battleTotal, idx) => {
-        if (idx === battleTotals.length - 1) return;
-        acc += battleTotal / totalUnits;
-        segStops.push(acc);
-      });
       ctx.save();
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
-      let lastX = meterX;
-      const segXs = [meterX];
-      segStops.forEach((stop) => {
-        segXs.push(meterX + Math.floor(meterWidth * stop));
-      });
-      segXs.push(meterX + meterWidth);
       const strokeSegment = (sx, w, { leftRound = false, rightRound = false } = {}) => {
         const r = meterRadius;
         ctx.beginPath();
@@ -1010,14 +1016,9 @@
         }
         ctx.stroke();
       };
-      for (let i = 0; i < segXs.length - 1; i += 1) {
-        const sx = segXs[i];
-        const segW = segXs[i + 1] - segXs[i] - (i === segXs.length - 2 ? 0 : segGap);
-        strokeSegment(sx, segW, {
-          leftRound: i === 0,
-          rightRound: i === segXs.length - 2,
-        });
-      }
+      strokeSegment(seg1Start, seg1Width, { leftRound: true, rightRound: false });
+      strokeSegment(seg2Start, seg2Width, { leftRound: false, rightRound: false });
+      strokeSegment(seg3Start, seg3Width, { leftRound: false, rightRound: true });
       ctx.restore();
 
       ctx.save();
@@ -1026,12 +1027,29 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       for (let i = 0; i < battleTotals.length; i += 1) {
-        const segStart = segXs[i];
-        const segEnd = segXs[i + 1];
+        const segStart = segStarts[i];
+        const segEnd = segStart + segWidths[i];
         const centerX = (segStart + segEnd) / 2;
         ctx.fillText(`${i + 1}`, centerX, innerY + innerH / 2 + 0.5);
       }
       ctx.restore();
+
+      if (townProgressSpark.timer > 0 && fillW > 0) {
+        townProgressSpark.timer = Math.max(0, townProgressSpark.timer - dt);
+        const sparkAlpha = Math.min(1, townProgressSpark.timer / 0.45);
+        const sparkX = innerX + fillW;
+        const sparkY = meterY + 2;
+        const sparkW = 10;
+        const sparkH = meterHeight - 4;
+        const gradient = ctx.createLinearGradient(sparkX - sparkW, 0, sparkX, 0);
+        gradient.addColorStop(0, "rgba(255, 220, 140, 0)");
+        gradient.addColorStop(1, `rgba(255, 225, 180, ${1.25 * sparkAlpha})`);
+        ctx.save();
+        ctx.globalAlpha = sparkAlpha;
+        ctx.fillStyle = gradient;
+        ctx.fillRect(sparkX - sparkW, sparkY, sparkW, sparkH);
+        ctx.restore();
+      }
 
       const bossStartUnits = totalUnits - BOSS_PROGRESS_WEIGHT;
       const bossCenterUnits = bossStartUnits + BOSS_PROGRESS_WEIGHT * 0.5;
