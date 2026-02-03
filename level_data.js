@@ -86,15 +86,15 @@ window.BattlechurchLevelData = {
     ],
     "allKillHordes": [
       5,
-      12
+      11
     ],
     "floorTextByHorde": {
       "1": "\"We're going to face this together.\"",
       "3": "More lies appear...",
       "6": "\"This week, stay strong in the faith.\"",
-      "10": "More temptations appear...",
-      "13": "\"In our final week, face your struggles head on.\"",
-      "16": "More sin appears..."
+      "9": "More temptations appear...",
+      "12": "\"In our final week, face your struggles head on.\"",
+      "15": "More sin appears..."
     }
   },
   "levels": [
@@ -564,7 +564,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -1066,7 +1066,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -1568,7 +1568,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -2075,7 +2075,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -2577,7 +2577,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -3079,7 +3079,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -3602,7 +3602,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -4104,7 +4104,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -4606,7 +4606,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -4848,7 +4848,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         }
@@ -5336,7 +5336,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -5838,7 +5838,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -6340,7 +6340,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -6847,7 +6847,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -7349,7 +7349,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -7851,7 +7851,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -8374,7 +8374,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -8876,7 +8876,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -9378,7 +9378,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         }
@@ -9866,7 +9866,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -10368,7 +10368,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -10870,7 +10870,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -11377,7 +11377,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -11879,7 +11879,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -12381,7 +12381,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -12904,7 +12904,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -13406,7 +13406,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -13908,7 +13908,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         }
@@ -14400,7 +14400,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -14902,7 +14902,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -15404,7 +15404,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -15891,7 +15891,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -16393,7 +16393,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -16895,7 +16895,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         },
@@ -17382,7 +17382,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 2,
@@ -17884,7 +17884,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             },
             {
               "index": 3,
@@ -18386,7 +18386,7 @@ window.BattlechurchLevelData = {
                   "duration": 4
                 }
               ],
-              "hordesPerBattle": 21
+              "hordesPerBattle": 18
             }
           ]
         }
