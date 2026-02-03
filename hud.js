@@ -1051,15 +1051,11 @@
         ctx.restore();
       }
 
-      const bossStartUnits = totalUnits - BOSS_PROGRESS_WEIGHT;
-      const bossCenterUnits = bossStartUnits + BOSS_PROGRESS_WEIGHT * 0.5;
-      const bossCenterX = innerX + (bossCenterUnits / totalUnits) * innerW;
-      const bossIconY = meterY - 10;
       const Animator = typeof window !== 'undefined' ? window.Entities?.Animator : null;
       const miniImpClips = assets?.enemies?.miniImp || null;
       if (Animator && miniImpClips) {
         if (!townProgressAnim.animator || townProgressAnim.clips !== miniImpClips) {
-          townProgressAnim.animator = new Animator(miniImpClips, 0.45);
+          townProgressAnim.animator = new Animator(miniImpClips, 1.8);
           townProgressAnim.animator.play("walk", { restart: true, loop: true });
           townProgressAnim.clips = miniImpClips;
           townProgressAnim.lastTime = 0;
@@ -1069,7 +1065,15 @@
         townProgressAnim.lastTime = now;
         if (townProgressAnim.animator) {
           townProgressAnim.animator.update(dt);
-          townProgressAnim.animator.draw(ctx, bossCenterX, bossIconY, { alpha: 0.95 });
+          const bossCenters = [
+            seg1Start + seg1Width - 10,
+            seg2Start + seg2Width - 10,
+            seg3Start + seg3Width - 10,
+          ];
+          const iconY = innerY + innerH / 2 - 15;
+          bossCenters.forEach((centerX) => {
+            townProgressAnim.animator.draw(ctx, centerX, iconY, { alpha: 0.95, flipX: true });
+          });
         }
       }
       ctx.restore();
