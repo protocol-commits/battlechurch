@@ -948,7 +948,7 @@
       }
       townProgressSpark.lastRatio = progressRatio;
       const fillW = Math.floor(innerW * progressRatio);
-      const battleColors = ["#1B3A5B", "#245071", "#2D6588"];
+      const battleColors = [PALETTE.deepNavy, PALETTE.slate, PALETTE.crimson];
       const outerGap = 2;
       const span1 = Math.floor(innerW * (battleTotals[0] / totalUnits));
       const span2 = Math.floor(innerW * (battleTotals[1] / totalUnits));
