@@ -11044,15 +11044,9 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("5")) {
-    const result = levelManager?.devSkipToBoss?.();
+    const result = levelManager?.devSkipToBoss?.({ showExterior: false });
     if (result?.success) {
-      if (result.needsExteriorShot) {
-        pendingBossIntroAfterExterior = true;
-        queueExteriorShotAnnouncement({ force: true });
-        setDevStatus("Boss exterior shot", 2.3);
-      } else {
-        setDevStatus("Boss battle engaged", 2.3);
-      }
+      setDevStatus("Boss battle engaged", 2.3);
     }
   }
   if (keysJustPressed.has("6")) {
@@ -11074,7 +11068,7 @@ function handleDeveloperHotkeys() {
         currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : currentLevel + 1;
         guard += 1;
       }
-      if (levelManager?.devSkipToBoss?.()) {
+      if (levelManager?.devSkipToBoss?.({ showExterior: false })) {
         setDevStatus("Final boss engaged", 2.4);
       } else {
         setDevStatus("Final boss skip failed", 2.0);
