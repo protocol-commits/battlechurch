@@ -3410,6 +3410,32 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const levelStatus = bindings.levelManager?.getStatus?.();
     if (levelStatus?.stage === "levelIntro") return;
     window.BattlechurchHUD?.draw?.(bindings, sharedShakeOffset, roundRect);
+    const stage = levelStatus?.stage || "";
+    const missionActive =
+      stage === "waveActive" ||
+      stage === "waveCleared" ||
+      stage === "bossActive" ||
+      stage === "bossIntro" ||
+      stage === "graceRush";
+    if (missionActive) {
+      const scenario =
+        (typeof window !== "undefined" && window.__lastMissionBriefScenario) || null;
+      const scenarioTitle = getScenarioTitle(scenario) || levelStatus?.month || "the crisis";
+      const label = `Mission: Dealing with ${scenarioTitle}`.toUpperCase();
+      const { ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT } = bindings;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.font = `600 14px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(230, 238, 255, 0.85)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      const y = canvas.height - Math.max(12, Math.round(HUD_HEIGHT * 0.35));
+      ctx.fillText(label, canvas.width / 2, y);
+      ctx.restore();
+    }
   }
 
   function drawMissionBriefInArena() {
