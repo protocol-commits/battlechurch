@@ -4997,12 +4997,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (!visitorStageActive && battleNpcs.length) {
       drawBattleNpcs(ctx, battleNpcs, npcFadeAlpha);
     }
-    // Draw pickups above enemies/NPCs
-    utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
-    weaponPickups.forEach((pickup) => pickup.draw());
-    gracePickups.forEach((pickup) => {
-      if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
-    });
     const shouldDepthSortNpcUi = !visitorStageActive && battleNpcs.length && !isCongregationStage;
     if (shouldDepthSortNpcUi) {
       const overlayByOwner = new Map();
@@ -5038,6 +5032,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       effects.forEach((effect) => effect.draw());
     }
+    // Draw pickups above projectiles/effects so they're easy to see.
+    utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
+    weaponPickups.forEach((pickup) => pickup.draw());
+    gracePickups.forEach((pickup) => {
+      if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
+    });
     if (player) {
       player.draw();
       drawPlayerWeaponMeter(player);

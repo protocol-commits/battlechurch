@@ -7046,6 +7046,7 @@ const POWERUP_ICON_STYLES = {
   utility: { shape: "circle", color: "#B7742A", accent: "#D08D42" },
 };
 const POWERUP_ICON_OUTLINE = "rgba(10, 15, 31, 0.7)";
+const POWERUP_ICON_HIGHLIGHT = "rgba(255, 215, 64, 0.95)";
 const POWERUP_ICON_TEXT_COLOR = "#EAF6FF";
 
 function resolvePowerupIconCategory(effect = "") {
@@ -7079,9 +7080,15 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text, icon
     context.beginPath();
     context.arc(0, 0, half, 0, Math.PI * 2);
     context.fill();
+    context.lineWidth = Math.max(2, size * 0.08);
+    context.strokeStyle = POWERUP_ICON_HIGHLIGHT;
+    context.stroke();
   } else {
     const radius = Math.max(6, Math.round(size * 0.16));
     roundRect(context, -half, -half, size, size, radius, true, false);
+    context.lineWidth = Math.max(2, size * 0.08);
+    context.strokeStyle = POWERUP_ICON_HIGHLIGHT;
+    roundRect(context, -half, -half, size, size, radius, false, true);
   }
 
   const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
