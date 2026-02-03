@@ -603,7 +603,7 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.5
+    "swarmSpacing": 1
   },
   "miniHighDemon": {
     "displayName": "High Demon",
@@ -700,7 +700,7 @@
     "cooldown": 1.9,
     "score": 65,
     "ranged": true,
-    "projectileType": "miniFireball",
+    "projectileType": "miniTrident",
     "preferEdges": true,
     "desiredRange": 420,
     "projectileCooldown": 2,
