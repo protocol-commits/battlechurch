@@ -239,9 +239,22 @@
 
     const drawTopHPAndLives = () => {
       const hpBarX = columnXs[0] + 6;
-      const hpBarY = 20;
+      const hpBarY = panelY + 24;
       const hpBarWidth = Math.min(210, Math.max(120, columnWidth - 12));
       const hpBarHeight = 18;
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      let scenarioTitle = '';
+      if (typeof window !== 'undefined') {
+        const scenario = window.__lastMissionBriefScenario;
+        if (typeof scenario === 'string') scenarioTitle = scenario;
+        else if (scenario && typeof scenario.title === 'string') scenarioTitle = scenario.title;
+      }
+      if (!scenarioTitle) scenarioTitle = 'the crisis';
+      ctx.fillText(`Mission: ${scenarioTitle}`.toUpperCase(), hpBarX, panelY + 14);
+      ctx.restore();
       ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
@@ -364,7 +377,7 @@
     const drawPrayerBombMeter = () => {
       if (!player) return;
       const meterX = columnXs[0] + 6;
-      const meterY = 44;
+      const meterY = panelY + 46;
       const meterWidth = Math.min(210, Math.max(120, columnWidth - 12));
       const meterHeight = 18;
       const meterRadius = 6;
