@@ -12876,7 +12876,8 @@ function processProjectileCollisions(dt) {
       const swooshAngle = Math.atan2(normalized.y, normalized.x);
       const swooshSpread = Math.PI * 0.35 * MELEE_SWOOSH_ARC_SCALE;
       for (const projectile of projectiles) {
-        if (projectile.dead || projectile.friendly) continue;
+        const bossProjectile = isBossProjectile(projectile);
+        if (projectile.dead || (projectile.friendly && !bossProjectile)) continue;
         const dx = projectile.x - player.x;
         const dy = projectile.y - player.y;
         const dist = Math.hypot(dx, dy);
@@ -12892,6 +12893,10 @@ function processProjectileCollisions(dt) {
           if (Math.abs(angleDiff) <= swooshSpread) projectile.dead = true;
         }
         if (projectile.dead) {
+          if (bossProjectile && projectile.onExpire && !projectile.onExpireTriggered) {
+            projectile.onExpireTriggered = true;
+            projectile.onExpire(projectile);
+          }
           spawnImpactEffect(projectile.x, projectile.y);
           spawnFlashEffect(projectile.x, projectile.y);
         }
