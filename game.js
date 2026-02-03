@@ -13099,6 +13099,30 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       playEnemyHitSfx(0.6);
     }
   });
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+    if (!meleeAttackState.rushHitEntities.has(activeBoss)) {
+      const relX = activeBoss.x - player.x;
+      const relY = activeBoss.y - player.y;
+      const localX = relX * cos - relY * sin;
+      const localY = relX * sin + relY * cos;
+      const hitRadius = activeBoss.radius || 0;
+      const hit = circleIntersectsRect(localX, localY, hitRadius, {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+      });
+      if (hit) {
+        meleeAttackState.rushHitEntities.add(activeBoss);
+        const damage = Math.round(RUSH_DAMAGE);
+        activeBoss.takeDamage(damage, { hitX: activeBoss.x, hitY: activeBoss.y });
+        spawnEnemyHitEffect(activeBoss);
+        if (typeof playEnemyHitSfx === "function") {
+          playEnemyHitSfx(0.6);
+        }
+      }
+    }
+  }
 }
 
 function updateRushMovement(dt, direction, meleeAttackState) {
@@ -13156,6 +13180,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   }
 
   const hitEnemies = [];
+  let hitBoss = false;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     const dx = enemy.x - swingCenterX;
@@ -13175,7 +13200,22 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     }
     spawnEnemyHitEffect(enemy);
   });
-  if (hitEnemies.length > 0) {
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+    const dx = activeBoss.x - swingCenterX;
+    const dy = activeBoss.y - swingCenterY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const hitRadius = activeBoss.radius || 0;
+    if (dist <= MELEE_SWING_RANGE + hitRadius) {
+      const dotProduct = dx * dir.x + dy * dir.y;
+      if (!(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius)) {
+        const damage = Math.round(MELEE_BASE_DAMAGE);
+        activeBoss.takeDamage(damage, { hitX: activeBoss.x, hitY: activeBoss.y });
+        hitBoss = true;
+        spawnEnemyHitEffect(activeBoss);
+      }
+    }
+  }
+  if (hitEnemies.length > 0 || hitBoss) {
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx(0.6);
     }
@@ -13202,6 +13242,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
   const swooshStartAngle = swooshAngle - swooshSpread;
   const swooshEndAngle = swooshAngle + swooshSpread;
   const swooshDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
+  let hitBoss = false;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     const dx = enemy.x - player.x;
@@ -13224,6 +13265,25 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       playEnemyHitSfx(0.6);
     }
   });
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+    const dx = activeBoss.x - player.x;
+    const dy = activeBoss.y - player.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist <= MELEE_SWING_RANGE) {
+      const bossAngle = Math.atan2(dy, dx);
+      let angleDiff = bossAngle - swooshAngle;
+      while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+      while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+      if (!(Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE)) {
+        activeBoss.takeDamage(swooshDamage, { hitX: activeBoss.x, hitY: activeBoss.y });
+        hitBoss = true;
+        spawnEnemyHitEffect(activeBoss);
+      }
+    }
+  }
+  if (hitBoss && typeof playEnemyHitSfx === "function") {
+    playEnemyHitSfx(0.6);
+  }
   if (typeof playSwooshSfx === "function") {
     playSwooshSfx(0.6);
   }
@@ -13491,6 +13551,30 @@ function updateMeleeAttackSystem(dt) {
           playEnemyHitSfx(0.6);
         }
       });
+      if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+        if (!hitSet.has(activeBoss)) {
+          const relX = activeBoss.x - player.x;
+          const relY = activeBoss.y - player.y;
+          const localX = relX * cos - relY * sin;
+          const localY = relX * sin + relY * cos;
+          const hitRadius = activeBoss.radius || 0;
+          const hit = circleIntersectsRect(localX, localY, hitRadius, {
+            x: 0,
+            y: -drawHeight * 0.5,
+            width: drawWidth,
+            height: drawHeight,
+          });
+          if (hit) {
+            hitSet.add(activeBoss);
+            const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
+            activeBoss.takeDamage(spinDamage, { hitX: activeBoss.x, hitY: activeBoss.y });
+            spawnEnemyHitEffect(activeBoss);
+            if (typeof playEnemyHitSfx === "function") {
+              playEnemyHitSfx(0.6);
+            }
+          }
+        }
+      }
     }
 
     const dir = getMeleeAttackDirection();
