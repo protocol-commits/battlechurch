@@ -4,6 +4,11 @@
     lastRatio: 0,
     lastTime: 0,
   };
+  const townProgressAnim = {
+    animator: null,
+    lastTime: 0,
+    clips: null,
+  };
   const scoreboardIconSources = {
     congregation: "assets/sprites/pixel-art-pack/Items/I28_Idol.png",
     grace: "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
@@ -17,6 +22,7 @@
   });
   const defaultWeaponIcon = new Image();
   defaultWeaponIcon.src = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png";
+  const BOSS_PROGRESS_WEIGHT = 5;
 
   function drawOutlinedText(ctx, text, x, y, font, align, fillColor) {
     ctx.font = font;
@@ -33,6 +39,7 @@
       UI_FONT_FAMILY,
       levelManager,
       player,
+      activeBoss,
       heroLives,
       hpFlashTimer,
       visitorSession,
@@ -819,8 +826,227 @@
       });
     };
 
+    const drawTownProgress = () => {
+      const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+      if (!levelStatus) return;
+      const x = columnXs[3] + 6;
+      const width = columnWidth - 12;
+      const levelData =
+        (typeof window !== 'undefined' && window.BattlechurchLevelData) || null;
+      const structure = levelData?.structure || {};
+      const battlesPerTown = Number.isFinite(structure.levels) ? structure.levels : 3;
+      const missionsPerBattle = Number.isFinite(structure.monthsPerLevel) ? structure.monthsPerLevel : 3;
+      const defaultHordes = Number.isFinite(structure.defaultHordesPerBattle) ? structure.defaultHordesPerBattle : 18;
+
+      const getMissionHordeCount = (battleIndex, missionIndex) => {
+        const level = levelData?.levels?.[battleIndex - 1] || null;
+        const month = level?.months?.[missionIndex - 1] || null;
+        const battle = month?.battles?.[missionIndex - 1] || month?.battles?.[0] || null;
+        const explicitCount = Array.isArray(battle?.hordes) ? battle.hordes.length : null;
+        const configured = Number.isFinite(battle?.hordesPerBattle) ? battle.hordesPerBattle : null;
+        const count = Number.isFinite(explicitCount) && explicitCount > 0
+          ? explicitCount
+          : (Number.isFinite(configured) && configured > 0 ? configured : defaultHordes);
+        return Math.max(1, count);
+      };
+
+      const battleTotals = [];
+      let totalUnits = 0;
+      for (let battleIndex = 1; battleIndex <= battlesPerTown; battleIndex += 1) {
+        let battleTotal = 0;
+        for (let missionIndex = 1; missionIndex <= missionsPerBattle; missionIndex += 1) {
+          battleTotal += getMissionHordeCount(battleIndex, missionIndex);
+        }
+        if (battleIndex === battlesPerTown) {
+          battleTotal += BOSS_PROGRESS_WEIGHT;
+        }
+        battleTotals.push(battleTotal);
+        totalUnits += battleTotal;
+      }
+
+      const currentBattle = Math.max(1, Math.min(battlesPerTown, levelStatus.level || 1));
+      const currentMission = Math.max(1, Math.min(missionsPerBattle, levelStatus.battle || 1));
+      const currentWave = Math.max(0, levelStatus.wave || 0);
+
+      let progressUnits = 0;
+      for (let battleIndex = 1; battleIndex < currentBattle; battleIndex += 1) {
+        progressUnits += battleTotals[battleIndex - 1] || 0;
+      }
+      for (let missionIndex = 1; missionIndex < currentMission; missionIndex += 1) {
+        progressUnits += getMissionHordeCount(currentBattle, missionIndex);
+      }
+      const currentMissionTotal = getMissionHordeCount(currentBattle, currentMission);
+      progressUnits += Math.min(currentMissionTotal, currentWave);
+
+      const bossStage =
+        levelStatus.stage === "bossIntro" ||
+        levelStatus.stage === "bossActive" ||
+        (levelStatus.stage === "graceRush" && levelStatus.battle === missionsPerBattle);
+      if (bossStage && currentBattle === battlesPerTown) {
+        let bossProgress = 0;
+        if (activeBoss && Number.isFinite(activeBoss.health) && Number.isFinite(activeBoss.maxHealth) && activeBoss.maxHealth > 0) {
+          const ratio = Math.max(0, Math.min(1, activeBoss.health / activeBoss.maxHealth));
+          bossProgress = BOSS_PROGRESS_WEIGHT * (1 - ratio);
+        } else if (levelStatus.stage === "graceRush") {
+          bossProgress = BOSS_PROGRESS_WEIGHT;
+        }
+        progressUnits += bossProgress;
+      }
+
+      if (totalUnits <= 0) totalUnits = 1;
+      const progressRatio = Math.max(0, Math.min(1, progressUnits / totalUnits));
+
+      const townId = typeof window !== 'undefined' ? window.activeTownId : null;
+      const mapData = typeof window !== 'undefined' ? window.BattlechurchMapData : null;
+      const townName = mapData?.towns?.find((t) => t.id === townId)?.name || "Town";
+
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.fillText(townName.toUpperCase(), x, panelY + 14);
+      ctx.restore();
+
+      const meterX = x;
+      const meterY = panelY + 26;
+      const meterWidth = Math.min(210, Math.max(120, width));
+      const meterHeight = 18;
+      const meterRadius = 6;
+      ctx.save();
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = 'rgba(10,15,31,0.6)';
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = 'rgba(0,0,0,0)';
+      roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);
+      const innerX = meterX + 2;
+      const innerY = meterY + 1;
+      const innerW = meterWidth - 4;
+      const innerH = meterHeight - 2;
+      const fillW = Math.floor(innerW * progressRatio);
+      const battleColors = ["#1B3A5B", "#245071", "#2D6588"];
+      let remaining = fillW;
+      let cursor = innerX;
+      battleTotals.forEach((battleTotal, idx) => {
+        const segW = idx === battleTotals.length - 1
+          ? innerX + innerW - cursor
+          : Math.max(0, Math.floor(innerW * (battleTotal / totalUnits)));
+        const drawW = Math.min(segW, remaining);
+        if (drawW > 0) {
+          ctx.fillStyle = battleColors[idx] || battleColors[battleColors.length - 1];
+          if (idx === 0) {
+            roundRect(ctx, cursor, innerY, drawW, innerH, Math.max(2, meterRadius - 2), true, false);
+          } else if (idx === battleTotals.length - 1 && drawW === segW) {
+            roundRect(ctx, cursor, innerY, drawW, innerH, Math.max(2, meterRadius - 2), true, false);
+          } else {
+            ctx.fillRect(cursor, innerY, drawW, innerH);
+          }
+          applyMeterGloss(cursor, innerY, drawW, innerH);
+        }
+        remaining -= drawW;
+        cursor += segW;
+      });
+
+      const segGap = 2;
+      const segStops = [];
+      let acc = 0;
+      battleTotals.forEach((battleTotal, idx) => {
+        if (idx === battleTotals.length - 1) return;
+        acc += battleTotal / totalUnits;
+        segStops.push(acc);
+      });
+      ctx.save();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = PALETTE.ice;
+      let lastX = meterX;
+      const segXs = [meterX];
+      segStops.forEach((stop) => {
+        segXs.push(meterX + Math.floor(meterWidth * stop));
+      });
+      segXs.push(meterX + meterWidth);
+      const strokeSegment = (sx, w, { leftRound = false, rightRound = false } = {}) => {
+        const r = meterRadius;
+        ctx.beginPath();
+        ctx.moveTo(sx + (leftRound ? r : 0), meterY);
+        ctx.lineTo(sx + w - (rightRound ? r : 0), meterY);
+        if (rightRound) {
+          ctx.quadraticCurveTo(sx + w, meterY, sx + w, meterY + r);
+        } else {
+          ctx.lineTo(sx + w, meterY);
+          ctx.lineTo(sx + w, meterY + r);
+        }
+        ctx.lineTo(sx + w, meterY + meterHeight - (rightRound ? r : 0));
+        if (rightRound) {
+          ctx.quadraticCurveTo(sx + w, meterY + meterHeight, sx + w - r, meterY + meterHeight);
+        } else {
+          ctx.lineTo(sx + w, meterY + meterHeight);
+          ctx.lineTo(sx + w - r, meterY + meterHeight);
+        }
+        ctx.lineTo(sx + (leftRound ? r : 0), meterY + meterHeight);
+        if (leftRound) {
+          ctx.quadraticCurveTo(sx, meterY + meterHeight, sx, meterY + meterHeight - r);
+        } else {
+          ctx.lineTo(sx, meterY + meterHeight);
+          ctx.lineTo(sx, meterY + meterHeight - r);
+        }
+        ctx.lineTo(sx, meterY + r);
+        if (leftRound) {
+          ctx.quadraticCurveTo(sx, meterY, sx + r, meterY);
+        } else {
+          ctx.lineTo(sx, meterY);
+          ctx.lineTo(sx + r, meterY);
+        }
+        ctx.stroke();
+      };
+      for (let i = 0; i < segXs.length - 1; i += 1) {
+        const sx = segXs[i];
+        const segW = segXs[i + 1] - segXs[i] - (i === segXs.length - 2 ? 0 : segGap);
+        strokeSegment(sx, segW, {
+          leftRound: i === 0,
+          rightRound: i === segXs.length - 2,
+        });
+      }
+      ctx.restore();
+
+      ctx.save();
+      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < battleTotals.length; i += 1) {
+        const segStart = segXs[i];
+        const segEnd = segXs[i + 1];
+        const centerX = (segStart + segEnd) / 2;
+        ctx.fillText(`${i + 1}`, centerX, innerY + innerH / 2 + 0.5);
+      }
+      ctx.restore();
+
+      const bossStartUnits = totalUnits - BOSS_PROGRESS_WEIGHT;
+      const bossCenterUnits = bossStartUnits + BOSS_PROGRESS_WEIGHT * 0.5;
+      const bossCenterX = innerX + (bossCenterUnits / totalUnits) * innerW;
+      const bossIconY = meterY - 10;
+      const Animator = typeof window !== 'undefined' ? window.Entities?.Animator : null;
+      const miniImpClips = assets?.enemies?.miniImp || null;
+      if (Animator && miniImpClips) {
+        if (!townProgressAnim.animator || townProgressAnim.clips !== miniImpClips) {
+          townProgressAnim.animator = new Animator(miniImpClips, 0.45);
+          townProgressAnim.animator.play("walk", { restart: true, loop: true });
+          townProgressAnim.clips = miniImpClips;
+          townProgressAnim.lastTime = 0;
+        }
+        const now = performance.now();
+        const dt = townProgressAnim.lastTime ? Math.min(0.05, Math.max(0, (now - townProgressAnim.lastTime) / 1000)) : 0;
+        townProgressAnim.lastTime = now;
+        if (townProgressAnim.animator) {
+          townProgressAnim.animator.update(dt);
+          townProgressAnim.animator.draw(ctx, bossCenterX, bossIconY, { alpha: 0.95 });
+        }
+      }
+      ctx.restore();
+    };
+
     drawPlayerInfo();
     drawNpcInfo();
+    drawTownProgress();
 
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
