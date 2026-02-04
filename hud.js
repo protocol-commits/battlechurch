@@ -257,7 +257,16 @@
         if (typeof scenario === 'string') scenarioTitle = scenario;
         else if (scenario && typeof scenario.title === 'string') scenarioTitle = scenario.title;
       }
-      if (!scenarioTitle) scenarioTitle = 'the crisis';
+      const bossStage =
+        levelStatus?.stage === 'bossIntro' ||
+        levelStatus?.stage === 'bossActive' ||
+        levelStatus?.stage === 'graceRush' ||
+        (activeBoss && !activeBoss.dead && !activeBoss.removed);
+      if (bossStage) {
+        scenarioTitle = 'Personal Struggles';
+      } else if (!scenarioTitle) {
+        scenarioTitle = 'the crisis';
+      }
       ctx.fillText(`Mission: ${scenarioTitle}`.toUpperCase(), hpBarX, panelY + 14);
       ctx.restore();
       ctx.fillStyle = 'rgba(10,15,31,0.6)';
@@ -948,7 +957,7 @@
       }
       townProgressSpark.lastRatio = progressRatio;
       const fillW = Math.floor(innerW * progressRatio);
-      const battleColors = [PALETTE.deepNavy, PALETTE.slate, PALETTE.crimson];
+      const battleColors = [PALETTE.ice, PALETTE.gold, PALETTE.teal];
       const outerGap = 2;
       const span1 = Math.floor(innerW * (battleTotals[0] / totalUnits));
       const span2 = Math.floor(innerW * (battleTotals[1] / totalUnits));
