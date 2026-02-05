@@ -5343,6 +5343,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.stroke();
       ctx.restore();
     }
+    if (player.wordOfGodTimer > 0) {
+      return;
+    }
     if (state.spinTimer > 0) {
       if (!swooshImg) return;
       const duration = Math.max(0.001, state.spinDuration || 0.45);

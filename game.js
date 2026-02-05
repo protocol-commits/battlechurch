@@ -2833,6 +2833,10 @@ const WISDOM_FRAME_SOURCES = Array.from(
   { length: WISDOM_FRAME_END - WISDOM_FRAME_START + 1 },
   (_, index) => `${MAGIC_FIREBALL_SPRITE_PATH}/fireball${WISDOM_FRAME_START + index}.png`,
 ); // Wisdom projectile uses frames 9-18 from the fireball sprite sheet.
+const WORD_OF_GOD_FRAME_FILES = Array.from(
+  { length: 11 },
+  (_, index) => `assets/sprites/weapons/fire4/1_${index}.png`,
+);
 const FLASH_FRAME_COUNT = 14;
 const COIN_FRAME_DURATION = 0.08;
 const PROJECTILE_FRAME_DURATIONS = {
@@ -2841,6 +2845,7 @@ const PROJECTILE_FRAME_DURATIONS = {
   faith_cannon: 0.06,
   coin: COIN_FRAME_DURATION,
   heart: 0.08,
+  word_of_god: 0.06,
 };
 const NPC_COZY_ROOT = "assets/sprites/npcs-cozy";
 const NPC_WALK_ROOT = `${NPC_COZY_ROOT}/separate/walk`;
@@ -3344,6 +3349,7 @@ const WEAPON_POWERUP_EFFECTS = new Set([
   "wisdomWeapon",
   "scriptureWeapon",
   "cannonWeapon",
+  "wordOfGodWeapon",
   "npcScriptureWeapon",
   "npcWisdomWeapon",
   "npcFaithWeapon",
@@ -3420,6 +3426,8 @@ function getWeaponPowerName(effect, fallback = "Weapon") {
       return "Scripture";
     case "cannonWeapon":
       return "Faith";
+    case "wordOfGodWeapon":
+      return "Word of God";
     default:
       return fallback || "Weapon";
   }
@@ -4339,6 +4347,11 @@ async function loadProjectileFrames(cache, assets, projectileFrames) {
   if (assets.projectiles?.arrow) {
     assets.projectiles.miniFireball = assets.projectiles.arrow;
   }
+
+  // Word of God frames
+  projectileFrames.word_of_god = await Promise.all(
+    WORD_OF_GOD_FRAME_FILES.map((file) => loadCachedImage(cache, file)),
+  );
 
   // Fire and wisdom missile frames
   projectileFrames.fire = await Promise.all(
@@ -5856,6 +5869,19 @@ function applyWeaponPickupEffect(pickup) {
       player.fireSpeedMultiplier = config.speedMultiplier;
       player.fireDamageMultiplier = config.damageMultiplier;
       player.magicCooldown = 0;
+      showWeaponPowerupConfigText(config);
+      spawnPowerupHudFlyEffect({
+        x: pickup.x,
+        y: pickup.y,
+        iconImage: def?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(pickup.effect),
+      });
+      break;
+    }
+    case "wordOfGodWeapon": {
+      const config = resolveWeaponPowerupConfig("wordOfGodWeapon", def);
+      player.wordOfGodTimer = config.duration;
+      player.wordOfGodDuration = config.duration;
       showWeaponPowerupConfigText(config);
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -13184,6 +13210,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     player.state = "attackMelee";
     player.animator.play("attackMelee", { restart: true });
   }
+  maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
 
   const hitEnemies = [];
   let hitBoss = false;
@@ -13242,6 +13269,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     player.state = "attackMelee";
     player.animator.play("attackMelee", { restart: true });
   }
+  maybeFireWordOfGodProjectile(dir, angleRad);
 
   const swooshAngle = angleRad;
   const swooshSpread = Math.PI * 0.35 * MELEE_SWOOSH_ARC_SCALE;
@@ -13310,6 +13338,7 @@ function executeRushAttack(dir, meleeAttackState) {
   meleeAttackState.rushInvulnerable = true;
   player.invulnerableTimer = RUSH_INVULNERABILITY;
   meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
+  maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
   if (typeof playSwooshSfx === "function") {
     playSwooshSfx(0.7);
   }
@@ -13318,6 +13347,7 @@ function executeRushAttack(dir, meleeAttackState) {
 function executeSpinAttack(meleeAttackState) {
   if (!player) return;
   const dir = getMeleeAttackDirection();
+  maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
   setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
   meleeAttackState.buttonDown = false;
   meleeAttackState.isCharging = false;
@@ -13359,6 +13389,36 @@ function executeDivineShot(dir, meleeAttackState, angleRad) {
   if (typeof playDivineShotSfx === "function") {
     playDivineShotSfx(0.6);
   }
+}
+
+function maybeFireWordOfGodProjectile(dir, angleRad) {
+  if (!player || !player.wordOfGodTimer) return;
+  if (player.wordOfGodCooldown > 0) return;
+  if (projectiles.some((proj) => proj && !proj.dead && proj.type === "word_of_god")) return;
+  const baseSpeed = PROJECTILE_CONFIG.word_of_god?.speed || 700 * WORLD_SCALE;
+  const distance = MELEE_SWING_RANGE * 4;
+  const life = baseSpeed > 0 ? distance / baseSpeed : 0.8;
+  const spawnX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
+  const spawnY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+  const frames = projectileFrames.word_of_god || null;
+  const frameWidth = frames && frames[0] ? frames[0].width : 0;
+  const frameHeight = frames && frames[0] ? frames[0].height : 0;
+  const spriteRadius =
+    frameWidth && frameHeight
+      ? (Math.max(frameWidth, frameHeight) * ((PROJECTILE_CONFIG.word_of_god?.scale || 1) * 0.7)) / 2
+      : PROJECTILE_CONFIG.word_of_god?.radius;
+  spawnProjectile("word_of_god", spawnX, spawnY, Math.cos(angleRad), Math.sin(angleRad), {
+    friendly: true,
+    damage: 100,
+    life,
+    radius: spriteRadius,
+    scale: (PROJECTILE_CONFIG.word_of_god?.scale || 1) * 0.7,
+    pierce: true,
+    source: player,
+    loopFrames: true,
+    frames,
+  });
+  player.wordOfGodCooldown = 0.15;
 }
 
 function updateMeleeTimers(dt, meleeAttackState) {

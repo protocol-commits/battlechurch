@@ -531,6 +531,9 @@ class Player {
     this.armorReduction = 0;
     this.weaponPowerTimer = 0;
     this.weaponPowerDuration = 0;
+    this.wordOfGodTimer = 0;
+    this.wordOfGodDuration = 0;
+    this.wordOfGodCooldown = 0;
     this.prayerHoldTimer = 0;
     this.prayerHoldLocked = false;
     this.prayerCharge = 0;
@@ -601,6 +604,11 @@ class Player {
       this.fireDamageMultiplier = 1;
       this.weaponPowerDuration = 0;
     }
+    this.wordOfGodTimer = Math.max(0, this.wordOfGodTimer - dt * timerDrainScale);
+    if (this.wordOfGodTimer <= 0) {
+      this.wordOfGodDuration = 0;
+    }
+    this.wordOfGodCooldown = Math.max(0, this.wordOfGodCooldown - dt);
 
     this.armorTimer = Math.max(0, this.armorTimer - dt);
     if (this.armorTimer <= 0) this.armorReduction = 0;
