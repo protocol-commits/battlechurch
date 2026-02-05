@@ -8706,6 +8706,10 @@ class Projectile {
   }
 
   draw() {
+    const fadeAlpha =
+      this.type === "word_of_god"
+        ? Math.max(0, Math.min(1, this.life / 0.2))
+        : 1;
     const shouldGlow = this.friendly || this.type === "miniTrident";
     if (this.frames) {
       const frame = this.frames[this.frameIndex];
@@ -8720,10 +8724,11 @@ class Projectile {
       } else {
         ctx.rotate(this.rotation);
       }
+      if (fadeAlpha < 1) ctx.globalAlpha *= fadeAlpha;
       if (shouldGlow) {
         let glowOptions = undefined;
         let suppressGlow = false;
-      if (this.type === "faith_cannon") {
+        if (this.type === "faith_cannon") {
           glowOptions = { radiusScale: 0.2, baseAlpha: 0.12 };
         } else if (this.type === "heart") {
           suppressGlow = true;
@@ -8749,7 +8754,7 @@ class Projectile {
           const targetHeight = swooshImg.height * scale * MELEE_SWOOSH_ARC_SCALE;
           ctx.save();
           ctx.rotate(this.rotation || 0);
-          ctx.globalAlpha = 0.85;
+          ctx.globalAlpha = 0.85 * fadeAlpha;
           ctx.drawImage(
             swooshImg,
             -targetWidth / 2,
@@ -8765,6 +8770,7 @@ class Projectile {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
+        if (fadeAlpha < 1) ctx.globalAlpha *= fadeAlpha;
         if (shouldGlow) {
           let glowOptions = undefined;
           let suppressGlow = false;
@@ -8779,7 +8785,11 @@ class Projectile {
           }
         }
         ctx.restore();
-        this.animator.draw(ctx, this.x, this.y, { rotation: this.rotation, scale: this.scale });
+        this.animator.draw(ctx, this.x, this.y, {
+          rotation: this.rotation,
+          scale: this.scale,
+          alpha: fadeAlpha,
+        });
       }
     }
   }
@@ -12949,7 +12959,10 @@ function processProjectileClashing() {
       const friendlyFromPlayer = Boolean(friendly.source === player);
       const hostileIsBoss = isBossProjectile(hostile);
 
-      if (hostileIsBoss && friendlyFromPlayer) {
+      if (friendly.type === "word_of_god") {
+        hostileDies = true;
+        friendlyDies = false;
+      } else if (hostileIsBoss && friendlyFromPlayer) {
         friendlyDies = true;
       } else if (friendlyPriority > hostilePriority) {
         hostileDies = true;
