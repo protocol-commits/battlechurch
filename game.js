@@ -6223,6 +6223,7 @@ function getPowerupHudTargetKey(effect) {
   if (effect === "haste") return "utilityHaste";
   if (effect === "extend") return "utilityExtend";
   if (effect === "harmony") return "npcHarmony";
+  if (effect === "wordOfGodWeapon") return "wordOfGod";
   if (String(effect).startsWith("npc")) return "npcWeapon";
   if (WEAPON_POWERUP_EFFECTS.has(effect) || effect === "arrowBuff") return "playerWeapon";
   return null;
