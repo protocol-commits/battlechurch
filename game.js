@@ -3354,6 +3354,7 @@ const WEAPON_POWERUP_EFFECTS = new Set([
   "npcWisdomWeapon",
   "npcFaithWeapon",
 ]);
+let devPowerupSwapIndex = 0;
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 // Formation presets and state
 const FORMATION_PRESETS = {
@@ -5780,6 +5781,39 @@ function spawnWeaponPickup(position = null) {
   clampEntityToBounds(pickup);
   weaponPickups.push(pickup);
   return pickup;
+}
+
+function devSwapPowerups() {
+  if (!assets) return false;
+  const stageName = levelManager?.getStatus?.().stage;
+  const isBossStage = stageName === "bossIntro" || stageName === "bossActive";
+  const weaponDefs = Object.entries(assets.weaponPickups || {}).filter(([, def]) =>
+    isWeaponPowerEffect(def?.effect) && (!isBossStage || !isNpcWeaponPowerup(def)),
+  );
+  const utilityDefs = Object.entries(assets.utility || {});
+  if (!weaponDefs.length && !utilityDefs.length) return false;
+  devPowerupSwapIndex += 1;
+  if (weaponDefs.length) {
+    for (let i = 0; i < weaponPickups.length; i += 1) {
+      const [type, def] = weaponDefs[(devPowerupSwapIndex + i) % weaponDefs.length];
+      const next = new WeaponPickup({ ...def, type });
+      next.x = weaponPickups[i].x;
+      next.y = weaponPickups[i].y;
+      next.baseY = next.y;
+      clampEntityToBounds(next);
+      weaponPickups[i] = next;
+    }
+  }
+  if (utilityDefs.length) {
+    for (let i = 0; i < utilityPowerUps.length; i += 1) {
+      const [type, def] = utilityDefs[(devPowerupSwapIndex + i) % utilityDefs.length];
+      const next = new UtilityPowerUp({ ...def, type }, utilityPowerUps[i].x, utilityPowerUps[i].y);
+      next.baseY = next.y;
+      clampEntityToBounds(next);
+      utilityPowerUps[i] = next;
+    }
+  }
+  return true;
 }
 
 function showWeaponPowerupFloatingText(text, color = "#fff") {
@@ -11135,6 +11169,11 @@ function handleDeveloperHotkeys() {
       const nextEnabled = !Input.virtualInput?.enabled;
       Input.setVirtualControlsVisible(nextEnabled);
       setDevStatus(`Touch controls ${nextEnabled ? "ON" : "OFF"}`, 1.4);
+    }
+  }
+  if (keysJustPressed.has("p")) {
+    if (devSwapPowerups()) {
+      setDevStatus("Powerups swapped", 1.6);
     }
   }
   if (keysJustPressed.has("b")) {
