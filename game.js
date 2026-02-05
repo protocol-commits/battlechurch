@@ -6386,10 +6386,6 @@ function updateGracePickups(dt) {
           window.playGracePickupSfx(0.2);
         }
         spawnGraceHudFlyEffect(pickup);
-        addFloatingTextAt(player.x, player.y - player.radius - 24, `${pickup.value}`, GRACE_FLOAT_TEXT_COLOR, {
-          life: 0.9,
-          vy: -18,
-        });
         spawnImpactEffect(player.x, player.y - player.radius / 2);
         gracePickups.splice(i, 1);
         continue;
