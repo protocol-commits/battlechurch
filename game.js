@@ -1305,8 +1305,10 @@ const seasonStats = {
 };
 
 function isPlayerMovementLocked() {
-  const spinActive = Boolean(window?._meleeAttackState?.spinTimer > 0);
-  return Boolean((visitorSession.active && visitorSession.movementLock) || spinActive);
+  const meleeState = window?._meleeAttackState;
+  const spinActive = Boolean(meleeState?.spinTimer > 0);
+  const swingActive = Boolean(meleeState?.swooshTimer > 0);
+  return Boolean((visitorSession.active && visitorSession.movementLock) || spinActive || swingActive);
 }
 
 if (typeof window !== "undefined") {
