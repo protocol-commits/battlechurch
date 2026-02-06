@@ -8518,10 +8518,17 @@ function getEnemyHitboxCenter(enemy) {
   };
 }
 
-function spawnEnemyHitEffect(enemy, hitX = null, hitY = null) {
+function spawnEnemyHitEffect(enemy, hitX = null, hitY = null, options = {}) {
   if (!enemy) return;
   const x = Number.isFinite(hitX) ? hitX : enemy.x;
   const y = Number.isFinite(hitY) ? hitY : enemy.y;
+  const damageType = options?.damageType || null;
+  const damageClass = (enemy.config?.damageClass || "normal").toLowerCase();
+  if (damageType === "projectile" && damageClass === "armored") {
+    const puffRadius = Math.max(18, getEnemyHitboxRadius(enemy) * 0.7);
+    spawnPuffEffect(x, y, puffRadius);
+    return;
+  }
   if (enemy.type === "tormentorFlame") {
     const puffRadius = Math.max(18, (getEnemyHitboxRadius(enemy) || enemy.radius || 12) * 0.9);
     spawnPuffEffect(x, y, puffRadius);
@@ -12854,7 +12861,7 @@ function processProjectileCollisions(dt) {
         ) {
           const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
           const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
-          spawnEnemyHitEffect(enemy, hitX, hitY);
+          spawnEnemyHitEffect(enemy, hitX, hitY, { damageType });
         }
         if (enemy.health > 0 && enemy.type !== "tormentorFlame") {
           const puffRadius = Math.max(24, getEnemyHitboxRadius(enemy)) * 0.6;

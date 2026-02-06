@@ -2020,8 +2020,12 @@ class Player {
         if (this.type === "tormentorFlame") {
           return;
         }
-        this.state = "hurt";
-        this.animator.play("hurt", { restart: true });
+        const suppressProjectileStun =
+          damageType === "projectile" && damageClass === "armored";
+        if (!suppressProjectileStun) {
+          this.state = "hurt";
+          this.animator.play("hurt", { restart: true });
+        }
       }
     }
 
