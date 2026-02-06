@@ -14821,6 +14821,11 @@ async function init() {
     // Wait for gameplay assets before allowing actual gameplay
     await gameplayAssetsPromise;
     assetsLoaded = true;
+    if (window.BattlechurchEnemyEditor?.initialize) {
+      window.BattlechurchEnemyEditor.initialize({
+        getAssets: () => assets,
+      });
+    }
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
         getAssets: () => assets,

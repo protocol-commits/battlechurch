@@ -4,6 +4,8 @@
   const STORAGE_KEY = "battlechurch.devEnemyCatalog";
   const OVERLAY_ID = "enemyEditorOverlay";
   const HOTKEY = "e";
+  const SPRITE_CELL_SIZE = 52;
+  const SPRITE_FRAME_RATE = 6;
   const TAGS = [
     "swarmable",
     "ranged",
@@ -16,6 +18,10 @@
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;
   }
+
+  const bindings = {
+    getAssets: () => null,
+  };
 
   function baseCatalog() {
     return deepClone((window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {});
@@ -108,8 +114,8 @@
         box-sizing: border-box;
       }
       #${OVERLAY_ID} .grid {
-        display: grid;
-        grid-template-columns: 260px 1fr;
+        display: flex;
+        flex-direction: column;
         gap: 12px;
         height: 100%;
       }
@@ -141,8 +147,20 @@
       }
       #${OVERLAY_ID} .controls {
         display: flex;
-        flex-direction: column;
-        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px 12px;
+      }
+      #${OVERLAY_ID} .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+      #${OVERLAY_ID} .header-row h3 {
+        margin: 0;
       }
       #${OVERLAY_ID} .status {
         font-size: 12px;
@@ -193,40 +211,42 @@
       }
       #${OVERLAY_ID} th:first-child, #${OVERLAY_ID} td:first-child { width: 46px; text-align:center; }
       #${OVERLAY_ID} th:nth-child(2), #${OVERLAY_ID} td:nth-child(2) { width: 120px; }
-      #${OVERLAY_ID} th:nth-child(3), #${OVERLAY_ID} td:nth-child(3) { width: 60px; }
+      #${OVERLAY_ID} th:nth-child(3), #${OVERLAY_ID} td:nth-child(3) { width: 66px; text-align: center; }
       #${OVERLAY_ID} th:nth-child(4), #${OVERLAY_ID} td:nth-child(4) { width: 60px; }
       #${OVERLAY_ID} th:nth-child(5), #${OVERLAY_ID} td:nth-child(5) { width: 60px; }
       #${OVERLAY_ID} th:nth-child(6), #${OVERLAY_ID} td:nth-child(6) { width: 60px; }
-      #${OVERLAY_ID} th:nth-child(7), #${OVERLAY_ID} td:nth-child(7) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(7), #${OVERLAY_ID} td:nth-child(7) { width: 60px; }
       #${OVERLAY_ID} th:nth-child(8), #${OVERLAY_ID} td:nth-child(8) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(9), #${OVERLAY_ID} td:nth-child(9) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(10), #${OVERLAY_ID} td:nth-child(10) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 80px; }
-      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 260px; }
+      #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 80px; }
+      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 260px; }
     </style>
     <div class="grid">
       <div class="panel">
-        <h3>Enemy Editor</h3>
-        <div class="controls">
-          <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
-            <input type="checkbox" id="ee-showHidden">
-            Show hidden
-          </label>
-          <div class="status" id="ee-status"></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="ee-save">Save</button>
-            <button id="ee-export" class="secondary">Export file</button>
-            <button id="ee-close" class="secondary">Close (Esc)</button>
+        <div class="header-row">
+          <h3>Enemy Editor</h3>
+          <div class="controls">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+              <input type="checkbox" id="ee-showHidden">
+              Show hidden
+            </label>
+            <div class="status" id="ee-status"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button id="ee-save">Save</button>
+              <button id="ee-export" class="secondary">Export file</button>
+              <button id="ee-close" class="secondary">Close (Esc)</button>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="panel">
         <div class="table-wrap">
           <table id="ee-table">
             <thead>
               <tr>
                 <th>Hide</th>
                 <th>Name</th>
+                <th>Sprite</th>
                 <th>HP</th>
                 <th>DMG</th>
                 <th>Speed</th>
@@ -254,6 +274,8 @@
     close: overlay.querySelector("#ee-close"),
     tbody: overlay.querySelector("#ee-table tbody"),
   };
+  let spriteRafId = null;
+  let spriteCells = new Map();
 
   function setStatus(text, isError = false) {
     if (!els.status) return;
@@ -275,6 +297,101 @@
       state.cfg.catalog[key] = deepClone(base);
     }
     return state.cfg.catalog[key];
+  }
+
+  function getClipForEnemy(key) {
+    const assets = bindings.getAssets ? bindings.getAssets() : null;
+    const enemyClips = assets?.enemies?.[key] || null;
+    if (!enemyClips) return null;
+    return enemyClips.idle || enemyClips.walk || enemyClips.attack || null;
+  }
+
+  function getEnemyScale(key) {
+    const def = ensureEnemy(key);
+    return def && Number.isFinite(def.scale) ? def.scale : 1;
+  }
+
+  function createSpriteCell(key) {
+    const td = document.createElement("td");
+    const canvas = document.createElement("canvas");
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const size = SPRITE_CELL_SIZE;
+    canvas.width = Math.floor(size * dpr);
+    canvas.height = Math.floor(size * dpr);
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
+    td.appendChild(canvas);
+    spriteCells.set(key, { key, canvas, ctx: canvas.getContext("2d"), size, dpr });
+    return td;
+  }
+
+  function drawSpriteCell(entry, nowMs) {
+    const { key, ctx, canvas, size, dpr } = entry;
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const clip = getClipForEnemy(key);
+    if (!clip || !clip.image || !clip.frameWidth || !clip.frameHeight) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      return;
+    }
+    const frameMap = Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap : null;
+    const frameCount = frameMap ? frameMap.length : clip.frameCount || 1;
+    const rate = clip.frameRate && clip.frameRate > 0 ? clip.frameRate : SPRITE_FRAME_RATE;
+    const frameIndex = Math.floor((nowMs / 1000) * rate) % Math.max(1, frameCount);
+    const spriteFrame = frameMap ? frameMap[frameIndex] : frameIndex;
+    const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
+    const sx = (spriteFrame % cols) * clip.frameWidth;
+    const sy = Math.floor(spriteFrame / cols) * clip.frameHeight;
+    const cellSize = size * dpr;
+    const maxDraw = cellSize - 6 * dpr;
+    const baseScale = Number.isFinite(clip.renderScale) ? clip.renderScale : 1;
+    const catalogScale = getEnemyScale(key);
+    const maxScale = Math.min(
+      maxDraw / clip.frameWidth,
+      maxDraw / clip.frameHeight,
+    );
+    const finalScale = Math.min(baseScale * catalogScale, maxScale);
+    const drawW = clip.frameWidth * finalScale;
+    const drawH = clip.frameHeight * finalScale;
+    const dx = (cellSize - drawW) / 2;
+    const dy = (cellSize - drawH) / 2;
+    ctx.drawImage(
+      clip.image,
+      sx,
+      sy,
+      clip.frameWidth,
+      clip.frameHeight,
+      dx,
+      dy,
+      drawW,
+      drawH,
+    );
+  }
+
+  function renderSprites(nowMs) {
+    spriteCells.forEach((entry) => drawSpriteCell(entry, nowMs));
+  }
+
+  function startSpriteLoop() {
+    if (spriteRafId) return;
+    const tick = (nowMs) => {
+      if (overlay.style.display !== "block") {
+        spriteRafId = null;
+        return;
+      }
+      renderSprites(nowMs);
+      spriteRafId = requestAnimationFrame(tick);
+    };
+    spriteRafId = requestAnimationFrame(tick);
+  }
+
+  function stopSpriteLoop() {
+    if (!spriteRafId) return;
+    cancelAnimationFrame(spriteRafId);
+    spriteRafId = null;
   }
 
   function createNumberInput(key, field) {
@@ -365,6 +482,7 @@
     const nameTd = document.createElement("td");
     nameTd.textContent = key;
     tr.appendChild(nameTd);
+    tr.appendChild(createSpriteCell(key));
     tr.appendChild(createNumberInput(key, "health"));
     tr.appendChild(createNumberInput(key, "damage"));
     tr.appendChild(createNumberInput(key, "speed"));
@@ -378,6 +496,7 @@
   }
 
   function renderTable() {
+    spriteCells = new Map();
     els.tbody.innerHTML = "";
     const hidden = new Set(state.cfg.hiddenEnemies || []);
     const keys = Object.keys(state.cfg.catalog || {}).sort();
@@ -385,20 +504,22 @@
       if (!state.showHidden && hidden.has(key)) return;
       renderRow(key);
     });
+    startSpriteLoop();
   }
 
   function show() {
     state.cfg = loadConfig();
     state.showHidden = false;
     if (els.showHidden) els.showHidden.checked = false;
-    renderTable();
     overlay.style.display = "block";
+    renderTable();
     setStatus("");
   }
 
   function hide() {
     overlay.style.display = "none";
     setStatus("");
+    stopSpriteLoop();
   }
 
   function handleSave() {
@@ -445,6 +566,9 @@
   });
 
   window.BattlechurchEnemyEditor = {
+    initialize(options = {}) {
+      bindings.getAssets = options.getAssets || bindings.getAssets;
+    },
     show,
     hide,
     getConfig: () => state.cfg,
