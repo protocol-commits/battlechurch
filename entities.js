@@ -37,6 +37,33 @@
     return false;
   };
 
+  const circleIntersectsRect = (cx, cy, radius, rect) => {
+    const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
+    const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
+    const dx = cx - closestX;
+    const dy = cy - closestY;
+    return dx * dx + dy * dy <= radius * radius;
+  };
+
+  const getWeaponHitboxRect = (enemy) => {
+    const weapon = enemy?.config?.weaponHitbox || null;
+    if (!weapon) return null;
+    const width = Number(weapon.width);
+    const height = Number(weapon.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+    const hitbox = enemy?.config?.hitbox || null;
+    const baseX = enemy.x + (hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0);
+    const baseY = enemy.y + (hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0);
+    const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX : 0;
+    const offsetY = Number.isFinite(weapon.offsetY) ? weapon.offsetY : 0;
+    return {
+      x: baseX + offsetX - width / 2,
+      y: baseY + offsetY - height / 2,
+      width,
+      height,
+    };
+  };
+
   let settings = Object.assign({}, defaults);
   let enemyDefinitions = {};
   let enemyTypesCache = null;
@@ -101,11 +128,29 @@
       if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return fallback;
       return Math.max(hitbox.width, hitbox.height) * 0.5;
     };
+    const buildScaledWeaponHitbox = (def, scale) => {
+      const raw = def && def.weaponHitbox ? def.weaponHitbox : null;
+      if (!raw) return null;
+      const width = Number(raw.width);
+      const height = Number(raw.height);
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        return null;
+      }
+      const offsetX = Number.isFinite(raw.offsetX) ? raw.offsetX : 0;
+      const offsetY = Number.isFinite(raw.offsetY) ? raw.offsetY : 0;
+      return {
+        width: width * scale,
+        height: height * scale,
+        offsetX: offsetX * scale,
+        offsetY: offsetY * scale,
+      };
+    };
     return Object.fromEntries(
       Object.entries(defs).map(([key, def]) => {
         const scale = (def.scale || 1) * worldScale;
         const baseRadius = def.baseRadius || 14;
         const hitbox = buildScaledHitbox(def, scale);
+        const weaponHitbox = buildScaledWeaponHitbox(def, scale);
         const baseHitRadius = baseRadius * scale;
         const hitRadius = getHitboxRadius(hitbox, baseHitRadius);
         const attackRange = def.attackRange ?? hitRadius + (def.attackBonus ?? 30);
@@ -153,6 +198,7 @@
             tintColor,
             tintIntensity,
             hitbox,
+            weaponHitbox: weaponHitbox || undefined,
             swarmSpacing:
               typeof def.swarmSpacing === "number" ? def.swarmSpacing : undefined,
           },
@@ -1654,7 +1700,13 @@ class Player {
               this.desiredRange ||
               this.radius;
             const attackThreshold = baseAttackRange + targetRadius * 0.2;
-            if (distance <= attackThreshold) {
+            const weaponRect = getWeaponHitboxRect(this);
+            const targetX = targetIsPlayer ? player.x : target.x;
+            const targetY = targetIsPlayer ? player.y : target.y;
+            const hitConfirmed = weaponRect
+              ? circleIntersectsRect(targetX, targetY, targetRadius, weaponRect)
+              : distance <= attackThreshold;
+            if (hitConfirmed) {
               const hitDamage =
                 Number.isFinite(this.config?.attackHitDamage) && this.config.attackHitDamage > 0
                   ? this.config.attackHitDamage

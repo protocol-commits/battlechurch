@@ -225,6 +225,22 @@
             <label>Attack Hit Damage</label>
             <input type="number" step="1" min="0" data-attack-hit-damage>
           </div>
+          <div class="hitbox-editor__field">
+            <label>Weapon Hitbox Width (source px)</label>
+            <input type="number" step="1" min="1" data-weapon-hitbox-width>
+          </div>
+          <div class="hitbox-editor__field">
+            <label>Weapon Hitbox Height (source px)</label>
+            <input type="number" step="1" min="1" data-weapon-hitbox-height>
+          </div>
+          <div class="hitbox-editor__field">
+            <label>Weapon Offset X (source px)</label>
+            <input type="number" step="1" data-weapon-hitbox-offset-x>
+          </div>
+          <div class="hitbox-editor__field">
+            <label>Weapon Offset Y (source px)</label>
+            <input type="number" step="1" data-weapon-hitbox-offset-y>
+          </div>
           <button type="button" class="secondary" data-action="reset">Reset To Default</button>
           <div class="hitbox-editor__hint">
             Click an enemy in the grid to edit. Values apply live to in-game enemies.
@@ -251,6 +267,10 @@
   const offsetYInput = overlay.querySelector("[data-hitbox-offset-y]");
   const attackHitFrameInput = overlay.querySelector("[data-attack-hit-frame]");
   const attackHitDamageInput = overlay.querySelector("[data-attack-hit-damage]");
+  const weaponHitboxWidthInput = overlay.querySelector("[data-weapon-hitbox-width]");
+  const weaponHitboxHeightInput = overlay.querySelector("[data-weapon-hitbox-height]");
+  const weaponHitboxOffsetXInput = overlay.querySelector("[data-weapon-hitbox-offset-x]");
+  const weaponHitboxOffsetYInput = overlay.querySelector("[data-weapon-hitbox-offset-y]");
   const resetButton = overlay.querySelector("[data-action='reset']");
   const exportButton = overlay.querySelector("[data-action='export']");
   const closeButton = overlay.querySelector("[data-action='close']");
@@ -359,15 +379,20 @@
     offsetXInput.value = Math.round(hitbox.offsetX);
     offsetYInput.value = Math.round(hitbox.offsetY);
     attackHitFrameInput.max = String(frameCount);
-    const nextFrame = Math.min(
-      frameCount,
-      Math.max(1, Number(attackHitFrameInput.value) || def.attackHitFrame || 1),
-    );
-    attackHitFrameInput.value = String(nextFrame);
+    attackHitFrameInput.min = "1";
     attackHitFrameInput.value =
       Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0 ? def.attackHitFrame : "";
     attackHitDamageInput.value =
       Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0 ? def.attackHitDamage : "";
+    const weaponHitbox = def.weaponHitbox || {};
+    weaponHitboxWidthInput.value =
+      Number.isFinite(weaponHitbox.width) && weaponHitbox.width > 0 ? weaponHitbox.width : "";
+    weaponHitboxHeightInput.value =
+      Number.isFinite(weaponHitbox.height) && weaponHitbox.height > 0 ? weaponHitbox.height : "";
+    weaponHitboxOffsetXInput.value =
+      Number.isFinite(weaponHitbox.offsetX) ? weaponHitbox.offsetX : "";
+    weaponHitboxOffsetYInput.value =
+      Number.isFinite(weaponHitbox.offsetY) ? weaponHitbox.offsetY : "";
     setStatus("");
   }
 
@@ -380,8 +405,12 @@
     const height = Number(heightInput.value);
     const offsetX = Number(offsetXInput.value);
     const offsetY = Number(offsetYInput.value);
-    const attackHitFrame = Number(attackHitFrameInput.value);
-    const attackHitDamage = Number(attackHitDamageInput.value);
+    const attackHitFrameValue = attackHitFrameInput.value;
+    const attackHitDamageValue = attackHitDamageInput.value;
+    const weaponWidthValue = weaponHitboxWidthInput.value;
+    const weaponHeightValue = weaponHitboxHeightInput.value;
+    const weaponOffsetXValue = weaponHitboxOffsetXInput.value;
+    const weaponOffsetYValue = weaponHitboxOffsetYInput.value;
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
     def.hitbox = {
       width,
@@ -389,15 +418,40 @@
       offsetX: Number.isFinite(offsetX) ? offsetX : 0,
       offsetY: Number.isFinite(offsetY) ? offsetY : 0,
     };
-    if (Number.isFinite(attackHitFrame) && attackHitFrame > 0) {
-      def.attackHitFrame = Math.round(attackHitFrame);
-    } else {
+    if (attackHitFrameValue === "") {
       delete def.attackHitFrame;
-    }
-    if (Number.isFinite(attackHitDamage) && attackHitDamage >= 0) {
-      def.attackHitDamage = Math.round(attackHitDamage);
     } else {
+      const attackHitFrame = Number(attackHitFrameValue);
+      if (Number.isFinite(attackHitFrame) && attackHitFrame > 0) {
+        def.attackHitFrame = Math.round(attackHitFrame);
+      }
+    }
+    if (attackHitDamageValue === "") {
       delete def.attackHitDamage;
+    } else {
+      const attackHitDamage = Number(attackHitDamageValue);
+      if (Number.isFinite(attackHitDamage) && attackHitDamage >= 0) {
+        def.attackHitDamage = Math.round(attackHitDamage);
+      }
+    }
+    const weaponWidth = Number(weaponWidthValue);
+    const weaponHeight = Number(weaponHeightValue);
+    const weaponOffsetX = Number(weaponOffsetXValue);
+    const weaponOffsetY = Number(weaponOffsetYValue);
+    if (
+      Number.isFinite(weaponWidth) &&
+      Number.isFinite(weaponHeight) &&
+      weaponWidth > 0 &&
+      weaponHeight > 0
+    ) {
+      def.weaponHitbox = {
+        width: weaponWidth,
+        height: weaponHeight,
+        offsetX: Number.isFinite(weaponOffsetX) ? weaponOffsetX : 0,
+        offsetY: Number.isFinite(weaponOffsetY) ? weaponOffsetY : 0,
+      };
+    } else {
+      delete def.weaponHitbox;
     }
     if (window.BattlechurchEnemyDefinitions && window.BattlechurchEnemyDefinitions[key]) {
       window.BattlechurchEnemyDefinitions[key].hitbox = deepClone(def.hitbox);
@@ -410,6 +464,11 @@
         window.BattlechurchEnemyDefinitions[key].attackHitDamage = def.attackHitDamage;
       } else {
         delete window.BattlechurchEnemyDefinitions[key].attackHitDamage;
+      }
+      if ("weaponHitbox" in def) {
+        window.BattlechurchEnemyDefinitions[key].weaponHitbox = deepClone(def.weaponHitbox);
+      } else {
+        delete window.BattlechurchEnemyDefinitions[key].weaponHitbox;
       }
     }
     if (typeof bindings.onHitboxChange === "function") {
@@ -502,6 +561,29 @@
     ctx.restore();
   }
 
+  function drawWeaponHitbox(ctx, centerX, centerY, def, scale) {
+    const weapon = def?.weaponHitbox || null;
+    if (!weapon) return;
+    const width = Number(weapon.width);
+    const height = Number(weapon.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
+    const hitbox = resolveHitbox(def);
+    const baseX = centerX + hitbox.offsetX * scale;
+    const baseY = centerY + hitbox.offsetY * scale;
+    const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX * scale : 0;
+    const offsetY = Number.isFinite(weapon.offsetY) ? weapon.offsetY * scale : 0;
+    const drawW = width * scale;
+    const drawH = height * scale;
+    const x = baseX + offsetX - drawW / 2;
+    const y = baseY + offsetY - drawH / 2;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 120, 120, 0.95)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.strokeRect(x, y, drawW, drawH);
+    ctx.restore();
+  }
+
   function drawLayout() {
     updateCanvasSize();
     if (state.layoutDirty) buildLayout();
@@ -578,6 +660,7 @@
 
       if (isSelected) {
         drawHitbox(ctx, centerX, spriteY, def, entry.scale);
+        drawWeaponHitbox(ctx, centerX, spriteY, def, entry.scale);
       }
     });
     ctx.restore();
@@ -644,6 +727,10 @@
   offsetYInput.addEventListener("input", applyInputsToEnemy);
   attackHitFrameInput.addEventListener("input", applyInputsToEnemy);
   attackHitDamageInput.addEventListener("input", applyInputsToEnemy);
+  weaponHitboxWidthInput.addEventListener("input", applyInputsToEnemy);
+  weaponHitboxHeightInput.addEventListener("input", applyInputsToEnemy);
+  weaponHitboxOffsetXInput.addEventListener("input", applyInputsToEnemy);
+  weaponHitboxOffsetYInput.addEventListener("input", applyInputsToEnemy);
   resetButton.addEventListener("click", resetToDefault);
   exportButton.addEventListener("click", exportCatalog);
   closeButton.addEventListener("click", () => setActive(false));

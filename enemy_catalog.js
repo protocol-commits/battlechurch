@@ -121,7 +121,19 @@
     ],
     "damageClass": "armored",
     "attackHitFrame": 5,
-    "attackHitDamage": 26
+    "attackHitDamage": 26,
+    "hitbox": {
+      "width": 24,
+      "height": 24,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "weaponHitbox": {
+      "width": 24,
+      "height": 24,
+      "offsetX": 20,
+      "offsetY": 0
+    }
   },
   "miniImp": {
     "displayName": "Imp",
@@ -549,7 +561,20 @@
       "elite",
       "armored"
     ],
-    "damageClass": "armored"
+    "damageClass": "armored",
+    "hitbox": {
+      "width": 20,
+      "height": 24,
+      "offsetX": 0,
+      "offsetY": -5
+    },
+    "attackHitFrame": 5,
+    "weaponHitbox": {
+      "width": 24,
+      "height": 24,
+      "offsetX": 22,
+      "offsetY": 0
+    }
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
