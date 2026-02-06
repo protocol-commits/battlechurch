@@ -12711,15 +12711,6 @@ function updateTormentorFlames(enemy, dt) {
 }
 
 function updateEnemiesAndEntities(dt) {
-  if (!levelManager?.isActive()) {
-    spawnTimer -= dt;
-    if (spawnTimer <= 0) {
-      const difficulty = Math.min(1.4, 1 + score / 2200);
-      spawnEnemy();
-      spawnTimer = 4.0 / difficulty;
-    }
-  }
-
   enemies.forEach((enemy) => {
     enemy.update(dt);
     if (enemy.type === "miniDemonTormentor") {
