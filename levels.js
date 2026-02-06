@@ -1256,9 +1256,7 @@
     function handleLevelCleared() {
       state.graceRushContext = null;
       clearStagePowerUps();
-      const scoreValue =
-        typeof getScore === "function" ? Number(getScore()) || 0 : state.stats.enemiesDefeated;
-      const summarySubtitle = `Score ${scoreValue.toFixed(0)} • Enemies ${state.stats.enemiesDefeated} • NPCs saved ${state.stats.npcsRescued}`;
+      const summarySubtitle = `Enemies ${state.stats.enemiesDefeated} • NPCs saved ${state.stats.npcsRescued}`;
   const localMonthNumberForStatus = state.lastClearedWasBoss
     ? MONTHS_PER_LEVEL
     : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);

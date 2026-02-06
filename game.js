@@ -1651,7 +1651,6 @@ const assetSrcResolutionCache = new Map();
 let paused = false;
 let howToPlayActive = false;
 
-let score = 0;
 let spawnTimer = 0;
 let gameOver = false;
 let lastTime = performance.now();
@@ -3329,7 +3328,6 @@ Levels.initialize({
   miniImpBaseGroupSize: MINI_IMP_BASE_GROUP_SIZE,
   miniImpMaxGroupSize: MINI_IMP_MAX_GROUP_SIZE,
   miniImpMinGroupsPerHorde: MINI_IMP_MIN_GROUPS_PER_HORDE,
-  getScore: () => score,
   isPostBattleFlowBlocked: () =>
     Boolean(
       levelAnnouncements.length ||
@@ -3486,7 +3484,6 @@ function buildEnemyTypesFallback(defs) {
           hitRadius,
           attackCooldown: def.cooldown,
           scale,
-          score: def.score,
           displayName,
           ranged: Boolean(def.ranged),
           projectileType: def.projectileType || null,
@@ -6322,9 +6319,6 @@ function maybeDropGraceFromEnemy(enemy) {
   const framesAvailable = assets?.items?.gracePickup?.frames;
   if (!framesAvailable || !framesAvailable.length) return;
   let chance = GRACE_DROP_BASE_CHANCE;
-  if (enemy.config?.score && enemy.config.score >= 120) {
-    chance += GRACE_DROP_HIGH_VALUE_BONUS;
-  }
   const referenceRadius = enemy.radius || enemy.config?.radius || 24;
   const sizeRatio = Math.max(0, referenceRadius - 24) / 48;
   chance += sizeRatio * GRACE_DROP_SIZE_CHANCE_FACTOR;
@@ -9231,7 +9225,6 @@ class BossEncounter {
     lastEnemyDeathPosition = { x: this.x, y: this.y };
     if (!this.deathNotified) {
       levelManager?.notifyEnemyDefeated();
-      score += 800 + this.level * 400;
       spawnPowerUpDrops(4 + Math.min(3, this.level));
       spawnMagicSplashEffect(this.x, this.y, this.radius * 2.8);
       spawnImpactDustEffect(this.x, this.y, this.radius * 1.2);
@@ -12765,15 +12758,6 @@ function processDeadEnemies() {
       }
     }
 
-    if (!enemy.scoreGranted) {
-      const explicitScore = enemy.config && typeof enemy.config.score === 'number' ? enemy.config.score : null;
-      const typeDef = ENEMY_TYPES && ENEMY_TYPES[enemy.type];
-      const typeScore = typeDef && typeof typeDef.score === 'number' ? typeDef.score : null;
-      const awarded = explicitScore ?? typeScore ?? 0;
-      if (awarded > 0) score += awarded;
-      enemy.scoreGranted = true;
-    }
-
     const killedByPrayer = Boolean(enemy.killedByPrayerBomb);
     if (!killedByPrayer && player && typeof player.addPrayerCharge === "function") {
       const modifier = PRAYER_BOMB_CHARGE_TYPE_MODIFIERS[enemy.type] ?? 1;
@@ -14572,7 +14556,6 @@ function restartGame() {
   cancelStartCountdown();
   needsCountdown = false;
   hpFlashTimer = 0;
-  score = 0;
   bestScoreSaveQueued = false;
   spawnTimer = 3.6;
   gameOver = false;

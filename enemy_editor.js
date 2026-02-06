@@ -234,7 +234,6 @@
                 <th>Hit Radius</th>
                 <th>Atk Range</th>
                 <th>Cooldown</th>
-                <th>Score</th>
                 <th>Swarm Spacing</th>
                 <th>Tags</th>
               </tr>
@@ -373,7 +372,6 @@
     tr.appendChild(createNumberInput(key, "baseRadius"));
     tr.appendChild(createNumberInput(key, "attackRange"));
     tr.appendChild(createNumberInput(key, "cooldown"));
-    tr.appendChild(createNumberInput(key, "score"));
     tr.appendChild(createSwarmSpacingCell(key));
     tr.appendChild(createTagsCell(key));
     els.tbody.appendChild(tr);
