@@ -353,6 +353,37 @@
       "elite"
     ]
   },
+  "armoredEliteOrc": {
+    "displayName": "Armored Elite Orc",
+    "assetFolder": "armored_elite_orc",
+    "assetBaseName": "Elite Orc",
+    "assetPath": "assets/enemies/armored_elite_orc",
+    "assetFiles": {
+      "idle": "Walk",
+      "attack": "Attack03"
+    },
+    "health": 410,
+    "maxHealth": 410,
+    "damage": 5,
+    "speed": 120,
+    "baseRadius": 16,
+    "scale": 4.5,
+    "attackBonus": 36,
+    "cooldown": 2,
+    "score": 260,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 105,
+    "projectileCooldown": 2,
+    "bossTier": 1,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "elite",
+      "armored"
+    ],
+    "damageClass": "armored"
+  },
   "armoredOrc": {
     "displayName": "Armored Orc",
     "assetFolder": "armored_orc",
@@ -366,7 +397,7 @@
     "damage": 5,
     "speed": 50,
     "baseRadius": 17,
-    "scale": 64,
+    "scale": 4,
     "attackBonus": 36,
     "cooldown": 2,
     "score": 280,
@@ -409,8 +440,13 @@
   },
   "armoredAxeman": {
     "displayName": "Armored Axeman",
-    "assetFolder": "Armored Axeman",
+    "assetFolder": "armored_axeman",
     "assetBaseName": "Armored Axeman",
+    "assetPath": "assets/enemies/armored_axeman",
+    "assetFiles": {
+      "idle": "Walk",
+      "attack": "Attack02"
+    },
     "health": 315,
     "maxHealth": 315,
     "damage": 5,
@@ -429,7 +465,8 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "axe"
-    ]
+    ],
+    "damageClass": "armored"
   },
   "werewolf": {
     "displayName": "Werewolf",

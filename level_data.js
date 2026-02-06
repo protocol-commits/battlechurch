@@ -78,7 +78,6 @@ window.BattlechurchLevelData = {
       "greatswordSkeleton",
       "orc",
       "eliteOrc",
-      "armoredAxeman",
       "skeleton",
       "slime"
     ],
@@ -109,15 +108,15 @@ window.BattlechurchLevelData = {
                   "index": 1,
                   "entries": [
                     {
-                      "enemy": "miniHighDemon",
+                      "enemy": "armoredSkeleton",
                       "count": 1
                     },
                     {
-                      "enemy": "armoredSkeleton",
-                      "count": 2
+                      "enemy": "armoredEliteOrc",
+                      "count": 1
                     },
                     {
-                      "enemy": "armoredOrc",
+                      "enemy": "armoredAxeman",
                       "count": 1
                     }
                   ],
@@ -133,15 +132,15 @@ window.BattlechurchLevelData = {
                   "index": 2,
                   "entries": [
                     {
-                      "enemy": "miniHighDemon",
-                      "count": 1
-                    },
-                    {
                       "enemy": "armoredSkeleton",
                       "count": 1
                     },
                     {
                       "enemy": "armoredOrc",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "armoredAxeman",
                       "count": 1
                     }
                   ],
@@ -157,15 +156,19 @@ window.BattlechurchLevelData = {
                   "index": 3,
                   "entries": [
                     {
-                      "enemy": "miniHighDemon",
-                      "count": 1
-                    },
-                    {
                       "enemy": "armoredSkeleton",
                       "count": 1
                     },
                     {
                       "enemy": "armoredOrc",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "armoredEliteOrc",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "armoredAxeman",
                       "count": 1
                     }
                   ],
@@ -181,7 +184,7 @@ window.BattlechurchLevelData = {
                   "index": 4,
                   "entries": [
                     {
-                      "enemy": "miniDemonLord",
+                      "enemy": "armoredAxeman",
                       "count": 1
                     }
                   ],
@@ -195,12 +198,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 5,
-                  "entries": [
-                    {
-                      "enemy": "miniDemonLord",
-                      "count": 1
-                    }
-                  ],
+                  "entries": [],
                   "weights": {},
                   "delaysWeighted": {},
                   "delaysExplicit": {},
@@ -215,10 +213,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniClawedDemon",
                       "count": 20
-                    },
-                    {
-                      "enemy": "miniHighDemon",
-                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -239,10 +233,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniClawedDemon",
                       "count": 20
-                    },
-                    {
-                      "enemy": "miniHighDemon",
-                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -259,10 +249,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
-                    },
-                    {
-                      "enemy": "miniHighDemon",
-                      "count": 1
                     }
                   ],
                   "mode": "explicit",

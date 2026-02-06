@@ -62,7 +62,10 @@
     });
     cfg.hiddenEnemies = Array.isArray(cfg.hiddenEnemies) ? cfg.hiddenEnemies : [];
     cfg.hiddenEnemies = cfg.hiddenEnemies.filter(
-      (key) => !["armoredOrc", "armoredSkeleton"].includes(key),
+      (key) =>
+        !["armoredOrc", "armoredSkeleton", "armoredAxeman", "armoredEliteOrc"].includes(
+          key,
+        ),
     );
     return cfg;
   }

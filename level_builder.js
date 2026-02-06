@@ -45,7 +45,14 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     // Ensure new enemies show up even if they were hidden in older configs.
     if (Array.isArray(merged.globals.hiddenEnemies)) {
       merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
-        (key) => !["miniImpLevel3", "armoredOrc", "armoredSkeleton"].includes(key),
+        (key) =>
+          ![
+            "miniImpLevel3",
+            "armoredOrc",
+            "armoredSkeleton",
+            "armoredAxeman",
+            "armoredEliteOrc",
+          ].includes(key),
       );
     }
     return merged;
