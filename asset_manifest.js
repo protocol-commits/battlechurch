@@ -4,7 +4,9 @@
     for (const [key, config] of Object.entries(enemyDefinitions || {})) {
       const folder = config.assetFolder || config.folder;
       const baseName = config.assetBaseName || config.baseName || config.displayName || folder;
-      const basePath = `${characterRoot}/${folder}/${baseName}/`;
+      const basePath = config.assetPath
+        ? `${config.assetPath.replace(/\/?$/, "/")}`
+        : `${characterRoot}/${folder}/${baseName}/`;
       const defaults = {
         idle: "Idle",
         walk: "Walk",

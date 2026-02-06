@@ -3104,8 +3104,11 @@ const MINIFOLKS =
   (typeof window !== "undefined" && window.BattlechurchMiniFolks?.list) ||
   [];
 const MINIFOLK_KEYS = new Set(MINIFOLKS.map((entry) => entry.key));
+const EXTRA_ENEMY_KEYS = new Set(["armoredOrc", "armoredSkeleton"]);
 const ENEMY_DEFINITIONS = Object.fromEntries(
-  Object.entries(ENEMY_DEFINITIONS_RAW).filter(([key]) => MINIFOLK_KEYS.has(key)),
+  Object.entries(ENEMY_DEFINITIONS_RAW).filter(
+    ([key]) => MINIFOLK_KEYS.has(key) || EXTRA_ENEMY_KEYS.has(key),
+  ),
 );
 
 const powerupDefinitions =

@@ -43,13 +43,27 @@
     }
     const base = baseCatalog();
     cfg.catalog = cfg.catalog || base;
+    const assetKeys = ["assetFolder", "assetBaseName", "assetPath", "assetFiles"];
     // Merge in any newly added enemies from the base catalog so they appear in the editor.
     Object.keys(base).forEach((key) => {
       if (!cfg.catalog[key]) {
         cfg.catalog[key] = deepClone(base[key]);
+        return;
       }
+      const baseEntry = base[key] || {};
+      const localEntry = cfg.catalog[key] || {};
+      const merged = { ...deepClone(baseEntry), ...deepClone(localEntry) };
+      assetKeys.forEach((assetKey) => {
+        if (baseEntry && baseEntry[assetKey] !== undefined) {
+          merged[assetKey] = deepClone(baseEntry[assetKey]);
+        }
+      });
+      cfg.catalog[key] = merged;
     });
     cfg.hiddenEnemies = Array.isArray(cfg.hiddenEnemies) ? cfg.hiddenEnemies : [];
+    cfg.hiddenEnemies = cfg.hiddenEnemies.filter(
+      (key) => !["armoredOrc", "armoredSkeleton"].includes(key),
+    );
     return cfg;
   }
 

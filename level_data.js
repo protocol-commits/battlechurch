@@ -75,11 +75,9 @@ window.BattlechurchLevelData = {
       "archer",
       "swordsman",
       "skeletonArcher",
-      "armoredSkeleton",
       "greatswordSkeleton",
       "orc",
       "eliteOrc",
-      "armoredOrc",
       "armoredAxeman",
       "skeleton",
       "slime"
@@ -113,6 +111,14 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniHighDemon",
                       "count": 1
+                    },
+                    {
+                      "enemy": "armoredSkeleton",
+                      "count": 2
+                    },
+                    {
+                      "enemy": "armoredOrc",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -129,6 +135,14 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniHighDemon",
                       "count": 1
+                    },
+                    {
+                      "enemy": "armoredSkeleton",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "armoredOrc",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -144,6 +158,14 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "miniHighDemon",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "armoredSkeleton",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "armoredOrc",
                       "count": 1
                     }
                   ],

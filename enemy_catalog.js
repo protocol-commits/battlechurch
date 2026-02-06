@@ -253,14 +253,18 @@
   },
   "armoredSkeleton": {
     "displayName": "Armored Skeleton",
-    "assetFolder": "Armored Skeleton",
-    "assetBaseName": "Armored Skeleton",
-    "health": 780,
+    "assetFolder": "armored_skeleton",
+    "assetBaseName": "Greatsword Skeleton",
+    "assetPath": "assets/enemies/armored_skeleton",
+    "assetFiles": {
+      "idle": "Walk"
+    },
+    "health": 400,
     "maxHealth": 780,
     "damage": 15,
-    "speed": 125,
+    "speed": 50,
     "baseRadius": 15,
-    "scale": 5,
+    "scale": 4,
     "attackBonus": 34,
     "cooldown": 1.9,
     "score": 240,
@@ -272,8 +276,10 @@
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "armored"
-    ]
+      "armored",
+      "closestAny"
+    ],
+    "damageClass": "armored"
   },
   "greatswordSkeleton": {
     "displayName": "Greatsword Skeleton",
@@ -349,14 +355,18 @@
   },
   "armoredOrc": {
     "displayName": "Armored Orc",
-    "assetFolder": "Armored Orc",
+    "assetFolder": "armored_orc",
     "assetBaseName": "Armored Orc",
-    "health": 745,
+    "assetPath": "assets/enemies/armored_orc",
+    "assetFiles": {
+      "idle": "Walk"
+    },
+    "health": 400,
     "maxHealth": 745,
     "damage": 5,
-    "speed": 115,
+    "speed": 50,
     "baseRadius": 17,
-    "scale": 6,
+    "scale": 64,
     "attackBonus": 36,
     "cooldown": 2,
     "score": 280,
@@ -368,8 +378,10 @@
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "armored"
-    ]
+      "armored",
+      "closestAny"
+    ],
+    "damageClass": "armored"
   },
   "orcRider": {
     "displayName": "Orc Rider",
