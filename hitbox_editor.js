@@ -271,7 +271,7 @@
     const assets = bindings.getAssets ? bindings.getAssets() : null;
     const enemyClips = assets?.enemies?.[key] || null;
     if (!enemyClips) return null;
-    return enemyClips.idle || enemyClips.walk || enemyClips.attack || null;
+    return enemyClips.attack || enemyClips.walk || enemyClips.idle || null;
   }
 
   function getEnemyScale(key) {
@@ -281,6 +281,14 @@
     if (type && Number.isFinite(type.catalogScale)) return type.catalogScale;
     const def = getEnemyDef(key);
     return def && Number.isFinite(def.scale) ? def.scale : 1;
+  }
+
+  function getClipFrameCount(clip) {
+    if (!clip || !clip.image || !clip.frameWidth || !clip.frameHeight) return 1;
+    if (Array.isArray(clip.frameMap) && clip.frameMap.length) return clip.frameMap.length;
+    const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
+    const rows = Math.max(1, Math.floor(clip.image.height / clip.frameHeight));
+    return Math.max(1, cols * rows);
   }
 
   function buildLayout() {
@@ -340,6 +348,8 @@
     state.selectedKey = key;
     const def = getEnemyDef(key);
     if (!def) return;
+    const clip = getClipForEnemy(key);
+    const frameCount = getClipFrameCount(clip);
     const hitbox = resolveHitbox(def);
     nameEl.textContent = def.displayName ? `${def.displayName} (${key})` : key;
     scaleEl.textContent = String(def.scale ?? "-");
@@ -348,6 +358,12 @@
     heightInput.value = Math.round(hitbox.height);
     offsetXInput.value = Math.round(hitbox.offsetX);
     offsetYInput.value = Math.round(hitbox.offsetY);
+    attackHitFrameInput.max = String(frameCount);
+    const nextFrame = Math.min(
+      frameCount,
+      Math.max(1, Number(attackHitFrameInput.value) || def.attackHitFrame || 1),
+    );
+    attackHitFrameInput.value = String(nextFrame);
     attackHitFrameInput.value =
       Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0 ? def.attackHitFrame : "";
     attackHitDamageInput.value =
@@ -518,8 +534,22 @@
 
       const clip = getClipForEnemy(entry.key);
       if (clip && clip.image && clip.frameWidth && clip.frameHeight) {
-        const frameIndex =
-          Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap[0] : 0;
+        let frameIndex = 0;
+        if (entry.key === state.selectedKey) {
+          const frameCount = getClipFrameCount(clip);
+          const frameNumber = Math.min(
+            frameCount,
+            Math.max(1, Number(attackHitFrameInput.value) || 1),
+          );
+          const zeroBased = frameNumber - 1;
+          frameIndex =
+            Array.isArray(clip.frameMap) && clip.frameMap.length
+              ? clip.frameMap[Math.min(zeroBased, clip.frameMap.length - 1)]
+              : zeroBased;
+        } else {
+          frameIndex =
+            Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap[0] : 0;
+        }
         const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
         const sx = (frameIndex % cols) * clip.frameWidth;
         const sy = Math.floor(frameIndex / cols) * clip.frameHeight;
