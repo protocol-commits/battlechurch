@@ -3109,6 +3109,7 @@ const EXTRA_ENEMY_KEYS = new Set([
   "armoredSkeleton",
   "armoredAxeman",
   "armoredEliteOrc",
+  "orc",
 ]);
 const ENEMY_DEFINITIONS = Object.fromEntries(
   Object.entries(ENEMY_DEFINITIONS_RAW).filter(

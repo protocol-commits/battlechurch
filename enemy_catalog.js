@@ -307,9 +307,14 @@
   },
   "orc": {
     "displayName": "Orc",
-    "assetFolder": "Orc",
+    "assetFolder": "orc",
     "assetBaseName": "Orc",
-    "health": 220,
+    "assetPath": "assets/enemies/orc",
+    "assetFiles": {
+      "idle": "Walk",
+      "attack": "Attack02"
+    },
+    "health": 10,
     "maxHealth": 220,
     "damage": 5,
     "speed": 125,
@@ -326,7 +331,9 @@
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "orc"
+      "orc",
+      "swarmable",
+      "closestAny"
     ]
   },
   "eliteOrc": {
@@ -352,37 +359,6 @@
     "specialBehavior": [
       "elite"
     ]
-  },
-  "armoredEliteOrc": {
-    "displayName": "Armored Elite Orc",
-    "assetFolder": "armored_elite_orc",
-    "assetBaseName": "Elite Orc",
-    "assetPath": "assets/enemies/armored_elite_orc",
-    "assetFiles": {
-      "idle": "Walk",
-      "attack": "Attack03"
-    },
-    "health": 410,
-    "maxHealth": 410,
-    "damage": 5,
-    "speed": 120,
-    "baseRadius": 16,
-    "scale": 4.5,
-    "attackBonus": 36,
-    "cooldown": 2,
-    "score": 260,
-    "ranged": false,
-    "projectileType": null,
-    "preferEdges": false,
-    "desiredRange": 105,
-    "projectileCooldown": 2,
-    "bossTier": 1,
-    "preferredTarget": "player",
-    "specialBehavior": [
-      "elite",
-      "armored"
-    ],
-    "damageClass": "armored"
   },
   "armoredOrc": {
     "displayName": "Armored Orc",
@@ -736,7 +712,7 @@
       "heavy",
       "closestAny"
     ],
-    "damageClass": "armored"
+    "damageClass": "tank"
   },
   "miniDemonFireThrower": {
     "displayName": "Demon Fire Thrower",
@@ -1163,6 +1139,37 @@
       "offsetX": 0,
       "offsetY": 6
     }
+  },
+  "armoredEliteOrc": {
+    "displayName": "Armored Elite Orc",
+    "assetFolder": "armored_elite_orc",
+    "assetBaseName": "Elite Orc",
+    "assetPath": "assets/enemies/armored_elite_orc",
+    "assetFiles": {
+      "idle": "Walk",
+      "attack": "Attack03"
+    },
+    "health": 410,
+    "maxHealth": 410,
+    "damage": 5,
+    "speed": 120,
+    "baseRadius": 16,
+    "scale": 4.5,
+    "attackBonus": 36,
+    "cooldown": 2,
+    "score": 260,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 105,
+    "projectileCooldown": 2,
+    "bossTier": 1,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "elite",
+      "armored"
+    ],
+    "damageClass": "armored"
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});

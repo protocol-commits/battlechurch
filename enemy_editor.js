@@ -63,7 +63,7 @@
     cfg.hiddenEnemies = Array.isArray(cfg.hiddenEnemies) ? cfg.hiddenEnemies : [];
     cfg.hiddenEnemies = cfg.hiddenEnemies.filter(
       (key) =>
-        !["armoredOrc", "armoredSkeleton", "armoredAxeman", "armoredEliteOrc"].includes(
+        !["armoredOrc", "armoredSkeleton", "armoredAxeman", "armoredEliteOrc", "orc"].includes(
           key,
         ),
     );

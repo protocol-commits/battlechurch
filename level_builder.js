@@ -52,6 +52,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
             "armoredSkeleton",
             "armoredAxeman",
             "armoredEliteOrc",
+            "orc",
           ].includes(key),
       );
     }
@@ -397,7 +398,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       return `<th class="lb-horde-cell">${label}</th>`;
     }).join("");
     header.innerHTML =
-      `<th class="lb-sticky lb-sticky--sprite">Sprite</th><th class="lb-sticky lb-sticky--enemy">Enemy</th>${hordeHeaders}<th>Hide</th>`;
+      `<th class="lb-sticky lb-sticky--sprite">Sprite</th><th class="lb-sticky lb-sticky--enemy">Enemy</th><th>Clear</th>${hordeHeaders}<th>Hide</th>`;
     table.appendChild(header);
     Object.keys(catalog).forEach((key) => {
       if (hiddenSet.has(key) && !state.showHidden) return;
@@ -417,6 +418,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div></td>
         <td class="lb-sticky lb-sticky--enemy">${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
+        <td><button data-clear="${key}" class="secondary" style="padding:4px 8px;">Clear</button></td>
         ${cells.join("")}
         <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
       `;
@@ -447,6 +449,19 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       btn.addEventListener("click", () => {
         const key = btn.getAttribute("data-hide");
         toggleHiddenEnemy(key);
+        renderModeAndWeights();
+      });
+    });
+    els.content.querySelectorAll("button[data-clear]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-clear");
+        if (!key) return;
+        hordes.forEach((horde) => {
+          if (!horde) return;
+          const entries = Array.isArray(horde.entries) ? horde.entries : [];
+          horde.entries = entries.filter((entry) => entry && entry.enemy !== key);
+        });
+        saveToStorage(state.config);
         renderModeAndWeights();
       });
     });
