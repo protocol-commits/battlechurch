@@ -1639,6 +1639,47 @@ class Player {
           }
         }
         this.animator.update(dt);
+        const attackHitFrame =
+          Number.isFinite(this.config?.attackHitFrame) && this.config.attackHitFrame > 0
+            ? this.config.attackHitFrame
+            : null;
+        const attackFrameEnabled = !this.isRanged && attackHitFrame !== null;
+        if (attackFrameEnabled && !this.attackHitApplied) {
+          const currentFrame =
+            typeof this.animator?.frameIndex === "number" ? this.animator.frameIndex : 0;
+          const displayFrame = currentFrame + 1;
+          if (displayFrame >= attackHitFrame) {
+            const baseAttackRange =
+              (this.config && (this.config.attackRange || this.config.desiredRange)) ||
+              this.desiredRange ||
+              this.radius;
+            const attackThreshold = baseAttackRange + targetRadius * 0.2;
+            if (distance <= attackThreshold) {
+              const hitDamage =
+                Number.isFinite(this.config?.attackHitDamage) && this.config.attackHitDamage > 0
+                  ? this.config.attackHitDamage
+                  : this.config.damage;
+              if (targetIsPlayer) {
+                if (player.shieldTimer > 0) {
+                  applyShieldImpact(this);
+                } else {
+                  player.takeDamage(hitDamage);
+                }
+              } else if (typeof target.sufferAttack === "function") {
+                const npcTarget = target;
+                const targetStillValid =
+                  npcTarget &&
+                  !npcTarget.departed &&
+                  (typeof npcTarget.active === "undefined" || npcTarget.active);
+                const hasFaith = !(typeof npcTarget.faith === "number" && npcTarget.faith <= 0);
+                if (targetStillValid && hasFaith) {
+                  npcTarget.sufferAttack(hitDamage);
+                }
+              }
+            }
+            this.attackHitApplied = true;
+          }
+        }
         if (this.animator.isFinished()) {
           const baseAttackRange =
             (this.config && (this.config.attackRange || this.config.desiredRange)) || this.desiredRange || this.radius;
@@ -1660,7 +1701,7 @@ class Player {
               });
             }
           } catch (e) {}
-          if (!this.isRanged && distance <= attackThreshold) {
+          if (!this.isRanged && distance <= attackThreshold && !attackFrameEnabled) {
             if (targetIsPlayer) {
               if (player.shieldTimer > 0) {
                 applyShieldImpact(this);
@@ -1699,6 +1740,7 @@ class Player {
       if (distance <= this.config.attackRange + targetRadius * 0.2 && this.attackTimer <= 0) {
         this.state = "attack";
         this.animator.play("attack", { restart: true });
+        this.attackHitApplied = false;
         return;
       }
 
@@ -1843,6 +1885,7 @@ class Player {
         projectile.hitEntities.add(this);
         this.state = "attack";
         this.animator.play("attack", { restart: true });
+        this.attackHitApplied = false;
         this.attackTimer = this.projectileCooldown;
       }
     }

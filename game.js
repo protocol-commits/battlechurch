@@ -6587,6 +6587,13 @@ function applyEnemyTouchDamage(enemy) {
   if (!enemy || enemy.state === "death") return;
   if (enemy._orbiting) return;
   if ((enemy.touchCooldown || 0) > 0) return;
+  if (
+    enemy.state === "attack" &&
+    Number.isFinite(enemy.config?.attackHitFrame) &&
+    enemy.config.attackHitFrame > 0
+  ) {
+    return;
+  }
 
   if (player && player.state !== "death") {
     const center = getEnemyHitboxCenter(enemy);
@@ -11032,6 +11039,13 @@ function updateCozyNpcs(dt) {
     for (const enemy of enemies) {
       if (!enemy || enemy.dead || enemy.state === "death") continue;
       if (enemy.type === "ghost") continue;
+      if (
+        enemy.state === "attack" &&
+        Number.isFinite(enemy.config?.attackHitFrame) &&
+        enemy.config.attackHitFrame > 0
+      ) {
+        continue;
+      }
       const center = getEnemyHitboxCenter(enemy);
       const dx = center.x - npcEntity.x;
       const dy = center.y - npcEntity.y;

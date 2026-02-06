@@ -246,8 +246,10 @@
       #${OVERLAY_ID} th:nth-child(10), #${OVERLAY_ID} td:nth-child(10) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 80px; }
-      #${OVERLAY_ID} th:nth-child(14), #${OVERLAY_ID} td:nth-child(14) { width: 260px; }
+      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(14), #${OVERLAY_ID} td:nth-child(14) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(15), #${OVERLAY_ID} td:nth-child(15) { width: 80px; }
+      #${OVERLAY_ID} th:nth-child(16), #${OVERLAY_ID} td:nth-child(16) { width: 260px; }
     </style>
     <div class="grid">
       <div class="panel">
@@ -281,6 +283,8 @@
                 <th>Hit Radius</th>
                 <th>Atk Range</th>
                 <th>Cooldown</th>
+                <th>Hit Frame</th>
+                <th>Hit Dmg</th>
                 <th>Swarm Spacing</th>
                 <th>Tags</th>
               </tr>
@@ -541,6 +545,8 @@
     tr.appendChild(createNumberInput(key, "baseRadius"));
     tr.appendChild(createNumberInput(key, "attackRange"));
     tr.appendChild(createNumberInput(key, "cooldown"));
+    tr.appendChild(createNumberInput(key, "attackHitFrame"));
+    tr.appendChild(createNumberInput(key, "attackHitDamage"));
     tr.appendChild(createSwarmSpacingCell(key));
     tr.appendChild(createTagsCell(key));
     els.tbody.appendChild(tr);

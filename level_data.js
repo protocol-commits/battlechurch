@@ -109,10 +109,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "armoredEliteOrc",
                       "count": 1
-                    },
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
                     }
                   ],
                   "weights": {},
@@ -125,12 +121,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 2,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    }
-                  ],
+                  "entries": [],
                   "weights": {},
                   "mode": "explicit",
                   "allKill": false,
@@ -145,10 +136,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "armoredEliteOrc",
                       "count": 1
-                    },
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
                     }
                   ],
                   "weights": {},
@@ -161,12 +148,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 4,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    }
-                  ],
+                  "entries": [],
                   "weights": {},
                   "delaysWeighted": {},
                   "delaysExplicit": {},
@@ -177,12 +159,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 5,
-                  "entries": [
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
-                    }
-                  ],
+                  "entries": [],
                   "weights": {},
                   "delaysWeighted": {},
                   "delaysExplicit": {},
@@ -197,10 +174,6 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniClawedDemon",
                       "count": 20
-                    },
-                    {
-                      "enemy": "miniImp",
-                      "count": 50
                     }
                   ],
                   "weights": {},
