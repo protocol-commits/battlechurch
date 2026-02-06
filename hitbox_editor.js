@@ -217,6 +217,14 @@
             <label>Offset Y (source px)</label>
             <input type="number" step="1" data-hitbox-offset-y>
           </div>
+          <div class="hitbox-editor__field">
+            <label>Attack Hit Frame (1-based)</label>
+            <input type="number" step="1" min="1" data-attack-hit-frame>
+          </div>
+          <div class="hitbox-editor__field">
+            <label>Attack Hit Damage</label>
+            <input type="number" step="1" min="0" data-attack-hit-damage>
+          </div>
           <button type="button" class="secondary" data-action="reset">Reset To Default</button>
           <div class="hitbox-editor__hint">
             Click an enemy in the grid to edit. Values apply live to in-game enemies.
@@ -241,6 +249,8 @@
   const heightInput = overlay.querySelector("[data-hitbox-height]");
   const offsetXInput = overlay.querySelector("[data-hitbox-offset-x]");
   const offsetYInput = overlay.querySelector("[data-hitbox-offset-y]");
+  const attackHitFrameInput = overlay.querySelector("[data-attack-hit-frame]");
+  const attackHitDamageInput = overlay.querySelector("[data-attack-hit-damage]");
   const resetButton = overlay.querySelector("[data-action='reset']");
   const exportButton = overlay.querySelector("[data-action='export']");
   const closeButton = overlay.querySelector("[data-action='close']");
@@ -338,6 +348,10 @@
     heightInput.value = Math.round(hitbox.height);
     offsetXInput.value = Math.round(hitbox.offsetX);
     offsetYInput.value = Math.round(hitbox.offsetY);
+    attackHitFrameInput.value =
+      Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0 ? def.attackHitFrame : "";
+    attackHitDamageInput.value =
+      Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0 ? def.attackHitDamage : "";
     setStatus("");
   }
 
@@ -350,6 +364,8 @@
     const height = Number(heightInput.value);
     const offsetX = Number(offsetXInput.value);
     const offsetY = Number(offsetYInput.value);
+    const attackHitFrame = Number(attackHitFrameInput.value);
+    const attackHitDamage = Number(attackHitDamageInput.value);
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
     def.hitbox = {
       width,
@@ -357,8 +373,28 @@
       offsetX: Number.isFinite(offsetX) ? offsetX : 0,
       offsetY: Number.isFinite(offsetY) ? offsetY : 0,
     };
+    if (Number.isFinite(attackHitFrame) && attackHitFrame > 0) {
+      def.attackHitFrame = Math.round(attackHitFrame);
+    } else {
+      delete def.attackHitFrame;
+    }
+    if (Number.isFinite(attackHitDamage) && attackHitDamage >= 0) {
+      def.attackHitDamage = Math.round(attackHitDamage);
+    } else {
+      delete def.attackHitDamage;
+    }
     if (window.BattlechurchEnemyDefinitions && window.BattlechurchEnemyDefinitions[key]) {
       window.BattlechurchEnemyDefinitions[key].hitbox = deepClone(def.hitbox);
+      if ("attackHitFrame" in def) {
+        window.BattlechurchEnemyDefinitions[key].attackHitFrame = def.attackHitFrame;
+      } else {
+        delete window.BattlechurchEnemyDefinitions[key].attackHitFrame;
+      }
+      if ("attackHitDamage" in def) {
+        window.BattlechurchEnemyDefinitions[key].attackHitDamage = def.attackHitDamage;
+      } else {
+        delete window.BattlechurchEnemyDefinitions[key].attackHitDamage;
+      }
     }
     if (typeof bindings.onHitboxChange === "function") {
       bindings.onHitboxChange(key, deepClone(def.hitbox));
@@ -396,6 +432,8 @@
       "projectileCooldown",
       "score",
       "bossTier",
+      "attackHitFrame",
+      "attackHitDamage",
     ]);
     Object.keys(catalog || {}).forEach((key) => {
       const live = catalog[key];
@@ -574,6 +612,8 @@
   heightInput.addEventListener("input", applyInputsToEnemy);
   offsetXInput.addEventListener("input", applyInputsToEnemy);
   offsetYInput.addEventListener("input", applyInputsToEnemy);
+  attackHitFrameInput.addEventListener("input", applyInputsToEnemy);
+  attackHitDamageInput.addEventListener("input", applyInputsToEnemy);
   resetButton.addEventListener("click", resetToDefault);
   exportButton.addEventListener("click", exportCatalog);
   closeButton.addEventListener("click", () => setActive(false));

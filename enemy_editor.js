@@ -43,6 +43,7 @@
     }
     const base = baseCatalog();
     cfg.catalog = cfg.catalog || base;
+    const allowedKeys = new Set(Object.keys(base));
     const assetKeys = ["assetFolder", "assetBaseName", "assetPath", "assetFiles"];
     // Merge in any newly added enemies from the base catalog so they appear in the editor.
     Object.keys(base).forEach((key) => {
@@ -60,6 +61,12 @@
       });
       cfg.catalog[key] = merged;
     });
+    // Drop any catalog entries that no longer exist in the base catalog.
+    Object.keys(cfg.catalog).forEach((key) => {
+      if (!allowedKeys.has(key)) {
+        delete cfg.catalog[key];
+      }
+    });
     cfg.hiddenEnemies = Array.isArray(cfg.hiddenEnemies) ? cfg.hiddenEnemies : [];
     cfg.hiddenEnemies = cfg.hiddenEnemies.filter(
       (key) =>
@@ -67,6 +74,7 @@
           key,
         ),
     );
+    cfg.hiddenEnemies = cfg.hiddenEnemies.filter((key) => allowedKeys.has(key));
     return cfg;
   }
 
@@ -264,6 +272,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button id="ee-save">Save</button>
               <button id="ee-export" class="secondary">Export file</button>
+              <button id="ee-print-hidden" class="secondary">Print hidden</button>
               <button id="ee-close" class="secondary">Close (Esc)</button>
             </div>
           </div>
@@ -283,8 +292,6 @@
                 <th>Hit Radius</th>
                 <th>Atk Range</th>
                 <th>Cooldown</th>
-                <th>Hit Frame</th>
-                <th>Hit Dmg</th>
                 <th>Swarm Spacing</th>
                 <th>Tags</th>
               </tr>
@@ -302,6 +309,7 @@
     status: overlay.querySelector("#ee-status"),
     save: overlay.querySelector("#ee-save"),
     exportBtn: overlay.querySelector("#ee-export"),
+    printHidden: overlay.querySelector("#ee-print-hidden"),
     close: overlay.querySelector("#ee-close"),
     tbody: overlay.querySelector("#ee-table tbody"),
   };
@@ -545,8 +553,6 @@
     tr.appendChild(createNumberInput(key, "baseRadius"));
     tr.appendChild(createNumberInput(key, "attackRange"));
     tr.appendChild(createNumberInput(key, "cooldown"));
-    tr.appendChild(createNumberInput(key, "attackHitFrame"));
-    tr.appendChild(createNumberInput(key, "attackHitDamage"));
     tr.appendChild(createSwarmSpacingCell(key));
     tr.appendChild(createTagsCell(key));
     els.tbody.appendChild(tr);
@@ -603,6 +609,13 @@
   if (els.save) els.save.addEventListener("click", handleSave);
   if (els.exportBtn) {
     els.exportBtn.addEventListener("click", () => exportFile(state.cfg));
+  }
+  if (els.printHidden) {
+    els.printHidden.addEventListener("click", () => {
+      const hidden = Array.isArray(state.cfg.hiddenEnemies) ? state.cfg.hiddenEnemies : [];
+      console.log("EnemyEditor hiddenEnemies:", hidden);
+      setStatus(`Hidden list printed to console (${hidden.length}).`);
+    });
   }
   if (els.close) els.close.addEventListener("click", hide);
 
