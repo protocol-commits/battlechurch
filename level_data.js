@@ -111,8 +111,8 @@ window.BattlechurchLevelData = {
                   "index": 1,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
+                      "enemy": "miniHighDemon",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -127,8 +127,8 @@ window.BattlechurchLevelData = {
                   "index": 2,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
+                      "enemy": "miniHighDemon",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -143,8 +143,8 @@ window.BattlechurchLevelData = {
                   "index": 3,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
+                      "enemy": "miniHighDemon",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -159,8 +159,8 @@ window.BattlechurchLevelData = {
                   "index": 4,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
+                      "enemy": "miniDemonLord",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -175,8 +175,8 @@ window.BattlechurchLevelData = {
                   "index": 5,
                   "entries": [
                     {
-                      "enemy": "miniImp",
-                      "count": 50
+                      "enemy": "miniDemonLord",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -193,6 +193,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniClawedDemon",
                       "count": 20
+                    },
+                    {
+                      "enemy": "miniHighDemon",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -233,6 +237,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
+                    },
+                    {
+                      "enemy": "miniHighDemon",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -257,6 +265,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniFireImp",
                       "count": 3
+                    },
+                    {
+                      "enemy": "miniDemonLord",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -273,6 +285,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniImp",
                       "count": 50
+                    },
+                    {
+                      "enemy": "miniDemonLord",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",
@@ -297,6 +313,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniClawedDemon",
                       "count": 40
+                    },
+                    {
+                      "enemy": "miniDemonLord",
+                      "count": 1
                     }
                   ],
                   "mode": "explicit",

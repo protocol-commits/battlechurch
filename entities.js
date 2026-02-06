@@ -149,6 +149,7 @@
             bossTier: def.bossTier || 0,
             preferredTarget: def.preferredTarget || "player",
             specialBehavior: def.specialBehavior || [],
+            damageClass: def.damageClass,
             tintColor,
             tintIntensity,
             hitbox,
@@ -1922,10 +1923,26 @@ class Player {
 
     takeDamage(amount, options = {}) {
       if (this.state === "death") return;
-      this.health -= amount;
+      const damageType = options?.damageType || null;
+      const damageClass = (this.config?.damageClass || "normal").toLowerCase();
+      let multiplier = 1;
+      if (damageType) {
+        if (damageClass === "tank") {
+          multiplier =
+            damageType === "projectile" ? 0.9 : damageType === "melee" ? 1.25 : 1.0;
+        } else if (damageClass === "armored") {
+          multiplier =
+            damageType === "projectile" ? 0.7 : damageType === "melee" ? 0.95 : 1.35;
+        } else {
+          multiplier =
+            damageType === "projectile" ? 1.0 : damageType === "melee" ? 1.0 : 1.1;
+        }
+      }
+      const scaledDamage = Math.max(0, Math.round(amount * multiplier));
+      this.health -= scaledDamage;
       const damageText = options?.damageText || null;
       if (typeof showDamage === "function") {
-        showDamage(this, amount, {
+        showDamage(this, scaledDamage, {
           color: damageText?.color || "#ff8181",
           fontSize: damageText?.fontSize || null,
           fontWeight: damageText?.fontWeight || null,

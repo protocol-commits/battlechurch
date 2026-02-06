@@ -201,6 +201,14 @@
         background: rgba(255,255,255,0.06);
         color: #e8f4ff;
       }
+      #${OVERLAY_ID} select {
+        width: 100%;
+        padding: 4px 6px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.06);
+        color: #e8f4ff;
+      }
       #${OVERLAY_ID} .tag-list {
         display: flex;
         flex-wrap: wrap;
@@ -212,16 +220,17 @@
       #${OVERLAY_ID} th:first-child, #${OVERLAY_ID} td:first-child { width: 46px; text-align:center; }
       #${OVERLAY_ID} th:nth-child(2), #${OVERLAY_ID} td:nth-child(2) { width: 120px; }
       #${OVERLAY_ID} th:nth-child(3), #${OVERLAY_ID} td:nth-child(3) { width: 66px; text-align: center; }
-      #${OVERLAY_ID} th:nth-child(4), #${OVERLAY_ID} td:nth-child(4) { width: 60px; }
+      #${OVERLAY_ID} th:nth-child(4), #${OVERLAY_ID} td:nth-child(4) { width: 90px; }
       #${OVERLAY_ID} th:nth-child(5), #${OVERLAY_ID} td:nth-child(5) { width: 60px; }
       #${OVERLAY_ID} th:nth-child(6), #${OVERLAY_ID} td:nth-child(6) { width: 60px; }
       #${OVERLAY_ID} th:nth-child(7), #${OVERLAY_ID} td:nth-child(7) { width: 60px; }
-      #${OVERLAY_ID} th:nth-child(8), #${OVERLAY_ID} td:nth-child(8) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(8), #${OVERLAY_ID} td:nth-child(8) { width: 60px; }
       #${OVERLAY_ID} th:nth-child(9), #${OVERLAY_ID} td:nth-child(9) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(10), #${OVERLAY_ID} td:nth-child(10) { width: 70px; }
       #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 80px; }
-      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 260px; }
+      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 70px; }
+      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 80px; }
+      #${OVERLAY_ID} th:nth-child(14), #${OVERLAY_ID} td:nth-child(14) { width: 260px; }
     </style>
     <div class="grid">
       <div class="panel">
@@ -247,6 +256,7 @@
                 <th>Hide</th>
                 <th>Name</th>
                 <th>Sprite</th>
+                <th>Class</th>
                 <th>HP</th>
                 <th>DMG</th>
                 <th>Speed</th>
@@ -409,6 +419,29 @@
     return td;
   }
 
+  function createDamageClassSelect(key) {
+    const td = document.createElement("td");
+    const enemy = ensureEnemy(key);
+    const select = document.createElement("select");
+    ["normal", "tank", "armored"].forEach((value) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value[0].toUpperCase() + value.slice(1);
+      select.appendChild(option);
+    });
+    select.value = (enemy.damageClass || "normal").toLowerCase();
+    select.addEventListener("change", () => {
+      const next = (select.value || "normal").toLowerCase();
+      if (next === "normal") {
+        delete enemy.damageClass;
+      } else {
+        enemy.damageClass = next;
+      }
+    });
+    td.appendChild(select);
+    return td;
+  }
+
   function createTagsCell(key) {
     const td = document.createElement("td");
     const enemy = ensureEnemy(key);
@@ -483,6 +516,7 @@
     nameTd.textContent = key;
     tr.appendChild(nameTd);
     tr.appendChild(createSpriteCell(key));
+    tr.appendChild(createDamageClassSelect(key));
     tr.appendChild(createNumberInput(key, "health"));
     tr.appendChild(createNumberInput(key, "damage"));
     tr.appendChild(createNumberInput(key, "speed"));

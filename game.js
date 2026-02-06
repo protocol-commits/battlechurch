@@ -3490,6 +3490,7 @@ function buildEnemyTypesFallback(defs) {
           preferEdges: Boolean(def.preferEdges),
           desiredRange: def.desiredRange || attackRange,
           projectileCooldown: def.projectileCooldown || def.cooldown,
+          damageClass: def.damageClass,
           hitbox,
         },
       ];
@@ -8601,6 +8602,7 @@ class Projectile {
     this.onImpactTriggered = false;
     this.onExpireTriggered = false;
     this.friendly = config.friendly ?? true;
+    this.damageType = config.damageType || null;
     this.source = config.source || null;
     this.hitEntities = new Set();
     this.homingTarget = config.homingTarget || null;
@@ -9146,9 +9148,25 @@ class BossEncounter {
 
   takeDamage(amount, options = {}) {
     if (this.invalid || this.removed || this.state === "death") return;
+    const damageType = options?.damageType || null;
+    const damageClass = (this.damageClass || this.config?.damageClass || "normal").toLowerCase();
+    let multiplier = 1;
+    if (damageType) {
+      if (damageClass === "tank") {
+        multiplier =
+          damageType === "projectile" ? 0.9 : damageType === "melee" ? 1.25 : 1.0;
+      } else if (damageClass === "armored") {
+        multiplier =
+          damageType === "projectile" ? 0.7 : damageType === "melee" ? 0.95 : 1.35;
+      } else {
+        multiplier =
+          damageType === "projectile" ? 1.0 : damageType === "melee" ? 1.0 : 1.1;
+      }
+    }
+    const scaledDamage = Math.max(0, Math.round(amount * multiplier));
     const prevHealth = this.health;
-    this.health = Math.max(0, this.health - amount);
-    if (amount > 0 && (this.maxHealth || 0) > 0) {
+    this.health = Math.max(0, this.health - scaledDamage);
+    if (scaledDamage > 0 && (this.maxHealth || 0) > 0) {
       const startRatio = prevHealth / this.maxHealth;
       const endRatio = this.health / this.maxHealth;
       this.hpDamageFlash = {
@@ -12821,7 +12839,9 @@ function processProjectileCollisions(dt) {
 
         const prevHealth = enemy.health;
         const projectileDamage = projectile.getDamage();
-        enemy.takeDamage(projectileDamage);
+        const damageType =
+          projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
+        enemy.takeDamage(projectileDamage, { damageType });
 
         if (
           projectile.type === "arrow" ||
@@ -12855,9 +12875,12 @@ function processProjectileCollisions(dt) {
           } else {
             const hitX = Number.isFinite(projectile.x) ? projectile.x : activeBoss.x;
             const hitY = Number.isFinite(projectile.y) ? projectile.y : activeBoss.y;
+            const damageType =
+              projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
             activeBoss.takeDamage(projectile.getDamage(), {
               hitX,
               hitY,
+              damageType,
               skipImpactEffect: true,
             });
             if (
@@ -13146,7 +13169,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     if (!hit) return;
     meleeAttackState.rushHitEntities.add(enemy);
     const damage = Math.round(RUSH_DAMAGE);
-    enemy.takeDamage(damage);
+    enemy.takeDamage(damage, { damageType: "charged" });
     if (!enemy.dead && enemy.state !== "death") {
       const pushAngle = Math.atan2(relY, relX);
       enemy.vx = Math.cos(pushAngle) * RUSH_PUSHBACK_STRENGTH;
@@ -13173,7 +13196,11 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       if (hit) {
         meleeAttackState.rushHitEntities.add(activeBoss);
         const damage = Math.round(RUSH_DAMAGE);
-        activeBoss.takeDamage(damage, { hitX: activeBoss.x, hitY: activeBoss.y });
+        activeBoss.takeDamage(damage, {
+          hitX: activeBoss.x,
+          hitY: activeBoss.y,
+          damageType: "charged",
+        });
         spawnEnemyHitEffect(activeBoss);
         if (typeof playEnemyHitSfx === "function") {
           playEnemyHitSfx(0.6);
@@ -13251,7 +13278,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
     hitEnemies.push(enemy);
     const damage = Math.round(MELEE_BASE_DAMAGE);
-    enemy.takeDamage(damage);
+    enemy.takeDamage(damage, { damageType: "melee" });
     if (!enemy.dead && enemy.state !== "death") {
       const pushAngle = Math.atan2(dy, dx);
       enemy.vx = Math.cos(pushAngle) * MELEE_PUSHBACK_STRENGTH;
@@ -13268,7 +13295,11 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       const dotProduct = dx * dir.x + dy * dir.y;
       if (!(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius)) {
         const damage = Math.round(MELEE_BASE_DAMAGE);
-        activeBoss.takeDamage(damage, { hitX: activeBoss.x, hitY: activeBoss.y });
+        activeBoss.takeDamage(damage, {
+          hitX: activeBoss.x,
+          hitY: activeBoss.y,
+          damageType: "melee",
+        });
         hitBoss = true;
         spawnEnemyHitEffect(activeBoss);
       }
@@ -13314,7 +13345,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
     if (Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE) return;
-    enemy.takeDamage(swooshDamage);
+    enemy.takeDamage(swooshDamage, { damageType: "melee" });
     if (!enemy.dead && enemy.state !== "death") {
       const pushAngle = Math.atan2(dy, dx);
       enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
@@ -13335,7 +13366,11 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
       while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
       if (!(Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE)) {
-        activeBoss.takeDamage(swooshDamage, { hitX: activeBoss.x, hitY: activeBoss.y });
+        activeBoss.takeDamage(swooshDamage, {
+          hitX: activeBoss.x,
+          hitY: activeBoss.y,
+          damageType: "melee",
+        });
         hitBoss = true;
         spawnEnemyHitEffect(activeBoss);
       }
@@ -13405,6 +13440,7 @@ function executeDivineShot(dir, meleeAttackState, angleRad) {
     damage: DIVINE_SHOT_DAMAGE,
     life: DIVINE_SHOT_LIFE,
     source: player,
+    damageType: "charged",
     autoAimDuration: DIVINE_SHOT_AUTO_AIM_DURATION,
     autoAimStrength: DIVINE_SHOT_AUTO_AIM_STRENGTH,
     autoAimMinDot: DIVINE_SHOT_AUTO_AIM_MIN_DOT,
@@ -13632,7 +13668,7 @@ function updateMeleeAttackSystem(dt) {
         if (!hit) return;
         hitSet.add(enemy);
         const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
-        enemy.takeDamage(spinDamage);
+        enemy.takeDamage(spinDamage, { damageType: "charged" });
         if (!enemy.dead && enemy.state !== "death") {
           const pushAngle = Math.atan2(relY, relX);
           enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
@@ -13659,7 +13695,11 @@ function updateMeleeAttackSystem(dt) {
           if (hit) {
             hitSet.add(activeBoss);
             const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
-            activeBoss.takeDamage(spinDamage, { hitX: activeBoss.x, hitY: activeBoss.y });
+            activeBoss.takeDamage(spinDamage, {
+              hitX: activeBoss.x,
+              hitY: activeBoss.y,
+              damageType: "charged",
+            });
             spawnEnemyHitEffect(activeBoss);
             if (typeof playEnemyHitSfx === "function") {
               playEnemyHitSfx(0.6);
