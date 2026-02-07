@@ -13272,6 +13272,18 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
     }
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (
+      meleeAttackState.comboDamage > 0 &&
+      meleeAttackState.comboActiveUntil &&
+      now <= meleeAttackState.comboActiveUntil &&
+      !meleeAttackState.comboShown
+    ) {
+      showComboTextAt(enemy, meleeAttackState.comboDamage + damage);
+      meleeAttackState.comboShown = true;
+      meleeAttackState.comboActiveUntil = 0;
+      meleeAttackState.comboDamage = 0;
+    }
     spawnEnemyHitEffect(enemy);
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx(0.6);
@@ -13300,6 +13312,18 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
         });
         if (typeof activeBoss.knockbackVx === "number") {
           applyEnemyMeleeKnockback(activeBoss, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
+        }
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (
+          meleeAttackState.comboDamage > 0 &&
+          meleeAttackState.comboActiveUntil &&
+          now <= meleeAttackState.comboActiveUntil &&
+          !meleeAttackState.comboShown
+        ) {
+          showComboTextAt(activeBoss, meleeAttackState.comboDamage + damage);
+          meleeAttackState.comboShown = true;
+          meleeAttackState.comboActiveUntil = 0;
+          meleeAttackState.comboDamage = 0;
         }
         spawnEnemyHitEffect(activeBoss);
         if (typeof playEnemyHitSfx === "function") {
@@ -13371,6 +13395,21 @@ function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
   enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, 0.3);
 }
 
+function showComboTextAt(entity, comboDamage) {
+  if (!entity || !Number.isFinite(comboDamage) || comboDamage <= 0) return;
+  const radius = entity.radius || entity.config?.hitRadius || 24;
+  const text = `Combo: ${Math.round(comboDamage)}`;
+  addFloatingTextAt(entity.x, entity.y - radius, text, "#FFD76A", {
+    speechBubble: false,
+    vy: -30,
+    life: 1.1,
+    fontSize: 42,
+    fontWeight: "800",
+    priority: 6,
+    fadeDelay: 0,
+  });
+}
+
 function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY) {
   meleeAttackState.active = true;
   meleeAttackState.fade = MELEE_DAMAGE_DURATION;
@@ -13390,6 +13429,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   const hitEnemies = [];
   let hitBoss = false;
   let survivorHit = false;
+  let meleeDamageTotal = 0;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     const dx = enemy.x - swingCenterX;
@@ -13402,6 +13442,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     hitEnemies.push(enemy);
     const damage = Math.round(MELEE_BASE_DAMAGE);
     enemy.takeDamage(damage, { damageType: "melee" });
+    meleeDamageTotal += damage;
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
       survivorHit = true;
@@ -13422,6 +13463,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           hitY: activeBoss.y,
           damageType: "melee",
         });
+        meleeDamageTotal += damage;
         hitBoss = true;
         if (typeof activeBoss.knockbackVx === "number") {
           applyEnemyMeleeKnockback(activeBoss, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
@@ -13438,6 +13480,9 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     meleeAttackState.awaitRush = true;
     meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
     meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    meleeAttackState.comboDamage = meleeDamageTotal;
+    meleeAttackState.comboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    meleeAttackState.comboShown = false;
   }
   if (hitEnemies.length > 0 || hitBoss) {
     if (typeof playEnemyHitSfx === "function") {
@@ -13469,6 +13514,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
   const swooshDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
   let hitBoss = false;
   let survivorHit = false;
+  let meleeDamageTotal = 0;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     const dx = enemy.x - player.x;
@@ -13481,6 +13527,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
     if (Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE) return;
     enemy.takeDamage(swooshDamage, { damageType: "melee" });
+    meleeDamageTotal += swooshDamage;
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
       survivorHit = true;
@@ -13505,6 +13552,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           hitY: activeBoss.y,
           damageType: "melee",
         });
+        meleeDamageTotal += swooshDamage;
         hitBoss = true;
         if (typeof activeBoss.knockbackVx === "number") {
           applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
@@ -13519,6 +13567,9 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
   if (survivorHit) {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    meleeAttackState.comboDamage = meleeDamageTotal;
+    meleeAttackState.comboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    meleeAttackState.comboShown = false;
   }
   if (hitBoss && typeof playEnemyHitSfx === "function") {
     playEnemyHitSfx(0.6);
@@ -13746,6 +13797,9 @@ function updateMeleeAttackSystem(dt) {
     projectileBlockTimer: 0,
     rushLockTimer: 0,
     rushDamageEnabled: false,
+    comboDamage: 0,
+    comboActiveUntil: 0,
+    comboShown: false,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
