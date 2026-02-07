@@ -28,7 +28,21 @@
       "armored",
       "closestAny"
     ],
-    "damageClass": "armored"
+    "damageClass": "armored",
+    "hitbox": {
+      "width": 20,
+      "height": 20,
+      "offsetX": 0,
+      "offsetY": -2
+    },
+    "attackHitFrame": 6,
+    "attackHitDamage": 17,
+    "weaponHitbox": {
+      "width": 34,
+      "height": 24,
+      "offsetX": 24,
+      "offsetY": 0
+    }
   },
   "orc": {
     "displayName": "Orc",
@@ -89,7 +103,21 @@
       "armored",
       "closestAny"
     ],
-    "damageClass": "armored"
+    "damageClass": "armored",
+    "hitbox": {
+      "width": 20,
+      "height": 24,
+      "offsetX": 0,
+      "offsetY": 0
+    },
+    "attackHitFrame": 5,
+    "attackHitDamage": 11,
+    "weaponHitbox": {
+      "width": 18,
+      "height": 24,
+      "offsetX": 20,
+      "offsetY": 0
+    }
   },
   "armoredAxeman": {
     "displayName": "Armored Axeman",
@@ -121,7 +149,7 @@
     ],
     "damageClass": "armored",
     "attackHitFrame": 5,
-    "attackHitDamage": 26,
+    "attackHitDamage": 11,
     "hitbox": {
       "width": 24,
       "height": 24,
@@ -161,7 +189,13 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.1
+    "swarmSpacing": 0.1,
+    "hitbox": {
+      "width": 16,
+      "height": 16,
+      "offsetX": 0,
+      "offsetY": 9
+    }
   },
   "miniImpLevel2": {
     "displayName": "Imp Lieutenant",
@@ -574,7 +608,8 @@
       "height": 24,
       "offsetX": 22,
       "offsetY": 0
-    }
+    },
+    "attackHitDamage": 13
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});

@@ -109,6 +109,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "armoredEliteOrc",
                       "count": 1
+                    },
+                    {
+                      "enemy": "armoredSkeleton",
+                      "count": 1
                     }
                   ],
                   "weights": {},
@@ -121,7 +125,12 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 2,
-                  "entries": [],
+                  "entries": [
+                    {
+                      "enemy": "armoredOrc",
+                      "count": 1
+                    }
+                  ],
                   "weights": {},
                   "mode": "explicit",
                   "allKill": false,
@@ -135,6 +144,10 @@ window.BattlechurchLevelData = {
                   "entries": [
                     {
                       "enemy": "armoredEliteOrc",
+                      "count": 1
+                    },
+                    {
+                      "enemy": "armoredAxeman",
                       "count": 1
                     }
                   ],
@@ -159,7 +172,12 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 5,
-                  "entries": [],
+                  "entries": [
+                    {
+                      "enemy": "armoredEliteOrc",
+                      "count": 3
+                    }
+                  ],
                   "weights": {},
                   "delaysWeighted": {},
                   "delaysExplicit": {},
