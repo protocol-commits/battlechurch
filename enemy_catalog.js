@@ -10,7 +10,7 @@
     },
     "health": 400,
     "maxHealth": 780,
-    "damage": 15,
+    "damage": 0,
     "speed": 50,
     "baseRadius": 15,
     "scale": 4,
@@ -85,7 +85,7 @@
     },
     "health": 400,
     "maxHealth": 745,
-    "damage": 5,
+    "damage": 0,
     "speed": 50,
     "baseRadius": 17,
     "scale": 4,
@@ -130,7 +130,7 @@
     },
     "health": 315,
     "maxHealth": 315,
-    "damage": 5,
+    "damage": 0,
     "speed": 115,
     "baseRadius": 18,
     "scale": 4.2,
@@ -313,7 +313,7 @@
     "assetBaseName": "Mini High Demon",
     "health": 400,
     "maxHealth": 450,
-    "damage": 10,
+    "damage": 0,
     "speed": 40,
     "baseRadius": 14,
     "scale": 5.6,
@@ -332,7 +332,21 @@
       "boss",
       "closestAny"
     ],
-    "damageClass": "tank"
+    "damageClass": "tank",
+    "hitbox": {
+      "width": 18,
+      "height": 24,
+      "offsetX": 0,
+      "offsetY": 9
+    },
+    "attackHitFrame": 4,
+    "attackHitDamage": 15,
+    "weaponHitbox": {
+      "width": 15,
+      "height": 24,
+      "offsetX": 15,
+      "offsetY": 0
+    }
   },
   "miniDemonTormentor": {
     "displayName": "Demon Tormentor",
@@ -368,7 +382,7 @@
     "assetBaseName": "Mini Demon Lord",
     "health": 500,
     "maxHealth": 600,
-    "damage": 20,
+    "damage": 0,
     "speed": 35,
     "baseRadius": 16,
     "scale": 6.8,
@@ -388,7 +402,21 @@
       "heavy",
       "closestAny"
     ],
-    "damageClass": "tank"
+    "damageClass": "tank",
+    "hitbox": {
+      "width": 18,
+      "height": 24,
+      "offsetX": -1,
+      "offsetY": 9
+    },
+    "attackHitFrame": 4,
+    "attackHitDamage": 20,
+    "weaponHitbox": {
+      "width": 18,
+      "height": 24,
+      "offsetX": 14,
+      "offsetY": 0
+    }
   },
   "miniDemonFireThrower": {
     "displayName": "Demon Fire Thrower",
