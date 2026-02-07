@@ -13389,6 +13389,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
 
   const hitEnemies = [];
   let hitBoss = false;
+  let survivorHit = false;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     const dx = enemy.x - swingCenterX;
@@ -13403,6 +13404,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     enemy.takeDamage(damage, { damageType: "melee" });
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
+      survivorHit = true;
     }
     spawnEnemyHitEffect(enemy);
   });
@@ -13424,9 +13426,18 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
         if (typeof activeBoss.knockbackVx === "number") {
           applyEnemyMeleeKnockback(activeBoss, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
         }
+        if (!activeBoss.dead && !activeBoss.defeated) {
+          survivorHit = true;
+        }
         spawnEnemyHitEffect(activeBoss);
       }
     }
+  }
+  if (survivorHit) {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    meleeAttackState.awaitRush = true;
+    meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
+    meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   }
   if (hitEnemies.length > 0 || hitBoss) {
     if (typeof playEnemyHitSfx === "function") {
@@ -13457,6 +13468,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
   const swooshEndAngle = swooshAngle + swooshSpread;
   const swooshDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
   let hitBoss = false;
+  let survivorHit = false;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     const dx = enemy.x - player.x;
@@ -13471,6 +13483,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     enemy.takeDamage(swooshDamage, { damageType: "melee" });
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+      survivorHit = true;
     }
     spawnEnemyHitEffect(enemy);
     if (typeof playEnemyHitSfx === "function") {
@@ -13496,9 +13509,16 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
         if (typeof activeBoss.knockbackVx === "number") {
           applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
         }
+        if (!activeBoss.dead && !activeBoss.defeated) {
+          survivorHit = true;
+        }
         spawnEnemyHitEffect(activeBoss);
       }
     }
+  }
+  if (survivorHit) {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   }
   if (hitBoss && typeof playEnemyHitSfx === "function") {
     playEnemyHitSfx(0.6);
@@ -13720,6 +13740,7 @@ function updateMeleeAttackSystem(dt) {
       rushSegment: null,
     awaitRush: false,
     awaitTimer: 0,
+    rushBypassUntil: 0,
     swooshTimer: 0,
     swooshDir: { x: 1, y: 0 },
     projectileBlockTimer: 0,
@@ -13867,7 +13888,9 @@ function updateMeleeAttackSystem(dt) {
     const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && !meleeAttackState.isRushing;
     const rushLockActive = meleeAttackState.rushLockTimer > 0;
     console.log("awaitRush:", meleeAttackState.awaitRush, "spaceJustPressed:", spaceJustPressed);
-    if (meleeAttackState.awaitRush) {
+    const rushBypassActive =
+      meleeAttackState.rushBypassUntil && now <= meleeAttackState.rushBypassUntil;
+    if (meleeAttackState.awaitRush || rushBypassActive) {
       meleeAttackState.awaitTimer -= dt;
       if (spaceJustPressed && !rushLockActive) {
         console.log("RUSH TRIGGERED");
@@ -13876,9 +13899,11 @@ function updateMeleeAttackSystem(dt) {
         }
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
+        meleeAttackState.rushBypassUntil = 0;
       } else if (meleeAttackState.awaitTimer <= 0) {
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
+        meleeAttackState.rushBypassUntil = 0;
       }
     }
 
