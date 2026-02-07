@@ -1804,7 +1804,33 @@ class Player {
         return;
       }
 
-      if (distance <= this.config.attackRange + targetRadius * 0.2 && this.attackTimer <= 0) {
+      const attackRange = this.config.attackRange + targetRadius * 0.2;
+      const weaponHitbox = this.config?.weaponHitbox || null;
+      const facingSign = dx >= 0 ? 1 : -1;
+      const weaponRect =
+        weaponHitbox && Number.isFinite(weaponHitbox.width) && Number.isFinite(weaponHitbox.height)
+          ? {
+              x:
+                this.x +
+                (this.config?.hitbox && Number.isFinite(this.config.hitbox.offsetX)
+                  ? this.config.hitbox.offsetX
+                  : 0) +
+                (Number.isFinite(weaponHitbox.offsetX) ? weaponHitbox.offsetX * facingSign : 0) -
+                weaponHitbox.width / 2,
+              y:
+                this.y +
+                (this.config?.hitbox && Number.isFinite(this.config.hitbox.offsetY)
+                  ? this.config.hitbox.offsetY
+                  : 0) +
+                (Number.isFinite(weaponHitbox.offsetY) ? weaponHitbox.offsetY : 0) -
+                weaponHitbox.height / 2,
+              width: weaponHitbox.width,
+              height: weaponHitbox.height,
+            }
+          : null;
+      const targetInWeaponRange =
+        weaponRect && circleIntersectsRect(target.x, target.y, targetRadius, weaponRect);
+      if ((targetInWeaponRange || distance <= attackRange) && this.attackTimer <= 0) {
         this.state = "attack";
         this.animator.play("attack", { restart: true });
         this.attackHitApplied = false;
