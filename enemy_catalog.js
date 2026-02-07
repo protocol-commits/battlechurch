@@ -73,7 +73,13 @@
       "orc",
       "swarmable",
       "closestAny"
-    ]
+    ],
+    "hitbox": {
+      "width": 14,
+      "height": 14,
+      "offsetX": 0,
+      "offsetY": 0
+    }
   },
   "armoredOrc": {
     "displayName": "Armored Orc",
@@ -191,8 +197,8 @@
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
-      "width": 16,
-      "height": 16,
+      "width": 12,
+      "height": 14,
       "offsetX": 0,
       "offsetY": 9
     }
@@ -226,7 +232,13 @@
     ],
     "tintColor": "#7ec6ff",
     "tintIntensity": 0.75,
-    "swarmSpacing": 0.1
+    "swarmSpacing": 0.1,
+    "hitbox": {
+      "width": 14,
+      "height": 14,
+      "offsetX": 0,
+      "offsetY": 8
+    }
   },
   "miniFireImp": {
     "displayName": "Fire Imp",
@@ -252,7 +264,13 @@
       "mini",
       "projectile",
       "closestAny"
-    ]
+    ],
+    "hitbox": {
+      "width": 12,
+      "height": 14,
+      "offsetX": 0,
+      "offsetY": 8
+    }
   },
   "miniDemoness": {
     "displayName": "Demoness",
@@ -277,7 +295,13 @@
     "specialBehavior": [
       "mini",
       "closestAny"
-    ]
+    ],
+    "hitbox": {
+      "width": 18,
+      "height": 20,
+      "offsetX": -1,
+      "offsetY": 6
+    }
   },
   "miniClawedDemon": {
     "displayName": "Clawed Demon",
@@ -305,7 +329,13 @@
       "swarmable"
     ],
     "swarmSpacing": 1,
-    "damageClass": "tank"
+    "damageClass": "tank",
+    "hitbox": {
+      "width": 20,
+      "height": 20,
+      "offsetX": 0,
+      "offsetY": 7
+    }
   },
   "miniHighDemon": {
     "displayName": "High Demon",
@@ -374,7 +404,13 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 1
+    "swarmSpacing": 1,
+    "hitbox": {
+      "width": 18,
+      "height": 20,
+      "offsetX": -2,
+      "offsetY": 6
+    }
   },
   "miniDemonLord": {
     "displayName": "Demon Lord",
@@ -443,7 +479,13 @@
       "closestAny",
       "ranged"
     ],
-    "swarmSpacing": 1
+    "swarmSpacing": 1,
+    "hitbox": {
+      "width": 16,
+      "height": 16,
+      "offsetX": 0,
+      "offsetY": 8
+    }
   },
   "miniDemonFireKeeper": {
     "displayName": "Demon Fire Keeper",
@@ -469,7 +511,13 @@
       "mini",
       "closestAny"
     ],
-    "swarmSpacing": 0.1
+    "swarmSpacing": 0.1,
+    "hitbox": {
+      "width": 18,
+      "height": 18,
+      "offsetX": 0,
+      "offsetY": 7
+    }
   },
   "miniSuccubus": {
     "displayName": "Succubus",
@@ -495,7 +543,13 @@
       "mini",
       "ranged",
       "closestAny"
-    ]
+    ],
+    "hitbox": {
+      "width": 10,
+      "height": 14,
+      "offsetX": 0,
+      "offsetY": 7
+    }
   },
   "miniImpLevel3": {
     "displayName": "Imp Commander",
@@ -523,7 +577,13 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.1
+    "swarmSpacing": 0.1,
+    "hitbox": {
+      "width": 13,
+      "height": 13,
+      "offsetX": 0,
+      "offsetY": 8
+    }
   },
   "bat": {
     "displayName": "Bat",
@@ -552,10 +612,10 @@
     ],
     "swarmSpacing": 0.05,
     "hitbox": {
-      "width": 16,
+      "width": 22,
       "height": 12,
       "offsetX": 0,
-      "offsetY": 6
+      "offsetY": 0
     }
   },
   "tormentorFlame": {
@@ -588,8 +648,8 @@
     ],
     "swarmSpacing": 0.2,
     "hitbox": {
-      "width": 16,
-      "height": 18,
+      "width": 24,
+      "height": 40,
       "offsetX": 0,
       "offsetY": 6
     }
