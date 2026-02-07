@@ -13270,9 +13270,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     const damage = Math.round(RUSH_DAMAGE);
     enemy.takeDamage(damage, { damageType: "charged" });
     if (!enemy.dead && enemy.state !== "death") {
-      const pushAngle = Math.atan2(relY, relX);
-      enemy.vx = Math.cos(pushAngle) * RUSH_PUSHBACK_STRENGTH;
-      enemy.vy = Math.sin(pushAngle) * RUSH_PUSHBACK_STRENGTH;
+      applyEnemyMeleeKnockback(enemy, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
     }
     spawnEnemyHitEffect(enemy);
     if (typeof playEnemyHitSfx === "function") {
@@ -13300,6 +13298,9 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           hitY: activeBoss.y,
           damageType: "charged",
         });
+        if (typeof activeBoss.knockbackVx === "number") {
+          applyEnemyMeleeKnockback(activeBoss, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
+        }
         spawnEnemyHitEffect(activeBoss);
         if (typeof playEnemyHitSfx === "function") {
           playEnemyHitSfx(0.6);
@@ -13348,6 +13349,28 @@ function updateRushMovement(dt, direction, meleeAttackState) {
   }
 }
 
+function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
+  if (!enemy || enemy.dead || enemy.state === "death") return;
+  const dx = enemy.x - sourceX;
+  const dy = enemy.y - sourceY;
+  const distance = Math.hypot(dx, dy);
+  if (!distance) return;
+  const nx = dx / distance;
+  const ny = dy / distance;
+  const knockStrength = strength * 2.5;
+  const vx = nx * knockStrength;
+  const vy = ny * knockStrength;
+  const nudge = (typeof WORLD_SCALE === "number" ? WORLD_SCALE : 1) * 28;
+  enemy.x += nx * nudge;
+  enemy.y += ny * nudge;
+  enemy.knockbackVx = vx;
+  enemy.knockbackVy = vy;
+  enemy.knockbackTimer = Math.max(enemy.knockbackTimer || 0, 0.3);
+  enemy.scatterVx = vx;
+  enemy.scatterVy = vy;
+  enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, 0.3);
+}
+
 function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY) {
   meleeAttackState.active = true;
   meleeAttackState.fade = MELEE_DAMAGE_DURATION;
@@ -13379,9 +13402,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     const damage = Math.round(MELEE_BASE_DAMAGE);
     enemy.takeDamage(damage, { damageType: "melee" });
     if (!enemy.dead && enemy.state !== "death") {
-      const pushAngle = Math.atan2(dy, dx);
-      enemy.vx = Math.cos(pushAngle) * MELEE_PUSHBACK_STRENGTH;
-      enemy.vy = Math.sin(pushAngle) * MELEE_PUSHBACK_STRENGTH;
+      applyEnemyMeleeKnockback(enemy, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
     }
     spawnEnemyHitEffect(enemy);
   });
@@ -13400,6 +13421,9 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           damageType: "melee",
         });
         hitBoss = true;
+        if (typeof activeBoss.knockbackVx === "number") {
+          applyEnemyMeleeKnockback(activeBoss, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
+        }
         spawnEnemyHitEffect(activeBoss);
       }
     }
@@ -13446,9 +13470,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     if (Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE) return;
     enemy.takeDamage(swooshDamage, { damageType: "melee" });
     if (!enemy.dead && enemy.state !== "death") {
-      const pushAngle = Math.atan2(dy, dx);
-      enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
-      enemy.vy = Math.sin(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
+      applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
     }
     spawnEnemyHitEffect(enemy);
     if (typeof playEnemyHitSfx === "function") {
@@ -13471,6 +13493,9 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           damageType: "melee",
         });
         hitBoss = true;
+        if (typeof activeBoss.knockbackVx === "number") {
+          applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+        }
         spawnEnemyHitEffect(activeBoss);
       }
     }
@@ -13769,9 +13794,7 @@ function updateMeleeAttackSystem(dt) {
         const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
         enemy.takeDamage(spinDamage, { damageType: "charged" });
         if (!enemy.dead && enemy.state !== "death") {
-          const pushAngle = Math.atan2(relY, relX);
-          enemy.vx = Math.cos(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
-          enemy.vy = Math.sin(pushAngle) * MELEE_DAMAGE_KNOCKBACK;
+          applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
         }
         spawnEnemyHitEffect(enemy);
         if (typeof playEnemyHitSfx === "function") {
@@ -13799,6 +13822,9 @@ function updateMeleeAttackSystem(dt) {
               hitY: activeBoss.y,
               damageType: "charged",
             });
+            if (typeof activeBoss.knockbackVx === "number") {
+              applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+            }
             spawnEnemyHitEffect(activeBoss);
             if (typeof playEnemyHitSfx === "function") {
               playEnemyHitSfx(0.6);

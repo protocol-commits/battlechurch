@@ -1590,6 +1590,9 @@ const getResistanceTimerScale = () => {
       this.scatterTimer = 0;
       this.scatterVx = 0;
       this.scatterVy = 0;
+      this.knockbackVx = 0;
+      this.knockbackVy = 0;
+      this.knockbackTimer = 0;
       if (this.type === "tormentorFlame") {
         this.ignoreEntityCollisions = true;
       }
@@ -1670,15 +1673,6 @@ const getResistanceTimerScale = () => {
         }
         return;
       }
-      if (this.state === "hurt") {
-        this.animator.update(dt);
-        if (this.animator.isFinished()) {
-          this.state = "walk";
-          this.animator.play("walk");
-        }
-        return;
-      }
-
       this.shieldHitCooldown = Math.max(0, (this.shieldHitCooldown || 0) - dt);
       this.tauntCooldown = Math.max(0, (this.tauntCooldown || 0) - dt);
 
@@ -1690,6 +1684,15 @@ const getResistanceTimerScale = () => {
         if (typeof clampEntityToBounds === "function") clampEntityToBounds(this);
         this.updateFacing(this.scatterVx, this.scatterVy);
         this.animator.update(dt);
+        return;
+      }
+
+      if (this.state === "hurt") {
+        this.animator.update(dt);
+        if (this.animator.isFinished()) {
+          this.state = "walk";
+          this.animator.play("walk");
+        }
         return;
       }
 
@@ -1882,6 +1885,20 @@ const getResistanceTimerScale = () => {
       this.x += moveDir.x * this.config.speed * dt;
       this.y += moveDir.y * this.config.speed * dt;
       this.updateFacing(moveDir.x, moveDir.y);
+
+      if (this.knockbackTimer > 0) {
+        const step = Math.min(this.knockbackTimer, dt);
+        this.x += this.knockbackVx * step;
+        this.y += this.knockbackVy * step;
+        this.knockbackTimer = Math.max(0, this.knockbackTimer - dt);
+        if (this.knockbackTimer <= 0) {
+          this.knockbackVx = 0;
+          this.knockbackVy = 0;
+        }
+        if (typeof clampEntityToBounds === "function") {
+          clampEntityToBounds(this);
+        }
+      }
       this.animator.update(dt);
     }
 
