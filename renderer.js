@@ -2360,7 +2360,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
   function drawEnemyWeaponHitboxDebugs(ctx, enemies, activeBoss) {
     const show =
-      typeof window !== "undefined" ? window.BattlechurchShowAttackHitboxes !== false : true;
+      typeof window !== "undefined" ? window.BattlechurchShowAttackHitboxes === true : false;
     if (!show) return;
     ctx.save();
     ctx.strokeStyle = "rgba(255, 80, 80, 0.9)";

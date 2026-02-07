@@ -39,7 +39,7 @@
     "attackHitDamage": 17,
     "weaponHitbox": {
       "width": 34,
-      "height": 24,
+      "height": 34,
       "offsetX": 24,
       "offsetY": 3
     }
@@ -665,7 +665,7 @@
     },
     "health": 1000,
     "maxHealth": 410,
-    "damage": 5,
+    "damage": 0,
     "speed": 120,
     "baseRadius": 16,
     "scale": 4.5,
@@ -693,7 +693,7 @@
     "attackHitFrame": 5,
     "weaponHitbox": {
       "width": 24,
-      "height": 24,
+      "height": 30,
       "offsetX": 22,
       "offsetY": 0
     },
