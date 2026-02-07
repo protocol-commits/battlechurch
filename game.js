@@ -1308,6 +1308,8 @@ function isPlayerMovementLocked() {
   const meleeState = window?._meleeAttackState;
   const spinActive = Boolean(meleeState?.spinTimer > 0);
   const swingActive = Boolean(meleeState?.swooshTimer > 0);
+  const rushActive = Boolean(meleeState?.isRushing);
+  if (rushActive) return false;
   return Boolean((visitorSession.active && visitorSession.movementLock) || spinActive || swingActive);
 }
 
@@ -13819,7 +13821,9 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.lastComboTimes = { A: 0, B: 0 };
     }
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-    if (keysJustPressed.has("ArrowLeft")) meleeAttackState.lastComboTimes.A = now;
+    if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ")) {
+      meleeAttackState.lastComboTimes.A = now;
+    }
     if (keysJustPressed.has("ArrowDown")) meleeAttackState.lastComboTimes.B = now;
     const comboWindowMs = MELEE_DOUBLE_TAP_WINDOW * 1000;
     const aRecent = now - meleeAttackState.lastComboTimes.A <= comboWindowMs;
@@ -13871,6 +13875,18 @@ function updateMeleeAttackSystem(dt) {
         if (!enemy.dead && enemy.state !== "death") {
           applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
         }
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        if (
+          meleeAttackState.comboDamage > 0 &&
+          meleeAttackState.comboActiveUntil &&
+          now <= meleeAttackState.comboActiveUntil &&
+          !meleeAttackState.comboShown
+        ) {
+          showComboTextAt(enemy, meleeAttackState.comboDamage + spinDamage);
+          meleeAttackState.comboShown = true;
+          meleeAttackState.comboActiveUntil = 0;
+          meleeAttackState.comboDamage = 0;
+        }
         spawnEnemyHitEffect(enemy);
         if (typeof playEnemyHitSfx === "function") {
           playEnemyHitSfx(0.6);
@@ -13900,6 +13916,18 @@ function updateMeleeAttackSystem(dt) {
             if (typeof activeBoss.knockbackVx === "number") {
               applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
             }
+            const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+            if (
+              meleeAttackState.comboDamage > 0 &&
+              meleeAttackState.comboActiveUntil &&
+              now <= meleeAttackState.comboActiveUntil &&
+              !meleeAttackState.comboShown
+            ) {
+              showComboTextAt(activeBoss, meleeAttackState.comboDamage + spinDamage);
+              meleeAttackState.comboShown = true;
+              meleeAttackState.comboActiveUntil = 0;
+              meleeAttackState.comboDamage = 0;
+            }
             spawnEnemyHitEffect(activeBoss);
             if (typeof playEnemyHitSfx === "function") {
               playEnemyHitSfx(0.6);
@@ -13923,17 +13951,31 @@ function updateMeleeAttackSystem(dt) {
         playerDashState.dashCooldown <= 0 &&
         (comboSpinKeyOrder ||
           (comboSwipe && comboSwipe.from === "A" && comboSwipe.to === "B")));
-    if (comboRush) {
+    let comboTriggered = false;
+    const spinFromAwaitRush =
+      meleeAttackState.awaitRush &&
+      keysJustPressed.has("ArrowDown") &&
+      !meleeAttackState.isRushing &&
+      meleeAttackState.rushLockTimer <= 0 &&
+      playerDashState.dashCooldown <= 0;
+    if (comboSpin || spinFromAwaitRush) {
+      playerDashState.pendingDashTimer = 0;
+      executeSpinAttack(meleeAttackState);
+      meleeAttackState.awaitRush = false;
+      meleeAttackState.awaitTimer = 0;
+      meleeAttackState.rushBypassUntil = 0;
+      keysJustPressed.delete("ArrowDown");
+      comboTriggered = true;
+    }
+    if (comboRush && !comboTriggered) {
       playerDashState.pendingDashTimer = 0;
       executeRushAttack(getDashButtonDirection(), meleeAttackState);
       meleeAttackState.awaitRush = false;
       meleeAttackState.awaitTimer = 0;
+      meleeAttackState.rushBypassUntil = 0;
       keysJustPressed.delete("ArrowLeft");
-    }
-    if (comboSpin) {
-      playerDashState.pendingDashTimer = 0;
-      executeSpinAttack(meleeAttackState);
-      keysJustPressed.delete("ArrowDown");
+      keysJustPressed.delete(" ");
+      comboTriggered = true;
     }
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
