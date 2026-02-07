@@ -54,7 +54,8 @@
     const hitbox = enemy?.config?.hitbox || null;
     const baseX = enemy.x + (hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0);
     const baseY = enemy.y + (hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0);
-    const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX : 0;
+    const facingSign = enemy?.facing === "left" ? -1 : 1;
+    const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX * facingSign : 0;
     const offsetY = Number.isFinite(weapon.offsetY) ? weapon.offsetY : 0;
     return {
       x: baseX + offsetX - width / 2,
@@ -199,6 +200,14 @@
             tintIntensity,
             hitbox,
             weaponHitbox: weaponHitbox || undefined,
+            attackHitFrame:
+              Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0
+                ? def.attackHitFrame
+                : undefined,
+            attackHitDamage:
+              Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0
+                ? def.attackHitDamage
+                : undefined,
             swarmSpacing:
               typeof def.swarmSpacing === "number" ? def.swarmSpacing : undefined,
           },

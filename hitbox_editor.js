@@ -472,7 +472,7 @@
       }
     }
     if (typeof bindings.onHitboxChange === "function") {
-      bindings.onHitboxChange(key, deepClone(def.hitbox));
+      bindings.onHitboxChange(key, deepClone(def.hitbox), deepClone(def.weaponHitbox || null));
     }
     setStatus(`Updated ${key} hitbox.`);
   }

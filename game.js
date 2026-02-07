@@ -3223,24 +3223,62 @@ const PLAYER_CONFIG = ENTITIES_BOOTSTRAP?.PLAYER_CONFIG || BASE_PLAYER_CONFIG;
 const ENEMY_TYPES =
   ENTITIES_BOOTSTRAP?.ENEMY_TYPES || buildEnemyTypesFallback(ENEMY_DEFINITIONS);
 
-function applyHitboxChange(key, sourceHitbox) {
+function applyHitboxChange(key, sourceHitbox, sourceWeaponHitbox) {
   if (!key || !ENEMY_CATALOG || !ENEMY_CATALOG[key]) return;
   const def = ENEMY_CATALOG[key];
   if (sourceHitbox && typeof sourceHitbox === "object") {
     def.hitbox = { ...sourceHitbox };
   }
+  if (sourceWeaponHitbox && typeof sourceWeaponHitbox === "object") {
+    def.weaponHitbox = { ...sourceWeaponHitbox };
+  } else if (sourceWeaponHitbox === null) {
+    delete def.weaponHitbox;
+  }
   const scale = (def.scale || 1) * WORLD_SCALE;
   const scaled = buildScaledHitbox(def, scale);
+  const scaledWeaponHitbox = (() => {
+    const raw = def.weaponHitbox || null;
+    if (!raw) return null;
+    const width = Number(raw.width);
+    const height = Number(raw.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return null;
+    }
+    const offsetX = Number.isFinite(raw.offsetX) ? raw.offsetX : 0;
+    const offsetY = Number.isFinite(raw.offsetY) ? raw.offsetY : 0;
+    return {
+      width: width * scale,
+      height: height * scale,
+      offsetX: offsetX * scale,
+      offsetY: offsetY * scale,
+    };
+  })();
   const scaledRadius = getHitboxRadius(scaled, (def.baseRadius || 14) * scale);
   if (ENEMY_TYPES && ENEMY_TYPES[key]) {
     ENEMY_TYPES[key].hitbox = scaled;
     ENEMY_TYPES[key].hitRadius = scaledRadius;
+    ENEMY_TYPES[key].weaponHitbox = scaledWeaponHitbox || undefined;
+    ENEMY_TYPES[key].attackHitFrame =
+      Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0 ? def.attackHitFrame : undefined;
+    ENEMY_TYPES[key].attackHitDamage =
+      Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0
+        ? def.attackHitDamage
+        : undefined;
   }
   if (Array.isArray(enemies)) {
     enemies.forEach((enemy) => {
       if (enemy && enemy.type === key) {
         enemy.config.hitbox = scaled;
         enemy.config.hitRadius = scaledRadius;
+        enemy.config.weaponHitbox = scaledWeaponHitbox || undefined;
+        enemy.config.attackHitFrame =
+          Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0
+            ? def.attackHitFrame
+            : undefined;
+        enemy.config.attackHitDamage =
+          Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0
+            ? def.attackHitDamage
+            : undefined;
         enemy.radius = scaledRadius;
         enemy.safeTopMargin = Math.max(enemy.radius * 3.5, 100);
       }

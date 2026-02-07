@@ -41,7 +41,7 @@
       "width": 34,
       "height": 24,
       "offsetX": 24,
-      "offsetY": 0
+      "offsetY": 3
     }
   },
   "orc": {

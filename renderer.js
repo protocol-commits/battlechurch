@@ -2338,6 +2338,47 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     // intentionally disabled – dev spawn markers removed per request
   }
 
+  function getEnemyWeaponHitboxRect(enemy) {
+    const weapon = enemy?.config?.weaponHitbox || null;
+    if (!weapon) return null;
+    const width = Number(weapon.width);
+    const height = Number(weapon.height);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+    const hitbox = enemy?.config?.hitbox || null;
+    const baseX = enemy.x + (hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0);
+    const baseY = enemy.y + (hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0);
+    const facingSign = enemy?.facing === "left" ? -1 : 1;
+    const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX * facingSign : 0;
+    const offsetY = Number.isFinite(weapon.offsetY) ? weapon.offsetY : 0;
+    return {
+      x: baseX + offsetX - width / 2,
+      y: baseY + offsetY - height / 2,
+      width,
+      height,
+    };
+  }
+
+  function drawEnemyWeaponHitboxDebugs(ctx, enemies, activeBoss) {
+    const show =
+      typeof window !== "undefined" ? window.BattlechurchShowAttackHitboxes !== false : true;
+    if (!show) return;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 80, 80, 0.9)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    const drawForEnemy = (enemy) => {
+      if (!enemy || enemy.dead || enemy.state !== "attack") return;
+      const rect = getEnemyWeaponHitboxRect(enemy);
+      if (!rect) return;
+      ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+    };
+    if (Array.isArray(enemies)) {
+      enemies.forEach(drawForEnemy);
+    }
+    if (activeBoss) drawForEnemy(activeBoss);
+    ctx.restore();
+  }
+
   // Homebase bounds debug: draws the NPC home area border so it can be tweaked.
   function drawNpcHomeBounds(ctx) {
     if (typeof getNpcHomeBounds !== "function") return;
@@ -4994,6 +5035,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const orderedEnemies = [...enemies].sort((a, b) => orderIndex(a) - orderIndex(b));
       orderedEnemies.forEach((enemy) => enemy.draw());
       if (activeBoss) activeBoss.draw(ctx);
+      drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);
     }
     if (!visitorStageActive && battleNpcs.length) {
       drawBattleNpcs(ctx, battleNpcs, npcFadeAlpha);
