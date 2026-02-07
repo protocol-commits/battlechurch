@@ -45,6 +45,21 @@
     return dx * dx + dy * dy <= radius * radius;
   };
 
+  const applyWeaponKnockback = (target, sourceX, sourceY) => {
+    if (!target || typeof target.x !== "number" || typeof target.y !== "number") return;
+    const dx = target.x - sourceX;
+    const dy = target.y - sourceY;
+    const distance = Math.hypot(dx, dy);
+    if (!distance) return;
+    const normX = dx / distance;
+    const normY = dy / distance;
+    const scale = settings.WORLD_SCALE || 1;
+    const strength = (target.isPlayer ? 240 : 200) * scale;
+    target.knockbackVx = normX * strength;
+    target.knockbackVy = normY * strength;
+    target.knockbackTimer = Math.max(target.knockbackTimer || 0, 0.12);
+  };
+
   const getWeaponHitboxRect = (enemy) => {
     const weapon = enemy?.config?.weaponHitbox || null;
     if (!weapon) return null;
@@ -548,7 +563,7 @@ const getResistanceTimerScale = () => {
   return Math.max(0.1, 1 - normalized);
 };
 
-class Player {
+  class Player {
   constructor(x, y, clips) {
     this.x = x;
     this.y = y;
@@ -606,6 +621,9 @@ class Player {
     this.projectileGlowTimer = 0;
     this.lockedPosition = null;
     this.safeTopMargin = Math.max(this.radius * 2, 8);
+    this.knockbackVx = 0;
+    this.knockbackVy = 0;
+    this.knockbackTimer = 0;
   }
 
     update(dt) {
@@ -838,6 +856,17 @@ class Player {
     if (this.isAttacking() && this.animator.isFinished()) {
       this.state = moving ? "walk" : "idle";
       this.animator.play(this.state);
+    }
+
+    if (this.knockbackTimer > 0) {
+      const step = Math.min(this.knockbackTimer, dt);
+      this.x += this.knockbackVx * step;
+      this.y += this.knockbackVy * step;
+      this.knockbackTimer = Math.max(0, this.knockbackTimer - dt);
+      if (this.knockbackTimer <= 0) {
+        this.knockbackVx = 0;
+        this.knockbackVy = 0;
+      }
     }
 
     this.animator.update(dt);
@@ -1725,6 +1754,7 @@ class Player {
                   applyShieldImpact(this);
                 } else {
                   player.takeDamage(hitDamage);
+                  applyWeaponKnockback(player, this.x, this.y);
                 }
               } else if (typeof target.sufferAttack === "function") {
                 const npcTarget = target;
@@ -1738,6 +1768,7 @@ class Player {
                     sourceType: this.type,
                     bypassCooldown: true,
                   });
+                  applyWeaponKnockback(npcTarget, this.x, this.y);
                 }
               }
             }
@@ -1771,6 +1802,7 @@ class Player {
                 applyShieldImpact(this);
               } else {
                 player.takeDamage(this.config.damage);
+                applyWeaponKnockback(player, this.x, this.y);
               }
             } else if (typeof target.sufferAttack === "function") {
               const npcTarget = target;
@@ -1786,6 +1818,7 @@ class Player {
                   sourceType: this.type,
                   bypassCooldown: true,
                 });
+                applyWeaponKnockback(npcTarget, this.x, this.y);
               } else {
                 this._attackLock = null;
               }

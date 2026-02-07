@@ -7821,6 +7821,9 @@ class CozyNpc {
     this.damageFlashTimer = 0;
     this.damageCooldown = 0;
     this.projectileGlowTimer = 0;
+    this.knockbackVx = 0;
+    this.knockbackVy = 0;
+    this.knockbackTimer = 0;
   }
 
   needsAid() {
@@ -8208,6 +8211,18 @@ class CozyNpc {
         break;
       default:
         break;
+    }
+
+    if (this.knockbackTimer > 0) {
+      const step = Math.min(this.knockbackTimer, dt);
+      this.x += this.knockbackVx * step;
+      this.y += this.knockbackVy * step;
+      this.knockbackTimer = Math.max(0, this.knockbackTimer - dt);
+      if (this.knockbackTimer <= 0) {
+        this.knockbackVx = 0;
+        this.knockbackVy = 0;
+      }
+      clampEntityToBounds(this);
     }
 
     this.animator.update(dt);
