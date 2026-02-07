@@ -5107,18 +5107,30 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
               enemy.dead ||
               enemy.ignoreEntityCollisions ||
               (typeof enemy.health === "number" && enemy.health <= 0);
-            if (!isDeadLike && (!enemy._playerTouchCooldown || now - enemy._playerTouchCooldown > 1200)) {
-              enemy._playerTouchCooldown = now;
-              if (typeof player.takeDamage === 'function') {
-                const dmg = enemy.config?.damage || enemy.damage || 1;
-                player.takeDamage(dmg);
-              } else if (typeof player.health === 'number') {
-                const dmg = enemy.config?.damage || enemy.damage || 1;
-                player.health = Math.max(0, player.health - dmg);
+          if (!isDeadLike && (!enemy._playerTouchCooldown || now - enemy._playerTouchCooldown > 1200)) {
+            enemy._playerTouchCooldown = now;
+            if (typeof player.takeDamage === 'function') {
+              const rawDamage = Number.isFinite(enemy.config?.damage)
+                ? enemy.config.damage
+                : Number.isFinite(enemy.damage)
+                  ? enemy.damage
+                  : 1;
+              if (rawDamage > 0) {
+                player.takeDamage(rawDamage);
               }
-              // Optional: flash effect or feedback
-              if (typeof player.flashDamage === 'function') player.flashDamage();
+            } else if (typeof player.health === 'number') {
+              const rawDamage = Number.isFinite(enemy.config?.damage)
+                ? enemy.config.damage
+                : Number.isFinite(enemy.damage)
+                  ? enemy.damage
+                  : 1;
+              if (rawDamage > 0) {
+                player.health = Math.max(0, player.health - rawDamage);
+              }
             }
+            // Optional: flash effect or feedback
+            if (typeof player.flashDamage === 'function') player.flashDamage();
+          }
           } else {
             // Reset cooldown if not touching
             enemy._playerTouchCooldown = null;

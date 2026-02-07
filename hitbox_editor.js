@@ -226,6 +226,10 @@
             <input type="number" step="1" min="0" data-attack-hit-damage>
           </div>
           <div class="hitbox-editor__field">
+            <label>Collision Damage</label>
+            <input type="number" step="1" min="0" data-collision-damage>
+          </div>
+          <div class="hitbox-editor__field">
             <label>Weapon Hitbox Width (source px)</label>
             <input type="number" step="1" min="1" data-weapon-hitbox-width>
           </div>
@@ -267,6 +271,7 @@
   const offsetYInput = overlay.querySelector("[data-hitbox-offset-y]");
   const attackHitFrameInput = overlay.querySelector("[data-attack-hit-frame]");
   const attackHitDamageInput = overlay.querySelector("[data-attack-hit-damage]");
+  const collisionDamageInput = overlay.querySelector("[data-collision-damage]");
   const weaponHitboxWidthInput = overlay.querySelector("[data-weapon-hitbox-width]");
   const weaponHitboxHeightInput = overlay.querySelector("[data-weapon-hitbox-height]");
   const weaponHitboxOffsetXInput = overlay.querySelector("[data-weapon-hitbox-offset-x]");
@@ -384,6 +389,8 @@
       Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0 ? def.attackHitFrame : "";
     attackHitDamageInput.value =
       Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0 ? def.attackHitDamage : "";
+    collisionDamageInput.value =
+      Number.isFinite(def.damage) && def.damage >= 0 ? def.damage : "";
     const weaponHitbox = def.weaponHitbox || {};
     weaponHitboxWidthInput.value =
       Number.isFinite(weaponHitbox.width) && weaponHitbox.width > 0 ? weaponHitbox.width : "";
@@ -407,6 +414,7 @@
     const offsetY = Number(offsetYInput.value);
     const attackHitFrameValue = attackHitFrameInput.value;
     const attackHitDamageValue = attackHitDamageInput.value;
+    const collisionDamageValue = collisionDamageInput.value;
     const weaponWidthValue = weaponHitboxWidthInput.value;
     const weaponHeightValue = weaponHitboxHeightInput.value;
     const weaponOffsetXValue = weaponHitboxOffsetXInput.value;
@@ -432,6 +440,14 @@
       const attackHitDamage = Number(attackHitDamageValue);
       if (Number.isFinite(attackHitDamage) && attackHitDamage >= 0) {
         def.attackHitDamage = Math.round(attackHitDamage);
+      }
+    }
+    if (collisionDamageValue === "") {
+      delete def.damage;
+    } else {
+      const collisionDamage = Number(collisionDamageValue);
+      if (Number.isFinite(collisionDamage) && collisionDamage >= 0) {
+        def.damage = Math.round(collisionDamage);
       }
     }
     const weaponWidth = Number(weaponWidthValue);
@@ -464,6 +480,11 @@
         window.BattlechurchEnemyDefinitions[key].attackHitDamage = def.attackHitDamage;
       } else {
         delete window.BattlechurchEnemyDefinitions[key].attackHitDamage;
+      }
+      if ("damage" in def) {
+        window.BattlechurchEnemyDefinitions[key].damage = def.damage;
+      } else {
+        delete window.BattlechurchEnemyDefinitions[key].damage;
       }
       if ("weaponHitbox" in def) {
         window.BattlechurchEnemyDefinitions[key].weaponHitbox = deepClone(def.weaponHitbox);
@@ -727,6 +748,7 @@
   offsetYInput.addEventListener("input", applyInputsToEnemy);
   attackHitFrameInput.addEventListener("input", applyInputsToEnemy);
   attackHitDamageInput.addEventListener("input", applyInputsToEnemy);
+  collisionDamageInput.addEventListener("input", applyInputsToEnemy);
   weaponHitboxWidthInput.addEventListener("input", applyInputsToEnemy);
   weaponHitboxHeightInput.addEventListener("input", applyInputsToEnemy);
   weaponHitboxOffsetXInput.addEventListener("input", applyInputsToEnemy);

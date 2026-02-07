@@ -3264,6 +3264,8 @@ function applyHitboxChange(key, sourceHitbox, sourceWeaponHitbox) {
       Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0
         ? def.attackHitDamage
         : undefined;
+    ENEMY_TYPES[key].damage =
+      Number.isFinite(def.damage) && def.damage >= 0 ? def.damage : ENEMY_TYPES[key].damage;
   }
   if (Array.isArray(enemies)) {
     enemies.forEach((enemy) => {
@@ -3279,6 +3281,9 @@ function applyHitboxChange(key, sourceHitbox, sourceWeaponHitbox) {
           Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0
             ? def.attackHitDamage
             : undefined;
+        if (Number.isFinite(def.damage) && def.damage >= 0) {
+          enemy.config.damage = def.damage;
+        }
         enemy.radius = scaledRadius;
         enemy.safeTopMargin = Math.max(enemy.radius * 3.5, 100);
       }
