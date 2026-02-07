@@ -11071,12 +11071,27 @@ function updateCozyNpcs(dt) {
   maybeSwapNpcPositions();
   function applyEnemyCollisionDamageToNpc(npcEntity) {
     if (!npcEntity || npcEntity.departed || !npcEntity.active) return;
-    if ((npcEntity.damageCooldown || 0) > 0) return;
-    if (npcEntity.faith <= 0) return;
     let damageApplied = false;
+    const now =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
     for (const enemy of enemies) {
       if (!enemy || enemy.dead || enemy.state === "death") continue;
       if (enemy.type === "ghost") continue;
+      const center = getEnemyHitboxCenter(enemy);
+      const dx = center.x - npcEntity.x;
+      const dy = center.y - npcEntity.y;
+      const distance = Math.hypot(dx, dy);
+      const overlapRadius = getEnemyHitboxRadius(enemy) + (npcEntity.radius || 0);
+      if (distance > overlapRadius) continue;
+      enemy._forcedTarget = npcEntity;
+      enemy._forcedTargetUntil = now + 800;
+      if (!enemy.isRanged && enemy.attackTimer <= 0 && enemy.state !== "attack") {
+        enemy.state = "attack";
+        if (enemy.animator) enemy.animator.play("attack", { restart: true });
+        enemy.attackHitApplied = false;
+      }
       if (
         enemy.state === "attack" &&
         Number.isFinite(enemy.config?.attackHitFrame) &&
@@ -11084,12 +11099,8 @@ function updateCozyNpcs(dt) {
       ) {
         continue;
       }
-      const center = getEnemyHitboxCenter(enemy);
-      const dx = center.x - npcEntity.x;
-      const dy = center.y - npcEntity.y;
-      const distance = Math.hypot(dx, dy);
-      const overlapRadius = getEnemyHitboxRadius(enemy) + (npcEntity.radius || 0);
-      if (distance > overlapRadius) continue;
+      if ((npcEntity.damageCooldown || 0) > 0) continue;
+      if (npcEntity.faith <= 0) continue;
       const enemyDamage = enemy.config?.damage ?? enemy.config?.attackDamage ?? 0;
       if (!enemyDamage) continue;
       // Apply the full configured enemy damage to NPCs (no reduction).

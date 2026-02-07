@@ -1734,7 +1734,10 @@ class Player {
                   (typeof npcTarget.active === "undefined" || npcTarget.active);
                 const hasFaith = !(typeof npcTarget.faith === "number" && npcTarget.faith <= 0);
                 if (targetStillValid && hasFaith) {
-                  npcTarget.sufferAttack(hitDamage);
+                  npcTarget.sufferAttack(hitDamage, {
+                    sourceType: this.type,
+                    bypassCooldown: true,
+                  });
                 }
               }
             }
@@ -1779,7 +1782,10 @@ class Player {
                   console.debug &&
                     console.debug("Enemy dealing damage to NPC", { enemy: this.type, damage: this.config.damage });
                 } catch (e) {}
-                target.sufferAttack(this.config.damage);
+                target.sufferAttack(this.config.damage, {
+                  sourceType: this.type,
+                  bypassCooldown: true,
+                });
               } else {
                 this._attackLock = null;
               }
@@ -1827,6 +1833,24 @@ class Player {
       const npcPriority = behaviors.includes("npcPriority");
       const targetClosestAny = behaviors.includes("closestAny") || this.targetClosestAny;
       const preferNpc = this.preferredTarget === "npc";
+      const now =
+        typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
+      if (this._forcedTarget && this._forcedTargetUntil && this._forcedTargetUntil > now) {
+        const forced = this._forcedTarget;
+        const stillValid =
+          forced &&
+          !forced.departed &&
+          (typeof forced.active === "undefined" || forced.active) &&
+          !(typeof forced.faith === "number" && forced.faith <= 0);
+        if (stillValid) {
+          return forced;
+        }
+      } else if (this._forcedTarget) {
+        this._forcedTarget = null;
+        this._forcedTargetUntil = null;
+      }
 
       const considerNpc = (npc) => {
         if (!npc || npc.departed || !npc.active) return;
