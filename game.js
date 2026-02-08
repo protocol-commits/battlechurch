@@ -13478,6 +13478,23 @@ function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
 
 function showComboTextAt(entity, comboDamage, hitCount) {
   if (!entity || !Number.isFinite(comboDamage) || comboDamage <= 0) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const meleeState = window._meleeAttackState;
+  if (
+    meleeState &&
+    meleeState.lastComboTextTarget === entity &&
+    typeof meleeState.lastComboTextAt === "number" &&
+    now - meleeState.lastComboTextAt < 150
+  ) {
+    return;
+  }
+  if (meleeState) {
+    meleeState.lastComboTextTarget = entity;
+    meleeState.lastComboTextAt = now;
+  }
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
   const radius = entity.radius || entity.config?.hitRadius || 24;
   const label = `${hits} Hit Combo`;
@@ -14062,8 +14079,10 @@ function updateMeleeAttackSystem(dt) {
       spinHitEntities: null,
       spinCooldown: 0,
       spinMoveDir: null,
-      spinMoveDistanceRemaining: 0,
-      spinMeleeQueued: false,
+    spinMoveDistanceRemaining: 0,
+    spinMeleeQueued: false,
+    lastComboTextTarget: null,
+    lastComboTextAt: 0,
       rushHitboxTimer: 0,
       rushSegment: null,
     awaitRush: false,
