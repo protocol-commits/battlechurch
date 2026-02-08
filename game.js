@@ -13938,12 +13938,27 @@ function updateMeleeTimers(dt, meleeAttackState) {
 }
 
 function updateChargeState(dt, meleeAttackState) {
-  if (!meleeAttackState.isCharging) return;
+  const chargingA = meleeAttackState.isCharging;
+  const chargingB = meleeAttackState.spinCharging;
+  if (!chargingA && !chargingB) return;
 
-  meleeAttackState.chargeTimer += dt;
-  const chargeComplete = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
-  if (chargeComplete && !meleeAttackState.chargeFlashTriggered) {
-    meleeAttackState.chargeFlashTriggered = true;
+  if (chargingA) {
+    meleeAttackState.chargeTimer += dt;
+  }
+
+  const chargeTimer = chargingA ? meleeAttackState.chargeTimer : meleeAttackState.spinChargeTimer;
+  const holdTime = chargingA ? meleeAttackState.holdTime : meleeAttackState.spinHoldTime;
+  const flashTriggered = chargingA
+    ? meleeAttackState.chargeFlashTriggered
+    : meleeAttackState.spinChargeFlashTriggered;
+  const chargeComplete = chargeTimer >= holdTime;
+
+  if (chargeComplete && !flashTriggered) {
+    if (chargingA) {
+      meleeAttackState.chargeFlashTriggered = true;
+    } else {
+      meleeAttackState.spinChargeFlashTriggered = true;
+    }
     if (typeof playChargeCompleteSfx === "function") {
       playChargeCompleteSfx(0.6);
     }
@@ -13976,8 +13991,8 @@ function updateChargeState(dt, meleeAttackState) {
 
   // Only show Raybolt after melee swing animation completes (0.2s) and before charge complete
   const MELEE_SWING_DURATION = 0.2;
-  if (!chargeComplete && meleeAttackState.chargeTimer >= MELEE_SWING_DURATION) {
-    updateDivineChargeSparkVisual(dt, meleeAttackState.chargeTimer, meleeAttackState.holdTime);
+  if (!chargeComplete && chargeTimer >= MELEE_SWING_DURATION) {
+    updateDivineChargeSparkVisual(dt, chargeTimer, holdTime);
   }
 
   // Update flash position if it exists
@@ -14012,6 +14027,7 @@ function updateMeleeAttackSystem(dt) {
       rushCooldown: 0,
       rushDustAccumulator: 0,
       chargeFlashTriggered: false,
+      spinChargeFlashTriggered: false,
       rushInvulnerable: false,
       spinTimer: 0,
       spinDuration: 0,
@@ -14264,6 +14280,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.spinButtonDown = true;
       meleeAttackState.spinCharging = true;
       meleeAttackState.spinChargeTimer = 0;
+      meleeAttackState.spinChargeFlashTriggered = false;
       playerDashState.pendingDashTimer = 0;
       playerDashState.pendingDashDir = null;
     }
@@ -14280,6 +14297,9 @@ function updateMeleeAttackSystem(dt) {
         if (fullyCharged) {
           executeSpinAttack(meleeAttackState, hasMoveDir ? moveDir : null);
         }
+      }
+      if (!meleeAttackState.isCharging) {
+        clearDivineChargeSparkVisual();
       }
       meleeAttackState.spinChargeTimer = 0;
     }
@@ -14343,7 +14363,7 @@ function updateMeleeAttackSystem(dt) {
       }
     }
     updateChargeState(dt, meleeAttackState);
-    if (!meleeAttackState.isCharging) {
+    if (!meleeAttackState.isCharging && !meleeAttackState.spinCharging) {
       clearDivineChargeSparkVisual();
     }
     const comboNow = typeof performance !== "undefined" ? performance.now() : Date.now();
