@@ -143,10 +143,6 @@ window.BattlechurchLevelData = {
                   "index": 3,
                   "entries": [
                     {
-                      "enemy": "armoredEliteOrc",
-                      "count": 1
-                    },
-                    {
                       "enemy": "armoredAxeman",
                       "count": 1
                     }
@@ -172,12 +168,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 5,
-                  "entries": [
-                    {
-                      "enemy": "armoredEliteOrc",
-                      "count": 3
-                    }
-                  ],
+                  "entries": [],
                   "weights": {},
                   "delaysWeighted": {},
                   "delaysExplicit": {},

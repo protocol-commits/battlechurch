@@ -10,7 +10,7 @@
     },
     "health": 400,
     "maxHealth": 780,
-    "damage": 0,
+    "damage": 15,
     "speed": 50,
     "baseRadius": 15,
     "scale": 4,
@@ -39,7 +39,7 @@
     "attackHitDamage": 17,
     "weaponHitbox": {
       "width": 34,
-      "height": 34,
+      "height": 24,
       "offsetX": 24,
       "offsetY": 3
     }
@@ -91,7 +91,7 @@
     },
     "health": 400,
     "maxHealth": 745,
-    "damage": 0,
+    "damage": 5,
     "speed": 50,
     "baseRadius": 17,
     "scale": 4,
@@ -136,7 +136,7 @@
     },
     "health": 315,
     "maxHealth": 315,
-    "damage": 0,
+    "damage": 5,
     "speed": 115,
     "baseRadius": 18,
     "scale": 4.2,
@@ -197,8 +197,8 @@
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
-      "width": 12,
-      "height": 14,
+      "width": 16,
+      "height": 16,
       "offsetX": 0,
       "offsetY": 9
     }
@@ -343,7 +343,7 @@
     "assetBaseName": "Mini High Demon",
     "health": 400,
     "maxHealth": 450,
-    "damage": 0,
+    "damage": 10,
     "speed": 40,
     "baseRadius": 14,
     "scale": 5.6,
@@ -418,7 +418,7 @@
     "assetBaseName": "Mini Demon Lord",
     "health": 500,
     "maxHealth": 600,
-    "damage": 0,
+    "damage": 20,
     "speed": 35,
     "baseRadius": 16,
     "scale": 6.8,
@@ -612,10 +612,10 @@
     ],
     "swarmSpacing": 0.05,
     "hitbox": {
-      "width": 22,
+      "width": 16,
       "height": 12,
       "offsetX": 0,
-      "offsetY": 0
+      "offsetY": 6
     }
   },
   "tormentorFlame": {
@@ -648,8 +648,8 @@
     ],
     "swarmSpacing": 0.2,
     "hitbox": {
-      "width": 24,
-      "height": 40,
+      "width": 16,
+      "height": 18,
       "offsetX": 0,
       "offsetY": 6
     }
@@ -663,7 +663,7 @@
       "idle": "Walk",
       "attack": "Attack03"
     },
-    "health": 1000,
+    "health": 50000,
     "maxHealth": 410,
     "damage": 0,
     "speed": 120,
@@ -693,7 +693,7 @@
     "attackHitFrame": 5,
     "weaponHitbox": {
       "width": 24,
-      "height": 30,
+      "height": 24,
       "offsetX": 22,
       "offsetY": 0
     },
