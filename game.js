@@ -13553,9 +13553,23 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       meleeAttackState.divineComboDamage = 0;
       meleeAttackState.divineComboTarget = null;
       meleeAttackState.divineComboHits = 0;
+      meleeAttackState.spinComboShown = true;
+      meleeAttackState.spinComboActiveUntil = 0;
+      meleeAttackState.spinComboDamage = 0;
       meleeAttackState.rushComboShown = true;
       meleeAttackState.rushComboActiveUntil = 0;
       meleeAttackState.rushComboDamage = 0;
+    } else if (
+      meleeAttackState.spinComboDamage > 0 &&
+      meleeAttackState.spinComboActiveUntil &&
+      now <= meleeAttackState.spinComboActiveUntil &&
+      !meleeAttackState.spinComboShown &&
+      enemy.state === "hurt"
+    ) {
+      showComboTextAt(enemy, meleeAttackState.spinComboDamage + damage, 2);
+      meleeAttackState.spinComboShown = true;
+      meleeAttackState.spinComboActiveUntil = 0;
+      meleeAttackState.spinComboDamage = 0;
     } else if (
       !meleeAttackState.rushComboShown &&
       meleeAttackState.rushComboDamage > 0 &&
@@ -13604,9 +13618,23 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           meleeAttackState.divineComboDamage = 0;
           meleeAttackState.divineComboTarget = null;
           meleeAttackState.divineComboHits = 0;
+          meleeAttackState.spinComboShown = true;
+          meleeAttackState.spinComboActiveUntil = 0;
+          meleeAttackState.spinComboDamage = 0;
           meleeAttackState.rushComboShown = true;
           meleeAttackState.rushComboActiveUntil = 0;
           meleeAttackState.rushComboDamage = 0;
+        } else if (
+          meleeAttackState.spinComboDamage > 0 &&
+          meleeAttackState.spinComboActiveUntil &&
+          now <= meleeAttackState.spinComboActiveUntil &&
+          !meleeAttackState.spinComboShown &&
+          activeBoss.state === "hurt"
+        ) {
+          showComboTextAt(activeBoss, meleeAttackState.spinComboDamage + damage, 2);
+          meleeAttackState.spinComboShown = true;
+          meleeAttackState.spinComboActiveUntil = 0;
+          meleeAttackState.spinComboDamage = 0;
         } else if (
           !meleeAttackState.rushComboShown &&
           meleeAttackState.rushComboDamage > 0 &&
@@ -13630,15 +13658,15 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       }
     }
   }
-  if (survivorHit) {
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-    meleeAttackState.awaitRush = true;
-    meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
-    meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
-    meleeAttackState.comboDamage = meleeDamageTotal;
-    meleeAttackState.comboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
-    meleeAttackState.comboShown = false;
-  }
+      if (survivorHit) {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        meleeAttackState.awaitRush = true;
+        meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
+        meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+        meleeAttackState.comboDamage = meleeDamageTotal;
+        meleeAttackState.comboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+        meleeAttackState.comboShown = false;
+      }
   if (hitEnemies.length > 0 || hitBoss) {
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx(0.6);
@@ -14035,6 +14063,7 @@ function updateMeleeAttackSystem(dt) {
       spinCooldown: 0,
       spinMoveDir: null,
       spinMoveDistanceRemaining: 0,
+      spinMeleeQueued: false,
       rushHitboxTimer: 0,
       rushSegment: null,
     awaitRush: false,
@@ -14048,6 +14077,9 @@ function updateMeleeAttackSystem(dt) {
     comboDamage: 0,
     comboActiveUntil: 0,
     comboShown: false,
+    spinComboDamage: 0,
+    spinComboActiveUntil: 0,
+    spinComboShown: false,
     rushComboDamage: 0,
     rushComboActiveUntil: 0,
     rushComboShown: false,
@@ -14071,7 +14103,9 @@ function updateMeleeAttackSystem(dt) {
     }
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
     meleeAttackState.spinHoldTime = SPIN_HOLD_CHARGE_TIME;
+    const prevSpinTimer = meleeAttackState.spinTimer || 0;
     updateMeleeTimers(dt, meleeAttackState);
+    const spinJustEnded = prevSpinTimer > 0 && meleeAttackState.spinTimer <= 0;
     if (!meleeAttackState.lastComboTimes) {
       meleeAttackState.lastComboTimes = { A: 0, B: 0 };
     }
@@ -14092,6 +14126,8 @@ function updateMeleeAttackSystem(dt) {
     }
 
     if (meleeAttackState.spinTimer > 0) {
+      let spinDamageTotal = 0;
+      let spinSurvivorHit = false;
       if (
         meleeAttackState.spinMoveDir &&
         meleeAttackState.spinMoveDistanceRemaining > 0 &&
@@ -14150,8 +14186,10 @@ function updateMeleeAttackSystem(dt) {
         hitSet.add(enemy);
         const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
         enemy.takeDamage(spinDamage, { damageType: "charged" });
+        spinDamageTotal += spinDamage;
         if (!enemy.dead && enemy.state !== "death") {
           applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+          spinSurvivorHit = true;
         }
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
         if (
@@ -14210,8 +14248,12 @@ function updateMeleeAttackSystem(dt) {
               hitY: activeBoss.y,
               damageType: "charged",
             });
+            spinDamageTotal += spinDamage;
             if (typeof activeBoss.knockbackVx === "number") {
               applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+            }
+            if (!activeBoss.dead && !activeBoss.defeated) {
+              spinSurvivorHit = true;
             }
             const now = typeof performance !== "undefined" ? performance.now() : Date.now();
             if (
@@ -14251,9 +14293,24 @@ function updateMeleeAttackSystem(dt) {
           }
         }
       }
+      if (spinSurvivorHit) {
+        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+        meleeAttackState.spinComboDamage = spinDamageTotal;
+        meleeAttackState.spinComboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+        meleeAttackState.spinComboShown = false;
+      }
+    }
+    const dir = getMeleeAttackDirection();
+    if (spinJustEnded && meleeAttackState.spinMeleeQueued) {
+      meleeAttackState.spinMeleeQueued = false;
+      if (!meleeAttackState.isCharging && player) {
+        const angleRad = Math.atan2(dir.y, dir.x);
+        const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
+        const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+        executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
+      }
     }
 
-    const dir = getMeleeAttackDirection();
     const comboSwipe = input?.consumeComboSwipe?.();
     const comboRush =
       (!meleeAttackState.isRushing &&
@@ -14330,10 +14387,14 @@ function updateMeleeAttackSystem(dt) {
     }
 
     if (spaceJustPressed && !meleeAttackState.buttonDown && !rushLockActive) {
+      if (meleeAttackState.spinTimer > 0) {
+        meleeAttackState.spinMeleeQueued = true;
+      } else {
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = true;
       meleeAttackState.chargeFlashTriggered = false;
+      }
     }
     if (!spaceHeld && meleeAttackState.buttonDown) {
       meleeAttackState.buttonDown = false;
