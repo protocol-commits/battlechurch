@@ -13483,6 +13483,14 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
       ? performance.now()
       : Date.now();
   const meleeState = window._meleeAttackState;
+  if (
+    meleeState &&
+    !forceImmediate &&
+    meleeState.comboLockoutUntil &&
+    now < meleeState.comboLockoutUntil
+  ) {
+    return;
+  }
   if (meleeState && !forceImmediate && hitCount === 2) {
     const pendingTarget = meleeState.pendingComboTarget;
     const pendingShowAt = meleeState.pendingComboShowAt || 0;
@@ -13530,6 +13538,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
   if (meleeState) {
     meleeState.lastComboTextTarget = entity;
     meleeState.lastComboTextAt = now;
+    meleeState.comboLockoutUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   }
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
   const radius = entity.radius || entity.config?.hitRadius || 24;
@@ -14122,6 +14131,7 @@ function updateMeleeAttackSystem(dt) {
     pendingComboShowAt: 0,
     pendingComboHits: 0,
     pendingComboLastAt: 0,
+    comboLockoutUntil: 0,
     lastComboTextTarget: null,
     lastComboTextAt: 0,
       rushHitboxTimer: 0,
