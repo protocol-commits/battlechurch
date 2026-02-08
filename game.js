@@ -13337,7 +13337,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       now <= meleeAttackState.comboActiveUntil &&
       !meleeAttackState.comboShown
     ) {
-      showComboTextAt(enemy, meleeAttackState.comboDamage + damage, 2);
+      showComboTextAt(enemy, meleeAttackState.comboDamage + damage, 2, damage);
       meleeAttackState.comboShown = true;
       meleeAttackState.comboActiveUntil = 0;
       meleeAttackState.comboDamage = 0;
@@ -13399,7 +13399,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           comboNow <= meleeAttackState.comboActiveUntil &&
           !meleeAttackState.comboShown
         ) {
-          showComboTextAt(activeBoss, meleeAttackState.comboDamage + damage, 2);
+          showComboTextAt(activeBoss, meleeAttackState.comboDamage + damage, 2, damage);
           meleeAttackState.comboShown = true;
           meleeAttackState.comboActiveUntil = 0;
           meleeAttackState.comboDamage = 0;
@@ -13476,13 +13476,42 @@ function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
   enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, 0.3);
 }
 
-function showComboTextAt(entity, comboDamage, hitCount) {
+function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, forceImmediate = false) {
   if (!entity || !Number.isFinite(comboDamage) || comboDamage <= 0) return;
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now();
   const meleeState = window._meleeAttackState;
+  if (meleeState && !forceImmediate && hitCount === 2) {
+    const pendingTarget = meleeState.pendingComboTarget;
+    const pendingShowAt = meleeState.pendingComboShowAt || 0;
+    if (pendingTarget === entity && now <= pendingShowAt) {
+      const addDamage = Number.isFinite(lastHitDamage) ? lastHitDamage : 0;
+      const lastAt = meleeState.pendingComboLastAt || 0;
+      if (now - lastAt < 80) {
+        // Likely duplicate trigger for the same hit pair; don't upgrade hit count.
+        meleeState.pendingComboDamage = Math.max(
+          meleeState.pendingComboDamage || 0,
+          comboDamage,
+        );
+        meleeState.pendingComboLastAt = now;
+        return;
+      }
+      const currentHits = meleeState.pendingComboHits || 2;
+      meleeState.pendingComboDamage = (meleeState.pendingComboDamage || 0) + addDamage;
+      meleeState.pendingComboHits = Math.max(currentHits + 1, 3);
+      meleeState.pendingComboShowAt = now + 80;
+      meleeState.pendingComboLastAt = now;
+      return;
+    }
+    meleeState.pendingComboTarget = entity;
+    meleeState.pendingComboDamage = comboDamage;
+    meleeState.pendingComboShowAt = now + 140;
+    meleeState.pendingComboHits = 2;
+    meleeState.pendingComboLastAt = now;
+    return;
+  }
   if (
     meleeState &&
     meleeState.lastComboTextTarget === entity &&
@@ -13490,6 +13519,13 @@ function showComboTextAt(entity, comboDamage, hitCount) {
     now - meleeState.lastComboTextAt < 150
   ) {
     return;
+  }
+  if (meleeState && hitCount >= 3 && meleeState.pendingComboTarget === entity) {
+    meleeState.pendingComboTarget = null;
+    meleeState.pendingComboDamage = 0;
+    meleeState.pendingComboShowAt = 0;
+    meleeState.pendingComboHits = 0;
+    meleeState.pendingComboLastAt = 0;
   }
   if (meleeState) {
     meleeState.lastComboTextTarget = entity;
@@ -13583,7 +13619,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       !meleeAttackState.spinComboShown &&
       enemy.state === "hurt"
     ) {
-      showComboTextAt(enemy, meleeAttackState.spinComboDamage + damage, 2);
+      showComboTextAt(enemy, meleeAttackState.spinComboDamage + damage, 2, damage);
       meleeAttackState.spinComboShown = true;
       meleeAttackState.spinComboActiveUntil = 0;
       meleeAttackState.spinComboDamage = 0;
@@ -13594,7 +13630,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       now <= meleeAttackState.rushComboActiveUntil &&
       enemy.state === "hurt"
     ) {
-      showComboTextAt(enemy, meleeAttackState.rushComboDamage + damage, 2);
+      showComboTextAt(enemy, meleeAttackState.rushComboDamage + damage, 2, damage);
       meleeAttackState.rushComboShown = true;
       meleeAttackState.rushComboActiveUntil = 0;
       meleeAttackState.rushComboDamage = 0;
@@ -13648,7 +13684,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           !meleeAttackState.spinComboShown &&
           activeBoss.state === "hurt"
         ) {
-          showComboTextAt(activeBoss, meleeAttackState.spinComboDamage + damage, 2);
+          showComboTextAt(activeBoss, meleeAttackState.spinComboDamage + damage, 2, damage);
           meleeAttackState.spinComboShown = true;
           meleeAttackState.spinComboActiveUntil = 0;
           meleeAttackState.spinComboDamage = 0;
@@ -13659,7 +13695,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           now <= meleeAttackState.rushComboActiveUntil &&
           activeBoss.state === "hurt"
         ) {
-          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + damage, 2);
+          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + damage, 2, damage);
           meleeAttackState.rushComboShown = true;
           meleeAttackState.rushComboActiveUntil = 0;
           meleeAttackState.rushComboDamage = 0;
@@ -13757,7 +13793,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       now <= meleeAttackState.rushComboActiveUntil &&
       enemy.state === "hurt"
     ) {
-      showComboTextAt(enemy, meleeAttackState.rushComboDamage + swooshDamage, 2);
+      showComboTextAt(enemy, meleeAttackState.rushComboDamage + swooshDamage, 2, swooshDamage);
       meleeAttackState.rushComboShown = true;
       meleeAttackState.rushComboActiveUntil = 0;
       meleeAttackState.rushComboDamage = 0;
@@ -13812,7 +13848,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           now <= meleeAttackState.rushComboActiveUntil &&
           activeBoss.state === "hurt"
         ) {
-          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + swooshDamage, 2);
+          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + swooshDamage, 2, swooshDamage);
           meleeAttackState.rushComboShown = true;
           meleeAttackState.rushComboActiveUntil = 0;
           meleeAttackState.rushComboDamage = 0;
@@ -14081,6 +14117,11 @@ function updateMeleeAttackSystem(dt) {
       spinMoveDir: null,
     spinMoveDistanceRemaining: 0,
     spinMeleeQueued: false,
+    pendingComboTarget: null,
+    pendingComboDamage: 0,
+    pendingComboShowAt: 0,
+    pendingComboHits: 0,
+    pendingComboLastAt: 0,
     lastComboTextTarget: null,
     lastComboTextAt: 0,
       rushHitboxTimer: 0,
@@ -14236,7 +14277,7 @@ function updateMeleeAttackSystem(dt) {
           now <= meleeAttackState.comboActiveUntil &&
           !meleeAttackState.comboShown
         ) {
-          showComboTextAt(enemy, meleeAttackState.comboDamage + spinDamage, 2);
+          showComboTextAt(enemy, meleeAttackState.comboDamage + spinDamage, 2, spinDamage);
           meleeAttackState.comboShown = true;
           meleeAttackState.comboActiveUntil = 0;
           meleeAttackState.comboDamage = 0;
@@ -14300,7 +14341,7 @@ function updateMeleeAttackSystem(dt) {
               now <= meleeAttackState.comboActiveUntil &&
               !meleeAttackState.comboShown
             ) {
-              showComboTextAt(activeBoss, meleeAttackState.comboDamage + spinDamage, 2);
+              showComboTextAt(activeBoss, meleeAttackState.comboDamage + spinDamage, 2, spinDamage);
               meleeAttackState.comboShown = true;
               meleeAttackState.comboActiveUntil = 0;
               meleeAttackState.comboDamage = 0;
@@ -14450,6 +14491,24 @@ function updateMeleeAttackSystem(dt) {
       clearDivineChargeSparkVisual();
     }
     const comboNow = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (
+      meleeAttackState.pendingComboTarget &&
+      meleeAttackState.pendingComboShowAt &&
+      comboNow >= meleeAttackState.pendingComboShowAt
+    ) {
+      showComboTextAt(
+        meleeAttackState.pendingComboTarget,
+        meleeAttackState.pendingComboDamage,
+        meleeAttackState.pendingComboHits || 2,
+        0,
+        true,
+      );
+      meleeAttackState.pendingComboTarget = null;
+      meleeAttackState.pendingComboDamage = 0;
+      meleeAttackState.pendingComboShowAt = 0;
+      meleeAttackState.pendingComboHits = 0;
+      meleeAttackState.pendingComboLastAt = 0;
+    }
     if (
       meleeAttackState.divineComboDamage > 0 &&
       !meleeAttackState.divineComboShown &&
