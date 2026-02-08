@@ -14301,6 +14301,9 @@ function updateMeleeAttackSystem(dt) {
       }
     }
     const dir = getMeleeAttackDirection();
+    if (spinJustEnded && meleeAttackState.spinComboDamage > 0 && !meleeAttackState.spinComboShown) {
+      meleeAttackState.spinComboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    }
     if (spinJustEnded && meleeAttackState.spinMeleeQueued) {
       meleeAttackState.spinMeleeQueued = false;
       if (!meleeAttackState.isCharging && player) {
