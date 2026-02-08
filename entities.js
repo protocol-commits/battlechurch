@@ -1404,6 +1404,13 @@ const getResistanceTimerScale = () => {
     if (this.speedBoostTimer > 0) multiplier *= 1.4;
     const statSpeed = getPlayerStatMultiplier("speed");
     multiplier *= statSpeed;
+    const spinChargeSlow =
+      window._meleeAttackState?.spinCharging && window._meleeAttackState?.spinButtonDown;
+    if (spinChargeSlow) {
+      const slowMultiplier =
+        typeof SPIN_CHARGE_MOVE_MULTIPLIER === "number" ? SPIN_CHARGE_MOVE_MULTIPLIER : 0.5;
+      multiplier *= slowMultiplier;
+    }
     return multiplier;
   }
 

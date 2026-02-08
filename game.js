@@ -2129,6 +2129,10 @@ const RUSH_PUSHBACK_RADIUS = 52 * WORLD_SCALE;
 const RUSH_PUSHBACK_STRENGTH = 50 * WORLD_SCALE;
 const RUSH_COOLDOWN = 3.0;
 const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
+const SPIN_HOLD_CHARGE_TIME = MELEE_HOLD_CHARGE_TIME;
+const SPIN_CHARGE_MOVE_MULTIPLIER = 0.5;
+const SPIN_MOVE_DISTANCE = RUSH_DISTANCE;
+const SPIN_MOVE_SPEED = RUSH_SPEED;
 const RUSH_INVULNERABILITY = 0.4;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
@@ -13188,6 +13192,19 @@ function getDashButtonDirection() {
   return normalizeVector(dir.x, dir.y);
 }
 
+function getHeldMovementDirection() {
+  const input = window.Input;
+  if (!input) return { x: 0, y: 0 };
+  let x = 0;
+  let y = 0;
+  if (input.isActionActive?.("left")) x -= 1;
+  if (input.isActionActive?.("right")) x += 1;
+  if (input.isActionActive?.("up")) y -= 1;
+  if (input.isActionActive?.("down")) y += 1;
+  if (x === 0 && y === 0) return { x: 0, y: 0 };
+  return normalizeVector(x, y);
+}
+
 function setSharedBButtonCooldown(duration) {
   const next = Math.max(
     Number(duration) || 0,
@@ -13802,10 +13819,18 @@ function executeRushAttack(dir, meleeAttackState) {
   }
 }
 
-function executeSpinAttack(meleeAttackState) {
+function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
   const dir = getMeleeAttackDirection();
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
+  if (moveDir && (moveDir.x !== 0 || moveDir.y !== 0)) {
+    const normalized = normalizeVector(moveDir.x, moveDir.y);
+    meleeAttackState.spinMoveDir = normalized;
+    meleeAttackState.spinMoveDistanceRemaining = SPIN_MOVE_DISTANCE;
+  } else {
+    meleeAttackState.spinMoveDir = null;
+    meleeAttackState.spinMoveDistanceRemaining = 0;
+  }
   setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
   meleeAttackState.buttonDown = false;
   meleeAttackState.isCharging = false;
@@ -13977,6 +14002,9 @@ function updateMeleeAttackSystem(dt) {
       swingId: 0,
       chargeTimer: 0,
       isCharging: false,
+      spinChargeTimer: 0,
+      spinCharging: false,
+      spinButtonDown: false,
       isRushing: false,
       rushDir: { x: 1, y: 0 },
       rushDistanceRemaining: 0,
@@ -13989,6 +14017,8 @@ function updateMeleeAttackSystem(dt) {
       spinDuration: 0,
       spinHitEntities: null,
       spinCooldown: 0,
+      spinMoveDir: null,
+      spinMoveDistanceRemaining: 0,
       rushHitboxTimer: 0,
       rushSegment: null,
     awaitRush: false,
@@ -14024,6 +14054,7 @@ function updateMeleeAttackSystem(dt) {
       return;
     }
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
+    meleeAttackState.spinHoldTime = SPIN_HOLD_CHARGE_TIME;
     updateMeleeTimers(dt, meleeAttackState);
     if (!meleeAttackState.lastComboTimes) {
       meleeAttackState.lastComboTimes = { A: 0, B: 0 };
@@ -14037,7 +14068,6 @@ function updateMeleeAttackSystem(dt) {
     const aRecent = now - meleeAttackState.lastComboTimes.A <= comboWindowMs;
     const bRecent = now - meleeAttackState.lastComboTimes.B <= comboWindowMs;
     const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
-    const comboSpinKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.A < meleeAttackState.lastComboTimes.B;
     updateArcControlCooldowns();
 
     if (meleeAttackState.isRushing && player) {
@@ -14046,6 +14076,30 @@ function updateMeleeAttackSystem(dt) {
     }
 
     if (meleeAttackState.spinTimer > 0) {
+      if (
+        meleeAttackState.spinMoveDir &&
+        meleeAttackState.spinMoveDistanceRemaining > 0 &&
+        player
+      ) {
+        const dir = meleeAttackState.spinMoveDir;
+        const movement = Math.min(
+          meleeAttackState.spinMoveDistanceRemaining,
+          SPIN_MOVE_SPEED * dt,
+        );
+        player.x += dir.x * movement;
+        player.y += dir.y * movement;
+        resolveEntityObstacles(player);
+        clampEntityToBounds(player);
+        if (player.lockedPosition) {
+          player.lockedPosition.x = player.x;
+          player.lockedPosition.y = player.y;
+        }
+        meleeAttackState.spinMoveDistanceRemaining -= movement;
+        if (meleeAttackState.spinMoveDistanceRemaining <= 0) {
+          meleeAttackState.spinMoveDistanceRemaining = 0;
+          meleeAttackState.spinMoveDir = null;
+        }
+      }
       const duration = Math.max(0.001, meleeAttackState.spinDuration || MELEE_SPIN_DURATION);
       const progress = 1 - Math.min(1, meleeAttackState.spinTimer / duration);
       const angle = progress * Math.PI * 2;
@@ -14187,32 +14241,13 @@ function updateMeleeAttackSystem(dt) {
     const comboSwipe = input?.consumeComboSwipe?.();
     const comboRush =
       (!meleeAttackState.isRushing &&
+        !meleeAttackState.spinCharging &&
+        !meleeAttackState.spinButtonDown &&
         meleeAttackState.rushLockTimer <= 0 &&
         playerDashState.dashCooldown <= 0 &&
         (comboRushKeyOrder ||
           (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
-    const comboSpin =
-      (!meleeAttackState.isRushing &&
-        meleeAttackState.rushLockTimer <= 0 &&
-        playerDashState.dashCooldown <= 0 &&
-        (comboSpinKeyOrder ||
-          (comboSwipe && comboSwipe.from === "A" && comboSwipe.to === "B")));
     let comboTriggered = false;
-    const spinFromAwaitRush =
-      meleeAttackState.awaitRush &&
-      keysJustPressed.has("ArrowDown") &&
-      !meleeAttackState.isRushing &&
-      meleeAttackState.rushLockTimer <= 0 &&
-      playerDashState.dashCooldown <= 0;
-    if (comboSpin || spinFromAwaitRush) {
-      playerDashState.pendingDashTimer = 0;
-      executeSpinAttack(meleeAttackState);
-      meleeAttackState.awaitRush = false;
-      meleeAttackState.awaitTimer = 0;
-      meleeAttackState.rushBypassUntil = 0;
-      keysJustPressed.delete("ArrowDown");
-      comboTriggered = true;
-    }
     if (comboRush && !comboTriggered) {
       playerDashState.pendingDashTimer = 0;
       executeRushAttack(getDashButtonDirection(), meleeAttackState);
@@ -14222,6 +14257,31 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete("ArrowLeft");
       keysJustPressed.delete(" ");
       comboTriggered = true;
+    }
+    const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing;
+    const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing;
+    if (bJustPressed && !meleeAttackState.spinButtonDown) {
+      meleeAttackState.spinButtonDown = true;
+      meleeAttackState.spinCharging = true;
+      meleeAttackState.spinChargeTimer = 0;
+      playerDashState.pendingDashTimer = 0;
+      playerDashState.pendingDashDir = null;
+    }
+    if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
+      meleeAttackState.spinChargeTimer += dt;
+    }
+    if (meleeAttackState.spinButtonDown && !bHeld) {
+      const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
+      const moveDir = getHeldMovementDirection();
+      const hasMoveDir = moveDir && (moveDir.x !== 0 || moveDir.y !== 0);
+      meleeAttackState.spinButtonDown = false;
+      if (meleeAttackState.spinCharging) {
+        meleeAttackState.spinCharging = false;
+        if (fullyCharged) {
+          executeSpinAttack(meleeAttackState, hasMoveDir ? moveDir : null);
+        }
+      }
+      meleeAttackState.spinChargeTimer = 0;
     }
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
