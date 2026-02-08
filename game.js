@@ -14434,15 +14434,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.rushBypassUntil && now <= meleeAttackState.rushBypassUntil;
     if (meleeAttackState.awaitRush || rushBypassActive) {
       meleeAttackState.awaitTimer -= dt;
-      if (spaceJustPressed && !rushLockActive) {
-        console.log("RUSH TRIGGERED");
-        if (playerDashState.dashCooldown <= 0) {
-          executeRushAttack(dir, meleeAttackState);
-        }
-        meleeAttackState.awaitRush = false;
-        meleeAttackState.awaitTimer = 0;
-        meleeAttackState.rushBypassUntil = 0;
-      } else if (meleeAttackState.awaitTimer <= 0) {
+      if (meleeAttackState.awaitTimer <= 0) {
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
         meleeAttackState.rushBypassUntil = 0;
