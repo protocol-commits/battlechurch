@@ -13498,7 +13498,7 @@ function showComboTextAt(entity, comboDamage, hitCount) {
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
   const radius = entity.radius || entity.config?.hitRadius || 24;
   const label = `${hits} Hit Combo`;
-  addFloatingTextAt(entity.x, entity.y - radius, label, "#FFD76A", {
+  addFloatingTextAt(entity.x, entity.y - radius, label, "#FFF2B8", {
     speechBubble: false,
     vy: -30,
     life: 1.1,
@@ -13507,7 +13507,7 @@ function showComboTextAt(entity, comboDamage, hitCount) {
     priority: 6,
     fadeDelay: 0,
   });
-  addFloatingTextAt(entity.x, entity.y - radius + 26, `${Math.round(comboDamage)}`, "#FFE9B2", {
+  addFloatingTextAt(entity.x, entity.y - radius + 26, `${Math.round(comboDamage)}`, "#FFF7E5", {
     speechBubble: false,
     vy: -24,
     life: 1.0,
