@@ -6229,7 +6229,7 @@ function spawnGracePickup(x, y, options = {}) {
     const frame = pickup.frames[Math.floor(pickup.frameIndex) % pickup.frames.length];
     if (!frame) return;
     const size = Math.max(18, frame.width || 32);
-    const bob = Math.sin(pickup.bobTimer) * 4;
+    const bob = pickup.grounded ? 0 : Math.sin(pickup.bobTimer) * 4;
     let alpha =
       pickup.spawnBlink > 0 ? Math.max(0.3, 1 - pickup.spawnBlink * 2) : 1;
     if (pickup.life <= 3 && typeof pickup.blinkAlpha === "number") {
@@ -6434,6 +6434,11 @@ function updateGracePickups(dt) {
       if (pickup.vy > 0) {
         pickup.vy = -pickup.vy * pickup.bounceDamp;
         pickup.vx *= 0.85;
+        if (Math.abs(pickup.vy) < 40) {
+          pickup.vy = 0;
+          pickup.vx *= 0.6;
+          pickup.grounded = true;
+        }
       }
     }
     if (pickup.bounce) {
