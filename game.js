@@ -13193,8 +13193,68 @@ function isAllowedProjectileComboDirection(baseIndex, nextIndex) {
   return diff === 1 || diff === 7;
 }
 
+function updateLiveComboText(state, target) {
+  if (!state || !target || state.hits < 2) return;
+  const radius = target.radius || target.config?.hitRadius || 24;
+  const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
+  const damageText = `${Math.round(state.damage)}`;
+  const labelX = target.x;
+  const labelY = target.y - radius;
+  const damageX = target.x;
+  const damageY = target.y - radius + 26;
+  if (!state.comboLabel) {
+    state.comboLabel = addFloatingTextAt(labelX, labelY, label, "#FFF2B8", {
+      speechBubble: false,
+      vy: 0,
+      life: 1.1,
+      fontSize: 38,
+      fontWeight: "800",
+      priority: 6,
+      fadeDelay: 0,
+      clampToScreen: true,
+      persist: true,
+    });
+  }
+  if (!state.comboDamageLabel) {
+    state.comboDamageLabel = addFloatingTextAt(damageX, damageY, damageText, "#FFF7E5", {
+      speechBubble: false,
+      vy: 0,
+      life: 1.0,
+      fontSize: 22,
+      fontWeight: "700",
+      priority: 5,
+      fadeDelay: 0,
+      clampToScreen: true,
+      persist: true,
+    });
+  }
+  if (state.comboLabel) {
+    state.comboLabel.text = label;
+    state.comboLabel.x = labelX;
+    state.comboLabel.y = labelY;
+    state.comboLabel.persist = true;
+  }
+  if (state.comboDamageLabel) {
+    state.comboDamageLabel.text = damageText;
+    state.comboDamageLabel.x = damageX;
+    state.comboDamageLabel.y = damageY;
+    state.comboDamageLabel.persist = true;
+  }
+}
+
 function finalizeComboState(state) {
   if (!state || state.hits < 2) return;
+  if (state.comboLabel || state.comboDamageLabel) {
+    if (state.comboLabel) {
+      state.comboLabel.persist = false;
+      state.comboLabel.life = Math.min(state.comboLabel.life || 0.8, 0.8);
+    }
+    if (state.comboDamageLabel) {
+      state.comboDamageLabel.persist = false;
+      state.comboDamageLabel.life = Math.min(state.comboDamageLabel.life || 0.7, 0.7);
+    }
+    return;
+  }
   const fallbackEntity = {
     x: state.lastX,
     y: state.lastY,
@@ -13247,6 +13307,8 @@ const comboTracker = {
             lastX: null,
             lastY: null,
             projectileDirIndex: null,
+            comboLabel: null,
+            comboDamageLabel: null,
           };
     if (isProjectile && Number.isFinite(dirIndex) && Number.isFinite(current.projectileDirIndex)) {
       if (!isAllowedProjectileComboDirection(current.projectileDirIndex, dirIndex)) {
@@ -13259,6 +13321,8 @@ const comboTracker = {
           lastX: null,
           lastY: null,
           projectileDirIndex: null,
+          comboLabel: null,
+          comboDamageLabel: null,
         };
       }
     }
@@ -13278,6 +13342,9 @@ const comboTracker = {
     }
     current.expiresAt = timeNow + COMBO_WINDOW_MS;
     this.state = current;
+    if (current.hits >= 2) {
+      updateLiveComboText(current, target);
+    }
   },
   update(now) {
     if (!this.state) return;
