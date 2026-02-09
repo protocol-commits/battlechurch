@@ -13284,12 +13284,12 @@ function spawnGraceArcBurst(baseX, baseY, count, spread) {
   if (!Number.isFinite(baseX) || !Number.isFinite(baseY)) return;
   const burstCount = Math.max(0, Math.round(count || 0));
   if (!burstCount) return;
-  const burstSpread = Number.isFinite(spread) ? spread : Math.min(110, 30 + burstCount * 10);
+  const burstSpread = Number.isFinite(spread) ? spread : Math.min(80, 24 + burstCount * 8);
   for (let i = 0; i < burstCount; i += 1) {
     const spawnOffsetX = randomInRange(-burstSpread, burstSpread);
     const angle = randomInRange(-Math.PI * 1.15, -Math.PI * 0.05);
-    const speed = randomInRange(180, 260);
-    const horizontalBias = Math.sign(spawnOffsetX || 1) * randomInRange(40, 90);
+    const speed = randomInRange(160, 220);
+    const horizontalBias = Math.sign(spawnOffsetX || 1) * randomInRange(25, 60);
     const vx = Math.cos(angle) * speed + horizontalBias;
     const vy = Math.sin(angle) * speed - randomInRange(320, 420);
     const floorJitter = randomInRange(-0.15, 0.15);
