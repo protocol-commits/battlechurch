@@ -3410,7 +3410,6 @@ const WEAPON_POWERUP_EFFECTS = new Set([
   "wisdomWeapon",
   "scriptureWeapon",
   "cannonWeapon",
-  "wordOfGodWeapon",
   "npcScriptureWeapon",
   "npcWisdomWeapon",
   "npcFaithWeapon",
@@ -3488,8 +3487,6 @@ function getWeaponPowerName(effect, fallback = "Weapon") {
       return "Scripture";
     case "cannonWeapon":
       return "Faith";
-    case "wordOfGodWeapon":
-      return "Word of God";
     default:
       return fallback || "Weapon";
   }
@@ -5973,19 +5970,6 @@ function applyWeaponPickupEffect(pickup) {
       });
       break;
     }
-    case "wordOfGodWeapon": {
-      const config = resolveWeaponPowerupConfig("wordOfGodWeapon", def);
-      player.wordOfGodTimer = config.duration;
-      player.wordOfGodDuration = config.duration;
-      showWeaponPowerupConfigText(config);
-      spawnPowerupHudFlyEffect({
-        x: pickup.x,
-        y: pickup.y,
-        iconImage: def?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(pickup.effect),
-      });
-      break;
-    }
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
       showWeaponPowerupConfigText({
@@ -6289,7 +6273,6 @@ function getPowerupHudTargetKey(effect) {
   if (effect === "haste") return "utilityHaste";
   if (effect === "extend") return "utilityExtend";
   if (effect === "harmony") return "npcHarmony";
-  if (effect === "wordOfGodWeapon") return "wordOfGod";
   if (String(effect).startsWith("npc")) return "npcWeapon";
   if (WEAPON_POWERUP_EFFECTS.has(effect) || effect === "arrowBuff") return "playerWeapon";
   return null;
@@ -14148,33 +14131,7 @@ function executeDivineShot(dir, meleeAttackState, angleRad) {
 }
 
 function maybeFireWordOfGodProjectile(dir, angleRad) {
-  if (!player || !player.wordOfGodTimer) return;
-  if (player.wordOfGodCooldown > 0) return;
-  if (projectiles.some((proj) => proj && !proj.dead && proj.type === "word_of_god")) return;
-  const baseSpeed = PROJECTILE_CONFIG.word_of_god?.speed || 700 * WORLD_SCALE;
-  const distance = MELEE_SWING_RANGE * 4;
-  const life = baseSpeed > 0 ? distance / baseSpeed : 0.8;
-  const spawnX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
-  const spawnY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-  const frames = projectileFrames.word_of_god || null;
-  const frameWidth = frames && frames[0] ? frames[0].width : 0;
-  const frameHeight = frames && frames[0] ? frames[0].height : 0;
-  const spriteRadius =
-    frameWidth && frameHeight
-      ? (Math.max(frameWidth, frameHeight) * ((PROJECTILE_CONFIG.word_of_god?.scale || 1) * 0.7)) / 2
-      : PROJECTILE_CONFIG.word_of_god?.radius;
-  spawnProjectile("word_of_god", spawnX, spawnY, Math.cos(angleRad), Math.sin(angleRad), {
-    friendly: true,
-    damage: 100,
-    life,
-    radius: spriteRadius,
-    scale: (PROJECTILE_CONFIG.word_of_god?.scale || 1) * 0.7,
-    pierce: true,
-    source: player,
-    loopFrames: true,
-    frames,
-  });
-  player.wordOfGodCooldown = 0.15;
+  return;
 }
 
 function updateMeleeTimers(dt, meleeAttackState) {

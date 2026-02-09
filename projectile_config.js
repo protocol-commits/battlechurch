@@ -161,17 +161,5 @@
       description: "Piercing fire shots with higher speed.",
       hudDuration: 2.6,
     },
-    wordOfGodWeapon: {
-      duration: 8,
-      maxShots: 1,
-      cooldownMultiplier: 1,
-      speedMultiplier: 1,
-      damageMultiplier: 1,
-      text: "Word of God",
-      textColor: "#ffd978",
-      hudTitle: "Word of God",
-      description: "Melee strikes unleash a piercing holy wave.",
-      hudDuration: 2.6,
-    },
   };
 })(typeof window !== "undefined" ? window : globalThis);

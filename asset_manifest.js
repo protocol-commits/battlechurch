@@ -187,13 +187,6 @@
           frameRate: 0,
           loop: false,
         },
-        word_of_god: {
-          src: `assets/sprites/weapons/fire4/1_0.png`,
-          frameWidth: 0,
-          frameHeight: 0,
-          frameRate: 12,
-          loop: true,
-        },
       },
       enemies: createEnemyManifest(enemyDefinitions, characterRoot),
     };

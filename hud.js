@@ -788,16 +788,6 @@
           iconKey: 'utilityExtend',
         });
       }
-      if (player.wordOfGodTimer > 0) {
-        const duration = Math.max(0.001, player.wordOfGodDuration || 0);
-        rows.push({
-          label: 'Word of God',
-          ratio: duration > 0 ? player.wordOfGodTimer / duration : 0,
-          color: PALETTE.gold,
-          iconImage: assets?.weaponPickups?.wordOfGod?.iconImage || null,
-          iconKey: 'wordOfGod',
-        });
-      }
       rows.push(...utilityRows.slice(0, 2));
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
