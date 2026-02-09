@@ -13198,10 +13198,25 @@ function updateLiveComboText(state, target) {
   const radius = target.radius || target.config?.hitRadius || 24;
   const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
   const damageText = `${Math.round(state.damage)}`;
-  const labelX = target.x;
-  const labelY = target.y - radius;
-  const damageX = target.x;
-  const damageY = target.y - radius + 26;
+  const anchorX = Number.isFinite(state.anchorX) ? state.anchorX : target.x;
+  const anchorY = Number.isFinite(state.anchorY) ? state.anchorY : target.y;
+  const targetX = target.x;
+  const targetY = target.y;
+  const maxOffsetX = 80;
+  const maxOffsetY = 60;
+  const clampedX = anchorX + clamp(targetX - anchorX, -maxOffsetX, maxOffsetX);
+  const clampedY = anchorY + clamp(targetY - anchorY, -maxOffsetY, maxOffsetY);
+  const lerpFactor = 0.22;
+  const currentX = Number.isFinite(state.currentX) ? state.currentX : clampedX;
+  const currentY = Number.isFinite(state.currentY) ? state.currentY : clampedY;
+  const nextX = currentX + (clampedX - currentX) * lerpFactor;
+  const nextY = currentY + (clampedY - currentY) * lerpFactor;
+  state.currentX = nextX;
+  state.currentY = nextY;
+  const labelX = nextX;
+  const labelY = nextY - radius;
+  const damageX = nextX;
+  const damageY = nextY - radius + 26;
   if (!state.comboLabel) {
     state.comboLabel = addFloatingTextAt(labelX, labelY, label, "#FFF2B8", {
       speechBubble: false,
@@ -13214,6 +13229,10 @@ function updateLiveComboText(state, target) {
       clampToScreen: true,
       persist: true,
     });
+    state.anchorX = labelX;
+    state.anchorY = clampedY;
+    state.currentX = labelX;
+    state.currentY = clampedY;
   }
   if (!state.comboDamageLabel) {
     state.comboDamageLabel = addFloatingTextAt(damageX, damageY, damageText, "#FFF7E5", {
