@@ -13249,6 +13249,13 @@ function isAllowedProjectileComboDirection(baseIndex, nextIndex) {
   return diff === 1 || diff === 7;
 }
 
+function getComboLabelFontSize(hits) {
+  const comboHits = Math.max(2, Math.round(hits || 0));
+  if (comboHits < 10) return 32;
+  const tier = Math.floor(comboHits / 10);
+  return 38 + Math.max(0, tier - 1) * 6;
+}
+
 function maybeUpdateMaxComboInTown(hits, x, y) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   if (!Number.isFinite(comboHits)) return;
@@ -13262,6 +13269,7 @@ function updateLiveComboText(state, target) {
   if (!state || !target || state.hits < 2) return;
   const radius = target.radius || target.config?.hitRadius || 24;
   const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
+  const labelFontSize = getComboLabelFontSize(state.hits);
   const damageText = `${Math.round(state.damage)}`;
   const anchorX = Number.isFinite(state.anchorX) ? state.anchorX : target.x;
   const anchorY = Number.isFinite(state.anchorY) ? state.anchorY : target.y;
@@ -13298,7 +13306,7 @@ function updateLiveComboText(state, target) {
       speechBubble: false,
       vy: 0,
       life: 1.1,
-      fontSize: 38,
+      fontSize: labelFontSize,
       fontWeight: "800",
       priority: 6,
       fadeDelay: 0,
@@ -13327,6 +13335,7 @@ function updateLiveComboText(state, target) {
     state.comboLabel.text = label;
     state.comboLabel.x = labelX;
     state.comboLabel.y = labelY;
+    state.comboLabel.fontSize = labelFontSize;
     state.comboLabel.persist = true;
   }
   if (state.comboDamageLabel) {
@@ -13920,12 +13929,13 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
   const radius = entity.radius || entity.config?.hitRadius || 24;
   const label = `${hits} Hit Combo`;
+  const labelFontSize = getComboLabelFontSize(hits);
   maybeUpdateMaxComboInTown(hits, entity.x, entity.y - radius);
   addFloatingTextAt(entity.x, entity.y - radius, label, "#FFF2B8", {
     speechBubble: false,
     vy: -30,
     life: 1.1,
-    fontSize: 38,
+    fontSize: labelFontSize,
     fontWeight: "800",
     priority: 6,
     fadeDelay: 0,
