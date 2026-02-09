@@ -14575,7 +14575,7 @@ function updateMeleeAttackSystem(dt) {
     }
     const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing;
     const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing;
-    if (bJustPressed && !meleeAttackState.spinButtonDown) {
+    if (bJustPressed && !meleeAttackState.spinButtonDown && !comboTriggered) {
       if (meleeAttackState.meleeCancelUntil && now <= meleeAttackState.meleeCancelUntil) {
         executeRushAttack(getDashButtonDirection(), meleeAttackState);
         meleeAttackState.spinCharging = false;
@@ -14602,6 +14602,8 @@ function updateMeleeAttackSystem(dt) {
         meleeAttackState.spinCharging = false;
         if (fullyCharged) {
           executeSpinAttack(meleeAttackState, hasMoveDir ? moveDir : null);
+        } else if (!meleeAttackState.isRushing) {
+          tryStartDash(getDashButtonDirection());
         }
       }
       if (!meleeAttackState.isCharging) {
