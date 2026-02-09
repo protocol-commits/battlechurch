@@ -12979,7 +12979,7 @@ function processProjectileCollisions(dt) {
         const damageType =
           projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
         enemy.takeDamage(projectileDamage, { damageType });
-    if (projectile.isDivineShot) {
+    if (projectile.source?.isPlayer) {
       registerComboHit(enemy, projectileDamage);
     }
 
@@ -13024,7 +13024,7 @@ function processProjectileCollisions(dt) {
               damageType,
               skipImpactEffect: true,
             });
-            if (projectile.isDivineShot) {
+            if (projectile.source?.isPlayer) {
               registerComboHit(activeBoss, bossDamage);
             }
             if (
@@ -13255,10 +13255,9 @@ const comboTracker = {
       radius: 24,
     };
     if (!Number.isFinite(fallbackEntity.x) || !Number.isFinite(fallbackEntity.y)) return;
-    window.BattlechurchComboTrackerAllow = true;
-    showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
-    window.BattlechurchComboTrackerAllow = false;
-    spawnComboGraceBurst(fallbackEntity, state.hits, state.lastX, state.lastY, state.killed);
+          window.BattlechurchComboTrackerAllow = true;
+          showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
+          window.BattlechurchComboTrackerAllow = false;
   },
 };
 
@@ -13685,6 +13684,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     fontWeight: "800",
     priority: 6,
     fadeDelay: 0,
+    clampToScreen: true,
   });
   addFloatingTextAt(entity.x, entity.y - radius + 26, `${Math.round(comboDamage)}`, "#FFF7E5", {
     speechBubble: false,
@@ -13694,6 +13694,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     fontWeight: "700",
     priority: 5,
     fadeDelay: 0,
+    clampToScreen: true,
   });
 }
 

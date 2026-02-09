@@ -5586,7 +5586,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       .slice()
       .sort((a, b) => (a.priority || 0) - (b.priority || 0));
     orderedTexts.forEach((ft) => {
-      const drawX = ft.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
+      let drawX = ft.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
       const drawY = ft.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
       ctx.save();
       const fadeLength = ft.fadeLength || ft.initialLife || 1.5;
@@ -5602,6 +5602,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const fontFamily = ft.fontFamily || UI_FONT_FAMILY;
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.textAlign = "center";
+      if (ft.clampToScreen) {
+        const metrics = ctx.measureText(ft.text);
+        const halfWidth = metrics.width * 0.5;
+        const margin = 8;
+        drawX = Math.max(margin + halfWidth, Math.min(canvas.width - margin - halfWidth, drawX));
+      }
       if (style === "speech") {
         ctx.textBaseline = "middle";
         const metrics = ctx.measureText(ft.text);
