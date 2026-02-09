@@ -628,6 +628,10 @@
 
       const graceCount = typeof getGraceCount === 'function' ? getGraceCount() : 0;
       const enemyKills = stats?.enemiesDefeated ?? 0;
+      const formatNumber =
+        typeof bindings?.formatNumberWithCommas === 'function'
+          ? bindings.formatNumberWithCommas
+          : (value) => `${Math.round(Number.isFinite(value) ? value : 0)}`;
       const iconSize = 16;
       const gap = 6;
       const rowY = meterY + meterHeight + 14;
@@ -647,19 +651,19 @@
         }
         x += iconSize + gap;
       }
-      const graceText = `${graceCount}`;
+      const graceText = formatNumber(graceCount);
       ctx.fillText(graceText, x, rowY);
       x += ctx.measureText(graceText).width + 14;
       if (scoreboardIcons.enemies && scoreboardIcons.enemies.complete) {
         ctx.drawImage(scoreboardIcons.enemies, x, rowY - iconSize / 2, iconSize, iconSize);
         x += iconSize + gap;
       }
-      const enemyText = `${enemyKills}`;
+      const enemyText = formatNumber(enemyKills);
       ctx.fillText(enemyText, x, rowY);
       x += ctx.measureText(enemyText).width + 14;
       const comboLabel = "Max Combo:";
       const comboValue = Number.isFinite(maxComboThisTown) ? Math.max(0, Math.round(maxComboThisTown)) : 0;
-      const comboText = `${comboValue}`;
+      const comboText = formatNumber(comboValue);
       ctx.fillStyle = PALETTE.muted;
       ctx.fillText(comboLabel, x, rowY);
       x += ctx.measureText(comboLabel).width + 6;

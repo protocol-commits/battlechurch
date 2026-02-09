@@ -166,6 +166,10 @@
     if (!entity) return;
     const rounded = Math.round(amount);
     if (!Number.isFinite(rounded) || rounded <= 0) return;
+    const formatter =
+      typeof window !== "undefined" && typeof window.formatNumberWithCommas === "function"
+        ? window.formatNumberWithCommas
+        : (value) => `${Math.round(Number.isFinite(value) ? value : 0)}`;
     const radius = entity.radius || entity.config?.hitRadius || 24;
     const isFriendly = Boolean(entity.isPlayer || entity.isCozyNpc);
     const isPlayer = Boolean(entity.isPlayer);
@@ -178,7 +182,7 @@
     addAt(
       entity.x + jitter.x,
       entity.y - radius + offsetY + jitter.y,
-      `${rounded}`,
+      formatter(rounded),
       finalColor,
       {
         speechBubble: false,

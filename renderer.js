@@ -1441,9 +1441,19 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   }
   updateRecapTallyState(recapData, revealComplete, spawnBounds);
 
+  const formatNumber =
+    typeof requireBindings().formatNumberWithCommas === "function"
+      ? requireBindings().formatNumberWithCommas
+      : (value) => {
+          const numeric = Number.isFinite(value) ? Math.round(value) : 0;
+          const sign = numeric < 0 ? "-" : "";
+          const digits = String(Math.abs(numeric));
+          return `${sign}${digits.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",")}`;
+        };
   const formatSigned = (value) => {
     const numeric = Number.isFinite(value) ? Math.round(value) : 0;
-    return `${numeric >= 0 ? "+" : ""}${numeric}`;
+    const sign = numeric >= 0 ? "+" : "-";
+    return `${sign}${formatNumber(Math.abs(numeric))}`;
   };
   const baseLabelColor = "#EAF6FF";
   const highlightLabelColor = "#FFD978";
@@ -1521,7 +1531,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const labelWidth = ctx.measureText(countLabel).width;
     countNumberX = contentX + labelWidth + 12;
     ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
-    ctx.fillText(`${Math.round(totalValue || 0)}`, countNumberX, cursorY);
+    ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
     countNumberY = cursorY;
     cursorY += Math.round(countSize * 1.1);
   }
@@ -1593,7 +1603,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const valuePrefix = line.valuePrefix || "";
       const valueSuffix = line.valueSuffix || "";
       const numericValue = Number.isFinite(line.delta) ? Math.round(line.delta) : 0;
-      const formattedValue = line.forceSignless ? `${numericValue}` : formatSigned(line.delta);
+      const formattedValue = line.forceSignless ? formatNumber(numericValue) : formatSigned(line.delta);
       valueText = `${valuePrefix}${formattedValue}${valueSuffix}`;
       const lastLine = labelLines[labelLines.length - 1] || "";
       const lastWidth = ctx.measureText(lastLine).width;
@@ -5662,7 +5672,16 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
   function drawFloatingTextEntries(context, filterFn = null, baseAlpha = 1, options = {}) {
     const ctx = context;
-    const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
+    const { cameraOffsetX = 0, cameraOffsetY = 0, formatNumberWithCommas } = requireBindings();
+    const formatNumber =
+      typeof formatNumberWithCommas === "function"
+        ? formatNumberWithCommas
+        : (value) => {
+            const numeric = Number.isFinite(value) ? Math.round(value) : 0;
+            const sign = numeric < 0 ? "-" : "";
+            const digits = String(Math.abs(numeric));
+            return `${sign}${digits.replace(/\\B(?=(\\d{3})+(?!\\d))/g, ",")}`;
+          };
     const useWorldTransform = Boolean(options.useWorldTransform);
     ctx.save();
     if (!useWorldTransform) {
@@ -5974,7 +5993,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     enemyHpLabels.forEach((entry) => {
       const drawX = entry.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
       const drawY = entry.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
-      const label = `${Math.round(entry.hp || 0)}`;
+      const label = formatNumber(entry.hp || 0);
       ctx.strokeText(label, drawX, drawY);
       ctx.fillStyle = "#ff6b6b";
       ctx.fillText(label, drawX, drawY);

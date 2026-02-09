@@ -408,6 +408,14 @@ function loadAudioSettings() {
   } catch (e) {}
 }
 
+function formatNumberWithCommas(value) {
+  const number = Number.isFinite(value) ? Math.round(value) : 0;
+  const sign = number < 0 ? "-" : "";
+  const digits = String(Math.abs(number));
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${sign}${grouped}`;
+}
+
 function saveAudioSettings() {
   if (typeof localStorage === "undefined") return;
   try {
@@ -466,6 +474,9 @@ function playDefaultArrowSfx(volume = 0.6) {
 
 if (typeof window !== "undefined") {
   window.playDefaultArrowSfx = playDefaultArrowSfx;
+}
+if (typeof window !== "undefined") {
+  window.formatNumberWithCommas = formatNumberWithCommas;
 }
 
 /**
@@ -2645,6 +2656,7 @@ Renderer.initialize({
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
   get comboHudFlyEffects() { return comboHudFlyEffects; },
   get maxComboThisTown() { return maxComboThisTown; },
+  formatNumberWithCommas,
   updatePlayerDuringCongregation,
   resolveCongregationCollisions,
   get touchControlsVisible() { return Boolean(Input?.virtualInput?.enabled); },
@@ -5525,7 +5537,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   seasonStats.monthlyAdded += memberDelta + healthReward;
   seasonStats.lost += Math.max(0, lostCount || 0);
   const congregationTotal = getCongregationSize();
-  const formatDelta = (value) => `${value >= 0 ? "+" : ""}${value}`;
+  const formatDelta = (value) => {
+    const numeric = Number.isFinite(value) ? Math.round(value) : 0;
+    const sign = numeric >= 0 ? "+" : "-";
+    return `${sign}${formatNumberWithCommas(Math.abs(numeric))}`;
+  };
   const totalDelta = memberDelta + healthReward + bossBonus;
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = 0;
@@ -5655,7 +5671,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   }
   let paragraph = "";
   if (isBossSummary) {
-    paragraph = `Pastor's Health: ${Math.round(bossHealth)}. Your work has brought in ${bossBonus} new congregants (${formatDelta(bossBonus)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${congregationTotal}`;
+    paragraph = `Pastor's Health: ${formatNumberWithCommas(bossHealth)}. Your work has brought in ${formatNumberWithCommas(bossBonus)} new congregants (${formatDelta(bossBonus)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
   } else {
     if (savedNames.length) {
       const names = savedNames.join(", ");
@@ -5666,7 +5682,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       const verb = lostNames.length === 1 ? "has" : "have";
       paragraph += `${names} ${verb} left the church. `;
     }
-    paragraph += `Their remaining health was ${Math.round(totalNpcFaith)} (${formatDelta(healthReward)}). In turn, they've invited ${memberDelta + healthReward} people to join the congregation. Current Congregation Size: (${formatDelta(totalDelta)}) ${congregationTotal}`;
+    paragraph += `Their remaining health was ${formatNumberWithCommas(totalNpcFaith)} (${formatDelta(healthReward)}). In turn, they've invited ${formatNumberWithCommas(memberDelta + healthReward)} people to join the congregation. Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
   }
   const body = paragraph;
   if (announcement) {
@@ -13528,7 +13544,7 @@ function updatePrayerBombComboDisplay() {
   const centerY = prayerBombComboState.anchorY;
   const fontSize = getComboLabelFontSize(hits) * 2;
   const color = getComboLabelColor(hits);
-  const labelText = `${hits} HIT\nCOMBO`;
+  const labelText = `${formatNumberWithCommas(hits)} HIT\nCOMBO`;
   if (!prayerBombComboState.label) {
     const label = addFloatingTextAt(centerX, centerY, labelText, color, {
       speechBubble: false,
@@ -13625,7 +13641,7 @@ function showPrayerBombBlastCombo(count, x, y) {
   if (!hits) return;
   const fontSize = getComboLabelFontSize(hits) * 2;
   const color = getComboLabelColor(hits);
-  const labelText = `${hits} HIT\nCOMBO`;
+  const labelText = `${formatNumberWithCommas(hits)} HIT\nCOMBO`;
   const label = addFloatingTextAt(x, y, labelText, color, {
     speechBubble: false,
     vy: -28,
@@ -13666,7 +13682,7 @@ function updateLiveComboText(state, target) {
   const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
   const labelFontSize = getComboLabelFontSize(state.hits);
   const labelColor = getComboLabelColor(state.hits);
-  const damageText = `${Math.round(state.damage)}`;
+  const damageText = formatNumberWithCommas(state.damage);
   const anchorX = Number.isFinite(state.anchorX) ? state.anchorX : target.x;
   const anchorY = Number.isFinite(state.anchorY) ? state.anchorY : target.y;
   const targetX = target.x;
@@ -14355,7 +14371,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     fadeDelay: 0,
     clampToScreen: true,
   });
-  addFloatingTextAt(entity.x, entity.y - radius + 26, `${Math.round(comboDamage)}`, "#FFF7E5", {
+  addFloatingTextAt(entity.x, entity.y - radius + 26, formatNumberWithCommas(comboDamage), "#FFF7E5", {
     speechBubble: false,
     vy: -24,
     life: 1.0,
