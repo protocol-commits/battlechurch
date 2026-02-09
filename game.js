@@ -5603,6 +5603,26 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       affectsTotal: true,
     });
   }
+  const missionEnemiesKilled = Number.isFinite(summary?.battleEnemiesDefeated)
+    ? Math.max(0, Math.round(summary.battleEnemiesDefeated))
+    : 0;
+  const missionMaxCombo = Number.isFinite(summary?.battleMaxCombo)
+    ? Math.max(0, Math.round(summary.battleMaxCombo))
+    : 0;
+  recapLines.push({
+    label: "Enemies Killed:",
+    delta: missionEnemiesKilled,
+    kind: "mission",
+    affectsTotal: false,
+    forceSignless: true,
+  });
+  recapLines.push({
+    label: "Max Combo:",
+    delta: missionMaxCombo,
+    kind: "mission",
+    affectsTotal: false,
+    forceSignless: true,
+  });
   const recapTitle = `${monthLabel} Recap`;
   const recapStartCount = Math.round(congregationTotal - totalDelta);
   if (announcement) {
@@ -13579,6 +13599,9 @@ function showPrayerBombBlastCombo(count, x, y) {
 function maybeUpdateMaxComboInTown(hits, x, y) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   if (!Number.isFinite(comboHits)) return;
+  if (levelManager?.setBattleMaxCombo) {
+    levelManager.setBattleMaxCombo(comboHits);
+  }
   if (comboHits <= maxComboThisTown) return;
   maxComboThisTown = comboHits;
   if (comboHits > 15) {

@@ -510,7 +510,9 @@
         lostPortraits: [],
         savedPortraits: [],
       },
-  lastBattleSummary: null,
+      battleEnemiesStart: 0,
+      battleMaxCombo: 0,
+      lastBattleSummary: null,
       graceRushFadeTimer: 0,
       conversationQueue: [],
       currentBattleScenario: "",
@@ -640,13 +642,15 @@
       buildCongregationMembers();
     }
 
-  function beginBattle() {
-    clearStagePowerUps();
-    finishNpcRush();
-    state.waitingForCongregation = false;
-    clearCongregationMembers();
-    state.monthIndex += 1;
-    state.waveIndex = -1;
+    function beginBattle() {
+      clearStagePowerUps();
+      finishNpcRush();
+      state.waitingForCongregation = false;
+      clearCongregationMembers();
+      state.monthIndex += 1;
+      state.waveIndex = -1;
+      state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
+      state.battleMaxCombo = 0;
   const battleNumber = state.monthIndex + 1;
   const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
   const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
@@ -795,6 +799,8 @@
         lostNames: lostNames,
         totalNpcFaith: Math.round(totalNpcFaith),
         battleScenario: state.currentBattleScenario,
+        battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
+        battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
       };
       npcs.splice(0, npcs.length);
       state.battleNpcStartCount = 0;
@@ -1306,6 +1312,8 @@ state.waveIndex = -1;
         state.npcRushActive = false;
         state.npcRushTimer = 0;
         state.lastClearedWasBoss = false;
+        state.battleEnemiesStart = 0;
+        state.battleMaxCombo = 0;
       },
       update(dt) {
         if (!state.active) return;
@@ -1584,6 +1592,11 @@ state.waveIndex = -1;
       },
       getStats() {
         return state.stats;
+      },
+      setBattleMaxCombo(value) {
+        if (!Number.isFinite(value)) return;
+        const next = Math.max(0, Math.round(value));
+        state.battleMaxCombo = Math.max(state.battleMaxCombo || 0, next);
       },
       getLastBattleSummary() {
         return state.lastBattleSummary || null;

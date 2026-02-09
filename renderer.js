@@ -1534,7 +1534,9 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     if (showValue) {
       const valuePrefix = line.valuePrefix || "";
       const valueSuffix = line.valueSuffix || "";
-      valueText = `${valuePrefix}${formatSigned(line.delta)}${valueSuffix}`;
+      const numericValue = Number.isFinite(line.delta) ? Math.round(line.delta) : 0;
+      const formattedValue = line.forceSignless ? `${numericValue}` : formatSigned(line.delta);
+      valueText = `${valuePrefix}${formattedValue}${valueSuffix}`;
       const lastLine = labelLines[labelLines.length - 1] || "";
       const lastWidth = ctx.measureText(lastLine).width;
       const valueWidth = ctx.measureText(valueText).width;
