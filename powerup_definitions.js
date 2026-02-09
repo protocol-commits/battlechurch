@@ -8,6 +8,7 @@
   const HERO_BASE_HEARTS = 6;
   const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
   const UTILITY_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Items";
+  const UPGRADE_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Weapons";
 
   const weaponDropDefs = {
     faith: {
@@ -163,9 +164,48 @@
     },
   };
 
+  const upgradePowerupDefs = {
+    spreadGun: {
+      src: `${UPGRADE_POWERUP_ROOT}/Spread.png`,
+      scale: 4.4 * WORLD_SCALE,
+      radius: 26 * WORLD_SCALE,
+      effect: "spreadGun",
+      duration: 10,
+      label: "Spread Gun",
+      iconSrc: `${UPGRADE_POWERUP_ROOT}/Spread.png`,
+      description: "Adds two extra basic shots at slight angles.",
+      cost: 40,
+    },
+    remote: {
+      src: `${UTILITY_POWERUP_ROOT}/I27_Rune.png`,
+      scale: 3.0 * WORLD_SCALE,
+      radius: 26 * WORLD_SCALE,
+      effect: "remote",
+      duration: 10,
+      label: "Remote",
+      iconSrc: `${UTILITY_POWERUP_ROOT}/I27_Rune.png`,
+      description: "Coming soon.",
+      cost: 40,
+      disabled: true,
+    },
+    halo: {
+      src: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
+      scale: 3.8 * WORLD_SCALE,
+      radius: 26 * WORLD_SCALE,
+      effect: "halo",
+      duration: 10,
+      label: "Halo",
+      iconSrc: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
+      description: "Coming soon.",
+      cost: 40,
+      disabled: true,
+    },
+  };
+
   const ns =
     global.BattlechurchPowerupDefinitions ||
     (global.BattlechurchPowerupDefinitions = {});
   ns.weaponDropDefs = weaponDropDefs;
   ns.utilityPowerupDefs = utilityPowerupDefs;
+  ns.upgradePowerupDefs = upgradePowerupDefs;
 })(typeof window !== "undefined" ? window : globalThis);

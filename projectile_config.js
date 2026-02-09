@@ -161,5 +161,13 @@
       description: "Piercing fire shots with higher speed.",
       hudDuration: 2.6,
     },
+    spreadGun: {
+      duration: 10,
+      text: "Spread Gun",
+      textColor: "#ffd978",
+      hudTitle: "Spread Gun",
+      description: "Adds two extra basic shots at slight angles.",
+      hudDuration: 2.6,
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);

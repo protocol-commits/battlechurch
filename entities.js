@@ -598,6 +598,8 @@ const getResistanceTimerScale = () => {
     this.fireSpeedMultiplier = 1;
     this.fireShotsMax = 1;
     this.fireCooldownMultiplier = 1;
+    this.spreadGunTimer = 0;
+    this.spreadGunDuration = 0;
     this.armorTimer = 0;
     this.armorReduction = 0;
     this.weaponPowerTimer = 0;
@@ -658,6 +660,10 @@ const getResistanceTimerScale = () => {
     if (this.magicBuffTimer <= 0) {
       this.magicCooldownMultiplier = 1;
       this.magicSpeedMultiplier = 1;
+    }
+    this.spreadGunTimer = Math.max(0, this.spreadGunTimer - dt * timerDrainScale);
+    if (this.spreadGunTimer <= 0) {
+      this.spreadGunDuration = 0;
     }
 
     const decayBase = this.powerExtendTimer > 0 ? 0.5 : 1;
@@ -961,6 +967,7 @@ const getResistanceTimerScale = () => {
           : undefined,
         source: this,
       });
+      this.spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier);
       const playArrowSfx =
         typeof window !== "undefined" ? window.playDefaultArrowSfx : null;
       if (typeof playArrowSfx === "function") {
@@ -1040,6 +1047,7 @@ const getResistanceTimerScale = () => {
         pierce: true,
         source: this,
       });
+      this.spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier);
       const playWisdomSfx =
         typeof window !== "undefined" ? window.playWisdomCastSfx : null;
       if (typeof playWisdomSfx === "function") {
@@ -1081,6 +1089,7 @@ const getResistanceTimerScale = () => {
           detonateFaithCannonProjectile(projectile, { endOfRange: true });
         },
       });
+      this.spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier);
       const playFaithSfx =
         typeof window !== "undefined" ? window.playFaithCannonSfx : null;
       if (typeof playFaithSfx === "function") {
@@ -1119,6 +1128,7 @@ const getResistanceTimerScale = () => {
         flipHorizontal: direction.x < 0,
         source: this,
       });
+      this.spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier);
       const playFireballSfx =
         typeof window !== "undefined" ? window.playFireballCastSfx : null;
       if (typeof playFireballSfx === "function") {
@@ -1317,6 +1327,31 @@ const getResistanceTimerScale = () => {
     const aimVector =
       this.aim.x !== 0 || this.aim.y !== 0 ? this.aim : { x: 0, y: 1 };
     return normalizeVector(aimVector.x, aimVector.y);
+  }
+
+  spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier = 1) {
+    if (this.spreadGunTimer <= 0) return;
+    const spread = 0.15;
+    const perp = { x: -direction.y, y: direction.x };
+    const up = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);
+    const down = normalizeVector(direction.x - perp.x * spread, direction.y - perp.y * spread);
+    const life = Number.isFinite(PROJECTILE_CONFIG.arrow?.life)
+      ? PROJECTILE_CONFIG.arrow.life * bossRangeMultiplier
+      : undefined;
+    const damage = this.getArrowDamage();
+    const scale = this.getArrowProjectileScale();
+    spawnProjectile("arrow", originX, originY, up.x, up.y, {
+      damage,
+      scale,
+      life,
+      source: this,
+    });
+    spawnProjectile("arrow", originX, originY, down.x, down.y, {
+      damage,
+      scale,
+      life,
+      source: this,
+    });
   }
 
   isArrowExtendProjectileBuffActive() {

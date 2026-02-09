@@ -33,6 +33,10 @@
   }
 
   function getStats() {
+    const upgradeManager = window.UpgradePowerups;
+    if (upgradeManager && typeof upgradeManager.getOptions === "function") {
+      return upgradeManager.getOptions();
+    }
     if (!StatsManager) return [];
     return StatsManager.getStatKeys()
       .filter((key) => key !== "damage_resistance")
@@ -48,6 +52,10 @@
   }
 
   function attemptPurchase(statKey) {
+    const upgradeManager = window.UpgradePowerups;
+    if (upgradeManager && typeof upgradeManager.purchase === "function") {
+      return upgradeManager.purchase(statKey);
+    }
     if (!StatsManager) return false;
     const cost = StatsManager.getUpgradeCost(statKey);
     const currentGrace = getGraceCount();
@@ -240,7 +248,8 @@
     consumedAction = true;
     if (focusedIndex < statCount) {
       const stat = stats[focusedIndex];
-      if (stat && getGraceCount() >= stat.cost) {
+      const canPurchase = stat && !stat.disabled && !stat.owned && getGraceCount() >= stat.cost;
+      if (canPurchase) {
         const purchased = attemptPurchase(stat.key);
         if (purchased && typeof window.playMenuItemPickSfx === "function") {
           window.playMenuItemPickSfx(0.55);

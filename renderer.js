@@ -1755,6 +1755,7 @@ const UPGRADE_ICON_SOURCES = {
 };
 let upgradeCategoryIcon = null;
 let upgradeMoveIcon = null;
+const upgradePowerupIcons = new Map();
 
 function getUpgradeIcon(kind) {
   if (typeof Image === "undefined") return null;
@@ -1770,6 +1771,16 @@ function getUpgradeIcon(kind) {
     upgradeMoveIcon.src = UPGRADE_ICON_SOURCES.move;
   }
   return upgradeMoveIcon;
+}
+
+function getUpgradePowerupIcon(src) {
+  if (!src || typeof Image === "undefined") return null;
+  if (!upgradePowerupIcons.has(src)) {
+    const img = new Image();
+    img.src = src;
+    upgradePowerupIcons.set(src, img);
+  }
+  return upgradePowerupIcons.get(src);
 }
 
 function drawUpgradeScreen(ctx, canvas, options = {}) {
@@ -1888,7 +1899,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   const bounds = [];
   stats.forEach((stat, index) => {
     const x = buttonStartX + index * (buttonWidth + buttonGap);
-    const canAfford = graceCount >= stat.cost;
+    const canAfford = !stat.disabled && !stat.owned && graceCount >= stat.cost;
     const cardPaddingX = 16;
     const cardPaddingY = 14;
     const innerX = x + cardPaddingX;
@@ -1912,7 +1923,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.strokeStyle = canAfford ? "rgba(11, 17, 26, 0.35)" : "rgba(11, 17, 26, 0.2)";
     ctx.lineWidth = 1;
     roundRect(ctx, categoryIconX, categoryIconY, categoryIconSize, categoryIconSize, 5, true, true);
-    const categoryIcon = getUpgradeIcon("category");
+    const powerupIcon = getUpgradePowerupIcon(stat.iconSrc);
+    const categoryIcon = powerupIcon || getUpgradeIcon("category");
     if (categoryIcon && categoryIcon.complete) {
       const pad = 2;
       ctx.drawImage(
@@ -1937,17 +1949,25 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const descriptionY = titleY + 18;
     ctx.fillText(stat.description, x + buttonWidth / 2, descriptionY);
 
+    const detailText = stat.detail || (stat.value ? `Current: ${stat.value}` : "");
     const valueY = descriptionY + 22;
-    ctx.font = `600 16px ${uiFontFamily}`;
-    ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
-    ctx.textAlign = "center";
-    ctx.fillText(`Current: ${stat.value}`, x + buttonWidth / 2, valueY);
+    if (detailText) {
+      ctx.font = `600 16px ${uiFontFamily}`;
+      ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
+      ctx.textAlign = "center";
+      ctx.fillText(detailText, x + buttonWidth / 2, valueY);
+    }
 
-    const costY = valueY + 18;
+    const costText = stat.disabled
+      ? "Coming soon"
+      : stat.owned
+        ? "Unlocked"
+        : `Cost: ${stat.cost}`;
+    const costY = detailText ? valueY + 18 : valueY;
     ctx.font = `14px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.7)" : "rgba(11, 17, 26, 0.4)";
     ctx.textAlign = "center";
-    ctx.fillText(`Cost: ${stat.cost}`, x + buttonWidth / 2, costY);
+    ctx.fillText(costText, x + buttonWidth / 2, costY);
 
     const unlocks = Array.isArray(stat.unlocks) ? stat.unlocks : [];
     if (unlocks.length) {
@@ -4439,6 +4459,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       npcs,
       utilityPowerUps,
       weaponPickups,
+      upgradePowerUps,
       gracePickups,
       enemies,
       activeBoss,
@@ -5160,6 +5181,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     // Draw pickups above projectiles/effects so they're easy to see.
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
     weaponPickups.forEach((pickup) => pickup.draw());
+    upgradePowerUps.forEach((pickup) => pickup.draw());
     gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });

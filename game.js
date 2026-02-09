@@ -17,6 +17,7 @@ const projectiles = [];
 const obstacles = [];
 const weaponPickups = [];
 const utilityPowerUps = [];
+const upgradePowerUps = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
@@ -28,6 +29,7 @@ const POWERUP_SPAWN_BLINK_DURATION = 1.2;
 let powerUpRespawnTimer = 0;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
+const unlockedUpgradePowerups = new Set();
 const GRACE_PICKUP_RADIUS = 18;
 const GRACE_PICKUP_FRAME_DURATION = 0.08;
 const GRACE_PICKUP_LIFETIME = 8;
@@ -1650,6 +1652,14 @@ function canSpawnUtilityPowerUp() {
   return getActiveUtilityPowerUpCount() < 1 && powerUpRespawnTimer <= 0;
 }
 
+function getActiveUpgradePowerUpCount() {
+  return upgradePowerUps.filter((p) => p && !p.collected && !p.dead).length;
+}
+
+function canSpawnUpgradePowerUp() {
+  return getActiveUpgradePowerUpCount() < 1 && powerUpRespawnTimer <= 0;
+}
+
 function getActiveWeaponPowerUpCount() {
   return weaponPickups.filter((pickup) => pickup && pickup.effect && isWeaponPowerEffect(pickup.effect)).length;
 }
@@ -1671,6 +1681,14 @@ function clearAllPowerUps() {
     pickup.life = 0;
   });
   weaponPickups.splice(0, weaponPickups.length);
+  upgradePowerUps.forEach((pickup) => {
+    if (!pickup) return;
+    pickup.active = false;
+    pickup.expired = true;
+    pickup.visible = false;
+    pickup.life = 0;
+  });
+  upgradePowerUps.splice(0, upgradePowerUps.length);
   utilityPowerUps.forEach((powerUp) => {
     if (!powerUp) return;
     powerUp.active = false;
@@ -1681,6 +1699,11 @@ function clearAllPowerUps() {
   utilityPowerUps.splice(0, utilityPowerUps.length);
   powerupHudFlyEffects.splice(0, powerupHudFlyEffects.length);
   powerUpRespawnTimer = 0;
+}
+
+function resetUpgradePowerups() {
+  unlockedUpgradePowerups.clear();
+  upgradePowerUps.splice(0, upgradePowerUps.length);
 }
 
 function clearGracePickups() {
@@ -1704,6 +1727,51 @@ function addGrace(amount = 1) {
 if (typeof window !== "undefined") {
   window.getGraceCount = getGraceCount;
   window.addGrace = addGrace;
+}
+
+function getUpgradePowerupOptions() {
+  return Object.entries(UPGRADE_POWERUP_DEFS).map(([key, def]) => {
+    const duration = Number.isFinite(def.duration) ? def.duration : null;
+    const detail = def.disabled
+      ? "Coming soon"
+      : duration
+        ? `Duration: ${duration}s`
+        : "";
+    return {
+      key,
+      label: def.label || key,
+      description: def.description || "",
+      cost: Number.isFinite(def.cost) ? def.cost : 0,
+      iconSrc: def.iconSrc || def.src || null,
+      detail,
+      disabled: Boolean(def.disabled),
+      owned: unlockedUpgradePowerups.has(key),
+    };
+  });
+}
+
+function unlockUpgradePowerup(key) {
+  if (!key || !UPGRADE_POWERUP_DEFS[key] || UPGRADE_POWERUP_DEFS[key].disabled) return false;
+  if (unlockedUpgradePowerups.has(key)) return false;
+  unlockedUpgradePowerups.add(key);
+  return true;
+}
+
+function purchaseUpgradePowerup(key) {
+  const def = UPGRADE_POWERUP_DEFS[key];
+  if (!def || def.disabled || unlockedUpgradePowerups.has(key)) return false;
+  const cost = Number.isFinite(def.cost) ? def.cost : 0;
+  if (getGraceCount() < cost) return false;
+  addGrace(-cost);
+  return unlockUpgradePowerup(key);
+}
+
+if (typeof window !== "undefined") {
+  window.UpgradePowerups = {
+    getOptions: getUpgradePowerupOptions,
+    purchase: purchaseUpgradePowerup,
+    reset: resetUpgradePowerups,
+  };
 }
 
 function startBattleGraceRush(duration = GRACE_RUSH_DURATION, options = {}) {
@@ -2623,6 +2691,7 @@ Renderer.initialize({
   npcs,
   utilityPowerUps,
   weaponPickups,
+  upgradePowerUps,
   gracePickups,
   enemies,
   get activeBoss() { return activeBoss; },
@@ -3260,6 +3329,7 @@ const powerupDefinitions =
   {};
 const WEAPON_DROP_DEFS = powerupDefinitions.weaponDropDefs || {};
 const UTILITY_POWERUP_DEFS = powerupDefinitions.utilityPowerupDefs || {};
+const UPGRADE_POWERUP_DEFS = powerupDefinitions.upgradePowerupDefs || {};
 
 const ASSET_MANIFEST =
   window.BattlechurchAssetManifest?.build?.({
@@ -3542,6 +3612,11 @@ const WEAPON_POWERUP_EFFECTS = new Set([
   "npcScriptureWeapon",
   "npcWisdomWeapon",
   "npcFaithWeapon",
+]);
+const UPGRADE_POWERUP_EFFECTS = new Set([
+  "spreadGun",
+  "remote",
+  "halo",
 ]);
 let devPowerupSwapIndex = 0;
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
@@ -4498,6 +4573,50 @@ async function loadUtilityAssets(cache, assets) {
   await Promise.all(utilityEntries);
 }
 
+async function loadUpgradePowerupAssets(cache, assets) {
+  const upgradeEntries = Object.entries(UPGRADE_POWERUP_DEFS).map(
+    async ([key, def]) => {
+      let frames = null;
+      let baseFrame = null;
+      if (Array.isArray(def.frameSources) && def.frameSources.length) {
+        frames = [];
+        for (const src of def.frameSources) {
+          if (!cache.has(src)) {
+            cache.set(src, loadImage(src));
+          }
+          const img = await cache.get(src);
+          frames.push(img);
+        }
+        baseFrame = frames[0] || null;
+      } else if (def.src) {
+        if (!cache.has(def.src)) {
+          cache.set(def.src, loadImage(def.src));
+        }
+        const image = await cache.get(def.src);
+        const fw = def.frameWidth || 0;
+        const fh = def.frameHeight || 0;
+        if (fw > 0 && fh > 0) {
+          frames = extractFrames(image, fw, fh);
+          const index = Math.max(0, def.frameIndex || 0);
+          baseFrame = frames[index] || frames[0] || image;
+        } else {
+          baseFrame = extractFrame(image, fw, fh, def.frameIndex || 0);
+        }
+      }
+      const imageRef = baseFrame || (frames && frames[0]) || null;
+      let iconImage = null;
+      if (def.iconSrc) {
+        if (!cache.has(def.iconSrc)) {
+          cache.set(def.iconSrc, loadImage(def.iconSrc));
+        }
+        iconImage = await cache.get(def.iconSrc);
+      }
+      assets.upgradePowerups[key] = { image: imageRef, frames, iconImage, ...def };
+    },
+  );
+  await Promise.all(upgradeEntries);
+}
+
 async function loadProjectileFrames(cache, assets, projectileFrames) {
   // Coin frames
   projectileFrames.coin = assets.items.coinFrames || [];
@@ -4748,6 +4867,7 @@ async function loadTitleMapAssets() {
     enemies: {},
     obstacles: {},
     weaponPickups: {},
+    upgradePowerups: {},
     utility: {},
     effects: {},
     background: null,
@@ -4828,6 +4948,7 @@ async function loadGameplayAssets(cache, assets) {
     loadEnemyAssets(cache, assets, true), // Skip map enemies (already loaded)
     loadObstacleAssets(cache, assets),
     loadWeaponDropAssets(cache, assets),
+    loadUpgradePowerupAssets(cache, assets),
     loadUtilityAssets(cache, assets),
     loadBackgroundAssets(cache, assets),
     npcAssetsPromise,
@@ -5172,6 +5293,7 @@ function startGameFromTitle() {
   startSpeedrunTimer();
   resetYearNpcPool();
   if (window.StatsManager) window.StatsManager.resetStats();
+  resetUpgradePowerups();
   // Clear any previously queued announcements so the congregation doesn't show
   // immediately (init/restart may have queued them at startup).
   try {
@@ -5731,9 +5853,16 @@ function spawnPowerUpDrops(count = 1) {
     isBossStage ? !isNpcWeaponPowerup(def) : true,
   );
   const hasWeaponPickups = weaponPickupEntries.length > 0;
+  const hasUpgradePickups = getUnlockedUpgradePowerupKeys().length > 0;
   const hasUtility = Object.keys(assets?.utility || {}).length > 0;
-  if (!hasWeaponPickups && !hasUtility) return;
+  if (!hasWeaponPickups && !hasUtility && !hasUpgradePickups) return;
   for (let i = 0; i < count; i += 1) {
+    if (hasUpgradePickups && Math.random() < 0.2) {
+      if (canSpawnUpgradePowerUp()) {
+        spawnUpgradePowerUp();
+        continue;
+      }
+    }
     const spawnUtility = hasUtility && Math.random() < 0.45;
     if (spawnUtility) {
       if (canSpawnUtilityPowerUp()) {
@@ -5924,6 +6053,74 @@ function isWeaponPowerEffect(effect) {
 function isNpcWeaponPowerup(def) {
   const effect = typeof def?.effect === "string" ? def.effect : "";
   return effect.startsWith("npc");
+}
+
+function getUnlockedUpgradePowerupKeys() {
+  return Array.from(unlockedUpgradePowerups).filter((key) => assets?.upgradePowerups?.[key]);
+}
+
+function spawnUpgradePowerUp(type = null, position = null) {
+  if (!canSpawnUpgradePowerUp()) return null;
+  if (!assets?.upgradePowerups) return null;
+  const keys = type ? [type] : getUnlockedUpgradePowerupKeys();
+  if (!keys.length) return null;
+  const selected = keys[Math.floor(Math.random() * keys.length)];
+  const def = assets.upgradePowerups[selected];
+  if (!def?.image) return null;
+  const areaPadding = 120;
+  const minX = areaPadding;
+  const maxX = Math.max(minX, canvas.width - areaPadding);
+  const minY = Math.max(HUD_HEIGHT + POWERUP_PLAYFIELD_MARGIN, areaPadding);
+  const maxY = Math.max(minY, canvas.height - areaPadding);
+  const homeBounds = getNpcHomeBounds();
+
+  const isInsideHome = (x, y) => {
+    const dx = x - homeBounds.x;
+    const dy = y - homeBounds.y;
+    return Math.hypot(dx, dy) <= homeBounds.radius;
+  };
+
+  const spanX = Math.max(0, maxX - minX);
+  const spanY = Math.max(0, maxY - minY);
+
+  let spawnX;
+  let spawnY;
+
+  if (position?.x !== undefined || position?.y !== undefined) {
+    spawnX = Math.max(minX, Math.min(maxX, position?.x ?? minX));
+    spawnY = Math.max(minY, Math.min(maxY, position?.y ?? minY));
+    if (isInsideHome(spawnX, spawnY)) {
+      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
+      const pushDist = homeBounds.radius + 28;
+      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
+      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
+      spawnX = Math.max(minX, Math.min(maxX, spawnX));
+      spawnY = Math.max(minY, Math.min(maxY, spawnY));
+    }
+  } else {
+    let attempts = 0;
+    do {
+      spawnX = minX + (spanX > 0 ? Math.random() * spanX : 0);
+      spawnY = minY + (spanY > 0 ? Math.random() * spanY : 0);
+      attempts += 1;
+    } while (isInsideHome(spawnX, spawnY) && attempts < 50);
+    if (isInsideHome(spawnX, spawnY)) {
+      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
+      const pushDist = homeBounds.radius + 28;
+      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
+      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
+      spawnX = Math.max(minX, Math.min(maxX, spawnX));
+      spawnY = Math.max(minY, Math.min(maxY, spawnY));
+    }
+  }
+
+  const pickup = new WeaponPickup({ ...def, type: selected });
+  pickup.x = spawnX;
+  pickup.y = spawnY;
+  pickup.baseY = pickup.y;
+  clampEntityToBounds(pickup);
+  upgradePowerUps.push(pickup);
+  return pickup;
 }
 
 function spawnUtilityPowerUp(type = null, position = null) {
@@ -6137,6 +6334,13 @@ function applyWeaponPickupEffect(pickup) {
       });
       break;
     }
+    case "spreadGun": {
+      const config = resolveWeaponPowerupConfig("spreadGun", def);
+      player.spreadGunTimer = Math.max(player.spreadGunTimer, config.duration);
+      player.spreadGunDuration = Math.max(player.spreadGunDuration, config.duration);
+      showWeaponPowerupConfigText(config);
+      break;
+    }
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
       showWeaponPowerupConfigText({
@@ -6344,6 +6548,36 @@ function updateWeaponPickups(dt) {
     if (distance <= (pickup.radius || 0) + player.radius) {
       applyWeaponPickupEffect(pickup);
       weaponPickups.splice(i, 1);
+    }
+  }
+}
+
+function updateUpgradePowerUps(dt) {
+  upgradePowerUps.forEach((pickup) => {
+    if (!pickup) return;
+    pickup.update(dt);
+    if (!pickup.active) return;
+    resolveEntityCollisions(pickup, upgradePowerUps, { allowPush: true, overlapScale: 1 });
+    resolveEntityCollisions(pickup, enemies, { allowPush: true, overlapScale: 1 });
+    resolveEntityCollisions(pickup, [player], { allowPush: true, overlapScale: 1 });
+    clampEntityToBounds(pickup);
+  });
+
+  for (let i = upgradePowerUps.length - 1; i >= 0; i -= 1) {
+    const pickup = upgradePowerUps[i];
+    if (!pickup) continue;
+    if (pickup.expired || !pickup.active) {
+      upgradePowerUps.splice(i, 1);
+      triggerPowerUpCooldown();
+      continue;
+    }
+    if (!player) continue;
+    const dx = pickup.x - player.x;
+    const dy = pickup.y - player.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= (pickup.radius || 0) + player.radius) {
+      applyWeaponPickupEffect(pickup);
+      upgradePowerUps.splice(i, 1);
     }
   }
 }
@@ -7385,6 +7619,7 @@ const POWERUP_ICON_TEXT_COLOR = "#EAF6FF";
 function resolvePowerupIconCategory(effect = "") {
   if (String(effect).startsWith("npc")) return "npc";
   if (WEAPON_POWERUP_EFFECTS.has(effect)) return "player";
+  if (UPGRADE_POWERUP_EFFECTS.has(effect)) return "player";
   return "utility";
 }
 
@@ -11400,11 +11635,12 @@ function updateCozyNpcs(dt) {
         // NPCs should collide with the player (can be pushed), enemies (allow push),
         // other weapon pickups, and utility power-ups so they can't pass through pickups.
         if (player && !npc.departed && npc.active) {
-          resolveEntityCollisions(npc, [player], { allowPush: true, overlapScale: 0.85 });
-        }
-        resolveEntityCollisions(npc, enemies, { allowPush: true, overlapScale: 0.85 });
-        resolveEntityCollisions(npc, weaponPickups, { allowPush: true, overlapScale: 0.9 });
-        resolveEntityCollisions(npc, utilityPowerUps, { allowPush: false, overlapScale: 0.9 });
+        resolveEntityCollisions(npc, [player], { allowPush: true, overlapScale: 0.85 });
+      }
+      resolveEntityCollisions(npc, enemies, { allowPush: true, overlapScale: 0.85 });
+      resolveEntityCollisions(npc, weaponPickups, { allowPush: true, overlapScale: 0.9 });
+      resolveEntityCollisions(npc, upgradePowerUps, { allowPush: true, overlapScale: 0.9 });
+      resolveEntityCollisions(npc, utilityPowerUps, { allowPush: false, overlapScale: 0.9 });
         // Respect world obstacles (trees, walls, etc.) so NPCs don't walk through them.
         resolveEntityObstacles(npc);
         clampEntityToBounds(npc);
@@ -15628,6 +15864,7 @@ function updateGame(dt) {
 
   // Process pickups BEFORE player update so weapon changes apply immediately
   updateWeaponPickups(dt);
+  updateUpgradePowerUps(dt);
   updateUtilityPowerUps(dt);
 
   updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
@@ -15688,6 +15925,9 @@ function updateGame(dt) {
     if (shouldEnsurePowerUp && !delayingForNpcProcession) {
       if (canSpawnUtilityPowerUp()) {
         spawnUtilityPowerUp();
+      }
+      if (getUnlockedUpgradePowerupKeys().length && canSpawnUpgradePowerUp()) {
+        spawnUpgradePowerUp();
       }
       if (battleStageAllowsPowerUps && canSpawnWeaponPowerUp()) {
         spawnWeaponPickup();
@@ -16202,9 +16442,11 @@ function restartGame() {
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
   weaponPickups.splice(0, weaponPickups.length);
+  upgradePowerUps.splice(0, upgradePowerUps.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
   clearGracePickups();
   window.StatsManager?.resetStats?.();
+  resetUpgradePowerups();
   playerGraceCount = 0;
   Spawner.resetAllFlags();
   Effects.clear();
@@ -16376,6 +16618,7 @@ function updateDebugOverlayData() {
     projectiles: projectiles.length,
     gracePickups: gracePickups.length,
     weaponPickups: weaponPickups.length,
+    upgradePowerUps: upgradePowerUps.length,
     utilityPowerUps: utilityPowerUps.length,
     effects: effects.length,
     floatingTexts: floatingTexts.length,
@@ -16407,6 +16650,7 @@ function renderDebugOverlay(ctx) {
     `Projectiles: ${data.projectiles}`,
     `Grace: ${data.gracePickups}`,
     `Weapons: ${data.weaponPickups}`,
+    `Upgrades: ${data.upgradePowerUps}`,
     `Powerups: ${data.utilityPowerUps}`,
     `Effects: ${data.effects}`,
     `Texts: ${data.floatingTexts}`,
