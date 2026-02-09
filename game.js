@@ -6385,6 +6385,20 @@ function maybeDropGraceFromEnemy(enemy) {
   if (!enemy || visitorSession?.active) return;
   const framesAvailable = assets?.items?.gracePickup?.frames;
   if (!framesAvailable || !framesAvailable.length) return;
+  const baseHealth = Number.isFinite(enemy.maxHealth)
+    ? enemy.maxHealth
+    : Number.isFinite(enemy.config?.health)
+      ? enemy.config.health
+      : enemy.health;
+  if (Number.isFinite(baseHealth) && baseHealth > 100) {
+    const blocks = Math.max(1, Math.floor(baseHealth / 100));
+    let guaranteed = 0;
+    for (let i = 0; i < blocks; i += 1) {
+      guaranteed += Math.floor(randomInRange(3, 6));
+    }
+    spawnGraceArcBurst(enemy.x, enemy.y, guaranteed);
+    return;
+  }
   let chance = GRACE_DROP_BASE_CHANCE;
   const referenceRadius = enemy.radius || enemy.config?.radius || 24;
   const sizeRatio = Math.max(0, referenceRadius - 24) / 48;
