@@ -6761,26 +6761,9 @@ function detonateWisdomMissleProjectile(projectile) {
     playWisdomHitSfx(0.8);
   }
   const baseDamage = projectile.getDamage() * MAGIC_SPLASH_DAMAGE_MULTIPLIER;
-  enemies.forEach((enemy) => {
-    if (enemy.dead || enemy.state === "death") return;
-    const center = getEnemyHitboxCenter(enemy);
-    const distance = Math.hypot(center.x - centerX, center.y - centerY);
-    const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;
-    if (distance <= threshold) {
-      enemy.takeDamage(baseDamage);
-    }
+  applyProjectileSplashDamage(projectile, centerX, centerY, radius, baseDamage, {
+    skipBossImpact: true,
   });
-  if (activeBoss && !activeBoss.dead && !activeBoss.removed) {
-    const distance = Math.hypot(activeBoss.x - centerX, activeBoss.y - centerY);
-    const threshold = radius + (activeBoss.radius || 0) * 0.6;
-    if (distance <= threshold) {
-      activeBoss.takeDamage(baseDamage, {
-        hitX: centerX,
-        hitY: centerY,
-        skipImpactEffect: true,
-      });
-    }
-  }
   spawnMagicSplashEffect(centerX, centerY, radius);
   projectile.dead = true;
   applyCameraShake(WISDOM_HIT_SHAKE_DURATION, WISDOM_HIT_SHAKE_MAGNITUDE);
@@ -6798,27 +6781,9 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
     playFaithHitSfx(0.8);
   }
   const splashDamage = projectile.getDamage() * FAITH_CANNON_SPLASH_DAMAGE_MULTIPLIER;
-  enemies.forEach((enemy) => {
-    if (enemy.dead || enemy.state === "death") return;
-    const center = getEnemyHitboxCenter(enemy);
-    const distance = Math.hypot(center.x - centerX, center.y - centerY);
-    const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;
-    if (distance <= threshold) {
-      enemy.takeDamage(splashDamage);
-    }
+  applyProjectileSplashDamage(projectile, centerX, centerY, radius, splashDamage, {
+    skipBossImpact: true,
   });
-
-  if (activeBoss && !activeBoss.dead && !activeBoss.removed) {
-    const distance = Math.hypot(activeBoss.x - centerX, activeBoss.y - centerY);
-    const threshold = radius + (activeBoss.radius || 0) * 0.6;
-    if (distance <= threshold) {
-      activeBoss.takeDamage(splashDamage, {
-        hitX: centerX,
-        hitY: centerY,
-        skipImpactEffect: true,
-      });
-    }
-  }
   if (endOfRange) {
     spawnImpactDustEffect(centerX, centerY);
   } else {
@@ -12980,7 +12945,7 @@ function processProjectileCollisions(dt) {
           projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
         enemy.takeDamage(projectileDamage, { damageType });
     if (projectile.source?.isPlayer) {
-      registerComboHit(enemy, projectileDamage);
+      registerProjectileComboHit(enemy, projectileDamage, projectile);
     }
 
         if (
@@ -13025,7 +12990,7 @@ function processProjectileCollisions(dt) {
               skipImpactEffect: true,
             });
             if (projectile.source?.isPlayer) {
-              registerComboHit(activeBoss, bossDamage);
+              registerProjectileComboHit(activeBoss, bossDamage, projectile);
             }
             if (
               projectile.type === "arrow" ||
@@ -13209,9 +13174,54 @@ function getDashButtonDirection() {
   return normalizeVector(dir.x, dir.y);
 }
 
+function getComboDirectionOctant(dx, dy) {
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return null;
+  if (dx === 0 && dy === 0) return null;
+  const angle = Math.atan2(dy, dx);
+  const sector = Math.round(angle / (Math.PI / 4));
+  const normalized = (sector + 8) % 8;
+  return normalized;
+}
+
+function isAllowedProjectileComboDirection(baseIndex, nextIndex) {
+  if (!Number.isFinite(baseIndex) || !Number.isFinite(nextIndex)) return true;
+  if (baseIndex === nextIndex) return true;
+  const diff = (nextIndex - baseIndex + 8) % 8;
+  return diff === 1 || diff === 7;
+}
+
+function finalizeComboState(state) {
+  if (!state || state.hits < 2) return;
+  const fallbackEntity = {
+    x: state.lastX,
+    y: state.lastY,
+    radius: 24,
+  };
+  if (!Number.isFinite(fallbackEntity.x) || !Number.isFinite(fallbackEntity.y)) return;
+  window.BattlechurchComboTrackerAllow = true;
+  showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
+  window.BattlechurchComboTrackerAllow = false;
+}
+
 const comboTracker = {
   state: null,
-  registerHit(target, damage, now) {
+  flush(now) {
+    if (!this.state) return;
+    const timeNow =
+      typeof now === "number"
+        ? now
+        : typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
+    const state = this.state;
+    this.state = null;
+    if (timeNow <= state.expiresAt) {
+      finalizeComboState(state);
+    } else {
+      finalizeComboState(state);
+    }
+  },
+  registerHit(target, damage, now, options = {}) {
     if (!target || !Number.isFinite(damage) || damage <= 0) return;
     const timeNow =
       typeof now === "number"
@@ -13219,10 +13229,36 @@ const comboTracker = {
         : typeof performance !== "undefined" && typeof performance.now === "function"
           ? performance.now()
           : Date.now();
-    const current =
+    const isProjectile = options?.sourceType === "projectile";
+    const dirIndex = isProjectile
+      ? getComboDirectionOctant(options?.direction?.x, options?.direction?.y)
+      : null;
+    let current =
       this.state && timeNow <= this.state.expiresAt
         ? this.state
-        : { hits: 0, damage: 0, expiresAt: 0, killed: false, lastX: null, lastY: null };
+        : {
+            hits: 0,
+            damage: 0,
+            expiresAt: 0,
+            killed: false,
+            lastX: null,
+            lastY: null,
+            projectileDirIndex: null,
+          };
+    if (isProjectile && Number.isFinite(dirIndex) && Number.isFinite(current.projectileDirIndex)) {
+      if (!isAllowedProjectileComboDirection(current.projectileDirIndex, dirIndex)) {
+        finalizeComboState(current);
+        current = {
+          hits: 0,
+          damage: 0,
+          expiresAt: 0,
+          killed: false,
+          lastX: null,
+          lastY: null,
+          projectileDirIndex: null,
+        };
+      }
+    }
     current.hits += 1;
     current.damage += damage;
     current.lastX = Number.isFinite(target.x) ? target.x : current.lastX;
@@ -13233,6 +13269,9 @@ const comboTracker = {
       (Number.isFinite(target.health) && target.health <= 0)
     ) {
       current.killed = true;
+    }
+    if (isProjectile && Number.isFinite(dirIndex) && !Number.isFinite(current.projectileDirIndex)) {
+      current.projectileDirIndex = dirIndex;
     }
     current.expiresAt = timeNow + COMBO_WINDOW_MS;
     this.state = current;
@@ -13248,22 +13287,22 @@ const comboTracker = {
     if (timeNow <= this.state.expiresAt) return;
     const state = this.state;
     this.state = null;
-    if (state.hits < 2) return;
-    const fallbackEntity = {
-      x: state.lastX,
-      y: state.lastY,
-      radius: 24,
-    };
-    if (!Number.isFinite(fallbackEntity.x) || !Number.isFinite(fallbackEntity.y)) return;
-          window.BattlechurchComboTrackerAllow = true;
-          showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
-          window.BattlechurchComboTrackerAllow = false;
+    finalizeComboState(state);
   },
 };
 
 function registerComboHit(target, damage) {
   if (!window.BattlechurchComboTrackerEnabled) return;
   comboTracker.registerHit(target, damage);
+}
+
+function registerProjectileComboHit(target, damage, projectile) {
+  if (!window.BattlechurchComboTrackerEnabled) return;
+  const direction = projectile ? { x: projectile.vx, y: projectile.vy } : null;
+  comboTracker.registerHit(target, damage, undefined, {
+    sourceType: "projectile",
+    direction,
+  });
 }
 
 function spawnGraceArcBurst(baseX, baseY, count, spread) {
@@ -13315,6 +13354,46 @@ function spawnComboGraceBurst(target, hits, fallbackX, fallbackY, killedOnCombo 
   if (!Number.isFinite(baseX) || !Number.isFinite(baseY)) return;
   const spread = Math.min(140, 40 + comboHits * 12);
   spawnGraceArcBurst(baseX, baseY, gemCount, spread);
+}
+
+function applyProjectileSplashDamage(
+  projectile,
+  centerX,
+  centerY,
+  radius,
+  damage,
+  { skipBossImpact = false } = {},
+) {
+  if (!projectile) return;
+  const fromPlayer = Boolean(projectile?.source?.isPlayer);
+  const damageType = projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
+  enemies.forEach((enemy) => {
+    if (enemy.dead || enemy.state === "death") return;
+    const center = getEnemyHitboxCenter(enemy);
+    const distance = Math.hypot(center.x - centerX, center.y - centerY);
+    const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;
+    if (distance <= threshold) {
+      enemy.takeDamage(damage, { damageType });
+      if (fromPlayer) {
+        registerProjectileComboHit(enemy, damage, projectile);
+      }
+    }
+  });
+  if (activeBoss && !activeBoss.dead && !activeBoss.removed) {
+    const distance = Math.hypot(activeBoss.x - centerX, activeBoss.y - centerY);
+    const threshold = radius + (activeBoss.radius || 0) * 0.6;
+    if (distance <= threshold) {
+      activeBoss.takeDamage(damage, {
+        hitX: centerX,
+        hitY: centerY,
+        damageType,
+        skipImpactEffect: skipBossImpact,
+      });
+      if (fromPlayer) {
+        registerProjectileComboHit(activeBoss, damage, projectile);
+      }
+    }
+  }
 }
 
 function getHeldMovementDirection() {
