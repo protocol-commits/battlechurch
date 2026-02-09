@@ -13208,7 +13208,7 @@ function getDashButtonDirection() {
 }
 
 const comboTracker = {
-  combos: new Map(),
+  state: null,
   registerHit(target, damage, now) {
     if (!target || !Number.isFinite(damage) || damage <= 0) return;
     const timeNow =
@@ -13217,63 +13217,46 @@ const comboTracker = {
         : typeof performance !== "undefined" && typeof performance.now === "function"
           ? performance.now()
           : Date.now();
-    const existing = this.combos.get(target);
-    const state =
-      existing && timeNow <= existing.expiresAt
-        ? existing
-        : { hits: 0, damage: 0, expiresAt: 0, killed: false };
-    state.hits += 1;
-    state.damage += damage;
-    state.lastX = Number.isFinite(target.x) ? target.x : state.lastX;
-    state.lastY = Number.isFinite(target.y) ? target.y : state.lastY;
+    const current =
+      this.state && timeNow <= this.state.expiresAt
+        ? this.state
+        : { hits: 0, damage: 0, expiresAt: 0, killed: false, lastX: null, lastY: null };
+    current.hits += 1;
+    current.damage += damage;
+    current.lastX = Number.isFinite(target.x) ? target.x : current.lastX;
+    current.lastY = Number.isFinite(target.y) ? target.y : current.lastY;
     if (
       target.dead ||
       target.state === "death" ||
       (Number.isFinite(target.health) && target.health <= 0)
     ) {
-      state.killed = true;
+      current.killed = true;
     }
-    state.expiresAt = timeNow + COMBO_WINDOW_MS;
-    this.combos.set(target, state);
+    current.expiresAt = timeNow + COMBO_WINDOW_MS;
+    this.state = current;
   },
   update(now) {
+    if (!this.state) return;
     const timeNow =
       typeof now === "number"
         ? now
         : typeof performance !== "undefined" && typeof performance.now === "function"
           ? performance.now()
           : Date.now();
-    for (const [target, state] of this.combos.entries()) {
-      const targetValid = Boolean(target && !target.removed);
-      const targetDead = Boolean(
-        target &&
-          (target.dead ||
-            target.state === "death" ||
-            (Number.isFinite(target.health) && target.health <= 0)),
-      );
-      if (!targetValid && !state.killed) {
-        this.combos.delete(target);
-        continue;
-      }
-      if (timeNow > state.expiresAt) {
-        if (state.hits >= 2) {
-          const fallbackEntity = targetValid
-            ? target
-            : {
-                x: state.lastX,
-                y: state.lastY,
-                radius: 24,
-              };
-          if (fallbackEntity && Number.isFinite(fallbackEntity.x)) {
-            window.BattlechurchComboTrackerAllow = true;
-            showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
-            window.BattlechurchComboTrackerAllow = false;
-            spawnComboGraceBurst(fallbackEntity, state.hits, state.lastX, state.lastY, state.killed || targetDead);
-          }
-        }
-        this.combos.delete(target);
-      }
-    }
+    if (timeNow <= this.state.expiresAt) return;
+    const state = this.state;
+    this.state = null;
+    if (state.hits < 2) return;
+    const fallbackEntity = {
+      x: state.lastX,
+      y: state.lastY,
+      radius: 24,
+    };
+    if (!Number.isFinite(fallbackEntity.x) || !Number.isFinite(fallbackEntity.y)) return;
+    window.BattlechurchComboTrackerAllow = true;
+    showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
+    window.BattlechurchComboTrackerAllow = false;
+    spawnComboGraceBurst(fallbackEntity, state.hits, state.lastX, state.lastY, state.killed);
   },
 };
 
