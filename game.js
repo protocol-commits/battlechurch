@@ -14528,7 +14528,17 @@ function updateMeleeAttackSystem(dt) {
 
     if (spaceJustPressed && !meleeAttackState.buttonDown && !rushLockActive) {
       if (meleeAttackState.spinTimer > 0) {
-        meleeAttackState.spinMeleeQueued = true;
+        meleeAttackState.spinTimer = 0;
+        meleeAttackState.spinMoveDir = null;
+        meleeAttackState.spinMoveDistanceRemaining = 0;
+        meleeAttackState.spinHitEntities = new Set();
+        meleeAttackState.spinMeleeQueued = false;
+        if (player) {
+          const angleRad = Math.atan2(dir.y, dir.x);
+          const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
+          const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+          executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
+        }
       } else {
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
