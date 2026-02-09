@@ -13213,10 +13213,20 @@ function updateLiveComboText(state, target) {
   const nextY = currentY + (clampedY - currentY) * lerpFactor;
   state.currentX = nextX;
   state.currentY = nextY;
-  const labelX = nextX;
-  const labelY = nextY - radius;
-  const damageX = nextX;
-  const damageY = nextY - radius + 26;
+  const marginX = canvas.width * 0.05;
+  const marginY = canvas.height * 0.05;
+  const minX = marginX;
+  const maxX = canvas.width - marginX;
+  const minY = HUD_HEIGHT + marginY;
+  const maxY = canvas.height - marginY;
+  const clampedLabelX = clamp(nextX, minX, maxX);
+  const clampedLabelY = clamp(nextY - radius, minY, maxY);
+  const clampedDamageX = clampedLabelX;
+  const clampedDamageY = clamp(nextY - radius + 26, minY, maxY);
+  const labelX = clampedLabelX;
+  const labelY = clampedLabelY;
+  const damageX = clampedDamageX;
+  const damageY = clampedDamageY;
   if (!state.comboLabel) {
     state.comboLabel = addFloatingTextAt(labelX, labelY, label, "#FFF2B8", {
       speechBubble: false,
