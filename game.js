@@ -5550,7 +5550,12 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       : null;
   const formatRecapScenarioLines = (deltaValue) => {
     if (!scenarioRecap) {
-      return [{ label: `Helped members with ${scenarioTitle}:`, delta: deltaValue, forceValueLine: true }];
+      return [{
+        label: `Helped members with ${scenarioTitle}:`,
+        delta: deltaValue,
+        forceValueLine: true,
+        highlightText: scenarioTitle,
+      }];
     }
     const match = scenarioRecap.match(/^(.*)\+N\s+Congregants\s*$/);
     const baseText = match ? match[1].trim() : scenarioRecap.trim();
@@ -5563,11 +5568,17 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       const secondLine = parts.slice(1).join(" ").replace(/[.:\s]*$/, "");
       return [
         { label: `${firstLine}.`, delta: 0, skipValue: true, affectsTotal: false },
-        { label: `${secondLine}:`, delta: deltaValue, forceValueLine: false, forceInlineValue: true },
+        {
+          label: `${secondLine}:`,
+          delta: deltaValue,
+          forceValueLine: false,
+          forceInlineValue: true,
+          highlightText: scenarioTitle,
+        },
       ];
     }
     const single = baseText.replace(/[.:\s]*$/, "");
-    return [{ label: `${single}:`, delta: deltaValue }];
+    return [{ label: `${single}:`, delta: deltaValue, highlightText: scenarioTitle }];
   };
   if (!isBossSummary) {
     if (memberDelta !== 0 || savedNames.length || lostNames.length) {

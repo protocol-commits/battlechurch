@@ -1445,6 +1445,64 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const numeric = Number.isFinite(value) ? Math.round(value) : 0;
     return `${numeric >= 0 ? "+" : ""}${numeric}`;
   };
+  const baseLabelColor = "#EAF6FF";
+  const highlightLabelColor = "#FFD978";
+  const highlightValueColor = "#FFD978";
+  const highlightValueFlash = "#FFE5A6";
+
+  const drawHighlightedLabel = (textLine, x, y, highlightText) => {
+    if (!highlightText) {
+      const fallbackMatch = String(textLine).match(/\b(?:with|through)\s+([^:.]+)\b/i);
+      if (!fallbackMatch) {
+        ctx.fillStyle = baseLabelColor;
+        ctx.fillText(textLine, x, y);
+        return;
+      }
+      highlightText = fallbackMatch[1];
+    }
+    const lowerLine = String(textLine).toLowerCase();
+    const lowerHighlight = String(highlightText).toLowerCase();
+    const start = lowerLine.indexOf(lowerHighlight);
+    if (start === -1) {
+      const fallbackMatch = String(textLine).match(/\b(?:with|through)\s+([^:.]+)\b/i);
+      if (!fallbackMatch) {
+        ctx.fillStyle = baseLabelColor;
+        ctx.fillText(textLine, x, y);
+        return;
+      }
+      highlightText = fallbackMatch[1];
+      const lowerFallback = highlightText.toLowerCase();
+      const fallbackStart = lowerLine.indexOf(lowerFallback);
+      if (fallbackStart === -1) {
+        ctx.fillStyle = baseLabelColor;
+        ctx.fillText(textLine, x, y);
+        return;
+      }
+      const before = textLine.slice(0, fallbackStart);
+      const match = textLine.slice(fallbackStart, fallbackStart + highlightText.length);
+      const after = textLine.slice(fallbackStart + highlightText.length);
+      ctx.fillStyle = baseLabelColor;
+      ctx.fillText(before, x, y);
+      const beforeWidth = ctx.measureText(before).width;
+      ctx.fillStyle = highlightValueColor;
+      ctx.fillText(match, x + beforeWidth, y);
+      const matchWidth = ctx.measureText(match).width;
+      ctx.fillStyle = baseLabelColor;
+      ctx.fillText(after, x + beforeWidth + matchWidth, y);
+      return;
+    }
+    const before = textLine.slice(0, start);
+    const match = textLine.slice(start, start + highlightText.length);
+    const after = textLine.slice(start + highlightText.length);
+    ctx.fillStyle = baseLabelColor;
+    ctx.fillText(before, x, y);
+    const beforeWidth = ctx.measureText(before).width;
+    ctx.fillStyle = highlightValueColor;
+    ctx.fillText(match, x + beforeWidth, y);
+    const matchWidth = ctx.measureText(match).width;
+    ctx.fillStyle = baseLabelColor;
+    ctx.fillText(after, x + beforeWidth + matchWidth, y);
+  };
 
   ctx.save();
   ctx.textAlign = "left";
@@ -1458,11 +1516,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   let countNumberX = contentX;
   let countNumberY = cursorY;
   if (recapTallyState.showCount) {
-    ctx.fillStyle = "#EAF6FF";
+    ctx.fillStyle = baseLabelColor;
     ctx.fillText(countLabel, contentX, cursorY);
     const labelWidth = ctx.measureText(countLabel).width;
     countNumberX = contentX + labelWidth + 12;
-    ctx.fillStyle = recapTallyState.flashTimer > 0 ? "#FFD978" : "#EAF6FF";
+    ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
     ctx.fillText(`${Math.round(totalValue || 0)}`, countNumberX, cursorY);
     countNumberY = cursorY;
     cursorY += Math.round(countSize * 1.1);
@@ -1493,7 +1551,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
   const activeIndex = recapTallyState.stepIndex;
   const maxVisible = recapTallyState.done ? lines.length : Math.min(lines.length, activeIndex + 1);
-  ctx.fillStyle = "#EAF6FF";
+  ctx.fillStyle = baseLabelColor;
   ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
@@ -1558,13 +1616,12 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     }
 
     labelLines.forEach((textLine, idx) => {
-      ctx.fillStyle = "#EAF6FF";
-      ctx.fillText(textLine, contentX, cursorY);
+      drawHighlightedLabel(textLine, contentX, cursorY, line.highlightText);
       if (showValue && valueInline && idx === labelLines.length - 1) {
         const highlightValue =
           recapTallyState.flashTimer > 0 &&
           recapTallyState.lastAppliedIndex === i;
-        ctx.fillStyle = highlightValue ? "#FFD978" : "#EAF6FF";
+        ctx.fillStyle = highlightValue ? highlightValueFlash : highlightValueColor;
         ctx.fillText(valueText, valueX, valueY);
         if (
           recapTallyState.pendingGhost &&
@@ -1584,7 +1641,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         recapTallyState.lastAppliedIndex === i;
       valueX = contentX;
       valueY = cursorY;
-      ctx.fillStyle = highlightValue ? "#FFD978" : "#EAF6FF";
+      ctx.fillStyle = highlightValue ? highlightValueFlash : highlightValueColor;
       ctx.fillText(valueText, valueX, valueY);
       if (
         recapTallyState.pendingGhost &&
