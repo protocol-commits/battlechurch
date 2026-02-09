@@ -6438,6 +6438,17 @@ function updateGracePickups(dt) {
         pickup.vx *= 0.85;
       }
     }
+    if (pickup.bounce) {
+      const leftWall = pickup.radius || GRACE_PICKUP_RADIUS;
+      const rightWall = canvas.width - (pickup.radius || GRACE_PICKUP_RADIUS);
+      if (pickup.x <= leftWall && pickup.vx < 0) {
+        pickup.x = leftWall;
+        pickup.vx = -pickup.vx * pickup.bounceDamp;
+      } else if (pickup.x >= rightWall && pickup.vx > 0) {
+        pickup.x = rightWall;
+        pickup.vx = -pickup.vx * pickup.bounceDamp;
+      }
+    }
     pickup.life -= dt;
     if (pickup.life <= 3) {
       pickup.blinkTimer = (pickup.blinkTimer || 0) + dt * 8;
