@@ -20,12 +20,14 @@ const utilityPowerUps = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
+const comboHudFlyEffects = [];
 const POWERUP_RESPAWN_DELAY = 5;
 const POWERUP_ACTIVE_LIFETIME = 8;
 const POWERUP_BLINK_DURATION = 2;
 const POWERUP_SPAWN_BLINK_DURATION = 1.2;
 let powerUpRespawnTimer = 0;
 let playerGraceCount = 0;
+let maxComboThisTown = 0;
 const GRACE_PICKUP_RADIUS = 18;
 const GRACE_PICKUP_FRAME_DURATION = 0.08;
 const GRACE_PICKUP_LIFETIME = 8;
@@ -2530,6 +2532,8 @@ Renderer.initialize({
   get powerupIconStyles() { return POWERUP_ICON_STYLES; },
   get graceHudFlyEffects() { return graceHudFlyEffects; },
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
+  get comboHudFlyEffects() { return comboHudFlyEffects; },
+  get maxComboThisTown() { return maxComboThisTown; },
   updatePlayerDuringCongregation,
   resolveCongregationCollisions,
   get touchControlsVisible() { return Boolean(Input?.virtualInput?.enabled); },
@@ -5024,6 +5028,8 @@ function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
   townVisitorMinigamePlayed = false;
+  maxComboThisTown = 0;
+  comboHudFlyEffects.splice(0, comboHudFlyEffects.length);
   if (typeof window !== "undefined" && window.MapScreen?.getTownStartCount) {
     const nextStart = window.MapScreen.getTownStartCount(activeTownId);
     townStartCongregation = Number.isFinite(nextStart) ? nextStart : INITIAL_CONGREGATION_SIZE;
@@ -6336,6 +6342,56 @@ function updatePowerupHudFlyEffects(dt) {
     effect.alpha = Math.max(0, 1 - t * 0.2);
     if (t >= 1) {
       powerupHudFlyEffects.splice(i, 1);
+    }
+  }
+}
+
+function spawnComboHudFlyEffect({ text, x, y }) {
+  if (!text || !Number.isFinite(x) || !Number.isFinite(y)) return;
+  const target = typeof window !== "undefined" ? window.__hudMaxComboPos : null;
+  const startX = x - cameraOffsetX;
+  const startY = y;
+  comboHudFlyEffects.push({
+    text,
+    startX,
+    startY,
+    x: startX,
+    y: startY,
+    targetX: target ? target.x : startX,
+    targetY: target ? target.y : startY,
+    targetReady: Boolean(target),
+    timer: 0,
+    duration: 0.55,
+    alpha: 1,
+    color: "#FFF2B8",
+    fontSize: 22,
+    fontWeight: "800",
+  });
+}
+
+function updateComboHudFlyEffects(dt) {
+  if (!comboHudFlyEffects.length) return;
+  for (let i = comboHudFlyEffects.length - 1; i >= 0; i -= 1) {
+    const effect = comboHudFlyEffects[i];
+    if (!effect) continue;
+    if (!effect.targetReady) {
+      const target = typeof window !== "undefined" ? window.__hudMaxComboPos : null;
+      if (target) {
+        effect.targetX = target.x;
+        effect.targetY = target.y;
+        effect.targetReady = true;
+      } else {
+        continue;
+      }
+    }
+    effect.timer += dt;
+    const t = Math.min(1, effect.timer / Math.max(0.001, effect.duration));
+    const ease = 1 - Math.pow(1 - t, 3);
+    effect.x = effect.startX + (effect.targetX - effect.startX) * ease;
+    effect.y = effect.startY + (effect.targetY - effect.startY) * ease;
+    effect.alpha = Math.max(0, 1 - t * 0.2);
+    if (t >= 1) {
+      comboHudFlyEffects.splice(i, 1);
     }
   }
 }
@@ -13193,6 +13249,15 @@ function isAllowedProjectileComboDirection(baseIndex, nextIndex) {
   return diff === 1 || diff === 7;
 }
 
+function maybeUpdateMaxComboInTown(hits, x, y) {
+  const comboHits = Math.max(2, Math.round(hits || 0));
+  if (!Number.isFinite(comboHits)) return;
+  if (comboHits <= 15) return;
+  if (comboHits <= maxComboThisTown) return;
+  maxComboThisTown = comboHits;
+  spawnComboHudFlyEffect({ text: `${comboHits}`, x, y });
+}
+
 function updateLiveComboText(state, target) {
   if (!state || !target || state.hits < 2) return;
   const radius = target.radius || target.config?.hitRadius || 24;
@@ -13227,6 +13292,7 @@ function updateLiveComboText(state, target) {
   const labelY = clampedLabelY;
   const damageX = clampedDamageX;
   const damageY = clampedDamageY;
+  maybeUpdateMaxComboInTown(state.hits, labelX, labelY);
   if (!state.comboLabel) {
     state.comboLabel = addFloatingTextAt(labelX, labelY, label, "#FFF2B8", {
       speechBubble: false,
@@ -13854,6 +13920,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
   const radius = entity.radius || entity.config?.hitRadius || 24;
   const label = `${hits} Hit Combo`;
+  maybeUpdateMaxComboInTown(hits, entity.x, entity.y - radius);
   addFloatingTextAt(entity.x, entity.y - radius, label, "#FFF2B8", {
     speechBubble: false,
     vy: -30,
@@ -15142,6 +15209,7 @@ function updateGame(dt) {
   updateGracePickups(dt);
   updateGraceHudFlyEffects(dt);
   updatePowerupHudFlyEffects(dt);
+  updateComboHudFlyEffects(dt);
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   // Ensure power-ups obey spawn rules per stage

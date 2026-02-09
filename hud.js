@@ -57,6 +57,7 @@
       npcHarmonyBuffTimer,
       npcHarmonyBuffDuration,
       powerupIconStyles,
+      maxComboThisTown,
       touchControlsVisible,
       touchControlsAvailable,
       DASH_COOLDOWN,
@@ -655,7 +656,23 @@
       }
       const enemyText = `${enemyKills}`;
       ctx.fillText(enemyText, x, rowY);
-      x += ctx.measureText(enemyText).width;
+      x += ctx.measureText(enemyText).width + 14;
+      const comboLabel = "Max Combo:";
+      const comboValue = Number.isFinite(maxComboThisTown) ? Math.max(0, Math.round(maxComboThisTown)) : 0;
+      const comboText = `${comboValue}`;
+      ctx.fillStyle = PALETTE.muted;
+      ctx.fillText(comboLabel, x, rowY);
+      x += ctx.measureText(comboLabel).width + 6;
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.fillText(comboText, x, rowY);
+      if (typeof window !== 'undefined') {
+        const comboWidth = ctx.measureText(comboText).width || 0;
+        window.__hudMaxComboPos = {
+          x: x + comboWidth / 2,
+          y: rowY,
+        };
+      }
+      x += ctx.measureText(comboText).width;
       ctx.restore();
     };
 
