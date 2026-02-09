@@ -13210,11 +13210,18 @@ const comboTracker = {
     const state =
       existing && timeNow <= existing.expiresAt
         ? existing
-        : { hits: 0, damage: 0, expiresAt: 0 };
+        : { hits: 0, damage: 0, expiresAt: 0, killed: false };
     state.hits += 1;
     state.damage += damage;
     state.lastX = Number.isFinite(target.x) ? target.x : state.lastX;
     state.lastY = Number.isFinite(target.y) ? target.y : state.lastY;
+    if (
+      target.dead ||
+      target.state === "death" ||
+      (Number.isFinite(target.health) && target.health <= 0)
+    ) {
+      state.killed = true;
+    }
     state.expiresAt = timeNow + COMBO_WINDOW_MS;
     this.combos.set(target, state);
   },
@@ -13226,16 +13233,32 @@ const comboTracker = {
           ? performance.now()
           : Date.now();
     for (const [target, state] of this.combos.entries()) {
-      if (!target || target.dead || target.state === "death" || target.removed) {
+      const targetValid = Boolean(target && !target.removed);
+      const targetDead = Boolean(
+        target &&
+          (target.dead ||
+            target.state === "death" ||
+            (Number.isFinite(target.health) && target.health <= 0)),
+      );
+      if (!targetValid && !state.killed) {
         this.combos.delete(target);
         continue;
       }
       if (timeNow > state.expiresAt) {
         if (state.hits >= 2) {
-          window.BattlechurchComboTrackerAllow = true;
-          showComboTextAt(target, state.damage, state.hits, 0, true);
-          window.BattlechurchComboTrackerAllow = false;
-          spawnComboGraceBurst(target, state.hits, state.lastX, state.lastY);
+          const fallbackEntity = targetValid
+            ? target
+            : {
+                x: state.lastX,
+                y: state.lastY,
+                radius: 24,
+              };
+          if (fallbackEntity && Number.isFinite(fallbackEntity.x)) {
+            window.BattlechurchComboTrackerAllow = true;
+            showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
+            window.BattlechurchComboTrackerAllow = false;
+            spawnComboGraceBurst(fallbackEntity, state.hits, state.lastX, state.lastY, state.killed || targetDead);
+          }
         }
         this.combos.delete(target);
       }
@@ -13248,10 +13271,12 @@ function registerComboHit(target, damage) {
   comboTracker.registerHit(target, damage);
 }
 
-function spawnComboGraceBurst(target, hits, fallbackX, fallbackY) {
+function spawnComboGraceBurst(target, hits, fallbackX, fallbackY, killedOnCombo = false) {
   const comboHits = Math.max(2, Math.round(hits || 0));
-  const minGems = comboHits * 3;
-  const maxGems = comboHits * 5;
+  const minPerHit = killedOnCombo ? 3 : 2;
+  const maxPerHit = killedOnCombo ? 5 : 2;
+  const minGems = comboHits * minPerHit;
+  const maxGems = comboHits * maxPerHit;
   const gemCount = Math.max(minGems, randomInRange(minGems, maxGems));
   const baseX = Number.isFinite(target?.x) ? target.x : fallbackX;
   const baseY = Number.isFinite(target?.y) ? target.y : fallbackY;
