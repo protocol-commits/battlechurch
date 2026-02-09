@@ -5660,7 +5660,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawFloatingTextEntries(context, filterFn = null) {
+  function drawFloatingTextEntries(context, filterFn = null, baseAlpha = 1) {
     const ctx = context;
     const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
     ctx.save();
@@ -5679,7 +5679,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       if (remaining <= 0) {
         alpha = Math.max(0, Math.min(1, ft.life / fadeLength));
       }
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = alpha * baseAlpha;
       const style = ft.style || (ft.speechBubble ? "speech" : "plain");
       const fontSize = style === "speech" ? 12 : ft.fontSize || 14;
       const fontWeight = ft.fontWeight || (style === "speech" ? "400" : "600");
@@ -5807,18 +5807,21 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       } else {
         ctx.textBaseline = textLines.length > 1 ? "middle" : "alphabetic";
         ctx.fillStyle = ft.color;
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
-        ctx.lineWidth = 2;
+        const drawOutline = ft.noStroke !== true;
+        if (drawOutline) {
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
+          ctx.lineWidth = 2;
+        }
         if (textLines.length > 1) {
           const totalHeight = lineHeight * textLines.length;
           const startY = drawY - totalHeight / 2 + lineHeight / 2;
           textLines.forEach((line, index) => {
             const lineY = startY + index * lineHeight;
-            ctx.strokeText(line, drawX, lineY);
+            if (drawOutline) ctx.strokeText(line, drawX, lineY);
             ctx.fillText(line, drawX, lineY);
           });
         } else {
-          ctx.strokeText(rawText, drawX, drawY);
+          if (drawOutline) ctx.strokeText(rawText, drawX, drawY);
           ctx.fillText(rawText, drawX, drawY);
         }
       }
@@ -5828,11 +5831,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawFloatingTextsOverlay(context) {
-    drawFloatingTextEntries(context, (ft) => !ft?.floorLayer);
+    drawFloatingTextEntries(context, (ft) => !ft?.floorLayer, 1);
   }
 
   function drawFloorTextsOverlay(context) {
-    drawFloatingTextEntries(context, (ft) => Boolean(ft?.floorLayer));
+    context.save();
+    context.globalCompositeOperation = "screen";
+    drawFloatingTextEntries(context, (ft) => Boolean(ft?.floorLayer), 0.85);
+    context.restore();
   }
 
   function drawEnemyHpLabelsOverlay(context) {

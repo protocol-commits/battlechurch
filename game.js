@@ -13535,6 +13535,7 @@ function updatePrayerBombComboDisplay() {
       clampToScreen: true,
       persist: true,
       floorLayer: true,
+      noStroke: true,
     });
     return;
   }
@@ -13545,6 +13546,7 @@ function updatePrayerBombComboDisplay() {
   prayerBombComboState.label.color = color;
   prayerBombComboState.label.persist = true;
   prayerBombComboState.label.floorLayer = true;
+  prayerBombComboState.label.noStroke = true;
 }
 
 function startPrayerBombCombo() {
@@ -13606,6 +13608,7 @@ function showPrayerBombBlastCombo(count, x, y) {
     fadeDelay: 0,
     clampToScreen: true,
     floorLayer: true,
+    noStroke: true,
   });
   maybeUpdateMaxComboInTown(hits, x, y);
 }
