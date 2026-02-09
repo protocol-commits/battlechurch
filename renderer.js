@@ -4933,6 +4933,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       console.debug && console.debug("drawGame: band image missing", { layer: assets?.backgroundLayers?.floor });
     }
 
+    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
+      try {
+        drawFloorTextsOverlay(ctx);
+      } catch (e) {}
+    }
+
   // ...existing code...
   drawSpawnPointDebug(ctx);
   drawNpcHomeBounds(ctx);
@@ -5654,7 +5660,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawFloatingTextsOverlay(context) {
+  function drawFloatingTextEntries(context, filterFn = null) {
     const ctx = context;
     const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
     ctx.save();
@@ -5663,6 +5669,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       .slice()
       .sort((a, b) => (a.priority || 0) - (b.priority || 0));
     orderedTexts.forEach((ft) => {
+      if (filterFn && !filterFn(ft)) return;
       let drawX = ft.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
       const drawY = ft.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
       ctx.save();
@@ -5818,6 +5825,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     });
     ctx.restore();
+  }
+
+  function drawFloatingTextsOverlay(context) {
+    drawFloatingTextEntries(context, (ft) => !ft?.floorLayer);
+  }
+
+  function drawFloorTextsOverlay(context) {
+    drawFloatingTextEntries(context, (ft) => Boolean(ft?.floorLayer));
   }
 
   function drawEnemyHpLabelsOverlay(context) {

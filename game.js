@@ -13521,7 +13521,7 @@ function updatePrayerBombComboDisplay() {
   const centerX = cameraOffsetX + canvas.width / 2;
   const centerY = canvas.height / 2;
   const fontSize = getComboLabelFontSize(hits) * 2;
-  const color = withAlpha(getComboLabelColor(hits), 0.78);
+  const color = getComboLabelColor(hits);
   const labelText = `${hits} HIT\nCOMBO`;
   if (!prayerBombComboState.label) {
     prayerBombComboState.label = addFloatingTextAt(centerX, centerY, labelText, color, {
@@ -13534,6 +13534,7 @@ function updatePrayerBombComboDisplay() {
       fadeDelay: 0,
       clampToScreen: true,
       persist: true,
+      floorLayer: true,
     });
     return;
   }
@@ -13543,6 +13544,7 @@ function updatePrayerBombComboDisplay() {
   prayerBombComboState.label.fontSize = fontSize;
   prayerBombComboState.label.color = color;
   prayerBombComboState.label.persist = true;
+  prayerBombComboState.label.floorLayer = true;
 }
 
 function startPrayerBombCombo() {
@@ -13592,7 +13594,7 @@ function showPrayerBombBlastCombo(count, x, y) {
   const hits = Math.max(0, Math.round(count || 0));
   if (!hits) return;
   const fontSize = getComboLabelFontSize(hits) * 2;
-  const color = withAlpha(getComboLabelColor(hits), 0.78);
+  const color = getComboLabelColor(hits);
   const labelText = `${hits} HIT\nCOMBO`;
   addFloatingTextAt(x, y, labelText, color, {
     speechBubble: false,
@@ -13603,6 +13605,7 @@ function showPrayerBombBlastCombo(count, x, y) {
     priority: 7,
     fadeDelay: 0,
     clampToScreen: true,
+    floorLayer: true,
   });
   maybeUpdateMaxComboInTown(hits, x, y);
 }
