@@ -6214,6 +6214,11 @@ function spawnGracePickup(x, y, options = {}) {
     vx: options.vx ?? (options.scatter ? randomInRange(-90, 90) : 0),
     vy: options.vy ?? (options.scatter ? randomInRange(-180, -60) : 0),
     gravity: options.gravity ?? GRACE_PICKUP_GRAVITY,
+    useGravity: options.useGravity ?? false,
+    bounce: options.bounce ?? false,
+    floorY: Number.isFinite(options.floorY) ? options.floorY : GRACE_PICKUP_FLOOR_Y(),
+    bounceDamp: Number.isFinite(options.bounceDamp) ? options.bounceDamp : 0.5,
+    airDrag: Number.isFinite(options.airDrag) ? options.airDrag : GRACE_PICKUP_AIR_DRAG,
     collected: false,
     spawnBlink: 0.2,
     blinkTimer: 0,
@@ -6418,10 +6423,21 @@ function updateGracePickups(dt) {
       pickup.frameTimer -= pickup.frameDuration;
       pickup.frameIndex = (pickup.frameIndex + 1) % pickup.frames.length;
     }
-    pickup.vx *= GRACE_PICKUP_AIR_DRAG;
-    pickup.vy *= GRACE_PICKUP_AIR_DRAG;
+    if (pickup.useGravity && Number.isFinite(pickup.gravity)) {
+      pickup.vy += pickup.gravity * dt;
+    }
+    const drag = Number.isFinite(pickup.airDrag) ? pickup.airDrag : GRACE_PICKUP_AIR_DRAG;
+    pickup.vx *= drag;
+    pickup.vy *= drag;
     pickup.x += pickup.vx * dt;
     pickup.y += pickup.vy * dt;
+    if (pickup.bounce && Number.isFinite(pickup.floorY) && pickup.y >= pickup.floorY) {
+      pickup.y = pickup.floorY;
+      if (pickup.vy > 0) {
+        pickup.vy = -pickup.vy * pickup.bounceDamp;
+        pickup.vx *= 0.85;
+      }
+    }
     pickup.life -= dt;
     if (pickup.life <= 3) {
       pickup.blinkTimer = (pickup.blinkTimer || 0) + dt * 8;
@@ -13197,6 +13213,8 @@ const comboTracker = {
         : { hits: 0, damage: 0, expiresAt: 0 };
     state.hits += 1;
     state.damage += damage;
+    state.lastX = Number.isFinite(target.x) ? target.x : state.lastX;
+    state.lastY = Number.isFinite(target.y) ? target.y : state.lastY;
     state.expiresAt = timeNow + COMBO_WINDOW_MS;
     this.combos.set(target, state);
   },
@@ -13217,6 +13235,7 @@ const comboTracker = {
           window.BattlechurchComboTrackerAllow = true;
           showComboTextAt(target, state.damage, state.hits, 0, true);
           window.BattlechurchComboTrackerAllow = false;
+          spawnComboGraceBurst(target, state.hits, state.lastX, state.lastY);
         }
         this.combos.delete(target);
       }
@@ -13227,6 +13246,41 @@ const comboTracker = {
 function registerComboHit(target, damage) {
   if (!window.BattlechurchComboTrackerEnabled) return;
   comboTracker.registerHit(target, damage);
+}
+
+function spawnComboGraceBurst(target, hits, fallbackX, fallbackY) {
+  const comboHits = Math.max(2, Math.round(hits || 0));
+  const minGems = comboHits * 3;
+  const maxGems = comboHits * 5;
+  const gemCount = Math.max(minGems, randomInRange(minGems, maxGems));
+  const baseX = Number.isFinite(target?.x) ? target.x : fallbackX;
+  const baseY = Number.isFinite(target?.y) ? target.y : fallbackY;
+  if (!Number.isFinite(baseX) || !Number.isFinite(baseY)) return;
+  const spread = Math.min(140, 40 + comboHits * 12);
+  for (let i = 0; i < gemCount; i += 1) {
+    const spawnOffsetX = randomInRange(-spread, spread);
+    const angle = randomInRange(-Math.PI * 1.15, -Math.PI * 0.05);
+    const speed = randomInRange(520, 740);
+    const horizontalBias = Math.sign(spawnOffsetX || 1) * randomInRange(140, 260);
+    const vx = Math.cos(angle) * speed + horizontalBias;
+    const vy = Math.sin(angle) * speed - randomInRange(800, 1000);
+    spawnGracePickup(
+      baseX + spawnOffsetX,
+      baseY + randomInRange(-spread * 0.3, spread * 0.3),
+      {
+        vx,
+        vy,
+        scatter: false,
+        value: 1,
+        useGravity: true,
+        bounce: true,
+        gravity: GRACE_PICKUP_GRAVITY * 2.2,
+        floorY: baseY,
+        bounceDamp: 0.55,
+        airDrag: 0.985,
+      },
+    );
+  }
 }
 
 function getHeldMovementDirection() {
