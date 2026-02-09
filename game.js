@@ -6724,6 +6724,7 @@ function applyShieldImpact(target) {
   if (distance > shieldReach) return false;
 
   const isLargeTarget = targetRadius >= SHIELD_LARGE_RADIUS_THRESHOLD;
+  const damage = isLargeTarget ? SHIELD_LARGE_DAMAGE : SHIELD_SMALL_DAMAGE;
   if (isLargeTarget) {
     if ((target.shieldHitCooldown || 0) > 0) {
       if (typeof target.touchCooldown === "number") {
@@ -6732,15 +6733,16 @@ function applyShieldImpact(target) {
       return true;
     }
     if (typeof target.takeDamage === "function") {
-      target.takeDamage(SHIELD_LARGE_DAMAGE);
+      target.takeDamage(damage);
     }
     target.shieldHitCooldown = SHIELD_LARGE_COOLDOWN;
   } else {
     if (typeof target.takeDamage === "function") {
-      target.takeDamage(SHIELD_SMALL_DAMAGE);
+      target.takeDamage(damage);
     }
     target.shieldHitCooldown = SHIELD_LARGE_COOLDOWN;
   }
+  registerComboHit(target, damage);
   spawnFlashEffect(target.x, target.y - targetRadius / 2);
   if (typeof target.touchCooldown === "number") {
     target.touchCooldown = Math.max(target.touchCooldown, SHIELD_LARGE_COOLDOWN);
