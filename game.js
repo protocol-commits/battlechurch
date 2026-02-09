@@ -13580,7 +13580,9 @@ function endPrayerBombCombo() {
   if (!prayerBombComboState.active) return;
   if (prayerBombComboState.label) {
     prayerBombComboState.label.persist = false;
-    prayerBombComboState.label.life = Math.min(prayerBombComboState.label.life || 0.9, 0.9);
+    prayerBombComboState.label.life = Math.min(prayerBombComboState.label.life || 4.5, 4.5);
+    prayerBombComboState.label.fadeDelay = 3.0;
+    prayerBombComboState.label.floorFlash = true;
   }
   prayerBombComboState.active = false;
   prayerBombComboState.hits = 0;
@@ -13595,7 +13597,12 @@ function recordPrayerBombComboHits(count) {
   if (!addCount) return;
   prayerBombComboState.hits += addCount;
   updatePrayerBombComboDisplay();
-  maybeUpdateMaxComboInTown(prayerBombComboState.hits, cameraOffsetX + canvas.width / 2, canvas.height / 2);
+  maybeUpdateMaxComboInTown(
+    prayerBombComboState.hits,
+    cameraOffsetX + canvas.width / 2,
+    canvas.height / 2,
+    { skipHudFly: true },
+  );
 }
 
 function updateComboLabelFailsafe(now) {
@@ -13637,10 +13644,10 @@ function showPrayerBombBlastCombo(count, x, y) {
     label.floorPitch = 0.35;
     label.floorShear = 0;
   }
-  maybeUpdateMaxComboInTown(hits, x, y);
+  maybeUpdateMaxComboInTown(hits, x, y, { skipHudFly: true });
 }
 
-function maybeUpdateMaxComboInTown(hits, x, y) {
+function maybeUpdateMaxComboInTown(hits, x, y, options = {}) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   if (!Number.isFinite(comboHits)) return;
   if (levelManager?.setBattleMaxCombo) {
@@ -13648,7 +13655,7 @@ function maybeUpdateMaxComboInTown(hits, x, y) {
   }
   if (comboHits <= maxComboThisTown) return;
   maxComboThisTown = comboHits;
-  if (comboHits > 15) {
+  if (!options.skipHudFly && comboHits > 15) {
     spawnComboHudFlyEffect({ text: `${comboHits}`, x, y });
   }
 }

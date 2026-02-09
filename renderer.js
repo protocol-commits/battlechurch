@@ -5686,7 +5686,20 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       if (remaining <= 0) {
         alpha = Math.max(0, Math.min(1, ft.life / fadeLength));
       }
-      ctx.globalAlpha = alpha * baseAlpha;
+      const flashActive = Boolean(ft.floorFlash);
+      let effectiveBaseAlpha = baseAlpha;
+      if (flashActive) {
+        effectiveBaseAlpha = 1;
+        if (remaining > 0) {
+          alpha = 1;
+        } else {
+          const time = typeof performance !== "undefined" ? performance.now() : Date.now();
+          const pulse = 0.75 + 0.25 * Math.sin(time * 0.012);
+          const fadeFactor = Math.max(0, Math.min(1, ft.life / fadeLength));
+          alpha = pulse * fadeFactor;
+        }
+      }
+      ctx.globalAlpha = alpha * effectiveBaseAlpha;
       const style = ft.style || (ft.speechBubble ? "speech" : "plain");
       const fontSize = style === "speech" ? 12 : ft.fontSize || 14;
       const fontWeight = ft.fontWeight || (style === "speech" ? "400" : "600");
