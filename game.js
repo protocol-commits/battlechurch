@@ -13491,7 +13491,7 @@ function updatePrayerBombComboDisplay() {
   const centerY = canvas.height / 2;
   const fontSize = getComboLabelFontSize(hits) * 2;
   const color = withAlpha(getComboLabelColor(hits), 0.78);
-  const labelText = `${hits} Hit Combo`;
+  const labelText = `${hits} HIT\nCOMBO`;
   if (!prayerBombComboState.label) {
     prayerBombComboState.label = addFloatingTextAt(centerX, centerY, labelText, color, {
       speechBubble: false,
@@ -13562,7 +13562,7 @@ function showPrayerBombBlastCombo(count, x, y) {
   if (!hits) return;
   const fontSize = getComboLabelFontSize(hits) * 2;
   const color = withAlpha(getComboLabelColor(hits), 0.78);
-  const labelText = `${hits} Hit Combo`;
+  const labelText = `${hits} HIT\nCOMBO`;
   addFloatingTextAt(x, y, labelText, color, {
     speechBubble: false,
     vy: -28,

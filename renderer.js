@@ -5620,15 +5620,21 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const fontFamily = ft.fontFamily || UI_FONT_FAMILY;
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.textAlign = "center";
+      const rawText = String(ft.text ?? "");
+      const textLines = rawText.split("\n");
+      const lineHeight = Math.round(fontSize * 1.1);
       if (ft.clampToScreen) {
-        const metrics = ctx.measureText(ft.text);
-        const halfWidth = metrics.width * 0.5;
+        const maxWidth = textLines.reduce((max, line) => {
+          const width = ctx.measureText(line).width;
+          return Math.max(max, width);
+        }, 0);
+        const halfWidth = maxWidth * 0.5;
         const margin = 8;
         drawX = Math.max(margin + halfWidth, Math.min(canvas.width - margin - halfWidth, drawX));
       }
       if (style === "speech") {
         ctx.textBaseline = "middle";
-        const metrics = ctx.measureText(ft.text);
+        const metrics = ctx.measureText(rawText);
         const bubbleWidth = metrics.width + 10 * 2;
         const bubbleHeight = 28;
         const bubbleX = drawX - bubbleWidth / 2;
@@ -5693,11 +5699,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.stroke();
         ctx.restore();
         ctx.fillStyle = ft.color;
-        ctx.fillText(ft.text, drawX, bubbleY + bubbleHeight / 2);
+        ctx.fillText(rawText, drawX, bubbleY + bubbleHeight / 2);
       } else if (style === "status") {
         ctx.textBaseline = "middle";
         const paddingX = 14;
-        const metrics = ctx.measureText(ft.text);
+        const metrics = ctx.measureText(rawText);
         const width = metrics.width + paddingX * 2;
         const height = 24;
         const rectX = drawX - width / 2;
@@ -5730,15 +5736,25 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillStyle = ft.color;
         ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
         ctx.lineWidth = 2;
-        ctx.strokeText(ft.text, drawX, drawY);
-        ctx.fillText(ft.text, drawX, drawY);
+        ctx.strokeText(rawText, drawX, drawY);
+        ctx.fillText(rawText, drawX, drawY);
       } else {
-        ctx.textBaseline = "alphabetic";
+        ctx.textBaseline = textLines.length > 1 ? "middle" : "alphabetic";
         ctx.fillStyle = ft.color;
         ctx.strokeStyle = "rgba(0, 0, 0, 0.9)";
         ctx.lineWidth = 2;
-        ctx.strokeText(ft.text, drawX, drawY);
-        ctx.fillText(ft.text, drawX, drawY);
+        if (textLines.length > 1) {
+          const totalHeight = lineHeight * textLines.length;
+          const startY = drawY - totalHeight / 2 + lineHeight / 2;
+          textLines.forEach((line, index) => {
+            const lineY = startY + index * lineHeight;
+            ctx.strokeText(line, drawX, lineY);
+            ctx.fillText(line, drawX, lineY);
+          });
+        } else {
+          ctx.strokeText(rawText, drawX, drawY);
+          ctx.fillText(rawText, drawX, drawY);
+        }
       }
       ctx.restore();
     });
