@@ -84,6 +84,8 @@ const prayerBombComboState = {
   active: false,
   hits: 0,
   label: null,
+  anchorX: null,
+  anchorY: null,
 };
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
@@ -13518,13 +13520,17 @@ function withAlpha(hexColor, alpha) {
 function updatePrayerBombComboDisplay() {
   if (!prayerBombComboState.active) return;
   const hits = Math.max(1, Math.round(prayerBombComboState.hits || 0));
-  const centerX = cameraOffsetX + canvas.width / 2;
-  const centerY = canvas.height / 2;
+  if (!Number.isFinite(prayerBombComboState.anchorX) || !Number.isFinite(prayerBombComboState.anchorY)) {
+    prayerBombComboState.anchorX = cameraOffsetX + canvas.width / 2;
+    prayerBombComboState.anchorY = canvas.height * 0.4;
+  }
+  const centerX = prayerBombComboState.anchorX;
+  const centerY = prayerBombComboState.anchorY;
   const fontSize = getComboLabelFontSize(hits) * 2;
   const color = getComboLabelColor(hits);
   const labelText = `${hits} HIT\nCOMBO`;
   if (!prayerBombComboState.label) {
-    prayerBombComboState.label = addFloatingTextAt(centerX, centerY, labelText, color, {
+    const label = addFloatingTextAt(centerX, centerY, labelText, color, {
       speechBubble: false,
       vy: 0,
       life: 1.4,
@@ -13534,9 +13540,16 @@ function updatePrayerBombComboDisplay() {
       fadeDelay: 0,
       clampToScreen: true,
       persist: true,
-      floorLayer: true,
-      noStroke: true,
     });
+    if (label) {
+      label.floorLayer = true;
+      label.noStroke = true;
+      label.floorPerspective = 0;
+      label.floorRotate = 0;
+      label.floorPitch = 0.35;
+      label.floorShear = 0;
+    }
+    prayerBombComboState.label = label;
     return;
   }
   prayerBombComboState.label.text = labelText;
@@ -13547,12 +13560,18 @@ function updatePrayerBombComboDisplay() {
   prayerBombComboState.label.persist = true;
   prayerBombComboState.label.floorLayer = true;
   prayerBombComboState.label.noStroke = true;
+  prayerBombComboState.label.floorPerspective = 0;
+  prayerBombComboState.label.floorRotate = 0;
+  prayerBombComboState.label.floorPitch = 0.35;
+  prayerBombComboState.label.floorShear = 0;
 }
 
 function startPrayerBombCombo() {
   if (!prayerBombComboState.active) {
     prayerBombComboState.hits = 0;
     prayerBombComboState.label = null;
+    prayerBombComboState.anchorX = null;
+    prayerBombComboState.anchorY = null;
   }
   prayerBombComboState.active = true;
 }
@@ -13566,6 +13585,8 @@ function endPrayerBombCombo() {
   prayerBombComboState.active = false;
   prayerBombComboState.hits = 0;
   prayerBombComboState.label = null;
+  prayerBombComboState.anchorX = null;
+  prayerBombComboState.anchorY = null;
 }
 
 function recordPrayerBombComboHits(count) {
@@ -13598,7 +13619,7 @@ function showPrayerBombBlastCombo(count, x, y) {
   const fontSize = getComboLabelFontSize(hits) * 2;
   const color = getComboLabelColor(hits);
   const labelText = `${hits} HIT\nCOMBO`;
-  addFloatingTextAt(x, y, labelText, color, {
+  const label = addFloatingTextAt(x, y, labelText, color, {
     speechBubble: false,
     vy: -28,
     life: 1.2,
@@ -13607,9 +13628,15 @@ function showPrayerBombBlastCombo(count, x, y) {
     priority: 7,
     fadeDelay: 0,
     clampToScreen: true,
-    floorLayer: true,
-    noStroke: true,
   });
+  if (label) {
+    label.floorLayer = true;
+    label.noStroke = true;
+    label.floorPerspective = 0;
+    label.floorRotate = 0;
+    label.floorPitch = 0.35;
+    label.floorShear = 0;
+  }
   maybeUpdateMaxComboInTown(hits, x, y);
 }
 

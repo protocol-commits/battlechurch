@@ -5660,18 +5660,25 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawFloatingTextEntries(context, filterFn = null, baseAlpha = 1) {
+  function drawFloatingTextEntries(context, filterFn = null, baseAlpha = 1, options = {}) {
     const ctx = context;
     const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
+    const useWorldTransform = Boolean(options.useWorldTransform);
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (!useWorldTransform) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
     const orderedTexts = floatingTexts
       .slice()
       .sort((a, b) => (a.priority || 0) - (b.priority || 0));
     orderedTexts.forEach((ft) => {
       if (filterFn && !filterFn(ft)) return;
-      let drawX = ft.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
-      const drawY = ft.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
+      let drawX = useWorldTransform
+        ? ft.x
+        : ft.x - cameraOffsetX + (sharedShakeOffset?.x || 0);
+      const drawY = useWorldTransform
+        ? ft.y
+        : ft.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
       ctx.save();
       const fadeLength = ft.fadeLength || ft.initialLife || 1.5;
       const remaining = typeof ft.fadeDelayRemaining === "number" ? ft.fadeDelayRemaining : 0;
@@ -5689,7 +5696,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const rawText = String(ft.text ?? "");
       const textLines = rawText.split("\n");
       const lineHeight = Math.round(fontSize * 1.1);
-      if (ft.clampToScreen) {
+      if (ft.clampToScreen && !useWorldTransform) {
         const maxWidth = textLines.reduce((max, line) => {
           const width = ctx.measureText(line).width;
           return Math.max(max, width);
@@ -5805,6 +5812,27 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.strokeText(rawText, drawX, drawY);
         ctx.fillText(rawText, drawX, drawY);
       } else {
+        let perspectiveStrength = Number.isFinite(ft.floorPerspective)
+          ? Math.max(0, Math.min(0.6, ft.floorPerspective))
+          : 0;
+        if (perspectiveStrength > 0 && ft.floorPerspectiveAuto) {
+          const base = Number.isFinite(ft.floorPerspectiveBase) ? ft.floorPerspectiveBase : 64;
+          const scale = base > 0 ? fontSize / base : 1;
+          const scaled = Math.max(0.8, Math.min(1.6, scale));
+          perspectiveStrength = Math.max(0, Math.min(0.6, perspectiveStrength * scaled));
+        }
+        const applyPerspective = ft.floorLayer && perspectiveStrength > 0;
+        const rotateAngle = ft.floorLayer && Number.isFinite(ft.floorRotate)
+          ? ft.floorRotate
+          : 0;
+        const applyRotate = Boolean(rotateAngle);
+        const pitchStrength = ft.floorLayer && Number.isFinite(ft.floorPitch)
+          ? Math.max(0, Math.min(0.6, ft.floorPitch))
+          : 0;
+        const pitchShear = ft.floorLayer && Number.isFinite(ft.floorShear)
+          ? ft.floorShear
+          : 0;
+        const applyPitch = pitchStrength > 0;
         ctx.textBaseline = textLines.length > 1 ? "middle" : "alphabetic";
         ctx.fillStyle = ft.color;
         const drawOutline = ft.noStroke !== true;
@@ -5813,16 +5841,93 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
           ctx.lineWidth = 2;
         }
         if (textLines.length > 1) {
-          const totalHeight = lineHeight * textLines.length;
-          const startY = drawY - totalHeight / 2 + lineHeight / 2;
-          textLines.forEach((line, index) => {
-            const lineY = startY + index * lineHeight;
-            if (drawOutline) ctx.strokeText(line, drawX, lineY);
-            ctx.fillText(line, drawX, lineY);
-          });
+          const scaledLineHeight = lineHeight;
+          const totalHeight = scaledLineHeight * textLines.length;
+          const startY = drawY - totalHeight / 2 + scaledLineHeight / 2;
+          if (applyPitch) {
+            const pitchScaleY = 1 - pitchStrength;
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            ctx.transform(1, pitchShear, 0, pitchScaleY, 0, 0);
+            textLines.forEach((line, index) => {
+              const lineY = (startY + index * scaledLineHeight) - drawY;
+              if (drawOutline) ctx.strokeText(line, 0, lineY);
+              ctx.fillText(line, 0, lineY);
+            });
+            ctx.restore();
+          } else if (applyRotate) {
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            ctx.rotate(rotateAngle);
+            textLines.forEach((line, index) => {
+              const lineY = (startY + index * scaledLineHeight) - drawY;
+              if (applyPerspective) {
+                const t = textLines.length > 1 ? index / (textLines.length - 1) : 1;
+                const lineScaleX = 1 - (1 - t) * perspectiveStrength;
+                const lineScaleY = 1 - (1 - t) * perspectiveStrength;
+                ctx.save();
+                ctx.translate(0, lineY);
+                ctx.scale(lineScaleX, lineScaleY);
+                if (drawOutline) ctx.strokeText(line, 0, 0);
+                ctx.fillText(line, 0, 0);
+                ctx.restore();
+              } else {
+                if (drawOutline) ctx.strokeText(line, 0, lineY);
+                ctx.fillText(line, 0, lineY);
+              }
+            });
+            ctx.restore();
+          } else {
+            textLines.forEach((line, index) => {
+              const lineY = startY + index * scaledLineHeight;
+              if (applyPerspective) {
+                const t = textLines.length > 1 ? index / (textLines.length - 1) : 1;
+                const lineScaleX = 1 - (1 - t) * perspectiveStrength;
+                const lineScaleY = 1 - (1 - t) * perspectiveStrength;
+                ctx.save();
+                ctx.translate(drawX, lineY);
+                ctx.scale(lineScaleX, lineScaleY);
+                if (drawOutline) ctx.strokeText(line, 0, 0);
+                ctx.fillText(line, 0, 0);
+                ctx.restore();
+              } else {
+                if (drawOutline) ctx.strokeText(line, drawX, lineY);
+                ctx.fillText(line, drawX, lineY);
+              }
+            });
+          }
         } else {
-          if (drawOutline) ctx.strokeText(rawText, drawX, drawY);
-          ctx.fillText(rawText, drawX, drawY);
+          if (applyPitch) {
+            const pitchScaleY = 1 - pitchStrength;
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            ctx.transform(1, pitchShear, 0, pitchScaleY, 0, 0);
+            if (drawOutline) ctx.strokeText(rawText, 0, 0);
+            ctx.fillText(rawText, 0, 0);
+            ctx.restore();
+          } else if (applyPerspective) {
+            const lineScaleX = 1 - perspectiveStrength * 0.6;
+            const lineScaleY = 1 - perspectiveStrength;
+            ctx.save();
+            ctx.translate(drawX, drawY);
+            if (applyRotate) ctx.rotate(rotateAngle);
+            ctx.scale(lineScaleX, lineScaleY);
+            if (drawOutline) ctx.strokeText(rawText, 0, 0);
+            ctx.fillText(rawText, 0, 0);
+            ctx.restore();
+          } else {
+            if (applyRotate) {
+              ctx.save();
+              ctx.translate(drawX, drawY);
+              ctx.rotate(rotateAngle);
+              if (drawOutline) ctx.strokeText(rawText, 0, 0);
+              ctx.fillText(rawText, 0, 0);
+              ctx.restore();
+            } else {
+              if (drawOutline) ctx.strokeText(rawText, drawX, drawY);
+              ctx.fillText(rawText, drawX, drawY);
+            }
+          }
         }
       }
       ctx.restore();
@@ -5837,7 +5942,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   function drawFloorTextsOverlay(context) {
     context.save();
     context.globalCompositeOperation = "screen";
-    drawFloatingTextEntries(context, (ft) => Boolean(ft?.floorLayer), 0.85);
+    drawFloatingTextEntries(context, (ft) => Boolean(ft?.floorLayer), 0.85, { useWorldTransform: true });
     context.restore();
   }
 
