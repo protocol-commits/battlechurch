@@ -6756,6 +6756,7 @@ function updateHaloBlade(dt) {
     if (now - lastHit < haloBladeState.hitCooldown) return;
     haloBladeState.lastHit.set(enemy, now);
     enemy.takeDamage(haloBladeState.damage, { damageType: "melee" });
+    registerComboHit(enemy, haloBladeState.damage);
     spawnFlashEffect(center.x, center.y - targetRadius * 0.3);
   });
 
@@ -6772,6 +6773,7 @@ function updateHaloBlade(dt) {
           damageType: "melee",
           skipImpactEffect: true,
         });
+        registerComboHit(activeBoss, haloBladeState.damage);
         spawnFlashEffect(haloBladeState.x, haloBladeState.y);
       }
     }
