@@ -13256,6 +13256,17 @@ function getComboLabelFontSize(hits) {
   return 38 + Math.max(0, tier - 1) * 6;
 }
 
+function getComboLabelColor(hits) {
+  const comboHits = Math.max(2, Math.round(hits || 0));
+  const tier = Math.floor(comboHits / 10);
+  if (tier >= 5) return "#FFF7F0";
+  if (tier >= 4) return "#FFF0C9";
+  if (tier >= 3) return "#FFE6A3";
+  if (tier >= 2) return "#FFD982";
+  if (tier >= 1) return "#FFF2B8";
+  return "#E4D6B2";
+}
+
 function maybeUpdateMaxComboInTown(hits, x, y) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   if (!Number.isFinite(comboHits)) return;
@@ -13270,6 +13281,7 @@ function updateLiveComboText(state, target) {
   const radius = target.radius || target.config?.hitRadius || 24;
   const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
   const labelFontSize = getComboLabelFontSize(state.hits);
+  const labelColor = getComboLabelColor(state.hits);
   const damageText = `${Math.round(state.damage)}`;
   const anchorX = Number.isFinite(state.anchorX) ? state.anchorX : target.x;
   const anchorY = Number.isFinite(state.anchorY) ? state.anchorY : target.y;
@@ -13302,7 +13314,7 @@ function updateLiveComboText(state, target) {
   const damageY = clampedDamageY;
   maybeUpdateMaxComboInTown(state.hits, labelX, labelY);
   if (!state.comboLabel) {
-    state.comboLabel = addFloatingTextAt(labelX, labelY, label, "#FFF2B8", {
+    state.comboLabel = addFloatingTextAt(labelX, labelY, label, labelColor, {
       speechBubble: false,
       vy: 0,
       life: 1.1,
@@ -13335,6 +13347,7 @@ function updateLiveComboText(state, target) {
     state.comboLabel.text = label;
     state.comboLabel.x = labelX;
     state.comboLabel.y = labelY;
+    state.comboLabel.color = labelColor;
     state.comboLabel.fontSize = labelFontSize;
     state.comboLabel.persist = true;
   }
@@ -13930,8 +13943,9 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
   const radius = entity.radius || entity.config?.hitRadius || 24;
   const label = `${hits} Hit Combo`;
   const labelFontSize = getComboLabelFontSize(hits);
+  const labelColor = getComboLabelColor(hits);
   maybeUpdateMaxComboInTown(hits, entity.x, entity.y - radius);
-  addFloatingTextAt(entity.x, entity.y - radius, label, "#FFF2B8", {
+  addFloatingTextAt(entity.x, entity.y - radius, label, labelColor, {
     speechBubble: false,
     vy: -30,
     life: 1.1,
