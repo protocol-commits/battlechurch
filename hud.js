@@ -656,20 +656,34 @@
       const enemyText = `${enemyKills}`;
       ctx.fillText(enemyText, x, rowY);
       x += ctx.measureText(enemyText).width;
+      ctx.restore();
+    };
+
+    drawPrayerBombMeter();
+
+    const drawPlayerInfo = () => {
+      if (!player) return;
+      const x = columnXs[1] + 6;
+      const width = columnWidth - 12;
+      ctx.save();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      const playerRowY = panelY + 14;
+      ctx.fillText('PLAYER', x, playerRowY);
       const dashCooldown = playerDashState?.dashCooldown || 0;
       const dashDuration = Math.max(0.001, DASH_COOLDOWN || 0);
       const dashReady = dashCooldown <= 0;
       const dashRatio = dashReady ? 1 : Math.max(0, Math.min(1, 1 - dashCooldown / dashDuration));
-      const dashMeterRight = meterX + meterWidth;
-      const dashMeterGap = 12;
-      const dashAvailable = dashMeterRight - (x + dashMeterGap);
-      const dashMeterMin = 70;
+      const dashLabelWidth = ctx.measureText('PLAYER').width;
+      const dashMeterGap = 10;
+      const dashMeterX = x + dashLabelWidth + dashMeterGap;
+      const dashAvailable = x + width - dashMeterX;
       const dashMeterMax = 140;
       if (dashAvailable > 40) {
-        const dashMeterWidth = Math.min(dashMeterMax, Math.max(dashMeterMin, dashAvailable));
-        const dashMeterX = dashMeterRight - dashMeterWidth;
+        const dashMeterWidth = Math.min(dashMeterMax, dashAvailable);
         const dashMeterHeight = 12;
-        const dashMeterY = Math.round(rowY - dashMeterHeight / 2);
+      const dashMeterY = Math.round(playerRowY - dashMeterHeight / 2) - 5;
         const dashRadius = 6;
         ctx.save();
         ctx.globalAlpha = 0.95;
@@ -699,23 +713,9 @@
         ctx.font = `9px ${UI_FONT_FAMILY}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('DASH', dashMeterX + dashMeterWidth / 2, rowY + 0.5);
+        ctx.fillText('DASH', dashMeterX + dashMeterWidth / 2, playerRowY - 4.5);
         ctx.restore();
       }
-      ctx.restore();
-    };
-
-    drawPrayerBombMeter();
-
-    const drawPlayerInfo = () => {
-      if (!player) return;
-      const x = columnXs[1] + 6;
-      const width = columnWidth - 12;
-      ctx.save();
-      ctx.textAlign = 'left';
-      ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText('PLAYER', x, panelY + 14);
       ctx.restore();
 
       const rows = [];
