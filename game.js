@@ -13296,10 +13296,10 @@ function spawnComboGraceBurst(target, hits, fallbackX, fallbackY, killedOnCombo 
   for (let i = 0; i < gemCount; i += 1) {
     const spawnOffsetX = randomInRange(-spread, spread);
     const angle = randomInRange(-Math.PI * 1.15, -Math.PI * 0.05);
-    const speed = randomInRange(520, 740);
-    const horizontalBias = Math.sign(spawnOffsetX || 1) * randomInRange(140, 260);
+    const speed = randomInRange(260, 370);
+    const horizontalBias = Math.sign(spawnOffsetX || 1) * randomInRange(70, 130);
     const vx = Math.cos(angle) * speed + horizontalBias;
-    const vy = Math.sin(angle) * speed - randomInRange(800, 1000);
+    const vy = Math.sin(angle) * speed - randomInRange(400, 500);
     const floorJitter = randomInRange(-0.15, 0.15);
     const floorY = Math.max(
       HUD_HEIGHT + 24,
