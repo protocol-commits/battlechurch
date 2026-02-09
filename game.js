@@ -13107,6 +13107,9 @@ function processProjectileClashing() {
       if (friendly.type === "word_of_god") {
         hostileDies = true;
         friendlyDies = false;
+      } else if (friendly.type === "fire" && friendly.friendly) {
+        hostileDies = true;
+        friendlyDies = false;
       } else if (hostileIsBoss && friendlyFromPlayer) {
         friendlyDies = true;
       } else if (friendlyPriority > hostilePriority) {
