@@ -13264,6 +13264,11 @@ function spawnComboGraceBurst(target, hits, fallbackX, fallbackY) {
     const horizontalBias = Math.sign(spawnOffsetX || 1) * randomInRange(140, 260);
     const vx = Math.cos(angle) * speed + horizontalBias;
     const vy = Math.sin(angle) * speed - randomInRange(800, 1000);
+    const floorJitter = randomInRange(-0.15, 0.15);
+    const floorY = Math.max(
+      HUD_HEIGHT + 24,
+      Math.min(canvas.height - 24, baseY + baseY * floorJitter),
+    );
     spawnGracePickup(
       baseX + spawnOffsetX,
       baseY + randomInRange(-spread * 0.3, spread * 0.3),
@@ -13275,7 +13280,7 @@ function spawnComboGraceBurst(target, hits, fallbackX, fallbackY) {
         useGravity: true,
         bounce: true,
         gravity: GRACE_PICKUP_GRAVITY * 2.2,
-        floorY: baseY,
+        floorY,
         bounceDamp: 0.55,
         airDrag: 0.985,
       },
