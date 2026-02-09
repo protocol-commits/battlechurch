@@ -2502,6 +2502,7 @@ function resizeCanvas() {
 
 let gameStarted = false;
 let pauseDialogActive = false;
+let pauseRestartConfirmActive = false;
 let howToPlayPageIndex = 0;
 let mapActive = false;
 let activeTownId = null;
@@ -2679,6 +2680,7 @@ Renderer.initialize({
   get fireOverlay() { return fireOverlay; },
   get congregationOverlay() { return congregationOverlay; },
   get speedrunTimer() { return speedrunTimer; },
+  get pauseRestartConfirmActive() { return pauseRestartConfirmActive; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
   get actBreakFadeAlpha() { return actBreakFadeAlpha; },
@@ -5290,6 +5292,7 @@ const GAME_OVER_BODY =
 
 function resumeFromPause() {
   pauseDialogActive = false;
+  pauseRestartConfirmActive = false;
   paused = false;
   gameStarted = true;
   keysJustPressed.clear();
@@ -12910,10 +12913,12 @@ function handlePauseMenu() {
     paused = !paused;
     if (paused && !gameOver) {
       window.isPauseOverlayActive = true;
+      pauseRestartConfirmActive = false;
       if (typeof window !== "undefined" && typeof window.pauseAllMusic === "function") {
         window.pauseAllMusic();
       }
     } else if (!paused) {
+      pauseRestartConfirmActive = false;
       resumeFromPause();
     }
   }
@@ -12928,14 +12933,21 @@ function handlePauseMenu() {
       allowSpace: true,
       onActivate: (button) => {
         if (button.key === "restart") {
+          pauseRestartConfirmActive = true;
+          return;
+        }
+        if (button.key === "confirmRestart") {
+          pauseRestartConfirmActive = false;
           window.isPauseOverlayActive = false;
           restartGame();
           return;
         }
         if (button.key === "settings") {
+          pauseRestartConfirmActive = false;
           showSettingsOverlay({ source: "pause" });
           return;
         }
+        pauseRestartConfirmActive = false;
         resumeFromPause();
       },
     });

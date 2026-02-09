@@ -3240,7 +3240,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawPauseOverlay() {
-    const { ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT = 54 } = requireBindings();
+    const { ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT = 54, pauseRestartConfirmActive } = requireBindings();
     if (window.DialogOverlay?.isVisible()) return;
     ctx.save();
     ctx.fillStyle = "rgba(4, 7, 14, 0.78)";
@@ -3288,11 +3288,17 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       maxWidthScale: 0.9,
     });
 
-    const buttonConfigs = [
-      { key: "resume", label: "Resume" },
-      { key: "settings", label: "Settings" },
-      { key: "restart", label: "Restart" },
-    ];
+    const buttonConfigs = pauseRestartConfirmActive
+      ? [
+          { key: "resume", label: "Resume" },
+          { key: "settings", label: "Settings" },
+          { key: "confirmRestart", label: "Confirm Restart" },
+        ]
+      : [
+          { key: "resume", label: "Resume" },
+          { key: "settings", label: "Settings" },
+          { key: "restart", label: "Restart" },
+        ];
     const buttonWidth = 240;
     const buttonHeight = 64;
     const buttonGap = 28;
