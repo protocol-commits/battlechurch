@@ -169,5 +169,13 @@
       description: "Adds two extra basic shots at slight angles.",
       hudDuration: 2.6,
     },
+    halo: {
+      duration: 12,
+      text: "Halo",
+      textColor: "#ffd978",
+      hudTitle: "Halo",
+      description: "An orbiting blade that shreds nearby enemies.",
+      hudDuration: 2.6,
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);

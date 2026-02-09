@@ -189,16 +189,15 @@
       disabled: true,
     },
     halo: {
-      src: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
+      src: `${UPGRADE_POWERUP_ROOT}/Dagger.png`,
       scale: 3.8 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       effect: "halo",
-      duration: 10,
+      duration: 12,
       label: "Halo",
-      iconSrc: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
-      description: "Coming soon.",
+      iconSrc: `${UPGRADE_POWERUP_ROOT}/Dagger.png`,
+      description: "Orbiting blade that shreds nearby enemies.",
       cost: 40,
-      disabled: true,
     },
   };
 

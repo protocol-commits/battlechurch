@@ -219,6 +219,19 @@ const MELEE_SWING_LENGTH = 260;
     }
   }
 
+  function drawHaloBlade(ctx, haloState) {
+    if (!haloState || !haloState.active) return;
+    const sprite = haloState.sprite;
+    if (!sprite) return;
+    const size = Math.max(12, sprite.width || 12) * (haloState.scale || 1);
+    ctx.save();
+    ctx.translate(haloState.x, haloState.y);
+    ctx.rotate((haloState.angle || 0) + Math.PI / 2);
+    ctx.globalAlpha = 0.95;
+    ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+
   function initialize(stateBindings) {
     bindings = stateBindings || null;
   }
@@ -4465,6 +4478,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       activeBoss,
       projectiles,
       player,
+      haloBladeState,
       effects,
       floatingTexts,
       cannonSplashRadius,
@@ -5175,6 +5189,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         drawCannonSplashDebug(ctx, projectile.x, projectile.y, cannonSplashRadius);
       }
     });
+    drawHaloBlade(ctx, haloBladeState);
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       effects.forEach((effect) => effect.draw());
     }

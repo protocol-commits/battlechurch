@@ -2290,6 +2290,20 @@ const WORLD_SCALE =
     ? Number(window.__BATTLECHURCH_WORLD_SCALE) || DEFAULT_WORLD_SCALE
     : DEFAULT_WORLD_SCALE);
 const SPEED_SCALE = Math.max(0.01, WORLD_SCALE);
+const haloBladeState = {
+  active: false,
+  angle: 0,
+  x: 0,
+  y: 0,
+  radius: 288 * WORLD_SCALE,
+  speed: 4.2,
+  damage: 20,
+  hitRadius: 22 * WORLD_SCALE,
+  hitCooldown: 0.25,
+  lastHit: new WeakMap(),
+  sprite: null,
+  scale: 3.4 * WORLD_SCALE,
+};
 
 // Melee Attack System Constants
 const MELEE_SWING_LENGTH_BASE = 260;
@@ -2726,6 +2740,7 @@ Renderer.initialize({
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
   get comboHudFlyEffects() { return comboHudFlyEffects; },
   get maxComboThisTown() { return maxComboThisTown; },
+  get haloBladeState() { return haloBladeState; },
   formatNumberWithCommas,
   updatePlayerDuringCongregation,
   resolveCongregationCollisions,
@@ -6341,6 +6356,13 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText(config);
       break;
     }
+    case "halo": {
+      const config = resolveWeaponPowerupConfig("halo", def);
+      player.haloTimer = Math.max(player.haloTimer, config.duration);
+      player.haloDuration = Math.max(player.haloDuration, config.duration);
+      showWeaponPowerupConfigText(config);
+      break;
+    }
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
       showWeaponPowerupConfigText({
@@ -6700,6 +6722,60 @@ function spawnPowerupHudFlyEffect({ x, y, iconImage, targetKey }) {
     size: Math.max(16, iconImage.width || 16),
     alpha: 1,
   });
+}
+
+function updateHaloBlade(dt) {
+  if (!player || player.state === "death" || player.haloTimer <= 0) {
+    haloBladeState.active = false;
+    return;
+  }
+  haloBladeState.active = true;
+  if (!haloBladeState.sprite && assets?.upgradePowerups?.halo?.image) {
+    haloBladeState.sprite = assets.upgradePowerups.halo.image;
+  }
+  const angle = (haloBladeState.angle || 0) + haloBladeState.speed * dt;
+  haloBladeState.angle = angle % (Math.PI * 2);
+  const depth = Math.sin(haloBladeState.angle);
+  const radiusX = haloBladeState.radius;
+  const radiusY = haloBladeState.radius * 0.7;
+  haloBladeState.x = player.x + Math.cos(haloBladeState.angle) * radiusX;
+  haloBladeState.y = player.y + depth * radiusY;
+
+  const now =
+    (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+  const hitRadius = haloBladeState.hitRadius;
+
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const center = getEnemyHitboxCenter(enemy);
+    const targetRadius = getEnemyHitboxRadius(enemy);
+    const dx = center.x - haloBladeState.x;
+    const dy = center.y - haloBladeState.y;
+    if (dx * dx + dy * dy > (hitRadius + targetRadius) ** 2) return;
+    const lastHit = haloBladeState.lastHit.get(enemy) || 0;
+    if (now - lastHit < haloBladeState.hitCooldown) return;
+    haloBladeState.lastHit.set(enemy, now);
+    enemy.takeDamage(haloBladeState.damage, { damageType: "melee" });
+    spawnFlashEffect(center.x, center.y - targetRadius * 0.3);
+  });
+
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
+    const dx = activeBoss.x - haloBladeState.x;
+    const dy = activeBoss.y - haloBladeState.y;
+    if (dx * dx + dy * dy <= (hitRadius + activeBoss.radius * 0.9) ** 2) {
+      const lastHit = haloBladeState.lastHit.get(activeBoss) || 0;
+      if (now - lastHit >= haloBladeState.hitCooldown) {
+        haloBladeState.lastHit.set(activeBoss, now);
+        activeBoss.takeDamage(haloBladeState.damage, {
+          hitX: haloBladeState.x,
+          hitY: haloBladeState.y,
+          damageType: "melee",
+          skipImpactEffect: true,
+        });
+        spawnFlashEffect(haloBladeState.x, haloBladeState.y);
+      }
+    }
+  }
 }
 
 function updatePowerupHudFlyEffects(dt) {
@@ -15894,6 +15970,7 @@ function updateGame(dt) {
     }
   }
 
+  updateHaloBlade(dt);
   updateCozyNpcs(dt);
   updateGracePickups(dt);
   updateGraceHudFlyEffects(dt);
