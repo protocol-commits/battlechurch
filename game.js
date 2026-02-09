@@ -1315,6 +1315,8 @@ function isPlayerMovementLocked() {
 
 if (typeof window !== "undefined") {
   window.Battlechurch = window.Battlechurch || {};
+  window.BattlechurchComboTrackerEnabled = true;
+  window.BattlechurchComboTrackerAllow = false;
   window.Battlechurch.isPlayerMovementLocked = isPlayerMovementLocked;
   window.selectFormation = selectFormation;
   window.clearFormationSelection = clearFormationSelection;
@@ -2133,6 +2135,7 @@ const SPIN_HOLD_CHARGE_TIME = MELEE_HOLD_CHARGE_TIME;
 const SPIN_CHARGE_MOVE_MULTIPLIER = 0.5;
 const SPIN_MOVE_DISTANCE = RUSH_DISTANCE;
 const SPIN_MOVE_SPEED = RUSH_SPEED;
+const COMBO_WINDOW_MS = 350;
 const RUSH_INVULNERABILITY = 0.4;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
@@ -12947,17 +12950,9 @@ function processProjectileCollisions(dt) {
         const damageType =
           projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
         enemy.takeDamage(projectileDamage, { damageType });
-        if (projectile.isDivineShot) {
-          const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-          const meleeAttackState = window._meleeAttackState;
-          if (meleeAttackState) {
-            meleeAttackState.divineComboDamage = projectileDamage;
-            meleeAttackState.divineComboActiveUntil = now + 700;
-            meleeAttackState.divineComboShown = false;
-            meleeAttackState.divineComboTarget = enemy;
-            meleeAttackState.divineComboHits = 1;
-          }
-        }
+    if (projectile.isDivineShot) {
+      registerComboHit(enemy, projectileDamage);
+    }
 
         if (
           projectile.type === "arrow" ||
@@ -12993,22 +12988,15 @@ function processProjectileCollisions(dt) {
             const hitY = Number.isFinite(projectile.y) ? projectile.y : activeBoss.y;
             const damageType =
               projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
-            activeBoss.takeDamage(projectile.getDamage(), {
+            const bossDamage = projectile.getDamage();
+            activeBoss.takeDamage(bossDamage, {
               hitX,
               hitY,
               damageType,
               skipImpactEffect: true,
             });
             if (projectile.isDivineShot) {
-              const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-              const meleeAttackState = window._meleeAttackState;
-              if (meleeAttackState) {
-                meleeAttackState.divineComboDamage = projectile.getDamage();
-                meleeAttackState.divineComboActiveUntil = now + 700;
-                meleeAttackState.divineComboShown = false;
-                meleeAttackState.divineComboTarget = activeBoss;
-                meleeAttackState.divineComboHits = 1;
-              }
+              registerComboHit(activeBoss, bossDamage);
             }
             if (
               projectile.type === "arrow" ||
@@ -13192,6 +13180,55 @@ function getDashButtonDirection() {
   return normalizeVector(dir.x, dir.y);
 }
 
+const comboTracker = {
+  combos: new Map(),
+  registerHit(target, damage, now) {
+    if (!target || !Number.isFinite(damage) || damage <= 0) return;
+    const timeNow =
+      typeof now === "number"
+        ? now
+        : typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
+    const existing = this.combos.get(target);
+    const state =
+      existing && timeNow <= existing.expiresAt
+        ? existing
+        : { hits: 0, damage: 0, expiresAt: 0 };
+    state.hits += 1;
+    state.damage += damage;
+    state.expiresAt = timeNow + COMBO_WINDOW_MS;
+    this.combos.set(target, state);
+  },
+  update(now) {
+    const timeNow =
+      typeof now === "number"
+        ? now
+        : typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now();
+    for (const [target, state] of this.combos.entries()) {
+      if (!target || target.dead || target.state === "death" || target.removed) {
+        this.combos.delete(target);
+        continue;
+      }
+      if (timeNow > state.expiresAt) {
+        if (state.hits >= 2) {
+          window.BattlechurchComboTrackerAllow = true;
+          showComboTextAt(target, state.damage, state.hits, 0, true);
+          window.BattlechurchComboTrackerAllow = false;
+        }
+        this.combos.delete(target);
+      }
+    }
+  },
+};
+
+function registerComboHit(target, damage) {
+  if (!window.BattlechurchComboTrackerEnabled) return;
+  comboTracker.registerHit(target, damage);
+}
+
 function getHeldMovementDirection() {
   const input = window.Input;
   if (!input) return { x: 0, y: 0 };
@@ -13310,6 +13347,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     meleeAttackState.rushHitEntities.add(enemy);
     const damage = Math.round(RUSH_DAMAGE);
     enemy.takeDamage(damage, { damageType: "charged" });
+    registerComboHit(enemy, damage);
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
     }
@@ -13369,6 +13407,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           hitY: activeBoss.y,
           damageType: "charged",
         });
+        registerComboHit(activeBoss, damage);
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
         if (!activeBoss.dead && activeBoss.state === "hurt") {
           const meleeCancelActive =
@@ -13485,6 +13524,9 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now();
+  if (window.BattlechurchComboTrackerEnabled) {
+    if (!forceImmediate || !window.BattlechurchComboTrackerAllow) return;
+  }
   const meleeState = window._meleeAttackState;
   if (
     meleeState &&
@@ -13604,6 +13646,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
     const damage = Math.round(MELEE_BASE_DAMAGE);
     enemy.takeDamage(damage, { damageType: "melee" });
+    registerComboHit(enemy, damage);
     meleeDamageTotal += damage;
     if (
       !meleeAttackState.divineComboShown &&
@@ -13672,6 +13715,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           hitY: activeBoss.y,
           damageType: "melee",
         });
+        registerComboHit(activeBoss, damage);
         meleeDamageTotal += damage;
         if (
           !meleeAttackState.divineComboShown &&
@@ -13791,6 +13835,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
     if (Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE) return;
     enemy.takeDamage(swooshDamage, { damageType: "melee" });
+    registerComboHit(enemy, swooshDamage);
     meleeDamageTotal += swooshDamage;
     if (
       !meleeAttackState.divineComboShown &&
@@ -13846,6 +13891,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           hitY: activeBoss.y,
           damageType: "melee",
         });
+        registerComboHit(activeBoss, swooshDamage);
         meleeDamageTotal += swooshDamage;
         if (
           !meleeAttackState.divineComboShown &&
@@ -14276,6 +14322,7 @@ function updateMeleeAttackSystem(dt) {
         hitSet.add(enemy);
         const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
         enemy.takeDamage(spinDamage, { damageType: "charged" });
+        registerComboHit(enemy, spinDamage);
         spinDamageTotal += spinDamage;
         if (!enemy.dead && enemy.state !== "death") {
           applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
@@ -14338,6 +14385,7 @@ function updateMeleeAttackSystem(dt) {
               hitY: activeBoss.y,
               damageType: "charged",
             });
+            registerComboHit(activeBoss, spinDamage);
             spinDamageTotal += spinDamage;
             if (typeof activeBoss.knockbackVx === "number") {
               applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
@@ -14888,6 +14936,11 @@ function updateGame(dt) {
   processDeadEnemies();
 
 
+  comboTracker.update(
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now(),
+  );
   updateMeleeAttackSystem(dt);
 
   processProjectileCollisions(dt);
