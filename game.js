@@ -2338,6 +2338,10 @@ const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = 0.65;
 const PRAYER_BOMB_RAIN_DARKEN_DURATION = 0.5;
 const PRAYER_BOMB_RAIN_SHAKE_DURATION = 0.12;
 const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = 10;
+const comboLabelFailsafe = {
+  label: null,
+  expiresAt: 0,
+};
 if (typeof window !== "undefined") {
   window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
 }
@@ -13538,6 +13542,21 @@ function recordPrayerBombComboHits(count) {
   maybeUpdateMaxComboInTown(prayerBombComboState.hits, cameraOffsetX + canvas.width / 2, canvas.height / 2);
 }
 
+function updateComboLabelFailsafe(now) {
+  if (!comboLabelFailsafe.label || !comboLabelFailsafe.expiresAt) return;
+  const timeNow =
+    typeof now === "number"
+      ? now
+      : typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+  if (timeNow <= comboLabelFailsafe.expiresAt) return;
+  comboLabelFailsafe.label.persist = false;
+  comboLabelFailsafe.label.life = Math.min(comboLabelFailsafe.label.life || 0.8, 0.8);
+  comboLabelFailsafe.label = null;
+  comboLabelFailsafe.expiresAt = 0;
+}
+
 function showPrayerBombBlastCombo(count, x, y) {
   const hits = Math.max(0, Math.round(count || 0));
   if (!hits) return;
@@ -13642,6 +13661,12 @@ function updateLiveComboText(state, target) {
     state.comboLabel.fontSize = labelFontSize;
     state.comboLabel.persist = true;
   }
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  comboLabelFailsafe.label = state.comboLabel || comboLabelFailsafe.label;
+  comboLabelFailsafe.expiresAt = now + COMBO_WINDOW_MS * 4;
   if (state.comboDamageLabel) {
     state.comboDamageLabel.text = damageText;
     state.comboDamageLabel.x = damageX;
@@ -13660,6 +13685,10 @@ function finalizeComboState(state) {
     if (state.comboDamageLabel) {
       state.comboDamageLabel.persist = false;
       state.comboDamageLabel.life = Math.min(state.comboDamageLabel.life || 0.7, 0.7);
+    }
+    if (comboLabelFailsafe.label === state.comboLabel) {
+      comboLabelFailsafe.label = null;
+      comboLabelFailsafe.expiresAt = 0;
     }
     return;
   }
@@ -15580,6 +15609,11 @@ function updateGame(dt) {
 
 
   comboTracker.update(
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now(),
+  );
+  updateComboLabelFailsafe(
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now(),
