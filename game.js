@@ -6463,7 +6463,7 @@ function updateGracePickups(dt) {
       const dx = player.x - pickup.x;
       const dy = player.y - pickup.y;
       const distance = Math.hypot(dx, dy);
-      if (distance < GRACE_PICKUP_ATTRACT_DISTANCE && player.state !== "death") {
+      if (false && distance < GRACE_PICKUP_ATTRACT_DISTANCE && player.state !== "death") {
         const attract = GRACE_PICKUP_ATTRACT_FORCE * (1 - distance / GRACE_PICKUP_ATTRACT_DISTANCE);
         pickup.vx += (dx / Math.max(distance, 0.001)) * attract * dt;
         pickup.vy += (dy / Math.max(distance, 0.001)) * attract * dt;
@@ -13316,6 +13316,7 @@ function spawnGraceArcBurst(baseX, baseY, count, spread) {
         floorY,
         bounceDamp: 0.55,
         airDrag: 0.985,
+        disableAttraction: true,
       },
     );
   }
