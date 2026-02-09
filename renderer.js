@@ -3199,7 +3199,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       bottomMargin: 90,
       rowGap: 32,
       buttonHeight: 64,
-      buttonCount: 2,
+      buttonCount: 3,
       HUD_HEIGHT,
     });
     ctx.save();
@@ -3221,6 +3221,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
     const buttonConfigs = [
       { key: "resume", label: "Resume" },
+      { key: "settings", label: "Settings" },
       { key: "restart", label: "Restart" },
     ];
     const buttonWidth = 240;

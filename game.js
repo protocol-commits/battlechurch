@@ -282,6 +282,14 @@ const PLAYER_DEATH_BELL_FADE_DELAY = 7;
 const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
 const MUSIC_VOLUME_BATTLE = 0.7;
+const AUDIO_SETTINGS_STORAGE_KEY = "battlechurch_audio_settings";
+const DEFAULT_AUDIO_SETTINGS = {
+  musicEnabled: true,
+  musicVolume: 1,
+  sfxEnabled: true,
+  sfxVolume: 1,
+};
+let audioSettings = { ...DEFAULT_AUDIO_SETTINGS };
 const MUSIC_FADE_OUT_MS = 1200;
 const MUSIC_FADE_FAST_MS = 450;
 const arrowSfxPool = [];
@@ -375,6 +383,76 @@ if (musicState.bossDeath) {
   musicState.bossDeath.loop = false;
 }
 
+const clamp01 = (value) => Math.max(0, Math.min(1, value));
+
+function loadAudioSettings() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const raw = localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return;
+    audioSettings = {
+      ...DEFAULT_AUDIO_SETTINGS,
+      ...parsed,
+    };
+    audioSettings.musicVolume = clamp01(audioSettings.musicVolume);
+    audioSettings.sfxVolume = clamp01(audioSettings.sfxVolume);
+  } catch (e) {}
+}
+
+function saveAudioSettings() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(audioSettings));
+  } catch (e) {}
+}
+
+function getEffectiveSfxVolume(volume) {
+  if (!audioSettings.sfxEnabled) return 0;
+  return clamp01((Number.isFinite(volume) ? volume : 1) * audioSettings.sfxVolume);
+}
+
+function getEffectiveMusicVolume(volume) {
+  if (!audioSettings.musicEnabled) return 0;
+  return clamp01((Number.isFinite(volume) ? volume : 1) * audioSettings.musicVolume);
+}
+
+function refreshMusicPlayback() {
+  if (!musicState.unlocked) return;
+  if (!audioSettings.musicEnabled) {
+    pauseAllMusic();
+    return;
+  }
+  const tracks = [
+    { audio: musicState.intro, started: musicState.introStarted, stopped: musicState.introStopped, volume: MUSIC_VOLUME_INTRO },
+    { audio: musicState.battle, started: musicState.battleStarted, stopped: musicState.battleStopped, volume: MUSIC_VOLUME_BATTLE },
+    { audio: musicState.recap, started: musicState.recapStarted, stopped: musicState.recapStopped, volume: MUSIC_VOLUME_BATTLE },
+    { audio: musicState.visitor, started: musicState.visitorStarted, stopped: musicState.visitorStopped, volume: MUSIC_VOLUME_BATTLE },
+    { audio: musicState.exterior, started: musicState.exteriorStarted, stopped: musicState.exteriorStopped, volume: MUSIC_VOLUME_INTRO },
+    { audio: musicState.exteriorBoss, started: musicState.exteriorBossStarted, stopped: musicState.exteriorBossStopped, volume: MUSIC_VOLUME_INTRO },
+    { audio: musicState.bossDeath, started: musicState.bossDeathStarted, stopped: musicState.bossDeathStopped, volume: MUSIC_VOLUME_BATTLE },
+  ];
+  tracks.forEach((track) => {
+    if (!track.audio) return;
+    const effective = getEffectiveMusicVolume(track.volume);
+    track.audio.volume = effective;
+    if (track.started && !track.stopped && track.audio.paused && effective > 0) {
+      playMusic(track.audio, { volume: track.volume, loop: track.audio.loop });
+    }
+  });
+}
+
+function applyAudioSettings() {
+  refreshMusicPlayback();
+  if (playerDeathBellAudio) {
+    playerDeathBellAudio.volume = getEffectiveSfxVolume(1);
+  }
+}
+
+loadAudioSettings();
+applyAudioSettings();
+
 function playDefaultArrowSfx(volume = 0.6) {
   return;
 }
@@ -402,6 +480,8 @@ function playPooledSfx(pool, src, maxPoolSize, options = {}) {
   } = options;
 
   if (typeof Audio === "undefined") return null;
+  const effectiveVolume = getEffectiveSfxVolume(volume);
+  if (effectiveVolume <= 0) return null;
 
   // Handle random source selection from array
   const selectedSrc = Array.isArray(src)
@@ -437,7 +517,7 @@ function playPooledSfx(pool, src, maxPoolSize, options = {}) {
 
   try {
     audio.currentTime = 0;
-    audio.volume = Math.max(0, Math.min(1, volume));
+    audio.volume = Math.max(0, Math.min(1, effectiveVolume));
     audio.playbackRate = playbackRate;
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
@@ -459,13 +539,15 @@ if (typeof window !== "undefined") {
 
 function playHighHealthEnemyDeathSfx(volume = 1.0) {
   if (typeof Audio === "undefined") return;
+  const effectiveVolume = getEffectiveSfxVolume(volume);
+  if (effectiveVolume <= 0) return;
   const channel = enemyDeathGruntChannel;
   if (channel && !channel.paused && !channel.ended) return;
   const audio = channel || new Audio();
   try {
     audio.src = HIGH_HEALTH_DEATH_GRUNT_SRC;
     audio.currentTime = 0;
-    audio.volume = volume;
+    audio.volume = effectiveVolume;
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch(() => {});
@@ -511,6 +593,7 @@ if (typeof window !== "undefined") {
 
 function playPlayerDeathBell(volume = 1.0) {
   if (!playerDeathBellAudio) return;
+  const effectiveVolume = getEffectiveSfxVolume(volume);
   playerDeathBellResume = {
     intro: Boolean(musicState.intro && !musicState.intro.paused && !musicState.introStopped),
     battle: Boolean(musicState.battle && !musicState.battle.paused && !musicState.battleStopped),
@@ -521,7 +604,7 @@ function playPlayerDeathBell(volume = 1.0) {
   try {
     playerDeathBellAudio.pause();
     playerDeathBellAudio.currentTime = 0;
-    playerDeathBellAudio.volume = volume;
+    playerDeathBellAudio.volume = effectiveVolume;
     playerDeathBellAudio.playbackRate = 1;
     playerDeathBellAudio.loop = false;
     const playPromise = playerDeathBellAudio.play();
@@ -530,7 +613,7 @@ function playPlayerDeathBell(volume = 1.0) {
     }
   } catch (err) {}
   playerDeathBellFadeTimer = PLAYER_DEATH_BELL_FADE_DELAY + PLAYER_DEATH_BELL_FADE_DURATION;
-  playerDeathBellFadeVolume = volume;
+  playerDeathBellFadeVolume = effectiveVolume;
 }
 
 function stopPlayerDeathBell() {
@@ -546,6 +629,8 @@ function stopPlayerDeathBell() {
 
 function playEnemyDeathSfx(volume = 0.35) {
   if (typeof Audio === "undefined") return;
+  const effectiveVolume = getEffectiveSfxVolume(volume);
+  if (effectiveVolume <= 0) return;
   const gruntChannel = enemyDeathGruntChannel;
   const isGruntPlaying = enemyDeathSfxPool.some(
     (entry) =>
@@ -583,7 +668,7 @@ function playEnemyDeathSfx(volume = 0.35) {
   }
   try {
     audio.currentTime = 0;
-    audio.volume = isGrunt ? volume * 0.6 : volume;
+    audio.volume = isGrunt ? effectiveVolume * 0.6 : effectiveVolume;
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch(() => {});
@@ -621,6 +706,8 @@ if (typeof window !== "undefined") {
 
 function playDivineShotSfx(volume = 1.0) {
   if (typeof Audio === "undefined") return;
+  const effectiveVolume = getEffectiveSfxVolume(volume);
+  if (effectiveVolume <= 0) return;
   const src = DIVINE_SHOT_SFX_SRC;
   let audio = fireballSfxPool.find(
     (entry) => entry.src && entry.src.includes(src) && (entry.paused || entry.ended),
@@ -637,7 +724,7 @@ function playDivineShotSfx(volume = 1.0) {
   }
   try {
     audio.currentTime = 0;
-    audio.volume = volume;
+    audio.volume = effectiveVolume;
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
       playPromise.catch(() => {});
@@ -784,8 +871,10 @@ function fadeAudio(audio, { to = 0, durationMs = 800, stopOnZero = true } = {}) 
 
 function playMusic(audio, { volume = 0.7, loop = false } = {}) {
   if (!audio) return;
+  const effectiveVolume = getEffectiveMusicVolume(volume);
+  if (effectiveVolume <= 0) return;
   audio.loop = loop;
-  audio.volume = volume;
+  audio.volume = effectiveVolume;
   try {
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === "function") {
@@ -12028,6 +12117,101 @@ function updatePlayerRespawn(dt) {
   return true;
 }
 
+function showSettingsOverlay({ source = "title" } = {}) {
+  if (!window.DialogOverlay) return;
+  const bodyHtml = `
+    <div class="settings-panel">
+      <div class="settings-row">
+        <div class="settings-row__label">Music</div>
+        <label class="settings-toggle">
+          <input type="checkbox" data-setting="musicEnabled">
+          <span>On</span>
+        </label>
+      </div>
+      <div class="settings-row settings-row--slider">
+        <label class="settings-row__label" for="settingsMusicVolume">Music Volume</label>
+        <div class="settings-slider">
+          <input type="range" id="settingsMusicVolume" min="0" max="100" value="100" step="1" data-setting="musicVolume">
+          <span class="settings-slider__value" data-setting-value="musicVolume">100%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row__label">Sound Effects</div>
+        <label class="settings-toggle">
+          <input type="checkbox" data-setting="sfxEnabled">
+          <span>On</span>
+        </label>
+      </div>
+      <div class="settings-row settings-row--slider">
+        <label class="settings-row__label" for="settingsSfxVolume">SFX Volume</label>
+        <div class="settings-slider">
+          <input type="range" id="settingsSfxVolume" min="0" max="100" value="100" step="1" data-setting="sfxVolume">
+          <span class="settings-slider__value" data-setting-value="sfxVolume">100%</span>
+        </div>
+      </div>
+    </div>
+  `;
+  window.DialogOverlay.show({
+    title: "Settings",
+    bodyHtml,
+    buttonText: "Back",
+    variant: "settings",
+    onRender: ({ bodyEl }) => {
+      if (!bodyEl) return;
+      const setSliderValue = (key, value) => {
+        const valueEl = bodyEl.querySelector(`[data-setting-value="${key}"]`);
+        if (valueEl) valueEl.textContent = `${Math.round(value * 100)}%`;
+      };
+      const musicToggle = bodyEl.querySelector('[data-setting="musicEnabled"]');
+      const musicSlider = bodyEl.querySelector('[data-setting="musicVolume"]');
+      const sfxToggle = bodyEl.querySelector('[data-setting="sfxEnabled"]');
+      const sfxSlider = bodyEl.querySelector('[data-setting="sfxVolume"]');
+      if (musicToggle) musicToggle.checked = Boolean(audioSettings.musicEnabled);
+      if (musicSlider) musicSlider.value = String(Math.round(audioSettings.musicVolume * 100));
+      if (sfxToggle) sfxToggle.checked = Boolean(audioSettings.sfxEnabled);
+      if (sfxSlider) sfxSlider.value = String(Math.round(audioSettings.sfxVolume * 100));
+      setSliderValue("musicVolume", audioSettings.musicVolume);
+      setSliderValue("sfxVolume", audioSettings.sfxVolume);
+
+      const updateSetting = (key, value) => {
+        audioSettings[key] = value;
+        saveAudioSettings();
+        applyAudioSettings();
+      };
+
+      if (musicToggle) {
+        musicToggle.addEventListener("change", (event) => {
+          updateSetting("musicEnabled", event.target.checked);
+        });
+      }
+      if (musicSlider) {
+        musicSlider.addEventListener("input", (event) => {
+          const next = clamp01(Number(event.target.value) / 100);
+          setSliderValue("musicVolume", next);
+          updateSetting("musicVolume", next);
+        });
+      }
+      if (sfxToggle) {
+        sfxToggle.addEventListener("change", (event) => {
+          updateSetting("sfxEnabled", event.target.checked);
+        });
+      }
+      if (sfxSlider) {
+        sfxSlider.addEventListener("input", (event) => {
+          const next = clamp01(Number(event.target.value) / 100);
+          setSliderValue("sfxVolume", next);
+          updateSetting("sfxVolume", next);
+        });
+      }
+    },
+    onContinue: () => {
+      if (source === "pause") {
+        window.isPauseOverlayActive = true;
+      }
+    },
+  });
+}
+
 function handleTitleScreen() {
   if (!titleScreenActive) return false;
   const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
@@ -12052,7 +12236,7 @@ function handleTitleScreen() {
           howToPlayActive = true;
           howToPlayPageIndex = 0;
         } else if (button.key === "settings") {
-          setDevStatus("Settings coming soon", 1.8);
+          showSettingsOverlay({ source: "title" });
         } else if (button.key === "leaderboard") {
           setDevStatus("Leaderboard coming soon", 1.8);
         } else if (button.key === "auth") {
@@ -12677,6 +12861,10 @@ function handlePauseMenu() {
         if (button.key === "restart") {
           window.isPauseOverlayActive = false;
           restartGame();
+          return;
+        }
+        if (button.key === "settings") {
+          showSettingsOverlay({ source: "pause" });
           return;
         }
         resumeFromPause();
