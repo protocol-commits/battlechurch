@@ -13522,7 +13522,7 @@ function updatePrayerBombComboDisplay() {
   const hits = Math.max(1, Math.round(prayerBombComboState.hits || 0));
   if (!Number.isFinite(prayerBombComboState.anchorX) || !Number.isFinite(prayerBombComboState.anchorY)) {
     prayerBombComboState.anchorX = cameraOffsetX + canvas.width / 2;
-    prayerBombComboState.anchorY = canvas.height * 0.4;
+    prayerBombComboState.anchorY = canvas.height / 2;
   }
   const centerX = prayerBombComboState.anchorX;
   const centerY = prayerBombComboState.anchorY;
