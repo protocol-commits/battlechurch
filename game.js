@@ -13315,9 +13315,21 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     }
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     if (!enemy.dead && enemy.state === "hurt") {
-      meleeAttackState.rushComboDamage = damage;
+      const meleeCancelActive =
+        meleeAttackState.meleeCancelUntil &&
+        now <= meleeAttackState.meleeCancelUntil &&
+        (!meleeAttackState.meleeCancelTarget || meleeAttackState.meleeCancelTarget === enemy);
+      meleeAttackState.rushComboDamage = meleeCancelActive
+        ? meleeAttackState.meleeCancelDamage + damage
+        : damage;
       meleeAttackState.rushComboActiveUntil = now + 450;
       meleeAttackState.rushComboShown = false;
+      meleeAttackState.rushComboHits = meleeCancelActive ? 2 : 1;
+      meleeAttackState.rushComboTarget = enemy;
+      if (meleeCancelActive) {
+        meleeAttackState.meleeCancelUntil = 0;
+        meleeAttackState.meleeCancelTarget = null;
+      }
     }
     if (
       !meleeAttackState.divineComboShown &&
@@ -13330,17 +13342,6 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       meleeAttackState.divineComboActiveUntil = now + 450;
       meleeAttackState.divineComboTarget = enemy;
       meleeAttackState.divineComboHits = Math.max(2, (meleeAttackState.divineComboHits || 1) + 1);
-    }
-    if (
-      meleeAttackState.comboDamage > 0 &&
-      meleeAttackState.comboActiveUntil &&
-      now <= meleeAttackState.comboActiveUntil &&
-      !meleeAttackState.comboShown
-    ) {
-      showComboTextAt(enemy, meleeAttackState.comboDamage + damage, 2, damage);
-      meleeAttackState.comboShown = true;
-      meleeAttackState.comboActiveUntil = 0;
-      meleeAttackState.comboDamage = 0;
     }
     spawnEnemyHitEffect(enemy);
     if (typeof playEnemyHitSfx === "function") {
@@ -13370,9 +13371,22 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
         });
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
         if (!activeBoss.dead && activeBoss.state === "hurt") {
-          meleeAttackState.rushComboDamage = damage;
+          const meleeCancelActive =
+            meleeAttackState.meleeCancelUntil &&
+            now <= meleeAttackState.meleeCancelUntil &&
+            (!meleeAttackState.meleeCancelTarget ||
+              meleeAttackState.meleeCancelTarget === activeBoss);
+          meleeAttackState.rushComboDamage = meleeCancelActive
+            ? meleeAttackState.meleeCancelDamage + damage
+            : damage;
           meleeAttackState.rushComboActiveUntil = now + 450;
           meleeAttackState.rushComboShown = false;
+          meleeAttackState.rushComboHits = meleeCancelActive ? 2 : 1;
+          meleeAttackState.rushComboTarget = activeBoss;
+          if (meleeCancelActive) {
+            meleeAttackState.meleeCancelUntil = 0;
+            meleeAttackState.meleeCancelTarget = null;
+          }
         }
         if (typeof activeBoss.knockbackVx === "number") {
           applyEnemyMeleeKnockback(activeBoss, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
@@ -13393,17 +13407,6 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           );
         }
         const comboNow = now;
-        if (
-          meleeAttackState.comboDamage > 0 &&
-          meleeAttackState.comboActiveUntil &&
-          comboNow <= meleeAttackState.comboActiveUntil &&
-          !meleeAttackState.comboShown
-        ) {
-          showComboTextAt(activeBoss, meleeAttackState.comboDamage + damage, 2, damage);
-          meleeAttackState.comboShown = true;
-          meleeAttackState.comboActiveUntil = 0;
-          meleeAttackState.comboDamage = 0;
-        }
         spawnEnemyHitEffect(activeBoss);
         if (typeof playEnemyHitSfx === "function") {
           playEnemyHitSfx(0.6);
@@ -13587,6 +13590,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   let hitBoss = false;
   let survivorHit = false;
   let meleeDamageTotal = 0;
+  let meleePrimaryTarget = null;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     const dx = enemy.x - swingCenterX;
@@ -13597,6 +13601,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     const dotProduct = dx * dir.x + dy * dir.y;
     if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
     hitEnemies.push(enemy);
+    if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
     const damage = Math.round(MELEE_BASE_DAMAGE);
     enemy.takeDamage(damage, { damageType: "melee" });
     meleeDamageTotal += damage;
@@ -13639,10 +13644,13 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       now <= meleeAttackState.rushComboActiveUntil &&
       enemy.state === "hurt"
     ) {
-      showComboTextAt(enemy, meleeAttackState.rushComboDamage + damage, 2, damage);
+      const baseHits = meleeAttackState.rushComboHits || 1;
+      showComboTextAt(enemy, meleeAttackState.rushComboDamage + damage, baseHits + 1, damage);
       meleeAttackState.rushComboShown = true;
       meleeAttackState.rushComboActiveUntil = 0;
       meleeAttackState.rushComboDamage = 0;
+      meleeAttackState.rushComboHits = 0;
+      meleeAttackState.rushComboTarget = null;
     }
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
@@ -13704,12 +13712,16 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           now <= meleeAttackState.rushComboActiveUntil &&
           activeBoss.state === "hurt"
         ) {
-          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + damage, 2, damage);
+          const baseHits = meleeAttackState.rushComboHits || 1;
+          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + damage, baseHits + 1, damage);
           meleeAttackState.rushComboShown = true;
           meleeAttackState.rushComboActiveUntil = 0;
           meleeAttackState.rushComboDamage = 0;
+          meleeAttackState.rushComboHits = 0;
+          meleeAttackState.rushComboTarget = null;
         }
         hitBoss = true;
+        if (!meleePrimaryTarget) meleePrimaryTarget = activeBoss;
         if (typeof activeBoss.knockbackVx === "number") {
           applyEnemyMeleeKnockback(activeBoss, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
         }
@@ -13720,15 +13732,18 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       }
     }
   }
-      if (survivorHit) {
-        const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-        meleeAttackState.awaitRush = true;
-        meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
-        meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
-        meleeAttackState.comboDamage = meleeDamageTotal;
-        meleeAttackState.comboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
-        meleeAttackState.comboShown = false;
-      }
+  if (survivorHit) {
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    meleeAttackState.awaitRush = true;
+    meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
+    meleeAttackState.rushBypassUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    meleeAttackState.comboDamage = meleeDamageTotal;
+    meleeAttackState.comboActiveUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    meleeAttackState.comboShown = false;
+    meleeAttackState.meleeCancelUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+    meleeAttackState.meleeCancelDamage = meleeDamageTotal;
+    meleeAttackState.meleeCancelTarget = meleePrimaryTarget;
+  }
   if (hitEnemies.length > 0 || hitBoss) {
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx(0.6);
@@ -14153,6 +14168,11 @@ function updateMeleeAttackSystem(dt) {
     rushComboDamage: 0,
     rushComboActiveUntil: 0,
     rushComboShown: false,
+    rushComboHits: 0,
+    rushComboTarget: null,
+    meleeCancelUntil: 0,
+    meleeCancelDamage: 0,
+    meleeCancelTarget: null,
     divineComboDamage: 0,
     divineComboActiveUntil: 0,
     divineComboShown: false,
@@ -14407,12 +14427,19 @@ function updateMeleeAttackSystem(dt) {
     const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing;
     const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing;
     if (bJustPressed && !meleeAttackState.spinButtonDown) {
+      if (meleeAttackState.meleeCancelUntil && now <= meleeAttackState.meleeCancelUntil) {
+        executeRushAttack(getDashButtonDirection(), meleeAttackState);
+        meleeAttackState.spinCharging = false;
+        meleeAttackState.spinButtonDown = false;
+        meleeAttackState.spinChargeTimer = 0;
+      } else {
       meleeAttackState.spinButtonDown = true;
       meleeAttackState.spinCharging = true;
       meleeAttackState.spinChargeTimer = 0;
       meleeAttackState.spinChargeFlashTriggered = false;
       playerDashState.pendingDashTimer = 0;
       playerDashState.pendingDashDir = null;
+      }
     }
     if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
       meleeAttackState.spinChargeTimer += dt;
@@ -14493,6 +14520,11 @@ function updateMeleeAttackSystem(dt) {
       clearDivineChargeSparkVisual();
     }
     const comboNow = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (meleeAttackState.meleeCancelUntil && comboNow > meleeAttackState.meleeCancelUntil) {
+      meleeAttackState.meleeCancelUntil = 0;
+      meleeAttackState.meleeCancelTarget = null;
+      meleeAttackState.meleeCancelDamage = 0;
+    }
     if (
       meleeAttackState.pendingComboTarget &&
       meleeAttackState.pendingComboShowAt &&
@@ -14510,6 +14542,26 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.pendingComboShowAt = 0;
       meleeAttackState.pendingComboHits = 0;
       meleeAttackState.pendingComboLastAt = 0;
+    }
+    if (
+      meleeAttackState.rushComboDamage > 0 &&
+      !meleeAttackState.rushComboShown &&
+      meleeAttackState.rushComboActiveUntil &&
+      comboNow > meleeAttackState.rushComboActiveUntil
+    ) {
+      const hits = Math.max(2, meleeAttackState.rushComboHits || 2);
+      showComboTextAt(
+        meleeAttackState.rushComboTarget || null,
+        meleeAttackState.rushComboDamage,
+        hits,
+        0,
+        true,
+      );
+      meleeAttackState.rushComboShown = true;
+      meleeAttackState.rushComboActiveUntil = 0;
+      meleeAttackState.rushComboDamage = 0;
+      meleeAttackState.rushComboHits = 0;
+      meleeAttackState.rushComboTarget = null;
     }
     if (
       meleeAttackState.divineComboDamage > 0 &&
