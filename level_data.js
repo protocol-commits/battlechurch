@@ -111,10 +111,6 @@ window.BattlechurchLevelData = {
                       "count": 1
                     },
                     {
-                      "enemy": "armoredSkeleton",
-                      "count": 1
-                    },
-                    {
                       "enemy": "miniImp",
                       "count": 50
                     }
@@ -131,10 +127,6 @@ window.BattlechurchLevelData = {
                   "index": 2,
                   "entries": [
                     {
-                      "enemy": "armoredOrc",
-                      "count": 1
-                    },
-                    {
                       "enemy": "miniImp",
                       "count": 50
                     }
@@ -150,10 +142,6 @@ window.BattlechurchLevelData = {
                 {
                   "index": 3,
                   "entries": [
-                    {
-                      "enemy": "armoredAxeman",
-                      "count": 1
-                    },
                     {
                       "enemy": "miniImp",
                       "count": 50
