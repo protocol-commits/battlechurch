@@ -80,6 +80,11 @@ let prayerBombRainTimer = 0;
 let prayerBombRainSpawnTimer = 0;
 let prayerBombScreenFadeTimer = 0;
 let prayerBombScreenFadeDuration = 0.8;
+const prayerBombComboState = {
+  active: false,
+  hits: 0,
+  label: null,
+};
 const DAMAGE_HIT_FLASH_DURATION = 0.08;
 if (typeof window !== "undefined" && !window.triggerDamageFlash) {
   window.triggerDamageFlash = () => {
@@ -1846,12 +1851,17 @@ function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB
       bossHit = true;
     }
   }
+  if (prayerBombComboState.active) {
+    const hitCount = hits.length + (bossHit ? 1 : 0);
+    recordPrayerBombComboHits(hitCount);
+  }
   return { hits, bossHit };
 }
 
 function startPrayerBombFireRain(duration = PRAYER_BOMB_RAIN_DURATION) {
   prayerBombRainTimer = Math.max(prayerBombRainTimer, Number(duration) || 0);
   prayerBombRainSpawnTimer = 0;
+  startPrayerBombCombo();
 }
 
 function triggerPrayerBombScreenDarken(duration = 0.8) {
@@ -1909,7 +1919,12 @@ function spawnPrayerBombFireball(target) {
 }
 
 function updatePrayerBombFireRain(dt) {
-  if (prayerBombRainTimer <= 0) return;
+  if (prayerBombRainTimer <= 0) {
+    if (prayerBombComboState.active) {
+      endPrayerBombCombo();
+    }
+    return;
+  }
   prayerBombRainTimer = Math.max(0, prayerBombRainTimer - dt);
   prayerBombRainSpawnTimer -= dt;
   while (prayerBombRainSpawnTimer <= 0 && prayerBombRainTimer > 0) {
@@ -1922,6 +1937,7 @@ function updatePrayerBombFireRain(dt) {
 if (typeof window !== "undefined") {
   window.startPrayerBombFireRain = startPrayerBombFireRain;
   window.triggerPrayerBombScreenDarken = triggerPrayerBombScreenDarken;
+  window.showPrayerBombBlastCombo = showPrayerBombBlastCombo;
 }
 
 function mergeInspectorOverrides(source) {
@@ -13455,13 +13471,100 @@ function getComboLabelColor(hits) {
   return "#E4D6B2";
 }
 
+function withAlpha(hexColor, alpha) {
+  if (!hexColor || hexColor[0] !== "#" || hexColor.length !== 7) return hexColor;
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  if (![r, g, b].every(Number.isFinite)) return hexColor;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function updatePrayerBombComboDisplay() {
+  if (!prayerBombComboState.active) return;
+  const hits = Math.max(1, Math.round(prayerBombComboState.hits || 0));
+  const centerX = cameraOffsetX + canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const fontSize = getComboLabelFontSize(hits) * 2;
+  const color = withAlpha(getComboLabelColor(hits), 0.78);
+  const labelText = `${hits} Hit Combo`;
+  if (!prayerBombComboState.label) {
+    prayerBombComboState.label = addFloatingTextAt(centerX, centerY, labelText, color, {
+      speechBubble: false,
+      vy: 0,
+      life: 1.4,
+      fontSize,
+      fontWeight: "800",
+      priority: 7,
+      fadeDelay: 0,
+      clampToScreen: true,
+      persist: true,
+    });
+    return;
+  }
+  prayerBombComboState.label.text = labelText;
+  prayerBombComboState.label.x = centerX;
+  prayerBombComboState.label.y = centerY;
+  prayerBombComboState.label.fontSize = fontSize;
+  prayerBombComboState.label.color = color;
+  prayerBombComboState.label.persist = true;
+}
+
+function startPrayerBombCombo() {
+  if (!prayerBombComboState.active) {
+    prayerBombComboState.hits = 0;
+    prayerBombComboState.label = null;
+  }
+  prayerBombComboState.active = true;
+}
+
+function endPrayerBombCombo() {
+  if (!prayerBombComboState.active) return;
+  if (prayerBombComboState.label) {
+    prayerBombComboState.label.persist = false;
+    prayerBombComboState.label.life = Math.min(prayerBombComboState.label.life || 0.9, 0.9);
+  }
+  prayerBombComboState.active = false;
+  prayerBombComboState.hits = 0;
+  prayerBombComboState.label = null;
+}
+
+function recordPrayerBombComboHits(count) {
+  if (!prayerBombComboState.active) return;
+  const addCount = Math.max(0, Math.round(count || 0));
+  if (!addCount) return;
+  prayerBombComboState.hits += addCount;
+  updatePrayerBombComboDisplay();
+  maybeUpdateMaxComboInTown(prayerBombComboState.hits, cameraOffsetX + canvas.width / 2, canvas.height / 2);
+}
+
+function showPrayerBombBlastCombo(count, x, y) {
+  const hits = Math.max(0, Math.round(count || 0));
+  if (!hits) return;
+  const fontSize = getComboLabelFontSize(hits) * 2;
+  const color = withAlpha(getComboLabelColor(hits), 0.78);
+  const labelText = `${hits} Hit Combo`;
+  addFloatingTextAt(x, y, labelText, color, {
+    speechBubble: false,
+    vy: -28,
+    life: 1.2,
+    fontSize,
+    fontWeight: "800",
+    priority: 7,
+    fadeDelay: 0,
+    clampToScreen: true,
+  });
+  maybeUpdateMaxComboInTown(hits, x, y);
+}
+
 function maybeUpdateMaxComboInTown(hits, x, y) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   if (!Number.isFinite(comboHits)) return;
-  if (comboHits <= 15) return;
   if (comboHits <= maxComboThisTown) return;
   maxComboThisTown = comboHits;
-  spawnComboHudFlyEffect({ text: `${comboHits}`, x, y });
+  if (comboHits > 15) {
+    spawnComboHudFlyEffect({ text: `${comboHits}`, x, y });
+  }
 }
 
 function updateLiveComboText(state, target) {
@@ -13667,11 +13770,17 @@ const comboTracker = {
 };
 
 function registerComboHit(target, damage) {
+  if (prayerBombComboState.active && target) {
+    recordPrayerBombComboHits(1);
+  }
   if (!window.BattlechurchComboTrackerEnabled) return;
   comboTracker.registerHit(target, damage);
 }
 
 function registerProjectileComboHit(target, damage, projectile) {
+  if (prayerBombComboState.active && target) {
+    recordPrayerBombComboHits(1);
+  }
   if (!window.BattlechurchComboTrackerEnabled) return;
   const direction = projectile ? { x: projectile.vx, y: projectile.vy } : null;
   comboTracker.registerHit(target, damage, undefined, {

@@ -1200,6 +1200,11 @@ const getResistanceTimerScale = () => {
       } else {
         spawnRayboltEffect(this.x, this.y, radius);
       }
+      const comboCount = struckEnemies.length + (bossHit ? 1 : 0);
+      if (comboCount > 0 && typeof window !== "undefined" && typeof window.showPrayerBombBlastCombo === "function") {
+        const comboY = this.y - (this.radius || 24) - 20;
+        window.showPrayerBombBlastCombo(comboCount, this.x, comboY);
+      }
       spawnSplashDebugCircle(this.x, this.y, radius);
       spawnPrayerBombGlow(this.x, this.y, radius);
     } else if (level === 2) {
@@ -1247,6 +1252,11 @@ const getResistanceTimerScale = () => {
         if (typeof spawnPrayerBombExplosion === "function") {
           spawnPrayerBombExplosion(activeBoss.x, activeBoss.y, { radius: activeBoss.radius || 80 });
         }
+      }
+      const comboCount = struckEnemies.length + (bossHit ? 1 : 0);
+      if (comboCount > 0 && typeof window !== "undefined" && typeof window.showPrayerBombBlastCombo === "function") {
+        const comboY = this.y - (this.radius || 24) - 20;
+        window.showPrayerBombBlastCombo(comboCount, this.x, comboY);
       }
       if (!struckEnemies.length && !bossHit) {
         if (typeof spawnPrayerBombExplosion === "function") {
