@@ -113,6 +113,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "armoredSkeleton",
                       "count": 1
+                    },
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
                     }
                   ],
                   "weights": {},
@@ -129,6 +133,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "armoredOrc",
                       "count": 1
+                    },
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
                     }
                   ],
                   "weights": {},
@@ -145,6 +153,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "armoredAxeman",
                       "count": 1
+                    },
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
                     }
                   ],
                   "weights": {},
@@ -157,7 +169,12 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 4,
-                  "entries": [],
+                  "entries": [
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
+                    }
+                  ],
                   "weights": {},
                   "delaysWeighted": {},
                   "delaysExplicit": {},
@@ -168,7 +185,12 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 5,
-                  "entries": [],
+                  "entries": [
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
+                    }
+                  ],
                   "weights": {},
                   "delaysWeighted": {},
                   "delaysExplicit": {},
@@ -183,6 +205,10 @@ window.BattlechurchLevelData = {
                     {
                       "enemy": "miniClawedDemon",
                       "count": 20
+                    },
+                    {
+                      "enemy": "miniImp",
+                      "count": 50
                     }
                   ],
                   "weights": {},

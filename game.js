@@ -6406,9 +6406,7 @@ function maybeDropGraceFromEnemy(enemy) {
   const stacks = 1 +
     Math.floor(Math.random() * GRACE_DROP_MAX_STACK) +
     Math.floor(sizeRatio * GRACE_DROP_SIZE_STACK_FACTOR * GRACE_DROP_MAX_STACK);
-  for (let i = 0; i < stacks; i += 1) {
-    spawnGracePickup(enemy.x, enemy.y, { scatter: true });
-  }
+  spawnGraceArcBurst(enemy.x, enemy.y, stacks);
 }
 
 function updateGracePickups(dt) {
@@ -13282,19 +13280,13 @@ function registerComboHit(target, damage) {
   comboTracker.registerHit(target, damage);
 }
 
-function spawnComboGraceBurst(target, hits, fallbackX, fallbackY, killedOnCombo = false) {
-  const comboHits = Math.max(2, Math.round(hits || 0));
-  const minPerHit = killedOnCombo ? 3 : 2;
-  const maxPerHit = killedOnCombo ? 5 : 2;
-  const minGems = comboHits * minPerHit;
-  const maxGems = comboHits * maxPerHit;
-  const gemCount = Math.max(minGems, randomInRange(minGems, maxGems));
-  const baseX = Number.isFinite(target?.x) ? target.x : fallbackX;
-  const baseY = Number.isFinite(target?.y) ? target.y : fallbackY;
+function spawnGraceArcBurst(baseX, baseY, count, spread) {
   if (!Number.isFinite(baseX) || !Number.isFinite(baseY)) return;
-  const spread = Math.min(140, 40 + comboHits * 12);
-  for (let i = 0; i < gemCount; i += 1) {
-    const spawnOffsetX = randomInRange(-spread, spread);
+  const burstCount = Math.max(0, Math.round(count || 0));
+  if (!burstCount) return;
+  const burstSpread = Number.isFinite(spread) ? spread : Math.min(140, 40 + burstCount * 12);
+  for (let i = 0; i < burstCount; i += 1) {
+    const spawnOffsetX = randomInRange(-burstSpread, burstSpread);
     const angle = randomInRange(-Math.PI * 1.15, -Math.PI * 0.05);
     const speed = randomInRange(260, 370);
     const horizontalBias = Math.sign(spawnOffsetX || 1) * randomInRange(70, 130);
@@ -13307,7 +13299,7 @@ function spawnComboGraceBurst(target, hits, fallbackX, fallbackY, killedOnCombo 
     );
     spawnGracePickup(
       baseX + spawnOffsetX,
-      baseY + randomInRange(-spread * 0.3, spread * 0.3),
+      baseY + randomInRange(-burstSpread * 0.3, burstSpread * 0.3),
       {
         vx,
         vy,
@@ -13322,6 +13314,20 @@ function spawnComboGraceBurst(target, hits, fallbackX, fallbackY, killedOnCombo 
       },
     );
   }
+}
+
+function spawnComboGraceBurst(target, hits, fallbackX, fallbackY, killedOnCombo = false) {
+  const comboHits = Math.max(2, Math.round(hits || 0));
+  const minPerHit = killedOnCombo ? 3 : 2;
+  const maxPerHit = killedOnCombo ? 5 : 2;
+  const minGems = comboHits * minPerHit;
+  const maxGems = comboHits * maxPerHit;
+  const gemCount = Math.max(minGems, randomInRange(minGems, maxGems));
+  const baseX = Number.isFinite(target?.x) ? target.x : fallbackX;
+  const baseY = Number.isFinite(target?.y) ? target.y : fallbackY;
+  if (!Number.isFinite(baseX) || !Number.isFinite(baseY)) return;
+  const spread = Math.min(140, 40 + comboHits * 12);
+  spawnGraceArcBurst(baseX, baseY, gemCount, spread);
 }
 
 function getHeldMovementDirection() {
