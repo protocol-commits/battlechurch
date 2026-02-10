@@ -221,11 +221,20 @@ const MELEE_SWING_LENGTH = 260;
 
   function drawHaloBlade(ctx, haloState) {
     if (!haloState || !haloState.active) return;
+    const { player } = requireBindings();
+    const haloRemaining = player?.haloTimer ?? null;
+    if (Number.isFinite(haloRemaining) && haloRemaining <= 0) return;
+    let fadeAlpha = 1;
+    if (Number.isFinite(haloRemaining) && haloRemaining <= 1) {
+      fadeAlpha = Math.max(0, Math.min(1, haloRemaining / 1));
+      if (fadeAlpha <= 0) return;
+    }
     const sprite = haloState.sprite;
     if (!sprite) return;
     if (Array.isArray(haloState.trail) && haloState.trail.length) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha *= fadeAlpha;
       ctx.shadowColor = "#FFE45C";
       ctx.shadowBlur = spearState.glowBlur || 14;
       ctx.lineCap = "round";
@@ -263,25 +272,34 @@ const MELEE_SWING_LENGTH = 260;
     ctx.save();
     ctx.translate(haloState.x, haloState.y);
     ctx.rotate((haloState.angle || 0) + Math.PI / 2 + spin);
-    ctx.globalAlpha = 0.95;
+    ctx.globalAlpha = 0.95 * fadeAlpha;
     ctx.globalCompositeOperation = "lighter";
     ctx.shadowColor = "#9BD9FF";
     ctx.shadowBlur = 28;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.shadowColor = "#E6F6FF";
     ctx.shadowBlur = 46;
-    ctx.globalAlpha = 0.85;
+    ctx.globalAlpha = 0.85 * fadeAlpha;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
 
   function drawSpearDart(ctx, spearState) {
     if (!spearState || !spearState.active) return;
+    const { player } = requireBindings();
+    const spearRemaining = player?.spearTimer ?? null;
+    if (Number.isFinite(spearRemaining) && spearRemaining <= 0) return;
+    let fadeAlpha = 1;
+    if (Number.isFinite(spearRemaining) && spearRemaining <= 1) {
+      fadeAlpha = Math.max(0, Math.min(1, spearRemaining / 1));
+      if (fadeAlpha <= 0) return;
+    }
     const sprite = spearState.sprite;
     if (!sprite) return;
     if (Array.isArray(spearState.trail) && spearState.trail.length) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha *= fadeAlpha;
       ctx.shadowColor = spearState.trailOuterColor || "#FFE45C";
       ctx.shadowBlur = spearState.glowBlur || 14;
       ctx.lineCap = "round";
@@ -326,7 +344,7 @@ const MELEE_SWING_LENGTH = 260;
       ctx.globalCompositeOperation = "lighter";
       ctx.shadowColor = spearState.pauseFlashColor || "#FFF6A5";
       ctx.shadowBlur = spearState.pauseFlashBlur || 28;
-      ctx.globalAlpha = pauseFlash;
+      ctx.globalAlpha = pauseFlash * fadeAlpha;
       ctx.beginPath();
       ctx.arc(0, 0, size * 0.75, 0, Math.PI * 2);
       ctx.fillStyle = spearState.pauseFlashColor || "#FFF0A0";
@@ -335,7 +353,7 @@ const MELEE_SWING_LENGTH = 260;
     }
     ctx.shadowColor = spearState.glowColor || "#FFE86B";
     ctx.shadowBlur = spearState.glowBlur || 18;
-    ctx.globalAlpha = 0.98;
+    ctx.globalAlpha = 0.98 * fadeAlpha;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
