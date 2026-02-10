@@ -5610,23 +5610,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       });
       ctx.restore();
     }
-    const comboHudFlyEffects = requireBindings().comboHudFlyEffects;
-    if (comboHudFlyEffects && comboHudFlyEffects.length) {
-      const { UI_FONT_FAMILY } = requireBindings();
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      comboHudFlyEffects.forEach((effect) => {
-        if (!effect || !effect.text) return;
-        const fontSize = effect.fontSize || 20;
-        const fontWeight = effect.fontWeight || "700";
-        ctx.globalAlpha = typeof effect.alpha === "number" ? effect.alpha : 1;
-        ctx.fillStyle = effect.color || "#FFF2B8";
-        ctx.font = `${fontWeight} ${fontSize}px ${UI_FONT_FAMILY}`;
-        ctx.fillText(effect.text, effect.x, effect.y);
-      });
-      ctx.restore();
-    }
     if (levelStatus?.stage === "graceRush" || graceRushState?.active) {
       drawGraceRushOverlay(levelStatus, graceRushState);
     }

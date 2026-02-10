@@ -21,7 +21,6 @@ const upgradePowerUps = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
-const comboHudFlyEffects = [];
 const POWERUP_RESPAWN_DELAY = 5;
 const POWERUP_ACTIVE_LIFETIME = 8;
 const POWERUP_BLINK_DURATION = 2;
@@ -2847,7 +2846,6 @@ Renderer.initialize({
   get powerupIconStyles() { return POWERUP_ICON_STYLES; },
   get graceHudFlyEffects() { return graceHudFlyEffects; },
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
-  get comboHudFlyEffects() { return comboHudFlyEffects; },
   get maxComboThisTown() { return maxComboThisTown; },
   get haloBladeState() { return haloBladeState; },
   get haloBladeStateSecondary() { return haloBladeStateSecondary; },
@@ -5402,7 +5400,6 @@ function startGameFromTitle() {
   if (!assetsLoaded) return;
   townVisitorMinigamePlayed = false;
   maxComboThisTown = 0;
-  comboHudFlyEffects.splice(0, comboHudFlyEffects.length);
   if (typeof window !== "undefined" && window.MapScreen?.getTownStartCount) {
     const nextStart = window.MapScreen.getTownStartCount(activeTownId);
     townStartCongregation = Number.isFinite(nextStart) ? nextStart : INITIAL_CONGREGATION_SIZE;
@@ -7375,55 +7372,7 @@ function updatePowerupHudFlyEffects(dt) {
   }
 }
 
-function spawnComboHudFlyEffect({ text, x, y }) {
-  if (!text || !Number.isFinite(x) || !Number.isFinite(y)) return;
-  const target = typeof window !== "undefined" ? window.__hudMaxComboPos : null;
-  const startX = x - cameraOffsetX;
-  const startY = y;
-  comboHudFlyEffects.push({
-    text,
-    startX,
-    startY,
-    x: startX,
-    y: startY,
-    targetX: target ? target.x : startX,
-    targetY: target ? target.y : startY,
-    targetReady: Boolean(target),
-    timer: 0,
-    duration: 0.55,
-    alpha: 1,
-    color: "#FFF2B8",
-    fontSize: 22,
-    fontWeight: "800",
-  });
-}
-
-function updateComboHudFlyEffects(dt) {
-  if (!comboHudFlyEffects.length) return;
-  for (let i = comboHudFlyEffects.length - 1; i >= 0; i -= 1) {
-    const effect = comboHudFlyEffects[i];
-    if (!effect) continue;
-    if (!effect.targetReady) {
-      const target = typeof window !== "undefined" ? window.__hudMaxComboPos : null;
-      if (target) {
-        effect.targetX = target.x;
-        effect.targetY = target.y;
-        effect.targetReady = true;
-      } else {
-        continue;
-      }
-    }
-    effect.timer += dt;
-    const t = Math.min(1, effect.timer / Math.max(0.001, effect.duration));
-    const ease = 1 - Math.pow(1 - t, 3);
-    effect.x = effect.startX + (effect.targetX - effect.startX) * ease;
-    effect.y = effect.startY + (effect.targetY - effect.startY) * ease;
-    effect.alpha = Math.max(0, 1 - t * 0.2);
-    if (t >= 1) {
-      comboHudFlyEffects.splice(i, 1);
-    }
-  }
-}
+// combo HUD fly effects removed.
 
 function spawnGraceBurst(count = 10, { centerX = canvas.width / 2, centerY = (canvas.height + HUD_HEIGHT) / 2, spread = 220 } = {}) {
   for (let i = 0; i < count; i += 1) {
@@ -14622,9 +14571,7 @@ function maybeUpdateMaxComboInTown(hits, x, y, options = {}) {
   }
   if (comboHits <= maxComboThisTown) return;
   maxComboThisTown = comboHits;
-  if (!options.skipHudFly && comboHits > 15) {
-    spawnComboHudFlyEffect({ text: `${comboHits}`, x, y });
-  }
+  // HUD fly effect disabled per design; keep max combo updated without animation.
 }
 
 function updateLiveComboText(state, target) {
@@ -16651,7 +16598,6 @@ function updateGame(dt) {
   updateSpearDart(dt);
   updateGraceHudFlyEffects(dt);
   updatePowerupHudFlyEffects(dt);
-  updateComboHudFlyEffects(dt);
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   // Ensure power-ups obey spawn rules per stage
