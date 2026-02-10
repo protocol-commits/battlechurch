@@ -5118,18 +5118,8 @@ function distanceToEdge(x, y, dx, dy) {
   return Math.max(0, maxDistance);
 }
 
-function getDamageResistanceValue() {
-  if (visitorSession?.active) return 0;
-  if (typeof window === "undefined" || !window.StatsManager) return 0;
-  const manager = window.StatsManager;
-  if (typeof manager.getStatValue !== "function") return 0;
-  const value = manager.getStatValue("damage_resistance") || 0;
-  return Math.max(0, Math.min(0.9, value));
-}
-
 function getNpcTimerScale() {
-  const reduction = getDamageResistanceValue();
-  return Math.max(0.1, 1 - reduction);
+  return 1;
 }
 
 function beginStartCountdown() {
@@ -5376,7 +5366,6 @@ function startGameFromTitle() {
   pendingBossIntroAfterExterior = false;
   startSpeedrunTimer();
   resetYearNpcPool();
-  if (window.StatsManager) window.StatsManager.resetStats();
   resetUpgradePowerups();
   // Clear any previously queued announcements so the congregation doesn't show
   // immediately (init/restart may have queued them at startup).
@@ -8977,15 +8966,9 @@ class CozyNpc {
         : typeof NPC_ARROW_COOLDOWN_DEFAULT === "number"
         ? NPC_ARROW_COOLDOWN_DEFAULT
         : 2.4;
-    const statsManager =
-      typeof window !== "undefined" ? window.StatsManager : null;
     const formation = getFormationBonuses();
-    const emotionalMultiplier =
-      typeof statsManager?.getStatMultiplier === "function"
-        ? Math.max(1, statsManager.getStatMultiplier("emotional_intelligence") || 1)
-        : 1;
     const harmonyMultiplier = npcHarmonyBuffTimer > 0 ? HARMONY_BUFF_MULTIPLIER : 1;
-    const totalMultiplier = emotionalMultiplier * harmonyMultiplier * (1 + (formation.rof || 0));
+    const totalMultiplier = harmonyMultiplier * (1 + (formation.rof || 0));
 
     // NPC weapon power-up handling
     const weaponMode = npcWeaponState.mode || "arrow";
@@ -9061,8 +9044,7 @@ class CozyNpc {
     const prevFaith = this.faith;
     const baseDamage = Math.max(1, Math.round(damage || 1));
     const cappedLoss = Math.min(NPC_MAX_FAITH_LOSS_PER_ATTACK, baseDamage);
-    const damageReduction = getDamageResistanceValue();
-    const damageScale = Math.max(0.01, 1 - damageReduction);
+    const damageScale = 1;
     const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale));
     // Debug: report incoming damage and computed faith loss
     if (typeof console !== 'undefined' && console.debug) {
@@ -9854,10 +9836,7 @@ class Projectile {
         // Overlay the melee swoosh sprite for charged shots.
         const swooshImg = assets?.effects?.meleeSwoosh;
         if (swooshImg) {
-          const meleeStatMultiplier = window.StatsManager
-            ? window.StatsManager.getStatMultiplier("melee_attack_damage") || 1
-            : 1;
-          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE * meleeStatMultiplier;
+          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE;
           const scale = targetWidth / Math.max(1, swooshImg.width);
           const targetHeight = swooshImg.height * scale * MELEE_SWOOSH_ARC_SCALE;
           ctx.save();
@@ -10533,14 +10512,6 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
     (config.source.isPlayer || config.source.isCozyNpc)
   ) {
     config.source.projectileGlowTimer = Math.max(config.source.projectileGlowTimer || 0, 0.22);
-  }
-  if (config.friendly === false && window.StatsManager) {
-    const manager = window.StatsManager;
-    const multiplier = manager.getStatMultiplier
-      ? manager.getStatMultiplier("emotional_intelligence") || 1
-      : 1;
-    const baseDamage = config.damage ?? baseConfig?.damage ?? 1;
-    config.damage = Math.max(1, Math.round(baseDamage * multiplier));
   }
   if (bossRangeMultiplier > 1) {
     if (Number.isFinite(config.life)) {
@@ -16844,7 +16815,6 @@ function restartGame() {
   upgradePowerUps.splice(0, upgradePowerUps.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
   clearGracePickups();
-  window.StatsManager?.resetStats?.();
   resetUpgradePowerups();
   playerGraceCount = 0;
   Spawner.resetAllFlags();

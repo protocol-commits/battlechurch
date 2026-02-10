@@ -1,24 +1,5 @@
 (function (window, document) {
   if (!window || !document) return;
-  const StatsManager = window.StatsManager;
-  const STAT_UNLOCKS = {
-    melee_attack_damage: [
-      { label: "Move 1", name: "Spin Attack", threshold: 3 },
-      { label: "Move 2", name: "Rush Attack", threshold: 6 },
-    ],
-    speed: [
-      { label: "Move 1", name: "Phase", threshold: 3 },
-      { label: "Move 2", name: "Double Dash", threshold: 6 },
-    ],
-    projectile_attack_damage: [
-      { label: "Move 1", name: "ABC", threshold: 3 },
-      { label: "Move 2", name: "DEF", threshold: 6 },
-    ],
-    emotional_intelligence: [
-      { label: "Move 1", name: "GHI", threshold: 3 },
-      { label: "Move 2", name: "JKL", threshold: 6 },
-    ],
-  };
 
   let onCloseCallback = null;
   let visible = false;
@@ -37,18 +18,7 @@
     if (upgradeManager && typeof upgradeManager.getOptions === "function") {
       return upgradeManager.getOptions();
     }
-    if (!StatsManager) return [];
-    return StatsManager.getStatKeys()
-      .filter((key) => key !== "damage_resistance")
-      .map((key) => ({
-        key,
-        label: StatsManager.getStatLabel(key),
-        description: StatsManager.getStatDescription(key),
-        value: StatsManager.getStatDisplayString(key),
-        cost: StatsManager.getUpgradeCost(key),
-        upgradeCount: StatsManager.getUpgradeCount(key),
-        unlocks: STAT_UNLOCKS[key] || [],
-      }));
+    return [];
   }
 
   function attemptPurchase(statKey) {
@@ -56,13 +26,7 @@
     if (upgradeManager && typeof upgradeManager.purchase === "function") {
       return upgradeManager.purchase(statKey);
     }
-    if (!StatsManager) return false;
-    const cost = StatsManager.getUpgradeCost(statKey);
-    const currentGrace = getGraceCount();
-    if (currentGrace < cost) return false;
-    window.addGrace?.(-cost);
-    StatsManager.applyUpgrade(statKey);
-    return true;
+    return false;
   }
 
   function show(callback) {

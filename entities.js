@@ -543,26 +543,6 @@
     }
   }
 
-const getPlayerStatMultiplier = (statKey) => {
-  if (typeof window === "undefined" || !window.StatsManager) return 1;
-  return window.StatsManager.getStatMultiplier
-    ? window.StatsManager.getStatMultiplier(statKey) || 1
-    : 1;
-};
-
-const getPlayerStatValue = (statKey) => {
-  if (typeof window === "undefined" || !window.StatsManager) return 0;
-  return window.StatsManager.getStatValue
-    ? window.StatsManager.getStatValue(statKey) || 0
-    : 0;
-};
-
-const getResistanceTimerScale = () => {
-  const resistance = getPlayerStatValue("damage_resistance");
-  const normalized = Math.max(0, Math.min(0.9, resistance));
-  return Math.max(0.1, 1 - normalized);
-};
-
   class Player {
   constructor(x, y, clips) {
     this.x = x;
@@ -637,7 +617,7 @@ const getResistanceTimerScale = () => {
   }
 
     update(dt) {
-    const timerDrainScale = getResistanceTimerScale();
+    const timerDrainScale = 1;
     this.arrowCooldown = Math.max(0, this.arrowCooldown - dt);
     this.magicCooldown = Math.max(0, this.magicCooldown - dt);
     this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
@@ -1396,19 +1376,16 @@ const getResistanceTimerScale = () => {
   }
 
   getArrowDamage() {
-    const projectileBonus = getPlayerStatMultiplier("projectile_attack_damage");
     const extendBonus = this.isArrowExtendProjectileBuffActive() ? 1.5 : 1;
     return (
       PROJECTILE_CONFIG.arrow.damage *
       this.arrowDamageMultiplier *
-      extendBonus *
-      projectileBonus
+      extendBonus
     );
   }
 
   getWisdomMissleDamage() {
-    const projectileBonus = getPlayerStatMultiplier("projectile_attack_damage");
-    return PROJECTILE_CONFIG.wisdom_missle.damage * projectileBonus;
+    return PROJECTILE_CONFIG.wisdom_missle.damage;
   }
 
   getWisdomMissleSpeed() {
@@ -1422,11 +1399,9 @@ const getResistanceTimerScale = () => {
   }
 
   getFaithCannonDamage() {
-    const projectileBonus = getPlayerStatMultiplier("projectile_attack_damage");
     return (
       PROJECTILE_CONFIG.faith_cannon.damage *
-      this.faithCannonDamageMultiplier *
-      projectileBonus
+      this.faithCannonDamageMultiplier
     );
   }
 
@@ -1442,8 +1417,7 @@ const getResistanceTimerScale = () => {
   }
 
   getFireDamage() {
-    const projectileBonus = getPlayerStatMultiplier("projectile_attack_damage");
-    return PROJECTILE_CONFIG.fire.damage * this.fireDamageMultiplier * projectileBonus;
+    return PROJECTILE_CONFIG.fire.damage * this.fireDamageMultiplier;
   }
 
   getFireSpeed() {
@@ -1481,8 +1455,6 @@ const getResistanceTimerScale = () => {
   getSpeedMultiplier() {
     let multiplier = 1;
     if (this.speedBoostTimer > 0) multiplier *= 1.4;
-    const statSpeed = getPlayerStatMultiplier("speed");
-    multiplier *= statSpeed;
     const spinChargeSlow =
       window._meleeAttackState?.spinCharging && window._meleeAttackState?.spinButtonDown;
     if (spinChargeSlow) {
@@ -1507,8 +1479,7 @@ const getResistanceTimerScale = () => {
     if (this.state === "death") return;
     const baseDamage = amount;
     const prevHealth = this.health;
-    const resistanceBonus = getPlayerStatValue("damage_resistance");
-    const reductionFactor = 1 - Math.min(0.8, (this.armorReduction || 0) + resistanceBonus);
+    const reductionFactor = 1 - Math.min(0.8, this.armorReduction || 0);
     const appliedDamage = Math.max(1, Math.round(baseDamage * reductionFactor));
     showDamage(this, appliedDamage, {
       color: "#ffd966",
