@@ -2303,6 +2303,11 @@ const haloBladeState = {
   lastHit: new WeakMap(),
   sprite: null,
   scale: 3.4 * WORLD_SCALE,
+  trail: [],
+  trailTimer: 0,
+  trailSpacing: 10 * WORLD_SCALE,
+  trailLife: 0.4,
+  maxTrail: 18,
 };
 const spearState = {
   active: false,
@@ -6763,6 +6768,7 @@ function spawnPowerupHudFlyEffect({ x, y, iconImage, targetKey }) {
 function updateHaloBlade(dt) {
   if (!player || player.state === "death" || player.haloTimer <= 0) {
     haloBladeState.active = false;
+    haloBladeState.trail.length = 0;
     return;
   }
   haloBladeState.active = true;
@@ -6774,8 +6780,32 @@ function updateHaloBlade(dt) {
   const depth = Math.sin(haloBladeState.angle);
   const radiusX = haloBladeState.radius;
   const radiusY = haloBladeState.radius * 0.7;
+  const prevX = haloBladeState.x;
+  const prevY = haloBladeState.y;
   haloBladeState.x = player.x + Math.cos(haloBladeState.angle) * radiusX;
   haloBladeState.y = player.y + depth * radiusY;
+  const travel = Math.hypot(haloBladeState.x - prevX, haloBladeState.y - prevY);
+  haloBladeState.trailTimer += travel;
+  if (haloBladeState.trailTimer >= haloBladeState.trailSpacing) {
+    haloBladeState.trailTimer = 0;
+    haloBladeState.trail.push({
+      x: haloBladeState.x,
+      y: haloBladeState.y,
+      life: haloBladeState.trailLife,
+      maxLife: haloBladeState.trailLife,
+    });
+    if (haloBladeState.trail.length > haloBladeState.maxTrail) {
+      haloBladeState.trail.shift();
+    }
+  }
+  if (haloBladeState.trail.length) {
+    haloBladeState.trail.forEach((point) => {
+      point.life -= dt;
+    });
+    while (haloBladeState.trail.length && haloBladeState.trail[0].life <= 0) {
+      haloBladeState.trail.shift();
+    }
+  }
 
   const now =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;

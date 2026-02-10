@@ -600,6 +600,7 @@ const getResistanceTimerScale = () => {
     this.fireCooldownMultiplier = 1;
     this.spreadGunTimer = 0;
     this.spreadGunDuration = 0;
+    this.spreadGunExtraTimer = 0;
     this.haloTimer = 0;
     this.haloDuration = 0;
     this.spearTimer = 0;
@@ -669,6 +670,7 @@ const getResistanceTimerScale = () => {
     if (this.spreadGunTimer <= 0) {
       this.spreadGunDuration = 0;
     }
+    this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt);
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
     if (this.haloTimer <= 0) {
       this.haloDuration = 0;
@@ -850,22 +852,30 @@ const getResistanceTimerScale = () => {
         const meleeState = window._meleeAttackState;
         const meleeBlocking = meleeState && meleeState.projectileBlockTimer > 0;
 
-        // Autofire using the player's current weapon, including during visitor sessions.
-        if (!meleeBlocking) {
-          if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
-            this.tryAttack("arrow");
-          } else if (activeWeapon === "coin" && this.arrowCooldown <= 0) {
-            this.tryAttack("coin");
-          } else if (activeWeapon === "heart" && this.heartCooldown <= 0) {
-            this.tryAttack("heart");
-          } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
-            this.tryAttack("wisdom_missle");
-          } else if (activeWeapon === "faith_cannon" && this.magicCooldown <= 0) {
-            this.tryAttack("faith_cannon");
-          } else if (activeWeapon === "fire" && this.magicCooldown <= 0) {
-            this.tryAttack("fire");
-          }
+      // Autofire using the player's current weapon, including during visitor sessions.
+      if (!meleeBlocking) {
+        if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
+          this.tryAttack("arrow");
+        } else if (activeWeapon === "coin" && this.arrowCooldown <= 0) {
+          this.tryAttack("coin");
+        } else if (activeWeapon === "heart" && this.heartCooldown <= 0) {
+          this.tryAttack("heart");
+        } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
+          this.tryAttack("wisdom_missle");
+        } else if (activeWeapon === "faith_cannon" && this.magicCooldown <= 0) {
+          this.tryAttack("faith_cannon");
+        } else if (activeWeapon === "fire" && this.magicCooldown <= 0) {
+          this.tryAttack("fire");
         }
+        if (activeWeapon !== "arrow" && this.spreadGunTimer > 0) {
+          const direction = this.getAimDirection();
+          const originOffset = this.radius * 0.55;
+          const originX = this.x + direction.x * originOffset;
+          const originY = this.y + direction.y * originOffset;
+          const bossRangeMultiplier = isBossStageActive() ? 1.5 : 1;
+          this.spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier);
+        }
+      }
       } else if (moving) {
         // No target: face movement direction
         this.updateFacing(moveX, moveY);
@@ -1343,6 +1353,8 @@ const getResistanceTimerScale = () => {
 
   spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier = 1) {
     if (this.spreadGunTimer <= 0) return;
+    if (this.spreadGunExtraTimer > 0) return;
+    this.spreadGunExtraTimer = this.getArrowCooldown();
     const spread = 0.15;
     const perp = { x: -direction.y, y: direction.x };
     const up = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);

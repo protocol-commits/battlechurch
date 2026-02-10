@@ -223,6 +223,40 @@ const MELEE_SWING_LENGTH = 260;
     if (!haloState || !haloState.active) return;
     const sprite = haloState.sprite;
     if (!sprite) return;
+    if (Array.isArray(haloState.trail) && haloState.trail.length) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.shadowColor = "#FFE45C";
+      ctx.shadowBlur = 14;
+      ctx.lineCap = "round";
+      const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+      ctx.beginPath();
+      haloState.trail.forEach((point, idx) => {
+        const jitter = Math.sin(now * 16 + idx * 1.1) * 1.2;
+        if (idx === 0) {
+          ctx.moveTo(point.x + jitter, point.y - jitter);
+        } else {
+          ctx.lineTo(point.x + jitter, point.y - jitter);
+        }
+      });
+      ctx.strokeStyle = "#FFD94A";
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      haloState.trail.forEach((point, idx) => {
+        const jitter = Math.sin(now * 16 + idx * 1.1) * 0.6;
+        if (idx === 0) {
+          ctx.moveTo(point.x + jitter, point.y - jitter);
+        } else {
+          ctx.lineTo(point.x + jitter, point.y - jitter);
+        }
+      });
+      ctx.strokeStyle = "#FFF7A8";
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+      ctx.restore();
+    }
     const size = Math.max(12, sprite.width || 12) * (haloState.scale || 1);
     const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
     const spin = now * 20;
