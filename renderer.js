@@ -1918,6 +1918,12 @@ const UPGRADE_ICON_SOURCES = {
 };
 let upgradeCategoryIcon = null;
 const upgradePowerupIcons = new Map();
+const UPGRADE_POWERUP_ICON_DEFAULT = {
+  shape: "square",
+  color: "#2B4C73",
+  accent: "#3C5F8C",
+};
+const UPGRADE_POWERUP_ICON_HIGHLIGHT = "rgba(255, 215, 64, 0.95)";
 
 function getUpgradeIcon(kind) {
   if (typeof Image === "undefined") return null;
@@ -1939,6 +1945,68 @@ function getUpgradePowerupIcon(src) {
     upgradePowerupIcons.set(src, img);
   }
   return upgradePowerupIcons.get(src);
+}
+
+function drawUpgradePowerupIcon(ctx, { x, y, size, iconImage, style }) {
+  if (!ctx || !size) return;
+  const half = size / 2;
+  const shape = style?.shape || UPGRADE_POWERUP_ICON_DEFAULT.shape;
+  const color = style?.color || UPGRADE_POWERUP_ICON_DEFAULT.color;
+  const accent = style?.accent || UPGRADE_POWERUP_ICON_DEFAULT.accent;
+  ctx.save();
+  ctx.translate(x, y);
+  const gradient = ctx.createLinearGradient(0, -half, 0, half);
+  gradient.addColorStop(0, accent);
+  gradient.addColorStop(1, color);
+  ctx.fillStyle = gradient;
+  if (shape === "circle") {
+    ctx.beginPath();
+    ctx.arc(0, 0, half, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, size * 0.08);
+    ctx.strokeStyle = UPGRADE_POWERUP_ICON_HIGHLIGHT;
+    ctx.stroke();
+  } else {
+    const radius = Math.max(6, Math.round(size * 0.16));
+    roundRect(ctx, -half, -half, size, size, radius, true, false);
+    ctx.lineWidth = Math.max(2, size * 0.08);
+    ctx.strokeStyle = UPGRADE_POWERUP_ICON_HIGHLIGHT;
+    roundRect(ctx, -half, -half, size, size, radius, false, true);
+  }
+
+  const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+  const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
+  const shimmerAlpha = Math.max(0.12, pulse * 0.65);
+  if (shimmerAlpha > 0.12) {
+    ctx.save();
+    ctx.globalAlpha *= shimmerAlpha;
+    ctx.beginPath();
+    if (shape === "circle") {
+      ctx.arc(0, 0, half, 0, Math.PI * 2);
+    } else {
+      const radius = Math.max(6, Math.round(size * 0.16));
+      roundRect(ctx, -half, -half, size, size, radius, false, false);
+    }
+    ctx.clip();
+    const shimmerWidth = size * 0.6;
+    const offset = ((t * 0.9) % 1) * (size + shimmerWidth) - (size + shimmerWidth) / 2;
+    ctx.rotate(-0.45);
+    const grad = ctx.createLinearGradient(offset - shimmerWidth, 0, offset + shimmerWidth, 0);
+    grad.addColorStop(0, "rgba(255,255,255,0)");
+    grad.addColorStop(0.5, "rgba(255,255,255,0.85)");
+    grad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
+    ctx.restore();
+  }
+
+  if (iconImage && iconImage.complete) {
+    const iconSize = size * 0.6;
+    const iconX = -iconSize / 2;
+    const iconY = -iconSize / 2;
+    ctx.drawImage(iconImage, iconX, iconY, iconSize, iconSize);
+  }
+  ctx.restore();
 }
 
 function drawUpgradeScreen(ctx, canvas, options = {}) {
@@ -2026,6 +2094,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
     return;
   }
+  const { powerupIconStyles } = requireBindings();
 
   const buttonGap = 18;
   const sidePadding = 60;
@@ -2077,25 +2146,18 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
     }
 
-    const categoryIconSize = 26;
-    const categoryIconX = x + buttonWidth / 2 - categoryIconSize / 2;
-    const categoryIconY = buttonY - Math.round(categoryIconSize * 0.45);
-    ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.22)" : "rgba(11, 17, 26, 0.12)";
-    ctx.strokeStyle = canAfford ? "rgba(11, 17, 26, 0.35)" : "rgba(11, 17, 26, 0.2)";
-    ctx.lineWidth = 1;
-    roundRect(ctx, categoryIconX, categoryIconY, categoryIconSize, categoryIconSize, 5, true, true);
     const powerupIcon = getUpgradePowerupIcon(stat.iconSrc);
-    const categoryIcon = powerupIcon || getUpgradeIcon("category");
-    if (categoryIcon && categoryIcon.complete) {
-      const pad = 2;
-      ctx.drawImage(
-        categoryIcon,
-        categoryIconX + pad,
-        categoryIconY + pad,
-        categoryIconSize - pad * 2,
-        categoryIconSize - pad * 2,
-      );
-    }
+    const iconSize = 44;
+    const iconCenterX = x + buttonWidth / 2;
+    const iconCenterY = buttonY;
+    const iconStyle = powerupIconStyles?.player || UPGRADE_POWERUP_ICON_DEFAULT;
+    drawUpgradePowerupIcon(ctx, {
+      x: iconCenterX,
+      y: iconCenterY,
+      size: iconSize,
+      iconImage: powerupIcon || getUpgradeIcon("category"),
+      style: iconStyle,
+    });
 
     ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
     ctx.textAlign = "center";
