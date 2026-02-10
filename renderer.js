@@ -1142,7 +1142,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
       }
       ctx.fillStyle = "#0b111a";
-      ctx.textAlign = ft.textAlign || "center";
+      ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
       ctx.font = `600 ${showFormation ? 28 : 24}px ${uiFontFamily}`;
     ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 40);
