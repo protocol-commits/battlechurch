@@ -1740,10 +1740,7 @@ function getUpgradePowerupOptions() {
   return Object.entries(UPGRADE_POWERUP_DEFS).map(([key, def]) => {
     const level = upgradePowerupLevels.get(key) || 0;
     const maxLevel = 2;
-    const duration = Number.isFinite(def.duration) ? def.duration : null;
-    const detail = def.disabled
-      ? "Coming soon"
-      : (duration ? `Duration: ${duration}s` : "");
+  const detail = def.disabled ? "Coming soon" : "";
     return {
       key,
       label: def.label || key,

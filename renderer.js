@@ -2137,19 +2137,78 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const headerTop = buttonY + cardPaddingY + 10;
 
     ctx.save();
-    ctx.fillStyle = canAfford ? "#9BD9FF" : "rgba(155, 217, 255, 0.4)";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+    const cardRadius = 16;
+    const cardX = x;
+    const cardY = buttonY;
+    const cardW = buttonWidth;
+    const cardH = buttonHeight;
+    const headerHeight = 52;
+    const bodyTop = cardY + headerHeight + 18;
+    const baseGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+    if (canAfford) {
+      baseGradient.addColorStop(0, "#2A2118");
+      baseGradient.addColorStop(0.55, "#3A2E21");
+      baseGradient.addColorStop(1, "#1E1812");
+    } else {
+      baseGradient.addColorStop(0, "rgba(55, 45, 35, 0.7)");
+      baseGradient.addColorStop(1, "rgba(40, 34, 28, 0.65)");
+    }
+    ctx.shadowColor = "rgba(8, 6, 4, 0.55)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = baseGradient;
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
     ctx.lineWidth = 2;
-    roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
+    ctx.strokeStyle = canAfford ? "rgba(200, 160, 90, 0.85)" : "rgba(120, 100, 70, 0.35)";
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, true);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+    roundRect(
+      ctx,
+      cardX + 3,
+      cardY + 3,
+      cardW - 6,
+      cardH - 6,
+      Math.max(8, cardRadius - 4),
+      false,
+      true,
+    );
+    ctx.save();
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, false);
+    ctx.clip();
+    const headerGradient = ctx.createLinearGradient(0, cardY, 0, cardY + headerHeight);
+    if (canAfford) {
+      headerGradient.addColorStop(0, "#5B4328");
+      headerGradient.addColorStop(1, "#3E2E1D");
+    } else {
+      headerGradient.addColorStop(0, "rgba(90, 70, 50, 0.7)");
+      headerGradient.addColorStop(1, "rgba(70, 55, 40, 0.6)");
+    }
+    ctx.fillStyle = headerGradient;
+    ctx.fillRect(cardX, cardY, cardW, headerHeight);
+    ctx.fillStyle = "rgba(230, 195, 130, 0.3)";
+    ctx.fillRect(cardX, cardY + headerHeight - 2, cardW, 2);
+    ctx.globalAlpha = canAfford ? 0.12 : 0.05;
+    ctx.rotate(-0.08);
+    ctx.fillStyle = "rgba(255, 235, 200, 0.85)";
+    ctx.fillRect(cardX - cardW, cardY + headerHeight * 0.4, cardW * 3, 6);
+    ctx.restore();
+    if (!canAfford) {
+      ctx.fillStyle = "rgba(12, 10, 8, 0.35)";
+      roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
+    }
 
     if (isAnnouncementButtonFocused("upgradeScreen", index)) {
       drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
     }
 
     const powerupIcon = getUpgradePowerupIcon(stat.iconSrc);
-    const iconSize = 44;
-    const iconCenterX = x + buttonWidth / 2;
-    const iconCenterY = buttonY;
+    const iconSize = 34;
+    const iconCenterX = cardX + 28;
+    const iconCenterY = cardY + headerHeight / 2;
     const iconStyle = powerupIconStyles?.player || UPGRADE_POWERUP_ICON_DEFAULT;
     drawUpgradePowerupIcon(ctx, {
       x: iconCenterX,
@@ -2159,30 +2218,80 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       style: iconStyle,
     });
 
-    ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    const titleSize = fitTextSize(stat.label, 22, innerW);
-    ctx.font = `700 ${titleSize}px ${uiFontFamily}`;
-    const titleY = headerTop + 18;
-    ctx.fillText(stat.label, x + buttonWidth / 2, titleY);
-
-    ctx.font = `13px ${uiFontFamily}`;
-    ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.78)" : "rgba(11, 17, 26, 0.4)";
-    const descriptionY = titleY + 18;
-    ctx.fillText(stat.description, x + buttonWidth / 2, descriptionY);
+    const textLeft = cardX + 24 + iconSize;
+    const textRight = cardX + cardW - 22;
+    const textWidth = Math.max(10, textRight - textLeft);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const titleSize = fitTextSize(stat.label, 18, textWidth);
+    ctx.font = `800 ${titleSize}px ${uiFontFamily}`;
+    ctx.fillStyle = "#F3E2C4";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetY = 1;
+    const titleY = cardY + headerHeight / 2 + 1;
+    ctx.fillText(stat.label, textLeft, titleY);
 
     const levelLabel = maxLevel > 1 ? `Level ${level}/${maxLevel}` : "";
+    if (levelLabel) {
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.font = `700 12px ${uiFontFamily}`;
+      const pillPadX = 14;
+      const pillWidth = ctx.measureText(levelLabel).width + pillPadX * 2;
+      const pillHeight = 24;
+      const pillX = textRight - pillWidth;
+      const pillY = titleY - pillHeight / 2;
+      ctx.fillStyle = canAfford ? "rgba(120, 34, 34, 0.95)" : "rgba(70, 55, 45, 0.55)";
+      ctx.strokeStyle = canAfford ? "rgba(255, 220, 170, 0.8)" : "rgba(255, 255, 255, 0.2)";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, pillX, pillY, pillWidth, pillHeight, 10, true, true);
+      ctx.fillStyle = canAfford ? "#F6E6C6" : "rgba(220, 210, 190, 0.7)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(levelLabel, pillX + pillWidth / 2, titleY);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+    }
+
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetY = 1;
+    ctx.font = `600 13px ${uiFontFamily}`;
+    ctx.fillStyle = canAfford ? "rgba(235, 220, 195, 0.9)" : "rgba(200, 190, 170, 0.65)";
+    const descriptionY = bodyTop + 8;
+    ctx.fillText(stat.description, textLeft, descriptionY);
+    ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.strokeStyle = "rgba(230, 200, 150, 0.2)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(textLeft, descriptionY + 16);
+    ctx.lineTo(textRight, descriptionY + 16);
+    ctx.stroke();
+
     const detailParts = [];
     if (stat.detail) detailParts.push(stat.detail);
-    if (levelLabel) detailParts.push(levelLabel);
     const detailText = detailParts.join(" · ");
-    const valueY = descriptionY + 22;
+    const valueY = descriptionY + 34;
     if (detailText) {
-      ctx.font = `600 16px ${uiFontFamily}`;
-      ctx.fillStyle = canAfford ? "#0b111a" : "rgba(11, 17, 26, 0.5)";
-      ctx.textAlign = "center";
-      ctx.fillText(detailText, x + buttonWidth / 2, valueY);
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      const badgePadX = 12;
+      const badgePadY = 6;
+      ctx.font = `700 13px ${uiFontFamily}`;
+      const badgeWidth = ctx.measureText(detailText).width + badgePadX * 2;
+      const badgeHeight = 22;
+      const badgeX = textLeft;
+      const badgeY = valueY - badgeHeight / 2;
+      ctx.fillStyle = "rgba(12, 10, 8, 0.35)";
+      ctx.strokeStyle = "rgba(230, 200, 150, 0.35)";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, 10, true, true);
+      ctx.fillStyle = canAfford ? "#F3E2C4" : "rgba(200, 190, 170, 0.65)";
+      ctx.textBaseline = "middle";
+      ctx.fillText(detailText, textLeft + badgePadX, valueY);
     }
 
     const costText = stat.disabled
@@ -2192,11 +2301,25 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         : level > 0
           ? `Upgrade to Level ${level + 1}: ${stat.cost}`
           : `Cost: ${stat.cost}`;
-    const costY = detailText ? valueY + 18 : valueY;
-    ctx.font = `14px ${uiFontFamily}`;
-    ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.7)" : "rgba(11, 17, 26, 0.4)";
+    const costY = cardY + cardH - 26;
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.font = `700 13px ${uiFontFamily}`;
+    const costPadX = 14;
+    const costPadY = 7;
+    const costWidth = ctx.measureText(costText).width + costPadX * 2;
+    const costHeight = 24;
+    const costX = cardX + cardW - 22 - costWidth;
+    const costYPos = costY - costHeight / 2;
+    ctx.fillStyle = canAfford ? "rgba(120, 34, 34, 0.95)" : "rgba(70, 55, 45, 0.55)";
+    ctx.strokeStyle = canAfford ? "rgba(255, 220, 170, 0.8)" : "rgba(255, 255, 255, 0.2)";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, costX, costYPos, costWidth, costHeight, 12, true, true);
+    ctx.fillStyle = canAfford ? "#F6E6C6" : "rgba(220, 210, 190, 0.7)";
     ctx.textAlign = "center";
-    ctx.fillText(costText, x + buttonWidth / 2, costY);
+    ctx.textBaseline = "middle";
+    ctx.fillText(costText, costX + costWidth / 2, costY);
+    ctx.textAlign = "left";
 
     ctx.restore();
 
