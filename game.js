@@ -293,18 +293,13 @@ const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
 const MUSIC_VOLUME_BATTLE = 0.7;
 const AUDIO_SETTINGS_STORAGE_KEY = "battlechurch_audio_settings";
-const COMBO_TEXT_SETTINGS_STORAGE_KEY = "battlechurch_combo_text_settings";
 const DEFAULT_AUDIO_SETTINGS = {
   musicEnabled: true,
   musicVolume: 1,
   sfxEnabled: true,
   sfxVolume: 1,
 };
-const DEFAULT_COMBO_TEXT_SETTINGS = {
-  mode: "world",
-};
 let audioSettings = { ...DEFAULT_AUDIO_SETTINGS };
-let comboTextSettings = { ...DEFAULT_COMBO_TEXT_SETTINGS };
 const MUSIC_FADE_OUT_MS = 1200;
 const MUSIC_FADE_FAST_MS = 450;
 const arrowSfxPool = [];
@@ -416,28 +411,6 @@ function loadAudioSettings() {
   } catch (e) {}
 }
 
-function loadComboTextSettings() {
-  if (typeof localStorage === "undefined") return;
-  try {
-    const raw = localStorage.getItem(COMBO_TEXT_SETTINGS_STORAGE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return;
-    comboTextSettings = {
-      ...DEFAULT_COMBO_TEXT_SETTINGS,
-      ...parsed,
-    };
-    if (comboTextSettings.mode !== "fixed" && comboTextSettings.mode !== "world") {
-      comboTextSettings.mode = DEFAULT_COMBO_TEXT_SETTINGS.mode;
-    }
-  } catch (e) {}
-}
-
-function applyComboTextSettings() {
-  if (typeof window === "undefined") return;
-  window.__comboTextMode = comboTextSettings.mode;
-}
-
 function formatNumberWithCommas(value) {
   const number = Number.isFinite(value) ? Math.round(value) : 0;
   const sign = number < 0 ? "-" : "";
@@ -450,13 +423,6 @@ function saveAudioSettings() {
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(audioSettings));
-  } catch (e) {}
-}
-
-function saveComboTextSettings() {
-  if (typeof localStorage === "undefined") return;
-  try {
-    localStorage.setItem(COMBO_TEXT_SETTINGS_STORAGE_KEY, JSON.stringify(comboTextSettings));
   } catch (e) {}
 }
 
@@ -509,8 +475,6 @@ function applyAudioSettings() {
 
 loadAudioSettings();
 applyAudioSettings();
-loadComboTextSettings();
-applyComboTextSettings();
 
 function playDefaultArrowSfx(volume = 0.6) {
   return;
@@ -2541,10 +2505,6 @@ const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = 0.65;
 const PRAYER_BOMB_RAIN_DARKEN_DURATION = 0.5;
 const PRAYER_BOMB_RAIN_SHAKE_DURATION = 0.12;
 const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = 10;
-const comboLabelFailsafe = {
-  label: null,
-  expiresAt: 0,
-};
 if (typeof window !== "undefined") {
   window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
 }
@@ -13040,13 +13000,6 @@ function showSettingsOverlay({ source = "title" } = {}) {
           <span class="settings-slider__value" data-setting-value="sfxVolume">100%</span>
         </div>
       </div>
-      <div class="settings-row">
-        <div class="settings-row__label">Combo Text</div>
-        <label class="settings-toggle">
-          <input type="checkbox" data-setting="comboTextFixed">
-          <span>Fixed under HUD</span>
-        </label>
-      </div>
     </div>
   `;
   window.DialogOverlay.show({
@@ -13064,12 +13017,10 @@ function showSettingsOverlay({ source = "title" } = {}) {
       const musicSlider = bodyEl.querySelector('[data-setting="musicVolume"]');
       const sfxToggle = bodyEl.querySelector('[data-setting="sfxEnabled"]');
       const sfxSlider = bodyEl.querySelector('[data-setting="sfxVolume"]');
-      const comboToggle = bodyEl.querySelector('[data-setting="comboTextFixed"]');
       if (musicToggle) musicToggle.checked = Boolean(audioSettings.musicEnabled);
       if (musicSlider) musicSlider.value = String(Math.round(audioSettings.musicVolume * 100));
       if (sfxToggle) sfxToggle.checked = Boolean(audioSettings.sfxEnabled);
       if (sfxSlider) sfxSlider.value = String(Math.round(audioSettings.sfxVolume * 100));
-      if (comboToggle) comboToggle.checked = comboTextSettings.mode === "fixed";
       setSliderValue("musicVolume", audioSettings.musicVolume);
       setSliderValue("sfxVolume", audioSettings.sfxVolume);
 
@@ -13101,13 +13052,6 @@ function showSettingsOverlay({ source = "title" } = {}) {
           const next = clamp01(Number(event.target.value) / 100);
           setSliderValue("sfxVolume", next);
           updateSetting("sfxVolume", next);
-        });
-      }
-      if (comboToggle) {
-        comboToggle.addEventListener("change", (event) => {
-          comboTextSettings.mode = event.target.checked ? "fixed" : "world";
-          saveComboTextSettings();
-          applyComboTextSettings();
         });
       }
     },
@@ -14345,22 +14289,6 @@ function getDashButtonDirection() {
   return normalizeVector(dir.x, dir.y);
 }
 
-function getComboDirectionOctant(dx, dy) {
-  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return null;
-  if (dx === 0 && dy === 0) return null;
-  const angle = Math.atan2(dy, dx);
-  const sector = Math.round(angle / (Math.PI / 4));
-  const normalized = (sector + 8) % 8;
-  return normalized;
-}
-
-function isAllowedProjectileComboDirection(baseIndex, nextIndex) {
-  if (!Number.isFinite(baseIndex) || !Number.isFinite(nextIndex)) return true;
-  if (baseIndex === nextIndex) return true;
-  const diff = (nextIndex - baseIndex + 8) % 8;
-  return diff === 1 || diff === 7;
-}
-
 function getComboLabelFontSize(hits) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   if (comboHits < 10) return 32;
@@ -14377,31 +14305,6 @@ function getComboLabelColor(hits) {
   if (tier >= 2) return "#FFD982";
   if (tier >= 1) return "#FFF2B8";
   return "#E4D6B2";
-}
-
-function getComboTextFixedPosition() {
-  const camX =
-    typeof cameraOffsetX === "number"
-      ? cameraOffsetX
-      : (typeof window !== "undefined" && Number.isFinite(window.cameraOffsetX) ? window.cameraOffsetX : 0);
-  const camY =
-    typeof cameraOffsetY === "number"
-      ? cameraOffsetY
-      : (typeof window !== "undefined" && Number.isFinite(window.cameraOffsetY) ? window.cameraOffsetY : 0);
-  const fixedX =
-    typeof window !== "undefined" && Number.isFinite(window.__comboTextFixedX)
-      ? window.__comboTextFixedX
-      : canvas.width / 2;
-  const fixedY =
-    typeof window !== "undefined" && Number.isFinite(window.__comboTextFixedY)
-      ? window.__comboTextFixedY
-      : HUD_HEIGHT + 186;
-  return {
-    screenX: fixedX,
-    screenY: fixedY,
-    worldX: fixedX + camX,
-    worldY: fixedY + camY,
-  };
 }
 
 function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
@@ -14521,21 +14424,6 @@ function recordPrayerBombComboHits(count) {
   );
 }
 
-function updateComboLabelFailsafe(now) {
-  if (!comboLabelFailsafe.label || !comboLabelFailsafe.expiresAt) return;
-  const timeNow =
-    typeof now === "number"
-      ? now
-      : typeof performance !== "undefined" && typeof performance.now === "function"
-        ? performance.now()
-        : Date.now();
-  if (timeNow <= comboLabelFailsafe.expiresAt) return;
-  comboLabelFailsafe.label.persist = false;
-  comboLabelFailsafe.label.life = Math.min(comboLabelFailsafe.label.life || 0.8, 0.8);
-  comboLabelFailsafe.label = null;
-  comboLabelFailsafe.expiresAt = 0;
-}
-
 function showPrayerBombBlastCombo(count, x, y) {
   const hits = Math.max(0, Math.round(count || 0));
   if (!hits) return;
@@ -14576,147 +14464,28 @@ function maybeUpdateMaxComboInTown(hits, x, y, options = {}) {
 
 function updateLiveComboText(state, target) {
   if (!state || !target || state.hits < 2) return;
-  const comboTextMode = typeof window !== "undefined" ? window.__comboTextMode : null;
-  const fixedMode = comboTextMode === "fixed";
-  const radius = target.radius || target.config?.hitRadius || 24;
   const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
   const labelFontSize = getComboLabelFontSize(state.hits);
   const labelColor = getComboLabelColor(state.hits);
-  const damageText = formatNumberWithCommas(state.damage);
-  if (fixedMode) {
-    const fixedPos = getComboTextFixedPosition();
-    const labelX = fixedPos.worldX;
-    const labelY = fixedPos.worldY;
-    maybeUpdateMaxComboInTown(state.hits, labelX, labelY);
-    updateHudComboDisplay({
-      hits: state.hits,
-      damage: state.damage,
-      fontSize: labelFontSize,
-      color: labelColor,
-      durationMs: COMBO_WINDOW_MS * 4,
-    });
-    return;
-  }
-  const anchorX = Number.isFinite(state.anchorX) ? state.anchorX : target.x;
-  const anchorY = Number.isFinite(state.anchorY) ? state.anchorY : target.y;
-  const targetX = target.x;
-  const targetY = target.y;
-  const maxOffsetX = 80;
-  const maxOffsetY = 60;
-  const clampedX = anchorX + clamp(targetX - anchorX, -maxOffsetX, maxOffsetX);
-  const clampedY = anchorY + clamp(targetY - anchorY, -maxOffsetY, maxOffsetY);
-  const lerpFactor = 0.22;
-  const currentX = Number.isFinite(state.currentX) ? state.currentX : clampedX;
-  const currentY = Number.isFinite(state.currentY) ? state.currentY : clampedY;
-  const nextX = currentX + (clampedX - currentX) * lerpFactor;
-  const nextY = currentY + (clampedY - currentY) * lerpFactor;
-  state.currentX = nextX;
-  state.currentY = nextY;
-  const marginX = canvas.width * 0.05;
-  const marginY = canvas.height * 0.05;
-  const minX = marginX;
-  const maxX = canvas.width - marginX;
-  const minY = HUD_HEIGHT + marginY;
-  const maxY = canvas.height - marginY;
-  const clampedLabelX = clamp(nextX, minX, maxX);
-  const clampedLabelY = clamp(nextY - radius, minY, maxY);
-  const clampedDamageX = clampedLabelX;
-  const clampedDamageY = clamp(nextY - radius + 26, minY, maxY);
-  const labelX = clampedLabelX;
-  const labelY = clampedLabelY;
-  const damageX = clampedDamageX;
-  const damageY = clampedDamageY;
-  maybeUpdateMaxComboInTown(state.hits, labelX, labelY);
-  if (!state.comboLabel) {
-    state.comboLabel = addFloatingTextAt(labelX, labelY, label, labelColor, {
-      speechBubble: false,
-      vy: 0,
-      life: 1.1,
-      fontSize: labelFontSize,
-      fontWeight: "800",
-      priority: 6,
-      fadeDelay: 0,
-      clampToScreen: true,
-      persist: true,
-    });
-    state.anchorX = labelX;
-    state.anchorY = clampedY;
-    state.currentX = labelX;
-    state.currentY = clampedY;
-  }
-  if (!state.comboDamageLabel) {
-    state.comboDamageLabel = addFloatingTextAt(damageX, damageY, damageText, "#FFF7E5", {
-      speechBubble: false,
-      vy: 0,
-      life: 1.0,
-      fontSize: 22,
-      fontWeight: "700",
-      priority: 5,
-      fadeDelay: 0,
-      clampToScreen: true,
-      persist: true,
-    });
-  }
-  if (state.comboLabel) {
-    state.comboLabel.text = label;
-    state.comboLabel.x = labelX;
-    state.comboLabel.y = labelY;
-    state.comboLabel.color = labelColor;
-    state.comboLabel.fontSize = labelFontSize;
-    state.comboLabel.persist = true;
-  }
-  const now =
-    typeof performance !== "undefined" && typeof performance.now === "function"
-      ? performance.now()
-      : Date.now();
-  comboLabelFailsafe.label = state.comboLabel || comboLabelFailsafe.label;
-  comboLabelFailsafe.expiresAt = now + COMBO_WINDOW_MS * 4;
-  if (state.comboDamageLabel) {
-    state.comboDamageLabel.text = damageText;
-    state.comboDamageLabel.x = damageX;
-    state.comboDamageLabel.y = damageY;
-    state.comboDamageLabel.persist = true;
-  }
+  maybeUpdateMaxComboInTown(state.hits, target.x, target.y);
+  updateHudComboDisplay({
+    hits: state.hits,
+    damage: state.damage,
+    fontSize: labelFontSize,
+    color: labelColor,
+    durationMs: COMBO_WINDOW_MS * 4,
+  });
 }
 
 function finalizeComboState(state) {
   if (!state || state.hits < 2) return;
-  const comboTextMode = typeof window !== "undefined" ? window.__comboTextMode : null;
-  const fixedMode = comboTextMode === "fixed";
-  if (fixedMode) {
-    updateHudComboDisplay({
-      hits: state.hits,
-      damage: state.damage,
-      fontSize: getComboLabelFontSize(state.hits),
-      color: getComboLabelColor(state.hits),
-      durationMs: 800,
-    });
-    return;
-  }
-  if (state.comboLabel || state.comboDamageLabel) {
-    if (state.comboLabel) {
-      state.comboLabel.persist = false;
-      state.comboLabel.life = Math.min(state.comboLabel.life || 0.8, 0.8);
-    }
-    if (state.comboDamageLabel) {
-      state.comboDamageLabel.persist = false;
-      state.comboDamageLabel.life = Math.min(state.comboDamageLabel.life || 0.7, 0.7);
-    }
-    if (comboLabelFailsafe.label === state.comboLabel) {
-      comboLabelFailsafe.label = null;
-      comboLabelFailsafe.expiresAt = 0;
-    }
-    return;
-  }
-  const fallbackEntity = {
-    x: state.lastX,
-    y: state.lastY,
-    radius: 24,
-  };
-  if (!Number.isFinite(fallbackEntity.x) || !Number.isFinite(fallbackEntity.y)) return;
-  window.BattlechurchComboTrackerAllow = true;
-  showComboTextAt(fallbackEntity, state.damage, state.hits, 0, true);
-  window.BattlechurchComboTrackerAllow = false;
+  updateHudComboDisplay({
+    hits: state.hits,
+    damage: state.damage,
+    fontSize: getComboLabelFontSize(state.hits),
+    color: getComboLabelColor(state.hits),
+    durationMs: 800,
+  });
 }
 
 const comboTracker = {
@@ -14737,7 +14506,7 @@ const comboTracker = {
       finalizeComboState(state);
     }
   },
-  registerHit(target, damage, now, options = {}) {
+  registerHit(target, damage, now) {
     if (!target || !Number.isFinite(damage) || damage <= 0) return;
     const timeNow =
       typeof now === "number"
@@ -14745,10 +14514,6 @@ const comboTracker = {
         : typeof performance !== "undefined" && typeof performance.now === "function"
           ? performance.now()
           : Date.now();
-    const isProjectile = options?.sourceType === "projectile";
-    const dirIndex = isProjectile
-      ? getComboDirectionOctant(options?.direction?.x, options?.direction?.y)
-      : null;
     let current =
       this.state && timeNow <= this.state.expiresAt
         ? this.state
@@ -14759,9 +14524,6 @@ const comboTracker = {
             killed: false,
             lastX: null,
             lastY: null,
-            projectileDirIndex: null,
-            comboLabel: null,
-            comboDamageLabel: null,
           };
     // Directional gating removed: combos now accumulate regardless of projectile direction.
     current.hits += 1;
@@ -14774,9 +14536,6 @@ const comboTracker = {
       (Number.isFinite(target.health) && target.health <= 0)
     ) {
       current.killed = true;
-    }
-    if (isProjectile && Number.isFinite(dirIndex) && !Number.isFinite(current.projectileDirIndex)) {
-      current.projectileDirIndex = dirIndex;
     }
     current.expiresAt = timeNow + COMBO_WINDOW_MS;
     this.state = current;
@@ -14812,14 +14571,7 @@ function registerProjectileComboHit(target, damage, projectile) {
     recordPrayerBombComboHits(1);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
-  const upgradesActive = Boolean(
-    (player && (player.spreadGunTimer > 0 || player.haloTimer > 0 || player.spearTimer > 0))
-  );
-  const direction = upgradesActive ? null : projectile ? { x: projectile.vx, y: projectile.vy } : null;
-  comboTracker.registerHit(target, damage, undefined, {
-    sourceType: "projectile",
-    direction,
-  });
+  comboTracker.registerHit(target, damage);
 }
 
 function spawnGraceArcBurst(baseX, baseY, count, spread) {
@@ -15270,47 +15022,15 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     meleeState.comboLockoutUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   }
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
-  const radius = entity.radius || entity.config?.hitRadius || 24;
-  const label = `${hits} Hit Combo`;
   const labelFontSize = getComboLabelFontSize(hits);
   const labelColor = getComboLabelColor(hits);
-  const comboTextMode = typeof window !== "undefined" ? window.__comboTextMode : null;
-  const fixedMode = comboTextMode === "fixed";
-  const fixedPos = fixedMode ? getComboTextFixedPosition() : null;
-  const labelX = fixedMode ? fixedPos.worldX : entity.x;
-  const labelY = fixedMode ? fixedPos.worldY : (entity.y - radius);
-  maybeUpdateMaxComboInTown(hits, labelX, labelY);
-  if (fixedMode) {
-    updateHudComboDisplay({
-      hits,
-      damage: comboDamage,
-      fontSize: labelFontSize,
-      color: labelColor,
-      durationMs: 1100,
-    });
-    return;
-  }
-  addFloatingTextAt(labelX, labelY, label, labelColor, {
-    speechBubble: false,
-    vy: fixedMode ? 0 : -30,
-    life: 1.1,
+  maybeUpdateMaxComboInTown(hits, entity.x, entity.y);
+  updateHudComboDisplay({
+    hits,
+    damage: comboDamage,
     fontSize: labelFontSize,
-    fontWeight: "800",
-    priority: 6,
-    fadeDelay: 0,
-    clampToScreen: true,
-    textAlign: fixedMode ? "left" : null,
-  });
-  addFloatingTextAt(labelX, labelY + 26, formatNumberWithCommas(comboDamage), "#FFF7E5", {
-    speechBubble: false,
-    vy: fixedMode ? 0 : -24,
-    life: 1.0,
-    fontSize: 22,
-    fontWeight: "700",
-    priority: 5,
-    fadeDelay: 0,
-    clampToScreen: true,
-    textAlign: fixedMode ? "left" : null,
+    color: labelColor,
+    durationMs: 1100,
   });
 }
 
@@ -16635,11 +16355,6 @@ function updateGame(dt) {
 
 
   comboTracker.update(
-    typeof performance !== "undefined" && typeof performance.now === "function"
-      ? performance.now()
-      : Date.now(),
-  );
-  updateComboLabelFailsafe(
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now(),
