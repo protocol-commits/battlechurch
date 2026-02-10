@@ -778,6 +778,38 @@
         iconKey: 'playerWeapon',
       });
 
+      const upgradeRows = [];
+      if (player.spreadGunTimer > 0) {
+        const duration = Math.max(0.001, player.spreadGunDuration || 0);
+        upgradeRows.push({
+          label: 'Spread Gun',
+          ratio: duration > 0 ? player.spreadGunTimer / duration : 0,
+          color: getIconStyleColor('player', PALETTE.ice),
+          iconImage: assets?.upgradePowerups?.spreadGun?.iconImage || null,
+          iconKey: 'upgradeSpreadGun',
+        });
+      }
+      if (player.haloTimer > 0) {
+        const duration = Math.max(0.001, player.haloDuration || 0);
+        upgradeRows.push({
+          label: 'Halo',
+          ratio: duration > 0 ? player.haloTimer / duration : 0,
+          color: getIconStyleColor('player', PALETTE.ice),
+          iconImage: assets?.upgradePowerups?.halo?.iconImage || null,
+          iconKey: 'upgradeHalo',
+        });
+      }
+      if (player.spearTimer > 0) {
+        const duration = Math.max(0.001, player.spearDuration || 0);
+        upgradeRows.push({
+          label: 'Spear',
+          ratio: duration > 0 ? player.spearTimer / duration : 0,
+          color: getIconStyleColor('player', PALETTE.ice),
+          iconImage: assets?.upgradePowerups?.spear?.iconImage || null,
+          iconKey: 'upgradeSpear',
+        });
+      }
+
       const utilityRows = [];
       if (player.shieldTimer > 0) {
         const duration = Math.max(0.001, player.shieldDuration || 0);
@@ -809,10 +841,15 @@
           iconKey: 'utilityExtend',
         });
       }
-      rows.push(...utilityRows.slice(0, 2));
+      rows.push(...upgradeRows);
+      rows.push(...utilityRows);
 
-      const rowYs = [panelY + 24, panelY + 46, panelY + 68];
-      rows.slice(0, rowYs.length).forEach((row, idx) => {
+      const maxRows = 6;
+      const rowStart = panelY + 24;
+      const rowGap = 22;
+      const visibleRows = Math.min(rows.length, maxRows);
+      const rowYs = Array.from({ length: visibleRows }, (_, idx) => rowStart + rowGap * idx);
+      rows.slice(0, visibleRows).forEach((row, idx) => {
         drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey);
       });
     };
