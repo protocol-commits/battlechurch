@@ -227,7 +227,7 @@ const MELEE_SWING_LENGTH = 260;
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       ctx.shadowColor = "#FFE45C";
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = spearState.glowBlur || 14;
       ctx.lineCap = "round";
       const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
       ctx.beginPath();
@@ -239,8 +239,8 @@ const MELEE_SWING_LENGTH = 260;
           ctx.lineTo(point.x + jitter, point.y - jitter);
         }
       });
-      ctx.strokeStyle = "#FFD94A";
-      ctx.lineWidth = 5;
+      ctx.strokeStyle = spearState.trailOuterColor || "#FFD94A";
+      ctx.lineWidth = spearState.trailOuterWidth || 5;
       ctx.stroke();
 
       ctx.beginPath();
@@ -252,8 +252,8 @@ const MELEE_SWING_LENGTH = 260;
           ctx.lineTo(point.x + jitter, point.y - jitter);
         }
       });
-      ctx.strokeStyle = "#FFF7A8";
-      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = spearState.trailInnerColor || "#FFF7A8";
+      ctx.lineWidth = spearState.trailInnerWidth || 2.2;
       ctx.stroke();
       ctx.restore();
     }
@@ -264,6 +264,13 @@ const MELEE_SWING_LENGTH = 260;
     ctx.translate(haloState.x, haloState.y);
     ctx.rotate((haloState.angle || 0) + Math.PI / 2 + spin);
     ctx.globalAlpha = 0.95;
+    ctx.globalCompositeOperation = "lighter";
+    ctx.shadowColor = "#9BD9FF";
+    ctx.shadowBlur = 28;
+    ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+    ctx.shadowColor = "#E6F6FF";
+    ctx.shadowBlur = 46;
+    ctx.globalAlpha = 0.85;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
@@ -275,8 +282,8 @@ const MELEE_SWING_LENGTH = 260;
     if (Array.isArray(spearState.trail) && spearState.trail.length) {
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
-      ctx.shadowColor = "#FFE45C";
-      ctx.shadowBlur = 14;
+      ctx.shadowColor = spearState.trailOuterColor || "#FFE45C";
+      ctx.shadowBlur = spearState.glowBlur || 14;
       ctx.lineCap = "round";
       const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
       ctx.beginPath();
@@ -288,8 +295,8 @@ const MELEE_SWING_LENGTH = 260;
           ctx.lineTo(point.x + jitter, point.y - jitter);
         }
       });
-      ctx.strokeStyle = "#FFD94A";
-      ctx.lineWidth = 5;
+      ctx.strokeStyle = spearState.trailOuterColor || "#FFD94A";
+      ctx.lineWidth = spearState.trailOuterWidth || 5;
       ctx.stroke();
 
       ctx.beginPath();
@@ -301,8 +308,8 @@ const MELEE_SWING_LENGTH = 260;
           ctx.lineTo(point.x + jitter, point.y - jitter);
         }
       });
-      ctx.strokeStyle = "#FFF7A8";
-      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = spearState.trailInnerColor || "#FFF7A8";
+      ctx.lineWidth = spearState.trailInnerWidth || 2.2;
       ctx.stroke();
       ctx.restore();
     }
@@ -317,17 +324,17 @@ const MELEE_SWING_LENGTH = 260;
         : 0;
     if (pauseFlash > 0) {
       ctx.globalCompositeOperation = "lighter";
-      ctx.shadowColor = "#FFF6A5";
-      ctx.shadowBlur = 28;
+      ctx.shadowColor = spearState.pauseFlashColor || "#FFF6A5";
+      ctx.shadowBlur = spearState.pauseFlashBlur || 28;
       ctx.globalAlpha = pauseFlash;
       ctx.beginPath();
       ctx.arc(0, 0, size * 0.75, 0, Math.PI * 2);
-      ctx.fillStyle = "#FFF0A0";
+      ctx.fillStyle = spearState.pauseFlashColor || "#FFF0A0";
       ctx.fill();
       ctx.globalCompositeOperation = "source-over";
     }
-    ctx.shadowColor = "#FFE86B";
-    ctx.shadowBlur = 18;
+    ctx.shadowColor = spearState.glowColor || "#FFE86B";
+    ctx.shadowBlur = spearState.glowBlur || 18;
     ctx.globalAlpha = 0.98;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.restore();
@@ -5345,10 +5352,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         drawCannonSplashDebug(ctx, projectile.x, projectile.y, cannonSplashRadius);
       }
     });
-    drawHaloBlade(ctx, haloBladeState);
-    drawHaloBlade(ctx, haloBladeStateSecondary);
-    drawSpearDart(ctx, spearState);
-    drawSpearDart(ctx, spearStateSecondary);
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       effects.forEach((effect) => effect.draw());
     }
@@ -5367,6 +5370,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
     // Draw god rays above characters so light appears between viewer and characters
     drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX);
+
+    // Draw spears above other sprites/effects so they remain visible in chaos.
+    drawHaloBlade(ctx, haloBladeState);
+    drawHaloBlade(ctx, haloBladeStateSecondary);
+    drawSpearDart(ctx, spearState);
+    drawSpearDart(ctx, spearStateSecondary);
 
       // --- Enemy-player collision and damage logic ---
       if (!visitorStageActive && player && Array.isArray(enemies)) {

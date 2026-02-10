@@ -2348,9 +2348,29 @@ const createSpearState = () => ({
   lastTarget: null,
   lastHitPos: null,
   waypoint: null,
+  startDelayTimer: 0,
+  spawnOffset: { x: 0, y: 0 },
+  useSpawnOffset: false,
+  trailOuterColor: "#FFD94A",
+  trailInnerColor: "#FFF7A8",
+  glowColor: "#FFE86B",
+  pauseFlashColor: "#FFF0A0",
+  trailOuterWidth: 5,
+  trailInnerWidth: 2.2,
+  glowBlur: 18,
+  pauseFlashBlur: 28,
+  searchSpinSpeed: 1.2,
 });
 const spearState = createSpearState();
 const spearStateSecondary = createSpearState();
+spearStateSecondary.trailOuterColor = "#B6E6FF";
+spearStateSecondary.trailInnerColor = "#F2FCFF";
+spearStateSecondary.glowColor = "#55CCFF";
+spearStateSecondary.pauseFlashColor = "#7FE0FF";
+spearStateSecondary.trailOuterWidth = 7;
+spearStateSecondary.trailInnerWidth = 3.2;
+spearStateSecondary.glowBlur = 28;
+spearStateSecondary.pauseFlashBlur = 40;
 
 // Melee Attack System Constants
 const MELEE_SWING_LENGTH_BASE = 260;
@@ -6910,6 +6930,12 @@ function getSpearTargetCenter(target) {
   return { x: center.x, y: center.y, radius: getEnemyHitboxRadius(target) };
 }
 
+function hasSpearTargets() {
+  const hasEnemy = enemies.some((enemy) => enemy && !enemy.dead && enemy.state !== "death");
+  if (hasEnemy) return true;
+  return Boolean(activeBoss && !activeBoss.dead && !activeBoss.defeated);
+}
+
 function findNearestSpearTarget(fromX, fromY, options = {}) {
   const exclude = options.exclude || null;
   const minDistanceFrom = options.minDistanceFrom || null;
@@ -7027,14 +7053,24 @@ function resetSpearState(state) {
   state.lastHitPos = null;
   state.waypoint = null;
   state.lastHit = new WeakMap();
+  state.startDelayTimer = 0;
+  state.useSpawnOffset = false;
+  state.spawnOffset.x = 0;
+  state.spawnOffset.y = 0;
 }
 
 function updateSpearDartInstance(state, dt) {
   const wasActive = state.active;
   state.active = true;
   if (!wasActive) {
-    state.x = player.x;
-    state.y = player.y;
+    if (state.useSpawnOffset) {
+      state.x = player.x + state.spawnOffset.x;
+      state.y = player.y + state.spawnOffset.y;
+      state.useSpawnOffset = false;
+    } else {
+      state.x = player.x;
+      state.y = player.y;
+    }
     state.trail.length = 0;
     state.trailTimer = 0;
     state.target = null;
@@ -7102,7 +7138,7 @@ function updateSpearDartInstance(state, dt) {
     }
     state.pendingRetarget = false;
     state.travelSinceHit = 0;
-    if (!state.target && state.lastHitPos) {
+    if (!state.target && state.lastHitPos && hasSpearTargets()) {
       const awayDir = normalizeVector(
         state.x - state.lastHitPos.x,
         state.y - state.lastHitPos.y,
@@ -7129,8 +7165,16 @@ function updateSpearDartInstance(state, dt) {
 
   const target = state.target;
   if (!target) {
+    if (!hasSpearTargets()) {
+      const spinSpeed = Number.isFinite(state.searchSpinSpeed) ? state.searchSpinSpeed : 1.2;
+      state.angle = ((state.angle || 0) + spinSpeed * dt) % (Math.PI * 2);
+      updateSpearStateTrail(state, dt);
+      return;
+    }
     state.x = player.x;
     state.y = player.y;
+    const spinSpeed = Number.isFinite(state.searchSpinSpeed) ? state.searchSpinSpeed : 1.2;
+    state.angle = ((state.angle || 0) + spinSpeed * dt) % (Math.PI * 2);
     updateSpearStateTrail(state, dt);
     return;
   }
@@ -7233,7 +7277,18 @@ function updateSpearDart(dt) {
   }
   updateSpearDartInstance(spearState, dt);
   if (level >= 2) {
-    updateSpearDartInstance(spearStateSecondary, dt);
+    if (!spearStateSecondary.active && spearStateSecondary.startDelayTimer <= 0) {
+      spearStateSecondary.startDelayTimer = 0.1;
+      spearStateSecondary.spawnOffset.x = 24 * WORLD_SCALE;
+      spearStateSecondary.spawnOffset.y = -16 * WORLD_SCALE;
+      spearStateSecondary.useSpawnOffset = true;
+    }
+    if (spearStateSecondary.startDelayTimer > 0) {
+      spearStateSecondary.startDelayTimer = Math.max(0, spearStateSecondary.startDelayTimer - dt);
+    }
+    if (spearStateSecondary.startDelayTimer <= 0) {
+      updateSpearDartInstance(spearStateSecondary, dt);
+    }
   } else {
     resetSpearState(spearStateSecondary);
   }
