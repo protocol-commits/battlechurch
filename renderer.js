@@ -2056,7 +2056,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   const bounds = [];
   stats.forEach((stat, index) => {
     const x = buttonStartX + index * (buttonWidth + buttonGap);
-    const canAfford = !stat.disabled && !stat.owned && graceCount >= stat.cost;
+    const level = Number.isFinite(stat.level) ? stat.level : (stat.owned ? 1 : 0);
+    const maxLevel = Number.isFinite(stat.maxLevel) ? stat.maxLevel : 1;
+    const maxed = level >= maxLevel;
+    const canAfford = !stat.disabled && !maxed && graceCount >= stat.cost;
     const cardPaddingX = 16;
     const cardPaddingY = 14;
     const innerX = x + cardPaddingX;
@@ -2106,7 +2109,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const descriptionY = titleY + 18;
     ctx.fillText(stat.description, x + buttonWidth / 2, descriptionY);
 
-    const detailText = stat.detail || (stat.value ? `Current: ${stat.value}` : "");
+    const levelLabel = maxLevel > 1 ? `Level ${level}/${maxLevel}` : "";
+    const detailParts = [];
+    if (stat.detail) detailParts.push(stat.detail);
+    if (levelLabel) detailParts.push(levelLabel);
+    const detailText = detailParts.join(" · ") || (stat.value ? `Current: ${stat.value}` : "");
     const valueY = descriptionY + 22;
     if (detailText) {
       ctx.font = `600 16px ${uiFontFamily}`;
@@ -2117,9 +2124,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
     const costText = stat.disabled
       ? "Coming soon"
-      : stat.owned
-        ? "Unlocked"
-        : `Cost: ${stat.cost}`;
+      : maxed
+        ? "Maxed"
+        : level > 0
+          ? `Upgrade to Level ${level + 1}: ${stat.cost}`
+          : `Cost: ${stat.cost}`;
     const costY = detailText ? valueY + 18 : valueY;
     ctx.font = `14px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "rgba(11, 17, 26, 0.7)" : "rgba(11, 17, 26, 0.4)";
@@ -4623,7 +4632,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       projectiles,
       player,
       haloBladeState,
+      haloBladeStateSecondary,
       spearState,
+      spearStateSecondary,
       effects,
       floatingTexts,
       cannonSplashRadius,
@@ -5335,7 +5346,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
     });
     drawHaloBlade(ctx, haloBladeState);
+    drawHaloBlade(ctx, haloBladeStateSecondary);
     drawSpearDart(ctx, spearState);
+    drawSpearDart(ctx, spearStateSecondary);
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       effects.forEach((effect) => effect.draw());
     }

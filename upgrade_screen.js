@@ -248,7 +248,10 @@
     consumedAction = true;
     if (focusedIndex < statCount) {
       const stat = stats[focusedIndex];
-      const canPurchase = stat && !stat.disabled && !stat.owned && getGraceCount() >= stat.cost;
+      const level = Number.isFinite(stat?.level) ? stat.level : (stat?.owned ? 1 : 0);
+      const maxLevel = Number.isFinite(stat?.maxLevel) ? stat.maxLevel : 1;
+      const maxed = level >= maxLevel;
+      const canPurchase = stat && !stat.disabled && !maxed && getGraceCount() >= stat.cost;
       if (canPurchase) {
         const purchased = attemptPurchase(stat.key);
         if (purchased && typeof window.playMenuItemPickSfx === "function") {

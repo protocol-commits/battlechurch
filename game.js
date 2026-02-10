@@ -30,6 +30,7 @@ let powerUpRespawnTimer = 0;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
 const unlockedUpgradePowerups = new Set();
+const upgradePowerupLevels = new Map();
 const GRACE_PICKUP_RADIUS = 18;
 const GRACE_PICKUP_FRAME_DURATION = 0.08;
 const GRACE_PICKUP_LIFETIME = 8;
@@ -1703,6 +1704,7 @@ function clearAllPowerUps() {
 
 function resetUpgradePowerups() {
   unlockedUpgradePowerups.clear();
+  upgradePowerupLevels.clear();
   upgradePowerUps.splice(0, upgradePowerUps.length);
 }
 
@@ -1731,12 +1733,12 @@ if (typeof window !== "undefined") {
 
 function getUpgradePowerupOptions() {
   return Object.entries(UPGRADE_POWERUP_DEFS).map(([key, def]) => {
+    const level = upgradePowerupLevels.get(key) || 0;
+    const maxLevel = 2;
     const duration = Number.isFinite(def.duration) ? def.duration : null;
     const detail = def.disabled
       ? "Coming soon"
-      : duration
-        ? `Duration: ${duration}s`
-        : "";
+      : (duration ? `Duration: ${duration}s` : "");
     return {
       key,
       label: def.label || key,
@@ -1745,21 +1747,28 @@ function getUpgradePowerupOptions() {
       iconSrc: def.iconSrc || def.src || null,
       detail,
       disabled: Boolean(def.disabled),
-      owned: unlockedUpgradePowerups.has(key),
+      owned: level > 0,
+      level,
+      maxLevel,
     };
   });
 }
 
 function unlockUpgradePowerup(key) {
   if (!key || !UPGRADE_POWERUP_DEFS[key] || UPGRADE_POWERUP_DEFS[key].disabled) return false;
-  if (unlockedUpgradePowerups.has(key)) return false;
-  unlockedUpgradePowerups.add(key);
+  const level = upgradePowerupLevels.get(key) || 0;
+  if (level >= 2) return false;
+  const nextLevel = level + 1;
+  upgradePowerupLevels.set(key, nextLevel);
+  if (nextLevel >= 1) unlockedUpgradePowerups.add(key);
   return true;
 }
 
 function purchaseUpgradePowerup(key) {
   const def = UPGRADE_POWERUP_DEFS[key];
-  if (!def || def.disabled || unlockedUpgradePowerups.has(key)) return false;
+  if (!def || def.disabled) return false;
+  const level = upgradePowerupLevels.get(key) || 0;
+  if (level >= 2) return false;
   const cost = Number.isFinite(def.cost) ? def.cost : 0;
   if (getGraceCount() < cost) return false;
   addGrace(-cost);
@@ -2290,7 +2299,7 @@ const WORLD_SCALE =
     ? Number(window.__BATTLECHURCH_WORLD_SCALE) || DEFAULT_WORLD_SCALE
     : DEFAULT_WORLD_SCALE);
 const SPEED_SCALE = Math.max(0.01, WORLD_SCALE);
-const haloBladeState = {
+const createHaloBladeState = () => ({
   active: false,
   angle: 0,
   x: 0,
@@ -2308,8 +2317,11 @@ const haloBladeState = {
   trailSpacing: 10 * WORLD_SCALE,
   trailLife: 0.4,
   maxTrail: 18,
-};
-const spearState = {
+});
+const haloBladeState = createHaloBladeState();
+const haloBladeStateSecondary = createHaloBladeState();
+
+const createSpearState = () => ({
   active: false,
   x: 0,
   y: 0,
@@ -2336,7 +2348,9 @@ const spearState = {
   lastTarget: null,
   lastHitPos: null,
   waypoint: null,
-};
+});
+const spearState = createSpearState();
+const spearStateSecondary = createSpearState();
 
 // Melee Attack System Constants
 const MELEE_SWING_LENGTH_BASE = 260;
@@ -2774,7 +2788,9 @@ Renderer.initialize({
   get comboHudFlyEffects() { return comboHudFlyEffects; },
   get maxComboThisTown() { return maxComboThisTown; },
   get haloBladeState() { return haloBladeState; },
+  get haloBladeStateSecondary() { return haloBladeStateSecondary; },
   get spearState() { return spearState; },
+  get spearStateSecondary() { return spearStateSecondary; },
   formatNumberWithCommas,
   updatePlayerDuringCongregation,
   resolveCongregationCollisions,
@@ -6387,6 +6403,11 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("spreadGun", def);
       player.spreadGunTimer = Math.max(player.spreadGunTimer, config.duration);
       player.spreadGunDuration = Math.max(player.spreadGunDuration, config.duration);
+      const purchasedLevel = upgradePowerupLevels.get("spreadGun") || 1;
+      player.spreadGunLevel = Math.max(
+        player.spreadGunLevel || 0,
+        Math.min(2, purchasedLevel),
+      );
       showWeaponPowerupConfigText(config);
       break;
     }
@@ -6394,6 +6415,11 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("halo", def);
       player.haloTimer = Math.max(player.haloTimer, config.duration);
       player.haloDuration = Math.max(player.haloDuration, config.duration);
+      const purchasedLevel = upgradePowerupLevels.get("halo") || 1;
+      player.haloLevel = Math.max(
+        player.haloLevel || 0,
+        Math.min(2, purchasedLevel),
+      );
       showWeaponPowerupConfigText(config);
       break;
     }
@@ -6401,6 +6427,11 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("spear", def);
       player.spearTimer = Math.max(player.spearTimer, config.duration);
       player.spearDuration = Math.max(player.spearDuration, config.duration);
+      const purchasedLevel = upgradePowerupLevels.get("spear") || 1;
+      player.spearLevel = Math.max(
+        player.spearLevel || 0,
+        Math.min(2, purchasedLevel),
+      );
       showWeaponPowerupConfigText(config);
       break;
     }
@@ -6765,84 +6796,108 @@ function spawnPowerupHudFlyEffect({ x, y, iconImage, targetKey }) {
   });
 }
 
-function updateHaloBlade(dt) {
-  if (!player || player.state === "death" || player.haloTimer <= 0) {
-    haloBladeState.active = false;
-    haloBladeState.trail.length = 0;
-    return;
-  }
-  haloBladeState.active = true;
-  if (!haloBladeState.sprite && assets?.upgradePowerups?.halo?.image) {
-    haloBladeState.sprite = assets.upgradePowerups.halo.image;
-  }
-  const angle = (haloBladeState.angle || 0) + haloBladeState.speed * dt;
-  haloBladeState.angle = angle % (Math.PI * 2);
-  const depth = Math.sin(haloBladeState.angle);
-  const radiusX = haloBladeState.radius;
-  const radiusY = haloBladeState.radius * 0.7;
-  const prevX = haloBladeState.x;
-  const prevY = haloBladeState.y;
-  haloBladeState.x = player.x + Math.cos(haloBladeState.angle) * radiusX;
-  haloBladeState.y = player.y + depth * radiusY;
-  const travel = Math.hypot(haloBladeState.x - prevX, haloBladeState.y - prevY);
-  haloBladeState.trailTimer += travel;
-  if (haloBladeState.trailTimer >= haloBladeState.trailSpacing) {
-    haloBladeState.trailTimer = 0;
-    haloBladeState.trail.push({
-      x: haloBladeState.x,
-      y: haloBladeState.y,
-      life: haloBladeState.trailLife,
-      maxLife: haloBladeState.trailLife,
+function updateHaloBladeInstance(state, angle, dt) {
+  const depth = Math.sin(angle);
+  const radiusX = state.radius;
+  const radiusY = state.radius * 0.7;
+  const prevX = state.x;
+  const prevY = state.y;
+  state.x = player.x + Math.cos(angle) * radiusX;
+  state.y = player.y + depth * radiusY;
+  state.angle = angle;
+  const travel = Math.hypot(state.x - prevX, state.y - prevY);
+  state.trailTimer += travel;
+  if (state.trailTimer >= state.trailSpacing) {
+    state.trailTimer = 0;
+    state.trail.push({
+      x: state.x,
+      y: state.y,
+      life: state.trailLife,
+      maxLife: state.trailLife,
     });
-    if (haloBladeState.trail.length > haloBladeState.maxTrail) {
-      haloBladeState.trail.shift();
+    if (state.trail.length > state.maxTrail) {
+      state.trail.shift();
     }
   }
-  if (haloBladeState.trail.length) {
-    haloBladeState.trail.forEach((point) => {
+  if (state.trail.length) {
+    state.trail.forEach((point) => {
       point.life -= dt;
     });
-    while (haloBladeState.trail.length && haloBladeState.trail[0].life <= 0) {
-      haloBladeState.trail.shift();
+    while (state.trail.length && state.trail[0].life <= 0) {
+      state.trail.shift();
     }
   }
 
   const now =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-  const hitRadius = haloBladeState.hitRadius;
+  const hitRadius = state.hitRadius;
 
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
     const center = getEnemyHitboxCenter(enemy);
     const targetRadius = getEnemyHitboxRadius(enemy);
-    const dx = center.x - haloBladeState.x;
-    const dy = center.y - haloBladeState.y;
+    const dx = center.x - state.x;
+    const dy = center.y - state.y;
     if (dx * dx + dy * dy > (hitRadius + targetRadius) ** 2) return;
-    const lastHit = haloBladeState.lastHit.get(enemy) || 0;
-    if (now - lastHit < haloBladeState.hitCooldown) return;
-    haloBladeState.lastHit.set(enemy, now);
-    enemy.takeDamage(haloBladeState.damage, { damageType: "melee" });
-    registerComboHit(enemy, haloBladeState.damage);
+    const lastHit = state.lastHit.get(enemy) || 0;
+    if (now - lastHit < state.hitCooldown) return;
+    state.lastHit.set(enemy, now);
+    enemy.takeDamage(state.damage, { damageType: "melee" });
+    registerComboHit(enemy, state.damage);
     spawnFlashEffect(center.x, center.y - targetRadius * 0.3);
   });
 
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
-    const dx = activeBoss.x - haloBladeState.x;
-    const dy = activeBoss.y - haloBladeState.y;
+    const dx = activeBoss.x - state.x;
+    const dy = activeBoss.y - state.y;
     if (dx * dx + dy * dy <= (hitRadius + activeBoss.radius * 0.9) ** 2) {
-      const lastHit = haloBladeState.lastHit.get(activeBoss) || 0;
-      if (now - lastHit >= haloBladeState.hitCooldown) {
-        haloBladeState.lastHit.set(activeBoss, now);
-        activeBoss.takeDamage(haloBladeState.damage, {
-          hitX: haloBladeState.x,
-          hitY: haloBladeState.y,
+      const lastHit = state.lastHit.get(activeBoss) || 0;
+      if (now - lastHit >= state.hitCooldown) {
+        state.lastHit.set(activeBoss, now);
+        activeBoss.takeDamage(state.damage, {
+          hitX: state.x,
+          hitY: state.y,
           damageType: "melee",
           skipImpactEffect: true,
         });
-        registerComboHit(activeBoss, haloBladeState.damage);
-        spawnFlashEffect(haloBladeState.x, haloBladeState.y);
+        registerComboHit(activeBoss, state.damage);
+        spawnFlashEffect(state.x, state.y);
       }
     }
+  }
+}
+
+function resetHaloBladeState(state) {
+  state.active = false;
+  state.trail.length = 0;
+  state.trailTimer = 0;
+  state.lastHit = new WeakMap();
+}
+
+function updateHaloBlade(dt) {
+  if (!player || player.state === "death" || player.haloTimer <= 0) {
+    resetHaloBladeState(haloBladeState);
+    resetHaloBladeState(haloBladeStateSecondary);
+    return;
+  }
+  const level = Math.max(1, Math.min(2, player.haloLevel || 1));
+  haloBladeState.active = true;
+  if (!haloBladeState.sprite && assets?.upgradePowerups?.halo?.image) {
+    haloBladeState.sprite = assets.upgradePowerups.halo.image;
+  }
+  if (!haloBladeStateSecondary.sprite) {
+    haloBladeStateSecondary.sprite = haloBladeState.sprite;
+  }
+  const angle = (haloBladeState.angle || 0) + haloBladeState.speed * dt;
+  const baseAngle = angle % (Math.PI * 2);
+  haloBladeState.angle = baseAngle;
+  updateHaloBladeInstance(haloBladeState, baseAngle, dt);
+
+  if (level >= 2) {
+    haloBladeStateSecondary.active = true;
+    updateHaloBladeInstance(haloBladeStateSecondary, baseAngle + Math.PI, dt);
+  } else {
+    resetHaloBladeState(haloBladeStateSecondary);
   }
 }
 
@@ -6896,39 +6951,39 @@ function findNearestSpearTarget(fromX, fromY, options = {}) {
   return best;
 }
 
-function updateSpearStateTrail(dt) {
-  if (!spearState.trail.length) return;
-  spearState.trail.forEach((point) => {
+function updateSpearStateTrail(state, dt) {
+  if (!state.trail.length) return;
+  state.trail.forEach((point) => {
     point.life -= dt;
   });
-  while (spearState.trail.length && spearState.trail[0].life <= 0) {
-    spearState.trail.shift();
+  while (state.trail.length && state.trail[0].life <= 0) {
+    state.trail.shift();
   }
 }
 
-function applySpearHit(target, hitX, hitY) {
+function applySpearHit(state, target, hitX, hitY) {
   const now =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-  const lastHit = spearState.lastHit.get(target) || 0;
-  if (now - lastHit < spearState.hitCooldown) return false;
-  spearState.lastHit.set(target, now);
+  const lastHit = state.lastHit.get(target) || 0;
+  if (now - lastHit < state.hitCooldown) return false;
+  state.lastHit.set(target, now);
   if (target === activeBoss) {
-    activeBoss.takeDamage(spearState.damage, {
+    activeBoss.takeDamage(state.damage, {
       hitX,
       hitY,
       damageType: "projectile",
       skipImpactEffect: true,
     });
-    registerComboHit(activeBoss, spearState.damage);
+    registerComboHit(activeBoss, state.damage);
   } else {
-    target.takeDamage(spearState.damage, { damageType: "projectile" });
-    registerComboHit(target, spearState.damage);
+    target.takeDamage(state.damage, { damageType: "projectile" });
+    registerComboHit(target, state.damage);
   }
   spawnFlashEffect(hitX, hitY);
   return true;
 }
 
-function applySpearPassThroughHits(fromX, fromY, toX, toY, exclude) {
+function applySpearPassThroughHits(state, fromX, fromY, toX, toY, exclude) {
   const dx = toX - fromX;
   const dy = toY - fromY;
   const lenSq = dx * dx + dy * dy || 1;
@@ -6944,114 +6999,113 @@ function applySpearPassThroughHits(fromX, fromY, toX, toY, exclude) {
     if (!enemy || enemy.dead || enemy.state === "death") return;
     if (exclude && (enemy === exclude.target || enemy === exclude.last)) return;
     const center = getEnemyHitboxCenter(enemy);
-    const radius = spearState.hitRadius + getEnemyHitboxRadius(enemy) * 0.6;
+    const radius = state.hitRadius + getEnemyHitboxRadius(enemy) * 0.6;
     if (hitTest(center.x, center.y, radius)) {
-      applySpearHit(enemy, center.x, center.y);
+      applySpearHit(state, enemy, center.x, center.y);
     }
   });
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
     if (!(exclude && exclude.target === activeBoss)) {
-      const radius = spearState.hitRadius + (activeBoss.radius || 0) * 0.8;
+      const radius = state.hitRadius + (activeBoss.radius || 0) * 0.8;
       if (hitTest(activeBoss.x, activeBoss.y, radius)) {
-        applySpearHit(activeBoss, activeBoss.x, activeBoss.y);
+        applySpearHit(state, activeBoss, activeBoss.x, activeBoss.y);
       }
     }
   }
 }
 
-function updateSpearDart(dt) {
-  if (!player || player.state === "death" || player.spearTimer <= 0) {
-    spearState.active = false;
-    spearState.trail.length = 0;
-    spearState.target = null;
-    spearState.pauseTimer = 0;
-    spearState.pendingRetarget = false;
-    spearState.travelSinceHit = 0;
-    spearState.hits = 0;
-    spearState.lastTarget = null;
-    spearState.lastHitPos = null;
-    spearState.waypoint = null;
-    return;
-  }
-  const wasActive = spearState.active;
-  spearState.active = true;
+function resetSpearState(state) {
+  state.active = false;
+  state.trail.length = 0;
+  state.trailTimer = 0;
+  state.target = null;
+  state.pauseTimer = 0;
+  state.pendingRetarget = false;
+  state.travelSinceHit = 0;
+  state.hits = 0;
+  state.lastTarget = null;
+  state.lastHitPos = null;
+  state.waypoint = null;
+  state.lastHit = new WeakMap();
+}
+
+function updateSpearDartInstance(state, dt) {
+  const wasActive = state.active;
+  state.active = true;
   if (!wasActive) {
-    spearState.x = player.x;
-    spearState.y = player.y;
-    spearState.trail.length = 0;
-    spearState.trailTimer = 0;
-    spearState.target = null;
-    spearState.pauseTimer = 0;
-    spearState.pendingRetarget = false;
-    spearState.travelSinceHit = 0;
-    spearState.hits = 0;
-    spearState.lastTarget = null;
-    spearState.lastHitPos = null;
-    spearState.waypoint = null;
-  }
-  if (!spearState.sprite && assets?.upgradePowerups?.spear?.image) {
-    spearState.sprite = assets.upgradePowerups.spear.image;
+    state.x = player.x;
+    state.y = player.y;
+    state.trail.length = 0;
+    state.trailTimer = 0;
+    state.target = null;
+    state.pauseTimer = 0;
+    state.pendingRetarget = false;
+    state.travelSinceHit = 0;
+    state.hits = 0;
+    state.lastTarget = null;
+    state.lastHitPos = null;
+    state.waypoint = null;
   }
 
-  if (spearState.pauseTimer > 0) {
-    spearState.pauseTimer = Math.max(0, spearState.pauseTimer - dt);
-    updateSpearStateTrail(dt);
+  if (state.pauseTimer > 0) {
+    state.pauseTimer = Math.max(0, state.pauseTimer - dt);
+    updateSpearStateTrail(state, dt);
     return;
   }
-  if (spearState.waypoint) {
-    const prevX = spearState.x;
-    const prevY = spearState.y;
-    const dx = spearState.waypoint.x - spearState.x;
-    const dy = spearState.waypoint.y - spearState.y;
+  if (state.waypoint) {
+    const prevX = state.x;
+    const prevY = state.y;
+    const dx = state.waypoint.x - state.x;
+    const dy = state.waypoint.y - state.y;
     const distance = Math.hypot(dx, dy) || 1;
     const dirX = dx / distance;
     const dirY = dy / distance;
-    const step = Math.min(distance, spearState.speed * dt);
-    spearState.x += dirX * step;
-    spearState.y += dirY * step;
-    spearState.angle = Math.atan2(dirY, dirX);
-    spearState.travelSinceHit += step;
-    spearState.trailTimer += step;
-    applySpearPassThroughHits(prevX, prevY, spearState.x, spearState.y, {
-      target: spearState.target,
-      last: spearState.lastTarget,
+    const step = Math.min(distance, state.speed * dt);
+    state.x += dirX * step;
+    state.y += dirY * step;
+    state.angle = Math.atan2(dirY, dirX);
+    state.travelSinceHit += step;
+    state.trailTimer += step;
+    applySpearPassThroughHits(state, prevX, prevY, state.x, state.y, {
+      target: state.target,
+      last: state.lastTarget,
     });
-    if (spearState.trailTimer >= spearState.trailSpacing) {
-      spearState.trailTimer = 0;
-      spearState.trail.push({
-        x: spearState.x,
-        y: spearState.y,
-        life: spearState.trailLife,
-        maxLife: spearState.trailLife,
+    if (state.trailTimer >= state.trailSpacing) {
+      state.trailTimer = 0;
+      state.trail.push({
+        x: state.x,
+        y: state.y,
+        life: state.trailLife,
+        maxLife: state.trailLife,
       });
-      if (spearState.trail.length > spearState.maxTrail) {
-        spearState.trail.shift();
+      if (state.trail.length > state.maxTrail) {
+        state.trail.shift();
       }
     }
-    updateSpearStateTrail(dt);
-    if (distance <= spearState.hitRadius) {
-      spearState.waypoint = null;
-      spearState.pendingRetarget = true;
+    updateSpearStateTrail(state, dt);
+    if (distance <= state.hitRadius) {
+      state.waypoint = null;
+      state.pendingRetarget = true;
     }
     return;
   }
-  if (spearState.pendingRetarget || !spearState.target || spearState.target.dead || spearState.target.state === "death") {
-    spearState.target = findNearestSpearTarget(spearState.x, spearState.y, {
-      exclude: spearState.lastTarget,
-      minDistanceFrom: spearState.lastHitPos,
-      minDistance: spearState.minTravel,
+  if (state.pendingRetarget || !state.target || state.target.dead || state.target.state === "death") {
+    state.target = findNearestSpearTarget(state.x, state.y, {
+      exclude: state.lastTarget,
+      minDistanceFrom: state.lastHitPos,
+      minDistance: state.minTravel,
     });
-    if (!spearState.target) {
-      spearState.target = findNearestSpearTarget(spearState.x, spearState.y, {
-        exclude: spearState.lastTarget,
+    if (!state.target) {
+      state.target = findNearestSpearTarget(state.x, state.y, {
+        exclude: state.lastTarget,
       });
     }
-    spearState.pendingRetarget = false;
-    spearState.travelSinceHit = 0;
-    if (!spearState.target && spearState.lastHitPos) {
+    state.pendingRetarget = false;
+    state.travelSinceHit = 0;
+    if (!state.target && state.lastHitPos) {
       const awayDir = normalizeVector(
-        spearState.x - spearState.lastHitPos.x,
-        spearState.y - spearState.lastHitPos.y,
+        state.x - state.lastHitPos.x,
+        state.y - state.lastHitPos.y,
       );
       const fallbackDir = awayDir.x === 0 && awayDir.y === 0 ? { x: 1, y: 0 } : awayDir;
       const minX = 20;
@@ -7059,108 +7113,129 @@ function updateSpearDart(dt) {
       const minY = HUD_HEIGHT + 20;
       const maxY = canvas.height - 20;
       const targetX = clamp(
-        spearState.lastHitPos.x + fallbackDir.x * spearState.minTravel,
+        state.lastHitPos.x + fallbackDir.x * state.minTravel,
         minX,
         maxX,
       );
       const targetY = clamp(
-        spearState.lastHitPos.y + fallbackDir.y * spearState.minTravel,
+        state.lastHitPos.y + fallbackDir.y * state.minTravel,
         minY,
         maxY,
       );
-      spearState.waypoint = { x: targetX, y: targetY };
+      state.waypoint = { x: targetX, y: targetY };
       return;
     }
   }
 
-  const target = spearState.target;
+  const target = state.target;
   if (!target) {
-    spearState.x = player.x;
-    spearState.y = player.y;
-    updateSpearStateTrail(dt);
+    state.x = player.x;
+    state.y = player.y;
+    updateSpearStateTrail(state, dt);
     return;
   }
 
   const targetCenter = getSpearTargetCenter(target);
   if (!targetCenter) return;
-  const prevX = spearState.x;
-  const prevY = spearState.y;
-  const dx = targetCenter.x - spearState.x;
-  const dy = targetCenter.y - spearState.y;
+  const prevX = state.x;
+  const prevY = state.y;
+  const dx = targetCenter.x - state.x;
+  const dy = targetCenter.y - state.y;
   const distance = Math.hypot(dx, dy) || 1;
   const dirX = dx / distance;
   const dirY = dy / distance;
-  const step = Math.min(distance, spearState.speed * dt);
-  spearState.x += dirX * step;
-  spearState.y += dirY * step;
-  spearState.angle = Math.atan2(dirY, dirX);
-  spearState.travelSinceHit += step;
-  applySpearPassThroughHits(prevX, prevY, spearState.x, spearState.y, {
-    target: spearState.target,
-    last: spearState.lastTarget,
+  const step = Math.min(distance, state.speed * dt);
+  state.x += dirX * step;
+  state.y += dirY * step;
+  state.angle = Math.atan2(dirY, dirX);
+  state.travelSinceHit += step;
+  applySpearPassThroughHits(state, prevX, prevY, state.x, state.y, {
+    target: state.target,
+    last: state.lastTarget,
   });
 
-  spearState.trailTimer += step;
-  if (spearState.trailTimer >= spearState.trailSpacing) {
-    spearState.trailTimer = 0;
-    spearState.trail.push({
-      x: spearState.x,
-      y: spearState.y,
-      life: spearState.trailLife,
-      maxLife: spearState.trailLife,
+  state.trailTimer += step;
+  if (state.trailTimer >= state.trailSpacing) {
+    state.trailTimer = 0;
+    state.trail.push({
+      x: state.x,
+      y: state.y,
+      life: state.trailLife,
+      maxLife: state.trailLife,
     });
-    if (spearState.trail.length > spearState.maxTrail) {
-      spearState.trail.shift();
+    if (state.trail.length > state.maxTrail) {
+      state.trail.shift();
     }
   }
-  updateSpearStateTrail(dt);
+  updateSpearStateTrail(state, dt);
 
-  const hitRadius = spearState.hitRadius + (targetCenter.radius || 0) * 0.6;
+  const hitRadius = state.hitRadius + (targetCenter.radius || 0) * 0.6;
   const canHit =
-    spearState.hits === 0 ||
-    spearState.travelSinceHit >= spearState.minTravel;
+    state.hits === 0 ||
+    state.travelSinceHit >= state.minTravel;
   if (distance <= hitRadius && !canHit) {
     const away = normalizeVector(
-      spearState.x - targetCenter.x,
-      spearState.y - targetCenter.y,
+      state.x - targetCenter.x,
+      state.y - targetCenter.y,
     );
     const fallback = away.x === 0 && away.y === 0 ? { x: 1, y: 0 } : away;
-    const pushStep = spearState.speed * dt;
-    const pushPrevX = spearState.x;
-    const pushPrevY = spearState.y;
-    spearState.x += fallback.x * pushStep;
-    spearState.y += fallback.y * pushStep;
-    spearState.angle = Math.atan2(fallback.y, fallback.x);
-    spearState.travelSinceHit += pushStep;
-    spearState.trailTimer += pushStep;
-    applySpearPassThroughHits(pushPrevX, pushPrevY, spearState.x, spearState.y, {
-      target: spearState.target,
-      last: spearState.lastTarget,
+    const pushStep = state.speed * dt;
+    const pushPrevX = state.x;
+    const pushPrevY = state.y;
+    state.x += fallback.x * pushStep;
+    state.y += fallback.y * pushStep;
+    state.angle = Math.atan2(fallback.y, fallback.x);
+    state.travelSinceHit += pushStep;
+    state.trailTimer += pushStep;
+    applySpearPassThroughHits(state, pushPrevX, pushPrevY, state.x, state.y, {
+      target: state.target,
+      last: state.lastTarget,
     });
-    if (spearState.trailTimer >= spearState.trailSpacing) {
-      spearState.trailTimer = 0;
-      spearState.trail.push({
-        x: spearState.x,
-        y: spearState.y,
-        life: spearState.trailLife,
-        maxLife: spearState.trailLife,
+    if (state.trailTimer >= state.trailSpacing) {
+      state.trailTimer = 0;
+      state.trail.push({
+        x: state.x,
+        y: state.y,
+        life: state.trailLife,
+        maxLife: state.trailLife,
       });
-      if (spearState.trail.length > spearState.maxTrail) {
-        spearState.trail.shift();
+      if (state.trail.length > state.maxTrail) {
+        state.trail.shift();
       }
     }
-    updateSpearStateTrail(dt);
+    updateSpearStateTrail(state, dt);
     return;
   }
   if (distance <= hitRadius && canHit) {
-    applySpearHit(target, targetCenter.x, targetCenter.y);
-    spearState.hits += 1;
-    spearState.pauseTimer = spearState.pauseDuration;
-    spearState.pendingRetarget = true;
-    spearState.target = null;
-    spearState.lastTarget = target;
-    spearState.lastHitPos = { x: targetCenter.x, y: targetCenter.y };
-    spearState.travelSinceHit = 0;
+    applySpearHit(state, target, targetCenter.x, targetCenter.y);
+    state.hits += 1;
+    state.pauseTimer = state.pauseDuration;
+    state.pendingRetarget = true;
+    state.target = null;
+    state.lastTarget = target;
+    state.lastHitPos = { x: targetCenter.x, y: targetCenter.y };
+    state.travelSinceHit = 0;
+  }
+}
+
+function updateSpearDart(dt) {
+  if (!player || player.state === "death" || player.spearTimer <= 0) {
+    resetSpearState(spearState);
+    resetSpearState(spearStateSecondary);
+    return;
+  }
+  const level = Math.max(1, Math.min(2, player.spearLevel || 1));
+  if (!spearState.sprite && assets?.upgradePowerups?.spear?.image) {
+    spearState.sprite = assets.upgradePowerups.spear.image;
+  }
+  if (!spearStateSecondary.sprite) {
+    spearStateSecondary.sprite = spearState.sprite;
+  }
+  updateSpearDartInstance(spearState, dt);
+  if (level >= 2) {
+    updateSpearDartInstance(spearStateSecondary, dt);
+  } else {
+    resetSpearState(spearStateSecondary);
   }
 }
 

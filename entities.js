@@ -601,10 +601,13 @@ const getResistanceTimerScale = () => {
     this.spreadGunTimer = 0;
     this.spreadGunDuration = 0;
     this.spreadGunExtraTimer = 0;
+    this.spreadGunLevel = 0;
     this.haloTimer = 0;
     this.haloDuration = 0;
+    this.haloLevel = 0;
     this.spearTimer = 0;
     this.spearDuration = 0;
+    this.spearLevel = 0;
     this.armorTimer = 0;
     this.armorReduction = 0;
     this.weaponPowerTimer = 0;
@@ -669,15 +672,18 @@ const getResistanceTimerScale = () => {
     this.spreadGunTimer = Math.max(0, this.spreadGunTimer - dt * timerDrainScale);
     if (this.spreadGunTimer <= 0) {
       this.spreadGunDuration = 0;
+      this.spreadGunLevel = 0;
     }
     this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt);
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
     if (this.haloTimer <= 0) {
       this.haloDuration = 0;
+      this.haloLevel = 0;
     }
     this.spearTimer = Math.max(0, this.spearTimer - dt * timerDrainScale);
     if (this.spearTimer <= 0) {
       this.spearDuration = 0;
+      this.spearLevel = 0;
     }
 
     const decayBase = this.powerExtendTimer > 0 ? 0.5 : 1;
@@ -1355,27 +1361,31 @@ const getResistanceTimerScale = () => {
     if (this.spreadGunTimer <= 0) return;
     if (this.spreadGunExtraTimer > 0) return;
     this.spreadGunExtraTimer = this.getArrowCooldown();
-    const spread = 0.15;
-    const perp = { x: -direction.y, y: direction.x };
-    const up = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);
-    const down = normalizeVector(direction.x - perp.x * spread, direction.y - perp.y * spread);
     const life = Number.isFinite(PROJECTILE_CONFIG.arrow?.life)
       ? PROJECTILE_CONFIG.arrow.life * bossRangeMultiplier
       : undefined;
     const damage = this.getArrowDamage();
     const scale = this.getArrowProjectileScale();
-    spawnProjectile("arrow", originX, originY, up.x, up.y, {
-      damage,
-      scale,
-      life,
-      source: this,
-    });
-    spawnProjectile("arrow", originX, originY, down.x, down.y, {
-      damage,
-      scale,
-      life,
-      source: this,
-    });
+    const level = Math.max(1, Math.min(2, this.spreadGunLevel || 1));
+    const spreadStep = 0.15;
+    const perp = { x: -direction.y, y: direction.x };
+    for (let tier = 1; tier <= level; tier += 1) {
+      const spread = spreadStep * tier;
+      const up = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);
+      const down = normalizeVector(direction.x - perp.x * spread, direction.y - perp.y * spread);
+      spawnProjectile("arrow", originX, originY, up.x, up.y, {
+        damage,
+        scale,
+        life,
+        source: this,
+      });
+      spawnProjectile("arrow", originX, originY, down.x, down.y, {
+        damage,
+        scale,
+        life,
+        source: this,
+      });
+    }
   }
 
   isArrowExtendProjectileBuffActive() {
