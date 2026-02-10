@@ -14763,22 +14763,7 @@ const comboTracker = {
             comboLabel: null,
             comboDamageLabel: null,
           };
-    if (isProjectile && Number.isFinite(dirIndex) && Number.isFinite(current.projectileDirIndex)) {
-      if (!isAllowedProjectileComboDirection(current.projectileDirIndex, dirIndex)) {
-        finalizeComboState(current);
-        current = {
-          hits: 0,
-          damage: 0,
-          expiresAt: 0,
-          killed: false,
-          lastX: null,
-          lastY: null,
-          projectileDirIndex: null,
-          comboLabel: null,
-          comboDamageLabel: null,
-        };
-      }
-    }
+    // Directional gating removed: combos now accumulate regardless of projectile direction.
     current.hits += 1;
     current.damage += damage;
     current.lastX = Number.isFinite(target.x) ? target.x : current.lastX;
