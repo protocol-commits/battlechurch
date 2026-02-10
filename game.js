@@ -6921,6 +6921,23 @@ function hasSpearTargets() {
   return Boolean(activeBoss && !activeBoss.dead && !activeBoss.defeated);
 }
 
+function getSingleSpearTarget() {
+  let target = null;
+  let count = 0;
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    count += 1;
+    if (count > 1) return;
+    target = enemy;
+  });
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
+    count += 1;
+    if (count > 1) return null;
+    target = activeBoss;
+  }
+  return count === 1 ? target : null;
+}
+
 function findNearestSpearTarget(fromX, fromY, options = {}) {
   const exclude = options.exclude || null;
   const minDistanceFrom = options.minDistanceFrom || null;
@@ -7111,15 +7128,51 @@ function updateSpearDartInstance(state, dt) {
     return;
   }
   if (state.pendingRetarget || !state.target || state.target.dead || state.target.state === "death") {
-    state.target = findNearestSpearTarget(state.x, state.y, {
-      exclude: state.lastTarget,
-      minDistanceFrom: state.lastHitPos,
-      minDistance: state.minTravel,
-    });
-    if (!state.target) {
+    const singleTarget = getSingleSpearTarget();
+    if (
+      singleTarget &&
+      state.lastHitPos &&
+      state.travelSinceHit < state.minTravel &&
+      !state.waypoint
+    ) {
+      const awayDir = normalizeVector(
+        state.x - state.lastHitPos.x,
+        state.y - state.lastHitPos.y,
+      );
+      const fallbackDir = awayDir.x === 0 && awayDir.y === 0 ? { x: 1, y: 0 } : awayDir;
+      const perp = { x: -fallbackDir.y, y: fallbackDir.x };
+      const zigDir = state.hits % 2 === 0 ? perp : { x: -perp.x, y: -perp.y };
+      const dir = zigDir.x === 0 && zigDir.y === 0 ? fallbackDir : zigDir;
+      const minX = 20;
+      const maxX = canvas.width - 20;
+      const minY = HUD_HEIGHT + 20;
+      const maxY = canvas.height - 20;
+      const targetX = clamp(
+        state.lastHitPos.x + dir.x * state.minTravel,
+        minX,
+        maxX,
+      );
+      const targetY = clamp(
+        state.lastHitPos.y + dir.y * state.minTravel,
+        minY,
+        maxY,
+      );
+      state.waypoint = { x: targetX, y: targetY };
+      return;
+    }
+    if (singleTarget) {
+      state.target = singleTarget;
+    } else {
       state.target = findNearestSpearTarget(state.x, state.y, {
         exclude: state.lastTarget,
+        minDistanceFrom: state.lastHitPos,
+        minDistance: state.minTravel,
       });
+      if (!state.target) {
+        state.target = findNearestSpearTarget(state.x, state.y, {
+          exclude: state.lastTarget,
+        });
+      }
     }
     state.pendingRetarget = false;
     state.travelSinceHit = 0;
