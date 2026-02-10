@@ -2318,7 +2318,7 @@ const spearState = {
   trail: [],
   trailTimer: 0,
   trailSpacing: 12 * WORLD_SCALE,
-  trailLife: 0.35,
+  trailLife: 0.6,
   maxTrail: 16,
   sprite: null,
   scale: 3.4 * WORLD_SCALE,
@@ -6952,6 +6952,11 @@ function updateSpearDart(dt) {
       minDistanceFrom: spearState.lastHitPos,
       minDistance: spearState.minTravel,
     });
+    if (!spearState.target) {
+      spearState.target = findNearestSpearTarget(spearState.x, spearState.y, {
+        exclude: spearState.lastTarget,
+      });
+    }
     spearState.pendingRetarget = false;
     spearState.travelSinceHit = 0;
     if (!spearState.target && spearState.lastHitPos) {
@@ -7019,6 +7024,33 @@ function updateSpearDart(dt) {
   const canHit =
     spearState.hits === 0 ||
     spearState.travelSinceHit >= spearState.minTravel;
+  if (distance <= hitRadius && !canHit) {
+    const away = normalizeVector(
+      spearState.x - targetCenter.x,
+      spearState.y - targetCenter.y,
+    );
+    const fallback = away.x === 0 && away.y === 0 ? { x: 1, y: 0 } : away;
+    const pushStep = spearState.speed * dt;
+    spearState.x += fallback.x * pushStep;
+    spearState.y += fallback.y * pushStep;
+    spearState.angle = Math.atan2(fallback.y, fallback.x);
+    spearState.travelSinceHit += pushStep;
+    spearState.trailTimer += pushStep;
+    if (spearState.trailTimer >= spearState.trailSpacing) {
+      spearState.trailTimer = 0;
+      spearState.trail.push({
+        x: spearState.x,
+        y: spearState.y,
+        life: spearState.trailLife,
+        maxLife: spearState.trailLife,
+      });
+      if (spearState.trail.length > spearState.maxTrail) {
+        spearState.trail.shift();
+      }
+    }
+    updateSpearStateTrail(dt);
+    return;
+  }
   if (distance <= hitRadius && canHit) {
     const now =
       (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
@@ -13146,10 +13178,18 @@ function handleLevelAnnouncements() {
       typeof window !== "undefined" && window.__announcementButtons?.key === "recap"
         ? window.__announcementButtons.buttons
         : null;
+    const canContinueRecap = typeof window !== "undefined" && window.__recapAllowContinue;
+    if (!canContinueRecap && keysJustPressed.has(" ")) {
+      keysJustPressed.delete(" ");
+      if (typeof window !== "undefined") {
+        window.__recapSkipRequested = true;
+      }
+      return true;
+    }
     const handled = handleAnnouncementButtons({
       key: "recap",
       buttons,
-      allowSpace: true,
+      allowSpace: Boolean(canContinueRecap),
       onActivate: () => {
         graceRushBlackout = false;
         graceRushFadeHold = false;

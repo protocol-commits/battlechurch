@@ -242,12 +242,12 @@ const MELEE_SWING_LENGTH = 260;
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       ctx.shadowColor = "#FFE45C";
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 14;
       ctx.lineCap = "round";
       const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
       ctx.beginPath();
       spearState.trail.forEach((point, idx) => {
-        const jitter = Math.sin(now * 24 + idx * 1.6) * 4;
+        const jitter = Math.sin(now * 16 + idx * 1.1) * 1.2;
         if (idx === 0) {
           ctx.moveTo(point.x + jitter, point.y - jitter);
         } else {
@@ -255,12 +255,12 @@ const MELEE_SWING_LENGTH = 260;
         }
       });
       ctx.strokeStyle = "#FFD94A";
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 5;
       ctx.stroke();
 
       ctx.beginPath();
       spearState.trail.forEach((point, idx) => {
-        const jitter = Math.sin(now * 24 + idx * 1.6) * 2;
+        const jitter = Math.sin(now * 16 + idx * 1.1) * 0.6;
         if (idx === 0) {
           ctx.moveTo(point.x + jitter, point.y - jitter);
         } else {
@@ -268,14 +268,32 @@ const MELEE_SWING_LENGTH = 260;
         }
       });
       ctx.strokeStyle = "#FFF7A8";
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.2;
       ctx.stroke();
       ctx.restore();
     }
     const size = Math.max(12, sprite.width || 12) * (spearState.scale || 1);
     ctx.save();
     ctx.translate(spearState.x, spearState.y);
-    ctx.rotate((spearState.angle || 0) + Math.PI / 2);
+    ctx.rotate((spearState.angle || 0) + Math.PI / 4);
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+    const pauseFlash =
+      spearState.pauseTimer > 0
+        ? 0.6 + Math.abs(Math.sin(now * 18)) * 0.4
+        : 0;
+    if (pauseFlash > 0) {
+      ctx.globalCompositeOperation = "lighter";
+      ctx.shadowColor = "#FFF6A5";
+      ctx.shadowBlur = 28;
+      ctx.globalAlpha = pauseFlash;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.75, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFF0A0";
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+    }
+    ctx.shadowColor = "#FFE86B";
+    ctx.shadowBlur = 18;
     ctx.globalAlpha = 0.98;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.restore();
@@ -1267,6 +1285,46 @@ function updateRecapGhostEffects(dt) {
 
 function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
   if (!recapData) return;
+  if (typeof window !== "undefined" && window.__recapSkipRequested) {
+    window.__recapSkipRequested = false;
+    const lines = Array.isArray(recapData.lines) ? recapData.lines : [];
+    let totalValue = Number.isFinite(recapData?.startCount) ? recapData.startCount : 0;
+    let bonusCount = 0;
+    lines.forEach((line) => {
+      const delta = Number.isFinite(line.delta) ? Math.round(line.delta) : 0;
+      if (line.affectsTotal !== false) {
+        totalValue += delta;
+      }
+      if (line.kind === "congregation" && delta > 0) {
+        bonusCount += delta;
+      }
+    });
+    recapTallyState.id = recapData.id || recapTallyState.id;
+    recapTallyState.stepIndex = lines.length;
+    recapTallyState.phase = "post";
+    recapTallyState.lineValue = 0;
+    recapTallyState.lineTarget = null;
+    recapTallyState.totalValue = totalValue;
+    recapTallyState.totalTarget = null;
+    recapTallyState.stepProgress = 0;
+    recapTallyState.done = true;
+    recapTallyState.showContinue = true;
+    recapTallyState.allowLines = true;
+    recapTallyState.showCount = true;
+    recapTallyState.headerPhase = "lines";
+    recapTallyState.pauseTimer = 0;
+    recapTallyState.flashTimer = 0;
+    recapTallyState.visibleBonusCount = bonusCount;
+    recapTallyState.ghostEffects = [];
+    recapTallyState.graceEffects = [];
+    recapTallyState.pendingGhost = null;
+    recapTallyState.graceFlySfxPlayed = true;
+    if (recapData.graceBonus > 0) {
+      recapData.graceAppliedCount = recapData.graceBonus;
+      recapData.graceApplied = true;
+      recapData.graceSpawned = true;
+    }
+  }
   const now = performance.now();
   if (recapTallyState.id !== recapData.id) {
     resetRecapTallyState(recapData);
@@ -1502,6 +1560,9 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     spawnBounds.targetY = (graceTarget.y - layout.offsetY) / layout.scale;
   }
   updateRecapTallyState(recapData, revealComplete, spawnBounds);
+  if (typeof window !== "undefined") {
+    window.__recapAllowContinue = recapTallyState.showContinue;
+  }
 
   const formatNumber =
     typeof requireBindings().formatNumberWithCommas === "function"
