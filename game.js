@@ -466,6 +466,11 @@ function getEffectiveSfxVolume(volume) {
   return clamp01((Number.isFinite(volume) ? volume : 1) * audioSettings.sfxVolume);
 }
 
+if (typeof window !== "undefined") {
+  window.getEffectiveSfxVolume = getEffectiveSfxVolume;
+  window.isSfxEnabled = () => Boolean(audioSettings.sfxEnabled);
+}
+
 function getEffectiveMusicVolume(volume) {
   if (!audioSettings.musicEnabled) return 0;
   return clamp01((Number.isFinite(volume) ? volume : 1) * audioSettings.musicVolume);

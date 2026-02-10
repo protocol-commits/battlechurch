@@ -47,8 +47,20 @@
   const mapAmbientPools = new Map();
   const mapAmbientActive = [];
 
+  function getEffectiveMapSfxVolume(volume = 1) {
+    if (typeof window !== "undefined" && typeof window.getEffectiveSfxVolume === "function") {
+      return window.getEffectiveSfxVolume(volume);
+    }
+    if (typeof window !== "undefined" && window.audioSettings?.sfxEnabled === false) {
+      return 0;
+    }
+    return Number.isFinite(volume) ? volume : 1;
+  }
+
   function playMapAmbientSfx(src, volume = 0.45) {
     if (typeof Audio === "undefined") return null;
+    const effectiveVolume = getEffectiveMapSfxVolume(volume);
+    if (effectiveVolume <= 0) return null;
     let pool = mapAmbientPools.get(src);
     if (!pool) {
       pool = [];
@@ -61,8 +73,8 @@
       pool.push(audio);
     }
     if (!audio) return null;
-    audio.volume = volume;
-    audio.__mapAmbientBaseVolume = volume;
+    audio.volume = effectiveVolume;
+    audio.__mapAmbientBaseVolume = effectiveVolume;
     audio.currentTime = 0;
     try {
       const playPromise = audio.play();
@@ -106,6 +118,12 @@
 
   function updateMapAmbient() {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (typeof window !== "undefined" && typeof window.isSfxEnabled === "function") {
+      if (!window.isSfxEnabled()) {
+        if (state.ambient.active && !state.ambient.fadeOut) stopMapAmbient({ fade: true });
+        return;
+      }
+    }
     if (state.ambient.fadeOut) {
       const t = state.ambient.fadeStart ? (now - state.ambient.fadeStart) / state.ambient.fadeDuration : 1;
       const factor = Math.max(0, 1 - t);
