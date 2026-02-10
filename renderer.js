@@ -224,10 +224,59 @@ const MELEE_SWING_LENGTH = 260;
     const sprite = haloState.sprite;
     if (!sprite) return;
     const size = Math.max(12, sprite.width || 12) * (haloState.scale || 1);
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+    const spin = now * 20;
     ctx.save();
     ctx.translate(haloState.x, haloState.y);
-    ctx.rotate((haloState.angle || 0) + Math.PI / 2);
+    ctx.rotate((haloState.angle || 0) + Math.PI / 2 + spin);
     ctx.globalAlpha = 0.95;
+    ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+    ctx.restore();
+  }
+
+  function drawSpearDart(ctx, spearState) {
+    if (!spearState || !spearState.active) return;
+    const sprite = spearState.sprite;
+    if (!sprite) return;
+    if (Array.isArray(spearState.trail) && spearState.trail.length) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.shadowColor = "#FFE45C";
+      ctx.shadowBlur = 18;
+      ctx.lineCap = "round";
+      const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+      ctx.beginPath();
+      spearState.trail.forEach((point, idx) => {
+        const jitter = Math.sin(now * 24 + idx * 1.6) * 4;
+        if (idx === 0) {
+          ctx.moveTo(point.x + jitter, point.y - jitter);
+        } else {
+          ctx.lineTo(point.x + jitter, point.y - jitter);
+        }
+      });
+      ctx.strokeStyle = "#FFD94A";
+      ctx.lineWidth = 6;
+      ctx.stroke();
+
+      ctx.beginPath();
+      spearState.trail.forEach((point, idx) => {
+        const jitter = Math.sin(now * 24 + idx * 1.6) * 2;
+        if (idx === 0) {
+          ctx.moveTo(point.x + jitter, point.y - jitter);
+        } else {
+          ctx.lineTo(point.x + jitter, point.y - jitter);
+        }
+      });
+      ctx.strokeStyle = "#FFF7A8";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.restore();
+    }
+    const size = Math.max(12, sprite.width || 12) * (spearState.scale || 1);
+    ctx.save();
+    ctx.translate(spearState.x, spearState.y);
+    ctx.rotate((spearState.angle || 0) + Math.PI / 2);
+    ctx.globalAlpha = 0.98;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.restore();
   }
@@ -4479,6 +4528,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       projectiles,
       player,
       haloBladeState,
+      spearState,
       effects,
       floatingTexts,
       cannonSplashRadius,
@@ -5190,6 +5240,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
     });
     drawHaloBlade(ctx, haloBladeState);
+    drawSpearDart(ctx, spearState);
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       effects.forEach((effect) => effect.draw());
     }

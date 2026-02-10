@@ -602,6 +602,8 @@ const getResistanceTimerScale = () => {
     this.spreadGunDuration = 0;
     this.haloTimer = 0;
     this.haloDuration = 0;
+    this.spearTimer = 0;
+    this.spearDuration = 0;
     this.armorTimer = 0;
     this.armorReduction = 0;
     this.weaponPowerTimer = 0;
@@ -670,6 +672,10 @@ const getResistanceTimerScale = () => {
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
     if (this.haloTimer <= 0) {
       this.haloDuration = 0;
+    }
+    this.spearTimer = Math.max(0, this.spearTimer - dt * timerDrainScale);
+    if (this.spearTimer <= 0) {
+      this.spearDuration = 0;
     }
 
     const decayBase = this.powerExtendTimer > 0 ? 0.5 : 1;

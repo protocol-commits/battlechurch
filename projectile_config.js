@@ -177,5 +177,13 @@
       description: "An orbiting blade that shreds nearby enemies.",
       hudDuration: 2.6,
     },
+    spear: {
+      duration: 10,
+      text: "Spear",
+      textColor: "#ffd978",
+      hudTitle: "Spear",
+      description: "Seeks nearby enemies and strikes in sequence.",
+      hudDuration: 2.6,
+    },
   };
 })(typeof window !== "undefined" ? window : globalThis);

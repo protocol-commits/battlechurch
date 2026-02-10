@@ -2304,6 +2304,34 @@ const haloBladeState = {
   sprite: null,
   scale: 3.4 * WORLD_SCALE,
 };
+const spearState = {
+  active: false,
+  x: 0,
+  y: 0,
+  angle: 0,
+  speed: 680 * WORLD_SCALE,
+  damage: 20,
+  hitRadius: 18 * WORLD_SCALE,
+  hitCooldown: 0.15,
+  lastHit: new WeakMap(),
+  target: null,
+  trail: [],
+  trailTimer: 0,
+  trailSpacing: 12 * WORLD_SCALE,
+  trailLife: 0.35,
+  maxTrail: 16,
+  sprite: null,
+  scale: 3.4 * WORLD_SCALE,
+  minTravel: 200 * WORLD_SCALE,
+  travelSinceHit: 0,
+  pauseDuration: 0.1,
+  pauseTimer: 0,
+  pendingRetarget: false,
+  hits: 0,
+  lastTarget: null,
+  lastHitPos: null,
+  waypoint: null,
+};
 
 // Melee Attack System Constants
 const MELEE_SWING_LENGTH_BASE = 260;
@@ -2741,6 +2769,7 @@ Renderer.initialize({
   get comboHudFlyEffects() { return comboHudFlyEffects; },
   get maxComboThisTown() { return maxComboThisTown; },
   get haloBladeState() { return haloBladeState; },
+  get spearState() { return spearState; },
   formatNumberWithCommas,
   updatePlayerDuringCongregation,
   resolveCongregationCollisions,
@@ -3630,8 +3659,8 @@ const WEAPON_POWERUP_EFFECTS = new Set([
 ]);
 const UPGRADE_POWERUP_EFFECTS = new Set([
   "spreadGun",
-  "remote",
   "halo",
+  "spear",
 ]);
 let devPowerupSwapIndex = 0;
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
@@ -6363,6 +6392,13 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText(config);
       break;
     }
+    case "spear": {
+      const config = resolveWeaponPowerupConfig("spear", def);
+      player.spearTimer = Math.max(player.spearTimer, config.duration);
+      player.spearDuration = Math.max(player.spearDuration, config.duration);
+      showWeaponPowerupConfigText(config);
+      break;
+    }
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
       showWeaponPowerupConfigText({
@@ -6777,6 +6813,239 @@ function updateHaloBlade(dt) {
         spawnFlashEffect(haloBladeState.x, haloBladeState.y);
       }
     }
+  }
+}
+
+function getSpearTargetCenter(target) {
+  if (!target) return null;
+  if (target === activeBoss) {
+    return { x: activeBoss.x, y: activeBoss.y, radius: activeBoss.radius || 0 };
+  }
+  const center = getEnemyHitboxCenter(target);
+  return { x: center.x, y: center.y, radius: getEnemyHitboxRadius(target) };
+}
+
+function findNearestSpearTarget(fromX, fromY, options = {}) {
+  const exclude = options.exclude || null;
+  const minDistanceFrom = options.minDistanceFrom || null;
+  const minDistance = Number.isFinite(options.minDistance) ? options.minDistance : 0;
+  let best = null;
+  let bestDist = Infinity;
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (exclude && enemy === exclude) return;
+    if (minDistanceFrom) {
+      const dxFrom = getEnemyHitboxCenter(enemy).x - minDistanceFrom.x;
+      const dyFrom = getEnemyHitboxCenter(enemy).y - minDistanceFrom.y;
+      if (Math.hypot(dxFrom, dyFrom) < minDistance) return;
+    }
+    const center = getEnemyHitboxCenter(enemy);
+    const dx = center.x - fromX;
+    const dy = center.y - fromY;
+    const dist = dx * dx + dy * dy;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = enemy;
+    }
+  });
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated && exclude !== activeBoss) {
+    if (minDistanceFrom) {
+      const dxFrom = activeBoss.x - minDistanceFrom.x;
+      const dyFrom = activeBoss.y - minDistanceFrom.y;
+      if (Math.hypot(dxFrom, dyFrom) < minDistance) {
+        return best;
+      }
+    }
+    const dx = activeBoss.x - fromX;
+    const dy = activeBoss.y - fromY;
+    const dist = dx * dx + dy * dy;
+    if (dist < bestDist) {
+      best = activeBoss;
+    }
+  }
+  return best;
+}
+
+function updateSpearStateTrail(dt) {
+  if (!spearState.trail.length) return;
+  spearState.trail.forEach((point) => {
+    point.life -= dt;
+  });
+  while (spearState.trail.length && spearState.trail[0].life <= 0) {
+    spearState.trail.shift();
+  }
+}
+
+function updateSpearDart(dt) {
+  if (!player || player.state === "death" || player.spearTimer <= 0) {
+    spearState.active = false;
+    spearState.trail.length = 0;
+    spearState.target = null;
+    spearState.pauseTimer = 0;
+    spearState.pendingRetarget = false;
+    spearState.travelSinceHit = 0;
+    spearState.hits = 0;
+    spearState.lastTarget = null;
+    spearState.lastHitPos = null;
+    spearState.waypoint = null;
+    return;
+  }
+  const wasActive = spearState.active;
+  spearState.active = true;
+  if (!wasActive) {
+    spearState.x = player.x;
+    spearState.y = player.y;
+    spearState.trail.length = 0;
+    spearState.trailTimer = 0;
+    spearState.target = null;
+    spearState.pauseTimer = 0;
+    spearState.pendingRetarget = false;
+    spearState.travelSinceHit = 0;
+    spearState.hits = 0;
+    spearState.lastTarget = null;
+    spearState.lastHitPos = null;
+    spearState.waypoint = null;
+  }
+  if (!spearState.sprite && assets?.upgradePowerups?.spear?.image) {
+    spearState.sprite = assets.upgradePowerups.spear.image;
+  }
+
+  if (spearState.pauseTimer > 0) {
+    spearState.pauseTimer = Math.max(0, spearState.pauseTimer - dt);
+    updateSpearStateTrail(dt);
+    return;
+  }
+  if (spearState.waypoint) {
+    const dx = spearState.waypoint.x - spearState.x;
+    const dy = spearState.waypoint.y - spearState.y;
+    const distance = Math.hypot(dx, dy) || 1;
+    const dirX = dx / distance;
+    const dirY = dy / distance;
+    const step = Math.min(distance, spearState.speed * dt);
+    spearState.x += dirX * step;
+    spearState.y += dirY * step;
+    spearState.angle = Math.atan2(dirY, dirX);
+    spearState.travelSinceHit += step;
+    spearState.trailTimer += step;
+    if (spearState.trailTimer >= spearState.trailSpacing) {
+      spearState.trailTimer = 0;
+      spearState.trail.push({
+        x: spearState.x,
+        y: spearState.y,
+        life: spearState.trailLife,
+        maxLife: spearState.trailLife,
+      });
+      if (spearState.trail.length > spearState.maxTrail) {
+        spearState.trail.shift();
+      }
+    }
+    updateSpearStateTrail(dt);
+    if (distance <= spearState.hitRadius) {
+      spearState.waypoint = null;
+      spearState.pendingRetarget = true;
+    }
+    return;
+  }
+  if (spearState.pendingRetarget || !spearState.target || spearState.target.dead || spearState.target.state === "death") {
+    spearState.target = findNearestSpearTarget(spearState.x, spearState.y, {
+      exclude: spearState.lastTarget,
+      minDistanceFrom: spearState.lastHitPos,
+      minDistance: spearState.minTravel,
+    });
+    spearState.pendingRetarget = false;
+    spearState.travelSinceHit = 0;
+    if (!spearState.target && spearState.lastHitPos) {
+      const awayDir = normalizeVector(
+        spearState.x - spearState.lastHitPos.x,
+        spearState.y - spearState.lastHitPos.y,
+      );
+      const fallbackDir = awayDir.x === 0 && awayDir.y === 0 ? { x: 1, y: 0 } : awayDir;
+      const minX = 20;
+      const maxX = canvas.width - 20;
+      const minY = HUD_HEIGHT + 20;
+      const maxY = canvas.height - 20;
+      const targetX = clamp(
+        spearState.lastHitPos.x + fallbackDir.x * spearState.minTravel,
+        minX,
+        maxX,
+      );
+      const targetY = clamp(
+        spearState.lastHitPos.y + fallbackDir.y * spearState.minTravel,
+        minY,
+        maxY,
+      );
+      spearState.waypoint = { x: targetX, y: targetY };
+      return;
+    }
+  }
+
+  const target = spearState.target;
+  if (!target) {
+    spearState.x = player.x;
+    spearState.y = player.y;
+    updateSpearStateTrail(dt);
+    return;
+  }
+
+  const targetCenter = getSpearTargetCenter(target);
+  if (!targetCenter) return;
+  const dx = targetCenter.x - spearState.x;
+  const dy = targetCenter.y - spearState.y;
+  const distance = Math.hypot(dx, dy) || 1;
+  const dirX = dx / distance;
+  const dirY = dy / distance;
+  const step = Math.min(distance, spearState.speed * dt);
+  spearState.x += dirX * step;
+  spearState.y += dirY * step;
+  spearState.angle = Math.atan2(dirY, dirX);
+  spearState.travelSinceHit += step;
+
+  spearState.trailTimer += step;
+  if (spearState.trailTimer >= spearState.trailSpacing) {
+    spearState.trailTimer = 0;
+    spearState.trail.push({
+      x: spearState.x,
+      y: spearState.y,
+      life: spearState.trailLife,
+      maxLife: spearState.trailLife,
+    });
+    if (spearState.trail.length > spearState.maxTrail) {
+      spearState.trail.shift();
+    }
+  }
+  updateSpearStateTrail(dt);
+
+  const hitRadius = spearState.hitRadius + (targetCenter.radius || 0) * 0.6;
+  const canHit =
+    spearState.hits === 0 ||
+    spearState.travelSinceHit >= spearState.minTravel;
+  if (distance <= hitRadius && canHit) {
+    const now =
+      (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const lastHit = spearState.lastHit.get(target) || 0;
+    if (now - lastHit >= spearState.hitCooldown) {
+      spearState.lastHit.set(target, now);
+      if (target === activeBoss) {
+        activeBoss.takeDamage(spearState.damage, {
+          hitX: spearState.x,
+          hitY: spearState.y,
+          damageType: "projectile",
+          skipImpactEffect: true,
+        });
+        registerComboHit(activeBoss, spearState.damage);
+      } else {
+        target.takeDamage(spearState.damage, { damageType: "projectile" });
+        registerComboHit(target, spearState.damage);
+      }
+      spawnFlashEffect(targetCenter.x, targetCenter.y);
+    }
+    spearState.hits += 1;
+    spearState.pauseTimer = spearState.pauseDuration;
+    spearState.pendingRetarget = true;
+    spearState.target = null;
+    spearState.lastTarget = target;
+    spearState.lastHitPos = { x: targetCenter.x, y: targetCenter.y };
+    spearState.travelSinceHit = 0;
   }
 }
 
@@ -15975,6 +16244,7 @@ function updateGame(dt) {
   updateHaloBlade(dt);
   updateCozyNpcs(dt);
   updateGracePickups(dt);
+  updateSpearDart(dt);
   updateGraceHudFlyEffects(dt);
   updatePowerupHudFlyEffects(dt);
   updateComboHudFlyEffects(dt);
