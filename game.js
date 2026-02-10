@@ -2324,7 +2324,7 @@ const spearState = {
   scale: 3.4 * WORLD_SCALE,
   minTravel: 200 * WORLD_SCALE,
   travelSinceHit: 0,
-  pauseDuration: 0.1,
+  pauseDuration: 0.15,
   pauseTimer: 0,
   pendingRetarget: false,
   hits: 0,
@@ -6876,6 +6876,59 @@ function updateSpearStateTrail(dt) {
   }
 }
 
+function applySpearHit(target, hitX, hitY) {
+  const now =
+    (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+  const lastHit = spearState.lastHit.get(target) || 0;
+  if (now - lastHit < spearState.hitCooldown) return false;
+  spearState.lastHit.set(target, now);
+  if (target === activeBoss) {
+    activeBoss.takeDamage(spearState.damage, {
+      hitX,
+      hitY,
+      damageType: "projectile",
+      skipImpactEffect: true,
+    });
+    registerComboHit(activeBoss, spearState.damage);
+  } else {
+    target.takeDamage(spearState.damage, { damageType: "projectile" });
+    registerComboHit(target, spearState.damage);
+  }
+  spawnFlashEffect(hitX, hitY);
+  return true;
+}
+
+function applySpearPassThroughHits(fromX, fromY, toX, toY, exclude) {
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+  const lenSq = dx * dx + dy * dy || 1;
+  const hitTest = (tx, ty, radius) => {
+    const t = Math.max(0, Math.min(1, ((tx - fromX) * dx + (ty - fromY) * dy) / lenSq));
+    const px = fromX + dx * t;
+    const py = fromY + dy * t;
+    const ddx = tx - px;
+    const ddy = ty - py;
+    return ddx * ddx + ddy * ddy <= radius * radius;
+  };
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (exclude && (enemy === exclude.target || enemy === exclude.last)) return;
+    const center = getEnemyHitboxCenter(enemy);
+    const radius = spearState.hitRadius + getEnemyHitboxRadius(enemy) * 0.6;
+    if (hitTest(center.x, center.y, radius)) {
+      applySpearHit(enemy, center.x, center.y);
+    }
+  });
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
+    if (!(exclude && exclude.target === activeBoss)) {
+      const radius = spearState.hitRadius + (activeBoss.radius || 0) * 0.8;
+      if (hitTest(activeBoss.x, activeBoss.y, radius)) {
+        applySpearHit(activeBoss, activeBoss.x, activeBoss.y);
+      }
+    }
+  }
+}
+
 function updateSpearDart(dt) {
   if (!player || player.state === "death" || player.spearTimer <= 0) {
     spearState.active = false;
@@ -6916,6 +6969,8 @@ function updateSpearDart(dt) {
     return;
   }
   if (spearState.waypoint) {
+    const prevX = spearState.x;
+    const prevY = spearState.y;
     const dx = spearState.waypoint.x - spearState.x;
     const dy = spearState.waypoint.y - spearState.y;
     const distance = Math.hypot(dx, dy) || 1;
@@ -6927,6 +6982,10 @@ function updateSpearDart(dt) {
     spearState.angle = Math.atan2(dirY, dirX);
     spearState.travelSinceHit += step;
     spearState.trailTimer += step;
+    applySpearPassThroughHits(prevX, prevY, spearState.x, spearState.y, {
+      target: spearState.target,
+      last: spearState.lastTarget,
+    });
     if (spearState.trailTimer >= spearState.trailSpacing) {
       spearState.trailTimer = 0;
       spearState.trail.push({
@@ -6994,6 +7053,8 @@ function updateSpearDart(dt) {
 
   const targetCenter = getSpearTargetCenter(target);
   if (!targetCenter) return;
+  const prevX = spearState.x;
+  const prevY = spearState.y;
   const dx = targetCenter.x - spearState.x;
   const dy = targetCenter.y - spearState.y;
   const distance = Math.hypot(dx, dy) || 1;
@@ -7004,6 +7065,10 @@ function updateSpearDart(dt) {
   spearState.y += dirY * step;
   spearState.angle = Math.atan2(dirY, dirX);
   spearState.travelSinceHit += step;
+  applySpearPassThroughHits(prevX, prevY, spearState.x, spearState.y, {
+    target: spearState.target,
+    last: spearState.lastTarget,
+  });
 
   spearState.trailTimer += step;
   if (spearState.trailTimer >= spearState.trailSpacing) {
@@ -7031,11 +7096,17 @@ function updateSpearDart(dt) {
     );
     const fallback = away.x === 0 && away.y === 0 ? { x: 1, y: 0 } : away;
     const pushStep = spearState.speed * dt;
+    const pushPrevX = spearState.x;
+    const pushPrevY = spearState.y;
     spearState.x += fallback.x * pushStep;
     spearState.y += fallback.y * pushStep;
     spearState.angle = Math.atan2(fallback.y, fallback.x);
     spearState.travelSinceHit += pushStep;
     spearState.trailTimer += pushStep;
+    applySpearPassThroughHits(pushPrevX, pushPrevY, spearState.x, spearState.y, {
+      target: spearState.target,
+      last: spearState.lastTarget,
+    });
     if (spearState.trailTimer >= spearState.trailSpacing) {
       spearState.trailTimer = 0;
       spearState.trail.push({
@@ -7052,25 +7123,7 @@ function updateSpearDart(dt) {
     return;
   }
   if (distance <= hitRadius && canHit) {
-    const now =
-      (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-    const lastHit = spearState.lastHit.get(target) || 0;
-    if (now - lastHit >= spearState.hitCooldown) {
-      spearState.lastHit.set(target, now);
-      if (target === activeBoss) {
-        activeBoss.takeDamage(spearState.damage, {
-          hitX: spearState.x,
-          hitY: spearState.y,
-          damageType: "projectile",
-          skipImpactEffect: true,
-        });
-        registerComboHit(activeBoss, spearState.damage);
-      } else {
-        target.takeDamage(spearState.damage, { damageType: "projectile" });
-        registerComboHit(target, spearState.damage);
-      }
-      spawnFlashEffect(targetCenter.x, targetCenter.y);
-    }
+    applySpearHit(target, targetCenter.x, targetCenter.y);
     spearState.hits += 1;
     spearState.pauseTimer = spearState.pauseDuration;
     spearState.pendingRetarget = true;
