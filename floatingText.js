@@ -95,6 +95,7 @@
       fontWeight = null,
       fontFamily = null,
       fadeDelay = 0,
+      textAlign = null,
     } = options;
     const finalStyle = style || (speechBubble ? "speech" : "plain");
     if (finalStyle === "speech" && !critical) {
@@ -123,6 +124,7 @@
       fontSize,
       fontWeight,
       fontFamily,
+      textAlign,
       priority,
       fadeDelay,
       fadeLength,

@@ -1142,7 +1142,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
       }
       ctx.fillStyle = "#0b111a";
-      ctx.textAlign = "center";
+      ctx.textAlign = ft.textAlign || "center";
       ctx.textBaseline = "alphabetic";
       ctx.font = `600 ${showFormation ? 28 : 24}px ${uiFontFamily}`;
     ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 40);
@@ -2841,6 +2841,32 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.globalCompositeOperation = "lighter";
     ctx.globalAlpha = intensity;
     ctx.drawImage(godRayCache.canvas, drawX, 0);
+    ctx.restore();
+  }
+
+  function drawHudComboUnderlay(ctx, canvas, uiFontFamily, hudHeight) {
+    if (typeof window === "undefined") return;
+    if (window.__comboTextMode !== "fixed") return;
+    const display = window.__hudComboDisplay;
+    if (!display || typeof display !== "object") return;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (display.expiresAt && now > display.expiresAt) {
+      window.__hudComboDisplay = null;
+      return;
+    }
+    const x = Number.isFinite(window.__comboTextFixedX)
+      ? window.__comboTextFixedX
+      : canvas.width * 0.5;
+    const y = Number.isFinite(window.__comboTextFixedY)
+      ? window.__comboTextFixedY
+      : (hudHeight || 0) + 36;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = display.color || "#FFF2B8";
+    ctx.font = `800 ${Math.round(display.fontSize || 32)}px ${uiFontFamily}`;
+    ctx.fillText(display.labelText || "", x, y);
     ctx.restore();
   }
 
@@ -5152,6 +5178,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         drawFloorTextsOverlay(ctx);
       } catch (e) {}
     }
+
+    drawHudComboUnderlay(ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT);
 
   // ...existing code...
   drawSpawnPointDebug(ctx);

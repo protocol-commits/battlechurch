@@ -675,6 +675,8 @@
           x: x + comboWidth / 2,
           y: rowY,
         };
+        window.__comboTextFixedX = meterX + 4;
+        window.__comboTextFixedY = rowY + 20;
       }
       x += ctx.measureText(comboText).width;
       ctx.restore();

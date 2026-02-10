@@ -29,6 +29,7 @@ const POWERUP_SPAWN_BLINK_DURATION = 1.2;
 let powerUpRespawnTimer = 0;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
+let hudComboDisplay = null;
 const unlockedUpgradePowerups = new Set();
 const upgradePowerupLevels = new Map();
 const GRACE_PICKUP_RADIUS = 18;
@@ -293,13 +294,18 @@ const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
 const MUSIC_VOLUME_BATTLE = 0.7;
 const AUDIO_SETTINGS_STORAGE_KEY = "battlechurch_audio_settings";
+const COMBO_TEXT_SETTINGS_STORAGE_KEY = "battlechurch_combo_text_settings";
 const DEFAULT_AUDIO_SETTINGS = {
   musicEnabled: true,
   musicVolume: 1,
   sfxEnabled: true,
   sfxVolume: 1,
 };
+const DEFAULT_COMBO_TEXT_SETTINGS = {
+  mode: "world",
+};
 let audioSettings = { ...DEFAULT_AUDIO_SETTINGS };
+let comboTextSettings = { ...DEFAULT_COMBO_TEXT_SETTINGS };
 const MUSIC_FADE_OUT_MS = 1200;
 const MUSIC_FADE_FAST_MS = 450;
 const arrowSfxPool = [];
@@ -411,6 +417,28 @@ function loadAudioSettings() {
   } catch (e) {}
 }
 
+function loadComboTextSettings() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    const raw = localStorage.getItem(COMBO_TEXT_SETTINGS_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return;
+    comboTextSettings = {
+      ...DEFAULT_COMBO_TEXT_SETTINGS,
+      ...parsed,
+    };
+    if (comboTextSettings.mode !== "fixed" && comboTextSettings.mode !== "world") {
+      comboTextSettings.mode = DEFAULT_COMBO_TEXT_SETTINGS.mode;
+    }
+  } catch (e) {}
+}
+
+function applyComboTextSettings() {
+  if (typeof window === "undefined") return;
+  window.__comboTextMode = comboTextSettings.mode;
+}
+
 function formatNumberWithCommas(value) {
   const number = Number.isFinite(value) ? Math.round(value) : 0;
   const sign = number < 0 ? "-" : "";
@@ -423,6 +451,13 @@ function saveAudioSettings() {
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(audioSettings));
+  } catch (e) {}
+}
+
+function saveComboTextSettings() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(COMBO_TEXT_SETTINGS_STORAGE_KEY, JSON.stringify(comboTextSettings));
   } catch (e) {}
 }
 
@@ -470,6 +505,8 @@ function applyAudioSettings() {
 
 loadAudioSettings();
 applyAudioSettings();
+loadComboTextSettings();
+applyComboTextSettings();
 
 function playDefaultArrowSfx(volume = 0.6) {
   return;
@@ -13049,6 +13086,13 @@ function showSettingsOverlay({ source = "title" } = {}) {
           <span class="settings-slider__value" data-setting-value="sfxVolume">100%</span>
         </div>
       </div>
+      <div class="settings-row">
+        <div class="settings-row__label">Combo Text</div>
+        <label class="settings-toggle">
+          <input type="checkbox" data-setting="comboTextFixed">
+          <span>Fixed under HUD</span>
+        </label>
+      </div>
     </div>
   `;
   window.DialogOverlay.show({
@@ -13066,10 +13110,12 @@ function showSettingsOverlay({ source = "title" } = {}) {
       const musicSlider = bodyEl.querySelector('[data-setting="musicVolume"]');
       const sfxToggle = bodyEl.querySelector('[data-setting="sfxEnabled"]');
       const sfxSlider = bodyEl.querySelector('[data-setting="sfxVolume"]');
+      const comboToggle = bodyEl.querySelector('[data-setting="comboTextFixed"]');
       if (musicToggle) musicToggle.checked = Boolean(audioSettings.musicEnabled);
       if (musicSlider) musicSlider.value = String(Math.round(audioSettings.musicVolume * 100));
       if (sfxToggle) sfxToggle.checked = Boolean(audioSettings.sfxEnabled);
       if (sfxSlider) sfxSlider.value = String(Math.round(audioSettings.sfxVolume * 100));
+      if (comboToggle) comboToggle.checked = comboTextSettings.mode === "fixed";
       setSliderValue("musicVolume", audioSettings.musicVolume);
       setSliderValue("sfxVolume", audioSettings.sfxVolume);
 
@@ -13101,6 +13147,13 @@ function showSettingsOverlay({ source = "title" } = {}) {
           const next = clamp01(Number(event.target.value) / 100);
           setSliderValue("sfxVolume", next);
           updateSetting("sfxVolume", next);
+        });
+      }
+      if (comboToggle) {
+        comboToggle.addEventListener("change", (event) => {
+          comboTextSettings.mode = event.target.checked ? "fixed" : "world";
+          saveComboTextSettings();
+          applyComboTextSettings();
         });
       }
     },
@@ -14372,6 +14425,51 @@ function getComboLabelColor(hits) {
   return "#E4D6B2";
 }
 
+function getComboTextFixedPosition() {
+  const camX =
+    typeof cameraOffsetX === "number"
+      ? cameraOffsetX
+      : (typeof window !== "undefined" && Number.isFinite(window.cameraOffsetX) ? window.cameraOffsetX : 0);
+  const camY =
+    typeof cameraOffsetY === "number"
+      ? cameraOffsetY
+      : (typeof window !== "undefined" && Number.isFinite(window.cameraOffsetY) ? window.cameraOffsetY : 0);
+  const fixedX =
+    typeof window !== "undefined" && Number.isFinite(window.__comboTextFixedX)
+      ? window.__comboTextFixedX
+      : canvas.width / 2;
+  const fixedY =
+    typeof window !== "undefined" && Number.isFinite(window.__comboTextFixedY)
+      ? window.__comboTextFixedY
+      : HUD_HEIGHT + 186;
+  return {
+    screenX: fixedX,
+    screenY: fixedY,
+    worldX: fixedX + camX,
+    worldY: fixedY + camY,
+  };
+}
+
+function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const labelHits = Number.isFinite(hits) ? Math.max(2, Math.round(hits)) : 2;
+  const damageValue = Number.isFinite(damage) ? Math.round(damage) : 0;
+  const labelText = `${labelHits} Hit Combo`;
+  hudComboDisplay = {
+    labelText,
+    color: color || "#FFF2B8",
+    fontSize: fontSize || 32,
+    updatedAt: now,
+    expiresAt: now + (Number.isFinite(durationMs) ? durationMs : 1100),
+  };
+  if (typeof window !== "undefined") {
+    window.__hudComboDisplay = hudComboDisplay;
+  }
+}
+
 function withAlpha(hexColor, alpha) {
   if (!hexColor || hexColor[0] !== "#" || hexColor.length !== 7) return hexColor;
   const r = parseInt(hexColor.slice(1, 3), 16);
@@ -14526,11 +14624,27 @@ function maybeUpdateMaxComboInTown(hits, x, y, options = {}) {
 
 function updateLiveComboText(state, target) {
   if (!state || !target || state.hits < 2) return;
+  const comboTextMode = typeof window !== "undefined" ? window.__comboTextMode : null;
+  const fixedMode = comboTextMode === "fixed";
   const radius = target.radius || target.config?.hitRadius || 24;
   const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
   const labelFontSize = getComboLabelFontSize(state.hits);
   const labelColor = getComboLabelColor(state.hits);
   const damageText = formatNumberWithCommas(state.damage);
+  if (fixedMode) {
+    const fixedPos = getComboTextFixedPosition();
+    const labelX = fixedPos.worldX;
+    const labelY = fixedPos.worldY;
+    maybeUpdateMaxComboInTown(state.hits, labelX, labelY);
+    updateHudComboDisplay({
+      hits: state.hits,
+      damage: state.damage,
+      fontSize: labelFontSize,
+      color: labelColor,
+      durationMs: COMBO_WINDOW_MS * 4,
+    });
+    return;
+  }
   const anchorX = Number.isFinite(state.anchorX) ? state.anchorX : target.x;
   const anchorY = Number.isFinite(state.anchorY) ? state.anchorY : target.y;
   const targetX = target.x;
@@ -14615,6 +14729,18 @@ function updateLiveComboText(state, target) {
 
 function finalizeComboState(state) {
   if (!state || state.hits < 2) return;
+  const comboTextMode = typeof window !== "undefined" ? window.__comboTextMode : null;
+  const fixedMode = comboTextMode === "fixed";
+  if (fixedMode) {
+    updateHudComboDisplay({
+      hits: state.hits,
+      damage: state.damage,
+      fontSize: getComboLabelFontSize(state.hits),
+      color: getComboLabelColor(state.hits),
+      durationMs: 800,
+    });
+    return;
+  }
   if (state.comboLabel || state.comboDamageLabel) {
     if (state.comboLabel) {
       state.comboLabel.persist = false;
@@ -15211,26 +15337,43 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
   const label = `${hits} Hit Combo`;
   const labelFontSize = getComboLabelFontSize(hits);
   const labelColor = getComboLabelColor(hits);
-  maybeUpdateMaxComboInTown(hits, entity.x, entity.y - radius);
-  addFloatingTextAt(entity.x, entity.y - radius, label, labelColor, {
+  const comboTextMode = typeof window !== "undefined" ? window.__comboTextMode : null;
+  const fixedMode = comboTextMode === "fixed";
+  const fixedPos = fixedMode ? getComboTextFixedPosition() : null;
+  const labelX = fixedMode ? fixedPos.worldX : entity.x;
+  const labelY = fixedMode ? fixedPos.worldY : (entity.y - radius);
+  maybeUpdateMaxComboInTown(hits, labelX, labelY);
+  if (fixedMode) {
+    updateHudComboDisplay({
+      hits,
+      damage: comboDamage,
+      fontSize: labelFontSize,
+      color: labelColor,
+      durationMs: 1100,
+    });
+    return;
+  }
+  addFloatingTextAt(labelX, labelY, label, labelColor, {
     speechBubble: false,
-    vy: -30,
+    vy: fixedMode ? 0 : -30,
     life: 1.1,
     fontSize: labelFontSize,
     fontWeight: "800",
     priority: 6,
     fadeDelay: 0,
     clampToScreen: true,
+    textAlign: fixedMode ? "left" : null,
   });
-  addFloatingTextAt(entity.x, entity.y - radius + 26, formatNumberWithCommas(comboDamage), "#FFF7E5", {
+  addFloatingTextAt(labelX, labelY + 26, formatNumberWithCommas(comboDamage), "#FFF7E5", {
     speechBubble: false,
-    vy: -24,
+    vy: fixedMode ? 0 : -24,
     life: 1.0,
     fontSize: 22,
     fontWeight: "700",
     priority: 5,
     fadeDelay: 0,
     clampToScreen: true,
+    textAlign: fixedMode ? "left" : null,
   });
 }
 
