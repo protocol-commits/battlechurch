@@ -14589,7 +14589,10 @@ function registerProjectileComboHit(target, damage, projectile) {
     recordPrayerBombComboHits(1);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
-  const direction = projectile ? { x: projectile.vx, y: projectile.vy } : null;
+  const upgradesActive = Boolean(
+    (player && (player.spreadGunTimer > 0 || player.haloTimer > 0 || player.spearTimer > 0))
+  );
+  const direction = upgradesActive ? null : projectile ? { x: projectile.vx, y: projectile.vy } : null;
   comboTracker.registerHit(target, damage, undefined, {
     sourceType: "projectile",
     direction,
