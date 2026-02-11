@@ -361,6 +361,9 @@ const MELEE_SWING_LENGTH = 260;
   function drawSentryTurret(ctx, sentryState) {
     if (!sentryState || !sentryState.active) return;
     const sprite = sentryState.sprite;
+    const fadeAlpha = Number.isFinite(sentryState.fadeAlpha)
+      ? Math.max(0, Math.min(1, sentryState.fadeAlpha))
+      : 1;
     const hasBeam =
       sentryState.beamActive &&
       Number.isFinite(sentryState.beamLength) &&
@@ -372,6 +375,7 @@ const MELEE_SWING_LENGTH = 260;
       const endY = sentryState.beamEndY;
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = fadeAlpha;
       ctx.lineCap = "round";
       ctx.shadowColor = "rgba(255, 220, 160, 0.8)";
       ctx.shadowBlur = 22;
@@ -403,10 +407,11 @@ const MELEE_SWING_LENGTH = 260;
       ctx.globalCompositeOperation = "lighter";
       ctx.shadowColor = "rgba(255, 220, 140, 0.9)";
       ctx.shadowBlur = 18;
+      ctx.globalAlpha = fadeAlpha;
       ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
       ctx.shadowColor = "rgba(255, 245, 210, 0.9)";
       ctx.shadowBlur = 28;
-      ctx.globalAlpha = 0.8;
+      ctx.globalAlpha = 0.8 * fadeAlpha;
       ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
       ctx.restore();
     }

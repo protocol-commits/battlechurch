@@ -2456,6 +2456,7 @@ const createSentryState = () => ({
   beamInnerWidth: 4 * WORLD_SCALE,
   beamOuterColor: "rgba(255, 214, 140, 0.85)",
   beamInnerColor: "rgba(255, 250, 220, 0.95)",
+  fadeAlpha: 1,
   target: null,
   lockedTarget: null,
 });
@@ -7199,18 +7200,17 @@ function updateSentryTurretInstance(state, dt) {
 
   if (!state.beamActive) {
     if (state.beamCooldownTimer > 0) return;
+    const initialTarget = findNearestSpearTarget(state.x, state.y);
+    if (!initialTarget) return;
     state.beamActive = true;
     state.beamProgress = 0;
     state.beamLength = 0;
     state.hitTimer = 0;
     state.boreSfxTimer = 0;
     state.lockedTarget = null;
-    const initialTarget = findNearestSpearTarget(state.x, state.y);
-    if (initialTarget) {
-      const center = getSpearTargetCenter(initialTarget);
-      state.angle = Math.atan2(center.y - state.y, center.x - state.x);
-      state.target = initialTarget;
-    }
+    const center = getSpearTargetCenter(initialTarget);
+    state.angle = Math.atan2(center.y - state.y, center.x - state.x);
+    state.target = initialTarget;
     state.baseAngle = state.angle || 0;
     playSentryBeamSfx(0.5);
   }
@@ -7231,6 +7231,13 @@ function updateSentryTurretInstance(state, dt) {
   }
 
   const aimTarget = state.lockedTarget || findNearestSpearTarget(state.x, state.y);
+  if (!aimTarget && !state.lockedTarget) {
+    state.beamActive = false;
+    state.beamProgress = 0;
+    state.beamLength = 0;
+    state.hitTimer = 0;
+    return;
+  }
   if (aimTarget) {
     const center = getSpearTargetCenter(aimTarget);
     const desiredAngle = Math.atan2(center.y - state.y, center.x - state.x);
@@ -7718,10 +7725,33 @@ function updateSpearDart(dt) {
 
 function updateSentryTurret(dt) {
   if (!player || player.state === "death" || player.sentryTimer <= 0) {
+    if (sentryState.active) {
+      const sprite = sentryState.sprite;
+      const radius =
+        sprite && sprite.width
+          ? Math.max(sprite.width, sprite.height) * (sentryState.scale || 1) * 0.35
+          : 24 * WORLD_SCALE;
+      spawnPuffEffect(sentryState.x, sentryState.y, radius * 3);
+    }
+    if (sentryStateSecondary.active) {
+      const sprite = sentryStateSecondary.sprite;
+      const radius =
+        sprite && sprite.width
+          ? Math.max(sprite.width, sprite.height) * (sentryStateSecondary.scale || 1) * 0.35
+          : 24 * WORLD_SCALE;
+      spawnPuffEffect(sentryStateSecondary.x, sentryStateSecondary.y, radius * 3);
+    }
     resetSentryState(sentryState);
     resetSentryState(sentryStateSecondary);
     return;
   }
+  const fadeWindow = 2;
+  const fadeAlpha =
+    player.sentryTimer <= fadeWindow
+      ? Math.max(0, player.sentryTimer / fadeWindow)
+      : 1;
+  sentryState.fadeAlpha = fadeAlpha;
+  sentryStateSecondary.fadeAlpha = fadeAlpha;
   const level = Math.max(1, Math.min(2, player.sentryLevel || 1));
   if (!sentryState.sprite && assets?.upgradePowerups?.sentry?.image) {
     sentryState.sprite = assets.upgradePowerups.sentry.image;
