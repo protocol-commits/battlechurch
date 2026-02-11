@@ -241,6 +241,17 @@ const SENTRY_BORE_LOOP_SFX_SRCS = [
   "assets/sfx/Weapons/spell3.mp3",
   "assets/sfx/Weapons/spell10.mp3",
 ];
+const SPEAR_TURN_SFX_SRCS = [
+  "assets/sfx/Weapons/spell2.mp3",
+  "assets/sfx/Weapons/spell3.mp3",
+  "assets/sfx/Weapons/spell11.mp3",
+  "assets/sfx/Weapons/spell12.mp3",
+];
+const SPEAR_HIT_SFX_SRCS = [
+  "assets/sfx/rpg/Explosions/Explosions_22.wav",
+  "assets/sfx/rpg/Explosions/Explosions_23.wav",
+  "assets/sfx/rpg/Explosions/Explosions_24.wav",
+];
 const SENTRY_BORE_KILL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const PRAYER_BOMB_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
@@ -303,6 +314,8 @@ const CONGREGATION_OVERLAY_SFX_POOL_SIZE = 4;
 const CONGREGATION_COUNT_POP_SFX_POOL_SIZE = 3;
 const SENTRY_BEAM_SFX_POOL_SIZE = 3;
 const SENTRY_BORE_LOOP_SFX_POOL_SIZE = 4;
+const SPEAR_TURN_SFX_POOL_SIZE = 4;
+const SPEAR_HIT_SFX_POOL_SIZE = 4;
 const PLAYER_DEATH_BELL_FADE_DELAY = 7;
 const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
@@ -351,6 +364,8 @@ const congregationCountPopSfxPool = [];
 const sentryBeamSfxPool = [];
 const sentryBoreLoopSfxPool = [];
 const sentryBoreKillSfxPool = [];
+const spearTurnSfxPool = [];
+const spearHitSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
@@ -598,6 +613,24 @@ function playSentryBoreLoopSfx(volume = 0.55) {
     sentryBoreLoopSfxPool,
     SENTRY_BORE_LOOP_SFX_SRCS,
     SENTRY_BORE_LOOP_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
+}
+
+function playSpearTurnSfx(volume = 0.6) {
+  playPooledSfx(
+    spearTurnSfxPool,
+    SPEAR_TURN_SFX_SRCS,
+    SPEAR_TURN_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
+}
+
+function playSpearHitSfx(volume = 0.75) {
+  playPooledSfx(
+    spearHitSfxPool,
+    SPEAR_HIT_SFX_SRCS,
+    SPEAR_HIT_SFX_POOL_SIZE,
     { volume, matchSrc: true },
   );
 }
@@ -2425,6 +2458,7 @@ const createSpearState = () => ({
   startDelayTimer: 0,
   spawnOffset: { x: 0, y: 0 },
   useSpawnOffset: false,
+  turnSfxCooldown: 0,
   trailOuterColor: "#FFD94A",
   trailInnerColor: "#FFF7A8",
   glowColor: "#FFE86B",
@@ -7454,6 +7488,7 @@ function applySpearHit(state, target, hitX, hitY) {
     target.takeDamage(state.damage, { damageType: "projectile" });
     registerComboHit(target, state.damage);
   }
+  playSpearHitSfx(0.8);
   spawnFlashEffect(hitX, hitY);
   return true;
 }
@@ -7506,11 +7541,13 @@ function resetSpearState(state) {
   state.useSpawnOffset = false;
   state.spawnOffset.x = 0;
   state.spawnOffset.y = 0;
+  state.turnSfxCooldown = 0;
 }
 
 function updateSpearDartInstance(state, dt) {
   const wasActive = state.active;
   state.active = true;
+  state.turnSfxCooldown = Math.max(0, (state.turnSfxCooldown || 0) - dt);
   if (!wasActive) {
     if (state.useSpawnOffset) {
       state.x = player.x + state.spawnOffset.x;
@@ -7530,6 +7567,7 @@ function updateSpearDartInstance(state, dt) {
     state.lastTarget = null;
     state.lastHitPos = null;
     state.waypoint = null;
+    playSpearTurnSfx(0.6);
   }
 
   if (state.pauseTimer > 0) {
@@ -7605,6 +7643,10 @@ function updateSpearDartInstance(state, dt) {
         maxY,
       );
       state.waypoint = { x: targetX, y: targetY };
+      if (state.turnSfxCooldown <= 0) {
+        playSpearTurnSfx(0.6);
+        state.turnSfxCooldown = 0.12;
+      }
       return;
     }
     if (singleTarget) {
@@ -7623,6 +7665,10 @@ function updateSpearDartInstance(state, dt) {
     }
     state.pendingRetarget = false;
     state.travelSinceHit = 0;
+    if (state.target && state.turnSfxCooldown <= 0) {
+      playSpearTurnSfx(0.6);
+      state.turnSfxCooldown = 0.12;
+    }
     if (!state.target && state.lastHitPos && hasSpearTargets()) {
       const awayDir = normalizeVector(
         state.x - state.lastHitPos.x,
@@ -7644,6 +7690,10 @@ function updateSpearDartInstance(state, dt) {
         maxY,
       );
       state.waypoint = { x: targetX, y: targetY };
+      if (state.turnSfxCooldown <= 0) {
+        playSpearTurnSfx(0.6);
+        state.turnSfxCooldown = 0.12;
+      }
       return;
     }
   }
