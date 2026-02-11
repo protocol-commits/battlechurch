@@ -200,11 +200,8 @@ const SWORD_KILL_SFX_SRCS = [
   "assets/sfx/rpg/Impacts/impact_8.wav",
 ];
 const FIREBALL_CAST_SFX_SRCS = [
-  "assets/sfx/rpg/Magic/fireball_whoosh_04.wav",
-  "assets/sfx/rpg/Magic/fireball_whoosh_05.wav",
-  "assets/sfx/rpg/Magic/fireball_whoosh_06.wav",
-  "assets/sfx/rpg/Magic/fireball_whoosh_07.wav",
-  "assets/sfx/rpg/Magic/fireball_whoosh_08.wav",
+  "assets/sfx/Weapons/spell2.mp3",
+  "assets/sfx/Weapons/spell3.mp3",
 ];
 const WISDOM_CAST_SFX_SRCS = [
   "assets/sfx/rpg/Magic/fireball_whoosh_01.wav",
