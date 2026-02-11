@@ -143,6 +143,7 @@ const congregationMembers = [];
 let congregationWanderBounds = null;
 let npcProcessionActive = false;
 let powerUpsClearedForCongregation = false;
+let sentryOrbitAngle = 0;
 const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
 const INITIAL_CONGREGATION_SIZE = CONGREGATION_MEMBER_COUNT;
@@ -2456,6 +2457,9 @@ const createSentryState = () => ({
   floatTimer: 0,
   floatSpeed: 1.4,
   floatAmplitude: 6 * WORLD_SCALE,
+  orbitEnabled: false,
+  orbitAngleOffset: 0,
+  orbitRadius: 26 * WORLD_SCALE,
   angle: 0,
   baseAngle: 0,
   sprite: null,
@@ -2469,6 +2473,8 @@ const createSentryState = () => ({
   beamCooldown: 0.5,
   beamCooldownTimer: 0,
   boreSfxTimer: 0,
+  beamStartDelay: 0,
+  beamStartDelayTimer: 0,
   hitInterval: 0.05,
   hitTimer: 0,
   burnTimer: 0,
@@ -2486,11 +2492,15 @@ const createSentryState = () => ({
 });
 const sentryState = createSentryState();
 const sentryStateSecondary = createSentryState();
-sentryStateSecondary.offsetX = 42 * WORLD_SCALE;
+sentryState.orbitEnabled = true;
+sentryState.orbitAngleOffset = 0;
+sentryStateSecondary.orbitEnabled = true;
+sentryStateSecondary.orbitAngleOffset = Math.PI;
 sentryStateSecondary.beamOuterColor = "rgba(182, 230, 255, 0.85)";
 sentryStateSecondary.beamInnerColor = "rgba(242, 252, 255, 0.95)";
-sentryStateSecondary.glowColor = "rgba(130, 210, 255, 0.95)";
-sentryStateSecondary.glowBlur = 26;
+sentryStateSecondary.glowColor = "rgba(130, 210, 255, 0.75)";
+sentryStateSecondary.glowBlur = 18;
+sentryStateSecondary.beamStartDelay = 0.06;
 
 // Melee Attack System Constants
 const MELEE_SWING_LENGTH_BASE = 260;
@@ -7204,6 +7214,7 @@ function resetSentryState(state) {
   state.hitTimer = 0;
   state.burnTimer = 0;
   state.boreSfxTimer = 0;
+  state.beamStartDelayTimer = 0;
   if (state.burnEffect) state.burnEffect.dead = true;
   state.burnEffect = null;
   state.target = null;
@@ -7213,8 +7224,16 @@ function resetSentryState(state) {
 function updateSentryTurretInstance(state, dt) {
   if (!state) return;
   const home = getNpcHomeBounds();
-  const baseX = home ? home.x + (state.offsetX || 0) : canvas.width / 2;
-  const baseY = home ? home.y + (state.offsetY || 0) : HUD_HEIGHT + (canvas.height - HUD_HEIGHT) / 3;
+  const centerX = home ? home.x : canvas.width / 2;
+  const centerY = home ? home.y : HUD_HEIGHT + (canvas.height - HUD_HEIGHT) / 3;
+  let baseX = centerX + (state.offsetX || 0);
+  let baseY = centerY + (state.offsetY || 0);
+  if (state.orbitEnabled) {
+    const radius = Number.isFinite(state.orbitRadius) ? state.orbitRadius : 0;
+    const angle = sentryOrbitAngle + (state.orbitAngleOffset || 0);
+    baseX = centerX + Math.cos(angle) * radius;
+    baseY = centerY + Math.sin(angle) * radius;
+  }
   state.baseX = baseX;
   state.baseY = baseY;
   state.floatTimer = (state.floatTimer || 0) + dt * (state.floatSpeed || 1);
@@ -7228,6 +7247,14 @@ function updateSentryTurretInstance(state, dt) {
 
   if (!state.beamActive) {
     if (state.beamCooldownTimer > 0) return;
+    if (state.beamStartDelay > 0) {
+      if (state.beamStartDelayTimer <= 0) {
+        state.beamStartDelayTimer = state.beamStartDelay;
+      } else {
+        state.beamStartDelayTimer = Math.max(0, state.beamStartDelayTimer - dt);
+      }
+      if (state.beamStartDelayTimer > 0) return;
+    }
     const initialTarget = findNearestSpearTarget(state.x, state.y);
     if (!initialTarget) return;
     state.beamActive = true;
@@ -7235,6 +7262,7 @@ function updateSentryTurretInstance(state, dt) {
     state.beamLength = 0;
     state.hitTimer = 0;
     state.boreSfxTimer = 0;
+    state.beamStartDelayTimer = 0;
     state.lockedTarget = null;
     const center = getSpearTargetCenter(initialTarget);
     state.angle = Math.atan2(center.y - state.y, center.x - state.x);
@@ -7773,6 +7801,8 @@ function updateSentryTurret(dt) {
     resetSentryState(sentryStateSecondary);
     return;
   }
+  const orbitSpeed = 0.6;
+  sentryOrbitAngle = (sentryOrbitAngle + orbitSpeed * dt) % (Math.PI * 2);
   const fadeWindow = 2;
   const fadeAlpha =
     player.sentryTimer <= fadeWindow
