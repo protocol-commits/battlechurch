@@ -183,7 +183,7 @@
       effect: "halo",
       duration: 12,
       label: "Halo",
-      iconSrc: `${UPGRADE_POWERUP_ROOT}/Lantern.png`,
+      iconSrc: "assets/sprites/weapons/A13_Headband.png",
       description: "Orbiting blade that shreds nearby enemies.",
       cost: 40,
     },
