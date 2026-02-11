@@ -2487,6 +2487,10 @@ const createSentryState = () => ({
 const sentryState = createSentryState();
 const sentryStateSecondary = createSentryState();
 sentryStateSecondary.offsetX = 42 * WORLD_SCALE;
+sentryStateSecondary.beamOuterColor = "rgba(182, 230, 255, 0.85)";
+sentryStateSecondary.beamInnerColor = "rgba(242, 252, 255, 0.95)";
+sentryStateSecondary.glowColor = "rgba(130, 210, 255, 0.95)";
+sentryStateSecondary.glowBlur = 26;
 
 // Melee Attack System Constants
 const MELEE_SWING_LENGTH_BASE = 260;
