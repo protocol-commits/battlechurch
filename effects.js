@@ -168,7 +168,17 @@
 
   function spawnSentryBurnEffect(x, y) {
     const frames = resolveAssets()?.effects?.sentryBurn;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.06, scale: 1.6 });
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.06, scale: 1.6, loop: true });
+  }
+
+  function spawnSentryBeamHitEffect(x, y) {
+    const frames = resolveAssets()?.effects?.enemyDeathExplosionAlt2;
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.05, scale: 1.4 });
+  }
+
+  function spawnSentryBoreKillEffect(x, y) {
+    const frames = resolveAssets()?.effects?.prayerBombExplosion;
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale: 3.2 });
   }
 
   function spawnMagicImpactEffect(x, y) {
@@ -397,6 +407,8 @@
     spawnPrayerBombGlow,
     spawnPrayerBombExplosion,
     spawnSentryBurnEffect,
+    spawnSentryBeamHitEffect,
+    spawnSentryBoreKillEffect,
     spawnLoopingEffect,
     Effect,
     DebugCircle,

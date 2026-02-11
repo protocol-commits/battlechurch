@@ -232,6 +232,7 @@ const FAITH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_23.wav",
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
+const SENTRY_BORE_KILL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_39.wav";
 const PRAYER_BOMB_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
@@ -330,6 +331,7 @@ const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
 const congregationOverlaySfxPool = [];
 const congregationCountPopSfxPool = [];
+const sentryBoreKillSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
@@ -557,6 +559,10 @@ function playPooledSfx(pool, src, maxPoolSize, options = {}) {
 
 function playEnemyHitSfx(volume = 1) {
   playPooledSfx(enemyHitSfxPool, ENEMY_HIT_SFX_SRCS, ENEMY_HIT_SFX_POOL_SIZE, { volume, matchSrc: true });
+}
+
+function playSentryBoreKillSfx(volume = 0.75) {
+  playPooledSfx(sentryBoreKillSfxPool, SENTRY_BORE_KILL_SFX_SRC, 2, { volume, matchSrc: true });
 }
 
 if (typeof window !== "undefined") {
@@ -1898,6 +1904,8 @@ const updateEffects = Effects.update;
 const spawnImpactEffect = Effects.spawnImpactEffect;
 const spawnFlashEffect = Effects.spawnFlashEffect;
 const spawnSentryBurnEffect = Effects.spawnSentryBurnEffect;
+const spawnSentryBeamHitEffect = Effects.spawnSentryBeamHitEffect;
+const spawnSentryBoreKillEffect = Effects.spawnSentryBoreKillEffect;
 const spawnMagicImpactEffect = Effects.spawnMagicImpactEffect;
 const spawnVisitorHeartHitEffect = Effects.spawnVisitorHeartHitEffect;
 const spawnBossProjectilePuffEffect = Effects.spawnBossProjectilePuffEffect;
@@ -2401,7 +2409,8 @@ const createSentryState = () => ({
   hitInterval: 0.05,
   hitTimer: 0,
   burnTimer: 0,
-  burnInterval: 0.2,
+  burnInterval: 0,
+  burnEffect: null,
   damage: 10,
   hitRadius: 18 * WORLD_SCALE,
   beamOuterWidth: 10 * WORLD_SCALE,
@@ -7126,6 +7135,8 @@ function resetSentryState(state) {
   state.beamCooldownTimer = 0;
   state.hitTimer = 0;
   state.burnTimer = 0;
+  if (state.burnEffect) state.burnEffect.dead = true;
+  state.burnEffect = null;
   state.target = null;
   state.lockedTarget = null;
 }
@@ -7165,9 +7176,16 @@ function updateSentryTurretInstance(state, dt) {
   if (!state.beamActive) return;
 
   state.burnTimer = Math.max(0, (state.burnTimer || 0) - dt);
+  if (state.burnEffect && state.burnEffect.dead) {
+    state.burnEffect = null;
+  }
 
   if (state.lockedTarget && (state.lockedTarget.dead || state.lockedTarget.state === "death")) {
     state.lockedTarget = null;
+  }
+  if (!state.lockedTarget && state.burnEffect) {
+    state.burnEffect.dead = true;
+    state.burnEffect = null;
   }
 
   const aimTarget = state.lockedTarget || findNearestSpearTarget(state.x, state.y);
@@ -7257,18 +7275,32 @@ function updateSentryTurretInstance(state, dt) {
         target.takeDamage(state.damage, { damageType: "projectile" });
         registerComboHit(target, state.damage);
       }
+      const targetHealth =
+        target === activeBoss ? activeBoss?.health : target?.health;
+      const targetDead = Number.isFinite(targetHealth) ? targetHealth <= 0 : false;
       if (state.lockedTarget && target === state.lockedTarget && isSentryBoreTarget(target)) {
-        if (state.burnTimer <= 0 && target.health > 0) {
+        if (targetDead) {
+          if (state.burnEffect) {
+            state.burnEffect.dead = true;
+            state.burnEffect = null;
+          }
+          spawnSentryBoreKillEffect(hitX, hitY);
+          playSentryBoreKillSfx(0.8);
+        } else {
           const burnFrames = assets?.effects?.sentryBurn;
           const burnFrame = burnFrames && burnFrames.length ? burnFrames[0] : null;
           const frameHeight = burnFrame?.height || 0;
           const scale = 1.6;
           const offsetY = frameHeight > 0 ? (frameHeight * scale) / 2 : 0;
-          spawnSentryBurnEffect(hitX, hitY - offsetY + 5);
-          state.burnTimer = state.burnInterval || 0.2;
+          if (state.burnEffect) {
+            state.burnEffect.x = hitX;
+            state.burnEffect.y = hitY - offsetY + 5;
+          } else if (!state.burnEffect) {
+            state.burnEffect = spawnSentryBurnEffect(hitX, hitY - offsetY + 5);
+          }
         }
-      } else if (target.health > 0) {
-        spawnFlashEffect(hitX, hitY);
+      } else if (!targetDead) {
+        spawnSentryBeamHitEffect(hitX, hitY);
       }
     });
   }
