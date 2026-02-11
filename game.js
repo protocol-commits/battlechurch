@@ -232,7 +232,16 @@ const FAITH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_23.wav",
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
-const SENTRY_BORE_KILL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_39.wav";
+const SENTRY_BEAM_SFX_SRCS = [
+  "assets/sfx/Weapons/spell11.mp3",
+  "assets/sfx/Weapons/spell12.mp3",
+];
+const SENTRY_BORE_LOOP_SFX_SRCS = [
+  "assets/sfx/Weapons/spell2.mp3",
+  "assets/sfx/Weapons/spell3.mp3",
+  "assets/sfx/Weapons/spell10.mp3",
+];
+const SENTRY_BORE_KILL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const PRAYER_BOMB_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
@@ -290,6 +299,8 @@ const NPC_HURT_SFX_POOL_SIZE = 4;
 const PLAYER_HURT_SFX_POOL_SIZE = 4;
 const CONGREGATION_OVERLAY_SFX_POOL_SIZE = 4;
 const CONGREGATION_COUNT_POP_SFX_POOL_SIZE = 3;
+const SENTRY_BEAM_SFX_POOL_SIZE = 3;
+const SENTRY_BORE_LOOP_SFX_POOL_SIZE = 4;
 const PLAYER_DEATH_BELL_FADE_DELAY = 7;
 const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
@@ -333,6 +344,8 @@ const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
 const congregationOverlaySfxPool = [];
 const congregationCountPopSfxPool = [];
+const sentryBeamSfxPool = [];
+const sentryBoreLoopSfxPool = [];
 const sentryBoreKillSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
@@ -565,6 +578,24 @@ function playEnemyHitSfx(volume = 1) {
 
 function playSentryBoreKillSfx(volume = 0.75) {
   playPooledSfx(sentryBoreKillSfxPool, SENTRY_BORE_KILL_SFX_SRC, 2, { volume, matchSrc: true });
+}
+
+function playSentryBeamSfx(volume = 0.55) {
+  playPooledSfx(
+    sentryBeamSfxPool,
+    SENTRY_BEAM_SFX_SRCS,
+    SENTRY_BEAM_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
+}
+
+function playSentryBoreLoopSfx(volume = 0.55) {
+  playPooledSfx(
+    sentryBoreLoopSfxPool,
+    SENTRY_BORE_LOOP_SFX_SRCS,
+    SENTRY_BORE_LOOP_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
 }
 
 if (typeof window !== "undefined") {
@@ -2413,6 +2444,7 @@ const createSentryState = () => ({
   beamSpeed: 2800 * WORLD_SCALE,
   beamCooldown: 0.5,
   beamCooldownTimer: 0,
+  boreSfxTimer: 0,
   hitInterval: 0.05,
   hitTimer: 0,
   burnTimer: 0,
@@ -7142,6 +7174,7 @@ function resetSentryState(state) {
   state.beamCooldownTimer = 0;
   state.hitTimer = 0;
   state.burnTimer = 0;
+  state.boreSfxTimer = 0;
   if (state.burnEffect) state.burnEffect.dead = true;
   state.burnEffect = null;
   state.target = null;
@@ -7170,6 +7203,7 @@ function updateSentryTurretInstance(state, dt) {
     state.beamProgress = 0;
     state.beamLength = 0;
     state.hitTimer = 0;
+    state.boreSfxTimer = 0;
     state.lockedTarget = null;
     const initialTarget = findNearestSpearTarget(state.x, state.y);
     if (initialTarget) {
@@ -7178,6 +7212,7 @@ function updateSentryTurretInstance(state, dt) {
       state.target = initialTarget;
     }
     state.baseAngle = state.angle || 0;
+    playSentryBeamSfx(0.5);
   }
 
   if (!state.beamActive) return;
@@ -7243,6 +7278,21 @@ function updateSentryTurretInstance(state, dt) {
   state.beamEndX = state.x + dirX * state.beamLength;
   state.beamEndY = state.y + dirY * state.beamLength;
 
+  const isBoringActive =
+    state.lockedTarget &&
+    !state.lockedTarget.dead &&
+    state.lockedTarget.state !== "death" &&
+    isSentryBoreTarget(state.lockedTarget);
+  if (isBoringActive) {
+    state.boreSfxTimer = Math.max(0, (state.boreSfxTimer || 0) - dt);
+    if (state.boreSfxTimer <= 0) {
+      playSentryBoreLoopSfx(0.9);
+      state.boreSfxTimer = 0.12;
+    }
+  } else {
+    state.boreSfxTimer = 0;
+  }
+
   if (!state.lockedTarget && state.beamProgress >= maxDistance) {
     state.beamActive = false;
     state.beamCooldownTimer = state.beamCooldown || 1;
@@ -7292,7 +7342,7 @@ function updateSentryTurretInstance(state, dt) {
             state.burnEffect = null;
           }
           spawnSentryBoreKillEffect(hitX, hitY);
-          playSentryBoreKillSfx(0.8);
+          playSentryBoreKillSfx(1.0);
         } else {
           const burnFrames = assets?.effects?.sentryBurn;
           const burnFrame = burnFrames && burnFrames.length ? burnFrames[0] : null;
