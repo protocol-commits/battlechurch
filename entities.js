@@ -588,6 +588,9 @@
     this.spearTimer = 0;
     this.spearDuration = 0;
     this.spearLevel = 0;
+    this.sentryTimer = 0;
+    this.sentryDuration = 0;
+    this.sentryLevel = 0;
     this.armorTimer = 0;
     this.armorReduction = 0;
     this.weaponPowerTimer = 0;
@@ -664,6 +667,11 @@
     if (this.spearTimer <= 0) {
       this.spearDuration = 0;
       this.spearLevel = 0;
+    }
+    this.sentryTimer = Math.max(0, this.sentryTimer - dt * timerDrainScale);
+    if (this.sentryTimer <= 0) {
+      this.sentryDuration = 0;
+      this.sentryLevel = 0;
     }
 
     const decayBase = this.powerExtendTimer > 0 ? 0.5 : 1;

@@ -1897,6 +1897,7 @@ Effects.initialize({
 const updateEffects = Effects.update;
 const spawnImpactEffect = Effects.spawnImpactEffect;
 const spawnFlashEffect = Effects.spawnFlashEffect;
+const spawnSentryBurnEffect = Effects.spawnSentryBurnEffect;
 const spawnMagicImpactEffect = Effects.spawnMagicImpactEffect;
 const spawnVisitorHeartHitEffect = Effects.spawnVisitorHeartHitEffect;
 const spawnBossProjectilePuffEffect = Effects.spawnBossProjectilePuffEffect;
@@ -2374,6 +2375,46 @@ spearStateSecondary.trailInnerWidth = 3.2;
 spearStateSecondary.glowBlur = 28;
 spearStateSecondary.pauseFlashBlur = 40;
 
+const createSentryState = () => ({
+  active: false,
+  x: 0,
+  y: 0,
+  baseX: 0,
+  baseY: 0,
+  offsetX: 0,
+  offsetY: 0,
+  floatTimer: 0,
+  floatSpeed: 1.4,
+  floatAmplitude: 6 * WORLD_SCALE,
+  angle: 0,
+  baseAngle: 0,
+  sprite: null,
+  scale: 3.2 * WORLD_SCALE,
+  beamActive: false,
+  beamProgress: 0,
+  beamLength: 0,
+  beamEndX: 0,
+  beamEndY: 0,
+  beamSpeed: 2800 * WORLD_SCALE,
+  beamCooldown: 0.5,
+  beamCooldownTimer: 0,
+  hitInterval: 0.05,
+  hitTimer: 0,
+  burnTimer: 0,
+  burnInterval: 0.2,
+  damage: 10,
+  hitRadius: 18 * WORLD_SCALE,
+  beamOuterWidth: 10 * WORLD_SCALE,
+  beamInnerWidth: 4 * WORLD_SCALE,
+  beamOuterColor: "rgba(255, 214, 140, 0.85)",
+  beamInnerColor: "rgba(255, 250, 220, 0.95)",
+  target: null,
+  lockedTarget: null,
+});
+const sentryState = createSentryState();
+const sentryStateSecondary = createSentryState();
+sentryStateSecondary.offsetX = 42 * WORLD_SCALE;
+
 // Melee Attack System Constants
 const MELEE_SWING_LENGTH_BASE = 260;
 // For hitbox calculations, we need a much smaller range to match the actual swoosh visual
@@ -2808,6 +2849,8 @@ Renderer.initialize({
   get haloBladeStateSecondary() { return haloBladeStateSecondary; },
   get spearState() { return spearState; },
   get spearStateSecondary() { return spearStateSecondary; },
+  get sentryState() { return sentryState; },
+  get sentryStateSecondary() { return sentryStateSecondary; },
   formatNumberWithCommas,
   updatePlayerDuringCongregation,
   resolveCongregationCollisions,
@@ -3699,6 +3742,7 @@ const UPGRADE_POWERUP_EFFECTS = new Set([
   "spreadGun",
   "halo",
   "spear",
+  "sentry",
 ]);
 let devPowerupSwapIndex = 0;
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
@@ -4775,6 +4819,9 @@ async function loadEffectAssets(cache, assets) {
       ),
     ),
   );
+  assets.effects.sentryBurn = await loadImage(
+    "assets/sprites/fire/Group-4-1.png",
+  ).then((img) => extractFrames(img, 32, 48));
   assets.effects.visitorHeartHit = await Promise.all(
     Array.from({ length: 6 }, (_, i) =>
       loadImage(`${MAGIC_PACK_ROOT}/puff/sprites/puff${i + 1}.png`).then((img) =>
@@ -5113,6 +5160,41 @@ function distanceToEdge(x, y, dx, dy) {
   }
 
   return Math.max(0, maxDistance);
+}
+
+function distanceToArenaEdge(x, y, dx, dy) {
+  const epsilon = 1e-6;
+  let maxDistance = Infinity;
+  const minY = HUD_HEIGHT;
+  const maxY = canvas.height;
+
+  if (Math.abs(dx) > epsilon) {
+    const tx1 = (0 - x) / dx;
+    const tx2 = (canvas.width - x) / dx;
+    const tx = dx > 0 ? tx2 : tx1;
+    if (tx > 0) maxDistance = Math.min(maxDistance, tx);
+  }
+
+  if (Math.abs(dy) > epsilon) {
+    const ty1 = (minY - y) / dy;
+    const ty2 = (maxY - y) / dy;
+    const ty = dy > 0 ? ty2 : ty1;
+    if (ty > 0) maxDistance = Math.min(maxDistance, ty);
+  }
+
+  if (!Number.isFinite(maxDistance)) {
+    maxDistance = Math.max(canvas.width, canvas.height);
+  }
+
+  return Math.max(0, maxDistance);
+}
+
+function approachAngle(current, target, maxDelta) {
+  let diff = target - current;
+  while (diff > Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  if (Math.abs(diff) <= maxDelta) return target;
+  return current + Math.sign(diff) * maxDelta;
 }
 
 function getNpcTimerScale() {
@@ -6440,6 +6522,18 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText(config);
       break;
     }
+    case "sentry": {
+      const config = resolveWeaponPowerupConfig("sentry", def);
+      player.sentryTimer = Math.max(player.sentryTimer, config.duration);
+      player.sentryDuration = Math.max(player.sentryDuration, config.duration);
+      const purchasedLevel = upgradePowerupLevels.get("sentry") || 1;
+      player.sentryLevel = Math.max(
+        player.sentryLevel || 0,
+        Math.min(2, purchasedLevel),
+      );
+      showWeaponPowerupConfigText(config);
+      break;
+    }
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
       showWeaponPowerupConfigText({
@@ -6979,6 +7073,207 @@ function findNearestSpearTarget(fromX, fromY, options = {}) {
   return best;
 }
 
+function isSentryBoreTarget(target) {
+  if (!target) return false;
+  const damageClass = String(target.damageClass || target.config?.damageClass || "").toLowerCase();
+  return damageClass === "tank" || damageClass === "armored";
+}
+
+function collectSentryBeamHits(state, originX, originY, dirX, dirY, maxDistance) {
+  const hits = [];
+  let armoredTarget = null;
+  let armoredDist = Infinity;
+  const checkTarget = (target, center, baseRadius, allowBore) => {
+    const dx = center.x - originX;
+    const dy = center.y - originY;
+    const t = dx * dirX + dy * dirY;
+    if (t < 0 || t > maxDistance) return;
+    const px = originX + dirX * t;
+    const py = originY + dirY * t;
+    const dist = Math.hypot(center.x - px, center.y - py);
+    const radius = (state.hitRadius || 0) + baseRadius;
+    if (dist > radius) return;
+    hits.push({ target, hitX: px, hitY: py, dist: t });
+    if (allowBore && isSentryBoreTarget(target) && t < armoredDist) {
+      armoredDist = t;
+      armoredTarget = target;
+    }
+  };
+
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const center = getEnemyHitboxCenter(enemy);
+    const radius = getEnemyHitboxRadius(enemy) * 0.6;
+    checkTarget(enemy, center, radius, true);
+  });
+
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
+    const radius = (activeBoss.radius || 0) * 0.8;
+    checkTarget(activeBoss, { x: activeBoss.x, y: activeBoss.y }, radius, false);
+  }
+
+  return { hits, armoredTarget, armoredDist };
+}
+
+function resetSentryState(state) {
+  state.active = false;
+  state.beamActive = false;
+  state.beamProgress = 0;
+  state.beamLength = 0;
+  state.beamEndX = state.x;
+  state.beamEndY = state.y;
+  state.baseAngle = state.angle || 0;
+  state.beamCooldownTimer = 0;
+  state.hitTimer = 0;
+  state.burnTimer = 0;
+  state.target = null;
+  state.lockedTarget = null;
+}
+
+function updateSentryTurretInstance(state, dt) {
+  if (!state) return;
+  const home = getNpcHomeBounds();
+  const baseX = home ? home.x + (state.offsetX || 0) : canvas.width / 2;
+  const baseY = home ? home.y + (state.offsetY || 0) : HUD_HEIGHT + (canvas.height - HUD_HEIGHT) / 3;
+  state.baseX = baseX;
+  state.baseY = baseY;
+  state.floatTimer = (state.floatTimer || 0) + dt * (state.floatSpeed || 1);
+  state.x = baseX;
+  state.y = baseY + Math.sin(state.floatTimer) * (state.floatAmplitude || 0);
+  state.active = true;
+
+  if (state.beamCooldownTimer > 0) {
+    state.beamCooldownTimer = Math.max(0, state.beamCooldownTimer - dt);
+  }
+
+  if (!state.beamActive) {
+    if (state.beamCooldownTimer > 0) return;
+    state.beamActive = true;
+    state.beamProgress = 0;
+    state.beamLength = 0;
+    state.hitTimer = 0;
+    state.lockedTarget = null;
+    const initialTarget = findNearestSpearTarget(state.x, state.y);
+    if (initialTarget) {
+      const center = getSpearTargetCenter(initialTarget);
+      state.angle = Math.atan2(center.y - state.y, center.x - state.x);
+      state.target = initialTarget;
+    }
+    state.baseAngle = state.angle || 0;
+  }
+
+  if (!state.beamActive) return;
+
+  state.burnTimer = Math.max(0, (state.burnTimer || 0) - dt);
+
+  if (state.lockedTarget && (state.lockedTarget.dead || state.lockedTarget.state === "death")) {
+    state.lockedTarget = null;
+  }
+
+  const aimTarget = state.lockedTarget || findNearestSpearTarget(state.x, state.y);
+  if (aimTarget) {
+    const center = getSpearTargetCenter(aimTarget);
+    const desiredAngle = Math.atan2(center.y - state.y, center.x - state.x);
+    const currentAngle = state.angle || 0;
+    const maxOffset = Math.PI / 18;
+    const baseAngle = state.baseAngle || 0;
+    let diff = desiredAngle - baseAngle;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    const clampedTarget = baseAngle + Math.max(-maxOffset, Math.min(maxOffset, diff));
+    const turnSpeed = 3.6;
+    state.angle = approachAngle(currentAngle, clampedTarget, turnSpeed * dt);
+    state.target = aimTarget;
+  }
+
+  const dirX = Math.cos(state.angle || 0);
+  const dirY = Math.sin(state.angle || 0);
+  const maxDistance = distanceToArenaEdge(state.x, state.y, dirX, dirY);
+  const hitInfo = collectSentryBeamHits(state, state.x, state.y, dirX, dirY, maxDistance);
+
+  let blockDistance = maxDistance;
+  if (state.lockedTarget) {
+    const center = getSpearTargetCenter(state.lockedTarget);
+    if (center) {
+      const dx = center.x - state.x;
+      const dy = center.y - state.y;
+      const t = dx * dirX + dy * dirY;
+      if (t > 0) {
+        blockDistance = Math.min(blockDistance, t);
+      } else {
+        state.lockedTarget = null;
+      }
+    } else {
+      state.lockedTarget = null;
+    }
+  }
+  if (!state.lockedTarget && hitInfo.armoredTarget && Number.isFinite(hitInfo.armoredDist)) {
+    state.lockedTarget = hitInfo.armoredTarget;
+    blockDistance = Math.min(blockDistance, hitInfo.armoredDist);
+  }
+
+  const speed = Math.max(1, state.beamSpeed || 1);
+  state.beamProgress = Math.min(state.beamProgress + speed * dt, blockDistance);
+  state.beamLength = Math.min(state.beamProgress, maxDistance);
+  state.beamEndX = state.x + dirX * state.beamLength;
+  state.beamEndY = state.y + dirY * state.beamLength;
+
+  if (!state.lockedTarget && state.beamProgress >= maxDistance) {
+    state.beamActive = false;
+    state.beamCooldownTimer = state.beamCooldown || 1;
+    state.beamProgress = 0;
+    state.beamLength = 0;
+    state.hitTimer = 0;
+    return;
+  }
+
+  state.hitTimer += dt;
+  const interval = Math.max(0.01, state.hitInterval || 0.05);
+  while (state.hitTimer >= interval) {
+    state.hitTimer -= interval;
+    if (state.beamLength <= 0) continue;
+    const currentHits = collectSentryBeamHits(
+      state,
+      state.x,
+      state.y,
+      dirX,
+      dirY,
+      state.beamLength,
+    );
+    currentHits.hits.forEach((hit) => {
+      const target = hit.target;
+      if (!target || target.dead || target.state === "death") return;
+      const hitX = hit.hitX;
+      const hitY = hit.hitY;
+      if (target === activeBoss) {
+        activeBoss.takeDamage(state.damage, {
+          hitX,
+          hitY,
+          damageType: "projectile",
+          skipImpactEffect: true,
+        });
+        registerComboHit(activeBoss, state.damage);
+      } else {
+        target.takeDamage(state.damage, { damageType: "projectile" });
+        registerComboHit(target, state.damage);
+      }
+      if (state.lockedTarget && target === state.lockedTarget && isSentryBoreTarget(target)) {
+        if (state.burnTimer <= 0 && target.health > 0) {
+          const burnFrames = assets?.effects?.sentryBurn;
+          const burnFrame = burnFrames && burnFrames.length ? burnFrames[0] : null;
+          const frameHeight = burnFrame?.height || 0;
+          const scale = 1.6;
+          const offsetY = frameHeight > 0 ? (frameHeight * scale) / 2 : 0;
+          spawnSentryBurnEffect(hitX, hitY - offsetY + 5);
+          state.burnTimer = state.burnInterval || 0.2;
+        }
+      } else if (target.health > 0) {
+        spawnFlashEffect(hitX, hitY);
+      }
+    });
+  }
+}
+
 function updateSpearStateTrail(state, dt) {
   if (!state.trail.length) return;
   state.trail.forEach((point) => {
@@ -7329,6 +7624,27 @@ function updateSpearDart(dt) {
     }
   } else {
     resetSpearState(spearStateSecondary);
+  }
+}
+
+function updateSentryTurret(dt) {
+  if (!player || player.state === "death" || player.sentryTimer <= 0) {
+    resetSentryState(sentryState);
+    resetSentryState(sentryStateSecondary);
+    return;
+  }
+  const level = Math.max(1, Math.min(2, player.sentryLevel || 1));
+  if (!sentryState.sprite && assets?.upgradePowerups?.sentry?.image) {
+    sentryState.sprite = assets.upgradePowerups.sentry.image;
+  }
+  if (!sentryStateSecondary.sprite) {
+    sentryStateSecondary.sprite = sentryState.sprite;
+  }
+  updateSentryTurretInstance(sentryState, dt);
+  if (level >= 2) {
+    updateSentryTurretInstance(sentryStateSecondary, dt);
+  } else {
+    resetSentryState(sentryStateSecondary);
   }
 }
 
@@ -16322,6 +16638,7 @@ function updateGame(dt) {
   updateCozyNpcs(dt);
   updateGracePickups(dt);
   updateSpearDart(dt);
+  updateSentryTurret(dt);
   updateGraceHudFlyEffects(dt);
   updatePowerupHudFlyEffects(dt);
   updateGraceRushState(dt);

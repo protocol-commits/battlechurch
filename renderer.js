@@ -358,6 +358,60 @@ const MELEE_SWING_LENGTH = 260;
     ctx.restore();
   }
 
+  function drawSentryTurret(ctx, sentryState) {
+    if (!sentryState || !sentryState.active) return;
+    const sprite = sentryState.sprite;
+    const hasBeam =
+      sentryState.beamActive &&
+      Number.isFinite(sentryState.beamLength) &&
+      sentryState.beamLength > 2;
+    if (hasBeam) {
+      const startX = sentryState.x;
+      const startY = sentryState.y;
+      const endX = sentryState.beamEndX;
+      const endY = sentryState.beamEndY;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      ctx.shadowColor = "rgba(255, 220, 160, 0.8)";
+      ctx.shadowBlur = 22;
+      const gradient = ctx.createLinearGradient(startX, startY, endX, endY);
+      gradient.addColorStop(0, sentryState.beamOuterColor || "rgba(255, 214, 140, 0.85)");
+      gradient.addColorStop(1, "rgba(255, 140, 80, 0.2)");
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = sentryState.beamOuterWidth || 10;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+
+      ctx.shadowColor = "rgba(255, 245, 210, 0.95)";
+      ctx.shadowBlur = 14;
+      ctx.strokeStyle = sentryState.beamInnerColor || "rgba(255, 250, 220, 0.95)";
+      ctx.lineWidth = sentryState.beamInnerWidth || 4;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (sprite) {
+      const size = Math.max(14, sprite.width || 14) * (sentryState.scale || 1);
+      ctx.save();
+      ctx.translate(sentryState.x, sentryState.y);
+      ctx.globalCompositeOperation = "lighter";
+      ctx.shadowColor = "rgba(255, 220, 140, 0.9)";
+      ctx.shadowBlur = 18;
+      ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+      ctx.shadowColor = "rgba(255, 245, 210, 0.9)";
+      ctx.shadowBlur = 28;
+      ctx.globalAlpha = 0.8;
+      ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+      ctx.restore();
+    }
+  }
+
   function initialize(stateBindings) {
     bindings = stateBindings || null;
   }
@@ -4766,6 +4820,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       haloBladeStateSecondary,
       spearState,
       spearStateSecondary,
+      sentryState,
+      sentryStateSecondary,
       effects,
       floatingTexts,
       cannonSplashRadius,
@@ -5498,6 +5554,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX);
 
     // Draw spears above other sprites/effects so they remain visible in chaos.
+    drawSentryTurret(ctx, sentryState);
+    drawSentryTurret(ctx, sentryStateSecondary);
     drawHaloBlade(ctx, haloBladeState);
     drawHaloBlade(ctx, haloBladeStateSecondary);
     drawSpearDart(ctx, spearState);

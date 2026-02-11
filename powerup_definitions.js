@@ -198,6 +198,17 @@
       description: "Seeks nearby enemies and strikes in sequence.",
       cost: 40,
     },
+    sentry: {
+      src: `${UPGRADE_POWERUP_ROOT}/Lantern.png`,
+      scale: 3.6 * WORLD_SCALE,
+      radius: 26 * WORLD_SCALE,
+      effect: "sentry",
+      duration: 12,
+      label: "Sentry",
+      iconSrc: `${UPGRADE_POWERUP_ROOT}/Lantern.png`,
+      description: "Home base lantern fires a piercing beam.",
+      cost: 40,
+    },
   };
 
   const ns =

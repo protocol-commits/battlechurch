@@ -166,6 +166,11 @@
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale: 1.8 });
   }
 
+  function spawnSentryBurnEffect(x, y) {
+    const frames = resolveAssets()?.effects?.sentryBurn;
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.06, scale: 1.6 });
+  }
+
   function spawnMagicImpactEffect(x, y) {
     const frames = resolveAssets()?.effects?.magicImpact;
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.05, scale: 2.4 });
@@ -391,6 +396,7 @@
     spawnSplashDebugCircle,
     spawnPrayerBombGlow,
     spawnPrayerBombExplosion,
+    spawnSentryBurnEffect,
     spawnLoopingEffect,
     Effect,
     DebugCircle,

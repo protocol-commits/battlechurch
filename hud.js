@@ -811,6 +811,16 @@
           iconKey: 'upgradeSpear',
         });
       }
+      if (player.sentryTimer > 0) {
+        const duration = Math.max(0.001, player.sentryDuration || 0);
+        upgradeRows.push({
+          label: 'Sentry',
+          ratio: duration > 0 ? player.sentryTimer / duration : 0,
+          color: getIconStyleColor('player', PALETTE.ice),
+          iconImage: assets?.upgradePowerups?.sentry?.iconImage || null,
+          iconKey: 'upgradeSentry',
+        });
+      }
 
       const utilityRows = [];
       if (player.shieldTimer > 0) {
