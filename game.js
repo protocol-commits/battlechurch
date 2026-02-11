@@ -246,6 +246,7 @@ const EXTERIOR_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
 const EXTERIOR_BOSS_MUSIC_SRC = "assets/music/boss-fight-3.mp3";
 const BOSS_DEATH_MUSIC_SRC = "assets/music/boss-fight-2.mp3";
 const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
+const MENU_MOVE_SFX_SRC = "assets/sfx/utility/cursor_5.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/npcs/fireball_release_1.wav";
 const CHATTY_HIT_SFX_SRC = "assets/sfx/utility/utility3.mp3";
@@ -319,6 +320,7 @@ const faithHitSfxPool = [];
 const prayerBombSfxPool = [];
 const prayerBombRainSfxPool = [];
 const menuSelectSfxPool = [];
+const menuMoveSfxPool = [];
 const enemySpawnSfxPool = [];
 const gracePickupSfxPool = [];
 const recapTickSfxPool = [];
@@ -822,10 +824,15 @@ function playMenuSelectSfx(volume = 0.55) {
   playPooledSfx(menuSelectSfxPool, MENU_SELECT_SFX_SRC, MENU_SELECT_SFX_POOL_SIZE, { volume });
 }
 
+function playMenuMoveSfx(volume = 0.45) {
+  playPooledSfx(menuMoveSfxPool, MENU_MOVE_SFX_SRC, MENU_SELECT_SFX_POOL_SIZE, { volume });
+}
+
 if (typeof window !== "undefined") {
   // Separate hooks so menu pick vs advance can diverge later.
   window.playMenuItemPickSfx = playMenuSelectSfx;
   window.playMenuAdvanceSfx = playMenuSelectSfx;
+  window.playMenuMoveSfx = playMenuMoveSfx;
 }
 
 function playRecapTickSfx(volume = 0.5) {
@@ -13623,9 +13630,13 @@ function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true
   if (!Number.isFinite(focusIndex) || focusIndex < 0 || focusIndex >= buttons.length) {
     focusIndex = 0;
   }
+  const previousIndex = focusIndex;
   const direction = getAnnouncementNavDirection();
   if (direction !== 0 && buttons.length > 1) {
     focusIndex = (focusIndex + direction + buttons.length) % buttons.length;
+  }
+  if (focusIndex !== previousIndex && typeof window?.playMenuMoveSfx === "function") {
+    window.playMenuMoveSfx(0.45);
   }
   if (typeof window !== "undefined") {
     window.__announcementFocus = { key, index: focusIndex };
