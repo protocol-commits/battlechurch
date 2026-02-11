@@ -192,7 +192,9 @@ const ENEMY_DEATH_SFX_SRCS = [
   ...ENEMY_DEATH_MONSTER_SRCS,
   ...ENEMY_DEATH_GRUNT_SRCS,
 ];
-const SWORD_SWING_SFX_SRC = "assets/sfx/rpg/Sword/sword_swosh_9.wav";
+const SWORD_SWING_SFX_SRC = "assets/sfx/Weapons/attack1.mp3";
+const RUSH_ATTACK_SFX_SRC = "assets/sfx/Weapons/spell3.mp3";
+const DASH_SFX_SRC = "assets/sfx/Weapons/attack10.mp3";
 const SWORD_KILL_SFX_SRCS = [
   "assets/sfx/rpg/Impacts/impact_5.wav",
   "assets/sfx/rpg/Impacts/impact_6.wav",
@@ -274,6 +276,8 @@ const ARROW_SFX_POOL_SIZE = 6;
 const ENEMY_HIT_SFX_POOL_SIZE = 8;
 const ENEMY_DEATH_SFX_POOL_SIZE = 6;
 const SWORD_SFX_POOL_SIZE = 4;
+const RUSH_ATTACK_SFX_POOL_SIZE = 2;
+const DASH_SFX_POOL_SIZE = 2;
 const SWORD_KILL_SFX_POOL_SIZE = 6;
 const FIREBALL_SFX_POOL_SIZE = 6;
 const WISDOM_SFX_POOL_SIZE = 4;
@@ -318,6 +322,8 @@ const enemyDeathSfxPool = [];
 const enemyDeathGruntChannel =
   typeof Audio !== "undefined" ? new Audio() : null;
 const swordSfxPool = [];
+const rushAttackSfxPool = [];
+const dashSfxPool = [];
 const swordKillSfxPool = [];
 const fireballSfxPool = [];
 const wisdomSfxPool = [];
@@ -748,6 +754,27 @@ function playSwordSwingSfx(volume = 0.55) {
 
 if (typeof window !== "undefined") {
   window.playSwordSwingSfx = playSwordSwingSfx;
+}
+
+function playSwordSfx(volume = 0.55) {
+  playSwordSwingSfx(volume);
+}
+
+function playSwooshSfx(volume = 0.55) {
+  playSwordSwingSfx(volume);
+}
+
+function playRushAttackSfx(volume = 0.7) {
+  playPooledSfx(
+    rushAttackSfxPool,
+    RUSH_ATTACK_SFX_SRC,
+    RUSH_ATTACK_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
+}
+
+function playDashSfx(volume = 0.7) {
+  playPooledSfx(dashSfxPool, DASH_SFX_SRC, DASH_SFX_POOL_SIZE, { volume, matchSrc: true });
 }
 
 function playSwordKillSfx(volume = 0.7) {
@@ -15173,6 +15200,7 @@ function tryStartDash(direction) {
   playerDashState.dashDistanceRemaining = DASH_DISTANCE;
   playerDashState.dashDustAccumulator = 0;
   setSharedBButtonCooldown(DASH_COOLDOWN);
+  playDashSfx(0.9);
   return true;
 }
 
@@ -15848,9 +15876,7 @@ function executeRushAttack(dir, meleeAttackState) {
   player.invulnerableTimer = RUSH_INVULNERABILITY;
   meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
-  if (typeof playSwooshSfx === "function") {
-    playSwooshSfx(0.7);
-  }
+  playRushAttackSfx(0.9);
 }
 
 function executeSpinAttack(meleeAttackState, moveDir) {
@@ -15880,9 +15906,7 @@ function executeSpinAttack(meleeAttackState, moveDir) {
     player.state = "attackMelee";
     player.animator.play("attackMelee", { restart: true });
   }
-  if (typeof playSwooshSfx === "function") {
-    playSwooshSfx(0.7);
-  }
+  playRushAttackSfx(0.8);
 }
 
 function executeDivineShot(dir, meleeAttackState, angleRad) {
