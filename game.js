@@ -2509,6 +2509,7 @@ const createSentryState = () => ({
   boreSfxTimer: 0,
   beamStartDelay: 0,
   beamStartDelayTimer: 0,
+  beamHitSfxTimer: 0,
   hitInterval: 0.05,
   hitTimer: 0,
   burnTimer: 0,
@@ -7249,6 +7250,7 @@ function resetSentryState(state) {
   state.burnTimer = 0;
   state.boreSfxTimer = 0;
   state.beamStartDelayTimer = 0;
+  state.beamHitSfxTimer = 0;
   if (state.burnEffect) state.burnEffect.dead = true;
   state.burnEffect = null;
   state.target = null;
@@ -7400,6 +7402,7 @@ function updateSentryTurretInstance(state, dt) {
   }
 
   state.hitTimer += dt;
+  state.beamHitSfxTimer = Math.max(0, (state.beamHitSfxTimer || 0) - dt);
   const interval = Math.max(0.01, state.hitInterval || 0.05);
   while (state.hitTimer >= interval) {
     state.hitTimer -= interval;
@@ -7412,6 +7415,7 @@ function updateSentryTurretInstance(state, dt) {
       dirY,
       state.beamLength,
     );
+    let hitSfxPlayed = false;
     currentHits.hits.forEach((hit) => {
       const target = hit.target;
       if (!target || target.dead || target.state === "death") return;
@@ -7432,7 +7436,14 @@ function updateSentryTurretInstance(state, dt) {
       const targetHealth =
         target === activeBoss ? activeBoss?.health : target?.health;
       const targetDead = Number.isFinite(targetHealth) ? targetHealth <= 0 : false;
-      if (state.lockedTarget && target === state.lockedTarget && isSentryBoreTarget(target)) {
+      const isBoreTarget =
+        state.lockedTarget && target === state.lockedTarget && isSentryBoreTarget(target);
+      if (!isBoreTarget && !hitSfxPlayed && state.beamHitSfxTimer <= 0) {
+        playSpearHitSfx(0.8);
+        hitSfxPlayed = true;
+        state.beamHitSfxTimer = 0.12;
+      }
+      if (isBoreTarget) {
         if (targetDead) {
           if (state.burnEffect) {
             state.burnEffect.dead = true;
