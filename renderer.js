@@ -2118,7 +2118,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  const title = "Level Up";
+  const title = "How will you guide your church forward?";
   const staticSubtitle = "";
   const buttonHeight = 176;
   const buttonCount = stats.length;
@@ -2339,21 +2339,31 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.font = `600 13px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "rgba(235, 220, 195, 0.9)" : "rgba(200, 190, 170, 0.65)";
     const descriptionY = bodyTop + 8;
-    ctx.fillText(stat.description, textLeft, descriptionY);
+    const descriptionLines = wrapAnnouncementText(ctx, stat.description || "", textWidth);
+    const maxDescriptionLines = 2;
+    const descriptionLineHeight = 16;
+    descriptionLines.slice(0, maxDescriptionLines).forEach((line, lineIndex) => {
+      const lineY = descriptionY + lineIndex * descriptionLineHeight;
+      ctx.fillText(line, textLeft, lineY);
+    });
+    const dividerY =
+      descriptionY +
+      Math.min(descriptionLines.length, maxDescriptionLines) * descriptionLineHeight +
+      6;
     ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
     ctx.strokeStyle = "rgba(230, 200, 150, 0.2)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(textLeft, descriptionY + 16);
-    ctx.lineTo(textRight, descriptionY + 16);
+    ctx.moveTo(textLeft, dividerY);
+    ctx.lineTo(textRight, dividerY);
     ctx.stroke();
 
     const detailParts = [];
     if (stat.detail) detailParts.push(stat.detail);
     const detailText = detailParts.join(" · ");
-    const valueY = descriptionY + 34;
+    const valueY = dividerY + 18;
     if (detailText) {
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
