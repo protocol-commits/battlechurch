@@ -1074,7 +1074,8 @@
             duration: preFadeDelay,
             skipMissionBrief: true,
           });
-          if (typeof startActBreakFade === "function") {
+          const skipActBreakFade = true;
+          if (!skipActBreakFade && typeof startActBreakFade === "function") {
             if (typeof setTimeoutFn === "function") {
               setTimeoutFn(() => startActBreakFade(ACT_BREAK_HOLD_SECONDS), preFadeDelay * 1000);
             } else {
@@ -1084,9 +1085,9 @@
           const nextWaveNumber = waveNumber + 1;
           const floorText = getFloorTextForWave(nextWaveNumber);
           const announcementHold = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA;
-          const actBreakTotal = announcementHold + ACT_BREAK_FADE_TOTAL + preFadeDelay;
+          const actBreakTotal = announcementHold + (skipActBreakFade ? 0 : ACT_BREAK_FADE_TOTAL) + preFadeDelay;
           if (floorText) {
-            const delayMs = (preFadeDelay + ACT_BREAK_FADE_TOTAL) * 1000;
+            const delayMs = (preFadeDelay + (skipActBreakFade ? 0 : ACT_BREAK_FADE_TOTAL)) * 1000;
             if (typeof setTimeoutFn === "function") {
               setTimeoutFn(() => {
                 queueLevelAnnouncement(floorText, "", {
