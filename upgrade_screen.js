@@ -8,6 +8,7 @@
   let navHoldDir = null;
   let navHoldTimer = 0;
   let navCooldown = 0;
+  let purchaseHistory = [];
 
   function getGraceCount() {
     return typeof window.getGraceCount === "function" ? window.getGraceCount() : 0;
@@ -29,12 +30,21 @@
     return false;
   }
 
+  function attemptRefund(statKey) {
+    const upgradeManager = window.UpgradePowerups;
+    if (upgradeManager && typeof upgradeManager.refund === "function") {
+      return upgradeManager.refund(statKey);
+    }
+    return false;
+  }
+
   function show(callback) {
     onCloseCallback = typeof callback === "function" ? callback : null;
     visible = true;
     focusedIndex = 0;
     navHoldDir = null;
     navHoldTimer = 0;
+    purchaseHistory = [];
     if (typeof window !== "undefined") {
       window.__upgradeScreenActive = true;
       window.__announcementFocus = { key: "upgradeScreen", index: 0 };
@@ -78,6 +88,7 @@
         stats,
         uiFontFamily,
         backgroundMode: "transparent",
+        undoAvailable: purchaseHistory.length > 0,
       });
     }
   }
@@ -86,12 +97,24 @@
     if (!visible) return;
     const stats = getStats();
     const statCount = stats.length;
-    const continueIndex = statCount; // Continue button is after all stats
+    const undoIndex = statCount;
+    const continueIndex = statCount + 1;
+    const isOnUndo = focusedIndex === undoIndex;
     const isOnContinue = focusedIndex === continueIndex;
 
     if (event.code === "ArrowLeft" || event.code === "KeyA") {
       event.preventDefault();
-      if (!isOnContinue && statCount > 0) {
+      if (isOnUndo) {
+        focusedIndex = continueIndex;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
+      } else if (isOnContinue) {
+        focusedIndex = undoIndex;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
+      } else if (statCount > 0) {
         // Cycle within upgrade buttons
         focusedIndex = (focusedIndex - 1 + statCount) % statCount;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
@@ -100,7 +123,17 @@
       }
     } else if (event.code === "ArrowRight" || event.code === "KeyD") {
       event.preventDefault();
-      if (!isOnContinue && statCount > 0) {
+      if (isOnUndo) {
+        focusedIndex = continueIndex;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
+      } else if (isOnContinue) {
+        focusedIndex = undoIndex;
+        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+        navCooldown = 0.18;
+      } else if (statCount > 0) {
         // Cycle within upgrade buttons
         focusedIndex = (focusedIndex + 1) % statCount;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
@@ -109,16 +142,16 @@
       }
     } else if (event.code === "ArrowDown" || event.code === "KeyS") {
       event.preventDefault();
-      if (!isOnContinue) {
-        // Move to Continue button
-        focusedIndex = continueIndex;
+      if (!isOnUndo && !isOnContinue) {
+        // Move to Undo button
+        focusedIndex = undoIndex;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       }
     } else if (event.code === "ArrowUp" || event.code === "KeyW") {
       event.preventDefault();
-      if (isOnContinue && statCount > 0) {
+      if ((isOnContinue || isOnUndo) && statCount > 0) {
         // Move back to first upgrade button
         focusedIndex = 0;
         window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
@@ -135,20 +168,34 @@
     if (!visible) return;
     const stats = getStats();
     const statCount = stats.length;
-    const continueIndex = statCount;
+    const undoIndex = statCount;
+    const continueIndex = statCount + 1;
+    const isOnUndo = focusedIndex === undoIndex;
     const isOnContinue = focusedIndex === continueIndex;
     let moved = false;
 
-    if (direction === "left" && !isOnContinue && statCount > 0) {
-      focusedIndex = (focusedIndex - 1 + statCount) % statCount;
+    if (direction === "left") {
+      if (isOnUndo) {
+        focusedIndex = continueIndex;
+      } else if (isOnContinue) {
+        focusedIndex = undoIndex;
+      } else if (statCount > 0) {
+        focusedIndex = (focusedIndex - 1 + statCount) % statCount;
+      }
       moved = true;
-    } else if (direction === "right" && !isOnContinue && statCount > 0) {
-      focusedIndex = (focusedIndex + 1) % statCount;
+    } else if (direction === "right") {
+      if (isOnUndo) {
+        focusedIndex = continueIndex;
+      } else if (isOnContinue) {
+        focusedIndex = undoIndex;
+      } else if (statCount > 0) {
+        focusedIndex = (focusedIndex + 1) % statCount;
+      }
       moved = true;
-    } else if (direction === "down" && !isOnContinue) {
-      focusedIndex = continueIndex;
+    } else if (direction === "down" && !isOnUndo && !isOnContinue) {
+      focusedIndex = undoIndex;
       moved = true;
-    } else if (direction === "up" && isOnContinue && statCount > 0) {
+    } else if (direction === "up" && (isOnContinue || isOnUndo) && statCount > 0) {
       focusedIndex = 0;
       moved = true;
     }
@@ -209,6 +256,8 @@
     if (!visible) return;
     const stats = getStats();
     const statCount = stats.length;
+    const undoIndex = statCount;
+    const continueIndex = statCount + 1;
     consumedAction = true;
     if (focusedIndex < statCount) {
       const stat = stats[focusedIndex];
@@ -220,6 +269,21 @@
         const purchased = attemptPurchase(stat.key);
         if (purchased && typeof window.playMenuItemPickSfx === "function") {
           window.playMenuItemPickSfx(0.55);
+        }
+        if (purchased) {
+          purchaseHistory.push(stat.key);
+        }
+      }
+      return;
+    }
+    if (focusedIndex === undoIndex) {
+      const lastKey = purchaseHistory.pop();
+      if (lastKey) {
+        const refunded = attemptRefund(lastKey);
+        if (!refunded) {
+          purchaseHistory.push(lastKey);
+        } else if (typeof window.playMenuItemPickSfx === "function") {
+          window.playMenuItemPickSfx(0.45);
         }
       }
       return;
@@ -243,10 +307,23 @@
             window.playMenuAdvanceSfx(0.55);
           }
           hide();
+        } else if (btn.key === "undo") {
+          const lastKey = purchaseHistory.pop();
+          if (lastKey) {
+            const refunded = attemptRefund(lastKey);
+            if (!refunded) {
+              purchaseHistory.push(lastKey);
+            } else if (typeof window.playMenuItemPickSfx === "function") {
+              window.playMenuItemPickSfx(0.45);
+            }
+          }
         } else if (btn.canAfford !== false) {
           const purchased = attemptPurchase(btn.key);
           if (purchased && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
+          }
+          if (purchased) {
+            purchaseHistory.push(btn.key);
           }
         }
         break;

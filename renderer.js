@@ -2093,6 +2093,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     uiFontFamily = "sans-serif",
     backgroundMode = "image",
     dimAlpha = 0,
+    undoAvailable = false,
   } = options;
 
   // Draw background
@@ -2144,7 +2145,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     bottomMargin: 70,
     rowGap: 40,
     buttonHeight,
-    buttonCount: buttonCount + 1,
+    buttonCount: buttonCount + 2,
   });
   ctx.translate(layout.offsetX, layout.offsetY);
   ctx.scale(layout.scale, layout.scale);
@@ -2411,32 +2412,58 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   });
 
   const continueY = buttonY + buttonHeight + 30;
-  const continueWidth = Math.min(420, totalAvailable);
-  const continueX = Math.round((layout.virtualCanvas.width - continueWidth) / 2);
   const continueHeight = 56;
+
+  const actionGap = 22;
+  const actionButtonWidth = Math.min(320, (totalAvailable - actionGap) / 2);
+  const actionRowWidth = actionButtonWidth * 2 + actionGap;
+  const actionStartX = Math.round((layout.virtualCanvas.width - actionRowWidth) / 2);
+  const undoX = actionStartX;
+  const continueX2 = actionStartX + actionButtonWidth + actionGap;
+
+  ctx.save();
+  ctx.fillStyle = undoAvailable ? "#9BD9FF" : "rgba(120, 120, 130, 0.5)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, undoX, continueY, actionButtonWidth, continueHeight, 18, true, true);
+  if (isAnnouncementButtonFocused("upgradeScreen", buttonCount)) {
+    drawFocusRing(ctx, undoX - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
+  }
+  ctx.fillStyle = "#0b111a";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `600 22px ${uiFontFamily}`;
+  ctx.fillText("Undo", undoX + actionButtonWidth / 2, continueY + continueHeight / 2);
+  ctx.restore();
 
   ctx.save();
   ctx.fillStyle = "#9BD9FF";
   ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
   ctx.lineWidth = 2;
-  roundRect(ctx, continueX, continueY, continueWidth, continueHeight, 18, true, true);
-
-  if (isAnnouncementButtonFocused("upgradeScreen", buttonCount)) {
-    drawFocusRing(ctx, continueX - 3, continueY - 3, continueWidth + 6, continueHeight + 6, 20);
+  roundRect(ctx, continueX2, continueY, actionButtonWidth, continueHeight, 18, true, true);
+  if (isAnnouncementButtonFocused("upgradeScreen", buttonCount + 1)) {
+    drawFocusRing(ctx, continueX2 - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
   }
-
   ctx.fillStyle = "#0b111a";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `600 24px ${uiFontFamily}`;
-  ctx.fillText("Continue (Space)", continueX + continueWidth / 2, continueY + continueHeight / 2);
+  ctx.font = `600 22px ${uiFontFamily}`;
+  ctx.fillText("Continue (Space)", continueX2 + actionButtonWidth / 2, continueY + continueHeight / 2);
   ctx.restore();
 
   bounds.push({
-    key: "continue",
-    x: layout.offsetX + continueX * layout.scale,
+    key: "undo",
+    x: layout.offsetX + undoX * layout.scale,
     y: layout.offsetY + continueY * layout.scale,
-    width: continueWidth * layout.scale,
+    width: actionButtonWidth * layout.scale,
+    height: continueHeight * layout.scale,
+    canAfford: undoAvailable,
+  });
+  bounds.push({
+    key: "continue",
+    x: layout.offsetX + continueX2 * layout.scale,
+    y: layout.offsetY + continueY * layout.scale,
+    width: actionButtonWidth * layout.scale,
     height: continueHeight * layout.scale,
   });
 

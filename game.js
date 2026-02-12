@@ -1868,6 +1868,19 @@ function unlockUpgradePowerup(key) {
   return true;
 }
 
+function refundUpgradePowerup(key) {
+  const def = UPGRADE_POWERUP_DEFS[key];
+  if (!def || def.disabled) return false;
+  const level = upgradePowerupLevels.get(key) || 0;
+  if (level <= 0) return false;
+  const nextLevel = level - 1;
+  upgradePowerupLevels.set(key, nextLevel);
+  if (nextLevel <= 0) unlockedUpgradePowerups.delete(key);
+  const cost = Number.isFinite(def.cost) ? def.cost : 0;
+  addGrace(cost);
+  return true;
+}
+
 function purchaseUpgradePowerup(key) {
   const def = UPGRADE_POWERUP_DEFS[key];
   if (!def || def.disabled) return false;
@@ -1883,6 +1896,7 @@ if (typeof window !== "undefined") {
   window.UpgradePowerups = {
     getOptions: getUpgradePowerupOptions,
     purchase: purchaseUpgradePowerup,
+    refund: refundUpgradePowerup,
     reset: resetUpgradePowerups,
   };
 }
