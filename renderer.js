@@ -1967,7 +1967,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 24px ${uiFontFamily}`;
-  ctx.fillText("Continue (Space)", buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+  const continueLabel = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue (Space)";
+  ctx.fillText(continueLabel, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   ctx.restore();
 
   if (typeof window !== "undefined") {
@@ -2433,7 +2434,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 22px ${uiFontFamily}`;
-  ctx.fillText("Undo", undoX + actionButtonWidth / 2, continueY + continueHeight / 2);
+  const undoLabel = (typeof GameText !== 'undefined' && GameText.buttons?.undo) || "Undo";
+  ctx.fillText(undoLabel, undoX + actionButtonWidth / 2, continueY + continueHeight / 2);
   ctx.restore();
 
   ctx.save();
@@ -2448,7 +2450,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 22px ${uiFontFamily}`;
-  ctx.fillText("Continue (Space)", continueX2 + actionButtonWidth / 2, continueY + continueHeight / 2);
+  const continueLabel2 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue (Space)";
+  ctx.fillText(continueLabel2, continueX2 + actionButtonWidth / 2, continueY + continueHeight / 2);
   ctx.restore();
 
   bounds.push({
@@ -3252,17 +3255,19 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowBlur = 16;
     ctx.shadowOffsetX = 4;
     ctx.shadowOffsetY = 4;
+    const congregationText = (typeof GameText !== 'undefined' && GameText.congregation) || {};
     if (entry.phase >= 2) {
       ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
-      ctx.fillText("CONGREGATION", countCenterX, countCenterY);
+      ctx.fillText(congregationText.title || "CONGREGATION", countCenterX, countCenterY);
     }
     if (entry.phase >= 3) {
       ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
       if (entry.phase >= 4) {
-        const countText = `COUNT: ${Math.max(0, Math.round(countValue || 0))}`;
-        ctx.fillText(countText, countCenterX, countCenterY + wordSize * 1.05);
+        const countLabel = congregationText.count || "COUNT";
+        const countTextStr = `${countLabel}: ${Math.max(0, Math.round(countValue || 0))}`;
+        ctx.fillText(countTextStr, countCenterX, countCenterY + wordSize * 1.05);
       } else {
-        ctx.fillText("COUNT:", countCenterX, countCenterY + wordSize * 1.05);
+        ctx.fillText(congregationText.countLabel || "COUNT:", countCenterX, countCenterY + wordSize * 1.05);
       }
     }
     ctx.restore();
@@ -3415,7 +3420,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.fillStyle = "#FFC86A";
     ctx.font = `22px ${UI_FONT_FAMILY}`;
-    ctx.fillText("Visitation Hour", centerX, panelY + 24);
+    const visitationTitle = (typeof GameText !== 'undefined' && GameText.visitation?.title) || "Visitation Hour";
+    ctx.fillText(visitationTitle, centerX, panelY + 24);
     const remaining = Math.max(0, visitorState.timer || 0);
     const minutes = Math.floor(remaining / 60);
     const seconds = Math.floor(remaining % 60);
@@ -3459,7 +3465,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.fillStyle = "#FFC86A";
       ctx.font = `46px ${UI_FONT_FAMILY}`;
-      ctx.fillText("Time's Up! Welcome new members!", centerX, HUD_HEIGHT + 140);
+      const timesUpText = (typeof GameText !== 'undefined' && GameText.visitation?.timesUp) || "Time's Up! Welcome new members!";
+      ctx.fillText(timesUpText, centerX, HUD_HEIGHT + 140);
       const portraits = Array.isArray(visitorState.newMemberPortraits) ? visitorState.newMemberPortraits : [];
       const portraitNames = Array.isArray(visitorState.newMemberNames) ? visitorState.newMemberNames : [];
       const portraitSize = 96;
@@ -3501,7 +3508,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       } else {
         ctx.font = `24px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = "#EAF6FF";
-        ctx.fillText("No new members this round.", centerX, HUD_HEIGHT + 220);
+        const noMembersText = (typeof GameText !== 'undefined' && GameText.visitation?.noNewMembers) || "No new members this round.";
+        ctx.fillText(noMembersText, centerX, HUD_HEIGHT + 220);
       }
       ctx.restore();
     }
@@ -3552,7 +3560,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#EAF6FF';
     ctx.font = `44px ${UI_FONT_FAMILY}`;
-    ctx.fillText('How to Play', canvas.width / 2, HUD_HEIGHT + 60);
+    const howToPlayTitle = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to Play';
+    ctx.fillText(howToPlayTitle, canvas.width / 2, HUD_HEIGHT + 60);
 
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = '#EAF6FF';
@@ -3582,7 +3591,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#EAF6FF';
     ctx.font = `48px ${UI_FONT_FAMILY}`;
-    ctx.fillText('How to play', canvas.width / 2, HUD_HEIGHT + 66);
+    const howToPlayTitle2 = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to play';
+    ctx.fillText(howToPlayTitle2, canvas.width / 2, HUD_HEIGHT + 66);
 
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = '#EAF6FF';
@@ -4049,8 +4059,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
-    // Define text based on battle number
-    const battleTitles = {
+    // Define text based on battle number - use centralized text if available
+    const battleTitles = (typeof GameText !== 'undefined' && GameText.battleOrders) || {
       1: "Order 1: Breach the Defenses",
       2: "Order 2: Hold Your Ground",
       3: "Order 3: Liberate the Town!",
@@ -4676,7 +4686,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = "#FFFFFF";
       ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
       ctx.shadowBlur = 8;
-      ctx.fillText("Press Space to Restart", centerX, buttonY);
+      const restartLabel = (typeof GameText !== 'undefined' && GameText.buttons?.restart) || "Press Space to Restart";
+      ctx.fillText(restartLabel, centerX, buttonY);
       ctx.restore();
     }
 
@@ -4831,7 +4842,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = `600 ${Math.round(22 * scaleHint)}px ${UI_FONT_FAMILY}`;
-      ctx.fillText("Continue (Space)", buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+      const continueLabel3 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue (Space)";
+      ctx.fillText(continueLabel3, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
       ctx.restore();
     }
 
@@ -4909,8 +4921,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       if (window.MapScreen?.draw) {
         window.MapScreen.draw(ctx, canvas);
       }
+      const mapTagline = (typeof GameText !== 'undefined' && GameText.screens?.map?.tagline) || "Smite the hordes. Defend the churches. Protect the people.";
       drawAnnouncementText(ctx, canvas, {
-        title: "Smite the hordes. Defend the churches. Protect the people.",
+        title: mapTagline,
         subtitle: "",
         yBase: Math.round(canvas.height * 0.06),
         titleSize: TEXT_STYLES.h2.size,
@@ -5019,7 +5032,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
       // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
-      const battleHeadings = {
+      const battleHeadings = (typeof GameText !== 'undefined' && GameText.battleOrders) || {
         1: "Order 1: Breach the Defenses",
         2: "Order 2: Hold Your Ground",
         3: "Order 3: Liberate the Town!",

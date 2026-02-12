@@ -1,0 +1,147 @@
+/**
+ * ui_styles.js
+ * ============
+ * Centralized UI styling for Battlechurch.
+ *
+ * FOR DESIGNERS:
+ * - Tweak colors, fonts, and sizes here
+ * - Changes apply across the entire game UI
+ *
+ * FOR DEVELOPERS:
+ * - Access via window.UIStyles.* (e.g., UIStyles.colors.gold)
+ */
+(function(global) {
+  const UIStyles = {
+    // =====================
+    // FONTS
+    // =====================
+    fonts: {
+      primary: "'Orbitron', sans-serif",
+      fallback: "sans-serif",
+    },
+
+    fontSizes: {
+      // HUD elements
+      hudLabel: 12,
+      hudMeter: 12,
+      hudSmall: 9,
+      hudMedium: 11,
+
+      // Screen text
+      screenTitle: 48,
+      screenSubtitle: 32,
+      screenBody: 18,
+
+      // Floating text
+      floatingDamagePlayer: 90,
+      floatingDamageNpc: 50,
+      floatingDamageEnemy: 18,
+
+      // Buttons
+      button: 16,
+    },
+
+    fontWeights: {
+      normal: "400",
+      medium: "500",
+      bold: "700",
+    },
+
+    // =====================
+    // COLOR PALETTE
+    // =====================
+    colors: {
+      // Primary palette (used throughout HUD)
+      deepNavy: "#0A0F1F",
+      slate: "#233152",
+      ice: "#9BD9FF",
+      softWhite: "#EAF6FF",
+      gold: "#FFC86A",
+      crimson: "#FF6B6B",
+      teal: "#5FE3C0",
+      muted: "#8FA3BF",
+
+      // Health bar colors
+      healthFill: "#B23A3A",
+      healthLow: "rgba(255,60,60,0.65)",
+      healthFlash: "rgb(255, 200, 100)",
+
+      // Prayer meter segment colors
+      prayerSegment1: "#14345A",
+      prayerSegment2: "#1F4F79",
+      prayerSegment3: "#2C6A99",
+
+      // Battle progress colors (maps to ice, gold, teal)
+      battleProgress: ["#9BD9FF", "#FFC86A", "#5FE3C0"],
+
+      // Backgrounds
+      hudPanelBg: "rgba(10,15,31,0.6)",
+      overlayBg: "rgba(0,0,0,0.7)",
+
+      // Damage text
+      damageEnemy: "#ff7f7f",
+      damageFriendly: "#ffffff",
+
+      // Speech bubbles
+      heroSpeech: "#f1f5ff",
+      npcSpeech: "#c9ffe5",
+      statusText: "#f4f8ff",
+      statusBg: "rgba(40, 52, 70, 0.9)",
+
+      // Name tags
+      nameTag: "#FFC86A",
+    },
+
+    // =====================
+    // UI DIMENSIONS
+    // =====================
+    dimensions: {
+      // HUD layout
+      hudHeight: 84,
+      hudPanelPadding: 16,
+      hudColumnGap: 12,
+
+      // Meters
+      meterHeight: 18,
+      meterRadius: 6,
+      meterBorderWidth: 2.5,
+
+      // Icons
+      iconSmall: 16,
+      iconMedium: 20,
+      iconLarge: 34,
+    },
+
+    // =====================
+    // ANIMATION TIMINGS
+    // =====================
+    timing: {
+      // Pulse effects (in radians per second or ms)
+      pulseSpeed: 0.008,
+      sparkDuration: 0.45,
+      flashDuration: 0.05,
+
+      // Floating text
+      damageLife: 0.9,
+      speechLife: 1.6,
+      heroSpeechLife: 1.8,
+    },
+
+    // =====================
+    // OPACITY VALUES
+    // =====================
+    opacity: {
+      hudPanel: 0.95,
+      meterGlossLeft: 0.22,
+      meterGlossRight: 0.18,
+      disabledButton: 0.5,
+    },
+  };
+
+  // Export to global namespace
+  global.UIStyles = UIStyles;
+
+  // Convenience: Also expose PALETTE for backwards compatibility
+  global.UIStyles.PALETTE = UIStyles.colors;
+
+})(typeof window !== "undefined" ? window : globalThis);

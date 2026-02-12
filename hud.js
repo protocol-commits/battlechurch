@@ -65,7 +65,8 @@
     } = bindings;
     if (!ctx || !canvas) return;
 
-    const PALETTE = {
+    // Use centralized styles if available, fallback to inline
+    const PALETTE = (typeof UIStyles !== 'undefined' && UIStyles.colors) ? UIStyles.colors : {
       deepNavy: "#0A0F1F",
       slate: "#233152",
       ice: "#9BD9FF",
@@ -122,6 +123,10 @@
     };
 
     const getWeaponBaseLabel = (mode) => {
+      // Use centralized text if available
+      const weaponModes = (typeof GameText !== 'undefined' && GameText.weapons?.modes) || {};
+      if (weaponModes[mode] !== undefined) return weaponModes[mode];
+      // Fallback
       switch (mode) {
         case 'wisdom_missle':
           return 'Apply Wisdom';
@@ -158,6 +163,10 @@
       return base;
     };
     const getNpcWeaponBaseLabel = (mode) => {
+      // Use centralized text if available (same labels as player weapons)
+      const weaponModes = (typeof GameText !== 'undefined' && GameText.weapons?.modes) || {};
+      if (weaponModes[mode] !== undefined) return weaponModes[mode];
+      // Fallback
       switch (mode) {
         case 'wisdom_missle':
           return 'Apply Wisdom';
@@ -264,11 +273,12 @@
         levelStatus?.stage === 'graceRush' ||
         (activeBoss && !activeBoss.dead && !activeBoss.removed);
       if (bossStage) {
-        scenarioTitle = 'Personal Struggles';
+        scenarioTitle = (typeof GameText !== 'undefined' && GameText.hud?.bossStageTitle) || 'Personal Struggles';
       } else if (!scenarioTitle) {
-        scenarioTitle = 'the crisis';
+        scenarioTitle = (typeof GameText !== 'undefined' && GameText.hud?.defaultMissionTitle) || 'the crisis';
       }
-      ctx.fillText(`Mission: ${scenarioTitle}`.toUpperCase(), hpBarX, panelY + 14);
+      const missionLabel = (typeof GameText !== 'undefined' && GameText.hud?.mission) || 'Mission';
+      ctx.fillText(`${missionLabel}: ${scenarioTitle}`.toUpperCase(), hpBarX, panelY + 14);
       ctx.restore();
       ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
@@ -330,7 +340,7 @@
         } catch (err) {}
       }
 
-      const hpValueText = 'Health';
+      const hpValueText = (typeof GameText !== 'undefined' && GameText.hud?.health) || 'Health';
       ctx.save();
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = PALETTE.softWhite;
@@ -599,9 +609,10 @@
       const seg2Center = seg2Start + seg2Width * 0.5;
       const seg3Center = seg3Start + seg3Width * 0.5;
       const textY = innerY + innerH / 2 + 0.5;
-      ctx.fillText('Prayer', seg1Center, textY);
-      ctx.fillText('2', seg2Center, textY);
-      ctx.fillText('3', seg3Center, textY);
+      const prayerLabels = (typeof GameText !== 'undefined' && GameText.hud?.prayerMeterLabels) || ['Prayer', '2', '3'];
+      ctx.fillText(prayerLabels[0] || 'Prayer', seg1Center, textY);
+      ctx.fillText(prayerLabels[1] || '2', seg2Center, textY);
+      ctx.fillText(prayerLabels[2] || '3', seg3Center, textY);
       ctx.restore();
       if (prayerSpark.timer > 0 && totalWidth > 0) {
         prayerSpark.timer = Math.max(0, prayerSpark.timer - dt);
@@ -661,7 +672,7 @@
       const enemyText = formatNumber(enemyKills);
       ctx.fillText(enemyText, x, rowY);
       x += ctx.measureText(enemyText).width + 14;
-      const comboLabel = "Max Combo:";
+      const comboLabel = (typeof GameText !== 'undefined' && GameText.hud?.maxCombo) || "Max Combo:";
       const comboValue = Number.isFinite(maxComboThisTown) ? Math.max(0, Math.round(maxComboThisTown)) : 0;
       const comboText = formatNumber(comboValue);
       ctx.fillStyle = PALETTE.muted;
@@ -693,7 +704,7 @@
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       const playerRowY = panelY + 14;
-      ctx.fillText('PLAYER', x, playerRowY);
+      ctx.fillText((typeof GameText !== 'undefined' && GameText.hud?.player) || 'PLAYER', x, playerRowY);
       const dashCooldown = playerDashState?.dashCooldown || 0;
       const dashDuration = Math.max(0.001, DASH_COOLDOWN || 0);
       const dashReady = dashCooldown <= 0;
@@ -736,7 +747,7 @@
         ctx.font = `9px ${UI_FONT_FAMILY}`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('DASH', dashMeterX + dashMeterWidth / 2, playerRowY - 4.5);
+        ctx.fillText((typeof GameText !== 'undefined' && GameText.hud?.dash) || 'DASH', dashMeterX + dashMeterWidth / 2, playerRowY - 4.5);
         ctx.restore();
       }
       ctx.restore();
@@ -781,10 +792,12 @@
       });
 
       const upgradeRows = [];
+      // Use centralized skill names if available
+      const skillNames = (typeof GameText !== 'undefined' && GameText.skills) || {};
       if (player.spreadGunTimer > 0) {
         const duration = Math.max(0.001, player.spreadGunDuration || 0);
         upgradeRows.push({
-          label: 'Spread Gun',
+          label: skillNames.spreadGun || 'Spread Gun',
           ratio: duration > 0 ? player.spreadGunTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.upgradePowerups?.spreadGun?.iconImage || null,
@@ -794,7 +807,7 @@
       if (player.haloTimer > 0) {
         const duration = Math.max(0.001, player.haloDuration || 0);
         upgradeRows.push({
-          label: 'Halo',
+          label: skillNames.halo || 'Halo',
           ratio: duration > 0 ? player.haloTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.upgradePowerups?.halo?.iconImage || null,
@@ -804,7 +817,7 @@
       if (player.spearTimer > 0) {
         const duration = Math.max(0.001, player.spearDuration || 0);
         upgradeRows.push({
-          label: 'Spear',
+          label: skillNames.spear || 'Spear',
           ratio: duration > 0 ? player.spearTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.upgradePowerups?.spear?.iconImage || null,
@@ -814,7 +827,7 @@
       if (player.sentryTimer > 0) {
         const duration = Math.max(0.001, player.sentryDuration || 0);
         upgradeRows.push({
-          label: 'Sentry',
+          label: skillNames.sentry || 'Sentry',
           ratio: duration > 0 ? player.sentryTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.upgradePowerups?.sentry?.iconImage || null,
@@ -826,7 +839,7 @@
       if (player.shieldTimer > 0) {
         const duration = Math.max(0.001, player.shieldDuration || 0);
         utilityRows.push({
-          label: 'Shield of Faith',
+          label: skillNames.shieldOfFaith || 'Shield of Faith',
           ratio: duration > 0 ? player.shieldTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.ice),
           iconImage: assets?.utility?.shield?.iconImage || null,
@@ -836,7 +849,7 @@
       if (player.speedBoostTimer > 0) {
         const duration = Math.max(0.001, player.speedBoostDuration || 0);
         utilityRows.push({
-          label: 'Haste',
+          label: skillNames.haste || 'Haste',
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.haste?.iconImage || null,
@@ -846,7 +859,7 @@
       if (player.powerExtendTimer > 0) {
         const duration = Math.max(0.001, player.powerExtendDuration || 0);
         utilityRows.push({
-          label: 'Sword of the Spirit (extends weapons)',
+          label: skillNames.swordOfTheSpirit || 'Sword of the Spirit (extends weapons)',
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.gold),
           iconImage: assets?.utility?.extender?.iconImage || null,
@@ -878,7 +891,8 @@
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText(`CONGREGATION: ${congregationTotal}`, x, panelY + 14);
+      const congregationLabel = (typeof GameText !== 'undefined' && GameText.hud?.congregation) || 'CONGREGATION';
+      ctx.fillText(`${congregationLabel}: ${congregationTotal}`, x, panelY + 14);
       ctx.restore();
 
       const rows = [];
@@ -907,9 +921,10 @@
         iconKey: 'npcWeapon',
       });
       if (npcHarmonyBuffTimer > 0) {
+        const npcSkillNames = (typeof GameText !== 'undefined' && GameText.skills) || {};
         const duration = Math.max(0.001, npcHarmonyBuffDuration || npcHarmonyBuffTimer || 0);
         rows.push({
-          label: 'Encourage One Another',
+          label: npcSkillNames.encourageOneAnother || 'Encourage One Another',
           ratio: duration > 0 ? npcHarmonyBuffTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.harmony?.iconImage || null,
