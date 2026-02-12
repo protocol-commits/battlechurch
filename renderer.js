@@ -3616,7 +3616,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawPauseOverlay() {
-    const { ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT = 54, pauseRestartConfirmActive } = requireBindings();
+    const {
+      ctx,
+      canvas,
+      UI_FONT_FAMILY,
+      HUD_HEIGHT = 54,
+      pauseRestartConfirmActive,
+      pointerState,
+    } = requireBindings();
     if (window.DialogOverlay?.isVisible()) return;
     ctx.save();
     ctx.fillStyle = "rgba(4, 7, 14, 0.78)";
@@ -3702,6 +3709,18 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     });
     if (typeof window !== "undefined") {
       window.__announcementButtons = { key: "pause", buttons: bounds };
+      if (pointerState && typeof pointerState.x === "number" && typeof pointerState.y === "number") {
+        const hoverIndex = bounds.findIndex(
+          (btn) =>
+            pointerState.x >= btn.x &&
+            pointerState.x <= btn.x + btn.width &&
+            pointerState.y >= btn.y &&
+            pointerState.y <= btn.y + btn.height,
+        );
+        if (hoverIndex >= 0) {
+          window.__announcementFocus = { key: "pause", index: hoverIndex };
+        }
+      }
     }
 
     ctx.restore();

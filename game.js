@@ -14275,17 +14275,14 @@ function handlePauseMenu() {
   if (overlayActive) {
     keysJustPressed.delete(" ");
   }
-  if (!overlayActive && wasActionJustPressed("pause")) {
-    paused = !paused;
-    if (paused && !gameOver) {
+  if (!overlayActive && !paused && wasActionJustPressed("pause")) {
+    paused = true;
+    if (!gameOver) {
       window.isPauseOverlayActive = true;
       pauseRestartConfirmActive = false;
       if (typeof window !== "undefined" && typeof window.pauseAllMusic === "function") {
         window.pauseAllMusic();
       }
-    } else if (!paused) {
-      pauseRestartConfirmActive = false;
-      resumeFromPause();
     }
   }
   if (paused && !gameOver) {
