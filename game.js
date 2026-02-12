@@ -21,32 +21,44 @@ const upgradePowerUps = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
-const POWERUP_RESPAWN_DELAY = 5;
-const POWERUP_ACTIVE_LIFETIME = 8;
-const POWERUP_BLINK_DURATION = 2;
-const POWERUP_SPAWN_BLINK_DURATION = 1.2;
+// Helper to read from GameBalance config with fallback
+const _gb = (path, fallback) => {
+  if (typeof GameBalance === 'undefined') return fallback;
+  const parts = path.split('.');
+  let val = GameBalance;
+  for (const p of parts) {
+    if (val && typeof val === 'object' && p in val) val = val[p];
+    else return fallback;
+  }
+  return val !== undefined ? val : fallback;
+};
+
+const POWERUP_RESPAWN_DELAY = _gb('powerups.respawnDelay', 5);
+const POWERUP_ACTIVE_LIFETIME = _gb('powerups.activeLifetime', 8);
+const POWERUP_BLINK_DURATION = _gb('powerups.blinkDuration', 2);
+const POWERUP_SPAWN_BLINK_DURATION = _gb('powerups.spawnBlinkDuration', 1.2);
 let powerUpRespawnTimer = 0;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
 let hudComboDisplay = null;
 const unlockedUpgradePowerups = new Set();
 const upgradePowerupLevels = new Map();
-const GRACE_PICKUP_RADIUS = 18;
+const GRACE_PICKUP_RADIUS = _gb('grace.pickupRadius', 18);
 const GRACE_PICKUP_FRAME_DURATION = 0.08;
-const GRACE_PICKUP_LIFETIME = 8;
-const GRACE_PICKUP_ATTRACT_DISTANCE = 170;
-const GRACE_PICKUP_ATTRACT_FORCE = 460;
-const GRACE_PICKUP_GRAVITY = 520;
-const GRACE_PICKUP_AIR_DRAG = 0.88;
+const GRACE_PICKUP_LIFETIME = _gb('grace.lifetime', 8);
+const GRACE_PICKUP_ATTRACT_DISTANCE = _gb('grace.attractDistance', 170);
+const GRACE_PICKUP_ATTRACT_FORCE = _gb('grace.attractForce', 460);
+const GRACE_PICKUP_GRAVITY = _gb('grace.gravity', 520);
+const GRACE_PICKUP_AIR_DRAG = _gb('grace.airDrag', 0.88);
 const GRACE_PICKUP_FLOOR_Y = () => canvas.height - 36;
-const GRACE_DROP_BASE_CHANCE = 0.18;
-const GRACE_DROP_HIGH_VALUE_BONUS = 0.12;
-const GRACE_DROP_MINION_SCALE = 0.35;
-const GRACE_DROP_MAX_STACK = 3;
-const GRACE_DROP_SIZE_CHANCE_FACTOR = 0.15; // additional chance per relative size unit
-const GRACE_DROP_SIZE_STACK_FACTOR = 0.9; // extra stacks per size bucket
-const GRACE_RUSH_DURATION = 5;
-const GRACE_BONUS_MULTIPLIER = 5;
+const GRACE_DROP_BASE_CHANCE = _gb('grace.dropBaseChance', 0.18);
+const GRACE_DROP_HIGH_VALUE_BONUS = _gb('grace.dropHighValueBonus', 0.12);
+const GRACE_DROP_MINION_SCALE = _gb('grace.dropMinionScale', 0.35);
+const GRACE_DROP_MAX_STACK = _gb('grace.dropMaxStack', 3);
+const GRACE_DROP_SIZE_CHANCE_FACTOR = _gb('grace.dropSizeChanceFactor', 0.15);
+const GRACE_DROP_SIZE_STACK_FACTOR = _gb('grace.dropSizeStackFactor', 0.9);
+const GRACE_RUSH_DURATION = _gb('grace.rushDuration', 5);
+const GRACE_BONUS_MULTIPLIER = _gb('grace.bonusMultiplier', 5);
 const POST_DEATH_HANG = 5;
 const ARENA_FADE_DURATION = 2;
 let postDeathSequenceActive = false;
@@ -1709,16 +1721,17 @@ function maybeSwapNpcPositions(options = {}) {
   low.target = low.getRandomWalkPoint();
   high.target = high.getRandomWalkPoint();
 }
-const MAX_ACTIVE_ENEMIES = 120;
-const SKELETON_MIN_COUNT = 4;
-const SKELETON_PACK_SIZE = 4;
-const MINI_IMP_BASE_GROUP_SIZE = 48;
-const MINI_IMP_MAX_GROUP_SIZE = 120;
-const MINI_IMP_MIN_GROUPS_PER_HORDE = 1;
-const ENEMY_GROUP_SPAWN_STAGGER_MS = 80;
-const RESPAWN_DELAY = 2.5;
-const RESPAWN_STATUS_INTERVAL = 0.5;
-const RESPAWN_SHIELD_DURATION = 6;
+// Enemy spawning constants (tunable via GameBalance.spawning.*)
+const MAX_ACTIVE_ENEMIES = _gb('spawning.maxActiveEnemies', 120);
+const SKELETON_MIN_COUNT = _gb('spawning.skeletonMinCount', 4);
+const SKELETON_PACK_SIZE = _gb('spawning.skeletonPackSize', 4);
+const MINI_IMP_BASE_GROUP_SIZE = _gb('spawning.miniImpBaseGroupSize', 48);
+const MINI_IMP_MAX_GROUP_SIZE = _gb('spawning.miniImpMaxGroupSize', 120);
+const MINI_IMP_MIN_GROUPS_PER_HORDE = _gb('spawning.miniImpMinGroupsPerHorde', 1);
+const ENEMY_GROUP_SPAWN_STAGGER_MS = _gb('spawning.groupSpawnStaggerMs', 80);
+const RESPAWN_DELAY = _gb('player.respawnDelay', 2.5);
+const RESPAWN_STATUS_INTERVAL = _gb('player.respawnStatusInterval', 0.5);
+const RESPAWN_SHIELD_DURATION = _gb('player.respawnShieldDuration', 6);
 let playerRespawnPending = false;
 let respawnTimer = 0;
 let respawnIndicatorTimer = 0;
@@ -2551,33 +2564,33 @@ sentryStateSecondary.glowColor = "rgba(130, 210, 255, 0.75)";
 sentryStateSecondary.glowBlur = 18;
 sentryStateSecondary.beamStartDelay = 0.06;
 
-// Melee Attack System Constants
+// Melee Attack System Constants (tunable via GameBalance.melee.*)
 const MELEE_SWING_LENGTH_BASE = 260;
 // For hitbox calculations, we need a much smaller range to match the actual swoosh visual
-const MELEE_SWING_RANGE = 104 * WORLD_SCALE; // Reduced to match swoosh sprite visual (was 200 * WORLD_SCALE)
-const MELEE_CLOSE_RANGE = 60 * WORLD_SCALE;
+const MELEE_SWING_RANGE = _gb('melee.swingRange', 104) * WORLD_SCALE;
+const MELEE_CLOSE_RANGE = _gb('melee.closeRange', 60) * WORLD_SCALE;
 const MELEE_OFFSET = 54 * WORLD_SCALE;
-const MELEE_DAMAGE_KNOCKBACK = 48 * WORLD_SCALE;
-const MELEE_PUSHBACK_STRENGTH = 36 * WORLD_SCALE;
-const MELEE_DAMAGE_DURATION = 0.25;
-const MELEE_COOLDOWN = 0.4;
-const MELEE_DOUBLE_TAP_WINDOW = 0.18;
-const MELEE_HOLD_CHARGE_TIME = 1.5;
-const MELEE_BASE_DAMAGE = 100;
-const MELEE_SWOOSH_DAMAGE_SCALE = 1.2;
-const MELEE_SWOOSH_ARC_SCALE = 2.5; // Increased from 1.5 to make swoosh taller/wider perpendicular to attack direction
-const MELEE_PROJECTILE_COOLDOWN_AFTER = 0.5;
-const MELEE_RUSH_LOCKOUT = 1.0;
-const MELEE_SPIN_DURATION = 0.45;
-const MELEE_SPIN_COOLDOWN = 2.0;
-const MELEE_SPIN_DAMAGE_MULTIPLIER = 2;
-const RUSH_DISTANCE = 150 * WORLD_SCALE;
-const RUSH_SPEED = 1200 * SPEED_SCALE;
+const MELEE_DAMAGE_KNOCKBACK = _gb('melee.knockback', 48) * WORLD_SCALE;
+const MELEE_PUSHBACK_STRENGTH = _gb('melee.pushbackStrength', 36) * WORLD_SCALE;
+const MELEE_DAMAGE_DURATION = _gb('melee.damageDuration', 0.25);
+const MELEE_COOLDOWN = _gb('melee.cooldown', 0.4);
+const MELEE_DOUBLE_TAP_WINDOW = _gb('melee.doubleTapWindow', 0.18);
+const MELEE_HOLD_CHARGE_TIME = _gb('melee.holdChargeTime', 1.5);
+const MELEE_BASE_DAMAGE = _gb('melee.baseDamage', 100);
+const MELEE_SWOOSH_DAMAGE_SCALE = _gb('melee.swooshDamageScale', 1.2);
+const MELEE_SWOOSH_ARC_SCALE = _gb('melee.swooshArcScale', 2.5);
+const MELEE_PROJECTILE_COOLDOWN_AFTER = _gb('melee.projectileCooldownAfter', 0.5);
+const MELEE_RUSH_LOCKOUT = _gb('melee.rushLockout', 1.0);
+const MELEE_SPIN_DURATION = _gb('melee.spinDuration', 0.45);
+const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
+const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
+const RUSH_DISTANCE = _gb('rush.distance', 150) * WORLD_SCALE;
+const RUSH_SPEED = _gb('rush.speed', 1200) * SPEED_SCALE;
 const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
-const RUSH_RADIUS = 50 * WORLD_SCALE;
-const RUSH_PUSHBACK_RADIUS = 52 * WORLD_SCALE;
-const RUSH_PUSHBACK_STRENGTH = 50 * WORLD_SCALE;
-const RUSH_COOLDOWN = 3.0;
+const RUSH_RADIUS = _gb('rush.radius', 50) * WORLD_SCALE;
+const RUSH_PUSHBACK_RADIUS = _gb('rush.pushbackRadius', 52) * WORLD_SCALE;
+const RUSH_PUSHBACK_STRENGTH = _gb('rush.pushbackStrength', 50) * WORLD_SCALE;
+const RUSH_COOLDOWN = _gb('rush.cooldown', 3.0);
 const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
 const SPIN_HOLD_CHARGE_TIME = MELEE_HOLD_CHARGE_TIME;
 const SPIN_CHARGE_MOVE_MULTIPLIER = 0.5;
@@ -2659,26 +2672,27 @@ const SPAWN_CAMERA_SHAKE_DURATION =
   projectileSettings.spawnCameraShakeDuration ?? 0.24;
 const SPAWN_CAMERA_SHAKE_MAGNITUDE =
   projectileSettings.spawnCameraShakeMagnitude ?? 10;
-const PRAYER_BOMB_RADIUS = 520 * WORLD_SCALE;
-const PRAYER_BOMB_DAMAGE_MULTIPLIER = 12.0;
-const PRAYER_BOMB_CHARGE_REQUIRED = 60;
-const PRAYER_BOMB_LEVEL1_THRESHOLD = 0.5;
-const PRAYER_BOMB_LEVEL2_THRESHOLD = 0.8;
-const PRAYER_BOMB_LEVEL3_THRESHOLD = 1.0;
-const PRAYER_BOMB_LEVEL1_DAMAGE = 250;
-const PRAYER_BOMB_LEVEL2_DAMAGE = 400;
-const PRAYER_BOMB_LEVEL3_DAMAGE = 250;
-const PRAYER_BOMB_LEVEL1_BOSS_DAMAGE = 1000;
-const PRAYER_BOMB_LEVEL2_BOSS_DAMAGE = 2000;
+// Prayer Bomb constants (tunable via GameBalance.prayerBomb.*)
+const PRAYER_BOMB_RADIUS = _gb('prayerBomb.radius', 520) * WORLD_SCALE;
+const PRAYER_BOMB_DAMAGE_MULTIPLIER = _gb('prayerBomb.damageMultiplier', 12.0);
+const PRAYER_BOMB_CHARGE_REQUIRED = _gb('prayerBomb.chargeRequired', 60);
+const PRAYER_BOMB_LEVEL1_THRESHOLD = _gb('prayerBomb.level1Threshold', 0.5);
+const PRAYER_BOMB_LEVEL2_THRESHOLD = _gb('prayerBomb.level2Threshold', 0.8);
+const PRAYER_BOMB_LEVEL3_THRESHOLD = _gb('prayerBomb.level3Threshold', 1.0);
+const PRAYER_BOMB_LEVEL1_DAMAGE = _gb('prayerBomb.level1Damage', 250);
+const PRAYER_BOMB_LEVEL2_DAMAGE = _gb('prayerBomb.level2Damage', 400);
+const PRAYER_BOMB_LEVEL3_DAMAGE = _gb('prayerBomb.level3Damage', 250);
+const PRAYER_BOMB_LEVEL1_BOSS_DAMAGE = _gb('prayerBomb.level1BossDamage', 1000);
+const PRAYER_BOMB_LEVEL2_BOSS_DAMAGE = _gb('prayerBomb.level2BossDamage', 2000);
 const PRAYER_BOMB_LEVEL2_RADIUS = Math.max(0, Math.hypot(CANVAS_BASE_WIDTH, CANVAS_BASE_HEIGHT));
-const PRAYER_BOMB_RAIN_DURATION = 7;
-const PRAYER_BOMB_RAIN_INTERVAL = 0.12;
-const PRAYER_BOMB_RAIN_RADIUS = 160 * WORLD_SCALE;
-const PRAYER_BOMB_BOSS_DAMAGE_SCALE = 0.5;
-const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = 0.65;
-const PRAYER_BOMB_RAIN_DARKEN_DURATION = 0.5;
-const PRAYER_BOMB_RAIN_SHAKE_DURATION = 0.12;
-const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = 10;
+const PRAYER_BOMB_RAIN_DURATION = _gb('prayerBomb.rainDuration', 7);
+const PRAYER_BOMB_RAIN_INTERVAL = _gb('prayerBomb.rainInterval', 0.12);
+const PRAYER_BOMB_RAIN_RADIUS = _gb('prayerBomb.rainRadius', 160) * WORLD_SCALE;
+const PRAYER_BOMB_BOSS_DAMAGE_SCALE = _gb('prayerBomb.bossDamageScale', 0.5);
+const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = _gb('prayerBomb.screenDarkenAlpha', 0.65);
+const PRAYER_BOMB_RAIN_DARKEN_DURATION = _gb('prayerBomb.rainDarkenDuration', 0.5);
+const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.12);
+const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 10);
 if (typeof window !== "undefined") {
   window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
 }
