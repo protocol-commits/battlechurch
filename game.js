@@ -14298,16 +14298,6 @@ function handlePauseMenu() {
       buttons,
       allowSpace: true,
       onActivate: (button) => {
-        if (button.key === "restart") {
-          pauseRestartConfirmActive = true;
-          return;
-        }
-        if (button.key === "confirmRestart") {
-          pauseRestartConfirmActive = false;
-          window.isPauseOverlayActive = false;
-          restartGame();
-          return;
-        }
         if (button.key === "settings") {
           pauseRestartConfirmActive = false;
           showSettingsOverlay({ source: "pause" });

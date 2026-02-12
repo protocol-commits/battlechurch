@@ -3644,7 +3644,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       bottomMargin: 90,
       rowGap: 32,
       buttonHeight: 64,
-      buttonCount: 3,
+      buttonCount: 2,
       HUD_HEIGHT,
     });
     ctx.save();
@@ -3664,17 +3664,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       maxWidthScale: 0.9,
     });
 
-    const buttonConfigs = pauseRestartConfirmActive
-      ? [
-          { key: "resume", label: "Resume" },
-          { key: "settings", label: "Settings" },
-          { key: "confirmRestart", label: "Confirm Restart" },
-        ]
-      : [
-          { key: "resume", label: "Resume" },
-          { key: "settings", label: "Settings" },
-          { key: "restart", label: "Restart" },
-        ];
+    const buttonConfigs = [
+      { key: "resume", label: "Resume" },
+      { key: "settings", label: "Settings" },
+    ];
     const buttonWidth = 240;
     const buttonHeight = 64;
     const buttonGap = 28;
