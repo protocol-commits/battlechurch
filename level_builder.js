@@ -504,7 +504,77 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       waveCol.className = "lb-wave-col";
       const waveHeader = document.createElement("div");
       waveHeader.className = "lb-wave-header";
-      waveHeader.textContent = `Wave ${wIdx + 1}`;
+      waveHeader.style.cssText = "display:flex;align-items:center;justify-content:space-between;position:relative;";
+      const waveTitleSpan = document.createElement("span");
+      waveTitleSpan.textContent = `Wave ${wIdx + 1}`;
+      waveHeader.appendChild(waveTitleSpan);
+      const waveMenuBtn = document.createElement("button");
+      waveMenuBtn.className = "lb-col-menu-btn";
+      waveMenuBtn.textContent = "▾";
+      const waveMenu = document.createElement("div");
+      waveMenu.className = "lb-col-menu";
+      waveMenu.style.cssText = "min-width:150px;";
+      // Disabled states for boundary-shift actions
+      const canShiftLeft  = wIdx > 0 && wave.hordes.length > 0;
+      const canShiftRight = wIdx > 0 && waves[wIdx - 1].hordes.length > 0;
+      waveMenu.innerHTML = `
+        <button class="lb-col-menu-item" data-action="insert-before">Insert Wave Before</button>
+        <button class="lb-col-menu-item" data-action="insert-after">Insert Wave After</button>
+        <button class="lb-col-menu-item" data-action="move-left"${!canShiftLeft ? " disabled" : ""}>← Shift Break Left</button>
+        <button class="lb-col-menu-item" data-action="move-right"${!canShiftRight ? " disabled" : ""}>Shift Break Right →</button>
+        <button class="lb-col-menu-item danger" data-action="delete-wave">Remove Wave Break</button>
+      `;
+      waveMenuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        closeMenus();
+        waveMenu.classList.toggle("open");
+      });
+      waveMenu.querySelectorAll(".lb-col-menu-item").forEach((item) => {
+        item.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (item.hasAttribute("disabled")) return;
+          waveMenu.classList.remove("open");
+          const action = item.getAttribute("data-action");
+          if (action === "insert-before") {
+            // Empty wave break — no default hordes, just a separator with text/duration
+            missionObj.waves.splice(wIdx, 0, { index: 0, introText: "", breakerDuration: 3, hordes: [] });
+            missionObj.waves.forEach((w, i) => { w.index = i + 1; });
+            saveToStorage(state.config); renderMissionView();
+          } else if (action === "insert-after") {
+            missionObj.waves.splice(wIdx + 1, 0, { index: 0, introText: "", breakerDuration: 3, hordes: [] });
+            missionObj.waves.forEach((w, i) => { w.index = i + 1; });
+            saveToStorage(state.config); renderMissionView();
+          } else if (action === "move-left" && canShiftLeft) {
+            // Shift the break left: move the first horde of this wave to the end of the previous wave
+            const movedHorde = missionObj.waves[wIdx].hordes.shift();
+            missionObj.waves[wIdx - 1].hordes.push(movedHorde);
+            missionObj.waves[wIdx - 1].hordes.forEach((h, i) => { h.index = i + 1; });
+            missionObj.waves[wIdx].hordes.forEach((h, i) => { h.index = i + 1; });
+            saveToStorage(state.config); renderMissionView();
+          } else if (action === "move-right" && canShiftRight) {
+            // Shift the break right: move the last horde of the previous wave to the start of this wave
+            const movedHorde = missionObj.waves[wIdx - 1].hordes.pop();
+            missionObj.waves[wIdx].hordes.unshift(movedHorde);
+            missionObj.waves[wIdx - 1].hordes.forEach((h, i) => { h.index = i + 1; });
+            missionObj.waves[wIdx].hordes.forEach((h, i) => { h.index = i + 1; });
+            saveToStorage(state.config); renderMissionView();
+          } else if (action === "delete-wave") {
+            // Merge this wave's hordes into adjacent wave, preserve the hordes
+            if (wIdx > 0) {
+              missionObj.waves[wIdx - 1].hordes.push(...missionObj.waves[wIdx].hordes);
+              missionObj.waves[wIdx - 1].hordes.forEach((h, i) => { h.index = i + 1; });
+            } else if (missionObj.waves.length > 1) {
+              missionObj.waves[1].hordes.unshift(...missionObj.waves[0].hordes);
+              missionObj.waves[1].hordes.forEach((h, i) => { h.index = i + 1; });
+            }
+            missionObj.waves.splice(wIdx, 1);
+            missionObj.waves.forEach((w, i) => { w.index = i + 1; });
+            saveToStorage(state.config); renderMissionView();
+          }
+        });
+      });
+      waveHeader.appendChild(waveMenuBtn);
+      waveHeader.appendChild(waveMenu);
       waveCol.appendChild(waveHeader);
 
       const waveBody = document.createElement("div");
@@ -577,6 +647,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
           <button class="lb-col-menu-item" data-action="paste">Paste</button>
           <button class="lb-col-menu-item" data-action="insert-before">Insert Before</button>
           <button class="lb-col-menu-item" data-action="insert-after">Insert After</button>
+          <button class="lb-col-menu-item" data-action="split-wave"${hIdx === 0 ? " disabled" : ""}>Split Wave Here</button>
           <button class="lb-col-menu-item danger" data-action="delete">Delete</button>
         `;
         menuBtn.addEventListener("click", (e) => {
@@ -606,6 +677,15 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
             } else if (action === "insert-after") {
               wave.hordes.splice(hIdx + 1, 0, makeDefaultHorde(0));
               wave.hordes.forEach((h, i) => { h.index = i + 1; });
+              saveToStorage(state.config); renderMissionView();
+            } else if (action === "split-wave" && hIdx > 0) {
+              // Pull hordes from this position onward into a new wave
+              const splitHordes = wave.hordes.splice(hIdx);
+              splitHordes.forEach((h, i) => { h.index = i + 1; });
+              const newWave = makeDefaultWave(0);
+              newWave.hordes = splitHordes;
+              missionObj.waves.splice(wIdx + 1, 0, newWave);
+              missionObj.waves.forEach((w, i) => { w.index = i + 1; });
               saveToStorage(state.config); renderMissionView();
             } else if (action === "delete") {
               wave.hordes.splice(hIdx, 1);
