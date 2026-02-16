@@ -3581,10 +3581,10 @@ function applyDevEnemyOverrides(baseDefs) {
 const ENEMY_DEFINITIONS_RAW =
   applyDevEnemyOverrides(ENEMY_CATALOG);
 
-// MiniFolk enemies: demons that run through `spawner` overrides, e.g. miniDemonLord is bulkier.
-const MINIFOLKS =
-  (typeof window !== "undefined" && window.BattlechurchMiniFolks?.list) ||
-  [];
+// MiniFolk enemies: catalog entries with a spriteSrc field (single sprite sheet loaders).
+const MINIFOLKS = Object.entries(ENEMY_CATALOG)
+  .filter(([, def]) => def.spriteSrc)
+  .map(([key, def]) => ({ key, src: def.spriteSrc }));
 const MINIFOLK_KEYS = new Set(MINIFOLKS.map((entry) => entry.key));
 const EXTRA_ENEMY_KEYS = new Set([
   "armoredOrc",

@@ -8,8 +8,7 @@ This repository now keeps every large, reusable data table in its own module. Ea
 | `visitor_blocker_lines.js` | `BattlechurchVisitorBlocker.blockerLines` | Speech/snark lines for Visitor blockers during visitor hours. | `game.js` Visitor session logic |
 | `npc_variants.js` | `BattlechurchNpcVariants` | Hair, clothing, accessory variant lists used when loading NPC sprites. | `game.js` NPC loader |
 | `npc_dialogue_lines.js` | `BattlechurchNpcDialogue.struggleLines` / `returnLines` | NPC dialogue banks shown during faith transitions. | `game.js` Visitor/NPC updates |
-| `enemy_definitions.js` | `BattlechurchEnemyDefinitions` | Base enemy stats/spawn data consumed by the Entities module. | `game.js` enemy manifest & `entities.js` |
-| `mini_folk_definitions.js` | `BattlechurchMiniFolks.list` | Mini-folk (mini demons/undead) asset list. | `game.js` mini-folk spawn helpers |
+| `enemy_catalog.js` | `BattlechurchEnemyCatalog.catalog` / `BattlechurchEnemyDefinitions` | Master enemy stats, spawn data, and sprite paths. Mini-folk entries carry a `spriteSrc` field; `MINIFOLKS` in `game.js` is derived from those entries. | `game.js` enemy manifest & `entities.js` |
 | `powerup_definitions.js` | `BattlechurchPowerupDefinitions` | Utility/weapon power-up asset and timing definitions. | `game.js` power-up spawns |
 | `projectile_config.js` | `BattlechurchProjectileConfig` | Projectile speeds/damage, cooldown overrides, and shared paths. | `game.js`, `entities.js`, `effects.js` |
 | `asset_manifest.js` | `BattlechurchAssetManifest.build` | Helper that composes the player/projectile/enemy asset manifest. | `game.js` asset loading |

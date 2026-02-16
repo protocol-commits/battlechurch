@@ -171,6 +171,7 @@
   },
   "miniImp": {
     "displayName": "Imp",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniImp.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 10,
@@ -205,6 +206,7 @@
   },
   "miniImpLevel2": {
     "displayName": "Imp Lieutenant",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniImpLevel2.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 20,
@@ -242,6 +244,7 @@
   },
   "miniFireImp": {
     "displayName": "Fire Imp",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniFireImp.png",
     "assetFolder": "Mini Fire Imp",
     "assetBaseName": "Mini Fire Imp",
     "health": 20,
@@ -274,6 +277,7 @@
   },
   "miniDemoness": {
     "displayName": "Demoness",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemoness.png",
     "assetFolder": "Mini Demoness",
     "assetBaseName": "Mini Demoness",
     "health": 100,
@@ -305,6 +309,7 @@
   },
   "miniClawedDemon": {
     "displayName": "Clawed Demon",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniClawedDemon.png",
     "assetFolder": "Mini Clawed Demon",
     "assetBaseName": "Mini Clawed Demon",
     "health": 30,
@@ -339,6 +344,7 @@
   },
   "miniHighDemon": {
     "displayName": "High Demon",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniHighDemon.png",
     "assetFolder": "Mini High Demon",
     "assetBaseName": "Mini High Demon",
     "health": 400,
@@ -380,6 +386,7 @@
   },
   "miniDemonTormentor": {
     "displayName": "Demon Tormentor",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonTormentor.png",
     "assetFolder": "Mini Demon Tormentor",
     "assetBaseName": "Mini Demon Tormentor",
     "health": 300,
@@ -414,6 +421,7 @@
   },
   "miniDemonLord": {
     "displayName": "Demon Lord",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonLord.png",
     "assetFolder": "Mini Demon Lord",
     "assetBaseName": "Mini Demon Lord",
     "health": 500,
@@ -456,6 +464,7 @@
   },
   "miniDemonFireThrower": {
     "displayName": "Demon Fire Thrower",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonFireThrower.png",
     "assetFolder": "Mini Demon Fire Thrower",
     "assetBaseName": "Mini Demon Fire Thrower",
     "health": 45,
@@ -489,6 +498,7 @@
   },
   "miniDemonFireKeeper": {
     "displayName": "Demon Fire Keeper",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonFireKeeper.png",
     "assetFolder": "Mini Demon Fire Keeper",
     "assetBaseName": "Mini Demon Fire Keeper",
     "health": 40,
@@ -521,6 +531,7 @@
   },
   "miniSuccubus": {
     "displayName": "Succubus",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniSuccubus.png",
     "assetFolder": "Mini Succubus",
     "assetBaseName": "Mini Succubus",
     "health": 30,
@@ -553,6 +564,7 @@
   },
   "miniImpLevel3": {
     "displayName": "Imp Commander",
+    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniImpLevel3.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 30,
@@ -587,6 +599,7 @@
   },
   "bat": {
     "displayName": "Bat",
+    "spriteSrc": "assets/sprites/enemies/bat.png",
     "assetFolder": "Bat",
     "assetBaseName": "Bat",
     "health": 40,
@@ -620,6 +633,7 @@
   },
   "tormentorFlame": {
     "displayName": "Tormentor Flame",
+    "spriteSrc": "assets/sprites/fire/Group-4-1.png",
     "assetFolder": "Tormentor Flame",
     "assetBaseName": "Tormentor Flame",
     "health": 90,
