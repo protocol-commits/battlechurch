@@ -13,20 +13,23 @@
   const HORDE_CLEAR_LINES = levelData.hordeClearLines || [];
 
 
-  // New hierarchy: LEVELS -> MONTHS -> BATTLES -> HORDES
-  const LEVELS_PER_GAME = Number.isFinite(levelData?.structure?.levels)
-    ? levelData.structure.levels
-    : 4;
+  // Hierarchy: TOWNS -> BATTLES -> MISSIONS -> WAVES -> HORDES
+  const TOWNS_PER_GAME =
+    levelData?.structure?.towns ?? levelData?.structure?.levels ?? 4;
   // Final campaign level - Highgate (capital) is the 25th town
   // Epilogue only plays after completing all 25 towns
   const FINAL_CAMPAIGN_LEVEL = 25;
-  const MONTHS_PER_LEVEL = Number.isFinite(levelData?.structure?.monthsPerLevel)
-    ? levelData.structure.monthsPerLevel
-    : 3;
-  const BATTLE_MONTHS_PER_LEVEL = Math.max(1, MONTHS_PER_LEVEL);
-  const BATTLES_PER_MONTH = 3;
-  const HORDES_PER_BATTLE =
-    levelData?.structure?.defaultHordesPerBattle || 21;
+  const BATTLES_PER_TOWN =
+    levelData?.structure?.battlesPerTown ?? levelData?.structure?.monthsPerLevel ?? 3;
+  const MISSIONS_PER_BATTLE =
+    levelData?.structure?.missionsPerBattle ?? levelData?.structure?.battlesPerMonth ?? 3;
+  const WAVES_PER_MISSION = levelData?.structure?.defaultWavesPerMission ?? 3;
+  const HORDES_PER_WAVE = levelData?.structure?.defaultHordesPerWave ?? 7;
+  // Legacy aliases kept for external consumers (game.js, etc.)
+  const LEVELS_PER_GAME = TOWNS_PER_GAME;
+  const MONTHS_PER_LEVEL = BATTLES_PER_TOWN;
+  const BATTLE_MONTHS_PER_LEVEL = Math.max(1, BATTLES_PER_TOWN);
+  const HORDES_PER_BATTLE = HORDES_PER_WAVE * WAVES_PER_MISSION;
   const BETWEEN_BATTLE_PAUSE = 3;
   const BETWEEN_WAVE_PAUSE = 2.3;
   const LEVEL_INTRO_DURATION = 2.6;
@@ -66,8 +69,11 @@
   const setTimeoutFn =
     typeof window.setTimeout === "function" ? window.setTimeout.bind(window) : null;
   if (typeof window !== "undefined") {
-    window.MONTHS_PER_LEVEL = MONTHS_PER_LEVEL;
-    window.LEVELS_PER_GAME = LEVELS_PER_GAME;
+    window.MONTHS_PER_LEVEL = MONTHS_PER_LEVEL;       // legacy alias
+    window.LEVELS_PER_GAME = LEVELS_PER_GAME;         // legacy alias
+    window.BATTLES_PER_TOWN = BATTLES_PER_TOWN;
+    window.MISSIONS_PER_BATTLE = MISSIONS_PER_BATTLE;
+    window.TOWNS_PER_GAME = TOWNS_PER_GAME;
   }
 
   function getDevConfig() {
@@ -130,45 +136,66 @@
     return `${clean.slice(0, -1).join(", ")} and ${clean[clean.length - 1]}`;
   }
 
-  function getScopeConfig(levelIdx, monthIdx, battleIdx, hordeIdx = null) {
+  // getScopeConfig(townIdx, battleIdx, missionIdx, hordeIdx)
+  // Supports v2 keys (towns/battles/missions/waves) with v1 fallback (levels/months/battles/hordes).
+  function getScopeConfig(townIdx, battleIdx, missionIdx, hordeIdx = null) {
     const cfg = getDevConfig();
-    if (!cfg || !Array.isArray(cfg.levels)) return {};
-    const level = cfg.levels.find((l) => l?.index === levelIdx);
-    if (!level) return {};
-    const month = level.months?.find((m) => m?.index === monthIdx);
-    const battle =
-      month?.battles?.find((b) => b?.index === battleIdx) ||
-      (Array.isArray(month?.battles) ? month.battles[0] : null);
-    const horde =
-      hordeIdx != null
-        ? (battle?.hordes?.find((h) => h?.index === hordeIdx) ||
-            (Array.isArray(battle?.hordes) ? battle.hordes[0] : null))
-        : null;
-    return { cfg, level, month, battle, horde };
+    if (!cfg) return {};
+    const townList = Array.isArray(cfg.towns) ? cfg.towns
+      : (Array.isArray(cfg.levels) ? cfg.levels : []);
+    const town = townList.find((t) => t?.index === townIdx);
+    if (!town) return {};
+    const battleList = Array.isArray(town.battles) ? town.battles
+      : (Array.isArray(town.months) ? town.months : []);
+    const battle = battleList.find((b) => b?.index === battleIdx)
+      || (battleList.length ? battleList[0] : null);
+    const missionList = Array.isArray(battle?.missions) ? battle.missions
+      : (Array.isArray(battle?.battles) ? battle.battles : []);
+    const mission = missionList.find((m) => m?.index === missionIdx)
+      || (missionList.length ? missionList[0] : null);
+    let horde = null;
+    if (hordeIdx != null) {
+      if (Array.isArray(mission?.waves)) {
+        for (const wave of mission.waves) {
+          const found = wave.hordes?.find((h) => h?.index === hordeIdx);
+          if (found) { horde = found; break; }
+        }
+      } else if (Array.isArray(mission?.hordes)) {
+        // v1 fallback: hordes directly on mission/battle
+        horde = mission.hordes.find((h) => h?.index === hordeIdx) || null;
+      } else if (Array.isArray(battle?.hordes)) {
+        horde = battle.hordes.find((h) => h?.index === hordeIdx) || null;
+      }
+    }
+    // Keep legacy aliases (level, month) so callers using the old names still work.
+    return { cfg, town, level: town, battle, month: battle, mission, horde };
   }
 
   function resolveValue(scope, key) {
-    const { horde, battle, month, level, cfg } = scope;
-    if (horde && horde[key] !== undefined) return horde[key];
-    if (battle && battle[key] !== undefined) return battle[key];
-    if (month && month[key] !== undefined) return month[key];
-    if (level && level[key] !== undefined) return level[key];
+    const { horde, mission, battle, town, cfg } = scope;
+    if (horde   && horde[key]   !== undefined) return horde[key];
+    if (mission && mission[key] !== undefined) return mission[key];
+    if (battle  && battle[key]  !== undefined) return battle[key];
+    if (town    && town[key]    !== undefined) return town[key];
     if (cfg && cfg.globals && cfg.globals[key] !== undefined) return cfg.globals[key];
     return undefined;
   }
 
-  function resolveHordeCount(levelIdx, monthIdx, battleIdx, fallback) {
-    const scope = getScopeConfig(levelIdx, monthIdx, battleIdx, null);
+  function resolveHordeCount(townIdx, battleIdx, missionIdx, fallback) {
+    const scope = getScopeConfig(townIdx, battleIdx, missionIdx, null);
     const val = resolveValue(scope, "hordesPerBattle");
     if (Number.isFinite(val) && val > 0) return val;
-    const defaultHpb = scope.cfg?.structure?.defaultHordesPerBattle;
-    if (Number.isFinite(defaultHpb) && defaultHpb > 0) return defaultHpb;
+    const defaultHpw = scope.cfg?.structure?.defaultHordesPerWave;
+    if (Number.isFinite(defaultHpw) && defaultHpw > 0) return defaultHpw * WAVES_PER_MISSION;
     return fallback;
   }
 
-  function getBattleHordeCount(battle) {
-    return Array.isArray(battle?.hordes) && battle.hordes.length
-      ? battle.hordes.length
+  function getBattleHordeCount(mission) {
+    if (Array.isArray(mission?.waves)) {
+      return mission.waves.reduce((sum, w) => sum + (w.hordes?.length || 0), 0);
+    }
+    return Array.isArray(mission?.hordes) && mission.hordes.length
+      ? mission.hordes.length
       : HORDES_PER_BATTLE;
   }
 
@@ -432,19 +459,46 @@
     }
 
   function buildLevelDefinition(levelNumber, helpers) {
+    const cfg = getDevConfig();
+    // v2: towns[]; v1 fallback: levels[]
+    const townData = cfg?.towns?.find((t) => t.index === levelNumber)
+      || cfg?.levels?.find((l) => l.index === levelNumber);
+    // The level manager iterates battles[] sequentially using state.monthIndex.
+    // Each mission in the data becomes one battle entry here so the level manager
+    // doesn't need to know about the town→battle→mission→wave nesting.
     const battles = [];
-    for (let battleIndex = 0; battleIndex < BATTLE_MONTHS_PER_LEVEL; battleIndex += 1) {
-      const hordes = [];
-      const hordeCount = resolveHordeCount(
-        levelNumber,
-        battleIndex + 1,
-        battleIndex + 1,
-        HORDES_PER_BATTLE,
-      );
-      for (let hordeIndex = 0; hordeIndex < hordeCount; hordeIndex += 1) {
-        hordes.push(createHordeDefinition(levelNumber, battleIndex, hordeIndex, helpers));
+    const numBattles = townData?.battles?.length
+      || townData?.months?.length
+      || BATTLE_MONTHS_PER_LEVEL;
+    for (let bIdx = 0; bIdx < numBattles; bIdx += 1) {
+      const battleData = townData?.battles?.[bIdx] || townData?.months?.[bIdx];
+      const missionList = Array.isArray(battleData?.missions) ? battleData.missions
+        : (Array.isArray(battleData?.battles) ? battleData.battles : []);
+      const numMissions = missionList.length || MISSIONS_PER_BATTLE;
+      for (let mIdx = 0; mIdx < numMissions; mIdx += 1) {
+        const missionData = missionList[mIdx];
+        const hordes = [];
+        if (Array.isArray(missionData?.waves) && missionData.waves.length) {
+          // v2: flatten waves → hordes for the game engine
+          for (const wave of missionData.waves) {
+            for (const h of (wave.hordes || [])) {
+              hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, h.index, helpers));
+            }
+          }
+        } else if (Array.isArray(missionData?.hordes) && missionData.hordes.length) {
+          // v1 fallback: hordes directly on mission/battle
+          for (const h of missionData.hordes) {
+            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, h.index, helpers));
+          }
+        } else {
+          // procedural fallback: no explicit config
+          const count = resolveHordeCount(levelNumber, bIdx + 1, mIdx + 1, HORDES_PER_BATTLE);
+          for (let hIdx = 0; hIdx < count; hIdx += 1) {
+            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, hIdx + 1, helpers));
+          }
+        }
+        battles.push({ hordes }); // each mission = one sequential battle for the level manager
       }
-      battles.push({ hordes });
     }
     return { levelNumber, battles };
   }

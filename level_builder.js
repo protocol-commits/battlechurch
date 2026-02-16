@@ -12,12 +12,13 @@
     (window.__levelBuilderEnableSync === true ||
       localStorage.getItem("battlechurch.enableLevelSync") === "true");
   const DEFAULTS = {
-    meta: { version: 1 },
+    meta: { version: 2 },
     structure: {
-      levels: 4,
-      monthsPerLevel: 3,
-      battlesPerMonth: 3,
-      defaultHordesPerBattle: 21,
+      towns: 13,
+      battlesPerTown: 3,
+      missionsPerBattle: 3,
+      defaultWavesPerMission: 3,
+      defaultHordesPerWave: 7,
       defaultHordeDuration: 4,
     },
     globals: {
@@ -26,7 +27,7 @@
       mode: "explicit",
       hiddenEnemies: [],
     },
-    levels: [],
+    towns: [],
   };
 const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
@@ -34,14 +35,74 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     return obj ? JSON.parse(JSON.stringify(obj)) : null;
   }
 
+  function migrateV1toV2(cfg) {
+    // Migrate old keys: levels→towns, months→battles, battles→missions
+    // Group flat hordes[] into waves[] using allKill boundaries.
+    const oldLevels = Array.isArray(cfg.levels) ? cfg.levels : [];
+    const towns = oldLevels.map((lvl) => {
+      const oldMonths = Array.isArray(lvl.months) ? lvl.months : [];
+      const battles = oldMonths.map((month) => {
+        const oldBattles = Array.isArray(month.battles) ? month.battles : [];
+        const missions = oldBattles.map((battle) => {
+          const oldHordes = Array.isArray(battle.hordes) ? battle.hordes : [];
+          // Group hordes into waves at each allKill boundary.
+          const waves = [];
+          let currentWave = null;
+          let waveIdx = 1;
+          oldHordes.forEach((horde) => {
+            if (!currentWave) {
+              currentWave = { index: waveIdx++, introText: "", breakerDuration: 3, hordes: [] };
+            }
+            currentWave.hordes.push(horde);
+            if (horde.allKill) {
+              waves.push(currentWave);
+              currentWave = null;
+            }
+          });
+          if (currentWave && currentWave.hordes.length) waves.push(currentWave);
+          return { index: battle.index, waves };
+        });
+        return { index: month.index, missions };
+      });
+      return { index: lvl.index, battles };
+    });
+    // Pad to 13 towns.
+    while (towns.length < 13) {
+      towns.push({ index: towns.length + 1, battles: [] });
+    }
+    const oldStruct = cfg.structure || {};
+    return {
+      meta: { version: 2 },
+      structure: {
+        towns: 13,
+        battlesPerTown: oldStruct.monthsPerLevel || 3,
+        missionsPerBattle: oldStruct.battlesPerMonth || 3,
+        defaultWavesPerMission: DEFAULTS.structure.defaultWavesPerMission,
+        defaultHordesPerWave: DEFAULTS.structure.defaultHordesPerWave,
+        defaultHordeDuration: oldStruct.defaultHordeDuration || 4,
+      },
+      globals: cfg.globals || deepClone(DEFAULTS.globals),
+      towns,
+    };
+  }
+
   function normalizeConfig(raw) {
     const cfg = raw && typeof raw === "object" ? raw : {};
+    // Migrate v1 data (has `levels` key, no `towns` key) to v2.
+    if (Array.isArray(cfg.levels) && !Array.isArray(cfg.towns)) {
+      return normalizeConfig(migrateV1toV2(cfg));
+    }
     const merged = {
-      meta: cfg.meta || deepClone(DEFAULTS.meta),
+      meta: { version: 2 },
       structure: { ...deepClone(DEFAULTS.structure), ...(cfg.structure || {}) },
       globals: { ...deepClone(DEFAULTS.globals), ...(cfg.globals || {}) },
-      levels: Array.isArray(cfg.levels) ? cfg.levels : [],
+      towns: Array.isArray(cfg.towns) ? cfg.towns : [],
     };
+    // Pad towns array to at least structure.towns entries.
+    const targetTowns = merged.structure.towns || 13;
+    while (merged.towns.length < targetTowns) {
+      merged.towns.push({ index: merged.towns.length + 1, battles: [] });
+    }
     // Ensure new enemies show up even if they were hidden in older configs.
     if (Array.isArray(merged.globals.hiddenEnemies)) {
       merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
@@ -93,10 +154,10 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   const state = {
     config: loadFromStorage(),
-    scope: { level: 1, month: 1, battle: 1, horde: 1 },
+    scope: { town: 1, battle: 1, mission: 1 },
     mode: "explicit",
     showHidden: false,
-    copyBuffer: null, // holds a copied horde payload
+    clipboard: null, // { type: 'horde'|'wave'|'mission'|'battle', data: deepClone }
   };
   const THUMB_SIZE = 48;
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
@@ -106,71 +167,84 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   function updateScopeFromSelects() {
     state.scope = {
-      level: Number(els.level.value) || 1,
-      month: Number(els.month.value) || 1,
-      battle: 1,
-      horde: 1,
+      town:    Number(els.town?.value)    || 1,
+      battle:  Number(els.battle?.value)  || 1,
+      mission: Number(els.mission?.value) || 1,
     };
   }
 
-  function basePoolForScope(scope) {
-    const levelData =
-      (typeof window !== "undefined" && window.BattlechurchLevelData) || {};
-    const pools = Array.isArray(levelData.hordeEnemyPools) ? levelData.hordeEnemyPools : [];
-    if (!pools.length) return [];
-    const tier = Math.max(0, Math.min(pools.length - 1, (scope.level || 1) - 1));
-    return Array.isArray(pools[tier]) ? pools[tier] : [];
+  function makeDefaultHorde(idx) {
+    return {
+      index: idx,
+      entries: [],
+      weights: {},
+      delays: {},
+      delaysWeighted: {},
+      delaysExplicit: {},
+      mode: "explicit",
+      allKill: false,
+      duration: state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION,
+    };
   }
 
-  function ensureLevel(levelIdx) {
+  function makeDefaultWave(idx, hordesPerWave) {
+    const count = hordesPerWave || state.config.structure.defaultHordesPerWave || 7;
+    const hordes = Array.from({ length: count }, (_, i) => makeDefaultHorde(i + 1));
+    return { index: idx, introText: "", breakerDuration: 3, hordes };
+  }
+
+  function ensureTown(townIdx) {
     const cfg = state.config;
-    cfg.levels = cfg.levels || [];
-    while (cfg.levels.length < levelIdx) {
-      cfg.levels.push({ index: cfg.levels.length + 1, months: [] });
+    cfg.towns = cfg.towns || [];
+    while (cfg.towns.length < townIdx) {
+      cfg.towns.push({ index: cfg.towns.length + 1, battles: [] });
     }
-    return cfg.levels[levelIdx - 1];
+    return cfg.towns[townIdx - 1];
   }
 
-  function ensureMonth(levelObj, monthIdx) {
-    levelObj.months = levelObj.months || [];
-    while (levelObj.months.length < monthIdx) {
-    levelObj.months.push({ index: levelObj.months.length + 1, battles: [] });
+  function ensureBattle(townObj, battleIdx) {
+    townObj.battles = townObj.battles || [];
+    while (townObj.battles.length < battleIdx) {
+      townObj.battles.push({ index: townObj.battles.length + 1, missions: [] });
     }
-    return levelObj.months[monthIdx - 1];
+    return townObj.battles[battleIdx - 1];
   }
 
-  function ensureBattle(monthObj, battleIdx) {
-    monthObj.battles = monthObj.battles || [];
-    while (monthObj.battles.length < battleIdx) {
-      monthObj.battles.push({ index: monthObj.battles.length + 1, hordes: [] });
-    }
-    return monthObj.battles[battleIdx - 1];
-  }
-
-  function ensureHorde(battleObj, hordeIdx) {
-    battleObj.hordes = battleObj.hordes || [];
-    while (battleObj.hordes.length < hordeIdx) {
-      battleObj.hordes.push({
-        index: battleObj.hordes.length + 1,
-        entries: [],
-        weights: {},
-        delays: {},
-        delaysWeighted: {},
-        delaysExplicit: {},
-        mode: "explicit",
-        allKill: false,
-        duration: state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION,
+  function ensureMission(battleObj, missionIdx) {
+    battleObj.missions = battleObj.missions || [];
+    while (battleObj.missions.length < missionIdx) {
+      const idx = battleObj.missions.length + 1;
+      const wavesPerMission = state.config.structure.defaultWavesPerMission || 3;
+      battleObj.missions.push({
+        index: idx,
+        waves: Array.from({ length: wavesPerMission }, (_, i) => makeDefaultWave(i + 1)),
       });
     }
-    return battleObj.hordes[hordeIdx - 1];
+    return battleObj.missions[missionIdx - 1];
   }
 
-  function getOrCreateScope(scope) {
-    const levelObj = ensureLevel(scope.level);
-    const monthObj = ensureMonth(levelObj, scope.month);
-    const battleObj = ensureBattle(monthObj, 1);
-    const hordeObj = ensureHorde(battleObj, scope.horde);
-    return { levelObj, monthObj, battleObj, hordeObj };
+  function ensureWave(missionObj, waveIdx) {
+    missionObj.waves = missionObj.waves || [];
+    while (missionObj.waves.length < waveIdx) {
+      missionObj.waves.push(makeDefaultWave(missionObj.waves.length + 1));
+    }
+    return missionObj.waves[waveIdx - 1];
+  }
+
+  function ensureHorde(waveObj, hordeIdx) {
+    waveObj.hordes = waveObj.hordes || [];
+    while (waveObj.hordes.length < hordeIdx) {
+      waveObj.hordes.push(makeDefaultHorde(waveObj.hordes.length + 1));
+    }
+    return waveObj.hordes[hordeIdx - 1];
+  }
+
+  function getOrCreateMission() {
+    const { town, battle, mission } = state.scope;
+    const townObj    = ensureTown(town);
+    const battleObj  = ensureBattle(townObj, battle);
+    const missionObj = ensureMission(battleObj, mission);
+    return { townObj, battleObj, missionObj };
   }
 
   // UI scaffolding
@@ -179,150 +253,148 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
   overlay.innerHTML = `
     <style>
       #levelBuilderOverlay {
-        position: fixed;
-        inset: 0;
+        position: fixed; inset: 0;
         background: rgba(6, 10, 18, 0.94);
         color: #e8f4ff;
         font-family: "Inter", Arial, sans-serif;
-        z-index: 9999;
-        display: none;
-        padding: 16px;
-        box-sizing: border-box;
+        z-index: 9999; display: none;
+        padding: 16px; box-sizing: border-box;
       }
-      #levelBuilderOverlay .lb-shell {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        height: 100%;
-      }
+      #levelBuilderOverlay .lb-shell { display:flex; flex-direction:column; gap:12px; height:100%; }
       #levelBuilderOverlay .panel {
-        background: rgba(18, 28, 44, 0.85);
-        border: 1px solid rgba(120, 170, 220, 0.35);
-        border-radius: 8px;
-        padding: 10px;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
+        background: rgba(18,28,44,0.85);
+        border: 1px solid rgba(120,170,220,0.35);
+        border-radius: 8px; padding: 10px;
+        overflow: hidden; display: flex; flex-direction: column;
       }
-      #levelBuilderOverlay h3 {
-        margin: 0 0 8px 0;
-        font-size: 15px;
-        letter-spacing: 0.3px;
-      }
-      #levelBuilderOverlay label {
-        font-size: 12px;
-        opacity: 0.9;
-      }
+      #levelBuilderOverlay h3 { margin:0 0 8px 0; font-size:15px; letter-spacing:0.3px; }
+      #levelBuilderOverlay label { font-size:12px; opacity:0.9; }
       #levelBuilderOverlay input, #levelBuilderOverlay select, #levelBuilderOverlay textarea {
-        width: 100%;
-        padding: 6px 8px;
-        margin: 4px 0 10px 0;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        background: rgba(255, 255, 255, 0.06);
-        color: #e8f4ff;
+        width:100%; padding:6px 8px; margin:4px 0 10px 0;
+        border-radius:6px; border:1px solid rgba(255,255,255,0.18);
+        background:rgba(255,255,255,0.06); color:#e8f4ff;
       }
-      #levelBuilderOverlay .lb-topbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: flex-end;
-      }
-      #levelBuilderOverlay .lb-topbar .group {
-        display: flex;
-        gap: 8px;
-        align-items: flex-end;
-      }
-      #levelBuilderOverlay .lb-topbar label {
-        margin: 0 6px 0 0;
-      }
-      #levelBuilderOverlay .lb-topbar select,
-      #levelBuilderOverlay .lb-topbar input {
-        width: auto;
-        min-width: 72px;
-        margin: 0;
-      }
-      #levelBuilderOverlay table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
-      }
-      #levelBuilderOverlay th, #levelBuilderOverlay td {
-        padding: 4px 6px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-      }
-      #levelBuilderOverlay .button-row {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: auto;
-      }
+      #levelBuilderOverlay .lb-topbar { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+      #levelBuilderOverlay .lb-topbar .group { display:flex; gap:8px; align-items:flex-end; }
+      #levelBuilderOverlay .lb-topbar label { margin:0 6px 0 0; }
+      #levelBuilderOverlay .lb-topbar select, #levelBuilderOverlay .lb-topbar input
+        { width:auto; min-width:72px; margin:0; }
       #levelBuilderOverlay button {
-        background: #2b74ff;
-        color: #fff;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
+        background:#2b74ff; color:#fff; border:none;
+        padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600;
       }
-      #levelBuilderOverlay button.secondary {
-        background: rgba(255,255,255,0.08);
+      #levelBuilderOverlay button.secondary { background:rgba(255,255,255,0.08); }
+      #levelBuilderOverlay button.danger { background:rgba(200,50,50,0.7); }
+      #levelBuilderOverlay .scroll { overflow:auto; flex:1; }
+      /* Mission column layout */
+      #levelBuilderOverlay .lb-mission-cols { display:flex; gap:0; width:max-content; }
+      #levelBuilderOverlay .lb-label-col {
+        position:sticky; left:0; z-index:5;
+        background:rgba(18,28,44,0.98);
+        display:flex; flex-direction:column;
+        min-width:220px; border-right:1px solid rgba(120,170,220,0.25);
       }
-      #levelBuilderOverlay .scroll {
-        overflow: auto;
-        flex: 1;
+      #levelBuilderOverlay .lb-label-col .lb-label-header {
+        height:64px; display:flex; align-items:center;
+        padding:0 8px; font-size:11px; font-weight:700;
+        border-bottom:1px solid rgba(120,170,220,0.2);
+        background:rgba(18,28,44,0.98);
       }
-      #levelBuilderOverlay .lb-table {
-        width: max-content;
-        border-collapse: collapse;
+      #levelBuilderOverlay .lb-label-row {
+        display:flex; align-items:center; gap:6px;
+        height:32px; padding:0 6px;
+        border-bottom:1px solid rgba(120,170,220,0.1); font-size:11px;
       }
-      #levelBuilderOverlay .lb-table th,
-      #levelBuilderOverlay .lb-table td {
-        padding: 4px 6px;
-        border-bottom: 1px solid rgba(120, 170, 220, 0.2);
+      #levelBuilderOverlay .lb-label-row canvas { flex-shrink:0; }
+      #levelBuilderOverlay .lb-wave-col {
+        min-width:120px; max-width:120px;
+        background:rgba(255,200,80,0.07);
+        border-right:2px solid rgba(255,200,80,0.3);
+        display:flex; flex-direction:column;
       }
-      #levelBuilderOverlay .lb-horde-cell {
-        min-width: 36px;
-        width: 36px;
-        text-align: center;
+      #levelBuilderOverlay .lb-wave-header {
+        padding:6px 8px; font-size:11px; font-weight:700;
+        color:#ffd060; border-bottom:1px solid rgba(255,200,80,0.25);
+        background:rgba(255,200,80,0.12);
+      }
+      #levelBuilderOverlay .lb-wave-body { padding:6px 8px; flex:1; display:flex; flex-direction:column; gap:4px; }
+      #levelBuilderOverlay .lb-wave-body textarea {
+        width:100%; resize:vertical; font-size:10px; min-height:48px;
+        margin:0; padding:4px;
+      }
+      #levelBuilderOverlay .lb-wave-body label { font-size:10px; }
+      #levelBuilderOverlay .lb-wave-body input[type=number] { width:60px; margin:0; padding:3px 5px; }
+      #levelBuilderOverlay .lb-wave-footer { padding:6px 8px; display:flex; gap:4px; }
+      #levelBuilderOverlay .lb-horde-col {
+        min-width:70px; max-width:70px;
+        border-right:1px solid rgba(120,170,220,0.15);
+        display:flex; flex-direction:column;
+      }
+      #levelBuilderOverlay .lb-horde-header {
+        height:64px; display:flex; flex-direction:column;
+        align-items:center; justify-content:center; gap:3px;
+        padding:4px 2px; font-size:10px; font-weight:700;
+        border-bottom:1px solid rgba(120,170,220,0.2);
+        background:rgba(255,255,255,0.03); position:relative;
+      }
+      #levelBuilderOverlay .lb-horde-header .lb-col-menu-btn {
+        position:absolute; top:4px; right:4px;
+        background:rgba(255,255,255,0.1); border:none;
+        color:#e8f4ff; padding:1px 5px; border-radius:3px;
+        font-size:10px; cursor:pointer; font-weight:normal;
+      }
+      #levelBuilderOverlay .lb-horde-cell-row {
+        height:32px; display:flex; align-items:center; justify-content:center;
+        border-bottom:1px solid rgba(120,170,220,0.1);
       }
       #levelBuilderOverlay .lb-horde-input {
-        width: 34px;
-        text-align: center;
-        padding: 2px 4px;
+        width:56px; text-align:center; padding:2px 4px; margin:0; font-size:11px;
       }
-      #levelBuilderOverlay .lb-sticky {
-        position: sticky;
-        left: 0;
-        z-index: 2;
-        background: rgba(18, 28, 44, 0.98);
+      #levelBuilderOverlay .lb-horde-footer {
+        padding:6px 4px; display:flex; flex-direction:column; gap:4px; font-size:10px;
       }
-      #levelBuilderOverlay .lb-sticky--sprite {
-        left: 0;
-        min-width: 72px;
-        max-width: 72px;
+      #levelBuilderOverlay .lb-horde-footer label { display:flex; align-items:center; gap:4px; }
+      #levelBuilderOverlay .lb-horde-footer input[type=number] { width:52px; margin:0; padding:3px 4px; }
+      #levelBuilderOverlay .lb-horde-footer input[type=checkbox] { width:auto; margin:0; }
+      /* Column context menu */
+      #levelBuilderOverlay .lb-col-menu {
+        position:absolute; top:100%; right:0; z-index:20;
+        background:rgba(18,28,44,0.98);
+        border:1px solid rgba(120,170,220,0.4);
+        border-radius:6px; padding:4px 0; min-width:130px;
+        box-shadow:0 4px 16px rgba(0,0,0,0.5); display:none;
       }
-      #levelBuilderOverlay .lb-sticky--enemy {
-        left: 72px;
-        min-width: 180px;
+      #levelBuilderOverlay .lb-col-menu.open { display:block; }
+      #levelBuilderOverlay .lb-col-menu-item {
+        display:block; width:100%; text-align:left;
+        background:none; border:none; color:#e8f4ff;
+        padding:6px 14px; font-size:11px; cursor:pointer; font-weight:normal;
+        border-radius:0;
+      }
+      #levelBuilderOverlay .lb-col-menu-item:hover { background:rgba(255,255,255,0.1); }
+      #levelBuilderOverlay .lb-add-wave-col {
+        min-width:48px; display:flex; align-items:center; justify-content:center;
+        padding:0 8px;
       }
     </style>
     <div class="lb-shell">
       <div class="panel" id="lb-topPanel">
         <div class="lb-topbar">
           <div class="group">
-            <label>Level</label>
-            <select id="lb-level"></select>
-            <label>Month</label>
-            <select id="lb-month"></select>
+            <label>Town</label>
+            <select id="lb-town"></select>
+            <label>Battle</label>
+            <select id="lb-battle"></select>
+            <label>Mission</label>
+            <select id="lb-mission"></select>
           </div>
           <div class="group">
-            <label><input type="checkbox" id="lb-showHidden"> Show hidden enemies</label>
+            <label><input type="checkbox" id="lb-showHidden"> Show hidden</label>
           </div>
           <div class="group">
-            <label>Horde Duration (s)</label>
-            <input type="number" id="lb-hordeDuration" min="1" step="1">
+            <button id="lb-copyBattle" class="secondary" type="button">Copy Battle</button>
+            <button id="lb-copyMission" class="secondary" type="button">Copy Mission</button>
+            <button id="lb-paste" class="secondary" type="button">Paste</button>
           </div>
           <div class="group">
             <button id="lb-close" class="secondary">Close (Esc)</button>
@@ -334,7 +406,6 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         <div id="lb-status" style="margin-top:8px;font-size:12px;color:#9bf0ff;"></div>
       </div>
       <div class="panel" id="lb-mainPanel">
-        <h3>Enemies</h3>
         <div class="scroll" id="lb-contentArea"></div>
       </div>
     </div>
@@ -343,15 +414,18 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   const els = {
     overlay,
-    level: overlay.querySelector("#lb-level"),
-    month: overlay.querySelector("#lb-month"),
-    hordeDuration: overlay.querySelector("#lb-hordeDuration"),
-    content: overlay.querySelector("#lb-contentArea"),
-    load: overlay.querySelector("#lb-load"),
-    save: overlay.querySelector("#lb-save"),
-    saveAs: overlay.querySelector("#lb-saveAs"),
-    status: overlay.querySelector("#lb-status"),
-    close: overlay.querySelector("#lb-close"),
+    town:        overlay.querySelector("#lb-town"),
+    battle:      overlay.querySelector("#lb-battle"),
+    mission:     overlay.querySelector("#lb-mission"),
+    content:     overlay.querySelector("#lb-contentArea"),
+    load:        overlay.querySelector("#lb-load"),
+    save:        overlay.querySelector("#lb-save"),
+    saveAs:      overlay.querySelector("#lb-saveAs"),
+    status:      overlay.querySelector("#lb-status"),
+    close:       overlay.querySelector("#lb-close"),
+    copyBattle:  overlay.querySelector("#lb-copyBattle"),
+    copyMission: overlay.querySelector("#lb-copyMission"),
+    paste:       overlay.querySelector("#lb-paste"),
   };
 
   function populateSelect(select, count) {
@@ -366,105 +440,255 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   function initScopeSelectors() {
     const s = state.config.structure;
-    populateSelect(els.level, s.levels);
-    populateSelect(els.month, s.monthsPerLevel);
-    els.level.value = String(state.scope.level);
-    els.month.value = String(state.scope.month);
+    populateSelect(els.town,    s.towns           || 13);
+    populateSelect(els.battle,  s.battlesPerTown  || 3);
+    populateSelect(els.mission, s.missionsPerBattle || 3);
+    els.town.value    = String(state.scope.town);
+    els.battle.value  = String(state.scope.battle);
+    els.mission.value = String(state.scope.mission);
   }
 
-  function getActiveScope() {
-    const scope = {
-      level: Number(els.level.value) || 1,
-      month: Number(els.month.value) || 1,
-      battle: 1,
-      horde: 1,
-    };
-    state.scope = scope;
-    return getOrCreateScope(scope);
-  }
-
-  function renderModeAndWeights() {
-    const { battleObj } = getActiveScope();
+  // Render the full column-based mission view.
+  function renderMissionView() {
+    updateScopeFromSelects();
+    const { missionObj } = getOrCreateMission();
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
+    const enemyKeys = Object.keys(catalog);
     const hiddenSet = new Set(state.config.globals.hiddenEnemies || []);
-    const hordeCount = state.config.structure.defaultHordesPerBattle || 10;
-    const hordes = Array.isArray(battleObj?.hordes) ? battleObj.hordes : [];
+    const visibleKeys = enemyKeys.filter((k) => !hiddenSet.has(k) || state.showHidden);
 
-    const table = document.createElement("table");
-    table.className = "lb-table";
-    const header = document.createElement("tr");
-    const hordeHeaders = Array.from({ length: hordeCount }, (_, idx) => {
-      const label = idx === hordeCount - 1 ? `H${idx + 1}*` : `H${idx + 1}`;
-      return `<th class="lb-horde-cell">${label}</th>`;
-    }).join("");
-    header.innerHTML =
-      `<th class="lb-sticky lb-sticky--sprite">Sprite</th><th class="lb-sticky lb-sticky--enemy">Enemy</th><th>Clear</th>${hordeHeaders}<th>Hide</th>`;
-    table.appendChild(header);
-    Object.keys(catalog).forEach((key) => {
-      if (hiddenSet.has(key) && !state.showHidden) return;
-      const row = document.createElement("tr");
-      const cells = [];
-      for (let i = 0; i < hordeCount; i += 1) {
-        const horde = hordes[i];
-        const entries = Array.isArray(horde?.entries) ? horde.entries : [];
-        const match = entries.find((entry) => entry && entry.enemy === key);
-        const countVal = match ? Number(match.count) || 0 : 0;
-        cells.push(
-          `<td class="lb-horde-cell"><input class="lb-horde-input" type="number" data-exp-count="${key}" data-horde="${i + 1}" value="${countVal}" min="0"></td>`,
-        );
-      }
+    // Close any open column menus on outside click.
+    const closeMenus = () => {
+      els.content.querySelectorAll(".lb-col-menu.open").forEach((m) => m.classList.remove("open"));
+    };
+
+    const waves = Array.isArray(missionObj.waves) ? missionObj.waves : [];
+    const container = document.createElement("div");
+    container.className = "lb-mission-cols";
+
+    // ── Sticky left label column ──────────────────────────────────────────────
+    const labelCol = document.createElement("div");
+    labelCol.className = "lb-label-col";
+    labelCol.innerHTML = `<div class="lb-label-header">Enemy</div>`;
+    visibleKeys.forEach((key) => {
+      const row = document.createElement("div");
+      row.className = "lb-label-row";
+      const isHidden = hiddenSet.has(key);
       row.innerHTML = `
-        <td class="lb-sticky lb-sticky--sprite"><div style="width:48px;height:48px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;">
+        <div style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;">
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
-        </div></td>
-        <td class="lb-sticky lb-sticky--enemy">${key}${hiddenSet.has(key) ? " (hidden)" : ""}</td>
-        <td><button data-clear="${key}" class="secondary" style="padding:4px 8px;">Clear</button></td>
-        ${cells.join("")}
-        <td><button data-hide="${key}" class="secondary" style="padding:4px 8px;">${hiddenSet.has(key) ? "Unhide" : "Hide"}</button></td>
+        </div>
+        <span style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};">${key}</span>
+        <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
-      table.appendChild(row);
-    });
-    els.content.innerHTML = "";
-    els.content.appendChild(table);
-    initThumbAnimations();
-    els.content.querySelectorAll("input[data-exp-count]").forEach((input) => {
-      input.addEventListener("change", () => {
-        const key = input.getAttribute("data-exp-count");
-        const val = Math.max(0, Number(input.value) || 0);
-        const hordeIndex = Math.max(1, Number(input.getAttribute("data-horde") || 1));
-        const horde = hordes[hordeIndex - 1];
-        if (!horde) return;
-        horde.entries = Array.isArray(horde.entries) ? horde.entries : [];
-        const idx = horde.entries.findIndex((entry) => entry && entry.enemy === key);
-        if (val > 0) {
-          if (idx >= 0) horde.entries[idx].count = val;
-          else horde.entries.push({ enemy: key, count: val });
-        } else if (idx >= 0) {
-          horde.entries.splice(idx, 1);
-        }
-        saveToStorage(state.config);
-      });
-    });
-    els.content.querySelectorAll("button[data-hide]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const key = btn.getAttribute("data-hide");
-        toggleHiddenEnemy(key);
-        renderModeAndWeights();
-      });
-    });
-    els.content.querySelectorAll("button[data-clear]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const key = btn.getAttribute("data-clear");
-        if (!key) return;
-        hordes.forEach((horde) => {
-          if (!horde) return;
-          const entries = Array.isArray(horde.entries) ? horde.entries : [];
-          horde.entries = entries.filter((entry) => entry && entry.enemy !== key);
+      const hideBtn = row.querySelector(`[data-hide-key="${key}"]`);
+      if (hideBtn) {
+        hideBtn.addEventListener("click", () => {
+          toggleHiddenEnemy(key);
+          renderMissionView();
         });
+      }
+      labelCol.appendChild(row);
+    });
+    // Footer rows for duration / allKill labels
+    const footerSpacer = document.createElement("div");
+    footerSpacer.style.cssText = "padding:6px 8px;font-size:10px;color:rgba(255,255,255,0.5);border-top:1px solid rgba(120,170,220,0.2);";
+    footerSpacer.innerHTML = `<div style="height:24px;line-height:24px;">Duration (s)</div><div style="height:24px;line-height:24px;">All Kill</div>`;
+    labelCol.appendChild(footerSpacer);
+    container.appendChild(labelCol);
+
+    // ── Wave + horde columns ─────────────────────────────────────────────────
+    waves.forEach((wave, wIdx) => {
+      // Wave header column
+      const waveCol = document.createElement("div");
+      waveCol.className = "lb-wave-col";
+      const waveHeader = document.createElement("div");
+      waveHeader.className = "lb-wave-header";
+      waveHeader.textContent = `Wave ${wIdx + 1}`;
+      waveCol.appendChild(waveHeader);
+
+      const waveBody = document.createElement("div");
+      waveBody.className = "lb-wave-body";
+      // Enemy rows spacer
+      visibleKeys.forEach(() => {
+        const spacer = document.createElement("div");
+        spacer.style.cssText = "height:32px;border-bottom:1px solid rgba(120,170,220,0.1);";
+        waveBody.appendChild(spacer);
+      });
+      // Intro text
+      const introLabel = document.createElement("label");
+      introLabel.textContent = "Intro text";
+      const introTA = document.createElement("textarea");
+      introTA.value = wave.introText || "";
+      introTA.addEventListener("change", () => {
+        wave.introText = introTA.value;
         saveToStorage(state.config);
-        renderModeAndWeights();
+      });
+      // Breaker duration
+      const breakerLabel = document.createElement("label");
+      breakerLabel.textContent = "Breaker (s)";
+      const breakerInput = document.createElement("input");
+      breakerInput.type = "number"; breakerInput.min = "0"; breakerInput.step = "0.5";
+      breakerInput.value = String(wave.breakerDuration ?? 3);
+      breakerInput.addEventListener("change", () => {
+        wave.breakerDuration = Math.max(0, Number(breakerInput.value) || 0);
+        saveToStorage(state.config);
+      });
+      waveBody.appendChild(introLabel);
+      waveBody.appendChild(introTA);
+      waveBody.appendChild(breakerLabel);
+      waveBody.appendChild(breakerInput);
+      waveCol.appendChild(waveBody);
+
+      const waveFooter = document.createElement("div");
+      waveFooter.className = "lb-wave-footer";
+      const addHordeBtn = document.createElement("button");
+      addHordeBtn.className = "secondary";
+      addHordeBtn.style.cssText = "padding:3px 6px;font-size:10px;width:100%;";
+      addHordeBtn.textContent = "+ Horde";
+      addHordeBtn.addEventListener("click", () => {
+        const newIdx = wave.hordes.length + 1;
+        wave.hordes.push(makeDefaultHorde(newIdx));
+        saveToStorage(state.config);
+        renderMissionView();
+      });
+      waveFooter.appendChild(addHordeBtn);
+      waveCol.appendChild(waveFooter);
+      container.appendChild(waveCol);
+
+      // Horde columns within this wave
+      const hordes = Array.isArray(wave.hordes) ? wave.hordes : [];
+      hordes.forEach((horde, hIdx) => {
+        const hordeCol = document.createElement("div");
+        hordeCol.className = "lb-horde-col";
+
+        // Header with dropdown menu
+        const hordeHeader = document.createElement("div");
+        hordeHeader.className = "lb-horde-header";
+        hordeHeader.style.position = "relative";
+        hordeHeader.innerHTML = `<span style="font-size:11px;font-weight:700;">H${hIdx + 1}</span>`;
+        const menuBtn = document.createElement("button");
+        menuBtn.className = "lb-col-menu-btn";
+        menuBtn.textContent = "▾";
+        const menu = document.createElement("div");
+        menu.className = "lb-col-menu";
+        menu.innerHTML = `
+          <button class="lb-col-menu-item" data-action="copy">Copy</button>
+          <button class="lb-col-menu-item" data-action="paste">Paste</button>
+          <button class="lb-col-menu-item" data-action="insert-before">Insert Before</button>
+          <button class="lb-col-menu-item" data-action="insert-after">Insert After</button>
+          <button class="lb-col-menu-item danger" data-action="delete">Delete</button>
+        `;
+        menuBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          closeMenus();
+          menu.classList.toggle("open");
+        });
+        menu.querySelectorAll(".lb-col-menu-item").forEach((item) => {
+          item.addEventListener("click", (e) => {
+            e.stopPropagation();
+            menu.classList.remove("open");
+            const action = item.getAttribute("data-action");
+            if (action === "copy") {
+              state.clipboard = { type: "horde", data: deepClone(horde) };
+              setStatus("Horde copied");
+            } else if (action === "paste") {
+              if (state.clipboard?.type === "horde") {
+                const pasted = deepClone(state.clipboard.data);
+                pasted.index = horde.index;
+                wave.hordes[hIdx] = pasted;
+                saveToStorage(state.config); renderMissionView();
+              }
+            } else if (action === "insert-before") {
+              wave.hordes.splice(hIdx, 0, makeDefaultHorde(0));
+              wave.hordes.forEach((h, i) => { h.index = i + 1; });
+              saveToStorage(state.config); renderMissionView();
+            } else if (action === "insert-after") {
+              wave.hordes.splice(hIdx + 1, 0, makeDefaultHorde(0));
+              wave.hordes.forEach((h, i) => { h.index = i + 1; });
+              saveToStorage(state.config); renderMissionView();
+            } else if (action === "delete") {
+              wave.hordes.splice(hIdx, 1);
+              wave.hordes.forEach((h, i) => { h.index = i + 1; });
+              saveToStorage(state.config); renderMissionView();
+            }
+          });
+        });
+        hordeHeader.appendChild(menuBtn);
+        hordeHeader.appendChild(menu);
+        hordeCol.appendChild(hordeHeader);
+
+        // Enemy count rows
+        visibleKeys.forEach((key) => {
+          const cellRow = document.createElement("div");
+          cellRow.className = "lb-horde-cell-row";
+          const entries = Array.isArray(horde.entries) ? horde.entries : [];
+          const match = entries.find((e) => e && e.enemy === key);
+          const countVal = match ? Number(match.count) || 0 : 0;
+          const input = document.createElement("input");
+          input.className = "lb-horde-input";
+          input.type = "number"; input.min = "0"; input.value = String(countVal);
+          input.addEventListener("change", () => {
+            const val = Math.max(0, Number(input.value) || 0);
+            horde.entries = Array.isArray(horde.entries) ? horde.entries : [];
+            const idx = horde.entries.findIndex((e) => e && e.enemy === key);
+            if (val > 0) {
+              if (idx >= 0) horde.entries[idx].count = val;
+              else horde.entries.push({ enemy: key, count: val });
+            } else if (idx >= 0) {
+              horde.entries.splice(idx, 1);
+            }
+            saveToStorage(state.config);
+          });
+          cellRow.appendChild(input);
+          hordeCol.appendChild(cellRow);
+        });
+
+        // Footer: duration + allKill
+        const footer = document.createElement("div");
+        footer.className = "lb-horde-footer";
+        const durInput = document.createElement("input");
+        durInput.type = "number"; durInput.min = "1"; durInput.step = "1";
+        durInput.value = String(horde.duration || state.config.structure.defaultHordeDuration || 4);
+        durInput.addEventListener("change", () => {
+          horde.duration = Math.max(1, Number(durInput.value) || 1);
+          saveToStorage(state.config);
+        });
+        const akLabel = document.createElement("label");
+        const akBox = document.createElement("input");
+        akBox.type = "checkbox"; akBox.checked = !!horde.allKill;
+        akBox.addEventListener("change", () => {
+          horde.allKill = akBox.checked;
+          saveToStorage(state.config);
+        });
+        akLabel.appendChild(akBox);
+        akLabel.appendChild(document.createTextNode(" ☠"));
+        footer.appendChild(durInput);
+        footer.appendChild(akLabel);
+        hordeCol.appendChild(footer);
+        container.appendChild(hordeCol);
       });
     });
+
+    // ── Add Wave button column ────────────────────────────────────────────────
+    const addWaveCol = document.createElement("div");
+    addWaveCol.className = "lb-add-wave-col";
+    const addWaveBtn = document.createElement("button");
+    addWaveBtn.className = "secondary";
+    addWaveBtn.style.cssText = "writing-mode:vertical-rl;padding:8px 4px;font-size:11px;";
+    addWaveBtn.textContent = "+ Wave";
+    addWaveBtn.addEventListener("click", () => {
+      missionObj.waves.push(makeDefaultWave(missionObj.waves.length + 1));
+      saveToStorage(state.config);
+      renderMissionView();
+    });
+    addWaveCol.appendChild(addWaveBtn);
+    container.appendChild(addWaveCol);
+
+    els.content.innerHTML = "";
+    els.content.appendChild(container);
+    document.addEventListener("click", closeMenus, { once: true });
+    initThumbAnimations();
   }
 
   function inferFrameSizeForManifestEntry(entry, image, key) {
@@ -862,77 +1086,92 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
   }
 
   function refreshUI() {
-    const scopeBefore = { ...state.scope };
     initScopeSelectors();
-    const { battleObj } = getActiveScope();
-    const hpb = state.config.structure.defaultHordesPerBattle || 10;
-    battleObj.hordesPerBattle = hpb;
-    battleObj.hordes = battleObj.hordes || [];
-    while (battleObj.hordes.length < hpb) {
-      battleObj.hordes.push({
-        index: battleObj.hordes.length + 1,
-        entries: [],
-        weights: {},
-        delays: {},
-        delaysWeighted: {},
-        delaysExplicit: {},
-        mode: "explicit",
-        allKill: false,
-        duration: state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION,
-      });
-    }
-    battleObj.hordes = battleObj.hordes.slice(0, hpb);
-    const defaultDuration = state.config.structure.defaultHordeDuration || DEFAULT_HORDE_DURATION;
-    battleObj.hordes.forEach((horde, idx) => {
-      horde.index = idx + 1;
-      horde.mode = "explicit";
-      horde.weights = {};
-      horde.delays = {};
-      horde.delaysWeighted = {};
-      horde.delaysExplicit = {};
-      horde.allKill = idx === hpb - 1;
-      if (!Number.isFinite(horde.duration) || horde.duration <= 0) {
-        horde.duration = defaultDuration;
-      }
-    });
-    if (els.hordeDuration) {
-      const baseDuration = battleObj.hordes[0]?.duration || defaultDuration;
-      els.hordeDuration.value = Math.round(baseDuration);
-    }
-    renderModeAndWeights();
+    renderMissionView();
   }
 
   function attachEvents() {
-    ["level", "month"].forEach((key) => {
+    // Scope dropdowns
+    ["town", "battle", "mission"].forEach((key) => {
       els[key].addEventListener("change", () => {
         updateScopeFromSelects();
         refreshUI();
       });
     });
+
+    // Show Hidden checkbox
     const showHiddenCheckbox = overlay.querySelector("#lb-showHidden");
     if (showHiddenCheckbox) {
       showHiddenCheckbox.addEventListener("change", () => {
         state.showHidden = showHiddenCheckbox.checked;
-        renderModeAndWeights();
+        renderMissionView();
       });
     }
-    els.hordeDuration.addEventListener("change", () => {
-      const val = Math.max(1, Number(els.hordeDuration.value) || DEFAULT_HORDE_DURATION);
-      const { battleObj } = getActiveScope();
-      if (!battleObj || !Array.isArray(battleObj.hordes)) return;
-      battleObj.hordes.forEach((horde) => {
-        horde.duration = val;
+
+    // Copy Battle
+    if (els.copyBattle) {
+      els.copyBattle.addEventListener("click", () => {
+        const { town: townIdx, battle: battleIdx } = state.scope;
+        const townObj = ensureTown(townIdx);
+        const battleObj = ensureBattle(townObj, battleIdx);
+        state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(battleObj)) };
+        setStatus(`Copied Battle ${battleIdx}`);
       });
-      saveToStorage(state.config);
-    });
+    }
+
+    // Copy Mission
+    if (els.copyMission) {
+      els.copyMission.addEventListener("click", () => {
+        const { missionObj } = getOrCreateMission();
+        state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
+        const { battle: battleIdx, mission: missionIdx } = state.scope;
+        setStatus(`Copied Battle ${battleIdx} Mission ${missionIdx}`);
+      });
+    }
+
+    // Paste
+    if (els.paste) {
+      els.paste.addEventListener("click", () => {
+        if (!state.clipboard) { setStatus("Nothing to paste", true); return; }
+        const { town: townIdx, battle: battleIdx, mission: missionIdx } = state.scope;
+        const townObj = ensureTown(townIdx);
+        if (state.clipboard.type === "battle") {
+          const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
+          pasted.index = battleIdx;
+          const bList = townObj.battles;
+          const existingIdx = bList.findIndex((b) => b.index === battleIdx);
+          if (existingIdx >= 0) bList[existingIdx] = pasted;
+          else bList.push(pasted);
+          saveToStorage(state.config);
+          refreshUI();
+          setStatus(`Pasted battle into Town ${townIdx} Battle ${battleIdx}`);
+        } else if (state.clipboard.type === "mission") {
+          const battleObj = ensureBattle(townObj, battleIdx);
+          const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
+          pasted.index = missionIdx;
+          const mList = battleObj.missions;
+          const existingIdx = mList.findIndex((m) => m.index === missionIdx);
+          if (existingIdx >= 0) mList[existingIdx] = pasted;
+          else mList.push(pasted);
+          saveToStorage(state.config);
+          refreshUI();
+          setStatus(`Pasted mission into Town ${townIdx} Battle ${battleIdx} Mission ${missionIdx}`);
+        } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
+          setStatus("Use the column ▾ menu to paste hordes/waves", true);
+        }
+      });
+    }
+
     if (els.load) {
       els.load.addEventListener("click", () => {
         syncFromServer({ showStatus: true });
       });
     }
+
     els.save.addEventListener("click", () => {
       persistConfig();
     });
+
     if (els.saveAs) {
       els.saveAs.addEventListener("click", () => {
         try {
@@ -962,6 +1201,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         }
       });
     }
+
     els.close.addEventListener("click", hide);
   }
 
