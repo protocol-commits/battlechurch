@@ -106,7 +106,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "Wave1",
                   "breakerDuration": 3,
                   "hordes": [
                     {

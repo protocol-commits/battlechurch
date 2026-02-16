@@ -103,39 +103,6 @@
     return new Set(Array.isArray(list) ? list : []);
   }
 
-  function getGlobalList(key) {
-    const cfg = getDevConfig();
-    const list = cfg?.globals?.[key];
-    return Array.isArray(list) ? list : [];
-  }
-
-  function getGlobalMap(key) {
-    const cfg = getDevConfig();
-    const map = cfg?.globals?.[key];
-    return map && typeof map === "object" ? map : {};
-  }
-
-  function isGlobalAllKillWave(hordeNumber) {
-    const list = getGlobalList("allKillHordes");
-    return list.includes(hordeNumber);
-  }
-
-  function getFloorTextForWave(hordeNumber) {
-    const map = getGlobalMap("floorTextByHorde");
-    if (map[hordeNumber] !== undefined) return map[hordeNumber];
-    const stringKey = String(hordeNumber);
-    if (map[stringKey] !== undefined) return map[stringKey];
-    return null;
-  }
-
-  function formatNameList(names) {
-    const clean = (Array.isArray(names) ? names : []).filter(Boolean);
-    if (!clean.length) return "";
-    if (clean.length === 1) return clean[0];
-    if (clean.length === 2) return `${clean[0]} and ${clean[1]}`;
-    return `${clean.slice(0, -1).join(", ")} and ${clean[clean.length - 1]}`;
-  }
-
   // getScopeConfig(townIdx, battleIdx, missionIdx, hordeIdx)
   // Supports v2 keys (towns/battles/missions/waves) with v1 fallback (levels/months/battles/hordes).
   function getScopeConfig(townIdx, battleIdx, missionIdx, hordeIdx = null) {
@@ -300,8 +267,8 @@
     return picked || fallbackType;
   }
 
-  // createHordeDefinition(level, month, horde, helpers)
-  function createHordeDefinition(levelNumber, monthIndex, hordeIndex, helpers) {
+  // createHordeDefinition(level, battle, mission, horde, helpers) — all indices are 0-based
+  function createHordeDefinition(levelNumber, battleIndex, missionIndex, hordeIndex, helpers) {
     const {
       randomChoice,
       randomInRange,
@@ -311,15 +278,14 @@
       selectEnemyType,
     } = helpers;
 
-    const battleIndex = monthIndex; // reuse until separate battle tier is surfaced in builder
-    const difficultyRating = levelNumber + monthIndex * 0.75 + battleIndex * 0.45;
+    const difficultyRating = levelNumber + battleIndex * 0.75 + missionIndex * 0.45;
     const baseCount = 40 + Math.round(difficultyRating * 8);
     const maxCount = 180 + Math.round(levelNumber * 12);
 
     let miniImpGroupCount =
       miniImpMinGroupsPerHorde +
       Math.max(0, Math.floor((levelNumber - 1) / 2)) +
-      Math.max(0, Math.floor(monthIndex / 2)) +
+      Math.max(0, Math.floor(battleIndex / 2)) +
       (battleIndex > 0 ? 1 : 0);
     miniImpGroupCount = Math.min(6, miniImpGroupCount);
 
@@ -338,19 +304,15 @@
     const miniImpTotal = miniImpGroupCount * miniImpGroupSize;
     const desiredTotal = Math.max(miniImpTotal + 6, baseCount + Math.floor(difficultyRating * 2.5));
     const totalEnemies = Math.max(miniImpTotal, Math.min(maxCount, desiredTotal));
-    const hordeNumber = hordeIndex + 1;
-    const scope = getScopeConfig(levelNumber, monthIndex + 1, battleIndex + 1, hordeIndex + 1);
+    const scope = getScopeConfig(levelNumber, battleIndex + 1, missionIndex + 1, hordeIndex + 1);
     const hidden = getHiddenSet();
-    const mode = resolveValue(scope, "mode") || "weighted";
     const defaultDuration =
       resolveValue(scope, "duration") ??
       (scope.cfg?.structure && scope.cfg.structure.defaultHordeDuration);
     const durationSeconds = Number.isFinite(defaultDuration)
       ? defaultDuration
       : Math.max(10, 14 + Math.round(difficultyRating * 2));
-    const scopedAllKill = scope.horde?.allKill === true;
-    const globalAllKill = isGlobalAllKillWave(hordeNumber);
-    const resolvedAllKill = scopedAllKill || globalAllKill;
+    const resolvedAllKill = scope.horde?.allKill === true;
 
     // Collect builder overrides (weighted + explicit can both apply)
     const explicitEntries = Array.isArray(scope.horde?.entries)
@@ -481,20 +443,32 @@
         if (Array.isArray(missionData?.waves) && missionData.waves.length) {
           // v2: flatten waves → hordes for the game engine
           for (const wave of missionData.waves) {
-            for (const h of (wave.hordes || [])) {
-              hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, h.index, helpers));
+            const waveHordes = wave.hordes || [];
+            for (let wHIdx = 0; wHIdx < waveHordes.length; wHIdx += 1) {
+              const h = waveHordes[wHIdx];
+              // h.index is 1-based; createHordeDefinition expects 0-based
+              const def = createHordeDefinition(levelNumber, bIdx, mIdx, h.index - 1, helpers);
+              // Tag the first horde of each wave with the wave's intro text
+              if (wHIdx === 0 && wave.introText) {
+                def.waveIntroText = wave.introText;
+              }
+              // Tag allKill hordes with the wave's breaker duration
+              if (def.allKill && wave.breakerDuration != null) {
+                def.waveBreakDuration = Number(wave.breakerDuration) || 3;
+              }
+              hordes.push(def);
             }
           }
         } else if (Array.isArray(missionData?.hordes) && missionData.hordes.length) {
-          // v1 fallback: hordes directly on mission/battle
+          // v1 fallback: hordes directly on mission/battle (h.index is 1-based)
           for (const h of missionData.hordes) {
-            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, h.index, helpers));
+            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, h.index - 1, helpers));
           }
         } else {
-          // procedural fallback: no explicit config
+          // procedural fallback: no explicit config (hIdx is 0-based)
           const count = resolveHordeCount(levelNumber, bIdx + 1, mIdx + 1, HORDES_PER_BATTLE);
           for (let hIdx = 0; hIdx < count; hIdx += 1) {
-            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, hIdx + 1, helpers));
+            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, hIdx, helpers));
           }
         }
         battles.push({ hordes }); // each mission = one sequential battle for the level manager
@@ -1018,12 +992,13 @@
       const introDuration = waveNumber === 1 ? 4.0 : WAVE_INTRO_DURATION;
       resetStage("waveIntro", introDuration);
       if (waveNumber === 1) {
-        const names = formatNameList(npcs.map((npc) => npc?.name || ""));
-        const title = "\"We're going to face this together.\"";
-        queueLevelAnnouncement(title, "", {
-          duration: introDuration,
-          skipMissionBrief: true,
-        });
+        const introText = state.activeWave?.waveIntroText || "";
+        if (introText) {
+          queueLevelAnnouncement(introText, "", {
+            duration: introDuration,
+            skipMissionBrief: true,
+          });
+        }
         const spawnDelay = Math.max(0, introDuration - ANNOUNCEMENT_FADE_DURATION);
         if (typeof setTimeoutFn === "function") {
           setTimeoutFn(() => {
@@ -1065,7 +1040,6 @@
     function spawnActiveWave() {
       const horde = state.activeWave;
       if (!horde) return;
-      const waveNumber = state.waveIndex + 1;
       const waveActiveDuration = Number.isFinite(horde?.duration) ? horde.duration : 12;
       const currentBattle = state.definition?.battles?.[state.monthIndex] || null;
       const totalHordes = getBattleHordeCount(currentBattle);
@@ -1096,15 +1070,6 @@
         }
       });
 
-      if ([3, 10, 16].includes(waveNumber)) {
-        const floorText = getFloorTextForWave(waveNumber);
-        if (floorText) {
-          queueLevelAnnouncement(floorText, "", {
-            duration: 2.2,
-            skipMissionBrief: true,
-          });
-        }
-      }
     }
 
     function handleWaveCleared() {
@@ -1119,7 +1084,7 @@
 
       if (!finalWave) {
         state.finalWaveDelay = 0;
-        if (isGlobalAllKillWave(waveNumber)) {
+        if (state.activeWave?.allKill === true) {
           const preFadeDelay = ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
           if (typeof deps.rotateNpcPositionsForActBreak === "function") {
             deps.rotateNpcPositionsForActBreak();
@@ -1128,36 +1093,32 @@
             duration: preFadeDelay,
             skipMissionBrief: true,
           });
-          const skipActBreakFade = true;
-          if (!skipActBreakFade && typeof startActBreakFade === "function") {
-            if (typeof setTimeoutFn === "function") {
-              setTimeoutFn(() => startActBreakFade(ACT_BREAK_HOLD_SECONDS), preFadeDelay * 1000);
-            } else {
-              startActBreakFade(ACT_BREAK_HOLD_SECONDS);
-            }
-          }
-          const nextWaveNumber = waveNumber + 1;
-          const floorText = getFloorTextForWave(nextWaveNumber);
           const announcementHold = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA;
-          const actBreakTotal = announcementHold + (skipActBreakFade ? 0 : ACT_BREAK_FADE_TOTAL) + preFadeDelay;
-          if (floorText) {
-            const delayMs = (preFadeDelay + (skipActBreakFade ? 0 : ACT_BREAK_FADE_TOTAL)) * 1000;
+          const breakerDuration = Number.isFinite(state.activeWave?.waveBreakDuration)
+            ? state.activeWave.waveBreakDuration
+            : announcementHold + preFadeDelay;
+          // Peek at the next horde to get its wave intro text
+          const nextHorde = state.definition?.battles?.[state.monthIndex]?.hordes?.[state.waveIndex + 1];
+          const nextWaveIntroText = nextHorde?.waveIntroText || "";
+          if (nextWaveIntroText) {
+            const delayMs = preFadeDelay * 1000;
+            const holdDuration = Math.max(1, breakerDuration - preFadeDelay);
             if (typeof setTimeoutFn === "function") {
               setTimeoutFn(() => {
-                queueLevelAnnouncement(floorText, "", {
-                  duration: announcementHold,
+                queueLevelAnnouncement(nextWaveIntroText, "", {
+                  duration: holdDuration,
                   skipMissionBrief: true,
                 });
               }, delayMs);
             } else {
-              queueLevelAnnouncement(floorText, "", {
-                duration: announcementHold,
+              queueLevelAnnouncement(nextWaveIntroText, "", {
+                duration: holdDuration,
                 skipMissionBrief: true,
               });
             }
           }
-          resetStage("waveCleared", actBreakTotal);
-          setDevStatus(`Act break after Wave ${battleNumber}-${waveNumber}`, actBreakTotal);
+          resetStage("waveCleared", breakerDuration);
+          setDevStatus(`Act break after Wave ${battleNumber}-${waveNumber}`, breakerDuration);
           return;
         }
         setDevStatus(`Wave ${battleNumber}-${waveNumber} advancing`, 1.2);
@@ -1418,7 +1379,7 @@ state.waveIndex = -1;
         const horde = currentWave();
         const allKill = finalWave
           ? true
-          : (horde?.allKill === true || isGlobalAllKillWave(state.waveIndex + 1));
+          : (horde?.allKill === true);
         if (!finalWave) {
           if (allKill) {
             if (!enemiesRemain && pendingPortalSpawns <= 0) handleWaveCleared();
