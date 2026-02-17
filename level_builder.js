@@ -158,7 +158,19 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     mode: "explicit",
     showHidden: false,
     clipboard: null, // { type: 'horde'|'wave'|'mission'|'battle', data: deepClone }
+    enemySort: "default", // "default" | "type" | "name"
   };
+
+  // Classify enemies into types based on catalog properties
+  function getEnemyType(key, catalog) {
+    const def = catalog[key];
+    if (!def) return "normal";
+    if (def.damageClass === "armored") return "armored";
+    if (def.damageClass === "tank") return "tank";
+    if (def.ranged === true || (def.projectileType && def.projectileType !== null)) return "projectile";
+    return "normal";
+  }
+  const ENEMY_TYPE_ORDER = { normal: 0, tank: 1, projectile: 2, armored: 3 };
   const THUMB_SIZE = 26;
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
   const manifestThumbImages = new Map();
@@ -461,6 +473,16 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     const enemyKeys = Object.keys(catalog);
     const hiddenSet = new Set(state.config.globals.hiddenEnemies || []);
     const visibleKeys = enemyKeys.filter((k) => !hiddenSet.has(k) || state.showHidden);
+    // Sort enemies based on current sort mode
+    if (state.enemySort === "type") {
+      visibleKeys.sort((a, b) => {
+        const ta = ENEMY_TYPE_ORDER[getEnemyType(a, catalog)] || 0;
+        const tb = ENEMY_TYPE_ORDER[getEnemyType(b, catalog)] || 0;
+        return ta - tb || a.localeCompare(b);
+      });
+    } else if (state.enemySort === "name") {
+      visibleKeys.sort((a, b) => a.localeCompare(b));
+    }
 
     // Close any open column menus on outside click.
     const closeMenus = () => {
@@ -474,7 +496,20 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     // ── Sticky left label column ──────────────────────────────────────────────
     const labelCol = document.createElement("div");
     labelCol.className = "lb-label-col";
-    labelCol.innerHTML = `<div class="lb-label-header">Enemy</div>`;
+    const labelHeader = document.createElement("div");
+    labelHeader.className = "lb-label-header";
+    labelHeader.innerHTML = `<span>Enemy</span>
+      <select class="lb-sort-select" style="font-size:10px;padding:1px 3px;margin-left:auto;">
+        <option value="default"${state.enemySort === "default" ? " selected" : ""}>Catalog</option>
+        <option value="type"${state.enemySort === "type" ? " selected" : ""}>Type</option>
+        <option value="name"${state.enemySort === "name" ? " selected" : ""}>Name</option>
+      </select>`;
+    labelHeader.querySelector(".lb-sort-select").addEventListener("change", (e) => {
+      state.enemySort = e.target.value;
+      renderMissionView();
+    });
+    labelCol.appendChild(labelHeader);
+    const TYPE_COLORS = { normal: "#8cb4e0", tank: "#e0a040", projectile: "#e06060", armored: "#a0a0b0" };
     visibleKeys.forEach((key) => {
       const row = document.createElement("div");
       row.className = "lb-label-row";
@@ -483,7 +518,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         <div style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;">
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
-        <span style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};">${key}</span>
+        <span style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${state.enemySort === "type" ? (TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff") : "#e8f4ff"};">${key}</span>
         <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
       const hideBtn = row.querySelector(`[data-hide-key="${key}"]`);
