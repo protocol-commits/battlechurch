@@ -159,7 +159,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     showHidden: false,
     clipboard: null, // { type: 'horde'|'wave'|'mission'|'battle', data: deepClone }
   };
-  const THUMB_SIZE = 48;
+  const THUMB_SIZE = 26;
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
   const manifestThumbImages = new Map();
   const thumbImageListeners = new WeakSet();
