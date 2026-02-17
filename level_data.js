@@ -152,7 +152,7 @@ window.BattlechurchLevelData = {
                       "weights": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": false,
+                      "allKill": true,
                       "duration": 4,
                       "mode": "explicit",
                       "delays": {}
