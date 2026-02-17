@@ -103,9 +103,10 @@
     return new Set(Array.isArray(list) ? list : []);
   }
 
-  // getScopeConfig(townIdx, battleIdx, missionIdx, hordeIdx)
+  // getScopeConfig(townIdx, battleIdx, missionIdx, waveIdx, hordeIdx)
   // Supports v2 keys (towns/battles/missions/waves) with v1 fallback (levels/months/battles/hordes).
-  function getScopeConfig(townIdx, battleIdx, missionIdx, hordeIdx = null) {
+  // waveIdx is 0-based and targets the specific wave; pass null to search all waves (v1 compat).
+  function getScopeConfig(townIdx, battleIdx, missionIdx, waveIdx = null, hordeIdx = null) {
     const cfg = getDevConfig();
     if (!cfg) return {};
     const townList = Array.isArray(cfg.towns) ? cfg.towns
@@ -123,9 +124,16 @@
     let horde = null;
     if (hordeIdx != null) {
       if (Array.isArray(mission?.waves)) {
-        for (const wave of mission.waves) {
-          const found = wave.hordes?.find((h) => h?.index === hordeIdx);
-          if (found) { horde = found; break; }
+        if (waveIdx != null) {
+          // v2: target the specific wave by index to avoid index collisions across waves
+          const targetWave = mission.waves[waveIdx];
+          horde = targetWave?.hordes?.find((h) => h?.index === hordeIdx) || null;
+        } else {
+          // fallback: scan all waves (used when wave index is unavailable)
+          for (const wave of mission.waves) {
+            const found = wave.hordes?.find((h) => h?.index === hordeIdx);
+            if (found) { horde = found; break; }
+          }
         }
       } else if (Array.isArray(mission?.hordes)) {
         // v1 fallback: hordes directly on mission/battle
@@ -267,8 +275,9 @@
     return picked || fallbackType;
   }
 
-  // createHordeDefinition(level, battle, mission, horde, helpers) — all indices are 0-based
-  function createHordeDefinition(levelNumber, battleIndex, missionIndex, hordeIndex, helpers) {
+  // createHordeDefinition(level, battle, mission, wave, horde, helpers) — all indices are 0-based
+  // waveIndex is 0-based; pass null for v1/procedural paths where waves don't exist.
+  function createHordeDefinition(levelNumber, battleIndex, missionIndex, waveIndex, hordeIndex, helpers) {
     const {
       randomChoice,
       randomInRange,
@@ -304,7 +313,7 @@
     const miniImpTotal = miniImpGroupCount * miniImpGroupSize;
     const desiredTotal = Math.max(miniImpTotal + 6, baseCount + Math.floor(difficultyRating * 2.5));
     const totalEnemies = Math.max(miniImpTotal, Math.min(maxCount, desiredTotal));
-    const scope = getScopeConfig(levelNumber, battleIndex + 1, missionIndex + 1, hordeIndex + 1);
+    const scope = getScopeConfig(levelNumber, battleIndex + 1, missionIndex + 1, waveIndex, hordeIndex + 1);
     const hidden = getHiddenSet();
     const defaultDuration =
       resolveValue(scope, "duration") ??
@@ -442,12 +451,14 @@
         const hordes = [];
         if (Array.isArray(missionData?.waves) && missionData.waves.length) {
           // v2: flatten waves → hordes for the game engine
-          for (const wave of missionData.waves) {
+          for (let wIdx = 0; wIdx < missionData.waves.length; wIdx += 1) {
+            const wave = missionData.waves[wIdx];
             const waveHordes = wave.hordes || [];
             for (let wHIdx = 0; wHIdx < waveHordes.length; wHIdx += 1) {
               const h = waveHordes[wHIdx];
               // h.index is 1-based; createHordeDefinition expects 0-based
-              const def = createHordeDefinition(levelNumber, bIdx, mIdx, h.index - 1, helpers);
+              // Pass wIdx so getScopeConfig looks only within the correct wave
+              const def = createHordeDefinition(levelNumber, bIdx, mIdx, wIdx, h.index - 1, helpers);
               // Tag the first horde of each wave with the wave's intro text
               if (wHIdx === 0 && wave.introText) {
                 def.waveIntroText = wave.introText;
@@ -460,15 +471,15 @@
             }
           }
         } else if (Array.isArray(missionData?.hordes) && missionData.hordes.length) {
-          // v1 fallback: hordes directly on mission/battle (h.index is 1-based)
+          // v1 fallback: hordes directly on mission/battle (h.index is 1-based, no wave index)
           for (const h of missionData.hordes) {
-            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, h.index - 1, helpers));
+            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, null, h.index - 1, helpers));
           }
         } else {
           // procedural fallback: no explicit config (hIdx is 0-based)
           const count = resolveHordeCount(levelNumber, bIdx + 1, mIdx + 1, HORDES_PER_BATTLE);
           for (let hIdx = 0; hIdx < count; hIdx += 1) {
-            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, hIdx, helpers));
+            hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, null, hIdx, helpers));
           }
         }
         battles.push({ hordes }); // each mission = one sequential battle for the level manager
