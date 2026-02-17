@@ -260,6 +260,9 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         z-index: 9999; display: none;
         padding: 16px; box-sizing: border-box;
       }
+      #levelBuilderOverlay *, #levelBuilderOverlay *::before, #levelBuilderOverlay *::after {
+        box-sizing: border-box;
+      }
       #levelBuilderOverlay .lb-shell { display:flex; flex-direction:column; gap:12px; height:100%; }
       #levelBuilderOverlay .panel {
         background: rgba(18,28,44,0.85);
@@ -313,17 +316,19 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         display:flex; flex-direction:column;
       }
       #levelBuilderOverlay .lb-wave-header {
-        padding:6px 8px; font-size:11px; font-weight:700;
+        height:64px; display:flex; align-items:center; justify-content:space-between;
+        padding:0 8px; font-size:11px; font-weight:700;
         color:#ffd060; border-bottom:1px solid rgba(255,200,80,0.25);
         background:rgba(255,200,80,0.12);
       }
-      #levelBuilderOverlay .lb-wave-body { padding:6px 8px; flex:1; display:flex; flex-direction:column; gap:4px; }
-      #levelBuilderOverlay .lb-wave-body textarea {
+      #levelBuilderOverlay .lb-wave-body { padding:0; flex:1; display:flex; flex-direction:column; }
+      #levelBuilderOverlay .lb-wave-fields { padding:6px 8px; display:flex; flex-direction:column; gap:4px; }
+      #levelBuilderOverlay .lb-wave-fields textarea {
         width:100%; resize:vertical; font-size:10px; min-height:48px;
         margin:0; padding:4px;
       }
-      #levelBuilderOverlay .lb-wave-body label { font-size:10px; }
-      #levelBuilderOverlay .lb-wave-body input[type=number] { width:60px; margin:0; padding:3px 5px; }
+      #levelBuilderOverlay .lb-wave-fields label { font-size:10px; }
+      #levelBuilderOverlay .lb-wave-fields input[type=number] { width:60px; margin:0; padding:3px 5px; }
       #levelBuilderOverlay .lb-wave-footer { padding:6px 8px; display:flex; gap:4px; }
       #levelBuilderOverlay .lb-horde-col {
         min-width:70px; max-width:70px;
@@ -504,7 +509,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       waveCol.className = "lb-wave-col";
       const waveHeader = document.createElement("div");
       waveHeader.className = "lb-wave-header";
-      waveHeader.style.cssText = "display:flex;align-items:center;justify-content:space-between;position:relative;";
+      waveHeader.style.position = "relative";
       const waveTitleSpan = document.createElement("span");
       waveTitleSpan.textContent = `Wave ${wIdx + 1}`;
       waveHeader.appendChild(waveTitleSpan);
@@ -579,13 +584,15 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
       const waveBody = document.createElement("div");
       waveBody.className = "lb-wave-body";
-      // Enemy rows spacer
+      // Enemy rows spacer — must match lb-horde-cell-row heights exactly (no gap/padding)
       visibleKeys.forEach(() => {
         const spacer = document.createElement("div");
         spacer.style.cssText = "height:32px;border-bottom:1px solid rgba(120,170,220,0.1);";
         waveBody.appendChild(spacer);
       });
-      // Intro text
+      // Wave fields (intro text + breaker) sit below the aligned spacer rows
+      const waveFields = document.createElement("div");
+      waveFields.className = "lb-wave-fields";
       const introLabel = document.createElement("label");
       introLabel.textContent = "Intro text";
       const introTA = document.createElement("textarea");
@@ -594,7 +601,6 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         wave.introText = introTA.value;
         saveToStorage(state.config);
       });
-      // Breaker duration
       const breakerLabel = document.createElement("label");
       breakerLabel.textContent = "Breaker (s)";
       const breakerInput = document.createElement("input");
@@ -604,10 +610,11 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         wave.breakerDuration = Math.max(0, Number(breakerInput.value) || 0);
         saveToStorage(state.config);
       });
-      waveBody.appendChild(introLabel);
-      waveBody.appendChild(introTA);
-      waveBody.appendChild(breakerLabel);
-      waveBody.appendChild(breakerInput);
+      waveFields.appendChild(introLabel);
+      waveFields.appendChild(introTA);
+      waveFields.appendChild(breakerLabel);
+      waveFields.appendChild(breakerInput);
+      waveBody.appendChild(waveFields);
       waveCol.appendChild(waveBody);
 
       const waveFooter = document.createElement("div");
