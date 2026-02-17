@@ -338,26 +338,6 @@ window.BattlechurchLevelData = {
                       "delaysExplicit": {},
                       "allKill": false,
                       "duration": 4
-                    },
-                    {
-                      "index": 6,
-                      "entries": [
-                        {
-                          "enemy": "miniImp",
-                          "count": 60
-                        },
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 10
-                        }
-                      ],
-                      "mode": "explicit",
-                      "weights": {},
-                      "delays": {},
-                      "delaysWeighted": {},
-                      "delaysExplicit": {},
-                      "allKill": true,
-                      "duration": 4
                     }
                   ]
                 }
