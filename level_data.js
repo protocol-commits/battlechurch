@@ -248,7 +248,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 3,
-                  "introText": "Final wave! Get ready!",
+                  "introText": "Projectiles!",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -350,25 +350,56 @@ window.BattlechurchLevelData = {
                       "delaysExplicit": {},
                       "allKill": false,
                       "duration": 4
-                    },
+                    }
+                  ]
+                },
+                {
+                  "index": 4,
+                  "introText": "",
+                  "breakerDuration": 3,
+                  "hordes": [
                     {
-                      "index": 6,
-                      "entries": [
-                        {
-                          "enemy": "miniImp",
-                          "count": 60
-                        },
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 10
-                        }
-                      ],
-                      "mode": "explicit",
+                      "index": 1,
+                      "entries": [],
                       "weights": {},
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": true,
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
                       "duration": 4
                     }
                   ]

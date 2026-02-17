@@ -188,7 +188,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
   }
 
   function makeDefaultWave(idx, hordesPerWave) {
-    const count = hordesPerWave || state.config.structure.defaultHordesPerWave || 7;
+    const count = hordesPerWave || 1;
     const hordes = Array.from({ length: count }, (_, i) => makeDefaultHorde(i + 1));
     return { index: idx, introText: "", breakerDuration: 3, hordes };
   }
