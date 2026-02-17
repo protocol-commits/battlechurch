@@ -77,16 +77,20 @@
   }
 
   function getDevConfig() {
+    // Prefer the builder's in-memory config (includes unsaved edits) when available.
+    if (typeof levelBuilder?.getConfig === "function") {
+      try {
+        const builderCfg = levelBuilder.getConfig();
+        if (builderCfg && typeof builderCfg === "object" && Object.keys(builderCfg).length) {
+          return builderCfg;
+        }
+      } catch (e) {}
+    }
+    // Fall back to the static exported file.
     if (levelData && typeof levelData === "object" && Object.keys(levelData).length) {
       return levelData;
     }
-    if (typeof levelBuilder?.getConfig === "function") {
-      try {
-        return levelBuilder.getConfig() || null;
-      } catch (e) {
-        return null;
-      }
-    }
+    // Last resort: direct localStorage.
     try {
       const raw = typeof localStorage !== "undefined" ? localStorage.getItem("battlechurch.devLevelConfig") : null;
       if (raw) {

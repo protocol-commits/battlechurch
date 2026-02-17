@@ -106,7 +106,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Wave1",
+                  "introText": "This is Wave 1 text!",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -161,7 +161,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 2,
-                  "introText": "Wave2text",
+                  "introText": "This is Wave 2 text. Yes it is!",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -236,7 +236,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 3,
-                  "introText": "wave3text",
+                  "introText": "Final wave! Get ready!",
                   "breakerDuration": 3,
                   "hordes": [
                     {

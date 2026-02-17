@@ -12,6 +12,12 @@
     restart: [" "],
   };
 
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = (el.tagName || "").toLowerCase();
+    return tag === "input" || tag === "textarea" || tag === "select" || el.isContentEditable;
+  }
+
   const PREVENT_DEFAULT_KEYS = new Set([
     "ArrowUp",
     "ArrowDown",
@@ -123,7 +129,7 @@
     modifierState.ctrl = Boolean(event.ctrlKey);
     modifierState.alt = Boolean(event.altKey);
     modifierState.meta = Boolean(event.metaKey);
-    if (PREVENT_DEFAULT_KEYS.has(event.key)) event.preventDefault();
+    if (PREVENT_DEFAULT_KEYS.has(event.key) && !isTypingTarget(event.target)) event.preventDefault();
     const key = normalizeKey(event.key);
     const codeKey = (() => {
       if (typeof event.code !== "string") return null;
