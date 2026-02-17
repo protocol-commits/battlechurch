@@ -125,11 +125,12 @@
   }
 
   function handleKeyDown(event) {
+    if (isTypingTarget(event.target)) return;
     modifierState.shift = Boolean(event.shiftKey);
     modifierState.ctrl = Boolean(event.ctrlKey);
     modifierState.alt = Boolean(event.altKey);
     modifierState.meta = Boolean(event.metaKey);
-    if (PREVENT_DEFAULT_KEYS.has(event.key) && !isTypingTarget(event.target)) event.preventDefault();
+    if (PREVENT_DEFAULT_KEYS.has(event.key)) event.preventDefault();
     const key = normalizeKey(event.key);
     const codeKey = (() => {
       if (typeof event.code !== "string") return null;

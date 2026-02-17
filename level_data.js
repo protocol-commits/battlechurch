@@ -230,12 +230,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 4,
-                      "entries": [
-                        {
-                          "enemy": "miniFireImp",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "mode": "explicit",
                       "weights": {},
                       "delays": {},
@@ -355,7 +350,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 4,
-                  "introText": "",
+                  "introText": "This is the final wave! There's 4 hordes! Prepare!",
                   "breakerDuration": 3,
                   "hordes": [
                     {
