@@ -503,6 +503,9 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     container.appendChild(labelCol);
 
     // ── Wave + horde columns ─────────────────────────────────────────────────
+    // Pre-compute total horde columns so tabIndex can go across rows (same enemy, next horde)
+    const totalHordeCols = waves.reduce((sum, w) => sum + (w.hordes?.length || 0), 0);
+    let globalColIdx = 0;
     waves.forEach((wave, wIdx) => {
       // Wave header column
       const waveCol = document.createElement("div");
@@ -706,7 +709,8 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         hordeCol.appendChild(hordeHeader);
 
         // Enemy count rows
-        visibleKeys.forEach((key) => {
+        const currentCol = globalColIdx;
+        visibleKeys.forEach((key, enemyIdx) => {
           const cellRow = document.createElement("div");
           cellRow.className = "lb-horde-cell-row";
           const entries = Array.isArray(horde.entries) ? horde.entries : [];
@@ -715,6 +719,8 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
           const input = document.createElement("input");
           input.className = "lb-horde-input";
           input.type = "number"; input.min = "0"; input.value = String(countVal);
+          // Tab goes across the row (same enemy, next horde) instead of down the column
+          input.tabIndex = enemyIdx * totalHordeCols + currentCol + 1;
           input.addEventListener("change", () => {
             const val = Math.max(0, Number(input.value) || 0);
             horde.entries = Array.isArray(horde.entries) ? horde.entries : [];
@@ -730,6 +736,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
           cellRow.appendChild(input);
           hordeCol.appendChild(cellRow);
         });
+        globalColIdx += 1;
 
         // Footer: duration + allKill
         const footer = document.createElement("div");
