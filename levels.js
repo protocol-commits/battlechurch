@@ -350,15 +350,8 @@
       };
     }
 
-    // When a level config is present, always rely on builder data.
-    if (scope.cfg && scope.horde) {
-      return {
-        enemies: [],
-        powerUps: 1 + Math.floor(difficultyRating / 2),
-        duration: durationSeconds,
-        allKill: resolvedAllKill,
-      };
-    }
+    // When a level config horde exists but has no entries, fall through
+    // to procedural generation so new/empty hordes still spawn enemies.
 
     const miniImpEntries = [];
     const entries = [];

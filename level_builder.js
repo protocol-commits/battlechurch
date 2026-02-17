@@ -176,7 +176,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
   function makeDefaultHorde(idx) {
     return {
       index: idx,
-      entries: [],
+      entries: [{ enemy: "miniImp", count: 1 }],
       weights: {},
       delays: {},
       delaysWeighted: {},
