@@ -478,7 +478,10 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       visibleKeys.sort((a, b) => {
         const ta = ENEMY_TYPE_ORDER[getEnemyType(a, catalog)] || 0;
         const tb = ENEMY_TYPE_ORDER[getEnemyType(b, catalog)] || 0;
-        return ta - tb || a.localeCompare(b);
+        if (ta !== tb) return ta - tb;
+        const ha = catalog[a]?.health || 0;
+        const hb = catalog[b]?.health || 0;
+        return ha - hb || a.localeCompare(b);
       });
     } else if (state.enemySort === "name") {
       visibleKeys.sort((a, b) => a.localeCompare(b));
