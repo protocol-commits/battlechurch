@@ -467,6 +467,11 @@
               if (wHIdx === 0 && wave.introText) {
                 def.waveIntroText = wave.introText;
               }
+              // Last horde of each wave is always an all-kill
+              const isLastHordeInWave = wHIdx === waveHordes.length - 1;
+              if (isLastHordeInWave) {
+                def.allKill = true;
+              }
               // Tag allKill hordes with the wave's breaker duration
               if (def.allKill && wave.breakerDuration != null) {
                 def.waveBreakDuration = Number(wave.breakerDuration) || 3;
