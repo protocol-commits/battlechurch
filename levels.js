@@ -727,14 +727,14 @@
       const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
       const monthName = getMonthName(globalMonthNumber);
       console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
-      const orderHeadings = {
-        1: "Breach the Defenses",
-        2: "Hold Your Ground",
-        3: "Liberate the Town!",
+      const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
+        1: "Act I: Breach the Defenses",
+        2: "Act II: Hold Your Ground",
+        3: "Act III: Liberate the Town!",
       };
-      const orderTitle = orderHeadings[state.level] || `Order ${state.level}`;
+      const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
       const missionNumber = Math.max(1, localMonthNumber);
-      const missionBriefTitle = `Order ${state.level}: ${orderTitle}`;
+      const missionBriefTitle = actTitles[state.level] || `Act ${romanNumerals[state.level] || state.level}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }

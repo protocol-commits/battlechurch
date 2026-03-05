@@ -5504,10 +5504,10 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-  const orderHeadings = {
-    1: "Order 1: Breach the Defenses",
-    2: "Order 2: Hold Your Ground",
-    3: "Order 3: Liberate the Town!",
+  const orderHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
+    1: "Act I: Breach the Defenses",
+    2: "Act II: Hold Your Ground",
+    3: "Act III: Liberate the Town!",
   };
   const missionNumber = Math.max(
     1,

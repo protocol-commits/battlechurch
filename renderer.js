@@ -4069,22 +4069,21 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
-    // Define text based on battle number - use centralized text if available
-    const battleTitles = (typeof GameText !== 'undefined' && GameText.battleOrders) || {
-      1: "Order 1: Breach the Defenses",
-      2: "Order 2: Hold Your Ground",
-      3: "Order 3: Liberate the Town!",
+    // Define text based on act number - use centralized text if available
+    const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
+      1: "Act I: Breach the Defenses",
+      2: "Act II: Hold Your Ground",
+      3: "Act III: Liberate the Town!",
     };
+    const actVillainText = (typeof GameText !== 'undefined' && GameText.actVillainText) || {
+      1: "You are the new pastor to the last church in a town under spiritual attack.",
+      2: "This new pastor is foiling our plans. Send in reinforcements.",
+      3: "This pastor is strong. I will take care of this myself.",
+    };
+    const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const battleTitle =
-      battleTitles[chapterBreakActNumber] || `Order ${chapterBreakActNumber}`;
-    let villainText;
-    if (chapterBreakActNumber === 1) {
-      villainText = "You are the new pastor to the last church in a town under spiritual attack.";
-    } else if (chapterBreakActNumber === 2) {
-      villainText = "This new pastor is foiling our plans. Send in reinforcements.";
-    } else {
-      villainText = "This pastor is strong. I will take care of this myself.";
-    }
+      actTitles[chapterBreakActNumber] || `Act ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
+    const villainText = actVillainText[chapterBreakActNumber] || "";
 
     const centerX = canvas.width / 2;
 
@@ -5042,10 +5041,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
       // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
-      const battleHeadings = (typeof GameText !== 'undefined' && GameText.battleOrders) || {
-        1: "Order 1: Breach the Defenses",
-        2: "Order 2: Hold Your Ground",
-        3: "Order 3: Liberate the Town!",
+      const battleHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
+        1: "Act I: Breach the Defenses",
+        2: "Act II: Hold Your Ground",
+        3: "Act III: Liberate the Town!",
       };
       const announcement = levelAnnouncements?.[0] || {};
       const inferredUpcomingNumber = Math.max(

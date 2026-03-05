@@ -106,7 +106,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "This is Wave 1 text!",
+                  "introText": "4564564",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -244,7 +244,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 1
+                          "count": 60
                         }
                       ],
                       "mode": "explicit",
@@ -319,7 +319,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 1
+                          "count": 70
                         }
                       ],
                       "weights": {},
@@ -335,7 +335,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 1
+                          "count": 70
                         }
                       ],
                       "weights": {},
@@ -351,7 +351,39 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 1
+                          "count": 70
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
                         }
                       ],
                       "weights": {},

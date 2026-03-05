@@ -47,12 +47,17 @@
     },
 
     // =====================
-    // BATTLE/CHAPTER TEXT
+    // ACT TEXT
     // =====================
-    battleOrders: {
-      1: "Order 1: Breach the Defenses",
-      2: "Order 2: Hold Your Ground",
-      3: "Order 3: Liberate the Town!",
+    battleActs: {
+      1: "Act I: Breach the Defenses",
+      2: "Act II: Hold Your Ground",
+      3: "Act III: Liberate the Town!",
+    },
+    actVillainText: {
+      1: "You are the new pastor to the last church in a town under spiritual attack.",
+      2: "This new pastor is foiling our plans. Send in reinforcements.",
+      3: "This pastor is strong. I will take care of this myself.",
     },
 
     // =====================
