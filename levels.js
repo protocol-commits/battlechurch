@@ -484,7 +484,7 @@
             hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, null, hIdx, helpers));
           }
         }
-        battles.push({ hordes }); // each mission = one sequential battle for the level manager
+        battles.push({ hordes, missionText: missionData?.missionText || "" }); // each mission = one sequential battle for the level manager
       }
     }
     return { levelNumber, battles };
@@ -738,7 +738,8 @@
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
-      queueLevelAnnouncement(`Battle ${state.level} — ${monthName}`, state.currentBattleScenario, {
+      const missionSubtitle = currentBattle()?.missionText || state.currentBattleScenario;
+      queueLevelAnnouncement(`Battle ${state.level} — ${monthName}`, missionSubtitle, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
         missionBriefTitle,

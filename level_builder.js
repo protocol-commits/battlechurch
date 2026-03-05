@@ -229,6 +229,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       const wavesPerMission = state.config.structure.defaultWavesPerMission || 3;
       battleObj.missions.push({
         index: idx,
+        missionText: "",
         waves: Array.from({ length: wavesPerMission }, (_, i) => makeDefaultWave(i + 1)),
       });
     }
@@ -817,7 +818,26 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     addWaveCol.appendChild(addWaveBtn);
     container.appendChild(addWaveCol);
 
+    // ── Mission text header ───────────────────────────────────────────────────
+    const missionHeader = document.createElement("div");
+    missionHeader.style.cssText = "padding:8px 12px;background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(120,170,220,0.2);display:flex;align-items:center;gap:8px;";
+    const missionTextLabel = document.createElement("label");
+    missionTextLabel.textContent = "Mission text:";
+    missionTextLabel.style.cssText = "font-size:11px;color:rgba(255,255,255,0.6);white-space:nowrap;";
+    const missionTextInput = document.createElement("textarea");
+    missionTextInput.value = missionObj.missionText || "";
+    missionTextInput.placeholder = "Shown to player at the start of this mission (optional)";
+    missionTextInput.rows = 2;
+    missionTextInput.style.cssText = "flex:1;font-size:11px;padding:4px 6px;background:rgba(0,0,0,0.3);border:1px solid rgba(120,170,220,0.25);border-radius:4px;color:#e8f4ff;resize:vertical;";
+    missionTextInput.addEventListener("change", () => {
+      missionObj.missionText = missionTextInput.value;
+      saveToStorage(state.config);
+    });
+    missionHeader.appendChild(missionTextLabel);
+    missionHeader.appendChild(missionTextInput);
+
     els.content.innerHTML = "";
+    els.content.appendChild(missionHeader);
     els.content.appendChild(container);
     document.addEventListener("click", closeMenus, { once: true });
     initThumbAnimations();
