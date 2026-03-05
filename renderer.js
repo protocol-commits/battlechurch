@@ -2633,13 +2633,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     }
   }
   // Battle summary popups are handled by the dialog overlay (not canvas).
-  const monthName = currentLevelStatus?.month || (requireBindings().getMonthName ? requireBindings().getMonthName(currentLevelStatus?.level || 1) : null);
   const levelNumber = currentLevelStatus?.level || 1;
   let displayTitle = title;
   try {
-    if (isBattleSummary && monthName) {
+    if (isBattleSummary) {
+      const summaryRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
       const clearedSuffix = /cleared/i.test(title) ? ' Cleared' : '';
-      displayTitle = `Battle ${levelNumber} — ${monthName}${clearedSuffix}`;
+      displayTitle = `Act ${summaryRomanNumerals[levelNumber] || levelNumber}${clearedSuffix}`;
     }
   } catch (e) {}
   const pastorDelayRemaining = levelAnnouncements[0]?.pastorPostRecapDelayRemaining || 0;
@@ -3974,15 +3974,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     } = requireBindings();
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
     if (!levelStatus) return;
-    const monthName = levelStatus.month || "January";
     const stage = levelStatus.stage || "";
     const waveNumber = Math.max(1, levelStatus.wave || 1);
-    const sessionNumber =
-      waveNumber <= 7
-        ? 1
-        : waveNumber <= 14
-        ? 2
-        : 3;
+    const missionNumber = levelStatus.battle || 1;
+    const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+    const actLabel = `Act ${crumbRomanNumerals[levelStatus.level || 1] || (levelStatus.level || 1)}`;
     // Get town name from activeTownId
     const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
@@ -3990,7 +3986,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ? mapData.towns.find((t) => t.id === activeTownId)
       : null;
     const townName = townData?.name || "Unknown Town";
-    const crumbParts = [townName, `Battle ${levelStatus.level || 1}`, `${monthName}`];
+    const crumbParts = [townName, actLabel];
     if (stage === "bossIntro") {
       crumbParts.push("Boss Intro");
     } else if (stage === "bossActive") {
@@ -3998,13 +3994,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     } else if (stage === "graceRush") {
       crumbParts.push("Grace Abounds");
     } else if (stage === "levelIntro") {
-      crumbParts.push("Battle Intro");
+      crumbParts.push("Mission Intro");
     } else if (stage === "briefing") {
       crumbParts.push("Briefing");
     } else if (stage === "npcArrival") {
       crumbParts.push("Congregation");
     } else {
-      crumbParts.push(`Session ${sessionNumber}`, `Wave ${waveNumber}`);
+      crumbParts.push(`Mission ${missionNumber}`, `Wave ${waveNumber}`);
     }
     const breadcrumb = crumbParts.join(" / ");
     const detailText = "";

@@ -484,7 +484,7 @@
             hordes.push(createHordeDefinition(levelNumber, bIdx, mIdx, null, hIdx, helpers));
           }
         }
-        battles.push({ hordes, missionText: missionData?.missionText || "" }); // each mission = one sequential battle for the level manager
+        battles.push({ hordes }); // each mission = one sequential battle for the level manager
       }
     }
     return { levelNumber, battles };
@@ -646,9 +646,6 @@
       state.pendingBossRestore = false;
       state.pendingBossAfterFinalWave = false;
       state.lastClearedWasBoss = false;
-  // Compute global month number so Level 2 shows May/Jun/Jul etc.
-  const globalMonthNumberForLevelStart = (levelNumber - 1) * MONTHS_PER_LEVEL + 1;
-  const monthName = getMonthName(globalMonthNumberForLevelStart);
   // For levels beyond the first, skip the level-intro overlay and start the next battle immediately.
   if (levelNumber > 1) {
     state.waitingForCongregation = false;
@@ -667,16 +664,18 @@
     window.__skipInitialMonthAnnouncement = false;
   }
   if (!skipIntroAnnouncement) {
-    console.info && console.info('queueAnnouncement', { title: `Battle ${levelNumber}: ${monthName}`, level: levelNumber, monthIndex: 0, monthName });
-    queueLevelAnnouncement(`Battle ${levelNumber}: ${monthName}`, "A new mission begins", {
+    const actRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+    const actLabel = `Act ${actRomanNumerals[levelNumber] || levelNumber}`;
+    console.info && console.info('queueAnnouncement', { title: actLabel, level: levelNumber });
+    queueLevelAnnouncement(actLabel, "A new mission begins", {
           duration: MONTH_INTRO_DURATION,
           requiresConfirm: true,
         });
     resetStage("levelIntro", MONTH_INTRO_DURATION);
-    setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
+    setDevStatus(`Preparing ${actLabel}`, MONTH_INTRO_DURATION);
   } else {
     resetStage("levelIntro", 0);
-    setDevStatus(`Preparing ${monthName}`, 2.0);
+    setDevStatus(`Preparing Act ${levelNumber}`, 2.0);
   }
       state.currentBattleScenario = "";
       state.currentBossTheme = "";
@@ -738,15 +737,15 @@
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
-      const missionSubtitle = currentBattle()?.missionText || state.currentBattleScenario;
-      queueLevelAnnouncement(`Battle ${state.level} — ${monthName}`, missionSubtitle, {
+      const missionSubtitle = state.currentBattleScenario;
+      queueLevelAnnouncement(`Act ${romanNumerals[state.level] || state.level} — Mission ${missionNumber}`, missionSubtitle, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
         missionBriefTitle,
         missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
-      setDevStatus(`Battle ${state.level} — ${monthName} forming`, BATTLE_INTRO_DURATION + 0.5);
+      setDevStatus(`Act ${romanNumerals[state.level] || state.level} — Mission ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
     }
 
     function finalizeBattleNpcResults() {
@@ -989,13 +988,13 @@
       // reading the instructions, then enter the normal levelIntro flow.
       // When advancing from briefing the upcoming month is the first month
       // of the level; use month index fallback to 1.
-      const monthName = getMonthName((state.monthIndex >= 0 ? state.monthIndex + 1 : 1));
-      queueLevelAnnouncement(monthName, "A new mission begins", {
+      const missionNum = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+      queueLevelAnnouncement(`Mission ${missionNum}`, "A new mission begins", {
         duration: MONTH_INTRO_DURATION,
         requiresConfirm: true,
       });
       resetStage("levelIntro", MONTH_INTRO_DURATION);
-      setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
+      setDevStatus(`Preparing Mission ${missionNum}`, MONTH_INTRO_DURATION);
     }
 
     function beginWave() {
@@ -1193,11 +1192,12 @@
   finalizeBattleNpcResults();
   // Also call after normal battle completion, not just hotkey skip
       const flavor = HORDE_CLEAR_LINES[state.monthIndex % HORDE_CLEAR_LINES.length];
-      const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
-      const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);
-      console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${monthName} Cleared`, level: state.level, monthIndex: state.monthIndex, monthName });
+      const localMissionNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+      const clearedRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+      const clearedActLabel = `Act ${clearedRomanNumerals[state.level] || state.level} — Mission ${localMissionNumber}`;
+      console.info && console.info('queueAnnouncement', { title: `${clearedActLabel} Cleared`, level: state.level, monthIndex: state.monthIndex });
       queueLevelAnnouncement(
-        `Battle ${state.level} — ${monthName} Cleared`,
+        `${clearedActLabel} Cleared`,
         flavor,
         {
           duration: BETWEEN_BATTLE_PAUSE,
@@ -1205,7 +1205,7 @@
         },
       );
       resetStage("battleIntermission", BETWEEN_BATTLE_PAUSE);
-      setDevStatus(`Battle ${state.level} — ${monthName} secured`, BETWEEN_BATTLE_PAUSE);
+      setDevStatus(`${clearedActLabel} secured`, BETWEEN_BATTLE_PAUSE);
     }
 
     function beginBossIntro() {
@@ -1293,13 +1293,11 @@
       state.graceRushContext = null;
       clearStagePowerUps();
       const summarySubtitle = `Enemies ${state.stats.enemiesDefeated} • NPCs saved ${state.stats.npcsRescued}`;
-  const localMonthNumberForStatus = state.lastClearedWasBoss
-    ? MONTHS_PER_LEVEL
-    : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
-  const summaryMonthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumberForStatus);
-  console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${summaryMonthName} Cleared`, level: state.level, monthIndex: state.monthIndex, monthName: summaryMonthName });
+  const summaryRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+  const summaryActLabel = `Act ${summaryRomanNumerals[state.level] || state.level} Cleared`;
+  console.info && console.info('queueAnnouncement', { title: summaryActLabel, level: state.level, monthIndex: state.monthIndex });
       queueLevelAnnouncement(
-        `Battle ${state.level} — ${summaryMonthName} Cleared`,
+        summaryActLabel,
         summarySubtitle,
         {
           duration: LEVEL_SUMMARY_DURATION,
