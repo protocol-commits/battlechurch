@@ -277,7 +277,7 @@
       } else if (!scenarioTitle) {
         scenarioTitle = (typeof GameText !== 'undefined' && GameText.hud?.defaultMissionTitle) || 'the crisis';
       }
-      const missionLabel = (typeof GameText !== 'undefined' && GameText.hud?.mission) || 'Mission';
+      const missionLabel = (typeof GameText !== 'undefined' && GameText.hud?.mission) || 'Battle';
       ctx.fillText(`${missionLabel}: ${scenarioTitle}`.toUpperCase(), hpBarX, panelY + 14);
       ctx.restore();
       ctx.fillStyle = 'rgba(10,15,31,0.6)';

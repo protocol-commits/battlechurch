@@ -403,7 +403,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Mission 2 - 1",
+                  "introText": "Second Battle Wave 1 Text Field",
                   "breakerDuration": 3,
                   "hordes": [
                     {

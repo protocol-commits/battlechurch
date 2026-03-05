@@ -68,7 +68,7 @@
       player: "PLAYER",
       congregation: "CONGREGATION",
       health: "Health",
-      mission: "Mission",
+      mission: "Battle",
 
       // Meters
       prayerMeterLabels: ["Prayer", "2", "3"],

@@ -185,7 +185,7 @@
     randomInRange: fallbackRandomInRange,
     queueLevelAnnouncement: noop,
     setDevStatus: noop,
-    getMonthName: () => "Mission 1",
+    getMonthName: () => "Battle 1",
     spawnEnemyOfType: noop,
     spawnMiniImpGroup: noop,
     spawnPowerUpDrops: noop,
@@ -667,7 +667,7 @@
     const actRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const actLabel = `Act ${actRomanNumerals[levelNumber] || levelNumber}`;
     console.info && console.info('queueAnnouncement', { title: actLabel, level: levelNumber });
-    queueLevelAnnouncement(actLabel, "A new mission begins", {
+    queueLevelAnnouncement(actLabel, "A new battle begins", {
           duration: MONTH_INTRO_DURATION,
           requiresConfirm: true,
         });
@@ -738,14 +738,14 @@
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
       const missionSubtitle = state.currentBattleScenario;
-      queueLevelAnnouncement(`Act ${romanNumerals[state.level] || state.level} — Mission ${missionNumber}`, missionSubtitle, {
+      queueLevelAnnouncement(`Act ${romanNumerals[state.level] || state.level} — Battle ${missionNumber}`, missionSubtitle, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
         missionBriefTitle,
         missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
-      setDevStatus(`Act ${romanNumerals[state.level] || state.level} — Mission ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
+      setDevStatus(`Act ${romanNumerals[state.level] || state.level} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
     }
 
     function finalizeBattleNpcResults() {
@@ -989,7 +989,7 @@
       // When advancing from briefing the upcoming month is the first month
       // of the level; use month index fallback to 1.
       const missionNum = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
-      queueLevelAnnouncement(`Mission ${missionNum}`, "A new mission begins", {
+      queueLevelAnnouncement(`Battle ${missionNum}`, "A new battle begins", {
         duration: MONTH_INTRO_DURATION,
         requiresConfirm: true,
       });
@@ -1194,7 +1194,7 @@
       const flavor = HORDE_CLEAR_LINES[state.monthIndex % HORDE_CLEAR_LINES.length];
       const localMissionNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const clearedRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-      const clearedActLabel = `Act ${clearedRomanNumerals[state.level] || state.level} — Mission ${localMissionNumber}`;
+      const clearedActLabel = `Act ${clearedRomanNumerals[state.level] || state.level} — Battle ${localMissionNumber}`;
       console.info && console.info('queueAnnouncement', { title: `${clearedActLabel} Cleared`, level: state.level, monthIndex: state.monthIndex });
       queueLevelAnnouncement(
         `${clearedActLabel} Cleared`,

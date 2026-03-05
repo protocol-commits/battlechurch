@@ -402,7 +402,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
             <select id="lb-town"></select>
             <label>Battle</label>
             <select id="lb-battle"></select>
-            <label>Mission</label>
+            <label>Battle</label>
             <select id="lb-mission"></select>
           </div>
           <div class="group">
@@ -410,7 +410,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
           </div>
           <div class="group">
             <button id="lb-copyBattle" class="secondary" type="button">Copy Battle</button>
-            <button id="lb-copyMission" class="secondary" type="button">Copy Mission</button>
+            <button id="lb-copyMission" class="secondary" type="button">Copy Battle</button>
             <button id="lb-paste" class="secondary" type="button">Paste</button>
           </div>
           <div class="group">
@@ -1257,7 +1257,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         const { missionObj } = getOrCreateMission();
         state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
         const { battle: battleIdx, mission: missionIdx } = state.scope;
-        setStatus(`Copied Battle ${battleIdx} Mission ${missionIdx}`);
+        setStatus(`Copied Act ${battleIdx} Battle ${missionIdx}`);
       });
     }
 
@@ -1287,7 +1287,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
           else mList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted mission into Town ${townIdx} Battle ${battleIdx} Mission ${missionIdx}`);
+          setStatus(`Pasted battle into Town ${townIdx} Act ${battleIdx} Battle ${missionIdx}`);
         } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
           setStatus("Use the column ▾ menu to paste hordes/waves", true);
         }

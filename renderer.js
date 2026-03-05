@@ -2610,7 +2610,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         : null;
       const missionTitle =
         missionNumber
-          ? `Mission ${missionNumber}`
+          ? `Battle ${missionNumber}`
           : (announcement && announcement.title) || monthName || "";
       const missionBriefBase = `${nameSentence} have come to you seeking guidance through ${scenarioTitle}.`;
       const missionBrief = missionBriefBase;
@@ -3994,13 +3994,13 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     } else if (stage === "graceRush") {
       crumbParts.push("Grace Abounds");
     } else if (stage === "levelIntro") {
-      crumbParts.push("Mission Intro");
+      crumbParts.push("Battle Intro");
     } else if (stage === "briefing") {
       crumbParts.push("Briefing");
     } else if (stage === "npcArrival") {
       crumbParts.push("Congregation");
     } else {
-      crumbParts.push(`Mission ${missionNumber}`, `Wave ${waveNumber}`);
+      crumbParts.push(`Battle ${missionNumber}`, `Wave ${waveNumber}`);
     }
     const breadcrumb = crumbParts.join(" / ");
     const detailText = "";
@@ -5053,7 +5053,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
         ? announcement.upcomingOrderNumber
         : Math.max(1, Number.isFinite(levelStatus?.level) ? levelStatus.level : 1);
-      const battleHeading = battleHeadings[orderNumber] || `Order ${orderNumber}`;
+      const battleHeading = battleHeadings[orderNumber] || `Act ${orderNumber}`;
       {
         const { UI_FONT_FAMILY } = requireBindings();
         const centerX = canvas.width / 2;
@@ -5068,7 +5068,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowOffsetX = 3;
         ctx.shadowOffsetY = 3;
         ctx.fillText(battleHeading, centerX, titleY);
-        const missionLine = upcomingNumber > 1 ? `Mission ${upcomingNumber}` : "";
+        const missionLine = upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "";
         if (missionLine) {
           ctx.font = `bold 34px ${UI_FONT_FAMILY}`;
           ctx.fillText(missionLine, centerX, titleY + 52);
