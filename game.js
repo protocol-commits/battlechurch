@@ -5493,11 +5493,10 @@ function showTownIntroDialog() {
 }
 
 function queueTownIntroAnnouncement() {
-  const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-  const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
-  const text = `${townName} is under siege. Stop its collapse. Secure a foothold.`;
+  const act1Title = (typeof GameText !== 'undefined' && GameText.battleActs?.[1]) || "Act I: Establish a Foothold";
+  const act1Subtitle = (typeof GameText !== 'undefined' && GameText.actVillainText?.[1]) || "Win 3 battles to get established";
   pendingTownIntroStart = true;
-  queueLevelAnnouncement(text, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
+  queueLevelAnnouncement(act1Title, act1Subtitle, { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
 
 function queueExteriorShotAnnouncement({ force = false } = {}) {
@@ -5505,9 +5504,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const orderHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-    1: "Act I: Breach the Defenses",
-    2: "Act II: Hold Your Ground",
-    3: "Act III: Liberate the Town!",
+    1: "Act I: Establish a Foothold",
+    2: "Act II: Repel the Counter Attack",
+    3: "Act III: Liberate the Town",
   };
   const missionNumber = Math.max(
     1,

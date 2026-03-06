@@ -4067,14 +4067,14 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
     // Define text based on act number - use centralized text if available
     const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-      1: "Act I: Breach the Defenses",
-      2: "Act II: Hold Your Ground",
-      3: "Act III: Liberate the Town!",
+      1: "Act I: Establish a Foothold",
+      2: "Act II: Repel the Counter Attack",
+      3: "Act III: Liberate the Town",
     };
     const actVillainText = (typeof GameText !== 'undefined' && GameText.actVillainText) || {
-      1: "You are the new pastor to the last church in a town under spiritual attack.",
-      2: "This new pastor is foiling our plans. Send in reinforcements.",
-      3: "This pastor is strong. I will take care of this myself.",
+      1: "Win 3 battles to get established",
+      2: "Win 3 counter-attack battles",
+      3: "Win 3 battles deep in the heart of the town",
     };
     const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const battleTitle =
@@ -5037,10 +5037,11 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
       // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
+      const announcementSubtitle = levelAnnouncements?.[0]?.subtitle || "";
       const battleHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-        1: "Act I: Breach the Defenses",
-        2: "Act II: Hold Your Ground",
-        3: "Act III: Liberate the Town!",
+        1: "Act I: Establish a Foothold",
+        2: "Act II: Repel the Counter Attack",
+        3: "Act III: Liberate the Town",
       };
       const announcement = levelAnnouncements?.[0] || {};
       const inferredUpcomingNumber = Math.max(
@@ -5079,7 +5080,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
         const layout = getAnnouncementScreenLayout(ctx, canvas, {
           title: announcementTitle,
-          subtitle: "",
+          subtitle: announcementSubtitle,
           titleSize,
           subtitleSize: TEXT_STYLES.h2.size,
           lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
@@ -5098,6 +5099,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         ctx.scale(layout.scale, layout.scale);
         drawAnnouncementText(ctx, layout.virtualCanvas, {
           title: announcementTitle,
+          subtitle: announcementSubtitle,
           yBase: layout.titleY,
           alpha: 1,
           typewriter: true,
@@ -5112,7 +5114,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: announcementTitle,
-        subtitle: "",
+        subtitle: announcementSubtitle,
         titleSize,
         subtitleSize: TEXT_STYLES.h2.size,
         lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),

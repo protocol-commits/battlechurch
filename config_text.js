@@ -50,14 +50,14 @@
     // ACT TEXT
     // =====================
     battleActs: {
-      1: "Act I: Breach the Defenses",
-      2: "Act II: Hold Your Ground",
-      3: "Act III: Liberate the Town!",
+      1: "Act I: Establish a Foothold",
+      2: "Act II: Repel the Counter Attack",
+      3: "Act III: Liberate the Town",
     },
     actVillainText: {
-      1: "You are the new pastor to the last church in a town under spiritual attack.",
-      2: "This new pastor is foiling our plans. Send in reinforcements.",
-      3: "This pastor is strong. I will take care of this myself.",
+      1: "Win 3 battles to get established",
+      2: "Win 3 counter-attack battles",
+      3: "Win 3 battles deep in the heart of the town",
     },
 
     // =====================
