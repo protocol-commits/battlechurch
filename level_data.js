@@ -106,7 +106,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "4564564",
+                  "introText": "Prepare for battle!",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -173,7 +173,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 2,
-                  "introText": "This is Wave 2 text. Yes it is!",
+                  "introText": "A second wave attacks!",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -240,11 +240,11 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniFireImp",
-                          "count": 10
+                          "count": 20
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 60
+                          "count": 30
                         }
                       ],
                       "mode": "explicit",
@@ -311,8 +311,8 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 4,
-                  "introText": "This is the final wave! There's 4 hordes! Prepare!",
-                  "breakerDuration": 3,
+                  "introText": "Finish them off!",
+                  "breakerDuration": 5,
                   "hordes": [
                     {
                       "index": 1,
