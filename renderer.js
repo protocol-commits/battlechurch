@@ -506,7 +506,6 @@ const MELEE_SWING_LENGTH = 260;
   const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
   const waveShockwaves = [];
   let lastWaveStage = null;
-  let lastWaveNumber = null;
 
   function spawnWaveShockwave(kind, nowMs, canvas) {
     const maxRadius = Math.hypot(canvas.width, canvas.height) * 0.55;
@@ -523,19 +522,13 @@ const MELEE_SWING_LENGTH = 260;
   function updateWaveShockwaves(levelStatus, nowMs, canvas) {
     if (!levelStatus) {
       lastWaveStage = null;
-      lastWaveNumber = null;
       return;
     }
     const stage = levelStatus.stage || "";
-    const waveNumber = Number.isFinite(levelStatus.wave) ? levelStatus.wave : null;
     if (stage === "waveCleared" && lastWaveStage !== "waveCleared") {
       spawnWaveShockwave("cleared", nowMs, canvas);
     }
-    if ((stage === "waveIntro" || stage === "waveActive") && waveNumber && waveNumber !== lastWaveNumber) {
-      spawnWaveShockwave("incoming", nowMs, canvas);
-    }
     lastWaveStage = stage;
-    if (waveNumber) lastWaveNumber = waveNumber;
   }
 
   function drawWaveShockwaves(ctx, canvas, nowMs) {
