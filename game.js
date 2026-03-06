@@ -5496,7 +5496,7 @@ function queueTownIntroAnnouncement() {
   const act1Title = (typeof GameText !== 'undefined' && GameText.battleActs?.[1]) || "Act I: Establish a Foothold";
   const act1Subtitle = (typeof GameText !== 'undefined' && GameText.actVillainText?.[1]) || "Win 3 battles to get established";
   pendingTownIntroStart = true;
-  queueLevelAnnouncement(act1Title, act1Subtitle, { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
+  queueLevelAnnouncement(act1Subtitle, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }
 
 function queueExteriorShotAnnouncement({ force = false } = {}) {
