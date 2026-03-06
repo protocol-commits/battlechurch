@@ -3257,6 +3257,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         window.playCongregationCountPopSfx(0.6);
       }
     }
+    const countVisibleSeconds = typewriterReady ? Math.max(0, introElapsed - typewriterDelay) : 0;
+    const countFadeDelay = 5;
+    const countFadeDuration = 1.2;
+    const countFadeAlpha = countVisibleSeconds <= countFadeDelay
+      ? 1
+      : Math.max(0, 1 - (countVisibleSeconds - countFadeDelay) / countFadeDuration);
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -3266,6 +3272,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetX = 4;
     ctx.shadowOffsetY = 4;
     const congregationText = (typeof GameText !== 'undefined' && GameText.congregation) || {};
+    ctx.globalAlpha *= countFadeAlpha;
     if (entry.phase >= 2) {
       ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
       ctx.fillText(congregationText.title || "CONGREGATION", countCenterX, countCenterY);
