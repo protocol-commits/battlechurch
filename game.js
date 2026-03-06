@@ -5522,7 +5522,7 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   const isBossExterior = pendingBossIntroAfterExterior ||
     (Number.isFinite(status?.battle) && status.battle >= bossBattleNumber);
   const battleTitle = isBossExterior
-    ? `Mission ${bossBattleNumber}`
+    ? `Battle ${bossBattleNumber}`
     : (orderHeadings[orderNumber] || monthName);
   const upcomingMissionNumber = isBossExterior
     ? bossBattleNumber

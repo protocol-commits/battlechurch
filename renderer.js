@@ -3976,7 +3976,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (!levelStatus) return;
     const stage = levelStatus.stage || "";
     const waveNumber = Math.max(1, levelStatus.wave || 1);
-    const missionNumber = levelStatus.battle || 1;
+    const missionNumber = levelStatus.globalBattle || levelStatus.battle || 1;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const actLabel = `Act ${crumbRomanNumerals[levelStatus.level || 1] || (levelStatus.level || 1)}`;
     // Get town name from activeTownId

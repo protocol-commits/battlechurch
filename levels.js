@@ -732,7 +732,7 @@
         3: "Act III: Liberate the Town!",
       };
       const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-      const missionNumber = Math.max(1, localMonthNumber);
+      const missionNumber = globalMonthNumber;
       const missionBriefTitle = actTitles[state.level] || `Act ${romanNumerals[state.level] || state.level}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
@@ -1193,8 +1193,9 @@
   // Also call after normal battle completion, not just hotkey skip
       const flavor = HORDE_CLEAR_LINES[state.monthIndex % HORDE_CLEAR_LINES.length];
       const localMissionNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+      const globalBattleNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMissionNumber;
       const clearedRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-      const clearedActLabel = `Act ${clearedRomanNumerals[state.level] || state.level} — Battle ${localMissionNumber}`;
+      const clearedActLabel = `Act ${clearedRomanNumerals[state.level] || state.level} — Battle ${globalBattleNumber}`;
       console.info && console.info('queueAnnouncement', { title: `${clearedActLabel} Cleared`, level: state.level, monthIndex: state.monthIndex });
       queueLevelAnnouncement(
         `${clearedActLabel} Cleared`,
@@ -1601,6 +1602,7 @@ state.waveIndex = -1;
           level: state.level || 1,
           month: getMonthName(globalMonthNumber),
           battle: battleNumber,
+          globalBattle: globalMonthNumber,
           wave: waveNumber,
           stage: state.stage,
           pendingVisitorMinigame: Boolean(state.pendingVisitorMinigame),
