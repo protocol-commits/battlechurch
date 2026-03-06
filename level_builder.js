@@ -400,7 +400,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
           <div class="group">
             <label>Town</label>
             <select id="lb-town"></select>
-            <label>Battle</label>
+            <label>Act</label>
             <select id="lb-battle"></select>
             <label>Battle</label>
             <select id="lb-mission"></select>
