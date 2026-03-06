@@ -504,52 +504,60 @@ const MELEE_SWING_LENGTH = 260;
   }
 
   const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
-  const waveClearWipe = { active: false, start: 0 };
+  const waveClearWipes = [];
   let lastStageForWipe = null;
 
-  function updateWaveClearWipe(levelStatus, nowMs) {
+  function updateWaveClearWipe(levelStatus, nowMs, levelAnnouncements) {
     if (!levelStatus) {
       lastStageForWipe = null;
-      waveClearWipe.active = false;
+      waveClearWipes.length = 0;
       return;
     }
     const stage = levelStatus.stage || "";
+    const announcementTitle = String(levelAnnouncements?.[0]?.title || "");
+    const isFinalWaveClear = announcementTitle.toLowerCase().includes("final wave cleared");
     if (stage === "waveCleared" && lastStageForWipe !== "waveCleared") {
-      waveClearWipe.active = true;
-      waveClearWipe.start = nowMs;
+      const burstCount = isFinalWaveClear ? 3 : 1;
+      const gap = 140;
+      for (let i = 0; i < burstCount; i += 1) {
+        waveClearWipes.push({ start: nowMs + i * gap });
+      }
     }
     lastStageForWipe = stage;
   }
 
   function drawWaveClearWipe(ctx, canvas, nowMs) {
-    if (!waveClearWipe.active) return;
-    const elapsed = nowMs - waveClearWipe.start;
+    if (!waveClearWipes.length) return;
     const duration = 750;
-    if (elapsed >= duration) {
-      waveClearWipe.active = false;
-      return;
-    }
-    const t = Math.min(1, Math.max(0, elapsed / duration));
-    const ease = t * t * (3 - 2 * t);
     const bandWidth = canvas.width * 0.75;
     const diag = Math.hypot(canvas.width, canvas.height);
     const travel = diag + bandWidth;
-    const offset = -bandWidth + ease * travel;
-
-    ctx.save();
-    ctx.globalAlpha = 0.85 * (1 - t);
-    ctx.translate(canvas.width * 0.5, canvas.height * 0.5);
-    ctx.rotate(-Math.PI / 6);
-    ctx.translate(-canvas.width * 0.5, -canvas.height * 0.5);
-    ctx.fillStyle = "rgba(200, 40, 40, 0.65)";
-    ctx.beginPath();
-    ctx.moveTo(offset, -diag);
-    ctx.lineTo(offset + bandWidth, -diag);
-    ctx.lineTo(offset + bandWidth + bandWidth * 0.25, diag * 2);
-    ctx.lineTo(offset + bandWidth * 0.25, diag * 2);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+    for (let i = waveClearWipes.length - 1; i >= 0; i -= 1) {
+      const wipe = waveClearWipes[i];
+      const elapsed = nowMs - wipe.start;
+      if (elapsed < 0) continue;
+      if (elapsed >= duration) {
+        waveClearWipes.splice(i, 1);
+        continue;
+      }
+      const t = Math.min(1, Math.max(0, elapsed / duration));
+      const ease = t * t * (3 - 2 * t);
+      const offset = -bandWidth + ease * travel;
+      ctx.save();
+      ctx.globalAlpha = 0.85 * (1 - t);
+      ctx.translate(canvas.width * 0.5, canvas.height * 0.5);
+      ctx.rotate(-Math.PI / 6);
+      ctx.translate(-canvas.width * 0.5, -canvas.height * 0.5);
+      ctx.fillStyle = "rgba(200, 40, 40, 0.65)";
+      ctx.beginPath();
+      ctx.moveTo(offset, -diag);
+      ctx.lineTo(offset + bandWidth, -diag);
+      ctx.lineTo(offset + bandWidth + bandWidth * 0.25, diag * 2);
+      ctx.lineTo(offset + bandWidth * 0.25, diag * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   function isAnnouncementButtonFocused(screenKey, index) {
@@ -4028,7 +4036,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     } = requireBindings();
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
     const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
-    updateWaveClearWipe(levelStatus, nowMs);
+    updateWaveClearWipe(levelStatus, nowMs, levelAnnouncements);
     if (!levelStatus) return;
     const stage = levelStatus.stage || "";
     const waveNumber = Math.max(1, levelStatus.wave || 1);
