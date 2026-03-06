@@ -6079,7 +6079,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     affectsTotal: false,
     forceSignless: true,
   });
-  const recapTitle = `${monthLabel} Recap`;
+  const recapTitle = "Battle Report";
   const recapStartCount = Math.round(congregationTotal - totalDelta);
   if (announcement) {
     announcement.recapData = {
