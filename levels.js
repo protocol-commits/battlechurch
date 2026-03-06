@@ -734,8 +734,16 @@
         3: "Act III: Liberate the Town",
       };
       const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+      const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
+      const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+      const townData = activeTownId && mapData?.towns
+        ? mapData.towns.find((t) => t.id === activeTownId)
+        : null;
+      const townName = townData?.name || "this town";
       const missionNumber = globalMonthNumber;
-      const missionBriefTitle = actTitles[state.level] || `Act ${romanNumerals[state.level] || state.level}`;
+      const missionBriefTitle = state.level === 1
+        ? `Act ${romanNumerals[1]}: Establish a Foothold in ${townName}`
+        : (actTitles[state.level] || `Act ${romanNumerals[state.level] || state.level}`);
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }

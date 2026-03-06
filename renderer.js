@@ -4077,8 +4077,17 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       3: "Win 3 battles deep in the heart of the town",
     };
     const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const battleTitle =
+    const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
+    const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+    const townData = activeTownId && mapData?.towns
+      ? mapData.towns.find((t) => t.id === activeTownId)
+      : null;
+    const townName = townData?.name || "this town";
+    let battleTitle =
       actTitles[chapterBreakActNumber] || `Act ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
+    if (chapterBreakActNumber === 1) {
+      battleTitle = `Act ${romanNumerals[1]}: Establish a Foothold in ${townName}`;
+    }
     const villainText = actVillainText[chapterBreakActNumber] || "";
 
     const centerX = canvas.width / 2;
@@ -5060,27 +5069,31 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
         ? announcement.upcomingOrderNumber
         : Math.max(1, Number.isFinite(levelStatus?.level) ? levelStatus.level : 1);
-      const battleHeading = battleHeadings[orderNumber] || `Act ${orderNumber}`;
+      const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
+      const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+      const townData = activeTownId && mapData?.towns
+        ? mapData.towns.find((t) => t.id === activeTownId)
+        : null;
+      const townName = townData?.name || "this town";
+      const battleHeading = orderNumber === 1
+        ? `Act I: Establish a Foothold in ${townName}`
+        : (battleHeadings[orderNumber] || `Act ${orderNumber}`);
       {
-        const { UI_FONT_FAMILY } = requireBindings();
-        const centerX = canvas.width / 2;
-        const titleY = Math.round(canvas.height * 0.26);
-        ctx.save();
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
-        ctx.fillStyle = "#FFFFFF";
-        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
-        ctx.fillText(battleHeading, centerX, titleY);
+        const titleSize = 64;
         const missionLine = upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "";
-        if (missionLine) {
-          ctx.font = `bold 34px ${UI_FONT_FAMILY}`;
-          ctx.fillText(missionLine, centerX, titleY + 52);
-        }
-        ctx.restore();
+        drawAnnouncementText(ctx, canvas, {
+          title: battleHeading,
+          subtitle: missionLine,
+          yBase: Math.round(canvas.height * 0.26),
+          titleSize,
+          subtitleSize: 34,
+          lineGap: Math.round(titleSize * 1.1),
+          weight: "bold",
+          subtitleWeight: "bold",
+          typewriter: false,
+          maxWidthScale: 0.9,
+          blockAlign: "center",
+        });
       }
       {
         const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
