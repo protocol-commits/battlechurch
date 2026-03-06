@@ -3281,7 +3281,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
     ctx.restore();
-    drawInstructionButtons();
+    // Instruction buttons hidden for now; reserved for practice/tutorial screen.
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
     }
