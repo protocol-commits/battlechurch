@@ -4926,20 +4926,26 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       if (window.MapScreen?.draw) {
         window.MapScreen.draw(ctx, canvas);
       }
-      const mapTagline = (typeof GameText !== 'undefined' && GameText.screens?.map?.tagline) || "Smite the hordes. Defend the churches. Protect the people.";
-      drawAnnouncementText(ctx, canvas, {
-        title: mapTagline,
-        subtitle: "",
-        yBase: Math.round(canvas.height * 0.06),
-        titleSize: TEXT_STYLES.h2.size,
-        subtitleSize: TEXT_STYLES.body.size,
-        lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
-        weight: TEXT_STYLES.h2.weight,
-        subtitleWeight: TEXT_STYLES.body.weight,
-        typewriter: true,
-        maxWidthScale: 0.9,
-        blockAlign: "center",
-      });
+      const hasMapTagline =
+        typeof GameText !== 'undefined' && GameText.screens?.map?.tagline !== undefined;
+      const mapTagline = hasMapTagline
+        ? GameText.screens.map.tagline
+        : "Smite the hordes. Defend the churches. Protect the people.";
+      if (mapTagline) {
+        drawAnnouncementText(ctx, canvas, {
+          title: mapTagline,
+          subtitle: "",
+          yBase: Math.round(canvas.height * 0.06),
+          titleSize: TEXT_STYLES.h2.size,
+          subtitleSize: TEXT_STYLES.body.size,
+          lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+          weight: TEXT_STYLES.h2.weight,
+          subtitleWeight: TEXT_STYLES.body.weight,
+          typewriter: true,
+          maxWidthScale: 0.9,
+          blockAlign: "center",
+        });
+      }
       return;
     }
     if (titleScreenActive) {
