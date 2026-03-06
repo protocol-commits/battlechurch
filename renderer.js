@@ -504,59 +504,6 @@ const MELEE_SWING_LENGTH = 260;
   }
 
   const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
-  const waveShockwaves = [];
-  let lastWaveStage = null;
-
-  function spawnWaveShockwave(kind, nowMs, canvas) {
-    const maxRadius = Math.hypot(canvas.width, canvas.height) * 0.55;
-    const isCleared = kind === "cleared";
-    waveShockwaves.push({
-      start: nowMs,
-      duration: 900,
-      maxRadius,
-      color: isCleared ? "rgba(255, 210, 120, 0.95)" : "rgba(120, 200, 255, 0.95)",
-      glow: isCleared ? "rgba(255, 200, 106, 0.55)" : "rgba(120, 200, 255, 0.45)",
-    });
-  }
-
-  function updateWaveShockwaves(levelStatus, nowMs, canvas) {
-    if (!levelStatus) {
-      lastWaveStage = null;
-      return;
-    }
-    const stage = levelStatus.stage || "";
-    if (stage === "waveCleared" && lastWaveStage !== "waveCleared") {
-      spawnWaveShockwave("cleared", nowMs, canvas);
-    }
-    lastWaveStage = stage;
-  }
-
-  function drawWaveShockwaves(ctx, canvas, nowMs) {
-    if (!waveShockwaves.length) return;
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height * 0.5;
-    for (let i = waveShockwaves.length - 1; i >= 0; i -= 1) {
-      const wave = waveShockwaves[i];
-      const t = (nowMs - wave.start) / wave.duration;
-      if (t >= 1) {
-        waveShockwaves.splice(i, 1);
-        continue;
-      }
-      const eased = t * t * (3 - 2 * t);
-      const radius = 40 + eased * wave.maxRadius;
-      const alpha = Math.max(0, 1 - t) * 0.9;
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.strokeStyle = wave.color;
-      ctx.lineWidth = 6;
-      ctx.shadowColor = wave.glow;
-      ctx.shadowBlur = 16;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
 
   function isAnnouncementButtonFocused(screenKey, index) {
     if (typeof window === "undefined") return false;
@@ -5063,8 +5010,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     sharedShakeOffset.y = 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
-    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
-    updateWaveShockwaves(levelStatus, nowMs, canvas);
     const townIntroTransitionActive = Boolean(requireBindings().townIntroTransitionActive);
     if (townIntroTransitionActive) {
       const {
@@ -5880,7 +5825,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
 
-    drawWaveShockwaves(ctx, canvas, nowMs);
     drawHUD();
     const graceHudFlyEffects = requireBindings().graceHudFlyEffects;
     if (graceHudFlyEffects && graceHudFlyEffects.length) {
