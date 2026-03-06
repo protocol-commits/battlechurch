@@ -456,6 +456,8 @@
               // h.index is 1-based; createHordeDefinition expects 0-based
               // Pass wIdx so getScopeConfig looks only within the correct wave
               const def = createHordeDefinition(levelNumber, bIdx, mIdx, wIdx, h.index - 1, helpers);
+              def.waveNumber = wIdx + 1;
+              def.hordeInWave = wHIdx + 1;
               // Tag the first horde of each wave with the wave's intro text
               if (wHIdx === 0 && wave.introText) {
                 def.waveIntroText = wave.introText;
@@ -1620,12 +1622,15 @@ state.waveIndex = -1;
           ? MONTHS_PER_LEVEL
           : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
         const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
+        const currentHordeDef = currentWave();
         return {
           level: state.level || 1,
           month: getMonthName(globalMonthNumber),
           battle: battleNumber,
           globalBattle: globalMonthNumber,
           wave: waveNumber,
+          waveNum: currentHordeDef?.waveNumber ?? null,
+          hordeNum: currentHordeDef?.hordeInWave ?? null,
           stage: state.stage,
           pendingVisitorMinigame: Boolean(state.pendingVisitorMinigame),
           bossPhase: state.boss?.phase || 0,

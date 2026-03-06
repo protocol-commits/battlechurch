@@ -4043,6 +4043,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (!levelStatus) return;
     const stage = levelStatus.stage || "";
     const waveNumber = Math.max(1, levelStatus.wave || 1);
+    const waveNum = levelStatus.waveNum;
+    const hordeNum = levelStatus.hordeNum;
     const missionNumber = levelStatus.globalBattle || levelStatus.battle || 1;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const actLabel = `Act ${crumbRomanNumerals[levelStatus.level || 1] || (levelStatus.level || 1)}`;
@@ -4066,8 +4068,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       crumbParts.push("Briefing");
     } else if (stage === "npcArrival") {
       crumbParts.push("Congregation");
+    } else if (waveNum != null && hordeNum != null) {
+      crumbParts.push(`Battle ${missionNumber}`, `Wave ${waveNum}`, `Horde ${hordeNum}`);
     } else {
-      crumbParts.push(`Battle ${missionNumber}`, `Wave ${waveNumber}`);
+      crumbParts.push(`Battle ${missionNumber}`, `Horde ${waveNumber}`);
     }
     const breadcrumb = crumbParts.join(" / ");
     const detailText = "";
