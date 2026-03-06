@@ -504,6 +504,53 @@ const MELEE_SWING_LENGTH = 260;
   }
 
   const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
+  const waveClearWipe = { active: false, start: 0 };
+  let lastStageForWipe = null;
+
+  function updateWaveClearWipe(levelStatus, nowMs) {
+    if (!levelStatus) {
+      lastStageForWipe = null;
+      waveClearWipe.active = false;
+      return;
+    }
+    const stage = levelStatus.stage || "";
+    if (stage === "waveCleared" && lastStageForWipe !== "waveCleared") {
+      waveClearWipe.active = true;
+      waveClearWipe.start = nowMs;
+    }
+    lastStageForWipe = stage;
+  }
+
+  function drawWaveClearWipe(ctx, canvas, nowMs) {
+    if (!waveClearWipe.active) return;
+    const elapsed = nowMs - waveClearWipe.start;
+    const duration = 750;
+    if (elapsed >= duration) {
+      waveClearWipe.active = false;
+      return;
+    }
+    const t = Math.min(1, Math.max(0, elapsed / duration));
+    const ease = t * t * (3 - 2 * t);
+    const bandWidth = canvas.width * 0.75;
+    const diag = Math.hypot(canvas.width, canvas.height);
+    const travel = diag + bandWidth;
+    const offset = -bandWidth + ease * travel;
+
+    ctx.save();
+    ctx.globalAlpha = 0.85 * (1 - t);
+    ctx.translate(canvas.width * 0.5, canvas.height * 0.5);
+    ctx.rotate(-Math.PI / 6);
+    ctx.translate(-canvas.width * 0.5, -canvas.height * 0.5);
+    ctx.fillStyle = "rgba(200, 40, 40, 0.65)";
+    ctx.beginPath();
+    ctx.moveTo(offset, -diag);
+    ctx.lineTo(offset + bandWidth, -diag);
+    ctx.lineTo(offset + bandWidth + bandWidth * 0.25, diag * 2);
+    ctx.lineTo(offset + bandWidth * 0.25, diag * 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
   function isAnnouncementButtonFocused(screenKey, index) {
     if (typeof window === "undefined") return false;
@@ -3980,6 +4027,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       levelManager,
     } = requireBindings();
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    updateWaveClearWipe(levelStatus, nowMs);
     if (!levelStatus) return;
     const stage = levelStatus.stage || "";
     const waveNumber = Math.max(1, levelStatus.wave || 1);
@@ -5010,6 +5059,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     sharedShakeOffset.y = 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    updateWaveClearWipe(levelStatus, nowMs);
     const townIntroTransitionActive = Boolean(requireBindings().townIntroTransitionActive);
     if (townIntroTransitionActive) {
       const {
@@ -5825,6 +5876,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
 
+    drawWaveClearWipe(ctx, canvas, nowMs);
     drawHUD();
     const graceHudFlyEffects = requireBindings().graceHudFlyEffects;
     if (graceHudFlyEffects && graceHudFlyEffects.length) {
