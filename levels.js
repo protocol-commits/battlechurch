@@ -49,7 +49,7 @@
   const ACT_BREAK_FADE_TOTAL = ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT + ACT_BREAK_HOLD_SECONDS;
   const ACT_BREAK_PRE_FADE_DELAY = 1.0;
   const ACT_BREAK_MESSAGE_LEAD = 0.5;
-  const ACT_BREAK_MESSAGE = "\"Good job everyone!\"";
+  const ACT_BREAK_MESSAGE = "Wave Cleared";
   const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
   const GRACE_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
@@ -569,6 +569,7 @@
       graceRushContext: null,
       pendingBossRestore: false,
       pendingBossAfterFinalWave: false,
+      pendingGraceRushAfterFinalWave: false,
       npcRushActive: false,
       npcRushTimer: 0,
       powerUpsEnabled: false,
@@ -645,6 +646,7 @@
       state.graceRushContext = null;
       state.pendingBossRestore = false;
       state.pendingBossAfterFinalWave = false;
+      state.pendingGraceRushAfterFinalWave = false;
       state.lastClearedWasBoss = false;
   // For levels beyond the first, skip the level-intro overlay and start the next battle immediately.
   if (levelNumber > 1) {
@@ -1092,7 +1094,6 @@
       state.pendingPortalSpawnBaseline = 0;
       spawnPowerUpDrops(state.activeWave?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
-      const monthName = getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber);
       const finalMissionBeforeBoss = localMonthNumber >= BATTLE_MONTHS_PER_LEVEL;
 
       if (!finalWave) {
@@ -1140,6 +1141,11 @@
         return;
       }
 
+      queueLevelAnnouncement("Final Wave Cleared", "", {
+        duration: ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD,
+        skipMissionBrief: true,
+      });
+
       if (finalMissionBeforeBoss) {
         state.finalWaveDelay = 0;
         state.pendingBossAfterFinalWave = true;
@@ -1151,7 +1157,11 @@
         return;
       }
 
-      beginGraceRushPhase(monthName);
+      state.finalWaveDelay = 0;
+      state.pendingGraceRushAfterFinalWave = true;
+      const finalWaveClearBreaker = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA + ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
+      resetStage("waveCleared", finalWaveClearBreaker);
+      setDevStatus(`Grace rush incoming after Wave ${battleNumber}-${waveNumber}`, finalWaveClearBreaker);
     }
 
     function beginGraceRushPhase(monthName) {
@@ -1419,6 +1429,10 @@ state.waveIndex = -1;
               if (state.pendingBossAfterFinalWave) {
                 state.pendingBossAfterFinalWave = false;
                 beginBossIntro();
+              } else if (state.pendingGraceRushAfterFinalWave) {
+                state.pendingGraceRushAfterFinalWave = false;
+                const localMN = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+                beginGraceRushPhase(getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMN));
               } else {
                 handleBattleComplete();
               }
