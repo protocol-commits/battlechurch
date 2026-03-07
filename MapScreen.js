@@ -436,6 +436,29 @@
     const starCount = getTownStars(town.id);
     const bestCount = getTownBestCount(town.id);
 
+    if (bestCount != null) {
+      const glowStars = Math.max(1, Math.min(3, starCount || 1));
+      const glowRadius = glowStars * 100;
+      const glow = ctx.createRadialGradient(
+        position.x,
+        position.y,
+        radius * 0.5,
+        position.x,
+        position.y,
+        glowRadius,
+      );
+      glow.addColorStop(0, "rgba(255, 240, 200, 0.5)");
+      glow.addColorStop(0.4, "rgba(255, 220, 160, 0.25)");
+      glow.addColorStop(1, "rgba(255, 220, 160, 0)");
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(position.x, position.y, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.beginPath();
     ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
