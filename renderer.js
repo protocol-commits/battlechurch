@@ -3588,26 +3588,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawGraceRushOverlay(levelStatus, rushState) {
-    const {
-      ctx,
-      canvas,
-      UI_FONT_FAMILY,
-      HUD_HEIGHT = 54,
-    } = requireBindings();
-    const remaining =
-      rushState?.active && rushState.timer > 0
-        ? rushState.timer
-        : Math.max(0, levelStatus?.timer || 0);
-    if (remaining <= 0) return;
-    const remainingSeconds = Math.ceil(remaining);
-    ctx.save();
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = "#EAF6FF";
-    const fontSize = Math.min(canvas.width, canvas.height) * 0.45;
-    ctx.font = `${TEXT_STYLES.h1.weight} ${fontSize}px ${UI_FONT_FAMILY}`;
-    ctx.textAlign = "center";
-    ctx.fillText(String(remainingSeconds), canvas.width / 2, canvas.height / 2 + fontSize * 0.35);
-    ctx.restore();
+    return;
   }
 
   function drawPlayerWeaponMeter(player) {

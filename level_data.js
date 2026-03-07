@@ -442,7 +442,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 3,
-                  "introText": "Projectiles!",
+                  "introText": "Wave 3 Ah yeah.",
                   "breakerDuration": 3,
                   "hordes": [
                     {

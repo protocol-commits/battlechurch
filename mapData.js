@@ -11,8 +11,8 @@
   // Keep these as the first three in each district list.
   const towns = [
     // Westreach (northwest) — 8:00 to 12:00 arc
-    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.22, y: 0.55 }, // move me later
-    { id: "stone_ridge", name: "Stone Ridge", districtId: "northwest", x: 0.25, y: 0.34 }, // move me later
+    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.18, y: 0.28 }, // move me later
+    { id: "stone_ridge", name: "Stone Ridge", districtId: "northwest", x: 0.25, y: 0.55 }, // move me later
     { id: "northvale", name: "Northvale", districtId: "northwest", x: 0.38, y: 0.35 }, // move me later
 
     // Ashvale (northeast) — 12:00 to 4:00 arc
