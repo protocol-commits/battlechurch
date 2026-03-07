@@ -515,7 +515,8 @@ const MELEE_SWING_LENGTH = 260;
     }
     const stage = levelStatus.stage || "";
     const announcementTitle = String(levelAnnouncements?.[0]?.title || "");
-    const isFinalWaveClear = announcementTitle.toLowerCase().includes("final wave cleared");
+    const isFinalWaveClear = Boolean(levelStatus.finalWaveCleared) ||
+      announcementTitle.toLowerCase().includes("final wave cleared");
     if (stage === "waveCleared" && lastStageForWipe !== "waveCleared") {
       if (!isFinalWaveClear) {
         const delay = 1000;

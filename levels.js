@@ -1102,6 +1102,7 @@
       const battleNumber = state.monthIndex + 1;
       const waveNumber = state.waveIndex + 1;
       const finalWave = waveNumber >= getBattleHordeCount(currentBattle());
+      state.lastWaveClearedFinal = finalWave;
       state.pendingPortalSpawnBaseline = 0;
       spawnPowerUpDrops(state.activeWave?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
@@ -1142,10 +1143,10 @@
               });
             }
           }
-          resetStage("waveCleared", breakerDuration);
-          setDevStatus(`Act break after Wave ${battleNumber}-${waveNumber}`, breakerDuration);
-          return;
-        }
+      resetStage("waveCleared", breakerDuration);
+      setDevStatus(`Act break after Wave ${battleNumber}-${waveNumber}`, breakerDuration);
+      return;
+    }
         setDevStatus(`Wave ${battleNumber}-${waveNumber} advancing`, 1.2);
         beginWave();
         spawnActiveWave();
@@ -1635,6 +1636,7 @@ state.waveIndex = -1;
           waveNum: currentHordeDef?.waveNumber ?? null,
           hordeNum: currentHordeDef?.hordeInWave ?? null,
           stage: state.stage,
+          finalWaveCleared: Boolean(state.lastWaveClearedFinal),
           pendingVisitorMinigame: Boolean(state.pendingVisitorMinigame),
           bossPhase: state.boss?.phase || 0,
           battleScenario: state.currentBattleScenario,
