@@ -524,18 +524,15 @@
     const mapData = window.BattlechurchMapData;
     if (!mapData) return;
     const scale = rect.w / 1280;
-    const headerSize = Math.round(32 * scale);
-    const districtSize = Math.round(20 * scale);
+    const taglineSize = Math.round(40 * scale);
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = "#FFD978";
-    ctx.font = `700 ${headerSize}px ${UI_FONT_FAMILY}`;
-
-    const districts = mapData.getDistricts();
-    void districts;
+    ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = "#EAF6FF";
+    ctx.font = `800 ${taglineSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillText("Smite the hordes. Save the people.", canvas.width / 2, rect.y + Math.round(16 * scale));
     ctx.restore();
   }
 
