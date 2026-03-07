@@ -3151,12 +3151,21 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
     const fullTitleText = "Welcome Pastor. We're pleased to meet you!";
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const stage = levelStatus?.stage || "";
     const introKey = `levelIntro-${levelStatus?.level || 1}-${levelStatus?.battle || 0}`;
+    if (stage === "levelIntro" && congregationIntroState.lastStage !== "levelIntro") {
+      congregationIntroState.active = true;
+      congregationIntroState.key = introKey;
+      congregationIntroState.startTime = now;
+      congregationIntroState.resetCountReveal = true;
+    }
     if (!congregationIntroState.active || congregationIntroState.key !== introKey) {
       congregationIntroState.active = true;
       congregationIntroState.key = introKey;
       congregationIntroState.startTime = now;
+      congregationIntroState.resetCountReveal = true;
     }
+    congregationIntroState.lastStage = stage;
     const introElapsed = Math.max(0, (now - (congregationIntroState.startTime || now)) / 1000);
     const typewriterDelay = 2.0;
     const typewriterReady = introElapsed >= typewriterDelay;
@@ -3274,6 +3283,10 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const countCenterX = layout.virtualCanvas.width / 2;
     const countCenterY = layout.titleY + Math.round(wordSize * 1.6);
     const countKey = `congregation-count-${Math.round(countValue || 0)}`;
+    if (congregationIntroState.resetCountReveal) {
+      announcementReveal.delete(countKey);
+      congregationIntroState.resetCountReveal = false;
+    }
     let entry = announcementReveal.get(countKey);
     if (!entry) {
       entry = {
@@ -3997,6 +4010,8 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     active: false,
     key: null,
     startTime: 0,
+    lastStage: null,
+    resetCountReveal: false,
   };
 
   function drawHUD() {
