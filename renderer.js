@@ -517,11 +517,9 @@ const MELEE_SWING_LENGTH = 260;
     const announcementTitle = String(levelAnnouncements?.[0]?.title || "");
     const isFinalWaveClear = announcementTitle.toLowerCase().includes("final wave cleared");
     if (stage === "waveCleared" && lastStageForWipe !== "waveCleared") {
-      const burstCount = isFinalWaveClear ? 3 : 1;
-      const delay = 1000;
-      const gap = 140;
-      for (let i = 0; i < burstCount; i += 1) {
-        waveClearWipes.push({ start: nowMs + delay + i * gap });
+      if (!isFinalWaveClear) {
+        const delay = 1000;
+        waveClearWipes.push({ start: nowMs + delay });
       }
     }
     lastStageForWipe = stage;
