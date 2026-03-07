@@ -447,9 +447,10 @@
         position.y,
         glowRadius,
       );
-      glow.addColorStop(0, "rgba(255, 240, 200, 0.5)");
-      glow.addColorStop(0.4, "rgba(255, 220, 160, 0.25)");
-      glow.addColorStop(1, "rgba(255, 220, 160, 0)");
+      glow.addColorStop(0, "rgba(255, 245, 210, 0.85)");
+      glow.addColorStop(0.55, "rgba(255, 225, 160, 0.45)");
+      glow.addColorStop(0.85, "rgba(255, 210, 140, 0.15)");
+      glow.addColorStop(1, "rgba(255, 210, 140, 0)");
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       ctx.fillStyle = glow;
