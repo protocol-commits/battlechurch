@@ -10,23 +10,23 @@
   // Active towns (3 per district) + capital = 10 total for current pacing.
   // Keep these as the first three in each district list.
   const towns = [
-    // Westreach (northwest)
-    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.1, y: 0.14 }, // move me later
-    { id: "stone_ridge", name: "Stone Ridge", districtId: "northwest", x: 0.3, y: 0.26 }, // move me later
-    { id: "northvale", name: "Northvale", districtId: "northwest", x: 0.16, y: 0.36 }, // move me later
+    // Westreach (northwest) — 8:00 to 12:00 arc
+    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.22, y: 0.55 }, // move me later
+    { id: "stone_ridge", name: "Stone Ridge", districtId: "northwest", x: 0.25, y: 0.34 }, // move me later
+    { id: "northvale", name: "Northvale", districtId: "northwest", x: 0.38, y: 0.35 }, // move me later
 
-    // Ashvale (northeast)
-    { id: "red_creek", name: "Red Creek", districtId: "northeast", x: 0.6, y: 0.18 }, // move me later
-    { id: "ash_crossing", name: "Ash Crossing", districtId: "northeast", x: 0.72, y: 0.26 }, // move me later
-    { id: "millhaven", name: "Millhaven", districtId: "northeast", x: 0.58, y: 0.36 }, // move me later
+    // Ashvale (northeast) — 12:00 to 4:00 arc
+    { id: "red_creek", name: "Red Creek", districtId: "northeast", x: 0.52, y: 0.35 }, // move me later
+    { id: "ash_crossing", name: "Ash Crossing", districtId: "northeast", x: 0.69, y: 0.48 }, // move me later
+    { id: "millhaven", name: "Millhaven", districtId: "northeast", x: 0.72, y: 0.69 }, // move me later
 
-    // Lowmarch (southwest)
-    { id: "lowmoor", name: "Lowmoor", districtId: "southwest", x: 0.24, y: 0.58 }, // move me later
-    { id: "brackton", name: "Brackton", districtId: "southwest", x: 0.36, y: 0.64 }, // move me later
-    { id: "marsh_end", name: "Marsh End", districtId: "southwest", x: 0.22, y: 0.76 }, // move me later
+    // Lowmarch (southwest) — 4:00 to 8:00 arc (bottom)
+    { id: "lowmoor", name: "Lowmoor", districtId: "southwest", x: 0.59, y: 0.83 }, // move me later
+    { id: "brackton", name: "Brackton", districtId: "southwest", x: 0.45, y: 0.87 }, // move me later
+    { id: "marsh_end", name: "Marsh End", districtId: "southwest", x: 0.31, y: 0.86 }, // move me later
 
-    // Capital (final boss)
-    { id: "highgate", name: "Highgate", type: "capital", x: 0.475, y: 0.49 }, // move me later
+    // Capital (final boss) — center
+    { id: "highgate", name: "Highgate", type: "capital", x: 0.486, y: 0.56 }, // move me later
   ];
 
 
