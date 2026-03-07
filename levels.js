@@ -1153,11 +1153,6 @@
         return;
       }
 
-      queueLevelAnnouncement("Final Wave Cleared", "", {
-        duration: ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD,
-        skipMissionBrief: true,
-      });
-
       if (finalMissionBeforeBoss) {
         state.finalWaveDelay = 0;
         state.pendingBossAfterFinalWave = true;
@@ -1170,10 +1165,8 @@
       }
 
       state.finalWaveDelay = 0;
-      state.pendingGraceRushAfterFinalWave = true;
-      const finalWaveClearBreaker = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA + ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
-      resetStage("waveCleared", finalWaveClearBreaker);
-      setDevStatus(`Grace rush incoming after Wave ${battleNumber}-${waveNumber}`, finalWaveClearBreaker);
+      beginGraceRushPhase(getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber));
+      return;
     }
 
     function beginGraceRushPhase(monthName) {
@@ -1181,7 +1174,7 @@
       state.finalWaveDelay = 0;
       state.graceRushContext = "battle";
       setDevStatus(`Grace Abounds – ${monthName}`, GRACE_RUSH_DURATION);
-      queueLevelAnnouncement("Grace Abounds", "Gather as much grace as you can!", {
+      queueLevelAnnouncement("Victory!", "Gather as much grace as you can!", {
         duration: 2.6,
         skipMissionBrief: true,
       });

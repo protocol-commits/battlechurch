@@ -232,7 +232,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 3,
-                  "introText": "Projectiles!",
+                  "introText": "Final Wave",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -304,93 +304,6 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": false,
-                      "duration": 4
-                    }
-                  ]
-                },
-                {
-                  "index": 4,
-                  "introText": "Finish them off!",
-                  "breakerDuration": 5,
-                  "hordes": [
-                    {
-                      "index": 1,
-                      "entries": [
-                        {
-                          "enemy": "miniImp",
-                          "count": 70
-                        }
-                      ],
-                      "weights": {},
-                      "delays": {},
-                      "delaysWeighted": {},
-                      "delaysExplicit": {},
-                      "mode": "explicit",
-                      "allKill": false,
-                      "duration": 4
-                    },
-                    {
-                      "index": 2,
-                      "entries": [
-                        {
-                          "enemy": "miniImp",
-                          "count": 70
-                        }
-                      ],
-                      "weights": {},
-                      "delays": {},
-                      "delaysWeighted": {},
-                      "delaysExplicit": {},
-                      "mode": "explicit",
-                      "allKill": false,
-                      "duration": 4
-                    },
-                    {
-                      "index": 3,
-                      "entries": [
-                        {
-                          "enemy": "miniImp",
-                          "count": 70
-                        }
-                      ],
-                      "weights": {},
-                      "delays": {},
-                      "delaysWeighted": {},
-                      "delaysExplicit": {},
-                      "mode": "explicit",
-                      "allKill": false,
-                      "duration": 4
-                    },
-                    {
-                      "index": 4,
-                      "entries": [
-                        {
-                          "enemy": "miniImp",
-                          "count": 70
-                        }
-                      ],
-                      "weights": {},
-                      "delays": {},
-                      "delaysWeighted": {},
-                      "delaysExplicit": {},
-                      "mode": "explicit",
-                      "allKill": false,
-                      "duration": 4
-                    },
-                    {
-                      "index": 5,
-                      "entries": [
-                        {
-                          "enemy": "miniImp",
-                          "count": 70
-                        }
-                      ],
-                      "weights": {},
-                      "delays": {},
-                      "delaysWeighted": {},
-                      "delaysExplicit": {},
-                      "mode": "explicit",
                       "allKill": false,
                       "duration": 4
                     }
