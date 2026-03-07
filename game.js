@@ -8211,6 +8211,12 @@ function dismissCurrentLevelAnnouncement() {
     const _townList = window.BattlechurchMapData?.towns;
     const _townIdx = _townList ? _townList.findIndex((t) => t.id === activeTownId) : -1;
     const _levelNum = _townIdx >= 0 ? _townIdx + 1 : 1;
+    // Towns beyond the first skip the congregation screen in levels.js, so
+    // suppressInitialAnnouncements would never be cleared — clear it now.
+    if (_levelNum > 1) {
+      suppressInitialAnnouncements = false;
+      pendingTownIntroStart = false;
+    }
     if (levelManager && typeof levelManager.beginFromTownIntro === "function") {
       levelManager.beginFromTownIntro(_levelNum);
     } else if (levelManager && typeof levelManager.begin === "function") {
