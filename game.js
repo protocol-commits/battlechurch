@@ -7964,6 +7964,30 @@ function spawnGraceBurst(count = 10, { centerX = canvas.width / 2, centerY = (ca
   }
 }
 
+function spawnGraceRainBurst(count = 10, { centerX = canvas.width / 2, spread = 260 } = {}) {
+  const area = getPlayfieldBounds();
+  const height = Math.max(1, area.maxY - area.minY);
+  const spawnY = Math.max(area.minY - 140, HUD_HEIGHT - 140);
+  for (let i = 0; i < count; i += 1) {
+    const x = centerX + randomInRange(-spread, spread);
+    const vx = randomInRange(-60, 60);
+    const vy = randomInRange(60, 140);
+    const floorY = randomInRange(area.minY + height * 0.45, area.minY + height * 0.85);
+    spawnGracePickup(x, spawnY + randomInRange(-40, 40), {
+      vx,
+      vy,
+      value: 1,
+      useGravity: true,
+      bounce: true,
+      gravity: GRACE_PICKUP_GRAVITY * 1.9,
+      floorY,
+      bounceDamp: 0.55,
+      airDrag: 0.985,
+      disableAttraction: true,
+    });
+  }
+}
+
 function spawnVictoryGraceBurst(options = {}) {
   const { amount = 20, reason = "battle", centerX: overrideX = null, centerY: overrideY = null } = options || {};
   const area = getPlayfieldBounds();
@@ -7975,7 +7999,7 @@ function spawnVictoryGraceBurst(options = {}) {
     reason === "boss"
       ? Math.max(area.maxX - area.minX, area.maxY - area.minY) * 0.6
       : Math.min(area.maxX - area.minX, area.maxY - area.minY) * 0.4;
-  spawnGraceBurst(amount, { centerX, centerY, spread });
+  spawnGraceRainBurst(amount, { centerX, spread });
 }
 
 function maybeDropGraceFromEnemy(enemy) {
