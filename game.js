@@ -8208,14 +8208,17 @@ function dismissCurrentLevelAnnouncement() {
       typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     suppressInitialAnnouncements = true;
     paused = false;
+    const _townList = window.BattlechurchMapData?.towns;
+    const _townIdx = _townList ? _townList.findIndex((t) => t.id === activeTownId) : -1;
+    const _levelNum = _townIdx >= 0 ? _townIdx + 1 : 1;
     if (levelManager && typeof levelManager.beginFromTownIntro === "function") {
-      levelManager.beginFromTownIntro(1);
+      levelManager.beginFromTownIntro(_levelNum);
     } else if (levelManager && typeof levelManager.begin === "function") {
       levelManager.begin();
     } else if (levelManager && typeof levelManager.startBriefing === "function") {
-      levelManager.startBriefing(1);
+      levelManager.startBriefing(_levelNum);
     } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
-      levelManager.advanceFromBriefing(1);
+      levelManager.advanceFromBriefing(_levelNum);
     }
     if (Array.isArray(levelAnnouncements)) {
       levelAnnouncements.length = 0;

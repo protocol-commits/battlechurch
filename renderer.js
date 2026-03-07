@@ -4042,9 +4042,9 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     const waveNumber = Math.max(1, levelStatus.wave || 1);
     const waveNum = levelStatus.waveNum;
     const hordeNum = levelStatus.hordeNum;
-    const missionNumber = levelStatus.globalBattle || levelStatus.battle || 1;
+    const missionNumber = levelStatus.missionNum || 1;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const actLabel = `Act ${crumbRomanNumerals[levelStatus.level || 1] || (levelStatus.level || 1)}`;
+    const actLabel = `Act ${crumbRomanNumerals[levelStatus.actNum || 1] || (levelStatus.actNum || 1)}`;
     // Get town name from activeTownId
     const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
@@ -5138,7 +5138,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
         : inferredUpcomingNumber;
       const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
         ? announcement.upcomingOrderNumber
-        : Math.max(1, Number.isFinite(levelStatus?.level) ? levelStatus.level : 1);
+        : inferredUpcomingNumber;
       const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
       const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
       const townData = activeTownId && mapData?.towns

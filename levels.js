@@ -455,6 +455,8 @@
               // h.index is 1-based; createHordeDefinition expects 0-based
               // Pass wIdx so getScopeConfig looks only within the correct wave
               const def = createHordeDefinition(levelNumber, bIdx, mIdx, wIdx, h.index - 1, helpers);
+              def.actNumber = bIdx + 1;
+              def.missionNumber = mIdx + 1;
               def.waveNumber = wIdx + 1;
               def.hordeInWave = wHIdx + 1;
               // Tag the first horde of each wave with the wave's intro text
@@ -1628,6 +1630,8 @@ state.waveIndex = -1;
           battle: battleNumber,
           globalBattle: globalMonthNumber,
           wave: waveNumber,
+          actNum: currentHordeDef?.actNumber ?? null,
+          missionNum: currentHordeDef?.missionNumber ?? null,
           waveNum: currentHordeDef?.waveNumber ?? null,
           hordeNum: currentHordeDef?.hordeInWave ?? null,
           stage: state.stage,
