@@ -14,7 +14,7 @@
   const DEFAULTS = {
     meta: { version: 2 },
     structure: {
-      towns: 13,
+      towns: 10,
       battlesPerTown: 3,
       missionsPerBattle: 3,
       defaultWavesPerMission: 3,
@@ -66,15 +66,15 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       });
       return { index: lvl.index, battles };
     });
-    // Pad to 13 towns.
-    while (towns.length < 13) {
+    // Pad to 10 towns.
+    while (towns.length < 10) {
       towns.push({ index: towns.length + 1, battles: [] });
     }
     const oldStruct = cfg.structure || {};
     return {
       meta: { version: 2 },
       structure: {
-        towns: 13,
+        towns: 10,
         battlesPerTown: oldStruct.monthsPerLevel || 3,
         missionsPerBattle: oldStruct.battlesPerMonth || 3,
         defaultWavesPerMission: DEFAULTS.structure.defaultWavesPerMission,
@@ -99,7 +99,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
       towns: Array.isArray(cfg.towns) ? cfg.towns : [],
     };
     // Pad towns array to at least structure.towns entries.
-    const targetTowns = merged.structure.towns || 13;
+    const targetTowns = merged.structure.towns || 10;
     while (merged.towns.length < targetTowns) {
       merged.towns.push({ index: merged.towns.length + 1, battles: [] });
     }
@@ -457,7 +457,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   function initScopeSelectors() {
     const s = state.config.structure;
-    populateSelect(els.town,    s.towns           || 13);
+    populateSelect(els.town,    s.towns           || 10);
     populateSelect(els.battle,  s.battlesPerTown  || 3);
     populateSelect(els.mission, s.missionsPerBattle || 3);
     els.town.value    = String(state.scope.town);

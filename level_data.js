@@ -4,7 +4,7 @@ window.BattlechurchLevelData = {
     "version": 2
   },
   "structure": {
-    "towns": 13,
+    "towns": 10,
     "battlesPerTown": 3,
     "missionsPerBattle": 3,
     "defaultWavesPerMission": 3,
@@ -17887,18 +17887,6 @@ window.BattlechurchLevelData = {
     },
     {
       "index": 10,
-      "battles": []
-    },
-    {
-      "index": 11,
-      "battles": []
-    },
-    {
-      "index": 12,
-      "battles": []
-    },
-    {
-      "index": 13,
       "battles": []
     }
   ]

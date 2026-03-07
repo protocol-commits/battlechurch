@@ -5,10 +5,9 @@
     { id: "northwest", name: "Westreach", order: 0 },
     { id: "northeast", name: "Ashvale", order: 1 },
     { id: "southwest", name: "Lowmarch", order: 2 },
-    { id: "southeast", name: "Rivergate", order: 3 },
   ];
 
-  // Active towns (3 per district) + capital = 13 total for current pacing.
+  // Active towns (3 per district) + capital = 10 total for current pacing.
   // Keep these as the first three in each district list.
   const towns = [
     // Westreach (northwest)
@@ -25,11 +24,6 @@
     { id: "lowmoor", name: "Lowmoor", districtId: "southwest", x: 0.24, y: 0.58 }, // move me later
     { id: "brackton", name: "Brackton", districtId: "southwest", x: 0.36, y: 0.64 }, // move me later
     { id: "marsh_end", name: "Marsh End", districtId: "southwest", x: 0.22, y: 0.76 }, // move me later
-
-    // Rivergate (southeast)
-    { id: "havenridge", name: "Havenridge", districtId: "southeast", x: 0.6, y: 0.58 }, // move me later
-    { id: "duston", name: "Duston", districtId: "southeast", x: 0.72, y: 0.68 }, // move me later
-    { id: "southbank", name: "Southbank", districtId: "southeast", x: 0.56, y: 0.74 }, // move me later
 
     // Capital (final boss)
     { id: "highgate", name: "Highgate", type: "capital", x: 0.475, y: 0.49 }, // move me later

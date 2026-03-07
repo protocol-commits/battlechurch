@@ -16,9 +16,8 @@
   // Hierarchy: TOWNS -> BATTLES -> MISSIONS -> WAVES -> HORDES
   const TOWNS_PER_GAME =
     levelData?.structure?.towns ?? levelData?.structure?.levels ?? 4;
-  // Final campaign level - Highgate (capital) is the 25th town
-  // Epilogue only plays after completing all 25 towns
-  const FINAL_CAMPAIGN_LEVEL = 25;
+  // Final campaign level — matches total towns so epilogue fires after completing the capital
+  const FINAL_CAMPAIGN_LEVEL = TOWNS_PER_GAME;
   const BATTLES_PER_TOWN =
     levelData?.structure?.battlesPerTown ?? levelData?.structure?.monthsPerLevel ?? 3;
   const MISSIONS_PER_BATTLE =
