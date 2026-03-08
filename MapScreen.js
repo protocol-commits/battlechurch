@@ -997,6 +997,9 @@
       if (typeof fireOverlay.setBounds === "function") {
         fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
       }
+      if (typeof fireOverlay.setIntensity === "function") {
+        fireOverlay.setIntensity(1.8);
+      }
       fireOverlay.draw(ctx);
     }
     drawMapLabels(ctx, canvas, rect);
