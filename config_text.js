@@ -50,14 +50,14 @@
     // ACT TEXT
     // =====================
     battleActs: {
-      1: "Act I: Establish a Foothold",
-      2: "Act II: Repel the Counter Attack",
-      3: "Act III: Liberate the Town",
+      1: "Act I: Foothold",
+      2: "Act II: Repel",
+      3: "Act III: Breakthrough",
     },
     actVillainText: {
-      1: "Win 3 battles to get established",
-      2: "Win 3 counter-attack battles",
-      3: "Win 3 battles deep in the heart of the town",
+      1: "Win 3 battles to establish a foothold",
+      2: "Win 3 battles as the enemy counter attacks",
+      3: "Win 3 battles to break through enemy lines",
     },
 
     // =====================

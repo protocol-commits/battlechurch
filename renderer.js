@@ -4147,12 +4147,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       ? mapData.towns.find((t) => t.id === activeTownId)
       : null;
     const townName = townData?.name || "this town";
-    let battleTitle =
+    const battleTitle =
       actTitles[chapterBreakActNumber] || `Act ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
+    let villainText = actVillainText[chapterBreakActNumber] || "";
     if (chapterBreakActNumber === 1) {
-      battleTitle = `Act ${romanNumerals[1]}: Establish a Foothold in ${townName}`;
+      villainText = `Win 3 battles to establish a foothold in ${townName}`;
     }
-    const villainText = actVillainText[chapterBreakActNumber] || "";
 
     const centerX = canvas.width / 2;
 
@@ -5135,15 +5135,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
         ? announcement.upcomingOrderNumber
         : inferredUpcomingNumber;
-      const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
-      const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-      const townData = activeTownId && mapData?.towns
-        ? mapData.towns.find((t) => t.id === activeTownId)
-        : null;
-      const townName = townData?.name || "this town";
-      const battleHeading = orderNumber === 1
-        ? `Act I: Establish a Foothold in ${townName}`
-        : (battleHeadings[orderNumber] || `Act ${orderNumber}`);
+      const battleHeading = battleHeadings[orderNumber] || `Act ${orderNumber}`;
       {
         const titleSize = 64;
         const missionLine = upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "";
