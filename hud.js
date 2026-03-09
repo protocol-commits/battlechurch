@@ -946,8 +946,8 @@
       const levelData =
         (typeof window !== 'undefined' && window.BattlechurchLevelData) || null;
       const structure = levelData?.structure || {};
-      const battlesPerTown = Number.isFinite(structure.levels) ? structure.levels : 3;
-      const missionsPerBattle = Number.isFinite(structure.monthsPerLevel) ? structure.monthsPerLevel : 3;
+      const battlesPerTown = Number.isFinite(structure.battlesPerTown) ? structure.battlesPerTown : 3;
+      const missionsPerBattle = Number.isFinite(structure.missionsPerBattle) ? structure.missionsPerBattle : 3;
       const defaultHordes = Number.isFinite(structure.defaultHordesPerBattle) ? structure.defaultHordesPerBattle : 18;
 
       const getMissionHordeCount = (battleIndex, missionIndex) => {
@@ -976,8 +976,8 @@
         totalUnits += battleTotal;
       }
 
-      const currentBattle = Math.max(1, Math.min(battlesPerTown, levelStatus.level || 1));
-      const currentMission = Math.max(1, Math.min(missionsPerBattle, levelStatus.battle || 1));
+      const currentBattle = Math.max(1, Math.min(battlesPerTown, levelStatus.battle || 1));
+      const currentMission = Math.max(1, Math.min(missionsPerBattle, levelStatus.missionNum || 1));
       const currentWave = Math.max(0, levelStatus.wave || 0);
 
       let progressUnits = 0;
