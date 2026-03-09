@@ -4254,7 +4254,36 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     const titleImage = assets?.titleBackground || null;
     if (titleImage) {
-      drawCoverImage(ctx, canvas, titleImage, 1, 0.5, 0.5);
+      const stripHeight = 14;
+      const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+      const amp = 0.9;
+      const focusX = 0.5;
+      const focusY = 0.5;
+      const baseScale = Math.max(canvas.width / titleImage.width, canvas.height / titleImage.height);
+      const drawW = titleImage.width * baseScale;
+      const drawH = titleImage.height * baseScale;
+      const offsetX = canvas.width * focusX - drawW * focusX;
+      const offsetY = canvas.height * focusY - drawH * focusY;
+      const scaleX = drawW / titleImage.width;
+      const scaleY = drawH / titleImage.height;
+      for (let y = 0; y < titleImage.height; y += stripHeight) {
+        const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
+        const offset = wave * amp;
+        const srcH = Math.min(stripHeight, titleImage.height - y);
+        const destY = offsetY + y * scaleY;
+        const destH = srcH * scaleY;
+        ctx.drawImage(
+          titleImage,
+          0,
+          y,
+          titleImage.width,
+          srcH,
+          offsetX + offset,
+          destY,
+          drawW,
+          destH,
+        );
+      }
     } else {
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
       gradient.addColorStop(0, "#070a16");
@@ -4266,6 +4295,12 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     if (fireOverlay && typeof fireOverlay.draw === "function") {
       if (typeof fireOverlay.setBounds === "function") {
         fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+      }
+      if (typeof fireOverlay.setIntensity === "function") {
+        fireOverlay.setIntensity(1.9);
+      }
+      if (typeof fireOverlay.setSizeScale === "function") {
+        fireOverlay.setSizeScale(0.7);
       }
       fireOverlay.draw(ctx);
     }

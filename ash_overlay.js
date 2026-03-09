@@ -10,6 +10,7 @@ class AshOverlay {
     this.emberRatio = 0.55;
     this.embersOnly = false;
     this.intensity = 1;
+    this.sizeScale = 1;
     this.particles = new Array(this.count);
     this._seedParticles();
   }
@@ -121,7 +122,7 @@ class AshOverlay {
 
     // Embers (lighten blend, still subtle).
     const intensity = Math.max(0.1, this.intensity || 1);
-    const sizeScale = 1 + (intensity - 1) * 0.6;
+    const sizeScale = (1 + (intensity - 1) * 0.6) * (this.sizeScale || 1);
     ctx.save();
     ctx.translate(this.viewX || 0, this.viewY || 0);
     ctx.globalCompositeOperation = "lighter";
@@ -153,6 +154,12 @@ class AshOverlay {
     const next = Number(scale);
     if (!Number.isFinite(next) || next <= 0) return;
     this.intensity = next;
+  }
+
+  setSizeScale(scale) {
+    const next = Number(scale);
+    if (!Number.isFinite(next) || next <= 0) return;
+    this.sizeScale = next;
   }
 
   _seedParticles() {

@@ -419,7 +419,29 @@
   function drawMapBackground(ctx, canvas) {
     const rect = computeMapRect(canvas);
     if (mapImageLoaded && mapImage) {
-      ctx.drawImage(mapImage, rect.x, rect.y, rect.w, rect.h);
+      const stripHeight = 14;
+      const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+      const amp = 0.9;
+      const scaleX = rect.w / mapImage.width;
+      const scaleY = rect.h / mapImage.height;
+      for (let y = 0; y < mapImage.height; y += stripHeight) {
+        const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
+        const offset = wave * amp;
+        const srcH = Math.min(stripHeight, mapImage.height - y);
+        const destY = rect.y + y * scaleY;
+        const destH = srcH * scaleY;
+        ctx.drawImage(
+          mapImage,
+          0,
+          y,
+          mapImage.width,
+          srcH,
+          rect.x + offset,
+          destY,
+          rect.w,
+          destH,
+        );
+      }
     } else {
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1061,6 +1083,9 @@
       }
       if (typeof fireOverlay.setIntensity === "function") {
         fireOverlay.setIntensity(1.8);
+      }
+      if (typeof fireOverlay.setSizeScale === "function") {
+        fireOverlay.setSizeScale(1);
       }
       fireOverlay.draw(ctx);
     }
