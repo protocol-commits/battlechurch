@@ -206,6 +206,14 @@
     return mapAssets?.enemies?.miniImp || null;
   }
 
+  function getMiniClawedDemonClips() {
+    return mapAssets?.enemies?.miniClawedDemon || null;
+  }
+
+  function getMiniDemonFireKeeperClips() {
+    return mapAssets?.enemies?.miniDemonFireKeeper || null;
+  }
+
   function getMiniDemonLordClips() {
     return mapAssets?.enemies?.miniDemonLord || null;
   }
@@ -240,7 +248,16 @@
     }
     if (townAnimators.has(key)) return townAnimators.get(key);
     const Animator = window.Entities?.Animator || null;
-    const clips = isCapital ? getMiniDemonLordClips() : getMiniImpClips();
+    let clips = null;
+    if (isCapital) {
+      clips = getMiniDemonLordClips();
+    } else if (town.districtId === "northeast") {
+      clips = getMiniClawedDemonClips();
+    } else if (town.districtId === "southwest") {
+      clips = getMiniDemonFireKeeperClips();
+    } else {
+      clips = getMiniImpClips();
+    }
     if (!Animator || !clips) return null;
     const animator = new Animator(clips, 1);
     animator.play("walk", { restart: true, loop: true });
@@ -458,7 +475,7 @@
     const starCount = getTownStars(town.id);
     const bestCount = getTownBestCount(town.id);
     const isCapital = town.type === "capital";
-    const nodeRadius = isCapital ? radius * 1.8 : radius;
+    const nodeRadius = isCapital ? radius * 3.6 : radius;
     const districtId = town.districtId || "";
     const districtStyles = {
       northwest: { core: "#FFD978", glow: "rgba(255, 217, 120, 0.8)", ring: "rgba(255, 235, 180, 0.9)" },
@@ -587,7 +604,10 @@
     const animator = animState?.animator || null;
     const clip = animator?.currentClip || null;
     if (animator && clip && (town.type === "capital" || bestCount == null)) {
-      const baseTarget = town.type === "capital" ? radius * 4.2 : radius * 3.75;
+      let baseTarget = town.type === "capital" ? radius * 8.4 : radius * 3.75;
+      if (town.districtId === "northeast") {
+        baseTarget *= 0.75;
+      }
       const baseSize = Math.max(clip.frameWidth || 1, clip.frameHeight || 1);
       animator.scale = baseSize > 0 ? baseTarget / baseSize : 1;
       animator.draw(ctx, position.x, position.y - 15, {
