@@ -444,6 +444,12 @@
       southwest: { core: "#C8FFB0", glow: "rgba(200, 255, 176, 0.75)", ring: "rgba(230, 255, 210, 0.9)" },
     };
     const style = districtStyles[districtId] || districtStyles.northwest;
+    const isDemonTown = bestCount == null;
+    const demonGlow = {
+      core: "#1C0A0C",
+      glow: "rgba(10, 6, 8, 0.85)",
+      ring: "rgba(50, 15, 20, 0.9)",
+    };
 
     if (bestCount != null) {
       const glowStars = Math.max(1, Math.min(3, starCount || 1));
@@ -456,12 +462,32 @@
         position.y,
         glowRadius,
       );
-      glow.addColorStop(0, style.glow);
-      glow.addColorStop(0.55, style.glow.replace("0.8", "0.45").replace("0.75", "0.45"));
-      glow.addColorStop(0.85, style.glow.replace("0.8", "0.2").replace("0.75", "0.2"));
+      glow.addColorStop(0, style.glow.replace("0.8", "0.55").replace("0.75", "0.55"));
+      glow.addColorStop(0.55, style.glow.replace("0.8", "0.3").replace("0.75", "0.3"));
+      glow.addColorStop(0.85, style.glow.replace("0.8", "0.12").replace("0.75", "0.12"));
       glow.addColorStop(1, "rgba(255, 255, 255, 0)");
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(position.x, position.y, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      const glowRadius = Math.max(120, nodeRadius * (isCapital ? 5.2 : 4.6));
+      const glow = ctx.createRadialGradient(
+        position.x,
+        position.y,
+        nodeRadius * 0.6,
+        position.x,
+        position.y,
+        glowRadius,
+      );
+      glow.addColorStop(0, "rgba(0, 0, 0, 0.55)");
+      glow.addColorStop(0.55, "rgba(0, 0, 0, 0.35)");
+      glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = glow;
       ctx.beginPath();
       ctx.arc(position.x, position.y, glowRadius, 0, Math.PI * 2);
@@ -492,27 +518,48 @@
       ctx.lineTo(position.x - size, position.y);
       ctx.closePath();
     } else if (districtId === "southwest") {
-      const size = nodeRadius * 1.1;
-      ctx.rect(position.x - size, position.y - size, size * 2, size * 2);
+      const size = nodeRadius * 1.05;
+      for (let i = 0; i < 6; i += 1) {
+        const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+        const x = position.x + Math.cos(angle) * size;
+        const y = position.y + Math.sin(angle) * size;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
     } else {
-      ctx.arc(position.x, position.y, nodeRadius, 0, Math.PI * 2);
+      ctx.arc(position.x, position.y, nodeRadius * 0.98, 0, Math.PI * 2);
     }
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
     ctx.shadowBlur = 10;
+    ctx.globalAlpha = 0.4;
     if (bestCount == null) {
       const glow = ctx.createRadialGradient(position.x, position.y, 2, position.x, position.y, nodeRadius + 6);
-      glow.addColorStop(0, "#FFD27A");
-      glow.addColorStop(0.6, "#F09A2B");
-      glow.addColorStop(1, "#C76616");
+      glow.addColorStop(0, "rgba(10, 6, 8, 0.6)");
+      glow.addColorStop(0.6, "rgba(6, 4, 6, 0.35)");
+      glow.addColorStop(1, "rgba(2, 2, 3, 0.15)");
       ctx.fillStyle = glow;
     } else {
-      ctx.fillStyle = unlocked ? style.core : "rgba(255,255,255,0.2)";
+      ctx.fillStyle = unlocked ? "rgba(255, 255, 255, 0.45)" : "rgba(255,255,255,0.2)";
+      if (unlocked) {
+        ctx.fillStyle = style.core.replace(")", ", 0.45)").replace("rgb(", "rgba(");
+      }
     }
     ctx.fill();
+    ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = isCapital ? "rgba(90, 10, 10, 0.85)" : "rgba(0, 0, 0, 0.6)";
+    ctx.lineWidth = isDemonTown ? 2.6 : 2;
+    ctx.strokeStyle = "rgba(140, 35, 35, 0.95)";
     ctx.stroke();
+    if (isDemonTown) {
+      ctx.save();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(210, 90, 90, 0.6)";
+      ctx.shadowColor = "rgba(210, 90, 90, 0.45)";
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.restore();
+    }
     if (selected && unlocked) {
       ctx.lineWidth = 4;
       ctx.strokeStyle = isCapital ? "rgba(255, 90, 90, 0.95)" : style.ring;
