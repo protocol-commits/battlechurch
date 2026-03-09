@@ -286,7 +286,7 @@
 
   function buildLocalProgress(mapData) {
     const towns = mapData.towns || [];
-    const completedCount = 8;
+    const completedCount = 2;
     const completedIds = towns.slice(0, completedCount).map((town) => town.id);
     const unlockedTownIds = completedIds.slice();
     const townEntries = {};
