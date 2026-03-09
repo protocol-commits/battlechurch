@@ -4151,7 +4151,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       actTitles[chapterBreakActNumber] || `Act ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
     let villainText = actVillainText[chapterBreakActNumber] || "";
     if (chapterBreakActNumber === 1) {
-      villainText = `Win 3 battles to establish a foothold in ${townName}`;
+      villainText = `Win 3 battles to secure a foothold in ${townName}.`;
     }
 
     const centerX = canvas.width / 2;

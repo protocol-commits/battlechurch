@@ -5496,7 +5496,7 @@ function queueTownIntroAnnouncement() {
   const act1Title = (typeof GameText !== 'undefined' && GameText.battleActs?.[1]) || "Act I: Foothold";
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "this town";
-  const act1Subtitle = `Win 3 battles to establish a foothold in ${townName}`;
+  const act1Subtitle = `Win 3 battles to secure a foothold in ${townName}.`;
   pendingTownIntroStart = true;
   queueLevelAnnouncement(act1Subtitle, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
 }

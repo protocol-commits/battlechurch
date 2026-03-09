@@ -55,8 +55,8 @@
       3: "Act III: Breakthrough",
     },
     actVillainText: {
-      1: "Win 3 battles to establish a foothold",
-      2: "Win 3 battles as the enemy counter attacks",
+      1: "Win 3 battles to secure a foothold",
+      2: "Repel 3 enemy counterattacks",
       3: "Win 3 battles to break through enemy lines",
     },
 
