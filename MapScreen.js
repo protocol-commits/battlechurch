@@ -473,26 +473,6 @@
       ctx.arc(position.x, position.y, glowRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    } else {
-      const glowRadius = Math.max(120, nodeRadius * (isCapital ? 5.2 : 4.6));
-      const glow = ctx.createRadialGradient(
-        position.x,
-        position.y,
-        nodeRadius * 0.6,
-        position.x,
-        position.y,
-        glowRadius,
-      );
-      glow.addColorStop(0, "rgba(0, 0, 0, 0.55)");
-      glow.addColorStop(0.55, "rgba(0, 0, 0, 0.35)");
-      glow.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.save();
-      ctx.globalCompositeOperation = "source-over";
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(position.x, position.y, glowRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
     }
 
     ctx.save();
@@ -637,7 +617,7 @@
     ctx.shadowBlur = 20;
     ctx.fillStyle = "#EAF6FF";
     ctx.font = `800 ${taglineSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillText("Smite the hordes. Save the people.", canvas.width / 2, rect.y + Math.round(16 * scale));
+    ctx.fillText("Smite the hordes. Save the people.", canvas.width / 2, rect.y + Math.round(16 * scale) + 35);
     ctx.restore();
   }
 
