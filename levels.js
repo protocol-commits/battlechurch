@@ -737,7 +737,7 @@
         3: "Act III: Liberate the Town",
       };
       const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-      const missionNumber = globalMonthNumber;
+      const missionNumber = localMonthNumber;
       const missionBriefTitle = actTitles[state.level] || `Act ${romanNumerals[state.level] || state.level}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
