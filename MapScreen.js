@@ -435,22 +435,31 @@
     const selected = state.selectedTownId === town.id;
     const starCount = getTownStars(town.id);
     const bestCount = getTownBestCount(town.id);
+    const isCapital = town.type === "capital";
+    const nodeRadius = isCapital ? radius * 1.8 : radius;
+    const districtId = town.districtId || "";
+    const districtStyles = {
+      northwest: { core: "#FFD978", glow: "rgba(255, 217, 120, 0.8)", ring: "rgba(255, 235, 180, 0.9)" },
+      northeast: { core: "#8FD7FF", glow: "rgba(140, 215, 255, 0.75)", ring: "rgba(190, 235, 255, 0.9)" },
+      southwest: { core: "#C8FFB0", glow: "rgba(200, 255, 176, 0.75)", ring: "rgba(230, 255, 210, 0.9)" },
+    };
+    const style = districtStyles[districtId] || districtStyles.northwest;
 
     if (bestCount != null) {
       const glowStars = Math.max(1, Math.min(3, starCount || 1));
-      const glowRadius = glowStars * 100;
+      const glowRadius = (glowStars * 100) * (isCapital ? 1.3 : 1);
       const glow = ctx.createRadialGradient(
         position.x,
         position.y,
-        radius * 0.5,
+        nodeRadius * 0.5,
         position.x,
         position.y,
         glowRadius,
       );
-      glow.addColorStop(0, "rgba(255, 245, 210, 0.85)");
-      glow.addColorStop(0.55, "rgba(255, 225, 160, 0.45)");
-      glow.addColorStop(0.85, "rgba(255, 210, 140, 0.15)");
-      glow.addColorStop(1, "rgba(255, 210, 140, 0)");
+      glow.addColorStop(0, style.glow);
+      glow.addColorStop(0.55, style.glow.replace("0.8", "0.45").replace("0.75", "0.45"));
+      glow.addColorStop(0.85, style.glow.replace("0.8", "0.2").replace("0.75", "0.2"));
+      glow.addColorStop(1, "rgba(255, 255, 255, 0)");
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
       ctx.fillStyle = glow;
@@ -462,37 +471,62 @@
 
     ctx.save();
     ctx.beginPath();
-    ctx.arc(position.x, position.y, radius, 0, Math.PI * 2);
+    if (isCapital) {
+      const spikes = 8;
+      const inner = nodeRadius * 0.7;
+      const outer = nodeRadius * 1.2;
+      for (let i = 0; i < spikes * 2; i += 1) {
+        const angle = (Math.PI * 2 * i) / (spikes * 2) - Math.PI / 2;
+        const r = i % 2 === 0 ? outer : inner;
+        const x = position.x + Math.cos(angle) * r;
+        const y = position.y + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    } else if (districtId === "northeast") {
+      const size = nodeRadius * 1.1;
+      ctx.moveTo(position.x, position.y - size);
+      ctx.lineTo(position.x + size, position.y);
+      ctx.lineTo(position.x, position.y + size);
+      ctx.lineTo(position.x - size, position.y);
+      ctx.closePath();
+    } else if (districtId === "southwest") {
+      const size = nodeRadius * 1.1;
+      ctx.rect(position.x - size, position.y - size, size * 2, size * 2);
+    } else {
+      ctx.arc(position.x, position.y, nodeRadius, 0, Math.PI * 2);
+    }
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
     ctx.shadowBlur = 10;
     if (bestCount == null) {
-      const glow = ctx.createRadialGradient(position.x, position.y, 2, position.x, position.y, radius + 6);
+      const glow = ctx.createRadialGradient(position.x, position.y, 2, position.x, position.y, nodeRadius + 6);
       glow.addColorStop(0, "#FFD27A");
       glow.addColorStop(0.6, "#F09A2B");
       glow.addColorStop(1, "#C76616");
       ctx.fillStyle = glow;
     } else {
-      ctx.fillStyle = unlocked ? "#FFD978" : "rgba(255,255,255,0.2)";
+      ctx.fillStyle = unlocked ? style.core : "rgba(255,255,255,0.2)";
     }
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.strokeStyle = isCapital ? "rgba(90, 10, 10, 0.85)" : "rgba(0, 0, 0, 0.6)";
     ctx.stroke();
     if (selected && unlocked) {
       ctx.lineWidth = 4;
-      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.strokeStyle = isCapital ? "rgba(255, 90, 90, 0.95)" : style.ring;
       ctx.stroke();
       if (pulse) {
-        const glowRadius = radius + 12 + pulse * 2;
+        const glowRadius = nodeRadius + 12 + pulse * 2;
         ctx.beginPath();
         ctx.arc(position.x, position.y, glowRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 217, 120, 0.7)";
+        ctx.strokeStyle = isCapital ? "rgba(255, 90, 90, 0.7)" : style.ring;
         ctx.lineWidth = 4;
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(position.x, position.y, glowRadius + 8, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.strokeStyle = isCapital ? "rgba(255, 120, 120, 0.6)" : "rgba(255, 255, 255, 0.6)";
         ctx.lineWidth = 2;
         ctx.stroke();
       }
