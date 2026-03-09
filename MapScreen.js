@@ -462,9 +462,9 @@
         position.y,
         glowRadius,
       );
-      glow.addColorStop(0, style.glow.replace("0.8", "0.55").replace("0.75", "0.55"));
-      glow.addColorStop(0.55, style.glow.replace("0.8", "0.3").replace("0.75", "0.3"));
-      glow.addColorStop(0.85, style.glow.replace("0.8", "0.12").replace("0.75", "0.12"));
+      glow.addColorStop(0, style.glow.replace("0.8", "0.4").replace("0.75", "0.4"));
+      glow.addColorStop(0.55, style.glow.replace("0.8", "0.2").replace("0.75", "0.2"));
+      glow.addColorStop(0.85, style.glow.replace("0.8", "0.08").replace("0.75", "0.08"));
       glow.addColorStop(1, "rgba(255, 255, 255, 0)");
       ctx.save();
       ctx.globalCompositeOperation = "lighter";
@@ -559,6 +559,7 @@
       }
     }
     ctx.restore();
+
 
     const animState = getTownAnimatorState(town, bestCount);
     const animator = animState?.animator || null;
