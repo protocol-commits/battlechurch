@@ -11,22 +11,22 @@
   // Keep these as the first three in each district list.
   const towns = [
     // Westreach (northwest) — left column
-    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.18, y: 0.3502 },
-    { id: "stone_ridge", name: "Stone Ridge", districtId: "northwest", x: 0.3258, y: 0.48 },
-    { id: "northvale", name: "Northvale", districtId: "northwest", x: 0.2893, y: 0.74 },
+    { id: "pine_hollow", name: "Pine Hollow", districtId: "northwest", x: 0.1654, y: 0.3502 },
+    { id: "stone_ridge", name: "Stone Ridge", districtId: "northwest", x: 0.2894, y: 0.48 },
+    { id: "northvale", name: "Northvale", districtId: "northwest", x: 0.3403, y: 0.7400 },
 
     // Ashvale (northeast) — middle column
-    { id: "red_creek", name: "Red Creek", districtId: "northeast", x: 0.4636, y: 0.22 },
-    { id: "ash_crossing", name: "Ash Crossing", districtId: "northeast", x: 0.50, y: 0.48 },
-    { id: "millhaven", name: "Millhaven", districtId: "northeast", x: 0.5547, y: 0.8702 },
+    { id: "red_creek", name: "Red Creek", districtId: "northeast", x: 0.5183, y: 0.22 },
+    { id: "ash_crossing", name: "Ash Crossing", districtId: "northeast", x: 0.5073, y: 0.48 },
+    { id: "millhaven", name: "Millhaven", districtId: "northeast", x: 0.5256, y: 0.8897 },
 
     // Lowmarch (southwest) — right column (upper 2/3)
-    { id: "lowmoor", name: "Lowmoor", districtId: "southwest", x: 0.6560, y: 0.18 },
-    { id: "brackton", name: "Brackton", districtId: "southwest", x: 0.82, y: 0.3093 },
-    { id: "marsh_end", name: "Marsh End", districtId: "southwest", x: 0.6633, y: 0.4573 },
+    { id: "lowmoor", name: "Lowmoor", districtId: "southwest", x: 0.7107, y: 0.18 },
+    { id: "brackton", name: "Brackton", districtId: "southwest", x: 0.8091, y: 0.3549 },
+    { id: "marsh_end", name: "Marsh End", districtId: "southwest", x: 0.6924, y: 0.4833 },
 
     // Capital (final boss) — right column (lower 1/3)
-    { id: "highgate", name: "Highgate", type: "capital", x: 0.7836, y: 0.6972 },
+    { id: "highgate", name: "Highgate", type: "capital", x: 0.7836, y: 0.7102 },
   ];
 
 
