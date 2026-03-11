@@ -5659,6 +5659,30 @@ function returnToMapWithNextTown() {
   }
 }
 
+function returnToMapFromPause() {
+  paused = false;
+  gameStarted = false;
+  titleScreenActive = false;
+  howToPlayActive = false;
+  mapActive = true;
+  pendingBossIntroAfterExterior = false;
+  townVisitorMinigamePlayed = false;
+  window.isPauseOverlayActive = false;
+  pauseRestartConfirmActive = false;
+  // Clear any pending announcements
+  try {
+    if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  } catch (e) {}
+  // Reset level manager
+  if (levelManager?.reset) levelManager.reset();
+  if (window.MapScreen) {
+    if (activeTownId) {
+      window.MapScreen.selectTown(activeTownId);
+    }
+    window.MapScreen.open();
+  }
+}
+
 const HOW_TO_PLAY_BODY =
   uiTexts.howToPlayBody ||
   [
@@ -14365,6 +14389,10 @@ function handlePauseMenu() {
       buttons,
       allowSpace: true,
       onActivate: (button) => {
+        if (button.key === "map") {
+          returnToMapFromPause();
+          return;
+        }
         if (button.key === "settings") {
           pauseRestartConfirmActive = false;
           showSettingsOverlay({ source: "pause" });
