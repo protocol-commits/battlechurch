@@ -194,6 +194,13 @@
     if (type === "bat") {
       instanceConfig.scale = 1.5;
     }
+    // Apply health multiplier for armored/tank enemies in higher campaigns
+    if (Number.isFinite(options.healthMultiplier) && options.healthMultiplier !== 1.0) {
+      const baseHp = instanceConfig.maxHealth ?? instanceConfig.health ?? 100;
+      const scaledHp = Math.max(1, Math.round(baseHp * options.healthMultiplier));
+      instanceConfig.maxHealth = scaledHp;
+      instanceConfig.health = scaledHp;
+    }
 
     const enemy = deps.createEnemyInstance(
       type,

@@ -278,6 +278,22 @@
     return picked || fallbackType;
   }
 
+  // Applies campaign difficulty scaling to enemy entries.
+  // Normal enemies: count × multiplier. Armored/tank: health multiplied via healthMultiplier tag.
+  function applyEnemyScaling(entries, multiplier) {
+    if (!multiplier || multiplier === 1.0 || !Array.isArray(entries)) return entries;
+    const catalog = (typeof window !== "undefined" && window.BattlechurchEnemyCatalog?.catalog) || {};
+    return entries.map((entry) => {
+      const def = catalog[entry.type];
+      const damageClass = def?.damageClass || "normal";
+      const isArmored = damageClass === "armored" || damageClass === "tank";
+      if (isArmored) {
+        return { ...entry, healthMultiplier: multiplier };
+      }
+      return { ...entry, count: Math.max(1, Math.round(entry.count * multiplier)) };
+    });
+  }
+
   // createHordeDefinition(level, battle, mission, wave, horde, helpers) — all indices are 0-based
   // waveIndex is 0-based; pass null for v1/procedural paths where waves don't exist.
   function createHordeDefinition(levelNumber, battleIndex, missionIndex, waveIndex, hordeIndex, helpers) {
@@ -342,7 +358,7 @@
     const mergedExplicitWeighted = [...weightedEntries, ...explicitEntries];
     if (mergedExplicitWeighted.length) {
       return {
-        enemies: mergedExplicitWeighted,
+        enemies: applyEnemyScaling(mergedExplicitWeighted, helpers.campaignMultiplier),
         powerUps: 1 + Math.floor(difficultyRating / 2),
         duration: durationSeconds,
         allKill: resolvedAllKill,
@@ -418,7 +434,7 @@
     }
 
       return {
-        enemies: combinedEntries,
+        enemies: applyEnemyScaling(combinedEntries, helpers.campaignMultiplier),
         powerUps: 1 + Math.floor(difficultyRating / 2),
         duration: durationSeconds,
         allKill: resolvedAllKill,
@@ -534,6 +550,9 @@
       miniImpBaseGroupSize,
       miniImpMaxGroupSize,
       miniImpMinGroupsPerHorde,
+      campaignMultiplier: (typeof window !== "undefined" && Number.isFinite(window.activeCampaignMultiplier))
+        ? window.activeCampaignMultiplier
+        : 1.0,
     };
     helperConfig.selectEnemyType = (levelNumber, tier) =>
       selectHordeEnemyType(levelNumber, tier, helperConfig);
@@ -1069,15 +1088,18 @@
       }
       resetStage("waveActive", waveActiveDuration);
       const enemyEntries = Array.isArray(horde?.enemies) ? horde.enemies : [];
-      enemyEntries.forEach(({ type, count, delay }) => {
+      enemyEntries.forEach(({ type, count, delay, healthMultiplier }) => {
         const isMiniImpTypeEntry = type === "miniImp" || type === "miniImpLevel2";
         const delayMs = Math.max(0, (Number(delay) || 0) * 1000);
+        const spawnOpts = Number.isFinite(healthMultiplier) && healthMultiplier !== 1.0
+          ? { healthMultiplier }
+          : {};
         const spawnTask = () => {
           if (isMiniImpTypeEntry) {
-            spawnMiniImpGroup(count, null, { ignoreCap: true }, type);
+            spawnMiniImpGroup(count, null, { ignoreCap: true, ...spawnOpts }, type);
           } else {
             for (let i = 0; i < count; i += 1) {
-              spawnEnemyOfType(type);
+              spawnEnemyOfType(type, null, spawnOpts);
             }
           }
         };

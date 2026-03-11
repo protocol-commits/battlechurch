@@ -2844,6 +2844,8 @@ let pauseRestartConfirmActive = false;
 let howToPlayPageIndex = 0;
 let mapActive = false;
 let activeTownId = null;
+let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
+let activeCampaignMultiplier = 1.0; // 1.0 | 1.15 | 1.1
 let bestScoreSaveQueued = false;
 let cloudInitAttempted = false;
 
@@ -5580,11 +5582,25 @@ function startGameFromTitle() {
   if (!assetsLoaded) return;
   townVisitorMinigamePlayed = false;
   maxComboThisTown = 0;
-  if (typeof window !== "undefined" && window.MapScreen?.getTownStartCount) {
-    const nextStart = window.MapScreen.getTownStartCount(activeTownId);
-    townStartCongregation = Number.isFinite(nextStart) ? nextStart : INITIAL_CONGREGATION_SIZE;
+  // Load campaign data (start count, multiplier, powerup restore)
+  if (typeof window !== "undefined" && window.MapScreen?.getTownCampaignData) {
+    const campaignData = window.MapScreen.getTownCampaignData(activeTownId);
+    activeCampaign = campaignData?.campaign || "p1";
+    activeCampaignMultiplier = Number.isFinite(campaignData?.campaignMultiplier) ? campaignData.campaignMultiplier : 1.0;
+    if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
+    townStartCongregation = Number.isFinite(campaignData?.startCount) ? campaignData.startCount : INITIAL_CONGREGATION_SIZE;
+    resetChurchPowerups();
+    // Restore church powerup levels from prior campaigns
+    const restored = campaignData?.restoredChurchPowerupLevels || {};
+    for (const [id, level] of Object.entries(restored)) {
+      if (Number.isFinite(level) && level > 0) churchPowerupLevels.set(id, level);
+    }
   } else {
+    activeCampaign = "p1";
+    activeCampaignMultiplier = 1.0;
+    if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
     townStartCongregation = INITIAL_CONGREGATION_SIZE;
+    resetChurchPowerups();
   }
   resetCongregationSize();
   // Ensure title is hidden and game is paused while we enter briefing.
@@ -5596,7 +5612,6 @@ function startGameFromTitle() {
   pendingBossIntroAfterExterior = false;
   startSpeedrunTimer();
   resetYearNpcPool();
-  resetChurchPowerups();
   // Clear any previously queued announcements so the congregation doesn't show
   // immediately (init/restart may have queued them at startup).
   try {
@@ -5621,10 +5636,8 @@ function startRunForTown(townId) {
   mapActive = false;
   if (typeof window !== "undefined") {
     window.activeTownId = activeTownId;
-    if (window.MapScreen?.ensureTownStartCount) {
-      window.MapScreen.ensureTownStartCount(activeTownId).catch(() => {});
-    }
   }
+  // activeCampaign and activeCampaignMultiplier are set inside startGameFromTitle via getTownCampaignData
   startGameFromTitle();
 }
 
@@ -14058,7 +14071,8 @@ function handleLevelAnnouncements() {
           }
           // Only record town completion on the FINAL level of the town
           if (isFinalTownLevel && window.MapScreen?.recordTownCompletion) {
-            window.MapScreen.recordTownCompletion(activeTownId, finalScore);
+            const powerupSnapshot = Object.fromEntries(churchPowerupLevels);
+            window.MapScreen.recordTownCompletion(activeTownId, finalScore, activeCampaign, powerupSnapshot);
           }
         }
         if (currentAnnouncement.recapFinalYear) {

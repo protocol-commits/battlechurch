@@ -62,12 +62,18 @@
     return districtTowns.length ? districtTowns[0].id : null;
   }
 
+  // Alias for getDistricts() — returns counties sorted by order
+  function getBattlechurchCounties() {
+    return getDistricts();
+  }
+
   window.BattlechurchMapData = {
     districts,
     towns,
     calculateStars,
     getDefaultTownStartCount,
     getDistricts,
+    getBattlechurchCounties,
     getTowns,
     getTownsByDistrict,
     getFirstTownId,
