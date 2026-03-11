@@ -5593,7 +5593,10 @@ function startGameFromTitle() {
     // Restore church powerup levels from prior campaigns
     const restored = campaignData?.restoredChurchPowerupLevels || {};
     for (const [id, level] of Object.entries(restored)) {
-      if (Number.isFinite(level) && level > 0) churchPowerupLevels.set(id, level);
+      if (Number.isFinite(level) && level > 0) {
+        churchPowerupLevels.set(id, level);
+        unlockedChurchPowerups.add(id);
+      }
     }
   } else {
     activeCampaign = "p1";
