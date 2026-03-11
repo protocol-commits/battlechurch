@@ -1223,11 +1223,19 @@
       },
     };
 
+    // Show the front line — furthest county the player has reached that isn't fully secured
+    let activeDistrict = null;
     for (const district of districts) {
+      const towns = mapData.getTownsByDistrict(district.id).slice(0, 3);
+      const hasActivity = towns.some((t) => isTownUnlocked(t.id) || progress.towns?.[t.id] != null);
       const status = getCountyOperationStatus(district.id, progress);
-      if (status === "secured") continue;
-      const obj = districtObjectives[district.id];
-      const name = obj?.name || district.name.toUpperCase();
+      if (hasActivity && status !== "secured") activeDistrict = district;
+    }
+
+    if (activeDistrict) {
+      const status = getCountyOperationStatus(activeDistrict.id, progress);
+      const obj = districtObjectives[activeDistrict.id];
+      const name = obj?.name || activeDistrict.name.toUpperCase();
       const statusLine = obj?.[status] || "Advance";
       if (status === "contested") {
         return { name, statusLine, color: "#FF6B6B", glow: "rgba(255,107,107,0.5)" };
