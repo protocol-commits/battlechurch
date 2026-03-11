@@ -12866,9 +12866,17 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("5")) {
+    const battlesPerTown = Number.isFinite(window.BATTLES_PER_TOWN) ? window.BATTLES_PER_TOWN : 3;
+    let currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+    let guard = 0;
+    while (currentLevel < battlesPerTown && guard < 10) {
+      if (!levelManager?.devSkipLevel?.()) break;
+      currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : currentLevel + 1;
+      guard += 1;
+    }
     const result = levelManager?.devSkipToBoss?.({ showExterior: false });
     if (result?.success) {
-      setDevStatus("Boss battle engaged", 2.3);
+      setDevStatus("Final town boss engaged", 2.3);
     }
   }
   if (keysJustPressed.has("6")) {
@@ -14002,7 +14010,7 @@ function handleLevelAnnouncements() {
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
         // Determine if this is the final level of the current town
-        const levelsPerTown = Number.isFinite(window.LEVELS_PER_GAME) ? window.LEVELS_PER_GAME : 3;
+        const levelsPerTown = Number.isFinite(window.BATTLES_PER_TOWN) ? window.BATTLES_PER_TOWN : 3;
         const isFinalTownLevel = lastCompletedLevel >= levelsPerTown;
 
         // Record town completion and save score only for FINAL level of town

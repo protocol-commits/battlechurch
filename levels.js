@@ -1525,7 +1525,7 @@ state.waveIndex = -1;
           case "levelSummary":
             state.timer -= dt;
             if (state.timer <= 0) {
-              if (state.level >= LEVELS_PER_GAME) {
+              if (state.level >= BATTLES_PER_TOWN) {
                 resetStage("idle", 0);
                 state.active = false;
               } else {
