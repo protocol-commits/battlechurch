@@ -386,15 +386,15 @@
   }
 
   function getTownStars(townId) {
+    // Returns number of completed campaigns (0–3), used for glow scaling
     const progress = ensureProgress();
     const townEntry = progress?.towns?.[townId];
     if (!townEntry) return 0;
-    let best = 0;
+    let count = 0;
     for (const camp of ["p1", "p2", "p3"]) {
-      const stars = townEntry[camp]?.stars;
-      if (Number.isFinite(stars)) best = Math.max(best, stars);
+      if (townEntry[camp]?.completed === true) count += 1;
     }
-    return best;
+    return count;
   }
 
   function getTownBestCount(townId) {
@@ -450,7 +450,6 @@
       const stripHeight = 14;
       const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
       const amp = 0.9;
-      const scaleX = rect.w / mapImage.width;
       const scaleY = rect.h / mapImage.height;
       for (let y = 0; y < mapImage.height; y += stripHeight) {
         const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
@@ -542,11 +541,6 @@
     };
     const style = districtStyles[districtId] || districtStyles.northwest;
     const isDemonTown = bestCount == null;
-    const demonGlow = {
-      core: "#1C0A0C",
-      glow: "rgba(10, 6, 8, 0.85)",
-      ring: "rgba(50, 15, 20, 0.9)",
-    };
 
     if (bestCount != null) {
       const glowStars = Math.max(1, Math.min(3, starCount || 1));
@@ -676,16 +670,13 @@
     if (bestCount != null) {
       ctx.save();
       const nameSize = Math.round(14 * (rect.w / 1280));
-      const countSize = Math.round(12 * (rect.w / 1280));
-      void countSize; // reserved for future use
-      const stars = "★".repeat(Math.max(1, Math.min(3, starCount)));
       ctx.font = `600 ${nameSize}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "#FFFFFF";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
-      ctx.fillText(`${town.name} (${Math.round(bestCount)}) ${stars}`, position.x, position.y - radius - 10);
+      ctx.fillText(`${town.name} (${Math.round(bestCount)})`, position.x, position.y - radius - 10);
       ctx.restore();
     } else if (selected) {
       ctx.save();
@@ -705,11 +696,69 @@
     }
   }
 
-  function isDistrictUnlocked(districtId) {
-    const mapData = window.BattlechurchMapData;
-    if (!mapData) return false;
-    const towns = mapData.getTownsByDistrict(districtId);
-    return towns.some((town) => isTownUnlocked(town.id));
+  function drawPhaseBox(ctx, rect) {
+    const progress = ensureProgress();
+    const op = getActiveOperation(progress);
+    const scale = rect.w / 1280;
+    const boxW = Math.round(182 * scale);
+    const boxH = Math.round(64 * scale);
+    const pad = Math.round(18 * scale);
+    const boxX = rect.x + rect.w - boxW - pad;
+    const boxY = rect.y + rect.h - boxH - pad;
+    const textX = boxX + Math.round(12 * scale);
+
+    ctx.save();
+
+    // Background
+    ctx.fillStyle = "rgba(4, 8, 14, 0.88)";
+    ctx.fillRect(boxX, boxY, boxW, boxH);
+
+    // Border
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+    // Left accent bar in operation color
+    ctx.fillStyle = op.color;
+    ctx.shadowColor = op.glow;
+    ctx.shadowBlur = 8;
+    ctx.fillRect(boxX, boxY, Math.max(2, Math.round(3 * scale)), boxH);
+    ctx.shadowBlur = 0;
+
+    // "OPERATION:" tag — tiny, muted
+    const tagSize = Math.max(7, Math.round(8 * scale));
+    const nameSize = Math.max(11, Math.round(14 * scale));
+    const statusSize = Math.max(7, Math.round(9 * scale));
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+
+    ctx.font = `600 ${tagSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(180, 190, 200, 0.5)";
+    ctx.fillText("OPERATION", textX, boxY + boxH * 0.22);
+
+    // Operation name — bold, colored
+    ctx.font = `700 ${nameSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = op.color;
+    ctx.shadowColor = op.glow;
+    ctx.shadowBlur = 6;
+    ctx.fillText(op.name, textX, boxY + boxH * 0.52);
+    ctx.shadowBlur = 0;
+
+    // Status line — small dot + text
+    const dotR = Math.max(2, Math.round(2.5 * scale));
+    const dotX = textX + dotR;
+    const statusY = boxY + boxH * 0.82;
+    ctx.beginPath();
+    ctx.arc(dotX, statusY, dotR, 0, Math.PI * 2);
+    ctx.fillStyle = op.color;
+    ctx.fill();
+
+    ctx.font = `400 ${statusSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(190, 205, 220, 0.65)";
+    ctx.fillText(op.statusLine, textX + dotR * 2 + Math.round(5 * scale), statusY);
+
+    ctx.restore();
   }
 
   function drawMapLabels(ctx, canvas, rect) {
@@ -813,7 +862,6 @@
     const town = getTownById(state.selectedTownId);
     if (!town) return;
     const district = getDistrictById(town.districtId);
-    const stars = getTownStars(town.id);
     const panelW = Math.min(520, canvas.width * 0.7);
     const panelH = 220;
     const panelX = canvas.width / 2 - panelW / 2;
@@ -840,13 +888,13 @@
     ctx.font = `500 16px ${UI_FONT_FAMILY}`;
     const progress = ensureProgress();
     if (town.type === "capital") {
-      ctx.fillText(`Stars: ${stars}   Score ×${getCapitalScoreMultiplier(progress).toFixed(2)}`, canvas.width / 2, panelY + 76);
+      ctx.fillText(`Score ×${getCapitalScoreMultiplier(progress).toFixed(2)}`, canvas.width / 2, panelY + 76);
     } else {
       const nextCamp = progress ? getNextCampaignForTown(town.id, progress) : "p1";
       const campLabel = nextCamp === "p1" ? "Campaign I" : nextCamp === "p2" ? "Campaign II" : "Campaign III";
       const campAvail = nextCamp === "p1" || (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
       const campText = campAvail ? campLabel : `${campLabel} (locked)`;
-      ctx.fillText(`Stars: ${stars}   ${campText}`, canvas.width / 2, panelY + 76);
+      ctx.fillText(campText, canvas.width / 2, panelY + 76);
     }
 
     const buttonW = 140;
@@ -1129,6 +1177,75 @@
     return regularTowns.length > 0 && regularTowns.every((t) => progress.towns[t.id]?.p1?.completed === true);
   }
 
+  // Returns the status of a county for the operation box
+  function getCountyOperationStatus(districtId, progress) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData || !progress) return "advancing";
+    const towns = mapData.getTownsByDistrict(districtId).slice(0, 3);
+    if (!towns.length) return "advancing";
+    const allP3 = towns.every((t) => progress.towns?.[t.id]?.p3?.completed === true);
+    if (allP3) return "secured";
+    const allP2 = towns.every((t) => progress.towns?.[t.id]?.p2?.completed === true);
+    if (allP2) return "final_push";
+    const allP1 = towns.every((t) => progress.towns?.[t.id]?.p1?.completed === true);
+    if (allP1) return "contested";
+    return "advancing";
+  }
+
+  // Returns the active military operation to display in the status box
+  function getActiveOperation(progress) {
+    const mapData = window.BattlechurchMapData;
+    const defaultOp = {
+      name: "WESTREACH", statusLine: "Secure the beachhead",
+      color: "#D4A843", glow: "rgba(212,168,67,0.5)",
+    };
+    if (!mapData || !progress) return defaultOp;
+
+    const districts = mapData.getDistricts(); // sorted by order
+    const districtObjectives = {
+      northwest: {
+        name: "WESTREACH",
+        advancing:   "Secure the beachhead",
+        contested:   "Hold the beachhead",
+        final_push:  "Clear the county",
+      },
+      northeast: {
+        name: "ASHVALE",
+        advancing:   "Push inland",
+        contested:   "Deny the counteroffensive",
+        final_push:  "Break the resistance",
+      },
+      southwest: {
+        name: "LOWMARCH",
+        advancing:   "Cut off the capital",
+        contested:   "Hold the flanks",
+        final_push:  "Encircle Highgate",
+      },
+    };
+
+    for (const district of districts) {
+      const status = getCountyOperationStatus(district.id, progress);
+      if (status === "secured") continue;
+      const obj = districtObjectives[district.id];
+      const name = obj?.name || district.name.toUpperCase();
+      const statusLine = obj?.[status] || "Advance";
+      if (status === "contested") {
+        return { name, statusLine, color: "#FF6B6B", glow: "rgba(255,107,107,0.5)" };
+      }
+      if (status === "final_push") {
+        return { name, statusLine, color: "#A8E890", glow: "rgba(168,232,144,0.5)" };
+      }
+      return { name, statusLine, color: "#D4A843", glow: "rgba(212,168,67,0.5)" };
+    }
+
+    // All regular counties secured — check capital
+    const capital = mapData.towns.find((t) => t.type === "capital");
+    if (capital && progress.towns?.[capital.id]?.p1?.completed) {
+      return { name: "HIGHGATE", statusLine: "All objectives met", color: "#FFD978", glow: "rgba(255,217,120,0.5)" };
+    }
+    return { name: "HIGHGATE", statusLine: "Storm the gates", color: "#FF4040", glow: "rgba(255,64,64,0.55)" };
+  }
+
   // Returns 'p1' | 'p2' | 'p3' — the next campaign to play for a town
   function getNextCampaignForTown(townId, progress) {
     if (!progress) return "p1";
@@ -1297,6 +1414,7 @@
     }
     handleMapClicks(rect);
     drawTownPanel(ctx, canvas);
+    drawPhaseBox(ctx, rect);
     ctx.restore();
   }
 
