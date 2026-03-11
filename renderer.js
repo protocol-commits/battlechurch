@@ -2050,13 +2050,13 @@ const UPGRADE_ICON_SOURCES = {
   category: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
 };
 let upgradeCategoryIcon = null;
-const upgradePowerupIcons = new Map();
-const UPGRADE_POWERUP_ICON_DEFAULT = {
+const churchPowerupIcons = new Map();
+const CHURCH_POWERUP_ICON_DEFAULT = {
   shape: "square",
   color: "#2B4C73",
   accent: "#3C5F8C",
 };
-const UPGRADE_POWERUP_ICON_HIGHLIGHT = "rgba(255, 215, 64, 0.95)";
+const CHURCH_POWERUP_ICON_HIGHLIGHT = "rgba(255, 215, 64, 0.95)";
 
 function getUpgradeIcon(kind) {
   if (typeof Image === "undefined") return null;
@@ -2070,22 +2070,22 @@ function getUpgradeIcon(kind) {
   return null;
 }
 
-function getUpgradePowerupIcon(src) {
+function getChurchPowerupIcon(src) {
   if (!src || typeof Image === "undefined") return null;
-  if (!upgradePowerupIcons.has(src)) {
+  if (!churchPowerupIcons.has(src)) {
     const img = new Image();
     img.src = src;
-    upgradePowerupIcons.set(src, img);
+    churchPowerupIcons.set(src, img);
   }
-  return upgradePowerupIcons.get(src);
+  return churchPowerupIcons.get(src);
 }
 
-function drawUpgradePowerupIcon(ctx, { x, y, size, iconImage, style }) {
+function drawChurchPowerupIcon(ctx, { x, y, size, iconImage, style }) {
   if (!ctx || !size) return;
   const half = size / 2;
-  const shape = style?.shape || UPGRADE_POWERUP_ICON_DEFAULT.shape;
-  const color = style?.color || UPGRADE_POWERUP_ICON_DEFAULT.color;
-  const accent = style?.accent || UPGRADE_POWERUP_ICON_DEFAULT.accent;
+  const shape = style?.shape || CHURCH_POWERUP_ICON_DEFAULT.shape;
+  const color = style?.color || CHURCH_POWERUP_ICON_DEFAULT.color;
+  const accent = style?.accent || CHURCH_POWERUP_ICON_DEFAULT.accent;
   ctx.save();
   ctx.translate(x, y);
   const gradient = ctx.createLinearGradient(0, -half, 0, half);
@@ -2097,13 +2097,13 @@ function drawUpgradePowerupIcon(ctx, { x, y, size, iconImage, style }) {
     ctx.arc(0, 0, half, 0, Math.PI * 2);
     ctx.fill();
     ctx.lineWidth = Math.max(2, size * 0.08);
-    ctx.strokeStyle = UPGRADE_POWERUP_ICON_HIGHLIGHT;
+    ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
     ctx.stroke();
   } else {
     const radius = Math.max(6, Math.round(size * 0.16));
     roundRect(ctx, -half, -half, size, size, radius, true, false);
     ctx.lineWidth = Math.max(2, size * 0.08);
-    ctx.strokeStyle = UPGRADE_POWERUP_ICON_HIGHLIGHT;
+    ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
     roundRect(ctx, -half, -half, size, size, radius, false, true);
   }
 
@@ -2142,7 +2142,7 @@ function drawUpgradePowerupIcon(ctx, { x, y, size, iconImage, style }) {
   ctx.restore();
 }
 
-function drawUpgradeScreen(ctx, canvas, options = {}) {
+function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const {
     graceCount = 0,
     stats = [],
@@ -2224,7 +2224,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
 
   const revealComplete = isAnnouncementRevealComplete(title, staticSubtitle);
   if (!revealComplete) {
-    window.__upgradeScreenButtons = { buttons: [] };
+    window.__churchUpgradeScreenButtons = { buttons: [] };
     ctx.restore();
     return;
   }
@@ -2335,16 +2335,16 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
     }
 
-    if (isAnnouncementButtonFocused("upgradeScreen", index)) {
+    if (isAnnouncementButtonFocused("churchUpgradeScreen", index)) {
       drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
     }
 
-    const powerupIcon = getUpgradePowerupIcon(stat.iconSrc);
+    const powerupIcon = getChurchPowerupIcon(stat.iconSrc);
     const iconSize = 34;
     const iconCenterX = cardX + 28;
     const iconCenterY = cardY + headerHeight / 2;
-    const iconStyle = powerupIconStyles?.player || UPGRADE_POWERUP_ICON_DEFAULT;
-    drawUpgradePowerupIcon(ctx, {
+    const iconStyle = powerupIconStyles?.player || CHURCH_POWERUP_ICON_DEFAULT;
+    drawChurchPowerupIcon(ctx, {
       x: iconCenterX,
       y: iconCenterY,
       size: iconSize,
@@ -2492,7 +2492,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
   ctx.lineWidth = 2;
   roundRect(ctx, undoX, continueY, actionButtonWidth, continueHeight, 18, true, true);
-  if (isAnnouncementButtonFocused("upgradeScreen", buttonCount)) {
+  if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount)) {
     drawFocusRing(ctx, undoX - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
   }
   ctx.fillStyle = "#0b111a";
@@ -2508,7 +2508,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
   ctx.lineWidth = 2;
   roundRect(ctx, continueX2, continueY, actionButtonWidth, continueHeight, 18, true, true);
-  if (isAnnouncementButtonFocused("upgradeScreen", buttonCount + 1)) {
+  if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount + 1)) {
     drawFocusRing(ctx, continueX2 - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
   }
   ctx.fillStyle = "#0b111a";
@@ -2536,7 +2536,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
   });
 
   if (typeof window !== "undefined") {
-    window.__upgradeScreenButtons = { buttons: bounds };
+    window.__churchUpgradeScreenButtons = { buttons: bounds };
   }
 
   ctx.restore();
@@ -4979,7 +4979,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
       npcs,
       utilityPowerUps,
       weaponPickups,
-      upgradePowerUps,
+      churchPowerupPickups,
       gracePickups,
       enemies,
       activeBoss,
@@ -5716,7 +5716,7 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     // Draw pickups above projectiles/effects so they're easy to see.
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
     weaponPickups.forEach((pickup) => pickup.draw());
-    upgradePowerUps.forEach((pickup) => pickup.draw());
+    churchPowerupPickups.forEach((pickup) => pickup.draw());
     gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
@@ -6587,6 +6587,6 @@ function drawUpgradeScreen(ctx, canvas, options = {}) {
     initialize,
     drawFrame,
     drawCountdownOverlay,
-    drawUpgradeScreen,
+    drawChurchUpgradeScreen,
   };
 })(typeof window !== "undefined" ? window : null);

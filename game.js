@@ -17,7 +17,7 @@ const projectiles = [];
 const obstacles = [];
 const weaponPickups = [];
 const utilityPowerUps = [];
-const upgradePowerUps = [];
+const churchPowerupPickups = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
@@ -41,8 +41,8 @@ let powerUpRespawnTimer = 0;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
 let hudComboDisplay = null;
-const unlockedUpgradePowerups = new Set();
-const upgradePowerupLevels = new Map();
+const unlockedChurchPowerups = new Set();
+const churchPowerupLevels = new Map();
 const GRACE_PICKUP_RADIUS = _gb('grace.pickupRadius', 18);
 const GRACE_PICKUP_FRAME_DURATION = 0.08;
 const GRACE_PICKUP_LIFETIME = _gb('grace.lifetime', 8);
@@ -1774,10 +1774,10 @@ function canSpawnUtilityPowerUp() {
 }
 
 function getActiveUpgradePowerUpCount() {
-  return upgradePowerUps.filter((p) => p && !p.collected && !p.dead).length;
+  return churchPowerupPickups.filter((p) => p && !p.collected && !p.dead).length;
 }
 
-function canSpawnUpgradePowerUp() {
+function canSpawnChurchPowerup() {
   return getActiveUpgradePowerUpCount() < 1 && powerUpRespawnTimer <= 0;
 }
 
@@ -1802,14 +1802,14 @@ function clearAllPowerUps() {
     pickup.life = 0;
   });
   weaponPickups.splice(0, weaponPickups.length);
-  upgradePowerUps.forEach((pickup) => {
+  churchPowerupPickups.forEach((pickup) => {
     if (!pickup) return;
     pickup.active = false;
     pickup.expired = true;
     pickup.visible = false;
     pickup.life = 0;
   });
-  upgradePowerUps.splice(0, upgradePowerUps.length);
+  churchPowerupPickups.splice(0, churchPowerupPickups.length);
   utilityPowerUps.forEach((powerUp) => {
     if (!powerUp) return;
     powerUp.active = false;
@@ -1822,10 +1822,10 @@ function clearAllPowerUps() {
   powerUpRespawnTimer = 0;
 }
 
-function resetUpgradePowerups() {
-  unlockedUpgradePowerups.clear();
-  upgradePowerupLevels.clear();
-  upgradePowerUps.splice(0, upgradePowerUps.length);
+function resetChurchPowerups() {
+  unlockedChurchPowerups.clear();
+  churchPowerupLevels.clear();
+  churchPowerupPickups.splice(0, churchPowerupPickups.length);
 }
 
 function clearGracePickups() {
@@ -1851,9 +1851,9 @@ if (typeof window !== "undefined") {
   window.addGrace = addGrace;
 }
 
-function getUpgradePowerupOptions() {
-  return Object.entries(UPGRADE_POWERUP_DEFS).map(([key, def]) => {
-    const level = upgradePowerupLevels.get(key) || 0;
+function getChurchPowerupOptions() {
+  return Object.entries(CHURCH_POWERUP_DEFS).map(([key, def]) => {
+    const level = churchPowerupLevels.get(key) || 0;
     const maxLevel = 2;
   const detail = def.disabled ? "Coming soon" : "";
     return {
@@ -1871,46 +1871,46 @@ function getUpgradePowerupOptions() {
   });
 }
 
-function unlockUpgradePowerup(key) {
-  if (!key || !UPGRADE_POWERUP_DEFS[key] || UPGRADE_POWERUP_DEFS[key].disabled) return false;
-  const level = upgradePowerupLevels.get(key) || 0;
+function unlockChurchPowerup(key) {
+  if (!key || !CHURCH_POWERUP_DEFS[key] || CHURCH_POWERUP_DEFS[key].disabled) return false;
+  const level = churchPowerupLevels.get(key) || 0;
   if (level >= 2) return false;
   const nextLevel = level + 1;
-  upgradePowerupLevels.set(key, nextLevel);
-  if (nextLevel >= 1) unlockedUpgradePowerups.add(key);
+  churchPowerupLevels.set(key, nextLevel);
+  if (nextLevel >= 1) unlockedChurchPowerups.add(key);
   return true;
 }
 
-function refundUpgradePowerup(key) {
-  const def = UPGRADE_POWERUP_DEFS[key];
+function refundChurchPowerup(key) {
+  const def = CHURCH_POWERUP_DEFS[key];
   if (!def || def.disabled) return false;
-  const level = upgradePowerupLevels.get(key) || 0;
+  const level = churchPowerupLevels.get(key) || 0;
   if (level <= 0) return false;
   const nextLevel = level - 1;
-  upgradePowerupLevels.set(key, nextLevel);
-  if (nextLevel <= 0) unlockedUpgradePowerups.delete(key);
+  churchPowerupLevels.set(key, nextLevel);
+  if (nextLevel <= 0) unlockedChurchPowerups.delete(key);
   const cost = Number.isFinite(def.cost) ? def.cost : 0;
   addGrace(cost);
   return true;
 }
 
-function purchaseUpgradePowerup(key) {
-  const def = UPGRADE_POWERUP_DEFS[key];
+function purchaseChurchPowerup(key) {
+  const def = CHURCH_POWERUP_DEFS[key];
   if (!def || def.disabled) return false;
-  const level = upgradePowerupLevels.get(key) || 0;
+  const level = churchPowerupLevels.get(key) || 0;
   if (level >= 2) return false;
   const cost = Number.isFinite(def.cost) ? def.cost : 0;
   if (getGraceCount() < cost) return false;
   addGrace(-cost);
-  return unlockUpgradePowerup(key);
+  return unlockChurchPowerup(key);
 }
 
 if (typeof window !== "undefined") {
-  window.UpgradePowerups = {
-    getOptions: getUpgradePowerupOptions,
-    purchase: purchaseUpgradePowerup,
-    refund: refundUpgradePowerup,
-    reset: resetUpgradePowerups,
+  window.ChurchPowerups = {
+    getOptions: getChurchPowerupOptions,
+    purchase: purchaseChurchPowerup,
+    refund: refundChurchPowerup,
+    reset: resetChurchPowerups,
   };
 }
 
@@ -2961,7 +2961,7 @@ Renderer.initialize({
   npcs,
   utilityPowerUps,
   weaponPickups,
-  upgradePowerUps,
+  churchPowerupPickups,
   gracePickups,
   enemies,
   get activeBoss() { return activeBoss; },
@@ -3604,7 +3604,7 @@ const powerupDefinitions =
   {};
 const WEAPON_DROP_DEFS = powerupDefinitions.weaponDropDefs || {};
 const UTILITY_POWERUP_DEFS = powerupDefinitions.utilityPowerupDefs || {};
-const UPGRADE_POWERUP_DEFS = powerupDefinitions.upgradePowerupDefs || {};
+const CHURCH_POWERUP_DEFS = powerupDefinitions.churchPowerupDefs || {};
 
 const ASSET_MANIFEST =
   window.BattlechurchAssetManifest?.build?.({
@@ -3888,7 +3888,7 @@ const WEAPON_POWERUP_EFFECTS = new Set([
   "npcWisdomWeapon",
   "npcFaithWeapon",
 ]);
-const UPGRADE_POWERUP_EFFECTS = new Set([
+const CHURCH_POWERUP_EFFECTS = new Set([
   "spreadGun",
   "halo",
   "spear",
@@ -4849,8 +4849,8 @@ async function loadUtilityAssets(cache, assets) {
   await Promise.all(utilityEntries);
 }
 
-async function loadUpgradePowerupAssets(cache, assets) {
-  const upgradeEntries = Object.entries(UPGRADE_POWERUP_DEFS).map(
+async function loadChurchPowerupAssets(cache, assets) {
+  const upgradeEntries = Object.entries(CHURCH_POWERUP_DEFS).map(
     async ([key, def]) => {
       let frames = null;
       let baseFrame = null;
@@ -4887,7 +4887,7 @@ async function loadUpgradePowerupAssets(cache, assets) {
         }
         iconImage = await cache.get(def.iconSrc);
       }
-      assets.upgradePowerups[key] = { image: imageRef, frames, iconImage, ...def };
+      assets.churchPowerups[key] = { image: imageRef, frames, iconImage, ...def };
     },
   );
   await Promise.all(upgradeEntries);
@@ -5146,7 +5146,7 @@ async function loadTitleMapAssets() {
     enemies: {},
     obstacles: {},
     weaponPickups: {},
-    upgradePowerups: {},
+    churchPowerups: {},
     utility: {},
     effects: {},
     background: null,
@@ -5227,7 +5227,7 @@ async function loadGameplayAssets(cache, assets) {
     loadEnemyAssets(cache, assets, true), // Skip map enemies (already loaded)
     loadObstacleAssets(cache, assets),
     loadWeaponDropAssets(cache, assets),
-    loadUpgradePowerupAssets(cache, assets),
+    loadChurchPowerupAssets(cache, assets),
     loadUtilityAssets(cache, assets),
     loadBackgroundAssets(cache, assets),
     npcAssetsPromise,
@@ -5596,7 +5596,7 @@ function startGameFromTitle() {
   pendingBossIntroAfterExterior = false;
   startSpeedrunTimer();
   resetYearNpcPool();
-  resetUpgradePowerups();
+  resetChurchPowerups();
   // Clear any previously queued announcements so the congregation doesn't show
   // immediately (init/restart may have queued them at startup).
   try {
@@ -6156,12 +6156,12 @@ function spawnPowerUpDrops(count = 1) {
     isBossStage ? !isNpcWeaponPowerup(def) : true,
   );
   const hasWeaponPickups = weaponPickupEntries.length > 0;
-  const hasUpgradePickups = getUnlockedUpgradePowerupKeys().length > 0;
+  const hasChurchPowerupPickups = getUnlockedChurchPowerupKeys().length > 0;
   const hasUtility = Object.keys(assets?.utility || {}).length > 0;
-  if (!hasWeaponPickups && !hasUtility && !hasUpgradePickups) return;
+  if (!hasWeaponPickups && !hasUtility && !hasChurchPowerupPickups) return;
   for (let i = 0; i < count; i += 1) {
-    if (hasUpgradePickups && Math.random() < 0.2) {
-      if (canSpawnUpgradePowerUp()) {
+    if (hasChurchPowerupPickups && Math.random() < 0.2) {
+      if (canSpawnChurchPowerup()) {
         spawnUpgradePowerUp();
         continue;
       }
@@ -6358,17 +6358,17 @@ function isNpcWeaponPowerup(def) {
   return effect.startsWith("npc");
 }
 
-function getUnlockedUpgradePowerupKeys() {
-  return Array.from(unlockedUpgradePowerups).filter((key) => assets?.upgradePowerups?.[key]);
+function getUnlockedChurchPowerupKeys() {
+  return Array.from(unlockedChurchPowerups).filter((key) => assets?.churchPowerups?.[key]);
 }
 
 function spawnUpgradePowerUp(type = null, position = null) {
-  if (!canSpawnUpgradePowerUp()) return null;
-  if (!assets?.upgradePowerups) return null;
-  const keys = type ? [type] : getUnlockedUpgradePowerupKeys();
+  if (!canSpawnChurchPowerup()) return null;
+  if (!assets?.churchPowerups) return null;
+  const keys = type ? [type] : getUnlockedChurchPowerupKeys();
   if (!keys.length) return null;
   const selected = keys[Math.floor(Math.random() * keys.length)];
-  const def = assets.upgradePowerups[selected];
+  const def = assets.churchPowerups[selected];
   if (!def?.image) return null;
   const areaPadding = 120;
   const minX = areaPadding;
@@ -6422,7 +6422,7 @@ function spawnUpgradePowerUp(type = null, position = null) {
   pickup.y = spawnY;
   pickup.baseY = pickup.y;
   clampEntityToBounds(pickup);
-  upgradePowerUps.push(pickup);
+  churchPowerupPickups.push(pickup);
   return pickup;
 }
 
@@ -6641,7 +6641,7 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("spreadGun", def);
       player.spreadGunTimer = Math.max(player.spreadGunTimer, config.duration);
       player.spreadGunDuration = Math.max(player.spreadGunDuration, config.duration);
-      const purchasedLevel = upgradePowerupLevels.get("spreadGun") || 1;
+      const purchasedLevel = churchPowerupLevels.get("spreadGun") || 1;
       player.spreadGunLevel = Math.max(
         player.spreadGunLevel || 0,
         Math.min(2, purchasedLevel),
@@ -6653,7 +6653,7 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("halo", def);
       player.haloTimer = Math.max(player.haloTimer, config.duration);
       player.haloDuration = Math.max(player.haloDuration, config.duration);
-      const purchasedLevel = upgradePowerupLevels.get("halo") || 1;
+      const purchasedLevel = churchPowerupLevels.get("halo") || 1;
       player.haloLevel = Math.max(
         player.haloLevel || 0,
         Math.min(2, purchasedLevel),
@@ -6665,7 +6665,7 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("spear", def);
       player.spearTimer = Math.max(player.spearTimer, config.duration);
       player.spearDuration = Math.max(player.spearDuration, config.duration);
-      const purchasedLevel = upgradePowerupLevels.get("spear") || 1;
+      const purchasedLevel = churchPowerupLevels.get("spear") || 1;
       player.spearLevel = Math.max(
         player.spearLevel || 0,
         Math.min(2, purchasedLevel),
@@ -6677,7 +6677,7 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("sentry", def);
       player.sentryTimer = Math.max(player.sentryTimer, config.duration);
       player.sentryDuration = Math.max(player.sentryDuration, config.duration);
-      const purchasedLevel = upgradePowerupLevels.get("sentry") || 1;
+      const purchasedLevel = churchPowerupLevels.get("sentry") || 1;
       player.sentryLevel = Math.max(
         player.sentryLevel || 0,
         Math.min(2, purchasedLevel),
@@ -6897,21 +6897,21 @@ function updateWeaponPickups(dt) {
 }
 
 function updateUpgradePowerUps(dt) {
-  upgradePowerUps.forEach((pickup) => {
+  churchPowerupPickups.forEach((pickup) => {
     if (!pickup) return;
     pickup.update(dt);
     if (!pickup.active) return;
-    resolveEntityCollisions(pickup, upgradePowerUps, { allowPush: true, overlapScale: 1 });
+    resolveEntityCollisions(pickup, churchPowerupPickups, { allowPush: true, overlapScale: 1 });
     resolveEntityCollisions(pickup, enemies, { allowPush: true, overlapScale: 1 });
     resolveEntityCollisions(pickup, [player], { allowPush: true, overlapScale: 1 });
     clampEntityToBounds(pickup);
   });
 
-  for (let i = upgradePowerUps.length - 1; i >= 0; i -= 1) {
-    const pickup = upgradePowerUps[i];
+  for (let i = churchPowerupPickups.length - 1; i >= 0; i -= 1) {
+    const pickup = churchPowerupPickups[i];
     if (!pickup) continue;
     if (pickup.expired || !pickup.active) {
-      upgradePowerUps.splice(i, 1);
+      churchPowerupPickups.splice(i, 1);
       triggerPowerUpCooldown();
       continue;
     }
@@ -6921,7 +6921,7 @@ function updateUpgradePowerUps(dt) {
     const distance = Math.hypot(dx, dy);
     if (distance <= (pickup.radius || 0) + player.radius) {
       applyWeaponPickupEffect(pickup);
-      upgradePowerUps.splice(i, 1);
+      churchPowerupPickups.splice(i, 1);
     }
   }
 }
@@ -7132,8 +7132,8 @@ function updateHaloBlade(dt) {
   }
   const level = Math.max(1, Math.min(2, player.haloLevel || 1));
   haloBladeState.active = true;
-  if (!haloBladeState.sprite && assets?.upgradePowerups?.halo?.image) {
-    haloBladeState.sprite = assets.upgradePowerups.halo.image;
+  if (!haloBladeState.sprite && assets?.churchPowerups?.halo?.image) {
+    haloBladeState.sprite = assets.churchPowerups.halo.image;
   }
   if (!haloBladeStateSecondary.sprite) {
     haloBladeStateSecondary.sprite = haloBladeState.sprite;
@@ -7844,8 +7844,8 @@ function updateSpearDart(dt) {
     return;
   }
   const level = Math.max(1, Math.min(2, player.spearLevel || 1));
-  if (!spearState.sprite && assets?.upgradePowerups?.spear?.image) {
-    spearState.sprite = assets.upgradePowerups.spear.image;
+  if (!spearState.sprite && assets?.churchPowerups?.spear?.image) {
+    spearState.sprite = assets.churchPowerups.spear.image;
   }
   if (!spearStateSecondary.sprite) {
     spearStateSecondary.sprite = spearState.sprite;
@@ -7901,8 +7901,8 @@ function updateSentryTurret(dt) {
   sentryState.fadeAlpha = fadeAlpha;
   sentryStateSecondary.fadeAlpha = fadeAlpha;
   const level = Math.max(1, Math.min(2, player.sentryLevel || 1));
-  if (!sentryState.sprite && assets?.upgradePowerups?.sentry?.image) {
-    sentryState.sprite = assets.upgradePowerups.sentry.image;
+  if (!sentryState.sprite && assets?.churchPowerups?.sentry?.image) {
+    sentryState.sprite = assets.churchPowerups.sentry.image;
   }
   if (!sentryStateSecondary.sprite) {
     sentryStateSecondary.sprite = sentryState.sprite;
@@ -8817,7 +8817,7 @@ const POWERUP_ICON_TEXT_COLOR = "#EAF6FF";
 function resolvePowerupIconCategory(effect = "") {
   if (String(effect).startsWith("npc")) return "npc";
   if (WEAPON_POWERUP_EFFECTS.has(effect)) return "player";
-  if (UPGRADE_POWERUP_EFFECTS.has(effect)) return "player";
+  if (CHURCH_POWERUP_EFFECTS.has(effect)) return "player";
   return "utility";
 }
 
@@ -12819,7 +12819,7 @@ function updateCozyNpcs(dt) {
       }
       resolveEntityCollisions(npc, enemies, { allowPush: true, overlapScale: 0.85 });
       resolveEntityCollisions(npc, weaponPickups, { allowPush: true, overlapScale: 0.9 });
-      resolveEntityCollisions(npc, upgradePowerUps, { allowPush: true, overlapScale: 0.9 });
+      resolveEntityCollisions(npc, churchPowerupPickups, { allowPush: true, overlapScale: 0.9 });
       resolveEntityCollisions(npc, utilityPowerUps, { allowPush: false, overlapScale: 0.9 });
         // Respect world obstacles (trees, walls, etc.) so NPCs don't walk through them.
         resolveEntityObstacles(npc);
@@ -16956,7 +16956,7 @@ function updateGame(dt) {
       if (canSpawnUtilityPowerUp()) {
         spawnUtilityPowerUp();
       }
-      if (getUnlockedUpgradePowerupKeys().length && canSpawnUpgradePowerUp()) {
+      if (getUnlockedChurchPowerupKeys().length && canSpawnChurchPowerup()) {
         spawnUpgradePowerUp();
       }
       if (battleStageAllowsPowerUps && canSpawnWeaponPowerUp()) {
@@ -17467,10 +17467,10 @@ function restartGame() {
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
   weaponPickups.splice(0, weaponPickups.length);
-  upgradePowerUps.splice(0, upgradePowerUps.length);
+  churchPowerupPickups.splice(0, churchPowerupPickups.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
   clearGracePickups();
-  resetUpgradePowerups();
+  resetChurchPowerups();
   playerGraceCount = 0;
   Spawner.resetAllFlags();
   Effects.clear();
@@ -17642,7 +17642,7 @@ function updateDebugOverlayData() {
     projectiles: projectiles.length,
     gracePickups: gracePickups.length,
     weaponPickups: weaponPickups.length,
-    upgradePowerUps: upgradePowerUps.length,
+    churchPowerupPickups: churchPowerupPickups.length,
     utilityPowerUps: utilityPowerUps.length,
     effects: effects.length,
     floatingTexts: floatingTexts.length,
@@ -17674,7 +17674,7 @@ function renderDebugOverlay(ctx) {
     `Projectiles: ${data.projectiles}`,
     `Grace: ${data.gracePickups}`,
     `Weapons: ${data.weaponPickups}`,
-    `Upgrades: ${data.upgradePowerUps}`,
+    `Upgrades: ${data.churchPowerupPickups}`,
     `Powerups: ${data.utilityPowerUps}`,
     `Effects: ${data.effects}`,
     `Texts: ${data.floatingTexts}`,

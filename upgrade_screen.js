@@ -15,7 +15,7 @@
   }
 
   function getStats() {
-    const upgradeManager = window.UpgradePowerups;
+    const upgradeManager = window.ChurchPowerups;
     if (upgradeManager && typeof upgradeManager.getOptions === "function") {
       return upgradeManager.getOptions();
     }
@@ -23,7 +23,7 @@
   }
 
   function attemptPurchase(statKey) {
-    const upgradeManager = window.UpgradePowerups;
+    const upgradeManager = window.ChurchPowerups;
     if (upgradeManager && typeof upgradeManager.purchase === "function") {
       return upgradeManager.purchase(statKey);
     }
@@ -31,7 +31,7 @@
   }
 
   function attemptRefund(statKey) {
-    const upgradeManager = window.UpgradePowerups;
+    const upgradeManager = window.ChurchPowerups;
     if (upgradeManager && typeof upgradeManager.refund === "function") {
       return upgradeManager.refund(statKey);
     }
@@ -46,8 +46,8 @@
     navHoldTimer = 0;
     purchaseHistory = [];
     if (typeof window !== "undefined") {
-      window.__upgradeScreenActive = true;
-      window.__announcementFocus = { key: "upgradeScreen", index: 0 };
+      window.__churchUpgradeScreenActive = true;
+      window.__announcementFocus = { key: "churchUpgradeScreen", index: 0 };
     }
   }
 
@@ -57,8 +57,8 @@
     navHoldDir = null;
     navHoldTimer = 0;
     if (typeof window !== "undefined") {
-      window.__upgradeScreenActive = false;
-      window.__upgradeScreenButtons = null;
+      window.__churchUpgradeScreenActive = false;
+      window.__churchUpgradeScreenButtons = null;
       window.__announcementFocus = null;
     }
     if (typeof window.consumePauseAction === "function") {
@@ -81,9 +81,9 @@
     const graceCount = getGraceCount();
     const uiFontFamily = window.UI_FONT_FAMILY || "'Orbitron', sans-serif";
 
-    // Use renderer's drawUpgradeScreen
-    if (window.Renderer?.drawUpgradeScreen) {
-      window.Renderer.drawUpgradeScreen(ctx, canvas, {
+    // Use renderer's drawChurchUpgradeScreen
+    if (window.Renderer?.drawChurchUpgradeScreen) {
+      window.Renderer.drawChurchUpgradeScreen(ctx, canvas, {
         graceCount,
         stats,
         uiFontFamily,
@@ -106,18 +106,18 @@
       event.preventDefault();
       if (isOnUndo) {
         focusedIndex = continueIndex;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       } else if (isOnContinue) {
         focusedIndex = undoIndex;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       } else if (statCount > 0) {
         // Cycle within upgrade buttons
         focusedIndex = (focusedIndex - 1 + statCount) % statCount;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       }
@@ -125,18 +125,18 @@
       event.preventDefault();
       if (isOnUndo) {
         focusedIndex = continueIndex;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       } else if (isOnContinue) {
         focusedIndex = undoIndex;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       } else if (statCount > 0) {
         // Cycle within upgrade buttons
         focusedIndex = (focusedIndex + 1) % statCount;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       }
@@ -145,7 +145,7 @@
       if (!isOnUndo && !isOnContinue) {
         // Move to Undo button
         focusedIndex = undoIndex;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       }
@@ -154,7 +154,7 @@
       if ((isOnContinue || isOnUndo) && statCount > 0) {
         // Move back to first upgrade button
         focusedIndex = 0;
-        window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+        window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       }
@@ -201,7 +201,7 @@
     }
 
     if (moved) {
-      window.__announcementFocus = { key: "upgradeScreen", index: focusedIndex };
+      window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
       if (typeof window.playMenuMoveSfx === "function") {
         window.playMenuMoveSfx(0.4);
       }
@@ -296,7 +296,7 @@
 
   function handleCanvasPoint(x, y) {
     if (!visible) return;
-    const buttons = window.__upgradeScreenButtons?.buttons;
+    const buttons = window.__churchUpgradeScreenButtons?.buttons;
     if (!Array.isArray(buttons) || !buttons.length) return;
 
     for (let i = 0; i < buttons.length; i++) {

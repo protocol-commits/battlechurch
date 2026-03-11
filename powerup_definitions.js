@@ -8,7 +8,7 @@
   const HERO_BASE_HEARTS = 6;
   const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
   const UTILITY_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Items";
-  const UPGRADE_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Weapons";
+  const CHURCH_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Weapons";
 
   const weaponDropDefs = {
     faith: {
@@ -164,20 +164,20 @@
     },
   };
 
-  const upgradePowerupDefs = {
+  const churchPowerupDefs = {
     spreadGun: {
-      src: `${UPGRADE_POWERUP_ROOT}/Spread.png`,
+      src: `${CHURCH_POWERUP_ROOT}/Spread.png`,
       scale: 4.4 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       effect: "spreadGun",
       duration: 10,
       label: "Spread Gun",
-      iconSrc: `${UPGRADE_POWERUP_ROOT}/Spread.png`,
+      iconSrc: `${CHURCH_POWERUP_ROOT}/Spread.png`,
       description: "Adds two extra basic shots at slight angles.",
       cost: 40,
     },
     halo: {
-      src: `${UPGRADE_POWERUP_ROOT}/Dagger.png`,
+      src: `${CHURCH_POWERUP_ROOT}/Dagger.png`,
       scale: 3.8 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       effect: "halo",
@@ -188,24 +188,24 @@
       cost: 40,
     },
     spear: {
-      src: `${UPGRADE_POWERUP_ROOT}/Spear.png`,
+      src: `${CHURCH_POWERUP_ROOT}/Spear.png`,
       scale: 4.2 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       effect: "spear",
       duration: 10,
       label: "Spear",
-      iconSrc: `${UPGRADE_POWERUP_ROOT}/Spear.png`,
+      iconSrc: `${CHURCH_POWERUP_ROOT}/Spear.png`,
       description: "Seeks nearby enemies and strikes in sequence.",
       cost: 40,
     },
     sentry: {
-      src: `${UPGRADE_POWERUP_ROOT}/Lantern.png`,
+      src: `${CHURCH_POWERUP_ROOT}/Lantern.png`,
       scale: 3.6 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       effect: "sentry",
       duration: 12,
       label: "Sentry",
-      iconSrc: `${UPGRADE_POWERUP_ROOT}/Lantern.png`,
+      iconSrc: `${CHURCH_POWERUP_ROOT}/Lantern.png`,
       description: "Home base lantern fires a piercing beam.",
       cost: 40,
     },
@@ -216,5 +216,5 @@
     (global.BattlechurchPowerupDefinitions = {});
   ns.weaponDropDefs = weaponDropDefs;
   ns.utilityPowerupDefs = utilityPowerupDefs;
-  ns.upgradePowerupDefs = upgradePowerupDefs;
+  ns.churchPowerupDefs = churchPowerupDefs;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -800,7 +800,7 @@
           label: skillNames.spreadGun || 'Spread Gun',
           ratio: duration > 0 ? player.spreadGunTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
-          iconImage: assets?.upgradePowerups?.spreadGun?.iconImage || null,
+          iconImage: assets?.churchPowerups?.spreadGun?.iconImage || null,
           iconKey: 'upgradeSpreadGun',
         });
       }
@@ -810,7 +810,7 @@
           label: skillNames.halo || 'Halo',
           ratio: duration > 0 ? player.haloTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
-          iconImage: assets?.upgradePowerups?.halo?.iconImage || null,
+          iconImage: assets?.churchPowerups?.halo?.iconImage || null,
           iconKey: 'upgradeHalo',
         });
       }
@@ -820,7 +820,7 @@
           label: skillNames.spear || 'Spear',
           ratio: duration > 0 ? player.spearTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
-          iconImage: assets?.upgradePowerups?.spear?.iconImage || null,
+          iconImage: assets?.churchPowerups?.spear?.iconImage || null,
           iconKey: 'upgradeSpear',
         });
       }
@@ -830,7 +830,7 @@
           label: skillNames.sentry || 'Sentry',
           ratio: duration > 0 ? player.sentryTimer / duration : 0,
           color: getIconStyleColor('player', PALETTE.ice),
-          iconImage: assets?.upgradePowerups?.sentry?.iconImage || null,
+          iconImage: assets?.churchPowerups?.sentry?.iconImage || null,
           iconKey: 'upgradeSentry',
         });
       }
