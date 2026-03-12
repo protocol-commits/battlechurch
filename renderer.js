@@ -2175,7 +2175,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   const title = "How will you guide your church forward?";
   const staticSubtitle = "";
-  const buttonHeight = 176;
+  const buttonHeight = 200;
   const buttonCount = stats.length;
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const fitTextSize = (text, size, maxWidth) => {
@@ -2354,7 +2354,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const textLeft = cardX + 24 + iconSize;
     const textRight = cardX + cardW - 22;
-    const textWidth = Math.max(10, textRight - textLeft);
+    const levelLabel = maxLevel > 1 ? `${level}/${maxLevel}` : "";
+    const pillPadX = 14;
+    const pillReservedWidth = levelLabel
+      ? (() => { ctx.font = `700 12px ${uiFontFamily}`; return ctx.measureText(levelLabel).width + pillPadX * 2 + 8; })()
+      : 0;
+    const textWidth = Math.max(10, textRight - textLeft - pillReservedWidth);
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     const titleSize = fitTextSize(stat.label, 18, textWidth);
@@ -2365,8 +2370,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetY = 1;
     const titleY = cardY + headerHeight / 2 + 1;
     ctx.fillText(stat.label, textLeft, titleY);
-
-    const levelLabel = maxLevel > 1 ? `Level ${level}/${maxLevel}` : "";
     if (levelLabel) {
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
@@ -2395,7 +2398,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = canAfford ? "rgba(235, 220, 195, 0.9)" : "rgba(200, 190, 170, 0.65)";
     const descriptionY = bodyTop + 8;
     const descriptionLines = wrapAnnouncementText(ctx, stat.description || "", textWidth);
-    const maxDescriptionLines = 2;
+    const maxDescriptionLines = 3;
     const descriptionLineHeight = 16;
     descriptionLines.slice(0, maxDescriptionLines).forEach((line, lineIndex) => {
       const lineY = descriptionY + lineIndex * descriptionLineHeight;
