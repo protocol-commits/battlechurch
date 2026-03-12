@@ -1851,16 +1851,34 @@ if (typeof window !== "undefined") {
   window.addGrace = addGrace;
 }
 
+const CHURCH_POWERUP_MAX_LEVEL = 10;
+
+function getChurchPowerupLevelCost(def, level) {
+  // level is the CURRENT level (0-9); returns cost to purchase the next level
+  const costs = Array.isArray(def?.levelCosts) ? def.levelCosts : [];
+  return Number.isFinite(costs[level]) ? costs[level] : (Number.isFinite(def?.cost) ? def.cost : 40);
+}
+
+// Returns the active duration for a church powerup instance given level and instance (1=primary, 2=secondary).
+// Levels 1-5: single instance, duration scales 20%→100% of base.
+// Levels 6-10: primary at full duration; secondary scales 20%→100% of base.
+function getChurchPowerupInstanceDuration(baseDuration, level, instance) {
+  if (instance === 1) {
+    return level <= 5 ? baseDuration * (level / 5) : baseDuration;
+  }
+  return level >= 6 ? baseDuration * ((level - 5) / 5) : 0;
+}
+
 function getChurchPowerupOptions() {
   return Object.entries(CHURCH_POWERUP_DEFS).map(([key, def]) => {
     const level = churchPowerupLevels.get(key) || 0;
-    const maxLevel = 2;
-  const detail = def.disabled ? "Coming soon" : "";
+    const maxLevel = CHURCH_POWERUP_MAX_LEVEL;
+    const detail = def.disabled ? "Coming soon" : "";
     return {
       key,
       label: def.label || key,
       description: def.description || "",
-      cost: Number.isFinite(def.cost) ? def.cost : 0,
+      cost: getChurchPowerupLevelCost(def, level),
       iconSrc: def.iconSrc || def.src || null,
       detail,
       disabled: Boolean(def.disabled),
@@ -1874,7 +1892,7 @@ function getChurchPowerupOptions() {
 function unlockChurchPowerup(key) {
   if (!key || !CHURCH_POWERUP_DEFS[key] || CHURCH_POWERUP_DEFS[key].disabled) return false;
   const level = churchPowerupLevels.get(key) || 0;
-  if (level >= 2) return false;
+  if (level >= CHURCH_POWERUP_MAX_LEVEL) return false;
   const nextLevel = level + 1;
   churchPowerupLevels.set(key, nextLevel);
   if (nextLevel >= 1) unlockedChurchPowerups.add(key);
@@ -1889,7 +1907,8 @@ function refundChurchPowerup(key) {
   const nextLevel = level - 1;
   churchPowerupLevels.set(key, nextLevel);
   if (nextLevel <= 0) unlockedChurchPowerups.delete(key);
-  const cost = Number.isFinite(def.cost) ? def.cost : 0;
+  // Refund the cost that was paid for this level (levelCosts is 0-indexed by level before purchase)
+  const cost = getChurchPowerupLevelCost(def, level - 1);
   addGrace(cost);
   return true;
 }
@@ -1898,8 +1917,8 @@ function purchaseChurchPowerup(key) {
   const def = CHURCH_POWERUP_DEFS[key];
   if (!def || def.disabled) return false;
   const level = churchPowerupLevels.get(key) || 0;
-  if (level >= 2) return false;
-  const cost = Number.isFinite(def.cost) ? def.cost : 0;
+  if (level >= CHURCH_POWERUP_MAX_LEVEL) return false;
+  const cost = getChurchPowerupLevelCost(def, level);
   if (getGraceCount() < cost) return false;
   addGrace(-cost);
   return unlockChurchPowerup(key);
@@ -6679,49 +6698,46 @@ function applyWeaponPickupEffect(pickup) {
     }
     case "spreadGun": {
       const config = resolveWeaponPowerupConfig("spreadGun", def);
+      const sgLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("spreadGun") || 1);
       player.spreadGunTimer = Math.max(player.spreadGunTimer, config.duration);
       player.spreadGunDuration = Math.max(player.spreadGunDuration, config.duration);
-      const purchasedLevel = churchPowerupLevels.get("spreadGun") || 1;
-      player.spreadGunLevel = Math.max(
-        player.spreadGunLevel || 0,
-        Math.min(2, purchasedLevel),
-      );
+      player.spreadGunLevel = Math.max(player.spreadGunLevel || 0, sgLevel);
       showWeaponPowerupConfigText(config);
       break;
     }
     case "halo": {
       const config = resolveWeaponPowerupConfig("halo", def);
-      player.haloTimer = Math.max(player.haloTimer, config.duration);
-      player.haloDuration = Math.max(player.haloDuration, config.duration);
-      const purchasedLevel = churchPowerupLevels.get("halo") || 1;
-      player.haloLevel = Math.max(
-        player.haloLevel || 0,
-        Math.min(2, purchasedLevel),
-      );
+      const haloLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("halo") || 1);
+      const haloPrimaryDur = getChurchPowerupInstanceDuration(config.duration, haloLevel, 1);
+      const haloSecondaryDur = getChurchPowerupInstanceDuration(config.duration, haloLevel, 2);
+      player.haloTimer = Math.max(player.haloTimer, haloPrimaryDur);
+      player.haloDuration = Math.max(player.haloDuration, haloPrimaryDur);
+      player.haloTimerSecondary = Math.max(player.haloTimerSecondary || 0, haloSecondaryDur);
+      player.haloLevel = Math.max(player.haloLevel || 0, haloLevel);
       showWeaponPowerupConfigText(config);
       break;
     }
     case "spear": {
       const config = resolveWeaponPowerupConfig("spear", def);
-      player.spearTimer = Math.max(player.spearTimer, config.duration);
-      player.spearDuration = Math.max(player.spearDuration, config.duration);
-      const purchasedLevel = churchPowerupLevels.get("spear") || 1;
-      player.spearLevel = Math.max(
-        player.spearLevel || 0,
-        Math.min(2, purchasedLevel),
-      );
+      const spearLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("spear") || 1);
+      const spearPrimaryDur = getChurchPowerupInstanceDuration(config.duration, spearLevel, 1);
+      const spearSecondaryDur = getChurchPowerupInstanceDuration(config.duration, spearLevel, 2);
+      player.spearTimer = Math.max(player.spearTimer, spearPrimaryDur);
+      player.spearDuration = Math.max(player.spearDuration, spearPrimaryDur);
+      player.spearTimerSecondary = Math.max(player.spearTimerSecondary || 0, spearSecondaryDur);
+      player.spearLevel = Math.max(player.spearLevel || 0, spearLevel);
       showWeaponPowerupConfigText(config);
       break;
     }
     case "sentry": {
       const config = resolveWeaponPowerupConfig("sentry", def);
-      player.sentryTimer = Math.max(player.sentryTimer, config.duration);
-      player.sentryDuration = Math.max(player.sentryDuration, config.duration);
-      const purchasedLevel = churchPowerupLevels.get("sentry") || 1;
-      player.sentryLevel = Math.max(
-        player.sentryLevel || 0,
-        Math.min(2, purchasedLevel),
-      );
+      const sentryLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("sentry") || 1);
+      const sentryPrimaryDur = getChurchPowerupInstanceDuration(config.duration, sentryLevel, 1);
+      const sentrySecondaryDur = getChurchPowerupInstanceDuration(config.duration, sentryLevel, 2);
+      player.sentryTimer = Math.max(player.sentryTimer, sentryPrimaryDur);
+      player.sentryDuration = Math.max(player.sentryDuration, sentryPrimaryDur);
+      player.sentryTimerSecondary = Math.max(player.sentryTimerSecondary || 0, sentrySecondaryDur);
+      player.sentryLevel = Math.max(player.sentryLevel || 0, sentryLevel);
       showWeaponPowerupConfigText(config);
       break;
     }
@@ -7170,7 +7186,6 @@ function updateHaloBlade(dt) {
     resetHaloBladeState(haloBladeStateSecondary);
     return;
   }
-  const level = Math.max(1, Math.min(2, player.haloLevel || 1));
   haloBladeState.active = true;
   if (!haloBladeState.sprite && assets?.churchPowerups?.halo?.image) {
     haloBladeState.sprite = assets.churchPowerups.halo.image;
@@ -7183,7 +7198,7 @@ function updateHaloBlade(dt) {
   haloBladeState.angle = baseAngle;
   updateHaloBladeInstance(haloBladeState, baseAngle, dt);
 
-  if (level >= 2) {
+  if ((player.haloTimerSecondary || 0) > 0) {
     haloBladeStateSecondary.active = true;
     updateHaloBladeInstance(haloBladeStateSecondary, baseAngle + Math.PI, dt);
   } else {
@@ -7883,7 +7898,6 @@ function updateSpearDart(dt) {
     resetSpearState(spearStateSecondary);
     return;
   }
-  const level = Math.max(1, Math.min(2, player.spearLevel || 1));
   if (!spearState.sprite && assets?.churchPowerups?.spear?.image) {
     spearState.sprite = assets.churchPowerups.spear.image;
   }
@@ -7891,7 +7905,7 @@ function updateSpearDart(dt) {
     spearStateSecondary.sprite = spearState.sprite;
   }
   updateSpearDartInstance(spearState, dt);
-  if (level >= 2) {
+  if ((player.spearTimerSecondary || 0) > 0) {
     if (!spearStateSecondary.active && spearStateSecondary.startDelayTimer <= 0) {
       spearStateSecondary.startDelayTimer = 0.1;
       spearStateSecondary.spawnOffset.x = 24 * WORLD_SCALE;
@@ -7940,7 +7954,6 @@ function updateSentryTurret(dt) {
       : 1;
   sentryState.fadeAlpha = fadeAlpha;
   sentryStateSecondary.fadeAlpha = fadeAlpha;
-  const level = Math.max(1, Math.min(2, player.sentryLevel || 1));
   if (!sentryState.sprite && assets?.churchPowerups?.sentry?.image) {
     sentryState.sprite = assets.churchPowerups.sentry.image;
   }
@@ -7948,7 +7961,7 @@ function updateSentryTurret(dt) {
     sentryStateSecondary.sprite = sentryState.sprite;
   }
   updateSentryTurretInstance(sentryState, dt);
-  if (level >= 2) {
+  if ((player.sentryTimerSecondary || 0) > 0) {
     updateSentryTurretInstance(sentryStateSecondary, dt);
   } else {
     resetSentryState(sentryStateSecondary);

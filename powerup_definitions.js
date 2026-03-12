@@ -164,6 +164,11 @@
     },
   };
 
+  // Per-level purchase costs for church powerups.
+  // Levels 1-5 (single instance building to full duration): base cost.
+  // Levels 6-10 (second instance building to full duration): slightly higher.
+  const CHURCH_LEVEL_COSTS = [40, 40, 40, 40, 40, 50, 50, 50, 50, 50];
+
   const churchPowerupDefs = {
     spreadGun: {
       src: `${CHURCH_POWERUP_ROOT}/Spread.png`,
@@ -173,8 +178,8 @@
       duration: 10,
       label: "Spread Gun",
       iconSrc: `${CHURCH_POWERUP_ROOT}/Spread.png`,
-      description: "Adds two extra basic shots at slight angles.",
-      cost: 40,
+      description: "Adds extra basic shots at increasing angles.",
+      levelCosts: CHURCH_LEVEL_COSTS,
     },
     halo: {
       src: `${CHURCH_POWERUP_ROOT}/Dagger.png`,
@@ -185,7 +190,7 @@
       label: "Halo",
       iconSrc: "assets/sprites/weapons/A13_Headband.png",
       description: "Orbiting blade that shreds nearby enemies.",
-      cost: 40,
+      levelCosts: CHURCH_LEVEL_COSTS,
     },
     spear: {
       src: `${CHURCH_POWERUP_ROOT}/Spear.png`,
@@ -196,7 +201,7 @@
       label: "Spear",
       iconSrc: `${CHURCH_POWERUP_ROOT}/Spear.png`,
       description: "Seeks nearby enemies and strikes in sequence.",
-      cost: 40,
+      levelCosts: CHURCH_LEVEL_COSTS,
     },
     sentry: {
       src: `${CHURCH_POWERUP_ROOT}/Lantern.png`,
@@ -207,7 +212,7 @@
       label: "Sentry",
       iconSrc: `${CHURCH_POWERUP_ROOT}/Lantern.png`,
       description: "Home base lantern fires a piercing beam.",
-      cost: 40,
+      levelCosts: CHURCH_LEVEL_COSTS,
     },
   };
 

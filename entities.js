@@ -585,12 +585,15 @@
     this.haloTimer = 0;
     this.haloDuration = 0;
     this.haloLevel = 0;
+    this.haloTimerSecondary = 0;
     this.spearTimer = 0;
     this.spearDuration = 0;
     this.spearLevel = 0;
+    this.spearTimerSecondary = 0;
     this.sentryTimer = 0;
     this.sentryDuration = 0;
     this.sentryLevel = 0;
+    this.sentryTimerSecondary = 0;
     this.armorTimer = 0;
     this.armorReduction = 0;
     this.weaponPowerTimer = 0;
@@ -659,19 +662,25 @@
     }
     this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt);
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
+    this.haloTimerSecondary = Math.max(0, this.haloTimerSecondary - dt * timerDrainScale);
     if (this.haloTimer <= 0) {
       this.haloDuration = 0;
       this.haloLevel = 0;
+      this.haloTimerSecondary = 0;
     }
     this.spearTimer = Math.max(0, this.spearTimer - dt * timerDrainScale);
+    this.spearTimerSecondary = Math.max(0, this.spearTimerSecondary - dt * timerDrainScale);
     if (this.spearTimer <= 0) {
       this.spearDuration = 0;
       this.spearLevel = 0;
+      this.spearTimerSecondary = 0;
     }
     this.sentryTimer = Math.max(0, this.sentryTimer - dt * timerDrainScale);
+    this.sentryTimerSecondary = Math.max(0, this.sentryTimerSecondary - dt * timerDrainScale);
     if (this.sentryTimer <= 0) {
       this.sentryDuration = 0;
       this.sentryLevel = 0;
+      this.sentryTimerSecondary = 0;
     }
 
     const decayBase = this.powerExtendTimer > 0 ? 0.5 : 1;
@@ -1348,16 +1357,18 @@
   spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier = 1) {
     if (this.spreadGunTimer <= 0) return;
     if (this.spreadGunExtraTimer > 0) return;
-    this.spreadGunExtraTimer = this.getArrowCooldown();
     const life = Number.isFinite(PROJECTILE_CONFIG.arrow?.life)
       ? PROJECTILE_CONFIG.arrow.life * bossRangeMultiplier
       : undefined;
     const damage = this.getArrowDamage();
     const scale = this.getArrowProjectileScale();
-    const level = Math.max(1, Math.min(2, this.spreadGunLevel || 1));
+    const level = Math.max(1, Math.min(10, this.spreadGunLevel || 1));
+    const streamCount = Math.ceil(level / 2);  // 1 pair per 2 levels, up to 5 pairs
+    const rateMultiplier = (level / 2) / streamCount; // 0.5 at odd levels, 1.0 at even
+    this.spreadGunExtraTimer = this.getArrowCooldown() / rateMultiplier;
     const spreadStep = 0.15;
     const perp = { x: -direction.y, y: direction.x };
-    for (let tier = 1; tier <= level; tier += 1) {
+    for (let tier = 1; tier <= streamCount; tier += 1) {
       const spread = spreadStep * tier;
       const up = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);
       const down = normalizeVector(direction.x - perp.x * spread, direction.y - perp.y * spread);
