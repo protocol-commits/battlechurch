@@ -8014,7 +8014,7 @@ function spawnGraceRainBurst(count = 10, { centerX = canvas.width / 2, spread = 
     const x = centerX + randomInRange(-spread, spread);
     const vx = randomInRange(-60, 60);
     const vy = randomInRange(60, 140);
-    const floorY = randomInRange(area.minY + height * 0.45, area.minY + height * 0.85);
+    const floorY = randomInRange(area.minY, area.maxY);
     spawnGracePickup(x, spawnY + randomInRange(-40, 40), {
       vx,
       vy,
