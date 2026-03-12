@@ -582,6 +582,7 @@
     this.spreadGunDuration = 0;
     this.spreadGunExtraTimer = 0;
     this.spreadGunLevel = 0;
+    this.spreadGunAlternate = false;
     this.haloTimer = 0;
     this.haloDuration = 0;
     this.haloLevel = 0;
@@ -659,6 +660,7 @@
     if (this.spreadGunTimer <= 0) {
       this.spreadGunDuration = 0;
       this.spreadGunLevel = 0;
+      this.spreadGunAlternate = false;
     }
     this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt);
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
@@ -1363,27 +1365,34 @@
     const damage = this.getArrowDamage();
     const scale = this.getArrowProjectileScale();
     const level = Math.max(1, Math.min(10, this.spreadGunLevel || 1));
-    const streamCount = Math.ceil(level / 2);  // 1 pair per 2 levels, up to 5 pairs
+    // streamCount = individual extra shots (1–5). Even counts = symmetric pairs. Odd = pairs + 1 alternating.
+    const streamCount = Math.ceil(level / 2);
     const rateMultiplier = (level / 2) / streamCount; // 0.5 at odd levels, 1.0 at even
     this.spreadGunExtraTimer = this.getArrowCooldown() / rateMultiplier;
     const spreadStep = 0.15;
     const perp = { x: -direction.y, y: direction.x };
-    for (let tier = 1; tier <= streamCount; tier += 1) {
+    const pairs = Math.floor(streamCount / 2);
+    const hasAlternating = (streamCount % 2) === 1;
+
+    // Symmetric pairs (streams 1+2, 3+4, ...)
+    for (let tier = 1; tier <= pairs; tier += 1) {
       const spread = spreadStep * tier;
-      const up = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);
-      const down = normalizeVector(direction.x - perp.x * spread, direction.y - perp.y * spread);
-      spawnProjectile("arrow", originX, originY, up.x, up.y, {
-        damage,
-        scale,
-        life,
-        source: this,
-      });
-      spawnProjectile("arrow", originX, originY, down.x, down.y, {
-        damage,
-        scale,
-        life,
-        source: this,
-      });
+      const left = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);
+      const right = normalizeVector(direction.x - perp.x * spread, direction.y - perp.y * spread);
+      spawnProjectile("arrow", originX, originY, left.x, left.y, { damage, scale, life, source: this });
+      spawnProjectile("arrow", originX, originY, right.x, right.y, { damage, scale, life, source: this });
+    }
+
+    // Odd stream: alternates left/right each shot so it stays visually balanced
+    if (hasAlternating) {
+      const spread = spreadStep * (pairs + 1);
+      const side = this.spreadGunAlternate ? 1 : -1;
+      const altDir = normalizeVector(
+        direction.x + perp.x * spread * side,
+        direction.y + perp.y * spread * side,
+      );
+      spawnProjectile("arrow", originX, originY, altDir.x, altDir.y, { damage, scale, life, source: this });
+      this.spreadGunAlternate = !this.spreadGunAlternate;
     }
   }
 
