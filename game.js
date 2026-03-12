@@ -1860,13 +1860,19 @@ function getChurchPowerupLevelCost(def, level) {
 }
 
 // Returns the active duration for a church powerup instance given level and instance (1=primary, 2=secondary).
-// Levels 1-5: single instance, duration scales 20%→100% of base.
-// Levels 6-10: primary at full duration; secondary scales 20%→100% of base.
+// Levels 1-5: single instance, duration scales 40%→100% of base (4s→10s for base 10).
+// Levels 6-10: primary at full duration; secondary scales 40%→100% of base.
 function getChurchPowerupInstanceDuration(baseDuration, level, instance) {
+  const minFrac = 0.4;
   if (instance === 1) {
-    return level <= 5 ? baseDuration * (level / 5) : baseDuration;
+    if (level >= 5) return baseDuration;
+    const t = (level - 1) / 4;
+    return baseDuration * (minFrac + (1 - minFrac) * t);
   }
-  return level >= 6 ? baseDuration * ((level - 5) / 5) : 0;
+  if (level < 6) return 0;
+  if (level >= 10) return baseDuration;
+  const t = (level - 6) / 4;
+  return baseDuration * (minFrac + (1 - minFrac) * t);
 }
 
 function getChurchPowerupOptions() {
@@ -6699,8 +6705,9 @@ function applyWeaponPickupEffect(pickup) {
     case "spreadGun": {
       const config = resolveWeaponPowerupConfig("spreadGun", def);
       const sgLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("spreadGun") || 1);
-      player.spreadGunTimer = Math.max(player.spreadGunTimer, config.duration);
-      player.spreadGunDuration = Math.max(player.spreadGunDuration, config.duration);
+      const sgDuration = getChurchPowerupInstanceDuration(config.duration, sgLevel, 1);
+      player.spreadGunTimer = Math.max(player.spreadGunTimer, sgDuration);
+      player.spreadGunDuration = Math.max(player.spreadGunDuration, sgDuration);
       player.spreadGunLevel = Math.max(player.spreadGunLevel || 0, sgLevel);
       showWeaponPowerupConfigText(config);
       break;
