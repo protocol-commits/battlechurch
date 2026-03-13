@@ -580,19 +580,27 @@
     this.fireCooldownMultiplier = 1;
     this.spreadGunTimer = 0;
     this.spreadGunDuration = 0;
+    this.spreadGunMaxDuration = 0;
+    this.spreadGunGlowTimer = 0;
     this.spreadGunExtraTimer = 0;
     this.spreadGunLevel = 0;
     this.spreadGunAlternate = false;
     this.haloTimer = 0;
     this.haloDuration = 0;
+    this.haloMaxDuration = 0;
+    this.haloGlowTimer = 0;
     this.haloLevel = 0;
     this.haloTimerSecondary = 0;
     this.spearTimer = 0;
     this.spearDuration = 0;
+    this.spearMaxDuration = 0;
+    this.spearGlowTimer = 0;
     this.spearLevel = 0;
     this.spearTimerSecondary = 0;
     this.sentryTimer = 0;
     this.sentryDuration = 0;
+    this.sentryMaxDuration = 0;
+    this.sentryGlowTimer = 0;
     this.sentryLevel = 0;
     this.sentryTimerSecondary = 0;
     this.armorTimer = 0;
@@ -657,6 +665,7 @@
       this.magicSpeedMultiplier = 1;
     }
     this.spreadGunTimer = Math.max(0, this.spreadGunTimer - dt * timerDrainScale);
+    this.spreadGunGlowTimer = Math.max(0, this.spreadGunGlowTimer - dt);
     if (this.spreadGunTimer <= 0) {
       this.spreadGunDuration = 0;
       this.spreadGunLevel = 0;
@@ -664,6 +673,7 @@
     }
     this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt);
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
+    this.haloGlowTimer = Math.max(0, this.haloGlowTimer - dt);
     this.haloTimerSecondary = Math.max(0, this.haloTimerSecondary - dt * timerDrainScale);
     if (this.haloTimer <= 0) {
       this.haloDuration = 0;
@@ -671,6 +681,7 @@
       this.haloTimerSecondary = 0;
     }
     this.spearTimer = Math.max(0, this.spearTimer - dt * timerDrainScale);
+    this.spearGlowTimer = Math.max(0, this.spearGlowTimer - dt);
     this.spearTimerSecondary = Math.max(0, this.spearTimerSecondary - dt * timerDrainScale);
     if (this.spearTimer <= 0) {
       this.spearDuration = 0;
@@ -678,6 +689,7 @@
       this.spearTimerSecondary = 0;
     }
     this.sentryTimer = Math.max(0, this.sentryTimer - dt * timerDrainScale);
+    this.sentryGlowTimer = Math.max(0, this.sentryGlowTimer - dt);
     this.sentryTimerSecondary = Math.max(0, this.sentryTimerSecondary - dt * timerDrainScale);
     if (this.sentryTimer <= 0) {
       this.sentryDuration = 0;
