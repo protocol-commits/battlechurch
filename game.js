@@ -6709,7 +6709,6 @@ function applyWeaponPickupEffect(pickup) {
       player.spreadGunTimer = Math.max(player.spreadGunTimer, sgDuration);
       player.spreadGunDuration = Math.max(player.spreadGunDuration, sgDuration);
       player.spreadGunMaxDuration = config.duration;
-      player.spreadGunGlowTimer = 2.0;
       player.spreadGunLevel = Math.max(player.spreadGunLevel || 0, sgLevel);
       showWeaponPowerupConfigText(config);
       break;
@@ -6722,7 +6721,6 @@ function applyWeaponPickupEffect(pickup) {
       player.haloTimer = Math.max(player.haloTimer, haloPrimaryDur);
       player.haloDuration = Math.max(player.haloDuration, haloPrimaryDur);
       player.haloMaxDuration = config.duration;
-      player.haloGlowTimer = 2.0;
       player.haloTimerSecondary = Math.max(player.haloTimerSecondary || 0, haloSecondaryDur);
       player.haloLevel = Math.max(player.haloLevel || 0, haloLevel);
       showWeaponPowerupConfigText(config);
@@ -6736,7 +6734,6 @@ function applyWeaponPickupEffect(pickup) {
       player.spearTimer = Math.max(player.spearTimer, spearPrimaryDur);
       player.spearDuration = Math.max(player.spearDuration, spearPrimaryDur);
       player.spearMaxDuration = config.duration;
-      player.spearGlowTimer = 2.0;
       player.spearTimerSecondary = Math.max(player.spearTimerSecondary || 0, spearSecondaryDur);
       player.spearLevel = Math.max(player.spearLevel || 0, spearLevel);
       showWeaponPowerupConfigText(config);
@@ -6750,7 +6747,6 @@ function applyWeaponPickupEffect(pickup) {
       player.sentryTimer = Math.max(player.sentryTimer, sentryPrimaryDur);
       player.sentryDuration = Math.max(player.sentryDuration, sentryPrimaryDur);
       player.sentryMaxDuration = config.duration;
-      player.sentryGlowTimer = 2.0;
       player.sentryTimerSecondary = Math.max(player.sentryTimerSecondary || 0, sentrySecondaryDur);
       player.sentryLevel = Math.max(player.sentryLevel || 0, sentryLevel);
       showWeaponPowerupConfigText(config);

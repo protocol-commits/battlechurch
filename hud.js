@@ -198,7 +198,7 @@
       ctx.restore();
     };
 
-    const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage, iconKey, capRatio, glowAlpha) => {
+    const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage, iconKey, capRatio) => {
       const barHeight = 18;
       const barWidth = Math.max(60, width - 8);
       const barX = x;
@@ -230,32 +230,17 @@
       }
       roundRect(ctx, barX, barY, barWidth, barHeight, 6, true, true);
 
-      // Ghost bar + tick mark for capped church powerups
+      // Ghost fill for capped church powerups — shows cap position as faded background
       const clampedCap = (capRatio != null) ? Math.max(0, Math.min(1, capRatio)) : null;
       if (clampedCap != null && clampedCap < 0.99) {
         const capWidth = Math.max(0, Math.floor((barWidth - 2) * clampedCap));
-        // Dim ghost fill up to cap
         if (capWidth > 0) {
-          ctx.globalAlpha = 0.18;
-          ctx.fillStyle = color || PALETTE.softWhite;
+          const ghostGrad = ctx.createLinearGradient(barX + 1, 0, barX + 1 + capWidth, 0);
+          ghostGrad.addColorStop(0, 'rgba(255,255,255,0.0)');
+          ghostGrad.addColorStop(0.5, 'rgba(255,255,255,0.08)');
+          ghostGrad.addColorStop(1, 'rgba(255,255,255,0.32)');
+          ctx.fillStyle = ghostGrad;
           roundRect(ctx, barX + 1, barY + 1, capWidth, barHeight - 2, 6, true, false);
-          ctx.globalAlpha = 0.95;
-        }
-        // Static tick mark at cap
-        const tickX = barX + 1 + capWidth;
-        ctx.fillStyle = 'rgba(255,210,60,0.75)';
-        ctx.fillRect(tickX - 1, barY + 3, 2, barHeight - 6);
-        // Glow on tick that fades over 2s after pickup
-        const glow = (glowAlpha != null) ? Math.max(0, Math.min(1, glowAlpha)) : 0;
-        if (glow > 0) {
-          ctx.save();
-          ctx.globalAlpha = glow * 0.95;
-          ctx.shadowColor = 'rgba(255,210,60,1.0)';
-          ctx.shadowBlur = 10;
-          ctx.fillStyle = 'rgba(255,220,80,0.95)';
-          ctx.fillRect(tickX - 1, barY + 3, 2, barHeight - 6);
-          ctx.restore();
-          ctx.globalAlpha = 0.95;
         }
       }
 
@@ -830,7 +815,6 @@
           label: skillNames.spreadGun || 'Spread Gun',
           ratio: player.spreadGunTimer / maxDuration,
           capRatio: (player.spreadGunDuration || 0) / maxDuration,
-          glowAlpha: (player.spreadGunGlowTimer || 0) / 2.0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.spreadGun?.iconImage || null,
           iconKey: 'upgradeSpreadGun',
@@ -842,7 +826,6 @@
           label: skillNames.halo || 'Halo',
           ratio: player.haloTimer / maxDuration,
           capRatio: (player.haloDuration || 0) / maxDuration,
-          glowAlpha: (player.haloGlowTimer || 0) / 2.0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.halo?.iconImage || null,
           iconKey: 'upgradeHalo',
@@ -854,7 +837,6 @@
           label: skillNames.spear || 'Spear',
           ratio: player.spearTimer / maxDuration,
           capRatio: (player.spearDuration || 0) / maxDuration,
-          glowAlpha: (player.spearGlowTimer || 0) / 2.0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.spear?.iconImage || null,
           iconKey: 'upgradeSpear',
@@ -866,7 +848,6 @@
           label: skillNames.sentry || 'Sentry',
           ratio: player.sentryTimer / maxDuration,
           capRatio: (player.sentryDuration || 0) / maxDuration,
-          glowAlpha: (player.sentryGlowTimer || 0) / 2.0,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: assets?.churchPowerups?.sentry?.iconImage || null,
           iconKey: 'upgradeSentry',
@@ -913,7 +894,7 @@
       const visibleRows = Math.min(rows.length, maxRows);
       const rowYs = Array.from({ length: visibleRows }, (_, idx) => rowStart + rowGap * idx);
       rows.slice(0, visibleRows).forEach((row, idx) => {
-        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey, row.capRatio, row.glowAlpha);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey, row.capRatio);
       });
     };
 
@@ -972,7 +953,7 @@
 
       const rowYs = [panelY + 24, panelY + 46, panelY + 68];
       rows.slice(0, rowYs.length).forEach((row, idx) => {
-        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey, row.capRatio, row.glowAlpha);
+        drawPillMeterRow(x, rowYs[idx], width, row.label, row.ratio, row.color, row.iconImage, row.iconKey, row.capRatio);
       });
     };
 

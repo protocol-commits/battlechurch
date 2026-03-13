@@ -143,6 +143,16 @@
       cooldown: "CD",
       speed: "SPD",
     },
+
+    // =====================
+    // CHURCH POWERUP SKILL NAMES (HUD meters)
+    // =====================
+    skills: {
+      spreadGun: "Small Groups",
+      halo: "Prayer Team",
+      spear: "Care Team",
+      sentry: "Leadership Team",
+    },
   };
 
   // Export to global namespace
