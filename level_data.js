@@ -168,6 +168,38 @@ window.BattlechurchLevelData = {
                       "duration": 4,
                       "mode": "explicit",
                       "delays": {}
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
                     }
                   ]
                 },
@@ -181,7 +213,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 55
                         }
                       ],
                       "weights": {},
@@ -197,7 +229,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 55
                         }
                       ],
                       "weights": {},
@@ -217,7 +249,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 55
                         }
                       ],
                       "weights": {},
@@ -227,6 +259,38 @@ window.BattlechurchLevelData = {
                       "duration": 4,
                       "delays": {},
                       "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 55
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 55
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
                     }
                   ]
                 },
@@ -244,7 +308,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 30
+                          "count": 60
                         }
                       ],
                       "mode": "explicit",
@@ -304,6 +368,38 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
                       "allKill": false,
                       "duration": 4
                     }
