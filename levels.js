@@ -1314,6 +1314,12 @@
       state.visitorResumeAction = null;
       if (typeof resume === "function") {
         resume();
+        // If resume didn't advance levels.js state (e.g. showChapterBreak only sets a
+        // game.js flag and doesn't call resetStage), restore level progression so that
+        // beginLevel(state.level + 1) fires on the next levelManager.update tick.
+        if (state.stage === "visitorMinigame") {
+          resetStage("levelSummary", 0);
+        }
       } else {
         handleLevelCleared();
       }
