@@ -2616,6 +2616,7 @@ const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
 const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
 const COUNTER_HIT_WINDOW = 0.3;
 const COUNTER_HIT_MULTIPLIER = 1.25;
+const PUNISH_COUNTER_MULTIPLIER = COUNTER_HIT_MULTIPLIER;
 const RUSH_DISTANCE = _gb('rush.distance', 150) * WORLD_SCALE;
 const RUSH_SPEED = _gb('rush.speed', 1200) * SPEED_SCALE;
 const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
@@ -15612,9 +15613,10 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     });
     if (!hit) return;
     meleeAttackState.rushHitEntities.add(enemy);
-    const counterHit = getCounterHitResult(enemy, RUSH_DAMAGE);
+    const counterHit = getCounterHitResult(enemy, RUSH_DAMAGE, meleeAttackState);
     const damage = counterHit.damage;
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
+    registerMeleeComboHit(enemy, meleeAttackState);
     registerComboHit(enemy, damage);
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
@@ -15669,7 +15671,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       });
       if (hit) {
         meleeAttackState.rushHitEntities.add(activeBoss);
-        const counterHit = getCounterHitResult(activeBoss, RUSH_DAMAGE);
+        const counterHit = getCounterHitResult(activeBoss, RUSH_DAMAGE, meleeAttackState);
         const damage = counterHit.damage;
         activeBoss.takeDamage(damage, {
           hitX: activeBoss.x,
@@ -15677,6 +15679,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           damageType: "charged",
           damageText: counterHit.damageText,
         });
+        registerMeleeComboHit(activeBoss, meleeAttackState);
         registerComboHit(activeBoss, damage);
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
         if (!activeBoss.dead && activeBoss.state === "hurt") {
@@ -15798,41 +15801,188 @@ function markCounterHitWindow(target, duration = COUNTER_HIT_WINDOW) {
   target.counterHitUntil = now + Math.max(0, duration) * 1000;
 }
 
-function getCounterHitResult(target, baseDamage) {
+function clearPunishCounterState(meleeAttackState) {
+  if (!meleeAttackState) return;
+  meleeAttackState.punishCounterTarget = null;
+  meleeAttackState.punishCounterExpiresAt = 0;
+  meleeAttackState.punishCounterPrimed = false;
+  meleeAttackState.punishCounterTextShown = false;
+}
+
+function triggerPunishCounterText(target) {
+  if (!target) return;
+  addFloatingTextAt(
+    target.x,
+    target.y - (target.radius || target.config?.hitRadius || 24) - 40,
+    "Punish Counter",
+    "#FFD84F",
+    {
+      speechBubble: false,
+      vy: -14,
+      life: 0.95,
+      fontSize: 22,
+      fontWeight: "900",
+      priority: 8,
+    },
+  );
+}
+
+function triggerCounterHitText(target) {
+  if (!target) return;
+  addFloatingTextAt(
+    target.x,
+    target.y - (target.radius || target.config?.hitRadius || 24) - 28,
+    "Counter Hit",
+    "#FFE7A1",
+    {
+      speechBubble: false,
+      vy: -12,
+      life: 0.75,
+      fontSize: 16,
+      fontWeight: "800",
+      priority: 7,
+    },
+  );
+}
+
+function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
   const damage = Math.max(0, Math.round(baseDamage || 0));
   if (!target || damage <= 0) return { damage, isCounterHit: false, damageText: null };
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now();
+  const punishActive =
+    meleeAttackState &&
+    meleeAttackState.punishCounterTarget === target &&
+    Number.isFinite(meleeAttackState.punishCounterExpiresAt) &&
+    now <= meleeAttackState.punishCounterExpiresAt;
+  if (punishActive) {
+    return {
+      damage: Math.max(1, Math.round(damage * PUNISH_COUNTER_MULTIPLIER)),
+      isCounterHit: true,
+      isPunishCounter: true,
+      damageText: {
+        color: "#FFE7A1",
+        offsetY: 8,
+        fontWeight: "800",
+        priority: 1,
+      },
+    };
+  }
   const counterUntil = Number(target.counterHitUntil) || 0;
   if (counterUntil <= 0 || now > counterUntil) {
     return { damage, isCounterHit: false, damageText: null };
   }
   target.counterHitUntil = 0;
-  addFloatingTextAt(
-    target.x,
-    target.y - (target.radius || target.config?.hitRadius || 24) - 22,
-    "Counter Hit",
-    "#FFE083",
-    {
-      speechBubble: false,
-      vy: -20,
-      life: 0.75,
-      fontSize: 16,
-      fontWeight: "700",
-    },
-  );
+  if (meleeAttackState) {
+    meleeAttackState.punishCounterTarget = target;
+    meleeAttackState.punishCounterExpiresAt = now + COMBO_WINDOW_MS;
+    meleeAttackState.punishCounterPrimed = true;
+    meleeAttackState.punishCounterTextShown = false;
+  }
+  triggerCounterHitText(target);
   return {
-    damage: Math.max(1, Math.round(damage * COUNTER_HIT_MULTIPLIER)),
+    damage: Math.max(1, Math.round(damage * PUNISH_COUNTER_MULTIPLIER)),
     isCounterHit: true,
+    isPunishCounter: false,
     damageText: {
       color: "#FFE7A1",
       offsetY: 8,
-      fontWeight: "700",
+      fontWeight: "800",
       priority: 1,
     },
   };
+}
+
+function clearMeleeComboLabel(meleeAttackState) {
+  if (!meleeAttackState) return;
+  if (meleeAttackState.meleeComboLabel) {
+    meleeAttackState.meleeComboLabel.persist = false;
+    meleeAttackState.meleeComboLabel.life = Math.min(meleeAttackState.meleeComboLabel.life || 0.2, 0.2);
+    meleeAttackState.meleeComboLabel.fadeDelay = 0;
+  }
+  meleeAttackState.meleeComboLabel = null;
+}
+
+function updateMeleeComboLabel(meleeAttackState) {
+  if (!meleeAttackState) return;
+  const target = meleeAttackState.meleeComboTarget;
+  const hits = Math.max(0, Math.round(meleeAttackState.meleeComboHits || 0));
+  if (!target || hits < 2) {
+    clearMeleeComboLabel(meleeAttackState);
+    return;
+  }
+  if (target.dead || target.state === "death" || target.removed) {
+    clearMeleeComboLabel(meleeAttackState);
+    if (meleeAttackState.punishCounterTarget === target) {
+      clearPunishCounterState(meleeAttackState);
+    }
+    meleeAttackState.meleeComboTarget = null;
+    meleeAttackState.meleeComboHits = 0;
+    meleeAttackState.meleeComboExpiresAt = 0;
+    return;
+  }
+  const radius = target.radius || target.config?.hitRadius || 24;
+  const labelText = `Combo ${hits}`;
+  if (!meleeAttackState.meleeComboLabel) {
+    meleeAttackState.meleeComboLabel = addFloatingTextAt(
+      target.x,
+      target.y - radius - 26,
+      labelText,
+      "#FFE083",
+      {
+        speechBubble: false,
+        vy: 0,
+        life: 0.6,
+        fontSize: 15,
+        fontWeight: "800",
+        priority: 6,
+        persist: true,
+      },
+    );
+    return;
+  }
+  meleeAttackState.meleeComboLabel.text = labelText;
+  meleeAttackState.meleeComboLabel.x = target.x;
+  meleeAttackState.meleeComboLabel.y = target.y - radius - 26;
+  meleeAttackState.meleeComboLabel.color = "#FFE083";
+  meleeAttackState.meleeComboLabel.persist = true;
+  meleeAttackState.meleeComboLabel.life = Math.max(meleeAttackState.meleeComboLabel.life || 0, 0.6);
+  meleeAttackState.meleeComboLabel.fontSize = 15;
+  meleeAttackState.meleeComboLabel.fontWeight = "800";
+}
+
+function registerMeleeComboHit(target, meleeAttackState) {
+  if (!target || !meleeAttackState) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const currentTarget = meleeAttackState.meleeComboTarget || null;
+  const chainActive =
+    currentTarget === target &&
+    Number.isFinite(meleeAttackState.meleeComboExpiresAt) &&
+    now <= meleeAttackState.meleeComboExpiresAt;
+  meleeAttackState.meleeComboTarget = target;
+  meleeAttackState.meleeComboHits = chainActive
+    ? Math.max(1, Math.round(meleeAttackState.meleeComboHits || 1) + 1)
+    : 1;
+  meleeAttackState.meleeComboExpiresAt = now + COMBO_WINDOW_MS;
+  if (meleeAttackState.punishCounterTarget === target) {
+    meleeAttackState.punishCounterExpiresAt = meleeAttackState.meleeComboExpiresAt;
+    if (
+      meleeAttackState.punishCounterPrimed &&
+      !meleeAttackState.punishCounterTextShown &&
+      meleeAttackState.meleeComboHits >= 2
+    ) {
+      triggerPunishCounterText(target);
+      meleeAttackState.punishCounterTextShown = true;
+    }
+  } else if (meleeAttackState.punishCounterTarget) {
+    clearPunishCounterState(meleeAttackState);
+  }
+  updateMeleeComboLabel(meleeAttackState);
 }
 
 function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, forceImmediate = false) {
@@ -15951,9 +16101,10 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
     hitEnemies.push(enemy);
     if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
-    const counterHit = getCounterHitResult(enemy, MELEE_BASE_DAMAGE);
+    const counterHit = getCounterHitResult(enemy, MELEE_BASE_DAMAGE, meleeAttackState);
     const damage = counterHit.damage;
     enemy.takeDamage(damage, { damageType: "melee", damageText: counterHit.damageText });
+    registerMeleeComboHit(enemy, meleeAttackState);
     registerComboHit(enemy, damage);
     meleeDamageTotal += damage;
     if (
@@ -16017,7 +16168,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (dist <= MELEE_SWING_RANGE + hitRadius) {
       const dotProduct = dx * dir.x + dy * dir.y;
       if (!(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius)) {
-        const counterHit = getCounterHitResult(activeBoss, MELEE_BASE_DAMAGE);
+        const counterHit = getCounterHitResult(activeBoss, MELEE_BASE_DAMAGE, meleeAttackState);
         const damage = counterHit.damage;
         activeBoss.takeDamage(damage, {
           hitX: activeBoss.x,
@@ -16025,6 +16176,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           damageType: "melee",
           damageText: counterHit.damageText,
         });
+        registerMeleeComboHit(activeBoss, meleeAttackState);
         registerComboHit(activeBoss, damage);
         meleeDamageTotal += damage;
         if (
@@ -16145,9 +16297,10 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
     if (Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE) return;
-    const counterHit = getCounterHitResult(enemy, swooshDamage);
+    const counterHit = getCounterHitResult(enemy, swooshDamage, meleeAttackState);
     const finalDamage = counterHit.damage;
     enemy.takeDamage(finalDamage, { damageType: "melee", damageText: counterHit.damageText });
+    registerMeleeComboHit(enemy, meleeAttackState);
     registerComboHit(enemy, finalDamage);
     meleeDamageTotal += finalDamage;
     if (
@@ -16199,7 +16352,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
       while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
       if (!(Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE)) {
-        const counterHit = getCounterHitResult(activeBoss, swooshDamage);
+        const counterHit = getCounterHitResult(activeBoss, swooshDamage, meleeAttackState);
         const finalDamage = counterHit.damage;
         activeBoss.takeDamage(finalDamage, {
           hitX: activeBoss.x,
@@ -16207,6 +16360,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           damageType: "melee",
           damageText: counterHit.damageText,
         });
+        registerMeleeComboHit(activeBoss, meleeAttackState);
         registerComboHit(activeBoss, finalDamage);
         meleeDamageTotal += finalDamage;
         if (
@@ -16517,6 +16671,14 @@ function updateMeleeAttackSystem(dt) {
     divineComboShown: false,
     divineComboTarget: null,
     divineComboHits: 0,
+    meleeComboTarget: null,
+    meleeComboHits: 0,
+    meleeComboExpiresAt: 0,
+    meleeComboLabel: null,
+    punishCounterTarget: null,
+    punishCounterExpiresAt: 0,
+    punishCounterPrimed: false,
+    punishCounterTextShown: false,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -16527,6 +16689,11 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.buttonDown = false;
       meleeAttackState.isCharging = false;
       meleeAttackState.awaitRush = false;
+      clearMeleeComboLabel(meleeAttackState);
+      meleeAttackState.meleeComboTarget = null;
+      meleeAttackState.meleeComboHits = 0;
+      meleeAttackState.meleeComboExpiresAt = 0;
+      clearPunishCounterState(meleeAttackState);
       clearDivineChargeSparkVisual();
       return;
     }
@@ -16616,9 +16783,11 @@ function updateMeleeAttackSystem(dt) {
         const counterHit = getCounterHitResult(
           enemy,
           MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER,
+          meleeAttackState,
         );
         const spinDamage = counterHit.damage;
         enemy.takeDamage(spinDamage, { damageType: "charged", damageText: counterHit.damageText });
+        registerMeleeComboHit(enemy, meleeAttackState);
         registerComboHit(enemy, spinDamage);
         spinDamageTotal += spinDamage;
         if (!enemy.dead && enemy.state !== "death") {
@@ -16679,6 +16848,7 @@ function updateMeleeAttackSystem(dt) {
             const counterHit = getCounterHitResult(
               activeBoss,
               MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER,
+              meleeAttackState,
             );
             const spinDamage = counterHit.damage;
             activeBoss.takeDamage(spinDamage, {
@@ -16687,6 +16857,7 @@ function updateMeleeAttackSystem(dt) {
               damageType: "charged",
               damageText: counterHit.damageText,
             });
+            registerMeleeComboHit(activeBoss, meleeAttackState);
             registerComboHit(activeBoss, spinDamage);
             spinDamageTotal += spinDamage;
             if (typeof activeBoss.knockbackVx === "number") {
@@ -16892,6 +17063,24 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.meleeCancelUntil = 0;
       meleeAttackState.meleeCancelTarget = null;
       meleeAttackState.meleeCancelDamage = 0;
+    }
+    if (
+      meleeAttackState.meleeComboExpiresAt &&
+      comboNow > meleeAttackState.meleeComboExpiresAt
+    ) {
+      clearMeleeComboLabel(meleeAttackState);
+      meleeAttackState.meleeComboTarget = null;
+      meleeAttackState.meleeComboHits = 0;
+      meleeAttackState.meleeComboExpiresAt = 0;
+      clearPunishCounterState(meleeAttackState);
+    } else if (meleeAttackState.meleeComboLabel && meleeAttackState.meleeComboTarget) {
+      updateMeleeComboLabel(meleeAttackState);
+    }
+    if (
+      meleeAttackState.punishCounterExpiresAt &&
+      comboNow > meleeAttackState.punishCounterExpiresAt
+    ) {
+      clearPunishCounterState(meleeAttackState);
     }
     if (
       meleeAttackState.pendingComboTarget &&
