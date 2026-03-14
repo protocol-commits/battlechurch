@@ -3362,6 +3362,11 @@ const PROJECTILE_FRAME_DURATIONS = {
   heart: 0.08,
   word_of_god: 0.06,
 };
+const ARMORED_PROJECTILE_DEFLECT_DISTANCE = 75 * WORLD_SCALE;
+const ARMORED_PROJECTILE_DEFLECT_SPEED_SCALE = 0.45;
+const ARMORED_PROJECTILE_DEFLECT_ANGLE = Math.PI * 0.22;
+const ARMORED_PROJECTILE_DEFLECT_ANGLE_VARIANCE = Math.PI * 0.08;
+const ARMORED_PROJECTILE_DEFLECT_TYPES = new Set(["arrow", "fire", "heart", "coin"]);
 const NPC_COZY_ROOT = "assets/sprites/npcs-cozy";
 const NPC_WALK_ROOT = `${NPC_COZY_ROOT}/separate/walk`;
 const NPC_SHADOW_PATH = `${NPC_COZY_ROOT}/shadow.png`;
@@ -10326,6 +10331,66 @@ function spawnEnemyHitEffect(enemy, hitX = null, hitY = null, options = {}) {
   spawnFlashEffect(x, y);
 }
 
+function isArmoredProjectileDeflectTarget(target, projectile, damageType) {
+  if (!target || !projectile) return false;
+  if (damageType !== "projectile") return false;
+  if (!projectile.friendly) return false;
+  const damageClass = String(target.damageClass || target.config?.damageClass || "").toLowerCase();
+  if (damageClass !== "armored") return false;
+  return ARMORED_PROJECTILE_DEFLECT_TYPES.has(projectile.type);
+}
+
+function spawnArmoredProjectileDeflect(projectile, target, hitX, hitY) {
+  if (!projectile || !target) return;
+  const baseSpeed = Math.max(
+    1,
+    Math.hypot(projectile.vx || 0, projectile.vy || 0) * ARMORED_PROJECTILE_DEFLECT_SPEED_SCALE,
+  );
+  const center = typeof getEnemyHitboxCenter === "function" ? getEnemyHitboxCenter(target) : { x: target.x, y: target.y };
+  let dirX = (hitX ?? projectile.x ?? 0) - center.x;
+  let dirY = (hitY ?? projectile.y ?? 0) - center.y;
+  if (Math.abs(dirX) < 0.001 && Math.abs(dirY) < 0.001) {
+    dirX = -(projectile.vx || 0);
+    dirY = -(projectile.vy || 0);
+  }
+  const baseAngle = Math.atan2(dirY, dirX);
+  const angleOffset =
+    ARMORED_PROJECTILE_DEFLECT_ANGLE +
+    (Math.random() * 2 - 1) * ARMORED_PROJECTILE_DEFLECT_ANGLE_VARIANCE;
+  const signedOffset = Math.random() < 0.5 ? -angleOffset : angleOffset;
+  const deflectAngle = baseAngle + signedOffset;
+  const dir = normalizeVector(Math.cos(deflectAngle), Math.sin(deflectAngle));
+  const life = ARMORED_PROJECTILE_DEFLECT_DISTANCE / baseSpeed;
+  const deflect = spawnProjectile(
+    projectile.type,
+    Number.isFinite(hitX) ? hitX : projectile.x,
+    Number.isFinite(hitY) ? hitY : projectile.y,
+    dir.x,
+    dir.y,
+    {
+      friendly: false,
+      damage: 0,
+      source: null,
+      speed: baseSpeed,
+      life,
+      scale: projectile.scale,
+      flipHorizontal: dir.x < 0,
+      visualOnly: true,
+      onExpire: (proj) => {
+        spawnEnemyHitEffect(
+          target,
+          Number.isFinite(proj?.x) ? proj.x : hitX,
+          Number.isFinite(proj?.y) ? proj.y : hitY,
+          { damageType: "projectile" },
+        );
+      },
+    },
+  );
+  if (deflect) {
+    deflect.rotation = Math.atan2(deflect.vy || 0, deflect.vx || 0);
+  }
+}
+
 function isEnemyEntity(ent) {
   return Boolean(ent && !ent.isCozyNpc && !ent.isPlayer && typeof ent.type === "string");
 }
@@ -10401,6 +10466,7 @@ class Projectile {
     this.onImpactTriggered = false;
     this.onExpireTriggered = false;
     this.friendly = config.friendly ?? true;
+    this.visualOnly = Boolean(config.visualOnly);
     this.damageType = config.damageType || null;
     this.source = config.source || null;
     this.hitEntities = new Set();
@@ -14745,6 +14811,7 @@ function processProjectileCollisions(dt) {
 
   for (const projectile of projectiles) {
     if (projectile.dead) continue;
+    if (projectile.visualOnly) continue;
 
     if (projectile.friendly) {
       // Friendly projectiles hitting enemies
@@ -14768,19 +14835,22 @@ function processProjectileCollisions(dt) {
         const projectileDamage = projectile.getDamage();
         const damageType =
           projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
+        const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
+        const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
+        const shouldDeflect = isArmoredProjectileDeflectTarget(enemy, projectile, damageType);
         enemy.takeDamage(projectileDamage, { damageType });
     if (projectile.source?.isPlayer) {
       registerProjectileComboHit(enemy, projectileDamage, projectile);
     }
 
-        if (
+        if (shouldDeflect) {
+          spawnArmoredProjectileDeflect(projectile, enemy, hitX, hitY);
+        } else if (
           projectile.type === "arrow" ||
           projectile.type === "fire" ||
           projectile.type === "heart" ||
           projectile.type === "faith_cannon"
         ) {
-          const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
-          const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
           spawnEnemyHitEffect(enemy, hitX, hitY, { damageType });
         }
         if (enemy.health > 0 && enemy.type !== "tormentorFlame") {
@@ -14789,6 +14859,7 @@ function processProjectileCollisions(dt) {
           spawnPuffEffect(center.x, center.y, puffRadius);
         }
         projectile.onHit(enemy);
+        if (shouldDeflect) projectile.dead = true;
         if (projectile.dead) break;
       }
 
@@ -14808,6 +14879,7 @@ function processProjectileCollisions(dt) {
             const damageType =
               projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
             const bossDamage = projectile.getDamage();
+            const shouldDeflect = isArmoredProjectileDeflectTarget(activeBoss, projectile, damageType);
             activeBoss.takeDamage(bossDamage, {
               hitX,
               hitY,
@@ -14817,7 +14889,9 @@ function processProjectileCollisions(dt) {
             if (projectile.source?.isPlayer) {
               registerProjectileComboHit(activeBoss, bossDamage, projectile);
             }
-            if (
+            if (shouldDeflect) {
+              spawnArmoredProjectileDeflect(projectile, activeBoss, hitX, hitY);
+            } else if (
               projectile.type === "arrow" ||
               projectile.type === "fire" ||
               projectile.type === "heart" ||
@@ -14826,6 +14900,7 @@ function processProjectileCollisions(dt) {
               spawnFlashEffect(hitX, hitY);
             }
             projectile.onHit(activeBoss);
+            if (shouldDeflect) projectile.dead = true;
             if (!projectile.pierce) projectile.dead = true;
           }
         }
@@ -14886,7 +14961,11 @@ function processProjectileCollisions(dt) {
       const swooshSpread = Math.PI * 0.35 * MELEE_SWOOSH_ARC_SCALE;
       for (const projectile of projectiles) {
         const bossProjectile = isBossProjectile(projectile);
-        if (projectile.dead || (projectile.friendly && !bossProjectile)) continue;
+        if (
+          projectile.dead ||
+          projectile.visualOnly ||
+          (projectile.friendly && !bossProjectile)
+        ) continue;
         const dx = projectile.x - player.x;
         const dy = projectile.y - player.y;
         const dist = Math.hypot(dx, dy);
@@ -14915,8 +14994,12 @@ function processProjectileCollisions(dt) {
 }
 
 function processProjectileClashing() {
-  const friendlyProjectiles = projectiles.filter((proj) => proj.friendly && !proj.dead);
-  const hostileProjectiles = projectiles.filter((proj) => !proj.friendly && !proj.dead);
+  const friendlyProjectiles = projectiles.filter(
+    (proj) => proj.friendly && !proj.dead && !proj.visualOnly,
+  );
+  const hostileProjectiles = projectiles.filter(
+    (proj) => !proj.friendly && !proj.dead && !proj.visualOnly,
+  );
 
   for (const friendly of friendlyProjectiles) {
     if (friendly.dead) continue;
