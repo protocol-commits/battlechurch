@@ -2620,6 +2620,14 @@ const PUNISH_COUNTER_MULTIPLIER = 1.35;
 const COUNTER_HIT_TEXT_LIFE = 2.9;
 const PUNISH_COUNTER_TEXT_LIFE = 2.9;
 const MELEE_COMBO_TEXT_LIFE = 2.9;
+const MELEE_HITSTOP_DURATION = 0.05;
+const MELEE_COMBO_HITSTOP_DURATION = 0.06;
+const MELEE_COUNTER_HITSTOP_DURATION = 0.075;
+const MELEE_PUNISH_HITSTOP_DURATION = 0.095;
+const MELEE_HITSTOP_SHAKE = 10;
+const MELEE_COMBO_HITSTOP_SHAKE = 13;
+const MELEE_COUNTER_HITSTOP_SHAKE = 17;
+const MELEE_PUNISH_HITSTOP_SHAKE = 22;
 const RUSH_DISTANCE = _gb('rush.distance', 150) * WORLD_SCALE;
 const RUSH_SPEED = _gb('rush.speed', 1200) * SPEED_SCALE;
 const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
@@ -15619,6 +15627,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     const counterHit = getCounterHitResult(enemy, RUSH_DAMAGE, meleeAttackState);
     const damage = counterHit.damage;
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
+    applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
     registerMeleeComboHit(enemy, meleeAttackState);
     registerComboHit(enemy, damage);
@@ -15683,6 +15692,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           damageType: "charged",
           damageText: counterHit.damageText,
         });
+        applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
         registerMeleeComboHit(activeBoss, meleeAttackState);
         registerComboHit(activeBoss, damage);
@@ -15891,6 +15901,32 @@ function registerPunishComboDamage(target, damage, meleeAttackState) {
   }
   meleeAttackState.punishComboDamage =
     Math.max(0, Math.round(meleeAttackState.punishComboDamage || 0)) + damageValue;
+}
+
+function applyMeleeHitstop(target, meleeAttackState, counterHit) {
+  if (!target) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const comboFollowUp = Boolean(
+    meleeAttackState &&
+      meleeAttackState.meleeComboTarget === target &&
+      (meleeAttackState.meleeComboHits || 0) >= 1 &&
+      Number.isFinite(meleeAttackState.meleeComboExpiresAt) &&
+      now <= meleeAttackState.meleeComboExpiresAt,
+  );
+  let duration = comboFollowUp ? MELEE_COMBO_HITSTOP_DURATION : MELEE_HITSTOP_DURATION;
+  let shake = comboFollowUp ? MELEE_COMBO_HITSTOP_SHAKE : MELEE_HITSTOP_SHAKE;
+  if (counterHit?.isPunishCounter) {
+    duration = MELEE_PUNISH_HITSTOP_DURATION;
+    shake = MELEE_PUNISH_HITSTOP_SHAKE;
+  } else if (counterHit?.isCounterHit) {
+    duration = MELEE_COUNTER_HITSTOP_DURATION;
+    shake = MELEE_COUNTER_HITSTOP_SHAKE;
+  }
+  hitFreezeTimer = Math.max(hitFreezeTimer, duration);
+  applyCameraShake(Math.max(0.08, duration * 2.5), shake);
 }
 
 function queueCounterHitText(target, meleeAttackState, delayMs = 110) {
@@ -16184,6 +16220,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     const counterHit = getCounterHitResult(enemy, MELEE_BASE_DAMAGE, meleeAttackState);
     const damage = counterHit.damage;
     enemy.takeDamage(damage, { damageType: "melee", damageText: counterHit.damageText });
+    applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
     registerMeleeComboHit(enemy, meleeAttackState);
     registerComboHit(enemy, damage);
@@ -16257,6 +16294,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           damageType: "melee",
           damageText: counterHit.damageText,
         });
+        applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
         registerMeleeComboHit(activeBoss, meleeAttackState);
         registerComboHit(activeBoss, damage);
@@ -16383,6 +16421,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     const counterHit = getCounterHitResult(enemy, swooshDamage, meleeAttackState);
     const finalDamage = counterHit.damage;
     enemy.takeDamage(finalDamage, { damageType: "melee", damageText: counterHit.damageText });
+    applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, finalDamage, meleeAttackState);
     registerMeleeComboHit(enemy, meleeAttackState);
     registerComboHit(enemy, finalDamage);
@@ -16444,6 +16483,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           damageType: "melee",
           damageText: counterHit.damageText,
         });
+        applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, finalDamage, meleeAttackState);
         registerMeleeComboHit(activeBoss, meleeAttackState);
         registerComboHit(activeBoss, finalDamage);
@@ -16897,6 +16937,7 @@ function updateMeleeAttackSystem(dt) {
         );
         const spinDamage = counterHit.damage;
         enemy.takeDamage(spinDamage, { damageType: "charged", damageText: counterHit.damageText });
+        applyMeleeHitstop(enemy, meleeAttackState, counterHit);
         registerPunishComboDamage(enemy, spinDamage, meleeAttackState);
         registerMeleeComboHit(enemy, meleeAttackState);
         registerComboHit(enemy, spinDamage);
@@ -16968,6 +17009,7 @@ function updateMeleeAttackSystem(dt) {
               damageType: "charged",
               damageText: counterHit.damageText,
             });
+            applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
             registerPunishComboDamage(activeBoss, spinDamage, meleeAttackState);
             registerMeleeComboHit(activeBoss, meleeAttackState);
             registerComboHit(activeBoss, spinDamage);
@@ -17485,7 +17527,11 @@ function updateGame(dt) {
   }
   const congregationStageActive = stage === "levelIntro";
 
+  const freezeFrameActive = hitFreezeTimer > 0;
   updateCameraAndVisualEffects(dt);
+  if (freezeFrameActive) {
+    dt = 0;
+  }
 
   if (handlePauseMenu()) {
     return;
