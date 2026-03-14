@@ -2614,6 +2614,8 @@ const MELEE_RUSH_LOCKOUT = _gb('melee.rushLockout', 1.0);
 const MELEE_SPIN_DURATION = _gb('melee.spinDuration', 0.45);
 const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
 const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
+const COUNTER_HIT_WINDOW = 0.3;
+const COUNTER_HIT_MULTIPLIER = 1.25;
 const RUSH_DISTANCE = _gb('rush.distance', 150) * WORLD_SCALE;
 const RUSH_SPEED = _gb('rush.speed', 1200) * SPEED_SCALE;
 const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
@@ -11196,6 +11198,7 @@ class BossEncounter {
       this.animator.play("walk");
     }
     if (this.state === "attack" && this.animator.isFinished()) {
+      markCounterHitWindow(this);
       this.state = "walk";
       this.animator.play("walk");
     }
@@ -15609,8 +15612,9 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     });
     if (!hit) return;
     meleeAttackState.rushHitEntities.add(enemy);
-    const damage = Math.round(RUSH_DAMAGE);
-    enemy.takeDamage(damage, { damageType: "charged" });
+    const counterHit = getCounterHitResult(enemy, RUSH_DAMAGE);
+    const damage = counterHit.damage;
+    enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
     registerComboHit(enemy, damage);
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
@@ -15665,11 +15669,13 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       });
       if (hit) {
         meleeAttackState.rushHitEntities.add(activeBoss);
-        const damage = Math.round(RUSH_DAMAGE);
+        const counterHit = getCounterHitResult(activeBoss, RUSH_DAMAGE);
+        const damage = counterHit.damage;
         activeBoss.takeDamage(damage, {
           hitX: activeBoss.x,
           hitY: activeBoss.y,
           damageType: "charged",
+          damageText: counterHit.damageText,
         });
         registerComboHit(activeBoss, damage);
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -15781,6 +15787,52 @@ function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
   enemy.scatterVx = vx;
   enemy.scatterVy = vy;
   enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, 0.3);
+}
+
+function markCounterHitWindow(target, duration = COUNTER_HIT_WINDOW) {
+  if (!target) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  target.counterHitUntil = now + Math.max(0, duration) * 1000;
+}
+
+function getCounterHitResult(target, baseDamage) {
+  const damage = Math.max(0, Math.round(baseDamage || 0));
+  if (!target || damage <= 0) return { damage, isCounterHit: false, damageText: null };
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const counterUntil = Number(target.counterHitUntil) || 0;
+  if (counterUntil <= 0 || now > counterUntil) {
+    return { damage, isCounterHit: false, damageText: null };
+  }
+  target.counterHitUntil = 0;
+  addFloatingTextAt(
+    target.x,
+    target.y - (target.radius || target.config?.hitRadius || 24) - 22,
+    "Counter Hit",
+    "#FFE083",
+    {
+      speechBubble: false,
+      vy: -20,
+      life: 0.75,
+      fontSize: 16,
+      fontWeight: "700",
+    },
+  );
+  return {
+    damage: Math.max(1, Math.round(damage * COUNTER_HIT_MULTIPLIER)),
+    isCounterHit: true,
+    damageText: {
+      color: "#FFE7A1",
+      offsetY: 8,
+      fontWeight: "700",
+      priority: 1,
+    },
+  };
 }
 
 function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, forceImmediate = false) {
@@ -15899,8 +15951,9 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
     hitEnemies.push(enemy);
     if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
-    const damage = Math.round(MELEE_BASE_DAMAGE);
-    enemy.takeDamage(damage, { damageType: "melee" });
+    const counterHit = getCounterHitResult(enemy, MELEE_BASE_DAMAGE);
+    const damage = counterHit.damage;
+    enemy.takeDamage(damage, { damageType: "melee", damageText: counterHit.damageText });
     registerComboHit(enemy, damage);
     meleeDamageTotal += damage;
     if (
@@ -15964,11 +16017,13 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (dist <= MELEE_SWING_RANGE + hitRadius) {
       const dotProduct = dx * dir.x + dy * dir.y;
       if (!(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius)) {
-        const damage = Math.round(MELEE_BASE_DAMAGE);
+        const counterHit = getCounterHitResult(activeBoss, MELEE_BASE_DAMAGE);
+        const damage = counterHit.damage;
         activeBoss.takeDamage(damage, {
           hitX: activeBoss.x,
           hitY: activeBoss.y,
           damageType: "melee",
+          damageText: counterHit.damageText,
         });
         registerComboHit(activeBoss, damage);
         meleeDamageTotal += damage;
@@ -16090,9 +16145,11 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
     while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
     if (Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE) return;
-    enemy.takeDamage(swooshDamage, { damageType: "melee" });
-    registerComboHit(enemy, swooshDamage);
-    meleeDamageTotal += swooshDamage;
+    const counterHit = getCounterHitResult(enemy, swooshDamage);
+    const finalDamage = counterHit.damage;
+    enemy.takeDamage(finalDamage, { damageType: "melee", damageText: counterHit.damageText });
+    registerComboHit(enemy, finalDamage);
+    meleeDamageTotal += finalDamage;
     if (
       !meleeAttackState.divineComboShown &&
       meleeAttackState.divineComboDamage > 0 &&
@@ -16102,7 +16159,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       enemy.state === "hurt"
     ) {
       const hits = (meleeAttackState.divineComboHits || 2) + 1;
-      showComboTextAt(enemy, meleeAttackState.divineComboDamage + swooshDamage, hits);
+      showComboTextAt(enemy, meleeAttackState.divineComboDamage + finalDamage, hits);
       meleeAttackState.divineComboShown = true;
       meleeAttackState.divineComboActiveUntil = 0;
       meleeAttackState.divineComboDamage = 0;
@@ -16118,7 +16175,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       now <= meleeAttackState.rushComboActiveUntil &&
       enemy.state === "hurt"
     ) {
-      showComboTextAt(enemy, meleeAttackState.rushComboDamage + swooshDamage, 2, swooshDamage);
+      showComboTextAt(enemy, meleeAttackState.rushComboDamage + finalDamage, 2, finalDamage);
       meleeAttackState.rushComboShown = true;
       meleeAttackState.rushComboActiveUntil = 0;
       meleeAttackState.rushComboDamage = 0;
@@ -16142,13 +16199,16 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
       while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
       if (!(Math.abs(angleDiff) > swooshSpread && dist > MELEE_CLOSE_RANGE)) {
-        activeBoss.takeDamage(swooshDamage, {
+        const counterHit = getCounterHitResult(activeBoss, swooshDamage);
+        const finalDamage = counterHit.damage;
+        activeBoss.takeDamage(finalDamage, {
           hitX: activeBoss.x,
           hitY: activeBoss.y,
           damageType: "melee",
+          damageText: counterHit.damageText,
         });
-        registerComboHit(activeBoss, swooshDamage);
-        meleeDamageTotal += swooshDamage;
+        registerComboHit(activeBoss, finalDamage);
+        meleeDamageTotal += finalDamage;
         if (
           !meleeAttackState.divineComboShown &&
           meleeAttackState.divineComboDamage > 0 &&
@@ -16158,7 +16218,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           activeBoss.state === "hurt"
         ) {
           const hits = (meleeAttackState.divineComboHits || 2) + 1;
-          showComboTextAt(activeBoss, meleeAttackState.divineComboDamage + swooshDamage, hits);
+          showComboTextAt(activeBoss, meleeAttackState.divineComboDamage + finalDamage, hits);
           meleeAttackState.divineComboShown = true;
           meleeAttackState.divineComboActiveUntil = 0;
           meleeAttackState.divineComboDamage = 0;
@@ -16174,7 +16234,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
           now <= meleeAttackState.rushComboActiveUntil &&
           activeBoss.state === "hurt"
         ) {
-          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + swooshDamage, 2, swooshDamage);
+          showComboTextAt(activeBoss, meleeAttackState.rushComboDamage + finalDamage, 2, finalDamage);
           meleeAttackState.rushComboShown = true;
           meleeAttackState.rushComboActiveUntil = 0;
           meleeAttackState.rushComboDamage = 0;
@@ -16553,8 +16613,12 @@ function updateMeleeAttackSystem(dt) {
         });
         if (!hit) return;
         hitSet.add(enemy);
-        const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
-        enemy.takeDamage(spinDamage, { damageType: "charged" });
+        const counterHit = getCounterHitResult(
+          enemy,
+          MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER,
+        );
+        const spinDamage = counterHit.damage;
+        enemy.takeDamage(spinDamage, { damageType: "charged", damageText: counterHit.damageText });
         registerComboHit(enemy, spinDamage);
         spinDamageTotal += spinDamage;
         if (!enemy.dead && enemy.state !== "death") {
@@ -16612,11 +16676,16 @@ function updateMeleeAttackSystem(dt) {
           });
           if (hit) {
             hitSet.add(activeBoss);
-            const spinDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
+            const counterHit = getCounterHitResult(
+              activeBoss,
+              MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER,
+            );
+            const spinDamage = counterHit.damage;
             activeBoss.takeDamage(spinDamage, {
               hitX: activeBoss.x,
               hitY: activeBoss.y,
               damageType: "charged",
+              damageText: counterHit.damageText,
             });
             registerComboHit(activeBoss, spinDamage);
             spinDamageTotal += spinDamage;

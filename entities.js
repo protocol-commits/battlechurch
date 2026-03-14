@@ -1857,6 +1857,7 @@
               ? circleIntersectsRect(targetX, targetY, targetRadius, weaponRect)
               : distance <= attackThreshold;
             if (hitConfirmed) {
+              if (targetIsPlayer) this.playerHitDuringAttack = true;
               const hitDamage =
                 Number.isFinite(this.config?.attackHitDamage) && this.config.attackHitDamage > 0
                   ? this.config.attackHitDamage
@@ -1912,6 +1913,7 @@
           } catch (e) {}
           if (!this.isRanged && distance <= attackThreshold && !attackFrameEnabled) {
             if (targetIsPlayer) {
+              this.playerHitDuringAttack = true;
               if (player.invulnerableTimer > 0) {
                 this.touchCooldown = Math.max(this.touchCooldown || 0, 0.35);
               } else if (player.shieldTimer > 0) {
@@ -1940,6 +1942,13 @@
               }
             }
           }
+          if (targetIsPlayer && !this.playerHitDuringAttack) {
+            this.counterHitUntil =
+              (typeof performance !== "undefined" && typeof performance.now === "function"
+                ? performance.now()
+                : Date.now()) + 300;
+          }
+          this.playerHitDuringAttack = false;
           this.attackTimer = this.isRanged ? this.projectileCooldown : this.config.attackCooldown;
           this.state = "walk";
           this.animator.play("walk");
@@ -1983,6 +1992,7 @@
         this.state = "attack";
         this.animator.play("attack", { restart: true });
         this.attackHitApplied = false;
+        this.playerHitDuringAttack = false;
         return;
       }
 
