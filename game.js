@@ -15811,12 +15811,17 @@ function clearPunishCounterState(meleeAttackState) {
   meleeAttackState.pendingCounterHitShowAt = 0;
 }
 
+function getMultiplierBonusLabel(multiplier) {
+  const bonusPercent = Math.max(0, Math.round((Math.max(0, Number(multiplier) || 1) - 1) * 100));
+  return `+${bonusPercent}%`;
+}
+
 function triggerPunishCounterText(target) {
   if (!target) return;
   addFloatingTextAt(
     target.x,
     target.y - (target.radius || target.config?.hitRadius || 24) - 40,
-    "Punish Counter",
+    `Punish Counter ${getMultiplierBonusLabel(PUNISH_COUNTER_MULTIPLIER)}`,
     "#FFD84F",
     {
       speechBubble: false,
@@ -15834,7 +15839,7 @@ function triggerCounterHitText(target) {
   addFloatingTextAt(
     target.x,
     target.y - (target.radius || target.config?.hitRadius || 24) - 28,
-    "Counter Hit",
+    `Counter Hit ${getMultiplierBonusLabel(COUNTER_HIT_MULTIPLIER)}`,
     "#FFE7A1",
     {
       speechBubble: false,
