@@ -5760,6 +5760,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
               (typeof enemy.health === "number" && enemy.health <= 0);
           if (!isDeadLike && (!enemy._playerTouchCooldown || now - enemy._playerTouchCooldown > 1200)) {
             enemy._playerTouchCooldown = now;
+            if (player.invulnerableTimer > 0) {
+              return;
+            }
             if (typeof player.takeDamage === 'function') {
               const rawDamage = Number.isFinite(enemy.config?.damage)
                 ? enemy.config.damage

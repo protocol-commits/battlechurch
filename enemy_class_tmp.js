@@ -124,7 +124,9 @@ class Enemy {
         }
         if (!this.isRanged && distance <= attackThreshold) {
           if (targetIsPlayer) {
-            if (player.shieldTimer > 0) {
+            if (player.invulnerableTimer > 0) {
+              this.touchCooldown = Math.max(this.touchCooldown || 0, 0.35);
+            } else if (player.shieldTimer > 0) {
               applyShieldImpact(this);
             } else {
               player.takeDamage(this.config.damage);

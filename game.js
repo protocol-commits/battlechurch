@@ -9268,6 +9268,9 @@ class BossHazard {
     const dy = player.y - this.y;
     const distance = Math.hypot(dx, dy);
     if (distance <= this.radius + player.radius * 0.6) {
+      if (player.invulnerableTimer > 0) {
+        return;
+      }
       if (player.shieldTimer > 0) {
         spawnFlashEffect(player.x, player.y - player.radius / 2);
       } else {
@@ -14830,7 +14833,9 @@ function processProjectileCollisions(dt) {
     } else {
       // Hostile projectiles hitting player
       if (player && player.state !== "death" && projectile.hitTest(player)) {
-        if (player.shieldTimer > 0) {
+        if (player.invulnerableTimer > 0) {
+          projectile.dead = true;
+        } else if (player.shieldTimer > 0) {
           projectile.dead = true;
           spawnFlashEffect(player.x, player.y - player.radius / 2);
         } else {
@@ -15436,6 +15441,17 @@ function applyMeleeInvulnerability(meleeAttackState, type, duration) {
   }
 }
 
+function getDashSwooshInvulnerabilityDuration() {
+  const dashRemaining =
+    playerDashState && playerDashState.isDashing
+      ? Math.max(
+          0,
+          (playerDashState.dashDistanceRemaining || 0) / Math.max(1, DASH_SPEED || 1),
+        )
+      : 0;
+  return Math.max(MELEE_SWOOSH_INVULNERABILITY, dashRemaining + MELEE_SWOOSH_EXIT_INVULNERABILITY);
+}
+
 function tryStartDash(direction) {
   if (playerDashState.isDashing || playerDashState.dashCooldown > 0) return false;
   if (!direction || (direction.x === 0 && direction.y === 0)) return false;
@@ -15963,7 +15979,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       : Date.now();
   meleeAttackState.swooshTimer = GAME_MELEE_SWING_DURATION;
   meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
-  applyMeleeInvulnerability(meleeAttackState, "swoosh", MELEE_SWOOSH_INVULNERABILITY);
+  applyMeleeInvulnerability(meleeAttackState, "swoosh", getDashSwooshInvulnerabilityDuration());
 
   // Trigger player attack animation
   if (player && player.animator) {
@@ -16676,6 +16692,13 @@ function updateMeleeAttackSystem(dt) {
           executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
         }
       } else {
+      if (playerDashState.isDashing) {
+        applyMeleeInvulnerability(
+          meleeAttackState,
+          "swoosh",
+          getDashSwooshInvulnerabilityDuration(),
+        );
+      }
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = true;
