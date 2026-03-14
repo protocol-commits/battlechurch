@@ -2616,7 +2616,10 @@ const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
 const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
 const COUNTER_HIT_WINDOW = 0.3;
 const COUNTER_HIT_MULTIPLIER = 1.25;
-const PUNISH_COUNTER_MULTIPLIER = COUNTER_HIT_MULTIPLIER;
+const PUNISH_COUNTER_MULTIPLIER = 1.35;
+const COUNTER_HIT_TEXT_LIFE = 1.45;
+const PUNISH_COUNTER_TEXT_LIFE = 1.45;
+const MELEE_COMBO_TEXT_LIFE = 1.45;
 const RUSH_DISTANCE = _gb('rush.distance', 150) * WORLD_SCALE;
 const RUSH_SPEED = _gb('rush.speed', 1200) * SPEED_SCALE;
 const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
@@ -15826,7 +15829,7 @@ function triggerPunishCounterText(target) {
     {
       speechBubble: false,
       vy: -14,
-      life: 0.95,
+      life: PUNISH_COUNTER_TEXT_LIFE,
       fontSize: 28,
       fontWeight: "900",
       priority: 8,
@@ -15844,7 +15847,7 @@ function triggerCounterHitText(target) {
     {
       speechBubble: false,
       vy: -12,
-      life: 0.75,
+      life: COUNTER_HIT_TEXT_LIFE,
       fontSize: 22,
       fontWeight: "800",
       priority: 7,
@@ -15955,7 +15958,7 @@ function updateMeleeComboLabel(meleeAttackState) {
       {
         speechBubble: false,
         vy: 0,
-        life: 0.6,
+        life: MELEE_COMBO_TEXT_LIFE,
         fontSize: 20,
         fontWeight: "800",
         priority: 6,
@@ -15969,7 +15972,10 @@ function updateMeleeComboLabel(meleeAttackState) {
   meleeAttackState.meleeComboLabel.y = target.y - radius - 26;
   meleeAttackState.meleeComboLabel.color = "#FFE083";
   meleeAttackState.meleeComboLabel.persist = true;
-  meleeAttackState.meleeComboLabel.life = Math.max(meleeAttackState.meleeComboLabel.life || 0, 0.6);
+  meleeAttackState.meleeComboLabel.life = Math.max(
+    meleeAttackState.meleeComboLabel.life || 0,
+    MELEE_COMBO_TEXT_LIFE,
+  );
   meleeAttackState.meleeComboLabel.fontSize = 20;
   meleeAttackState.meleeComboLabel.fontWeight = "800";
 }
