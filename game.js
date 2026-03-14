@@ -16510,6 +16510,24 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
 
 function executeRushAttack(dir, meleeAttackState) {
   // Canonical move name: "Rush Attack" is the combo A > B/A follow-up.
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const rushTravelMs = Math.ceil((RUSH_DISTANCE / Math.max(1, RUSH_SPEED || 1)) * 1000);
+  const rushComboCarryUntil = now + rushTravelMs + COMBO_WINDOW_MS;
+  if (meleeAttackState.meleeComboTarget && (meleeAttackState.meleeComboHits || 0) > 0) {
+    meleeAttackState.meleeComboExpiresAt = Math.max(
+      Number(meleeAttackState.meleeComboExpiresAt) || 0,
+      rushComboCarryUntil,
+    );
+  }
+  if (meleeAttackState.punishCounterTarget) {
+    meleeAttackState.punishCounterExpiresAt = Math.max(
+      Number(meleeAttackState.punishCounterExpiresAt) || 0,
+      rushComboCarryUntil,
+    );
+  }
   meleeAttackState.isRushing = true;
   meleeAttackState.rushDir = { x: dir.x, y: dir.y };
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
@@ -17158,9 +17176,15 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.meleeCancelTarget = null;
       meleeAttackState.meleeCancelDamage = 0;
     }
+    const comboCarryActive =
+      meleeAttackState.isRushing ||
+      (meleeAttackState.awaitRush && meleeAttackState.awaitTimer > 0) ||
+      (meleeAttackState.rushBypassUntil && comboNow <= meleeAttackState.rushBypassUntil) ||
+      (meleeAttackState.meleeCancelUntil && comboNow <= meleeAttackState.meleeCancelUntil);
     if (
       meleeAttackState.meleeComboExpiresAt &&
-      comboNow > meleeAttackState.meleeComboExpiresAt
+      comboNow > meleeAttackState.meleeComboExpiresAt &&
+      !comboCarryActive
     ) {
       clearMeleeComboLabel(meleeAttackState);
       meleeAttackState.meleeComboTarget = null;
@@ -17169,6 +17193,18 @@ function updateMeleeAttackSystem(dt) {
       clearActiveCounterHitText(meleeAttackState);
       clearPunishCounterState(meleeAttackState);
     } else if (meleeAttackState.meleeComboLabel && meleeAttackState.meleeComboTarget) {
+      if (comboCarryActive) {
+        meleeAttackState.meleeComboExpiresAt = Math.max(
+          Number(meleeAttackState.meleeComboExpiresAt) || 0,
+          comboNow + COMBO_WINDOW_MS,
+        );
+        if (meleeAttackState.punishCounterTarget === meleeAttackState.meleeComboTarget) {
+          meleeAttackState.punishCounterExpiresAt = Math.max(
+            Number(meleeAttackState.punishCounterExpiresAt) || 0,
+            meleeAttackState.meleeComboExpiresAt,
+          );
+        }
+      }
       updateMeleeComboLabel(meleeAttackState);
     }
     if (
