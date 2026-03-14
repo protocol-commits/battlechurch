@@ -16145,6 +16145,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
 }
 
 function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY) {
+  // Canonical move name: "Slash" is the default A melee attack.
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -16344,6 +16345,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
 }
 
 function executeSwooshAttack(dir, meleeAttackState, angleRad) {
+  // Canonical move name: "Dash Slash" is the normal B/A follow-up from an active dash.
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -16507,6 +16509,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
 }
 
 function executeRushAttack(dir, meleeAttackState) {
+  // Canonical move name: "Rush Attack" is the combo A > B/A follow-up.
   meleeAttackState.isRushing = true;
   meleeAttackState.rushDir = { x: dir.x, y: dir.y };
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
