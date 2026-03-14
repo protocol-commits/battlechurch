@@ -2620,6 +2620,10 @@ const PUNISH_COUNTER_MULTIPLIER = 1.35;
 const COUNTER_HIT_TEXT_LIFE = 2.9;
 const PUNISH_COUNTER_TEXT_LIFE = 2.9;
 const MELEE_COMBO_TEXT_LIFE = 2.9;
+const COUNTER_HIT_GRACE_GEMS = 3;
+const PUNISH_COUNTER_GRACE_GEMS = 6;
+const MELEE_COMBO_GRACE_GEMS_BASE = 2;
+const MELEE_COMBO_GRACE_GEMS_MAX = 4;
 const MELEE_HITSTOP_DURATION = 0.05;
 const MELEE_COMBO_HITSTOP_DURATION = 0.06;
 const MELEE_COUNTER_HITSTOP_DURATION = 0.075;
@@ -15903,6 +15907,15 @@ function registerPunishComboDamage(target, damage, meleeAttackState) {
     Math.max(0, Math.round(meleeAttackState.punishComboDamage || 0)) + damageValue;
 }
 
+function rewardMeleeGraceBurst(target, count, spread = null) {
+  const gemCount = Math.max(0, Math.round(count || 0));
+  if (!target || !gemCount) return;
+  const baseX = Number.isFinite(target.x) ? target.x : null;
+  const baseY = Number.isFinite(target.y) ? target.y : null;
+  if (!Number.isFinite(baseX) || !Number.isFinite(baseY)) return;
+  spawnGraceArcBurst(baseX, baseY, gemCount, spread);
+}
+
 function applyMeleeHitstop(target, meleeAttackState, counterHit) {
   if (!target) return;
   const now =
@@ -15979,6 +15992,7 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
     meleeAttackState.punishCounterPrimed = true;
     meleeAttackState.punishCounterTextShown = false;
   }
+  rewardMeleeGraceBurst(target, COUNTER_HIT_GRACE_GEMS, 48);
   queueCounterHitText(target, meleeAttackState);
   return {
     damage: Math.max(1, Math.round(damage * PUNISH_COUNTER_MULTIPLIER)),
@@ -16081,6 +16095,13 @@ function registerMeleeComboHit(target, meleeAttackState) {
     ? Math.max(1, Math.round(meleeAttackState.meleeComboHits || 1) + 1)
     : 1;
   meleeAttackState.meleeComboExpiresAt = now + COMBO_WINDOW_MS;
+  if (meleeAttackState.meleeComboHits >= 2) {
+    const comboGemCount = Math.min(
+      MELEE_COMBO_GRACE_GEMS_MAX,
+      MELEE_COMBO_GRACE_GEMS_BASE + Math.max(0, meleeAttackState.meleeComboHits - 2),
+    );
+    rewardMeleeGraceBurst(target, comboGemCount, 40 + meleeAttackState.meleeComboHits * 8);
+  }
   if (meleeAttackState.punishCounterTarget === target) {
     meleeAttackState.punishCounterExpiresAt = meleeAttackState.meleeComboExpiresAt;
     if (
@@ -16092,6 +16113,7 @@ function registerMeleeComboHit(target, meleeAttackState) {
       meleeAttackState.pendingCounterHitShowAt = 0;
       clearActiveCounterHitText(meleeAttackState, target, true);
       triggerPunishCounterText(target);
+      rewardMeleeGraceBurst(target, PUNISH_COUNTER_GRACE_GEMS, 72);
       meleeAttackState.punishCounterTextShown = true;
     }
   } else if (meleeAttackState.punishCounterTarget) {
