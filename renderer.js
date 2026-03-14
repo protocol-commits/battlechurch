@@ -5768,12 +5768,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           if (!isDeadLike && (!enemy._playerTouchCooldown || now - enemy._playerTouchCooldown > 1200)) {
             enemy._playerTouchCooldown = now;
             if (dashSwooshProtected) {
-              if (typeof window !== "undefined" && typeof window.reportPlayerDamageDebug === "function") {
-                window.reportPlayerDamageDebug("BLOCK", "renderer-touch-dash-swoosh", {
-                  invul: player.invulnerableTimer,
-                  shield: player.shieldTimer,
-                });
-              }
               return;
             }
             if (player.invulnerableTimer > 0) {
@@ -5786,7 +5780,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
                   ? enemy.damage
                   : 1;
               if (rawDamage > 0) {
-                player.takeDamage(rawDamage, { source: "renderer-touch" });
+                player.takeDamage(rawDamage);
               }
             } else if (typeof player.health === 'number') {
               const rawDamage = Number.isFinite(enemy.config?.damage)
