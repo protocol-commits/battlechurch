@@ -2617,9 +2617,9 @@ const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
 const COUNTER_HIT_WINDOW = 0.3;
 const COUNTER_HIT_MULTIPLIER = 1.25;
 const PUNISH_COUNTER_MULTIPLIER = 1.35;
-const COUNTER_HIT_TEXT_LIFE = 1.45;
-const PUNISH_COUNTER_TEXT_LIFE = 1.45;
-const MELEE_COMBO_TEXT_LIFE = 1.45;
+const COUNTER_HIT_TEXT_LIFE = 2.9;
+const PUNISH_COUNTER_TEXT_LIFE = 2.9;
+const MELEE_COMBO_TEXT_LIFE = 2.9;
 const RUSH_DISTANCE = _gb('rush.distance', 150) * WORLD_SCALE;
 const RUSH_SPEED = _gb('rush.speed', 1200) * SPEED_SCALE;
 const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
@@ -15826,7 +15826,7 @@ function triggerPunishCounterText(target) {
   if (!target) return;
   addFloatingTextAt(
     target.x,
-    target.y - (target.radius || target.config?.hitRadius || 24) - 40,
+    target.y - (target.radius || target.config?.hitRadius || 24) - 58,
     `Punish Counter ${getMultiplierBonusLabel(PUNISH_COUNTER_MULTIPLIER)}`,
     "#FFD84F",
     {
@@ -15844,7 +15844,7 @@ function triggerCounterHitText(target) {
   if (!target) return;
   return addFloatingTextAt(
     target.x,
-    target.y - (target.radius || target.config?.hitRadius || 24) - 28,
+    target.y - (target.radius || target.config?.hitRadius || 24) - 50,
     `Counter Hit ${getMultiplierBonusLabel(COUNTER_HIT_MULTIPLIER)}`,
     "#FFE7A1",
     {
@@ -15858,15 +15858,17 @@ function triggerCounterHitText(target) {
   );
 }
 
-function clearActiveCounterHitText(meleeAttackState, target = null) {
+function clearActiveCounterHitText(meleeAttackState, target = null, immediate = false) {
   if (!meleeAttackState || !meleeAttackState.activeCounterHitLabel) return;
   if (target && meleeAttackState.activeCounterHitTarget !== target) return;
-  meleeAttackState.activeCounterHitLabel.persist = false;
-  meleeAttackState.activeCounterHitLabel.life = Math.min(
-    meleeAttackState.activeCounterHitLabel.life || 0.15,
-    0.15,
-  );
-  meleeAttackState.activeCounterHitLabel.fadeDelay = 0;
+  if (immediate) {
+    meleeAttackState.activeCounterHitLabel.persist = false;
+    meleeAttackState.activeCounterHitLabel.life = Math.min(
+      meleeAttackState.activeCounterHitLabel.life || 0.15,
+      0.15,
+    );
+    meleeAttackState.activeCounterHitLabel.fadeDelay = 0;
+  }
   meleeAttackState.activeCounterHitLabel = null;
   meleeAttackState.activeCounterHitTarget = null;
 }
@@ -15959,7 +15961,10 @@ function clearMeleeComboLabel(meleeAttackState) {
   if (!meleeAttackState) return;
   if (meleeAttackState.meleeComboLabel) {
     meleeAttackState.meleeComboLabel.persist = false;
-    meleeAttackState.meleeComboLabel.life = Math.min(meleeAttackState.meleeComboLabel.life || 0.2, 0.2);
+    meleeAttackState.meleeComboLabel.life = Math.max(
+      meleeAttackState.meleeComboLabel.life || 0,
+      MELEE_COMBO_TEXT_LIFE,
+    );
     meleeAttackState.meleeComboLabel.fadeDelay = 0;
   }
   meleeAttackState.meleeComboLabel = null;
@@ -15992,10 +15997,11 @@ function updateMeleeComboLabel(meleeAttackState) {
     ? formatNumberWithCommas(Math.max(0, Math.round(meleeAttackState.punishComboDamage || 0)))
     : "";
   const labelText = punishLabelActive ? `Combo ${hits}\n${punishDamageText}` : `Combo ${hits}`;
+  const comboLabelY = target.y - radius - (punishLabelActive ? 4 : 18);
   if (!meleeAttackState.meleeComboLabel) {
     meleeAttackState.meleeComboLabel = addFloatingTextAt(
       target.x,
-      target.y - radius - 26,
+      comboLabelY,
       labelText,
       "#FFE083",
       {
@@ -16012,7 +16018,7 @@ function updateMeleeComboLabel(meleeAttackState) {
   }
   meleeAttackState.meleeComboLabel.text = labelText;
   meleeAttackState.meleeComboLabel.x = target.x;
-  meleeAttackState.meleeComboLabel.y = target.y - radius - 26;
+  meleeAttackState.meleeComboLabel.y = comboLabelY;
   meleeAttackState.meleeComboLabel.color = "#FFE083";
   meleeAttackState.meleeComboLabel.persist = true;
   meleeAttackState.meleeComboLabel.life = Math.max(
@@ -16048,7 +16054,7 @@ function registerMeleeComboHit(target, meleeAttackState) {
     ) {
       meleeAttackState.pendingCounterHitTarget = null;
       meleeAttackState.pendingCounterHitShowAt = 0;
-      clearActiveCounterHitText(meleeAttackState, target);
+      clearActiveCounterHitText(meleeAttackState, target, true);
       triggerPunishCounterText(target);
       meleeAttackState.punishCounterTextShown = true;
     }
