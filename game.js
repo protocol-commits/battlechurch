@@ -2600,11 +2600,14 @@ const MELEE_OFFSET = 54 * WORLD_SCALE;
 const MELEE_DAMAGE_KNOCKBACK = _gb('melee.knockback', 48) * WORLD_SCALE;
 const MELEE_PUSHBACK_STRENGTH = _gb('melee.pushbackStrength', 36) * WORLD_SCALE;
 const MELEE_DAMAGE_DURATION = _gb('melee.damageDuration', 0.25);
+const GAME_MELEE_SWING_DURATION = _gb('melee.swingDuration', 0.2);
 const MELEE_COOLDOWN = _gb('melee.cooldown', 0.4);
 const MELEE_DOUBLE_TAP_WINDOW = _gb('melee.doubleTapWindow', 0.18);
 const MELEE_HOLD_CHARGE_TIME = _gb('melee.holdChargeTime', 1.5);
 const MELEE_BASE_DAMAGE = _gb('melee.baseDamage', 100);
 const MELEE_SWOOSH_DAMAGE_SCALE = _gb('melee.swooshDamageScale', 1.2);
+const MELEE_SWOOSH_EXIT_INVULNERABILITY = _gb('melee.swooshExitInvulnerability', 0.2);
+const MELEE_SWOOSH_INVULNERABILITY = GAME_MELEE_SWING_DURATION + MELEE_SWOOSH_EXIT_INVULNERABILITY;
 const MELEE_SWOOSH_ARC_SCALE = _gb('melee.swooshArcScale', 2.5);
 const MELEE_PROJECTILE_COOLDOWN_AFTER = _gb('melee.projectileCooldownAfter', 0.5);
 const MELEE_RUSH_LOCKOUT = _gb('melee.rushLockout', 1.0);
@@ -2619,12 +2622,12 @@ const RUSH_PUSHBACK_RADIUS = _gb('rush.pushbackRadius', 52) * WORLD_SCALE;
 const RUSH_PUSHBACK_STRENGTH = _gb('rush.pushbackStrength', 50) * WORLD_SCALE;
 const RUSH_COOLDOWN = _gb('rush.cooldown', 3.0);
 const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
+const RUSH_EXIT_INVULNERABILITY = _gb('rush.exitInvulnerability', 0.2);
 const SPIN_HOLD_CHARGE_TIME = MELEE_HOLD_CHARGE_TIME;
 const SPIN_CHARGE_MOVE_MULTIPLIER = 0.5;
 const SPIN_MOVE_DISTANCE = RUSH_DISTANCE;
 const SPIN_MOVE_SPEED = RUSH_SPEED;
 const COMBO_WINDOW_MS = 350;
-const RUSH_INVULNERABILITY = 0.4;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
 const DASH_DUST_SPACING = 20 * WORLD_SCALE;
@@ -15415,6 +15418,24 @@ function updateSharedBButtonCooldown(dt) {
   return next === 0;
 }
 
+function applyMeleeInvulnerability(meleeAttackState, type, duration) {
+  if (!player || !meleeAttackState) return;
+  const safeDuration = Math.max(0, Number(duration) || 0);
+  if (safeDuration <= 0) return;
+  player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, safeDuration);
+  if (type === "swoosh") {
+    meleeAttackState.swooshShieldDebugTimer = Math.max(
+      meleeAttackState.swooshShieldDebugTimer || 0,
+      safeDuration,
+    );
+  } else if (type === "rush") {
+    meleeAttackState.rushShieldDebugTimer = Math.max(
+      meleeAttackState.rushShieldDebugTimer || 0,
+      safeDuration,
+    );
+  }
+}
+
 function tryStartDash(direction) {
   if (playerDashState.isDashing || playerDashState.dashCooldown > 0) return false;
   if (!direction || (direction.x === 0 && direction.y === 0)) return false;
@@ -15602,6 +15623,8 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
 function updateRushMovement(dt, direction, meleeAttackState) {
   if (!meleeAttackState.isRushing || !player) return;
 
+  applyMeleeInvulnerability(meleeAttackState, "rush", RUSH_EXIT_INVULNERABILITY);
+
   const startX = player.x;
   const startY = player.y;
   const movement = Math.min(meleeAttackState.rushDistanceRemaining, RUSH_SPEED * dt);
@@ -15632,7 +15655,6 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     meleeAttackState.isRushing = false;
     meleeAttackState.rushDamageEnabled = false;
     meleeAttackState.rushInvulnerable = false;
-    player.invulnerableTimer = 0;
     meleeAttackState.rushHitEntities = null;
     meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
     meleeAttackState.cooldown = 0;
@@ -15752,7 +15774,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   meleeAttackState.swingId += 1;
   meleeAttackState.didAttackThisPress = true;
   meleeAttackState.cooldown = MELEE_COOLDOWN;
-  meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
+  meleeAttackState.swooshTimer = GAME_MELEE_SWING_DURATION;
   meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
 
   // Trigger player attack animation
@@ -15939,8 +15961,9 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now();
-  meleeAttackState.swooshTimer = MELEE_SWING_DURATION;
+  meleeAttackState.swooshTimer = GAME_MELEE_SWING_DURATION;
   meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
+  applyMeleeInvulnerability(meleeAttackState, "swoosh", MELEE_SWOOSH_INVULNERABILITY);
 
   // Trigger player attack animation
   if (player && player.animator) {
@@ -16096,7 +16119,7 @@ function executeRushAttack(dir, meleeAttackState) {
   setSharedBButtonCooldown(RUSH_COOLDOWN);
   meleeAttackState.rushDamageEnabled = true;
   meleeAttackState.rushInvulnerable = true;
-  player.invulnerableTimer = RUSH_INVULNERABILITY;
+  applyMeleeInvulnerability(meleeAttackState, "rush", RUSH_EXIT_INVULNERABILITY);
   meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
   playRushAttackSfx(0.9);
@@ -16178,6 +16201,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.swooshTimer > 0) {
     meleeAttackState.swooshTimer = Math.max(0, meleeAttackState.swooshTimer - dt);
   }
+  if (meleeAttackState.swooshShieldDebugTimer > 0) {
+    meleeAttackState.swooshShieldDebugTimer = Math.max(0, meleeAttackState.swooshShieldDebugTimer - dt);
+  }
   if (meleeAttackState.spinTimer > 0) {
     meleeAttackState.spinTimer = Math.max(0, meleeAttackState.spinTimer - dt);
   }
@@ -16187,6 +16213,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   }
 
   meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
+  if (meleeAttackState.rushShieldDebugTimer > 0) {
+    meleeAttackState.rushShieldDebugTimer = Math.max(0, meleeAttackState.rushShieldDebugTimer - dt);
+  }
   if (meleeAttackState.rushHitboxTimer > 0) {
     meleeAttackState.rushHitboxTimer = Math.max(0, meleeAttackState.rushHitboxTimer - dt);
   }
@@ -16245,8 +16274,7 @@ function updateChargeState(dt, meleeAttackState) {
   }
 
   // Only show Raybolt after melee swing animation completes (0.2s) and before charge complete
-  const MELEE_SWING_DURATION = 0.2;
-  if (!chargeComplete && chargeTimer >= MELEE_SWING_DURATION) {
+  if (!chargeComplete && chargeTimer >= GAME_MELEE_SWING_DURATION) {
     updateDivineChargeSparkVisual(dt, chargeTimer, holdTime);
   }
 
@@ -16281,6 +16309,7 @@ function updateMeleeAttackSystem(dt) {
       rushHitEntities: null,
       rushCooldown: 0,
       rushDustAccumulator: 0,
+      rushShieldDebugTimer: 0,
       chargeFlashTriggered: false,
       spinChargeFlashTriggered: false,
       rushInvulnerable: false,
@@ -16315,12 +16344,13 @@ function updateMeleeAttackSystem(dt) {
     spinComboDamage: 0,
     spinComboActiveUntil: 0,
     spinComboShown: false,
-    rushComboDamage: 0,
-    rushComboActiveUntil: 0,
-    rushComboShown: false,
-    rushComboHits: 0,
-    rushComboTarget: null,
-    meleeCancelUntil: 0,
+      rushComboDamage: 0,
+      rushComboActiveUntil: 0,
+      rushComboShown: false,
+      rushComboHits: 0,
+      rushComboTarget: null,
+      swooshShieldDebugTimer: 0,
+      meleeCancelUntil: 0,
     meleeCancelDamage: 0,
     meleeCancelTarget: null,
     divineComboDamage: 0,

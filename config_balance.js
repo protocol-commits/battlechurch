@@ -25,9 +25,11 @@
       knockback: 48,
       pushbackStrength: 36,
       damageDuration: 0.25,
+      swingDuration: 0.2,
       doubleTapWindow: 0.18,
       holdChargeTime: 1.5,
       swooshDamageScale: 1.2,
+      swooshExitInvulnerability: 0.2,
       swooshArcScale: 2.5,
       projectileCooldownAfter: 0.5,
       rushLockout: 1.0,
@@ -49,7 +51,7 @@
       pushbackStrength: 50,
       cooldown: 3.0,
       dustSpacing: 26,
-      invulnerability: 0.4,
+      exitInvulnerability: 0.2,
       damage: 200,            // MELEE_BASE_DAMAGE * 2
     },
 
