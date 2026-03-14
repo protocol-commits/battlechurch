@@ -15807,6 +15807,8 @@ function clearPunishCounterState(meleeAttackState) {
   meleeAttackState.punishCounterExpiresAt = 0;
   meleeAttackState.punishCounterPrimed = false;
   meleeAttackState.punishCounterTextShown = false;
+  meleeAttackState.pendingCounterHitTarget = null;
+  meleeAttackState.pendingCounterHitShowAt = 0;
 }
 
 function triggerPunishCounterText(target) {
@@ -15820,7 +15822,7 @@ function triggerPunishCounterText(target) {
       speechBubble: false,
       vy: -14,
       life: 0.95,
-      fontSize: 22,
+      fontSize: 28,
       fontWeight: "900",
       priority: 8,
     },
@@ -15838,11 +15840,25 @@ function triggerCounterHitText(target) {
       speechBubble: false,
       vy: -12,
       life: 0.75,
-      fontSize: 16,
+      fontSize: 22,
       fontWeight: "800",
       priority: 7,
     },
   );
+}
+
+function queueCounterHitText(target, meleeAttackState, delayMs = 110) {
+  if (!target) return;
+  if (!meleeAttackState) {
+    triggerCounterHitText(target);
+    return;
+  }
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  meleeAttackState.pendingCounterHitTarget = target;
+  meleeAttackState.pendingCounterHitShowAt = now + Math.max(0, delayMs);
 }
 
 function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
@@ -15881,7 +15897,7 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
     meleeAttackState.punishCounterPrimed = true;
     meleeAttackState.punishCounterTextShown = false;
   }
-  triggerCounterHitText(target);
+  queueCounterHitText(target, meleeAttackState);
   return {
     damage: Math.max(1, Math.round(damage * PUNISH_COUNTER_MULTIPLIER)),
     isCounterHit: true,
@@ -15935,7 +15951,7 @@ function updateMeleeComboLabel(meleeAttackState) {
         speechBubble: false,
         vy: 0,
         life: 0.6,
-        fontSize: 15,
+        fontSize: 20,
         fontWeight: "800",
         priority: 6,
         persist: true,
@@ -15949,7 +15965,7 @@ function updateMeleeComboLabel(meleeAttackState) {
   meleeAttackState.meleeComboLabel.color = "#FFE083";
   meleeAttackState.meleeComboLabel.persist = true;
   meleeAttackState.meleeComboLabel.life = Math.max(meleeAttackState.meleeComboLabel.life || 0, 0.6);
-  meleeAttackState.meleeComboLabel.fontSize = 15;
+  meleeAttackState.meleeComboLabel.fontSize = 20;
   meleeAttackState.meleeComboLabel.fontWeight = "800";
 }
 
@@ -15976,6 +15992,8 @@ function registerMeleeComboHit(target, meleeAttackState) {
       !meleeAttackState.punishCounterTextShown &&
       meleeAttackState.meleeComboHits >= 2
     ) {
+      meleeAttackState.pendingCounterHitTarget = null;
+      meleeAttackState.pendingCounterHitShowAt = 0;
       triggerPunishCounterText(target);
       meleeAttackState.punishCounterTextShown = true;
     }
@@ -16679,6 +16697,8 @@ function updateMeleeAttackSystem(dt) {
     punishCounterExpiresAt: 0,
     punishCounterPrimed: false,
     punishCounterTextShown: false,
+    pendingCounterHitTarget: null,
+    pendingCounterHitShowAt: 0,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -17081,6 +17101,15 @@ function updateMeleeAttackSystem(dt) {
       comboNow > meleeAttackState.punishCounterExpiresAt
     ) {
       clearPunishCounterState(meleeAttackState);
+    }
+    if (
+      meleeAttackState.pendingCounterHitTarget &&
+      meleeAttackState.pendingCounterHitShowAt &&
+      comboNow >= meleeAttackState.pendingCounterHitShowAt
+    ) {
+      triggerCounterHitText(meleeAttackState.pendingCounterHitTarget);
+      meleeAttackState.pendingCounterHitTarget = null;
+      meleeAttackState.pendingCounterHitShowAt = 0;
     }
     if (
       meleeAttackState.pendingComboTarget &&
