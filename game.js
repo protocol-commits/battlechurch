@@ -38,6 +38,7 @@ const POWERUP_ACTIVE_LIFETIME = _gb('powerups.activeLifetime', 8);
 const POWERUP_BLINK_DURATION = _gb('powerups.blinkDuration', 2);
 const POWERUP_SPAWN_BLINK_DURATION = _gb('powerups.spawnBlinkDuration', 1.2);
 let powerUpRespawnTimer = 0;
+let churchPowerupSkipNext = false;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
 let hudComboDisplay = null;
@@ -1820,6 +1821,7 @@ function clearAllPowerUps() {
   utilityPowerUps.splice(0, utilityPowerUps.length);
   powerupHudFlyEffects.splice(0, powerupHudFlyEffects.length);
   powerUpRespawnTimer = 0;
+  churchPowerupSkipNext = false;
 }
 
 function resetChurchPowerups() {
@@ -17034,7 +17036,13 @@ function updateGame(dt) {
         spawnUtilityPowerUp();
       }
       if (getUnlockedChurchPowerupKeys().length && canSpawnChurchPowerup()) {
-        spawnUpgradePowerUp();
+        if (!churchPowerupSkipNext) {
+          spawnUpgradePowerUp();
+          churchPowerupSkipNext = true;
+        } else {
+          churchPowerupSkipNext = false;
+          triggerPowerUpCooldown();
+        }
       }
       if (battleStageAllowsPowerUps && canSpawnWeaponPowerUp()) {
         spawnWeaponPickup();

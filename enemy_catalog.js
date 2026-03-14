@@ -177,7 +177,7 @@
     "health": 10,
     "maxHealth": 10,
     "damage": 5,
-    "speed": 120,
+    "speed": 90,
     "baseRadius": 8,
     "scale": 4,
     "attackBonus": 18,
