@@ -1501,13 +1501,30 @@
     clampEntityToBounds(this);
   }
 
-  takeDamage(amount) {
+  takeDamage(amount, options = {}) {
+    const damageSource = options?.source || "unknown";
+    const reportDamageDebug =
+      typeof window !== "undefined" ? window.reportPlayerDamageDebug : null;
     if (devTools.godMode) return;
     if (this.shieldTimer > 0) {
+      if (typeof reportDamageDebug === "function") {
+        reportDamageDebug("BLOCK", damageSource, {
+          invul: this.invulnerableTimer,
+          shield: this.shieldTimer,
+        });
+      }
       spawnFlashEffect(this.x, this.y - this.radius / 2);
       return;
     }
-    if (this.invulnerableTimer > 0 || gameOver) return;
+    if (this.invulnerableTimer > 0 || gameOver) {
+      if (typeof reportDamageDebug === "function") {
+        reportDamageDebug("BLOCK", damageSource, {
+          invul: this.invulnerableTimer,
+          shield: this.shieldTimer,
+        });
+      }
+      return;
+    }
     if (this.state === "death") return;
     const baseDamage = amount;
     const prevHealth = this.health;
@@ -1543,6 +1560,12 @@
     hitFreezeTimer = HIT_FREEZE_DURATION;
     cameraShakeTimer = CAMERA_SHAKE_DURATION;
     cameraShakeMagnitude = CAMERA_SHAKE_INTENSITY;
+    if (typeof reportDamageDebug === "function") {
+      reportDamageDebug("HIT", damageSource, {
+        invul: this.invulnerableTimer,
+        shield: this.shieldTimer,
+      });
+    }
     this.state = "hurt";
     this.animator.play("hurt", { restart: true });
     if (this.health <= 0) {
@@ -1867,7 +1890,7 @@
                 } else if (player.shieldTimer > 0) {
                   applyShieldImpact(this);
                 } else {
-                  player.takeDamage(hitDamage);
+                  player.takeDamage(hitDamage, { source: "enemy-attack-frame" });
                   applyWeaponKnockback(player, this.x, this.y);
                 }
               } else if (typeof target.sufferAttack === "function") {
@@ -1917,7 +1940,7 @@
               } else if (player.shieldTimer > 0) {
                 applyShieldImpact(this);
               } else {
-                player.takeDamage(this.config.damage);
+                player.takeDamage(this.config.damage, { source: "enemy-attack-finish" });
                 applyWeaponKnockback(player, this.x, this.y);
               }
             } else if (typeof target.sufferAttack === "function") {

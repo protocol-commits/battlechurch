@@ -5744,6 +5744,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       // --- Enemy-player collision and damage logic ---
       if (!visitorStageActive && player && Array.isArray(enemies)) {
         const now = performance.now();
+        const bindings = requireBindings();
+        const dashState = bindings.playerDashState || null;
+        const meleeState = bindings.meleeAttackState || window._meleeAttackState || null;
+        const dashSwooshProtected =
+          Boolean(dashState?.isDashing) ||
+          Boolean(meleeState?.swooshTimer > 0) ||
+          Boolean(meleeState?.swooshShieldDebugTimer > 0);
         enemies.forEach((enemy) => {
           if (!enemy || enemy.dead || typeof enemy.x !== 'number' || typeof enemy.y !== 'number') return;
           // Use radius for collision
@@ -5760,6 +5767,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
               (typeof enemy.health === "number" && enemy.health <= 0);
           if (!isDeadLike && (!enemy._playerTouchCooldown || now - enemy._playerTouchCooldown > 1200)) {
             enemy._playerTouchCooldown = now;
+            if (dashSwooshProtected) {
+              if (typeof window !== "undefined" && typeof window.reportPlayerDamageDebug === "function") {
+                window.reportPlayerDamageDebug("BLOCK", "renderer-touch-dash-swoosh", {
+                  invul: player.invulnerableTimer,
+                  shield: player.shieldTimer,
+                });
+              }
+              return;
+            }
             if (player.invulnerableTimer > 0) {
               return;
             }
@@ -5770,7 +5786,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
                   ? enemy.damage
                   : 1;
               if (rawDamage > 0) {
-                player.takeDamage(rawDamage);
+                player.takeDamage(rawDamage, { source: "renderer-touch" });
               }
             } else if (typeof player.health === 'number') {
               const rawDamage = Number.isFinite(enemy.config?.damage)

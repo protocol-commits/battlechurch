@@ -129,7 +129,7 @@ class Enemy {
             } else if (player.shieldTimer > 0) {
               applyShieldImpact(this);
             } else {
-              player.takeDamage(this.config.damage);
+              player.takeDamage(this.config.damage, { source: "enemy-class-touch" });
             }
           } else if (typeof target.sufferAttack === "function") {
             // Before dealing damage, ensure the NPC target is still valid and has faith

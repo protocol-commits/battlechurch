@@ -8356,6 +8356,24 @@ function setDevStatus(text, duration = 2.5) {
   devStatus.text = text;
   devStatus.timer = duration;
 }
+if (typeof window !== "undefined") {
+  window.setDevStatus = setDevStatus;
+  window.reportPlayerDamageDebug = (phase, source, details = {}) => {
+    const meleeState = window._meleeAttackState || null;
+    const dashOrSwooshActive =
+      Boolean(playerDashState?.isDashing) ||
+      Boolean(meleeState?.swooshTimer > 0) ||
+      Boolean(meleeState?.swooshShieldDebugTimer > 0);
+    if (!dashOrSwooshActive) return;
+    const invul = Number(details.invul ?? player?.invulnerableTimer ?? 0).toFixed(2);
+    const shield = Number(details.shield ?? player?.shieldTimer ?? 0).toFixed(2);
+    const message = `[damage-debug] ${phase} ${source} inv:${invul} sh:${shield}`;
+    setDevStatus(message, 1.4);
+    if (typeof console !== "undefined" && typeof console.warn === "function") {
+      console.warn(message, details);
+    }
+  };
+}
 
 function updateDevStatus(dt) {
   if (devStatus.timer > 0) {
@@ -9274,7 +9292,7 @@ class BossHazard {
       if (player.shieldTimer > 0) {
         spawnFlashEffect(player.x, player.y - player.radius / 2);
       } else {
-        player.takeDamage(this.damage);
+        player.takeDamage(this.damage, { source: "hazard-contact" });
         spawnFlashEffect(player.x, player.y - player.radius / 2);
       }
     }
@@ -14840,7 +14858,7 @@ function processProjectileCollisions(dt) {
           spawnFlashEffect(player.x, player.y - player.radius / 2);
         } else {
           const damage = Math.max(1, Math.round(projectile.getDamage() || 1));
-          player.takeDamage(damage);
+          player.takeDamage(damage, { source: "hostile-projectile" });
           projectile.onHit(player);
           projectile.dead = true;
         }
@@ -15438,6 +15456,13 @@ function applyMeleeInvulnerability(meleeAttackState, type, duration) {
       meleeAttackState.rushShieldDebugTimer || 0,
       safeDuration,
     );
+  }
+  if (typeof window !== "undefined" && typeof window.reportPlayerDamageDebug === "function") {
+    window.reportPlayerDamageDebug("APPLY", `melee-${type}`, {
+      invul: player.invulnerableTimer,
+      shield: player.shieldTimer,
+      duration: safeDuration,
+    });
   }
 }
 
@@ -16666,7 +16691,6 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.rushLockTimer <= 0;
     const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && !meleeAttackState.isRushing;
     const rushLockActive = meleeAttackState.rushLockTimer > 0;
-    console.log("awaitRush:", meleeAttackState.awaitRush, "spaceJustPressed:", spaceJustPressed);
     const rushBypassActive =
       meleeAttackState.rushBypassUntil && now <= meleeAttackState.rushBypassUntil;
     if (meleeAttackState.awaitRush || rushBypassActive) {
