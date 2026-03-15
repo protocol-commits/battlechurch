@@ -2,15 +2,21 @@
   if (!window || !document) return;
 
   const OVERLAY_ID = "hitboxEditorOverlay";
-  const STATUS_DELAY = 1600;
+  const STATUS_DELAY = 1800;
+  const FILTERS = [
+    { key: "all", label: "All" },
+    { key: "enemy", label: "Enemies" },
+    { key: "player", label: "Player" },
+    { key: "npc", label: "NPC" },
+    { key: "projectile", label: "Projectiles" },
+  ];
+
   const state = {
     active: false,
-    selectedKey: null,
-    layout: [],
-    contentHeight: 0,
-    scrollY: 0,
+    selectedId: null,
+    filter: "all",
+    search: "",
     rafId: null,
-    layoutDirty: true,
     statusTimer: null,
   };
 
@@ -18,31 +24,73 @@
     getAssets: () => null,
     getEnemyCatalog: () => ({}),
     getEnemyTypes: () => ({}),
+    getPlayerPreview: () => null,
+    getPlayerConfig: () => null,
+    getNpcPreview: () => null,
+    getProjectileConfig: () => ({}),
     onHitboxChange: null,
+    onPlayerRadiusChange: null,
+    onNpcRadiusChange: null,
+    onProjectileRadiusChange: null,
   };
+
   let baseCatalogSnapshot = null;
 
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;
   }
 
-  function getCatalog() {
+  function getAssets() {
+    return bindings.getAssets ? bindings.getAssets() : null;
+  }
+
+  function getEnemyCatalog() {
     return bindings.getEnemyCatalog ? bindings.getEnemyCatalog() : {};
   }
 
-  function getEnemyDef(key) {
-    const catalog = getCatalog();
-    return catalog ? catalog[key] : null;
+  function getEnemyTypes() {
+    return bindings.getEnemyTypes ? bindings.getEnemyTypes() : {};
   }
 
-  function defaultHitbox(def) {
+  function getPlayerPreview() {
+    return bindings.getPlayerPreview ? bindings.getPlayerPreview() : null;
+  }
+
+  function getPlayerConfig() {
+    return bindings.getPlayerConfig ? bindings.getPlayerConfig() : null;
+  }
+
+  function getNpcPreview() {
+    return bindings.getNpcPreview ? bindings.getNpcPreview() : null;
+  }
+
+  function getProjectileConfig() {
+    return bindings.getProjectileConfig ? bindings.getProjectileConfig() : {};
+  }
+
+  function setStatus(message, isError = false) {
+    if (!els.status) return;
+    els.status.textContent = message || "";
+    els.status.style.color = isError ? "#ffb2b2" : "#9bd9ff";
+    if (state.statusTimer) {
+      clearTimeout(state.statusTimer);
+      state.statusTimer = null;
+    }
+    if (message) {
+      state.statusTimer = setTimeout(() => {
+        els.status.textContent = "";
+      }, STATUS_DELAY);
+    }
+  }
+
+  function defaultEnemyHitbox(def) {
     const baseRadius = Number(def?.baseRadius);
     const radius = Number.isFinite(baseRadius) && baseRadius > 0 ? baseRadius : 14;
     return { width: radius * 2, height: radius * 2, offsetX: 0, offsetY: 0 };
   }
 
-  function resolveHitbox(def) {
-    const fallback = defaultHitbox(def);
+  function resolveEnemyHitbox(def) {
+    const fallback = defaultEnemyHitbox(def);
     const hitbox = def?.hitbox || {};
     return {
       width: Number.isFinite(hitbox.width) ? hitbox.width : fallback.width,
@@ -52,260 +100,35 @@
     };
   }
 
-  function setStatus(message) {
-    if (!statusEl) return;
-    statusEl.textContent = message || "";
-    if (state.statusTimer) {
-      clearTimeout(state.statusTimer);
-      state.statusTimer = null;
-    }
-    if (message) {
-      state.statusTimer = setTimeout(() => {
-        statusEl.textContent = "";
-      }, STATUS_DELAY);
-    }
-  }
-
-  const overlay = document.createElement("div");
-  overlay.id = OVERLAY_ID;
-  overlay.innerHTML = `
-    <style>
-      #${OVERLAY_ID} {
-        position: fixed;
-        inset: 0;
-        background: rgba(8, 12, 22, 0.96);
-        color: #e6f1ff;
-        z-index: 10020;
-        display: none;
-        font-family: "IBM Plex Mono", "SF Mono", Menlo, monospace;
-      }
-      #${OVERLAY_ID} .hitbox-editor__panel {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        padding: 14px 16px;
-        box-sizing: border-box;
-        gap: 12px;
-      }
-      #${OVERLAY_ID} .hitbox-editor__header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-      }
-      #${OVERLAY_ID} .hitbox-editor__title {
-        font-size: 18px;
-        letter-spacing: 0.4px;
-        margin: 0;
-      }
-      #${OVERLAY_ID} .hitbox-editor__actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      #${OVERLAY_ID} button {
-        background: #2f74ff;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 10px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: inherit;
-      }
-      #${OVERLAY_ID} button.secondary {
-        background: rgba(255, 255, 255, 0.12);
-      }
-      #${OVERLAY_ID} .hitbox-editor__body {
-        flex: 1;
-        display: grid;
-        grid-template-columns: 280px 1fr;
-        gap: 12px;
-        min-height: 0;
-      }
-      #${OVERLAY_ID} .hitbox-editor__sidebar {
-        background: rgba(18, 26, 42, 0.9);
-        border: 1px solid rgba(120, 170, 220, 0.35);
-        border-radius: 8px;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        overflow: auto;
-      }
-      #${OVERLAY_ID} .hitbox-editor__sidebar label {
-        font-size: 12px;
-        color: #9bb3cf;
-        display: block;
-        margin-bottom: 4px;
-      }
-      #${OVERLAY_ID} .hitbox-editor__field {
-        display: flex;
-        flex-direction: column;
-      }
-      #${OVERLAY_ID} .hitbox-editor__value {
-        font-size: 13px;
-        color: #fff;
-      }
-      #${OVERLAY_ID} input[type="number"] {
-        width: 100%;
-        padding: 6px 8px;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: rgba(255, 255, 255, 0.08);
-        color: #fff;
-        font-family: inherit;
-        box-sizing: border-box;
-      }
-      #${OVERLAY_ID} .hitbox-editor__canvas-wrap {
-        background: rgba(7, 10, 18, 0.9);
-        border: 1px solid rgba(120, 170, 220, 0.2);
-        border-radius: 10px;
-        position: relative;
-        overflow: hidden;
-      }
-      #${OVERLAY_ID} canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-      #${OVERLAY_ID} .hitbox-editor__footer {
-        font-size: 12px;
-        color: #88c3ff;
-        min-height: 18px;
-      }
-      #${OVERLAY_ID} .hitbox-editor__hint {
-        font-size: 11px;
-        color: #8aa3c5;
-      }
-    </style>
-    <div class="hitbox-editor__panel">
-      <div class="hitbox-editor__header">
-        <h2 class="hitbox-editor__title">Enemy Hitbox Editor</h2>
-        <div class="hitbox-editor__actions">
-          <button type="button" data-action="export">Export enemy_catalog.js</button>
-          <button type="button" class="secondary" data-action="close">Close (H)</button>
-        </div>
-      </div>
-      <div class="hitbox-editor__body">
-        <div class="hitbox-editor__sidebar">
-          <div class="hitbox-editor__field">
-            <label>Selected Enemy</label>
-            <div class="hitbox-editor__value" data-enemy-name>None</div>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Scale (catalog)</label>
-            <div class="hitbox-editor__value" data-enemy-scale>-</div>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Base Radius</label>
-            <div class="hitbox-editor__value" data-enemy-radius>-</div>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Hitbox Width (source px)</label>
-            <input type="number" step="1" data-hitbox-width>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Hitbox Height (source px)</label>
-            <input type="number" step="1" data-hitbox-height>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Offset X (source px)</label>
-            <input type="number" step="1" data-hitbox-offset-x>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Offset Y (source px)</label>
-            <input type="number" step="1" data-hitbox-offset-y>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Attack Hit Frame (1-based)</label>
-            <input type="number" step="1" min="1" data-attack-hit-frame>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Attack Hit Damage</label>
-            <input type="number" step="1" min="0" data-attack-hit-damage>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Collision Damage</label>
-            <input type="number" step="1" min="0" data-collision-damage>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Weapon Hitbox Width (source px)</label>
-            <input type="number" step="1" min="1" data-weapon-hitbox-width>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Weapon Hitbox Height (source px)</label>
-            <input type="number" step="1" min="1" data-weapon-hitbox-height>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Weapon Offset X (source px)</label>
-            <input type="number" step="1" data-weapon-hitbox-offset-x>
-          </div>
-          <div class="hitbox-editor__field">
-            <label>Weapon Offset Y (source px)</label>
-            <input type="number" step="1" data-weapon-hitbox-offset-y>
-          </div>
-          <button type="button" class="secondary" data-action="reset">Reset To Default</button>
-          <div class="hitbox-editor__hint">
-            Click an enemy in the grid to edit. Values apply live to in-game enemies.
-          </div>
-        </div>
-        <div class="hitbox-editor__canvas-wrap">
-          <canvas data-hitbox-canvas></canvas>
-        </div>
-      </div>
-      <div class="hitbox-editor__footer" data-status></div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  const canvas = overlay.querySelector("[data-hitbox-canvas]");
-  const statusEl = overlay.querySelector("[data-status]");
-  const nameEl = overlay.querySelector("[data-enemy-name]");
-  const scaleEl = overlay.querySelector("[data-enemy-scale]");
-  const radiusEl = overlay.querySelector("[data-enemy-radius]");
-  const widthInput = overlay.querySelector("[data-hitbox-width]");
-  const heightInput = overlay.querySelector("[data-hitbox-height]");
-  const offsetXInput = overlay.querySelector("[data-hitbox-offset-x]");
-  const offsetYInput = overlay.querySelector("[data-hitbox-offset-y]");
-  const attackHitFrameInput = overlay.querySelector("[data-attack-hit-frame]");
-  const attackHitDamageInput = overlay.querySelector("[data-attack-hit-damage]");
-  const collisionDamageInput = overlay.querySelector("[data-collision-damage]");
-  const weaponHitboxWidthInput = overlay.querySelector("[data-weapon-hitbox-width]");
-  const weaponHitboxHeightInput = overlay.querySelector("[data-weapon-hitbox-height]");
-  const weaponHitboxOffsetXInput = overlay.querySelector("[data-weapon-hitbox-offset-x]");
-  const weaponHitboxOffsetYInput = overlay.querySelector("[data-weapon-hitbox-offset-y]");
-  const resetButton = overlay.querySelector("[data-action='reset']");
-  const exportButton = overlay.querySelector("[data-action='export']");
-  const closeButton = overlay.querySelector("[data-action='close']");
-
-  function updateCanvasSize() {
-    if (!canvas || !canvas.parentElement) return;
-    const rect = canvas.parentElement.getBoundingClientRect();
-    const width = Math.max(1, Math.floor(rect.width));
-    const height = Math.max(1, Math.floor(rect.height));
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-      state.layoutDirty = true;
-    }
-  }
-
-  function getClipForEnemy(key) {
-    const assets = bindings.getAssets ? bindings.getAssets() : null;
-    const enemyClips = assets?.enemies?.[key] || null;
-    if (!enemyClips) return null;
-    return enemyClips.attack || enemyClips.walk || enemyClips.idle || null;
-  }
-
   function getEnemyScale(key) {
-    const types = bindings.getEnemyTypes ? bindings.getEnemyTypes() : null;
-    const type = types ? types[key] : null;
-    if (type && Number.isFinite(type.scale)) return type.scale;
-    if (type && Number.isFinite(type.catalogScale)) return type.catalogScale;
-    const def = getEnemyDef(key);
+    const types = getEnemyTypes();
+    const live = types ? types[key] : null;
+    if (live && Number.isFinite(live.scale)) return live.scale;
+    if (live && Number.isFinite(live.catalogScale)) return live.catalogScale;
+    const def = getEnemyCatalog()?.[key];
     return def && Number.isFinite(def.scale) ? def.scale : 1;
+  }
+
+  function getEnemyClip(key) {
+    const assets = getAssets();
+    const clips = assets?.enemies?.[key] || null;
+    return clips?.attack || clips?.walk || clips?.idle || null;
+  }
+
+  function getPlayerClip() {
+    const player = getPlayerPreview();
+    return player?.animator?.currentClip || player?.animator?.clips?.idle || null;
+  }
+
+  function getNpcClip() {
+    const npc = getNpcPreview();
+    return npc?.animator?.currentClip || npc?.animator?.clips?.walk || npc?.animator?.clips?.idle || null;
+  }
+
+  function getProjectileClip(key) {
+    const assets = getAssets();
+    const clip = assets?.projectiles?.[key] || null;
+    return clip?.image ? clip : null;
   }
 
   function getClipFrameCount(clip) {
@@ -316,109 +139,741 @@
     return Math.max(1, cols * rows);
   }
 
-  function buildLayout() {
-    const catalog = getCatalog();
-    const keys = Object.keys(catalog || {});
-    keys.sort((a, b) => a.localeCompare(b));
-    const padding = 18;
-    const labelHeight = 16;
-    const bounds = [];
-    let x = padding;
-    let y = padding;
-    let rowHeight = 0;
+  function getFrameSourceRect(clip, preferredFrame = 0) {
+    if (!clip || !clip.image || !clip.frameWidth || !clip.frameHeight) return null;
+    let frameIndex = preferredFrame;
+    if (Array.isArray(clip.frameMap) && clip.frameMap.length) {
+      frameIndex = clip.frameMap[Math.max(0, Math.min(clip.frameMap.length - 1, preferredFrame))] || 0;
+    }
+    const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
+    return {
+      sx: (frameIndex % cols) * clip.frameWidth,
+      sy: Math.floor(frameIndex / cols) * clip.frameHeight,
+      sw: clip.frameWidth,
+      sh: clip.frameHeight,
+    };
+  }
 
-    keys.forEach((key) => {
-      const def = catalog[key];
-      const clip = getClipForEnemy(key);
-      const frameWidth = clip?.frameWidth || clip?.image?.width || 0;
-      const frameHeight = clip?.frameHeight || clip?.image?.height || 0;
-      const scale = getEnemyScale(key);
-      const spriteW = Math.max(24, frameWidth * scale);
-      const spriteH = Math.max(24, frameHeight * scale);
-      const cellW = spriteW + padding * 2;
-      const cellH = spriteH + labelHeight + padding * 2;
-
-      if (x + cellW > canvas.width - padding) {
-        x = padding;
-        y += rowHeight;
-        rowHeight = 0;
-      }
-
-      bounds.push({
-        key,
-        x,
-        y,
-        width: cellW,
-        height: cellH,
-        spriteW,
-        spriteH,
-        scale,
-      });
-
-      x += cellW;
-      rowHeight = Math.max(rowHeight, cellH);
+  function buildEntries() {
+    const entries = [];
+    entries.push({
+      id: "player:hero",
+      category: "player",
+      key: "player",
+      label: "Player",
+      subtitle: "Hero body collision",
+    });
+    entries.push({
+      id: "npc:default",
+      category: "npc",
+      key: "npc",
+      label: "NPC",
+      subtitle: "Congregation body collision",
     });
 
-    state.layout = bounds;
-    state.contentHeight = y + rowHeight + padding;
-    state.layoutDirty = false;
+    const projectileConfig = getProjectileConfig();
+    Object.keys(projectileConfig || {})
+      .sort((a, b) => a.localeCompare(b))
+      .forEach((key) => {
+        entries.push({
+          id: `projectile:${key}`,
+          category: "projectile",
+          key,
+          label: key.replace(/_/g, " "),
+          subtitle: "Projectile radius",
+        });
+      });
+
+    const catalog = getEnemyCatalog();
+    Object.keys(catalog || {})
+      .sort((a, b) => a.localeCompare(b))
+      .forEach((key) => {
+        const def = catalog[key] || {};
+        entries.push({
+          id: `enemy:${key}`,
+          category: "enemy",
+          key,
+          label: def.displayName || key,
+          subtitle: key,
+        });
+      });
+
+    return entries;
   }
 
-  function clampScroll() {
-    const maxScroll = Math.max(0, state.contentHeight - canvas.height);
-    state.scrollY = Math.max(0, Math.min(maxScroll, state.scrollY));
+  function getFilteredEntries() {
+    const search = String(state.search || "").trim().toLowerCase();
+    return buildEntries().filter((entry) => {
+      if (state.filter !== "all" && entry.category !== state.filter) return false;
+      if (!search) return true;
+      const haystack = `${entry.label} ${entry.subtitle} ${entry.key} ${entry.category}`.toLowerCase();
+      return haystack.includes(search);
+    });
   }
 
-  function selectEnemy(key) {
-    state.selectedKey = key;
-    const def = getEnemyDef(key);
+  function getSelectedEntry() {
+    const entries = buildEntries();
+    return entries.find((entry) => entry.id === state.selectedId) || null;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = OVERLAY_ID;
+  overlay.innerHTML = `
+    <style>
+      #${OVERLAY_ID} {
+        position: fixed;
+        inset: 0;
+        z-index: 10020;
+        display: none;
+        color: #eaf6ff;
+        background:
+          radial-gradient(circle at top, rgba(90, 166, 214, 0.18), transparent 28%),
+          linear-gradient(180deg, rgba(7, 12, 24, 0.985), rgba(4, 8, 18, 0.995));
+        font-family: Georgia, "Times New Roman", serif;
+      }
+      #${OVERLAY_ID} .hitbox-studio {
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        gap: 14px;
+        height: 100%;
+        padding: 18px;
+        box-sizing: border-box;
+      }
+      #${OVERLAY_ID} .studio-panel {
+        background:
+          linear-gradient(180deg, rgba(18, 28, 44, 0.96), rgba(12, 20, 34, 0.94));
+        border: 1px solid rgba(160, 198, 238, 0.18);
+        border-radius: 22px;
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      }
+      #${OVERLAY_ID} .studio-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        padding: 18px 20px 0;
+      }
+      #${OVERLAY_ID} .studio-title {
+        margin: 0;
+        font: 700 28px "Trebuchet MS", Georgia, serif;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      #${OVERLAY_ID} .studio-subtitle {
+        margin: 6px 0 0;
+        color: rgba(232, 244, 255, 0.72);
+        font: 14px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .studio-actions,
+      #${OVERLAY_ID} .studio-filters {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      #${OVERLAY_ID} button,
+      #${OVERLAY_ID} .filter-pill {
+        border: none;
+        border-radius: 999px;
+        padding: 10px 14px;
+        cursor: pointer;
+        font: 700 12px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.04em;
+      }
+      #${OVERLAY_ID} button {
+        background: linear-gradient(180deg, #8fd5ff, #5299d7);
+        color: #07101c;
+        box-shadow: 0 8px 22px rgba(37, 94, 147, 0.35);
+      }
+      #${OVERLAY_ID} button.secondary,
+      #${OVERLAY_ID} .filter-pill {
+        background: rgba(255, 255, 255, 0.08);
+        color: #eaf6ff;
+        box-shadow: none;
+      }
+      #${OVERLAY_ID} .filter-pill.is-active {
+        background: rgba(155, 217, 255, 0.22);
+        color: #9bd9ff;
+      }
+      #${OVERLAY_ID} .studio-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 0 20px 18px;
+      }
+      #${OVERLAY_ID} .studio-search {
+        min-width: 280px;
+        padding: 11px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(155, 217, 255, 0.24);
+        background: rgba(255, 255, 255, 0.06);
+        color: #eaf6ff;
+        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .studio-body {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 320px;
+        gap: 14px;
+        min-height: 0;
+      }
+      #${OVERLAY_ID} .studio-pane {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      #${OVERLAY_ID} .entity-list {
+        padding: 14px;
+        overflow: auto;
+        gap: 10px;
+        display: flex;
+        flex-direction: column;
+      }
+      #${OVERLAY_ID} .entity-card {
+        border: 1px solid rgba(155, 217, 255, 0.14);
+        border-radius: 16px;
+        padding: 12px 14px;
+        background: rgba(10, 16, 28, 0.78);
+        color: #eaf6ff;
+        text-align: left;
+      }
+      #${OVERLAY_ID} .entity-card.is-active {
+        border-color: rgba(255, 200, 106, 0.62);
+        box-shadow: inset 0 0 0 1px rgba(255, 200, 106, 0.18);
+      }
+      #${OVERLAY_ID} .entity-card__top {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: baseline;
+      }
+      #${OVERLAY_ID} .entity-card__name {
+        font: 700 15px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .entity-card__meta,
+      #${OVERLAY_ID} .inspector-note,
+      #${OVERLAY_ID} .studio-status {
+        color: rgba(232, 244, 255, 0.68);
+        font: 12px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .entity-card__tag {
+        font: 700 10px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #9bd9ff;
+      }
+      #${OVERLAY_ID} .preview-pane {
+        padding: 14px;
+      }
+      #${OVERLAY_ID} .preview-stage {
+        position: relative;
+        flex: 1;
+        min-height: 420px;
+        border-radius: 20px;
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+          radial-gradient(circle at top, rgba(155, 217, 255, 0.12), rgba(9, 16, 28, 0.96));
+        border: 1px solid rgba(155, 217, 255, 0.16);
+      }
+      #${OVERLAY_ID} .preview-stage canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #${OVERLAY_ID} .preview-caption {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 4px 0;
+        color: rgba(232, 244, 255, 0.72);
+        font: 12px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .inspector {
+        padding: 16px;
+        overflow: auto;
+        gap: 12px;
+        display: flex;
+        flex-direction: column;
+      }
+      #${OVERLAY_ID} .inspector-block {
+        border: 1px solid rgba(155, 217, 255, 0.12);
+        border-radius: 16px;
+        padding: 14px;
+        background: rgba(9, 16, 28, 0.82);
+      }
+      #${OVERLAY_ID} .inspector-block h3 {
+        margin: 0 0 10px;
+        font: 700 13px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(232, 244, 255, 0.72);
+      }
+      #${OVERLAY_ID} .inspector-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px 12px;
+      }
+      #${OVERLAY_ID} .inspector-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #${OVERLAY_ID} .inspector-field--full {
+        grid-column: 1 / -1;
+      }
+      #${OVERLAY_ID} .inspector-label {
+        color: rgba(232, 244, 255, 0.58);
+        font: 700 10px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      #${OVERLAY_ID} .inspector-value,
+      #${OVERLAY_ID} input[type="number"] {
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.07);
+        color: #eaf6ff;
+        padding: 9px 10px;
+        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} input[type="number"]:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      #${OVERLAY_ID} .studio-footer {
+        padding: 0 6px;
+      }
+      @media (max-width: 1220px) {
+        #${OVERLAY_ID} .studio-body {
+          grid-template-columns: 260px minmax(0, 1fr);
+        }
+        #${OVERLAY_ID} .inspector-pane {
+          grid-column: 1 / -1;
+        }
+      }
+      @media (max-width: 860px) {
+        #${OVERLAY_ID} .studio-body {
+          grid-template-columns: 1fr;
+        }
+        #${OVERLAY_ID} .studio-toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        #${OVERLAY_ID} .studio-search {
+          min-width: 0;
+        }
+      }
+    </style>
+    <div class="hitbox-studio">
+      <div class="studio-panel">
+        <div class="studio-header">
+          <div>
+            <h2 class="studio-title">Hitbox Studio</h2>
+            <p class="studio-subtitle">Inspect enemies, player, NPCs, and projectiles in one place. Enemy editing stays live; player and projectile radius changes apply where supported.</p>
+          </div>
+          <div class="studio-actions">
+            <button type="button" data-action="export">Export enemy_catalog.js</button>
+            <button type="button" class="secondary" data-action="close">Close</button>
+          </div>
+        </div>
+        <div class="studio-toolbar">
+          <div class="studio-filters" data-filter-row></div>
+          <input type="text" class="studio-search" data-search placeholder="Search entities...">
+        </div>
+      </div>
+      <div class="studio-body">
+        <div class="studio-pane studio-panel entity-list" data-entity-list></div>
+        <div class="studio-pane studio-panel preview-pane">
+          <div class="preview-stage">
+            <canvas data-preview-canvas></canvas>
+          </div>
+          <div class="preview-caption">
+            <div data-preview-title>Nothing selected</div>
+            <div data-preview-meta></div>
+          </div>
+        </div>
+        <div class="studio-pane studio-panel inspector-pane">
+          <div class="inspector" data-inspector>
+            <div class="inspector-block">
+              <h3>Selection</h3>
+              <div class="inspector-grid">
+                <div class="inspector-field inspector-field--full">
+                  <div class="inspector-label">Entity</div>
+                  <div class="inspector-value" data-info-name>None</div>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Category</div>
+                  <div class="inspector-value" data-info-category>-</div>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Scale</div>
+                  <div class="inspector-value" data-info-scale>-</div>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Body Radius</div>
+                  <div class="inspector-value" data-info-radius>-</div>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Frame Count</div>
+                  <div class="inspector-value" data-info-frames>-</div>
+                </div>
+              </div>
+            </div>
+            <div class="inspector-block" data-block-shape>
+              <h3 data-shape-title>Shape</h3>
+              <div class="inspector-grid">
+                <div class="inspector-field">
+                  <div class="inspector-label" data-primary-label>Width</div>
+                  <input type="number" step="1" data-primary-input>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label" data-secondary-label>Height</div>
+                  <input type="number" step="1" data-secondary-input>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Offset X</div>
+                  <input type="number" step="1" data-offset-x-input>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Offset Y</div>
+                  <input type="number" step="1" data-offset-y-input>
+                </div>
+              </div>
+            </div>
+            <div class="inspector-block" data-block-enemy>
+              <h3>Enemy Timing & Damage</h3>
+              <div class="inspector-grid">
+                <div class="inspector-field">
+                  <div class="inspector-label">Attack Hit Frame</div>
+                  <input type="number" min="1" step="1" data-attack-hit-frame-input>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Attack Hit Damage</div>
+                  <input type="number" min="0" step="1" data-attack-hit-damage-input>
+                </div>
+                <div class="inspector-field inspector-field--full">
+                  <div class="inspector-label">Collision Damage</div>
+                  <input type="number" min="0" step="1" data-collision-damage-input>
+                </div>
+              </div>
+            </div>
+            <div class="inspector-block" data-block-weapon>
+              <h3>Enemy Weapon Hitbox</h3>
+              <div class="inspector-grid">
+                <div class="inspector-field">
+                  <div class="inspector-label">Width</div>
+                  <input type="number" min="1" step="1" data-weapon-width-input>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Height</div>
+                  <input type="number" min="1" step="1" data-weapon-height-input>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Offset X</div>
+                  <input type="number" step="1" data-weapon-offset-x-input>
+                </div>
+                <div class="inspector-field">
+                  <div class="inspector-label">Offset Y</div>
+                  <input type="number" step="1" data-weapon-offset-y-input>
+                </div>
+              </div>
+            </div>
+            <div class="inspector-block">
+              <h3>Notes</h3>
+              <div class="inspector-note" data-inspector-note>Select an entity to inspect or edit.</div>
+              <div class="studio-actions" style="margin-top:12px;">
+                <button type="button" class="secondary" data-action="reset">Reset Visible Fields</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="studio-footer studio-status" data-status></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const els = {
+    filterRow: overlay.querySelector("[data-filter-row]"),
+    search: overlay.querySelector("[data-search]"),
+    entityList: overlay.querySelector("[data-entity-list]"),
+    previewCanvas: overlay.querySelector("[data-preview-canvas]"),
+    previewTitle: overlay.querySelector("[data-preview-title]"),
+    previewMeta: overlay.querySelector("[data-preview-meta]"),
+    infoName: overlay.querySelector("[data-info-name]"),
+    infoCategory: overlay.querySelector("[data-info-category]"),
+    infoScale: overlay.querySelector("[data-info-scale]"),
+    infoRadius: overlay.querySelector("[data-info-radius]"),
+    infoFrames: overlay.querySelector("[data-info-frames]"),
+    blockShape: overlay.querySelector("[data-block-shape]"),
+    blockEnemy: overlay.querySelector("[data-block-enemy]"),
+    blockWeapon: overlay.querySelector("[data-block-weapon]"),
+    shapeTitle: overlay.querySelector("[data-shape-title]"),
+    primaryLabel: overlay.querySelector("[data-primary-label]"),
+    secondaryLabel: overlay.querySelector("[data-secondary-label]"),
+    primaryInput: overlay.querySelector("[data-primary-input]"),
+    secondaryInput: overlay.querySelector("[data-secondary-input]"),
+    offsetXInput: overlay.querySelector("[data-offset-x-input]"),
+    offsetYInput: overlay.querySelector("[data-offset-y-input]"),
+    attackHitFrameInput: overlay.querySelector("[data-attack-hit-frame-input]"),
+    attackHitDamageInput: overlay.querySelector("[data-attack-hit-damage-input]"),
+    collisionDamageInput: overlay.querySelector("[data-collision-damage-input]"),
+    weaponWidthInput: overlay.querySelector("[data-weapon-width-input]"),
+    weaponHeightInput: overlay.querySelector("[data-weapon-height-input]"),
+    weaponOffsetXInput: overlay.querySelector("[data-weapon-offset-x-input]"),
+    weaponOffsetYInput: overlay.querySelector("[data-weapon-offset-y-input]"),
+    note: overlay.querySelector("[data-inspector-note]"),
+    status: overlay.querySelector("[data-status]"),
+    reset: overlay.querySelector("[data-action='reset']"),
+    exportBtn: overlay.querySelector("[data-action='export']"),
+    closeBtn: overlay.querySelector("[data-action='close']"),
+  };
+
+  function updatePreviewCanvasSize() {
+    const canvas = els.previewCanvas;
+    if (!canvas || !canvas.parentElement) return;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const width = Math.max(1, Math.floor(rect.width));
+    const height = Math.max(1, Math.floor(rect.height));
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+  }
+
+  function renderFilters() {
+    if (!els.filterRow) return;
+    els.filterRow.innerHTML = "";
+    FILTERS.forEach((filter) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `filter-pill${state.filter === filter.key ? " is-active" : ""}`;
+      button.textContent = filter.label;
+      button.addEventListener("click", () => {
+        state.filter = filter.key;
+        renderEntityList();
+      });
+      els.filterRow.appendChild(button);
+    });
+  }
+
+  function ensureSelection() {
+    const entries = getFilteredEntries();
+    if (!entries.length) {
+      state.selectedId = null;
+      return;
+    }
+    if (!entries.some((entry) => entry.id === state.selectedId)) {
+      state.selectedId = entries[0].id;
+    }
+  }
+
+  function renderEntityList() {
+    renderFilters();
+    ensureSelection();
+    if (!els.entityList) return;
+    els.entityList.innerHTML = "";
+    const entries = getFilteredEntries();
+    entries.forEach((entry) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = `entity-card${entry.id === state.selectedId ? " is-active" : ""}`;
+      button.innerHTML = `
+        <div class="entity-card__top">
+          <div class="entity-card__name">${entry.label}</div>
+          <div class="entity-card__tag">${entry.category}</div>
+        </div>
+        <div class="entity-card__meta">${entry.subtitle}</div>
+      `;
+      button.addEventListener("click", () => {
+        state.selectedId = entry.id;
+        syncInspector();
+        renderEntityList();
+      });
+      els.entityList.appendChild(button);
+    });
+    syncInspector();
+  }
+
+  function getEnemyInspectorData(key) {
+    const def = getEnemyCatalog()?.[key] || null;
+    if (!def) return null;
+    const clip = getEnemyClip(key);
+    const hitbox = resolveEnemyHitbox(def);
+    return {
+      entryType: "enemy",
+      key,
+      label: def.displayName || key,
+      category: "Enemy",
+      subtitle: key,
+      scale: getEnemyScale(key),
+      radius: Number.isFinite(def.baseRadius) ? def.baseRadius : Math.max(hitbox.width, hitbox.height) * 0.5,
+      frameCount: getClipFrameCount(clip),
+      clip,
+      hitbox,
+      weaponHitbox: def.weaponHitbox || null,
+      attackHitFrame: Number.isFinite(def.attackHitFrame) ? def.attackHitFrame : null,
+      attackHitDamage: Number.isFinite(def.attackHitDamage) ? def.attackHitDamage : null,
+      collisionDamage: Number.isFinite(def.damage) ? def.damage : null,
+      note: "Enemy body and weapon hitboxes update live for existing enemies and future spawns.",
+    };
+  }
+
+  function getPlayerInspectorData() {
+    const player = getPlayerPreview();
+    const config = getPlayerConfig() || player?.config || null;
+    const clip = getPlayerClip();
+    const radius = Number.isFinite(player?.radius) ? player.radius : Number.isFinite(config?.radius) ? config.radius : 0;
+    const scale = Number.isFinite(player?.animator?.scale) ? player.animator.scale : Number.isFinite(config?.scale) ? config.scale : 1;
+    return {
+      entryType: "player",
+      key: "player",
+      label: "Player",
+      category: "Player",
+      subtitle: "Hero body collision",
+      scale,
+      radius,
+      frameCount: getClipFrameCount(clip),
+      clip,
+      note: "Player uses a circular body collision. Radius edits apply to the live player and future player config.",
+    };
+  }
+
+  function getNpcInspectorData() {
+    const npc = getNpcPreview();
+    const clip = getNpcClip();
+    const radius = Number.isFinite(npc?.radius) ? npc.radius : 0;
+    const scale = Number.isFinite(npc?.animator?.scale) ? npc.animator.scale : 1;
+    return {
+      entryType: "npc",
+      key: "npc",
+      label: "NPC",
+      category: "NPC",
+      subtitle: "Congregation body collision",
+      scale,
+      radius,
+      frameCount: getClipFrameCount(clip),
+      clip,
+      note: typeof bindings.onNpcRadiusChange === "function"
+        ? "NPCs use circular body collision. Radius edits affect live NPCs currently in the arena."
+        : "NPCs use circular body collision. This entry is reference-only in the current build.",
+    };
+  }
+
+  function getProjectileInspectorData(key) {
+    const def = getProjectileConfig()?.[key] || {};
+    const clip = getProjectileClip(key);
+    return {
+      entryType: "projectile",
+      key,
+      label: key.replace(/_/g, " "),
+      category: "Projectile",
+      subtitle: "Projectile radius",
+      scale: Number.isFinite(def.scale) ? def.scale : 1,
+      radius: Number.isFinite(def.radius) ? def.radius : 0,
+      frameCount: getClipFrameCount(clip),
+      clip,
+      speed: Number.isFinite(def.speed) ? def.speed : null,
+      note: "Projectile radius edits update the live projectile config and active projectiles of the same type.",
+    };
+  }
+
+  function getInspectorData() {
+    const entry = getSelectedEntry();
+    if (!entry) return null;
+    if (entry.category === "enemy") return getEnemyInspectorData(entry.key);
+    if (entry.category === "player") return getPlayerInspectorData();
+    if (entry.category === "npc") return getNpcInspectorData();
+    if (entry.category === "projectile") return getProjectileInspectorData(entry.key);
+    return null;
+  }
+
+  function setInputState(input, value, { disabled = false, placeholder = "" } = {}) {
+    if (!input) return;
+    input.disabled = Boolean(disabled);
+    input.placeholder = placeholder;
+    input.value = value === null || value === undefined || value === "" ? "" : String(value);
+  }
+
+  function syncInspector() {
+    const data = getInspectorData();
+    if (!data) {
+      els.infoName.textContent = "None";
+      els.infoCategory.textContent = "-";
+      els.infoScale.textContent = "-";
+      els.infoRadius.textContent = "-";
+      els.infoFrames.textContent = "-";
+      els.previewTitle.textContent = "Nothing selected";
+      els.previewMeta.textContent = "";
+      els.note.textContent = "Select an entity to inspect or edit.";
+      return;
+    }
+
+    els.infoName.textContent = data.label;
+    els.infoCategory.textContent = data.category;
+    els.infoScale.textContent = Number.isFinite(data.scale) ? data.scale.toFixed(2) : "-";
+    els.infoRadius.textContent = Number.isFinite(data.radius) ? Math.round(data.radius) : "-";
+    els.infoFrames.textContent = Number.isFinite(data.frameCount) ? String(data.frameCount) : "-";
+    els.previewTitle.textContent = data.label;
+    els.previewMeta.textContent = data.subtitle || "";
+    els.note.textContent = data.note || "";
+
+    const isEnemy = data.entryType === "enemy";
+    const isCircle = data.entryType === "player" || data.entryType === "npc" || data.entryType === "projectile";
+    const circleEditable =
+      (data.entryType === "player" && typeof bindings.onPlayerRadiusChange === "function") ||
+      (data.entryType === "npc" && typeof bindings.onNpcRadiusChange === "function") ||
+      (data.entryType === "projectile" && typeof bindings.onProjectileRadiusChange === "function");
+
+    els.blockEnemy.style.display = isEnemy ? "" : "none";
+    els.blockWeapon.style.display = isEnemy ? "" : "none";
+    els.shapeTitle.textContent = isCircle ? "Collision Shape" : "Body Hitbox";
+    els.primaryLabel.textContent = isCircle ? "Radius" : "Width";
+    els.secondaryLabel.textContent = isCircle ? "Diameter" : "Height";
+
+    if (isEnemy) {
+      const hitbox = data.hitbox;
+      setInputState(els.primaryInput, Math.round(hitbox.width));
+      setInputState(els.secondaryInput, Math.round(hitbox.height));
+      setInputState(els.offsetXInput, Math.round(hitbox.offsetX));
+      setInputState(els.offsetYInput, Math.round(hitbox.offsetY));
+      setInputState(els.attackHitFrameInput, data.attackHitFrame, { placeholder: "auto" });
+      els.attackHitFrameInput.min = "1";
+      els.attackHitFrameInput.max = String(Math.max(1, data.frameCount || 1));
+      setInputState(els.attackHitDamageInput, data.attackHitDamage, { placeholder: "default" });
+      setInputState(els.collisionDamageInput, data.collisionDamage, { placeholder: "default" });
+      setInputState(els.weaponWidthInput, data.weaponHitbox?.width ?? "", { placeholder: "off" });
+      setInputState(els.weaponHeightInput, data.weaponHitbox?.height ?? "", { placeholder: "off" });
+      setInputState(els.weaponOffsetXInput, data.weaponHitbox?.offsetX ?? "");
+      setInputState(els.weaponOffsetYInput, data.weaponHitbox?.offsetY ?? "");
+    } else if (isCircle) {
+      setInputState(els.primaryInput, Math.round(data.radius || 0), { disabled: !circleEditable });
+      setInputState(els.secondaryInput, Math.round((data.radius || 0) * 2), { disabled: true });
+      setInputState(els.offsetXInput, 0, { disabled: true, placeholder: "centered" });
+      setInputState(els.offsetYInput, 0, { disabled: true, placeholder: "centered" });
+      setInputState(els.attackHitFrameInput, "", { disabled: true });
+      setInputState(els.attackHitDamageInput, "", { disabled: true });
+      setInputState(els.collisionDamageInput, "", { disabled: true });
+      setInputState(els.weaponWidthInput, "", { disabled: true });
+      setInputState(els.weaponHeightInput, "", { disabled: true });
+      setInputState(els.weaponOffsetXInput, "", { disabled: true });
+      setInputState(els.weaponOffsetYInput, "", { disabled: true });
+    }
+  }
+
+  function applyEnemyInputs(key) {
+    const def = getEnemyCatalog()?.[key];
     if (!def) return;
-    const clip = getClipForEnemy(key);
-    const frameCount = getClipFrameCount(clip);
-    const hitbox = resolveHitbox(def);
-    nameEl.textContent = def.displayName ? `${def.displayName} (${key})` : key;
-    scaleEl.textContent = String(def.scale ?? "-");
-    radiusEl.textContent = String(def.baseRadius ?? "-");
-    widthInput.value = Math.round(hitbox.width);
-    heightInput.value = Math.round(hitbox.height);
-    offsetXInput.value = Math.round(hitbox.offsetX);
-    offsetYInput.value = Math.round(hitbox.offsetY);
-    attackHitFrameInput.max = String(frameCount);
-    attackHitFrameInput.min = "1";
-    attackHitFrameInput.value =
-      Number.isFinite(def.attackHitFrame) && def.attackHitFrame > 0 ? def.attackHitFrame : "";
-    attackHitDamageInput.value =
-      Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0 ? def.attackHitDamage : "";
-    collisionDamageInput.value =
-      Number.isFinite(def.damage) && def.damage >= 0 ? def.damage : "";
-    const weaponHitbox = def.weaponHitbox || {};
-    weaponHitboxWidthInput.value =
-      Number.isFinite(weaponHitbox.width) && weaponHitbox.width > 0 ? weaponHitbox.width : "";
-    weaponHitboxHeightInput.value =
-      Number.isFinite(weaponHitbox.height) && weaponHitbox.height > 0 ? weaponHitbox.height : "";
-    weaponHitboxOffsetXInput.value =
-      Number.isFinite(weaponHitbox.offsetX) ? weaponHitbox.offsetX : "";
-    weaponHitboxOffsetYInput.value =
-      Number.isFinite(weaponHitbox.offsetY) ? weaponHitbox.offsetY : "";
-    setStatus("");
-  }
-
-  function applyInputsToEnemy() {
-    const key = state.selectedKey;
-    if (!key) return;
-    const def = getEnemyDef(key);
-    if (!def) return;
-    const width = Number(widthInput.value);
-    const height = Number(heightInput.value);
-    const offsetX = Number(offsetXInput.value);
-    const offsetY = Number(offsetYInput.value);
-    const attackHitFrameValue = attackHitFrameInput.value;
-    const attackHitDamageValue = attackHitDamageInput.value;
-    const collisionDamageValue = collisionDamageInput.value;
-    const weaponWidthValue = weaponHitboxWidthInput.value;
-    const weaponHeightValue = weaponHitboxHeightInput.value;
-    const weaponOffsetXValue = weaponHitboxOffsetXInput.value;
-    const weaponOffsetYValue = weaponHitboxOffsetYInput.value;
+    const width = Number(els.primaryInput.value);
+    const height = Number(els.secondaryInput.value);
+    const offsetX = Number(els.offsetXInput.value);
+    const offsetY = Number(els.offsetYInput.value);
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
     def.hitbox = {
       width,
@@ -426,40 +881,21 @@
       offsetX: Number.isFinite(offsetX) ? offsetX : 0,
       offsetY: Number.isFinite(offsetY) ? offsetY : 0,
     };
-    if (attackHitFrameValue === "") {
-      delete def.attackHitFrame;
-    } else {
-      const attackHitFrame = Number(attackHitFrameValue);
-      if (Number.isFinite(attackHitFrame) && attackHitFrame > 0) {
-        def.attackHitFrame = Math.round(attackHitFrame);
-      }
-    }
-    if (attackHitDamageValue === "") {
-      delete def.attackHitDamage;
-    } else {
-      const attackHitDamage = Number(attackHitDamageValue);
-      if (Number.isFinite(attackHitDamage) && attackHitDamage >= 0) {
-        def.attackHitDamage = Math.round(attackHitDamage);
-      }
-    }
-    if (collisionDamageValue === "") {
-      delete def.damage;
-    } else {
-      const collisionDamage = Number(collisionDamageValue);
-      if (Number.isFinite(collisionDamage) && collisionDamage >= 0) {
-        def.damage = Math.round(collisionDamage);
-      }
-    }
-    const weaponWidth = Number(weaponWidthValue);
-    const weaponHeight = Number(weaponHeightValue);
-    const weaponOffsetX = Number(weaponOffsetXValue);
-    const weaponOffsetY = Number(weaponOffsetYValue);
-    if (
-      Number.isFinite(weaponWidth) &&
-      Number.isFinite(weaponHeight) &&
-      weaponWidth > 0 &&
-      weaponHeight > 0
-    ) {
+
+    if (els.attackHitFrameInput.value === "") delete def.attackHitFrame;
+    else if (Number.isFinite(Number(els.attackHitFrameInput.value))) def.attackHitFrame = Math.round(Number(els.attackHitFrameInput.value));
+
+    if (els.attackHitDamageInput.value === "") delete def.attackHitDamage;
+    else if (Number.isFinite(Number(els.attackHitDamageInput.value))) def.attackHitDamage = Math.round(Number(els.attackHitDamageInput.value));
+
+    if (els.collisionDamageInput.value === "") delete def.damage;
+    else if (Number.isFinite(Number(els.collisionDamageInput.value))) def.damage = Math.round(Number(els.collisionDamageInput.value));
+
+    const weaponWidth = Number(els.weaponWidthInput.value);
+    const weaponHeight = Number(els.weaponHeightInput.value);
+    const weaponOffsetX = Number(els.weaponOffsetXInput.value);
+    const weaponOffsetY = Number(els.weaponOffsetYInput.value);
+    if (Number.isFinite(weaponWidth) && Number.isFinite(weaponHeight) && weaponWidth > 0 && weaponHeight > 0) {
       def.weaponHitbox = {
         width: weaponWidth,
         height: weaponHeight,
@@ -469,91 +905,95 @@
     } else {
       delete def.weaponHitbox;
     }
-    if (window.BattlechurchEnemyDefinitions && window.BattlechurchEnemyDefinitions[key]) {
-      window.BattlechurchEnemyDefinitions[key].hitbox = deepClone(def.hitbox);
-      if ("attackHitFrame" in def) {
-        window.BattlechurchEnemyDefinitions[key].attackHitFrame = def.attackHitFrame;
-      } else {
-        delete window.BattlechurchEnemyDefinitions[key].attackHitFrame;
-      }
-      if ("attackHitDamage" in def) {
-        window.BattlechurchEnemyDefinitions[key].attackHitDamage = def.attackHitDamage;
-      } else {
-        delete window.BattlechurchEnemyDefinitions[key].attackHitDamage;
-      }
-      if ("damage" in def) {
-        window.BattlechurchEnemyDefinitions[key].damage = def.damage;
-      } else {
-        delete window.BattlechurchEnemyDefinitions[key].damage;
-      }
-      if ("weaponHitbox" in def) {
-        window.BattlechurchEnemyDefinitions[key].weaponHitbox = deepClone(def.weaponHitbox);
-      } else {
-        delete window.BattlechurchEnemyDefinitions[key].weaponHitbox;
-      }
+
+    if (window.BattlechurchEnemyDefinitions?.[key]) {
+      Object.assign(window.BattlechurchEnemyDefinitions[key], {
+        hitbox: deepClone(def.hitbox),
+        attackHitFrame: def.attackHitFrame,
+        attackHitDamage: def.attackHitDamage,
+        damage: def.damage,
+      });
+      if (def.weaponHitbox) window.BattlechurchEnemyDefinitions[key].weaponHitbox = deepClone(def.weaponHitbox);
+      else delete window.BattlechurchEnemyDefinitions[key].weaponHitbox;
     }
-    if (typeof bindings.onHitboxChange === "function") {
-      bindings.onHitboxChange(key, deepClone(def.hitbox), deepClone(def.weaponHitbox || null));
-    }
+    bindings.onHitboxChange?.(key, deepClone(def.hitbox), deepClone(def.weaponHitbox || null));
     setStatus(`Updated ${key} hitbox.`);
   }
 
-  function resetToDefault() {
-    const key = state.selectedKey;
-    if (!key) return;
-    const def = getEnemyDef(key);
-    if (!def) return;
-    const fallback = defaultHitbox(def);
-    widthInput.value = Math.round(fallback.width);
-    heightInput.value = Math.round(fallback.height);
-    offsetXInput.value = 0;
-    offsetYInput.value = 0;
-    applyInputsToEnemy();
+  function applyCircleInputs(data) {
+    const radius = Number(els.primaryInput.value);
+    if (!Number.isFinite(radius) || radius <= 0) return;
+    if (data.entryType === "player" && typeof bindings.onPlayerRadiusChange === "function") {
+      bindings.onPlayerRadiusChange(radius);
+      setStatus("Updated player radius.");
+    } else if (data.entryType === "npc" && typeof bindings.onNpcRadiusChange === "function") {
+      bindings.onNpcRadiusChange(radius);
+      setStatus("Updated live NPC radius.");
+    } else if (data.entryType === "projectile" && typeof bindings.onProjectileRadiusChange === "function") {
+      bindings.onProjectileRadiusChange(data.key, radius);
+      setStatus(`Updated ${data.key} projectile radius.`);
+    }
+  }
+
+  function applyInputs() {
+    const data = getInspectorData();
+    if (!data) return;
+    if (data.entryType === "enemy") {
+      applyEnemyInputs(data.key);
+    } else {
+      applyCircleInputs(data);
+    }
+    syncInspector();
+  }
+
+  function resetVisibleFields() {
+    const data = getInspectorData();
+    if (!data) return;
+    if (data.entryType === "enemy") {
+      const def = getEnemyCatalog()?.[data.key];
+      if (!def) return;
+      const fallback = defaultEnemyHitbox(def);
+      els.primaryInput.value = Math.round(fallback.width);
+      els.secondaryInput.value = Math.round(fallback.height);
+      els.offsetXInput.value = 0;
+      els.offsetYInput.value = 0;
+      els.weaponWidthInput.value = "";
+      els.weaponHeightInput.value = "";
+      els.weaponOffsetXInput.value = "";
+      els.weaponOffsetYInput.value = "";
+      applyEnemyInputs(data.key);
+    } else if (data.entryType === "projectile") {
+      const fallback = Number(getProjectileConfig()?.[data.key]?.radius) || 12;
+      els.primaryInput.value = fallback;
+      applyCircleInputs(data);
+    } else if (data.entryType === "player") {
+      const fallback = Number(getPlayerConfig()?.radius) || Number(getPlayerPreview()?.radius) || 12;
+      els.primaryInput.value = fallback;
+      applyCircleInputs(data);
+    } else if (data.entryType === "npc") {
+      const fallback = Number(getNpcPreview()?.radius) || 20;
+      els.primaryInput.value = fallback;
+      applyCircleInputs(data);
+    }
+    syncInspector();
   }
 
   function exportCatalog() {
-    const catalog = getCatalog();
+    const catalog = getEnemyCatalog();
     const base = baseCatalogSnapshot || catalog || {};
     const merged = deepClone(base || {});
-    const numericKeys = new Set([
-      "health",
-      "maxHealth",
-      "damage",
-      "speed",
-      "baseRadius",
-      "scale",
-      "attackBonus",
-      "cooldown",
-      "desiredRange",
-      "projectileCooldown",
-      "score",
-      "bossTier",
-      "attackHitFrame",
-      "attackHitDamage",
-    ]);
     Object.keys(catalog || {}).forEach((key) => {
       const live = catalog[key];
-      if (!merged[key]) merged[key] = deepClone(live);
       if (!live || typeof live !== "object") return;
+      merged[key] = merged[key] || {};
       Object.keys(live).forEach((prop) => {
         const value = live[prop];
-        if (value === null || value === undefined) return;
-        if (numericKeys.has(prop) && !Number.isFinite(Number(value))) return;
-        merged[key][prop] = value;
+        if (value === undefined || value === null) return;
+        merged[key][prop] = deepClone(value);
       });
-      if (live.hitbox && typeof live.hitbox === "object") {
-        merged[key].hitbox = deepClone(live.hitbox);
-      }
     });
-    const data = deepClone(merged || {});
-    const body = `(function(global) {
-  const ENEMY_CATALOG = ${JSON.stringify(data, null, 2)};
-  const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
-  ns.catalog = ENEMY_CATALOG;
-  const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});
-  Object.assign(defs, ENEMY_CATALOG);
-})(typeof window !== "undefined" ? window : globalThis);
-`;
+    const data = deepClone(merged);
+    const body = `(function(global) {\n  const ENEMY_CATALOG = ${JSON.stringify(data, null, 2)};\n  const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});\n  ns.catalog = ENEMY_CATALOG;\n  const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});\n  Object.assign(defs, ENEMY_CATALOG);\n})(typeof window !== "undefined" ? window : globalThis);\n`;
     const blob = new Blob([body], { type: "application/javascript" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -566,125 +1006,208 @@
     setStatus("Exported enemy_catalog.js");
   }
 
-  function drawHitbox(ctx, centerX, centerY, def, scale) {
-    const hitbox = resolveHitbox(def);
-    const width = hitbox.width * scale;
-    const height = hitbox.height * scale;
-    const offsetX = hitbox.offsetX * scale;
-    const offsetY = hitbox.offsetY * scale;
-    const x = centerX + offsetX - width / 2;
-    const y = centerY + offsetY - height / 2;
+  function drawRoundedRect(ctx, x, y, width, height, radius, fill = true, stroke = false) {
+    const r = typeof radius === "number" ? { tl: radius, tr: radius, br: radius, bl: radius } : radius;
+    ctx.beginPath();
+    ctx.moveTo(x + r.tl, y);
+    ctx.lineTo(x + width - r.tr, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r.tr);
+    ctx.lineTo(x + width, y + height - r.br);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r.br, y + height);
+    ctx.lineTo(x + r.bl, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r.bl);
+    ctx.lineTo(x, y + r.tl);
+    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+    ctx.closePath();
+    if (fill) ctx.fill();
+    if (stroke) ctx.stroke();
+  }
+
+  function drawPreviewGrid(ctx, canvas) {
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 210, 120, 0.95)";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 4]);
-    ctx.strokeRect(x, y, width, height);
+    ctx.fillStyle = "#0b111a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    ctx.lineWidth = 1;
+    const step = 28;
+    for (let x = step; x < canvas.width; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = step; y < canvas.height; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(155, 217, 255, 0.22)";
+    ctx.beginPath();
+    ctx.moveTo(canvas.width * 0.5, 0);
+    ctx.lineTo(canvas.width * 0.5, canvas.height);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height * 0.62);
+    ctx.lineTo(canvas.width, canvas.height * 0.62);
+    ctx.stroke();
     ctx.restore();
   }
 
-  function drawWeaponHitbox(ctx, centerX, centerY, def, scale) {
-    const weapon = def?.weaponHitbox || null;
-    if (!weapon) return;
-    const width = Number(weapon.width);
-    const height = Number(weapon.height);
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
-    const hitbox = resolveHitbox(def);
-    const baseX = centerX + hitbox.offsetX * scale;
-    const baseY = centerY + hitbox.offsetY * scale;
-    const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX * scale : 0;
-    const offsetY = Number.isFinite(weapon.offsetY) ? weapon.offsetY * scale : 0;
-    const drawW = width * scale;
-    const drawH = height * scale;
-    const x = baseX + offsetX - drawW / 2;
-    const y = baseY + offsetY - drawH / 2;
+  function drawSpritePreview(ctx, clip, centerX, centerY, fitScale, preferredFrame) {
+    if (!clip || !clip.image || !clip.frameWidth || !clip.frameHeight) return null;
+    const frameRect = getFrameSourceRect(clip, preferredFrame || 0);
+    if (!frameRect) return null;
+    const clipScale = Number.isFinite(clip.renderScale) && clip.renderScale > 0 ? clip.renderScale : 1;
+    const drawW = clip.frameWidth * fitScale * clipScale;
+    const drawH = clip.frameHeight * fitScale * clipScale;
+    ctx.drawImage(
+      clip.image,
+      frameRect.sx,
+      frameRect.sy,
+      frameRect.sw,
+      frameRect.sh,
+      centerX - drawW * 0.5,
+      centerY - drawH * 0.5,
+      drawW,
+      drawH,
+    );
+    return { width: drawW, height: drawH, scale: fitScale * clipScale };
+  }
+
+  function drawEnemyPreview(ctx, canvas, data) {
+    const centerX = canvas.width * 0.5;
+    const centerY = canvas.height * 0.58;
+    const clip = data.clip;
+    const baseScale = Number.isFinite(data.scale) && data.scale > 0 ? data.scale : 1;
+    const fitScale = clip
+      ? Math.min(3.2, Math.max(0.35, Math.min((canvas.width * 0.42) / Math.max(1, clip.frameWidth * baseScale), (canvas.height * 0.5) / Math.max(1, clip.frameHeight * baseScale))))
+      : 1;
+    const preview = drawSpritePreview(
+      ctx,
+      clip,
+      centerX,
+      centerY,
+      baseScale * fitScale,
+      Math.max(0, (Number(els.attackHitFrameInput.value) || 1) - 1),
+    );
+    const overlayScale = preview?.scale || baseScale * fitScale;
+    const hitbox = data.hitbox;
+    const width = hitbox.width * overlayScale;
+    const height = hitbox.height * overlayScale;
+    const offsetX = hitbox.offsetX * overlayScale;
+    const offsetY = hitbox.offsetY * overlayScale;
     ctx.save();
-    ctx.strokeStyle = "rgba(255, 120, 120, 0.95)";
+    ctx.strokeStyle = "rgba(255, 200, 106, 0.95)";
+    ctx.fillStyle = "rgba(255, 200, 106, 0.12)";
     ctx.lineWidth = 2;
-    ctx.setLineDash([4, 3]);
-    ctx.strokeRect(x, y, drawW, drawH);
+    drawRoundedRect(
+      ctx,
+      centerX + offsetX - width * 0.5,
+      centerY + offsetY - height * 0.5,
+      width,
+      height,
+      12,
+      true,
+      true,
+    );
+    ctx.restore();
+
+    if (data.weaponHitbox) {
+      const weapon = data.weaponHitbox;
+      const drawW = weapon.width * overlayScale;
+      const drawH = weapon.height * overlayScale;
+      const drawX = centerX + hitbox.offsetX * overlayScale + (weapon.offsetX || 0) * overlayScale - drawW * 0.5;
+      const drawY = centerY + hitbox.offsetY * overlayScale + (weapon.offsetY || 0) * overlayScale - drawH * 0.5;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 107, 107, 0.95)";
+      ctx.fillStyle = "rgba(255, 107, 107, 0.10)";
+      ctx.lineWidth = 2;
+      drawRoundedRect(ctx, drawX, drawY, drawW, drawH, 10, true, true);
+      ctx.restore();
+    }
+  }
+
+  function drawCirclePreview(ctx, canvas, data, color) {
+    const centerX = canvas.width * 0.5;
+    const centerY = canvas.height * 0.58;
+    const clip = data.clip;
+    const radius = Math.max(1, data.radius || 0);
+    const clipScale =
+      clip && Number.isFinite(data.scale) && data.scale > 0
+        ? Math.min(3.2, Math.max(0.4, Math.min((canvas.width * 0.36) / Math.max(1, clip.frameWidth * data.scale), (canvas.height * 0.44) / Math.max(1, clip.frameHeight * data.scale)))) * data.scale
+        : 1;
+    drawSpritePreview(ctx, clip, centerX, centerY, clipScale, 0);
+
+    const maxPreviewRadius = Math.min(canvas.width, canvas.height) * 0.18;
+    const overlayScale = radius > 0 ? maxPreviewRadius / radius : 1;
+    const drawRadius = radius * overlayScale;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color.replace("0.95", "0.12");
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, drawRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    if (!clip) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.09)";
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, Math.max(18, drawRadius * 0.55), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawProjectilePreview(ctx, canvas, data) {
+    const clip = data.clip;
+    if (clip) {
+      drawCirclePreview(ctx, canvas, data, "rgba(155, 217, 255, 0.95)");
+      return;
+    }
+    const centerX = canvas.width * 0.5;
+    const centerY = canvas.height * 0.58;
+    const radius = Math.max(6, data.radius || 12);
+    const drawRadius = Math.min(canvas.width, canvas.height) * 0.16;
+    ctx.save();
+    const gradient = ctx.createRadialGradient(centerX, centerY, drawRadius * 0.2, centerX, centerY, drawRadius);
+    gradient.addColorStop(0, "rgba(234, 246, 255, 0.95)");
+    gradient.addColorStop(1, "rgba(91, 163, 216, 0.92)");
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, drawRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 200, 106, 0.95)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius * (drawRadius / radius), 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
-  function drawLayout() {
-    updateCanvasSize();
-    if (state.layoutDirty) buildLayout();
-    clampScroll();
+  function drawPreview() {
+    updatePreviewCanvasSize();
+    const canvas = els.previewCanvas;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.save();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#0b0f1a";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.translate(0, -state.scrollY);
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.font = "12px 'IBM Plex Mono', monospace";
-
-    state.layout.forEach((entry) => {
-      const def = getEnemyDef(entry.key);
-      if (!def) return;
-      const isSelected = entry.key === state.selectedKey;
-      const cellX = entry.x;
-      const cellY = entry.y;
-      const centerX = cellX + entry.width / 2;
-      const spriteY = cellY + 18 + entry.spriteH / 2;
-
-      ctx.save();
-      ctx.strokeStyle = isSelected ? "rgba(255, 216, 120, 0.9)" : "rgba(255,255,255,0.08)";
-      ctx.lineWidth = isSelected ? 2 : 1;
-      ctx.strokeRect(cellX + 6, cellY + 6, entry.width - 12, entry.height - 12);
-      ctx.restore();
-
-      const clip = getClipForEnemy(entry.key);
-      if (clip && clip.image && clip.frameWidth && clip.frameHeight) {
-        let frameIndex = 0;
-        if (entry.key === state.selectedKey) {
-          const frameCount = getClipFrameCount(clip);
-          const frameNumber = Math.min(
-            frameCount,
-            Math.max(1, Number(attackHitFrameInput.value) || 1),
-          );
-          const zeroBased = frameNumber - 1;
-          frameIndex =
-            Array.isArray(clip.frameMap) && clip.frameMap.length
-              ? clip.frameMap[Math.min(zeroBased, clip.frameMap.length - 1)]
-              : zeroBased;
-        } else {
-          frameIndex =
-            Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap[0] : 0;
-        }
-        const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-        const sx = (frameIndex % cols) * clip.frameWidth;
-        const sy = Math.floor(frameIndex / cols) * clip.frameHeight;
-        const drawW = clip.frameWidth * entry.scale;
-        const drawH = clip.frameHeight * entry.scale;
-        ctx.drawImage(
-          clip.image,
-          sx,
-          sy,
-          clip.frameWidth,
-          clip.frameHeight,
-          centerX - drawW / 2,
-          spriteY - drawH / 2,
-          drawW,
-          drawH,
-        );
-      } else {
-        ctx.save();
-        ctx.fillStyle = "rgba(255,255,255,0.12)";
-        ctx.fillRect(centerX - entry.spriteW / 2, spriteY - entry.spriteH / 2, entry.spriteW, entry.spriteH);
-        ctx.restore();
-      }
-
-      ctx.fillStyle = isSelected ? "#ffe3a6" : "#d7e5ff";
-      ctx.fillText(def.displayName || entry.key, centerX, cellY + entry.height - 18);
-
-      if (isSelected) {
-        drawHitbox(ctx, centerX, spriteY, def, entry.scale);
-        drawWeaponHitbox(ctx, centerX, spriteY, def, entry.scale);
-      }
-    });
-    ctx.restore();
+    drawPreviewGrid(ctx, canvas);
+    const data = getInspectorData();
+    if (!data) return;
+    if (data.entryType === "enemy") {
+      drawEnemyPreview(ctx, canvas, data);
+    } else if (data.entryType === "player") {
+      drawCirclePreview(ctx, canvas, data, "rgba(255, 200, 106, 0.95)");
+    } else if (data.entryType === "npc") {
+      drawCirclePreview(ctx, canvas, data, "rgba(95, 227, 192, 0.95)");
+    } else if (data.entryType === "projectile") {
+      drawProjectilePreview(ctx, canvas, data);
+    }
   }
 
   function startRenderLoop() {
@@ -694,7 +1217,7 @@
         state.rafId = null;
         return;
       }
-      drawLayout();
+      drawPreview();
       state.rafId = window.requestAnimationFrame(step);
     };
     state.rafId = window.requestAnimationFrame(step);
@@ -705,12 +1228,7 @@
     overlay.style.display = state.active ? "block" : "none";
     window.__battlechurchHitboxEditorActive = state.active;
     if (state.active) {
-      state.layoutDirty = true;
-      updateCanvasSize();
-      const keys = Object.keys(getCatalog() || {});
-      if (!state.selectedKey && keys.length) {
-        selectEnemy(keys[0]);
-      }
+      renderEntityList();
       startRenderLoop();
     }
   }
@@ -720,57 +1238,44 @@
     return state.active;
   }
 
-  function handleCanvasClick(event) {
-    if (!state.layout.length) return;
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = rect.width ? canvas.width / rect.width : 1;
-    const scaleY = rect.height ? canvas.height / rect.height : 1;
-    const x = (event.clientX - rect.left) * scaleX;
-    const y = (event.clientY - rect.top) * scaleY + state.scrollY;
-    const entry = state.layout.find(
-      (item) => x >= item.x && x <= item.x + item.width && y >= item.y && y <= item.y + item.height,
-    );
-    if (entry) {
-      selectEnemy(entry.key);
-    }
-  }
-
-  function handleWheel(event) {
-    if (!state.active) return;
-    state.scrollY += event.deltaY;
-    clampScroll();
-    event.preventDefault();
-  }
-
-  widthInput.addEventListener("input", applyInputsToEnemy);
-  heightInput.addEventListener("input", applyInputsToEnemy);
-  offsetXInput.addEventListener("input", applyInputsToEnemy);
-  offsetYInput.addEventListener("input", applyInputsToEnemy);
-  attackHitFrameInput.addEventListener("input", applyInputsToEnemy);
-  attackHitDamageInput.addEventListener("input", applyInputsToEnemy);
-  collisionDamageInput.addEventListener("input", applyInputsToEnemy);
-  weaponHitboxWidthInput.addEventListener("input", applyInputsToEnemy);
-  weaponHitboxHeightInput.addEventListener("input", applyInputsToEnemy);
-  weaponHitboxOffsetXInput.addEventListener("input", applyInputsToEnemy);
-  weaponHitboxOffsetYInput.addEventListener("input", applyInputsToEnemy);
-  resetButton.addEventListener("click", resetToDefault);
-  exportButton.addEventListener("click", exportCatalog);
-  closeButton.addEventListener("click", () => setActive(false));
-  canvas.addEventListener("click", handleCanvasClick);
-  canvas.addEventListener("wheel", handleWheel, { passive: false });
-
-  window.addEventListener("resize", () => {
-    state.layoutDirty = true;
-    updateCanvasSize();
+  els.search.addEventListener("input", () => {
+    state.search = String(els.search.value || "");
+    renderEntityList();
   });
+  els.primaryInput.addEventListener("input", applyInputs);
+  els.secondaryInput.addEventListener("input", applyInputs);
+  els.offsetXInput.addEventListener("input", applyInputs);
+  els.offsetYInput.addEventListener("input", applyInputs);
+  els.attackHitFrameInput.addEventListener("input", applyInputs);
+  els.attackHitDamageInput.addEventListener("input", applyInputs);
+  els.collisionDamageInput.addEventListener("input", applyInputs);
+  els.weaponWidthInput.addEventListener("input", applyInputs);
+  els.weaponHeightInput.addEventListener("input", applyInputs);
+  els.weaponOffsetXInput.addEventListener("input", applyInputs);
+  els.weaponOffsetYInput.addEventListener("input", applyInputs);
+  els.reset.addEventListener("click", resetVisibleFields);
+  els.exportBtn.addEventListener("click", exportCatalog);
+  els.closeBtn.addEventListener("click", () => setActive(false));
+
+  window.addEventListener("resize", updatePreviewCanvasSize);
 
   window.BattlechurchHitboxEditor = {
     initialize(options = {}) {
       bindings.getAssets = options.getAssets || bindings.getAssets;
       bindings.getEnemyCatalog = options.getEnemyCatalog || bindings.getEnemyCatalog;
       bindings.getEnemyTypes = options.getEnemyTypes || bindings.getEnemyTypes;
+      bindings.getPlayerPreview = options.getPlayerPreview || bindings.getPlayerPreview;
+      bindings.getPlayerConfig = options.getPlayerConfig || bindings.getPlayerConfig;
+      bindings.getNpcPreview = options.getNpcPreview || bindings.getNpcPreview;
+      bindings.getProjectileConfig = options.getProjectileConfig || bindings.getProjectileConfig;
       bindings.onHitboxChange = options.onHitboxChange || bindings.onHitboxChange;
-      baseCatalogSnapshot = deepClone(bindings.getEnemyCatalog());
+      bindings.onPlayerRadiusChange = options.onPlayerRadiusChange || bindings.onPlayerRadiusChange;
+      bindings.onNpcRadiusChange = options.onNpcRadiusChange || bindings.onNpcRadiusChange;
+      bindings.onProjectileRadiusChange =
+        options.onProjectileRadiusChange || bindings.onProjectileRadiusChange;
+      baseCatalogSnapshot = deepClone(getEnemyCatalog());
+      renderFilters();
+      renderEntityList();
       setActive(false);
     },
     toggle,

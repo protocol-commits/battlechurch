@@ -615,10 +615,10 @@
     ],
     "swarmSpacing": 0.05,
     "hitbox": {
-      "width": 16,
+      "width": 24,
       "height": 12,
       "offsetX": 0,
-      "offsetY": 6
+      "offsetY": -1
     }
   },
   "tormentorFlame": {

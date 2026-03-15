@@ -18668,7 +18668,39 @@ async function init() {
         getAssets: () => assets,
         getEnemyCatalog: () => ENEMY_CATALOG,
         getEnemyTypes: () => ENEMY_TYPES,
+        getPlayerPreview: () => player,
+        getPlayerConfig: () => PLAYER_CONFIG,
+        getNpcPreview: () => (Array.isArray(npcs) ? npcs.find((npc) => npc && !npc.departed) || null : null),
+        getProjectileConfig: () => PROJECTILE_CONFIG,
         onHitboxChange: applyHitboxChange,
+        onPlayerRadiusChange: (radius) => {
+          if (!Number.isFinite(radius) || radius <= 0) return;
+          PLAYER_CONFIG.radius = radius;
+          if (player) {
+            player.radius = radius;
+            if (player.config) player.config.radius = radius;
+          }
+        },
+        onNpcRadiusChange: (radius) => {
+          if (!Number.isFinite(radius) || radius <= 0 || !Array.isArray(npcs)) return;
+          npcs.forEach((npc) => {
+            if (!npc || npc.departed) return;
+            npc.radius = radius;
+          });
+        },
+        onProjectileRadiusChange: (type, radius) => {
+          if (!type || !Number.isFinite(radius) || radius <= 0) return;
+          const config = PROJECTILE_CONFIG[type];
+          if (config && typeof config === "object") {
+            config.radius = radius;
+          }
+          if (Array.isArray(projectiles)) {
+            projectiles.forEach((projectile) => {
+              if (!projectile || projectile.dead || projectile.type !== type) return;
+              projectile.radius = radius;
+            });
+          }
+        },
       });
     }
     rebuildObstacles();
