@@ -10530,7 +10530,8 @@ function getPlayerHitboxRect(targetPlayer = player) {
   const hitbox = targetPlayer.config?.hitbox || PLAYER_CONFIG?.hitbox || null;
   if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return null;
   if (hitbox.width <= 0 || hitbox.height <= 0) return null;
-  const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+  const facingSign = targetPlayer?.facing === "left" ? -1 : 1;
+  const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX * facingSign : 0;
   const offsetY = Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
   return {
     x: targetPlayer.x + offsetX - hitbox.width / 2,

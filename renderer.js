@@ -2922,7 +2922,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.setLineDash([]);
       const hitbox = player?.config?.hitbox || null;
       if (hitbox && Number.isFinite(hitbox.width) && Number.isFinite(hitbox.height)) {
-        const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+        const facingSign = player?.facing === "left" ? -1 : 1;
+        const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX * facingSign : 0;
         const offsetY = Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
         ctx.strokeRect(
           player.x + offsetX - hitbox.width / 2,
