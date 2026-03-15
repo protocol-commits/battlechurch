@@ -195,9 +195,9 @@
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
-      "width": 16,
-      "height": 16,
-      "offsetX": 0,
+      "width": 11,
+      "height": 12,
+      "offsetX": 1,
       "offsetY": 9
     }
   },

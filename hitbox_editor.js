@@ -35,6 +35,7 @@
   };
 
   let baseCatalogSnapshot = null;
+  const spriteBoundsCache = new Map();
 
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;
@@ -66,6 +67,17 @@
 
   function getProjectileConfig() {
     return bindings.getProjectileConfig ? bindings.getProjectileConfig() : {};
+  }
+
+  function getWorldScale() {
+    const projectileSettings =
+      (typeof window !== "undefined" && window.BattlechurchProjectileConfig) || {};
+    const explicitScale =
+      projectileSettings.worldScale ??
+      ((typeof window !== "undefined" && window.__BATTLECHURCH_WORLD_SCALE !== undefined)
+        ? Number(window.__BATTLECHURCH_WORLD_SCALE)
+        : NaN);
+    return Number.isFinite(explicitScale) && explicitScale > 0 ? explicitScale : 0.75;
   }
 
   function setStatus(message, isError = false) {
@@ -152,6 +164,80 @@
       sw: clip.frameWidth,
       sh: clip.frameHeight,
     };
+  }
+
+  function getTrimmedSpriteBounds(key, clip) {
+    const cacheKey = `${key}:${clip?.image?.src || "no-image"}:${clip?.frameWidth || 0}:${clip?.frameHeight || 0}`;
+    if (spriteBoundsCache.has(cacheKey)) return spriteBoundsCache.get(cacheKey);
+    const fallback = {
+      x: 0,
+      y: 0,
+      width: Math.max(1, clip?.frameWidth || 1),
+      height: Math.max(1, clip?.frameHeight || 1),
+    };
+    if (!clip?.image || !clip.frameWidth || !clip.frameHeight) {
+      spriteBoundsCache.set(cacheKey, fallback);
+      return fallback;
+    }
+    try {
+      const sampleCanvas = document.createElement("canvas");
+      sampleCanvas.width = clip.frameWidth;
+      sampleCanvas.height = clip.frameHeight;
+      const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
+      if (!sampleCtx) {
+        spriteBoundsCache.set(cacheKey, fallback);
+        return fallback;
+      }
+      let minX = clip.frameWidth;
+      let minY = clip.frameHeight;
+      let maxX = -1;
+      let maxY = -1;
+      const sampleFrames = Array.isArray(clip.frameMap) && clip.frameMap.length
+        ? clip.frameMap.slice(0, Math.min(6, clip.frameMap.length))
+        : [0];
+      sampleFrames.forEach((frameIndex) => {
+        sampleCtx.clearRect(0, 0, clip.frameWidth, clip.frameHeight);
+        const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
+        const sx = (frameIndex % cols) * clip.frameWidth;
+        const sy = Math.floor(frameIndex / cols) * clip.frameHeight;
+        sampleCtx.drawImage(
+          clip.image,
+          sx,
+          sy,
+          clip.frameWidth,
+          clip.frameHeight,
+          0,
+          0,
+          clip.frameWidth,
+          clip.frameHeight,
+        );
+        const imageData = sampleCtx.getImageData(0, 0, clip.frameWidth, clip.frameHeight).data;
+        for (let y = 0; y < clip.frameHeight; y += 1) {
+          for (let x = 0; x < clip.frameWidth; x += 1) {
+            const alpha = imageData[(y * clip.frameWidth + x) * 4 + 3];
+            if (alpha <= 8) continue;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      });
+      const trimmed =
+        maxX >= minX && maxY >= minY
+          ? {
+              x: minX,
+              y: minY,
+              width: maxX - minX + 1,
+              height: maxY - minY + 1,
+            }
+          : fallback;
+      spriteBoundsCache.set(cacheKey, trimmed);
+      return trimmed;
+    } catch (error) {
+      spriteBoundsCache.set(cacheKey, fallback);
+      return fallback;
+    }
   }
 
   function buildEntries() {
@@ -1134,21 +1220,28 @@
     ctx.restore();
   }
 
-  function drawSpritePreview(ctx, clip, centerX, centerY, fitScale, preferredFrame) {
+  function drawSpritePreview(ctx, clip, centerX, centerY, fitScale, preferredFrame, options = {}) {
     if (!clip || !clip.image || !clip.frameWidth || !clip.frameHeight) return null;
     const frameRect = getFrameSourceRect(clip, preferredFrame || 0);
     if (!frameRect) return null;
     const clipScale = Number.isFinite(clip.renderScale) && clip.renderScale > 0 ? clip.renderScale : 1;
-    const drawW = clip.frameWidth * fitScale * clipScale;
-    const drawH = clip.frameHeight * fitScale * clipScale;
+    const sourceBounds = options.sourceBounds || { x: 0, y: 0, width: clip.frameWidth, height: clip.frameHeight };
+    const drawW = sourceBounds.width * fitScale * clipScale;
+    const drawH = sourceBounds.height * fitScale * clipScale;
+    const frameCenterX = clip.frameWidth * 0.5;
+    const frameCenterY = clip.frameHeight * 0.5;
+    const boundsCenterX = sourceBounds.x + sourceBounds.width * 0.5;
+    const boundsCenterY = sourceBounds.y + sourceBounds.height * 0.5;
+    const drawX = centerX + (boundsCenterX - frameCenterX) * fitScale * clipScale - drawW * 0.5;
+    const drawY = centerY + (boundsCenterY - frameCenterY) * fitScale * clipScale - drawH * 0.5;
     ctx.drawImage(
       clip.image,
-      frameRect.sx,
-      frameRect.sy,
-      frameRect.sw,
-      frameRect.sh,
-      centerX - drawW * 0.5,
-      centerY - drawH * 0.5,
+      frameRect.sx + sourceBounds.x,
+      frameRect.sy + sourceBounds.y,
+      sourceBounds.width,
+      sourceBounds.height,
+      drawX,
+      drawY,
       drawW,
       drawH,
     );
@@ -1160,18 +1253,18 @@
     const centerY = canvas.height * 0.58;
     const clip = data.clip;
     const baseScale = Number.isFinite(data.scale) && data.scale > 0 ? data.scale : 1;
-    const fitScale = clip
-      ? Math.min(3.2, Math.max(0.35, Math.min((canvas.width * 0.42) / Math.max(1, clip.frameWidth * baseScale), (canvas.height * 0.5) / Math.max(1, clip.frameHeight * baseScale))))
-      : 1;
+    const worldScale = getWorldScale();
+    const sourceBounds = clip ? getTrimmedSpriteBounds(data.key, clip) : null;
     const preview = drawSpritePreview(
       ctx,
       clip,
       centerX,
       centerY,
-      baseScale * fitScale,
+      baseScale * worldScale,
       Math.max(0, (Number(els.attackHitFrameInput.value) || 1) - 1),
+      { sourceBounds },
     );
-    const overlayScale = preview?.scale || baseScale * fitScale;
+    const overlayScale = preview?.scale || (baseScale * worldScale);
     const hitbox = data.hitbox;
     const width = hitbox.width * overlayScale;
     const height = hitbox.height * overlayScale;
