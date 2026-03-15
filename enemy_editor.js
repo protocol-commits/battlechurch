@@ -480,6 +480,17 @@
     return def && Number.isFinite(def.scale) ? def.scale : 1;
   }
 
+  function getWorldScale() {
+    const projectileSettings =
+      (typeof window !== "undefined" && window.BattlechurchProjectileConfig) || {};
+    const explicitScale =
+      projectileSettings.worldScale ??
+      ((typeof window !== "undefined" && window.__BATTLECHURCH_WORLD_SCALE !== undefined)
+        ? Number(window.__BATTLECHURCH_WORLD_SCALE)
+        : NaN);
+    return Number.isFinite(explicitScale) && explicitScale > 0 ? explicitScale : 0.75;
+  }
+
   function getTrimmedSpriteBounds(key, clip) {
     const cacheKey = `${key}:${clip?.image?.src || "no-image"}:${clip?.frameWidth || 0}:${clip?.frameHeight || 0}`;
     if (spriteBoundsCache.has(cacheKey)) return spriteBoundsCache.get(cacheKey);
@@ -568,6 +579,7 @@
         bounds: { x: 0, y: 0, width: SPRITE_CELL_SIZE, height: SPRITE_CELL_SIZE },
         baseScale: 1,
         catalogScale: getEnemyScale(key),
+        worldScale: getWorldScale(),
         finalScale: 1,
         drawW: SPRITE_CELL_SIZE,
         drawH: SPRITE_CELL_SIZE,
@@ -576,12 +588,14 @@
     const bounds = getTrimmedSpriteBounds(key, clip);
     const baseScale = Number.isFinite(clip.renderScale) ? clip.renderScale : 1;
     const catalogScale = getEnemyScale(key);
-    const finalScale = baseScale * catalogScale;
+    const worldScale = getWorldScale();
+    const finalScale = baseScale * catalogScale * worldScale;
     return {
       clip,
       bounds,
       baseScale,
       catalogScale,
+      worldScale,
       finalScale,
       drawW: Math.max(1, bounds.width * finalScale),
       drawH: Math.max(1, bounds.height * finalScale),
@@ -845,8 +859,6 @@
     grid.appendChild(createNumberInput(key, "damage", "Damage"));
     grid.appendChild(createNumberInput(key, "speed", "Speed"));
     grid.appendChild(createNumberInput(key, "scale", "Scale"));
-    grid.appendChild(createNumberInput(key, "baseRadius", "Hit Radius"));
-    grid.appendChild(createNumberInput(key, "attackRange", "Attack Range"));
     grid.appendChild(createNumberInput(key, "cooldown", "Cooldown"));
     grid.appendChild(createSwarmSpacingCell(key));
     grid.appendChild(createTagsCell(key));
