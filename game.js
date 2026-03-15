@@ -3806,7 +3806,21 @@ const DEFAULT_PLAYER_BODY_HITBOX = {
   offsetX: 0,
   offsetY: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 0.45,
 };
+const DEFAULT_PLAYER_WEAPON_HITBOX = {
+  width: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 7.2,
+  height: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 5.2,
+  offsetX: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 4.8,
+  offsetY: 0,
+};
+const DEFAULT_PLAYER_ATTACK_HIT_FRAME = 2;
 const PLAYER_BODY_HITBOX = loadStoredPlayerHitbox(DEFAULT_PLAYER_BODY_HITBOX);
+const PLAYER_WEAPON_HITBOX = normalizeStoredPlayerHitbox(
+  window.BattlechurchHitboxes?.player?.weaponHitbox || null,
+  DEFAULT_PLAYER_WEAPON_HITBOX,
+);
+const PLAYER_ATTACK_HIT_FRAME = Number.isFinite(Number(window.BattlechurchHitboxes?.player?.attackHitFrame))
+  ? Math.max(1, Math.round(Number(window.BattlechurchHitboxes.player.attackHitFrame)))
+  : DEFAULT_PLAYER_ATTACK_HIT_FRAME;
 const PLAYER_BODY_RADIUS_FALLBACK = Math.max(PLAYER_BODY_HITBOX.width, PLAYER_BODY_HITBOX.height) * 0.5;
 const PLAYER_FRAME_SIZE = 100;
 
@@ -3821,6 +3835,8 @@ const BASE_PLAYER_CONFIG = {
   maxHealth: HERO_MAX_HEALTH,
   radius: PLAYER_BODY_RADIUS_FALLBACK,
   hitbox: { ...PLAYER_BODY_HITBOX },
+  weaponHitbox: { ...PLAYER_WEAPON_HITBOX },
+  attackHitFrame: PLAYER_ATTACK_HIT_FRAME,
 };
 
 const ENTITIES_BOOTSTRAP = window.Entities?.initialize?.({
@@ -10541,6 +10557,60 @@ function getPlayerHitboxRect(targetPlayer = player) {
   };
 }
 
+function getPlayerWeaponHitboxLocalRect(targetPlayer = player) {
+  if (!targetPlayer) return null;
+  const weaponHitbox = targetPlayer.config?.weaponHitbox || PLAYER_CONFIG?.weaponHitbox || null;
+  if (!weaponHitbox || !Number.isFinite(weaponHitbox.width) || !Number.isFinite(weaponHitbox.height)) return null;
+  if (weaponHitbox.width <= 0 || weaponHitbox.height <= 0) return null;
+  const offsetX = Number.isFinite(weaponHitbox.offsetX) ? weaponHitbox.offsetX : 0;
+  const offsetY = Number.isFinite(weaponHitbox.offsetY) ? weaponHitbox.offsetY : 0;
+  return {
+    x: offsetX - weaponHitbox.width / 2,
+    y: offsetY - weaponHitbox.height / 2,
+    width: weaponHitbox.width,
+    height: weaponHitbox.height,
+  };
+}
+
+function queueBasicMeleeAttack(dir, meleeAttackState) {
+  if (!player || !meleeAttackState || !dir) return;
+  meleeAttackState.pendingBasicAttack = {
+    dir: { x: dir.x, y: dir.y },
+    queuedAt:
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now(),
+    hitApplied: false,
+  };
+}
+
+function resolveQueuedBasicMeleeAttack(meleeAttackState) {
+  if (!player || !meleeAttackState?.pendingBasicAttack) return;
+  const pending = meleeAttackState.pendingBasicAttack;
+  const animator = player.animator;
+  const clip = animator?.currentClip || null;
+  if (!animator || player.state !== "attackMelee" || animator.currentName !== "attackMelee" || !clip) return;
+  const logicalFrames =
+    Array.isArray(clip.frameMap) && clip.frameMap.length
+      ? clip.frameMap.length
+      : clip.frameCount || 1;
+  const requiredFrame = Math.max(
+    1,
+    Math.min(
+      logicalFrames,
+      Number.isFinite(player.config?.attackHitFrame) ? Math.round(player.config.attackHitFrame) : DEFAULT_PLAYER_ATTACK_HIT_FRAME,
+    ),
+  );
+  const currentFrame = (Number.isFinite(animator.frameIndex) ? animator.frameIndex : 0) + 1;
+  if (pending.hitApplied || currentFrame < requiredFrame) return;
+  pending.hitApplied = true;
+  const angleRad = Math.atan2(pending.dir.y, pending.dir.x);
+  const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
+  const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+  executeBasicMeleeAttack(pending.dir, meleeAttackState, swingCenterX, swingCenterY);
+  meleeAttackState.pendingBasicAttack = null;
+}
+
 function circleIntersectsRect(cx, cy, radius, rect) {
   const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
   const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
@@ -16486,15 +16556,28 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   let survivorHit = false;
   let meleeDamageTotal = 0;
   let meleePrimaryTarget = null;
+  const attackAngle = Math.atan2(dir.y, dir.x);
+  const attackRect = getPlayerWeaponHitboxLocalRect(player);
+  const cos = Math.cos(-attackAngle);
+  const sin = Math.sin(-attackAngle);
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
-    const dx = enemy.x - swingCenterX;
-    const dy = enemy.y - swingCenterY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const hitCenter = getEnemyHitboxCenter(enemy);
+    const relX = hitCenter.x - player.x;
+    const relY = hitCenter.y - player.y;
+    const localX = relX * cos - relY * sin;
+    const localY = relX * sin + relY * cos;
     const hitRadius = getEnemyHitboxRadius(enemy);
-    if (dist > MELEE_SWING_RANGE + hitRadius) return;
-    const dotProduct = dx * dir.x + dy * dir.y;
-    if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
+    if (attackRect) {
+      if (!circleIntersectsRect(localX, localY, hitRadius, attackRect)) return;
+    } else {
+      const dx = enemy.x - swingCenterX;
+      const dy = enemy.y - swingCenterY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > MELEE_SWING_RANGE + hitRadius) return;
+      const dotProduct = dx * dir.x + dy * dir.y;
+      if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
+    }
     hitEnemies.push(enemy);
     if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
     const counterHit = getCounterHitResult(enemy, MELEE_BASE_DAMAGE, meleeAttackState);
@@ -16559,13 +16642,23 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     spawnEnemyHitEffect(enemy);
   });
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
-    const dx = activeBoss.x - swingCenterX;
-    const dy = activeBoss.y - swingCenterY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const hitCenter = getEnemyHitboxCenter(activeBoss);
+    const relX = hitCenter.x - player.x;
+    const relY = hitCenter.y - player.y;
+    const localX = relX * cos - relY * sin;
+    const localY = relX * sin + relY * cos;
     const hitRadius = activeBoss.radius || 0;
-    if (dist <= MELEE_SWING_RANGE + hitRadius) {
-      const dotProduct = dx * dir.x + dy * dir.y;
-      if (!(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius)) {
+    const bossHit = attackRect
+      ? circleIntersectsRect(localX, localY, hitRadius, attackRect)
+      : (() => {
+          const dx = activeBoss.x - swingCenterX;
+          const dy = activeBoss.y - swingCenterY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > MELEE_SWING_RANGE + hitRadius) return false;
+          const dotProduct = dx * dir.x + dy * dir.y;
+          return !(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius);
+        })();
+    if (bossHit) {
         const counterHit = getCounterHitResult(activeBoss, MELEE_BASE_DAMAGE, meleeAttackState);
         const damage = counterHit.damage;
         activeBoss.takeDamage(damage, {
@@ -16635,7 +16728,6 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           survivorHit = true;
         }
         spawnEnemyHitEffect(activeBoss);
-      }
     }
   }
   if (hitEnemies.length > 0 || hitBoss) {
@@ -17127,6 +17219,7 @@ function updateMeleeAttackSystem(dt) {
     pendingCounterHitShowAt: 0,
     activeCounterHitLabel: null,
     activeCounterHitTarget: null,
+    pendingBasicAttack: null,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -17138,6 +17231,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.isCharging = false;
       meleeAttackState.awaitRush = false;
       clearMeleeComboLabel(meleeAttackState);
+      meleeAttackState.pendingBasicAttack = null;
       meleeAttackState.meleeComboTarget = null;
       meleeAttackState.meleeComboHits = 0;
       meleeAttackState.meleeComboExpiresAt = 0;
@@ -17166,6 +17260,7 @@ function updateMeleeAttackSystem(dt) {
     const bRecent = now - meleeAttackState.lastComboTimes.B <= comboWindowMs;
     const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
     updateArcControlCooldowns();
+    resolveQueuedBasicMeleeAttack(meleeAttackState);
 
     if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
@@ -17382,10 +17477,9 @@ function updateMeleeAttackSystem(dt) {
     if (spinJustEnded && meleeAttackState.spinMeleeQueued) {
       meleeAttackState.spinMeleeQueued = false;
       if (!meleeAttackState.isCharging && player) {
-        const angleRad = Math.atan2(dir.y, dir.x);
-        const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
-        const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-        executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
+        queueBasicMeleeAttack(dir, meleeAttackState);
+        player.state = "attackMelee";
+        player.animator.play("attackMelee", { restart: true });
       }
     }
 
@@ -17472,10 +17566,9 @@ function updateMeleeAttackSystem(dt) {
         meleeAttackState.spinHitEntities = new Set();
         meleeAttackState.spinMeleeQueued = false;
         if (player) {
-          const angleRad = Math.atan2(dir.y, dir.x);
-          const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
-          const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-          executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
+          queueBasicMeleeAttack(dir, meleeAttackState);
+          player.state = "attackMelee";
+          player.animator.play("attackMelee", { restart: true });
         }
       } else {
       if (playerDashState.isDashing) {
@@ -17502,9 +17595,6 @@ function updateMeleeAttackSystem(dt) {
           executeDivineShot(dir, meleeAttackState, angleRad);
         } else if (meleeAttackState.cooldown <= 0) {
           const angleRad = Math.atan2(dir.y, dir.x);
-          const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
-          const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-
           // Check if player is dashing when pressing melee
           const shouldSwoosh = playerDashState.isDashing;
           if (shouldSwoosh) {
@@ -17513,7 +17603,11 @@ function updateMeleeAttackSystem(dt) {
             playerDashState.isDashing = false;
             setSharedBButtonCooldown(DASH_COOLDOWN);
           } else {
-            executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY);
+            queueBasicMeleeAttack(dir, meleeAttackState);
+            if (player && player.animator) {
+              player.state = "attackMelee";
+              player.animator.play("attackMelee", { restart: true });
+            }
           }
         }
       }
@@ -18770,6 +18864,29 @@ async function init() {
               player.config.radius = derivedRadius;
               player.config.hitbox = { ...next };
             }
+          }
+        },
+        onPlayerWeaponHitboxChange: (weaponHitbox) => {
+          if (!weaponHitbox || !Number.isFinite(weaponHitbox.width) || !Number.isFinite(weaponHitbox.height)) return;
+          if (weaponHitbox.width <= 0 || weaponHitbox.height <= 0) return;
+          const next = {
+            width: weaponHitbox.width,
+            height: weaponHitbox.height,
+            offsetX: Number.isFinite(weaponHitbox.offsetX) ? weaponHitbox.offsetX : 0,
+            offsetY: Number.isFinite(weaponHitbox.offsetY) ? weaponHitbox.offsetY : 0,
+          };
+          PLAYER_CONFIG.weaponHitbox = { ...next };
+          BASE_PLAYER_CONFIG.weaponHitbox = { ...next };
+          if (player?.config) {
+            player.config.weaponHitbox = { ...next };
+          }
+        },
+        onPlayerAttackHitFrameChange: (attackHitFrame) => {
+          const next = Number.isFinite(attackHitFrame) ? Math.max(1, Math.round(attackHitFrame)) : DEFAULT_PLAYER_ATTACK_HIT_FRAME;
+          PLAYER_CONFIG.attackHitFrame = next;
+          BASE_PLAYER_CONFIG.attackHitFrame = next;
+          if (player?.config) {
+            player.config.attackHitFrame = next;
           }
         },
         onNpcRadiusChange: (radius) => {

@@ -16,6 +16,7 @@
     selectedId: null,
     filter: "all",
     search: "",
+    playerPreviewState: "attackMelee",
     rafId: null,
     statusTimer: null,
   };
@@ -30,6 +31,8 @@
     getProjectileConfig: () => ({}),
     onHitboxChange: null,
     onPlayerHitboxChange: null,
+    onPlayerWeaponHitboxChange: null,
+    onPlayerAttackHitFrameChange: null,
     onNpcRadiusChange: null,
     onProjectileRadiusChange: null,
   };
@@ -129,7 +132,9 @@
 
   function getPlayerClip() {
     const player = getPlayerPreview();
-    return player?.animator?.currentClip || player?.animator?.clips?.idle || null;
+    const clips = player?.animator?.clips || null;
+    if (!clips) return player?.animator?.currentClip || null;
+    return clips[state.playerPreviewState] || clips.attackMelee || clips.walk || clips.idle || player?.animator?.currentClip || null;
   }
 
   function getNpcClip() {
@@ -610,6 +615,14 @@
                   <div class="inspector-label">Frame Count</div>
                   <div class="inspector-value" data-info-frames>-</div>
                 </div>
+                <div class="inspector-field inspector-field--full" data-player-preview-row style="display:none;">
+                  <div class="inspector-label">Player Preview Clip</div>
+                  <select data-player-preview-select class="inspector-value">
+                    <option value="idle">Idle</option>
+                    <option value="walk">Walk</option>
+                    <option value="attackMelee">Attack Melee</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div class="inspector-block" data-block-shape>
@@ -634,7 +647,7 @@
               </div>
             </div>
             <div class="inspector-block" data-block-enemy>
-              <h3>Enemy Timing & Damage</h3>
+              <h3 data-timing-title>Enemy Timing & Damage</h3>
               <div class="inspector-grid">
                 <div class="inspector-field">
                   <div class="inspector-label">Attack Hit Frame</div>
@@ -698,8 +711,11 @@
     infoScale: overlay.querySelector("[data-info-scale]"),
     infoRadius: overlay.querySelector("[data-info-radius]"),
     infoFrames: overlay.querySelector("[data-info-frames]"),
+    playerPreviewRow: overlay.querySelector("[data-player-preview-row]"),
+    playerPreviewSelect: overlay.querySelector("[data-player-preview-select]"),
     blockShape: overlay.querySelector("[data-block-shape]"),
     blockEnemy: overlay.querySelector("[data-block-enemy]"),
+    timingTitle: overlay.querySelector("[data-timing-title]"),
     blockWeapon: overlay.querySelector("[data-block-weapon]"),
     shapeTitle: overlay.querySelector("[data-shape-title]"),
     primaryLabel: overlay.querySelector("[data-primary-label]"),
@@ -843,7 +859,19 @@
             offsetX: 0,
             offsetY: 0,
           },
-      note: "Player body collision now uses an editable rect hitbox. Attack hitboxes are still a separate next step.",
+      weaponHitbox: config?.weaponHitbox
+        ? {
+            width: Number(config.weaponHitbox.width) || 0,
+            height: Number(config.weaponHitbox.height) || 0,
+            offsetX: Number(config.weaponHitbox.offsetX) || 0,
+            offsetY: Number(config.weaponHitbox.offsetY) || 0,
+          }
+        : null,
+      attackHitFrame:
+        Number.isFinite(config?.attackHitFrame) && config.attackHitFrame > 0
+          ? Math.round(config.attackHitFrame)
+          : 2,
+      note: "Player body collision and the normal Slash attack hitbox are editable here. Dash Slash and Rush Attack still use their own move-specific hitboxes.",
     };
   }
 
@@ -925,6 +953,12 @@
     els.previewTitle.textContent = data.label;
     els.previewMeta.textContent = data.subtitle || "";
     els.note.textContent = data.note || "";
+    if (els.playerPreviewRow) {
+      els.playerPreviewRow.style.display = data.entryType === "player" ? "" : "none";
+    }
+    if (els.playerPreviewSelect && data.entryType === "player") {
+      els.playerPreviewSelect.value = state.playerPreviewState;
+    }
 
     const isEnemy = data.entryType === "enemy";
     const isPlayerRect = data.entryType === "player";
@@ -933,8 +967,11 @@
       (data.entryType === "npc" && typeof bindings.onNpcRadiusChange === "function") ||
       (data.entryType === "projectile" && typeof bindings.onProjectileRadiusChange === "function");
 
-    els.blockEnemy.style.display = isEnemy ? "" : "none";
-    els.blockWeapon.style.display = isEnemy ? "" : "none";
+    els.blockEnemy.style.display = (isEnemy || isPlayerRect) ? "" : "none";
+    els.blockWeapon.style.display = (isEnemy || isPlayerRect) ? "" : "none";
+    if (els.timingTitle) {
+      els.timingTitle.textContent = isPlayerRect ? "Slash Timing" : "Enemy Timing & Damage";
+    }
     els.shapeTitle.textContent = isCircle ? "Collision Shape" : "Body Hitbox";
     els.primaryLabel.textContent = isCircle ? "Radius" : "Width";
     els.secondaryLabel.textContent = isCircle ? "Diameter" : "Height";
@@ -960,13 +997,15 @@
       setInputState(els.secondaryInput, Math.round(hitbox.height));
       setInputState(els.offsetXInput, Math.round(hitbox.offsetX));
       setInputState(els.offsetYInput, Math.round(hitbox.offsetY));
-      setInputState(els.attackHitFrameInput, "", { disabled: true });
+      setInputState(els.attackHitFrameInput, data.attackHitFrame, { placeholder: "2" });
+      els.attackHitFrameInput.min = "1";
+      els.attackHitFrameInput.max = String(Math.max(1, data.frameCount || 1));
       setInputState(els.attackHitDamageInput, "", { disabled: true });
       setInputState(els.collisionDamageInput, "", { disabled: true });
-      setInputState(els.weaponWidthInput, "", { disabled: true });
-      setInputState(els.weaponHeightInput, "", { disabled: true });
-      setInputState(els.weaponOffsetXInput, "", { disabled: true });
-      setInputState(els.weaponOffsetYInput, "", { disabled: true });
+      setInputState(els.weaponWidthInput, data.weaponHitbox?.width ?? "", { placeholder: "off" });
+      setInputState(els.weaponHeightInput, data.weaponHitbox?.height ?? "", { placeholder: "off" });
+      setInputState(els.weaponOffsetXInput, data.weaponHitbox?.offsetX ?? "");
+      setInputState(els.weaponOffsetYInput, data.weaponHitbox?.offsetY ?? "");
     } else if (isCircle) {
       setInputState(els.primaryInput, Math.round(data.radius || 0), { disabled: !circleEditable });
       setInputState(els.secondaryInput, Math.round((data.radius || 0) * 2), { disabled: true });
@@ -1059,6 +1098,22 @@
       offsetX: Number.isFinite(offsetX) ? offsetX : 0,
       offsetY: Number.isFinite(offsetY) ? offsetY : 0,
     });
+    const weaponWidth = Number(els.weaponWidthInput.value);
+    const weaponHeight = Number(els.weaponHeightInput.value);
+    const weaponOffsetX = Number(els.weaponOffsetXInput.value);
+    const weaponOffsetY = Number(els.weaponOffsetYInput.value);
+    if (Number.isFinite(weaponWidth) && Number.isFinite(weaponHeight) && weaponWidth > 0 && weaponHeight > 0) {
+      bindings.onPlayerWeaponHitboxChange?.({
+        width: weaponWidth,
+        height: weaponHeight,
+        offsetX: Number.isFinite(weaponOffsetX) ? weaponOffsetX : 0,
+        offsetY: Number.isFinite(weaponOffsetY) ? weaponOffsetY : 0,
+      });
+    }
+    const attackHitFrame = Number(els.attackHitFrameInput.value);
+    if (Number.isFinite(attackHitFrame) && attackHitFrame > 0) {
+      bindings.onPlayerAttackHitFrameChange?.(attackHitFrame);
+    }
     setStatus("Updated player hitbox.");
   }
 
@@ -1097,13 +1152,13 @@
       els.secondaryInput.value = Math.round(fallback.height);
       els.offsetXInput.value = Math.round(fallback.offsetX);
       els.offsetYInput.value = Math.round(fallback.offsetY);
+      els.weaponWidthInput.value = Math.round(data.weaponHitbox?.width ?? 0) || "";
+      els.weaponHeightInput.value = Math.round(data.weaponHitbox?.height ?? 0) || "";
+      els.weaponOffsetXInput.value = Math.round(data.weaponHitbox?.offsetX ?? 0);
+      els.weaponOffsetYInput.value = Math.round(data.weaponHitbox?.offsetY ?? 0);
       applyPlayerHitboxInputs();
     } else if (data.entryType === "projectile") {
       const fallback = Number(getProjectileConfig()?.[data.key]?.radius) || 12;
-      els.primaryInput.value = fallback;
-      applyCircleInputs(data);
-    } else if (data.entryType === "player") {
-      const fallback = Number(getPlayerConfig()?.radius) || Number(getPlayerPreview()?.radius) || 12;
       els.primaryInput.value = fallback;
       applyCircleInputs(data);
     } else if (data.entryType === "npc") {
@@ -1155,6 +1210,18 @@
               offsetY: Number(playerHitbox.offsetY) || 0,
             }
           : null,
+        weaponHitbox: playerConfig?.weaponHitbox
+          ? {
+              width: Number(playerConfig.weaponHitbox.width) || 0,
+              height: Number(playerConfig.weaponHitbox.height) || 0,
+              offsetX: Number(playerConfig.weaponHitbox.offsetX) || 0,
+              offsetY: Number(playerConfig.weaponHitbox.offsetY) || 0,
+            }
+          : null,
+        attackHitFrame:
+          Number.isFinite(playerConfig?.attackHitFrame) && playerConfig.attackHitFrame > 0
+            ? Math.round(playerConfig.attackHitFrame)
+            : 2,
       },
       npcs: {},
       projectiles: {},
@@ -1309,7 +1376,11 @@
     const fitScale = clip
       ? Math.min(3.2, Math.max(0.35, Math.min((canvas.width * 0.38) / Math.max(1, clip.frameWidth * baseScale), (canvas.height * 0.46) / Math.max(1, clip.frameHeight * baseScale))))
       : 1;
-    const preview = drawSpritePreview(ctx, clip, centerX, centerY, baseScale * fitScale, 0);
+    const preferredFrame =
+      data.entryType === "player" && state.playerPreviewState === "attackMelee"
+        ? Math.max(0, (Number(data.attackHitFrame) || 1) - 1)
+        : 0;
+    const preview = drawSpritePreview(ctx, clip, centerX, centerY, baseScale * fitScale, preferredFrame);
     const overlayScale = worldSized ? fitScale : (preview?.scale || baseScale * fitScale);
     const hitbox = data.hitbox;
     const width = hitbox.width * overlayScale;
@@ -1331,6 +1402,20 @@
       true,
     );
     ctx.restore();
+
+    if (data.weaponHitbox) {
+      const weapon = data.weaponHitbox;
+      const drawW = weapon.width * overlayScale;
+      const drawH = weapon.height * overlayScale;
+      const drawX = centerX + weapon.offsetX * overlayScale - drawW * 0.5;
+      const drawY = centerY + weapon.offsetY * overlayScale - drawH * 0.5;
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 107, 107, 0.95)";
+      ctx.fillStyle = "rgba(255, 107, 107, 0.10)";
+      ctx.lineWidth = 2;
+      drawRoundedRect(ctx, drawX, drawY, drawW, drawH, 10, true, true);
+      ctx.restore();
+    }
   }
 
   function drawCirclePreview(ctx, canvas, data, color) {
@@ -1465,6 +1550,10 @@
   els.weaponHeightInput.addEventListener("input", applyInputs);
   els.weaponOffsetXInput.addEventListener("input", applyInputs);
   els.weaponOffsetYInput.addEventListener("input", applyInputs);
+  els.playerPreviewSelect?.addEventListener("change", () => {
+    state.playerPreviewState = String(els.playerPreviewSelect.value || "attackMelee");
+    syncInspector();
+  });
   els.reset.addEventListener("click", resetVisibleFields);
   els.exportBtn.addEventListener("click", exportCatalog);
   els.exportHitboxesBtn.addEventListener("click", exportHitboxes);
@@ -1483,6 +1572,10 @@
       bindings.getProjectileConfig = options.getProjectileConfig || bindings.getProjectileConfig;
       bindings.onHitboxChange = options.onHitboxChange || bindings.onHitboxChange;
       bindings.onPlayerHitboxChange = options.onPlayerHitboxChange || bindings.onPlayerHitboxChange;
+      bindings.onPlayerWeaponHitboxChange =
+        options.onPlayerWeaponHitboxChange || bindings.onPlayerWeaponHitboxChange;
+      bindings.onPlayerAttackHitFrameChange =
+        options.onPlayerAttackHitFrameChange || bindings.onPlayerAttackHitFrameChange;
       bindings.onNpcRadiusChange = options.onNpcRadiusChange || bindings.onNpcRadiusChange;
       bindings.onProjectileRadiusChange =
         options.onProjectileRadiusChange || bindings.onProjectileRadiusChange;

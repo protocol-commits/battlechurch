@@ -6217,22 +6217,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typeof window !== "undefined"
         ? window.BattlechurchHitboxDebug?.playerMelee === true
         : false;
-    if (showMeleeHitboxDebug && closeRange > 0) {
-      ctx.save();
-      ctx.globalAlpha = 0.35;
-      ctx.strokeStyle = "rgba(255, 200, 106, 0.8)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(
-        player.x - cameraOffsetX + shakeX,
-        player.y - cameraOffsetY + shakeY,
-        closeRange,
-        0,
-        Math.PI * 2,
-      );
-      ctx.stroke();
-      ctx.restore();
-    }
+    const weapon = player?.config?.weaponHitbox || null;
     if (showMeleeHitboxDebug && meleeRange > 0) {
       const dirVec =
         (state.isRushing && state.rushDir) ||
@@ -6245,26 +6230,51 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const swooshSpread = Math.PI * 0.35 * (bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5);
       const originX = player.x - cameraOffsetX + shakeX;
       const originY = player.y - cameraOffsetY + shakeY;
+      if (weapon && Number.isFinite(weapon.width) && Number.isFinite(weapon.height)) {
+        const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX : 0;
+        const offsetY = Number.isFinite(weapon.offsetY) ? weapon.offsetY : 0;
+        ctx.save();
+        ctx.translate(originX, originY);
+        ctx.rotate(angle);
+        ctx.fillStyle = "rgba(110, 210, 255, 0.14)";
+        ctx.strokeStyle = "rgba(110, 210, 255, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.fillRect(
+          offsetX - weapon.width * 0.5,
+          offsetY - weapon.height * 0.5,
+          weapon.width,
+          weapon.height,
+        );
+        ctx.strokeRect(
+          offsetX - weapon.width * 0.5,
+          offsetY - weapon.height * 0.5,
+          weapon.width,
+          weapon.height,
+        );
+        ctx.restore();
+      }
 
-      ctx.save();
-      ctx.strokeStyle = "rgba(110, 210, 255, 0.75)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(originX, originY, meleeRange, angle - Math.PI / 2, angle + Math.PI / 2);
-      ctx.stroke();
-      ctx.restore();
+      if (!weapon || !Number.isFinite(weapon.width) || !Number.isFinite(weapon.height)) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(110, 210, 255, 0.75)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(originX, originY, meleeRange, angle - Math.PI / 2, angle + Math.PI / 2);
+        ctx.stroke();
+        ctx.restore();
 
-      ctx.save();
-      ctx.fillStyle = "rgba(255, 200, 106, 0.18)";
-      ctx.strokeStyle = "rgba(255, 200, 106, 0.85)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(originX, originY);
-      ctx.arc(originX, originY, meleeRange, angle - swooshSpread, angle + swooshSpread);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
+        ctx.save();
+        ctx.fillStyle = "rgba(255, 200, 106, 0.18)";
+        ctx.strokeStyle = "rgba(255, 200, 106, 0.85)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(originX, originY);
+        ctx.arc(originX, originY, meleeRange, angle - swooshSpread, angle + swooshSpread);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
     }
     if (showMeleeHitboxDebug && state.swooshTimer > 0 && !state.isRushing && swooshImg) {
       const dirVec = state.swooshDir || window.Input.lastMovementDirection || { x: 1, y: 0 };

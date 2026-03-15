@@ -6,7 +6,9 @@
       "height": 70,
       "offsetX": -8,
       "offsetY": 4
-    }
+    },
+    "weaponHitbox": null,
+    "attackHitFrame": 2
   },
   "npcs": {},
   "projectiles": {}
