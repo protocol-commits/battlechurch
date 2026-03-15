@@ -79,6 +79,7 @@
 
     if (typeof window !== 'undefined') {
       window.__hudTouchToggleBounds = null;
+      window.__hudHitboxToggleBounds = [];
     }
 
     const getIconStyleColor = (key, fallback) => {
@@ -1189,6 +1190,52 @@
           });
         }
       }
+
+      const hitboxState =
+        typeof window !== 'undefined' && window.BattlechurchHitboxDebug
+          ? window.BattlechurchHitboxDebug
+          : null;
+      const toggleDefs = [
+        { key: 'playerMelee', label: 'P/M', active: Boolean(hitboxState?.playerMelee), color: PALETTE.ice },
+        { key: 'npcs', label: 'NPC', active: Boolean(hitboxState?.npcs), color: PALETTE.teal },
+        { key: 'enemies', label: 'ENM', active: Boolean(hitboxState?.enemies), color: PALETTE.crimson },
+        { key: 'projectiles', label: 'PRJ', active: Boolean(hitboxState?.projectiles), color: PALETTE.gold },
+      ];
+      const toggleGap = 6;
+      const toggleWidth = Math.max(34, Math.floor((width - toggleGap) / 2));
+      const toggleHeight = 14;
+      const toggleStartY = meterY + meterHeight + 8;
+      if (typeof window !== 'undefined') {
+        window.__hudHitboxToggleBounds = [];
+      }
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `700 9px ${UI_FONT_FAMILY}`;
+      toggleDefs.forEach((toggle, index) => {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        const toggleX = x + col * (toggleWidth + toggleGap);
+        const toggleY = toggleStartY + row * (toggleHeight + 4);
+        ctx.save();
+        ctx.fillStyle = toggle.active ? toggle.color : 'rgba(10,15,31,0.78)';
+        ctx.strokeStyle = toggle.active ? 'rgba(255,255,255,0.55)' : 'rgba(155, 217, 255, 0.28)';
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, toggleX, toggleY, toggleWidth, toggleHeight, 8, true, true);
+        ctx.fillStyle = toggle.active ? '#0b111a' : PALETTE.softWhite;
+        ctx.fillText(toggle.label, toggleX + toggleWidth / 2, toggleY + toggleHeight / 2 + 0.5);
+        ctx.restore();
+        if (typeof window !== 'undefined') {
+          window.__hudHitboxToggleBounds.push({
+            key: toggle.key,
+            x: toggleX + shakeX,
+            y: toggleY + shakeY,
+            width: toggleWidth,
+            height: toggleHeight,
+          });
+        }
+      });
+      ctx.restore();
       ctx.restore();
     };
 

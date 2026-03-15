@@ -2878,7 +2878,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   function drawEnemyWeaponHitboxDebugs(ctx, enemies, activeBoss) {
     const show =
-      typeof window !== "undefined" ? window.BattlechurchShowAttackHitboxes === true : false;
+      typeof window !== "undefined"
+        ? window.BattlechurchShowAttackHitboxes === true ||
+          window.BattlechurchHitboxDebug?.enemies === true
+        : false;
     if (!show) return;
     ctx.save();
     ctx.strokeStyle = "rgba(255, 80, 80, 0.9)";
@@ -2894,6 +2897,89 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       enemies.forEach(drawForEnemy);
     }
     if (activeBoss) drawForEnemy(activeBoss);
+    ctx.restore();
+  }
+
+  function drawCombatHitboxDebugs(ctx, player, npcs, enemies, activeBoss, projectiles) {
+    const hitboxDebug =
+      typeof window !== "undefined" ? window.BattlechurchHitboxDebug || null : null;
+    if (!hitboxDebug) return;
+    const showPlayerMelee = hitboxDebug.playerMelee === true;
+    const showNpcs = hitboxDebug.npcs === true;
+    const showEnemies = hitboxDebug.enemies === true;
+    const showProjectiles = hitboxDebug.projectiles === true;
+    if (!showPlayerMelee && !showNpcs && !showEnemies && !showProjectiles) return;
+
+    const bindings = requireBindings();
+    const getEnemyHitboxRect = bindings.getEnemyHitboxRect;
+
+    ctx.save();
+    ctx.lineWidth = 2;
+
+    if (showPlayerMelee && player) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(80, 220, 255, 0.95)";
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, Math.max(0, player.radius || 0), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (showNpcs && Array.isArray(npcs)) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(95, 227, 192, 0.95)";
+      ctx.setLineDash([5, 4]);
+      npcs.forEach((npc) => {
+        if (!npc || npc.departed) return;
+        ctx.beginPath();
+        ctx.arc(npc.x, npc.y, Math.max(0, npc.radius || 0), 0, Math.PI * 2);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    if (showEnemies) {
+      const drawEnemyBody = (enemy) => {
+        if (!enemy || enemy.dead || enemy.state === "death") return;
+        const rect = typeof getEnemyHitboxRect === "function" ? getEnemyHitboxRect(enemy) : null;
+        if (rect) {
+          ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+          return;
+        }
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, Math.max(0, enemy.radius || enemy.config?.hitRadius || 0), 0, Math.PI * 2);
+        ctx.stroke();
+      };
+      ctx.save();
+      ctx.strokeStyle = "rgba(255, 110, 110, 0.95)";
+      ctx.setLineDash([]);
+      if (Array.isArray(enemies)) enemies.forEach(drawEnemyBody);
+      if (activeBoss) drawEnemyBody(activeBoss);
+      ctx.restore();
+    }
+
+    if (showProjectiles && Array.isArray(projectiles)) {
+      projectiles.forEach((projectile) => {
+        if (!projectile || projectile.dead) return;
+        const radius = Math.max(2, Number(projectile.radius) || 0);
+        if (!radius) return;
+        let stroke = "rgba(255, 110, 110, 0.95)";
+        if (projectile.friendly && projectile.source?.isCozyNpc) {
+          stroke = "rgba(255, 200, 106, 0.95)";
+        } else if (projectile.friendly) {
+          stroke = "rgba(80, 220, 255, 0.95)";
+        }
+        ctx.save();
+        ctx.strokeStyle = stroke;
+        ctx.setLineDash(projectile.visualOnly ? [3, 3] : []);
+        ctx.beginPath();
+        ctx.arc(projectile.x, projectile.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+
     ctx.restore();
   }
 
@@ -5667,6 +5753,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     };
   // ...existing code...
+    let orderedEnemies = [];
     if (!visitorStageActive) {
       enemyHpLabels.length = 0;
       const isMiniImpType = (enemy) => {
@@ -5674,7 +5761,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         return type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3";
       };
       const orderIndex = (enemy) => (isMiniImpType(enemy) ? 0 : 1);
-      const orderedEnemies = [...enemies].sort((a, b) => orderIndex(a) - orderIndex(b));
+      orderedEnemies = [...enemies].sort((a, b) => orderIndex(a) - orderIndex(b));
       orderedEnemies.forEach((enemy) => enemy.draw());
       if (activeBoss) activeBoss.draw(ctx);
       drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);
@@ -5714,6 +5801,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         drawCannonSplashDebug(ctx, projectile.x, projectile.y, cannonSplashRadius);
       }
     });
+    drawCombatHitboxDebugs(ctx, player, battleNpcs, orderedEnemies, activeBoss, projectiles);
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       effects.forEach((effect) => effect.draw());
     }
@@ -6012,7 +6100,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const shakeX = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.x : 0) || 0;
     const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
     const swooshImg = assets?.effects?.meleeSwoosh;
-    const showMeleeHitboxDebug = true;
+    const showMeleeHitboxDebug =
+      typeof window !== "undefined"
+        ? window.BattlechurchHitboxDebug?.playerMelee === true
+        : false;
     if (showMeleeHitboxDebug && closeRange > 0) {
       ctx.save();
       ctx.globalAlpha = 0.35;

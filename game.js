@@ -2967,6 +2967,17 @@ window.gameOverDialogShown = false;
 window.gameOverDialogActive = false;
 window.gameOverReady = false;
 window.postDeathSequenceActive = false;
+if (typeof window !== "undefined") {
+  window.BattlechurchHitboxDebug = window.BattlechurchHitboxDebug || {
+    playerMelee: true,
+    npcs: false,
+    enemies: false,
+    projectiles: false,
+  };
+  if (typeof window.BattlechurchShowAttackHitboxes !== "boolean") {
+    window.BattlechurchShowAttackHitboxes = Boolean(window.BattlechurchHitboxDebug.enemies);
+  }
+}
 const isActionActive = Input.isActionActive;
 const wasActionJustPressed = Input.wasActionJustPressed;
 const consumePrayerBombClick = Input.consumePrayerBombClick;
@@ -2976,6 +2987,34 @@ const aimAssist = {
   targetKind: null,
 };
 const SHOW_ENEMY_SPAWN_DEBUG = false;
+
+function toggleHudHitboxDebug(key) {
+  if (typeof window === "undefined" || !window.BattlechurchHitboxDebug) return false;
+  if (!Object.prototype.hasOwnProperty.call(window.BattlechurchHitboxDebug, key)) return false;
+  window.BattlechurchHitboxDebug[key] = !window.BattlechurchHitboxDebug[key];
+  window.BattlechurchShowAttackHitboxes = Boolean(window.BattlechurchHitboxDebug.enemies);
+  return true;
+}
+
+function handleHudHitboxToggleClick() {
+  if (typeof window === "undefined" || typeof Input?.peekCanvasClick !== "function") return false;
+  if (titleScreenActive || mapActive || paused || gameOver) return false;
+  if (window.UpgradeScreen?.isVisible?.() || window.DialogOverlay?.isVisible?.()) return false;
+  const buttons = Array.isArray(window.__hudHitboxToggleBounds) ? window.__hudHitboxToggleBounds : null;
+  if (!buttons || !buttons.length) return false;
+  const clickPos = Input.peekCanvasClick();
+  if (!clickPos) return false;
+  const hit = buttons.find((button) =>
+    clickPos.x >= button.x &&
+    clickPos.x <= button.x + button.width &&
+    clickPos.y >= button.y &&
+    clickPos.y <= button.y + button.height
+  );
+  if (!hit) return false;
+  Input.consumeCanvasClick?.();
+  return toggleHudHitboxDebug(hit.key);
+}
+
 Renderer.initialize({
   get canvas() { return canvas; },
   get ctx() { return ctx; },
@@ -3089,6 +3128,7 @@ Renderer.initialize({
   get prayerBombScreenDarkenAlpha() { return PRAYER_BOMB_SCREEN_DARKEN_ALPHA; },
   get RUSH_RADIUS() { return RUSH_RADIUS; },
   get meleeAttackState() { return window._meleeAttackState; },
+  getEnemyHitboxRect,
   get townIntroTransitionActive() { return townIntroTransitionActive; },
   get townIntroTransitionTimer() { return townIntroTransitionTimer; },
   TOWN_INTRO_ZOOM_DURATION,
@@ -17691,6 +17731,8 @@ function updateGame(dt) {
   if (handlePauseMenu()) {
     return;
   }
+
+  handleHudHitboxToggleClick();
 
   if (gameOver) {
     player.animator.update(dt);
