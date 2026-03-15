@@ -3843,7 +3843,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       bottomMargin: 90,
       rowGap: 32,
       buttonHeight: 64,
-      buttonCount: 3,
+      buttonCount: 4,
       HUD_HEIGHT,
     });
     ctx.save();
@@ -3867,6 +3867,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       { key: "resume", label: "Resume" },
       { key: "map", label: "Return to Map" },
       { key: "settings", label: "Settings" },
+      { key: "developer", label: "Developer" },
     ];
     const buttonWidth = 240;
     const buttonHeight = 64;

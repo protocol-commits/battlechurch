@@ -14654,6 +14654,11 @@ function handlePauseMenu() {
           showSettingsOverlay({ source: "pause" });
           return;
         }
+        if (button.key === "developer") {
+          pauseRestartConfirmActive = false;
+          showDeveloperOverlay();
+          return;
+        }
         pauseRestartConfirmActive = false;
         resumeFromPause();
       },
@@ -16042,6 +16047,12 @@ function rewardMeleeGraceBurst(target, count, spread = null) {
   spawnGraceArcBurst(baseX, baseY, gemCount, spread);
 }
 
+function beginMeleeHitstopSequence(meleeAttackState) {
+  if (!meleeAttackState) return;
+  meleeAttackState.hitstopSequenceId = (meleeAttackState.hitstopSequenceId || 0) + 1;
+  meleeAttackState.hitstopAppliedSequenceId = 0;
+}
+
 function consumeEntityMeleeHitstopDt(entity, dt) {
   if (!entity || !Number.isFinite(dt) || dt <= 0) return dt;
   const remaining = Number(entity.meleeHitstopTimer) || 0;
@@ -16052,6 +16063,13 @@ function consumeEntityMeleeHitstopDt(entity, dt) {
 
 function applyMeleeHitstop(target, meleeAttackState, counterHit) {
   if (!target) return;
+  if (
+    meleeAttackState &&
+    meleeAttackState.hitstopSequenceId &&
+    meleeAttackState.hitstopAppliedSequenceId === meleeAttackState.hitstopSequenceId
+  ) {
+    return;
+  }
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -16075,6 +16093,9 @@ function applyMeleeHitstop(target, meleeAttackState, counterHit) {
   target.meleeHitstopTimer = Math.max(Number(target.meleeHitstopTimer) || 0, duration);
   if (player && player !== target) {
     player.meleeHitstopTimer = Math.max(Number(player.meleeHitstopTimer) || 0, duration);
+  }
+  if (meleeAttackState && meleeAttackState.hitstopSequenceId) {
+    meleeAttackState.hitstopAppliedSequenceId = meleeAttackState.hitstopSequenceId;
   }
   applyCameraShake(Math.max(0.08, duration * 2.5), shake);
 }
@@ -16357,6 +16378,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   meleeAttackState.active = true;
   meleeAttackState.fade = MELEE_DAMAGE_DURATION;
   meleeAttackState.swingId += 1;
+  beginMeleeHitstopSequence(meleeAttackState);
   meleeAttackState.didAttackThisPress = true;
   meleeAttackState.cooldown = MELEE_COOLDOWN;
   meleeAttackState.swooshTimer = GAME_MELEE_SWING_DURATION;
@@ -16558,6 +16580,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       : Date.now();
   meleeAttackState.swooshTimer = GAME_MELEE_SWING_DURATION;
   meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
+  beginMeleeHitstopSequence(meleeAttackState);
   applyMeleeInvulnerability(meleeAttackState, "swoosh", getDashSwooshInvulnerabilityDuration());
 
   // Trigger player attack animation
@@ -16746,6 +16769,7 @@ function executeRushAttack(dir, meleeAttackState) {
     );
   }
   meleeAttackState.isRushing = true;
+  beginMeleeHitstopSequence(meleeAttackState);
   meleeAttackState.rushDir = { x: dir.x, y: dir.y };
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
   meleeAttackState.rushDustAccumulator = 0;
@@ -16766,6 +16790,7 @@ function executeRushAttack(dir, meleeAttackState) {
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
   const dir = getMeleeAttackDirection();
+  beginMeleeHitstopSequence(meleeAttackState);
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
   if (moveDir && (moveDir.x !== 0 || moveDir.y !== 0)) {
     const normalized = normalizeVector(moveDir.x, moveDir.y);
@@ -16936,6 +16961,8 @@ function updateMeleeAttackSystem(dt) {
       buttonDown: false,
       didAttackThisPress: false,
       swingId: 0,
+      hitstopSequenceId: 0,
+      hitstopAppliedSequenceId: 0,
       chargeTimer: 0,
       isCharging: false,
       spinChargeTimer: 0,

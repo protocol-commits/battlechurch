@@ -546,7 +546,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 1
+                          "count": 60
                         }
                       ],
                       "mode": "explicit",
@@ -621,6 +621,10 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "miniHighDemon",
                           "count": 1
                         }
                       ],
@@ -637,6 +641,10 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "miniHighDemon",
                           "count": 1
                         }
                       ],
@@ -653,6 +661,10 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
+                          "count": 150
+                        },
+                        {
+                          "enemy": "armoredSkeleton",
                           "count": 1
                         }
                       ],
