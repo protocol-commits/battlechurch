@@ -15,6 +15,11 @@
     "closestAny",
   ];
 
+  function sanitizeSpecialBehavior(value) {
+    const tags = Array.isArray(value) ? value : [];
+    return tags.filter((tag) => tag && !["popcorn", "elite", "axe"].includes(tag));
+  }
+
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;
   }
@@ -39,7 +44,7 @@
       console.warn("EnemyEditor: failed to load from localStorage", e);
     }
     if (!cfg) {
-      cfg = { catalog: baseCatalog(), hiddenEnemies: [] };
+      cfg = { catalog: baseCatalog() };
     }
     const base = baseCatalog();
     cfg.catalog = cfg.catalog || base;
@@ -59,6 +64,7 @@
           merged[assetKey] = deepClone(baseEntry[assetKey]);
         }
       });
+      merged.specialBehavior = sanitizeSpecialBehavior(merged.specialBehavior);
       cfg.catalog[key] = merged;
     });
     // Drop any catalog entries that no longer exist in the base catalog.
@@ -67,14 +73,7 @@
         delete cfg.catalog[key];
       }
     });
-    cfg.hiddenEnemies = Array.isArray(cfg.hiddenEnemies) ? cfg.hiddenEnemies : [];
-    cfg.hiddenEnemies = cfg.hiddenEnemies.filter(
-      (key) =>
-        !["armoredOrc", "armoredSkeleton", "armoredAxeman", "armoredEliteOrc", "orc"].includes(
-          key,
-        ),
-    );
-    cfg.hiddenEnemies = cfg.hiddenEnemies.filter((key) => allowedKeys.has(key));
+    delete cfg.hiddenEnemies;
     return cfg;
   }
 
@@ -93,6 +92,10 @@
 
   function saveConfig(cfg) {
     const next = deepClone(cfg);
+    Object.keys(next.catalog || {}).forEach((key) => {
+      if (!next.catalog[key]) return;
+      next.catalog[key].specialBehavior = sanitizeSpecialBehavior(next.catalog[key].specialBehavior);
+    });
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch (e) {
@@ -119,7 +122,6 @@
 
   let state = {
     cfg: loadConfig(),
-    showHidden: false,
     search: "",
   };
 
@@ -350,9 +352,27 @@
       #${OVERLAY_ID} details.tags-dropdown summary {
         list-style: none;
         cursor: pointer;
+        position: relative;
+        padding-right: 28px;
       }
       #${OVERLAY_ID} details.tags-dropdown summary::-webkit-details-marker {
         display: none;
+      }
+      #${OVERLAY_ID} details.tags-dropdown summary::after {
+        content: "";
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        width: 8px;
+        height: 8px;
+        border-right: 2px solid rgba(232, 244, 255, 0.78);
+        border-bottom: 2px solid rgba(232, 244, 255, 0.78);
+        transform: translateY(-65%) rotate(45deg);
+        transition: transform 120ms ease;
+        pointer-events: none;
+      }
+      #${OVERLAY_ID} details.tags-dropdown[open] summary::after {
+        transform: translateY(-35%) rotate(225deg);
       }
       #${OVERLAY_ID} .tag-panel {
         margin-top: 8px;
@@ -406,14 +426,9 @@
             <p>Tune combat stats, preview sprites clearly, and manage tags without spreadsheet clutter.</p>
           </div>
           <div class="controls">
-            <label style="display:flex;align-items:center;gap:6px;font:600 12px Trebuchet MS, Arial, sans-serif;">
-              <input type="checkbox" id="ee-showHidden">
-              Show hidden
-            </label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button id="ee-save">Save</button>
               <button id="ee-export" class="secondary">Export file</button>
-              <button id="ee-print-hidden" class="secondary">Print hidden</button>
               <button id="ee-close" class="secondary">Close (Esc)</button>
             </div>
           </div>
@@ -433,12 +448,10 @@
   document.body.appendChild(overlay);
 
   const els = {
-    showHidden: overlay.querySelector("#ee-showHidden"),
     search: overlay.querySelector("#ee-search"),
     status: overlay.querySelector("#ee-status"),
     save: overlay.querySelector("#ee-save"),
     exportBtn: overlay.querySelector("#ee-export"),
-    printHidden: overlay.querySelector("#ee-print-hidden"),
     close: overlay.querySelector("#ee-close"),
     list: overlay.querySelector("#ee-list"),
   };
@@ -450,13 +463,6 @@
     if (!els.status) return;
     els.status.textContent = text || "";
     els.status.style.color = isError ? "#ffb3b3" : "#9bf0ff";
-  }
-
-  function markHidden(key, hidden) {
-    const list = new Set(state.cfg.hiddenEnemies || []);
-    if (hidden) list.add(key);
-    else list.delete(key);
-    state.cfg.hiddenEnemies = Array.from(list);
   }
 
   function ensureEnemy(key) {
@@ -741,7 +747,7 @@
 
   function createTagsCell(key) {
     const enemy = ensureEnemy(key);
-    const tags = new Set(enemy.specialBehavior || []);
+    const tags = new Set(sanitizeSpecialBehavior(enemy.specialBehavior));
     if (enemy.ranged) tags.add("ranged");
     const wrapper = createField("Tags", "field--wide");
     const details = document.createElement("details");
@@ -761,9 +767,9 @@
       cb.addEventListener("change", () => {
         if (cb.checked) tags.add(tag);
         else tags.delete(tag);
-        enemy.specialBehavior = Array.from(tags);
+        enemy.specialBehavior = sanitizeSpecialBehavior(Array.from(tags));
         enemy.ranged = tags.has("ranged");
-        const updated = Array.from(tags);
+        const updated = sanitizeSpecialBehavior(Array.from(tags));
         summary.textContent = updated.length ? updated.join(", ") : "Select behavior tags";
         renderTable(); // refresh to reflect swarm spacing availability
       });
@@ -801,21 +807,6 @@
     return wrapper;
   }
 
-  function createHiddenToggle(key) {
-    const wrap = document.createElement("label");
-    wrap.className = "muted";
-    const cb = document.createElement("input");
-    cb.type = "checkbox";
-    cb.checked = (state.cfg.hiddenEnemies || []).includes(key);
-    cb.addEventListener("change", () => {
-      markHidden(key, cb.checked);
-      renderTable();
-    });
-    wrap.appendChild(cb);
-    wrap.append(" Hidden");
-    return wrap;
-  }
-
   function renderRow(key) {
     const enemy = ensureEnemy(key);
     if (!enemy) return;
@@ -844,13 +835,6 @@
 
     const main = document.createElement("div");
     main.className = "enemy-main";
-    const topbar = document.createElement("div");
-    topbar.className = "enemy-topbar";
-    const toggles = document.createElement("div");
-    toggles.className = "toggles";
-    toggles.appendChild(createHiddenToggle(key));
-    topbar.appendChild(toggles);
-    main.appendChild(topbar);
 
     const grid = document.createElement("div");
     grid.className = "field-grid";
@@ -872,10 +856,8 @@
   function renderTable() {
     spriteCells = new Map();
     els.list.innerHTML = "";
-    const hidden = new Set(state.cfg.hiddenEnemies || []);
     const keys = Object.keys(state.cfg.catalog || {}).sort();
     keys.forEach((key) => {
-      if (!state.showHidden && hidden.has(key)) return;
       if (state.search) {
         const haystack = `${key} ${(state.cfg.catalog[key]?.displayName || "")}`.toLowerCase();
         if (!haystack.includes(state.search)) return;
@@ -887,9 +869,7 @@
 
   function show() {
     state.cfg = loadConfig();
-    state.showHidden = false;
     state.search = "";
-    if (els.showHidden) els.showHidden.checked = false;
     if (els.search) els.search.value = "";
     overlay.style.display = "block";
     renderTable();
@@ -917,12 +897,6 @@
     }
   }
 
-  if (els.showHidden) {
-    els.showHidden.addEventListener("change", () => {
-      state.showHidden = Boolean(els.showHidden.checked);
-      renderTable();
-    });
-  }
   if (els.search) {
     els.search.addEventListener("input", () => {
       state.search = String(els.search.value || "").trim().toLowerCase();
@@ -932,13 +906,6 @@
   if (els.save) els.save.addEventListener("click", handleSave);
   if (els.exportBtn) {
     els.exportBtn.addEventListener("click", () => exportFile(state.cfg));
-  }
-  if (els.printHidden) {
-    els.printHidden.addEventListener("click", () => {
-      const hidden = Array.isArray(state.cfg.hiddenEnemies) ? state.cfg.hiddenEnemies : [];
-      console.log("EnemyEditor hiddenEnemies:", hidden);
-      setStatus(`Hidden list printed to console (${hidden.length}).`);
-    });
   }
   if (els.close) els.close.addEventListener("click", hide);
 
