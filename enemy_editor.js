@@ -722,6 +722,23 @@
     return wrapper;
   }
 
+  function createDamageInput(key, field, label, fallbackField = "damage", modifierClass = "") {
+    const enemy = ensureEnemy(key);
+    const wrapper = createField(label, modifierClass);
+    const input = document.createElement("input");
+    input.type = "number";
+    const initialValue =
+      enemy[field] ?? (fallbackField && enemy[fallbackField] !== undefined ? enemy[fallbackField] : "");
+    input.value = initialValue;
+    input.addEventListener("change", () => {
+      const val = input.value === "" ? null : Number(input.value);
+      if (val === null || Number.isNaN(val)) delete enemy[field];
+      else enemy[field] = val;
+    });
+    wrapper.appendChild(input);
+    return wrapper;
+  }
+
   function createDamageClassSelect(key) {
     const wrapper = createField("Class");
     const enemy = ensureEnemy(key);
@@ -840,7 +857,8 @@
     grid.className = "field-grid";
     grid.appendChild(createDamageClassSelect(key));
     grid.appendChild(createNumberInput(key, "health", "HP"));
-    grid.appendChild(createNumberInput(key, "damage", "Damage"));
+    grid.appendChild(createDamageInput(key, "contactDamage", "Contact"));
+    grid.appendChild(createDamageInput(key, "attackDamage", "Attack"));
     grid.appendChild(createNumberInput(key, "speed", "Speed"));
     grid.appendChild(createNumberInput(key, "scale", "Scale"));
     grid.appendChild(createNumberInput(key, "cooldown", "Cooldown"));

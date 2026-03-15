@@ -113,8 +113,8 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
+                          "enemy": "miniImp",
+                          "count": 100
                         }
                       ],
                       "weights": {},

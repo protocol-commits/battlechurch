@@ -5975,20 +5975,30 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
               return;
             }
             if (typeof player.takeDamage === 'function') {
-              const rawDamage = Number.isFinite(enemy.config?.damage)
-                ? enemy.config.damage
-                : Number.isFinite(enemy.damage)
-                  ? enemy.damage
-                  : 1;
+              const rawDamage =
+                typeof getEnemyContactDamageValue === "function"
+                  ? getEnemyContactDamageValue(enemy)
+                  : Number.isFinite(enemy.config?.contactDamage)
+                    ? enemy.config.contactDamage
+                    : Number.isFinite(enemy.config?.damage)
+                      ? enemy.config.damage
+                      : Number.isFinite(enemy.damage)
+                        ? enemy.damage
+                        : 1;
               if (rawDamage > 0) {
                 player.takeDamage(rawDamage);
               }
             } else if (typeof player.health === 'number') {
-              const rawDamage = Number.isFinite(enemy.config?.damage)
-                ? enemy.config.damage
-                : Number.isFinite(enemy.damage)
-                  ? enemy.damage
-                  : 1;
+              const rawDamage =
+                typeof getEnemyContactDamageValue === "function"
+                  ? getEnemyContactDamageValue(enemy)
+                  : Number.isFinite(enemy.config?.contactDamage)
+                    ? enemy.config.contactDamage
+                    : Number.isFinite(enemy.config?.damage)
+                      ? enemy.config.damage
+                      : Number.isFinite(enemy.damage)
+                        ? enemy.damage
+                        : 1;
               if (rawDamage > 0) {
                 player.health = Math.max(0, player.health - rawDamage);
               }

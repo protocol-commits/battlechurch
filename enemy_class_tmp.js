@@ -129,7 +129,15 @@ class Enemy {
             } else if (player.shieldTimer > 0) {
               applyShieldImpact(this);
             } else {
-              player.takeDamage(this.config.damage);
+              const attackDamage =
+                Number.isFinite(this.config?.attackHitDamage) && this.config.attackHitDamage >= 0
+                  ? this.config.attackHitDamage
+                  : Number.isFinite(this.config?.attackDamage) && this.config.attackDamage >= 0
+                    ? this.config.attackDamage
+                    : this.config.damage;
+              if (attackDamage > 0) {
+                player.takeDamage(attackDamage);
+              }
             }
           } else if (typeof target.sufferAttack === "function") {
             // Before dealing damage, ensure the NPC target is still valid and has faith
@@ -138,8 +146,16 @@ class Enemy {
             const hasFaith = !(typeof npcTarget.faith === 'number' && npcTarget.faith <= 0);
             if (targetStillValid && hasFaith) {
               // log before calling sufferAttack
-              console.debug && console.debug('Enemy dealing damage to NPC', { enemy: this.type, damage: this.config.damage });
-              target.sufferAttack(this.config.damage);
+              const attackDamage =
+                Number.isFinite(this.config?.attackHitDamage) && this.config.attackHitDamage >= 0
+                  ? this.config.attackHitDamage
+                  : Number.isFinite(this.config?.attackDamage) && this.config.attackDamage >= 0
+                    ? this.config.attackDamage
+                    : this.config.damage;
+              console.debug && console.debug('Enemy dealing damage to NPC', { enemy: this.type, damage: attackDamage });
+              if (attackDamage > 0) {
+                target.sufferAttack(attackDamage);
+              }
             } else {
               // target invalid or faith drained; clear any attack lock so minighost will re-acquire
               this._attackLock = null;

@@ -42,7 +42,8 @@
       "height": 24,
       "offsetX": 24,
       "offsetY": 3
-    }
+    },
+    "contactDamage": 2
   },
   "orc": {
     "displayName": "Orc",

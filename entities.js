@@ -104,6 +104,33 @@
     };
   };
 
+  const getEnemyContactDamage = (enemy) => {
+    const config = enemy?.config || enemy || null;
+    if (!config) return 0;
+    if (Number.isFinite(config.contactDamage) && config.contactDamage >= 0) {
+      return config.contactDamage;
+    }
+    if (Number.isFinite(config.damage) && config.damage >= 0) {
+      return config.damage;
+    }
+    return 0;
+  };
+
+  const getEnemyAttackDamage = (enemy) => {
+    const config = enemy?.config || enemy || null;
+    if (!config) return 0;
+    if (Number.isFinite(config.attackHitDamage) && config.attackHitDamage >= 0) {
+      return config.attackHitDamage;
+    }
+    if (Number.isFinite(config.attackDamage) && config.attackDamage >= 0) {
+      return config.attackDamage;
+    }
+    if (Number.isFinite(config.damage) && config.damage >= 0) {
+      return config.damage;
+    }
+    return 0;
+  };
+
   let settings = Object.assign({}, defaults);
   let enemyDefinitions = {};
   let enemyTypesCache = null;
@@ -219,6 +246,14 @@
             health: def.health,
             maxHealth: def.health,
             damage: def.damage,
+            contactDamage:
+              Number.isFinite(def.contactDamage) && def.contactDamage >= 0
+                ? def.contactDamage
+                : undefined,
+            attackDamage:
+              Number.isFinite(def.attackDamage) && def.attackDamage >= 0
+                ? def.attackDamage
+                : undefined,
             attackRange,
             hitRadius,
             attackCooldown: def.cooldown,
@@ -1885,10 +1920,7 @@
               : distance <= attackThreshold;
             if (hitConfirmed) {
               if (targetIsPlayer) this.playerHitDuringAttack = true;
-              const hitDamage =
-                Number.isFinite(this.config?.attackHitDamage) && this.config.attackHitDamage > 0
-                  ? this.config.attackHitDamage
-                  : this.config.damage;
+              const hitDamage = getEnemyAttackDamage(this);
               if (targetIsPlayer) {
                 if (player.invulnerableTimer > 0) {
                   this.touchCooldown = Math.max(this.touchCooldown || 0, 0.35);
@@ -1946,7 +1978,10 @@
               } else if (player.shieldTimer > 0) {
                 applyShieldImpact(this);
               } else {
-                player.takeDamage(this.config.damage);
+                const hitDamage = getEnemyAttackDamage(this);
+                if (hitDamage > 0) {
+                  player.takeDamage(hitDamage);
+                }
                 applyWeaponKnockback(player, this.x, this.y);
               }
             } else if (typeof target.sufferAttack === "function") {
@@ -1957,13 +1992,16 @@
               if (targetStillValid && hasFaith) {
                 try {
                   console.debug &&
-                    console.debug("Enemy dealing damage to NPC", { enemy: this.type, damage: this.config.damage });
+                    console.debug("Enemy dealing damage to NPC", { enemy: this.type, damage: getEnemyAttackDamage(this) });
                 } catch (e) {}
-                target.sufferAttack(this.config.damage, {
-                  sourceType: this.type,
-                  bypassCooldown: true,
-                });
-                applyWeaponKnockback(npcTarget, this.x, this.y);
+                const hitDamage = getEnemyAttackDamage(this);
+                if (hitDamage > 0) {
+                  target.sufferAttack(hitDamage, {
+                    sourceType: this.type,
+                    bypassCooldown: true,
+                  });
+                  applyWeaponKnockback(npcTarget, this.x, this.y);
+                }
               } else {
                 this._attackLock = null;
               }

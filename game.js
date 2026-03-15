@@ -3917,6 +3917,14 @@ function applyHitboxChange(key, sourceHitbox, sourceWeaponHitbox) {
       Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0
         ? def.attackHitDamage
         : undefined;
+    ENEMY_TYPES[key].contactDamage =
+      Number.isFinite(def.contactDamage) && def.contactDamage >= 0
+        ? def.contactDamage
+        : undefined;
+    ENEMY_TYPES[key].attackDamage =
+      Number.isFinite(def.attackDamage) && def.attackDamage >= 0
+        ? def.attackDamage
+        : undefined;
     ENEMY_TYPES[key].damage =
       Number.isFinite(def.damage) && def.damage >= 0 ? def.damage : ENEMY_TYPES[key].damage;
   }
@@ -3933,6 +3941,14 @@ function applyHitboxChange(key, sourceHitbox, sourceWeaponHitbox) {
         enemy.config.attackHitDamage =
           Number.isFinite(def.attackHitDamage) && def.attackHitDamage >= 0
             ? def.attackHitDamage
+            : undefined;
+        enemy.config.contactDamage =
+          Number.isFinite(def.contactDamage) && def.contactDamage >= 0
+            ? def.contactDamage
+            : undefined;
+        enemy.config.attackDamage =
+          Number.isFinite(def.attackDamage) && def.attackDamage >= 0
+            ? def.attackDamage
             : undefined;
         if (Number.isFinite(def.damage) && def.damage >= 0) {
           enemy.config.damage = def.damage;
@@ -4188,6 +4204,14 @@ function buildEnemyTypesFallback(defs) {
           health: def.health,
           maxHealth: def.health,
           damage: roundEnemyDamageToFive(def.damage),
+          contactDamage:
+            Number.isFinite(def.contactDamage) && def.contactDamage >= 0
+              ? roundEnemyDamageToFive(def.contactDamage)
+              : undefined,
+          attackDamage:
+            Number.isFinite(def.attackDamage) && def.attackDamage >= 0
+              ? roundEnemyDamageToFive(def.attackDamage)
+              : undefined,
           attackRange,
           hitRadius,
           attackCooldown: def.cooldown,
@@ -10435,6 +10459,33 @@ function getEnemyHitboxRadius(enemy) {
   return enemy.config?.hitRadius || enemy.radius || 0;
 }
 
+function getEnemyContactDamageValue(enemy) {
+  const config = enemy?.config || enemy || null;
+  if (!config) return 0;
+  if (Number.isFinite(config.contactDamage) && config.contactDamage >= 0) {
+    return config.contactDamage;
+  }
+  if (Number.isFinite(config.damage) && config.damage >= 0) {
+    return config.damage;
+  }
+  return 0;
+}
+
+function getEnemyAttackDamageValue(enemy) {
+  const config = enemy?.config || enemy || null;
+  if (!config) return 0;
+  if (Number.isFinite(config.attackHitDamage) && config.attackHitDamage >= 0) {
+    return config.attackHitDamage;
+  }
+  if (Number.isFinite(config.attackDamage) && config.attackDamage >= 0) {
+    return config.attackDamage;
+  }
+  if (Number.isFinite(config.damage) && config.damage >= 0) {
+    return config.damage;
+  }
+  return 0;
+}
+
 function getEnemyHitboxCenter(enemy) {
   const hitbox = enemy?.config?.hitbox || null;
   const offsetX = hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
@@ -13135,7 +13186,7 @@ function updateCozyNpcs(dt) {
       }
       if ((npcEntity.damageCooldown || 0) > 0) continue;
       if (npcEntity.faith <= 0) continue;
-      const enemyDamage = enemy.config?.damage ?? enemy.config?.attackDamage ?? 0;
+      const enemyDamage = getEnemyContactDamageValue(enemy);
       if (!enemyDamage) continue;
       // Apply the full configured enemy damage to NPCs (no reduction).
       const scaled = Math.max(1, Math.round(enemyDamage));
