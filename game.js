@@ -14624,6 +14624,8 @@ function handlePauseMenu() {
 }
 
 function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
+  const playerDt = consumeEntityMeleeHitstopDt(player, dt);
+  window.__battlechurchPlayerMeleeHitstopActive = Boolean(player && playerDt <= 0 && dt > 0);
   if (playerUpdatedDuringCongregation) {
     updateAimAssist();
     return;
@@ -14637,14 +14639,14 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       playerDashState.pendingDashDir = getDashButtonDirection();
     }
     if (playerDashState.pendingDashTimer > 0) {
-      const comboSwipe = window.Input?.peekComboSwipe?.();
-      const comboSwipeActive =
-        keysPressed.has("ArrowLeft") ||
-        (comboSwipe && ((comboSwipe.from === "A" && comboSwipe.to === "B") || (comboSwipe.from === "B" && comboSwipe.to === "A")));
+        const comboSwipe = window.Input?.peekComboSwipe?.();
+        const comboSwipeActive =
+          keysPressed.has("ArrowLeft") ||
+          (comboSwipe && ((comboSwipe.from === "A" && comboSwipe.to === "B") || (comboSwipe.from === "B" && comboSwipe.to === "A")));
       if (comboSwipeActive) {
         playerDashState.pendingDashTimer = 0;
       } else {
-        playerDashState.pendingDashTimer = Math.max(0, playerDashState.pendingDashTimer - dt);
+        playerDashState.pendingDashTimer = Math.max(0, playerDashState.pendingDashTimer - playerDt);
         if (playerDashState.pendingDashTimer === 0) {
           if (tryStartDash(playerDashState.pendingDashDir)) {
             keysJustPressed.delete("ArrowDown");
@@ -14655,10 +14657,10 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
 
     // Update dash movement
     if (playerDashState.isDashing) {
-      updateDashMovement(dt);
+      updateDashMovement(playerDt);
     }
 
-    player.update(dt);
+    player.update(playerDt);
   } else {
     updateAimAssist();
     if (player && player.state === "death") {
@@ -14817,24 +14819,28 @@ function updateTormentorFlames(enemy, dt) {
 
 function updateEnemiesAndEntities(dt) {
   enemies.forEach((enemy) => {
-    enemy.update(dt);
+    const enemyDt = consumeEntityMeleeHitstopDt(enemy, dt);
+    enemy.update(enemyDt);
     if (enemy.type === "miniDemonTormentor") {
-      updateTormentorFlames(enemy, dt);
+      updateTormentorFlames(enemy, enemyDt);
     }
     if (enemy._orbiting && enemy.orbitParent) {
       enemy.spawnOffscreenTimer = 0;
       return;
     }
-    enemy.spawnOffscreenTimer = Math.max(0, (enemy.spawnOffscreenTimer || 0) - dt);
+    enemy.spawnOffscreenTimer = Math.max(0, (enemy.spawnOffscreenTimer || 0) - enemyDt);
     if (enemy.spawnOffscreenTimer <= 0) {
       enemy.ignoreWorldBounds = false;
       enemy.spawnPushGrace = Math.max(enemy.spawnPushGrace || 0, 0.4);
     }
-    enemy.touchCooldown = Math.max(0, (enemy.touchCooldown || 0) - dt);
+    enemy.touchCooldown = Math.max(0, (enemy.touchCooldown || 0) - enemyDt);
     if (enemy.spawnOffscreenTimer > 0) {
       return;
     }
-    enemy.spawnPushGrace = Math.max(0, (enemy.spawnPushGrace || 0) - dt);
+    enemy.spawnPushGrace = Math.max(0, (enemy.spawnPushGrace || 0) - enemyDt);
+    if (enemyDt <= 0) {
+      return;
+    }
     applyEnemyTouchDamage(enemy);
     resolveEntityCollisions(enemy, [player], { allowPush: true, overlapScale: 0.6 });
     resolveEntityCollisions(enemy, enemies, { allowPush: true, overlapScale: 0.85 });
@@ -15996,6 +16002,14 @@ function rewardMeleeGraceBurst(target, count, spread = null) {
   spawnGraceArcBurst(baseX, baseY, gemCount, spread);
 }
 
+function consumeEntityMeleeHitstopDt(entity, dt) {
+  if (!entity || !Number.isFinite(dt) || dt <= 0) return dt;
+  const remaining = Number(entity.meleeHitstopTimer) || 0;
+  if (remaining <= 0) return dt;
+  entity.meleeHitstopTimer = Math.max(0, remaining - dt);
+  return 0;
+}
+
 function applyMeleeHitstop(target, meleeAttackState, counterHit) {
   if (!target) return;
   const now =
@@ -16018,7 +16032,10 @@ function applyMeleeHitstop(target, meleeAttackState, counterHit) {
     duration = MELEE_COUNTER_HITSTOP_DURATION;
     shake = MELEE_COUNTER_HITSTOP_SHAKE;
   }
-  hitFreezeTimer = Math.max(hitFreezeTimer, duration);
+  target.meleeHitstopTimer = Math.max(Number(target.meleeHitstopTimer) || 0, duration);
+  if (player && player !== target) {
+    player.meleeHitstopTimer = Math.max(Number(player.meleeHitstopTimer) || 0, duration);
+  }
   applyCameraShake(Math.max(0.08, duration * 2.5), shake);
 }
 
@@ -17664,8 +17681,9 @@ function updateGame(dt) {
   }
   const congregationStageActive = stage === "levelIntro";
 
+  const visualDt = dt;
   const freezeFrameActive = hitFreezeTimer > 0;
-  updateCameraAndVisualEffects(dt);
+  updateCameraAndVisualEffects(visualDt);
   if (freezeFrameActive) {
     dt = 0;
   }
@@ -17714,7 +17732,8 @@ function updateGame(dt) {
   }
 
   if (activeBoss) {
-    activeBoss.update(dt);
+    const bossDt = consumeEntityMeleeHitstopDt(activeBoss, dt);
+    activeBoss.update(bossDt);
     if (activeBoss.removed) {
       activeBoss = null;
     }
@@ -17725,8 +17744,8 @@ function updateGame(dt) {
   updateGracePickups(dt);
   updateSpearDart(dt);
   updateSentryTurret(dt);
-  updateGraceHudFlyEffects(dt);
-  updatePowerupHudFlyEffects(dt);
+  updateGraceHudFlyEffects(visualDt);
+  updatePowerupHudFlyEffects(visualDt);
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   // Ensure power-ups obey spawn rules per stage
@@ -17771,11 +17790,11 @@ function updateGame(dt) {
     console.warn && console.warn('ensure-powerup check failed', err);
   }
   updateBossHazards(dt);
-  updateFloatingTexts(dt);
+  updateFloatingTexts(visualDt);
   updateLevelAnnouncements(dt);
   updateDevStatus(dt);
   updateAimAssist();
-  updateEffects(dt);
+  updateEffects(visualDt);
   if (!levelManager?.isActive()) {
     maintainMiniImpHorde(levelStatus);
     maintainSkeletonHorde();
@@ -17789,7 +17808,11 @@ function updateGame(dt) {
       ? performance.now()
       : Date.now(),
   );
-  updateMeleeAttackSystem(dt);
+  const meleeSystemDt =
+    window.__battlechurchPlayerMeleeHitstopActive
+      ? 0
+      : dt;
+  updateMeleeAttackSystem(meleeSystemDt);
 
   processProjectileCollisions(dt);
   processProjectileClashing();
