@@ -3693,12 +3693,86 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     return;
   }
 
+  function getCombatMeterPalette() {
+    const colors =
+      (typeof UIStyles !== "undefined" && UIStyles.colors) || {};
+    return {
+      bg: colors.deepNavy || "#0A0F1F",
+      frame: colors.slate || "#233152",
+      sword: colors.gold || "#FFC86A",
+      swordGlow: colors.softWhite || "#EAF6FF",
+      dash: colors.ice || "#9BD9FF",
+      dashGlow: colors.teal || "#5FE3C0",
+    };
+  }
+
+  function drawCompactWorldMeter(x, y, width, height, ratio, fillColor, glowColor) {
+    const { ctx } = requireBindings();
+    const palette = getCombatMeterPalette();
+    const clamped = Math.max(0, Math.min(1, ratio));
+    const fillWidth = Math.max(0, (width - 4) * clamped);
+    const radius = Math.max(3, Math.floor(height / 2));
+
+    ctx.save();
+    ctx.fillStyle = "rgba(10, 15, 31, 0.82)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.14)";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, x, y, width, height, radius, true, true);
+
+    ctx.save();
+    ctx.beginPath();
+    roundRect(ctx, x + 2, y + 2, Math.max(0, width - 4), Math.max(0, height - 4), Math.max(2, radius - 2), false, false);
+    ctx.clip();
+
+    if (fillWidth > 0) {
+      const gradient = ctx.createLinearGradient(x, y, x + width, y);
+      gradient.addColorStop(0, fillColor);
+      gradient.addColorStop(1, glowColor);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x + 2, y + 2, fillWidth, Math.max(1, height - 4));
+
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = glowColor;
+      ctx.fillRect(x + 2, y + 2, fillWidth, Math.max(1, (height - 4) * 0.4));
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = palette.frame;
+    ctx.lineWidth = 1;
+    roundRect(ctx, x, y, width, height, radius, false, true);
+    ctx.restore();
+  }
+
   function drawPlayerWeaponMeter(player) {
-    return;
+    const { ctx, cameraOffsetX = 0, cameraOffsetY = 0, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
+    if (!ctx || !player || !meleeAttackState || player.state === "death") return;
+    if (!meleeAttackState.isCharging || !meleeAttackState.buttonDown) return;
+    const holdTime = Math.max(0.001, meleeAttackState.holdTime || 0);
+    const chargeRatio = Math.max(0, Math.min(1, (meleeAttackState.chargeTimer || 0) / holdTime));
+    const shakeX = sharedShakeOffset?.x || 0;
+    const shakeY = sharedShakeOffset?.y || 0;
+    const width = Math.round(44 * WORLD_SCALE);
+    const height = Math.max(7, Math.round(8 * WORLD_SCALE));
+    const screenX = player.x - cameraOffsetX + shakeX - width / 2;
+    const screenY = player.y - cameraOffsetY + shakeY - player.radius - Math.round(22 * WORLD_SCALE);
+    const palette = getCombatMeterPalette();
+    drawCompactWorldMeter(screenX, screenY, width, height, chargeRatio, palette.sword, palette.swordGlow);
   }
 
   function drawPlayerExtendMeter(player) {
-    return;
+    const { ctx, cameraOffsetX = 0, cameraOffsetY = 0, WORLD_SCALE = 1, playerDashState, DASH_COOLDOWN = 0 } = requireBindings();
+    if (!ctx || !player || !playerDashState || player.state === "death") return;
+    const dashCooldown = Math.max(0, playerDashState.dashCooldown || 0);
+    if (dashCooldown <= 0 || DASH_COOLDOWN <= 0) return;
+    const rechargeRatio = Math.max(0, Math.min(1, 1 - dashCooldown / DASH_COOLDOWN));
+    const shakeX = sharedShakeOffset?.x || 0;
+    const shakeY = sharedShakeOffset?.y || 0;
+    const width = Math.round(38 * WORLD_SCALE);
+    const height = Math.max(6, Math.round(7 * WORLD_SCALE));
+    const screenX = player.x - cameraOffsetX + shakeX - width / 2;
+    const screenY = player.y - cameraOffsetY + shakeY + player.radius + Math.round(12 * WORLD_SCALE);
+    const palette = getCombatMeterPalette();
+    drawCompactWorldMeter(screenX, screenY, width, height, rechargeRatio, palette.dash, palette.dashGlow);
   }
 
   function drawVisitorIntroOverlay() {

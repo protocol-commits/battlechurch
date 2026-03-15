@@ -2969,7 +2969,7 @@ window.gameOverReady = false;
 window.postDeathSequenceActive = false;
 if (typeof window !== "undefined") {
   window.BattlechurchHitboxDebug = window.BattlechurchHitboxDebug || {
-    playerMelee: true,
+    playerMelee: false,
     npcs: false,
     enemies: false,
     projectiles: false,
