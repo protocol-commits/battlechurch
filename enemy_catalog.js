@@ -677,7 +677,7 @@
       "idle": "Walk",
       "attack": "Attack03"
     },
-    "health": 600,
+    "health": 1000,
     "maxHealth": 410,
     "damage": 5,
     "speed": 50,
