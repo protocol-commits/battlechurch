@@ -6340,38 +6340,60 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const len = Math.hypot(dirVec.x, dirVec.y) || 1;
     const normalized = { x: dirVec.x / len, y: dirVec.y / len };
     const angle = Math.atan2(normalized.y, normalized.x);
+    const slashHitbox = player?.config?.weaponHitbox || null;
+    const rushHitbox = player?.config?.rushHitbox || null;
+    const activeHitbox =
+      state.isRushing || state.rushDamageEnabled
+        ? rushHitbox
+        : slashHitbox;
+    const hitboxWidth =
+      activeHitbox && Number.isFinite(activeHitbox.width) && activeHitbox.width > 0
+        ? activeHitbox.width
+        : null;
+    const hitboxHeight =
+      activeHitbox && Number.isFinite(activeHitbox.height) && activeHitbox.height > 0
+        ? activeHitbox.height
+        : null;
     const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
     const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
     const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
-    const drawWidth = swooshImg.width * swingScale;
-    const drawHeight = swooshImg.height * swingScale * arcScale;
-    const offset = Math.max(player.radius * 0.25, drawHeight * 0.15);
-    const originX = player.x - normalized.x * offset - cameraOffsetX + shakeX;
-    const originY = player.y - normalized.y * offset - cameraOffsetY + shakeY;
+    const fallbackWidth = swooshImg.width * swingScale;
+    const fallbackHeight = swooshImg.height * swingScale * arcScale;
+    const drawWidth = hitboxWidth || fallbackWidth;
+    const drawHeight = hitboxHeight || fallbackHeight;
+    const originX = player.x - cameraOffsetX + shakeX;
+    const originY = player.y - cameraOffsetY + shakeY;
     const duration = Math.max(0.001, MELEE_SWING_DURATION);
     const intensity = state.swooshTimer > 0
       ? Math.min(1, state.swooshTimer / duration)
       : 0.85;
+    const rectX =
+      activeHitbox && Number.isFinite(activeHitbox.offsetX)
+        ? activeHitbox.offsetX - drawWidth * 0.5
+        : 0;
+    const rectY =
+      activeHitbox && Number.isFinite(activeHitbox.offsetY)
+        ? activeHitbox.offsetY - drawHeight * 0.5
+        : -drawHeight * 0.5;
     ctx.save();
     ctx.translate(originX, originY);
     ctx.rotate(angle);
     ctx.globalAlpha = Math.min(0.9, 0.65 + intensity * 0.35);
     ctx.drawImage(
       swooshImg,
-      0,
-      -drawHeight * 0.5,
+      rectX,
+      rectY,
       drawWidth,
       drawHeight,
     );
     if (state.isRushing || state.rushDamageEnabled) {
-      const rushHitbox = player?.config?.rushHitbox || null;
-      const frontWidth = drawWidth * 1.6;
+      const frontWidth = drawWidth;
       const frontHeight = drawHeight;
       ctx.globalAlpha = Math.min(0.85, 0.45 + intensity * 0.35);
       ctx.drawImage(
         swooshImg,
-        drawWidth * 0.06,
-        -frontHeight * 0.5,
+        rectX + drawWidth * 0.06,
+        rectY,
         frontWidth,
         frontHeight,
       );
