@@ -6217,7 +6217,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typeof window !== "undefined"
         ? window.BattlechurchHitboxDebug?.playerMelee === true
         : false;
-    const weapon = player?.config?.weaponHitbox || null;
+    const slashHitbox = player?.config?.weaponHitbox || null;
+    const dashSlashHitbox = player?.config?.dashSlashHitbox || slashHitbox || null;
+    const rushHitbox = player?.config?.rushHitbox || null;
+    const activeDebugHitbox =
+      state.isRushing || state.rushDamageEnabled
+        ? rushHitbox
+        : state.currentAttackHitboxType === "dashSlash"
+          ? dashSlashHitbox
+          : slashHitbox;
     if (showMeleeHitboxDebug && meleeRange > 0) {
       const dirVec =
         (state.isRushing && state.rushDir) ||
@@ -6230,9 +6238,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const swooshSpread = Math.PI * 0.35 * (bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5);
       const originX = player.x - cameraOffsetX + shakeX;
       const originY = player.y - cameraOffsetY + shakeY;
-      if (weapon && Number.isFinite(weapon.width) && Number.isFinite(weapon.height)) {
-        const offsetX = Number.isFinite(weapon.offsetX) ? weapon.offsetX : 0;
-        const offsetY = Number.isFinite(weapon.offsetY) ? weapon.offsetY : 0;
+      if (
+        activeDebugHitbox &&
+        Number.isFinite(activeDebugHitbox.width) &&
+        Number.isFinite(activeDebugHitbox.height)
+      ) {
+        const offsetX = Number.isFinite(activeDebugHitbox.offsetX) ? activeDebugHitbox.offsetX : 0;
+        const offsetY = Number.isFinite(activeDebugHitbox.offsetY) ? activeDebugHitbox.offsetY : 0;
         ctx.save();
         ctx.translate(originX, originY);
         ctx.rotate(angle);
@@ -6240,21 +6252,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.strokeStyle = "rgba(110, 210, 255, 0.8)";
         ctx.lineWidth = 2;
         ctx.fillRect(
-          offsetX - weapon.width * 0.5,
-          offsetY - weapon.height * 0.5,
-          weapon.width,
-          weapon.height,
+          offsetX - activeDebugHitbox.width * 0.5,
+          offsetY - activeDebugHitbox.height * 0.5,
+          activeDebugHitbox.width,
+          activeDebugHitbox.height,
         );
         ctx.strokeRect(
-          offsetX - weapon.width * 0.5,
-          offsetY - weapon.height * 0.5,
-          weapon.width,
-          weapon.height,
+          offsetX - activeDebugHitbox.width * 0.5,
+          offsetY - activeDebugHitbox.height * 0.5,
+          activeDebugHitbox.width,
+          activeDebugHitbox.height,
         );
         ctx.restore();
       }
 
-      if (!weapon || !Number.isFinite(weapon.width) || !Number.isFinite(weapon.height)) {
+      if (
+        !activeDebugHitbox ||
+        !Number.isFinite(activeDebugHitbox.width) ||
+        !Number.isFinite(activeDebugHitbox.height)
+      ) {
         ctx.save();
         ctx.strokeStyle = "rgba(110, 210, 255, 0.75)";
         ctx.lineWidth = 2;
@@ -6275,29 +6291,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.stroke();
         ctx.restore();
       }
-    }
-    if (showMeleeHitboxDebug && state.swooshTimer > 0 && !state.isRushing && swooshImg) {
-      const dirVec = state.swooshDir || window.Input.lastMovementDirection || { x: 1, y: 0 };
-      const len = Math.hypot(dirVec.x, dirVec.y) || 1;
-      const normalized = { x: dirVec.x / len, y: dirVec.y / len };
-      const angle = Math.atan2(normalized.y, normalized.x);
-      const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
-      const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
-      const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
-      const drawWidth = swooshImg.width * swingScale;
-      const drawHeight = swooshImg.height * swingScale * arcScale;
-      const offset = Math.max(player.radius * 0.25, drawHeight * 0.15);
-      const originX = player.x - cameraOffsetX + shakeX;
-      const originY = player.y - cameraOffsetY + shakeY;
-      ctx.save();
-      ctx.translate(originX, originY);
-      ctx.rotate(angle);
-      ctx.fillStyle = "rgba(80, 220, 255, 0.18)";
-      ctx.strokeStyle = "rgba(80, 220, 255, 0.9)";
-      ctx.lineWidth = 2;
-      ctx.fillRect(-offset, -drawHeight * 0.5, drawWidth, drawHeight);
-      ctx.strokeRect(-offset, -drawHeight * 0.5, drawWidth, drawHeight);
-      ctx.restore();
     }
     if (player.wordOfGodTimer > 0) {
       return;
@@ -6340,11 +6333,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const len = Math.hypot(dirVec.x, dirVec.y) || 1;
     const normalized = { x: dirVec.x / len, y: dirVec.y / len };
     const angle = Math.atan2(normalized.y, normalized.x);
-    const slashHitbox = player?.config?.weaponHitbox || null;
-    const rushHitbox = player?.config?.rushHitbox || null;
     const activeHitbox =
       state.isRushing || state.rushDamageEnabled
         ? rushHitbox
+        : state.currentAttackHitboxType === "dashSlash"
+          ? dashSlashHitbox
         : slashHitbox;
     const hitboxWidth =
       activeHitbox && Number.isFinite(activeHitbox.width) && activeHitbox.width > 0
