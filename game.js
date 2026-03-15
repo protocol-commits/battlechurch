@@ -2995,24 +2995,8 @@ function toggleHudHitboxDebug(key) {
   window.BattlechurchShowAttackHitboxes = Boolean(window.BattlechurchHitboxDebug.enemies);
   return true;
 }
-
-function handleHudHitboxToggleClick() {
-  if (typeof window === "undefined" || typeof Input?.peekCanvasClick !== "function") return false;
-  if (titleScreenActive || mapActive || paused || gameOver) return false;
-  if (window.UpgradeScreen?.isVisible?.() || window.DialogOverlay?.isVisible?.()) return false;
-  const buttons = Array.isArray(window.__hudHitboxToggleBounds) ? window.__hudHitboxToggleBounds : null;
-  if (!buttons || !buttons.length) return false;
-  const clickPos = Input.peekCanvasClick();
-  if (!clickPos) return false;
-  const hit = buttons.find((button) =>
-    clickPos.x >= button.x &&
-    clickPos.x <= button.x + button.width &&
-    clickPos.y >= button.y &&
-    clickPos.y <= button.y + button.height
-  );
-  if (!hit) return false;
-  Input.consumeCanvasClick?.();
-  return toggleHudHitboxDebug(hit.key);
+if (typeof window !== "undefined") {
+  window.BattlechurchToggleHitboxDebug = toggleHudHitboxDebug;
 }
 
 Renderer.initialize({
@@ -13956,6 +13940,8 @@ function showDeveloperOverlay() {
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="enemy">Enemy Editor</button></div>
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="level">Level Editor</button></div>
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="hitbox">Hitbox Editor</button></div>
+      <div class="settings-row"><div class="settings-row__label"><strong>Hitbox Toggles</strong></div></div>
+      <div class="settings-row" data-hitbox-debug-row></div>
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="shortcuts">Developer Shortcuts</button></div>
     </div>
   `;
@@ -13966,6 +13952,34 @@ function showDeveloperOverlay() {
     variant: "settings",
     onRender: ({ bodyEl }) => {
       if (!bodyEl) return;
+      const hitboxRow = bodyEl.querySelector("[data-hitbox-debug-row]");
+      if (hitboxRow) {
+        const defs = [
+          { key: "playerMelee", label: "Player / Melee" },
+          { key: "npcs", label: "NPCs" },
+          { key: "enemies", label: "Enemies" },
+          { key: "projectiles", label: "Projectiles" },
+        ];
+        hitboxRow.style.display = "flex";
+        hitboxRow.style.flexWrap = "wrap";
+        hitboxRow.style.gap = "8px";
+        defs.forEach(({ key, label }) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "dialog-overlay__button";
+          const sync = () => {
+            const active = Boolean(window.BattlechurchHitboxDebug?.[key]);
+            button.textContent = `${label}: ${active ? "On" : "Off"}`;
+            button.style.opacity = active ? "1" : "0.7";
+          };
+          sync();
+          button.addEventListener("click", () => {
+            window.BattlechurchToggleHitboxDebug?.(key);
+            sync();
+          });
+          hitboxRow.appendChild(button);
+        });
+      }
       bodyEl.querySelectorAll("[data-dev-action]").forEach((button) => {
         button.addEventListener("click", () => {
           const action = button.getAttribute("data-dev-action");
@@ -17758,8 +17772,6 @@ function updateGame(dt) {
   if (handlePauseMenu()) {
     return;
   }
-
-  handleHudHitboxToggleClick();
 
   if (gameOver) {
     player.animator.update(dt);
