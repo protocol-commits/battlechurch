@@ -4,7 +4,7 @@
   const STORAGE_KEY = "battlechurch.devEnemyCatalog";
   const OVERLAY_ID = "enemyEditorOverlay";
   const HOTKEY = "e";
-  const SPRITE_CELL_SIZE = 52;
+  const SPRITE_CELL_SIZE = 112;
   const SPRITE_FRAME_RATE = 6;
   const TAGS = [
     "swarmable",
@@ -120,6 +120,7 @@
   let state = {
     cfg: loadConfig(),
     showHidden: false,
+    search: "",
   };
 
   // UI
@@ -130,145 +131,279 @@
       #${OVERLAY_ID} {
         position: fixed;
         inset: 0;
-        background: rgba(6, 10, 18, 0.94);
+        background:
+          radial-gradient(circle at top, rgba(72, 122, 196, 0.18), transparent 32%),
+          linear-gradient(180deg, rgba(7, 12, 24, 0.98), rgba(4, 8, 18, 0.99));
         color: #e8f4ff;
-        font-family: "Inter", Arial, sans-serif;
+        font-family: Georgia, "Times New Roman", serif;
         z-index: 10000;
         display: none;
-        padding: 16px;
+        padding: 22px;
         box-sizing: border-box;
       }
       #${OVERLAY_ID} .grid {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 16px;
         height: 100%;
       }
       #${OVERLAY_ID} .panel {
-        background: rgba(18, 28, 44, 0.85);
-        border: 1px solid rgba(120, 170, 220, 0.35);
-        border-radius: 8px;
-        padding: 10px;
+        background:
+          linear-gradient(180deg, rgba(18, 28, 44, 0.96), rgba(12, 20, 34, 0.94));
+        border: 1px solid rgba(160, 198, 238, 0.2);
+        border-radius: 20px;
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.42),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        padding: 18px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
       #${OVERLAY_ID} h3 {
-        margin: 0 0 10px 0;
-        font-size: 15px;
-        letter-spacing: 0.3px;
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-family: "Trebuchet MS", Georgia, serif;
       }
       #${OVERLAY_ID} button {
-        background: #2b74ff;
-        color: #fff;
+        background: linear-gradient(180deg, #8fd5ff, #5299d7);
+        color: #07101c;
         border: none;
-        padding: 8px 12px;
-        border-radius: 6px;
+        padding: 10px 14px;
+        border-radius: 999px;
         cursor: pointer;
-        font-weight: 600;
+        font-weight: 700;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.02em;
+        box-shadow: 0 8px 22px rgba(37, 94, 147, 0.35);
       }
       #${OVERLAY_ID} button.secondary {
         background: rgba(255,255,255,0.08);
+        color: #e8f4ff;
+        box-shadow: none;
       }
-      #${OVERLAY_ID} .controls {
+      #${OVERLAY_ID} .controls,
+      #${OVERLAY_ID} .toolbar-left,
+      #${OVERLAY_ID} .toolbar-right {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
-        gap: 10px 12px;
+        gap: 10px 14px;
+      }
+      #${OVERLAY_ID} .header-row,
+      #${OVERLAY_ID} .toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
       }
       #${OVERLAY_ID} .header-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin-bottom: 8px;
+        align-items: flex-start;
+        margin-bottom: 14px;
       }
-      #${OVERLAY_ID} .header-row h3 {
+      #${OVERLAY_ID} .headline {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      #${OVERLAY_ID} .headline p {
         margin: 0;
+        color: rgba(232, 244, 255, 0.72);
+        font: 14px "Trebuchet MS", Arial, sans-serif;
       }
       #${OVERLAY_ID} .status {
-        font-size: 12px;
-        color: #9bf0ff;
         min-height: 18px;
+        color: #9bf0ff;
+        font: 12px "Trebuchet MS", Arial, sans-serif;
       }
-      #${OVERLAY_ID} .table-wrap {
+      #${OVERLAY_ID} .search {
+        min-width: 240px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(155, 217, 255, 0.24);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e8f4ff;
+        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .list-wrap {
         overflow: auto;
         flex: 1;
         max-height: 100%;
+        padding-right: 4px;
       }
-      #${OVERLAY_ID} table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 12px;
-        table-layout: fixed;
-      }
-      #${OVERLAY_ID} th, #${OVERLAY_ID} td {
-        padding: 4px 6px;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        text-align: left;
-        vertical-align: middle;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      #${OVERLAY_ID} thead th {
-        position: sticky;
-        top: 0;
-        background: rgba(18, 28, 44, 0.95);
-        z-index: 2;
-      }
-      #${OVERLAY_ID} input[type="number"] {
-        width: 70px;
-        padding: 4px 6px;
-        border-radius: 4px;
-        border: 1px solid rgba(255,255,255,0.18);
-        background: rgba(255,255,255,0.06);
-        color: #e8f4ff;
-      }
-      #${OVERLAY_ID} select {
-        width: 100%;
-        padding: 4px 6px;
-        border-radius: 4px;
-        border: 1px solid rgba(255,255,255,0.18);
-        background: rgba(255,255,255,0.06);
-        color: #e8f4ff;
-      }
-      #${OVERLAY_ID} .tag-list {
+      #${OVERLAY_ID} .enemy-list {
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px 10px;
+        flex-direction: column;
+        gap: 14px;
       }
-      #${OVERLAY_ID} .tag-list label {
+      #${OVERLAY_ID} .enemy-card {
+        display: grid;
+        grid-template-columns: 160px minmax(0, 1fr);
+        gap: 16px;
+        padding: 16px;
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+          rgba(9, 16, 28, 0.9);
+        border: 1px solid rgba(155, 217, 255, 0.16);
+      }
+      #${OVERLAY_ID} .enemy-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      #${OVERLAY_ID} .sprite-frame {
+        width: ${SPRITE_CELL_SIZE}px;
+        height: ${SPRITE_CELL_SIZE}px;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background:
+          linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.03) 75%),
+          linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.03) 75%),
+          radial-gradient(circle at top, rgba(155, 217, 255, 0.14), rgba(7, 12, 22, 0.92));
+        background-size: 18px 18px, 18px 18px, auto;
+        background-position: 0 0, 9px 9px, 0 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #${OVERLAY_ID} .preview-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      #${OVERLAY_ID} .enemy-name {
+        font: 700 16px "Trebuchet MS", Arial, sans-serif;
+        color: #f5fbff;
+      }
+      #${OVERLAY_ID} .enemy-key {
+        font: 12px "Trebuchet MS", Arial, sans-serif;
+        color: rgba(232, 244, 255, 0.58);
+      }
+      #${OVERLAY_ID} .enemy-main {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+      #${OVERLAY_ID} .enemy-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      #${OVERLAY_ID} .toggles {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font: 600 12px "Trebuchet MS", Arial, sans-serif;
+        color: rgba(232, 244, 255, 0.78);
+      }
+      #${OVERLAY_ID} .toggles label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      #${OVERLAY_ID} .field-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(90px, 1fr));
+        gap: 10px 12px;
+      }
+      #${OVERLAY_ID} .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+      #${OVERLAY_ID} .field--wide {
+        grid-column: span 2;
+      }
+      #${OVERLAY_ID} .field-label {
+        font: 700 10px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(232, 244, 255, 0.58);
+      }
+      #${OVERLAY_ID} input[type="number"],
+      #${OVERLAY_ID} select,
+      #${OVERLAY_ID} details summary {
+        width: 100%;
+        min-width: 0;
+        padding: 9px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.16);
+        background: rgba(255,255,255,0.07);
+        color: #e8f4ff;
+        box-sizing: border-box;
+        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} details.tags-dropdown summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      #${OVERLAY_ID} details.tags-dropdown summary::-webkit-details-marker {
+        display: none;
+      }
+      #${OVERLAY_ID} .tag-panel {
+        margin-top: 8px;
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(7, 12, 22, 0.98);
+        display: grid;
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
+        gap: 8px 10px;
+      }
+      #${OVERLAY_ID} .tag-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 9px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.05);
+        font: 600 12px "Trebuchet MS", Arial, sans-serif;
         white-space: nowrap;
       }
-      #${OVERLAY_ID} th:first-child, #${OVERLAY_ID} td:first-child { width: 46px; text-align:center; }
-      #${OVERLAY_ID} th:nth-child(2), #${OVERLAY_ID} td:nth-child(2) { width: 120px; }
-      #${OVERLAY_ID} th:nth-child(3), #${OVERLAY_ID} td:nth-child(3) { width: 66px; text-align: center; }
-      #${OVERLAY_ID} th:nth-child(4), #${OVERLAY_ID} td:nth-child(4) { width: 90px; }
-      #${OVERLAY_ID} th:nth-child(5), #${OVERLAY_ID} td:nth-child(5) { width: 60px; }
-      #${OVERLAY_ID} th:nth-child(6), #${OVERLAY_ID} td:nth-child(6) { width: 60px; }
-      #${OVERLAY_ID} th:nth-child(7), #${OVERLAY_ID} td:nth-child(7) { width: 60px; }
-      #${OVERLAY_ID} th:nth-child(8), #${OVERLAY_ID} td:nth-child(8) { width: 60px; }
-      #${OVERLAY_ID} th:nth-child(9), #${OVERLAY_ID} td:nth-child(9) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(10), #${OVERLAY_ID} td:nth-child(10) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(11), #${OVERLAY_ID} td:nth-child(11) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(12), #${OVERLAY_ID} td:nth-child(12) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(13), #${OVERLAY_ID} td:nth-child(13) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(14), #${OVERLAY_ID} td:nth-child(14) { width: 70px; }
-      #${OVERLAY_ID} th:nth-child(15), #${OVERLAY_ID} td:nth-child(15) { width: 80px; }
-      #${OVERLAY_ID} th:nth-child(16), #${OVERLAY_ID} td:nth-child(16) { width: 260px; }
+      #${OVERLAY_ID} .muted {
+        color: rgba(232, 244, 255, 0.55);
+      }
+      @media (max-width: 1200px) {
+        #${OVERLAY_ID} .field-grid {
+          grid-template-columns: repeat(3, minmax(90px, 1fr));
+        }
+      }
+      @media (max-width: 860px) {
+        #${OVERLAY_ID} {
+          padding: 12px;
+        }
+        #${OVERLAY_ID} .enemy-card {
+          grid-template-columns: 1fr;
+        }
+        #${OVERLAY_ID} .enemy-preview {
+          flex-direction: row;
+          align-items: center;
+        }
+        #${OVERLAY_ID} .field-grid {
+          grid-template-columns: repeat(2, minmax(90px, 1fr));
+        }
+      }
     </style>
     <div class="grid">
       <div class="panel">
         <div class="header-row">
-          <h3>Enemy Editor</h3>
+          <div class="headline">
+            <h3>Enemy Editor</h3>
+            <p>Tune combat stats, preview sprites clearly, and manage tags without spreadsheet clutter.</p>
+          </div>
           <div class="controls">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+            <label style="display:flex;align-items:center;gap:6px;font:600 12px Trebuchet MS, Arial, sans-serif;">
               <input type="checkbox" id="ee-showHidden">
               Show hidden
             </label>
-            <div class="status" id="ee-status"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button id="ee-save">Save</button>
               <button id="ee-export" class="secondary">Export file</button>
@@ -277,27 +412,14 @@
             </div>
           </div>
         </div>
-        <div class="table-wrap">
-          <table id="ee-table">
-            <thead>
-              <tr>
-                <th>Hide</th>
-                <th>Name</th>
-                <th>Sprite</th>
-                <th>Class</th>
-                <th>HP</th>
-                <th>DMG</th>
-                <th>Speed</th>
-                <th>Scale</th>
-                <th>Hit Radius</th>
-                <th>Atk Range</th>
-                <th>Cooldown</th>
-                <th>Swarm Spacing</th>
-                <th>Tags</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" id="ee-search" class="search" placeholder="Search enemies...">
+            <div class="status" id="ee-status"></div>
+          </div>
+        </div>
+        <div class="list-wrap">
+          <div id="ee-list" class="enemy-list"></div>
         </div>
       </div>
     </div>
@@ -306,12 +428,13 @@
 
   const els = {
     showHidden: overlay.querySelector("#ee-showHidden"),
+    search: overlay.querySelector("#ee-search"),
     status: overlay.querySelector("#ee-status"),
     save: overlay.querySelector("#ee-save"),
     exportBtn: overlay.querySelector("#ee-export"),
     printHidden: overlay.querySelector("#ee-print-hidden"),
     close: overlay.querySelector("#ee-close"),
-    tbody: overlay.querySelector("#ee-table tbody"),
+    list: overlay.querySelector("#ee-list"),
   };
   let spriteRafId = null;
   let spriteCells = new Map();
@@ -351,7 +474,8 @@
   }
 
   function createSpriteCell(key) {
-    const td = document.createElement("td");
+    const wrap = document.createElement("div");
+    wrap.className = "sprite-frame";
     const canvas = document.createElement("canvas");
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     const size = SPRITE_CELL_SIZE;
@@ -359,9 +483,9 @@
     canvas.height = Math.floor(size * dpr);
     canvas.style.width = `${size}px`;
     canvas.style.height = `${size}px`;
-    td.appendChild(canvas);
+    wrap.appendChild(canvas);
     spriteCells.set(key, { key, canvas, ctx: canvas.getContext("2d"), size, dpr });
-    return td;
+    return wrap;
   }
 
   function drawSpriteCell(entry, nowMs) {
@@ -433,9 +557,19 @@
     spriteRafId = null;
   }
 
-  function createNumberInput(key, field) {
-    const td = document.createElement("td");
+  function createField(label, modifierClass = "") {
+    const field = document.createElement("div");
+    field.className = `field${modifierClass ? ` ${modifierClass}` : ""}`;
+    const labelEl = document.createElement("div");
+    labelEl.className = "field-label";
+    labelEl.textContent = label;
+    field.appendChild(labelEl);
+    return field;
+  }
+
+  function createNumberInput(key, field, label, modifierClass = "") {
     const enemy = ensureEnemy(key);
+    const wrapper = createField(label, modifierClass);
     const input = document.createElement("input");
     input.type = "number";
     input.value = enemy[field] ?? "";
@@ -444,12 +578,12 @@
       if (val === null || Number.isNaN(val)) delete enemy[field];
       else enemy[field] = val;
     });
-    td.appendChild(input);
-    return td;
+    wrapper.appendChild(input);
+    return wrapper;
   }
 
   function createDamageClassSelect(key) {
-    const td = document.createElement("td");
+    const wrapper = createField("Class");
     const enemy = ensureEnemy(key);
     const select = document.createElement("select");
     ["normal", "tank", "armored"].forEach((value) => {
@@ -467,19 +601,26 @@
         enemy.damageClass = next;
       }
     });
-    td.appendChild(select);
-    return td;
+    wrapper.appendChild(select);
+    return wrapper;
   }
 
   function createTagsCell(key) {
-    const td = document.createElement("td");
     const enemy = ensureEnemy(key);
     const tags = new Set(enemy.specialBehavior || []);
     if (enemy.ranged) tags.add("ranged");
-    const wrap = document.createElement("div");
-    wrap.className = "tag-list";
+    const wrapper = createField("Tags", "field--wide");
+    const details = document.createElement("details");
+    details.className = "tags-dropdown";
+    const summary = document.createElement("summary");
+    const selected = Array.from(tags);
+    summary.textContent = selected.length ? selected.join(", ") : "Select behavior tags";
+    details.appendChild(summary);
+    const panel = document.createElement("div");
+    panel.className = "tag-panel";
     TAGS.forEach((tag) => {
       const label = document.createElement("label");
+      label.className = "tag-chip";
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = tags.has(tag);
@@ -488,21 +629,24 @@
         else tags.delete(tag);
         enemy.specialBehavior = Array.from(tags);
         enemy.ranged = tags.has("ranged");
+        const updated = Array.from(tags);
+        summary.textContent = updated.length ? updated.join(", ") : "Select behavior tags";
         renderTable(); // refresh to reflect swarm spacing availability
       });
       label.appendChild(cb);
       label.append(" " + tag);
-      wrap.appendChild(label);
+      panel.appendChild(label);
     });
-    td.appendChild(wrap);
-    return td;
+    details.appendChild(panel);
+    wrapper.appendChild(details);
+    return wrapper;
   }
 
   function createSwarmSpacingCell(key) {
-    const td = document.createElement("td");
     const enemy = ensureEnemy(key);
     const tags = new Set(enemy.specialBehavior || []);
     const isSwarmable = tags.has("swarmable");
+    const wrapper = createField("Swarm Spacing");
     const input = document.createElement("input");
     input.type = "number";
     input.min = "0.1";
@@ -519,12 +663,13 @@
         enemy.swarmSpacing = Math.max(0.1, Math.min(5, val));
       }
     });
-    td.appendChild(input);
-    return td;
+    wrapper.appendChild(input);
+    return wrapper;
   }
 
-  function createHiddenCell(key) {
-    const td = document.createElement("td");
+  function createHiddenToggle(key) {
+    const wrap = document.createElement("label");
+    wrap.className = "muted";
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.checked = (state.cfg.hiddenEnemies || []).includes(key);
@@ -532,39 +677,72 @@
       markHidden(key, cb.checked);
       renderTable();
     });
-    td.appendChild(cb);
-    return td;
+    wrap.appendChild(cb);
+    wrap.append(" Hidden");
+    return wrap;
   }
 
   function renderRow(key) {
     const enemy = ensureEnemy(key);
     if (!enemy) return;
-    const tr = document.createElement("tr");
-    tr.appendChild(createHiddenCell(key));
-    const nameTd = document.createElement("td");
-    nameTd.textContent = key;
-    tr.appendChild(nameTd);
-    tr.appendChild(createSpriteCell(key));
-    tr.appendChild(createDamageClassSelect(key));
-    tr.appendChild(createNumberInput(key, "health"));
-    tr.appendChild(createNumberInput(key, "damage"));
-    tr.appendChild(createNumberInput(key, "speed"));
-    tr.appendChild(createNumberInput(key, "scale"));
-    tr.appendChild(createNumberInput(key, "baseRadius"));
-    tr.appendChild(createNumberInput(key, "attackRange"));
-    tr.appendChild(createNumberInput(key, "cooldown"));
-    tr.appendChild(createSwarmSpacingCell(key));
-    tr.appendChild(createTagsCell(key));
-    els.tbody.appendChild(tr);
+    const card = document.createElement("div");
+    card.className = "enemy-card";
+
+    const preview = document.createElement("div");
+    preview.className = "enemy-preview";
+    preview.appendChild(createSpriteCell(key));
+    const previewMeta = document.createElement("div");
+    previewMeta.className = "preview-meta";
+    const name = document.createElement("div");
+    name.className = "enemy-name";
+    name.textContent = (enemy.displayName || key).replace(/([A-Z])/g, " $1").trim();
+    const keyText = document.createElement("div");
+    keyText.className = "enemy-key";
+    keyText.textContent = key;
+    previewMeta.appendChild(name);
+    previewMeta.appendChild(keyText);
+    preview.appendChild(previewMeta);
+
+    const main = document.createElement("div");
+    main.className = "enemy-main";
+    const topbar = document.createElement("div");
+    topbar.className = "enemy-topbar";
+    const toggles = document.createElement("div");
+    toggles.className = "toggles";
+    toggles.appendChild(createHiddenToggle(key));
+    topbar.appendChild(toggles);
+    main.appendChild(topbar);
+
+    const grid = document.createElement("div");
+    grid.className = "field-grid";
+    grid.appendChild(createDamageClassSelect(key));
+    grid.appendChild(createNumberInput(key, "health", "HP"));
+    grid.appendChild(createNumberInput(key, "damage", "Damage"));
+    grid.appendChild(createNumberInput(key, "speed", "Speed"));
+    grid.appendChild(createNumberInput(key, "scale", "Scale"));
+    grid.appendChild(createNumberInput(key, "baseRadius", "Hit Radius"));
+    grid.appendChild(createNumberInput(key, "attackRange", "Attack Range"));
+    grid.appendChild(createNumberInput(key, "cooldown", "Cooldown"));
+    grid.appendChild(createSwarmSpacingCell(key));
+    grid.appendChild(createTagsCell(key));
+    main.appendChild(grid);
+
+    card.appendChild(preview);
+    card.appendChild(main);
+    els.list.appendChild(card);
   }
 
   function renderTable() {
     spriteCells = new Map();
-    els.tbody.innerHTML = "";
+    els.list.innerHTML = "";
     const hidden = new Set(state.cfg.hiddenEnemies || []);
     const keys = Object.keys(state.cfg.catalog || {}).sort();
     keys.forEach((key) => {
       if (!state.showHidden && hidden.has(key)) return;
+      if (state.search) {
+        const haystack = `${key} ${(state.cfg.catalog[key]?.displayName || "")}`.toLowerCase();
+        if (!haystack.includes(state.search)) return;
+      }
       renderRow(key);
     });
     startSpriteLoop();
@@ -573,7 +751,9 @@
   function show() {
     state.cfg = loadConfig();
     state.showHidden = false;
+    state.search = "";
     if (els.showHidden) els.showHidden.checked = false;
+    if (els.search) els.search.value = "";
     overlay.style.display = "block";
     renderTable();
     setStatus("");
@@ -603,6 +783,12 @@
   if (els.showHidden) {
     els.showHidden.addEventListener("change", () => {
       state.showHidden = Boolean(els.showHidden.checked);
+      renderTable();
+    });
+  }
+  if (els.search) {
+    els.search.addEventListener("input", () => {
+      state.search = String(els.search.value || "").trim().toLowerCase();
       renderTable();
     });
   }
