@@ -4357,7 +4357,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "play", label: "Play" },
         { key: "settings", label: "Settings" },
-        { key: "leaderboard", label: "Leaderboard" },
+        { key: "developer", label: "Developer" },
         { key: "auth", label: authLabel },
       ];
     } else if (mapReady) {
@@ -4365,7 +4365,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "map", label: "Map" },
         { key: "settings", label: "Settings" },
-        { key: "leaderboard", label: "Leaderboard" },
+        { key: "developer", label: "Developer" },
         { key: "auth", label: authLabel },
       ];
     } else {
@@ -4373,7 +4373,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "play", label: "Loading..." },
         { key: "settings", label: "Settings" },
-        { key: "leaderboard", label: "Leaderboard" },
+        { key: "developer", label: "Developer" },
         { key: "auth", label: authLabel },
       ];
     }

@@ -13865,10 +13865,92 @@ function showSettingsOverlay({ source = "title" } = {}) {
   });
 }
 
+function isDeveloperToolActive() {
+  if (typeof window === "undefined" || typeof document === "undefined") return false;
+  if (window.__battlechurchHitboxEditorActive) return true;
+  if (window.__BC_ENEMY_EDITOR_ACTIVE) return true;
+  const levelBuilderOverlay = document.getElementById("levelBuilderOverlay");
+  return Boolean(levelBuilderOverlay && levelBuilderOverlay.style.display === "block");
+}
+
+function showDeveloperShortcutsOverlay() {
+  if (!window.DialogOverlay) return;
+  const bodyHtml = `
+    <div class="settings-panel">
+      <div class="settings-row"><div class="settings-row__label"><strong>Developer Shortcuts</strong></div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+1: God Mode</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+2: Clear Hostiles</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+3: Skip Battle</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+4: Skip Level</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+5: Final Town Boss</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+6: Grace Rush</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+8: Final Boss</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+9: Epilogue</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+T: Toggle Timer</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+C: +5 Congregation</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+O: Toggle Touch Controls</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+P: Swap Powerups</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+B: Prayer Bomb Charge</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+V: Visitor Session</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+F: Dev Inspector</div></div>
+      <div class="settings-row"><div class="settings-row__label">Title Screen H: Hitbox Editor</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+M: Debug Overlay</div></div>
+      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+K: +500 Grace</div></div>
+    </div>
+  `;
+  window.DialogOverlay.show({
+    title: "Developer Shortcuts",
+    bodyHtml,
+    buttonText: "Back",
+    variant: "settings",
+    onContinue: () => {
+      showDeveloperOverlay();
+    },
+  });
+}
+
+function showDeveloperOverlay() {
+  if (!window.DialogOverlay) return;
+  const bodyHtml = `
+    <div class="settings-panel">
+      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="enemy">Enemy Editor</button></div>
+      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="level">Level Editor</button></div>
+      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="hitbox">Hitbox Editor</button></div>
+      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="shortcuts">Developer Shortcuts</button></div>
+    </div>
+  `;
+  window.DialogOverlay.show({
+    title: "Developer",
+    bodyHtml,
+    buttonText: "Back",
+    variant: "settings",
+    onRender: ({ bodyEl }) => {
+      if (!bodyEl) return;
+      bodyEl.querySelectorAll("[data-dev-action]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const action = button.getAttribute("data-dev-action");
+          if (action === "enemy") {
+            window.DialogOverlay.hide();
+            window.BattlechurchEnemyEditor?.show?.();
+          } else if (action === "level") {
+            window.DialogOverlay.hide();
+            window.BattlechurchLevelBuilder?.show?.();
+          } else if (action === "hitbox") {
+            window.DialogOverlay.hide();
+            window.BattlechurchHitboxEditor?.setActive?.(true);
+          } else if (action === "shortcuts") {
+            showDeveloperShortcutsOverlay();
+          }
+        });
+      });
+    },
+  });
+}
+
 function handleTitleScreen() {
   if (!titleScreenActive) return false;
-  const hitboxEditorActive = Boolean(window.__battlechurchHitboxEditorActive);
-  if (!hitboxEditorActive && !window.DialogOverlay?.isVisible()) {
+  const developerToolActive = isDeveloperToolActive();
+  if (!developerToolActive && !window.DialogOverlay?.isVisible()) {
     const buttons =
       typeof window !== "undefined" && window.__announcementButtons?.key === "title"
         ? window.__announcementButtons.buttons
@@ -13890,8 +13972,8 @@ function handleTitleScreen() {
           howToPlayPageIndex = 0;
         } else if (button.key === "settings") {
           showSettingsOverlay({ source: "title" });
-        } else if (button.key === "leaderboard") {
-          setDevStatus("Leaderboard coming soon", 1.8);
+        } else if (button.key === "developer") {
+          showDeveloperOverlay();
         } else if (button.key === "auth") {
           if (window.cloudAuthProvider === "google") {
             window.Cloud?.signOut?.().catch?.(() => {});
