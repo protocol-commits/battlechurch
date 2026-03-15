@@ -45,6 +45,30 @@
     return dx * dx + dy * dy <= radius * radius;
   };
 
+  const rectIntersectsRect = (a, b) => {
+    if (!a || !b) return false;
+    return !(
+      a.x + a.width < b.x ||
+      b.x + b.width < a.x ||
+      a.y + a.height < b.y ||
+      b.y + b.height < a.y
+    );
+  };
+
+  const getTargetHitboxRect = (target) => {
+    const hitbox = target?.config?.hitbox || null;
+    if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return null;
+    if (hitbox.width <= 0 || hitbox.height <= 0) return null;
+    const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+    const offsetY = Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+    return {
+      x: (target?.x || 0) + offsetX - hitbox.width / 2,
+      y: (target?.y || 0) + offsetY - hitbox.height / 2,
+      width: hitbox.width,
+      height: hitbox.height,
+    };
+  };
+
   const applyWeaponKnockback = (target, sourceX, sourceY) => {
     if (!target || typeof target.x !== "number" || typeof target.y !== "number") return;
     const dx = target.x - sourceX;
@@ -1821,6 +1845,7 @@
       const dy = target.y - this.y;
       const distance = Math.hypot(dx, dy) || 1;
       const targetRadius = targetIsPlayer ? (player?.radius || 0) : target.radius || NPC_RADIUS;
+      const targetHitboxRect = getTargetHitboxRect(target);
 
       this.attackTimer = Math.max(0, this.attackTimer - dt);
 
@@ -1854,7 +1879,9 @@
             const targetX = targetIsPlayer ? player.x : target.x;
             const targetY = targetIsPlayer ? player.y : target.y;
             const hitConfirmed = weaponRect
-              ? circleIntersectsRect(targetX, targetY, targetRadius, weaponRect)
+              ? targetHitboxRect
+                ? rectIntersectsRect(targetHitboxRect, weaponRect)
+                : circleIntersectsRect(targetX, targetY, targetRadius, weaponRect)
               : distance <= attackThreshold;
             if (hitConfirmed) {
               if (targetIsPlayer) this.playerHitDuringAttack = true;
@@ -1987,7 +2014,10 @@
             }
           : null;
       const targetInWeaponRange =
-        weaponRect && circleIntersectsRect(target.x, target.y, targetRadius, weaponRect);
+        weaponRect &&
+        (targetHitboxRect
+          ? rectIntersectsRect(targetHitboxRect, weaponRect)
+          : circleIntersectsRect(target.x, target.y, targetRadius, weaponRect));
       if ((targetInWeaponRange || distance <= attackRange) && this.attackTimer <= 0) {
         this.state = "attack";
         this.animator.play("attack", { restart: true });

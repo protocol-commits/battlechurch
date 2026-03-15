@@ -29,7 +29,7 @@
     getNpcPreview: () => null,
     getProjectileConfig: () => ({}),
     onHitboxChange: null,
-    onPlayerRadiusChange: null,
+    onPlayerHitboxChange: null,
     onNpcRadiusChange: null,
     onProjectileRadiusChange: null,
   };
@@ -731,6 +731,7 @@
     const clip = getPlayerClip();
     const radius = Number.isFinite(player?.radius) ? player.radius : Number.isFinite(config?.radius) ? config.radius : 0;
     const scale = Number.isFinite(player?.animator?.scale) ? player.animator.scale : Number.isFinite(config?.scale) ? config.scale : 1;
+    const hitbox = config?.hitbox || player?.config?.hitbox || null;
     return {
       entryType: "player",
       key: "player",
@@ -741,7 +742,20 @@
       radius,
       frameCount: getClipFrameCount(clip),
       clip,
-      note: "Player uses a circular body collision. Radius edits apply to the live player and future player config.",
+      hitbox: hitbox
+        ? {
+            width: Number(hitbox.width) || 0,
+            height: Number(hitbox.height) || 0,
+            offsetX: Number(hitbox.offsetX) || 0,
+            offsetY: Number(hitbox.offsetY) || 0,
+          }
+        : {
+            width: Math.max(1, radius * 1.6),
+            height: Math.max(1, radius * 2.2),
+            offsetX: 0,
+            offsetY: 0,
+          },
+      note: "Player body collision now uses an editable rect hitbox. Attack hitboxes are still a separate next step.",
     };
   }
 
@@ -825,9 +839,9 @@
     els.note.textContent = data.note || "";
 
     const isEnemy = data.entryType === "enemy";
-    const isCircle = data.entryType === "player" || data.entryType === "npc" || data.entryType === "projectile";
+    const isPlayerRect = data.entryType === "player";
+    const isCircle = data.entryType === "npc" || data.entryType === "projectile";
     const circleEditable =
-      (data.entryType === "player" && typeof bindings.onPlayerRadiusChange === "function") ||
       (data.entryType === "npc" && typeof bindings.onNpcRadiusChange === "function") ||
       (data.entryType === "projectile" && typeof bindings.onProjectileRadiusChange === "function");
 
@@ -852,6 +866,19 @@
       setInputState(els.weaponHeightInput, data.weaponHitbox?.height ?? "", { placeholder: "off" });
       setInputState(els.weaponOffsetXInput, data.weaponHitbox?.offsetX ?? "");
       setInputState(els.weaponOffsetYInput, data.weaponHitbox?.offsetY ?? "");
+    } else if (isPlayerRect) {
+      const hitbox = data.hitbox;
+      setInputState(els.primaryInput, Math.round(hitbox.width));
+      setInputState(els.secondaryInput, Math.round(hitbox.height));
+      setInputState(els.offsetXInput, Math.round(hitbox.offsetX));
+      setInputState(els.offsetYInput, Math.round(hitbox.offsetY));
+      setInputState(els.attackHitFrameInput, "", { disabled: true });
+      setInputState(els.attackHitDamageInput, "", { disabled: true });
+      setInputState(els.collisionDamageInput, "", { disabled: true });
+      setInputState(els.weaponWidthInput, "", { disabled: true });
+      setInputState(els.weaponHeightInput, "", { disabled: true });
+      setInputState(els.weaponOffsetXInput, "", { disabled: true });
+      setInputState(els.weaponOffsetYInput, "", { disabled: true });
     } else if (isCircle) {
       setInputState(els.primaryInput, Math.round(data.radius || 0), { disabled: !circleEditable });
       setInputState(els.secondaryInput, Math.round((data.radius || 0) * 2), { disabled: true });
@@ -923,10 +950,7 @@
   function applyCircleInputs(data) {
     const radius = Number(els.primaryInput.value);
     if (!Number.isFinite(radius) || radius <= 0) return;
-    if (data.entryType === "player" && typeof bindings.onPlayerRadiusChange === "function") {
-      bindings.onPlayerRadiusChange(radius);
-      setStatus("Updated player radius.");
-    } else if (data.entryType === "npc" && typeof bindings.onNpcRadiusChange === "function") {
+    if (data.entryType === "npc" && typeof bindings.onNpcRadiusChange === "function") {
       bindings.onNpcRadiusChange(radius);
       setStatus("Updated live NPC radius.");
     } else if (data.entryType === "projectile" && typeof bindings.onProjectileRadiusChange === "function") {
@@ -935,11 +959,28 @@
     }
   }
 
+  function applyPlayerHitboxInputs() {
+    const width = Number(els.primaryInput.value);
+    const height = Number(els.secondaryInput.value);
+    const offsetX = Number(els.offsetXInput.value);
+    const offsetY = Number(els.offsetYInput.value);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
+    bindings.onPlayerHitboxChange?.({
+      width,
+      height,
+      offsetX: Number.isFinite(offsetX) ? offsetX : 0,
+      offsetY: Number.isFinite(offsetY) ? offsetY : 0,
+    });
+    setStatus("Updated player hitbox.");
+  }
+
   function applyInputs() {
     const data = getInspectorData();
     if (!data) return;
     if (data.entryType === "enemy") {
       applyEnemyInputs(data.key);
+    } else if (data.entryType === "player") {
+      applyPlayerHitboxInputs();
     } else {
       applyCircleInputs(data);
     }
@@ -962,6 +1003,13 @@
       els.weaponOffsetXInput.value = "";
       els.weaponOffsetYInput.value = "";
       applyEnemyInputs(data.key);
+    } else if (data.entryType === "player") {
+      const fallback = data.hitbox;
+      els.primaryInput.value = Math.round(fallback.width);
+      els.secondaryInput.value = Math.round(fallback.height);
+      els.offsetXInput.value = Math.round(fallback.offsetX);
+      els.offsetYInput.value = Math.round(fallback.offsetY);
+      applyPlayerHitboxInputs();
     } else if (data.entryType === "projectile") {
       const fallback = Number(getProjectileConfig()?.[data.key]?.radius) || 12;
       els.primaryInput.value = fallback;
@@ -1128,6 +1176,38 @@
     }
   }
 
+  function drawRectPreview(ctx, canvas, data, strokeColor, fillColor) {
+    const centerX = canvas.width * 0.5;
+    const centerY = canvas.height * 0.58;
+    const clip = data.clip;
+    const baseScale = Number.isFinite(data.scale) && data.scale > 0 ? data.scale : 1;
+    const fitScale = clip
+      ? Math.min(3.2, Math.max(0.35, Math.min((canvas.width * 0.38) / Math.max(1, clip.frameWidth * baseScale), (canvas.height * 0.46) / Math.max(1, clip.frameHeight * baseScale))))
+      : 1;
+    const preview = drawSpritePreview(ctx, clip, centerX, centerY, baseScale * fitScale, 0);
+    const overlayScale = preview?.scale || baseScale * fitScale;
+    const hitbox = data.hitbox;
+    const width = hitbox.width * overlayScale;
+    const height = hitbox.height * overlayScale;
+    const offsetX = hitbox.offsetX * overlayScale;
+    const offsetY = hitbox.offsetY * overlayScale;
+    ctx.save();
+    ctx.strokeStyle = strokeColor;
+    ctx.fillStyle = fillColor;
+    ctx.lineWidth = 2;
+    drawRoundedRect(
+      ctx,
+      centerX + offsetX - width * 0.5,
+      centerY + offsetY - height * 0.5,
+      width,
+      height,
+      12,
+      true,
+      true,
+    );
+    ctx.restore();
+  }
+
   function drawCirclePreview(ctx, canvas, data, color) {
     const centerX = canvas.width * 0.5;
     const centerY = canvas.height * 0.58;
@@ -1202,7 +1282,7 @@
     if (data.entryType === "enemy") {
       drawEnemyPreview(ctx, canvas, data);
     } else if (data.entryType === "player") {
-      drawCirclePreview(ctx, canvas, data, "rgba(255, 200, 106, 0.95)");
+      drawRectPreview(ctx, canvas, data, "rgba(255, 200, 106, 0.95)", "rgba(255, 200, 106, 0.12)");
     } else if (data.entryType === "npc") {
       drawCirclePreview(ctx, canvas, data, "rgba(95, 227, 192, 0.95)");
     } else if (data.entryType === "projectile") {
@@ -1269,7 +1349,7 @@
       bindings.getNpcPreview = options.getNpcPreview || bindings.getNpcPreview;
       bindings.getProjectileConfig = options.getProjectileConfig || bindings.getProjectileConfig;
       bindings.onHitboxChange = options.onHitboxChange || bindings.onHitboxChange;
-      bindings.onPlayerRadiusChange = options.onPlayerRadiusChange || bindings.onPlayerRadiusChange;
+      bindings.onPlayerHitboxChange = options.onPlayerHitboxChange || bindings.onPlayerHitboxChange;
       bindings.onNpcRadiusChange = options.onNpcRadiusChange || bindings.onNpcRadiusChange;
       bindings.onProjectileRadiusChange =
         options.onProjectileRadiusChange || bindings.onProjectileRadiusChange;

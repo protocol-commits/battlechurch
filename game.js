@@ -3756,6 +3756,12 @@ const { AnimationClip, Animator } = window.Entities || {};
 const PLAYER_BASE_SCALE = 1.08;
 const PLAYER_SCALE = PLAYER_BASE_SCALE * WORLD_SCALE;
 const PLAYER_COLLISION_RADIUS = 12;
+const PLAYER_BODY_HITBOX = {
+  width: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 1.9,
+  height: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 2.6,
+  offsetX: 0,
+  offsetY: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 0.35,
+};
 const PLAYER_FRAME_SIZE = 100;
 
 // small horizontal camera offset (world scroll) used to drive parallax
@@ -3768,6 +3774,7 @@ const BASE_PLAYER_CONFIG = {
   arrowCooldown: 0.35 / 2,
   maxHealth: HERO_MAX_HEALTH,
   radius: PLAYER_COLLISION_RADIUS * PLAYER_SCALE,
+  hitbox: { ...PLAYER_BODY_HITBOX },
 };
 
 const ENTITIES_BOOTSTRAP = window.Entities?.initialize?.({
@@ -10472,6 +10479,21 @@ function getEnemyHitboxRect(enemy) {
   };
 }
 
+function getPlayerHitboxRect(targetPlayer = player) {
+  if (!targetPlayer) return null;
+  const hitbox = targetPlayer.config?.hitbox || PLAYER_CONFIG?.hitbox || null;
+  if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return null;
+  if (hitbox.width <= 0 || hitbox.height <= 0) return null;
+  const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+  const offsetY = Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+  return {
+    x: targetPlayer.x + offsetX - hitbox.width / 2,
+    y: targetPlayer.y + offsetY - hitbox.height / 2,
+    width: hitbox.width,
+    height: hitbox.height,
+  };
+}
+
 function circleIntersectsRect(cx, cy, radius, rect) {
   const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
   const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.height));
@@ -10624,6 +10646,13 @@ class Projectile {
   }
 
   hitTest(enemy) {
+    if (enemy?.isPlayer) {
+      const playerHitbox = getPlayerHitboxRect(enemy);
+      if (playerHitbox) {
+        const radius = Math.max(0, this.radius || 0);
+        return circleIntersectsRect(this.x, this.y, radius, playerHitbox);
+      }
+    }
     const hitbox = getEnemyHitboxRect(enemy);
     if (hitbox) {
       const radius = Math.max(0, this.radius || 0);
@@ -18673,12 +18702,26 @@ async function init() {
         getNpcPreview: () => (Array.isArray(npcs) ? npcs.find((npc) => npc && !npc.departed) || null : null),
         getProjectileConfig: () => PROJECTILE_CONFIG,
         onHitboxChange: applyHitboxChange,
-        onPlayerRadiusChange: (radius) => {
-          if (!Number.isFinite(radius) || radius <= 0) return;
-          PLAYER_CONFIG.radius = radius;
+        onPlayerHitboxChange: (hitbox) => {
+          if (!hitbox || !Number.isFinite(hitbox.width) || !Number.isFinite(hitbox.height)) return;
+          if (hitbox.width <= 0 || hitbox.height <= 0) return;
+          const next = {
+            width: hitbox.width,
+            height: hitbox.height,
+            offsetX: Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0,
+            offsetY: Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0,
+          };
+          PLAYER_CONFIG.hitbox = { ...next };
+          BASE_PLAYER_CONFIG.hitbox = { ...next };
+          const derivedRadius = Math.max(next.width, next.height) * 0.5;
+          PLAYER_CONFIG.radius = derivedRadius;
+          BASE_PLAYER_CONFIG.radius = derivedRadius;
           if (player) {
-            player.radius = radius;
-            if (player.config) player.config.radius = radius;
+            player.radius = derivedRadius;
+            if (player.config) {
+              player.config.radius = derivedRadius;
+              player.config.hitbox = { ...next };
+            }
           }
         },
         onNpcRadiusChange: (radius) => {

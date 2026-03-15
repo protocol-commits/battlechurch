@@ -2920,9 +2920,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       ctx.strokeStyle = "rgba(80, 220, 255, 0.95)";
       ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.arc(player.x, player.y, Math.max(0, player.radius || 0), 0, Math.PI * 2);
-      ctx.stroke();
+      const hitbox = player?.config?.hitbox || null;
+      if (hitbox && Number.isFinite(hitbox.width) && Number.isFinite(hitbox.height)) {
+        const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+        const offsetY = Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+        ctx.strokeRect(
+          player.x + offsetX - hitbox.width / 2,
+          player.y + offsetY - hitbox.height / 2,
+          hitbox.width,
+          hitbox.height,
+        );
+      } else {
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, Math.max(0, player.radius || 0), 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
