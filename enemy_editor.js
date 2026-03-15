@@ -256,8 +256,8 @@
         align-items: flex-start;
       }
       #${OVERLAY_ID} .sprite-frame {
-        width: ${SPRITE_CELL_SIZE}px;
-        height: ${SPRITE_CELL_SIZE}px;
+        min-width: ${SPRITE_CELL_SIZE}px;
+        min-height: ${SPRITE_CELL_SIZE}px;
         border-radius: 16px;
         border: 1px solid rgba(255,255,255,0.12);
         background:
@@ -269,6 +269,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        padding: 10px;
+        box-sizing: border-box;
       }
       #${OVERLAY_ID} .preview-meta {
         display: flex;
@@ -282,6 +284,10 @@
       #${OVERLAY_ID} .enemy-key {
         font: 12px "Trebuchet MS", Arial, sans-serif;
         color: rgba(232, 244, 255, 0.58);
+      }
+      #${OVERLAY_ID} .enemy-scale-note {
+        font: 11px "Trebuchet MS", Arial, sans-serif;
+        color: rgba(155, 217, 255, 0.84);
       }
       #${OVERLAY_ID} .enemy-main {
         display: flex;
@@ -438,6 +444,7 @@
   };
   let spriteRafId = null;
   let spriteCells = new Map();
+  const spriteBoundsCache = new Map();
 
   function setStatus(text, isError = false) {
     if (!els.status) return;
@@ -473,26 +480,146 @@
     return def && Number.isFinite(def.scale) ? def.scale : 1;
   }
 
+  function getTrimmedSpriteBounds(key, clip) {
+    const cacheKey = `${key}:${clip?.image?.src || "no-image"}:${clip?.frameWidth || 0}:${clip?.frameHeight || 0}`;
+    if (spriteBoundsCache.has(cacheKey)) return spriteBoundsCache.get(cacheKey);
+    const fallback = {
+      x: 0,
+      y: 0,
+      width: clip?.frameWidth || SPRITE_CELL_SIZE,
+      height: clip?.frameHeight || SPRITE_CELL_SIZE,
+    };
+    if (
+      !clip ||
+      !clip.image ||
+      !clip.frameWidth ||
+      !clip.frameHeight ||
+      typeof document === "undefined"
+    ) {
+      spriteBoundsCache.set(cacheKey, fallback);
+      return fallback;
+    }
+    try {
+      const frameMap = Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap : null;
+      const frameCount = Math.max(1, frameMap ? frameMap.length : (clip.frameCount || 1));
+      const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
+      const sampleCanvas = document.createElement("canvas");
+      sampleCanvas.width = clip.frameWidth;
+      sampleCanvas.height = clip.frameHeight;
+      const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
+      if (!sampleCtx) {
+        spriteBoundsCache.set(cacheKey, fallback);
+        return fallback;
+      }
+      let minX = clip.frameWidth;
+      let minY = clip.frameHeight;
+      let maxX = -1;
+      let maxY = -1;
+      for (let i = 0; i < frameCount; i += 1) {
+        const spriteFrame = frameMap ? frameMap[i] : i;
+        const sx = (spriteFrame % cols) * clip.frameWidth;
+        const sy = Math.floor(spriteFrame / cols) * clip.frameHeight;
+        sampleCtx.clearRect(0, 0, clip.frameWidth, clip.frameHeight);
+        sampleCtx.drawImage(
+          clip.image,
+          sx,
+          sy,
+          clip.frameWidth,
+          clip.frameHeight,
+          0,
+          0,
+          clip.frameWidth,
+          clip.frameHeight,
+        );
+        const imageData = sampleCtx.getImageData(0, 0, clip.frameWidth, clip.frameHeight).data;
+        for (let y = 0; y < clip.frameHeight; y += 1) {
+          for (let x = 0; x < clip.frameWidth; x += 1) {
+            const alpha = imageData[(y * clip.frameWidth + x) * 4 + 3];
+            if (alpha <= 8) continue;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      const trimmed =
+        maxX >= minX && maxY >= minY
+          ? {
+              x: minX,
+              y: minY,
+              width: maxX - minX + 1,
+              height: maxY - minY + 1,
+            }
+          : fallback;
+      spriteBoundsCache.set(cacheKey, trimmed);
+      return trimmed;
+    } catch (err) {
+      spriteBoundsCache.set(cacheKey, fallback);
+      return fallback;
+    }
+  }
+
+  function getTrueScaleMetrics(key) {
+    const clip = getClipForEnemy(key);
+    if (!clip || !clip.frameWidth || !clip.frameHeight) {
+      return {
+        clip,
+        bounds: { x: 0, y: 0, width: SPRITE_CELL_SIZE, height: SPRITE_CELL_SIZE },
+        baseScale: 1,
+        catalogScale: getEnemyScale(key),
+        finalScale: 1,
+        drawW: SPRITE_CELL_SIZE,
+        drawH: SPRITE_CELL_SIZE,
+      };
+    }
+    const bounds = getTrimmedSpriteBounds(key, clip);
+    const baseScale = Number.isFinite(clip.renderScale) ? clip.renderScale : 1;
+    const catalogScale = getEnemyScale(key);
+    const finalScale = baseScale * catalogScale;
+    return {
+      clip,
+      bounds,
+      baseScale,
+      catalogScale,
+      finalScale,
+      drawW: Math.max(1, bounds.width * finalScale),
+      drawH: Math.max(1, bounds.height * finalScale),
+    };
+  }
+
   function createSpriteCell(key) {
     const wrap = document.createElement("div");
     wrap.className = "sprite-frame";
     const canvas = document.createElement("canvas");
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const size = SPRITE_CELL_SIZE;
-    canvas.width = Math.floor(size * dpr);
-    canvas.height = Math.floor(size * dpr);
-    canvas.style.width = `${size}px`;
-    canvas.style.height = `${size}px`;
+    const metrics = getTrueScaleMetrics(key);
+    const frameWidth = Math.max(SPRITE_CELL_SIZE, Math.ceil(metrics.drawW) + 24);
+    const frameHeight = Math.max(SPRITE_CELL_SIZE, Math.ceil(metrics.drawH) + 24);
+    canvas.width = Math.floor(frameWidth * dpr);
+    canvas.height = Math.floor(frameHeight * dpr);
+    canvas.style.width = `${frameWidth}px`;
+    canvas.style.height = `${frameHeight}px`;
+    wrap.style.width = `${frameWidth}px`;
+    wrap.style.height = `${frameHeight}px`;
     wrap.appendChild(canvas);
-    spriteCells.set(key, { key, canvas, ctx: canvas.getContext("2d"), size, dpr });
+    spriteCells.set(key, {
+      key,
+      canvas,
+      ctx: canvas.getContext("2d"),
+      width: frameWidth,
+      height: frameHeight,
+      dpr,
+    });
     return wrap;
   }
 
   function drawSpriteCell(entry, nowMs) {
-    const { key, ctx, canvas, size, dpr } = entry;
+    const { key, ctx, canvas, width, height, dpr } = entry;
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const clip = getClipForEnemy(key);
+    const metrics = getTrueScaleMetrics(key);
+    const clip = metrics.clip;
     if (!clip || !clip.image || !clip.frameWidth || !clip.frameHeight) {
       ctx.save();
       ctx.fillStyle = "rgba(255,255,255,0.08)";
@@ -506,27 +633,20 @@
     const frameIndex = Math.floor((nowMs / 1000) * rate) % Math.max(1, frameCount);
     const spriteFrame = frameMap ? frameMap[frameIndex] : frameIndex;
     const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-    const sx = (spriteFrame % cols) * clip.frameWidth;
-    const sy = Math.floor(spriteFrame / cols) * clip.frameHeight;
-    const cellSize = size * dpr;
-    const maxDraw = cellSize - 6 * dpr;
-    const baseScale = Number.isFinite(clip.renderScale) ? clip.renderScale : 1;
-    const catalogScale = getEnemyScale(key);
-    const maxScale = Math.min(
-      maxDraw / clip.frameWidth,
-      maxDraw / clip.frameHeight,
-    );
-    const finalScale = Math.min(baseScale * catalogScale, maxScale);
-    const drawW = clip.frameWidth * finalScale;
-    const drawH = clip.frameHeight * finalScale;
-    const dx = (cellSize - drawW) / 2;
-    const dy = (cellSize - drawH) / 2;
+    const sx = (spriteFrame % cols) * clip.frameWidth + metrics.bounds.x;
+    const sy = Math.floor(spriteFrame / cols) * clip.frameHeight + metrics.bounds.y;
+    const cellWidth = width * dpr;
+    const cellHeight = height * dpr;
+    const drawW = metrics.drawW * dpr;
+    const drawH = metrics.drawH * dpr;
+    const dx = (cellWidth - drawW) / 2;
+    const dy = (cellHeight - drawH) / 2;
     ctx.drawImage(
       clip.image,
       sx,
       sy,
-      clip.frameWidth,
-      clip.frameHeight,
+      metrics.bounds.width,
+      metrics.bounds.height,
       dx,
       dy,
       drawW,
@@ -699,8 +819,13 @@
     const keyText = document.createElement("div");
     keyText.className = "enemy-key";
     keyText.textContent = key;
+    const scaleNote = document.createElement("div");
+    scaleNote.className = "enemy-scale-note";
+    const metrics = getTrueScaleMetrics(key);
+    scaleNote.textContent = `True scale ${metrics.finalScale.toFixed(2)}x`;
     previewMeta.appendChild(name);
     previewMeta.appendChild(keyText);
+    previewMeta.appendChild(scaleNote);
     preview.appendChild(previewMeta);
 
     const main = document.createElement("div");
