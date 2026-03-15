@@ -150,9 +150,7 @@
     "projectileCooldown": 2.1,
     "bossTier": 1,
     "preferredTarget": "player",
-    "specialBehavior": [
-      "axe"
-    ],
+    "specialBehavior": [],
     "damageClass": "armored",
     "attackHitFrame": 5,
     "attackHitDamage": 26,
@@ -192,7 +190,6 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "popcorn",
       "closestAny",
       "swarmable"
     ],
@@ -227,10 +224,8 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "elite",
       "closestAny",
-      "swarmable",
-      "popcorn"
+      "swarmable"
     ],
     "tintColor": "#7ec6ff",
     "tintIntensity": 0.75,
@@ -297,7 +292,6 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny"
     ],
     "hitbox": {
@@ -364,7 +358,6 @@
     "bossTier": 2,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "boss",
       "closestAny"
     ],
@@ -406,7 +399,6 @@
     "bossTier": 2,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "boss",
       "closestAny",
       "swarmable"
@@ -441,7 +433,6 @@
     "bossTier": 3,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "boss",
       "heavy",
       "closestAny"
@@ -585,7 +576,6 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "popcorn",
       "closestAny",
       "swarmable"
     ],
@@ -694,7 +684,6 @@
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "elite",
       "armored"
     ],
     "damageClass": "armored",
