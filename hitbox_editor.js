@@ -664,7 +664,7 @@
               </div>
             </div>
             <div class="inspector-block" data-block-weapon>
-              <h3>Enemy Weapon Hitbox</h3>
+              <h3 data-weapon-title>Enemy Weapon Hitbox</h3>
               <div class="inspector-grid">
                 <div class="inspector-field">
                   <div class="inspector-label">Width</div>
@@ -717,6 +717,7 @@
     blockEnemy: overlay.querySelector("[data-block-enemy]"),
     timingTitle: overlay.querySelector("[data-timing-title]"),
     blockWeapon: overlay.querySelector("[data-block-weapon]"),
+    weaponTitle: overlay.querySelector("[data-weapon-title]"),
     shapeTitle: overlay.querySelector("[data-shape-title]"),
     primaryLabel: overlay.querySelector("[data-primary-label]"),
     secondaryLabel: overlay.querySelector("[data-secondary-label]"),
@@ -871,7 +872,7 @@
         Number.isFinite(config?.attackHitFrame) && config.attackHitFrame > 0
           ? Math.round(config.attackHitFrame)
           : 2,
-      note: "Player body collision and the normal Slash attack hitbox are editable here. Dash Slash and Rush Attack still use their own move-specific hitboxes.",
+      note: "Player body collision and the normal Slash swoosh hitbox are editable here. Use the Attack Melee preview clip to line the slash range up against the swoosh art. Dash Slash and Rush Attack still use their own move-specific hitboxes.",
     };
   }
 
@@ -971,6 +972,9 @@
     els.blockWeapon.style.display = (isEnemy || isPlayerRect) ? "" : "none";
     if (els.timingTitle) {
       els.timingTitle.textContent = isPlayerRect ? "Slash Timing" : "Enemy Timing & Damage";
+    }
+    if (els.weaponTitle) {
+      els.weaponTitle.textContent = isPlayerRect ? "Slash Hitbox" : "Enemy Weapon Hitbox";
     }
     els.shapeTitle.textContent = isCircle ? "Collision Shape" : "Body Hitbox";
     els.primaryLabel.textContent = isCircle ? "Radius" : "Width";
@@ -1409,6 +1413,16 @@
       const drawH = weapon.height * overlayScale;
       const drawX = centerX + weapon.offsetX * overlayScale - drawW * 0.5;
       const drawY = centerY + weapon.offsetY * overlayScale - drawH * 0.5;
+      const swooshImg =
+        data.entryType === "player" && state.playerPreviewState === "attackMelee"
+          ? getAssets()?.effects?.meleeSwoosh || null
+          : null;
+      if (swooshImg && swooshImg.width && swooshImg.height) {
+        ctx.save();
+        ctx.globalAlpha = 0.72;
+        ctx.drawImage(swooshImg, drawX, drawY, drawW, drawH);
+        ctx.restore();
+      }
       ctx.save();
       ctx.strokeStyle = "rgba(255, 107, 107, 0.95)";
       ctx.fillStyle = "rgba(255, 107, 107, 0.10)";
