@@ -3756,12 +3756,58 @@ const { AnimationClip, Animator } = window.Entities || {};
 const PLAYER_BASE_SCALE = 1.08;
 const PLAYER_SCALE = PLAYER_BASE_SCALE * WORLD_SCALE;
 const PLAYER_COLLISION_RADIUS = 12;
-const PLAYER_BODY_HITBOX = {
-  width: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 1.9,
-  height: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 2.6,
+const PLAYER_HITBOX_STORAGE_KEY = "battlechurch.playerHitbox";
+
+function loadBundledPlayerHitbox(fallback) {
+  const bundled = window.BattlechurchHitboxes?.player?.hitbox || null;
+  if (!bundled || typeof bundled !== "object") return null;
+  return normalizeStoredPlayerHitbox(bundled, fallback);
+}
+
+function normalizeStoredPlayerHitbox(hitbox, fallback) {
+  if (!hitbox || typeof hitbox !== "object") return { ...fallback };
+  const width = Number(hitbox.width);
+  const height = Number(hitbox.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return { ...fallback };
+  return {
+    width,
+    height,
+    offsetX: Number.isFinite(Number(hitbox.offsetX)) ? Number(hitbox.offsetX) : fallback.offsetX,
+    offsetY: Number.isFinite(Number(hitbox.offsetY)) ? Number(hitbox.offsetY) : fallback.offsetY,
+  };
+}
+
+function loadStoredPlayerHitbox(fallback) {
+  const bundled = loadBundledPlayerHitbox(fallback);
+  if (bundled) return bundled;
+  if (typeof localStorage === "undefined") return { ...fallback };
+  try {
+    const raw = localStorage.getItem(PLAYER_HITBOX_STORAGE_KEY);
+    if (!raw) return { ...fallback };
+    return normalizeStoredPlayerHitbox(JSON.parse(raw), fallback);
+  } catch (error) {
+    console.warn("Failed to load stored player hitbox", error);
+    return { ...fallback };
+  }
+}
+
+function saveStoredPlayerHitbox(hitbox) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(PLAYER_HITBOX_STORAGE_KEY, JSON.stringify(hitbox));
+  } catch (error) {
+    console.warn("Failed to save player hitbox", error);
+  }
+}
+
+const DEFAULT_PLAYER_BODY_HITBOX = {
+  width: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 2.7,
+  height: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 3.4,
   offsetX: 0,
-  offsetY: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 0.35,
+  offsetY: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 0.45,
 };
+const PLAYER_BODY_HITBOX = loadStoredPlayerHitbox(DEFAULT_PLAYER_BODY_HITBOX);
+const PLAYER_BODY_RADIUS_FALLBACK = Math.max(PLAYER_BODY_HITBOX.width, PLAYER_BODY_HITBOX.height) * 0.5;
 const PLAYER_FRAME_SIZE = 100;
 
 // small horizontal camera offset (world scroll) used to drive parallax
@@ -3773,7 +3819,7 @@ const BASE_PLAYER_CONFIG = {
   speed: 299 * SPEED_SCALE,
   arrowCooldown: 0.35 / 2,
   maxHealth: HERO_MAX_HEALTH,
-  radius: PLAYER_COLLISION_RADIUS * PLAYER_SCALE,
+  radius: PLAYER_BODY_RADIUS_FALLBACK,
   hitbox: { ...PLAYER_BODY_HITBOX },
 };
 
@@ -18716,6 +18762,7 @@ async function init() {
           const derivedRadius = Math.max(next.width, next.height) * 0.5;
           PLAYER_CONFIG.radius = derivedRadius;
           BASE_PLAYER_CONFIG.radius = derivedRadius;
+          saveStoredPlayerHitbox(next);
           if (player) {
             player.radius = derivedRadius;
             if (player.config) {

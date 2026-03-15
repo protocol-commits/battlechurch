@@ -479,6 +479,7 @@
           </div>
           <div class="studio-actions">
             <button type="button" data-action="export">Export enemy_catalog.js</button>
+            <button type="button" data-action="export-hitboxes">Export hitboxes.js</button>
             <button type="button" class="secondary" data-action="close">Close</button>
           </div>
         </div>
@@ -632,6 +633,7 @@
     status: overlay.querySelector("[data-status]"),
     reset: overlay.querySelector("[data-action='reset']"),
     exportBtn: overlay.querySelector("[data-action='export']"),
+    exportHitboxesBtn: overlay.querySelector("[data-action='export-hitboxes']"),
     closeBtn: overlay.querySelector("[data-action='close']"),
   };
 
@@ -1054,6 +1056,36 @@
     setStatus("Exported enemy_catalog.js");
   }
 
+  function exportHitboxes() {
+    const playerConfig = getPlayerConfig();
+    const playerHitbox = playerConfig?.hitbox || null;
+    const data = {
+      player: {
+        hitbox: playerHitbox
+          ? {
+              width: Number(playerHitbox.width) || 0,
+              height: Number(playerHitbox.height) || 0,
+              offsetX: Number(playerHitbox.offsetX) || 0,
+              offsetY: Number(playerHitbox.offsetY) || 0,
+            }
+          : null,
+      },
+      npcs: {},
+      projectiles: {},
+    };
+    const body = `(function(global) {\n  const HITBOXES = ${JSON.stringify(data, null, 2)};\n  global.BattlechurchHitboxes = HITBOXES;\n})(typeof window !== "undefined" ? window : globalThis);\n`;
+    const blob = new Blob([body], { type: "application/javascript" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "hitboxes.js";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setStatus("Exported hitboxes.js");
+  }
+
   function drawRoundedRect(ctx, x, y, width, height, radius, fill = true, stroke = false) {
     const r = typeof radius === "number" ? { tl: radius, tr: radius, br: radius, bl: radius } : radius;
     ctx.beginPath();
@@ -1176,7 +1208,7 @@
     }
   }
 
-  function drawRectPreview(ctx, canvas, data, strokeColor, fillColor) {
+  function drawRectPreview(ctx, canvas, data, strokeColor, fillColor, { worldSized = false } = {}) {
     const centerX = canvas.width * 0.5;
     const centerY = canvas.height * 0.58;
     const clip = data.clip;
@@ -1185,7 +1217,7 @@
       ? Math.min(3.2, Math.max(0.35, Math.min((canvas.width * 0.38) / Math.max(1, clip.frameWidth * baseScale), (canvas.height * 0.46) / Math.max(1, clip.frameHeight * baseScale))))
       : 1;
     const preview = drawSpritePreview(ctx, clip, centerX, centerY, baseScale * fitScale, 0);
-    const overlayScale = preview?.scale || baseScale * fitScale;
+    const overlayScale = worldSized ? fitScale : (preview?.scale || baseScale * fitScale);
     const hitbox = data.hitbox;
     const width = hitbox.width * overlayScale;
     const height = hitbox.height * overlayScale;
@@ -1282,7 +1314,14 @@
     if (data.entryType === "enemy") {
       drawEnemyPreview(ctx, canvas, data);
     } else if (data.entryType === "player") {
-      drawRectPreview(ctx, canvas, data, "rgba(255, 200, 106, 0.95)", "rgba(255, 200, 106, 0.12)");
+      drawRectPreview(
+        ctx,
+        canvas,
+        data,
+        "rgba(255, 200, 106, 0.95)",
+        "rgba(255, 200, 106, 0.12)",
+        { worldSized: true },
+      );
     } else if (data.entryType === "npc") {
       drawCirclePreview(ctx, canvas, data, "rgba(95, 227, 192, 0.95)");
     } else if (data.entryType === "projectile") {
@@ -1335,6 +1374,7 @@
   els.weaponOffsetYInput.addEventListener("input", applyInputs);
   els.reset.addEventListener("click", resetVisibleFields);
   els.exportBtn.addEventListener("click", exportCatalog);
+  els.exportHitboxesBtn.addEventListener("click", exportHitboxes);
   els.closeBtn.addEventListener("click", () => setActive(false));
 
   window.addEventListener("resize", updatePreviewCanvasSize);
