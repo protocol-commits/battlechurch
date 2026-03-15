@@ -6364,15 +6364,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawHeight,
     );
     if (state.isRushing || state.rushDamageEnabled) {
-      const overscale = 1.6;
-      const frontWidth = drawWidth * overscale;
+      const rushHitbox = player?.config?.rushHitbox || null;
+      const frontWidth = drawWidth * 1.6;
       const frontHeight = drawHeight;
-      const baseX = -offset;
-      const frontX = baseX + drawWidth * 0.06;
-      const minX = Math.min(baseX, frontX);
-      const maxX = Math.max(baseX + drawWidth, frontX + frontWidth);
-      const minY = Math.min(-drawHeight * 0.5, -frontHeight * 0.5);
-      const maxY = Math.max(drawHeight * 0.5, frontHeight * 0.5);
       ctx.globalAlpha = Math.min(0.85, 0.45 + intensity * 0.35);
       ctx.drawImage(
         swooshImg,
@@ -6381,14 +6375,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         frontWidth,
         frontHeight,
       );
-      if (showMeleeHitboxDebug) {
+      if (
+        showMeleeHitboxDebug &&
+        rushHitbox &&
+        Number.isFinite(rushHitbox.width) &&
+        Number.isFinite(rushHitbox.height)
+      ) {
+        const rectX = (Number.isFinite(rushHitbox.offsetX) ? rushHitbox.offsetX : 0) - rushHitbox.width * 0.5;
+        const rectY = (Number.isFinite(rushHitbox.offsetY) ? rushHitbox.offsetY : 0) - rushHitbox.height * 0.5;
         ctx.save();
         ctx.globalAlpha = 1;
         ctx.fillStyle = "rgba(255, 80, 120, 0.16)";
         ctx.strokeStyle = "rgba(255, 80, 120, 0.95)";
         ctx.lineWidth = 2;
-        ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
-        ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+        ctx.fillRect(rectX, rectY, rushHitbox.width, rushHitbox.height);
+        ctx.strokeRect(rectX, rectY, rushHitbox.width, rushHitbox.height);
         ctx.restore();
       }
     }

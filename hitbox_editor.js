@@ -32,6 +32,7 @@
     onHitboxChange: null,
     onPlayerHitboxChange: null,
     onPlayerWeaponHitboxChange: null,
+    onPlayerRushHitboxChange: null,
     onPlayerAttackHitFrameChange: null,
     onNpcRadiusChange: null,
     onProjectileRadiusChange: null,
@@ -134,7 +135,8 @@
     const player = getPlayerPreview();
     const clips = player?.animator?.clips || null;
     if (!clips) return player?.animator?.currentClip || null;
-    return clips[state.playerPreviewState] || clips.attackMelee || clips.walk || clips.idle || player?.animator?.currentClip || null;
+    const clipKey = state.playerPreviewState === "rushAttack" ? "attackMelee" : state.playerPreviewState;
+    return clips[clipKey] || clips.attackMelee || clips.walk || clips.idle || player?.animator?.currentClip || null;
   }
 
   function getNpcClip() {
@@ -621,6 +623,7 @@
                     <option value="idle">Idle</option>
                     <option value="walk">Walk</option>
                     <option value="attackMelee">Attack Melee</option>
+                    <option value="rushAttack">Rush Attack</option>
                   </select>
                 </div>
               </div>
@@ -868,11 +871,19 @@
             offsetY: Number(config.weaponHitbox.offsetY) || 0,
           }
         : null,
+      rushHitbox: config?.rushHitbox
+        ? {
+            width: Number(config.rushHitbox.width) || 0,
+            height: Number(config.rushHitbox.height) || 0,
+            offsetX: Number(config.rushHitbox.offsetX) || 0,
+            offsetY: Number(config.rushHitbox.offsetY) || 0,
+          }
+        : null,
       attackHitFrame:
         Number.isFinite(config?.attackHitFrame) && config.attackHitFrame > 0
           ? Math.round(config.attackHitFrame)
           : 2,
-      note: "Player body collision and the normal Slash swoosh hitbox are editable here. Use the Attack Melee preview clip to line the slash range up against the swoosh art. Dash Slash and Rush Attack still use their own move-specific hitboxes.",
+      note: "Player body collision, Slash hitbox, and Rush Attack hitbox are editable here. Use Attack Melee to line Slash up against the swoosh art, and Rush Attack to tune the combo-rush reach separately.",
     };
   }
 
@@ -957,7 +968,7 @@
     if (els.playerPreviewRow) {
       els.playerPreviewRow.style.display = data.entryType === "player" ? "" : "none";
     }
-    if (els.playerPreviewSelect && data.entryType === "player") {
+      if (els.playerPreviewSelect && data.entryType === "player") {
       els.playerPreviewSelect.value = state.playerPreviewState;
     }
 
@@ -971,10 +982,20 @@
     els.blockEnemy.style.display = (isEnemy || isPlayerRect) ? "" : "none";
     els.blockWeapon.style.display = (isEnemy || isPlayerRect) ? "" : "none";
     if (els.timingTitle) {
-      els.timingTitle.textContent = isPlayerRect ? "Slash Timing" : "Enemy Timing & Damage";
+      els.timingTitle.textContent =
+        isPlayerRect && state.playerPreviewState === "rushAttack"
+          ? "Rush Timing"
+          : isPlayerRect
+            ? "Slash Timing"
+            : "Enemy Timing & Damage";
     }
     if (els.weaponTitle) {
-      els.weaponTitle.textContent = isPlayerRect ? "Slash Hitbox" : "Enemy Weapon Hitbox";
+      els.weaponTitle.textContent =
+        isPlayerRect && state.playerPreviewState === "rushAttack"
+          ? "Rush Hitbox"
+          : isPlayerRect
+            ? "Slash Hitbox"
+            : "Enemy Weapon Hitbox";
     }
     els.shapeTitle.textContent = isCircle ? "Collision Shape" : "Body Hitbox";
     els.primaryLabel.textContent = isCircle ? "Radius" : "Width";
@@ -996,20 +1017,28 @@
       setInputState(els.weaponOffsetXInput, data.weaponHitbox?.offsetX ?? "");
       setInputState(els.weaponOffsetYInput, data.weaponHitbox?.offsetY ?? "");
     } else if (isPlayerRect) {
+      const activeHitbox =
+        state.playerPreviewState === "rushAttack" && data.rushHitbox
+          ? data.rushHitbox
+          : data.weaponHitbox;
       const hitbox = data.hitbox;
       setInputState(els.primaryInput, Math.round(hitbox.width));
       setInputState(els.secondaryInput, Math.round(hitbox.height));
       setInputState(els.offsetXInput, Math.round(hitbox.offsetX));
       setInputState(els.offsetYInput, Math.round(hitbox.offsetY));
-      setInputState(els.attackHitFrameInput, data.attackHitFrame, { placeholder: "2" });
+      setInputState(
+        els.attackHitFrameInput,
+        state.playerPreviewState === "rushAttack" ? "" : data.attackHitFrame,
+        { disabled: state.playerPreviewState === "rushAttack", placeholder: "2" },
+      );
       els.attackHitFrameInput.min = "1";
       els.attackHitFrameInput.max = String(Math.max(1, data.frameCount || 1));
       setInputState(els.attackHitDamageInput, "", { disabled: true });
       setInputState(els.collisionDamageInput, "", { disabled: true });
-      setInputState(els.weaponWidthInput, data.weaponHitbox?.width ?? "", { placeholder: "off" });
-      setInputState(els.weaponHeightInput, data.weaponHitbox?.height ?? "", { placeholder: "off" });
-      setInputState(els.weaponOffsetXInput, data.weaponHitbox?.offsetX ?? "");
-      setInputState(els.weaponOffsetYInput, data.weaponHitbox?.offsetY ?? "");
+      setInputState(els.weaponWidthInput, activeHitbox?.width ?? "", { placeholder: "off" });
+      setInputState(els.weaponHeightInput, activeHitbox?.height ?? "", { placeholder: "off" });
+      setInputState(els.weaponOffsetXInput, activeHitbox?.offsetX ?? "");
+      setInputState(els.weaponOffsetYInput, activeHitbox?.offsetY ?? "");
     } else if (isCircle) {
       setInputState(els.primaryInput, Math.round(data.radius || 0), { disabled: !circleEditable });
       setInputState(els.secondaryInput, Math.round((data.radius || 0) * 2), { disabled: true });
@@ -1107,15 +1136,20 @@
     const weaponOffsetX = Number(els.weaponOffsetXInput.value);
     const weaponOffsetY = Number(els.weaponOffsetYInput.value);
     if (Number.isFinite(weaponWidth) && Number.isFinite(weaponHeight) && weaponWidth > 0 && weaponHeight > 0) {
-      bindings.onPlayerWeaponHitboxChange?.({
+      const nextHitbox = {
         width: weaponWidth,
         height: weaponHeight,
         offsetX: Number.isFinite(weaponOffsetX) ? weaponOffsetX : 0,
         offsetY: Number.isFinite(weaponOffsetY) ? weaponOffsetY : 0,
-      });
+      };
+      if (state.playerPreviewState === "rushAttack") {
+        bindings.onPlayerRushHitboxChange?.(nextHitbox);
+      } else {
+        bindings.onPlayerWeaponHitboxChange?.(nextHitbox);
+      }
     }
     const attackHitFrame = Number(els.attackHitFrameInput.value);
-    if (Number.isFinite(attackHitFrame) && attackHitFrame > 0) {
+    if (state.playerPreviewState !== "rushAttack" && Number.isFinite(attackHitFrame) && attackHitFrame > 0) {
       bindings.onPlayerAttackHitFrameChange?.(attackHitFrame);
     }
     setStatus("Updated player hitbox.");
@@ -1152,14 +1186,18 @@
       applyEnemyInputs(data.key);
     } else if (data.entryType === "player") {
       const fallback = data.hitbox;
+      const activeHitbox =
+        state.playerPreviewState === "rushAttack" && data.rushHitbox
+          ? data.rushHitbox
+          : data.weaponHitbox;
       els.primaryInput.value = Math.round(fallback.width);
       els.secondaryInput.value = Math.round(fallback.height);
       els.offsetXInput.value = Math.round(fallback.offsetX);
       els.offsetYInput.value = Math.round(fallback.offsetY);
-      els.weaponWidthInput.value = Math.round(data.weaponHitbox?.width ?? 0) || "";
-      els.weaponHeightInput.value = Math.round(data.weaponHitbox?.height ?? 0) || "";
-      els.weaponOffsetXInput.value = Math.round(data.weaponHitbox?.offsetX ?? 0);
-      els.weaponOffsetYInput.value = Math.round(data.weaponHitbox?.offsetY ?? 0);
+      els.weaponWidthInput.value = Math.round(activeHitbox?.width ?? 0) || "";
+      els.weaponHeightInput.value = Math.round(activeHitbox?.height ?? 0) || "";
+      els.weaponOffsetXInput.value = Math.round(activeHitbox?.offsetX ?? 0);
+      els.weaponOffsetYInput.value = Math.round(activeHitbox?.offsetY ?? 0);
       applyPlayerHitboxInputs();
     } else if (data.entryType === "projectile") {
       const fallback = Number(getProjectileConfig()?.[data.key]?.radius) || 12;
@@ -1220,6 +1258,14 @@
               height: Number(playerConfig.weaponHitbox.height) || 0,
               offsetX: Number(playerConfig.weaponHitbox.offsetX) || 0,
               offsetY: Number(playerConfig.weaponHitbox.offsetY) || 0,
+            }
+          : null,
+        rushHitbox: playerConfig?.rushHitbox
+          ? {
+              width: Number(playerConfig.rushHitbox.width) || 0,
+              height: Number(playerConfig.rushHitbox.height) || 0,
+              offsetX: Number(playerConfig.rushHitbox.offsetX) || 0,
+              offsetY: Number(playerConfig.rushHitbox.offsetY) || 0,
             }
           : null,
         attackHitFrame:
@@ -1407,14 +1453,19 @@
     );
     ctx.restore();
 
-    if (data.weaponHitbox) {
-      const weapon = data.weaponHitbox;
+    const activePlayerAttackHitbox =
+      data.entryType === "player" && state.playerPreviewState === "rushAttack"
+        ? data.rushHitbox
+        : data.weaponHitbox;
+    if (activePlayerAttackHitbox) {
+      const weapon = activePlayerAttackHitbox;
       const drawW = weapon.width * overlayScale;
       const drawH = weapon.height * overlayScale;
       const drawX = centerX + weapon.offsetX * overlayScale - drawW * 0.5;
       const drawY = centerY + weapon.offsetY * overlayScale - drawH * 0.5;
       const swooshImg =
-        data.entryType === "player" && state.playerPreviewState === "attackMelee"
+        data.entryType === "player" &&
+        (state.playerPreviewState === "attackMelee" || state.playerPreviewState === "rushAttack")
           ? getAssets()?.effects?.meleeSwoosh || null
           : null;
       if (swooshImg && swooshImg.width && swooshImg.height) {
@@ -1588,6 +1639,8 @@
       bindings.onPlayerHitboxChange = options.onPlayerHitboxChange || bindings.onPlayerHitboxChange;
       bindings.onPlayerWeaponHitboxChange =
         options.onPlayerWeaponHitboxChange || bindings.onPlayerWeaponHitboxChange;
+      bindings.onPlayerRushHitboxChange =
+        options.onPlayerRushHitboxChange || bindings.onPlayerRushHitboxChange;
       bindings.onPlayerAttackHitFrameChange =
         options.onPlayerAttackHitFrameChange || bindings.onPlayerAttackHitFrameChange;
       bindings.onNpcRadiusChange = options.onNpcRadiusChange || bindings.onNpcRadiusChange;

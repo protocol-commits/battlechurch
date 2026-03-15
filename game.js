@@ -3812,11 +3812,21 @@ const DEFAULT_PLAYER_WEAPON_HITBOX = {
   offsetX: PLAYER_COLLISION_RADIUS * PLAYER_SCALE * 4.8,
   offsetY: 0,
 };
+const DEFAULT_PLAYER_RUSH_HITBOX = {
+  width: 260 * WORLD_SCALE * 1.68,
+  height: 260 * WORLD_SCALE * 0.92,
+  offsetX: 260 * WORLD_SCALE * 0.34,
+  offsetY: 0,
+};
 const DEFAULT_PLAYER_ATTACK_HIT_FRAME = 2;
 const PLAYER_BODY_HITBOX = loadStoredPlayerHitbox(DEFAULT_PLAYER_BODY_HITBOX);
 const PLAYER_WEAPON_HITBOX = normalizeStoredPlayerHitbox(
   window.BattlechurchHitboxes?.player?.weaponHitbox || null,
   DEFAULT_PLAYER_WEAPON_HITBOX,
+);
+const PLAYER_RUSH_HITBOX = normalizeStoredPlayerHitbox(
+  window.BattlechurchHitboxes?.player?.rushHitbox || null,
+  DEFAULT_PLAYER_RUSH_HITBOX,
 );
 const PLAYER_ATTACK_HIT_FRAME = Number.isFinite(Number(window.BattlechurchHitboxes?.player?.attackHitFrame))
   ? Math.max(1, Math.round(Number(window.BattlechurchHitboxes.player.attackHitFrame)))
@@ -3836,6 +3846,7 @@ const BASE_PLAYER_CONFIG = {
   radius: PLAYER_BODY_RADIUS_FALLBACK,
   hitbox: { ...PLAYER_BODY_HITBOX },
   weaponHitbox: { ...PLAYER_WEAPON_HITBOX },
+  rushHitbox: { ...PLAYER_RUSH_HITBOX },
   attackHitFrame: PLAYER_ATTACK_HIT_FRAME,
 };
 
@@ -10572,6 +10583,21 @@ function getPlayerWeaponHitboxLocalRect(targetPlayer = player) {
   };
 }
 
+function getPlayerRushHitboxLocalRect(targetPlayer = player) {
+  if (!targetPlayer) return null;
+  const rushHitbox = targetPlayer.config?.rushHitbox || PLAYER_CONFIG?.rushHitbox || null;
+  if (!rushHitbox || !Number.isFinite(rushHitbox.width) || !Number.isFinite(rushHitbox.height)) return null;
+  if (rushHitbox.width <= 0 || rushHitbox.height <= 0) return null;
+  const offsetX = Number.isFinite(rushHitbox.offsetX) ? rushHitbox.offsetX : 0;
+  const offsetY = Number.isFinite(rushHitbox.offsetY) ? rushHitbox.offsetY : 0;
+  return {
+    x: offsetX - rushHitbox.width / 2,
+    y: offsetY - rushHitbox.height / 2,
+    width: rushHitbox.width,
+    height: rushHitbox.height,
+  };
+}
+
 function queueBasicMeleeAttack(dir, meleeAttackState) {
   if (!player || !meleeAttackState || !dir) return;
   meleeAttackState.pendingBasicAttack = {
@@ -15886,30 +15912,10 @@ function updateDashMovement(dt) {
 function applyRushDamageFromSwoosh(direction, meleeAttackState) {
   if (!meleeAttackState.rushDamageEnabled || !meleeAttackState.rushHitEntities) return;
   if (!player) return;
-  const swooshImg = assets?.effects?.meleeSwoosh;
-  if (!swooshImg || !swooshImg.width || !swooshImg.height) return;
   const dir = normalizeVector(direction.x, direction.y);
   const angle = Math.atan2(dir.y, dir.x);
-  const targetLength = (meleeAttackState.swingLength ?? MELEE_SWING_LENGTH) * WORLD_SCALE;
-  const swingScale = meleeAttackState.swingScale ?? targetLength / Math.max(1, swooshImg.width);
-  const drawWidth = swooshImg.width * swingScale;
-  const drawHeight = swooshImg.height * swingScale * MELEE_SWOOSH_ARC_SCALE;
-  const overscale = 1.6;
-  const frontWidth = drawWidth * overscale;
-  const frontHeight = drawHeight;
-  const offset = Math.max(player.radius * 0.25, drawHeight * 0.15);
-  const baseX = -offset;
-  const frontX = baseX + drawWidth * 0.06;
-  const minX = Math.min(baseX, frontX);
-  const maxX = Math.max(baseX + drawWidth, frontX + frontWidth);
-  const minY = Math.min(-drawHeight * 0.5, -frontHeight * 0.5);
-  const maxY = Math.max(drawHeight * 0.5, frontHeight * 0.5);
-  const hitboxRect = {
-    x: minX,
-    y: minY,
-    width: maxX - minX,
-    height: maxY - minY,
-  };
+  const hitboxRect = getPlayerRushHitboxLocalRect(player);
+  if (!hitboxRect) return;
   const cos = Math.cos(-angle);
   const sin = Math.sin(-angle);
   enemies.forEach((enemy) => {
@@ -18879,6 +18885,21 @@ async function init() {
           BASE_PLAYER_CONFIG.weaponHitbox = { ...next };
           if (player?.config) {
             player.config.weaponHitbox = { ...next };
+          }
+        },
+        onPlayerRushHitboxChange: (rushHitbox) => {
+          if (!rushHitbox || !Number.isFinite(rushHitbox.width) || !Number.isFinite(rushHitbox.height)) return;
+          if (rushHitbox.width <= 0 || rushHitbox.height <= 0) return;
+          const next = {
+            width: rushHitbox.width,
+            height: rushHitbox.height,
+            offsetX: Number.isFinite(rushHitbox.offsetX) ? rushHitbox.offsetX : 0,
+            offsetY: Number.isFinite(rushHitbox.offsetY) ? rushHitbox.offsetY : 0,
+          };
+          PLAYER_CONFIG.rushHitbox = { ...next };
+          BASE_PLAYER_CONFIG.rushHitbox = { ...next };
+          if (player?.config) {
+            player.config.rushHitbox = { ...next };
           }
         },
         onPlayerAttackHitFrameChange: (attackHitFrame) => {
