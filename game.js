@@ -16168,13 +16168,22 @@ function registerMeleeComboHit(target, meleeAttackState) {
       ? performance.now()
       : Date.now();
   const currentTarget = meleeAttackState.meleeComboTarget || null;
-  const chainActive =
-    currentTarget === target &&
+  const currentHits = Math.max(0, Math.round(meleeAttackState.meleeComboHits || 0));
+  const comboWindowActive =
     Number.isFinite(meleeAttackState.meleeComboExpiresAt) &&
     now <= meleeAttackState.meleeComboExpiresAt;
+  const sameTargetChainActive =
+    currentTarget === target &&
+    comboWindowActive;
+  const swarmRetargetActive =
+    currentTarget &&
+    currentTarget !== target &&
+    currentHits === 1 &&
+    comboWindowActive;
+  const chainActive = sameTargetChainActive || swarmRetargetActive;
   meleeAttackState.meleeComboTarget = target;
   meleeAttackState.meleeComboHits = chainActive
-    ? Math.max(1, Math.round(meleeAttackState.meleeComboHits || 1) + 1)
+    ? Math.max(1, currentHits + 1)
     : 1;
   meleeAttackState.meleeComboExpiresAt = now + COMBO_WINDOW_MS;
   if (meleeAttackState.meleeComboHits >= 2) {
@@ -16462,7 +16471,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       }
     }
   }
-  if (survivorHit) {
+  if (hitEnemies.length > 0 || hitBoss) {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     meleeAttackState.awaitRush = true;
     meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
