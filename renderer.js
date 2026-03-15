@@ -6012,7 +6012,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const shakeX = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.x : 0) || 0;
     const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
     const swooshImg = assets?.effects?.meleeSwoosh;
-    const showMeleeHitboxDebug = false;
+    const showMeleeHitboxDebug = true;
     if (showMeleeHitboxDebug && closeRange > 0) {
       ctx.save();
       ctx.globalAlpha = 0.35;
@@ -6060,6 +6060,29 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      ctx.restore();
+    }
+    if (showMeleeHitboxDebug && state.swooshTimer > 0 && !state.isRushing && swooshImg) {
+      const dirVec = state.swooshDir || window.Input.lastMovementDirection || { x: 1, y: 0 };
+      const len = Math.hypot(dirVec.x, dirVec.y) || 1;
+      const normalized = { x: dirVec.x / len, y: dirVec.y / len };
+      const angle = Math.atan2(normalized.y, normalized.x);
+      const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
+      const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
+      const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
+      const drawWidth = swooshImg.width * swingScale;
+      const drawHeight = swooshImg.height * swingScale * arcScale;
+      const offset = Math.max(player.radius * 0.25, drawHeight * 0.15);
+      const originX = player.x - cameraOffsetX + shakeX;
+      const originY = player.y - cameraOffsetY + shakeY;
+      ctx.save();
+      ctx.translate(originX, originY);
+      ctx.rotate(angle);
+      ctx.fillStyle = "rgba(80, 220, 255, 0.18)";
+      ctx.strokeStyle = "rgba(80, 220, 255, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.fillRect(-offset, -drawHeight * 0.5, drawWidth, drawHeight);
+      ctx.strokeRect(-offset, -drawHeight * 0.5, drawWidth, drawHeight);
       ctx.restore();
     }
     if (player.wordOfGodTimer > 0) {
@@ -6129,7 +6152,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (state.isRushing || state.rushDamageEnabled) {
       const overscale = 1.6;
       const frontWidth = drawWidth * overscale;
-      const frontHeight = drawHeight * overscale;
+      const frontHeight = drawHeight;
+      const baseX = -offset;
+      const frontX = baseX + drawWidth * 0.06;
+      const minX = Math.min(baseX, frontX);
+      const maxX = Math.max(baseX + drawWidth, frontX + frontWidth);
+      const minY = Math.min(-drawHeight * 0.5, -frontHeight * 0.5);
+      const maxY = Math.max(drawHeight * 0.5, frontHeight * 0.5);
       ctx.globalAlpha = Math.min(0.85, 0.45 + intensity * 0.35);
       ctx.drawImage(
         swooshImg,
@@ -6138,6 +6167,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         frontWidth,
         frontHeight,
       );
+      if (showMeleeHitboxDebug) {
+        ctx.save();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = "rgba(255, 80, 120, 0.16)";
+        ctx.strokeStyle = "rgba(255, 80, 120, 0.95)";
+        ctx.lineWidth = 2;
+        ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+        ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+        ctx.restore();
+      }
     }
     ctx.restore();
   }
