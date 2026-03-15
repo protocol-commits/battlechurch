@@ -8,7 +8,7 @@
     "assetFiles": {
       "idle": "Walk"
     },
-    "health": 400,
+    "health": 4000,
     "maxHealth": 780,
     "damage": 15,
     "speed": 50,
@@ -195,9 +195,9 @@
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
-      "width": 11,
-      "height": 12,
-      "offsetX": 1,
+      "width": 16,
+      "height": 16,
+      "offsetX": 0,
       "offsetY": 9
     }
   },
@@ -615,10 +615,10 @@
     ],
     "swarmSpacing": 0.05,
     "hitbox": {
-      "width": 24,
+      "width": 16,
       "height": 12,
       "offsetX": 0,
-      "offsetY": -1
+      "offsetY": 6
     }
   },
   "tormentorFlame": {
