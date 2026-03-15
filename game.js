@@ -15859,6 +15859,7 @@ function updateRushMovement(dt, direction, meleeAttackState) {
 
   if (meleeAttackState.rushDistanceRemaining <= 0) {
     meleeAttackState.isRushing = false;
+    meleeAttackState.rushJustEnded = true;
     meleeAttackState.rushDamageEnabled = false;
     meleeAttackState.rushInvulnerable = false;
     meleeAttackState.rushHitEntities = null;
@@ -16692,6 +16693,10 @@ function executeRushAttack(dir, meleeAttackState) {
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
   meleeAttackState.rushDustAccumulator = 0;
   meleeAttackState.rushHitEntities = new Set();
+  if (meleeAttackState.lastComboTimes) {
+    meleeAttackState.lastComboTimes.A = 0;
+    meleeAttackState.lastComboTimes.B = 0;
+  }
   setSharedBButtonCooldown(RUSH_COOLDOWN);
   meleeAttackState.rushDamageEnabled = true;
   meleeAttackState.rushInvulnerable = true;
@@ -16880,6 +16885,7 @@ function updateMeleeAttackSystem(dt) {
       spinCharging: false,
       spinButtonDown: false,
       isRushing: false,
+      rushJustEnded: false,
       rushDir: { x: 1, y: 0 },
       rushDistanceRemaining: 0,
       rushHitEntities: null,
@@ -16975,10 +16981,12 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.lastComboTimes = { A: 0, B: 0 };
     }
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-    if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ")) {
+    if (!meleeAttackState.isRushing && (keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" "))) {
       meleeAttackState.lastComboTimes.A = now;
     }
-    if (keysJustPressed.has("ArrowDown")) meleeAttackState.lastComboTimes.B = now;
+    if (!meleeAttackState.isRushing && keysJustPressed.has("ArrowDown")) {
+      meleeAttackState.lastComboTimes.B = now;
+    }
     const comboWindowMs = MELEE_DOUBLE_TAP_WINDOW * 1000;
     const aRecent = now - meleeAttackState.lastComboTimes.A <= comboWindowMs;
     const bRecent = now - meleeAttackState.lastComboTimes.B <= comboWindowMs;
@@ -16988,6 +16996,15 @@ function updateMeleeAttackSystem(dt) {
     if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
       updateRushMovement(dt, direction, meleeAttackState);
+    }
+    if (meleeAttackState.isRushing || meleeAttackState.rushJustEnded) {
+      keysJustPressed.delete("ArrowDown");
+      keysJustPressed.delete("ArrowLeft");
+      keysJustPressed.delete(" ");
+      if (meleeAttackState.isRushing && meleeAttackState.lastComboTimes) {
+        meleeAttackState.lastComboTimes.A = 0;
+        meleeAttackState.lastComboTimes.B = 0;
+      }
     }
 
     if (meleeAttackState.spinTimer > 0) {
@@ -17386,6 +17403,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.pendingCounterHitTarget = null;
       meleeAttackState.pendingCounterHitShowAt = 0;
     }
+    meleeAttackState.rushJustEnded = false;
     if (
       meleeAttackState.pendingComboTarget &&
       meleeAttackState.pendingComboShowAt &&
