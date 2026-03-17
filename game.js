@@ -15266,6 +15266,16 @@ function processProjectileCollisions(dt) {
             registerDivineShotComboHit(enemy, window._meleeAttackState);
           }
         }
+        if (
+          projectile.isDivineShot &&
+          !shouldDeflect &&
+          !enemy.dead &&
+          enemy.state !== "death" &&
+          Number.isFinite(enemy.health) &&
+          enemy.health > 0
+        ) {
+          applyEnemyMeleeKnockback(enemy, hitX, hitY, MELEE_DAMAGE_KNOCKBACK);
+        }
 
         if (shouldDeflect) {
           spawnArmoredProjectileDeflect(projectile, enemy, hitX, hitY);
@@ -15315,6 +15325,17 @@ function processProjectileCollisions(dt) {
               if (projectile.isDivineShot && window._meleeAttackState) {
                 registerDivineShotComboHit(activeBoss, window._meleeAttackState);
               }
+            }
+            if (
+              projectile.isDivineShot &&
+              !shouldDeflect &&
+              !activeBoss.dead &&
+              !activeBoss.defeated &&
+              Number.isFinite(activeBoss.health) &&
+              activeBoss.health > 0 &&
+              typeof activeBoss.knockbackVx === "number"
+            ) {
+              applyEnemyMeleeKnockback(activeBoss, hitX, hitY, MELEE_DAMAGE_KNOCKBACK);
             }
             if (shouldDeflect) {
               spawnArmoredProjectileDeflect(projectile, activeBoss, hitX, hitY);
