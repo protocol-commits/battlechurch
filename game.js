@@ -1430,14 +1430,29 @@ function playVisitorSavedSfx(volume = 0.85) {
   playPooledSfx(visitorSavedSfxPool, VISITOR_SAVED_SFX_SRC, VISITOR_SAVED_SFX_POOL_SIZE, { volume });
 }
 
+function getPlayerChargeVisualAnchor(targetPlayer = player) {
+  if (!targetPlayer) return null;
+  const hitboxRect = getPlayerHitboxRect(targetPlayer);
+  if (hitboxRect) {
+    return {
+      x: hitboxRect.x + hitboxRect.width * 0.5,
+      y: hitboxRect.y - DIVINE_CHARGE_SPARK_OFFSET,
+    };
+  }
+  return {
+    x: targetPlayer.x,
+    y: targetPlayer.y - (targetPlayer.radius || 24) - DIVINE_CHARGE_SPARK_OFFSET,
+  };
+}
+
 function spawnDivineChargeSparkVisual() {
   if (!player) return null;
   const frames = assets?.effects?.divineChargeSpark;
   if (!Array.isArray(frames) || !frames.length) return null;
   if (divineChargeSparkEffect && !divineChargeSparkEffect.dead) return divineChargeSparkEffect;
-  const x = player.x;
-  const y = player.y - (player.radius || 24) - DIVINE_CHARGE_SPARK_OFFSET;
-  divineChargeSparkEffect = Effects.spawnLoopingEffect(frames, x, y, {
+  const anchor = getPlayerChargeVisualAnchor(player);
+  if (!anchor) return null;
+  divineChargeSparkEffect = Effects.spawnLoopingEffect(frames, anchor.x, anchor.y, {
     frameDuration: DIVINE_CHARGE_SPARK_FRAME_DURATION,
     scale: DIVINE_CHARGE_SPARK_SCALE,
   });
@@ -1451,21 +1466,20 @@ function updateDivineChargeSparkVisual(dt, chargeTimer, holdTime) {
   if (!divineChargeSparkEffect || divineChargeSparkEffect.dead) {
     const frames = assets?.effects?.divineChargeSpark;
     if (!Array.isArray(frames) || !frames.length) return;
-    const x = player.x;
-    const y = player.y - (player.radius || 24) - DIVINE_CHARGE_SPARK_OFFSET;
-    divineChargeSparkEffect = Effects.spawnLoopingEffect(frames, x, y, {
+    const anchor = getPlayerChargeVisualAnchor(player);
+    if (!anchor) return;
+    divineChargeSparkEffect = Effects.spawnLoopingEffect(frames, anchor.x, anchor.y, {
       frameDuration: DIVINE_CHARGE_SPARK_FRAME_DURATION,
       scale: DIVINE_CHARGE_SPARK_SCALE,
     });
   }
 
-  // Update position to be in front of player in attack direction
+  // Keep charge visuals centered above the player's body instead of offsetting sideways.
   if (divineChargeSparkEffect) {
-    const dir = getMeleeAttackDirection();
-    const angle = Math.atan2(dir.y, dir.x);
-    const offset = 40;
-    divineChargeSparkEffect.x = player.x + Math.cos(angle) * offset;
-    divineChargeSparkEffect.y = player.y + Math.sin(angle) * offset;
+    const anchor = getPlayerChargeVisualAnchor(player);
+    if (!anchor) return;
+    divineChargeSparkEffect.x = anchor.x;
+    divineChargeSparkEffect.y = anchor.y;
 
     // Scale effect based on charge progress
     const chargePercent = Math.min(1, chargeTimer / holdTime);
@@ -17241,11 +17255,11 @@ function updateChargeState(dt, meleeAttackState) {
 
   // Update flash position if it exists
   if (divineChargeFlashEffect && !divineChargeFlashEffect.dead && player) {
-    const dir = getMeleeAttackDirection();
-    const angle = Math.atan2(dir.y, dir.x);
-    const offset = 40;
-    divineChargeFlashEffect.x = player.x + Math.cos(angle) * offset;
-    divineChargeFlashEffect.y = player.y + Math.sin(angle) * offset;
+    const anchor = getPlayerChargeVisualAnchor(player);
+    if (anchor) {
+      divineChargeFlashEffect.x = anchor.x;
+      divineChargeFlashEffect.y = anchor.y;
+    }
   }
 }
 

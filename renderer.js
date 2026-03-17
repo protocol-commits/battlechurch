@@ -3778,39 +3778,35 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawPlayerWeaponMeter(player) {
-    const { ctx, cameraOffsetX = 0, cameraOffsetY = 0, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
+    const { ctx, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
     if (!ctx || !player || !meleeAttackState || player.state === "death") return;
     if (!meleeAttackState.isCharging || !meleeAttackState.buttonDown) return;
     const holdTime = Math.max(0.001, meleeAttackState.holdTime || 0);
     const chargeRatio = Math.max(0, Math.min(1, (meleeAttackState.chargeTimer || 0) / holdTime));
     const shakeX = sharedShakeOffset?.x || 0;
-    const shakeY = sharedShakeOffset?.y || 0;
     const sprite = getPlayerSpriteExtents(player);
     const width = Math.round(34 * WORLD_SCALE);
     const height = Math.max(7, Math.round(8 * WORLD_SCALE));
-    const screenX = player.x - cameraOffsetX + shakeX - width / 2;
-    const screenY =
-      sprite.top - cameraOffsetY + shakeY - height - Math.round(8 * WORLD_SCALE);
+    const meterX = player.x + shakeX - width / 2;
+    const meterY = sprite.top - height - Math.round(8 * WORLD_SCALE);
     const palette = getCombatMeterPalette();
-    drawCompactWorldMeter(screenX, screenY, width, height, chargeRatio, palette.sword, palette.swordGlow);
+    drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.sword, palette.swordGlow);
   }
 
   function drawPlayerExtendMeter(player) {
-    const { ctx, cameraOffsetX = 0, cameraOffsetY = 0, WORLD_SCALE = 1, playerDashState, DASH_COOLDOWN = 0 } = requireBindings();
+    const { ctx, WORLD_SCALE = 1, playerDashState, DASH_COOLDOWN = 0 } = requireBindings();
     if (!ctx || !player || !playerDashState || player.state === "death") return;
     const dashCooldown = Math.max(0, playerDashState.dashCooldown || 0);
     if (dashCooldown <= 0 || DASH_COOLDOWN <= 0) return;
     const rechargeRatio = Math.max(0, Math.min(1, 1 - dashCooldown / DASH_COOLDOWN));
     const shakeX = sharedShakeOffset?.x || 0;
-    const shakeY = sharedShakeOffset?.y || 0;
     const sprite = getPlayerSpriteExtents(player);
     const width = Math.round(32 * WORLD_SCALE);
     const height = Math.max(6, Math.round(7 * WORLD_SCALE));
-    const screenX = player.x - cameraOffsetX + shakeX - width / 2;
-    const screenY =
-      sprite.bottom - cameraOffsetY + shakeY + Math.round(8 * WORLD_SCALE);
+    const meterX = player.x + shakeX - width / 2;
+    const meterY = sprite.bottom + Math.round(8 * WORLD_SCALE);
     const palette = getCombatMeterPalette();
-    drawCompactWorldMeter(screenX, screenY, width, height, rechargeRatio, palette.dash, palette.dashGlow);
+    drawCompactWorldMeter(meterX, meterY, width, height, rechargeRatio, palette.dash, palette.dashGlow);
   }
 
   function drawVisitorIntroOverlay() {
