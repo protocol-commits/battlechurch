@@ -131,6 +131,9 @@
     return 0;
   };
 
+  const isEnemyInKnockback = (enemy) =>
+    Boolean(enemy && Number.isFinite(enemy.knockbackTimer) && enemy.knockbackTimer > 0);
+
   let settings = Object.assign({}, defaults);
   let enemyDefinitions = {};
   let enemyTypesCache = null;

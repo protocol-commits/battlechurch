@@ -8545,6 +8545,7 @@ function triggerHeroRescueCall() {
 function applyEnemyTouchDamage(enemy) {
   if (!enemy || enemy.state === "death") return;
   if (enemy._orbiting) return;
+  if (isEnemyInKnockback(enemy)) return;
   if ((enemy.touchCooldown || 0) > 0) return;
   if (
     enemy.state === "attack" &&
@@ -10484,6 +10485,10 @@ function getEnemyAttackDamageValue(enemy) {
     return config.damage;
   }
   return 0;
+}
+
+function isEnemyInKnockback(enemy) {
+  return Boolean(enemy && Number.isFinite(enemy.knockbackTimer) && enemy.knockbackTimer > 0);
 }
 
 function getEnemyHitboxCenter(enemy) {
@@ -13184,6 +13189,7 @@ function updateCozyNpcs(dt) {
       ) {
         continue;
       }
+      if (isEnemyInKnockback(enemy)) continue;
       if ((npcEntity.damageCooldown || 0) > 0) continue;
       if (npcEntity.faith <= 0) continue;
       const enemyDamage = getEnemyContactDamageValue(enemy);
