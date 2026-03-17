@@ -15254,9 +15254,12 @@ function processProjectileCollisions(dt) {
         const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
         const shouldDeflect = isArmoredProjectileDeflectTarget(enemy, projectile, damageType);
         enemy.takeDamage(projectileDamage, { damageType });
-    if (projectile.source?.isPlayer) {
-      registerProjectileComboHit(enemy, projectileDamage, projectile);
-    }
+        if (projectile.source?.isPlayer) {
+          registerProjectileComboHit(enemy, projectileDamage, projectile);
+          if (projectile.isDivineShot && window._meleeAttackState) {
+            registerDivineShotComboHit(enemy, window._meleeAttackState);
+          }
+        }
 
         if (shouldDeflect) {
           spawnArmoredProjectileDeflect(projectile, enemy, hitX, hitY);
@@ -15303,6 +15306,9 @@ function processProjectileCollisions(dt) {
             });
             if (projectile.source?.isPlayer) {
               registerProjectileComboHit(activeBoss, bossDamage, projectile);
+              if (projectile.isDivineShot && window._meleeAttackState) {
+                registerDivineShotComboHit(activeBoss, window._meleeAttackState);
+              }
             }
             if (shouldDeflect) {
               spawnArmoredProjectileDeflect(projectile, activeBoss, hitX, hitY);
@@ -16533,6 +16539,11 @@ function registerMeleeComboHit(target, meleeAttackState) {
   updateMeleeComboLabel(meleeAttackState);
 }
 
+function registerDivineShotComboHit(target, meleeAttackState) {
+  if (!target || !meleeAttackState) return;
+  registerMeleeComboHit(target, meleeAttackState);
+}
+
 function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, forceImmediate = false) {
   if (!entity || !Number.isFinite(comboDamage) || comboDamage <= 0) return;
   const now =
@@ -17072,6 +17083,10 @@ function executeSpinAttack(meleeAttackState, moveDir) {
 }
 
 function executeDivineShot(dir, meleeAttackState, angleRad) {
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
   const spawnX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
   const spawnY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
   const vx = Math.cos(angleRad) * DIVINE_SHOT_SPEED;
@@ -17093,6 +17108,9 @@ function executeDivineShot(dir, meleeAttackState, angleRad) {
   if (typeof playDivineShotSfx === "function") {
     playDivineShotSfx(0.6);
   }
+
+  meleeAttackState.divineShotFollowUpUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+  meleeAttackState.cooldown = 0;
 }
 
 function maybeFireWordOfGodProjectile(dir, angleRad) {
@@ -17272,6 +17290,7 @@ function updateMeleeAttackSystem(dt) {
       meleeCancelUntil: 0,
     meleeCancelDamage: 0,
     meleeCancelTarget: null,
+    divineShotFollowUpUntil: 0,
     divineComboDamage: 0,
     divineComboActiveUntil: 0,
     divineComboShown: false,
@@ -17659,14 +17678,18 @@ function updateMeleeAttackSystem(dt) {
     if (!spaceHeld && meleeAttackState.buttonDown) {
       meleeAttackState.buttonDown = false;
       const fullyCharged = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
+      const divineShotFollowUpActive =
+        meleeAttackState.divineShotFollowUpUntil &&
+        now <= meleeAttackState.divineShotFollowUpUntil;
       if (meleeAttackState.isCharging) {
         meleeAttackState.isCharging = false;
         clearDivineChargeSparkVisual();
         if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);
           executeDivineShot(dir, meleeAttackState, angleRad);
-        } else if (meleeAttackState.cooldown <= 0) {
+        } else if (meleeAttackState.cooldown <= 0 || divineShotFollowUpActive) {
           const angleRad = Math.atan2(dir.y, dir.x);
+          meleeAttackState.divineShotFollowUpUntil = 0;
           // Check if player is dashing when pressing melee
           const shouldSwoosh = playerDashState.isDashing;
           if (shouldSwoosh) {
@@ -17689,6 +17712,12 @@ function updateMeleeAttackSystem(dt) {
       clearDivineChargeSparkVisual();
     }
     const comboNow = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (
+      meleeAttackState.divineShotFollowUpUntil &&
+      comboNow > meleeAttackState.divineShotFollowUpUntil
+    ) {
+      meleeAttackState.divineShotFollowUpUntil = 0;
+    }
     if (meleeAttackState.meleeCancelUntil && comboNow > meleeAttackState.meleeCancelUntil) {
       meleeAttackState.meleeCancelUntil = 0;
       meleeAttackState.meleeCancelTarget = null;
