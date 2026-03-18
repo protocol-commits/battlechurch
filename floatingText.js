@@ -96,6 +96,7 @@
       fontFamily = null,
       fadeDelay = 0,
       textAlign = null,
+      detachOnEntityGone = false,
     } = options;
     const finalStyle = style || (speechBubble ? "speech" : "plain");
     if (finalStyle === "speech" && !critical) {
@@ -125,6 +126,7 @@
       fontWeight,
       fontFamily,
       textAlign,
+      detachOnEntityGone,
       priority,
       fadeDelay,
       fadeLength,
@@ -172,9 +174,17 @@
       typeof window !== "undefined" && typeof window.formatNumberWithCommas === "function"
         ? window.formatNumberWithCommas
         : (value) => `${Math.round(Number.isFinite(value) ? value : 0)}`;
-    const radius = entity.radius || entity.config?.hitRadius || 24;
     const isFriendly = Boolean(entity.isPlayer || entity.isCozyNpc);
     const isPlayer = Boolean(entity.isPlayer);
+    const radius = entity.radius || entity.config?.hitRadius || 24;
+    const baseRadius =
+      Number.isFinite(entity.config?.baseRadius) && entity.config.baseRadius > 0
+        ? entity.config.baseRadius
+        : null;
+    const textAnchorRadius =
+      !isFriendly && baseRadius
+        ? Math.min(radius, baseRadius * 1.6)
+        : radius;
     const finalFontSize =
       fontSize ??
       (isPlayer ? 72 : entity.isCozyNpc ? 50 : 18);
@@ -186,7 +196,7 @@
       ? ((entity.facing === "left" ? 1 : -1) * 10)
       : 0;
     const baseX = entity.x + jitter.x;
-    const baseY = entity.y - radius + offsetY + jitter.y;
+    const baseY = entity.y - textAnchorRadius + offsetY + jitter.y;
     addAt(
       baseX,
       baseY,
@@ -202,7 +212,8 @@
         priority,
         entity: followEntity ? entity : null,
         offsetX: followEntity ? (jitter.x + facingOffsetX) : 0,
-        offsetY: followEntity ? (-radius + offsetY + jitter.y - 15) : 0,
+        offsetY: followEntity ? (-textAnchorRadius + offsetY + jitter.y - 15) : 0,
+        detachOnEntityGone: true,
       },
     );
   }
@@ -257,16 +268,30 @@
       if (ft.entity) {
         const subject = ft.entity;
         if (subject?.state === "death" || subject?.dead || subject?.removed || subject?.departed) {
-          activeTexts.splice(i, 1);
-          continue;
+          if (ft.detachOnEntityGone) {
+            ft.entity = null;
+          } else {
+            activeTexts.splice(i, 1);
+            continue;
+          }
         }
-        ft.x = subject.x + (ft.offsetX || 0);
-        ft.y = subject.y + (ft.offsetY || 0);
-        if (!ft.persist && (!ft.fadeDelayRemaining || ft.fadeDelayRemaining <= 0)) {
-          ft.life -= dt;
-        }
-        if (!ft.persist && ft.fadeDelayRemaining > 0) {
-          ft.fadeDelayRemaining = Math.max(0, ft.fadeDelayRemaining - dt);
+        if (ft.entity) {
+          ft.x = subject.x + (ft.offsetX || 0);
+          ft.y = subject.y + (ft.offsetY || 0);
+          if (!ft.persist && (!ft.fadeDelayRemaining || ft.fadeDelayRemaining <= 0)) {
+            ft.life -= dt;
+          }
+          if (!ft.persist && ft.fadeDelayRemaining > 0) {
+            ft.fadeDelayRemaining = Math.max(0, ft.fadeDelayRemaining - dt);
+          }
+        } else {
+          if (!ft.persist && (!ft.fadeDelayRemaining || ft.fadeDelayRemaining <= 0)) {
+            ft.life -= dt;
+          }
+          if (!ft.persist && ft.fadeDelayRemaining > 0) {
+            ft.fadeDelayRemaining = Math.max(0, ft.fadeDelayRemaining - dt);
+          }
+          ft.y += ft.vy * dt;
         }
       } else {
         if (!ft.persist && (!ft.fadeDelayRemaining || ft.fadeDelayRemaining <= 0)) {
