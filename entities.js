@@ -2074,6 +2074,7 @@
           ? rectIntersectsRect(targetHitboxRect, weaponRect)
           : circleIntersectsRect(target.x, target.y, targetRadius, weaponRect));
       if ((targetInWeaponRange || distance <= attackRange) && this.attackTimer <= 0) {
+        this.updateFacing(dx, dy);
         this.state = "attack";
         this.animator.play("attack", { restart: true });
         this.attackHitApplied = false;
@@ -2252,6 +2253,7 @@
       const projectile = spawnProjectile(spawnType, originX, originY, dir.x, dir.y, spawnOverrides);
       if (projectile) {
         projectile.hitEntities.add(this);
+        this.updateFacing(dir.x, dir.y);
         this.state = "attack";
         this.animator.play("attack", { restart: true });
         this.attackHitApplied = false;
