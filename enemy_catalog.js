@@ -8,7 +8,7 @@
     "assetFiles": {
       "idle": "Walk"
     },
-    "health": 4000,
+    "health": 400,
     "maxHealth": 780,
     "damage": 15,
     "speed": 50,
@@ -90,7 +90,7 @@
     "assetFiles": {
       "idle": "Walk"
     },
-    "health": 40000,
+    "health": 400,
     "maxHealth": 745,
     "damage": 5,
     "speed": 50,
@@ -670,7 +670,7 @@
       "idle": "Walk",
       "attack": "Attack03"
     },
-    "health": 1000,
+    "health": 400,
     "maxHealth": 410,
     "damage": 5,
     "speed": 50,
