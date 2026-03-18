@@ -177,7 +177,7 @@
     const isPlayer = Boolean(entity.isPlayer);
     const finalFontSize =
       fontSize ??
-      (isPlayer ? 90 : entity.isCozyNpc ? 50 : 18);
+      (isPlayer ? 72 : entity.isCozyNpc ? 50 : 18);
     const finalFontWeight = fontWeight ?? (isFriendly ? "700" : "500");
     const finalColor = isFriendly ? "#ffffff" : color;
     const jitter = getDamageJitter(entity);
