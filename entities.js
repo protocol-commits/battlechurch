@@ -2432,9 +2432,15 @@
         if (this.type === "tormentorFlame") {
           return;
         }
+        const repeatedLightPressure =
+          damageType === "melee" &&
+          Number.isFinite(Number(options?.hurtDuration)) &&
+          Number(options.hurtDuration) > 0;
         const suppressProjectileStun =
           damageType === "projectile" && damageClass === "armored";
-        if (!suppressProjectileStun) {
+        const suppressRepeatedLightStun =
+          repeatedLightPressure && damageClass === "armored";
+        if (!suppressProjectileStun && !suppressRepeatedLightStun) {
           this.state = "hurt";
           const customHurtDuration = Number(options?.hurtDuration);
           if (Number.isFinite(customHurtDuration) && customHurtDuration > 0) {
