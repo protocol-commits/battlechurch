@@ -181,9 +181,15 @@
     const finalFontWeight = fontWeight ?? (isFriendly ? "700" : "500");
     const finalColor = isFriendly ? "#ffffff" : color;
     const jitter = getDamageJitter(entity);
+    const followPlayer = isPlayer;
+    const facingOffsetX = followPlayer
+      ? ((entity.facing === "left" ? 1 : -1) * 10)
+      : 0;
+    const baseX = entity.x + jitter.x;
+    const baseY = entity.y - radius + offsetY + jitter.y;
     addAt(
-      entity.x + jitter.x,
-      entity.y - radius + offsetY + jitter.y,
+      baseX,
+      baseY,
       formatter(rounded),
       finalColor,
       {
@@ -194,6 +200,9 @@
         fontWeight: finalFontWeight,
         fadeDelay,
         priority,
+        entity: followPlayer ? entity : null,
+        offsetX: followPlayer ? (jitter.x + facingOffsetX) : 0,
+        offsetY: followPlayer ? (-radius + offsetY + jitter.y - 15) : 0,
       },
     );
   }
