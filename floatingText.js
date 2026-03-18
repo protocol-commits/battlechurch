@@ -181,7 +181,7 @@
     const finalFontWeight = fontWeight ?? (isFriendly ? "700" : "500");
     const finalColor = isFriendly ? "#ffffff" : color;
     const jitter = getDamageJitter(entity);
-    const followEntity = Boolean(isPlayer || entity.isCozyNpc);
+    const followEntity = Boolean(entity);
     const facingOffsetX = isPlayer
       ? ((entity.facing === "left" ? 1 : -1) * 10)
       : 0;

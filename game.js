@@ -16262,15 +16262,18 @@ function getMultiplierBonusLabel(multiplier) {
 
 function triggerPunishCounterText(target) {
   if (!target) return;
+  const radius = target.radius || target.config?.hitRadius || 24;
   addFloatingTextAt(
     target.x,
-    target.y - (target.radius || target.config?.hitRadius || 24) - 58,
+    target.y - radius - 58,
     `Punish Counter ${getMultiplierBonusLabel(PUNISH_COUNTER_MULTIPLIER)}`,
     "#FFD84F",
     {
       speechBubble: false,
       vy: -14,
       life: PUNISH_COUNTER_TEXT_LIFE,
+      entity: target,
+      offsetY: -radius - 58,
       fontSize: 28,
       fontWeight: "900",
       priority: 8,
@@ -16280,15 +16283,18 @@ function triggerPunishCounterText(target) {
 
 function triggerCounterHitText(target) {
   if (!target) return;
+  const radius = target.radius || target.config?.hitRadius || 24;
   return addFloatingTextAt(
     target.x,
-    target.y - (target.radius || target.config?.hitRadius || 24) - 50,
+    target.y - radius - 50,
     `Counter Hit ${getMultiplierBonusLabel(COUNTER_HIT_MULTIPLIER)}`,
     "#FFE7A1",
     {
       speechBubble: false,
       vy: -12,
       life: COUNTER_HIT_TEXT_LIFE,
+      entity: target,
+      offsetY: -radius - 50,
       fontSize: 22,
       fontWeight: "800",
       priority: 7,
@@ -16509,6 +16515,8 @@ function updateMeleeComboLabel(meleeAttackState) {
         speechBubble: false,
         vy: 0,
         life: MELEE_COMBO_TEXT_LIFE,
+        entity: target,
+        offsetY: -radius - (punishLabelActive ? 4 : 18),
         fontSize: 20,
         fontWeight: "800",
         priority: 6,
@@ -16520,6 +16528,8 @@ function updateMeleeComboLabel(meleeAttackState) {
   meleeAttackState.meleeComboLabel.text = labelText;
   meleeAttackState.meleeComboLabel.x = target.x;
   meleeAttackState.meleeComboLabel.y = comboLabelY;
+  meleeAttackState.meleeComboLabel.entity = target;
+  meleeAttackState.meleeComboLabel.offsetY = -radius - (punishLabelActive ? 4 : 18);
   meleeAttackState.meleeComboLabel.color = "#FFE083";
   meleeAttackState.meleeComboLabel.persist = true;
   meleeAttackState.meleeComboLabel.life = Math.max(
