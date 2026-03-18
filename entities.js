@@ -1764,6 +1764,8 @@
       this.knockbackVx = 0;
       this.knockbackVy = 0;
       this.knockbackTimer = 0;
+      this.hurtTimer = 0;
+      this.hurtTimerActive = false;
       if (this.type === "tormentorFlame") {
         this.ignoreEntityCollisions = true;
       }
@@ -1860,7 +1862,19 @@
 
       if (this.state === "hurt") {
         this.animator.update(dt);
+        if (this.hurtTimerActive) {
+          this.hurtTimer = Math.max(0, this.hurtTimer - dt);
+          if (this.hurtTimer <= 0) {
+            this.hurtTimer = 0;
+            this.hurtTimerActive = false;
+            this.state = "walk";
+            this.animator.play("walk");
+            return;
+          }
+        }
         if (this.animator.isFinished()) {
+          this.hurtTimer = 0;
+          this.hurtTimerActive = false;
           this.state = "walk";
           this.animator.play("walk");
         }
@@ -2422,6 +2436,14 @@
           damageType === "projectile" && damageClass === "armored";
         if (!suppressProjectileStun) {
           this.state = "hurt";
+          const customHurtDuration = Number(options?.hurtDuration);
+          if (Number.isFinite(customHurtDuration) && customHurtDuration > 0) {
+            this.hurtTimer = customHurtDuration;
+            this.hurtTimerActive = true;
+          } else {
+            this.hurtTimer = 0;
+            this.hurtTimerActive = false;
+          }
           this.animator.play("hurt", { restart: true });
         }
       }

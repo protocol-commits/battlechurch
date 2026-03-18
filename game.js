@@ -2617,6 +2617,8 @@ const MELEE_DAMAGE_DURATION = _gb('melee.damageDuration', 0.25);
 const GAME_MELEE_SWING_DURATION = _gb('melee.swingDuration', 0.2);
 const MELEE_COOLDOWN = _gb('melee.cooldown', 0.4);
 const MELEE_DOUBLE_TAP_WINDOW = _gb('melee.doubleTapWindow', 0.18);
+const NORMAL_A_CHAIN_WINDOW_MS = Math.max(520, MELEE_COOLDOWN * 1000 + 140);
+const NORMAL_A_REHIT_HURT_DURATION = 0.1;
 const MELEE_HOLD_CHARGE_TIME = _gb('melee.holdChargeTime', 1.5);
 const MELEE_BASE_DAMAGE = _gb('melee.baseDamage', 100);
 const MELEE_SWOOSH_DAMAGE_SCALE = _gb('melee.swooshDamageScale', 1.2);
@@ -16580,6 +16582,30 @@ function registerMeleeComboHit(target, meleeAttackState) {
   updateMeleeComboLabel(meleeAttackState);
 }
 
+function getNormalSlashChainHits(target, meleeAttackState, now) {
+  if (!target || !meleeAttackState) return 0;
+  const expiresAt = Number(meleeAttackState.normalSlashExpiresAt) || 0;
+  if (expiresAt <= 0 || now > expiresAt) return 0;
+  if (meleeAttackState.normalSlashTarget !== target) return 0;
+  return Math.max(0, Math.round(meleeAttackState.normalSlashHits || 0));
+}
+
+function registerNormalSlashChainHit(target, meleeAttackState, now) {
+  if (!target || !meleeAttackState) return 0;
+  const timeNow =
+    typeof now === "number"
+      ? now
+      : typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+  const priorHits = getNormalSlashChainHits(target, meleeAttackState, timeNow);
+  const nextHits = priorHits + 1;
+  meleeAttackState.normalSlashTarget = target;
+  meleeAttackState.normalSlashHits = nextHits;
+  meleeAttackState.normalSlashExpiresAt = timeNow + NORMAL_A_CHAIN_WINDOW_MS;
+  return nextHits;
+}
+
 function registerDivineShotComboHit(target, meleeAttackState) {
   if (!target || !meleeAttackState) return;
   registerMeleeComboHit(target, meleeAttackState);
@@ -16719,10 +16745,17 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
     const counterHit = getCounterHitResult(enemy, MELEE_BASE_DAMAGE, meleeAttackState);
     const damage = counterHit.damage;
-    enemy.takeDamage(damage, { damageType: "melee", damageText: counterHit.damageText });
+    const slashChainHitsBefore = getNormalSlashChainHits(enemy, meleeAttackState, now);
+    const repeatedSlashPressure = slashChainHitsBefore >= 1;
+    enemy.takeDamage(damage, {
+      damageType: "melee",
+      damageText: counterHit.damageText,
+      hurtDuration: repeatedSlashPressure ? NORMAL_A_REHIT_HURT_DURATION : undefined,
+    });
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
     registerMeleeComboHit(enemy, meleeAttackState);
+    registerNormalSlashChainHit(enemy, meleeAttackState, now);
     registerComboHit(enemy, damage);
     meleeDamageTotal += damage;
     if (
@@ -16773,7 +16806,9 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       meleeAttackState.rushComboTarget = null;
     }
     if (!enemy.dead && enemy.state !== "death") {
-      applyEnemyMeleeKnockback(enemy, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
+      if (!repeatedSlashPressure) {
+        applyEnemyMeleeKnockback(enemy, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
+      }
       survivorHit = true;
     }
     spawnEnemyHitEffect(enemy);
@@ -16798,15 +16833,19 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (bossHit) {
         const counterHit = getCounterHitResult(activeBoss, MELEE_BASE_DAMAGE, meleeAttackState);
         const damage = counterHit.damage;
+        const slashChainHitsBefore = getNormalSlashChainHits(activeBoss, meleeAttackState, now);
+        const repeatedSlashPressure = slashChainHitsBefore >= 1;
         activeBoss.takeDamage(damage, {
           hitX: activeBoss.x,
           hitY: activeBoss.y,
           damageType: "melee",
           damageText: counterHit.damageText,
+          hurtDuration: repeatedSlashPressure ? NORMAL_A_REHIT_HURT_DURATION : undefined,
         });
         applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
         registerMeleeComboHit(activeBoss, meleeAttackState);
+        registerNormalSlashChainHit(activeBoss, meleeAttackState, now);
         registerComboHit(activeBoss, damage);
         meleeDamageTotal += damage;
         if (
@@ -16859,7 +16898,9 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
         hitBoss = true;
         if (!meleePrimaryTarget) meleePrimaryTarget = activeBoss;
         if (typeof activeBoss.knockbackVx === "number") {
-          applyEnemyMeleeKnockback(activeBoss, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
+          if (!repeatedSlashPressure) {
+            applyEnemyMeleeKnockback(activeBoss, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
+          }
         }
         if (!activeBoss.dead && !activeBoss.defeated) {
           survivorHit = true;
@@ -17337,6 +17378,9 @@ function updateMeleeAttackSystem(dt) {
     divineComboShown: false,
     divineComboTarget: null,
     divineComboHits: 0,
+    normalSlashTarget: null,
+    normalSlashHits: 0,
+    normalSlashExpiresAt: 0,
     meleeComboTarget: null,
     meleeComboHits: 0,
     meleeComboExpiresAt: 0,
@@ -17758,6 +17802,14 @@ function updateMeleeAttackSystem(dt) {
       comboNow > meleeAttackState.divineShotFollowUpUntil
     ) {
       meleeAttackState.divineShotFollowUpUntil = 0;
+    }
+    if (
+      meleeAttackState.normalSlashExpiresAt &&
+      comboNow > meleeAttackState.normalSlashExpiresAt
+    ) {
+      meleeAttackState.normalSlashTarget = null;
+      meleeAttackState.normalSlashHits = 0;
+      meleeAttackState.normalSlashExpiresAt = 0;
     }
     if (meleeAttackState.meleeCancelUntil && comboNow > meleeAttackState.meleeCancelUntil) {
       meleeAttackState.meleeCancelUntil = 0;
