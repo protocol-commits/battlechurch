@@ -97,7 +97,7 @@
     "baseRadius": 17,
     "scale": 4,
     "attackBonus": 36,
-    "cooldown": 2,
+    "cooldown": 1,
     "score": 280,
     "ranged": false,
     "projectileType": null,
