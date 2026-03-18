@@ -16028,9 +16028,15 @@ function updateDashMovement(dt) {
     spawnPuffEffect(player.x, player.y, 20 * WORLD_SCALE);
   }
 
+  applyDashSlashTravelDamage(window._meleeAttackState);
+
   // End dash when distance complete
   if (playerDashState.dashDistanceRemaining <= 0) {
     playerDashState.isDashing = false;
+    if (window._meleeAttackState) {
+      window._meleeAttackState.swooshDamageEnabled = false;
+      window._meleeAttackState.swooshHitEntities = null;
+    }
     setSharedBButtonCooldown(DASH_COOLDOWN);
   }
 }
@@ -16960,6 +16966,8 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     player.animator.play("attackMelee", { restart: true });
   }
   maybeFireWordOfGodProjectile(dir, angleRad);
+  meleeAttackState.swooshDamageEnabled = true;
+  meleeAttackState.swooshHitEntities = new Set();
 
   const swooshAngle = angleRad;
   const swooshDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
@@ -16972,12 +16980,14 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
   let meleeDamageTotal = 0;
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
+    if (meleeAttackState.swooshHitEntities?.has(enemy)) return;
     const relX = enemy.x - player.x;
     const relY = enemy.y - player.y;
     const localX = relX * cos - relY * sin;
     const localY = relX * sin + relY * cos;
     const hitRadius = getEnemyHitboxRadius(enemy) || enemy.radius || 0;
     if (!circleIntersectsRect(localX, localY, hitRadius, hitboxRect)) return;
+    meleeAttackState.swooshHitEntities?.add(enemy);
     const counterHit = getCounterHitResult(enemy, swooshDamage, meleeAttackState);
     const finalDamage = counterHit.damage;
     enemy.takeDamage(finalDamage, { damageType: "melee", damageText: counterHit.damageText });
@@ -17026,12 +17036,16 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     }
   });
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+    if (meleeAttackState.swooshHitEntities?.has(activeBoss)) {
+      // Already hit this dash.
+    } else {
     const relX = activeBoss.x - player.x;
     const relY = activeBoss.y - player.y;
     const localX = relX * cos - relY * sin;
     const localY = relX * sin + relY * cos;
     const hitRadius = activeBoss.radius || 0;
     if (circleIntersectsRect(localX, localY, hitRadius, hitboxRect)) {
+      meleeAttackState.swooshHitEntities?.add(activeBoss);
       const counterHit = getCounterHitResult(activeBoss, swooshDamage, meleeAttackState);
       const finalDamage = counterHit.damage;
       activeBoss.takeDamage(finalDamage, {
@@ -17084,6 +17098,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       }
       spawnEnemyHitEffect(activeBoss);
     }
+    }
   }
   if (survivorHit) {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -17102,6 +17117,95 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
   meleeAttackState.awaitRush = true;
   meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;
+}
+
+function applyDashSlashTravelDamage(meleeAttackState) {
+  if (!player || !playerDashState.isDashing || !meleeAttackState?.swooshDamageEnabled) return;
+  const angleRad = Math.atan2(playerDashState.dashDir.y, playerDashState.dashDir.x);
+  const swooshDamage = Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
+  const hitboxRect = getPlayerDashSlashHitboxLocalRect(player);
+  if (!hitboxRect) return;
+  if (!meleeAttackState.swooshHitEntities) {
+    meleeAttackState.swooshHitEntities = new Set();
+  }
+  const hitSet = meleeAttackState.swooshHitEntities;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const cos = Math.cos(-angleRad);
+  const sin = Math.sin(-angleRad);
+
+  enemies.forEach((enemy) => {
+    if (enemy.dead || enemy.state === "death" || hitSet.has(enemy)) return;
+    const relX = enemy.x - player.x;
+    const relY = enemy.y - player.y;
+    const localX = relX * cos - relY * sin;
+    const localY = relX * sin + relY * cos;
+    const hitRadius = getEnemyHitboxRadius(enemy) || enemy.radius || 0;
+    if (!circleIntersectsRect(localX, localY, hitRadius, hitboxRect)) return;
+    hitSet.add(enemy);
+    const counterHit = getCounterHitResult(enemy, swooshDamage, meleeAttackState);
+    const finalDamage = counterHit.damage;
+    enemy.takeDamage(finalDamage, { damageType: "melee", damageText: counterHit.damageText });
+    applyMeleeHitstop(enemy, meleeAttackState, counterHit);
+    registerPunishComboDamage(enemy, finalDamage, meleeAttackState);
+    registerMeleeComboHit(enemy, meleeAttackState);
+    registerComboHit(enemy, finalDamage);
+    if (!enemy.dead && enemy.state !== "death") {
+      applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+    }
+    if (
+      !meleeAttackState.divineComboShown &&
+      meleeAttackState.divineComboDamage > 0 &&
+      meleeAttackState.divineComboActiveUntil &&
+      now <= meleeAttackState.divineComboActiveUntil &&
+      meleeAttackState.divineComboTarget === enemy &&
+      enemy.state === "hurt"
+    ) {
+      const hits = (meleeAttackState.divineComboHits || 2) + 1;
+      showComboTextAt(enemy, meleeAttackState.divineComboDamage + finalDamage, hits);
+      meleeAttackState.divineComboShown = true;
+      meleeAttackState.divineComboActiveUntil = 0;
+      meleeAttackState.divineComboDamage = 0;
+      meleeAttackState.divineComboTarget = null;
+      meleeAttackState.divineComboHits = 0;
+    }
+    spawnEnemyHitEffect(enemy);
+  });
+
+  if (
+    activeBoss &&
+    !activeBoss.dead &&
+    !activeBoss.defeated &&
+    !activeBoss.removed &&
+    !hitSet.has(activeBoss)
+  ) {
+    const relX = activeBoss.x - player.x;
+    const relY = activeBoss.y - player.y;
+    const localX = relX * cos - relY * sin;
+    const localY = relX * sin + relY * cos;
+    const hitRadius = activeBoss.radius || 0;
+    if (circleIntersectsRect(localX, localY, hitRadius, hitboxRect)) {
+      hitSet.add(activeBoss);
+      const counterHit = getCounterHitResult(activeBoss, swooshDamage, meleeAttackState);
+      const finalDamage = counterHit.damage;
+      activeBoss.takeDamage(finalDamage, {
+        hitX: activeBoss.x,
+        hitY: activeBoss.y,
+        damageType: "melee",
+        damageText: counterHit.damageText,
+      });
+      applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
+      registerPunishComboDamage(activeBoss, finalDamage, meleeAttackState);
+      registerMeleeComboHit(activeBoss, meleeAttackState);
+      registerComboHit(activeBoss, finalDamage);
+      if (typeof activeBoss.knockbackVx === "number") {
+        applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+      }
+      spawnEnemyHitEffect(activeBoss);
+    }
+  }
 }
 
 function executeRushAttack(dir, meleeAttackState) {
@@ -17364,6 +17468,8 @@ function updateMeleeAttackSystem(dt) {
     rushBypassUntil: 0,
     swooshTimer: 0,
     swooshDir: { x: 1, y: 0 },
+    swooshDamageEnabled: false,
+    swooshHitEntities: null,
     projectileBlockTimer: 0,
     rushLockTimer: 0,
     rushDamageEnabled: false,
@@ -17793,9 +17899,6 @@ function updateMeleeAttackSystem(dt) {
           const shouldSwoosh = playerDashState.isDashing;
           if (shouldSwoosh) {
             executeSwooshAttack(dir, meleeAttackState, angleRad);
-            // End the dash when swoosh is triggered
-            playerDashState.isDashing = false;
-            setSharedBButtonCooldown(DASH_COOLDOWN);
           } else {
             queueBasicMeleeAttack(dir, meleeAttackState);
             if (player && player.animator) {

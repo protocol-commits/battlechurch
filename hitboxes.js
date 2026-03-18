@@ -8,7 +8,7 @@
       "offsetY": 4
     },
     "weaponHitbox": {
-      "width": 125,
+      "width": 190,
       "height": 100,
       "offsetX": 55,
       "offsetY": 0

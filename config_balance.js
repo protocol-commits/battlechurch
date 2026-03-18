@@ -59,7 +59,7 @@
     // DASH
     // =====================
     dash: {
-      distance: 200,
+      distance: 400,
       speed: 1400,
       dustSpacing: 20,
       cooldown: 2.0,
