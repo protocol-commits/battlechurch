@@ -176,27 +176,48 @@
         : (value) => `${Math.round(Number.isFinite(value) ? value : 0)}`;
     const isFriendly = Boolean(entity.isPlayer || entity.isCozyNpc);
     const isPlayer = Boolean(entity.isPlayer);
+    const damageClass = String(entity.config?.damageClass || entity.damageClass || "").toLowerCase();
     const radius = entity.radius || entity.config?.hitRadius || 24;
-    const baseRadius =
-      Number.isFinite(entity.config?.baseRadius) && entity.config.baseRadius > 0
-        ? entity.config.baseRadius
-        : null;
-    const textAnchorRadius =
-      !isFriendly && baseRadius
-        ? Math.min(radius, baseRadius * 1.6)
-        : radius;
+    const hitbox = entity.config?.hitbox || null;
+    const hasHitbox =
+      !isFriendly &&
+      hitbox &&
+      Number.isFinite(hitbox.width) &&
+      Number.isFinite(hitbox.height) &&
+      hitbox.width > 0 &&
+      hitbox.height > 0;
+    const hitboxOffsetX = hasHitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+    const hitboxOffsetY = hasHitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+    const textAnchorX = hasHitbox ? entity.x + hitboxOffsetX : entity.x;
+    const textAnchorOffsetY = hasHitbox
+      ? hitboxOffsetY - hitbox.height * 0.5
+      : -radius;
     const finalFontSize =
       fontSize ??
-      (isPlayer ? 72 : entity.isCozyNpc ? 50 : 18);
+      (isPlayer
+        ? 72
+        : entity.isCozyNpc
+          ? 50
+          : damageClass === "armored"
+            ? 28
+            : damageClass === "tank"
+              ? 22
+              : 18);
     const finalFontWeight = fontWeight ?? (isFriendly ? "700" : "500");
-    const finalColor = isFriendly ? "#ffffff" : color;
+    const finalColor = isFriendly
+      ? "#ffffff"
+      : damageClass === "armored"
+        ? "#FFE7A1"
+        : damageClass === "tank"
+          ? "#FFC86A"
+          : color;
     const jitter = getDamageJitter(entity);
     const followEntity = Boolean(entity);
     const facingOffsetX = isPlayer
       ? ((entity.facing === "left" ? 1 : -1) * 10)
       : 0;
-    const baseX = entity.x + jitter.x;
-    const baseY = entity.y - textAnchorRadius + offsetY + jitter.y;
+    const baseX = textAnchorX + jitter.x;
+    const baseY = entity.y + textAnchorOffsetY + offsetY + jitter.y;
     addAt(
       baseX,
       baseY,
@@ -211,8 +232,8 @@
         fadeDelay,
         priority,
         entity: followEntity ? entity : null,
-        offsetX: followEntity ? (jitter.x + facingOffsetX) : 0,
-        offsetY: followEntity ? (-textAnchorRadius + offsetY + jitter.y - 15) : 0,
+        offsetX: followEntity ? (jitter.x + facingOffsetX + (hasHitbox ? hitboxOffsetX : 0)) : 0,
+        offsetY: followEntity ? (textAnchorOffsetY + offsetY + jitter.y - 15) : 0,
         detachOnEntityGone: true,
       },
     );

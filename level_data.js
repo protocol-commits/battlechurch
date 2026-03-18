@@ -113,7 +113,15 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "armoredOrc",
+                          "enemy": "miniHighDemon",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
                           "count": 1
                         }
                       ],
@@ -135,6 +143,14 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "armoredEliteOrc",
                           "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -155,6 +171,14 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "armoredSkeleton",
                           "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -171,6 +195,14 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
                         }
                       ],
                       "weights": {},
