@@ -181,8 +181,8 @@
     const finalFontWeight = fontWeight ?? (isFriendly ? "700" : "500");
     const finalColor = isFriendly ? "#ffffff" : color;
     const jitter = getDamageJitter(entity);
-    const followPlayer = isPlayer;
-    const facingOffsetX = followPlayer
+    const followEntity = Boolean(isPlayer || entity.isCozyNpc);
+    const facingOffsetX = isPlayer
       ? ((entity.facing === "left" ? 1 : -1) * 10)
       : 0;
     const baseX = entity.x + jitter.x;
@@ -200,9 +200,9 @@
         fontWeight: finalFontWeight,
         fadeDelay,
         priority,
-        entity: followPlayer ? entity : null,
-        offsetX: followPlayer ? (jitter.x + facingOffsetX) : 0,
-        offsetY: followPlayer ? (-radius + offsetY + jitter.y - 15) : 0,
+        entity: followEntity ? entity : null,
+        offsetX: followEntity ? (jitter.x + facingOffsetX) : 0,
+        offsetY: followEntity ? (-radius + offsetY + jitter.y - 15) : 0,
       },
     );
   }
