@@ -43,7 +43,7 @@
       "offsetX": 24,
       "offsetY": 3
     },
-    "contactDamage": 2
+    "contactDamage": 0
   },
   "orc": {
     "displayName": "Orc",
@@ -124,7 +124,8 @@
       "height": 24,
       "offsetX": 20,
       "offsetY": 0
-    }
+    },
+    "contactDamage": 0
   },
   "armoredAxeman": {
     "displayName": "Armored Axeman",
@@ -166,7 +167,8 @@
       "height": 24,
       "offsetX": 20,
       "offsetY": 0
-    }
+    },
+    "contactDamage": 0
   },
   "miniImp": {
     "displayName": "Imp",
@@ -701,7 +703,8 @@
       "offsetX": 22,
       "offsetY": 0
     },
-    "attackHitDamage": 13
+    "attackHitDamage": 13,
+    "contactDamage": 0
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
