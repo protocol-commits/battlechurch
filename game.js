@@ -17754,6 +17754,10 @@ function updateMeleeAttackSystem(dt) {
           getDashSwooshInvulnerabilityDuration(),
         );
       }
+      if (player && player.animator) {
+        player.state = "attackMelee";
+        player.animator.play("attackMelee", { restart: true });
+      }
       meleeAttackState.buttonDown = true;
       meleeAttackState.chargeTimer = 0;
       meleeAttackState.isCharging = true;
