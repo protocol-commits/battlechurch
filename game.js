@@ -7053,6 +7053,9 @@ function shuffleArray(array) {
 
 function applyUtilityPowerUp(powerUp) {
   if (!player || !powerUp) return;
+  powerUp.active = false;
+  powerUp.visible = false;
+  powerUp.expired = true;
   if (typeof window !== "undefined" && typeof window.playUtilityPowerupPickupSfx === "function") {
     window.playUtilityPowerupPickupSfx(0.55);
   }
@@ -7139,6 +7142,13 @@ function applyUtilityPowerUp(powerUp) {
       }
       applyCameraShake(CAMERA_SHAKE_DURATION, CAMERA_SHAKE_INTENSITY * 1.35);
       let hitAny = false;
+      projectiles.forEach((projectile) => {
+        if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+        projectile.dead = true;
+        spawnImpactEffect(projectile.x, projectile.y);
+        spawnFlashEffect(projectile.x, projectile.y);
+        hitAny = true;
+      });
       enemies.forEach((enemy) => {
         if (!enemy || enemy.dead || enemy.state === "death") return;
         enemy.takeDamage(bombDamage, { damageType: "charged" });
@@ -7154,12 +7164,6 @@ function applyUtilityPowerUp(powerUp) {
         spawnEnemyHitEffect(activeBoss);
         hitAny = true;
       }
-      spawnPowerupHudFlyEffect({
-        x: powerUp.x,
-        y: powerUp.y,
-        iconImage: powerUp.definition?.iconImage || null,
-        targetKey: getPowerupHudTargetKey(effect),
-      });
       if (hitAny && typeof playEnemyHitSfx === "function") {
         playEnemyHitSfx(0.75);
       }
@@ -7363,6 +7367,7 @@ function getPowerupHudTargetKey(effect) {
 }
 
 function spawnPowerupHudFlyEffect({ x, y, iconImage, targetKey }) {
+  if (!targetKey) return;
   const targetMap = typeof window !== "undefined" ? window.__hudPowerupIconPos : null;
   const target = targetMap ? targetMap[targetKey] : null;
   if (!iconImage || !iconImage.complete) return;
