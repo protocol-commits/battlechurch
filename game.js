@@ -8672,11 +8672,8 @@ function applyEnemyTouchDamage(enemy) {
 
   if (player && player.state !== "death") {
     const center = getEnemyHitboxCenter(enemy);
-    const dx = center.x - player.x;
-    const dy = center.y - player.y;
-    const distance = Math.hypot(dx, dy);
-    const threshold = getEnemyHitboxRadius(enemy) + player.radius * 0.65;
-    if (distance <= threshold) {
+    const touchRadius = getEnemyHitboxRadius(enemy);
+    if (circleIntersectsPlayerHurtbox(center.x, center.y, touchRadius, player)) {
       if (player.invulnerableTimer > 0) {
         enemy.touchCooldown = Math.max(enemy.touchCooldown || 0, 0.35);
         return;
@@ -9542,10 +9539,7 @@ class BossHazard {
 
   applyDamage() {
     if (!player || player.state === "death") return;
-    const dx = player.x - this.x;
-    const dy = player.y - this.y;
-    const distance = Math.hypot(dx, dy);
-    if (distance <= this.radius + player.radius * 0.6) {
+    if (circleIntersectsPlayerHurtbox(this.x, this.y, this.radius, player)) {
       if (player.invulnerableTimer > 0) {
         return;
       }
@@ -10750,6 +10744,18 @@ function getPlayerHitboxRect(targetPlayer = player) {
   };
 }
 
+function circleIntersectsPlayerHurtbox(x, y, radius = 0, targetPlayer = player) {
+  if (!targetPlayer || targetPlayer.state === "death") return false;
+  const hurtbox = getPlayerHitboxRect(targetPlayer);
+  const circleRadius = Math.max(0, Number(radius) || 0);
+  if (hurtbox) {
+    return circleIntersectsRect(x, y, circleRadius, hurtbox);
+  }
+  const dx = (targetPlayer.x || 0) - x;
+  const dy = (targetPlayer.y || 0) - y;
+  return Math.hypot(dx, dy) <= circleRadius + Math.max(0, targetPlayer.radius || 24);
+}
+
 function getPlayerWeaponHitboxLocalRect(targetPlayer = player) {
   if (!targetPlayer) return null;
   const weaponHitbox = targetPlayer.config?.weaponHitbox || PLAYER_CONFIG?.weaponHitbox || null;
@@ -11380,10 +11386,7 @@ class BossEncounter {
 
   applyContactDamage() {
     if (!player || player.state === "death") return;
-    const dx = player.x - this.x;
-    const dy = player.y - this.y;
-    const distance = Math.hypot(dx, dy);
-    if (distance > this.radius + player.radius * 0.7) return;
+    if (!circleIntersectsPlayerHurtbox(this.x, this.y, this.radius, player)) return;
     if (this.touchCooldown > 0) return;
     if (player.invulnerableTimer > 0) {
       this.touchCooldown = Math.max(this.touchCooldown, 0.35);
