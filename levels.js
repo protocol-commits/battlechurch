@@ -187,6 +187,8 @@
     getMonthName: () => "Battle 1",
     spawnEnemyOfType: noop,
     spawnMiniImpGroup: noop,
+    schedulePortalSpawn: noop,
+    randomSpawnPosition: null,
     spawnPowerUpDrops: noop,
     spawnBossForLevel: () => null,
     devClearOpponents: noop,
@@ -520,6 +522,7 @@
       getMonthName,
       spawnEnemyOfType,
       spawnMiniImpGroup,
+      randomSpawnPosition,
       spawnPowerUpDrops,
       spawnBossForLevel,
       devClearOpponents,
@@ -535,12 +538,14 @@
       startGraceRushEndFade,
       getAvailableMiniFolkKeys,
       hasEnemyAsset,
-      miniImpBaseGroupSize,
-      miniImpMaxGroupSize,
-      miniImpMinGroupsPerHorde,
-      getPendingPortalSpawnCount,
-      getScore,
-    } = deps;
+    miniImpBaseGroupSize,
+    miniImpMaxGroupSize,
+    miniImpMinGroupsPerHorde,
+    schedulePortalSpawn,
+    enemySpawnStaggerMs = 80,
+    getPendingPortalSpawnCount,
+    getScore,
+  } = deps;
 
     const helperConfig = {
       randomChoice,
@@ -1097,17 +1102,27 @@
           ? { healthMultiplier }
           : {};
         const spawnTask = () => {
-          state.pendingWaveEntrySpawns = Math.max(0, (state.pendingWaveEntrySpawns || 0) - 1);
           if (isMiniImpTypeEntry) {
             spawnMiniImpGroup(count, null, { ignoreCap: true, ...spawnOpts }, type);
+          } else if (typeof schedulePortalSpawn === "function") {
+            for (let i = 0; i < count; i += 1) {
+              const spawnPos =
+                typeof randomSpawnPosition === "function" ? randomSpawnPosition() : null;
+              schedulePortalSpawn(
+                type,
+                spawnPos,
+                i * Math.max(0, enemySpawnStaggerMs || 0),
+                spawnOpts,
+              );
+            }
           } else {
+            state.pendingWaveEntrySpawns = Math.max(0, (state.pendingWaveEntrySpawns || 0) - 1);
             for (let i = 0; i < count; i += 1) {
               spawnEnemyOfType(type, null, spawnOpts);
             }
           }
         };
         if (delayMs > 0 && typeof setTimeoutFn === "function") {
-          state.pendingWaveEntrySpawns += 1;
           setTimeoutFn(spawnTask, delayMs);
         } else {
           spawnTask();

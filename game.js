@@ -4044,6 +4044,8 @@ Levels.initialize({
   getMonthName,
   spawnEnemyOfType,
   spawnMiniImpGroup,
+  schedulePortalSpawn,
+  randomSpawnPosition,
   spawnPowerUpDrops,
   spawnBossForLevel,
   devClearOpponents,
@@ -4073,6 +4075,7 @@ Levels.initialize({
   miniImpBaseGroupSize: MINI_IMP_BASE_GROUP_SIZE,
   miniImpMaxGroupSize: MINI_IMP_MAX_GROUP_SIZE,
   miniImpMinGroupsPerHorde: MINI_IMP_MIN_GROUPS_PER_HORDE,
+  enemySpawnStaggerMs: ENEMY_GROUP_SPAWN_STAGGER_MS,
   isPostBattleFlowBlocked: () =>
     Boolean(
       levelAnnouncements.length ||
