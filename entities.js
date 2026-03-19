@@ -1035,8 +1035,22 @@
   if (this.state === "hurt" || this.state === "death") return;
   const meleeAttackState = window._meleeAttackState;
   if (meleeAttackState?.projectileBlockTimer > 0) return;
-  // Prevent firing projectiles when melee circle is active
-  if (window.Input && window.Input.nesAButtonActive) return;
+  const meleeInputBlocking =
+    window.Input?.nesAButtonActive &&
+    (type === "arrow" || type === "coin" || type === "heart") &&
+    Boolean(
+      meleeAttackState &&
+      (
+        meleeAttackState.active ||
+        meleeAttackState.buttonDown ||
+        meleeAttackState.isCharging ||
+        meleeAttackState.spinCharging ||
+        meleeAttackState.isRushing ||
+        meleeAttackState.spinTimer > 0 ||
+        meleeAttackState.swooshTimer > 0
+      )
+    );
+  if (meleeInputBlocking) return;
   this.applySwordSlashFrameMap();
   const bossRangeMultiplier = isBossStageActive() ? 1.5 : 1;
     if (type === "arrow") {
