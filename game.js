@@ -37,7 +37,12 @@ const POWERUP_RESPAWN_DELAY = _gb('powerups.respawnDelay', 5);
 const POWERUP_ACTIVE_LIFETIME = _gb('powerups.activeLifetime', 8);
 const POWERUP_BLINK_DURATION = _gb('powerups.blinkDuration', 2);
 const POWERUP_SPAWN_BLINK_DURATION = _gb('powerups.spawnBlinkDuration', 1.2);
+const POWERUP_STAGGER_DELAY = _gb('powerups.staggerDelay', 4);
+const POWERUP_REFILL_DELAY = _gb('powerups.refillDelay', 4);
 let powerUpRespawnTimer = 0;
+let powerUpStaggerTimer = 0;
+let queuedPowerUpDrops = 0;
+let powerUpEnsureCycleIndex = 0;
 let churchPowerupSkipNext = false;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
@@ -1805,7 +1810,7 @@ function canSpawnWeaponPowerUp() {
 }
 
 function triggerPowerUpCooldown() {
-  powerUpRespawnTimer = POWERUP_RESPAWN_DELAY;
+  powerUpRespawnTimer = POWERUP_REFILL_DELAY;
 }
 
 function clearAllPowerUps() {
@@ -1835,6 +1840,8 @@ function clearAllPowerUps() {
   utilityPowerUps.splice(0, utilityPowerUps.length);
   powerupHudFlyEffects.splice(0, powerupHudFlyEffects.length);
   powerUpRespawnTimer = 0;
+  powerUpStaggerTimer = 0;
+  queuedPowerUpDrops = 0;
   churchPowerupSkipNext = false;
 }
 
@@ -6395,10 +6402,10 @@ function createFloorPattern() {
 
 const floorPattern = createFloorPattern();
 
-function spawnPowerUpDrops(count = 1) {
+function spawnSinglePowerUpDrop() {
   const stageName = levelManager?.getStatus?.().stage;
   if (stageName === "levelIntro" || stageName === "briefing" || stageName === "npcArrival") {
-    return;
+    return false;
   }
   const isBossStage = stageName === "bossIntro" || stageName === "bossActive";
   const weaponPickupEntries = Object.entries(assets?.weaponPickups || {}).filter(([, def]) =>
@@ -6407,46 +6414,66 @@ function spawnPowerUpDrops(count = 1) {
   const hasWeaponPickups = weaponPickupEntries.length > 0;
   const hasChurchPowerupPickups = getUnlockedChurchPowerupKeys().length > 0;
   const hasUtility = Object.keys(assets?.utility || {}).length > 0;
-  if (!hasWeaponPickups && !hasUtility && !hasChurchPowerupPickups) return;
-  for (let i = 0; i < count; i += 1) {
-    if (hasChurchPowerupPickups && Math.random() < 0.2) {
-      if (canSpawnChurchPowerup()) {
-        spawnUpgradePowerUp();
-        continue;
-      }
+  if (!hasWeaponPickups && !hasUtility && !hasChurchPowerupPickups) return false;
+  if (hasChurchPowerupPickups && Math.random() < 0.2) {
+    if (canSpawnChurchPowerup()) {
+      return Boolean(spawnUpgradePowerUp());
     }
-    const spawnUtility = hasUtility && Math.random() < 0.45;
-    if (spawnUtility) {
-      if (canSpawnUtilityPowerUp()) {
-        spawnUtilityPowerUp();
-      }
-      continue;
-    }
-    if (!hasWeaponPickups) {
-      if (canSpawnUtilityPowerUp()) {
-        spawnUtilityPowerUp();
-      }
-      continue;
-    }
-    if (!canSpawnWeaponPowerUp()) {
-      if (canSpawnUtilityPowerUp()) spawnUtilityPowerUp();
-      continue;
-    }
-    const [type, def] = weaponPickupEntries[Math.floor(Math.random() * weaponPickupEntries.length)];
-    if (isWeaponPowerEffect(def?.effect) && !canSpawnWeaponPowerUp()) {
-      if (canSpawnUtilityPowerUp()) spawnUtilityPowerUp();
-      continue;
-    }
-    const pickup = new WeaponPickup({ ...def, type });
-    const padding = 120;
-    pickup.x = Math.random() * (canvas.width - padding * 2) + padding;
-    pickup.y = Math.random() * (canvas.height - padding * 2) + padding;
-    const pushed = pushPointOutsideNpcHome(pickup.x, pickup.y);
-    pickup.x = Math.max(padding, Math.min(canvas.width - padding, pushed.x));
-    pickup.y = Math.max(padding, Math.min(canvas.height - padding, pushed.y));
-    pickup.baseY = pickup.y;
-    weaponPickups.push(pickup);
   }
+  const spawnUtility = hasUtility && Math.random() < 0.45;
+  if (spawnUtility) {
+    if (canSpawnUtilityPowerUp()) {
+      return Boolean(spawnUtilityPowerUp());
+    }
+    return false;
+  }
+  if (!hasWeaponPickups) {
+    if (canSpawnUtilityPowerUp()) {
+      return Boolean(spawnUtilityPowerUp());
+    }
+    return false;
+  }
+  if (!canSpawnWeaponPowerUp()) {
+    if (canSpawnUtilityPowerUp()) {
+      return Boolean(spawnUtilityPowerUp());
+    }
+    return false;
+  }
+  const [type, def] = weaponPickupEntries[Math.floor(Math.random() * weaponPickupEntries.length)];
+  if (isWeaponPowerEffect(def?.effect) && !canSpawnWeaponPowerUp()) {
+    if (canSpawnUtilityPowerUp()) {
+      return Boolean(spawnUtilityPowerUp());
+    }
+    return false;
+  }
+  const pickup = new WeaponPickup({ ...def, type });
+  const padding = 120;
+  pickup.x = Math.random() * (canvas.width - padding * 2) + padding;
+  pickup.y = Math.random() * (canvas.height - padding * 2) + padding;
+  const pushed = pushPointOutsideNpcHome(pickup.x, pickup.y);
+  pickup.x = Math.max(padding, Math.min(canvas.width - padding, pushed.x));
+  pickup.y = Math.max(padding, Math.min(canvas.height - padding, pushed.y));
+  pickup.baseY = pickup.y;
+  weaponPickups.push(pickup);
+  return true;
+}
+
+function queuePowerUpDrops(count = 1) {
+  queuedPowerUpDrops += Math.max(0, Math.floor(count));
+}
+
+function processQueuedPowerUpDrops() {
+  if (queuedPowerUpDrops <= 0 || powerUpStaggerTimer > 0) return false;
+  const spawned = spawnSinglePowerUpDrop();
+  if (!spawned) return false;
+  queuedPowerUpDrops = Math.max(0, queuedPowerUpDrops - 1);
+  powerUpStaggerTimer = POWERUP_STAGGER_DELAY;
+  return spawned;
+}
+
+function spawnPowerUpDrops(count = 1) {
+  queuePowerUpDrops(count);
+  processQueuedPowerUpDrops();
 }
 
 const BOSS_TYPE_POOL = ["miniDemonLord", "miniHighDemon"];
@@ -6755,6 +6782,34 @@ function spawnWeaponPickup(position = null) {
   clampEntityToBounds(pickup);
   weaponPickups.push(pickup);
   return pickup;
+}
+
+function spawnNextEnsuredPowerUp() {
+  const ensureActions = [
+    () => (canSpawnUtilityPowerUp() ? spawnUtilityPowerUp() : null),
+    () => {
+      if (!getUnlockedChurchPowerupKeys().length || !canSpawnChurchPowerup()) return null;
+      if (churchPowerupSkipNext) {
+        churchPowerupSkipNext = false;
+        triggerPowerUpCooldown();
+        return null;
+      }
+      churchPowerupSkipNext = true;
+      return spawnUpgradePowerUp();
+    },
+    () => (canSpawnWeaponPowerUp() ? spawnWeaponPickup() : null),
+  ];
+  const startIndex = powerUpEnsureCycleIndex % ensureActions.length;
+  for (let i = 0; i < ensureActions.length; i += 1) {
+    const index = (startIndex + i) % ensureActions.length;
+    const spawned = ensureActions[index]?.();
+    powerUpEnsureCycleIndex = index + 1;
+    if (spawned) {
+      powerUpStaggerTimer = POWERUP_STAGGER_DELAY;
+      return true;
+    }
+  }
+  return false;
 }
 
 function devSwapPowerups() {
@@ -18314,6 +18369,8 @@ function updateGame(dt) {
   updatePowerupHudFlyEffects(visualDt);
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
+  powerUpStaggerTimer = Math.max(0, powerUpStaggerTimer - dt);
+  const powerUpSpawnedThisFrame = processQueuedPowerUpDrops();
   // Ensure power-ups obey spawn rules per stage
   try {
     const stageName = levelStatus?.stage;
@@ -18336,20 +18393,9 @@ function updateGame(dt) {
       !congregationStageActive;
     const delayingForNpcProcession = stageName === "npcArrival" && npcProcessionActive;
     if (shouldEnsurePowerUp && !delayingForNpcProcession) {
-      if (canSpawnUtilityPowerUp()) {
-        spawnUtilityPowerUp();
-      }
-      if (getUnlockedChurchPowerupKeys().length && canSpawnChurchPowerup()) {
-        if (!churchPowerupSkipNext) {
-          spawnUpgradePowerUp();
-          churchPowerupSkipNext = true;
-        } else {
-          churchPowerupSkipNext = false;
-          triggerPowerUpCooldown();
-        }
-      }
-      if (battleStageAllowsPowerUps && canSpawnWeaponPowerUp()) {
-        spawnWeaponPickup();
+      const queueBusy = queuedPowerUpDrops > 0;
+      if (!powerUpSpawnedThisFrame && !queueBusy && powerUpStaggerTimer <= 0) {
+        spawnNextEnsuredPowerUp();
       }
     }
   } catch (err) {
