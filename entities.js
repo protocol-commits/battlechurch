@@ -1695,13 +1695,19 @@
         clip && Number.isFinite(clip.renderScale) && clip.renderScale > 0 ? clip.renderScale : 1;
       const frameScale = animatorScale * clipRenderScale;
       const frameSize = clip ? Math.max(clip.frameWidth || 0, clip.frameHeight || 0) : 0;
-      const visualRadius = Math.max(this.radius * 1.6, frameSize * frameScale * 0.48);
+      const playerHitboxRect = getTargetHitboxRect(this);
+      const shieldCenterX = playerHitboxRect ? playerHitboxRect.x + playerHitboxRect.width * 0.5 : this.x;
+      const shieldCenterY = playerHitboxRect ? playerHitboxRect.y + playerHitboxRect.height * 0.5 : this.y;
+      const hitboxRadius = playerHitboxRect
+        ? Math.max(playerHitboxRect.width, playerHitboxRect.height) * 0.72
+        : 0;
+      const visualRadius = Math.max(this.radius * 1.6, hitboxRadius, frameSize * frameScale * 0.48);
       const lineWidth = Math.max(3, Math.round(3.5 * (settings.WORLD_SCALE || 1)));
       ctx.save();
       ctx.strokeStyle = `rgba(180, 240, 255, ${shieldAlpha})`;
       ctx.lineWidth = lineWidth;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, visualRadius, 0, Math.PI * 2);
+      ctx.arc(shieldCenterX, shieldCenterY, visualRadius, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
