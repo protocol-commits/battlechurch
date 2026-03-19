@@ -588,6 +588,7 @@
       visitorResumeAction: null,
       finalWaveDelay: 0,
       pendingPortalSpawnBaseline: 0,
+      pendingWaveEntrySpawns: 0,
       graceRushContext: null,
       pendingBossRestore: false,
       pendingBossAfterFinalWave: false,
@@ -1086,6 +1087,7 @@
       } else {
         state.pendingPortalSpawnBaseline = 0;
       }
+      state.pendingWaveEntrySpawns = 0;
       resetStage("waveActive", waveActiveDuration);
       const enemyEntries = Array.isArray(horde?.enemies) ? horde.enemies : [];
       enemyEntries.forEach(({ type, count, delay, healthMultiplier }) => {
@@ -1095,6 +1097,7 @@
           ? { healthMultiplier }
           : {};
         const spawnTask = () => {
+          state.pendingWaveEntrySpawns = Math.max(0, (state.pendingWaveEntrySpawns || 0) - 1);
           if (isMiniImpTypeEntry) {
             spawnMiniImpGroup(count, null, { ignoreCap: true, ...spawnOpts }, type);
           } else {
@@ -1104,6 +1107,7 @@
           }
         };
         if (delayMs > 0 && typeof setTimeoutFn === "function") {
+          state.pendingWaveEntrySpawns += 1;
           setTimeoutFn(spawnTask, delayMs);
         } else {
           spawnTask();
@@ -1118,6 +1122,7 @@
       const finalWave = waveNumber >= getBattleHordeCount(currentBattle());
       state.lastWaveClearedFinal = finalWave;
       state.pendingPortalSpawnBaseline = 0;
+      state.pendingWaveEntrySpawns = 0;
       spawnPowerUpDrops(state.activeWave?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const finalMissionBeforeBoss = localMonthNumber >= BATTLE_MONTHS_PER_LEVEL;
@@ -1424,18 +1429,23 @@ state.waveIndex = -1;
         const pendingPortalSpawns = typeof getPendingPortalSpawnCount === "function"
           ? Math.max(0, getPendingPortalSpawnCount() - (state.pendingPortalSpawnBaseline || 0))
           : 0;
+        const pendingWaveEntrySpawns = Math.max(0, state.pendingWaveEntrySpawns || 0);
         const horde = currentWave();
         const allKill = finalWave
           ? true
           : (horde?.allKill === true);
         if (!finalWave) {
           if (allKill) {
-            if (!enemiesRemain && pendingPortalSpawns <= 0) handleWaveCleared();
+            if (!enemiesRemain && pendingPortalSpawns <= 0 && pendingWaveEntrySpawns <= 0) {
+              handleWaveCleared();
+            }
           } else if (timerElapsed || !enemiesRemain) {
             handleWaveCleared();
           }
         } else {
-          if (!enemiesRemain && pendingPortalSpawns <= 0) handleWaveCleared();
+          if (!enemiesRemain && pendingPortalSpawns <= 0 && pendingWaveEntrySpawns <= 0) {
+            handleWaveCleared();
+          }
         }
         break;
       }
