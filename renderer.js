@@ -3809,6 +3809,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     };
   }
 
+  function getPlayerCombatMeterAnchorX(player) {
+    if (!player) return 0;
+    const hitbox = player?.config?.hitbox || null;
+    if (!hitbox || !Number.isFinite(hitbox.width)) {
+      return player.x;
+    }
+    const facingSign = player?.facing === "left" ? -1 : 1;
+    const offsetX = Number.isFinite(hitbox.offsetX) ? hitbox.offsetX * facingSign : 0;
+    return player.x + offsetX;
+  }
+
   function drawPlayerWeaponMeter(player) {
     const { ctx, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
     if (!ctx || !player || !meleeAttackState || player.state === "death") return;
@@ -3817,15 +3828,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const chargeRatio = Math.max(0, Math.min(1, (meleeAttackState.chargeTimer || 0) / holdTime));
     const shakeX = sharedShakeOffset?.x || 0;
     const sprite = getPlayerSpriteExtents(player);
+    const meterCenterX = getPlayerCombatMeterAnchorX(player) + shakeX;
     const width = Math.round(34 * WORLD_SCALE);
     const height = Math.max(11, Math.round(14 * WORLD_SCALE));
-    const meterX = player.x + shakeX - width / 2;
+    const meterX = meterCenterX - width / 2;
     const meterY = sprite.top - height - Math.round(8 * WORLD_SCALE);
     const palette = getCombatMeterPalette();
     if (chargeRatio >= 1) {
       const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
       drawCompactReadyDot(
-        player.x + shakeX,
+        meterCenterX,
         meterY + height * 0.5,
         dotSize,
         palette.sword,
@@ -3842,15 +3854,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const dashCooldown = Math.max(0, playerDashState.dashCooldown || 0);
     const shakeX = sharedShakeOffset?.x || 0;
     const sprite = getPlayerSpriteExtents(player);
+    const meterCenterX = getPlayerCombatMeterAnchorX(player) + shakeX;
     const width = Math.round(32 * WORLD_SCALE);
     const height = Math.max(10, Math.round(13 * WORLD_SCALE));
-    const meterX = player.x + shakeX - width / 2;
+    const meterX = meterCenterX - width / 2;
     const meterY = sprite.bottom + Math.round(8 * WORLD_SCALE);
     const palette = getCombatMeterPalette();
     if (dashCooldown <= 0 || DASH_COOLDOWN <= 0) {
       const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
       drawCompactReadyDot(
-        player.x + shakeX,
+        meterCenterX,
         meterY + height * 0.5,
         dotSize,
         palette.dash,
