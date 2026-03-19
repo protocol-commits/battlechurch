@@ -3756,6 +3756,38 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawCompactReadyDot(centerX, centerY, size, tintColor, glowColor) {
+    const { ctx } = requireBindings();
+    const pulse = 0.88 + Math.sin(Date.now() / 140) * 0.12;
+    const drawSize = size * pulse;
+
+    ctx.save();
+    ctx.globalAlpha = 0.28 + (pulse - 0.88) * 0.9;
+    ctx.fillStyle = glowColor;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, drawSize * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.95;
+    ctx.fillStyle = "rgba(10, 15, 31, 0.9)";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, drawSize * 0.52, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = tintColor;
+    ctx.lineWidth = Math.max(1.5, size * 0.08);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, drawSize * 0.52, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.globalAlpha = 0.98;
+    ctx.fillStyle = tintColor;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, drawSize * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   function getPlayerSpriteExtents(player) {
     const clip = player?.animator?.currentClip || null;
     const animatorScale =
@@ -3786,10 +3818,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const shakeX = sharedShakeOffset?.x || 0;
     const sprite = getPlayerSpriteExtents(player);
     const width = Math.round(34 * WORLD_SCALE);
-    const height = Math.max(7, Math.round(8 * WORLD_SCALE));
+    const height = Math.max(11, Math.round(14 * WORLD_SCALE));
     const meterX = player.x + shakeX - width / 2;
     const meterY = sprite.top - height - Math.round(8 * WORLD_SCALE);
     const palette = getCombatMeterPalette();
+    if (chargeRatio >= 1) {
+      const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
+      drawCompactReadyDot(
+        player.x + shakeX,
+        meterY + height * 0.5,
+        dotSize,
+        palette.sword,
+        palette.swordGlow,
+      );
+      return;
+    }
     drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.sword, palette.swordGlow);
   }
 
@@ -3797,15 +3840,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const { ctx, WORLD_SCALE = 1, playerDashState, DASH_COOLDOWN = 0 } = requireBindings();
     if (!ctx || !player || !playerDashState || player.state === "death") return;
     const dashCooldown = Math.max(0, playerDashState.dashCooldown || 0);
-    if (dashCooldown <= 0 || DASH_COOLDOWN <= 0) return;
-    const rechargeRatio = Math.max(0, Math.min(1, 1 - dashCooldown / DASH_COOLDOWN));
     const shakeX = sharedShakeOffset?.x || 0;
     const sprite = getPlayerSpriteExtents(player);
     const width = Math.round(32 * WORLD_SCALE);
-    const height = Math.max(6, Math.round(7 * WORLD_SCALE));
+    const height = Math.max(10, Math.round(13 * WORLD_SCALE));
     const meterX = player.x + shakeX - width / 2;
     const meterY = sprite.bottom + Math.round(8 * WORLD_SCALE);
     const palette = getCombatMeterPalette();
+    if (dashCooldown <= 0 || DASH_COOLDOWN <= 0) {
+      const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
+      drawCompactReadyDot(
+        player.x + shakeX,
+        meterY + height * 0.5,
+        dotSize,
+        palette.dash,
+        palette.dashGlow,
+      );
+      return;
+    }
+    const rechargeRatio = Math.max(0, Math.min(1, 1 - dashCooldown / DASH_COOLDOWN));
     drawCompactWorldMeter(meterX, meterY, width, height, rechargeRatio, palette.dash, palette.dashGlow);
   }
 
