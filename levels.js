@@ -1149,10 +1149,6 @@
           if (typeof deps.rotateNpcPositionsForActBreak === "function") {
             deps.rotateNpcPositionsForActBreak();
           }
-          queueLevelAnnouncement(ACT_BREAK_MESSAGE, "", {
-            duration: preFadeDelay,
-            skipMissionBrief: true,
-          });
           const announcementHold = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA;
           const breakerDuration = Number.isFinite(state.activeWave?.waveBreakDuration)
             ? state.activeWave.waveBreakDuration
