@@ -8,7 +8,7 @@
     "assetFiles": {
       "idle": "Walk"
     },
-    "health": 400,
+    "health": 1000,
     "maxHealth": 780,
     "damage": 15,
     "speed": 50,

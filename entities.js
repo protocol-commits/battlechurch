@@ -2464,6 +2464,14 @@
         if (this.type === "tormentorFlame") {
           return;
         }
+        const preemptedByPlayerMelee =
+          this.state === "attack" &&
+          !this.attackHitApplied &&
+          (damageType === "melee" || damageType === "charged");
+        if (preemptedByPlayerMelee) {
+          this.attackHitApplied = true;
+          this.playerHitDuringAttack = false;
+        }
         const repeatedLightPressure =
           damageType === "melee" &&
           Number.isFinite(Number(options?.hurtDuration)) &&
