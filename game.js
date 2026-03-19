@@ -1296,6 +1296,7 @@ function resumeBattleMusicIfNeeded() {
     stage === "battleIntro" ||
     stage === "waveIntro" ||
     stage === "waveActive" ||
+    stage === "allKillBreak" ||
     stage === "waveCleared" ||
     stage === "bossIntro" ||
     stage === "bossActive" ||
@@ -1317,6 +1318,7 @@ function shouldStartBattleMusicNow() {
       status?.stage === "battleIntro" ||
       status?.stage === "waveIntro" ||
       status?.stage === "waveActive" ||
+      status?.stage === "allKillBreak" ||
       status?.stage === "waveCleared" ||
       status?.stage === "bossIntro" ||
       status?.stage === "bossActive" ||

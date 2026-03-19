@@ -113,8 +113,8 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
+                          "enemy": "miniImp",
+                          "count": 50
                         }
                       ],
                       "weights": {},
@@ -129,8 +129,8 @@ window.BattlechurchLevelData = {
                       "index": 2,
                       "entries": [
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
+                          "enemy": "miniImp",
+                          "count": 50
                         }
                       ],
                       "weights": {},
@@ -145,8 +145,8 @@ window.BattlechurchLevelData = {
                       "index": 3,
                       "entries": [
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
+                          "enemy": "miniImp",
+                          "count": 50
                         }
                       ],
                       "weights": {},
@@ -161,8 +161,8 @@ window.BattlechurchLevelData = {
                       "index": 4,
                       "entries": [
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
+                          "enemy": "miniImp",
+                          "count": 50
                         }
                       ],
                       "weights": {},
@@ -185,8 +185,8 @@ window.BattlechurchLevelData = {
                           "count": 1
                         },
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
+                          "enemy": "miniImp",
+                          "count": 50
                         }
                       ],
                       "weights": {},

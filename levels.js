@@ -1173,7 +1173,7 @@
               });
             }
           }
-      resetStage("waveCleared", breakerDuration);
+      resetStage("allKillBreak", breakerDuration);
       setDevStatus(`Act break after Wave ${battleNumber}-${waveNumber}`, breakerDuration);
       return;
     }
@@ -1460,6 +1460,7 @@ state.waveIndex = -1;
         }
         break;
       }
+    case "allKillBreak":
     case "waveCleared": {
       state.timer -= dt;
       const battle = currentBattle();
@@ -1778,7 +1779,11 @@ state.waveIndex = -1;
           state.timer = 0;
           return true;
         }
-        if (state.stage === "battleIntermission" || state.stage === "waveCleared") {
+        if (
+          state.stage === "battleIntermission" ||
+          state.stage === "waveCleared" ||
+          state.stage === "allKillBreak"
+        ) {
           devClearOpponents();
           state.waveIndex = BATTLE_MONTHS_PER_LEVEL - 1;
           state.waveIndex = getBattleHordeCount(currentBattle()) - 1; // set last horde index
