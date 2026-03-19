@@ -12793,8 +12793,7 @@ function updateVisitorBlockers(dt) {
         blocker.y += (dy / dist) * speed * dt;
         blocker.animator.setDirectionFromVector(dx, dy);
         blocker.animator.setMoving(true);
-        const contactDistance = player.radius + blocker.radius + 6;
-        if (dist < contactDistance) {
+        if (circleIntersectsPlayerHurtbox(blocker.x, blocker.y, blocker.radius + 6, player)) {
           blocker.engaged = true;
           const locking =
             visitorSession.lockingBlockers instanceof Set
@@ -12876,7 +12875,10 @@ function alignBlockerAtPlayer(blocker) {
   const dx = player.x - blocker.x;
   const dy = player.y - blocker.y;
   const dist = Math.hypot(dx, dy) || 1;
-  const contactDistance = player.radius + blocker.radius + 4;
+  const playerHurtbox = getPlayerHitboxRect(player);
+  const contactDistance = (playerHurtbox
+    ? Math.max(playerHurtbox.width, playerHurtbox.height) * 0.5
+    : player.radius || 24) + blocker.radius + 4;
   blocker.x = player.x - (dx / dist) * contactDistance;
   blocker.y = player.y - (dy / dist) * contactDistance;
   blocker.animator.setDirectionFromVector(dx, dy);
@@ -13338,11 +13340,7 @@ function updateCozyNpcs(dt) {
         !npc.departed &&
         npc.active
       ) {
-        const dx = npc.x - player.x;
-        const dy = npc.y - player.y;
-        const distance = Math.hypot(dx, dy);
-        const touchRadius = (npc.radius || 20) + (player.radius || 24) * 0.7;
-        if (distance <= touchRadius) {
+        if (circleIntersectsPlayerHurtbox(npc.x, npc.y, (npc.radius || 20) * 0.7, player)) {
           // Restore up to 50% max faith when touched by the player (drained or not).
           const maxFaith = npc.maxFaith || 1;
           const targetHalf = Math.floor(maxFaith * 0.5);
