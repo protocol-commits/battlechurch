@@ -2627,6 +2627,7 @@ const MELEE_SWOOSH_INVULNERABILITY = GAME_MELEE_SWING_DURATION + MELEE_SWOOSH_EX
 const MELEE_SWOOSH_ARC_SCALE = _gb('melee.swooshArcScale', 2.5);
 const MELEE_PROJECTILE_COOLDOWN_AFTER = _gb('melee.projectileCooldownAfter', 0.5);
 const MELEE_RUSH_LOCKOUT = _gb('melee.rushLockout', 1.0);
+const MELEE_CHARGE_MOVE_MULTIPLIER = 0.6;
 const MELEE_SPIN_DURATION = _gb('melee.spinDuration', 0.45);
 const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
 const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);

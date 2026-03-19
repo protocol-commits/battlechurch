@@ -1549,6 +1549,13 @@
   getSpeedMultiplier() {
     let multiplier = 1;
     if (this.speedBoostTimer > 0) multiplier *= 1.4;
+    const meleeChargeSlow =
+      window._meleeAttackState?.isCharging && window._meleeAttackState?.buttonDown;
+    if (meleeChargeSlow) {
+      const slowMultiplier =
+        typeof MELEE_CHARGE_MOVE_MULTIPLIER === "number" ? MELEE_CHARGE_MOVE_MULTIPLIER : 0.6;
+      multiplier *= slowMultiplier;
+    }
     const spinChargeSlow =
       window._meleeAttackState?.spinCharging && window._meleeAttackState?.spinButtonDown;
     if (spinChargeSlow) {
