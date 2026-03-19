@@ -7132,6 +7132,39 @@ function applyUtilityPowerUp(powerUp) {
         targetKey: getPowerupHudTargetKey(effect),
       });
       break;
+    case "smiteBomb": {
+      const bombDamage = Math.max(0, Math.round(Number(powerUp.definition?.damage) || 200));
+      if (typeof playPrayerBombSfx === "function") {
+        playPrayerBombSfx(0.85);
+      }
+      applyCameraShake(CAMERA_SHAKE_DURATION, CAMERA_SHAKE_INTENSITY * 1.35);
+      let hitAny = false;
+      enemies.forEach((enemy) => {
+        if (!enemy || enemy.dead || enemy.state === "death") return;
+        enemy.takeDamage(bombDamage, { damageType: "charged" });
+        spawnEnemyHitEffect(enemy);
+        hitAny = true;
+      });
+      if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+        activeBoss.takeDamage(bombDamage, {
+          hitX: activeBoss.x,
+          hitY: activeBoss.y,
+          damageType: "charged",
+        });
+        spawnEnemyHitEffect(activeBoss);
+        hitAny = true;
+      }
+      spawnPowerupHudFlyEffect({
+        x: powerUp.x,
+        y: powerUp.y,
+        iconImage: powerUp.definition?.iconImage || null,
+        targetKey: getPowerupHudTargetKey(effect),
+      });
+      if (hitAny && typeof playEnemyHitSfx === "function") {
+        playEnemyHitSfx(0.75);
+      }
+      break;
+    }
     default:
       break;
   }

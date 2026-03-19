@@ -113,16 +113,8 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniHighDemon",
-                          "count": 2
-                        },
-                        {
-                          "enemy": "miniDemonLord",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonTormentor",
-                          "count": 1
+                          "enemy": "miniImp",
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -130,7 +122,7 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4
                     },
                     {
@@ -143,10 +135,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "armoredEliteOrc",
                           "count": 1
-                        },
-                        {
-                          "enemy": "miniHighDemon",
-                          "count": 2
                         },
                         {
                           "enemy": "miniDemonLord",
@@ -173,10 +161,6 @@ window.BattlechurchLevelData = {
                           "count": 1
                         },
                         {
-                          "enemy": "miniHighDemon",
-                          "count": 2
-                        },
-                        {
                           "enemy": "miniDemonLord",
                           "count": 1
                         }
@@ -197,10 +181,6 @@ window.BattlechurchLevelData = {
                           "count": 100
                         },
                         {
-                          "enemy": "miniHighDemon",
-                          "count": 2
-                        },
-                        {
                           "enemy": "miniDemonLord",
                           "count": 1
                         }
@@ -219,6 +199,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -421,6 +405,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 1
                         }
                       ],
                       "weights": {},

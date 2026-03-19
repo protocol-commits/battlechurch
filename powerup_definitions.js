@@ -162,6 +162,18 @@
       hudTitle: "Unify Them",
       description: "Boosts NPC harmony briefly.",
     },
+    smiteBomb: {
+      src: `${UTILITY_POWERUP_ROOT}/I02_HP_Potion_M.png`,
+      scale: 3.0 * WORLD_SCALE,
+      radius: 28 * WORLD_SCALE,
+      effect: "smiteBomb",
+      damage: 200,
+      label: "Judgment Bomb",
+      iconSrc: "assets/sprites/pixel-art-pack/Items/I02_HP_Potion_M.png",
+      color: "#FF9D5C",
+      hudTitle: "Judgment Bomb",
+      description: "Deals 200 damage to every enemy on screen.",
+    },
   };
 
   // Per-level purchase costs for church powerups.
