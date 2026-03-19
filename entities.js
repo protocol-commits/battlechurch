@@ -1989,6 +1989,11 @@
                   applyWeaponKnockback(npcTarget, this.x, this.y);
                 }
               }
+            } else if (targetIsPlayer) {
+              this.counterHitUntil =
+                (typeof performance !== "undefined" && typeof performance.now === "function"
+                  ? performance.now()
+                  : Date.now()) + 300;
             }
             this.attackHitApplied = true;
           }

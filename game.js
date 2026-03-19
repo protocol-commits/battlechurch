@@ -15372,11 +15372,20 @@ function processProjectileCollisions(dt) {
         const hitX = Number.isFinite(projectile.x) ? projectile.x : enemy.x;
         const hitY = Number.isFinite(projectile.y) ? projectile.y : enemy.y;
         const shouldDeflect = isArmoredProjectileDeflectTarget(enemy, projectile, damageType);
-        enemy.takeDamage(projectileDamage, { damageType });
+        const meleeAttackState = projectile.isDivineShot ? window._meleeAttackState : null;
+        const counterHit = projectile.isDivineShot
+          ? getCounterHitResult(enemy, projectileDamage, meleeAttackState)
+          : { damage: projectileDamage, damageText: null };
+        enemy.takeDamage(counterHit.damage, {
+          damageType,
+          damageText: counterHit.damageText,
+        });
         if (projectile.source?.isPlayer) {
-          registerProjectileComboHit(enemy, projectileDamage, projectile);
-          if (projectile.isDivineShot && window._meleeAttackState) {
-            registerDivineShotComboHit(enemy, window._meleeAttackState);
+          registerProjectileComboHit(enemy, counterHit.damage, projectile);
+          if (projectile.isDivineShot && meleeAttackState) {
+            applyMeleeHitstop(enemy, meleeAttackState, counterHit);
+            registerPunishComboDamage(enemy, counterHit.damage, meleeAttackState);
+            registerDivineShotComboHit(enemy, meleeAttackState);
           }
         }
         if (
@@ -15427,16 +15436,23 @@ function processProjectileCollisions(dt) {
               projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
             const bossDamage = projectile.getDamage();
             const shouldDeflect = isArmoredProjectileDeflectTarget(activeBoss, projectile, damageType);
-            activeBoss.takeDamage(bossDamage, {
+            const meleeAttackState = projectile.isDivineShot ? window._meleeAttackState : null;
+            const counterHit = projectile.isDivineShot
+              ? getCounterHitResult(activeBoss, bossDamage, meleeAttackState)
+              : { damage: bossDamage, damageText: null };
+            activeBoss.takeDamage(counterHit.damage, {
               hitX,
               hitY,
               damageType,
               skipImpactEffect: true,
+              damageText: counterHit.damageText,
             });
             if (projectile.source?.isPlayer) {
-              registerProjectileComboHit(activeBoss, bossDamage, projectile);
-              if (projectile.isDivineShot && window._meleeAttackState) {
-                registerDivineShotComboHit(activeBoss, window._meleeAttackState);
+              registerProjectileComboHit(activeBoss, counterHit.damage, projectile);
+              if (projectile.isDivineShot && meleeAttackState) {
+                applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
+                registerPunishComboDamage(activeBoss, counterHit.damage, meleeAttackState);
+                registerDivineShotComboHit(activeBoss, meleeAttackState);
               }
             }
             if (
@@ -16725,6 +16741,18 @@ function registerNormalSlashChainHit(target, meleeAttackState, now) {
 function registerDivineShotComboHit(target, meleeAttackState) {
   if (!target || !meleeAttackState) return;
   registerMeleeComboHit(target, meleeAttackState);
+  if (
+    meleeAttackState.punishCounterTarget === target &&
+    meleeAttackState.punishCounterPrimed &&
+    !meleeAttackState.punishCounterTextShown
+  ) {
+    meleeAttackState.pendingCounterHitTarget = null;
+    meleeAttackState.pendingCounterHitShowAt = 0;
+    clearActiveCounterHitText(meleeAttackState, target, true);
+    triggerPunishCounterText(target);
+    rewardMeleeGraceBurst(target, PUNISH_COUNTER_GRACE_GEMS, 72);
+    meleeAttackState.punishCounterTextShown = true;
+  }
 }
 
 function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, forceImmediate = false) {
