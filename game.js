@@ -16227,18 +16227,21 @@ function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
   if (!distance) return;
   const nx = dx / distance;
   const ny = dy / distance;
-  const knockStrength = strength * 2.5;
+  const knockDuration = 0.16;
+  const knockStrength = strength * 6.0;
   const vx = nx * knockStrength;
   const vy = ny * knockStrength;
-  const nudge = (typeof WORLD_SCALE === "number" ? WORLD_SCALE : 1) * 28;
+  const nudge = (typeof WORLD_SCALE === "number" ? WORLD_SCALE : 1) * 30;
   enemy.x += nx * nudge;
   enemy.y += ny * nudge;
   enemy.knockbackVx = vx;
   enemy.knockbackVy = vy;
-  enemy.knockbackTimer = Math.max(enemy.knockbackTimer || 0, 0.3);
+  enemy.knockbackTimer = Math.max(enemy.knockbackTimer || 0, knockDuration);
+  enemy.knockbackDuration = Math.max(enemy.knockbackDuration || 0, knockDuration);
   enemy.scatterVx = vx;
   enemy.scatterVy = vy;
-  enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, 0.3);
+  enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, knockDuration);
+  enemy.scatterDuration = Math.max(enemy.scatterDuration || 0, knockDuration);
 }
 
 function markCounterHitWindow(target, duration = COUNTER_HIT_WINDOW) {

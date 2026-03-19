@@ -1759,11 +1759,13 @@
       this.spawnDelay = 0;
       this.damageFlashTimer = 0;
       this.scatterTimer = 0;
+      this.scatterDuration = 0;
       this.scatterVx = 0;
       this.scatterVy = 0;
       this.knockbackVx = 0;
       this.knockbackVy = 0;
       this.knockbackTimer = 0;
+      this.knockbackDuration = 0;
       this.hurtTimer = 0;
       this.hurtTimerActive = false;
       if (this.type === "tormentorFlame") {
@@ -1850,12 +1852,20 @@
       this.tauntCooldown = Math.max(0, (this.tauntCooldown || 0) - dt);
 
       if (this.scatterTimer > 0) {
+        const step = Math.min(this.scatterTimer, dt);
+        const scatterDuration = Math.max(0.001, this.scatterDuration || this.scatterTimer || step);
+        const scatterFalloff = Math.max(0.18, this.scatterTimer / scatterDuration);
         this.scatterTimer = Math.max(0, this.scatterTimer - dt);
-        this.x += this.scatterVx * dt;
-        this.y += this.scatterVy * dt;
+        this.x += this.scatterVx * step * scatterFalloff;
+        this.y += this.scatterVy * step * scatterFalloff;
         if (typeof resolveEntityObstacles === "function") resolveEntityObstacles(this);
         if (typeof clampEntityToBounds === "function") clampEntityToBounds(this);
         this.updateFacing(this.scatterVx, this.scatterVy);
+        if (this.scatterTimer <= 0) {
+          this.scatterVx = 0;
+          this.scatterVy = 0;
+          this.scatterDuration = 0;
+        }
         this.animator.update(dt);
         return;
       }
@@ -2097,12 +2107,15 @@
 
       if (this.knockbackTimer > 0) {
         const step = Math.min(this.knockbackTimer, dt);
-        this.x += this.knockbackVx * step;
-        this.y += this.knockbackVy * step;
+        const knockbackDuration = Math.max(0.001, this.knockbackDuration || this.knockbackTimer || step);
+        const knockbackFalloff = Math.max(0.18, this.knockbackTimer / knockbackDuration);
+        this.x += this.knockbackVx * step * knockbackFalloff;
+        this.y += this.knockbackVy * step * knockbackFalloff;
         this.knockbackTimer = Math.max(0, this.knockbackTimer - dt);
         if (this.knockbackTimer <= 0) {
           this.knockbackVx = 0;
           this.knockbackVy = 0;
+          this.knockbackDuration = 0;
         }
         if (typeof clampEntityToBounds === "function") {
           clampEntityToBounds(this);
