@@ -2,8 +2,8 @@
   const HITBOXES = {
   "player": {
     "hitbox": {
-      "width": 50,
-      "height": 70,
+      "width": 24,
+      "height": 33,
       "offsetX": -8,
       "offsetY": 4
     },

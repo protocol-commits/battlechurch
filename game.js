@@ -16377,6 +16377,9 @@ function clearPunishCounterState(meleeAttackState) {
   meleeAttackState.punishComboDamage = 0;
   meleeAttackState.pendingCounterHitTarget = null;
   meleeAttackState.pendingCounterHitShowAt = 0;
+  if (meleeAttackState.activeCounterHitKind === "punish") {
+    clearActiveCounterHitText(meleeAttackState);
+  }
 }
 
 function getMultiplierBonusLabel(multiplier) {
@@ -16384,61 +16387,42 @@ function getMultiplierBonusLabel(multiplier) {
   return `+${bonusPercent}%`;
 }
 
-function triggerPunishCounterText(target) {
-  if (!target) return;
-  const radius = target.radius || target.config?.hitRadius || 24;
-  addFloatingTextAt(
-    target.x,
-    target.y - radius - 58,
-    `Punish Counter ${getMultiplierBonusLabel(PUNISH_COUNTER_MULTIPLIER)}`,
-    "#FFD84F",
-    {
-      speechBubble: false,
-      vy: -14,
-      life: PUNISH_COUNTER_TEXT_LIFE,
-      entity: target,
-      offsetY: -radius - 58,
-      fontSize: 28,
-      fontWeight: "900",
-      priority: 8,
-    },
-  );
+function triggerPunishCounterText(target, meleeAttackState = null) {
+  if (!target || !meleeAttackState) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  meleeAttackState.activeCounterHitTarget = target;
+  meleeAttackState.activeCounterHitKind = "punish";
+  meleeAttackState.activeCounterHitUntil =
+    now + Math.max(PUNISH_COUNTER_TEXT_LIFE, MELEE_COMBO_TEXT_LIFE) * 1000;
+  updateMeleeComboLabel(meleeAttackState);
 }
 
-function triggerCounterHitText(target) {
-  if (!target) return;
-  const radius = target.radius || target.config?.hitRadius || 24;
-  return addFloatingTextAt(
-    target.x,
-    target.y - radius - 50,
-    `Counter Hit ${getMultiplierBonusLabel(COUNTER_HIT_MULTIPLIER)}`,
-    "#FFE7A1",
-    {
-      speechBubble: false,
-      vy: -12,
-      life: COUNTER_HIT_TEXT_LIFE,
-      entity: target,
-      offsetY: -radius - 50,
-      fontSize: 22,
-      fontWeight: "800",
-      priority: 7,
-    },
-  );
+function triggerCounterHitText(target, meleeAttackState = null) {
+  if (!target || !meleeAttackState) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  meleeAttackState.activeCounterHitTarget = target;
+  meleeAttackState.activeCounterHitKind = "counter";
+  meleeAttackState.activeCounterHitUntil =
+    now + Math.max(COUNTER_HIT_TEXT_LIFE, MELEE_COMBO_TEXT_LIFE) * 1000;
+  updateMeleeComboLabel(meleeAttackState);
 }
 
 function clearActiveCounterHitText(meleeAttackState, target = null, immediate = false) {
-  if (!meleeAttackState || !meleeAttackState.activeCounterHitLabel) return;
+  if (!meleeAttackState || !meleeAttackState.activeCounterHitTarget) return;
   if (target && meleeAttackState.activeCounterHitTarget !== target) return;
-  if (immediate) {
-    meleeAttackState.activeCounterHitLabel.persist = false;
-    meleeAttackState.activeCounterHitLabel.life = Math.min(
-      meleeAttackState.activeCounterHitLabel.life || 0.15,
-      0.15,
-    );
-    meleeAttackState.activeCounterHitLabel.fadeDelay = 0;
-  }
   meleeAttackState.activeCounterHitLabel = null;
   meleeAttackState.activeCounterHitTarget = null;
+  meleeAttackState.activeCounterHitKind = null;
+  meleeAttackState.activeCounterHitUntil = 0;
+  if (!immediate) {
+    updateMeleeComboLabel(meleeAttackState);
+  }
 }
 
 function registerPunishComboDamage(target, damage, meleeAttackState) {
@@ -16601,11 +16585,62 @@ function clearMeleeComboLabel(meleeAttackState) {
   meleeAttackState.meleeComboLabel = null;
 }
 
+function getMeleeCombatLabelConfig(meleeAttackState, target) {
+  if (!meleeAttackState || !target) return null;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  let specialText = "";
+  let specialKind = null;
+  if (
+    meleeAttackState.activeCounterHitTarget === target &&
+    Number.isFinite(meleeAttackState.activeCounterHitUntil) &&
+    now <= meleeAttackState.activeCounterHitUntil
+  ) {
+    specialKind = meleeAttackState.activeCounterHitKind || "counter";
+    specialText =
+      specialKind === "punish"
+        ? `Punish Counter ${getMultiplierBonusLabel(PUNISH_COUNTER_MULTIPLIER)}`
+        : `Counter Hit ${getMultiplierBonusLabel(COUNTER_HIT_MULTIPLIER)}`;
+  } else if (meleeAttackState.activeCounterHitTarget === target) {
+    meleeAttackState.activeCounterHitTarget = null;
+    meleeAttackState.activeCounterHitKind = null;
+    meleeAttackState.activeCounterHitUntil = 0;
+  }
+  const hits = Math.max(0, Math.round(meleeAttackState.meleeComboHits || 0));
+  const comboText = hits >= 2 ? `Combo ${hits}` : "";
+  if (!specialText && !comboText) return null;
+  const lines = [];
+  if (specialText) lines.push(specialText);
+  if (comboText) lines.push(comboText);
+  const hitboxRect = getEnemyHitboxRect(target);
+  const topAnchorOffset = hitboxRect
+    ? hitboxRect.y - target.y
+    : -(target.radius || target.config?.hitRadius || 24);
+  const lineCount = lines.length;
+  const verticalClearance = specialText ? 28 : 18;
+  const stackedLineOffset = lineCount > 1 ? 24 : 0;
+  return {
+    text: lines.join("\n"),
+    color:
+      specialKind === "punish"
+        ? "#FFD84F"
+        : specialKind === "counter"
+          ? "#FFE7A1"
+          : "#FFE083",
+    fontSize: specialText ? 22 : 20,
+    fontWeight: specialKind === "punish" ? "900" : "800",
+    offsetY: topAnchorOffset - 28 - verticalClearance - stackedLineOffset,
+  };
+}
+
 function updateMeleeComboLabel(meleeAttackState) {
   if (!meleeAttackState) return;
-  const target = meleeAttackState.meleeComboTarget;
-  const hits = Math.max(0, Math.round(meleeAttackState.meleeComboHits || 0));
-  if (!target || hits < 2) {
+  const comboTarget = meleeAttackState.meleeComboTarget;
+  const specialTarget = meleeAttackState.activeCounterHitTarget;
+  const target = comboTarget || specialTarget;
+  if (!target) {
     clearMeleeComboLabel(meleeAttackState);
     return;
   }
@@ -16619,49 +16654,45 @@ function updateMeleeComboLabel(meleeAttackState) {
     meleeAttackState.meleeComboExpiresAt = 0;
     return;
   }
-  const radius = target.radius || target.config?.hitRadius || 24;
-  const punishLabelActive =
-    meleeAttackState.punishCounterTarget === target &&
-    meleeAttackState.punishCounterTextShown &&
-    Math.max(0, Math.round(meleeAttackState.punishComboDamage || 0)) > 0;
-  const punishDamageText = punishLabelActive
-    ? formatNumberWithCommas(Math.max(0, Math.round(meleeAttackState.punishComboDamage || 0)))
-    : "";
-  const labelText = punishLabelActive ? `Combo ${hits}\n${punishDamageText}` : `Combo ${hits}`;
-  const comboLabelY = target.y - radius - (punishLabelActive ? 4 : 18);
+  const labelConfig = getMeleeCombatLabelConfig(meleeAttackState, target);
+  if (!labelConfig) {
+    clearMeleeComboLabel(meleeAttackState);
+    return;
+  }
+  const comboLabelY = target.y + labelConfig.offsetY;
   if (!meleeAttackState.meleeComboLabel) {
     meleeAttackState.meleeComboLabel = addFloatingTextAt(
       target.x,
       comboLabelY,
-      labelText,
-      "#FFE083",
+      labelConfig.text,
+      labelConfig.color,
       {
         speechBubble: false,
         vy: 0,
         life: MELEE_COMBO_TEXT_LIFE,
         entity: target,
-        offsetY: -radius - (punishLabelActive ? 4 : 18),
-        fontSize: 20,
-        fontWeight: "800",
+        offsetY: labelConfig.offsetY,
+        fontSize: labelConfig.fontSize,
+        fontWeight: labelConfig.fontWeight,
         priority: 6,
         persist: true,
       },
     );
     return;
   }
-  meleeAttackState.meleeComboLabel.text = labelText;
+  meleeAttackState.meleeComboLabel.text = labelConfig.text;
   meleeAttackState.meleeComboLabel.x = target.x;
   meleeAttackState.meleeComboLabel.y = comboLabelY;
   meleeAttackState.meleeComboLabel.entity = target;
-  meleeAttackState.meleeComboLabel.offsetY = -radius - (punishLabelActive ? 4 : 18);
-  meleeAttackState.meleeComboLabel.color = "#FFE083";
+  meleeAttackState.meleeComboLabel.offsetY = labelConfig.offsetY;
+  meleeAttackState.meleeComboLabel.color = labelConfig.color;
   meleeAttackState.meleeComboLabel.persist = true;
   meleeAttackState.meleeComboLabel.life = Math.max(
     meleeAttackState.meleeComboLabel.life || 0,
     MELEE_COMBO_TEXT_LIFE,
   );
-  meleeAttackState.meleeComboLabel.fontSize = 20;
-  meleeAttackState.meleeComboLabel.fontWeight = "800";
+  meleeAttackState.meleeComboLabel.fontSize = labelConfig.fontSize;
+  meleeAttackState.meleeComboLabel.fontWeight = labelConfig.fontWeight;
 }
 
 function registerMeleeComboHit(target, meleeAttackState) {
@@ -16706,7 +16737,7 @@ function registerMeleeComboHit(target, meleeAttackState) {
       meleeAttackState.pendingCounterHitTarget = null;
       meleeAttackState.pendingCounterHitShowAt = 0;
       clearActiveCounterHitText(meleeAttackState, target, true);
-      triggerPunishCounterText(target);
+      triggerPunishCounterText(target, meleeAttackState);
       rewardMeleeGraceBurst(target, PUNISH_COUNTER_GRACE_GEMS, 72);
       meleeAttackState.punishCounterTextShown = true;
     }
@@ -16751,7 +16782,7 @@ function registerDivineShotComboHit(target, meleeAttackState) {
     meleeAttackState.pendingCounterHitTarget = null;
     meleeAttackState.pendingCounterHitShowAt = 0;
     clearActiveCounterHitText(meleeAttackState, target, true);
-    triggerPunishCounterText(target);
+    triggerPunishCounterText(target, meleeAttackState);
     rewardMeleeGraceBurst(target, PUNISH_COUNTER_GRACE_GEMS, 72);
     meleeAttackState.punishCounterTextShown = true;
   }
@@ -17640,6 +17671,8 @@ function updateMeleeAttackSystem(dt) {
     pendingCounterHitShowAt: 0,
     activeCounterHitLabel: null,
     activeCounterHitTarget: null,
+    activeCounterHitKind: null,
+    activeCounterHitUntil: 0,
     pendingBasicAttack: null,
     currentAttackHitboxType: "slash",
   };
@@ -18079,7 +18112,10 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.meleeComboExpiresAt = 0;
       clearActiveCounterHitText(meleeAttackState);
       clearPunishCounterState(meleeAttackState);
-    } else if (meleeAttackState.meleeComboLabel && meleeAttackState.meleeComboTarget) {
+    } else if (
+      meleeAttackState.meleeComboLabel &&
+      (meleeAttackState.meleeComboTarget || meleeAttackState.activeCounterHitTarget)
+    ) {
       if (comboCarryActive) {
         meleeAttackState.meleeComboExpiresAt = Math.max(
           Number(meleeAttackState.meleeComboExpiresAt) || 0,
@@ -18105,10 +18141,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.pendingCounterHitShowAt &&
       comboNow >= meleeAttackState.pendingCounterHitShowAt
     ) {
-      meleeAttackState.activeCounterHitLabel = triggerCounterHitText(
-        meleeAttackState.pendingCounterHitTarget,
-      );
-      meleeAttackState.activeCounterHitTarget = meleeAttackState.pendingCounterHitTarget;
+      triggerCounterHitText(meleeAttackState.pendingCounterHitTarget, meleeAttackState);
       meleeAttackState.pendingCounterHitTarget = null;
       meleeAttackState.pendingCounterHitShowAt = 0;
     }
