@@ -17461,36 +17461,17 @@ function executeRingOfFireAttack(meleeAttackState) {
   if (!player) return false;
   const centerX = player.x;
   const centerY = player.y;
-  const dir = getDashButtonDirection();
-  const startAngle = Math.atan2(dir.y, dir.x);
-  setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
-  meleeAttackState.buttonDown = false;
-  meleeAttackState.isCharging = false;
-  meleeAttackState.chargeTimer = 0;
-  meleeAttackState.awaitRush = false;
-  meleeAttackState.awaitTimer = 0;
-  meleeAttackState.spinTimer = 0;
-  meleeAttackState.spinDuration = 0;
-  meleeAttackState.spinHitEntities = null;
-  meleeAttackState.spinMoveDir = null;
-  meleeAttackState.spinMoveDistanceRemaining = 0;
-  meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+  const dir = getMeleeAttackDirection();
+  executeSpinAttack(meleeAttackState, null);
   meleeAttackState.ringFireActive = true;
-  meleeAttackState.ringFirePhase = "out";
+  meleeAttackState.ringFirePhase = "trace";
   meleeAttackState.ringFireCenterX = centerX;
   meleeAttackState.ringFireCenterY = centerY;
   meleeAttackState.ringFireRadius = RING_OF_FIRE_RADIUS;
-  meleeAttackState.ringFireStartAngle = startAngle;
-  meleeAttackState.ringFireAngle = startAngle;
+  meleeAttackState.ringFireStartAngle = Math.atan2(dir.y, dir.x);
+  meleeAttackState.ringFireAngle = meleeAttackState.ringFireStartAngle;
   meleeAttackState.ringFireTraceProgress = 0;
   player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, RING_OF_FIRE_INVULNERABILITY);
-  if (player.animator) {
-    player.state = "attackMelee";
-    player.animator.play("attackMelee", { restart: true });
-  }
-  if (typeof playRushAttackSfx === "function") {
-    playRushAttackSfx(0.85);
-  }
   return true;
 }
 
@@ -17561,66 +17542,19 @@ function updateRingOfFireMotion(dt, meleeAttackState) {
   const centerX = meleeAttackState.ringFireCenterX;
   const centerY = meleeAttackState.ringFireCenterY;
   const radius = Math.max(1, meleeAttackState.ringFireRadius || RING_OF_FIRE_RADIUS);
-  if (meleeAttackState.ringFirePhase === "out") {
-    const targetX = centerX + Math.cos(meleeAttackState.ringFireStartAngle) * radius;
-    const targetY = centerY + Math.sin(meleeAttackState.ringFireStartAngle) * radius;
-    const dx = targetX - player.x;
-    const dy = targetY - player.y;
-    const dist = Math.hypot(dx, dy);
-    const step = Math.min(dist, RING_OF_FIRE_OUT_SPEED * dt);
-    if (dist > 0.001) {
-      player.x += (dx / dist) * step;
-      player.y += (dy / dist) * step;
-      player.updateFacing(dx, dy);
-    }
-    if (dist <= 2 || step >= dist) {
-      player.x = targetX;
-      player.y = targetY;
-      meleeAttackState.ringFirePhase = "trace";
-      meleeAttackState.ringFireTraceProgress = 0;
-    }
-  } else if (meleeAttackState.ringFirePhase === "trace") {
-    meleeAttackState.ringFireTraceProgress = Math.min(
-      1,
-      (meleeAttackState.ringFireTraceProgress || 0) + dt / Math.max(0.001, RING_OF_FIRE_TRACE_DURATION),
-    );
-    const angle = meleeAttackState.ringFireStartAngle + meleeAttackState.ringFireTraceProgress * Math.PI * 2;
-    meleeAttackState.ringFireAngle = angle;
-    player.x = centerX + Math.cos(angle) * radius;
-    player.y = centerY + Math.sin(angle) * radius;
-    player.updateFacing(-Math.sin(angle), Math.cos(angle));
-    if (meleeAttackState.ringFireTraceProgress >= 1) {
-      meleeAttackState.ringFirePhase = "return";
-    }
-  } else if (meleeAttackState.ringFirePhase === "return") {
-    const dx = centerX - player.x;
-    const dy = centerY - player.y;
-    const dist = Math.hypot(dx, dy);
-    const step = Math.min(dist, RING_OF_FIRE_RETURN_SPEED * dt);
-    if (dist > 0.001) {
-      player.x += (dx / dist) * step;
-      player.y += (dy / dist) * step;
-      player.updateFacing(dx, dy);
-    }
-    if (dist <= 2 || step >= dist) {
-      player.x = centerX;
-      player.y = centerY;
-      meleeAttackState.ringFireActive = false;
-      meleeAttackState.ringFirePhase = null;
-      spawnRingOfFireHazard(centerX, centerY, radius);
-      spawnFlashEffect(centerX, centerY);
-      applyCameraShake(Math.max(CAMERA_SHAKE_DURATION, 0.16), CAMERA_SHAKE_INTENSITY);
-      if (player.animator) {
-        player.state = "idle";
-        player.animator.play("idle");
-      }
-    }
-  }
-  resolveEntityObstacles(player);
-  clampEntityToBounds(player);
-  if (player.lockedPosition) {
-    player.lockedPosition.x = player.x;
-    player.lockedPosition.y = player.y;
+  if (meleeAttackState.spinTimer > 0) {
+    const duration = Math.max(0.001, meleeAttackState.spinDuration || MELEE_SPIN_DURATION);
+    const progress = 1 - Math.min(1, meleeAttackState.spinTimer / duration);
+    meleeAttackState.ringFireTraceProgress = progress;
+    meleeAttackState.ringFireAngle =
+      meleeAttackState.ringFireStartAngle + progress * Math.PI * 2;
+  } else {
+    meleeAttackState.ringFireActive = false;
+    meleeAttackState.ringFirePhase = null;
+    meleeAttackState.ringFireTraceProgress = 1;
+    spawnRingOfFireHazard(centerX, centerY, radius);
+    spawnFlashEffect(centerX, centerY);
+    applyCameraShake(Math.max(CAMERA_SHAKE_DURATION, 0.16), CAMERA_SHAKE_INTENSITY);
   }
 }
 
