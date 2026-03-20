@@ -17471,7 +17471,8 @@ function executeRingOfFireAttack(meleeAttackState) {
   meleeAttackState.ringFireCenterX = centerX;
   meleeAttackState.ringFireCenterY = centerY;
   meleeAttackState.ringFireRadius = RING_OF_FIRE_RADIUS;
-  meleeAttackState.ringFireStartAngle = Math.atan2(dir.y, dir.x);
+  meleeAttackState.ringFireStartAngle = -Math.PI * 0.5;
+  meleeAttackState.ringFireDirection = player.facing === "left" ? -1 : 1;
   meleeAttackState.ringFireAngle = meleeAttackState.ringFireStartAngle;
   meleeAttackState.ringFireTraceProgress = 0;
   player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, RING_OF_FIRE_INVULNERABILITY);
@@ -17550,7 +17551,8 @@ function updateRingOfFireMotion(dt, meleeAttackState) {
     const progress = 1 - Math.min(1, meleeAttackState.spinTimer / duration);
     meleeAttackState.ringFireTraceProgress = progress;
     meleeAttackState.ringFireAngle =
-      meleeAttackState.ringFireStartAngle + progress * Math.PI * 2;
+      meleeAttackState.ringFireStartAngle +
+      progress * Math.PI * 2 * (meleeAttackState.ringFireDirection || 1);
   } else {
     meleeAttackState.ringFireActive = false;
     meleeAttackState.ringFirePhase = null;
@@ -17785,6 +17787,7 @@ function updateMeleeAttackSystem(dt) {
       ringFireCenterY: 0,
       ringFireRadius: 0,
       ringFireStartAngle: 0,
+      ringFireDirection: 1,
       ringFireAngle: 0,
       ringFireTraceProgress: 0,
       spinMoveDir: null,

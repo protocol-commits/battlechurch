@@ -3935,7 +3935,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         meleeAttackState.ringFirePhase === "trace"
           ? Math.max(0.08, meleeAttackState.ringFireTraceProgress || 0)
           : 1;
-      const traceDirection = player?.facing === "left" ? -1 : 1;
+      const traceDirection = meleeAttackState.ringFireDirection || 1;
       drawRingOfFireDebugCircle(
         ctx,
         meleeAttackState.ringFireCenterX,
