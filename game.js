@@ -2671,6 +2671,9 @@ const SPIN_HOLD_CHARGE_TIME = MELEE_HOLD_CHARGE_TIME;
 const SPIN_CHARGE_MOVE_MULTIPLIER = 0.5;
 const SPIN_MOVE_DISTANCE = RUSH_DISTANCE;
 const SPIN_MOVE_SPEED = RUSH_SPEED;
+const POWERUP_WARP_RADIUS = 140 * WORLD_SCALE;
+const POWERUP_WARP_BOSS_DAMAGE = 120;
+const POWERUP_WARP_INVULNERABILITY = 0.4;
 const COMBO_WINDOW_MS = 350;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
@@ -17429,6 +17432,115 @@ function executeRushAttack(dir, meleeAttackState) {
   playRushAttackSfx(0.9);
 }
 
+function isWarpPickupCandidate(pickup) {
+  return Boolean(
+    pickup &&
+    pickup.active !== false &&
+    !pickup.expired &&
+    !pickup.collected &&
+    !pickup.dead &&
+    !pickup.removed &&
+    pickup.visible !== false &&
+    Number.isFinite(pickup.x) &&
+    Number.isFinite(pickup.y),
+  );
+}
+
+function getNearestWarpPickup() {
+  if (!player) return null;
+  const candidates = []
+    .concat(weaponPickups || [], churchPowerupPickups || [], utilityPowerUps || [])
+    .filter(isWarpPickupCandidate);
+  let best = null;
+  let bestDistSq = Infinity;
+  for (const pickup of candidates) {
+    const dx = pickup.x - player.x;
+    const dy = pickup.y - player.y;
+    const distSq = dx * dx + dy * dy;
+    if (distSq < bestDistSq) {
+      best = pickup;
+      bestDistSq = distSq;
+    }
+  }
+  return best;
+}
+
+function applyPowerupWarpBurst(x, y) {
+  const radius = POWERUP_WARP_RADIUS;
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const center = getEnemyHitboxCenter(enemy);
+    if (Math.hypot(center.x - x, center.y - y) > radius + getEnemyHitboxRadius(enemy)) return;
+    enemy.takeDamage(enemy.health + (enemy.maxHealth || 0) + 9999, { damageType: "charged" });
+    spawnEnemyHitEffect(enemy, center.x, center.y, { damageType: "charged" });
+  });
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+    const center = getEnemyHitboxCenter(activeBoss);
+    if (Math.hypot(center.x - x, center.y - y) <= radius + (activeBoss.radius || 0)) {
+      activeBoss.takeDamage(POWERUP_WARP_BOSS_DAMAGE, {
+        hitX: center.x,
+        hitY: center.y,
+        damageType: "charged",
+      });
+      if (typeof activeBoss.knockbackVx === "number" && !activeBoss.dead && !activeBoss.defeated) {
+        applyEnemyMeleeKnockback(activeBoss, x, y, MELEE_DAMAGE_KNOCKBACK);
+      }
+      spawnEnemyHitEffect(activeBoss, center.x, center.y, { damageType: "charged" });
+    }
+  }
+  projectiles.forEach((projectile) => {
+    if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+    const pr = Math.max(0, projectile.radius || 0);
+    if (Math.hypot((projectile.x || 0) - x, (projectile.y || 0) - y) > radius + pr) return;
+    projectile.dead = true;
+    spawnImpactEffect(projectile.x, projectile.y);
+    spawnFlashEffect(projectile.x, projectile.y);
+  });
+  spawnFlashEffect(x, y);
+  spawnImpactEffect(x, y);
+  applyCameraShake(Math.max(CAMERA_SHAKE_DURATION, 0.18), CAMERA_SHAKE_INTENSITY * 1.1);
+}
+
+function executePowerupWarpAttack(meleeAttackState) {
+  if (!player) return false;
+  const targetPickup = getNearestWarpPickup();
+  if (!targetPickup) return false;
+  const originX = player.x;
+  const originY = player.y;
+  setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
+  meleeAttackState.buttonDown = false;
+  meleeAttackState.isCharging = false;
+  meleeAttackState.chargeTimer = 0;
+  meleeAttackState.awaitRush = false;
+  meleeAttackState.awaitTimer = 0;
+  meleeAttackState.spinTimer = 0;
+  meleeAttackState.spinDuration = 0;
+  meleeAttackState.spinHitEntities = null;
+  meleeAttackState.spinMoveDir = null;
+  meleeAttackState.spinMoveDistanceRemaining = 0;
+  meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+  player.x = targetPickup.x;
+  player.y = targetPickup.y;
+  resolveEntityObstacles(player);
+  clampEntityToBounds(player);
+  if (player.lockedPosition) {
+    player.lockedPosition.x = player.x;
+    player.lockedPosition.y = player.y;
+  }
+  player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, POWERUP_WARP_INVULNERABILITY);
+  spawnFlashEffect(originX, originY);
+  spawnFlashEffect(player.x, player.y);
+  applyPowerupWarpBurst(player.x, player.y);
+  if (player.animator) {
+    player.state = "idle";
+    player.animator.play("idle", { restart: true });
+  }
+  if (typeof playRushAttackSfx === "function") {
+    playRushAttackSfx(0.85);
+  }
+  return true;
+}
+
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
   const dir = getMeleeAttackDirection();
@@ -18001,13 +18113,14 @@ function updateMeleeAttackSystem(dt) {
     }
     if (meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
-      const moveDir = getHeldMovementDirection();
-      const hasMoveDir = moveDir && (moveDir.x !== 0 || moveDir.y !== 0);
       meleeAttackState.spinButtonDown = false;
       if (meleeAttackState.spinCharging) {
         meleeAttackState.spinCharging = false;
         if (fullyCharged) {
-          executeSpinAttack(meleeAttackState, hasMoveDir ? moveDir : null);
+          const warped = executePowerupWarpAttack(meleeAttackState);
+          if (!warped && !meleeAttackState.isRushing) {
+            tryStartDash(getDashButtonDirection());
+          }
         } else if (!meleeAttackState.isRushing) {
           tryStartDash(getDashButtonDirection());
         }
