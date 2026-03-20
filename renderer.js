@@ -3720,6 +3720,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       swordGlow: colors.softWhite || "#EAF6FF",
       dash: colors.ice || "#9BD9FF",
       dashGlow: colors.teal || "#5FE3C0",
+      prayer: colors.softWhite || "#EAF6FF",
+      prayerGlow: colors.gold || "#FFC86A",
     };
   }
 
@@ -3850,6 +3852,38 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.sword, palette.swordGlow);
+  }
+
+  function drawPlayerCongregationMeter(player) {
+    const { ctx, WORLD_SCALE = 1 } = requireBindings();
+    if (!ctx || !player || player.state === "death") return;
+    const getRatio =
+      typeof player.getCongregationCommandChargeRatio === "function"
+        ? player.getCongregationCommandChargeRatio.bind(player)
+        : null;
+    if (!getRatio) return;
+    const chargeRatio = Math.max(0, Math.min(1, getRatio()));
+    const shakeX = sharedShakeOffset?.x || 0;
+    const sprite = getPlayerSpriteExtents(player);
+    const meterCenterX = getPlayerCombatMeterAnchorX(player) + shakeX;
+    const width = Math.round(34 * WORLD_SCALE);
+    const height = Math.max(11, Math.round(14 * WORLD_SCALE));
+    const meterX = meterCenterX - width / 2;
+    const stackOffset = Math.round((height + 6) * WORLD_SCALE * 2);
+    const meterY = sprite.top - height - Math.round(8 * WORLD_SCALE) - stackOffset;
+    const palette = getCombatMeterPalette();
+    if (chargeRatio >= 1) {
+      const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
+      drawCompactReadyDot(
+        meterCenterX,
+        meterY + height * 0.5,
+        dotSize,
+        palette.prayer,
+        palette.prayerGlow,
+      );
+      return;
+    }
+    drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.prayer, palette.prayerGlow);
   }
 
   function drawPlayerRingFireChargeMeter(player) {
@@ -6111,6 +6145,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawRingOfFireEffects(player);
     if (player) {
       player.draw();
+      drawPlayerCongregationMeter(player);
       drawPlayerRingFireChargeMeter(player);
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);

@@ -2779,6 +2779,12 @@ const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = _gb('prayerBomb.screenDarkenAlpha', 0.65
 const PRAYER_BOMB_RAIN_DARKEN_DURATION = _gb('prayerBomb.rainDarkenDuration', 0.5);
 const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.12);
 const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 10);
+const CONGREGATION_COMMAND_CHARGE_TIME = _gb('congregationCommand.chargeTime', 12);
+const CONGREGATION_COMMAND_DAMAGE = _gb('congregationCommand.damage', 30);
+const CONGREGATION_COMMAND_SPEED_MULTIPLIER = _gb('congregationCommand.speedMultiplier', 1.1);
+const CONGREGATION_COMMAND_SCALE = _gb('congregationCommand.scale', 1.15);
+const CONGREGATION_COMMAND_SHAKE_DURATION = _gb('congregationCommand.shakeDuration', 0.12);
+const CONGREGATION_COMMAND_SHAKE_MAGNITUDE = _gb('congregationCommand.shakeMagnitude', 8);
 if (typeof window !== "undefined") {
   window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
 }
@@ -3019,6 +3025,7 @@ if (typeof window !== "undefined") {
 const isActionActive = Input.isActionActive;
 const wasActionJustPressed = Input.wasActionJustPressed;
 const consumePrayerBombClick = Input.consumePrayerBombClick;
+const consumeCongregationClick = Input.consumeCongregationClick;
 const aimAssist = {
   target: null,
   vertices: null,
@@ -3905,6 +3912,7 @@ const ENTITIES_BOOTSTRAP = window.Entities?.initialize?.({
   PLAYER_BASE_SCALE,
   HERO_MAX_HEALTH,
   PRAYER_BOMB_CHARGE_REQUIRED,
+  CONGREGATION_COMMAND_CHARGE_TIME,
   COIN_COOLDOWN,
   DAMAGE_FLASH_INTENSITY,
   PLAYER_BASE_CONFIG: BASE_PLAYER_CONFIG,
@@ -5948,7 +5956,7 @@ const HOW_TO_PLAY_PAGES = [
       "Movement: WASD or Left Joystick",
       "A Button / Left Arrow: Melee Attack",
       "B Button / Down Arrow: Dash",
-      "C Button / Right Arrow: Prayer Bomb",
+      "C Button / Right Arrow: Tap congregation volley, hold Prayer Bomb",
     ].join("\n"),
   },
   {
@@ -5976,7 +5984,7 @@ const PAUSE_HOTKEYS_HTML = `
       <li>Arc or Arrow keys: Aim</li>
       <li>A/Left Arrow: Melee (hold to charge)</li>
       <li>B/Up Arrow: Dash</li>
-      <li>C/Right Arrow: Prayer bomb</li>
+      <li>C/Right Arrow: Tap volley, hold Prayer Bomb</li>
       <li>Mouse: Aim</li>
       <li>Space: Pause / Resume</li>
     </ul>
@@ -13404,6 +13412,110 @@ function updateCozyNpcs(dt) {
       npcs.splice(i, 1);
     }
   }
+}
+
+function triggerCongregationCommand(playerEntity = player) {
+  if (!playerEntity || playerEntity.state === "death") return false;
+  const activeNpcs = npcs.filter(
+    (npc) => npc && npc.active && !npc.departed && (npc.faith || 0) > 0,
+  );
+  if (!activeNpcs.length) return false;
+
+  const hostilesExist =
+    enemies.some((enemy) => enemy && !enemy.dead && enemy.state !== "death") ||
+    projectiles.some((proj) => proj && !proj.dead && !proj.friendly && !proj.visualOnly);
+  if (!hostilesExist) return false;
+
+  const playerAim =
+    typeof playerEntity.getAimDirection === "function"
+      ? playerEntity.getAimDirection()
+      : normalizeVector(playerEntity.aim?.x || 1, playerEntity.aim?.y || 0);
+
+  const getNpcVolleyDirection = (npc) => {
+    let bestDir = playerAim;
+    let bestScore = Infinity;
+    const evaluate = (targetX, targetY) => {
+      const dx = targetX - npc.x;
+      const dy = targetY - npc.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= 0) return;
+      const dir = normalizeVector(dx, dy);
+      const dot = dir.x * playerAim.x + dir.y * playerAim.y;
+      if (dot < -0.1) return;
+      const score = dist - dot * 180;
+      if (score < bestScore) {
+        bestScore = score;
+        bestDir = dir;
+      }
+    };
+    enemies.forEach((enemy) => {
+      if (!enemy || enemy.dead || enemy.state === "death") return;
+      const center = getEnemyHitboxCenter(enemy);
+      evaluate(center.x, center.y);
+    });
+    projectiles.forEach((proj) => {
+      if (!proj || proj.dead || proj.friendly || proj.visualOnly) return;
+      evaluate(proj.x, proj.y);
+    });
+    return bestDir;
+  };
+
+  let fired = 0;
+  const fireFrames = assets?.projectiles?.fire?.frames || null;
+  activeNpcs.forEach((npc, index) => {
+    const dir = getNpcVolleyDirection(npc);
+    if (!dir || (!dir.x && !dir.y)) return;
+    const originOffset = (npc.radius || 24) * 0.72;
+    const originX = npc.x + dir.x * originOffset;
+    const originY = npc.y + dir.y * originOffset;
+    const baseSpeed = PROJECTILE_CONFIG.fire?.speed || 420;
+    const travel = distanceToEdge(originX, originY, dir.x, dir.y);
+    const speed = baseSpeed * CONGREGATION_COMMAND_SPEED_MULTIPLIER;
+    const life = travel / Math.max(1, speed);
+    const spread = (index - (activeNpcs.length - 1) * 0.5) * 0.035;
+    const volleyDir = normalizeVector(
+      dir.x + -dir.y * spread,
+      dir.y + dir.x * spread,
+    );
+    spawnProjectile("fire", originX, originY, volleyDir.x, volleyDir.y, {
+      friendly: true,
+      damage: CONGREGATION_COMMAND_DAMAGE,
+      speed,
+      life,
+      pierce: true,
+      frames: fireFrames,
+      frameDuration: 0.05,
+      flipHorizontal: volleyDir.x < 0,
+      source: npc,
+      scale: CONGREGATION_COMMAND_SCALE,
+    });
+    npc.projectileGlowTimer = Math.max(npc.projectileGlowTimer || 0, 0.2);
+    npc.state = "attack";
+    if (npc.animator) {
+      if (typeof npc.animator.setState === "function") {
+        npc.animator.setState("attack", { restart: true });
+        if (typeof npc.animator.setMoving === "function") {
+          npc.animator.setMoving(false);
+        }
+      } else if (typeof npc.animator.play === "function") {
+        npc.animator.play("attack", { restart: true });
+      }
+    }
+    npc.npcArrowCooldown = Math.max(npc.npcArrowCooldown || 0, 0.35);
+    spawnFlashEffect(originX, originY);
+    fired += 1;
+  });
+
+  if (!fired) return false;
+  if (typeof playFireballCastSfx === "function") {
+    playFireballCastSfx(0.7);
+  }
+  applyCameraShake(CONGREGATION_COMMAND_SHAKE_DURATION, CONGREGATION_COMMAND_SHAKE_MAGNITUDE);
+  return true;
+}
+
+if (typeof window !== "undefined") {
+  window.triggerCongregationCommand = triggerCongregationCommand;
 }
 
 function handleDeveloperHotkeys() {

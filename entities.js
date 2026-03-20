@@ -12,6 +12,7 @@
     PLAYER_BASE_SCALE: 3.28,
     HERO_MAX_HEALTH: 100,
     PRAYER_BOMB_CHARGE_REQUIRED: 60,
+    CONGREGATION_COMMAND_CHARGE_TIME: 12,
     COIN_COOLDOWN: 0.75,
     DAMAGE_FLASH_INTENSITY: 1,
     ARROW_DAMAGE: 10,
@@ -700,6 +701,11 @@
     this.prayerCharge = 0;
     this.prayerChargeRequired =
       settings.PRAYER_BOMB_CHARGE_REQUIRED || defaults.PRAYER_BOMB_CHARGE_REQUIRED || 60;
+    this.congregationCommandCharge = 0;
+    this.congregationCommandChargeRequired =
+      settings.CONGREGATION_COMMAND_CHARGE_TIME ||
+      defaults.CONGREGATION_COMMAND_CHARGE_TIME ||
+      12;
     this.overrideWeaponMode = null;
     this.shieldTimer = 0;
     this.shieldDuration = 0;
@@ -803,6 +809,10 @@
       this.wordOfGodDuration = 0;
     }
     this.wordOfGodCooldown = Math.max(0, this.wordOfGodCooldown - dt);
+    this.congregationCommandCharge = Math.min(
+      Math.max(0.001, this.congregationCommandChargeRequired || 1),
+      Math.max(0, (this.congregationCommandCharge || 0) + dt),
+    );
 
     this.armorTimer = Math.max(0, this.armorTimer - dt);
     if (this.armorTimer <= 0) this.armorReduction = 0;
@@ -892,6 +902,16 @@
     } else {
       this.prayerHoldTimer = 0;
       this.prayerHoldLocked = false;
+    }
+
+    if (typeof consumeCongregationClick === "function" && consumeCongregationClick()) {
+      if (this.isCongregationCommandReady()) {
+        const triggerCongregationCommand =
+          typeof window !== "undefined" ? window.triggerCongregationCommand : null;
+        if (typeof triggerCongregationCommand === "function" && triggerCongregationCommand(this)) {
+          this.congregationCommandCharge = 0;
+        }
+      }
     }
 
     if (consumePrayerBombClick()) {
@@ -1457,6 +1477,15 @@
   getPrayerChargeRatio() {
     const required = Math.max(1, this.prayerChargeRequired || 1);
     return Math.max(0, Math.min(1, (this.prayerCharge || 0) / required));
+  }
+
+  getCongregationCommandChargeRatio() {
+    const required = Math.max(0.001, this.congregationCommandChargeRequired || 1);
+    return Math.max(0, Math.min(1, (this.congregationCommandCharge || 0) / required));
+  }
+
+  isCongregationCommandReady() {
+    return this.getCongregationCommandChargeRatio() >= 1;
   }
 
   isPrayerBombReady() {

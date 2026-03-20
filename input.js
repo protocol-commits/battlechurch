@@ -100,9 +100,12 @@
 
   let listenersAttached = false;
   let prayerBombClickQueued = false;
+  let congregationClickQueued = false;
   let canvasClickQueued = false;
   let canvasClickPos = null;
   let comboSwipe = null;
+  let cButtonHeldAt = 0;
+  const PRAYER_BOMB_HOLD_THRESHOLD_MS = 1000;
 
   function normalizeKey(key) {
     if (typeof key !== "string") return key;
@@ -144,9 +147,9 @@
       keysJustPressed.add(codeKey);
       keysDown.add(codeKey);
     }
-    // NES 'B' button: right arrow triggers prayer bomb
-    if (event.key === "ArrowRight") {
-      prayerBombClickQueued = true;
+    // C button uses tap vs hold on release.
+    if (event.key === "ArrowRight" && !event.repeat) {
+      cButtonHeldAt = typeof performance !== "undefined" ? performance.now() : Date.now();
       event.preventDefault();
     }
       // NES 'A' button test: left arrow
@@ -191,6 +194,16 @@
       if (event.key === "ArrowLeft") {
         nesAButtonActive = false;
       }
+    if (event.key === "ArrowRight") {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const heldMs = cButtonHeldAt > 0 ? now - cButtonHeldAt : 0;
+      if (heldMs >= PRAYER_BOMB_HOLD_THRESHOLD_MS) {
+        prayerBombClickQueued = true;
+      } else {
+        congregationClickQueued = true;
+      }
+      cButtonHeldAt = 0;
+    }
     // Reset movement direction if WASD released
     let changed = false;
     if (key === "w" && movementDirection.y === -1) { movementDirection.y = 0; changed = true; }
@@ -382,7 +395,9 @@
     keysDown.add(normalized);
     virtualInput.virtualKeysDown.add(normalized);
     if (setNesA) nesAButtonActive = true;
-    if (setPrayerBomb) prayerBombClickQueued = true;
+    if (setPrayerBomb) {
+      cButtonHeldAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    }
   }
 
   function releaseVirtualKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
@@ -390,7 +405,16 @@
     keysDown.delete(normalized);
     virtualInput.virtualKeysDown.delete(normalized);
     if (setNesA) nesAButtonActive = false;
-    if (setPrayerBomb) prayerBombClickQueued = false;
+    if (setPrayerBomb) {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const heldMs = cButtonHeldAt > 0 ? now - cButtonHeldAt : 0;
+      if (heldMs >= PRAYER_BOMB_HOLD_THRESHOLD_MS) {
+        prayerBombClickQueued = true;
+      } else {
+        congregationClickQueued = true;
+      }
+      cButtonHeldAt = 0;
+    }
   }
 
   function queueComboSwipe(from, to) {
@@ -663,6 +687,12 @@
     return true;
   }
 
+  function consumeCongregationClick() {
+    if (!congregationClickQueued) return false;
+    congregationClickQueued = false;
+    return true;
+  }
+
   function peekCanvasClick() {
     if (!canvasClickQueued) return null;
     return canvasClickPos;
@@ -742,6 +772,7 @@
     wasActionJustPressed,
     triggerVirtualKeyPress,
     consumePrayerBombClick,
+    consumeCongregationClick,
     peekCanvasClick,
     consumeCanvasClick,
     consumeComboSwipe,
@@ -787,6 +818,12 @@
         },
         set prayerBombClickQueued(val) {
           prayerBombClickQueued = Boolean(val);
+        },
+        get congregationClickQueued() {
+          return congregationClickQueued;
+        },
+        set congregationClickQueued(val) {
+          congregationClickQueued = Boolean(val);
         },
   };
 })(typeof window !== "undefined" ? window : null);
