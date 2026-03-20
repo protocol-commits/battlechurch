@@ -18,6 +18,7 @@ const obstacles = [];
 const weaponPickups = [];
 const utilityPowerUps = [];
 const churchPowerupPickups = [];
+const ringOfFireHazards = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
@@ -1562,8 +1563,9 @@ function isPlayerMovementLocked() {
   const spinActive = Boolean(meleeState?.spinTimer > 0);
   const swingActive = Boolean(meleeState?.swooshTimer > 0);
   const rushActive = Boolean(meleeState?.isRushing);
+  const ringFireActive = Boolean(meleeState?.ringFireActive);
   if (rushActive) return false;
-  return Boolean((visitorSession.active && visitorSession.movementLock) || spinActive || swingActive);
+  return Boolean((visitorSession.active && visitorSession.movementLock) || spinActive || swingActive || ringFireActive);
 }
 
 if (typeof window !== "undefined") {
@@ -2671,9 +2673,16 @@ const SPIN_HOLD_CHARGE_TIME = MELEE_HOLD_CHARGE_TIME;
 const SPIN_CHARGE_MOVE_MULTIPLIER = 0.5;
 const SPIN_MOVE_DISTANCE = RUSH_DISTANCE;
 const SPIN_MOVE_SPEED = RUSH_SPEED;
-const POWERUP_WARP_RADIUS = 140 * WORLD_SCALE;
-const POWERUP_WARP_BOSS_DAMAGE = 120;
-const POWERUP_WARP_INVULNERABILITY = 0.4;
+const RING_OF_FIRE_RADIUS = 236 * WORLD_SCALE;
+const RING_OF_FIRE_OUT_SPEED = 1550 * SPEED_SCALE;
+const RING_OF_FIRE_RETURN_SPEED = 1550 * SPEED_SCALE;
+const RING_OF_FIRE_TRACE_DURATION = 0.46;
+const RING_OF_FIRE_LINGER_DURATION = 2.4;
+const RING_OF_FIRE_BAND = 20 * WORLD_SCALE;
+const RING_OF_FIRE_DAMAGE = 34;
+const RING_OF_FIRE_BOSS_DAMAGE = 18;
+const RING_OF_FIRE_HIT_COOLDOWN = 0.38;
+const RING_OF_FIRE_INVULNERABILITY = 0.72;
 const COMBO_WINDOW_MS = 350;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
@@ -3070,11 +3079,11 @@ Renderer.initialize({
   projectiles,
   get visitorSession() { return visitorSession; },
   get player() { return player; },
-  getPowerupWarpDestination,
   getCongregationSize,
   initialCongregationSize: INITIAL_CONGREGATION_SIZE,
   get cannonSplashRadius() { return FAITH_CANNON_SPLASH_RADIUS; },
   effects,
+  ringOfFireHazards,
   floatingTexts,
   pointerState,
   get paused() { return paused; },
@@ -17433,96 +17442,27 @@ function executeRushAttack(dir, meleeAttackState) {
   playRushAttackSfx(0.9);
 }
 
-function isWarpPickupCandidate(pickup) {
-  return Boolean(
-    pickup &&
-    pickup.active !== false &&
-    !pickup.expired &&
-    !pickup.collected &&
-    !pickup.dead &&
-    !pickup.removed &&
-    pickup.visible !== false &&
-    Number.isFinite(pickup.x) &&
-    Number.isFinite(pickup.y),
-  );
-}
-
-function getNearestWarpPickup() {
-  if (!player) return null;
-  const candidates = []
-    .concat(weaponPickups || [], churchPowerupPickups || [], utilityPowerUps || [])
-    .filter(isWarpPickupCandidate);
-  let best = null;
-  let bestDistSq = Infinity;
-  for (const pickup of candidates) {
-    const dx = pickup.x - player.x;
-    const dy = pickup.y - player.y;
-    const distSq = dx * dx + dy * dy;
-    if (distSq < bestDistSq) {
-      best = pickup;
-      bestDistSq = distSq;
-    }
-  }
-  return best;
-}
-
-function getPowerupWarpDestination(pickup, targetPlayer = player) {
-  if (!pickup) return null;
-  const pickupRadius = Math.max(18, Number(pickup.radius) || 0);
-  const playerRadius = Math.max(20, Number(targetPlayer?.radius) || 0);
-  const gap = 10 * WORLD_SCALE;
-  const sideSign = targetPlayer && Number.isFinite(targetPlayer.x) && targetPlayer.x > pickup.x ? 1 : -1;
-  return {
-    x: pickup.x + sideSign * (pickupRadius + playerRadius * 0.75 + gap),
-    y: pickup.y,
-    facing: sideSign > 0 ? "left" : "right",
-  };
-}
-
-function applyPowerupWarpBurst(x, y) {
-  const radius = POWERUP_WARP_RADIUS;
-  enemies.forEach((enemy) => {
-    if (!enemy || enemy.dead || enemy.state === "death") return;
-    const center = getEnemyHitboxCenter(enemy);
-    if (Math.hypot(center.x - x, center.y - y) > radius + getEnemyHitboxRadius(enemy)) return;
-    enemy.takeDamage(enemy.health + (enemy.maxHealth || 0) + 9999, { damageType: "charged" });
-    spawnEnemyHitEffect(enemy, center.x, center.y, { damageType: "charged" });
+function spawnRingOfFireHazard(centerX, centerY, radius) {
+  ringOfFireHazards.push({
+    x: centerX,
+    y: centerY,
+    radius,
+    life: RING_OF_FIRE_LINGER_DURATION,
+    duration: RING_OF_FIRE_LINGER_DURATION,
+    band: RING_OF_FIRE_BAND,
+    damage: RING_OF_FIRE_DAMAGE,
+    bossDamage: RING_OF_FIRE_BOSS_DAMAGE,
+    hitCooldown: RING_OF_FIRE_HIT_COOLDOWN,
+    hitMap: new WeakMap(),
   });
-  if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
-    const center = getEnemyHitboxCenter(activeBoss);
-    if (Math.hypot(center.x - x, center.y - y) <= radius + (activeBoss.radius || 0)) {
-      activeBoss.takeDamage(POWERUP_WARP_BOSS_DAMAGE, {
-        hitX: center.x,
-        hitY: center.y,
-        damageType: "charged",
-      });
-      if (typeof activeBoss.knockbackVx === "number" && !activeBoss.dead && !activeBoss.defeated) {
-        applyEnemyMeleeKnockback(activeBoss, x, y, MELEE_DAMAGE_KNOCKBACK);
-      }
-      spawnEnemyHitEffect(activeBoss, center.x, center.y, { damageType: "charged" });
-    }
-  }
-  projectiles.forEach((projectile) => {
-    if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
-    const pr = Math.max(0, projectile.radius || 0);
-    if (Math.hypot((projectile.x || 0) - x, (projectile.y || 0) - y) > radius + pr) return;
-    projectile.dead = true;
-    spawnImpactEffect(projectile.x, projectile.y);
-    spawnFlashEffect(projectile.x, projectile.y);
-  });
-  spawnFlashEffect(x, y);
-  spawnImpactEffect(x, y);
-  applyCameraShake(Math.max(CAMERA_SHAKE_DURATION, 0.18), CAMERA_SHAKE_INTENSITY * 1.1);
 }
 
-function executePowerupWarpAttack(meleeAttackState) {
+function executeRingOfFireAttack(meleeAttackState) {
   if (!player) return false;
-  const targetPickup = getNearestWarpPickup();
-  if (!targetPickup) return false;
-  const destination = getPowerupWarpDestination(targetPickup, player);
-  if (!destination) return false;
-  const originX = player.x;
-  const originY = player.y;
+  const centerX = player.x;
+  const centerY = player.y;
+  const dir = getDashButtonDirection();
+  const startAngle = Math.atan2(dir.y, dir.x);
   setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
   meleeAttackState.buttonDown = false;
   meleeAttackState.isCharging = false;
@@ -17535,24 +17475,18 @@ function executePowerupWarpAttack(meleeAttackState) {
   meleeAttackState.spinMoveDir = null;
   meleeAttackState.spinMoveDistanceRemaining = 0;
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
-  player.x = destination.x;
-  player.y = destination.y;
-  if (destination.facing) {
-    player.facing = destination.facing;
-  }
-  resolveEntityObstacles(player);
-  clampEntityToBounds(player);
-  if (player.lockedPosition) {
-    player.lockedPosition.x = player.x;
-    player.lockedPosition.y = player.y;
-  }
-  player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, POWERUP_WARP_INVULNERABILITY);
-  spawnFlashEffect(originX, originY);
-  spawnFlashEffect(player.x, player.y);
-  applyPowerupWarpBurst(player.x, player.y);
+  meleeAttackState.ringFireActive = true;
+  meleeAttackState.ringFirePhase = "out";
+  meleeAttackState.ringFireCenterX = centerX;
+  meleeAttackState.ringFireCenterY = centerY;
+  meleeAttackState.ringFireRadius = RING_OF_FIRE_RADIUS;
+  meleeAttackState.ringFireStartAngle = startAngle;
+  meleeAttackState.ringFireAngle = startAngle;
+  meleeAttackState.ringFireTraceProgress = 0;
+  player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, RING_OF_FIRE_INVULNERABILITY);
   if (player.animator) {
-    player.state = "idle";
-    player.animator.play("idle", { restart: true });
+    player.state = "attackMelee";
+    player.animator.play("attackMelee", { restart: true });
   }
   if (typeof playRushAttackSfx === "function") {
     playRushAttackSfx(0.85);
@@ -17620,6 +17554,138 @@ function executeDivineShot(dir, meleeAttackState, angleRad) {
 
   meleeAttackState.divineShotFollowUpUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   meleeAttackState.cooldown = 0;
+}
+
+function updateRingOfFireMotion(dt, meleeAttackState) {
+  if (!player || !meleeAttackState?.ringFireActive) return;
+  const centerX = meleeAttackState.ringFireCenterX;
+  const centerY = meleeAttackState.ringFireCenterY;
+  const radius = Math.max(1, meleeAttackState.ringFireRadius || RING_OF_FIRE_RADIUS);
+  if (meleeAttackState.ringFirePhase === "out") {
+    const targetX = centerX + Math.cos(meleeAttackState.ringFireStartAngle) * radius;
+    const targetY = centerY + Math.sin(meleeAttackState.ringFireStartAngle) * radius;
+    const dx = targetX - player.x;
+    const dy = targetY - player.y;
+    const dist = Math.hypot(dx, dy);
+    const step = Math.min(dist, RING_OF_FIRE_OUT_SPEED * dt);
+    if (dist > 0.001) {
+      player.x += (dx / dist) * step;
+      player.y += (dy / dist) * step;
+      player.updateFacing(dx, dy);
+    }
+    if (dist <= 2 || step >= dist) {
+      player.x = targetX;
+      player.y = targetY;
+      meleeAttackState.ringFirePhase = "trace";
+      meleeAttackState.ringFireTraceProgress = 0;
+    }
+  } else if (meleeAttackState.ringFirePhase === "trace") {
+    meleeAttackState.ringFireTraceProgress = Math.min(
+      1,
+      (meleeAttackState.ringFireTraceProgress || 0) + dt / Math.max(0.001, RING_OF_FIRE_TRACE_DURATION),
+    );
+    const angle = meleeAttackState.ringFireStartAngle + meleeAttackState.ringFireTraceProgress * Math.PI * 2;
+    meleeAttackState.ringFireAngle = angle;
+    player.x = centerX + Math.cos(angle) * radius;
+    player.y = centerY + Math.sin(angle) * radius;
+    player.updateFacing(-Math.sin(angle), Math.cos(angle));
+    if (meleeAttackState.ringFireTraceProgress >= 1) {
+      meleeAttackState.ringFirePhase = "return";
+    }
+  } else if (meleeAttackState.ringFirePhase === "return") {
+    const dx = centerX - player.x;
+    const dy = centerY - player.y;
+    const dist = Math.hypot(dx, dy);
+    const step = Math.min(dist, RING_OF_FIRE_RETURN_SPEED * dt);
+    if (dist > 0.001) {
+      player.x += (dx / dist) * step;
+      player.y += (dy / dist) * step;
+      player.updateFacing(dx, dy);
+    }
+    if (dist <= 2 || step >= dist) {
+      player.x = centerX;
+      player.y = centerY;
+      meleeAttackState.ringFireActive = false;
+      meleeAttackState.ringFirePhase = null;
+      spawnRingOfFireHazard(centerX, centerY, radius);
+      spawnFlashEffect(centerX, centerY);
+      applyCameraShake(Math.max(CAMERA_SHAKE_DURATION, 0.16), CAMERA_SHAKE_INTENSITY);
+      if (player.animator) {
+        player.state = "idle";
+        player.animator.play("idle");
+      }
+    }
+  }
+  resolveEntityObstacles(player);
+  clampEntityToBounds(player);
+  if (player.lockedPosition) {
+    player.lockedPosition.x = player.x;
+    player.lockedPosition.y = player.y;
+  }
+}
+
+function updateRingOfFireHazards(dt) {
+  if (!ringOfFireHazards.length) return;
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  for (let i = ringOfFireHazards.length - 1; i >= 0; i -= 1) {
+    const hazard = ringOfFireHazards[i];
+    hazard.life = Math.max(0, (hazard.life || 0) - dt);
+    const band = Math.max(1, hazard.band || RING_OF_FIRE_BAND);
+    const outerRadius = (hazard.radius || RING_OF_FIRE_RADIUS) + band * 0.5;
+    const innerRadius = Math.max(0, (hazard.radius || RING_OF_FIRE_RADIUS) - band * 0.5);
+    const canHit = (entity) => {
+      if (!entity || entity.dead || entity.state === "death") return false;
+      const lastAt = hazard.hitMap?.get(entity) || 0;
+      return now - lastAt >= (hazard.hitCooldown || RING_OF_FIRE_HIT_COOLDOWN) * 1000;
+    };
+    const markHit = (entity) => {
+      if (hazard.hitMap) hazard.hitMap.set(entity, now);
+    };
+    enemies.forEach((enemy) => {
+      if (!canHit(enemy)) return;
+      const center = getEnemyHitboxCenter(enemy);
+      const dist = Math.hypot(center.x - hazard.x, center.y - hazard.y);
+      const targetRadius = getEnemyHitboxRadius(enemy);
+      if (dist + targetRadius < innerRadius || dist - targetRadius > outerRadius) return;
+      markHit(enemy);
+      enemy.takeDamage(hazard.damage, { damageType: "charged" });
+      if (!enemy.dead && enemy.state !== "death") {
+        applyEnemyMeleeKnockback(enemy, hazard.x, hazard.y, MELEE_DAMAGE_KNOCKBACK * 0.75);
+      }
+      spawnEnemyHitEffect(enemy, center.x, center.y, { damageType: "charged" });
+    });
+    if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed && canHit(activeBoss)) {
+      const center = getEnemyHitboxCenter(activeBoss);
+      const dist = Math.hypot(center.x - hazard.x, center.y - hazard.y);
+      const targetRadius = activeBoss.radius || 0;
+      if (!(dist + targetRadius < innerRadius || dist - targetRadius > outerRadius)) {
+        markHit(activeBoss);
+        activeBoss.takeDamage(hazard.bossDamage, {
+          hitX: center.x,
+          hitY: center.y,
+          damageType: "charged",
+        });
+        if (typeof activeBoss.knockbackVx === "number" && !activeBoss.dead && !activeBoss.defeated) {
+          applyEnemyMeleeKnockback(activeBoss, hazard.x, hazard.y, MELEE_DAMAGE_KNOCKBACK * 0.45);
+        }
+        spawnEnemyHitEffect(activeBoss, center.x, center.y, { damageType: "charged" });
+      }
+    }
+    projectiles.forEach((projectile) => {
+      if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+      const pr = Math.max(0, projectile.radius || 0);
+      const dist = Math.hypot((projectile.x || 0) - hazard.x, (projectile.y || 0) - hazard.y);
+      if (dist + pr < innerRadius || dist - pr > outerRadius) return;
+      projectile.dead = true;
+      spawnImpactEffect(projectile.x, projectile.y);
+      spawnFlashEffect(projectile.x, projectile.y);
+    });
+    if (hazard.life <= 0) {
+      ringOfFireHazards.splice(i, 1);
+    }
+  }
 }
 
 function maybeFireWordOfGodProjectile(dir, angleRad) {
@@ -17763,6 +17829,14 @@ function updateMeleeAttackSystem(dt) {
       spinDuration: 0,
       spinHitEntities: null,
       spinCooldown: 0,
+      ringFireActive: false,
+      ringFirePhase: null,
+      ringFireCenterX: 0,
+      ringFireCenterY: 0,
+      ringFireRadius: 0,
+      ringFireStartAngle: 0,
+      ringFireAngle: 0,
+      ringFireTraceProgress: 0,
       spinMoveDir: null,
     spinMoveDistanceRemaining: 0,
     spinMeleeQueued: false,
@@ -17881,6 +17955,13 @@ function updateMeleeAttackSystem(dt) {
         meleeAttackState.lastComboTimes.A = 0;
         meleeAttackState.lastComboTimes.B = 0;
       }
+    }
+
+    if (meleeAttackState.ringFireActive) {
+      updateRingOfFireMotion(dt, meleeAttackState);
+      keysJustPressed.delete("ArrowDown");
+      keysJustPressed.delete("ArrowLeft");
+      keysJustPressed.delete(" ");
     }
 
     if (meleeAttackState.spinTimer > 0) {
@@ -18093,6 +18174,7 @@ function updateMeleeAttackSystem(dt) {
     const comboSwipe = input?.consumeComboSwipe?.();
     const comboRush =
       (!meleeAttackState.isRushing &&
+        !meleeAttackState.ringFireActive &&
         !meleeAttackState.spinCharging &&
         !meleeAttackState.spinButtonDown &&
         meleeAttackState.rushLockTimer <= 0 &&
@@ -18110,8 +18192,8 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete(" ");
       comboTriggered = true;
     }
-    const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing;
-    const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing;
+    const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
+    const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     if (bJustPressed && !meleeAttackState.spinButtonDown && !comboTriggered) {
       if (meleeAttackState.meleeCancelUntil && now <= meleeAttackState.meleeCancelUntil) {
         executeRushAttack(getDashButtonDirection(), meleeAttackState);
@@ -18136,10 +18218,7 @@ function updateMeleeAttackSystem(dt) {
       if (meleeAttackState.spinCharging) {
         meleeAttackState.spinCharging = false;
         if (fullyCharged) {
-          const warped = executePowerupWarpAttack(meleeAttackState);
-          if (!warped && !meleeAttackState.isRushing) {
-            tryStartDash(getDashButtonDirection());
-          }
+          executeRingOfFireAttack(meleeAttackState);
         } else if (!meleeAttackState.isRushing) {
           tryStartDash(getDashButtonDirection());
         }
@@ -18152,8 +18231,9 @@ function updateMeleeAttackSystem(dt) {
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
       !meleeAttackState.isRushing &&
+      !meleeAttackState.ringFireActive &&
       meleeAttackState.rushLockTimer <= 0;
-    const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && !meleeAttackState.isRushing;
+    const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     const rushLockActive = meleeAttackState.rushLockTimer > 0;
     const rushBypassActive =
       meleeAttackState.rushBypassUntil && now <= meleeAttackState.rushBypassUntil;
@@ -18601,6 +18681,7 @@ function updateGame(dt) {
   }
 
   updateEnemiesAndEntities(dt);
+  updateRingOfFireHazards(dt);
 
   if (player.shieldTimer > 0) {
     enemies.forEach((enemy) => {
@@ -19165,6 +19246,7 @@ function restartGame() {
   weaponPickups.splice(0, weaponPickups.length);
   churchPowerupPickups.splice(0, churchPowerupPickups.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
+  ringOfFireHazards.splice(0, ringOfFireHazards.length);
   clearGracePickups();
   resetChurchPowerups();
   playerGraceCount = 0;
@@ -19572,6 +19654,7 @@ async function init() {
     respawnIndicatorTimer = 0;
     backgroundImage = assets.background;
     utilityPowerUps.length = 0;
+    ringOfFireHazards.length = 0;
     resetCozyNpcs(5);
     clearCongregationMembers();
     spawnTimer = 3.8;

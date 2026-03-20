@@ -3879,76 +3879,54 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCompactWorldMeter(meterX, meterY, width, height, rechargeRatio, palette.dash, palette.dashGlow);
   }
 
-  function drawPowerupWarpGhost(player) {
-    const {
-      ctx,
-      meleeAttackState,
-      weaponPickups = [],
-      churchPowerupPickups = [],
-      utilityPowerUps = [],
-      getPowerupWarpDestination,
-    } = requireBindings();
-    if (!ctx || !player || !meleeAttackState || player.state === "death") return;
-    if (!meleeAttackState.spinCharging || !meleeAttackState.spinButtonDown) return;
-    const holdTime = Math.max(0.001, meleeAttackState.spinHoldTime || 0);
-    if ((meleeAttackState.spinChargeTimer || 0) < holdTime) return;
-    const candidates = []
-      .concat(weaponPickups, churchPowerupPickups, utilityPowerUps)
-      .filter((pickup) =>
-        pickup &&
-        pickup.active !== false &&
-        !pickup.expired &&
-        !pickup.collected &&
-        !pickup.dead &&
-        !pickup.removed &&
-        pickup.visible !== false &&
-        Number.isFinite(pickup.x) &&
-        Number.isFinite(pickup.y),
-      );
-    if (!candidates.length) return;
-    let target = null;
-    let bestDistSq = Infinity;
-    for (const pickup of candidates) {
-      const dx = pickup.x - player.x;
-      const dy = pickup.y - player.y;
-      const distSq = dx * dx + dy * dy;
-      if (distSq < bestDistSq) {
-        bestDistSq = distSq;
-        target = pickup;
-      }
-    }
-    if (!target) return;
-    const destination =
-      typeof getPowerupWarpDestination === "function"
-        ? getPowerupWarpDestination(target, player)
-        : { x: target.x, y: target.y };
-    if (!destination) return;
-    const pulseNow = typeof performance !== "undefined" ? performance.now() : Date.now();
-    const pulse = 0.5 + 0.5 * Math.sin(pulseNow * 0.012);
-    const ringRadius = Math.max(22, (player.radius || 24) * 0.95);
+  function drawRingOfFireArc(ctx, centerX, centerY, radius, progress = 1, baseAlpha = 1) {
+    const { assets } = requireBindings();
+    const fireFrames = assets?.projectiles?.fire?.frames || null;
+    if (!fireFrames || !fireFrames.length || progress <= 0) return;
+    const clamped = Math.max(0, Math.min(1, progress));
+    const circumference = Math.PI * 2 * radius * clamped;
+    const segmentCount = Math.max(8, Math.round(circumference / 22));
+    const frameNow = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const frameIndex = Math.floor(frameNow / 70) % fireFrames.length;
+    const frame = fireFrames[frameIndex];
+    const size = Math.max(18, radius * 0.16);
     ctx.save();
-    ctx.globalAlpha = 0.28 + pulse * 0.12;
-    ctx.fillStyle = "rgba(255, 232, 170, 0.2)";
-    ctx.beginPath();
-    ctx.arc(destination.x, destination.y + ringRadius * 0.15, ringRadius * (1.05 + pulse * 0.08), 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 0.5 + pulse * 0.25;
-    ctx.strokeStyle = "#FFE8AA";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(destination.x, destination.y + ringRadius * 0.15, ringRadius, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-
-    if (player.animator) {
-      const flip = (destination.facing || player.facing) === "left";
-      player.animator.draw(ctx, destination.x, destination.y, {
-        flipX: flip,
-        alpha: 0.32 + pulse * 0.12,
-        tintColor: "#FFF3C4",
-        tintIntensity: 0.9,
-      });
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < segmentCount; i += 1) {
+      const t = segmentCount <= 1 ? 1 : i / (segmentCount - 1);
+      const angle = -Math.PI * 0.5 + t * Math.PI * 2 * clamped;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle + Math.PI * 0.5);
+      ctx.globalAlpha = baseAlpha * (0.65 + 0.25 * Math.sin(frameNow * 0.008 + i * 0.7));
+      ctx.drawImage(frame, -size * 0.5, -size * 0.5, size, size);
+      ctx.restore();
     }
+    ctx.restore();
+  }
+
+  function drawRingOfFireEffects(player) {
+    const { ctx, meleeAttackState, ringOfFireHazards = [] } = requireBindings();
+    if (!ctx) return;
+    if (meleeAttackState?.ringFireActive) {
+      drawRingOfFireArc(
+        ctx,
+        meleeAttackState.ringFireCenterX,
+        meleeAttackState.ringFireCenterY,
+        meleeAttackState.ringFireRadius,
+        meleeAttackState.ringFirePhase === "trace"
+          ? Math.max(0.08, meleeAttackState.ringFireTraceProgress || 0)
+          : 1,
+        0.9,
+      );
+    }
+    ringOfFireHazards.forEach((hazard) => {
+      if (!hazard || !hazard.life || hazard.life <= 0) return;
+      const fade = Math.max(0, Math.min(1, hazard.life / Math.max(0.001, hazard.duration || hazard.life)));
+      drawRingOfFireArc(ctx, hazard.x, hazard.y, hazard.radius, 1, 0.35 + fade * 0.45);
+    });
   }
 
   function drawVisitorIntroOverlay() {
@@ -6063,8 +6041,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
+    drawRingOfFireEffects(player);
     if (player) {
-      drawPowerupWarpGhost(player);
       player.draw();
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);
