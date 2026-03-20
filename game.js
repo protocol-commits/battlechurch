@@ -15656,12 +15656,20 @@ function cleanupDeadProjectiles() {
 
 function getMeleeAttackDirection() {
   const input = window.Input;
-  if (!input || !player) return { x: 1, y: 0 };
+  if (!player) return { x: 1, y: 0 };
 
+  const aimDir =
+    typeof player.getAimDirection === "function"
+      ? player.getAimDirection()
+      : normalizeVector(player.aim?.x || 0, player.aim?.y || 0);
+  if (aimDir.x !== 0 || aimDir.y !== 0) {
+    return normalizeVector(aimDir.x, aimDir.y);
+  }
+
+  if (!input) return { x: 1, y: 0 };
   let dir = input.lastMovementDirection || { x: 1, y: 0 };
   if (dir.x === 0 && dir.y === 0) {
-    const aim = player.aim || { x: 1, y: 0 };
-    dir = { x: aim.x, y: aim.y };
+    dir = input.movementDirection || { x: 1, y: 0 };
   }
   return normalizeVector(dir.x, dir.y);
 }
@@ -17464,7 +17472,6 @@ function executeRingOfFireAttack(meleeAttackState) {
   if (!player) return false;
   const centerX = player.x;
   const centerY = player.y;
-  const dir = getMeleeAttackDirection();
   executeSpinAttack(meleeAttackState, null);
   meleeAttackState.ringFireActive = true;
   meleeAttackState.ringFirePhase = "trace";
@@ -17472,7 +17479,7 @@ function executeRingOfFireAttack(meleeAttackState) {
   meleeAttackState.ringFireCenterY = centerY;
   meleeAttackState.ringFireRadius = RING_OF_FIRE_RADIUS;
   meleeAttackState.ringFireStartAngle = -Math.PI * 0.5;
-  meleeAttackState.ringFireDirection = player.facing === "left" ? -1 : 1;
+  meleeAttackState.ringFireDirection = meleeAttackState.spinVisualDirection || 1;
   meleeAttackState.ringFireAngle = meleeAttackState.ringFireStartAngle;
   meleeAttackState.ringFireTraceProgress = 0;
   player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, RING_OF_FIRE_INVULNERABILITY);
@@ -17482,6 +17489,11 @@ function executeRingOfFireAttack(meleeAttackState) {
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
   const dir = getMeleeAttackDirection();
+  if (typeof player.updateFacing === "function") {
+    player.updateFacing(dir.x, dir.y);
+  }
+  const facingLeft = player.facing === "left" || player.flipHorizontal === true;
+  meleeAttackState.spinVisualDirection = facingLeft ? -1 : 1;
   beginMeleeHitstopSequence(meleeAttackState);
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
   if (moveDir && (moveDir.x !== 0 || moveDir.y !== 0)) {
@@ -17781,6 +17793,7 @@ function updateMeleeAttackSystem(dt) {
       spinDuration: 0,
       spinHitEntities: null,
       spinCooldown: 0,
+      spinVisualDirection: 1,
       ringFireActive: false,
       ringFirePhase: null,
       ringFireCenterX: 0,

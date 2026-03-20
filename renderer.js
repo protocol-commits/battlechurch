@@ -3911,18 +3911,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (!ctx || radius <= 0 || progress <= 0) return;
     const clamped = Math.max(0, Math.min(1, progress));
     const endAngle = startAngle + direction * Math.PI * 2 * clamped;
+    const anticlockwise = direction < 0;
     ctx.save();
     ctx.globalAlpha = 0.18 * alpha;
     ctx.strokeStyle = "#FFB347";
     ctx.lineWidth = Math.max(2, band);
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle, anticlockwise);
     ctx.stroke();
     ctx.globalAlpha = 0.75 * alpha;
     ctx.strokeStyle = "#FFE7A1";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle, anticlockwise);
     ctx.stroke();
     ctx.restore();
   }
@@ -6463,8 +6464,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (!swooshImg) return;
       const duration = Math.max(0.001, state.spinDuration || 0.45);
       const progress = 1 - Math.min(1, state.spinTimer / duration);
-      const facingLeft = player.facing === "left" || player.flipHorizontal === true;
-      const spinDirection = facingLeft ? -1 : 1;
+      const spinDirection =
+        state.spinVisualDirection ||
+        ((player.facing === "left" || player.flipHorizontal === true) ? -1 : 1);
       const startAngle = -Math.PI * 0.5;
       const angle = startAngle + progress * Math.PI * 2 * spinDirection;
       const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
