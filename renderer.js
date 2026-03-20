@@ -3852,6 +3852,35 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.sword, palette.swordGlow);
   }
 
+  function drawPlayerRingFireChargeMeter(player) {
+    const { ctx, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
+    if (!ctx || !player || !meleeAttackState || player.state === "death") return;
+    if (!meleeAttackState.spinCharging || !meleeAttackState.spinButtonDown) return;
+    const holdTime = Math.max(0.001, meleeAttackState.spinHoldTime || 0);
+    const chargeRatio = Math.max(0, Math.min(1, (meleeAttackState.spinChargeTimer || 0) / holdTime));
+    const shakeX = sharedShakeOffset?.x || 0;
+    const sprite = getPlayerSpriteExtents(player);
+    const meterCenterX = getPlayerCombatMeterAnchorX(player) + shakeX;
+    const width = Math.round(34 * WORLD_SCALE);
+    const height = Math.max(11, Math.round(14 * WORLD_SCALE));
+    const meterX = meterCenterX - width / 2;
+    const stackOffset = Math.round((height + 6) * WORLD_SCALE);
+    const meterY = sprite.top - height - Math.round(8 * WORLD_SCALE) - stackOffset;
+    const palette = getCombatMeterPalette();
+    if (chargeRatio >= 1) {
+      const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
+      drawCompactReadyDot(
+        meterCenterX,
+        meterY + height * 0.5,
+        dotSize,
+        palette.dash,
+        palette.dashGlow,
+      );
+      return;
+    }
+    drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.dash, palette.dashGlow);
+  }
+
   function drawPlayerExtendMeter(player) {
     const { ctx, WORLD_SCALE = 1, playerDashState, DASH_COOLDOWN = 0 } = requireBindings();
     if (!ctx || !player || !playerDashState || player.state === "death") return;
@@ -6082,6 +6111,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawRingOfFireEffects(player);
     if (player) {
       player.draw();
+      drawPlayerRingFireChargeMeter(player);
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);
     }
