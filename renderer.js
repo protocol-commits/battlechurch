@@ -3890,6 +3890,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } = requireBindings();
     if (!ctx || !player || !meleeAttackState || player.state === "death") return;
     if (!meleeAttackState.spinCharging || !meleeAttackState.spinButtonDown) return;
+    const holdTime = Math.max(0.001, meleeAttackState.spinHoldTime || 0);
+    if ((meleeAttackState.spinChargeTimer || 0) < holdTime) return;
     const candidates = []
       .concat(weaponPickups, churchPowerupPickups, utilityPowerUps)
       .filter((pickup) =>
