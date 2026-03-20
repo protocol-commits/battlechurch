@@ -3886,6 +3886,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       weaponPickups = [],
       churchPowerupPickups = [],
       utilityPowerUps = [],
+      getPowerupWarpDestination,
     } = requireBindings();
     if (!ctx || !player || !meleeAttackState || player.state === "death") return;
     if (!meleeAttackState.spinCharging || !meleeAttackState.spinButtonDown) return;
@@ -3915,6 +3916,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
     if (!target) return;
+    const destination =
+      typeof getPowerupWarpDestination === "function"
+        ? getPowerupWarpDestination(target, player)
+        : { x: target.x, y: target.y };
+    if (!destination) return;
     const pulseNow = typeof performance !== "undefined" ? performance.now() : Date.now();
     const pulse = 0.5 + 0.5 * Math.sin(pulseNow * 0.012);
     const ringRadius = Math.max(22, (player.radius || 24) * 0.95);
@@ -3922,19 +3928,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.globalAlpha = 0.28 + pulse * 0.12;
     ctx.fillStyle = "rgba(255, 232, 170, 0.2)";
     ctx.beginPath();
-    ctx.arc(target.x, target.y + ringRadius * 0.15, ringRadius * (1.05 + pulse * 0.08), 0, Math.PI * 2);
+    ctx.arc(destination.x, destination.y + ringRadius * 0.15, ringRadius * (1.05 + pulse * 0.08), 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 0.5 + pulse * 0.25;
     ctx.strokeStyle = "#FFE8AA";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(target.x, target.y + ringRadius * 0.15, ringRadius, 0, Math.PI * 2);
+    ctx.arc(destination.x, destination.y + ringRadius * 0.15, ringRadius, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
 
     if (player.animator) {
-      const flip = player.facing === "left";
-      player.animator.draw(ctx, target.x, target.y, {
+      const flip = (destination.facing || player.facing) === "left";
+      player.animator.draw(ctx, destination.x, destination.y, {
         flipX: flip,
         alpha: 0.32 + pulse * 0.12,
         tintColor: "#FFF3C4",

@@ -3070,6 +3070,7 @@ Renderer.initialize({
   projectiles,
   get visitorSession() { return visitorSession; },
   get player() { return player; },
+  getPowerupWarpDestination,
   getCongregationSize,
   initialCongregationSize: INITIAL_CONGREGATION_SIZE,
   get cannonSplashRadius() { return FAITH_CANNON_SPLASH_RADIUS; },
@@ -17465,6 +17466,19 @@ function getNearestWarpPickup() {
   return best;
 }
 
+function getPowerupWarpDestination(pickup, targetPlayer = player) {
+  if (!pickup) return null;
+  const pickupRadius = Math.max(18, Number(pickup.radius) || 0);
+  const playerRadius = Math.max(20, Number(targetPlayer?.radius) || 0);
+  const gap = 10 * WORLD_SCALE;
+  const sideSign = targetPlayer && Number.isFinite(targetPlayer.x) && targetPlayer.x > pickup.x ? 1 : -1;
+  return {
+    x: pickup.x + sideSign * (pickupRadius + playerRadius * 0.75 + gap),
+    y: pickup.y,
+    facing: sideSign > 0 ? "left" : "right",
+  };
+}
+
 function applyPowerupWarpBurst(x, y) {
   const radius = POWERUP_WARP_RADIUS;
   enemies.forEach((enemy) => {
@@ -17505,6 +17519,8 @@ function executePowerupWarpAttack(meleeAttackState) {
   if (!player) return false;
   const targetPickup = getNearestWarpPickup();
   if (!targetPickup) return false;
+  const destination = getPowerupWarpDestination(targetPickup, player);
+  if (!destination) return false;
   const originX = player.x;
   const originY = player.y;
   setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
@@ -17519,8 +17535,11 @@ function executePowerupWarpAttack(meleeAttackState) {
   meleeAttackState.spinMoveDir = null;
   meleeAttackState.spinMoveDistanceRemaining = 0;
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
-  player.x = targetPickup.x;
-  player.y = targetPickup.y;
+  player.x = destination.x;
+  player.y = destination.y;
+  if (destination.facing) {
+    player.facing = destination.facing;
+  }
   resolveEntityObstacles(player);
   clampEntityToBounds(player);
   if (player.lockedPosition) {
