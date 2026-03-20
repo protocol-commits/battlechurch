@@ -114,7 +114,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         },
                         {
                           "enemy": "armoredSkeleton",
@@ -126,7 +126,7 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4
                     },
                     {
@@ -134,7 +134,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         },
                         {
                           "enemy": "armoredSkeleton",
@@ -143,7 +143,7 @@ window.BattlechurchLevelData = {
                       ],
                       "weights": {},
                       "mode": "explicit",
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4,
                       "delaysWeighted": {},
                       "delaysExplicit": {},
@@ -154,7 +154,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         },
                         {
                           "enemy": "armoredSkeleton",
@@ -164,7 +164,7 @@ window.BattlechurchLevelData = {
                       "weights": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4,
                       "mode": "explicit",
                       "delays": {}
@@ -174,7 +174,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -182,7 +182,7 @@ window.BattlechurchLevelData = {
                       "delaysWeighted": {},
                       "delaysExplicit": {},
                       "mode": "explicit",
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4
                     },
                     {
@@ -198,7 +198,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -206,7 +206,7 @@ window.BattlechurchLevelData = {
                       "delaysWeighted": {},
                       "delaysExplicit": {},
                       "mode": "explicit",
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4
                     }
                   ]

@@ -3907,24 +3907,57 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawRingOfFireDebugCircle(ctx, centerX, centerY, radius, band = 20, progress = 1, alpha = 1) {
+    if (!ctx || radius <= 0 || progress <= 0) return;
+    const clamped = Math.max(0, Math.min(1, progress));
+    const startAngle = -Math.PI * 0.5;
+    const endAngle = startAngle + Math.PI * 2 * clamped;
+    ctx.save();
+    ctx.globalAlpha = 0.18 * alpha;
+    ctx.strokeStyle = "#FFB347";
+    ctx.lineWidth = Math.max(2, band);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.stroke();
+    ctx.globalAlpha = 0.75 * alpha;
+    ctx.strokeStyle = "#FFE7A1";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawRingOfFireEffects(player) {
     const { ctx, meleeAttackState, ringOfFireHazards = [] } = requireBindings();
     if (!ctx) return;
     if (meleeAttackState?.ringFireActive) {
+      const activeProgress =
+        meleeAttackState.ringFirePhase === "trace"
+          ? Math.max(0.08, meleeAttackState.ringFireTraceProgress || 0)
+          : 1;
+      drawRingOfFireDebugCircle(
+        ctx,
+        meleeAttackState.ringFireCenterX,
+        meleeAttackState.ringFireCenterY,
+        meleeAttackState.ringFireRadius,
+        18,
+        activeProgress,
+        1,
+      );
       drawRingOfFireArc(
         ctx,
         meleeAttackState.ringFireCenterX,
         meleeAttackState.ringFireCenterY,
         meleeAttackState.ringFireRadius,
-        meleeAttackState.ringFirePhase === "trace"
-          ? Math.max(0.08, meleeAttackState.ringFireTraceProgress || 0)
-          : 1,
+        activeProgress,
         0.9,
       );
     }
     ringOfFireHazards.forEach((hazard) => {
       if (!hazard || !hazard.life || hazard.life <= 0) return;
       const fade = Math.max(0, Math.min(1, hazard.life / Math.max(0.001, hazard.duration || hazard.life)));
+      drawRingOfFireDebugCircle(ctx, hazard.x, hazard.y, hazard.radius, hazard.band || 20, 1, 0.45 + fade * 0.55);
       drawRingOfFireArc(ctx, hazard.x, hazard.y, hazard.radius, 1, 0.35 + fade * 0.45);
     });
   }
