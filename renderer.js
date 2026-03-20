@@ -4037,8 +4037,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ringOfFireHazards.forEach((hazard) => {
       if (!hazard || !hazard.life || hazard.life <= 0) return;
       const fade = Math.max(0, Math.min(1, hazard.life / Math.max(0.001, hazard.duration || hazard.life)));
-      drawRingOfFireDebugCircle(ctx, hazard.x, hazard.y, hazard.radius, hazard.band || 20, 1, 0.45 + fade * 0.55);
-      drawRingOfFireArc(ctx, hazard.x, hazard.y, hazard.radius, 1, 0.35 + fade * 0.45);
+      const blinkAlpha = Math.max(0.08, Math.min(1, hazard.blinkAlpha ?? 1));
+      drawRingOfFireDebugCircle(
+        ctx,
+        hazard.x,
+        hazard.y,
+        hazard.radius,
+        hazard.band || 20,
+        1,
+        (0.45 + fade * 0.55) * blinkAlpha,
+      );
+      drawRingOfFireArc(ctx, hazard.x, hazard.y, hazard.radius, 1, (0.35 + fade * 0.45) * blinkAlpha);
     });
   }
 

@@ -2677,7 +2677,7 @@ const RING_OF_FIRE_RADIUS = 236 * WORLD_SCALE;
 const RING_OF_FIRE_OUT_SPEED = 1550 * SPEED_SCALE;
 const RING_OF_FIRE_RETURN_SPEED = 1550 * SPEED_SCALE;
 const RING_OF_FIRE_TRACE_DURATION = 0.46;
-const RING_OF_FIRE_LINGER_DURATION = 2.4;
+const RING_OF_FIRE_LINGER_DURATION = 3.5;
 const RING_OF_FIRE_BAND = 20 * WORLD_SCALE;
 const RING_OF_FIRE_DAMAGE = 34;
 const RING_OF_FIRE_BOSS_DAMAGE = 18;
@@ -15822,8 +15822,20 @@ function cleanupDeadProjectiles() {
 
 function getMeleeAttackDirection() {
   const input = window.Input;
-  if (!player) return { x: 1, y: 0 };
+  if (!input || !player) return { x: 1, y: 0 };
+  let dir = input.movementDirection || { x: 0, y: 0 };
+  if (dir.x === 0 && dir.y === 0) {
+    dir = input.lastMovementDirection || { x: 1, y: 0 };
+  }
+  if (dir.x === 0 && dir.y === 0) {
+    const aim = player.aim || { x: 1, y: 0 };
+    dir = { x: aim.x, y: aim.y };
+  }
+  return normalizeVector(dir.x, dir.y);
+}
 
+function getSpinAttackDirection() {
+  if (!player) return { x: 1, y: 0 };
   const aimDir =
     typeof player.getAimDirection === "function"
       ? player.getAimDirection()
@@ -15831,13 +15843,7 @@ function getMeleeAttackDirection() {
   if (aimDir.x !== 0 || aimDir.y !== 0) {
     return normalizeVector(aimDir.x, aimDir.y);
   }
-
-  if (!input) return { x: 1, y: 0 };
-  let dir = input.lastMovementDirection || { x: 1, y: 0 };
-  if (dir.x === 0 && dir.y === 0) {
-    dir = input.movementDirection || { x: 1, y: 0 };
-  }
-  return normalizeVector(dir.x, dir.y);
+  return getMeleeAttackDirection();
 }
 
 function getDashButtonDirection() {
@@ -17635,6 +17641,7 @@ function spawnRingOfFireHazard(centerX, centerY, radius) {
     blinkWindow: Math.min(1.2, RING_OF_FIRE_LINGER_DURATION),
     blinkTimer: 0,
     visible: true,
+    blinkAlpha: 1,
   });
 }
 
@@ -17658,7 +17665,7 @@ function executeRingOfFireAttack(meleeAttackState) {
 
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
-  const dir = getMeleeAttackDirection();
+  const dir = getSpinAttackDirection();
   if (typeof player.updateFacing === "function") {
     player.updateFacing(dir.x, dir.y);
   }
@@ -17755,16 +17762,15 @@ function updateRingOfFireHazards(dt) {
     hazard.life = Math.max(0, (hazard.life || 0) - dt);
     const exiting = hazard.life <= Math.max(0, hazard.blinkWindow || 0);
     if (exiting) {
-      hazard.blinkTimer = (hazard.blinkTimer || 0) + dt * 10;
-      hazard.visible = Math.floor(hazard.blinkTimer) % 2 === 0;
-    } else {
+      const blinkWindow = Math.max(0.001, hazard.blinkWindow || 0.001);
+      const urgency = 1 - Math.max(0, Math.min(1, hazard.life / blinkWindow));
+      const blinkRate = 5 + urgency * 17;
+      hazard.blinkTimer = (hazard.blinkTimer || 0) + dt * blinkRate;
+      hazard.blinkAlpha = Math.sin(hazard.blinkTimer) > 0 ? 1 : 0.16;
       hazard.visible = true;
-    }
-    if (!hazard.visible) {
-      if (hazard.life <= 0) {
-        ringOfFireHazards.splice(i, 1);
-      }
-      continue;
+    } else {
+      hazard.blinkAlpha = 1;
+      hazard.visible = true;
     }
     const band = Math.max(1, hazard.band || RING_OF_FIRE_BAND);
     const outerRadius = (hazard.radius || RING_OF_FIRE_RADIUS) + band * 0.5;
