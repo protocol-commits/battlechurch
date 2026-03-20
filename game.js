@@ -2660,7 +2660,7 @@ const MELEE_HITSTOP_SHAKE = 10;
 const MELEE_COMBO_HITSTOP_SHAKE = 13;
 const MELEE_COUNTER_HITSTOP_SHAKE = 17;
 const MELEE_PUNISH_HITSTOP_SHAKE = 22;
-const RUSH_DISTANCE = _gb('rush.distance', 150) * WORLD_SCALE;
+const RUSH_DISTANCE = _gb('rush.distance', 220) * WORLD_SCALE;
 const RUSH_SPEED = _gb('rush.speed', 1200) * SPEED_SCALE;
 const RUSH_DAMAGE = MELEE_BASE_DAMAGE * 2;
 const RUSH_RADIUS = _gb('rush.radius', 50) * WORLD_SCALE;
@@ -2668,7 +2668,7 @@ const RUSH_PUSHBACK_RADIUS = _gb('rush.pushbackRadius', 52) * WORLD_SCALE;
 const RUSH_PUSHBACK_STRENGTH = _gb('rush.pushbackStrength', 50) * WORLD_SCALE;
 const RUSH_COOLDOWN = _gb('rush.cooldown', 3.0);
 const RUSH_DUST_SPACING = 26 * WORLD_SCALE;
-const RUSH_EXIT_INVULNERABILITY = _gb('rush.exitInvulnerability', 0.2);
+const RUSH_EXIT_INVULNERABILITY = _gb('rush.exitInvulnerability', 0.35);
 const SPIN_HOLD_CHARGE_TIME = MELEE_HOLD_CHARGE_TIME;
 const SPIN_CHARGE_MOVE_MULTIPLIER = 0.5;
 const SPIN_MOVE_DISTANCE = RUSH_DISTANCE;
@@ -13469,6 +13469,94 @@ function getCongregationVolleyDirectionForNpc(npc, clusterCenter, playerAim) {
   return preferredDir || fallbackDir || laneDir;
 }
 
+function getCongregationPathCommandTarget(playerEntity = player) {
+  if (!playerEntity) return null;
+  const pickupCandidates = [];
+  const addPickup = (pickup) => {
+    if (!pickup || pickup.active === false || pickup.visible === false || pickup.expired) return;
+    const dx = (pickup.x || 0) - playerEntity.x;
+    const dy = (pickup.y || 0) - playerEntity.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 0 || dist > 280) return;
+    pickupCandidates.push({ x: pickup.x, y: pickup.y, dist });
+  };
+  utilityPowerUps.forEach(addPickup);
+  weaponPickups.forEach(addPickup);
+  churchPowerupPickups.forEach(addPickup);
+  pickupCandidates.sort((a, b) => a.dist - b.dist);
+  if (pickupCandidates.length) {
+    return { x: pickupCandidates[0].x, y: pickupCandidates[0].y, pickupBias: true };
+  }
+
+  let bestTarget = null;
+  let bestScore = Infinity;
+  const evaluate = (x, y) => {
+    const dx = x - playerEntity.x;
+    const dy = y - playerEntity.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 0 || dist > 320) return;
+    const score = dist;
+    if (score < bestScore) {
+      bestScore = score;
+      bestTarget = { x, y, pickupBias: false };
+    }
+  };
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const center = getEnemyHitboxCenter(enemy);
+    evaluate(center.x, center.y);
+  });
+  projectiles.forEach((proj) => {
+    if (!proj || proj.dead || proj.friendly || proj.visualOnly) return;
+    evaluate(proj.x, proj.y);
+  });
+  return bestTarget;
+}
+
+function getCongregationPathDirectionForNpc(npc, volley, fallbackAim) {
+  const targetX = Number.isFinite(volley?.targetX) ? volley.targetX : npc.x + fallbackAim.x * 180;
+  const targetY = Number.isFinite(volley?.targetY) ? volley.targetY : npc.y + fallbackAim.y * 180;
+  const corridorDir = normalizeVector(targetX - npc.x, targetY - npc.y);
+  const playerX = Number.isFinite(volley?.playerX) ? volley.playerX : npc.x;
+  const playerY = Number.isFinite(volley?.playerY) ? volley.playerY : npc.y;
+  const laneDir = corridorDir.x !== 0 || corridorDir.y !== 0 ? corridorDir : fallbackAim;
+  let bestDir = null;
+  let bestScore = Infinity;
+
+  const evaluate = (targetEntityX, targetEntityY) => {
+    const dx = targetEntityX - npc.x;
+    const dy = targetEntityY - npc.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 0) return;
+    const dir = normalizeVector(dx, dy);
+    const dot = dir.x * laneDir.x + dir.y * laneDir.y;
+    if (dot < 0.15) return;
+    const relX = targetEntityX - playerX;
+    const relY = targetEntityY - playerY;
+    const along = relX * laneDir.x + relY * laneDir.y;
+    const perp = Math.abs(relX * -laneDir.y + relY * laneDir.x);
+    const corridorPenalty = perp * 2.6 + Math.max(0, -along) * 4.5;
+    const forwardPenalty = (1 - dot) * 520;
+    const score = corridorPenalty + forwardPenalty + dist * 0.3;
+    if (score < bestScore) {
+      bestScore = score;
+      bestDir = dir;
+    }
+  };
+
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const center = getEnemyHitboxCenter(enemy);
+    evaluate(center.x, center.y);
+  });
+  projectiles.forEach((proj) => {
+    if (!proj || proj.dead || proj.friendly || proj.visualOnly) return;
+    evaluate(proj.x, proj.y);
+  });
+
+  return bestDir || laneDir;
+}
+
 function fireCongregationVolleyShot(npc, volley) {
   if (!npc || npc.departed || !npc.active || (npc.faith || 0) <= 0) return false;
   const playerAim = normalizeVector(volley?.aimX || 1, volley?.aimY || 0);
@@ -13476,7 +13564,11 @@ function fireCongregationVolleyShot(npc, volley) {
     x: Number.isFinite(volley?.clusterCenterX) ? volley.clusterCenterX : npc.x,
     y: Number.isFinite(volley?.clusterCenterY) ? volley.clusterCenterY : npc.y,
   };
-  const dir = getCongregationVolleyDirectionForNpc(npc, clusterCenter, playerAim);
+  const mode = volley?.mode || "volley";
+  const dir =
+    mode === "path"
+      ? getCongregationPathDirectionForNpc(npc, volley, playerAim)
+      : getCongregationVolleyDirectionForNpc(npc, clusterCenter, playerAim);
   if (!dir || (!dir.x && !dir.y)) return false;
   const originOffset = (npc.radius || 24) * 0.72;
   const originX = npc.x + dir.x * originOffset;
@@ -13515,8 +13607,9 @@ function fireCongregationVolleyShot(npc, volley) {
   return true;
 }
 
-function triggerCongregationCommand(playerEntity = player) {
+function triggerCongregationCommand(playerEntity = player, options = {}) {
   if (!playerEntity || playerEntity.state === "death") return false;
+  const mode = options?.mode === "path" ? "path" : "volley";
   const activeNpcs = npcs.filter(
     (npc) => npc && npc.active && !npc.departed && (npc.faith || 0) > 0,
   );
@@ -13543,6 +13636,7 @@ function triggerCongregationCommand(playerEntity = player) {
   clusterCenter.x /= Math.max(1, activeNpcs.length);
   clusterCenter.y /= Math.max(1, activeNpcs.length);
   const aimAngle = Math.atan2(playerAim.y, playerAim.x);
+  const pathTarget = mode === "path" ? getCongregationPathCommandTarget(playerEntity) : null;
   const sortedNpcs = [...activeNpcs].sort((a, b) => {
     const angleA = Math.atan2((a.y || 0) - clusterCenter.y, (a.x || 0) - clusterCenter.x);
     const angleB = Math.atan2((b.y || 0) - clusterCenter.y, (b.x || 0) - clusterCenter.x);
@@ -13554,10 +13648,16 @@ function triggerCongregationCommand(playerEntity = player) {
   sortedNpcs.forEach((npc, index) => {
     npc.pendingCongregationVolley = {
       delay: index * CONGREGATION_COMMAND_STAGGER,
+      mode,
       clusterCenterX: clusterCenter.x,
       clusterCenterY: clusterCenter.y,
       aimX: playerAim.x,
       aimY: playerAim.y,
+      playerX: playerEntity.x,
+      playerY: playerEntity.y,
+      targetX: pathTarget?.x,
+      targetY: pathTarget?.y,
+      pickupBias: Boolean(pathTarget?.pickupBias),
     };
   });
 

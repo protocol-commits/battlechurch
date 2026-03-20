@@ -101,11 +101,15 @@
   let listenersAttached = false;
   let prayerBombClickQueued = false;
   let congregationClickQueued = false;
+  let congregationClickKind = "volley";
   let canvasClickQueued = false;
   let canvasClickPos = null;
   let comboSwipe = null;
   let cButtonHeldAt = 0;
   const PRAYER_BOMB_HOLD_THRESHOLD_MS = 1000;
+  const CONGREGATION_DOUBLE_TAP_WINDOW_MS = 220;
+  let congregationTapCount = 0;
+  let congregationTapStartedAt = 0;
 
   function normalizeKey(key) {
     if (typeof key !== "string") return key;
@@ -200,7 +204,19 @@
       if (heldMs >= PRAYER_BOMB_HOLD_THRESHOLD_MS) {
         prayerBombClickQueued = true;
       } else {
-        congregationClickQueued = true;
+        if (
+          congregationTapCount === 1 &&
+          congregationTapStartedAt > 0 &&
+          now - congregationTapStartedAt <= CONGREGATION_DOUBLE_TAP_WINDOW_MS
+        ) {
+          congregationClickQueued = true;
+          congregationClickKind = "path";
+          congregationTapCount = 0;
+          congregationTapStartedAt = 0;
+        } else {
+          congregationTapCount = 1;
+          congregationTapStartedAt = now;
+        }
       }
       cButtonHeldAt = 0;
     }
@@ -411,7 +427,19 @@
       if (heldMs >= PRAYER_BOMB_HOLD_THRESHOLD_MS) {
         prayerBombClickQueued = true;
       } else {
-        congregationClickQueued = true;
+        if (
+          congregationTapCount === 1 &&
+          congregationTapStartedAt > 0 &&
+          now - congregationTapStartedAt <= CONGREGATION_DOUBLE_TAP_WINDOW_MS
+        ) {
+          congregationClickQueued = true;
+          congregationClickKind = "path";
+          congregationTapCount = 0;
+          congregationTapStartedAt = 0;
+        } else {
+          congregationTapCount = 1;
+          congregationTapStartedAt = now;
+        }
       }
       cButtonHeldAt = 0;
     }
@@ -688,9 +716,20 @@
   }
 
   function consumeCongregationClick() {
+    if (!congregationClickQueued && congregationTapCount === 1 && congregationTapStartedAt > 0) {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      if (now - congregationTapStartedAt >= CONGREGATION_DOUBLE_TAP_WINDOW_MS) {
+        congregationClickQueued = true;
+        congregationClickKind = "volley";
+        congregationTapCount = 0;
+        congregationTapStartedAt = 0;
+      }
+    }
     if (!congregationClickQueued) return false;
     congregationClickQueued = false;
-    return true;
+    const kind = congregationClickKind || "volley";
+    congregationClickKind = "volley";
+    return kind;
   }
 
   function peekCanvasClick() {

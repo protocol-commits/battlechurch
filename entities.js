@@ -904,11 +904,16 @@
       this.prayerHoldLocked = false;
     }
 
-    if (typeof consumeCongregationClick === "function" && consumeCongregationClick()) {
+    const congregationCommand =
+      typeof consumeCongregationClick === "function" ? consumeCongregationClick() : false;
+    if (congregationCommand) {
       if (this.isCongregationCommandReady()) {
         const triggerCongregationCommand =
           typeof window !== "undefined" ? window.triggerCongregationCommand : null;
-        if (typeof triggerCongregationCommand === "function" && triggerCongregationCommand(this)) {
+        if (
+          typeof triggerCongregationCommand === "function" &&
+          triggerCongregationCommand(this, { mode: congregationCommand })
+        ) {
           this.congregationCommandCharge = 0;
         }
       }
