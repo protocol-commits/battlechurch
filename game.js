@@ -2779,7 +2779,7 @@ const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = _gb('prayerBomb.screenDarkenAlpha', 0.65
 const PRAYER_BOMB_RAIN_DARKEN_DURATION = _gb('prayerBomb.rainDarkenDuration', 0.5);
 const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.12);
 const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 10);
-const CONGREGATION_COMMAND_CHARGE_TIME = _gb('congregationCommand.chargeTime', 12);
+const CONGREGATION_COMMAND_CHARGE_TIME = _gb('congregationCommand.chargeTime', 2);
 const CONGREGATION_COMMAND_DAMAGE = _gb('congregationCommand.damage', 30);
 const CONGREGATION_COMMAND_SPEED_MULTIPLIER = _gb('congregationCommand.speedMultiplier', 1.1);
 const CONGREGATION_COMMAND_SCALE = _gb('congregationCommand.scale', 1.15);
@@ -13516,10 +13516,18 @@ function getCongregationPathCommandTarget(playerEntity = player) {
 function getCongregationPathDirectionForNpc(npc, volley, fallbackAim) {
   const targetX = Number.isFinite(volley?.targetX) ? volley.targetX : npc.x + fallbackAim.x * 180;
   const targetY = Number.isFinite(volley?.targetY) ? volley.targetY : npc.y + fallbackAim.y * 180;
-  const corridorDir = normalizeVector(targetX - npc.x, targetY - npc.y);
   const playerX = Number.isFinite(volley?.playerX) ? volley.playerX : npc.x;
   const playerY = Number.isFinite(volley?.playerY) ? volley.playerY : npc.y;
-  const laneDir = corridorDir.x !== 0 || corridorDir.y !== 0 ? corridorDir : fallbackAim;
+  const playerToTarget = normalizeVector(targetX - playerX, targetY - playerY);
+  const baseCorridorDir =
+    playerToTarget.x !== 0 || playerToTarget.y !== 0 ? playerToTarget : fallbackAim;
+  const perpDir = { x: -baseCorridorDir.y, y: baseCorridorDir.x };
+  const laneSpacing = volley?.pickupBias ? 52 : 34;
+  const laneOffset = (Number(volley?.pathSlot) || 0) * laneSpacing;
+  const desiredX = targetX + perpDir.x * laneOffset;
+  const desiredY = targetY + perpDir.y * laneOffset;
+  const corridorDir = normalizeVector(desiredX - npc.x, desiredY - npc.y);
+  const laneDir = corridorDir.x !== 0 || corridorDir.y !== 0 ? corridorDir : baseCorridorDir;
   let bestDir = null;
   let bestScore = Infinity;
 
@@ -13533,9 +13541,9 @@ function getCongregationPathDirectionForNpc(npc, volley, fallbackAim) {
     if (dot < 0.15) return;
     const relX = targetEntityX - playerX;
     const relY = targetEntityY - playerY;
-    const along = relX * laneDir.x + relY * laneDir.y;
-    const perp = Math.abs(relX * -laneDir.y + relY * laneDir.x);
-    const corridorPenalty = perp * 2.6 + Math.max(0, -along) * 4.5;
+    const along = relX * baseCorridorDir.x + relY * baseCorridorDir.y;
+    const perp = Math.abs((relX * -baseCorridorDir.y + relY * baseCorridorDir.x) - laneOffset);
+    const corridorPenalty = perp * 2.8 + Math.max(0, -along) * 4.5;
     const forwardPenalty = (1 - dot) * 520;
     const score = corridorPenalty + forwardPenalty + dist * 0.3;
     if (score < bestScore) {
@@ -13649,6 +13657,7 @@ function triggerCongregationCommand(playerEntity = player, options = {}) {
     npc.pendingCongregationVolley = {
       delay: index * CONGREGATION_COMMAND_STAGGER,
       mode,
+      pathSlot: index - (sortedNpcs.length - 1) * 0.5,
       clusterCenterX: clusterCenter.x,
       clusterCenterY: clusterCenter.y,
       aimX: playerAim.x,
