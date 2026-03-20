@@ -73,7 +73,7 @@
     };
   };
 
-  const applyWeaponKnockback = (target, sourceX, sourceY) => {
+  const applyWeaponKnockback = (target, sourceX, sourceY, sourceEnemy = null) => {
     if (!target || typeof target.x !== "number" || typeof target.y !== "number") return;
     const dx = target.x - sourceX;
     const dy = target.y - sourceY;
@@ -83,9 +83,24 @@
     const normY = dy / distance;
     const scale = settings.WORLD_SCALE || 1;
     const strength = (target.isPlayer ? 240 : 200) * scale;
+    let duration = 0.12;
+    const damageClass = String(sourceEnemy?.config?.damageClass || sourceEnemy?.damageClass || "").toLowerCase();
+    if (target.isPlayer && damageClass === "armored") {
+      duration = 0.18;
+    }
     target.knockbackVx = normX * strength;
     target.knockbackVy = normY * strength;
-    target.knockbackTimer = Math.max(target.knockbackTimer || 0, 0.12);
+    target.knockbackTimer = Math.max(target.knockbackTimer || 0, duration);
+    if (target.isPlayer) {
+      target.knockbackDuration = Math.max(target.knockbackDuration || 0, duration);
+    }
+    if (target.isPlayer) {
+      if (damageClass === "armored") {
+        target.knockbackLift = Math.max(target.knockbackLift || 0, 32);
+      } else {
+        target.knockbackLift = 0;
+      }
+    }
   };
 
   const getWeaponHitboxRect = (enemy) => {
@@ -699,6 +714,8 @@
     this.knockbackVx = 0;
     this.knockbackVy = 0;
     this.knockbackTimer = 0;
+    this.knockbackDuration = 0;
+    this.knockbackLift = 0;
   }
 
     update(dt) {
@@ -969,14 +986,22 @@
       this.animator.play(this.state);
     }
 
+    this._renderYOverride = undefined;
     if (this.knockbackTimer > 0) {
       const step = Math.min(this.knockbackTimer, dt);
+      const knockbackDuration = Math.max(0.001, this.knockbackDuration || this.knockbackTimer || step);
       this.x += this.knockbackVx * step;
       this.y += this.knockbackVy * step;
+      if ((this.knockbackLift || 0) > 0) {
+        const lift = getKnockbackArcLift(this.knockbackTimer, knockbackDuration, this.knockbackLift);
+        this._renderYOverride = this.y - lift;
+      }
       this.knockbackTimer = Math.max(0, this.knockbackTimer - dt);
       if (this.knockbackTimer <= 0) {
         this.knockbackVx = 0;
         this.knockbackVy = 0;
+        this.knockbackDuration = 0;
+        this.knockbackLift = 0;
       }
     }
 
@@ -2007,7 +2032,7 @@
                   applyShieldImpact(this);
                 } else {
                   player.takeDamage(hitDamage);
-                  applyWeaponKnockback(player, this.x, this.y);
+                  applyWeaponKnockback(player, this.x, this.y, this);
                 }
               } else if (typeof target.sufferAttack === "function") {
                 const npcTarget = target;
@@ -2066,7 +2091,7 @@
                 if (hitDamage > 0) {
                   player.takeDamage(hitDamage);
                 }
-                applyWeaponKnockback(player, this.x, this.y);
+                applyWeaponKnockback(player, this.x, this.y, this);
               }
             } else if (typeof target.sufferAttack === "function") {
               const npcTarget = target;
