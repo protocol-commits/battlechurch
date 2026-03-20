@@ -16375,6 +16375,10 @@ function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
   enemy.knockbackVy = vy;
   enemy.knockbackTimer = Math.max(enemy.knockbackTimer || 0, knockDuration);
   enemy.knockbackDuration = Math.max(enemy.knockbackDuration || 0, knockDuration);
+  enemy.knockbackLift = Math.max(
+    enemy.knockbackLift || 0,
+    Math.min(28, Math.max(12, strength * 0.24)),
+  );
   enemy.scatterVx = vx;
   enemy.scatterVy = vy;
   enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, knockDuration);

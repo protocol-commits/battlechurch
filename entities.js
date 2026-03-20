@@ -138,6 +138,14 @@
   const isEnemyInKnockback = (enemy) =>
     Boolean(enemy && Number.isFinite(enemy.knockbackTimer) && enemy.knockbackTimer > 0);
 
+  const KNOCKBACK_VISUAL_LIFT = 18;
+
+  const getKnockbackArcLift = (remainingTime, totalDuration, maxLift = KNOCKBACK_VISUAL_LIFT) => {
+    const duration = Math.max(0.001, totalDuration || 0);
+    const normalized = Math.max(0, Math.min(1, 1 - Math.max(0, remainingTime) / duration));
+    return Math.sin(normalized * Math.PI) * Math.max(0, maxLift);
+  };
+
   let settings = Object.assign({}, defaults);
   let enemyDefinitions = {};
   let enemyTypesCache = null;
@@ -1797,6 +1805,7 @@
       this.knockbackVy = 0;
       this.knockbackTimer = 0;
       this.knockbackDuration = 0;
+      this.knockbackLift = KNOCKBACK_VISUAL_LIFT;
       this.hurtTimer = 0;
       this.hurtTimerActive = false;
       if (this.type === "tormentorFlame") {
@@ -1881,21 +1890,33 @@
       }
       this.shieldHitCooldown = Math.max(0, (this.shieldHitCooldown || 0) - dt);
       this.tauntCooldown = Math.max(0, (this.tauntCooldown || 0) - dt);
+      this._renderYOverride = undefined;
 
       if (this.scatterTimer > 0) {
         const step = Math.min(this.scatterTimer, dt);
         const scatterDuration = Math.max(0.001, this.scatterDuration || this.scatterTimer || step);
         const scatterFalloff = Math.max(0.18, this.scatterTimer / scatterDuration);
         this.scatterTimer = Math.max(0, this.scatterTimer - dt);
+        this.knockbackTimer = Math.max(0, this.knockbackTimer - dt);
         this.x += this.scatterVx * step * scatterFalloff;
         this.y += this.scatterVy * step * scatterFalloff;
         if (typeof resolveEntityObstacles === "function") resolveEntityObstacles(this);
         if (typeof clampEntityToBounds === "function") clampEntityToBounds(this);
+        const lift = getKnockbackArcLift(
+          this.scatterTimer,
+          scatterDuration,
+          this.knockbackLift || KNOCKBACK_VISUAL_LIFT,
+        );
+        this._renderYOverride = this.y - lift;
         this.updateFacing(this.scatterVx, this.scatterVy);
         if (this.scatterTimer <= 0) {
           this.scatterVx = 0;
           this.scatterVy = 0;
           this.scatterDuration = 0;
+          this.knockbackVx = 0;
+          this.knockbackVy = 0;
+          this.knockbackTimer = 0;
+          this.knockbackDuration = 0;
         }
         this.animator.update(dt);
         return;
@@ -2147,6 +2168,12 @@
         const knockbackFalloff = Math.max(0.18, this.knockbackTimer / knockbackDuration);
         this.x += this.knockbackVx * step * knockbackFalloff;
         this.y += this.knockbackVy * step * knockbackFalloff;
+        const lift = getKnockbackArcLift(
+          this.knockbackTimer,
+          knockbackDuration,
+          this.knockbackLift || KNOCKBACK_VISUAL_LIFT,
+        );
+        this._renderYOverride = this.y - lift;
         this.knockbackTimer = Math.max(0, this.knockbackTimer - dt);
         if (this.knockbackTimer <= 0) {
           this.knockbackVx = 0;
