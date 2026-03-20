@@ -3879,6 +3879,70 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCompactWorldMeter(meterX, meterY, width, height, rechargeRatio, palette.dash, palette.dashGlow);
   }
 
+  function drawPowerupWarpGhost(player) {
+    const {
+      ctx,
+      meleeAttackState,
+      weaponPickups = [],
+      churchPowerupPickups = [],
+      utilityPowerUps = [],
+    } = requireBindings();
+    if (!ctx || !player || !meleeAttackState || player.state === "death") return;
+    if (!meleeAttackState.spinCharging || !meleeAttackState.spinButtonDown) return;
+    const candidates = []
+      .concat(weaponPickups, churchPowerupPickups, utilityPowerUps)
+      .filter((pickup) =>
+        pickup &&
+        pickup.active !== false &&
+        !pickup.expired &&
+        !pickup.collected &&
+        !pickup.dead &&
+        !pickup.removed &&
+        pickup.visible !== false &&
+        Number.isFinite(pickup.x) &&
+        Number.isFinite(pickup.y),
+      );
+    if (!candidates.length) return;
+    let target = null;
+    let bestDistSq = Infinity;
+    for (const pickup of candidates) {
+      const dx = pickup.x - player.x;
+      const dy = pickup.y - player.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < bestDistSq) {
+        bestDistSq = distSq;
+        target = pickup;
+      }
+    }
+    if (!target) return;
+    const pulseNow = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const pulse = 0.5 + 0.5 * Math.sin(pulseNow * 0.012);
+    const ringRadius = Math.max(22, (player.radius || 24) * 0.95);
+    ctx.save();
+    ctx.globalAlpha = 0.28 + pulse * 0.12;
+    ctx.fillStyle = "rgba(255, 232, 170, 0.2)";
+    ctx.beginPath();
+    ctx.arc(target.x, target.y + ringRadius * 0.15, ringRadius * (1.05 + pulse * 0.08), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.5 + pulse * 0.25;
+    ctx.strokeStyle = "#FFE8AA";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(target.x, target.y + ringRadius * 0.15, ringRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    if (player.animator) {
+      const flip = player.facing === "left";
+      player.animator.draw(ctx, target.x, target.y, {
+        flipX: flip,
+        alpha: 0.32 + pulse * 0.12,
+        tintColor: "#FFF3C4",
+        tintIntensity: 0.9,
+      });
+    }
+  }
+
   function drawVisitorIntroOverlay() {
     return;
   }
@@ -5992,6 +6056,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
     if (player) {
+      drawPowerupWarpGhost(player);
       player.draw();
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);
