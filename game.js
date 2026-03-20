@@ -2783,6 +2783,7 @@ const CONGREGATION_COMMAND_CHARGE_TIME = _gb('congregationCommand.chargeTime', 1
 const CONGREGATION_COMMAND_DAMAGE = _gb('congregationCommand.damage', 30);
 const CONGREGATION_COMMAND_SPEED_MULTIPLIER = _gb('congregationCommand.speedMultiplier', 1.1);
 const CONGREGATION_COMMAND_SCALE = _gb('congregationCommand.scale', 1.15);
+const CONGREGATION_COMMAND_STAGGER = _gb('congregationCommand.stagger', 0.14);
 const CONGREGATION_COMMAND_SHAKE_DURATION = _gb('congregationCommand.shakeDuration', 0.12);
 const CONGREGATION_COMMAND_SHAKE_MAGNITUDE = _gb('congregationCommand.shakeMagnitude', 8);
 if (typeof window !== "undefined") {
@@ -13344,6 +13345,16 @@ function updateCozyNpcs(dt) {
     return damageApplied;
   }
 
+  function updateNpcCongregationVolley(npcEntity) {
+    const volley = npcEntity?.pendingCongregationVolley || null;
+    if (!volley) return false;
+    volley.delay = Math.max(0, (volley.delay || 0) - dt);
+    if (volley.delay > 0) return true;
+    fireCongregationVolleyShot(npcEntity, volley);
+    npcEntity.pendingCongregationVolley = null;
+    return false;
+  }
+
   for (let i = npcs.length - 1; i >= 0; i -= 1) {
     const npc = npcs[i];
     const timerScale = getNpcTimerScale();
@@ -13404,14 +13415,104 @@ function updateCozyNpcs(dt) {
     }
 
     // allow NPCs at full faith to attempt firing at enemies
+    const congregationVolleyPending = updateNpcCongregationVolley(npc);
     try {
-      npc.tryNpcFire(dt);
+      if (!congregationVolleyPending) {
+        npc.tryNpcFire(dt);
+      }
     } catch (e) {}
 
     if (npc.departed) {
       npcs.splice(i, 1);
     }
   }
+}
+
+function getCongregationVolleyDirectionForNpc(npc, clusterCenter, playerAim) {
+  const laneBase = normalizeVector((npc.x || 0) - clusterCenter.x, (npc.y || 0) - clusterCenter.y);
+  const laneDir = laneBase.x !== 0 || laneBase.y !== 0 ? laneBase : playerAim;
+  let preferredDir = null;
+  let preferredScore = Infinity;
+  let fallbackDir = null;
+  let fallbackScore = Infinity;
+
+  const evaluate = (targetX, targetY) => {
+    const dx = targetX - npc.x;
+    const dy = targetY - npc.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 0) return;
+    const dir = normalizeVector(dx, dy);
+    const dot = dir.x * laneDir.x + dir.y * laneDir.y;
+    const anglePenalty = 1 - Math.max(-1, Math.min(1, dot));
+    const score = anglePenalty * 900 + dist;
+    if (dot >= 0.55) {
+      if (score < preferredScore) {
+        preferredScore = score;
+        preferredDir = dir;
+      }
+    } else if (score < fallbackScore) {
+      fallbackScore = score;
+      fallbackDir = dir;
+    }
+  };
+
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const center = getEnemyHitboxCenter(enemy);
+    evaluate(center.x, center.y);
+  });
+  projectiles.forEach((proj) => {
+    if (!proj || proj.dead || proj.friendly || proj.visualOnly) return;
+    evaluate(proj.x, proj.y);
+  });
+
+  return preferredDir || fallbackDir || laneDir;
+}
+
+function fireCongregationVolleyShot(npc, volley) {
+  if (!npc || npc.departed || !npc.active || (npc.faith || 0) <= 0) return false;
+  const playerAim = normalizeVector(volley?.aimX || 1, volley?.aimY || 0);
+  const clusterCenter = {
+    x: Number.isFinite(volley?.clusterCenterX) ? volley.clusterCenterX : npc.x,
+    y: Number.isFinite(volley?.clusterCenterY) ? volley.clusterCenterY : npc.y,
+  };
+  const dir = getCongregationVolleyDirectionForNpc(npc, clusterCenter, playerAim);
+  if (!dir || (!dir.x && !dir.y)) return false;
+  const originOffset = (npc.radius || 24) * 0.72;
+  const originX = npc.x + dir.x * originOffset;
+  const originY = npc.y + dir.y * originOffset;
+  const baseSpeed = PROJECTILE_CONFIG.fire?.speed || 420;
+  const travel = distanceToEdge(originX, originY, dir.x, dir.y);
+  const speed = baseSpeed * CONGREGATION_COMMAND_SPEED_MULTIPLIER;
+  const life = travel / Math.max(1, speed);
+  const fireFrames = assets?.projectiles?.fire?.frames || null;
+  spawnProjectile("fire", originX, originY, dir.x, dir.y, {
+    friendly: true,
+    damage: CONGREGATION_COMMAND_DAMAGE,
+    speed,
+    life,
+    pierce: true,
+    frames: fireFrames,
+    frameDuration: 0.05,
+    flipHorizontal: dir.x < 0,
+    source: npc,
+    scale: CONGREGATION_COMMAND_SCALE,
+  });
+  npc.projectileGlowTimer = Math.max(npc.projectileGlowTimer || 0, 0.2);
+  npc.state = "attack";
+  if (npc.animator) {
+    if (typeof npc.animator.setState === "function") {
+      npc.animator.setState("attack", { restart: true });
+      if (typeof npc.animator.setMoving === "function") {
+        npc.animator.setMoving(false);
+      }
+    } else if (typeof npc.animator.play === "function") {
+      npc.animator.play("attack", { restart: true });
+    }
+  }
+  npc.npcArrowCooldown = Math.max(npc.npcArrowCooldown || 0, 0.35);
+  spawnFlashEffect(originX, originY);
+  return true;
 }
 
 function triggerCongregationCommand(playerEntity = player) {
@@ -13431,82 +13532,35 @@ function triggerCongregationCommand(playerEntity = player) {
       ? playerEntity.getAimDirection()
       : normalizeVector(playerEntity.aim?.x || 1, playerEntity.aim?.y || 0);
 
-  const getNpcVolleyDirection = (npc) => {
-    let bestDir = playerAim;
-    let bestScore = Infinity;
-    const evaluate = (targetX, targetY) => {
-      const dx = targetX - npc.x;
-      const dy = targetY - npc.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist <= 0) return;
-      const dir = normalizeVector(dx, dy);
-      const dot = dir.x * playerAim.x + dir.y * playerAim.y;
-      if (dot < -0.1) return;
-      const score = dist - dot * 180;
-      if (score < bestScore) {
-        bestScore = score;
-        bestDir = dir;
-      }
-    };
-    enemies.forEach((enemy) => {
-      if (!enemy || enemy.dead || enemy.state === "death") return;
-      const center = getEnemyHitboxCenter(enemy);
-      evaluate(center.x, center.y);
-    });
-    projectiles.forEach((proj) => {
-      if (!proj || proj.dead || proj.friendly || proj.visualOnly) return;
-      evaluate(proj.x, proj.y);
-    });
-    return bestDir;
-  };
-
-  let fired = 0;
-  const fireFrames = assets?.projectiles?.fire?.frames || null;
-  activeNpcs.forEach((npc, index) => {
-    const dir = getNpcVolleyDirection(npc);
-    if (!dir || (!dir.x && !dir.y)) return;
-    const originOffset = (npc.radius || 24) * 0.72;
-    const originX = npc.x + dir.x * originOffset;
-    const originY = npc.y + dir.y * originOffset;
-    const baseSpeed = PROJECTILE_CONFIG.fire?.speed || 420;
-    const travel = distanceToEdge(originX, originY, dir.x, dir.y);
-    const speed = baseSpeed * CONGREGATION_COMMAND_SPEED_MULTIPLIER;
-    const life = travel / Math.max(1, speed);
-    const spread = (index - (activeNpcs.length - 1) * 0.5) * 0.035;
-    const volleyDir = normalizeVector(
-      dir.x + -dir.y * spread,
-      dir.y + dir.x * spread,
-    );
-    spawnProjectile("fire", originX, originY, volleyDir.x, volleyDir.y, {
-      friendly: true,
-      damage: CONGREGATION_COMMAND_DAMAGE,
-      speed,
-      life,
-      pierce: true,
-      frames: fireFrames,
-      frameDuration: 0.05,
-      flipHorizontal: volleyDir.x < 0,
-      source: npc,
-      scale: CONGREGATION_COMMAND_SCALE,
-    });
-    npc.projectileGlowTimer = Math.max(npc.projectileGlowTimer || 0, 0.2);
-    npc.state = "attack";
-    if (npc.animator) {
-      if (typeof npc.animator.setState === "function") {
-        npc.animator.setState("attack", { restart: true });
-        if (typeof npc.animator.setMoving === "function") {
-          npc.animator.setMoving(false);
-        }
-      } else if (typeof npc.animator.play === "function") {
-        npc.animator.play("attack", { restart: true });
-      }
-    }
-    npc.npcArrowCooldown = Math.max(npc.npcArrowCooldown || 0, 0.35);
-    spawnFlashEffect(originX, originY);
-    fired += 1;
+  const clusterCenter = activeNpcs.reduce(
+    (acc, npc) => {
+      acc.x += npc.x || 0;
+      acc.y += npc.y || 0;
+      return acc;
+    },
+    { x: 0, y: 0 },
+  );
+  clusterCenter.x /= Math.max(1, activeNpcs.length);
+  clusterCenter.y /= Math.max(1, activeNpcs.length);
+  const aimAngle = Math.atan2(playerAim.y, playerAim.x);
+  const sortedNpcs = [...activeNpcs].sort((a, b) => {
+    const angleA = Math.atan2((a.y || 0) - clusterCenter.y, (a.x || 0) - clusterCenter.x);
+    const angleB = Math.atan2((b.y || 0) - clusterCenter.y, (b.x || 0) - clusterCenter.x);
+    const deltaA = Math.abs(Math.atan2(Math.sin(angleA - aimAngle), Math.cos(angleA - aimAngle)));
+    const deltaB = Math.abs(Math.atan2(Math.sin(angleB - aimAngle), Math.cos(angleB - aimAngle)));
+    return deltaA - deltaB;
   });
 
-  if (!fired) return false;
+  sortedNpcs.forEach((npc, index) => {
+    npc.pendingCongregationVolley = {
+      delay: index * CONGREGATION_COMMAND_STAGGER,
+      clusterCenterX: clusterCenter.x,
+      clusterCenterY: clusterCenter.y,
+      aimX: playerAim.x,
+      aimY: playerAim.y,
+    };
+  });
+
   if (typeof playFireballCastSfx === "function") {
     playFireballCastSfx(0.7);
   }

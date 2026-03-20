@@ -115,10 +115,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
-                        },
-                        {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -135,10 +131,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
-                        },
-                        {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -155,10 +147,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
-                        },
-                        {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
                         }
                       ],
                       "weights": {},
