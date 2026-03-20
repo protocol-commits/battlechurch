@@ -16646,7 +16646,27 @@ function updateMeleeComboLabel(meleeAttackState) {
     return;
   }
   if (target.dead || target.state === "death" || target.removed) {
-    clearMeleeComboLabel(meleeAttackState);
+    const labelConfig = getMeleeCombatLabelConfig(meleeAttackState, target);
+    if (meleeAttackState.meleeComboLabel && labelConfig) {
+      meleeAttackState.meleeComboLabel.text = labelConfig.text;
+      meleeAttackState.meleeComboLabel.color = labelConfig.color;
+      meleeAttackState.meleeComboLabel.fontSize = labelConfig.fontSize;
+      meleeAttackState.meleeComboLabel.fontWeight = labelConfig.fontWeight;
+      meleeAttackState.meleeComboLabel.x = target.x;
+      meleeAttackState.meleeComboLabel.y = target.y + labelConfig.offsetY;
+      meleeAttackState.meleeComboLabel.entity = null;
+      meleeAttackState.meleeComboLabel.offsetX = 0;
+      meleeAttackState.meleeComboLabel.offsetY = 0;
+      meleeAttackState.meleeComboLabel.persist = false;
+      meleeAttackState.meleeComboLabel.fadeDelay = 0;
+      meleeAttackState.meleeComboLabel.life = Math.max(
+        meleeAttackState.meleeComboLabel.life || 0,
+        MELEE_COMBO_TEXT_LIFE,
+      );
+      meleeAttackState.meleeComboLabel = null;
+    } else {
+      clearMeleeComboLabel(meleeAttackState);
+    }
     if (meleeAttackState.punishCounterTarget === target) {
       clearPunishCounterState(meleeAttackState);
     }
