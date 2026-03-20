@@ -3189,6 +3189,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Floor band is in translated context (1:1 with camera), so match that
     const parallaxOffset = Math.floor(cameraX);
     const drawX = -godRayCache.padding - parallaxOffset;
+    const mirroredDrawX = -godRayCache.padding + parallaxOffset;
 
     ctx.save();
     // Reset transform to screen space, then apply parallax offset
@@ -3196,6 +3197,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.globalCompositeOperation = "lighter";
     ctx.globalAlpha = intensity;
     ctx.drawImage(godRayCache.canvas, drawX, 0);
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(godRayCache.canvas, mirroredDrawX, 0);
     ctx.restore();
   }
 
