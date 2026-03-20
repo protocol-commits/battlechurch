@@ -3854,7 +3854,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.sword, palette.swordGlow);
   }
 
-  function drawPlayerCongregationMeter(player) {
+  function drawCongregationCommandMeter(player, battleNpcs = []) {
     const { ctx, WORLD_SCALE = 1 } = requireBindings();
     if (!ctx || !player || player.state === "death") return;
     const getRatio =
@@ -3862,15 +3862,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? player.getCongregationCommandChargeRatio.bind(player)
         : null;
     if (!getRatio) return;
+    const activeNpcs = battleNpcs.filter((npc) => npc && !npc.departed && npc.active);
+    if (!activeNpcs.length) return;
     const chargeRatio = Math.max(0, Math.min(1, getRatio()));
     const shakeX = sharedShakeOffset?.x || 0;
-    const sprite = getPlayerSpriteExtents(player);
-    const meterCenterX = getPlayerCombatMeterAnchorX(player) + shakeX;
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
+    activeNpcs.forEach((npc) => {
+      const radius = Math.max(18, npc.radius || 0);
+      minX = Math.min(minX, (npc.x || 0) - radius);
+      maxX = Math.max(maxX, (npc.x || 0) + radius);
+      minY = Math.min(minY, (npc.y || 0) - radius);
+      maxY = Math.max(maxY, (npc.y || 0) + radius);
+    });
+    const meterCenterX = (minX + maxX) * 0.5 + shakeX;
     const width = Math.round(34 * WORLD_SCALE);
     const height = Math.max(11, Math.round(14 * WORLD_SCALE));
     const meterX = meterCenterX - width / 2;
-    const stackOffset = Math.round((height + 6) * WORLD_SCALE * 2);
-    const meterY = sprite.top - height - Math.round(8 * WORLD_SCALE) - stackOffset;
+    const meterCenterY = (minY + maxY) * 0.5;
+    const meterY = meterCenterY - height * 0.5;
     const palette = getCombatMeterPalette();
     if (chargeRatio >= 1) {
       const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
@@ -6143,9 +6155,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
     drawRingOfFireEffects(player);
+    drawCongregationCommandMeter(player, battleNpcs);
     if (player) {
       player.draw();
-      drawPlayerCongregationMeter(player);
       drawPlayerRingFireChargeMeter(player);
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);
