@@ -17454,6 +17454,9 @@ function spawnRingOfFireHazard(centerX, centerY, radius) {
     bossDamage: RING_OF_FIRE_BOSS_DAMAGE,
     hitCooldown: RING_OF_FIRE_HIT_COOLDOWN,
     hitMap: new WeakMap(),
+    blinkWindow: Math.min(1.2, RING_OF_FIRE_LINGER_DURATION),
+    blinkTimer: 0,
+    visible: true,
   });
 }
 
@@ -17566,6 +17569,19 @@ function updateRingOfFireHazards(dt) {
   for (let i = ringOfFireHazards.length - 1; i >= 0; i -= 1) {
     const hazard = ringOfFireHazards[i];
     hazard.life = Math.max(0, (hazard.life || 0) - dt);
+    const exiting = hazard.life <= Math.max(0, hazard.blinkWindow || 0);
+    if (exiting) {
+      hazard.blinkTimer = (hazard.blinkTimer || 0) + dt * 10;
+      hazard.visible = Math.floor(hazard.blinkTimer) % 2 === 0;
+    } else {
+      hazard.visible = true;
+    }
+    if (!hazard.visible) {
+      if (hazard.life <= 0) {
+        ringOfFireHazards.splice(i, 1);
+      }
+      continue;
+    }
     const band = Math.max(1, hazard.band || RING_OF_FIRE_BAND);
     const outerRadius = (hazard.radius || RING_OF_FIRE_RADIUS) + band * 0.5;
     const innerRadius = Math.max(0, (hazard.radius || RING_OF_FIRE_RADIUS) - band * 0.5);

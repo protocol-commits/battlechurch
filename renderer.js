@@ -3879,7 +3879,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCompactWorldMeter(meterX, meterY, width, height, rechargeRatio, palette.dash, palette.dashGlow);
   }
 
-  function drawRingOfFireArc(ctx, centerX, centerY, radius, progress = 1, baseAlpha = 1) {
+  function drawRingOfFireArc(ctx, centerX, centerY, radius, progress = 1, baseAlpha = 1, startAngle = -Math.PI * 0.5, direction = 1) {
     const { assets } = requireBindings();
     const fireFrames = assets?.projectiles?.fire?.frames || null;
     if (!fireFrames || !fireFrames.length || progress <= 0) return;
@@ -3894,7 +3894,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < segmentCount; i += 1) {
       const t = segmentCount <= 1 ? 1 : i / (segmentCount - 1);
-      const angle = -Math.PI * 0.5 + t * Math.PI * 2 * clamped;
+      const angle = startAngle + direction * t * Math.PI * 2 * clamped;
       const x = centerX + Math.cos(angle) * radius;
       const y = centerY + Math.sin(angle) * radius;
       ctx.save();
@@ -3907,11 +3907,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawRingOfFireDebugCircle(ctx, centerX, centerY, radius, band = 20, progress = 1, alpha = 1) {
+  function drawRingOfFireDebugCircle(ctx, centerX, centerY, radius, band = 20, progress = 1, alpha = 1, startAngle = -Math.PI * 0.5, direction = 1) {
     if (!ctx || radius <= 0 || progress <= 0) return;
     const clamped = Math.max(0, Math.min(1, progress));
-    const startAngle = -Math.PI * 0.5;
-    const endAngle = startAngle + Math.PI * 2 * clamped;
+    const endAngle = startAngle + direction * Math.PI * 2 * clamped;
     ctx.save();
     ctx.globalAlpha = 0.18 * alpha;
     ctx.strokeStyle = "#FFB347";
@@ -3936,6 +3935,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         meleeAttackState.ringFirePhase === "trace"
           ? Math.max(0.08, meleeAttackState.ringFireTraceProgress || 0)
           : 1;
+      const traceDirection = player?.facing === "left" ? -1 : 1;
       drawRingOfFireDebugCircle(
         ctx,
         meleeAttackState.ringFireCenterX,
@@ -3944,6 +3944,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         18,
         activeProgress,
         1,
+        meleeAttackState.ringFireStartAngle ?? -Math.PI * 0.5,
+        traceDirection,
       );
       drawRingOfFireArc(
         ctx,
@@ -3952,6 +3954,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         meleeAttackState.ringFireRadius,
         activeProgress,
         0.9,
+        meleeAttackState.ringFireStartAngle ?? -Math.PI * 0.5,
+        traceDirection,
       );
     }
     ringOfFireHazards.forEach((hazard) => {
