@@ -1692,33 +1692,20 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.translate(layout.offsetX, layout.offsetY);
   ctx.scale(layout.scale, layout.scale);
 
-  drawAnnouncementText(ctx, layout.virtualCanvas, {
-    title,
-    subtitle: "",
-    yBase: layout.titleY,
-    titleSize,
-    subtitleSize: TEXT_STYLES.h2.size,
-    weight: TEXT_STYLES.h1.weight,
-    subtitleWeight: TEXT_STYLES.h2.weight,
-    lineGap,
-    alpha: 1,
-    typewriter: true,
-    maxWidthScale: 0.94,
-    blockAlign: "center",
-  });
-
   if (recapData && !recapData.id) {
     const lineCount = Array.isArray(recapData.lines) ? recapData.lines.length : 0;
     recapData.id = `recap-${title}-${recapData.startCount || 0}-${recapData.totalCount || 0}-${lineCount}`;
   }
-  const revealComplete = isAnnouncementRevealComplete(title, "");
-  const canShowContinue = revealComplete && recapTallyState.showContinue;
+  const revealComplete = true;
+  const canShowContinue = recapTallyState.showContinue;
   const contentWidth = Math.round(layout.virtualCanvas.width * 0.88);
   const contentX = Math.round((layout.virtualCanvas.width - contentWidth) / 2);
   const lineSpacing = Math.round(bodySize * 1.4);
   const sectionGap = Math.round(bodySize * 0.35);
-  const titleBlockHeight = layout.textLayout?.textBlockHeight || 0;
-  let cursorY = Math.round(layout.titleY + titleBlockHeight + 28);
+  const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
+  const headingTitle = `${title || "Battle Report"}:`;
+  const headingProblem = String(recapData?.problemTitle || "").trim();
+  let cursorY = Math.round(layout.titleY);
   const spawnBounds = {
     x: contentX,
     y: Math.round(layout.virtualCanvas.height * 0.67),
@@ -1755,6 +1742,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const highlightLabelColor = "#FFD978";
   const highlightValueColor = "#FFD978";
   const highlightValueFlash = "#FFE5A6";
+  const dividerColor = "rgba(255, 217, 120, 0.5)";
 
   const drawHighlightedLabel = (textLine, x, y, highlightText) => {
     if (!highlightText) {
@@ -1815,6 +1803,36 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
   ctx.shadowBlur = 18;
+
+  ctx.fillStyle = baseLabelColor;
+  ctx.font = `${TEXT_STYLES.h1.weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  const wrappedHeadingTitle = wrapText(ctx, headingTitle, contentWidth);
+  wrappedHeadingTitle.forEach((textLine) => {
+    ctx.fillText(textLine, contentX, cursorY);
+    cursorY += Math.round(titleSize * 1.02);
+  });
+  if (headingProblem) {
+    const problemSize = Math.round(TEXT_STYLES.h2.size * 1.18);
+    ctx.fillStyle = highlightValueColor;
+    ctx.font = `${TEXT_STYLES.h2.weight} ${problemSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    const wrappedProblem = wrapText(ctx, headingProblem, contentWidth);
+    wrappedProblem.forEach((textLine) => {
+      ctx.fillText(textLine, contentX, cursorY);
+      cursorY += Math.round(problemSize * 1.12);
+    });
+  }
+  cursorY += Math.round(sectionGap * 1.15);
+  ctx.save();
+  ctx.strokeStyle = dividerColor;
+  ctx.lineWidth = 2;
+  const dividerInset = Math.round(Math.min(28, contentWidth * 0.035));
+  ctx.beginPath();
+  ctx.moveTo(contentX + dividerInset, cursorY);
+  ctx.lineTo(contentX + contentWidth - dividerInset, cursorY);
+  ctx.stroke();
+  ctx.restore();
+  cursorY += Math.round(bodySize * 1.45);
+
   let countNumberX = contentX;
   let countNumberY = cursorY;
 
@@ -1840,22 +1858,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     return;
   }
 
-  const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
-  const problemLineIndex = lines.findIndex((line) => line?.kind === "problemTitle");
-  const problemLine = problemLineIndex >= 0 ? lines[problemLineIndex] : null;
-  if (problemLine) {
-    const problemSize = Math.round(TEXT_STYLES.h2.size * 1.2);
-    const problemLineGap = Math.round(problemSize * 1.15);
-    ctx.fillStyle = highlightValueColor;
-    ctx.font = `${TEXT_STYLES.h2.weight} ${problemSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    const problemChunks = String(problemLine.label || "").split("\n");
-    const wrappedProblem = problemChunks.flatMap((chunk) => wrapText(ctx, chunk, contentWidth));
-    wrappedProblem.forEach((textLine) => {
-      ctx.fillText(textLine, contentX, cursorY);
-      cursorY += problemLineGap;
-    });
-    cursorY += Math.round(sectionGap * 1.2);
-  }
   const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
   ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const totalValue = recapTallyState.totalValue;
@@ -1875,11 +1877,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
     const isLastLine = i === maxVisible - 1;
-    if (line.kind === "problemTitle") {
-      ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      continue;
-    }
-
     if (line.kind === "grace") {
       const prefix = line.prefix || "Bonus Grace: ";
       const displayValue = Math.max(0, Math.round(line.delta || 0));

@@ -6279,13 +6279,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       : null;
   if (!isBossSummary) {
     recapLines.push({
-      label: scenarioTitle,
-      kind: "problemTitle",
-      skipValue: true,
-      affectsTotal: false,
-      highlightText: scenarioTitle,
-    });
-    recapLines.push({
       label: "Congregation Health Bonus:",
       delta: healthReward,
       kind: "congregation",
@@ -6335,6 +6328,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       startCount: recapStartCount,
       totalDelta,
       totalCount: congregationTotal,
+      problemTitle: isBossSummary ? "" : scenarioTitle,
       lines: recapLines,
       graceBonus,
       graceBonusCongregants,
