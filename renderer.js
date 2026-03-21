@@ -1815,22 +1815,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
   ctx.shadowBlur = 18;
-  const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
-  ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-  const totalValue = recapTallyState.totalValue;
-  const countLabel = "Congregation Count:";
   let countNumberX = contentX;
   let countNumberY = cursorY;
-  if (recapTallyState.showCount) {
-    ctx.fillStyle = baseLabelColor;
-    ctx.fillText(countLabel, contentX, cursorY);
-    const labelWidth = ctx.measureText(countLabel).width;
-    countNumberX = contentX + labelWidth + 12;
-    ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
-    ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
-    countNumberY = cursorY;
-    cursorY += Math.round(countSize * 1.1);
-  }
 
   if (!recapTallyState.showCount) {
     ctx.restore();
@@ -1855,6 +1841,33 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   }
 
   const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
+  const problemLineIndex = lines.findIndex((line) => line?.kind === "problemTitle");
+  const problemLine = problemLineIndex >= 0 ? lines[problemLineIndex] : null;
+  if (problemLine) {
+    const problemSize = Math.round(TEXT_STYLES.h2.size * 1.2);
+    const problemLineGap = Math.round(problemSize * 1.15);
+    ctx.fillStyle = highlightValueColor;
+    ctx.font = `${TEXT_STYLES.h2.weight} ${problemSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    const problemChunks = String(problemLine.label || "").split("\n");
+    const wrappedProblem = problemChunks.flatMap((chunk) => wrapText(ctx, chunk, contentWidth));
+    wrappedProblem.forEach((textLine) => {
+      ctx.fillText(textLine, contentX, cursorY);
+      cursorY += problemLineGap;
+    });
+    cursorY += Math.round(sectionGap * 1.2);
+  }
+  const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
+  ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  const totalValue = recapTallyState.totalValue;
+  const countLabel = "Congregation Count:";
+  ctx.fillStyle = baseLabelColor;
+  ctx.fillText(countLabel, contentX, cursorY);
+  const labelWidth = ctx.measureText(countLabel).width;
+  countNumberX = contentX + labelWidth + 12;
+  ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
+  ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
+  countNumberY = cursorY;
+  cursorY += Math.round(countSize * 1.1);
   const activeIndex = recapTallyState.stepIndex;
   const maxVisible = recapTallyState.done ? lines.length : Math.min(lines.length, activeIndex + 1);
   ctx.fillStyle = baseLabelColor;
@@ -1862,6 +1875,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
     const isLastLine = i === maxVisible - 1;
+    if (line.kind === "problemTitle") {
+      ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      continue;
+    }
+
     if (line.kind === "grace") {
       const prefix = line.prefix || "Bonus Grace: ";
       const displayValue = Math.max(0, Math.round(line.delta || 0));

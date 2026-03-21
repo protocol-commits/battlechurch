@@ -6277,63 +6277,26 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     scenario && typeof scenario === "object" && typeof scenario.recap === "string"
       ? scenario.recap
       : null;
-  const formatRecapScenarioLines = (deltaValue) => {
-    if (!scenarioRecap) {
-      return [{
-        label: `Helped members with ${scenarioTitle}:`,
-        delta: deltaValue,
-        forceValueLine: true,
-        highlightText: scenarioTitle,
-      }];
-    }
-    const match = scenarioRecap.match(/^(.*)\+N\s+Congregants\s*$/);
-    const baseText = match ? match[1].trim() : scenarioRecap.trim();
-    const parts = baseText
-      .split("\n")
-      .map((part) => part.trim())
-      .filter(Boolean);
-    if (parts.length >= 2) {
-      const firstLine = parts[0].replace(/[.:\s]*$/, "");
-      const secondLine = parts.slice(1).join(" ").replace(/[.:\s]*$/, "");
-      return [
-        { label: `${firstLine}.`, delta: 0, skipValue: true, affectsTotal: false },
-        {
-          label: `${secondLine}:`,
-          delta: deltaValue,
-          forceValueLine: false,
-          forceInlineValue: true,
-          highlightText: scenarioTitle,
-        },
-      ];
-    }
-    const single = baseText.replace(/[.:\s]*$/, "");
-    return [{ label: `${single}:`, delta: deltaValue, highlightText: scenarioTitle }];
-  };
   if (!isBossSummary) {
-    if (memberDelta !== 0 || savedNames.length || lostNames.length) {
-      const nameSentence = formatNameList(savedNames) || "the congregation";
-      let helpLabel = `Helped ${nameSentence} with ${scenario}`;
-      if (memberDelta < 0) {
-        const lostSentence = formatNameList(lostNames);
-        helpLabel = lostSentence ? `${lostSentence} left the church` : "Members left the church";
-      }
-      const scenarioLines = formatRecapScenarioLines(memberDelta);
-      scenarioLines.forEach((line) => {
-        recapLines.push({
-          kind: "congregation",
-          affectsTotal: true,
-          ...line,
-        });
-      });
-    }
-    if (healthReward !== 0) {
-      recapLines.push({
-        label: "Congregation Health Bonus:",
-        delta: healthReward,
-        kind: "congregation",
-        affectsTotal: true,
-      });
-    }
+    recapLines.push({
+      label: scenarioTitle,
+      kind: "problemTitle",
+      skipValue: true,
+      affectsTotal: false,
+      highlightText: scenarioTitle,
+    });
+    recapLines.push({
+      label: "Congregation Health Bonus:",
+      delta: healthReward,
+      kind: "congregation",
+      affectsTotal: true,
+    });
+    recapLines.push({
+      label: "Guest Invited:",
+      delta: memberDelta,
+      kind: "congregation",
+      affectsTotal: true,
+    });
   }
   if (bossBonus !== 0) {
     recapLines.push({
