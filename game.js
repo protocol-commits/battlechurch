@@ -1679,7 +1679,7 @@ function computeFormationAnchors(count) {
       break;
     }
     case "crescent": {
-      const radius = Math.min(rx, ry) * 0.45 * spreadScale;
+      const radius = Math.min(rx, ry) * 0.78 * spreadScale;
       // Smile: arc that faces left/right/bottom; use angles from 210° to -30°
       const start = (210 * Math.PI) / 180;
       const end = (-30 * Math.PI) / 180;
@@ -1695,7 +1695,7 @@ function computeFormationAnchors(count) {
     }
     case "circle":
     default: {
-      const radius = Math.min(rx, ry) * 0.5 * spreadScale;
+      const radius = Math.min(rx, ry) * 0.82 * spreadScale;
       const start = (210 * Math.PI) / 180;
       const end = (-30 * Math.PI) / 180;
       const zoneStep = count > 1 ? (end - start) / (count - 1) : 0;
@@ -1746,9 +1746,9 @@ function getNpcZoneWanderPoint(npc, { inwardBias = 0, angleJitterScale = 0.42, e
 function getNpcZoneReadyPoint(npc) {
   const pressure = Math.max(0, Math.min(1, formationState?.homePressure || 0));
   return getNpcZoneWanderPoint(npc, {
-    inwardBias: pressure * 0.18,
-    angleJitterScale: 0.48,
-    edgeBias: 0.92,
+    inwardBias: pressure * 0.08,
+    angleJitterScale: 0.34,
+    edgeBias: 1,
   });
 }
 
