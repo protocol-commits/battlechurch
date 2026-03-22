@@ -1836,6 +1836,28 @@ function getNpcZonePatrolPoint(npc, side = 1) {
   );
 }
 
+function getNpcFrontlineDesiredPoint(npc) {
+  const home = getNpcHomeBounds();
+  const anchor = npc?.formationAnchor || null;
+  if (!home || !anchor) return getNpcZonePatrolPoint(npc, npc?.zonePatrolSide || 1);
+  const pressure = Math.max(0, Math.min(1, formationState?.homePressure || 0));
+  const baseAngle = Number.isFinite(anchor.angle)
+    ? anchor.angle
+    : Math.atan2(anchor.y - home.y, anchor.x - home.x);
+  const halfSpan = Number.isFinite(anchor.zoneHalfSpan) ? anchor.zoneHalfSpan : 0.35;
+  const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
+  const patrolClock = Number.isFinite(npc?.patrolClock) ? npc.patrolClock : 0;
+  const laneSwing = Math.sin(patrolClock) * halfSpan * 0.74;
+  const angle = baseAngle + laneSwing;
+  const radialPulse = Math.cos(patrolClock * 0.55 + (anchor.zoneIndex || 0) * 0.45) * 0.018;
+  const radius = anchorRadius * Math.max(0.82, 0.975 - pressure * 0.07 + radialPulse);
+  return clampPointToBounds(
+    home,
+    home.x + Math.cos(angle) * radius,
+    home.y + Math.sin(angle) * radius,
+  );
+}
+
 function assignNpcFrontlinePatrolTarget(npc, { forceFlip = false } = {}) {
   if (!npc) return null;
   if (!Number.isFinite(npc.zonePatrolSide) || npc.zonePatrolSide === 0) {
@@ -1843,7 +1865,10 @@ function assignNpcFrontlinePatrolTarget(npc, { forceFlip = false } = {}) {
   } else if (forceFlip) {
     npc.zonePatrolSide *= -1;
   }
-  const target = getNpcZonePatrolPoint(npc, npc.zonePatrolSide);
+  if (forceFlip) {
+    npc.patrolClock = (npc.patrolClock || 0) + Math.PI * 0.75;
+  }
+  const target = getNpcFrontlineDesiredPoint(npc);
   npc.target = target;
   npc.zoneMoveMode = "frontline";
   npc.frontlinePatrolTimer = randomInRange(0.8, 1.4);
@@ -10093,6 +10118,7 @@ class CozyNpc {
     this.zoneMoveMode = "frontline";
     this.frontlinePatrolTimer = randomInRange(0.35, 0.7);
     this.zonePatrolSide = Math.random() < 0.5 ? -1 : 1;
+    this.patrolClock = Math.random() * Math.PI * 2;
   }
 
   needsAid() {
@@ -10140,8 +10166,8 @@ class CozyNpc {
     if (this.departed) return;
     this.needsPlayerRestore = false;
     this.state = "wander";
-    this.target = getNpcZonePatrolPoint(this, this.zonePatrolSide || 1);
-    this.idleTimer = randomInRange(0.08, 0.22);
+    this.target = getNpcFrontlineDesiredPoint(this);
+    this.idleTimer = 0;
     this.stuckTimer = 0;
     this.processionTarget = null;
     this.processionSpeed = null;
@@ -10154,7 +10180,7 @@ class CozyNpc {
     this.lossRecorded = false;
     this.ignoreObstacles = false;
     this.zoneMoveMode = "frontline";
-    this.frontlinePatrolTimer = randomInRange(0.35, 0.7);
+    this.frontlinePatrolTimer = 0;
   }
 
   beginProcession({ startX, startY, target, speed } = {}) {
@@ -10530,6 +10556,7 @@ class CozyNpc {
 
   updateWander(dt) {
     this.animator.setState("walk");
+    this.patrolClock = (this.patrolClock || 0) + dt * 1.45;
     if ((this.formationWarmupTimer || 0) > 0 && this.formationAnchor) {
       this.formationWarmupTimer = Math.max(0, this.formationWarmupTimer - dt);
       this.x = this.formationAnchor.x;
@@ -10543,61 +10570,27 @@ class CozyNpc {
     const threatRetreatTarget = getNpcThreatAvoidanceTarget(this);
     if (threatRetreatTarget) {
       this.safeRecoveryTimer = 0;
-      this.retreatCommitTimer = Math.max(this.retreatCommitTimer || 0, 0.32);
-      if (this.zoneMoveMode !== "retreat") {
-        this.zoneMoveMode = "retreat";
-        this.target = threatRetreatTarget;
-        this.idleTimer = 0;
-      }
+      this.zoneMoveMode = "retreat";
     } else {
       this.safeRecoveryTimer = Math.min(1, (this.safeRecoveryTimer || 0) + dt);
-    }
-    const home = getNpcHomeBounds();
-    const anchor = this.formationAnchor || null;
-    const retreatLocked = (this.retreatCommitTimer || 0) > 0;
-    if (
-      !threatRetreatTarget &&
-      !retreatLocked &&
-      this.zoneMoveMode === "frontline" &&
-      (this.frontlinePatrolTimer || 0) <= 0
-    ) {
-      assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
-      this.idleTimer = 0;
-    }
-    if (!threatRetreatTarget && !retreatLocked && home && anchor && (this.safeRecoveryTimer || 0) >= 0.18) {
-      const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
-      const currentRadius = Math.hypot(this.x - home.x, this.y - home.y);
-      const targetRadius = this.target
-        ? Math.hypot(this.target.x - home.x, this.target.y - home.y)
-        : 0;
-      const wantsFrontline =
-        currentRadius < anchorRadius * 0.94 ||
-        targetRadius < anchorRadius * 0.97;
-      if (wantsFrontline && this.zoneMoveMode !== "frontline") {
-        assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
-        this.idleTimer = 0;
-        this.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
+      if ((this.safeRecoveryTimer || 0) >= 0.22) {
+        this.zoneMoveMode = "frontline";
       }
     }
-    if (this.idleTimer > 0) {
-      this.idleTimer -= dt;
+    this.target =
+      this.zoneMoveMode === "retreat" && threatRetreatTarget
+        ? threatRetreatTarget
+        : getNpcFrontlineDesiredPoint(this);
+    if (!this.target) {
       this.animator.setMoving(false);
+      this.updateFaithVisibility(false);
       return;
     }
-
     const dx = this.target.x - this.x;
     const dy = this.target.y - this.y;
     const distance = Math.hypot(dx, dy);
 
-    if (!distance || distance < 10) {
-      if (this.zoneMoveMode === "retreat" && threatRetreatTarget) {
-        this.target = threatRetreatTarget;
-        this.idleTimer = randomInRange(0.12, 0.24);
-      } else {
-        assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
-        this.idleTimer = randomInRange(0.06, 0.18);
-        this.zonePatrolCommitTimer = randomInRange(0.38, 0.62);
-      }
+    if (!distance || distance < 4) {
       this.animator.setMoving(false);
       this.updateFaithVisibility(false);
       return;
@@ -10608,7 +10601,7 @@ class CozyNpc {
     const dirX = dx / distance;
     const dirY = dy / distance;
 
-    const movementSpeed = this.speed * (threatRetreatTarget ? 1.28 : 1.08);
+    const movementSpeed = this.speed * (this.zoneMoveMode === "retreat" ? 1.3 : 1.04);
     this.x += dirX * movementSpeed * dt;
     this.y += dirY * movementSpeed * dt;
     this.animator.setDirectionFromVector(dirX, dirY);
@@ -10621,13 +10614,9 @@ class CozyNpc {
     if (travelled < 0.5) {
       this.stuckTimer += dt;
       if (this.stuckTimer > 1.2) {
-        if (this.zoneMoveMode === "retreat" && threatRetreatTarget) {
-          this.target = threatRetreatTarget;
-          this.idleTimer = randomInRange(0.12, 0.22);
-        } else {
-          assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
-          this.idleTimer = randomInRange(0.05, 0.16);
-          this.zonePatrolCommitTimer = randomInRange(0.32, 0.55);
+        this.patrolClock += Math.PI * 0.65;
+        if (this.zoneMoveMode !== "retreat") {
+          this.zonePatrolSide *= -1;
         }
         this.stuckTimer = 0;
       }
@@ -12448,10 +12437,11 @@ function applyFormationAnchors() {
     npc.baseX = npc.x;
     npc.baseY = npc.y;
     npc.zonePatrolSide = idx % 2 === 0 ? -1 : 1;
-    assignNpcFrontlinePatrolTarget(npc);
+    npc.patrolClock = (idx / Math.max(1, npcs.length)) * Math.PI * 2;
+    npc.target = getNpcFrontlineDesiredPoint(npc);
     npc.state = "wander";
     npc.formationWarmupTimer = 0;
-    npc.idleTimer = randomInRange(0.08, 0.22);
+    npc.idleTimer = 0;
     npc.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
     npc.zoneMoveMode = "frontline";
     npc.hasSwappedThisBattle = false;
