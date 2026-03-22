@@ -1696,8 +1696,8 @@ function computeFormationAnchors(count) {
     case "circle":
     default: {
       const radius = Math.min(rx, ry) * 0.5 * spreadScale;
-      const start = (150 * Math.PI) / 180;
-      const end = (390 * Math.PI) / 180;
+      const start = (210 * Math.PI) / 180;
+      const end = (-30 * Math.PI) / 180;
       for (let i = 0; i < count; i += 1) {
         const t = count === 1 ? 0.5 : i / (count - 1);
         const angle = start + (end - start) * t;
@@ -1712,6 +1712,34 @@ function computeFormationAnchors(count) {
   }
   formationState.anchors = anchors;
   return anchors;
+}
+
+function getNpcZoneWanderPoint(npc, { inwardBias = 0, angleJitterScale = 0.42, edgeBias = 0 } = {}) {
+  const home = getNpcHomeBounds();
+  const anchor = npc?.formationAnchor || null;
+  if (!home || !anchor) {
+    return {
+      x: home?.x || npc?.x || 0,
+      y: home?.y || npc?.y || 0,
+    };
+  }
+  const count = Math.max(1, npcs.length || 1);
+  const sectorSpan = ((210 - (-30)) * Math.PI) / 180 / Math.max(1, count - 1 || 1);
+  const baseAngle = Number.isFinite(anchor.angle)
+    ? anchor.angle
+    : Math.atan2(anchor.y - home.y, anchor.x - home.x);
+  const angle = baseAngle + randomInRange(-sectorSpan, sectorSpan) * angleJitterScale;
+  const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
+  const radiusMin = Math.max(28, anchorRadius * Math.max(0.32, 0.72 - inwardBias * 0.35));
+  const radiusMax = Math.max(radiusMin + 8, anchorRadius * Math.max(0.48, 1.02 - inwardBias * 0.2));
+  const edgeBlend = Math.max(0, Math.min(1, edgeBias));
+  const blendedRadiusMin = mixLinear(radiusMin, radiusMax, edgeBlend * 0.82);
+  const radius = randomInRange(blendedRadiusMin, radiusMax);
+  return clampPointToBounds(
+    home,
+    home.x + Math.cos(angle) * radius,
+    home.y + Math.sin(angle) * radius,
+  );
 }
 
 function resetFormationSwaps() {
@@ -1820,6 +1848,8 @@ function mixLinear(a, b, t) {
 
 function updateNpcFormationPressure(dt) {
   if (!formationState?.current || !npcs.length) return;
+  const home = getNpcHomeBounds();
+  if (!home) return;
   const targetPressure = computeNpcHomeThreatPressure();
   const currentPressure = Number.isFinite(formationState.homePressure)
     ? formationState.homePressure
@@ -10483,9 +10513,11 @@ class CozyNpc {
     const anchor = this.formationAnchor || null;
     const jitter = formationState?.jitterRadius ?? 0;
     if (anchor) {
+      const inwardBias = Math.max(0, Math.min(1, formationState?.homePressure || 0));
+      const point = getNpcZoneWanderPoint(this, { inwardBias });
       return {
-        x: clamp(anchor.x + randomInRange(-jitter, jitter), bounds.minX, bounds.maxX),
-        y: clamp(anchor.y + randomInRange(-jitter, jitter), bounds.minY, bounds.maxY),
+        x: clamp(point.x + randomInRange(-jitter * 0.35, jitter * 0.35), bounds.minX, bounds.maxX),
+        y: clamp(point.y + randomInRange(-jitter * 0.25, jitter * 0.25), bounds.minY, bounds.maxY),
       };
     }
     return {
@@ -10495,11 +10527,7 @@ class CozyNpc {
   }
 
   getReturnPoint() {
-    const { x: centerX, y: centerY, radius } = getNpcHomeBounds();
-    return {
-      x: randomInRange(centerX - Math.min(60, radius * 0.8), centerX + Math.min(60, radius * 0.8)),
-      y: randomInRange(centerY - Math.min(60, radius * 0.8), centerY + Math.min(60, radius * 0.8)),
-    };
+    return getNpcZoneWanderPoint(this, { inwardBias: 0.5, angleJitterScale: 0.24 });
   }
 
   getExitPoint() {
@@ -12199,10 +12227,13 @@ function applyFormationAnchors() {
     const anchor = anchors[idx % anchors.length];
     if (!anchor || !npc) return;
     npc.formationAnchor = { ...anchor };
-    const jitX = randomInRange(-jitter, jitter);
-    const jitY = randomInRange(-jitter, jitter);
-    npc.x = anchor.x + jitX;
-    npc.y = anchor.y + jitY;
+    const startPoint = getNpcZoneWanderPoint(npc, {
+      inwardBias: 0.02,
+      angleJitterScale: 0.12,
+      edgeBias: 1,
+    });
+    npc.x = startPoint.x + randomInRange(-jitter * 0.2, jitter * 0.2);
+    npc.y = startPoint.y + randomInRange(-jitter * 0.15, jitter * 0.15);
     npc.baseX = npc.x;
     npc.baseY = npc.y;
     npc.target = npc.getRandomWalkPoint();

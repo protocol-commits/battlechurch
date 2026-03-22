@@ -3120,25 +3120,93 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof getNpcHomeBounds !== "function") return;
     const bounds = getNpcHomeBounds();
     if (!bounds) return;
-    return; // Border hidden per request; keep code for future toggles.
+    const bindings = requireBindings();
+    const battleNpcs = Array.isArray(bindings?.npcs) ? bindings.npcs.filter(Boolean) : [];
+    const zoneNpcs = battleNpcs.filter((npc) => npc?.formationAnchor);
+    const lowerArcStart = (210 * Math.PI) / 180;
+    const lowerArcEnd = (-30 * Math.PI) / 180;
+    const totalZones = Math.max(1, zoneNpcs.length || 5);
+    const zoneStep = totalZones > 1 ? (lowerArcEnd - lowerArcStart) / (totalZones - 1) : 0;
+    const outerRadius = bounds.radius;
+    const innerRadius = Math.max(36, outerRadius * 0.42);
+    const zoneColors = [
+      "rgba(255, 120, 120, 0.11)",
+      "rgba(255, 190, 110, 0.11)",
+      "rgba(255, 235, 120, 0.11)",
+      "rgba(120, 220, 160, 0.11)",
+      "rgba(120, 190, 255, 0.11)",
+      "rgba(190, 140, 255, 0.11)",
+    ];
     ctx.save();
-    ctx.setLineDash([8, 6]);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(120, 220, 255, 0.1)";
-    ctx.beginPath();
-    const rx = bounds.radius * 0.9; // horizontal radius
-    const ry = bounds.radius * 0.6; // vertical radius
-    if (typeof ctx.ellipse === "function") {
-      ctx.ellipse(bounds.x, bounds.y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.lineJoin = "round";
+    for (let i = 0; i < totalZones; i += 1) {
+      const centerAngle =
+        zoneNpcs[i]?.formationAnchor && Number.isFinite(zoneNpcs[i].formationAnchor.angle)
+          ? zoneNpcs[i].formationAnchor.angle
+          : lowerArcStart + zoneStep * i;
+      const prevCenter =
+        i > 0
+          ? (
+              zoneNpcs[i - 1]?.formationAnchor && Number.isFinite(zoneNpcs[i - 1].formationAnchor.angle)
+                ? zoneNpcs[i - 1].formationAnchor.angle
+                : lowerArcStart + zoneStep * (i - 1)
+            )
+          : null;
+      const nextCenter =
+        i < totalZones - 1
+          ? (
+              zoneNpcs[i + 1]?.formationAnchor && Number.isFinite(zoneNpcs[i + 1].formationAnchor.angle)
+                ? zoneNpcs[i + 1].formationAnchor.angle
+                : lowerArcStart + zoneStep * (i + 1)
+            )
+          : null;
+      const zoneStart = i === 0 ? lowerArcStart - zoneStep * 0.5 : (prevCenter + centerAngle) * 0.5;
+      const zoneEnd = i === totalZones - 1 ? lowerArcEnd + zoneStep * 0.5 : (centerAngle + nextCenter) * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(bounds.x + Math.cos(zoneStart) * innerRadius, bounds.y + Math.sin(zoneStart) * innerRadius);
+      ctx.arc(bounds.x, bounds.y, outerRadius, zoneStart, zoneEnd);
+      ctx.lineTo(bounds.x + Math.cos(zoneEnd) * innerRadius, bounds.y + Math.sin(zoneEnd) * innerRadius);
+      ctx.arc(bounds.x, bounds.y, innerRadius, zoneEnd, zoneStart, true);
+      ctx.closePath();
+      ctx.fillStyle = zoneColors[i % zoneColors.length];
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(bounds.x + Math.cos(zoneStart) * innerRadius, bounds.y + Math.sin(zoneStart) * innerRadius);
+      ctx.lineTo(bounds.x + Math.cos(zoneStart) * outerRadius, bounds.y + Math.sin(zoneStart) * outerRadius);
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-    } else {
-      ctx.save();
-      ctx.translate(bounds.x, bounds.y);
-      ctx.scale(rx / Math.max(1, ry), 1);
-      ctx.arc(0, 0, ry, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
+
+      if (i === totalZones - 1) {
+        ctx.beginPath();
+        ctx.moveTo(bounds.x + Math.cos(zoneEnd) * innerRadius, bounds.y + Math.sin(zoneEnd) * innerRadius);
+        ctx.lineTo(bounds.x + Math.cos(zoneEnd) * outerRadius, bounds.y + Math.sin(zoneEnd) * outerRadius);
+        ctx.stroke();
+      }
+
+      const labelRadius = outerRadius - 26;
+      const labelX = bounds.x + Math.cos(centerAngle) * labelRadius;
+      const labelY = bounds.y + Math.sin(centerAngle) * labelRadius;
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.font = `700 14px ${bindings?.UI_FONT_FAMILY || "sans-serif"}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(i + 1), labelX, labelY);
     }
+
+    ctx.setLineDash([10, 8]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(120, 220, 255, 0.85)";
+    ctx.beginPath();
+    ctx.arc(bounds.x, bounds.y, outerRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = "rgba(255, 217, 120, 0.6)";
+    ctx.beginPath();
+    ctx.arc(bounds.x, bounds.y, innerRadius, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
 
