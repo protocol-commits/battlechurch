@@ -6283,12 +6283,14 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       delta: healthReward,
       kind: "congregation",
       affectsTotal: true,
+      forceInlineValue: true,
     });
     recapLines.push({
       label: "Guest Invited:",
       delta: memberDelta,
       kind: "congregation",
       affectsTotal: true,
+      forceInlineValue: true,
     });
   }
   if (bossBonus !== 0) {
@@ -6297,28 +6299,9 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       delta: bossBonus,
       kind: "congregation",
       affectsTotal: true,
+      forceInlineValue: true,
     });
   }
-  const missionEnemiesKilled = Number.isFinite(summary?.battleEnemiesDefeated)
-    ? Math.max(0, Math.round(summary.battleEnemiesDefeated))
-    : 0;
-  const missionMaxCombo = Number.isFinite(summary?.battleMaxCombo)
-    ? Math.max(0, Math.round(summary.battleMaxCombo))
-    : 0;
-  recapLines.push({
-    label: "Enemies Killed:",
-    delta: missionEnemiesKilled,
-    kind: "mission",
-    affectsTotal: false,
-    forceSignless: true,
-  });
-  recapLines.push({
-    label: "Max Combo:",
-    delta: missionMaxCombo,
-    kind: "mission",
-    affectsTotal: false,
-    forceSignless: true,
-  });
   const recapTitle = "Battle Report";
   const recapStartCount = Math.round(congregationTotal - totalDelta);
   if (announcement) {

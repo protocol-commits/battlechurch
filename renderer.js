@@ -1743,6 +1743,62 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const highlightValueColor = "#FFD978";
   const highlightValueFlash = "#FFE5A6";
   const dividerColor = "rgba(255, 217, 120, 0.5)";
+  const congregationMembers = Array.isArray(requireBindings().congregationMembers)
+    ? requireBindings().congregationMembers
+    : [];
+  const drawInlineCongregationSprites = (startX, baselineY, count) => {
+    const safeCount = Math.max(0, Math.round(count || 0));
+    if (!safeCount || !congregationMembers.length) return 0;
+    const spriteScale = 1;
+    const spriteWidth = Math.round(32 * spriteScale);
+    const spriteGap = 16;
+    const drawY = baselineY - 18;
+    const framePadX = 4;
+    const framePadY = 3;
+    const frameStepX = spriteWidth + framePadX * 2 + spriteGap;
+    const rowStepY = spriteWidth + framePadY * 2 + 8;
+    const maxRowWidth = Math.max(frameStepX, contentX + contentWidth - startX);
+    const maxPerRow = Math.max(1, Math.floor(maxRowWidth / frameStepX));
+    let maxDrawX = startX;
+    let maxDrawY = drawY;
+    for (let spriteIndex = 0; spriteIndex < safeCount; spriteIndex += 1) {
+      const member = congregationMembers[spriteIndex % congregationMembers.length];
+      if (!member) continue;
+      const col = spriteIndex % maxPerRow;
+      const row = Math.floor(spriteIndex / maxPerRow);
+      const spriteDrawX = startX + col * frameStepX;
+      const spriteDrawY = drawY + row * rowStepY;
+      const animator = member.animator;
+      const frameX = spriteDrawX - framePadX;
+      const frameY = spriteDrawY - spriteWidth / 2 - framePadY;
+      const frameWidth = spriteWidth + framePadX * 2;
+      const frameHeight = spriteWidth + framePadY * 2;
+      ctx.save();
+      ctx.fillStyle = "rgba(8, 12, 20, 0.72)";
+      ctx.strokeStyle = "rgba(255, 217, 120, 0.5)";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, frameX, frameY, frameWidth, frameHeight, 6, true, true);
+      ctx.restore();
+      if (animator && typeof animator.draw === "function") {
+        const previousScale = animator.scale;
+        const previousDirection = animator.direction;
+        const previousMoving = animator.moving;
+        animator.scale = spriteScale;
+        animator.setMoving(false);
+        animator.direction = "down";
+        animator.draw(ctx, spriteDrawX + spriteWidth / 2, spriteDrawY, { alpha: 1 });
+        animator.direction = previousDirection;
+        animator.setMoving(previousMoving);
+        animator.scale = previousScale;
+      }
+      maxDrawX = Math.max(maxDrawX, spriteDrawX + frameWidth);
+      maxDrawY = Math.max(maxDrawY, spriteDrawY + spriteWidth / 2 + framePadY);
+    }
+    return {
+      width: Math.max(0, maxDrawX - startX),
+      height: Math.max(rowStepY, maxDrawY - (drawY - spriteWidth / 2 - framePadY)),
+    };
+  };
 
   const drawHighlightedLabel = (textLine, x, y, highlightText) => {
     if (!highlightText) {
@@ -1951,6 +2007,16 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
           recapTallyState.lastAppliedIndex === i;
         ctx.fillStyle = highlightValue ? highlightValueFlash : highlightValueColor;
         ctx.fillText(valueText, valueX, valueY);
+        if (line.kind === "congregation" && Number.isFinite(line.delta) && line.delta > 0) {
+          const spriteBlock = drawInlineCongregationSprites(
+            valueX + ctx.measureText(valueText).width + 14,
+            valueY,
+            line.delta,
+          );
+          if (spriteBlock && spriteBlock.height > lineSpacing) {
+            cursorY += spriteBlock.height - lineSpacing;
+          }
+        }
         if (
           recapTallyState.pendingGhost &&
           recapTallyState.pendingGhost.index === i &&
@@ -1971,6 +2037,16 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       valueY = cursorY;
       ctx.fillStyle = highlightValue ? highlightValueFlash : highlightValueColor;
       ctx.fillText(valueText, valueX, valueY);
+      if (line.kind === "congregation" && Number.isFinite(line.delta) && line.delta > 0) {
+        const spriteBlock = drawInlineCongregationSprites(
+          valueX + ctx.measureText(valueText).width + 14,
+          valueY,
+          line.delta,
+        );
+        if (spriteBlock && spriteBlock.height > lineSpacing) {
+          cursorY += spriteBlock.height - lineSpacing;
+        }
+      }
       if (
         recapTallyState.pendingGhost &&
         recapTallyState.pendingGhost.index === i &&
@@ -5852,65 +5928,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           }
         });
 
-        const recapStartCount = Number.isFinite(levelAnnouncements?.[0]?.recapData?.startCount)
-          ? Math.round(levelAnnouncements[0].recapData.startCount)
-          : null;
-        const startCount =
-          Number.isFinite(recapStartCount) && recapStartCount > 0
-            ? Math.min(recapStartCount, congregationMembers.length)
-            : Math.min(congregationMembers.length, CONGREGATION_MEMBER_COUNT);
-        const bonusCount = Math.max(
-          0,
-          Math.min(
-            congregationMembers.length,
-            Number.isFinite(recapTallyState.visibleBonusCount)
-              ? recapTallyState.visibleBonusCount
-              : 0,
-          ),
-        );
-        if (bonusCount > 0) {
-          const spacingX = 34;
-          const spacingY = 38;
-          const maxCols = 6;
-          const regionLeft = canvas.width * 0.8;
-          const regionTop = canvas.height * 0.8;
-          const regionWidth = canvas.width * 0.2;
-          const regionHeight = canvas.height * 0.2;
-          const baseX = regionLeft + regionWidth * 0.5;
-          const baseY = regionTop + regionHeight * 0.5;
-          const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-          const bonusNpcs = recapTallyState.bonusNpcs || [];
-          while (bonusNpcs.length < bonusCount) {
-            const idx = bonusNpcs.length;
-            const col = idx % maxCols;
-            const row = Math.floor(idx / maxCols);
-            bonusNpcs.push({
-              col,
-              row,
-              phase: Math.random() * Math.PI * 2,
-              speed: 0.8 + Math.random() * 0.6,
-              radius: 4 + Math.random() * 6,
-            });
-          }
-          if (bonusNpcs.length > bonusCount) bonusNpcs.length = bonusCount;
-          recapTallyState.bonusNpcs = bonusNpcs;
-          for (let i = 0; i < bonusCount; i += 1) {
-            const member = congregationMembers[i % congregationMembers.length];
-            if (!member) continue;
-            const npc = bonusNpcs[i];
-            const col = npc.col;
-            const row = npc.row;
-            const baseDrawX = baseX - col * spacingX + effectiveCameraX;
-            const baseDrawY = baseY - row * spacingY;
-            const wobble = nowSec * npc.speed + npc.phase;
-            const drawX = baseDrawX + Math.cos(wobble) * npc.radius;
-            const drawY = baseDrawY + Math.sin(wobble * 1.2) * npc.radius;
-            const drawAlpha = npcFadeAlpha;
-            if (drawAlpha > 0) {
-              member.animator.draw(ctx, drawX, drawY, { alpha: drawAlpha });
-            }
-          }
-        }
       } else {
         congregationFadeState.active = false;
         congregationFadeState.memberCount = 0;
