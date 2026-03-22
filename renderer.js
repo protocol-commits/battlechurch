@@ -3122,7 +3122,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (!bounds) return;
     const bindings = requireBindings();
     const battleNpcs = Array.isArray(bindings?.npcs) ? bindings.npcs.filter(Boolean) : [];
-    const zoneNpcs = battleNpcs.filter((npc) => npc?.formationAnchor);
+    const zoneNpcs = battleNpcs
+      .filter((npc) => npc?.formationAnchor)
+      .sort(
+        (a, b) =>
+          (a?.formationAnchor?.zoneIndex ?? Number.MAX_SAFE_INTEGER) -
+          (b?.formationAnchor?.zoneIndex ?? Number.MAX_SAFE_INTEGER),
+      );
     const lowerArcStart = (210 * Math.PI) / 180;
     const lowerArcEnd = (-30 * Math.PI) / 180;
     const totalZones = Math.max(1, zoneNpcs.length || 5);
@@ -3140,28 +3146,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.lineJoin = "round";
     for (let i = 0; i < totalZones; i += 1) {
+      const anchor = zoneNpcs[i]?.formationAnchor || null;
+      const zoneIndex = Number.isFinite(anchor?.zoneIndex) ? anchor.zoneIndex : i;
       const centerAngle =
-        zoneNpcs[i]?.formationAnchor && Number.isFinite(zoneNpcs[i].formationAnchor.angle)
-          ? zoneNpcs[i].formationAnchor.angle
-          : lowerArcStart + zoneStep * i;
-      const prevCenter =
-        i > 0
-          ? (
-              zoneNpcs[i - 1]?.formationAnchor && Number.isFinite(zoneNpcs[i - 1].formationAnchor.angle)
-                ? zoneNpcs[i - 1].formationAnchor.angle
-                : lowerArcStart + zoneStep * (i - 1)
-            )
-          : null;
-      const nextCenter =
-        i < totalZones - 1
-          ? (
-              zoneNpcs[i + 1]?.formationAnchor && Number.isFinite(zoneNpcs[i + 1].formationAnchor.angle)
-                ? zoneNpcs[i + 1].formationAnchor.angle
-                : lowerArcStart + zoneStep * (i + 1)
-            )
-          : null;
-      const zoneStart = i === 0 ? lowerArcStart - zoneStep * 0.5 : (prevCenter + centerAngle) * 0.5;
-      const zoneEnd = i === totalZones - 1 ? lowerArcEnd + zoneStep * 0.5 : (centerAngle + nextCenter) * 0.5;
+        Number.isFinite(anchor?.angle) ? anchor.angle : lowerArcStart + zoneStep * zoneIndex;
+      const halfSpan =
+        Number.isFinite(anchor?.zoneHalfSpan) ? anchor.zoneHalfSpan : Math.abs(zoneStep) * 0.5;
+      const zoneStart = centerAngle - halfSpan;
+      const zoneEnd = centerAngle + halfSpan;
       ctx.beginPath();
       ctx.moveTo(bounds.x + Math.cos(zoneStart) * innerRadius, bounds.y + Math.sin(zoneStart) * innerRadius);
       ctx.arc(bounds.x, bounds.y, outerRadius, zoneStart, zoneEnd);

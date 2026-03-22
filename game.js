@@ -1683,12 +1683,17 @@ function computeFormationAnchors(count) {
       // Smile: arc that faces left/right/bottom; use angles from 210° to -30°
       const start = (210 * Math.PI) / 180;
       const end = (-30 * Math.PI) / 180;
+      const zoneStep = count > 1 ? (end - start) / (count - 1) : 0;
       for (let i = 0; i < count; i += 1) {
         const t = count === 1 ? 0.5 : i / (count - 1);
         const angle = start + (end - start) * t;
         anchors.push({
           x: cx + Math.cos(angle) * radius,
           y: cy + Math.sin(angle) * radius,
+          angle,
+          zoneHalfSpan: Math.abs(zoneStep) * 0.5,
+          zoneIndex: i,
+          zoneCount: count,
         });
       }
       break;
@@ -1707,6 +1712,8 @@ function computeFormationAnchors(count) {
           y: cy + Math.sin(angle) * radius,
           angle,
           zoneHalfSpan: Math.abs(zoneStep) * 0.5,
+          zoneIndex: i,
+          zoneCount: count,
         });
       }
       break;
@@ -1788,6 +1795,58 @@ function getNpcZoneReadyPoint(npc) {
     );
   }
   return point;
+}
+
+function getNpcDistinctReadyPoint(npc, minTravel = 28) {
+  if (!npc) return null;
+  let bestPoint = null;
+  let bestDistance = -Infinity;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const point = getNpcZoneReadyPoint(npc);
+    if (!point) continue;
+    const distance = Math.hypot(point.x - (npc.x || point.x), point.y - (npc.y || point.y));
+    if (distance >= minTravel) {
+      return point;
+    }
+    if (distance > bestDistance) {
+      bestDistance = distance;
+      bestPoint = point;
+    }
+  }
+  return bestPoint || getNpcZoneReadyPoint(npc);
+}
+
+function getNpcZonePatrolPoint(npc, side = 1) {
+  const home = getNpcHomeBounds();
+  const anchor = npc?.formationAnchor || null;
+  if (!home || !anchor) return getNpcZoneReadyPoint(npc);
+  const baseAngle = Number.isFinite(anchor.angle)
+    ? anchor.angle
+    : Math.atan2(anchor.y - home.y, anchor.x - home.x);
+  const halfSpan = Number.isFinite(anchor.zoneHalfSpan) ? anchor.zoneHalfSpan : 0.35;
+  const patrolSide = side >= 0 ? 1 : -1;
+  const angle = baseAngle + halfSpan * 0.72 * patrolSide;
+  const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
+  const radius = anchorRadius * 0.985;
+  return clampPointToBounds(
+    home,
+    home.x + Math.cos(angle) * radius,
+    home.y + Math.sin(angle) * radius,
+  );
+}
+
+function assignNpcFrontlinePatrolTarget(npc, { forceFlip = false } = {}) {
+  if (!npc) return null;
+  if (!Number.isFinite(npc.zonePatrolSide) || npc.zonePatrolSide === 0) {
+    npc.zonePatrolSide = Math.random() < 0.5 ? -1 : 1;
+  } else if (forceFlip) {
+    npc.zonePatrolSide *= -1;
+  }
+  const target = getNpcZonePatrolPoint(npc, npc.zonePatrolSide);
+  npc.target = target;
+  npc.zoneMoveMode = "frontline";
+  npc.frontlinePatrolTimer = randomInRange(0.8, 1.4);
+  return target;
 }
 
 function resetFormationSwaps() {
@@ -1928,9 +1987,12 @@ function updateNpcFormationPressure(dt) {
       x: mixLinear(prevAnchor.x, anchor.x, Math.min(1, dt * 3.5)),
       y: mixLinear(prevAnchor.y, anchor.y, Math.min(1, dt * 3.5)),
       angle: Number.isFinite(anchor.angle) ? anchor.angle : prevAnchor.angle,
+      zoneHalfSpan: Number.isFinite(anchor.zoneHalfSpan) ? anchor.zoneHalfSpan : prevAnchor.zoneHalfSpan,
+      zoneIndex: Number.isFinite(anchor.zoneIndex) ? anchor.zoneIndex : prevAnchor.zoneIndex,
+      zoneCount: Number.isFinite(anchor.zoneCount) ? anchor.zoneCount : prevAnchor.zoneCount,
     };
     if (!npc.target) {
-      npc.target = npc.getRandomWalkPoint();
+      assignNpcFrontlinePatrolTarget(npc);
       return;
     }
     const targetDx = npc.target.x - npc.formationAnchor.x;
@@ -1938,7 +2000,7 @@ function updateNpcFormationPressure(dt) {
     const anchorShift = Math.hypot(anchor.x - prevAnchor.x, anchor.y - prevAnchor.y);
     const targetDistanceFromAnchor = Math.hypot(targetDx, targetDy);
     if (anchorShift > retargetThreshold || targetDistanceFromAnchor > home.radius * 0.7) {
-      npc.target = getNpcZoneReadyPoint(npc);
+      assignNpcFrontlinePatrolTarget(npc);
     }
   });
 }
@@ -10011,6 +10073,8 @@ class CozyNpc {
     this.retreatCommitTimer = 0;
     this.safeRecoveryTimer = 0;
     this.zoneMoveMode = "frontline";
+    this.frontlinePatrolTimer = randomInRange(0.35, 0.7);
+    this.zonePatrolSide = Math.random() < 0.5 ? -1 : 1;
   }
 
   needsAid() {
@@ -10058,8 +10122,8 @@ class CozyNpc {
     if (this.departed) return;
     this.needsPlayerRestore = false;
     this.state = "wander";
-    this.target = this.getRandomWalkPoint();
-    this.idleTimer = randomInRange(0.6, 1.2);
+    this.target = getNpcZonePatrolPoint(this, this.zonePatrolSide || 1);
+    this.idleTimer = randomInRange(0.08, 0.22);
     this.stuckTimer = 0;
     this.processionTarget = null;
     this.processionSpeed = null;
@@ -10072,6 +10136,7 @@ class CozyNpc {
     this.lossRecorded = false;
     this.ignoreObstacles = false;
     this.zoneMoveMode = "frontline";
+    this.frontlinePatrolTimer = randomInRange(0.35, 0.7);
   }
 
   beginProcession({ startX, startY, target, speed } = {}) {
@@ -10362,6 +10427,7 @@ class CozyNpc {
     this.recoveryTextCooldown = Math.max(0, this.recoveryTextCooldown - dt);
     this.zonePatrolCommitTimer = Math.max(0, (this.zonePatrolCommitTimer || 0) - dt);
     this.retreatCommitTimer = Math.max(0, (this.retreatCommitTimer || 0) - dt);
+    this.frontlinePatrolTimer = Math.max(0, (this.frontlinePatrolTimer || 0) - dt);
     const timerScale = getNpcTimerScale();
     this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
@@ -10464,6 +10530,15 @@ class CozyNpc {
     const home = getNpcHomeBounds();
     const anchor = this.formationAnchor || null;
     const retreatLocked = (this.retreatCommitTimer || 0) > 0;
+    if (
+      !threatRetreatTarget &&
+      !retreatLocked &&
+      this.zoneMoveMode === "frontline" &&
+      (this.frontlinePatrolTimer || 0) <= 0
+    ) {
+      assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
+      this.idleTimer = 0;
+    }
     if (!threatRetreatTarget && !retreatLocked && home && anchor && (this.safeRecoveryTimer || 0) >= 0.18) {
       const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
       const currentRadius = Math.hypot(this.x - home.x, this.y - home.y);
@@ -10474,9 +10549,7 @@ class CozyNpc {
         currentRadius < anchorRadius * 0.94 ||
         targetRadius < anchorRadius * 0.97;
       if (wantsFrontline && this.zoneMoveMode !== "frontline") {
-        const readyTarget = getNpcZoneReadyPoint(this);
-        this.zoneMoveMode = "frontline";
-        this.target = readyTarget;
+        assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
         this.idleTimer = 0;
         this.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
       }
@@ -10496,8 +10569,7 @@ class CozyNpc {
         this.target = threatRetreatTarget;
         this.idleTimer = randomInRange(0.12, 0.24);
       } else {
-        this.zoneMoveMode = "frontline";
-        this.target = getNpcZoneReadyPoint(this);
+        assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
         this.idleTimer = randomInRange(0.06, 0.18);
         this.zonePatrolCommitTimer = randomInRange(0.38, 0.62);
       }
@@ -10528,8 +10600,7 @@ class CozyNpc {
           this.target = threatRetreatTarget;
           this.idleTimer = randomInRange(0.12, 0.22);
         } else {
-          this.zoneMoveMode = "frontline";
-          this.target = getNpcZoneReadyPoint(this);
+          assignNpcFrontlinePatrolTarget(this, { forceFlip: true });
           this.idleTimer = randomInRange(0.05, 0.16);
           this.zonePatrolCommitTimer = randomInRange(0.32, 0.55);
         }
@@ -12351,7 +12422,8 @@ function applyFormationAnchors() {
     npc.y = anchor.y + randomInRange(-jitter * 0.1, jitter * 0.1);
     npc.baseX = npc.x;
     npc.baseY = npc.y;
-    npc.target = getNpcZoneReadyPoint(npc);
+    npc.zonePatrolSide = idx % 2 === 0 ? -1 : 1;
+    assignNpcFrontlinePatrolTarget(npc);
     npc.state = "wander";
     npc.formationWarmupTimer = 0;
     npc.idleTimer = randomInRange(0.08, 0.22);
