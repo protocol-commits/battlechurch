@@ -10428,18 +10428,25 @@ class CozyNpc {
     this.clearStatusBubble();
   }
 
-  update(dt) {
+  update(dt, options = {}) {
+    const previewOnly = Boolean(options?.previewOnly);
     if (this.departed) return;
-    this.recoveryTextCooldown = Math.max(0, this.recoveryTextCooldown - dt);
-    this.zonePatrolCommitTimer = Math.max(0, (this.zonePatrolCommitTimer || 0) - dt);
-    this.retreatCommitTimer = Math.max(0, (this.retreatCommitTimer || 0) - dt);
-    this.frontlinePatrolTimer = Math.max(0, (this.frontlinePatrolTimer || 0) - dt);
-    const timerScale = getNpcTimerScale();
-    this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
-    this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
-    this.projectileGlowTimer = Math.max(0, (this.projectileGlowTimer || 0) - dt);
-    if (this.faithDamageFlash?.timer > 0) {
-      this.faithDamageFlash.timer = Math.max(0, this.faithDamageFlash.timer - dt);
+    if (previewOnly) {
+      this.zonePatrolCommitTimer = Math.max(0, (this.zonePatrolCommitTimer || 0) - dt);
+      this.retreatCommitTimer = Math.max(0, (this.retreatCommitTimer || 0) - dt);
+      this.frontlinePatrolTimer = Math.max(0, (this.frontlinePatrolTimer || 0) - dt);
+    } else {
+      this.recoveryTextCooldown = Math.max(0, this.recoveryTextCooldown - dt);
+      this.zonePatrolCommitTimer = Math.max(0, (this.zonePatrolCommitTimer || 0) - dt);
+      this.retreatCommitTimer = Math.max(0, (this.retreatCommitTimer || 0) - dt);
+      this.frontlinePatrolTimer = Math.max(0, (this.frontlinePatrolTimer || 0) - dt);
+      const timerScale = getNpcTimerScale();
+      this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
+      this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
+      this.projectileGlowTimer = Math.max(0, (this.projectileGlowTimer || 0) - dt);
+      if (this.faithDamageFlash?.timer > 0) {
+        this.faithDamageFlash.timer = Math.max(0, this.faithDamageFlash.timer - dt);
+      }
     }
     if (this.statusBubblePersistent) {
       this.statusBubbleTimer = Number.POSITIVE_INFINITY;
@@ -13601,10 +13608,13 @@ function resolveCongregationMemberCollisions() {
   last.y = last.baseY + Math.sin(last.bobTimer) * 4;
 }
 
-function updateCozyNpcs(dt) {
+function updateCozyNpcs(dt, options = {}) {
+  const previewOnly = Boolean(options?.previewOnly);
   if (npcsSuspended) return;
-  updateNpcFormationPressure(dt);
-  if (npcWeaponState.timer > 0) {
+  if (!previewOnly) {
+    updateNpcFormationPressure(dt);
+  }
+  if (!previewOnly && npcWeaponState.timer > 0) {
     npcWeaponState.timer = Math.max(0, npcWeaponState.timer - dt);
     if (npcWeaponState.timer <= 0) {
       npcWeaponState.mode = null;
@@ -13614,7 +13624,9 @@ function updateCozyNpcs(dt) {
       npcWeaponState.speedMultiplier = 1;
     }
   }
-  maybeSwapNpcPositions();
+  if (!previewOnly) {
+    maybeSwapNpcPositions();
+  }
   function applyEnemyCollisionDamageToNpc(npcEntity) {
     if (!npcEntity || npcEntity.departed || !npcEntity.active) return;
     let damageApplied = false;
@@ -13702,16 +13714,19 @@ function updateCozyNpcs(dt) {
 
   for (let i = npcs.length - 1; i >= 0; i -= 1) {
     const npc = npcs[i];
-    const timerScale = getNpcTimerScale();
-    npc.damageCooldown = Math.max(0, (npc.damageCooldown || 0) - dt * timerScale);
-    npc.update(dt);
+    if (!previewOnly) {
+      const timerScale = getNpcTimerScale();
+      npc.damageCooldown = Math.max(0, (npc.damageCooldown || 0) - dt * timerScale);
+    }
+    npc.update(dt, { previewOnly });
 
     // Player-touch restores NPCs to full faith
     try {
+      if (!previewOnly) {
       const status = typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
-    const inGraceRush = status?.stage === "graceRush";
-    if (
-      ((npc.state === "lostFaith" || npc.state === "drained") || inGraceRush) &&
+      const inGraceRush = status?.stage === "graceRush";
+      if (
+        ((npc.state === "lostFaith" || npc.state === "drained") || inGraceRush) &&
         player &&
         npc &&
         !npc.departed &&
@@ -13733,6 +13748,7 @@ function updateCozyNpcs(dt) {
           }
         }
       }
+      }
     } catch (err) {
       console.warn && console.warn('npc touch restore failed', err);
     }
@@ -13743,26 +13759,30 @@ function updateCozyNpcs(dt) {
       if (!leaving) {
         // NPCs should collide with the player (can be pushed), enemies (allow push),
         // other weapon pickups, and utility power-ups so they can't pass through pickups.
-        if (player && !npc.departed && npc.active) {
-        resolveEntityCollisions(npc, [player], { allowPush: true, overlapScale: 0.85 });
-      }
-      resolveEntityCollisions(npc, enemies, { allowPush: true, overlapScale: 0.85 });
-      resolveEntityCollisions(npc, weaponPickups, { allowPush: true, overlapScale: 0.9 });
-      resolveEntityCollisions(npc, churchPowerupPickups, { allowPush: true, overlapScale: 0.9 });
-      resolveEntityCollisions(npc, utilityPowerUps, { allowPush: false, overlapScale: 0.9 });
+        if (!previewOnly) {
+          if (player && !npc.departed && npc.active) {
+            resolveEntityCollisions(npc, [player], { allowPush: true, overlapScale: 0.85 });
+          }
+          resolveEntityCollisions(npc, enemies, { allowPush: true, overlapScale: 0.85 });
+          resolveEntityCollisions(npc, weaponPickups, { allowPush: true, overlapScale: 0.9 });
+          resolveEntityCollisions(npc, churchPowerupPickups, { allowPush: true, overlapScale: 0.9 });
+          resolveEntityCollisions(npc, utilityPowerUps, { allowPush: false, overlapScale: 0.9 });
+        }
         // Respect world obstacles (trees, walls, etc.) so NPCs don't walk through them.
         resolveEntityObstacles(npc);
         clampEntityToBounds(npc);
-        applyEnemyCollisionDamageToNpc(npc);
+        if (!previewOnly) {
+          applyEnemyCollisionDamageToNpc(npc);
+        }
       }
     } catch (err) {
       console.warn && console.warn('NPC collision resolution failed', err);
     }
 
     // allow NPCs at full faith to attempt firing at enemies
-    const congregationVolleyPending = updateNpcCongregationVolley(npc);
+    const congregationVolleyPending = previewOnly ? false : updateNpcCongregationVolley(npc);
     try {
-      if (!congregationVolleyPending) {
+      if (!previewOnly && !congregationVolleyPending) {
         npc.tryNpcFire(dt);
       }
     } catch (e) {}
@@ -19222,8 +19242,13 @@ function updateGame(dt) {
     return;
   }
 
-  if (levelAnnouncements.length && Array.isArray(npcs) && npcs.length) {
-    updateCozyNpcs(dt);
+  if (
+    levelAnnouncements.length &&
+    levelAnnouncements[0]?.requiresConfirm &&
+    Array.isArray(npcs) &&
+    npcs.length
+  ) {
+    updateCozyNpcs(dt, { previewOnly: true });
   }
 
   if (handleLevelAnnouncements()) {
