@@ -1746,7 +1746,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const congregationMembers = Array.isArray(requireBindings().congregationMembers)
     ? requireBindings().congregationMembers
     : [];
-  const drawInlineCongregationSprites = (startX, baselineY, count) => {
+  const drawInlineCongregationSprites = (startX, baselineY, count, memberOffset = 0) => {
     const safeCount = Math.max(0, Math.round(count || 0));
     if (!safeCount || !congregationMembers.length) return 0;
     const spriteScale = 1;
@@ -1762,7 +1762,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     let maxDrawX = startX;
     let maxDrawY = drawY;
     for (let spriteIndex = 0; spriteIndex < safeCount; spriteIndex += 1) {
-      const member = congregationMembers[spriteIndex % congregationMembers.length];
+      const member =
+        congregationMembers[(memberOffset + spriteIndex) % congregationMembers.length];
       if (!member) continue;
       const col = spriteIndex % maxPerRow;
       const row = Math.floor(spriteIndex / maxPerRow);
@@ -2008,10 +2009,20 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         ctx.fillStyle = highlightValue ? highlightValueFlash : highlightValueColor;
         ctx.fillText(valueText, valueX, valueY);
         if (line.kind === "congregation" && Number.isFinite(line.delta) && line.delta > 0) {
+          const memberOffset = lines
+            .slice(0, i)
+            .reduce(
+              (sum, priorLine) =>
+                priorLine?.kind === "congregation" && Number.isFinite(priorLine?.delta) && priorLine.delta > 0
+                  ? sum + Math.round(priorLine.delta)
+                  : sum,
+              0,
+            );
           const spriteBlock = drawInlineCongregationSprites(
             valueX + ctx.measureText(valueText).width + 14,
             valueY,
             line.delta,
+            memberOffset,
           );
           if (spriteBlock && spriteBlock.height > lineSpacing) {
             cursorY += spriteBlock.height - lineSpacing;
@@ -2038,10 +2049,20 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = highlightValue ? highlightValueFlash : highlightValueColor;
       ctx.fillText(valueText, valueX, valueY);
       if (line.kind === "congregation" && Number.isFinite(line.delta) && line.delta > 0) {
+        const memberOffset = lines
+          .slice(0, i)
+          .reduce(
+            (sum, priorLine) =>
+              priorLine?.kind === "congregation" && Number.isFinite(priorLine?.delta) && priorLine.delta > 0
+                ? sum + Math.round(priorLine.delta)
+                : sum,
+            0,
+          );
         const spriteBlock = drawInlineCongregationSprites(
           valueX + ctx.measureText(valueText).width + 14,
           valueY,
           line.delta,
+          memberOffset,
         );
         if (spriteBlock && spriteBlock.height > lineSpacing) {
           cursorY += spriteBlock.height - lineSpacing;
