@@ -1698,6 +1698,7 @@ function computeFormationAnchors(count) {
       const radius = Math.min(rx, ry) * 0.5 * spreadScale;
       const start = (210 * Math.PI) / 180;
       const end = (-30 * Math.PI) / 180;
+      const zoneStep = count > 1 ? (end - start) / (count - 1) : 0;
       for (let i = 0; i < count; i += 1) {
         const t = count === 1 ? 0.5 : i / (count - 1);
         const angle = start + (end - start) * t;
@@ -1705,6 +1706,7 @@ function computeFormationAnchors(count) {
           x: cx + Math.cos(angle) * radius,
           y: cy + Math.sin(angle) * radius,
           angle,
+          zoneHalfSpan: Math.abs(zoneStep) * 0.5,
         });
       }
       break;
@@ -1723,12 +1725,11 @@ function getNpcZoneWanderPoint(npc, { inwardBias = 0, angleJitterScale = 0.42, e
       y: home?.y || npc?.y || 0,
     };
   }
-  const count = Math.max(1, npcs.length || 1);
-  const sectorSpan = ((210 - (-30)) * Math.PI) / 180 / Math.max(1, count - 1 || 1);
   const baseAngle = Number.isFinite(anchor.angle)
     ? anchor.angle
     : Math.atan2(anchor.y - home.y, anchor.x - home.x);
-  const angle = baseAngle + randomInRange(-sectorSpan, sectorSpan) * angleJitterScale;
+  const halfSpan = Number.isFinite(anchor.zoneHalfSpan) ? anchor.zoneHalfSpan : 0.35;
+  const angle = baseAngle + randomInRange(-halfSpan, halfSpan) * angleJitterScale;
   const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
   const radiusMin = Math.max(28, anchorRadius * Math.max(0.32, 0.72 - inwardBias * 0.35));
   const radiusMax = Math.max(radiusMin + 8, anchorRadius * Math.max(0.48, 1.02 - inwardBias * 0.2));
@@ -9949,6 +9950,7 @@ class CozyNpc {
     this.knockbackVx = 0;
     this.knockbackVy = 0;
     this.knockbackTimer = 0;
+    this.formationWarmupTimer = 0;
   }
 
   needsAid() {
@@ -10374,6 +10376,15 @@ class CozyNpc {
 
   updateWander(dt) {
     this.animator.setState("walk");
+    if ((this.formationWarmupTimer || 0) > 0 && this.formationAnchor) {
+      this.formationWarmupTimer = Math.max(0, this.formationWarmupTimer - dt);
+      this.x = this.formationAnchor.x;
+      this.y = this.formationAnchor.y;
+      this.target = { x: this.x, y: this.y };
+      this.animator.setMoving(false);
+      this.updateFaithVisibility(false);
+      return;
+    }
     const threatRetreatTarget = getNpcThreatAvoidanceTarget(this);
     if (threatRetreatTarget) {
       this.target = threatRetreatTarget;
@@ -12213,6 +12224,10 @@ function resetCozyNpcs(count = 5) {
   for (let i = 0; i < targetCount; i += 1) {
     if (!spawnCozyNpc()) break;
   }
+  if (!formationState.current) {
+    formationState.current = "circle";
+  }
+  applyFormationAnchors();
 }
 
 function applyFormationAnchors() {
@@ -12227,16 +12242,14 @@ function applyFormationAnchors() {
     const anchor = anchors[idx % anchors.length];
     if (!anchor || !npc) return;
     npc.formationAnchor = { ...anchor };
-    const startPoint = getNpcZoneWanderPoint(npc, {
-      inwardBias: 0.02,
-      angleJitterScale: 0.12,
-      edgeBias: 1,
-    });
-    npc.x = startPoint.x + randomInRange(-jitter * 0.2, jitter * 0.2);
-    npc.y = startPoint.y + randomInRange(-jitter * 0.15, jitter * 0.15);
+    npc.x = anchor.x + randomInRange(-jitter * 0.12, jitter * 0.12);
+    npc.y = anchor.y + randomInRange(-jitter * 0.1, jitter * 0.1);
     npc.baseX = npc.x;
     npc.baseY = npc.y;
-    npc.target = npc.getRandomWalkPoint();
+    npc.target = { x: npc.x, y: npc.y };
+    npc.state = "wander";
+    npc.formationWarmupTimer = 1.1;
+    npc.idleTimer = randomInRange(0.9, 1.4);
     npc.hasSwappedThisBattle = false;
   });
 }
