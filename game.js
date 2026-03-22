@@ -1743,6 +1743,15 @@ function getNpcZoneWanderPoint(npc, { inwardBias = 0, angleJitterScale = 0.42, e
   );
 }
 
+function getNpcZoneReadyPoint(npc) {
+  const pressure = Math.max(0, Math.min(1, formationState?.homePressure || 0));
+  return getNpcZoneWanderPoint(npc, {
+    inwardBias: pressure * 0.18,
+    angleJitterScale: 0.48,
+    edgeBias: 0.92,
+  });
+}
+
 function resetFormationSwaps() {
   if (formationState?.swappedThisBattle) {
     formationState.swappedThisBattle.clear();
@@ -1891,7 +1900,7 @@ function updateNpcFormationPressure(dt) {
     const anchorShift = Math.hypot(anchor.x - prevAnchor.x, anchor.y - prevAnchor.y);
     const targetDistanceFromAnchor = Math.hypot(targetDx, targetDy);
     if (anchorShift > retargetThreshold || targetDistanceFromAnchor > home.radius * 0.7) {
-      npc.target = npc.getRandomWalkPoint();
+      npc.target = getNpcZoneReadyPoint(npc);
     }
   });
 }
@@ -10401,8 +10410,8 @@ class CozyNpc {
     const distance = Math.hypot(dx, dy);
 
     if (!distance || distance < 10) {
-      this.target = this.getRandomWalkPoint();
-      this.idleTimer = randomInRange(0.5, 1.3);
+      this.target = threatRetreatTarget ? this.getRandomWalkPoint() : getNpcZoneReadyPoint(this);
+      this.idleTimer = threatRetreatTarget ? randomInRange(0.35, 0.8) : randomInRange(0.12, 0.35);
       this.animator.setMoving(false);
       this.updateFaithVisibility(false);
       return;
@@ -10426,8 +10435,8 @@ class CozyNpc {
     if (travelled < 0.5) {
       this.stuckTimer += dt;
       if (this.stuckTimer > 1.2) {
-        this.target = this.getRandomWalkPoint();
-        this.idleTimer = randomInRange(0.4, 1.0);
+        this.target = threatRetreatTarget ? this.getRandomWalkPoint() : getNpcZoneReadyPoint(this);
+        this.idleTimer = threatRetreatTarget ? randomInRange(0.3, 0.8) : randomInRange(0.1, 0.28);
         this.stuckTimer = 0;
       }
     } else {
@@ -12246,10 +12255,10 @@ function applyFormationAnchors() {
     npc.y = anchor.y + randomInRange(-jitter * 0.1, jitter * 0.1);
     npc.baseX = npc.x;
     npc.baseY = npc.y;
-    npc.target = { x: npc.x, y: npc.y };
+    npc.target = getNpcZoneReadyPoint(npc);
     npc.state = "wander";
-    npc.formationWarmupTimer = 1.1;
-    npc.idleTimer = randomInRange(0.9, 1.4);
+    npc.formationWarmupTimer = 0;
+    npc.idleTimer = randomInRange(0.08, 0.22);
     npc.hasSwappedThisBattle = false;
   });
 }
@@ -19037,6 +19046,9 @@ function updateGame(dt) {
     return;
   }
 
+  if (levelAnnouncements.length && Array.isArray(npcs) && npcs.length) {
+    updateCozyNpcs(dt);
+  }
 
   if (handleLevelAnnouncements()) {
     return;
