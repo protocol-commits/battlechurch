@@ -1894,8 +1894,14 @@ function maybeSwapNpcPositions(options = {}) {
   if (!lowAnchor || !hiAnchor) return;
   low.formationAnchor = hiAnchor;
   high.formationAnchor = lowAnchor;
-  low.target = low.getRandomWalkPoint();
-  high.target = high.getRandomWalkPoint();
+  low.zoneMoveMode = "frontline";
+  high.zoneMoveMode = "frontline";
+  low.idleTimer = 0;
+  high.idleTimer = 0;
+  low.safeRecoveryTimer = 1;
+  high.safeRecoveryTimer = 1;
+  assignNpcFrontlinePatrolTarget(low, { forceFlip: true });
+  assignNpcFrontlinePatrolTarget(high, { forceFlip: true });
 }
 // Enemy spawning constants (tunable via GameBalance.spawning.*)
 const MAX_ACTIVE_ENEMIES = _gb('spawning.maxActiveEnemies', 120);
