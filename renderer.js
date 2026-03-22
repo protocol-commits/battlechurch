@@ -1804,34 +1804,42 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
   ctx.shadowBlur = 18;
 
+  const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
+  const headingTitleLineHeight = Math.round(titleSize * 1.02);
+  const problemSize = Math.round(TEXT_STYLES.h2.size * 1.18);
+  const headingProblemLineHeight = Math.round(problemSize * 1.12);
+  const headerToProblemGap = Math.round(problemSize * 0.16);
+  const dividerTopGap = Math.round(problemSize * 0.08);
+  const dividerBottomGap = Math.round(countSize * 1.05);
   ctx.fillStyle = baseLabelColor;
   ctx.font = `${TEXT_STYLES.h1.weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const wrappedHeadingTitle = wrapText(ctx, headingTitle, contentWidth);
   wrappedHeadingTitle.forEach((textLine) => {
     ctx.fillText(textLine, contentX, cursorY);
-    cursorY += Math.round(titleSize * 1.02);
+    cursorY += headingTitleLineHeight;
   });
   if (headingProblem) {
-    const problemSize = Math.round(TEXT_STYLES.h2.size * 1.18);
+    cursorY += headerToProblemGap;
     ctx.fillStyle = highlightValueColor;
     ctx.font = `${TEXT_STYLES.h2.weight} ${problemSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const wrappedProblem = wrapText(ctx, headingProblem, contentWidth);
     wrappedProblem.forEach((textLine) => {
       ctx.fillText(textLine, contentX, cursorY);
-      cursorY += Math.round(problemSize * 1.12);
+      cursorY += headingProblemLineHeight;
     });
   }
-  cursorY += Math.round(sectionGap * 1.15);
+  const headerBottomY = cursorY;
+  const dividerY = headerBottomY + dividerTopGap;
   ctx.save();
   ctx.strokeStyle = dividerColor;
   ctx.lineWidth = 2;
   const dividerInset = Math.round(Math.min(28, contentWidth * 0.035));
   ctx.beginPath();
-  ctx.moveTo(contentX + dividerInset, cursorY);
-  ctx.lineTo(contentX + contentWidth - dividerInset, cursorY);
+  ctx.moveTo(contentX + dividerInset, dividerY);
+  ctx.lineTo(contentX + contentWidth - dividerInset, dividerY);
   ctx.stroke();
   ctx.restore();
-  cursorY += Math.round(bodySize * 1.45);
+  cursorY = dividerY + dividerBottomGap;
 
   let countNumberX = contentX;
   let countNumberY = cursorY;
@@ -1858,7 +1866,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     return;
   }
 
-  const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
   ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const totalValue = recapTallyState.totalValue;
   const countLabel = "Congregation Count:";
