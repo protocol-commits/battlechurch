@@ -1601,6 +1601,8 @@ const devTools = {
 function clearFormationSelection() {
   formationState.current = null;
   formationState.bonuses = { rof: 0, damage: 0, powerupDuration: 0 };
+  formationState.homePressure = 0;
+  formationState.combatSpreadScaleCurrent = formationState.combatSpreadScale || 1.18;
 }
 
 function selectFormation(key) {
@@ -1608,6 +1610,8 @@ function selectFormation(key) {
   if (!preset) return null;
   formationState.current = "circle";
   formationState.bonuses = { ...preset.bonuses };
+  formationState.homePressure = 0;
+  formationState.combatSpreadScaleCurrent = formationState.combatSpreadScale || 1.18;
   return preset;
 }
 
@@ -1655,10 +1659,19 @@ function computeFormationAnchors(count) {
   const cy = home.y;
   const rx = (home.maxX - home.minX) / 2;
   const ry = (home.maxY - home.minY) / 2;
+  const spreadScale = Math.max(
+    0.5,
+    Math.min(
+      1.35,
+      Number.isFinite(formationState?.combatSpreadScaleCurrent)
+        ? formationState.combatSpreadScaleCurrent
+        : (formationState?.combatSpreadScale || 1),
+    ),
+  );
   const presetKey = formationState.current || "circle";
   switch (presetKey) {
     case "line": {
-      const spacing = Math.max(30, (rx * 2) / Math.max(1, count));
+      const spacing = Math.max(34, ((rx * 2) / Math.max(1, count)) * spreadScale);
       const startX = cx - (spacing * (count - 1)) / 2;
       for (let i = 0; i < count; i += 1) {
         anchors.push({ x: startX + spacing * i, y: cy });
@@ -1666,7 +1679,7 @@ function computeFormationAnchors(count) {
       break;
     }
     case "crescent": {
-      const radius = Math.min(rx, ry) * 0.45;
+      const radius = Math.min(rx, ry) * 0.45 * spreadScale;
       // Smile: arc that faces left/right/bottom; use angles from 210° to -30°
       const start = (210 * Math.PI) / 180;
       const end = (-30 * Math.PI) / 180;
@@ -1682,7 +1695,7 @@ function computeFormationAnchors(count) {
     }
     case "circle":
     default: {
-      const radius = Math.min(rx, ry) * 0.38;
+      const radius = Math.min(rx, ry) * 0.5 * spreadScale;
       for (let i = 0; i < count; i += 1) {
         const angle = (Math.PI * 2 * i) / Math.max(1, count);
         anchors.push({
@@ -1767,12 +1780,113 @@ function getNpcHomeBounds() {
   const centerX = canvas.width / 2;
   const playableHeight = canvas.height - HUD_HEIGHT;
   const centerY = HUD_HEIGHT + playableHeight * (1 / 3);
-  const radius = Math.max(140, Math.min(centerX * 0.6, playableHeight * 0.25));
+  const radius = Math.max(180, Math.min(centerX * 0.72, playableHeight * 0.31));
   const minX = Math.max(0, centerX - radius);
   const maxX = Math.min(canvas.width, centerX + radius);
   const minY = Math.max(HUD_HEIGHT, centerY - radius);
   const maxY = Math.min(canvas.height, centerY + radius);
   return { x: centerX, y: centerY, radius, minX, maxX, minY, maxY };
+}
+
+function computeNpcHomeThreatPressure() {
+  const home = getNpcHomeBounds();
+  if (!home) return 0;
+  const threatRadius = home.radius + 220;
+  let pressure = 0;
+  for (const enemy of enemies) {
+    if (!enemy || enemy.dead || enemy.state === "death") continue;
+    const center = getEnemyHitboxCenter(enemy);
+    const dx = center.x - home.x;
+    const dy = center.y - home.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > threatRadius) continue;
+    const closeness = 1 - distance / Math.max(1, threatRadius);
+    const weight =
+      enemy.damageClass === "armored" ? 1.35 :
+      enemy.damageClass === "tank" ? 1.2 :
+      enemy.isBoss ? 2 : 1;
+    pressure += closeness * weight;
+  }
+  return Math.max(0, Math.min(1, pressure / 4.75));
+}
+
+function updateNpcFormationPressure(dt) {
+  if (!formationState?.current || !npcs.length) return;
+  const targetPressure = computeNpcHomeThreatPressure();
+  const currentPressure = Number.isFinite(formationState.homePressure)
+    ? formationState.homePressure
+    : 0;
+  const nextPressure = lerp(currentPressure, targetPressure, Math.min(1, dt * 2.2));
+  formationState.homePressure = nextPressure;
+  const safeSpread = Number.isFinite(formationState.combatSpreadScale)
+    ? formationState.combatSpreadScale
+    : 1.18;
+  const threatenedSpread = 0.58;
+  const targetSpread = lerp(safeSpread, threatenedSpread, nextPressure);
+  const currentSpread = Number.isFinite(formationState.combatSpreadScaleCurrent)
+    ? formationState.combatSpreadScaleCurrent
+    : safeSpread;
+  formationState.combatSpreadScaleCurrent = lerp(
+    currentSpread,
+    targetSpread,
+    Math.min(1, dt * 2.8),
+  );
+  const anchors = computeFormationAnchors(npcs.length);
+  if (!anchors.length) return;
+  const retargetThreshold = 24;
+  npcs.forEach((npc, idx) => {
+    const anchor = anchors[idx % anchors.length];
+    if (!npc || !anchor) return;
+    const prevAnchor = npc.formationAnchor || anchor;
+    npc.formationAnchor = {
+      x: lerp(prevAnchor.x, anchor.x, Math.min(1, dt * 3.5)),
+      y: lerp(prevAnchor.y, anchor.y, Math.min(1, dt * 3.5)),
+    };
+    if (!npc.target) {
+      npc.target = npc.getRandomWalkPoint();
+      return;
+    }
+    const targetDx = npc.target.x - npc.formationAnchor.x;
+    const targetDy = npc.target.y - npc.formationAnchor.y;
+    const anchorShift = Math.hypot(anchor.x - prevAnchor.x, anchor.y - prevAnchor.y);
+    const targetDistanceFromAnchor = Math.hypot(targetDx, targetDy);
+    if (anchorShift > retargetThreshold || targetDistanceFromAnchor > home.radius * 0.7) {
+      npc.target = npc.getRandomWalkPoint();
+    }
+  });
+}
+
+function getNpcThreatAvoidanceTarget(npc) {
+  if (!npc || npc.departed || npc.state === "lostFaith" || npc.state === "departed") return null;
+  const home = getNpcHomeBounds();
+  if (!home) return null;
+  let bestEnemy = null;
+  let bestDistance = Infinity;
+  for (const enemy of enemies) {
+    if (!enemy || enemy.dead || enemy.state === "death") continue;
+    const center = getEnemyHitboxCenter(enemy);
+    const safeDistance =
+      getEnemyHitboxRadius(enemy) +
+      (npc.radius || NPC_RADIUS) +
+      84;
+    const dx = npc.x - center.x;
+    const dy = npc.y - center.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > safeDistance || distance >= bestDistance) continue;
+    bestDistance = distance;
+    bestEnemy = { enemy, center, dx, dy, distance, safeDistance };
+  }
+  if (!bestEnemy) return null;
+  const away = normalizeVector(bestEnemy.dx, bestEnemy.dy);
+  const centerDir = normalizeVector(home.x - npc.x, home.y - npc.y);
+  const retreatDir = normalizeVector(
+    away.x * 0.35 + centerDir.x * 1.15,
+    away.y * 0.35 + centerDir.y * 1.15,
+  );
+  const retreatDistance = Math.max(54, home.radius * 0.22);
+  const targetX = npc.x + retreatDir.x * retreatDistance;
+  const targetY = npc.y + retreatDir.y * retreatDistance;
+  return clampPointToBounds(home, targetX, targetY);
 }
 
 function pushPointOutsideNpcHome(x, y, padding = 28) {
@@ -4153,6 +4267,9 @@ const formationState = {
   anchors: [],
   jitterRadius: 28,
   swappedThisBattle: new Set(),
+  combatSpreadScale: 1.18,
+  combatSpreadScaleCurrent: 1.18,
+  homePressure: 0,
 };
 
 function resolveWeaponPowerupConfig(effect, def = {}) {
@@ -10208,6 +10325,11 @@ class CozyNpc {
 
   updateWander(dt) {
     this.animator.setState("walk");
+    const threatRetreatTarget = getNpcThreatAvoidanceTarget(this);
+    if (threatRetreatTarget) {
+      this.target = threatRetreatTarget;
+      this.idleTimer = 0;
+    }
     if (this.idleTimer > 0) {
       this.idleTimer -= dt;
       this.animator.setMoving(false);
@@ -10231,8 +10353,9 @@ class CozyNpc {
     const dirX = dx / distance;
     const dirY = dy / distance;
 
-    this.x += dirX * this.speed * dt;
-    this.y += dirY * this.speed * dt;
+    const movementSpeed = this.speed * (threatRetreatTarget ? 1.28 : 1);
+    this.x += dirX * movementSpeed * dt;
+    this.y += dirY * movementSpeed * dt;
     this.animator.setDirectionFromVector(dirX, dirY);
     this.animator.setMoving(true);
 
@@ -12047,6 +12170,8 @@ function resetCozyNpcs(count = 5) {
 
 function applyFormationAnchors() {
   if (!npcs.length) return;
+  formationState.homePressure = 0;
+  formationState.combatSpreadScaleCurrent = formationState.combatSpreadScale || 1.18;
   const anchors = computeFormationAnchors(npcs.length);
   if (!anchors.length) return;
   const jitter = formationState?.jitterRadius ?? 0;
@@ -13230,6 +13355,7 @@ function resolveCongregationMemberCollisions() {
 
 function updateCozyNpcs(dt) {
   if (npcsSuspended) return;
+  updateNpcFormationPressure(dt);
   if (npcWeaponState.timer > 0) {
     npcWeaponState.timer = Math.max(0, npcWeaponState.timer - dt);
     if (npcWeaponState.timer <= 0) {
@@ -13293,6 +13419,37 @@ function updateCozyNpcs(dt) {
     fireCongregationVolleyShot(npcEntity, volley);
     npcEntity.pendingCongregationVolley = null;
     return false;
+  }
+
+  function resolveCozyNpcCrowding() {
+    if (npcs.length <= 1) return;
+    for (let i = 0; i < npcs.length; i += 1) {
+      const a = npcs[i];
+      if (!a || a.departed || !a.active) continue;
+      for (let j = i + 1; j < npcs.length; j += 1) {
+        const b = npcs[j];
+        if (!b || b.departed || !b.active) continue;
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const distance = Math.hypot(dx, dy);
+        const minDistance = ((a.radius || NPC_RADIUS) + (b.radius || NPC_RADIUS)) * 0.92;
+        if (distance === 0) {
+          a.x += 0.75;
+          b.x -= 0.75;
+          continue;
+        }
+        if (distance >= minDistance) continue;
+        const overlap = (minDistance - distance) * 0.5;
+        const nx = dx / distance;
+        const ny = dy / distance;
+        a.x += nx * overlap;
+        a.y += ny * overlap;
+        b.x -= nx * overlap;
+        b.y -= ny * overlap;
+        clampEntityToBounds(a);
+        clampEntityToBounds(b);
+      }
+    }
   }
 
   for (let i = npcs.length - 1; i >= 0; i -= 1) {
@@ -13366,6 +13523,7 @@ function updateCozyNpcs(dt) {
       npcs.splice(i, 1);
     }
   }
+  resolveCozyNpcCrowding();
 }
 
 function getCongregationVolleyDirectionForNpc(npc, clusterCenter, playerAim) {
