@@ -1745,11 +1745,49 @@ function getNpcZoneWanderPoint(npc, { inwardBias = 0, angleJitterScale = 0.42, e
 
 function getNpcZoneReadyPoint(npc) {
   const pressure = Math.max(0, Math.min(1, formationState?.homePressure || 0));
-  return getNpcZoneWanderPoint(npc, {
-    inwardBias: pressure * 0.08,
-    angleJitterScale: 0.34,
-    edgeBias: 1,
-  });
+  const home = getNpcHomeBounds();
+  const anchor = npc?.formationAnchor || null;
+  if (!home || !anchor) {
+    return getNpcZoneWanderPoint(npc, {
+      inwardBias: pressure * 0.08,
+      angleJitterScale: 0.34,
+      edgeBias: 1,
+    });
+  }
+  const baseAngle = Number.isFinite(anchor.angle)
+    ? anchor.angle
+    : Math.atan2(anchor.y - home.y, anchor.x - home.x);
+  const halfSpan = Number.isFinite(anchor.zoneHalfSpan) ? anchor.zoneHalfSpan : 0.35;
+  if (!Number.isFinite(npc.zonePatrolDirection) || npc.zonePatrolDirection === 0) {
+    npc.zonePatrolDirection = Math.random() < 0.5 ? -1 : 1;
+  } else {
+    npc.zonePatrolDirection *= -1;
+  }
+  const currentAngle = Math.atan2((npc?.y || anchor.y) - home.y, (npc?.x || anchor.x) - home.x);
+  let patrolOffset = halfSpan * randomInRange(0.6, 0.95) * npc.zonePatrolDirection;
+  let angle = baseAngle + patrolOffset;
+  if (Math.abs(angle - currentAngle) < halfSpan * 0.45) {
+    patrolOffset = halfSpan * 0.95 * npc.zonePatrolDirection;
+    angle = baseAngle + patrolOffset;
+  }
+  const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
+  const radius = anchorRadius * (0.97 - pressure * 0.06);
+  let point = clampPointToBounds(
+    home,
+    home.x + Math.cos(angle) * radius,
+    home.y + Math.sin(angle) * radius,
+  );
+  const minTravel = Math.max(18, anchorRadius * 0.12);
+  const travel = Math.hypot(point.x - (npc?.x || point.x), point.y - (npc?.y || point.y));
+  if (travel < minTravel) {
+    const fallbackAngle = baseAngle - patrolOffset;
+    point = clampPointToBounds(
+      home,
+      home.x + Math.cos(fallbackAngle) * radius,
+      home.y + Math.sin(fallbackAngle) * radius,
+    );
+  }
+  return point;
 }
 
 function resetFormationSwaps() {
@@ -9960,6 +9998,7 @@ class CozyNpc {
     this.knockbackVy = 0;
     this.knockbackTimer = 0;
     this.formationWarmupTimer = 0;
+    this.zonePatrolCommitTimer = 0;
   }
 
   needsAid() {
@@ -10308,6 +10347,7 @@ class CozyNpc {
   update(dt) {
     if (this.departed) return;
     this.recoveryTextCooldown = Math.max(0, this.recoveryTextCooldown - dt);
+    this.zonePatrolCommitTimer = Math.max(0, (this.zonePatrolCommitTimer || 0) - dt);
     const timerScale = getNpcTimerScale();
     this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
@@ -10395,6 +10435,23 @@ class CozyNpc {
       return;
     }
     const threatRetreatTarget = getNpcThreatAvoidanceTarget(this);
+    const home = getNpcHomeBounds();
+    const anchor = this.formationAnchor || null;
+    if (!threatRetreatTarget && home && anchor) {
+      const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
+      const currentRadius = Math.hypot(this.x - home.x, this.y - home.y);
+      const targetRadius = this.target
+        ? Math.hypot(this.target.x - home.x, this.target.y - home.y)
+        : 0;
+      const wantsFrontline =
+        currentRadius < anchorRadius * 0.94 ||
+        targetRadius < anchorRadius * 0.97;
+      if (wantsFrontline && (this.zonePatrolCommitTimer || 0) <= 0) {
+        this.target = getNpcZoneReadyPoint(this);
+        this.idleTimer = 0;
+        this.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
+      }
+    }
     if (threatRetreatTarget) {
       this.target = threatRetreatTarget;
       this.idleTimer = 0;
@@ -10411,7 +10468,10 @@ class CozyNpc {
 
     if (!distance || distance < 10) {
       this.target = threatRetreatTarget ? this.getRandomWalkPoint() : getNpcZoneReadyPoint(this);
-      this.idleTimer = threatRetreatTarget ? randomInRange(0.35, 0.8) : randomInRange(0.12, 0.35);
+      this.idleTimer = threatRetreatTarget ? randomInRange(0.25, 0.6) : randomInRange(0.06, 0.18);
+      if (!threatRetreatTarget) {
+        this.zonePatrolCommitTimer = randomInRange(0.38, 0.62);
+      }
       this.animator.setMoving(false);
       this.updateFaithVisibility(false);
       return;
@@ -10422,7 +10482,7 @@ class CozyNpc {
     const dirX = dx / distance;
     const dirY = dy / distance;
 
-    const movementSpeed = this.speed * (threatRetreatTarget ? 1.28 : 1);
+    const movementSpeed = this.speed * (threatRetreatTarget ? 1.28 : 1.08);
     this.x += dirX * movementSpeed * dt;
     this.y += dirY * movementSpeed * dt;
     this.animator.setDirectionFromVector(dirX, dirY);
@@ -10436,7 +10496,10 @@ class CozyNpc {
       this.stuckTimer += dt;
       if (this.stuckTimer > 1.2) {
         this.target = threatRetreatTarget ? this.getRandomWalkPoint() : getNpcZoneReadyPoint(this);
-        this.idleTimer = threatRetreatTarget ? randomInRange(0.3, 0.8) : randomInRange(0.1, 0.28);
+        this.idleTimer = threatRetreatTarget ? randomInRange(0.24, 0.6) : randomInRange(0.05, 0.16);
+        if (!threatRetreatTarget) {
+          this.zonePatrolCommitTimer = randomInRange(0.32, 0.55);
+        }
         this.stuckTimer = 0;
       }
     } else {
@@ -12259,6 +12322,7 @@ function applyFormationAnchors() {
     npc.state = "wander";
     npc.formationWarmupTimer = 0;
     npc.idleTimer = randomInRange(0.08, 0.22);
+    npc.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
     npc.hasSwappedThisBattle = false;
   });
 }
