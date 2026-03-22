@@ -3117,6 +3117,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   // Homebase bounds debug: draws the NPC home area border so it can be tweaked.
   function drawNpcHomeBounds(ctx) {
+    if (!requireBindings().devTools?.showNpcZones) return;
     if (typeof getNpcHomeBounds !== "function") return;
     const bounds = getNpcHomeBounds();
     if (!bounds) return;

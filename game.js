@@ -1592,6 +1592,7 @@ let enemyDevLabelsVisible = false;
 const devTools = {
   godMode: false,
   showCombatDebug: false,
+  showNpcZones: false,
   enemyHpBarThreshold: 100,
   // Adjustable runtime tuning for NPC combat behaviour
   npcFireCooldown: 1.2, // seconds between NPC arrow shots when at full faith
@@ -3447,6 +3448,7 @@ Renderer.initialize({
   get prayerBombScreenDarkenAlpha() { return PRAYER_BOMB_SCREEN_DARKEN_ALPHA; },
   get RUSH_RADIUS() { return RUSH_RADIUS; },
   get meleeAttackState() { return window._meleeAttackState; },
+  get devTools() { return devTools; },
   getEnemyHitboxRect,
   get townIntroTransitionActive() { return townIntroTransitionActive; },
   get townIntroTransitionTimer() { return townIntroTransitionTimer; },
@@ -14965,6 +14967,7 @@ function showDeveloperOverlay() {
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="enemy">Enemy Editor</button></div>
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="level">Level Editor</button></div>
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="hitbox">Hitbox Editor</button></div>
+      <div class="settings-row" data-dev-npc-zones-row></div>
       <div class="settings-row"><div class="settings-row__label"><strong>Hitbox Toggles</strong></div></div>
       <div class="settings-row" data-hitbox-debug-row></div>
       <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="shortcuts">Developer Shortcuts</button></div>
@@ -14977,6 +14980,23 @@ function showDeveloperOverlay() {
     variant: "settings",
     onRender: ({ bodyEl }) => {
       if (!bodyEl) return;
+      const npcZonesRow = bodyEl.querySelector("[data-dev-npc-zones-row]");
+      if (npcZonesRow) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "dialog-overlay__button";
+        const sync = () => {
+          const active = Boolean(devTools.showNpcZones);
+          button.textContent = `NPC Zones: ${active ? "On" : "Off"}`;
+          button.style.opacity = active ? "1" : "0.7";
+        };
+        sync();
+        button.addEventListener("click", () => {
+          devTools.showNpcZones = !devTools.showNpcZones;
+          sync();
+        });
+        npcZonesRow.appendChild(button);
+      }
       const hitboxRow = bodyEl.querySelector("[data-hitbox-debug-row]");
       if (hitboxRow) {
         const defs = [
