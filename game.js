@@ -1986,6 +1986,15 @@ function getNpcThreatAvoidanceTarget(npc) {
   return clampPointToBounds(home, targetX, targetY);
 }
 
+function npcTargetNeedsUpdate(npc, target, minDelta = 18) {
+  if (!npc || !target) return false;
+  if (!npc.target) return true;
+  const targetShift = Math.hypot((npc.target.x || 0) - target.x, (npc.target.y || 0) - target.y);
+  if (targetShift >= minDelta) return true;
+  const currentGap = Math.hypot((npc.x || 0) - target.x, (npc.y || 0) - target.y);
+  return currentGap >= minDelta;
+}
+
 function pushPointOutsideNpcHome(x, y, padding = 28) {
   const homeBounds = getNpcHomeBounds();
   if (!homeBounds) return { x, y };
@@ -9999,6 +10008,9 @@ class CozyNpc {
     this.knockbackTimer = 0;
     this.formationWarmupTimer = 0;
     this.zonePatrolCommitTimer = 0;
+    this.retreatCommitTimer = 0;
+    this.safeRecoveryTimer = 0;
+    this.zoneMoveMode = "frontline";
   }
 
   needsAid() {
@@ -10059,6 +10071,7 @@ class CozyNpc {
     this.pendingLossPortrait = null;
     this.lossRecorded = false;
     this.ignoreObstacles = false;
+    this.zoneMoveMode = "frontline";
   }
 
   beginProcession({ startX, startY, target, speed } = {}) {
@@ -10348,6 +10361,7 @@ class CozyNpc {
     if (this.departed) return;
     this.recoveryTextCooldown = Math.max(0, this.recoveryTextCooldown - dt);
     this.zonePatrolCommitTimer = Math.max(0, (this.zonePatrolCommitTimer || 0) - dt);
+    this.retreatCommitTimer = Math.max(0, (this.retreatCommitTimer || 0) - dt);
     const timerScale = getNpcTimerScale();
     this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
     this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
@@ -10430,14 +10444,27 @@ class CozyNpc {
       this.x = this.formationAnchor.x;
       this.y = this.formationAnchor.y;
       this.target = { x: this.x, y: this.y };
+      this.zoneMoveMode = "frontline";
       this.animator.setMoving(false);
       this.updateFaithVisibility(false);
       return;
     }
     const threatRetreatTarget = getNpcThreatAvoidanceTarget(this);
+    if (threatRetreatTarget) {
+      this.safeRecoveryTimer = 0;
+      this.retreatCommitTimer = Math.max(this.retreatCommitTimer || 0, 0.32);
+      if (this.zoneMoveMode !== "retreat") {
+        this.zoneMoveMode = "retreat";
+        this.target = threatRetreatTarget;
+        this.idleTimer = 0;
+      }
+    } else {
+      this.safeRecoveryTimer = Math.min(1, (this.safeRecoveryTimer || 0) + dt);
+    }
     const home = getNpcHomeBounds();
     const anchor = this.formationAnchor || null;
-    if (!threatRetreatTarget && home && anchor) {
+    const retreatLocked = (this.retreatCommitTimer || 0) > 0;
+    if (!threatRetreatTarget && !retreatLocked && home && anchor && (this.safeRecoveryTimer || 0) >= 0.18) {
       const anchorRadius = Math.hypot(anchor.x - home.x, anchor.y - home.y);
       const currentRadius = Math.hypot(this.x - home.x, this.y - home.y);
       const targetRadius = this.target
@@ -10446,15 +10473,13 @@ class CozyNpc {
       const wantsFrontline =
         currentRadius < anchorRadius * 0.94 ||
         targetRadius < anchorRadius * 0.97;
-      if (wantsFrontline && (this.zonePatrolCommitTimer || 0) <= 0) {
-        this.target = getNpcZoneReadyPoint(this);
+      if (wantsFrontline && this.zoneMoveMode !== "frontline") {
+        const readyTarget = getNpcZoneReadyPoint(this);
+        this.zoneMoveMode = "frontline";
+        this.target = readyTarget;
         this.idleTimer = 0;
         this.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
       }
-    }
-    if (threatRetreatTarget) {
-      this.target = threatRetreatTarget;
-      this.idleTimer = 0;
     }
     if (this.idleTimer > 0) {
       this.idleTimer -= dt;
@@ -10467,9 +10492,13 @@ class CozyNpc {
     const distance = Math.hypot(dx, dy);
 
     if (!distance || distance < 10) {
-      this.target = threatRetreatTarget ? this.getRandomWalkPoint() : getNpcZoneReadyPoint(this);
-      this.idleTimer = threatRetreatTarget ? randomInRange(0.25, 0.6) : randomInRange(0.06, 0.18);
-      if (!threatRetreatTarget) {
+      if (this.zoneMoveMode === "retreat" && threatRetreatTarget) {
+        this.target = threatRetreatTarget;
+        this.idleTimer = randomInRange(0.12, 0.24);
+      } else {
+        this.zoneMoveMode = "frontline";
+        this.target = getNpcZoneReadyPoint(this);
+        this.idleTimer = randomInRange(0.06, 0.18);
         this.zonePatrolCommitTimer = randomInRange(0.38, 0.62);
       }
       this.animator.setMoving(false);
@@ -10495,9 +10524,13 @@ class CozyNpc {
     if (travelled < 0.5) {
       this.stuckTimer += dt;
       if (this.stuckTimer > 1.2) {
-        this.target = threatRetreatTarget ? this.getRandomWalkPoint() : getNpcZoneReadyPoint(this);
-        this.idleTimer = threatRetreatTarget ? randomInRange(0.24, 0.6) : randomInRange(0.05, 0.16);
-        if (!threatRetreatTarget) {
+        if (this.zoneMoveMode === "retreat" && threatRetreatTarget) {
+          this.target = threatRetreatTarget;
+          this.idleTimer = randomInRange(0.12, 0.22);
+        } else {
+          this.zoneMoveMode = "frontline";
+          this.target = getNpcZoneReadyPoint(this);
+          this.idleTimer = randomInRange(0.05, 0.16);
           this.zonePatrolCommitTimer = randomInRange(0.32, 0.55);
         }
         this.stuckTimer = 0;
@@ -12323,6 +12356,7 @@ function applyFormationAnchors() {
     npc.formationWarmupTimer = 0;
     npc.idleTimer = randomInRange(0.08, 0.22);
     npc.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
+    npc.zoneMoveMode = "frontline";
     npc.hasSwappedThisBattle = false;
   });
 }
