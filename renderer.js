@@ -100,6 +100,13 @@
     return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
   }
 
+  function formatScenarioForTitle(text) {
+    if (!text) return "";
+    const trimmed = String(text).trim();
+    if (!trimmed) return "";
+    return trimmed.replace(/\b([a-z])/gi, (match) => match.toUpperCase());
+  }
+
   /*
    MISSION BRIEF SCREEN
    --------------------
@@ -1705,6 +1712,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
   const headingTitle = `${title || "Battle Report"}:`;
   const headingProblem = String(recapData?.problemTitle || "").trim();
+  const headingCombined = headingProblem ? `${headingTitle} ${headingProblem}` : headingTitle;
   let cursorY = Math.round(layout.titleY);
   const spawnBounds = {
     x: contentX,
@@ -1862,29 +1870,16 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.shadowBlur = 18;
 
   const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
-  const headingTitleLineHeight = Math.round(titleSize * 1.02);
-  const problemSize = Math.round(TEXT_STYLES.h2.size * 1.18);
-  const headingProblemLineHeight = Math.round(problemSize * 1.12);
-  const headerToProblemGap = Math.round(problemSize * 0.16);
-  const dividerTopGap = Math.round(problemSize * 0.08);
+  const headingTitleLineHeight = Math.round(titleSize * 1.06);
+  const dividerTopGap = Math.round(titleSize * 0.28);
   const dividerBottomGap = Math.round(countSize * 1.05);
-  ctx.fillStyle = baseLabelColor;
+  ctx.fillStyle = highlightValueColor;
   ctx.font = `${TEXT_STYLES.h1.weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-  const wrappedHeadingTitle = wrapText(ctx, headingTitle, contentWidth);
+  const wrappedHeadingTitle = wrapText(ctx, headingCombined, contentWidth);
   wrappedHeadingTitle.forEach((textLine) => {
     ctx.fillText(textLine, contentX, cursorY);
     cursorY += headingTitleLineHeight;
   });
-  if (headingProblem) {
-    cursorY += headerToProblemGap;
-    ctx.fillStyle = highlightValueColor;
-    ctx.font = `${TEXT_STYLES.h2.weight} ${problemSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    const wrappedProblem = wrapText(ctx, headingProblem, contentWidth);
-    wrappedProblem.forEach((textLine) => {
-      ctx.fillText(textLine, contentX, cursorY);
-      cursorY += headingProblemLineHeight;
-    });
-  }
   const headerBottomY = cursorY;
   const dividerY = headerBottomY + dividerTopGap;
   ctx.save();
@@ -2768,7 +2763,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         levelAnnouncements[0].missionBriefScenario = missionBriefScenarios[Math.floor(Math.random() * missionBriefScenarios.length)];
       }
       const scenario = levelAnnouncements[0].missionBriefScenario;
-      const scenarioTitle = formatScenarioForSentence(getScenarioTitle(scenario)) || "a crisis";
+      const scenarioTitle = formatScenarioForTitle(getScenarioTitle(scenario)) || "A Crisis";
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = scenario;
       }
@@ -2785,12 +2780,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const missionNumber = Number.isFinite(announcement?.missionNumber)
         ? announcement.missionNumber
         : null;
-      const missionTitle =
+      const missionLabel =
         missionNumber
           ? `Battle ${missionNumber}`
           : (announcement && announcement.title) || monthName || "";
-      const missionBriefBase = `${nameSentence} have come to you seeking guidance through ${scenarioTitle}.`;
-      const missionBrief = missionBriefBase;
+      const missionTitle = scenarioTitle
+        ? `${missionLabel}: ${scenarioTitle}`
+        : missionLabel;
+      const needsVerb = npcNames.length === 1 ? "needs" : "need";
+      const missionBrief = `${nameSentence} ${needsVerb} your guidance.`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
@@ -2798,10 +2796,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawMissionBriefScreen(ctx, canvas, {
         title: missionTitle,
         subtitle: missionBrief,
-        highlight: {
-          text: scenarioTitle,
-          color: "#ffd978",
-        },
         showFormation: true,
         uiFontFamily: UI_FONT_FAMILY,
       });
