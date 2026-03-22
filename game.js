@@ -1854,6 +1854,9 @@ function resetFormationSwaps() {
   if (formationState?.swappedThisBattle) {
     formationState.swappedThisBattle.clear();
   }
+  if (formationState) {
+    formationState.swapCooldown = 0;
+  }
 }
 
 function rotateNpcPositionsForActBreak() {
@@ -1872,6 +1875,9 @@ function maybeSwapNpcPositions(options = {}) {
     typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
   const activeStages = new Set(["waveActive", "bossActive", "graceRush"]);
   const forceSwap = Boolean(options.force);
+  if (!forceSwap) {
+    if ((formationState?.swapCooldown || 0) > 0) return;
+  }
   if (!forceSwap && (!status || !activeStages.has(status.stage))) return;
   if (!formationState?.current) return;
   // Candidates: active NPCs not departed/drained
@@ -1903,6 +1909,9 @@ function maybeSwapNpcPositions(options = {}) {
   high.safeRecoveryTimer = 1;
   assignNpcFrontlinePatrolTarget(low, { forceFlip: true });
   assignNpcFrontlinePatrolTarget(high, { forceFlip: true });
+  if (!forceSwap && formationState) {
+    formationState.swapCooldown = 6;
+  }
 }
 // Enemy spawning constants (tunable via GameBalance.spawning.*)
 const MAX_ACTIVE_ENEMIES = _gb('spawning.maxActiveEnemies', 120);
@@ -4443,6 +4452,7 @@ const formationState = {
   anchors: [],
   jitterRadius: 28,
   swappedThisBattle: new Set(),
+  swapCooldown: 0,
   combatSpreadScale: 1.18,
   combatSpreadScaleCurrent: 1.18,
   homePressure: 0,
@@ -13613,6 +13623,9 @@ function resolveCongregationMemberCollisions() {
 function updateCozyNpcs(dt, options = {}) {
   const previewOnly = Boolean(options?.previewOnly);
   if (npcsSuspended) return;
+  if (!previewOnly && formationState) {
+    formationState.swapCooldown = Math.max(0, (formationState.swapCooldown || 0) - dt);
+  }
   if (!previewOnly) {
     updateNpcFormationPressure(dt);
   }
