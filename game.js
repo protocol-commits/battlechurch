@@ -1696,11 +1696,15 @@ function computeFormationAnchors(count) {
     case "circle":
     default: {
       const radius = Math.min(rx, ry) * 0.5 * spreadScale;
+      const start = (150 * Math.PI) / 180;
+      const end = (390 * Math.PI) / 180;
       for (let i = 0; i < count; i += 1) {
-        const angle = (Math.PI * 2 * i) / Math.max(1, count);
+        const t = count === 1 ? 0.5 : i / (count - 1);
+        const angle = start + (end - start) * t;
         anchors.push({
           x: cx + Math.cos(angle) * radius,
           y: cy + Math.sin(angle) * radius,
+          angle,
         });
       }
       break;
@@ -1810,23 +1814,27 @@ function computeNpcHomeThreatPressure() {
   return Math.max(0, Math.min(1, pressure / 4.75));
 }
 
+function mixLinear(a, b, t) {
+  return a + (b - a) * t;
+}
+
 function updateNpcFormationPressure(dt) {
   if (!formationState?.current || !npcs.length) return;
   const targetPressure = computeNpcHomeThreatPressure();
   const currentPressure = Number.isFinite(formationState.homePressure)
     ? formationState.homePressure
     : 0;
-  const nextPressure = lerp(currentPressure, targetPressure, Math.min(1, dt * 2.2));
+  const nextPressure = mixLinear(currentPressure, targetPressure, Math.min(1, dt * 2.2));
   formationState.homePressure = nextPressure;
   const safeSpread = Number.isFinite(formationState.combatSpreadScale)
     ? formationState.combatSpreadScale
     : 1.18;
   const threatenedSpread = 0.58;
-  const targetSpread = lerp(safeSpread, threatenedSpread, nextPressure);
+  const targetSpread = mixLinear(safeSpread, threatenedSpread, nextPressure);
   const currentSpread = Number.isFinite(formationState.combatSpreadScaleCurrent)
     ? formationState.combatSpreadScaleCurrent
     : safeSpread;
-  formationState.combatSpreadScaleCurrent = lerp(
+  formationState.combatSpreadScaleCurrent = mixLinear(
     currentSpread,
     targetSpread,
     Math.min(1, dt * 2.8),
@@ -1839,8 +1847,9 @@ function updateNpcFormationPressure(dt) {
     if (!npc || !anchor) return;
     const prevAnchor = npc.formationAnchor || anchor;
     npc.formationAnchor = {
-      x: lerp(prevAnchor.x, anchor.x, Math.min(1, dt * 3.5)),
-      y: lerp(prevAnchor.y, anchor.y, Math.min(1, dt * 3.5)),
+      x: mixLinear(prevAnchor.x, anchor.x, Math.min(1, dt * 3.5)),
+      y: mixLinear(prevAnchor.y, anchor.y, Math.min(1, dt * 3.5)),
+      angle: Number.isFinite(anchor.angle) ? anchor.angle : prevAnchor.angle,
     };
     if (!npc.target) {
       npc.target = npc.getRandomWalkPoint();
@@ -1854,6 +1863,15 @@ function updateNpcFormationPressure(dt) {
       npc.target = npc.getRandomWalkPoint();
     }
   });
+}
+
+function getNpcAnchorRetreatPoint(npc, home, ratio = 0.42) {
+  const anchor = npc?.formationAnchor || null;
+  if (!anchor || !home) return { x: home.x, y: home.y };
+  return {
+    x: mixLinear(anchor.x, home.x, ratio),
+    y: mixLinear(anchor.y, home.y, ratio),
+  };
 }
 
 function getNpcThreatAvoidanceTarget(npc) {
@@ -1878,7 +1896,8 @@ function getNpcThreatAvoidanceTarget(npc) {
   }
   if (!bestEnemy) return null;
   const away = normalizeVector(bestEnemy.dx, bestEnemy.dy);
-  const centerDir = normalizeVector(home.x - npc.x, home.y - npc.y);
+  const retreatCenter = getNpcAnchorRetreatPoint(npc, home, 0.46);
+  const centerDir = normalizeVector(retreatCenter.x - npc.x, retreatCenter.y - npc.y);
   const retreatDir = normalizeVector(
     away.x * 0.35 + centerDir.x * 1.15,
     away.y * 0.35 + centerDir.y * 1.15,
