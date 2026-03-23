@@ -4040,26 +4040,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (!activeNpcs.length) return;
     const chargeRatio = Math.max(0, Math.min(1, getRatio()));
     const shakeX = sharedShakeOffset?.x || 0;
-    let minX = Number.POSITIVE_INFINITY;
-    let maxX = Number.NEGATIVE_INFINITY;
-    let minY = Number.POSITIVE_INFINITY;
-    let maxY = Number.NEGATIVE_INFINITY;
-    activeNpcs.forEach((npc) => {
-      const radius = Math.max(18, npc.radius || 0);
-      minX = Math.min(minX, (npc.x || 0) - radius);
-      maxX = Math.max(maxX, (npc.x || 0) + radius);
-      minY = Math.min(minY, (npc.y || 0) - radius);
-      maxY = Math.max(maxY, (npc.y || 0) + radius);
-    });
-    const meterCenterX = (minX + maxX) * 0.5 + shakeX;
-    const width = Math.round(34 * WORLD_SCALE);
-    const height = Math.max(11, Math.round(14 * WORLD_SCALE));
-    const meterX = meterCenterX - width / 2;
-    const meterCenterY = (minY + maxY) * 0.5;
-    const meterY = meterCenterY - height * 0.5;
+    const width = Math.round(28 * WORLD_SCALE);
+    const height = Math.max(9, Math.round(12 * WORLD_SCALE));
     const palette = getCombatMeterPalette();
-    if (chargeRatio >= 1) {
-      const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
+    if (chargeRatio < 1) return;
+    activeNpcs.forEach((npc) => {
+      if (!npc || npc.departed || !npc.active) return;
+      const radius = Math.max(18, npc.radius || 0);
+      const meterCenterX = (npc.x || 0) + shakeX;
+      const meterY = (npc.y || 0) - radius - height - Math.round(26 * WORLD_SCALE);
+      const dotSize = Math.max(height + 4 * WORLD_SCALE, 12 * WORLD_SCALE);
       drawCompactReadyDot(
         meterCenterX,
         meterY + height * 0.5,
@@ -4067,9 +4057,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         palette.prayer,
         palette.prayerGlow,
       );
-      return;
-    }
-    drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.prayer, palette.prayerGlow);
+    });
   }
 
   function drawPlayerRingFireChargeMeter(player) {
