@@ -219,6 +219,7 @@
     startVisitorMinigame: () => false,
     triggerCongregationOverlay: noop,
     getCongregationSize: () => 0,
+    showWaveHealthSnapshot: noop,
   };
 
   function initialize(options = {}) {
@@ -1140,6 +1141,15 @@
       const battleNumber = state.monthIndex + 1;
       const waveNumber = state.waveIndex + 1;
       const finalWave = waveNumber >= getBattleHordeCount(currentBattle());
+      const currentHorde = state.activeWave || currentWave();
+      const nextHorde = state.definition?.battles?.[state.monthIndex]?.hordes?.[state.waveIndex + 1] || null;
+      const currentActualWaveNumber = Number.isFinite(currentHorde?.waveNumber)
+        ? currentHorde.waveNumber
+        : Math.floor(state.waveIndex / Math.max(1, HORDES_PER_WAVE)) + 1;
+      const nextActualWaveNumber = Number.isFinite(nextHorde?.waveNumber)
+        ? nextHorde.waveNumber
+        : Math.floor((state.waveIndex + 1) / Math.max(1, HORDES_PER_WAVE)) + 1;
+      const endedActualWave = finalWave || !nextHorde || nextActualWaveNumber !== currentActualWaveNumber;
       state.lastWaveClearedFinal = finalWave;
       state.pendingPortalSpawnBaseline = 0;
       state.pendingWaveEntrySpawns = 0;
@@ -1148,6 +1158,9 @@
       const finalMissionBeforeBoss = localMonthNumber >= BATTLE_MONTHS_PER_LEVEL;
 
       if (!finalWave) {
+        if (endedActualWave && typeof deps.showWaveHealthSnapshot === "function") {
+          deps.showWaveHealthSnapshot();
+        }
         state.finalWaveDelay = 0;
         if (state.activeWave?.allKill === true) {
           const preFadeDelay = ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
@@ -1159,7 +1172,6 @@
             ? state.activeWave.waveBreakDuration
             : announcementHold + preFadeDelay;
           // Peek at the next horde to get its wave intro text
-          const nextHorde = state.definition?.battles?.[state.monthIndex]?.hordes?.[state.waveIndex + 1];
           const nextWaveIntroText = nextHorde?.waveIntroText || "";
           if (nextWaveIntroText) {
             const delayMs = preFadeDelay * 1000;

@@ -2440,6 +2440,48 @@ const npcCheer = FloatingText.npcCheer;
 const addStatusText = FloatingText.addStatusText;
 const updateFloatingTexts = FloatingText.update;
 
+function showWaveHealthSnapshot() {
+  const spawnHealthLabel = (entity, text, color, bgColor, offsetY) => {
+    if (!entity || !text) return;
+    addFloatingTextAt(entity.x, entity.y + offsetY, text, color, {
+      speechBubble: false,
+      vy: 0,
+      life: 3.2,
+      fadeDelay: 1.4,
+      entity,
+      offsetY,
+      style: "status",
+      bgColor,
+      fontSize: 17,
+      fontWeight: "700",
+      priority: 2,
+      detachOnEntityGone: true,
+    });
+  };
+
+  if (player && player.state !== "death" && Number.isFinite(player.health)) {
+    spawnHealthLabel(
+      player,
+      `HP ${Math.max(0, Math.round(player.health))}`,
+      "#FFF7D6",
+      "rgba(84, 53, 18, 0.92)",
+      -(player.radius || 24) - 34,
+    );
+  }
+
+  npcs.forEach((npc) => {
+    if (!npc || npc.departed || !npc.active || npc.state === "lostFaith") return;
+    if (!Number.isFinite(npc.faith)) return;
+    spawnHealthLabel(
+      npc,
+      `${Math.max(0, Math.round(npc.faith))}`,
+      "#EAF6FF",
+      "rgba(26, 46, 78, 0.9)",
+      -(npc.radius || 24) - 28,
+    );
+  });
+}
+
 Effects.initialize({
   context: ctx,
   getAssets: () => assets,
@@ -4464,6 +4506,7 @@ Levels.initialize({
   startGraceRushEndFade,
   triggerCongregationOverlay,
   getCongregationSize,
+  showWaveHealthSnapshot,
   rotateNpcPositionsForActBreak,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
   hasEnemyAsset: (key) => Boolean(ASSET_MANIFEST.enemies?.[key]),
