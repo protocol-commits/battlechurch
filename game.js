@@ -14030,7 +14030,6 @@ function fireCongregationVolleyShot(npc, volley) {
     scale: CONGREGATION_COMMAND_SCALE,
   });
   npc.projectileGlowTimer = Math.max(npc.projectileGlowTimer || 0, 0.2);
-  npc.state = "attack";
   if (npc.animator) {
     if (typeof npc.animator.setState === "function") {
       npc.animator.setState("attack", { restart: true });
