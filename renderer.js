@@ -950,19 +950,19 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   const formationOptions = [
     {
       key: "circle",
-      label: "DAMAGE",
+      label: "GUIDED COURSE",
       desc: "Focused teaching and practical insight",
       stat: "+Damage",
     },
     {
       key: "line",
-      label: "ATTACK",
+      label: "BIBLE STUDY",
       desc: "Scripture study and shared prayer",
       stat: "+Rate of Fire",
     },
     {
       key: "crescent",
-      label: "SUPPORT",
+      label: "CARE CIRCLE",
       desc: "Guided group sharing and mutual support",
       stat: "+Power-up duration",
     },
@@ -980,7 +980,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
         `<button class="formation-option" data-formation="${opt.key}">
           <span class="formation-option__label">${opt.label}</span>
           <span class="formation-option__desc">${opt.desc}</span>
-          <span class="formation-option__stat">${opt.stat || ""}</span>
+          <span class="formation-option__stat"><strong>${opt.stat || ""}</strong></span>
         </button>`,
     )
     .join("");
@@ -1217,19 +1217,19 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ? [
         {
           key: "circle",
-          label: "DAMAGE",
+          label: "GUIDED COURSE",
           desc: "Focused teaching and practical insight",
           stat: "+Damage",
         },
         {
           key: "line",
-          label: "ATTACK",
+          label: "BIBLE STUDY",
           desc: "Scripture study and shared prayer",
           stat: "+Rate of Fire",
         },
         {
           key: "crescent",
-          label: "SUPPORT",
+          label: "CARE CIRCLE",
           desc: "Guided group sharing and mutual support",
           stat: "+Power-up duration",
         },
@@ -1291,7 +1291,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       ctx.fillText(config.desc, x + buttonWidth / 2, buttonY + 66);
     }
     if (config.stat) {
-      ctx.font = `15px ${uiFontFamily}`;
+      ctx.font = `700 15px ${uiFontFamily}`;
       ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
       ctx.fillText(config.stat, x + buttonWidth / 2, buttonY + 90);
     }
