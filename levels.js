@@ -1031,6 +1031,11 @@
       state.waveIndex += 1;
       state.activeWave = currentWave();
       if (!state.activeWave) return;
+      if (typeof window !== "undefined" && typeof window.setCozyNpcsToFrontlineFormation === "function") {
+        try {
+          window.setCozyNpcsToFrontlineFormation();
+        } catch (e) {}
+      }
       const waveNumber = state.waveIndex + 1;
       const introDuration = waveNumber === 1 ? 4.0 : WAVE_INTRO_DURATION;
       resetStage("waveIntro", introDuration);

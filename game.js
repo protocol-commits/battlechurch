@@ -1577,6 +1577,7 @@ if (typeof window !== "undefined") {
   window.clearFormationSelection = clearFormationSelection;
   window.getFormationBonuses = getFormationBonuses;
   window.applyFormationAnchors = applyFormationAnchors;
+  window.setCozyNpcsToFrontlineFormation = setCozyNpcsToFrontlineFormation;
   window.Battlechurch.isBossStageActive = () => {
     try {
       if (levelManager?.getStatus) {
@@ -1858,6 +1859,28 @@ function getNpcFrontlineDesiredPoint(npc) {
   );
 }
 
+function getNpcBriefingPoint(npc) {
+  const home = getNpcHomeBounds();
+  if (!home) {
+    return npc?.formationAnchor
+      ? { x: npc.formationAnchor.x, y: npc.formationAnchor.y }
+      : { x: npc?.x || 0, y: npc?.y || 0 };
+  }
+  const retreatCenter = getNpcAnchorRetreatPoint(npc, home, 0.46);
+  const anchor = npc?.formationAnchor || null;
+  const baseAngle = Number.isFinite(anchor?.angle)
+    ? anchor.angle
+    : Math.atan2(retreatCenter.y - home.y, retreatCenter.x - home.x);
+  const orbit = Number.isFinite(npc?.patrolClock) ? npc.patrolClock : 0;
+  const angle = baseAngle + Math.sin(orbit * 0.8) * 0.12;
+  const radius = Math.max(8, home.radius * 0.045);
+  return clampPointToBounds(
+    home,
+    retreatCenter.x + Math.cos(angle) * radius,
+    retreatCenter.y + Math.sin(angle) * radius,
+  );
+}
+
 function assignNpcFrontlinePatrolTarget(npc, { forceFlip = false } = {}) {
   if (!npc) return null;
   if (!Number.isFinite(npc.zonePatrolSide) || npc.zonePatrolSide === 0) {
@@ -1873,6 +1896,30 @@ function assignNpcFrontlinePatrolTarget(npc, { forceFlip = false } = {}) {
   npc.zoneMoveMode = "frontline";
   npc.frontlinePatrolTimer = randomInRange(0.8, 1.4);
   return target;
+}
+
+function setCozyNpcsToBriefingFormation() {
+  if (!Array.isArray(npcs) || !npcs.length) return;
+  npcs.forEach((npc) => {
+    if (!npc || npc.departed || !npc.active) return;
+    npc.zoneMoveMode = "briefing";
+    npc.safeRecoveryTimer = 0;
+    npc.retreatCommitTimer = 0;
+    npc.idleTimer = 0;
+    npc.target = getNpcBriefingPoint(npc);
+  });
+}
+
+function setCozyNpcsToFrontlineFormation() {
+  if (!Array.isArray(npcs) || !npcs.length) return;
+  npcs.forEach((npc) => {
+    if (!npc || npc.departed || !npc.active) return;
+    npc.zoneMoveMode = "frontline";
+    npc.safeRecoveryTimer = 1;
+    npc.retreatCommitTimer = 0;
+    npc.idleTimer = 0;
+    npc.target = getNpcFrontlineDesiredPoint(npc);
+  });
 }
 
 function resetFormationSwaps() {
@@ -10166,7 +10213,10 @@ class CozyNpc {
     if (this.departed) return;
     this.needsPlayerRestore = false;
     this.state = "wander";
-    this.target = getNpcFrontlineDesiredPoint(this);
+    this.target =
+      this.zoneMoveMode === "briefing"
+        ? getNpcBriefingPoint(this)
+        : getNpcFrontlineDesiredPoint(this);
     this.idleTimer = 0;
     this.stuckTimer = 0;
     this.processionTarget = null;
@@ -10179,7 +10229,7 @@ class CozyNpc {
     this.pendingLossPortrait = null;
     this.lossRecorded = false;
     this.ignoreObstacles = false;
-    this.zoneMoveMode = "frontline";
+    this.zoneMoveMode = this.zoneMoveMode === "briefing" ? "briefing" : "frontline";
     this.frontlinePatrolTimer = 0;
   }
 
@@ -10567,18 +10617,23 @@ class CozyNpc {
       this.updateFaithVisibility(false);
       return;
     }
+    if (this.zoneMoveMode === "briefing") {
+      this.target = getNpcBriefingPoint(this);
+    }
     const threatRetreatTarget = getNpcThreatAvoidanceTarget(this);
     if (threatRetreatTarget) {
       this.safeRecoveryTimer = 0;
       this.zoneMoveMode = "retreat";
-    } else {
+    } else if (this.zoneMoveMode !== "briefing") {
       this.safeRecoveryTimer = Math.min(1, (this.safeRecoveryTimer || 0) + dt);
       if ((this.safeRecoveryTimer || 0) >= 0.22) {
         this.zoneMoveMode = "frontline";
       }
     }
     this.target =
-      this.zoneMoveMode === "retreat" && threatRetreatTarget
+      this.zoneMoveMode === "briefing"
+        ? getNpcBriefingPoint(this)
+        : this.zoneMoveMode === "retreat" && threatRetreatTarget
         ? threatRetreatTarget
         : getNpcFrontlineDesiredPoint(this);
     if (!this.target) {
@@ -12438,12 +12493,17 @@ function applyFormationAnchors() {
     npc.baseY = npc.y;
     npc.zonePatrolSide = idx % 2 === 0 ? -1 : 1;
     npc.patrolClock = (idx / Math.max(1, npcs.length)) * Math.PI * 2;
-    npc.target = getNpcFrontlineDesiredPoint(npc);
+    const briefingPoint = getNpcBriefingPoint(npc);
+    npc.x = briefingPoint.x;
+    npc.y = briefingPoint.y;
+    npc.baseX = npc.x;
+    npc.baseY = npc.y;
+    npc.target = briefingPoint;
     npc.state = "wander";
     npc.formationWarmupTimer = 0;
     npc.idleTimer = 0;
     npc.zonePatrolCommitTimer = randomInRange(0.45, 0.75);
-    npc.zoneMoveMode = "frontline";
+    npc.zoneMoveMode = "briefing";
     npc.hasSwappedThisBattle = false;
   });
 }
