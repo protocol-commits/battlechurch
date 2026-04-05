@@ -4759,21 +4759,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const centerX = canvas.width / 2;
 
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    // Draw Battle title (normal styling)
-    const titleY = Math.round(canvas.height * 0.26);
-    ctx.font = `bold 64px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
-    ctx.fillText(battleTitle, centerX, titleY);
-    ctx.restore();
-
     const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: villainText,
@@ -4783,7 +4768,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
       weight: TEXT_STYLES.h1.weight,
       maxWidthScale: 0.92,
-      position: "bottom",
+      position: "center",
       topMargin: 90,
       bottomMargin: 80,
       rowGap: 32,
@@ -4791,12 +4776,36 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonCount: 1,
       HUD_HEIGHT,
     });
+    const chapterTitleSize = 64;
+    const chapterTitleLineHeight = Math.round(chapterTitleSize * TEXT_STYLES.h1.lineHeight);
+    const titleBodyGap = 28;
+    const combinedTextHeight =
+      chapterTitleLineHeight + titleBodyGap + layout.textLayout.textBlockHeight;
+    const textBlockTopY = Math.max(
+      90,
+      Math.round((layout.virtualCanvas.height - combinedTextHeight) / 2),
+    );
+    const titleY = textBlockTopY + Math.round(chapterTitleLineHeight / 2);
+    const bodyYBase = textBlockTopY + chapterTitleLineHeight + titleBodyGap + layout.textLayout.titleLineHeight;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${chapterTitleSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.fillText(battleTitle, centerX, titleY);
+    ctx.restore();
+
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
     drawAnnouncementText(ctx, layout.virtualCanvas, {
       title: villainText,
-      yBase: layout.titleY,
+      yBase: bodyYBase,
       alpha: 1,
       typewriter: true,
       titleSize,
@@ -5774,16 +5783,48 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? announcement.upcomingOrderNumber
         : inferredUpcomingNumber;
       const battleHeading = battleHeadings[orderNumber] || `Act ${orderNumber}`;
+      const headerTitleSize = 64;
+      const headerSubtitleSize = 34;
+      const bodyTitleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+      const headerLayout = getAnnouncementTextLayout(ctx, canvas, {
+        title: battleHeading,
+        subtitle: upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "",
+        titleSize: headerTitleSize,
+        subtitleSize: headerSubtitleSize,
+        lineGap: Math.round(headerTitleSize * 1.1),
+        weight: "bold",
+        maxWidthScale: 0.9,
+      });
+      const bodyLayout = getAnnouncementTextLayout(ctx, canvas, {
+        title: announcementTitle,
+        subtitle: announcementSubtitle,
+        titleSize: bodyTitleSize,
+        subtitleSize: TEXT_STYLES.h2.size,
+        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+        weight: TEXT_STYLES.h1.weight,
+        maxWidthScale: 0.92,
+      });
+      const headerBodyGap = 28;
+      const textGroupHeight =
+        headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
+      const textGroupTopY = Math.max(
+        90,
+        Math.round((canvas.height - textGroupHeight) / 2),
+      );
+      const headerYBase = textGroupTopY + headerLayout.titleLineHeight;
+      const bodyYBase =
+        textGroupTopY +
+        headerLayout.textBlockHeight +
+        headerBodyGap +
+        bodyLayout.titleLineHeight;
       {
-        const titleSize = 64;
-        const missionLine = upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "";
         drawAnnouncementText(ctx, canvas, {
           title: battleHeading,
-          subtitle: missionLine,
-          yBase: Math.round(canvas.height * 0.26),
-          titleSize,
-          subtitleSize: 34,
-          lineGap: Math.round(titleSize * 1.1),
+          subtitle: upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "",
+          yBase: headerYBase,
+          titleSize: headerTitleSize,
+          subtitleSize: headerSubtitleSize,
+          lineGap: Math.round(headerTitleSize * 1.1),
           weight: "bold",
           subtitleWeight: "bold",
           typewriter: false,
@@ -5792,11 +5833,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         });
       }
       {
-        const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
         const layout = getAnnouncementScreenLayout(ctx, canvas, {
           title: announcementTitle,
           subtitle: announcementSubtitle,
-          titleSize,
+          titleSize: bodyTitleSize,
           subtitleSize: TEXT_STYLES.h2.size,
           lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
           weight: TEXT_STYLES.h1.weight,
@@ -5815,10 +5855,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         drawAnnouncementText(ctx, layout.virtualCanvas, {
           title: announcementTitle,
           subtitle: announcementSubtitle,
-          yBase: layout.titleY,
+          yBase: bodyYBase,
           alpha: 1,
           typewriter: true,
-          titleSize,
+          titleSize: bodyTitleSize,
           weight: TEXT_STYLES.h1.weight,
           maxWidthScale: 0.92,
         });
