@@ -1677,9 +1677,9 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     buttonKey = "recap",
   } = options;
 
-  const titleSize = TEXT_STYLES.h1.size;
-  const bodySize = TEXT_STYLES.h3.size;
-  const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+  const titleSize = 46;
+  const bodySize = 28;
+  const lineGap = Math.round(titleSize * 1.08);
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
@@ -1688,16 +1688,20 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     subtitleSize: TEXT_STYLES.h2.size,
     lineGap,
     weight: TEXT_STYLES.h1.weight,
-    maxWidthScale: 0.94,
+    maxWidthScale: 0.84,
     position: "top",
-    topMargin: 90,
-    bottomMargin: 100,
+    topMargin: 72,
+    bottomMargin: 88,
     rowGap: 36,
     buttonHeight: 72,
     buttonCount: 1,
   });
   ctx.translate(layout.offsetX, layout.offsetY);
   ctx.scale(layout.scale, layout.scale);
+  ctx.save();
+  ctx.fillStyle = "rgba(4, 7, 12, 0.72)";
+  ctx.fillRect(0, 0, layout.virtualCanvas.width, layout.virtualCanvas.height);
+  ctx.restore();
 
   if (recapData && !recapData.id) {
     const lineCount = Array.isArray(recapData.lines) ? recapData.lines.length : 0;
@@ -1705,7 +1709,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   }
   const revealComplete = true;
   const canShowContinue = recapTallyState.showContinue;
-  const contentWidth = Math.round(layout.virtualCanvas.width * 0.88);
+  const contentWidth = Math.round(layout.virtualCanvas.width * 0.76);
   const contentX = Math.round((layout.virtualCanvas.width - contentWidth) / 2);
   const lineSpacing = Math.round(bodySize * 1.4);
   const sectionGap = Math.round(bodySize * 0.35);
@@ -1714,6 +1718,12 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const headingProblem = String(recapData?.problemTitle || "").trim();
   const headingCombined = headingProblem ? `${headingTitle} ${headingProblem}` : headingTitle;
   let cursorY = Math.round(layout.titleY);
+  const panelPaddingX = 36;
+  const panelTop = 54;
+  const panelBottom = layout.virtualCanvas.height - 54;
+  const panelX = contentX - panelPaddingX;
+  const panelWidth = contentWidth + panelPaddingX * 2;
+  const panelHeight = panelBottom - panelTop;
   const spawnBounds = {
     x: contentX,
     y: Math.round(layout.virtualCanvas.height * 0.67),
@@ -1809,6 +1819,83 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     };
   };
 
+  const drawNpcHealthBonusRow = (line, x, y, maxWidth, isHighlighted) => {
+    const entries = Array.isArray(line?.npcHealthBreakdown)
+      ? line.npcHealthBreakdown.slice(0, 5)
+      : [];
+    const totalHealth = Number.isFinite(line?.totalHealth) ? Math.max(0, Math.round(line.totalHealth)) : 0;
+    const addedCongregation = Number.isFinite(line?.delta) ? Math.max(0, Math.round(line.delta)) : 0;
+    const labelLineHeight = lineSpacing;
+    const mathLineHeight = Math.round(bodySize * 1.05);
+    const iconSize = 42;
+    const framePadding = 5;
+    const iconGap = 14;
+    const labelY = y;
+    const iconsTopY = labelY + 14;
+    const healthY = iconsTopY + Math.round(bodySize * 0.8);
+    const frameY = healthY + 6;
+    const frameSize = iconSize + framePadding * 2;
+    const iconsBottomY = frameY + frameSize;
+    const mathY = iconsBottomY + Math.round(bodySize * 0.95);
+    const slotCount = Math.max(5, entries.length || 0);
+    const totalSlotWidth = slotCount * frameSize + Math.max(0, slotCount - 1) * iconGap;
+    const startX = x + Math.max(0, Math.round((maxWidth - totalSlotWidth) / 2));
+
+    ctx.fillStyle = baseLabelColor;
+    drawHighlightedLabel(line.label || "", x, labelY, line.highlightText);
+
+    entries.forEach((entry, index) => {
+      const slotX = startX + index * (frameSize + iconGap);
+      const centerX = slotX + frameSize / 2;
+      const healthValue = Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0;
+      ctx.save();
+      ctx.fillStyle = healthValue > 0 ? highlightValueColor : "rgba(234, 246, 255, 0.72)";
+      ctx.textAlign = "center";
+      ctx.fillText(String(healthValue), centerX, healthY);
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = "rgba(8, 12, 20, 0.72)";
+      ctx.strokeStyle = isHighlighted ? "rgba(255, 229, 166, 0.95)" : "rgba(255, 217, 120, 0.5)";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, slotX, frameY, frameSize, frameSize, 8, true, true);
+      ctx.restore();
+
+      const portrait = entry?.portrait;
+      if (portrait) {
+        ctx.drawImage(
+          portrait,
+          slotX + framePadding,
+          frameY + framePadding,
+          iconSize,
+          iconSize,
+        );
+      } else {
+        ctx.save();
+        ctx.fillStyle = "rgba(155, 217, 255, 0.18)";
+        roundRect(ctx, slotX + framePadding, frameY + framePadding, iconSize, iconSize, 6, true, false);
+        ctx.restore();
+      }
+    });
+
+    ctx.save();
+    ctx.fillStyle = isHighlighted ? highlightValueFlash : highlightValueColor;
+    ctx.textAlign = "center";
+    ctx.fillText(
+      `${formatNumber(totalHealth)}/500 health  ->  +${formatNumber(addedCongregation)} congregation`,
+      x + maxWidth / 2,
+      mathY,
+    );
+    ctx.restore();
+
+    return {
+      height: (mathY - labelY) + mathLineHeight,
+      pendingGhostX: x + maxWidth / 2 - Math.round(ctx.measureText(`+${formatNumber(addedCongregation)}`).width / 2),
+      pendingGhostY: mathY,
+      pendingGhostText: `+${formatNumber(addedCongregation)}`,
+    };
+  };
+
   const drawHighlightedLabel = (textLine, x, y, highlightText) => {
     if (!highlightText) {
       const fallbackMatch = String(textLine).match(/\b(?:with|through)\s+([^:.]+)\b/i);
@@ -1868,20 +1955,40 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
   ctx.shadowBlur = 18;
+  ctx.save();
+  ctx.fillStyle = "rgba(6, 10, 18, 0.82)";
+  ctx.strokeStyle = "rgba(255, 217, 120, 0.24)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, panelX, panelTop, panelWidth, panelHeight, 26, true, true);
+  ctx.restore();
 
-  const countSize = Math.round(TEXT_STYLES.h1.size * 1.05);
-  const headingTitleLineHeight = Math.round(titleSize * 1.06);
-  const dividerTopGap = Math.round(titleSize * 0.28);
-  const dividerBottomGap = Math.round(countSize * 1.05);
+  const countSize = 38;
+  const headingTitleLineHeight = Math.round(titleSize * 1.02);
+  const getFontMetrics = (sampleText, fontSize) => {
+    const metrics = ctx.measureText(sampleText);
+    const ascent = Number.isFinite(metrics.actualBoundingBoxAscent)
+      ? metrics.actualBoundingBoxAscent
+      : Math.round(fontSize * 0.78);
+    const descent = Number.isFinite(metrics.actualBoundingBoxDescent)
+      ? metrics.actualBoundingBoxDescent
+      : Math.round(fontSize * 0.18);
+    return { ascent, descent };
+  };
   ctx.fillStyle = highlightValueColor;
   ctx.font = `${TEXT_STYLES.h1.weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const wrappedHeadingTitle = wrapText(ctx, headingCombined, contentWidth);
+  const titleMetrics = getFontMetrics("Battle Report", titleSize);
   wrappedHeadingTitle.forEach((textLine) => {
     ctx.fillText(textLine, contentX, cursorY);
     cursorY += headingTitleLineHeight;
   });
-  const headerBottomY = cursorY;
-  const dividerY = headerBottomY + dividerTopGap;
+  const lastTitleBaselineY = cursorY - headingTitleLineHeight;
+  const headerBottomY = lastTitleBaselineY + titleMetrics.descent;
+  ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  const countMetrics = getFontMetrics("Congregation Count", countSize);
+  const countBaselineY = headerBottomY + 2 * 28 + countMetrics.ascent;
+  const countTopY = countBaselineY - countMetrics.ascent;
+  const dividerY = Math.round((headerBottomY + countTopY) / 2);
   ctx.save();
   ctx.strokeStyle = dividerColor;
   ctx.lineWidth = 2;
@@ -1891,7 +1998,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.lineTo(contentX + contentWidth - dividerInset, dividerY);
   ctx.stroke();
   ctx.restore();
-  cursorY = dividerY + dividerBottomGap;
+  cursorY = countBaselineY;
 
   let countNumberX = contentX;
   let countNumberY = cursorY;
@@ -1928,7 +2035,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
   ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
   countNumberY = cursorY;
-  cursorY += Math.round(countSize * 1.1);
+  cursorY += Math.round(countSize * 1.02);
   const activeIndex = recapTallyState.stepIndex;
   const maxVisible = recapTallyState.done ? lines.length : Math.min(lines.length, activeIndex + 1);
   ctx.fillStyle = baseLabelColor;
@@ -1936,6 +2043,30 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
     const isLastLine = i === maxVisible - 1;
+    if (line.kind === "npcHealthBonus") {
+      const highlightValue =
+        recapTallyState.flashTimer > 0 &&
+        recapTallyState.lastAppliedIndex === i;
+      const bonusBlock = drawNpcHealthBonusRow(line, contentX, cursorY, contentWidth, highlightValue);
+      if (
+        recapTallyState.pendingGhost &&
+        recapTallyState.pendingGhost.index === i &&
+        recapTallyState.pendingGhost.value === line.delta &&
+        bonusBlock
+      ) {
+        spawnRecapGhostEffect(
+          bonusBlock.pendingGhostText,
+          bonusBlock.pendingGhostX,
+          bonusBlock.pendingGhostY,
+          countNumberX,
+          countNumberY,
+        );
+        recapTallyState.pendingGhost = null;
+      }
+      cursorY += bonusBlock.height;
+      if (!isLastLine) cursorY += sectionGap;
+      continue;
+    }
     if (line.kind === "grace") {
       const prefix = line.prefix || "Bonus Grace: ";
       const displayValue = Math.max(0, Math.round(line.delta || 0));
@@ -5985,6 +6116,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     if (congregationAnnouncementActive) {
+      if (recapAnnouncementActive) {
+        const effectiveCameraX = resolveCameraX();
+        drawBackground(effectiveCameraX, 0);
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+        drawLevelAnnouncements();
+        return;
+      }
       const {
         buildCongregationMembers,
         getCongregationSize,

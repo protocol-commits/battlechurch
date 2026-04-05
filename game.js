@@ -6653,8 +6653,12 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (seasonStats.startCongregation == null) {
     seasonStats.startCongregation = getCongregationSize();
   }
-  const totalNpcFaith = Number.isFinite(summary?.totalNpcFaith) ? summary.totalNpcFaith : 0;
-  const healthReward = isBossSummary ? 0 : Math.min(5, Math.floor(totalNpcFaith / 100));
+  const npcHealthBreakdown = Array.isArray(summary?.npcHealthBreakdown)
+    ? summary.npcHealthBreakdown
+    : [];
+  const totalNpcFaithRaw = Number.isFinite(summary?.totalNpcFaith) ? summary.totalNpcFaith : 0;
+  const totalNpcFaith = Math.max(0, Math.min(500, Math.round(totalNpcFaithRaw)));
+  const healthReward = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
   if (!summary.congregationDeltaApplied) {
@@ -6699,9 +6703,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     recapLines.push({
       label: "Congregation Health Bonus:",
       delta: healthReward,
-      kind: "congregation",
+      kind: "npcHealthBonus",
       affectsTotal: true,
-      forceInlineValue: true,
+      totalHealth: totalNpcFaith,
+      npcHealthBreakdown,
     });
     recapLines.push({
       label: "Guest Invited:",

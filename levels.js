@@ -793,6 +793,7 @@
   let savedNames = [];
   let lostNames = [];
   let totalNpcFaith = 0;
+  const npcHealthBreakdown = [];
 
   // Capture portraits for survivors and lost NPCs when NPC objects exist.
   if (npcs.length) {
@@ -805,16 +806,25 @@
         if (typeof npc.clearStatusBubble === "function") npc.clearStatusBubble();
         try {
           const p = typeof captureNpcPortrait === 'function' ? captureNpcPortrait(npc) : null;
+          const npcFaith = Number.isFinite(npc.faith) ? Math.max(0, Math.round(npc.faith)) : 0;
+          const npcActive = !npc.departed && npc.active;
+          npcHealthBreakdown.push({
+            name: npc.name || "",
+            portrait: p,
+            faith: npcActive ? npcFaith : 0,
+            active: npcActive,
+          });
           if (p) {
-            if (!npc.departed && npc.active) {
+            if (npcActive) {
               saved.push(p);
               savedNames.push(npc.name || "");
-              if (Number.isFinite(npc.faith)) {
-                totalNpcFaith += Math.max(0, npc.faith);
-              }
+              totalNpcFaith += npcFaith;
             } else {
               lost.push(p);
             }
+          } else if (npcActive) {
+            savedNames.push(npc.name || "");
+            totalNpcFaith += npcFaith;
           }
         } catch (e) {}
       }
@@ -870,6 +880,7 @@
         savedNames: savedNames,
         lostNames: lostNames,
         totalNpcFaith: Math.round(totalNpcFaith),
+        npcHealthBreakdown: npcHealthBreakdown,
         battleScenario: state.currentBattleScenario,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
         battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
