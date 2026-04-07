@@ -1652,12 +1652,20 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           lastGhostPenalty: 0,
           bumpTimer: 0,
           holdTimer: 0,
+          thresholdHoldTimer: 0,
+          thresholdValue: null,
           finished: false,
         };
         recapTallyState.healthBonusAnim = anim;
       }
       if (anim.bumpTimer > 0) {
         anim.bumpTimer = Math.max(0, anim.bumpTimer - dt);
+      }
+      if (anim.thresholdHoldTimer > 0) {
+        anim.thresholdHoldTimer = Math.max(0, anim.thresholdHoldTimer - dt);
+        anim.totalHealth = Number.isFinite(anim.thresholdValue)
+          ? anim.thresholdValue
+          : anim.totalHealth;
       }
       if (anim.finished || !anim.entries.length) {
         anim.finished = true;
@@ -1680,9 +1688,27 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       const activeEntry = anim.entries[anim.activeNpcIndex];
       const targetHealth = Number.isFinite(activeEntry?.target) ? activeEntry.target : 0;
       const countRate = Math.max(180, targetHealth * 3.2);
+      const currentTotalBeforeStep = Math.round(anim.totalHealth || 0);
 
-      if (anim.activeHealth > 0) {
-        anim.activeHealth = Math.max(0, anim.activeHealth - dt * countRate);
+      if (anim.thresholdHoldTimer <= 0 && anim.activeHealth > 0) {
+        const drainAmount = dt * countRate;
+        const nextThreshold = Math.min(
+          Math.max(0, Math.round(current.positiveHealthBonus || 0)) * 100,
+          (Math.floor(currentTotalBeforeStep / 100) + 1) * 100,
+        );
+        const thresholdCrossed =
+          nextThreshold > currentTotalBeforeStep &&
+          nextThreshold <= Math.max(0, Math.round(current?.totalHealth || 0));
+        if (thresholdCrossed) {
+          const amountToThreshold = nextThreshold - currentTotalBeforeStep;
+          anim.activeHealth = Math.max(0, anim.activeHealth - amountToThreshold);
+          anim.totalHealth = nextThreshold;
+          anim.thresholdValue = nextThreshold;
+          anim.thresholdHoldTimer = 1.0;
+          anim.bumpTimer = 1.0;
+        } else {
+          anim.activeHealth = Math.max(0, anim.activeHealth - drainAmount);
+        }
       } else {
         if (!activeEntry?.penaltyApplied && targetHealth <= 0) {
           activeEntry.penaltyApplied = true;
@@ -1709,10 +1735,12 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         }
       }
 
-      anim.totalHealth = Math.min(
-        Number.isFinite(current?.totalHealth) ? Math.max(0, Math.round(current.totalHealth)) : 0,
-        Math.round(priorTotal + Math.max(0, targetHealth - anim.activeHealth)),
-      );
+      if (anim.thresholdHoldTimer <= 0) {
+        anim.totalHealth = Math.min(
+          Number.isFinite(current?.totalHealth) ? Math.max(0, Math.round(current.totalHealth)) : 0,
+          Math.round(priorTotal + Math.max(0, targetHealth - anim.activeHealth)),
+        );
+      }
       const nextAward = Math.min(
         Math.max(0, Math.round(current.positiveHealthBonus || 0)),
         Math.floor(anim.totalHealth / 100),
@@ -2047,10 +2075,13 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.restore();
     });
 
-    const totalGlow = bumpPulse > 0 ? 18 + bumpPulse * 14 : 0;
+    const thresholdPulse = anim && anim.thresholdHoldTimer > 0 ? anim.thresholdHoldTimer : 0;
+    const totalGlow = bumpPulse > 0
+      ? 18 + bumpPulse * 14
+      : (thresholdPulse > 0 ? 20 + thresholdPulse * 18 : 0);
     const totalValueBaselineY = npcRowTopY + 64;
     ctx.save();
-    ctx.fillStyle = highlightValueColor;
+    ctx.fillStyle = thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
     ctx.font = `700 42px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
     ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
