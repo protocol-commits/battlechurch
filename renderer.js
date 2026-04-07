@@ -1349,6 +1349,7 @@ function resetRecapTallyState(recapData) {
   recapTallyState.visibleBonusCount = 0;
   recapTallyState.lastRevealIndex = -1;
   recapTallyState.bonusNpcs = [];
+  recapTallyState.healthBonusAnim = null;
 }
 
 function spawnRecapGraceEffects(count, spawnBounds) {
@@ -1498,6 +1499,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.ghostEffects = [];
     recapTallyState.graceEffects = [];
     recapTallyState.pendingGhost = null;
+    recapTallyState.healthBonusAnim = null;
     recapTallyState.graceFlySfxPlayed = true;
     if (recapData.graceBonus > 0) {
       recapData.graceAppliedCount = recapData.graceBonus;
@@ -1593,6 +1595,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.totalTarget = null;
     recapTallyState.stepProgress = 0;
     recapTallyState.pauseTimer = 0;
+    recapTallyState.healthBonusAnim = null;
     if (recapTallyState.stepIndex >= lines.length) {
       recapTallyState.done = true;
       if (!recapTallyState.finalSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
@@ -1626,6 +1629,97 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
   }
   if (recapTallyState.phase === "value") {
     const affectsTotal = current.affectsTotal !== false;
+    if (current.kind === "npcHealthBonus") {
+      const entries = Array.isArray(current?.npcHealthBreakdown)
+        ? current.npcHealthBreakdown.slice(0, 5)
+        : [];
+      let anim = recapTallyState.healthBonusAnim;
+      if (!anim || anim.index !== recapTallyState.stepIndex) {
+        anim = {
+          index: recapTallyState.stepIndex,
+          entries: entries.map((entry) => ({
+            name: entry?.name || "",
+            portrait: entry?.portrait || null,
+            target: Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0,
+          })),
+          activeNpcIndex: 0,
+          activeHealth: 0,
+          totalHealth: 0,
+          congregationAwarded: 0,
+          bumpTimer: 0,
+          holdTimer: 0,
+          finished: false,
+        };
+        recapTallyState.healthBonusAnim = anim;
+      }
+      if (anim.bumpTimer > 0) {
+        anim.bumpTimer = Math.max(0, anim.bumpTimer - dt);
+      }
+      if (anim.finished || !anim.entries.length) {
+        anim.finished = true;
+        anim.totalHealth = Number.isFinite(current?.totalHealth)
+          ? Math.max(0, Math.round(current.totalHealth))
+          : 0;
+        anim.congregationAwarded = Math.max(0, Math.round(current.delta || 0));
+        recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+        recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+        recapTallyState.phase = "post";
+        return;
+      }
+
+      const priorTotal = anim.entries
+        .slice(0, anim.activeNpcIndex)
+        .reduce((sum, entry) => sum + (Number.isFinite(entry.target) ? entry.target : 0), 0);
+      const activeEntry = anim.entries[anim.activeNpcIndex];
+      const targetHealth = Number.isFinite(activeEntry?.target) ? activeEntry.target : 0;
+      const countRate = Math.max(180, targetHealth * 3.2);
+
+      if (anim.activeHealth < targetHealth) {
+        anim.activeHealth = Math.min(targetHealth, anim.activeHealth + dt * countRate);
+      } else {
+        anim.holdTimer += dt;
+        if (anim.holdTimer >= 0.24) {
+          anim.activeNpcIndex += 1;
+          anim.activeHealth = 0;
+          anim.holdTimer = 0;
+          if (anim.activeNpcIndex >= anim.entries.length) {
+            anim.finished = true;
+          }
+        }
+      }
+
+      anim.totalHealth = Math.min(
+        Number.isFinite(current?.totalHealth) ? Math.max(0, Math.round(current.totalHealth)) : 0,
+        Math.round(priorTotal + anim.activeHealth),
+      );
+      const nextAward = Math.min(
+        Math.max(0, Math.round(current.delta || 0)),
+        Math.floor(anim.totalHealth / 100),
+      );
+      if (nextAward > anim.congregationAwarded) {
+        const gained = nextAward - anim.congregationAwarded;
+        anim.congregationAwarded = nextAward;
+        if (affectsTotal) {
+          recapTallyState.totalValue += gained;
+          recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+        }
+        if (typeof window?.playRecapFinalSfx === "function") {
+          window.playRecapFinalSfx(0.8);
+        }
+        anim.bumpTimer = 0.55;
+      }
+
+      recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+      if (anim.finished) {
+        anim.totalHealth = Number.isFinite(current?.totalHealth)
+          ? Math.max(0, Math.round(current.totalHealth))
+          : anim.totalHealth;
+        anim.congregationAwarded = Math.max(0, Math.round(current.delta || 0));
+        recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+        recapTallyState.phase = "post";
+      }
+      return;
+    }
     if (affectsTotal) {
       recapTallyState.totalValue += targetValue;
     }
@@ -1823,76 +1917,193 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const entries = Array.isArray(line?.npcHealthBreakdown)
       ? line.npcHealthBreakdown.slice(0, 5)
       : [];
-    const totalHealth = Number.isFinite(line?.totalHealth) ? Math.max(0, Math.round(line.totalHealth)) : 0;
-    const addedCongregation = Number.isFinite(line?.delta) ? Math.max(0, Math.round(line.delta)) : 0;
-    const labelLineHeight = lineSpacing;
-    const mathLineHeight = Math.round(bodySize * 1.05);
-    const iconSize = 42;
-    const framePadding = 5;
-    const iconGap = 14;
+    const finalTotalHealth = Number.isFinite(line?.totalHealth)
+      ? Math.max(0, Math.round(line.totalHealth))
+      : 0;
+    const finalAddedCongregation = Number.isFinite(line?.delta)
+      ? Math.max(0, Math.round(line.delta))
+      : 0;
+    const anim = (
+      recapTallyState.healthBonusAnim &&
+      recapTallyState.healthBonusAnim.index === recapTallyState.stepIndex
+    )
+      ? recapTallyState.healthBonusAnim
+      : null;
+    const totalHealth = anim ? Math.max(0, Math.round(anim.totalHealth || 0)) : finalTotalHealth;
+    const addedCongregation = anim ? Math.max(0, Math.round(anim.congregationAwarded || 0)) : finalAddedCongregation;
+    const activeNpcIndex = anim
+      ? Math.min(entries.length - 1, Math.max(0, anim.activeNpcIndex || 0))
+      : Math.max(0, entries.length - 1);
+    const activeNpc = entries[activeNpcIndex] || entries[0] || null;
+    const activeNpcHealth = anim
+      ? Math.max(0, Math.round(anim.activeHealth || 0))
+      : (Number.isFinite(activeNpc?.faith) ? Math.max(0, Math.round(activeNpc.faith)) : 0);
+    const bumpPulse = anim ? Math.max(0, anim.bumpTimer || 0) : 0;
+
     const labelY = y;
-    const iconsTopY = labelY + 14;
-    const healthY = iconsTopY + Math.round(bodySize * 0.8);
-    const frameY = healthY + 6;
-    const frameSize = iconSize + framePadding * 2;
-    const iconsBottomY = frameY + frameSize;
-    const mathY = iconsBottomY + Math.round(bodySize * 0.95);
-    const slotCount = Math.max(5, entries.length || 0);
-    const totalSlotWidth = slotCount * frameSize + Math.max(0, slotCount - 1) * iconGap;
-    const startX = x + Math.max(0, Math.round((maxWidth - totalSlotWidth) / 2));
+    const stageTopY = labelY + 20;
+    const featuredCardWidth = 220;
+    const featuredCardHeight = 168;
+    const featuredCardX = x;
+    const featuredCardY = stageTopY;
+    const trackerWidth = maxWidth - featuredCardWidth - 28;
+    const trackerX = featuredCardX + featuredCardWidth + 28;
+    const trackerY = featuredCardY + 6;
+    const portraitStripY = featuredCardY + featuredCardHeight + 18;
+    const milestoneY = portraitStripY + 76;
+    const rowBottomY = milestoneY + 68;
 
     ctx.fillStyle = baseLabelColor;
     drawHighlightedLabel(line.label || "", x, labelY, line.highlightText);
 
-    entries.forEach((entry, index) => {
-      const slotX = startX + index * (frameSize + iconGap);
-      const centerX = slotX + frameSize / 2;
-      const healthValue = Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0;
+    ctx.save();
+    ctx.fillStyle = "rgba(9, 14, 23, 0.92)";
+    ctx.strokeStyle = "rgba(255, 217, 120, 0.32)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, featuredCardX, featuredCardY, featuredCardWidth, featuredCardHeight, 20, true, true);
+    ctx.restore();
+
+    if (activeNpc?.name) {
       ctx.save();
-      ctx.fillStyle = healthValue > 0 ? highlightValueColor : "rgba(234, 246, 255, 0.72)";
+      ctx.fillStyle = baseLabelColor;
+      ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
-      ctx.fillText(String(healthValue), centerX, healthY);
+      ctx.fillText(activeNpc.name, featuredCardX + featuredCardWidth / 2, featuredCardY + 30);
       ctx.restore();
+    }
 
+    if (activeNpc?.portrait) {
+      const portraitSize = 88;
+      ctx.drawImage(
+        activeNpc.portrait,
+        featuredCardX + Math.round((featuredCardWidth - portraitSize) / 2),
+        featuredCardY + 46,
+        portraitSize,
+        portraitSize,
+      );
+    }
+
+    ctx.save();
+    ctx.fillStyle = highlightValueColor;
+    ctx.font = `700 34px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.fillText(
+      `${formatNumber(activeNpcHealth)}`,
+      featuredCardX + featuredCardWidth / 2,
+      featuredCardY + featuredCardHeight - 22,
+    );
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
+    ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.fillText("Current NPC Health", trackerX, trackerY + 16);
+    ctx.restore();
+
+    ctx.save();
+    const totalGlow = bumpPulse > 0 ? 18 + bumpPulse * 14 : 0;
+    ctx.fillStyle = highlightValueColor;
+    ctx.font = `700 54px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
+    ctx.shadowBlur = totalGlow;
+    ctx.fillText(`${formatNumber(totalHealth)}`, trackerX, trackerY + 78);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
+    ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.fillText("/ 500 total health", trackerX + 150, trackerY + 78);
+    ctx.fillText("Every 100 health adds +1 congregation", trackerX, trackerY + 110);
+    ctx.restore();
+
+    const trackerBarY = trackerY + 130;
+    const trackerBarWidth = Math.max(220, trackerWidth - 4);
+    const trackerBarHeight = 16;
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    roundRect(ctx, trackerX, trackerBarY, trackerBarWidth, trackerBarHeight, 999, true, false);
+    ctx.fillStyle = "rgba(255, 217, 120, 0.9)";
+    roundRect(
+      ctx,
+      trackerX,
+      trackerBarY,
+      Math.round(trackerBarWidth * Math.max(0, Math.min(1, totalHealth / 500))),
+      trackerBarHeight,
+      999,
+      true,
+      false,
+    );
+    ctx.restore();
+
+    const stripSlotSize = 54;
+    const stripGap = 18;
+    const stripTotalWidth = entries.length * stripSlotSize + Math.max(0, entries.length - 1) * stripGap;
+    const stripStartX = x + Math.round((maxWidth - stripTotalWidth) / 2);
+    entries.forEach((entry, index) => {
+      const slotX = stripStartX + index * (stripSlotSize + stripGap);
+      const isPast = anim ? index < activeNpcIndex : true;
+      const isCurrent = index === activeNpcIndex;
       ctx.save();
-      ctx.fillStyle = "rgba(8, 12, 20, 0.72)";
-      ctx.strokeStyle = isHighlighted ? "rgba(255, 229, 166, 0.95)" : "rgba(255, 217, 120, 0.5)";
-      ctx.lineWidth = 1.5;
-      roundRect(ctx, slotX, frameY, frameSize, frameSize, 8, true, true);
+      ctx.fillStyle = isCurrent ? "rgba(255, 217, 120, 0.16)" : "rgba(255,255,255,0.05)";
+      ctx.strokeStyle = isCurrent
+        ? "rgba(255, 217, 120, 0.95)"
+        : (isPast ? "rgba(155, 217, 255, 0.6)" : "rgba(255,255,255,0.22)");
+      ctx.lineWidth = isCurrent ? 3 : 1.5;
+      roundRect(ctx, slotX, portraitStripY, stripSlotSize, stripSlotSize, 12, true, true);
       ctx.restore();
-
-      const portrait = entry?.portrait;
-      if (portrait) {
-        ctx.drawImage(
-          portrait,
-          slotX + framePadding,
-          frameY + framePadding,
-          iconSize,
-          iconSize,
-        );
-      } else {
+      if (entry?.portrait) {
+        ctx.drawImage(entry.portrait, slotX + 5, portraitStripY + 5, stripSlotSize - 10, stripSlotSize - 10);
+      }
+      if (isPast) {
         ctx.save();
-        ctx.fillStyle = "rgba(155, 217, 255, 0.18)";
-        roundRect(ctx, slotX + framePadding, frameY + framePadding, iconSize, iconSize, 6, true, false);
+        ctx.fillStyle = "rgba(155, 217, 255, 0.85)";
+        ctx.font = `700 14px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        ctx.textAlign = "center";
+        ctx.fillText("DONE", slotX + stripSlotSize / 2, portraitStripY + stripSlotSize + 18);
         ctx.restore();
       }
     });
 
+    const milestoneRadius = 18;
+    const milestoneGap = 22;
+    const milestoneTotalWidth =
+      finalAddedCongregation * milestoneRadius * 2 + Math.max(0, finalAddedCongregation - 1) * milestoneGap;
+    const milestoneStartX = x + Math.round((maxWidth - milestoneTotalWidth) / 2) + milestoneRadius;
     ctx.save();
-    ctx.fillStyle = isHighlighted ? highlightValueFlash : highlightValueColor;
     ctx.textAlign = "center";
-    ctx.fillText(
-      `${formatNumber(totalHealth)}/500 health  ->  +${formatNumber(addedCongregation)} congregation`,
-      x + maxWidth / 2,
-      mathY,
-    );
+    ctx.fillStyle = baseLabelColor;
+    ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.fillText("Congregation Bonus", x + maxWidth / 2, milestoneY - 14);
     ctx.restore();
+    for (let i = 0; i < finalAddedCongregation; i += 1) {
+      const cx = milestoneStartX + i * (milestoneRadius * 2 + milestoneGap);
+      const reached = i < addedCongregation;
+      const pulse = reached && i === addedCongregation - 1 ? bumpPulse : 0;
+      ctx.save();
+      ctx.shadowColor = reached ? "rgba(255, 217, 120, 0.85)" : "transparent";
+      ctx.shadowBlur = reached ? 14 + pulse * 18 : 0;
+      ctx.fillStyle = reached ? "#FFD978" : "rgba(255,255,255,0.12)";
+      ctx.beginPath();
+      ctx.arc(cx, milestoneY + 16, milestoneRadius + pulse * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = reached ? "#0b111a" : "rgba(234,246,255,0.75)";
+      ctx.font = `700 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.fillText(`+${i + 1}`, cx, milestoneY + 22);
+      ctx.restore();
+    }
 
     return {
-      height: (mathY - labelY) + mathLineHeight,
-      pendingGhostX: x + maxWidth / 2 - Math.round(ctx.measureText(`+${formatNumber(addedCongregation)}`).width / 2),
-      pendingGhostY: mathY,
-      pendingGhostText: `+${formatNumber(addedCongregation)}`,
+      height: rowBottomY - labelY,
+      pendingGhostX: trackerX,
+      pendingGhostY: milestoneY + 16,
+      pendingGhostText: `+1`,
     };
   };
 
@@ -4634,6 +4845,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof r === "number") {
       r = { tl: r, tr: r, br: r, bl: r };
     }
+    const maxRadius = Math.max(0, Math.min(Math.abs(width) / 2, Math.abs(height) / 2));
+    r = {
+      tl: Math.max(0, Math.min(maxRadius, r?.tl ?? 0)),
+      tr: Math.max(0, Math.min(maxRadius, r?.tr ?? 0)),
+      br: Math.max(0, Math.min(maxRadius, r?.br ?? 0)),
+      bl: Math.max(0, Math.min(maxRadius, r?.bl ?? 0)),
+    };
     ctx.beginPath();
     ctx.moveTo(x + r.tl, y);
     ctx.lineTo(x + width - r.tr, y);
