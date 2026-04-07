@@ -6646,7 +6646,14 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     : [];
   const totalNpcFaithRaw = Number.isFinite(summary?.totalNpcFaith) ? summary.totalNpcFaith : 0;
   const totalNpcFaith = Math.max(0, Math.min(500, Math.round(totalNpcFaithRaw)));
-  const healthReward = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
+  const zeroHealthPenaltyCount = isBossSummary
+    ? 0
+    : npcHealthBreakdown.reduce(
+        (sum, entry) => sum + ((Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0) <= 0 ? 1 : 0),
+        0,
+      );
+  const healthRewardBase = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
+  const healthReward = isBossSummary ? 0 : (healthRewardBase - zeroHealthPenaltyCount);
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
   if (!summary.congregationDeltaApplied) {
@@ -6693,6 +6700,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       kind: "npcHealthBonus",
       affectsTotal: true,
       totalHealth: totalNpcFaith,
+      positiveHealthBonus: healthRewardBase,
+      zeroHealthPenaltyCount,
       npcHealthBreakdown,
     });
   }
@@ -6736,7 +6745,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       const verb = lostNames.length === 1 ? "has" : "have";
       paragraph += `${names} ${verb} left the church. `;
     }
-    paragraph += `Their remaining health was ${formatNumberWithCommas(totalNpcFaith)} (${formatDelta(healthReward)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
+    const zeroPenaltyLabel = zeroHealthPenaltyCount === 1 ? "zero-health penalty" : "zero-health penalties";
+    paragraph += `Their remaining health was ${formatNumberWithCommas(totalNpcFaith)} (${formatDelta(healthRewardBase)}), with ${formatNumberWithCommas(zeroHealthPenaltyCount)} ${zeroPenaltyLabel} (${formatDelta(-zeroHealthPenaltyCount)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
   }
   const body = paragraph;
   if (announcement) {

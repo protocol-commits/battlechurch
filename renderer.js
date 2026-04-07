@@ -1641,11 +1641,15 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
             name: entry?.name || "",
             portrait: entry?.portrait || null,
             target: Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0,
+            penaltyApplied: false,
           })),
           activeNpcIndex: 0,
           activeHealth: Number.isFinite(entries?.[0]?.faith) ? Math.max(0, Math.round(entries[0].faith)) : 0,
           totalHealth: 0,
           congregationAwarded: 0,
+          congregationPenaltyApplied: 0,
+          lastGhostAward: 0,
+          lastGhostPenalty: 0,
           bumpTimer: 0,
           holdTimer: 0,
           finished: false,
@@ -1660,7 +1664,10 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         anim.totalHealth = Number.isFinite(current?.totalHealth)
           ? Math.max(0, Math.round(current.totalHealth))
           : 0;
-        anim.congregationAwarded = Math.max(0, Math.round(current.delta || 0));
+        anim.congregationAwarded = Math.max(0, Math.round(current.positiveHealthBonus || 0));
+        anim.congregationPenaltyApplied = Math.max(0, Math.round(current.zeroHealthPenaltyCount || 0));
+        anim.lastGhostAward = anim.congregationAwarded;
+        anim.lastGhostPenalty = anim.congregationPenaltyApplied;
         recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
         recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
         recapTallyState.phase = "post";
@@ -1677,6 +1684,18 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       if (anim.activeHealth > 0) {
         anim.activeHealth = Math.max(0, anim.activeHealth - dt * countRate);
       } else {
+        if (!activeEntry?.penaltyApplied && targetHealth <= 0) {
+          activeEntry.penaltyApplied = true;
+          anim.congregationPenaltyApplied += 1;
+          if (affectsTotal) {
+            recapTallyState.totalValue -= 1;
+            recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+          }
+          if (typeof window?.playRecapFinalSfx === "function") {
+            window.playRecapFinalSfx(0.8);
+          }
+          anim.bumpTimer = 0.55;
+        }
         anim.holdTimer += dt;
         if (anim.holdTimer >= 1.0) {
           anim.activeNpcIndex += 1;
@@ -1716,7 +1735,10 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         anim.totalHealth = Number.isFinite(current?.totalHealth)
           ? Math.max(0, Math.round(current.totalHealth))
           : anim.totalHealth;
-        anim.congregationAwarded = Math.max(0, Math.round(current.delta || 0));
+        anim.congregationAwarded = Math.max(0, Math.round(current.positiveHealthBonus || 0));
+        anim.congregationPenaltyApplied = Math.max(0, Math.round(current.zeroHealthPenaltyCount || 0));
+        anim.lastGhostAward = anim.congregationAwarded;
+        anim.lastGhostPenalty = anim.congregationPenaltyApplied;
         recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
         recapTallyState.phase = "post";
       }
@@ -1925,6 +1947,12 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const finalAddedCongregation = Number.isFinite(line?.delta)
       ? Math.max(0, Math.round(line.delta))
       : 0;
+    const finalPositiveBonus = Number.isFinite(line?.positiveHealthBonus)
+      ? Math.max(0, Math.round(line.positiveHealthBonus))
+      : finalAddedCongregation;
+    const finalZeroPenalty = Number.isFinite(line?.zeroHealthPenaltyCount)
+      ? Math.max(0, Math.round(line.zeroHealthPenaltyCount))
+      : 0;
     const anim = (
       recapTallyState.healthBonusAnim &&
       recapTallyState.healthBonusAnim.index === recapTallyState.stepIndex
@@ -1933,6 +1961,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       : null;
     const totalHealth = anim ? Math.max(0, Math.round(anim.totalHealth || 0)) : finalTotalHealth;
     const addedCongregation = anim ? Math.max(0, Math.round(anim.congregationAwarded || 0)) : finalAddedCongregation;
+    const appliedPenaltyCount = anim ? Math.max(0, Math.round(anim.congregationPenaltyApplied || 0)) : finalZeroPenalty;
     const activeNpcIndex = anim
       ? Math.min(entries.length - 1, Math.max(0, anim.activeNpcIndex || 0))
       : Math.max(0, entries.length - 1);
@@ -1942,12 +1971,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const blockTopY = labelY + 20;
     const trackerWidth = maxWidth;
     const trackerX = x;
-    const labelRowHeight = 28;
+    const labelRowHeight = 0;
     const npcHealthRowHeight = 98;
     const totalRowHeight = 82;
     const bonusRowHeight = 68;
     const rowGap = 18;
-    const npcLabelBaselineY = blockTopY + 18;
     const npcRowTopY = blockTopY + labelRowHeight + rowGap;
     const totalRowTopY = npcRowTopY + npcHealthRowHeight + rowGap;
     const bonusRowTopY = totalRowTopY + totalRowHeight + rowGap;
@@ -1955,13 +1983,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
     ctx.fillStyle = baseLabelColor;
     drawHighlightedLabel(line.label || "", x, labelY, line.highlightText);
-
-    ctx.save();
-    ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
-    ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    ctx.textAlign = "left";
-    ctx.fillText("Current NPC Health", trackerX, npcLabelBaselineY);
-    ctx.restore();
 
     const stripSlotSize = 54;
     const stripGap = 18;
@@ -1999,14 +2020,12 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       if (entry?.portrait) {
         ctx.drawImage(entry.portrait, slotX + 5, portraitStripY + 5, stripSlotSize - 10, stripSlotSize - 10);
       }
-      if (isPast) {
-        ctx.save();
-        ctx.fillStyle = "rgba(155, 217, 255, 0.85)";
-        ctx.font = `700 14px ${ANNOUNCEMENT_FONT_FAMILY}`;
-        ctx.textAlign = "center";
-        ctx.fillText("DONE", slotX + stripSlotSize / 2, portraitStripY + stripSlotSize + 18);
-        ctx.restore();
-      }
+      ctx.save();
+      ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.85)";
+      ctx.font = `600 14px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.fillText(entry?.name || "", slotX + stripSlotSize / 2, portraitStripY + stripSlotSize + 18);
+      ctx.restore();
     });
 
     const totalGlow = bumpPulse > 0 ? 18 + bumpPulse * 14 : 0;
@@ -2029,7 +2048,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
     ctx.fillText("/ 500 total health", trackerX + 150, totalValueBaselineY);
-    ctx.fillText("Every 100 health adds +1 congregation", trackerX, totalSubtitleBaselineY);
+    ctx.fillText("Every 100 health adds +1. Each 0-health NPC costs -1.", trackerX, totalSubtitleBaselineY);
     ctx.restore();
 
     ctx.save();
@@ -2050,8 +2069,16 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
     const milestoneRadius = 18;
     const milestoneGap = 22;
-    const milestoneTotalWidth =
-      finalAddedCongregation * milestoneRadius * 2 + Math.max(0, finalAddedCongregation - 1) * milestoneGap;
+    const positiveWidth =
+      finalPositiveBonus > 0
+        ? finalPositiveBonus * milestoneRadius * 2 + Math.max(0, finalPositiveBonus - 1) * milestoneGap
+        : 0;
+    const penaltyWidth =
+      finalZeroPenalty > 0
+        ? finalZeroPenalty * milestoneRadius * 2 + Math.max(0, finalZeroPenalty - 1) * milestoneGap
+        : 0;
+    const betweenGroups = finalPositiveBonus > 0 && finalZeroPenalty > 0 ? 36 : 0;
+    const milestoneTotalWidth = positiveWidth + penaltyWidth + betweenGroups;
     const milestoneStartX = x + Math.round((maxWidth - milestoneTotalWidth) / 2) + milestoneRadius;
     ctx.save();
     ctx.textAlign = "center";
@@ -2059,7 +2086,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.fillText("Congregation Bonus", x + maxWidth / 2, bonusRowTopY);
     ctx.restore();
-    for (let i = 0; i < finalAddedCongregation; i += 1) {
+    for (let i = 0; i < finalPositiveBonus; i += 1) {
       const cx = milestoneStartX + i * (milestoneRadius * 2 + milestoneGap);
       const reached = i < addedCongregation;
       const pulse = reached && i === addedCongregation - 1 ? bumpPulse : 0;
@@ -2078,6 +2105,58 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.fillText(`+${i + 1}`, cx, bonusRowTopY + 36);
       ctx.restore();
+    }
+    const penaltyStartCenter = milestoneStartX + Math.max(0, positiveWidth + betweenGroups);
+    for (let i = 0; i < finalZeroPenalty; i += 1) {
+      const cx = penaltyStartCenter + i * (milestoneRadius * 2 + milestoneGap);
+      const reached = i < appliedPenaltyCount;
+      const pulse = reached && i === appliedPenaltyCount - 1 ? bumpPulse : 0;
+      ctx.save();
+      ctx.shadowColor = reached ? "rgba(255, 120, 120, 0.8)" : "transparent";
+      ctx.shadowBlur = reached ? 14 + pulse * 18 : 0;
+      ctx.fillStyle = reached ? "#FF7676" : "rgba(255,255,255,0.12)";
+      ctx.beginPath();
+      ctx.arc(cx, bonusRowTopY + 16, milestoneRadius + pulse * 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = reached ? "#140b0b" : "rgba(234,246,255,0.75)";
+      ctx.font = `700 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.fillText(`-${i + 1}`, cx, bonusRowTopY + 36);
+      ctx.restore();
+    }
+
+    if (anim && anim.congregationAwarded > (anim.lastGhostAward || 0)) {
+      const popCount = anim.congregationAwarded - (anim.lastGhostAward || 0);
+      const countTextWidth = ctx.measureText(formatNumber(recapTallyState.totalValue || 0)).width || 0;
+      const popX = countNumberX + countTextWidth / 2;
+      for (let ghostIndex = 0; ghostIndex < popCount; ghostIndex += 1) {
+        spawnRecapGhostEffect(
+          "+1",
+          popX,
+          countNumberY - 12,
+          popX,
+          countNumberY - 54 - ghostIndex * 10,
+        );
+      }
+      anim.lastGhostAward = anim.congregationAwarded;
+    }
+    if (anim && anim.congregationPenaltyApplied > (anim.lastGhostPenalty || 0)) {
+      const popCount = anim.congregationPenaltyApplied - (anim.lastGhostPenalty || 0);
+      const countTextWidth = ctx.measureText(formatNumber(recapTallyState.totalValue || 0)).width || 0;
+      const popX = countNumberX + countTextWidth / 2;
+      for (let ghostIndex = 0; ghostIndex < popCount; ghostIndex += 1) {
+        spawnRecapGhostEffect(
+          "-1",
+          popX,
+          countNumberY - 12,
+          popX,
+          countNumberY - 54 - ghostIndex * 10,
+        );
+      }
+      anim.lastGhostPenalty = anim.congregationPenaltyApplied;
     }
 
     return {
