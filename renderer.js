@@ -1643,7 +1643,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
             target: Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0,
           })),
           activeNpcIndex: 0,
-          activeHealth: 0,
+          activeHealth: Number.isFinite(entries?.[0]?.faith) ? Math.max(0, Math.round(entries[0].faith)) : 0,
           totalHealth: 0,
           congregationAwarded: 0,
           bumpTimer: 0,
@@ -1674,23 +1674,25 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       const targetHealth = Number.isFinite(activeEntry?.target) ? activeEntry.target : 0;
       const countRate = Math.max(180, targetHealth * 3.2);
 
-      if (anim.activeHealth < targetHealth) {
-        anim.activeHealth = Math.min(targetHealth, anim.activeHealth + dt * countRate);
+      if (anim.activeHealth > 0) {
+        anim.activeHealth = Math.max(0, anim.activeHealth - dt * countRate);
       } else {
         anim.holdTimer += dt;
-        if (anim.holdTimer >= 0.24) {
+        if (anim.holdTimer >= 1.0) {
           anim.activeNpcIndex += 1;
-          anim.activeHealth = 0;
           anim.holdTimer = 0;
           if (anim.activeNpcIndex >= anim.entries.length) {
             anim.finished = true;
+          } else {
+            const nextEntry = anim.entries[anim.activeNpcIndex];
+            anim.activeHealth = Number.isFinite(nextEntry?.target) ? nextEntry.target : 0;
           }
         }
       }
 
       anim.totalHealth = Math.min(
         Number.isFinite(current?.totalHealth) ? Math.max(0, Math.round(current.totalHealth)) : 0,
-        Math.round(priorTotal + anim.activeHealth),
+        Math.round(priorTotal + Math.max(0, targetHealth - anim.activeHealth)),
       );
       const nextAward = Math.min(
         Math.max(0, Math.round(current.delta || 0)),
