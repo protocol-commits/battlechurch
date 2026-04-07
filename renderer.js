@@ -1853,10 +1853,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   });
   ctx.translate(layout.offsetX, layout.offsetY);
   ctx.scale(layout.scale, layout.scale);
-  ctx.save();
-  ctx.fillStyle = "rgba(4, 7, 12, 0.72)";
-  ctx.fillRect(0, 0, layout.virtualCanvas.width, layout.virtualCanvas.height);
-  ctx.restore();
 
   if (recapData && !recapData.id) {
     const lineCount = Array.isArray(recapData.lines) ? recapData.lines.length : 0;
@@ -2203,8 +2199,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
   ctx.shadowBlur = 18;
   ctx.save();
-  ctx.fillStyle = "rgba(6, 10, 18, 0.82)";
-  ctx.strokeStyle = "rgba(255, 217, 120, 0.24)";
+  ctx.fillStyle = "rgba(6, 10, 18, 0.68)";
+  ctx.strokeStyle = "rgba(255, 217, 120, 0.32)";
   ctx.lineWidth = 2;
   roundRect(ctx, panelX, panelTop, panelWidth, panelHeight, 26, true, true);
   ctx.restore();
@@ -6377,10 +6373,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (recapAnnouncementActive) {
         const effectiveCameraX = resolveCameraX();
         drawBackground(effectiveCameraX, 0);
-        ctx.save();
-        ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.restore();
         drawLevelAnnouncements();
         return;
       }
