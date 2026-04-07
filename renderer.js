@@ -1687,7 +1687,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         .reduce((sum, entry) => sum + (Number.isFinite(entry.target) ? entry.target : 0), 0);
       const activeEntry = anim.entries[anim.activeNpcIndex];
       const targetHealth = Number.isFinite(activeEntry?.target) ? activeEntry.target : 0;
-      const countRate = Math.max(180, targetHealth * 3.2);
+      const countRate = Math.min(140, Math.max(70, targetHealth * 1.2));
       const currentTotalBeforeStep = Math.round(anim.totalHealth || 0);
 
       if (anim.thresholdHoldTimer > 0) {
