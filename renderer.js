@@ -1707,8 +1707,8 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           anim.activeHealth = Math.max(0, anim.activeHealth - amountToThreshold);
           anim.totalHealth = nextThreshold;
           anim.thresholdValue = nextThreshold;
-          anim.thresholdHoldTimer = 1.0;
-          anim.bumpTimer = 1.0;
+          anim.thresholdHoldTimer = 0.5;
+          anim.bumpTimer = 0.5;
         } else {
           anim.activeHealth = Math.max(0, anim.activeHealth - drainAmount);
         }
