@@ -6638,18 +6638,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const localMonthNumber = status?.battle || 1; // battle is 1-based month within the level
   const stage = status?.stage || "";
   const isBossSummary = Boolean(announcement?.levelSummary) || stage === "levelSummary";
-  const memberDelta = isBossSummary ? 0 : (() => {
-    const noNpcResults =
-      (!Number.isFinite(savedCount) || savedCount <= 0) &&
-      (!Number.isFinite(lostCount) || lostCount <= 0);
-    if (noNpcResults) return 0;
-    if (savedCount >= 5) return 3;
-    if (savedCount === 4) return 2;
-    if (savedCount === 3) return 1;
-    if (savedCount === 2) return 0;
-    if (savedCount === 1) return -1;
-    return -2;
-  })();
   if (seasonStats.startCongregation == null) {
     seasonStats.startCongregation = getCongregationSize();
   }
@@ -6662,12 +6650,11 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
   if (!summary.congregationDeltaApplied) {
-    adjustCongregationSize(memberDelta + healthReward + bossBonus);
+    adjustCongregationSize(healthReward + bossBonus);
     summary.congregationDeltaApplied = true;
-    summary.congregationDelta = memberDelta;
     summary.healthReward = healthReward;
   }
-  seasonStats.monthlyAdded += memberDelta + healthReward;
+  seasonStats.monthlyAdded += healthReward;
   seasonStats.lost += Math.max(0, lostCount || 0);
   const congregationTotal = getCongregationSize();
   const formatDelta = (value) => {
@@ -6675,7 +6662,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     const sign = numeric >= 0 ? "+" : "-";
     return `${sign}${formatNumberWithCommas(Math.abs(numeric))}`;
   };
-  const totalDelta = memberDelta + healthReward + bossBonus;
+  const totalDelta = healthReward + bossBonus;
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = 0;
   if (graceBonus > 0 && !summary.graceBonusApplied) {
@@ -6707,13 +6694,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       affectsTotal: true,
       totalHealth: totalNpcFaith,
       npcHealthBreakdown,
-    });
-    recapLines.push({
-      label: "Guest Invited:",
-      delta: memberDelta,
-      kind: "congregation",
-      affectsTotal: true,
-      forceInlineValue: true,
     });
   }
   if (bossBonus !== 0) {
@@ -6749,14 +6729,14 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   } else {
     if (savedNames.length) {
       const names = savedNames.join(", ");
-      paragraph += `You ministered to ${names} (${formatDelta(memberDelta)}). `;
+      paragraph += `You ministered to ${names}. `;
     }
     if (lostNames.length) {
       const names = lostNames.join(", ");
       const verb = lostNames.length === 1 ? "has" : "have";
       paragraph += `${names} ${verb} left the church. `;
     }
-    paragraph += `Their remaining health was ${formatNumberWithCommas(totalNpcFaith)} (${formatDelta(healthReward)}). In turn, they've invited ${formatNumberWithCommas(memberDelta + healthReward)} people to join the congregation. Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
+    paragraph += `Their remaining health was ${formatNumberWithCommas(totalNpcFaith)} (${formatDelta(healthReward)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
   }
   const body = paragraph;
   if (announcement) {
