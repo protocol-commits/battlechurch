@@ -1718,6 +1718,9 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
             recapTallyState.totalValue -= 1;
             recapTallyState.flashTimer = RECAP_FLASH_DURATION;
           }
+          if (typeof window?.playCongregationCountPopSfx === "function") {
+            window.playCongregationCountPopSfx(0.7, "down");
+          }
           if (typeof window?.playRecapFinalSfx === "function") {
             window.playRecapFinalSfx(0.8);
           }
@@ -1752,6 +1755,9 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         if (affectsTotal) {
           recapTallyState.totalValue += gained;
           recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+        }
+        if (typeof window?.playCongregationCountPopSfx === "function") {
+          window.playCongregationCountPopSfx(0.7, "up");
         }
         if (typeof window?.playRecapFinalSfx === "function") {
           window.playRecapFinalSfx(0.8);

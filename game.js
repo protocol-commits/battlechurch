@@ -297,7 +297,8 @@ const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9
 const DIVINE_SHOT_SFX_SRC = "assets/sfx/Weapons/spell11.mp3";
 const CONGREGATION_OVERLAY_WORD_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_OVERLAY_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
-const CONGREGATION_COUNT_POP_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_40.wav";
+const CONGREGATION_COUNT_POP_UP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
+const CONGREGATION_COUNT_POP_DOWN_SFX_SRC = "assets/sfx/utility/utility3.mp3";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
   { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
@@ -379,7 +380,8 @@ const visitorSavedSfxPool = [];
 const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
 const congregationOverlaySfxPool = [];
-const congregationCountPopSfxPool = [];
+const congregationCountPopUpSfxPool = [];
+const congregationCountPopDownSfxPool = [];
 const sentryBeamSfxPool = [];
 const sentryBoreLoopSfxPool = [];
 const sentryBoreKillSfxPool = [];
@@ -3977,10 +3979,11 @@ function playCongregationOverlayFinalSfx() {
   );
 }
 
-function playCongregationCountPopSfx(volume = 0.6) {
+function playCongregationCountPopSfx(volume = 0.6, direction = "up") {
+  const isDown = direction === "down";
   playPooledSfx(
-    congregationCountPopSfxPool,
-    CONGREGATION_COUNT_POP_SFX_SRC,
+    isDown ? congregationCountPopDownSfxPool : congregationCountPopUpSfxPool,
+    isDown ? CONGREGATION_COUNT_POP_DOWN_SFX_SRC : CONGREGATION_COUNT_POP_UP_SFX_SRC,
     CONGREGATION_COUNT_POP_SFX_POOL_SIZE,
     { volume, matchSrc: true },
   );
