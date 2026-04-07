@@ -1974,12 +1974,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const labelRowHeight = 0;
     const npcHealthRowHeight = 98;
     const totalRowHeight = 82;
-    const bonusRowHeight = 68;
+    const bonusRowHeight = 0;
     const rowGap = 18;
     const npcRowTopY = blockTopY + labelRowHeight + rowGap;
     const totalRowTopY = npcRowTopY + npcHealthRowHeight + rowGap;
-    const bonusRowTopY = totalRowTopY + totalRowHeight + rowGap;
-    const rowBottomY = bonusRowTopY + bonusRowHeight;
+    const rowBottomY = totalRowTopY + totalRowHeight;
 
     ctx.fillStyle = baseLabelColor;
     drawHighlightedLabel(line.label || "", x, labelY, line.highlightText);
@@ -2020,6 +2019,19 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       if (entry?.portrait) {
         ctx.drawImage(entry.portrait, slotX + 5, portraitStripY + 5, stripSlotSize - 10, stripSlotSize - 10);
       }
+      if (!entry?.active) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 120, 120, 0.98)";
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(slotX + 10, portraitStripY + 10);
+        ctx.lineTo(slotX + stripSlotSize - 10, portraitStripY + stripSlotSize - 10);
+        ctx.moveTo(slotX + stripSlotSize - 10, portraitStripY + 10);
+        ctx.lineTo(slotX + 10, portraitStripY + stripSlotSize - 10);
+        ctx.stroke();
+        ctx.restore();
+      }
       ctx.save();
       ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.85)";
       ctx.font = `600 14px ${ANNOUNCEMENT_FONT_FAMILY}`;
@@ -2031,9 +2043,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const totalGlow = bumpPulse > 0 ? 18 + bumpPulse * 14 : 0;
     const totalValueBaselineY = totalRowTopY + 34;
     const totalSubtitleBaselineY = totalRowTopY + 66;
-    const trackerBarY = totalRowTopY + 74;
-    const trackerBarWidth = Math.max(220, trackerWidth - 4);
-    const trackerBarHeight = 16;
     ctx.save();
     ctx.fillStyle = highlightValueColor;
     ctx.font = `700 54px ${ANNOUNCEMENT_FONT_FAMILY}`;
@@ -2050,83 +2059,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     ctx.fillText("/ 500 total health", trackerX + 150, totalValueBaselineY);
     ctx.fillText("Every 100 health adds +1. Each 0-health NPC costs -1.", trackerX, totalSubtitleBaselineY);
     ctx.restore();
-
-    ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    roundRect(ctx, trackerX, trackerBarY, trackerBarWidth, trackerBarHeight, 999, true, false);
-    ctx.fillStyle = "rgba(255, 217, 120, 0.9)";
-    roundRect(
-      ctx,
-      trackerX,
-      trackerBarY,
-      Math.round(trackerBarWidth * Math.max(0, Math.min(1, totalHealth / 500))),
-      trackerBarHeight,
-      999,
-      true,
-      false,
-    );
-    ctx.restore();
-
-    const milestoneRadius = 18;
-    const milestoneGap = 22;
-    const positiveWidth =
-      finalPositiveBonus > 0
-        ? finalPositiveBonus * milestoneRadius * 2 + Math.max(0, finalPositiveBonus - 1) * milestoneGap
-        : 0;
-    const penaltyWidth =
-      finalZeroPenalty > 0
-        ? finalZeroPenalty * milestoneRadius * 2 + Math.max(0, finalZeroPenalty - 1) * milestoneGap
-        : 0;
-    const betweenGroups = finalPositiveBonus > 0 && finalZeroPenalty > 0 ? 36 : 0;
-    const milestoneTotalWidth = positiveWidth + penaltyWidth + betweenGroups;
-    const milestoneStartX = x + Math.round((maxWidth - milestoneTotalWidth) / 2) + milestoneRadius;
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.fillStyle = baseLabelColor;
-    ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    ctx.fillText("Congregation Bonus", x + maxWidth / 2, bonusRowTopY);
-    ctx.restore();
-    for (let i = 0; i < finalPositiveBonus; i += 1) {
-      const cx = milestoneStartX + i * (milestoneRadius * 2 + milestoneGap);
-      const reached = i < addedCongregation;
-      const pulse = reached && i === addedCongregation - 1 ? bumpPulse : 0;
-      ctx.save();
-      ctx.shadowColor = reached ? "rgba(255, 217, 120, 0.85)" : "transparent";
-      ctx.shadowBlur = reached ? 14 + pulse * 18 : 0;
-      ctx.fillStyle = reached ? "#FFD978" : "rgba(255,255,255,0.12)";
-      ctx.beginPath();
-      ctx.arc(cx, bonusRowTopY + 16, milestoneRadius + pulse * 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      ctx.save();
-      ctx.fillStyle = reached ? "#0b111a" : "rgba(234,246,255,0.75)";
-      ctx.font = `700 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      ctx.textAlign = "center";
-      ctx.fillText(`+${i + 1}`, cx, bonusRowTopY + 36);
-      ctx.restore();
-    }
-    const penaltyStartCenter = milestoneStartX + Math.max(0, positiveWidth + betweenGroups);
-    for (let i = 0; i < finalZeroPenalty; i += 1) {
-      const cx = penaltyStartCenter + i * (milestoneRadius * 2 + milestoneGap);
-      const reached = i < appliedPenaltyCount;
-      const pulse = reached && i === appliedPenaltyCount - 1 ? bumpPulse : 0;
-      ctx.save();
-      ctx.shadowColor = reached ? "rgba(255, 120, 120, 0.8)" : "transparent";
-      ctx.shadowBlur = reached ? 14 + pulse * 18 : 0;
-      ctx.fillStyle = reached ? "#FF7676" : "rgba(255,255,255,0.12)";
-      ctx.beginPath();
-      ctx.arc(cx, bonusRowTopY + 16, milestoneRadius + pulse * 3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-
-      ctx.save();
-      ctx.fillStyle = reached ? "#140b0b" : "rgba(234,246,255,0.75)";
-      ctx.font = `700 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      ctx.textAlign = "center";
-      ctx.fillText(`-${i + 1}`, cx, bonusRowTopY + 36);
-      ctx.restore();
-    }
 
     if (anim && anim.congregationAwarded > (anim.lastGhostAward || 0)) {
       const popCount = anim.congregationAwarded - (anim.lastGhostAward || 0);
@@ -2162,7 +2094,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     return {
       height: rowBottomY - labelY,
       pendingGhostX: trackerX,
-      pendingGhostY: bonusRowTopY + 30,
+      pendingGhostY: totalValueBaselineY - 16,
       pendingGhostText: `+1`,
     };
   };
