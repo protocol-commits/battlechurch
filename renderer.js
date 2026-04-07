@@ -2448,12 +2448,16 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
   if (recapTallyState.ghostEffects.length) {
     ctx.save();
-    ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `800 44px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     recapTallyState.ghostEffects.forEach((effect) => {
       ctx.globalAlpha = effect.alpha;
-      ctx.fillStyle = "#FFD978";
+      ctx.fillStyle = effect.text.startsWith("-") ? "#FF8A8A" : "#FFD978";
+      ctx.shadowColor = effect.text.startsWith("-")
+        ? "rgba(255, 120, 120, 0.75)"
+        : "rgba(255, 217, 120, 0.85)";
+      ctx.shadowBlur = 18;
       ctx.fillText(effect.text, effect.x, effect.y);
     });
     ctx.restore();
