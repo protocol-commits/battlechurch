@@ -10130,6 +10130,11 @@ function captureNpcPortrait(npc) {
     const existingCounter = window.__npcPortraitCounter || 0;
     window.__npcPortraitCounter = existingCounter + 1;
     canvas.__portraitId = `npc_portrait_${window.__npcPortraitCounter}`;
+    canvas.__npcName = npc.name || "";
+    canvas.npcName = npc.name || "";
+    canvas.__battleRosterIndex = Number.isFinite(npc.__battleRosterIndex)
+      ? npc.__battleRosterIndex
+      : -1;
     console.debug && console.debug('captureNpcPortrait: created', { id: canvas.__portraitId });
   } catch (e) {}
   return canvas;

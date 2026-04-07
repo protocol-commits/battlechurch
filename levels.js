@@ -587,6 +587,8 @@
       currentBattleScenario: "",
       currentBossTheme: "",
       battleNpcStartCount: 0,
+      battleNpcRoster: [],
+      battleLostRecords: [],
       waitingForCongregation: false,
       awaitingNpcProcession: false,
       visitorMinigamePlayed: false,
@@ -727,6 +729,21 @@
   const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
   const monthName = getMonthName(globalMonthNumber);
   resetCozyNpcs(5);
+  state.battleLostRecords = [];
+  state.battleNpcRoster = Array.isArray(npcs)
+    ? npcs.slice(0, 5).map((npc, index) => {
+        if (npc) npc.__battleRosterIndex = index;
+        let portrait = null;
+        try {
+          portrait = typeof captureNpcPortrait === "function" ? captureNpcPortrait(npc) : null;
+        } catch (e) {}
+        return {
+          index,
+          name: npc?.name || "",
+          portrait,
+        };
+      })
+    : [];
   // Sometimes resetCozyNpcs may not synchronously populate `npcs` before
   // this line runs (depending on integration points). Use a sensible
   // fallback of 5 so summaries reflect the expected battle baseline.
@@ -793,7 +810,13 @@
   let savedNames = [];
   let lostNames = [];
   let totalNpcFaith = 0;
-  const npcHealthBreakdown = [];
+  const npcHealthBreakdown = (state.battleNpcRoster || []).map((entry, index) => ({
+    name: entry?.name || "",
+    portrait: entry?.portrait || null,
+    faith: 0,
+    active: false,
+    rosterIndex: index,
+  }));
 
   // Capture portraits for survivors and lost NPCs when NPC objects exist.
   if (npcs.length) {
@@ -808,12 +831,20 @@
           const p = typeof captureNpcPortrait === 'function' ? captureNpcPortrait(npc) : null;
           const npcFaith = Number.isFinite(npc.faith) ? Math.max(0, Math.round(npc.faith)) : 0;
           const npcActive = !npc.departed && npc.active;
-          npcHealthBreakdown.push({
-            name: npc.name || "",
-            portrait: p,
-            faith: npcActive ? npcFaith : 0,
-            active: npcActive,
-          });
+          const rosterIndex = Number.isFinite(npc.__battleRosterIndex) ? npc.__battleRosterIndex : -1;
+          const targetIndex =
+            rosterIndex >= 0 && rosterIndex < npcHealthBreakdown.length
+              ? rosterIndex
+              : npcHealthBreakdown.findIndex((entry) => (entry?.name || "") === (npc.name || ""));
+          if (targetIndex >= 0) {
+            npcHealthBreakdown[targetIndex] = {
+              ...npcHealthBreakdown[targetIndex],
+              name: npc.name || npcHealthBreakdown[targetIndex].name || "",
+              portrait: p || npcHealthBreakdown[targetIndex].portrait || null,
+              faith: npcActive ? npcFaith : 0,
+              active: npcActive,
+            };
+          }
           if (p) {
             if (npcActive) {
               saved.push(p);
@@ -828,6 +859,17 @@
           }
         } catch (e) {}
       }
+      (state.battleLostRecords || []).forEach((record) => {
+        const rosterIndex = Number.isFinite(record?.rosterIndex) ? record.rosterIndex : -1;
+        if (rosterIndex < 0 || rosterIndex >= npcHealthBreakdown.length) return;
+        npcHealthBreakdown[rosterIndex] = {
+          ...npcHealthBreakdown[rosterIndex],
+          name: record?.name || npcHealthBreakdown[rosterIndex].name || "",
+          portrait: record?.portrait || npcHealthBreakdown[rosterIndex].portrait || null,
+          faith: 0,
+          active: false,
+        };
+      });
   // append to state stats arrays, cap at PORTRAIT_CAP
   state.stats.savedPortraits = (state.stats.savedPortraits || []).concat(saved).slice(-PORTRAIT_CAP);
   state.stats.lostPortraits = (state.stats.lostPortraits || []).concat(lost).slice(-PORTRAIT_CAP);
@@ -1622,6 +1664,7 @@ state.waveIndex = -1;
         state.stats.npcsLost += 1;
         state.stats.lostPortraits = state.stats.lostPortraits || [];
         state.stats.lostNames = state.stats.lostNames || [];
+        state.battleLostRecords = state.battleLostRecords || [];
         if (portrait) {
           state.stats.lostPortraits.push(portrait);
           // Try to get the NPC name from the portrait object
@@ -1632,6 +1675,11 @@ state.waveIndex = -1;
             npcName = portrait.__npcName;
           }
           state.stats.lostNames.push(npcName);
+          state.battleLostRecords.push({
+            name: npcName,
+            portrait,
+            rosterIndex: Number.isFinite(portrait.__battleRosterIndex) ? portrait.__battleRosterIndex : -1,
+          });
           if (state.stats.lostPortraits.length > PORTRAIT_CAP) {
             state.stats.lostPortraits.splice(0, state.stats.lostPortraits.length - PORTRAIT_CAP);
             state.stats.lostNames.splice(0, state.stats.lostNames.length - PORTRAIT_CAP);
