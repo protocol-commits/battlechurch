@@ -1654,6 +1654,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           holdTimer: 0,
           thresholdHoldTimer: 0,
           thresholdValue: null,
+          advanceNpcAfterThresholdHold: false,
           finished: false,
         };
         recapTallyState.healthBonusAnim = anim;
@@ -1666,6 +1667,17 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         anim.totalHealth = Number.isFinite(anim.thresholdValue)
           ? anim.thresholdValue
           : anim.totalHealth;
+        if (anim.thresholdHoldTimer <= 0 && anim.advanceNpcAfterThresholdHold) {
+          anim.advanceNpcAfterThresholdHold = false;
+          anim.activeNpcIndex += 1;
+          anim.holdTimer = 0;
+          if (anim.activeNpcIndex >= anim.entries.length) {
+            anim.finished = true;
+          } else {
+            const nextEntry = anim.entries[anim.activeNpcIndex];
+            anim.activeHealth = Number.isFinite(nextEntry?.target) ? nextEntry.target : 0;
+          }
+        }
       }
       if (anim.finished || !anim.entries.length) {
         anim.finished = true;
@@ -1728,8 +1740,9 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           anim.thresholdValue = nextThreshold;
           anim.thresholdHoldTimer = 1.0;
           if (remainingHealthAfterThreshold <= 0) {
-            // Count the threshold hold as the between-NPC pause when the NPC ends on the threshold.
-            anim.holdTimer = 1.0;
+            // Let the threshold hold fully replace the between-NPC pause.
+            anim.advanceNpcAfterThresholdHold = true;
+            anim.holdTimer = 0;
           }
           anim.bumpTimer = 0.5;
         } else {
