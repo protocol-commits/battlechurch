@@ -1696,10 +1696,11 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           Math.max(0, Math.round(current.positiveHealthBonus || 0)) * 100,
           (Math.floor(currentTotalBeforeStep / 100) + 1) * 100,
         );
-        const thresholdCrossed =
+        const thresholdAvailable =
           nextThreshold > currentTotalBeforeStep &&
           nextThreshold <= Math.max(0, Math.round(current?.totalHealth || 0));
-        if (thresholdCrossed) {
+        const projectedTotal = currentTotalBeforeStep + drainAmount;
+        if (thresholdAvailable && projectedTotal >= nextThreshold) {
           const amountToThreshold = nextThreshold - currentTotalBeforeStep;
           anim.activeHealth = Math.max(0, anim.activeHealth - amountToThreshold);
           anim.totalHealth = nextThreshold;
