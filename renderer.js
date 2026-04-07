@@ -1682,6 +1682,17 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         return;
       }
 
+      const getDisplayedTotalForAnim = () => {
+        const visiblePriorTotal = anim.entries
+          .slice(0, anim.activeNpcIndex)
+          .reduce((sum, entry) => sum + (Number.isFinite(entry.target) ? entry.target : 0), 0);
+        const visibleActiveEntry = anim.entries[anim.activeNpcIndex];
+        const visibleTargetHealth = Number.isFinite(visibleActiveEntry?.target) ? visibleActiveEntry.target : 0;
+        return Math.min(
+          maxDisplayTotal,
+          Math.round(visiblePriorTotal + Math.max(0, visibleTargetHealth - (anim.activeHealth || 0))),
+        );
+      };
       const priorTotal = anim.entries
         .slice(0, anim.activeNpcIndex)
         .reduce((sum, entry) => sum + (Number.isFinite(entry.target) ? entry.target : 0), 0);
@@ -1754,10 +1765,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       }
 
       if (anim.thresholdHoldTimer <= 0) {
-        anim.totalHealth = Math.min(
-          maxDisplayTotal,
-          Math.round(priorTotal + Math.max(0, targetHealth - anim.activeHealth)),
-        );
+        anim.totalHealth = getDisplayedTotalForAnim();
       }
       const nextAward = Math.min(
         Math.max(0, Math.round(current.positiveHealthBonus || 0)),
