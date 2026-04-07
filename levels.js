@@ -587,6 +587,7 @@
       currentBattleScenario: "",
       currentBossTheme: "",
       battleNpcStartCount: 0,
+      battleStartCongregation: 0,
       battleNpcRoster: [],
       battleLostRecords: [],
       waitingForCongregation: false,
@@ -728,6 +729,8 @@
   const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
   const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
   const monthName = getMonthName(globalMonthNumber);
+  state.battleStartCongregation =
+    typeof deps.getCongregationSize === "function" ? deps.getCongregationSize() : 0;
   resetCozyNpcs(5);
   state.battleLostRecords = [];
   state.battleNpcRoster = Array.isArray(npcs)
@@ -922,6 +925,9 @@
         savedNames: savedNames,
         lostNames: lostNames,
         totalNpcFaith: Math.round(totalNpcFaith),
+        battleStartCongregation: Number.isFinite(state.battleStartCongregation)
+          ? state.battleStartCongregation
+          : 0,
         npcHealthBreakdown: npcHealthBreakdown,
         battleScenario: state.currentBattleScenario,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),

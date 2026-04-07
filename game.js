@@ -6649,7 +6649,12 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const zeroHealthPenaltyCount = isBossSummary
     ? 0
     : npcHealthBreakdown.reduce(
-        (sum, entry) => sum + ((Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0) <= 0 ? 1 : 0),
+        (sum, entry) => {
+          const isRealNpc = Boolean((entry?.name || "").trim() || entry?.portrait);
+          if (!isRealNpc) return sum;
+          const faithValue = Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0;
+          return sum + (faithValue <= 0 ? 1 : 0);
+        },
         0,
       );
   const healthRewardBase = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
@@ -6715,7 +6720,9 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     });
   }
   const recapTitle = "Battle Report";
-  const recapStartCount = Math.round(congregationTotal - totalDelta);
+  const recapStartCount = Number.isFinite(summary?.battleStartCongregation)
+    ? Math.round(summary.battleStartCongregation)
+    : Math.round(congregationTotal - totalDelta);
   if (announcement) {
     announcement.recapData = {
       id: `${announcement.title || monthLabel || "recap"}|${levelNumber}|${localMonthNumber}`,
