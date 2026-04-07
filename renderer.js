@@ -2519,7 +2519,21 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const buttonWidth = Math.min(420, Math.round(layout.virtualCanvas.width * 0.6));
   const buttonHeight = 72;
   const buttonX = Math.round((layout.virtualCanvas.width - buttonWidth) / 2);
-  const buttonY = Math.round(Math.max(layout.buttonY || 0, cursorY + 16));
+  const futureBonusesLabel = "Future Bonuses: Player heath, performance, combos, pickups?";
+  const futureBonusesGap = 18;
+  const buttonY = Math.round(Math.max(layout.buttonY || 0, cursorY + 46));
+
+  ctx.save();
+  ctx.fillStyle = "rgba(210, 220, 232, 0.45)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `500 13px ${uiFontFamily}`;
+  ctx.fillText(
+    futureBonusesLabel,
+    layout.virtualCanvas.width / 2,
+    buttonY - futureBonusesGap,
+  );
+  ctx.restore();
 
   ctx.save();
   ctx.fillStyle = "#9BD9FF";
