@@ -2277,17 +2277,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     return;
   }
 
-  if (!recapTallyState.allowLines) {
-    ctx.restore();
-    if (typeof window !== "undefined") {
-      window.__missionBriefActive = false;
-      window.__missionBriefButtonBounds = null;
-      window.__announcementButtons = { key: buttonKey, buttons: [] };
-    }
-    ctx.restore();
-    return;
-  }
-
   ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const totalValue = recapTallyState.totalValue;
   const countLabel = "Congregation Count:";
@@ -2299,6 +2288,18 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
   countNumberY = cursorY;
   cursorY += Math.round(countSize * 0.84);
+
+  if (!recapTallyState.allowLines) {
+    ctx.restore();
+    if (typeof window !== "undefined") {
+      window.__missionBriefActive = false;
+      window.__missionBriefButtonBounds = null;
+      window.__announcementButtons = { key: buttonKey, buttons: [] };
+    }
+    ctx.restore();
+    return;
+  }
+
   const activeIndex = recapTallyState.stepIndex;
   const maxVisible = recapTallyState.done ? lines.length : Math.min(lines.length, activeIndex + 1);
   ctx.fillStyle = baseLabelColor;
