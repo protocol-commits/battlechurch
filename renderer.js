@@ -1714,7 +1714,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         Math.round(priorTotal + Math.max(0, targetHealth - anim.activeHealth)),
       );
       const nextAward = Math.min(
-        Math.max(0, Math.round(current.delta || 0)),
+        Math.max(0, Math.round(current.positiveHealthBonus || 0)),
         Math.floor(anim.totalHealth / 100),
       );
       if (nextAward > anim.congregationAwarded) {
@@ -1959,7 +1959,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     )
       ? recapTallyState.healthBonusAnim
       : null;
-    const totalHealth = anim ? Math.max(0, Math.round(anim.totalHealth || 0)) : finalTotalHealth;
+    const totalHealth = anim
+      ? Math.max(0, Math.round(anim.totalHealth || 0))
+      : (
+          recapTallyState.lastAppliedIndex === recapTallyState.stepIndex ||
+          recapTallyState.done
+            ? finalTotalHealth
+            : 0
+        );
     const addedCongregation = anim ? Math.max(0, Math.round(anim.congregationAwarded || 0)) : finalAddedCongregation;
     const appliedPenaltyCount = anim ? Math.max(0, Math.round(anim.congregationPenaltyApplied || 0)) : finalZeroPenalty;
     const activeNpcIndex = anim
@@ -1972,13 +1979,10 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const trackerWidth = maxWidth;
     const trackerX = x;
     const labelRowHeight = 0;
-    const npcHealthRowHeight = 98;
-    const totalRowHeight = 82;
-    const bonusRowHeight = 0;
+    const npcHealthRowHeight = 112;
     const rowGap = 18;
     const npcRowTopY = blockTopY + labelRowHeight + rowGap;
-    const totalRowTopY = npcRowTopY + npcHealthRowHeight + rowGap;
-    const rowBottomY = totalRowTopY + totalRowHeight;
+    const rowBottomY = npcRowTopY + npcHealthRowHeight;
 
     ctx.fillStyle = baseLabelColor;
     drawHighlightedLabel(line.label || "", x, labelY, line.highlightText);
@@ -1986,7 +1990,10 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const stripSlotSize = 54;
     const stripGap = 18;
     const stripTotalWidth = entries.length * stripSlotSize + Math.max(0, entries.length - 1) * stripGap;
-    const stripStartX = x + Math.round((maxWidth - stripTotalWidth) / 2);
+    const totalBlockWidth = 220;
+    const equationGap = 34;
+    const stripStartX = x + Math.max(0, Math.round((maxWidth - (stripTotalWidth + equationGap + totalBlockWidth)) / 2));
+    const totalBlockX = stripStartX + stripTotalWidth + equationGap;
     entries.forEach((entry, index) => {
       const slotX = stripStartX + index * (stripSlotSize + stripGap);
       const isPast = anim ? index < activeNpcIndex : true;
@@ -2041,23 +2048,20 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     });
 
     const totalGlow = bumpPulse > 0 ? 18 + bumpPulse * 14 : 0;
-    const totalValueBaselineY = totalRowTopY + 34;
-    const totalSubtitleBaselineY = totalRowTopY + 66;
+    const totalValueBaselineY = npcRowTopY + 64;
     ctx.save();
     ctx.fillStyle = highlightValueColor;
-    ctx.font = `700 54px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `700 42px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
     ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
     ctx.shadowBlur = totalGlow;
-    ctx.fillText(`${formatNumber(totalHealth)}`, trackerX, totalValueBaselineY);
+    ctx.fillText(`${formatNumber(totalHealth)}`, totalBlockX, totalValueBaselineY);
     ctx.restore();
 
     ctx.save();
     ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
-    ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
-    ctx.fillText("/ 500 total health", trackerX + 150, totalValueBaselineY);
-    ctx.fillText("Every 100 health adds +1. Each 0-health NPC costs -1.", trackerX, totalSubtitleBaselineY);
     ctx.restore();
 
     if (anim && anim.congregationAwarded > (anim.lastGhostAward || 0)) {
@@ -2093,7 +2097,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
     return {
       height: rowBottomY - labelY,
-      pendingGhostX: trackerX,
+      pendingGhostX: totalBlockX,
       pendingGhostY: totalValueBaselineY - 16,
       pendingGhostText: `+1`,
     };
@@ -2165,7 +2169,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   roundRect(ctx, panelX, panelTop, panelWidth, panelHeight, 26, true, true);
   ctx.restore();
 
-  const countSize = 38;
+  const countSize = 58;
   const headingTitleLineHeight = Math.round(titleSize * 1.02);
   const getFontMetrics = (sampleText, fontSize) => {
     const metrics = ctx.measureText(sampleText);
@@ -2238,7 +2242,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
   ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
   countNumberY = cursorY;
-  cursorY += Math.round(countSize * 1.02);
+  cursorY += Math.round(countSize * 0.84);
   const activeIndex = recapTallyState.stepIndex;
   const maxVisible = recapTallyState.done ? lines.length : Math.min(lines.length, activeIndex + 1);
   ctx.fillStyle = baseLabelColor;
