@@ -1704,10 +1704,11 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         const projectedTotal = currentTotalBeforeStep + drainAmount;
         if (thresholdAvailable && projectedTotal >= nextThreshold) {
           const amountToThreshold = nextThreshold - currentTotalBeforeStep;
-          anim.activeHealth = Math.max(0, anim.activeHealth - amountToThreshold);
+          const remainingHealthAfterThreshold = Math.max(0, anim.activeHealth - amountToThreshold);
+          anim.activeHealth = remainingHealthAfterThreshold;
           anim.totalHealth = nextThreshold;
-          anim.thresholdValue = nextThreshold;
-          anim.thresholdHoldTimer = 0.5;
+          anim.thresholdValue = remainingHealthAfterThreshold > 0 ? nextThreshold : null;
+          anim.thresholdHoldTimer = remainingHealthAfterThreshold > 0 ? 1.0 : 0;
           anim.bumpTimer = 0.5;
         } else {
           anim.activeHealth = Math.max(0, anim.activeHealth - drainAmount);
