@@ -1690,7 +1690,9 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       const countRate = Math.max(180, targetHealth * 3.2);
       const currentTotalBeforeStep = Math.round(anim.totalHealth || 0);
 
-      if (anim.thresholdHoldTimer <= 0 && anim.activeHealth > 0) {
+      if (anim.thresholdHoldTimer > 0) {
+        // Freeze both the active NPC remainder and the total at the threshold.
+      } else if (anim.activeHealth > 0) {
         const drainAmount = dt * countRate;
         const nextThreshold = Math.min(
           Math.max(0, Math.round(current.positiveHealthBonus || 0)) * 100,
