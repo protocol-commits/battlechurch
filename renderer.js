@@ -1936,108 +1936,31 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const activeNpcIndex = anim
       ? Math.min(entries.length - 1, Math.max(0, anim.activeNpcIndex || 0))
       : Math.max(0, entries.length - 1);
-    const activeNpc = entries[activeNpcIndex] || entries[0] || null;
-    const activeNpcHealth = anim
-      ? Math.max(0, Math.round(anim.activeHealth || 0))
-      : (Number.isFinite(activeNpc?.faith) ? Math.max(0, Math.round(activeNpc.faith)) : 0);
     const bumpPulse = anim ? Math.max(0, anim.bumpTimer || 0) : 0;
 
     const labelY = y;
-    const stageTopY = labelY + 20;
-    const featuredCardWidth = 220;
-    const featuredCardHeight = 168;
-    const featuredCardX = x;
-    const featuredCardY = stageTopY;
-    const trackerWidth = maxWidth - featuredCardWidth - 28;
-    const trackerX = featuredCardX + featuredCardWidth + 28;
-    const trackerY = featuredCardY + 6;
-    const portraitStripY = featuredCardY + featuredCardHeight + 18;
-    const milestoneY = portraitStripY + 76;
-    const rowBottomY = milestoneY + 68;
+    const blockTopY = labelY + 20;
+    const trackerWidth = maxWidth;
+    const trackerX = x;
+    const labelRowHeight = 28;
+    const npcHealthRowHeight = 98;
+    const totalRowHeight = 82;
+    const bonusRowHeight = 68;
+    const rowGap = 18;
+    const npcLabelBaselineY = blockTopY + 18;
+    const npcRowTopY = blockTopY + labelRowHeight + rowGap;
+    const totalRowTopY = npcRowTopY + npcHealthRowHeight + rowGap;
+    const bonusRowTopY = totalRowTopY + totalRowHeight + rowGap;
+    const rowBottomY = bonusRowTopY + bonusRowHeight;
 
     ctx.fillStyle = baseLabelColor;
     drawHighlightedLabel(line.label || "", x, labelY, line.highlightText);
 
     ctx.save();
-    ctx.fillStyle = "rgba(9, 14, 23, 0.92)";
-    ctx.strokeStyle = "rgba(255, 217, 120, 0.32)";
-    ctx.lineWidth = 2;
-    roundRect(ctx, featuredCardX, featuredCardY, featuredCardWidth, featuredCardHeight, 20, true, true);
-    ctx.restore();
-
-    if (activeNpc?.name) {
-      ctx.save();
-      ctx.fillStyle = baseLabelColor;
-      ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      ctx.textAlign = "center";
-      ctx.fillText(activeNpc.name, featuredCardX + featuredCardWidth / 2, featuredCardY + 30);
-      ctx.restore();
-    }
-
-    if (activeNpc?.portrait) {
-      const portraitSize = 88;
-      ctx.drawImage(
-        activeNpc.portrait,
-        featuredCardX + Math.round((featuredCardWidth - portraitSize) / 2),
-        featuredCardY + 46,
-        portraitSize,
-        portraitSize,
-      );
-    }
-
-    ctx.save();
-    ctx.fillStyle = highlightValueColor;
-    ctx.font = `700 34px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    ctx.textAlign = "center";
-    ctx.fillText(
-      `${formatNumber(activeNpcHealth)}`,
-      featuredCardX + featuredCardWidth / 2,
-      featuredCardY + featuredCardHeight - 22,
-    );
-    ctx.restore();
-
-    ctx.save();
     ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
     ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
-    ctx.fillText("Current NPC Health", trackerX, trackerY + 16);
-    ctx.restore();
-
-    ctx.save();
-    const totalGlow = bumpPulse > 0 ? 18 + bumpPulse * 14 : 0;
-    ctx.fillStyle = highlightValueColor;
-    ctx.font = `700 54px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    ctx.textAlign = "left";
-    ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
-    ctx.shadowBlur = totalGlow;
-    ctx.fillText(`${formatNumber(totalHealth)}`, trackerX, trackerY + 78);
-    ctx.restore();
-
-    ctx.save();
-    ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
-    ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    ctx.textAlign = "left";
-    ctx.fillText("/ 500 total health", trackerX + 150, trackerY + 78);
-    ctx.fillText("Every 100 health adds +1 congregation", trackerX, trackerY + 110);
-    ctx.restore();
-
-    const trackerBarY = trackerY + 130;
-    const trackerBarWidth = Math.max(220, trackerWidth - 4);
-    const trackerBarHeight = 16;
-    ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    roundRect(ctx, trackerX, trackerBarY, trackerBarWidth, trackerBarHeight, 999, true, false);
-    ctx.fillStyle = "rgba(255, 217, 120, 0.9)";
-    roundRect(
-      ctx,
-      trackerX,
-      trackerBarY,
-      Math.round(trackerBarWidth * Math.max(0, Math.min(1, totalHealth / 500))),
-      trackerBarHeight,
-      999,
-      true,
-      false,
-    );
+    ctx.fillText("Current NPC Health", trackerX, npcLabelBaselineY);
     ctx.restore();
 
     const stripSlotSize = 54;
@@ -2048,6 +1971,23 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const slotX = stripStartX + index * (stripSlotSize + stripGap);
       const isPast = anim ? index < activeNpcIndex : true;
       const isCurrent = index === activeNpcIndex;
+      const displayedHealth = anim
+        ? (
+            isCurrent
+              ? Math.max(0, Math.round(anim.activeHealth || 0))
+              : (isPast ? null : (Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0))
+          )
+        : (Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0);
+      const healthBaselineY = npcRowTopY + 18;
+      const portraitStripY = npcRowTopY + 30;
+      if (displayedHealth !== null) {
+        ctx.save();
+        ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.82)";
+        ctx.font = `700 20px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        ctx.textAlign = "center";
+        ctx.fillText(`${displayedHealth}`, slotX + stripSlotSize / 2, healthBaselineY);
+        ctx.restore();
+      }
       ctx.save();
       ctx.fillStyle = isCurrent ? "rgba(255, 217, 120, 0.16)" : "rgba(255,255,255,0.05)";
       ctx.strokeStyle = isCurrent
@@ -2069,6 +2009,45 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       }
     });
 
+    const totalGlow = bumpPulse > 0 ? 18 + bumpPulse * 14 : 0;
+    const totalValueBaselineY = totalRowTopY + 34;
+    const totalSubtitleBaselineY = totalRowTopY + 66;
+    const trackerBarY = totalRowTopY + 74;
+    const trackerBarWidth = Math.max(220, trackerWidth - 4);
+    const trackerBarHeight = 16;
+    ctx.save();
+    ctx.fillStyle = highlightValueColor;
+    ctx.font = `700 54px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
+    ctx.shadowBlur = totalGlow;
+    ctx.fillText(`${formatNumber(totalHealth)}`, trackerX, totalValueBaselineY);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
+    ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.fillText("/ 500 total health", trackerX + 150, totalValueBaselineY);
+    ctx.fillText("Every 100 health adds +1 congregation", trackerX, totalSubtitleBaselineY);
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    roundRect(ctx, trackerX, trackerBarY, trackerBarWidth, trackerBarHeight, 999, true, false);
+    ctx.fillStyle = "rgba(255, 217, 120, 0.9)";
+    roundRect(
+      ctx,
+      trackerX,
+      trackerBarY,
+      Math.round(trackerBarWidth * Math.max(0, Math.min(1, totalHealth / 500))),
+      trackerBarHeight,
+      999,
+      true,
+      false,
+    );
+    ctx.restore();
+
     const milestoneRadius = 18;
     const milestoneGap = 22;
     const milestoneTotalWidth =
@@ -2078,7 +2057,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.fillStyle = baseLabelColor;
     ctx.font = `600 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    ctx.fillText("Congregation Bonus", x + maxWidth / 2, milestoneY - 14);
+    ctx.fillText("Congregation Bonus", x + maxWidth / 2, bonusRowTopY);
     ctx.restore();
     for (let i = 0; i < finalAddedCongregation; i += 1) {
       const cx = milestoneStartX + i * (milestoneRadius * 2 + milestoneGap);
@@ -2089,7 +2068,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.shadowBlur = reached ? 14 + pulse * 18 : 0;
       ctx.fillStyle = reached ? "#FFD978" : "rgba(255,255,255,0.12)";
       ctx.beginPath();
-      ctx.arc(cx, milestoneY + 16, milestoneRadius + pulse * 3, 0, Math.PI * 2);
+      ctx.arc(cx, bonusRowTopY + 16, milestoneRadius + pulse * 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
@@ -2097,14 +2076,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = reached ? "#0b111a" : "rgba(234,246,255,0.75)";
       ctx.font = `700 18px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
-      ctx.fillText(`+${i + 1}`, cx, milestoneY + 22);
+      ctx.fillText(`+${i + 1}`, cx, bonusRowTopY + 36);
       ctx.restore();
     }
 
     return {
       height: rowBottomY - labelY,
       pendingGhostX: trackerX,
-      pendingGhostY: milestoneY + 16,
+      pendingGhostY: bonusRowTopY + 30,
       pendingGhostText: `+1`,
     };
   };
