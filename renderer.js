@@ -1689,26 +1689,37 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       const targetHealth = Number.isFinite(activeEntry?.target) ? activeEntry.target : 0;
       const countRate = Math.min(140, Math.max(70, targetHealth * 1.2));
       const currentTotalBeforeStep = Math.round(anim.totalHealth || 0);
+      const maxDisplayTotal = Number.isFinite(current?.totalHealth)
+        ? Math.max(0, Math.round(current.totalHealth))
+        : 0;
 
       if (anim.thresholdHoldTimer > 0) {
         // Freeze both the active NPC remainder and the total at the threshold.
       } else if (anim.activeHealth > 0) {
         const drainAmount = dt * countRate;
+        const rawNextActiveHealth = Math.max(0, anim.activeHealth - drainAmount);
+        const projectedDisplayedTotal = Math.min(
+          maxDisplayTotal,
+          Math.round(priorTotal + Math.max(0, targetHealth - rawNextActiveHealth)),
+        );
         const nextThreshold = Math.min(
           Math.max(0, Math.round(current.positiveHealthBonus || 0)) * 100,
           (Math.floor(currentTotalBeforeStep / 100) + 1) * 100,
         );
         const thresholdAvailable =
           nextThreshold > currentTotalBeforeStep &&
-          nextThreshold <= Math.max(0, Math.round(current?.totalHealth || 0));
-        const projectedTotal = currentTotalBeforeStep + drainAmount;
-        if (thresholdAvailable && projectedTotal >= nextThreshold) {
+          nextThreshold <= maxDisplayTotal;
+        if (thresholdAvailable && projectedDisplayedTotal >= nextThreshold) {
           const amountToThreshold = nextThreshold - currentTotalBeforeStep;
           const remainingHealthAfterThreshold = Math.max(0, anim.activeHealth - amountToThreshold);
           anim.activeHealth = remainingHealthAfterThreshold;
           anim.totalHealth = nextThreshold;
-          anim.thresholdValue = remainingHealthAfterThreshold > 0 ? nextThreshold : null;
-          anim.thresholdHoldTimer = remainingHealthAfterThreshold > 0 ? 1.0 : 0;
+          anim.thresholdValue = nextThreshold;
+          anim.thresholdHoldTimer = 1.0;
+          if (remainingHealthAfterThreshold <= 0) {
+            // Count the threshold hold as the between-NPC pause when the NPC ends on the threshold.
+            anim.holdTimer = 1.0;
+          }
           anim.bumpTimer = 0.5;
         } else {
           anim.activeHealth = Math.max(0, anim.activeHealth - drainAmount);
@@ -1744,7 +1755,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
 
       if (anim.thresholdHoldTimer <= 0) {
         anim.totalHealth = Math.min(
-          Number.isFinite(current?.totalHealth) ? Math.max(0, Math.round(current.totalHealth)) : 0,
+          maxDisplayTotal,
           Math.round(priorTotal + Math.max(0, targetHealth - anim.activeHealth)),
         );
       }
