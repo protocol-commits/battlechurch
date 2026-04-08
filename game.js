@@ -10260,7 +10260,7 @@ function captureNpcPortrait(npc) {
   const context = canvas.getContext("2d");
   if (!context) return null;
   context.clearRect(0, 0, size, size);
-  animator.draw(context, size / 2, size / 2 + size * 0.1);
+  animator.draw(context, size / 2, size / 2);
   // Tag the canvas with a unique id to aid debugging and de-dup logic.
   try {
     const existingCounter = window.__npcPortraitCounter || 0;
