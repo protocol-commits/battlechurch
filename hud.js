@@ -950,25 +950,55 @@
         totalUnits += battleTotal;
       }
 
-      const currentBattle = Math.max(1, Math.min(battlesPerTown, levelStatus.battle || 1));
-      const currentMission = Math.max(1, Math.min(missionsPerBattle, levelStatus.missionNum || 1));
+      const townBattleIndex = Math.max(
+        1,
+        Number.isFinite(levelStatus.globalBattle)
+          ? levelStatus.globalBattle
+          : (
+            ((Math.max(1, Number.isFinite(levelStatus.level) ? levelStatus.level : 1) - 1)
+              * Math.max(1, missionsPerBattle))
+            + Math.max(1, Number.isFinite(levelStatus.battle) ? levelStatus.battle : 1)
+          ),
+      );
+      const derivedAct = Math.ceil(townBattleIndex / Math.max(1, missionsPerBattle));
+      const derivedMission = ((townBattleIndex - 1) % Math.max(1, missionsPerBattle)) + 1;
+      const currentAct = Math.max(
+        1,
+        Math.min(
+          battlesPerTown,
+          Number.isFinite(levelStatus.level)
+            ? levelStatus.level
+            : (Number.isFinite(levelStatus.actNum) ? levelStatus.actNum : derivedAct),
+        ),
+      );
+      const currentMission = Math.max(
+        1,
+        Math.min(
+          missionsPerBattle,
+          Number.isFinite(levelStatus.battle)
+            ? levelStatus.battle
+            : (Number.isFinite(levelStatus.missionNum) ? levelStatus.missionNum : derivedMission),
+        ),
+      );
       const currentWave = Math.max(0, levelStatus.wave || 0);
 
       let progressUnits = 0;
-      for (let battleIndex = 1; battleIndex < currentBattle; battleIndex += 1) {
-        progressUnits += battleTotals[battleIndex - 1] || 0;
+      for (let actIndex = 1; actIndex < currentAct; actIndex += 1) {
+        progressUnits += battleTotals[actIndex - 1] || 0;
       }
       for (let missionIndex = 1; missionIndex < currentMission; missionIndex += 1) {
-        progressUnits += getMissionHordeCount(currentBattle, missionIndex);
+        progressUnits += getMissionHordeCount(currentAct, missionIndex);
       }
-      const currentMissionTotal = getMissionHordeCount(currentBattle, currentMission);
+      const currentMissionTotal = getMissionHordeCount(currentAct, currentMission);
       progressUnits += Math.min(currentMissionTotal, currentWave);
 
       const bossStage =
         levelStatus.stage === "bossIntro" ||
         levelStatus.stage === "bossActive" ||
-        (levelStatus.stage === "graceRush" && levelStatus.battle === missionsPerBattle);
-      if (bossStage && currentBattle === battlesPerTown) {
+        (levelStatus.stage === "graceRush" &&
+          currentAct === battlesPerTown &&
+          currentMission === missionsPerBattle);
+      if (bossStage && currentAct === battlesPerTown) {
         let bossProgress = 0;
         if (activeBoss && Number.isFinite(activeBoss.health) && Number.isFinite(activeBoss.maxHealth) && activeBoss.maxHealth > 0) {
           const ratio = Math.max(0, Math.min(1, activeBoss.health / activeBoss.maxHealth));
