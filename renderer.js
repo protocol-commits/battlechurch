@@ -2327,7 +2327,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const npcNameBaselineY = portraitStripY + stripSlotSize + 18;
       ctx.save();
       ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.85)";
-      ctx.font = `600 14px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.font = `600 12px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.fillText(entry?.name || "", slotX + stripSlotSize / 2, npcNameBaselineY);
       ctx.restore();
@@ -2491,28 +2491,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
       const nameLines = String(entry?.label || "")
         .split(/\s+/)
-        .reduce((linesAcc, word) => {
-          if (!word) return linesAcc;
-          if (!linesAcc.length) return [word];
-          const lastLine = linesAcc[linesAcc.length - 1];
-          if (linesAcc.length === 1 && `${lastLine} ${word}`.length <= 12) {
-            linesAcc[linesAcc.length - 1] = `${lastLine} ${word}`;
-            return linesAcc;
-          }
-          if (linesAcc.length < 2) {
-            linesAcc.push(word);
-            return linesAcc;
-          }
-          linesAcc[linesAcc.length - 1] = `${linesAcc[linesAcc.length - 1]} ${word}`;
-          return linesAcc;
-        }, []);
+        .filter(Boolean);
       ctx.save();
       ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
-      ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.font = `600 13px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       const nameStartY = rowTopY + 100;
       nameLines.forEach((textLine, lineIndex) => {
-        ctx.fillText(textLine, badgeCenterX, nameStartY + lineIndex * 18);
+        ctx.fillText(textLine, badgeCenterX, nameStartY + lineIndex * 16);
       });
       ctx.restore();
     });
