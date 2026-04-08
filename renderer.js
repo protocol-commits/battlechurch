@@ -2241,7 +2241,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const labelY = y;
     const blockTopY = labelY + 20;
     const labelRowHeight = 0;
-    const npcHealthRowHeight = 112;
+    const npcHealthRowHeight = 132;
     const rowGap = 18;
     const npcRowTopY = blockTopY + labelRowHeight + rowGap;
     const rowBottomY = npcRowTopY + npcHealthRowHeight;
@@ -2298,11 +2298,12 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         ctx.stroke();
         ctx.restore();
       }
+      const npcNameBaselineY = portraitStripY + stripSlotSize + 18;
       ctx.save();
       ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.85)";
       ctx.font = `600 14px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
-      ctx.fillText(entry?.name || "", slotX + stripSlotSize / 2, portraitStripY + stripSlotSize + 18);
+      ctx.fillText(entry?.name || "", slotX + stripSlotSize / 2, npcNameBaselineY);
       ctx.restore();
     });
 
@@ -2456,7 +2457,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         size: badgeSlotSize,
         iconImage: getChurchPowerupIcon(entry?.iconSrc),
         style: {
-          shape: "shield",
+          shape: "square",
           color: "#314B77",
           accent: "#4769A1",
         },
@@ -2896,21 +2897,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const buttonWidth = Math.min(420, Math.round(layout.virtualCanvas.width * 0.6));
   const buttonHeight = 72;
   const buttonX = Math.round((layout.virtualCanvas.width - buttonWidth) / 2);
-  const futureBonusesLabel = "Future Bonuses: Player heath, performance, combos, pickups?";
-  const futureBonusesGap = 18;
-  const buttonY = Math.round(Math.max(layout.buttonY || 0, cursorY + 46));
-
-  ctx.save();
-  ctx.fillStyle = "rgba(210, 220, 232, 0.45)";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.font = `500 13px ${uiFontFamily}`;
-  ctx.fillText(
-    futureBonusesLabel,
-    layout.virtualCanvas.width / 2,
-    buttonY - futureBonusesGap,
-  );
-  ctx.restore();
+  const buttonY = Math.round(Math.max(layout.buttonY || 0, cursorY + 16));
 
   ctx.save();
   ctx.fillStyle = "#9BD9FF";
