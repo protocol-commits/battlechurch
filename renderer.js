@@ -1680,6 +1680,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         if (anim.thresholdHoldTimer <= 0 && anim.advanceNpcAfterThresholdHold) {
           anim.advanceNpcAfterThresholdHold = false;
           advanceToNextHealthBonusNpc();
+          return;
         }
       }
       if (anim.finished || !anim.entries.length) {
@@ -1724,6 +1725,10 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       } else if (anim.activeHealth > 0) {
         const drainAmount = dt * countRate;
         const rawNextActiveHealth = Math.max(0, anim.activeHealth - drainAmount);
+        const npcFinalDisplayedTotal = Math.min(
+          maxDisplayTotal,
+          Math.round(priorTotal + targetHealth),
+        );
         const projectedDisplayedTotal = Math.min(
           maxDisplayTotal,
           Math.round(priorTotal + Math.max(0, targetHealth - rawNextActiveHealth)),
@@ -1737,12 +1742,15 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           nextThreshold <= maxDisplayTotal;
         if (thresholdAvailable && projectedDisplayedTotal >= nextThreshold) {
           const amountToThreshold = nextThreshold - currentTotalBeforeStep;
-          const remainingHealthAfterThreshold = Math.max(0, anim.activeHealth - amountToThreshold);
+          const thresholdConsumesNpc = npcFinalDisplayedTotal === nextThreshold;
+          const remainingHealthAfterThreshold = thresholdConsumesNpc
+            ? 0
+            : Math.max(0, anim.activeHealth - amountToThreshold);
           anim.activeHealth = remainingHealthAfterThreshold;
           anim.totalHealth = nextThreshold;
           anim.thresholdValue = nextThreshold;
           anim.thresholdHoldTimer = 1.0;
-          if (remainingHealthAfterThreshold <= 0) {
+          if (thresholdConsumesNpc) {
             // Let the threshold hold fully replace the between-NPC pause.
             anim.advanceNpcAfterThresholdHold = true;
             anim.holdTimer = 0;
@@ -1755,6 +1763,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         if (anim.advanceNpcAfterThresholdHold) {
           anim.advanceNpcAfterThresholdHold = false;
           advanceToNextHealthBonusNpc();
+          return;
         }
         if (!activeEntry?.penaltyApplied && targetHealth <= 0) {
           activeEntry.penaltyApplied = true;
