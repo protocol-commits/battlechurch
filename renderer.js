@@ -1847,8 +1847,8 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         return;
       }
       anim.timer += dt;
-      const performanceBonusStepDuration = 0.42;
-      while (anim.revealedCount < items.length && anim.timer >= performanceBonusStepDuration) {
+      const performanceBonusStepDuration = 0.75;
+      if (anim.revealedCount < items.length && anim.timer >= performanceBonusStepDuration) {
         anim.timer -= performanceBonusStepDuration;
         anim.revealedCount += 1;
         if (affectsTotal) {
@@ -2238,7 +2238,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const badgeItems = Array.isArray(line?.badgeItems) ? line.badgeItems : [];
     const visibleBadgeCount = anim
       ? Math.max(0, Math.min(badgeItems.length, Math.round(anim.revealedCount || 0)))
-      : badgeItems.length;
+      : (
+          recapTallyState.lastAppliedIndex === recapTallyState.stepIndex || recapTallyState.done
+            ? badgeItems.length
+            : 0
+        );
     const visibleBadges = badgeItems.slice(0, visibleBadgeCount);
     const detailText = String(line?.description || "").trim();
     const detailLines = detailText ? wrapText(ctx, detailText, maxWidth) : [];
