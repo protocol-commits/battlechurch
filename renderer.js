@@ -1338,6 +1338,7 @@ function resetRecapTallyState(recapData) {
   recapTallyState.graceFlySfxPlayed = false;
   recapTallyState.showContinue = false;
   recapTallyState.continueTimer = 0;
+  recapTallyState.continueSfxPlayed = false;
   recapTallyState.headerPhase = "title";
   recapTallyState.headerTimer = 0;
   recapTallyState.showCount = false;
@@ -1564,6 +1565,10 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       recapTallyState.continueTimer += dt;
       if (recapTallyState.continueTimer >= RECAP_CONTINUE_DELAY) {
         recapTallyState.showContinue = true;
+        if (!recapTallyState.continueSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
+          window.playRecapFinalSfx(0.7);
+          recapTallyState.continueSfxPlayed = true;
+        }
       }
     }
   }
@@ -2298,6 +2303,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         color: "#314B77",
         accent: "#4769A1",
       });
+      drawChurchBadgeShimmer(ctx, stripSlotSize, {
+        shape: "square",
+        color: "#314B77",
+        accent: "#4769A1",
+      });
       ctx.restore();
       if (entry?.portrait) {
         const portraitInset = 8;
@@ -2349,16 +2359,27 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     });
 
     const thresholdPulse = anim && anim.thresholdHoldTimer > 0 ? anim.thresholdHoldTimer : 0;
-    const totalGlow = bumpPulse > 0
-      ? 18 + bumpPulse * 14
-      : (thresholdPulse > 0 ? 20 + thresholdPulse * 18 : 0);
+    const totalScale = thresholdPulse > 0
+      ? 1 + 0.32 * (0.35 + thresholdPulse * 0.65)
+      : (bumpPulse > 0 ? 1 + bumpPulse * 0.08 : 1);
+    const totalFontSize = Math.round(42 * totalScale);
+    const totalGlow = thresholdPulse > 0
+      ? 34 + thresholdPulse * 42
+      : (bumpPulse > 0 ? 18 + bumpPulse * 14 : 0);
     const totalValueBaselineY = npcRowTopY + 64;
     ctx.save();
-    ctx.fillStyle = thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
-    ctx.font = `700 42px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.fillStyle = thresholdPulse > 0 ? "#FFF6CF" : highlightValueColor;
+    ctx.font = `800 ${totalFontSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
-    ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
+    ctx.shadowColor = thresholdPulse > 0 ? "rgba(255, 245, 180, 0.95)" : "rgba(255, 217, 120, 0.7)";
     ctx.shadowBlur = totalGlow;
+    if (thresholdPulse > 0) {
+      ctx.lineWidth = Math.max(3, Math.round(totalFontSize * 0.08));
+      ctx.strokeStyle = "rgba(255, 184, 32, 0.95)";
+      ctx.strokeText(`${formatNumber(totalHealth)}`, totalBlockX, totalValueBaselineY);
+      ctx.shadowBlur = totalGlow * 1.35;
+      ctx.fillStyle = highlightValueFlash;
+    }
     ctx.fillText(`${formatNumber(totalHealth)}`, totalBlockX, totalValueBaselineY);
     ctx.restore();
 
@@ -2494,8 +2515,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       })();
 
       if (displayedBadgeValue !== null) {
+        const badgeValueColor =
+          anim && !anim.finished
+            ? (isActive
+                ? (thresholdPulse > 0 ? highlightValueFlash : highlightValueColor)
+                : "rgba(234, 246, 255, 0.82)")
+            : "rgba(234, 246, 255, 0.82)";
         ctx.save();
-        ctx.fillStyle = isActive && thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
+        ctx.fillStyle = badgeValueColor;
         ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 6);
@@ -2528,16 +2555,27 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.restore();
     });
 
-    const totalGlow = bumpPulse > 0
-      ? 18 + bumpPulse * 14
-      : (thresholdPulse > 0 ? 20 + thresholdPulse * 18 : 0);
+    const totalScale = thresholdPulse > 0
+      ? 1 + 0.32 * (0.35 + thresholdPulse * 0.65)
+      : (bumpPulse > 0 ? 1 + bumpPulse * 0.08 : 1);
+    const totalFontSize = Math.round(42 * totalScale);
+    const totalGlow = thresholdPulse > 0
+      ? 34 + thresholdPulse * 42
+      : (bumpPulse > 0 ? 18 + bumpPulse * 14 : 0);
     const totalValueBaselineY = rowTopY + 64;
     ctx.save();
-    ctx.fillStyle = thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
-    ctx.font = `700 42px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.fillStyle = thresholdPulse > 0 ? "#FFF6CF" : highlightValueColor;
+    ctx.font = `800 ${totalFontSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
-    ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
+    ctx.shadowColor = thresholdPulse > 0 ? "rgba(255, 245, 180, 0.95)" : "rgba(255, 217, 120, 0.7)";
     ctx.shadowBlur = totalGlow;
+    if (thresholdPulse > 0) {
+      ctx.lineWidth = Math.max(3, Math.round(totalFontSize * 0.08));
+      ctx.strokeStyle = "rgba(255, 184, 32, 0.95)";
+      ctx.strokeText(`${formatNumber(totalPerformance)}`, totalBlockX, totalValueBaselineY);
+      ctx.shadowBlur = totalGlow * 1.35;
+      ctx.fillStyle = highlightValueFlash;
+    }
     ctx.fillText(`${formatNumber(totalPerformance)}`, totalBlockX, totalValueBaselineY);
     ctx.restore();
 
@@ -3017,33 +3055,10 @@ function getChurchPowerupIcon(src) {
 
 function drawChurchPowerupIcon(ctx, { x, y, size, iconImage, style }) {
   if (!ctx || !size) return;
-  const half = size / 2;
-  const drawBadgeShape = (mode = "fill") => {
-    drawChurchBadgeShape(ctx, size, style, mode);
-  };
   ctx.save();
   ctx.translate(x, y);
   drawChurchBadgeSurface(ctx, size, style);
-
-  const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
-  const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
-  const shimmerAlpha = Math.max(0.12, pulse * 0.65);
-  if (shimmerAlpha > 0.12) {
-    ctx.save();
-    ctx.globalAlpha *= shimmerAlpha;
-    drawBadgeShape("clip");
-    ctx.clip();
-    const shimmerWidth = size * 0.6;
-    const offset = ((t * 0.9) % 1) * (size + shimmerWidth) - (size + shimmerWidth) / 2;
-    ctx.rotate(-0.45);
-    const grad = ctx.createLinearGradient(offset - shimmerWidth, 0, offset + shimmerWidth, 0);
-    grad.addColorStop(0, "rgba(255,255,255,0)");
-    grad.addColorStop(0.5, "rgba(255,255,255,0.85)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = grad;
-    ctx.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
-    ctx.restore();
-  }
+  drawChurchBadgeShimmer(ctx, size, style);
 
   if (iconImage && iconImage.complete) {
     const iconSize = size * 0.6;
@@ -3094,6 +3109,27 @@ function drawChurchBadgeSurface(ctx, size, style) {
   ctx.lineWidth = Math.max(2, size * 0.08);
   ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
   drawChurchBadgeShape(ctx, size, style, "stroke");
+}
+
+function drawChurchBadgeShimmer(ctx, size, style) {
+  const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+  const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
+  const shimmerAlpha = Math.max(0.12, pulse * 0.65);
+  if (shimmerAlpha <= 0.12) return;
+  ctx.save();
+  ctx.globalAlpha *= shimmerAlpha;
+  drawChurchBadgeShape(ctx, size, style, "clip");
+  ctx.clip();
+  const shimmerWidth = size * 0.6;
+  const offset = ((t * 0.9) % 1) * (size + shimmerWidth) - (size + shimmerWidth) / 2;
+  ctx.rotate(-0.45);
+  const grad = ctx.createLinearGradient(offset - shimmerWidth, 0, offset + shimmerWidth, 0);
+  grad.addColorStop(0, "rgba(255,255,255,0)");
+  grad.addColorStop(0.5, "rgba(255,255,255,0.85)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(-size * 1.5, -size * 1.5, size * 3, size * 3);
+  ctx.restore();
 }
 
 function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
