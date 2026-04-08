@@ -2201,7 +2201,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     };
   };
 
-  const drawNpcHealthBonusRow = (line, x, y, maxWidth, isHighlighted) => {
+  const drawNpcHealthBonusRow = (line, lineIndex, x, y, maxWidth, isHighlighted) => {
     const entries = Array.isArray(line?.npcHealthBreakdown)
       ? line.npcHealthBreakdown.slice(0, 5)
       : [];
@@ -2226,7 +2226,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const totalHealth = anim
       ? Math.max(0, Math.round(anim.totalHealth || 0))
       : (
-          recapTallyState.lastAppliedIndex === recapTallyState.stepIndex ||
+          recapTallyState.lastAppliedIndex >= lineIndex ||
           recapTallyState.done
             ? finalTotalHealth
             : 0
@@ -2269,7 +2269,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       if (displayedHealth !== null) {
         ctx.save();
         ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.82)";
-        ctx.font = `700 20px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.fillText(`${displayedHealth}`, slotX + stripSlotSize / 2, healthBaselineY);
         ctx.restore();
@@ -2288,6 +2288,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         const portraitInset = 8;
         const portraitSize = stripSlotSize - portraitInset * 2;
         const portraitRadius = Math.max(8, Math.round(portraitSize * 0.16));
+        const portraitYOffset = Math.round(portraitSize * 0.12);
         ctx.save();
         ctx.beginPath();
         roundRect(
@@ -2304,7 +2305,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         ctx.drawImage(
           entry.portrait,
           slotX + portraitInset,
-          portraitStripY + portraitInset,
+          portraitStripY + portraitInset - portraitYOffset,
           portraitSize,
           portraitSize,
         );
@@ -2391,7 +2392,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     };
   };
 
-  const drawPerformanceBonusesRow = (line, x, y, maxWidth, countAnchorX, countAnchorY) => {
+  const drawPerformanceBonusesRow = (line, lineIndex, x, y, maxWidth, countAnchorX, countAnchorY) => {
     const anim = (
       recapTallyState.performanceBonusAnim &&
       recapTallyState.performanceBonusAnim.index === recapTallyState.stepIndex
@@ -2410,7 +2411,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const totalPerformance = anim
       ? Math.max(0, Math.round(anim.totalPerformance || 0))
       : (
-          recapTallyState.lastAppliedIndex === recapTallyState.stepIndex || recapTallyState.done
+          recapTallyState.lastAppliedIndex >= lineIndex || recapTallyState.done
             ? finalTotalPerformance
             : 0
         );
@@ -2423,7 +2424,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const visibleBadgeCount = anim
       ? Math.max(1, Math.min(entries.length, activeBadgeIndex + 1))
       : (
-          recapTallyState.lastAppliedIndex === recapTallyState.stepIndex || recapTallyState.done
+          recapTallyState.lastAppliedIndex >= lineIndex || recapTallyState.done
             ? entries.length
             : 0
         );
@@ -2670,9 +2671,9 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const totalValue = recapTallyState.totalValue;
   const countLabel = "Congregation Count:";
   ctx.fillStyle = baseLabelColor;
+  ctx.textAlign = "left";
   ctx.fillText(countLabel, contentX, cursorY);
-  const labelWidth = ctx.measureText(countLabel).width;
-  countNumberX = contentX + labelWidth + 12;
+  countNumberX = recapTotalColumnX;
   ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
   ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
   countNumberY = cursorY;
@@ -2700,7 +2701,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const highlightValue =
         recapTallyState.flashTimer > 0 &&
         recapTallyState.lastAppliedIndex === i;
-      const bonusBlock = drawNpcHealthBonusRow(line, contentX, cursorY, contentWidth, highlightValue);
+      const bonusBlock = drawNpcHealthBonusRow(
+        line,
+        i,
+        contentX,
+        cursorY,
+        contentWidth,
+        highlightValue,
+      );
       if (
         recapTallyState.pendingGhost &&
         recapTallyState.pendingGhost.index === i &&
@@ -2723,6 +2731,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     if (line.kind === "performanceBonuses") {
       const bonusBlock = drawPerformanceBonusesRow(
         line,
+        i,
         contentX,
         cursorY,
         contentWidth,
