@@ -49,42 +49,96 @@
     }
   }
 
+  function getSpawnIngressBounds(radius = 0) {
+    const { width, height } = getCanvasSize();
+    const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
+    const playHeight = height - hud;
+    return {
+      width,
+      height,
+      hud,
+      leftMaxX: Math.max(radius + 28, Math.floor(width * 0.08)),
+      rightMinX: width - Math.max(radius + 28, Math.floor(width * 0.08)),
+      bottomMinY: height - Math.max(radius + 36, Math.floor(playHeight * 0.18)),
+      sideMinY: hud + Math.floor(playHeight * (1 / 3)),
+      sideMaxY: height - Math.max(radius + 24, Math.floor(height * 0.1)),
+    };
+  }
+
+  function pickSpawnLane(min, max, laneCount = 4, jitter = 0) {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return min || 0;
+    if (max <= min) return min;
+    const count = Math.max(1, Math.round(laneCount));
+    if (count === 1) return (min + max) * 0.5;
+    const step = (max - min) / (count - 1);
+    const laneIndex = Math.floor(Math.random() * count);
+    const center = min + step * laneIndex;
+    return Math.max(min, Math.min(max, center + defaultRandomInRange(-jitter, jitter)));
+  }
+
+  function inferSpawnEdge(position) {
+    if (!position) return "bottom";
+    if (position.__spawnEdge === "left" || position.__spawnEdge === "right" || position.__spawnEdge === "bottom") {
+      return position.__spawnEdge;
+    }
+    const { width, height } = getCanvasSize();
+    if (position.x <= 0) return "left";
+    if (position.x >= width) return "right";
+    if (position.y >= height) return "bottom";
+    const leftDist = Math.abs(position.x);
+    const rightDist = Math.abs(width - position.x);
+    const bottomDist = Math.abs(height - position.y);
+    if (leftDist <= rightDist && leftDist <= bottomDist) return "left";
+    if (rightDist <= leftDist && rightDist <= bottomDist) return "right";
+    return "bottom";
+  }
+
+  function clampSpawnPositionToIngressBand(position, radius = 0) {
+    const edge = inferSpawnEdge(position);
+    const bounds = getSpawnIngressBounds(radius);
+    const clamped = {
+      x: Number.isFinite(position?.x) ? position.x : 0,
+      y: Number.isFinite(position?.y) ? position.y : 0,
+      __spawnEdge: edge,
+    };
+    if (edge === "left") {
+      clamped.x = Math.min(clamped.x, bounds.leftMaxX);
+      clamped.y = Math.max(bounds.sideMinY, Math.min(bounds.sideMaxY, clamped.y));
+    } else if (edge === "right") {
+      clamped.x = Math.max(clamped.x, bounds.rightMinX);
+      clamped.y = Math.max(bounds.sideMinY, Math.min(bounds.sideMaxY, clamped.y));
+    } else {
+      clamped.y = Math.max(clamped.y, bounds.bottomMinY);
+      clamped.x = Math.max(radius + 24, Math.min(bounds.width - radius - 24, clamped.x));
+    }
+    return clamped;
+  }
+
   function randomOffscreenPosition(radius = 0, extraMargin = 0) {
     const { width, height } = getCanvasSize();
     const marginX = Math.max(140, Math.floor(width * 0.14)) + radius + extraMargin;
     const marginY = Math.max(120, Math.floor(height * 0.12)) + radius + extraMargin;
-    const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
-    const playHeight = height - hud;
-    const jitter = 120;
-    const portals = [
-      // Left/right roughly 1/3 down the playfield, offscreen on X
-      { x: -marginX, y: hud + playHeight * (1 / 3) },
-      { x: width + marginX, y: hud + playHeight * (1 / 3) },
-      // Bottom middle offscreen with generous spread
-      { x: width / 2, y: height + marginY, jitterX: 320, jitterY: 180 },
-    ];
-    const base = portals[Math.floor(Math.random() * portals.length)];
-    if (base.jitterX || base.jitterY) {
-      const jitterX = base.jitterX ?? jitter;
-      const jitterY = base.jitterY ?? jitter;
+    const bounds = getSpawnIngressBounds(radius);
+    const edge = ["left", "right", "bottom"][Math.floor(Math.random() * 3)];
+    if (edge === "left" || edge === "right") {
       return {
-        x: base.x + (Math.random() * 2 - 1) * jitterX,
-        y: base.y + (Math.random() * 2 - 1) * jitterY,
-      };
-    } else {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * jitter;
-      return {
-        x: base.x + Math.cos(angle) * dist,
-        y: base.y + Math.sin(angle) * dist,
+        x: edge === "left" ? -marginX : width + marginX,
+        y: pickSpawnLane(bounds.sideMinY, bounds.sideMaxY, 4, 42),
+        __spawnEdge: edge,
       };
     }
+    return {
+      x: pickSpawnLane(radius + 48, width - radius - 48, 5, 56),
+      y: height + marginY,
+      __spawnEdge: "bottom",
+    };
   }
 
   function findNonOverlappingSpawn(basePos, radius = 20, attempts = 6, spacing = 1) {
     const enemies = deps.enemies || [];
-    let pos = { x: basePos.x, y: basePos.y };
+    let pos = clampSpawnPositionToIngressBand(basePos, radius);
     const safeRadius = Math.max(8, radius * spacing * 1.25);
+    const edge = inferSpawnEdge(pos);
     for (let i = 0; i < attempts; i += 1) {
       const overlapping = enemies.some((enemy) => {
         if (!enemy || enemy.dead || enemy.state === "death") return false;
@@ -93,11 +147,23 @@
         return dist < rSum;
       });
       if (!overlapping) return pos;
-      const angle = Math.random() * Math.PI * 2;
-      const step = safeRadius * 1.4;
-      pos = { x: pos.x + Math.cos(angle) * step, y: pos.y + Math.sin(angle) * step };
+      const step = safeRadius * 1.2;
+      if (edge === "left" || edge === "right") {
+        pos = {
+          x: pos.x + (edge === "left" ? defaultRandomInRange(-step * 0.35, step * 0.25) : defaultRandomInRange(-step * 0.25, step * 0.35)),
+          y: pos.y + defaultRandomInRange(-step * 1.4, step * 1.4),
+          __spawnEdge: edge,
+        };
+      } else {
+        pos = {
+          x: pos.x + defaultRandomInRange(-step * 1.6, step * 1.6),
+          y: pos.y + defaultRandomInRange(-step * 0.25, step * 0.35),
+          __spawnEdge: edge,
+        };
+      }
+      pos = clampSpawnPositionToIngressBand(pos, radius);
     }
-    return pos;
+    return clampSpawnPositionToIngressBand(pos, radius);
   }
 
   function resolveEnemyTypes() {

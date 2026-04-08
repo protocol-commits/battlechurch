@@ -12444,24 +12444,37 @@ function randomSpawnPosition() {
   const horizontalMargin = Math.max(120, Math.floor(width * 0.12));
   const verticalMargin = Math.max(100, Math.floor(height * 0.12));
   const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
+  const sideMaxY = height - Math.max(32, Math.floor(height * 0.1));
+  const pickLane = (min, max, laneCount = 4, jitter = 0) => {
+    if (max <= min) return min;
+    const count = Math.max(1, Math.round(laneCount));
+    if (count === 1) return (min + max) * 0.5;
+    const step = (max - min) / (count - 1);
+    const laneIndex = Math.floor(Math.random() * count);
+    const center = min + step * laneIndex;
+    return Math.max(min, Math.min(max, center + randomInRange(-jitter, jitter)));
+  };
   const edge = Math.floor(Math.random() * 3);
   if (edge === 0) {
     // left wall
     return {
       x: -horizontalMargin,
-      y: randomInRange(bottomCutoff, height - verticalMargin),
+      y: pickLane(bottomCutoff, sideMaxY, 4, 42),
+      __spawnEdge: "left",
     };
   }
   if (edge === 1) {
     // right wall
     return {
       x: width + horizontalMargin,
-      y: randomInRange(bottomCutoff, height - verticalMargin),
+      y: pickLane(bottomCutoff, sideMaxY, 4, 42),
+      __spawnEdge: "right",
     };
   }
   return {
-    x: randomInRange(horizontalMargin, width - horizontalMargin),
+    x: pickLane(horizontalMargin, width - horizontalMargin, 5, 56),
     y: height + verticalMargin,
+    __spawnEdge: "bottom",
   };
 }
 
