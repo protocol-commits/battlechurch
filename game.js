@@ -6683,20 +6683,20 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     prayerBomb: "assets/sprites/pixel-art-pack/Items/I02_HP_Potion_M.png",
   };
   const performanceBadgeBreakdown = [];
-  if (perfectProtectionValue > 0) {
-    performanceBadgeBreakdown.push({
-      id: "perfectProtection",
-      label: "Perfect Protection",
-      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.perfectCongregation,
-      value: perfectProtectionValue,
-    });
-  }
   if (pastorHealthValue > 0) {
     performanceBadgeBreakdown.push({
       id: "pastorHealth",
       label: "Pastor Health",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.pastorHealth,
       value: pastorHealthValue,
+    });
+  }
+  if (perfectProtectionValue > 0) {
+    performanceBadgeBreakdown.push({
+      id: "perfectProtection",
+      label: "Perfect Protection",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.perfectCongregation,
+      value: perfectProtectionValue,
     });
   }
   if (prayerBombPerformanceValue > 0) {
