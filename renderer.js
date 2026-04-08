@@ -2055,7 +2055,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     buttonKey = "recap",
   } = options;
 
-  const titleSize = 46;
+  const titleSize = 38;
   const bodySize = 28;
   const lineGap = Math.round(titleSize * 1.08);
   ctx.save();
@@ -2135,6 +2135,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const highlightValueColor = "#FFD978";
   const highlightValueFlash = "#FFE5A6";
   const dividerColor = "rgba(255, 217, 120, 0.5)";
+  const recapTotalBlockWidth = 220;
+  const recapColumnGap = 34;
+  const recapLeftColumnX = contentX + 6;
+  const recapTotalColumnX = contentX + contentWidth - recapTotalBlockWidth;
+  const recapLeftColumnWidth = Math.max(
+    180,
+    recapTotalColumnX - recapColumnGap - recapLeftColumnX,
+  );
   const congregationMembers = Array.isArray(requireBindings().congregationMembers)
     ? requireBindings().congregationMembers
     : [];
@@ -2232,8 +2240,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
     const labelY = y;
     const blockTopY = labelY + 20;
-    const trackerWidth = maxWidth;
-    const trackerX = x;
     const labelRowHeight = 0;
     const npcHealthRowHeight = 112;
     const rowGap = 18;
@@ -2245,11 +2251,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
     const stripSlotSize = 54;
     const stripGap = 18;
-    const stripTotalWidth = entries.length * stripSlotSize + Math.max(0, entries.length - 1) * stripGap;
-    const totalBlockWidth = 220;
-    const equationGap = 34;
-    const stripStartX = x + Math.max(0, Math.round((maxWidth - (stripTotalWidth + equationGap + totalBlockWidth)) / 2));
-    const totalBlockX = stripStartX + stripTotalWidth + equationGap;
+    const stripStartX = recapLeftColumnX;
+    const totalBlockX = recapTotalColumnX;
     entries.forEach((entry, index) => {
       const slotX = stripStartX + index * (stripSlotSize + stripGap);
       const isPast = anim ? index < activeNpcIndex : true;
@@ -2409,19 +2412,17 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ? visibleBadgeCount * badgeSlotSize + Math.max(0, visibleBadgeCount - 1) * badgeGap
       : badgeSlotSize;
     const badgeAreaWidth = Math.min(
+      recapLeftColumnWidth,
       Math.max(210, visibleBadgeWidth),
-      Math.round(maxWidth * 0.56),
     );
-    const totalBlockWidth = 220;
-    const equationGap = 34;
-    const badgeAreaX = x + Math.max(0, Math.round((maxWidth - (badgeAreaWidth + equationGap + totalBlockWidth)) / 2));
-    const totalBlockX = badgeAreaX + badgeAreaWidth + equationGap;
+    const badgeAreaX = recapLeftColumnX;
+    const totalBlockX = recapTotalColumnX;
     const rowTopY = blockTopY + 18;
     const rowBottomY = rowTopY + 126;
     const badgeRowWidth = visibleBadgeCount
       ? visibleBadgeCount * badgeSlotSize + Math.max(0, visibleBadgeCount - 1) * badgeGap
       : badgeSlotSize;
-    const badgeStartX = badgeAreaX + Math.max(0, Math.round((badgeAreaWidth - badgeRowWidth) / 2));
+    const badgeStartX = badgeAreaX;
     const badgeCenterY = rowTopY + 48;
 
     ctx.save();
