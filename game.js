@@ -2672,8 +2672,10 @@ function updatePrayerBombFireRain(dt) {
   prayerBombRainSpawnTimer -= dt;
   while (prayerBombRainSpawnTimer <= 0 && prayerBombRainTimer > 0) {
     prayerBombRainSpawnTimer += PRAYER_BOMB_RAIN_INTERVAL;
-    const pos = randomSpreadPosition();
-    spawnPrayerBombFireball(pos);
+    for (let burstIndex = 0; burstIndex < 2; burstIndex += 1) {
+      const pos = randomSpreadPosition();
+      spawnPrayerBombFireball(pos);
+    }
   }
 }
 
