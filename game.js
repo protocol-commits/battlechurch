@@ -6656,6 +6656,9 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
         .filter((value) => value > 0)
     : [];
   const prayerBombComboTotal = prayerBombComboContributions.reduce((sum, value) => sum + value, 0);
+  const battleMaxCombo = Number.isFinite(summary?.battleMaxCombo)
+    ? Math.max(0, Math.round(summary.battleMaxCombo))
+    : 0;
   const zeroHealthPenaltyCount = isBossSummary
     ? 0
     : npcHealthBreakdown.reduce(
@@ -6671,15 +6674,20 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const healthReward = isBossSummary ? 0 : (healthRewardBase - zeroHealthPenaltyCount);
   const perfectProtectionValue = !isBossSummary && totalNpcFaith >= 500 ? 100 : 0;
   const pastorHealthValue = !isBossSummary ? playerHealthAtRecap : 0;
+  const maxComboPerformanceValue = !isBossSummary ? battleMaxCombo : 0;
   const prayerBombPerformanceValue = !isBossSummary ? prayerBombComboTotal : 0;
   const performancePointTotal =
-    perfectProtectionValue + pastorHealthValue + prayerBombPerformanceValue;
+    perfectProtectionValue +
+    pastorHealthValue +
+    maxComboPerformanceValue +
+    prayerBombPerformanceValue;
   const performanceCongregationReward = !isBossSummary ? Math.floor(performancePointTotal / 100) : 0;
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
   const PERFORMANCE_BONUS_BADGE_SRCS = {
     perfectCongregation: "assets/sprites/pixel-art-pack/Items/I07_Apple.png",
     pastorHealth: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
+    maxCombo: "assets/sprites/pixel-art-pack/Items/I36_Hammer.png",
     prayerBomb: "assets/sprites/pixel-art-pack/Items/I02_HP_Potion_M.png",
   };
   const performanceBadgeBreakdown = [];
@@ -6689,6 +6697,14 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       label: "Pastor Health",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.pastorHealth,
       value: pastorHealthValue,
+    });
+  }
+  if (maxComboPerformanceValue > 0) {
+    performanceBadgeBreakdown.push({
+      id: "maxCombo",
+      label: "Max Combo",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.maxCombo,
+      value: maxComboPerformanceValue,
     });
   }
   if (perfectProtectionValue > 0) {
