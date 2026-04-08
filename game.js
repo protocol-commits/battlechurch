@@ -119,6 +119,8 @@ const npcs = [];
 const effects = Effects.getActive();
 let divineChargeSparkEffect = null;
 let divineChargeFlashEffect = null;
+let prayerBombReadyEffect = null;
+let divineChargeFlashFrames = null;
 let playerDashState = {
   isDashing: false,
   dashDir: { x: 0, y: 0 },
@@ -1469,6 +1471,50 @@ function spawnDivineChargeSparkVisual() {
   return divineChargeSparkEffect;
 }
 
+function getDivineChargeFlashFrames() {
+  if (Array.isArray(divineChargeFlashFrames) && divineChargeFlashFrames.length) {
+    return divineChargeFlashFrames;
+  }
+  divineChargeFlashFrames = [];
+  for (let i = 1; i <= 14; i += 1) {
+    const img = new Image();
+    img.src = `assets/sprites/magic-pack/sprites/flash/sprites/flash${i}.png`;
+    divineChargeFlashFrames.push(img);
+  }
+  return divineChargeFlashFrames;
+}
+
+function spawnDivineChargeReadyVisual(effectKey = "melee") {
+  if (!player) return null;
+  const anchor = getPlayerChargeVisualAnchor(player);
+  if (!anchor) return null;
+  const flashFrames = getDivineChargeFlashFrames();
+  if (!Array.isArray(flashFrames) || !flashFrames.length) return null;
+
+  if (effectKey === "prayerBomb") {
+    if (!prayerBombReadyEffect || prayerBombReadyEffect.dead) {
+      prayerBombReadyEffect = Effects.spawnLoopingEffect(flashFrames, anchor.x, anchor.y, {
+        frameDuration: 0.03,
+        scale: 2.0,
+      });
+    }
+    prayerBombReadyEffect.x = anchor.x;
+    prayerBombReadyEffect.y = anchor.y;
+    return prayerBombReadyEffect;
+  }
+
+  if (divineChargeFlashEffect && !divineChargeFlashEffect.dead) {
+    divineChargeFlashEffect.x = anchor.x;
+    divineChargeFlashEffect.y = anchor.y;
+    return divineChargeFlashEffect;
+  }
+  divineChargeFlashEffect = Effects.spawnLoopingEffect(flashFrames, anchor.x, anchor.y, {
+    frameDuration: 0.03,
+    scale: 2.0,
+  });
+  return divineChargeFlashEffect;
+}
+
 function updateDivineChargeSparkVisual(dt, chargeTimer, holdTime) {
   if (!player) return;
 
@@ -1505,6 +1551,13 @@ function clearDivineChargeSparkVisual() {
   if (divineChargeFlashEffect) {
     divineChargeFlashEffect.dead = true;
     divineChargeFlashEffect = null;
+  }
+}
+
+function clearPrayerBombReadyVisual() {
+  if (prayerBombReadyEffect) {
+    prayerBombReadyEffect.dead = true;
+    prayerBombReadyEffect = null;
   }
 }
 const GRACE_SPRITE_FILES = [
@@ -18591,19 +18644,15 @@ function updateChargeState(dt, meleeAttackState) {
       divineChargeSparkEffect = null;
 
       // Spawn flash effect
-      const flashFrames = [];
-      for (let i = 1; i <= 14; i++) {
-        const img = new Image();
-        img.src = `assets/sprites/magic-pack/sprites/flash/sprites/flash${i}.png`;
-        flashFrames.push(img);
-      }
       if (divineChargeFlashEffect && !divineChargeFlashEffect.dead) {
         divineChargeFlashEffect.dead = true;
       }
-      divineChargeFlashEffect = Effects.spawnLoopingEffect(flashFrames, sparkX, sparkY, {
-        frameDuration: 0.03,
-        scale: 2.0,
-      });
+      divineChargeFlashEffect = null;
+      const readyEffect = spawnDivineChargeReadyVisual("melee");
+      if (readyEffect) {
+        readyEffect.x = sparkX;
+        readyEffect.y = sparkY;
+      }
     }
   }
 
@@ -19135,6 +19184,19 @@ function updateMeleeAttackSystem(dt) {
     updateChargeState(dt, meleeAttackState);
     if (!meleeAttackState.isCharging && !meleeAttackState.spinCharging) {
       clearDivineChargeSparkVisual();
+    }
+    const showPrayerBombReadyVisual = Boolean(
+      player &&
+      player.state !== "death" &&
+      player.state !== "attackPrayer" &&
+      !meleeAttackState.isCharging &&
+      !meleeAttackState.spinCharging &&
+      player.prayerHoldLocked,
+    );
+    if (showPrayerBombReadyVisual) {
+      spawnDivineChargeReadyVisual("prayerBomb");
+    } else {
+      clearPrayerBombReadyVisual();
     }
     const comboNow = typeof performance !== "undefined" ? performance.now() : Date.now();
     if (

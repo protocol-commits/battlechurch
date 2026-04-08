@@ -891,13 +891,13 @@
       }
     }
 
-    const holdingPrayerKeys = isActionActive("aimLeft") && isActionActive("aimRight");
+    const holdingPrayerKeys = Boolean(window.Input?.keysPressed?.has("ArrowRight"));
     if (holdingPrayerKeys) {
       this.prayerHoldTimer += dt;
       if (!this.prayerHoldLocked && this.prayerHoldTimer >= PRAYER_BOMB_HOLD_TIME) {
-        this.prayerHoldLocked = true;
+        this.prayerHoldLocked =
+          typeof this.isPrayerBombReady === "function" ? this.isPrayerBombReady() : false;
         this.prayerHoldTimer = 0;
-        this.castPrayerBomb();
       }
     } else {
       this.prayerHoldTimer = 0;
