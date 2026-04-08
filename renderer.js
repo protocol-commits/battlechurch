@@ -2241,7 +2241,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const labelY = y;
     const blockTopY = labelY + 20;
     const labelRowHeight = 0;
-    const npcHealthRowHeight = 132;
+    const npcHealthRowHeight = 144;
     const rowGap = 18;
     const npcRowTopY = blockTopY + labelRowHeight + rowGap;
     const rowBottomY = npcRowTopY + npcHealthRowHeight;
@@ -2249,8 +2249,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = baseLabelColor;
     drawHighlightedLabel(line.label || "", x, labelY, line.highlightText);
 
-    const stripSlotSize = 54;
-    const stripGap = 18;
+    const stripSlotSize = 64;
+    const stripGap = 16;
     const stripStartX = recapLeftColumnX;
     const totalBlockX = recapTotalColumnX;
     entries.forEach((entry, index) => {
@@ -2274,16 +2274,41 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         ctx.fillText(`${displayedHealth}`, slotX + stripSlotSize / 2, healthBaselineY);
         ctx.restore();
       }
+      const slotCenterX = slotX + stripSlotSize / 2;
+      const slotCenterY = portraitStripY + stripSlotSize / 2;
       ctx.save();
-      ctx.fillStyle = isCurrent ? "rgba(255, 217, 120, 0.16)" : "rgba(255,255,255,0.05)";
-      ctx.strokeStyle = isCurrent
-        ? "rgba(255, 217, 120, 0.95)"
-        : (isPast ? "rgba(155, 217, 255, 0.6)" : "rgba(255,255,255,0.22)");
-      ctx.lineWidth = isCurrent ? 3 : 1.5;
-      roundRect(ctx, slotX, portraitStripY, stripSlotSize, stripSlotSize, 12, true, true);
+      ctx.translate(slotCenterX, slotCenterY);
+      drawChurchBadgeSurface(ctx, stripSlotSize, {
+        shape: "square",
+        color: "#314B77",
+        accent: "#4769A1",
+      });
       ctx.restore();
       if (entry?.portrait) {
-        ctx.drawImage(entry.portrait, slotX + 5, portraitStripY + 5, stripSlotSize - 10, stripSlotSize - 10);
+        const portraitInset = 8;
+        const portraitSize = stripSlotSize - portraitInset * 2;
+        const portraitRadius = Math.max(8, Math.round(portraitSize * 0.16));
+        ctx.save();
+        ctx.beginPath();
+        roundRect(
+          ctx,
+          slotX + portraitInset,
+          portraitStripY + portraitInset,
+          portraitSize,
+          portraitSize,
+          portraitRadius,
+          false,
+          false,
+        );
+        ctx.clip();
+        ctx.drawImage(
+          entry.portrait,
+          slotX + portraitInset,
+          portraitStripY + portraitInset,
+          portraitSize,
+          portraitSize,
+        );
+        ctx.restore();
       }
       if (!entry?.active) {
         ctx.save();
@@ -2291,10 +2316,10 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         ctx.lineWidth = 5;
         ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.moveTo(slotX + 10, portraitStripY + 10);
-        ctx.lineTo(slotX + stripSlotSize - 10, portraitStripY + stripSlotSize - 10);
-        ctx.moveTo(slotX + stripSlotSize - 10, portraitStripY + 10);
-        ctx.lineTo(slotX + 10, portraitStripY + stripSlotSize - 10);
+        ctx.moveTo(slotX + 12, portraitStripY + 12);
+        ctx.lineTo(slotX + stripSlotSize - 12, portraitStripY + stripSlotSize - 12);
+        ctx.moveTo(slotX + stripSlotSize - 12, portraitStripY + 12);
+        ctx.lineTo(slotX + 12, portraitStripY + stripSlotSize - 12);
         ctx.stroke();
         ctx.restore();
       }
@@ -2973,44 +2998,12 @@ function getChurchPowerupIcon(src) {
 function drawChurchPowerupIcon(ctx, { x, y, size, iconImage, style }) {
   if (!ctx || !size) return;
   const half = size / 2;
-  const shape = style?.shape || CHURCH_POWERUP_ICON_DEFAULT.shape;
-  const color = style?.color || CHURCH_POWERUP_ICON_DEFAULT.color;
-  const accent = style?.accent || CHURCH_POWERUP_ICON_DEFAULT.accent;
   const drawBadgeShape = (mode = "fill") => {
-    if (shape === "circle") {
-      ctx.beginPath();
-      ctx.arc(0, 0, half, 0, Math.PI * 2);
-      if (mode === "fill") ctx.fill();
-      else if (mode === "stroke") ctx.stroke();
-      return;
-    }
-    if (shape === "shield") {
-      const topY = -half;
-      const shoulderY = -half * 0.18;
-      const bottomY = half;
-      ctx.beginPath();
-      ctx.moveTo(0, topY);
-      ctx.lineTo(half * 0.88, shoulderY);
-      ctx.quadraticCurveTo(half * 0.78, half * 0.46, 0, bottomY);
-      ctx.quadraticCurveTo(-half * 0.78, half * 0.46, -half * 0.88, shoulderY);
-      ctx.closePath();
-      if (mode === "fill") ctx.fill();
-      else if (mode === "stroke") ctx.stroke();
-      return;
-    }
-    const radius = Math.max(6, Math.round(size * 0.16));
-    roundRect(ctx, -half, -half, size, size, radius, mode === "fill", mode === "stroke");
+    drawChurchBadgeShape(ctx, size, style, mode);
   };
   ctx.save();
   ctx.translate(x, y);
-  const gradient = ctx.createLinearGradient(0, -half, 0, half);
-  gradient.addColorStop(0, accent);
-  gradient.addColorStop(1, color);
-  ctx.fillStyle = gradient;
-  drawBadgeShape("fill");
-  ctx.lineWidth = Math.max(2, size * 0.08);
-  ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
-  drawBadgeShape("stroke");
+  drawChurchBadgeSurface(ctx, size, style);
 
   const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
   const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
@@ -3039,6 +3032,48 @@ function drawChurchPowerupIcon(ctx, { x, y, size, iconImage, style }) {
     ctx.drawImage(iconImage, iconX, iconY, iconSize, iconSize);
   }
   ctx.restore();
+}
+
+function drawChurchBadgeShape(ctx, size, style, mode = "fill") {
+  const half = size / 2;
+  const shape = style?.shape || CHURCH_POWERUP_ICON_DEFAULT.shape;
+  if (shape === "circle") {
+    ctx.beginPath();
+    ctx.arc(0, 0, half, 0, Math.PI * 2);
+    if (mode === "fill") ctx.fill();
+    else if (mode === "stroke") ctx.stroke();
+    return;
+  }
+  if (shape === "shield") {
+    const topY = -half;
+    const shoulderY = -half * 0.18;
+    const bottomY = half;
+    ctx.beginPath();
+    ctx.moveTo(0, topY);
+    ctx.lineTo(half * 0.88, shoulderY);
+    ctx.quadraticCurveTo(half * 0.78, half * 0.46, 0, bottomY);
+    ctx.quadraticCurveTo(-half * 0.78, half * 0.46, -half * 0.88, shoulderY);
+    ctx.closePath();
+    if (mode === "fill") ctx.fill();
+    else if (mode === "stroke") ctx.stroke();
+    return;
+  }
+  const radius = Math.max(6, Math.round(size * 0.16));
+  roundRect(ctx, -half, -half, size, size, radius, mode === "fill", mode === "stroke");
+}
+
+function drawChurchBadgeSurface(ctx, size, style) {
+  const half = size / 2;
+  const color = style?.color || CHURCH_POWERUP_ICON_DEFAULT.color;
+  const accent = style?.accent || CHURCH_POWERUP_ICON_DEFAULT.accent;
+  const gradient = ctx.createLinearGradient(0, -half, 0, half);
+  gradient.addColorStop(0, accent);
+  gradient.addColorStop(1, color);
+  ctx.fillStyle = gradient;
+  drawChurchBadgeShape(ctx, size, style, "fill");
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
+  drawChurchBadgeShape(ctx, size, style, "stroke");
 }
 
 function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
