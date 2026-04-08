@@ -2391,25 +2391,38 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const activeBadgeIndex = anim
       ? Math.min(entries.length - 1, Math.max(0, anim.activeBadgeIndex || 0))
       : Math.max(0, entries.length - 1);
-    const activeEntry = entries[activeBadgeIndex] || null;
-    const displayedBadgeValue = anim
-      ? Math.max(0, Math.round(anim.activeValue || 0))
-      : Math.max(0, Math.round(activeEntry?.value || 0));
+    const visibleBadgeCount = anim
+      ? Math.max(1, Math.min(entries.length, activeBadgeIndex + 1))
+      : (
+          recapTallyState.lastAppliedIndex === recapTallyState.stepIndex || recapTallyState.done
+            ? entries.length
+            : 0
+        );
     const bumpPulse = anim ? Math.max(0, anim.bumpTimer || 0) : 0;
     const thresholdPulse = anim && anim.thresholdHoldTimer > 0 ? anim.thresholdHoldTimer : 0;
 
     const labelY = y;
     const blockTopY = labelY + 20;
-    const badgeAreaWidth = Math.min(210, Math.round(maxWidth * 0.42));
+    const badgeSlotSize = 64;
+    const badgeGap = 16;
+    const visibleBadgeWidth = visibleBadgeCount
+      ? visibleBadgeCount * badgeSlotSize + Math.max(0, visibleBadgeCount - 1) * badgeGap
+      : badgeSlotSize;
+    const badgeAreaWidth = Math.min(
+      Math.max(210, visibleBadgeWidth),
+      Math.round(maxWidth * 0.56),
+    );
     const totalBlockWidth = 220;
     const equationGap = 34;
     const badgeAreaX = x + Math.max(0, Math.round((maxWidth - (badgeAreaWidth + equationGap + totalBlockWidth)) / 2));
     const totalBlockX = badgeAreaX + badgeAreaWidth + equationGap;
     const rowTopY = blockTopY + 18;
     const rowBottomY = rowTopY + 126;
-    const badgeCenterX = badgeAreaX + badgeAreaWidth / 2;
+    const badgeRowWidth = visibleBadgeCount
+      ? visibleBadgeCount * badgeSlotSize + Math.max(0, visibleBadgeCount - 1) * badgeGap
+      : badgeSlotSize;
+    const badgeStartX = badgeAreaX + Math.max(0, Math.round((badgeAreaWidth - badgeRowWidth) / 2));
     const badgeCenterY = rowTopY + 48;
-    const badgeSize = 64;
 
     ctx.save();
     ctx.fillStyle = baseLabelColor;
@@ -2418,9 +2431,19 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     drawHighlightedLabel(line.label || "Performance Bonuses:", x, labelY);
     ctx.restore();
 
-    if (activeEntry) {
+    entries.slice(0, visibleBadgeCount).forEach((entry, index) => {
+      const badgeCenterX = badgeStartX + badgeSlotSize / 2 + index * (badgeSlotSize + badgeGap);
+      const isActive = index === activeBadgeIndex;
+      const displayedBadgeValue = isActive
+        ? (
+            anim
+              ? Math.max(0, Math.round(anim.activeValue || 0))
+              : Math.max(0, Math.round(entry?.value || 0))
+          )
+        : Math.max(0, Math.round(entry?.value || 0));
+
       ctx.save();
-      ctx.fillStyle = thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
+      ctx.fillStyle = isActive && thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
       ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 6);
@@ -2429,8 +2452,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       drawChurchPowerupIcon(ctx, {
         x: badgeCenterX,
         y: badgeCenterY,
-        size: badgeSize,
-        iconImage: getChurchPowerupIcon(activeEntry?.iconSrc),
+        size: badgeSlotSize,
+        iconImage: getChurchPowerupIcon(entry?.iconSrc),
         style: {
           shape: "shield",
           color: "#314B77",
@@ -2438,7 +2461,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         },
       });
 
-      const nameLines = String(activeEntry?.label || "")
+      const nameLines = String(entry?.label || "")
         .split(/\s+/)
         .reduce((linesAcc, word) => {
           if (!word) return linesAcc;
@@ -2460,11 +2483,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       const nameStartY = rowTopY + 100;
-      nameLines.forEach((textLine, index) => {
-        ctx.fillText(textLine, badgeCenterX, nameStartY + index * 18);
+      nameLines.forEach((textLine, lineIndex) => {
+        ctx.fillText(textLine, badgeCenterX, nameStartY + lineIndex * 18);
       });
       ctx.restore();
-    }
+    });
 
     const totalGlow = bumpPulse > 0
       ? 18 + bumpPulse * 14
