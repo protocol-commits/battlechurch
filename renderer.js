@@ -1847,6 +1847,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           lastGhostAward: 0,
           bumpTimer: 0,
           holdTimer: 0,
+          revealHoldTimer: 0.3,
           thresholdHoldTimer: 0,
           thresholdValue: null,
           advanceBadgeAfterThresholdHold: false,
@@ -1857,6 +1858,9 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       if (anim.bumpTimer > 0) {
         anim.bumpTimer = Math.max(0, anim.bumpTimer - dt);
       }
+      if (anim.revealHoldTimer > 0) {
+        anim.revealHoldTimer = Math.max(0, anim.revealHoldTimer - dt);
+      }
       const advanceToNextPerformanceBadge = () => {
         anim.activeBadgeIndex += 1;
         anim.holdTimer = 0;
@@ -1865,6 +1869,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         } else {
           const nextEntry = anim.entries[anim.activeBadgeIndex];
           anim.activeValue = Number.isFinite(nextEntry?.target) ? nextEntry.target : 0;
+          anim.revealHoldTimer = 0.3;
         }
       };
       if (anim.thresholdHoldTimer > 0) {
@@ -1918,6 +1923,8 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
 
       if (anim.thresholdHoldTimer > 0) {
         // Hold at threshold before proceeding.
+      } else if (anim.revealHoldTimer > 0) {
+        // Keep the starting badge value visible briefly before draining.
       } else if (anim.activeValue > 0) {
         const drainAmount = dt * countRate;
         const rawNextActiveValue = Math.max(0, anim.activeValue - drainAmount);
@@ -2462,20 +2469,27 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     entries.slice(0, visibleBadgeCount).forEach((entry, index) => {
       const badgeCenterX = badgeStartX + badgeSlotSize / 2 + index * (badgeSlotSize + badgeGap);
       const isActive = index === activeBadgeIndex;
-      const displayedBadgeValue = isActive
-        ? (
-            anim
-              ? Math.max(0, Math.round(anim.activeValue || 0))
-              : Math.max(0, Math.round(entry?.value || 0))
-          )
-        : Math.max(0, Math.round(entry?.value || 0));
+      const displayedBadgeValue = (() => {
+        if (!anim) {
+          return Math.max(0, Math.round(entry?.value || 0));
+        }
+        if (isActive) {
+          return Math.max(0, Math.round(anim.activeValue || 0));
+        }
+        if (index < activeBadgeIndex) {
+          return anim.finished ? Math.max(0, Math.round(entry?.value || 0)) : null;
+        }
+        return null;
+      })();
 
-      ctx.save();
-      ctx.fillStyle = isActive && thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
-      ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      ctx.textAlign = "center";
-      ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 6);
-      ctx.restore();
+      if (displayedBadgeValue !== null) {
+        ctx.save();
+        ctx.fillStyle = isActive && thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
+        ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        ctx.textAlign = "center";
+        ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 6);
+        ctx.restore();
+      }
 
       drawChurchPowerupIcon(ctx, {
         x: badgeCenterX,
