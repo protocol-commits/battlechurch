@@ -6649,6 +6649,13 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     : [];
   const totalNpcFaithRaw = Number.isFinite(summary?.totalNpcFaith) ? summary.totalNpcFaith : 0;
   const totalNpcFaith = Math.max(0, Math.min(500, Math.round(totalNpcFaithRaw)));
+  const playerHealthAtRecap = Number.isFinite(player?.health) ? Math.max(0, Math.round(player.health)) : 0;
+  const prayerBombComboContributions = Array.isArray(summary?.prayerBombComboContributions)
+    ? summary.prayerBombComboContributions
+        .map((value) => (Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0))
+        .filter((value) => value > 0)
+    : [];
+  const prayerBombComboTotal = prayerBombComboContributions.reduce((sum, value) => sum + value, 0);
   const zeroHealthPenaltyCount = isBossSummary
     ? 0
     : npcHealthBreakdown.reduce(
@@ -6662,14 +6669,55 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       );
   const healthRewardBase = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
   const healthReward = isBossSummary ? 0 : (healthRewardBase - zeroHealthPenaltyCount);
+  const perfectCongregationHealthBonus = !isBossSummary && totalNpcFaith >= 500 ? 1 : 0;
+  const pastorHealthBonus = !isBossSummary && playerHealthAtRecap >= 90 ? 1 : 0;
+  const prayerBombPerformanceBonus = !isBossSummary ? Math.floor(prayerBombComboTotal / 100) : 0;
+  const performanceBonusTotal =
+    perfectCongregationHealthBonus + pastorHealthBonus + prayerBombPerformanceBonus;
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
+  const PERFORMANCE_BONUS_BADGE_SRCS = {
+    perfectCongregation: "assets/sprites/pixel-art-pack/Items/I07_Apple.png",
+    pastorHealth: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
+    prayerBomb: "assets/sprites/pixel-art-pack/Items/I02_HP_Potion_M.png",
+  };
+  const performanceBonusItems = [];
+  const performanceBonusTextParts = [];
+  if (perfectCongregationHealthBonus > 0) {
+    performanceBonusTextParts.push("Perfect Congregation Health 500/500");
+    performanceBonusItems.push({
+      id: "perfectCongregation",
+      label: "Perfect Congregation Health",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.perfectCongregation,
+    });
+  }
+  if (pastorHealthBonus > 0) {
+    performanceBonusTextParts.push(`Pastor Health ${playerHealthAtRecap}`);
+    performanceBonusItems.push({
+      id: "pastorHealth",
+      label: "Pastor Health 90+",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.pastorHealth,
+    });
+  }
+  if (prayerBombPerformanceBonus > 0) {
+    performanceBonusTextParts.push(
+      `Prayer Bomb Combo ${prayerBombComboContributions.join(" + ")} = ${formatNumberWithCommas(prayerBombComboTotal)}`,
+    );
+    for (let i = 0; i < prayerBombPerformanceBonus; i += 1) {
+      performanceBonusItems.push({
+        id: `prayerBomb-${i + 1}`,
+        label: "Prayer Bomb",
+        iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.prayerBomb,
+      });
+    }
+  }
   if (!summary.congregationDeltaApplied) {
-    adjustCongregationSize(healthReward + bossBonus);
+    adjustCongregationSize(healthReward + performanceBonusTotal + bossBonus);
     summary.congregationDeltaApplied = true;
     summary.healthReward = healthReward;
+    summary.performanceBonusReward = performanceBonusTotal;
   }
-  seasonStats.monthlyAdded += healthReward;
+  seasonStats.monthlyAdded += healthReward + performanceBonusTotal;
   seasonStats.lost += Math.max(0, lostCount || 0);
   const congregationTotal = getCongregationSize();
   const formatDelta = (value) => {
@@ -6677,7 +6725,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     const sign = numeric >= 0 ? "+" : "-";
     return `${sign}${formatNumberWithCommas(Math.abs(numeric))}`;
   };
-  const totalDelta = healthReward + bossBonus;
+  const totalDelta = healthReward + performanceBonusTotal + bossBonus;
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = 0;
   if (graceBonus > 0 && !summary.graceBonusApplied) {
@@ -6712,6 +6760,16 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       zeroHealthPenaltyCount,
       npcHealthBreakdown,
     });
+    if (performanceBonusTotal > 0) {
+      recapLines.push({
+        label: "Performance Bonuses:",
+        delta: performanceBonusTotal,
+        kind: "performanceBonuses",
+        affectsTotal: true,
+        description: performanceBonusTextParts.join("; "),
+        badgeItems: performanceBonusItems,
+      });
+    }
   }
   if (bossBonus !== 0) {
     recapLines.push({
@@ -16578,6 +16636,10 @@ function startPrayerBombCombo() {
 
 function endPrayerBombCombo() {
   if (!prayerBombComboState.active) return;
+  const finalHits = Math.max(0, Math.round(prayerBombComboState.hits || 0));
+  if (finalHits > 0 && levelManager?.recordPrayerBombComboContribution) {
+    levelManager.recordPrayerBombComboContribution(finalHits);
+  }
   if (prayerBombComboState.label) {
     prayerBombComboState.label.persist = false;
     prayerBombComboState.label.life = Math.min(prayerBombComboState.label.life || 4.5, 4.5);

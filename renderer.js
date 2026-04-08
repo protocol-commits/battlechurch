@@ -1350,6 +1350,7 @@ function resetRecapTallyState(recapData) {
   recapTallyState.lastRevealIndex = -1;
   recapTallyState.bonusNpcs = [];
   recapTallyState.healthBonusAnim = null;
+  recapTallyState.performanceBonusAnim = null;
 }
 
 function spawnRecapGraceEffects(count, spawnBounds) {
@@ -1500,6 +1501,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.graceEffects = [];
     recapTallyState.pendingGhost = null;
     recapTallyState.healthBonusAnim = null;
+    recapTallyState.performanceBonusAnim = null;
     recapTallyState.graceFlySfxPlayed = true;
     if (recapData.graceBonus > 0) {
       recapData.graceAppliedCount = recapData.graceBonus;
@@ -1596,6 +1598,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.stepProgress = 0;
     recapTallyState.pauseTimer = 0;
     recapTallyState.healthBonusAnim = null;
+    recapTallyState.performanceBonusAnim = null;
     if (recapTallyState.stepIndex >= lines.length) {
       recapTallyState.done = true;
       if (!recapTallyState.finalSfxPlayed && typeof window?.playRecapFinalSfx === "function") {
@@ -1818,6 +1821,50 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         anim.congregationPenaltyApplied = Math.max(0, Math.round(current.zeroHealthPenaltyCount || 0));
         anim.lastGhostAward = anim.congregationAwarded;
         anim.lastGhostPenalty = anim.congregationPenaltyApplied;
+        recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+        recapTallyState.phase = "post";
+      }
+      return;
+    }
+    if (current.kind === "performanceBonuses") {
+      const items = Array.isArray(current?.badgeItems) ? current.badgeItems : [];
+      let anim = recapTallyState.performanceBonusAnim;
+      if (!anim || anim.index !== recapTallyState.stepIndex) {
+        anim = {
+          index: recapTallyState.stepIndex,
+          items,
+          revealedCount: 0,
+          lastGhostCount: 0,
+          timer: 0,
+          finished: false,
+        };
+        recapTallyState.performanceBonusAnim = anim;
+      }
+      if (!items.length || targetValue <= 0) {
+        recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+        recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+        recapTallyState.phase = "post";
+        return;
+      }
+      anim.timer += dt;
+      const performanceBonusStepDuration = 0.42;
+      while (anim.revealedCount < items.length && anim.timer >= performanceBonusStepDuration) {
+        anim.timer -= performanceBonusStepDuration;
+        anim.revealedCount += 1;
+        if (affectsTotal) {
+          recapTallyState.totalValue += 1;
+          recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+        }
+        if (typeof window?.playCongregationCountPopSfx === "function") {
+          window.playCongregationCountPopSfx(0.7, "up");
+        }
+        if (typeof window?.playRecapFinalSfx === "function") {
+          window.playRecapFinalSfx(0.75);
+        }
+      }
+      recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+      if (anim.revealedCount >= items.length) {
+        anim.finished = true;
         recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
         recapTallyState.phase = "post";
       }
@@ -2181,6 +2228,97 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     };
   };
 
+  const drawPerformanceBonusesRow = (line, x, y, maxWidth, countAnchorX, countAnchorY) => {
+    const anim = (
+      recapTallyState.performanceBonusAnim &&
+      recapTallyState.performanceBonusAnim.index === recapTallyState.stepIndex
+    )
+      ? recapTallyState.performanceBonusAnim
+      : null;
+    const badgeItems = Array.isArray(line?.badgeItems) ? line.badgeItems : [];
+    const visibleBadgeCount = anim
+      ? Math.max(0, Math.min(badgeItems.length, Math.round(anim.revealedCount || 0)))
+      : badgeItems.length;
+    const visibleBadges = badgeItems.slice(0, visibleBadgeCount);
+    const detailText = String(line?.description || "").trim();
+    const detailLines = detailText ? wrapText(ctx, detailText, maxWidth) : [];
+    const labelBaselineY = y;
+
+    ctx.save();
+    ctx.fillStyle = baseLabelColor;
+    ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    drawHighlightedLabel(line.label || "Performance Bonuses:", x, labelBaselineY);
+    ctx.restore();
+
+    let cursorYLocal = labelBaselineY + Math.round(bodySize * 1.08);
+    if (detailLines.length) {
+      ctx.save();
+      ctx.fillStyle = "rgba(234, 246, 255, 0.82)";
+      ctx.font = `600 20px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.textAlign = "left";
+      detailLines.forEach((textLine) => {
+        ctx.fillText(textLine, x, cursorYLocal);
+        cursorYLocal += Math.round(20 * 1.35);
+      });
+      ctx.restore();
+    }
+
+    const badgeSize = 42;
+    const badgeGap = 14;
+    const badgeRowGap = 16;
+    const badgePitchX = badgeSize + badgeGap;
+    const maxPerRow = Math.max(1, Math.floor((maxWidth + badgeGap) / badgePitchX));
+    const badgesTopY = cursorYLocal + 10;
+    visibleBadges.forEach((badge, index) => {
+      const col = index % maxPerRow;
+      const row = Math.floor(index / maxPerRow);
+      const badgeX = x + badgeSize / 2 + col * badgePitchX;
+      const badgeY = badgesTopY + badgeSize / 2 + row * (badgeSize + badgeRowGap);
+      drawChurchPowerupIcon(ctx, {
+        x: badgeX,
+        y: badgeY,
+        size: badgeSize,
+        iconImage: getChurchPowerupIcon(badge?.iconSrc),
+        style: {
+          shape: "shield",
+          color: "#314B77",
+          accent: "#4769A1",
+        },
+      });
+    });
+
+    if (anim && visibleBadgeCount > (anim.lastGhostCount || 0)) {
+      const popCount = visibleBadgeCount - (anim.lastGhostCount || 0);
+      const badgeColumn = Math.max(0, (visibleBadgeCount - 1) % maxPerRow);
+      const badgeRow = Math.max(0, Math.floor((visibleBadgeCount - 1) / maxPerRow));
+      const ghostX = x + badgeSize / 2 + badgeColumn * badgePitchX;
+      const ghostY = badgesTopY + badgeSize / 2 + badgeRow * (badgeSize + badgeRowGap);
+      for (let ghostIndex = 0; ghostIndex < popCount; ghostIndex += 1) {
+        spawnRecapGhostEffect(
+          "+1",
+          ghostX,
+          ghostY - 6,
+          countAnchorX,
+          countAnchorY,
+        );
+      }
+      anim.lastGhostCount = visibleBadgeCount;
+    }
+
+    const badgeRows = visibleBadges.length ? Math.ceil(visibleBadges.length / maxPerRow) : 0;
+    const badgesHeight = badgeRows
+      ? badgeRows * badgeSize + Math.max(0, badgeRows - 1) * badgeRowGap
+      : 0;
+    return {
+      height: Math.max(
+        Math.round(bodySize * 1.1),
+        (detailLines.length ? cursorYLocal - y : Math.round(bodySize * 1.08)) +
+          (visibleBadges.length ? 10 + badgesHeight : 0),
+      ),
+    };
+  };
+
   const drawHighlightedLabel = (textLine, x, y, highlightText) => {
     if (!highlightText) {
       const fallbackMatch = String(textLine).match(/\b(?:with|through)\s+([^:.]+)\b/i);
@@ -2349,6 +2487,19 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         );
         recapTallyState.pendingGhost = null;
       }
+      cursorY += bonusBlock.height;
+      if (!isLastLine) cursorY += sectionGap;
+      continue;
+    }
+    if (line.kind === "performanceBonuses") {
+      const bonusBlock = drawPerformanceBonusesRow(
+        line,
+        contentX,
+        cursorY,
+        contentWidth,
+        countNumberX,
+        countNumberY,
+      );
       cursorY += bonusBlock.height;
       if (!isLastLine) cursorY += sectionGap;
       continue;
@@ -2635,26 +2786,41 @@ function drawChurchPowerupIcon(ctx, { x, y, size, iconImage, style }) {
   const shape = style?.shape || CHURCH_POWERUP_ICON_DEFAULT.shape;
   const color = style?.color || CHURCH_POWERUP_ICON_DEFAULT.color;
   const accent = style?.accent || CHURCH_POWERUP_ICON_DEFAULT.accent;
+  const drawBadgeShape = (mode = "fill") => {
+    if (shape === "circle") {
+      ctx.beginPath();
+      ctx.arc(0, 0, half, 0, Math.PI * 2);
+      if (mode === "fill") ctx.fill();
+      else if (mode === "stroke") ctx.stroke();
+      return;
+    }
+    if (shape === "shield") {
+      const topY = -half;
+      const shoulderY = -half * 0.18;
+      const bottomY = half;
+      ctx.beginPath();
+      ctx.moveTo(0, topY);
+      ctx.lineTo(half * 0.88, shoulderY);
+      ctx.quadraticCurveTo(half * 0.78, half * 0.46, 0, bottomY);
+      ctx.quadraticCurveTo(-half * 0.78, half * 0.46, -half * 0.88, shoulderY);
+      ctx.closePath();
+      if (mode === "fill") ctx.fill();
+      else if (mode === "stroke") ctx.stroke();
+      return;
+    }
+    const radius = Math.max(6, Math.round(size * 0.16));
+    roundRect(ctx, -half, -half, size, size, radius, mode === "fill", mode === "stroke");
+  };
   ctx.save();
   ctx.translate(x, y);
   const gradient = ctx.createLinearGradient(0, -half, 0, half);
   gradient.addColorStop(0, accent);
   gradient.addColorStop(1, color);
   ctx.fillStyle = gradient;
-  if (shape === "circle") {
-    ctx.beginPath();
-    ctx.arc(0, 0, half, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = Math.max(2, size * 0.08);
-    ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
-    ctx.stroke();
-  } else {
-    const radius = Math.max(6, Math.round(size * 0.16));
-    roundRect(ctx, -half, -half, size, size, radius, true, false);
-    ctx.lineWidth = Math.max(2, size * 0.08);
-    ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
-    roundRect(ctx, -half, -half, size, size, radius, false, true);
-  }
+  drawBadgeShape("fill");
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.strokeStyle = CHURCH_POWERUP_ICON_HIGHLIGHT;
+  drawBadgeShape("stroke");
 
   const t = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
   const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
@@ -2662,13 +2828,7 @@ function drawChurchPowerupIcon(ctx, { x, y, size, iconImage, style }) {
   if (shimmerAlpha > 0.12) {
     ctx.save();
     ctx.globalAlpha *= shimmerAlpha;
-    ctx.beginPath();
-    if (shape === "circle") {
-      ctx.arc(0, 0, half, 0, Math.PI * 2);
-    } else {
-      const radius = Math.max(6, Math.round(size * 0.16));
-      roundRect(ctx, -half, -half, size, size, radius, false, false);
-    }
+    drawBadgeShape("clip");
     ctx.clip();
     const shimmerWidth = size * 0.6;
     const offset = ((t * 0.9) % 1) * (size + shimmerWidth) - (size + shimmerWidth) / 2;

@@ -114,7 +114,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 150
                         }
                       ],
                       "weights": {},
@@ -130,7 +130,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 150
                         }
                       ],
                       "weights": {},
@@ -146,7 +146,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 150
                         }
                       ],
                       "weights": {},
@@ -162,7 +162,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 150
                         }
                       ],
                       "weights": {},
@@ -186,7 +186,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 150
                         }
                       ],
                       "weights": {},

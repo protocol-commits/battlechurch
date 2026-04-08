@@ -581,6 +581,7 @@
       },
       battleEnemiesStart: 0,
       battleMaxCombo: 0,
+      battlePrayerBombComboContributions: [],
       lastBattleSummary: null,
       graceRushFadeTimer: 0,
       conversationQueue: [],
@@ -725,6 +726,7 @@
       state.waveIndex = -1;
       state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
       state.battleMaxCombo = 0;
+      state.battlePrayerBombComboContributions = [];
   const battleNumber = state.monthIndex + 1;
   const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
   const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
@@ -932,6 +934,9 @@
         battleScenario: state.currentBattleScenario,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
         battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
+        prayerBombComboContributions: Array.isArray(state.battlePrayerBombComboContributions)
+          ? state.battlePrayerBombComboContributions.slice()
+          : [],
       };
       npcs.splice(0, npcs.length);
       state.battleNpcStartCount = 0;
@@ -1776,6 +1781,15 @@ state.waveIndex = -1;
         if (!Number.isFinite(value)) return;
         const next = Math.max(0, Math.round(value));
         state.battleMaxCombo = Math.max(state.battleMaxCombo || 0, next);
+      },
+      recordPrayerBombComboContribution(value) {
+        if (!Number.isFinite(value)) return;
+        const next = Math.max(0, Math.round(value));
+        if (!next) return;
+        if (!Array.isArray(state.battlePrayerBombComboContributions)) {
+          state.battlePrayerBombComboContributions = [];
+        }
+        state.battlePrayerBombComboContributions.push(next);
       },
       getLastBattleSummary() {
         return state.lastBattleSummary || null;
