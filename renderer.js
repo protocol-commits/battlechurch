@@ -2250,7 +2250,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const appliedPenaltyCount = anim ? Math.max(0, Math.round(anim.congregationPenaltyApplied || 0)) : finalZeroPenalty;
     const activeNpcIndex = anim
       ? Math.min(entries.length - 1, Math.max(0, anim.activeNpcIndex || 0))
-      : Math.max(0, entries.length - 1);
+      : -1;
     const bumpPulse = anim ? Math.max(0, anim.bumpTimer || 0) : 0;
 
     const labelY = y;
