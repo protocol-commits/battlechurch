@@ -1556,7 +1556,7 @@ state.waveIndex = -1;
             if (finalWave) {
               if (state.pendingBossAfterFinalWave) {
                 state.pendingBossAfterFinalWave = false;
-                beginBossIntro();
+                handleBattleComplete();
               } else if (state.pendingGraceRushAfterFinalWave) {
                 state.pendingGraceRushAfterFinalWave = false;
                 const localMN = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
