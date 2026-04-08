@@ -6669,11 +6669,12 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       );
   const healthRewardBase = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
   const healthReward = isBossSummary ? 0 : (healthRewardBase - zeroHealthPenaltyCount);
-  const perfectCongregationHealthBonus = !isBossSummary && totalNpcFaith >= 500 ? 1 : 0;
-  const pastorHealthBonus = !isBossSummary && playerHealthAtRecap >= 90 ? 1 : 0;
-  const prayerBombPerformanceBonus = !isBossSummary ? Math.floor(prayerBombComboTotal / 100) : 0;
-  const performanceBonusTotal =
-    perfectCongregationHealthBonus + pastorHealthBonus + prayerBombPerformanceBonus;
+  const perfectProtectionValue = !isBossSummary && totalNpcFaith >= 500 ? 100 : 0;
+  const pastorHealthValue = !isBossSummary ? playerHealthAtRecap : 0;
+  const prayerBombPerformanceValue = !isBossSummary ? prayerBombComboTotal : 0;
+  const performancePointTotal =
+    perfectProtectionValue + pastorHealthValue + prayerBombPerformanceValue;
+  const performanceCongregationReward = !isBossSummary ? Math.floor(performancePointTotal / 100) : 0;
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
   const PERFORMANCE_BONUS_BADGE_SRCS = {
@@ -6681,43 +6682,38 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     pastorHealth: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
     prayerBomb: "assets/sprites/pixel-art-pack/Items/I02_HP_Potion_M.png",
   };
-  const performanceBonusItems = [];
-  const performanceBonusTextParts = [];
-  if (perfectCongregationHealthBonus > 0) {
-    performanceBonusTextParts.push("Perfect Congregation Health 500/500");
-    performanceBonusItems.push({
-      id: "perfectCongregation",
-      label: "Perfect Congregation Health",
+  const performanceBadgeBreakdown = [];
+  if (perfectProtectionValue > 0) {
+    performanceBadgeBreakdown.push({
+      id: "perfectProtection",
+      label: "Perfect Protection",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.perfectCongregation,
+      value: perfectProtectionValue,
     });
   }
-  if (pastorHealthBonus > 0) {
-    performanceBonusTextParts.push(`Pastor Health ${playerHealthAtRecap}`);
-    performanceBonusItems.push({
+  if (pastorHealthValue > 0) {
+    performanceBadgeBreakdown.push({
       id: "pastorHealth",
-      label: "Pastor Health 90+",
+      label: "Pastor Health",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.pastorHealth,
+      value: pastorHealthValue,
     });
   }
-  if (prayerBombPerformanceBonus > 0) {
-    performanceBonusTextParts.push(
-      `Prayer Bomb Combo ${prayerBombComboContributions.join(" + ")} = ${formatNumberWithCommas(prayerBombComboTotal)}`,
-    );
-    for (let i = 0; i < prayerBombPerformanceBonus; i += 1) {
-      performanceBonusItems.push({
-        id: `prayerBomb-${i + 1}`,
-        label: "Prayer Bomb",
-        iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.prayerBomb,
-      });
-    }
+  if (prayerBombPerformanceValue > 0) {
+    performanceBadgeBreakdown.push({
+      id: "prayerBomb",
+      label: "Prayer Bomb",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.prayerBomb,
+      value: prayerBombPerformanceValue,
+    });
   }
   if (!summary.congregationDeltaApplied) {
-    adjustCongregationSize(healthReward + performanceBonusTotal + bossBonus);
+    adjustCongregationSize(healthReward + performanceCongregationReward + bossBonus);
     summary.congregationDeltaApplied = true;
     summary.healthReward = healthReward;
-    summary.performanceBonusReward = performanceBonusTotal;
+    summary.performanceBonusReward = performanceCongregationReward;
   }
-  seasonStats.monthlyAdded += healthReward + performanceBonusTotal;
+  seasonStats.monthlyAdded += healthReward + performanceCongregationReward;
   seasonStats.lost += Math.max(0, lostCount || 0);
   const congregationTotal = getCongregationSize();
   const formatDelta = (value) => {
@@ -6725,7 +6721,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     const sign = numeric >= 0 ? "+" : "-";
     return `${sign}${formatNumberWithCommas(Math.abs(numeric))}`;
   };
-  const totalDelta = healthReward + performanceBonusTotal + bossBonus;
+  const totalDelta = healthReward + performanceCongregationReward + bossBonus;
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = 0;
   if (graceBonus > 0 && !summary.graceBonusApplied) {
@@ -6760,14 +6756,15 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       zeroHealthPenaltyCount,
       npcHealthBreakdown,
     });
-    if (performanceBonusTotal > 0) {
+    if (performanceBadgeBreakdown.length > 0) {
       recapLines.push({
         label: "Performance Bonuses:",
-        delta: performanceBonusTotal,
+        delta: performanceCongregationReward,
         kind: "performanceBonuses",
         affectsTotal: true,
-        description: performanceBonusTextParts.join("; "),
-        badgeItems: performanceBonusItems,
+        totalPerformance: performancePointTotal,
+        performanceCongregationReward,
+        performanceBadgeBreakdown,
       });
     }
   }

@@ -1827,44 +1827,178 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       return;
     }
     if (current.kind === "performanceBonuses") {
-      const items = Array.isArray(current?.badgeItems) ? current.badgeItems : [];
+      const entries = Array.isArray(current?.performanceBadgeBreakdown)
+        ? current.performanceBadgeBreakdown.slice(0, 8)
+        : [];
       let anim = recapTallyState.performanceBonusAnim;
       if (!anim || anim.index !== recapTallyState.stepIndex) {
         anim = {
           index: recapTallyState.stepIndex,
-          items,
-          revealedCount: 0,
-          lastGhostCount: 0,
-          timer: 0,
+          entries: entries.map((entry) => ({
+            id: entry?.id || "",
+            label: entry?.label || "",
+            iconSrc: entry?.iconSrc || "",
+            target: Number.isFinite(entry?.value) ? Math.max(0, Math.round(entry.value)) : 0,
+          })),
+          activeBadgeIndex: 0,
+          activeValue: Number.isFinite(entries?.[0]?.value) ? Math.max(0, Math.round(entries[0].value)) : 0,
+          totalPerformance: 0,
+          congregationAwarded: 0,
+          lastGhostAward: 0,
+          bumpTimer: 0,
+          holdTimer: 0,
+          thresholdHoldTimer: 0,
+          thresholdValue: null,
+          advanceBadgeAfterThresholdHold: false,
           finished: false,
         };
         recapTallyState.performanceBonusAnim = anim;
       }
-      if (!items.length || targetValue <= 0) {
+      if (anim.bumpTimer > 0) {
+        anim.bumpTimer = Math.max(0, anim.bumpTimer - dt);
+      }
+      const advanceToNextPerformanceBadge = () => {
+        anim.activeBadgeIndex += 1;
+        anim.holdTimer = 0;
+        if (anim.activeBadgeIndex >= anim.entries.length) {
+          anim.finished = true;
+        } else {
+          const nextEntry = anim.entries[anim.activeBadgeIndex];
+          anim.activeValue = Number.isFinite(nextEntry?.target) ? nextEntry.target : 0;
+        }
+      };
+      if (anim.thresholdHoldTimer > 0) {
+        anim.thresholdHoldTimer = Math.max(0, anim.thresholdHoldTimer - dt);
+        anim.totalPerformance = Number.isFinite(anim.thresholdValue)
+          ? anim.thresholdValue
+          : anim.totalPerformance;
+        if (anim.thresholdHoldTimer <= 0 && anim.advanceBadgeAfterThresholdHold) {
+          anim.advanceBadgeAfterThresholdHold = false;
+          advanceToNextPerformanceBadge();
+          return;
+        }
+      }
+      if (anim.finished || !anim.entries.length) {
+        anim.finished = true;
+        anim.totalPerformance = Number.isFinite(current?.totalPerformance)
+          ? Math.max(0, Math.round(current.totalPerformance))
+          : 0;
+        anim.congregationAwarded = Math.max(
+          0,
+          Math.round(current?.performanceCongregationReward || targetValue || 0),
+        );
+        anim.lastGhostAward = anim.congregationAwarded;
         recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
         recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
         recapTallyState.phase = "post";
         return;
       }
-      anim.timer += dt;
-      const performanceBonusStepDuration = 0.75;
-      if (anim.revealedCount < items.length && anim.timer >= performanceBonusStepDuration) {
-        anim.timer -= performanceBonusStepDuration;
-        anim.revealedCount += 1;
+
+      const maxPerformanceTotal = Number.isFinite(current?.totalPerformance)
+        ? Math.max(0, Math.round(current.totalPerformance))
+        : 0;
+      const getDisplayedPerformanceTotal = () => {
+        const visiblePriorTotal = anim.entries
+          .slice(0, anim.activeBadgeIndex)
+          .reduce((sum, entry) => sum + (Number.isFinite(entry.target) ? entry.target : 0), 0);
+        const visibleActiveEntry = anim.entries[anim.activeBadgeIndex];
+        const visibleTargetValue = Number.isFinite(visibleActiveEntry?.target) ? visibleActiveEntry.target : 0;
+        return Math.min(
+          maxPerformanceTotal,
+          Math.round(visiblePriorTotal + Math.max(0, visibleTargetValue - (anim.activeValue || 0))),
+        );
+      };
+      const priorTotal = anim.entries
+        .slice(0, anim.activeBadgeIndex)
+        .reduce((sum, entry) => sum + (Number.isFinite(entry.target) ? entry.target : 0), 0);
+      const activeEntry = anim.entries[anim.activeBadgeIndex];
+      const targetPerformanceValue = Number.isFinite(activeEntry?.target) ? activeEntry.target : 0;
+      const countRate = Math.min(180, Math.max(80, targetPerformanceValue * 1.25));
+      const currentTotalBeforeStep = Math.round(anim.totalPerformance || 0);
+
+      if (anim.thresholdHoldTimer > 0) {
+        // Hold at threshold before proceeding.
+      } else if (anim.activeValue > 0) {
+        const drainAmount = dt * countRate;
+        const rawNextActiveValue = Math.max(0, anim.activeValue - drainAmount);
+        const badgeFinalDisplayedTotal = Math.min(
+          maxPerformanceTotal,
+          Math.round(priorTotal + targetPerformanceValue),
+        );
+        const projectedDisplayedTotal = Math.min(
+          maxPerformanceTotal,
+          Math.round(priorTotal + Math.max(0, targetPerformanceValue - rawNextActiveValue)),
+        );
+        const nextThreshold = Math.min(
+          Math.max(0, Math.round(current?.performanceCongregationReward || targetValue || 0)) * 100,
+          (Math.floor(currentTotalBeforeStep / 100) + 1) * 100,
+        );
+        const thresholdAvailable =
+          nextThreshold > currentTotalBeforeStep &&
+          nextThreshold <= maxPerformanceTotal;
+        if (thresholdAvailable && projectedDisplayedTotal >= nextThreshold) {
+          const amountToThreshold = nextThreshold - currentTotalBeforeStep;
+          const thresholdConsumesBadge = badgeFinalDisplayedTotal === nextThreshold;
+          const remainingValueAfterThreshold = thresholdConsumesBadge
+            ? 0
+            : Math.max(0, anim.activeValue - amountToThreshold);
+          anim.activeValue = remainingValueAfterThreshold;
+          anim.totalPerformance = nextThreshold;
+          anim.thresholdValue = nextThreshold;
+          anim.thresholdHoldTimer = 1.0;
+          if (thresholdConsumesBadge) {
+            anim.advanceBadgeAfterThresholdHold = true;
+            anim.holdTimer = 0;
+          }
+          anim.bumpTimer = 0.5;
+        } else {
+          anim.activeValue = Math.max(0, anim.activeValue - drainAmount);
+        }
+      } else {
+        if (anim.advanceBadgeAfterThresholdHold) {
+          anim.advanceBadgeAfterThresholdHold = false;
+          advanceToNextPerformanceBadge();
+          return;
+        }
+        anim.holdTimer += dt;
+        if (anim.holdTimer >= 0.75) {
+          advanceToNextPerformanceBadge();
+        }
+      }
+
+      if (anim.thresholdHoldTimer <= 0) {
+        anim.totalPerformance = getDisplayedPerformanceTotal();
+      }
+      const nextAward = Math.min(
+        Math.max(0, Math.round(current?.performanceCongregationReward || targetValue || 0)),
+        Math.floor(anim.totalPerformance / 100),
+      );
+      if (nextAward > anim.congregationAwarded) {
+        const gained = nextAward - anim.congregationAwarded;
+        anim.congregationAwarded = nextAward;
         if (affectsTotal) {
-          recapTallyState.totalValue += 1;
+          recapTallyState.totalValue += gained;
           recapTallyState.flashTimer = RECAP_FLASH_DURATION;
         }
         if (typeof window?.playCongregationCountPopSfx === "function") {
           window.playCongregationCountPopSfx(0.7, "up");
         }
         if (typeof window?.playRecapFinalSfx === "function") {
-          window.playRecapFinalSfx(0.75);
+          window.playRecapFinalSfx(0.8);
         }
+        anim.bumpTimer = 0.55;
       }
       recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
-      if (anim.revealedCount >= items.length) {
+      if (anim.finished) {
         anim.finished = true;
+        anim.totalPerformance = Number.isFinite(current?.totalPerformance)
+          ? Math.max(0, Math.round(current.totalPerformance))
+          : anim.totalPerformance;
+        anim.congregationAwarded = Math.max(
+          0,
+          Math.round(current?.performanceCongregationReward || targetValue || 0),
+        );
+        anim.lastGhostAward = anim.congregationAwarded;
         recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
         recapTallyState.phase = "post";
       }
@@ -2235,91 +2369,132 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     )
       ? recapTallyState.performanceBonusAnim
       : null;
-    const badgeItems = Array.isArray(line?.badgeItems) ? line.badgeItems : [];
-    const visibleBadgeCount = anim
-      ? Math.max(0, Math.min(badgeItems.length, Math.round(anim.revealedCount || 0)))
+    const entries = Array.isArray(line?.performanceBadgeBreakdown)
+      ? line.performanceBadgeBreakdown.slice(0, 8)
+      : [];
+    const finalTotalPerformance = Number.isFinite(line?.totalPerformance)
+      ? Math.max(0, Math.round(line.totalPerformance))
+      : 0;
+    const finalAwardedCongregation = Number.isFinite(line?.delta)
+      ? Math.max(0, Math.round(line.delta))
+      : 0;
+    const totalPerformance = anim
+      ? Math.max(0, Math.round(anim.totalPerformance || 0))
       : (
           recapTallyState.lastAppliedIndex === recapTallyState.stepIndex || recapTallyState.done
-            ? badgeItems.length
+            ? finalTotalPerformance
             : 0
         );
-    const visibleBadges = badgeItems.slice(0, visibleBadgeCount);
-    const detailText = String(line?.description || "").trim();
-    const detailLines = detailText ? wrapText(ctx, detailText, maxWidth) : [];
-    const labelBaselineY = y;
+    const awardedCongregation = anim
+      ? Math.max(0, Math.round(anim.congregationAwarded || 0))
+      : finalAwardedCongregation;
+    const activeBadgeIndex = anim
+      ? Math.min(entries.length - 1, Math.max(0, anim.activeBadgeIndex || 0))
+      : Math.max(0, entries.length - 1);
+    const activeEntry = entries[activeBadgeIndex] || null;
+    const displayedBadgeValue = anim
+      ? Math.max(0, Math.round(anim.activeValue || 0))
+      : Math.max(0, Math.round(activeEntry?.value || 0));
+    const bumpPulse = anim ? Math.max(0, anim.bumpTimer || 0) : 0;
+    const thresholdPulse = anim && anim.thresholdHoldTimer > 0 ? anim.thresholdHoldTimer : 0;
+
+    const labelY = y;
+    const blockTopY = labelY + 20;
+    const badgeAreaWidth = Math.min(210, Math.round(maxWidth * 0.42));
+    const totalBlockWidth = 220;
+    const equationGap = 34;
+    const badgeAreaX = x + Math.max(0, Math.round((maxWidth - (badgeAreaWidth + equationGap + totalBlockWidth)) / 2));
+    const totalBlockX = badgeAreaX + badgeAreaWidth + equationGap;
+    const rowTopY = blockTopY + 18;
+    const rowBottomY = rowTopY + 126;
+    const badgeCenterX = badgeAreaX + badgeAreaWidth / 2;
+    const badgeCenterY = rowTopY + 48;
+    const badgeSize = 64;
 
     ctx.save();
     ctx.fillStyle = baseLabelColor;
     ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
-    drawHighlightedLabel(line.label || "Performance Bonuses:", x, labelBaselineY);
+    drawHighlightedLabel(line.label || "Performance Bonuses:", x, labelY);
     ctx.restore();
 
-    let cursorYLocal = labelBaselineY + Math.round(bodySize * 1.08);
-    if (detailLines.length) {
+    if (activeEntry) {
       ctx.save();
-      ctx.fillStyle = "rgba(234, 246, 255, 0.82)";
-      ctx.font = `600 20px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      ctx.textAlign = "left";
-      detailLines.forEach((textLine) => {
-        ctx.fillText(textLine, x, cursorYLocal);
-        cursorYLocal += Math.round(20 * 1.35);
-      });
+      ctx.fillStyle = thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
+      ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 6);
       ctx.restore();
-    }
 
-    const badgeSize = 42;
-    const badgeGap = 14;
-    const badgeRowGap = 16;
-    const badgePitchX = badgeSize + badgeGap;
-    const maxPerRow = Math.max(1, Math.floor((maxWidth + badgeGap) / badgePitchX));
-    const badgesTopY = cursorYLocal + 10;
-    visibleBadges.forEach((badge, index) => {
-      const col = index % maxPerRow;
-      const row = Math.floor(index / maxPerRow);
-      const badgeX = x + badgeSize / 2 + col * badgePitchX;
-      const badgeY = badgesTopY + badgeSize / 2 + row * (badgeSize + badgeRowGap);
       drawChurchPowerupIcon(ctx, {
-        x: badgeX,
-        y: badgeY,
+        x: badgeCenterX,
+        y: badgeCenterY,
         size: badgeSize,
-        iconImage: getChurchPowerupIcon(badge?.iconSrc),
+        iconImage: getChurchPowerupIcon(activeEntry?.iconSrc),
         style: {
           shape: "shield",
           color: "#314B77",
           accent: "#4769A1",
         },
       });
-    });
 
-    if (anim && visibleBadgeCount > (anim.lastGhostCount || 0)) {
-      const popCount = visibleBadgeCount - (anim.lastGhostCount || 0);
-      const badgeColumn = Math.max(0, (visibleBadgeCount - 1) % maxPerRow);
-      const badgeRow = Math.max(0, Math.floor((visibleBadgeCount - 1) / maxPerRow));
-      const ghostX = x + badgeSize / 2 + badgeColumn * badgePitchX;
-      const ghostY = badgesTopY + badgeSize / 2 + badgeRow * (badgeSize + badgeRowGap);
+      const nameLines = String(activeEntry?.label || "")
+        .split(/\s+/)
+        .reduce((linesAcc, word) => {
+          if (!word) return linesAcc;
+          if (!linesAcc.length) return [word];
+          const lastLine = linesAcc[linesAcc.length - 1];
+          if (linesAcc.length === 1 && `${lastLine} ${word}`.length <= 12) {
+            linesAcc[linesAcc.length - 1] = `${lastLine} ${word}`;
+            return linesAcc;
+          }
+          if (linesAcc.length < 2) {
+            linesAcc.push(word);
+            return linesAcc;
+          }
+          linesAcc[linesAcc.length - 1] = `${linesAcc[linesAcc.length - 1]} ${word}`;
+          return linesAcc;
+        }, []);
+      ctx.save();
+      ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
+      ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      const nameStartY = rowTopY + 100;
+      nameLines.forEach((textLine, index) => {
+        ctx.fillText(textLine, badgeCenterX, nameStartY + index * 18);
+      });
+      ctx.restore();
+    }
+
+    const totalGlow = bumpPulse > 0
+      ? 18 + bumpPulse * 14
+      : (thresholdPulse > 0 ? 20 + thresholdPulse * 18 : 0);
+    const totalValueBaselineY = rowTopY + 64;
+    ctx.save();
+    ctx.fillStyle = thresholdPulse > 0 ? highlightValueFlash : highlightValueColor;
+    ctx.font = `700 42px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.shadowColor = "rgba(255, 217, 120, 0.7)";
+    ctx.shadowBlur = totalGlow;
+    ctx.fillText(`${formatNumber(totalPerformance)}`, totalBlockX, totalValueBaselineY);
+    ctx.restore();
+
+    if (anim && anim.congregationAwarded > (anim.lastGhostAward || 0)) {
+      const popCount = anim.congregationAwarded - (anim.lastGhostAward || 0);
       for (let ghostIndex = 0; ghostIndex < popCount; ghostIndex += 1) {
         spawnRecapGhostEffect(
           "+1",
-          ghostX,
-          ghostY - 6,
+          totalBlockX + 20,
+          totalValueBaselineY - 16,
           countAnchorX,
           countAnchorY,
         );
       }
-      anim.lastGhostCount = visibleBadgeCount;
+      anim.lastGhostAward = anim.congregationAwarded;
     }
 
-    const badgeRows = visibleBadges.length ? Math.ceil(visibleBadges.length / maxPerRow) : 0;
-    const badgesHeight = badgeRows
-      ? badgeRows * badgeSize + Math.max(0, badgeRows - 1) * badgeRowGap
-      : 0;
     return {
-      height: Math.max(
-        Math.round(bodySize * 1.1),
-        (detailLines.length ? cursorYLocal - y : Math.round(bodySize * 1.08)) +
-          (visibleBadges.length ? 10 + badgesHeight : 0),
-      ),
+      height: rowBottomY - labelY,
     };
   };
 
