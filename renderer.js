@@ -1662,6 +1662,16 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       if (anim.bumpTimer > 0) {
         anim.bumpTimer = Math.max(0, anim.bumpTimer - dt);
       }
+      const advanceToNextHealthBonusNpc = () => {
+        anim.activeNpcIndex += 1;
+        anim.holdTimer = 0;
+        if (anim.activeNpcIndex >= anim.entries.length) {
+          anim.finished = true;
+        } else {
+          const nextEntry = anim.entries[anim.activeNpcIndex];
+          anim.activeHealth = Number.isFinite(nextEntry?.target) ? nextEntry.target : 0;
+        }
+      };
       if (anim.thresholdHoldTimer > 0) {
         anim.thresholdHoldTimer = Math.max(0, anim.thresholdHoldTimer - dt);
         anim.totalHealth = Number.isFinite(anim.thresholdValue)
@@ -1669,14 +1679,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           : anim.totalHealth;
         if (anim.thresholdHoldTimer <= 0 && anim.advanceNpcAfterThresholdHold) {
           anim.advanceNpcAfterThresholdHold = false;
-          anim.activeNpcIndex += 1;
-          anim.holdTimer = 0;
-          if (anim.activeNpcIndex >= anim.entries.length) {
-            anim.finished = true;
-          } else {
-            const nextEntry = anim.entries[anim.activeNpcIndex];
-            anim.activeHealth = Number.isFinite(nextEntry?.target) ? nextEntry.target : 0;
-          }
+          advanceToNextHealthBonusNpc();
         }
       }
       if (anim.finished || !anim.entries.length) {
@@ -1749,6 +1752,10 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           anim.activeHealth = Math.max(0, anim.activeHealth - drainAmount);
         }
       } else {
+        if (anim.advanceNpcAfterThresholdHold) {
+          anim.advanceNpcAfterThresholdHold = false;
+          advanceToNextHealthBonusNpc();
+        }
         if (!activeEntry?.penaltyApplied && targetHealth <= 0) {
           activeEntry.penaltyApplied = true;
           anim.congregationPenaltyApplied += 1;
@@ -1766,14 +1773,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         }
         anim.holdTimer += dt;
         if (anim.holdTimer >= 1.0) {
-          anim.activeNpcIndex += 1;
-          anim.holdTimer = 0;
-          if (anim.activeNpcIndex >= anim.entries.length) {
-            anim.finished = true;
-          } else {
-            const nextEntry = anim.entries[anim.activeNpcIndex];
-            anim.activeHealth = Number.isFinite(nextEntry?.target) ? nextEntry.target : 0;
-          }
+          advanceToNextHealthBonusNpc();
         }
       }
 
