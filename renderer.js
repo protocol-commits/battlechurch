@@ -2006,6 +2006,14 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           Math.round(current?.performanceCongregationReward || targetValue || 0),
         );
         anim.lastGhostAward = anim.congregationAwarded;
+        if (
+          recapTallyState.stepIndex >= lines.length - 1 &&
+          !recapTallyState.finalSfxPlayed &&
+          typeof window?.playRecapFinalSfx === "function"
+        ) {
+          window.playRecapFinalSfx(0.7);
+          recapTallyState.finalSfxPlayed = true;
+        }
         recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
         recapTallyState.phase = "post";
       }
@@ -2473,11 +2481,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         if (!anim) {
           return Math.max(0, Math.round(entry?.value || 0));
         }
+        if (anim.finished) {
+          return Math.max(0, Math.round(entry?.value || 0));
+        }
         if (isActive) {
           return Math.max(0, Math.round(anim.activeValue || 0));
         }
         if (index < activeBadgeIndex) {
-          return anim.finished ? Math.max(0, Math.round(entry?.value || 0)) : null;
+          return null;
         }
         return null;
       })();
