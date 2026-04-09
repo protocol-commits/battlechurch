@@ -784,14 +784,20 @@
         2: "Act II: Repel the Counter Attack",
         3: "Act III: Liberate the Town",
       };
+      const actMissionLabels = {
+        1: "Foothold",
+        2: "Counterattack",
+        3: "Breakthrough",
+      };
       const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
       const missionNumber = localMonthNumber;
       const missionBriefTitle = actTitles[state.level] || `Act ${romanNumerals[state.level] || state.level}`;
+      const missionBriefHeading = `${actMissionLabels[state.level] || `Act ${romanNumerals[state.level] || state.level}`} Battle ${missionNumber}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
       const missionSubtitle = state.currentBattleScenario;
-      queueLevelAnnouncement(`Act ${romanNumerals[state.level] || state.level} — Battle ${missionNumber}`, missionSubtitle, {
+      queueLevelAnnouncement(missionBriefHeading, missionSubtitle, {
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
         missionBriefTitle,

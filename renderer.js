@@ -600,6 +600,7 @@ const MELEE_SWING_LENGTH = 260;
     title,
     subtitle,
     titleSize = TEXT_STYLES.h2.size,
+    titleLineSizes = null,
     subtitleSize = TEXT_STYLES.body.size,
     lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
     weight = TEXT_STYLES.h2.weight,
@@ -610,6 +611,9 @@ const MELEE_SWING_LENGTH = 260;
       Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)),
     );
     const effectiveTitleSize = Math.round(titleSize * scaleHint);
+    const effectiveTitleLineSizes = Array.isArray(titleLineSizes) && titleLineSizes.length
+      ? titleLineSizes.map((size) => Math.round(size * scaleHint))
+      : null;
     const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
     const effectiveLineGap = Math.round(lineGap * scaleHint);
     const maxWidth = canvas.width * maxWidthScale;
@@ -618,20 +622,28 @@ const MELEE_SWING_LENGTH = 260;
     const titleLines = title ? wrapAnnouncementText(ctx, title, maxWidth) : [];
     const subtitleLines = subtitle ? wrapAnnouncementText(ctx, subtitle, maxWidth) : [];
     ctx.restore();
-    const titleLineHeight = Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
+    const titleLineHeights = titleLines.map((_, index) => {
+      const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
+        || effectiveTitleSize;
+      return Math.round(lineSize * TEXT_STYLES.h2.lineHeight);
+    });
+    const titleLineHeight = titleLineHeights[0] || Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
+    const lastTitleLineHeight = titleLineHeights[titleLineHeights.length - 1] || titleLineHeight;
     const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
-    const gapAfterTitle = subtitleLines.length ? Math.max(0, effectiveLineGap - titleLineHeight) : 0;
+    const gapAfterTitle = subtitleLines.length ? Math.max(0, effectiveLineGap - lastTitleLineHeight) : 0;
     const textBlockHeight =
-      titleLines.length * titleLineHeight +
+      titleLineHeights.reduce((sum, height) => sum + height, 0) +
       gapAfterTitle +
       subtitleLines.length * subtitleLineHeight;
     return {
       effectiveTitleSize,
+      effectiveTitleLineSizes,
       effectiveSubtitleSize,
       effectiveLineGap,
       titleLines,
       subtitleLines,
       titleLineHeight,
+      titleLineHeights,
       subtitleLineHeight,
       gapAfterTitle,
       textBlockHeight,
@@ -717,6 +729,7 @@ const MELEE_SWING_LENGTH = 260;
     yBase,
     alpha = 1,
     titleSize = TEXT_STYLES.h2.size,
+    titleLineSizes = null,
     subtitleSize = TEXT_STYLES.body.size,
     lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
     weight = TEXT_STYLES.h2.weight,
@@ -731,6 +744,9 @@ const MELEE_SWING_LENGTH = 260;
       Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)),
     );
     const effectiveTitleSize = Math.round(titleSize * scaleHint);
+    const effectiveTitleLineSizes = Array.isArray(titleLineSizes) && titleLineSizes.length
+      ? titleLineSizes.map((size) => Math.round(size * scaleHint))
+      : null;
     const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
     const effectiveLineGap = Math.round(lineGap * scaleHint);
     // "Announcement Text" refers to this renderer's font/size/wrap style.
@@ -751,12 +767,18 @@ const MELEE_SWING_LENGTH = 260;
     if (blockAlign === "full" || blockAlign === "fullCenter") {
       maxWidth = Math.max(0, canvas.width * maxWidthScale - fullBlockPadding * 2);
     }
-    const titleLineHeight = Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
-    const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
     ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const titleLines = titleText ? wrapText(titleText, maxWidth) : [];
     ctx.font = `${subtitleWeight} ${effectiveSubtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const subtitleLines = subtitleText ? wrapText(subtitleText, maxWidth) : [];
+    const titleLineHeights = titleLines.map((_, index) => {
+      const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
+        || effectiveTitleSize;
+      return Math.round(lineSize * TEXT_STYLES.h2.lineHeight);
+    });
+    const titleLineHeight = titleLineHeights[0] || Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
+    const lastTitleLineHeight = titleLineHeights[titleLineHeights.length - 1] || titleLineHeight;
+    const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
     let displayTitle = titleText;
     let displaySubtitle = subtitleText;
     if (typewriter) {
@@ -795,15 +817,23 @@ const MELEE_SWING_LENGTH = 260;
     let subtitleX = blockLeft;
     const centerLines = blockAlign === "fullCenter";
     if (blockAlign === "center") {
-      ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      const fullTitleWidths = titleLines.map((line) => ctx.measureText(line).width || 0);
+      const fullTitleWidths = titleLines.map((line, index) => {
+        const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
+          || effectiveTitleSize;
+        ctx.font = `${weight} ${lineSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        return ctx.measureText(line).width || 0;
+      });
       const titleBlockWidth = fullTitleWidths.length ? Math.max(...fullTitleWidths) : 0;
       titleX = canvas.width / 2 - titleBlockWidth / 2;
     }
     let remainingTitle = displayTitle.length;
     let currentY = yBase;
-    titleLines.forEach((line) => {
+    titleLines.forEach((line, index) => {
       if (!line) return;
+      const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
+        || effectiveTitleSize;
+      const lineHeight = titleLineHeights[index] || titleLineHeight;
+      ctx.font = `${weight} ${lineSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       const visible = remainingTitle <= 0 ? "" : line.slice(0, remainingTitle);
       remainingTitle = Math.max(0, remainingTitle - line.length);
       if (visible) {
@@ -812,10 +842,10 @@ const MELEE_SWING_LENGTH = 260;
           : titleX;
         ctx.fillText(visible, lineX, currentY);
       }
-      currentY += titleLineHeight;
+      currentY += lineHeight;
     });
     if (subtitleLines.length) {
-      currentY += Math.max(0, effectiveLineGap - titleLineHeight);
+      currentY += Math.max(0, effectiveLineGap - lastTitleLineHeight);
     ctx.font = `${subtitleWeight} ${effectiveSubtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       if (blockAlign === "center") {
         const fullSubtitleWidths = subtitleLines.map((line) => ctx.measureText(line).width || 0);
@@ -1142,6 +1172,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     buttonKey = "missionBrief",
     setMissionBriefActive = true,
     titleSize = TEXT_STYLES.h1.size,
+    titleLineSizes = null,
     titleWeight = TEXT_STYLES.h1.weight,
     bodySize = TEXT_STYLES.h2.size,
     bodyWeight = TEXT_STYLES.h2.weight,
@@ -1157,6 +1188,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     title,
     subtitle: combinedSubtitle,
     titleSize,
+    titleLineSizes,
     subtitleSize: bodySize,
     lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
     weight: titleWeight,
@@ -1172,24 +1204,107 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   });
   ctx.translate(layout.offsetX, layout.offsetY);
   ctx.scale(layout.scale, layout.scale);
+  let revealComplete = false;
+  if (showFormation) {
+    const titleLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
+      title,
+      subtitle: "",
+      titleSize,
+      titleLineSizes,
+      subtitleSize: bodySize,
+      lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
+      weight: titleWeight,
+      maxWidthScale: 0.96,
+    });
+    const lowerLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
+      title: "",
+      subtitle: combinedSubtitle,
+      titleSize: bodySize,
+      subtitleSize: bodySize,
+      lineGap: Math.round(bodySize * TEXT_STYLES.h2.lineHeight),
+      weight: bodyWeight,
+      maxWidthScale: 0.96,
+    });
+    const sectionGap = 12;
+    const dividerGap = 10;
+    const titleYBase = layout.titleY;
+    const titleBlockHeight = titleLayout.textBlockHeight;
+    const titleBottomY = titleYBase + titleBlockHeight;
+    const desiredLowerYBase = Math.round(
+      titleBottomY + dividerGap + sectionGap + lowerLayout.subtitleLineHeight,
+    );
+    const lowerBlockBottomLimit = Math.round((layout.buttonY || layout.virtualCanvas.height) - 22);
+    const maxLowerYBase = Math.round(
+      lowerBlockBottomLimit - Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight),
+    );
+    const lowerYBase = Math.round(Math.min(desiredLowerYBase, maxLowerYBase));
+    const lowerSectionTopY = lowerYBase - lowerLayout.subtitleLineHeight;
+    const dividerY = Math.round((titleBottomY + lowerSectionTopY) / 2);
 
-  drawAnnouncementText(ctx, layout.virtualCanvas, {
-    title,
-    subtitle: combinedSubtitle,
-    yBase: layout.titleY,
-    titleSize,
-    subtitleSize: bodySize,
-    weight: titleWeight,
-    subtitleWeight: bodyWeight,
-    lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
-    alpha: 1,
-    typewriter: true,
-    highlight,
-    maxWidthScale: 0.96,
-    blockAlign: showFormation ? "center" : "full",
-  });
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title,
+      subtitle: "",
+      yBase: titleYBase,
+      titleSize,
+      titleLineSizes,
+      subtitleSize: bodySize,
+      weight: titleWeight,
+      subtitleWeight: bodyWeight,
+      lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
+      alpha: 1,
+      typewriter: true,
+      highlight,
+      maxWidthScale: 0.96,
+      blockAlign: "fullCenter",
+    });
 
-  const revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
+    ctx.save();
+    ctx.strokeStyle = "rgba(234, 246, 255, 0.26)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(120, dividerY);
+    ctx.lineTo(layout.virtualCanvas.width - 120, dividerY);
+    ctx.stroke();
+    ctx.restore();
+
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title: "",
+      subtitle: combinedSubtitle,
+      yBase: lowerYBase,
+      titleSize: bodySize,
+      subtitleSize: bodySize,
+      weight: bodyWeight,
+      subtitleWeight: bodyWeight,
+      lineGap: Math.round(bodySize * TEXT_STYLES.h2.lineHeight),
+      alpha: 1,
+      typewriter: true,
+      highlight,
+      maxWidthScale: 0.96,
+      blockAlign: "fullCenter",
+    });
+
+    revealComplete =
+      isAnnouncementRevealComplete(title, "") &&
+      isAnnouncementRevealComplete("", combinedSubtitle);
+  } else {
+    drawAnnouncementText(ctx, layout.virtualCanvas, {
+      title,
+      subtitle: combinedSubtitle,
+      yBase: layout.titleY,
+      titleSize,
+      titleLineSizes,
+      subtitleSize: bodySize,
+      weight: titleWeight,
+      subtitleWeight: bodyWeight,
+      lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
+      alpha: 1,
+      typewriter: true,
+      highlight,
+      maxWidthScale: 0.96,
+      blockAlign: "full",
+    });
+    revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
+  }
   if (!revealComplete) {
     if (typeof window !== "undefined") {
       if (setMissionBriefActive) {
@@ -3653,27 +3768,39 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
       const announcement = levelAnnouncements[0] || null;
+      const actMissionLabels = {
+        1: "Foothold",
+        2: "Counterattack",
+        3: "Breakthrough",
+      };
       const missionNumber = Number.isFinite(announcement?.missionNumber)
         ? announcement.missionNumber
         : null;
-      const missionLabel =
+      const currentAct = Number.isFinite(currentLevelStatus?.level) ? currentLevelStatus.level : 1;
+      const fallbackMissionLabel =
         missionNumber
-          ? `Battle ${missionNumber}`
-          : (announcement && announcement.title) || monthName || "";
-      const missionTitle = scenarioTitle
-        ? `${missionLabel}: ${scenarioTitle}`
-        : missionLabel;
+          ? `${actMissionLabels[currentAct] || `Act ${currentAct}`} Battle ${missionNumber}`
+          : monthName || "";
+      const missionLabel =
+        (announcement && announcement.title) || fallbackMissionLabel;
       const needsVerb = npcNames.length === 1 ? "needs" : "need";
+      const missionHeading = scenarioTitle
+        ? `${missionLabel}\n${scenarioTitle}`
+        : missionLabel;
       const missionBrief = `${nameSentence} ${needsVerb} your guidance.`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
       }
       drawMissionBriefScreen(ctx, canvas, {
-        title: missionTitle,
+        title: missionHeading,
         subtitle: missionBrief,
         showFormation: true,
         uiFontFamily: UI_FONT_FAMILY,
+        titleLineSizes: [
+          TEXT_STYLES.h1.size,
+          Math.max(TEXT_STYLES.h2.size, Math.round(TEXT_STYLES.h1.size * 0.72)),
+        ],
       });
       ctx.restore();
       return;
