@@ -2040,12 +2040,19 @@
           Number.isFinite(this.config?.attackHitFrame) && this.config.attackHitFrame > 0
             ? this.config.attackHitFrame
             : null;
-        const attackFrameEnabled = !this.isRanged && attackHitFrame !== null;
+        const attackFrameEnabled = attackHitFrame !== null;
         if (attackFrameEnabled && !this.attackHitApplied) {
           const currentFrame =
             typeof this.animator?.frameIndex === "number" ? this.animator.frameIndex : 0;
           const displayFrame = currentFrame + 1;
           if (displayFrame >= attackHitFrame) {
+            if (this.isRanged && this.projectileType) {
+              this.fireRangedProjectile(dx, dy, {
+                triggerAttackAnimation: false,
+                setAttackTimer: false,
+              });
+              this.attackHitApplied = true;
+            } else {
             const baseAttackRange =
               (this.config && (this.config.attackRange || this.config.desiredRange)) ||
               this.desiredRange ||
@@ -2093,6 +2100,7 @@
                   : Date.now()) + 300;
             }
             this.attackHitApplied = true;
+            }
           }
         }
         if (this.animator.isFinished()) {
@@ -2347,9 +2355,11 @@
       return randomChoice(options);
     }
 
-    fireRangedProjectile(dx, dy) {
+    fireRangedProjectile(dx, dy, options = {}) {
       if (!this.projectileType) return;
       if (typeof normalizeVector !== "function" || typeof spawnProjectile !== "function") return;
+      const triggerAttackAnimation = options?.triggerAttackAnimation !== false;
+      const setAttackTimer = options?.setAttackTimer !== false;
       const dir = normalizeVector(dx, dy);
       const offset = this.radius * 0.6;
       const originX = this.x + dir.x * offset;
@@ -2392,10 +2402,14 @@
       if (projectile) {
         projectile.hitEntities.add(this);
         this.updateFacing(dir.x, dir.y);
-        this.state = "attack";
-        this.animator.play("attack", { restart: true });
-        this.attackHitApplied = false;
-        this.attackTimer = this.projectileCooldown;
+        if (triggerAttackAnimation) {
+          this.state = "attack";
+          this.animator.play("attack", { restart: true });
+          this.attackHitApplied = false;
+        }
+        if (setAttackTimer) {
+          this.attackTimer = this.projectileCooldown;
+        }
       }
     }
 
@@ -2469,7 +2483,18 @@
       }
 
       if (this.attackTimer <= 0 && distance <= desiredRange * 1.1 + rangeBuffer) {
-        this.fireRangedProjectile(dx, dy);
+        const attackHitFrame =
+          Number.isFinite(this.config?.attackHitFrame) && this.config.attackHitFrame > 0
+            ? this.config.attackHitFrame
+            : null;
+        if (attackHitFrame !== null) {
+          this.updateFacing(dx, dy);
+          this.state = "attack";
+          this.animator.play("attack", { restart: true });
+          this.attackHitApplied = false;
+        } else {
+          this.fireRangedProjectile(dx, dy);
+        }
       }
     }
 

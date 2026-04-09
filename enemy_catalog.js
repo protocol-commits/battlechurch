@@ -430,17 +430,18 @@
     "attackBonus": 40,
     "cooldown": 1.5,
     "score": 320,
-    "ranged": false,
-    "projectileType": null,
-    "preferEdges": false,
-    "desiredRange": 140,
+    "ranged": true,
+    "projectileType": "fire",
+    "preferEdges": true,
+    "desiredRange": 360,
     "projectileCooldown": 1.5,
     "bossTier": 3,
     "preferredTarget": "player",
     "specialBehavior": [
       "boss",
       "heavy",
-      "closestAny"
+      "closestAny",
+      "ranged"
     ],
     "damageClass": "tank",
     "hitbox": {
@@ -449,7 +450,7 @@
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 4,
+    "attackHitFrame": 7,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,

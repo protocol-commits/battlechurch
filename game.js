@@ -3910,6 +3910,10 @@ const WISDOM_FRAME_SOURCES = Array.from(
   { length: WISDOM_FRAME_END - WISDOM_FRAME_START + 1 },
   (_, index) => `${MAGIC_FIREBALL_SPRITE_PATH}/fireball${WISDOM_FRAME_START + index}.png`,
 ); // Wisdom projectile uses frames 9-18 from the fireball sprite sheet.
+const DEMON_LORD_FIREBALL_FRAME_FILES = Array.from(
+  { length: 10 },
+  (_, index) => `${MAGIC_FIREBALL_SPRITE_PATH}/fireball${9 + index}.png`,
+);
 const WORD_OF_GOD_FRAME_FILES = Array.from(
   { length: 11 },
   (_, index) => `assets/sprites/weapons/fire4/1_${index}.png`,
@@ -4205,6 +4209,27 @@ const powerupDefinitions =
 const WEAPON_DROP_DEFS = powerupDefinitions.weaponDropDefs || {};
 const UTILITY_POWERUP_DEFS = powerupDefinitions.utilityPowerupDefs || {};
 const CHURCH_POWERUP_DEFS = powerupDefinitions.churchPowerupDefs || {};
+
+function applyExplicitEnemyFrameMaps(enemyName, clipBundle) {
+  if (!clipBundle) return;
+  if (enemyName === "miniDemonFireThrower") {
+    const idleMap = [0, 1, 2, 3];
+    const walkMap = [8, 9, 10, 11, 12, 13];
+    if (clipBundle.idle) clipBundle.idle.frameMap = idleMap.slice();
+    if (clipBundle.walk) clipBundle.walk.frameMap = walkMap.slice();
+    return;
+  }
+  if (enemyName === "miniDemonLord") {
+    const attackMap = Array.from({ length: 9 }, (_, index) => 51 + index);
+    if (clipBundle.attack) {
+      clipBundle.attack.frameMap = attackMap.slice();
+      clipBundle.attack.frameCount = attackMap.length;
+      if (!clipBundle.attack.frameRate || clipBundle.attack.frameRate <= 0) {
+        clipBundle.attack.frameRate = 10;
+      }
+    }
+  }
+}
 
 const ASSET_MANIFEST =
   window.BattlechurchAssetManifest?.build?.({
@@ -4941,6 +4966,7 @@ async function reloadEnemyClipsForKey(key) {
       }
   });
     await Promise.all(loaders);
+    applyExplicitEnemyFrameMaps(key, newClips);
     assets.enemies = assets.enemies || {};
     assets.enemies[key] = newClips;
     // Clear any cached extracted frames for images used by these clips so inspector will regenerate thumbnails
@@ -5138,7 +5164,7 @@ async function loadAnimationClip(definition, cache) {
   const staticManualOverrides = {
   'MiniFireImp.png': { cols: 2, rows: 2 },
       'MiniHighDemon.png': { cols: 2, rows: 2 },
-      'MiniDemonLord.png': { cols: 2, rows: 2 },
+      'MiniDemonLord.png': { cols: 10, rows: 8 },
       'MiniDemonFireKeeper.png': { cols: 1, rows: 1 },
       'MiniSkeleton.png': { cols: 1, rows: 1 },
       'MiniZombie.png': { cols: 1, rows: 1 },
@@ -5478,13 +5504,7 @@ async function loadEnemyAssets(cache, assets, skipMapEnemies = false) {
           }
         }
         try {
-          if (enemyName === 'miniDemonFireThrower' && assets.enemies[enemyName]) {
-            const idleMap = [0, 1, 2, 3];
-            const walkMap = [8, 9, 10, 11, 12, 13];
-            if (assets.enemies[enemyName].idle) assets.enemies[enemyName].idle.frameMap = idleMap.slice();
-            if (assets.enemies[enemyName].walk) assets.enemies[enemyName].walk.frameMap = walkMap.slice();
-            console.info && console.info('Applied explicit frameMap for miniDemonFireThrower', { idleMap, walkMap });
-          }
+          applyExplicitEnemyFrameMaps(enemyName, assets.enemies[enemyName]);
         } catch (e) {}
       } catch (e) {}
     },
@@ -5668,6 +5688,9 @@ async function loadProjectileFrames(cache, assets, projectileFrames) {
   );
   projectileFrames.wisdom_missle = await Promise.all(
     WISDOM_FRAME_SOURCES.map((src) => loadImage(src)),
+  );
+  projectileFrames.demonLordFireball = await Promise.all(
+    DEMON_LORD_FIREBALL_FRAME_FILES.map((src) => loadCachedImage(cache, src)),
   );
 }
 
@@ -11860,6 +11883,7 @@ class BossEncounter {
   }
 
   getProjectileType() {
+    if (this.type === "miniDemonLord") return "fire";
     if (this.phase === 1) return "arrow";
     return "fire";
   }
@@ -11877,15 +11901,27 @@ class BossEncounter {
     const dir = normalizeVector(dx, dy);
     const type = this.getProjectileType();
     const base = PROJECTILE_CONFIG[type] || {};
-    const speedMultiplier = this.phase === 1 ? 0.85 : this.phase === 2 ? 1.05 : 1.2;
+    const isDemonLord = this.type === "miniDemonLord";
+    const speedMultiplier = isDemonLord
+      ? this.phase === 1 ? 0.95 : this.phase === 2 ? 1.1 : 1.25
+      : this.phase === 1 ? 0.85 : this.phase === 2 ? 1.05 : 1.2;
+    const projectileFramesOverride = isDemonLord ? projectileFrames.demonLordFireball : null;
     const projectile = spawnProjectile(type, this.x, this.y, dir.x, dir.y, {
       friendly: false,
       speed: (base.speed || 420) * speedMultiplier,
-      damage: this.getProjectileDamage(),
-      radius: base.radius || 28,
+      damage: isDemonLord ? Math.max(1.2, this.getProjectileDamage()) : this.getProjectileDamage(),
+      radius: isDemonLord ? Math.max(base.radius || 28, 34) : base.radius || 28,
+      frames: Array.isArray(projectileFramesOverride) && projectileFramesOverride.length
+        ? projectileFramesOverride
+        : undefined,
+      frameDuration: isDemonLord ? 0.055 : undefined,
+      scale: isDemonLord ? 1.2 : undefined,
       source: this,
     });
     if (projectile) {
+      if (typeof playFireballCastSfx === "function") {
+        playFireballCastSfx(isDemonLord ? 0.85 : 0.7);
+      }
       this.state = "attack";
       this.animator.play("attack", { restart: true });
     }
@@ -20691,22 +20727,10 @@ async function init() {
   // Re-apply explicit miniDemonFireThrower frameMaps after any reloads so they take effect
   try {
     if (assets?.enemies?.miniDemonFireThrower) {
-      const idleMap = [0, 1, 2, 3];
-      const walkMap = [8, 9, 10, 11, 12, 13];
-      const clipIdle = assets.enemies.miniDemonFireThrower.idle;
-      const clipWalk = assets.enemies.miniDemonFireThrower.walk;
-      if (clipIdle) {
-        clipIdle.frameMap = idleMap.slice();
-        // make sure Animator can advance: set frameCount and a sane frameRate
-        try { clipIdle.frameCount = clipIdle.frameMap.length || clipIdle.frameCount || 1; } catch (err) {}
-        if (!clipIdle.frameRate || clipIdle.frameRate <= 0) clipIdle.frameRate = 6;
-      }
-      if (clipWalk) {
-        clipWalk.frameMap = walkMap.slice();
-        try { clipWalk.frameCount = clipWalk.frameMap.length || clipWalk.frameCount || 1; } catch (err) {}
-        if (!clipWalk.frameRate || clipWalk.frameRate <= 0) clipWalk.frameRate = 8;
-      }
-      console.info && console.info('init: ensured miniDemonFireThrower frameMaps applied', { idleMap, walkMap });
+      applyExplicitEnemyFrameMaps("miniDemonFireThrower", assets.enemies.miniDemonFireThrower);
+    }
+    if (assets?.enemies?.miniDemonLord) {
+      applyExplicitEnemyFrameMaps("miniDemonLord", assets.enemies.miniDemonLord);
     }
   } catch (e) {
     // ignore
