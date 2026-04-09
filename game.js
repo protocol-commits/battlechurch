@@ -3167,6 +3167,9 @@ const TORMENTOR_FLAME_RESPAWN_INTERVAL = 7.0;
 const TORMENTOR_FLAME_ORBIT_SPEED = 2.6;
 const TORMENTOR_FLAME_ORBIT_SCALE_MIN = 0.9;
 const TORMENTOR_FLAME_ORBIT_SCALE_MAX = 1.08;
+const TORMENTOR_FLAME_THROW_SPEED = 420;
+const TORMENTOR_FLAME_THROW_DURATION = 0.48;
+const TORMENTOR_FLAME_THROW_TOUCH_DELAY = 0.14;
 const DIVINE_SHOT_DAMAGE = 100;
 const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
 const DIVINE_SHOT_LIFE = 2.8;
@@ -16097,6 +16100,57 @@ if (typeof window !== "undefined") {
   window.releaseTormentorFlameOnOwnerDeath = releaseTormentorFlameOnOwnerDeath;
 }
 
+function launchTormentorFlame(flame, owner, target) {
+  if (!flame) return;
+  releaseTormentorFlame(flame);
+  const originX = Number.isFinite(owner?.x) ? owner.x : flame.x;
+  const originY = Number.isFinite(owner?.y) ? owner.y : flame.y;
+  flame.x = originX;
+  flame.y = originY;
+  let dirX = 0;
+  let dirY = 1;
+  if (target && Number.isFinite(target.x) && Number.isFinite(target.y)) {
+    dirX = target.x - originX;
+    dirY = target.y - originY;
+  } else if (Number.isFinite(owner?.facingX) || Number.isFinite(owner?.facingY)) {
+    dirX = owner?.facingX || 0;
+    dirY = owner?.facingY || 1;
+  }
+  const dir =
+    typeof normalizeVector === "function"
+      ? normalizeVector(dirX, dirY)
+      : (() => {
+          const length = Math.hypot(dirX, dirY) || 1;
+          return { x: dirX / length, y: dirY / length };
+        })();
+  const vx = dir.x * TORMENTOR_FLAME_THROW_SPEED;
+  const vy = dir.y * TORMENTOR_FLAME_THROW_SPEED;
+  flame.scatterVx = vx;
+  flame.scatterVy = vy;
+  flame.scatterTimer = Math.max(flame.scatterTimer || 0, TORMENTOR_FLAME_THROW_DURATION);
+  flame.scatterDuration = Math.max(
+    flame.scatterDuration || 0,
+    TORMENTOR_FLAME_THROW_DURATION,
+  );
+  flame.knockbackVx = vx;
+  flame.knockbackVy = vy;
+  flame.knockbackTimer = Math.max(
+    flame.knockbackTimer || 0,
+    TORMENTOR_FLAME_THROW_DURATION,
+  );
+  flame.knockbackDuration = Math.max(
+    flame.knockbackDuration || 0,
+    TORMENTOR_FLAME_THROW_DURATION,
+  );
+  flame.touchCooldown = Math.max(
+    flame.touchCooldown || 0,
+    TORMENTOR_FLAME_THROW_TOUCH_DELAY,
+  );
+  if (typeof flame.updateFacing === "function") {
+    flame.updateFacing(dir.x, dir.y);
+  }
+}
+
 function updateTormentorFlames(enemy, dt) {
   if (!enemy || enemy.dead || enemy.state === "death") return;
   if (!enemy.tormentorFlameSlots) {
@@ -16171,7 +16225,8 @@ function updateTormentorFlames(enemy, dt) {
         const idx = (startIndex + offset) % slots.length;
         const flame = slots[idx];
         if (flame && flame._orbiting && flame.orbitParent === enemy) {
-          releaseTormentorFlame(flame);
+          const target = typeof enemy.acquireTarget === "function" ? enemy.acquireTarget() : null;
+          launchTormentorFlame(flame, enemy, target);
           enemy.tormentorFlameLaunchIndex = (idx + 1) % slots.length;
           slots[idx] = null;
           break;
