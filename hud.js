@@ -1120,15 +1120,19 @@
       ctx.restore();
 
       ctx.save();
-      ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      const segmentLabels = ["Foothold", "Repel Counter", "Breakthrough"];
       for (let i = 0; i < battleTotals.length; i += 1) {
         const segStart = segStarts[i];
         const segEnd = segStart + segWidths[i];
         const centerX = (segStart + segEnd) / 2;
-        ctx.fillText(`${i + 1}`, centerX, innerY + innerH / 2 + 0.5);
+        const label = `${i + 1}: ${segmentLabels[i] || (i + 1)}`;
+        const maxLabelWidth = Math.max(26, segWidths[i] - 8);
+        const fontSize = fitFontSize(label, 8, maxLabelWidth, "");
+        ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
+        ctx.fillText(label, centerX, innerY + innerH / 2 + 0.5);
       }
       ctx.restore();
 
