@@ -2378,6 +2378,12 @@
         radius: baseConfig.radius || 20,
         source: this,
       };
+      if (this.type === "miniDemonLord" && this.projectileType === "fire") {
+        spawnOverrides.damage = 5;
+        spawnOverrides.speed *= 0.55;
+        spawnOverrides.durabilityHealth = 20;
+        spawnOverrides.durabilityDamagePerHit = 10;
+      }
       if (this.type === "miniFireImp") {
         const baseLife = baseConfig.life || 1.2;
         spawnOverrides.life = baseLife / Math.max(0.05, speedScale);

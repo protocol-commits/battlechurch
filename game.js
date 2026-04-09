@@ -11471,6 +11471,9 @@ class Projectile {
     this.damageType = config.damageType || null;
     this.source = config.source || null;
     this.hitEntities = new Set();
+    this.maxDurability = Math.max(0, Number(config.durabilityHealth) || 0);
+    this.durability = this.maxDurability;
+    this.durabilityDamagePerHit = Math.max(1, Number(config.durabilityDamagePerHit) || 10);
     this.homingTarget = config.homingTarget || null;
     this.homingDuration = Math.max(0, config.homingDuration || 0);
     this.homingStrength = Math.max(0, config.homingStrength ?? 0);
@@ -11694,6 +11697,38 @@ class Projectile {
   }
 }
 
+function applyProjectileDurabilityDamage(projectile, amount = null) {
+  if (!projectile || projectile.dead) return true;
+  if (!Number.isFinite(projectile.durability) || projectile.durability <= 0) {
+    projectile.dead = true;
+    return true;
+  }
+  const damage = Math.max(
+    1,
+    Number.isFinite(amount) ? amount : projectile.durabilityDamagePerHit || 10,
+  );
+  projectile.durability = Math.max(0, projectile.durability - damage);
+  if (projectile.durability <= 0) {
+    projectile.dead = true;
+    return true;
+  }
+  return false;
+}
+
+function getPlayerProjectileDeflectDamage(meleeAttackState) {
+  if (!meleeAttackState) return MELEE_BASE_DAMAGE;
+  if (meleeAttackState.isRushing || meleeAttackState.rushDamageEnabled) {
+    return RUSH_DAMAGE;
+  }
+  if (meleeAttackState.spinTimer > 0) {
+    return Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
+  }
+  if (meleeAttackState.swooshTimer > 0) {
+    return Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
+  }
+  return MELEE_BASE_DAMAGE;
+}
+
 let projectileGlowSprite = null;
 
 function getProjectileGlowSprite() {
@@ -11903,14 +11938,16 @@ class BossEncounter {
     const base = PROJECTILE_CONFIG[type] || {};
     const isDemonLord = this.type === "miniDemonLord";
     const speedMultiplier = isDemonLord
-      ? this.phase === 1 ? 0.95 : this.phase === 2 ? 1.1 : 1.25
+      ? this.phase === 1 ? 0.58 : this.phase === 2 ? 0.64 : 0.72
       : this.phase === 1 ? 0.85 : this.phase === 2 ? 1.05 : 1.2;
     const projectileFramesOverride = isDemonLord ? projectileFrames.demonLordFireball : null;
     const projectile = spawnProjectile(type, this.x, this.y, dir.x, dir.y, {
       friendly: false,
       speed: (base.speed || 420) * speedMultiplier,
-      damage: isDemonLord ? Math.max(1.2, this.getProjectileDamage()) : this.getProjectileDamage(),
+      damage: isDemonLord ? 5 : this.getProjectileDamage(),
       radius: isDemonLord ? Math.max(base.radius || 28, 34) : base.radius || 28,
+      durabilityHealth: isDemonLord ? 20 : undefined,
+      durabilityDamagePerHit: isDemonLord ? 10 : undefined,
       frames: Array.isArray(projectileFramesOverride) && projectileFramesOverride.length
         ? projectileFramesOverride
         : undefined,
@@ -16575,6 +16612,7 @@ function processProjectileCollisions(dt) {
       const normalized = { x: dirVec.x / len, y: dirVec.y / len };
       const swooshAngle = Math.atan2(normalized.y, normalized.x);
       const swooshSpread = Math.PI * 0.35 * MELEE_SWOOSH_ARC_SCALE;
+      const meleeDeflectDamage = getPlayerProjectileDeflectDamage(meleeAttackState);
       for (const projectile of projectiles) {
         const bossProjectile = isBossProjectile(projectile);
         if (
@@ -16585,18 +16623,32 @@ function processProjectileCollisions(dt) {
         const dx = projectile.x - player.x;
         const dy = projectile.y - player.y;
         const dist = Math.hypot(dx, dy);
+        let projectileDestroyed = false;
         if (dist <= MELEE_CLOSE_RANGE) {
-          projectile.dead = true;
+          projectileDestroyed =
+            projectile.maxDurability > 0
+              ? applyProjectileDurabilityDamage(projectile, meleeDeflectDamage)
+              : ((projectile.dead = true), true);
         } else if (meleeAttackState.spinTimer > 0) {
-          if (dist <= MELEE_SWING_RANGE) projectile.dead = true;
+          if (dist <= MELEE_SWING_RANGE) {
+            projectileDestroyed =
+              projectile.maxDurability > 0
+                ? applyProjectileDurabilityDamage(projectile, meleeDeflectDamage)
+                : ((projectile.dead = true), true);
+          }
         } else if (dist <= MELEE_SWING_RANGE) {
           const enemyAngle = Math.atan2(dy, dx);
           let angleDiff = enemyAngle - swooshAngle;
           while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
           while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-          if (Math.abs(angleDiff) <= swooshSpread) projectile.dead = true;
+          if (Math.abs(angleDiff) <= swooshSpread) {
+            projectileDestroyed =
+              projectile.maxDurability > 0
+                ? applyProjectileDurabilityDamage(projectile, meleeDeflectDamage)
+                : ((projectile.dead = true), true);
+          }
         }
-        if (projectile.dead) {
+        if (projectileDestroyed || projectile.dead) {
           if (bossProjectile && projectile.onExpire && !projectile.onExpireTriggered) {
             projectile.onExpireTriggered = true;
             projectile.onExpire(projectile);
@@ -16631,20 +16683,31 @@ function processProjectileClashing() {
       const hostileIsBoss = isBossProjectile(hostile);
 
       if (friendly.type === "word_of_god") {
-        hostileDies = true;
+        hostileDies = hostile.maxDurability > 0
+          ? applyProjectileDurabilityDamage(hostile, friendly.getDamage())
+          : true;
         friendlyDies = false;
       } else if (friendly.type === "fire" && friendly.friendly) {
-        hostileDies = true;
+        hostileDies = hostile.maxDurability > 0
+          ? applyProjectileDurabilityDamage(hostile, friendly.getDamage())
+          : true;
         friendlyDies = false;
       } else if (hostileIsBoss && friendlyFromPlayer) {
+        hostileDies = hostile.maxDurability > 0
+          ? applyProjectileDurabilityDamage(hostile, friendly.getDamage())
+          : false;
         friendlyDies = true;
       } else if (friendlyPriority > hostilePriority) {
-        hostileDies = true;
+        hostileDies = hostile.maxDurability > 0
+          ? applyProjectileDurabilityDamage(hostile, friendly.getDamage())
+          : true;
       } else if (friendlyPriority < hostilePriority) {
         friendlyDies = true;
       } else {
         friendlyDies = true;
-        hostileDies = true;
+        hostileDies = hostile.maxDurability > 0
+          ? applyProjectileDurabilityDamage(hostile, friendly.getDamage())
+          : true;
       }
       if (hostileDies && hostile.type === "miniTrident") {
         spawnFlashEffect(hostile.x, hostile.y);
