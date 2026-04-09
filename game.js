@@ -6992,7 +6992,9 @@ function spawnPowerUpDrops(count = 1) {
   processQueuedPowerUpDrops();
 }
 
-const BOSS_TYPE_POOL = ["miniDemonLord", "miniHighDemon"];
+const EARLY_BOSS_TYPE_POOL = ["miniHighDemon"];
+const FINAL_TOWN_BOSS_TYPE = "miniDemonLord";
+const BOSS_TYPE_POOL = [...EARLY_BOSS_TYPE_POOL, FINAL_TOWN_BOSS_TYPE];
 
 function logBossSpriteIssue(payload) {
   try {
@@ -7041,14 +7043,20 @@ function resolveBossClips(type) {
 }
 
 function chooseBossType(levelNumber) {
-  if (!BOSS_TYPE_POOL.length) return "miniDemonLord";
-  const offset = Math.floor((levelNumber - 1) / 2);
-  const index = (offset + Math.floor(Math.random() * BOSS_TYPE_POOL.length)) % BOSS_TYPE_POOL.length;
-  return BOSS_TYPE_POOL[index];
+  const townBossCount =
+    typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
+      ? window.BATTLES_PER_TOWN
+      : 3;
+  if (levelNumber >= townBossCount) {
+    return FINAL_TOWN_BOSS_TYPE;
+  }
+  if (!EARLY_BOSS_TYPE_POOL.length) return FINAL_TOWN_BOSS_TYPE;
+  const index = (levelNumber - 1) % EARLY_BOSS_TYPE_POOL.length;
+  return EARLY_BOSS_TYPE_POOL[index];
 }
 
 function spawnBossForLevel(levelNumber) {
-  const fallbackType = "miniDemonLord";
+  const fallbackType = FINAL_TOWN_BOSS_TYPE;
   const attempted = new Set();
   const trySpawn = (type) => {
     if (!type) return null;
