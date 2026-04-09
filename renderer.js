@@ -5642,11 +5642,43 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const centerX = canvas.width / 2;
 
-    const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+    const chapterTitleSize = 64;
+    const bodyTitleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+    const headerLayout = getAnnouncementTextLayout(ctx, canvas, {
+      title: battleTitle,
+      subtitle: "",
+      titleSize: chapterTitleSize,
+      subtitleSize: 0,
+      lineGap: Math.round(chapterTitleSize * 1.1),
+      weight: "bold",
+      maxWidthScale: 0.9,
+    });
+    const bodyLayout = getAnnouncementTextLayout(ctx, canvas, {
+      title: villainText,
+      subtitle: "",
+      titleSize: bodyTitleSize,
+      subtitleSize: TEXT_STYLES.h2.size,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      weight: TEXT_STYLES.h1.weight,
+      maxWidthScale: 0.92,
+    });
+    const headerBodyGap = 28;
+    const textGroupHeight =
+      headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
+    const textGroupTopY = Math.max(
+      90,
+      Math.round((canvas.height - textGroupHeight) / 2),
+    );
+    const titleY = textGroupTopY + headerLayout.titleLineHeight;
+    const bodyYBase =
+      textGroupTopY +
+      headerLayout.textBlockHeight +
+      headerBodyGap +
+      bodyLayout.titleLineHeight;
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: villainText,
       subtitle: "",
-      titleSize,
+      titleSize: bodyTitleSize,
       subtitleSize: TEXT_STYLES.h2.size,
       lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
       weight: TEXT_STYLES.h1.weight,
@@ -5659,11 +5691,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonCount: 1,
       HUD_HEIGHT,
     });
-    const chapterTitleSize = 64;
-    const chapterTitleLineHeight = Math.round(chapterTitleSize * TEXT_STYLES.h1.lineHeight);
-    const titleBodyGap = 28;
-    const titleY = Math.round(layout.textLayout.titleY);
-    const bodyYBase = Math.round(titleY + chapterTitleLineHeight / 2 + titleBodyGap + layout.textLayout.titleLineHeight);
 
     ctx.save();
     ctx.textAlign = "center";
@@ -5685,7 +5712,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       yBase: bodyYBase,
       alpha: 1,
       typewriter: true,
-      titleSize,
+      titleSize: bodyTitleSize,
       weight: TEXT_STYLES.h1.weight,
       maxWidthScale: 0.92,
     });
