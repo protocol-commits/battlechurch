@@ -14326,17 +14326,12 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("5")) {
-    const battlesPerTown = Number.isFinite(window.BATTLES_PER_TOWN) ? window.BATTLES_PER_TOWN : 3;
-    let currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
-    let guard = 0;
-    while (currentLevel < battlesPerTown && guard < 10) {
-      if (!levelManager?.devSkipLevel?.()) break;
-      currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : currentLevel + 1;
-      guard += 1;
-    }
     const result = levelManager?.devSkipToBoss?.({ showExterior: false });
     if (result?.success) {
-      setDevStatus("Final town boss engaged", 2.3);
+      const currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+      setDevStatus(`Act ${currentLevel} boss engaged`, 2.3);
+    } else {
+      setDevStatus("Act boss skip failed", 2.0);
     }
   }
   if (keysJustPressed.has("6")) {
