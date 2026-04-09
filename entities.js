@@ -2607,7 +2607,12 @@
         if (this.type === "tormentorFlame") {
           return;
         }
+        const chargeProtected =
+          this.type === "miniDemonLord" &&
+          this.state === "attack" &&
+          !this.attackHitApplied;
         const preemptedByPlayerMelee =
+          !chargeProtected &&
           this.state === "attack" &&
           !this.attackHitApplied &&
           (damageType === "melee" || damageType === "charged");
@@ -2623,7 +2628,7 @@
           damageType === "projectile" && damageClass === "armored";
         const suppressRepeatedLightStun =
           repeatedLightPressure && damageClass === "armored";
-        if (!suppressProjectileStun && !suppressRepeatedLightStun) {
+        if (!chargeProtected && !suppressProjectileStun && !suppressRepeatedLightStun) {
           this.state = "hurt";
           const customHurtDuration = Number(options?.hurtDuration);
           if (Number.isFinite(customHurtDuration) && customHurtDuration > 0) {
