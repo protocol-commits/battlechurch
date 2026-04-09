@@ -16200,7 +16200,15 @@ function updateTormentorFlames(enemy, dt) {
     enemy.tormentorFlameRespawnTimer = TORMENTOR_FLAME_RESPAWN_INTERVAL;
   }
 
-  if (enemy.isRanged && enemy.attackTimer <= 0 && enemy.state !== "hurt") {
+  const hasOrbitFlames = enemy.tormentorFlameSlots.some(
+    (flame) => flame && flame._orbiting && flame.orbitParent === enemy,
+  );
+  if (
+    hasOrbitFlames &&
+    enemy.attackTimer <= 0 &&
+    enemy.state !== "hurt" &&
+    enemy.state !== "attack"
+  ) {
     const target = typeof enemy.acquireTarget === "function" ? enemy.acquireTarget() : null;
     if (target) {
       const dx = target.x - enemy.x;

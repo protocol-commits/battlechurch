@@ -394,17 +394,19 @@
     "attackBonus": 34,
     "cooldown": 1.8,
     "score": 240,
-    "ranged": false,
+    "ranged": true,
     "projectileType": null,
-    "preferEdges": false,
-    "desiredRange": 130,
+    "preferEdges": true,
+    "desiredRange": 360,
     "projectileCooldown": 1.8,
     "bossTier": 2,
     "preferredTarget": "player",
     "specialBehavior": [
       "boss",
       "closestAny",
-      "swarmable"
+      "swarmable",
+      "ranged",
+      "preferEdges"
     ],
     "swarmSpacing": 1,
     "hitbox": {
