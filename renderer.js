@@ -838,7 +838,7 @@ const MELEE_SWING_LENGTH = 260;
       remainingTitle = Math.max(0, remainingTitle - line.length);
       if (visible) {
         const lineX = centerLines
-          ? canvas.width / 2 - (ctx.measureText(visible).width || 0) / 2
+          ? canvas.width / 2 - (ctx.measureText(line).width || 0) / 2
           : titleX;
         ctx.fillText(visible, lineX, currentY);
       }
@@ -869,7 +869,7 @@ const MELEE_SWING_LENGTH = 260;
         const visible = remainingSubtitle <= 0 ? "" : line.slice(0, remainingSubtitle);
         remainingSubtitle = Math.max(0, remainingSubtitle - line.length);
         const lineBaseX = centerLines
-          ? canvas.width / 2 - (ctx.measureText(visible).width || 0) / 2
+          ? canvas.width / 2 - (ctx.measureText(line).width || 0) / 2
           : subtitleX;
         if (visible) {
           if (highlightStart >= 0 && highlightEnd > globalIndex && highlightStart < globalIndex + visible.length) {
@@ -1258,6 +1258,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       blockAlign: "fullCenter",
     });
 
+    const upperRevealComplete = isAnnouncementRevealComplete(title, "");
+
     ctx.save();
     ctx.strokeStyle = "rgba(234, 246, 255, 0.26)";
     ctx.lineWidth = 2;
@@ -1267,24 +1269,26 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ctx.stroke();
     ctx.restore();
 
-    drawAnnouncementText(ctx, layout.virtualCanvas, {
-      title: "",
-      subtitle: combinedSubtitle,
-      yBase: lowerYBase,
-      titleSize: bodySize,
-      subtitleSize: bodySize,
-      weight: bodyWeight,
-      subtitleWeight: bodyWeight,
-      lineGap: Math.round(bodySize * TEXT_STYLES.h2.lineHeight),
-      alpha: 1,
-      typewriter: true,
-      highlight,
-      maxWidthScale: 0.96,
-      blockAlign: "fullCenter",
-    });
+    if (upperRevealComplete) {
+      drawAnnouncementText(ctx, layout.virtualCanvas, {
+        title: "",
+        subtitle: combinedSubtitle,
+        yBase: lowerYBase,
+        titleSize: bodySize,
+        subtitleSize: bodySize,
+        weight: bodyWeight,
+        subtitleWeight: bodyWeight,
+        lineGap: Math.round(bodySize * TEXT_STYLES.h2.lineHeight),
+        alpha: 1,
+        typewriter: true,
+        highlight,
+        maxWidthScale: 0.96,
+        blockAlign: "fullCenter",
+      });
+    }
 
     revealComplete =
-      isAnnouncementRevealComplete(title, "") &&
+      upperRevealComplete &&
       isAnnouncementRevealComplete("", combinedSubtitle);
   } else {
     drawAnnouncementText(ctx, layout.virtualCanvas, {
