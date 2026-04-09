@@ -6728,17 +6728,16 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const healthRewardBase = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
   const healthReward = isBossSummary ? 0 : (healthRewardBase - zeroHealthPenaltyCount);
   const perfectProtectionValue = !isBossSummary && totalNpcFaith >= 500 ? 100 : 0;
-  const pastorHealthValue = !isBossSummary ? playerHealthAtRecap : 0;
-  const maxComboPerformanceValue = !isBossSummary ? battleMaxCombo : 0;
-  const prayerBombPerformanceValue = !isBossSummary ? prayerBombComboTotal : 0;
+  const pastorHealthValue = playerHealthAtRecap;
+  const maxComboPerformanceValue = battleMaxCombo;
+  const prayerBombPerformanceValue = prayerBombComboTotal;
   const performancePointTotal =
     perfectProtectionValue +
     pastorHealthValue +
     maxComboPerformanceValue +
     prayerBombPerformanceValue;
-  const performanceCongregationReward = !isBossSummary ? Math.floor(performancePointTotal / 100) : 0;
+  const performanceCongregationReward = Math.floor(performancePointTotal / 100);
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
-  const bossBonus = isBossSummary ? Math.max(0, Math.floor(bossHealth / 10)) : 0;
   const PERFORMANCE_BONUS_BADGE_SRCS = {
     perfectCongregation: "assets/sprites/pixel-art-pack/Items/I07_Apple.png",
     pastorHealth: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
@@ -6779,7 +6778,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     });
   }
   if (!summary.congregationDeltaApplied) {
-    adjustCongregationSize(healthReward + performanceCongregationReward + bossBonus);
+    adjustCongregationSize(healthReward + performanceCongregationReward);
     summary.congregationDeltaApplied = true;
     summary.healthReward = healthReward;
     summary.performanceBonusReward = performanceCongregationReward;
@@ -6792,7 +6791,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     const sign = numeric >= 0 ? "+" : "-";
     return `${sign}${formatNumberWithCommas(Math.abs(numeric))}`;
   };
-  const totalDelta = healthReward + performanceCongregationReward + bossBonus;
+  const totalDelta = healthReward + performanceCongregationReward;
   const graceBonusCongregants = Math.max(0, totalDelta);
   const graceBonus = 0;
   if (graceBonus > 0 && !summary.graceBonusApplied) {
@@ -6827,25 +6826,16 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       zeroHealthPenaltyCount,
       npcHealthBreakdown,
     });
-    if (performanceBadgeBreakdown.length > 0) {
-      recapLines.push({
-        label: "Performance Bonuses:",
-        delta: performanceCongregationReward,
-        kind: "performanceBonuses",
-        affectsTotal: true,
-        totalPerformance: performancePointTotal,
-        performanceCongregationReward,
-        performanceBadgeBreakdown,
-      });
-    }
   }
-  if (bossBonus !== 0) {
+  if (performanceBadgeBreakdown.length > 0) {
     recapLines.push({
-      label: "Pastor's Health Bonus",
-      delta: bossBonus,
-      kind: "congregation",
+      label: "Performance Bonuses:",
+      delta: performanceCongregationReward,
+      kind: "performanceBonuses",
       affectsTotal: true,
-      forceInlineValue: true,
+      totalPerformance: performancePointTotal,
+      performanceCongregationReward,
+      performanceBadgeBreakdown,
     });
   }
   const recapTitle = "Battle Report";
@@ -6870,7 +6860,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   }
   let paragraph = "";
   if (isBossSummary) {
-    paragraph = `Pastor's Health: ${formatNumberWithCommas(bossHealth)}. Your work has brought in ${formatNumberWithCommas(bossBonus)} new congregants (${formatDelta(bossBonus)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
+    paragraph = `Pastor's Health: ${formatNumberWithCommas(bossHealth)}. Performance total: ${formatNumberWithCommas(performancePointTotal)} (${formatDelta(performanceCongregationReward)} congregants). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
   } else {
     if (savedNames.length) {
       const names = savedNames.join(", ");

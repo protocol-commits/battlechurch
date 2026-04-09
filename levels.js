@@ -1335,7 +1335,34 @@
       setDevStatus(`${clearedActLabel} secured`, BETWEEN_BATTLE_PAUSE);
     }
 
+    function finalizeBossBattleSummary() {
+      state.lastBattleSummary = {
+        savedCount: 0,
+        lostCount: 0,
+        savedPortraits: [],
+        lostPortraits: [],
+        savedNames: [],
+        lostNames: [],
+        totalNpcFaith: 0,
+        battleStartCongregation: Number.isFinite(state.battleStartCongregation)
+          ? state.battleStartCongregation
+          : 0,
+        npcHealthBreakdown: [],
+        battleScenario: state.currentBattleScenario,
+        battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
+        battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
+        prayerBombComboContributions: Array.isArray(state.battlePrayerBombComboContributions)
+          ? state.battlePrayerBombComboContributions.slice()
+          : [],
+      };
+    }
+
     function beginBossIntro() {
+      state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
+      state.battleMaxCombo = 0;
+      state.battlePrayerBombComboContributions = [];
+      state.battleStartCongregation =
+        typeof deps.getCongregationSize === "function" ? deps.getCongregationSize() : 0;
       state.currentBossTheme = randomChoice(BOSS_BATTLE_THEMES);
       const bossMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + MONTHS_PER_LEVEL;
       const bossMonthName = getMonthName(bossMonthNumber);
@@ -1380,6 +1407,7 @@
 
     function onBossDefeated() {
       clearStagePowerUps();
+      finalizeBossBattleSummary();
       state.boss = null;
       state.lastClearedWasBoss = true;
       setDevStatus("Boss defeated", 3.5);
