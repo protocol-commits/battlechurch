@@ -2023,8 +2023,17 @@
         this.jumpTimer = Math.min(duration, (this.jumpTimer || 0) + dt);
         const t = Math.max(0, Math.min(1, this.jumpTimer / duration));
         const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        this.x = this.jumpStartX + (this.jumpTargetX - this.jumpStartX) * eased;
-        this.y = this.jumpStartY + (this.jumpTargetY - this.jumpStartY) * eased;
+        const lineX = this.jumpStartX + (this.jumpTargetX - this.jumpStartX) * eased;
+        const lineY = this.jumpStartY + (this.jumpTargetY - this.jumpStartY) * eased;
+        const jumpDx = this.jumpTargetX - this.jumpStartX;
+        const jumpDy = this.jumpTargetY - this.jumpStartY;
+        const jumpDistance = Math.hypot(jumpDx, jumpDy) || 1;
+        const perpX = -jumpDy / jumpDistance;
+        const perpY = jumpDx / jumpDistance;
+        const curveStrength = Math.min(42, jumpDistance * 0.14);
+        const curveOffset = Math.sin(t * Math.PI) * curveStrength * (this.jumpCurveSign || 1);
+        this.x = lineX + perpX * curveOffset;
+        this.y = lineY + perpY * curveOffset;
         const lift = Math.sin(t * Math.PI) * DEMON_LORD_JUMP_ARC_LIFT;
         this._renderYOverride = this.y - lift;
         const faceDx = this.jumpTargetX - this.jumpStartX;
@@ -2548,6 +2557,7 @@
       this.jumpStartY = this.y;
       this.jumpTargetX = target.x;
       this.jumpTargetY = target.y;
+      this.jumpCurveSign = Math.random() < 0.5 ? -1 : 1;
       this.jumpTimer = 0;
       this.jumpDuration = DEMON_LORD_JUMP_DURATION;
       this.jumpCooldown = DEMON_LORD_JUMP_COOLDOWN;
