@@ -16053,6 +16053,8 @@ function assignTormentorFlameToOrbit(enemy, flame, slotIndex) {
   flame.orbitLift = settings.lift;
   flame.orbitScaleMin = TORMENTOR_FLAME_ORBIT_SCALE_MIN;
   flame.orbitScaleMax = TORMENTOR_FLAME_ORBIT_SCALE_MAX;
+  flame.tormentorOrbitBound = true;
+  flame.tormentorReleasedOnDeath = false;
   flame.spawnOffscreenTimer = 0;
   flame.ignoreEntityCollisions = true;
   flame.ignoreWorldBounds = true;
@@ -16064,12 +16066,14 @@ function assignTormentorFlameToOrbit(enemy, flame, slotIndex) {
   }
 }
 
-function releaseTormentorFlame(flame) {
+function setTormentorFlameReleasedState(flame, { releasedOnDeath = false } = {}) {
   if (!flame) return;
   flame._orbiting = false;
   flame.orbitParent = null;
+  flame.tormentorOrbitBound = false;
+  flame.tormentorReleasedOnDeath = releasedOnDeath;
   flame.touchCooldown = 0;
-  flame.ignoreEntityCollisions = true;
+  flame.ignoreEntityCollisions = false;
   flame.ignoreWorldBounds = false;
   flame.attackTimer = 0;
   if (flame.animator) {
@@ -16079,6 +16083,18 @@ function releaseTormentorFlame(flame) {
       flame.animator.scale = flame.config.scale;
     }
   }
+}
+
+function releaseTormentorFlame(flame) {
+  setTormentorFlameReleasedState(flame, { releasedOnDeath: false });
+}
+
+function releaseTormentorFlameOnOwnerDeath(flame) {
+  setTormentorFlameReleasedState(flame, { releasedOnDeath: true });
+}
+
+if (typeof window !== "undefined") {
+  window.releaseTormentorFlameOnOwnerDeath = releaseTormentorFlameOnOwnerDeath;
 }
 
 function updateTormentorFlames(enemy, dt) {

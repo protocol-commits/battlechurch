@@ -1879,16 +1879,19 @@
       if (this._orbiting && this.orbitParent) {
         if (this.orbitParent.dead || this.orbitParent.state === "death") {
           if (this.type === "tormentorFlame") {
-            if (typeof spawnPuffEffect === "function") {
-              const puffRadius = Math.max(18, (this.radius || 12) * 1.4);
-              spawnPuffEffect(this.x, this.y, puffRadius);
+            if (typeof window !== "undefined" &&
+              typeof window.releaseTormentorFlameOnOwnerDeath === "function") {
+              window.releaseTormentorFlameOnOwnerDeath(this);
+            } else {
+              this._orbiting = false;
+              this.orbitParent = null;
+              this.tormentorOrbitBound = false;
+              this.tormentorReleasedOnDeath = true;
+              this.ignoreEntityCollisions = false;
+              this.ignoreWorldBounds = false;
+              this.touchCooldown = 0;
+              this.attackTimer = 0;
             }
-            this.health = 0;
-            this.state = "death";
-            this.dead = true;
-            this.ignoreEntityCollisions = true;
-            this.touchCooldown = Infinity;
-            this.attackTimer = Infinity;
             return;
           } else {
             this._orbiting = false;
@@ -2472,6 +2475,16 @@
 
     takeDamage(amount, options = {}) {
       if (this.state === "death") return;
+      if (
+        this.type === "tormentorFlame" &&
+        this._orbiting &&
+        this.tormentorOrbitBound &&
+        this.orbitParent &&
+        !this.orbitParent.dead &&
+        this.orbitParent.state !== "death"
+      ) {
+        return;
+      }
       const damageType = options?.damageType || null;
       const damageClass = (this.config?.damageClass || "normal").toLowerCase();
       let multiplier = 1;
