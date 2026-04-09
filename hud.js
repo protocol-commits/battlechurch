@@ -10,9 +10,9 @@
     lastTime: 0,
   };
   const townProgressAnim = {
-    animator: null,
+    animators: {},
     lastTime: 0,
-    clips: null,
+    clipKeys: {},
   };
   const scoreboardIconSources = {
     congregation: "assets/sprites/pixel-art-pack/Items/I28_Idol.png",
@@ -1151,26 +1151,41 @@
 
       const Animator = typeof window !== 'undefined' ? window.Entities?.Animator : null;
       const miniImpClips = assets?.enemies?.miniImp || null;
+      const demonLordClips = assets?.enemies?.miniDemonLord || null;
       if (Animator && miniImpClips) {
-        if (!townProgressAnim.animator || townProgressAnim.clips !== miniImpClips) {
-          townProgressAnim.animator = new Animator(miniImpClips, 1.8);
-          townProgressAnim.animator.play("walk", { restart: true, loop: true });
-          townProgressAnim.clips = miniImpClips;
-          townProgressAnim.lastTime = 0;
-        }
+        const ensureTownMeterAnimator = (key, clips) => {
+          if (!clips) return null;
+          if (
+            !townProgressAnim.animators[key]
+            || townProgressAnim.clipKeys[key] !== clips
+          ) {
+            const animator = new Animator(clips, 1.8);
+            animator.play("walk", { restart: true, loop: true });
+            townProgressAnim.animators[key] = animator;
+            townProgressAnim.clipKeys[key] = clips;
+            townProgressAnim.lastTime = 0;
+          }
+          return townProgressAnim.animators[key] || null;
+        };
+        const segmentAnimators = [
+          ensureTownMeterAnimator("segment1", miniImpClips),
+          ensureTownMeterAnimator("segment2", miniImpClips),
+          ensureTownMeterAnimator("segment3", demonLordClips || miniImpClips),
+        ];
         const now = performance.now();
         const dt = townProgressAnim.lastTime ? Math.min(0.05, Math.max(0, (now - townProgressAnim.lastTime) / 1000)) : 0;
         townProgressAnim.lastTime = now;
-        if (townProgressAnim.animator) {
-          townProgressAnim.animator.update(dt);
+        if (segmentAnimators.some(Boolean)) {
+          segmentAnimators.forEach((animator) => animator?.update(dt));
           const bossCenters = [
             seg1Start + seg1Width - 10,
             seg2Start + seg2Width - 10,
             seg3Start + seg3Width - 10,
           ];
           const iconY = innerY + innerH / 2 - 15;
-          bossCenters.forEach((centerX) => {
-            townProgressAnim.animator.draw(ctx, centerX, iconY, { alpha: 0.95, flipX: true });
+          bossCenters.forEach((centerX, idx) => {
+            const animator = segmentAnimators[idx];
+            animator?.draw(ctx, centerX, iconY, { alpha: 0.95, flipX: true });
           });
         }
       }
