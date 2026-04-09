@@ -5651,7 +5651,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
       weight: TEXT_STYLES.h1.weight,
       maxWidthScale: 0.92,
-      position: "center",
+      position: "bottom",
       topMargin: 90,
       bottomMargin: 80,
       rowGap: 32,
@@ -5662,14 +5662,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const chapterTitleSize = 64;
     const chapterTitleLineHeight = Math.round(chapterTitleSize * TEXT_STYLES.h1.lineHeight);
     const titleBodyGap = 28;
-    const combinedTextHeight =
-      chapterTitleLineHeight + titleBodyGap + layout.textLayout.textBlockHeight;
-    const textBlockTopY = Math.max(
-      90,
-      Math.round((layout.virtualCanvas.height - combinedTextHeight) / 2),
-    );
-    const titleY = textBlockTopY + Math.round(chapterTitleLineHeight / 2);
-    const bodyYBase = textBlockTopY + chapterTitleLineHeight + titleBodyGap + layout.textLayout.titleLineHeight;
+    const titleY = Math.round(layout.textLayout.titleY);
+    const bodyYBase = Math.round(titleY + chapterTitleLineHeight / 2 + titleBodyGap + layout.textLayout.titleLineHeight);
 
     ctx.save();
     ctx.textAlign = "center";
