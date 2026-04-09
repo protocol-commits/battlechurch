@@ -1876,7 +1876,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           anim.activeHealth = remainingHealthAfterThreshold;
           anim.totalHealth = nextThreshold;
           anim.thresholdValue = nextThreshold;
-          anim.thresholdHoldTimer = 1.0;
+          anim.thresholdHoldTimer = 0.5;
           if (thresholdConsumesNpc) {
             // Let the threshold hold fully replace the between-NPC pause.
             anim.advanceNpcAfterThresholdHold = true;
@@ -1908,7 +1908,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           anim.bumpTimer = 0.55;
         }
         anim.holdTimer += dt;
-        if (anim.holdTimer >= 1.0) {
+        if (anim.holdTimer >= 0.4) {
           advanceToNextHealthBonusNpc();
         }
       }
@@ -2076,7 +2076,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           anim.activeValue = remainingValueAfterThreshold;
           anim.totalPerformance = nextThreshold;
           anim.thresholdValue = nextThreshold;
-          anim.thresholdHoldTimer = 1.0;
+          anim.thresholdHoldTimer = 0.5;
           if (thresholdConsumesBadge) {
             anim.advanceBadgeAfterThresholdHold = true;
             anim.holdTimer = 0;
@@ -2092,7 +2092,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           return;
         }
         anim.holdTimer += dt;
-        if (anim.holdTimer >= 0.75) {
+        if (anim.holdTimer >= 0.35) {
           advanceToNextPerformanceBadge();
         }
       }
