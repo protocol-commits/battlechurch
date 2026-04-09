@@ -115,6 +115,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniDemonLord",
                           "count": 2
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -122,7 +126,7 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4
                     },
                     {

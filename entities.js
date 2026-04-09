@@ -155,6 +155,11 @@
     Boolean(enemy && Number.isFinite(enemy.knockbackTimer) && enemy.knockbackTimer > 0);
 
   const KNOCKBACK_VISUAL_LIFT = 18;
+  const DEMON_LORD_JUMP_COOLDOWN = 3.2;
+  const DEMON_LORD_JUMP_DURATION = 0.58;
+  const DEMON_LORD_JUMP_MIN_DISTANCE = 220;
+  const DEMON_LORD_JUMP_MAX_DISTANCE = 400;
+  const DEMON_LORD_JUMP_ARC_LIFT = 22;
 
   const getKnockbackArcLift = (remainingTime, totalDuration, maxLift = KNOCKBACK_VISUAL_LIFT) => {
     const duration = Math.max(0.001, totalDuration || 0);
@@ -1867,6 +1872,13 @@
       this.knockbackLift = KNOCKBACK_VISUAL_LIFT;
       this.hurtTimer = 0;
       this.hurtTimerActive = false;
+      this.jumpCooldown = 0;
+      this.jumpTimer = 0;
+      this.jumpDuration = 0;
+      this.jumpStartX = x;
+      this.jumpStartY = y;
+      this.jumpTargetX = x;
+      this.jumpTargetY = y;
       if (this.type === "tormentorFlame") {
         this.ignoreEntityCollisions = true;
       }
@@ -1875,6 +1887,7 @@
     update(dt) {
       // spawnDelay removed; enemies act immediately after spawning
       this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
+      this.jumpCooldown = Math.max(0, (this.jumpCooldown || 0) - dt);
 
       if (this._orbiting && this.orbitParent) {
         if (this.orbitParent.dead || this.orbitParent.state === "death") {
@@ -1999,6 +2012,29 @@
         if (this.animator.isFinished()) {
           this.hurtTimer = 0;
           this.hurtTimerActive = false;
+          this.state = "walk";
+          this.animator.play("walk");
+        }
+        return;
+      }
+
+      if (this.state === "jump") {
+        const duration = Math.max(0.001, this.jumpDuration || DEMON_LORD_JUMP_DURATION);
+        this.jumpTimer = Math.min(duration, (this.jumpTimer || 0) + dt);
+        const t = Math.max(0, Math.min(1, this.jumpTimer / duration));
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        this.x = this.jumpStartX + (this.jumpTargetX - this.jumpStartX) * eased;
+        this.y = this.jumpStartY + (this.jumpTargetY - this.jumpStartY) * eased;
+        const lift = Math.sin(t * Math.PI) * DEMON_LORD_JUMP_ARC_LIFT;
+        this._renderYOverride = this.y - lift;
+        const faceDx = this.jumpTargetX - this.jumpStartX;
+        const faceDy = this.jumpTargetY - this.jumpStartY;
+        this.updateFacing(faceDx, faceDy);
+        this.animator.update(dt);
+        if (this.jumpTimer >= duration || this.animator.isFinished()) {
+          this.jumpTimer = 0;
+          this.jumpDuration = 0;
+          this._renderYOverride = undefined;
           this.state = "walk";
           this.animator.play("walk");
         }
@@ -2437,6 +2473,94 @@
     return { x: Math.cos(angle), y: Math.sin(angle) };
   }
 
+    chooseDemonLordJumpTarget(dx, dy) {
+      let targetDx = dx;
+      let targetDy = dy;
+      if (Array.isArray(npcs) && npcs.length) {
+        let bestNpc = null;
+        let bestDistSq = Infinity;
+        for (const npc of npcs) {
+          if (!npc || npc.departed || !npc.active) continue;
+          if (typeof npc.faith === "number" && npc.faith <= 0) continue;
+          const ndx = npc.x - this.x;
+          const ndy = npc.y - this.y;
+          const distSq = ndx * ndx + ndy * ndy;
+          if (distSq < bestDistSq) {
+            bestDistSq = distSq;
+            bestNpc = npc;
+          }
+        }
+        if (bestNpc) {
+          targetDx = bestNpc.x - this.x;
+          targetDy = bestNpc.y - this.y;
+        }
+      }
+      const toward = normalizeVector(targetDx, targetDy);
+      const fallbackToward = toward.x === 0 && toward.y === 0 ? { x: 1, y: 0 } : toward;
+      const lateralSign = Math.random() < 0.5 ? -1 : 1;
+      const lateral = {
+        x: -fallbackToward.y * lateralSign,
+        y: fallbackToward.x * lateralSign,
+      };
+      const distance = randomInRange(
+        DEMON_LORD_JUMP_MIN_DISTANCE,
+        DEMON_LORD_JUMP_MAX_DISTANCE,
+      );
+      const forwardAmount = randomInRange(0.15, 0.45);
+      const retreatAmount = randomInRange(0.05, 0.18);
+      const lateralAmount = randomInRange(0.6, 1.15);
+      const jumpDir = normalizeVector(
+        fallbackToward.x * forwardAmount - fallbackToward.x * retreatAmount + lateral.x * lateralAmount,
+        fallbackToward.y * forwardAmount - fallbackToward.y * retreatAmount + lateral.y * lateralAmount,
+      );
+      const target = {
+        x: this.x + jumpDir.x * distance,
+        y: this.y + jumpDir.y * distance,
+      };
+      const radius = Math.max(this.radius || 0, 12);
+      const lateralMargin = Math.max(radius, 16);
+      const verticalMargin = Math.max(radius, 16);
+      const topPadding =
+        typeof this.safeTopMargin === "number"
+          ? Math.max(this.safeTopMargin, verticalMargin)
+          : Math.max(verticalMargin, Math.floor(radius * 2), 8);
+      return {
+        x: Math.max(lateralMargin, Math.min(canvas.width - lateralMargin, target.x)),
+        y: Math.max(
+          HUD_HEIGHT + topPadding,
+          Math.min(canvas.height - verticalMargin, target.y),
+        ),
+      };
+    }
+
+    tryStartDemonLordJump(dx, dy, distance, targetRadius = 0) {
+      if (this.type !== "miniDemonLord") return false;
+      if (this.state === "jump" || this.state === "attack" || this.state === "hurt") return false;
+      if ((this.jumpCooldown || 0) > 0) return false;
+      const desiredRange = this.desiredRange || 360;
+      const rangeBuffer = Math.max(0, targetRadius * 0.5);
+      const tooClose = distance < desiredRange * 0.72 + rangeBuffer;
+      const randomReposition = distance < desiredRange * 1.05 && Math.random() < 0.004;
+      if (!tooClose && !randomReposition) return false;
+      const target = this.chooseDemonLordJumpTarget(dx, dy);
+      if (!target) return false;
+      this.jumpStartX = this.x;
+      this.jumpStartY = this.y;
+      this.jumpTargetX = target.x;
+      this.jumpTargetY = target.y;
+      this.jumpTimer = 0;
+      this.jumpDuration = DEMON_LORD_JUMP_DURATION;
+      this.jumpCooldown = DEMON_LORD_JUMP_COOLDOWN;
+      this.state = "jump";
+      if (this.animator.clips?.jump) {
+        this.animator.play("jump", { restart: true, loop: false });
+      } else {
+        this.animator.play("walk");
+      }
+      this.attackHitApplied = false;
+      return true;
+    }
+
     updateRangedBehavior(dt, dx, dy, distance, targetRadius = 0) {
       const desiredRange = this.desiredRange;
       const rangeBuffer = Math.max(0, targetRadius * 0.5);
@@ -2444,6 +2568,10 @@
       const maxDistance = desiredRange * 1.25 + rangeBuffer;
       let moveX = 0;
       let moveY = 0;
+
+      if (this.tryStartDemonLordJump(dx, dy, distance, targetRadius)) {
+        return;
+      }
 
       if (this.preferEdges) {
         if (!this.edgeTarget || Math.random() < 0.002) {

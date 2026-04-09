@@ -4221,12 +4221,18 @@ function applyExplicitEnemyFrameMaps(enemyName, clipBundle) {
   }
   if (enemyName === "miniDemonLord") {
     const attackMap = Array.from({ length: 9 }, (_, index) => 51 + index);
+    const jumpMap = [20, 60, 60, 60, 21, 22, 23];
     if (clipBundle.attack) {
       clipBundle.attack.frameMap = attackMap.slice();
       clipBundle.attack.frameCount = attackMap.length;
       if (!clipBundle.attack.frameRate || clipBundle.attack.frameRate <= 0) {
         clipBundle.attack.frameRate = 10;
       }
+    }
+    if (clipBundle.jump) {
+      clipBundle.jump.frameMap = jumpMap.slice();
+      clipBundle.jump.frameCount = jumpMap.length;
+      clipBundle.jump.frameRate = 12;
     }
   }
 }
@@ -4272,6 +4278,14 @@ for (const mini of MINIFOLKS) {
       frameMap,
     },
     attack: {
+      src: mini.src,
+      frameWidth,
+      frameHeight,
+      frameRate: 12,
+      loop: false,
+      frameMap,
+    },
+    jump: {
       src: mini.src,
       frameWidth,
       frameHeight,

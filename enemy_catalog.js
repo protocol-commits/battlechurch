@@ -256,7 +256,7 @@
     "score": 45,
     "ranged": true,
     "projectileType": "miniTrident",
-    "preferEdges": true,
+    "preferEdges": false,
     "desiredRange": 360,
     "projectileCooldown": 1.6,
     "bossTier": 0,
