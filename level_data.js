@@ -114,7 +114,11 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniDemonLord",
-                          "count": 3
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -122,7 +126,7 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4
                     },
                     {
@@ -131,11 +135,19 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "orc",
                           "count": 100
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
                         }
                       ],
                       "weights": {},
                       "mode": "explicit",
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4,
                       "delaysWeighted": {},
                       "delaysExplicit": {},
@@ -147,6 +159,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 150
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -163,6 +179,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 150
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
                         }
                       ],
                       "weights": {},
