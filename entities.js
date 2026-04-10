@@ -155,7 +155,7 @@
     Boolean(enemy && Number.isFinite(enemy.knockbackTimer) && enemy.knockbackTimer > 0);
 
   const KNOCKBACK_VISUAL_LIFT = 18;
-  const DEMON_LORD_JUMP_COOLDOWN = 3.2;
+  const DEMON_LORD_JUMP_COOLDOWN = 0.85;
   const DEMON_LORD_JUMP_DURATION = 0.58;
   const DEMON_LORD_JUMP_MIN_DISTANCE = 220;
   const DEMON_LORD_JUMP_MAX_DISTANCE = 400;
@@ -1879,6 +1879,7 @@
       this.jumpStartY = y;
       this.jumpTargetX = x;
       this.jumpTargetY = y;
+      this.forceDemonLordJump = false;
       if (this.type === "tormentorFlame") {
         this.ignoreEntityCollisions = true;
       }
@@ -2453,6 +2454,10 @@
       if (projectile) {
         projectile.hitEntities.add(this);
         this.updateFacing(dir.x, dir.y);
+        if (this.type === "miniDemonLord") {
+          this.forceDemonLordJump = true;
+          this.jumpCooldown = 0;
+        }
         if (triggerAttackAnimation) {
           this.state = "attack";
           this.animator.play("attack", { restart: true });
@@ -2545,12 +2550,13 @@
     tryStartDemonLordJump(dx, dy, distance, targetRadius = 0) {
       if (this.type !== "miniDemonLord") return false;
       if (this.state === "jump" || this.state === "attack" || this.state === "hurt") return false;
-      if ((this.jumpCooldown || 0) > 0) return false;
+      const forcedJump = this.forceDemonLordJump === true;
+      if (!forcedJump && (this.jumpCooldown || 0) > 0) return false;
       const desiredRange = this.desiredRange || 360;
       const rangeBuffer = Math.max(0, targetRadius * 0.5);
       const tooClose = distance < desiredRange * 0.72 + rangeBuffer;
       const randomReposition = distance < desiredRange * 1.05 && Math.random() < 0.004;
-      if (!tooClose && !randomReposition) return false;
+      if (!forcedJump && !tooClose && !randomReposition) return false;
       const target = this.chooseDemonLordJumpTarget(dx, dy);
       if (!target) return false;
       this.jumpStartX = this.x;
@@ -2561,6 +2567,7 @@
       this.jumpTimer = 0;
       this.jumpDuration = DEMON_LORD_JUMP_DURATION;
       this.jumpCooldown = DEMON_LORD_JUMP_COOLDOWN;
+      this.forceDemonLordJump = false;
       this.state = "jump";
       if (this.animator.clips?.jump) {
         this.animator.play("jump", { restart: true, loop: false });
