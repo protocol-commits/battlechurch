@@ -57,7 +57,7 @@
     "health": 10,
     "maxHealth": 220,
     "damage": 5,
-    "speed": 125,
+    "speed": 70,
     "baseRadius": 15,
     "scale": 3.4,
     "attackBonus": 34,
@@ -80,7 +80,8 @@
       "height": 14,
       "offsetX": 0,
       "offsetY": 0
-    }
+    },
+    "damageClass": "armored"
   },
   "armoredOrc": {
     "displayName": "Armored Orc",
@@ -256,7 +257,7 @@
     "score": 45,
     "ranged": true,
     "projectileType": "miniTrident",
-    "preferEdges": false,
+    "preferEdges": true,
     "desiredRange": 360,
     "projectileCooldown": 1.6,
     "bossTier": 0,
@@ -396,8 +397,8 @@
     "score": 240,
     "ranged": true,
     "projectileType": null,
-    "preferEdges": true,
-    "desiredRange": 360,
+    "preferEdges": false,
+    "desiredRange": 130,
     "projectileCooldown": 1.8,
     "bossTier": 2,
     "preferredTarget": "player",
@@ -430,18 +431,17 @@
     "attackBonus": 40,
     "cooldown": 1.5,
     "score": 320,
-    "ranged": true,
-    "projectileType": "fire",
-    "preferEdges": true,
-    "desiredRange": 360,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 140,
     "projectileCooldown": 1.5,
     "bossTier": 3,
     "preferredTarget": "player",
     "specialBehavior": [
       "boss",
       "heavy",
-      "closestAny",
-      "ranged"
+      "closestAny"
     ],
     "damageClass": "tank",
     "hitbox": {
@@ -450,7 +450,7 @@
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 7,
+    "attackHitFrame": 4,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,
