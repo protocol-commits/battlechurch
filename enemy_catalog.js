@@ -431,8 +431,8 @@
     "attackBonus": 40,
     "cooldown": 1.5,
     "score": 320,
-    "ranged": false,
-    "projectileType": null,
+    "ranged": true,
+    "projectileType": "fire",
     "preferEdges": false,
     "desiredRange": 140,
     "projectileCooldown": 1.5,
@@ -441,7 +441,8 @@
     "specialBehavior": [
       "boss",
       "heavy",
-      "closestAny"
+      "closestAny",
+      "ranged"
     ],
     "damageClass": "tank",
     "hitbox": {
