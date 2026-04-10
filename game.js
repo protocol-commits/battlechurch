@@ -8053,6 +8053,9 @@ function getSpearTargetCenter(target) {
   if (target === activeBoss) {
     return { x: activeBoss.x, y: activeBoss.y, radius: activeBoss.radius || 0 };
   }
+  if (target instanceof Projectile || (target && target.visualOnly !== undefined && target.friendly !== undefined)) {
+    return { x: target.x || 0, y: target.y || 0, radius: target.radius || 0 };
+  }
   const center = getEnemyHitboxCenter(target);
   return { x: center.x, y: center.y, radius: getEnemyHitboxRadius(target) };
 }
@@ -8060,6 +8063,10 @@ function getSpearTargetCenter(target) {
 function hasSpearTargets() {
   const hasEnemy = enemies.some((enemy) => enemy && !enemy.dead && enemy.state !== "death");
   if (hasEnemy) return true;
+  const hasProjectile = projectiles.some(
+    (projectile) => projectile && !projectile.dead && !projectile.friendly && !projectile.visualOnly,
+  );
+  if (hasProjectile) return true;
   return Boolean(activeBoss && !activeBoss.dead && !activeBoss.defeated);
 }
 
@@ -8071,6 +8078,12 @@ function getSingleSpearTarget() {
     count += 1;
     if (count > 1) return;
     target = enemy;
+  });
+  projectiles.forEach((projectile) => {
+    if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+    count += 1;
+    if (count > 1) return;
+    target = projectile;
   });
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
     count += 1;
@@ -8101,6 +8114,22 @@ function findNearestSpearTarget(fromX, fromY, options = {}) {
     if (dist < bestDist) {
       bestDist = dist;
       best = enemy;
+    }
+  });
+  projectiles.forEach((projectile) => {
+    if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+    if (exclude && projectile === exclude) return;
+    if (minDistanceFrom) {
+      const dxFrom = (projectile.x || 0) - minDistanceFrom.x;
+      const dyFrom = (projectile.y || 0) - minDistanceFrom.y;
+      if (Math.hypot(dxFrom, dyFrom) < minDistance) return;
+    }
+    const dx = (projectile.x || 0) - fromX;
+    const dy = (projectile.y || 0) - fromY;
+    const dist = dx * dx + dy * dy;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = projectile;
     }
   });
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated && exclude !== activeBoss) {
@@ -8153,6 +8182,15 @@ function collectSentryBeamHits(state, originX, originY, dirX, dirY, maxDistance)
     const center = getEnemyHitboxCenter(enemy);
     const radius = getEnemyHitboxRadius(enemy) * 0.6;
     checkTarget(enemy, center, radius, true);
+  });
+  projectiles.forEach((projectile) => {
+    if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+    checkTarget(
+      projectile,
+      { x: projectile.x || 0, y: projectile.y || 0 },
+      Math.max(6, (projectile.radius || 0) * 0.9),
+      false,
+    );
   });
 
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
@@ -8421,6 +8459,13 @@ function applySpearHit(state, target, hitX, hitY) {
       skipImpactEffect: true,
     });
     registerComboHit(activeBoss, state.damage);
+  } else if (target instanceof Projectile || (target && target.visualOnly !== undefined && target.friendly !== undefined)) {
+    const destroyed = target.maxDurability > 0
+      ? applyProjectileDurabilityDamage(target, state.damage)
+      : ((target.dead = true), true);
+    if (destroyed) {
+      spawnImpactEffect(hitX, hitY);
+    }
   } else {
     target.takeDamage(state.damage, { damageType: "projectile" });
     registerComboHit(target, state.damage);
@@ -8449,6 +8494,14 @@ function applySpearPassThroughHits(state, fromX, fromY, toX, toY, exclude) {
     const radius = state.hitRadius + getEnemyHitboxRadius(enemy) * 0.6;
     if (hitTest(center.x, center.y, radius)) {
       applySpearHit(state, enemy, center.x, center.y);
+    }
+  });
+  projectiles.forEach((projectile) => {
+    if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+    if (exclude && (projectile === exclude.target || projectile === exclude.last)) return;
+    const radius = state.hitRadius + Math.max(6, (projectile.radius || 0) * 0.9);
+    if (hitTest(projectile.x || 0, projectile.y || 0, radius)) {
+      applySpearHit(state, projectile, projectile.x || 0, projectile.y || 0);
     }
   });
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
