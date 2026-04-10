@@ -114,11 +114,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniDemonLord",
-                          "count": 2
-                        },
-                        {
-                          "enemy": "miniImp",
-                          "count": 100
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -126,20 +122,20 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": false,
+                      "allKill": true,
                       "duration": 4
                     },
                     {
                       "index": 2,
                       "entries": [
                         {
-                          "enemy": "miniImp",
-                          "count": 150
+                          "enemy": "orc",
+                          "count": 100
                         }
                       ],
                       "weights": {},
                       "mode": "explicit",
-                      "allKill": false,
+                      "allKill": true,
                       "duration": 4,
                       "delaysWeighted": {},
                       "delaysExplicit": {},
@@ -182,7 +178,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "orc",
-                          "count": 1
+                          "count": 20
                         },
                         {
                           "enemy": "miniHighDemon",
@@ -214,6 +210,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 10
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 100
                         }
                       ],
                       "weights": {},
