@@ -2408,8 +2408,8 @@
       const setAttackTimer = options?.setAttackTimer !== false;
       const dir = normalizeVector(dx, dy);
       const offset = this.radius * 0.6;
-      const originX = this.x + dir.x * offset;
-      const originY = this.y + dir.y * offset;
+      let originX = this.x + dir.x * offset;
+      let originY = this.y + dir.y * offset;
       const projectileConfig = typeof PROJECTILE_CONFIG === "object" && PROJECTILE_CONFIG !== null
         ? PROJECTILE_CONFIG
         : {};
@@ -2425,6 +2425,8 @@
         source: this,
       };
       if (this.type === "miniDemonLord" && this.projectileType === "fire") {
+        originX = this.x;
+        originY = this.y - Math.max(this.radius * 1.45, 26) + 25;
         spawnOverrides.damage = 5;
         spawnOverrides.speed *= 0.55;
         spawnOverrides.durabilityHealth = 20;
@@ -2449,6 +2451,17 @@
         spawnOverrides.speed = (baseConfig.speed || spawnOverrides.speed) * speedScale;
         spawnOverrides.radius = baseConfig.radius || spawnOverrides.radius;
         spawnOverrides.scale = baseConfig.scale || spawnOverrides.scale;
+      }
+      if (this.type === "miniDemonLord" && this.projectileType === "fire") {
+        const demonLordFrames = Array.isArray(projectileFrames.demonLordFireball)
+          ? projectileFrames.demonLordFireball.slice(7)
+          : null;
+        if (demonLordFrames && demonLordFrames.length) {
+          spawnOverrides.frames = demonLordFrames;
+          spawnOverrides.frameDuration = 0.055;
+          spawnOverrides.loopFrames = true;
+          spawnOverrides.scale = Math.max(Number(baseConfig.scale) || 0, 1.3);
+        }
       }
       const projectile = spawnProjectile(spawnType, originX, originY, dir.x, dir.y, spawnOverrides);
       if (projectile) {
@@ -2869,6 +2882,45 @@
         ctx.restore();
       }
       this.animator.draw(ctx, this.x, drawY, drawOptions);
+      if (
+        this.type === "miniDemonLord" &&
+        this.state === "attack" &&
+        this.projectileType === "fire" &&
+        this.animator?.currentName === "attack"
+      ) {
+        const chargeFrames = Array.isArray(projectileFrames.demonLordFireball)
+          ? projectileFrames.demonLordFireball
+          : null;
+        const attackFrame =
+          typeof this.animator?.frameIndex === "number" ? this.animator.frameIndex + 1 : 1;
+        if (chargeFrames && chargeFrames.length && attackFrame >= 1 && attackFrame <= 7) {
+          const chargeFrame = chargeFrames[Math.min(chargeFrames.length - 1, attackFrame - 1)];
+          if (chargeFrame) {
+            const progress = attackFrame / 7;
+            const growth = Math.pow(progress, 1.9);
+            const orbX = this.x;
+            const orbY = drawY - Math.max(this.radius * 1.7, 30) + 25;
+            const minOrbSize = Math.max(6, this.radius * 0.22);
+            const maxOrbSize = Math.max(this.radius * 1.9, chargeFrame.width * 1.85);
+            const orbSize = minOrbSize + (maxOrbSize - minOrbSize) * growth;
+            if (typeof drawProjectileGlow === "function") {
+              ctx.save();
+              ctx.translate(orbX, orbY);
+              drawProjectileGlow(orbSize * 1.45, orbSize * 1.45, {
+                radiusScale: 0.82 + growth * 0.48,
+                baseAlpha: 0.06 + growth * 0.2,
+                pulseScale: 0.08 + growth * 0.2,
+              });
+              ctx.restore();
+            }
+            ctx.save();
+            ctx.translate(orbX, orbY);
+            ctx.globalAlpha = 0.28 + growth * 0.72;
+            ctx.drawImage(chargeFrame, -orbSize / 2, -orbSize / 2, orbSize, orbSize);
+            ctx.restore();
+          }
+        }
+      }
       const alwaysShow =
         typeof devTools !== "undefined" && Boolean(devTools.alwaysShowEnemyHP);
       const forceShow = Boolean(this.forceShowHpBar);

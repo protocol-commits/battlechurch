@@ -451,7 +451,7 @@
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 4,
+    "attackHitFrame": 8,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,
