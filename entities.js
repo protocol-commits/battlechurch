@@ -2516,20 +2516,21 @@
         x: -fallbackToward.y * lateralSign,
         y: fallbackToward.x * lateralSign,
       };
-      const distance = randomInRange(
-        DEMON_LORD_JUMP_MIN_DISTANCE,
-        DEMON_LORD_JUMP_MAX_DISTANCE,
+      const targetX = this.x + targetDx;
+      const targetY = this.y + targetDy;
+      const orbitDistance = randomInRange(
+        Math.max(150, DEMON_LORD_JUMP_MIN_DISTANCE * 0.72),
+        Math.max(210, DEMON_LORD_JUMP_MAX_DISTANCE * 0.68),
       );
-      const forwardAmount = randomInRange(0.15, 0.45);
-      const retreatAmount = randomInRange(0.05, 0.18);
-      const lateralAmount = randomInRange(0.6, 1.15);
-      const jumpDir = normalizeVector(
-        fallbackToward.x * forwardAmount - fallbackToward.x * retreatAmount + lateral.x * lateralAmount,
-        fallbackToward.y * forwardAmount - fallbackToward.y * retreatAmount + lateral.y * lateralAmount,
+      const retreatAmount = randomInRange(0.55, 0.9);
+      const lateralAmount = randomInRange(0.75, 1.25);
+      const orbitDir = normalizeVector(
+        -fallbackToward.x * retreatAmount + lateral.x * lateralAmount,
+        -fallbackToward.y * retreatAmount + lateral.y * lateralAmount,
       );
       const target = {
-        x: this.x + jumpDir.x * distance,
-        y: this.y + jumpDir.y * distance,
+        x: targetX + orbitDir.x * orbitDistance,
+        y: targetY + orbitDir.y * orbitDistance,
       };
       const radius = Math.max(this.radius || 0, 12);
       const lateralMargin = Math.max(radius, 16);
@@ -2583,6 +2584,7 @@
       const rangeBuffer = Math.max(0, targetRadius * 0.5);
       const minDistance = desiredRange * 0.55 + rangeBuffer;
       const maxDistance = desiredRange * 1.25 + rangeBuffer;
+      const isDemonLord = this.type === "miniDemonLord";
       let moveX = 0;
       let moveY = 0;
 
@@ -2612,6 +2614,24 @@
         moveY += dy / distance;
       }
 
+      if (isDemonLord && distance > 1) {
+        const lateralSign =
+          Number.isFinite(this.jumpCurveSign) && this.jumpCurveSign !== 0
+            ? this.jumpCurveSign
+            : (Math.random() < 0.5 ? -1 : 1);
+        const lateralX = (-dy / distance) * lateralSign;
+        const lateralY = (dx / distance) * lateralSign;
+        moveX += lateralX * 1.05;
+        moveY += lateralY * 1.05;
+        if (distance > desiredRange * 0.9 + rangeBuffer) {
+          moveX += (dx / distance) * 0.7;
+          moveY += (dy / distance) * 0.7;
+        } else if (distance < desiredRange * 0.68 + rangeBuffer) {
+          moveX -= (dx / distance) * 0.5;
+          moveY -= (dy / distance) * 0.5;
+        }
+      }
+
       if (moveX !== 0 || moveY !== 0) {
         const moveDir = normalizeVector(moveX, moveY);
         this.x += moveDir.x * this.config.speed * dt;
@@ -2627,13 +2647,19 @@
         }
       } else if (this.state !== "attack" && this.state !== "hurt") {
         this.updateFacing(dx, dy);
-        if (this.state !== "idle") {
+        if (isDemonLord) {
+          if (this.state !== "walk") {
+            this.state = "walk";
+            this.animator.play("walk");
+          }
+        } else if (this.state !== "idle") {
           this.state = "idle";
           this.animator.play("idle");
         }
       }
 
-      if (this.attackTimer <= 0 && distance <= desiredRange * 1.1 + rangeBuffer) {
+      const attackRangeMultiplier = isDemonLord ? 1.35 : 1.1;
+      if (this.attackTimer <= 0 && distance <= desiredRange * attackRangeMultiplier + rangeBuffer) {
         const attackHitFrame =
           Number.isFinite(this.config?.attackHitFrame) && this.config.attackHitFrame > 0
             ? this.config.attackHitFrame
