@@ -8061,7 +8061,7 @@ function getSpearTargetCenter(target) {
 }
 
 function hasSpearTargets() {
-  const hasEnemy = enemies.some((enemy) => enemy && !enemy.dead && enemy.state !== "death");
+  const hasEnemy = enemies.some((enemy) => isEnemyTargetableForAutoAim(enemy));
   if (hasEnemy) return true;
   const hasProjectile = projectiles.some(
     (projectile) => projectile && !projectile.dead && !projectile.friendly && !projectile.visualOnly,
@@ -8074,7 +8074,7 @@ function getSingleSpearTarget() {
   let target = null;
   let count = 0;
   enemies.forEach((enemy) => {
-    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     count += 1;
     if (count > 1) return;
     target = enemy;
@@ -8100,7 +8100,7 @@ function findNearestSpearTarget(fromX, fromY, options = {}) {
   let best = null;
   let bestDist = Infinity;
   enemies.forEach((enemy) => {
-    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     if (exclude && enemy === exclude) return;
     if (minDistanceFrom) {
       const dxFrom = getEnemyHitboxCenter(enemy).x - minDistanceFrom.x;
@@ -8178,7 +8178,7 @@ function collectSentryBeamHits(state, originX, originY, dirX, dirY, maxDistance)
   };
 
   enemies.forEach((enemy) => {
-    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     const center = getEnemyHitboxCenter(enemy);
     const radius = getEnemyHitboxRadius(enemy) * 0.6;
     checkTarget(enemy, center, radius, true);
@@ -9413,7 +9413,7 @@ function updateAimAssist() {
 
   const candidates = [];
   enemies.forEach((enemy) => {
-    if (enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     candidates.push({ entity: enemy, kind: "enemy" });
   });
   projectiles.forEach((projectile) => {
@@ -10569,7 +10569,7 @@ class CozyNpc {
     let bestDist = Infinity;
     const maxRange = typeof NPC_ARROW_RANGE_DEFAULT === 'number' ? NPC_ARROW_RANGE_DEFAULT : 520;
     for (const e of enemies) {
-      if (!e || e.dead || e.state === 'death') continue;
+      if (!isEnemyTargetableForAutoAim(e)) continue;
       const dx = e.x - this.x;
       const dy = e.y - this.y;
       const d = Math.hypot(dx, dy);
@@ -11266,6 +11266,12 @@ function getEnemyHitboxCenter(enemy) {
     x: (enemy?.x || 0) + offsetX,
     y: (enemy?.y || 0) + offsetY,
   };
+}
+
+function isEnemyTargetableForAutoAim(enemy) {
+  if (!enemy || enemy.dead || enemy.state === "death") return false;
+  if (enemy.type === "miniDemonFireKeeper" && enemy.fireKeeperPhase === "hidden") return false;
+  return true;
 }
 
 function spawnEnemyHitEffect(enemy, hitX = null, hitY = null, options = {}) {
@@ -14221,7 +14227,7 @@ function getCongregationVolleyDirectionForNpc(npc, clusterCenter, playerAim) {
   };
 
   enemies.forEach((enemy) => {
-    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     const center = getEnemyHitboxCenter(enemy);
     evaluate(center.x, center.y);
   });
@@ -14266,7 +14272,7 @@ function getCongregationPathCommandTarget(playerEntity = player) {
     }
   };
   enemies.forEach((enemy) => {
-    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     const center = getEnemyHitboxCenter(enemy);
     evaluate(center.x, center.y);
   });
@@ -14317,7 +14323,7 @@ function getCongregationPathDirectionForNpc(npc, volley, fallbackAim) {
   };
 
   enemies.forEach((enemy) => {
-    if (!enemy || enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     const center = getEnemyHitboxCenter(enemy);
     evaluate(center.x, center.y);
   });
