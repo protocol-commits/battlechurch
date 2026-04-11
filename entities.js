@@ -160,6 +160,11 @@
   const DEMON_LORD_JUMP_MIN_DISTANCE = 220;
   const DEMON_LORD_JUMP_MAX_DISTANCE = 400;
   const DEMON_LORD_JUMP_ARC_LIFT = 22;
+  const FIRE_KEEPER_HIDDEN_DURATION = 0.95;
+  const FIRE_KEEPER_MATERIALIZE_DURATION = 0.24;
+  const FIRE_KEEPER_PRE_ATTACK_HOLD = 0.8;
+  const FIRE_KEEPER_POST_ATTACK_HOLD = 1.15;
+  const FIRE_KEEPER_DEMATERIALIZE_DURATION = 0.62;
 
   const getKnockbackArcLift = (remainingTime, totalDuration, maxLift = KNOCKBACK_VISUAL_LIFT) => {
     const duration = Math.max(0.001, totalDuration || 0);
@@ -1880,6 +1885,22 @@
       this.jumpTargetX = x;
       this.jumpTargetY = y;
       this.forceDemonLordJump = false;
+      this.fireKeeperPhase = null;
+      this.fireKeeperPhaseTimer = 0;
+      this.fireKeeperVisualAlpha = 1;
+      this.fireKeeperHasFired = false;
+      this.fireKeeperPendingReposition = false;
+      this.fireKeeperSpawnPuffPlayed = false;
+      if (this.type === "miniDemonFireKeeper") {
+        this.fireKeeperPhase = "hidden";
+        this.fireKeeperPhaseTimer = FIRE_KEEPER_HIDDEN_DURATION * (0.85 + Math.random() * 0.35);
+        this.fireKeeperVisualAlpha = 0;
+        this.touchCooldown = Infinity;
+        if (this.animator?.clips?.idle) {
+          this.state = "idle";
+          this.animator.play("idle");
+        }
+      }
       if (this.type === "tormentorFlame") {
         this.ignoreEntityCollisions = true;
       }
@@ -2070,6 +2091,11 @@
       const targetHitboxRect = getTargetHitboxRect(target);
 
       this.attackTimer = Math.max(0, this.attackTimer - dt);
+
+      if (this.type === "miniDemonFireKeeper") {
+        this.updateFireKeeperBehavior(dt, target, dx, dy, distance, targetRadius);
+        return;
+      }
 
       if (this.state === "attack") {
         if (this._attackLock && this._attackLock.target) {
@@ -2463,6 +2489,18 @@
           spawnOverrides.scale = Math.max(Number(baseConfig.scale) || 0, 1.3);
         }
       }
+      if (this.type === "miniDemonFireKeeper" && this.projectileType === "faith_cannon") {
+        const fireKeeperFrames = Array.isArray(projectileFrames.faith_cannon)
+          ? projectileFrames.faith_cannon
+          : null;
+        if (fireKeeperFrames && fireKeeperFrames.length) {
+          spawnOverrides.frames = fireKeeperFrames;
+          spawnOverrides.frameDuration = 0.06;
+          spawnOverrides.loopFrames = false;
+          spawnOverrides.scale = Math.max(Number(baseConfig.scale) || 0, 1.45);
+        }
+        spawnOverrides.speed *= 0.82;
+      }
       const projectile = spawnProjectile(spawnType, originX, originY, dir.x, dir.y, spawnOverrides);
       if (projectile) {
         projectile.hitEntities.add(this);
@@ -2470,6 +2508,9 @@
         if (this.type === "miniDemonLord") {
           this.forceDemonLordJump = true;
           this.jumpCooldown = 0;
+        }
+        if (this.type === "miniDemonFireKeeper") {
+          this.fireKeeperHasFired = true;
         }
         if (triggerAttackAnimation) {
           this.state = "attack";
@@ -2688,8 +2729,149 @@
       }
     }
 
+    updateFireKeeperBehavior(dt, target, dx, dy, distance, targetRadius = 0) {
+      const phase = this.fireKeeperPhase || "hidden";
+      this.fireKeeperPhaseTimer = Math.max(0, (this.fireKeeperPhaseTimer || 0) - dt);
+      this.updateFacing(dx, dy);
+
+      const setIdle = () => {
+        if (this.animator?.clips?.idle) {
+          if (this.state !== "idle") {
+            this.state = "idle";
+            this.animator.play("idle");
+          }
+        } else if (this.state !== "walk") {
+          this.state = "walk";
+          this.animator.play("walk");
+        }
+      };
+
+      if (phase === "hidden") {
+        this.fireKeeperVisualAlpha = 0;
+        this.touchCooldown = Infinity;
+        this.attackHitApplied = false;
+        this.fireKeeperHasFired = false;
+        setIdle();
+        this.animator.update(dt);
+        if (this.fireKeeperPhaseTimer <= 0) {
+          const nextPosition = this.preferEdges ? this.chooseEdgePosition() : { x: this.x, y: this.y };
+          if (nextPosition) {
+            this.x = nextPosition.x;
+            this.y = nextPosition.y;
+            if (typeof clampEntityToBounds === "function") clampEntityToBounds(this);
+          }
+          this.fireKeeperSpawnPuffPlayed = false;
+          this.fireKeeperPhase = "materialize";
+          this.fireKeeperPhaseTimer = FIRE_KEEPER_MATERIALIZE_DURATION;
+        }
+        return;
+      }
+
+      if (phase === "materialize") {
+        if (!this.fireKeeperSpawnPuffPlayed && typeof spawnPuffEffect === "function") {
+          spawnPuffEffect(
+            this.x,
+            this.y - Math.max(6, this.radius * 0.3),
+            Math.max(30, this.radius * 3.2),
+            { tintColor: "#f4d35e", tintAlpha: 0.72 },
+          );
+          this.fireKeeperSpawnPuffPlayed = true;
+        }
+        const progress = 1 - this.fireKeeperPhaseTimer / FIRE_KEEPER_MATERIALIZE_DURATION;
+        const revealProgress = Math.max(0, (progress - 0.35) / 0.65);
+        this.fireKeeperVisualAlpha = Math.max(0, Math.min(1, Math.pow(revealProgress, 0.8)));
+        this.touchCooldown = 0;
+        setIdle();
+        this.animator.update(dt);
+        if (this.fireKeeperPhaseTimer <= 0) {
+          this.fireKeeperPhase = "casting";
+          this.fireKeeperPhaseTimer = FIRE_KEEPER_PRE_ATTACK_HOLD;
+          this.attackTimer = 0;
+        }
+        return;
+      }
+
+      if (this.state === "attack") {
+        this.fireKeeperVisualAlpha = 1;
+        this.touchCooldown = 0;
+        this.animator.update(dt);
+        const attackHitFrame =
+          Number.isFinite(this.config?.attackHitFrame) && this.config.attackHitFrame > 0
+            ? this.config.attackHitFrame
+            : 5;
+        if (!this.attackHitApplied) {
+          const currentFrame =
+            typeof this.animator?.frameIndex === "number" ? this.animator.frameIndex : 0;
+          if (currentFrame + 1 >= attackHitFrame) {
+            this.fireRangedProjectile(dx, dy, {
+              triggerAttackAnimation: false,
+              setAttackTimer: false,
+            });
+            this.attackHitApplied = true;
+          }
+        }
+        if (this.animator.isFinished()) {
+          this.attackTimer = this.projectileCooldown;
+          this.attackHitApplied = false;
+          this.fireKeeperPhase = "linger";
+          this.fireKeeperPhaseTimer = FIRE_KEEPER_POST_ATTACK_HOLD;
+          setIdle();
+        }
+        return;
+      }
+
+      if (phase === "casting") {
+        this.fireKeeperVisualAlpha = 1;
+        this.touchCooldown = 0;
+        setIdle();
+        this.animator.update(dt);
+        const rangeBuffer = Math.max(0, targetRadius * 0.5);
+        const fireRange = (this.desiredRange || 360) * 1.2 + rangeBuffer;
+        if (distance <= fireRange && this.attackTimer <= 0) {
+          this.state = "attack";
+          this.animator.play("attack", { restart: true });
+          this.attackHitApplied = false;
+          this.fireKeeperHasFired = false;
+          return;
+        }
+        if (this.fireKeeperPhaseTimer <= 0) {
+          this.fireKeeperPhase = "dematerialize";
+          this.fireKeeperPhaseTimer = FIRE_KEEPER_DEMATERIALIZE_DURATION;
+        }
+        return;
+      }
+
+      if (phase === "linger") {
+        this.fireKeeperVisualAlpha = 1;
+        this.touchCooldown = 0;
+        setIdle();
+        this.animator.update(dt);
+        if (this.fireKeeperPhaseTimer <= 0) {
+          this.fireKeeperPhase = "dematerialize";
+          this.fireKeeperPhaseTimer = FIRE_KEEPER_DEMATERIALIZE_DURATION;
+        }
+        return;
+      }
+
+      if (phase === "dematerialize") {
+        const progress = this.fireKeeperPhaseTimer / FIRE_KEEPER_DEMATERIALIZE_DURATION;
+        const eased = Math.max(0, Math.min(1, Math.pow(progress, 1.65)));
+        this.fireKeeperVisualAlpha = eased;
+        this.touchCooldown = 0;
+        setIdle();
+        this.animator.update(dt);
+        if (this.fireKeeperPhaseTimer <= 0) {
+          this.fireKeeperPhase = "hidden";
+          this.fireKeeperPhaseTimer = FIRE_KEEPER_HIDDEN_DURATION;
+          this.fireKeeperVisualAlpha = 0;
+          this.touchCooldown = Infinity;
+        }
+      }
+    }
+
     takeDamage(amount, options = {}) {
       if (this.state === "death") return;
+      if (this.type === "miniDemonFireKeeper" && this.fireKeeperPhase === "hidden") return;
       if (
         this.type === "tormentorFlame" &&
         this._orbiting &&
@@ -2854,6 +3036,9 @@
       }
       if (typeof this.config?.blur === "number" && this.config.blur > 0) {
         drawOptions.blur = this.config.blur;
+      }
+      if (this.type === "miniDemonFireKeeper") {
+        drawOptions.alpha = Math.max(0, Math.min(1, (drawOptions.alpha ?? 1) * (this.fireKeeperVisualAlpha ?? 1)));
       }
       const tintColor = this.config?.tintColor;
       if (tintColor) {

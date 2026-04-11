@@ -27,7 +27,7 @@
   }
 
   class Effect {
-    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, loop = false } = {}) {
+    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, loop = false, tintColor = null, tintAlpha = 0.65 } = {}) {
       this.frames = Array.isArray(frames) ? frames : [];
       this.x = x;
       this.y = y;
@@ -37,6 +37,29 @@
       this.frameIndex = 0;
       this.dead = false;
       this.loop = Boolean(loop);
+      this.tintColor = tintColor;
+      this.tintAlpha = Math.max(0, Math.min(1, tintAlpha));
+      this.tintedFrames = null;
+    }
+
+    getFrame(frameIndex) {
+      const frame = this.frames[frameIndex];
+      if (!frame) return null;
+      if (!this.tintColor) return frame;
+      if (!this.tintedFrames) this.tintedFrames = [];
+      if (this.tintedFrames[frameIndex]) return this.tintedFrames[frameIndex];
+      const canvas = document.createElement("canvas");
+      canvas.width = frame.width;
+      canvas.height = frame.height;
+      const frameCtx = canvas.getContext("2d");
+      if (!frameCtx) return frame;
+      frameCtx.drawImage(frame, 0, 0);
+      frameCtx.globalCompositeOperation = "source-atop";
+      frameCtx.globalAlpha = this.tintAlpha;
+      frameCtx.fillStyle = this.tintColor;
+      frameCtx.fillRect(0, 0, canvas.width, canvas.height);
+      this.tintedFrames[frameIndex] = canvas;
+      return canvas;
     }
 
     update(dt) {
@@ -58,7 +81,7 @@
 
     draw() {
       if (this.dead) return;
-      const frame = this.frames[this.frameIndex];
+      const frame = this.getFrame(this.frameIndex);
       if (!frame) return;
       const ctx = resolveContext();
       if (!ctx) return;
@@ -264,7 +287,7 @@
 
 
 
-  function spawnPuffEffect(x, y, radius = null) {
+  function spawnPuffEffect(x, y, radius = null, options = {}) {
     const frames = resolveAssets()?.effects?.puff;
     if (!frames || !frames.length) return null;
     let scale = 1.4;
@@ -272,7 +295,12 @@
       const baseSize = Math.max(frames[0].width, frames[0].height) || 1;
       scale = (radius * 1.6) / baseSize;
     }
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale });
+    return spawnEffectFromFrames(frames, x, y, {
+      frameDuration: 0.045,
+      scale,
+      tintColor: options?.tintColor || null,
+      tintAlpha: options?.tintAlpha ?? 0.65,
+    });
   }
 
   function spawnSmokeEffect(x, y, scale = 1) {

@@ -504,12 +504,12 @@
     "damage": 10,
     "speed": 70,
     "baseRadius": 12,
-    "scale": 4,
+    "scale": 6,
     "attackBonus": 24,
     "cooldown": 1.6,
     "score": 70,
-    "ranged": false,
-    "projectileType": "miniTrident",
+    "ranged": true,
+    "projectileType": "faith_cannon",
     "preferEdges": true,
     "desiredRange": 420,
     "projectileCooldown": 2.4,
@@ -517,8 +517,11 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "closestAny"
+      "closestAny",
+      "ranged",
+      "fireKeeperPhase"
     ],
+    "attackHitFrame": 5,
     "swarmSpacing": 0.1,
     "hitbox": {
       "width": 18,
