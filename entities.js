@@ -174,7 +174,17 @@
   const DEMONESS_DRAIN_ATTACK_HIT_FRAME = 4;
   const DEMONESS_LASSO_BREAK_COOLDOWN = 3.0;
 
-  const drawDemonessBindEffect = (enemy, npc, mode = "drag") => {
+  const drawDemonessBindEffect = (
+    enemy,
+    npc,
+    mode = "drag",
+    {
+      drawTether = true,
+      drawBackLoop = true,
+      drawFrontLoop = true,
+      drawPulse = true,
+    } = {},
+  ) => {
     if (!ctx || !enemy || !npc) return;
     const now =
       typeof performance !== "undefined" && typeof performance.now === "function"
@@ -229,78 +239,94 @@
     ctx.save();
     ctx.lineCap = "round";
 
-    ctx.strokeStyle = "rgba(90, 18, 10, 0.42)";
-    ctx.lineWidth = Math.max(5, enemy.radius * 0.22);
-    ctx.beginPath();
-    ctx.moveTo(enemyHandX, enemyHandY);
-    ctx.quadraticCurveTo(midX, midY, landingX, landingY);
-    ctx.stroke();
+    if (drawTether) {
+      ctx.strokeStyle = "rgba(90, 18, 10, 0.42)";
+      ctx.lineWidth = Math.max(5, enemy.radius * 0.22);
+      ctx.beginPath();
+      ctx.moveTo(enemyHandX, enemyHandY);
+      ctx.quadraticCurveTo(midX, midY, landingX, landingY);
+      ctx.stroke();
 
-    const coreGradient = ctx.createLinearGradient(enemyHandX, enemyHandY, landingX, landingY);
-    coreGradient.addColorStop(0, mode === "drain" ? "rgba(255, 242, 160, 0.95)" : "rgba(255, 195, 110, 0.92)");
-    coreGradient.addColorStop(0.55, "rgba(255, 122, 52, 0.88)");
-    coreGradient.addColorStop(1, "rgba(255, 238, 150, 0.9)");
-    ctx.strokeStyle = coreGradient;
-    ctx.shadowColor = mode === "drain" ? "rgba(255, 220, 110, 0.7)" : "rgba(255, 136, 64, 0.65)";
-    ctx.shadowBlur = mode === "drain" ? 16 : 12;
-    ctx.lineWidth = Math.max(2.2, enemy.radius * 0.09);
-    ctx.beginPath();
-    ctx.moveTo(enemyHandX, enemyHandY);
-    ctx.quadraticCurveTo(midX, midY, landingX, landingY);
-    ctx.stroke();
+      const coreGradient = ctx.createLinearGradient(enemyHandX, enemyHandY, landingX, landingY);
+      coreGradient.addColorStop(0, mode === "drain" ? "rgba(255, 242, 160, 0.95)" : "rgba(255, 195, 110, 0.92)");
+      coreGradient.addColorStop(0.55, "rgba(255, 122, 52, 0.88)");
+      coreGradient.addColorStop(1, "rgba(255, 238, 150, 0.9)");
+      ctx.strokeStyle = coreGradient;
+      ctx.shadowColor = mode === "drain" ? "rgba(255, 220, 110, 0.7)" : "rgba(255, 136, 64, 0.65)";
+      ctx.shadowBlur = mode === "drain" ? 16 : 12;
+      ctx.lineWidth = Math.max(2.2, enemy.radius * 0.09);
+      ctx.beginPath();
+      ctx.moveTo(enemyHandX, enemyHandY);
+      ctx.quadraticCurveTo(midX, midY, landingX, landingY);
+      ctx.stroke();
 
-    ctx.strokeStyle = "rgba(255, 242, 190, 0.42)";
-    ctx.lineWidth = Math.max(0.9, enemy.radius * 0.035);
-    ctx.beginPath();
-    ctx.moveTo(enemyHandX + px * 2.2, enemyHandY + py * 2.2);
-    ctx.quadraticCurveTo(midX + px * 3.5, midY + py * 3.5, landingX + px * 1.2, landingY + py * 1.2);
-    ctx.stroke();
+      ctx.strokeStyle = "rgba(255, 242, 190, 0.42)";
+      ctx.lineWidth = Math.max(0.9, enemy.radius * 0.035);
+      ctx.beginPath();
+      ctx.moveTo(enemyHandX + px * 2.2, enemyHandY + py * 2.2);
+      ctx.quadraticCurveTo(midX + px * 3.5, midY + py * 3.5, landingX + px * 1.2, landingY + py * 1.2);
+      ctx.stroke();
+    }
 
-    const pulsePhase = 1 - ((t * (mode === "drain" ? 1.7 : 1.25)) % 1);
-    const pulsePoint = sampleCurvePoint(pulsePhase);
-    const pulseTail = sampleCurvePoint(Math.max(0, pulsePhase - 0.08));
-    const pulseHead = sampleCurvePoint(Math.min(1, pulsePhase + 0.08));
-    const pulseGradient = ctx.createLinearGradient(
-      pulseTail.x,
-      pulseTail.y,
-      pulseHead.x,
-      pulseHead.y,
-    );
-    pulseGradient.addColorStop(0, "rgba(255, 240, 180, 0)");
-    pulseGradient.addColorStop(0.45, "rgba(255, 250, 210, 0.92)");
-    pulseGradient.addColorStop(1, "rgba(255, 210, 120, 0)");
-    ctx.strokeStyle = pulseGradient;
-    ctx.lineWidth = Math.max(4.2, enemy.radius * 0.16);
-    ctx.shadowColor = "rgba(255, 236, 160, 0.8)";
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.moveTo(pulseTail.x, pulseTail.y);
-    ctx.lineTo(pulsePoint.x, pulsePoint.y);
-    ctx.lineTo(pulseHead.x, pulseHead.y);
-    ctx.stroke();
+    if (drawPulse) {
+      const pulsePhase = 1 - ((t * (mode === "drain" ? 1.7 : 1.25)) % 1);
+      const pulsePoint = sampleCurvePoint(pulsePhase);
+      const pulseTail = sampleCurvePoint(Math.max(0, pulsePhase - 0.08));
+      const pulseHead = sampleCurvePoint(Math.min(1, pulsePhase + 0.08));
+      const pulseGradient = ctx.createLinearGradient(
+        pulseTail.x,
+        pulseTail.y,
+        pulseHead.x,
+        pulseHead.y,
+      );
+      pulseGradient.addColorStop(0, "rgba(255, 240, 180, 0)");
+      pulseGradient.addColorStop(0.45, "rgba(255, 250, 210, 0.92)");
+      pulseGradient.addColorStop(1, "rgba(255, 210, 120, 0)");
+      ctx.strokeStyle = pulseGradient;
+      ctx.lineWidth = Math.max(4.2, enemy.radius * 0.16);
+      ctx.shadowColor = "rgba(255, 236, 160, 0.8)";
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.moveTo(pulseTail.x, pulseTail.y);
+      ctx.lineTo(pulsePoint.x, pulsePoint.y);
+      ctx.lineTo(pulseHead.x, pulseHead.y);
+      ctx.stroke();
+    }
     ctx.shadowBlur = 0;
 
-    ctx.lineWidth = Math.max(2.2, enemy.radius * 0.09);
-    ctx.strokeStyle = "rgba(255, 214, 96, 0.95)";
-    ctx.shadowColor = "rgba(255, 214, 120, 0.45)";
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.moveTo(warpedLoopPoints[0].x, warpedLoopPoints[0].y);
-    for (let i = 1; i < warpedLoopPoints.length; i += 1) {
-      ctx.lineTo(warpedLoopPoints[i].x, warpedLoopPoints[i].y);
-    }
-    ctx.stroke();
+    const drawLoopSegment = (startIndex, endIndex) => {
+      if (endIndex - startIndex < 1) return;
+      ctx.lineWidth = Math.max(2.2, enemy.radius * 0.09);
+      ctx.strokeStyle = "rgba(255, 214, 96, 0.95)";
+      ctx.shadowColor = "rgba(255, 214, 120, 0.45)";
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(warpedLoopPoints[startIndex].x, warpedLoopPoints[startIndex].y);
+      for (let i = startIndex + 1; i <= endIndex; i += 1) {
+        ctx.lineTo(warpedLoopPoints[i].x, warpedLoopPoints[i].y);
+      }
+      ctx.stroke();
 
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = "rgba(128, 34, 12, 0.8)";
-    ctx.shadowBlur = 0;
-    ctx.beginPath();
-    ctx.moveTo(warpedLoopPoints[0].x * 0.985 + ringCenterX * 0.015, warpedLoopPoints[0].y * 0.985 + ringCenterY * 0.015);
-    for (let i = 1; i < warpedLoopPoints.length; i += 1) {
-      const point = warpedLoopPoints[i];
-      ctx.lineTo(point.x * 0.985 + ringCenterX * 0.015, point.y * 0.985 + ringCenterY * 0.015);
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = "rgba(128, 34, 12, 0.8)";
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      const startPoint = warpedLoopPoints[startIndex];
+      ctx.moveTo(startPoint.x * 0.985 + ringCenterX * 0.015, startPoint.y * 0.985 + ringCenterY * 0.015);
+      for (let i = startIndex + 1; i <= endIndex; i += 1) {
+        const point = warpedLoopPoints[i];
+        ctx.lineTo(point.x * 0.985 + ringCenterX * 0.015, point.y * 0.985 + ringCenterY * 0.015);
+      }
+      ctx.stroke();
+    };
+
+    const halfIndex = Math.floor(loopSegments / 2);
+    if (drawBackLoop) {
+      drawLoopSegment(halfIndex, loopSegments);
     }
-    ctx.stroke();
+    if (drawFrontLoop) {
+      drawLoopSegment(0, halfIndex);
+    }
 
     if (mode === "drain") {
       for (let i = 0; i < 4; i += 1) {
@@ -3434,6 +3460,7 @@
           this,
           this.demonessGrabTarget,
           this.demonessMode === "drain" ? "drain" : "drag",
+          { drawFrontLoop: false }
         );
       }
       const flashStrength =
@@ -3484,6 +3511,9 @@
         ctx.restore();
       }
       this.animator.draw(ctx, this.x, drawY, drawOptions);
+      if (showDemonessBind) {
+        this._pendingFrontDemonessBindOverlay = true;
+      }
       if (
         this.type === "miniDemonLord" &&
         this.state === "attack" &&
@@ -3568,6 +3598,26 @@
           ctx.restore();
         } catch (e) {}
       }
+    }
+
+    drawPostNpcOverlay() {
+      const showDemonessBind =
+        this.type === "miniDemoness" &&
+        this._pendingFrontDemonessBindOverlay &&
+        this.demonessGrabTarget &&
+        !this.demonessGrabTarget.departed;
+      if (!showDemonessBind) return;
+      drawDemonessBindEffect(
+        this,
+        this.demonessGrabTarget,
+        this.demonessMode === "drain" ? "drain" : "drag",
+        {
+          drawTether: false,
+          drawBackLoop: false,
+          drawPulse: false,
+        },
+      );
+      this._pendingFrontDemonessBindOverlay = false;
     }
 
     drawHealthBars() {

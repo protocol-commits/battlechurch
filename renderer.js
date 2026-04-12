@@ -7304,6 +7304,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (!visitorStageActive && battleNpcs.length) {
       drawBattleNpcs(ctx, battleNpcs, npcFadeAlpha);
     }
+    if (!visitorStageActive && orderedEnemies.length) {
+      orderedEnemies.forEach((enemy) => {
+        if (enemy && typeof enemy.drawPostNpcOverlay === "function") {
+          enemy.drawPostNpcOverlay();
+        }
+      });
+    }
     const shouldDepthSortNpcUi = !visitorStageActive && battleNpcs.length && !isCongregationStage;
     if (shouldDepthSortNpcUi) {
       const overlayByOwner = new Map();
