@@ -476,7 +476,7 @@
     "cooldown": 1.9,
     "score": 65,
     "ranged": true,
-    "projectileType": "miniTrident",
+    "projectileType": "fire",
     "preferEdges": true,
     "desiredRange": 420,
     "projectileCooldown": 2,
@@ -485,8 +485,10 @@
     "specialBehavior": [
       "mini",
       "closestAny",
-      "ranged"
+      "ranged",
+      "fireThrowerBomb"
     ],
+    "attackHitFrame": 5,
     "swarmSpacing": 1,
     "hitbox": {
       "width": 16,

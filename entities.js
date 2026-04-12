@@ -2118,6 +2118,7 @@
       this.demonessDrainTickTimer = DEMONESS_DRAIN_TICK_INTERVAL;
       this.demonessDrainedFaith = 0;
       this.demonessLassoCooldown = 0;
+      this.fireThrowerBombActive = null;
       if (this.type === "miniDemonFireKeeper") {
         this.fireKeeperPhase = "hidden";
         this.fireKeeperPhaseTimer = FIRE_KEEPER_HIDDEN_DURATION * (0.85 + Math.random() * 0.35);
@@ -2138,6 +2139,9 @@
       this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
       this.jumpCooldown = Math.max(0, (this.jumpCooldown || 0) - dt);
       this.demonessLassoCooldown = Math.max(0, (this.demonessLassoCooldown || 0) - dt);
+      if (this.type === "miniDemonFireThrower" && this.fireThrowerBombActive?.dead) {
+        this.fireThrowerBombActive = null;
+      }
 
       if (this._orbiting && this.orbitParent) {
         if (this.orbitParent.dead || this.orbitParent.state === "death") {
@@ -2864,6 +2868,45 @@
         radius: baseConfig.radius || 20,
         source: this,
       };
+      if (this.type === "miniDemonFireThrower") {
+        if (this.fireThrowerBombActive && !this.fireThrowerBombActive.dead) return;
+        const targetDistance = Math.max(90, Math.min(distanceToEdge ? distanceToEdge(this.x, this.y, dir.x, dir.y) : 220, 260));
+        const flightDuration = 0.58;
+        spawnOverrides.speed = targetDistance / flightDuration;
+        spawnOverrides.damage = 0;
+        spawnOverrides.radius = Math.max(16, Math.min(baseConfig.radius || 18, 18));
+        spawnOverrides.frames = Array.isArray(projectileFrames.demonLordFireball)
+          ? projectileFrames.demonLordFireball.slice(0, 11)
+          : undefined;
+        spawnOverrides.frameDuration = 0.05;
+        spawnOverrides.loopFrames = true;
+        spawnOverrides.scale = 0.82;
+        spawnOverrides.durabilityHealth = 20;
+        spawnOverrides.durabilityDamagePerHit = 10;
+        spawnOverrides.collisionDisabled = true;
+        spawnOverrides.fireThrowerBomb = true;
+        spawnOverrides.flightDuration = flightDuration;
+        spawnOverrides.armedDuration = 2.1;
+        spawnOverrides.armedFrames = Array.isArray(projectileFrames.demonLordFireball)
+          ? projectileFrames.demonLordFireball.slice(11, 18)
+          : undefined;
+        spawnOverrides.onExpire = (proj) => {
+          if (proj?.source?.fireThrowerBombActive === proj) {
+            proj.source.fireThrowerBombActive = null;
+          }
+        };
+        spawnOverrides.onDestroyed = (proj) => {
+          if (typeof spawnPuffEffect === "function") {
+            spawnPuffEffect(proj.x, proj.y, Math.max(24, (proj.radius || 20) * 1.5), {
+              tintColor: "#ffb347",
+              tintAlpha: 0.48,
+            });
+          }
+          if (proj?.source?.fireThrowerBombActive === proj) {
+            proj.source.fireThrowerBombActive = null;
+          }
+        };
+      }
       if (this.type === "miniDemonLord" && this.projectileType === "fire") {
         originX = this.x;
         originY = this.y - Math.max(this.radius * 1.45, 26) + 25;
@@ -2919,6 +2962,9 @@
       if (projectile) {
         projectile.hitEntities.add(this);
         this.updateFacing(dir.x, dir.y);
+        if (this.type === "miniDemonFireThrower") {
+          this.fireThrowerBombActive = projectile;
+        }
         if (this.type === "miniDemonLord") {
           this.forceDemonLordJump = true;
           this.jumpCooldown = 0;

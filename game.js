@@ -11625,10 +11625,13 @@ class Projectile {
     this.loopFrames = Boolean(config.loopFrames);
     this.onImpact = config.onImpact || null;
     this.onExpire = config.onExpire || null;
+    this.onDestroyed = config.onDestroyed || null;
     this.onImpactTriggered = false;
     this.onExpireTriggered = false;
+    this.onDestroyedTriggered = false;
     this.friendly = config.friendly ?? true;
     this.visualOnly = Boolean(config.visualOnly);
+    this.collisionDisabled = Boolean(config.collisionDisabled);
     this.damageType = config.damageType || null;
     this.source = config.source || null;
     this.hitEntities = new Set();
@@ -11639,6 +11642,14 @@ class Projectile {
     this.homingDuration = Math.max(0, config.homingDuration || 0);
     this.homingStrength = Math.max(0, config.homingStrength ?? 0);
     this.isDivineShot = Boolean(config.isDivineShot);
+    this.fireThrowerBomb = Boolean(config.fireThrowerBomb);
+    this.fireThrowerBombState = this.fireThrowerBomb ? "flight" : null;
+    this.fireThrowerFlightTimer = Math.max(0, Number(config.flightDuration) || 0);
+    this.fireThrowerArmedTimer = Math.max(0, Number(config.armedDuration) || 0);
+    this.fireThrowerArmedFrames = Array.isArray(config.armedFrames) ? config.armedFrames : null;
+    this.fireThrowerFlightFrames = Array.isArray(config.frames) ? config.frames.slice() : null;
+    this.fireThrowerVisualLift = this.fireThrowerBomb ? Math.max(34, (this.radius || 18) * 2.35) : 0;
+    this.fireThrowerSpawnCount = Math.max(1, Number(config.fireThrowerSpawnCount) || 5);
     if (config.frames && config.frames.length) {
       this.frames = config.frames;
       this.frameDuration = config.frameDuration || 0.05;
@@ -11653,6 +11664,90 @@ class Projectile {
   }
 
   update(dt) {
+    if (this.fireThrowerBomb) {
+      if (this.fireThrowerBombState === "flight") {
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.fireThrowerFlightTimer = Math.max(0, this.fireThrowerFlightTimer - dt);
+        if (this.frames && this.frames.length) {
+          this.frameTimer += dt;
+          const frameDuration = this.frameDuration > 0 ? this.frameDuration : 0.05;
+          while (this.frameTimer >= frameDuration) {
+            this.frameTimer -= frameDuration;
+            this.frameIndex = (this.frameIndex + 1) % this.frames.length;
+          }
+        }
+        if (this.fireThrowerFlightTimer <= 0) {
+          this.fireThrowerBombState = "armed";
+          this.collisionDisabled = true;
+          this.vx = 0;
+          this.vy = 0;
+          this.speed = 0;
+          this.rotation = 0;
+          this.life = Math.max(this.life, this.fireThrowerArmedTimer);
+          if (this.fireThrowerArmedFrames?.length) {
+            this.frames = this.fireThrowerArmedFrames;
+            this.frameIndex = 0;
+            this.frameTimer = 0;
+            this.loopFrames = true;
+            this.frameDuration = 0.06;
+          }
+          if (typeof spawnFlashEffect === "function") {
+            spawnFlashEffect(this.x, this.y);
+          }
+          if (typeof spawnPuffEffect === "function") {
+            spawnPuffEffect(this.x, this.y, Math.max(18, (this.radius || 16) * 1.2), {
+              tintColor: "#ffb347",
+              tintAlpha: 0.42,
+            });
+          }
+        }
+      } else if (this.fireThrowerBombState === "armed") {
+        this.fireThrowerArmedTimer = Math.max(0, this.fireThrowerArmedTimer - dt);
+        this.life = this.fireThrowerArmedTimer;
+        if (this.frames && this.frames.length) {
+          this.frameTimer += dt;
+          const frameDuration = this.frameDuration > 0 ? this.frameDuration : 0.06;
+          while (this.frameTimer >= frameDuration) {
+            this.frameTimer -= frameDuration;
+            this.frameIndex = (this.frameIndex + 1) % this.frames.length;
+          }
+        }
+        if (this.fireThrowerArmedTimer <= 0) {
+          if (typeof spawnSentryBeamHitEffect === "function") {
+            spawnSentryBeamHitEffect(this.x, this.y);
+          } else if (typeof spawnFlashEffect === "function") {
+            spawnFlashEffect(this.x, this.y);
+          }
+          const missileCount = 5;
+          for (let i = 0; i < missileCount; i += 1) {
+            const angle = (Math.PI * 2 * i) / missileCount - Math.PI / 2;
+            const dirX = Math.cos(angle);
+            const dirY = Math.sin(angle);
+            const projectile = spawnProjectile("fire", this.x, this.y, dirX, dirY, {
+              friendly: false,
+              source: this.source || null,
+              damage: Math.max(1, Math.round(this.config?.damage || 2)),
+              speed: (PROJECTILE_CONFIG.fire?.speed || 420) * 0.92,
+              radius: PROJECTILE_CONFIG.fire?.radius || 18,
+              scale: 0.95,
+              frames: Array.isArray(projectileFrames.fire) ? projectileFrames.fire : undefined,
+              frameDuration: 0.05,
+              loopFrames: true,
+            });
+            if (projectile) {
+              projectile.hitEntities.add(this.source || this);
+            }
+          }
+          if (this.onExpire && !this.onExpireTriggered) {
+            this.onExpireTriggered = true;
+            this.onExpire(this);
+          }
+          this.dead = true;
+        }
+      }
+      return;
+    }
     if (this.homingTarget) {
       if (this.homingTarget.dead || this.homingTarget.departed) {
         this.homingTarget = null;
@@ -11782,15 +11877,55 @@ class Projectile {
       if (!frame) return;
       const width = frame.width * this.scale;
       const height = frame.height * this.scale;
+      let drawY = this.y;
+      let projectileAlpha = fadeAlpha;
+      if (this.fireThrowerBomb) {
+        const groundRadius = Math.max(12, (this.radius || 16) * 0.95);
+        ctx.save();
+        ctx.translate(this.x, this.y + Math.max(4, groundRadius * 0.15));
+        if (this.fireThrowerBombState === "flight") {
+          const total = Math.max(0.001, Number(this.config.flightDuration) || 0.58);
+          const progress = 1 - Math.max(0, this.fireThrowerFlightTimer) / total;
+          const shadowScale = 0.62 + Math.sin(progress * Math.PI) * 0.45;
+          ctx.fillStyle = "rgba(18, 10, 6, 0.18)";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, groundRadius * shadowScale, groundRadius * 0.45 * shadowScale, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (this.fireThrowerBombState === "armed") {
+          ctx.fillStyle = "rgba(18, 10, 6, 0.26)";
+          ctx.beginPath();
+          ctx.ellipse(0, 0, groundRadius, groundRadius * 0.52, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255, 186, 84, 0.62)";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, groundRadius * 1.12, groundRadius * 0.6, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+        if (this.fireThrowerBombState === "flight") {
+          const total = Math.max(0.001, Number(this.config.flightDuration) || 0.58);
+          const progress = 1 - Math.max(0, this.fireThrowerFlightTimer) / total;
+          drawY = this.y - Math.sin(progress * Math.PI) * this.fireThrowerVisualLift;
+        } else if (this.fireThrowerBombState === "armed") {
+          const blinkWindow = Math.min(0.55, Math.max(0.1, (this.config.armedDuration || 1.35) * 0.45));
+          if (this.fireThrowerArmedTimer <= blinkWindow) {
+            const blinkT = this.fireThrowerArmedTimer <= 0 ? 0 : this.fireThrowerArmedTimer;
+            const blinkRate = this.fireThrowerArmedTimer <= blinkWindow * 0.5 ? 22 : 13;
+            const blinkPulse = 0.55 + 0.45 * Math.abs(Math.sin((blinkWindow - blinkT) * blinkRate));
+            projectileAlpha *= blinkPulse;
+          }
+        }
+      }
       ctx.save();
-      ctx.translate(this.x, this.y);
+      ctx.translate(this.x, drawY);
       if (this.flipHorizontal) {
         ctx.rotate(this.rotation + Math.PI);
         ctx.scale(-1, 1);
       } else {
         ctx.rotate(this.rotation);
       }
-      if (fadeAlpha < 1) ctx.globalAlpha *= fadeAlpha;
+      if (projectileAlpha < 1) ctx.globalAlpha *= projectileAlpha;
       if (shouldGlow) {
         let glowOptions = undefined;
         let suppressGlow = false;
@@ -11861,6 +11996,10 @@ class Projectile {
 function applyProjectileDurabilityDamage(projectile, amount = null) {
   if (!projectile || projectile.dead) return true;
   if (!Number.isFinite(projectile.durability) || projectile.durability <= 0) {
+    if (projectile.onDestroyed && !projectile.onDestroyedTriggered) {
+      projectile.onDestroyedTriggered = true;
+      projectile.onDestroyed(projectile);
+    }
     projectile.dead = true;
     return true;
   }
@@ -11870,6 +12009,10 @@ function applyProjectileDurabilityDamage(projectile, amount = null) {
   );
   projectile.durability = Math.max(0, projectile.durability - damage);
   if (projectile.durability <= 0) {
+    if (projectile.onDestroyed && !projectile.onDestroyedTriggered) {
+      projectile.onDestroyedTriggered = true;
+      projectile.onDestroyed(projectile);
+    }
     projectile.dead = true;
     return true;
   }
@@ -16721,6 +16864,9 @@ function processProjectileCollisions(dt) {
         }
       }
     } else {
+      if (projectile.collisionDisabled) {
+        continue;
+      }
       // Hostile projectiles hitting player
       if (player && player.state !== "death" && projectile.hitTest(player)) {
         if (player.invulnerableTimer > 0) {
