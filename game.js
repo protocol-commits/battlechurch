@@ -11032,7 +11032,7 @@ class CozyNpc {
         ) {
           source.demonessDrainedFaith += prevFaith - this.faith;
         }
-        this.ensnareDrainTickTimer = 0.17;
+        this.ensnareDrainTickTimer = 0.34;
       }
     } else {
       this.ensnareDrainTickTimer = Math.min(this.ensnareDrainTickTimer || 0.08, 0.08);
