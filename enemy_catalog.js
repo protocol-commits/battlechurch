@@ -279,7 +279,7 @@
     "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemoness.png",
     "assetFolder": "Mini Demoness",
     "assetBaseName": "Mini Demoness",
-    "health": 100,
+    "health": 5000,
     "maxHealth": 45,
     "damage": 8,
     "speed": 70,
@@ -298,6 +298,7 @@
     "specialBehavior": [
       "closestAny"
     ],
+    "attackHitFrame": 4,
     "hitbox": {
       "width": 18,
       "height": 20,
@@ -425,17 +426,17 @@
     "health": 500,
     "maxHealth": 600,
     "damage": 20,
-    "speed": 52,
+    "speed": 35,
     "baseRadius": 16,
     "scale": 6.8,
     "attackBonus": 40,
     "cooldown": 1.5,
     "score": 320,
     "ranged": true,
-    "projectileType": "fire",
+    "projectileType": null,
     "preferEdges": false,
-    "desiredRange": 235,
-    "projectileCooldown": 0.55,
+    "desiredRange": 140,
+    "projectileCooldown": 1.5,
     "bossTier": 3,
     "preferredTarget": "player",
     "specialBehavior": [
@@ -451,7 +452,7 @@
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 8,
+    "attackHitFrame": 4,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,
@@ -508,8 +509,8 @@
     "attackBonus": 24,
     "cooldown": 1.6,
     "score": 70,
-    "ranged": true,
-    "projectileType": "faith_cannon",
+    "ranged": false,
+    "projectileType": "miniTrident",
     "preferEdges": true,
     "desiredRange": 420,
     "projectileCooldown": 2.4,
@@ -517,9 +518,7 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "mini",
-      "closestAny",
-      "ranged",
-      "fireKeeperPhase"
+      "closestAny"
     ],
     "attackHitFrame": 5,
     "swarmSpacing": 0.1,

@@ -10436,6 +10436,43 @@ class CozyNpc {
     this.frontlinePatrolTimer = randomInRange(0.35, 0.7);
     this.zonePatrolSide = Math.random() < 0.5 ? -1 : 1;
     this.patrolClock = Math.random() * Math.PI * 2;
+    this.ensnaredByEnemy = null;
+    this.ensnareResumeState = null;
+  }
+
+  isEnsnared() {
+    return Boolean(this.ensnaredByEnemy && !this.departed && this.active);
+  }
+
+  setEnsnaredBy(enemy) {
+    if (!enemy || this.departed || !this.active) return false;
+    this.ensnaredByEnemy = enemy;
+    this.ensnareResumeState = this.state;
+    this.state = "ensnared";
+    this.ignoreObstacles = true;
+    this.animator.setState("hurt", { restart: true });
+    this.animator.setMoving(false);
+    this.updateFaithVisibility(true);
+    return true;
+  }
+
+  clearEnsnare(enemy = null, { resume = true } = {}) {
+    if (!this.ensnaredByEnemy) return;
+    if (enemy && this.ensnaredByEnemy !== enemy) return;
+    this.ensnaredByEnemy = null;
+    const priorState = this.ensnareResumeState;
+    this.ensnareResumeState = null;
+    this.ignoreObstacles = false;
+    if (!resume || this.departed || !this.active) return;
+    if ((this.faith || 0) <= 0) {
+      this.loseFaith();
+      return;
+    }
+    if (priorState === "returning") {
+      this.beginReturn();
+      return;
+    }
+    this.resumeWander();
   }
 
   needsAid() {
@@ -10559,6 +10596,7 @@ class CozyNpc {
   tryNpcFire(dt) {
     // NPCs can fire arrows once at full faith and respecting cooldowns.
     if (!this.active || this.departed) return false;
+    if (this.isEnsnared()) return false;
     if (this.faith <= 0) return false;
     // countdown
     const timerScale = getNpcTimerScale();
@@ -10817,6 +10855,9 @@ class CozyNpc {
       case "wander":
         this.updateWander(dt);
         break;
+      case "ensnared":
+        this.updateEnsnared(dt);
+        break;
       case "procession":
         this.updateProcession(dt);
         break;
@@ -10950,6 +10991,25 @@ class CozyNpc {
     }
 
     this.updateFaithVisibility(false);
+  }
+
+  updateEnsnared(dt) {
+    this.animator.setState("hurt");
+    this.animator.setMoving(false);
+    const source = this.ensnaredByEnemy;
+    const sourceValid =
+      source &&
+      !source.dead &&
+      source.state !== "death" &&
+      source.demonessGrabTarget === this;
+    if (!sourceValid) {
+      this.clearEnsnare(source, { resume: true });
+      return;
+    }
+    this.knockbackVx = 0;
+    this.knockbackVy = 0;
+    this.knockbackTimer = 0;
+    this.updateFaithVisibility(true);
   }
 
   updateDrained(dt) {
@@ -14033,6 +14093,7 @@ function updateCozyNpcs(dt, options = {}) {
   }
   function applyEnemyCollisionDamageToNpc(npcEntity) {
     if (!npcEntity || npcEntity.departed || !npcEntity.active) return;
+    if (typeof npcEntity.isEnsnared === "function" && npcEntity.isEnsnared()) return false;
     let damageApplied = false;
     const now =
       typeof performance !== "undefined" && typeof performance.now === "function"
@@ -14159,7 +14220,7 @@ function updateCozyNpcs(dt, options = {}) {
 
     // Collision handling: let NPCs interact with other entities and obstacles.
     try {
-      const leaving = npc.state === "lostFaith";
+      const leaving = npc.state === "lostFaith" || (typeof npc.isEnsnared === "function" && npc.isEnsnared());
       if (!leaving) {
         // NPCs should collide with the player (can be pushed), enemies (allow push),
         // other weapon pickups, and utility power-ups so they can't pass through pickups.

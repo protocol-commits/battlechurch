@@ -165,6 +165,13 @@
   const FIRE_KEEPER_PRE_ATTACK_HOLD = 0.8;
   const FIRE_KEEPER_POST_ATTACK_HOLD = 1.15;
   const FIRE_KEEPER_DEMATERIALIZE_DURATION = 0.62;
+  const DEMONESS_WHIP_RANGE = 240;
+  const DEMONESS_PULL_SPEED = 86;
+  const DEMONESS_PULL_CONTACT_DISTANCE = 34;
+  const DEMONESS_DRAIN_TICK_INTERVAL = 0.17;
+  const DEMONESS_DRAIN_TOTAL_FAITH = 30;
+  const DEMONESS_WHIP_ATTACK_HIT_FRAME = 5;
+  const DEMONESS_DRAIN_ATTACK_HIT_FRAME = 4;
 
   const getKnockbackArcLift = (remainingTime, totalDuration, maxLift = KNOCKBACK_VISUAL_LIFT) => {
     const duration = Math.max(0.001, totalDuration || 0);
@@ -1891,6 +1898,11 @@
       this.fireKeeperHasFired = false;
       this.fireKeeperPendingReposition = false;
       this.fireKeeperSpawnPuffPlayed = false;
+      this.demonessMode = null;
+      this.demonessGrabTarget = null;
+      this.demonessWhipApplied = false;
+      this.demonessDrainTickTimer = DEMONESS_DRAIN_TICK_INTERVAL;
+      this.demonessDrainedFaith = 0;
       if (this.type === "miniDemonFireKeeper") {
         this.fireKeeperPhase = "hidden";
         this.fireKeeperPhaseTimer = FIRE_KEEPER_HIDDEN_DURATION * (0.85 + Math.random() * 0.35);
@@ -2094,6 +2106,9 @@
 
       if (this.type === "miniDemonFireKeeper") {
         this.updateFireKeeperBehavior(dt, target, dx, dy, distance, targetRadius);
+        return;
+      }
+      if (this.type === "miniDemoness" && this.updateDemonessBehavior(dt, target, dx, dy, distance, targetRadius)) {
         return;
       }
 
@@ -2425,6 +2440,206 @@
         { x: randomInRange(margin, canvas.width - margin), y: canvas.height - margin },
       ];
       return randomChoice(options);
+    }
+
+    ensureDemonessAttackProfile(mode = "whip") {
+      const attackClip = this.animator?.clips?.attack;
+      if (!attackClip) return;
+      if (!Array.isArray(attackClip._demonessWhipFrames)) {
+        attackClip._demonessWhipFrames = [27, 28, 29, 30, 31, 32, 33, 34, 35];
+      }
+      if (!Array.isArray(attackClip._demonessDrainFrames)) {
+        attackClip._demonessDrainFrames = [45, 46, 47, 48, 49, 50, 51];
+      }
+      if (mode === "drain") {
+        attackClip.frameMap = attackClip._demonessDrainFrames.slice();
+        attackClip.frameRate = 12;
+      } else {
+        attackClip.frameMap = attackClip._demonessWhipFrames.slice();
+        attackClip.frameRate = 11;
+      }
+    }
+
+    getClosestDemonessNpcTarget() {
+      if (!Array.isArray(npcs) || !npcs.length) return null;
+      let bestNpc = null;
+      let bestDistSq = Infinity;
+      for (const npc of npcs) {
+        if (!npc || npc.departed || !npc.active) continue;
+        if (typeof npc.faith === "number" && npc.faith <= 0) continue;
+        if (typeof npc.isEnsnared === "function" && npc.isEnsnared() && npc.ensnaredByEnemy !== this) continue;
+        const dx = npc.x - this.x;
+        const dy = npc.y - this.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < bestDistSq) {
+          bestNpc = npc;
+          bestDistSq = distSq;
+        }
+      }
+      return bestNpc;
+    }
+
+    releaseDemonessGrabTarget({ resumeNpc = true } = {}) {
+      const npc = this.demonessGrabTarget;
+      if (npc && typeof npc.clearEnsnare === "function") {
+        npc.clearEnsnare(this, { resume: resumeNpc });
+      }
+      this.demonessGrabTarget = null;
+      this.demonessWhipApplied = false;
+      this.demonessDrainTickTimer = DEMONESS_DRAIN_TICK_INTERVAL;
+      this.demonessDrainedFaith = 0;
+      if (this.state !== "hurt" && this.state !== "death") {
+        this.state = "walk";
+        this.animator.play("walk");
+      }
+    }
+
+    updateDemonessBehavior(dt, target, dx, dy, distance, targetRadius = 0) {
+      this.ensureDemonessAttackProfile("whip");
+      const grabbedNpc =
+        this.demonessGrabTarget &&
+        !this.demonessGrabTarget.departed &&
+        (typeof this.demonessGrabTarget.active === "undefined" || this.demonessGrabTarget.active) &&
+        !(typeof this.demonessGrabTarget.faith === "number" && this.demonessGrabTarget.faith <= 0)
+          ? this.demonessGrabTarget
+          : null;
+      if (!grabbedNpc && this.demonessGrabTarget) {
+        this.releaseDemonessGrabTarget({ resumeNpc: false });
+      }
+
+      const npcTarget = grabbedNpc || this.getClosestDemonessNpcTarget();
+      if (!npcTarget) {
+        if (this.demonessGrabTarget) {
+          this.releaseDemonessGrabTarget({ resumeNpc: true });
+        }
+        this.ensureDemonessAttackProfile("drain");
+        return false;
+      }
+
+      const npcDx = npcTarget.x - this.x;
+      const npcDy = npcTarget.y - this.y;
+      const npcDistance = Math.hypot(npcDx, npcDy) || 1;
+      const npcRadius = npcTarget.radius || 0;
+
+      if (this.state === "attack" && this.demonessMode === "whip") {
+        this.ensureDemonessAttackProfile("whip");
+        this.updateFacing(npcDx, npcDy);
+        this.animator.update(dt);
+        const currentFrame =
+          typeof this.animator?.frameIndex === "number" ? this.animator.frameIndex + 1 : 1;
+        if (!this.demonessWhipApplied && currentFrame >= DEMONESS_WHIP_ATTACK_HIT_FRAME) {
+          const whipRange = DEMONESS_WHIP_RANGE + npcRadius * 0.35;
+          if (npcDistance <= whipRange && typeof npcTarget.setEnsnaredBy === "function") {
+            if (npcTarget.setEnsnaredBy(this)) {
+              this.demonessGrabTarget = npcTarget;
+            }
+          }
+          this.demonessWhipApplied = true;
+        }
+        if (this.animator.isFinished()) {
+          this.state = "walk";
+          this.animator.play("walk");
+          this.attackTimer = this.demonessGrabTarget ? 0.08 : Math.max(0.18, this.config.attackCooldown * 0.45);
+        }
+        return true;
+      }
+
+      if (this.demonessGrabTarget !== npcTarget) {
+        this.ensureDemonessAttackProfile("whip");
+        this.updateFacing(npcDx, npcDy);
+        const desiredRange = DEMONESS_WHIP_RANGE + npcRadius * 0.35;
+        if (npcDistance <= desiredRange && this.attackTimer <= 0) {
+          this.state = "attack";
+          this.demonessMode = "whip";
+          this.demonessWhipApplied = false;
+          this.animator.play("attack", { restart: true, loop: false });
+          return true;
+        }
+        const desired = normalizeVector(npcDx, npcDy);
+        const avoidance = computeObstacleAvoidance(this);
+        const moveDir = normalizeVector(desired.x + avoidance.x * 2.2, desired.y + avoidance.y * 2.2);
+        this.x += moveDir.x * this.config.speed * dt;
+        this.y += moveDir.y * this.config.speed * dt;
+        this.updateFacing(moveDir.x, moveDir.y);
+        if (this.state !== "walk") {
+          this.state = "walk";
+          this.animator.play("walk");
+        }
+        this.animator.update(dt);
+        return true;
+      }
+
+      const dragGap = Math.max(0, npcDistance - (DEMONESS_PULL_CONTACT_DISTANCE + npcRadius * 0.45));
+      if (dragGap > 0.5) {
+        const pullStep = Math.min(dragGap, DEMONESS_PULL_SPEED * dt);
+        const pullDir = normalizeVector(-npcDx, -npcDy);
+        npcTarget.x += pullDir.x * pullStep;
+        npcTarget.y += pullDir.y * pullStep;
+        if (typeof clampEntityToBounds === "function") {
+          clampEntityToBounds(npcTarget);
+        }
+      }
+
+      if (npcDistance > DEMONESS_PULL_CONTACT_DISTANCE + npcRadius * 0.45) {
+        if (this.state !== "walk") {
+          this.state = "walk";
+          this.animator.play("walk");
+        }
+        this.animator.update(dt);
+        return true;
+      }
+
+      this.ensureDemonessAttackProfile("drain");
+      this.updateFacing(npcDx, npcDy);
+      const contactDir = normalizeVector(npcDx, npcDy);
+      const holdDistance = Math.max(8, DEMONESS_PULL_CONTACT_DISTANCE + npcRadius * 0.15);
+      npcTarget.x = this.x + contactDir.x * holdDistance;
+      npcTarget.y = this.y + contactDir.y * holdDistance;
+      if (typeof clampEntityToBounds === "function") {
+        clampEntityToBounds(npcTarget);
+      }
+
+      if (this.state !== "attack" || this.demonessMode !== "drain") {
+        this.state = "attack";
+        this.demonessMode = "drain";
+        this.demonessDrainTickTimer = Math.min(this.demonessDrainTickTimer || DEMONESS_DRAIN_TICK_INTERVAL, DEMONESS_DRAIN_TICK_INTERVAL);
+        this.attackHitApplied = false;
+        this.animator.play("attack", { restart: true, loop: true });
+      }
+
+      this.animator.update(dt);
+      this.demonessDrainTickTimer = Math.max(0, (this.demonessDrainTickTimer || 0) - dt);
+      const currentFrame =
+        typeof this.animator?.frameIndex === "number" ? this.animator.frameIndex + 1 : 1;
+      if (
+        this.demonessDrainTickTimer <= 0 &&
+        currentFrame >= DEMONESS_DRAIN_ATTACK_HIT_FRAME &&
+        typeof npcTarget.sufferAttack === "function"
+      ) {
+        const prevFaith = Number.isFinite(npcTarget.faith) ? npcTarget.faith : null;
+        npcTarget.sufferAttack(1, {
+          sourceType: this.type,
+          bypassCooldown: true,
+        });
+        const nextFaith = Number.isFinite(npcTarget.faith) ? npcTarget.faith : prevFaith;
+        if (prevFaith !== null && nextFaith !== null && nextFaith < prevFaith) {
+          this.demonessDrainedFaith += prevFaith - nextFaith;
+        } else {
+          this.demonessDrainedFaith += 1;
+        }
+        this.demonessDrainTickTimer = DEMONESS_DRAIN_TICK_INTERVAL;
+      }
+
+      if (
+        this.demonessDrainedFaith >= DEMONESS_DRAIN_TOTAL_FAITH ||
+        (typeof npcTarget.faith === "number" && npcTarget.faith <= 0) ||
+        npcTarget.departed ||
+        !npcTarget.active
+      ) {
+        this.attackTimer = this.config.attackCooldown;
+        this.releaseDemonessGrabTarget({ resumeNpc: (npcTarget.faith || 0) > 0 });
+      }
+      return true;
     }
 
     fireRangedProjectile(dx, dy, options = {}) {
@@ -2919,6 +3134,9 @@
       }
       if (this.health <= 0) {
         this.health = 0;
+        if (this.type === "miniDemoness" && this.demonessGrabTarget) {
+          this.releaseDemonessGrabTarget({ resumeNpc: true });
+        }
         if (this.type === "tormentorFlame") {
           if (typeof spawnPuffEffect === "function") {
             const puffRadius = Math.max(18, (this.radius || 12) * 1.4);
@@ -3002,6 +3220,9 @@
           repeatedLightPressure && damageClass === "armored";
         if (!chargeProtected && !suppressProjectileStun && !suppressRepeatedLightStun) {
           this.state = "hurt";
+          if (this.type === "miniDemoness" && this.demonessMode === "whip") {
+            this.demonessWhipApplied = true;
+          }
           const customHurtDuration = Number(options?.hurtDuration);
           if (Number.isFinite(customHurtDuration) && customHurtDuration > 0) {
             this.hurtTimer = customHurtDuration;

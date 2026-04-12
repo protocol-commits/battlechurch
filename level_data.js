@@ -113,16 +113,12 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniDemonFireKeeper",
-                          "count": 2
-                        },
-                        {
                           "enemy": "armoredSkeleton",
                           "count": 1
                         },
                         {
-                          "enemy": "miniDemonTormentor",
-                          "count": 1
+                          "enemy": "miniDemoness",
+                          "count": 2
                         }
                       ],
                       "weights": {},
@@ -130,7 +126,7 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": false,
+                      "allKill": true,
                       "duration": 4
                     },
                     {
