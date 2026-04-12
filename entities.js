@@ -433,6 +433,47 @@
     }
   }
 
+  const cloneAnimationClip = (clip) => {
+    if (!clip) return clip;
+    const cloned = new AnimationClip(
+      clip.image,
+      clip.frameWidth,
+      clip.frameHeight,
+      clip.frameRate,
+      {
+        loop: clip.loop,
+        frameCount: clip.frameCount,
+        renderScale: clip.renderScale,
+      },
+    );
+    if (Array.isArray(clip.frameMap)) {
+      cloned.frameMap = clip.frameMap.slice();
+    }
+    for (const [key, value] of Object.entries(clip)) {
+      if (
+        key === "image" ||
+        key === "frameWidth" ||
+        key === "frameHeight" ||
+        key === "frameRate" ||
+        key === "loop" ||
+        key === "renderScale" ||
+        key === "frameCount" ||
+        key === "frameMap"
+      ) {
+        continue;
+      }
+      cloned[key] = Array.isArray(value) ? value.slice() : value;
+    }
+    return cloned;
+  };
+
+  const cloneClipBundle = (clips) => {
+    if (!clips || typeof clips !== "object") return clips;
+    return Object.fromEntries(
+      Object.entries(clips).map(([name, clip]) => [name, cloneAnimationClip(clip)]),
+    );
+  };
+
   class Animator {
     constructor(clips, scale = 1) {
       this.clips = clips;
@@ -1916,7 +1957,8 @@
       this.y = y;
       this.maxHealth = resolvedMaxHealth;
       this.health = resolvedHealth;
-      this.animator = new Animator(clips, this.config.scale);
+      const resolvedClips = this.type === "miniDemoness" ? cloneClipBundle(clips) : clips;
+      this.animator = new Animator(resolvedClips, this.config.scale);
       this.state = "walk";
       this.animator.play("walk");
       this.facing = "down";
@@ -2592,9 +2634,9 @@
         return false;
       }
 
-      const npcDx = npcTarget.x - this.x;
-      const npcDy = npcTarget.y - this.y;
-      const npcDistance = Math.hypot(npcDx, npcDy) || 1;
+      let npcDx = npcTarget.x - this.x;
+      let npcDy = npcTarget.y - this.y;
+      let npcDistance = Math.hypot(npcDx, npcDy) || 1;
       const npcRadius = npcTarget.radius || 0;
 
       if (this.state === "attack" && this.demonessMode === "whip") {
@@ -2654,6 +2696,9 @@
         if (typeof clampEntityToBounds === "function") {
           clampEntityToBounds(npcTarget);
         }
+        npcDx = npcTarget.x - this.x;
+        npcDy = npcTarget.y - this.y;
+        npcDistance = Math.hypot(npcDx, npcDy) || 1;
       }
 
       if (npcDistance > DEMONESS_PULL_CONTACT_DISTANCE + npcRadius * 0.45) {
@@ -2678,33 +2723,13 @@
       if (this.state !== "attack" || this.demonessMode !== "drain") {
         this.state = "attack";
         this.demonessMode = "drain";
-        this.demonessDrainTickTimer = Math.min(this.demonessDrainTickTimer || DEMONESS_DRAIN_TICK_INTERVAL, DEMONESS_DRAIN_TICK_INTERVAL);
+        this.demonessDrainTickTimer = 0.08;
         this.attackHitApplied = false;
         this.animator.play("attack", { restart: true, loop: true });
       }
 
       this.animator.update(dt);
       this.demonessDrainTickTimer = Math.max(0, (this.demonessDrainTickTimer || 0) - dt);
-      const currentFrame =
-        typeof this.animator?.frameIndex === "number" ? this.animator.frameIndex + 1 : 1;
-      if (
-        this.demonessDrainTickTimer <= 0 &&
-        currentFrame >= DEMONESS_DRAIN_ATTACK_HIT_FRAME &&
-        typeof npcTarget.sufferAttack === "function"
-      ) {
-        const prevFaith = Number.isFinite(npcTarget.faith) ? npcTarget.faith : null;
-        npcTarget.sufferAttack(1, {
-          sourceType: this.type,
-          bypassCooldown: true,
-        });
-        const nextFaith = Number.isFinite(npcTarget.faith) ? npcTarget.faith : prevFaith;
-        if (prevFaith !== null && nextFaith !== null && nextFaith < prevFaith) {
-          this.demonessDrainedFaith += prevFaith - nextFaith;
-        } else {
-          this.demonessDrainedFaith += 1;
-        }
-        this.demonessDrainTickTimer = DEMONESS_DRAIN_TICK_INTERVAL;
-      }
 
       if (
         this.demonessDrainedFaith >= DEMONESS_DRAIN_TOTAL_FAITH ||

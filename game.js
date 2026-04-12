@@ -10438,6 +10438,7 @@ class CozyNpc {
     this.patrolClock = Math.random() * Math.PI * 2;
     this.ensnaredByEnemy = null;
     this.ensnareResumeState = null;
+    this.ensnareDrainTickTimer = 0;
   }
 
   isEnsnared() {
@@ -10450,6 +10451,7 @@ class CozyNpc {
     this.ensnareResumeState = this.state;
     this.state = "ensnared";
     this.ignoreObstacles = true;
+    this.ensnareDrainTickTimer = 0.08;
     this.animator.setState("hurt", { restart: true });
     this.animator.setMoving(false);
     this.updateFaithVisibility(true);
@@ -10462,6 +10464,7 @@ class CozyNpc {
     this.ensnaredByEnemy = null;
     const priorState = this.ensnareResumeState;
     this.ensnareResumeState = null;
+    this.ensnareDrainTickTimer = 0;
     this.ignoreObstacles = false;
     if (!resume || this.departed || !this.active) return;
     if ((this.faith || 0) <= 0) {
@@ -11009,6 +11012,31 @@ class CozyNpc {
     this.knockbackVx = 0;
     this.knockbackVy = 0;
     this.knockbackTimer = 0;
+    const dx = source.x - this.x;
+    const dy = source.y - this.y;
+    const distance = Math.hypot(dx, dy);
+    const drainRange = Math.max(72, (source.radius || 0) + (this.radius || 0) + 18);
+    if (distance <= drainRange) {
+      this.ensnareDrainTickTimer = Math.max(0, (this.ensnareDrainTickTimer || 0) - dt);
+      if (this.ensnareDrainTickTimer <= 0 && this.faith > 0) {
+        const prevFaith = this.faith;
+        this.sufferAttack(1, {
+          sourceType: source.type,
+          bypassCooldown: true,
+        });
+        if (
+          Number.isFinite(prevFaith) &&
+          Number.isFinite(this.faith) &&
+          this.faith < prevFaith &&
+          Number.isFinite(source.demonessDrainedFaith)
+        ) {
+          source.demonessDrainedFaith += prevFaith - this.faith;
+        }
+        this.ensnareDrainTickTimer = 0.17;
+      }
+    } else {
+      this.ensnareDrainTickTimer = Math.min(this.ensnareDrainTickTimer || 0.08, 0.08);
+    }
     this.updateFaithVisibility(true);
   }
 
