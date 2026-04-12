@@ -172,6 +172,7 @@
   const DEMONESS_DRAIN_TOTAL_FAITH = 30;
   const DEMONESS_WHIP_ATTACK_HIT_FRAME = 5;
   const DEMONESS_DRAIN_ATTACK_HIT_FRAME = 4;
+  const DEMONESS_LASSO_BREAK_COOLDOWN = 3.0;
 
   const drawDemonessBindEffect = (enemy, npc, mode = "drag") => {
     if (!ctx || !enemy || !npc) return;
@@ -2021,6 +2022,7 @@
       this.demonessWhipApplied = false;
       this.demonessDrainTickTimer = DEMONESS_DRAIN_TICK_INTERVAL;
       this.demonessDrainedFaith = 0;
+      this.demonessLassoCooldown = 0;
       if (this.type === "miniDemonFireKeeper") {
         this.fireKeeperPhase = "hidden";
         this.fireKeeperPhaseTimer = FIRE_KEEPER_HIDDEN_DURATION * (0.85 + Math.random() * 0.35);
@@ -2040,6 +2042,7 @@
       // spawnDelay removed; enemies act immediately after spawning
       this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
       this.jumpCooldown = Math.max(0, (this.jumpCooldown || 0) - dt);
+      this.demonessLassoCooldown = Math.max(0, (this.demonessLassoCooldown || 0) - dt);
 
       if (this._orbiting && this.orbitParent) {
         if (this.orbitParent.dead || this.orbitParent.state === "death") {
@@ -2666,7 +2669,7 @@
         this.ensureDemonessAttackProfile("whip");
         this.updateFacing(npcDx, npcDy);
         const desiredRange = DEMONESS_WHIP_RANGE + npcRadius * 0.35;
-        if (npcDistance <= desiredRange && this.attackTimer <= 0) {
+        if (npcDistance <= desiredRange && this.attackTimer <= 0 && (this.demonessLassoCooldown || 0) <= 0) {
           this.state = "attack";
           this.demonessMode = "whip";
           this.demonessWhipApplied = false;
@@ -3297,6 +3300,14 @@
       } else {
         if (this.type === "tormentorFlame") {
           return;
+        }
+        if (
+          this.type === "miniDemoness" &&
+          this.demonessGrabTarget &&
+          (damageType === "melee" || damageType === "charged")
+        ) {
+          this.releaseDemonessGrabTarget({ resumeNpc: true });
+          this.demonessLassoCooldown = DEMONESS_LASSO_BREAK_COOLDOWN;
         }
         const chargeProtected =
           this.type === "miniDemonLord" &&
