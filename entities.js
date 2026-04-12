@@ -168,7 +168,7 @@
   const DEMONESS_WHIP_RANGE = 240;
   const DEMONESS_PULL_SPEED = 86;
   const DEMONESS_PULL_CONTACT_DISTANCE = 34;
-  const DEMONESS_DRAIN_TICK_INTERVAL = 0.17;
+  const DEMONESS_DRAIN_TICK_INTERVAL = 0.34;
   const DEMONESS_DRAIN_TOTAL_FAITH = 30;
   const DEMONESS_WHIP_ATTACK_HIT_FRAME = 5;
   const DEMONESS_DRAIN_ATTACK_HIT_FRAME = 4;
@@ -195,6 +195,36 @@
     const wave = Math.sin(t * 8.5) * Math.min(16, distance * 0.09);
     const midX = (enemyHandX + npcCenterX) * 0.5 + px * wave;
     const midY = (enemyHandY + npcCenterY) * 0.5 + py * wave;
+    const sampleCurvePoint = (phase) => {
+      const inv = 1 - phase;
+      return {
+        x: inv * inv * enemyHandX + 2 * inv * phase * midX + phase * phase * npcCenterX,
+        y: inv * inv * enemyHandY + 2 * inv * phase * midY + phase * phase * npcCenterY,
+      };
+    };
+    const ringRadius = Math.max(npc.radius * 0.88, 14);
+    const ringPulse = 1 + Math.sin(t * 7.2) * 0.08;
+    const ringCenterX = npc.x;
+    const ringCenterY = npc.y + npc.radius * 0.22;
+    const ringRx = ringRadius * 1.06 * ringPulse;
+    const ringRy = ringRadius * 0.82 * ringPulse;
+    const tetherLandingAngle = Math.atan2(enemyHandY - ringCenterY, enemyHandX - ringCenterX);
+    const landingX = ringCenterX + Math.cos(tetherLandingAngle) * ringRx;
+    const landingY = ringCenterY + Math.sin(tetherLandingAngle) * ringRy;
+    const warpedLoopPoints = [];
+    const loopSegments = 36;
+    for (let i = 0; i <= loopSegments; i += 1) {
+      const phase = i / loopSegments;
+      const angle = phase * Math.PI * 2;
+      const wobble =
+        1 +
+        Math.sin(angle * 3 + t * 2.7) * 0.08 +
+        Math.cos(angle * 5 - t * 2.1) * 0.04;
+      warpedLoopPoints.push({
+        x: ringCenterX + Math.cos(angle) * ringRx * wobble,
+        y: ringCenterY + Math.sin(angle) * ringRy * wobble,
+      });
+    }
 
     ctx.save();
     ctx.lineCap = "round";
@@ -203,10 +233,10 @@
     ctx.lineWidth = Math.max(5, enemy.radius * 0.22);
     ctx.beginPath();
     ctx.moveTo(enemyHandX, enemyHandY);
-    ctx.quadraticCurveTo(midX, midY, npcCenterX, npcCenterY);
+    ctx.quadraticCurveTo(midX, midY, landingX, landingY);
     ctx.stroke();
 
-    const coreGradient = ctx.createLinearGradient(enemyHandX, enemyHandY, npcCenterX, npcCenterY);
+    const coreGradient = ctx.createLinearGradient(enemyHandX, enemyHandY, landingX, landingY);
     coreGradient.addColorStop(0, mode === "drain" ? "rgba(255, 242, 160, 0.95)" : "rgba(255, 195, 110, 0.92)");
     coreGradient.addColorStop(0.55, "rgba(255, 122, 52, 0.88)");
     coreGradient.addColorStop(1, "rgba(255, 238, 150, 0.9)");
@@ -216,22 +246,60 @@
     ctx.lineWidth = Math.max(2.2, enemy.radius * 0.09);
     ctx.beginPath();
     ctx.moveTo(enemyHandX, enemyHandY);
-    ctx.quadraticCurveTo(midX, midY, npcCenterX, npcCenterY);
+    ctx.quadraticCurveTo(midX, midY, landingX, landingY);
     ctx.stroke();
 
-    const ringRadius = Math.max(npc.radius * 0.88, 14);
-    const ringPulse = 1 + Math.sin(t * 7.2) * 0.08;
+    ctx.strokeStyle = "rgba(255, 242, 190, 0.42)";
+    ctx.lineWidth = Math.max(0.9, enemy.radius * 0.035);
+    ctx.beginPath();
+    ctx.moveTo(enemyHandX + px * 2.2, enemyHandY + py * 2.2);
+    ctx.quadraticCurveTo(midX + px * 3.5, midY + py * 3.5, landingX + px * 1.2, landingY + py * 1.2);
+    ctx.stroke();
+
+    const pulsePhase = 1 - ((t * (mode === "drain" ? 1.7 : 1.25)) % 1);
+    const pulsePoint = sampleCurvePoint(pulsePhase);
+    const pulseTail = sampleCurvePoint(Math.max(0, pulsePhase - 0.08));
+    const pulseHead = sampleCurvePoint(Math.min(1, pulsePhase + 0.08));
+    const pulseGradient = ctx.createLinearGradient(
+      pulseTail.x,
+      pulseTail.y,
+      pulseHead.x,
+      pulseHead.y,
+    );
+    pulseGradient.addColorStop(0, "rgba(255, 240, 180, 0)");
+    pulseGradient.addColorStop(0.45, "rgba(255, 250, 210, 0.92)");
+    pulseGradient.addColorStop(1, "rgba(255, 210, 120, 0)");
+    ctx.strokeStyle = pulseGradient;
+    ctx.lineWidth = Math.max(4.2, enemy.radius * 0.16);
+    ctx.shadowColor = "rgba(255, 236, 160, 0.8)";
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.moveTo(pulseTail.x, pulseTail.y);
+    ctx.lineTo(pulsePoint.x, pulsePoint.y);
+    ctx.lineTo(pulseHead.x, pulseHead.y);
+    ctx.stroke();
     ctx.shadowBlur = 0;
-    ctx.lineWidth = 2;
+
+    ctx.lineWidth = Math.max(2.2, enemy.radius * 0.09);
     ctx.strokeStyle = "rgba(255, 214, 96, 0.95)";
+    ctx.shadowColor = "rgba(255, 214, 120, 0.45)";
+    ctx.shadowBlur = 8;
     ctx.beginPath();
-    ctx.arc(npc.x, npc.y + npc.radius * 0.22, ringRadius * ringPulse, 0, Math.PI * 2);
+    ctx.moveTo(warpedLoopPoints[0].x, warpedLoopPoints[0].y);
+    for (let i = 1; i < warpedLoopPoints.length; i += 1) {
+      ctx.lineTo(warpedLoopPoints[i].x, warpedLoopPoints[i].y);
+    }
     ctx.stroke();
 
-    ctx.lineWidth = 1.25;
-    ctx.strokeStyle = "rgba(140, 40, 12, 0.75)";
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = "rgba(128, 34, 12, 0.8)";
+    ctx.shadowBlur = 0;
     ctx.beginPath();
-    ctx.arc(npc.x, npc.y + npc.radius * 0.22, ringRadius * 0.72 * ringPulse, 0, Math.PI * 2);
+    ctx.moveTo(warpedLoopPoints[0].x * 0.985 + ringCenterX * 0.015, warpedLoopPoints[0].y * 0.985 + ringCenterY * 0.015);
+    for (let i = 1; i < warpedLoopPoints.length; i += 1) {
+      const point = warpedLoopPoints[i];
+      ctx.lineTo(point.x * 0.985 + ringCenterX * 0.015, point.y * 0.985 + ringCenterY * 0.015);
+    }
     ctx.stroke();
 
     if (mode === "drain") {
@@ -3352,7 +3420,16 @@
       const flip = this.facing === "left";
       const drawY = this._renderYOverride !== undefined ? this._renderYOverride : this.y;
       if (!ctx) return;
-      if (this.type === "miniDemoness" && this.demonessGrabTarget && !this.demonessGrabTarget.departed) {
+      const showDemonessBind =
+        this.type === "miniDemoness" &&
+        this.demonessGrabTarget &&
+        !this.demonessGrabTarget.departed &&
+        (
+          this.demonessMode !== "whip" ||
+          this.state !== "attack" ||
+          (((this.animator?.frameIndex ?? 0) + 1) >= 6)
+        );
+      if (showDemonessBind) {
         drawDemonessBindEffect(
           this,
           this.demonessGrabTarget,
