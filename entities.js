@@ -238,6 +238,7 @@
 
     ctx.save();
     ctx.lineCap = "round";
+    ctx.filter = "blur(0.8px)";
 
     if (drawTether) {
       ctx.strokeStyle = "rgba(90, 18, 10, 0.42)";
