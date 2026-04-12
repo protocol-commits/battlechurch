@@ -11648,8 +11648,13 @@ class Projectile {
     this.fireThrowerArmedTimer = Math.max(0, Number(config.armedDuration) || 0);
     this.fireThrowerArmedFrames = Array.isArray(config.armedFrames) ? config.armedFrames : null;
     this.fireThrowerFlightFrames = Array.isArray(config.frames) ? config.frames.slice() : null;
-    this.fireThrowerVisualLift = this.fireThrowerBomb ? Math.max(34, (this.radius || 18) * 2.35) : 0;
+    this.fireThrowerVisualLift = this.fireThrowerBomb ? Math.max(58, (this.radius || 18) * 3.8) : 0;
     this.fireThrowerSpawnCount = Math.max(1, Number(config.fireThrowerSpawnCount) || 5);
+    this.fireThrowerLandingDamage = Math.max(0, Number(config.fireThrowerLandingDamage) || 0);
+    this.fireThrowerLandingRadius = Math.max(
+      this.radius || 0,
+      Number(config.fireThrowerLandingRadius) || (this.radius || 0),
+    );
     if (config.frames && config.frames.length) {
       this.frames = config.frames;
       this.frameDuration = config.frameDuration || 0.05;
@@ -11685,6 +11690,31 @@ class Projectile {
           this.speed = 0;
           this.rotation = 0;
           this.life = Math.max(this.life, this.fireThrowerArmedTimer);
+          const landingDamage = Math.max(0, this.fireThrowerLandingDamage || 0);
+          const landingRadius = Math.max(this.radius || 0, this.fireThrowerLandingRadius || 0);
+          if (landingDamage > 0) {
+            if (
+              player &&
+              player.state !== "death" &&
+              circleIntersectsPlayerHurtbox(this.x, this.y, landingRadius, player)
+            ) {
+              if (player.invulnerableTimer <= 0) {
+                player.takeDamage(landingDamage);
+              }
+            }
+            if (Array.isArray(npcs) && npcs.length) {
+              for (const npc of npcs) {
+                if (!npc || !npc.active || npc.departed) continue;
+                const npcRadius = npc.radius || NPC_RADIUS || 0;
+                const dx = (npc.x || 0) - this.x;
+                const dy = (npc.y || 0) - this.y;
+                if (Math.hypot(dx, dy) > landingRadius + npcRadius * 0.7) continue;
+                if (typeof npc.sufferAttack === "function") {
+                  npc.sufferAttack(landingDamage, { sourceType: this.source?.type || "miniDemonFireThrower" });
+                }
+              }
+            }
+          }
           if (this.fireThrowerArmedFrames?.length) {
             this.frames = this.fireThrowerArmedFrames;
             this.frameIndex = 0;

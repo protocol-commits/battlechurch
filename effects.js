@@ -196,7 +196,7 @@
 
   function spawnSentryBeamHitEffect(x, y) {
     const frames = resolveAssets()?.effects?.enemyDeathExplosionAlt2;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.05, scale: 1.4 });
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.05, scale: 2.8 });
   }
 
   function spawnSentryBoreKillEffect(x, y) {

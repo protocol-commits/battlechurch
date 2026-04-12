@@ -2887,6 +2887,8 @@
         spawnOverrides.fireThrowerBomb = true;
         spawnOverrides.flightDuration = flightDuration;
         spawnOverrides.armedDuration = 2.1;
+        spawnOverrides.fireThrowerLandingDamage = 5;
+        spawnOverrides.fireThrowerLandingRadius = Math.max(spawnOverrides.radius * 2.1, 34);
         spawnOverrides.armedFrames = Array.isArray(projectileFrames.demonLordFireball)
           ? projectileFrames.demonLordFireball.slice(11, 18)
           : undefined;
