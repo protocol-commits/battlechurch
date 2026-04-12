@@ -173,6 +173,82 @@
   const DEMONESS_WHIP_ATTACK_HIT_FRAME = 5;
   const DEMONESS_DRAIN_ATTACK_HIT_FRAME = 4;
 
+  const drawDemonessBindEffect = (enemy, npc, mode = "drag") => {
+    if (!ctx || !enemy || !npc) return;
+    const now =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    const t = now * 0.001;
+    const enemyHandX = enemy.x + (enemy.facing === "left" ? -enemy.radius * 0.55 : enemy.radius * 0.55);
+    const enemyHandY = enemy.y - enemy.radius * 0.1;
+    const npcCenterX = npc.x;
+    const npcCenterY = npc.y - npc.radius * 0.12;
+    const dx = npcCenterX - enemyHandX;
+    const dy = npcCenterY - enemyHandY;
+    const distance = Math.max(1, Math.hypot(dx, dy));
+    const nx = dx / distance;
+    const ny = dy / distance;
+    const px = -ny;
+    const py = nx;
+    const wave = Math.sin(t * 8.5) * Math.min(16, distance * 0.09);
+    const midX = (enemyHandX + npcCenterX) * 0.5 + px * wave;
+    const midY = (enemyHandY + npcCenterY) * 0.5 + py * wave;
+
+    ctx.save();
+    ctx.lineCap = "round";
+
+    ctx.strokeStyle = "rgba(90, 18, 10, 0.42)";
+    ctx.lineWidth = Math.max(5, enemy.radius * 0.22);
+    ctx.beginPath();
+    ctx.moveTo(enemyHandX, enemyHandY);
+    ctx.quadraticCurveTo(midX, midY, npcCenterX, npcCenterY);
+    ctx.stroke();
+
+    const coreGradient = ctx.createLinearGradient(enemyHandX, enemyHandY, npcCenterX, npcCenterY);
+    coreGradient.addColorStop(0, mode === "drain" ? "rgba(255, 242, 160, 0.95)" : "rgba(255, 195, 110, 0.92)");
+    coreGradient.addColorStop(0.55, "rgba(255, 122, 52, 0.88)");
+    coreGradient.addColorStop(1, "rgba(255, 238, 150, 0.9)");
+    ctx.strokeStyle = coreGradient;
+    ctx.shadowColor = mode === "drain" ? "rgba(255, 220, 110, 0.7)" : "rgba(255, 136, 64, 0.65)";
+    ctx.shadowBlur = mode === "drain" ? 16 : 12;
+    ctx.lineWidth = Math.max(2.2, enemy.radius * 0.09);
+    ctx.beginPath();
+    ctx.moveTo(enemyHandX, enemyHandY);
+    ctx.quadraticCurveTo(midX, midY, npcCenterX, npcCenterY);
+    ctx.stroke();
+
+    const ringRadius = Math.max(npc.radius * 0.88, 14);
+    const ringPulse = 1 + Math.sin(t * 7.2) * 0.08;
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255, 214, 96, 0.95)";
+    ctx.beginPath();
+    ctx.arc(npc.x, npc.y + npc.radius * 0.22, ringRadius * ringPulse, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = "rgba(140, 40, 12, 0.75)";
+    ctx.beginPath();
+    ctx.arc(npc.x, npc.y + npc.radius * 0.22, ringRadius * 0.72 * ringPulse, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (mode === "drain") {
+      for (let i = 0; i < 4; i += 1) {
+        const phase = ((t * 1.85) + i * 0.23) % 1;
+        const qx = (1 - phase) * (1 - phase) * enemyHandX + 2 * (1 - phase) * phase * midX + phase * phase * npcCenterX;
+        const qy = (1 - phase) * (1 - phase) * enemyHandY + 2 * (1 - phase) * phase * midY + phase * phase * npcCenterY;
+        const radius = 2.8 + (1 - phase) * 1.8;
+        ctx.fillStyle = `rgba(255, 244, 170, ${(0.35 + (1 - phase) * 0.45).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(qx, qy, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    ctx.restore();
+  };
+
   const getKnockbackArcLift = (remainingTime, totalDuration, maxLift = KNOCKBACK_VISUAL_LIFT) => {
     const duration = Math.max(0.001, totalDuration || 0);
     const normalized = Math.max(0, Math.min(1, 1 - Math.max(0, remainingTime) / duration));
@@ -3240,6 +3316,13 @@
       const flip = this.facing === "left";
       const drawY = this._renderYOverride !== undefined ? this._renderYOverride : this.y;
       if (!ctx) return;
+      if (this.type === "miniDemoness" && this.demonessGrabTarget && !this.demonessGrabTarget.departed) {
+        drawDemonessBindEffect(
+          this,
+          this.demonessGrabTarget,
+          this.demonessMode === "drain" ? "drain" : "drag",
+        );
+      }
       const flashStrength =
         this.damageFlashTimer > 0
           ? Math.min(1, Math.pow(this.damageFlashTimer / DAMAGE_FLASH_DURATION, 0.6))
