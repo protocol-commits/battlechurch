@@ -200,6 +200,13 @@
   function handleContinue() {
     if (button.disabled) return;
     consumedAction = true;
+    if (window.Input?.keysJustPressed) {
+      window.Input.keysJustPressed.delete(" ");
+      window.Input.keysJustPressed.delete("enter");
+      window.Input.keysJustPressed.delete("Enter");
+      window.Input.keysJustPressed.delete("escape");
+      window.Input.keysJustPressed.delete("Escape");
+    }
     if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
       window.playMenuAdvanceSfx(0.55);
     }

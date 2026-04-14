@@ -15720,6 +15720,14 @@ function showDeveloperOverlay() {
 
 function handleTitleScreen() {
   if (!titleScreenActive) return false;
+  if (window.DialogOverlay?.consumeAction?.()) {
+    keysJustPressed.delete(" ");
+    keysJustPressed.delete("enter");
+    keysJustPressed.delete("Enter");
+    keysJustPressed.delete("escape");
+    keysJustPressed.delete("Escape");
+    return true;
+  }
   const developerToolActive = isDeveloperToolActive();
   if (!developerToolActive && !window.DialogOverlay?.isVisible()) {
     const buttons =
