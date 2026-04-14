@@ -164,7 +164,7 @@
           loop: true,
         },
         miniTrident: {
-          src: "assets/sprites/MinifolksDemons/Without outline/MiniTrident.png",
+          src: "assets/sprites/enemies/MiniTrident.png",
           frameWidth: 24,
           frameHeight: 24,
           frameRate: 0,

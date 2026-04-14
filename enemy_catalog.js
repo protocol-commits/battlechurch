@@ -127,7 +127,7 @@ const ENEMY_CATALOG = {
     "displayName": "Armored Skeleton",
     "assetFolder": "armored_skeleton",
     "assetBaseName": "Greatsword Skeleton",
-    "assetPath": "assets/enemies/armored_skeleton",
+    "assetPath": "assets/sprites/enemies/armored_skeleton",
     "assetFiles": {
       "idle": "Walk"
     },
@@ -172,7 +172,7 @@ const ENEMY_CATALOG = {
     "displayName": "Orc",
     "assetFolder": "orc",
     "assetBaseName": "Orc",
-    "assetPath": "assets/enemies/orc",
+    "assetPath": "assets/sprites/enemies/orc",
     "assetFiles": {
       "idle": "Walk",
       "attack": "Attack02"
@@ -210,7 +210,7 @@ const ENEMY_CATALOG = {
     "displayName": "Armored Orc",
     "assetFolder": "armored_orc",
     "assetBaseName": "Armored Orc",
-    "assetPath": "assets/enemies/armored_orc",
+    "assetPath": "assets/sprites/enemies/armored_orc",
     "assetFiles": {
       "idle": "Walk"
     },
@@ -255,7 +255,7 @@ const ENEMY_CATALOG = {
     "displayName": "Armored Axeman",
     "assetFolder": "armored_axeman",
     "assetBaseName": "Armored Axeman",
-    "assetPath": "assets/enemies/armored_axeman",
+    "assetPath": "assets/sprites/enemies/armored_axeman",
     "assetFiles": {
       "idle": "Walk",
       "attack": "Attack02"
@@ -296,7 +296,7 @@ const ENEMY_CATALOG = {
   },
   "miniImp": {
     "displayName": "Imp",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniImp.png",
+    "spriteSrc": "assets/sprites/enemies/MiniImp.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 10,
@@ -330,7 +330,7 @@ const ENEMY_CATALOG = {
   },
   "miniImpLevel2": {
     "displayName": "Imp Lieutenant",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniImpLevel2.png",
+    "spriteSrc": "assets/sprites/enemies/MiniImpLevel2.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 20,
@@ -366,7 +366,7 @@ const ENEMY_CATALOG = {
   },
   "miniFireImp": {
     "displayName": "Fire Imp",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniFireImp.png",
+    "spriteSrc": "assets/sprites/enemies/MiniFireImp.png",
     "assetFolder": "Mini Fire Imp",
     "assetBaseName": "Mini Fire Imp",
     "health": 20,
@@ -399,7 +399,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemoness": {
     "displayName": "Demoness",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemoness.png",
+    "spriteSrc": "assets/sprites/enemies/MiniDemoness.png",
     "assetFolder": "Mini Demoness",
     "assetBaseName": "Mini Demoness",
     "health": 5000,
@@ -431,7 +431,7 @@ const ENEMY_CATALOG = {
   },
   "miniClawedDemon": {
     "displayName": "Clawed Demon",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniClawedDemon.png",
+    "spriteSrc": "assets/sprites/enemies/MiniClawedDemon.png",
     "assetFolder": "Mini Clawed Demon",
     "assetBaseName": "Mini Clawed Demon",
     "health": 30,
@@ -466,7 +466,7 @@ const ENEMY_CATALOG = {
   },
   "miniHighDemon": {
     "displayName": "High Demon",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniHighDemon.png",
+    "spriteSrc": "assets/sprites/enemies/MiniHighDemon.png",
     "assetFolder": "Mini High Demon",
     "assetBaseName": "Mini High Demon",
     "health": 400,
@@ -507,7 +507,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonTormentor": {
     "displayName": "Demon Tormentor",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonTormentor.png",
+    "spriteSrc": "assets/sprites/enemies/MiniDemonTormentor.png",
     "assetFolder": "Mini Demon Tormentor",
     "assetBaseName": "Mini Demon Tormentor",
     "health": 300,
@@ -543,7 +543,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonLord": {
     "displayName": "Demon Lord",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonLord.png",
+    "spriteSrc": "assets/sprites/enemies/MiniDemonLord.png",
     "assetFolder": "Mini Demon Lord",
     "assetBaseName": "Mini Demon Lord",
     "health": 500,
@@ -586,7 +586,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonFireThrower": {
     "displayName": "Demon Fire Thrower",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonFireThrower.png",
+    "spriteSrc": "assets/sprites/enemies/MiniDemonFireThrower.png",
     "assetFolder": "Mini Demon Fire Thrower",
     "assetBaseName": "Mini Demon Fire Thrower",
     "health": 45,
@@ -622,7 +622,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonFireKeeper": {
     "displayName": "Demon Fire Keeper",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniDemonFireKeeper.png",
+    "spriteSrc": "assets/sprites/enemies/MiniDemonFireKeeper.png",
     "assetFolder": "Mini Demon Fire Keeper",
     "assetBaseName": "Mini Demon Fire Keeper",
     "health": 40,
@@ -656,7 +656,7 @@ const ENEMY_CATALOG = {
   },
   "miniSuccubus": {
     "displayName": "Succubus",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniSuccubus.png",
+    "spriteSrc": "assets/sprites/enemies/MiniSuccubus.png",
     "assetFolder": "Mini Succubus",
     "assetBaseName": "Mini Succubus",
     "health": 30,
@@ -689,7 +689,7 @@ const ENEMY_CATALOG = {
   },
   "miniImpLevel3": {
     "displayName": "Imp Commander",
-    "spriteSrc": "assets/sprites/MinifolksDemons/Without outline/MiniImpLevel3.png",
+    "spriteSrc": "assets/sprites/enemies/MiniImpLevel3.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 30,
@@ -796,7 +796,7 @@ const ENEMY_CATALOG = {
     "displayName": "Armored Elite Orc",
     "assetFolder": "armored_elite_orc",
     "assetBaseName": "Elite Orc",
-    "assetPath": "assets/enemies/armored_elite_orc",
+    "assetPath": "assets/sprites/enemies/armored_elite_orc",
     "assetFiles": {
       "idle": "Walk",
       "attack": "Attack03"
