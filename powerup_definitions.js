@@ -7,12 +7,12 @@
   const HERO_MAX_HEALTH = 100;
   const HERO_BASE_HEARTS = 6;
   const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
-  const UTILITY_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Items";
-  const CHURCH_POWERUP_ROOT = "assets/sprites/pixel-art-pack/Weapons";
+  const UTILITY_POWERUP_ROOT = "assets/sprites/items/icons";
+  const CHURCH_POWERUP_ROOT = "assets/sprites/items/Weapons";
 
   const weaponDropDefs = {
     faith: {
-      src: "assets/sprites/pixel-art-pack/Items/I41_Candle.png",
+      src: "assets/sprites/items/icons/I41_Candle.png",
       frameWidth: 16,
       frameHeight: 16,
       frameRate: 8,
@@ -21,7 +21,7 @@
       scale: 6.48 * WORLD_SCALE,
       radius: 28 * WORLD_SCALE,
       label: "Act in Faith",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I41_Candle.png",
+      iconSrc: "assets/sprites/items/icons/I41_Candle.png",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.65,
       speedMultiplier: 1.2,
@@ -31,7 +31,7 @@
       // for wisdom/flash hits so the animation is tracked next to the fireball assets above.
     },
     scripture: {
-      src: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
+      src: "assets/sprites/items/icons/I25_Book.png",
       frameWidth: 16,
       frameHeight: 16,
       frameRate: 4,
@@ -40,7 +40,7 @@
       effect: "scriptureWeapon",
       duration: 10,
       label: "Quote Scripture",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
+      iconSrc: "assets/sprites/items/icons/I25_Book.png",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.95,
       speedMultiplier: 1.15,
@@ -60,7 +60,7 @@
       scale: 5.04 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       label: "Apply Wisdom",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I23_Scroll.png",
+      iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.55,
       speedMultiplier: 1.4,
@@ -74,7 +74,7 @@
       scale: 0.24 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       label: "Quote Scripture",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
+      iconSrc: "assets/sprites/items/icons/I25_Book.png",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.95,
       speedMultiplier: 1.0,
@@ -88,7 +88,7 @@
       scale: 0.24 * WORLD_SCALE,
       radius: 26 * WORLD_SCALE,
       label: "Apply Wisdom",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I23_Scroll.png",
+      iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.55,
       speedMultiplier: 1.0,
@@ -102,7 +102,7 @@
       scale: 0.26 * WORLD_SCALE,
       radius: 28 * WORLD_SCALE,
       label: "Act in Faith",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I41_Candle.png",
+      iconSrc: "assets/sprites/items/icons/I41_Candle.png",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.65,
       speedMultiplier: 1.0,
@@ -119,7 +119,7 @@
       effect: "shield",
       duration: 9,
       label: "Shield of Faith",
-      iconSrc: "assets/sprites/pixel-art-pack/Armour/A29_Iron_Shield.png",
+      iconSrc: "assets/sprites/items/Armour/A29_Iron_Shield.png",
       color: "#9BD9FF",
       hudTitle: "Shield of Faith",
       description: "Blocks damage for a short time.",
@@ -131,7 +131,7 @@
       effect: "haste",
       duration: 8,
       label: "Speed Boost",
-      iconSrc: "assets/sprites/pixel-art-pack/Armour/A39_Grieves.png",
+      iconSrc: "assets/sprites/items/Armour/A39_Grieves.png",
       color: "#5FE3C0",
       speedMultiplier: 1.4,
       hudTitle: "Speed Boost",
@@ -144,7 +144,7 @@
       effect: "extend",
       duration: 10,
       label: "Perseverance",
-      iconSrc: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
+      iconSrc: "assets/sprites/items/Weapons/W14_Sword.png",
       color: "#FFC86A",
       extendMultiplier: 1.5,
       hudTitle: "Perseverance",
@@ -157,7 +157,7 @@
       effect: "harmony",
       duration: 10,
       label: "Unify Them",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I10_Flower.png",
+      iconSrc: "assets/sprites/items/icons/I10_Flower.png",
       color: "#5FE3C0",
       hudTitle: "Unify Them",
       description: "Boosts NPC harmony briefly.",
@@ -169,7 +169,7 @@
       effect: "smiteBomb",
       damage: 200,
       label: "Judgment Bomb",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/I02_HP_Potion_M.png",
+      iconSrc: "assets/sprites/items/icons/I02_HP_Potion_M.png",
       color: "#FF9D5C",
       hudTitle: "Judgment Bomb",
       description: "Deals 200 damage to every enemy on screen.",
@@ -200,7 +200,7 @@
       effect: "halo",
       duration: 12,
       label: "Prayer Team",
-      iconSrc: "assets/sprites/pixel-art-pack/Items/A13_Headband.png",
+      iconSrc: "assets/sprites/items/icons/A13_Headband.png",
       description: "Protect your congregation through focused prayer.",
       levelCosts: CHURCH_LEVEL_COSTS,
     },

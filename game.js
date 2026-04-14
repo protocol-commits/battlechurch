@@ -181,7 +181,7 @@ const VISITOR_BLOCKER_LINES =
     window.BattlechurchVisitorBlocker &&
     window.BattlechurchVisitorBlocker.blockerLines) ||
   [];
-const ITEM_SPRITE_ROOT = "assets/sprites/pixel-art-pack/Items";
+const ITEM_SPRITE_ROOT = "assets/sprites/items/icons";
 const TORCH_SPRITE_FILE = `${ITEM_SPRITE_ROOT}/I43_Torch.png`;
 const FLAG_SPRITE_FILE = `${ITEM_SPRITE_ROOT}/I28_Idol.png`;
 const DEFAULT_ARROW_SFX_SRC = "assets/sfx/rpg/Magic/fireball_release_3.wav";
@@ -1560,7 +1560,7 @@ function clearPrayerBombReadyVisual() {
   }
 }
 const GRACE_SPRITE_FILES = [
-  "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
+  "assets/sprites/items/icons/I62_Gem_L.png",
 ];
 const visitorSession = {
   active: false,
@@ -3023,7 +3023,7 @@ const LOG_NPC_FAITH_BAR = false;
 const COIN_COOLDOWN = projectileSettings.coinCooldown ?? 0.4;
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const HEART_PROJECTILE_SRC =
-  projectileSettings.heartProjectileSrc || "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png";
+  projectileSettings.heartProjectileSrc || "assets/sprites/items/Weapons/W43_Recurve_Bow.png";
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/projectiles/";
 const MAGIC_PACK_ROOT =
@@ -6246,10 +6246,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const performanceCongregationReward = Math.floor(performancePointTotal / 100);
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const PERFORMANCE_BONUS_BADGE_SRCS = {
-    perfectCongregation: "assets/sprites/pixel-art-pack/Items/I07_Apple.png",
-    pastorHealth: "assets/sprites/pixel-art-pack/Weapons/W14_Sword.png",
-    maxCombo: "assets/sprites/pixel-art-pack/Items/I36_Hammer.png",
-    prayerBomb: "assets/sprites/pixel-art-pack/Items/I02_HP_Potion_M.png",
+    perfectCongregation: "assets/sprites/items/icons/I07_Apple.png",
+    pastorHealth: "assets/sprites/items/Weapons/W14_Sword.png",
+    maxCombo: "assets/sprites/items/icons/I36_Hammer.png",
+    prayerBomb: "assets/sprites/items/icons/I02_HP_Potion_M.png",
   };
   const performanceBadgeBreakdown = [];
   if (pastorHealthValue > 0) {

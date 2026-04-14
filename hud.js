@@ -15,9 +15,9 @@
     clipKeys: {},
   };
   const scoreboardIconSources = {
-    congregation: "assets/sprites/pixel-art-pack/Items/I28_Idol.png",
-    grace: "assets/sprites/pixel-art-pack/Items/I62_Gem_L.png",
-    enemies: "assets/sprites/pixel-art-pack/Weapons/W01_Blade.png",
+    congregation: "assets/sprites/items/icons/I28_Idol.png",
+    grace: "assets/sprites/items/icons/I62_Gem_L.png",
+    enemies: "assets/sprites/items/Weapons/W01_Blade.png",
   };
   const scoreboardIcons = {};
   Object.entries(scoreboardIconSources).forEach(([key, src]) => {
@@ -26,7 +26,7 @@
     scoreboardIcons[key] = img;
   });
   const defaultWeaponIcon = new Image();
-  defaultWeaponIcon.src = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png";
+  defaultWeaponIcon.src = "assets/sprites/items/Weapons/W43_Recurve_Bow.png";
   const BOSS_PROGRESS_WEIGHT = 5;
 
   function drawOutlinedText(ctx, text, x, y, font, align, fillColor) {

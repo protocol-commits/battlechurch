@@ -49,7 +49,7 @@
       playerSpritePath = "assets/sprites/pastor/characters/",
       projectilePath = "assets/sprites/projectiles/",
       magicPackRoot = "assets/sprites/projectiles",
-      heartProjectileSrc = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png",
+      heartProjectileSrc = "assets/sprites/items/Weapons/W43_Recurve_Bow.png",
       characterRoot = "assets/sprites/rpg-sprites/Characters(100x100)",
       enemyDefinitions = {},
     } = config;

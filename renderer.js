@@ -3139,7 +3139,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 }
 
 const UPGRADE_ICON_SOURCES = {
-  category: "assets/sprites/pixel-art-pack/Items/I25_Book.png",
+  category: "assets/sprites/items/icons/I25_Book.png",
 };
 let upgradeCategoryIcon = null;
 const churchPowerupIcons = new Map();

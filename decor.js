@@ -2,7 +2,7 @@
 (function setupWorldDecorModule(window) {
   if (!window) return;
 
-  const VALLEY_OBJECTS_PATH = "assets/sprites/pixel-art-pack/Items/";
+  const VALLEY_OBJECTS_PATH = "assets/sprites/items/icons/";
 
   const AMBIENT_CANDLE_COUNT = 0;
   const AMBIENT_DECOR_MARGIN = 80;
