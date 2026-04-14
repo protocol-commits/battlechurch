@@ -15874,7 +15874,7 @@ function getAnnouncementNavDirection() {
     rightKeys.forEach((key) => keysJustPressed.delete(key));
     return direction;
   }
-  if (typeof Input === "undefined" || !Input.virtualInput?.enabled || typeof Input.isActionActive !== "function") {
+  if (typeof Input === "undefined" || typeof Input.isActionActive !== "function") {
     announcementNavHoldDir = null;
     announcementNavNextTime = 0;
     return 0;
