@@ -649,6 +649,67 @@ body.layout-rotate-warning #rotatePrompt {
   line-height: 1.25;
 }
 
+.settings-panel--dev-shortcuts {
+  gap: 12px;
+}
+
+.dev-shortcuts-hint {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(180, 210, 255, 0.78);
+}
+
+.dev-shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dev-shortcut-card {
+  min-height: 86px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: rgba(12, 20, 36, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.dev-shortcut-card__key {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffc86a;
+}
+
+.dev-shortcut-card__label {
+  font-size: 12px;
+  line-height: 1.25;
+  color: rgba(234, 246, 255, 0.92);
+}
+
+.dev-shortcut-card__note {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(155, 217, 255, 0.76);
+}
+
+@media (max-width: 880px) {
+  .dev-shortcuts-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dev-shortcuts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 body.layout-mobile .pause-hotkeys__title,
 body.layout-square .pause-hotkeys__title,
 body.layout-rotate-warning .pause-hotkeys__title {

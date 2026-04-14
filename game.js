@@ -15597,27 +15597,42 @@ function isDeveloperToolActive() {
 
 function showDeveloperShortcutsOverlay() {
   if (!window.DialogOverlay) return;
+  const shortcutCards = [
+    { key: "1", label: "God Mode" },
+    { key: "2", label: "Clear Hostiles" },
+    { key: "3", label: "Skip Battle" },
+    { key: "4", label: "Skip Level" },
+    { key: "5", label: "Final Town Boss" },
+    { key: "6", label: "Grace Rush" },
+    { key: "8", label: "Final Boss" },
+    { key: "9", label: "Epilogue" },
+    { key: "T", label: "Toggle Timer" },
+    { key: "C", label: "+5 Congregation" },
+    { key: "O", label: "Touch Controls" },
+    { key: "P", label: "Swap Powerups" },
+    { key: "B", label: "Prayer Bomb Charge" },
+    { key: "V", label: "Visitor Session" },
+    { key: "F", label: "Dev Inspector" },
+    { key: "M", label: "Debug Overlay" },
+    { key: "K", label: "+500 Grace" },
+    { key: "H", label: "Hitbox Editor", note: "Title Only" },
+  ];
   const bodyHtml = `
-    <div class="settings-panel">
-      <div class="settings-row"><div class="settings-row__label"><strong>Developer Shortcuts</strong></div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+1: God Mode</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+2: Clear Hostiles</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+3: Skip Battle</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+4: Skip Level</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+5: Final Town Boss</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+6: Grace Rush</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+8: Final Boss</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+9: Epilogue</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+T: Toggle Timer</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+C: +5 Congregation</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+O: Toggle Touch Controls</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+P: Swap Powerups</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+B: Prayer Bomb Charge</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+V: Visitor Session</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+F: Dev Inspector</div></div>
-      <div class="settings-row"><div class="settings-row__label">Title Screen H: Hitbox Editor</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+M: Debug Overlay</div></div>
-      <div class="settings-row"><div class="settings-row__label">Shift+K: +500 Grace</div></div>
+    <div class="settings-panel settings-panel--dev-shortcuts">
+      <div class="dev-shortcuts-hint">Press Shift</div>
+      <div class="dev-shortcuts-grid">
+        ${shortcutCards
+          .map(
+            ({ key, label, note }) => `
+              <div class="dev-shortcut-card">
+                <div class="dev-shortcut-card__key">${key}</div>
+                <div class="dev-shortcut-card__label">${label}</div>
+                ${note ? `<div class="dev-shortcut-card__note">${note}</div>` : ""}
+              </div>
+            `
+          )
+          .join("")}
+      </div>
     </div>
   `;
   window.DialogOverlay.show({
