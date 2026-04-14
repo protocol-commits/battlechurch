@@ -3436,12 +3436,12 @@ Input.initialize({
   arcControl,
   onAnyKeyDown: (key) => {
     const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
-    const devCombo = Boolean(modifiers && modifiers.shift && modifiers.ctrl);
+    const devCombo = Boolean(modifiers && modifiers.shift);
     if (key === "m" && DEBUG && devCombo) {
       toggleDebugOverlay();
       return;
     }
-    if (key === "k" && devCombo) {
+    if (key === "g" && devCombo) {
       addGrace(500);
       setDevStatus("Dev: +500 grace");
     }
@@ -15614,7 +15614,7 @@ function showDeveloperShortcutsOverlay() {
     { key: "V", label: "Visitor Session" },
     { key: "F", label: "Dev Inspector" },
     { key: "M", label: "Debug Overlay" },
-    { key: "K", label: "+500 Grace" },
+    { key: "G", label: "+500 Grace" },
     { key: "H", label: "Hitbox Editor", note: "Title Only" },
   ];
   const bodyHtml = `
