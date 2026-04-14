@@ -109,8 +109,6 @@
   let arcControl = null;
   let onAnyKeyDown = null;
   let shouldUpdatePointer = null;
-  let shouldHandleInspectorClick = null;
-  let onInspectorClick = null;
 
   let listenersAttached = false;
   let prayerBombClickQueued = false;
@@ -275,15 +273,6 @@
     if (event.button === 2) {
       prayerBombClickQueued = true;
     }
-    if (typeof shouldHandleInspectorClick === "function" && !shouldHandleInspectorClick()) return;
-    if (typeof onInspectorClick !== "function") return;
-    const coords = getCanvasCoordinates(event);
-    try {
-      onInspectorClick(coords, event, isPointer);
-    } catch (e) {
-      console.warn("Input.onInspectorClick callback failed", e);
-    }
-    event.preventDefault();
   }
 
   function handleMouseDown(event) {
@@ -989,10 +978,6 @@
     arcControl = options.arcControl || arcControl;
     onAnyKeyDown = typeof options.onAnyKeyDown === "function" ? options.onAnyKeyDown : onAnyKeyDown;
     shouldUpdatePointer = typeof options.shouldUpdatePointer === "function" ? options.shouldUpdatePointer : shouldUpdatePointer;
-    shouldHandleInspectorClick = typeof options.shouldHandleInspectorClick === "function"
-      ? options.shouldHandleInspectorClick
-      : shouldHandleInspectorClick;
-    onInspectorClick = typeof options.onInspectorClick === "function" ? options.onInspectorClick : onInspectorClick;
 
     if (typeof options.initialPointerX === "number") pointerState.x = options.initialPointerX;
     else if (!listenersAttached && canvas.width) pointerState.x = canvas.width / 2;

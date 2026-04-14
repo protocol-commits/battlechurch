@@ -2469,18 +2469,10 @@ function applyCameraShake(duration, magnitude) {
 }
 // per-layer pan values used by drawBackground
 let backgroundPan = { far: { x: 0 }, mid: { x: 0 } };
-// Developer animation inspector
-// Developer animation inspector
-let devInspectorActive = false;
-let devInspectorIndex = 0;
-let devInspectorTimer = 0;
-const DEV_INSPECTOR_PLAY_SPEED = 1.0; // speed multiplier
 const devFrameCache = new Map(); // cache extracted frames per clip
-let devInspectorZoom = 1.0; // default zoom for inspector (1.0 = fit-to-panel)
-let lastInspectorClick = null; // { key, col, row, globalIndex, time }
-// Overrides created via the inspector: per-key mapping of states to selected frame indices
-const devInspectorOverrides = {}; // { key: { idle: { frames: [0,1,2] }, ... } }
 let canvasScale = 1;
+const runtimeFrameOverrides = {};
+const runtimeManualGrids = {};
 
 FloatingText.initialize({
   getPlayer: () => player,
@@ -2685,260 +2677,51 @@ if (typeof window !== "undefined") {
   window.showPrayerBombBlastCombo = showPrayerBombBlastCombo;
 }
 
-function mergeInspectorOverrides(source) {
-  if (!source || typeof source !== 'object') return;
+function mergeRuntimeFrameOverrides(source) {
+  if (!source || typeof source !== "object") return;
   Object.keys(source).forEach((key) => {
     const states = source[key];
-    if (!states || typeof states !== 'object') return;
-    const target = devInspectorOverrides[key] = devInspectorOverrides[key] || {};
+    if (!states || typeof states !== "object") return;
+    const target = runtimeFrameOverrides[key] = runtimeFrameOverrides[key] || {};
     Object.keys(states).forEach((state) => {
       const data = states[state];
-      if (!data || typeof data !== 'object') return;
-      const existing = target[state] || {};
-      const next = Object.assign({}, existing, data);
+      if (!data || typeof data !== "object") return;
+      const next = { ...(target[state] || {}), ...data };
       if (Array.isArray(data.frames)) next.frames = data.frames.slice();
       target[state] = next;
     });
   });
-  markOverridesDirty();
-  try {
-    console.info && console.info('mergeInspectorOverrides: merged keys', Object.keys(source || {}));
-  } catch (e) {}
 }
 
-function mergeManualGridOverrides(source) {
-  if (!source || typeof source !== 'object') return;
-  devManualGridOverrides = devManualGridOverrides || {};
+function mergeRuntimeManualGrids(source) {
+  if (!source || typeof source !== "object") return;
   Object.keys(source).forEach((name) => {
     const def = source[name];
-    if (!def || typeof def !== 'object') return;
+    if (!def || typeof def !== "object") return;
     const cols = parseInt(def.cols, 10);
     const rows = parseInt(def.rows, 10);
     if (!Number.isFinite(cols) || cols <= 0) return;
     if (!Number.isFinite(rows) || rows <= 0) return;
-    const key = String(name || '').trim().toLowerCase();
+    const key = String(name || "").trim().toLowerCase();
     if (!key) return;
-    devManualGridOverrides[key] = { cols, rows };
+    runtimeManualGrids[key] = { cols, rows };
   });
-  try {
-    saveDevManualGridOverrides();
-    console.info && console.info('mergeManualGridOverrides: applied grids for', Object.keys(source || {}));
-  } catch (e) {
-    console.warn('mergeManualGridOverrides: failed to persist manual grids', e);
-  }
 }
 
-async function applyInspectorOverrides() {
-  try {
-    const keys = Object.keys(devInspectorOverrides || {});
-    if (!keys.length) return;
-    for (const key of keys) {
-      const override = devInspectorOverrides[key];
-      if (!override || typeof override !== 'object') continue;
-      if (ASSET_MANIFEST.enemies?.[key]) {
-        try {
-          // eslint-disable-next-line no-await-in-loop
-          await reloadEnemyClipsForKey(key);
-          console.info && console.info('applyInspectorOverrides: reloaded enemy', key, override);
-        } catch (e) {
-          console.warn('applyInspectorOverrides: failed reloading enemy', key, e);
-        }
-      } else if (ASSET_MANIFEST.projectiles?.[key]) {
-        try {
-          // eslint-disable-next-line no-await-in-loop
-          await reloadProjectileClipForKey(key);
-          console.info && console.info('applyInspectorOverrides: reloaded projectile', key, override);
-        } catch (e) {
-          console.warn('applyInspectorOverrides: failed reloading projectile', key, e);
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('applyInspectorOverrides: unexpected error', e);
+function loadRuntimeAnimationOverridesFromWindow() {
+  if (typeof window === "undefined") return;
+  mergeRuntimeFrameOverrides(window.__BATTLECHURCH_OVERRIDES);
+  mergeRuntimeManualGrids(window.__BATTLECHURCH_MANUAL_GRIDS);
+}
+
+function applyRuntimeFrameOverrideToClip(key, state, clip) {
+  if (!clip) return;
+  const override = runtimeFrameOverrides?.[key]?.[state];
+  if (override && Array.isArray(override.frames) && override.frames.length) {
+    clip.frameMap = override.frames.slice();
   }
 }
-// Pick-flow state: when inspector opens we will prompt the user for each state in order
-const devInspectorStatesOrder = ['idle','walk','attack','hurt','death'];
-let devInspectorFlowActive = false; // true when asking user to pick frames state-by-state
-let devInspectorCurrentStateIndex = 0; // index into devInspectorStatesOrder
-let devInspectorSelectedState = null; // convenience name for current state during flow
 let heroRescueCooldown = 0;
-// Persistence for inspector overrides
-const DEV_OVERRIDES_STORAGE_KEY = 'devInspectorOverrides_v1';
-let devOverridesDirty = false;
-let devOverridesSaveTimer = 0;
-// Manual grid overrides entered at runtime by the developer inspector: { filename: { cols: n, rows: m } }
-const DEV_MANUAL_GRID_KEY = 'devManualGridOverrides_v1';
-let devManualGridOverrides = {};
-
-const DEV_WEAPON_SHEETS = [
-  { projectileKey: 'arrow', label: 'Weapon: MiniFireBall (Arrow)' },
-  { projectileKey: 'weaponMiniLichSpell', label: 'Weapon: MiniLichSpell' },
-  { projectileKey: 'weaponMiniTrident', label: 'Weapon: MiniTrident' },
-];
-
-function getDevInspectorTargets() {
-  const enemyTargets = MINIFOLKS
-    .map((m) => ({ key: m.key, label: m.key, kind: 'enemy' }))
-    .filter((entry) => assets.enemies?.[entry.key]);
-  const weaponTargets = DEV_WEAPON_SHEETS
-    .map((w) => ({ key: w.projectileKey, label: w.label, kind: 'weapon' }))
-    .filter((entry) => assets.projectiles?.[entry.key]);
-  return enemyTargets.concat(weaponTargets);
-}
-
-function getInspectorStateList(target) {
-  if (!target) return devInspectorStatesOrder;
-  if (target.kind === 'weapon') return ['walk'];
-  return devInspectorStatesOrder;
-}
-
-function ensureInspectorState(target) {
-  const states = getInspectorStateList(target);
-  if (!states.includes(devInspectorSelectedState)) {
-    devInspectorSelectedState = states[0] || null;
-  }
-  return states;
-}
-
-function getInspectorClipBundle(target) {
-  if (!target) return {};
-  if (target.kind === 'enemy') {
-    return assets.enemies?.[target.key] || {};
-  }
-  if (target.kind === 'weapon') {
-    const clip = assets.projectiles?.[target.key];
-    if (!clip) return {};
-    return { walk: clip };
-  }
-  return {};
-}
-
-function loadDevManualGridOverrides() {
-  try {
-    const raw = localStorage.getItem(DEV_MANUAL_GRID_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
-      // normalize keys to lowercase basenames
-      devManualGridOverrides = {};
-      for (const [k, v] of Object.entries(parsed)) {
-        const nk = String(k || '').trim().toLowerCase();
-        devManualGridOverrides[nk] = v;
-      }
-      setDevStatus('Manual grid overrides loaded', 1.6);
-    }
-  } catch (e) {
-    console.warn('Failed to load manual grid overrides', e);
-  }
-}
-
-function saveDevManualGridOverrides() {
-  try {
-    // normalize keys when persisting
-    const out = {};
-    for (const [k, v] of Object.entries(devManualGridOverrides)) {
-      out[String(k).trim().toLowerCase()] = v;
-    }
-    localStorage.setItem(DEV_MANUAL_GRID_KEY, JSON.stringify(out));
-    setDevStatus('Manual grid overrides saved', 1.4);
-  } catch (e) {
-    console.warn('Failed to save manual grid overrides', e);
-    setDevStatus('Failed saving manual grid overrides', 2.2);
-  }
-}
-
-function saveDevOverrides(silent = false) {
-  try {
-    localStorage.setItem(DEV_OVERRIDES_STORAGE_KEY, JSON.stringify(devInspectorOverrides));
-    devOverridesDirty = false;
-    devOverridesSaveTimer = 0;
-    if (!silent) setDevStatus('Overrides saved to localStorage', 1.4);
-  } catch (e) {
-    console.warn('Failed to save overrides', e);
-    setDevStatus('Failed to save overrides', 2.2);
-  }
-}
-
-function loadDevOverrides() {
-  try {
-    const raw = localStorage.getItem(DEV_OVERRIDES_STORAGE_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
-      // copy into existing object
-      Object.keys(parsed).forEach((k) => {
-        devInspectorOverrides[k] = parsed[k];
-      });
-      setDevStatus('Overrides loaded from localStorage', 1.6);
-      return true;
-    }
-  } catch (e) {
-    console.warn('Failed to load overrides', e);
-  }
-  return false;
-}
-  let devOverridesAutoDownload = false; // if true, downloads JSON file on save
-
-function markOverridesDirty() {
-  devOverridesDirty = true;
-  devOverridesSaveTimer = 0;
-}
-
-function exportDevOverridesToClipboard() {
-  try {
-    const text = JSON.stringify(devInspectorOverrides, null, 2);
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        setDevStatus('Overrides copied to clipboard', 1.6);
-      }, () => {
-        console.debug && console.debug('Overrides export (clipboard unavailable)');
-      });
-    } else {
-      console.debug && console.debug('Overrides export (no clipboard available)');
-    }
-  } catch (e) {
-    console.warn('Export failed', e);
-    setDevStatus('Export failed', 2.2);
-  }
-}
-  function downloadDevOverridesFile() {
-    try {
-      const text = JSON.stringify(devInspectorOverrides, null, 2);
-      const blob = new Blob([text], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const ts = new Date().toISOString().replace(/[:.]/g, '-');
-      a.href = url;
-      a.download = `dev-overrides-${ts}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setDevStatus('Overrides downloaded', 1.6);
-    } catch (e) {
-      console.warn('Download failed', e);
-      setDevStatus('Download failed', 2.2);
-    }
-  }
-
-function importDevOverridesFromText(text) {
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === 'object') {
-      Object.keys(parsed).forEach((k) => {
-        devInspectorOverrides[k] = parsed[k];
-      });
-      markOverridesDirty();
-      setDevStatus('Overrides imported', 1.6);
-      return true;
-    }
-  } catch (e) {
-    console.warn('Import failed', e);
-  }
-  setDevStatus('Import failed (invalid JSON)', 2.6);
-  return false;
-}
 
 const START_COUNTDOWN_SEQUENCE = [];
 
@@ -3661,201 +3444,6 @@ if (typeof window !== "undefined") {
   Object.defineProperty(window, "gameLoadingProgress", {
     get: () => loadingProgress,
     enumerable: true,
-  });
-}
-
-function handleInspectorClick(cx, cy) {
-  const targets = getDevInspectorTargets();
-  if (!targets.length) {
-    console.warn('handleInspectorClick: no inspectable assets available');
-    return;
-  }
-  devInspectorIndex = devInspectorIndex % targets.length;
-  const target = targets[devInspectorIndex];
-  ensureInspectorState(target);
-  const key = target.key;
-  const clips = getInspectorClipBundle(target);
-  const clip = clips.walk || clips.idle || Object.values(clips)[0];
-  if (!clip) {
-    console.warn('handleInspectorClick: no clip for key', key, clips);
-    return;
-  }
-  if (!clip.image || !Number.isFinite(clip.frameWidth) || clip.frameWidth <= 0 || !Number.isFinite(clip.frameHeight) || clip.frameHeight <= 0) {
-    console.warn('handleInspectorClick: clip frame size invalid, aborting click handling', { key, clip });
-    setDevStatus('Sprite not ready: frame size unknown', 1.8);
-    return;
-  }
-
-  const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-  const rows = Math.max(1, Math.floor(clip.image.height / clip.frameHeight));
-  const padding = 18;
-  const panelW = Math.min(1200, canvas.width - 80);
-  const panelH = Math.min(860, canvas.height - 80);
-  const px = (canvas.width - panelW) / 2;
-  const py = (canvas.height - panelH) / 2;
-  const gridPadding = 8;
-  const availableW = panelW - padding * 2;
-  const availableH = panelH - 120;
-  const frameW = clip.frameWidth;
-  const frameH = clip.frameHeight;
-  const maxScaleX = Math.floor(availableW / (frameW * cols + gridPadding * (cols - 1)) * 100) / 100 || 1;
-  const maxScaleY = Math.floor(availableH / (frameH * rows + gridPadding * (rows - 1)) * 100) / 100 || 1;
-  const scale = Math.max(0.2, Math.min(maxScaleX, maxScaleY));
-  const cellW = Math.floor(frameW * scale);
-  const cellH = Math.floor(frameH * scale);
-  const gridW = cols * cellW + Math.max(0, cols - 1) * gridPadding;
-  const gridH = rows * cellH + Math.max(0, rows - 1) * gridPadding;
-  const gridX = px + (panelW - gridW) / 2;
-  const gridY = py + 64;
-
-  const btnW = 88;
-  const btnH = 28;
-  const btnY = py + 16;
-  const prevX = px + panelW - padding - btnW * 4 - 16;
-  const nextX = px + panelW - padding - btnW * 3 - 12;
-  const gridBtnX = px + panelW - padding - btnW * 2 - 8;
-  const typeX = px + panelW - padding - btnW;
-
-  const selectPrevTarget = () => {
-    if (!targets.length) return;
-    devInspectorIndex = (devInspectorIndex - 1 + targets.length) % targets.length;
-    const nextTarget = targets[devInspectorIndex];
-    ensureInspectorState(nextTarget);
-    setDevStatus(`Inspector: ${nextTarget.label}`, 1.4);
-  };
-  const selectNextTarget = () => {
-    if (!targets.length) return;
-    devInspectorIndex = (devInspectorIndex + 1) % targets.length;
-    const nextTarget = targets[devInspectorIndex];
-    ensureInspectorState(nextTarget);
-    setDevStatus(`Inspector: ${nextTarget.label}`, 1.4);
-  };
-
-  if (cx >= prevX && cx <= prevX + btnW && cy >= btnY && cy <= btnY + btnH) {
-    selectPrevTarget();
-    return;
-  }
-  if (cx >= nextX && cx <= nextX + btnW && cy >= btnY && cy <= btnY + btnH) {
-    selectNextTarget();
-    return;
-  }
-
-  if (cx >= gridBtnX && cx <= gridBtnX + btnW && cy >= btnY && cy <= btnY + btnH) {
-    const stateList = ensureInspectorState(target);
-    const targetState = devInspectorFlowActive ? (stateList[devInspectorCurrentStateIndex] || stateList[0] || 'walk') : (devInspectorSelectedState || stateList[0] || 'walk');
-    showFrameEntryUI(key, 'grid', (raw) => {
-      if (raw === null) {
-        setDevStatus('Grid entry cancelled', 1.2);
-        return;
-      }
-      const m = String(raw).trim().match(/^(\d+)\s*[xX,\s]\s*(\d+)$/);
-      if (!m) {
-        setDevStatus('Invalid grid format. Use e.g. 4x4', 2.6);
-        return;
-      }
-      const cols = Math.max(1, parseInt(m[1], 10));
-      const rows = Math.max(1, parseInt(m[2], 10));
-      const srcBaseRaw = (clip?.image?.src || '').split('/').pop() || '';
-      const srcBase = String(srcBaseRaw).trim();
-      const nsrc = srcBase.toLowerCase();
-      devManualGridOverrides[nsrc] = { cols, rows };
-      saveDevManualGridOverrides();
-      const reloadPromise = target.kind === 'weapon'
-        ? reloadProjectileClipForKey(key)
-        : reloadEnemyClipsForKey(key);
-      reloadPromise.then(() => {
-        setDevStatus(`Set grid ${cols}x${rows} for ${srcBase}`, 2.4);
-        markOverridesDirty();
-      }).catch(() => {
-        console.warn('reload clip failed', { key });
-        setDevStatus('Failed to reload sprite after grid change', 2.6);
-      });
-    });
-    return;
-  }
-
-  if (cx >= typeX && cx <= typeX + btnW && cy >= btnY && cy <= btnY + btnH) {
-    const stateList = ensureInspectorState(target);
-    const targetState = devInspectorFlowActive
-      ? (stateList[devInspectorCurrentStateIndex] || stateList[0] || 'walk')
-      : (devInspectorSelectedState || stateList[0] || 'walk');
-    showFrameEntryUI(key, targetState, (raw) => {
-      if (raw === null) {
-        setDevStatus('Frame entry cancelled', 1.2);
-        return;
-      }
-      const frames = parseFrameList(raw);
-      if (frames.length) {
-        devInspectorOverrides[key] = devInspectorOverrides[key] || {};
-        devInspectorOverrides[key][targetState] = { frames: frames.map((i) => i - 1) };
-        const reloadPromise = target.kind === 'weapon'
-          ? reloadProjectileClipForKey(key)
-          : reloadEnemyClipsForKey(key);
-        reloadPromise.then(() => {
-          markOverridesDirty();
-          setDevStatus(`Set ${targetState} frames: [${frames.join(',')}] for ${target.label || key}`, 2.6);
-        }).catch(() => {
-          setDevStatus('Failed to reload sprite after grid change', 2.6);
-        });
-      } else {
-        setDevStatus('No valid frames parsed', 1.6);
-      }
-    });
-    return;
-  }
-
-  // Legend hit detection (allow clicking state legend at bottom to select state)
-  const legendX = px + padding;
-  const legendY = py + panelH - 40;
-  let lx = legendX;
-  for (const st of stateList) {
-    // each legend entry uses ~120px horizontal space in drawDevInspector
-    const lw = 120;
-    if (cx >= lx && cx <= lx + lw && cy >= legendY - 18 && cy <= legendY + 6) {
-      devInspectorSelectedState = st;
-      setDevStatus(`Inspector target: ${st}`, 1.2);
-      return;
-    }
-    lx += lw;
-  }
-
-  // Map click to cell
-  if (cx < gridX || cx > gridX + gridW || cy < gridY || cy > gridY + gridH) {
-    console.warn('handleInspectorClick: click outside grid', { cx, cy, gridX, gridY, gridW, gridH });
-    return;
-  }
-  const relX = cx - gridX;
-  const relY = cy - gridY;
-  const col = Math.floor(relX / (cellW + gridPadding));
-  const row = Math.floor(relY / (cellH + gridPadding));
-  if (col < 0 || col >= cols || row < 0 || row >= rows) return;
-  const globalIndex = row * cols + col;
-
-  // Debug: log computed mapping to help diagnose click issues
-    // inspector click mapping computed (silenced)
-
-  // record for on-canvas highlight
-  lastInspectorClick = { key, col, row, globalIndex, time: performance.now() };
-
-  // determine which state to modify: if flow active, use current state; otherwise toggle for all or choose idle by default
-  const keyOverrides = devInspectorOverrides[key] = devInspectorOverrides[key] || {};
-  const targetState = devInspectorFlowActive
-    ? (stateList[devInspectorCurrentStateIndex] || stateList[0] || 'walk')
-    : (devInspectorSelectedState || stateList[0] || 'walk');
-  keyOverrides[targetState] = keyOverrides[targetState] || { frames: [] };
-  const arr = keyOverrides[targetState].frames;
-  const idx = arr.indexOf(globalIndex);
-  if (idx === -1) arr.push(globalIndex);
-  else arr.splice(idx, 1);
-  arr.sort((a,b)=>a-b);
-  const reloadPromise = target.kind === 'weapon'
-    ? reloadProjectileClipForKey(key)
-    : reloadEnemyClipsForKey(key);
-  reloadPromise.then(() => {
-    markOverridesDirty();
-    setDevStatus(`${targetState} frames: [${arr.map(i=>i+1).join(',')}]`, 1.6);
-  }).catch(() => {
-    setDevStatus('Failed to reload sprite after frame change', 2.2);
   });
 }
 
@@ -4935,60 +4523,20 @@ async function reloadEnemyClipsForKey(key) {
       return Promise.resolve();
     }
     const enemyDefs = ASSET_MANIFEST.enemies[key];
-  const newClips = {};
-  const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
-    // use devImageCache so we don't double-download
+    const newClips = {};
+    const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
       try {
-        // If a runtime manual grid override exists for this src, compute explicit frame sizes
-        const srcBaseRaw = (def.src || '').split('/').pop() || '';
-        const nsrc = String(srcBaseRaw).trim().toLowerCase();
-        const runtimeGrid = (devManualGridOverrides && devManualGridOverrides[nsrc]) || null;
-        let useDef = def;
-      if (runtimeGrid && runtimeGrid.cols && runtimeGrid.rows) {
-          try {
-            // create a shallow copy and inject explicit frameWidth/frameHeight
-            const img = await loadCachedImage(devImageCache, def.src);
-            const fw = Math.floor(img.width / Math.max(1, runtimeGrid.cols));
-            const fh = Math.floor(img.height / Math.max(1, runtimeGrid.rows));
-            useDef = Object.assign({}, def, { frameWidth: fw, frameHeight: fh });
-          // runtime grid override applied (silenced)
-          } catch (e) {
-            console.warn('reloadEnemyClipsForKey: failed to load image for runtimeGrid override', def.src, e);
-          }
-        }
-        const clip = await loadAnimationClip(useDef, devImageCache);
-        // If developer-selected frames exist, attach them quietly (no logs)
-        try {
-          const overrides = devInspectorOverrides && devInspectorOverrides[key];
-          if (overrides && overrides[state] && Array.isArray(overrides[state].frames) && overrides[state].frames.length) {
-            clip.frameMap = overrides[state].frames.slice();
-          }
-        } catch (e) {
-          // ignore
-        }
+        const clip = await loadAnimationClip(def, devImageCache);
+        applyRuntimeFrameOverrideToClip(key, state, clip);
         newClips[state] = clip;
-  try { /* clip loaded (silenced) */ } catch(e) {}
       } catch (e) {
         console.warn('reloadEnemyClipsForKey: failed loading state', { key, state, def, e });
       }
-  });
+    });
     await Promise.all(loaders);
     applyExplicitEnemyFrameMaps(key, newClips);
     assets.enemies = assets.enemies || {};
     assets.enemies[key] = newClips;
-    // Clear any cached extracted frames for images used by these clips so inspector will regenerate thumbnails
-    try {
-      for (const clipObj of Object.values(newClips)) {
-        const anySrc = clipObj?.image?.src;
-        if (!anySrc) continue;
-        for (const k of Array.from(devFrameCache.keys())) {
-          if (k.startsWith(anySrc)) devFrameCache.delete(k);
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-  // updated assets.enemies for key (silenced)
     return Promise.resolve();
   } catch (e) {
     console.warn('reloadEnemyClipsForKey: unexpected error', e);
@@ -5003,40 +4551,10 @@ async function reloadProjectileClipForKey(key) {
       console.warn('reloadProjectileClipForKey: no manifest entry for', key);
       return Promise.resolve();
     }
-    let useDef = def;
-    const srcBaseRaw = (def.src || '').split('/').pop() || '';
-    const nsrc = String(srcBaseRaw).trim().toLowerCase();
-    const runtimeGrid = devManualGridOverrides && devManualGridOverrides[nsrc];
-    if (runtimeGrid && runtimeGrid.cols && runtimeGrid.rows) {
-      try {
-        const img = await loadCachedImage(devImageCache, def.src);
-        const fw = Math.floor(img.width / Math.max(1, runtimeGrid.cols));
-        const fh = Math.floor(img.height / Math.max(1, runtimeGrid.rows));
-        useDef = Object.assign({}, def, { frameWidth: fw, frameHeight: fh });
-      } catch (e) {
-        console.warn('reloadProjectileClipForKey: failed to apply runtime grid override', def.src, e);
-      }
-    }
-    const clip = await loadAnimationClip(useDef, devImageCache);
-    try {
-      const overrides = devInspectorOverrides && devInspectorOverrides[key];
-      const walkOverride = overrides && overrides.walk;
-      if (walkOverride && Array.isArray(walkOverride.frames) && walkOverride.frames.length) {
-        clip.frameMap = walkOverride.frames.slice();
-      }
-    } catch (e) {
-      // ignore override application issues
-    }
+    const clip = await loadAnimationClip(def, devImageCache);
+    applyRuntimeFrameOverrideToClip(key, "walk", clip);
     assets.projectiles = assets.projectiles || {};
     assets.projectiles[key] = clip;
-    try {
-      const anySrc = clip?.image?.src;
-      if (anySrc) {
-        for (const cacheKey of Array.from(devFrameCache.keys())) {
-          if (cacheKey.startsWith(anySrc)) devFrameCache.delete(cacheKey);
-        }
-      }
-    } catch (e) {}
     return Promise.resolve();
   } catch (e) {
     console.warn('reloadProjectileClipForKey: unexpected error', e);
@@ -5165,7 +4683,6 @@ async function loadAnimationClip(definition, cache) {
     const w = image.width;
     const h = image.height;
 
-    // Try runtime manual overrides (set by inspector) first, then static overrides
   const srcBase = (definition.src || "").split('/').pop() || "";
   const normalizedSrc = String(srcBase).trim().toLowerCase();
   const staticManualOverrides = {
@@ -5180,10 +4697,9 @@ async function loadAnimationClip(definition, cache) {
   'minilichspell.png': { cols: 4, rows: 2 },
   'minitrident.png': { cols: 4, rows: 2 },
     };
-    const runtimeOverride = devManualGridOverrides && devManualGridOverrides[normalizedSrc];
-    const MANUAL_FRAME_OVERRIDES = runtimeOverride || staticManualOverrides;
-    if (MANUAL_FRAME_OVERRIDES && (MANUAL_FRAME_OVERRIDES[normalizedSrc] || MANUAL_FRAME_OVERRIDES[srcBase])) {
-      const mo = runtimeOverride || MANUAL_FRAME_OVERRIDES[normalizedSrc] || MANUAL_FRAME_OVERRIDES[srcBase];
+    const runtimeOverride = runtimeManualGrids[normalizedSrc];
+    if (runtimeOverride || staticManualOverrides[normalizedSrc] || staticManualOverrides[srcBase]) {
+      const mo = runtimeOverride || staticManualOverrides[normalizedSrc] || staticManualOverrides[srcBase];
       if (mo.frameWidth && mo.frameHeight) {
         frameWidth = frameWidth || mo.frameWidth;
         frameHeight = frameHeight || mo.frameHeight;
@@ -5465,7 +4981,9 @@ async function loadPlayerAssets(cache, assets) {
 async function loadProjectileAssets(cache, assets) {
   const projectileEntries = Object.entries(ASSET_MANIFEST.projectiles).map(
     async ([key, def]) => {
-      assets.projectiles[key] = await loadAnimationClip(def, cache);
+      const clip = await loadAnimationClip(def, cache);
+      applyRuntimeFrameOverrideToClip(key, "walk", clip);
+      assets.projectiles[key] = clip;
     },
   );
   await Promise.all(projectileEntries);
@@ -5480,9 +4998,13 @@ async function loadMapEnemyAssets(cache, assets) {
       assets.enemies[enemyName] = {};
       const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
         const clip = await loadAnimationClip(def, cache);
+        applyRuntimeFrameOverrideToClip(enemyName, state, clip);
         assets.enemies[enemyName][state] = clip;
       });
       await Promise.all(loaders);
+      try {
+        applyExplicitEnemyFrameMaps(enemyName, assets.enemies[enemyName]);
+      } catch (e) {}
     });
   await Promise.all(enemyTypes);
 }
@@ -5496,6 +5018,7 @@ async function loadEnemyAssets(cache, assets, skipMapEnemies = false) {
       assets.enemies[enemyName] = {};
       const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
         const clip = await loadAnimationClip(def, cache);
+        applyRuntimeFrameOverrideToClip(enemyName, state, clip);
         assets.enemies[enemyName][state] = clip;
       });
       await Promise.all(loaders);
@@ -6010,9 +5533,6 @@ async function loadAssets() {
   await loadGameplayAssets(cache, assets);
   return assets;
 }
-
-// After the module loads, attempt to load any saved manual grid overrides
-try { loadDevManualGridOverrides(); } catch (e) { /* ignore */ }
 
 function normalizeVector(x, y) {
   const length = Math.hypot(x, y);
@@ -12725,18 +12245,6 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
       }
     }
   }
-  let inspectorFrames = null;
-  if (!Array.isArray(overrides.frames)) {
-    const overrideFrames = devInspectorOverrides?.[type]?.walk?.frames;
-    if (Array.isArray(overrideFrames) && overrideFrames.length && clip) {
-      try {
-        const clipFrames = getFramesForClip(clip);
-        inspectorFrames = overrideFrames.map((idx) => clipFrames[idx]).filter(Boolean);
-      } catch (e) {
-        inspectorFrames = null;
-      }
-    }
-  }
   const frames = projectileFrames[type] || clip.frames;
   // If caller explicitly provided frames override, use those. Otherwise use
   // pre-extracted frames from projectileFrames or clip.frames.
@@ -12745,11 +12253,6 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
     config.frameDuration = config.frameDuration ?? PROJECTILE_FRAME_DURATIONS[type] ?? 0.05;
     config.flipHorizontal = overrides.flipHorizontal ?? dx < 0;
     if (config.loopFrames === undefined) config.loopFrames = Boolean(overrides.loopFrames) || false;
-  } else if (inspectorFrames && inspectorFrames.length) {
-    config.frames = inspectorFrames;
-    config.frameDuration = config.frameDuration ?? (clip.frameRate ? 1 / clip.frameRate : PROJECTILE_FRAME_DURATIONS[type] ?? 0.05);
-    config.flipHorizontal = overrides.flipHorizontal ?? dx < 0;
-    config.loopFrames = true;
   } else if (frames && frames.length) {
     config.frames = frames;
     config.frameDuration = config.frameDuration ?? PROJECTILE_FRAME_DURATIONS[type] ?? 0.05;
@@ -14845,129 +14348,12 @@ function isAnyDialogActive() {
   );
 }
 
-// In-canvas DOM entry UI
-function showFrameEntryUI(key, state, callback) {
-  // create overlay elements if missing
-  let container = document.getElementById('dev-frame-entry-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'dev-frame-entry-container';
-    container.style.position = 'fixed';
-    container.style.left = '50%';
-    container.style.top = '50%';
-    container.style.transform = 'translate(-50%, -50%)';
-    container.style.zIndex = 9999;
-    container.style.background = 'rgba(8,12,20,0.96)';
-    container.style.border = '2px solid rgba(120,200,255,0.9)';
-    container.style.padding = '12px';
-    container.style.borderRadius = '8px';
-    container.style.color = '#EAF6FF';
-    container.style.fontFamily = UI_FONT_FAMILY;
-    container.style.minWidth = '360px';
-    container.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
-
-    const label = document.createElement('div');
-    label.id = 'dev-frame-entry-label';
-    label.style.marginBottom = '8px';
-    container.appendChild(label);
-
-    const input = document.createElement('input');
-    input.id = 'dev-frame-entry-input';
-    input.type = 'text';
-    input.placeholder = 'e.g. 1,2,5-7';
-    input.style.width = '100%';
-    input.style.padding = '8px';
-    input.style.border = '1px solid rgba(120,200,255,0.35)';
-    input.style.borderRadius = '4px';
-    input.style.background = 'rgba(12,18,28,0.9)';
-    input.style.color = '#EAF6FF';
-    container.appendChild(input);
-
-    const buttons = document.createElement('div');
-    buttons.style.marginTop = '8px';
-    buttons.style.textAlign = 'right';
-
-    const ok = document.createElement('button');
-    ok.textContent = 'OK';
-    ok.style.marginRight = '8px';
-    ok.onclick = () => {
-      const val = input.value;
-      hideFrameEntryUI();
-      callback(val);
-    };
-    const cancel = document.createElement('button');
-    cancel.textContent = 'Cancel';
-    cancel.onclick = () => {
-      hideFrameEntryUI();
-      callback(null);
-    };
-    buttons.appendChild(ok);
-    buttons.appendChild(cancel);
-    container.appendChild(buttons);
-
-    document.body.appendChild(container);
-  }
-  // populate and show
-  const label = document.getElementById('dev-frame-entry-label');
-  const input = document.getElementById('dev-frame-entry-input');
-  if (state === 'grid') {
-    label.textContent = `Enter grid for ${key} (cols x rows), e.g. 6x9:`;
-    input.placeholder = 'e.g. 6x9 (cols x rows)';
-  } else {
-    label.textContent = `Enter frames for ${key} ${state} (comma or ranges):`;
-    input.placeholder = 'e.g. 1,2,5-7';
-  }
-  input.value = '';
-  // remove any previous keydown listener to avoid duplicates
-  input.onkeydown = null;
-  input.addEventListener('keydown', function onKeyDown(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const okBtn = document.querySelector('#dev-frame-entry-container button');
-      if (okBtn) okBtn.click();
-    }
-  });
-  input.focus();
-}
-
-function hideFrameEntryUI() {
-  const container = document.getElementById('dev-frame-entry-container');
-  if (container) container.remove();
-}
-
-// parse a user string like "1,2,5-7" into [1,2,5,6,7]
-function parseFrameList(input) {
-  if (!input || !String(input).trim()) return [];
-  const parts = String(input).split(',').map(p => p.trim()).filter(Boolean);
-  const out = new Set();
-  for (const p of parts) {
-    const m = p.match(/^(\d+)-(\d+)$/);
-    if (m) {
-      const a = Math.max(1, parseInt(m[1], 10));
-      const b = Math.max(1, parseInt(m[2], 10));
-      const from = Math.min(a, b);
-      const to = Math.max(a, b);
-      for (let i = from; i <= to; i++) out.add(i);
-    } else {
-      const n = parseInt(p, 10);
-      if (Number.isFinite(n) && n > 0) out.add(n);
-    }
-  }
-  return Array.from(out).sort((a,b) => a - b);
-}
-
 function updateDebugSystems(dt) {
   if (DEBUG && debugOverlayVisible) {
     debugOverlayUpdateAccumulator += dt;
     if (debugOverlayUpdateAccumulator >= DEBUG_OVERLAY_UPDATE_INTERVAL) {
       debugOverlayUpdateAccumulator = 0;
       updateDebugOverlayData();
-    }
-  }
-  if (devOverridesDirty) {
-    devOverridesSaveTimer += dt;
-    if (devOverridesSaveTimer > 0.8) {
-      saveDevOverrides(true);
     }
   }
 }
@@ -20167,359 +19553,6 @@ function roundRect(ctx, x, y, width, height, radius, fill = true, stroke = true)
   if (stroke) ctx.stroke();
 }
 
-function drawDevInspector() {
-  const inspectorTargets = getDevInspectorTargets();
-  if (!inspectorTargets.length) return;
-  devInspectorIndex = devInspectorIndex % inspectorTargets.length;
-  const target = inspectorTargets[devInspectorIndex];
-  const key = target.key;
-  const label = target.label;
-  const stateList = ensureInspectorState(target);
-  const clips = getInspectorClipBundle(target);
-  const padding = 18;
-  const panelW = Math.min(1200, canvas.width - 80);
-  const panelH = Math.min(860, canvas.height - 80);
-  const px = (canvas.width - panelW) / 2;
-  const py = (canvas.height - panelH) / 2;
-  ctx.save();
-  ctx.fillStyle = 'rgba(6,10,16,0.96)';
-  ctx.fillRect(px, py, panelW, panelH);
-  ctx.strokeStyle = 'rgba(120,200,255,0.9)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(px, py, panelW, panelH);
-  ctx.fillStyle = '#EAF6FF';
-  ctx.font = `18px ${UI_FONT_FAMILY}`;
-  ctx.textAlign = 'left';
-  const headerY = py + 28;
-  ctx.fillText(`Inspector: ${label}`, px + padding, headerY);
-  // show any manual grid override for this sheet (top-left, with background)
-  try {
-    const imgSrc = (clips.idle || Object.values(clips)[0])?.image?.src || '';
-    const basename = imgSrc.split('/').pop() || '';
-    const override = devManualGridOverrides[basename.trim().toLowerCase()];
-    if (override) {
-      const label = `Manual grid override: ${override.cols} x ${override.rows}`;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = 'rgba(10,14,20,0.88)';
-      const lw = Math.min(420, ctx.measureText(label).width + 18);
-      ctx.fillRect(px + padding, py + 40 - 14, lw, 20);
-      ctx.fillStyle = '#9BD9FF';
-      ctx.fillText(label, px + padding + 6, py + 40);
-    }
-  } catch (e) {}
-
-  // draw small Prev/Next/Grid/Type buttons
-  const btnW = 88;
-  const btnH = 28;
-  const btnY = py + 16;
-  // positions match handleInspectorClick: Prev, Next, Grid, Type (from left to right)
-  const prevX = px + panelW - padding - btnW * 4 - 16;
-  const nextX = px + panelW - padding - btnW * 3 - 12;
-  const gridBtnX = px + panelW - padding - btnW * 2 - 8;
-  const typeX = px + panelW - padding - btnW;
-  // debug: show button rects in console occasionally
-  if (devInspectorTimer < 0.1) {
-    console.debug('Inspector buttons rects', { prev: [prevX, btnY, btnW, btnH], next: [nextX, btnY, btnW, btnH], grid: [gridBtnX, btnY, btnW, btnH], type: [typeX, btnY, btnW, btnH] });
-  }
-  // prev
-  ctx.save();
-  ctx.fillStyle = 'rgba(24,34,54,0.95)';
-  ctx.fillRect(prevX, btnY, btnW, btnH);
-  ctx.strokeStyle = 'rgba(120,200,255,0.9)';
-  ctx.strokeRect(prevX, btnY, btnW, btnH);
-  ctx.fillStyle = '#EAF6FF';
-  ctx.font = `13px ${UI_FONT_FAMILY}`;
-  ctx.textAlign = 'center';
-  ctx.fillText('Prev Key', prevX + btnW / 2, btnY + btnH / 2 + 5);
-  ctx.restore();
-  // next
-  ctx.save();
-  ctx.fillStyle = 'rgba(24,34,54,0.95)';
-  ctx.fillRect(nextX, btnY, btnW, btnH);
-  ctx.strokeStyle = 'rgba(120,200,255,0.9)';
-  ctx.strokeRect(nextX, btnY, btnW, btnH);
-  ctx.fillStyle = '#EAF6FF';
-  ctx.fillText('Next Key', nextX + btnW / 2, btnY + btnH / 2 + 5);
-  ctx.restore();
-  // grid
-  ctx.save();
-  ctx.fillStyle = 'rgba(30,40,60,0.96)';
-  ctx.fillRect(gridBtnX, btnY, btnW, btnH);
-  ctx.strokeStyle = 'rgba(120,200,255,0.9)';
-  ctx.strokeRect(gridBtnX, btnY, btnW, btnH);
-  ctx.fillStyle = '#EAF6FF';
-  ctx.fillText('Grid', gridBtnX + btnW / 2, btnY + btnH / 2 + 5);
-  ctx.restore();
-  // type frames
-  ctx.save();
-  ctx.fillStyle = 'rgba(40,56,80,0.98)';
-  ctx.fillRect(typeX, btnY, btnW, btnH);
-  ctx.strokeStyle = 'rgba(120,200,255,0.95)';
-  ctx.strokeRect(typeX, btnY, btnW, btnH);
-  ctx.fillStyle = '#fff';
-  ctx.fillText('Type Frames', typeX + btnW / 2, btnY + btnH / 2 + 5);
-  ctx.restore();
-
-  // Determine a single representative clip (use idle if available or first)
-  const clip = clips.walk || clips.idle || Object.values(clips)[0];
-  if (!clip) {
-    ctx.fillStyle = '#9BD9FF';
-    ctx.font = `14px ${UI_FONT_FAMILY}`;
-    ctx.fillText('No sprite sheet available for this key.', px + padding, py + 60);
-    ctx.restore();
-    return;
-  }
-
-  // Defensive: ensure image and frame sizes are valid before attempting grid math
-  if (!clip.image || !Number.isFinite(clip.frameWidth) || clip.frameWidth <= 0 || !Number.isFinite(clip.frameHeight) || clip.frameHeight <= 0) {
-    ctx.fillStyle = '#9BD9FF';
-    ctx.font = `14px ${UI_FONT_FAMILY}`;
-    ctx.fillText('Sprite not ready: frame size unknown. Try saving again or wait a moment.', px + padding, py + 60);
-    // attempt to trigger a reload of this key's clips in background (non-blocking)
-    try {
-      const retryTargets = getDevInspectorTargets();
-      if (retryTargets.length) {
-        const retryKey = retryTargets[devInspectorIndex % retryTargets.length].key;
-        const reloadPromise = target.kind === 'weapon'
-          ? reloadProjectileClipForKey(retryKey)
-          : reloadEnemyClipsForKey(retryKey);
-        reloadPromise.catch(() => {});
-      }
-    } catch (e) {}
-    ctx.restore();
-    return;
-  }
-
-  // Defensive: ensure clip has a valid image and frame sizes
-  const badFrame = !clip.image || !Number.isFinite(clip.frameWidth) || clip.frameWidth <= 0 || !Number.isFinite(clip.frameHeight) || clip.frameHeight <= 0;
-  if (badFrame) {
-    ctx.fillStyle = '#FFC86A';
-    ctx.font = `14px ${UI_FONT_FAMILY}`;
-    ctx.fillText('Invalid sprite/frame size for this sheet — check console for details.', px + padding, py + 60);
-    try {
-      console.warn('drawDevInspector: invalid clip for key', { key, clip });
-    } catch (e) {
-      // ignore
-    }
-    ctx.restore();
-    return;
-  }
-
-  // Compute cols/rows for the sheet grid (from clip)
-  const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
-  const rows = Math.max(1, Math.floor(clip.image.height / clip.frameHeight));
-
-  // color map shared by cell highlights and legend
-  const colorMap = {
-    idle: 'rgba(100,255,160,0.9)',
-    walk: 'rgba(120,200,255,0.9)',
-    attack: 'rgba(255,180,120,0.95)',
-    hurt: 'rgba(255,120,140,0.95)',
-    death: 'rgba(200,120,255,0.9)'
-  };
-
-  // Compute grid layout to show whole sheet using pixel-exact frames scaled to fit
-  const gridPadding = 8;
-  const availableW = panelW - padding * 2;
-  const availableH = panelH - 120;
-  // frame pixel size from clip
-  const frameW = clip.frameWidth;
-  const frameH = clip.frameHeight;
-  // compute maximum uniform scale that fits both width and height
-  const maxScaleX = Math.floor(availableW / (frameW * cols + gridPadding * (cols - 1)) * 100) / 100 || 1;
-  const maxScaleY = Math.floor(availableH / (frameH * rows + gridPadding * (rows - 1)) * 100) / 100 || 1;
-  const scale = Math.max(0.2, Math.min(maxScaleX, maxScaleY));
-  const cellW = Math.floor(frameW * scale);
-  const cellH = Math.floor(frameH * scale);
-  const gridW = cols * cellW + Math.max(0, cols - 1) * gridPadding;
-  const gridH = rows * cellH + Math.max(0, rows - 1) * gridPadding;
-  const gridX = px + (panelW - gridW) / 2;
-  const gridY = py + 64;
-
-  // Draw prompt area - if in flow, prompt which state to select
-  ctx.font = `14px ${UI_FONT_FAMILY}`;
-  ctx.fillStyle = '#9BD9FF';
-  if (devInspectorFlowActive) {
-    devInspectorSelectedState = stateList[devInspectorCurrentStateIndex] || stateList[0] || null;
-    ctx.fillText(`Pick frames for: ${(devInspectorSelectedState || 'walk').toUpperCase()}  —  Click cells to toggle. Press Enter when done.`, px + padding, py + 52);
-  } else {
-    ctx.fillText('Pick frames: click cells to toggle frames for any state. Use Enter to cycle keys.', px + padding, py + 52);
-  }
-
-  // Draw grid cells representing the sheet
-  ctx.save();
-  for (let r = 0; r < rows; r += 1) {
-    for (let c = 0; c < cols; c += 1) {
-      const ix = gridX + c * (cellW + gridPadding);
-      const iy = gridY + r * (cellH + gridPadding);
-      // source coordinates in image
-      const sx = c * clip.frameWidth;
-      const sy = r * clip.frameHeight;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(ix, iy, cellW, cellH);
-      ctx.clip();
-      ctx.drawImage(clip.image, sx, sy, clip.frameWidth, clip.frameHeight, ix, iy, cellW, cellH);
-      ctx.restore();
-
-      // highlight selection for states that include this frame
-      const globalIndex = r * cols + c;
-  // if any state has this globalIndex selected, draw a small colored corner
-  const keyOverrides = devInspectorOverrides[key] || {};
-      let stacked = 0;
-  for (const st of stateList) {
-        const frames = keyOverrides[st]?.frames || [];
-        if (frames.indexOf(globalIndex) !== -1) {
-          // draw a small colored rounded corner indicating this state selected this cell
-          ctx.save();
-          ctx.fillStyle = colorMap[st] || 'rgba(255,255,255,0.9)';
-          const pad = 6 + stacked * 6;
-          ctx.globalAlpha = 0.95;
-          ctx.beginPath();
-          ctx.moveTo(ix + pad, iy);
-          ctx.lineTo(ix + pad + 18, iy);
-          ctx.lineTo(ix, iy + pad + 18);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-          stacked += 1;
-        }
-      }
-
-      // draw cell border
-      ctx.strokeStyle = 'rgba(200,220,255,0.14)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(ix, iy, cellW, cellH);
-
-  // draw small index for debugging (1-based)
-  ctx.save();
-  ctx.font = `12px ${UI_FONT_FAMILY}`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'bottom';
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.fillRect(ix + cellW - 28, iy + cellH - 18, 26, 16);
-  ctx.fillStyle = '#EAF6FF';
-  ctx.fillText(String(r * cols + c + 1), ix + cellW - 6, iy + cellH - 4);
-  ctx.restore();
-    }
-  }
-  ctx.restore();
-
-  // Draw highlight for last click (short-lived)
-  if (lastInspectorClick && lastInspectorClick.key === key) {
-    const age = (performance.now() - (lastInspectorClick.time || 0)) / 1000;
-    if (age < 1.2) {
-      const c = lastInspectorClick.col;
-      const r = lastInspectorClick.row;
-      const ix = gridX + c * (cellW + gridPadding) - 4;
-      const iy = gridY + r * (cellH + gridPadding) - 4;
-      const iw = cellW + 8;
-      const ih = cellH + 8;
-      ctx.save();
-      const pulse = 0.5 + 0.5 * Math.sin(age * 8);
-      ctx.strokeStyle = `rgba(80,220,120,${0.9 * (1 - age)})`;
-      ctx.lineWidth = 3 + pulse * 2;
-      ctx.strokeRect(ix, iy, iw, ih);
-      ctx.restore();
-
-      // small status label
-      ctx.save();
-      ctx.font = `13px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = '#5FE3C0';
-      const label = `Clicked: #${lastInspectorClick.globalIndex + 1} (c${c} r${r})`;
-      ctx.fillText(label, gridX + 8, gridY - 6);
-      ctx.restore();
-    }
-  }
-
-  // Draw legend for states and current selections
-  // Draw animation previews for each state (bottom area)
-  try {
-    const previewH = 56; // height of thumbnail strip
-    const previewY = py + panelH - previewH - 56; // leave room for legend below
-    const previewX = px + padding;
-    const gap = 18;
-    let sx = previewX;
-    ctx.font = `12px ${UI_FONT_FAMILY}`;
-    for (const st of stateList) {
-      const clipState = clips[st];
-      // background box for this state's preview
-      const boxW = Math.min(520, panelW - padding * 2 - (stateList.length - 1) * gap) / Math.max(1, stateList.length);
-      ctx.save();
-      // highlight if this is the currently selected state
-      if ((devInspectorSelectedState || stateList[0]) === st) {
-        ctx.fillStyle = 'rgba(100,255,160,0.08)';
-        ctx.fillRect(sx - 6, previewY - 6, boxW + 12, previewH + 28);
-        ctx.strokeStyle = 'rgba(100,255,160,0.28)';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(sx - 6, previewY - 6, boxW + 12, previewH + 28);
-      }
-      // label
-      ctx.fillStyle = '#9BD9FF';
-      ctx.fillText(st.toUpperCase(), sx, previewY - 12);
-      // draw an animated thumbnail for this state
-      try {
-        // prefer the clip for this state, fallback to idle
-        const useClip = clipState || clips.idle || clip;
-        const frames = useClip ? getFramesForClip(useClip) : [];
-        const total = frames.length || (useClip?.frameCount || 0);
-        const overridesForKey = devInspectorOverrides[key] || {};
-        const overrideFrames = (overridesForKey[st] && Array.isArray(overridesForKey[st].frames) && overridesForKey[st].frames.length) ? overridesForKey[st].frames : null;
-        let thumbCanvas = null;
-        const maxThumbH = previewH;
-        if (overrideFrames && overrideFrames.length && frames.length) {
-          // cycle through the selected frames (using their global indices)
-          const rate = (useClip && useClip.frameRate) ? useClip.frameRate : 6;
-          const t = devInspectorTimer || 0;
-          const idxInSeq = Math.floor(t * rate) % overrideFrames.length;
-          const globalIndex = overrideFrames[idxInSeq];
-          thumbCanvas = frames[globalIndex % frames.length];
-        } else if (frames.length) {
-          // default: cycle through clip frames
-          const rate = (useClip && useClip.frameRate) ? useClip.frameRate : 6;
-          const t = devInspectorTimer || 0;
-          let idx = Math.floor(t * rate);
-          if (useClip && useClip.loop && frames.length > 0) idx = idx % frames.length;
-          else idx = Math.min(idx, frames.length - 1);
-          thumbCanvas = frames[idx];
-        }
-        if (thumbCanvas) {
-          const scale = Math.min(1, maxThumbH / Math.max(1, thumbCanvas.height));
-          const tw = Math.floor(thumbCanvas.width * scale);
-          const th = Math.floor(thumbCanvas.height * scale);
-          ctx.drawImage(thumbCanvas, 0, 0, thumbCanvas.width, thumbCanvas.height, sx, previewY + Math.floor((previewH - th) / 2), tw, th);
-        } else {
-          // placeholder box
-          ctx.fillStyle = 'rgba(255,255,255,0.02)';
-          ctx.fillRect(sx, previewY, Math.min(boxW - 8, 72), previewH);
-          ctx.fillStyle = '#9BD9FF';
-          ctx.fillText('No frames', sx + 6, previewY + previewH / 2 + 4);
-        }
-      } catch (e) {
-        // ignore per-state drawing errors
-      }
-      ctx.restore();
-      sx += boxW + gap;
-    }
-  } catch (e) {}
-
-  const legendX = px + padding;
-  const legendY = py + panelH - 40;
-  ctx.font = `13px ${UI_FONT_FAMILY}`;
-  let lx = legendX;
-  for (const st of stateList) {
-    const col = colorMap[st] || '#fff';
-    ctx.fillStyle = col;
-    ctx.fillRect(lx, legendY - 12, 18, 12);
-    ctx.fillStyle = '#EAF6FF';
-    ctx.fillText(st.toUpperCase(), lx + 22, legendY - 2);
-    lx += 120;
-  }
-
-  ctx.restore();
-}
-  
-
 function drawHUD() {
   // Rendering handled by renderer.js
 }
@@ -20841,35 +19874,9 @@ function renderDebugOverlay(ctx) {
   ctx.restore();
 }
 
-// Apply any saved manual grid overrides by reloading matching enemy clips
-async function applySavedManualGrids() {
-  try {
-    if (!devManualGridOverrides || !Object.keys(devManualGridOverrides).length) return;
-    const keys = Object.keys(ASSET_MANIFEST.enemies || {});
-    for (const k of keys) {
-      try {
-        // check the manifest entry to find its source basename
-        const idleDef = ASSET_MANIFEST.enemies[k]?.idle;
-        const src = idleDef?.src || '';
-        const basename = src.split('/').pop() || '';
-        const nk = String(basename).trim().toLowerCase();
-        if (devManualGridOverrides[nk]) {
-          console.debug && console.debug('Applying saved manual grid for', k, devManualGridOverrides[nk]);
-          // reload clips for this key so overrides take effect
-          // eslint-disable-next-line no-await-in-loop
-          await reloadEnemyClipsForKey(k);
-        }
-      } catch (e) {
-        console.warn('applySavedManualGrids: failed for key', k, e);
-      }
-    }
-  } catch (e) {
-    console.warn('applySavedManualGrids: unexpected', e);
-  }
-}
-
 async function init() {
   try {
+    loadRuntimeAnimationOverridesFromWindow();
     resetMusicState();
     if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();
@@ -21052,26 +20059,7 @@ async function init() {
     gameStarted = false;
     levelManager = Levels.createLevelManager();
     levelManager.begin();
-  // attempt to load saved inspector overrides
-    if (loadDevOverrides()) {
-      devOverridesDirty = false;
-    }
-    if (devInspectorOverrides && devInspectorOverrides.player) {
-      delete devInspectorOverrides.player;
-      devOverridesDirty = true;
-    }
-    if (typeof window !== 'undefined' && window.__BATTLECHURCH_OVERRIDES) {
-      mergeInspectorOverrides(window.__BATTLECHURCH_OVERRIDES);
-    }
-    if (typeof window !== 'undefined' && window.__BATTLECHURCH_MANUAL_GRIDS) {
-      mergeManualGridOverrides(window.__BATTLECHURCH_MANUAL_GRIDS);
-    }
-  // apply any saved manual grid overrides so inspector reflects them immediately
-  try { await applySavedManualGrids(); } catch (e) { /* ignore */ }
-  // If there are saved inspector overrides (selected frames), ensure the runtime clips
-  // are updated to include those frame maps so in-game animations match the preview.
-  try { await applyInspectorOverrides(); } catch (e) { console.warn('init: applyInspectorOverrides failed', e); }
-  // Re-apply explicit miniDemonFireThrower frameMaps after any reloads so they take effect
+  // Re-apply explicit miniDemonFireThrower frameMaps after clip loading so they take effect
   try {
     if (assets?.enemies?.miniDemonFireThrower) {
       applyExplicitEnemyFrameMaps("miniDemonFireThrower", assets.enemies.miniDemonFireThrower);
