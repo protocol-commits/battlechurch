@@ -200,7 +200,7 @@
       effect: "halo",
       duration: 12,
       label: "Prayer Team",
-      iconSrc: "assets/sprites/weapons/A13_Headband.png",
+      iconSrc: "assets/sprites/pixel-art-pack/Items/A13_Headband.png",
       description: "Protect your congregation through focused prayer.",
       levelCosts: CHURCH_LEVEL_COSTS,
     },

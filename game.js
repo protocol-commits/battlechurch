@@ -3444,7 +3444,7 @@ const DEMON_LORD_FIREBALL_FRAME_FILES = Array.from(
 );
 const WORD_OF_GOD_FRAME_FILES = Array.from(
   { length: 11 },
-  (_, index) => `assets/sprites/weapons/fire4/1_${index}.png`,
+  (_, index) => `assets/sprites/projectiles/fire4/1_${index}.png`,
 );
 const FLASH_FRAME_COUNT = 14;
 const COIN_FRAME_DURATION = 0.08;
