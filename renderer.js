@@ -5891,8 +5891,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx,
       canvas,
       UI_FONT_FAMILY,
-      devInspectorActive,
-      drawDevInspector,
       assets,
       HUD_HEIGHT,
       assetsLoaded,
@@ -6102,9 +6100,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       window.__announcementButtons = { key: "title", buttons: bounds };
     }
     ctx.restore();
-    if (devInspectorActive && typeof drawDevInspector === "function") {
-      try { drawDevInspector(); } catch (e) {}
-    }
   }
 
   function drawHowToPlayScreen() {

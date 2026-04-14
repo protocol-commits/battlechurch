@@ -3458,11 +3458,6 @@ Input.initialize({
     if (!gameStarted && !paused) gameStarted = true;
   },
   shouldUpdatePointer: () => Boolean(player),
-  shouldHandleInspectorClick: () => devInspectorActive,
-  onInspectorClick: (coords) => {
-    if (!coords) return;
-    handleInspectorClick(coords.x, coords.y);
-  },
 });
 
 const pointerState = Input.pointerState;
@@ -3567,8 +3562,6 @@ Renderer.initialize({
   floatingTexts,
   pointerState,
   get paused() { return paused; },
-  get devInspectorActive() { return devInspectorActive; },
-  drawDevInspector,
   getStartCountdownLabel,
   aimState,
   aimAssist,
@@ -14832,74 +14825,6 @@ function handleDeveloperHotkeys() {
       setDevStatus("Level skipped", 2.5);
     }
   }
-  if (keysJustPressed.has("f")) {
-    devInspectorActive = !devInspectorActive;
-    devInspectorTimer = 0;
-    const inspectorTargets = getDevInspectorTargets();
-    if (devInspectorActive) {
-      if (!inspectorTargets.length) {
-        devInspectorActive = false;
-        setDevStatus('Dev inspector unavailable (no sheets loaded)', 1.8);
-        return;
-      }
-      devInspectorIndex = devInspectorIndex % inspectorTargets.length;
-      const target = inspectorTargets[devInspectorIndex];
-      devInspectorFlowActive = true;
-      devInspectorCurrentStateIndex = 0;
-      const states = ensureInspectorState(target);
-      devInspectorSelectedState = states[0] || null;
-      setDevStatus(`Dev inspector: ON — pick frames for ${target.label}`, 2.8);
-    } else {
-      devInspectorFlowActive = false;
-      setDevStatus("Dev inspector: OFF", 1.6);
-    }
-  }
-  // Prev / Next fallback hotkeys for inspector key cycling
-  if (devInspectorActive && (keysJustPressed.has(",") || keysJustPressed.has("ArrowLeft"))) {
-    const inspectorTargets = getDevInspectorTargets();
-    if (inspectorTargets.length) {
-      devInspectorIndex = (devInspectorIndex - 1 + inspectorTargets.length) % inspectorTargets.length;
-      const target = inspectorTargets[devInspectorIndex];
-      ensureInspectorState(target);
-      setDevStatus(`Inspector: ${target.label}`, 1.2);
-    }
-  }
-  if (devInspectorActive && (keysJustPressed.has(".") || keysJustPressed.has("ArrowRight"))) {
-    const inspectorTargets = getDevInspectorTargets();
-    if (inspectorTargets.length) {
-      devInspectorIndex = (devInspectorIndex + 1) % inspectorTargets.length;
-      const target = inspectorTargets[devInspectorIndex];
-      ensureInspectorState(target);
-      setDevStatus(`Inspector: ${target.label}`, 1.2);
-    }
-  }
-  if (keysJustPressed.has("+")) {
-    devInspectorZoom = Math.min(12, devInspectorZoom + 0.5);
-    setDevStatus(`Inspector zoom ${devInspectorZoom.toFixed(1)}x`, 1.2);
-  }
-  if (keysJustPressed.has("-")) {
-    devInspectorZoom = Math.max(0.5, devInspectorZoom - 0.5);
-    setDevStatus(`Inspector zoom ${devInspectorZoom.toFixed(1)}x`, 1.2);
-  }
-  if (keysJustPressed.has("0")) {
-  devInspectorZoom = 1.0;
-    setDevStatus(`Inspector zoom reset`, 1.2);
-  }
-  if (keysJustPressed.has("r")) {
-    // reset overrides for current inspector key
-    const inspectorTargets = getDevInspectorTargets();
-    if (inspectorTargets.length) {
-      const target = inspectorTargets[devInspectorIndex % inspectorTargets.length];
-      const key = target.key;
-      if (devInspectorOverrides[key]) {
-        delete devInspectorOverrides[key];
-        markOverridesDirty();
-        setDevStatus(`Overrides reset for ${target.label}`, 1.6);
-      } else {
-        setDevStatus(`No overrides to reset for ${target.label}`, 1.6);
-      }
-    }
-  }
   if (keysJustPressed.has("v")) {
     if (visitorSession.active) {
       completeVisitorSession("devCancel");
@@ -14908,47 +14833,9 @@ function handleDeveloperHotkeys() {
       setDevStatus("Visitor session started (dev)", 1.8);
     }
   }
-  // Manual save/export/import for inspector overrides
-  if (keysJustPressed.has("y")) {
-    saveDevOverrides(false);
-  }
-  if (keysJustPressed.has("e")) {
-    exportDevOverridesToClipboard();
-  }
-  if (keysJustPressed.has("i")) {
-    const raw = window.prompt('Paste overrides JSON to import:', '');
-    if (raw !== null) importDevOverridesFromText(raw);
-  }
   if (keysJustPressed.has("s")) {
     // show overrides hotkey pressed (silenced)
   }
-  if (keysJustPressed.has("Enter") || keysJustPressed.has("\n")) {
-    if (devInspectorActive) {
-      const inspectorTargets = getDevInspectorTargets();
-      const target = inspectorTargets[inspectorTargets.length ? devInspectorIndex % inspectorTargets.length : 0];
-      if (devInspectorFlowActive) {
-        // finish current state and move to next
-        devInspectorCurrentStateIndex += 1;
-        const stateList = ensureInspectorState(target);
-        if (devInspectorCurrentStateIndex >= stateList.length) {
-          devInspectorFlowActive = false;
-          if (target) setDevStatus(`Pick flow complete for ${target.label}`, 2.2);
-        } else {
-          devInspectorSelectedState = stateList[devInspectorCurrentStateIndex];
-          setDevStatus(`Pick frames for ${devInspectorSelectedState}`, 2.0);
-        }
-      } else {
-        // If not in pick flow, cycle the selected animation state (idle->walk->attack->hurt->death->idle)
-        const stateList = ensureInspectorState(target);
-        if (!devInspectorSelectedState) devInspectorSelectedState = stateList[0];
-        const curIdx = stateList.indexOf(devInspectorSelectedState);
-        const nextIdx = (curIdx + 1) % stateList.length;
-        devInspectorSelectedState = stateList[nextIdx];
-        setDevStatus(`Inspector state: ${devInspectorSelectedState}`, 1.6);
-      }
-    }
-  }
-
 }
 
 function isAnyDialogActive() {
@@ -15077,7 +14964,6 @@ function updateDebugSystems(dt) {
       updateDebugOverlayData();
     }
   }
-  if (devInspectorActive) devInspectorTimer += dt;
   if (devOverridesDirty) {
     devOverridesSaveTimer += dt;
     if (devOverridesSaveTimer > 0.8) {
@@ -15612,7 +15498,6 @@ function showDeveloperShortcutsOverlay() {
     { key: "P", label: "Swap Powerups" },
     { key: "B", label: "Prayer Bomb Charge" },
     { key: "V", label: "Visitor Session" },
-    { key: "F", label: "Dev Inspector" },
     { key: "M", label: "Debug Overlay" },
     { key: "G", label: "+500 Grace" },
     { key: "H", label: "Hitbox Editor", note: "Title Only" },
