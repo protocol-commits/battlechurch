@@ -46,7 +46,7 @@
 
   function build(config = {}) {
     const {
-      playerSpritePath = "assets/sprites/conrad/characters/",
+      playerSpritePath = "assets/sprites/pastor/characters/",
       projectilePath = "assets/sprites/projectiles/",
       magicPackRoot = "assets/sprites/projectiles",
       heartProjectileSrc = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png",
@@ -186,7 +186,7 @@
           loop: false,
         },
         divine_shot: {
-          src: `assets/sprites/conrad/actions/swoosh.png`,
+          src: `assets/sprites/pastor/actions/swoosh.png`,
           frameWidth: 200,
           frameHeight: 200,
           frameRate: 0,

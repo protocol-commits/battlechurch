@@ -3399,7 +3399,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-const PLAYER_SPRITE_PATH = "assets/sprites/conrad/characters/";
+const PLAYER_SPRITE_PATH = "assets/sprites/pastor/characters/";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
@@ -3431,7 +3431,7 @@ const DIVINE_CHARGE_SPARK_COUNT = 16;
 const DIVINE_CHARGE_SPARK_FRAME_DURATION = 0.06;
 const DIVINE_CHARGE_SPARK_SCALE = 1.5;
 const DIVINE_CHARGE_SPARK_OFFSET = 18;
-const MELEE_SWOOSH_PATH = "assets/sprites/conrad/actions/swoosh.png";
+const MELEE_SWOOSH_PATH = "assets/sprites/pastor/actions/swoosh.png";
 const WISDOM_FRAME_START = 9;
 const WISDOM_FRAME_END = 18;
 const WISDOM_FRAME_SOURCES = Array.from(
