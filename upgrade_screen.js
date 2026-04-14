@@ -15,25 +15,25 @@
   }
 
   function getStats() {
-    const upgradeManager = window.ChurchPowerups;
-    if (upgradeManager && typeof upgradeManager.getOptions === "function") {
-      return upgradeManager.getOptions();
+    const powerupManager = window.ChurchPowerups;
+    if (powerupManager && typeof powerupManager.getOptions === "function") {
+      return powerupManager.getOptions();
     }
     return [];
   }
 
   function attemptPurchase(statKey) {
-    const upgradeManager = window.ChurchPowerups;
-    if (upgradeManager && typeof upgradeManager.purchase === "function") {
-      return upgradeManager.purchase(statKey);
+    const powerupManager = window.ChurchPowerups;
+    if (powerupManager && typeof powerupManager.purchase === "function") {
+      return powerupManager.purchase(statKey);
     }
     return false;
   }
 
   function attemptRefund(statKey) {
-    const upgradeManager = window.ChurchPowerups;
-    if (upgradeManager && typeof upgradeManager.refund === "function") {
-      return upgradeManager.refund(statKey);
+    const powerupManager = window.ChurchPowerups;
+    if (powerupManager && typeof powerupManager.refund === "function") {
+      return powerupManager.refund(statKey);
     }
     return false;
   }

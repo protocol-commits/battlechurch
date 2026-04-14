@@ -2222,12 +2222,12 @@ function canSpawnUtilityPowerUp() {
   return getActiveUtilityPowerUpCount() < 1 && powerUpRespawnTimer <= 0;
 }
 
-function getActiveUpgradePowerUpCount() {
+function getActiveChurchPowerupCount() {
   return churchPowerupPickups.filter((p) => p && !p.collected && !p.dead).length;
 }
 
 function canSpawnChurchPowerup() {
-  return getActiveUpgradePowerUpCount() < 1 && powerUpRespawnTimer <= 0;
+  return getActiveChurchPowerupCount() < 1 && powerUpRespawnTimer <= 0;
 }
 
 function getActiveWeaponPowerUpCount() {
@@ -5097,7 +5097,7 @@ async function loadUtilityAssets(cache, assets) {
 }
 
 async function loadChurchPowerupAssets(cache, assets) {
-  const upgradeEntries = Object.entries(CHURCH_POWERUP_DEFS).map(
+  const powerupEntries = Object.entries(CHURCH_POWERUP_DEFS).map(
     async ([key, def]) => {
       let frames = null;
       let baseFrame = null;
@@ -5137,7 +5137,7 @@ async function loadChurchPowerupAssets(cache, assets) {
       assets.churchPowerups[key] = { image: imageRef, frames, iconImage, ...def };
     },
   );
-  await Promise.all(upgradeEntries);
+  await Promise.all(powerupEntries);
 }
 
 async function loadProjectileFrames(cache, assets, projectileFrames) {
@@ -6449,7 +6449,7 @@ function spawnSinglePowerUpDrop() {
   if (!hasWeaponPickups && !hasUtility && !hasChurchPowerupPickups) return false;
   if (hasChurchPowerupPickups && Math.random() < 0.2) {
     if (canSpawnChurchPowerup()) {
-      return Boolean(spawnUpgradePowerUp());
+      return Boolean(spawnChurchPowerupPickup());
     }
   }
   const spawnUtility = hasUtility && Math.random() < 0.45;
@@ -6678,7 +6678,7 @@ function getUnlockedChurchPowerupKeys() {
   return Array.from(unlockedChurchPowerups).filter((key) => assets?.churchPowerups?.[key]);
 }
 
-function spawnUpgradePowerUp(type = null, position = null) {
+function spawnChurchPowerupPickup(type = null, position = null) {
   if (!canSpawnChurchPowerup()) return null;
   if (!assets?.churchPowerups) return null;
   const keys = type ? [type] : getUnlockedChurchPowerupKeys();
@@ -6835,7 +6835,7 @@ function spawnNextEnsuredPowerUp() {
         return null;
       }
       churchPowerupSkipNext = true;
-      return spawnUpgradePowerUp();
+      return spawnChurchPowerupPickup();
     },
     () => (canSpawnWeaponPowerUp() ? spawnWeaponPickup() : null),
   ];
@@ -7279,7 +7279,7 @@ function updateWeaponPickups(dt) {
   }
 }
 
-function updateUpgradePowerUps(dt) {
+function updateChurchPowerupPickups(dt) {
   churchPowerupPickups.forEach((pickup) => {
     if (!pickup) return;
     pickup.update(dt);
@@ -19383,7 +19383,7 @@ function updateGame(dt) {
 
   // Process pickups BEFORE player update so weapon changes apply immediately
   updateWeaponPickups(dt);
-  updateUpgradePowerUps(dt);
+  updateChurchPowerupPickups(dt);
   updateUtilityPowerUps(dt);
 
   updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
