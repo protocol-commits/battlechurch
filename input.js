@@ -57,6 +57,20 @@
     virtualKeysDown: new Set(),
   };
 
+  const gamepadState = {
+    connected: false,
+    index: -1,
+    id: "",
+    movement: { x: 0, y: 0, active: false },
+    aim: { x: 0, y: 0, active: false },
+    buttonsDown: new Set(),
+    virtualKeysDown: new Set(),
+  };
+
+  const GAMEPAD_LEFT_STICK_DEADZONE = 0.2;
+  const GAMEPAD_RIGHT_STICK_DEADZONE = 0.28;
+  const GAMEPAD_DPAD_THRESHOLD = 0.5;
+
   const aimState = {
     x: 0,
     y: 1,
@@ -416,6 +430,156 @@
     }
   }
 
+  function pressGamepadKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
+    const normalized = normalizeKey(key);
+    if (!keysDown.has(normalized)) keysJustPressed.add(normalized);
+    keysDown.add(normalized);
+    gamepadState.virtualKeysDown.add(normalized);
+    if (setNesA) nesAButtonActive = true;
+    if (setPrayerBomb) {
+      cButtonHeldAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+    }
+  }
+
+  function releaseGamepadKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
+    const normalized = normalizeKey(key);
+    keysDown.delete(normalized);
+    gamepadState.virtualKeysDown.delete(normalized);
+    if (setNesA) nesAButtonActive = false;
+    if (setPrayerBomb) {
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const heldMs = cButtonHeldAt > 0 ? now - cButtonHeldAt : 0;
+      if (heldMs >= PRAYER_BOMB_HOLD_THRESHOLD_MS) {
+        prayerBombClickQueued = true;
+      } else {
+        if (
+          congregationTapCount === 1 &&
+          congregationTapStartedAt > 0 &&
+          now - congregationTapStartedAt <= CONGREGATION_DOUBLE_TAP_WINDOW_MS
+        ) {
+          congregationClickQueued = true;
+          congregationClickKind = "path";
+          congregationTapCount = 0;
+          congregationTapStartedAt = 0;
+        } else {
+          congregationTapCount = 1;
+          congregationTapStartedAt = now;
+        }
+      }
+      cButtonHeldAt = 0;
+    }
+  }
+
+  function resetGamepadState() {
+    gamepadState.connected = false;
+    gamepadState.index = -1;
+    gamepadState.id = "";
+    gamepadState.movement.x = 0;
+    gamepadState.movement.y = 0;
+    gamepadState.movement.active = false;
+    gamepadState.aim.x = 0;
+    gamepadState.aim.y = 0;
+    gamepadState.aim.active = false;
+    if (gamepadState.virtualKeysDown.size) {
+      gamepadState.virtualKeysDown.forEach((key) => {
+        keysDown.delete(key);
+      });
+      gamepadState.virtualKeysDown.clear();
+    }
+    gamepadState.buttonsDown.clear();
+  }
+
+  function getButtonPressed(gamepad, index) {
+    const button = gamepad?.buttons?.[index];
+    if (!button) return false;
+    if (typeof button === "number") return button > 0.5;
+    return Boolean(button.pressed || button.value > 0.5);
+  }
+
+  function pollGamepad() {
+    if (typeof navigator === "undefined" || typeof navigator.getGamepads !== "function") {
+      resetGamepadState();
+      return;
+    }
+
+    const pads = navigator.getGamepads();
+    const gamepad = Array.from(pads || []).find((pad) => pad && pad.connected);
+    if (!gamepad) {
+      resetGamepadState();
+      return;
+    }
+
+    gamepadState.connected = true;
+    gamepadState.index = gamepad.index;
+    gamepadState.id = String(gamepad.id || "");
+
+    const leftX = Number(gamepad.axes?.[0]) || 0;
+    const leftY = Number(gamepad.axes?.[1]) || 0;
+    const rightX = Number(gamepad.axes?.[2]) || 0;
+    const rightY = Number(gamepad.axes?.[3]) || 0;
+    const dpadLeft = getButtonPressed(gamepad, 14);
+    const dpadRight = getButtonPressed(gamepad, 15);
+    const dpadUp = getButtonPressed(gamepad, 12);
+    const dpadDown = getButtonPressed(gamepad, 13);
+
+    let moveX = Math.abs(leftX) >= GAMEPAD_LEFT_STICK_DEADZONE ? leftX : 0;
+    let moveY = Math.abs(leftY) >= GAMEPAD_LEFT_STICK_DEADZONE ? leftY : 0;
+    if (dpadLeft) moveX = -1;
+    else if (dpadRight) moveX = 1;
+    if (dpadUp) moveY = -1;
+    else if (dpadDown) moveY = 1;
+    const movementActive = Math.abs(moveX) >= GAMEPAD_DPAD_THRESHOLD || Math.abs(moveY) >= GAMEPAD_DPAD_THRESHOLD;
+    gamepadState.movement.x = movementActive ? moveX : 0;
+    gamepadState.movement.y = movementActive ? moveY : 0;
+    gamepadState.movement.active = movementActive;
+    if (movementActive) {
+      movementDirection.x = moveX;
+      movementDirection.y = moveY;
+      lastMovementDirection.x = moveX;
+      lastMovementDirection.y = moveY;
+    } else if (!virtualInput.movement.active && !["w", "a", "s", "d"].some((key) => keysDown.has(key))) {
+      movementDirection.x = 0;
+      movementDirection.y = 0;
+    }
+
+    const aimMagnitude = Math.hypot(rightX, rightY);
+    const aimActive = aimMagnitude >= GAMEPAD_RIGHT_STICK_DEADZONE;
+    if (aimActive) {
+      const normalizedAim = normalizeVector(rightX, rightY);
+      gamepadState.aim.x = normalizedAim.x;
+      gamepadState.aim.y = normalizedAim.y;
+      gamepadState.aim.active = true;
+      aimState.x = normalizedAim.x;
+      aimState.y = normalizedAim.y;
+      aimState.usingPointer = false;
+      aimState.triggerPress = true;
+      pointerState.active = false;
+    } else {
+      gamepadState.aim.x = 0;
+      gamepadState.aim.y = 0;
+      gamepadState.aim.active = false;
+    }
+
+    const buttonMap = [
+      { index: 0, key: "ArrowLeft", setNesA: true },
+      { index: 1, key: "ArrowDown" },
+      { index: 2, key: "ArrowRight", setPrayerBomb: true },
+      { index: 9, key: " " },
+    ];
+
+    buttonMap.forEach((binding) => {
+      const pressed = getButtonPressed(gamepad, binding.index);
+      const token = String(binding.index);
+      if (pressed && !gamepadState.buttonsDown.has(token)) {
+        gamepadState.buttonsDown.add(token);
+        pressGamepadKey(binding.key, binding);
+      } else if (!pressed && gamepadState.buttonsDown.has(token)) {
+        gamepadState.buttonsDown.delete(token);
+        releaseGamepadKey(binding.key, binding);
+      }
+    });
+  }
+
   function releaseVirtualKey(key, { setNesA = false, setPrayerBomb = false } = {}) {
     const normalized = normalizeKey(key);
     keysDown.delete(normalized);
@@ -675,6 +839,23 @@
   function isActionActive(action) {
     const bindings = ACTION_MAP[action] || [];
     if (bindings.some((key) => keysDown.has(key))) return true;
+    const gamepadThreshold = GAMEPAD_DPAD_THRESHOLD;
+    switch (action) {
+      case "up":
+        if (gamepadState.movement.active && gamepadState.movement.y < -gamepadThreshold) return true;
+        break;
+      case "down":
+        if (gamepadState.movement.active && gamepadState.movement.y > gamepadThreshold) return true;
+        break;
+      case "left":
+        if (gamepadState.movement.active && gamepadState.movement.x < -gamepadThreshold) return true;
+        break;
+      case "right":
+        if (gamepadState.movement.active && gamepadState.movement.x > gamepadThreshold) return true;
+        break;
+      default:
+        break;
+    }
     if (!virtualInput.enabled) return false;
     const threshold = Math.max(virtualInput.deadZone, 0.25);
     switch (action) {
@@ -805,6 +986,7 @@
   window.Input = {
     initialize,
     detachListeners,
+    pollGamepad,
     initializeVirtualControls,
     updateTouchLayout,
     isActionActive,
@@ -833,6 +1015,15 @@
     },
     get virtualInput() {
       return virtualInput;
+    },
+    get gamepadState() {
+      return {
+        connected: gamepadState.connected,
+        index: gamepadState.index,
+        id: gamepadState.id,
+        movement: { ...gamepadState.movement },
+        aim: { ...gamepadState.aim },
+      };
     },
     get modifiers() {
       return { ...modifierState };

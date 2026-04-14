@@ -9690,6 +9690,20 @@ function canSpawnFireProjectile() {
 }
 
 function updateAimFromKeyboard() {
+  const gamepadAim = Input?.gamepadState?.aim;
+  if (gamepadAim?.active) {
+    aimState.x = gamepadAim.x;
+    aimState.y = gamepadAim.y;
+    aimState.usingPointer = false;
+    aimState.triggerPress = true;
+    pointerState.active = false;
+    if (player) {
+      player.aim = { x: gamepadAim.x, y: gamepadAim.y };
+      player.updateFacing(gamepadAim.x, gamepadAim.y);
+    }
+    return;
+  }
+
   aimState.triggerPress = false;
   const aimX = (isActionActive("aimRight") ? 1 : 0) - (isActionActive("aimLeft") ? 1 : 0);
   const aimY = (isActionActive("aimDown") ? 1 : 0) - (isActionActive("aimUp") ? 1 : 0);
@@ -20763,6 +20777,9 @@ function gameLoop(timestamp) {
   const delta = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
 
+  if (typeof Input?.pollGamepad === "function") {
+    Input.pollGamepad();
+  }
   updateGame(delta);
   Renderer.drawFrame();
   if (window.UpgradeScreen?.isVisible?.()) {
