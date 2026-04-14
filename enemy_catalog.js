@@ -1,5 +1,128 @@
 (function(global) {
-  const ENEMY_CATALOG = {
+const ENEMY_ANIMATION_DATA = {
+  "miniImp": {
+    assetGrid: { cols: 6, rows: 5 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [6, 7, 8, 9, 10],
+      attack: [12, 13, 14, 15, 16, 17],
+      hurt: [18, 19],
+      death: [24, 25, 26, 27, 28],
+    },
+  },
+  "miniImpLevel2": {
+    assetGrid: { cols: 6, rows: 5 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [6, 7, 8, 9, 10],
+      attack: [12, 13, 14, 15, 16, 17],
+      hurt: [18, 19],
+      death: [24, 25, 26, 27, 28],
+    },
+  },
+  "miniImpLevel3": {
+    assetGrid: { cols: 6, rows: 5 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [6, 7, 8, 9, 10],
+      attack: [12, 13, 14, 15, 16, 17],
+      hurt: [18, 19],
+      death: [24, 25, 26, 27, 28],
+    },
+  },
+  "miniFireImp": {
+    assetGrid: { cols: 9, rows: 6 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [9, 10, 11, 12, 13],
+      attack: [18, 19, 20, 21, 22, 23],
+      hurt: [36, 37],
+      death: [45, 46, 47, 48, 49],
+    },
+  },
+  "miniDemoness": {
+    assetGrid: { cols: 9, rows: 8 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [9, 10, 11, 12, 13, 14],
+      attack: [27, 28, 29, 30, 31, 32, 33, 34, 35],
+      hurt: [54, 55],
+      death: [63, 64, 65, 66, 67, 68, 69],
+    },
+  },
+  "miniClawedDemon": {
+    assetGrid: { cols: 6, rows: 7 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [6, 7, 8, 9, 10, 11],
+      attack: [18, 19, 20, 21, 22],
+      hurt: [30, 31],
+      death: [36, 37, 38, 39, 40],
+    },
+  },
+  "miniHighDemon": {
+    assetGrid: { cols: 8, rows: 6 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [8, 9, 10, 11, 12, 13],
+      attack: [24, 25, 26, 27, 28, 29, 30],
+      hurt: [32, 33],
+      death: [40, 41, 42, 43, 44, 45, 46, 47],
+    },
+  },
+  "miniDemonTormentor": {
+    assetGrid: { cols: 11, rows: 8 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [11, 12, 13, 14, 15, 16],
+      attack: [33, 34, 35, 36, 37, 38],
+      hurt: [66, 67],
+      death: [77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87],
+    },
+  },
+  "miniDemonLord": {
+    assetGrid: { cols: 10, rows: 8 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [10, 11, 12, 13, 14, 15],
+      attack: [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
+      hurt: [60, 61],
+      death: [70, 71, 72, 73, 74, 75, 76, 77],
+    },
+  },
+  "miniDemonFireThrower": {
+    assetGrid: { cols: 8, rows: 7 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [8, 9, 10, 11, 12, 13],
+      attack: [32, 33, 34, 35, 36, 37, 38, 39],
+      hurt: [40, 41],
+      death: [48, 49, 50, 51],
+    },
+  },
+  "miniDemonFireKeeper": {
+    assetGrid: { cols: 8, rows: 8 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [8, 9, 10, 11, 12, 13],
+      attack: [32, 33, 34, 35, 36, 37, 38, 39],
+      hurt: [48, 49],
+      death: [56, 57, 58, 59, 60, 61, 62],
+    },
+  },
+  "miniSuccubus": {
+    assetGrid: { cols: 9, rows: 7 },
+    animationFrameMaps: {
+      idle: [0, 1, 2, 3],
+      walk: [9, 10, 11, 12, 13, 14],
+      attack: [27, 28, 29, 30, 31, 32, 33, 34, 35],
+      hurt: [45, 46],
+      death: [54, 55, 56, 57, 58, 59, 60],
+    },
+  },
+};
+
+const ENEMY_CATALOG = {
   "armoredSkeleton": {
     "displayName": "Armored Skeleton",
     "assetFolder": "armored_skeleton",
@@ -715,6 +838,15 @@
     "contactDamage": 0
   }
 };
+
+for (const [key, animation] of Object.entries(ENEMY_ANIMATION_DATA)) {
+  if (!ENEMY_CATALOG[key]) continue;
+  ENEMY_CATALOG[key] = {
+    ...ENEMY_CATALOG[key],
+    ...animation,
+  };
+}
+
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
   ns.catalog = ENEMY_CATALOG;
   const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});

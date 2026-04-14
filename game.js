@@ -2471,8 +2471,6 @@ function applyCameraShake(duration, magnitude) {
 let backgroundPan = { far: { x: 0 }, mid: { x: 0 } };
 const devFrameCache = new Map(); // cache extracted frames per clip
 let canvasScale = 1;
-const runtimeFrameOverrides = {};
-const runtimeManualGrids = {};
 
 FloatingText.initialize({
   getPlayer: () => player,
@@ -2675,51 +2673,6 @@ if (typeof window !== "undefined") {
   window.startPrayerBombFireRain = startPrayerBombFireRain;
   window.triggerPrayerBombScreenDarken = triggerPrayerBombScreenDarken;
   window.showPrayerBombBlastCombo = showPrayerBombBlastCombo;
-}
-
-function mergeRuntimeFrameOverrides(source) {
-  if (!source || typeof source !== "object") return;
-  Object.keys(source).forEach((key) => {
-    const states = source[key];
-    if (!states || typeof states !== "object") return;
-    const target = runtimeFrameOverrides[key] = runtimeFrameOverrides[key] || {};
-    Object.keys(states).forEach((state) => {
-      const data = states[state];
-      if (!data || typeof data !== "object") return;
-      const next = { ...(target[state] || {}), ...data };
-      if (Array.isArray(data.frames)) next.frames = data.frames.slice();
-      target[state] = next;
-    });
-  });
-}
-
-function mergeRuntimeManualGrids(source) {
-  if (!source || typeof source !== "object") return;
-  Object.keys(source).forEach((name) => {
-    const def = source[name];
-    if (!def || typeof def !== "object") return;
-    const cols = parseInt(def.cols, 10);
-    const rows = parseInt(def.rows, 10);
-    if (!Number.isFinite(cols) || cols <= 0) return;
-    if (!Number.isFinite(rows) || rows <= 0) return;
-    const key = String(name || "").trim().toLowerCase();
-    if (!key) return;
-    runtimeManualGrids[key] = { cols, rows };
-  });
-}
-
-function loadRuntimeAnimationOverridesFromWindow() {
-  if (typeof window === "undefined") return;
-  mergeRuntimeFrameOverrides(window.__BATTLECHURCH_OVERRIDES);
-  mergeRuntimeManualGrids(window.__BATTLECHURCH_MANUAL_GRIDS);
-}
-
-function applyRuntimeFrameOverrideToClip(key, state, clip) {
-  if (!clip) return;
-  const override = runtimeFrameOverrides?.[key]?.[state];
-  if (override && Array.isArray(override.frames) && override.frames.length) {
-    clip.frameMap = override.frames.slice();
-  }
 }
 let heroRescueCooldown = 0;
 
@@ -3836,59 +3789,81 @@ if (typeof window !== "undefined") {
 // loader will infer frame dimensions; game logic will reuse 'walk' and 'attack'
 // by playing the same clip where needed so the characters animate.
 for (const mini of MINIFOLKS) {
+  const miniDef = ENEMY_DEFINITIONS[mini.key] || ENEMY_CATALOG[mini.key] || {};
+  const assetGrid = miniDef.assetGrid || null;
+  const animationFrameMaps = miniDef.animationFrameMaps || {};
   const isBat = mini.key === "bat";
   const isTormentorFlame = mini.key === "tormentorFlame";
   const frameWidth = isBat ? 34 : isTormentorFlame ? 32 : 0;
   const frameHeight = isBat ? 34 : isTormentorFlame ? 48 : 0;
-  const frameMap = isBat ? [0, 1, 2, 3] : isTormentorFlame ? Array.from({ length: 14 }, (_, i) => i) : undefined;
+  const fallbackFrameMap =
+    isBat ? [0, 1, 2, 3] :
+    isTormentorFlame ? Array.from({ length: 14 }, (_, i) => i) :
+    undefined;
+  const getFrameMap = (state) => {
+    const mapped = animationFrameMaps[state];
+    return Array.isArray(mapped) && mapped.length ? mapped.slice() : fallbackFrameMap;
+  };
   ASSET_MANIFEST.enemies[mini.key] = {
     idle: {
       src: mini.src,
       frameWidth,
       frameHeight,
+      gridCols: assetGrid?.cols || undefined,
+      gridRows: assetGrid?.rows || undefined,
       frameRate: 8,
       loop: true,
-      frameMap,
+      frameMap: getFrameMap("idle"),
     },
     walk: {
       src: mini.src,
       frameWidth,
       frameHeight,
+      gridCols: assetGrid?.cols || undefined,
+      gridRows: assetGrid?.rows || undefined,
       frameRate: 10,
       loop: true,
-      frameMap,
+      frameMap: getFrameMap("walk"),
     },
     attack: {
       src: mini.src,
       frameWidth,
       frameHeight,
+      gridCols: assetGrid?.cols || undefined,
+      gridRows: assetGrid?.rows || undefined,
       frameRate: 12,
       loop: false,
-      frameMap,
+      frameMap: getFrameMap("attack"),
     },
     jump: {
       src: mini.src,
       frameWidth,
       frameHeight,
+      gridCols: assetGrid?.cols || undefined,
+      gridRows: assetGrid?.rows || undefined,
       frameRate: 12,
       loop: false,
-      frameMap,
+      frameMap: getFrameMap("jump"),
     },
     hurt: {
       src: mini.src,
       frameWidth,
       frameHeight,
+      gridCols: assetGrid?.cols || undefined,
+      gridRows: assetGrid?.rows || undefined,
       frameRate: 10,
       loop: false,
-      frameMap,
+      frameMap: getFrameMap("hurt"),
     },
     death: {
       src: mini.src,
       frameWidth,
       frameHeight,
+      gridCols: assetGrid?.cols || undefined,
+      gridRows: assetGrid?.rows || undefined,
       frameRate: 10,
       loop: false,
-      frameMap,
+      frameMap: getFrameMap("death"),
     },
   };
 }
@@ -4527,7 +4502,6 @@ async function reloadEnemyClipsForKey(key) {
     const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
       try {
         const clip = await loadAnimationClip(def, devImageCache);
-        applyRuntimeFrameOverrideToClip(key, state, clip);
         newClips[state] = clip;
       } catch (e) {
         console.warn('reloadEnemyClipsForKey: failed loading state', { key, state, def, e });
@@ -4552,7 +4526,6 @@ async function reloadProjectileClipForKey(key) {
       return Promise.resolve();
     }
     const clip = await loadAnimationClip(def, devImageCache);
-    applyRuntimeFrameOverrideToClip(key, "walk", clip);
     assets.projectiles = assets.projectiles || {};
     assets.projectiles[key] = clip;
     return Promise.resolve();
@@ -4697,9 +4670,13 @@ async function loadAnimationClip(definition, cache) {
   'minilichspell.png': { cols: 4, rows: 2 },
   'minitrident.png': { cols: 4, rows: 2 },
     };
-    const runtimeOverride = runtimeManualGrids[normalizedSrc];
-    if (runtimeOverride || staticManualOverrides[normalizedSrc] || staticManualOverrides[srcBase]) {
-      const mo = runtimeOverride || staticManualOverrides[normalizedSrc] || staticManualOverrides[srcBase];
+    const declaredGridCols = Number.isFinite(definition.gridCols) && definition.gridCols > 0 ? definition.gridCols : null;
+    const declaredGridRows = Number.isFinite(definition.gridRows) && definition.gridRows > 0 ? definition.gridRows : null;
+    if (declaredGridCols && declaredGridRows) {
+      if (!frameWidth) frameWidth = Math.floor(w / declaredGridCols);
+      if (!frameHeight) frameHeight = Math.floor(h / declaredGridRows);
+    } else if (staticManualOverrides[normalizedSrc] || staticManualOverrides[srcBase]) {
+      const mo = staticManualOverrides[normalizedSrc] || staticManualOverrides[srcBase];
       if (mo.frameWidth && mo.frameHeight) {
         frameWidth = frameWidth || mo.frameWidth;
         frameHeight = frameHeight || mo.frameHeight;
@@ -4981,9 +4958,7 @@ async function loadPlayerAssets(cache, assets) {
 async function loadProjectileAssets(cache, assets) {
   const projectileEntries = Object.entries(ASSET_MANIFEST.projectiles).map(
     async ([key, def]) => {
-      const clip = await loadAnimationClip(def, cache);
-      applyRuntimeFrameOverrideToClip(key, "walk", clip);
-      assets.projectiles[key] = clip;
+      assets.projectiles[key] = await loadAnimationClip(def, cache);
     },
   );
   await Promise.all(projectileEntries);
@@ -4998,7 +4973,6 @@ async function loadMapEnemyAssets(cache, assets) {
       assets.enemies[enemyName] = {};
       const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
         const clip = await loadAnimationClip(def, cache);
-        applyRuntimeFrameOverrideToClip(enemyName, state, clip);
         assets.enemies[enemyName][state] = clip;
       });
       await Promise.all(loaders);
@@ -5018,7 +4992,6 @@ async function loadEnemyAssets(cache, assets, skipMapEnemies = false) {
       assets.enemies[enemyName] = {};
       const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
         const clip = await loadAnimationClip(def, cache);
-        applyRuntimeFrameOverrideToClip(enemyName, state, clip);
         assets.enemies[enemyName][state] = clip;
       });
       await Promise.all(loaders);
@@ -19876,7 +19849,6 @@ function renderDebugOverlay(ctx) {
 
 async function init() {
   try {
-    loadRuntimeAnimationOverridesFromWindow();
     resetMusicState();
     if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();

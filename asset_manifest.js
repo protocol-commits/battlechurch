@@ -23,6 +23,8 @@
       };
 
       const files = config.assetFiles || config.files || {};
+      const assetGrid = config.assetGrid || null;
+      const animationFrameMaps = config.animationFrameMaps || {};
       const entry = {};
       for (const state of Object.keys(defaults)) {
         const suffix = files[state] ?? defaults[state];
@@ -30,8 +32,11 @@
           src: `${basePath}${baseName}-${suffix}.png`,
           frameWidth: 100,
           frameHeight: 100,
+          gridCols: assetGrid?.cols || undefined,
+          gridRows: assetGrid?.rows || undefined,
           frameRate: stateMeta[state].frameRate,
           loop: stateMeta[state].loop,
+          frameMap: Array.isArray(animationFrameMaps[state]) ? animationFrameMaps[state].slice() : undefined,
         };
       }
       manifest[key] = entry;
@@ -121,7 +126,7 @@
           frameHeight: 16,
           frameRate: 12,
           loop: true,
-          frameMap: [5, 6, 7],
+          frameMap: [5, 6, 7, 8],
         },
         heart: {
           src: heartProjectileSrc,
@@ -171,7 +176,7 @@
           frameHeight: 16,
           frameRate: 12,
           loop: true,
-          frameMap: [5, 6, 7],
+          frameMap: [5, 6, 7, 8],
         },
         fire: {
           src: `${magicPackRoot}/fire-missile/sprites/fire-missile1.png`,
