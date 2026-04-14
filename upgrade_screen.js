@@ -217,7 +217,7 @@
       return;
     }
     if (input.virtualInput?.enabled) {
-      const confirmKeys = [" ", "enter"];
+      const confirmKeys = [" ", "enter", "Enter"];
       if (confirmKeys.some((k) => input.keysJustPressed?.has(k))) {
         confirmKeys.forEach((k) => input.keysJustPressed?.delete(k));
         activateFocused();

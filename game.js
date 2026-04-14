@@ -15940,13 +15940,24 @@ function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true
       return true;
     }
   }
-  const confirmKeys = [" ", "enter"];
+  const confirmKeys = [" ", "enter", "Enter"];
   if (allowSpace && confirmKeys.some((k) => keysJustPressed.has(k))) {
     confirmKeys.forEach((k) => keysJustPressed.delete(k));
     if (typeof onActivate === "function") {
       onActivate(buttons[focusIndex], focusIndex);
     }
     return true;
+  }
+  const cancelKeys = ["escape", "Escape"];
+  if (cancelKeys.some((k) => keysJustPressed.has(k))) {
+    cancelKeys.forEach((k) => keysJustPressed.delete(k));
+    const cancelIndex = buttons.findIndex((button) =>
+      ["back", "resume", "continue", "close"].includes(String(button?.key || "").toLowerCase())
+    );
+    if (cancelIndex >= 0 && typeof onActivate === "function") {
+      onActivate(buttons[cancelIndex], cancelIndex);
+      return true;
+    }
   }
   return false;
 }
@@ -16182,7 +16193,7 @@ function handleLevelAnnouncements() {
       startTownIntroTransition();
       return true;
     }
-    const skipKeys = ["enter"];
+    const skipKeys = ["enter", "Enter"];
     if (wasActionJustPressed("pause") || wasActionJustPressed("restart") || skipKeys.some((k) => keysJustPressed.has(k))) {
       skipKeys.forEach((k) => keysJustPressed.delete(k));
       keysJustPressed.delete(" ");
@@ -19939,12 +19950,14 @@ function updateGame(dt) {
   if (townVictoryActive) {
     // Allow continue when button is shown (check FIRST before consuming keys)
     if (townVictoryScroll.showButton) {
-      const spacePressed = keysJustPressed.has(" ") || keysJustPressed.has("enter");
+      const spacePressed =
+        keysJustPressed.has(" ") || keysJustPressed.has("enter") || keysJustPressed.has("Enter");
       const actionPressed = wasActionJustPressed("restart");
       const clickPos = Input.consumeCanvasClick?.();
       if (spacePressed || actionPressed || clickPos) {
         keysJustPressed.delete(" ");
         keysJustPressed.delete("enter");
+        keysJustPressed.delete("Enter");
         townVictoryActive = false;
         returnToMapWithNextTown();
         return;

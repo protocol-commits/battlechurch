@@ -99,7 +99,7 @@
 
   function handleKeyDown(event) {
     if (!visible) return;
-    if (event.code === "Space" || event.keyCode === 32) {
+    if (event.code === "Space" || event.keyCode === 32 || event.key === "Escape") {
       if (button.disabled) return;
       event.preventDefault();
       handleContinue();

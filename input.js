@@ -63,7 +63,7 @@
     id: "",
     movement: { x: 0, y: 0, active: false },
     aim: { x: 0, y: 0, active: false },
-    buttonsDown: new Set(),
+    buttonBindings: new Map(),
     virtualKeysDown: new Set(),
   };
 
@@ -486,7 +486,7 @@
       });
       gamepadState.virtualKeysDown.clear();
     }
-    gamepadState.buttonsDown.clear();
+    gamepadState.buttonBindings.clear();
   }
 
   function getButtonPressed(gamepad, index) {
@@ -494,6 +494,21 @@
     if (!button) return false;
     if (typeof button === "number") return button > 0.5;
     return Boolean(button.pressed || button.value > 0.5);
+  }
+
+  function shouldUseGamepadSouthButtonAsConfirm() {
+    if (typeof window === "undefined") return false;
+    if (window.UpgradeScreen?.isVisible?.()) return true;
+    if (window.DialogOverlay?.isVisible?.()) return true;
+    if (window.__missionBriefActive) return true;
+    return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
+  }
+
+  function shouldUseGamepadEastButtonAsBack() {
+    if (typeof window === "undefined") return false;
+    if (window.DialogOverlay?.isVisible?.()) return true;
+    if (window.__missionBriefActive) return true;
+    return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
   }
 
   function pollGamepad() {
@@ -561,8 +576,12 @@
     }
 
     const buttonMap = [
-      { index: 0, key: "ArrowLeft", setNesA: true },
-      { index: 1, key: "ArrowDown" },
+      shouldUseGamepadSouthButtonAsConfirm()
+        ? { index: 0, key: "enter" }
+        : { index: 0, key: "ArrowLeft", setNesA: true },
+      shouldUseGamepadEastButtonAsBack()
+        ? { index: 1, key: "escape" }
+        : { index: 1, key: "ArrowDown" },
       { index: 2, key: "ArrowRight", setPrayerBomb: true },
       { index: 9, key: " " },
     ];
@@ -570,12 +589,23 @@
     buttonMap.forEach((binding) => {
       const pressed = getButtonPressed(gamepad, binding.index);
       const token = String(binding.index);
-      if (pressed && !gamepadState.buttonsDown.has(token)) {
-        gamepadState.buttonsDown.add(token);
+      const activeBinding = gamepadState.buttonBindings.get(token);
+      if (pressed && !activeBinding) {
+        gamepadState.buttonBindings.set(token, binding);
         pressGamepadKey(binding.key, binding);
-      } else if (!pressed && gamepadState.buttonsDown.has(token)) {
-        gamepadState.buttonsDown.delete(token);
-        releaseGamepadKey(binding.key, binding);
+      } else if (pressed && activeBinding) {
+        if (
+          activeBinding.key !== binding.key ||
+          Boolean(activeBinding.setNesA) !== Boolean(binding.setNesA) ||
+          Boolean(activeBinding.setPrayerBomb) !== Boolean(binding.setPrayerBomb)
+        ) {
+          releaseGamepadKey(activeBinding.key, activeBinding);
+          gamepadState.buttonBindings.set(token, binding);
+          pressGamepadKey(binding.key, binding);
+        }
+      } else if (!pressed && activeBinding) {
+        gamepadState.buttonBindings.delete(token);
+        releaseGamepadKey(activeBinding.key, activeBinding);
       }
     });
   }
