@@ -15879,6 +15879,13 @@ function getAnnouncementNavDirection() {
     announcementNavNextTime = 0;
     return 0;
   }
+  const hasHoldInputSource =
+    Boolean(Input.virtualInput?.enabled) || Boolean(Input.gamepadState?.movement?.active);
+  if (!hasHoldInputSource) {
+    announcementNavHoldDir = null;
+    announcementNavNextTime = 0;
+    return 0;
+  }
   const leftActive = Input.isActionActive("left") || Input.isActionActive("up");
   const rightActive = Input.isActionActive("right") || Input.isActionActive("down");
   const nextDir = leftActive ? -1 : rightActive ? 1 : 0;
