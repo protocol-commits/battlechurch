@@ -130,7 +130,6 @@ let playerDashState = {
   pendingDashDir: { x: 1, y: 0 },
   dashCooldown: 0,
 };
-let backgroundImage = null;
 let ashOverlay = null;
 let fireOverlay = null;
 let pendingTownIntroStart = false;
@@ -1478,7 +1477,7 @@ function getDivineChargeFlashFrames() {
   divineChargeFlashFrames = [];
   for (let i = 1; i <= 14; i += 1) {
     const img = new Image();
-    img.src = `assets/sprites/magic-pack/sprites/flash/sprites/flash${i}.png`;
+    img.src = `assets/sprites/projectiles/flash/flash${i}.png`;
     divineChargeFlashFrames.push(img);
   }
   return divineChargeFlashFrames;
@@ -3026,11 +3025,11 @@ const PROJECTILE_CONFIG = projectileSettings.config || {};
 const HEART_PROJECTILE_SRC =
   projectileSettings.heartProjectileSrc || "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png";
 const PROJECTILE_PATH =
-  projectileSettings.projectilePath || "assets/sprites/rpg-sprites/";
+  projectileSettings.projectilePath || "assets/sprites/projectiles/";
 const MAGIC_PACK_ROOT =
-  projectileSettings.magicPackRoot || "assets/sprites/magic-pack/sprites";
-const MAGIC_FIREBALL_SPRITE_PATH = `${MAGIC_PACK_ROOT}/fireball/sprites`;
-const MAGIC_FLASH_SPRITE_PATH = `${MAGIC_PACK_ROOT}/flash/sprites`;
+  projectileSettings.magicPackRoot || "assets/sprites/projectiles";
+const MAGIC_FIREBALL_SPRITE_PATH = `${MAGIC_PACK_ROOT}/fireball`;
+const MAGIC_FLASH_SPRITE_PATH = `${MAGIC_PACK_ROOT}/flash`;
 const POWERUP_PLAYFIELD_MARGIN = 140;
 const CONRAD_UTILITY_POWERUP_MAX_HEIGHT = 48 * WORLD_SCALE;
 function resizeCanvas() {
@@ -3401,8 +3400,6 @@ if (typeof window !== "undefined") {
 }
 
 const PLAYER_SPRITE_PATH = "assets/sprites/conrad/characters/";
-const BACKGROUND_IMAGE_PATH = "assets/backgrounds/church-1108.png";
-const BACKGROUND_FAR_PATH = "assets/backgrounds/far-bg.png";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
@@ -3429,10 +3426,7 @@ const OBSTACLE_DEFS = Object.fromEntries(
 const OBSTACLE_LAYOUT = Array.isArray(DECOR_CONFIG.OBSTACLE_LAYOUT)
   ? DECOR_CONFIG.OBSTACLE_LAYOUT.slice()
   : [];
-const MAGIC_PACK7_ROOT = "assets/sprites/magic-pack-7/sprites";
-const MAGIC_PACK10_ROOT = "assets/sprites/magic-pack-10/sprites";
-const MAGIC_PACK10_SHEETS_ROOT = "assets/sprites/magic-pack-10/spritesheets";
-const DIVINE_CHARGE_SPARK_ROOT = `${MAGIC_PACK10_ROOT}/Sparks`;
+const DIVINE_CHARGE_SPARK_ROOT = "assets/sprites/projectiles/sparks";
 const DIVINE_CHARGE_SPARK_COUNT = 16;
 const DIVINE_CHARGE_SPARK_FRAME_DURATION = 0.06;
 const DIVINE_CHARGE_SPARK_SCALE = 1.5;
@@ -5186,7 +5180,7 @@ async function loadProjectileFrames(cache, assets, projectileFrames) {
   // Fire and wisdom missile frames
   projectileFrames.fire = await Promise.all(
     Array.from({ length: 5 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/fire-missile/sprites/fire-missile${i + 1}.png`),
+      loadImage(`assets/sprites/projectiles/fire-missile/fire-missile${i + 1}.png`),
     ),
   );
   projectileFrames.wisdom_missle = await Promise.all(
@@ -5200,31 +5194,31 @@ async function loadProjectileFrames(cache, assets, projectileFrames) {
 async function loadEffectAssets(cache, assets) {
   assets.effects.verticalPuff = await Promise.all(
     Array.from({ length: 9 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/vertical-puff/sprites/vertical-puff${i + 1}.png`).then(
+      loadImage(`${MAGIC_PACK_ROOT}/vertical-puff/vertical-puff${i + 1}.png`).then(
         (img) => extractFrame(img, img.width, img.height, 0),
       ),
     ),
   );
   assets.effects.impactDust = await Promise.all(
     Array.from({ length: 10 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/impact-dust/sprites/impact-dust${i + 1}.png`).then((img) =>
+      loadImage(`${MAGIC_PACK_ROOT}/impact-dust/impact-dust${i + 1}.png`).then((img) =>
         extractFrame(img, img.width, img.height, 0),
       ),
     ),
   );
   assets.effects.flash = await Promise.all(
     Array.from({ length: 14 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/flash/sprites/flash${i + 1}.png`).then((img) =>
+      loadImage(`${MAGIC_PACK_ROOT}/flash/flash${i + 1}.png`).then((img) =>
         extractFrame(img, img.width, img.height, 0),
       ),
     ),
   );
   assets.effects.sentryBurn = await loadImage(
-    "assets/sprites/fire/Group-4-1.png",
+    "assets/sprites/projectiles/tormentor-flame/Group-4-1.png",
   ).then((img) => extractFrames(img, 32, 48));
   assets.effects.visitorHeartHit = await Promise.all(
     Array.from({ length: 6 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/puff/sprites/puff${i + 1}.png`).then((img) =>
+      loadImage(`${MAGIC_PACK_ROOT}/puff/puff${i + 1}.png`).then((img) =>
         extractFrame(img, img.width, img.height, 0),
       ),
     ),
@@ -5236,7 +5230,7 @@ async function loadEffectAssets(cache, assets) {
   );
   assets.effects.puff = await Promise.all(
     Array.from({ length: 6 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/puff/sprites/puff${i + 1}.png`).then((img) =>
+      loadImage(`${MAGIC_PACK_ROOT}/puff/puff${i + 1}.png`).then((img) =>
         extractFrame(img, img.width, img.height, 0),
       ),
     ),
@@ -5260,15 +5254,15 @@ async function loadEffectAssets(cache, assets) {
       ),
     ),
   );
-  assets.effects.chattyHeartHit = await loadImage(`${MAGIC_PACK10_SHEETS_ROOT}/ray.png`).then((img) =>
+  assets.effects.chattyHeartHit = await loadImage(`assets/sprites/projectiles/ray/ray.png`).then((img) =>
     extractFrames(img, 78, 64),
   );
-  assets.effects.chattyAppease = await loadImage(`${MAGIC_PACK10_SHEETS_ROOT}/blast.png`).then((img) =>
+  assets.effects.chattyAppease = await loadImage(`assets/sprites/projectiles/blast/blast.png`).then((img) =>
     extractFrames(img, 64, 64),
   );
   assets.effects.raybolt = await Promise.all(
     Array.from({ length: 10 }, (_, i) =>
-      loadImage(`${MAGIC_PACK10_ROOT}/Raybolt/Raybolt${i + 1}.png`).then((img) =>
+      loadImage(`assets/sprites/projectiles/raybolt/Raybolt${i + 1}.png`).then((img) =>
         extractFrame(img, img.width, img.height, 0),
       ),
     ),
@@ -5281,7 +5275,7 @@ async function loadEffectAssets(cache, assets) {
   assets.effects.meleeSwoosh = await loadImage(MELEE_SWOOSH_PATH).catch(() => null);
   assets.effects.smoke = await Promise.all(
     Array.from({ length: 17 }, (_, i) =>
-      loadImage(`${MAGIC_PACK_ROOT}/Smoke/sprites/smoke${i + 1}.png`).then((img) =>
+      loadImage(`${MAGIC_PACK_ROOT}/smoke/smoke${i + 1}.png`).then((img) =>
         extractFrame(img, img.width, img.height, 0),
       ),
     ),
@@ -5307,14 +5301,6 @@ async function loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromis
 }
 
 async function loadBackgroundAssets(cache, assets) {
-  const backgroundPromise = loadImage(BACKGROUND_IMAGE_PATH)
-    .then((image) => {
-      assets.background = image;
-    })
-    .catch((error) => {
-      console.error(error);
-      assets.background = null;
-    });
   const townIntroPromise = loadImage(TOWN_INTRO_BACKGROUND_PATH)
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
@@ -5360,9 +5346,6 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
       assets.backgrounds.gameOver = null;
     });
-  const farPromise = loadImage(BACKGROUND_FAR_PATH)
-    .then((img) => { assets.backgroundLayers.far = img; })
-    .catch(() => { assets.backgroundLayers.far = null; });
   const midPromise = loadImage(BACKGROUND_MID_PATH)
     .then((img) => { assets.backgroundLayers.mid = img; })
     .catch(() => { assets.backgroundLayers.mid = null; });
@@ -5374,13 +5357,11 @@ async function loadBackgroundAssets(cache, assets) {
     .catch(() => { assets.titleBackground = null; });
 
   await Promise.all([
-    backgroundPromise,
     townIntroPromise,
     epiloguePromise,
     act2Promise,
     act3Promise,
     gameOverBackgroundPromise,
-    farPromise,
     midPromise,
     floorPromise,
     titleBackgroundPromise,
@@ -19998,7 +19979,6 @@ async function init() {
     playerRespawnPending = false;
     respawnTimer = 0;
     respawnIndicatorTimer = 0;
-    backgroundImage = assets.background;
     utilityPowerUps.length = 0;
     ringOfFireHazards.length = 0;
     resetCozyNpcs(5);

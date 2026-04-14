@@ -4,8 +4,8 @@
     (typeof window !== "undefined" && window.__BATTLECHURCH_WORLD_SCALE !== undefined)
       ? Number(window.__BATTLECHURCH_WORLD_SCALE) || DEFAULT_WORLD_SCALE
       : DEFAULT_WORLD_SCALE;
-  const PROJECTILE_PATH = "assets/sprites/rpg-sprites/";
-  const MAGIC_PACK_ROOT = "assets/sprites/magic-pack/sprites";
+  const PROJECTILE_PATH = "assets/sprites/projectiles/";
+  const MAGIC_PACK_ROOT = "assets/sprites/projectiles";
   const HEART_PROJECTILE_SRC = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png";
   const FAITH_CANNON_PROJECTILE_COOLDOWN = 0.22;
   const COIN_COOLDOWN = 0.4;

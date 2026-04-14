@@ -296,7 +296,7 @@ const ENEMY_CATALOG = {
   },
   "miniImp": {
     "displayName": "Imp",
-    "spriteSrc": "assets/sprites/enemies/MiniImp.png",
+    "spriteSrc": "assets/sprites/enemies/mini-imp/MiniImp.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 10,
@@ -330,7 +330,7 @@ const ENEMY_CATALOG = {
   },
   "miniImpLevel2": {
     "displayName": "Imp Lieutenant",
-    "spriteSrc": "assets/sprites/enemies/MiniImpLevel2.png",
+    "spriteSrc": "assets/sprites/enemies/mini-imp-level-2/MiniImpLevel2.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 20,
@@ -366,7 +366,7 @@ const ENEMY_CATALOG = {
   },
   "miniFireImp": {
     "displayName": "Fire Imp",
-    "spriteSrc": "assets/sprites/enemies/MiniFireImp.png",
+    "spriteSrc": "assets/sprites/enemies/mini-fire-imp/MiniFireImp.png",
     "assetFolder": "Mini Fire Imp",
     "assetBaseName": "Mini Fire Imp",
     "health": 20,
@@ -399,7 +399,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemoness": {
     "displayName": "Demoness",
-    "spriteSrc": "assets/sprites/enemies/MiniDemoness.png",
+    "spriteSrc": "assets/sprites/enemies/mini-demoness/MiniDemoness.png",
     "assetFolder": "Mini Demoness",
     "assetBaseName": "Mini Demoness",
     "health": 5000,
@@ -431,7 +431,7 @@ const ENEMY_CATALOG = {
   },
   "miniClawedDemon": {
     "displayName": "Clawed Demon",
-    "spriteSrc": "assets/sprites/enemies/MiniClawedDemon.png",
+    "spriteSrc": "assets/sprites/enemies/mini-clawed-demon/MiniClawedDemon.png",
     "assetFolder": "Mini Clawed Demon",
     "assetBaseName": "Mini Clawed Demon",
     "health": 30,
@@ -466,7 +466,7 @@ const ENEMY_CATALOG = {
   },
   "miniHighDemon": {
     "displayName": "High Demon",
-    "spriteSrc": "assets/sprites/enemies/MiniHighDemon.png",
+    "spriteSrc": "assets/sprites/enemies/mini-high-demon/MiniHighDemon.png",
     "assetFolder": "Mini High Demon",
     "assetBaseName": "Mini High Demon",
     "health": 400,
@@ -507,7 +507,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonTormentor": {
     "displayName": "Demon Tormentor",
-    "spriteSrc": "assets/sprites/enemies/MiniDemonTormentor.png",
+    "spriteSrc": "assets/sprites/enemies/mini-demon-tormentor/MiniDemonTormentor.png",
     "assetFolder": "Mini Demon Tormentor",
     "assetBaseName": "Mini Demon Tormentor",
     "health": 300,
@@ -543,7 +543,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonLord": {
     "displayName": "Demon Lord",
-    "spriteSrc": "assets/sprites/enemies/MiniDemonLord.png",
+    "spriteSrc": "assets/sprites/enemies/mini-demon-lord/MiniDemonLord.png",
     "assetFolder": "Mini Demon Lord",
     "assetBaseName": "Mini Demon Lord",
     "health": 500,
@@ -586,7 +586,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonFireThrower": {
     "displayName": "Demon Fire Thrower",
-    "spriteSrc": "assets/sprites/enemies/MiniDemonFireThrower.png",
+    "spriteSrc": "assets/sprites/enemies/mini-demon-fire-thrower/MiniDemonFireThrower.png",
     "assetFolder": "Mini Demon Fire Thrower",
     "assetBaseName": "Mini Demon Fire Thrower",
     "health": 45,
@@ -622,7 +622,7 @@ const ENEMY_CATALOG = {
   },
   "miniDemonFireKeeper": {
     "displayName": "Demon Fire Keeper",
-    "spriteSrc": "assets/sprites/enemies/MiniDemonFireKeeper.png",
+    "spriteSrc": "assets/sprites/enemies/mini-demon-fire-keeper/MiniDemonFireKeeper.png",
     "assetFolder": "Mini Demon Fire Keeper",
     "assetBaseName": "Mini Demon Fire Keeper",
     "health": 40,
@@ -656,7 +656,7 @@ const ENEMY_CATALOG = {
   },
   "miniSuccubus": {
     "displayName": "Succubus",
-    "spriteSrc": "assets/sprites/enemies/MiniSuccubus.png",
+    "spriteSrc": "assets/sprites/enemies/mini-succubus/MiniSuccubus.png",
     "assetFolder": "Mini Succubus",
     "assetBaseName": "Mini Succubus",
     "health": 30,
@@ -689,7 +689,7 @@ const ENEMY_CATALOG = {
   },
   "miniImpLevel3": {
     "displayName": "Imp Commander",
-    "spriteSrc": "assets/sprites/enemies/MiniImpLevel3.png",
+    "spriteSrc": "assets/sprites/enemies/mini-imp-level-3/MiniImpLevel3.png",
     "assetFolder": "Mini Imp",
     "assetBaseName": "Mini Imp",
     "health": 30,
@@ -723,7 +723,7 @@ const ENEMY_CATALOG = {
   },
   "bat": {
     "displayName": "Bat",
-    "spriteSrc": "assets/sprites/enemies/bat.png",
+    "spriteSrc": "assets/sprites/enemies/bat/bat.png",
     "assetFolder": "Bat",
     "assetBaseName": "Bat",
     "health": 40,
@@ -757,7 +757,7 @@ const ENEMY_CATALOG = {
   },
   "tormentorFlame": {
     "displayName": "Tormentor Flame",
-    "spriteSrc": "assets/sprites/fire/Group-4-1.png",
+    "spriteSrc": "assets/sprites/projectiles/tormentor-flame/Group-4-1.png",
     "assetFolder": "Tormentor Flame",
     "assetBaseName": "Tormentor Flame",
     "health": 90,

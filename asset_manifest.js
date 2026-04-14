@@ -47,8 +47,8 @@
   function build(config = {}) {
     const {
       playerSpritePath = "assets/sprites/conrad/characters/",
-      projectilePath = "assets/sprites/rpg-sprites/",
-      magicPackRoot = "assets/sprites/magic-pack/sprites",
+      projectilePath = "assets/sprites/projectiles/",
+      magicPackRoot = "assets/sprites/projectiles",
       heartProjectileSrc = "assets/sprites/pixel-art-pack/Weapons/W43_Recurve_Bow.png",
       characterRoot = "assets/sprites/rpg-sprites/Characters(100x100)",
       enemyDefinitions = {},
@@ -121,7 +121,7 @@
       },
       projectiles: {
         arrow: {
-          src: `assets/sprites/MiniFolksWeapons/minifireball.png`,
+          src: `assets/sprites/projectiles/minifireball/minifireball.png`,
           frameWidth: 20,
           frameHeight: 16,
           frameRate: 12,
@@ -136,42 +136,42 @@
           loop: false,
         },
         weaponMiniLichSpell: {
-          src: `assets/sprites/MiniFolksWeapons/minilichspell.png`,
+          src: `assets/sprites/projectiles/minilichspell/minilichspell.png`,
           frameWidth: 0,
           frameHeight: 0,
           frameRate: 12,
           loop: true,
         },
         weaponMiniTrident: {
-          src: `assets/sprites/MiniFolksWeapons/minitrident.png`,
+          src: `assets/sprites/projectiles/minitrident-weapon/minitrident-weapon.png`,
           frameWidth: 0,
           frameHeight: 0,
           frameRate: 12,
           loop: true,
         },
         wisdom_missle: {
-          src: `${projectilePath}Magic(Projectile)/Wizard-Attack01_Effect.png`,
+          src: `${projectilePath}wizard-attack-01/Wizard-Attack01_Effect.png`,
           frameWidth: 100,
           frameHeight: 100,
           frameRate: 0,
           loop: false,
         },
         faith_cannon: {
-          src: `${projectilePath}Magic(Projectile)/Wizard-Attack02_Effect.png`,
+          src: `${projectilePath}wizard-attack-02/Wizard-Attack02_Effect.png`,
           frameWidth: 100,
           frameHeight: 100,
           frameRate: 12,
           loop: true,
         },
         miniTrident: {
-          src: "assets/sprites/enemies/MiniTrident.png",
+          src: "assets/sprites/projectiles/minitrident-enemy/minitrident-enemy.png",
           frameWidth: 24,
           frameHeight: 24,
           frameRate: 0,
           loop: false,
         },
         miniFireball: {
-          src: "assets/sprites/MiniFolksWeapons/minifireball.png",
+          src: "assets/sprites/projectiles/minifireball/minifireball.png",
           frameWidth: 20,
           frameHeight: 16,
           frameRate: 12,
@@ -179,7 +179,7 @@
           frameMap: [5, 6, 7, 8],
         },
         fire: {
-          src: `${magicPackRoot}/fire-missile/sprites/fire-missile1.png`,
+          src: `assets/sprites/projectiles/fire-missile/fire-missile1.png`,
           frameWidth: 32,
           frameHeight: 32,
           frameRate: 0,
