@@ -172,6 +172,13 @@
         onRender({ overlay, bodyEl, buttonEl: button, variant });
       } catch (e) {}
     }
+    const keysPressed = window.Input?.keysPressed;
+    confirmHeld = Boolean(
+      keysPressed && (keysPressed.has(" ") || keysPressed.has("enter") || keysPressed.has("Enter"))
+    );
+    backHeld = Boolean(
+      keysPressed && (keysPressed.has("escape") || keysPressed.has("Escape"))
+    );
     focusedControlIndex = 0;
     navHoldDir = 0;
     navNextTime = 0;
@@ -200,6 +207,10 @@
   function handleContinue() {
     if (button.disabled) return;
     consumedAction = true;
+    const keysPressed = window.Input?.keysPressed;
+    if (keysPressed && (keysPressed.has("enter") || keysPressed.has("Enter") || keysPressed.has(" "))) {
+      window.__battlechurchSuppressMenuConfirmUntilRelease = true;
+    }
     if (window.Input?.keysJustPressed) {
       window.Input.keysJustPressed.delete(" ");
       window.Input.keysJustPressed.delete("enter");

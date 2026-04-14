@@ -501,6 +501,9 @@
     if (window.UpgradeScreen?.isVisible?.()) return true;
     if (window.DialogOverlay?.isVisible?.()) return true;
     if (window.MapScreen?.isActive?.()) return true;
+    if (window.__battlechurchTitleScreenActive) return true;
+    if (window.__battlechurchHowToPlayActive) return true;
+    if (window.__battlechurchPauseMenuActive) return true;
     if (window.__missionBriefActive) return true;
     return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
   }
@@ -509,6 +512,9 @@
     if (typeof window === "undefined") return false;
     if (window.DialogOverlay?.isVisible?.()) return true;
     if (window.MapScreen?.isActive?.()) return true;
+    if (window.__battlechurchTitleScreenActive) return true;
+    if (window.__battlechurchHowToPlayActive) return true;
+    if (window.__battlechurchPauseMenuActive) return true;
     if (window.__missionBriefActive) return true;
     return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
   }
@@ -596,15 +602,9 @@
         gamepadState.buttonBindings.set(token, binding);
         pressGamepadKey(binding.key, binding);
       } else if (pressed && activeBinding) {
-        if (
-          activeBinding.key !== binding.key ||
-          Boolean(activeBinding.setNesA) !== Boolean(binding.setNesA) ||
-          Boolean(activeBinding.setPrayerBomb) !== Boolean(binding.setPrayerBomb)
-        ) {
-          releaseGamepadKey(activeBinding.key, activeBinding);
-          gamepadState.buttonBindings.set(token, binding);
-          pressGamepadKey(binding.key, binding);
-        }
+        // Keep the original meaning of a held gamepad button until it is released.
+        // This prevents a button used to close a menu from immediately remapping
+        // into a different action on the newly revealed screen.
       } else if (!pressed && activeBinding) {
         gamepadState.buttonBindings.delete(token);
         releaseGamepadKey(activeBinding.key, activeBinding);

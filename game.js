@@ -15956,6 +15956,13 @@ function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true
     }
   }
   const confirmKeys = [" ", "enter", "Enter"];
+  if (window.__battlechurchSuppressMenuConfirmUntilRelease) {
+    const confirmStillHeld = confirmKeys.some((k) => keysPressed.has(k));
+    if (confirmStillHeld) {
+      return false;
+    }
+    window.__battlechurchSuppressMenuConfirmUntilRelease = false;
+  }
   if (allowSpace && confirmKeys.some((k) => keysJustPressed.has(k))) {
     confirmKeys.forEach((k) => keysJustPressed.delete(k));
     if (typeof onActivate === "function") {
@@ -20804,6 +20811,12 @@ function restartGame() {
 function gameLoop(timestamp) {
   const delta = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
+
+  if (typeof window !== "undefined") {
+    window.__battlechurchTitleScreenActive = Boolean(titleScreenActive);
+    window.__battlechurchHowToPlayActive = Boolean(howToPlayActive);
+    window.__battlechurchPauseMenuActive = Boolean(paused && !gameOver);
+  }
 
   if (typeof Input?.pollGamepad === "function") {
     Input.pollGamepad();
