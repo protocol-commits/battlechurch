@@ -14735,8 +14735,7 @@ function handleDeveloperHotkeys() {
   const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
   const pressed = typeof Input !== "undefined" ? Input.keysPressed : null;
   const shiftHeld = Boolean(modifiers?.shift || pressed?.has?.("Shift"));
-  const ctrlHeld = Boolean(modifiers?.ctrl || pressed?.has?.("Control"));
-  if (!shiftHeld || !ctrlHeld) return;
+  if (!shiftHeld) return;
   if (keysJustPressed.has("1")) {
     devTools.godMode = !devTools.godMode;
     setDevStatus(devTools.godMode ? "God mode enabled" : "God mode disabled", 2.5);
@@ -15601,24 +15600,24 @@ function showDeveloperShortcutsOverlay() {
   const bodyHtml = `
     <div class="settings-panel">
       <div class="settings-row"><div class="settings-row__label"><strong>Developer Shortcuts</strong></div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+1: God Mode</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+2: Clear Hostiles</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+3: Skip Battle</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+4: Skip Level</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+5: Final Town Boss</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+6: Grace Rush</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+8: Final Boss</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+9: Epilogue</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+T: Toggle Timer</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+C: +5 Congregation</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+O: Toggle Touch Controls</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+P: Swap Powerups</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+B: Prayer Bomb Charge</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+V: Visitor Session</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+F: Dev Inspector</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+1: God Mode</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+2: Clear Hostiles</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+3: Skip Battle</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+4: Skip Level</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+5: Final Town Boss</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+6: Grace Rush</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+8: Final Boss</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+9: Epilogue</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+T: Toggle Timer</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+C: +5 Congregation</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+O: Toggle Touch Controls</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+P: Swap Powerups</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+B: Prayer Bomb Charge</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+V: Visitor Session</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+F: Dev Inspector</div></div>
       <div class="settings-row"><div class="settings-row__label">Title Screen H: Hitbox Editor</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+M: Debug Overlay</div></div>
-      <div class="settings-row"><div class="settings-row__label">Ctrl+Shift+K: +500 Grace</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+M: Debug Overlay</div></div>
+      <div class="settings-row"><div class="settings-row__label">Shift+K: +500 Grace</div></div>
     </div>
   `;
   window.DialogOverlay.show({
