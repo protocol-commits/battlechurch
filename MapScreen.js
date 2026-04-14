@@ -21,6 +21,8 @@
     selectedTownId: null,
     panelOpen: false,
     panelFocus: 0,
+    navHoldDir: 0,
+    navNextTime: 0,
     playerDoc: null,
     mapProgress: null,
     loading: false,
@@ -855,6 +857,53 @@
 
   function closeTownPanel() {
     state.panelOpen = false;
+    state.navHoldDir = 0;
+    state.navNextTime = 0;
+  }
+
+  function getNavigationDirection(input, keysJustPressed) {
+    let direction = null;
+    if (keysJustPressed.has("w") || keysJustPressed.has("ArrowUp")) direction = "up";
+    else if (keysJustPressed.has("s") || keysJustPressed.has("ArrowDown")) direction = "down";
+    else if (keysJustPressed.has("a") || keysJustPressed.has("ArrowLeft")) direction = "left";
+    else if (keysJustPressed.has("d") || keysJustPressed.has("ArrowRight")) direction = "right";
+    if (direction) return direction;
+    if (!input || typeof input.isActionActive !== "function") {
+      state.navHoldDir = 0;
+      state.navNextTime = 0;
+      return null;
+    }
+    const hasHoldInputSource =
+      Boolean(input.virtualInput?.enabled) || Boolean(input.gamepadState?.movement?.active);
+    if (!hasHoldInputSource) {
+      state.navHoldDir = 0;
+      state.navNextTime = 0;
+      return null;
+    }
+    const nextDir =
+      input.isActionActive("up") ? "up" :
+      input.isActionActive("down") ? "down" :
+      input.isActionActive("left") ? "left" :
+      input.isActionActive("right") ? "right" :
+      null;
+    if (!nextDir) {
+      state.navHoldDir = 0;
+      state.navNextTime = 0;
+      return null;
+    }
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const initialDelayMs = 280;
+    const repeatDelayMs = 140;
+    if (state.navHoldDir !== nextDir) {
+      state.navHoldDir = nextDir;
+      state.navNextTime = now + initialDelayMs;
+      return nextDir;
+    }
+    if (now >= state.navNextTime) {
+      state.navNextTime = now + repeatDelayMs;
+      return nextDir;
+    }
+    return null;
   }
 
   function drawTownPanel(ctx, canvas) {
@@ -961,15 +1010,21 @@
     ctx.restore();
   }
 
-  function handlePanelInput(keysJustPressed) {
+  function handlePanelInput(input, keysJustPressed) {
     if (!state.panelOpen) return false;
-    if (keysJustPressed.has("a") || keysJustPressed.has("d") || keysJustPressed.has("w") || keysJustPressed.has("s")) {
+    const direction = getNavigationDirection(input, keysJustPressed);
+    if (direction) {
       state.panelFocus = state.panelFocus === 0 ? 1 : 0;
       if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
         window.playMenuItemPickSfx(0.55);
       }
     }
-    if (keysJustPressed.has(" ")) {
+    const confirmPressed =
+      keysJustPressed.has(" ") ||
+      keysJustPressed.has("enter") ||
+      keysJustPressed.has("Enter") ||
+      keysJustPressed.has("ArrowLeft");
+    if (confirmPressed) {
       const selection = state.panelButtons?.[state.panelFocus];
       if (selection?.key === "play") {
         if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
@@ -982,6 +1037,16 @@
         }
         closeTownPanel();
       }
+    }
+    const backPressed =
+      keysJustPressed.has("escape") ||
+      keysJustPressed.has("Escape") ||
+      keysJustPressed.has("ArrowDown");
+    if (backPressed) {
+      if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+        window.playMenuItemPickSfx(0.55);
+      }
+      closeTownPanel();
     }
     return true;
   }
@@ -1003,20 +1068,18 @@
     const input = window.Input;
     if (!input) return;
     const keysJustPressed = input.keysJustPressed;
-    if (!keysJustPressed?.size) return;
+    if (!keysJustPressed) return;
 
     const prevSelection = state.selectedTownId;
     if (state.panelOpen) {
-      if (handlePanelInput(keysJustPressed)) {
+      if (handlePanelInput(input, keysJustPressed)) {
         keysJustPressed.clear();
         return;
       }
     }
 
-    if (keysJustPressed.has("w")) state.selectedTownId = pickNextTown("up");
-    if (keysJustPressed.has("s")) state.selectedTownId = pickNextTown("down");
-    if (keysJustPressed.has("a")) state.selectedTownId = pickNextTown("left");
-    if (keysJustPressed.has("d")) state.selectedTownId = pickNextTown("right");
+    const direction = getNavigationDirection(input, keysJustPressed);
+    if (direction) state.selectedTownId = pickNextTown(direction);
 
     if (state.selectedTownId && state.selectedTownId !== prevSelection) {
       if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
@@ -1024,13 +1087,28 @@
       }
     }
 
-    if (keysJustPressed.has(" ")) {
+    const confirmPressed =
+      keysJustPressed.has(" ") ||
+      keysJustPressed.has("enter") ||
+      keysJustPressed.has("Enter") ||
+      keysJustPressed.has("ArrowLeft");
+    if (confirmPressed) {
       if (state.selectedTownId) {
         openTownPanel(state.selectedTownId);
       }
     }
 
-    keysJustPressed.clear();
+    const backPressed =
+      keysJustPressed.has("escape") ||
+      keysJustPressed.has("Escape") ||
+      keysJustPressed.has("ArrowDown");
+    if (backPressed && typeof window.exitMapScreen === "function") {
+      window.exitMapScreen();
+    }
+
+    if (keysJustPressed.size) {
+      keysJustPressed.clear();
+    }
   }
 
   function handleMapClicks(rect) {
@@ -1447,6 +1525,7 @@
     updateAmbient: updateMapAmbient,
     startAmbient: startMapAmbient,
     stopAmbient: stopMapAmbient,
+    isActive: () => state.active,
     get mapRect() { return { ...state.mapRect }; },
   };
 })(typeof window !== "undefined" ? window : null);

@@ -500,6 +500,7 @@
     if (typeof window === "undefined") return false;
     if (window.UpgradeScreen?.isVisible?.()) return true;
     if (window.DialogOverlay?.isVisible?.()) return true;
+    if (window.MapScreen?.isActive?.()) return true;
     if (window.__missionBriefActive) return true;
     return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
   }
@@ -507,6 +508,7 @@
   function shouldUseGamepadEastButtonAsBack() {
     if (typeof window === "undefined") return false;
     if (window.DialogOverlay?.isVisible?.()) return true;
+    if (window.MapScreen?.isActive?.()) return true;
     if (window.__missionBriefActive) return true;
     return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
   }

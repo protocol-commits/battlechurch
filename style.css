@@ -978,6 +978,12 @@ body.layout-rotate-warning .dialog-overlay--mission .dialog-overlay__button {
   outline-offset: 3px;
 }
 
+.settings-toggle input:focus-visible,
+.settings-slider input[type="range"]:focus-visible {
+  outline: 3px solid rgba(255, 244, 161, 0.95);
+  outline-offset: 3px;
+}
+
 .title-menu {
   display: flex;
   flex-wrap: wrap;

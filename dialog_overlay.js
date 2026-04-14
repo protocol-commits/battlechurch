@@ -23,63 +23,110 @@
   let consumedAction = false;
   let visible = false;
   let hideTimer = null;
-  let focusedButtonIndex = 0;
+  let focusedControlIndex = 0;
   let navHoldDir = 0;
   let navNextTime = 0;
+  let confirmHeld = false;
+  let backHeld = false;
 
-  function getNavigableButtons() {
-    return Array.from(overlay.querySelectorAll("button.dialog-overlay__button")).filter((el) => {
+  function getNavigableControls() {
+    return Array.from(
+      overlay.querySelectorAll(
+        "button.dialog-overlay__button, input[type='checkbox'], input[type='range']"
+      )
+    ).filter((el) => {
       if (!el || el.disabled) return false;
       if (el.offsetParent === null && el !== button) return false;
       return true;
     });
   }
 
-  function focusButton(index, { playSound = false } = {}) {
-    const buttons = getNavigableButtons();
-    if (!buttons.length) return null;
-    const nextIndex = Math.max(0, Math.min(buttons.length - 1, index));
-    const nextButton = buttons[nextIndex];
-    const previousButton = buttons[focusedButtonIndex] || null;
-    focusedButtonIndex = nextIndex;
-    if (playSound && previousButton !== nextButton && typeof window?.playMenuMoveSfx === "function") {
+  function focusControl(index, { playSound = false } = {}) {
+    const controls = getNavigableControls();
+    if (!controls.length) return null;
+    const nextIndex = Math.max(0, Math.min(controls.length - 1, index));
+    const nextControl = controls[nextIndex];
+    const previousControl = controls[focusedControlIndex] || null;
+    focusedControlIndex = nextIndex;
+    if (playSound && previousControl !== nextControl && typeof window?.playMenuMoveSfx === "function") {
       window.playMenuMoveSfx(0.45);
     }
     try {
-      nextButton.focus({ preventScroll: true });
+      nextControl.focus({ preventScroll: true });
     } catch (e) {
-      nextButton.focus();
+      nextControl.focus();
     }
-    return nextButton;
+    return nextControl;
   }
 
-  function syncFocusedButton() {
-    const buttons = getNavigableButtons();
-    if (!buttons.length) {
-      focusedButtonIndex = 0;
+  function syncFocusedControl() {
+    const controls = getNavigableControls();
+    if (!controls.length) {
+      focusedControlIndex = 0;
       return null;
     }
-    const activeIndex = buttons.indexOf(document.activeElement);
+    const activeIndex = controls.indexOf(document.activeElement);
     if (activeIndex >= 0) {
-      focusedButtonIndex = activeIndex;
-      return buttons[activeIndex];
+      focusedControlIndex = activeIndex;
+      return controls[activeIndex];
     }
-    return focusButton(Math.min(focusedButtonIndex, buttons.length - 1));
+    return focusControl(Math.min(focusedControlIndex, controls.length - 1));
   }
 
   function moveFocus(direction) {
-    const buttons = getNavigableButtons();
-    if (!buttons.length) return false;
-    syncFocusedButton();
-    const nextIndex = (focusedButtonIndex + direction + buttons.length) % buttons.length;
-    focusButton(nextIndex, { playSound: true });
+    const controls = getNavigableControls();
+    if (!controls.length) return false;
+    syncFocusedControl();
+    const nextIndex = (focusedControlIndex + direction + controls.length) % controls.length;
+    focusControl(nextIndex, { playSound: true });
     return true;
   }
 
-  function activateFocusedButton() {
-    const activeButton = syncFocusedButton();
-    if (!activeButton || activeButton.disabled) return false;
-    activeButton.click();
+  function activateFocusedControl() {
+    const activeControl = syncFocusedControl();
+    if (!activeControl || activeControl.disabled) return false;
+    if (activeControl.tagName === "BUTTON") {
+      activeControl.click();
+      return true;
+    }
+    if (activeControl.type === "checkbox") {
+      activeControl.click();
+      return true;
+    }
+    if (activeControl.type === "range") {
+      return true;
+    }
+    activeControl.click?.();
+    return true;
+  }
+
+  function adjustFocusedControl(direction) {
+    const activeControl = syncFocusedControl();
+    if (!activeControl || activeControl.disabled) return false;
+    if (activeControl.type === "checkbox") {
+      const nextChecked = direction > 0;
+      if (Boolean(activeControl.checked) !== nextChecked) {
+        activeControl.checked = nextChecked;
+        activeControl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      return true;
+    }
+    if (activeControl.type === "range") {
+      const current = Number(activeControl.value);
+      const step = Number(activeControl.step) || 1;
+      const min = Number(activeControl.min);
+      const max = Number(activeControl.max);
+      const next = Math.max(
+        Number.isFinite(min) ? min : current - step,
+        Math.min(Number.isFinite(max) ? max : current + step, current + step * direction)
+      );
+      if (next !== current) {
+        activeControl.value = String(next);
+        activeControl.dispatchEvent(new Event("input", { bubbles: true }));
+        activeControl.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      return true;
+    }
     return true;
   }
 
@@ -125,10 +172,10 @@
         onRender({ overlay, bodyEl, buttonEl: button, variant });
       } catch (e) {}
     }
-    focusedButtonIndex = 0;
+    focusedControlIndex = 0;
     navHoldDir = 0;
     navNextTime = 0;
-    syncFocusedButton();
+    syncFocusedControl();
     visible = true;
   }
 
@@ -163,19 +210,29 @@
   function handleKeyDown(event) {
     if (!visible) return;
     const key = String(event.key || "");
-    if (key === "ArrowUp" || key === "ArrowLeft" || key === "w" || key === "W" || key === "a" || key === "A") {
+    if (key === "ArrowUp" || key === "w" || key === "W") {
       event.preventDefault();
       moveFocus(-1);
       return;
     }
-    if (key === "ArrowDown" || key === "ArrowRight" || key === "s" || key === "S" || key === "d" || key === "D") {
+    if (key === "ArrowDown" || key === "s" || key === "S") {
       event.preventDefault();
       moveFocus(1);
       return;
     }
+    if (key === "ArrowLeft" || key === "a" || key === "A") {
+      event.preventDefault();
+      if (!adjustFocusedControl(-1)) moveFocus(-1);
+      return;
+    }
+    if (key === "ArrowRight" || key === "d" || key === "D") {
+      event.preventDefault();
+      if (!adjustFocusedControl(1)) moveFocus(1);
+      return;
+    }
     if (event.code === "Enter" || key === "Enter" || event.code === "Space" || event.keyCode === 32) {
       event.preventDefault();
-      activateFocusedButton();
+      activateFocusedControl();
       return;
     }
     if (key === "Escape") {
@@ -187,15 +244,41 @@
 
   function updateNavigation() {
     if (visible && window.Input && typeof window.Input.isActionActive === "function") {
+      const keysPressed = window.Input.keysPressed;
+      if (keysPressed) {
+        const confirmPressed =
+          keysPressed.has(" ") || keysPressed.has("enter") || keysPressed.has("Enter");
+        if (confirmPressed && !confirmHeld) {
+          activateFocusedControl();
+        }
+        confirmHeld = confirmPressed;
+        const backPressed = keysPressed.has("escape") || keysPressed.has("Escape");
+        if (backPressed && !backHeld) {
+          if (!button.disabled) {
+            handleContinue();
+          }
+        }
+        backHeld = backPressed;
+      } else {
+        confirmHeld = false;
+        backHeld = false;
+      }
       const hasHoldInputSource =
         Boolean(window.Input.virtualInput?.enabled) || Boolean(window.Input.gamepadState?.movement?.active);
       if (hasHoldInputSource) {
-        const previousFocused = focusedButtonIndex;
-        const leftActive = window.Input.isActionActive("left") || window.Input.isActionActive("up");
-        const rightActive = window.Input.isActionActive("right") || window.Input.isActionActive("down");
-        const nextDir = leftActive ? -1 : rightActive ? 1 : 0;
+        const previousFocused = focusedControlIndex;
+        const upActive = window.Input.isActionActive("up");
+        const downActive = window.Input.isActionActive("down");
+        const leftActive = window.Input.isActionActive("left");
+        const rightActive = window.Input.isActionActive("right");
+        const nextDir =
+          upActive ? "up" :
+          downActive ? "down" :
+          leftActive ? "left" :
+          rightActive ? "right" :
+          null;
         if (!nextDir) {
-          navHoldDir = 0;
+          navHoldDir = null;
           navNextTime = 0;
         } else {
           const now = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -204,22 +287,28 @@
           if (navHoldDir !== nextDir) {
             navHoldDir = nextDir;
             navNextTime = now + initialDelayMs;
-            moveFocus(nextDir);
+            if (nextDir === "up") moveFocus(-1);
+            else if (nextDir === "down") moveFocus(1);
+            else if (!adjustFocusedControl(nextDir === "left" ? -1 : 1)) moveFocus(nextDir === "left" ? -1 : 1);
           } else if (now >= navNextTime) {
             navNextTime = now + repeatDelayMs;
-            moveFocus(nextDir);
+            if (nextDir === "up") moveFocus(-1);
+            else if (nextDir === "down") moveFocus(1);
+            else if (!adjustFocusedControl(nextDir === "left" ? -1 : 1)) moveFocus(nextDir === "left" ? -1 : 1);
           }
         }
-        if (previousFocused !== focusedButtonIndex) {
-          syncFocusedButton();
+        if (previousFocused !== focusedControlIndex) {
+          syncFocusedControl();
         }
       } else {
-        navHoldDir = 0;
+        navHoldDir = null;
         navNextTime = 0;
       }
     } else {
-      navHoldDir = 0;
+      navHoldDir = null;
       navNextTime = 0;
+      confirmHeld = false;
+      backHeld = false;
     }
     window.requestAnimationFrame(updateNavigation);
   }
