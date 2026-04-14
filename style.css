@@ -634,6 +634,21 @@ body.layout-rotate-warning #rotatePrompt {
   color: rgba(255, 255, 255, 0.85);
 }
 
+.dev-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dev-action-grid__button {
+  width: 100%;
+  min-height: 64px;
+  margin-top: 0;
+  padding: 12px 14px;
+  text-align: center;
+  line-height: 1.25;
+}
+
 body.layout-mobile .pause-hotkeys__title,
 body.layout-square .pause-hotkeys__title,
 body.layout-rotate-warning .pause-hotkeys__title {

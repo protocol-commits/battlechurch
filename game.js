@@ -15635,14 +15635,15 @@ function showDeveloperShortcutsOverlay() {
 function showDeveloperOverlay() {
   if (!window.DialogOverlay) return;
   const bodyHtml = `
-    <div class="settings-panel">
-      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="enemy">Enemy Editor</button></div>
-      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="level">Level Editor</button></div>
-      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="hitbox">Hitbox Editor</button></div>
-      <div class="settings-row" data-dev-npc-zones-row></div>
-      <div class="settings-row"><div class="settings-row__label"><strong>Hitbox Toggles</strong></div></div>
+    <div class="settings-panel settings-panel--developer">
+      <div class="dev-action-grid">
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="enemy">Enemy Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="hitbox">Hitbox Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="shortcuts">Developer Shortcuts</button>
+      </div>
+      <div class="settings-row"><div class="settings-row__label"><strong>Debug Toggles</strong></div></div>
       <div class="settings-row" data-hitbox-debug-row></div>
-      <div class="settings-row"><button class="dialog-overlay__button" data-dev-action="shortcuts">Developer Shortcuts</button></div>
     </div>
   `;
   window.DialogOverlay.show({
@@ -15652,26 +15653,10 @@ function showDeveloperOverlay() {
     variant: "settings",
     onRender: ({ bodyEl }) => {
       if (!bodyEl) return;
-      const npcZonesRow = bodyEl.querySelector("[data-dev-npc-zones-row]");
-      if (npcZonesRow) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "dialog-overlay__button";
-        const sync = () => {
-          const active = Boolean(devTools.showNpcZones);
-          button.textContent = `NPC Zones: ${active ? "On" : "Off"}`;
-          button.style.opacity = active ? "1" : "0.7";
-        };
-        sync();
-        button.addEventListener("click", () => {
-          devTools.showNpcZones = !devTools.showNpcZones;
-          sync();
-        });
-        npcZonesRow.appendChild(button);
-      }
       const hitboxRow = bodyEl.querySelector("[data-hitbox-debug-row]");
       if (hitboxRow) {
         const defs = [
+          { key: "npcZones", label: "NPC Zones", custom: true },
           { key: "playerMelee", label: "Player / Melee" },
           { key: "npcs", label: "NPCs" },
           { key: "enemies", label: "Enemies" },
@@ -15680,18 +15665,22 @@ function showDeveloperOverlay() {
         hitboxRow.style.display = "flex";
         hitboxRow.style.flexWrap = "wrap";
         hitboxRow.style.gap = "8px";
-        defs.forEach(({ key, label }) => {
+        defs.forEach(({ key, label, custom }) => {
           const button = document.createElement("button");
           button.type = "button";
           button.className = "dialog-overlay__button";
           const sync = () => {
-            const active = Boolean(window.BattlechurchHitboxDebug?.[key]);
+            const active = custom ? Boolean(devTools.showNpcZones) : Boolean(window.BattlechurchHitboxDebug?.[key]);
             button.textContent = `${label}: ${active ? "On" : "Off"}`;
             button.style.opacity = active ? "1" : "0.7";
           };
           sync();
           button.addEventListener("click", () => {
-            window.BattlechurchToggleHitboxDebug?.(key);
+            if (custom) {
+              devTools.showNpcZones = !devTools.showNpcZones;
+            } else {
+              window.BattlechurchToggleHitboxDebug?.(key);
+            }
             sync();
           });
           hitboxRow.appendChild(button);
