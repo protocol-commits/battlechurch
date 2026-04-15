@@ -211,6 +211,7 @@
     onNpcLost: noop,
     prepareNpcProcession: noop,
     isNpcProcessionComplete: () => true,
+    getConversationResponders: () => [],
     startActBreakFade: noop,
     startGraceRushEndFade: noop,
     getAvailableMiniFolkKeys: () => [],
@@ -538,6 +539,7 @@
       restoreNpcsAfterBoss,
       heroSay,
       npcCheer,
+      getConversationResponders,
       startActBreakFade,
       startGraceRushEndFade,
       getAvailableMiniFolkKeys,
@@ -1138,54 +1140,7 @@
       }
       const waveLabel = `${state.monthIndex + 1}-${state.waveIndex + 1}`;
       setDevStatus(`Wave ${waveLabel}`, introDuration + 0.6);
-      if (waveNumber === 1) {
-        const firstWaveIntro = CONGREGATION_WAVE_INTRO.firstWave || {};
-        const pastorLine = firstWaveIntro.pastor || null;
-        const responses = Array.isArray(firstWaveIntro.responses) ? firstWaveIntro.responses : [];
-        let firstResponder = null;
-        if (pastorLine?.text) {
-          scheduleConversation(Number(pastorLine.delay) || 0.35, () => {
-            heroSay(pastorLine.text, { life: Number(pastorLine.life) || 2.6 });
-          });
-        }
-        if (responses[0]?.text) {
-          scheduleConversation(Number(responses[0].delay) || 1.35, () => {
-            const available = npcs.filter(
-              (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
-            );
-            if (!available.length) return;
-            const npc = randomChoice(available);
-            if (!npc) return;
-            firstResponder = npc;
-            npcCheer(
-              npc,
-              responses[0].text,
-              "#f4fbff",
-              { life: Number(responses[0].life) || 3.2 },
-            );
-          });
-        }
-        if (responses[1]?.text) {
-          scheduleConversation(Number(responses[1].delay) || 2.45, () => {
-            const available = npcs.filter(
-              (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
-            );
-            if (!available.length) return;
-            const candidates =
-              available.length > 1 && firstResponder
-                ? available.filter((npc) => npc !== firstResponder)
-                : available;
-            const npc = randomChoice(candidates);
-            if (!npc) return;
-            npcCheer(
-              npc,
-              responses[1].text,
-              "#f4fbff",
-              { life: Number(responses[1].life) || 3.6 },
-            );
-          });
-        }
-      } else {
+      if (waveNumber !== 1) {
         scheduleConversation(0.4, () => {
           heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
         });
@@ -1595,6 +1550,7 @@ state.waveIndex = -1;
         break;
       case "waveIntro":
         state.timer -= dt;
+        processConversation(dt);
         if (state.timer <= 0) spawnActiveWave();
         break;
       case "waveActive": {

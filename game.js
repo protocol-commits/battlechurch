@@ -165,6 +165,11 @@ let npcProcessionActive = false;
 let powerUpsClearedForCongregation = false;
 let congregationGreetingShown = false;
 let congregationDialogueIndex = 0;
+const congregationWaveIntroDialogueState = {
+  activeKey: "",
+  queue: [],
+  firstResponder: null,
+};
 let sentryOrbitAngle = 0;
 const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
@@ -174,6 +179,7 @@ const CONGREGATION_DIALOGUE_DATA =
   (typeof window !== "undefined" && window.BattlechurchCongregationDialogue) || {};
 const CONGREGATION_DIALOGUE_LINES =
   CONGREGATION_DIALOGUE_DATA.lines || [];
+const CONGREGATION_WAVE_INTRO_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveIntro || {};
 const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
@@ -2616,6 +2622,117 @@ function showWaveHealthSnapshot() {
   });
 }
 
+function getCongregationConversationResponders() {
+  const activeNpcs = npcs.filter(
+    (npc) => npc && !npc.departed && npc.active && npc.state !== "lostFaith" && npc.state !== "drained",
+  );
+  if (activeNpcs.length) return activeNpcs;
+  return congregationMembers.filter(
+    (member) =>
+      member &&
+      !member.departed &&
+      member.state !== "lostFaith" &&
+      member.state !== "drained" &&
+      Number.isFinite(member.x) &&
+      Number.isFinite(member.y),
+  );
+}
+
+function resetCongregationWaveIntroDialogueState() {
+  congregationWaveIntroDialogueState.activeKey = "";
+  congregationWaveIntroDialogueState.queue.length = 0;
+  congregationWaveIntroDialogueState.firstResponder = null;
+}
+
+function queueCongregationWaveIntroDialogue(levelStatus) {
+  const firstWaveIntro = CONGREGATION_WAVE_INTRO_DIALOGUE.firstWave || {};
+  const pastorLine = firstWaveIntro.pastor || null;
+  const responses = Array.isArray(firstWaveIntro.responses) ? firstWaveIntro.responses : [];
+  const key = [
+    levelStatus?.level || 0,
+    levelStatus?.battle || 0,
+    levelStatus?.wave || 0,
+  ].join(":");
+  if (!key) return;
+  congregationWaveIntroDialogueState.activeKey = key;
+  congregationWaveIntroDialogueState.queue.length = 0;
+  congregationWaveIntroDialogueState.firstResponder = null;
+  if (pastorLine?.text) {
+    congregationWaveIntroDialogueState.queue.push({
+      delay: Math.max(0, Number(pastorLine.delay) || 0.35),
+      run() {
+        heroSay(pastorLine.text, { life: Number(pastorLine.life) || 2.6 });
+      },
+    });
+  }
+  if (responses[0]?.text) {
+    congregationWaveIntroDialogueState.queue.push({
+      delay: Math.max(0, Number(responses[0].delay) || 1.35),
+      run() {
+        const available = getCongregationConversationResponders();
+        if (!available.length) return;
+        const npc = randomChoice(available);
+        if (!npc) return;
+        congregationWaveIntroDialogueState.firstResponder = npc;
+        npcCheer(npc, responses[0].text, "#f4fbff", {
+          life: Number(responses[0].life) || 3.2,
+        });
+      },
+    });
+  }
+  if (responses[1]?.text) {
+    congregationWaveIntroDialogueState.queue.push({
+      delay: Math.max(0, Number(responses[1].delay) || 2.45),
+      run() {
+        const available = getCongregationConversationResponders();
+        if (!available.length) return;
+        const candidates =
+          available.length > 1 && congregationWaveIntroDialogueState.firstResponder
+            ? available.filter((npc) => npc !== congregationWaveIntroDialogueState.firstResponder)
+            : available;
+        const npc = randomChoice(candidates);
+        if (!npc) return;
+        npcCheer(npc, responses[1].text, "#f4fbff", {
+          life: Number(responses[1].life) || 3.6,
+        });
+      },
+    });
+  }
+}
+
+function updateCongregationWaveIntroDialogue(dt, levelStatus) {
+  const stage = levelStatus?.stage || "";
+  const waveNumber = Number(levelStatus?.wave) || 0;
+  if (stage !== "waveIntro" || waveNumber !== 1) {
+    if (congregationWaveIntroDialogueState.activeKey) {
+      resetCongregationWaveIntroDialogueState();
+    }
+    return;
+  }
+  const currentKey = [
+    levelStatus?.level || 0,
+    levelStatus?.battle || 0,
+    waveNumber,
+  ].join(":");
+  if (congregationWaveIntroDialogueState.activeKey !== currentKey) {
+    queueCongregationWaveIntroDialogue(levelStatus);
+  }
+  for (let i = 0; i < congregationWaveIntroDialogueState.queue.length; ) {
+    const event = congregationWaveIntroDialogueState.queue[i];
+    event.delay -= dt;
+    if (event.delay <= 0) {
+      try {
+        event.run();
+      } catch (error) {
+        console.error("Congregation wave intro dialogue failed", error);
+      }
+      congregationWaveIntroDialogueState.queue.splice(i, 1);
+    } else {
+      i += 1;
+    }
+  }
+}
+
 Effects.initialize({
   context: ctx,
   getAssets: () => assets,
@@ -4223,6 +4340,7 @@ Levels.initialize({
   onNpcLost: handleNpcLostFromCongregation,
   prepareNpcProcession,
   isNpcProcessionComplete: areNpcProcessionsComplete,
+  getConversationResponders: getCongregationConversationResponders,
   startActBreakFade,
   startGraceRushEndFade,
   triggerCongregationOverlay,
@@ -19515,11 +19633,15 @@ function updateGame(dt) {
 
   if (paused) return;
 
-  if (!gameOver && levelManager && !congregationStageActive) {
+  const blockingConfirmAnnouncement =
+    Boolean(levelAnnouncements.length && levelAnnouncements[0]?.requiresConfirm);
+  if (!gameOver && levelManager && !congregationStageActive && !blockingConfirmAnnouncement) {
     levelManager.update(dt);
     levelStatus = levelManager.getStatus ? levelManager.getStatus() : null;
     stage = levelStatus?.stage;
   }
+
+  updateCongregationWaveIntroDialogue(dt, levelStatus);
 
   // Process pickups BEFORE player update so weapon changes apply immediately
   updateWeaponPickups(dt);
