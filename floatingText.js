@@ -267,12 +267,13 @@
     if (bubble) bubble.life = bubbleLife;
   }
 
-  function npcCheer(npc, line, color = "#c9ffe5") {
+  function npcCheer(npc, line, color = "#c9ffe5", { life = 1.6 } = {}) {
     if (!npc || !line) return;
+    const bubbleLife = Math.max(0.1, life);
     addAt(npc.x, npc.y - npc.radius - 20, line, color, {
       speechBubble: true,
       vy: 0,
-      life: 1.6,
+      life: bubbleLife,
       entity: npc,
       offsetY: -npc.radius - 20,
       bubbleTheme: "npc",

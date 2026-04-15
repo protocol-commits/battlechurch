@@ -1135,25 +1135,55 @@
       }
       const waveLabel = `${state.monthIndex + 1}-${state.waveIndex + 1}`;
       setDevStatus(`Wave ${waveLabel}`, introDuration + 0.6);
-      scheduleConversation(0.4, () => {
-        heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
-      });
-      scheduleConversation(1.2, () => {
-        const available = npcs.filter(
-          (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
-        );
-        if (!available.length) return;
-        const npc = randomChoice(available);
-        npcCheer(npc, randomChoice(NPC_AGREEMENT_LINES));
-      });
-      scheduleConversation(1.8, () => {
-        const available = npcs.filter(
-          (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
-        );
-        if (!available.length) return;
-        const npc = randomChoice(available);
-        npcCheer(npc, randomChoice(NPC_AGREEMENT_LINES));
-      });
+      if (waveNumber === 1) {
+        let firstResponder = null;
+        scheduleConversation(0.35, () => {
+          heroSay("Let's begin.", { life: 2.6 });
+        });
+        scheduleConversation(1.35, () => {
+          const available = npcs.filter(
+            (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
+          );
+          if (!available.length) return;
+          const npc = randomChoice(available);
+          if (!npc) return;
+          firstResponder = npc;
+          npcCheer(npc, "I'm excited to get started.", "#f4fbff", { life: 3.2 });
+        });
+        scheduleConversation(2.45, () => {
+          const available = npcs.filter(
+            (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
+          );
+          if (!available.length) return;
+          const candidates =
+            available.length > 1 && firstResponder
+              ? available.filter((npc) => npc !== firstResponder)
+              : available;
+          const npc = randomChoice(candidates);
+          if (!npc) return;
+          npcCheer(npc, "I really want to overcome my issues.", "#f4fbff", { life: 3.6 });
+        });
+      } else {
+        scheduleConversation(0.4, () => {
+          heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
+        });
+        scheduleConversation(1.2, () => {
+          const available = npcs.filter(
+            (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
+          );
+          if (!available.length) return;
+          const npc = randomChoice(available);
+          npcCheer(npc, randomChoice(NPC_AGREEMENT_LINES));
+        });
+        scheduleConversation(1.8, () => {
+          const available = npcs.filter(
+            (npc) => !npc.departed && npc.state !== "lostFaith" && npc.state !== "drained",
+          );
+          if (!available.length) return;
+          const npc = randomChoice(available);
+          npcCheer(npc, randomChoice(NPC_AGREEMENT_LINES));
+        });
+      }
     }
 
     function spawnActiveWave() {
