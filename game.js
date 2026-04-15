@@ -181,6 +181,7 @@ const CONGREGATION_DIALOGUE_LINES =
   CONGREGATION_DIALOGUE_DATA.lines || [];
 const CONGREGATION_WAVE_INTRO_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveIntro || {};
 const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
+const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {};
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
@@ -2731,6 +2732,31 @@ function updateCongregationWaveIntroDialogue(dt, levelStatus) {
       i += 1;
     }
   }
+}
+
+function getCurrentFormationDialogueLabel() {
+  return FORMATION_PRESETS?.[formationState?.current]?.label || "group";
+}
+
+function getNpcRedFaithThresholdRatio() {
+  const threshold = Number(CONGREGATION_RED_FAITH_DIALOGUE.thresholdRatio);
+  return Number.isFinite(threshold) ? Math.max(0, Math.min(1, threshold)) : 0.33;
+}
+
+function getNpcRedFaithDialogueLine() {
+  const candidates = Array.isArray(CONGREGATION_RED_FAITH_DIALOGUE.lines)
+    ? CONGREGATION_RED_FAITH_DIALOGUE.lines
+    : [];
+  const lineFactory = randomChoice(candidates);
+  if (typeof lineFactory === "function") {
+    return lineFactory(getCurrentFormationDialogueLabel());
+  }
+  return lineFactory || null;
+}
+
+function getNpcRedFaithDialogueLife() {
+  const life = Number(CONGREGATION_RED_FAITH_DIALOGUE.life);
+  return Number.isFinite(life) ? Math.max(0.1, life) : 5.8;
 }
 
 Effects.initialize({
@@ -10090,6 +10116,7 @@ class CozyNpc {
     this.statusBubbleTimer = 0;
     this.statusBubblePersistent = false;
     this.statusBubbleCritical = false;
+    this.redFaithDialogueTriggered = false;
     this.pendingLossPortrait = null;
     this.lossRecorded = false;
     this.damageFlashTimer = 0;
@@ -10262,8 +10289,32 @@ class CozyNpc {
         this.beginReturn({ announce: true });
       }
     }
+    if ((this.maxFaith || 0) > 0) {
+      const ratio = this.faith / this.maxFaith;
+      if (ratio > getNpcRedFaithThresholdRatio()) {
+        this.redFaithDialogueTriggered = false;
+      }
+    }
     this.updateFaithVisibility(true);
     return this.faith > prevFaith;
+  }
+
+  maybeSpeakRedFaithDialogue(prevFaith) {
+    if (!this.active || this.departed) return;
+    if (this.state === "lostFaith" || this.state === "departed") return;
+    if ((this.maxFaith || 0) <= 0) return;
+    if (this.redFaithDialogueTriggered) return;
+    const thresholdRatio = getNpcRedFaithThresholdRatio();
+    const startRatio = Math.max(0, Math.min(1, (prevFaith || 0) / this.maxFaith));
+    const endRatio = Math.max(0, Math.min(1, (this.faith || 0) / this.maxFaith));
+    if (!(startRatio > thresholdRatio && endRatio > 0 && endRatio <= thresholdRatio)) return;
+    const line = getNpcRedFaithDialogueLine();
+    if (!line) return;
+    this.redFaithDialogueTriggered = true;
+    this.setStatusBubble(line, {
+      color: "#FFD6D6",
+      duration: getNpcRedFaithDialogueLife(),
+    });
   }
 
   tryNpcFire(dt) {
@@ -10400,6 +10451,7 @@ class CozyNpc {
         });
     }
     this.faith = Math.max(0, this.faith - scaledLoss);
+    this.maybeSpeakRedFaithDialogue(prevFaith);
     if (scaledLoss > 0 && (this.maxFaith || 0) > 0) {
       const startRatio = prevFaith / this.maxFaith;
       const endRatio = this.faith / this.maxFaith;
@@ -10715,7 +10767,9 @@ class CozyNpc {
     this.animator.setMoving(false);
     const draining = this.isDraining();
     if (draining) {
+      const prevFaith = this.faith;
       this.faith = Math.max(0, this.faith - NPC_FAITH_DRAIN_RATE * dt);
+      this.maybeSpeakRedFaithDialogue(prevFaith);
       if (this.faith <= 0) {
         this.loseFaith();
         return;

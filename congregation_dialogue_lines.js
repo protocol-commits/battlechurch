@@ -56,8 +56,21 @@
     },
   };
 
+  const redFaith = {
+    thresholdRatio: 0.33,
+    life: 5.8,
+    lines: [
+      (formationLabel) => `I don't think this ${formationLabel} is working for me.`,
+      (formationLabel) => `I'm having a hard time with this ${formationLabel}.`,
+      (formationLabel) => `This ${formationLabel} isn't reaching me right now.`,
+      (formationLabel) => `I'm feeling discouraged in this ${formationLabel}.`,
+      (formationLabel) => `I want this ${formationLabel} to help, but I'm struggling.`,
+    ],
+  };
+
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
   ns.waveIntro = waveIntro;
   ns.waveEnd = waveEnd;
+  ns.redFaith = redFaith;
 })(typeof window !== "undefined" ? window : globalThis);
