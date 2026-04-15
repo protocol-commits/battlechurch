@@ -118,7 +118,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 100
+                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -142,6 +142,10 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImp",
                           "count": 1
                         }
                       ],
@@ -202,7 +206,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 150
+                          "count": 1
                         },
                         {
                           "enemy": "miniDemonTormentor",
@@ -249,7 +253,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         },
                         {
                           "enemy": "miniClawedDemon",
@@ -273,7 +277,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -289,7 +293,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         },
                         {
                           "enemy": "miniClawedDemon",
@@ -309,7 +313,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         },
                         {
                           "enemy": "miniClawedDemon",
@@ -336,7 +340,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         },
                         {
                           "enemy": "miniClawedDemon",
@@ -364,7 +368,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         }
                       ],
                       "mode": "explicit",
@@ -380,7 +384,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         },
                         {
                           "enemy": "miniClawedDemon",
@@ -400,7 +404,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 1
                         },
                         {
                           "enemy": "miniClawedDemon",
@@ -420,7 +424,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 100
+                          "count": 1
                         },
                         {
                           "enemy": "orc",

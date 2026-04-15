@@ -106,10 +106,31 @@
     },
   };
 
+  const battleVictory = {
+    maxSpeakers: 5,
+    life: 5.6,
+    staggerStep: 0.18,
+    lines: [
+      "We stood firm together.",
+      "The Lord carried us through that battle.",
+      "That darkness didn't get the last word.",
+      "I'm not as afraid as I was before.",
+      "Prayer is changing how I face this fight.",
+      "We're learning how to resist together.",
+      "I feel stronger after that battle.",
+      "The truth is starting to take hold in me.",
+      "I can see hope again after that fight.",
+      (formationLabel) => `This ${formationLabel} is helping me stand firm.`,
+      (formationLabel) => `Our ${formationLabel} gave me strength for that battle.`,
+      (formationLabel) => `I'm starting to understand how this ${formationLabel} helps me fight.`,
+    ],
+  };
+
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
   ns.waveIntro = waveIntro;
   ns.waveEnd = waveEnd;
   ns.redFaith = redFaith;
   ns.npcPowerups = npcPowerups;
+  ns.battleVictory = battleVictory;
 })(typeof window !== "undefined" ? window : globalThis);

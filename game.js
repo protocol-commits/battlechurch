@@ -170,6 +170,9 @@ const congregationWaveIntroDialogueState = {
   queue: [],
   firstResponder: null,
 };
+const battleVictoryDialogueState = {
+  queue: [],
+};
 let sentryOrbitAngle = 0;
 const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
@@ -183,6 +186,7 @@ const CONGREGATION_WAVE_INTRO_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveIntro ||
 const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {};
 const CONGREGATION_NPC_POWERUP_DIALOGUE = CONGREGATION_DIALOGUE_DATA.npcPowerups || {};
+const CONGREGATION_BATTLE_VICTORY_DIALOGUE = CONGREGATION_DIALOGUE_DATA.battleVictory || {};
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
@@ -2793,6 +2797,51 @@ function triggerNpcPowerupDialogue(effectKey) {
   return true;
 }
 
+function showBattleVictoryNpcDialogue() {
+  const config = CONGREGATION_BATTLE_VICTORY_DIALOGUE;
+  const candidates = Array.isArray(config.lines) ? config.lines.slice() : [];
+  if (!candidates.length) return false;
+  const responders = getCongregationConversationResponders().slice();
+  if (!responders.length) return false;
+  const maxSpeakers = Math.max(1, Math.round(config.maxSpeakers || 5));
+  const life = Number.isFinite(Number(config.life)) ? Math.max(0.1, Number(config.life)) : 5.6;
+  const staggerStep = Number.isFinite(Number(config.staggerStep))
+    ? Math.max(0, Number(config.staggerStep))
+    : 0.18;
+  const formationLabel = getCurrentFormationDialogueLabel();
+  const speakerCount = Math.min(maxSpeakers, responders.length, candidates.length);
+  battleVictoryDialogueState.queue.length = 0;
+  for (let i = 0; i < speakerCount; i += 1) {
+    const speaker = responders.splice(Math.floor(Math.random() * responders.length), 1)[0];
+    const lineFactory = candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0];
+    const line =
+      typeof lineFactory === "function"
+        ? lineFactory(formationLabel)
+        : lineFactory;
+    if (!speaker || !line) continue;
+    battleVictoryDialogueState.queue.push({
+      delay: i * staggerStep,
+      speaker,
+      line,
+      life,
+    });
+  }
+  return battleVictoryDialogueState.queue.length > 0;
+}
+
+function updateBattleVictoryNpcDialogue(dt) {
+  for (let i = 0; i < battleVictoryDialogueState.queue.length; ) {
+    const event = battleVictoryDialogueState.queue[i];
+    event.delay -= dt;
+    if (event.delay <= 0) {
+      npcCheer(event.speaker, event.line, "#f4fbff", { life: event.life });
+      battleVictoryDialogueState.queue.splice(i, 1);
+    } else {
+      i += 1;
+    }
+  }
+}
+
 Effects.initialize({
   context: ctx,
   getAssets: () => assets,
@@ -4406,6 +4455,7 @@ Levels.initialize({
   triggerCongregationOverlay,
   getCongregationSize,
   showWaveHealthSnapshot,
+  showBattleVictoryNpcDialogue,
   rotateNpcPositionsForActBreak,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
   hasEnemyAsset: (key) => Boolean(ASSET_MANIFEST.enemies?.[key]),
@@ -19751,6 +19801,7 @@ function updateGame(dt) {
     stage = levelStatus?.stage;
   }
 
+  updateBattleVictoryNpcDialogue(dt);
   updateCongregationWaveIntroDialogue(dt, levelStatus);
 
   // Process pickups BEFORE player update so weapon changes apply immediately

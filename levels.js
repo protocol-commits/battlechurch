@@ -224,6 +224,7 @@
     triggerCongregationOverlay: noop,
     getCongregationSize: () => 0,
     showWaveHealthSnapshot: noop,
+    showBattleVictoryNpcDialogue: noop,
   };
 
   function initialize(options = {}) {
@@ -1298,6 +1299,9 @@
       state.finalWaveDelay = 0;
       state.graceRushContext = "battle";
       setDevStatus(`Grace Abounds – ${monthName}`, GRACE_RUSH_DURATION);
+      if (typeof deps.showBattleVictoryNpcDialogue === "function") {
+        deps.showBattleVictoryNpcDialogue();
+      }
       queueLevelAnnouncement("Victory!", "Gather as much grace as you can!", {
         duration: 2.6,
         skipMissionBrief: true,
