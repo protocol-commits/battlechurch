@@ -13,7 +13,11 @@
 
   const waveIntro = {
     firstWave: {
-      pastor: { text: "Let's begin.", life: 2.6, delay: 0.35 },
+      pastor: {
+        text: (formationLabel) => `Let's begin our ${formationLabel}.`,
+        life: 2.6,
+        delay: 0.35,
+      },
       responses: [
         { text: "I'm excited to get started.", life: 3.2, delay: 1.35 },
         { text: "I really want to overcome my issues.", life: 3.6, delay: 2.45 },

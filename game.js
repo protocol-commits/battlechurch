@@ -2658,11 +2658,16 @@ function queueCongregationWaveIntroDialogue(levelStatus) {
   congregationWaveIntroDialogueState.activeKey = key;
   congregationWaveIntroDialogueState.queue.length = 0;
   congregationWaveIntroDialogueState.firstResponder = null;
-  if (pastorLine?.text) {
+  const formationLabel = getCurrentFormationDialogueLabel();
+  const pastorText =
+    typeof pastorLine?.text === "function"
+      ? pastorLine.text(formationLabel)
+      : pastorLine?.text;
+  if (pastorText) {
     congregationWaveIntroDialogueState.queue.push({
       delay: Math.max(0, Number(pastorLine.delay) || 0.35),
       run() {
-        heroSay(pastorLine.text, { life: Number(pastorLine.life) || 2.6 });
+        heroSay(pastorText, { life: Number(pastorLine.life) || 2.6 });
       },
     });
   }
