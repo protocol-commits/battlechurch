@@ -11,6 +11,53 @@
     "Dash through danger, then turn and punish.",
   ];
 
+  const waveIntro = {
+    firstWave: {
+      pastor: { text: "Let's begin.", life: 2.6, delay: 0.35 },
+      responses: [
+        { text: "I'm excited to get started.", life: 3.2, delay: 1.35 },
+        { text: "I really want to overcome my issues.", life: 3.6, delay: 2.45 },
+      ],
+    },
+  };
+
+  const waveEnd = {
+    maxSpeakers: 5,
+    longLineLife: 6.2,
+    shortLineLife: 5.4,
+    tierOrder: ["full", "high", "mid", "low", "critical"],
+    longLine: (faith, formationLabel) => `${faith}: This ${formationLabel} is really helping me.`,
+    linesByTier: {
+      full: [
+        (faith) => `${faith}: Love this!`,
+        (faith) => `${faith}: Excited!`,
+        (faith) => `${faith}: Feeling strong!`,
+      ],
+      high: [
+        (faith) => `${faith}: This is helping.`,
+        (faith) => `${faith}: Feeling better.`,
+        (faith) => `${faith}: I'm with you!`,
+      ],
+      mid: [
+        (faith) => `${faith}: I'm hanging in there.`,
+        (faith) => `${faith}: Doing a little better.`,
+        (faith) => `${faith}: Keeping up.`,
+      ],
+      low: [
+        (faith) => `${faith}: This is hard.`,
+        (faith) => `${faith}: I'm still struggling.`,
+        (faith) => `${faith}: Trying to stay focused.`,
+      ],
+      critical: [
+        (faith) => `${faith}: I'm really discouraged.`,
+        (faith) => `${faith}: I'm barely holding on.`,
+        (faith) => `${faith}: Please don't give up on me.`,
+      ],
+    },
+  };
+
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
+  ns.waveIntro = waveIntro;
+  ns.waveEnd = waveEnd;
 })(typeof window !== "undefined" ? window : globalThis);

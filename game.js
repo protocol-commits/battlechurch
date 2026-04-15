@@ -170,8 +170,11 @@ const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
 const INITIAL_CONGREGATION_SIZE = CONGREGATION_MEMBER_COUNT;
 const CONGREGATION_DIALOGUE_COOLDOWN_MS = 4500;
+const CONGREGATION_DIALOGUE_DATA =
+  (typeof window !== "undefined" && window.BattlechurchCongregationDialogue) || {};
 const CONGREGATION_DIALOGUE_LINES =
-  (typeof window !== "undefined" && window.BattlechurchCongregationDialogue?.lines) || [];
+  CONGREGATION_DIALOGUE_DATA.lines || [];
+const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
@@ -2520,6 +2523,7 @@ function showWaveHealthSnapshot() {
 
   const formationLabel =
     FORMATION_PRESETS?.[formationState?.current]?.label || "formation";
+  const waveEndConfig = CONGREGATION_WAVE_END_DIALOGUE;
   const eligibleNpcs = npcs.filter(
     (npc) =>
       npc &&
@@ -2552,37 +2556,14 @@ function showWaveHealthSnapshot() {
     }
   });
 
-  const linesByTier = {
-    full: [
-      (faith) => `${faith}: Love this!`,
-      (faith) => `${faith}: Excited!`,
-      (faith) => `${faith}: Feeling strong!`,
-    ],
-    high: [
-      (faith) => `${faith}: This is helping.`,
-      (faith) => `${faith}: Feeling better.`,
-      (faith) => `${faith}: I'm with you!`,
-    ],
-    mid: [
-      (faith) => `${faith}: I'm hanging in there.`,
-      (faith) => `${faith}: Doing a little better.`,
-      (faith) => `${faith}: Keeping up.`,
-    ],
-    low: [
-      (faith) => `${faith}: This is hard.`,
-      (faith) => `${faith}: I'm still struggling.`,
-      (faith) => `${faith}: Trying to stay focused.`,
-    ],
-    critical: [
-      (faith) => `${faith}: I'm really discouraged.`,
-      (faith) => `${faith}: I'm barely holding on.`,
-      (faith) => `${faith}: Please don't give up on me.`,
-    ],
-  };
+  const linesByTier = waveEndConfig.linesByTier || {};
+  const maxSpeakers = Math.max(1, Math.round(waveEndConfig.maxSpeakers || 5));
+  const longLineLife = Math.max(0.1, Number(waveEndConfig.longLineLife) || 6.2);
+  const shortLineLife = Math.max(0.1, Number(waveEndConfig.shortLineLife) || 5.4);
 
   const speakers = [];
   const speakerSet = new Set();
-  const addSpeaker = (npc, line, life = 5.4) => {
+  const addSpeaker = (npc, line, life = shortLineLife) => {
     if (!npc || !line || speakerSet.has(npc)) return;
     speakers.push({ npc, line, life });
     speakerSet.add(npc);
@@ -2591,24 +2572,31 @@ function showWaveHealthSnapshot() {
   if (buckets.full.length) {
     const longLineNpc = randomChoice(buckets.full);
     const faith = Math.max(0, Math.round(longLineNpc.faith || 0));
-    addSpeaker(longLineNpc, `${faith}: This ${formationLabel} is really helping me.`, 6.2);
+    const longLine =
+      typeof waveEndConfig.longLine === "function"
+        ? waveEndConfig.longLine(faith, formationLabel)
+        : `${faith}: This ${formationLabel} is really helping me.`;
+    addSpeaker(longLineNpc, longLine, longLineLife);
   }
 
-  const tierOrder = ["full", "high", "mid", "low", "critical"];
+  const tierOrder = Array.isArray(waveEndConfig.tierOrder)
+    ? waveEndConfig.tierOrder
+    : ["full", "high", "mid", "low", "critical"];
   tierOrder.forEach((tier) => {
-    if (speakers.length >= 5) return;
+    if (speakers.length >= maxSpeakers) return;
     const candidates = buckets[tier].filter((npc) => !speakerSet.has(npc));
     if (!candidates.length) return;
     const npc = randomChoice(candidates);
     if (!npc) return;
     const faith = Math.max(0, Math.round(npc.faith || 0));
-    const lineFactory = randomChoice(linesByTier[tier]);
+    const tierLines = Array.isArray(linesByTier[tier]) ? linesByTier[tier] : [];
+    const lineFactory = randomChoice(tierLines);
     addSpeaker(npc, typeof lineFactory === "function" ? lineFactory(faith) : null);
   });
 
-  if (speakers.length < 5) {
+  if (speakers.length < maxSpeakers) {
     const leftovers = eligibleNpcs.filter((npc) => !speakerSet.has(npc));
-    while (speakers.length < 5 && leftovers.length) {
+    while (speakers.length < maxSpeakers && leftovers.length) {
       const npc = leftovers.splice(Math.floor(Math.random() * leftovers.length), 1)[0];
       const faith = Math.max(0, Math.round(npc.faith || 0));
       const tier =
@@ -2617,7 +2605,8 @@ function showWaveHealthSnapshot() {
         faith >= 50 ? "mid" :
         faith >= 30 ? "low" :
         "critical";
-      const lineFactory = randomChoice(linesByTier[tier]);
+      const tierLines = Array.isArray(linesByTier[tier]) ? linesByTier[tier] : [];
+      const lineFactory = randomChoice(tierLines);
       addSpeaker(npc, typeof lineFactory === "function" ? lineFactory(faith) : null);
     }
   }
