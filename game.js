@@ -182,6 +182,7 @@ const CONGREGATION_DIALOGUE_LINES =
 const CONGREGATION_WAVE_INTRO_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveIntro || {};
 const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {};
+const CONGREGATION_NPC_POWERUP_DIALOGUE = CONGREGATION_DIALOGUE_DATA.npcPowerups || {};
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
@@ -2762,6 +2763,34 @@ function getNpcRedFaithDialogueLine() {
 function getNpcRedFaithDialogueLife() {
   const life = Number(CONGREGATION_RED_FAITH_DIALOGUE.life);
   return Number.isFinite(life) ? Math.max(0.1, life) : 5.8;
+}
+
+function getNpcPowerupDialogueSpeaker() {
+  const activeNpcs = npcs.filter(
+    (npc) =>
+      npc &&
+      !npc.departed &&
+      npc.active &&
+      npc.state !== "lostFaith" &&
+      npc.state !== "drained" &&
+      Number.isFinite(npc.x) &&
+      Number.isFinite(npc.y),
+  );
+  return activeNpcs.length ? randomChoice(activeNpcs) : null;
+}
+
+function triggerNpcPowerupDialogue(effectKey) {
+  const linesByEffect = CONGREGATION_NPC_POWERUP_DIALOGUE.linesByEffect || {};
+  const candidates = Array.isArray(linesByEffect[effectKey]) ? linesByEffect[effectKey] : [];
+  const line = randomChoice(candidates);
+  if (!line) return false;
+  const speaker = getNpcPowerupDialogueSpeaker();
+  if (!speaker) return false;
+  const life = Number(CONGREGATION_NPC_POWERUP_DIALOGUE.life);
+  npcCheer(speaker, line, "#f4fbff", {
+    life: Number.isFinite(life) ? Math.max(0.1, life) : 5.6,
+  });
+  return true;
 }
 
 Effects.initialize({
@@ -7234,6 +7263,7 @@ function applyWeaponPickupEffect(pickup) {
     }
     case "npcScriptureWeapon": {
       applyNpcWeaponPowerup("npcScriptureWeapon", def);
+      triggerNpcPowerupDialogue("npcScriptureWeapon");
       showWeaponPowerupConfigText({
         text: "Quote Scripture",
         textColor: "#ffa45a",
@@ -7249,6 +7279,7 @@ function applyWeaponPickupEffect(pickup) {
     }
     case "npcWisdomWeapon": {
       applyNpcWeaponPowerup("npcWisdomWeapon", def);
+      triggerNpcPowerupDialogue("npcWisdomWeapon");
       showWeaponPowerupConfigText({
         text: "Apply Wisdom",
         textColor: "#9BD9FF",
@@ -7264,6 +7295,7 @@ function applyWeaponPickupEffect(pickup) {
     }
     case "npcFaithWeapon": {
       applyNpcWeaponPowerup("npcFaithWeapon", def);
+      triggerNpcPowerupDialogue("npcFaithWeapon");
       showWeaponPowerupConfigText({
         text: "Act in Faith",
         textColor: "#ff9bf7",
@@ -7369,6 +7401,7 @@ function applyUtilityPowerUp(powerUp) {
     case "harmony":
       npcHarmonyBuffTimer = Math.max(npcHarmonyBuffTimer, duration);
       npcHarmonyBuffDuration = Math.max(npcHarmonyBuffDuration, duration);
+      triggerNpcPowerupDialogue("harmony");
       spawnPowerupHudFlyEffect({
         x: powerUp.x,
         y: powerUp.y,

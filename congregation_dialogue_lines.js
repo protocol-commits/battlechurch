@@ -72,9 +72,44 @@
     ],
   };
 
+  const npcPowerups = {
+    life: 5.6,
+    linesByEffect: {
+      npcScriptureWeapon: [
+        "I see how that verse applies!",
+        "That passage makes sense to me now.",
+        "I can finally see what that scripture means.",
+        "That verse is speaking right to this battle.",
+        "I know how to stand on that scripture now.",
+      ],
+      npcFaithWeapon: [
+        "I see God's sovereignty in this.",
+        "God is still in control here.",
+        "I'm learning to trust God in this fight.",
+        "I can act in faith here.",
+        "The Lord is steady, even in this.",
+      ],
+      npcWisdomWeapon: [
+        "Oh, that's how it applies.",
+        "I understand how to use that now.",
+        "That gives me wisdom for this battle.",
+        "I can see what I need to do now.",
+        "That helps me discern what's happening.",
+      ],
+      harmony: [
+        "Let's pray for one another.",
+        "We're stronger when we stand together.",
+        "Let's stay in one spirit.",
+        "I feel us growing closer already.",
+        "Let's carry this burden together.",
+      ],
+    },
+  };
+
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
   ns.waveIntro = waveIntro;
   ns.waveEnd = waveEnd;
   ns.redFaith = redFaith;
+  ns.npcPowerups = npcPowerups;
 })(typeof window !== "undefined" ? window : globalThis);
