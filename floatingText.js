@@ -97,12 +97,25 @@
       fadeDelay = 0,
       textAlign = null,
       detachOnEntityGone = false,
+      bubbleMaxWidth = null,
     } = options;
     const finalStyle = style || (speechBubble ? "speech" : "plain");
     if (finalStyle === "speech" && !critical) {
       if (maxSpeechBubbles <= 0) return null;
       pruneSpeechBubble();
     }
+    const finalFontSize =
+      finalStyle === "speech"
+        ? (fontSize || 13)
+        : fontSize;
+    const finalFontWeight =
+      finalStyle === "speech"
+        ? (fontWeight || "600")
+        : fontWeight;
+    const finalBubbleMaxWidth =
+      finalStyle === "speech"
+        ? (bubbleMaxWidth || 240)
+        : bubbleMaxWidth;
 
     const fadeLength = Math.max(0.0001, life - fadeDelay);
     const payload = {
@@ -122,10 +135,11 @@
       style: finalStyle,
       bubbleTheme,
       bgColor,
-      fontSize,
-      fontWeight,
+      fontSize: finalFontSize,
+      fontWeight: finalFontWeight,
       fontFamily,
       textAlign,
+      bubbleMaxWidth: finalBubbleMaxWidth,
       detachOnEntityGone,
       priority,
       fadeDelay,

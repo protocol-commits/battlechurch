@@ -164,10 +164,16 @@ let congregationWanderBounds = null;
 let npcProcessionActive = false;
 let powerUpsClearedForCongregation = false;
 let congregationGreetingShown = false;
+let congregationDialogueIndex = 0;
 let sentryOrbitAngle = 0;
 const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
 const INITIAL_CONGREGATION_SIZE = CONGREGATION_MEMBER_COUNT;
+const CONGREGATION_DIALOGUE_COOLDOWN_MS = 4500;
+const CONGREGATION_DIALOGUE_LINES = [
+  "Things have been hopeless for years. We're glad you're here.",
+  "To rush attack, press Dash, then Sword.",
+];
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
@@ -13526,6 +13532,7 @@ if (typeof window !== "undefined") {
 function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
   congregationMembers.splice(0, congregationMembers.length);
   congregationWanderBounds = null;
+  congregationDialogueIndex = 0;
   if (!assets?.npcs) return;
   const total = Math.max(0, count);
   if (total === 0) return;
@@ -13714,6 +13721,87 @@ function resolveCongregationMemberCollisions() {
   const last = congregationMembers[count - 1];
   last.x = last.baseX;
   last.y = last.baseY + Math.sin(last.bobTimer) * 4;
+}
+
+function getNextCongregationDialogueLine() {
+  if (!Array.isArray(CONGREGATION_DIALOGUE_LINES) || !CONGREGATION_DIALOGUE_LINES.length) return null;
+  const line = CONGREGATION_DIALOGUE_LINES[congregationDialogueIndex % CONGREGATION_DIALOGUE_LINES.length];
+  congregationDialogueIndex = (congregationDialogueIndex + 1) % CONGREGATION_DIALOGUE_LINES.length;
+  return line;
+}
+
+function triggerCongregationMemberDialogue(member) {
+  if (!member) return false;
+  const line = getNextCongregationDialogueLine();
+  if (!line) return false;
+  if (member.dialogueBubble) {
+    member.dialogueBubble.life = 0;
+    member.dialogueBubble = null;
+  }
+  const bubble = addFloatingTextAt(
+    member.x,
+    member.y - member.radius - 20,
+    line,
+    "#f4fbff",
+    {
+      speechBubble: true,
+      vy: 0,
+      life: 6.4,
+      entity: member,
+      offsetY: -member.radius - 20,
+      bubbleTheme: "npc",
+    },
+  );
+  member.dialogueBubble = bubble || null;
+  member.dialogueCooldownUntil =
+    (typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now()) + CONGREGATION_DIALOGUE_COOLDOWN_MS;
+  return Boolean(bubble);
+}
+
+function tryTriggerCongregationDialogueFromMelee(dir, swingCenterX, swingCenterY, attackRect) {
+  if (!player || !congregationMembers.length) return false;
+  const status = typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
+  if (status?.stage !== "levelIntro") return false;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const attackAngle = Math.atan2(dir.y, dir.x);
+  const cos = Math.cos(-attackAngle);
+  const sin = Math.sin(-attackAngle);
+  let bestMember = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  congregationMembers.forEach((member) => {
+    if (!member) return;
+    if (Number.isFinite(member.dialogueCooldownUntil) && now < member.dialogueCooldownUntil) return;
+    const relX = member.x - player.x;
+    const relY = member.y - player.y;
+    const hitRadius = member.radius || CONGREGATION_MEMBER_RADIUS;
+    let hit = false;
+    if (attackRect) {
+      const localX = relX * cos - relY * sin;
+      const localY = relX * sin + relY * cos;
+      hit = circleIntersectsRect(localX, localY, hitRadius, attackRect);
+    } else {
+      const dx = member.x - swingCenterX;
+      const dy = member.y - swingCenterY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= MELEE_SWING_RANGE + hitRadius) {
+        const dotProduct = dx * dir.x + dy * dir.y;
+        hit = !(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius);
+      }
+    }
+    if (!hit) return;
+    const distance = Math.hypot(relX, relY);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestMember = member;
+    }
+  });
+  if (!bestMember) return false;
+  return triggerCongregationMemberDialogue(bestMember);
 }
 
 function updateCozyNpcs(dt, options = {}) {
@@ -17732,6 +17820,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     }
     spawnEnemyHitEffect(enemy);
   });
+  tryTriggerCongregationDialogueFromMelee(dir, swingCenterX, swingCenterY, attackRect);
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
     const hitCenter = getEnemyHitboxCenter(activeBoss);
     const relX = hitCenter.x - player.x;

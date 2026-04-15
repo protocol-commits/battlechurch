@@ -7999,8 +7999,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       ctx.globalAlpha = alpha * effectiveBaseAlpha;
       const style = ft.style || (ft.speechBubble ? "speech" : "plain");
-      const fontSize = style === "speech" ? 12 : ft.fontSize || 14;
-      const fontWeight = ft.fontWeight || (style === "speech" ? "400" : "600");
+      const fontSize = ft.fontSize || (style === "speech" ? 12 : 14);
+      const fontWeight = ft.fontWeight || (style === "speech" ? "500" : "600");
       const fontFamily = ft.fontFamily || UI_FONT_FAMILY;
       ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       ctx.textAlign = "center";
@@ -8018,31 +8018,26 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       if (style === "speech") {
         ctx.textBaseline = "middle";
-        const metrics = ctx.measureText(rawText);
-        const bubbleWidth = metrics.width + 10 * 2;
-        const bubbleHeight = 28;
+        const wrapWidth = Number.isFinite(ft.bubbleMaxWidth) && ft.bubbleMaxWidth > 0 ? ft.bubbleMaxWidth : 220;
+        const speechLines = rawText
+          .split("\n")
+          .flatMap((line) => {
+            const wrapped = wrapText(ctx, line, wrapWidth);
+            return wrapped.length ? wrapped : [""];
+          });
+        const bubbleTextWidth = speechLines.reduce((max, line) => {
+          const width = ctx.measureText(line).width;
+          return Math.max(max, width);
+        }, 0);
+        const paddingX = 10;
+        const paddingY = 8;
+        const bubbleWidth = bubbleTextWidth + paddingX * 2;
+        const bubbleHeight = speechLines.length * lineHeight + paddingY * 2;
         const bubbleX = drawX - bubbleWidth / 2;
         const bubbleY = drawY - bubbleHeight - 10;
         const cornerRadius = 10;
-        const theme = ft.bubbleTheme || "default";
-        let fillColor = "rgba(14, 18, 28, 0.75)";
-        let strokeColor = "rgba(180, 210, 255, 0.5)";
-        switch (theme) {
-          case "hero":
-            fillColor = "rgba(14, 18, 28, 0.85)";
-            strokeColor = "rgba(255, 220, 110, 0.75)";
-            break;
-          case "npc":
-            fillColor = "rgba(24, 38, 64, 0.82)";
-            strokeColor = "rgba(150, 215, 255, 0.6)";
-            break;
-          case "evil":
-            fillColor = "rgba(40, 0, 0, 0.85)";
-            strokeColor = "rgba(255, 70, 95, 0.85)";
-            break;
-          default:
-            break;
-        }
+        const fillColor = "rgba(24, 38, 64, 0.82)";
+        const strokeColor = "rgba(150, 215, 255, 0.6)";
         ctx.save();
         ctx.globalAlpha = alpha * 0.9;
         ctx.fillStyle = fillColor;
@@ -8082,8 +8077,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fill();
         ctx.stroke();
         ctx.restore();
+        ctx.save();
         ctx.fillStyle = ft.color;
-        ctx.fillText(rawText, drawX, bubbleY + bubbleHeight / 2);
+        ctx.strokeStyle = "rgba(8, 12, 20, 0.8)";
+        ctx.lineWidth = 3;
+        ctx.lineJoin = "round";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 1;
+        speechLines.forEach((line, index) => {
+          const lineY =
+            bubbleY +
+            paddingY +
+            lineHeight * index +
+            lineHeight / 2;
+          ctx.strokeText(line, drawX, lineY);
+          ctx.fillText(line, drawX, lineY);
+        });
+        ctx.restore();
       } else if (style === "status") {
         ctx.textBaseline = "middle";
         const paddingX = 14;
