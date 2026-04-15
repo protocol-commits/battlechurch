@@ -170,10 +170,8 @@ const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
 const INITIAL_CONGREGATION_SIZE = CONGREGATION_MEMBER_COUNT;
 const CONGREGATION_DIALOGUE_COOLDOWN_MS = 4500;
-const CONGREGATION_DIALOGUE_LINES = [
-  "Things have been hopeless for years. We're glad you're here.",
-  "To rush attack, press Dash, then Sword.",
-];
+const CONGREGATION_DIALOGUE_LINES =
+  (typeof window !== "undefined" && window.BattlechurchCongregationDialogue?.lines) || [];
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
