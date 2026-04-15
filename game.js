@@ -3405,27 +3405,8 @@ const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
 const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/game-over.jpg";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
-const DECOR_CONFIG = (typeof window !== "undefined" && window.WorldDecor) || {};
-
-const RAW_OBSTACLE_DEFS = DECOR_CONFIG.OBSTACLE_DEFS || {};
-
-const OBSTACLE_DEFS = Object.fromEntries(
-  Object.entries(RAW_OBSTACLE_DEFS).map(([key, def]) => {
-    const baseScale = typeof def.scale === "number" ? def.scale : 1;
-    const baseRadius = typeof def.collisionRadius === "number" ? def.collisionRadius : 0;
-    return [
-      key,
-      Object.assign({}, def, {
-        scale: baseScale * WORLD_SCALE,
-        collisionRadius: baseRadius * WORLD_SCALE,
-      }),
-    ];
-  }),
-);
-
-const OBSTACLE_LAYOUT = Array.isArray(DECOR_CONFIG.OBSTACLE_LAYOUT)
-  ? DECOR_CONFIG.OBSTACLE_LAYOUT.slice()
-  : [];
+const OBSTACLE_DEFS = {};
+const OBSTACLE_LAYOUT = [];
 const DIVINE_CHARGE_SPARK_ROOT = "assets/sprites/projectiles/sparks";
 const DIVINE_CHARGE_SPARK_COUNT = 16;
 const DIVINE_CHARGE_SPARK_FRAME_DURATION = 0.06;
