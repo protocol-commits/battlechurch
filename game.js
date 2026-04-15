@@ -2518,16 +2518,112 @@ function showWaveHealthSnapshot() {
     );
   }
 
-  npcs.forEach((npc) => {
-    if (!npc || npc.departed || !npc.active || npc.state === "lostFaith") return;
-    if (!Number.isFinite(npc.faith)) return;
-    spawnHealthLabel(
-      npc,
-      `${Math.max(0, Math.round(npc.faith))}`,
-      "#EAF6FF",
-      "rgba(26, 46, 78, 0.9)",
-      -(npc.radius || 24) - 28,
-    );
+  const formationLabel =
+    FORMATION_PRESETS?.[formationState?.current]?.label || "formation";
+  const eligibleNpcs = npcs.filter(
+    (npc) =>
+      npc &&
+      !npc.departed &&
+      npc.active &&
+      npc.state !== "lostFaith" &&
+      Number.isFinite(npc.faith),
+  );
+  if (!eligibleNpcs.length) return;
+
+  const buckets = {
+    full: [],
+    high: [],
+    mid: [],
+    low: [],
+    critical: [],
+  };
+  eligibleNpcs.forEach((npc) => {
+    const faith = Math.max(0, Math.round(npc.faith || 0));
+    if (faith >= 100) {
+      buckets.full.push(npc);
+    } else if (faith >= 81) {
+      buckets.high.push(npc);
+    } else if (faith >= 50) {
+      buckets.mid.push(npc);
+    } else if (faith >= 30) {
+      buckets.low.push(npc);
+    } else if (faith >= 1) {
+      buckets.critical.push(npc);
+    }
+  });
+
+  const linesByTier = {
+    full: [
+      (faith) => `${faith}: Love this!`,
+      (faith) => `${faith}: Excited!`,
+      (faith) => `${faith}: Feeling strong!`,
+    ],
+    high: [
+      (faith) => `${faith}: This is helping.`,
+      (faith) => `${faith}: Feeling better.`,
+      (faith) => `${faith}: I'm with you!`,
+    ],
+    mid: [
+      (faith) => `${faith}: I'm hanging in there.`,
+      (faith) => `${faith}: Doing a little better.`,
+      (faith) => `${faith}: Keeping up.`,
+    ],
+    low: [
+      (faith) => `${faith}: This is hard.`,
+      (faith) => `${faith}: I'm still struggling.`,
+      (faith) => `${faith}: Trying to stay focused.`,
+    ],
+    critical: [
+      (faith) => `${faith}: I'm really discouraged.`,
+      (faith) => `${faith}: I'm barely holding on.`,
+      (faith) => `${faith}: Please don't give up on me.`,
+    ],
+  };
+
+  const speakers = [];
+  const speakerSet = new Set();
+  const addSpeaker = (npc, line, life = 5.4) => {
+    if (!npc || !line || speakerSet.has(npc)) return;
+    speakers.push({ npc, line, life });
+    speakerSet.add(npc);
+  };
+
+  if (buckets.full.length) {
+    const longLineNpc = randomChoice(buckets.full);
+    const faith = Math.max(0, Math.round(longLineNpc.faith || 0));
+    addSpeaker(longLineNpc, `${faith}: This ${formationLabel} is really helping me.`, 6.2);
+  }
+
+  const tierOrder = ["full", "high", "mid", "low", "critical"];
+  tierOrder.forEach((tier) => {
+    if (speakers.length >= 5) return;
+    const candidates = buckets[tier].filter((npc) => !speakerSet.has(npc));
+    if (!candidates.length) return;
+    const npc = randomChoice(candidates);
+    if (!npc) return;
+    const faith = Math.max(0, Math.round(npc.faith || 0));
+    const lineFactory = randomChoice(linesByTier[tier]);
+    addSpeaker(npc, typeof lineFactory === "function" ? lineFactory(faith) : null);
+  });
+
+  if (speakers.length < 5) {
+    const leftovers = eligibleNpcs.filter((npc) => !speakerSet.has(npc));
+    while (speakers.length < 5 && leftovers.length) {
+      const npc = leftovers.splice(Math.floor(Math.random() * leftovers.length), 1)[0];
+      const faith = Math.max(0, Math.round(npc.faith || 0));
+      const tier =
+        faith >= 100 ? "full" :
+        faith >= 81 ? "high" :
+        faith >= 50 ? "mid" :
+        faith >= 30 ? "low" :
+        "critical";
+      const lineFactory = randomChoice(linesByTier[tier]);
+      addSpeaker(npc, typeof lineFactory === "function" ? lineFactory(faith) : null);
+    }
+  }
+
+  speakers.forEach(({ npc, line, life }) => {
+    npcCheer(npc, line, "#f4fbff", { life });
   });
 }
 

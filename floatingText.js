@@ -3,7 +3,7 @@
   if (!window) return;
 
   const activeTexts = [];
-  let maxSpeechBubbles = 4;
+  let maxSpeechBubbles = 5;
   let playerResolver = () => (typeof window.player !== "undefined" ? window.player : null);
   const damageOffsetTrackers = new WeakMap();
   const DAMAGE_JITTER_TIMEOUT = 260; // milliseconds between bursts
