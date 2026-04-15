@@ -239,17 +239,18 @@
     );
   }
 
-  function heroSay(line) {
+  function heroSay(line, { life = 1.8 } = {}) {
     const player = playerResolver();
     if (!player || !line) return;
+    const bubbleLife = Math.max(0.1, life);
     const bubble = add(line, "#f1f5ff", {
       speechBubble: true,
       vy: 0,
-      life: 1.8,
+      life: bubbleLife,
       offsetY: -player.radius - 30,
       bubbleTheme: "hero",
     });
-    if (bubble) bubble.life = 1.8;
+    if (bubble) bubble.life = bubbleLife;
   }
 
   function npcCheer(npc, line, color = "#c9ffe5") {

@@ -163,6 +163,7 @@ const congregationMembers = [];
 let congregationWanderBounds = null;
 let npcProcessionActive = false;
 let powerUpsClearedForCongregation = false;
+let congregationGreetingShown = false;
 let sentryOrbitAngle = 0;
 const CONGREGATION_MEMBER_RADIUS = 26;
 const CONGREGATION_MEMBER_COUNT = 50;
@@ -15512,6 +15513,10 @@ function updateCongregationStage(dt, levelStatus) {
     clearAllPowerUps();
     powerUpsClearedForCongregation = true;
   }
+  if (!congregationGreetingShown) {
+    heroSay("I'm glad to see you all!", { life: 3.6 });
+    congregationGreetingShown = true;
+  }
   updateCongregationMembers(dt);
   resolveCongregationMemberCollisions();
   updatePlayerDuringCongregation(dt);
@@ -15558,6 +15563,7 @@ function updateCongregationStage(dt, levelStatus) {
   congregationStageActive = stage === "levelIntro";
   if (!congregationStageActive) {
     powerUpsClearedForCongregation = false;
+    congregationGreetingShown = false;
     mapAmbientFadeQueued = false;
   }
   return { updated: true, levelStatus };
@@ -19651,6 +19657,7 @@ function restartGame() {
   congregationOverlay.countValue = 0;
   congregationOverlay.lastPhase = -1;
   congregationOverlay.playedFinal = false;
+  congregationGreetingShown = false;
   speedrunTimer.running = false;
   speedrunTimer.startTime = null;
   speedrunTimer.sectionStart = null;
