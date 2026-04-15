@@ -13839,6 +13839,22 @@ function clearCongregationMembers() {
   congregationWanderBounds = null;
 }
 
+function clearCongregationSpeechBubbles() {
+  const congregationSet = new Set(congregationMembers);
+  floatingTexts.forEach((ft) => {
+    if (!ft?.speechBubble) return;
+    if (ft.entity === player || congregationSet.has(ft.entity)) {
+      ft.life = 0;
+    }
+  });
+  congregationMembers.forEach((member) => {
+    if (member?.dialogueBubble) {
+      member.dialogueBubble.life = 0;
+      member.dialogueBubble = null;
+    }
+  });
+}
+
 function assignCongregationTarget(member, { immediate = false } = {}) {
   if (!congregationWanderBounds) return;
   member.targetX = randomInRange(congregationWanderBounds.minX, congregationWanderBounds.maxX);
@@ -15843,6 +15859,7 @@ function updateCongregationStage(dt, levelStatus) {
       if (typeof Input !== "undefined" && "prayerBombClickQueued" in Input) {
         Input.prayerBombClickQueued = false;
       }
+      clearCongregationSpeechBubbles();
       levelManager.advanceFromCongregation();
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
@@ -15893,6 +15910,7 @@ function updateCongregationStage(dt, levelStatus) {
         if (typeof Input !== "undefined" && "prayerBombClickQueued" in Input) {
           Input.prayerBombClickQueued = false;
         }
+        clearCongregationSpeechBubbles();
         levelManager?.advanceFromCongregation?.();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
