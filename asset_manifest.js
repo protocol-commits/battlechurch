@@ -122,7 +122,7 @@
       projectiles: {
         arrow: {
           src: `assets/sprites/projectiles/minifireball/minifireball.png`,
-          frameWidth: 20,
+          frameWidth: 16,
           frameHeight: 16,
           frameRate: 12,
           loop: true,
