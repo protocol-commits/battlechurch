@@ -2963,7 +2963,7 @@
           this.fireThrowerBombActive = projectile;
         }
         if (this.type === "miniDemonLord") {
-          this.forceDemonLordJump = Math.random() < 0.35;
+          this.forceDemonLordJump = true;
           this.jumpCooldown = Math.max(this.jumpCooldown || 0, DEMON_LORD_JUMP_COOLDOWN * 0.5);
         }
         if (this.type === "miniDemonFireKeeper") {
