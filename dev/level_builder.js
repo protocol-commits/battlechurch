@@ -169,6 +169,17 @@
     if (def.ranged === true || (def.projectileType && def.projectileType !== null)) return "projectile";
     return "normal";
   }
+
+  function formatEnemyLabel(key, catalog) {
+    const displayName = String(catalog?.[key]?.displayName || "").trim();
+    if (displayName) return displayName;
+    const base = String(key || "")
+      .replace(/^mini(?=[A-Z])/, "")
+      .replace(/([A-Z])/g, " $1")
+      .trim();
+    return base || String(key || "");
+  }
+
   const ENEMY_TYPE_ORDER = { normal: 0, tank: 1, projectile: 2, armored: 3 };
   const THUMB_SIZE = 26;
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
@@ -484,10 +495,10 @@
         if (ta !== tb) return ta - tb;
         const ha = catalog[a]?.health || 0;
         const hb = catalog[b]?.health || 0;
-        return ha - hb || a.localeCompare(b);
+        return ha - hb || formatEnemyLabel(a, catalog).localeCompare(formatEnemyLabel(b, catalog));
       });
     } else if (state.enemySort === "name") {
-      visibleKeys.sort((a, b) => a.localeCompare(b));
+      visibleKeys.sort((a, b) => formatEnemyLabel(a, catalog).localeCompare(formatEnemyLabel(b, catalog)));
     }
 
     // Close any open column menus on outside click.
@@ -520,11 +531,12 @@
       const row = document.createElement("div");
       row.className = "lb-label-row";
       const isHidden = hiddenSet.has(key);
+      const displayLabel = formatEnemyLabel(key, catalog);
       row.innerHTML = `
         <div style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;">
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
-        <span style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${state.enemySort === "type" ? (TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff") : "#e8f4ff"};">${key}</span>
+        <span title="${key}" style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${state.enemySort === "type" ? (TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff") : "#e8f4ff"};">${displayLabel}</span>
         <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
       const hideBtn = row.querySelector(`[data-hide-key="${key}"]`);

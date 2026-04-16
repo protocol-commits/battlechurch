@@ -216,6 +216,11 @@
     const clips = assets.enemies[type];
 
     if (!config) {
+      const fallbackDisplayName =
+        String(type || "")
+          .replace(/^mini(?=[A-Z])/, "")
+          .replace(/([A-Z])/g, " $1")
+          .trim() || type;
       const sampleClip = clips.idle || Object.values(clips)[0];
       const frameW = sampleClip?.frameWidth || 32;
       const frameH = sampleClip?.frameHeight || 32;
@@ -234,7 +239,7 @@
         attackCooldown: 1.4,
         scale,
         score: 75,
-        displayName: type,
+        displayName: fallbackDisplayName,
         ranged: false,
         projectileType: null,
         preferEdges: false,
