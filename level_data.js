@@ -112,16 +112,16 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniImp",
-                          "count": 50
-                        },
-                        {
                           "enemy": "miniDemonFireKeeper",
-                          "count": 4
+                          "count": 5
                         },
                         {
                           "enemy": "miniDemonFireThrower",
                           "count": 4
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 2
                         }
                       ],
                       "weights": {},
