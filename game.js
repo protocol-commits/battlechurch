@@ -1684,7 +1684,7 @@ function clearFormationSelection() {
 function selectFormation(key) {
   const preset = FORMATION_PRESETS[key];
   if (!preset) return null;
-  formationState.current = "circle";
+  formationState.current = key;
   formationState.bonuses = { ...preset.bonuses };
   formationState.homePressure = 0;
   formationState.combatSpreadScaleCurrent = formationState.combatSpreadScale || 1.18;
@@ -2745,7 +2745,8 @@ function updateCongregationWaveIntroDialogue(dt, levelStatus) {
 }
 
 function getCurrentFormationDialogueLabel() {
-  return FORMATION_PRESETS?.[formationState?.current]?.label || "group";
+  const preset = FORMATION_PRESETS?.[formationState?.current] || null;
+  return preset?.spokenLabel || preset?.label || "group";
 }
 
 function getNpcRedFaithThresholdRatio() {
@@ -4496,11 +4497,11 @@ const CHURCH_POWERUP_EFFECTS = new Set([
 ]);
 let devPowerupSwapIndex = 0;
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
-// Formation presets and state
+// NPC buff presets and state. The legacy keys still drive anchor/layout behavior.
 const FORMATION_PRESETS = {
-  circle: { key: "circle", label: "Bible Study", bonuses: { damage: 0.2 } },
-  line: { key: "line", label: "Book Study", bonuses: { rof: 0.2 } },
-  crescent: { key: "crescent", label: "Shared Burdens", bonuses: { powerupDuration: 0.2 } },
+  circle: { key: "circle", label: "Guided Study", spokenLabel: "Guided Study", bonuses: { damage: 0.2 } },
+  line: { key: "line", label: "Bible Study", spokenLabel: "Bible Study", bonuses: { rof: 0.2 } },
+  crescent: { key: "crescent", label: "Shared Burdens", spokenLabel: "Care Circle", bonuses: { powerupDuration: 0.2 } },
 };
 const npcWeaponState = {
   mode: null,
