@@ -802,7 +802,7 @@
     "cooldown": 1.9,
     "score": 65,
     "ranged": true,
-    "projectileType": "fire",
+    "projectileType": "fireOrb",
     "preferEdges": true,
     "desiredRange": 420,
     "projectileCooldown": 2,
