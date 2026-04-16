@@ -12,6 +12,7 @@
 
   const PROJECTILE_CONFIG = {
     arrow: {
+      displayName: "Arrow Shot",
       speed: 540 * WORLD_SCALE,
       damage: 10,
       life: 1.2,
@@ -20,6 +21,7 @@
       pierce: false,
     },
     heart: {
+      displayName: "Healing Heart",
       speed: 520,
       damage: 0,
       life: 1.4,
@@ -28,6 +30,7 @@
       pierce: false,
     },
     wisdom_missle: {
+      displayName: "Wisdom Orb",
       speed: 580 * WORLD_SCALE,
       damage: 75,
       radius: 36 * WORLD_SCALE,
@@ -36,6 +39,7 @@
       cooldownAfterFire: 1.0,
     },
     faith_cannon: {
+      displayName: "Faith Cannon",
       speed: 520 * WORLD_SCALE,
       damage: 50,
       radius: 40 * WORLD_SCALE,
@@ -44,6 +48,7 @@
       cooldownAfterFire: FAITH_CANNON_PROJECTILE_COOLDOWN,
     },
     fire: {
+      displayName: "Fire Orb",
       speed: 740 * WORLD_SCALE,
       damage: 50,
       radius: 28 * WORLD_SCALE,
@@ -52,6 +57,7 @@
       cooldownAfterFire: 0.6,
     },
     miniTrident: {
+      displayName: "Trident",
       speed: 205 * WORLD_SCALE,
       damage: 8,
       radius: 18 * WORLD_SCALE,
@@ -60,6 +66,7 @@
       cooldownAfterFire: 1.4,
     },
     miniFireball: {
+      displayName: "Mini Fireball",
       speed: 240 * WORLD_SCALE,
       damage: 5,
       life: 2.4,
@@ -68,6 +75,7 @@
       pierce: false,
     },
     divine_shot: {
+      displayName: "Divine Shot",
       speed: 690 * WORLD_SCALE,
       damage: 1000,
       life: 3.0,
@@ -78,6 +86,7 @@
       isDivineShot: true,
     },
     word_of_god: {
+      displayName: "Word of God",
       speed: 720 * WORLD_SCALE,
       damage: 100,
       life: 0.6,
@@ -87,6 +96,7 @@
       cooldownAfterFire: 0.4,
     },
     coin: {
+      displayName: "Thrown Coin",
       speed: 460 * WORLD_SCALE,
       damage: 0,
       life: 1.3,
@@ -96,6 +106,7 @@
       cooldownAfterFire: COIN_COOLDOWN,
     },
     lichBolt: {
+      displayName: "Lich Bolt",
       speed: 480 * WORLD_SCALE,
       damage: 10,
       life: 1.4,
@@ -105,6 +116,7 @@
       cooldownAfterFire: 1.0,
     },
     lichOrb: {
+      displayName: "Lich Orb",
       speed: 300 * WORLD_SCALE,
       damage: 15,
       life: 2.0,

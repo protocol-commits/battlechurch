@@ -795,6 +795,23 @@
     return Object.keys(cfg).sort();
   }
 
+  function getProjectileConfig() {
+    return (typeof window !== "undefined" && window.BattlechurchProjectileConfig?.config) || {};
+  }
+
+  function formatProjectileLabel(projectileKey) {
+    if (!projectileKey) return "Default";
+    const cfg = getProjectileConfig();
+    const displayName = cfg?.[projectileKey]?.displayName;
+    if (displayName) return displayName;
+    return String(projectileKey)
+      .replace(/_/g, " ")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/^./, (s) => s.toUpperCase());
+  }
+
   function getProjectileBehaviorNote(key, enemy) {
     if (!enemy?.ranged) {
       return "Projectile selection only applies to ranged enemies.";
@@ -839,12 +856,12 @@
   function getEnemySummaryText(key, enemy) {
     const role = formatEnemyRoleLabel(enemy);
     const projectile = enemy?.ranged
-      ? (enemy?.projectileType || "default projectile")
+      ? formatProjectileLabel(enemy?.projectileType || "")
       : "no projectile";
     const damageClass = String(enemy?.damageClass || "normal").toLowerCase();
     const parts = [
       `${role} enemy`,
-      enemy?.ranged ? `fires ${projectile}` : "uses direct contact / attack damage",
+      enemy?.ranged ? `fires ${projectile.toLowerCase()}` : "uses direct contact / attack damage",
     ];
     if (damageClass !== "normal") {
       parts.push(`${damageClass} damage class`);
@@ -871,7 +888,7 @@
     badgeRow.className = "enemy-summary-badges";
     const badges = [
       formatEnemyRoleLabel(enemy),
-      enemy?.ranged ? `Projectile: ${enemy.projectileType || "default"}` : "Projectile: none",
+      enemy?.ranged ? `Projectile: ${formatProjectileLabel(enemy.projectileType || "")}` : "Projectile: none",
       ...getEnemySpecialWiringLabels(key, enemy),
     ];
     badges.forEach((label) => {
@@ -895,12 +912,12 @@
     const select = document.createElement("select");
     const noneOpt = document.createElement("option");
     noneOpt.value = "";
-    noneOpt.textContent = "— default —";
+    noneOpt.textContent = "Default";
     select.appendChild(noneOpt);
     getProjectileKeys().forEach((pKey) => {
       const option = document.createElement("option");
       option.value = pKey;
-      option.textContent = pKey;
+      option.textContent = formatProjectileLabel(pKey);
       select.appendChild(option);
     });
     select.value = enemy.projectileType || "";
