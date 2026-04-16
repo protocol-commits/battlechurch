@@ -30,7 +30,7 @@
       pierce: false,
     },
     wisdom_missle: {
-      displayName: "Wisdom Orb",
+      displayName: "Wisdom Missile",
       speed: 580 * WORLD_SCALE,
       damage: 75,
       radius: 36 * WORLD_SCALE,
@@ -48,6 +48,15 @@
       cooldownAfterFire: FAITH_CANNON_PROJECTILE_COOLDOWN,
     },
     fire: {
+      displayName: "Fire Missile",
+      speed: 740 * WORLD_SCALE,
+      damage: 50,
+      radius: 28 * WORLD_SCALE,
+      scale: 2.4 * WORLD_SCALE,
+      pierce: true,
+      cooldownAfterFire: 0.6,
+    },
+    fireOrb: {
       displayName: "Fire Orb",
       speed: 740 * WORLD_SCALE,
       damage: 50,

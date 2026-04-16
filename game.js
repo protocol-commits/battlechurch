@@ -3748,6 +3748,7 @@ const FLASH_FRAME_COUNT = 14;
 const COIN_FRAME_DURATION = 0.08;
 const PROJECTILE_FRAME_DURATIONS = {
   fire: 0.05,
+  fireOrb: 0.05,
   wisdom_missle: 0.05,
   faith_cannon: 0.06,
   coin: COIN_FRAME_DURATION,
@@ -5489,6 +5490,12 @@ async function loadProjectileFrames(cache, assets, projectileFrames) {
   projectileFrames.demonLordFireball = await Promise.all(
     DEMON_LORD_FIREBALL_FRAME_FILES.map((src) => loadCachedImage(cache, src)),
   );
+  projectileFrames.fireOrb = Array.isArray(projectileFrames.demonLordFireball)
+    ? projectileFrames.demonLordFireball.slice()
+    : [];
+  if (projectileFrames.fireOrb.length) {
+    assets.projectiles.fireOrb = { frames: projectileFrames.fireOrb };
+  }
 }
 
 async function loadEffectAssets(cache, assets) {
