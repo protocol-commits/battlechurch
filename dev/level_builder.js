@@ -29,7 +29,6 @@
     },
     towns: [],
   };
-const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   function deepClone(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : null;
@@ -175,7 +174,11 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
   const manifestThumbImages = new Map();
   const thumbImageListeners = new WeakSet();
+  const spriteBoundsCache = new Map();
   const DEFAULT_HORDE_DURATION = 10;
+  const bindings = {
+    getAssets: () => null,
+  };
 
   function updateScopeFromSelects() {
     state.scope = {
@@ -825,12 +828,11 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
 
   function inferFrameSizeForManifestEntry(entry, image, key) {
     if (!entry || !image) return { frameWidth: 0, frameHeight: 0 };
-    const overrideFrames = getOverrideFramesForKey(key);
-    const useOverrideSizing = Array.isArray(overrideFrames) && overrideFrames.length > 0;
     const fallbackClip = {
       image,
-      frameWidth: useOverrideSizing ? 0 : entry.frameWidth || 0,
-      frameHeight: useOverrideSizing ? 0 : entry.frameHeight || 0,
+      frameWidth: entry.frameWidth || 0,
+      frameHeight: entry.frameHeight || 0,
+      frameMap: Array.isArray(entry.frameMap) ? entry.frameMap.slice() : null,
       src: entry.src,
     };
     return inferFrameSizeForClip(fallbackClip, key);
@@ -843,10 +845,11 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     let frameHeight = Number.isFinite(clip?.frameHeight) && clip.frameHeight > 0 ? clip.frameHeight : 0;
     if (frameWidth && frameHeight) return { frameWidth, frameHeight };
     if (!w || !h) return { frameWidth: 0, frameHeight: 0 };
-    const overrideFrames = getOverrideFramesForKey(key);
+    const declaredFrameMap =
+      Array.isArray(clip?.frameMap) && clip.frameMap.length ? clip.frameMap : null;
     const overrideMax =
-      Array.isArray(overrideFrames) && overrideFrames.length
-        ? Math.max(...overrideFrames.map((v) => (Number.isFinite(v) ? v : -1)))
+      declaredFrameMap && declaredFrameMap.length
+        ? Math.max(...declaredFrameMap.map((v) => (Number.isFinite(v) ? v : -1)))
         : -1;
     const srcBase = (clip?.image?.src || clip?.src || "").split("/").pop() || "";
     const normalizedSrc = String(srcBase).trim().toLowerCase();
@@ -855,8 +858,8 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     const manualOverrides = {
       "minifireimp.png": { cols: 2, rows: 2 },
       "minihighdemon.png": { cols: 2, rows: 2 },
-      "minidemonlord.png": { cols: 2, rows: 2 },
-      "minidemonfirekeeper.png": { cols: 1, rows: 1 },
+      "minidemonlord.png": { cols: 10, rows: 8 },
+      "minidemonfirekeeper.png": { cols: 8, rows: 8 },
       "miniskeleton.png": { cols: 1, rows: 1 },
       "minizombie.png": { cols: 1, rows: 1 },
       "minizombiebutcher.png": { cols: 4, rows: 4 },
@@ -931,19 +934,6 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     return { frameWidth, frameHeight };
   }
 
-  function getOverrideFramesForKey(key) {
-    if (!key) return null;
-    const overrides = window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key];
-    if (!overrides || typeof overrides !== "object") return null;
-    if (overrides.walk && Array.isArray(overrides.walk.frames) && overrides.walk.frames.length) {
-      return overrides.walk.frames;
-    }
-    if (overrides.idle && Array.isArray(overrides.idle.frames) && overrides.idle.frames.length) {
-      return overrides.idle.frames;
-    }
-    return null;
-  }
-
   function stopThumbAnimations() {
     if (thumbAnimState.rafId) {
       cancelAnimationFrame(thumbAnimState.rafId);
@@ -976,10 +966,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     const manifestEntry =
       (window.ASSET_MANIFEST && window.ASSET_MANIFEST.enemies && window.ASSET_MANIFEST.enemies[key]) ||
       null;
-    const prefersWalk = WALK_FIRST_KEYS.has(key);
-    const entry = prefersWalk
-      ? manifestEntry?.walk || manifestEntry?.idle || null
-      : manifestEntry?.idle || manifestEntry?.walk || null;
+    const entry = manifestEntry?.idle || manifestEntry?.walk || manifestEntry?.attack || null;
     if (!entry?.src) return null;
     let img = manifestThumbImages.get(entry.src);
     if (!img) {
@@ -991,12 +978,8 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     const inferred = inferFrameSizeForManifestEntry(entry, img, key);
     const frameWidth = inferred.frameWidth || entry.frameWidth || 100;
     const frameHeight = inferred.frameHeight || entry.frameHeight || 100;
-    const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
-    const stateOverride = prefersWalk
-      ? overrideMap.walk || overrideMap.idle || {}
-      : overrideMap.idle || overrideMap.walk || {};
     const frameMap =
-      (Array.isArray(stateOverride.frames) && stateOverride.frames.length ? stateOverride.frames : null);
+      Array.isArray(entry.frameMap) && entry.frameMap.length ? entry.frameMap.slice() : null;
     const cols = Math.max(1, Math.floor(img.width / Math.max(1, frameWidth)));
     const rows = Math.max(1, Math.floor(img.height / Math.max(1, frameHeight)));
     const frameCount = frameMap ? frameMap.length : Math.max(1, entry.frameCount || cols * rows);
@@ -1016,26 +999,27 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
   }
 
   function getThumbClipData(key) {
-    const assets = window.assets || {};
+    const assets =
+      (typeof bindings.getAssets === "function" && bindings.getAssets()) ||
+      window.assets ||
+      {};
     const enemyAssets = assets.enemies?.[key];
-    const prefersWalk = WALK_FIRST_KEYS.has(key);
-    const clip = prefersWalk ? enemyAssets?.walk || enemyAssets?.idle : enemyAssets?.idle || enemyAssets?.walk;
+    const clip = enemyAssets?.idle || enemyAssets?.walk || enemyAssets?.attack || null;
     if (!clip || !clip.image) {
       return getManifestClipData(key);
     }
     if (!ensureThumbImageReady(clip.image)) {
       return getManifestClipData(key);
     }
-    const inferredSize = inferFrameSizeForClip(clip, key);
+    const inferredSize =
+      Number.isFinite(clip.frameWidth) && clip.frameWidth > 0 &&
+      Number.isFinite(clip.frameHeight) && clip.frameHeight > 0
+        ? { frameWidth: clip.frameWidth, frameHeight: clip.frameHeight }
+        : inferFrameSizeForClip(clip, key);
     const frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
     const frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
-    const overrideMap = (window.__BATTLECHURCH_OVERRIDES && window.__BATTLECHURCH_OVERRIDES[key]) || {};
-    const stateOverride = prefersWalk
-      ? overrideMap.walk || overrideMap.idle || {}
-      : (enemyAssets?.idle && overrideMap.idle) || overrideMap.idle || overrideMap.walk || {};
     const frameMap =
-      (Array.isArray(clip.frameMap) && clip.frameMap.length && clip.frameMap) ||
-      (Array.isArray(stateOverride.frames) && stateOverride.frames.length ? stateOverride.frames : null);
+      Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap.slice() : null;
     const cols = Math.max(1, Math.floor(clip.image.width / Math.max(1, frameWidth)));
     const rows = Math.max(1, Math.floor(clip.image.height / Math.max(1, frameHeight)));
     const frameCount = frameMap ? frameMap.length : Math.max(1, clip.frameCount || cols * rows);
@@ -1053,22 +1037,104 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
     };
   }
 
+  function getTrimmedSpriteBounds(key, clip) {
+    const cacheKey = `${key}:${clip?.image?.src || "no-image"}:${clip?.frameWidth || 0}:${clip?.frameHeight || 0}`;
+    if (spriteBoundsCache.has(cacheKey)) return spriteBoundsCache.get(cacheKey);
+    const fallback = {
+      x: 0,
+      y: 0,
+      width: clip?.frameWidth || THUMB_SIZE,
+      height: clip?.frameHeight || THUMB_SIZE,
+    };
+    if (
+      !clip ||
+      !clip.image ||
+      !clip.frameWidth ||
+      !clip.frameHeight ||
+      typeof document === "undefined"
+    ) {
+      spriteBoundsCache.set(cacheKey, fallback);
+      return fallback;
+    }
+    try {
+      const frameMap = Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap : null;
+      const frameCount = Math.max(1, frameMap ? frameMap.length : (clip.frameCount || 1));
+      const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
+      const sampleCanvas = document.createElement("canvas");
+      sampleCanvas.width = clip.frameWidth;
+      sampleCanvas.height = clip.frameHeight;
+      const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
+      if (!sampleCtx) {
+        spriteBoundsCache.set(cacheKey, fallback);
+        return fallback;
+      }
+      let minX = clip.frameWidth;
+      let minY = clip.frameHeight;
+      let maxX = -1;
+      let maxY = -1;
+      for (let i = 0; i < frameCount; i += 1) {
+        const spriteFrame = frameMap ? frameMap[i] : i;
+        const sx = (spriteFrame % cols) * clip.frameWidth;
+        const sy = Math.floor(spriteFrame / cols) * clip.frameHeight;
+        sampleCtx.clearRect(0, 0, clip.frameWidth, clip.frameHeight);
+        sampleCtx.drawImage(
+          clip.image,
+          sx,
+          sy,
+          clip.frameWidth,
+          clip.frameHeight,
+          0,
+          0,
+          clip.frameWidth,
+          clip.frameHeight,
+        );
+        const imageData = sampleCtx.getImageData(0, 0, clip.frameWidth, clip.frameHeight).data;
+        for (let y = 0; y < clip.frameHeight; y += 1) {
+          for (let x = 0; x < clip.frameWidth; x += 1) {
+            const alpha = imageData[(y * clip.frameWidth + x) * 4 + 3];
+            if (alpha <= 8) continue;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      const trimmed =
+        maxX >= minX && maxY >= minY
+          ? {
+              x: minX,
+              y: minY,
+              width: maxX - minX + 1,
+              height: maxY - minY + 1,
+            }
+          : fallback;
+      spriteBoundsCache.set(cacheKey, trimmed);
+      return trimmed;
+    } catch (err) {
+      spriteBoundsCache.set(cacheKey, fallback);
+      return fallback;
+    }
+  }
+
   function drawThumbFrame(item) {
-    const { canvas, ctx, clip, frameWidth, frameHeight, cols, frameMap, renderScale } = item;
+    const { canvas, ctx, clip, frameWidth, frameHeight, cols, frameMap, renderScale, sourceBounds } = item;
     const framePos = frameMap
       ? frameMap[item.frameIndex % frameMap.length]
       : item.frameIndex;
-    const sx = (framePos % cols) * frameWidth;
-    const sy = Math.floor(framePos / cols) * frameHeight;
-    const baseSize = Math.max(frameWidth, frameHeight) * renderScale;
+    const sx = (framePos % cols) * frameWidth + (sourceBounds?.x || 0);
+    const sy = Math.floor(framePos / cols) * frameHeight + (sourceBounds?.y || 0);
+    const sourceWidth = sourceBounds?.width || frameWidth;
+    const sourceHeight = sourceBounds?.height || frameHeight;
+    const baseSize = Math.max(sourceWidth, sourceHeight) * renderScale;
     const scale = THUMB_SIZE / Math.max(1, baseSize);
-    const dw = frameWidth * renderScale * scale;
-    const dh = frameHeight * renderScale * scale;
+    const dw = sourceWidth * renderScale * scale;
+    const dh = sourceHeight * renderScale * scale;
     const dx = (THUMB_SIZE - dw) / 2;
     const dy = (THUMB_SIZE - dh) / 2;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(clip.image, sx, sy, frameWidth, frameHeight, dx, dy, dw, dh);
+    ctx.drawImage(clip.image, sx, sy, sourceWidth, sourceHeight, dx, dy, dw, dh);
   }
 
   function stepThumbAnimations(now) {
@@ -1112,6 +1178,7 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
         frameWidth: data.frameWidth,
         frameHeight: data.frameHeight,
         cols: data.cols,
+        sourceBounds: getTrimmedSpriteBounds(key, data.clip),
         frameCount: data.frameCount,
         frameDuration,
         frameIndex: 0,
@@ -1383,6 +1450,9 @@ const WALK_FIRST_KEYS = new Set(["miniImp", "miniImpLevel2", "miniImpLevel3"]);
   syncFromServer();
 
   window.BattlechurchLevelBuilder = {
+    initialize(options = {}) {
+      bindings.getAssets = options.getAssets || bindings.getAssets;
+    },
     getConfig: () => state.config,
     save: () => saveToStorage(state.config),
     load: () => loadFromStorage(),

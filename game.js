@@ -20304,6 +20304,11 @@ async function init() {
         getAssets: () => assets,
       });
     }
+    if (window.BattlechurchLevelBuilder?.initialize) {
+      window.BattlechurchLevelBuilder.initialize({
+        getAssets: () => assets,
+      });
+    }
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
         getAssets: () => assets,
