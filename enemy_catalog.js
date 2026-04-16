@@ -316,7 +316,6 @@ const ENEMY_CATALOG = {
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny",
       "swarmable"
     ],
@@ -350,7 +349,6 @@ const ENEMY_CATALOG = {
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny",
       "swarmable"
     ],
@@ -386,7 +384,6 @@ const ENEMY_CATALOG = {
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "projectile",
       "closestAny"
     ],
@@ -451,7 +448,6 @@ const ENEMY_CATALOG = {
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny",
       "swarmable"
     ],
@@ -606,7 +602,6 @@ const ENEMY_CATALOG = {
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny",
       "ranged",
       "fireThrowerBomb"
@@ -642,7 +637,6 @@ const ENEMY_CATALOG = {
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny"
     ],
     "attackHitFrame": 5,
@@ -676,7 +670,6 @@ const ENEMY_CATALOG = {
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "ranged",
       "closestAny"
     ],
@@ -709,7 +702,6 @@ const ENEMY_CATALOG = {
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny",
       "swarmable"
     ],
@@ -743,7 +735,6 @@ const ENEMY_CATALOG = {
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny",
       "swarmable"
     ],
@@ -779,7 +770,6 @@ const ENEMY_CATALOG = {
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "mini",
       "closestAny",
       "swarmable",
       "tormentorFlame"
