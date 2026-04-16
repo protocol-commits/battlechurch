@@ -713,7 +713,7 @@
     "cooldown": 1.5,
     "score": 320,
     "ranged": true,
-    "projectileType": null,
+    "projectileType": "fire",
     "preferEdges": false,
     "desiredRange": 140,
     "projectileCooldown": 1.5,
@@ -732,7 +732,7 @@
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 4,
+    "attackHitFrame": 8,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,

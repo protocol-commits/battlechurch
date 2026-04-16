@@ -2075,7 +2075,9 @@
       this.targetClosestAny =
         Array.isArray(this.config.specialBehavior) &&
         this.config.specialBehavior.includes("closestAny");
-      this.projectileType = this.config.projectileType || null;
+      this.projectileType =
+        this.config.projectileType ||
+        (this.type === "miniDemonLord" ? "fire" : null);
       this.projectileCooldown = this.config.projectileCooldown || this.config.attackCooldown || 1.5;
       this.desiredRange = this.config.desiredRange || this.config.attackRange || 300;
       this.edgeTarget = this.preferEdges ? this.chooseEdgePosition() : null;
