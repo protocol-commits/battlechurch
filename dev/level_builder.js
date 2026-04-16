@@ -698,7 +698,7 @@
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
         <span title="${key}" style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${typeColor};">${displayLabel}</span>
-        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this mission" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
+        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this battle" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
         <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
       const clearBtn = row.querySelector(`[data-clear-key="${key}"]`);
