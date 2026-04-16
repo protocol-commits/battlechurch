@@ -536,11 +536,13 @@
       }
       labelCol.appendChild(row);
     });
-    // Footer rows for duration / allKill labels
-    const footerSpacer = document.createElement("div");
-    footerSpacer.style.cssText = "padding:6px 8px;font-size:10px;color:rgba(255,255,255,0.5);border-top:1px solid rgba(120,170,220,0.2);";
-    footerSpacer.innerHTML = `<div style="height:24px;line-height:24px;">Duration (s)</div><div style="height:24px;line-height:24px;">All Kill</div>`;
-    labelCol.appendChild(footerSpacer);
+    // Top-aligned settings labels for wave/horde controls
+    const settingsSpacer = document.createElement("div");
+    settingsSpacer.style.cssText =
+      "padding:6px 8px;font-size:10px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(120,170,220,0.2);";
+    settingsSpacer.innerHTML =
+      `<div style="height:24px;line-height:24px;">Duration (s)</div><div style="height:24px;line-height:24px;">All Kill</div>`;
+    labelCol.appendChild(settingsSpacer);
     container.appendChild(labelCol);
 
     // ── Wave + horde columns ─────────────────────────────────────────────────
@@ -628,13 +630,7 @@
 
       const waveBody = document.createElement("div");
       waveBody.className = "lb-wave-body";
-      // Enemy rows spacer — must match lb-horde-cell-row heights exactly (no gap/padding)
-      visibleKeys.forEach(() => {
-        const spacer = document.createElement("div");
-        spacer.style.cssText = "height:32px;border-bottom:1px solid rgba(120,170,220,0.1);";
-        waveBody.appendChild(spacer);
-      });
-      // Wave fields (intro text + breaker) sit below the aligned spacer rows
+      // Wave fields (intro text + breaker) sit directly under the wave header
       const waveFields = document.createElement("div");
       waveFields.className = "lb-wave-fields";
       const introLabel = document.createElement("label");
@@ -659,6 +655,12 @@
       waveFields.appendChild(breakerLabel);
       waveFields.appendChild(breakerInput);
       waveBody.appendChild(waveFields);
+      // Enemy rows spacer — must match lb-horde-cell-row heights exactly (no gap/padding)
+      visibleKeys.forEach(() => {
+        const spacer = document.createElement("div");
+        spacer.style.cssText = "height:32px;border-bottom:1px solid rgba(120,170,220,0.1);";
+        waveBody.appendChild(spacer);
+      });
       waveCol.appendChild(waveBody);
 
       const waveFooter = document.createElement("div");
@@ -749,6 +751,29 @@
         hordeHeader.appendChild(menu);
         hordeCol.appendChild(hordeHeader);
 
+        // Top-aligned horde settings
+        const footer = document.createElement("div");
+        footer.className = "lb-horde-footer";
+        const durInput = document.createElement("input");
+        durInput.type = "number"; durInput.min = "1"; durInput.step = "1";
+        durInput.value = String(horde.duration || state.config.structure.defaultHordeDuration || 4);
+        durInput.addEventListener("change", () => {
+          horde.duration = Math.max(1, Number(durInput.value) || 1);
+          saveToStorage(state.config);
+        });
+        const akLabel = document.createElement("label");
+        const akBox = document.createElement("input");
+        akBox.type = "checkbox"; akBox.checked = !!horde.allKill;
+        akBox.addEventListener("change", () => {
+          horde.allKill = akBox.checked;
+          saveToStorage(state.config);
+        });
+        akLabel.appendChild(akBox);
+        akLabel.appendChild(document.createTextNode(" ☠"));
+        footer.appendChild(durInput);
+        footer.appendChild(akLabel);
+        hordeCol.appendChild(footer);
+
         // Enemy count rows
         const currentCol = globalColIdx;
         visibleKeys.forEach((key, enemyIdx) => {
@@ -778,29 +803,6 @@
           hordeCol.appendChild(cellRow);
         });
         globalColIdx += 1;
-
-        // Footer: duration + allKill
-        const footer = document.createElement("div");
-        footer.className = "lb-horde-footer";
-        const durInput = document.createElement("input");
-        durInput.type = "number"; durInput.min = "1"; durInput.step = "1";
-        durInput.value = String(horde.duration || state.config.structure.defaultHordeDuration || 4);
-        durInput.addEventListener("change", () => {
-          horde.duration = Math.max(1, Number(durInput.value) || 1);
-          saveToStorage(state.config);
-        });
-        const akLabel = document.createElement("label");
-        const akBox = document.createElement("input");
-        akBox.type = "checkbox"; akBox.checked = !!horde.allKill;
-        akBox.addEventListener("change", () => {
-          horde.allKill = akBox.checked;
-          saveToStorage(state.config);
-        });
-        akLabel.appendChild(akBox);
-        akLabel.appendChild(document.createTextNode(" ☠"));
-        footer.appendChild(durInput);
-        footer.appendChild(akLabel);
-        hordeCol.appendChild(footer);
         container.appendChild(hordeCol);
       });
     });
