@@ -57,7 +57,6 @@
     ],
     miniDemonFireThrower: [
       "ranged",
-      "projectileType",
       "preferEdges",
       "desiredRange",
       "projectileCooldown",
@@ -70,7 +69,6 @@
     ],
     miniDemonFireKeeper: [
       "ranged",
-      "projectileType",
       "preferEdges",
       "desiredRange",
       "projectileCooldown",

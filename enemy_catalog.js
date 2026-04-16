@@ -876,7 +876,7 @@
     "cooldown": 1.6,
     "score": 70,
     "ranged": true,
-    "projectileType": "lichOrb",
+    "projectileType": "fire",
     "preferEdges": true,
     "desiredRange": 420,
     "projectileCooldown": 2.4,
