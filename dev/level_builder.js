@@ -159,19 +159,60 @@
     mode: "explicit",
     showHidden: false,
     clipboard: null, // { type: 'horde'|'wave'|'mission'|'battle', data: deepClone }
-    enemySort: "default", // "default" | "type" | "name"
+    enemyFilter: "all",
     undoStack: [],
   };
   const MAX_UNDO_STEPS = 50;
 
-  // Classify enemies into types based on catalog properties
+  // Classify enemies into filter tags based on catalog properties.
   function getEnemyType(key, catalog) {
     const def = catalog[key];
     if (!def) return "normal";
     if (def.damageClass === "armored") return "armored";
     if (def.damageClass === "tank") return "tank";
-    if (def.ranged === true || (def.projectileType && def.projectileType !== null)) return "projectile";
     return "normal";
+  }
+
+  function getEnemyFilterTags(key, catalog) {
+    const def = catalog[key] || {};
+    const tags = new Set();
+    tags.add("all");
+    tags.add(getEnemyType(key, catalog));
+    if (def.ranged === true) tags.add("ranged");
+    if (def.projectileType && def.projectileType !== null) tags.add("projectile");
+    const behaviors = Array.isArray(def.specialBehavior) ? def.specialBehavior : [];
+    behaviors.forEach((tag) => {
+      if (tag && !["popcorn", "elite", "axe"].includes(tag)) tags.add(String(tag));
+    });
+    return tags;
+  }
+
+  function formatEnemyFilterLabel(tag) {
+    if (tag === "all") return "All";
+    if (tag === "npcPriority") return "NPC Priority";
+    return String(tag || "")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (s) => s.toUpperCase())
+      .trim();
+  }
+
+  function buildEnemyFilterOptions(catalog) {
+    const baseOrder = ["all", "normal", "tank", "armored", "ranged", "projectile"];
+    const options = [];
+    const seen = new Set();
+    baseOrder.forEach((tag) => {
+      seen.add(tag);
+      options.push(tag);
+    });
+    Object.keys(catalog || {}).forEach((key) => {
+      getEnemyFilterTags(key, catalog).forEach((tag) => {
+        if (!seen.has(tag)) {
+          seen.add(tag);
+          options.push(tag);
+        }
+      });
+    });
+    return options;
   }
 
   function formatEnemyLabel(key, catalog) {
@@ -184,7 +225,6 @@
     return base || String(key || "");
   }
 
-  const ENEMY_TYPE_ORDER = { normal: 0, tank: 1, projectile: 2, armored: 3 };
   const THUMB_SIZE = 26;
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
   const manifestThumbImages = new Map();
@@ -524,6 +564,21 @@
     els.undo.title = state.undoStack.length ? "Undo last edit" : "Nothing to undo";
   }
 
+  function updatePasteButtonState() {
+    if (!els || !els.paste) return;
+    const type = state.clipboard?.type;
+    if (type === "battle") {
+      els.paste.textContent = "Paste Act";
+      els.paste.title = "Paste copied act";
+    } else if (type === "mission") {
+      els.paste.textContent = "Paste Battle";
+      els.paste.title = "Paste copied battle";
+    } else {
+      els.paste.textContent = "Paste";
+      els.paste.title = "Paste";
+    }
+  }
+
   function pushUndoSnapshot() {
     state.undoStack.push(deepClone(state.config));
     if (state.undoStack.length > MAX_UNDO_STEPS) {
@@ -553,20 +608,12 @@
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
     const enemyKeys = Object.keys(catalog);
     const hiddenSet = new Set(state.config.globals.hiddenEnemies || []);
-    const visibleKeys = enemyKeys.filter((k) => !hiddenSet.has(k) || state.showHidden);
-    // Sort enemies based on current sort mode
-    if (state.enemySort === "type") {
-      visibleKeys.sort((a, b) => {
-        const ta = ENEMY_TYPE_ORDER[getEnemyType(a, catalog)] || 0;
-        const tb = ENEMY_TYPE_ORDER[getEnemyType(b, catalog)] || 0;
-        if (ta !== tb) return ta - tb;
-        const ha = catalog[a]?.health || 0;
-        const hb = catalog[b]?.health || 0;
-        return ha - hb || formatEnemyLabel(a, catalog).localeCompare(formatEnemyLabel(b, catalog));
-      });
-    } else if (state.enemySort === "name") {
-      visibleKeys.sort((a, b) => formatEnemyLabel(a, catalog).localeCompare(formatEnemyLabel(b, catalog)));
-    }
+    const filterOptions = buildEnemyFilterOptions(catalog);
+    if (!filterOptions.includes(state.enemyFilter)) state.enemyFilter = "all";
+    const visibleKeys = enemyKeys.filter((key) => {
+      if (!state.showHidden && hiddenSet.has(key)) return false;
+      return getEnemyFilterTags(key, catalog).has(state.enemyFilter);
+    });
 
     // Close any open column menus on outside click.
     const closeMenus = () => {
@@ -583,13 +630,17 @@
     const labelHeader = document.createElement("div");
     labelHeader.className = "lb-label-header";
     labelHeader.innerHTML = `<span>Enemy</span>
-      <select class="lb-sort-select" style="font-size:10px;padding:1px 3px;margin-left:auto;">
-        <option value="default"${state.enemySort === "default" ? " selected" : ""}>Catalog</option>
-        <option value="type"${state.enemySort === "type" ? " selected" : ""}>Type</option>
-        <option value="name"${state.enemySort === "name" ? " selected" : ""}>Name</option>
-      </select>`;
-    labelHeader.querySelector(".lb-sort-select").addEventListener("change", (e) => {
-      state.enemySort = e.target.value;
+      <select class="lb-filter-select" style="font-size:10px;padding:1px 3px;margin-left:auto;"></select>`;
+    const filterSelect = labelHeader.querySelector(".lb-filter-select");
+    filterOptions.forEach((tag) => {
+      const option = document.createElement("option");
+      option.value = tag;
+      option.textContent = formatEnemyFilterLabel(tag);
+      option.selected = state.enemyFilter === tag;
+      filterSelect.appendChild(option);
+    });
+    filterSelect.addEventListener("change", (e) => {
+      state.enemyFilter = e.target.value;
       renderMissionView();
     });
     labelCol.appendChild(labelHeader);
@@ -620,11 +671,12 @@
       const isHidden = hiddenSet.has(key);
       const displayLabel = formatEnemyLabel(key, catalog);
       const totalCount = enemyBattleTotals[key] || 0;
+      const typeColor = TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff";
       row.innerHTML = `
         <div style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;">
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
-        <span title="${key}" style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${state.enemySort === "type" ? (TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff") : "#e8f4ff"};">${displayLabel}</span>
+        <span title="${key}" style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${typeColor};">${displayLabel}</span>
         <button data-clear-key="${key}" title="Clear this enemy from all hordes in this mission" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
         <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
@@ -1427,6 +1479,7 @@
   function refreshUI() {
     initScopeSelectors();
     renderMissionView();
+    updatePasteButtonState();
   }
 
   function attachEvents() {
@@ -1454,6 +1507,7 @@
         const townObj = ensureTown(townIdx);
         const battleObj = ensureBattle(townObj, battleIdx);
         state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(battleObj)) };
+        updatePasteButtonState();
         setStatus(`Copied Act ${battleIdx}`);
       });
     }
@@ -1464,6 +1518,7 @@
         const { missionObj } = getOrCreateMission();
         state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
         const { battle: battleIdx, mission: missionIdx } = state.scope;
+        updatePasteButtonState();
         setStatus(`Copied Battle ${missionIdx} from Act ${battleIdx}`);
       });
     }
@@ -1551,6 +1606,7 @@
 
     els.close.addEventListener("click", hide);
     updateUndoButtonState();
+    updatePasteButtonState();
   }
 
   function show() {
