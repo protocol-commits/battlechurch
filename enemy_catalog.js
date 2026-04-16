@@ -1,128 +1,5 @@
 (function(global) {
-const ENEMY_ANIMATION_DATA = {
-  "miniImp": {
-    assetGrid: { cols: 6, rows: 5 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [6, 7, 8, 9, 10],
-      attack: [12, 13, 14, 15, 16, 17],
-      hurt: [18, 19],
-      death: [24, 25, 26, 27, 28],
-    },
-  },
-  "miniImpLevel2": {
-    assetGrid: { cols: 6, rows: 5 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [6, 7, 8, 9, 10],
-      attack: [12, 13, 14, 15, 16, 17],
-      hurt: [18, 19],
-      death: [24, 25, 26, 27, 28],
-    },
-  },
-  "miniImpLevel3": {
-    assetGrid: { cols: 6, rows: 5 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [6, 7, 8, 9, 10],
-      attack: [12, 13, 14, 15, 16, 17],
-      hurt: [18, 19],
-      death: [24, 25, 26, 27, 28],
-    },
-  },
-  "miniFireImp": {
-    assetGrid: { cols: 9, rows: 6 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [9, 10, 11, 12, 13],
-      attack: [18, 19, 20, 21, 22, 23],
-      hurt: [36, 37],
-      death: [45, 46, 47, 48, 49],
-    },
-  },
-  "miniDemoness": {
-    assetGrid: { cols: 9, rows: 8 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [9, 10, 11, 12, 13, 14],
-      attack: [27, 28, 29, 30, 31, 32, 33, 34, 35],
-      hurt: [54, 55],
-      death: [63, 64, 65, 66, 67, 68, 69],
-    },
-  },
-  "miniClawedDemon": {
-    assetGrid: { cols: 6, rows: 7 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [6, 7, 8, 9, 10, 11],
-      attack: [18, 19, 20, 21, 22],
-      hurt: [30, 31],
-      death: [36, 37, 38, 39, 40],
-    },
-  },
-  "miniHighDemon": {
-    assetGrid: { cols: 8, rows: 6 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [8, 9, 10, 11, 12, 13],
-      attack: [24, 25, 26, 27, 28, 29, 30],
-      hurt: [32, 33],
-      death: [40, 41, 42, 43, 44, 45, 46, 47],
-    },
-  },
-  "miniDemonTormentor": {
-    assetGrid: { cols: 11, rows: 8 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [11, 12, 13, 14, 15, 16],
-      attack: [33, 34, 35, 36, 37, 38],
-      hurt: [66, 67],
-      death: [77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87],
-    },
-  },
-  "miniDemonLord": {
-    assetGrid: { cols: 10, rows: 8 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [10, 11, 12, 13, 14, 15],
-      attack: [30, 31, 32, 33, 34, 35, 36, 37, 38, 39],
-      hurt: [60, 61],
-      death: [70, 71, 72, 73, 74, 75, 76, 77],
-    },
-  },
-  "miniDemonFireThrower": {
-    assetGrid: { cols: 8, rows: 7 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [8, 9, 10, 11, 12, 13],
-      attack: [32, 33, 34, 35, 36, 37, 38, 39],
-      hurt: [40, 41],
-      death: [48, 49, 50, 51],
-    },
-  },
-  "miniDemonFireKeeper": {
-    assetGrid: { cols: 8, rows: 8 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [8, 9, 10, 11, 12, 13],
-      attack: [32, 33, 34, 35, 36, 37, 38, 39],
-      hurt: [48, 49],
-      death: [56, 57, 58, 59, 60, 61, 62],
-    },
-  },
-  "miniSuccubus": {
-    assetGrid: { cols: 9, rows: 7 },
-    animationFrameMaps: {
-      idle: [0, 1, 2, 3],
-      walk: [9, 10, 11, 12, 13, 14],
-      attack: [27, 28, 29, 30, 31, 32, 33, 34, 35],
-      hurt: [45, 46],
-      death: [54, 55, 56, 57, 58, 59, 60],
-    },
-  },
-};
-
-const ENEMY_CATALOG = {
+  const ENEMY_CATALOG = {
   "armoredSkeleton": {
     "displayName": "Armored Skeleton",
     "assetFolder": "armored_skeleton",
@@ -141,7 +18,7 @@ const ENEMY_CATALOG = {
     "cooldown": 1.9,
     "score": 240,
     "ranged": false,
-    "projectileType": "fire",
+    "projectileType": null,
     "preferEdges": false,
     "desiredRange": 110,
     "projectileCooldown": 1.9,
@@ -187,7 +64,7 @@ const ENEMY_CATALOG = {
     "cooldown": 1.8,
     "score": 200,
     "ranged": false,
-    "projectileType": "fire",
+    "projectileType": null,
     "preferEdges": false,
     "desiredRange": 100,
     "projectileCooldown": 1.8,
@@ -325,6 +202,44 @@ const ENEMY_CATALOG = {
       "height": 16,
       "offsetX": 0,
       "offsetY": 9
+    },
+    "assetGrid": {
+      "cols": 6,
+      "rows": 5
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "attack": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "hurt": [
+        18,
+        19
+      ],
+      "death": [
+        24,
+        25,
+        26,
+        27,
+        28
+      ]
     }
   },
   "miniImpLevel2": {
@@ -360,6 +275,44 @@ const ENEMY_CATALOG = {
       "height": 14,
       "offsetX": 0,
       "offsetY": 8
+    },
+    "assetGrid": {
+      "cols": 6,
+      "rows": 5
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "attack": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "hurt": [
+        18,
+        19
+      ],
+      "death": [
+        24,
+        25,
+        26,
+        27,
+        28
+      ]
     }
   },
   "miniFireImp": {
@@ -392,6 +345,44 @@ const ENEMY_CATALOG = {
       "height": 14,
       "offsetX": 0,
       "offsetY": 8
+    },
+    "assetGrid": {
+      "cols": 9,
+      "rows": 6
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "attack": [
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "hurt": [
+        36,
+        37
+      ],
+      "death": [
+        45,
+        46,
+        47,
+        48,
+        49
+      ]
     }
   },
   "miniDemoness": {
@@ -418,12 +409,56 @@ const ENEMY_CATALOG = {
     "specialBehavior": [
       "closestAny"
     ],
-    "attackHitFrame": 7,
+    "attackHitFrame": 4,
     "hitbox": {
       "width": 18,
       "height": 20,
       "offsetX": -1,
       "offsetY": 6
+    },
+    "assetGrid": {
+      "cols": 9,
+      "rows": 8
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "attack": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "hurt": [
+        54,
+        55
+      ],
+      "death": [
+        63,
+        64,
+        65,
+        66,
+        67,
+        68,
+        69
+      ]
     }
   },
   "miniClawedDemon": {
@@ -458,6 +493,44 @@ const ENEMY_CATALOG = {
       "height": 20,
       "offsetX": 0,
       "offsetY": 7
+    },
+    "assetGrid": {
+      "cols": 6,
+      "rows": 7
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "attack": [
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "hurt": [
+        30,
+        31
+      ],
+      "death": [
+        36,
+        37,
+        38,
+        39,
+        40
+      ]
     }
   },
   "miniHighDemon": {
@@ -499,6 +572,49 @@ const ENEMY_CATALOG = {
       "height": 24,
       "offsetX": 15,
       "offsetY": 0
+    },
+    "assetGrid": {
+      "cols": 8,
+      "rows": 6
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "attack": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "hurt": [
+        32,
+        33
+      ],
+      "death": [
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
     }
   },
   "miniDemonTormentor": {
@@ -535,6 +651,51 @@ const ENEMY_CATALOG = {
       "height": 20,
       "offsetX": -2,
       "offsetY": 6
+    },
+    "assetGrid": {
+      "cols": 11,
+      "rows": 8
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "attack": [
+        33,
+        34,
+        35,
+        36,
+        37,
+        38
+      ],
+      "hurt": [
+        66,
+        67
+      ],
+      "death": [
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87
+      ]
     }
   },
   "miniDemonLord": {
@@ -552,9 +713,9 @@ const ENEMY_CATALOG = {
     "cooldown": 1.5,
     "score": 320,
     "ranged": true,
-    "projectileType": "fire",
+    "projectileType": null,
     "preferEdges": false,
-    "desiredRange": 2000,
+    "desiredRange": 140,
     "projectileCooldown": 1.5,
     "bossTier": 3,
     "preferredTarget": "player",
@@ -571,13 +732,59 @@ const ENEMY_CATALOG = {
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 7,
+    "attackHitFrame": 4,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,
       "height": 24,
       "offsetX": 14,
       "offsetY": 0
+    },
+    "assetGrid": {
+      "cols": 10,
+      "rows": 8
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "attack": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "hurt": [
+        60,
+        61
+      ],
+      "death": [
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77
+      ]
     }
   },
   "miniDemonFireThrower": {
@@ -595,7 +802,7 @@ const ENEMY_CATALOG = {
     "cooldown": 1.9,
     "score": 65,
     "ranged": true,
-    "projectileType": "fire",
+    "projectileType": "miniTrident",
     "preferEdges": true,
     "desiredRange": 420,
     "projectileCooldown": 2,
@@ -603,8 +810,7 @@ const ENEMY_CATALOG = {
     "preferredTarget": "player",
     "specialBehavior": [
       "closestAny",
-      "ranged",
-      "fireThrowerBomb"
+      "ranged"
     ],
     "attackHitFrame": 5,
     "swarmSpacing": 1,
@@ -613,6 +819,46 @@ const ENEMY_CATALOG = {
       "height": 16,
       "offsetX": 0,
       "offsetY": 8
+    },
+    "assetGrid": {
+      "cols": 8,
+      "rows": 7
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "attack": [
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "hurt": [
+        40,
+        41
+      ],
+      "death": [
+        48,
+        49,
+        50,
+        51
+      ]
     }
   },
   "miniDemonFireKeeper": {
@@ -637,8 +883,8 @@ const ENEMY_CATALOG = {
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
-      "ranged",
-      "closestAny"
+      "closestAny",
+      "ranged"
     ],
     "attackHitFrame": 5,
     "swarmSpacing": 0.1,
@@ -647,6 +893,49 @@ const ENEMY_CATALOG = {
       "height": 18,
       "offsetX": 0,
       "offsetY": 7
+    },
+    "assetGrid": {
+      "cols": 8,
+      "rows": 8
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "attack": [
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "hurt": [
+        48,
+        49
+      ],
+      "death": [
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62
+      ]
     }
   },
   "miniSuccubus": {
@@ -679,6 +968,50 @@ const ENEMY_CATALOG = {
       "height": 14,
       "offsetX": 0,
       "offsetY": 7
+    },
+    "assetGrid": {
+      "cols": 9,
+      "rows": 7
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        9,
+        10,
+        11,
+        12,
+        13,
+        14
+      ],
+      "attack": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "hurt": [
+        45,
+        46
+      ],
+      "death": [
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60
+      ]
     }
   },
   "miniImpLevel3": {
@@ -712,6 +1045,44 @@ const ENEMY_CATALOG = {
       "height": 13,
       "offsetX": 0,
       "offsetY": 8
+    },
+    "assetGrid": {
+      "cols": 6,
+      "rows": 5
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        6,
+        7,
+        8,
+        9,
+        10
+      ],
+      "attack": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "hurt": [
+        18,
+        19
+      ],
+      "death": [
+        24,
+        25,
+        26,
+        27,
+        28
+      ]
     }
   },
   "bat": {
@@ -829,15 +1200,6 @@ const ENEMY_CATALOG = {
     "contactDamage": 0
   }
 };
-
-for (const [key, animation] of Object.entries(ENEMY_ANIMATION_DATA)) {
-  if (!ENEMY_CATALOG[key]) continue;
-  ENEMY_CATALOG[key] = {
-    ...ENEMY_CATALOG[key],
-    ...animation,
-  };
-}
-
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
   ns.catalog = ENEMY_CATALOG;
   const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});
