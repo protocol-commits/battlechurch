@@ -456,8 +456,8 @@
       }
       #${OVERLAY_ID} .field-grid {
         display: grid;
-        grid-template-columns: repeat(6, minmax(90px, 1fr));
-        gap: 10px 12px;
+        grid-template-columns: repeat(8, minmax(68px, 1fr));
+        gap: 8px 10px;
       }
       #${OVERLAY_ID} .field {
         display: flex;
@@ -470,6 +470,9 @@
       }
       #${OVERLAY_ID} .field--wide {
         grid-column: span 2;
+      }
+      #${OVERLAY_ID} .field--full {
+        grid-column: 1 / -1;
       }
       #${OVERLAY_ID} .field-label {
         font: 700 10px "Trebuchet MS", Arial, sans-serif;
@@ -495,13 +498,13 @@
       #${OVERLAY_ID} details summary {
         width: 100%;
         min-width: 0;
-        padding: 9px 10px;
+        padding: 7px 8px;
         border-radius: 10px;
         border: 1px solid rgba(255,255,255,0.16);
         background: rgba(255,255,255,0.07);
         color: #e8f4ff;
         box-sizing: border-box;
-        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+        font: 600 12px "Trebuchet MS", Arial, sans-serif;
       }
       #${OVERLAY_ID} input[type="number"]:disabled,
       #${OVERLAY_ID} select:disabled {
@@ -519,6 +522,24 @@
       #${OVERLAY_ID} .field-note {
         color: rgba(255, 217, 143, 0.88);
         font: 11px/1.35 "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .special-details {
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.04);
+        overflow: hidden;
+      }
+      #${OVERLAY_ID} .special-details summary {
+        cursor: pointer;
+      }
+      #${OVERLAY_ID} .special-list {
+        margin: 0;
+        padding: 0 12px 12px 28px;
+        color: rgba(232, 244, 255, 0.84);
+        font: 12px/1.45 "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .special-list li + li {
+        margin-top: 4px;
       }
       #${OVERLAY_ID} details.tags-dropdown summary {
         list-style: none;
@@ -642,7 +663,7 @@
       }
       @media (max-width: 1200px) {
         #${OVERLAY_ID} .field-grid {
-          grid-template-columns: repeat(3, minmax(90px, 1fr));
+          grid-template-columns: repeat(4, minmax(68px, 1fr));
         }
       }
       @media (max-width: 860px) {
@@ -657,7 +678,7 @@
           align-items: center;
         }
         #${OVERLAY_ID} .field-grid {
-          grid-template-columns: repeat(2, minmax(90px, 1fr));
+          grid-template-columns: repeat(3, minmax(68px, 1fr));
         }
       }
     </style>
@@ -1172,6 +1193,90 @@
     return parts.join(" • ");
   }
 
+  function getSpecialMovementLines(key, enemy) {
+    const lines = [];
+    if (key === "miniDemonLord") {
+      lines.push("Jump reposition after fireball release.");
+      lines.push("Jump cooldown: 2.4s.");
+      lines.push("Jump duration: 0.58s with arc lift 22px.");
+      lines.push("Jump target distance: 220-400px around target.");
+      lines.push(`Combat spacing envelope: ${enemy?.desiredRange || 0}px desired range.`);
+    }
+    if (key === "miniDemonFireThrower") {
+      lines.push("Prefers edge positions while kiting.");
+      lines.push(`Keeps distance around ${enemy?.desiredRange || 0}px before lobbing.`);
+      lines.push("One active bomb at a time.");
+    }
+    if (key === "miniDemonFireKeeper") {
+      lines.push("Cycles through hidden, materialize, casting, linger, and dematerialize phases.");
+      lines.push("Hidden phase: 0.95s base, then teleports to a new edge position.");
+      lines.push("Materialize: 0.24s.");
+      lines.push("Pre-cast hold: 0.8s.");
+      lines.push("Post-cast linger: 1.15s.");
+      lines.push("Dematerialize: 0.62s.");
+      lines.push(`Cast range check: about ${Math.round((enemy?.desiredRange || 360) * 1.2)}px.`);
+    }
+    if (key === "miniDemoness") {
+      lines.push("No special movement routine; behavior is attack-state driven.");
+      lines.push(`Approaches whip targets until about ${240}px.`);
+      lines.push("Drags lassoed targets inward at 86px/s.");
+      lines.push("Maintains drain contact around 34px.");
+    }
+    return lines.length ? lines : ["No custom movement logic."];
+  }
+
+  function getSpecialAttackLines(key, enemy) {
+    const lines = [];
+    if (key === "miniDemonLord") {
+      lines.push("Charge orb attack uses attack frames 1-7 and releases on frame 8.");
+      lines.push(`Projectile base type: ${formatProjectileLabel(enemy?.projectileType || "")}.`);
+      lines.push("Thrown orb deals 5 damage and uses reduced projectile speed.");
+    }
+    if (key === "miniDemonFireThrower") {
+      lines.push("Lobs a bomb using the selected projectile as the visual/base payload.");
+      lines.push(`Release frame: ${enemy?.attackHitFrame ?? 5}.`);
+      lines.push("Flight duration: 0.58s.");
+      lines.push("Arming duration after landing: 2.1s.");
+      lines.push("Landing explosion damage: 5.");
+      lines.push("Landing explosion radius: max(projectile radius x2.1, 34px).");
+    }
+    if (key === "miniDemonFireKeeper") {
+      lines.push("Uses the selected projectile with custom cast timing and optional visual override.");
+      lines.push(`Release frame: ${enemy?.attackHitFrame ?? 5}.`);
+      lines.push("Cannot be damaged while hidden.");
+      lines.push("If projectile type is Faith Cannon, cast visuals are replaced with custom frames and speed is reduced to 82%.");
+    }
+    if (key === "miniDemoness") {
+      lines.push("Whip lasso attack uses a custom attack clip.");
+      lines.push("Whip hit frame: 5.");
+      lines.push("Whip range: 240px plus target radius padding.");
+      lines.push("Drain tick interval: 0.34s.");
+      lines.push("Drain total before release: 30 faith.");
+      lines.push("Break cooldown after melee interruption: 3.0s.");
+      lines.push("Current drain effect: target loses 1 faith per tick sequence until release threshold, not HP damage.");
+    }
+    return lines.length ? lines : ["No custom attack logic."];
+  }
+
+  function createSpecialBehaviorDetails(label, lines) {
+    const wrapper = createField(label, "field--full");
+    const details = document.createElement("details");
+    details.className = "special-details";
+    const summary = document.createElement("summary");
+    summary.textContent = `${label} (${lines.length})`;
+    details.appendChild(summary);
+    const list = document.createElement("ul");
+    list.className = "special-list";
+    lines.forEach((line) => {
+      const item = document.createElement("li");
+      item.textContent = line;
+      list.appendChild(item);
+    });
+    details.appendChild(list);
+    wrapper.appendChild(details);
+    return wrapper;
+  }
+
   function createEnemySummary(key) {
     const enemy = ensureEnemy(key);
     const wrapper = document.createElement("div");
@@ -1402,13 +1507,15 @@
     grid.appendChild(createDamageInput(key, "contactDamage", "Contact"));
     grid.appendChild(createDamageInput(key, "attackDamage", "Attack"));
     grid.appendChild(createNumberInput(key, "speed", "Speed"));
-    grid.appendChild(createNumberInput(key, "scale", "Scale"));
     grid.appendChild(createNumberInput(key, "cooldown", "Cooldown"));
+    grid.appendChild(createNumberInput(key, "scale", "Scale"));
     grid.appendChild(createSwarmSpacingCell(key));
     grid.appendChild(createTagsCell(key));
     if (enemy.ranged) {
       grid.appendChild(createProjectileSelect(key));
     }
+    grid.appendChild(createSpecialBehaviorDetails("Special Movement", getSpecialMovementLines(key, enemy)));
+    grid.appendChild(createSpecialBehaviorDetails("Special Attack", getSpecialAttackLines(key, enemy)));
     main.appendChild(grid);
 
     card.appendChild(preview);
