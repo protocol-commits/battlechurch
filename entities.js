@@ -155,7 +155,7 @@
     Boolean(enemy && Number.isFinite(enemy.knockbackTimer) && enemy.knockbackTimer > 0);
 
   const KNOCKBACK_VISUAL_LIFT = 18;
-  const DEMON_LORD_JUMP_COOLDOWN = 0.85;
+  const DEMON_LORD_JUMP_COOLDOWN = 2.4;
   const DEMON_LORD_JUMP_DURATION = 0.58;
   const DEMON_LORD_JUMP_MIN_DISTANCE = 220;
   const DEMON_LORD_JUMP_MAX_DISTANCE = 400;
@@ -2968,8 +2968,8 @@
           this.fireThrowerBombActive = projectile;
         }
         if (this.type === "miniDemonLord") {
-          this.forceDemonLordJump = true;
-          this.jumpCooldown = 0;
+          this.forceDemonLordJump = Math.random() < 0.35;
+          this.jumpCooldown = Math.max(this.jumpCooldown || 0, DEMON_LORD_JUMP_COOLDOWN * 0.5);
         }
         if (this.type === "miniDemonFireKeeper") {
           this.fireKeeperHasFired = true;

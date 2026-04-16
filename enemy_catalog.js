@@ -554,7 +554,7 @@ const ENEMY_CATALOG = {
     "ranged": true,
     "projectileType": "fire",
     "preferEdges": false,
-    "desiredRange": 140,
+    "desiredRange": 2000,
     "projectileCooldown": 1.5,
     "bossTier": 3,
     "preferredTarget": "player",
