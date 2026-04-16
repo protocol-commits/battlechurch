@@ -23,6 +23,16 @@
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;
   }
 
+  const IMMUTABLE_CATALOG_KEYS = [
+    "spriteSrc",
+    "assetFolder",
+    "assetBaseName",
+    "assetPath",
+    "assetFiles",
+    "assetGrid",
+    "animationFrameMaps",
+  ];
+
   const bindings = {
     getAssets: () => null,
   };
@@ -48,7 +58,6 @@
     const base = baseCatalog();
     cfg.catalog = cfg.catalog || base;
     const allowedKeys = new Set(Object.keys(base));
-    const assetKeys = ["assetFolder", "assetBaseName", "assetPath", "assetFiles"];
     // Merge in any newly added enemies from the base catalog so they appear in the editor.
     Object.keys(base).forEach((key) => {
       if (!cfg.catalog[key]) {
@@ -58,7 +67,7 @@
       const baseEntry = base[key] || {};
       const localEntry = cfg.catalog[key] || {};
       const merged = { ...deepClone(baseEntry), ...deepClone(localEntry) };
-      assetKeys.forEach((assetKey) => {
+      IMMUTABLE_CATALOG_KEYS.forEach((assetKey) => {
         if (baseEntry && baseEntry[assetKey] !== undefined) {
           merged[assetKey] = deepClone(baseEntry[assetKey]);
         }
@@ -91,8 +100,15 @@
 
   function saveConfig(cfg) {
     const next = deepClone(cfg);
+    const base = baseCatalog();
     Object.keys(next.catalog || {}).forEach((key) => {
       if (!next.catalog[key]) return;
+      const baseEntry = base[key] || {};
+      IMMUTABLE_CATALOG_KEYS.forEach((assetKey) => {
+        if (baseEntry[assetKey] !== undefined) {
+          next.catalog[key][assetKey] = deepClone(baseEntry[assetKey]);
+        }
+      });
       next.catalog[key].specialBehavior = sanitizeSpecialBehavior(next.catalog[key].specialBehavior);
     });
     try {
@@ -787,7 +803,7 @@
       return "Uses the selected projectile type as a base, but the actual attack is a custom charging fire orb with specialized throw timing and jump behavior.";
     }
     if (key === "miniDemonFireThrower") {
-      return "Uses the selected projectile type as a base, but the actual attack is a custom orb/bomb with specialized arc, landing, and arming behavior.";
+      return "Uses the selected projectile visuals from the dropdown, but keeps custom lob, landing, and arming behavior in code.";
     }
     if (key === "miniDemonFireKeeper") {
       return "Uses the selected projectile type as a base, but release timing and projectile presentation are customized in code.";
@@ -813,7 +829,7 @@
     if (behaviors.has("preferEdges")) labels.push("Prefers arena edges");
     if (behaviors.has("swarmable")) labels.push("Swarm spacing logic");
     if (key === "miniDemonLord") labels.push("Custom charge orb + jump");
-    if (key === "miniDemonFireThrower") labels.push("Custom bomb arc + arming");
+    if (key === "miniDemonFireThrower") labels.push("Custom lob arc + arming");
     if (key === "miniDemonFireKeeper") labels.push("Custom materialize + cast phases");
     if (key === "miniDemoness") labels.push("Custom grab / whip behavior");
     if (key === "tormentorFlame" || behaviors.has("tormentorFlame")) labels.push("Custom flame visuals");

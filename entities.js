@@ -2875,11 +2875,7 @@
         spawnOverrides.speed = targetDistance / flightDuration;
         spawnOverrides.damage = 0;
         spawnOverrides.radius = Math.max(16, Math.min(baseConfig.radius || 18, 18));
-        spawnOverrides.frames = Array.isArray(projectileFrames.demonLordFireball)
-          ? projectileFrames.demonLordFireball.slice(0, 11)
-          : undefined;
         spawnOverrides.frameDuration = 0.05;
-        spawnOverrides.loopFrames = true;
         spawnOverrides.scale = 0.82;
         spawnOverrides.durabilityHealth = 20;
         spawnOverrides.durabilityDamagePerHit = 10;
@@ -2889,9 +2885,6 @@
         spawnOverrides.armedDuration = 2.1;
         spawnOverrides.fireThrowerLandingDamage = 5;
         spawnOverrides.fireThrowerLandingRadius = Math.max(spawnOverrides.radius * 2.1, 34);
-        spawnOverrides.armedFrames = Array.isArray(projectileFrames.demonLordFireball)
-          ? projectileFrames.demonLordFireball.slice(11, 18)
-          : undefined;
         spawnOverrides.onExpire = (proj) => {
           if (proj?.source?.fireThrowerBombActive === proj) {
             proj.source.fireThrowerBombActive = null;

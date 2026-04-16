@@ -11464,8 +11464,23 @@ class Projectile {
       this.radius || 0,
       Number(config.fireThrowerLandingRadius) || (this.radius || 0),
     );
-    if (config.frames && config.frames.length) {
-      this.frames = config.frames;
+    const extractedFrames =
+      this.fireThrowerBomb &&
+      (!Array.isArray(config.frames) || !config.frames.length) &&
+      clip?.image &&
+      Number.isFinite(clip.frameWidth) &&
+      Number.isFinite(clip.frameHeight) &&
+      clip.frameWidth > 0 &&
+      clip.frameHeight > 0 &&
+      typeof getFramesForClip === "function"
+        ? getFramesForClip(clip)
+        : null;
+    const resolvedFrames =
+      Array.isArray(config.frames) && config.frames.length
+        ? config.frames
+        : (Array.isArray(extractedFrames) && extractedFrames.length ? extractedFrames : null);
+    if (resolvedFrames && resolvedFrames.length) {
+      this.frames = resolvedFrames;
       this.frameDuration = config.frameDuration || 0.05;
       this.frameTimer = 0;
       this.frameIndex = 0;
