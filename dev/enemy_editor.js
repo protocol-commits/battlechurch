@@ -471,8 +471,8 @@
       #${OVERLAY_ID} .field--wide {
         grid-column: span 2;
       }
-      #${OVERLAY_ID} .field--full {
-        grid-column: 1 / -1;
+      #${OVERLAY_ID} .field--quarter {
+        grid-column: span 2;
       }
       #${OVERLAY_ID} .field-label {
         font: 700 10px "Trebuchet MS", Arial, sans-serif;
@@ -1222,7 +1222,7 @@
       lines.push("Drags lassoed targets inward at 86px/s.");
       lines.push("Maintains drain contact around 34px.");
     }
-    return lines.length ? lines : ["No custom movement logic."];
+    return lines;
   }
 
   function getSpecialAttackLines(key, enemy) {
@@ -1255,11 +1255,11 @@
       lines.push("Break cooldown after melee interruption: 3.0s.");
       lines.push("Current drain effect: target loses 1 faith per tick sequence until release threshold, not HP damage.");
     }
-    return lines.length ? lines : ["No custom attack logic."];
+    return lines;
   }
 
   function createSpecialBehaviorDetails(label, lines) {
-    const wrapper = createField(label, "field--full");
+    const wrapper = createField(label, "field--quarter");
     const details = document.createElement("details");
     details.className = "special-details";
     const summary = document.createElement("summary");
@@ -1267,11 +1267,17 @@
     details.appendChild(summary);
     const list = document.createElement("ul");
     list.className = "special-list";
-    lines.forEach((line) => {
+    if (!lines.length) {
       const item = document.createElement("li");
-      item.textContent = line;
+      item.textContent = "None";
       list.appendChild(item);
-    });
+    } else {
+      lines.forEach((line) => {
+        const item = document.createElement("li");
+        item.textContent = line;
+        list.appendChild(item);
+      });
+    }
     details.appendChild(list);
     wrapper.appendChild(details);
     return wrapper;
