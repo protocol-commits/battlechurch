@@ -357,6 +357,11 @@
         border-radius: 8px; padding: 10px;
         overflow: hidden; display: flex; flex-direction: column;
       }
+      #levelBuilderOverlay #lb-topPanel {
+        overflow: visible;
+        position: relative;
+        z-index: 30;
+      }
       #levelBuilderOverlay h3 { margin:0 0 8px 0; font-size:15px; letter-spacing:0.3px; }
       #levelBuilderOverlay label { font-size:12px; opacity:0.9; }
       #levelBuilderOverlay input, #levelBuilderOverlay select, #levelBuilderOverlay textarea {
@@ -501,9 +506,14 @@
             <label><input type="checkbox" id="lb-showHidden"> Show hidden</label>
           </div>
           <div class="group">
-            <button id="lb-copyTown" class="secondary" type="button">Copy Town</button>
-            <button id="lb-copyBattle" class="secondary" type="button">Copy Act</button>
-            <button id="lb-copyMission" class="secondary" type="button">Copy Battle</button>
+            <div id="lb-copyMenuWrap" style="position:relative;display:inline-block;">
+              <button id="lb-copyMenuButton" class="secondary" type="button">Copy ▾</button>
+              <div id="lb-copyMenu" class="lb-col-menu" style="top:calc(100% + 4px);left:0;right:auto;min-width:120px;">
+                <button class="lb-col-menu-item" data-copy-type="town" type="button">Copy Town</button>
+                <button class="lb-col-menu-item" data-copy-type="battle" type="button">Copy Act</button>
+                <button class="lb-col-menu-item" data-copy-type="mission" type="button">Copy Battle</button>
+              </div>
+            </div>
             <button id="lb-paste" class="secondary" type="button">Paste</button>
           </div>
           <div class="group">
@@ -535,9 +545,9 @@
     undo:        overlay.querySelector("#lb-undo"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
-    copyTown:    overlay.querySelector("#lb-copyTown"),
-    copyBattle:  overlay.querySelector("#lb-copyBattle"),
-    copyMission: overlay.querySelector("#lb-copyMission"),
+    copyMenuWrap: overlay.querySelector("#lb-copyMenuWrap"),
+    copyMenuButton: overlay.querySelector("#lb-copyMenuButton"),
+    copyMenu:    overlay.querySelector("#lb-copyMenu"),
     paste:       overlay.querySelector("#lb-paste"),
   };
 
@@ -1494,6 +1504,10 @@
   }
 
   function attachEvents() {
+    const closeTopMenus = () => {
+      els.copyMenu?.classList.remove("open");
+    };
+
     // Scope dropdowns
     ["town", "battle", "mission"].forEach((key) => {
       els[key].addEventListener("change", () => {
@@ -1511,37 +1525,39 @@
       });
     }
 
-    // Copy Town
-    if (els.copyTown) {
-      els.copyTown.addEventListener("click", () => {
-        const { town: townIdx } = state.scope;
-        const townObj = ensureTown(townIdx);
-        state.clipboard = { type: "town", data: JSON.parse(JSON.stringify(townObj)) };
-        updatePasteButtonState();
-        setStatus(`Copied Town ${townIdx}`);
+    if (els.copyMenuButton && els.copyMenu) {
+      els.copyMenuButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const wasOpen = els.copyMenu.classList.contains("open");
+        closeTopMenus();
+        if (!wasOpen) els.copyMenu.classList.add("open");
       });
-    }
-
-    // Copy Act
-    if (els.copyBattle) {
-      els.copyBattle.addEventListener("click", () => {
-        const { town: townIdx, battle: battleIdx } = state.scope;
-        const townObj = ensureTown(townIdx);
-        const battleObj = ensureBattle(townObj, battleIdx);
-        state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(battleObj)) };
-        updatePasteButtonState();
-        setStatus(`Copied Act ${battleIdx}`);
+      els.copyMenu.addEventListener("click", (e) => {
+        e.stopPropagation();
       });
-    }
-
-    // Copy Battle
-    if (els.copyMission) {
-      els.copyMission.addEventListener("click", () => {
-        const { missionObj } = getOrCreateMission();
-        state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
-        const { battle: battleIdx, mission: missionIdx } = state.scope;
-        updatePasteButtonState();
-        setStatus(`Copied Battle ${missionIdx} from Act ${battleIdx}`);
+      els.copyMenu.querySelectorAll("[data-copy-type]").forEach((item) => {
+        item.addEventListener("click", () => {
+          const copyType = item.getAttribute("data-copy-type");
+          if (copyType === "town") {
+            const { town: townIdx } = state.scope;
+            const townObj = ensureTown(townIdx);
+            state.clipboard = { type: "town", data: JSON.parse(JSON.stringify(townObj)) };
+            setStatus(`Copied Town ${townIdx}`);
+          } else if (copyType === "battle") {
+            const { town: townIdx, battle: battleIdx } = state.scope;
+            const townObj = ensureTown(townIdx);
+            const battleObj = ensureBattle(townObj, battleIdx);
+            state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(battleObj)) };
+            setStatus(`Copied Act ${battleIdx}`);
+          } else if (copyType === "mission") {
+            const { missionObj } = getOrCreateMission();
+            const { battle: battleIdx, mission: missionIdx } = state.scope;
+            state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
+            setStatus(`Copied Battle ${missionIdx} from Act ${battleIdx}`);
+          }
+          updatePasteButtonState();
+          closeTopMenus();
+        });
       });
     }
 
@@ -1593,6 +1609,11 @@
         undoLastEdit();
       });
     }
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target.closest("#lb-copyMenuWrap")) return;
+      closeTopMenus();
+    });
 
     if (els.load) {
       els.load.addEventListener("click", () => {
