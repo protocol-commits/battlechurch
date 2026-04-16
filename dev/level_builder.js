@@ -501,6 +501,7 @@
             <label><input type="checkbox" id="lb-showHidden"> Show hidden</label>
           </div>
           <div class="group">
+            <button id="lb-copyTown" class="secondary" type="button">Copy Town</button>
             <button id="lb-copyBattle" class="secondary" type="button">Copy Act</button>
             <button id="lb-copyMission" class="secondary" type="button">Copy Battle</button>
             <button id="lb-paste" class="secondary" type="button">Paste</button>
@@ -534,6 +535,7 @@
     undo:        overlay.querySelector("#lb-undo"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
+    copyTown:    overlay.querySelector("#lb-copyTown"),
     copyBattle:  overlay.querySelector("#lb-copyBattle"),
     copyMission: overlay.querySelector("#lb-copyMission"),
     paste:       overlay.querySelector("#lb-paste"),
@@ -573,7 +575,10 @@
   function updatePasteButtonState() {
     if (!els || !els.paste) return;
     const type = state.clipboard?.type;
-    if (type === "battle") {
+    if (type === "town") {
+      els.paste.textContent = "Paste Town";
+      els.paste.title = "Paste copied town";
+    } else if (type === "battle") {
       els.paste.textContent = "Paste Act";
       els.paste.title = "Paste copied act";
     } else if (type === "mission") {
@@ -1506,6 +1511,17 @@
       });
     }
 
+    // Copy Town
+    if (els.copyTown) {
+      els.copyTown.addEventListener("click", () => {
+        const { town: townIdx } = state.scope;
+        const townObj = ensureTown(townIdx);
+        state.clipboard = { type: "town", data: JSON.parse(JSON.stringify(townObj)) };
+        updatePasteButtonState();
+        setStatus(`Copied Town ${townIdx}`);
+      });
+    }
+
     // Copy Act
     if (els.copyBattle) {
       els.copyBattle.addEventListener("click", () => {
@@ -1535,7 +1551,15 @@
         if (!state.clipboard) { setStatus("Nothing to paste", true); return; }
         const { town: townIdx, battle: battleIdx, mission: missionIdx } = state.scope;
         const townObj = ensureTown(townIdx);
-        if (state.clipboard.type === "battle") {
+        if (state.clipboard.type === "town") {
+          pushUndoSnapshot();
+          const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
+          pasted.index = townIdx;
+          state.config.towns[townIdx - 1] = pasted;
+          saveToStorage(state.config);
+          refreshUI();
+          setStatus(`Pasted Town ${townIdx}`);
+        } else if (state.clipboard.type === "battle") {
           pushUndoSnapshot();
           const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
           pasted.index = battleIdx;
