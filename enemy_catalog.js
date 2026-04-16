@@ -390,7 +390,7 @@
     "spriteSrc": "assets/sprites/enemies/mini-demoness/MiniDemoness.png",
     "assetFolder": "Mini Demoness",
     "assetBaseName": "Mini Demoness",
-    "health": 5000,
+    "health": 300,
     "maxHealth": 45,
     "damage": 8,
     "speed": 70,
