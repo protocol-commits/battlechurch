@@ -23,6 +23,10 @@
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;
   }
 
+  const SOURCE_CATALOG = deepClone(
+    (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {},
+  );
+
   const IMMUTABLE_CATALOG_KEYS = [
     "spriteSrc",
     "assetFolder",
@@ -37,8 +41,64 @@
     getAssets: () => null,
   };
 
+  const SPECIAL_CATALOG_LOCKS = {
+    miniDemonLord: [
+      "projectileType",
+      "desiredRange",
+      "projectileCooldown",
+      "bossTier",
+      "preferredTarget",
+      "specialBehavior",
+      "damageClass",
+      "attackHitFrame",
+      "attackHitDamage",
+      "hitbox",
+      "weaponHitbox",
+    ],
+    miniDemonFireThrower: [
+      "projectileType",
+      "desiredRange",
+      "projectileCooldown",
+      "specialBehavior",
+      "hitbox",
+      "weaponHitbox",
+    ],
+    miniDemonFireKeeper: [
+      "projectileType",
+      "desiredRange",
+      "projectileCooldown",
+      "specialBehavior",
+      "hitbox",
+      "weaponHitbox",
+    ],
+    miniDemoness: [
+      "specialBehavior",
+      "hitbox",
+      "weaponHitbox",
+    ],
+  };
+
   function baseCatalog() {
-    return deepClone((window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {});
+    return deepClone(SOURCE_CATALOG);
+  }
+
+  function applyProtectedCatalogFields(entry, baseEntry, key) {
+    if (!entry || !baseEntry) return entry;
+    const lockedKeys = SPECIAL_CATALOG_LOCKS[key];
+    if (!Array.isArray(lockedKeys) || !lockedKeys.length) return entry;
+    lockedKeys.forEach((fieldKey) => {
+      if (baseEntry[fieldKey] === undefined) {
+        delete entry[fieldKey];
+      } else {
+        entry[fieldKey] = deepClone(baseEntry[fieldKey]);
+      }
+    });
+    return entry;
+  }
+
+  function isProtectedCatalogField(key, field) {
+    const lockedKeys = SPECIAL_CATALOG_LOCKS[key];
+    return Array.isArray(lockedKeys) && lockedKeys.includes(field);
   }
 
   function loadConfig() {
@@ -72,6 +132,7 @@
           merged[assetKey] = deepClone(baseEntry[assetKey]);
         }
       });
+      applyProtectedCatalogFields(merged, baseEntry, key);
       merged.specialBehavior = sanitizeSpecialBehavior(merged.specialBehavior);
       cfg.catalog[key] = merged;
     });
@@ -109,6 +170,7 @@
           next.catalog[key][assetKey] = deepClone(baseEntry[assetKey]);
         }
       });
+      applyProtectedCatalogFields(next.catalog[key], baseEntry, key);
       next.catalog[key].specialBehavior = sanitizeSpecialBehavior(next.catalog[key].specialBehavior);
     });
     try {
@@ -123,6 +185,17 @@
 
   function exportFile(cfg) {
     const data = deepClone(cfg.catalog || {});
+    const base = baseCatalog();
+    Object.keys(data).forEach((key) => {
+      const baseEntry = base[key] || {};
+      IMMUTABLE_CATALOG_KEYS.forEach((assetKey) => {
+        if (baseEntry[assetKey] !== undefined) {
+          data[key][assetKey] = deepClone(baseEntry[assetKey]);
+        }
+      });
+      applyProtectedCatalogFields(data[key], baseEntry, key);
+      data[key].specialBehavior = sanitizeSpecialBehavior(data[key].specialBehavior);
+    });
     const body = `(function(global) {\n  const ENEMY_CATALOG = ${JSON.stringify(data, null, 2)};\n  const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});\n  ns.catalog = ENEMY_CATALOG;\n  const defs = global.BattlechurchEnemyDefinitions || (global.BattlechurchEnemyDefinitions = {});\n  Object.assign(defs, ENEMY_CATALOG);\n})(typeof window !== "undefined" ? window : globalThis);\n`;
     const blob = new Blob([body], { type: "application/javascript" });
     const url = URL.createObjectURL(blob);
@@ -378,6 +451,9 @@
         gap: 6px;
         min-width: 0;
       }
+      #${OVERLAY_ID} .field.is-locked {
+        opacity: 0.82;
+      }
       #${OVERLAY_ID} .field--wide {
         grid-column: span 2;
       }
@@ -386,6 +462,19 @@
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: rgba(232, 244, 255, 0.58);
+      }
+      #${OVERLAY_ID} .field-lock {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 6px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 210, 122, 0.28);
+        background: rgba(255, 210, 122, 0.1);
+        color: #ffd98f;
+        font: 700 9px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.04em;
+        vertical-align: middle;
       }
       #${OVERLAY_ID} input[type="number"],
       #${OVERLAY_ID} select,
@@ -399,6 +488,23 @@
         color: #e8f4ff;
         box-sizing: border-box;
         font: 600 13px "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} input[type="number"]:disabled,
+      #${OVERLAY_ID} select:disabled {
+        cursor: not-allowed;
+        border-color: rgba(255, 210, 122, 0.22);
+        background: rgba(255, 210, 122, 0.08);
+        color: rgba(255, 236, 199, 0.9);
+      }
+      #${OVERLAY_ID} .field.is-locked details summary {
+        cursor: not-allowed;
+        border-color: rgba(255, 210, 122, 0.22);
+        background: rgba(255, 210, 122, 0.08);
+        color: rgba(255, 236, 199, 0.9);
+      }
+      #${OVERLAY_ID} .field-note {
+        color: rgba(255, 217, 143, 0.88);
+        font: 11px/1.35 "Trebuchet MS", Arial, sans-serif;
       }
       #${OVERLAY_ID} details.tags-dropdown summary {
         list-style: none;
@@ -902,22 +1008,40 @@
     );
   }
 
-  function createField(label, modifierClass = "") {
+  function createField(label, modifierClass = "", options = {}) {
     const field = document.createElement("div");
     field.className = `field${modifierClass ? ` ${modifierClass}` : ""}`;
     const labelEl = document.createElement("div");
     labelEl.className = "field-label";
     labelEl.textContent = label;
+    if (options.locked) {
+      field.classList.add("is-locked");
+      const lock = document.createElement("span");
+      lock.className = "field-lock";
+      lock.textContent = "Code";
+      labelEl.appendChild(lock);
+    }
     field.appendChild(labelEl);
+    if (options.note) {
+      const note = document.createElement("div");
+      note.className = "field-note";
+      note.textContent = options.note;
+      field.appendChild(note);
+    }
     return field;
   }
 
   function createNumberInput(key, field, label, modifierClass = "") {
     const enemy = ensureEnemy(key);
-    const wrapper = createField(label, modifierClass);
+    const locked = isProtectedCatalogField(key, field);
+    const wrapper = createField(label, modifierClass, {
+      locked,
+      note: locked ? "Controlled by enemy-specific code." : "",
+    });
     const input = document.createElement("input");
     input.type = "number";
     input.value = enemy[field] ?? "";
+    input.disabled = locked;
     input.addEventListener("change", () => {
       const val = input.value === "" ? null : Number(input.value);
       if (val === null || Number.isNaN(val)) delete enemy[field];
@@ -929,12 +1053,17 @@
 
   function createDamageInput(key, field, label, fallbackField = "damage", modifierClass = "") {
     const enemy = ensureEnemy(key);
-    const wrapper = createField(label, modifierClass);
+    const locked = isProtectedCatalogField(key, field);
+    const wrapper = createField(label, modifierClass, {
+      locked,
+      note: locked ? "Controlled by enemy-specific code." : "",
+    });
     const input = document.createElement("input");
     input.type = "number";
     const initialValue =
       enemy[field] ?? (fallbackField && enemy[fallbackField] !== undefined ? enemy[fallbackField] : "");
     input.value = initialValue;
+    input.disabled = locked;
     input.addEventListener("change", () => {
       const val = input.value === "" ? null : Number(input.value);
       if (val === null || Number.isNaN(val)) delete enemy[field];
@@ -1061,7 +1190,11 @@
   }
 
   function createProjectileSelect(key) {
-    const wrapper = createField("Projectile", "field--wide");
+    const locked = isProtectedCatalogField(key, "projectileType");
+    const wrapper = createField("Projectile", "field--wide", {
+      locked,
+      note: locked ? "Projectile behavior is code-owned for this enemy." : "",
+    });
     const enemy = ensureEnemy(key);
     const details = document.createElement("details");
     details.className = "tags-dropdown projectile-picker";
@@ -1096,26 +1229,35 @@
       textWrap.appendChild(title);
       textWrap.appendChild(keyText);
       button.appendChild(textWrap);
-      button.addEventListener("click", () => {
-        enemy.projectileType = projectileKey || null;
-        details.open = false;
-        renderTable();
-      });
+      button.disabled = locked;
+      if (!locked) {
+        button.addEventListener("click", () => {
+          enemy.projectileType = projectileKey || null;
+          details.open = false;
+          renderTable();
+        });
+      }
       panel.appendChild(button);
     });
     details.appendChild(panel);
     wrapper.appendChild(details);
     const note = document.createElement("div");
-    note.className = "muted";
+    note.className = locked ? "field-note" : "muted";
     note.style.fontSize = "11px";
     note.style.lineHeight = "1.35";
-    note.textContent = getProjectileBehaviorNote(key, enemy);
+    note.textContent = locked
+      ? "Editor saves preserve the source projectile definition for this enemy."
+      : getProjectileBehaviorNote(key, enemy);
     wrapper.appendChild(note);
     return wrapper;
   }
 
   function createDamageClassSelect(key) {
-    const wrapper = createField("Class");
+    const locked = isProtectedCatalogField(key, "damageClass");
+    const wrapper = createField("Class", "", {
+      locked,
+      note: locked ? "Controlled by enemy-specific code." : "",
+    });
     const enemy = ensureEnemy(key);
     const select = document.createElement("select");
     ["normal", "tank", "armored"].forEach((value) => {
@@ -1125,14 +1267,17 @@
       select.appendChild(option);
     });
     select.value = (enemy.damageClass || "normal").toLowerCase();
-    select.addEventListener("change", () => {
-      const next = (select.value || "normal").toLowerCase();
-      if (next === "normal") {
-        delete enemy.damageClass;
-      } else {
-        enemy.damageClass = next;
-      }
-    });
+    select.disabled = locked;
+    if (!locked) {
+      select.addEventListener("change", () => {
+        const next = (select.value || "normal").toLowerCase();
+        if (next === "normal") {
+          delete enemy.damageClass;
+        } else {
+          enemy.damageClass = next;
+        }
+      });
+    }
     wrapper.appendChild(select);
     return wrapper;
   }
@@ -1141,7 +1286,11 @@
     const enemy = ensureEnemy(key);
     const tags = new Set(sanitizeSpecialBehavior(enemy.specialBehavior));
     if (enemy.ranged) tags.add("ranged");
-    const wrapper = createField("Tags", "field--wide");
+    const locked = isProtectedCatalogField(key, "specialBehavior");
+    const wrapper = createField("Tags", "field--wide", {
+      locked,
+      note: locked ? "Behavior tags are code-owned for this enemy." : "",
+    });
     const details = document.createElement("details");
     details.className = "tags-dropdown";
     const summary = document.createElement("summary");
@@ -1156,15 +1305,18 @@
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.checked = tags.has(tag);
-      cb.addEventListener("change", () => {
-        if (cb.checked) tags.add(tag);
-        else tags.delete(tag);
-        enemy.specialBehavior = sanitizeSpecialBehavior(Array.from(tags));
-        enemy.ranged = tags.has("ranged");
-        const updated = sanitizeSpecialBehavior(Array.from(tags));
-        summary.textContent = updated.length ? updated.join(", ") : "Select behavior tags";
-        renderTable(); // refresh to reflect swarm spacing availability
-      });
+      cb.disabled = locked;
+      if (!locked) {
+        cb.addEventListener("change", () => {
+          if (cb.checked) tags.add(tag);
+          else tags.delete(tag);
+          enemy.specialBehavior = sanitizeSpecialBehavior(Array.from(tags));
+          enemy.ranged = tags.has("ranged");
+          const updated = sanitizeSpecialBehavior(Array.from(tags));
+          summary.textContent = updated.length ? updated.join(", ") : "Select behavior tags";
+          renderTable(); // refresh to reflect swarm spacing availability
+        });
+      }
       label.appendChild(cb);
       label.append(" " + tag);
       panel.appendChild(label);
