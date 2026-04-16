@@ -10,14 +10,13 @@
     "swarmable",
     "ranged",
     "npcPriority",
-    "mini",
     "preferEdges",
     "closestAny",
   ];
 
   function sanitizeSpecialBehavior(value) {
     const tags = Array.isArray(value) ? value : [];
-    return tags.filter((tag) => tag && !["popcorn", "elite", "axe"].includes(tag));
+    return tags.filter((tag) => tag && !["popcorn", "elite", "axe", "mini"].includes(tag));
   }
 
   function deepClone(obj) {

@@ -45,7 +45,6 @@ window.BattlechurchLevelData = {
       "miniDemonTormentor": {
         "speed": 50,
         "specialBehavior": [
-          "mini",
           "boss",
           "npcPriority"
         ],

@@ -9301,10 +9301,6 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
   if (entity?.ignoreEntityCollisions) return;
   const hasMiniBehavior = (ent) => {
     if (!ent) return false;
-    const behavior = Array.isArray(ent.config?.specialBehavior)
-      ? ent.config.specialBehavior
-      : [];
-    if (behavior.includes("mini")) return true;
     const type = typeof ent.type === "string" ? ent.type.toLowerCase() : "";
     return type.startsWith("mini");
   };

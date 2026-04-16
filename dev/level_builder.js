@@ -163,6 +163,12 @@
     undoStack: [],
   };
   const MAX_UNDO_STEPS = 50;
+  const HIDDEN_ENEMY_FILTER_TAGS = new Set([
+    "all",
+    "closestAny",
+    "preferEdges",
+    "npcPriority",
+  ]);
 
   // Classify enemies into filter tags based on catalog properties.
   function getEnemyType(key, catalog) {
@@ -206,7 +212,7 @@
     });
     Object.keys(catalog || {}).forEach((key) => {
       getEnemyFilterTags(key, catalog).forEach((tag) => {
-        if (!seen.has(tag)) {
+        if (!seen.has(tag) && !HIDDEN_ENEMY_FILTER_TAGS.has(tag)) {
           seen.add(tag);
           options.push(tag);
         }
