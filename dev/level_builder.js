@@ -137,6 +137,7 @@
     if (fileConfig && typeof fileConfig === "object") {
       const normalized = normalizeConfig(fileConfig);
       state.config = normalized;
+      clearUndoHistory();
       saveToStorage(state.config);
       return true;
     }
@@ -149,6 +150,7 @@
     } catch (err) {
       console.warn("LevelBuilder: failed to save", err);
     }
+    updateUndoButtonState();
   }
 
   const state = {
@@ -158,7 +160,9 @@
     showHidden: false,
     clipboard: null, // { type: 'horde'|'wave'|'mission'|'battle', data: deepClone }
     enemySort: "default", // "default" | "type" | "name"
+    undoStack: [],
   };
+  const MAX_UNDO_STEPS = 50;
 
   // Classify enemies into types based on catalog properties
   function getEnemyType(key, catalog) {
@@ -325,6 +329,9 @@
       }
       #levelBuilderOverlay button.secondary { background:rgba(255,255,255,0.08); }
       #levelBuilderOverlay button.danger { background:rgba(200,50,50,0.7); }
+      #levelBuilderOverlay button:disabled {
+        opacity:0.45; cursor:not-allowed;
+      }
       #levelBuilderOverlay .scroll { overflow:auto; flex:1; }
       /* Mission column layout */
       #levelBuilderOverlay .lb-mission-cols { display:flex; gap:0; width:max-content; }
@@ -453,6 +460,7 @@
             <button id="lb-paste" class="secondary" type="button">Paste</button>
           </div>
           <div class="group">
+            <button id="lb-undo" class="secondary" type="button" disabled>Undo</button>
             <button id="lb-close" class="secondary">Close (Esc)</button>
             <button id="lb-load" class="secondary" type="button">Load from file</button>
             <button id="lb-save" type="button">Save</button>
@@ -477,6 +485,7 @@
     load:        overlay.querySelector("#lb-load"),
     save:        overlay.querySelector("#lb-save"),
     saveAs:      overlay.querySelector("#lb-saveAs"),
+    undo:        overlay.querySelector("#lb-undo"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
     copyBattle:  overlay.querySelector("#lb-copyBattle"),
@@ -502,6 +511,39 @@
     els.town.value    = String(state.scope.town);
     els.battle.value  = String(state.scope.battle);
     els.mission.value = String(state.scope.mission);
+  }
+
+  function clearUndoHistory() {
+    state.undoStack = [];
+    updateUndoButtonState();
+  }
+
+  function updateUndoButtonState() {
+    if (!els || !els.undo) return;
+    els.undo.disabled = state.undoStack.length === 0;
+    els.undo.title = state.undoStack.length ? "Undo last edit" : "Nothing to undo";
+  }
+
+  function pushUndoSnapshot() {
+    state.undoStack.push(deepClone(state.config));
+    if (state.undoStack.length > MAX_UNDO_STEPS) {
+      state.undoStack.splice(0, state.undoStack.length - MAX_UNDO_STEPS);
+    }
+    updateUndoButtonState();
+  }
+
+  function undoLastEdit() {
+    if (!state.undoStack.length) {
+      setStatus("Nothing to undo", true);
+      return false;
+    }
+    const previous = state.undoStack.pop();
+    state.config = normalizeConfig(previous);
+    saveToStorage(state.config);
+    refreshUI();
+    updateUndoButtonState();
+    setStatus(`Undid last edit ${formatNow()}`);
+    return true;
   }
 
   // Render the full column-based mission view.
@@ -559,22 +601,37 @@
       `<div style="height:32px;line-height:32px;padding:0 8px;border-bottom:1px solid rgba(120,170,220,0.1);">Duration (s)</div><div style="height:32px;line-height:32px;padding:0 8px;">All Kill</div>`;
     labelCol.appendChild(settingsSpacer);
     const TYPE_COLORS = { normal: "#8cb4e0", tank: "#e0a040", projectile: "#e06060", armored: "#a0a0b0" };
+    const enemyBattleTotals = {};
+    waves.forEach((wave) => {
+      const hordes = Array.isArray(wave?.hordes) ? wave.hordes : [];
+      hordes.forEach((horde) => {
+        const entries = Array.isArray(horde?.entries) ? horde.entries : [];
+        entries.forEach((entry) => {
+          if (!entry?.enemy) return;
+          enemyBattleTotals[entry.enemy] =
+            (enemyBattleTotals[entry.enemy] || 0) + Math.max(0, Number(entry.count) || 0);
+        });
+      });
+    });
+
     visibleKeys.forEach((key) => {
       const row = document.createElement("div");
       row.className = "lb-label-row";
       const isHidden = hiddenSet.has(key);
       const displayLabel = formatEnemyLabel(key, catalog);
+      const totalCount = enemyBattleTotals[key] || 0;
       row.innerHTML = `
         <div style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;">
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
         <span title="${key}" style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${state.enemySort === "type" ? (TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff") : "#e8f4ff"};">${displayLabel}</span>
-        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this mission" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">0</button>
+        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this mission" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
         <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
       const clearBtn = row.querySelector(`[data-clear-key="${key}"]`);
       if (clearBtn) {
         clearBtn.addEventListener("click", () => {
+          pushUndoSnapshot();
           clearEnemyFromMission(missionObj, key);
           saveToStorage(state.config);
           renderMissionView();
@@ -637,6 +694,7 @@
         breakerMenuInput.addEventListener("click", (e) => e.stopPropagation());
         breakerMenuInput.addEventListener("keydown", (e) => e.stopPropagation());
         breakerMenuInput.addEventListener("change", () => {
+          pushUndoSnapshot();
           wave.breakerDuration = Math.max(0, Number(breakerMenuInput.value) || 0);
           saveToStorage(state.config);
         });
@@ -648,15 +706,18 @@
           waveMenu.classList.remove("open");
           const action = item.getAttribute("data-action");
           if (action === "insert-before") {
+            pushUndoSnapshot();
             // Empty wave break — no default hordes, just a separator with text/duration
             missionObj.waves.splice(wIdx, 0, { index: 0, introText: "", breakerDuration: 3, hordes: [] });
             missionObj.waves.forEach((w, i) => { w.index = i + 1; });
             saveToStorage(state.config); renderMissionView();
           } else if (action === "insert-after") {
+            pushUndoSnapshot();
             missionObj.waves.splice(wIdx + 1, 0, { index: 0, introText: "", breakerDuration: 3, hordes: [] });
             missionObj.waves.forEach((w, i) => { w.index = i + 1; });
             saveToStorage(state.config); renderMissionView();
           } else if (action === "move-left" && canShiftLeft) {
+            pushUndoSnapshot();
             // Shift the break left: move the first horde of this wave to the end of the previous wave
             const movedHorde = missionObj.waves[wIdx].hordes.shift();
             missionObj.waves[wIdx - 1].hordes.push(movedHorde);
@@ -664,6 +725,7 @@
             missionObj.waves[wIdx].hordes.forEach((h, i) => { h.index = i + 1; });
             saveToStorage(state.config); renderMissionView();
           } else if (action === "move-right" && canShiftRight) {
+            pushUndoSnapshot();
             // Shift the break right: move the last horde of the previous wave to the start of this wave
             const movedHorde = missionObj.waves[wIdx - 1].hordes.pop();
             missionObj.waves[wIdx].hordes.unshift(movedHorde);
@@ -671,6 +733,7 @@
             missionObj.waves[wIdx].hordes.forEach((h, i) => { h.index = i + 1; });
             saveToStorage(state.config); renderMissionView();
           } else if (action === "delete-wave") {
+            pushUndoSnapshot();
             // Merge this wave's hordes into adjacent wave, preserve the hordes
             if (wIdx > 0) {
               missionObj.waves[wIdx - 1].hordes.push(...missionObj.waves[wIdx].hordes);
@@ -699,6 +762,7 @@
       const introTA = document.createElement("textarea");
       introTA.value = wave.introText || "";
       introTA.addEventListener("change", () => {
+        pushUndoSnapshot();
         wave.introText = introTA.value;
         saveToStorage(state.config);
       });
@@ -720,6 +784,7 @@
       addHordeBtn.style.cssText = "padding:3px 6px;font-size:10px;width:100%;";
       addHordeBtn.textContent = "+ Horde";
       addHordeBtn.addEventListener("click", () => {
+        pushUndoSnapshot();
         const newIdx = wave.hordes.length + 1;
         wave.hordes.push(makeDefaultHorde(newIdx));
         saveToStorage(state.config);
@@ -770,20 +835,24 @@
               setStatus("Horde copied");
             } else if (action === "paste") {
               if (state.clipboard?.type === "horde") {
+                pushUndoSnapshot();
                 const pasted = deepClone(state.clipboard.data);
                 pasted.index = horde.index;
                 wave.hordes[hIdx] = pasted;
                 saveToStorage(state.config); renderMissionView();
               }
             } else if (action === "insert-before") {
+              pushUndoSnapshot();
               wave.hordes.splice(hIdx, 0, makeDefaultHorde(0));
               wave.hordes.forEach((h, i) => { h.index = i + 1; });
               saveToStorage(state.config); renderMissionView();
             } else if (action === "insert-after") {
+              pushUndoSnapshot();
               wave.hordes.splice(hIdx + 1, 0, makeDefaultHorde(0));
               wave.hordes.forEach((h, i) => { h.index = i + 1; });
               saveToStorage(state.config); renderMissionView();
             } else if (action === "split-wave" && hIdx > 0) {
+              pushUndoSnapshot();
               // Pull hordes from this position onward into a new wave
               const splitHordes = wave.hordes.splice(hIdx);
               splitHordes.forEach((h, i) => { h.index = i + 1; });
@@ -793,6 +862,7 @@
               missionObj.waves.forEach((w, i) => { w.index = i + 1; });
               saveToStorage(state.config); renderMissionView();
             } else if (action === "delete") {
+              pushUndoSnapshot();
               wave.hordes.splice(hIdx, 1);
               wave.hordes.forEach((h, i) => { h.index = i + 1; });
               saveToStorage(state.config); renderMissionView();
@@ -812,6 +882,7 @@
         durInput.type = "number"; durInput.min = "1"; durInput.step = "1";
         durInput.value = String(horde.duration || state.config.structure.defaultHordeDuration || 4);
         durInput.addEventListener("change", () => {
+          pushUndoSnapshot();
           horde.duration = Math.max(1, Number(durInput.value) || 1);
           saveToStorage(state.config);
         });
@@ -822,6 +893,7 @@
         const akBox = document.createElement("input");
         akBox.type = "checkbox"; akBox.checked = !!horde.allKill;
         akBox.addEventListener("change", () => {
+          pushUndoSnapshot();
           horde.allKill = akBox.checked;
           saveToStorage(state.config);
         });
@@ -847,6 +919,8 @@
           input.tabIndex = enemyIdx * totalHordeCols + currentCol + 1;
           input.addEventListener("change", () => {
             const val = Math.max(0, Number(input.value) || 0);
+            if (val === countVal) return;
+            pushUndoSnapshot();
             horde.entries = Array.isArray(horde.entries) ? horde.entries : [];
             const idx = horde.entries.findIndex((e) => e && e.enemy === key);
             if (val > 0) {
@@ -873,6 +947,7 @@
     addWaveBtn.style.cssText = "writing-mode:vertical-rl;padding:8px 4px;font-size:11px;";
     addWaveBtn.textContent = "+ Wave";
     addWaveBtn.addEventListener("click", () => {
+      pushUndoSnapshot();
       missionObj.waves.push(makeDefaultWave(missionObj.waves.length + 1));
       saveToStorage(state.config);
       renderMissionView();
@@ -1260,6 +1335,7 @@
   }
 
   function toggleHiddenEnemy(key) {
+    pushUndoSnapshot();
     const hidden = state.config.globals.hiddenEnemies || [];
     const idx = hidden.indexOf(key);
     if (idx >= 0) hidden.splice(idx, 1);
@@ -1325,6 +1401,7 @@
     const cfg = await fetchServerConfig();
     if (cfg) {
       state.config = cfg;
+      clearUndoHistory();
       saveToStorage(state.config);
       refreshUI();
       if (showStatus) setStatus(`Loaded from level_data.js (${formatNow()})`);
@@ -1398,6 +1475,7 @@
         const { town: townIdx, battle: battleIdx, mission: missionIdx } = state.scope;
         const townObj = ensureTown(townIdx);
         if (state.clipboard.type === "battle") {
+          pushUndoSnapshot();
           const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
           pasted.index = battleIdx;
           const bList = townObj.battles;
@@ -1408,6 +1486,7 @@
           refreshUI();
           setStatus(`Pasted battle into Town ${townIdx} Battle ${battleIdx}`);
         } else if (state.clipboard.type === "mission") {
+          pushUndoSnapshot();
           const battleObj = ensureBattle(townObj, battleIdx);
           const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
           pasted.index = missionIdx;
@@ -1421,6 +1500,12 @@
         } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
           setStatus("Use the column ▾ menu to paste hordes/waves", true);
         }
+      });
+    }
+
+    if (els.undo) {
+      els.undo.addEventListener("click", () => {
+        undoLastEdit();
       });
     }
 
@@ -1465,6 +1550,7 @@
     }
 
     els.close.addEventListener("click", hide);
+    updateUndoButtonState();
   }
 
   function show() {
@@ -1494,6 +1580,18 @@
   document.addEventListener("keydown", (e) => {
     if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) return;
     if (isTypingTarget(e.target)) return;
+    if (
+      overlay.style.display === "block" &&
+      e.key &&
+      e.key.toLowerCase() === "z" &&
+      (e.metaKey || e.ctrlKey) &&
+      !e.shiftKey &&
+      !e.altKey
+    ) {
+      e.preventDefault();
+      undoLastEdit();
+      return;
+    }
     if (
       e.key &&
       e.key.toLowerCase() === "l" &&

@@ -137,10 +137,6 @@ window.BattlechurchLevelData = {
                           "count": 2
                         },
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 1
-                        },
-                        {
                           "enemy": "miniDemonTormentor",
                           "count": 1
                         },
