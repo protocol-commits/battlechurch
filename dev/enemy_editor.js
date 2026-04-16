@@ -445,6 +445,78 @@
         font: 600 12px "Trebuchet MS", Arial, sans-serif;
         white-space: nowrap;
       }
+      #${OVERLAY_ID} .projectile-picker summary {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #${OVERLAY_ID} .projectile-picker summary .projectile-picker-label {
+        flex: 1;
+        min-width: 0;
+      }
+      #${OVERLAY_ID} .projectile-picker-panel {
+        margin-top: 8px;
+        padding: 10px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(7, 12, 22, 0.98);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 280px;
+        overflow: auto;
+      }
+      #${OVERLAY_ID} .projectile-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #e8f4ff;
+        text-align: left;
+        box-shadow: none;
+      }
+      #${OVERLAY_ID} .projectile-option:hover {
+        background: rgba(143, 213, 255, 0.12);
+      }
+      #${OVERLAY_ID} .projectile-option.is-selected {
+        border-color: rgba(143, 213, 255, 0.35);
+        background: rgba(143, 213, 255, 0.12);
+      }
+      #${OVERLAY_ID} .projectile-option-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      #${OVERLAY_ID} .projectile-option-title {
+        font: 700 12px "Trebuchet MS", Arial, sans-serif;
+        color: #f5fbff;
+      }
+      #${OVERLAY_ID} .projectile-option-key {
+        font: 11px "Trebuchet MS", Arial, sans-serif;
+        color: rgba(232, 244, 255, 0.55);
+      }
+      #${OVERLAY_ID} .projectile-thumb {
+        width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: radial-gradient(circle at top, rgba(155, 217, 255, 0.14), rgba(7, 12, 22, 0.92));
+        overflow: hidden;
+      }
+      #${OVERLAY_ID} .projectile-thumb canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
       #${OVERLAY_ID} .muted {
         color: rgba(232, 244, 255, 0.55);
       }
@@ -508,6 +580,8 @@
   };
   let spriteRafId = null;
   let spriteCells = new Map();
+  let projectileThumbCells = new Map();
+  let projectileThumbCounter = 0;
   const spriteBoundsCache = new Map();
 
   function setStatus(text, isError = false) {
@@ -530,6 +604,12 @@
     const enemyClips = assets?.enemies?.[key] || null;
     if (!enemyClips) return null;
     return enemyClips.idle || enemyClips.walk || enemyClips.attack || null;
+  }
+
+  function getClipForProjectile(key) {
+    if (!key) return null;
+    const assets = bindings.getAssets ? bindings.getAssets() : null;
+    return assets?.projectiles?.[key] || null;
   }
 
   function getEnemyScale(key) {
@@ -727,6 +807,7 @@
 
   function renderSprites(nowMs) {
     spriteCells.forEach((entry) => drawSpriteCell(entry, nowMs));
+    projectileThumbCells.forEach((entry) => drawProjectileThumb(entry, nowMs));
   }
 
   function startSpriteLoop() {
@@ -746,6 +827,79 @@
     if (!spriteRafId) return;
     cancelAnimationFrame(spriteRafId);
     spriteRafId = null;
+  }
+
+  function createProjectileThumbCell(projectileKey, size = 34) {
+    const wrap = document.createElement("div");
+    wrap.className = "projectile-thumb";
+    const canvas = document.createElement("canvas");
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    canvas.width = Math.floor(size * dpr);
+    canvas.height = Math.floor(size * dpr);
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
+    wrap.appendChild(canvas);
+    const id = `projectile-${projectileThumbCounter += 1}`;
+    projectileThumbCells.set(id, {
+      id,
+      projectileKey,
+      canvas,
+      ctx: canvas.getContext("2d"),
+      size,
+      dpr,
+    });
+    return wrap;
+  }
+
+  function drawProjectileThumb(entry, nowMs) {
+    const { projectileKey, ctx, canvas, size, dpr } = entry;
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const clip = getClipForProjectile(projectileKey);
+    const cellSize = size * dpr;
+    if (!clip) {
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    if (Array.isArray(clip.frames) && clip.frames.length) {
+      const rate = clip.frameRate && clip.frameRate > 0 ? clip.frameRate : SPRITE_FRAME_RATE;
+      const frameIndex = Math.floor((nowMs / 1000) * rate) % Math.max(1, clip.frames.length);
+      const frame = clip.frames[frameIndex];
+      if (!frame) return;
+      const scale = Math.min(cellSize / Math.max(1, frame.width), cellSize / Math.max(1, frame.height)) * 0.9;
+      const drawW = frame.width * scale;
+      const drawH = frame.height * scale;
+      ctx.drawImage(frame, (cellSize - drawW) / 2, (cellSize - drawH) / 2, drawW, drawH);
+      return;
+    }
+    if (!clip.image || !clip.frameWidth || !clip.frameHeight) {
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    const frameMap = Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap : null;
+    const cols = Math.max(1, Math.floor(clip.image.width / clip.frameWidth));
+    const totalFrames = frameMap ? frameMap.length : Math.max(1, clip.frameCount || cols * Math.max(1, Math.floor(clip.image.height / clip.frameHeight)));
+    const rate = clip.frameRate && clip.frameRate > 0 ? clip.frameRate : SPRITE_FRAME_RATE;
+    const frameIndex = Math.floor((nowMs / 1000) * rate) % Math.max(1, totalFrames);
+    const spriteFrame = frameMap ? frameMap[frameIndex] : frameIndex;
+    const sx = (spriteFrame % cols) * clip.frameWidth;
+    const sy = Math.floor(spriteFrame / cols) * clip.frameHeight;
+    const scale = Math.min(cellSize / Math.max(1, clip.frameWidth), cellSize / Math.max(1, clip.frameHeight)) * 0.9;
+    const drawW = clip.frameWidth * scale;
+    const drawH = clip.frameHeight * scale;
+    ctx.drawImage(
+      clip.image,
+      sx,
+      sy,
+      clip.frameWidth,
+      clip.frameHeight,
+      (cellSize - drawW) / 2,
+      (cellSize - drawH) / 2,
+      drawW,
+      drawH,
+    );
   }
 
   function createField(label, modifierClass = "") {
@@ -909,23 +1063,48 @@
   function createProjectileSelect(key) {
     const wrapper = createField("Projectile", "field--wide");
     const enemy = ensureEnemy(key);
-    const select = document.createElement("select");
-    const noneOpt = document.createElement("option");
-    noneOpt.value = "";
-    noneOpt.textContent = "Default";
-    select.appendChild(noneOpt);
-    getProjectileKeys().forEach((pKey) => {
-      const option = document.createElement("option");
-      option.value = pKey;
-      option.textContent = formatProjectileLabel(pKey);
-      select.appendChild(option);
+    const details = document.createElement("details");
+    details.className = "tags-dropdown projectile-picker";
+    const summary = document.createElement("summary");
+    const summaryThumb = createProjectileThumbCell(enemy.projectileType || "", 34);
+    const summaryLabel = document.createElement("div");
+    summaryLabel.className = "projectile-picker-label";
+    summaryLabel.textContent = formatProjectileLabel(enemy.projectileType || "");
+    summary.appendChild(summaryThumb);
+    summary.appendChild(summaryLabel);
+    details.appendChild(summary);
+
+    const panel = document.createElement("div");
+    panel.className = "projectile-picker-panel";
+    const options = ["", ...getProjectileKeys()];
+    options.forEach((projectileKey) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "projectile-option";
+      if ((enemy.projectileType || "") === projectileKey) {
+        button.classList.add("is-selected");
+      }
+      button.appendChild(createProjectileThumbCell(projectileKey || "", 34));
+      const textWrap = document.createElement("div");
+      textWrap.className = "projectile-option-text";
+      const title = document.createElement("div");
+      title.className = "projectile-option-title";
+      title.textContent = formatProjectileLabel(projectileKey);
+      const keyText = document.createElement("div");
+      keyText.className = "projectile-option-key";
+      keyText.textContent = projectileKey || "(uses enemy default)";
+      textWrap.appendChild(title);
+      textWrap.appendChild(keyText);
+      button.appendChild(textWrap);
+      button.addEventListener("click", () => {
+        enemy.projectileType = projectileKey || null;
+        details.open = false;
+        renderTable();
+      });
+      panel.appendChild(button);
     });
-    select.value = enemy.projectileType || "";
-    select.addEventListener("change", () => {
-      const val = select.value;
-      enemy.projectileType = val || null;
-    });
-    wrapper.appendChild(select);
+    details.appendChild(panel);
+    wrapper.appendChild(details);
     const note = document.createElement("div");
     note.className = "muted";
     note.style.fontSize = "11px";
@@ -1073,6 +1252,7 @@
 
   function renderTable() {
     spriteCells = new Map();
+    projectileThumbCells = new Map();
     els.list.innerHTML = "";
     const keys = Object.keys(state.cfg.catalog || {}).sort();
     keys.forEach((key) => {
