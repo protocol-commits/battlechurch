@@ -627,9 +627,11 @@
       `;
       waveMenuBtn.addEventListener("click", (e) => {
         e.stopPropagation();
+        const wasOpen = waveMenu.classList.contains("open");
         closeMenus();
-        waveMenu.classList.toggle("open");
+        if (!wasOpen) waveMenu.classList.add("open");
       });
+      waveMenu.addEventListener("click", (e) => e.stopPropagation());
       const breakerMenuInput = waveMenu.querySelector('[data-action="breaker-duration"]');
       if (breakerMenuInput) {
         breakerMenuInput.addEventListener("click", (e) => e.stopPropagation());
@@ -753,9 +755,11 @@
         `;
         menuBtn.addEventListener("click", (e) => {
           e.stopPropagation();
+          const wasOpen = menu.classList.contains("open");
           closeMenus();
-          menu.classList.toggle("open");
+          if (!wasOpen) menu.classList.add("open");
         });
+        menu.addEventListener("click", (e) => e.stopPropagation());
         menu.querySelectorAll(".lb-col-menu-item").forEach((item) => {
           item.addEventListener("click", (e) => {
             e.stopPropagation();
@@ -878,7 +882,10 @@
 
     els.content.innerHTML = "";
     els.content.appendChild(container);
-    document.addEventListener("click", closeMenus, { once: true });
+    els.content.onclick = (e) => {
+      if (e.target.closest(".lb-col-menu") || e.target.closest(".lb-col-menu-btn")) return;
+      closeMenus();
+    };
     initThumbAnimations();
   }
 
