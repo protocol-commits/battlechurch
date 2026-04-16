@@ -95,6 +95,24 @@
       pierce: false,
       cooldownAfterFire: COIN_COOLDOWN,
     },
+    lichBolt: {
+      speed: 480 * WORLD_SCALE,
+      damage: 10,
+      life: 1.4,
+      radius: 20 * WORLD_SCALE,
+      scale: 3.5 * WORLD_SCALE,
+      pierce: false,
+      cooldownAfterFire: 1.0,
+    },
+    lichOrb: {
+      speed: 300 * WORLD_SCALE,
+      damage: 15,
+      life: 2.0,
+      radius: 22 * WORLD_SCALE,
+      scale: 3.5 * WORLD_SCALE,
+      pierce: false,
+      cooldownAfterFire: 1.4,
+    },
   };
 
   Object.values(PROJECTILE_CONFIG).forEach((entry) => {

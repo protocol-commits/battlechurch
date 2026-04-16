@@ -135,12 +135,21 @@
           frameRate: 0,
           loop: false,
         },
-        weaponMiniLichSpell: {
+        lichBolt: {
           src: `assets/sprites/projectiles/minilichspell/minilichspell.png`,
-          frameWidth: 0,
-          frameHeight: 0,
+          frameWidth: 16,
+          frameHeight: 16,
           frameRate: 12,
           loop: true,
+          frameMap: [0, 1, 2, 3, 4, 5, 6, 7],
+        },
+        lichOrb: {
+          src: `assets/sprites/projectiles/minilichspell/minilichspell.png`,
+          frameWidth: 16,
+          frameHeight: 16,
+          frameRate: 12,
+          loop: true,
+          frameMap: [8, 9, 10, 11, 12, 13, 14, 15],
         },
         weaponMiniTrident: {
           src: `assets/sprites/projectiles/minitrident-weapon/minitrident-weapon.png`,

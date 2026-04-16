@@ -4961,7 +4961,7 @@ async function loadAnimationClip(definition, cache) {
       'MiniZombie.png': { cols: 1, rows: 1 },
       'MiniZombieButcher.png': { cols: 4, rows: 4 },
   'minifireball.png': { cols: 4, rows: 2 },
-  'minilichspell.png': { cols: 4, rows: 2 },
+  'minilichspell.png': { cols: 4, rows: 4 },
   'minitrident.png': { cols: 4, rows: 2 },
     };
     const declaredGridCols = Number.isFinite(definition.gridCols) && definition.gridCols > 0 ? definition.gridCols : null;
