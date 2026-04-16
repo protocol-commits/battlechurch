@@ -265,6 +265,17 @@
     return waveObj.hordes[hordeIdx - 1];
   }
 
+  function clearEnemyFromMission(missionObj, enemyKey) {
+    const waves = Array.isArray(missionObj?.waves) ? missionObj.waves : [];
+    waves.forEach((wave) => {
+      const hordes = Array.isArray(wave?.hordes) ? wave.hordes : [];
+      hordes.forEach((horde) => {
+        if (!Array.isArray(horde?.entries)) return;
+        horde.entries = horde.entries.filter((entry) => entry && entry.enemy !== enemyKey);
+      });
+    });
+  }
+
   function getOrCreateMission() {
     const { town, battle, mission } = state.scope;
     const townObj    = ensureTown(town);
@@ -382,9 +393,16 @@
         width:56px; text-align:center; padding:2px 4px; margin:0; font-size:11px;
       }
       #levelBuilderOverlay .lb-horde-footer {
-        padding:6px 4px; display:flex; flex-direction:column; gap:4px; font-size:10px;
+        display:flex; flex-direction:column; font-size:10px;
+        border-bottom:1px solid rgba(120,170,220,0.1);
       }
-      #levelBuilderOverlay .lb-horde-footer label { display:flex; align-items:center; gap:4px; }
+      #levelBuilderOverlay .lb-horde-footer-row {
+        height:32px; display:flex; align-items:center; justify-content:center;
+        border-bottom:1px solid rgba(120,170,220,0.1);
+        padding:0 4px;
+      }
+      #levelBuilderOverlay .lb-horde-footer-row:last-child { border-bottom:none; }
+      #levelBuilderOverlay .lb-horde-footer label { display:flex; align-items:center; gap:4px; margin:0; }
       #levelBuilderOverlay .lb-horde-footer input[type=number] { width:52px; margin:0; padding:3px 4px; }
       #levelBuilderOverlay .lb-horde-footer input[type=checkbox] { width:auto; margin:0; }
       /* Column context menu */
@@ -526,6 +544,13 @@
       renderMissionView();
     });
     labelCol.appendChild(labelHeader);
+    // Top-aligned settings labels for wave/horde controls
+    const settingsSpacer = document.createElement("div");
+    settingsSpacer.style.cssText =
+      "font-size:10px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(120,170,220,0.2);";
+    settingsSpacer.innerHTML =
+      `<div style="height:32px;line-height:32px;padding:0 8px;border-bottom:1px solid rgba(120,170,220,0.1);">Duration (s)</div><div style="height:32px;line-height:32px;padding:0 8px;">All Kill</div>`;
+    labelCol.appendChild(settingsSpacer);
     const TYPE_COLORS = { normal: "#8cb4e0", tank: "#e0a040", projectile: "#e06060", armored: "#a0a0b0" };
     visibleKeys.forEach((key) => {
       const row = document.createElement("div");
@@ -537,8 +562,17 @@
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
         <span title="${key}" style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${state.enemySort === "type" ? (TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff") : "#e8f4ff"};">${displayLabel}</span>
+        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this mission" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">0</button>
         <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
+      const clearBtn = row.querySelector(`[data-clear-key="${key}"]`);
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          clearEnemyFromMission(missionObj, key);
+          saveToStorage(state.config);
+          renderMissionView();
+        });
+      }
       const hideBtn = row.querySelector(`[data-hide-key="${key}"]`);
       if (hideBtn) {
         hideBtn.addEventListener("click", () => {
@@ -548,13 +582,6 @@
       }
       labelCol.appendChild(row);
     });
-    // Top-aligned settings labels for wave/horde controls
-    const settingsSpacer = document.createElement("div");
-    settingsSpacer.style.cssText =
-      "padding:6px 8px;font-size:10px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(120,170,220,0.2);";
-    settingsSpacer.innerHTML =
-      `<div style="height:24px;line-height:24px;">Duration (s)</div><div style="height:24px;line-height:24px;">All Kill</div>`;
-    labelCol.appendChild(settingsSpacer);
     container.appendChild(labelCol);
 
     // ── Wave + horde columns ─────────────────────────────────────────────────
@@ -766,6 +793,8 @@
         // Top-aligned horde settings
         const footer = document.createElement("div");
         footer.className = "lb-horde-footer";
+        const durationRow = document.createElement("div");
+        durationRow.className = "lb-horde-footer-row";
         const durInput = document.createElement("input");
         durInput.type = "number"; durInput.min = "1"; durInput.step = "1";
         durInput.value = String(horde.duration || state.config.structure.defaultHordeDuration || 4);
@@ -773,6 +802,9 @@
           horde.duration = Math.max(1, Number(durInput.value) || 1);
           saveToStorage(state.config);
         });
+        durationRow.appendChild(durInput);
+        const allKillRow = document.createElement("div");
+        allKillRow.className = "lb-horde-footer-row";
         const akLabel = document.createElement("label");
         const akBox = document.createElement("input");
         akBox.type = "checkbox"; akBox.checked = !!horde.allKill;
@@ -782,8 +814,9 @@
         });
         akLabel.appendChild(akBox);
         akLabel.appendChild(document.createTextNode(" ☠"));
-        footer.appendChild(durInput);
-        footer.appendChild(akLabel);
+        allKillRow.appendChild(akLabel);
+        footer.appendChild(durationRow);
+        footer.appendChild(allKillRow);
         hordeCol.appendChild(footer);
 
         // Enemy count rows
