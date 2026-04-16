@@ -715,7 +715,7 @@
     "ranged": true,
     "projectileType": "fire",
     "preferEdges": false,
-    "desiredRange": 140,
+    "desiredRange": 320,
     "projectileCooldown": 1.5,
     "bossTier": 3,
     "preferredTarget": "player",
