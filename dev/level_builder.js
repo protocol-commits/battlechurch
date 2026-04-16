@@ -366,6 +366,13 @@
       }
       #levelBuilderOverlay .lb-wave-fields label { font-size:10px; }
       #levelBuilderOverlay .lb-wave-fields input[type=number] { width:60px; margin:0; padding:3px 5px; }
+      #levelBuilderOverlay .lb-col-menu-field {
+        display:flex; align-items:center; justify-content:space-between; gap:8px;
+        padding:6px 14px 4px 14px; font-size:11px; color:#cfe6ff;
+      }
+      #levelBuilderOverlay .lb-col-menu-field input[type=number] {
+        width:64px; margin:0; padding:3px 5px;
+      }
       #levelBuilderOverlay .lb-wave-footer { padding:6px 8px; display:flex; gap:4px; }
       #levelBuilderOverlay .lb-horde-col {
         min-width:70px; max-width:70px;
@@ -613,12 +620,25 @@
         <button class="lb-col-menu-item" data-action="move-left"${!canShiftLeft ? " disabled" : ""}>← Shift Break Left</button>
         <button class="lb-col-menu-item" data-action="move-right"${!canShiftRight ? " disabled" : ""}>Shift Break Right →</button>
         <button class="lb-col-menu-item danger" data-action="delete-wave">Remove Wave Break</button>
+        <div class="lb-col-menu-field">
+          <span>Breaker (s)</span>
+          <input type="number" data-action="breaker-duration" min="0" step="0.5" value="${String(wave.breakerDuration ?? 3)}">
+        </div>
       `;
       waveMenuBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         closeMenus();
         waveMenu.classList.toggle("open");
       });
+      const breakerMenuInput = waveMenu.querySelector('[data-action="breaker-duration"]');
+      if (breakerMenuInput) {
+        breakerMenuInput.addEventListener("click", (e) => e.stopPropagation());
+        breakerMenuInput.addEventListener("keydown", (e) => e.stopPropagation());
+        breakerMenuInput.addEventListener("change", () => {
+          wave.breakerDuration = Math.max(0, Number(breakerMenuInput.value) || 0);
+          saveToStorage(state.config);
+        });
+      }
       waveMenu.querySelectorAll(".lb-col-menu-item").forEach((item) => {
         item.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -680,19 +700,8 @@
         wave.introText = introTA.value;
         saveToStorage(state.config);
       });
-      const breakerLabel = document.createElement("label");
-      breakerLabel.textContent = "Breaker (s)";
-      const breakerInput = document.createElement("input");
-      breakerInput.type = "number"; breakerInput.min = "0"; breakerInput.step = "0.5";
-      breakerInput.value = String(wave.breakerDuration ?? 3);
-      breakerInput.addEventListener("change", () => {
-        wave.breakerDuration = Math.max(0, Number(breakerInput.value) || 0);
-        saveToStorage(state.config);
-      });
       waveFields.appendChild(introLabel);
       waveFields.appendChild(introTA);
-      waveFields.appendChild(breakerLabel);
-      waveFields.appendChild(breakerInput);
       waveBody.appendChild(waveFields);
       // Enemy rows spacer — must match lb-horde-cell-row heights exactly (no gap/padding)
       visibleKeys.forEach(() => {
