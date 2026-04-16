@@ -3579,6 +3579,7 @@ Renderer.initialize({
   clearCongregationMembers,
   updateCongregationMembers,
   getMonthName,
+  getOffscreenNpcInviteName,
   get assets() { return assets; },
   get cameraOffsetX() { return cameraOffsetX; },
   get cameraShakeTimer() { return cameraShakeTimer; },
@@ -12862,6 +12863,19 @@ function pickYearNpcName(gender) {
   const fallback = window.npcYearNamePoolByGender[normalized]?.shift();
   if (fallback) used.add(fallback);
   return fallback;
+}
+
+function getOffscreenNpcInviteName(excludedNames = []) {
+  ensureNpcNamesList();
+  const exclude = new Set(
+    (Array.isArray(excludedNames) ? excludedNames : [])
+      .map((name) => String(name || "").trim())
+      .filter(Boolean),
+  );
+  const fullList = Array.isArray(window.npcNamesList) ? window.npcNamesList : [];
+  const candidates = fullList.filter((name) => !exclude.has(name));
+  if (!candidates.length) return null;
+  return randomChoice(candidates) || candidates[0] || null;
 }
 
 function createCozyNpc() {

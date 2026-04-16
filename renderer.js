@@ -226,6 +226,89 @@ const MELEE_SWING_LENGTH = 260;
     }
   }
 
+  function buildRecapInviteBubble(excludedNames = []) {
+    const bindings = requireBindings();
+    const picker = typeof bindings.getOffscreenNpcInviteName === "function"
+      ? bindings.getOffscreenNpcInviteName
+      : null;
+    const invitedName = picker ? picker(excludedNames) : null;
+    if (!invitedName) return null;
+    return `I'm going invite ${invitedName}`;
+  }
+
+  function pushRecapInviteBubble(text, x, y) {
+    if (!text || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    recapTallyState.inviteBubbles.push({
+      text,
+      x,
+      y,
+      life: 2.8,
+      maxLife: 2.8,
+    });
+  }
+
+  function updateRecapInviteBubbles(dt) {
+    if (!recapTallyState.inviteBubbles.length) return;
+    for (let i = recapTallyState.inviteBubbles.length - 1; i >= 0; i -= 1) {
+      const bubble = recapTallyState.inviteBubbles[i];
+      bubble.life = Math.max(0, (bubble.life || 0) - dt);
+      bubble.y -= dt * 6;
+      if (bubble.life <= 0) {
+        recapTallyState.inviteBubbles.splice(i, 1);
+      }
+    }
+  }
+
+  function drawRecapInviteBubbles(ctx) {
+    if (!recapTallyState.inviteBubbles.length) return;
+    ctx.save();
+    ctx.font = `600 13px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    recapTallyState.inviteBubbles.forEach((bubble) => {
+      const alpha = Math.max(0, Math.min(1, (bubble.life || 0) / Math.max(0.001, bubble.maxLife || 1)));
+      const text = bubble.text || "";
+      const textWidth = ctx.measureText(text).width;
+      const padX = 12;
+      const padY = 8;
+      const width = textWidth + padX * 2;
+      const height = 30;
+      const left = bubble.x - width / 2;
+      const top = bubble.y - height - 18;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "rgba(14, 22, 36, 0.94)";
+      ctx.strokeStyle = "rgba(255, 217, 120, 0.7)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, left, top, width, height, 10, true, true);
+      ctx.beginPath();
+      ctx.moveTo(bubble.x - 8, top + height);
+      ctx.lineTo(bubble.x, top + height + 10);
+      ctx.lineTo(bubble.x + 8, top + height);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#F4FBFF";
+      ctx.fillText(text, bubble.x, top + height / 2 + 1);
+    });
+    ctx.restore();
+  }
+
+  function ensureRecapBonusNpcs() {
+    if (Array.isArray(recapTallyState.bonusNpcs) && recapTallyState.bonusNpcs.length) {
+      return recapTallyState.bonusNpcs;
+    }
+    const congregationMembers = Array.isArray(requireBindings().congregationMembers)
+      ? requireBindings().congregationMembers.filter(Boolean)
+      : [];
+    if (!congregationMembers.length) {
+      recapTallyState.bonusNpcs = [];
+      return recapTallyState.bonusNpcs;
+    }
+    const shuffled = congregationMembers.slice().sort(() => Math.random() - 0.5);
+    recapTallyState.bonusNpcs = shuffled.slice(0, Math.min(3, shuffled.length));
+    return recapTallyState.bonusNpcs;
+  }
+
   function drawHaloBlade(ctx, haloState) {
     if (!haloState || !haloState.active) return;
     const { player } = requireBindings();
@@ -467,6 +550,7 @@ const MELEE_SWING_LENGTH = 260;
     titleSfxPlayed: false,
     countSfxPlayed: false,
     lineSfxIndex: -1,
+    inviteBubbles: [],
   };
   const RECAP_LINE_PAUSE = 1.0;
   const RECAP_FIRST_LINE_PAUSE = 1.0;
@@ -1469,6 +1553,7 @@ function resetRecapTallyState(recapData) {
   recapTallyState.visibleBonusCount = 0;
   recapTallyState.lastRevealIndex = -1;
   recapTallyState.bonusNpcs = [];
+  recapTallyState.inviteBubbles = [];
   recapTallyState.healthBonusAnim = null;
   recapTallyState.performanceBonusAnim = null;
 }
@@ -1620,6 +1705,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.ghostEffects = [];
     recapTallyState.graceEffects = [];
     recapTallyState.pendingGhost = null;
+    recapTallyState.inviteBubbles = [];
     recapTallyState.healthBonusAnim = null;
     recapTallyState.performanceBonusAnim = null;
     recapTallyState.graceFlySfxPlayed = true;
@@ -1641,6 +1727,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
   const current = lines[recapTallyState.stepIndex];
   const dt = Math.max(0, (now - (recapTallyState.lastUpdate || now)) / 1000);
   recapTallyState.lastUpdate = now;
+  updateRecapInviteBubbles(dt);
   if (recapTallyState.flashTimer > 0) {
     recapTallyState.flashTimer = Math.max(0, recapTallyState.flashTimer - dt);
   }
@@ -1782,6 +1869,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           thresholdHoldTimer: 0,
           thresholdValue: null,
           advanceNpcAfterThresholdHold: false,
+          pendingInvite: null,
           finished: false,
         };
         recapTallyState.healthBonusAnim = anim;
@@ -1923,6 +2011,14 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       if (nextAward > anim.congregationAwarded) {
         const gained = nextAward - anim.congregationAwarded;
         anim.congregationAwarded = nextAward;
+        const excludedNames = anim.entries.map((entry) => entry?.name).filter(Boolean);
+        const inviteText = buildRecapInviteBubble(excludedNames);
+        if (inviteText) {
+          anim.pendingInvite = {
+            profileIndex: Math.min(anim.entries.length - 1, Math.max(0, anim.activeNpcIndex || 0)),
+            text: inviteText,
+          };
+        }
         if (affectsTotal) {
           recapTallyState.totalValue += gained;
           recapTallyState.flashTimer = RECAP_FLASH_DURATION;
@@ -1975,6 +2071,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           thresholdHoldTimer: 0,
           thresholdValue: null,
           advanceBadgeAfterThresholdHold: false,
+          pendingInvite: null,
           finished: false,
         };
         recapTallyState.performanceBonusAnim = anim;
@@ -2107,6 +2204,18 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       if (nextAward > anim.congregationAwarded) {
         const gained = nextAward - anim.congregationAwarded;
         anim.congregationAwarded = nextAward;
+        const bonusNpcs = ensureRecapBonusNpcs();
+        if (bonusNpcs.length) {
+          const chosenIndex = Math.floor(Math.random() * bonusNpcs.length);
+          const excludedNames = bonusNpcs.map((npc) => npc?.name).filter(Boolean);
+          const inviteText = buildRecapInviteBubble(excludedNames);
+          if (inviteText) {
+            anim.pendingInvite = {
+              profileIndex: chosenIndex,
+              text: inviteText,
+            };
+          }
+        }
         if (affectsTotal) {
           recapTallyState.totalValue += gained;
           recapTallyState.flashTimer = RECAP_FLASH_DURATION;
@@ -2392,6 +2501,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const stripGap = 16;
     const stripStartX = recapLeftColumnX;
     const totalBlockX = recapTotalColumnX;
+    let inviteAnchor = null;
     entries.forEach((entry, index) => {
       const slotX = stripStartX + index * (stripSlotSize + stripGap);
       const isPast = anim ? index < activeNpcIndex : true;
@@ -2415,6 +2525,9 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       }
       const slotCenterX = slotX + stripSlotSize / 2;
       const slotCenterY = portraitStripY + stripSlotSize / 2;
+      if (anim?.pendingInvite && anim.pendingInvite.profileIndex === index) {
+        inviteAnchor = { x: slotCenterX, y: portraitStripY + 8, text: anim.pendingInvite.text };
+      }
       ctx.save();
       ctx.translate(slotCenterX, slotCenterY);
       drawChurchBadgeSurface(ctx, stripSlotSize, {
@@ -2476,6 +2589,10 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.fillText(entry?.name || "", slotX + stripSlotSize / 2, npcNameBaselineY);
       ctx.restore();
     });
+    if (inviteAnchor) {
+      pushRecapInviteBubble(inviteAnchor.text, inviteAnchor.x, inviteAnchor.y);
+      anim.pendingInvite = null;
+    }
 
     const thresholdPulse = anim && anim.thresholdHoldTimer > 0 ? anim.thresholdHoldTimer : 0;
     const totalScale = thresholdPulse > 0
@@ -2606,6 +2723,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       : badgeSlotSize;
     const badgeStartX = badgeAreaX;
     const badgeCenterY = rowTopY + 48;
+    const bonusNpcs = ensureRecapBonusNpcs();
 
     ctx.save();
     ctx.fillStyle = baseLabelColor;
@@ -2697,6 +2815,34 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     }
     ctx.fillText(`${formatNumber(totalPerformance)}`, totalBlockX, totalValueBaselineY);
     ctx.restore();
+
+    const profileSize = 34;
+    const profileGap = 12;
+    if (bonusNpcs.length) {
+      const profileStartX = totalBlockX;
+      const profileCenterY = rowTopY + 108;
+      bonusNpcs.forEach((member, index) => {
+        const profileCenterX = profileStartX + profileSize / 2 + index * (profileSize + profileGap);
+        ctx.save();
+        ctx.translate(profileCenterX, profileCenterY);
+        drawChurchBadgeSurface(ctx, profileSize, {
+          shape: "circle",
+          color: "#314B77",
+          accent: "#4769A1",
+        });
+        drawChurchBadgeShimmer(ctx, profileSize, {
+          shape: "circle",
+          color: "#314B77",
+          accent: "#4769A1",
+        });
+        ctx.restore();
+        drawNpcProfileIcon(ctx, member, profileCenterX, profileCenterY, profileSize - 6);
+        if (anim?.pendingInvite && anim.pendingInvite.profileIndex === index) {
+          pushRecapInviteBubble(anim.pendingInvite.text, profileCenterX, profileCenterY - 10);
+          anim.pendingInvite = null;
+        }
+      });
+    }
 
     if (anim && anim.congregationAwarded > (anim.lastGhostAward || 0)) {
       const popCount = anim.congregationAwarded - (anim.lastGhostAward || 0);
@@ -3066,6 +3212,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     });
     ctx.restore();
   }
+  drawRecapInviteBubbles(ctx);
 
   if (recapTallyState.graceEffects.length) {
     const frame = requireBindings().assets?.items?.gracePickup?.frames?.[0];
