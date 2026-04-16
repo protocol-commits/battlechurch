@@ -455,7 +455,7 @@
             <label><input type="checkbox" id="lb-showHidden"> Show hidden</label>
           </div>
           <div class="group">
-            <button id="lb-copyBattle" class="secondary" type="button">Copy Battle</button>
+            <button id="lb-copyBattle" class="secondary" type="button">Copy Act</button>
             <button id="lb-copyMission" class="secondary" type="button">Copy Battle</button>
             <button id="lb-paste" class="secondary" type="button">Paste</button>
           </div>
@@ -1447,24 +1447,24 @@
       });
     }
 
-    // Copy Battle
+    // Copy Act
     if (els.copyBattle) {
       els.copyBattle.addEventListener("click", () => {
         const { town: townIdx, battle: battleIdx } = state.scope;
         const townObj = ensureTown(townIdx);
         const battleObj = ensureBattle(townObj, battleIdx);
         state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(battleObj)) };
-        setStatus(`Copied Battle ${battleIdx}`);
+        setStatus(`Copied Act ${battleIdx}`);
       });
     }
 
-    // Copy Mission
+    // Copy Battle
     if (els.copyMission) {
       els.copyMission.addEventListener("click", () => {
         const { missionObj } = getOrCreateMission();
         state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
         const { battle: battleIdx, mission: missionIdx } = state.scope;
-        setStatus(`Copied Act ${battleIdx} Battle ${missionIdx}`);
+        setStatus(`Copied Battle ${missionIdx} from Act ${battleIdx}`);
       });
     }
 
@@ -1484,7 +1484,7 @@
           else bList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted battle into Town ${townIdx} Battle ${battleIdx}`);
+          setStatus(`Pasted Act into Town ${townIdx} Act ${battleIdx}`);
         } else if (state.clipboard.type === "mission") {
           pushUndoSnapshot();
           const battleObj = ensureBattle(townObj, battleIdx);
@@ -1496,7 +1496,7 @@
           else mList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted battle into Town ${townIdx} Act ${battleIdx} Battle ${missionIdx}`);
+          setStatus(`Pasted Battle ${missionIdx} into Town ${townIdx} Act ${battleIdx}`);
         } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
           setStatus("Use the column ▾ menu to paste hordes/waves", true);
         }
