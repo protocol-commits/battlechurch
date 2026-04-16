@@ -36,9 +36,6 @@ window.BattlechurchLevelData = {
       "miniFireImp": {
         "speed": 75
       },
-      "miniDemoness": {
-        "speed": 50
-      },
       "miniClawedDemon": {
         "speed": 50
       },
@@ -78,7 +75,8 @@ window.BattlechurchLevelData = {
       "greatswordSkeleton",
       "eliteOrc",
       "skeleton",
-      "slime"
+      "slime",
+      "miniDemoness"
     ],
     "allKillHordes": [
       5,
@@ -120,8 +118,8 @@ window.BattlechurchLevelData = {
                           "count": 4
                         },
                         {
-                          "enemy": "miniDemoness",
-                          "count": 2
+                          "enemy": "miniImp",
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -137,11 +135,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "miniDemonLord",
-                          "count": 4
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -157,7 +151,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -187,10 +181,6 @@ window.BattlechurchLevelData = {
                     {
                       "index": 5,
                       "entries": [
-                        {
-                          "enemy": "miniHighDemon",
-                          "count": 1
-                        },
                         {
                           "enemy": "miniImp",
                           "count": 50
@@ -340,10 +330,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 5
-                        },
-                        {
-                          "enemy": "miniHighDemon",
-                          "count": 2
                         },
                         {
                           "enemy": "miniImp",

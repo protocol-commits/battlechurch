@@ -233,7 +233,29 @@ const MELEE_SWING_LENGTH = 260;
       : null;
     const invitedName = picker ? picker(excludedNames) : null;
     if (!invitedName) return null;
-    return `I'm going invite ${invitedName}`;
+    return {
+      invitedName,
+      text: `I'm going invite ${invitedName}.`,
+    };
+  }
+
+  function buildRecapFollowupInviteBubble(invitedNames = [], excludedNames = []) {
+    const candidates = (Array.isArray(invitedNames) ? invitedNames : []).filter(Boolean);
+    if (!candidates.length) return null;
+    const primaryName = candidates[Math.floor(Math.random() * candidates.length)] || null;
+    if (!primaryName) return null;
+    const bindings = requireBindings();
+    const picker = typeof bindings.getOffscreenNpcInviteName === "function"
+      ? bindings.getOffscreenNpcInviteName
+      : null;
+    const plusExcluded = [primaryName, ...excludedNames];
+    const extraName = picker ? picker(plusExcluded) : null;
+    if (!extraName) return null;
+    return {
+      primaryName,
+      extraName,
+      text: `${primaryName} is also bringing ${extraName}.`,
+    };
   }
 
   function pushRecapInviteBubble(text, x, y) {
@@ -294,6 +316,9 @@ const MELEE_SWING_LENGTH = 260;
   }
 
   function ensureRecapBonusNpcs() {
+    if (Array.isArray(recapTallyState.invitedProfiles) && recapTallyState.invitedProfiles.length) {
+      return recapTallyState.invitedProfiles;
+    }
     if (Array.isArray(recapTallyState.bonusNpcs) && recapTallyState.bonusNpcs.length) {
       return recapTallyState.bonusNpcs;
     }
@@ -551,6 +576,9 @@ const MELEE_SWING_LENGTH = 260;
     countSfxPlayed: false,
     lineSfxIndex: -1,
     inviteBubbles: [],
+    invitedNames: [],
+    invitedProfiles: [],
+    followupInvite: null,
   };
   const RECAP_LINE_PAUSE = 1.0;
   const RECAP_FIRST_LINE_PAUSE = 1.0;
@@ -1554,6 +1582,9 @@ function resetRecapTallyState(recapData) {
   recapTallyState.lastRevealIndex = -1;
   recapTallyState.bonusNpcs = [];
   recapTallyState.inviteBubbles = [];
+  recapTallyState.invitedNames = [];
+  recapTallyState.invitedProfiles = [];
+  recapTallyState.followupInvite = null;
   recapTallyState.healthBonusAnim = null;
   recapTallyState.performanceBonusAnim = null;
 }
@@ -1706,6 +1737,9 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
     recapTallyState.graceEffects = [];
     recapTallyState.pendingGhost = null;
     recapTallyState.inviteBubbles = [];
+    recapTallyState.invitedNames = [];
+    recapTallyState.invitedProfiles = [];
+    recapTallyState.followupInvite = null;
     recapTallyState.healthBonusAnim = null;
     recapTallyState.performanceBonusAnim = null;
     recapTallyState.graceFlySfxPlayed = true;
@@ -2012,11 +2046,20 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         const gained = nextAward - anim.congregationAwarded;
         anim.congregationAwarded = nextAward;
         const excludedNames = anim.entries.map((entry) => entry?.name).filter(Boolean);
-        const inviteText = buildRecapInviteBubble(excludedNames);
-        if (inviteText) {
+        const invite = buildRecapInviteBubble(excludedNames);
+        if (invite) {
+          recapTallyState.invitedNames.push(invite.invitedName);
+          const inviterEntry = anim.entries[Math.min(anim.entries.length - 1, Math.max(0, anim.activeNpcIndex || 0))];
+          if (inviterEntry) {
+            recapTallyState.invitedProfiles.push({
+              name: inviterEntry.name || "",
+              portrait: inviterEntry.portrait || null,
+              member: null,
+            });
+          }
           anim.pendingInvite = {
             profileIndex: Math.min(anim.entries.length - 1, Math.max(0, anim.activeNpcIndex || 0)),
-            text: inviteText,
+            text: invite.text,
           };
         }
         if (affectsTotal) {
@@ -2208,11 +2251,12 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         if (bonusNpcs.length) {
           const chosenIndex = Math.floor(Math.random() * bonusNpcs.length);
           const excludedNames = bonusNpcs.map((npc) => npc?.name).filter(Boolean);
-          const inviteText = buildRecapInviteBubble(excludedNames);
-          if (inviteText) {
-            anim.pendingInvite = {
-              profileIndex: chosenIndex,
-              text: inviteText,
+          const invite = buildRecapFollowupInviteBubble(recapTallyState.invitedNames, excludedNames);
+          if (invite) {
+            const inviter = bonusNpcs[chosenIndex];
+            recapTallyState.followupInvite = {
+              inviterName: inviter?.name || invite.primaryName,
+              text: invite.text,
             };
           }
         }
@@ -2528,6 +2572,18 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       if (anim?.pendingInvite && anim.pendingInvite.profileIndex === index) {
         inviteAnchor = { x: slotCenterX, y: portraitStripY + 8, text: anim.pendingInvite.text };
       }
+      if (
+        recapTallyState.followupInvite &&
+        recapTallyState.followupInvite.inviterName &&
+        recapTallyState.followupInvite.inviterName === (entry?.name || "")
+      ) {
+        inviteAnchor = {
+          x: slotCenterX,
+          y: portraitStripY + 8,
+          text: recapTallyState.followupInvite.text,
+          followup: true,
+        };
+      }
       ctx.save();
       ctx.translate(slotCenterX, slotCenterY);
       drawChurchBadgeSurface(ctx, stripSlotSize, {
@@ -2591,7 +2647,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     });
     if (inviteAnchor) {
       pushRecapInviteBubble(inviteAnchor.text, inviteAnchor.x, inviteAnchor.y);
-      anim.pendingInvite = null;
+      if (inviteAnchor.followup) {
+        recapTallyState.followupInvite = null;
+      } else {
+        anim.pendingInvite = null;
+      }
     }
 
     const thresholdPulse = anim && anim.thresholdHoldTimer > 0 ? anim.thresholdHoldTimer : 0;
@@ -2723,8 +2783,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       : badgeSlotSize;
     const badgeStartX = badgeAreaX;
     const badgeCenterY = rowTopY + 48;
-    const bonusNpcs = ensureRecapBonusNpcs();
-
     ctx.save();
     ctx.fillStyle = baseLabelColor;
     ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
@@ -2815,34 +2873,6 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     }
     ctx.fillText(`${formatNumber(totalPerformance)}`, totalBlockX, totalValueBaselineY);
     ctx.restore();
-
-    const profileSize = 34;
-    const profileGap = 12;
-    if (bonusNpcs.length) {
-      const profileStartX = totalBlockX;
-      const profileCenterY = rowTopY + 108;
-      bonusNpcs.forEach((member, index) => {
-        const profileCenterX = profileStartX + profileSize / 2 + index * (profileSize + profileGap);
-        ctx.save();
-        ctx.translate(profileCenterX, profileCenterY);
-        drawChurchBadgeSurface(ctx, profileSize, {
-          shape: "circle",
-          color: "#314B77",
-          accent: "#4769A1",
-        });
-        drawChurchBadgeShimmer(ctx, profileSize, {
-          shape: "circle",
-          color: "#314B77",
-          accent: "#4769A1",
-        });
-        ctx.restore();
-        drawNpcProfileIcon(ctx, member, profileCenterX, profileCenterY, profileSize - 6);
-        if (anim?.pendingInvite && anim.pendingInvite.profileIndex === index) {
-          pushRecapInviteBubble(anim.pendingInvite.text, profileCenterX, profileCenterY - 10);
-          anim.pendingInvite = null;
-        }
-      });
-    }
 
     if (anim && anim.congregationAwarded > (anim.lastGhostAward || 0)) {
       const popCount = anim.congregationAwarded - (anim.lastGhostAward || 0);
