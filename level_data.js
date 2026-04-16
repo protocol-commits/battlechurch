@@ -114,6 +114,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 50
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -121,7 +125,7 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": false,
+                      "allKill": true,
                       "duration": 4
                     },
                     {
@@ -130,11 +134,15 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 50
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 4
                         }
                       ],
                       "weights": {},
                       "mode": "explicit",
-                      "allKill": false,
+                      "allKill": true,
                       "duration": 4,
                       "delaysWeighted": {},
                       "delaysExplicit": {},

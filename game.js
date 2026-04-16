@@ -12061,6 +12061,11 @@ class BossEncounter {
   }
 
   getProjectileType() {
+    const catalogDef =
+      window.BattlechurchEnemyCatalog?.catalog?.[this.type] ||
+      window.BattlechurchEnemyDefinitions?.[this.type] ||
+      null;
+    if (catalogDef?.projectileType) return catalogDef.projectileType;
     if (this.type === "miniDemonLord") return "fire";
     if (this.phase === 1) return "arrow";
     return "fire";

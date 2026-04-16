@@ -738,6 +738,34 @@
     return wrapper;
   }
 
+  function getProjectileKeys() {
+    const cfg = (typeof window !== "undefined" && window.BattlechurchProjectileConfig?.config) || {};
+    return Object.keys(cfg).sort();
+  }
+
+  function createProjectileSelect(key) {
+    const wrapper = createField("Projectile", "field--wide");
+    const enemy = ensureEnemy(key);
+    const select = document.createElement("select");
+    const noneOpt = document.createElement("option");
+    noneOpt.value = "";
+    noneOpt.textContent = "— default —";
+    select.appendChild(noneOpt);
+    getProjectileKeys().forEach((pKey) => {
+      const option = document.createElement("option");
+      option.value = pKey;
+      option.textContent = pKey;
+      select.appendChild(option);
+    });
+    select.value = enemy.projectileType || "";
+    select.addEventListener("change", () => {
+      const val = select.value;
+      enemy.projectileType = val || null;
+    });
+    wrapper.appendChild(select);
+    return wrapper;
+  }
+
   function createDamageClassSelect(key) {
     const wrapper = createField("Class");
     const enemy = ensureEnemy(key);
@@ -863,6 +891,9 @@
     grid.appendChild(createNumberInput(key, "cooldown", "Cooldown"));
     grid.appendChild(createSwarmSpacingCell(key));
     grid.appendChild(createTagsCell(key));
+    if (enemy.ranged) {
+      grid.appendChild(createProjectileSelect(key));
+    }
     main.appendChild(grid);
 
     card.appendChild(preview);

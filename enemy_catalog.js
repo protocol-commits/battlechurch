@@ -141,7 +141,7 @@ const ENEMY_CATALOG = {
     "cooldown": 1.9,
     "score": 240,
     "ranged": false,
-    "projectileType": null,
+    "projectileType": "fire",
     "preferEdges": false,
     "desiredRange": 110,
     "projectileCooldown": 1.9,
@@ -187,7 +187,7 @@ const ENEMY_CATALOG = {
     "cooldown": 1.8,
     "score": 200,
     "ranged": false,
-    "projectileType": null,
+    "projectileType": "fire",
     "preferEdges": false,
     "desiredRange": 100,
     "projectileCooldown": 1.8,
@@ -418,7 +418,7 @@ const ENEMY_CATALOG = {
     "specialBehavior": [
       "closestAny"
     ],
-    "attackHitFrame": 4,
+    "attackHitFrame": 7,
     "hitbox": {
       "width": 18,
       "height": 20,
@@ -552,7 +552,7 @@ const ENEMY_CATALOG = {
     "cooldown": 1.5,
     "score": 320,
     "ranged": true,
-    "projectileType": null,
+    "projectileType": "fire",
     "preferEdges": false,
     "desiredRange": 140,
     "projectileCooldown": 1.5,
@@ -571,7 +571,7 @@ const ENEMY_CATALOG = {
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 4,
+    "attackHitFrame": 7,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,
@@ -629,7 +629,7 @@ const ENEMY_CATALOG = {
     "attackBonus": 24,
     "cooldown": 1.6,
     "score": 70,
-    "ranged": false,
+    "ranged": true,
     "projectileType": "miniTrident",
     "preferEdges": true,
     "desiredRange": 420,
@@ -637,6 +637,7 @@ const ENEMY_CATALOG = {
     "bossTier": 1,
     "preferredTarget": "player",
     "specialBehavior": [
+      "ranged",
       "closestAny"
     ],
     "attackHitFrame": 5,
