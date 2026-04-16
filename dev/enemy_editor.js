@@ -296,6 +296,42 @@
         gap: 12px;
         min-width: 0;
       }
+      #${OVERLAY_ID} .enemy-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(155, 217, 255, 0.14);
+        background: rgba(255, 255, 255, 0.04);
+      }
+      #${OVERLAY_ID} .enemy-summary-title {
+        font: 700 10px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(232, 244, 255, 0.58);
+      }
+      #${OVERLAY_ID} .enemy-summary-text {
+        color: rgba(232, 244, 255, 0.82);
+        font: 12px/1.45 "Trebuchet MS", Arial, sans-serif;
+      }
+      #${OVERLAY_ID} .enemy-summary-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      #${OVERLAY_ID} .enemy-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(143, 213, 255, 0.12);
+        border: 1px solid rgba(143, 213, 255, 0.16);
+        color: #dff4ff;
+        font: 700 11px "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
       #${OVERLAY_ID} .enemy-topbar {
         display: flex;
         justify-content: space-between;
@@ -743,6 +779,100 @@
     return Object.keys(cfg).sort();
   }
 
+  function getProjectileBehaviorNote(key, enemy) {
+    if (!enemy?.ranged) {
+      return "Projectile selection only applies to ranged enemies.";
+    }
+    if (key === "miniDemonLord") {
+      return "Uses the selected projectile type as a base, but the actual attack is a custom charging fire orb with specialized throw timing and jump behavior.";
+    }
+    if (key === "miniDemonFireThrower") {
+      return "Uses the selected projectile type as a base, but the actual attack is a custom orb/bomb with specialized arc, landing, and arming behavior.";
+    }
+    if (key === "miniDemonFireKeeper") {
+      return "Uses the selected projectile type as a base, but release timing and projectile presentation are customized in code.";
+    }
+    return "Pick the projectile this ranged enemy fires. Specialized enemies may still override timing or visuals in code.";
+  }
+
+  function formatEnemyRoleLabel(enemy) {
+    if (!enemy) return "Normal";
+    if (enemy.ranged) return "Ranged";
+    const damageClass = String(enemy.damageClass || "").toLowerCase();
+    if (damageClass === "tank") return "Tank";
+    if (damageClass === "armored") return "Armored";
+    return "Melee";
+  }
+
+  function getEnemySpecialWiringLabels(key, enemy) {
+    const labels = [];
+    const behaviors = new Set(Array.isArray(enemy?.specialBehavior) ? enemy.specialBehavior : []);
+    if (enemy?.ranged) labels.push("Projectile user");
+    if (behaviors.has("boss")) labels.push("Boss behavior");
+    if (behaviors.has("closestAny")) labels.push("Targets player or NPCs");
+    if (behaviors.has("preferEdges")) labels.push("Prefers arena edges");
+    if (behaviors.has("swarmable")) labels.push("Swarm spacing logic");
+    if (key === "miniDemonLord") labels.push("Custom charge orb + jump");
+    if (key === "miniDemonFireThrower") labels.push("Custom bomb arc + arming");
+    if (key === "miniDemonFireKeeper") labels.push("Custom materialize + cast phases");
+    if (key === "miniDemoness") labels.push("Custom grab / whip behavior");
+    if (key === "tormentorFlame" || behaviors.has("tormentorFlame")) labels.push("Custom flame visuals");
+    return labels;
+  }
+
+  function getEnemySummaryText(key, enemy) {
+    const role = formatEnemyRoleLabel(enemy);
+    const projectile = enemy?.ranged
+      ? (enemy?.projectileType || "default projectile")
+      : "no projectile";
+    const damageClass = String(enemy?.damageClass || "normal").toLowerCase();
+    const parts = [
+      `${role} enemy`,
+      enemy?.ranged ? `fires ${projectile}` : "uses direct contact / attack damage",
+    ];
+    if (damageClass !== "normal") {
+      parts.push(`${damageClass} damage class`);
+    }
+    const specialLabels = getEnemySpecialWiringLabels(key, enemy).filter((label) =>
+      label.startsWith("Custom") || label.endsWith("behavior") || label.endsWith("phases"),
+    );
+    if (specialLabels.length) {
+      parts.push(`special wiring: ${specialLabels.join(", ").toLowerCase()}`);
+    }
+    return parts.join(" • ");
+  }
+
+  function createEnemySummary(key) {
+    const enemy = ensureEnemy(key);
+    const wrapper = document.createElement("div");
+    wrapper.className = "enemy-summary";
+    const title = document.createElement("div");
+    title.className = "enemy-summary-title";
+    title.textContent = "At a Glance";
+    wrapper.appendChild(title);
+
+    const badgeRow = document.createElement("div");
+    badgeRow.className = "enemy-summary-badges";
+    const badges = [
+      formatEnemyRoleLabel(enemy),
+      enemy?.ranged ? `Projectile: ${enemy.projectileType || "default"}` : "Projectile: none",
+      ...getEnemySpecialWiringLabels(key, enemy),
+    ];
+    badges.forEach((label) => {
+      const badge = document.createElement("div");
+      badge.className = "enemy-badge";
+      badge.textContent = label;
+      badgeRow.appendChild(badge);
+    });
+    wrapper.appendChild(badgeRow);
+
+    const text = document.createElement("div");
+    text.className = "enemy-summary-text";
+    text.textContent = getEnemySummaryText(key, enemy);
+    wrapper.appendChild(text);
+    return wrapper;
+  }
+
   function createProjectileSelect(key) {
     const wrapper = createField("Projectile", "field--wide");
     const enemy = ensureEnemy(key);
@@ -763,6 +893,12 @@
       enemy.projectileType = val || null;
     });
     wrapper.appendChild(select);
+    const note = document.createElement("div");
+    note.className = "muted";
+    note.style.fontSize = "11px";
+    note.style.lineHeight = "1.35";
+    note.textContent = getProjectileBehaviorNote(key, enemy);
+    wrapper.appendChild(note);
     return wrapper;
   }
 
@@ -879,6 +1015,7 @@
 
     const main = document.createElement("div");
     main.className = "enemy-main";
+    main.appendChild(createEnemySummary(key));
 
     const grid = document.createElement("div");
     grid.className = "field-grid";
