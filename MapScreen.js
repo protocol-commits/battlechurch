@@ -281,12 +281,6 @@
   function ensureProgress() {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return null;
-    if (IS_LOCAL_HOST) {
-      if (!state.mapProgress || state.mapProgress.version !== 2) {
-        state.mapProgress = buildLocalProgress(mapData);
-      }
-      return state.mapProgress;
-    }
     // Clean break: v1 saves are discarded, start fresh with v2
     if (!state.mapProgress || state.mapProgress.version !== 2) {
       state.mapProgress = {
@@ -309,35 +303,7 @@
     return state.mapProgress;
   }
 
-  function buildLocalProgress(mapData) {
-    const allTowns = mapData.towns || [];
-    const regularTowns = allTowns.filter((t) => t.type !== "capital");
-    const completedCount = 2;
-    const completedIds = regularTowns.slice(0, completedCount).map((town) => town.id);
-    const unlockedTownIds = completedIds.slice();
-    const townEntries = {};
-    completedIds.forEach((townId) => {
-      townEntries[townId] = {
-        p1: {
-          completed: true,
-          stars: mapData.calculateStars(100),
-          bestCount: 100,
-          churchPowerupLevels: {},
-        },
-        p2: null,
-        p3: null,
-      };
-    });
-    const progress = {
-      version: 2,
-      towns: townEntries,
-      unlockedTownIds,
-    };
-    ensureNextTownUnlocked(progress, mapData);
-    return progress;
-  }
-
-  async function loadPlayerProgress() {
+async function loadPlayerProgress() {
     if (state.loading) return;
     state.loading = true;
     try {
