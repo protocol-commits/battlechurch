@@ -1808,14 +1808,20 @@ state.waveIndex = -1;
           : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
         const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
         const currentHordeDef = currentWave();
+        const derivedActNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
+          ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
+          : 1;
+        const derivedMissionNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
+          ? (state.monthIndex % MISSIONS_PER_BATTLE) + 1
+          : 1;
         return {
           level: state.level || 1,
           month: getMonthName(globalMonthNumber),
           battle: battleNumber,
           globalBattle: globalMonthNumber,
           wave: waveNumber,
-          actNum: currentHordeDef?.actNumber ?? null,
-          missionNum: currentHordeDef?.missionNumber ?? null,
+          actNum: currentHordeDef?.actNumber ?? derivedActNum,
+          missionNum: currentHordeDef?.missionNumber ?? derivedMissionNum,
           waveNum: currentHordeDef?.waveNumber ?? null,
           hordeNum: currentHordeDef?.hordeInWave ?? null,
           stage: state.stage,
