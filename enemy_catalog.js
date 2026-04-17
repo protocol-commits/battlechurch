@@ -634,7 +634,7 @@
     "ranged": true,
     "projectileType": null,
     "preferEdges": false,
-    "desiredRange": 130,
+    "desiredRange": 240,
     "projectileCooldown": 1.8,
     "bossTier": 2,
     "preferredTarget": "player",

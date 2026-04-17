@@ -16322,6 +16322,25 @@ function launchTormentorFlame(flame, owner, target) {
   }
 }
 
+function launchNextTormentorFlame(enemy, target) {
+  if (!enemy || !Array.isArray(enemy.tormentorFlameSlots) || !enemy.tormentorFlameSlots.length) {
+    return false;
+  }
+  const slots = enemy.tormentorFlameSlots;
+  const startIndex = enemy.tormentorFlameLaunchIndex || 0;
+  for (let offset = 0; offset < slots.length; offset += 1) {
+    const idx = (startIndex + offset) % slots.length;
+    const flame = slots[idx];
+    if (flame && flame._orbiting && flame.orbitParent === enemy) {
+      launchTormentorFlame(flame, enemy, target);
+      enemy.tormentorFlameLaunchIndex = (idx + 1) % slots.length;
+      slots[idx] = null;
+      return true;
+    }
+  }
+  return false;
+}
+
 function updateTormentorFlames(enemy, dt) {
   if (!enemy || enemy.dead || enemy.state === "death") return;
   if (!enemy.tormentorFlameSlots) {
@@ -16392,27 +16411,18 @@ function updateTormentorFlames(enemy, dt) {
       const rangeBuffer = Math.max(0, targetRadius * 0.5);
       if (distance <= desiredRange * 1.1 + rangeBuffer) {
         enemy.state = "attack";
-        enemy.animator?.play("attack", { restart: true });
+        enemy.animator?.play("attack", { restart: true, loop: false });
         enemy.attackTimer = enemy.projectileCooldown || enemy.config?.attackCooldown || 1.5;
+        launchNextTormentorFlame(enemy, target);
+        enemy.tormentorFlameAttackLatch = true;
       }
     }
   }
 
   if (enemy.state === "attack") {
     if (!enemy.tormentorFlameAttackLatch) {
-      const slots = enemy.tormentorFlameSlots;
-      const startIndex = enemy.tormentorFlameLaunchIndex || 0;
-      for (let offset = 0; offset < slots.length; offset += 1) {
-        const idx = (startIndex + offset) % slots.length;
-        const flame = slots[idx];
-        if (flame && flame._orbiting && flame.orbitParent === enemy) {
-          const target = typeof enemy.acquireTarget === "function" ? enemy.acquireTarget() : null;
-          launchTormentorFlame(flame, enemy, target);
-          enemy.tormentorFlameLaunchIndex = (idx + 1) % slots.length;
-          slots[idx] = null;
-          break;
-        }
-      }
+      const target = typeof enemy.acquireTarget === "function" ? enemy.acquireTarget() : null;
+      launchNextTormentorFlame(enemy, target);
       enemy.tormentorFlameAttackLatch = true;
     }
   } else {
