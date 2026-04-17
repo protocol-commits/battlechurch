@@ -1749,10 +1749,21 @@ function computeFormationAnchors(count) {
   const presetKey = formationState.current || "circle";
   switch (presetKey) {
     case "line": {
-      const spacing = Math.max(34, ((rx * 2) / Math.max(1, count)) * spreadScale);
-      const startX = cx - (spacing * (count - 1)) / 2;
+      const radius = Math.min(rx, ry) * 0.82 * spreadScale;
+      const start = (210 * Math.PI) / 180;
+      const end = (-30 * Math.PI) / 180;
+      const zoneStep = count > 1 ? (end - start) / (count - 1) : 0;
       for (let i = 0; i < count; i += 1) {
-        anchors.push({ x: startX + spacing * i, y: cy });
+        const t = count === 1 ? 0.5 : i / (count - 1);
+        const angle = start + (end - start) * t;
+        anchors.push({
+          x: cx + Math.cos(angle) * radius,
+          y: cy + Math.sin(angle) * radius,
+          angle,
+          zoneHalfSpan: Math.abs(zoneStep) * 0.5,
+          zoneIndex: i,
+          zoneCount: count,
+        });
       }
       break;
     }
