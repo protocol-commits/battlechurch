@@ -6138,6 +6138,19 @@ function startGameFromTitle() {
     townStartCongregation = INITIAL_CONGREGATION_SIZE;
     resetChurchPowerups();
   }
+  // Apply denominational upgrade powerups (free picks granted before County 2/3/4 towns)
+  const _denomPowerups = typeof window !== "undefined" ? window.pendingDenomPowerups : null;
+  if (Array.isArray(_denomPowerups) && _denomPowerups.length > 0) {
+    const DENOM_POWERUP_LEVEL = 5;
+    for (const _key of _denomPowerups) {
+      if (CHURCH_POWERUP_DEFS[_key] && !CHURCH_POWERUP_DEFS[_key].disabled) {
+        const _existing = churchPowerupLevels.get(_key) || 0;
+        churchPowerupLevels.set(_key, Math.max(_existing, DENOM_POWERUP_LEVEL));
+        unlockedChurchPowerups.add(_key);
+      }
+    }
+    window.pendingDenomPowerups = null;
+  }
   resetCongregationSize();
   // Ensure title is hidden and game is paused while we enter briefing.
   paused = true;

@@ -8682,6 +8682,267 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.stroke();
     ctx.restore();
   }
+  // ---------------------------------------------------------------------------
+  // Denominational Upgrade Screen
+  // Shown as a map overlay before County 2/3/4 towns. Lets the player pick
+  // N church powerups that start at level 5 for free.
+  // ---------------------------------------------------------------------------
+  function drawDenomUpgradeScreen(ctx, canvas, options = {}) {
+    const {
+      stats = [],
+      selectedKeys = [],
+      maxPicks = 1,
+      focusedIndex = 0,
+      uiFontFamily = "sans-serif",
+    } = options;
+
+    // Sync focus context so isAnnouncementButtonFocused works
+    if (typeof window !== "undefined") {
+      window.__announcementFocus = { key: "denomUpgradeScreen", index: focusedIndex };
+    }
+
+    // Dim the map behind the overlay
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    const confirmEnabled = selectedKeys.length >= maxPicks;
+    const picksLeft = maxPicks - selectedKeys.length;
+    const title = "Denominational Upgrade";
+    const subtitle = picksLeft > 0
+      ? `The denomination sees your work. Choose ${picksLeft} more ${picksLeft === 1 ? "upgrade" : "upgrades"}.`
+      : "Your upgrades are ready. Confirm to begin.";
+
+    const buttonHeight = 200;
+    const buttonCount = stats.length;
+
+    ctx.save();
+    const layout = getAnnouncementScreenLayout(ctx, canvas, {
+      title,
+      subtitle,
+      titleSize: TEXT_STYLES.h1.size,
+      subtitleSize: TEXT_STYLES.h2.size,
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      weight: TEXT_STYLES.h1.weight,
+      maxWidthScale: 0.96,
+      position: "top",
+      topMargin: 90,
+      bottomMargin: 70,
+      rowGap: 40,
+      buttonHeight,
+      buttonCount: buttonCount + 1,
+    });
+    ctx.translate(layout.offsetX, layout.offsetY);
+    ctx.scale(layout.scale, layout.scale);
+
+    // Title + subtitle (no typewriter — this is a selection screen, not an announcement)
+    const vw = layout.virtualCanvas.width;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
+    ctx.shadowBlur = 22;
+    ctx.fillStyle = "#F3E2C4";
+    ctx.font = `${TEXT_STYLES.h1.weight} ${TEXT_STYLES.h1.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.fillText(title, vw / 2, layout.titleY);
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = "rgba(235, 215, 170, 0.85)";
+    ctx.font = `${TEXT_STYLES.h2.weight} ${TEXT_STYLES.h2.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    const subtitleY = layout.titleY + Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    ctx.fillText(subtitle, vw / 2, subtitleY);
+    ctx.restore();
+
+    const { powerupIconStyles } = requireBindings();
+    const buttonGap = 18;
+    const sidePadding = 60;
+    const totalAvailable = vw - sidePadding * 2;
+    const buttonWidth = Math.floor((totalAvailable - buttonGap * (buttonCount - 1)) / buttonCount);
+    const buttonRowWidth = buttonWidth * buttonCount + buttonGap * (buttonCount - 1);
+    const buttonStartX = Math.round((vw - buttonRowWidth) / 2);
+    const buttonY = Math.round(layout.buttonY || 0);
+
+    const bounds = [];
+    stats.forEach((stat, index) => {
+      const x = buttonStartX + index * (buttonWidth + buttonGap);
+      const isSelected = selectedKeys.includes(stat.key);
+      const isDimmed = !isSelected && selectedKeys.length >= maxPicks;
+
+      const cardRadius = 16;
+      const cardX = x;
+      const cardY = buttonY;
+      const cardW = buttonWidth;
+      const cardH = buttonHeight;
+      const headerHeight = 52;
+      const bodyTop = cardY + headerHeight + 18;
+      const textLeft = cardX + 24 + 34; // 34 = icon size
+      const textRight = cardX + cardW - 22;
+      const textWidth = textRight - textLeft;
+
+      ctx.save();
+      const baseGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+      if (isDimmed) {
+        baseGradient.addColorStop(0, "rgba(35, 30, 25, 0.6)");
+        baseGradient.addColorStop(1, "rgba(25, 22, 18, 0.55)");
+      } else {
+        baseGradient.addColorStop(0, "#2A2118");
+        baseGradient.addColorStop(0.55, "#3A2E21");
+        baseGradient.addColorStop(1, "#1E1812");
+      }
+      ctx.shadowColor = "rgba(8, 6, 4, 0.55)";
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 8;
+      ctx.fillStyle = baseGradient;
+      roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.lineWidth = isSelected ? 2.5 : 2;
+      ctx.strokeStyle = isSelected
+        ? "rgba(255, 215, 80, 0.95)"
+        : isDimmed
+          ? "rgba(80, 65, 50, 0.35)"
+          : "rgba(200, 160, 90, 0.85)";
+      roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, true);
+      // Inner ring
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = isSelected ? "rgba(255, 230, 100, 0.4)" : "rgba(255, 255, 255, 0.12)";
+      roundRect(ctx, cardX + 3, cardY + 3, cardW - 6, cardH - 6, Math.max(8, cardRadius - 4), false, true);
+
+      // Header band
+      ctx.save();
+      roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, false);
+      ctx.clip();
+      const headerGradient = ctx.createLinearGradient(0, cardY, 0, cardY + headerHeight);
+      if (isSelected) {
+        headerGradient.addColorStop(0, "#6B5218");
+        headerGradient.addColorStop(1, "#4E3A1D");
+      } else if (isDimmed) {
+        headerGradient.addColorStop(0, "rgba(60, 50, 38, 0.6)");
+        headerGradient.addColorStop(1, "rgba(45, 36, 28, 0.5)");
+      } else {
+        headerGradient.addColorStop(0, "#5B4328");
+        headerGradient.addColorStop(1, "#3E2E1D");
+      }
+      ctx.fillStyle = headerGradient;
+      ctx.fillRect(cardX, cardY, cardW, headerHeight);
+      ctx.fillStyle = isSelected ? "rgba(255, 220, 80, 0.4)" : "rgba(230, 195, 130, 0.3)";
+      ctx.fillRect(cardX, cardY + headerHeight - 2, cardW, 2);
+      ctx.restore();
+
+      if (isDimmed) {
+        ctx.fillStyle = "rgba(12, 10, 8, 0.4)";
+        roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
+      }
+
+      if (isAnnouncementButtonFocused("denomUpgradeScreen", index)) {
+        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
+      }
+
+      // Icon
+      const powerupIcon = getChurchPowerupIcon(stat.iconSrc);
+      const iconStyle = powerupIconStyles?.player || CHURCH_POWERUP_ICON_DEFAULT;
+      drawChurchPowerupIcon(ctx, {
+        x: cardX + 28,
+        y: cardY + headerHeight / 2,
+        size: 34,
+        iconImage: powerupIcon || getUpgradeIcon("category"),
+        style: iconStyle,
+      });
+
+      // Label
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.font = `800 18px ${uiFontFamily}`;
+      const labelMeasured = ctx.measureText(stat.label || "").width;
+      const labelSize = labelMeasured > textWidth ? Math.max(9, Math.floor(18 * (textWidth / labelMeasured))) : 18;
+      ctx.font = `800 ${labelSize}px ${uiFontFamily}`;
+      ctx.fillStyle = isDimmed ? "rgba(200, 185, 155, 0.6)" : "#F3E2C4";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+      ctx.fillText(stat.label || "", textLeft, cardY + headerHeight / 2 + 1);
+
+      // Description
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.font = `600 13px ${uiFontFamily}`;
+      ctx.fillStyle = isDimmed ? "rgba(175, 165, 145, 0.5)" : "rgba(235, 220, 195, 0.9)";
+      const descLines = wrapAnnouncementText(ctx, stat.description || "", textWidth);
+      descLines.slice(0, 3).forEach((line, i) => {
+        ctx.fillText(line, textLeft, bodyTop + 8 + i * 16);
+      });
+
+      // "Selected" badge
+      if (isSelected) {
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.font = `700 13px ${uiFontFamily}`;
+        const badgeText = "\u2713 Selected";
+        const badgePadX = 14;
+        const badgeWidth = ctx.measureText(badgeText).width + badgePadX * 2;
+        const badgeHeight = 24;
+        const badgeX = cardX + cardW - 22 - badgeWidth;
+        const badgeY = cardY + cardH - 26 - badgeHeight / 2;
+        ctx.fillStyle = "rgba(80, 55, 10, 0.95)";
+        ctx.strokeStyle = "rgba(255, 215, 80, 0.9)";
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, 12, true, true);
+        ctx.fillStyle = "#FFE040";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+        ctx.textAlign = "left";
+      }
+
+      ctx.restore();
+
+      bounds.push({
+        key: stat.key,
+        x: layout.offsetX + x * layout.scale,
+        y: layout.offsetY + buttonY * layout.scale,
+        width: buttonWidth * layout.scale,
+        height: buttonHeight * layout.scale,
+      });
+    });
+
+    // Confirm button (centered, single button)
+    const confirmY = buttonY + buttonHeight + 30;
+    const confirmHeight = 56;
+    const confirmWidth = Math.min(340, totalAvailable * 0.5);
+    const confirmX = Math.round((vw - confirmWidth) / 2);
+
+    ctx.save();
+    ctx.fillStyle = confirmEnabled ? "#9BD9FF" : "rgba(80, 80, 90, 0.5)";
+    ctx.strokeStyle = confirmEnabled ? "rgba(255, 255, 255, 0.4)" : "rgba(120, 120, 130, 0.25)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, confirmX, confirmY, confirmWidth, confirmHeight, 18, true, true);
+    if (isAnnouncementButtonFocused("denomUpgradeScreen", buttonCount)) {
+      drawFocusRing(ctx, confirmX - 3, confirmY - 3, confirmWidth + 6, confirmHeight + 6, 20);
+    }
+    ctx.fillStyle = confirmEnabled ? "#0b111a" : "rgba(180, 180, 190, 0.45)";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `600 22px ${uiFontFamily}`;
+    ctx.fillText("Confirm", confirmX + confirmWidth / 2, confirmY + confirmHeight / 2);
+    ctx.restore();
+
+    bounds.push({
+      key: "confirm",
+      x: layout.offsetX + confirmX * layout.scale,
+      y: layout.offsetY + confirmY * layout.scale,
+      width: confirmWidth * layout.scale,
+      height: confirmHeight * layout.scale,
+      enabled: confirmEnabled,
+    });
+
+    if (typeof window !== "undefined") {
+      window.__denomUpgradeScreenButtons = { buttons: bounds };
+    }
+
+    ctx.restore();
+  }
+
   function drawFrame() {
     drawGame();
   }
@@ -8691,5 +8952,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawFrame,
     drawCountdownOverlay,
     drawChurchUpgradeScreen,
+    drawDenomUpgradeScreen,
   };
 })(typeof window !== "undefined" ? window : null);

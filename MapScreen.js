@@ -20,6 +20,7 @@
     mapRect: { x: 0, y: 0, w: 0, h: 0 },
     selectedTownId: null,
     panelOpen: false,
+    denomUpgrade: null, // { active, townId, maxPicks, selectedKeys[], focusedIndex }
     panelFocus: 0,
     navHoldDir: 0,
     navNextTime: 0,
@@ -845,6 +846,31 @@
     return ordered[nextIndex].id;
   }
 
+  // ---------------------------------------------------------------------------
+  // Denominational Upgrade helpers
+  // County number: 1=Westreach, 2=Ashvale, 3=Lowmarch, 4=Capital.
+  // To remap counties, update the district order in mapData.js.
+  // ---------------------------------------------------------------------------
+  function getCountyNumberForTown(townId) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return 1;
+    const town = mapData.towns.find(function(t) { return t.id === townId; });
+    if (!town) return 1;
+    if (town.type === "capital") return 4;
+    const districts = mapData.getDistricts(); // sorted by order
+    const idx = districts.findIndex(function(d) { return d.id === town.districtId; });
+    return idx >= 0 ? idx + 1 : 1;
+  }
+
+  // County 1 = no picks; County 2 = 1 pick; County 3 = 2 picks; County 4 = 3 picks.
+  function getDenomPickCountForTown(townId) {
+    const county = getCountyNumberForTown(townId);
+    if (county === 2) return 1;
+    if (county === 3) return 2;
+    if (county === 4) return 3;
+    return 0;
+  }
+
   function openTownPanel(townId) {
     if (!isTownUnlocked(townId)) return;
     if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
@@ -1051,7 +1077,7 @@
     return true;
   }
 
-  function startRunForTown(townId) {
+  function _launchTown(townId) {
     if (typeof window.startExteriorMusic === "function") {
       window.startExteriorMusic();
     }
@@ -1064,11 +1090,88 @@
     }
   }
 
+  function startRunForTown(townId) {
+    const picks = getDenomPickCountForTown(townId);
+    if (picks > 0) {
+      // Show denominational upgrade screen before launching
+      state.panelOpen = false;
+      state.denomUpgrade = { active: true, townId: townId, maxPicks: picks, selectedKeys: [], focusedIndex: 0 };
+      return;
+    }
+    _launchTown(townId);
+  }
+
+  function confirmDenomUpgrade() {
+    const du = state.denomUpgrade;
+    if (!du || !du.active || du.selectedKeys.length < du.maxPicks) return;
+    if (typeof window !== "undefined") {
+      window.pendingDenomPowerups = du.selectedKeys.slice();
+    }
+    state.denomUpgrade = null;
+    _launchTown(du.townId);
+  }
+
+  function cancelDenomUpgrade() {
+    state.denomUpgrade = null;
+  }
+
+  function handleDenomUpgradeInput(input, keysJustPressed) {
+    const du = state.denomUpgrade;
+    if (!du) return;
+    const defs = (typeof window !== "undefined" && window.BattlechurchPowerupDefinitions?.churchPowerupDefs) || {};
+    const powerupKeys = Object.keys(defs).filter(function(k) { return !defs[k].disabled; });
+    const confirmIndex = powerupKeys.length;
+    const totalSlots = powerupKeys.length + 1; // cards + confirm
+
+    const direction = getNavigationDirection(input, keysJustPressed);
+    if (direction === "left" || direction === "up") {
+      du.focusedIndex = (du.focusedIndex - 1 + totalSlots) % totalSlots;
+      if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+    } else if (direction === "right" || direction === "down") {
+      du.focusedIndex = (du.focusedIndex + 1) % totalSlots;
+      if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
+    }
+
+    const confirmPressed =
+      keysJustPressed.has(" ") ||
+      keysJustPressed.has("enter") ||
+      keysJustPressed.has("Enter") ||
+      keysJustPressed.has("ArrowLeft");
+    if (confirmPressed) {
+      if (du.focusedIndex === confirmIndex) {
+        confirmDenomUpgrade();
+      } else {
+        const key = powerupKeys[du.focusedIndex];
+        if (key) {
+          const idx = du.selectedKeys.indexOf(key);
+          if (idx >= 0) {
+            du.selectedKeys.splice(idx, 1);
+          } else if (du.selectedKeys.length < du.maxPicks) {
+            du.selectedKeys.push(key);
+          }
+          if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
+        }
+      }
+    }
+
+    const backPressed = keysJustPressed.has("escape") || keysJustPressed.has("Escape");
+    if (backPressed) {
+      cancelDenomUpgrade();
+      if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
+    }
+  }
+
   function handleMapInput() {
     const input = window.Input;
     if (!input) return;
     const keysJustPressed = input.keysJustPressed;
     if (!keysJustPressed) return;
+
+    if (state.denomUpgrade?.active) {
+      handleDenomUpgradeInput(input, keysJustPressed);
+      keysJustPressed.clear();
+      return;
+    }
 
     const prevSelection = state.selectedTownId;
     if (state.panelOpen) {
@@ -1116,6 +1219,33 @@
     if (!input?.consumeCanvasClick) return;
     const click = input.consumeCanvasClick();
     if (!click) return;
+
+    // Denom upgrade screen absorbs all clicks while active
+    if (state.denomUpgrade?.active) {
+      const buttons = (typeof window !== "undefined" && window.__denomUpgradeScreenButtons?.buttons) || [];
+      const hit = buttons.find(function(b) {
+        return click.x >= b.x && click.x <= b.x + b.width && click.y >= b.y && click.y <= b.y + b.height;
+      });
+      if (hit) {
+        if (hit.key === "confirm") {
+          if (hit.enabled !== false) {
+            if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
+            confirmDenomUpgrade();
+          }
+        } else {
+          const du = state.denomUpgrade;
+          const idx = du.selectedKeys.indexOf(hit.key);
+          if (idx >= 0) {
+            du.selectedKeys.splice(idx, 1);
+          } else if (du.selectedKeys.length < du.maxPicks) {
+            du.selectedKeys.push(hit.key);
+          }
+          if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
+        }
+      }
+      return;
+    }
+
     if (state.panelOpen && state.panelButtons) {
       const hit = state.panelButtons.find(
         (btn) => click.x >= btn.x && click.x <= btn.x + btn.width && click.y >= btn.y && click.y <= btn.y + btn.height,
@@ -1474,6 +1604,26 @@
     }
   }
 
+  function drawDenomUpgradeOverlay(ctx, canvas) {
+    const du = state.denomUpgrade;
+    if (!du || !du.active) return;
+    if (!window.Renderer?.drawDenomUpgradeScreen) return;
+    const defs = (typeof window !== "undefined" && window.BattlechurchPowerupDefinitions?.churchPowerupDefs) || {};
+    const stats = Object.entries(defs)
+      .filter(function(entry) { return !entry[1].disabled; })
+      .map(function(entry) {
+        return { key: entry[0], label: entry[1].label, description: entry[1].description, iconSrc: entry[1].iconSrc };
+      });
+    const uiFontFamily = (typeof window !== "undefined" && window.UI_FONT_FAMILY) || "'Orbitron', sans-serif";
+    window.Renderer.drawDenomUpgradeScreen(ctx, canvas, {
+      stats: stats,
+      selectedKeys: du.selectedKeys,
+      maxPicks: du.maxPicks,
+      focusedIndex: du.focusedIndex,
+      uiFontFamily: uiFontFamily,
+    });
+  }
+
   function draw(ctx, canvas) {
     if (!state.active) return;
     ctx.save();
@@ -1501,6 +1651,7 @@
     handleMapClicks(rect);
     drawTownPanel(ctx, canvas);
     drawPhaseBox(ctx, rect);
+    drawDenomUpgradeOverlay(ctx, canvas);
     ctx.restore();
   }
 
