@@ -2320,6 +2320,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
         anim.activeProfileIndex = entries.length - 1;
         anim.congregationAwarded = entries.length;
         recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+        recapTallyState.finalSfxPlayed = true;
         recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
         recapTallyState.phase = "post";
         return;
