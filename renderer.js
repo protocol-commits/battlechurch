@@ -2309,6 +2309,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           holdTimer: 0,
           bumpTimer: 0,
           congregationAwarded: 0,
+          lastGhostAward: 0,
           finished: false,
         };
         recapTallyState.visitorProfilesAnim = anim;
@@ -2568,6 +2569,18 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       : (visAnim?.index === recapTallyState.stepIndex
           ? Math.min(allEntries.length, visAnim.activeProfileIndex + 1)
           : 0);
+    if (visAnim && visAnim.congregationAwarded > visAnim.lastGhostAward) {
+      const newlyAwarded = visAnim.congregationAwarded - visAnim.lastGhostAward;
+      const newestIdx = visAnim.activeProfileIndex;
+      const col = newestIdx % colsPerRow;
+      const row = Math.floor(newestIdx / colsPerRow);
+      const popX = recapLeftColumnX + col * rowStride + slotSize / 2;
+      const popY = gridTopY + row * (rowHeight + rowGapBetween);
+      for (let gi = 0; gi < newlyAwarded; gi += 1) {
+        spawnRecapGhostEffect("+1", popX, popY, countNumberX, countNumberY - 12);
+      }
+      visAnim.lastGhostAward = visAnim.congregationAwarded;
+    }
     for (let i = 0; i < activeIndex; i += 1) {
       const entry = allEntries[i];
       const col = i % colsPerRow;
