@@ -15528,23 +15528,23 @@ function handleVisitorSummary() {
 
 function handleVisitorIntro() {
   if (!visitorSession.active || !visitorSession.introActive) return false;
-  if (!visitorSession.introShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
-    const title = "Welcome Visitors";
-    const body = "Welcome the visitors while politely keeping your members happy.";
-    visitorSession.introShown = true;
-    window.DialogOverlay.show({
-      title,
-      bodyHtml: `<div class="dialog-overlay__body"></div>`,
-      buttonText: "Continue",
-      variant: "mission",
-      devLabel: "",
-      onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
-      onContinue: () => {
-        visitorSession.introActive = false;
-        keysJustPressed.delete(" ");
-      },
-    });
-  }
+  const buttons =
+    typeof window !== "undefined" && window.__announcementButtons?.key === "visitorIntro"
+      ? window.__announcementButtons.buttons
+      : null;
+  const handled = handleAnnouncementButtons({
+    key: "visitorIntro",
+    buttons,
+    allowSpace: true,
+    onActivate: () => {
+      visitorSession.introActive = false;
+      keysJustPressed.delete(" ");
+      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+        window.playMenuAdvanceSfx(0.55);
+      }
+    },
+  });
+  if (handled) return true;
   if (
     wasActionJustPressed("restart") ||
     wasActionJustPressed("pause") ||

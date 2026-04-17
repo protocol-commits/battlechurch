@@ -5398,7 +5398,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawVisitorIntroOverlay() {
-    return;
+    const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
+    drawBackground();
+    drawMissionBriefScreen(ctx, canvas, {
+      title: "Welcome Visitors",
+      subtitle: "Welcome the visitors while politely keeping your members happy.",
+      showFormation: false,
+      uiFontFamily: UI_FONT_FAMILY,
+      buttonKey: "visitorIntro",
+      setMissionBriefActive: false,
+    });
   }
 
   function drawBriefingScene(levelStatus) {
