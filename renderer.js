@@ -1142,7 +1142,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   window.DialogOverlay.show({
     title: devTitle,
     bodyHtml,
-    buttonText: showFormation ? "" : "Continue (Space)",
+    buttonText: showFormation ? "" : "Continue",
     variant: "mission",
     devLabel: "",
     onRender: ({ overlay, buttonEl }) => {
@@ -1468,7 +1468,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     : [
         {
           key: "continue",
-          label: "Continue (Space)",
+          label: "Continue",
           desc: "",
           stat: "",
         },
@@ -3291,7 +3291,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 24px ${uiFontFamily}`;
-  const continueLabel = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue (Space)";
+  const continueLabel = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue";
   ctx.fillText(continueLabel, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
   ctx.restore();
 
@@ -3804,7 +3804,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 22px ${uiFontFamily}`;
-  const continueLabel2 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue (Space)";
+  const continueLabel2 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue";
   ctx.fillText(continueLabel2, continueX2 + actionButtonWidth / 2, continueY + continueHeight / 2);
   ctx.restore();
 
@@ -4090,7 +4090,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         maxWidthScale: 0.92,
       });
       if (isPastorSpeech) {
-        const buttonText = "Continue (Space)";
+        const buttonText = "Continue";
         const buttonWidth = Math.min(240, layout.virtualCanvas.width * 0.5);
         const buttonHeight = 50;
         const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
@@ -4826,7 +4826,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     void memberCount;
 
-    const buttonText = "Play (Space)";
+    const buttonText = "Continue";
     const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
     const buttonHeight = 52;
     const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
@@ -6027,7 +6027,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
 
     ctx.save();
-    const buttonText = "Play (Space)";
+    const buttonText = "Continue";
     const buttonWidth = Math.min(240, layout.virtualCanvas.width * 0.5);
     const buttonHeight = 50;
     const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
@@ -6774,7 +6774,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = `600 ${Math.round(22 * scaleHint)}px ${UI_FONT_FAMILY}`;
-      const continueLabel3 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue (Space)";
+      const continueLabel3 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue";
       ctx.fillText(continueLabel3, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
       ctx.restore();
     }
@@ -7072,7 +7072,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.restore();
       }
       ctx.save();
-      const buttonText = "Play (Space)";
+      const buttonText = "Continue";
       const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: announcementTitle,

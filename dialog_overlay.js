@@ -8,7 +8,7 @@
     <div class="dialog-overlay__panel">
       <h2 class="dialog-overlay__title"></h2>
       <div class="dialog-overlay__body"></div>
-      <button type="button" class="dialog-overlay__button">Continue (Space)</button>
+      <button type="button" class="dialog-overlay__button">Continue</button>
     </div>
   `;
 
@@ -134,7 +134,7 @@
     title = "",
     body = "",
     bodyHtml = "",
-    buttonText = "Continue (Space)",
+    buttonText = "Continue",
     onContinue = null,
     variant = "",
     onRender = null,

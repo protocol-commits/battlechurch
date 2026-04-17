@@ -164,6 +164,7 @@ let congregationWanderBounds = null;
 let npcProcessionActive = false;
 let powerUpsClearedForCongregation = false;
 let congregationGreetingShown = false;
+let congregationWelcomeTimer = 0;
 let congregationDialogueIndex = 0;
 const congregationWaveIntroDialogueState = {
   activeKey: "",
@@ -187,6 +188,7 @@ const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {};
 const CONGREGATION_NPC_POWERUP_DIALOGUE = CONGREGATION_DIALOGUE_DATA.npcPowerups || {};
 const CONGREGATION_BATTLE_VICTORY_DIALOGUE = CONGREGATION_DIALOGUE_DATA.battleVictory || {};
+const CONGREGATION_WELCOME_LINES = CONGREGATION_DIALOGUE_DATA.welcomeLines || [];
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
@@ -5995,7 +5997,7 @@ function showTownIntroDialog() {
   window.DialogOverlay.show({
     title: "",
     bodyHtml: `<div class="town-intro-text"></div>`,
-    buttonText: "Continue (Space)",
+    buttonText: "Continue",
     variant: "town-intro",
     devLabel: "",
     onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
@@ -6300,7 +6302,7 @@ function showPauseDialog() {
   window.DialogOverlay.show({
     title: "Paused",
     bodyHtml: PAUSE_HOTKEYS_HTML,
-    buttonText: "Continue (Space)",
+    buttonText: "Continue",
     variant: "pause",
     devLabel: "",
     onContinue: () => {
@@ -15497,7 +15499,7 @@ function handleVisitorSummary() {
     window.DialogOverlay.show({
       title,
       bodyHtml: `<div class="dialog-overlay__body"></div>`,
-      buttonText: "Continue (Space)",
+      buttonText: "Continue",
       variant: "mission",
       devLabel: "",
       onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
@@ -15522,7 +15524,7 @@ function handleVisitorIntro() {
     window.DialogOverlay.show({
       title,
       bodyHtml: `<div class="dialog-overlay__body"></div>`,
-      buttonText: "Continue (Space)",
+      buttonText: "Continue",
       variant: "mission",
       devLabel: "",
       onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
@@ -15980,6 +15982,32 @@ function updateCongregationStage(dt, levelStatus) {
   if (!congregationGreetingShown) {
     heroSay("I'm glad to see you all!", { life: 3.6 });
     congregationGreetingShown = true;
+    congregationWelcomeTimer = 2.2;
+  }
+  congregationWelcomeTimer -= dt;
+  if (congregationWelcomeTimer <= 0 && CONGREGATION_WELCOME_LINES.length && congregationMembers.length) {
+    const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    const available = congregationMembers.filter(
+      (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
+    );
+    if (available.length) {
+      const member = available[Math.floor(Math.random() * available.length)];
+      const line = CONGREGATION_WELCOME_LINES[Math.floor(Math.random() * CONGREGATION_WELCOME_LINES.length)];
+      if (member.dialogueBubble) {
+        member.dialogueBubble.life = 0;
+        member.dialogueBubble = null;
+      }
+      const bubble = addFloatingTextAt(
+        member.x,
+        member.y - member.radius - 20,
+        line,
+        "#f4fbff",
+        { speechBubble: true, vy: 0, life: 2.5, fadeDelay: 2.2, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
+      );
+      member.dialogueBubble = bubble || null;
+      member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
+    }
+    congregationWelcomeTimer = 1.8 + Math.random() * 1.0;
   }
   updateCongregationMembers(dt);
   resolveCongregationMemberCollisions();
@@ -16029,6 +16057,7 @@ function updateCongregationStage(dt, levelStatus) {
   if (!congregationStageActive) {
     powerUpsClearedForCongregation = false;
     congregationGreetingShown = false;
+    congregationWelcomeTimer = 0;
     mapAmbientFadeQueued = false;
   }
   return { updated: true, levelStatus };
@@ -18221,7 +18250,9 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     }
     spawnEnemyHitEffect(enemy);
   });
-  tryTriggerCongregationDialogueFromMelee(dir, swingCenterX, swingCenterY, attackRect);
+  if (tryTriggerCongregationDialogueFromMelee(dir, swingCenterX, swingCenterY, attackRect)) {
+    congregationWelcomeTimer = Infinity;
+  }
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
     const hitCenter = getEnemyHitboxCenter(activeBoss);
     const relX = hitCenter.x - player.x;
@@ -20153,6 +20184,7 @@ function restartGame() {
   congregationOverlay.lastPhase = -1;
   congregationOverlay.playedFinal = false;
   congregationGreetingShown = false;
+  congregationWelcomeTimer = 0;
   speedrunTimer.running = false;
   speedrunTimer.startTime = null;
   speedrunTimer.sectionStart = null;

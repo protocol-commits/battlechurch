@@ -126,8 +126,26 @@
     ],
   };
 
+  const welcomeLines = [
+    "Pastor! We're so glad you're here.",
+    "We've been praying for your arrival.",
+    "Thank God you've come.",
+    "We've been waiting for you, Pastor.",
+    "We're with you, Pastor.",
+    "It means so much that you showed up.",
+    "We needed you here.",
+    "God sent the right person.",
+    "Your presence gives us courage.",
+    "We've been holding on until you came.",
+    "We knew you'd come.",
+    "We're ready to stand with you.",
+    "You give us hope, Pastor.",
+    "We're stronger with you here.",
+  ];
+
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
+  ns.welcomeLines = welcomeLines;
   ns.waveIntro = waveIntro;
   ns.waveEnd = waveEnd;
   ns.redFaith = redFaith;

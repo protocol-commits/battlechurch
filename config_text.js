@@ -112,7 +112,7 @@
     // BUTTONS
     // =====================
     buttons: {
-      continue: "Continue (Space)",
+      continue: "Continue",
       undo: "Undo",
       restart: "Press Space to Restart",
     },
