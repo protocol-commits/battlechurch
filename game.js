@@ -16184,13 +16184,13 @@ function getTormentorFlameOrbitSettings(enemy) {
   const hitboxRect = getEnemyHitboxRect(enemy);
   const hitboxWidth = hitboxRect ? hitboxRect.width : (enemy?.radius || 16) * 2;
   const hitboxHeight = hitboxRect ? hitboxRect.height : (enemy?.radius || 16) * 2;
-  const baseRadius = Math.max(12, hitboxWidth * 0.45);
+  const baseRadius = Math.max(12, hitboxWidth * 0.5);
   const topOffset = hitboxRect ? hitboxRect.y - (enemy?.y || 0) : -(hitboxHeight * 0.5);
   return {
-    radiusX: baseRadius * 0.9,
-    radiusY: baseRadius * 0.45,
-    offsetY: topOffset + hitboxHeight * 0.2,
-    lift: Math.max(4, baseRadius * 0.35),
+    radiusX: baseRadius * 1.08,
+    radiusY: baseRadius * 0.24,
+    offsetY: topOffset + hitboxHeight * 0.08 + 35,
+    lift: Math.max(6, baseRadius * 0.46),
   };
 }
 

@@ -642,8 +642,10 @@
     "orbiterVisual": {
       "type": "projectile",
       "assetKey": "fireOrb",
-      "scale": 0.78,
+      "scale": 0.585,
       "alpha": 1,
+      "brightness": 0.82,
+      "saturation": 0.72,
       "rotationSpeed": 1.6,
       "glow": true
     },

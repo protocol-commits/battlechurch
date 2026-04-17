@@ -3624,6 +3624,14 @@
           Number.isFinite(this.orbiterVisual?.alpha) && this.orbiterVisual.alpha >= 0
             ? this.orbiterVisual.alpha
             : 1;
+        const brightness =
+          Number.isFinite(this.orbiterVisual?.brightness) && this.orbiterVisual.brightness > 0
+            ? this.orbiterVisual.brightness
+            : 1;
+        const saturation =
+          Number.isFinite(this.orbiterVisual?.saturation) && this.orbiterVisual.saturation > 0
+            ? this.orbiterVisual.saturation
+            : 1;
         const rotationSpeed =
           Number.isFinite(this.orbiterVisual?.rotationSpeed)
             ? this.orbiterVisual.rotationSpeed
@@ -3634,6 +3642,9 @@
           ctx.rotate(nowSeconds * rotationSpeed);
         }
         ctx.globalAlpha *= (drawOptions.alpha ?? 1) * visualAlpha;
+        if (brightness !== 1 || saturation !== 1) {
+          ctx.filter = `brightness(${brightness}) saturate(${saturation})`;
+        }
         ctx.drawImage(
           orbiterVisualFrame,
           -drawWidth / 2,
