@@ -579,6 +579,7 @@ const MELEE_SWING_LENGTH = 260;
     invitedNames: [],
     invitedProfiles: [],
     followupInvite: null,
+    visitorProfilesAnim: null,
   };
   const RECAP_LINE_PAUSE = 1.0;
   const RECAP_FIRST_LINE_PAUSE = 1.0;
@@ -2296,6 +2297,57 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
       }
       return;
     }
+    if (current.kind === "visitorProfiles") {
+      const entries = Array.isArray(current?.npcHealthBreakdown)
+        ? current.npcHealthBreakdown
+        : [];
+      let anim = recapTallyState.visitorProfilesAnim;
+      if (!anim || anim.index !== recapTallyState.stepIndex) {
+        anim = {
+          index: recapTallyState.stepIndex,
+          activeProfileIndex: -1,
+          holdTimer: 0,
+          bumpTimer: 0,
+          congregationAwarded: 0,
+          finished: false,
+        };
+        recapTallyState.visitorProfilesAnim = anim;
+      }
+      if (anim.bumpTimer > 0) anim.bumpTimer = Math.max(0, anim.bumpTimer - dt);
+      if (anim.finished || !entries.length) {
+        anim.finished = true;
+        anim.activeProfileIndex = entries.length - 1;
+        anim.congregationAwarded = entries.length;
+        recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+        recapTallyState.pauseTimer = RECAP_LINE_PAUSE;
+        recapTallyState.phase = "post";
+        return;
+      }
+      anim.holdTimer = Math.max(0, anim.holdTimer - dt);
+      if (anim.holdTimer <= 0) {
+        const nextIndex = anim.activeProfileIndex + 1;
+        if (nextIndex >= entries.length) {
+          anim.finished = true;
+        } else {
+          anim.activeProfileIndex = nextIndex;
+          anim.holdTimer = 0.35;
+          anim.bumpTimer = 0.4;
+          anim.congregationAwarded = nextIndex + 1;
+          if (affectsTotal) {
+            recapTallyState.totalValue += 1;
+            recapTallyState.flashTimer = RECAP_FLASH_DURATION;
+          }
+          if (typeof window?.playCongregationCountPopSfx === "function") {
+            window.playCongregationCountPopSfx(0.7, "up");
+          }
+          if (typeof window?.playRecapFinalSfx === "function") {
+            window.playRecapFinalSfx(0.65);
+          }
+        }
+      }
+      recapTallyState.lastAppliedIndex = recapTallyState.stepIndex;
+      return;
+    }
     if (affectsTotal) {
       recapTallyState.totalValue += targetValue;
     }
@@ -2510,11 +2562,12 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = baseLabelColor;
     drawHighlightedLabel(line.label || "", contentX, labelY, null);
     const gridTopY = labelY + 26;
+    const visAnim = recapTallyState.visitorProfilesAnim;
     const activeIndex = recapTallyState.done
       ? allEntries.length
-      : (recapTallyState.healthBonusAnim?.index === recapTallyState.stepIndex
-          ? Math.min(allEntries.length, Math.max(0, recapTallyState.healthBonusAnim.activeNpcIndex + 1))
-          : (recapTallyState.lastAppliedIndex >= 0 ? allEntries.length : 0));
+      : (visAnim?.index === recapTallyState.stepIndex
+          ? Math.min(allEntries.length, visAnim.activeProfileIndex + 1)
+          : 0);
     for (let i = 0; i < activeIndex; i += 1) {
       const entry = allEntries[i];
       const col = i % colsPerRow;
