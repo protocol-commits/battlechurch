@@ -2493,6 +2493,64 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     };
   };
 
+  const drawVisitorProfilesRow = (line, y) => {
+    const PORTRAIT_CAP_VISITOR = 20;
+    const allEntries = Array.isArray(line?.npcHealthBreakdown)
+      ? line.npcHealthBreakdown.slice(0, PORTRAIT_CAP_VISITOR)
+      : [];
+    const colsPerRow = 7;
+    const slotSize = 64;
+    const slotGap = 16;
+    const rowStride = slotSize + slotGap;
+    const rowHeight = slotSize + 28; // portrait + name
+    const rowGapBetween = 14;
+    const rowCount = Math.max(1, Math.ceil(allEntries.length / colsPerRow));
+    const totalHeight = rowCount * rowHeight + Math.max(0, rowCount - 1) * rowGapBetween;
+    const labelY = y;
+    ctx.fillStyle = baseLabelColor;
+    drawHighlightedLabel(line.label || "", x, labelY, null);
+    const gridTopY = labelY + 26;
+    const activeIndex = recapTallyState.done
+      ? allEntries.length
+      : (recapTallyState.healthBonusAnim?.index === recapTallyState.stepIndex
+          ? Math.min(allEntries.length, Math.max(0, recapTallyState.healthBonusAnim.activeNpcIndex + 1))
+          : (recapTallyState.lastAppliedIndex >= 0 ? allEntries.length : 0));
+    for (let i = 0; i < activeIndex; i += 1) {
+      const entry = allEntries[i];
+      const col = i % colsPerRow;
+      const row = Math.floor(i / colsPerRow);
+      const slotX = recapLeftColumnX + col * rowStride;
+      const slotY = gridTopY + row * (rowHeight + rowGapBetween);
+      const slotCenterX = slotX + slotSize / 2;
+      const slotCenterY = slotY + slotSize / 2;
+      ctx.save();
+      ctx.translate(slotCenterX, slotCenterY);
+      drawChurchBadgeSurface(ctx, slotSize, { shape: "square", color: "#314B77", accent: "#4769A1" });
+      drawChurchBadgeShimmer(ctx, slotSize, { shape: "square", color: "#314B77", accent: "#4769A1" });
+      ctx.restore();
+      if (entry?.portrait) {
+        const inset = 8;
+        const pSize = slotSize - inset * 2;
+        const pRadius = Math.max(8, Math.round(pSize * 0.16));
+        const pYOffset = Math.round(pSize * 0.12);
+        ctx.save();
+        ctx.beginPath();
+        roundRect(ctx, slotX + inset, slotY + inset, pSize, pSize, pRadius, false, false);
+        ctx.clip();
+        ctx.drawImage(entry.portrait, slotX + inset, slotY + inset - pYOffset, pSize, pSize);
+        ctx.restore();
+      }
+      const nameY = slotY + slotSize + 16;
+      ctx.save();
+      ctx.fillStyle = "rgba(234,246,255,0.85)";
+      ctx.font = `600 12px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.fillText(entry?.name || "", slotX + slotSize / 2, nameY);
+      ctx.restore();
+    }
+    return { height: 26 + totalHeight };
+  };
+
   const drawNpcHealthBonusRow = (line, lineIndex, x, y, maxWidth, isHighlighted) => {
     const entries = Array.isArray(line?.npcHealthBreakdown)
       ? line.npcHealthBreakdown.slice(0, 5)
@@ -3041,6 +3099,12 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
     const isLastLine = i === maxVisible - 1;
+    if (line.kind === "visitorProfiles") {
+      const profileBlock = drawVisitorProfilesRow(line, cursorY);
+      cursorY += profileBlock.height;
+      if (!isLastLine) cursorY += sectionGap;
+      continue;
+    }
     if (line.kind === "npcHealthBonus") {
       const highlightValue =
         recapTallyState.flashTimer > 0 &&
@@ -3884,6 +3948,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     requiresConfirm
     && (titleStr.includes('cleared') || (titleStr.includes('horde') && titleStr.includes('cleared')))
   );
+  const isVisitorSummary = Boolean(levelAnnouncements[0]?.isVisitorSummary);
   // =============================
   // MISSION BRIEF POPUP SCREEN
   // =============================
@@ -4009,14 +4074,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
     return;
   }
-  if (isBattleSummary) {
+  if (isBattleSummary || isVisitorSummary) {
     const recapData = levelAnnouncements?.[0]?.recapData || null;
     let summaryTitle = recapData?.title || levelAnnouncements?.[0]?.recapTitle || "";
     if (!summaryTitle) {
-      const titleText = displayTitle || title || "";
-      const match = titleText.match(/—\s*([^]+?)\s*Cleared/i);
-      const monthLabel = match && match[1] ? match[1].trim() : "";
-      summaryTitle = monthLabel ? `${monthLabel} Recap` : "Recap";
+      if (isVisitorSummary) {
+        summaryTitle = "Visitor Report";
+      } else {
+        const titleText = displayTitle || title || "";
+        const match = titleText.match(/—\s*([^]+?)\s*Cleared/i);
+        const monthLabel = match && match[1] ? match[1].trim() : "";
+        summaryTitle = monthLabel ? `${monthLabel} Recap` : "Recap";
+      }
     }
     if (recapData) {
       drawRecapBonusScreen(ctx, canvas, {

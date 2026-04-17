@@ -8954,6 +8954,12 @@ function dismissCurrentLevelAnnouncement() {
     return;
   }
   levelAnnouncements.shift();
+  if (current.isVisitorSummary) {
+    const reason = current.summaryReason || "summary";
+    visitorSession.summaryReason = null;
+    visitorSession.awaitingSummaryConfirm = false;
+    completeVisitorSession(reason);
+  }
   if (current.townIntro) {
     pendingTownIntroStart = true;
     townIntroDismissedAt =
@@ -15500,27 +15506,52 @@ function handleVisitorSessionSkip() {
   return true;
 }
 
+function prepareVisitorSummaryRecap(announcement) {
+  if (announcement?.recapPrepared) return;
+  startRecapMusic();
+  const saved = visitorSession.savedVisitors || 0;
+  const portraits = Array.isArray(visitorSession.newMemberPortraits) ? visitorSession.newMemberPortraits : [];
+  const names = Array.isArray(visitorSession.newMemberNames) ? visitorSession.newMemberNames : [];
+  const congregationTotal = getCongregationSize();
+  const startCount = Math.max(0, congregationTotal - saved);
+  const npcHealthBreakdown = portraits.map((portrait, i) => ({
+    name: names[i] || "",
+    portrait,
+    active: true,
+  }));
+  announcement.recapData = {
+    id: `visitor-recap-${Date.now()}`,
+    title: "Visitor Report",
+    startCount,
+    totalDelta: saved,
+    totalCount: congregationTotal,
+    problemTitle: "",
+    lines: [{
+      label: "New Members:",
+      delta: saved,
+      kind: "visitorProfiles",
+      affectsTotal: true,
+      npcHealthBreakdown,
+    }],
+    graceBonus: 0,
+    graceBonusCongregants: 0,
+    graceApplied: false,
+    graceAppliedCount: 0,
+    graceSpawned: false,
+  };
+  announcement.recapPrepared = true;
+}
+
 function handleVisitorSummary() {
   if (!visitorSession.active || !visitorSession.summaryActive) return false;
-  if (!visitorSession.recapShown && window.DialogOverlay && !window.DialogOverlay.isVisible()) {
-    const saved = visitorSession.savedVisitors || 0;
-    const title = "Visitor Recap";
-    const body = `You welcomed ${saved} new members.\nCongregation Count: ${getCongregationSize()}`;
+  if (!visitorSession.recapShown) {
     visitorSession.recapShown = true;
-    window.DialogOverlay.show({
-      title,
-      bodyHtml: `<div class="dialog-overlay__body"></div>`,
-      buttonText: "Continue",
-      variant: "mission",
-      devLabel: "",
-      onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
-      onContinue: () => {
-        const reason = visitorSession.summaryReason || "summary";
-        visitorSession.summaryReason = null;
-        visitorSession.awaitingSummaryConfirm = false;
-        completeVisitorSession(reason);
-        keysJustPressed.delete(" ");
-      },
+    levelAnnouncements.push({
+      requiresConfirm: true,
+      isVisitorSummary: true,
+      title: "Visitor Report",
+      skipMissionBrief: true,
+      summaryReason: visitorSession.summaryReason || "summary",
     });
   }
   return true;
@@ -15792,6 +15823,39 @@ function handleLevelAnnouncements() {
           }
           recapData.graceApplied = true;
         }
+        dismissCurrentLevelAnnouncement();
+        if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+          window.playMenuAdvanceSfx(0.55);
+        }
+      },
+    });
+    if (handled) return true;
+    return true;
+  }
+  if (currentAnnouncement.isVisitorSummary) {
+    if (!currentAnnouncement.recapPrepared) {
+      prepareVisitorSummaryRecap(currentAnnouncement);
+    }
+    const buttons =
+      typeof window !== "undefined" && window.__announcementButtons?.key === "recap"
+        ? window.__announcementButtons.buttons
+        : null;
+    const canContinueRecap = typeof window !== "undefined" && window.__recapAllowContinue;
+    if (!canContinueRecap && keysJustPressed.has(" ")) {
+      keysJustPressed.delete(" ");
+      if (typeof window !== "undefined") window.__recapSkipRequested = true;
+      return true;
+    }
+    const handled = handleAnnouncementButtons({
+      key: "recap",
+      buttons,
+      allowSpace: Boolean(canContinueRecap),
+      onActivate: () => {
+        graceRushBlackout = false;
+        graceRushFadeHold = false;
+        graceRushFadeTimer = 0;
+        graceRushFadeDuration = 0;
+        graceRushFadeAlpha = 0;
         dismissCurrentLevelAnnouncement();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
