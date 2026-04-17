@@ -15546,15 +15546,19 @@ function handleVisitorSummary() {
   if (!visitorSession.active || !visitorSession.summaryActive) return false;
   if (!visitorSession.recapShown) {
     visitorSession.recapShown = true;
-    levelAnnouncements.push({
+    const announcement = {
       requiresConfirm: true,
       isVisitorSummary: true,
       title: "Visitor Report",
       skipMissionBrief: true,
       summaryReason: visitorSession.summaryReason || "summary",
-    });
+    };
+    prepareVisitorSummaryRecap(announcement);
+    levelAnnouncements.push(announcement);
   }
-  return true;
+  // Once the announcement is queued, let handleLevelAnnouncements take over
+  // so it can handle Continue/dismiss input normally.
+  return false;
 }
 
 function handleVisitorIntro() {

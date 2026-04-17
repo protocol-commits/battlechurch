@@ -2508,7 +2508,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const totalHeight = rowCount * rowHeight + Math.max(0, rowCount - 1) * rowGapBetween;
     const labelY = y;
     ctx.fillStyle = baseLabelColor;
-    drawHighlightedLabel(line.label || "", x, labelY, null);
+    drawHighlightedLabel(line.label || "", contentX, labelY, null);
     const gridTopY = labelY + 26;
     const activeIndex = recapTallyState.done
       ? allEntries.length
@@ -7899,7 +7899,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawGraceRushOverlay(levelStatus, graceRushState);
     }
     if (visitorStageActive) {
-      drawVisitorOverlay(visitorSession);
+      const visitorSummaryAnnouncementActive = Boolean(levelAnnouncements[0]?.isVisitorSummary);
+      const visitorStateForOverlay = visitorSummaryAnnouncementActive && visitorSession?.summaryActive
+        ? { ...visitorSession, summaryActive: false }
+        : visitorSession;
+      drawVisitorOverlay(visitorStateForOverlay);
     }
     drawLevelAnnouncements();
     if (isCongregationStage) {
