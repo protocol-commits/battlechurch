@@ -6466,9 +6466,10 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const shouldUpgradeAfter = Boolean(upgradeAfter);
   // Track which level was just completed for chapter breaks (boss/level summary only)
   if (announcement?.levelSummary) {
-    lastCompletedLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+    lastCompletedLevel = announcement.completedActNum
+      ?? (levelManager?.getActNumber ? levelManager.getActNumber() : 1);
     lastSummaryWasLevelEnd = true;
-    console.log("Level completed, lastCompletedLevel set to:", lastCompletedLevel);
+    console.log("Act completed, lastCompletedLevel set to:", lastCompletedLevel);
   }
   startRecapMusic();
   const summary = levelManager?.getLastBattleSummary?.() || {};

@@ -103,7 +103,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Prepare for battle!",
+                  "introText": "Prepare for battle! 1.1.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -413,7 +413,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Second Battle Wave 1 Text Field",
+                  "introText": "1.1.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -690,7 +690,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Battle 3 and wave 1 yeah",
+                  "introText": "1.1.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -1114,7 +1114,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "This is Wave 1 text!",
+                  "introText": "1.2.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -1379,7 +1379,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "1.2.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -1887,7 +1887,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "1.2.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -2400,7 +2400,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Act 3, Battle 1, Wave 1",
+                  "introText": "1.3.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -2938,7 +2938,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "1.3.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -3460,7 +3460,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "1.3.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -4240,7 +4240,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 2, Act 1, Battle 1, Wave 1",
+                  "introText": "2.1.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -4735,7 +4735,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 2, Act 1, Battle 2, Wave 1",
+                  "introText": "2.1.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -5250,7 +5250,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 2, Act 1, Battle 3, Wave 1",
+                  "introText": "2.1.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -5770,7 +5770,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 2, Act 2, Battle 1",
+                  "introText": "2.2.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -6278,7 +6278,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "2.2.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -6786,7 +6786,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "2.2.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -7299,7 +7299,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 2, Act 3, Battle 1, Wave 1",
+                  "introText": "2.3.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -7823,7 +7823,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 2, Act 1, Battle 2, Wave 1",
+                  "introText": "2.3.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -8331,7 +8331,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 2, Act 3, Battle 3, Wave 1",
+                  "introText": "2.3.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -8849,7 +8849,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "Town 3, Act 1, Battle 1, Wave 1",
+                  "introText": "3.1.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -9160,7 +9160,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.1.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -9668,7 +9668,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.1.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -10181,7 +10181,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.2.1",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -10689,7 +10689,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.2.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -11197,7 +11197,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.2.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -11710,7 +11710,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.3.1.",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -12234,7 +12234,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.3.2",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -12742,7 +12742,7 @@ window.BattlechurchLevelData = {
               "waves": [
                 {
                   "index": 1,
-                  "introText": "",
+                  "introText": "3.3.3",
                   "breakerDuration": 3,
                   "hordes": [
                     {

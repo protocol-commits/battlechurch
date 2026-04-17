@@ -966,18 +966,14 @@
         1,
         Math.min(
           battlesPerTown,
-          Number.isFinite(levelStatus.level)
-            ? levelStatus.level
-            : (Number.isFinite(levelStatus.actNum) ? levelStatus.actNum : derivedAct),
+          Number.isFinite(levelStatus.actNum) ? levelStatus.actNum : derivedAct,
         ),
       );
       const currentMission = Math.max(
         1,
         Math.min(
           missionsPerBattle,
-          Number.isFinite(levelStatus.battle)
-            ? levelStatus.battle
-            : (Number.isFinite(levelStatus.missionNum) ? levelStatus.missionNum : derivedMission),
+          Number.isFinite(levelStatus.missionNum) ? levelStatus.missionNum : derivedMission,
         ),
       );
       const currentWave = Math.max(0, levelStatus.wave || 0);

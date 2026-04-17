@@ -514,6 +514,13 @@
         battles.push({ hordes }); // each mission = one sequential battle for the level manager
       }
     }
+    if (typeof console !== "undefined" && console.log) {
+      console.log(`[LevelDef] Town ${levelNumber}: ${battles.length} sequential game battles`);
+      battles.forEach((b, i) => {
+        const h0 = b.hordes?.[0];
+        console.log(`  Game Battle ${i + 1} → editor Act ${h0?.actNumber ?? '?'}, Battle ${h0?.missionNumber ?? '?'} (${b.hordes?.length ?? 0} hordes)`);
+      });
+    }
     return { levelNumber, battles };
   }
 
@@ -784,7 +791,9 @@
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
       const monthName = getMonthName(globalMonthNumber);
-      console.info && console.info('queueAnnouncement', { title: `Battle ${state.level} — ${monthName}`, level: state.level, monthIndex: state.monthIndex, monthName });
+      const currentActNum = MISSIONS_PER_BATTLE > 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1 : 1;
+      const battleInAct = MISSIONS_PER_BATTLE > 0 ? (state.monthIndex % MISSIONS_PER_BATTLE) + 1 : localMonthNumber;
+      console.info && console.info('queueAnnouncement', { title: `Town ${state.level} Act ${currentActNum} Battle ${battleInAct}`, level: state.level, actNum: currentActNum, battleInAct, monthIndex: state.monthIndex });
       const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
         1: "Act I: Establish a Foothold",
         2: "Act II: Repel the Counter Attack",
@@ -796,9 +805,9 @@
         3: "Breakthrough",
       };
       const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-      const missionNumber = localMonthNumber;
-      const missionBriefTitle = actTitles[state.level] || `Act ${romanNumerals[state.level] || state.level}`;
-      const missionBriefHeading = `${actMissionLabels[state.level] || `Act ${romanNumerals[state.level] || state.level}`} Battle ${missionNumber}`;
+      const missionNumber = battleInAct;
+      const missionBriefTitle = actTitles[currentActNum] || `Act ${romanNumerals[currentActNum] || currentActNum}`;
+      const missionBriefHeading = `${actMissionLabels[currentActNum] || `Act ${romanNumerals[currentActNum] || currentActNum}`} Battle ${missionNumber}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
@@ -810,7 +819,7 @@
         missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
-      setDevStatus(`Act ${romanNumerals[state.level] || state.level} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
+      setDevStatus(`Act ${romanNumerals[currentActNum] || currentActNum} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
     }
 
     function finalizeBattleNpcResults() {
@@ -1233,7 +1242,7 @@
       state.pendingWaveEntrySpawns = 0;
       spawnPowerUpDrops(state.activeWave?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
-      const finalMissionBeforeBoss = localMonthNumber >= BATTLE_MONTHS_PER_LEVEL;
+      const finalMissionBeforeBoss = MISSIONS_PER_BATTLE > 0 && (state.monthIndex + 1) % MISSIONS_PER_BATTLE === 0;
 
       if (!finalWave) {
         if (endedActualWave && typeof deps.showWaveHealthSnapshot === "function") {
@@ -1472,16 +1481,19 @@
       clearStagePowerUps();
       const summarySubtitle = `Enemies ${state.stats.enemiesDefeated} • NPCs saved ${state.stats.npcsRescued}`;
   const summaryRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-  const summaryActLabel = `Act ${summaryRomanNumerals[state.level] || state.level} Cleared`;
-  console.info && console.info('queueAnnouncement', { title: summaryActLabel, level: state.level, monthIndex: state.monthIndex });
+  const completedActNum = MISSIONS_PER_BATTLE > 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1 : 1;
+  const summaryActLabel = `Act ${summaryRomanNumerals[completedActNum] || completedActNum} Cleared`;
+  console.info && console.info('queueAnnouncement', { title: summaryActLabel, level: state.level, actNum: completedActNum, monthIndex: state.monthIndex });
+  const totalBattlesInTown = state.definition?.battles?.length || (BATTLES_PER_TOWN * MISSIONS_PER_BATTLE);
       queueLevelAnnouncement(
         summaryActLabel,
         summarySubtitle,
         {
           duration: LEVEL_SUMMARY_DURATION,
           requiresConfirm: true,
-          finalYear: state.level >= FINAL_CAMPAIGN_LEVEL,
+          finalYear: state.level >= FINAL_CAMPAIGN_LEVEL && (state.monthIndex + 1 >= totalBattlesInTown),
           levelSummary: true,
+          completedActNum,
         },
       );
       resetStage("levelSummary", LEVEL_SUMMARY_DURATION);
@@ -1640,7 +1652,7 @@ state.waveIndex = -1;
                 return;
               }
             }
-            if (state.monthIndex + 1 >= BATTLE_MONTHS_PER_LEVEL) {
+            if (MISSIONS_PER_BATTLE > 0 && (state.monthIndex + 1) % MISSIONS_PER_BATTLE === 0) {
               beginBossIntro();
             } else {
               beginBattle();
@@ -1702,11 +1714,14 @@ state.waveIndex = -1;
           case "levelSummary":
             state.timer -= dt;
             if (state.timer <= 0) {
-              if (state.level >= BATTLES_PER_TOWN) {
+              const _totalBattles = state.definition?.battles?.length || (BATTLES_PER_TOWN * MISSIONS_PER_BATTLE);
+              if (state.monthIndex + 1 >= _totalBattles) {
+                // All acts complete — town is done
                 resetStage("idle", 0);
                 state.active = false;
               } else {
-                beginLevel(state.level + 1);
+                // More acts remain in this town — continue to next act
+                beginBattle();
               }
             }
             break;
@@ -1819,6 +1834,10 @@ state.waveIndex = -1;
       },
       getLevelNumber() {
         return state.level || 1;
+      },
+      getActNumber() {
+        if (state.monthIndex < 0 || MISSIONS_PER_BATTLE <= 0) return 1;
+        return Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1;
       },
       getStats() {
         return state.stats;
@@ -1961,7 +1980,8 @@ state.waveIndex = -1;
           return { success: true, needsExteriorShot: false };
         }
         devClearOpponents({ includeBoss: true });
-        state.monthIndex = BATTLE_MONTHS_PER_LEVEL - 1;
+        const _curActIdx = state.monthIndex >= 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) : 0;
+        state.monthIndex = (_curActIdx + 1) * MISSIONS_PER_BATTLE - 1;
         state.waveIndex = getBattleHordeCount(currentBattle()) - 1;
         if (showExterior) {
           // Set stage to battleIntermission with long timer - exterior shot will trigger boss
