@@ -7,7 +7,6 @@
   const SPRITE_CELL_SIZE = 112;
   const SPRITE_FRAME_RATE = 6;
   const TAGS = [
-    "swarmable",
     "ranged",
     "npcPriority",
     "preferEdges",
@@ -1181,7 +1180,6 @@
     if (behaviors.has("boss")) labels.push("Boss behavior");
     if (behaviors.has("closestAny")) labels.push("Targets player or NPCs");
     if (behaviors.has("preferEdges")) labels.push("Prefers arena edges");
-    if (behaviors.has("swarmable")) labels.push("Swarm spacing logic");
     if (key === "miniDemonLord") labels.push("Custom charge orb + jump");
     if (key === "miniDemonFireThrower") labels.push("Custom lob arc + arming");
     if (key === "miniDemonFireKeeper") labels.push("Custom materialize + cast phases");

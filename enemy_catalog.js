@@ -72,7 +72,6 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "orc",
-      "swarmable",
       "closestAny"
     ],
     "hitbox": {
@@ -81,6 +80,7 @@
       "offsetX": 0,
       "offsetY": 0
     },
+    "swarmSpacing": 0.4,
     "damageClass": "armored"
   },
   "armoredOrc": {
@@ -193,8 +193,7 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny",
-      "swarmable"
+      "closestAny"
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
@@ -264,8 +263,7 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny",
-      "swarmable"
+      "closestAny"
     ],
     "tintColor": "#7ec6ff",
     "tintIntensity": 0.75,
@@ -483,8 +481,7 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny",
-      "swarmable"
+      "closestAny"
     ],
     "swarmSpacing": 1,
     "damageClass": "tank",
@@ -652,7 +649,6 @@
     "specialBehavior": [
       "boss",
       "closestAny",
-      "swarmable",
       "ranged",
       "preferEdges"
     ],
@@ -1047,8 +1043,7 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny",
-      "swarmable"
+      "closestAny"
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
@@ -1118,8 +1113,7 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny",
-      "swarmable"
+      "closestAny"
     ],
     "swarmSpacing": 0.05,
     "hitbox": {
@@ -1154,7 +1148,6 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "closestAny",
-      "swarmable",
       "tormentorFlame"
     ],
     "swarmSpacing": 0.2,
