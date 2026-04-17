@@ -14691,6 +14691,12 @@ function handleDeveloperHotkeys() {
       setDevStatus("Grace rush engaged", 2.0);
     }
   }
+  if (keysJustPressed.has("7")) {
+    if (typeof window !== "undefined" && typeof window.MapScreen?.devUnlockAllTowns === "function") {
+      const ok = window.MapScreen.devUnlockAllTowns();
+      setDevStatus(ok ? "All 9 towns unlocked (dev)" : "Town unlock failed", 2.5);
+    }
+  }
   if (keysJustPressed.has("8")) {
     const targetLevel = Number.isFinite(window.LEVELS_PER_GAME) ? window.LEVELS_PER_GAME : null;
     if (!levelManager?.isActive?.()) {
@@ -15308,6 +15314,7 @@ function showDeveloperShortcutsOverlay() {
     { key: "4", label: "Skip Level" },
     { key: "5", label: "Final Town Boss" },
     { key: "6", label: "Grace Rush" },
+    { key: "7", label: "Unlock All Towns (Map)" },
     { key: "8", label: "Final Boss" },
     { key: "9", label: "Epilogue" },
     { key: "T", label: "Toggle Timer" },
@@ -19754,6 +19761,19 @@ function updateGame(dt) {
   if (mapActive) {
     if (!musicState.introStarted && !musicState.introStopped) {
       startIntroMusic();
+    }
+    // Dev shortcut: Shift+7 — unlock all towns in memory so County 2/3/4 towns are accessible
+    if (keysJustPressed.size) {
+      const _mapModifiers = typeof Input !== "undefined" ? Input.modifiers : null;
+      const _mapPressed = typeof Input !== "undefined" ? Input.keysPressed : null;
+      const _mapShift = Boolean(_mapModifiers?.shift || _mapPressed?.has?.("Shift"));
+      if (_mapShift && keysJustPressed.has("7")) {
+        if (typeof window !== "undefined" && typeof window.MapScreen?.devUnlockAllTowns === "function") {
+          const ok = window.MapScreen.devUnlockAllTowns();
+          setDevStatus(ok ? "All 9 towns unlocked (dev)" : "Town unlock failed", 2.5);
+        }
+        keysJustPressed.delete("7");
+      }
     }
     if (window.MapScreen) {
       window.MapScreen.update(dt);

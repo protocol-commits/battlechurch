@@ -1655,12 +1655,35 @@
     ctx.restore();
   }
 
+  // Dev-only: mark all 9 regular towns as P1-completed (100 congregation) in memory.
+  // Does NOT save to Firebase. Automatically unlocks the capital via ensureNextTownUnlocked.
+  function devUnlockAllTowns() {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return false;
+    const progress = ensureProgress();
+    if (!progress) return false;
+    const regularTowns = (mapData.towns || []).filter(function(t) { return t.type !== "capital"; });
+    if (!progress.towns) progress.towns = {};
+    regularTowns.forEach(function(town) {
+      if (!progress.towns[town.id]) progress.towns[town.id] = { p1: null, p2: null, p3: null };
+      progress.towns[town.id].p1 = {
+        completed: true,
+        stars: mapData.calculateStars(100),
+        bestCount: 100,
+        churchPowerupLevels: {},
+      };
+    });
+    ensureNextTownUnlocked(progress, mapData);
+    return true;
+  }
+
   window.MapScreen = {
     open,
     close,
     update,
     draw,
     recordTownCompletion,
+    devUnlockAllTowns,
     getNextTownInOrder,
     selectTown,
     setAssets,
