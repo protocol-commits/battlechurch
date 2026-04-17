@@ -44,7 +44,6 @@ let powerUpRespawnTimer = 0;
 let powerUpStaggerTimer = 0;
 let queuedPowerUpDrops = 0;
 let powerUpEnsureCycleIndex = 0;
-let churchPowerupSkipNext = false;
 let playerGraceCount = 0;
 let maxComboThisTown = 0;
 let hudComboDisplay = null;
@@ -2303,7 +2302,6 @@ function clearAllPowerUps() {
   powerUpRespawnTimer = 0;
   powerUpStaggerTimer = 0;
   queuedPowerUpDrops = 0;
-  churchPowerupSkipNext = false;
 }
 
 function resetChurchPowerups() {
@@ -7131,12 +7129,6 @@ function spawnNextEnsuredPowerUp() {
     () => (canSpawnUtilityPowerUp() ? spawnUtilityPowerUp() : null),
     () => {
       if (!getUnlockedChurchPowerupKeys().length || !canSpawnChurchPowerup()) return null;
-      if (churchPowerupSkipNext) {
-        churchPowerupSkipNext = false;
-        triggerPowerUpCooldown();
-        return null;
-      }
-      churchPowerupSkipNext = true;
       return spawnChurchPowerupPickup();
     },
     () => (canSpawnWeaponPowerUp() ? spawnWeaponPickup() : null),
@@ -8185,6 +8177,14 @@ function updateSentryTurretInstance(state, dt) {
           skipImpactEffect: true,
         });
         registerComboHit(activeBoss, state.damage);
+      } else if (target instanceof Projectile || (target.visualOnly !== undefined && target.friendly !== undefined)) {
+        // Hostile projectile — destroy it, no takeDamage method exists
+        const destroyed = target.maxDurability > 0
+          ? applyProjectileDurabilityDamage(target, state.damage)
+          : ((target.dead = true), true);
+        if (destroyed) {
+          spawnImpactEffect(hitX, hitY);
+        }
       } else {
         target.takeDamage(state.damage, { damageType: "projectile" });
         registerComboHit(target, state.damage);
