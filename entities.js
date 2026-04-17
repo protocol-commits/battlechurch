@@ -13,7 +13,6 @@
     HERO_MAX_HEALTH: 100,
     PRAYER_BOMB_CHARGE_REQUIRED: 60,
     CONGREGATION_COMMAND_CHARGE_TIME: 12,
-    COIN_COOLDOWN: 0.75,
     DAMAGE_FLASH_INTENSITY: 1,
     ARROW_DAMAGE: 10,
   };
@@ -713,7 +712,6 @@
     }
 
     update(dt) {
-  this.heartCooldown = Math.max(0, this.heartCooldown - dt);
       if (!this.currentClip) return;
       const clip = this.currentClip;
       const logicalFrames =
@@ -905,7 +903,6 @@
     this.x = x;
     this.y = y;
     this.isPlayer = true;
-  this.heartCooldown = 0;
     const cfg = settings.PLAYER_CONFIG || playerConfigCache || buildPlayerConfig();
     playerConfigCache = cfg;
     this.config = cfg;
@@ -1004,7 +1001,6 @@
     if (this.hpDamageFlash?.timer > 0) {
       this.hpDamageFlash.timer = Math.max(0, this.hpDamageFlash.timer - dt);
     }
-    this.heartCooldown = Math.max(0, this.heartCooldown - dt);
       if (this.state === "death") {
         this.animator.update(dt);
         if (typeof this.deathTimer === "number") {
@@ -1190,16 +1186,6 @@
       this.castPrayerBomb();
     }
 
-    // Previously the player would auto-switch to the "coin" weapon when
-    // aim assist targeted an NPC. We no longer auto-switch — keep player
-    // weapon selection under player control and preserve any manual override.
-    if (this.overrideWeaponMode === "coin") {
-      // clear any leftover auto-coin override
-      this.overrideWeaponMode = null;
-    }
-
-
-
       // Visitor mini-game: autolock on closest visitor or chatty NPC
       const activeWeapon = this.getActiveWeaponMode();
       let targetEntity = null;
@@ -1248,10 +1234,6 @@
       if (!meleeBlocking) {
         if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
           this.tryAttack("arrow");
-        } else if (activeWeapon === "coin" && this.arrowCooldown <= 0) {
-          this.tryAttack("coin");
-        } else if (activeWeapon === "heart" && this.heartCooldown <= 0) {
-          this.tryAttack("heart");
         } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
           this.tryAttack("wisdom_missle");
         } else if (activeWeapon === "faith_cannon" && this.magicCooldown <= 0) {
@@ -1362,7 +1344,7 @@
   if (meleeAttackState?.projectileBlockTimer > 0) return;
   const meleeInputBlocking =
     window.Input?.nesAButtonActive &&
-    (type === "arrow" || type === "coin" || type === "heart") &&
+    type === "arrow" &&
     Boolean(
       meleeAttackState &&
       (
@@ -1412,51 +1394,6 @@
       this.state = "attackArrow";
       this.animator.play("attackArrow", { restart: true });
       this.arrowCooldown = this.getArrowCooldown();
-      return;
-    }
-
-    if (type === "heart") {
-      if (this.heartCooldown > 0) return;
-      const direction = this.getAimDirection();
-      const originOffset = this.radius * 0.55;
-      const originX = this.x + direction.x * originOffset;
-      const originY = this.y + direction.y * originOffset;
-      spawnProjectile("heart", originX, originY, direction.x, direction.y, {
-        damage: 0,
-        life: Number.isFinite(PROJECTILE_CONFIG.heart?.life)
-          ? PROJECTILE_CONFIG.heart.life * bossRangeMultiplier
-          : undefined,
-        source: this,
-      });
-      const playArrowSfx =
-        typeof window !== "undefined" ? window.playDefaultArrowSfx : null;
-      if (typeof playArrowSfx === "function") {
-        playArrowSfx(0.55);
-      }
-      this.state = "attackArrow";
-      this.animator.play("attackArrow", { restart: true });
-      this.heartCooldown = this.config.arrowCooldown * 0.8;
-      return;
-    }
-
-    if (type === "coin") {
-      if (this.arrowCooldown > 0) return;
-      // Coins follow player's current aim; do not auto-target NPCs.
-      let direction = this.getAimDirection();
-      const originOffset = this.radius * 0.55;
-      const originX = this.x + direction.x * originOffset;
-      const originY = this.y + direction.y * originOffset;
-      const projectile = spawnProjectile("coin", originX, originY, direction.x, direction.y, {
-        frameDuration: COIN_FRAME_DURATION,
-        life: Number.isFinite(PROJECTILE_CONFIG.coin?.life)
-          ? PROJECTILE_CONFIG.coin.life * bossRangeMultiplier
-          : undefined,
-        source: this,
-      });
-      if (!projectile) return;
-      this.state = "attackArrow";
-      this.animator.play("attackArrow", { restart: true });
-      this.arrowCooldown = COIN_COOLDOWN;
       return;
     }
 

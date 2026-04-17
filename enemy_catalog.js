@@ -656,7 +656,7 @@
       "ranged",
       "preferEdges"
     ],
-    "swarmSpacing": 1,
+    "swarmSpacing": 1.3,
     "hitbox": {
       "width": 18,
       "height": 20,

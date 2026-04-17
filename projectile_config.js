@@ -6,9 +6,7 @@
       : DEFAULT_WORLD_SCALE;
   const PROJECTILE_PATH = "assets/sprites/projectiles/";
   const MAGIC_PACK_ROOT = "assets/sprites/projectiles";
-  const HEART_PROJECTILE_SRC = "assets/sprites/items/Weapons/W43_Recurve_Bow.png";
   const FAITH_CANNON_PROJECTILE_COOLDOWN = 0.22;
-  const COIN_COOLDOWN = 0.4;
 
   const PROJECTILE_CONFIG = {
     arrow: {
@@ -18,15 +16,6 @@
       life: 1.2,
       radius: 20 * WORLD_SCALE,
       scale: 4 * WORLD_SCALE,
-      pierce: false,
-    },
-    heart: {
-      displayName: "Healing Heart",
-      speed: 520,
-      damage: 0,
-      life: 1.4,
-      radius: 20 * WORLD_SCALE,
-      scale: 5.2 * WORLD_SCALE,
       pierce: false,
     },
     wisdom_missle: {
@@ -104,16 +93,6 @@
       pierce: true,
       cooldownAfterFire: 0.4,
     },
-    coin: {
-      displayName: "Thrown Coin",
-      speed: 460 * WORLD_SCALE,
-      damage: 0,
-      life: 1.3,
-      radius: 22 * WORLD_SCALE,
-      scale: 2.2 * WORLD_SCALE,
-      pierce: false,
-      cooldownAfterFire: COIN_COOLDOWN,
-    },
     lichBolt: {
       displayName: "Lich Bolt",
       speed: 480 * WORLD_SCALE,
@@ -152,11 +131,9 @@
   ns.faithCannonSplashRadius = 120 * WORLD_SCALE;
   ns.faithCannonSplashDamageMultiplier = 1;
   ns.faithCannonProjectileRange = 660 * WORLD_SCALE;
-  ns.coinCooldown = COIN_COOLDOWN;
   ns.config = PROJECTILE_CONFIG;
   ns.projectilePath = PROJECTILE_PATH;
   ns.magicPackRoot = MAGIC_PACK_ROOT;
-  ns.heartProjectileSrc = HEART_PROJECTILE_SRC;
   ns.weaponPowerups = {
     arrowBuff: {
       duration: 8,

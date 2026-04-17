@@ -3337,10 +3337,7 @@ const HERO_BASE_HEARTS = 6;
 const HERO_MAX_HEALTH = 100;
 const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
 const LOG_NPC_FAITH_BAR = false;
-const COIN_COOLDOWN = projectileSettings.coinCooldown ?? 0.4;
 const PROJECTILE_CONFIG = projectileSettings.config || {};
-const HEART_PROJECTILE_SRC =
-  projectileSettings.heartProjectileSrc || "assets/sprites/items/Weapons/W43_Recurve_Bow.png";
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/projectiles/";
 const MAGIC_PACK_ROOT =
@@ -3746,14 +3743,11 @@ const WORD_OF_GOD_FRAME_FILES = Array.from(
   (_, index) => `assets/sprites/projectiles/fire4/1_${index}.png`,
 );
 const FLASH_FRAME_COUNT = 14;
-const COIN_FRAME_DURATION = 0.08;
 const PROJECTILE_FRAME_DURATIONS = {
   fire: 0.05,
   fireOrb: 0.05,
   wisdom_missle: 0.05,
   faith_cannon: 0.06,
-  coin: COIN_FRAME_DURATION,
-  heart: 0.08,
   word_of_god: 0.06,
 };
 const ARMORED_PROJECTILE_DEFLECT_DISTANCE = 75 * WORLD_SCALE;
@@ -4070,7 +4064,6 @@ const ASSET_MANIFEST =
     playerSpritePath: PLAYER_SPRITE_PATH,
     projectilePath: PROJECTILE_PATH,
     magicPackRoot: MAGIC_PACK_ROOT,
-    heartProjectileSrc: HEART_PROJECTILE_SRC,
     characterRoot: CHARACTER_ROOT,
     enemyDefinitions: ENEMY_DEFINITIONS,
   }) || {};
@@ -4277,7 +4270,6 @@ const ENTITIES_BOOTSTRAP = window.Entities?.initialize?.({
   HERO_MAX_HEALTH,
   PRAYER_BOMB_CHARGE_REQUIRED,
   CONGREGATION_COMMAND_CHARGE_TIME,
-  COIN_COOLDOWN,
   DAMAGE_FLASH_INTENSITY,
   PLAYER_BASE_CONFIG: BASE_PLAYER_CONFIG,
   ENEMY_DEFINITIONS,
@@ -5437,12 +5429,6 @@ async function loadChurchPowerupAssets(cache, assets) {
 }
 
 async function loadProjectileFrames(cache, assets, projectileFrames) {
-  // Coin frames
-  projectileFrames.coin = assets.items.coinFrames || [];
-  if (assets.items.coinFrames?.length) {
-    assets.projectiles.coin = { frames: assets.items.coinFrames };
-  }
-
   // Faith cannon frames
   const faithCannonClip = assets.projectiles?.faith_cannon;
   if (faithCannonClip && faithCannonClip.image) {
@@ -11793,8 +11779,6 @@ class Projectile {
         let suppressGlow = false;
         if (this.type === "faith_cannon") {
           glowOptions = { radiusScale: 0.2, baseAlpha: 0.12 };
-        } else if (this.type === "heart") {
-          suppressGlow = true;
         }
         if (!suppressGlow) drawProjectileGlow(width, height, glowOptions);
       }
@@ -11836,8 +11820,6 @@ class Projectile {
           let suppressGlow = false;
           if (this.type === "faith_cannon") {
             glowOptions = { radiusScale: 0.2, baseAlpha: 0.12 };
-          } else if (this.type === "heart") {
-            suppressGlow = true;
           }
           if (!suppressGlow) {
             const size = (this.radius || 18) * 2.2;
@@ -16590,7 +16572,6 @@ function processProjectileCollisions(dt) {
         } else if (
           projectile.type === "arrow" ||
           projectile.type === "fire" ||
-          projectile.type === "heart" ||
           projectile.type === "faith_cannon"
         ) {
           spawnEnemyHitEffect(enemy, hitX, hitY, { damageType });
@@ -16657,7 +16638,6 @@ function processProjectileCollisions(dt) {
             } else if (
               projectile.type === "arrow" ||
               projectile.type === "fire" ||
-              projectile.type === "heart" ||
               projectile.type === "faith_cannon"
             ) {
               spawnFlashEffect(hitX, hitY);

@@ -1124,7 +1124,12 @@
 
   function getProjectileKeys() {
     const cfg = (typeof window !== "undefined" && window.BattlechurchProjectileConfig?.config) || {};
-    return Object.keys(cfg).sort();
+    const hiddenProjectileKeys = new Set([
+      "word_of_god",
+    ]);
+    return Object.keys(cfg)
+      .filter((key) => !hiddenProjectileKeys.has(key))
+      .sort();
   }
 
   function getProjectileConfig() {
@@ -1486,17 +1491,14 @@
 
   function createSwarmSpacingCell(key) {
     const enemy = ensureEnemy(key);
-    const tags = new Set(enemy.specialBehavior || []);
-    const isSwarmable = tags.has("swarmable");
     const wrapper = createField("Swarm Spacing");
     const input = document.createElement("input");
     input.type = "number";
     input.min = "0.1";
     input.max = "5";
     input.step = "0.05";
-    input.placeholder = isSwarmable ? "1" : "n/a";
-    input.disabled = !isSwarmable;
-    input.value = isSwarmable && enemy.swarmSpacing !== undefined ? enemy.swarmSpacing : "";
+    input.placeholder = "1";
+    input.value = enemy.swarmSpacing !== undefined ? enemy.swarmSpacing : "";
     input.addEventListener("change", () => {
       const val = input.value === "" ? null : Number(input.value);
       if (val === null || Number.isNaN(val)) {
