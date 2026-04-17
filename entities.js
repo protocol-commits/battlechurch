@@ -488,6 +488,8 @@
             projectileCooldown: def.projectileCooldown || def.cooldown,
             bossTier: def.bossTier || 0,
             preferredTarget: def.preferredTarget || "player",
+            orbiterSpawnType: def.orbiterSpawnType || null,
+            orbiterVisual: def.orbiterVisual ? deepCloneValue(def.orbiterVisual) : null,
             specialBehavior: def.specialBehavior || [],
             damageClass: def.damageClass,
             tintColor,
@@ -568,6 +570,41 @@
     return Object.fromEntries(
       Object.entries(clips).map(([name, clip]) => [name, cloneAnimationClip(clip)]),
     );
+  };
+
+  const deepCloneValue = (value) => {
+    if (Array.isArray(value)) {
+      return value.map((item) => deepCloneValue(item));
+    }
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, entry]) => [key, deepCloneValue(entry)]),
+      );
+    }
+    return value;
+  };
+
+  const getOrbiterVisualFrames = (visualConfig) => {
+    if (!visualConfig || typeof visualConfig !== "object") return null;
+    if (String(visualConfig.type || "").toLowerCase() !== "projectile") return null;
+    const assetKey = String(visualConfig.assetKey || "").trim();
+    if (!assetKey) return null;
+    const frames =
+      typeof projectileFrames !== "undefined" && projectileFrames
+        ? projectileFrames[assetKey]
+        : null;
+    return Array.isArray(frames) && frames.length ? frames : null;
+  };
+
+  const getOrbiterVisualFrame = (visualConfig, frameTime = 0) => {
+    const frames = getOrbiterVisualFrames(visualConfig);
+    if (!frames || !frames.length) return null;
+    const frameDuration =
+      Number.isFinite(visualConfig?.frameDuration) && visualConfig.frameDuration > 0
+        ? visualConfig.frameDuration
+        : 0.08;
+    const frameIndex = Math.floor(Math.max(0, frameTime) / frameDuration) % frames.length;
+    return frames[frameIndex] || frames[0];
   };
 
   class Animator {
@@ -2069,6 +2106,10 @@
       }
       this.displayName = this.config.displayName || this.type;
       this.preferredTarget = this.config.preferredTarget || "player";
+      this.orbiterSpawnType = this.config.orbiterSpawnType || null;
+      this.orbiterVisual = this.config.orbiterVisual
+        ? deepCloneValue(this.config.orbiterVisual)
+        : null;
       this.touchCooldown = 0;
       this.isRanged = Boolean(this.config.ranged);
       this.preferEdges = Boolean(this.config.preferEdges);
@@ -3516,9 +3557,6 @@
       if (typeof this.config?.alpha === "number") {
         baseAlpha = Math.max(0, Math.min(1, this.config.alpha));
       }
-      if (this.type === "tormentorFlame") {
-        baseAlpha = Math.min(baseAlpha, 0.75);
-      }
       if (baseAlpha < 1) {
         drawOptions.alpha = baseAlpha;
       }
@@ -3535,16 +3573,36 @@
           drawOptions.tintIntensity = this.config.tintIntensity;
         }
       }
+      const nowSeconds =
+        (typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now()) * 0.001;
       const hasFlameTag = Array.isArray(this.config?.specialBehavior)
         ? this.config.specialBehavior.includes("tormentorFlame")
         : this.type === "tormentorFlame";
-      if (hasFlameTag && this.state !== "death" && typeof drawProjectileGlow === "function") {
+      const isTormentorOrbiterVisualTarget =
+        this.type === "tormentorFlame" ||
+        (hasFlameTag && (this._orbiting || this.tormentorOrbitBound || this.tormentorReleasedOnDeath));
+      if (isTormentorOrbiterVisualTarget) {
+        drawOptions.alpha = 1;
+      }
+      const orbiterVisualFrame = isTormentorOrbiterVisualTarget
+        ? getOrbiterVisualFrame(this.orbiterVisual, nowSeconds)
+        : null;
+      const shouldDrawOrbiterGlow =
+        this.orbiterVisual?.glow === undefined ? hasFlameTag : Boolean(this.orbiterVisual?.glow);
+      if (shouldDrawOrbiterGlow && this.state !== "death" && typeof drawProjectileGlow === "function") {
         const clip = this.animator?.currentClip;
         const clipScale =
           (Number.isFinite(this.animator?.scale) ? this.animator.scale : 1) *
           (Number.isFinite(clip?.renderScale) ? clip.renderScale : 1);
-        const frameSize =
-          clip && Number.isFinite(clip.frameWidth) && Number.isFinite(clip.frameHeight)
+        const visualScale =
+          Number.isFinite(this.orbiterVisual?.scale) && this.orbiterVisual.scale > 0
+            ? this.orbiterVisual.scale
+            : 1;
+        const frameSize = orbiterVisualFrame
+          ? Math.max(orbiterVisualFrame.width, orbiterVisualFrame.height) * clipScale * visualScale
+          : clip && Number.isFinite(clip.frameWidth) && Number.isFinite(clip.frameHeight)
             ? Math.max(clip.frameWidth, clip.frameHeight) * clipScale
             : 0;
         const baseRadius = Math.max(10, this.radius || 0);
@@ -3554,7 +3612,39 @@
         drawProjectileGlow(glowSize, glowSize, { radiusScale: 1.05, baseAlpha: 0.18, pulseScale: 0.16 });
         ctx.restore();
       }
-      this.animator.draw(ctx, this.x, drawY, drawOptions);
+      if (orbiterVisualFrame && this.state !== "death") {
+        const visualScale =
+          Number.isFinite(this.orbiterVisual?.scale) && this.orbiterVisual.scale > 0
+            ? this.orbiterVisual.scale
+            : 1;
+        const drawScale = (Number.isFinite(this.animator?.scale) ? this.animator.scale : 1) * visualScale;
+        const drawWidth = orbiterVisualFrame.width * drawScale;
+        const drawHeight = orbiterVisualFrame.height * drawScale;
+        const visualAlpha =
+          Number.isFinite(this.orbiterVisual?.alpha) && this.orbiterVisual.alpha >= 0
+            ? this.orbiterVisual.alpha
+            : 1;
+        const rotationSpeed =
+          Number.isFinite(this.orbiterVisual?.rotationSpeed)
+            ? this.orbiterVisual.rotationSpeed
+            : 0;
+        ctx.save();
+        ctx.translate(this.x, drawY);
+        if (rotationSpeed) {
+          ctx.rotate(nowSeconds * rotationSpeed);
+        }
+        ctx.globalAlpha *= (drawOptions.alpha ?? 1) * visualAlpha;
+        ctx.drawImage(
+          orbiterVisualFrame,
+          -drawWidth / 2,
+          -drawHeight / 2,
+          drawWidth,
+          drawHeight,
+        );
+        ctx.restore();
+      } else {
+        this.animator.draw(ctx, this.x, drawY, drawOptions);
+      }
       if (showDemonessBind) {
         this._pendingFrontDemonessBindOverlay = true;
       }

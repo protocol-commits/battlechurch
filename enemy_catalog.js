@@ -638,6 +638,15 @@
     "projectileCooldown": 1.8,
     "bossTier": 2,
     "preferredTarget": "player",
+    "orbiterSpawnType": "tormentorFlame",
+    "orbiterVisual": {
+      "type": "projectile",
+      "assetKey": "fireOrb",
+      "scale": 0.78,
+      "alpha": 1,
+      "rotationSpeed": 1.6,
+      "glow": true
+    },
     "specialBehavior": [
       "boss",
       "closestAny",

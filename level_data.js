@@ -110,16 +110,8 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniDemonFireKeeper",
+                          "enemy": "miniDemonTormentor",
                           "count": 5
-                        },
-                        {
-                          "enemy": "miniDemonFireThrower",
-                          "count": 4
-                        },
-                        {
-                          "enemy": "miniImp",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -136,6 +128,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 5
                         }
                       ],
                       "weights": {},
@@ -152,6 +148,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 100
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 5
                         }
                       ],
                       "weights": {},

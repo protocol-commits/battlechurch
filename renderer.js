@@ -7468,7 +7468,49 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         return type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3";
       };
       const orderIndex = (enemy) => (isMiniImpType(enemy) ? 0 : 1);
-      orderedEnemies = [...enemies].sort((a, b) => orderIndex(a) - orderIndex(b));
+      const baseOrderedEnemies = [...enemies].sort((a, b) => orderIndex(a) - orderIndex(b));
+      const tormentorOrbitersByParent = new Map();
+      baseOrderedEnemies.forEach((enemy) => {
+        const isOrbitingTormentorOrbiter =
+          enemy &&
+          enemy.type === "tormentorFlame" &&
+          enemy._orbiting &&
+          enemy.orbitParent;
+        if (!isOrbitingTormentorOrbiter) return;
+        const parent = enemy.orbitParent;
+        if (!tormentorOrbitersByParent.has(parent)) {
+          tormentorOrbitersByParent.set(parent, []);
+        }
+        tormentorOrbitersByParent.get(parent).push(enemy);
+      });
+      tormentorOrbitersByParent.forEach((list, parent) => {
+        list.sort((a, b) => (a?.y || 0) - (b?.y || 0));
+      });
+      orderedEnemies = [];
+      baseOrderedEnemies.forEach((enemy) => {
+        const orbiters = tormentorOrbitersByParent.get(enemy) || null;
+        if (orbiters && orbiters.length) {
+          orbiters.forEach((orbiter) => {
+            const isFrontHalf = Math.sin(orbiter.orbitAngle || 0) >= 0;
+            if (!isFrontHalf) orderedEnemies.push(orbiter);
+          });
+        }
+        const isEmbeddedOrbiter =
+          enemy &&
+          enemy.type === "tormentorFlame" &&
+          enemy._orbiting &&
+          enemy.orbitParent &&
+          baseOrderedEnemies.includes(enemy.orbitParent);
+        if (!isEmbeddedOrbiter) {
+          orderedEnemies.push(enemy);
+        }
+        if (orbiters && orbiters.length) {
+          orbiters.forEach((orbiter) => {
+            const isFrontHalf = Math.sin(orbiter.orbitAngle || 0) >= 0;
+            if (isFrontHalf) orderedEnemies.push(orbiter);
+          });
+        }
+      });
       orderedEnemies.forEach((enemy) => enemy.draw());
       if (activeBoss) activeBoss.draw(ctx);
       drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);

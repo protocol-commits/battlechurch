@@ -16194,6 +16194,19 @@ function getTormentorFlameOrbitSettings(enemy) {
   };
 }
 
+function cloneTormentorOrbiterVisualConfig(enemy) {
+  const visualConfig = enemy?.orbiterVisual || enemy?.config?.orbiterVisual || null;
+  if (!visualConfig || typeof visualConfig !== "object") return null;
+  return JSON.parse(JSON.stringify(visualConfig));
+}
+
+function getTormentorOrbiterSpawnType(enemy) {
+  const configuredType = enemy?.orbiterSpawnType || enemy?.config?.orbiterSpawnType || null;
+  return typeof configuredType === "string" && configuredType.trim()
+    ? configuredType.trim()
+    : "tormentorFlame";
+}
+
 function assignTormentorFlameToOrbit(enemy, flame, slotIndex) {
   if (!enemy || !flame) return;
   const seedAngle =
@@ -16215,6 +16228,7 @@ function assignTormentorFlameToOrbit(enemy, flame, slotIndex) {
   flame.orbitScaleMax = TORMENTOR_FLAME_ORBIT_SCALE_MAX;
   flame.tormentorOrbitBound = true;
   flame.tormentorReleasedOnDeath = false;
+  flame.orbiterVisual = cloneTormentorOrbiterVisualConfig(enemy);
   flame.spawnOffscreenTimer = 0;
   flame.ignoreEntityCollisions = true;
   flame.ignoreWorldBounds = true;
@@ -16314,9 +16328,10 @@ function updateTormentorFlames(enemy, dt) {
     enemy.tormentorFlameSlots = new Array(TORMENTOR_FLAME_MAX).fill(null);
     enemy.tormentorFlameRespawnTimer = TORMENTOR_FLAME_RESPAWN_INTERVAL;
     enemy.tormentorFlameLaunchIndex = 0;
+    const orbiterSpawnType = getTormentorOrbiterSpawnType(enemy);
     for (let i = 0; i < TORMENTOR_FLAME_MAX; i += 1) {
       const flame = spawnEnemyOfType(
-        "tormentorFlame",
+        orbiterSpawnType,
         { x: enemy.x, y: enemy.y },
         { applyCameraShake: false, skipSpawnEffects: true },
       );
@@ -16344,8 +16359,9 @@ function updateTormentorFlames(enemy, dt) {
   if (enemy.tormentorFlameRespawnTimer <= 0) {
     const emptyIndex = enemy.tormentorFlameSlots.findIndex((slot) => !slot);
     if (emptyIndex !== -1) {
+      const orbiterSpawnType = getTormentorOrbiterSpawnType(enemy);
       const flame = spawnEnemyOfType(
-        "tormentorFlame",
+        orbiterSpawnType,
         { x: enemy.x, y: enemy.y },
         { applyCameraShake: false, skipSpawnEffects: true },
       );

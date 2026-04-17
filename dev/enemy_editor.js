@@ -90,6 +90,20 @@
       "hitbox",
       "weaponHitbox",
     ],
+    miniDemonTormentor: [
+      "ranged",
+      "projectileType",
+      "preferEdges",
+      "desiredRange",
+      "projectileCooldown",
+      "bossTier",
+      "preferredTarget",
+      "orbiterSpawnType",
+      "orbiterVisual",
+      "specialBehavior",
+      "hitbox",
+      "weaponHitbox",
+    ],
   };
 
   function baseCatalog() {
@@ -1167,6 +1181,7 @@
     if (key === "miniDemonFireThrower") labels.push("Custom lob arc + arming");
     if (key === "miniDemonFireKeeper") labels.push("Custom materialize + cast phases");
     if (key === "miniDemoness") labels.push("Custom grab / whip behavior");
+    if (key === "miniDemonTormentor") labels.push("Custom orbiting orbiter ring");
     if (key === "tormentorFlame" || behaviors.has("tormentorFlame")) labels.push("Custom flame visuals");
     return labels;
   }
@@ -1222,6 +1237,16 @@
       lines.push("Drags lassoed targets inward at 86px/s.");
       lines.push("Maintains drain contact around 34px.");
     }
+    if (key === "miniDemonTormentor") {
+      const orbiterVisualLabel = formatProjectileLabel(enemy?.orbiterVisual?.assetKey || "fireOrb");
+      lines.push(`Maintains 3 orbiting orbiters using ${orbiterVisualLabel} visuals.`);
+      lines.push(`Orbit flame respawn interval: ${7.0}s.`);
+      lines.push("Flames orbit above the torso in an elliptical ring.");
+      lines.push("Orbit speed: 2.6 rad/s.");
+      lines.push("Orbit scale range: 0.9x to 1.08x.");
+      lines.push("Orbiter sprite is decoupled from orbiter stats; visual swaps do not change orbit behavior.");
+      lines.push(`Combat spacing envelope: ${enemy?.desiredRange || 0}px desired range.`);
+    }
     return lines;
   }
 
@@ -1254,6 +1279,14 @@
       lines.push("Drain total before release: 30 faith.");
       lines.push("Break cooldown after melee interruption: 3.0s.");
       lines.push("Current drain effect: target loses 1 faith per tick sequence until release threshold, not HP damage.");
+    }
+    if (key === "miniDemonTormentor") {
+      const orbiterVisualLabel = formatProjectileLabel(enemy?.orbiterVisual?.assetKey || "fireOrb");
+      lines.push(`On attack, one orbiting orbiter is launched using ${orbiterVisualLabel} visuals.`);
+      lines.push("Thrown flame speed: 420px/s.");
+      lines.push("Throw duration: 0.48s.");
+      lines.push("Throw touch delay: 0.14s.");
+      lines.push("Launches one orbiter per attack cycle, then rotates to the next flame slot.");
     }
     return lines;
   }
