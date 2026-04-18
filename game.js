@@ -19645,13 +19645,15 @@ function updateMeleeAttackSystem(dt) {
       comboTriggered = true;
     }
     const holyDashCost = player ? (player.prayerChargeRequired || 60) / 6 : 10;
-    // C/B Holy Dash: C must be currently held when B is just pressed (not a quick-tap window)
+    // C/B Holy Dash: C must have been tapped (released) recently, then B pressed.
+    // Holding C then pressing B routes to the B-charge path for Teleport instead.
     const bJustPressedRaw = keysJustPressed.has("ArrowDown");
     const comboHolyDash =
       !comboTriggered &&
       !playerDashState.isDashing &&
       playerDashState.dashCooldown <= 0 &&
-      cCurrentlyHeld &&
+      cRecent &&
+      !keysPressed.has("ArrowRight") &&
       bJustPressedRaw &&
       !meleeAttackState.spinButtonDown &&
       !meleeAttackState.isRushing &&
