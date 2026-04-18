@@ -15473,6 +15473,18 @@ function showDeveloperOverlay() {
 
 function handleTitleScreen() {
   if (!titleScreenActive) return false;
+  if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
+    const SCROLL_SPEED = 180;
+    if (keysPressed.has("w") || keysPressed.has("W")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
+    if (keysPressed.has("s") || keysPressed.has("S")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
+    if (keysJustPressed.has("Escape") || keysJustPressed.has("escape") || keysJustPressed.has(" ")) {
+      window.PlayingInstructions.close();
+      keysJustPressed.delete("Escape");
+      keysJustPressed.delete("escape");
+      keysJustPressed.delete(" ");
+    }
+    return true;
+  }
   if (window.DialogOverlay?.consumeAction?.()) {
     keysJustPressed.delete(" ");
     keysJustPressed.delete("enter");
@@ -15506,11 +15518,9 @@ function handleTitleScreen() {
           showSettingsOverlay({ source: "title" });
         } else if (button.key === "developer") {
           showDeveloperOverlay();
-        } else if (button.key === "auth") {
-          if (window.cloudAuthProvider === "google") {
-            window.Cloud?.signOut?.().catch?.(() => {});
-          } else {
-            window.Cloud?.signInWithGoogle?.().catch?.(() => {});
+        } else if (button.key === "howtoplay") {
+          if (typeof window !== "undefined" && window.PlayingInstructions) {
+            window.PlayingInstructions.open();
           }
         }
       },
@@ -16086,41 +16096,11 @@ function updateCongregationStage(dt, levelStatus) {
     typeof window !== "undefined" && window.__announcementButtons?.key === "congregation"
       ? window.__announcementButtons.buttons
       : null;
-  // W/S scroll the instructions overlay when it's open
-  if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
-    const SCROLL_SPEED = 180;
-    if (keysPressed.has("w") || keysPressed.has("W")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * dt);
-    if (keysPressed.has("s") || keysPressed.has("S")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * dt);
-    if (keysJustPressed.has("Escape") || keysJustPressed.has("escape")) {
-      window.PlayingInstructions.close();
-      keysJustPressed.delete("Escape");
-      keysJustPressed.delete("escape");
-    }
-    if (keysJustPressed.has(" ")) {
-      window.PlayingInstructions.close();
-      keysJustPressed.delete(" ");
-    }
-    return { updated: true, levelStatus };
-  }
-
-  // Default focus to "Continue" (index 1) so Space always advances, not opens instructions
-  if (
-    typeof window !== "undefined" &&
-    (!window.__announcementFocus || window.__announcementFocus.key !== "congregation")
-  ) {
-    window.__announcementFocus = { key: "congregation", index: 1 };
-  }
   const handled = handleAnnouncementButtons({
     key: "congregation",
     buttons,
     allowSpace: true,
-    onActivate: (btn) => {
-      if (btn?.key === "instructions") {
-        if (typeof window !== "undefined" && window.PlayingInstructions) {
-          window.PlayingInstructions.open();
-        }
-        return;
-      }
+    onActivate: () => {
       if (typeof levelManager?.advanceFromCongregation !== "function") return;
       const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
       if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {

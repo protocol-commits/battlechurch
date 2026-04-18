@@ -1,48 +1,77 @@
 # How to Play Battlechurch
 
-Welcome to Battlechurch! You are the Pastor — protect your congregation and defeat the enemies that threaten your flock.
+Smite the hordes. Save the church.
 
-## Movement
+## Levels Not Balanced Yes!!!
 
-- WASD — Move the pastor in any direction
+- I have not balanced the enemies in the game yet. I'm just trying to get the mechanics working before I balance the game. I'm randomly putting enemies. 
+- I''ll kinda look at Town 1, 2 and 9 for now. 
+
+## Quick Start
+- Move with WASD keys
+- Player autoaims projectiles
+- A (Left Arrow) - Sword for bigger enemies
+- B (Down Arrow) - Dash
+- C (Right Arrow) - Congregation Volley
+
+## Advanced Moves
 
 ## Button A — Sword (Left Arrow)
 
-- Tap A — Quick melee slash
-- Hold A — Charge up a Divine Shot (releases a powerful energy blast)
-- Tap A + Tap B — Rush Attack (charge forward slashing enemies)
-- Tap A + Tap A — Double Strike
+- Tap A — Sword slash
+- Hold A — Shoots Sword Slash (Divine Shot)
+- A->B — Double Strike
 
 ## Button B — Dash (Down Arrow)
 
-- Tap B — Guardian Dash in your movement direction
-- Hold B (fully charged) + Hold C — Blink Teleport to a powerup or target spot
+- B — Dash (must be available)
+- Hold B - Dash Towards PowerUp
+- B->A - Rush Attack
 
 ## Button C — Prayer (Right Arrow)
+(Note: Moves uses Prayer Meter)
 
-- Tap C — Unity Attack (your congregation fires at enemies)
-- Double-tap C — Pastor Protection (congregation rushes to protect you)
-- Hold C (full) — Prayer Bomb (a massive explosion)
-- Tap C + Tap A — Prayer Strike (powerful spin attack)
-- Tap C + Tap B — Holy Dash (super-long dash with flash)
+- Tap C — Unity Attack (your congregation fires at enemies). 1 bar.
+- Double-tap C — Pastor Protection (congregation fires and clears a path for you). 1 bar.
+- Hold C (not full) - Prayer Bomb. 2 Bars.
+- Hold C (full) — Prayer Storm. Full bar.
+- C->A - Prayer Strike (spin attack). 2 Bars.
+- C->B - Prayer Dash (BUG - DOESN'T WORK). 1 Bar.
 
-## Combo Moves
+## Double Charges 
+(Costs 2 bars)
 
-- Charge A + Charge C — Holy Ground (ring of fire surrounds you)
-- Charge A + Charge B — Sword Rush (Divine Shot plus Rush Attack together)
-- Charge B + Charge C — Blink Teleport (teleport to nearest powerup)
+- A+C — Holy Ground (ring of fire surrounds you)
+- A+B — Sword Rush (Divine Shot plus Rush Attack together)
+- B+C — Blink Teleport (teleport to nearest powerup)
 
 ## Prayer Meter
 
-Your prayer meter fills over time and as you defeat enemies. The meter powers your C-button abilities. A full meter lets you cast the Prayer Bomb.
+Your prayer meter fills over time and as you defeat enemies. The meter powers your C-button Prayer abilities.
 
-## Congregation
+## Expert Sword Combos
 
-Your congregation members fight alongside you. Keep them alive — each one that survives earns you more followers after the battle.
+- Combo sword attacks to do exponential damage to armored enemies.
+- The longer the combo the more damage.
+- Conterattack Buff - strike after enemy whiff
+- Punish Counter - combo after enemy whiff
+- Max Damage would be a Punish Counter followed by a 4 sword combo (Divine Shot / Slash / Rush Attach / Slash Charged-A, A, B->A, A)
+- Other combos possible
 
-## Tips
+## Map
 
-- Use Holy Dash to close distance quickly while spending minimal prayer charge
-- Blink Teleport lets you grab powerups instantly from across the map
-- Prayer Strike is great for groups of enemies surrounding you
-- Holy Ground clears a large area — save it for tough moments
+- 3 Counties of 3 towns each with a final Boss town.
+- After defeating 1 county of 3 towns, your denomination takes notice and gives you a bigger budget allowing you to start off with church upgrades. 
+- Hit Shift-7 to unlock the Map so you can test.
+
+## Credits
+
+- Created solely by Conrad Tolosa.
+
+
+## Future Features
+- Google Auth is already wired for saving
+- X-Box Controller kinda works already
+
+
+

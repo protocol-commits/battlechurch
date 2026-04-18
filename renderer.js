@@ -4988,24 +4988,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     void memberCount;
 
-    const buttonHeight = 52;
+    const buttonText = "Continue";
     const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
-    const instrBtnWidth = Math.min(220, layout.virtualCanvas.width * 0.5);
-    const buttonGap = 12;
-    const totalH = buttonHeight * 2 + buttonGap;
-    const blockTopY = getAnnouncementScreenTopY({
+    const buttonHeight = 52;
+    const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+    const buttonTopY = getAnnouncementScreenTopY({
       canvasHeight: layout.virtualCanvas.height,
       HUD_HEIGHT,
-      blockHeight: totalH,
+      blockHeight: buttonHeight,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 90,
     });
-    const instrBtnY = Math.round(blockTopY);
-    const instrBtnX = Math.round(layout.virtualCanvas.width / 2 - instrBtnWidth / 2);
-    const buttonY = Math.round(instrBtnY + buttonHeight + buttonGap);
-    const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
-
+    const buttonY = Math.round(buttonTopY);
     if (typeof window !== "undefined") {
       window.__congregationPlayButtonBounds = {
         x: layout.offsetX + buttonX * layout.scale,
@@ -5017,13 +5012,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         key: "congregation",
         buttons: [
           {
-            key: "instructions",
-            x: layout.offsetX + instrBtnX * layout.scale,
-            y: layout.offsetY + instrBtnY * layout.scale,
-            width: instrBtnWidth * layout.scale,
-            height: buttonHeight * layout.scale,
-          },
-          {
             key: "play",
             x: layout.offsetX + buttonX * layout.scale,
             y: layout.offsetY + buttonY * layout.scale,
@@ -5033,27 +5021,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ],
       };
     }
-
-    // "Playing Instructions" button
-    ctx.fillStyle = "rgba(30, 50, 80, 0.9)";
-    ctx.strokeStyle = "rgba(155, 217, 255, 0.5)";
-    ctx.lineWidth = 2;
-    roundRect(ctx, instrBtnX, instrBtnY, instrBtnWidth, buttonHeight, 16, true, true);
-    if (isAnnouncementButtonFocused("congregation", 0)) {
-      drawFocusRing(ctx, instrBtnX - 3, instrBtnY - 3, instrBtnWidth + 6, buttonHeight + 6, 18);
-    }
-    ctx.fillStyle = "#9BD9FF";
-    ctx.textAlign = "center";
-    ctx.font = `15px ${UI_FONT_FAMILY}`;
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("Playing Instructions", layout.virtualCanvas.width / 2, instrBtnY + buttonHeight / 2 + 5);
-
-    // "Continue" button
     ctx.fillStyle = "#9BD9FF";
     ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     ctx.lineWidth = 2;
     roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
-    if (isAnnouncementButtonFocused("congregation", 1)) {
+    if (isAnnouncementButtonFocused("congregation", 0)) {
       drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
       drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
     }
@@ -5061,7 +5033,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("Continue", layout.virtualCanvas.width / 2, buttonY + buttonHeight / 2 + 6);
+    const mainTextY = buttonY + buttonHeight / 2 + 6;
+    ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
     ctx.restore();
 
     ctx.restore();
@@ -6389,10 +6362,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const subtitleSize = TEXT_STYLES.h2.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     // Show Loading while loading, Map when map-ready but gameplay loading, Play when fully ready
-    const authLabel =
-      typeof window !== "undefined" && window.cloudAuthProvider === "google"
-        ? "Sign Out"
-        : "Sign in with Google";
     let buttonConfigs;
     if (assetsLoaded) {
       // Fully loaded - show Play button
@@ -6400,7 +6369,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "play", label: "Play" },
         { key: "settings", label: "Settings" },
         { key: "developer", label: "Developer" },
-        { key: "auth", label: authLabel },
+        { key: "howtoplay", label: "How to Play" },
       ];
     } else if (mapReady) {
       // Map ready but gameplay still loading - allow map browsing
@@ -6408,7 +6377,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "map", label: "Map" },
         { key: "settings", label: "Settings" },
         { key: "developer", label: "Developer" },
-        { key: "auth", label: authLabel },
+        { key: "howtoplay", label: "How to Play" },
       ];
     } else {
       // Still loading title/map assets
@@ -6416,7 +6385,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "play", label: "Loading..." },
         { key: "settings", label: "Settings" },
         { key: "developer", label: "Developer" },
-        { key: "auth", label: authLabel },
+        { key: "howtoplay", label: "How to Play" },
       ];
     }
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -7101,6 +7070,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (titleScreenActive) {
       drawTitleScreen();
+      drawPlayingInstructionsOverlay();
       return;
     }
     const chapterBreakState = requireBindings();
