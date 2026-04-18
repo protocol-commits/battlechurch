@@ -1642,6 +1642,9 @@ async function loadPlayerProgress() {
     });
     // Directly unlock every town (regular + capital) — don't rely on chain logic
     progress.unlockedTownIds = (mapData.towns || []).map(function(t) { return t.id; });
+    // Close any open panel or overlay so WASD navigation works immediately
+    state.panelOpen = false;
+    state.denomUpgrade = null;
     if (typeof console !== "undefined") {
       console.log("[DEV] devUnlockAllTowns: unlockedTownIds =", progress.unlockedTownIds.join(", "));
     }
