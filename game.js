@@ -19630,7 +19630,7 @@ function updateMeleeAttackSystem(dt) {
         !meleeAttackState.spinCharging &&
         !meleeAttackState.spinButtonDown &&
         meleeAttackState.rushLockTimer <= 0 &&
-        playerDashState.dashCooldown <= 0 &&
+        !playerDashState.isDashing &&
         (comboRushKeyOrder ||
           (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
     let comboTriggered = false;
