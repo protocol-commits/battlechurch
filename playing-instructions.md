@@ -71,7 +71,7 @@ Your prayer meter fills over time and as you defeat enemies. The meter powers yo
 
 ## Future Features
 - Google Auth is already wired for saving
-- X-Box Controller kinda works already
+- X-Box Controller kinda works already. 
 
 
 
