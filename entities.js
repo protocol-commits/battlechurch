@@ -1170,7 +1170,8 @@
     const congregationCommand =
       typeof consumeCongregationClick === "function" ? consumeCongregationClick() : false;
     if (congregationCommand) {
-      if (this.isCongregationCommandReady()) {
+      const cTapCost = (this.prayerChargeRequired || 60) / 6;
+      if (this.isCongregationCommandReady() && (this.prayerCharge || 0) >= cTapCost) {
         const triggerCongregationCommand =
           typeof window !== "undefined" ? window.triggerCongregationCommand : null;
         if (
@@ -1178,6 +1179,7 @@
           triggerCongregationCommand(this, { mode: congregationCommand })
         ) {
           this.congregationCommandCharge = 0;
+          this.prayerCharge = Math.max(0, (this.prayerCharge || 0) - cTapCost);
         }
       }
     }

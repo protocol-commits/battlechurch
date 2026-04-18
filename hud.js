@@ -431,11 +431,15 @@
       const innerY = meterY + 1;
       const innerW = meterWidth - 4;
       const innerH = meterHeight - 2;
-      const segmentStops = [0.5, 0.8];
+      const NUM_SEGS = 6;
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
       const clampedRatio = Math.max(0, Math.min(1, ratio));
       const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : clampedRatio >= 1;
-      const prayerSegmentColors = ["#14345A", "#1F4F79", "#2C6A99"];
+      // 6 graduating blue shades, one per segment
+      const prayerSegmentColors = ["#0C2444", "#10304F", "#14345A", "#1A3F6B", "#1F4F79", "#2C6A99"];
+      // Level thresholds aligned to 6-section meter
+      const lvl1Ratio = 2 / 6; // 2 bars — minimum to fire prayer bomb
+      const lvl2Ratio = 4 / 6; // 4 bars — level 2 prayer bomb
       const now = performance.now() * 0.001;
       const dt = prayerSpark.lastTime ? Math.min(0.1, Math.max(0, now - prayerSpark.lastTime)) : 0;
       prayerSpark.lastTime = now;
@@ -444,136 +448,72 @@
       }
       prayerSpark.lastRatio = ratio;
       const totalWidth = Math.max(0, Math.floor(innerW * clampedRatio));
-      const segGap = 2;
-      const seg1Max = Math.floor(innerW * 0.5);
-      const seg2Max = Math.floor(innerW * 0.8);
-      const seg1Fill = Math.min(totalWidth, seg1Max);
-      const seg2Fill = Math.min(Math.max(0, totalWidth - seg1Max), seg2Max - seg1Max);
-      const seg3Fill = Math.max(0, totalWidth - seg2Max);
-      const seg1Start = innerX - 1;
-      const seg1Width = Math.max(0, seg1Max - segGap + 1);
-      const seg2Start = innerX + seg1Max + segGap - 1;
-      const seg2Width = Math.max(0, seg2Max - seg1Max - segGap + 2);
-      const seg3Start = innerX + seg2Max + segGap + 1;
-      const seg3Width = Math.max(0, innerW - seg2Max - segGap);
+      const outerGap = 2;
       const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.008);
       const fullPulse = clampedRatio >= 1;
       const fullPulseAlpha = 0.2 + pulse * 0.45;
       const fullPulseBrightAlpha = 0.35 + pulse * 0.6;
+      const segRad = Math.max(2, meterRadius - 2);
 
-      if (seg1Fill > 0) {
-        ctx.fillStyle = prayerSegmentColors[0];
-        roundRect(
-          ctx,
-          seg1Start,
-          innerY,
-          Math.min(seg1Width, seg1Fill),
-          innerH,
-          Math.max(2, meterRadius - 2),
-          true,
-          false,
-        );
-        applyMeterGloss(seg1Start, innerY, Math.min(seg1Width, seg1Fill), innerH);
+      // Pre-compute inner fill bounds for each segment
+      const segBounds = [];
+      for (let i = 0; i < NUM_SEGS; i++) {
+        const startPx = Math.floor(innerW * i / NUM_SEGS);
+        const endPx = Math.floor(innerW * (i + 1) / NUM_SEGS);
+        segBounds.push({ x: innerX + startPx, w: endPx - startPx, startPx });
       }
-      if (clampedRatio >= 0.5 && seg1Width > 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.28 + pulse * 0.35;
-        ctx.fillStyle = PALETTE.gold;
-        roundRect(
-          ctx,
-          seg1Start,
-          innerY,
-          seg1Width,
-          innerH,
-          Math.max(2, meterRadius - 2),
-          true,
-          false,
-        );
-        ctx.restore();
+
+      // Draw fills and highlights
+      for (let i = 0; i < NUM_SEGS; i++) {
+        const { x: sx, w: sw, startPx } = segBounds[i];
+        const fill = Math.max(0, Math.min(sw, totalWidth - startPx));
+        const isFirst = i === 0;
+        const drawX = isFirst ? sx - 1 : sx;
+        const drawFill = fill + (isFirst ? 1 : 0);
+        const drawFull = sw + (isFirst ? 1 : 0);
+
+        // Segment fill
+        if (fill > 0) {
+          ctx.fillStyle = prayerSegmentColors[i];
+          if (isFirst) {
+            roundRect(ctx, drawX, innerY, drawFill, innerH, segRad, true, false);
+          } else {
+            ctx.fillRect(sx, innerY, fill, innerH);
+          }
+          applyMeterGloss(drawX, innerY, drawFill, innerH);
+        }
+
+        // Gold overlay when level threshold crossed (segments 0-1 at lvl1, segments 2-3 at lvl2)
+        const tierGold = (i <= 1 && clampedRatio >= lvl1Ratio) ||
+                         (i >= 2 && i <= 3 && clampedRatio >= lvl2Ratio);
+        if (tierGold && sw > 0) {
+          ctx.save();
+          ctx.globalAlpha = 0.28 + pulse * 0.35;
+          ctx.fillStyle = PALETTE.gold;
+          if (isFirst) {
+            roundRect(ctx, drawX, innerY, drawFull, innerH, segRad, true, false);
+          } else {
+            ctx.fillRect(sx, innerY, sw, innerH);
+          }
+          ctx.restore();
+        }
+
+        // Bright gold pulse when fully charged
+        if (fullPulse && sw > 0) {
+          ctx.save();
+          ctx.globalAlpha = i >= 4 ? fullPulseBrightAlpha : fullPulseAlpha;
+          ctx.fillStyle = PALETTE.gold;
+          if (isFirst) {
+            roundRect(ctx, drawX, innerY, drawFull, innerH, segRad, true, false);
+          } else {
+            ctx.fillRect(sx, innerY, sw, innerH);
+          }
+          ctx.restore();
+        }
       }
-      if (fullPulse && seg1Width > 0) {
-        ctx.save();
-        ctx.globalAlpha = fullPulseAlpha;
-        ctx.fillStyle = PALETTE.gold;
-        roundRect(
-          ctx,
-          seg1Start,
-          innerY,
-          seg1Width,
-          innerH,
-          Math.max(2, meterRadius - 2),
-          true,
-          false,
-        );
-        ctx.restore();
-      }
-      if (seg2Fill > 0) {
-        ctx.fillStyle = prayerSegmentColors[1];
-        ctx.fillRect(
-          seg2Start,
-          innerY,
-          Math.min(seg2Width, seg2Fill),
-          innerH,
-        );
-        applyMeterGloss(seg2Start, innerY, Math.min(seg2Width, seg2Fill), innerH);
-      }
-      if (clampedRatio >= 0.8 && seg2Width > 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.28 + pulse * 0.35;
-        ctx.fillStyle = PALETTE.gold;
-        ctx.fillRect(
-          seg2Start,
-          innerY,
-          seg2Width,
-          innerH,
-        );
-        ctx.restore();
-      }
-      if (fullPulse && seg2Width > 0) {
-        ctx.save();
-        ctx.globalAlpha = fullPulseAlpha;
-        ctx.fillStyle = PALETTE.gold;
-        ctx.fillRect(
-          seg2Start,
-          innerY,
-          seg2Width,
-          innerH,
-        );
-        ctx.restore();
-      }
-      if (seg3Fill > 0) {
-        ctx.fillStyle = prayerSegmentColors[2];
-        ctx.fillRect(
-          seg3Start,
-          innerY,
-          Math.min(seg3Width, seg3Fill),
-          innerH,
-        );
-        applyMeterGloss(seg3Start, innerY, Math.min(seg3Width, seg3Fill), innerH);
-      }
-      if (fullPulse && seg3Width > 0) {
-        ctx.save();
-        ctx.globalAlpha = fullPulseBrightAlpha;
-        ctx.fillStyle = PALETTE.gold;
-        ctx.fillRect(
-          seg3Start,
-          innerY,
-          seg3Width,
-          innerH,
-        );
-        ctx.restore();
-      }
+
+      // Draw 6 outer segment borders
       ctx.save();
-      const outerGap = 2;
-      const seg1Span = Math.floor(meterWidth * 0.5);
-      const seg2Span = Math.floor(meterWidth * 0.3);
-      const seg3Span = meterWidth - seg1Span - seg2Span;
-      const seg1X = meterX;
-      const seg1W = Math.max(0, seg1Span - outerGap);
-      const seg2X = meterX + seg1Span + outerGap;
-      const seg2W = Math.max(0, seg2Span - outerGap * 2);
-      const seg3X = meterX + seg1Span + seg2Span + outerGap;
-      const seg3W = Math.max(0, seg3Span - outerGap);
       const strokeSegment = (x, w, { leftRound = false, rightRound = false } = {}) => {
         const r = meterRadius;
         ctx.beginPath();
@@ -610,24 +550,23 @@
       };
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
-      strokeSegment(seg1X, seg1W, { leftRound: true, rightRound: false });
-      strokeSegment(seg2X, seg2W, { leftRound: false, rightRound: false });
-      strokeSegment(seg3X, seg3W, { leftRound: false, rightRound: true });
-      ctx.restore();
-
-      ctx.save();
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = PALETTE.softWhite;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const seg1Center = seg1Start + seg1Width * 0.5;
-      const seg2Center = seg2Start + seg2Width * 0.5;
-      const seg3Center = seg3Start + seg3Width * 0.5;
-      const textY = innerY + innerH / 2 + 0.5;
-      const prayerLabels = (typeof GameText !== 'undefined' && GameText.hud?.prayerMeterLabels) || ['Prayer', '2', '3'];
-      ctx.fillText(prayerLabels[0] || 'Prayer', seg1Center, textY);
-      ctx.fillText(prayerLabels[1] || '2', seg2Center, textY);
-      ctx.fillText(prayerLabels[2] || '3', seg3Center, textY);
+      for (let i = 0; i < NUM_SEGS; i++) {
+        const base = Math.floor(meterWidth * i / NUM_SEGS);
+        const end = i < NUM_SEGS - 1 ? Math.floor(meterWidth * (i + 1) / NUM_SEGS) : meterWidth;
+        const span = end - base;
+        let bx, bw;
+        if (i === 0) {
+          bx = meterX;
+          bw = Math.max(0, span - outerGap);
+        } else if (i === NUM_SEGS - 1) {
+          bx = meterX + base + outerGap;
+          bw = Math.max(0, span - outerGap);
+        } else {
+          bx = meterX + base + outerGap;
+          bw = Math.max(0, span - outerGap * 2);
+        }
+        strokeSegment(bx, bw, { leftRound: i === 0, rightRound: i === NUM_SEGS - 1 });
+      }
       ctx.restore();
       if (prayerSpark.timer > 0 && totalWidth > 0) {
         prayerSpark.timer = Math.max(0, prayerSpark.timer - dt);

@@ -88,10 +88,10 @@
       chargePerKill: 0.5,
       holdTime: 1.0,
 
-      // Thresholds (0-1 ratio)
-      level1Threshold: 0.5,
-      level2Threshold: 0.8,
-      level3Threshold: 1.0,
+      // Thresholds (0-1 ratio) — aligned to 6-section meter (1/6 per section)
+      level1Threshold: 2 / 6,   // 2 bars: minimum to fire prayer bomb
+      level2Threshold: 4 / 6,   // 4 bars: level 2 prayer bomb
+      level3Threshold: 1.0,     // 6 bars: full charge
 
       // Damage per level
       level1Damage: 250,
