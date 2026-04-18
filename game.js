@@ -3176,6 +3176,7 @@ const MELEE_CHARGE_MOVE_MULTIPLIER = 0.6;
 const MELEE_SPIN_DURATION = _gb('melee.spinDuration', 0.45);
 const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
 const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
+const DOUBLE_STRIKE_DELAY = 0.13;
 const COUNTER_HIT_WINDOW = 0.3;
 const COUNTER_HIT_MULTIPLIER = 1.25;
 const PUNISH_COUNTER_MULTIPLIER = 1.35;
@@ -18866,10 +18867,10 @@ function executePowerupTeleport(meleeAttackState) {
     player.lockedPosition.x = player.x;
     player.lockedPosition.y = player.y;
   }
-  player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, TELEPORT_INVULNERABILITY_DURATION);
+  applyMeleeInvulnerability(meleeAttackState, "rush", TELEPORT_INVULNERABILITY_DURATION);
   spawnFlashEffect(player.x, player.y);
   applyCameraShake(0.18, 0.5);
-  const teleportCost = (player.prayerChargeRequired || 60) / 6;
+  const teleportCost = (player.prayerChargeRequired || 60) / 3;
   player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - teleportCost);
   player.prayerHoldTimer = 0;
   player.prayerHoldLocked = false;
@@ -19125,6 +19126,26 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.bcTeleportBlockTimer > 0) {
     meleeAttackState.bcTeleportBlockTimer = Math.max(0, meleeAttackState.bcTeleportBlockTimer - dt);
   }
+  if (meleeAttackState.doubleStrikeTimer > 0) {
+    meleeAttackState.doubleStrikeTimer = Math.max(0, meleeAttackState.doubleStrikeTimer - dt);
+    if (meleeAttackState.doubleStrikeTimer <= 0 && meleeAttackState.doubleStrikePending) {
+      meleeAttackState.doubleStrikePending = false;
+      const d = meleeAttackState.doubleStrikeDir;
+      if (player && d) {
+        const angleRad = Math.atan2(d.y, d.x);
+        const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
+        const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+        executeBasicMeleeAttack(d, meleeAttackState, swingCenterX, swingCenterY);
+        meleeAttackState.swooshTimer = 0;
+        meleeAttackState.doubleStrikeSwooshTimer = GAME_MELEE_SWING_DURATION * 2.5;
+        meleeAttackState.doubleStrikeSwooshDir = { x: d.x, y: d.y };
+      }
+      meleeAttackState.doubleStrikeDir = null;
+    }
+  }
+  if (meleeAttackState.doubleStrikeSwooshTimer > 0) {
+    meleeAttackState.doubleStrikeSwooshTimer = Math.max(0, meleeAttackState.doubleStrikeSwooshTimer - dt);
+  }
 }
 
 function updateChargeState(dt, meleeAttackState) {
@@ -19299,6 +19320,11 @@ function updateMeleeAttackSystem(dt) {
     bcTeleportArmed: false,
     teleportGhostTarget: null,
     bcTeleportBlockTimer: 0,
+    doubleStrikePending: false,
+    doubleStrikeTimer: 0,
+    doubleStrikeDir: null,
+    doubleStrikeSwooshTimer: 0,
+    doubleStrikeSwooshDir: null,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -19344,6 +19370,7 @@ function updateMeleeAttackSystem(dt) {
     const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
     const comboCKeyOrder = bRecent && cRecent && meleeAttackState.lastComboTimes.C > 0 && meleeAttackState.lastComboTimes.C < meleeAttackState.lastComboTimes.B;
     const comboPrayerStrikeOrder = cRecent && aRecent && meleeAttackState.lastComboTimes.C > 0 && meleeAttackState.lastComboTimes.C < meleeAttackState.lastComboTimes.A;
+    const comboDoubleStrikeOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.A > 0 && meleeAttackState.lastComboTimes.A < meleeAttackState.lastComboTimes.B;
     updateArcControlCooldowns();
     resolveQueuedBasicMeleeAttack(meleeAttackState);
 
@@ -19617,6 +19644,23 @@ function updateMeleeAttackSystem(dt) {
         comboTriggered = true;
       }
     }
+    const comboDoubleStrike =
+      !comboTriggered &&
+      comboDoubleStrikeOrder &&
+      !meleeAttackState.isRushing &&
+      !meleeAttackState.spinButtonDown &&
+      !meleeAttackState.doubleStrikePending &&
+      playerDashState.dashCooldown <= 0;
+    if (comboDoubleStrike) {
+      meleeAttackState.doubleStrikePending = true;
+      meleeAttackState.doubleStrikeTimer = DOUBLE_STRIKE_DELAY;
+      meleeAttackState.doubleStrikeDir = { x: dir.x, y: dir.y };
+      meleeAttackState.lastComboTimes.A = 0;
+      meleeAttackState.lastComboTimes.B = 0;
+      setSharedBButtonCooldown(DASH_COOLDOWN);
+      keysJustPressed.delete("ArrowDown");
+      comboTriggered = true;
+    }
     const prayerStrikeCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
     const comboPrayerStrike =
       !comboTriggered &&
@@ -19657,7 +19701,7 @@ function updateMeleeAttackSystem(dt) {
     }
     if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
       meleeAttackState.spinChargeTimer += dt;
-      const teleportCost = player ? (player.prayerChargeRequired || 60) / 6 : 10;
+      const teleportCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
       const bFullyCharged = meleeAttackState.spinChargeTimer >= (meleeAttackState.spinHoldTime || 0);
       const cHeld = keysPressed.has("ArrowRight");
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;

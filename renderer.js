@@ -8253,6 +8253,28 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
     ctx.restore();
+
+    // Double strike second swoosh — yellow, offset outward, slightly bigger, longer linger
+    if ((state.doubleStrikeSwooshTimer || 0) > 0 && state.doubleStrikeSwooshDir) {
+      const ds2Duration = MELEE_SWING_DURATION * 2.5;
+      const ds2Intensity = Math.min(1, state.doubleStrikeSwooshTimer / ds2Duration);
+      const ds2Scale = 1.28;
+      const ds2Width = drawWidth * ds2Scale;
+      const ds2Height = drawHeight * ds2Scale;
+      const ds2Dir = state.doubleStrikeSwooshDir;
+      const ds2Len = Math.hypot(ds2Dir.x, ds2Dir.y) || 1;
+      const ds2Angle = Math.atan2(ds2Dir.y, ds2Dir.x);
+      const offsetPx = 5;
+      const ds2OriginX = originX + (ds2Dir.x / ds2Len) * offsetPx;
+      const ds2OriginY = originY + (ds2Dir.y / ds2Len) * offsetPx;
+      ctx.save();
+      ctx.translate(ds2OriginX, ds2OriginY);
+      ctx.rotate(ds2Angle);
+      ctx.filter = "sepia(1) saturate(8) hue-rotate(10deg) brightness(1.4)";
+      ctx.globalAlpha = ds2Intensity * 0.85;
+      ctx.drawImage(swooshImg, rectX, -ds2Height * 0.5, ds2Width, ds2Height);
+      ctx.restore();
+    }
   }
 
   function drawSpeedrunTimer() {
