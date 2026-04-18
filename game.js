@@ -14066,6 +14066,24 @@ function updatePlayerDuringCongregation(dt) {
     updateDashMovement(dt);
   }
 
+  // Suppress prayer bomb before player.update consumes it.
+  // Must re-derive bothFull here rather than relying on acSuperArmed, because acSuperArmed
+  // is set by updatePlayer's pre-suppression block which runs AFTER this player.update() call.
+  if (window._meleeAttackState && player && typeof Input !== "undefined") {
+    const _ms = window._meleeAttackState;
+    const prayerSuperCost = (player.prayerChargeRequired || 60) / 3;
+    const aFullyCharged =
+      _ms.isCharging &&
+      _ms.buttonDown &&
+      _ms.chargeTimer >= (_ms.holdTime || 0);
+    const acComboActive =
+      _ms.acSuperArmed ||
+      (aFullyCharged && player.prayerHoldLocked && (player.prayerCharge || 0) >= prayerSuperCost) ||
+      (aFullyCharged && keysPressed.has("ArrowRight"));
+    if (acComboActive || _ms.spinButtonDown || _ms.bcTeleportArmed) {
+      Input.prayerBombClickQueued = false;
+    }
+  }
   player.update(dt);
   clampEntityToBounds(player);
 }
@@ -18862,6 +18880,20 @@ function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
   playRushAttackSfx(0.9);
 }
 
+function getTeleportFallbackTarget() {
+  if (!player) return null;
+  const angle = Math.random() * Math.PI * 2;
+  const dist = 400 + Math.random() * 200;
+  const margin = 40;
+  const topLimit = (typeof HUD_HEIGHT === "number" ? HUD_HEIGHT : 80) + margin;
+  const cw = canvas?.width || 1920;
+  const ch = canvas?.height || 1080;
+  return {
+    x: Math.max(margin, Math.min(cw - margin, player.x + Math.cos(angle) * dist)),
+    y: Math.max(topLimit, Math.min(ch - margin, player.y + Math.sin(angle) * dist)),
+  };
+}
+
 function getNearestActivePowerup() {
   if (!player) return null;
   let nearest = null;
@@ -18915,7 +18947,7 @@ function npcsYell(text, life = 1.6) {
 
 function executePowerupTeleport(meleeAttackState) {
   if (!player) return;
-  const target = getNearestActivePowerup();
+  const target = getNearestActivePowerup() || meleeAttackState.teleportGhostTarget;
   if (!target) return;
   playerYell("Blink!");
   player.x = target.x;
@@ -19794,7 +19826,11 @@ function updateMeleeAttackSystem(dt) {
       }
       if (meleeAttackState.bcTeleportArmed) {
         const nearestPU = getNearestActivePowerup();
-        meleeAttackState.teleportGhostTarget = nearestPU ? { x: nearestPU.x, y: nearestPU.y } : null;
+        if (nearestPU) {
+          meleeAttackState.teleportGhostTarget = { x: nearestPU.x, y: nearestPU.y };
+        } else if (!meleeAttackState.teleportGhostTarget) {
+          meleeAttackState.teleportGhostTarget = getTeleportFallbackTarget();
+        }
       }
     }
     if (meleeAttackState.spinButtonDown && !bHeld) {
