@@ -18780,6 +18780,7 @@ function applyDashSlashTravelDamage(meleeAttackState) {
 }
 
 function executeRushAttack(dir, meleeAttackState) {
+  playerYell("Rush Attack!");
   // Canonical move name: "Rush Attack" is the combo A > B/A follow-up.
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
@@ -18837,6 +18838,7 @@ function getNearestActivePowerup() {
 
 function executeProtectedDash(meleeAttackState) {
   if (!player) return;
+  playerYell("Guardian Rush!");
   const target = getNearestActivePowerup();
   let dir;
   if (target) {
@@ -18855,10 +18857,24 @@ function executeProtectedDash(meleeAttackState) {
   }
 }
 
+function playerYell(text, life = 1.6) {
+  window.FloatingText?.heroSay(text, { life });
+}
+
+function npcsYell(text, life = 1.6) {
+  if (!Array.isArray(npcs)) return;
+  npcs.forEach((npc) => {
+    if (npc && !npc.departed && npc.active) {
+      window.FloatingText?.npcCheer(npc, text, "#fffbe8", { life });
+    }
+  });
+}
+
 function executePowerupTeleport(meleeAttackState) {
   if (!player) return;
   const target = getNearestActivePowerup();
   if (!target) return;
+  playerYell("Blink!");
   player.x = target.x;
   player.y = target.y;
   resolveEntityObstacles(player);
@@ -18955,6 +18971,7 @@ function executeSpinAttack(meleeAttackState, moveDir) {
 }
 
 function executeDivineShot(dir, meleeAttackState, angleRad) {
+  playerYell("Divine Shot!");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -19640,6 +19657,7 @@ function updateMeleeAttackSystem(dt) {
         playerDashState.dashDistanceRemaining = DASH_DISTANCE * 2.5;
         playerDashState.isHolyDash = true;
         player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
+        playerYell("Holy Dash!");
         keysJustPressed.delete("ArrowRight");
         comboTriggered = true;
       }
@@ -19652,6 +19670,7 @@ function updateMeleeAttackSystem(dt) {
       !meleeAttackState.doubleStrikePending &&
       playerDashState.dashCooldown <= 0;
     if (comboDoubleStrike) {
+      playerYell("Double Strike!");
       meleeAttackState.doubleStrikePending = true;
       meleeAttackState.doubleStrikeTimer = DOUBLE_STRIKE_DELAY;
       meleeAttackState.doubleStrikeDir = { x: dir.x, y: dir.y };
@@ -19676,6 +19695,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.lastComboTimes.C = 0;
       meleeAttackState.lastComboTimes.A = 0;
       player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - prayerStrikeCost);
+      playerYell("Prayer Strike!");
       executeSpinAttack(meleeAttackState, null);
       meleeAttackState.swingLength = MELEE_SWING_LENGTH_BASE * 1.5;
       keysJustPressed.delete("ArrowLeft");
@@ -19799,6 +19819,7 @@ function updateMeleeAttackSystem(dt) {
           if (player) player.prayerCharge = Math.max(0, player.prayerCharge - acSuperCost);
           if (player) { player.prayerHoldLocked = false; player.prayerHoldTimer = 0; }
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+          playerYell("Holy Ground!");
           executeRingOfFireAttack(meleeAttackState);
         } else if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);

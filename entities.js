@@ -1181,12 +1181,25 @@
         ) {
           this.congregationCommandCharge = 0;
           this.prayerCharge = Math.max(0, (this.prayerCharge || 0) - cTapCost);
+          if (congregationCommand === "path") {
+            window.FloatingText?.npcsYell?.("Pastor Protection!");
+            if (typeof window !== "undefined" && Array.isArray(window.npcs)) {
+              window.npcs.forEach((npc) => {
+                if (npc && !npc.departed && npc.active) {
+                  window.FloatingText?.npcCheer(npc, "Pastor Protection!", "#fffbe8");
+                }
+              });
+            }
+          } else {
+            window.FloatingText?.heroSay?.("Unity Attack!");
+          }
         }
       }
     }
 
     if (consumePrayerBombClick()) {
       this.castPrayerBomb();
+      window.FloatingText?.heroSay?.("Prayer Bomb!");
     }
 
       // Visitor mini-game: autolock on closest visitor or chatty NPC
