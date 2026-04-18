@@ -16344,6 +16344,10 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     if (_ms.acSuperArmed || prayerStrikeBlocking || bChargingSuppressBomb) {
       Input.prayerBombClickQueued = false;
     }
+    // Cancel any pending congregation tap whenever a C+A or C+B combo is intercepting C.
+    if ((_ms.acSuperArmed || prayerStrikeBlocking) && typeof cancelCongregationTap === "function") {
+      cancelCongregationTap();
+    }
   }
 
   if (playerUpdatedDuringCongregation) {
@@ -19788,6 +19792,7 @@ function updateMeleeAttackSystem(dt) {
     if (comboPrayerStrike) {
       meleeAttackState.lastComboTimes.C = 0;
       meleeAttackState.lastComboTimes.A = 0;
+      if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - prayerStrikeCost);
       playerYell("Prayer Strike!");
       executeSpinAttack(meleeAttackState, null);
@@ -19941,6 +19946,7 @@ function updateMeleeAttackSystem(dt) {
           if (player) player.prayerCharge = Math.max(0, player.prayerCharge - acSuperCost);
           if (player) { player.prayerHoldLocked = false; player.prayerHoldTimer = 0; }
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+          if (typeof cancelCongregationTap === "function") cancelCongregationTap();
           playerYell("Holy Ground!");
           executeRingOfFireAttack(meleeAttackState);
         } else if (fullyCharged) {
