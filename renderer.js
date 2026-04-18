@@ -4988,19 +4988,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     void memberCount;
 
-    const buttonText = "Continue";
-    const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
     const buttonHeight = 52;
-    const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
-    const buttonTopY = getAnnouncementScreenTopY({
+    const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
+    const instrBtnWidth = Math.min(220, layout.virtualCanvas.width * 0.5);
+    const buttonGap = 12;
+    const totalH = buttonHeight * 2 + buttonGap;
+    const blockTopY = getAnnouncementScreenTopY({
       canvasHeight: layout.virtualCanvas.height,
       HUD_HEIGHT,
-      blockHeight: buttonHeight,
+      blockHeight: totalH,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 90,
     });
-    const buttonY = Math.round(buttonTopY);
+    const instrBtnY = Math.round(blockTopY);
+    const instrBtnX = Math.round(layout.virtualCanvas.width / 2 - instrBtnWidth / 2);
+    const buttonY = Math.round(instrBtnY + buttonHeight + buttonGap);
+    const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+
     if (typeof window !== "undefined") {
       window.__congregationPlayButtonBounds = {
         x: layout.offsetX + buttonX * layout.scale,
@@ -5012,6 +5017,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         key: "congregation",
         buttons: [
           {
+            key: "instructions",
+            x: layout.offsetX + instrBtnX * layout.scale,
+            y: layout.offsetY + instrBtnY * layout.scale,
+            width: instrBtnWidth * layout.scale,
+            height: buttonHeight * layout.scale,
+          },
+          {
             key: "play",
             x: layout.offsetX + buttonX * layout.scale,
             y: layout.offsetY + buttonY * layout.scale,
@@ -5021,11 +5033,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ],
       };
     }
+
+    // "Playing Instructions" button
+    ctx.fillStyle = "rgba(30, 50, 80, 0.9)";
+    ctx.strokeStyle = "rgba(155, 217, 255, 0.5)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, instrBtnX, instrBtnY, instrBtnWidth, buttonHeight, 16, true, true);
+    if (isAnnouncementButtonFocused("congregation", 0)) {
+      drawFocusRing(ctx, instrBtnX - 3, instrBtnY - 3, instrBtnWidth + 6, buttonHeight + 6, 18);
+    }
+    ctx.fillStyle = "#9BD9FF";
+    ctx.textAlign = "center";
+    ctx.font = `15px ${UI_FONT_FAMILY}`;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("Playing Instructions", layout.virtualCanvas.width / 2, instrBtnY + buttonHeight / 2 + 5);
+
+    // "Continue" button
     ctx.fillStyle = "#9BD9FF";
     ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     ctx.lineWidth = 2;
     roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
-    if (isAnnouncementButtonFocused("congregation", 0)) {
+    if (isAnnouncementButtonFocused("congregation", 1)) {
       drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
       drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
     }
@@ -5033,11 +5061,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
-    const mainTextY = buttonY + buttonHeight / 2 + 6;
-    ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
-    ctx.font = `10px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
-    ctx.textBaseline = "alphabetic";
+    ctx.fillText("Continue", layout.virtualCanvas.width / 2, buttonY + buttonHeight / 2 + 6);
     ctx.restore();
 
     ctx.restore();
@@ -8046,6 +8070,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawMeleeSwingOverlay(ctx, player);
     drawSpeedrunTimer();
     drawCongregationOverlay();
+    drawPlayingInstructionsOverlay();
     // Effects are drawn earlier in the world pass so the player stays on top.
     if (paused && !gameOver) {
       drawPauseOverlay();
@@ -9036,11 +9061,153 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawGame();
   }
 
+  function drawPlayingInstructionsOverlay() {
+    const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
+    const pi = typeof window !== "undefined" ? window.PlayingInstructions : null;
+    if (!pi || !pi.state.open) return;
+
+    const vw = canvas.width;
+    const vh = canvas.height;
+    const panelW = Math.min(760, vw * 0.88);
+    const panelH = Math.min(vh * 0.82, 680);
+    const panelX = Math.round((vw - panelW) / 2);
+    const panelY = Math.round((vh - panelH) / 2);
+    const padX = 36;
+    const padTop = 52;
+    const padBottom = 44;
+    const contentW = panelW - padX * 2;
+    const contentH = panelH - padTop - padBottom;
+    const contentX = panelX + padX;
+    const contentY = panelY + padTop;
+
+    ctx.save();
+
+    // Dim background
+    ctx.fillStyle = "rgba(0,0,0,0.72)";
+    ctx.fillRect(0, 0, vw, vh);
+
+    // Panel
+    ctx.fillStyle = "rgba(10,18,32,0.97)";
+    ctx.strokeStyle = "rgba(155,217,255,0.28)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, panelX, panelY, panelW, panelH, 18, true, true);
+
+    // Title bar divider
+    ctx.strokeStyle = "rgba(155,217,255,0.2)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(panelX + 20, panelY + 42);
+    ctx.lineTo(panelX + panelW - 20, panelY + 42);
+    ctx.stroke();
+
+    // Title
+    ctx.fillStyle = "#FFD978";
+    ctx.font = `700 18px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Playing Instructions", panelX + panelW / 2, panelY + 22);
+
+    // Scroll hint
+    ctx.fillStyle = "rgba(155,217,255,0.55)";
+    ctx.font = `12px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.fillText("W / S  to scroll   ·   SPACE or ESC to close", panelX + panelW / 2, panelY + panelH - 18);
+
+    // Clip content area
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(contentX - 2, contentY, contentW + 4, contentH);
+    ctx.clip();
+
+    const lines = pi.state.lines;
+    const scrollY = pi.state.scrollY || 0;
+    let cursorY = contentY - scrollY;
+
+    const SIZES = { h1: 20, h2: 15, body: 13, bullet: 13 };
+    const LINE_H = { h1: 32, h2: 26, body: 20, bullet: 20, spacer: 10 };
+
+    if (!lines) {
+      ctx.fillStyle = "#9BD9FF";
+      ctx.font = `14px ${UI_FONT_FAMILY}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(pi.state.loading ? "Loading…" : "No content.", contentX, cursorY);
+    } else {
+      ctx.textBaseline = "top";
+      ctx.textAlign = "left";
+
+      let totalH = 0;
+      const measured = lines.map((l) => {
+        const lh = LINE_H[l.type] || 20;
+        totalH += lh;
+        return lh;
+      });
+
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i];
+        const lh = measured[i];
+        const y = cursorY;
+        cursorY += lh;
+
+        if (y + lh < contentY) continue;
+        if (y > contentY + contentH) break;
+
+        if (l.type === "spacer") continue;
+
+        if (l.type === "h1") {
+          ctx.fillStyle = "#FFD978";
+          ctx.font = `700 ${SIZES.h1}px ${UI_FONT_FAMILY}`;
+          ctx.fillText(l.text, contentX, y + 2);
+        } else if (l.type === "h2") {
+          ctx.fillStyle = "#9BD9FF";
+          ctx.font = `600 ${SIZES.h2}px ${UI_FONT_FAMILY}`;
+          ctx.fillText(l.text, contentX, y + 2);
+        } else if (l.type === "bullet") {
+          ctx.fillStyle = "#9BD9FF";
+          ctx.font = `600 ${SIZES.bullet}px ${UI_FONT_FAMILY}`;
+          ctx.fillText("•", contentX, y + 2);
+          ctx.fillStyle = "#EAF6FF";
+          ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
+          ctx.fillText(l.text, contentX + 14, y + 2);
+        } else {
+          ctx.fillStyle = "#C8E8FF";
+          ctx.font = `${SIZES.body}px ${UI_FONT_FAMILY}`;
+          ctx.fillText(l.text, contentX, y + 2);
+        }
+      }
+
+      const maxScroll = Math.max(0, totalH - contentH);
+      if (typeof pi.setMaxScrollY === "function") pi.setMaxScrollY(maxScroll);
+
+      // Scroll indicators
+      ctx.restore();
+      ctx.save();
+      if (scrollY > 0) {
+        ctx.fillStyle = "rgba(155,217,255,0.45)";
+        ctx.font = `11px ${UI_FONT_FAMILY}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.fillText("▲", panelX + panelW - 22, contentY + 2);
+      }
+      if (scrollY < maxScroll) {
+        ctx.fillStyle = "rgba(155,217,255,0.45)";
+        ctx.font = `11px ${UI_FONT_FAMILY}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillText("▼", panelX + panelW - 22, contentY + contentH - 2);
+      }
+    }
+
+    ctx.restore();
+    ctx.restore();
+  }
+
   window.Renderer = {
     initialize,
     drawFrame,
     drawCountdownOverlay,
     drawChurchUpgradeScreen,
     drawDenomUpgradeScreen,
+    drawPlayingInstructionsOverlay,
   };
 })(typeof window !== "undefined" ? window : null);
