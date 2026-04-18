@@ -7745,6 +7745,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawRingOfFireEffects(player);
     drawCongregationCommandMeter(player, battleNpcs);
     if (player) {
+      const _ghostTarget = window._meleeAttackState?.teleportGhostTarget;
+      if (_ghostTarget) {
+        ctx.save();
+        ctx.globalAlpha = 0.5 + 0.18 * Math.sin(Date.now() * 0.009);
+        ctx.filter = "sepia(1) saturate(6) hue-rotate(15deg)";
+        player.animator.draw(ctx, _ghostTarget.x, _ghostTarget.y, { flipX: player.facing === "left" });
+        ctx.restore();
+      }
       player.draw();
       drawPlayerPrayerHoldMeter(player);
       drawPlayerRingFireChargeMeter(player);

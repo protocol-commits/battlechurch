@@ -3222,6 +3222,8 @@ const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
 const DASH_DUST_SPACING = 20 * WORLD_SCALE;
 const DASH_COOLDOWN = 2.0;
+const PROTECTED_DASH_DISTANCE = DASH_DISTANCE * 2;
+const TELEPORT_INVULNERABILITY_DURATION = 1.0;
 const DASH_COMBO_GRACE = 0.12;
 const RUSH_HITBOX_DEBUG_DURATION = 0.12;
 const BAT_SPAWN_COUNT = 10;
@@ -18814,6 +18816,67 @@ function executeRushAttack(dir, meleeAttackState) {
   playRushAttackSfx(0.9);
 }
 
+function getNearestActivePowerup() {
+  if (!player) return null;
+  let nearest = null;
+  let nearestDist = Infinity;
+  const check = (arr, isActive) => {
+    arr.forEach((p) => {
+      if (!p || !isActive(p)) return;
+      const d = Math.hypot(p.x - player.x, p.y - player.y);
+      if (d < nearestDist) { nearestDist = d; nearest = p; }
+    });
+  };
+  check(weaponPickups, (p) => p.active && !p.expired);
+  check(utilityPowerUps, (p) => !p.collected && !p.dead);
+  check(churchPowerupPickups, (p) => !p.collected && !p.dead);
+  return nearest;
+}
+
+function executeProtectedDash(meleeAttackState) {
+  if (!player) return;
+  const target = getNearestActivePowerup();
+  let dir;
+  if (target) {
+    const dx = target.x - player.x;
+    const dy = target.y - player.y;
+    const dist = Math.hypot(dx, dy);
+    dir = dist > 0 ? { x: dx / dist, y: dy / dist } : getDashButtonDirection();
+  } else {
+    dir = getDashButtonDirection();
+  }
+  if (!dir || (dir.x === 0 && dir.y === 0)) return;
+  if (tryStartDash(dir)) {
+    playerDashState.dashDistanceRemaining = PROTECTED_DASH_DISTANCE;
+    const dashDuration = PROTECTED_DASH_DISTANCE / Math.max(1, DASH_SPEED);
+    applyMeleeInvulnerability(meleeAttackState, "rush", dashDuration + RUSH_EXIT_INVULNERABILITY);
+  }
+}
+
+function executePowerupTeleport(meleeAttackState) {
+  if (!player) return;
+  const target = getNearestActivePowerup();
+  if (!target) return;
+  player.x = target.x;
+  player.y = target.y;
+  resolveEntityObstacles(player);
+  clampEntityToBounds(player);
+  if (player.lockedPosition) {
+    player.lockedPosition.x = player.x;
+    player.lockedPosition.y = player.y;
+  }
+  player.invulnerableTimer = Math.max(player.invulnerableTimer || 0, TELEPORT_INVULNERABILITY_DURATION);
+  spawnFlashEffect(player.x, player.y);
+  applyCameraShake(0.18, 0.5);
+  const teleportCost = (player.prayerChargeRequired || 60) / 6;
+  player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - teleportCost);
+  player.prayerHoldTimer = 0;
+  player.prayerHoldLocked = false;
+  if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+  meleeAttackState.bcTeleportArmed = false;
+  meleeAttackState.teleportGhostTarget = null;
+}
+
 function spawnRingOfFireHazard(centerX, centerY, radius) {
   ringOfFireHazards.push({
     x: centerX,
@@ -19228,6 +19291,8 @@ function updateMeleeAttackSystem(dt) {
     activeCounterHitUntil: 0,
     pendingBasicAttack: null,
     currentAttackHitboxType: "slash",
+    bcTeleportArmed: false,
+    teleportGhostTarget: null,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -19585,18 +19650,34 @@ function updateMeleeAttackSystem(dt) {
     }
     if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
       meleeAttackState.spinChargeTimer += dt;
+      const teleportCost = player ? (player.prayerChargeRequired || 60) / 6 : 10;
+      const bFullyCharged = meleeAttackState.spinChargeTimer >= (meleeAttackState.spinHoldTime || 0);
+      const cHeld = keysPressed.has("ArrowRight");
+      const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
+      if (bFullyCharged && cHeld && hasPrayerForTeleport) {
+        meleeAttackState.bcTeleportArmed = true;
+        const nearestPU = getNearestActivePowerup();
+        meleeAttackState.teleportGhostTarget = nearestPU ? { x: nearestPU.x, y: nearestPU.y } : null;
+      } else {
+        meleeAttackState.bcTeleportArmed = false;
+        meleeAttackState.teleportGhostTarget = null;
+      }
     }
     if (meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
       meleeAttackState.spinButtonDown = false;
       if (meleeAttackState.spinCharging) {
         meleeAttackState.spinCharging = false;
-        if (fullyCharged) {
-          executeRingOfFireAttack(meleeAttackState);
+        if (meleeAttackState.bcTeleportArmed) {
+          executePowerupTeleport(meleeAttackState);
+        } else if (fullyCharged) {
+          executeProtectedDash(meleeAttackState);
         } else if (!meleeAttackState.isRushing) {
           tryStartDash(getDashButtonDirection());
         }
       }
+      meleeAttackState.bcTeleportArmed = false;
+      meleeAttackState.teleportGhostTarget = null;
       if (!meleeAttackState.isCharging) {
         clearDivineChargeSparkVisual();
       }
