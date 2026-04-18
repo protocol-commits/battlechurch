@@ -1874,6 +1874,9 @@
         typeof SPIN_CHARGE_MOVE_MULTIPLIER === "number" ? SPIN_CHARGE_MOVE_MULTIPLIER : 0.5;
       multiplier *= slowMultiplier;
     }
+    if (meleeChargeSlow && spinChargeSlow) {
+      multiplier *= 0.5;
+    }
     return multiplier;
   }
 

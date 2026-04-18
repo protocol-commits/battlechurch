@@ -166,7 +166,6 @@ let powerUpsClearedForCongregation = false;
 let congregationGreetingShown = false;
 let congregationWelcomeTimer = 0;
 let congregationTutorialPrayerInit = false;
-let congregationTutorialRefillTimer = 0;
 let congregationDialogueIndex = 0;
 const congregationWaveIntroDialogueState = {
   activeKey: "",
@@ -16113,15 +16112,9 @@ function updateCongregationStage(dt, levelStatus) {
   }
   if (player && congregationTutorialPrayerInit) {
     const fiveSixths = Math.round((player.prayerChargeRequired || 60) * 5 / 6);
-    if (player.prayerCharge < fiveSixths - 1) {
-      congregationTutorialRefillTimer = Math.max(congregationTutorialRefillTimer, 0.6);
-    }
-    if (congregationTutorialRefillTimer > 0) {
-      congregationTutorialRefillTimer = Math.max(0, congregationTutorialRefillTimer - dt);
-      if (congregationTutorialRefillTimer === 0) {
-        player.prayerCharge = fiveSixths;
-        player.prayerHoldLocked = false;
-      }
+    if (player.prayerCharge < fiveSixths) {
+      player.prayerCharge = fiveSixths;
+      player.prayerHoldLocked = false;
     }
   }
   if (!congregationGreetingShown) {
@@ -16207,7 +16200,6 @@ function updateCongregationStage(dt, levelStatus) {
     congregationWelcomeTimer = 0;
     mapAmbientFadeQueued = false;
     congregationTutorialPrayerInit = false;
-    congregationTutorialRefillTimer = 0;
     if (typeof window !== "undefined") window.__congregationTutorialActive = false;
   }
   return { updated: true, levelStatus };
