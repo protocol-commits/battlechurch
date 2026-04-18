@@ -1669,7 +1669,13 @@
     hitFreezeTimer = HIT_FREEZE_DURATION;
     cameraShakeTimer = CAMERA_SHAKE_DURATION;
     cameraShakeMagnitude = CAMERA_SHAKE_INTENSITY * 1.5;
-    this.prayerCharge = 0;
+    // Level 3 (full charge) wipes the whole meter; lower levels cost 2 bars
+    if (level === 3) {
+      this.prayerCharge = 0;
+    } else {
+      const twoBars = (this.prayerChargeRequired || 60) / 3; // 2/6 of the meter
+      this.prayerCharge = Math.max(0, (this.prayerCharge || 0) - twoBars);
+    }
     this.state = "attackPrayer";
     this.animator.play("attackMagic", { restart: true });
     return true;
