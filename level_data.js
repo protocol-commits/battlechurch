@@ -17799,7 +17799,4184 @@ window.BattlechurchLevelData = {
     },
     {
       "index": 9,
-      "battles": []
+      "battles": [
+        {
+          "index": 1,
+          "missions": [
+            {
+              "index": 1,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "Prepare for battle! 9.1.1.A",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 5
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 5
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4,
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "delays": {}
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 5
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "mode": "explicit",
+                      "delays": {}
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "armoredSkeleton",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 2,
+                  "introText": "9.1.1.B",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 120
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 120
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 2
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 120
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 2
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 120
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 2
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 120
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "armoredSkeleton",
+                          "count": 2
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 3,
+                  "introText": "9.1.1.C",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 140
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 140
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 140
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 140
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 140
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "index": 2,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "1.1.2",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        },
+                        {
+                          "enemy": "armoredOrc",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        },
+                        {
+                          "enemy": "armoredEliteOrc",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4,
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "delays": {}
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        },
+                        {
+                          "enemy": "armoredSkeleton",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "mode": "explicit",
+                      "delays": {}
+                    }
+                  ]
+                },
+                {
+                  "index": 2,
+                  "introText": "This is Wave 2 text. Yes it is!",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 20
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    }
+                  ]
+                },
+                {
+                  "index": 3,
+                  "introText": "Wave 3 Ah yeah.",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 6
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 5
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 5
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 4,
+                  "introText": "This is the final wave! There's 4 hordes! Prepare!",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 150
+                        },
+                        {
+                          "enemy": "armoredSkeleton",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "index": 3,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "1.1.3",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    }
+                  ]
+                },
+                {
+                  "index": 2,
+                  "introText": "battle 3 and wave 2",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImpLevel2",
+                          "count": 2
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 8,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 9,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 10,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 11,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 12,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 13,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 2,
+          "missions": [
+            {
+              "index": 1,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "9.2.1",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        },
+                        {
+                          "enemy": "armoredOrc",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        },
+                        {
+                          "enemy": "armoredEliteOrc",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4,
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "delays": {}
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        },
+                        {
+                          "enemy": "armoredSkeleton",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "mode": "explicit",
+                      "delays": {}
+                    }
+                  ]
+                },
+                {
+                  "index": 2,
+                  "introText": "This is Wave 2 text. Yes it is!",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 20
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 50
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    }
+                  ]
+                },
+                {
+                  "index": 3,
+                  "introText": "Projectiles!",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 6
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 2
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 5
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 5
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 4,
+                  "introText": "This is the final wave! There's 4 hordes! Prepare!",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 40
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 40
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 40
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "index": 2,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "9.2.2",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImpLevel2",
+                          "count": 2
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 8,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 9,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 10,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 11,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 12,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 13,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 14,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 15,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 16,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 17,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 18,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 19,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 20,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 21,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 51
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "index": 3,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "9.2.3",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImpLevel2",
+                          "count": 2
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 8,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 9,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 10,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 11,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 12,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 13,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 14,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 15,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 16,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 17,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 18,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 19,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 20,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 21,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 53
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 3,
+          "missions": [
+            {
+              "index": 1,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "9.3.1",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4,
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "delays": {}
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "mode": "explicit",
+                      "delays": {}
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    }
+                  ]
+                },
+                {
+                  "index": 2,
+                  "introText": "2",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 5
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 8,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 6
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 3,
+                  "introText": "3, final",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 7
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 8
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "index": 2,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "9.3.2",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImpLevel2",
+                          "count": 2
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 2,
+                  "introText": "",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 3,
+                  "introText": "",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 54
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "index": 3,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "9.3.3",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        }
+                      ],
+                      "weights": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4,
+                      "delays": {},
+                      "mode": "explicit"
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniImpLevel2",
+                          "count": 2
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 2,
+                  "introText": "",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemoness",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniDemonFireKeeper",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniDemonTormentor",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 1
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 70
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                },
+                {
+                  "index": 3,
+                  "introText": "",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        },
+                        {
+                          "enemy": "miniFireImp",
+                          "count": 3
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 11
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 7,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 8,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 75
+                        },
+                        {
+                          "enemy": "miniDemonLord",
+                          "count": 1
+                        }
+                      ],
+                      "mode": "explicit",
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "index": 4,
+          "missions": [
+            {
+              "index": 1,
+              "waves": [
+                {
+                  "index": 1,
+                  "introText": "",
+                  "breakerDuration": 3,
+                  "hordes": [
+                    {
+                      "index": 1,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 2,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 3,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 4,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 6,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 7,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 8,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 9,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 10,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 11,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 12,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 13,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 14,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 15,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 16,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 17,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 18,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 19,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 20,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 21,
+                      "entries": [],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "index": 10,

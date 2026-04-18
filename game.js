@@ -42,6 +42,7 @@ const POWERUP_STAGGER_DELAY = _gb('powerups.staggerDelay', 4);
 const POWERUP_REFILL_DELAY = _gb('powerups.refillDelay', 4);
 let powerUpRespawnTimer = 0;
 let powerUpStaggerTimer = 0;
+let churchPowerupEnsureTimer = 0;
 let queuedPowerUpDrops = 0;
 let powerUpEnsureCycleIndex = 0;
 let playerGraceCount = 0;
@@ -2301,6 +2302,7 @@ function clearAllPowerUps() {
   powerupHudFlyEffects.splice(0, powerupHudFlyEffects.length);
   powerUpRespawnTimer = 0;
   powerUpStaggerTimer = 0;
+  churchPowerupEnsureTimer = 0;
   queuedPowerUpDrops = 0;
 }
 
@@ -7127,10 +7129,6 @@ function spawnWeaponPickup(position = null) {
 function spawnNextEnsuredPowerUp() {
   const ensureActions = [
     () => (canSpawnUtilityPowerUp() ? spawnUtilityPowerUp() : null),
-    () => {
-      if (!getUnlockedChurchPowerupKeys().length || !canSpawnChurchPowerup()) return null;
-      return spawnChurchPowerupPickup();
-    },
     () => (canSpawnWeaponPowerUp() ? spawnWeaponPickup() : null),
   ];
   const startIndex = powerUpEnsureCycleIndex % ensureActions.length;
@@ -20058,6 +20056,15 @@ function updateGame(dt) {
       const queueBusy = queuedPowerUpDrops > 0;
       if (!powerUpSpawnedThisFrame && !queueBusy && powerUpStaggerTimer <= 0) {
         spawnNextEnsuredPowerUp();
+      }
+      // Church powerup runs on its own independent timer — completely separate from
+      // the Utility/Weapon cycle so neither affects the other's timing.
+      churchPowerupEnsureTimer = Math.max(0, churchPowerupEnsureTimer - dt);
+      if (churchPowerupEnsureTimer <= 0) {
+        if (getUnlockedChurchPowerupKeys().length > 0 && canSpawnChurchPowerup()) {
+          spawnChurchPowerupPickup();
+        }
+        churchPowerupEnsureTimer = POWERUP_STAGGER_DELAY * 2;
       }
     }
   } catch (err) {
