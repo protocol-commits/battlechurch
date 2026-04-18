@@ -917,6 +917,13 @@
     return true;
   }
 
+  function cancelCongregationTap() {
+    congregationClickQueued = false;
+    congregationTapCount = 0;
+    congregationTapStartedAt = 0;
+    congregationClickKind = "volley";
+  }
+
   function consumeCongregationClick() {
     if (!congregationClickQueued && congregationTapCount === 1 && congregationTapStartedAt > 0) {
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -1011,6 +1018,7 @@
     triggerVirtualKeyPress,
     consumePrayerBombClick,
     consumeCongregationClick,
+    cancelCongregationTap,
     peekCanvasClick,
     consumeCanvasClick,
     consumeComboSwipe,

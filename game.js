@@ -3560,6 +3560,7 @@ const isActionActive = Input.isActionActive;
 const wasActionJustPressed = Input.wasActionJustPressed;
 const consumePrayerBombClick = Input.consumePrayerBombClick;
 const consumeCongregationClick = Input.consumeCongregationClick;
+const cancelCongregationTap = Input.cancelCongregationTap;
 const aimAssist = {
   target: null,
   vertices: null,
@@ -19703,7 +19704,6 @@ function updateMeleeAttackSystem(dt) {
     const comboHolyDash =
       !comboTriggered &&
       !playerDashState.isDashing &&
-      playerDashState.dashCooldown <= 0 &&
       cRecent &&
       !keysPressed.has("ArrowRight") &&
       bJustPressedRaw &&
@@ -19714,6 +19714,7 @@ function updateMeleeAttackSystem(dt) {
     if (comboHolyDash) {
       const holyDir = getDashButtonDirection();
       if (tryStartDash(holyDir)) {
+        if (typeof cancelCongregationTap === "function") cancelCongregationTap();
         playerDashState.dashDistanceRemaining = DASH_DISTANCE * 2.5;
         playerDashState.isHolyDash = true;
         player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
@@ -19778,6 +19779,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.spinChargeFlashTriggered = false;
       playerDashState.pendingDashTimer = 0;
       playerDashState.pendingDashDir = null;
+      if (keysPressed.has("ArrowRight") && typeof cancelCongregationTap === "function") cancelCongregationTap();
       }
     }
     if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
@@ -19788,6 +19790,7 @@ function updateMeleeAttackSystem(dt) {
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
       if (!meleeAttackState.bcTeleportArmed && bFullyCharged && cHeld && hasPrayerForTeleport) {
         meleeAttackState.bcTeleportArmed = true;
+        if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       }
       if (meleeAttackState.bcTeleportArmed) {
         const nearestPU = getNearestActivePowerup();
