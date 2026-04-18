@@ -16271,6 +16271,16 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       (player.prayerCharge || 0) >= prayerSuperCost;
     if (bothFull) _ms.acSuperArmed = true;
 
+    // A+B Sword Rush: arm when both A and B charge meters are simultaneously full
+    const abBothFull =
+      _ms.isCharging &&
+      _ms.buttonDown &&
+      _ms.chargeTimer >= (_ms.holdTime || 0) &&
+      _ms.spinButtonDown &&
+      _ms.spinCharging &&
+      _ms.spinChargeTimer >= (_ms.spinHoldTime || 0);
+    if (abBothFull) _ms.abSuperArmed = true;
+
     // C→A combo: C was pressed recently and A is being pressed this frame
     const cLastPressed = (_ms.lastComboTimes && _ms.lastComboTimes.C) || 0;
     const cRecentForCombo = cLastPressed > 0 && (nowPre - cLastPressed) <= comboWinMs;
@@ -18779,8 +18789,8 @@ function applyDashSlashTravelDamage(meleeAttackState) {
   }
 }
 
-function executeRushAttack(dir, meleeAttackState) {
-  playerYell("Rush Attack!");
+function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
+  if (!skipYell) playerYell("Rush Attack!");
   // Canonical move name: "Rush Attack" is the combo A > B/A follow-up.
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
@@ -18970,8 +18980,8 @@ function executeSpinAttack(meleeAttackState, moveDir) {
   playRushAttackSfx(0.8);
 }
 
-function executeDivineShot(dir, meleeAttackState, angleRad) {
-  playerYell("Divine Shot!");
+function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false } = {}) {
+  if (!skipYell) playerYell("Divine Shot!");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -19000,6 +19010,15 @@ function executeDivineShot(dir, meleeAttackState, angleRad) {
 
   meleeAttackState.divineShotFollowUpUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   meleeAttackState.cooldown = 0;
+}
+
+function executeSwordRush(meleeAttackState) {
+  if (!player) return;
+  playerYell("Sword Rush!");
+  const dir = getDashButtonDirection();
+  const angleRad = Math.atan2(dir.y, dir.x);
+  executeDivineShot(dir, meleeAttackState, angleRad, { skipYell: true });
+  executeRushAttack(dir, meleeAttackState, { skipYell: true });
 }
 
 function updateRingOfFireMotion(dt, meleeAttackState) {
@@ -19337,6 +19356,7 @@ function updateMeleeAttackSystem(dt) {
     activeCounterHitUntil: 0,
     pendingBasicAttack: null,
     currentAttackHitboxType: "slash",
+    abSuperArmed: false,
     bcTeleportArmed: false,
     teleportGhostTarget: null,
     bcTeleportBlockTimer: 0,
@@ -19749,10 +19769,20 @@ function updateMeleeAttackSystem(dt) {
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
       const shouldTeleport = meleeAttackState.bcTeleportArmed ||
         (fullyCharged && cHeldOnBRelease && hasPrayerForTeleport);
+      const canABSuper = Boolean(meleeAttackState.abSuperArmed);
+      meleeAttackState.abSuperArmed = false;
       meleeAttackState.spinButtonDown = false;
       if (meleeAttackState.spinCharging) {
         meleeAttackState.spinCharging = false;
-        if (shouldTeleport) {
+        if (canABSuper) {
+          // Cancel A charge so it doesn't also fire independently
+          meleeAttackState.isCharging = false;
+          meleeAttackState.buttonDown = false;
+          meleeAttackState.chargeTimer = 0;
+          meleeAttackState.acSuperArmed = false;
+          clearDivineChargeSparkVisual();
+          executeSwordRush(meleeAttackState);
+        } else if (shouldTeleport) {
           executePowerupTeleport(meleeAttackState);
         } else if (fullyCharged) {
           executeProtectedDash(meleeAttackState);
@@ -19825,9 +19855,17 @@ function updateMeleeAttackSystem(dt) {
       if (meleeAttackState.isCharging) {
         meleeAttackState.isCharging = false;
         clearDivineChargeSparkVisual();
+        const canABSuper = Boolean(meleeAttackState.abSuperArmed);
+        meleeAttackState.abSuperArmed = false;
         const canACSuper = Boolean(meleeAttackState.acSuperArmed);
         meleeAttackState.acSuperArmed = false;
-        if (canACSuper) {
+        if (canABSuper) {
+          // Cancel B charge so it doesn't also fire independently
+          meleeAttackState.spinButtonDown = false;
+          meleeAttackState.spinCharging = false;
+          meleeAttackState.spinChargeTimer = 0;
+          executeSwordRush(meleeAttackState);
+        } else if (canACSuper) {
           const acSuperCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
           if (player) player.prayerCharge = Math.max(0, player.prayerCharge - acSuperCost);
           if (player) { player.prayerHoldLocked = false; player.prayerHoldTimer = 0; }
