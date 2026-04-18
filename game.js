@@ -16279,7 +16279,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       (player.prayerCharge || 0) >= (player.prayerChargeRequired || 60) / 3;
 
     // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
-    const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0);
+    const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0);
     if (_ms.acSuperArmed || prayerStrikeBlocking || bChargingSuppressBomb) {
       Input.prayerBombClickQueued = false;
     }
@@ -19143,6 +19143,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.bcTeleportBlockTimer > 0) {
     meleeAttackState.bcTeleportBlockTimer = Math.max(0, meleeAttackState.bcTeleportBlockTimer - dt);
   }
+  if (meleeAttackState.cBHolyDashBlockTimer > 0) {
+    meleeAttackState.cBHolyDashBlockTimer = Math.max(0, meleeAttackState.cBHolyDashBlockTimer - dt);
+  }
   if (meleeAttackState.doubleStrikeTimer > 0) {
     meleeAttackState.doubleStrikeTimer = Math.max(0, meleeAttackState.doubleStrikeTimer - dt);
     if (meleeAttackState.doubleStrikeTimer <= 0 && meleeAttackState.doubleStrikePending) {
@@ -19337,6 +19340,7 @@ function updateMeleeAttackSystem(dt) {
     bcTeleportArmed: false,
     teleportGhostTarget: null,
     bcTeleportBlockTimer: 0,
+    cBHolyDashBlockTimer: 0,
     doubleStrikePending: false,
     doubleStrikeTimer: 0,
     doubleStrikeDir: null,
@@ -19385,7 +19389,7 @@ function updateMeleeAttackSystem(dt) {
     const bRecent = now - meleeAttackState.lastComboTimes.B <= comboWindowMs;
     const cRecent = now - (meleeAttackState.lastComboTimes.C || 0) <= comboWindowMs;
     const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
-    const comboCKeyOrder = bRecent && cRecent && meleeAttackState.lastComboTimes.C > 0 && meleeAttackState.lastComboTimes.C < meleeAttackState.lastComboTimes.B;
+    const cCurrentlyHeld = keysPressed.has("ArrowRight");
     const comboPrayerStrikeOrder = cRecent && aRecent && meleeAttackState.lastComboTimes.C > 0 && meleeAttackState.lastComboTimes.C < meleeAttackState.lastComboTimes.A;
     const comboDoubleStrikeOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.A > 0 && meleeAttackState.lastComboTimes.A < meleeAttackState.lastComboTimes.B;
     updateArcControlCooldowns();
@@ -19641,24 +19645,27 @@ function updateMeleeAttackSystem(dt) {
       comboTriggered = true;
     }
     const holyDashCost = player ? (player.prayerChargeRequired || 60) / 6 : 10;
+    // C/B Holy Dash: C must be currently held when B is just pressed (not a quick-tap window)
+    const bJustPressedRaw = keysJustPressed.has("ArrowDown");
     const comboHolyDash =
       !comboTriggered &&
       !playerDashState.isDashing &&
       playerDashState.dashCooldown <= 0 &&
-      comboCKeyOrder &&
+      cCurrentlyHeld &&
+      bJustPressedRaw &&
       !meleeAttackState.spinButtonDown &&
+      !meleeAttackState.isRushing &&
       player &&
       (player.prayerCharge || 0) >= holyDashCost;
     if (comboHolyDash) {
-      playerDashState.pendingDashTimer = 0;
-      playerDashState.pendingComboCPressed = false;
-      const holyDir = playerDashState.pendingDashDir || getDashButtonDirection();
+      const holyDir = getDashButtonDirection();
       if (tryStartDash(holyDir)) {
         playerDashState.dashDistanceRemaining = DASH_DISTANCE * 2.5;
         playerDashState.isHolyDash = true;
         player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
         playerYell("Holy Dash!");
-        keysJustPressed.delete("ArrowRight");
+        keysJustPressed.delete("ArrowDown");
+        meleeAttackState.cBHolyDashBlockTimer = 0.5;
         comboTriggered = true;
       }
     }
@@ -19725,21 +19732,25 @@ function updateMeleeAttackSystem(dt) {
       const bFullyCharged = meleeAttackState.spinChargeTimer >= (meleeAttackState.spinHoldTime || 0);
       const cHeld = keysPressed.has("ArrowRight");
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
-      if (bFullyCharged && cHeld && hasPrayerForTeleport) {
+      if (!meleeAttackState.bcTeleportArmed && bFullyCharged && cHeld && hasPrayerForTeleport) {
         meleeAttackState.bcTeleportArmed = true;
+      }
+      if (meleeAttackState.bcTeleportArmed) {
         const nearestPU = getNearestActivePowerup();
         meleeAttackState.teleportGhostTarget = nearestPU ? { x: nearestPU.x, y: nearestPU.y } : null;
-      } else {
-        meleeAttackState.bcTeleportArmed = false;
-        meleeAttackState.teleportGhostTarget = null;
       }
     }
     if (meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
+      const cHeldOnBRelease = keysPressed.has("ArrowRight");
+      const teleportCost = player ? (player.prayerChargeRequired || 60) / 3 * 2 : 40;
+      const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
+      const shouldTeleport = meleeAttackState.bcTeleportArmed ||
+        (fullyCharged && cHeldOnBRelease && hasPrayerForTeleport);
       meleeAttackState.spinButtonDown = false;
       if (meleeAttackState.spinCharging) {
         meleeAttackState.spinCharging = false;
-        if (meleeAttackState.bcTeleportArmed) {
+        if (shouldTeleport) {
           executePowerupTeleport(meleeAttackState);
         } else if (fullyCharged) {
           executeProtectedDash(meleeAttackState);
