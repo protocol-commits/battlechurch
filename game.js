@@ -16277,8 +16277,9 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     const prayerStrikeBlocking = cRecentForCombo && aJustPressedNow &&
       (player.prayerCharge || 0) >= (player.prayerChargeRequired || 60) / 3;
 
-    // Suppress prayer bomb whenever either intercept is active
-    if (_ms.acSuperArmed || prayerStrikeBlocking) {
+    // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
+    const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0);
+    if (_ms.acSuperArmed || prayerStrikeBlocking || bChargingSuppressBomb) {
       Input.prayerBombClickQueued = false;
     }
   }
@@ -18875,6 +18876,7 @@ function executePowerupTeleport(meleeAttackState) {
   if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
   meleeAttackState.bcTeleportArmed = false;
   meleeAttackState.teleportGhostTarget = null;
+  meleeAttackState.bcTeleportBlockTimer = 0.4;
 }
 
 function spawnRingOfFireHazard(centerX, centerY, radius) {
@@ -19120,6 +19122,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.rushHitboxTimer > 0) {
     meleeAttackState.rushHitboxTimer = Math.max(0, meleeAttackState.rushHitboxTimer - dt);
   }
+  if (meleeAttackState.bcTeleportBlockTimer > 0) {
+    meleeAttackState.bcTeleportBlockTimer = Math.max(0, meleeAttackState.bcTeleportBlockTimer - dt);
+  }
 }
 
 function updateChargeState(dt, meleeAttackState) {
@@ -19293,6 +19298,7 @@ function updateMeleeAttackSystem(dt) {
     currentAttackHitboxType: "slash",
     bcTeleportArmed: false,
     teleportGhostTarget: null,
+    bcTeleportBlockTimer: 0,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -19336,7 +19342,7 @@ function updateMeleeAttackSystem(dt) {
     const bRecent = now - meleeAttackState.lastComboTimes.B <= comboWindowMs;
     const cRecent = now - (meleeAttackState.lastComboTimes.C || 0) <= comboWindowMs;
     const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
-    const comboCKeyOrder = bRecent && cRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.C;
+    const comboCKeyOrder = bRecent && cRecent && meleeAttackState.lastComboTimes.C > 0 && meleeAttackState.lastComboTimes.C < meleeAttackState.lastComboTimes.B;
     const comboPrayerStrikeOrder = cRecent && aRecent && meleeAttackState.lastComboTimes.C > 0 && meleeAttackState.lastComboTimes.C < meleeAttackState.lastComboTimes.A;
     updateArcControlCooldowns();
     resolveQueuedBasicMeleeAttack(meleeAttackState);
@@ -19596,6 +19602,7 @@ function updateMeleeAttackSystem(dt) {
       !playerDashState.isDashing &&
       playerDashState.dashCooldown <= 0 &&
       comboCKeyOrder &&
+      !meleeAttackState.spinButtonDown &&
       player &&
       (player.prayerCharge || 0) >= holyDashCost;
     if (comboHolyDash) {
