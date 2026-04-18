@@ -750,7 +750,8 @@ async function loadPlayerProgress() {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return null;
     const dpr = window.devicePixelRatio || 1;
-    const radius = HIT_RADIUS_BASE * dpr;
+    // Use a larger hit radius than the visual node to make clicking easier
+    const radius = HIT_RADIUS_BASE * dpr * 2.8;
     for (const town of mapData.towns) {
       const pos = getTownPosition(town, rect);
       const dx = point.x - pos.x;
@@ -1639,7 +1640,11 @@ async function loadPlayerProgress() {
         churchPowerupLevels: {},
       };
     });
-    ensureNextTownUnlocked(progress, mapData);
+    // Directly unlock every town (regular + capital) — don't rely on chain logic
+    progress.unlockedTownIds = (mapData.towns || []).map(function(t) { return t.id; });
+    if (typeof console !== "undefined") {
+      console.log("[DEV] devUnlockAllTowns: unlockedTownIds =", progress.unlockedTownIds.join(", "));
+    }
     return true;
   }
 

@@ -7772,8 +7772,12 @@ function updateHaloBladeInstance(state, angle, dt) {
     const lastHit = state.lastHit.get(enemy) || 0;
     if (now - lastHit < state.hitCooldown) return;
     state.lastHit.set(enemy, now);
-    enemy.takeDamage(state.damage, { damageType: "melee" });
-    registerComboHit(enemy, state.damage);
+    const enemyDamageClass = String(enemy.damageClass || enemy.config?.damageClass || "").toLowerCase();
+    const haloDamage = (enemyDamageClass === "armored" || enemyDamageClass === "tank")
+      ? state.damage * 2
+      : state.damage;
+    enemy.takeDamage(haloDamage, { damageType: "melee" });
+    registerComboHit(enemy, haloDamage);
     spawnFlashEffect(center.x, center.y - targetRadius * 0.3);
   });
 
