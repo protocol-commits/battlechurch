@@ -14033,11 +14033,16 @@ function updatePlayerDuringCongregation(dt) {
     if (keysJustPressed.has("ArrowDown")) {
       playerDashState.pendingDashTimer = DASH_COMBO_GRACE;
       playerDashState.pendingDashDir = getDashButtonDirection();
+      playerDashState.pendingComboCPressed = false;
+    }
+    if (playerDashState.pendingDashTimer > 0 && keysJustPressed.has("ArrowRight")) {
+      playerDashState.pendingComboCPressed = true;
     }
     if (playerDashState.pendingDashTimer > 0) {
       const comboSwipe = window.Input?.peekComboSwipe?.();
       const comboSwipeActive =
         keysPressed.has("ArrowLeft") ||
+        playerDashState.pendingComboCPressed ||
         (comboSwipe && ((comboSwipe.from === "A" && comboSwipe.to === "B") || (comboSwipe.from === "B" && comboSwipe.to === "A")));
       if (comboSwipeActive) {
         playerDashState.pendingDashTimer = 0;
@@ -17456,6 +17461,7 @@ function tryStartDash(direction) {
   if (playerDashState.isDashing || playerDashState.dashCooldown > 0) return false;
   if (!direction || (direction.x === 0 && direction.y === 0)) return false;
   playerDashState.isDashing = true;
+  playerDashState.isHolyDash = false;
   playerDashState.dashDir = direction;
   playerDashState.dashDistanceRemaining = DASH_DISTANCE;
   playerDashState.dashDustAccumulator = 0;
@@ -17475,10 +17481,14 @@ function updateDashMovement(dt) {
   playerDashState.dashDistanceRemaining -= movement;
   playerDashState.dashDustAccumulator += movement;
 
-  // Spawn puff dust effects along the path
+  // Spawn trail effects along the path
   while (playerDashState.dashDustAccumulator >= DASH_DUST_SPACING) {
     playerDashState.dashDustAccumulator -= DASH_DUST_SPACING;
-    spawnPuffEffect(player.x, player.y, 20 * WORLD_SCALE);
+    if (playerDashState.isHolyDash) {
+      spawnFlashEffect(player.x, player.y);
+    } else {
+      spawnPuffEffect(player.x, player.y, 20 * WORLD_SCALE);
+    }
   }
 
   applyDashSlashTravelDamage(window._meleeAttackState);
@@ -17486,6 +17496,7 @@ function updateDashMovement(dt) {
   // End dash when distance complete
   if (playerDashState.dashDistanceRemaining <= 0) {
     playerDashState.isDashing = false;
+    playerDashState.isHolyDash = false;
     if (window._meleeAttackState) {
       window._meleeAttackState.swooshDamageEnabled = false;
       window._meleeAttackState.swooshHitEntities = null;
@@ -19212,7 +19223,7 @@ function updateMeleeAttackSystem(dt) {
     updateMeleeTimers(dt, meleeAttackState);
     const spinJustEnded = prevSpinTimer > 0 && meleeAttackState.spinTimer <= 0;
     if (!meleeAttackState.lastComboTimes) {
-      meleeAttackState.lastComboTimes = { A: 0, B: 0 };
+      meleeAttackState.lastComboTimes = { A: 0, B: 0, C: 0 };
     }
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     if (!meleeAttackState.isRushing && (keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" "))) {
@@ -19221,10 +19232,15 @@ function updateMeleeAttackSystem(dt) {
     if (!meleeAttackState.isRushing && keysJustPressed.has("ArrowDown")) {
       meleeAttackState.lastComboTimes.B = now;
     }
+    if (!meleeAttackState.isRushing && keysJustPressed.has("ArrowRight")) {
+      meleeAttackState.lastComboTimes.C = now;
+    }
     const comboWindowMs = MELEE_DOUBLE_TAP_WINDOW * 1000;
     const aRecent = now - meleeAttackState.lastComboTimes.A <= comboWindowMs;
     const bRecent = now - meleeAttackState.lastComboTimes.B <= comboWindowMs;
+    const cRecent = now - (meleeAttackState.lastComboTimes.C || 0) <= comboWindowMs;
     const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
+    const comboCKeyOrder = bRecent && cRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.C;
     updateArcControlCooldowns();
     resolveQueuedBasicMeleeAttack(meleeAttackState);
 
@@ -19476,6 +19492,26 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete("ArrowLeft");
       keysJustPressed.delete(" ");
       comboTriggered = true;
+    }
+    const holyDashCost = player ? (player.prayerChargeRequired || 60) / 6 : 10;
+    const comboHolyDash =
+      !comboTriggered &&
+      !playerDashState.isDashing &&
+      playerDashState.dashCooldown <= 0 &&
+      comboCKeyOrder &&
+      player &&
+      (player.prayerCharge || 0) >= holyDashCost;
+    if (comboHolyDash) {
+      playerDashState.pendingDashTimer = 0;
+      playerDashState.pendingComboCPressed = false;
+      const holyDir = playerDashState.pendingDashDir || getDashButtonDirection();
+      if (tryStartDash(holyDir)) {
+        playerDashState.dashDistanceRemaining = DASH_DISTANCE * 2.5;
+        playerDashState.isHolyDash = true;
+        player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
+        keysJustPressed.delete("ArrowRight");
+        comboTriggered = true;
+      }
     }
     const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
