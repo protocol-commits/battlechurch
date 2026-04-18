@@ -1155,12 +1155,13 @@
     }
 
     const holdingPrayerKeys = Boolean(window.Input?.keysPressed?.has("ArrowRight"));
-    if (holdingPrayerKeys) {
+    const prayerBombAllowed = typeof this.isPrayerBombReady === "function" ? this.isPrayerBombReady() : false;
+    if (holdingPrayerKeys && prayerBombAllowed) {
       this.prayerHoldTimer += dt;
+      this.prayerHoldTimer = Math.min(this.prayerHoldTimer, PRAYER_BOMB_HOLD_TIME);
       if (!this.prayerHoldLocked && this.prayerHoldTimer >= PRAYER_BOMB_HOLD_TIME) {
         this.prayerHoldLocked =
           typeof this.isPrayerBombReady === "function" ? this.isPrayerBombReady() : false;
-        this.prayerHoldTimer = 0;
       }
     } else {
       this.prayerHoldTimer = 0;

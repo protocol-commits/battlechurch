@@ -5409,6 +5409,35 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.dash, palette.dashGlow);
   }
 
+  function drawPlayerPrayerHoldMeter(player) {
+    const { ctx, WORLD_SCALE = 1 } = requireBindings();
+    if (!ctx || !player || player.state === "death") return;
+    if (!(player.prayerHoldTimer > 0)) return;
+    const PRAYER_BOMB_HOLD_TIME = 1.0;
+    const chargeRatio = Math.max(0, Math.min(1, (player.prayerHoldTimer || 0) / PRAYER_BOMB_HOLD_TIME));
+    const shakeX = sharedShakeOffset?.x || 0;
+    const sprite = getPlayerSpriteExtents(player);
+    const meterCenterX = getPlayerCombatMeterAnchorX(player) + shakeX;
+    const width = Math.round(34 * WORLD_SCALE);
+    const height = Math.max(11, Math.round(14 * WORLD_SCALE));
+    const meterX = meterCenterX - width / 2;
+    const stackOffset = Math.round((height + 6) * WORLD_SCALE);
+    const meterY = sprite.top - height - Math.round(8 * WORLD_SCALE) - stackOffset * 2;
+    const palette = getCombatMeterPalette();
+    if (chargeRatio >= 1) {
+      const dotSize = Math.max(height + 4 * WORLD_SCALE, 14 * WORLD_SCALE);
+      drawCompactReadyDot(
+        meterCenterX,
+        meterY + height * 0.5,
+        dotSize,
+        palette.prayer,
+        palette.prayerGlow,
+      );
+      return;
+    }
+    drawCompactWorldMeter(meterX, meterY, width, height, chargeRatio, palette.prayer, palette.prayerGlow);
+  }
+
   function drawPlayerExtendMeter(player) {
     const { ctx, WORLD_SCALE = 1, playerDashState, DASH_COOLDOWN = 0 } = requireBindings();
     if (!ctx || !player || !playerDashState || player.state === "death") return;
@@ -7717,6 +7746,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCongregationCommandMeter(player, battleNpcs);
     if (player) {
       player.draw();
+      drawPlayerPrayerHoldMeter(player);
       drawPlayerRingFireChargeMeter(player);
       drawPlayerWeaponMeter(player);
       drawPlayerExtendMeter(player);
