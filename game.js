@@ -165,6 +165,8 @@ let npcProcessionActive = false;
 let powerUpsClearedForCongregation = false;
 let congregationGreetingShown = false;
 let congregationWelcomeTimer = 0;
+let congregationTutorialPrayerInit = false;
+let congregationTutorialRefillTimer = 0;
 let congregationDialogueIndex = 0;
 const congregationWaveIntroDialogueState = {
   activeKey: "",
@@ -14609,7 +14611,8 @@ function triggerCongregationCommand(playerEntity = player, options = {}) {
   const hostilesExist =
     enemies.some((enemy) => enemy && !enemy.dead && enemy.state !== "death") ||
     projectiles.some((proj) => proj && !proj.dead && !proj.friendly && !proj.visualOnly);
-  if (!hostilesExist) return false;
+  const isTutorial = typeof window !== "undefined" && window.__congregationTutorialActive;
+  if (!hostilesExist && !isTutorial) return false;
 
   const playerAim =
     typeof playerEntity.getAimDirection === "function"
@@ -14636,15 +14639,24 @@ function triggerCongregationCommand(playerEntity = player, options = {}) {
     return deltaA - deltaB;
   });
 
-  sortedNpcs.forEach((npc, index) => {
+  const tutorialVolleyNpcs = (isTutorial && mode === "volley") ? sortedNpcs.slice(0, 5) : sortedNpcs;
+  const tutorialBaseAngle = Math.random() * Math.PI * 2;
+  tutorialVolleyNpcs.forEach((npc, index) => {
+    const count = tutorialVolleyNpcs.length;
+    const tutorialAimX = (isTutorial && mode === "volley")
+      ? Math.cos(tutorialBaseAngle + (index / count) * Math.PI * 2)
+      : playerAim.x;
+    const tutorialAimY = (isTutorial && mode === "volley")
+      ? Math.sin(tutorialBaseAngle + (index / count) * Math.PI * 2)
+      : playerAim.y;
     npc.pendingCongregationVolley = {
       delay: index * CONGREGATION_COMMAND_STAGGER,
       mode,
       pathSlot: index - (sortedNpcs.length - 1) * 0.5,
       clusterCenterX: clusterCenter.x,
       clusterCenterY: clusterCenter.y,
-      aimX: playerAim.x,
-      aimY: playerAim.y,
+      aimX: tutorialAimX,
+      aimY: tutorialAimY,
       playerX: playerEntity.x,
       playerY: playerEntity.y,
       targetX: pathTarget?.x,
@@ -16075,6 +16087,8 @@ function updateCongregationStage(dt, levelStatus) {
       if (typeof Input !== "undefined" && "prayerBombClickQueued" in Input) {
         Input.prayerBombClickQueued = false;
       }
+      if (player) { player.prayerCharge = 0; player.prayerHoldLocked = false; }
+      if (typeof window !== "undefined") window.__congregationTutorialActive = false;
       clearCongregationSpeechBubbles();
       levelManager.advanceFromCongregation();
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
@@ -16088,6 +16102,27 @@ function updateCongregationStage(dt, levelStatus) {
   if (!powerUpsClearedForCongregation) {
     clearAllPowerUps();
     powerUpsClearedForCongregation = true;
+  }
+  if (typeof window !== "undefined") window.__congregationTutorialActive = true;
+  if (!congregationTutorialPrayerInit && player) {
+    const fiveSixths = Math.round((player.prayerChargeRequired || 60) * 5 / 6);
+    player.prayerCharge = fiveSixths;
+    player.prayerHoldLocked = false;
+    congregationTutorialPrayerInit = true;
+    congregationTutorialRefillTimer = 0;
+  }
+  if (player && congregationTutorialPrayerInit) {
+    const fiveSixths = Math.round((player.prayerChargeRequired || 60) * 5 / 6);
+    if (player.prayerCharge < fiveSixths - 1) {
+      congregationTutorialRefillTimer = Math.max(congregationTutorialRefillTimer, 0.6);
+    }
+    if (congregationTutorialRefillTimer > 0) {
+      congregationTutorialRefillTimer = Math.max(0, congregationTutorialRefillTimer - dt);
+      if (congregationTutorialRefillTimer === 0) {
+        player.prayerCharge = fiveSixths;
+        player.prayerHoldLocked = false;
+      }
+    }
   }
   if (!congregationGreetingShown) {
     heroSay("I'm glad to see you all!", { life: 3.6 });
@@ -16152,6 +16187,8 @@ function updateCongregationStage(dt, levelStatus) {
         if (typeof Input !== "undefined" && "prayerBombClickQueued" in Input) {
           Input.prayerBombClickQueued = false;
         }
+        if (player) { player.prayerCharge = 0; player.prayerHoldLocked = false; }
+        if (typeof window !== "undefined") window.__congregationTutorialActive = false;
         clearCongregationSpeechBubbles();
         levelManager?.advanceFromCongregation?.();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
@@ -16169,6 +16206,9 @@ function updateCongregationStage(dt, levelStatus) {
     congregationGreetingShown = false;
     congregationWelcomeTimer = 0;
     mapAmbientFadeQueued = false;
+    congregationTutorialPrayerInit = false;
+    congregationTutorialRefillTimer = 0;
+    if (typeof window !== "undefined") window.__congregationTutorialActive = false;
   }
   return { updated: true, levelStatus };
 }

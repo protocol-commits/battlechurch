@@ -4770,6 +4770,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const typewriterDelay = 2.0;
     const typewriterReady = introElapsed >= typewriterDelay;
     const titleText = typewriterReady ? fullTitleText : "";
+    const titleFadeStart = 5.0;
+    const titleFadeEnd = 6.2;
+    const titleAlpha = introElapsed >= titleFadeEnd ? 0 : introElapsed >= titleFadeStart ? 1 - (introElapsed - titleFadeStart) / (titleFadeEnd - titleFadeStart) : 1;
     const titleSize = TEXT_STYLES.h1.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -4799,7 +4802,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const rightItems = [
         { key: "LEFT ARROW", action: "SWORD", isActive: (pressed) => pressed?.has?.("ArrowLeft") },
         { key: "DOWN ARROW", action: "DASH", isActive: (pressed) => pressed?.has?.("ArrowDown") },
-        { key: "RIGHT ARROW", action: "PRAYER BOMB", isActive: (pressed) => pressed?.has?.("ArrowRight") },
+        { key: "RIGHT ARROW", action: "PRAYER", isActive: (pressed) => pressed?.has?.("ArrowRight") },
       ];
       const buttonGap = 12;
       const buttonHeight = 34;
@@ -4873,7 +4876,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       titleSize,
       weight: TEXT_STYLES.h1.weight,
       lineGap,
-      alpha: 1,
+      alpha: titleAlpha,
       typewriter: typewriterReady,
       maxWidthScale: 1,
     });
