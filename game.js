@@ -3211,7 +3211,7 @@ const RING_OF_FIRE_RADIUS = 236 * WORLD_SCALE;
 const RING_OF_FIRE_OUT_SPEED = 1550 * SPEED_SCALE;
 const RING_OF_FIRE_RETURN_SPEED = 1550 * SPEED_SCALE;
 const RING_OF_FIRE_TRACE_DURATION = 0.46;
-const RING_OF_FIRE_LINGER_DURATION = 3.5;
+const RING_OF_FIRE_LINGER_DURATION = 10.5;
 const RING_OF_FIRE_BAND = 20 * WORLD_SCALE;
 const RING_OF_FIRE_DAMAGE = 34;
 const RING_OF_FIRE_BOSS_DAMAGE = 18;
@@ -16251,6 +16251,36 @@ function handlePauseMenu() {
 function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
   const playerDt = consumeEntityMeleeHitstopDt(player, dt);
   window.__battlechurchPlayerMeleeHitstopActive = Boolean(player && playerDt <= 0 && dt > 0);
+
+  // Suppress prayer bomb BEFORE player.update consumes it, for combos that intercept C input.
+  if (window._meleeAttackState && player && typeof Input !== "undefined") {
+    const _ms = window._meleeAttackState;
+    const nowPre = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const comboWinMs = (typeof MELEE_DOUBLE_TAP_WINDOW === "number" ? MELEE_DOUBLE_TAP_WINDOW : 0.18) * 1000;
+
+    // A+C super: arm when both meters are simultaneously full with enough prayer
+    const prayerSuperCost = (player.prayerChargeRequired || 60) / 3;
+    const bothFull =
+      _ms.isCharging &&
+      _ms.buttonDown &&
+      _ms.chargeTimer >= (_ms.holdTime || 0) &&
+      player.prayerHoldLocked &&
+      (player.prayerCharge || 0) >= prayerSuperCost;
+    if (bothFull) _ms.acSuperArmed = true;
+
+    // C→A combo: C was pressed recently and A is being pressed this frame
+    const cLastPressed = (_ms.lastComboTimes && _ms.lastComboTimes.C) || 0;
+    const cRecentForCombo = cLastPressed > 0 && (nowPre - cLastPressed) <= comboWinMs;
+    const aJustPressedNow = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
+    const prayerStrikeBlocking = cRecentForCombo && aJustPressedNow &&
+      (player.prayerCharge || 0) >= (player.prayerChargeRequired || 60) / 3;
+
+    // Suppress prayer bomb whenever either intercept is active
+    if (_ms.acSuperArmed || prayerStrikeBlocking) {
+      Input.prayerBombClickQueued = false;
+    }
+  }
+
   if (playerUpdatedDuringCongregation) {
     updateAimAssist();
     return;
@@ -18823,6 +18853,7 @@ function executeRingOfFireAttack(meleeAttackState) {
 
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
+  meleeAttackState.swingLength = null;
   const dir = getSpinAttackDirection();
   if (typeof player.updateFacing === "function") {
     player.updateFacing(dir.x, dir.y);
@@ -18946,7 +18977,7 @@ function updateRingOfFireHazards(dt) {
       const center = getEnemyHitboxCenter(enemy);
       const dist = Math.hypot(center.x - hazard.x, center.y - hazard.y);
       const targetRadius = getEnemyHitboxRadius(enemy);
-      if (dist + targetRadius < innerRadius || dist - targetRadius > outerRadius) return;
+      if (dist - targetRadius > outerRadius) return;
       markHit(enemy);
       enemy.takeDamage(hazard.damage, { damageType: "charged" });
       if (!enemy.dead && enemy.state !== "death") {
@@ -18958,7 +18989,7 @@ function updateRingOfFireHazards(dt) {
       const center = getEnemyHitboxCenter(activeBoss);
       const dist = Math.hypot(center.x - hazard.x, center.y - hazard.y);
       const targetRadius = activeBoss.radius || 0;
-      if (!(dist + targetRadius < innerRadius || dist - targetRadius > outerRadius)) {
+      if (dist - targetRadius <= outerRadius) {
         markHit(activeBoss);
         activeBoss.takeDamage(hazard.bossDamage, {
           hitX: center.x,
@@ -19241,6 +19272,7 @@ function updateMeleeAttackSystem(dt) {
     const cRecent = now - (meleeAttackState.lastComboTimes.C || 0) <= comboWindowMs;
     const comboRushKeyOrder = aRecent && bRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.A;
     const comboCKeyOrder = bRecent && cRecent && meleeAttackState.lastComboTimes.B < meleeAttackState.lastComboTimes.C;
+    const comboPrayerStrikeOrder = cRecent && aRecent && meleeAttackState.lastComboTimes.C > 0 && meleeAttackState.lastComboTimes.C < meleeAttackState.lastComboTimes.A;
     updateArcControlCooldowns();
     resolveQueuedBasicMeleeAttack(meleeAttackState);
 
@@ -19513,6 +19545,27 @@ function updateMeleeAttackSystem(dt) {
         comboTriggered = true;
       }
     }
+    const prayerStrikeCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
+    const comboPrayerStrike =
+      !comboTriggered &&
+      comboPrayerStrikeOrder &&
+      !meleeAttackState.isRushing &&
+      !meleeAttackState.spinCharging &&
+      !meleeAttackState.spinButtonDown &&
+      meleeAttackState.spinTimer <= 0 &&
+      meleeAttackState.rushLockTimer <= 0 &&
+      player &&
+      (player.prayerCharge || 0) >= prayerStrikeCost;
+    if (comboPrayerStrike) {
+      meleeAttackState.lastComboTimes.C = 0;
+      meleeAttackState.lastComboTimes.A = 0;
+      player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - prayerStrikeCost);
+      executeSpinAttack(meleeAttackState, null);
+      meleeAttackState.swingLength = MELEE_SWING_LENGTH_BASE * 1.5;
+      keysJustPressed.delete("ArrowLeft");
+      keysJustPressed.delete(" ");
+      comboTriggered = true;
+    }
     const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     if (bJustPressed && !meleeAttackState.spinButtonDown && !comboTriggered) {
@@ -19568,6 +19621,7 @@ function updateMeleeAttackSystem(dt) {
     }
 
     if (spaceJustPressed && !meleeAttackState.buttonDown && !rushLockActive) {
+      meleeAttackState.acSuperArmed = false;
       if (meleeAttackState.spinTimer > 0) {
         meleeAttackState.spinTimer = 0;
         meleeAttackState.spinMoveDir = null;
@@ -19606,7 +19660,15 @@ function updateMeleeAttackSystem(dt) {
       if (meleeAttackState.isCharging) {
         meleeAttackState.isCharging = false;
         clearDivineChargeSparkVisual();
-        if (fullyCharged) {
+        const canACSuper = Boolean(meleeAttackState.acSuperArmed);
+        meleeAttackState.acSuperArmed = false;
+        if (canACSuper) {
+          const acSuperCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
+          if (player) player.prayerCharge = Math.max(0, player.prayerCharge - acSuperCost);
+          if (player) { player.prayerHoldLocked = false; player.prayerHoldTimer = 0; }
+          if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+          executeRingOfFireAttack(meleeAttackState);
+        } else if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);
           executeDivineShot(dir, meleeAttackState, angleRad);
         } else if (meleeAttackState.cooldown <= 0 || divineShotFollowUpActive) {
