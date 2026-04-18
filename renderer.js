@@ -4773,6 +4773,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const titleFadeStart = 5.0;
     const titleFadeEnd = 6.2;
     const titleAlpha = introElapsed >= titleFadeEnd ? 0 : introElapsed >= titleFadeStart ? 1 - (introElapsed - titleFadeStart) / (titleFadeEnd - titleFadeStart) : 1;
+    const subtitleAppear = 6.5;
+    const subtitleFadeStart = subtitleAppear + 5.0;
+    const subtitleFadeEnd = subtitleFadeStart + 1.2;
+    const subtitleAlpha = introElapsed < subtitleAppear ? 0 : introElapsed >= subtitleFadeEnd ? 0 : introElapsed >= subtitleFadeStart ? 1 - (introElapsed - subtitleFadeStart) / (subtitleFadeEnd - subtitleFadeStart) : 1;
     const titleSize = TEXT_STYLES.h1.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -4903,6 +4907,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typewriter: typewriterReady,
       maxWidthScale: 1,
     });
+    if (subtitleAlpha > 0) {
+      ctx.save();
+      ctx.globalAlpha *= subtitleAlpha;
+      ctx.fillStyle = "#c8e8ff";
+      ctx.font = `500 ${Math.round(TEXT_STYLES.h2.size * 0.85)}px ${UI_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.shadowColor = "rgba(0,0,0,0.7)";
+      ctx.shadowBlur = 10;
+      ctx.fillText("You can practice on this screen.", layout.virtualCanvas.width / 2, layout.titleY + lineGap * 1.5);
+      ctx.restore();
+    }
     const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
     const wordSize = Math.min(canvas.width * 0.14, canvas.height * 0.16, 140);
     const numberSize = Math.min(canvas.width * 0.28, canvas.height * 0.32, 220);

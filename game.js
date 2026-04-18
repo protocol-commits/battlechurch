@@ -165,6 +165,7 @@ let npcProcessionActive = false;
 let powerUpsClearedForCongregation = false;
 let congregationGreetingShown = false;
 let congregationWelcomeTimer = 0;
+let congregationGreetingCount = 0;
 let congregationTutorialPrayerInit = false;
 let congregationDialogueIndex = 0;
 const congregationWaveIntroDialogueState = {
@@ -16152,7 +16153,7 @@ function updateCongregationStage(dt, levelStatus) {
     congregationWelcomeTimer = 2.2;
   }
   congregationWelcomeTimer -= dt;
-  if (congregationWelcomeTimer <= 0 && CONGREGATION_WELCOME_LINES.length && congregationMembers.length) {
+  if (congregationWelcomeTimer <= 0 && congregationGreetingCount < 3 && CONGREGATION_WELCOME_LINES.length && congregationMembers.length) {
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     const available = congregationMembers.filter(
       (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
@@ -16173,6 +16174,7 @@ function updateCongregationStage(dt, levelStatus) {
       );
       member.dialogueBubble = bubble || null;
       member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
+      congregationGreetingCount += 1;
     }
     congregationWelcomeTimer = 1.8 + Math.random() * 1.0;
   }
@@ -16227,6 +16229,7 @@ function updateCongregationStage(dt, levelStatus) {
     powerUpsClearedForCongregation = false;
     congregationGreetingShown = false;
     congregationWelcomeTimer = 0;
+    congregationGreetingCount = 0;
     mapAmbientFadeQueued = false;
     congregationTutorialPrayerInit = false;
     if (typeof window !== "undefined") window.__congregationTutorialActive = false;
@@ -20698,6 +20701,7 @@ function restartGame() {
   congregationOverlay.playedFinal = false;
   congregationGreetingShown = false;
   congregationWelcomeTimer = 0;
+  congregationGreetingCount = 0;
   speedrunTimer.running = false;
   speedrunTimer.startTime = null;
   speedrunTimer.sectionStart = null;
