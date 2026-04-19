@@ -1757,7 +1757,11 @@ const graceRushState = {
   active: false,
   timer: 0,
   duration: 0,
+  elapsed: 0,
   reason: "battle",
+  // Prevent accidental instant skip when Space is still being pressed
+  // from prior overlays/transitions.
+  skipLockDuration: 0.9,
   spawnTimer: 0,
   spawnInterval: 1,
   burstAmount: 16,
@@ -2571,9 +2575,20 @@ if (typeof window !== "undefined") {
 }
 
 function startBattleGraceRush(duration = GRACE_RUSH_DURATION, options = {}) {
+  // Always start from a clean grace-rush visual state so one battle's
+  // end-fade/blackout cannot leak into the next battle rush.
+  graceRushFadeTimer = 0;
+  graceRushFadeDuration = 0;
+  graceRushFadeAlpha = 0;
+  graceRushFadeHold = false;
+  graceRushFadeReleaseTimer = 0;
+  graceRushBlackout = false;
+  graceRushHardBlackoutTimer = 0;
+
   graceRushState.active = true;
   graceRushState.timer = Math.max(0, duration);
   graceRushState.duration = Math.max(0, duration);
+  graceRushState.elapsed = 0;
   graceRushState.reason = options.reason || "battle";
   graceRushState.burstAmount = Math.max(1, Math.round(options.burstAmount ?? (graceRushState.reason === "boss" ? 26 : 16)));
   graceRushState.spawnInterval = Math.max(
@@ -2592,11 +2607,13 @@ function updateGraceRushState(dt) {
   if (levelStatus?.stage !== "graceRush") {
     graceRushState.active = false;
     graceRushState.timer = 0;
+    graceRushState.elapsed = 0;
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
     return;
   }
+  graceRushState.elapsed = Math.max(0, graceRushState.elapsed + dt);
   graceRushState.timer = Math.max(0, graceRushState.timer - dt);
   graceRushState.spawnTimer = (graceRushState.spawnTimer || 0) - dt;
   if (graceRushState.spawnTimer <= 0) {
@@ -2611,6 +2628,7 @@ function updateGraceRushState(dt) {
   if (graceRushState.timer <= 0) {
     graceRushState.active = false;
     graceRushState.timer = 0;
+    graceRushState.elapsed = 0;
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
@@ -20914,11 +20932,16 @@ function updateGame(dt) {
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   updateSpeedrunTimer(levelStatus);
   updateMusicState(levelStatus);
-  if (levelStatus?.stage === "graceRush" && keysJustPressed.has(" ")) {
+  if (
+    levelStatus?.stage === "graceRush" &&
+    keysJustPressed.has(" ") &&
+    (graceRushState.elapsed || 0) >= (graceRushState.skipLockDuration || 0)
+  ) {
     keysJustPressed.delete(" ");
     if (levelManager?.skipGraceRush) levelManager.skipGraceRush();
     graceRushState.active = false;
     graceRushState.timer = 0;
+    graceRushState.elapsed = 0;
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
@@ -21254,6 +21277,7 @@ function restartGame() {
   graceRushState.active = false;
   graceRushState.timer = 0;
   graceRushState.duration = 0;
+  graceRushState.elapsed = 0;
   lastEnemyDeathPosition = null;
   cancelStartCountdown();
   needsCountdown = false;

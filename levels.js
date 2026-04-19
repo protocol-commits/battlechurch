@@ -817,6 +817,12 @@
       finishNpcRush();
       state.waitingForCongregation = false;
       clearCongregationMembers();
+      // Hard-reset per-battle transition flags so grace rush flow never
+      // inherits stale post-boss/post-final-wave state.
+      state.graceRushContext = null;
+      state.pendingBossAfterFinalWave = false;
+      state.pendingGraceRushAfterFinalWave = false;
+      state.graceRushFadeTimer = 0;
       state.monthIndex += 1;
       state.waveIndex = -1;
       state.lastWaveTransitionCueNum = 0;
@@ -1407,16 +1413,11 @@
       state.finalWaveDelay = 0;
       state.graceRushContext = "battle";
       setDevStatus(`Grace Abounds – ${monthName}`, GRACE_RUSH_DURATION);
-      const lastPos = typeof deps.getLastEnemyDeathPosition === "function"
-        ? deps.getLastEnemyDeathPosition()
-        : null;
       if (typeof deps.startBattleGraceRush === "function") {
         deps.startBattleGraceRush(GRACE_RUSH_DURATION, {
           reason: "battle",
           burstAmount: 16,
           spawnInterval: 1.1,
-          centerX: lastPos?.x,
-          centerY: lastPos?.y,
         });
       }
     }
