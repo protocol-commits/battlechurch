@@ -6207,6 +6207,98 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     shadow: "rgba(20, 6, 4, 0.92)",
   });
 
+  const WAVE_ATMOSPHERE_STAGES = new Set([
+    "waveIntro",
+    "waveActive",
+    "allKillBreak",
+    "waveCleared",
+    "bossActive",
+  ]);
+  const WAVE_ATMOSPHERE_CONFIG = Object.freeze({
+    assumedWavesPerBattle: 3,
+    tintMinAlpha: 0.04,
+    tintMaxAlpha: 0.15,
+    tintColor: "rgba(130, 24, 14, 1)",
+    emberMinAlpha: 0.03,
+    emberMaxAlpha: 0.11,
+    emberColor: "rgba(255, 96, 30, 1)",
+    ashBoostMinAlpha: 0.05,
+    ashBoostMaxAlpha: 0.2,
+  });
+
+  function getWaveProgressRatio(levelStatus) {
+    if (!levelStatus || !WAVE_ATMOSPHERE_STAGES.has(levelStatus.stage || "")) return null;
+    if ((levelStatus.stage || "") === "bossActive") return 1;
+    const totalWaves = Math.max(
+      2,
+      Number(levelStatus.waveTotal) || WAVE_ATMOSPHERE_CONFIG.assumedWavesPerBattle,
+    );
+    const waveNumber = Math.max(
+      1,
+      Number(levelStatus.waveNum) || Number(levelStatus.wave) || 1,
+    );
+    const clampedWave = Math.min(totalWaves, waveNumber);
+    return (clampedWave - 1) / (totalWaves - 1);
+  }
+
+  function drawWaveProgressionAtmosphere(ctx, levelStatus, bounds, ashOverlay) {
+    if (!ctx || !bounds) return;
+    const progress = getWaveProgressRatio(levelStatus);
+    if (progress == null) return;
+    const width = Math.max(0, bounds.width || 0);
+    const height = Math.max(0, bounds.height || 0);
+    if (width <= 0 || height <= 0) return;
+    const x = Number.isFinite(bounds.x) ? bounds.x : 0;
+    const y = Number.isFinite(bounds.y) ? bounds.y : 0;
+
+    // Subtle heat ramp across waves: deeper red tint + warm ember lift.
+    const tintAlpha =
+      WAVE_ATMOSPHERE_CONFIG.tintMinAlpha +
+      (WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha - WAVE_ATMOSPHERE_CONFIG.tintMinAlpha) * progress;
+    const emberAlpha =
+      WAVE_ATMOSPHERE_CONFIG.emberMinAlpha +
+      (WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha - WAVE_ATMOSPHERE_CONFIG.emberMinAlpha) * progress;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+    ctx.globalCompositeOperation = "multiply";
+    ctx.globalAlpha = Math.max(0, Math.min(1, tintAlpha));
+    ctx.fillStyle = WAVE_ATMOSPHERE_CONFIG.tintColor;
+    ctx.fillRect(x, y, width, height);
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.max(0, Math.min(1, emberAlpha));
+    const emberGradient = ctx.createRadialGradient(
+      x + width * 0.5,
+      y + height * 0.78,
+      Math.max(40, width * 0.12),
+      x + width * 0.5,
+      y + height * 0.78,
+      Math.max(120, width * 0.95),
+    );
+    emberGradient.addColorStop(0, WAVE_ATMOSPHERE_CONFIG.emberColor);
+    emberGradient.addColorStop(1, "rgba(255, 120, 48, 0)");
+    ctx.fillStyle = emberGradient;
+    ctx.fillRect(x, y, width, height);
+    ctx.restore();
+
+    // Increase ash density as waves climb.
+    if (ashOverlay && typeof ashOverlay.draw === "function") {
+      const ashBoostAlpha =
+        WAVE_ATMOSPHERE_CONFIG.ashBoostMinAlpha +
+        (WAVE_ATMOSPHERE_CONFIG.ashBoostMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBoostMinAlpha) * progress;
+      if (ashBoostAlpha > 0.001) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, width, height);
+        ctx.clip();
+        ctx.globalAlpha = Math.max(0, Math.min(1, ashBoostAlpha));
+        ashOverlay.draw(ctx);
+        ctx.restore();
+      }
+    }
+  }
+
   function getEmberButtonGradient(ctx, y, height) {
     const gradient = ctx.createLinearGradient(0, y, 0, y + height);
     gradient.addColorStop(0, EMBER_BUTTON_PALETTE.top);
@@ -8027,6 +8119,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ashOverlay.draw(ctx);
       ctx.restore();
     }
+    drawWaveProgressionAtmosphere(
+      ctx,
+      levelStatus,
+      { x: fogWidth, y: 0, width: arenaWidth, height: arenaHeight },
+      ashOverlay,
+    );
 
     ctx.restore();
 

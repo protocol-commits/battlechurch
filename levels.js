@@ -180,6 +180,26 @@
       : HORDES_PER_BATTLE;
   }
 
+  function getBattleWaveCount(mission) {
+    if (Array.isArray(mission?.waves) && mission.waves.length) {
+      return mission.waves.length;
+    }
+    if (Array.isArray(mission?.hordes) && mission.hordes.length) {
+      let maxWave = 0;
+      mission.hordes.forEach((horde) => {
+        if (Number.isFinite(horde?.waveNumber)) {
+          maxWave = Math.max(maxWave, horde.waveNumber);
+        }
+      });
+      if (maxWave > 0) return maxWave;
+      return Math.max(
+        1,
+        Math.ceil(mission.hordes.length / Math.max(1, HORDES_PER_WAVE)),
+      );
+    }
+    return Math.max(1, Number(WAVES_PER_MISSION) || 1);
+  }
+
   const deps = {
     enemies: [],
     npcs: [],
@@ -1800,6 +1820,8 @@ state.waveIndex = -1;
           state.stage === "bossIntro" ||
           state.stage === "bossActive" ||
           state.graceRushContext === "boss";
+        const battleDef = currentBattle();
+        const currentHordeDef = currentWave();
         const battleNumber = isBossStage
           ? MONTHS_PER_LEVEL
           : (state.monthIndex >= 0 ? state.monthIndex + 1 : 0);
@@ -1808,13 +1830,19 @@ state.waveIndex = -1;
           ? MONTHS_PER_LEVEL
           : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
         const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
-        const currentHordeDef = currentWave();
         const derivedActNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
           ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
           : 1;
         const derivedMissionNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
           ? (state.monthIndex % MISSIONS_PER_BATTLE) + 1
           : 1;
+        const derivedWaveNum = state.waveIndex >= 0
+          ? Math.floor(state.waveIndex / Math.max(1, HORDES_PER_WAVE)) + 1
+          : 0;
+        const actualWaveNum = Number.isFinite(currentHordeDef?.waveNumber)
+          ? currentHordeDef.waveNumber
+          : derivedWaveNum;
+        const actualWaveTotal = getBattleWaveCount(battleDef);
         return {
           level: state.level || 1,
           month: getMonthName(globalMonthNumber),
@@ -1823,7 +1851,8 @@ state.waveIndex = -1;
           wave: waveNumber,
           actNum: currentHordeDef?.actNumber ?? derivedActNum,
           missionNum: currentHordeDef?.missionNumber ?? derivedMissionNum,
-          waveNum: currentHordeDef?.waveNumber ?? null,
+          waveNum: actualWaveNum || null,
+          waveTotal: actualWaveTotal,
           hordeNum: currentHordeDef?.hordeInWave ?? null,
           stage: state.stage,
           finalWaveCleared: Boolean(state.lastWaveClearedFinal),
