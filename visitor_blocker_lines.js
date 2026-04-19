@@ -1,21 +1,13 @@
 (function(global) {
   const blockerLines = [
-    "Look at my nephew pic!",
-    "Bless this casserole plz!",
-    "Choir drama update!",
-    "Font crisis again!",
-    "Cat birthday invite!",
-    "Try my potato salad!",
-    "Carpet question quick!",
+    "Look at my cat photos.",
+    "Listen to my long story.",
     "Dream I gotta share!",
-    "See my garden gnome!",
     "Check out this meme!",
-    "Smell this candle!",
-    "Rate my casserole!",
-    "Need bulletin advice!",
     "Want to hear a pun?",
-    "Look at these coupons!",
-    "Guess what I baked!",
+    "Here's all 1,000 of my vacation pics!",
+    "Does this look infected?",
+    "A story about someone you don't know.",
   ];
 
   const ns = global.BattlechurchVisitorBlocker || (global.BattlechurchVisitorBlocker = {});

@@ -1750,6 +1750,7 @@ const visitorSession = {
   summaryReason: null,
   awaitingSummaryConfirm: false,
   usedNpcIds: new Set(),
+  usedChattyLines: new Set(),
   recapShown: false,
   introShown: false,
 };
@@ -13699,6 +13700,7 @@ function beginVisitorSession(options = {}) {
   visitorSession.newMemberNames = [];
   visitorSession.introActive = true;
   visitorSession.usedNpcIds = new Set();
+  visitorSession.usedChattyLines = new Set();
   visitorSession.recapShown = false;
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
@@ -13762,6 +13764,7 @@ function endVisitorSession({ reason = "completed" } = {}) {
   visitorSession.awaitingSummaryConfirm = false;
   visitorSession.introActive = false;
   visitorSession.newMemberPortraits = [];
+  visitorSession.usedChattyLines = new Set();
   visitorSession.recapShown = false;
   clearAllPowerUps();
   clearGracePickups();
@@ -14020,17 +14023,22 @@ function ensureChattyLine(blocker) {
   if (!(visitorSession.chattyLines instanceof Map)) {
     visitorSession.chattyLines = new Map();
   }
+  if (!(visitorSession.usedChattyLines instanceof Set)) {
+    visitorSession.usedChattyLines = new Set();
+  }
   const map = visitorSession.chattyLines;
+  const usedChattyLines = visitorSession.usedChattyLines;
   if (map.has(blocker.id)) {
     blocker.chattyLine = map.get(blocker.id);
     return blocker.chattyLine;
   }
-  const used = new Set(map.values());
+  const used = new Set([...map.values(), ...usedChattyLines]);
   const candidates = VISITOR_BLOCKER_LINES.filter((line) => !used.has(line));
   const line =
     randomChoice(candidates.length ? candidates : VISITOR_BLOCKER_LINES) ||
     VISITOR_BLOCKER_LINES[0];
   map.set(blocker.id, line);
+  usedChattyLines.add(line);
   blocker.chattyLine = line;
   return line;
 }
@@ -14342,12 +14350,7 @@ function updateVisitorBlockers(dt) {
         visitorSession.lockingBlockers.delete(blocker.id);
         visitorSession.movementLock = visitorSession.lockingBlockers.size > 0;
         visitorSession.quietedBlockers += 1;
-        addFloatingTextAt(blocker.x, blocker.y - blocker.radius - 18, "Thanks, pastor!", "#9BD9FF", {
-          life: 0.9,
-          vy: 0,
-          speechBubble: true,
-          bubbleTheme: "npc",
-        });
+        npcCheer(blocker, "Thanks, pastor!", "#f4fbff", { life: 0.9 });
       }
     }
     resolveEntityObstacles(blocker);
@@ -14441,13 +14444,14 @@ function updateVisitorProjectiles(dt) {
 function showBlockerSpeech(blocker) {
   if (!blocker || blocker.speechBubble) return;
   const line = blocker.chattyLine || ensureChattyLine(blocker);
-  blocker.speechBubble = addFloatingTextAt(blocker.x, blocker.y - blocker.radius - 24, line, "#ffe6b5", {
+  blocker.speechBubble = addFloatingTextAt(blocker.x, blocker.y - blocker.radius - 24, line, "#f4fbff", {
     speechBubble: true,
     bubbleTheme: "npc",
     entity: blocker,
     offsetY: -blocker.radius - 24,
     life: 999,
     persist: true,
+    priority: 140,
   });
 }
 
@@ -14467,12 +14471,7 @@ function markVisitorGuestSaved(guest) {
   seasonStats.visitorAdded = (seasonStats.visitorAdded || 0) + 1;
   adjustCongregationSize(1);
   spawnRayboltEffect(guest.x, guest.y - guest.radius / 2, (guest.radius || 28) * 1.5);
-  addFloatingTextAt(guest.x, guest.y - guest.radius - 32, "I love it here!", "#FFC86A", {
-    life: 1.3,
-    vy: 0,
-    speechBubble: true,
-    bubbleTheme: "npc",
-  });
+  npcCheer(guest, "I love it here!", "#f4fbff", { life: 1.3 });
 }
 
 function applyHeartToEntity(entity, options = {}) {
@@ -14542,12 +14541,7 @@ function applyHeartToEntity(entity, options = {}) {
         entity.speechBubble = null;
       }
       visitorSession.quietedBlockers += 1;
-      addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Thanks, pastor!", "#9BD9FF", {
-        life: 0.9,
-        vy: 0,
-        speechBubble: true,
-        bubbleTheme: "npc",
-      });
+      npcCheer(entity, "Thanks, pastor!", "#f4fbff", { life: 0.9 });
     }
   }
 }
