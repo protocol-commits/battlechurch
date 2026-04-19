@@ -2804,7 +2804,7 @@ const NPC_POWERUP_EFFECT_NAMES = {
   npcScriptureWeapon: "Scripture",
   npcWisdomWeapon: "Wisdom",
   npcFaithWeapon: "Faith",
-  harmony: "Harmony!",
+  harmony: "Harmony",
 };
 
 function triggerNpcPowerupDialogue(effectKey) {

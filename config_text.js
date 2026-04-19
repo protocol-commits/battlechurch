@@ -104,7 +104,7 @@
       sentry: "Sentry",
       shieldOfFaith: "Shield of Faith",
       haste: "Haste",
-      swordOfTheSpirit: "Sword of the Spirit (extends weapons)",
+      swordOfTheSpirit: "Perseverance (extends weapons)",
       encourageOneAnother: "Encourage One Another",
     },
 
