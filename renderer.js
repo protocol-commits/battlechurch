@@ -4035,8 +4035,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
     ctx.shadowBlur = 3;
     ctx.shadowOffsetY = 1;
-    const titleY = cardY + headerHeight / 2 + 1;
+    const titleY = cardY + headerHeight / 2 + (stat.weaponName ? -6 : 1);
     ctx.fillText(stat.label, textLeft, titleY);
+    if (stat.weaponName) {
+      ctx.font = `600 11px ${uiFontFamily}`;
+      ctx.fillStyle = canAfford ? "rgba(180, 220, 255, 0.75)" : "rgba(150, 175, 200, 0.45)";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillText(stat.weaponName, textLeft, titleY + 15);
+      ctx.font = `800 ${titleSize}px ${uiFontFamily}`;
+      ctx.fillStyle = "#F3E2C4";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+    }
     if (levelLabel) {
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;

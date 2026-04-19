@@ -2564,6 +2564,7 @@ function getChurchPowerupOptions() {
       key,
       label: def.label || key,
       description: def.description || "",
+      weaponName: def.weaponName || "",
       cost: getChurchPowerupLevelCost(def, level),
       iconSrc: def.iconSrc || def.src || null,
       detail,

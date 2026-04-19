@@ -88,6 +88,7 @@
         stats,
         uiFontFamily,
         backgroundMode: "transparent",
+        dimAlpha: 0.5,
         undoAvailable: purchaseHistory.length > 0,
       });
     }
