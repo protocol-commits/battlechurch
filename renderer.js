@@ -4148,7 +4148,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const lm = requireBindings().levelManager;
   const currentLevelStatus = lm?.getStatus ? lm.getStatus() : null;
     const ANNOUNCEMENT_FADE_DURATION = 1.5;
-    const fadeDuration = Math.min(duration, ANNOUNCEMENT_FADE_DURATION);
+    const customFadeDuration = Number.isFinite(levelAnnouncements[0]?.fadeOutDuration)
+      ? Math.max(0.05, levelAnnouncements[0].fadeOutDuration)
+      : ANNOUNCEMENT_FADE_DURATION;
+    const fadeDuration = Math.min(duration, customFadeDuration);
     const fadeStart = Math.max(0, duration - fadeDuration);
     const alpha = timer > fadeStart
       ? 1

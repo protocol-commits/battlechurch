@@ -54,6 +54,8 @@
   const ACT_BREAK_MESSAGE = "Wave Cleared";
   const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
   const WAVE_INTENSITY_TRANSITION_SECONDS = 0.5;
+  const WAVE_INTRO_LINGER_BONUS = 2.0;
+  const WAVE_INTRO_FADE_OUT_DURATION = 0.6;
   const VICTORY_CELEBRATE_DURATION = 5.0;
   const GRACE_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
@@ -724,6 +726,18 @@
       playWaveTransitionCue(waveNum);
     }
 
+    function getWaveIntroAnnouncementOptions(holdDuration, { transitionDelayConsumed = false } = {}) {
+      const baseDuration = Math.max(1, Number(holdDuration) || 0);
+      const adjustedDuration = transitionDelayConsumed
+        ? baseDuration - WAVE_INTENSITY_TRANSITION_SECONDS
+        : baseDuration;
+      return {
+        duration: Math.max(2.2, adjustedDuration + WAVE_INTRO_LINGER_BONUS),
+        fadeOutDuration: WAVE_INTRO_FADE_OUT_DURATION,
+        skipMissionBrief: true,
+      };
+    }
+
     function hasActiveOpponents(includeBoss = true) {
       const activeEnemies = enemies.some((enemy) => !enemy.dead && enemy.state !== "death");
       const bossAlive =
@@ -1340,10 +1354,11 @@
                 setTimeoutFn(() => {
                   if (state.stage !== "allKillBreak") return;
                   playWaveTransitionCue(nextActualWaveNumber);
-                  queueLevelAnnouncement(nextWaveIntroText, "", {
-                    duration: Math.max(1, holdDuration - WAVE_INTENSITY_TRANSITION_SECONDS),
-                    skipMissionBrief: true,
-                  });
+                  queueLevelAnnouncement(
+                    nextWaveIntroText,
+                    "",
+                    getWaveIntroAnnouncementOptions(holdDuration, { transitionDelayConsumed: true }),
+                  );
                 }, postTransitionDelayMs);
               }, delayMs);
             } else {
@@ -1351,10 +1366,11 @@
                 ? nextActualWaveNumber
                 : null;
               playWaveTransitionCue(nextActualWaveNumber);
-              queueLevelAnnouncement(nextWaveIntroText, "", {
-                duration: holdDuration,
-                skipMissionBrief: true,
-              });
+              queueLevelAnnouncement(
+                nextWaveIntroText,
+                "",
+                getWaveIntroAnnouncementOptions(holdDuration, { transitionDelayConsumed: false }),
+              );
             }
           }
       resetStage("allKillBreak", breakerDuration);

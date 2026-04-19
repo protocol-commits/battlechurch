@@ -8953,6 +8953,9 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     : 0;
   const pastorPostRecapUpgradeAfter = Boolean(options.pastorPostRecapUpgradeAfter);
   const levelSummary = Boolean(options.levelSummary);
+  const fadeOutDuration = Number.isFinite(options.fadeOutDuration)
+    ? Math.max(0.05, options.fadeOutDuration)
+    : null;
   const announcement = {
     title,
     subtitle,
@@ -8969,6 +8972,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     upcomingOrderNumber,
     finalYear,
     levelSummary,
+    fadeOutDuration,
     pastorFinal,
     pastorPostRecap,
     pastorPostRecapDelay,
