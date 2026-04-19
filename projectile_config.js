@@ -44,6 +44,8 @@
       scale: 2.4 * WORLD_SCALE,
       pierce: true,
       cooldownAfterFire: 0.6,
+      maxBossHits: 5,
+      bossHitCooldown: 0.1,
     },
     fireOrb: {
       displayName: "Fire Orb",

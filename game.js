@@ -11569,6 +11569,10 @@ class Projectile {
     this.life = config.life ?? 5;
     this.radius = config.radius;
     this.pierce = Boolean(config.pierce);
+    this.maxBossHits = Number.isFinite(config.maxBossHits) && config.maxBossHits > 1 ? Math.round(config.maxBossHits) : 1;
+    this.bossHitCooldown = Number.isFinite(config.bossHitCooldown) && config.bossHitCooldown > 0 ? config.bossHitCooldown : 0;
+    this.bossHitCount = 0;
+    this.bossHitTimer = 0;
     this.dead = false;
     this.damage = config.damage ?? 0;
     this.scale = config.scale || 1;
@@ -11773,6 +11777,7 @@ class Projectile {
     this.x += this.vx * dt;
     this.y += this.vy * dt;
     this.life -= dt;
+    if (this.bossHitTimer > 0) this.bossHitTimer = Math.max(0, this.bossHitTimer - dt);
 
     if (this.frames && this.frames.length) {
       this.frameTimer += dt;
@@ -16926,8 +16931,18 @@ function processProjectileCollisions(dt) {
 
       // Friendly projectiles hitting boss
       if (!projectile.dead && activeBoss && !activeBoss.dead && !activeBoss.defeated) {
-        if (!projectile.hitEntities.has(activeBoss) && projectile.hitTest(activeBoss)) {
-          projectile.hitEntities.add(activeBoss);
+        const _multiBoss = projectile.maxBossHits > 1;
+        const _canHitBoss = _multiBoss
+          ? projectile.bossHitCount < projectile.maxBossHits && projectile.bossHitTimer <= 0
+          : !projectile.hitEntities.has(activeBoss);
+        if (_canHitBoss && projectile.hitTest(activeBoss)) {
+          if (_multiBoss) {
+            projectile.bossHitCount += 1;
+            projectile.bossHitTimer = projectile.bossHitCooldown;
+            if (projectile.bossHitCount >= projectile.maxBossHits) projectile.hitEntities.add(activeBoss);
+          } else {
+            projectile.hitEntities.add(activeBoss);
+          }
           if (projectile.type === "wisdom_missle") {
             detonateWisdomMissleProjectile(projectile);
           } else if (projectile.type === "faith_cannon") {
