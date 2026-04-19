@@ -12224,6 +12224,165 @@ class BossEncounter {
     this.x = spawnX;
     this.y = spawnY;
     clampEntityToBounds(this);
+    this.spawnIntro = {
+      active: true,
+      timer: 0,
+      precursorDuration: 1.25,
+      frameDuration: 0.09,
+      frameCount: 5,
+      opaqueByFrame: 4,
+      // Oversize to cover spawn location and make the teleport feel explosive.
+      explosionSize: Math.max(760, this.scale * 56),
+      // Tune where the final mushroom cloud "sits" on the ground line.
+      // Lower ratio plants it deeper (visibly lower) without affecting precursor bursts.
+      mainExplosionGroundRatio: 0.86,
+      // Positive values move the main mushroom cloud down toward the ground line.
+      mainExplosionOffsetY: 88,
+      bossAlpha: 0,
+      events: [
+        {
+          key: "enemyDeathExplosionAlt2",
+          startTime: 0.00,
+          duration: 0.30,
+          frameDuration: 0.05,
+          size: 210,
+          offsetX: -96,
+          offsetY: 6,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt",
+          startTime: 0.08,
+          duration: 0.30,
+          frameDuration: 0.05,
+          size: 220,
+          offsetX: -56,
+          offsetY: 8,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt2",
+          startTime: 0.14,
+          duration: 0.30,
+          frameDuration: 0.05,
+          size: 230,
+          offsetX: 12,
+          offsetY: 8,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt",
+          startTime: 0.22,
+          duration: 0.32,
+          frameDuration: 0.05,
+          size: 240,
+          offsetX: 72,
+          offsetY: 6,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt2",
+          startTime: 0.30,
+          duration: 0.32,
+          frameDuration: 0.05,
+          size: 250,
+          offsetX: -124,
+          offsetY: 4,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt",
+          startTime: 0.38,
+          duration: 0.32,
+          frameDuration: 0.05,
+          size: 260,
+          offsetX: -14,
+          offsetY: 10,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt2",
+          startTime: 0.46,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 270,
+          offsetX: 102,
+          offsetY: 4,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt",
+          startTime: 0.54,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 280,
+          offsetX: -78,
+          offsetY: 8,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt2",
+          startTime: 0.62,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 290,
+          offsetX: 28,
+          offsetY: 10,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt",
+          startTime: 0.70,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 300,
+          offsetX: 136,
+          offsetY: 2,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt2",
+          startTime: 0.78,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 310,
+          offsetX: -146,
+          offsetY: 2,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt",
+          startTime: 0.86,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 320,
+          offsetX: -40,
+          offsetY: 8,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt2",
+          startTime: 0.94,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 340,
+          offsetX: 54,
+          offsetY: 4,
+          sfxPlayed: false,
+        },
+        {
+          key: "enemyDeathExplosionAlt",
+          startTime: 1.02,
+          duration: 0.34,
+          frameDuration: 0.05,
+          size: 360,
+          offsetX: 0,
+          offsetY: 6,
+          sfxPlayed: false,
+        },
+      ],
+    };
+    this.animator.play("idle");
   }
 
   getHpBarMetrics() {
@@ -12452,6 +12611,7 @@ class BossEncounter {
 
   takeDamage(amount, options = {}) {
     if (this.invalid || this.removed || this.state === "death") return;
+    if (this.spawnIntro?.active) return;
     const damageType = options?.damageType || null;
     const damageClass = (this.damageClass || this.config?.damageClass || "normal").toLowerCase();
     let multiplier = 1;
@@ -12654,6 +12814,37 @@ class BossEncounter {
       this.hpDamageFlash.timer = Math.max(0, this.hpDamageFlash.timer - dt);
     }
 
+    if (this.spawnIntro?.active) {
+      this.spawnIntro.timer = Math.max(0, this.spawnIntro.timer + dt);
+      const precursorDuration = Math.max(0, this.spawnIntro.precursorDuration || 0);
+      const finalTimer = Math.max(0, this.spawnIntro.timer - precursorDuration);
+      const frameDuration = Math.max(0.01, this.spawnIntro.frameDuration || 0.06);
+      const introFrame = Math.floor(finalTimer / frameDuration) + 1;
+      const opaqueBy = Math.max(1, Math.round(this.spawnIntro.opaqueByFrame || 4));
+      this.spawnIntro.bossAlpha = this.spawnIntro.timer >= precursorDuration
+        ? Math.max(0, Math.min(1, introFrame / opaqueBy))
+        : 0;
+      const events = Array.isArray(this.spawnIntro.events) ? this.spawnIntro.events : [];
+      events.forEach((event) => {
+        if (!event || event.sfxPlayed || this.spawnIntro.timer < (event.startTime || 0)) return;
+        event.sfxPlayed = true;
+        const sfxVolume = 0.48 + Math.random() * 0.28;
+        playPooledSfx(
+          bossDeathExplosionSfxPool,
+          BOSS_DEATH_EXPLOSION_SFX_SRCS,
+          BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE,
+          { volume: sfxVolume, matchSrc: true },
+        );
+      });
+      const frameCount = Math.max(1, Math.round(this.spawnIntro.frameCount || 5));
+      if (this.spawnIntro.timer >= precursorDuration + frameCount * frameDuration) {
+        this.spawnIntro.active = false;
+        this.spawnIntro.bossAlpha = 1;
+      }
+      this.animator.update(dt);
+      return;
+    }
+
     if (this.state === "death") {
       this.animator.update(dt);
       this.updateDeathVisuals(dt);
@@ -12723,8 +12914,103 @@ class BossEncounter {
     if (!this.isActive()) return;
     const flip = this.facing === "left";
     const fadeAlpha = this.getDeathFadeAlpha();
-    this.animator.draw(context, this.x, this.y, { flipX: flip, alpha: fadeAlpha });
-    this.drawHealthBar(context, fadeAlpha);
+    const spawnIntro = this.spawnIntro || null;
+    const spawnAlpha = spawnIntro?.active
+      ? Math.max(0, Math.min(1, spawnIntro.bossAlpha ?? 0))
+      : 1;
+    const drawAlpha = Math.max(0, Math.min(1, fadeAlpha * spawnAlpha));
+    this.animator.draw(context, this.x, this.y, { flipX: flip, alpha: drawAlpha });
+
+    if (spawnIntro?.active) {
+      const introTimer = Math.max(0, Number(spawnIntro.timer) || 0);
+      const hitbox = this.hitbox || this.config?.hitbox || null;
+      const hbOffsetY = hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+      const hbHalfH = hitbox && Number.isFinite(hitbox.height) ? hitbox.height * 0.5 : this.radius;
+      const activeClip = this.animator?.currentClip || null;
+      const clipRenderScale =
+        activeClip && Number.isFinite(activeClip.renderScale) && activeClip.renderScale > 0
+          ? activeClip.renderScale
+          : 1;
+      const animatorScale =
+        this.animator && Number.isFinite(this.animator.scale) && this.animator.scale > 0
+          ? this.animator.scale
+          : 1;
+      const spriteHalfH =
+        activeClip && Number.isFinite(activeClip.frameHeight) && activeClip.frameHeight > 0
+          ? (activeClip.frameHeight * clipRenderScale * animatorScale) / 2
+          : null;
+      const groundAnchorY = Number.isFinite(spriteHalfH) && spriteHalfH > 0
+        ? this.y + spriteHalfH * 0.98
+        : this.y + hbOffsetY + hbHalfH * 0.95;
+      const events = Array.isArray(spawnIntro.events) ? spawnIntro.events : [];
+      events.forEach((event) => {
+        if (!event) return;
+        const eventStart = Math.max(0, Number(event.startTime) || 0);
+        const eventDuration = Math.max(0.05, Number(event.duration) || 0.2);
+        const localTimer = introTimer - eventStart;
+        if (localTimer < 0 || localTimer > eventDuration) return;
+        const frames = assets?.effects?.[event.key] || assets?.effects?.prayerBombExplosion;
+        if (!Array.isArray(frames) || !frames.length) return;
+        const eventFrameDuration = Math.max(0.01, Number(event.frameDuration) || 0.04);
+        const frameIndex = Math.max(
+          0,
+          Math.min(
+            frames.length - 1,
+            Math.floor(localTimer / eventFrameDuration),
+          ),
+        );
+        const frame = frames[frameIndex];
+        if (!frame) return;
+        const lifeRatio = Math.max(0, Math.min(1, localTimer / eventDuration));
+        const size = Math.max(64, Number(event.size) || 240);
+        context.save();
+        context.globalAlpha = 1 - lifeRatio * 0.15;
+        context.drawImage(
+          frame,
+          this.x + (Number(event.offsetX) || 0) - size / 2,
+          groundAnchorY + (Number(event.offsetY) || 0) - size,
+          size,
+          size,
+        );
+        context.restore();
+      });
+
+      const frames = assets?.effects?.prayerBombExplosion;
+      const precursorDuration = Math.max(0, spawnIntro.precursorDuration || 0);
+      const finalTimer = Math.max(0, introTimer - precursorDuration);
+      if (Array.isArray(frames) && frames.length && introTimer >= precursorDuration) {
+        const frameDuration = Math.max(0.01, spawnIntro.frameDuration || 0.06);
+        const frameCount = Math.max(1, Math.round(spawnIntro.frameCount || 5));
+        const frameIndex = Math.max(
+          0,
+          Math.min(
+            frameCount - 1,
+            Math.floor(finalTimer / frameDuration),
+          ),
+        );
+        const frame = frames[Math.min(frameIndex, frames.length - 1)];
+        if (frame) {
+          const size = Math.max(64, Number(spawnIntro.explosionSize) || 420);
+          const mainExplosionGroundRatio = Math.max(
+            0.4,
+            Math.min(1.2, Number(spawnIntro.mainExplosionGroundRatio) || 1),
+          );
+          const mainExplosionOffsetY = Number(spawnIntro.mainExplosionOffsetY) || 0;
+          context.save();
+          context.globalAlpha = 1;
+          context.drawImage(
+            frame,
+            this.x - size / 2,
+            groundAnchorY + mainExplosionOffsetY - size * mainExplosionGroundRatio,
+            size,
+            size,
+          );
+          context.restore();
+        }
+      }
+    }
+
+    this.drawHealthBar(context, drawAlpha);
   }
 
   drawHealthBar(context, alpha = 1) {
