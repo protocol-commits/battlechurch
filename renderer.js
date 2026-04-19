@@ -8522,12 +8522,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawMeleeSwingOverlay(ctx, player);
     drawSpeedrunTimer();
     drawCongregationOverlay();
-    drawPlayingInstructionsOverlay();
     // Effects are drawn earlier in the world pass so the player stays on top.
     if (paused && !gameOver) {
       drawPauseOverlay();
+      drawPlayingInstructionsOverlay();
       return;
     }
+    drawPlayingInstructionsOverlay();
     if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
       ctx.save();
       ctx.globalAlpha = townIntroOverlay.alpha;

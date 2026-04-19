@@ -16336,6 +16336,18 @@ function updateCameraAndVisualEffects(dt) {
 }
 
 function handlePauseMenu() {
+  if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
+    const SCROLL_SPEED = 180;
+    if (keysPressed.has("w") || keysPressed.has("W")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
+    if (keysPressed.has("s") || keysPressed.has("S")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
+    if (keysJustPressed.has("Escape") || keysJustPressed.has("escape") || keysJustPressed.has(" ")) {
+      window.PlayingInstructions.close();
+      keysJustPressed.delete("Escape");
+      keysJustPressed.delete("escape");
+      keysJustPressed.delete(" ");
+    }
+    return true;
+  }
   if (window.DialogOverlay?.consumeAction?.() || window.UpgradeScreen?.consumeAction?.()) {
     return true;
   }
