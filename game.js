@@ -305,6 +305,7 @@ const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const INTRO_MUSIC_SRC = "assets/music/title-music.mp3";
 const BATTLE_MUSIC_SRC = "assets/music/battle-music.mp3";
 const WAVE3_BATTLE_MUSIC_SRC = "assets/music/boss-fight-4.mp3";
+const BOSS_PHASE3_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
@@ -432,6 +433,7 @@ const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
   battleWave3: typeof Audio !== "undefined" ? new Audio(WAVE3_BATTLE_MUSIC_SRC) : null,
+  battleBossPhase3: typeof Audio !== "undefined" ? new Audio(BOSS_PHASE3_MUSIC_SRC) : null,
   recap: typeof Audio !== "undefined" ? new Audio(RECAP_MUSIC_SRC) : null,
   visitor: typeof Audio !== "undefined" ? new Audio(VISITOR_MUSIC_SRC) : null,
   exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
@@ -466,6 +468,10 @@ if (musicState.battle) {
 if (musicState.battleWave3) {
   musicState.battleWave3.preload = "auto";
   musicState.battleWave3.loop = true;
+}
+if (musicState.battleBossPhase3) {
+  musicState.battleBossPhase3.preload = "auto";
+  musicState.battleBossPhase3.loop = true;
 }
 if (musicState.recap) {
   musicState.recap.preload = "auto";
@@ -537,7 +543,9 @@ function getEffectiveMusicVolume(volume) {
 }
 
 function getBattleTrackAudio(track = musicState.battleTrack) {
-  return track === "wave3" ? musicState.battleWave3 : musicState.battle;
+  if (track === "wave3") return musicState.battleWave3;
+  if (track === "bossPhase3") return musicState.battleBossPhase3;
+  return musicState.battle;
 }
 
 function getCurrentBattleAudio() {
@@ -545,6 +553,12 @@ function getCurrentBattleAudio() {
 }
 
 function getDesiredBattleTrack(levelStatus) {
+  const stage = levelStatus?.stage || "";
+  const bossStage = stage === "bossIntro" || stage === "bossActive";
+  if (bossStage) {
+    const bossPhase = Math.max(0, Number(levelStatus?.bossPhase) || 0);
+    return bossPhase >= 3 ? "bossPhase3" : "wave3";
+  }
   const waveNum = Math.max(0, Number(levelStatus?.waveNum) || 0);
   return waveNum >= 3 ? "wave3" : "base";
 }
@@ -566,6 +580,12 @@ function refreshMusicPlayback() {
     {
       audio: musicState.battleWave3,
       started: musicState.battleStarted && musicState.battleTrack === "wave3",
+      stopped: musicState.battleStopped,
+      volume: MUSIC_VOLUME_BATTLE,
+    },
+    {
+      audio: musicState.battleBossPhase3,
+      started: musicState.battleStarted && musicState.battleTrack === "bossPhase3",
       stopped: musicState.battleStopped,
       volume: MUSIC_VOLUME_BATTLE,
     },
@@ -1171,7 +1191,7 @@ function stopIntroMusic() {
 }
 
 function startBattleMusic(track = "base") {
-  const desiredTrack = track === "wave3" ? "wave3" : "base";
+  const desiredTrack = track === "wave3" || track === "bossPhase3" ? track : "base";
   const desiredAudio = getBattleTrackAudio(desiredTrack);
   if (!desiredAudio) return;
   // If boss exterior music is playing, don't start regular battle music - let boss music continue
@@ -1373,6 +1393,7 @@ function pauseAllMusic() {
   if (musicState.intro) musicState.intro.pause();
   if (musicState.battle) musicState.battle.pause();
   if (musicState.battleWave3) musicState.battleWave3.pause();
+  if (musicState.battleBossPhase3) musicState.battleBossPhase3.pause();
   if (musicState.recap) musicState.recap.pause();
   if (musicState.visitor) musicState.visitor.pause();
   if (musicState.exterior) musicState.exterior.pause();
@@ -1469,6 +1490,12 @@ function resetMusicState() {
     musicState.battleWave3.pause();
     musicState.battleWave3.currentTime = 0;
     musicState.battleWave3.volume = 0;
+  }
+  if (musicState.battleBossPhase3) {
+    cancelFade(musicState.battleBossPhase3);
+    musicState.battleBossPhase3.pause();
+    musicState.battleBossPhase3.currentTime = 0;
+    musicState.battleBossPhase3.volume = 0;
   }
   if (musicState.recap) {
     cancelFade(musicState.recap);

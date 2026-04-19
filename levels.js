@@ -41,6 +41,7 @@
   const ANNOUNCEMENT_FADE_DURATION = 1.5;
   const GRACE_RUSH_DURATION = 5;
   const BOSS_GRACE_RUSH_DURATION = 10;
+  const BOSS_VICTORY_CELEBRATE_DURATION = 3.0;
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
@@ -1540,13 +1541,18 @@
       state.pendingBossRestore = true;
     }
 
+    function beginBossVictoryCelebrate() {
+      resetStage("bossVictoryCelebrate", BOSS_VICTORY_CELEBRATE_DURATION);
+      state.graceRushContext = null;
+      setDevStatus("Boss defeated", BOSS_VICTORY_CELEBRATE_DURATION);
+    }
+
     function onBossDefeated() {
       clearStagePowerUps();
       finalizeBossBattleSummary();
       state.boss = null;
       state.lastClearedWasBoss = true;
-      setDevStatus("Boss defeated", 3.5);
-      beginBossGraceRush();
+      beginBossVictoryCelebrate();
     }
 
     function beginVisitorMinigame(onResume) {
@@ -1819,6 +1825,12 @@ state.waveIndex = -1;
               state.graceRushContext = null;
               handleBattleComplete();
             }
+          }
+          break;
+        case "bossVictoryCelebrate":
+          state.timer = Math.max(0, state.timer - dt);
+          if (state.timer <= 0) {
+            beginBossGraceRush();
           }
           break;
           case "bossActive":

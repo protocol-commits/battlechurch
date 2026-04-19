@@ -1356,6 +1356,28 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const displayButtons = showButtons !== false;
   const buttonHeight = displayButtons ? (showFormation ? 148 : 72) : 0;
   const layoutButtonCount = displayButtons ? (showFormation ? 3 : 1) : 0;
+  const drawTextBackdrop = (yTop, yBottom) => {
+    const safeTop = Math.max(20, Math.round(yTop));
+    const safeBottom = Math.min(layout.virtualCanvas.height - 20, Math.round(yBottom));
+    const panelHeight = safeBottom - safeTop;
+    if (panelHeight <= 8) return;
+    const panelPadX = Math.round(layout.virtualCanvas.width * 0.06);
+    const panelX = panelPadX;
+    const panelW = layout.virtualCanvas.width - panelPadX * 2;
+    const panelY = safeTop;
+    const panelR = 18;
+    const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelHeight);
+    panelGradient.addColorStop(0, "rgba(18, 10, 8, 0.52)");
+    panelGradient.addColorStop(0.5, "rgba(10, 6, 5, 0.46)");
+    panelGradient.addColorStop(1, "rgba(18, 10, 8, 0.52)");
+    ctx.save();
+    ctx.fillStyle = panelGradient;
+    roundRect(ctx, panelX, panelY, panelW, panelHeight, panelR, true, false);
+    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = "rgba(255, 184, 120, 0.14)";
+    roundRect(ctx, panelX, panelY, panelW, panelHeight, panelR, false, true);
+    ctx.restore();
+  };
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
@@ -1414,6 +1436,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     );
     const lowerYBase = Math.round(Math.min(desiredLowerYBase, maxLowerYBase));
     const lowerSectionTopY = lowerYBase - lowerLayout.subtitleLineHeight;
+    const textPanelTop = Math.round(titleYBase - titleLayout.titleLineHeight * 0.7 - 14);
+    const textPanelBottom = Math.round(
+      lowerYBase + Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight) + 18,
+    );
+    drawTextBackdrop(textPanelTop, textPanelBottom);
 
     drawAnnouncementText(ctx, layout.virtualCanvas, {
       title,
@@ -1460,6 +1487,24 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       upperRevealComplete &&
       isAnnouncementRevealComplete("", combinedSubtitle);
   } else {
+    const fullTextLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
+      title,
+      subtitle: combinedSubtitle,
+      titleSize,
+      titleLineSizes,
+      titleLineGap,
+      subtitleSize: bodySize,
+      lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
+      weight: titleWeight,
+      maxWidthScale,
+    });
+    const panelTop = Math.round(layout.titleY - fullTextLayout.titleLineHeight * 0.7 - 14);
+    const panelBottom = Math.round(
+      layout.titleY +
+      Math.max(0, fullTextLayout.textBlockHeight - fullTextLayout.titleLineHeight) +
+      20,
+    );
+    drawTextBackdrop(panelTop, panelBottom);
     drawAnnouncementText(ctx, layout.virtualCanvas, {
       title,
       subtitle: combinedSubtitle,
@@ -6217,18 +6262,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     "waveCleared",
     "victoryCelebrate",
     "bossActive",
+    "bossVictoryCelebrate",
   ]);
   const WAVE_ATMOSPHERE_TRANSITION_MS = 500;
   const WAVE_ATMOSPHERE_CONFIG = Object.freeze({
     assumedWavesPerBattle: 3,
     tintMinAlpha: 0.02,
     tintMaxAlpha: 0.1,
+    bossPhase3TintMaxAlpha: 0.16,
     tintColor: "rgba(165, 14, 22, 1)",
     emberMinAlpha: 0.06,
     emberMaxAlpha: 0.24,
+    bossPhase3EmberMaxAlpha: 0.34,
     emberColor: "rgba(255, 52, 28, 1)",
     ashBaseMinAlpha: 0.45,
     ashBaseMaxAlpha: 0.9,
+    bossPhase3AshMaxAlpha: 1.0,
   });
   const waveAtmosphereTweenState = {
     initialized: false,
@@ -6256,11 +6305,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     );
     const clampedWave = Math.min(totalWaves, waveNumber);
     const baseProgress = clampedWave / totalWaves;
-    if (stage === "victoryCelebrate") {
+    if (stage === "victoryCelebrate" || stage === "bossVictoryCelebrate") {
       const stageDuration = Math.max(0.001, Number(levelStatus.stageDuration) || 3);
       const stageTimer = Math.max(0, Number(levelStatus.stageTimer) || 0);
       const fadeRatio = Math.max(0, Math.min(1, stageTimer / stageDuration));
-      return baseProgress * fadeRatio;
+      const celebrateBaseProgress = stage === "bossVictoryCelebrate" ? 1 : baseProgress;
+      return celebrateBaseProgress * fadeRatio;
     }
     return baseProgress;
   }
@@ -6292,12 +6342,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const y = Number.isFinite(bounds.y) ? bounds.y : 0;
 
     // Subtle heat ramp across waves: deeper red tint + warm ember lift.
+    const levelStatus = requireBindings().levelManager?.getStatus?.() || null;
+    const bossPhase = Math.max(0, Number(levelStatus?.bossPhase) || 0);
+    const bossPhase3Active =
+      levelStatus?.stage === "bossVictoryCelebrate" ||
+      ((levelStatus?.stage === "bossActive" || levelStatus?.stage === "bossIntro") && bossPhase >= 3);
+    const tintMaxAlpha = bossPhase3Active
+      ? WAVE_ATMOSPHERE_CONFIG.bossPhase3TintMaxAlpha
+      : WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha;
+    const emberMaxAlpha = bossPhase3Active
+      ? WAVE_ATMOSPHERE_CONFIG.bossPhase3EmberMaxAlpha
+      : WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha;
+
     const tintAlpha =
       WAVE_ATMOSPHERE_CONFIG.tintMinAlpha +
-      (WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha - WAVE_ATMOSPHERE_CONFIG.tintMinAlpha) * progress;
+      (tintMaxAlpha - WAVE_ATMOSPHERE_CONFIG.tintMinAlpha) * progress;
     const emberAlpha =
       WAVE_ATMOSPHERE_CONFIG.emberMinAlpha +
-      (WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha - WAVE_ATMOSPHERE_CONFIG.emberMinAlpha) * progress;
+      (emberMaxAlpha - WAVE_ATMOSPHERE_CONFIG.emberMinAlpha) * progress;
     ctx.save();
     ctx.beginPath();
     ctx.rect(x, y, width, height);
@@ -8202,7 +8264,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const arenaWidth = canvas.width - fogWidth * 2;
     const arenaHeight = canvas.height - fogHeight;
     const waveProgress = getWaveProgressRatio(levelStatus);
-    const isVictoryCelebrate = (levelStatus?.stage || "") === "victoryCelebrate";
+    const stageName = levelStatus?.stage || "";
+    const bossPhase = Math.max(0, Number(levelStatus?.bossPhase) || 0);
+    const bossPhase3Heat =
+      stageName === "bossVictoryCelebrate" ||
+      ((stageName === "bossIntro" || stageName === "bossActive") && bossPhase >= 3);
+    const isVictoryCelebrate =
+      (levelStatus?.stage || "") === "victoryCelebrate" ||
+      (levelStatus?.stage || "") === "bossVictoryCelebrate";
+    const preserveEmberComposition = isVictoryCelebrate;
     const victoryStageDuration = Math.max(0.001, Number(levelStatus?.stageDuration) || 5);
     const victoryStageTimer = Math.max(0, Number(levelStatus?.stageTimer) || 0);
     const victoryHeatFadeRatio = isVictoryCelebrate
@@ -8213,19 +8283,31 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       Number(levelStatus?.waveNum) || Number(levelStatus?.wave) || 1,
     );
     const waveThreeEmberBoost = currentWaveNumber >= 3;
+    const maxHeatEmberBoost =
+      waveThreeEmberBoost ||
+      stageName === "bossIntro" ||
+      stageName === "bossActive" ||
+      stageName === "bossVictoryCelebrate";
+    const ashMaxAlpha = bossPhase3Heat
+      ? WAVE_ATMOSPHERE_CONFIG.bossPhase3AshMaxAlpha
+      : WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha;
     const ashAlpha =
       WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha +
-      (WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
+      (ashMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
-      const baseParticleCount = waveThreeEmberBoost ? 180 : 100;
-      const targetParticleCount = Math.max(
-        40,
-        Math.round(baseParticleCount * victoryHeatFadeRatio),
-      );
-      const baseEmberRatio = waveThreeEmberBoost ? 0.82 : 0.55;
-      const targetEmberRatio = Math.max(0.12, baseEmberRatio * victoryHeatFadeRatio);
-      const baseIntensity = waveThreeEmberBoost ? 1.55 : 1.0;
+      const baseParticleCount = bossPhase3Heat ? 260 : (maxHeatEmberBoost ? 180 : 100);
+      const targetParticleCount = preserveEmberComposition
+        ? (Number.isFinite(ashEmberTuneState.particleCount) ? ashEmberTuneState.particleCount : baseParticleCount)
+        : Math.max(
+            40,
+            Math.round(baseParticleCount * victoryHeatFadeRatio),
+          );
+      const baseEmberRatio = bossPhase3Heat ? 0.9 : (maxHeatEmberBoost ? 0.82 : 0.55);
+      const targetEmberRatio = preserveEmberComposition
+        ? (Number.isFinite(ashEmberTuneState.emberRatio) ? ashEmberTuneState.emberRatio : baseEmberRatio)
+        : Math.max(0.12, baseEmberRatio * victoryHeatFadeRatio);
+      const baseIntensity = bossPhase3Heat ? 2.05 : (maxHeatEmberBoost ? 1.55 : 1.0);
       const targetIntensity = Math.max(0.2, baseIntensity * victoryHeatFadeRatio);
       const targetSizeScale = 1.0;
       if (typeof ashOverlay.setParticleCount === "function" && ashEmberTuneState.particleCount !== targetParticleCount) {
