@@ -237,7 +237,7 @@ const ENEMY_DEATH_SFX_SRCS = [
   ...ENEMY_DEATH_MONSTER_SRCS,
   ...ENEMY_DEATH_GRUNT_SRCS,
 ];
-const SWORD_SWING_SFX_SRC = "assets/sfx/Weapons/attack1.mp3";
+const SWORD_SWING_SFX_SRC = "assets/sfx/Weapons/attack10.mp3";
 const RUSH_ATTACK_SFX_SRC = "assets/sfx/Weapons/spell3.mp3";
 const DASH_SFX_SRC = "assets/sfx/Weapons/attack10.mp3";
 const SWORD_KILL_SFX_SRCS = [
@@ -309,7 +309,7 @@ const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
 const EXTERIOR_BOSS_MUSIC_SRC = "assets/music/boss-fight-3.mp3";
 const BOSS_DEATH_MUSIC_SRC = "assets/music/boss-fight-2.mp3";
-const MENU_SELECT_SFX_SRC = "assets/sfx/utility/utility11.mp3";
+const MENU_SELECT_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const MENU_MOVE_SFX_SRC = "assets/sfx/utility/cursor_5.mp3";
 const ENEMY_SPAWN_SFX_SRC = "assets/sfx/rpg/Monsters/monster_1.wav";
 const VISITOR_HIT_SFX_SRC = "assets/sfx/npcs/fireball_release_1.wav";
@@ -322,6 +322,7 @@ const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9
 const DIVINE_SHOT_SFX_SRC = "assets/sfx/Weapons/spell11.mp3";
 const CONGREGATION_OVERLAY_WORD_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_OVERLAY_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
+const CONGREGATION_FIGHT_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_40.wav";
 const CONGREGATION_COUNT_POP_UP_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_COUNT_POP_DOWN_SFX_SRC = "assets/sfx/utility/utility3.mp3";
 const ENEMY_SPAWN_HIGH_SFX = [
@@ -356,6 +357,7 @@ const VISITOR_SAVED_SFX_POOL_SIZE = 4;
 const NPC_HURT_SFX_POOL_SIZE = 4;
 const PLAYER_HURT_SFX_POOL_SIZE = 4;
 const CONGREGATION_OVERLAY_SFX_POOL_SIZE = 4;
+const CONGREGATION_FIGHT_SFX_POOL_SIZE = 3;
 const CONGREGATION_COUNT_POP_SFX_POOL_SIZE = 3;
 const SENTRY_BEAM_SFX_POOL_SIZE = 3;
 const SENTRY_BORE_LOOP_SFX_POOL_SIZE = 4;
@@ -405,6 +407,7 @@ const visitorSavedSfxPool = [];
 const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
 const congregationOverlaySfxPool = [];
+const congregationFightSfxPool = [];
 const congregationCountPopUpSfxPool = [];
 const congregationCountPopDownSfxPool = [];
 const sentryBeamSfxPool = [];
@@ -3853,6 +3856,15 @@ function playCongregationOverlayFinalSfx() {
     CONGREGATION_OVERLAY_FINAL_SFX_SRC,
     CONGREGATION_OVERLAY_SFX_POOL_SIZE,
     { volume: 0.7 },
+  );
+}
+
+function playCongregationFightSfx(volume = 0.65) {
+  playPooledSfx(
+    congregationFightSfxPool,
+    CONGREGATION_FIGHT_SFX_SRC,
+    CONGREGATION_FIGHT_SFX_POOL_SIZE,
+    { volume },
   );
 }
 
@@ -16029,9 +16041,7 @@ function updateCongregationStage(dt, levelStatus) {
       if (typeof window !== "undefined") window.__congregationTutorialActive = false;
       clearCongregationSpeechBubbles();
       levelManager.advanceFromCongregation();
-      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-        window.playMenuAdvanceSfx(0.55);
-      }
+      playCongregationFightSfx(0.65);
       levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
       stage = levelStatus?.stage;
     },
@@ -16124,9 +16134,7 @@ function updateCongregationStage(dt, levelStatus) {
         if (typeof window !== "undefined") window.__congregationTutorialActive = false;
         clearCongregationSpeechBubbles();
         levelManager?.advanceFromCongregation?.();
-        if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-          window.playMenuAdvanceSfx(0.55);
-        }
+        playCongregationFightSfx(0.65);
         keysJustPressed.delete(" ");
         levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
         stage = levelStatus?.stage;
@@ -18269,7 +18277,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
   });
 }
 
-function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY) {
+function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY, options = {}) {
   // Canonical move name: "Slash" is the default A melee attack.
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
@@ -18506,8 +18514,19 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       playEnemyHitSfx(0.6);
     }
   } else {
-    if (typeof playSwordSfx === "function") {
-      playSwordSfx(0.5);
+    const missSwingSfx = options?.missSwingSfx || "sword";
+    if (missSwingSfx === "dash") {
+      if (typeof playDashSfx === "function") {
+        playDashSfx(0.6);
+      }
+    } else if (missSwingSfx === "rush") {
+      if (typeof playRushAttackSfx === "function") {
+        playRushAttackSfx(0.6);
+      }
+    } else if (missSwingSfx !== "none") {
+      if (typeof playSwordSfx === "function") {
+        playSwordSfx(0.5);
+      }
     }
   }
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
@@ -19172,7 +19191,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
         const angleRad = Math.atan2(d.y, d.x);
         const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
         const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-        executeBasicMeleeAttack(d, meleeAttackState, swingCenterX, swingCenterY);
+        executeBasicMeleeAttack(d, meleeAttackState, swingCenterX, swingCenterY, {
+          missSwingSfx: "rush",
+        });
         meleeAttackState.swooshTimer = 0;
         meleeAttackState.doubleStrikeSwooshTimer = GAME_MELEE_SWING_DURATION * 2.5;
         meleeAttackState.doubleStrikeSwooshDir = { x: d.x, y: d.y };

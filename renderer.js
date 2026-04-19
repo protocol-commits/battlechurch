@@ -5162,7 +5162,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     void memberCount;
 
-    const buttonText = "Fight!";
+    const buttonText = "FIGHT!";
     const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
     const buttonHeight = 52;
     const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
@@ -5203,14 +5203,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
       drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
     }
-    ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-    ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetY = 1;
+    ctx.fillStyle = "#FFF2CF";
+    ctx.shadowColor = "rgba(24, 6, 5, 0.9)";
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
     ctx.textAlign = "center";
-    ctx.font = `18px ${UI_FONT_FAMILY}`;
-    ctx.textBaseline = "alphabetic";
-    const mainTextY = buttonY + buttonHeight / 2 + 6;
+    ctx.font = `900 26px 'Orbitron', ${UI_FONT_FAMILY}`;
+    ctx.textBaseline = "middle";
+    const mainTextY = buttonY + buttonHeight / 2 + 1;
+    ctx.strokeStyle = "rgba(73, 18, 12, 0.95)";
+    ctx.lineWidth = 3;
+    ctx.strokeText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
     ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
     ctx.restore();
 
