@@ -883,6 +883,8 @@ const MELEE_SWING_LENGTH = 260;
     titleLineSizes = null,
     titleLineGap = 0,
     titleLineEmphasis = null,
+    titleStrokeColor = null,
+    titleStrokeWidth = 0,
     subtitleSize = TEXT_STYLES.body.size,
     lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
     weight = TEXT_STYLES.h2.weight,
@@ -1041,6 +1043,27 @@ const MELEE_SWING_LENGTH = 260;
           ctx.fillStyle = titleColor;
           ctx.shadowColor = shadowColor;
           ctx.shadowBlur = 20;
+        }
+        if (titleStrokeColor && titleStrokeWidth > 0) {
+          const prevLineJoin = ctx.lineJoin;
+          const prevMiterLimit = ctx.miterLimit;
+          const prevStrokeStyle = ctx.strokeStyle;
+          const prevLineWidth = ctx.lineWidth;
+          const prevShadowColor = ctx.shadowColor;
+          const prevShadowBlur = ctx.shadowBlur;
+          ctx.lineJoin = "round";
+          ctx.miterLimit = 2;
+          ctx.strokeStyle = titleStrokeColor;
+          ctx.lineWidth = titleStrokeWidth;
+          ctx.shadowColor = "transparent";
+          ctx.shadowBlur = 0;
+          ctx.strokeText(visible, lineX, currentY);
+          ctx.lineJoin = prevLineJoin;
+          ctx.miterLimit = prevMiterLimit;
+          ctx.strokeStyle = prevStrokeStyle;
+          ctx.lineWidth = prevLineWidth;
+          ctx.shadowColor = prevShadowColor;
+          ctx.shadowBlur = prevShadowBlur;
         }
         ctx.fillText(visible, lineX, currentY);
       }
@@ -1389,26 +1412,16 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const displayButtons = showButtons !== false;
   const buttonHeight = displayButtons ? (showFormation ? 148 : 72) : 0;
   const layoutButtonCount = displayButtons ? (showFormation ? 3 : 1) : 0;
-  const drawTextBackdrop = (yTop, yBottom) => {
-    const safeTop = Math.max(20, Math.round(yTop));
-    const safeBottom = Math.min(layout.virtualCanvas.height - 20, Math.round(yBottom));
-    const panelHeight = safeBottom - safeTop;
-    if (panelHeight <= 8) return;
-    const panelPadX = Math.round(layout.virtualCanvas.width * 0.06);
-    const panelX = panelPadX;
-    const panelW = layout.virtualCanvas.width - panelPadX * 2;
-    const panelY = safeTop;
-    const panelR = 18;
-    const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelHeight);
-    panelGradient.addColorStop(0, "rgba(18, 10, 8, 0.52)");
-    panelGradient.addColorStop(0.5, "rgba(10, 6, 5, 0.46)");
-    panelGradient.addColorStop(1, "rgba(18, 10, 8, 0.52)");
+  const drawTextBackdrop = () => {
+    const h = layout.virtualCanvas.height;
+    const w = layout.virtualCanvas.width;
+    const overlayGradient = ctx.createLinearGradient(0, 0, 0, h);
+    overlayGradient.addColorStop(0, "rgba(18, 10, 8, 0.52)");
+    overlayGradient.addColorStop(0.5, "rgba(10, 6, 5, 0.48)");
+    overlayGradient.addColorStop(1, "rgba(18, 10, 8, 0.52)");
     ctx.save();
-    ctx.fillStyle = panelGradient;
-    roundRect(ctx, panelX, panelY, panelW, panelHeight, panelR, true, false);
-    ctx.lineWidth = 1.25;
-    ctx.strokeStyle = "rgba(255, 184, 120, 0.14)";
-    roundRect(ctx, panelX, panelY, panelW, panelHeight, panelR, false, true);
+    ctx.fillStyle = overlayGradient;
+    ctx.fillRect(0, 0, w, h);
     ctx.restore();
   };
   ctx.save();
@@ -1473,7 +1486,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     const textPanelBottom = Math.round(
       lowerYBase + Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight) + 18,
     );
-    drawTextBackdrop(textPanelTop, textPanelBottom);
+    drawTextBackdrop();
 
     drawAnnouncementText(ctx, layout.virtualCanvas, {
       title,
@@ -1483,6 +1496,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       titleLineSizes,
       titleLineGap,
       titleLineEmphasis,
+      titleStrokeColor: "rgba(26, 10, 8, 0.92)",
+      titleStrokeWidth: 2.2,
       subtitleSize: bodySize,
       weight: titleWeight,
       subtitleWeight: bodyWeight,
@@ -1537,7 +1552,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       Math.max(0, fullTextLayout.textBlockHeight - fullTextLayout.titleLineHeight) +
       20,
     );
-    drawTextBackdrop(panelTop, panelBottom);
+    drawTextBackdrop();
     drawAnnouncementText(ctx, layout.virtualCanvas, {
       title,
       subtitle: combinedSubtitle,
@@ -1546,6 +1561,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       titleLineSizes,
       titleLineGap,
       titleLineEmphasis,
+      titleStrokeColor: "rgba(26, 10, 8, 0.92)",
+      titleStrokeWidth: 2.2,
       subtitleSize: bodySize,
       weight: titleWeight,
       subtitleWeight: bodyWeight,
