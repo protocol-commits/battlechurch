@@ -951,6 +951,7 @@ const MELEE_SWING_LENGTH = 260;
     }
     let remainingTitle = displayTitle.length;
     let currentY = yBase;
+    let emphasisCarryForward = false;
     titleLines.forEach((line, index) => {
       const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
         || effectiveTitleSize;
@@ -964,6 +965,7 @@ const MELEE_SWING_LENGTH = 260;
           ? canvas.width / 2 - (ctx.measureText(rawLine).width || 0) / 2
           : titleX;
         const emphasisMatches = (() => {
+          if (emphasisCarryForward) return true;
           if (!titleLineEmphasis) return false;
           if (Number.isFinite(titleLineEmphasis.lineIndex) && titleLineEmphasis.lineIndex === index) {
             return true;
@@ -976,21 +978,27 @@ const MELEE_SWING_LENGTH = 260;
           }
           return false;
         })();
+        if (emphasisMatches && titleLineEmphasis?.continueOnWrappedLines) {
+          emphasisCarryForward = true;
+        }
         if (emphasisMatches && titleLineEmphasis.mode === "shimmer") {
           const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
           const sweep = (Math.sin(now * 2.2) + 1) * 0.5;
           const pulse = 0.88 + 0.12 * Math.sin(now * 3.6);
           const lineWidth = ctx.measureText(visible).width || 1;
+          const shimmerBase = titleLineEmphasis.baseColor || "#D9ECFF";
+          const shimmerPeak = titleLineEmphasis.peakColor || "#FFFFFF";
+          const shimmerGlow = titleLineEmphasis.glowColor || "rgba(185, 225, 255, 0.95)";
           const grad = ctx.createLinearGradient(lineX, 0, lineX + lineWidth, 0);
           const left = Math.max(0, sweep - 0.22);
           const right = Math.min(1, sweep + 0.22);
-          grad.addColorStop(0, "#D9ECFF");
-          grad.addColorStop(left, "#D9ECFF");
-          grad.addColorStop(sweep, "#FFFFFF");
-          grad.addColorStop(right, "#D9ECFF");
-          grad.addColorStop(1, "#D9ECFF");
+          grad.addColorStop(0, shimmerBase);
+          grad.addColorStop(left, shimmerBase);
+          grad.addColorStop(sweep, shimmerPeak);
+          grad.addColorStop(right, shimmerBase);
+          grad.addColorStop(1, shimmerBase);
           ctx.fillStyle = grad;
-          ctx.shadowColor = "rgba(185, 225, 255, 0.95)";
+          ctx.shadowColor = shimmerGlow;
           ctx.shadowBlur = 24 * pulse;
         } else {
           ctx.fillStyle = "#EAF6FF";
@@ -1646,15 +1654,18 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           ctx.fillText(statText, badgeX + badgeW / 2, badgeY + badgeH / 2);
         }
       } else {
-        ctx.fillStyle = "#9BD9FF";
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
         ctx.lineWidth = 2;
         roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
         if (isAnnouncementButtonFocused("missionBrief", index)) {
           drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
           drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
         }
-        ctx.fillStyle = "#0b111a";
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 1;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         ctx.font = `600 24px ${uiFontFamily}`;
@@ -3543,15 +3554,18 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const buttonY = Math.round(Math.max(layout.buttonY || 0, cursorY + 16));
 
   ctx.save();
-  ctx.fillStyle = "#9BD9FF";
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+  ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
   ctx.lineWidth = 2;
   roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, true, true);
   if (isAnnouncementButtonFocused(buttonKey, 0)) {
     drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
     drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, 0.45);
   }
-  ctx.fillStyle = "#0b111a";
+  ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+  ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 1;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 24px ${uiFontFamily}`;
@@ -4041,14 +4055,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const continueX2 = actionStartX + actionButtonWidth + actionGap;
 
   ctx.save();
-  ctx.fillStyle = undoAvailable ? "#9BD9FF" : "rgba(120, 120, 130, 0.5)";
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.fillStyle = undoAvailable
+    ? getEmberButtonGradient(ctx, continueY, continueHeight)
+    : EMBER_BUTTON_PALETTE.disabledFill;
+  ctx.strokeStyle = undoAvailable ? EMBER_BUTTON_PALETTE.border : EMBER_BUTTON_PALETTE.disabledBorder;
   ctx.lineWidth = 2;
   roundRect(ctx, undoX, continueY, actionButtonWidth, continueHeight, 18, true, true);
   if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount)) {
     drawFocusRing(ctx, undoX - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
   }
-  ctx.fillStyle = "#0b111a";
+  ctx.fillStyle = undoAvailable ? EMBER_BUTTON_PALETTE.text : EMBER_BUTTON_PALETTE.textDisabled;
+  if (undoAvailable) {
+    ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 1;
+  }
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 22px ${uiFontFamily}`;
@@ -4057,14 +4078,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ctx.restore();
 
   ctx.save();
-  ctx.fillStyle = "#9BD9FF";
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+  ctx.fillStyle = getEmberButtonGradient(ctx, continueY, continueHeight);
+  ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
   ctx.lineWidth = 2;
   roundRect(ctx, continueX2, continueY, actionButtonWidth, continueHeight, 18, true, true);
   if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount + 1)) {
     drawFocusRing(ctx, continueX2 - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
   }
-  ctx.fillStyle = "#0b111a";
+  ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+  ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 1;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.font = `600 22px ${uiFontFamily}`;
@@ -4251,6 +4275,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         titleLineEmphasis: {
           mode: "shimmer",
           matchPrefix: "Battle ",
+          continueOnWrappedLines: true,
+          baseColor: "#E7C47E",
+          peakColor: "#FFF2CF",
+          glowColor: "rgba(235, 189, 102, 0.95)",
         },
         titleLineSizes: [
           Math.max(16, Math.round(TEXT_STYLES.h2.size * 0.76)),
@@ -4388,14 +4416,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             ],
           };
         }
-        ctx.fillStyle = "#9BD9FF";
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
         ctx.lineWidth = 2;
         roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
         if (isAnnouncementButtonFocused(buttonKey, 0)) {
           drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         }
-        ctx.fillStyle = "#0b111a";
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 1;
         ctx.textAlign = "center";
         ctx.font = `18px ${UI_FONT_FAMILY}`;
         ctx.textBaseline = "alphabetic";
@@ -5164,15 +5195,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ],
       };
     }
-    ctx.fillStyle = "#9BD9FF";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+    ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
     ctx.lineWidth = 2;
     roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
     if (isAnnouncementButtonFocused("congregation", 0)) {
       drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
       drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
     }
-    ctx.fillStyle = "#0b111a";
+    ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+    ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 1;
     ctx.textAlign = "center";
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
@@ -5929,15 +5963,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const globalIndex = bounds.length;
         const x = startX + index * (buttonWidth + buttonGap);
         ctx.save();
-        ctx.fillStyle = "#9BD9FF";
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.fillStyle = getEmberButtonGradient(ctx, rowY, buttonHeight);
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
         ctx.lineWidth = 2;
         roundRect(ctx, x, rowY, buttonWidth, buttonHeight, 16, true, true);
         if (isAnnouncementButtonFocused("pause", globalIndex)) {
           drawFocusRing(ctx, x - 3, rowY - 3, buttonWidth + 6, buttonHeight + 6, 18);
           drawButtonReflection(ctx, x, rowY, buttonWidth, buttonHeight, 16, 0.45);
         }
-        ctx.fillStyle = "#0b111a";
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 1;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         ctx.font = `600 22px ${UI_FONT_FAMILY}`;
@@ -6133,6 +6170,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       true
     );
     ctx.restore();
+  }
+
+  const EMBER_BUTTON_PALETTE = Object.freeze({
+    top: "#D76B2D",
+    bottom: "#8D2F1E",
+    border: "rgba(255, 210, 148, 0.82)",
+    loadingBase: "rgba(62, 20, 14, 0.94)",
+    loadingFill: "#F1882F",
+    text: "#FBEBC9",
+    textDisabled: "rgba(196, 186, 170, 0.58)",
+    textShadow: "rgba(34, 10, 8, 0.68)",
+    focus: "#F6C06E",
+    disabledFill: "rgba(80, 56, 52, 0.72)",
+    disabledBorder: "rgba(130, 108, 98, 0.42)",
+  });
+
+  function getEmberButtonGradient(ctx, y, height) {
+    const gradient = ctx.createLinearGradient(0, y, 0, y + height);
+    gradient.addColorStop(0, EMBER_BUTTON_PALETTE.top);
+    gradient.addColorStop(1, EMBER_BUTTON_PALETTE.bottom);
+    return gradient;
   }
 
   const enemyHpLabels = [];
@@ -6405,14 +6463,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
-    ctx.fillStyle = "#9BD9FF";
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+    ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
     ctx.lineWidth = 2;
     roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
     if (isAnnouncementButtonFocused("chapterBreak", 0)) {
       drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
     }
-    ctx.fillStyle = "#0b111a";
+    ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+    ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 1;
     ctx.textAlign = "center";
     ctx.font = `18px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
@@ -6585,8 +6646,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       if (isLoading) {
         // Loading button as progress meter: dark background with fill
-        ctx.fillStyle = "rgba(40, 50, 70, 0.9)";
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.loadingBase;
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
         ctx.lineWidth = 2;
         roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
         // Progress fill (clipped to button shape)
@@ -6596,14 +6657,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.beginPath();
           ctx.roundRect(x, buttonY, buttonWidth, buttonHeight, 16);
           ctx.clip();
-          ctx.fillStyle = "#9BD9FF";
+          ctx.fillStyle = EMBER_BUTTON_PALETTE.loadingFill;
           ctx.fillRect(x, buttonY, fillWidth, buttonHeight);
           ctx.restore();
         }
       } else {
         // Normal button
-        ctx.fillStyle = "#9BD9FF";
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
         ctx.lineWidth = 2;
         roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
       }
@@ -6611,7 +6672,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
-      ctx.fillStyle = "#0b111a";
+      ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+      ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
       ctx.font = `600 22px ${UI_FONT_FAMILY}`;
@@ -7001,16 +7065,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
       ctx.shadowBlur = 12;
-      ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+      ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
       ctx.lineWidth = 2;
       roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, true, true);
       // Add focus ring effect
-      ctx.strokeStyle = "#FFD978";
+      ctx.strokeStyle = EMBER_BUTTON_PALETTE.focus;
       ctx.lineWidth = 3;
       roundRect(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20, false, true);
       ctx.shadowBlur = 0;
-      ctx.fillStyle = "#0b111a";
+      ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+      ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = `600 ${Math.round(22 * scaleHint)}px ${UI_FONT_FAMILY}`;
@@ -7352,14 +7419,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ],
         };
       }
-      ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+      ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
       ctx.lineWidth = 2;
       roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
       if (isAnnouncementButtonFocused("chapterBreak", 0)) {
         drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
       }
-      ctx.fillStyle = "#0b111a";
+      ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+      ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.font = `18px ${UI_FONT_FAMILY}`;
       ctx.textBaseline = "alphabetic";
@@ -9063,14 +9133,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const confirmX = Math.round((vw - confirmWidth) / 2);
 
     ctx.save();
-    ctx.fillStyle = confirmEnabled ? "#9BD9FF" : "rgba(80, 80, 90, 0.5)";
-    ctx.strokeStyle = confirmEnabled ? "rgba(255, 255, 255, 0.4)" : "rgba(120, 120, 130, 0.25)";
+    ctx.fillStyle = confirmEnabled
+      ? getEmberButtonGradient(ctx, confirmY, confirmHeight)
+      : EMBER_BUTTON_PALETTE.disabledFill;
+    ctx.strokeStyle = confirmEnabled ? EMBER_BUTTON_PALETTE.border : EMBER_BUTTON_PALETTE.disabledBorder;
     ctx.lineWidth = 2;
     roundRect(ctx, confirmX, confirmY, confirmWidth, confirmHeight, 18, true, true);
     if (isAnnouncementButtonFocused("denomUpgradeScreen", buttonCount)) {
       drawFocusRing(ctx, confirmX - 3, confirmY - 3, confirmWidth + 6, confirmHeight + 6, 20);
     }
-    ctx.fillStyle = confirmEnabled ? "#0b111a" : "rgba(180, 180, 190, 0.45)";
+    ctx.fillStyle = confirmEnabled ? EMBER_BUTTON_PALETTE.text : EMBER_BUTTON_PALETTE.textDisabled;
+    if (confirmEnabled) {
+      ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 1;
+    }
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `600 22px ${uiFontFamily}`;

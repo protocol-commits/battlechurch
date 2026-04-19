@@ -948,6 +948,16 @@ async function loadPlayerProgress() {
     // Check if gameplay assets are still loading
     const isLoading = typeof window !== "undefined" && !window.gameAssetsLoaded;
     const loadProgress = (typeof window !== "undefined" && window.gameLoadingProgress) || 0;
+    const buttonPalette = {
+      top: "#D76B2D",
+      bottom: "#8D2F1E",
+      border: "rgba(255, 210, 148, 0.82)",
+      loadingBase: "rgba(62, 20, 14, 0.94)",
+      loadingFill: "#F1882F",
+      text: "#FBEBC9",
+      textShadow: "rgba(34, 10, 8, 0.68)",
+      focus: "#F6C06E",
+    };
     const buttons = [
       { label: isLoading ? "Loading..." : "Play", x: startX, key: "play", isLoading },
       { label: "Back", x: startX + buttonW + gap, key: "back", isLoading: false },
@@ -957,8 +967,8 @@ async function loadPlayerProgress() {
       ctx.save();
       if (btn.isLoading) {
         // Loading button with progress bar
-        ctx.fillStyle = "rgba(40, 50, 70, 0.9)";
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.fillStyle = buttonPalette.loadingBase;
+        ctx.strokeStyle = buttonPalette.border;
         ctx.lineWidth = 2;
         roundRect(ctx, btn.x, buttonY, buttonW, buttonH, 16, true, true);
         // Progress fill
@@ -968,22 +978,28 @@ async function loadPlayerProgress() {
           ctx.beginPath();
           ctx.roundRect(btn.x, buttonY, buttonW, buttonH, 16);
           ctx.clip();
-          ctx.fillStyle = "#9BD9FF";
+          ctx.fillStyle = buttonPalette.loadingFill;
           ctx.fillRect(btn.x, buttonY, fillWidth, buttonH);
           ctx.restore();
         }
       } else {
-        ctx.fillStyle = "#9BD9FF";
-        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+        const buttonGradient = ctx.createLinearGradient(0, buttonY, 0, buttonY + buttonH);
+        buttonGradient.addColorStop(0, buttonPalette.top);
+        buttonGradient.addColorStop(1, buttonPalette.bottom);
+        ctx.fillStyle = buttonGradient;
+        ctx.strokeStyle = buttonPalette.border;
         ctx.lineWidth = 2;
         roundRect(ctx, btn.x, buttonY, buttonW, buttonH, 16, true, true);
       }
       if (index === state.panelFocus) {
-        ctx.strokeStyle = "#FFD978";
+        ctx.strokeStyle = buttonPalette.focus;
         ctx.lineWidth = 3;
         roundRect(ctx, btn.x - 2, buttonY - 2, buttonW + 4, buttonH + 4, 18, false, true);
       }
-      ctx.fillStyle = "#0b111a";
+      ctx.fillStyle = buttonPalette.text;
+      ctx.shadowColor = buttonPalette.textShadow;
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetY = 1;
       ctx.font = `600 16px ${UI_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";

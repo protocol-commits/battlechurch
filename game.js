@@ -322,7 +322,7 @@ const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9
 const DIVINE_SHOT_SFX_SRC = "assets/sfx/Weapons/spell11.mp3";
 const CONGREGATION_OVERLAY_WORD_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_OVERLAY_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
-const CONGREGATION_COUNT_POP_UP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
+const CONGREGATION_COUNT_POP_UP_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_COUNT_POP_DOWN_SFX_SRC = "assets/sfx/utility/utility3.mp3";
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
