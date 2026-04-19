@@ -6214,6 +6214,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     "waveCleared",
     "bossActive",
   ]);
+  const WAVE_ATMOSPHERE_TRANSITION_MS = 500;
   const WAVE_ATMOSPHERE_CONFIG = Object.freeze({
     assumedWavesPerBattle: 3,
     tintMinAlpha: 0.02,
@@ -6225,12 +6226,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ashBaseMinAlpha: 0.45,
     ashBaseMaxAlpha: 0.9,
   });
+  const waveAtmosphereTweenState = {
+    initialized: false,
+    lastMs: 0,
+    progress: 0,
+  };
 
-  function getWaveProgressRatio(levelStatus) {
-    if (!levelStatus || !WAVE_ATMOSPHERE_STAGES.has(levelStatus.stage || "")) return null;
+  function getWaveTargetProgress(levelStatus) {
+    if (!levelStatus || !WAVE_ATMOSPHERE_STAGES.has(levelStatus.stage || "")) return 0;
     if ((levelStatus.stage || "") === "bossActive") return 1;
     const totalWaves = Math.max(
-      2,
+      1,
       Number(levelStatus.waveTotal) || WAVE_ATMOSPHERE_CONFIG.assumedWavesPerBattle,
     );
     const waveNumber = Math.max(
@@ -6238,13 +6244,29 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       Number(levelStatus.waveNum) || Number(levelStatus.wave) || 1,
     );
     const clampedWave = Math.min(totalWaves, waveNumber);
-    return (clampedWave - 1) / (totalWaves - 1);
+    return clampedWave / totalWaves;
   }
 
-  function drawWaveProgressionAtmosphere(ctx, levelStatus, bounds) {
+  function getWaveProgressRatio(levelStatus) {
+    const target = Math.max(0, Math.min(1, getWaveTargetProgress(levelStatus)));
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (!waveAtmosphereTweenState.initialized) {
+      waveAtmosphereTweenState.initialized = true;
+      waveAtmosphereTweenState.lastMs = nowMs;
+      waveAtmosphereTweenState.progress = target;
+      return target;
+    }
+    const elapsedMs = Math.max(0, nowMs - (waveAtmosphereTweenState.lastMs || nowMs));
+    waveAtmosphereTweenState.lastMs = nowMs;
+    const durationMs = Math.max(1, WAVE_ATMOSPHERE_TRANSITION_MS);
+    const step = Math.max(0, Math.min(1, elapsedMs / durationMs));
+    waveAtmosphereTweenState.progress += (target - waveAtmosphereTweenState.progress) * step;
+    return Math.max(0, Math.min(1, waveAtmosphereTweenState.progress));
+  }
+
+  function drawWaveProgressionAtmosphere(ctx, progress, bounds) {
     if (!ctx || !bounds) return;
-    const progress = getWaveProgressRatio(levelStatus);
-    if (progress == null) return;
+    if (!(progress > 0.001)) return;
     const width = Math.max(0, bounds.width || 0);
     const height = Math.max(0, bounds.height || 0);
     if (width <= 0 || height <= 0) return;
@@ -8093,12 +8115,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const arenaWidth = canvas.width - fogWidth * 2;
     const arenaHeight = canvas.height - fogHeight;
     const waveProgress = getWaveProgressRatio(levelStatus);
-    const ashAlpha = waveProgress == null
-      ? 1
-      : (
-        WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha +
-        (WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress
-      );
+    const ashAlpha =
+      WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha +
+      (WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
       if (typeof ashOverlay.setBounds === "function") {
@@ -8118,7 +8137,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Screen-space fog should not move with the camera.
     drawWaveProgressionAtmosphere(
       ctx,
-      levelStatus,
+      waveProgress,
       { x: 0, y: 0, width: canvas.width, height: canvas.height },
     );
 

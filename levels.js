@@ -53,6 +53,7 @@
   const ACT_BREAK_MESSAGE_LEAD = 0.5;
   const ACT_BREAK_MESSAGE = "Wave Cleared";
   const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
+  const WAVE_INTENSITY_TRANSITION_SECONDS = 0.5;
   const GRACE_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
   const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
@@ -700,6 +701,25 @@
       }
     }
 
+    function scheduleWaveTransitionCue(waveNum, delaySeconds = 0) {
+      const delayMs = Math.max(0, (Number(delaySeconds) || 0) * 1000);
+      if (delayMs > 0 && typeof setTimeoutFn === "function") {
+        setTimeoutFn(() => {
+          // Don't play if battle context has moved on.
+          if (
+            state.stage !== "waveIntro" &&
+            state.stage !== "allKillBreak" &&
+            state.stage !== "waveActive"
+          ) {
+            return;
+          }
+          playWaveTransitionCue(waveNum);
+        }, delayMs);
+        return;
+      }
+      playWaveTransitionCue(waveNum);
+    }
+
     function hasActiveOpponents(includeBoss = true) {
       const activeEnemies = enemies.some((enemy) => !enemy.dead && enemy.state !== "death");
       const bossAlive =
@@ -1161,7 +1181,9 @@
       state.activeWave = currentWave();
       if (!state.activeWave) return;
       const actualWaveNumber = getActualWaveNumber(state.activeWave, state.waveIndex);
-      playWaveTransitionCue(actualWaveNumber);
+      if (actualWaveNumber > 1) {
+        scheduleWaveTransitionCue(actualWaveNumber, WAVE_INTENSITY_TRANSITION_SECONDS);
+      }
       if (typeof window !== "undefined" && typeof window.setCozyNpcsToFrontlineFormation === "function") {
         try {
           window.setCozyNpcsToFrontlineFormation();
@@ -1304,17 +1326,21 @@
           if (nextWaveIntroText) {
             const delayMs = preFadeDelay * 1000;
             const holdDuration = Math.max(1, breakerDuration - preFadeDelay);
+            const postTransitionDelayMs = Math.round(WAVE_INTENSITY_TRANSITION_SECONDS * 1000);
             if (typeof setTimeoutFn === "function") {
               setTimeoutFn(() => {
                 if (state.stage !== "allKillBreak") return;
                 state.breakPreviewWaveNum = Number.isFinite(nextActualWaveNumber)
                   ? nextActualWaveNumber
                   : null;
-                playWaveTransitionCue(nextActualWaveNumber);
-                queueLevelAnnouncement(nextWaveIntroText, "", {
-                  duration: holdDuration,
-                  skipMissionBrief: true,
-                });
+                setTimeoutFn(() => {
+                  if (state.stage !== "allKillBreak") return;
+                  playWaveTransitionCue(nextActualWaveNumber);
+                  queueLevelAnnouncement(nextWaveIntroText, "", {
+                    duration: Math.max(1, holdDuration - WAVE_INTENSITY_TRANSITION_SECONDS),
+                    skipMissionBrief: true,
+                  });
+                }, postTransitionDelayMs);
               }, delayMs);
             } else {
               state.breakPreviewWaveNum = Number.isFinite(nextActualWaveNumber)
