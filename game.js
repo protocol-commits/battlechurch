@@ -17448,6 +17448,15 @@ function setSharedBButtonCooldown(duration) {
   }
 }
 
+function isSharedBButtonReady() {
+  const current = Math.max(
+    playerDashState?.dashCooldown || 0,
+    window._meleeAttackState?.rushCooldown || 0,
+    window._meleeAttackState?.spinCooldown || 0,
+  );
+  return current <= 0;
+}
+
 function updateSharedBButtonCooldown(dt) {
   const current = Math.max(
     playerDashState?.dashCooldown || 0,
@@ -18793,6 +18802,9 @@ function applyDashSlashTravelDamage(meleeAttackState) {
 }
 
 function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
+  if (playerDashState?.isDashing) return false;
+  if (!isSharedBButtonReady()) return false;
+  if (!dir || (dir.x === 0 && dir.y === 0)) return false;
   if (!skipYell) playerYell("Rush Attack", 2.4);
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
@@ -18829,6 +18841,7 @@ function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
   meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
   playRushAttackSfx(0.9);
+  return true;
 }
 
 function getTeleportFallbackTarget() {
@@ -19031,11 +19044,12 @@ function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false }
 
 function executeSwordRush(meleeAttackState) {
   if (!player) return;
-  playerYell("Sword Rush!");
   const dir = getDashButtonDirection();
   const angleRad = Math.atan2(dir.y, dir.x);
+  const startedRush = executeRushAttack(dir, meleeAttackState, { skipYell: true });
+  if (!startedRush) return;
+  playerYell("Sword Rush!");
   executeDivineShot(dir, meleeAttackState, angleRad, { skipYell: true });
-  executeRushAttack(dir, meleeAttackState, { skipYell: true });
 }
 
 function updateRingOfFireMotion(dt, meleeAttackState) {
@@ -19669,6 +19683,7 @@ function updateMeleeAttackSystem(dt) {
         !(meleeAttackState.spinCharging && !comboRushKeyOrder) &&
         !(meleeAttackState.spinButtonDown && !comboRushKeyOrder) &&
         meleeAttackState.rushLockTimer <= 0 &&
+        playerDashState.dashCooldown <= 0 &&
         !playerDashState.isDashing &&
         (comboRushKeyOrder ||
           (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
@@ -19678,13 +19693,15 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.spinButtonDown = false;
       meleeAttackState.spinCharging = false;
       meleeAttackState.spinChargeTimer = 0;
-      executeRushAttack(getDashButtonDirection(), meleeAttackState);
-      meleeAttackState.awaitRush = false;
-      meleeAttackState.awaitTimer = 0;
-      meleeAttackState.rushBypassUntil = 0;
-      keysJustPressed.delete("ArrowLeft");
-      keysJustPressed.delete(" ");
-      comboTriggered = true;
+      const startedRush = executeRushAttack(getDashButtonDirection(), meleeAttackState);
+      if (startedRush) {
+        meleeAttackState.awaitRush = false;
+        meleeAttackState.awaitTimer = 0;
+        meleeAttackState.rushBypassUntil = 0;
+        keysJustPressed.delete("ArrowLeft");
+        keysJustPressed.delete(" ");
+        comboTriggered = true;
+      }
     }
     const holyDashCost = player ? (player.prayerChargeRequired || 60) / 6 : 10;
     // C/B Holy Dash: C must have been tapped (released) recently, then B pressed.
@@ -19757,8 +19774,11 @@ function updateMeleeAttackSystem(dt) {
     const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     if (bJustPressed && !meleeAttackState.spinButtonDown && !comboTriggered) {
-      if (meleeAttackState.meleeCancelUntil && now <= meleeAttackState.meleeCancelUntil) {
+      const startedCancelRush =
+        meleeAttackState.meleeCancelUntil &&
+        now <= meleeAttackState.meleeCancelUntil &&
         executeRushAttack(getDashButtonDirection(), meleeAttackState);
+      if (startedCancelRush) {
         meleeAttackState.spinCharging = false;
         meleeAttackState.spinButtonDown = false;
         meleeAttackState.spinChargeTimer = 0;
