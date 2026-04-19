@@ -19030,7 +19030,7 @@ function executePowerupTeleport(meleeAttackState) {
   if (!player) return;
   const target = meleeAttackState.teleportGhostTarget || getNearestActivePowerup();
   if (!target) return;
-  playerYell("Blink!");
+  playerYell("Teleport");
   player.x = target.x;
   player.y = target.y;
   resolveEntityObstacles(player);

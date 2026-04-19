@@ -8087,9 +8087,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (player) {
       const _ghostTarget = window._meleeAttackState?.teleportGhostTarget;
       if (_ghostTarget) {
+        const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+        // Ghost copy only: white-ish pulse, no marker overlay.
         ctx.save();
-        ctx.globalAlpha = 0.5 + 0.18 * Math.sin(Date.now() * 0.009);
-        ctx.filter = "sepia(1) saturate(6) hue-rotate(15deg)";
+        ctx.globalAlpha = 0.3 + 0.08 * Math.sin(now * 9.0);
+        ctx.filter = "grayscale(1) brightness(2.35) contrast(0.45) blur(0.9px)";
+        ctx.shadowColor = "rgba(255, 255, 255, 0.55)";
+        ctx.shadowBlur = 10;
         player.animator.draw(ctx, _ghostTarget.x, _ghostTarget.y, { flipX: player.facing === "left" });
         ctx.restore();
       }
