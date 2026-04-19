@@ -1776,9 +1776,10 @@ const GRACE_RUSH_FAREWELL_LINES = [
   "See you around church.",
   "See you Sunday.",
   "Thanks!",
-  "God bless you, Pastor.",
-  "See you next week!",
-  "Thank you so much.",
+];
+const VICTORY_OPENING_LINES = [
+  "This really helped me.",
+  "This really helped me.",
 ];
 
 function resetGraceRushNpcFarewellState({ resetAlpha = true } = {}) {
@@ -1790,6 +1791,7 @@ function resetGraceRushNpcFarewellState({ resetAlpha = true } = {}) {
   npcs.forEach((npc) => {
     if (!npc) return;
     npc.graceRushNpcFadeAlpha = 1;
+    npc.graceRushFarewellIndex = null;
   });
 }
 
@@ -1800,16 +1802,12 @@ function prepareGraceRushNpcFarewellQueue() {
     ? npcs.filter((npc) => npc && !npc.departed && npc.active)
     : [];
   if (!activeSurvivors.length) return;
-  const speakerCount = Math.min(5, activeSurvivors.length);
+  const speakerCount = activeSurvivors.length;
   const shuffled = [...activeSurvivors].sort(() => Math.random() - 0.5);
   const picked = shuffled.slice(0, speakerCount);
-  const usedLines = new Set();
-  graceRushState.farewellQueue = picked.map((npc) => {
-    const available = GRACE_RUSH_FAREWELL_LINES.filter((l) => !usedLines.has(l));
-    const pool = available.length ? available : GRACE_RUSH_FAREWELL_LINES;
-    const line = pool[Math.floor(Math.random() * pool.length)];
-    usedLines.add(line);
-    return { npc, line };
+  graceRushState.farewellQueue = picked.map((npc, index) => {
+    npc.graceRushFarewellIndex = index;
+    return { npc, line: null };
   });
   graceRushState.farewellNextAt = 0.35;
   graceRushState.farewellSpokenCount = 0;
@@ -2658,7 +2656,7 @@ function updateGraceRushState(dt) {
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
-    resetGraceRushNpcFarewellState();
+    resetGraceRushNpcFarewellState({ resetAlpha: false });
     return;
   }
   graceRushState.elapsed = Math.max(0, graceRushState.elapsed + dt);
@@ -2666,17 +2664,23 @@ function updateGraceRushState(dt) {
   graceRushState.spawnTimer = (graceRushState.spawnTimer || 0) - dt;
   if (graceRushState.reason !== "boss") {
     const duration = Math.max(0.001, graceRushState.duration || 0);
-    const queueLen = graceRushState.farewellQueue.length || 0;
-    const fadeStart = queueLen > 0
-      ? 0.35 + (queueLen - 1) * 1.0 + 0.5
-      : 0.5;
-    const fadeSpan = 1.4;
-    const fadeProgress = Math.max(0, Math.min(1, (graceRushState.elapsed - fadeStart) / fadeSpan));
-    const npcFadeAlpha = Math.max(0, 1 - fadeProgress);
+    const queueLen = Math.max(1, graceRushState.farewellQueue.length || 0);
+    const fadeBaseStart = 0.45;
+    const totalStaggerWindow = Math.max(0.8, Math.min(2.0, duration - 2.2));
+    const perNpcStagger = queueLen > 1 ? totalStaggerWindow / (queueLen - 1) : 0;
+    const perNpcFadeDuration = 0.95;
     if (Array.isArray(npcs)) {
       npcs.forEach((npc) => {
         if (!npc || npc.departed || !npc.active) return;
-        npc.graceRushNpcFadeAlpha = npcFadeAlpha;
+        const orderIndex = Number.isFinite(npc.graceRushFarewellIndex)
+          ? Math.max(0, npc.graceRushFarewellIndex)
+          : 0;
+        const npcFadeStart = fadeBaseStart + orderIndex * perNpcStagger;
+        const fadeProgress = Math.max(
+          0,
+          Math.min(1, (graceRushState.elapsed - npcFadeStart) / Math.max(0.2, perNpcFadeDuration)),
+        );
+        npc.graceRushNpcFadeAlpha = Math.max(0, 1 - fadeProgress);
       });
     }
 
@@ -2685,14 +2689,14 @@ function updateGraceRushState(dt) {
       graceRushState.elapsed >= graceRushState.farewellNextAt
     ) {
       const entry = graceRushState.farewellQueue[graceRushState.farewellSpokenCount];
-      if (entry?.npc && !entry.npc.departed && entry.npc.active) {
-        npcCheer(entry.npc, entry.line, "#fffbe8", { life: 3.1, fadeDelay: 2.3 });
+      if (entry?.line && entry?.npc && !entry.npc.departed && entry.npc.active) {
+        npcCheer(entry.npc, entry.line, "#fffbe8", { life: 5.2, fadeDelay: 4.2, vy: 0 });
       }
       graceRushState.farewellSpokenCount += 1;
-      graceRushState.farewellNextAt += 1.0;
+      graceRushState.farewellNextAt += 1.25;
     }
   } else {
-    resetGraceRushNpcFarewellState();
+    resetGraceRushNpcFarewellState({ resetAlpha: false });
   }
   if (graceRushState.spawnTimer <= 0) {
     spawnVictoryGraceBurst({
@@ -3034,47 +3038,58 @@ function triggerNpcPowerupDialogue(effectKey) {
 }
 
 function showBattleVictoryNpcDialogue() {
-  const config = CONGREGATION_BATTLE_VICTORY_DIALOGUE;
-  const candidates = Array.isArray(config.lines) ? config.lines.slice() : [];
-  if (!candidates.length) return false;
   const responders = getCongregationConversationResponders().slice();
   if (!responders.length) return false;
-  const maxSpeakers = Math.max(1, Math.round(config.maxSpeakers || 5));
-  const life = Number.isFinite(Number(config.life)) ? Math.max(0.1, Number(config.life)) : 5.6;
-  const staggerStep = Number.isFinite(Number(config.staggerStep))
-    ? Math.max(0, Number(config.staggerStep))
-    : 0.18;
-  const formationLabel = getCurrentFormationDialogueLabel();
-  const speakerCount = Math.min(maxSpeakers, responders.length, candidates.length);
+  const speakerCount = responders.length;
+  const life = 5.6;
+  const fadeDelay = 4.1;
+  const initialPostKillDelay = 2.0;
+  const helpedStaggerStep = 1.55;
+  const goodbyeStartDelay = 2.2;
+  const goodbyeStaggerStep = 1.45;
+  const usedGoodbyes = new Set();
   battleVictoryDialogueState.queue.length = 0;
   for (let i = 0; i < speakerCount; i += 1) {
     const speaker = responders.splice(Math.floor(Math.random() * responders.length), 1)[0];
-    const lineFactory = candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0];
+    if (!speaker) continue;
+    const isHelpedLine = i < VICTORY_OPENING_LINES.length;
     const line =
-      typeof lineFactory === "function"
-        ? lineFactory(formationLabel)
-        : lineFactory;
-    if (!speaker || !line) continue;
+      isHelpedLine
+        ? VICTORY_OPENING_LINES[i]
+        : (() => {
+            const available = GRACE_RUSH_FAREWELL_LINES.filter((text) => !usedGoodbyes.has(text));
+            const pool = available.length ? available : GRACE_RUSH_FAREWELL_LINES;
+            const selected = pool[Math.floor(Math.random() * pool.length)];
+            usedGoodbyes.add(selected);
+            return selected;
+          })();
+    const delay = isHelpedLine
+      ? initialPostKillDelay + i * helpedStaggerStep
+      : initialPostKillDelay + goodbyeStartDelay + (i - VICTORY_OPENING_LINES.length) * goodbyeStaggerStep;
     battleVictoryDialogueState.queue.push({
-      delay: i * staggerStep,
+      delay,
       speaker,
       line,
       life,
+      fadeDelay,
     });
   }
   return battleVictoryDialogueState.queue.length > 0;
 }
 
 function updateBattleVictoryNpcDialogue(dt) {
-  for (let i = 0; i < battleVictoryDialogueState.queue.length; ) {
+  for (let i = 0; i < battleVictoryDialogueState.queue.length; i += 1) {
     const event = battleVictoryDialogueState.queue[i];
     event.delay -= dt;
-    if (event.delay <= 0) {
-      npcCheer(event.speaker, event.line, "#f4fbff", { life: event.life });
-      battleVictoryDialogueState.queue.splice(i, 1);
-    } else {
-      i += 1;
-    }
+  }
+  const readyIndex = battleVictoryDialogueState.queue.findIndex((event) => event.delay <= 0);
+  if (readyIndex >= 0) {
+    const [event] = battleVictoryDialogueState.queue.splice(readyIndex, 1);
+    npcCheer(event.speaker, event.line, "#f4fbff", {
+      life: event.life,
+      fadeDelay: event.fadeDelay || 0,
+      vy: 0,
+    });
   }
 }
 
@@ -7001,10 +7016,18 @@ function spawnSinglePowerUpDrop() {
 }
 
 function queuePowerUpDrops(count = 1) {
+  const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
+  if (stageName === "victoryCelebrate") return;
   queuedPowerUpDrops += Math.max(0, Math.floor(count));
 }
 
 function processQueuedPowerUpDrops() {
+  const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
+  if (stageName === "victoryCelebrate") {
+    queuedPowerUpDrops = 0;
+    powerUpStaggerTimer = 0;
+    return false;
+  }
   if (queuedPowerUpDrops <= 0 || powerUpStaggerTimer > 0) return false;
   const spawned = spawnSinglePowerUpDrop();
   if (!spawned) return false;
@@ -7014,8 +7037,10 @@ function processQueuedPowerUpDrops() {
 }
 
 function spawnPowerUpDrops(count = 1) {
+  const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
+  if (stageName === "victoryCelebrate") return false;
   queuePowerUpDrops(count);
-  processQueuedPowerUpDrops();
+  return processQueuedPowerUpDrops();
 }
 
 const EARLY_BOSS_TYPE_POOL = ["bossHighDemon"];
@@ -14874,6 +14899,13 @@ function tryTriggerCongregationDialogueFromMelee(dir, swingCenterX, swingCenterY
 
 function updateCozyNpcs(dt, options = {}) {
   const previewOnly = Boolean(options?.previewOnly);
+  const levelStatus = typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
+  const stageName = levelStatus?.stage || "";
+  const isVictoryCalmStage =
+    stageName === "victoryCelebrate" ||
+    (stageName === "graceRush" && graceRushState.reason !== "boss");
+  const npcMotionTimeScale = isVictoryCalmStage ? 0.25 : 1;
+  const shouldRestoreVictoryNpcAlpha = stageName !== "victoryCelebrate" && stageName !== "graceRush";
   if (npcsSuspended) return;
   if (!previewOnly && formationState) {
     formationState.swapCooldown = Math.max(0, (formationState.swapCooldown || 0) - dt);
@@ -14982,17 +15014,20 @@ function updateCozyNpcs(dt, options = {}) {
 
   for (let i = npcs.length - 1; i >= 0; i -= 1) {
     const npc = npcs[i];
+    if (shouldRestoreVictoryNpcAlpha && Number.isFinite(npc?.graceRushNpcFadeAlpha)) {
+      npc.graceRushNpcFadeAlpha = 1;
+      npc.graceRushFarewellIndex = null;
+    }
     if (!previewOnly) {
       const timerScale = getNpcTimerScale();
       npc.damageCooldown = Math.max(0, (npc.damageCooldown || 0) - dt * timerScale);
     }
-    npc.update(dt, { previewOnly });
+    npc.update(dt * npcMotionTimeScale, { previewOnly });
 
     // Player-touch restores NPCs to full faith
     try {
       if (!previewOnly) {
-      const status = typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
-      const inGraceRush = status?.stage === "graceRush";
+      const inGraceRush = stageName === "graceRush";
       if (
         ((npc.state === "lostFaith" || npc.state === "drained") || inGraceRush) &&
         player &&
@@ -21031,7 +21066,7 @@ function updateGame(dt) {
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
-    resetGraceRushNpcFarewellState();
+    resetGraceRushNpcFarewellState({ resetAlpha: false });
     graceRushFadeTimer = 0;
     graceRushFadeDuration = 0;
     graceRushFadeAlpha = 0;

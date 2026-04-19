@@ -1451,6 +1451,7 @@
     }
 
     function beginBattleVictoryCelebrate(monthName) {
+      clearStagePowerUps();
       resetStage("victoryCelebrate", VICTORY_CELEBRATE_DURATION);
       state.finalWaveDelay = 0;
       state.graceRushContext = null;
