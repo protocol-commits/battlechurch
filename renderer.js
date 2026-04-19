@@ -1342,7 +1342,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
   const promptSize = 0;
   const displayButtons = showButtons !== false;
-  const buttonHeight = displayButtons ? (showFormation ? 120 : 72) : 0;
+  const buttonHeight = displayButtons ? (showFormation ? 148 : 72) : 0;
   const layoutButtonCount = displayButtons ? (showFormation ? 3 : 1) : 0;
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -1496,18 +1496,21 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           label: "GUIDED COURSE",
           desc: "Focused teaching and practical insight",
           stat: "+Damage",
+          iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
         },
         {
           key: "line",
           label: "BIBLE STUDY",
           desc: "Scripture study and shared prayer",
           stat: "+Rate of Fire",
+          iconSrc: "assets/sprites/items/icons/I25_Book.png",
         },
         {
           key: "crescent",
           label: "CARE GROUP",
           desc: "Guided group sharing and mutual support",
           stat: "+Power-up duration",
+          iconSrc: "assets/sprites/items/icons/I41_Candle.png",
         },
       ]
     : [
@@ -1545,40 +1548,126 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   }
 
   const bounds = [];
+  const { powerupIconStyles } = requireBindings();
+  const formationButtonHeight = showFormation ? 148 : buttonHeight;
     buttonConfigs.forEach((config, index) => {
       const x = showFormation ? buttonStartX + index * (buttonWidth + buttonGap) : buttonStartX;
       ctx.save();
-      ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.lineWidth = 2;
-      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
-      if (isAnnouncementButtonFocused("missionBrief", index)) {
-        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
-        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
+      if (showFormation) {
+        const cardX = x;
+        const cardY = buttonY;
+        const cardW = buttonWidth;
+        const cardH = formationButtonHeight;
+        const cardRadius = 16;
+        const headerHeight = 42;
+        const baseGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+        baseGradient.addColorStop(0, "#2A2118");
+        baseGradient.addColorStop(0.55, "#3A2E21");
+        baseGradient.addColorStop(1, "#1E1812");
+        ctx.shadowColor = "rgba(8, 6, 4, 0.55)";
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 8;
+        ctx.fillStyle = baseGradient;
+        roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
+        ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(200, 160, 90, 0.85)";
+        roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, true);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+        roundRect(ctx, cardX + 3, cardY + 3, cardW - 6, cardH - 6, 12, false, true);
+        ctx.save();
+        roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, false);
+        ctx.clip();
+        const headerGradient = ctx.createLinearGradient(0, cardY, 0, cardY + headerHeight);
+        headerGradient.addColorStop(0, "#5B4328");
+        headerGradient.addColorStop(1, "#3E2E1D");
+        ctx.fillStyle = headerGradient;
+        ctx.fillRect(cardX, cardY, cardW, headerHeight);
+        ctx.fillStyle = "rgba(230, 195, 130, 0.3)";
+        ctx.fillRect(cardX, cardY + headerHeight - 2, cardW, 2);
+        ctx.restore();
+
+        if (isAnnouncementButtonFocused("missionBrief", index)) {
+          drawFocusRing(ctx, cardX - 3, cardY - 3, cardW + 6, cardH + 6, 20);
+          drawButtonReflection(ctx, cardX, cardY, cardW, cardH, cardRadius, 0.35);
+        }
+
+        const iconImage = getChurchPowerupIcon(config.iconSrc);
+        const iconSize = 30;
+        drawChurchPowerupIcon(ctx, {
+          x: cardX + 24,
+          y: cardY + headerHeight / 2,
+          size: iconSize,
+          iconImage: iconImage || getUpgradeIcon("category"),
+          style: powerupIconStyles?.player || CHURCH_POWERUP_ICON_DEFAULT,
+        });
+
+        const textLeft = cardX + 24 + iconSize;
+        const textRight = cardX + cardW - 14;
+        const textWidth = Math.max(20, textRight - textLeft);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = `800 15px ${uiFontFamily}`;
+        ctx.fillStyle = "#F3E2C4";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetY = 1;
+        ctx.fillText(config.label, textLeft, cardY + headerHeight / 2 + 1);
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.font = `600 13px ${uiFontFamily}`;
+        const descriptionLines = wrapAnnouncementText(ctx, config.desc || "", textWidth);
+        ctx.fillStyle = "rgba(235, 220, 195, 0.9)";
+        const descTop = cardY + headerHeight + 24;
+        const descLineH = 16;
+        descriptionLines.slice(0, 3).forEach((line, lineIndex) => {
+          ctx.fillText(line, textLeft, descTop + lineIndex * descLineH);
+        });
+
+        const statText = config.stat || "";
+        if (statText) {
+          const badgePadX = 12;
+          const badgeH = 24;
+          ctx.font = `700 13px ${uiFontFamily}`;
+          const badgeW = ctx.measureText(statText).width + badgePadX * 2;
+          const badgeX = textLeft;
+          const badgeY = cardY + cardH - 34;
+          ctx.fillStyle = "rgba(120, 34, 34, 0.95)";
+          ctx.strokeStyle = "rgba(255, 220, 170, 0.8)";
+          ctx.lineWidth = 1.5;
+          roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 12, true, true);
+          ctx.fillStyle = "#F6E6C6";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(statText, badgeX + badgeW / 2, badgeY + badgeH / 2);
+        }
+      } else {
+        ctx.fillStyle = "#9BD9FF";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.lineWidth = 2;
+        roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 18, true, true);
+        if (isAnnouncementButtonFocused("missionBrief", index)) {
+          drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
+          drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
+        }
+        ctx.fillStyle = "#0b111a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `600 24px ${uiFontFamily}`;
+        ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 40);
       }
-      ctx.fillStyle = "#0b111a";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = `600 ${showFormation ? 28 : 24}px ${uiFontFamily}`;
-    ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 40);
-    if (config.desc) {
-      ctx.font = `16px ${uiFontFamily}`;
-      ctx.fillStyle = "rgba(11, 17, 26, 0.78)";
-      ctx.fillText(config.desc, x + buttonWidth / 2, buttonY + 66);
-    }
-    if (config.stat) {
-      ctx.font = `700 15px ${uiFontFamily}`;
-      ctx.fillStyle = "rgba(11, 17, 26, 0.7)";
-      ctx.fillText(config.stat, x + buttonWidth / 2, buttonY + 90);
-    }
-    ctx.restore();
+      ctx.restore();
 
     bounds.push({
       key: config.key,
       x: layout.offsetX + x * layout.scale,
       y: layout.offsetY + buttonY * layout.scale,
       width: buttonWidth * layout.scale,
-      height: buttonHeight * layout.scale,
+      height: (showFormation ? formationButtonHeight : buttonHeight) * layout.scale,
     });
   });
 
