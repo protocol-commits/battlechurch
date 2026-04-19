@@ -12144,6 +12144,7 @@ class BossEncounter {
     this.deathExplosionTimer = 0;
     this.deathExplosionAccumulator = 0;
     this.deathPostDelay = 0;
+    this.deathVisualTotal = 0;
     this.victoryAnnounced = false;
     this.safeTopMargin = Math.max(this.radius * 0.8, 160);
     const spawnX = Math.max(this.radius + 20, canvas.width - this.radius - 36);
@@ -12487,6 +12488,7 @@ class BossEncounter {
     this.deathExplosionTimer = 5;
     this.deathPostDelay = 3;
     this.deathExplosionAccumulator = 0;
+    this.deathVisualTotal = this.deathExplosionTimer + this.deathPostDelay;
     eliminateActiveEnemiesForBossVictory();
     // compute fallback death timer from clip (prefer explicit frameMap length)
     try {
@@ -12508,14 +12510,20 @@ class BossEncounter {
     const hbOffsetY = hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
     const hbHalfW = hitbox && Number.isFinite(hitbox.width) ? hitbox.width * 0.5 : this.radius;
     const hbHalfH = hitbox && Number.isFinite(hitbox.height) ? hitbox.height * 0.5 : this.radius;
-    // Center of the bottom 1/5th of the hitbox
-    const burstCenterX = this.x + hbOffsetX;
-    const burstCenterY = this.y + hbOffsetY + hbHalfH * 0.8; // 0.5 + 0.4*height = bottom fifth center
-    const burstCount = 1 + Math.floor(Math.random() * 3);
+    // Hitbox is tiny versus the rendered boss sprite, so apply an explicit
+    // screen-space lift to keep explosions over the visible corpse.
+    const corpseVisualLift = -72;
+    const burstCenterX = this.x + hbOffsetX - 70;
+    const burstCenterY = this.y + hbOffsetY + hbHalfH * 0.0 + corpseVisualLift;
+    const burstCount = 2 + Math.floor(Math.random() * 3);
+    const burstRadius = Math.max(hbHalfW, hbHalfH) * 1.05;
     for (let i = 0; i < burstCount; i += 1) {
-      const burstX = burstCenterX + (Math.random() * 2 - 1) * hbHalfW * 0.9;
-      const burstY = burstCenterY + (Math.random() * 2 - 1) * hbHalfH * 0.2;
-      spawnMagicImpactEffect(burstX, burstY);
+      const burstX = burstCenterX + (Math.random() * 2 - 1) * hbHalfW * 1.2;
+      const burstY = burstCenterY + (Math.random() * 2 - 1) * hbHalfH * 0.45;
+      spawnEnemyDeathExplosion(burstX, burstY, {
+        radius: burstRadius,
+        scaleMultiplier: 1.2,
+      });
       if (Math.random() < 0.45) {
         spawnImpactDustEffect(burstX, burstY, this.radius * 0.4);
       }
@@ -12542,6 +12550,18 @@ class BossEncounter {
     if (this.deathPostDelay > 0) {
       this.deathPostDelay = Math.max(0, this.deathPostDelay - dt);
     }
+  }
+
+  getDeathFadeAlpha() {
+    if (this.state !== "death") return 1;
+    const total = Number.isFinite(this.deathVisualTotal) ? this.deathVisualTotal : 0;
+    if (total <= 0) return 1;
+    const remaining =
+      Math.max(0, Number.isFinite(this.deathExplosionTimer) ? this.deathExplosionTimer : 0) +
+      Math.max(0, Number.isFinite(this.deathPostDelay) ? this.deathPostDelay : 0);
+    const linear = Math.max(0, Math.min(1, remaining / total));
+    const fastFadeExponent = 2.2;
+    return Math.pow(linear, fastFadeExponent);
   }
 
   update(dt) {
@@ -12618,11 +12638,13 @@ class BossEncounter {
   draw(context) {
     if (!this.isActive()) return;
     const flip = this.facing === "left";
-    this.animator.draw(context, this.x, this.y, { flipX: flip });
-    this.drawHealthBar(context);
+    const fadeAlpha = this.getDeathFadeAlpha();
+    this.animator.draw(context, this.x, this.y, { flipX: flip, alpha: fadeAlpha });
+    this.drawHealthBar(context, fadeAlpha);
   }
 
-  drawHealthBar(context) {
+  drawHealthBar(context, alpha = 1) {
+    if (alpha <= 0) return;
     const ratio = this.maxHealth > 0 ? Math.max(0, this.health / this.maxHealth) : 0;
     const metrics = this.getHpBarMetrics();
     const width = metrics.width;
@@ -12634,6 +12656,7 @@ class BossEncounter {
     const hpMax = Math.max(1, Math.round(this.maxHealth || 1));
     const label = `${labelName} (${hpValue}/${hpMax})`;
     context.save();
+    context.globalAlpha *= Math.max(0, Math.min(1, alpha));
     context.fillStyle = "rgba(10,15,31,0.6)";
     context.lineWidth = 2.5;
     context.strokeStyle = "#9BD9FF";

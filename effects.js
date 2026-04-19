@@ -264,23 +264,23 @@
     return spawnRayboltEffect(x, y, radius || 40);
   }
 
-  let deathExplosionToggle = false;
-
-  function spawnEnemyDeathExplosion(x, y, { radius = null } = {}) {
+  function spawnEnemyDeathExplosion(x, y, { radius = null, scaleMultiplier = 1 } = {}) {
     const assets = resolveAssets();
     const variants = [];
     if (assets?.effects?.enemyDeathExplosion?.length) variants.push(assets.effects.enemyDeathExplosion);
     if (assets?.effects?.enemyDeathExplosionAlt?.length) variants.push(assets.effects.enemyDeathExplosionAlt);
     if (assets?.effects?.enemyDeathExplosionAlt2?.length) variants.push(assets.effects.enemyDeathExplosionAlt2);
     if (!variants.length) return null;
-    deathExplosionToggle = !deathExplosionToggle;
-    const index = deathExplosionToggle ? 0 : Math.min(variants.length - 1, 1);
+    const index = Math.floor(Math.random() * variants.length);
     const frames = variants[index] || variants[0];
     if (!frames || !frames.length) return null;
     const base = Math.max(frames[0].width, frames[0].height) || 1;
     let scale = 4.2; // even bigger default flame
     if (radius) {
       scale = (radius * 3.2) / base; // more overscale relative to enemy size
+    }
+    if (Number.isFinite(scaleMultiplier) && scaleMultiplier > 0) {
+      scale *= scaleMultiplier;
     }
     return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.045, scale });
   }
