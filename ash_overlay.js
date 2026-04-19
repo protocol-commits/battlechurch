@@ -162,6 +162,14 @@ class AshOverlay {
     this.sizeScale = next;
   }
 
+  setParticleCount(count) {
+    const next = Math.max(40, Math.min(600, Math.round(Number(count))));
+    if (!Number.isFinite(next) || next === this.count) return;
+    this.count = next;
+    this.particles = new Array(this.count);
+    this._seedParticles();
+  }
+
   _seedParticles() {
     const emberCount = Math.max(1, Math.round(this.count * this.emberRatio));
     for (let i = 0; i < this.count; i += 1) {

@@ -304,6 +304,7 @@ const RECAP_TICK_SFX_SRC = "assets/sfx/utility/utility9.mp3";
 const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const INTRO_MUSIC_SRC = "assets/music/title-music.mp3";
 const BATTLE_MUSIC_SRC = "assets/music/battle-music.mp3";
+const WAVE3_BATTLE_MUSIC_SRC = "assets/music/boss-fight-4.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
@@ -430,6 +431,7 @@ if (playerDeathBellAudio) {
 const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
+  battleWave3: typeof Audio !== "undefined" ? new Audio(WAVE3_BATTLE_MUSIC_SRC) : null,
   recap: typeof Audio !== "undefined" ? new Audio(RECAP_MUSIC_SRC) : null,
   visitor: typeof Audio !== "undefined" ? new Audio(VISITOR_MUSIC_SRC) : null,
   exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
@@ -450,6 +452,7 @@ const musicState = {
   exteriorBossStopped: false,
   bossDeathStopped: false,
   exteriorKind: "normal",
+  battleTrack: "base",
   battlePrimed: false,
   awaitingUserGesture: false,
   unlocked: false,
@@ -459,6 +462,10 @@ if (musicState.intro) musicState.intro.preload = "auto";
 if (musicState.battle) {
   musicState.battle.preload = "auto";
   musicState.battle.loop = true;
+}
+if (musicState.battleWave3) {
+  musicState.battleWave3.preload = "auto";
+  musicState.battleWave3.loop = true;
 }
 if (musicState.recap) {
   musicState.recap.preload = "auto";
@@ -529,6 +536,19 @@ function getEffectiveMusicVolume(volume) {
   return clamp01((Number.isFinite(volume) ? volume : 1) * audioSettings.musicVolume);
 }
 
+function getBattleTrackAudio(track = musicState.battleTrack) {
+  return track === "wave3" ? musicState.battleWave3 : musicState.battle;
+}
+
+function getCurrentBattleAudio() {
+  return getBattleTrackAudio(musicState.battleTrack);
+}
+
+function getDesiredBattleTrack(levelStatus) {
+  const waveNum = Math.max(0, Number(levelStatus?.waveNum) || 0);
+  return waveNum >= 3 ? "wave3" : "base";
+}
+
 function refreshMusicPlayback() {
   if (!musicState.unlocked) return;
   if (!audioSettings.musicEnabled) {
@@ -537,7 +557,18 @@ function refreshMusicPlayback() {
   }
   const tracks = [
     { audio: musicState.intro, started: musicState.introStarted, stopped: musicState.introStopped, volume: MUSIC_VOLUME_INTRO },
-    { audio: musicState.battle, started: musicState.battleStarted, stopped: musicState.battleStopped, volume: MUSIC_VOLUME_BATTLE },
+    {
+      audio: musicState.battle,
+      started: musicState.battleStarted && musicState.battleTrack === "base",
+      stopped: musicState.battleStopped,
+      volume: MUSIC_VOLUME_BATTLE,
+    },
+    {
+      audio: musicState.battleWave3,
+      started: musicState.battleStarted && musicState.battleTrack === "wave3",
+      stopped: musicState.battleStopped,
+      volume: MUSIC_VOLUME_BATTLE,
+    },
     { audio: musicState.recap, started: musicState.recapStarted, stopped: musicState.recapStopped, volume: MUSIC_VOLUME_BATTLE },
     { audio: musicState.visitor, started: musicState.visitorStarted, stopped: musicState.visitorStopped, volume: MUSIC_VOLUME_BATTLE },
     { audio: musicState.exterior, started: musicState.exteriorStarted, stopped: musicState.exteriorStopped, volume: MUSIC_VOLUME_INTRO },
@@ -748,9 +779,10 @@ if (typeof window !== "undefined") {
 function playPlayerDeathBell(volume = 1.0) {
   if (!playerDeathBellAudio) return;
   const effectiveVolume = getEffectiveSfxVolume(volume);
+  const activeBattleAudio = getCurrentBattleAudio();
   playerDeathBellResume = {
     intro: Boolean(musicState.intro && !musicState.intro.paused && !musicState.introStopped),
-    battle: Boolean(musicState.battle && !musicState.battle.paused && !musicState.battleStopped),
+    battle: Boolean(activeBattleAudio && !activeBattleAudio.paused && !musicState.battleStopped),
     recap: Boolean(musicState.recap && !musicState.recap.paused && !musicState.recapStopped),
   };
   playerDeathBellActive = true;
@@ -1138,16 +1170,24 @@ function stopIntroMusic() {
   fadeAudio(musicState.intro, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
 }
 
-function startBattleMusic() {
-  if (!musicState.battle) return;
+function startBattleMusic(track = "base") {
+  const desiredTrack = track === "wave3" ? "wave3" : "base";
+  const desiredAudio = getBattleTrackAudio(desiredTrack);
+  if (!desiredAudio) return;
   // If boss exterior music is playing, don't start regular battle music - let boss music continue
   if (musicState.exteriorBossStarted && !musicState.exteriorBossStopped) return;
   if (musicState.bossDeathStarted && !musicState.bossDeathStopped) return;
-  cancelFade(musicState.battle);
+  const currentAudio = getCurrentBattleAudio();
+  if (currentAudio && currentAudio !== desiredAudio) {
+    cancelFade(currentAudio);
+    fadeAudio(currentAudio, { to: 0, durationMs: MUSIC_FADE_FAST_MS, stopOnZero: true });
+  }
+  cancelFade(desiredAudio);
   if (musicState.exteriorStarted && !musicState.exteriorStopped) stopExteriorMusic();
+  musicState.battleTrack = desiredTrack;
   musicState.battleStopped = false;
   musicState.battleStarted = true;
-  playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+  playMusic(desiredAudio, { volume: MUSIC_VOLUME_BATTLE, loop: true });
 }
 
 function startBossDeathMusic() {
@@ -1289,16 +1329,18 @@ function stopVisitorMusic() {
 }
 
 function stopBattleMusicFast() {
-  if (!musicState.battle || musicState.battleStopped) return;
+  const activeBattleAudio = getCurrentBattleAudio();
+  if (!activeBattleAudio || musicState.battleStopped) return;
   musicState.battleStopped = true;
-  fadeAudio(musicState.battle, { to: 0, durationMs: MUSIC_FADE_FAST_MS, stopOnZero: true });
+  fadeAudio(activeBattleAudio, { to: 0, durationMs: MUSIC_FADE_FAST_MS, stopOnZero: true });
 }
 
 function fadeOutBattleMusic() {
-  if (!musicState.battle || musicState.battleStopped) return;
+  const activeBattleAudio = getCurrentBattleAudio();
+  if (!activeBattleAudio || musicState.battleStopped) return;
   musicState.battleStopped = true;
   musicState.battleStarted = false;
-  fadeAudio(musicState.battle, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
+  fadeAudio(activeBattleAudio, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
 }
 
 function startActBreakFade(holdSeconds = ACT_BREAK_HOLD_SECONDS) {
@@ -1322,6 +1364,7 @@ function startGraceRushEndFade(duration = 1) {
 function pauseAllMusic() {
   if (musicState.intro) musicState.intro.pause();
   if (musicState.battle) musicState.battle.pause();
+  if (musicState.battleWave3) musicState.battleWave3.pause();
   if (musicState.recap) musicState.recap.pause();
   if (musicState.visitor) musicState.visitor.pause();
   if (musicState.exterior) musicState.exterior.pause();
@@ -1345,10 +1388,18 @@ function resumeBattleMusicIfNeeded() {
     stage === "bossActive" ||
     musicState.battlePrimed;
   if (shouldPlay) {
+    const desiredTrack = getDesiredBattleTrack(status);
     if (!musicState.battleStarted) {
-      startBattleMusic();
-    } else if (musicState.battle && musicState.battle.paused) {
-      playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+      startBattleMusic(desiredTrack);
+    } else {
+      if (musicState.battleTrack !== desiredTrack) {
+        startBattleMusic(desiredTrack);
+        return;
+      }
+      const activeBattleAudio = getCurrentBattleAudio();
+      if (activeBattleAudio && activeBattleAudio.paused) {
+        playMusic(activeBattleAudio, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+      }
     }
   }
 }
@@ -1375,7 +1426,8 @@ function unlockMusicOnGesture() {
   // Don't auto-start intro music on first click - wait for Play button
   // But do start battle music if we're already in a battle
   if (!musicState.battleStarted && !musicState.battleStopped && shouldStartBattleMusicNow()) {
-    startBattleMusic();
+    const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+    startBattleMusic(getDesiredBattleTrack(status));
   }
 }
 
@@ -1403,6 +1455,12 @@ function resetMusicState() {
     musicState.battle.pause();
     musicState.battle.currentTime = 0;
     musicState.battle.volume = 0;
+  }
+  if (musicState.battleWave3) {
+    cancelFade(musicState.battleWave3);
+    musicState.battleWave3.pause();
+    musicState.battleWave3.currentTime = 0;
+    musicState.battleWave3.volume = 0;
   }
   if (musicState.recap) {
     cancelFade(musicState.recap);
@@ -1449,6 +1507,7 @@ function resetMusicState() {
   musicState.exteriorBossStopped = false;
   musicState.bossDeathStopped = false;
   musicState.exteriorKind = "normal";
+  musicState.battleTrack = "base";
   musicState.awaitingUserGesture = false;
   musicState.unlocked = false;
 }
@@ -14878,8 +14937,11 @@ function updateDeathBellAudio(dt) {
           if (playerDeathBellResume.intro && musicState.intro) {
             playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
           }
-          if (playerDeathBellResume.battle && musicState.battle) {
-            playMusic(musicState.battle, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+          if (playerDeathBellResume.battle) {
+            const activeBattleAudio = getCurrentBattleAudio();
+            if (activeBattleAudio) {
+              playMusic(activeBattleAudio, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+            }
           }
           if (playerDeathBellResume.recap && musicState.recap) {
             playMusic(musicState.recap, { volume: MUSIC_VOLUME_BATTLE, loop: false });
@@ -15112,6 +15174,7 @@ function updateSpeedrunTimer(levelStatus) {
 
 function updateMusicState(levelStatus) {
   const stage = levelStatus?.stage;
+  const desiredBattleTrack = getDesiredBattleTrack(levelStatus);
   if (playerDeathBellActive) {
     pauseAllMusic();
     return;
@@ -15134,6 +15197,7 @@ function updateMusicState(levelStatus) {
     stage === "battleIntro" ||
     stage === "waveIntro" ||
     stage === "waveActive" ||
+    stage === "allKillBreak" ||
     stage === "waveCleared" ||
     stage === "bossIntro" ||
     stage === "bossActive" ||
@@ -15145,8 +15209,8 @@ function updateMusicState(levelStatus) {
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
     if (musicState.visitorStarted && !musicState.visitorStopped) stopVisitorMusic();
     if (musicState.introStarted && !musicState.introStopped) stopIntroMusic();
-    if (musicState.unlocked && !musicState.battleStarted) {
-      startBattleMusic();
+    if (musicState.unlocked) {
+      startBattleMusic(desiredBattleTrack);
     }
   } else if (musicState.battleStarted && !musicState.battleStopped) {
     fadeOutBattleMusic();

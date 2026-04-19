@@ -6231,6 +6231,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     lastMs: 0,
     progress: 0,
   };
+  const ashEmberTuneState = {
+    particleCount: null,
+    emberRatio: null,
+    intensity: null,
+    sizeScale: null,
+  };
 
   function getWaveTargetProgress(levelStatus) {
     if (!levelStatus || !WAVE_ATMOSPHERE_STAGES.has(levelStatus.stage || "")) return 0;
@@ -6445,10 +6451,38 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     console.log("drawChapterBreakScreen called - actNumber:", chapterBreakActNumber, "fadeAlpha:", actBreakFadeAlpha, "hasImage:", !!chapterBreakImage);
 
-    // Draw background image
+    // Draw background image (Act 1 gets heat shimmer like title/map).
     if (chapterBreakImage) {
       ctx.save();
-      ctx.drawImage(chapterBreakImage, 0, 0, canvas.width, canvas.height);
+      if (chapterBreakActNumber === 1) {
+        const stripHeight = 14;
+        const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+        const amp = 0.9;
+        const srcW = chapterBreakImage.width || 1;
+        const srcHAll = chapterBreakImage.height || 1;
+        const scaleY = canvas.height / srcHAll;
+        const drawW = canvas.width + amp * 2;
+        for (let y = 0; y < srcHAll; y += stripHeight) {
+          const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
+          const offset = wave * amp;
+          const srcH = Math.min(stripHeight, srcHAll - y);
+          const destY = y * scaleY;
+          const destH = srcH * scaleY;
+          ctx.drawImage(
+            chapterBreakImage,
+            0,
+            y,
+            srcW,
+            srcH,
+            -amp + offset,
+            destY,
+            drawW,
+            destH,
+          );
+        }
+      } else {
+        ctx.drawImage(chapterBreakImage, 0, 0, canvas.width, canvas.height);
+      }
       ctx.restore();
     } else {
       // Fallback: dark background
@@ -7386,8 +7420,45 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       };
     }
     if (townIntroActive) {
+      const introAnnouncement = levelAnnouncements?.[0] || {};
+      const introOrderNumber = Number.isFinite(introAnnouncement.upcomingOrderNumber)
+        ? introAnnouncement.upcomingOrderNumber
+        : 1;
       const effectiveCameraX = resolveCameraX();
-      drawBackground(effectiveCameraX, 0);
+      if (introOrderNumber === 1 && assets?.backgrounds?.townIntro) {
+        const introImage = assets.backgrounds.townIntro;
+        const stripHeight = 14;
+        const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+        const amp = 0.9;
+        const focusX = 0.5;
+        const focusY = 0.5;
+        const baseScale = Math.max(canvas.width / introImage.width, canvas.height / introImage.height);
+        const drawW = introImage.width * baseScale;
+        const drawH = introImage.height * baseScale;
+        const offsetX = canvas.width * focusX - drawW * focusX;
+        const offsetY = canvas.height * focusY - drawH * focusY;
+        const scaleY = drawH / introImage.height;
+        for (let y = 0; y < introImage.height; y += stripHeight) {
+          const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
+          const offset = wave * amp;
+          const srcH = Math.min(stripHeight, introImage.height - y);
+          const destY = offsetY + y * scaleY;
+          const destH = srcH * scaleY;
+          ctx.drawImage(
+            introImage,
+            0,
+            y,
+            introImage.width,
+            srcH,
+            offsetX + offset,
+            destY,
+            drawW,
+            destH,
+          );
+        }
+      } else {
+        drawBackground(effectiveCameraX, 0);
+      }
       const fireOverlay = requireBindings().fireOverlay;
       if (fireOverlay && typeof fireOverlay.draw === "function") {
         if (typeof fireOverlay.setBounds === "function") {
@@ -8115,21 +8186,41 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const arenaWidth = canvas.width - fogWidth * 2;
     const arenaHeight = canvas.height - fogHeight;
     const waveProgress = getWaveProgressRatio(levelStatus);
+    const currentWaveNumber = Math.max(
+      1,
+      Number(levelStatus?.waveNum) || Number(levelStatus?.wave) || 1,
+    );
+    const waveThreeEmberBoost = currentWaveNumber >= 3;
     const ashAlpha =
       WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha +
       (WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
-      if (typeof ashOverlay.setBounds === "function") {
-        ashOverlay.setBounds(fogWidth, 0, arenaWidth, arenaHeight);
+      const targetParticleCount = waveThreeEmberBoost ? 180 : 100;
+      const targetEmberRatio = waveThreeEmberBoost ? 0.82 : 0.55;
+      const targetIntensity = waveThreeEmberBoost ? 1.55 : 1.0;
+      const targetSizeScale = 1.0;
+      if (typeof ashOverlay.setParticleCount === "function" && ashEmberTuneState.particleCount !== targetParticleCount) {
+        ashOverlay.setParticleCount(targetParticleCount);
+        ashEmberTuneState.particleCount = targetParticleCount;
       }
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(fogWidth, 0, arenaWidth, arenaHeight);
-      ctx.clip();
+      if (typeof ashOverlay.setEmberRatio === "function" && ashEmberTuneState.emberRatio !== targetEmberRatio) {
+        ashOverlay.setEmberRatio(targetEmberRatio);
+        ashEmberTuneState.emberRatio = targetEmberRatio;
+      }
+      if (typeof ashOverlay.setIntensity === "function" && ashEmberTuneState.intensity !== targetIntensity) {
+        ashOverlay.setIntensity(targetIntensity);
+        ashEmberTuneState.intensity = targetIntensity;
+      }
+      if (typeof ashOverlay.setSizeScale === "function" && ashEmberTuneState.sizeScale !== targetSizeScale) {
+        ashOverlay.setSizeScale(targetSizeScale);
+        ashEmberTuneState.sizeScale = targetSizeScale;
+      }
+      if (typeof ashOverlay.setBounds === "function") {
+        ashOverlay.setBounds(0, 0, canvas.width, canvas.height);
+      }
       ctx.globalAlpha = Math.max(0, Math.min(1, ashAlpha));
       ashOverlay.draw(ctx);
-      ctx.restore();
     }
 
     ctx.restore();
