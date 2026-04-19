@@ -6216,14 +6216,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ]);
   const WAVE_ATMOSPHERE_CONFIG = Object.freeze({
     assumedWavesPerBattle: 3,
-    tintMinAlpha: 0.04,
-    tintMaxAlpha: 0.15,
-    tintColor: "rgba(130, 24, 14, 1)",
-    emberMinAlpha: 0.03,
-    emberMaxAlpha: 0.11,
-    emberColor: "rgba(255, 96, 30, 1)",
-    ashBoostMinAlpha: 0.05,
-    ashBoostMaxAlpha: 0.2,
+    tintMinAlpha: 0.02,
+    tintMaxAlpha: 0.1,
+    tintColor: "rgba(165, 14, 22, 1)",
+    emberMinAlpha: 0.06,
+    emberMaxAlpha: 0.24,
+    emberColor: "rgba(255, 52, 28, 1)",
+    ashBaseMinAlpha: 0.45,
+    ashBaseMaxAlpha: 0.9,
   });
 
   function getWaveProgressRatio(levelStatus) {
@@ -6241,7 +6241,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     return (clampedWave - 1) / (totalWaves - 1);
   }
 
-  function drawWaveProgressionAtmosphere(ctx, levelStatus, bounds, ashOverlay) {
+  function drawWaveProgressionAtmosphere(ctx, levelStatus, bounds) {
     if (!ctx || !bounds) return;
     const progress = getWaveProgressRatio(levelStatus);
     if (progress == null) return;
@@ -6282,21 +6282,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillRect(x, y, width, height);
     ctx.restore();
 
-    // Increase ash density as waves climb.
-    if (ashOverlay && typeof ashOverlay.draw === "function") {
-      const ashBoostAlpha =
-        WAVE_ATMOSPHERE_CONFIG.ashBoostMinAlpha +
-        (WAVE_ATMOSPHERE_CONFIG.ashBoostMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBoostMinAlpha) * progress;
-      if (ashBoostAlpha > 0.001) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, y, width, height);
-        ctx.clip();
-        ctx.globalAlpha = Math.max(0, Math.min(1, ashBoostAlpha));
-        ashOverlay.draw(ctx);
-        ctx.restore();
-      }
-    }
   }
 
   function getEmberButtonGradient(ctx, y, height) {
@@ -8107,6 +8092,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const fogHeight = 90;
     const arenaWidth = canvas.width - fogWidth * 2;
     const arenaHeight = canvas.height - fogHeight;
+    const waveProgress = getWaveProgressRatio(levelStatus);
+    const ashAlpha = waveProgress == null
+      ? 1
+      : (
+        WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha +
+        (WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress
+      );
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
       if (typeof ashOverlay.setBounds === "function") {
@@ -8116,19 +8108,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.beginPath();
       ctx.rect(fogWidth, 0, arenaWidth, arenaHeight);
       ctx.clip();
+      ctx.globalAlpha = Math.max(0, Math.min(1, ashAlpha));
       ashOverlay.draw(ctx);
       ctx.restore();
     }
-    drawWaveProgressionAtmosphere(
-      ctx,
-      levelStatus,
-      { x: fogWidth, y: 0, width: arenaWidth, height: arenaHeight },
-      ashOverlay,
-    );
 
     ctx.restore();
 
     // Screen-space fog should not move with the camera.
+    drawWaveProgressionAtmosphere(
+      ctx,
+      levelStatus,
+      { x: 0, y: 0, width: canvas.width, height: canvas.height },
+    );
 
     ctx.save();
     ctx.globalAlpha = 1.0;

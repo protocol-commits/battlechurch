@@ -641,12 +641,14 @@
       powerUpsEnabled: false,
       lastClearedWasBoss: false,
       skipPostBattleAdvance: false,
+      breakPreviewWaveNum: null,
     };
 
     function resetStage(stage, duration = 0) {
       state.stage = stage;
       state.timer = duration;
       state.conversationQueue.length = 0;
+      state.breakPreviewWaveNum = null;
     }
 
     function scheduleConversation(delay, action) {
@@ -1286,12 +1288,19 @@
             const holdDuration = Math.max(1, breakerDuration - preFadeDelay);
             if (typeof setTimeoutFn === "function") {
               setTimeoutFn(() => {
+                if (state.stage !== "allKillBreak") return;
+                state.breakPreviewWaveNum = Number.isFinite(nextActualWaveNumber)
+                  ? nextActualWaveNumber
+                  : null;
                 queueLevelAnnouncement(nextWaveIntroText, "", {
                   duration: holdDuration,
                   skipMissionBrief: true,
                 });
               }, delayMs);
             } else {
+              state.breakPreviewWaveNum = Number.isFinite(nextActualWaveNumber)
+                ? nextActualWaveNumber
+                : null;
               queueLevelAnnouncement(nextWaveIntroText, "", {
                 duration: holdDuration,
                 skipMissionBrief: true,
@@ -1839,9 +1848,13 @@ state.waveIndex = -1;
         const derivedWaveNum = state.waveIndex >= 0
           ? Math.floor(state.waveIndex / Math.max(1, HORDES_PER_WAVE)) + 1
           : 0;
+        const previewWaveNum = (state.stage === "allKillBreak" && Number.isFinite(state.breakPreviewWaveNum))
+          ? state.breakPreviewWaveNum
+          : null;
         const actualWaveNum = Number.isFinite(currentHordeDef?.waveNumber)
           ? currentHordeDef.waveNumber
           : derivedWaveNum;
+        const statusWaveNum = previewWaveNum || actualWaveNum;
         const actualWaveTotal = getBattleWaveCount(battleDef);
         return {
           level: state.level || 1,
@@ -1851,7 +1864,7 @@ state.waveIndex = -1;
           wave: waveNumber,
           actNum: currentHordeDef?.actNumber ?? derivedActNum,
           missionNum: currentHordeDef?.missionNumber ?? derivedMissionNum,
-          waveNum: actualWaveNum || null,
+          waveNum: statusWaveNum || null,
           waveTotal: actualWaveTotal,
           hordeNum: currentHordeDef?.hordeInWave ?? null,
           stage: state.stage,
