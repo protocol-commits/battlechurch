@@ -12215,11 +12215,11 @@ class BossEncounter {
     this.deathStageNotified = false;
     this.victoryAnnounced = false;
     this.safeTopMargin = Math.max(this.radius * 0.8, 160);
-    const spawnX = Math.max(this.radius + 20, canvas.width - this.radius - 36);
+    const spawnX = Math.max(this.radius + 20, canvas.width - this.radius - 36 - 200);
     const playfieldCenterY = HUD_HEIGHT + (canvas.height - HUD_HEIGHT) / 2;
     const spawnY = Math.max(
       HUD_HEIGHT + this.safeTopMargin,
-      Math.min(canvas.height - this.safeTopMargin, playfieldCenterY),
+      Math.min(canvas.height - this.safeTopMargin, playfieldCenterY - 150),
     );
     this.x = spawnX;
     this.y = spawnY;
