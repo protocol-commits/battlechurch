@@ -309,6 +309,10 @@ const BOSS_DEATH_EXPLOSION_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_40.wav",
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
+const BOSS_LIGHTNING_THUNDER_SFX_SRCS = [
+  "assets/sfx/rpg/Explosions/Explosions_8.wav",
+  "assets/sfx/rpg/Explosions/Explosions_40.wav",
+];
 const BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE = 6;
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
@@ -379,6 +383,7 @@ const SENTRY_BEAM_SFX_POOL_SIZE = 3;
 const SENTRY_BORE_LOOP_SFX_POOL_SIZE = 4;
 const SPEAR_TURN_SFX_POOL_SIZE = 4;
 const SPEAR_HIT_SFX_POOL_SIZE = 4;
+const BOSS_LIGHTNING_THUNDER_SFX_POOL_SIZE = 4;
 const PLAYER_DEATH_BELL_FADE_DELAY = 7;
 const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
@@ -433,6 +438,7 @@ const sentryBoreLoopSfxPool = [];
 const sentryBoreKillSfxPool = [];
 const spearTurnSfxPool = [];
 const spearHitSfxPool = [];
+const bossLightningThunderSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
@@ -747,6 +753,15 @@ function playSpearHitSfx(volume = 0.75) {
     spearHitSfxPool,
     SPEAR_HIT_SFX_SRCS,
     SPEAR_HIT_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
+}
+
+function playBossLightningThunderSfx(volume = 0.5) {
+  playPooledSfx(
+    bossLightningThunderSfxPool,
+    BOSS_LIGHTNING_THUNDER_SFX_SRCS,
+    BOSS_LIGHTNING_THUNDER_SFX_POOL_SIZE,
     { volume, matchSrc: true },
   );
 }
@@ -2714,6 +2729,99 @@ let hpFlashTimer = 0;
 let hitFreezeTimer = 0;
 let cameraShakeTimer = 0;
 let cameraShakeMagnitude = 0;
+let bossLightningFlashAlpha = 0;
+const BOSS_LIGHTNING_ATMO_MIN_INTERVAL = 3.6;
+const BOSS_LIGHTNING_ATMO_MAX_INTERVAL = 8.2;
+const BOSS_LIGHTNING_ATMO_FLASH_DURATION = 0.24;
+const BOSS_LIGHTNING_ATMO_FLASH_MIN_INTENSITY = 0.12;
+const BOSS_LIGHTNING_ATMO_FLASH_MAX_INTENSITY = 0.24;
+const BOSS_LIGHTNING_ATMO_SHAKE_DURATION = 0.12;
+const BOSS_LIGHTNING_ATMO_SHAKE_MIN = 1.8;
+const BOSS_LIGHTNING_ATMO_SHAKE_MAX = 3.4;
+const BOSS_LIGHTNING_ATMO_ECHO_CHANCE = 0.34;
+const BOSS_LIGHTNING_ATMO_ECHO_MIN_DELAY = 0.1;
+const BOSS_LIGHTNING_ATMO_ECHO_MAX_DELAY = 0.22;
+const bossLightningAtmosphere = {
+  active: false,
+  nextStrikeTimer: 0,
+  echoTimer: 0,
+  flashTimer: 0,
+  flashDuration: BOSS_LIGHTNING_ATMO_FLASH_DURATION,
+  flashIntensity: 0,
+};
+
+function getBossLightningRandomInterval() {
+  return (
+    BOSS_LIGHTNING_ATMO_MIN_INTERVAL +
+    Math.random() * Math.max(0.001, BOSS_LIGHTNING_ATMO_MAX_INTERVAL - BOSS_LIGHTNING_ATMO_MIN_INTERVAL)
+  );
+}
+
+function queueBossLightningStrike() {
+  const intensity =
+    BOSS_LIGHTNING_ATMO_FLASH_MIN_INTENSITY +
+    Math.random() * Math.max(0.001, BOSS_LIGHTNING_ATMO_FLASH_MAX_INTENSITY - BOSS_LIGHTNING_ATMO_FLASH_MIN_INTENSITY);
+  bossLightningAtmosphere.flashDuration = BOSS_LIGHTNING_ATMO_FLASH_DURATION;
+  bossLightningAtmosphere.flashTimer = BOSS_LIGHTNING_ATMO_FLASH_DURATION;
+  bossLightningAtmosphere.flashIntensity = intensity;
+  const shakeMag =
+    BOSS_LIGHTNING_ATMO_SHAKE_MIN +
+    Math.random() * Math.max(0.001, BOSS_LIGHTNING_ATMO_SHAKE_MAX - BOSS_LIGHTNING_ATMO_SHAKE_MIN);
+  applyCameraShake(BOSS_LIGHTNING_ATMO_SHAKE_DURATION, shakeMag);
+  playBossLightningThunderSfx(0.5 + Math.random() * 0.16);
+}
+
+function resetBossLightningAtmosphere() {
+  bossLightningAtmosphere.active = false;
+  bossLightningAtmosphere.nextStrikeTimer = 0;
+  bossLightningAtmosphere.echoTimer = 0;
+  bossLightningAtmosphere.flashTimer = 0;
+  bossLightningAtmosphere.flashIntensity = 0;
+  bossLightningFlashAlpha = 0;
+}
+
+function updateBossLightningAtmosphere(dt) {
+  const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
+  const stage = levelStatus?.stage || "";
+  const bossAtmosphereActive = stage === "bossIntro" || stage === "bossActive";
+  if (!bossAtmosphereActive) {
+    resetBossLightningAtmosphere();
+    return;
+  }
+  if (paused) return;
+  if (!bossLightningAtmosphere.active) {
+    bossLightningAtmosphere.active = true;
+    bossLightningAtmosphere.nextStrikeTimer = 1.8 + Math.random() * 2.2;
+    bossLightningAtmosphere.echoTimer = 0;
+  }
+  bossLightningAtmosphere.nextStrikeTimer = Math.max(0, bossLightningAtmosphere.nextStrikeTimer - dt);
+  if (bossLightningAtmosphere.nextStrikeTimer <= 0) {
+    queueBossLightningStrike();
+    bossLightningAtmosphere.nextStrikeTimer = getBossLightningRandomInterval();
+    bossLightningAtmosphere.echoTimer =
+      Math.random() < BOSS_LIGHTNING_ATMO_ECHO_CHANCE
+        ? BOSS_LIGHTNING_ATMO_ECHO_MIN_DELAY +
+          Math.random() * Math.max(0.001, BOSS_LIGHTNING_ATMO_ECHO_MAX_DELAY - BOSS_LIGHTNING_ATMO_ECHO_MIN_DELAY)
+        : 0;
+  }
+  if (bossLightningAtmosphere.echoTimer > 0) {
+    bossLightningAtmosphere.echoTimer = Math.max(0, bossLightningAtmosphere.echoTimer - dt);
+    if (bossLightningAtmosphere.echoTimer <= 0) {
+      queueBossLightningStrike();
+    }
+  }
+  if (bossLightningAtmosphere.flashTimer > 0) {
+    bossLightningAtmosphere.flashTimer = Math.max(0, bossLightningAtmosphere.flashTimer - dt);
+    const t =
+      bossLightningAtmosphere.flashDuration > 0
+        ? bossLightningAtmosphere.flashTimer / bossLightningAtmosphere.flashDuration
+        : 0;
+    const eased = Math.max(0, Math.min(1, t * t));
+    bossLightningFlashAlpha = bossLightningAtmosphere.flashIntensity * eased;
+  } else {
+    bossLightningFlashAlpha = 0;
+  }
+}
 
 function applyCameraShake(duration, magnitude) {
   if (duration <= 0 || magnitude <= 0) return;
@@ -3890,6 +3998,7 @@ Renderer.initialize({
   resolveCongregationCollisions,
   get touchControlsVisible() { return Boolean(Input?.virtualInput?.enabled); },
   get touchControlsAvailable() { return Boolean(touchControlsRoot); },
+  get bossLightningFlashAlpha() { return bossLightningFlashAlpha; },
   get postDeathSequenceActive() { return postDeathSequenceActive; },
   get heroLives() { return heroLives; },
   get hpFlashTimer() { return hpFlashTimer; },
@@ -16890,6 +16999,7 @@ function updateCongregationStage(dt, levelStatus) {
 }
 
 function updateCameraAndVisualEffects(dt) {
+  updateBossLightningAtmosphere(dt);
   if (cameraShakeTimer > 0) {
     cameraShakeTimer = Math.max(0, cameraShakeTimer - dt);
   }

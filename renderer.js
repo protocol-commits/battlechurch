@@ -8546,6 +8546,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
+    const bossLightningFlashAlpha = requireBindings().bossLightningFlashAlpha || 0;
+    if (bossLightningFlashAlpha > 0) {
+      const flicker = 0.86 + Math.random() * 0.24;
+      const alpha = Math.max(0, Math.min(0.45, bossLightningFlashAlpha * flicker));
+      if (alpha > 0.001) {
+        ctx.save();
+        ctx.fillStyle = `rgba(206, 232, 255, ${alpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+    }
+
     if (actBreakFadeAlpha > 0) {
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.5, actBreakFadeAlpha * 0.5)})`;
