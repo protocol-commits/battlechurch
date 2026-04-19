@@ -298,6 +298,12 @@ const SPEAR_HIT_SFX_SRCS = [
 ];
 const SENTRY_BORE_KILL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const PRAYER_BOMB_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
+const BOSS_DEATH_EXPLOSION_SFX_SRCS = [
+  "assets/sfx/rpg/Explosions/Explosions_8.wav",
+  "assets/sfx/rpg/Explosions/Explosions_40.wav",
+  "assets/sfx/rpg/Explosions/Explosions_24.wav",
+];
+const BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE = 6;
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const RECAP_TICK_SFX_SRC = "assets/sfx/utility/utility9.mp3";
@@ -398,6 +404,7 @@ const wisdomHitSfxPool = [];
 const faithHitSfxPool = [];
 const prayerBombSfxPool = [];
 const prayerBombRainSfxPool = [];
+const bossDeathExplosionSfxPool = [];
 const menuSelectSfxPool = [];
 const menuMoveSfxPool = [];
 const enemySpawnSfxPool = [];
@@ -12510,6 +12517,8 @@ class BossEncounter {
         spawnRayboltEffect(burstX, burstY, this.radius * 0.55);
       }
     }
+    const sfxVolume = 0.55 + Math.random() * 0.35;
+    playPooledSfx(bossDeathExplosionSfxPool, BOSS_DEATH_EXPLOSION_SFX_SRCS, BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE, { volume: sfxVolume, matchSrc: true });
   }
 
   updateDeathVisuals(dt) {
@@ -20981,7 +20990,7 @@ function updateDebugOverlayData() {
     arrowSfxPool, enemyHitSfxPool, enemyDeathSfxPool, swordSfxPool,
     swordKillSfxPool, fireballSfxPool, wisdomSfxPool, faithCannonSfxPool,
     powerupPickupSfxPool, wisdomHitSfxPool, faithHitSfxPool, prayerBombSfxPool,
-    prayerBombRainSfxPool, menuSelectSfxPool, enemySpawnSfxPool, gracePickupSfxPool,
+    prayerBombRainSfxPool, bossDeathExplosionSfxPool, menuSelectSfxPool, enemySpawnSfxPool, gracePickupSfxPool,
     visitorHitSfxPool, chattyHitSfxPool, visitorSavedSfxPool, npcHurtSfxPool,
     playerHurtSfxPool
   ];
