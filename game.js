@@ -18870,7 +18870,7 @@ function applyDashSlashTravelDamage(meleeAttackState) {
 }
 
 function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
-  if (!skipYell) playerYell("Rush Attack!", 2.4);
+  if (!skipYell) playerYell("Rush Attack", 2.4);
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -18941,7 +18941,7 @@ function getNearestActivePowerup() {
 
 function executeProtectedDash(meleeAttackState) {
   if (!player) return;
-  playerYell("Guardian Rush!");
+  playerYell("Power Dash");
   const target = getNearestActivePowerup();
   let dir;
   if (target) {

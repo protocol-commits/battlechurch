@@ -257,6 +257,16 @@
     const player = playerResolver();
     if (!player || !line) return;
     const bubbleLife = Math.max(0.1, life);
+    const existing = activeTexts.find(
+      (ft) => ft && ft.speechBubble && ft.bubbleTheme === "hero" && ft.life > 0,
+    );
+    if (existing) {
+      existing.text = existing.text + " & " + line;
+      existing.life = Math.max(existing.life, bubbleLife);
+      existing.initialLife = Math.max(existing.initialLife, bubbleLife);
+      existing.fadeLength = Math.max(existing.fadeLength, bubbleLife);
+      return;
+    }
     const bubble = add(line, "#f1f5ff", {
       speechBubble: true,
       vy: 0,
