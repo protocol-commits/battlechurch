@@ -2665,8 +2665,11 @@ function updateGraceRushState(dt) {
   graceRushState.spawnTimer = (graceRushState.spawnTimer || 0) - dt;
   if (graceRushState.reason !== "boss") {
     const duration = Math.max(0.001, graceRushState.duration || 0);
-    const fadeStart = 0.4;
-    const fadeSpan = Math.max(0.6, duration - fadeStart);
+    const queueLen = graceRushState.farewellQueue.length || 0;
+    const fadeStart = queueLen > 0
+      ? 0.35 + (queueLen - 1) * 1.0 + 0.5
+      : 0.5;
+    const fadeSpan = 1.4;
     const fadeProgress = Math.max(0, Math.min(1, (graceRushState.elapsed - fadeStart) / fadeSpan));
     const npcFadeAlpha = Math.max(0, 1 - fadeProgress);
     if (Array.isArray(npcs)) {
@@ -2685,7 +2688,7 @@ function updateGraceRushState(dt) {
         npcCheer(entry.npc, entry.line, "#fffbe8", { life: 3.1, fadeDelay: 2.3 });
       }
       graceRushState.farewellSpokenCount += 1;
-      graceRushState.farewellNextAt += 0.6;
+      graceRushState.farewellNextAt += 1.0;
     }
   } else {
     resetGraceRushNpcFarewellState();

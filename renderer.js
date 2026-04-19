@@ -5725,8 +5725,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawCongregationCommandMeter(player, battleNpcs = []) {
-    const { ctx, WORLD_SCALE = 1 } = requireBindings();
+    const { ctx, WORLD_SCALE = 1, levelManager } = requireBindings();
     if (!ctx || !player || player.state === "death") return;
+    const _stage = levelManager?.getStatus?.()?.stage;
+    if (_stage !== "waveActive" && _stage !== "bossActive" && _stage !== "waveIntro") return;
     const getRatio =
       typeof player.getCongregationCommandChargeRatio === "function"
         ? player.getCongregationCommandChargeRatio.bind(player)

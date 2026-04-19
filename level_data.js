@@ -177,7 +177,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 2,
-                  "introText": "This would be an intro level to teach people how to play.",
+                  "introText": "In our next session, let's focus our faith.",
                   "breakerDuration": 3,
                   "hordes": [
                     {
@@ -276,7 +276,7 @@ window.BattlechurchLevelData = {
                 },
                 {
                   "index": 3,
-                  "introText": "Let's finish strong!",
+                  "introText": "In our final session, encourage one another.",
                   "breakerDuration": 3,
                   "hordes": [
                     {
