@@ -18962,6 +18962,35 @@ function getNearestActivePowerup() {
   return nearest;
 }
 
+function getActiveTeleportPowerups() {
+  const targets = [];
+  const collect = (arr, isActive) => {
+    arr.forEach((p) => {
+      if (!p || !isActive(p)) return;
+      targets.push(p);
+    });
+  };
+  collect(weaponPickups, (p) => p.active && !p.expired);
+  collect(utilityPowerUps, (p) => !p.collected && !p.dead);
+  collect(churchPowerupPickups, (p) => !p.collected && !p.dead);
+  return targets;
+}
+
+function getNearestTeleportTargetIndex(targets) {
+  if (!player || !Array.isArray(targets) || !targets.length) return -1;
+  let nearestIndex = 0;
+  let nearestDist = Infinity;
+  for (let i = 0; i < targets.length; i += 1) {
+    const target = targets[i];
+    const d = Math.hypot(target.x - player.x, target.y - player.y);
+    if (d < nearestDist) {
+      nearestDist = d;
+      nearestIndex = i;
+    }
+  }
+  return nearestIndex;
+}
+
 function executeProtectedDash(meleeAttackState) {
   if (!player) return;
   playerYell("Power Dash");
@@ -18999,7 +19028,7 @@ window.npcsYell = npcsYell;
 
 function executePowerupTeleport(meleeAttackState) {
   if (!player) return;
-  const target = getNearestActivePowerup() || meleeAttackState.teleportGhostTarget;
+  const target = meleeAttackState.teleportGhostTarget || getNearestActivePowerup();
   if (!target) return;
   playerYell("Blink!");
   player.x = target.x;
@@ -19479,6 +19508,7 @@ function updateMeleeAttackSystem(dt) {
     abSuperArmed: false,
     bcTeleportArmed: false,
     teleportGhostTarget: null,
+    teleportTargetIndex: -1,
     bcTeleportBlockTimer: 0,
     cBHolyDashBlockTimer: 0,
     doubleStrikePending: false,
@@ -19887,13 +19917,34 @@ function updateMeleeAttackSystem(dt) {
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
       if (!meleeAttackState.bcTeleportArmed && bFullyCharged && cHeld && hasPrayerForTeleport) {
         meleeAttackState.bcTeleportArmed = true;
+        meleeAttackState.teleportTargetIndex = -1;
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       }
       if (meleeAttackState.bcTeleportArmed) {
-        const nearestPU = getNearestActivePowerup();
-        if (nearestPU) {
-          meleeAttackState.teleportGhostTarget = { x: nearestPU.x, y: nearestPU.y };
-        } else if (!meleeAttackState.teleportGhostTarget) {
+        const teleportTargets = getActiveTeleportPowerups();
+        if (teleportTargets.length) {
+          let targetIndex = Number.isFinite(meleeAttackState.teleportTargetIndex)
+            ? Math.round(meleeAttackState.teleportTargetIndex)
+            : -1;
+          if (targetIndex < 0 || targetIndex >= teleportTargets.length) {
+            targetIndex = getNearestTeleportTargetIndex(teleportTargets);
+          } else {
+            const cycleLeft = keysJustPressed.has("a");
+            const cycleRight = keysJustPressed.has("d");
+            if (cycleLeft || cycleRight) {
+              const step = (cycleRight ? 1 : 0) - (cycleLeft ? 1 : 0);
+              targetIndex = (targetIndex + step + teleportTargets.length) % teleportTargets.length;
+              keysJustPressed.delete("a");
+              keysJustPressed.delete("d");
+            }
+          }
+          meleeAttackState.teleportTargetIndex = targetIndex;
+          const selectedTarget = teleportTargets[targetIndex] || null;
+          if (selectedTarget) {
+            meleeAttackState.teleportGhostTarget = { x: selectedTarget.x, y: selectedTarget.y };
+          }
+        } else {
+          meleeAttackState.teleportTargetIndex = -1;
           meleeAttackState.teleportGhostTarget = getTeleportFallbackTarget();
         }
       }
@@ -19928,6 +19979,7 @@ function updateMeleeAttackSystem(dt) {
       }
       meleeAttackState.bcTeleportArmed = false;
       meleeAttackState.teleportGhostTarget = null;
+      meleeAttackState.teleportTargetIndex = -1;
       if (!meleeAttackState.isCharging) {
         clearDivineChargeSparkVisual();
       }
