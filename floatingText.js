@@ -8,6 +8,8 @@
   const damageOffsetTrackers = new WeakMap();
   const DAMAGE_JITTER_TIMEOUT = 260; // milliseconds between bursts
   const DAMAGE_JITTER_RADIUS = 5;
+  const HERO_SPEECH_PRIORITY = 220;
+  const NPC_SPEECH_PRIORITY = 140;
 
   function getDamageJitter(entity) {
     if (!entity) return { x: 0, y: 0 };
@@ -265,6 +267,7 @@
       existing.life = Math.max(existing.life, bubbleLife);
       existing.initialLife = Math.max(existing.initialLife, bubbleLife);
       existing.fadeLength = Math.max(existing.fadeLength, bubbleLife);
+      existing.priority = HERO_SPEECH_PRIORITY;
       return;
     }
     const bubble = add(line, "#f1f5ff", {
@@ -273,6 +276,7 @@
       life: bubbleLife,
       offsetY: -player.radius - 30,
       bubbleTheme: "hero",
+      priority: HERO_SPEECH_PRIORITY,
     });
     if (bubble) bubble.life = bubbleLife;
   }
@@ -288,6 +292,7 @@
       offsetY: -npc.radius - 20,
       bubbleTheme: "npc",
       fadeDelay,
+      priority: NPC_SPEECH_PRIORITY,
     });
   }
 
