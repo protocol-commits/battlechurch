@@ -20,7 +20,8 @@
       },
       responses: [
         { text: "I'm excited to get started.", life: 3.2, delay: 1.35 },
-        { text: "I really want to overcome my issues.", life: 3.6, delay: 2.45 },
+        { text: "Let's face this together.", life: 3.6, delay: 2.45 },
+        { text: "Another sample line.", life: 3.6, delay: 2.45 },
       ],
     },
   };

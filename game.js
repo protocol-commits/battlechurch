@@ -2801,9 +2801,9 @@ function getNpcPowerupDialogueSpeaker() {
 }
 
 const NPC_POWERUP_EFFECT_NAMES = {
-  npcScriptureWeapon: "Scripture!",
-  npcWisdomWeapon: "Wisdom!",
-  npcFaithWeapon: "Faith!",
+  npcScriptureWeapon: "Scripture",
+  npcWisdomWeapon: "Wisdom",
+  npcFaithWeapon: "Faith",
   harmony: "Harmony!",
 };
 
@@ -4558,6 +4558,7 @@ function resolveWeaponPowerupConfig(effect, def = {}) {
     hudTitle: overrides.hudTitle ?? defaults.hudTitle ?? overrides.text ?? defaults.text ?? effect,
     description: overrides.description ?? defaults.description ?? "",
     hudDuration: overrides.hudDuration ?? defaults.hudDuration ?? 2.6,
+    spokenName: overrides.spokenName ?? defaults.spokenName ?? null,
   };
 }
 
@@ -4579,7 +4580,7 @@ function showWeaponPowerupConfigText(config) {
     color: config.textColor || "#fff",
     duration: config.hudDuration,
   });
-  playerYell(announcementTitle + "!", 3.2);
+  playerYell(config.spokenName || announcementTitle, 3.2);
 }
 
 function getWeaponPowerName(effect, fallback = "Weapon") {
@@ -7341,6 +7342,7 @@ function applyWeaponPickupEffect(pickup) {
         text: "Quote Scripture",
         textColor: "#ffa45a",
         description: "NPCs fire scripture shots for a short time.",
+        spokenName: "Scripture",
       });
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -7357,6 +7359,7 @@ function applyWeaponPickupEffect(pickup) {
         text: "Apply Wisdom",
         textColor: "#9BD9FF",
         description: "NPCs launch wisdom missiles temporarily.",
+        spokenName: "Wisdom",
       });
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -7373,6 +7376,7 @@ function applyWeaponPickupEffect(pickup) {
         text: "Act in Faith",
         textColor: "#ff9bf7",
         description: "NPCs fire faith cannon blasts briefly.",
+        spokenName: "Faith",
       });
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -7407,12 +7411,13 @@ function applyUtilityPowerUp(powerUp) {
   }
   const { effect, duration = 6, speedMultiplier, extendMultiplier } = powerUp.definition;
   const utilityTitle = powerUp.definition.hudTitle || powerUp.definition.label || "Power Up";
+  const utilitySpokenName = powerUp.definition.spokenName || utilityTitle;
   setWeaponPickupAnnouncement({
     title: utilityTitle,
     description: powerUp.definition.description || "",
     color: powerUp.definition.color || "#EAF6FF",
   });
-  playerYell(utilityTitle + "!", 3.2);
+  playerYell(utilitySpokenName, 3.2);
   switch (effect) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
