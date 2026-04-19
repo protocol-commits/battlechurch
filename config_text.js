@@ -39,12 +39,12 @@
     },
 
     // =====================
-    // ACT TEXT
+    // MISSION TEXT
     // =====================
     battleActs: {
-      1: "Act I: Foothold",
-      2: "Act II: Repel",
-      3: "Act III: Breakthrough",
+      1: "Mission I: Foothold",
+      2: "Mission II: Repel",
+      3: "Mission III: Breakthrough",
     },
     actVillainText: {
       1: "Win 3 battles to secure a foothold",

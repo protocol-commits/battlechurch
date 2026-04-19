@@ -518,7 +518,7 @@
       console.log(`[LevelDef] Town ${levelNumber}: ${battles.length} sequential game battles`);
       battles.forEach((b, i) => {
         const h0 = b.hordes?.[0];
-        console.log(`  Game Battle ${i + 1} → editor Act ${h0?.actNumber ?? '?'}, Battle ${h0?.missionNumber ?? '?'} (${b.hordes?.length ?? 0} hordes)`);
+        console.log(`  Game Battle ${i + 1} → editor Mission ${h0?.actNumber ?? '?'}, Battle ${h0?.missionNumber ?? '?'} (${b.hordes?.length ?? 0} hordes)`);
       });
     }
     return { levelNumber, battles };
@@ -713,7 +713,7 @@
   }
   if (!skipIntroAnnouncement) {
     const actRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const actLabel = `Act ${actRomanNumerals[levelNumber] || levelNumber}`;
+    const actLabel = `Mission ${actRomanNumerals[levelNumber] || levelNumber}`;
     console.info && console.info('queueAnnouncement', { title: actLabel, level: levelNumber });
     queueLevelAnnouncement(actLabel, "A new battle begins", {
           duration: MONTH_INTRO_DURATION,
@@ -723,7 +723,7 @@
     setDevStatus(`Preparing ${actLabel}`, MONTH_INTRO_DURATION);
   } else {
     resetStage("levelIntro", 0);
-    setDevStatus(`Preparing Act ${levelNumber}`, 2.0);
+    setDevStatus(`Preparing Mission ${levelNumber}`, 2.0);
   }
       state.currentBattleScenario = "";
       state.currentBossTheme = "";
@@ -793,11 +793,11 @@
       const monthName = getMonthName(globalMonthNumber);
       const currentActNum = MISSIONS_PER_BATTLE > 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1 : 1;
       const battleInAct = MISSIONS_PER_BATTLE > 0 ? (state.monthIndex % MISSIONS_PER_BATTLE) + 1 : localMonthNumber;
-      console.info && console.info('queueAnnouncement', { title: `Town ${state.level} Act ${currentActNum} Battle ${battleInAct}`, level: state.level, actNum: currentActNum, battleInAct, monthIndex: state.monthIndex });
+      console.info && console.info('queueAnnouncement', { title: `Town ${state.level} Mission ${currentActNum} Battle ${battleInAct}`, level: state.level, actNum: currentActNum, battleInAct, monthIndex: state.monthIndex });
       const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-        1: "Act I: Establish a Foothold",
-        2: "Act II: Repel the Counter Attack",
-        3: "Act III: Liberate the Town",
+        1: "Mission I: Establish a Foothold",
+        2: "Mission II: Repel the Counter Attack",
+        3: "Mission III: Liberate the Town",
       };
       const actMissionLabels = {
         1: "Foothold",
@@ -806,8 +806,8 @@
       };
       const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
       const missionNumber = battleInAct;
-      const missionBriefTitle = actTitles[currentActNum] || `Act ${romanNumerals[currentActNum] || currentActNum}`;
-      const missionBriefHeading = `${actMissionLabels[currentActNum] || `Act ${romanNumerals[currentActNum] || currentActNum}`} Battle ${missionNumber}`;
+      const missionBriefTitle = actTitles[currentActNum] || `Mission ${romanNumerals[currentActNum] || currentActNum}`;
+      const missionBriefHeading = `${actMissionLabels[currentActNum] || `Mission ${romanNumerals[currentActNum] || currentActNum}`} Battle ${missionNumber}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
@@ -819,7 +819,7 @@
         missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
-      setDevStatus(`Act ${romanNumerals[currentActNum] || currentActNum} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
+      setDevStatus(`Mission ${romanNumerals[currentActNum] || currentActNum} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
     }
 
     function finalizeBattleNpcResults() {
@@ -1278,7 +1278,7 @@
             }
           }
       resetStage("allKillBreak", breakerDuration);
-      setDevStatus(`Act break after Wave ${battleNumber}-${waveNumber}`, breakerDuration);
+      setDevStatus(`Mission break after Wave ${battleNumber}-${waveNumber}`, breakerDuration);
       return;
     }
         setDevStatus(`Wave ${battleNumber}-${waveNumber} advancing`, 1.2);
@@ -1347,7 +1347,7 @@
       const localMissionNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const globalBattleNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMissionNumber;
       const clearedRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-      const clearedActLabel = `Act ${clearedRomanNumerals[state.level] || state.level} — Battle ${globalBattleNumber}`;
+      const clearedActLabel = `Mission ${clearedRomanNumerals[state.level] || state.level} — Battle ${globalBattleNumber}`;
       console.info && console.info('queueAnnouncement', { title: `${clearedActLabel} Cleared`, level: state.level, monthIndex: state.monthIndex });
       queueLevelAnnouncement(
         `${clearedActLabel} Cleared`,
@@ -1482,7 +1482,7 @@
       const summarySubtitle = `Enemies ${state.stats.enemiesDefeated} • NPCs saved ${state.stats.npcsRescued}`;
   const summaryRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
   const completedActNum = MISSIONS_PER_BATTLE > 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1 : 1;
-  const summaryActLabel = `Act ${summaryRomanNumerals[completedActNum] || completedActNum} Cleared`;
+  const summaryActLabel = `Mission ${summaryRomanNumerals[completedActNum] || completedActNum} Cleared`;
   console.info && console.info('queueAnnouncement', { title: summaryActLabel, level: state.level, actNum: completedActNum, monthIndex: state.monthIndex });
   const totalBattlesInTown = state.definition?.battles?.length || (BATTLES_PER_TOWN * MISSIONS_PER_BATTLE);
       queueLevelAnnouncement(

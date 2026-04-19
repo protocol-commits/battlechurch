@@ -497,7 +497,7 @@
           <div class="group">
             <label>Town</label>
             <select id="lb-town"></select>
-            <label>Act</label>
+            <label>Mission</label>
             <select id="lb-battle"></select>
             <label>Battle</label>
             <select id="lb-mission"></select>
@@ -510,7 +510,7 @@
               <button id="lb-copyMenuButton" class="secondary" type="button">Copy ▾</button>
               <div id="lb-copyMenu" class="lb-col-menu" style="top:calc(100% + 4px);left:0;right:auto;min-width:120px;">
                 <button class="lb-col-menu-item" data-copy-type="town" type="button">Copy Town</button>
-                <button class="lb-col-menu-item" data-copy-type="battle" type="button">Copy Act</button>
+                <button class="lb-col-menu-item" data-copy-type="battle" type="button">Copy Mission</button>
                 <button class="lb-col-menu-item" data-copy-type="mission" type="button">Copy Battle</button>
               </div>
             </div>
@@ -589,8 +589,8 @@
       els.paste.textContent = "Paste Town";
       els.paste.title = "Paste copied town";
     } else if (type === "battle") {
-      els.paste.textContent = "Paste Act";
-      els.paste.title = "Paste copied act";
+      els.paste.textContent = "Paste Mission";
+      els.paste.title = "Paste copied mission";
     } else if (type === "mission") {
       els.paste.textContent = "Paste Battle";
       els.paste.title = "Paste copied battle";
@@ -1548,12 +1548,12 @@
             const townObj = ensureTown(townIdx);
             const battleObj = ensureBattle(townObj, battleIdx);
             state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(battleObj)) };
-            setStatus(`Copied Act ${battleIdx}`);
+            setStatus(`Copied Mission ${battleIdx}`);
           } else if (copyType === "mission") {
             const { missionObj } = getOrCreateMission();
             const { battle: battleIdx, mission: missionIdx } = state.scope;
             state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
-            setStatus(`Copied Battle ${missionIdx} from Act ${battleIdx}`);
+            setStatus(`Copied Battle ${missionIdx} from Mission ${battleIdx}`);
           }
           updatePasteButtonState();
           closeTopMenus();
@@ -1585,7 +1585,7 @@
           else bList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted Act into Town ${townIdx} Act ${battleIdx}`);
+          setStatus(`Pasted Mission into Town ${townIdx} Mission ${battleIdx}`);
         } else if (state.clipboard.type === "mission") {
           pushUndoSnapshot();
           const battleObj = ensureBattle(townObj, battleIdx);
@@ -1597,7 +1597,7 @@
           else mList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted Battle ${missionIdx} into Town ${townIdx} Act ${battleIdx}`);
+          setStatus(`Pasted Battle ${missionIdx} into Town ${townIdx} Mission ${battleIdx}`);
         } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
           setStatus("Use the column ▾ menu to paste hordes/waves", true);
         }

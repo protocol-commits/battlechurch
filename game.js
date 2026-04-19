@@ -6011,7 +6011,7 @@ function showTownIntroDialog() {
 }
 
 function queueTownIntroAnnouncement() {
-  const act1Title = (typeof GameText !== 'undefined' && GameText.battleActs?.[1]) || "Act I: Foothold";
+  const act1Title = (typeof GameText !== 'undefined' && GameText.battleActs?.[1]) || "Mission I: Foothold";
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "this town";
   const act1Subtitle = `Win 3 battles to secure a foothold in ${townName}.`;
@@ -6024,9 +6024,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const orderHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-    1: "Act I: Establish a Foothold",
-    2: "Act II: Repel the Counter Attack",
-    3: "Act III: Liberate the Town",
+    1: "Mission I: Establish a Foothold",
+    2: "Mission II: Repel the Counter Attack",
+    3: "Mission III: Liberate the Town",
   };
   const missionNumber = Math.max(
     1,
@@ -6433,7 +6433,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     lastCompletedLevel = announcement.completedActNum
       ?? (levelManager?.getActNumber ? levelManager.getActNumber() : 1);
     lastSummaryWasLevelEnd = true;
-    console.log("Act completed, lastCompletedLevel set to:", lastCompletedLevel);
+    console.log("Mission completed, lastCompletedLevel set to:", lastCompletedLevel);
   }
   startRecapMusic();
   const summary = levelManager?.getLastBattleSummary?.() || {};
@@ -14673,9 +14673,9 @@ function handleDeveloperHotkeys() {
     const result = levelManager?.devSkipToBoss?.({ showExterior: false });
     if (result?.success) {
       const currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
-      setDevStatus(`Act ${currentLevel} boss engaged`, 2.3);
+      setDevStatus(`Mission ${currentLevel} boss engaged`, 2.3);
     } else {
-      setDevStatus("Act boss skip failed", 2.0);
+      setDevStatus("Mission boss skip failed", 2.0);
     }
   }
   if (keysJustPressed.has("6")) {
@@ -14956,10 +14956,10 @@ function checkDialogOverlays() {
     // Check if we need to show chapter break after upgrade
     // lastCompletedLevel was set when the battle summary showed
     // Show chapter break after level 1 (month 4) and level 2 (month 8)
-    // Level 1 complete → Act 2, Level 2 complete → Act 3
+    // Level 1 complete → Mission 2, Level 2 complete → Mission 3
     } else if (lastSummaryWasLevelEnd && (lastCompletedLevel === 1 || lastCompletedLevel === 2)) {
-      const actNumber = lastCompletedLevel + 1; // Level 1 done → Act 2, Level 2 done → Act 3
-      console.log("SHOWING CHAPTER BREAK for Act", actNumber);
+      const actNumber = lastCompletedLevel + 1; // Level 1 done → Mission 2, Level 2 done → Mission 3
+      console.log("SHOWING CHAPTER BREAK for Mission", actNumber);
       window.UpgradeScreen.show(() => {
         console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
         if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {

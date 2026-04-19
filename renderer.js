@@ -4092,7 +4092,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const currentAct = Number.isFinite(currentLevelStatus?.level) ? currentLevelStatus.level : 1;
       const fallbackMissionLabel =
         missionNumber
-          ? `${actMissionLabels[currentAct] || `Act ${currentAct}`} Battle ${missionNumber}`
+          ? `${actMissionLabels[currentAct] || `Mission ${currentAct}`} Battle ${missionNumber}`
           : monthName || "";
       const missionLabel =
         (announcement && announcement.title) || fallbackMissionLabel;
@@ -4126,7 +4126,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (isBattleSummary) {
       const summaryRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
       const clearedSuffix = /cleared/i.test(title) ? ' Cleared' : '';
-      displayTitle = `Act ${summaryRomanNumerals[levelNumber] || levelNumber}${clearedSuffix}`;
+      displayTitle = `Mission ${summaryRomanNumerals[levelNumber] || levelNumber}${clearedSuffix}`;
     }
   } catch (e) {}
   const pastorDelayRemaining = levelAnnouncements[0]?.pastorPostRecapDelayRemaining || 0;
@@ -4989,7 +4989,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     void memberCount;
 
-    const buttonText = "Continue";
+    const buttonText = "Fight!";
     const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
     const buttonHeight = 52;
     const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
@@ -6049,7 +6049,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const hordeNum = levelStatus.hordeNum;
     const missionNumber = levelStatus.missionNum || 1;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const actLabel = `Act ${crumbRomanNumerals[levelStatus.actNum || 1] || (levelStatus.actNum || 1)}`;
+    const actLabel = `Mission ${crumbRomanNumerals[levelStatus.actNum || 1] || (levelStatus.actNum || 1)}`;
     // Get town name from activeTownId
     const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
@@ -6140,9 +6140,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     // Define text based on act number - use centralized text if available
     const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-      1: "Act I: Establish a Foothold",
-      2: "Act II: Repel the Counter Attack",
-      3: "Act III: Liberate the Town",
+      1: "Mission I: Establish a Foothold",
+      2: "Mission II: Repel the Counter Attack",
+      3: "Mission III: Liberate the Town",
     };
     const actVillainText = (typeof GameText !== 'undefined' && GameText.actVillainText) || {
       1: "Win 3 battles to get established",
@@ -6157,7 +6157,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       : null;
     const townName = townData?.name || "this town";
     const battleTitle =
-      actTitles[chapterBreakActNumber] || `Act ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
+      actTitles[chapterBreakActNumber] || `Mission ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
     let villainText = actVillainText[chapterBreakActNumber] || "";
     if (chapterBreakActNumber === 1) {
       villainText = `Win 3 battles to secure a foothold in ${townName}.`;
@@ -7068,9 +7068,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
       const announcementSubtitle = levelAnnouncements?.[0]?.subtitle || "";
       const battleHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-        1: "Act I: Establish a Foothold",
-        2: "Act II: Repel the Counter Attack",
-        3: "Act III: Liberate the Town",
+        1: "Mission I: Establish a Foothold",
+        2: "Mission II: Repel the Counter Attack",
+        3: "Mission III: Liberate the Town",
       };
       const announcement = levelAnnouncements?.[0] || {};
       const inferredUpcomingNumber = Math.max(
@@ -7083,7 +7083,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
         ? announcement.upcomingOrderNumber
         : inferredUpcomingNumber;
-      const battleHeading = battleHeadings[orderNumber] || `Act ${orderNumber}`;
+      const battleHeading = battleHeadings[orderNumber] || `Mission ${orderNumber}`;
       const headerTitleSize = 64;
       const headerSubtitleSize = 34;
       const bodyTitleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
