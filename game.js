@@ -320,6 +320,7 @@ const PLAYER_HURT_SFX_SRC = "assets/sfx/rpg/player/ouch_voice.wav";
 const PLAYER_DEATH_BELL_SFX_SRC = "assets/sfx/rpg/player/bells-2.wav";
 const HIGH_HEALTH_DEATH_GRUNT_SRC = "assets/sfx/rpg/Battle Grunts/Battle_grunt_9.wav";
 const DIVINE_SHOT_SFX_SRC = "assets/sfx/Weapons/spell11.mp3";
+const WAVE_TRANSITION_SFX_SRC = "assets/sfx/Weapons/spell3.mp3";
 const CONGREGATION_OVERLAY_WORD_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_OVERLAY_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_8.wav";
 const CONGREGATION_FIGHT_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_40.wav";
@@ -356,6 +357,7 @@ const CHATTY_HIT_SFX_POOL_SIZE = 4;
 const VISITOR_SAVED_SFX_POOL_SIZE = 4;
 const NPC_HURT_SFX_POOL_SIZE = 4;
 const PLAYER_HURT_SFX_POOL_SIZE = 4;
+const WAVE_TRANSITION_SFX_POOL_SIZE = 3;
 const CONGREGATION_OVERLAY_SFX_POOL_SIZE = 4;
 const CONGREGATION_FIGHT_SFX_POOL_SIZE = 3;
 const CONGREGATION_COUNT_POP_SFX_POOL_SIZE = 3;
@@ -406,6 +408,7 @@ const chattyHitSfxPool = [];
 const visitorSavedSfxPool = [];
 const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
+const waveTransitionSfxPool = [];
 const congregationOverlaySfxPool = [];
 const congregationFightSfxPool = [];
 const congregationCountPopUpSfxPool = [];
@@ -971,6 +974,15 @@ if (typeof window !== "undefined") {
   window.playMenuItemPickSfx = playMenuSelectSfx;
   window.playMenuAdvanceSfx = playMenuSelectSfx;
   window.playMenuMoveSfx = playMenuMoveSfx;
+}
+
+function playWaveTransitionSfx(volume = 0.78) {
+  playPooledSfx(
+    waveTransitionSfxPool,
+    WAVE_TRANSITION_SFX_SRC,
+    WAVE_TRANSITION_SFX_POOL_SIZE,
+    { volume, matchSrc: true },
+  );
 }
 
 function playRecapTickSfx(volume = 0.5) {
@@ -4456,6 +4468,7 @@ Levels.initialize({
   getCongregationSize,
   showWaveHealthSnapshot,
   showBattleVictoryNpcDialogue,
+  playWaveTransitionSfx,
   rotateNpcPositionsForActBreak,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
   hasEnemyAsset: (key) => Boolean(ASSET_MANIFEST.enemies?.[key]),

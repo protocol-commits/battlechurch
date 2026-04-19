@@ -245,6 +245,7 @@
     getCongregationSize: () => 0,
     showWaveHealthSnapshot: noop,
     showBattleVictoryNpcDialogue: noop,
+    playWaveTransitionSfx: noop,
   };
 
   function initialize(options = {}) {
@@ -570,6 +571,7 @@
       getConversationResponders,
       startActBreakFade,
       startGraceRushEndFade,
+      playWaveTransitionSfx,
       getAvailableMiniFolkKeys,
       hasEnemyAsset,
     miniImpBaseGroupSize,
@@ -642,6 +644,7 @@
       lastClearedWasBoss: false,
       skipPostBattleAdvance: false,
       breakPreviewWaveNum: null,
+      lastWaveTransitionCueNum: 0,
     };
 
     function resetStage(stage, duration = 0) {
@@ -682,6 +685,21 @@
       return battle.hordes[state.waveIndex] || null;
     }
 
+    function getActualWaveNumber(horde, waveIndex = state.waveIndex) {
+      if (Number.isFinite(horde?.waveNumber)) return horde.waveNumber;
+      if (!Number.isFinite(waveIndex) || waveIndex < 0) return 0;
+      return Math.floor(waveIndex / Math.max(1, HORDES_PER_WAVE)) + 1;
+    }
+
+    function playWaveTransitionCue(waveNum) {
+      if (!Number.isFinite(waveNum) || waveNum <= 1) return;
+      if (state.lastWaveTransitionCueNum === waveNum) return;
+      state.lastWaveTransitionCueNum = waveNum;
+      if (typeof playWaveTransitionSfx === "function") {
+        playWaveTransitionSfx();
+      }
+    }
+
     function hasActiveOpponents(includeBoss = true) {
       const activeEnemies = enemies.some((enemy) => !enemy.dead && enemy.state !== "death");
       const bossAlive =
@@ -715,6 +733,7 @@
       state.pendingBossRestore = false;
       state.pendingBossAfterFinalWave = false;
       state.pendingGraceRushAfterFinalWave = false;
+      state.lastWaveTransitionCueNum = 0;
       state.lastClearedWasBoss = false;
   // For levels beyond the first, skip the level-intro overlay and start the next battle immediately.
   if (levelNumber > 1) {
@@ -759,6 +778,7 @@
       clearCongregationMembers();
       state.monthIndex += 1;
       state.waveIndex = -1;
+      state.lastWaveTransitionCueNum = 0;
       state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
       state.battleMaxCombo = 0;
       state.battlePrayerBombComboContributions = [];
@@ -1140,6 +1160,8 @@
       state.waveIndex += 1;
       state.activeWave = currentWave();
       if (!state.activeWave) return;
+      const actualWaveNumber = getActualWaveNumber(state.activeWave, state.waveIndex);
+      playWaveTransitionCue(actualWaveNumber);
       if (typeof window !== "undefined" && typeof window.setCozyNpcsToFrontlineFormation === "function") {
         try {
           window.setCozyNpcsToFrontlineFormation();
@@ -1253,12 +1275,8 @@
       const finalWave = waveNumber >= getBattleHordeCount(currentBattle());
       const currentHorde = state.activeWave || currentWave();
       const nextHorde = state.definition?.battles?.[state.monthIndex]?.hordes?.[state.waveIndex + 1] || null;
-      const currentActualWaveNumber = Number.isFinite(currentHorde?.waveNumber)
-        ? currentHorde.waveNumber
-        : Math.floor(state.waveIndex / Math.max(1, HORDES_PER_WAVE)) + 1;
-      const nextActualWaveNumber = Number.isFinite(nextHorde?.waveNumber)
-        ? nextHorde.waveNumber
-        : Math.floor((state.waveIndex + 1) / Math.max(1, HORDES_PER_WAVE)) + 1;
+      const currentActualWaveNumber = getActualWaveNumber(currentHorde, state.waveIndex);
+      const nextActualWaveNumber = getActualWaveNumber(nextHorde, state.waveIndex + 1);
       const endedActualWave = finalWave || !nextHorde || nextActualWaveNumber !== currentActualWaveNumber;
       state.lastWaveClearedFinal = finalWave;
       state.pendingPortalSpawnBaseline = 0;
@@ -1292,6 +1310,7 @@
                 state.breakPreviewWaveNum = Number.isFinite(nextActualWaveNumber)
                   ? nextActualWaveNumber
                   : null;
+                playWaveTransitionCue(nextActualWaveNumber);
                 queueLevelAnnouncement(nextWaveIntroText, "", {
                   duration: holdDuration,
                   skipMissionBrief: true,
@@ -1301,6 +1320,7 @@
               state.breakPreviewWaveNum = Number.isFinite(nextActualWaveNumber)
                 ? nextActualWaveNumber
                 : null;
+              playWaveTransitionCue(nextActualWaveNumber);
               queueLevelAnnouncement(nextWaveIntroText, "", {
                 duration: holdDuration,
                 skipMissionBrief: true,
