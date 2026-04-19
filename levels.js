@@ -41,7 +41,8 @@
   const ANNOUNCEMENT_FADE_DURATION = 1.5;
   const GRACE_RUSH_DURATION = 5;
   const BOSS_GRACE_RUSH_DURATION = 10;
-  const BOSS_VICTORY_CELEBRATE_DURATION = 3.0;
+  const BOSS_VICTORY_CELEBRATE_DURATION = 12.0;
+  const BOSS_BONUS_TRANSITION_DURATION = 1.0;
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
@@ -252,6 +253,7 @@
     showBattleVictoryNpcDialogue: noop,
     playBattleVictoryMusic: noop,
     playWaveTransitionSfx: noop,
+    startBossBonusTransition: noop,
   };
 
   function initialize(options = {}) {
@@ -1544,6 +1546,7 @@
     function beginBossVictoryCelebrate() {
       resetStage("bossVictoryCelebrate", BOSS_VICTORY_CELEBRATE_DURATION);
       state.graceRushContext = null;
+      state.pendingBossRestore = true;
       setDevStatus("Boss defeated", BOSS_VICTORY_CELEBRATE_DURATION);
     }
 
@@ -1830,7 +1833,16 @@ state.waveIndex = -1;
         case "bossVictoryCelebrate":
           state.timer = Math.max(0, state.timer - dt);
           if (state.timer <= 0) {
-            beginBossGraceRush();
+            if (typeof deps.startBossBonusTransition === "function") {
+              deps.startBossBonusTransition(BOSS_BONUS_TRANSITION_DURATION);
+            }
+            resetStage("bossBonusTransition", BOSS_BONUS_TRANSITION_DURATION);
+          }
+          break;
+        case "bossBonusTransition":
+          state.timer = Math.max(0, state.timer - dt);
+          if (state.timer <= 0) {
+            handleLevelCleared();
           }
           break;
           case "bossActive":

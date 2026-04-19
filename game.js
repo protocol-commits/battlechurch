@@ -52,7 +52,7 @@ const unlockedChurchPowerups = new Set();
 const churchPowerupLevels = new Map();
 const GRACE_PICKUP_RADIUS = _gb('grace.pickupRadius', 18);
 const GRACE_PICKUP_FRAME_DURATION = 0.08;
-const GRACE_PICKUP_LIFETIME = _gb('grace.lifetime', 8);
+const GRACE_PICKUP_LIFETIME = _gb('grace.lifetime', 15);
 const GRACE_PICKUP_ATTRACT_DISTANCE = _gb('grace.attractDistance', 170);
 const GRACE_PICKUP_ATTRACT_FORCE = _gb('grace.attractForce', 460);
 const GRACE_PICKUP_GRAVITY = _gb('grace.gravity', 520);
@@ -76,6 +76,9 @@ let postDeathTimer = 0;
 let miniImpWaveDispatched = false;
 let arenaFadeTimer = 0;
 let arenaFadeAlpha = 0;
+let bossBonusTransitionFadeTimer = 0;
+let bossBonusTransitionFadeDuration = 0;
+let bossBonusTransitionFadeAlpha = 0;
 let actBreakFadeTimer = 0;
 let actBreakFadeDuration = 0;
 let actBreakFadeAlpha = 0;
@@ -94,6 +97,9 @@ let graceRushFadeHold = false;
 let graceRushFadeReleaseTimer = 0;
 let graceRushBlackout = false;
 let graceRushHardBlackoutTimer = 0;
+let recapIntroFadeTimer = 0;
+let recapIntroFadeDuration = 0;
+let recapIntroFadeAlpha = 0;
 let playerDeathFadeAlpha = 0;
 const PLAYER_DEATH_FADE_TARGET = 0.5;
 const PLAYER_DEATH_FADE_SPEED = 6;
@@ -1394,6 +1400,29 @@ function startGraceRushEndFade(duration = 1) {
   graceRushFadeHold = false;
   graceRushFadeReleaseTimer = 0;
   graceRushBlackout = false;
+}
+
+function startBossBonusTransition(duration = 1.0) {
+  const total = Math.max(0.1, Number(duration) || 1.0);
+  bossBonusTransitionFadeDuration = total;
+  bossBonusTransitionFadeTimer = total;
+  bossBonusTransitionFadeAlpha = 0;
+  fadeOutBattleMusic();
+  if (musicState.bossDeath && musicState.bossDeathStarted && !musicState.bossDeathStopped) {
+    musicState.bossDeathStopped = true;
+    fadeAudio(musicState.bossDeath, {
+      to: 0,
+      durationMs: Math.max(250, Math.round(total * 1000)),
+      stopOnZero: true,
+    });
+  }
+}
+
+function startRecapIntroFade(duration = 0.65) {
+  const total = Math.max(0.1, Number(duration) || 0.65);
+  recapIntroFadeDuration = total;
+  recapIntroFadeTimer = total;
+  recapIntroFadeAlpha = 1;
 }
 
 function pauseAllMusic() {
@@ -3777,6 +3806,8 @@ Renderer.initialize({
   get chapterBreakImage() { return chapterBreakImage; },
   get graceRushFadeAlpha() { return graceRushFadeAlpha; },
   get graceRushBlackout() { return graceRushBlackout; },
+  get bossBonusTransitionFadeAlpha() { return bossBonusTransitionFadeAlpha; },
+  get recapIntroFadeAlpha() { return recapIntroFadeAlpha; },
   get playerDeathFadeAlpha() { return playerDeathFadeAlpha; },
   get prayerBombScreenFadeTimer() { return prayerBombScreenFadeTimer; },
   get prayerBombScreenFadeDuration() { return prayerBombScreenFadeDuration; },
@@ -4570,6 +4601,7 @@ Levels.initialize({
   showWaveHealthSnapshot,
   showBattleVictoryNpcDialogue,
   playBattleVictoryMusic: startBattleVictoryMusic,
+  startBossBonusTransition,
   playWaveTransitionSfx,
   rotateNpcPositionsForActBreak,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
@@ -6553,6 +6585,7 @@ function startMissionTypewriter(overlay, text, msPerChar = 18) {
 
 function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAfter, portraits = {}) {
   if (announcement?.recapPrepared) return true;
+  startRecapIntroFade(1.5);
   const isFinalYear = Boolean(announcement?.finalYear);
   const shouldUpgradeAfter = Boolean(upgradeAfter);
   // Track which level was just completed for chapter breaks (boss/level summary only)
@@ -7744,6 +7777,9 @@ function spawnGracePickup(x, y, options = {}) {
     gravity: options.gravity ?? GRACE_PICKUP_GRAVITY,
     useGravity: options.useGravity ?? false,
     bounce: options.bounce ?? false,
+    trackViewportXBounds: Boolean(options.trackViewportXBounds),
+    minX: Number.isFinite(options.minX) ? options.minX : null,
+    maxX: Number.isFinite(options.maxX) ? options.maxX : null,
     floorY: Number.isFinite(options.floorY) ? options.floorY : GRACE_PICKUP_FLOOR_Y(),
     bounceDamp: Number.isFinite(options.bounceDamp) ? options.bounceDamp : 0.5,
     airDrag: Number.isFinite(options.airDrag) ? options.airDrag : GRACE_PICKUP_AIR_DRAG,
@@ -8828,12 +8864,20 @@ function spawnGraceBurst(count = 10, { centerX = canvas.width / 2, centerY = (ca
   }
 }
 
-function spawnGraceRainBurst(count = 10, { centerX = canvas.width / 2, spread = 260 } = {}) {
+function spawnGraceRainBurst(
+  count = 10,
+  { centerX = canvas.width / 2, spread = 260, life = null, fullWidth = false } = {},
+) {
   const area = getPlayfieldBounds();
-  const height = Math.max(1, area.maxY - area.minY);
   const spawnY = Math.max(area.minY - 140, HUD_HEIGHT - 140);
+  const viewOffsetX = Number.isFinite(cameraOffsetX) ? cameraOffsetX : 0;
+  const minRainX = viewOffsetX;
+  const maxRainX = viewOffsetX + canvas.width;
+  const clampedCenterX = Math.max(minRainX, Math.min(maxRainX, centerX));
+  const spawnMinX = fullWidth ? minRainX : Math.max(minRainX, clampedCenterX - spread);
+  const spawnMaxX = fullWidth ? maxRainX : Math.min(maxRainX, clampedCenterX + spread);
   for (let i = 0; i < count; i += 1) {
-    const x = centerX + randomInRange(-spread, spread);
+    const x = randomInRange(spawnMinX, Math.max(spawnMinX + 1, spawnMaxX));
     const vx = randomInRange(-60, 60);
     const vy = randomInRange(60, 140);
     const floorY = randomInRange(area.minY, area.maxY);
@@ -8841,6 +8885,7 @@ function spawnGraceRainBurst(count = 10, { centerX = canvas.width / 2, spread = 
       vx,
       vy,
       value: 1,
+      life: Number.isFinite(life) ? life : undefined,
       useGravity: true,
       bounce: true,
       gravity: GRACE_PICKUP_GRAVITY * 1.9,
@@ -8848,12 +8893,21 @@ function spawnGraceRainBurst(count = 10, { centerX = canvas.width / 2, spread = 
       bounceDamp: 0.55,
       airDrag: 0.985,
       disableAttraction: true,
+      trackViewportXBounds: fullWidth,
+      minX: minRainX,
+      maxX: maxRainX,
     });
   }
 }
 
 function spawnVictoryGraceBurst(options = {}) {
-  const { amount = 20, reason = "battle", centerX: overrideX = null, centerY: overrideY = null } = options || {};
+  const {
+    amount = 20,
+    reason = "battle",
+    centerX: overrideX = null,
+    centerY: overrideY = null,
+    life = null,
+  } = options || {};
   const area = getPlayfieldBounds();
   const centerX =
     Number.isFinite(overrideX) ? overrideX : player ? player.x : (area.minX + area.maxX) / 2;
@@ -8863,7 +8917,12 @@ function spawnVictoryGraceBurst(options = {}) {
     reason === "boss"
       ? Math.max(area.maxX - area.minX, area.maxY - area.minY) * 0.6
       : Math.min(area.maxX - area.minX, area.maxY - area.minY) * 0.4;
-  spawnGraceRainBurst(amount, { centerX, spread });
+  spawnGraceRainBurst(amount, {
+    centerX,
+    spread,
+    life,
+    fullWidth: reason === "boss",
+  });
 }
 
 function maybeDropGraceFromEnemy(enemy) {
@@ -8941,8 +9000,14 @@ function updateGracePickups(dt) {
       }
     }
     if (pickup.bounce) {
-      const leftWall = pickup.radius || GRACE_PICKUP_RADIUS;
-      const rightWall = canvas.width - (pickup.radius || GRACE_PICKUP_RADIUS);
+      const radius = pickup.radius || GRACE_PICKUP_RADIUS;
+      let leftWall = Number.isFinite(pickup.minX) ? pickup.minX : radius;
+      let rightWall = Number.isFinite(pickup.maxX) ? pickup.maxX : (canvas.width - radius);
+      if (pickup.trackViewportXBounds) {
+        const viewOffsetX = Number.isFinite(cameraOffsetX) ? cameraOffsetX : 0;
+        leftWall = viewOffsetX;
+        rightWall = viewOffsetX + canvas.width;
+      }
       if (pickup.x <= leftWall && pickup.vx < 0) {
         pickup.x = leftWall;
         pickup.vx = -pickup.vx * pickup.bounceDamp;
@@ -12145,6 +12210,9 @@ class BossEncounter {
     this.deathExplosionAccumulator = 0;
     this.deathPostDelay = 0;
     this.deathVisualTotal = 0;
+    this.deathGraceRainTimer = 0;
+    this.deathGraceRainInterval = 0.22;
+    this.deathStageNotified = false;
     this.victoryAnnounced = false;
     this.safeTopMargin = Math.max(this.radius * 0.8, 160);
     const spawnX = Math.max(this.radius + 20, canvas.width - this.radius - 36);
@@ -12484,11 +12552,16 @@ class BossEncounter {
       spawnImpactDustEffect(this.x, this.y, this.radius * 1.2);
       this.deathNotified = true;
     }
-    spawnVictoryGraceBurst({ reason: "boss", amount: 70, centerX: this.x, centerY: this.y });
     this.deathExplosionTimer = 5;
-    this.deathPostDelay = 3;
+    this.deathPostDelay = 1;
     this.deathExplosionAccumulator = 0;
     this.deathVisualTotal = this.deathExplosionTimer + this.deathPostDelay;
+    this.deathGraceRainTimer = 0.08;
+    this.deathGraceRainInterval = 0.18;
+    if (!this.deathStageNotified) {
+      levelManager?.markBossDefeated?.();
+      this.deathStageNotified = true;
+    }
     eliminateActiveEnemiesForBossVictory();
     // compute fallback death timer from clip (prefer explicit frameMap length)
     try {
@@ -12539,6 +12612,17 @@ class BossEncounter {
     if (this.deathExplosionTimer > 0) {
       this.deathExplosionTimer = Math.max(0, this.deathExplosionTimer - dt);
       this.deathExplosionAccumulator += dt;
+      this.deathGraceRainTimer = Math.max(0, (this.deathGraceRainTimer || 0) - dt);
+      while (this.deathGraceRainTimer <= 0 && this.deathExplosionTimer > 0) {
+        this.deathGraceRainTimer += this.deathGraceRainInterval;
+        spawnVictoryGraceBurst({
+          reason: "boss",
+          amount: 18,
+          life: 22,
+          centerX: this.x,
+          centerY: this.y,
+        });
+      }
       const progress = 1 - Math.max(0, this.deathExplosionTimer) / 5;
       const interval = Math.max(0.07, 0.22 - progress * 0.12);
       while (this.deathExplosionAccumulator >= interval) {
@@ -15266,6 +15350,30 @@ function updateFadeEffects(dt) {
         if (!ft.critical) ft.life = 0;
       });
     } catch (e) {}
+  }
+
+  if (bossBonusTransitionFadeTimer > 0) {
+    bossBonusTransitionFadeTimer = Math.max(0, bossBonusTransitionFadeTimer - dt);
+    const progress = Math.min(
+      1,
+      Math.max(
+        0,
+        1 - bossBonusTransitionFadeTimer / Math.max(0.001, bossBonusTransitionFadeDuration),
+      ),
+    );
+    bossBonusTransitionFadeAlpha = progress;
+  } else {
+    bossBonusTransitionFadeAlpha = 0;
+  }
+
+  if (recapIntroFadeTimer > 0) {
+    recapIntroFadeTimer = Math.max(0, recapIntroFadeTimer - dt);
+    recapIntroFadeAlpha = Math.min(
+      1,
+      Math.max(0, recapIntroFadeTimer / Math.max(0.001, recapIntroFadeDuration)),
+    );
+  } else {
+    recapIntroFadeAlpha = 0;
   }
 }
 

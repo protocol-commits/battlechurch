@@ -7394,6 +7394,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       actBreakFadeAlpha,
       graceRushFadeAlpha,
       graceRushBlackout,
+      bossBonusTransitionFadeAlpha,
+      recapIntroFadeAlpha,
       damageHitFlash,
       postDeathSequenceActive,
       heroLives,
@@ -7805,6 +7807,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const effectiveCameraX = resolveCameraX();
         drawBackground(effectiveCameraX, 0);
         drawLevelAnnouncements();
+        if (recapIntroFadeAlpha > 0) {
+          ctx.save();
+          ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, recapIntroFadeAlpha)})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.restore();
+        }
         return;
       }
       const {
@@ -7872,6 +7880,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawHUD();
       drawHUD();
       drawLevelAnnouncements();
+      if (recapIntroFadeAlpha > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, recapIntroFadeAlpha)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
       return;
     }
     if (recapCongregationPreviewBuilt && !congregationAnnouncementActive) {
@@ -8170,16 +8184,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     });
     drawCombatHitboxDebugs(ctx, player, battleNpcs, orderedEnemies, activeBoss, projectiles);
-    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
-      effects.forEach((effect) => effect.draw());
-    }
-    // Draw pickups above projectiles/effects so they're easy to see.
-    utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
-    weaponPickups.forEach((pickup) => pickup.draw());
-    churchPowerupPickups.forEach((pickup) => pickup.draw());
+    // Draw grace behind active effects (explosions, flashes), but keep other pickups above.
     gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
+    if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
+      effects.forEach((effect) => effect.draw());
+    }
+    utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
+    weaponPickups.forEach((pickup) => pickup.draw());
+    churchPowerupPickups.forEach((pickup) => pickup.draw());
     drawRingOfFireEffects(player);
     drawCongregationCommandMeter(player, battleNpcs);
     if (player) {
@@ -8455,6 +8469,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
+    if (bossBonusTransitionFadeAlpha > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, bossBonusTransitionFadeAlpha)})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
     const prayerBombFadeTimer = requireBindings().prayerBombScreenFadeTimer || 0;
     if (prayerBombFadeTimer > 0) {
       const prayerBombFadeDuration = Math.max(0.001, requireBindings().prayerBombScreenFadeDuration || 0.8);
@@ -8516,6 +8537,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawVisitorOverlay(visitorStateForOverlay);
     }
     drawLevelAnnouncements();
+    if (recapIntroFadeAlpha > 0) {
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, recapIntroFadeAlpha)})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
     if (isCongregationStage) {
       drawCongregationScene(levelStatus);
     }

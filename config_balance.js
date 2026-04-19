@@ -186,7 +186,7 @@
     // =====================
     grace: {
       pickupRadius: 18,
-      lifetime: 8,
+      lifetime: 15,
       attractDistance: 170,
       attractForce: 460,
       gravity: 520,
