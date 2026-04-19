@@ -12503,12 +12503,18 @@ class BossEncounter {
   }
 
   spawnDeathExplosionBurst() {
+    const hitbox = this.hitbox || this.config?.hitbox || null;
+    const hbOffsetX = hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+    const hbOffsetY = hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+    const hbHalfW = hitbox && Number.isFinite(hitbox.width) ? hitbox.width * 0.5 : this.radius;
+    const hbHalfH = hitbox && Number.isFinite(hitbox.height) ? hitbox.height * 0.5 : this.radius;
+    // Center of the bottom 1/5th of the hitbox
+    const burstCenterX = this.x + hbOffsetX;
+    const burstCenterY = this.y + hbOffsetY + hbHalfH * 0.8; // 0.5 + 0.4*height = bottom fifth center
     const burstCount = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < burstCount; i += 1) {
-      const angle = Math.random() * Math.PI * 2;
-      const distance = Math.random() * this.radius * 0.9;
-      const burstX = this.x + Math.cos(angle) * distance;
-      const burstY = this.y + Math.sin(angle) * distance;
+      const burstX = burstCenterX + (Math.random() * 2 - 1) * hbHalfW * 0.9;
+      const burstY = burstCenterY + (Math.random() * 2 - 1) * hbHalfH * 0.2;
       spawnMagicImpactEffect(burstX, burstY);
       if (Math.random() < 0.45) {
         spawnImpactDustEffect(burstX, burstY, this.radius * 0.4);
