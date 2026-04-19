@@ -1105,7 +1105,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     },
     {
       key: "crescent",
-      label: "CARE CIRCLE",
+      label: "CARE GROUP",
       desc: "Guided group sharing and mutual support",
       stat: "+Power-up duration",
     },
@@ -1461,7 +1461,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         },
         {
           key: "crescent",
-          label: "CARE CIRCLE",
+          label: "CARE GROUP",
           desc: "Guided group sharing and mutual support",
           stat: "+Power-up duration",
         },

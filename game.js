@@ -4517,7 +4517,7 @@ const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 const FORMATION_PRESETS = {
   circle: { key: "circle", label: "Guided Study", spokenLabel: "Guided Study", bonuses: { damage: 0.2 } },
   line: { key: "line", label: "Bible Study", spokenLabel: "Bible Study", bonuses: { rof: 0.2 } },
-  crescent: { key: "crescent", label: "Shared Burdens", spokenLabel: "Care Circle", bonuses: { powerupDuration: 0.2 } },
+  crescent: { key: "crescent", label: "Shared Burdens", spokenLabel: "Care Group", bonuses: { powerupDuration: 0.2 } },
 };
 const npcWeaponState = {
   mode: null,
