@@ -427,19 +427,12 @@
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = 'rgba(0,0,0,0)';
       roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);
-      const innerX = meterX + 2;
       const innerY = meterY + 1;
-      const innerW = meterWidth - 4;
       const innerH = meterHeight - 2;
       const NUM_SEGS = 6;
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
       const clampedRatio = Math.max(0, Math.min(1, ratio));
       const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : clampedRatio >= 1;
-      // 6 graduating blue shades, one per segment
-      const prayerSegmentColors = ["#0C2444", "#10304F", "#14345A", "#1A3F6B", "#1F4F79", "#2C6A99"];
-      // Level thresholds aligned to 6-section meter
-      const lvl1Ratio = 2 / 6; // 2 bars — minimum to fire prayer bomb
-      const lvl2Ratio = 4 / 6; // 4 bars — level 2 prayer bomb
       const now = performance.now() * 0.001;
       const dt = prayerSpark.lastTime ? Math.min(0.1, Math.max(0, now - prayerSpark.lastTime)) : 0;
       prayerSpark.lastTime = now;
@@ -447,7 +440,7 @@
         prayerSpark.timer = 0.45;
       }
       prayerSpark.lastRatio = ratio;
-      const totalWidth = Math.max(0, Math.floor(innerW * clampedRatio));
+      const totalWidth = Math.max(0, Math.floor(meterWidth * clampedRatio));
       const outerGap = 2;
       const pulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.008);
       const fullPulse = clampedRatio >= 1;
@@ -455,12 +448,24 @@
       const fullPulseBrightAlpha = 0.35 + pulse * 0.6;
       const segRad = Math.max(2, meterRadius - 2);
 
-      // Pre-compute inner fill bounds for each segment
+      // Pre-compute fill bounds matching border segment positions (gap-aware)
       const segBounds = [];
       for (let i = 0; i < NUM_SEGS; i++) {
-        const startPx = Math.floor(innerW * i / NUM_SEGS);
-        const endPx = Math.floor(innerW * (i + 1) / NUM_SEGS);
-        segBounds.push({ x: innerX + startPx, w: endPx - startPx, startPx });
+        const base = Math.floor(meterWidth * i / NUM_SEGS);
+        const end = i < NUM_SEGS - 1 ? Math.floor(meterWidth * (i + 1) / NUM_SEGS) : meterWidth;
+        const span = end - base;
+        let bx, bw;
+        if (i === 0) {
+          bx = meterX;
+          bw = Math.max(0, span - outerGap);
+        } else if (i === NUM_SEGS - 1) {
+          bx = meterX + base + outerGap;
+          bw = Math.max(0, span - outerGap);
+        } else {
+          bx = meterX + base + outerGap;
+          bw = Math.max(0, span - outerGap * 2);
+        }
+        segBounds.push({ x: bx, w: bw, startPx: bx - meterX });
       }
 
       // Draw fills and highlights
@@ -472,37 +477,36 @@
         const drawFill = fill + (isFirst ? 1 : 0);
         const drawFull = sw + (isFirst ? 1 : 0);
 
-        // Segment fill
+        // Segment fill: gold for complete segments, teal for the partial segment
         if (fill > 0) {
-          ctx.fillStyle = prayerSegmentColors[i];
+          const isFullSeg = fill >= sw;
+          ctx.fillStyle = isFullSeg ? PALETTE.gold : PALETTE.teal;
           if (isFirst) {
             roundRect(ctx, drawX, innerY, drawFill, innerH, segRad, true, false);
           } else {
             ctx.fillRect(sx, innerY, fill, innerH);
           }
           applyMeterGloss(drawX, innerY, drawFill, innerH);
-        }
 
-        // Gold overlay when level threshold crossed (segments 0-1 at lvl1, segments 2-3 at lvl2)
-        const tierGold = (i <= 1 && clampedRatio >= lvl1Ratio) ||
-                         (i >= 2 && i <= 3 && clampedRatio >= lvl2Ratio);
-        if (tierGold && sw > 0) {
-          ctx.save();
-          ctx.globalAlpha = 0.28 + pulse * 0.35;
-          ctx.fillStyle = PALETTE.gold;
-          if (isFirst) {
-            roundRect(ctx, drawX, innerY, drawFull, innerH, segRad, true, false);
-          } else {
-            ctx.fillRect(sx, innerY, sw, innerH);
+          // Pulse overlay on individually full segments
+          if (isFullSeg && !fullPulse) {
+            ctx.save();
+            ctx.globalAlpha = 0.1 + pulse * 0.18;
+            ctx.fillStyle = PALETTE.softWhite;
+            if (isFirst) {
+              roundRect(ctx, drawX, innerY, drawFull, innerH, segRad, true, false);
+            } else {
+              ctx.fillRect(sx, innerY, sw, innerH);
+            }
+            ctx.restore();
           }
-          ctx.restore();
         }
 
-        // Bright gold pulse when fully charged
+        // Bright white-gold pulse when fully charged
         if (fullPulse && sw > 0) {
           ctx.save();
           ctx.globalAlpha = i >= 4 ? fullPulseBrightAlpha : fullPulseAlpha;
-          ctx.fillStyle = PALETTE.gold;
+          ctx.fillStyle = PALETTE.softWhite;
           if (isFirst) {
             roundRect(ctx, drawX, innerY, drawFull, innerH, segRad, true, false);
           } else {

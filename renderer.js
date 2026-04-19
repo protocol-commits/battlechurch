@@ -5388,8 +5388,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const height = Math.max(9, Math.round(12 * WORLD_SCALE));
     const palette = getCombatMeterPalette();
     if (chargeRatio < 1) return;
+    const floatingTexts = requireBindings().floatingTexts;
     activeNpcs.forEach((npc) => {
       if (!npc || npc.departed || !npc.active) return;
+      const hasSpeechBubble = Array.isArray(floatingTexts) && floatingTexts.some(
+        (ft) => ft && ft.entity === npc && ft.speechBubble && ft.life > 0,
+      );
+      if (hasSpeechBubble) return;
       const radius = Math.max(18, npc.radius || 0);
       const meterCenterX = (npc.x || 0) + shakeX;
       const meterY = (npc.y || 0) - radius - height - Math.round(26 * WORLD_SCALE);
