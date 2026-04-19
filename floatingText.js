@@ -192,7 +192,7 @@
     const isPlayer = Boolean(entity.isPlayer);
     const damageClass = String(entity.config?.damageClass || entity.damageClass || "").toLowerCase();
     const radius = entity.radius || entity.config?.hitRadius || 24;
-    const hitbox = entity.config?.hitbox || null;
+    const hitbox = entity.hitbox || entity.config?.hitbox || null;
     const hasHitbox =
       !isFriendly &&
       hitbox &&

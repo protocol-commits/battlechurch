@@ -72,6 +72,7 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "orc",
+      "swarmable",
       "closestAny"
     ],
     "hitbox": {
@@ -193,7 +194,8 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
@@ -263,7 +265,8 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ],
     "tintColor": "#7ec6ff",
     "tintIntensity": 0.75,
@@ -481,7 +484,8 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ],
     "swarmSpacing": 1,
     "damageClass": "tank",
@@ -1043,7 +1047,8 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ],
     "swarmSpacing": 0.1,
     "hitbox": {
@@ -1113,7 +1118,8 @@
     "bossTier": 0,
     "preferredTarget": "player",
     "specialBehavior": [
-      "closestAny"
+      "closestAny",
+      "swarmable"
     ],
     "swarmSpacing": 0.05,
     "hitbox": {
@@ -1148,6 +1154,7 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "closestAny",
+      "swarmable",
       "tormentorFlame"
     ],
     "swarmSpacing": 0.2,
@@ -1202,6 +1209,183 @@
     },
     "attackHitDamage": 13,
     "contactDamage": 0
+  },
+  "bossDemonLord": {
+    "displayName": "Demon Lord",
+    "spriteSrc": "assets/sprites/enemies/boss-demon-lord/BossDemonLord.png",
+    "assetFolder": "Boss Demon Lord",
+    "assetBaseName": "Boss Demon Lord",
+    "health": 5000,
+    "maxHealth": 600,
+    "damage": 20,
+    "speed": 35,
+    "baseRadius": 16,
+    "scale": 20,
+    "attackBonus": 40,
+    "cooldown": 1.5,
+    "score": 320,
+    "ranged": true,
+    "projectileType": "fire",
+    "preferEdges": false,
+    "desiredRange": 320,
+    "projectileCooldown": 1.5,
+    "bossTier": 3,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "boss",
+      "heavy",
+      "closestAny",
+      "ranged"
+    ],
+    "damageClass": "tank",
+    "hitbox": {
+      "width": 18,
+      "height": 24,
+      "offsetX": -1,
+      "offsetY": 9
+    },
+    "attackHitFrame": 8,
+    "attackHitDamage": 20,
+    "weaponHitbox": {
+      "width": 18,
+      "height": 24,
+      "offsetX": 14,
+      "offsetY": 0
+    },
+    "assetGrid": {
+      "cols": 10,
+      "rows": 8
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "attack": [
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "hurt": [
+        60,
+        61
+      ],
+      "death": [
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77
+      ]
+    },
+    "contactDamage": 5,
+    "attackDamage": 5
+  },
+  "bossHighDemon": {
+    "displayName": "High Demon",
+    "spriteSrc": "assets/sprites/enemies/boss-high-demon/BossHighDemon.png",
+    "assetFolder": "Boss High Demon",
+    "assetBaseName": "Boss High Demon",
+    "health": 4000,
+    "maxHealth": 450,
+    "damage": 10,
+    "speed": 40,
+    "baseRadius": 14,
+    "scale": 17,
+    "attackBonus": 36,
+    "cooldown": 1.8,
+    "score": 180,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 110,
+    "projectileCooldown": 1.8,
+    "bossTier": 2,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "boss",
+      "closestAny"
+    ],
+    "damageClass": "tank",
+    "hitbox": {
+      "width": 18,
+      "height": 20,
+      "offsetX": 0,
+      "offsetY": 9
+    },
+    "attackHitFrame": 4,
+    "attackHitDamage": 15,
+    "weaponHitbox": {
+      "width": 10,
+      "height": 20,
+      "offsetX": 13,
+      "offsetY": 0
+    },
+    "assetGrid": {
+      "cols": 8,
+      "rows": 6
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "attack": [
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "hurt": [
+        32,
+        33
+      ],
+      "death": [
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    "contactDamage": 5,
+    "attackDamage": 5
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});

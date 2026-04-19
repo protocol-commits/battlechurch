@@ -4152,7 +4152,7 @@ function applyExplicitEnemyFrameMaps(enemyName, clipBundle) {
     if (clipBundle.walk) clipBundle.walk.frameMap = walkMap.slice();
     return;
   }
-  if (enemyName === "miniDemonLord") {
+  if (enemyName === "miniDemonLord" || enemyName === "bossDemonLord") {
     const attackMap = Array.from({ length: 9 }, (_, index) => 51 + index);
     const jumpMap = [20, 60, 60, 60, 21, 22, 23];
     if (clipBundle.attack) {
@@ -6881,8 +6881,8 @@ function spawnPowerUpDrops(count = 1) {
   processQueuedPowerUpDrops();
 }
 
-const EARLY_BOSS_TYPE_POOL = ["miniHighDemon"];
-const FINAL_TOWN_BOSS_TYPE = "miniDemonLord";
+const EARLY_BOSS_TYPE_POOL = ["bossHighDemon"];
+const FINAL_TOWN_BOSS_TYPE = "bossDemonLord";
 const BOSS_TYPE_POOL = [...EARLY_BOSS_TYPE_POOL, FINAL_TOWN_BOSS_TYPE];
 
 function logBossSpriteIssue(payload) {
@@ -7051,6 +7051,20 @@ function getUnlockedChurchPowerupKeys() {
   return Array.from(unlockedChurchPowerups).filter((key) => assets?.churchPowerups?.[key]);
 }
 
+function getBossSpawnBlockZone() {
+  const boss = levelManager?.getBoss?.();
+  if (!boss || boss.dead || boss.defeated || boss.removed) return null;
+  const hitbox = boss.hitbox || boss.config?.hitbox || null;
+  const hasHitbox =
+    hitbox &&
+    Number.isFinite(hitbox.width) && hitbox.width > 0 &&
+    Number.isFinite(hitbox.height) && hitbox.height > 0;
+  const cx = boss.x + (hasHitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0);
+  const cy = boss.y + (hasHitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0);
+  const radius = (hasHitbox ? Math.hypot(hitbox.width, hitbox.height) / 2 : (boss.radius || 80)) + 50;
+  return { x: cx, y: cy, radius };
+}
+
 function spawnChurchPowerupPickup(type = null, position = null) {
   if (!canSpawnChurchPowerup()) return null;
   if (!assets?.churchPowerups) return null;
@@ -7065,11 +7079,23 @@ function spawnChurchPowerupPickup(type = null, position = null) {
   const minY = Math.max(HUD_HEIGHT + POWERUP_PLAYFIELD_MARGIN, areaPadding);
   const maxY = Math.max(minY, canvas.height - areaPadding);
   const homeBounds = getNpcHomeBounds();
+  const bossZone = getBossSpawnBlockZone();
 
   const isInsideHome = (x, y) => {
     const dx = x - homeBounds.x;
     const dy = y - homeBounds.y;
     return Math.hypot(dx, dy) <= homeBounds.radius;
+  };
+  const isInsideBoss = (x, y) => {
+    if (!bossZone) return false;
+    return Math.hypot(x - bossZone.x, y - bossZone.y) <= bossZone.radius;
+  };
+  const pushOutOf = (x, y, zone, margin = 28) => {
+    const angle = Math.atan2(y - zone.y, x - zone.x);
+    return {
+      x: Math.max(minX, Math.min(maxX, zone.x + Math.cos(angle) * (zone.radius + margin))),
+      y: Math.max(minY, Math.min(maxY, zone.y + Math.sin(angle) * (zone.radius + margin))),
+    };
   };
 
   const spanX = Math.max(0, maxX - minX);
@@ -7082,12 +7108,10 @@ function spawnChurchPowerupPickup(type = null, position = null) {
     spawnX = Math.max(minX, Math.min(maxX, position?.x ?? minX));
     spawnY = Math.max(minY, Math.min(maxY, position?.y ?? minY));
     if (isInsideHome(spawnX, spawnY)) {
-      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
-      const pushDist = homeBounds.radius + 28;
-      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
-      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
-      spawnX = Math.max(minX, Math.min(maxX, spawnX));
-      spawnY = Math.max(minY, Math.min(maxY, spawnY));
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, homeBounds));
+    }
+    if (isInsideBoss(spawnX, spawnY)) {
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, bossZone));
     }
   } else {
     let attempts = 0;
@@ -7095,14 +7119,12 @@ function spawnChurchPowerupPickup(type = null, position = null) {
       spawnX = minX + (spanX > 0 ? Math.random() * spanX : 0);
       spawnY = minY + (spanY > 0 ? Math.random() * spanY : 0);
       attempts += 1;
-    } while (isInsideHome(spawnX, spawnY) && attempts < 50);
+    } while ((isInsideHome(spawnX, spawnY) || isInsideBoss(spawnX, spawnY)) && attempts < 50);
     if (isInsideHome(spawnX, spawnY)) {
-      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
-      const pushDist = homeBounds.radius + 28;
-      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
-      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
-      spawnX = Math.max(minX, Math.min(maxX, spawnX));
-      spawnY = Math.max(minY, Math.min(maxY, spawnY));
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, homeBounds));
+    }
+    if (isInsideBoss(spawnX, spawnY)) {
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, bossZone));
     }
   }
 
@@ -7129,11 +7151,23 @@ function spawnUtilityPowerUp(type = null, position = null) {
   const minY = Math.max(HUD_HEIGHT + POWERUP_PLAYFIELD_MARGIN, areaPadding);
   const maxY = Math.max(minY, canvas.height - areaPadding);
   const homeBounds = getNpcHomeBounds();
+  const bossZone = getBossSpawnBlockZone();
 
   const isInsideHome = (x, y) => {
     const dx = x - homeBounds.x;
     const dy = y - homeBounds.y;
     return Math.hypot(dx, dy) <= homeBounds.radius;
+  };
+  const isInsideBoss = (x, y) => {
+    if (!bossZone) return false;
+    return Math.hypot(x - bossZone.x, y - bossZone.y) <= bossZone.radius;
+  };
+  const pushOutOf = (x, y, zone, margin = 28) => {
+    const angle = Math.atan2(y - zone.y, x - zone.x);
+    return {
+      x: Math.max(minX, Math.min(maxX, zone.x + Math.cos(angle) * (zone.radius + margin))),
+      y: Math.max(minY, Math.min(maxY, zone.y + Math.sin(angle) * (zone.radius + margin))),
+    };
   };
 
   const spanX = Math.max(0, maxX - minX);
@@ -7146,12 +7180,10 @@ function spawnUtilityPowerUp(type = null, position = null) {
     spawnX = Math.max(minX, Math.min(maxX, position?.x ?? minX));
     spawnY = Math.max(minY, Math.min(maxY, position?.y ?? minY));
     if (isInsideHome(spawnX, spawnY)) {
-      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
-      const pushDist = homeBounds.radius + 28;
-      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
-      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
-      spawnX = Math.max(minX, Math.min(maxX, spawnX));
-      spawnY = Math.max(minY, Math.min(maxY, spawnY));
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, homeBounds));
+    }
+    if (isInsideBoss(spawnX, spawnY)) {
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, bossZone));
     }
   } else {
     let attempts = 0;
@@ -7159,14 +7191,12 @@ function spawnUtilityPowerUp(type = null, position = null) {
       spawnX = minX + (spanX > 0 ? Math.random() * spanX : 0);
       spawnY = minY + (spanY > 0 ? Math.random() * spanY : 0);
       attempts += 1;
-    } while (isInsideHome(spawnX, spawnY) && attempts < 50);
+    } while ((isInsideHome(spawnX, spawnY) || isInsideBoss(spawnX, spawnY)) && attempts < 50);
     if (isInsideHome(spawnX, spawnY)) {
-      const angle = Math.atan2(spawnY - homeBounds.y, spawnX - homeBounds.x);
-      const pushDist = homeBounds.radius + 28;
-      spawnX = homeBounds.x + Math.cos(angle) * pushDist;
-      spawnY = homeBounds.y + Math.sin(angle) * pushDist;
-      spawnX = Math.max(minX, Math.min(maxX, spawnX));
-      spawnY = Math.max(minY, Math.min(maxY, spawnY));
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, homeBounds));
+    }
+    if (isInsideBoss(spawnX, spawnY)) {
+      ({ x: spawnX, y: spawnY } = pushOutOf(spawnX, spawnY, bossZone));
     }
   }
 
@@ -7191,6 +7221,12 @@ function spawnWeaponPickup(position = null) {
   const pushed = pushPointOutsideNpcHome(pickup.x, pickup.y);
   pickup.x = pushed.x;
   pickup.y = pushed.y;
+  const bossZoneW = getBossSpawnBlockZone();
+  if (bossZoneW && Math.hypot(pickup.x - bossZoneW.x, pickup.y - bossZoneW.y) <= bossZoneW.radius) {
+    const angle = Math.atan2(pickup.y - bossZoneW.y, pickup.x - bossZoneW.x);
+    pickup.x = bossZoneW.x + Math.cos(angle) * (bossZoneW.radius + 28);
+    pickup.y = bossZoneW.y + Math.sin(angle) * (bossZoneW.radius + 28);
+  }
   pickup.baseY = pickup.y;
   clampEntityToBounds(pickup);
   weaponPickups.push(pickup);
@@ -11223,7 +11259,7 @@ class CozyNpc {
 
 function getEnemyHitboxRadius(enemy) {
   if (!enemy) return 0;
-  const hitbox = enemy.config?.hitbox || null;
+  const hitbox = enemy.hitbox || enemy.config?.hitbox || null;
   if (hitbox && Number.isFinite(hitbox.width) && Number.isFinite(hitbox.height)) {
     return Math.max(hitbox.width, hitbox.height) * 0.5;
   }
@@ -11262,7 +11298,7 @@ function isEnemyInKnockback(enemy) {
 }
 
 function getEnemyHitboxCenter(enemy) {
-  const hitbox = enemy?.config?.hitbox || null;
+  const hitbox = enemy?.hitbox || enemy?.config?.hitbox || null;
   const offsetX = hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
   const offsetY = hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
   return {
@@ -12064,16 +12100,21 @@ class BossEncounter {
       this.invalid = true;
       return;
     }
-    this.scaleMultiplier = 2.3 + Math.random() * 0.7; // roughly 2.3x to 3.0x
-    this.scale = this.config.scale * this.scaleMultiplier;
+    this.scale = this.config.scale;
     const maxRadius = 420 * WORLD_SCALE;
-    this.radius = Math.min(maxRadius, (this.config.hitRadius || 28) * this.scaleMultiplier);
+    this.radius = Math.min(maxRadius, this.config.hitRadius || 28);
+    const baseHitbox = this.config.hitbox || null;
+    this.hitbox = baseHitbox ? {
+      width: baseHitbox.width,
+      height: baseHitbox.height,
+      offsetX: baseHitbox.offsetX || 0,
+      offsetY: baseHitbox.offsetY || 0,
+    } : null;
     this.animator = new Animator(this.clips, this.scale);
     this.animator.play("idle");
     this.state = "idle";
     this.facing = "down";
-    const bossHealthValue = this.config.maxHealth || this.config.health || 300;
-    this.maxHealth = bossHealthValue * 10;
+    this.maxHealth = this.config.health || 300;
     this.health = this.maxHealth;
     this.phase = 1;
     this.phaseNotified = { 2: false, 3: false };
@@ -15486,6 +15527,7 @@ function showDeveloperOverlay() {
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="enemy">Enemy Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="hitbox">Hitbox Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="bossHitbox">Boss Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="shortcuts">Developer Shortcuts</button>
       </div>
       <div class="settings-row"><div class="settings-row__label"><strong>Debug Toggles</strong></div></div>
@@ -15544,6 +15586,9 @@ function showDeveloperOverlay() {
           } else if (action === "hitbox") {
             window.DialogOverlay.hide();
             window.BattlechurchHitboxEditor?.setActive?.(true);
+          } else if (action === "bossHitbox") {
+            window.DialogOverlay.hide();
+            window.BattlechurchBossHitboxEditor?.setActive?.(true);
           } else if (action === "shortcuts") {
             showDeveloperShortcutsOverlay();
           }
@@ -21022,6 +21067,14 @@ async function init() {
         getAssets: () => assets,
       });
     }
+    if (window.BattlechurchBossHitboxEditor?.initialize) {
+      window.BattlechurchBossHitboxEditor.initialize({
+        getAssets: () => assets,
+        getEnemyCatalog: () => ENEMY_CATALOG,
+        getEnemyTypes: () => ENEMY_TYPES,
+        onHitboxChange: applyHitboxChange,
+      });
+    }
     if (window.BattlechurchHitboxEditor?.initialize) {
       window.BattlechurchHitboxEditor.initialize({
         getAssets: () => assets,
@@ -21180,6 +21233,9 @@ async function init() {
     }
     if (assets?.enemies?.miniDemonLord) {
       applyExplicitEnemyFrameMaps("miniDemonLord", assets.enemies.miniDemonLord);
+    }
+    if (assets?.enemies?.bossDemonLord) {
+      applyExplicitEnemyFrameMaps("bossDemonLord", assets.enemies.bossDemonLord);
     }
   } catch (e) {
     // ignore

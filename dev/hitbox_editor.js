@@ -285,6 +285,7 @@
     Object.keys(catalog || {})
       .sort((a, b) => a.localeCompare(b))
       .forEach((key) => {
+        if (key.startsWith("boss")) return;
         const def = catalog[key] || {};
         entries.push({
           id: `enemy:${key}`,

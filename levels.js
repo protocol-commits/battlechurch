@@ -1913,6 +1913,9 @@ state.waveIndex = -1;
       attachBoss(boss) {
         state.boss = boss;
       },
+      getBoss() {
+        return state.boss || null;
+      },
       markBossDefeated() {
         if (state.stage === "bossActive") onBossDefeated();
       },
