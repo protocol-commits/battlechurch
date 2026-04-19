@@ -64,7 +64,7 @@ const GRACE_DROP_MINION_SCALE = _gb('grace.dropMinionScale', 0.35);
 const GRACE_DROP_MAX_STACK = _gb('grace.dropMaxStack', 3);
 const GRACE_DROP_SIZE_CHANCE_FACTOR = _gb('grace.dropSizeChanceFactor', 0.15);
 const GRACE_DROP_SIZE_STACK_FACTOR = _gb('grace.dropSizeStackFactor', 0.9);
-const GRACE_RUSH_DURATION = _gb('grace.rushDuration', 5);
+const GRACE_RUSH_DURATION = _gb('grace.rushDuration', 8);
 const GRACE_BONUS_MULTIPLIER = _gb('grace.bonusMultiplier', 5);
 const POST_DEATH_HANG = 5;
 const ARENA_FADE_DURATION = 2;
@@ -1776,12 +1776,16 @@ const GRACE_RUSH_FAREWELL_LINES = [
   "See you around church.",
   "See you Sunday.",
   "Thanks!",
+  "God bless you, Pastor.",
+  "See you next week!",
+  "Thank you so much.",
 ];
 
-function resetGraceRushNpcFarewellState() {
+function resetGraceRushNpcFarewellState({ resetAlpha = true } = {}) {
   graceRushState.farewellQueue = [];
   graceRushState.farewellNextAt = 0;
   graceRushState.farewellSpokenCount = 0;
+  if (!resetAlpha) return;
   if (!Array.isArray(npcs)) return;
   npcs.forEach((npc) => {
     if (!npc) return;
@@ -1796,14 +1800,18 @@ function prepareGraceRushNpcFarewellQueue() {
     ? npcs.filter((npc) => npc && !npc.departed && npc.active)
     : [];
   if (!activeSurvivors.length) return;
-  const speakerCount = Math.min(2, activeSurvivors.length);
+  const speakerCount = Math.min(5, activeSurvivors.length);
   const shuffled = [...activeSurvivors].sort(() => Math.random() - 0.5);
   const picked = shuffled.slice(0, speakerCount);
-  graceRushState.farewellQueue = picked.map((npc, index) => {
-    const line = GRACE_RUSH_FAREWELL_LINES[index % GRACE_RUSH_FAREWELL_LINES.length];
+  const usedLines = new Set();
+  graceRushState.farewellQueue = picked.map((npc) => {
+    const available = GRACE_RUSH_FAREWELL_LINES.filter((l) => !usedLines.has(l));
+    const pool = available.length ? available : GRACE_RUSH_FAREWELL_LINES;
+    const line = pool[Math.floor(Math.random() * pool.length)];
+    usedLines.add(line);
     return { npc, line };
   });
-  graceRushState.farewellNextAt = 0.55;
+  graceRushState.farewellNextAt = 0.35;
   graceRushState.farewellSpokenCount = 0;
 }
 visitorSession.activeChatty = new Set();
@@ -2657,7 +2665,7 @@ function updateGraceRushState(dt) {
   graceRushState.spawnTimer = (graceRushState.spawnTimer || 0) - dt;
   if (graceRushState.reason !== "boss") {
     const duration = Math.max(0.001, graceRushState.duration || 0);
-    const fadeStart = Math.min(duration - 0.25, Math.max(0.7, duration * 0.34));
+    const fadeStart = 0.4;
     const fadeSpan = Math.max(0.6, duration - fadeStart);
     const fadeProgress = Math.max(0, Math.min(1, (graceRushState.elapsed - fadeStart) / fadeSpan));
     const npcFadeAlpha = Math.max(0, 1 - fadeProgress);
@@ -2674,10 +2682,10 @@ function updateGraceRushState(dt) {
     ) {
       const entry = graceRushState.farewellQueue[graceRushState.farewellSpokenCount];
       if (entry?.npc && !entry.npc.departed && entry.npc.active) {
-        npcCheer(entry.npc, entry.line, "#fffbe8", { life: 2.05 });
+        npcCheer(entry.npc, entry.line, "#fffbe8", { life: 3.1, fadeDelay: 2.3 });
       }
       graceRushState.farewellSpokenCount += 1;
-      graceRushState.farewellNextAt += 1.05;
+      graceRushState.farewellNextAt += 0.6;
     }
   } else {
     resetGraceRushNpcFarewellState();
@@ -2698,7 +2706,7 @@ function updateGraceRushState(dt) {
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
-    resetGraceRushNpcFarewellState();
+    resetGraceRushNpcFarewellState({ resetAlpha: false });
   }
 }
 
@@ -10333,6 +10341,7 @@ class CozyNpcAnimator {
 
   draw(context, x, y, options = {}) {
     const { flashWhite = 0, alpha = 1 } = options || {};
+    const outerAlpha = context.globalAlpha;
     const data = this.stateData;
     if (!data || !data.layers || !data.layers.length) return;
     const framesPerDirection = Math.max(1, data.framesPerDirection || 1);
@@ -10348,7 +10357,7 @@ class CozyNpcAnimator {
       const shadowWidth = this.shadow.width * this.scale;
       const shadowHeight = this.shadow.height * this.scale * 0.8;
       context.save();
-      context.globalAlpha = 0.35 * alpha;
+      context.globalAlpha = outerAlpha * 0.35 * alpha;
       context.drawImage(
         this.shadow,
         x - shadowWidth / 2,
@@ -10360,7 +10369,7 @@ class CozyNpcAnimator {
     }
 
     context.save();
-    context.globalAlpha = alpha;
+    context.globalAlpha = outerAlpha * alpha;
     context.translate(x, y);
     data.layers.forEach((image) => {
       const source = image && image.__sourceImage ? image.__sourceImage : image;
@@ -10384,7 +10393,7 @@ class CozyNpcAnimator {
       const prevAlpha = context.globalAlpha;
       const prevFilter = context.filter || 'none';
       context.globalCompositeOperation = 'lighter';
-      context.globalAlpha = flashAmount * alpha;
+      context.globalAlpha = outerAlpha * flashAmount * alpha;
       context.filter = `brightness(${(1 + flashAmount * 1.4).toFixed(2)}) saturate(${(1 + flashAmount * 0.9).toFixed(2)})`;
       data.layers.forEach((image) => {
         const source = image && image.__sourceImage ? image.__sourceImage : image;

@@ -5566,7 +5566,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawAnnouncementText(ctx, canvas, {
       title: payoffLine,
       subtitle: "",
-      yBase: Math.round(canvas.height * 0.5),
+      yBase: getAnnouncementYBase(requireBindings().HUD_HEIGHT),
       alpha: textAlpha,
       typewriter: false,
       titleSize: Math.max(28, Math.round(TEXT_STYLES.h1.size * 0.76)),
