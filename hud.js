@@ -762,7 +762,7 @@
       if (player.speedBoostTimer > 0) {
         const duration = Math.max(0.001, player.speedBoostDuration || 0);
         utilityRows.push({
-          label: skillNames.haste || 'Haste',
+          label: skillNames.haste || 'Quicken',
           ratio: duration > 0 ? player.speedBoostTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.teal),
           iconImage: assets?.utility?.haste?.iconImage || null,
@@ -772,7 +772,7 @@
       if (player.powerExtendTimer > 0) {
         const duration = Math.max(0.001, player.powerExtendDuration || 0);
         utilityRows.push({
-          label: skillNames.swordOfTheSpirit || 'Sword of the Spirit (extends weapons)',
+          label: skillNames.swordOfTheSpirit || 'Perseverance (extends weapons)',
           ratio: duration > 0 ? player.powerExtendTimer / duration : 0,
           color: getIconStyleColor('utility', PALETTE.gold),
           iconImage: assets?.utility?.extender?.iconImage || null,

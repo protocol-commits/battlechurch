@@ -103,7 +103,7 @@
       spear: "Spear",
       sentry: "Sentry",
       shieldOfFaith: "Shield of Faith",
-      haste: "Haste",
+      haste: "Quicken",
       swordOfTheSpirit: "Perseverance (extends weapons)",
       encourageOneAnother: "Encourage One Another",
     },

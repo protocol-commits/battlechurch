@@ -2521,32 +2521,8 @@ const addStatusText = FloatingText.addStatusText;
 const updateFloatingTexts = FloatingText.update;
 
 function showWaveHealthSnapshot() {
-  const spawnHealthLabel = (entity, text, color, bgColor, offsetY) => {
-    if (!entity || !text) return;
-    addFloatingTextAt(entity.x, entity.y + offsetY, text, color, {
-      speechBubble: false,
-      vy: 0,
-      life: 3.2,
-      fadeDelay: 1.4,
-      entity,
-      offsetY,
-      style: "status",
-      bgColor,
-      fontSize: 17,
-      fontWeight: "700",
-      priority: 2,
-      detachOnEntityGone: true,
-    });
-  };
-
   if (player && player.state !== "death" && Number.isFinite(player.health)) {
-    spawnHealthLabel(
-      player,
-      `HP ${Math.max(0, Math.round(player.health))}`,
-      "#FFF7D6",
-      "rgba(84, 53, 18, 0.92)",
-      -(player.radius || 24) - 34,
-    );
+    heroSay(`HP ${Math.max(0, Math.round(player.health))}`, { life: 5.0 });
   }
 
   const formationLabel =
@@ -2804,7 +2780,7 @@ const NPC_POWERUP_EFFECT_NAMES = {
   npcScriptureWeapon: "Scripture",
   npcWisdomWeapon: "Wisdom",
   npcFaithWeapon: "Faith",
-  harmony: "Harmony",
+  harmony: "Encouragement",
 };
 
 function triggerNpcPowerupDialogue(effectKey) {
