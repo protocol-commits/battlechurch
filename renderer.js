@@ -4542,18 +4542,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     } else {
       const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight);
+      const shouldShowSubtitle = Boolean(levelAnnouncements[0]?.showSubtitle);
       drawAnnouncementText(ctx, canvas, {
         title: displayTitle || "",
+        subtitle: shouldShowSubtitle ? String(subtitle || "") : "",
         yBase: titleY,
         alpha,
         typewriter: true,
         titleSize: TEXT_STYLES.h2.size,
+        subtitleSize: TEXT_STYLES.body.size,
+        lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
         weight: TEXT_STYLES.h2.weight,
+        subtitleWeight: TEXT_STYLES.body.weight,
         textPalette: HELLFIRE_TEXT_PALETTE,
       });
     }
     // Dev label hidden for announcements per request.
-    // Subtitle display removed as requested.
     ctx.restore();
   }
 
@@ -5513,7 +5517,67 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawGraceRushOverlay(levelStatus, rushState) {
-    return;
+    const inGraceRushStage = levelStatus?.stage === "graceRush";
+    const rushActive = Boolean(rushState?.active) || inGraceRushStage;
+    if (!rushActive) return;
+    if (rushState?.reason === "boss") return;
+    const { ctx, canvas, npcs, graceRushFadeAlpha } = requireBindings();
+    const scenarioRaw =
+      typeof levelStatus.battleScenario === "string" ? levelStatus.battleScenario.trim() : "";
+    const problemPhrase = (
+      scenarioRaw.replace(/[.!?]+$/g, "").replace(/\s+/g, " ").trim() ||
+      "their current struggles"
+    );
+
+    const survivors = Array.isArray(npcs)
+      ? npcs
+          .filter((npc) => npc && !npc.departed && npc.active)
+          .map((npc) => (typeof npc.name === "string" ? npc.name.trim() : ""))
+          .filter(Boolean)
+      : [];
+    const uniqueNames = [];
+    const seen = new Set();
+    survivors.forEach((name) => {
+      if (seen.has(name)) return;
+      seen.add(name);
+      uniqueNames.push(name);
+    });
+    let namesText = "your congregation";
+    if (uniqueNames.length === 1) {
+      namesText = uniqueNames[0];
+    } else if (uniqueNames.length === 2) {
+      namesText = `${uniqueNames[0]} and ${uniqueNames[1]}`;
+    } else if (uniqueNames.length > 2) {
+      namesText = `${uniqueNames.slice(0, -1).join(", ")}, and ${uniqueNames[uniqueNames.length - 1]}`;
+    }
+
+    const payoffLine = `You helped ${namesText} gain the tools to face ${problemPhrase}.`;
+    const stageTimer = Number.isFinite(levelStatus?.stageTimer)
+      ? Math.max(0, Number(levelStatus.stageTimer))
+      : (Number.isFinite(rushState?.timer) ? Math.max(0, Number(rushState.timer)) : 0);
+    // Fade the message shortly before the global grace-rush fade-to-black starts.
+    const preFadeWindow = 0.75;
+    const preFadeAlpha = stageTimer > preFadeWindow
+      ? 1
+      : Math.max(0, stageTimer / Math.max(0.001, preFadeWindow));
+    const overlayFadeAlpha = 1 - Math.max(0, Math.min(1, (graceRushFadeAlpha || 0) * 1.25));
+    const textAlpha = Math.max(0, Math.min(1, preFadeAlpha * overlayFadeAlpha));
+    if (textAlpha <= 0.001) return;
+    drawAnnouncementText(ctx, canvas, {
+      title: payoffLine,
+      subtitle: "",
+      yBase: Math.round(canvas.height * 0.5),
+      alpha: textAlpha,
+      typewriter: false,
+      titleSize: Math.max(28, Math.round(TEXT_STYLES.h1.size * 0.76)),
+      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+      weight: "700",
+      textPalette: HELLFIRE_TEXT_PALETTE,
+      titleStrokeColor: "rgba(20, 8, 6, 0.95)",
+      titleStrokeWidth: 2.8,
+      maxWidthScale: 0.9,
+      blockAlign: "center",
+    });
   }
 
   function getCombatMeterPalette() {
@@ -8175,17 +8239,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         if (entry?.owner) overlayByOwner.set(entry.owner, entry);
       });
       const sortedNpcs = [...battleNpcs].sort((a, b) => (a?.y || 0) - (b?.y || 0));
-      ctx.save();
-      ctx.globalAlpha *= npcFadeAlpha;
       sortedNpcs.forEach((npc) => {
+        const rushAlpha = Number.isFinite(npc?.graceRushNpcFadeAlpha)
+          ? Math.max(0, Math.min(1, npc.graceRushNpcFadeAlpha))
+          : 1;
+        const drawAlpha = npcFadeAlpha * rushAlpha;
+        if (drawAlpha <= 0.001) return;
+        ctx.save();
+        ctx.globalAlpha *= drawAlpha;
         if (npc?.name) {
           const nameY = npc.y - (npc.radius || 28) - 10;
           drawNameTag(ctx, npc.name, npc.x, nameY, UI_FONT_FAMILY);
         }
         const overlay = overlayByOwner.get(npc);
         if (overlay) drawNpcFaithOverlayEntry(overlay);
+        ctx.restore();
       });
-      ctx.restore();
     } else {
       npcFaithOverlayFn();
     }
@@ -8899,16 +8968,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (!ctx || !Array.isArray(npcsToDraw) || !npcsToDraw.length) return;
     const { visitorSession } = requireBindings();
     if (visitorSession?.active) return;
+    const baseAlpha = Math.max(0, Math.min(1, alpha));
     ctx.save();
-    ctx.globalAlpha *= Math.max(0, Math.min(1, alpha));
     npcsToDraw.forEach((npc) => {
       if (!npc) return;
+      const rushAlpha = Number.isFinite(npc.graceRushNpcFadeAlpha)
+        ? Math.max(0, Math.min(1, npc.graceRushNpcFadeAlpha))
+        : 1;
+      const drawAlpha = baseAlpha * rushAlpha;
+      if (drawAlpha <= 0.001) return;
+      ctx.save();
+      ctx.globalAlpha *= drawAlpha;
       if (typeof npc.draw === "function") {
         npc.draw();
       }
       if (npc.state === "lostFaith") {
         drawLostFaithHighlight(ctx, npc);
       }
+      ctx.restore();
     });
     ctx.restore();
   }
@@ -8959,6 +9036,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       const fadeLength = ft.fadeLength || ft.initialLife || 1.5;
       const remaining = typeof ft.fadeDelayRemaining === "number" ? ft.fadeDelayRemaining : 0;
+      const entityFadeAlpha = Number.isFinite(ft?.entity?.graceRushNpcFadeAlpha)
+        ? Math.max(0, Math.min(1, ft.entity.graceRushNpcFadeAlpha))
+        : 1;
       let alpha = 1;
       if (remaining <= 0) {
         alpha = Math.max(0, Math.min(1, ft.life / fadeLength));
@@ -8976,7 +9056,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           alpha = pulse * fadeFactor;
         }
       }
-      ctx.globalAlpha = alpha * effectiveBaseAlpha;
+      const compositeAlpha = alpha * effectiveBaseAlpha * entityFadeAlpha;
+      if (compositeAlpha <= 0.001) {
+        ctx.restore();
+        return;
+      }
+      ctx.globalAlpha = compositeAlpha;
       const style = ft.style || (ft.speechBubble ? "speech" : "plain");
       const fontSize = ft.fontSize || (style === "speech" ? 12 : 14);
       const fontWeight = ft.fontWeight || (style === "speech" ? "500" : "600");
@@ -9038,7 +9123,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ? `rgba(255, 180, 60, ${0.5 + 0.5 * stylePulse})`
           : `rgba(100, 200, 255, ${0.5 + 0.5 * stylePulse})`;
         ctx.save();
-        ctx.globalAlpha = alpha * 0.9;
+        ctx.globalAlpha = compositeAlpha * 0.9;
         ctx.fillStyle = fillColor;
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = isStyledBubble ? 2.5 : 2;
@@ -9108,7 +9193,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const rectY = drawY - height / 2;
         const radius = 12;
         ctx.save();
-        ctx.globalAlpha = alpha;
+        ctx.globalAlpha = compositeAlpha;
         ctx.fillStyle = ft.bgColor || "rgba(38, 52, 70, 0.9)";
         ctx.strokeStyle = "rgba(120, 180, 255, 0.55)";
         ctx.lineWidth = 2;

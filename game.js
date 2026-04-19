@@ -1767,8 +1767,45 @@ const graceRushState = {
   burstAmount: 16,
   centerX: null,
   centerY: null,
+  farewellQueue: [],
+  farewellNextAt: 0,
+  farewellSpokenCount: 0,
 };
 let lastEnemyDeathPosition = null;
+const GRACE_RUSH_FAREWELL_LINES = [
+  "See you around church.",
+  "See you Sunday.",
+  "Thanks!",
+];
+
+function resetGraceRushNpcFarewellState() {
+  graceRushState.farewellQueue = [];
+  graceRushState.farewellNextAt = 0;
+  graceRushState.farewellSpokenCount = 0;
+  if (!Array.isArray(npcs)) return;
+  npcs.forEach((npc) => {
+    if (!npc) return;
+    npc.graceRushNpcFadeAlpha = 1;
+  });
+}
+
+function prepareGraceRushNpcFarewellQueue() {
+  resetGraceRushNpcFarewellState();
+  if (graceRushState.reason === "boss") return;
+  const activeSurvivors = Array.isArray(npcs)
+    ? npcs.filter((npc) => npc && !npc.departed && npc.active)
+    : [];
+  if (!activeSurvivors.length) return;
+  const speakerCount = Math.min(2, activeSurvivors.length);
+  const shuffled = [...activeSurvivors].sort(() => Math.random() - 0.5);
+  const picked = shuffled.slice(0, speakerCount);
+  graceRushState.farewellQueue = picked.map((npc, index) => {
+    const line = GRACE_RUSH_FAREWELL_LINES[index % GRACE_RUSH_FAREWELL_LINES.length];
+    return { npc, line };
+  });
+  graceRushState.farewellNextAt = 0.55;
+  graceRushState.farewellSpokenCount = 0;
+}
 visitorSession.activeChatty = new Set();
 visitorSession.lockingBlockers = new Set();
 visitorSession.movementLock = false;
@@ -2598,6 +2635,7 @@ function startBattleGraceRush(duration = GRACE_RUSH_DURATION, options = {}) {
   graceRushState.spawnTimer = 0;
   graceRushState.centerX = Number.isFinite(options.centerX) ? options.centerX : null;
   graceRushState.centerY = Number.isFinite(options.centerY) ? options.centerY : null;
+  prepareGraceRushNpcFarewellQueue();
   lastEnemyDeathPosition = null;
 }
 
@@ -2611,11 +2649,39 @@ function updateGraceRushState(dt) {
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
+    resetGraceRushNpcFarewellState();
     return;
   }
   graceRushState.elapsed = Math.max(0, graceRushState.elapsed + dt);
   graceRushState.timer = Math.max(0, graceRushState.timer - dt);
   graceRushState.spawnTimer = (graceRushState.spawnTimer || 0) - dt;
+  if (graceRushState.reason !== "boss") {
+    const duration = Math.max(0.001, graceRushState.duration || 0);
+    const fadeStart = Math.min(duration - 0.25, Math.max(0.7, duration * 0.34));
+    const fadeSpan = Math.max(0.6, duration - fadeStart);
+    const fadeProgress = Math.max(0, Math.min(1, (graceRushState.elapsed - fadeStart) / fadeSpan));
+    const npcFadeAlpha = Math.max(0, 1 - fadeProgress);
+    if (Array.isArray(npcs)) {
+      npcs.forEach((npc) => {
+        if (!npc || npc.departed || !npc.active) return;
+        npc.graceRushNpcFadeAlpha = npcFadeAlpha;
+      });
+    }
+
+    while (
+      graceRushState.farewellSpokenCount < graceRushState.farewellQueue.length &&
+      graceRushState.elapsed >= graceRushState.farewellNextAt
+    ) {
+      const entry = graceRushState.farewellQueue[graceRushState.farewellSpokenCount];
+      if (entry?.npc && !entry.npc.departed && entry.npc.active) {
+        npcCheer(entry.npc, entry.line, "#fffbe8", { life: 2.05 });
+      }
+      graceRushState.farewellSpokenCount += 1;
+      graceRushState.farewellNextAt += 1.05;
+    }
+  } else {
+    resetGraceRushNpcFarewellState();
+  }
   if (graceRushState.spawnTimer <= 0) {
     spawnVictoryGraceBurst({
       reason: graceRushState.reason,
@@ -2632,6 +2698,7 @@ function updateGraceRushState(dt) {
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
+    resetGraceRushNpcFarewellState();
   }
 }
 
@@ -9109,6 +9176,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   const fadeOutDuration = Number.isFinite(options.fadeOutDuration)
     ? Math.max(0.05, options.fadeOutDuration)
     : null;
+  const showSubtitle = Boolean(options.showSubtitle);
   const announcement = {
     title,
     subtitle,
@@ -9126,6 +9194,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     finalYear,
     levelSummary,
     fadeOutDuration,
+    showSubtitle,
     pastorFinal,
     pastorPostRecap,
     pastorPostRecapDelay,
@@ -16355,6 +16424,10 @@ function handleLevelAnnouncements() {
       const upgradeAfter = Boolean(window.UpgradeScreen);
       showBattleSummaryDialog(currentAnnouncement, savedCount, lostCount, upgradeAfter);
     }
+    if (!currentAnnouncement._recapIntroFadeStarted) {
+      currentAnnouncement._recapIntroFadeStarted = true;
+      startRecapIntroFade(0.95);
+    }
     const buttons =
       typeof window !== "undefined" && window.__announcementButtons?.key === "recap"
         ? window.__announcementButtons.buttons
@@ -20945,6 +21018,7 @@ function updateGame(dt) {
     graceRushState.spawnTimer = 0;
     graceRushState.centerX = null;
     graceRushState.centerY = null;
+    resetGraceRushNpcFarewellState();
     graceRushFadeTimer = 0;
     graceRushFadeDuration = 0;
     graceRushFadeAlpha = 0;
@@ -21278,6 +21352,7 @@ function restartGame() {
   graceRushState.timer = 0;
   graceRushState.duration = 0;
   graceRushState.elapsed = 0;
+  resetGraceRushNpcFarewellState();
   lastEnemyDeathPosition = null;
   cancelStartCountdown();
   needsCountdown = false;

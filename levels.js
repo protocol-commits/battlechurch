@@ -1422,6 +1422,34 @@
       }
     }
 
+    function buildVictoryNamesText() {
+      const roster = Array.isArray(npcs) ? npcs : [];
+      const survivors = roster
+        .filter((npc) => npc && !npc.departed && npc.active)
+        .map((npc) => (typeof npc.name === "string" ? npc.name.trim() : ""))
+        .filter(Boolean);
+      const unique = [];
+      const seen = new Set();
+      survivors.forEach((name) => {
+        if (seen.has(name)) return;
+        seen.add(name);
+        unique.push(name);
+      });
+      if (!unique.length) return "your congregation";
+      if (unique.length === 1) return unique[0];
+      if (unique.length === 2) return `${unique[0]} and ${unique[1]}`;
+      if (unique.length === 3) return `${unique[0]}, ${unique[1]}, and ${unique[2]}`;
+      return `${unique[0]}, ${unique[1]}, ${unique[2]}, and ${unique.length - 3} others`;
+    }
+
+    function buildVictoryProblemPhrase() {
+      const raw = typeof state.currentBattleScenario === "string"
+        ? state.currentBattleScenario.trim()
+        : "";
+      const cleaned = raw.replace(/[.!?]+$/g, "").replace(/\s+/g, " ").trim();
+      return cleaned || "their current struggles";
+    }
+
     function beginBattleVictoryCelebrate(monthName) {
       resetStage("victoryCelebrate", VICTORY_CELEBRATE_DURATION);
       state.finalWaveDelay = 0;
@@ -1433,7 +1461,12 @@
       if (typeof deps.showBattleVictoryNpcDialogue === "function") {
         deps.showBattleVictoryNpcDialogue();
       }
-      queueLevelAnnouncement("Victory!", "Gather as much grace as you can!", {
+      const namesText = buildVictoryNamesText();
+      const problemPhrase = buildVictoryProblemPhrase();
+      queueLevelAnnouncement(
+        "Victory!",
+        "",
+        {
         duration: 2.6,
         skipMissionBrief: true,
       });
