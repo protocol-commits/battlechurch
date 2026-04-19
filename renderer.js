@@ -856,6 +856,7 @@ const MELEE_SWING_LENGTH = 260;
     subtitleWeight = TEXT_STYLES.body.weight,
     typewriter = false,
     highlight = null,
+    textPalette = null,
     maxWidthScale = 0.96,
     blockAlign = "center",
   }) {
@@ -873,11 +874,14 @@ const MELEE_SWING_LENGTH = 260;
     // "Announcement Text" refers to this renderer's font/size/wrap style.
     // "Announcement Text Engine" means this renderer at full-width on the main canvas.
     const wrapText = (text, maxWidth) => wrapAnnouncementText(ctx, text, maxWidth);
+    const titleColor = textPalette?.title || "#EAF6FF";
+    const subtitleColor = textPalette?.subtitle || titleColor;
+    const shadowColor = textPalette?.shadow || "rgba(6, 10, 18, 0.85)";
     ctx.save();
     ctx.globalAlpha = 0.98 * alpha;
-    ctx.fillStyle = "#EAF6FF";
+    ctx.fillStyle = titleColor;
     ctx.font = `${weight} ${effectiveTitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+    ctx.shadowColor = shadowColor;
     ctx.shadowBlur = 20;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
@@ -1001,8 +1005,8 @@ const MELEE_SWING_LENGTH = 260;
           ctx.shadowColor = shimmerGlow;
           ctx.shadowBlur = 24 * pulse;
         } else {
-          ctx.fillStyle = "#EAF6FF";
-          ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+          ctx.fillStyle = titleColor;
+          ctx.shadowColor = shadowColor;
           ctx.shadowBlur = 20;
         }
         ctx.fillText(visible, lineX, currentY);
@@ -1044,7 +1048,7 @@ const MELEE_SWING_LENGTH = 260;
             const mid = visible.slice(localStart, localEnd);
             const after = visible.slice(localEnd);
             let cursorX = lineBaseX;
-            ctx.fillStyle = "#EAF6FF";
+            ctx.fillStyle = subtitleColor;
             if (before) {
               ctx.fillText(before, cursorX, currentY);
               cursorX += ctx.measureText(before).width || 0;
@@ -1055,11 +1059,11 @@ const MELEE_SWING_LENGTH = 260;
               cursorX += ctx.measureText(mid).width || 0;
             }
             if (after) {
-              ctx.fillStyle = "#EAF6FF";
+              ctx.fillStyle = subtitleColor;
               ctx.fillText(after, cursorX, currentY);
             }
           } else {
-            ctx.fillStyle = "#EAF6FF";
+            ctx.fillStyle = subtitleColor;
             ctx.fillText(visible, lineBaseX, currentY);
           }
         }
@@ -1426,6 +1430,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       alpha: 1,
       typewriter: true,
       highlight,
+      textPalette: HELLFIRE_TEXT_PALETTE,
       maxWidthScale,
       blockAlign: "fullCenter",
     });
@@ -1445,6 +1450,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         alpha: 1,
         typewriter: true,
         highlight,
+        textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale,
         blockAlign: "fullCenter",
       });
@@ -1469,6 +1475,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       alpha: 1,
       typewriter: true,
       highlight,
+      textPalette: HELLFIRE_TEXT_PALETTE,
       maxWidthScale,
       blockAlign: "full",
     });
@@ -3782,6 +3789,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
     alpha: 1,
     typewriter: true,
+    textPalette: HELLFIRE_TEXT_PALETTE,
     maxWidthScale: 0.96,
     blockAlign: "center",
   });
@@ -4393,6 +4401,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         typewriter: true,
         titleSize,
         weight: TEXT_STYLES.h1.weight,
+        textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale: 0.92,
       });
       if (isPastorSpeech) {
@@ -4442,6 +4451,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         typewriter: true,
         titleSize: TEXT_STYLES.h2.size,
         weight: TEXT_STYLES.h2.weight,
+        textPalette: HELLFIRE_TEXT_PALETTE,
       });
     }
     // Dev label hidden for announcements per request.
@@ -5075,6 +5085,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lineGap,
       alpha: titleAlpha,
       typewriter: typewriterReady,
+      textPalette: HELLFIRE_TEXT_PALETTE,
       maxWidthScale: 1,
     });
     const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
@@ -5134,8 +5145,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
+    ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
     ctx.shadowBlur = 16;
     ctx.shadowOffsetX = 4;
     ctx.shadowOffsetY = 4;
@@ -5938,6 +5949,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       subtitleWeight: TEXT_STYLES.h2.weight,
       lineGap,
       typewriter: false,
+      textPalette: HELLFIRE_TEXT_PALETTE,
       maxWidthScale: 0.9,
     });
 
@@ -6189,6 +6201,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     disabledBorder: "rgba(130, 108, 98, 0.42)",
   });
 
+  const HELLFIRE_TEXT_PALETTE = Object.freeze({
+    title: "#F2C87D",
+    subtitle: "#E7B066",
+    shadow: "rgba(20, 6, 4, 0.92)",
+  });
+
   function getEmberButtonGradient(ctx, y, height) {
     const gradient = ctx.createLinearGradient(0, y, 0, y + height);
     gradient.addColorStop(0, EMBER_BUTTON_PALETTE.top);
@@ -6422,7 +6440,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `bold ${chapterTitleSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#FFFFFF";
+    ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
     ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
     ctx.shadowBlur = 12;
     ctx.shadowOffsetX = 3;
@@ -6440,6 +6458,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typewriter: true,
       titleSize: bodyTitleSize,
       weight: TEXT_STYLES.h1.weight,
+      textPalette: HELLFIRE_TEXT_PALETTE,
       maxWidthScale: 0.92,
     });
     ctx.restore();
@@ -7174,6 +7193,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           weight: TEXT_STYLES.h2.weight,
           subtitleWeight: TEXT_STYLES.body.weight,
           typewriter: true,
+          textPalette: HELLFIRE_TEXT_PALETTE,
           maxWidthScale: 0.9,
           blockAlign: "center",
         });
@@ -7341,6 +7361,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           weight: "bold",
           subtitleWeight: "bold",
           typewriter: false,
+          textPalette: HELLFIRE_TEXT_PALETTE,
           maxWidthScale: 0.9,
           blockAlign: "center",
         });
@@ -7373,6 +7394,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           typewriter: true,
           titleSize: bodyTitleSize,
           weight: TEXT_STYLES.h1.weight,
+          textPalette: HELLFIRE_TEXT_PALETTE,
           maxWidthScale: 0.92,
         });
         ctx.restore();
@@ -7483,6 +7505,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         typewriter: true,
         titleSize,
         weight: TEXT_STYLES.h1.weight,
+        textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale: 0.92,
       });
       ctx.restore();
@@ -8463,8 +8486,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#FFFFFF";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.85)";
+    ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
+    ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
     ctx.shadowBlur = 16;
     ctx.shadowOffsetX = 4;
     ctx.shadowOffsetY = 4;

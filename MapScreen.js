@@ -5,6 +5,11 @@
   const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
   const HIT_RADIUS_BASE = 10;
   const UI_FONT_FAMILY = "'Orbitron', sans-serif";
+  const MAP_HELLFIRE_TEXT = Object.freeze({
+    title: "#F2C87D",
+    body: "#E7B066",
+    dim: "rgba(231, 176, 102, 0.68)",
+  });
   const IS_LOCAL_HOST =
     typeof window !== "undefined" &&
     (window.location?.hostname === "localhost" || window.location?.hostname === "127.0.0.1");
@@ -640,7 +645,7 @@ async function loadPlayerProgress() {
       ctx.save();
       const nameSize = Math.round(14 * (rect.w / 1280));
       ctx.font = `600 ${nameSize}px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "#FFFFFF";
+      ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
@@ -650,7 +655,7 @@ async function loadPlayerProgress() {
     } else if (selected) {
       ctx.save();
       ctx.font = `600 ${Math.round(16 * (rect.w / 1280))}px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = unlocked ? "#FFFFFF" : "rgba(255,255,255,0.6)";
+      ctx.fillStyle = unlocked ? MAP_HELLFIRE_TEXT.title : MAP_HELLFIRE_TEXT.dim;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
@@ -740,7 +745,7 @@ async function loadPlayerProgress() {
     ctx.textBaseline = "top";
     ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
     ctx.shadowBlur = 20;
-    ctx.fillStyle = "#EAF6FF";
+    ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
     ctx.font = `800 ${taglineSize}px ${UI_FONT_FAMILY}`;
     ctx.fillText("Smite the hordes. Save the people.", canvas.width / 2, rect.y + Math.round(16 * scale) + 35);
     ctx.restore();
@@ -921,12 +926,12 @@ async function loadPlayerProgress() {
     ctx.textBaseline = "top";
     ctx.fillText(town.name, canvas.width / 2, panelY + 16);
 
-    ctx.fillStyle = "#EAF6FF";
+    ctx.fillStyle = MAP_HELLFIRE_TEXT.body;
     ctx.font = `500 16px ${UI_FONT_FAMILY}`;
     const districtLabel = town.type === "capital" ? "Capital" : (district ? district.name : "");
     ctx.fillText(districtLabel, canvas.width / 2, panelY + 46);
 
-    ctx.fillStyle = "#FFFFFF";
+    ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
     ctx.font = `500 16px ${UI_FONT_FAMILY}`;
     const progress = ensureProgress();
     if (town.type === "capital") {
