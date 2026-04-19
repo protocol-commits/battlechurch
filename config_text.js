@@ -23,14 +23,6 @@
           "You have one campaign to save the church... and the town.",
         ].join(" "),
       },
-      howToPlay: {
-        title: "How to Play",
-        body: [
-          "Move with the joystick/WASD and press A for melee.",
-          "Use the space bar or virtual Space button for the Upgrade/Continue screens.",
-          "Keep the flock alive and stay within the fog as the horde advances.",
-        ].join(" "),
-      },
       pause: {
         body: [
           "Game paused. Take a breather, then press Continue or Space to resume.",
@@ -161,7 +153,6 @@
   // Backwards compatibility with existing BattlechurchUIText
   const legacyNs = global.BattlechurchUIText || (global.BattlechurchUIText = {});
   legacyNs.titleBody = GameText.screens.title.body;
-  legacyNs.howToPlayBody = GameText.screens.howToPlay.body;
   legacyNs.pauseBody = GameText.screens.pause.body;
   legacyNs.gameOverBody = GameText.screens.gameOver.body;
 

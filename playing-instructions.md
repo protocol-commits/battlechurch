@@ -1,23 +1,18 @@
-On Keyboard Directional Keys: W, A, S, D
-Hit D to scroll down this page
-
 # How to Play Battlechurch
 
-Smite the hordes. Save the church.
-
-## Levels Not Balanced Yes!!!
-
-- I have not balanced the enemies in the game yet. I'm just trying to get the mechanics working before I balance the game. I'm randomly putting enemies. 
-- I''ll kinda look at Town 1, 2 and 9 for now. 
+# Excuses 
+- This game has a long way to go. 
+- Levels are not balanced. 
+- Enemies are not balanced.
 
 ## Quick Start
 - Move with WASD keys
 - Player autoaims projectiles
-- A (Left Arrow) - Sword for bigger enemies
+- A (Left Arrow) - Sword
 - B (Down Arrow) - Dash
 - C (Right Arrow) - Congregation Volley
 
-## Advanced Moves
+## Full Move List
 
 ## Button A — Sword (Left Arrow)
 

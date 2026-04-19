@@ -6490,119 +6490,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawHowToPlayScreen() {
-    const {
-      ctx,
-      canvas,
-      UI_FONT_FAMILY,
-      assets,
-      howToPlayPages,
-      howToPlayPageIndex,
-      HUD_HEIGHT,
-    } = requireBindings();
-    ctx.save();
-    const townIntroImage = assets?.backgrounds?.townIntro || null;
-    const titleImage = assets?.titleBackground || null;
-    if (townIntroImage) {
-      drawCoverImage(ctx, canvas, townIntroImage, 1, 0.5, 0.5);
-      ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else if (titleImage) {
-      drawCoverImage(ctx, canvas, titleImage, 1, 0.5, 0.5);
-      ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    } else {
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, "#070a16");
-      gradient.addColorStop(1, "#121b33");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    const pages = Array.isArray(howToPlayPages) ? howToPlayPages : [];
-    const pageIndex = Math.max(0, Math.min(pages.length - 1, howToPlayPageIndex || 0));
-    const page = pages[pageIndex] || { title: "", body: "" };
-    const titleText = page.title || "";
-    const bodyText = page.body || "";
-
-    const titleSize = TEXT_STYLES.h1.size;
-    const subtitleSize = Math.round(TEXT_STYLES.h2.size * 0.85);
-    const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
-    const layout = getAnnouncementScreenLayout(ctx, canvas, {
-      title: titleText,
-      subtitle: bodyText,
-      titleSize,
-      subtitleSize,
-      lineGap,
-      weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 0.9,
-      position: "center",
-      topMargin: 90,
-      bottomMargin: 90,
-      rowGap: 32,
-      buttonHeight: 64,
-      buttonCount: 2,
-      HUD_HEIGHT: HUD_HEIGHT || 54,
-    });
-    ctx.save();
-    ctx.translate(layout.offsetX, layout.offsetY);
-    ctx.scale(layout.scale, layout.scale);
-    drawAnnouncementText(ctx, layout.virtualCanvas, {
-      title: titleText,
-      subtitle: bodyText,
-      yBase: layout.titleY,
-      alpha: 1,
-      titleSize,
-      subtitleSize,
-      weight: TEXT_STYLES.h1.weight,
-      subtitleWeight: TEXT_STYLES.h2.weight,
-      lineGap,
-      typewriter: false,
-      maxWidthScale: 0.9,
-    });
-
-    const leftButton = pageIndex === 0 ? { key: "back", label: "Back" } : { key: "prev", label: "Previous" };
-    const rightButton = pageIndex < pages.length - 1 ? { key: "next", label: "Next" } : { key: "play", label: "Play" };
-    const buttonConfigs = [leftButton, rightButton];
-    const buttonWidth = 240;
-    const buttonHeight = 64;
-    const buttonGap = 28;
-    const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
-    const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
-    const buttonY = Math.round(layout.buttonY || 0);
-    const bounds = [];
-    buttonConfigs.forEach((config, index) => {
-      const x = startX + index * (buttonWidth + buttonGap);
-      ctx.save();
-      ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.lineWidth = 2;
-      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
-      if (isAnnouncementButtonFocused("howto", index)) {
-        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
-        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
-      }
-      ctx.fillStyle = "#0b111a";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = `600 22px ${UI_FONT_FAMILY}`;
-      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
-      ctx.restore();
-      bounds.push({
-        key: config.key,
-        x: layout.offsetX + x * layout.scale,
-        y: layout.offsetY + buttonY * layout.scale,
-        width: buttonWidth * layout.scale,
-        height: buttonHeight * layout.scale,
-      });
-    });
-    if (typeof window !== "undefined") {
-      window.__announcementButtons = { key: "howto", buttons: bounds };
-    }
-    ctx.restore();
-    ctx.restore();
-  }
-
   function drawEpilogueScreen() {
     const {
       ctx,
@@ -6997,7 +6884,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const {
       ctx,
       canvas,
-      howToPlayActive,
       titleScreenActive,
       mapActive,
       epilogueActive,
@@ -7054,10 +6940,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const townVictoryState = requireBindings();
     if (townVictoryState.townVictoryActive) {
       drawTownVictoryScreen();
-      return;
-    }
-    if (howToPlayActive) {
-      drawHowToPlayScreen();
       return;
     }
     if (mapActive) {
@@ -9085,7 +8967,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const panelX = Math.round((vw - panelW) / 2);
     const panelY = Math.round((vh - panelH) / 2);
     const padX = 36;
-    const padTop = 52;
+    const padTop = 70;
     const padBottom = 44;
     const contentW = panelW - padX * 2;
     const contentH = panelH - padTop - padBottom;
@@ -9108,8 +8990,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.strokeStyle = "rgba(155,217,255,0.2)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(panelX + 20, panelY + 42);
-    ctx.lineTo(panelX + panelW - 20, panelY + 42);
+    ctx.moveTo(panelX + 20, panelY + 56);
+    ctx.lineTo(panelX + panelW - 20, panelY + 56);
     ctx.stroke();
 
     // Title
@@ -9119,11 +9001,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textBaseline = "middle";
     ctx.fillText("Playing Instructions", panelX + panelW / 2, panelY + 22);
 
-    // Scroll hint
+    // Subtitle hint
     ctx.fillStyle = "rgba(155,217,255,0.55)";
     ctx.font = `12px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
-    ctx.fillText("W / S  to scroll   ·   SPACE or ESC to close", panelX + panelW / 2, panelY + panelH - 18);
+    ctx.fillText("W / S  to scroll   ·   SPACE or ESC to close", panelX + panelW / 2, panelY + 42);
 
     // Clip content area
     ctx.save();
@@ -9137,6 +9019,51 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const SIZES = { h1: 20, h2: 15, body: 13, bullet: 13 };
     const LINE_H = { h1: 32, h2: 26, body: 20, bullet: 20, spacer: 10 };
+    const BULLET_GAP = 14;
+
+    const wrapText = (text, maxWidth) => {
+      const normalized = String(text || "").trim();
+      if (!normalized) return [""];
+      const words = normalized.split(/\s+/).filter(Boolean);
+      if (!words.length) return [""];
+
+      const wrapped = [];
+      let current = "";
+
+      const pushCurrent = () => {
+        if (current) wrapped.push(current);
+        current = "";
+      };
+
+      for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (ctx.measureText(candidate).width <= maxWidth) {
+          current = candidate;
+          continue;
+        }
+        if (current) pushCurrent();
+        if (ctx.measureText(word).width <= maxWidth) {
+          current = word;
+          continue;
+        }
+
+        // Hard-wrap very long tokens that exceed the line width on their own.
+        let tokenLine = "";
+        for (const ch of word) {
+          const tokenCandidate = tokenLine + ch;
+          if (ctx.measureText(tokenCandidate).width <= maxWidth || tokenLine.length === 0) {
+            tokenLine = tokenCandidate;
+          } else {
+            wrapped.push(tokenLine);
+            tokenLine = ch;
+          }
+        }
+        current = tokenLine;
+      }
+
+      pushCurrent();
+      return wrapped;
+    };
 
     if (!lines) {
       ctx.fillStyle = "#9BD9FF";
@@ -9147,44 +9074,69 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else {
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
-
-      let totalH = 0;
-      const measured = lines.map((l) => {
-        const lh = LINE_H[l.type] || 20;
-        totalH += lh;
-        return lh;
+      const laidOut = lines.map((line) => {
+        const type = line.type || "body";
+        const lh = LINE_H[type] || 20;
+        if (type === "spacer") {
+          return { type, lh, wrapped: [] };
+        }
+        if (type === "h1") {
+          ctx.font = `700 ${SIZES.h1}px ${UI_FONT_FAMILY}`;
+        } else if (type === "h2") {
+          ctx.font = `600 ${SIZES.h2}px ${UI_FONT_FAMILY}`;
+        } else if (type === "bullet") {
+          ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
+        } else {
+          ctx.font = `${SIZES.body}px ${UI_FONT_FAMILY}`;
+        }
+        const maxWidth = type === "bullet" ? contentW - BULLET_GAP : contentW;
+        const wrapped = wrapText(line.text, Math.max(1, maxWidth));
+        return { type, lh, wrapped };
       });
 
-      for (let i = 0; i < lines.length; i++) {
-        const l = lines[i];
-        const lh = measured[i];
+      let totalH = 0;
+      for (const block of laidOut) {
+        totalH += block.type === "spacer" ? block.lh : block.wrapped.length * block.lh;
+      }
+
+      for (const block of laidOut) {
+        const blockH = block.type === "spacer" ? block.lh : block.wrapped.length * block.lh;
         const y = cursorY;
-        cursorY += lh;
+        cursorY += blockH;
 
-        if (y + lh < contentY) continue;
+        if (y + blockH < contentY) continue;
         if (y > contentY + contentH) break;
+        if (block.type === "spacer") continue;
 
-        if (l.type === "spacer") continue;
-
-        if (l.type === "h1") {
+        if (block.type === "h1") {
           ctx.fillStyle = "#FFD978";
           ctx.font = `700 ${SIZES.h1}px ${UI_FONT_FAMILY}`;
-          ctx.fillText(l.text, contentX, y + 2);
-        } else if (l.type === "h2") {
+        } else if (block.type === "h2") {
           ctx.fillStyle = "#9BD9FF";
           ctx.font = `600 ${SIZES.h2}px ${UI_FONT_FAMILY}`;
-          ctx.fillText(l.text, contentX, y + 2);
-        } else if (l.type === "bullet") {
-          ctx.fillStyle = "#9BD9FF";
-          ctx.font = `600 ${SIZES.bullet}px ${UI_FONT_FAMILY}`;
-          ctx.fillText("•", contentX, y + 2);
+        } else if (block.type === "bullet") {
           ctx.fillStyle = "#EAF6FF";
           ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
-          ctx.fillText(l.text, contentX + 14, y + 2);
         } else {
           ctx.fillStyle = "#C8E8FF";
           ctx.font = `${SIZES.body}px ${UI_FONT_FAMILY}`;
-          ctx.fillText(l.text, contentX, y + 2);
+        }
+
+        for (let lineIndex = 0; lineIndex < block.wrapped.length; lineIndex++) {
+          const textY = y + 2 + lineIndex * block.lh;
+          const text = block.wrapped[lineIndex];
+          if (block.type === "bullet") {
+            if (lineIndex === 0) {
+              ctx.fillStyle = "#9BD9FF";
+              ctx.font = `600 ${SIZES.bullet}px ${UI_FONT_FAMILY}`;
+              ctx.fillText("•", contentX, textY);
+              ctx.fillStyle = "#EAF6FF";
+              ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
+            }
+            ctx.fillText(text, contentX + BULLET_GAP, textY);
+          } else {
+            ctx.fillText(text, contentX, textY);
+          }
         }
       }
 

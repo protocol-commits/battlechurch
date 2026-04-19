@@ -2481,8 +2481,6 @@ let projectileFrames = {};
 const assetSrcResolutionCache = new Map();
 
 let paused = false;
-let howToPlayActive = false;
-let howToPlaySource = "title"; // "title" | "pause"
 
 let spawnTimer = 0;
 let gameOver = false;
@@ -3453,7 +3451,6 @@ function resizeCanvas() {
 let gameStarted = false;
 let pauseDialogActive = false;
 let pauseRestartConfirmActive = false;
-let howToPlayPageIndex = 0;
 let mapActive = false;
 let activeTownId = null;
 let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
@@ -3586,9 +3583,6 @@ Renderer.initialize({
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
   get loadingProgress() { return loadingProgress; },
-  get howToPlayActive() { return howToPlayActive; },
-  get howToPlayPages() { return HOW_TO_PLAY_PAGES; },
-  get howToPlayPageIndex() { return howToPlayPageIndex; },
   get levelManager() { return levelManager; },
   get pendingBossIntroAfterExterior() { return pendingBossIntroAfterExterior; },
   get gameOver() { return gameOver; },
@@ -6157,7 +6151,6 @@ function startGameFromTitle() {
   } catch (e) {}
   try {
     titleScreenActive = false;
-    howToPlayActive = false;
     if (typeof setTimeout === "function") {
       setTimeout(() => {
         queueTownIntroAnnouncement();
@@ -6182,7 +6175,6 @@ function startRunForTown(townId) {
 function exitMapScreen() {
   mapActive = false;
   titleScreenActive = true;
-  howToPlayActive = false;
 }
 
 function returnToMapWithNextTown() {
@@ -6190,7 +6182,6 @@ function returnToMapWithNextTown() {
   paused = true;
   gameStarted = false;
   titleScreenActive = false;
-  howToPlayActive = false;
   mapActive = true;
   pendingBossIntroAfterExterior = false;
   townVisitorMinigamePlayed = false;
@@ -6214,7 +6205,6 @@ function returnToMapFromPause() {
   paused = false;
   gameStarted = false;
   titleScreenActive = false;
-  howToPlayActive = false;
   mapActive = true;
   pendingBossIntroAfterExterior = false;
   townVisitorMinigamePlayed = false;
@@ -6233,34 +6223,6 @@ function returnToMapFromPause() {
     window.MapScreen.open();
   }
 }
-
-const HOW_TO_PLAY_BODY =
-  uiTexts.howToPlayBody ||
-  [
-    "Move with the joystick/WASD and press A for melee.",
-    "Use the space bar or virtual Space button for the Upgrade/Continue screens.",
-    "Keep the flock alive and stay within the fog as the horde advances.",
-  ].join(" ");
-
-const HOW_TO_PLAY_PAGES = [
-  {
-    title: "Controls",
-    body: [
-      "Movement: WASD or Left Joystick",
-      "A Button / Left Arrow: Melee Attack",
-      "B Button / Down Arrow: Dash",
-      "C Button / Right Arrow: Tap congregation volley, hold Prayer Bomb",
-    ].join("\n"),
-  },
-  {
-    title: "Story",
-    body: [
-      "You are the new pastor to the last church in a town under spiritual attack.",
-      "Smite the hordes, save your flock, grow your church, save the town.",
-      "The more you save your flock, the more the congregation grows, the stronger you become.",
-    ].join("\n"),
-  },
-];
 
 const PAUSE_BODY =
   uiTexts.pauseBody ||
@@ -15497,13 +15459,8 @@ function handleTitleScreen() {
         if (button.key === "play" || button.key === "map") {
           // Play button now goes to map screen so player must pick a town
           titleScreenActive = false;
-          howToPlayActive = false;
           mapActive = true;
           if (window.MapScreen) window.MapScreen.open();
-        } else if (button.key === "howto") {
-          titleScreenActive = false;
-          howToPlayActive = true;
-          howToPlayPageIndex = 0;
         } else if (button.key === "settings") {
           showSettingsOverlay({ source: "title" });
         } else if (button.key === "developer") {
@@ -15517,48 +15474,6 @@ function handleTitleScreen() {
     });
     if (handled) return true;
   }
-  keysJustPressed.delete(" ");
-  return true;
-}
-
-function handleHowToPlayScreen() {
-  if (!howToPlayActive) return false;
-  const buttons =
-    typeof window !== "undefined" && window.__announcementButtons?.key === "howto"
-      ? window.__announcementButtons.buttons
-      : null;
-  const handled = handleAnnouncementButtons({
-    key: "howto",
-    buttons,
-    allowSpace: true,
-    onActivate: (button) => {
-      if (button.key === "back") {
-        howToPlayActive = false;
-        if (howToPlaySource === "pause") {
-          howToPlaySource = "title";
-          // paused remains true — returns to pause screen
-        } else {
-          titleScreenActive = true;
-        }
-        return;
-      }
-      if (button.key === "prev") {
-        howToPlayPageIndex = Math.max(0, howToPlayPageIndex - 1);
-        return;
-      }
-      if (button.key === "next") {
-        howToPlayPageIndex = Math.min(HOW_TO_PLAY_PAGES.length - 1, howToPlayPageIndex + 1);
-        return;
-      }
-      if (button.key === "play") {
-        // Play button from how-to-play also goes to map screen
-        howToPlayActive = false;
-        mapActive = true;
-        if (window.MapScreen) window.MapScreen.open();
-      }
-    },
-  });
-  if (handled) return true;
   keysJustPressed.delete(" ");
   return true;
 }
@@ -16292,9 +16207,9 @@ function handlePauseMenu() {
         }
         if (button.key === "howToPlay") {
           pauseRestartConfirmActive = false;
-          howToPlaySource = "pause";
-          howToPlayActive = true;
-          howToPlayPageIndex = 0;
+          if (typeof window !== "undefined" && window.PlayingInstructions) {
+            window.PlayingInstructions.open();
+          }
           return;
         }
         if (button.key === "settings") {
@@ -20318,10 +20233,6 @@ function updateGame(dt) {
     return;
   }
 
-  if (handleHowToPlayScreen()) {
-    return;
-  }
-
   if (handleVisitorSessionSkip()) {
     return;
   }
@@ -20725,7 +20636,6 @@ function gameLoop(timestamp) {
 
   if (typeof window !== "undefined") {
     window.__battlechurchTitleScreenActive = Boolean(titleScreenActive);
-    window.__battlechurchHowToPlayActive = Boolean(howToPlayActive);
     window.__battlechurchPauseMenuActive = Boolean(paused && !gameOver);
   }
 
