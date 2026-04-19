@@ -14838,41 +14838,34 @@ function handleDeveloperHotkeys() {
     const result = levelManager?.devSkipToBoss?.({ showExterior: false });
     if (result?.success) {
       const currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
-      setDevStatus(`Mission ${currentLevel} boss engaged`, 2.3);
+      setDevStatus(`Battle ${currentLevel} boss engaged`, 2.3);
     } else {
-      setDevStatus("Mission boss skip failed", 2.0);
+      setDevStatus("Battle boss skip failed", 2.0);
     }
   }
   if (keysJustPressed.has("6")) {
-    if (levelManager?.devSkipToGraceRush?.()) {
-      setDevStatus("Grace rush engaged", 2.0);
+    const battlesPerTown = Number.isFinite(window.BATTLES_PER_TOWN) ? window.BATTLES_PER_TOWN : 3;
+    if (!levelManager?.isActive?.()) {
+      setDevStatus("Battle 3 boss skip failed (level inactive)", 2.0);
+    } else {
+      let currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
+      let guard = 0;
+      while (currentLevel < battlesPerTown && guard < 5) {
+        if (!levelManager?.devSkipLevel?.()) break;
+        currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : currentLevel + 1;
+        guard += 1;
+      }
+      if (levelManager?.devSkipToBoss?.({ showExterior: false })?.success) {
+        setDevStatus("Battle 3 boss engaged", 2.4);
+      } else {
+        setDevStatus("Battle 3 boss skip failed", 2.0);
+      }
     }
   }
   if (keysJustPressed.has("7")) {
     if (typeof window !== "undefined" && typeof window.MapScreen?.devUnlockAllTowns === "function") {
       const ok = window.MapScreen.devUnlockAllTowns();
       setDevStatus(ok ? "All 9 towns unlocked (dev)" : "Town unlock failed", 2.5);
-    }
-  }
-  if (keysJustPressed.has("8")) {
-    const targetLevel = Number.isFinite(window.LEVELS_PER_GAME) ? window.LEVELS_PER_GAME : null;
-    if (!levelManager?.isActive?.()) {
-      setDevStatus("Final boss skip failed (level inactive)", 2.0);
-    } else if (!Number.isFinite(targetLevel) || targetLevel <= 0) {
-      setDevStatus("Final boss skip failed (no level count)", 2.0);
-    } else {
-      let currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
-      let guard = 0;
-      while (currentLevel < targetLevel && guard < 10) {
-        if (!levelManager?.devSkipLevel?.()) break;
-        currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : currentLevel + 1;
-        guard += 1;
-      }
-      if (levelManager?.devSkipToBoss?.({ showExterior: false })) {
-        setDevStatus("Final boss engaged", 2.4);
-      } else {
-        setDevStatus("Final boss skip failed", 2.0);
-      }
     }
   }
   if (keysJustPressed.has("t")) {
@@ -14884,8 +14877,9 @@ function handleDeveloperHotkeys() {
     setDevStatus("Congregation +5", 2.0);
   }
   if (keysJustPressed.has("9")) {
-    activateEpilogue();
-    setDevStatus("Epilogue engaged", 2.0);
+    if (levelManager?.devSkipToGraceRush?.()) {
+      setDevStatus("Grace rush engaged", 2.0);
+    }
   }
   if (keysJustPressed.has("o")) {
     if (typeof Input?.setVirtualControlsVisible === "function") {
@@ -15475,11 +15469,10 @@ function showDeveloperShortcutsOverlay() {
     { key: "2", label: "Clear Hostiles" },
     { key: "3", label: "Skip Battle" },
     { key: "4", label: "Skip Level" },
-    { key: "5", label: "Final Town Boss" },
-    { key: "6", label: "Grace Rush" },
+    { key: "5", label: "Current Battle Boss" },
+    { key: "6", label: "Battle 3 Boss (current town)" },
     { key: "7", label: "Unlock All Towns (Map)" },
-    { key: "8", label: "Final Boss" },
-    { key: "9", label: "Epilogue" },
+    { key: "9", label: "Grace Rush" },
     { key: "T", label: "Toggle Timer" },
     { key: "C", label: "+5 Congregation" },
     { key: "O", label: "Touch Controls" },
