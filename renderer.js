@@ -6212,6 +6212,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     "waveActive",
     "allKillBreak",
     "waveCleared",
+    "victoryCelebrate",
     "bossActive",
   ]);
   const WAVE_ATMOSPHERE_TRANSITION_MS = 500;
@@ -6239,8 +6240,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   };
 
   function getWaveTargetProgress(levelStatus) {
-    if (!levelStatus || !WAVE_ATMOSPHERE_STAGES.has(levelStatus.stage || "")) return 0;
-    if ((levelStatus.stage || "") === "bossActive") return 1;
+    const stage = levelStatus?.stage || "";
+    if (!levelStatus || !WAVE_ATMOSPHERE_STAGES.has(stage)) return 0;
+    if (stage === "bossActive") return 1;
     const totalWaves = Math.max(
       1,
       Number(levelStatus.waveTotal) || WAVE_ATMOSPHERE_CONFIG.assumedWavesPerBattle,
@@ -6250,7 +6252,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       Number(levelStatus.waveNum) || Number(levelStatus.wave) || 1,
     );
     const clampedWave = Math.min(totalWaves, waveNumber);
-    return clampedWave / totalWaves;
+    const baseProgress = clampedWave / totalWaves;
+    if (stage === "victoryCelebrate") {
+      const stageDuration = Math.max(0.001, Number(levelStatus.stageDuration) || 3);
+      const stageTimer = Math.max(0, Number(levelStatus.stageTimer) || 0);
+      const fadeRatio = Math.max(0, Math.min(1, stageTimer / stageDuration));
+      return baseProgress * fadeRatio;
+    }
+    return baseProgress;
   }
 
   function getWaveProgressRatio(levelStatus) {
@@ -8186,6 +8195,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const arenaWidth = canvas.width - fogWidth * 2;
     const arenaHeight = canvas.height - fogHeight;
     const waveProgress = getWaveProgressRatio(levelStatus);
+    const isVictoryCelebrate = (levelStatus?.stage || "") === "victoryCelebrate";
+    const victoryStageDuration = Math.max(0.001, Number(levelStatus?.stageDuration) || 5);
+    const victoryStageTimer = Math.max(0, Number(levelStatus?.stageTimer) || 0);
+    const victoryHeatFadeRatio = isVictoryCelebrate
+      ? Math.max(0, Math.min(1, victoryStageTimer / victoryStageDuration))
+      : 1;
     const currentWaveNumber = Math.max(
       1,
       Number(levelStatus?.waveNum) || Number(levelStatus?.wave) || 1,
@@ -8196,9 +8211,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       (WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
-      const targetParticleCount = waveThreeEmberBoost ? 180 : 100;
-      const targetEmberRatio = waveThreeEmberBoost ? 0.82 : 0.55;
-      const targetIntensity = waveThreeEmberBoost ? 1.55 : 1.0;
+      const baseParticleCount = waveThreeEmberBoost ? 180 : 100;
+      const targetParticleCount = Math.max(
+        40,
+        Math.round(baseParticleCount * victoryHeatFadeRatio),
+      );
+      const baseEmberRatio = waveThreeEmberBoost ? 0.82 : 0.55;
+      const targetEmberRatio = Math.max(0.12, baseEmberRatio * victoryHeatFadeRatio);
+      const baseIntensity = waveThreeEmberBoost ? 1.55 : 1.0;
+      const targetIntensity = Math.max(0.2, baseIntensity * victoryHeatFadeRatio);
       const targetSizeScale = 1.0;
       if (typeof ashOverlay.setParticleCount === "function" && ashEmberTuneState.particleCount !== targetParticleCount) {
         ashOverlay.setParticleCount(targetParticleCount);
@@ -8219,7 +8240,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (typeof ashOverlay.setBounds === "function") {
         ashOverlay.setBounds(0, 0, canvas.width, canvas.height);
       }
-      ctx.globalAlpha = Math.max(0, Math.min(1, ashAlpha));
+      const victoryAshAlpha = Math.max(0, Math.min(1, ashAlpha * victoryHeatFadeRatio));
+      ctx.globalAlpha = victoryAshAlpha;
       ashOverlay.draw(ctx);
     }
 

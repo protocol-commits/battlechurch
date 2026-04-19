@@ -1205,9 +1205,17 @@ function startBossDeathMusic() {
   playMusic(musicState.bossDeath, { volume: MUSIC_VOLUME_BATTLE, loop: false });
 }
 
+function startBattleVictoryMusic() {
+  if (!musicState.unlocked) return;
+  startExteriorMusic({ boss: true });
+}
+
 function startRecapMusic() {
   if (!musicState.recap || !musicState.unlocked) return;
   if (musicState.recapStarted && !musicState.recapStopped) return;
+  if (musicState.exteriorStarted || musicState.exteriorBossStarted) {
+    stopExteriorMusic();
+  }
   if (musicState.bossDeathStarted && !musicState.bossDeathStopped && musicState.bossDeath) {
     musicState.bossDeathStopped = true;
     fadeAudio(musicState.bossDeath, { to: 0, durationMs: 900, stopOnZero: true });
@@ -4527,6 +4535,7 @@ Levels.initialize({
   getCongregationSize,
   showWaveHealthSnapshot,
   showBattleVictoryNpcDialogue,
+  playBattleVictoryMusic: startBattleVictoryMusic,
   playWaveTransitionSfx,
   rotateNpcPositionsForActBreak,
   getAvailableMiniFolkKeys: () => MINIFOLKS.map((m) => m.key),
@@ -15220,6 +15229,7 @@ function updateMusicState(levelStatus) {
     stage === "briefing" ||
     stage === "npcArrival"
   ) {
+    if (musicState.exteriorStarted || musicState.exteriorBossStarted) stopExteriorMusic();
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
     if (musicState.visitorStarted && !musicState.visitorStopped) stopVisitorMusic();
   }

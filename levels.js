@@ -54,6 +54,7 @@
   const ACT_BREAK_MESSAGE = "Wave Cleared";
   const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
   const WAVE_INTENSITY_TRANSITION_SECONDS = 0.5;
+  const VICTORY_CELEBRATE_DURATION = 5.0;
   const GRACE_RUSH_FADE_DURATION = 1.0;
   const LEVEL2_MINI_IMP_CHANCE = 0.38;
   const LEVEL2_MINI_IMP_MAX_GROUPS = 2;
@@ -246,6 +247,7 @@
     getCongregationSize: () => 0,
     showWaveHealthSnapshot: noop,
     showBattleVictoryNpcDialogue: noop,
+    playBattleVictoryMusic: noop,
     playWaveTransitionSfx: noop,
   };
 
@@ -605,6 +607,7 @@
       waveIndex: -1, // tracks current wave within a mission (was battleIndex/hordeIndex)
       stage: "idle",
       timer: 0,
+      stageDuration: 0,
       definition: null,
       activeWave: null,
       boss: null,
@@ -651,6 +654,7 @@
     function resetStage(stage, duration = 0) {
       state.stage = stage;
       state.timer = duration;
+      state.stageDuration = duration;
       state.conversationQueue.length = 0;
       state.breakPreviewWaveNum = null;
     }
@@ -1375,7 +1379,7 @@
       }
 
       state.finalWaveDelay = 0;
-      beginGraceRushPhase(getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber));
+      beginBattleVictoryCelebrate(getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber));
       return;
     }
 
@@ -1384,6 +1388,28 @@
       state.finalWaveDelay = 0;
       state.graceRushContext = "battle";
       setDevStatus(`Grace Abounds – ${monthName}`, GRACE_RUSH_DURATION);
+      const lastPos = typeof deps.getLastEnemyDeathPosition === "function"
+        ? deps.getLastEnemyDeathPosition()
+        : null;
+      if (typeof deps.startBattleGraceRush === "function") {
+        deps.startBattleGraceRush(GRACE_RUSH_DURATION, {
+          reason: "battle",
+          burstAmount: 16,
+          spawnInterval: 1.1,
+          centerX: lastPos?.x,
+          centerY: lastPos?.y,
+        });
+      }
+    }
+
+    function beginBattleVictoryCelebrate(monthName) {
+      resetStage("victoryCelebrate", VICTORY_CELEBRATE_DURATION);
+      state.finalWaveDelay = 0;
+      state.graceRushContext = null;
+      setDevStatus(`Victory! – ${monthName}`, VICTORY_CELEBRATE_DURATION);
+      if (typeof deps.playBattleVictoryMusic === "function") {
+        deps.playBattleVictoryMusic();
+      }
       if (typeof deps.showBattleVictoryNpcDialogue === "function") {
         deps.showBattleVictoryNpcDialogue();
       }
@@ -1398,15 +1424,6 @@
         deps.spawnVictoryGraceBurst({
           reason: "battle",
           amount: 36,
-          centerX: lastPos?.x,
-          centerY: lastPos?.y,
-        });
-      }
-      if (typeof deps.startBattleGraceRush === "function") {
-        deps.startBattleGraceRush(GRACE_RUSH_DURATION, {
-          reason: "battle",
-          burstAmount: 16,
-          spawnInterval: 1.1,
           centerX: lastPos?.x,
           centerY: lastPos?.y,
         });
@@ -1644,6 +1661,13 @@ state.waveIndex = -1;
         state.timer -= dt;
         processConversation(dt);
         if (state.timer <= 0) spawnActiveWave();
+        break;
+      case "victoryCelebrate":
+        state.timer = Math.max(0, state.timer - dt);
+        if (state.timer <= 0) {
+          const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
+          beginGraceRushPhase(getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber));
+        }
         break;
       case "waveActive": {
         state.timer = Math.max(0, state.timer - dt);
@@ -1914,6 +1938,8 @@ state.waveIndex = -1;
           waveTotal: actualWaveTotal,
           hordeNum: currentHordeDef?.hordeInWave ?? null,
           stage: state.stage,
+          stageTimer: state.timer,
+          stageDuration: state.stageDuration,
           finalWaveCleared: Boolean(state.lastWaveClearedFinal),
           pendingVisitorMinigame: Boolean(state.pendingVisitorMinigame),
           bossPhase: state.boss?.phase || 0,
