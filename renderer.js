@@ -5741,8 +5741,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       topMargin: 90,
       bottomMargin: 90,
       rowGap: 32,
-      buttonHeight: 64,
-      buttonCount: 4,
+      buttonHeight: 144,
+      buttonCount: 1,
       HUD_HEIGHT,
     });
     ctx.save();
@@ -5762,44 +5762,56 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       maxWidthScale: 0.9,
     });
 
-    const buttonConfigs = [
+    const row1Configs = [
       { key: "resume", label: "Resume" },
-      { key: "map", label: "Return to Map" },
+      { key: "howToPlay", label: "How to Play" },
       { key: "settings", label: "Settings" },
+    ];
+    const row2Configs = [
+      { key: "map", label: "Return to Map" },
       { key: "developer", label: "Developer" },
     ];
     const buttonWidth = 240;
     const buttonHeight = 64;
     const buttonGap = 28;
-    const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
-    const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
+    const buttonRowGap = 16;
+    const row1Width = buttonWidth * row1Configs.length + buttonGap * (row1Configs.length - 1);
+    const row2Width = buttonWidth * row2Configs.length + buttonGap * (row2Configs.length - 1);
+    const centerX = layout.virtualCanvas.width / 2;
     const buttonY = Math.round(layout.buttonY || 0);
+    const buttonY2 = buttonY + buttonHeight + buttonRowGap;
     const bounds = [];
-    buttonConfigs.forEach((config, index) => {
-      const x = startX + index * (buttonWidth + buttonGap);
-      ctx.save();
-      ctx.fillStyle = "#9BD9FF";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.lineWidth = 2;
-      roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
-      if (isAnnouncementButtonFocused("pause", index)) {
-        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
-        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
-      }
-      ctx.fillStyle = "#0b111a";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = `600 22px ${UI_FONT_FAMILY}`;
-      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
-      ctx.restore();
-      bounds.push({
-        key: config.key,
-        x: layout.offsetX + x * layout.scale,
-        y: layout.offsetY + buttonY * layout.scale,
-        width: buttonWidth * layout.scale,
-        height: buttonHeight * layout.scale,
+    const drawButtonRow = (configs, rowWidth, rowY) => {
+      const startX = Math.round(centerX - rowWidth / 2);
+      configs.forEach((config, index) => {
+        const globalIndex = bounds.length;
+        const x = startX + index * (buttonWidth + buttonGap);
+        ctx.save();
+        ctx.fillStyle = "#9BD9FF";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.lineWidth = 2;
+        roundRect(ctx, x, rowY, buttonWidth, buttonHeight, 16, true, true);
+        if (isAnnouncementButtonFocused("pause", globalIndex)) {
+          drawFocusRing(ctx, x - 3, rowY - 3, buttonWidth + 6, buttonHeight + 6, 18);
+          drawButtonReflection(ctx, x, rowY, buttonWidth, buttonHeight, 16, 0.45);
+        }
+        ctx.fillStyle = "#0b111a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+        ctx.fillText(config.label, x + buttonWidth / 2, rowY + 42);
+        ctx.restore();
+        bounds.push({
+          key: config.key,
+          x: layout.offsetX + x * layout.scale,
+          y: layout.offsetY + rowY * layout.scale,
+          width: buttonWidth * layout.scale,
+          height: buttonHeight * layout.scale,
+        });
       });
-    });
+    };
+    drawButtonRow(row1Configs, row1Width, buttonY);
+    drawButtonRow(row2Configs, row2Width, buttonY2);
     if (typeof window !== "undefined") {
       window.__announcementButtons = { key: "pause", buttons: bounds };
       if (pointerState && typeof pointerState.x === "number" && typeof pointerState.y === "number") {

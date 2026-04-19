@@ -2482,6 +2482,7 @@ const assetSrcResolutionCache = new Map();
 
 let paused = false;
 let howToPlayActive = false;
+let howToPlaySource = "title"; // "title" | "pause"
 
 let spawnTimer = 0;
 let gameOver = false;
@@ -15533,7 +15534,12 @@ function handleHowToPlayScreen() {
     onActivate: (button) => {
       if (button.key === "back") {
         howToPlayActive = false;
-        titleScreenActive = true;
+        if (howToPlaySource === "pause") {
+          howToPlaySource = "title";
+          // paused remains true — returns to pause screen
+        } else {
+          titleScreenActive = true;
+        }
         return;
       }
       if (button.key === "prev") {
@@ -16282,6 +16288,13 @@ function handlePauseMenu() {
       onActivate: (button) => {
         if (button.key === "map") {
           returnToMapFromPause();
+          return;
+        }
+        if (button.key === "howToPlay") {
+          pauseRestartConfirmActive = false;
+          howToPlaySource = "pause";
+          howToPlayActive = true;
+          howToPlayPageIndex = 0;
           return;
         }
         if (button.key === "settings") {
