@@ -1775,11 +1775,16 @@ let lastEnemyDeathPosition = null;
 const GRACE_RUSH_FAREWELL_LINES = [
   "See you around church.",
   "See you Sunday.",
-  "Thanks!",
+  "See ya soon.",
+  "Let's get coffee later.",
 ];
 const VICTORY_OPENING_LINES = [
   "This really helped me.",
-  "This really helped me.",
+  "Thanks, Pastor!",
+  "I feel ready now.",
+  "I can face this now.",
+  "I feel stronger already.",
+  "This gave me hope.",
 ];
 
 function resetGraceRushNpcFarewellState({ resetAlpha = true } = {}) {
@@ -2663,38 +2668,8 @@ function updateGraceRushState(dt) {
   graceRushState.timer = Math.max(0, graceRushState.timer - dt);
   graceRushState.spawnTimer = (graceRushState.spawnTimer || 0) - dt;
   if (graceRushState.reason !== "boss") {
-    const duration = Math.max(0.001, graceRushState.duration || 0);
-    const queueLen = Math.max(1, graceRushState.farewellQueue.length || 0);
-    const fadeBaseStart = 0.45;
-    const totalStaggerWindow = Math.max(0.8, Math.min(2.0, duration - 2.2));
-    const perNpcStagger = queueLen > 1 ? totalStaggerWindow / (queueLen - 1) : 0;
-    const perNpcFadeDuration = 0.95;
-    if (Array.isArray(npcs)) {
-      npcs.forEach((npc) => {
-        if (!npc || npc.departed || !npc.active) return;
-        const orderIndex = Number.isFinite(npc.graceRushFarewellIndex)
-          ? Math.max(0, npc.graceRushFarewellIndex)
-          : 0;
-        const npcFadeStart = fadeBaseStart + orderIndex * perNpcStagger;
-        const fadeProgress = Math.max(
-          0,
-          Math.min(1, (graceRushState.elapsed - npcFadeStart) / Math.max(0.2, perNpcFadeDuration)),
-        );
-        npc.graceRushNpcFadeAlpha = Math.max(0, 1 - fadeProgress);
-      });
-    }
-
-    while (
-      graceRushState.farewellSpokenCount < graceRushState.farewellQueue.length &&
-      graceRushState.elapsed >= graceRushState.farewellNextAt
-    ) {
-      const entry = graceRushState.farewellQueue[graceRushState.farewellSpokenCount];
-      if (entry?.line && entry?.npc && !entry.npc.departed && entry.npc.active) {
-        npcCheer(entry.npc, entry.line, "#fffbe8", { life: 5.2, fadeDelay: 4.2, vy: 0 });
-      }
-      graceRushState.farewellSpokenCount += 1;
-      graceRushState.farewellNextAt += 1.25;
-    }
+    // Non-boss NPC fades are now driven by each NPC's spoken-line timer
+    // (see updateBattleVictoryNpcDialogue + updateCozyNpcs).
   } else {
     resetGraceRushNpcFarewellState({ resetAlpha: false });
   }
@@ -3040,22 +3015,34 @@ function triggerNpcPowerupDialogue(effectKey) {
 function showBattleVictoryNpcDialogue() {
   const responders = getCongregationConversationResponders().slice();
   if (!responders.length) return false;
-  const speakerCount = responders.length;
+  const helpedLineCount = 3;
+  const goodbyeLineCount = 2;
+  const speakerCount = helpedLineCount + goodbyeLineCount;
   const life = 5.6;
   const fadeDelay = 4.1;
   const initialPostKillDelay = 2.0;
-  const helpedStaggerStep = 1.55;
-  const goodbyeStartDelay = 2.2;
-  const goodbyeStaggerStep = 1.45;
+  const helpedStaggerStep = 0.75;
+  const goodbyeStartDelay = 0.4;
+  const goodbyeStaggerStep = 0.5;
+  const speakerCycle = responders.slice().sort(() => Math.random() - 0.5);
+  let speakerCursor = 0;
+  const usedHelped = new Set();
   const usedGoodbyes = new Set();
   battleVictoryDialogueState.queue.length = 0;
   for (let i = 0; i < speakerCount; i += 1) {
-    const speaker = responders.splice(Math.floor(Math.random() * responders.length), 1)[0];
+    const speaker = speakerCycle[speakerCursor % speakerCycle.length];
+    speakerCursor += 1;
     if (!speaker) continue;
-    const isHelpedLine = i < VICTORY_OPENING_LINES.length;
+    const isHelpedLine = i < helpedLineCount;
     const line =
       isHelpedLine
-        ? VICTORY_OPENING_LINES[i]
+        ? (() => {
+            const available = VICTORY_OPENING_LINES.filter((text) => !usedHelped.has(text));
+            const pool = available.length ? available : VICTORY_OPENING_LINES;
+            const selected = pool[Math.floor(Math.random() * pool.length)];
+            usedHelped.add(selected);
+            return selected;
+          })()
         : (() => {
             const available = GRACE_RUSH_FAREWELL_LINES.filter((text) => !usedGoodbyes.has(text));
             const pool = available.length ? available : GRACE_RUSH_FAREWELL_LINES;
@@ -3063,9 +3050,11 @@ function showBattleVictoryNpcDialogue() {
             usedGoodbyes.add(selected);
             return selected;
           })();
+    const helpedPhaseEnd =
+      initialPostKillDelay + Math.max(0, (helpedLineCount - 1) * helpedStaggerStep);
     const delay = isHelpedLine
       ? initialPostKillDelay + i * helpedStaggerStep
-      : initialPostKillDelay + goodbyeStartDelay + (i - VICTORY_OPENING_LINES.length) * goodbyeStaggerStep;
+      : helpedPhaseEnd + goodbyeStartDelay + (i - helpedLineCount) * goodbyeStaggerStep;
     battleVictoryDialogueState.queue.push({
       delay,
       speaker,
@@ -3085,6 +3074,15 @@ function updateBattleVictoryNpcDialogue(dt) {
   const readyIndex = battleVictoryDialogueState.queue.findIndex((event) => event.delay <= 0);
   if (readyIndex >= 0) {
     const [event] = battleVictoryDialogueState.queue.splice(readyIndex, 1);
+    const now =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    if (event.speaker) {
+      event.speaker.graceRushNpcFadeStartAt = now + Math.max(0, (event.fadeDelay || 0) * 1000);
+      event.speaker.graceRushNpcFadeDurationMs = 1200;
+      event.speaker.graceRushNpcFadeAlpha = 1;
+    }
     npcCheer(event.speaker, event.line, "#f4fbff", {
       life: event.life,
       fadeDelay: event.fadeDelay || 0,
@@ -14906,6 +14904,10 @@ function updateCozyNpcs(dt, options = {}) {
     (stageName === "graceRush" && graceRushState.reason !== "boss");
   const npcMotionTimeScale = isVictoryCalmStage ? 0.25 : 1;
   const shouldRestoreVictoryNpcAlpha = stageName !== "victoryCelebrate" && stageName !== "graceRush";
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
   if (npcsSuspended) return;
   if (!previewOnly && formationState) {
     formationState.swapCooldown = Math.max(0, (formationState.swapCooldown || 0) - dt);
@@ -15017,6 +15019,13 @@ function updateCozyNpcs(dt, options = {}) {
     if (shouldRestoreVictoryNpcAlpha && Number.isFinite(npc?.graceRushNpcFadeAlpha)) {
       npc.graceRushNpcFadeAlpha = 1;
       npc.graceRushFarewellIndex = null;
+      npc.graceRushNpcFadeStartAt = null;
+      npc.graceRushNpcFadeDurationMs = null;
+    } else if (isVictoryCalmStage && Number.isFinite(npc?.graceRushNpcFadeStartAt)) {
+      const fadeStartAt = npc.graceRushNpcFadeStartAt;
+      const fadeDurationMs = Math.max(300, Number(npc.graceRushNpcFadeDurationMs) || 1200);
+      const progress = Math.max(0, Math.min(1, (now - fadeStartAt) / fadeDurationMs));
+      npc.graceRushNpcFadeAlpha = Math.max(0, 1 - progress);
     }
     if (!previewOnly) {
       const timerScale = getNpcTimerScale();
