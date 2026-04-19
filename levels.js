@@ -806,8 +806,9 @@
       };
       const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
       const missionNumber = battleInAct;
-      const missionBriefTitle = actTitles[currentActNum] || `Mission ${romanNumerals[currentActNum] || currentActNum}`;
-      const missionBriefHeading = `${actMissionLabels[currentActNum] || `Mission ${romanNumerals[currentActNum] || currentActNum}`} Battle ${missionNumber}`;
+      const missionLabelText = actMissionLabels[currentActNum] || `Mission ${romanNumerals[currentActNum] || currentActNum}`;
+      const missionBriefTitle = `Mission ${currentActNum}: ${missionLabelText}`;
+      const missionBriefHeading = `Battle ${missionNumber}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }

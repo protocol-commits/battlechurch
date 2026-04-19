@@ -714,6 +714,7 @@ const MELEE_SWING_LENGTH = 260;
     subtitle,
     titleSize = TEXT_STYLES.h2.size,
     titleLineSizes = null,
+    titleLineGap = 0,
     subtitleSize = TEXT_STYLES.body.size,
     lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
     weight = TEXT_STYLES.h2.weight,
@@ -727,6 +728,7 @@ const MELEE_SWING_LENGTH = 260;
     const effectiveTitleLineSizes = Array.isArray(titleLineSizes) && titleLineSizes.length
       ? titleLineSizes.map((size) => Math.round(size * scaleHint))
       : null;
+    const effectiveTitleLineGap = Math.round(titleLineGap * scaleHint);
     const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
     const effectiveLineGap = Math.round(lineGap * scaleHint);
     const maxWidth = canvas.width * maxWidthScale;
@@ -738,7 +740,9 @@ const MELEE_SWING_LENGTH = 260;
     const titleLineHeights = titleLines.map((_, index) => {
       const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
         || effectiveTitleSize;
-      return Math.round(lineSize * TEXT_STYLES.h2.lineHeight);
+      const baseHeight = Math.round(lineSize * TEXT_STYLES.h2.lineHeight);
+      const isLast = index >= titleLines.length - 1;
+      return baseHeight + (isLast ? 0 : effectiveTitleLineGap);
     });
     const titleLineHeight = titleLineHeights[0] || Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
     const lastTitleLineHeight = titleLineHeights[titleLineHeights.length - 1] || titleLineHeight;
@@ -751,6 +755,7 @@ const MELEE_SWING_LENGTH = 260;
     return {
       effectiveTitleSize,
       effectiveTitleLineSizes,
+      effectiveTitleLineGap,
       effectiveSubtitleSize,
       effectiveLineGap,
       titleLines,
@@ -843,6 +848,8 @@ const MELEE_SWING_LENGTH = 260;
     alpha = 1,
     titleSize = TEXT_STYLES.h2.size,
     titleLineSizes = null,
+    titleLineGap = 0,
+    titleLineEmphasis = null,
     subtitleSize = TEXT_STYLES.body.size,
     lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
     weight = TEXT_STYLES.h2.weight,
@@ -860,6 +867,7 @@ const MELEE_SWING_LENGTH = 260;
     const effectiveTitleLineSizes = Array.isArray(titleLineSizes) && titleLineSizes.length
       ? titleLineSizes.map((size) => Math.round(size * scaleHint))
       : null;
+    const effectiveTitleLineGap = Math.round(titleLineGap * scaleHint);
     const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
     const effectiveLineGap = Math.round(lineGap * scaleHint);
     // "Announcement Text" refers to this renderer's font/size/wrap style.
@@ -887,7 +895,9 @@ const MELEE_SWING_LENGTH = 260;
     const titleLineHeights = titleLines.map((_, index) => {
       const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
         || effectiveTitleSize;
-      return Math.round(lineSize * TEXT_STYLES.h2.lineHeight);
+      const baseHeight = Math.round(lineSize * TEXT_STYLES.h2.lineHeight);
+      const isLast = index >= titleLines.length - 1;
+      return baseHeight + (isLast ? 0 : effectiveTitleLineGap);
     });
     const titleLineHeight = titleLineHeights[0] || Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
     const lastTitleLineHeight = titleLineHeights[titleLineHeights.length - 1] || titleLineHeight;
@@ -942,17 +952,51 @@ const MELEE_SWING_LENGTH = 260;
     let remainingTitle = displayTitle.length;
     let currentY = yBase;
     titleLines.forEach((line, index) => {
-      if (!line) return;
       const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
         || effectiveTitleSize;
       const lineHeight = titleLineHeights[index] || titleLineHeight;
       ctx.font = `${weight} ${lineSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      const visible = remainingTitle <= 0 ? "" : line.slice(0, remainingTitle);
-      remainingTitle = Math.max(0, remainingTitle - line.length);
+      const rawLine = line || "";
+      const visible = remainingTitle <= 0 ? "" : rawLine.slice(0, remainingTitle);
+      remainingTitle = Math.max(0, remainingTitle - rawLine.length);
       if (visible) {
         const lineX = centerLines
-          ? canvas.width / 2 - (ctx.measureText(line).width || 0) / 2
+          ? canvas.width / 2 - (ctx.measureText(rawLine).width || 0) / 2
           : titleX;
+        const emphasisMatches = (() => {
+          if (!titleLineEmphasis) return false;
+          if (Number.isFinite(titleLineEmphasis.lineIndex) && titleLineEmphasis.lineIndex === index) {
+            return true;
+          }
+          if (typeof titleLineEmphasis.matchPrefix === "string" && visible.trimStart().startsWith(titleLineEmphasis.matchPrefix)) {
+            return true;
+          }
+          if (typeof titleLineEmphasis.matchContains === "string" && visible.includes(titleLineEmphasis.matchContains)) {
+            return true;
+          }
+          return false;
+        })();
+        if (emphasisMatches && titleLineEmphasis.mode === "shimmer") {
+          const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+          const sweep = (Math.sin(now * 2.2) + 1) * 0.5;
+          const pulse = 0.88 + 0.12 * Math.sin(now * 3.6);
+          const lineWidth = ctx.measureText(visible).width || 1;
+          const grad = ctx.createLinearGradient(lineX, 0, lineX + lineWidth, 0);
+          const left = Math.max(0, sweep - 0.22);
+          const right = Math.min(1, sweep + 0.22);
+          grad.addColorStop(0, "#D9ECFF");
+          grad.addColorStop(left, "#D9ECFF");
+          grad.addColorStop(sweep, "#FFFFFF");
+          grad.addColorStop(right, "#D9ECFF");
+          grad.addColorStop(1, "#D9ECFF");
+          ctx.fillStyle = grad;
+          ctx.shadowColor = "rgba(185, 225, 255, 0.95)";
+          ctx.shadowBlur = 24 * pulse;
+        } else {
+          ctx.fillStyle = "#EAF6FF";
+          ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
+          ctx.shadowBlur = 20;
+        }
         ctx.fillText(visible, lineX, currentY);
       }
       currentY += lineHeight;
@@ -1286,9 +1330,13 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     setMissionBriefActive = true,
     titleSize = TEXT_STYLES.h1.size,
     titleLineSizes = null,
+    titleLineGap = 0,
+    titleLineEmphasis = null,
     titleWeight = TEXT_STYLES.h1.weight,
     bodySize = TEXT_STYLES.h2.size,
     bodyWeight = TEXT_STYLES.h2.weight,
+    topMargin = 90,
+    maxWidthScale = 0.96,
   } = options;
   const promptText = "How will you focus them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
@@ -1302,12 +1350,13 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     subtitle: combinedSubtitle,
     titleSize,
     titleLineSizes,
+    titleLineGap,
     subtitleSize: bodySize,
     lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
     weight: titleWeight,
-    maxWidthScale: 0.96,
+    maxWidthScale,
     position: "top",
-    topMargin: 90,
+    topMargin,
     bottomMargin: showFormation ? 70 : 100,
     rowGap: showFormation ? 40 : 60,
     buttonHeight,
@@ -1324,10 +1373,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitle: "",
       titleSize,
       titleLineSizes,
+      titleLineGap,
       subtitleSize: bodySize,
       lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
       weight: titleWeight,
-      maxWidthScale: 0.96,
+      maxWidthScale,
     });
     const lowerLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
       title: "",
@@ -1336,9 +1386,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize: bodySize,
       lineGap: Math.round(bodySize * TEXT_STYLES.h2.lineHeight),
       weight: bodyWeight,
-      maxWidthScale: 0.96,
+      maxWidthScale,
     });
-    const sectionGap = 12;
+    const sectionGap = 22;
     const dividerGap = 10;
     const titleYBase = layout.titleY;
     const titleBlockHeight = titleLayout.textBlockHeight;
@@ -1352,7 +1402,6 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     );
     const lowerYBase = Math.round(Math.min(desiredLowerYBase, maxLowerYBase));
     const lowerSectionTopY = lowerYBase - lowerLayout.subtitleLineHeight;
-    const dividerY = Math.round((titleBottomY + lowerSectionTopY) / 2);
 
     drawAnnouncementText(ctx, layout.virtualCanvas, {
       title,
@@ -1360,6 +1409,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       yBase: titleYBase,
       titleSize,
       titleLineSizes,
+      titleLineGap,
+      titleLineEmphasis,
       subtitleSize: bodySize,
       weight: titleWeight,
       subtitleWeight: bodyWeight,
@@ -1367,20 +1418,11 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       alpha: 1,
       typewriter: true,
       highlight,
-      maxWidthScale: 0.96,
+      maxWidthScale,
       blockAlign: "fullCenter",
     });
 
     const upperRevealComplete = isAnnouncementRevealComplete(title, "");
-
-    ctx.save();
-    ctx.strokeStyle = "rgba(234, 246, 255, 0.26)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(120, dividerY);
-    ctx.lineTo(layout.virtualCanvas.width - 120, dividerY);
-    ctx.stroke();
-    ctx.restore();
 
     if (upperRevealComplete) {
       drawAnnouncementText(ctx, layout.virtualCanvas, {
@@ -1395,7 +1437,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         alpha: 1,
         typewriter: true,
         highlight,
-        maxWidthScale: 0.96,
+        maxWidthScale,
         blockAlign: "fullCenter",
       });
     }
@@ -1410,6 +1452,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       yBase: layout.titleY,
       titleSize,
       titleLineSizes,
+      titleLineGap,
+      titleLineEmphasis,
       subtitleSize: bodySize,
       weight: titleWeight,
       subtitleWeight: bodyWeight,
@@ -1417,7 +1461,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       alpha: 1,
       typewriter: true,
       highlight,
-      maxWidthScale: 0.96,
+      maxWidthScale,
       blockAlign: "full",
     });
     revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
@@ -4090,16 +4134,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? announcement.missionNumber
         : null;
       const currentAct = Number.isFinite(currentLevelStatus?.level) ? currentLevelStatus.level : 1;
-      const fallbackMissionLabel =
-        missionNumber
-          ? `${actMissionLabels[currentAct] || `Mission ${currentAct}`} Battle ${missionNumber}`
-          : monthName || "";
+      const fallbackMissionLabel = `Mission ${currentAct}: ${actMissionLabels[currentAct] || `Mission ${currentAct}`}`;
       const missionLabel =
-        (announcement && announcement.title) || fallbackMissionLabel;
+        (announcement && announcement.missionBriefTitle) || fallbackMissionLabel;
+      const fallbackBattleLabel = missionNumber ? `Battle ${missionNumber}` : "Battle";
+      const battleLabel = (announcement && announcement.title) || fallbackBattleLabel;
+      const battleProblemLine = scenarioTitle
+        ? `${battleLabel}: ${scenarioTitle}`
+        : battleLabel;
       const needsVerb = npcNames.length === 1 ? "needs" : "need";
-      const missionHeading = scenarioTitle
-        ? `${missionLabel}\n${scenarioTitle}`
-        : missionLabel;
+      const missionHeading = `${missionLabel}\n${battleProblemLine}`;
       const missionBrief = `${nameSentence} ${needsVerb} your guidance.`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
@@ -4110,9 +4154,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         subtitle: missionBrief,
         showFormation: true,
         uiFontFamily: UI_FONT_FAMILY,
+        maxWidthScale: 0.86,
+        topMargin: 52,
+        bodySize: Math.max(30, Math.round(TEXT_STYLES.body.size * 1.1)),
+        bodyWeight: TEXT_STYLES.body.weight,
+        titleLineGap: 10,
+        titleLineEmphasis: {
+          mode: "shimmer",
+          matchPrefix: "Battle ",
+        },
         titleLineSizes: [
-          TEXT_STYLES.h1.size,
-          Math.max(TEXT_STYLES.h2.size, Math.round(TEXT_STYLES.h1.size * 0.72)),
+          Math.max(16, Math.round(TEXT_STYLES.h2.size * 0.76)),
+          Math.round(TEXT_STYLES.h1.size * 1.14),
         ],
       });
       ctx.restore();
