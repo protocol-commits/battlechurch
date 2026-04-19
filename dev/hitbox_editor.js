@@ -1146,12 +1146,16 @@
   function applyCircleInputs(data) {
     const radius = Number(els.primaryInput.value);
     if (!Number.isFinite(radius) || radius <= 0) return;
-    if (data.entryType === "npc" && typeof bindings.onNpcRadiusChange === "function") {
-      bindings.onNpcRadiusChange(radius);
+    if (data.entryType === "npc") {
+      const npc = typeof bindings.getNpcPreview === "function" ? bindings.getNpcPreview() : null;
+      if (npc) npc.radius = radius;
+      if (typeof bindings.onNpcRadiusChange === "function") bindings.onNpcRadiusChange(radius);
       setStatus("Updated live NPC radius.");
-    } else if (data.entryType === "projectile" && typeof bindings.onProjectileRadiusChange === "function") {
-      bindings.onProjectileRadiusChange(data.key, radius);
-      setStatus(`Updated ${data.key} projectile radius.`);
+    } else if (data.entryType === "projectile") {
+      const config = getProjectileConfig();
+      if (config?.[data.key]) config[data.key].radius = radius;
+      if (typeof bindings.onProjectileRadiusChange === "function") bindings.onProjectileRadiusChange(data.key, radius);
+      setStatus(`Updated ${data.key} radius.`);
     }
   }
 
@@ -1553,15 +1557,18 @@
     const centerY = canvas.height * 0.58;
     const clip = data.clip;
     const radius = Math.max(1, data.radius || 0);
-    const clipScale =
-      clip && Number.isFinite(data.scale) && data.scale > 0
-        ? Math.min(3.2, Math.max(0.4, Math.min((canvas.width * 0.36) / Math.max(1, clip.frameWidth * data.scale), (canvas.height * 0.44) / Math.max(1, clip.frameHeight * data.scale)))) * data.scale
-        : 1;
+    const entityScale = (Number.isFinite(data.scale) && data.scale > 0) ? data.scale : 1;
+    // fitFactor: game-space → preview-space, same factor applied to both sprite and circle
+    const fitFactor = clip
+      ? Math.min(3.2, Math.max(0.4, Math.min(
+          (canvas.width * 0.36) / Math.max(1, clip.frameWidth * entityScale),
+          (canvas.height * 0.44) / Math.max(1, clip.frameHeight * entityScale),
+        )))
+      : (Math.min(canvas.width, canvas.height) * 0.18) / Math.max(1, radius * entityScale);
+    const clipScale = fitFactor * entityScale;
     drawSpritePreview(ctx, clip, centerX, centerY, clipScale, 0);
 
-    const maxPreviewRadius = Math.min(canvas.width, canvas.height) * 0.18;
-    const overlayScale = radius > 0 ? maxPreviewRadius / radius : 1;
-    const drawRadius = radius * overlayScale;
+    const drawRadius = radius * fitFactor;
     ctx.save();
     ctx.strokeStyle = color;
     ctx.fillStyle = color.replace("0.95", "0.12");
