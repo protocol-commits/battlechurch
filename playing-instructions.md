@@ -1,3 +1,6 @@
+On Keyboard Directional Keys: W, A, S, D
+Hit D to scroll down this page
+
 # How to Play Battlechurch
 
 Smite the hordes. Save the church.

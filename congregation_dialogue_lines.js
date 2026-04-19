@@ -127,20 +127,18 @@
   };
 
   const welcomeLines = [
-    "Pastor! We're so glad you're here.",
-    "We've been praying for your arrival.",
-    "Thank God you've come.",
-    "We've been waiting for you, Pastor.",
-    "We're with you, Pastor.",
-    "It means so much that you showed up.",
-    "We needed you here.",
-    "God sent the right person.",
-    "Your presence gives us courage.",
-    "We've been holding on until you came.",
-    "We knew you'd come.",
-    "We're ready to stand with you.",
-    "You give us hope, Pastor.",
-    "We're stronger with you here.",
+    "Tip: Press W, A, S, D keys to move.",
+    'Tip: "A" button is the LEFT key. "B" button is DOWN key. "C" button is the RIGHT key.',
+    "Tip: Hold B to dash further toward a powerup.",
+    "Tip: Hold A + Hold B for a Sword Rush!",
+    "Tip: Press A then B quickly to Double Strike.",
+    "Tip: Press B then A quickly for a Rush Attack.",
+    "Tip: Tap C to make us fire at enemies!",
+    "Tip: Hold C down for a Prayer Bomb!",
+    "Tip: Double-tap C and we'll protect you!",
+    "Tip: Hold C + Hold A for a Holy Ground ring of fire.",
+    "Tip: Hold B + Hold C to Blink Teleport to a powerup.",
+    "Tip: Tap C then A quickly for a Prayer Strike spin.",
   ];
 
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});

@@ -1191,7 +1191,7 @@
               });
             }
           } else {
-            window.FloatingText?.heroSay?.("Unity Attack!");
+            window.npcsYell?.("Unity Attack!");
           }
         }
       }

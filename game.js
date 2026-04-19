@@ -2508,6 +2508,7 @@ let canvasScale = 1;
 
 FloatingText.initialize({
   getPlayer: () => player,
+  maxSpeechBubbles: 10,
 });
 
 const floatingTexts = FloatingText.getActive();
@@ -2799,17 +2800,19 @@ function getNpcPowerupDialogueSpeaker() {
   return activeNpcs.length ? randomChoice(activeNpcs) : null;
 }
 
+const NPC_POWERUP_EFFECT_NAMES = {
+  npcScriptureWeapon: "Scripture!",
+  npcWisdomWeapon: "Wisdom!",
+  npcFaithWeapon: "Faith!",
+  harmony: "Harmony!",
+};
+
 function triggerNpcPowerupDialogue(effectKey) {
-  const linesByEffect = CONGREGATION_NPC_POWERUP_DIALOGUE.linesByEffect || {};
-  const candidates = Array.isArray(linesByEffect[effectKey]) ? linesByEffect[effectKey] : [];
-  const line = randomChoice(candidates);
-  if (!line) return false;
+  const name = NPC_POWERUP_EFFECT_NAMES[effectKey];
+  if (!name) return false;
   const speaker = getNpcPowerupDialogueSpeaker();
   if (!speaker) return false;
-  const life = Number(CONGREGATION_NPC_POWERUP_DIALOGUE.life);
-  npcCheer(speaker, line, "#f4fbff", {
-    life: Number.isFinite(life) ? Math.max(0.1, life) : 5.6,
-  });
+  npcCheer(speaker, name, "#f4fbff", { life: 3.2 });
   return true;
 }
 
@@ -4569,12 +4572,14 @@ function setWeaponPickupAnnouncement({ title, description, color, duration } = {
 
 function showWeaponPowerupConfigText(config) {
   showWeaponPowerupFloatingText(config.text, config.textColor || "#fff");
+  const announcementTitle = config.hudTitle || config.text || "Weapon Power Up";
   setWeaponPickupAnnouncement({
-    title: config.hudTitle || config.text || "Weapon Power Up",
+    title: announcementTitle,
     description: config.description || "",
     color: config.textColor || "#fff",
     duration: config.hudDuration,
   });
+  playerYell(announcementTitle + "!", 3.2);
 }
 
 function getWeaponPowerName(effect, fallback = "Weapon") {
@@ -7401,11 +7406,13 @@ function applyUtilityPowerUp(powerUp) {
     window.playUtilityPowerupPickupSfx(0.55);
   }
   const { effect, duration = 6, speedMultiplier, extendMultiplier } = powerUp.definition;
+  const utilityTitle = powerUp.definition.hudTitle || powerUp.definition.label || "Power Up";
   setWeaponPickupAnnouncement({
-    title: powerUp.definition.hudTitle || powerUp.definition.label || "Power Up",
+    title: utilityTitle,
     description: powerUp.definition.description || "",
     color: powerUp.definition.color || "#EAF6FF",
   });
+  playerYell(utilityTitle + "!", 3.2);
   switch (effect) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
@@ -14202,7 +14209,7 @@ function triggerCongregationMemberDialogue(member) {
 function tryTriggerCongregationDialogueFromMelee(dir, swingCenterX, swingCenterY, attackRect) {
   if (!player || !congregationMembers.length) return false;
   const status = typeof levelManager?.getStatus === "function" ? levelManager.getStatus() : null;
-  if (status?.stage !== "levelIntro") return false;
+  if (status?.stage === "levelIntro") return false;
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -16153,14 +16160,14 @@ function updateCongregationStage(dt, levelStatus) {
     congregationWelcomeTimer = 2.2;
   }
   congregationWelcomeTimer -= dt;
-  if (congregationWelcomeTimer <= 0 && congregationGreetingCount < 3 && CONGREGATION_WELCOME_LINES.length && congregationMembers.length) {
+  if (congregationWelcomeTimer <= 0 && congregationGreetingCount < 11 && CONGREGATION_WELCOME_LINES.length && congregationMembers.length) {
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     const available = congregationMembers.filter(
       (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
     );
     if (available.length) {
       const member = available[Math.floor(Math.random() * available.length)];
-      const line = CONGREGATION_WELCOME_LINES[Math.floor(Math.random() * CONGREGATION_WELCOME_LINES.length)];
+      const line = CONGREGATION_WELCOME_LINES[congregationGreetingCount % CONGREGATION_WELCOME_LINES.length];
       if (member.dialogueBubble) {
         member.dialogueBubble.life = 0;
         member.dialogueBubble = null;
@@ -16170,13 +16177,13 @@ function updateCongregationStage(dt, levelStatus) {
         member.y - member.radius - 20,
         line,
         "#f4fbff",
-        { speechBubble: true, vy: 0, life: 2.5, fadeDelay: 2.2, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
+        { speechBubble: true, vy: 0, life: 8.0, fadeDelay: 7.0, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
       );
       member.dialogueBubble = bubble || null;
       member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
       congregationGreetingCount += 1;
     }
-    congregationWelcomeTimer = 1.8 + Math.random() * 1.0;
+    congregationWelcomeTimer = 7.5 + Math.random() * 1.5;
   }
   updateCongregationMembers(dt);
   resolveCongregationMemberCollisions();
@@ -18858,8 +18865,7 @@ function applyDashSlashTravelDamage(meleeAttackState) {
 }
 
 function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
-  if (!skipYell) playerYell("Rush Attack!");
-  // Canonical move name: "Rush Attack" is the combo A > B/A follow-up.
+  if (!skipYell) playerYell("Rush Attack!", 2.4);
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -18961,6 +18967,7 @@ function npcsYell(text, life = 1.6) {
     }
   });
 }
+window.npcsYell = npcsYell;
 
 function executePowerupTeleport(meleeAttackState) {
   if (!player) return;
@@ -19729,8 +19736,8 @@ function updateMeleeAttackSystem(dt) {
     const comboRush =
       (!meleeAttackState.isRushing &&
         !meleeAttackState.ringFireActive &&
-        !meleeAttackState.spinCharging &&
-        !meleeAttackState.spinButtonDown &&
+        !(meleeAttackState.spinCharging && !comboRushKeyOrder) &&
+        !(meleeAttackState.spinButtonDown && !comboRushKeyOrder) &&
         meleeAttackState.rushLockTimer <= 0 &&
         !playerDashState.isDashing &&
         (comboRushKeyOrder ||
@@ -19738,6 +19745,9 @@ function updateMeleeAttackSystem(dt) {
     let comboTriggered = false;
     if (comboRush && !comboTriggered) {
       playerDashState.pendingDashTimer = 0;
+      meleeAttackState.spinButtonDown = false;
+      meleeAttackState.spinCharging = false;
+      meleeAttackState.spinChargeTimer = 0;
       executeRushAttack(getDashButtonDirection(), meleeAttackState);
       meleeAttackState.awaitRush = false;
       meleeAttackState.awaitTimer = 0;

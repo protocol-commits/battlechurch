@@ -4773,10 +4773,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const titleFadeStart = 5.0;
     const titleFadeEnd = 6.2;
     const titleAlpha = introElapsed >= titleFadeEnd ? 0 : introElapsed >= titleFadeStart ? 1 - (introElapsed - titleFadeStart) / (titleFadeEnd - titleFadeStart) : 1;
-    const subtitleAppear = 6.5;
-    const subtitleFadeStart = subtitleAppear + 5.0;
-    const subtitleFadeEnd = subtitleFadeStart + 1.2;
-    const subtitleAlpha = introElapsed < subtitleAppear ? 0 : introElapsed >= subtitleFadeEnd ? 0 : introElapsed >= subtitleFadeStart ? 1 - (introElapsed - subtitleFadeStart) / (subtitleFadeEnd - subtitleFadeStart) : 1;
+
     const titleSize = TEXT_STYLES.h1.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -4907,18 +4904,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typewriter: typewriterReady,
       maxWidthScale: 1,
     });
-    if (subtitleAlpha > 0) {
-      ctx.save();
-      ctx.globalAlpha *= subtitleAlpha;
-      ctx.fillStyle = "#c8e8ff";
-      ctx.font = `500 ${Math.round(TEXT_STYLES.h2.size * 0.85)}px ${UI_FONT_FAMILY}`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.shadowColor = "rgba(0,0,0,0.7)";
-      ctx.shadowBlur = 10;
-      ctx.fillText("You can practice on this screen.", layout.virtualCanvas.width / 2, layout.titleY + lineGap * 1.5);
-      ctx.restore();
-    }
     const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
     const wordSize = Math.min(canvas.width * 0.14, canvas.height * 0.16, 140);
     const numberSize = Math.min(canvas.width * 0.28, canvas.height * 0.32, 220);
@@ -8504,13 +8489,37 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const bubbleX = drawX - bubbleWidth / 2;
         const bubbleY = drawY - bubbleHeight - 10;
         const cornerRadius = 10;
-        const fillColor = "rgba(24, 38, 64, 0.82)";
-        const strokeColor = "rgba(150, 215, 255, 0.6)";
+        const bubbleTheme = ft.bubbleTheme || "default";
+        const isNpcBubble = bubbleTheme === "npc";
+        const isHeroBubble = bubbleTheme === "hero";
+        const isStyledBubble = isNpcBubble || isHeroBubble;
+        const now_b = typeof performance !== "undefined" ? performance.now() : Date.now();
+        // Pulse frequency: hero slightly faster for a livelier feel
+        const pulseSpeed = isHeroBubble ? 0.005 : 0.004;
+        const stylePulse = isStyledBubble ? 0.55 + 0.45 * Math.sin(now_b * pulseSpeed) : 0;
+        // Old style (preserved for easy revert): fillColor "rgba(24,38,64,0.82)", strokeColor "rgba(150,215,255,0.6)", lineWidth 2, no shadow
+        const fillColor = isHeroBubble
+          ? "rgba(36, 24, 8, 0.92)"        // warm dark for pastor
+          : isNpcBubble
+            ? "rgba(10, 28, 58, 0.92)"     // deep blue for NPCs
+            : "rgba(24, 38, 64, 0.82)";    // original default
+        const strokeColor = isHeroBubble
+          ? `rgba(255, ${Math.round(200 + 40 * stylePulse)}, ${Math.round(80 + 60 * stylePulse)}, ${0.7 + 0.3 * stylePulse})`
+          : isNpcBubble
+            ? `rgba(${Math.round(120 + 100 * stylePulse)}, ${Math.round(200 + 55 * stylePulse)}, 255, ${0.7 + 0.3 * stylePulse})`
+            : "rgba(150, 215, 255, 0.6)"; // original default
+        const shadowCol = isHeroBubble
+          ? `rgba(255, 180, 60, ${0.5 + 0.5 * stylePulse})`
+          : `rgba(100, 200, 255, ${0.5 + 0.5 * stylePulse})`;
         ctx.save();
         ctx.globalAlpha = alpha * 0.9;
         ctx.fillStyle = fillColor;
         ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = isStyledBubble ? 2.5 : 2;
+        if (isStyledBubble) {
+          ctx.shadowColor = shadowCol;
+          ctx.shadowBlur = 8 + 10 * stylePulse;
+        }
         ctx.beginPath();
         ctx.moveTo(bubbleX + cornerRadius, bubbleY);
         ctx.lineTo(bubbleX + bubbleWidth - cornerRadius, bubbleY);
