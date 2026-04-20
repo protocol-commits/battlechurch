@@ -16245,8 +16245,11 @@ function showSettingsOverlay({ source = "title" } = {}) {
           footerHint.className = "dialog-overlay__footer-hint";
           overlay.appendChild(footerHint);
         }
-        footerHint.textContent =
-          "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+        const controlsHint =
+          typeof window.Renderer?.getControlsHintText === "function"
+            ? window.Renderer.getControlsHintText()
+            : "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+        footerHint.textContent = controlsHint;
       }
       const musicToggle = bodyEl.querySelector('[data-setting="musicEnabled"]');
       const musicSlider = bodyEl.querySelector('[data-setting="musicVolume"]');
@@ -16440,8 +16443,8 @@ function handleTitleScreen() {
   if (!titleScreenActive) return false;
   if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
     const SCROLL_SPEED = 180;
-    if (keysPressed.has("w") || keysPressed.has("W")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
-    if (keysPressed.has("s") || keysPressed.has("S")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
+    if (isActionActive("up")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
+    if (isActionActive("down")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
     if (keysJustPressed.has("Escape") || keysJustPressed.has("escape") || keysJustPressed.has(" ")) {
       window.PlayingInstructions.close();
       keysJustPressed.delete("Escape");
@@ -17216,8 +17219,9 @@ function handleLevelAnnouncements() {
         ? window.__announcementButtons.buttons
         : null;
     const canContinueRecap = typeof window !== "undefined" && window.__recapAllowContinue;
-    if (!canContinueRecap && keysJustPressed.has(" ")) {
-      keysJustPressed.delete(" ");
+    const recapSkipKeys = [" ", "enter", "Enter"];
+    if (!canContinueRecap && recapSkipKeys.some((k) => keysJustPressed.has(k))) {
+      recapSkipKeys.forEach((k) => keysJustPressed.delete(k));
       if (typeof window !== "undefined") {
         window.__recapSkipRequested = true;
       }
@@ -17295,8 +17299,9 @@ function handleLevelAnnouncements() {
         ? window.__announcementButtons.buttons
         : null;
     const canContinueRecap = typeof window !== "undefined" && window.__recapAllowContinue;
-    if (!canContinueRecap && keysJustPressed.has(" ")) {
-      keysJustPressed.delete(" ");
+    const recapSkipKeys = [" ", "enter", "Enter"];
+    if (!canContinueRecap && recapSkipKeys.some((k) => keysJustPressed.has(k))) {
+      recapSkipKeys.forEach((k) => keysJustPressed.delete(k));
       if (typeof window !== "undefined") window.__recapSkipRequested = true;
       return true;
     }
@@ -17649,8 +17654,8 @@ function updateCameraAndVisualEffects(dt) {
 function handlePauseMenu() {
   if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
     const SCROLL_SPEED = 180;
-    if (keysPressed.has("w") || keysPressed.has("W")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
-    if (keysPressed.has("s") || keysPressed.has("S")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
+    if (isActionActive("up")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
+    if (isActionActive("down")) window.PlayingInstructions.scrollBy(SCROLL_SPEED * (1 / 60));
     if (keysJustPressed.has("Escape") || keysJustPressed.has("escape") || keysJustPressed.has(" ")) {
       window.PlayingInstructions.close();
       keysJustPressed.delete("Escape");

@@ -5,12 +5,18 @@
 - Levels are not balanced. 
 - Enemies are not balanced.
 
-## Quick Start
+## Keyboard Controls
 - Move with WASD keys
 - Player autoaims projectiles
 - A (Left Arrow) - Sword
 - B (Down Arrow) - Dash
 - C (Right Arrow) - Congregation Volley
+
+## Xbox Controller
+  - Left Stick / D-Pad - Move
+  - A - Sword (Button A)
+  - B - Dash (Button B)
+  - RB - Prayer / Congregation commands (Button "C")
 
 ## Full Move List
 
@@ -43,6 +49,15 @@
 - A+B — Sword Rush (Divine Shot plus Rush Attack together)
 - B+C — Blink Teleport (teleport to nearest powerup)
 
+## Xbox Controller Layout
+
+- Move: Left Stick or D-Pad
+- Button A: Sword actions
+- Button B: Dash actions
+- Right Shoulder (RB): Prayer / Congregation actions (Button C)
+- Menu Select: A
+- Menu Back / Undo: B
+
 ## Prayer Meter
 
 Your prayer meter fills over time and as you defeat enemies. The meter powers your C-button Prayer abilities.
@@ -71,6 +86,5 @@ Your prayer meter fills over time and as you defeat enemies. The meter powers yo
 - Google Auth is already wired for saving
 - X-Box Controller kinda works already. 
 123 
-
 
 

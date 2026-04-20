@@ -38,6 +38,20 @@
     return false;
   }
 
+  function undoLastPurchase() {
+    const lastKey = purchaseHistory.pop();
+    if (!lastKey) return false;
+    const refunded = attemptRefund(lastKey);
+    if (!refunded) {
+      purchaseHistory.push(lastKey);
+      return false;
+    }
+    if (typeof window.playMenuItemPickSfx === "function") {
+      window.playMenuItemPickSfx(0.45);
+    }
+    return true;
+  }
+
   function show(callback) {
     onCloseCallback = typeof callback === "function" ? callback : null;
     visible = true;
@@ -217,13 +231,17 @@
       navCooldown = Math.max(0, navCooldown - dt);
       return;
     }
-    if (input.virtualInput?.enabled) {
-      const confirmKeys = [" ", "enter", "Enter"];
-      if (confirmKeys.some((k) => input.keysJustPressed?.has(k))) {
-        confirmKeys.forEach((k) => input.keysJustPressed?.delete(k));
-        activateFocused();
-        return;
-      }
+    const confirmKeys = [" ", "enter", "Enter"];
+    if (confirmKeys.some((k) => input.keysJustPressed?.has(k))) {
+      confirmKeys.forEach((k) => input.keysJustPressed?.delete(k));
+      activateFocused();
+      return;
+    }
+    const undoKeys = ["escape", "Escape"];
+    if (undoKeys.some((k) => input.keysJustPressed?.has(k))) {
+      undoKeys.forEach((k) => input.keysJustPressed?.delete(k));
+      undoLastPurchase();
+      return;
     }
     let dir = null;
     if (input.isActionActive("left")) dir = "left";
@@ -278,15 +296,7 @@
       return;
     }
     if (focusedIndex === undoIndex) {
-      const lastKey = purchaseHistory.pop();
-      if (lastKey) {
-        const refunded = attemptRefund(lastKey);
-        if (!refunded) {
-          purchaseHistory.push(lastKey);
-        } else if (typeof window.playMenuItemPickSfx === "function") {
-          window.playMenuItemPickSfx(0.45);
-        }
-      }
+      undoLastPurchase();
       return;
     }
     if (typeof window.playMenuAdvanceSfx === "function") {
@@ -309,15 +319,7 @@
           }
           hide();
         } else if (btn.key === "undo") {
-          const lastKey = purchaseHistory.pop();
-          if (lastKey) {
-            const refunded = attemptRefund(lastKey);
-            if (!refunded) {
-              purchaseHistory.push(lastKey);
-            } else if (typeof window.playMenuItemPickSfx === "function") {
-              window.playMenuItemPickSfx(0.45);
-            }
-          }
+          undoLastPurchase();
         } else if (btn.canAfford !== false) {
           const purchased = attemptPurchase(btn.key);
           if (purchased && typeof window.playMenuItemPickSfx === "function") {

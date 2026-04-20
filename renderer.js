@@ -189,6 +189,55 @@ const MELEE_SWING_LENGTH = 260;
     return bindings;
   }
 
+  const KEYBOARD_CONTROLS_HINT =
+    "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+  const XBOX_CONTROLS_HINT =
+    "Xbox: Navigation/Movement: Left Stick or D-Pad | Action Buttons: A, B, RB | Select: A | Back: B";
+
+  function getControlsHintText() {
+    return window?.Input?.gamepadState?.connected ? XBOX_CONTROLS_HINT : KEYBOARD_CONTROLS_HINT;
+  }
+
+  function drawFooterControlsHint(ctx, hintX, hintY, fontFamily) {
+    if (!ctx) return;
+    const controlsHint = getControlsHintText();
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `500 11px ${fontFamily}`;
+    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetY = 0;
+    ctx.fillText(controlsHint, hintX, hintY);
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const shimmerCycleSec = 4.8;
+    const shimmerWindowSec = 0.95;
+    const cycleTime = nowSec % shimmerCycleSec;
+    if (cycleTime <= shimmerWindowSec) {
+      const progress = cycleTime / shimmerWindowSec;
+      const intensity = Math.sin(progress * Math.PI);
+      const hintWidth = ctx.measureText(controlsHint).width;
+      const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
+      const sweepGradient = ctx.createLinearGradient(
+        sweepCenterX - 90,
+        0,
+        sweepCenterX + 90,
+        0
+      );
+      sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+      sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
+      sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.save();
+      ctx.fillStyle = sweepGradient;
+      ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
+      ctx.shadowBlur = 6 * intensity;
+      ctx.fillText(controlsHint, hintX, hintY);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
 
   function drawNpcProfileIcon(ctx, member, x, y, size = 34) {
     if (!ctx || !member) return;
@@ -5065,6 +5114,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const isFirstPlaythroughForTown = campaign === "p1";
     const isFirstTown = Boolean(activeTownId && firstTownId && activeTownId === firstTownId);
     const showTutorialHints = isFirstPlaythroughForTown && isFirstTown;
+    const gamepadConnected = Boolean(window?.Input?.gamepadState?.connected);
     if (typeof window !== "undefined") {
       window.__congregationShowTutorialHints = showTutorialHints;
     }
@@ -5114,18 +5164,36 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       HUD_HEIGHT,
     });
     const drawInstructionButtons = () => {
-      const leftItems = [
-        {
-          key: "WASD",
-          action: "MOVE",
-          isActive: (pressed) => ["w", "a", "s", "d"].some((k) => pressed?.has?.(k)),
-        },
-      ];
-      const rightItems = [
-        { key: "LEFT ARROW", action: "SWORD", isActive: (pressed) => pressed?.has?.("ArrowLeft") },
-        { key: "DOWN ARROW", action: "DASH", isActive: (pressed) => pressed?.has?.("ArrowDown") },
-        { key: "RIGHT ARROW", action: "PRAYER", isActive: (pressed) => pressed?.has?.("ArrowRight") },
-      ];
+      const leftItems = gamepadConnected
+        ? [
+            {
+              key: "LEFT STICK / D-PAD",
+              action: "MOVE",
+              isActive: () =>
+                Boolean(window?.Input?.isActionActive?.("up")) ||
+                Boolean(window?.Input?.isActionActive?.("down")) ||
+                Boolean(window?.Input?.isActionActive?.("left")) ||
+                Boolean(window?.Input?.isActionActive?.("right")),
+            },
+          ]
+        : [
+            {
+              key: "WASD",
+              action: "MOVE",
+              isActive: (pressed) => ["w", "a", "s", "d"].some((k) => pressed?.has?.(k)),
+            },
+          ];
+      const rightItems = gamepadConnected
+        ? [
+            { key: "A", action: "SWORD", isActive: (pressed) => pressed?.has?.("enter") || pressed?.has?.("Enter") },
+            { key: "B", action: "DASH", isActive: (pressed) => pressed?.has?.("escape") || pressed?.has?.("Escape") },
+            { key: "RB", action: "PRAYER", isActive: (pressed) => pressed?.has?.("ArrowRight") },
+          ]
+        : [
+            { key: "LEFT ARROW", action: "SWORD", isActive: (pressed) => pressed?.has?.("ArrowLeft") },
+            { key: "DOWN ARROW", action: "DASH", isActive: (pressed) => pressed?.has?.("ArrowDown") },
+            { key: "RIGHT ARROW", action: "PRAYER", isActive: (pressed) => pressed?.has?.("ArrowRight") },
+          ];
       const buttonGap = 12;
       const buttonHeight = 34;
       const keyHeight = 22;
@@ -5366,46 +5434,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.lineWidth = 3;
     ctx.strokeText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
     ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
-
-    const controlsHint =
-      "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `500 11px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    const fightHintText = gamepadConnected ? "Press Menu button to start" : "Press Space to start";
+    ctx.fillStyle = "rgba(231, 176, 102, 0.86)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
     ctx.shadowBlur = 2;
-    ctx.shadowOffsetY = 0;
-    const hintX = layout.virtualCanvas.width / 2;
-    const hintY = layout.virtualCanvas.height - 10;
-    ctx.fillText(controlsHint, hintX, hintY);
-    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-    const shimmerCycleSec = 4.8;
-    const shimmerWindowSec = 0.95;
-    const cycleTime = nowSec % shimmerCycleSec;
-    if (cycleTime <= shimmerWindowSec) {
-      const progress = cycleTime / shimmerWindowSec;
-      const intensity = Math.sin(progress * Math.PI);
-      const hintWidth = ctx.measureText(controlsHint).width;
-      const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
-      const sweepGradient = ctx.createLinearGradient(
-        sweepCenterX - 90,
-        0,
-        sweepCenterX + 90,
-        0
-      );
-      sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-      sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
-      sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-      ctx.save();
-      ctx.fillStyle = sweepGradient;
-      ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
-      ctx.shadowBlur = 6 * intensity;
-      ctx.fillText(controlsHint, hintX, hintY);
-      ctx.restore();
-    }
-    ctx.restore();
+    ctx.shadowOffsetY = 1;
+    ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+    ctx.fillText(fightHintText, layout.virtualCanvas.width / 2, buttonY + buttonHeight + 16);
+
+    drawFooterControlsHint(
+      ctx,
+      layout.virtualCanvas.width / 2,
+      layout.virtualCanvas.height - 10,
+      UI_FONT_FAMILY,
+    );
     ctx.restore();
 
     ctx.restore();
@@ -7448,45 +7490,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     }
     // Subtle title-screen controls hint (shown for both main title buttons and Play/Load menu).
-    const controlsHint =
-      "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `500 11px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetY = 0;
-    const hintX = layout.virtualCanvas.width / 2;
-    const hintY = layout.virtualCanvas.height - 10;
-    ctx.fillText(controlsHint, hintX, hintY);
-    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-    const shimmerCycleSec = 4.8;
-    const shimmerWindowSec = 0.95;
-    const cycleTime = nowSec % shimmerCycleSec;
-    if (cycleTime <= shimmerWindowSec) {
-      const progress = cycleTime / shimmerWindowSec;
-      const intensity = Math.sin(progress * Math.PI);
-      const hintWidth = ctx.measureText(controlsHint).width;
-      const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
-      const sweepGradient = ctx.createLinearGradient(
-        sweepCenterX - 90,
-        0,
-        sweepCenterX + 90,
-        0
-      );
-      sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-      sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
-      sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-      ctx.save();
-      ctx.fillStyle = sweepGradient;
-      ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
-      ctx.shadowBlur = 6 * intensity;
-      ctx.fillText(controlsHint, hintX, hintY);
-      ctx.restore();
-    }
-    ctx.restore();
+    drawFooterControlsHint(
+      ctx,
+      layout.virtualCanvas.width / 2,
+      layout.virtualCanvas.height - 10,
+      UI_FONT_FAMILY,
+    );
     if (typeof window !== "undefined") {
       window.__titleMenuButtonBounds = bounds;
       window.__announcementButtons = { key: "title", buttons: bounds };
@@ -7972,44 +7981,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           blockAlign: "center",
         });
       }
-      const controlsHint =
-        "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = `500 11px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetY = 0;
-      const hintX = canvas.width / 2;
-      const hintY = canvas.height - 10;
-      ctx.fillText(controlsHint, hintX, hintY);
-      const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-      const shimmerCycleSec = 4.8;
-      const shimmerWindowSec = 0.95;
-      const cycleTime = nowSec % shimmerCycleSec;
-      if (cycleTime <= shimmerWindowSec) {
-        const progress = cycleTime / shimmerWindowSec;
-        const intensity = Math.sin(progress * Math.PI);
-        const hintWidth = ctx.measureText(controlsHint).width;
-        const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
-        const sweepGradient = ctx.createLinearGradient(
-          sweepCenterX - 90,
-          0,
-          sweepCenterX + 90,
-          0
-        );
-        sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-        sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
-        sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-        ctx.save();
-        ctx.fillStyle = sweepGradient;
-        ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
-        ctx.shadowBlur = 6 * intensity;
-        ctx.fillText(controlsHint, hintX, hintY);
-        ctx.restore();
-      }
+      drawFooterControlsHint(ctx, canvas.width / 2, canvas.height - 10, UI_FONT_FAMILY);
       ctx.restore();
       return;
     }
@@ -10419,45 +10391,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     ctx.restore();
-    const controlsHint =
-      "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.font = `500 11px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetY = 0;
-    const hintX = vw / 2;
-    const hintY = vh - 10;
-    ctx.fillText(controlsHint, hintX, hintY);
-    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
-    const shimmerCycleSec = 4.8;
-    const shimmerWindowSec = 0.95;
-    const cycleTime = nowSec % shimmerCycleSec;
-    if (cycleTime <= shimmerWindowSec) {
-      const progress = cycleTime / shimmerWindowSec;
-      const intensity = Math.sin(progress * Math.PI);
-      const hintWidth = ctx.measureText(controlsHint).width;
-      const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
-      const sweepGradient = ctx.createLinearGradient(
-        sweepCenterX - 90,
-        0,
-        sweepCenterX + 90,
-        0
-      );
-      sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
-      sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
-      sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
-      ctx.save();
-      ctx.fillStyle = sweepGradient;
-      ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
-      ctx.shadowBlur = 6 * intensity;
-      ctx.fillText(controlsHint, hintX, hintY);
-      ctx.restore();
-    }
-    ctx.restore();
+    drawFooterControlsHint(ctx, vw / 2, vh - 10, UI_FONT_FAMILY);
     ctx.restore();
   }
 
@@ -10468,5 +10402,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawChurchUpgradeScreen,
     drawDenomUpgradeScreen,
     drawPlayingInstructionsOverlay,
+    getControlsHintText,
   };
 })(typeof window !== "undefined" ? window : null);

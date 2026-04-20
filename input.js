@@ -598,8 +598,7 @@
 
     const useSouthAsConfirm = shouldUseGamepadSouthButtonAsConfirm();
     const useEastAsBack = shouldUseGamepadEastButtonAsBack();
-    const inMenuLikeContext = useSouthAsConfirm || useEastAsBack;
-    const cButtonIndex = inMenuLikeContext ? 2 : 3; // Gameplay: C -> Xbox Y (north button).
+    const cButtonIndex = 5; // C -> Xbox RB (right shoulder) for easier charge combos.
     const buttonMap = [
       useSouthAsConfirm
         ? { index: 0, key: "enter" }
