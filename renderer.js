@@ -1272,7 +1272,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       key: "crescent",
       label: "CARE GROUP",
       desc: "Guided group sharing and mutual support",
-      stat: "+Power-up duration",
+      stat: "+10% Prayer Meter speed",
     },
   ];
   const escapeHtml = (value) =>
@@ -1672,7 +1672,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           key: "crescent",
           label: "CARE GROUP",
           desc: "Guided group sharing and mutual support",
-          stat: "+Power-up duration",
+          stat: "+10% Prayer Meter speed",
           iconSrc: "assets/sprites/items/icons/I41_Candle.png",
         },
       ]
@@ -6095,7 +6095,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = '#EAF6FF';
     const lines = [
       'Move with WASD, aim with arrow keys or mouse.',
-      'Use Prayer Bombs to clear enemies, collect coins to heal NPCs.',
+      'Prayer Meter holds 6 Prayers: Prayer Bomb costs 2, Prayer Storm costs 6.',
       'Protect the congregation and survive the waves.',
     ];
     let y = HUD_HEIGHT + 110;
@@ -6127,7 +6127,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const lines = [
       'Move with WASD or the virtual stick.',
       'Aim with mouse or right stick; press Space to start.',
-      'Use Prayer Bombs to clear enemies and protect NPCs.',
+      'Prayer Meter holds 6 Prayers: Prayer Bomb costs 2, Prayer Storm costs 6.',
     ];
     let y = HUD_HEIGHT + 120;
     lines.forEach((l) => {

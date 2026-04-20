@@ -33,17 +33,17 @@
 - B->A - Rush Attack
 
 ## Button C — Prayer (Right Arrow)
-(Note: Moves uses Prayer Meter)
+(Note: Prayer moves use your Prayer Meter. The meter holds 6 Prayers.)
 
-- Tap C — Unity Attack (your congregation fires at enemies). 1 bar.
-- Double-tap C — Pastor Protection (congregation fires and clears a path for you). 1 bar.
-- Hold C (not full) - Prayer Bomb. 2 Bars.
-- Hold C (full) — Prayer Storm. Full bar.
-- C->A - Prayer Strike (spin attack). 2 Bars.
-- C->B - Prayer Dash (BUG - DOESN'T WORK). 1 Bar.
+- Tap C — Unity Attack (your congregation fires at enemies). 1 Prayer.
+- Double-tap C — Pastor Protection (congregation fires and clears a path for you). 1 Prayer.
+- Hold C (not full) - Prayer Bomb. 2 Prayers.
+- Hold C (full) — Prayer Storm. 6 Prayers.
+- C->A - Prayer Strike (spin attack). 2 Prayers.
+- C->B - Prayer Dash (BUG - DOESN'T WORK). 1 Prayer.
 
 ## Double Charges 
-(Costs 2 bars)
+(Costs 2 Prayers)
 
 - A+C — Holy Ground (ring of fire surrounds you)
 - A+B — Sword Rush (Divine Shot plus Rush Attack together)
@@ -60,7 +60,9 @@
 
 ## Prayer Meter
 
-Your prayer meter fills over time and as you defeat enemies. The meter powers your C-button Prayer abilities.
+Your Prayer Meter fills over time and as you defeat enemies.
+Each segment is 1 Prayer, and the meter holds 6 Prayers total.
+Your C-button Prayer abilities spend Prayers.
 
 ## Expert Sword Combos
 
@@ -86,5 +88,4 @@ Your prayer meter fills over time and as you defeat enemies. The meter powers yo
 - Google Auth is already wired for saving
 - X-Box Controller kinda works already. 
 123 
-
 

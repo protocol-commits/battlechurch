@@ -130,6 +130,9 @@
   const welcomeLines = [
     "Tip: Press W, A, S, D keys to move.",
     'Tip: "A" button is the LEFT key. "B" button is DOWN key. "C" button is the RIGHT key.',
+    "Tip: Your Prayer Meter fills as you smite enemies. (Not shown here).",
+    "Tip: Your Prayer Meter holds 6 Prayers. Prayer moves spend Prayers.",
+    'Tip: The little circle below you means Button B is ready, including B-combos.',
     "Tip: Hold B to dash further toward a powerup.",
     "Tip: Hold A + Hold B for a Sword Rush!",
     "Tip: Press A then B quickly to Double Strike.",
@@ -142,9 +145,29 @@
     "Tip: Tap C then A quickly for a Prayer Strike spin.",
   ];
 
+  const welcomeLinesXbox = [
+    "Tip: Use Left Stick or D-Pad to move.",
+    'Tip: Controller mapping: "A" is Button A, "B" is Button B, and "C" is RB.',
+    "Tip: Your Prayer Meter fills as you smite enemies. (Not shown here).",
+    "Tip: Your Prayer Meter holds 6 Prayers. Prayer moves spend Prayers.",
+    'Tip: The little circle below you means Button B is ready, including B-combos.',
+    "Tip: Hold B to dash further toward a powerup.",
+    "Tip: Hold A + Hold B for a Sword Rush!",
+    "Tip: Press A then B quickly to Double Strike.",
+    "Tip: Press B then A quickly for a Rush Attack.",
+    "Tip: Tap RB to make us fire at enemies!",
+    "Tip: Hold RB for a Prayer Bomb!",
+    "Tip: Double-tap RB and we'll protect you!",
+    "Tip: Hold RB + Hold A for a Holy Ground ring of fire.",
+    "Tip: Hold B + Hold RB to Blink Teleport to a powerup.",
+    "Tip: Tap RB then A quickly for a Prayer Strike spin.",
+    "Tip: Press Menu button to start the fight.",
+  ];
+
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
   ns.welcomeLines = welcomeLines;
+  ns.welcomeLinesXbox = welcomeLinesXbox;
   ns.waveIntro = waveIntro;
   ns.waveEnd = waveEnd;
   ns.redFaith = redFaith;

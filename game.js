@@ -256,6 +256,16 @@ const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {
 const CONGREGATION_NPC_POWERUP_DIALOGUE = CONGREGATION_DIALOGUE_DATA.npcPowerups || {};
 const CONGREGATION_BATTLE_VICTORY_DIALOGUE = CONGREGATION_DIALOGUE_DATA.battleVictory || {};
 const CONGREGATION_WELCOME_LINES = CONGREGATION_DIALOGUE_DATA.welcomeLines || [];
+const CONGREGATION_WELCOME_LINES_XBOX = CONGREGATION_DIALOGUE_DATA.welcomeLinesXbox || [];
+const MAX_CONGREGATION_WELCOME_HINTS = 11;
+
+function getActiveCongregationWelcomeLines() {
+  const gamepadConnected = Boolean(window?.Input?.gamepadState?.connected);
+  if (gamepadConnected && Array.isArray(CONGREGATION_WELCOME_LINES_XBOX) && CONGREGATION_WELCOME_LINES_XBOX.length) {
+    return CONGREGATION_WELCOME_LINES_XBOX;
+  }
+  return CONGREGATION_WELCOME_LINES;
+}
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
 let townStartCongregation = INITIAL_CONGREGATION_SIZE;
@@ -1952,7 +1962,7 @@ const devTools = {
 
 function clearFormationSelection() {
   formationState.current = null;
-  formationState.bonuses = { rof: 0, damage: 0, powerupDuration: 0 };
+  formationState.bonuses = { rof: 0, damage: 0, powerupDuration: 0, prayerChargeGain: 0 };
   formationState.homePressure = 0;
   formationState.combatSpreadScaleCurrent = formationState.combatSpreadScale || 1.18;
 }
@@ -1968,7 +1978,7 @@ function selectFormation(key) {
 }
 
 function getFormationBonuses() {
-  return formationState?.bonuses || { rof: 0, damage: 0, powerupDuration: 0 };
+  return formationState?.bonuses || { rof: 0, damage: 0, powerupDuration: 0, prayerChargeGain: 0 };
 }
 
 function resolveNpcWeaponPowerup(effect, def = {}) {
@@ -4928,7 +4938,7 @@ const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 const FORMATION_PRESETS = {
   circle: { key: "circle", label: "Guided Study", spokenLabel: "Guided Study", bonuses: { damage: 0.2 } },
   line: { key: "line", label: "Bible Study", spokenLabel: "Bible Study", bonuses: { rof: 0.2 } },
-  crescent: { key: "crescent", label: "Shared Burdens", spokenLabel: "Care Group", bonuses: { powerupDuration: 0.2 } },
+  crescent: { key: "crescent", label: "Shared Burdens", spokenLabel: "Care Group", bonuses: { prayerChargeGain: 0.1 } },
 };
 const npcWeaponState = {
   mode: null,
@@ -4940,7 +4950,7 @@ const npcWeaponState = {
 };
 const formationState = {
   current: null,
-  bonuses: { rof: 0, damage: 0, powerupDuration: 0 },
+  bonuses: { rof: 0, damage: 0, powerupDuration: 0, prayerChargeGain: 0 },
   anchors: [],
   jitterRadius: 28,
   swappedThisBattle: new Set(),
@@ -17531,20 +17541,22 @@ function updateCongregationStage(dt, levelStatus) {
     }
   }
   if (tutorialHintsEnabled) {
+    const activeWelcomeLines = getActiveCongregationWelcomeLines();
+    const welcomeHintLimit = Math.min(MAX_CONGREGATION_WELCOME_HINTS, activeWelcomeLines.length);
     if (!congregationGreetingShown) {
       heroSay("I'm glad to see you all!", { life: 3.6 });
       congregationGreetingShown = true;
       congregationWelcomeTimer = 2.2;
     }
     congregationWelcomeTimer -= dt;
-    if (congregationWelcomeTimer <= 0 && congregationGreetingCount < 11 && CONGREGATION_WELCOME_LINES.length && congregationMembers.length) {
+    if (congregationWelcomeTimer <= 0 && congregationGreetingCount < welcomeHintLimit && activeWelcomeLines.length && congregationMembers.length) {
       const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
       const available = congregationMembers.filter(
         (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
       );
       if (available.length) {
         const member = available[Math.floor(Math.random() * available.length)];
-        const line = CONGREGATION_WELCOME_LINES[congregationGreetingCount % CONGREGATION_WELCOME_LINES.length];
+        const line = activeWelcomeLines[congregationGreetingCount % activeWelcomeLines.length];
         if (member.dialogueBubble) {
           member.dialogueBubble.life = 0;
           member.dialogueBubble = null;
@@ -18126,7 +18138,9 @@ function processDeadEnemies() {
     const killedByPrayer = Boolean(enemy.killedByPrayerBomb);
     if (!killedByPrayer && player && typeof player.addPrayerCharge === "function") {
       const modifier = PRAYER_BOMB_CHARGE_TYPE_MODIFIERS[enemy.type] ?? 1;
-      const chargeAmount = PRAYER_BOMB_CHARGE_PER_KILL * modifier;
+      const formation = getFormationBonuses();
+      const chargeScale = 1 + Math.max(0, Number(formation?.prayerChargeGain) || 0);
+      const chargeAmount = PRAYER_BOMB_CHARGE_PER_KILL * modifier * chargeScale;
       if (chargeAmount > 0) player.addPrayerCharge(chargeAmount);
     }
     if (enemy.killedByPrayerBomb) {

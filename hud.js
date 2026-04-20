@@ -433,6 +433,7 @@
       const ratio = typeof player.getPrayerChargeRatio === 'function' ? player.getPrayerChargeRatio() : 0;
       const clampedRatio = Math.max(0, Math.min(1, ratio));
       const ready = typeof player.isPrayerBombReady === 'function' ? player.isPrayerBombReady() : clampedRatio >= 1;
+      const fullPrayerReady = clampedRatio >= 0.999;
       const now = performance.now() * 0.001;
       const dt = prayerSpark.lastTime ? Math.min(0.1, Math.max(0, now - prayerSpark.lastTime)) : 0;
       prayerSpark.lastTime = now;
@@ -586,6 +587,33 @@
         ctx.globalAlpha = sparkAlpha;
         ctx.fillStyle = gradient;
         ctx.fillRect(sparkX - sparkW, sparkY, sparkW, sparkH);
+        ctx.restore();
+      }
+      if (fullPrayerReady) {
+        const readyText = "Congregational Prayer Ready";
+        const flashPulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
+        let fontSize = 11;
+        const minFontSize = 7;
+        const maxTextWidth = meterWidth - 10;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        while (fontSize > minFontSize) {
+          ctx.font = `700 ${fontSize}px ${UI_FONT_FAMILY}`;
+          if (ctx.measureText(readyText).width <= maxTextWidth) break;
+          fontSize -= 1;
+        }
+        ctx.save();
+        ctx.globalAlpha = 0.55 + flashPulse * 0.45;
+        ctx.fillStyle = PALETTE.softWhite;
+        ctx.shadowColor = "rgba(255, 212, 124, 0.9)";
+        ctx.shadowBlur = 6 + flashPulse * 6;
+        ctx.shadowOffsetY = 0;
+        ctx.strokeStyle = "rgba(65, 18, 8, 0.9)";
+        ctx.lineWidth = 2;
+        const textX = meterX + meterWidth / 2;
+        const textY = meterY + meterHeight / 2 + 0.5;
+        ctx.strokeText(readyText, textX, textY);
+        ctx.fillText(readyText, textX, textY);
         ctx.restore();
       }
       ctx.font = `12px ${UI_FONT_FAMILY}`;
