@@ -28,6 +28,7 @@
     navNextTime: 0,
     playerDoc: null,
     mapProgress: null,
+    demoProfile: null,
     loading: false,
     lastMapLoad: 0,
     lastPulseTime: 0,
@@ -151,6 +152,7 @@
   }
 
   function syncActiveSaveProgressMirror() {
+    if (typeof window !== "undefined" && window.__demoSandboxRunActive) return;
     if (!state.playerDoc || typeof state.playerDoc !== "object") return;
     const activeSave = getActiveSave();
     if (!activeSave) return;
@@ -161,6 +163,9 @@
   async function persistPlayerDoc() {
     if (!state.playerDoc || typeof state.playerDoc !== "object") return false;
     if (!window.Cloud?.savePlayerDoc) return false;
+    if (typeof window !== "undefined" && window.__demoSandboxRunActive) {
+      return true;
+    }
     try {
       await window.Cloud.savePlayerDoc({
         saveFiles: state.playerDoc.saveFiles,
@@ -438,10 +443,20 @@
     return state.mapProgress;
   }
 
-async function loadPlayerProgress() {
+  async function loadPlayerProgress() {
     if (state.loading) return;
     state.loading = true;
     try {
+      if (typeof window !== "undefined" && window.__demoSandboxRunActive && state.demoProfile?.mapProgress) {
+        state.mapProgress = deepClone(state.demoProfile.mapProgress) || state.demoProfile.mapProgress;
+        const progress = ensureProgress();
+        if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+          state.selectedTownId = pickInitialTown();
+        }
+        state.demoProfile.mapProgress = progress;
+        return;
+      }
+      state.demoProfile = null;
       if (window.Cloud?.initCloud) {
         await window.Cloud.initCloud();
       }
@@ -1846,6 +1861,84 @@ async function loadPlayerProgress() {
     return true;
   }
 
+  async function devAwardNextTown({
+    congregationCount = 100,
+    campaign = "p1",
+    churchPowerupLevels = {},
+  } = {}) {
+    const progress = ensureProgress();
+    const mapData = window.BattlechurchMapData;
+    if (!mapData?.towns?.length) return null;
+    ensureNextTownUnlocked(progress, mapData);
+    const orderedTowns = mapData.towns.filter((town) => town && town.id);
+    const unlockedSet = new Set(progress.unlockedTownIds || []);
+    const targetTown =
+      orderedTowns.find((town) => unlockedSet.has(town.id) && !progress?.towns?.[town.id]?.p1?.completed) ||
+      null;
+    if (!targetTown) return null;
+
+    if (!progress.towns[targetTown.id]) progress.towns[targetTown.id] = {};
+    const existing = progress.towns[targetTown.id][campaign] || {};
+    progress.towns[targetTown.id][campaign] = {
+      ...existing,
+      completed: true,
+      bestCount:
+        existing?.bestCount == null
+          ? congregationCount
+          : Math.max(existing.bestCount, congregationCount),
+      churchPowerupLevels:
+        campaign !== "p3"
+          ? { ...(existing?.churchPowerupLevels || {}), ...(churchPowerupLevels || {}) }
+          : existing?.churchPowerupLevels,
+    };
+
+    ensureNextTownUnlocked(progress, mapData);
+    const nextTown =
+      orderedTowns.find((town) => (progress.unlockedTownIds || []).includes(town.id) && !progress?.towns?.[town.id]?.p1?.completed) ||
+      targetTown;
+    state.selectedTownId = nextTown?.id || targetTown.id;
+    const activeSave = getActiveSave();
+    if (activeSave) activeSave.lastPlayedAt = Date.now();
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
+    return {
+      awardedTownId: targetTown.id,
+      awardedTownName: targetTown.name || targetTown.id,
+      nextTownId: nextTown?.id || null,
+      nextTownName: nextTown?.name || nextTown?.id || null,
+    };
+  }
+
+  function setDemoProfile({ completedTowns = 0 } = {}) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData?.towns?.length) return false;
+    const progress = createFreshMapProgress(mapData);
+    const regularTownIds = mapData.towns
+      .filter((town) => town && town.type !== "capital")
+      .map((town) => town.id)
+      .filter(Boolean);
+    const targetIds = regularTownIds.slice(0, Math.max(0, Number(completedTowns) || 0));
+    targetIds.forEach((townId) => {
+      if (!progress.towns[townId]) progress.towns[townId] = {};
+      progress.towns[townId].p1 = {
+        completed: true,
+        bestCount: 100,
+        churchPowerupLevels: {},
+      };
+    });
+    ensureNextTownUnlocked(progress, mapData);
+    state.demoProfile = { mapProgress: progress };
+    state.mapProgress = progress;
+    if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+      state.selectedTownId = pickInitialTown();
+    }
+    return true;
+  }
+
+  function clearDemoProfile() {
+    state.demoProfile = null;
+  }
+
   async function renameSaveFile(saveId, saveName, playerName = null) {
     const target = state.playerDoc?.saveFiles?.[saveId];
     if (!target) return false;
@@ -2009,6 +2102,9 @@ async function loadPlayerProgress() {
     resetSaveFile,
     renameSaveFile,
     deleteSaveFile,
+    devAwardNextTown,
+    setDemoProfile,
+    clearDemoProfile,
     isCountyDone,
     isCapitalUnlocked,
     getCapitalScoreMultiplier,

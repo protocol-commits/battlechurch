@@ -153,6 +153,7 @@ const bossHazards = [];
 let titleScreenActive = true;
 let titleDemoSaveMenuActive = false;
 let titleDemoSaveOverride = null;
+let demoSandboxRunActive = false;
 let titleCloudSaveLoading = false;
 let titleCloudSaveRows = [];
 let titleCloudActiveSaveId = null;
@@ -203,6 +204,17 @@ const TITLE_DEMO_SAVE_SLOTS = [
     },
   },
 ];
+
+function setDemoSandboxRunActive(active) {
+  demoSandboxRunActive = Boolean(active);
+  if (!demoSandboxRunActive && typeof window !== "undefined" && typeof window.MapScreen?.clearDemoProfile === "function") {
+    window.MapScreen.clearDemoProfile();
+  }
+  if (typeof window !== "undefined") {
+    window.__demoSandboxRunActive = demoSandboxRunActive;
+  }
+}
+setDemoSandboxRunActive(false);
 let assetsLoaded = false;
 let mapReady = false; // True when title/map can be used (before full gameplay assets)
 let gameplayAssetsPromise = null; // Promise for background gameplay asset loading
@@ -6537,6 +6549,7 @@ function startGameFromTitle() {
       titleDemoSaveOverride && titleDemoSaveOverride.townId === activeTownId
         ? titleDemoSaveOverride.campaignData
         : null;
+    setDemoSandboxRunActive(Boolean(overrideCampaignData));
     const campaignData = overrideCampaignData || window.MapScreen.getTownCampaignData(activeTownId);
     activeCampaign = campaignData?.campaign || "p1";
     activeCampaignMultiplier = Number.isFinite(campaignData?.campaignMultiplier) ? campaignData.campaignMultiplier : 1.0;
@@ -6552,6 +6565,7 @@ function startGameFromTitle() {
       }
     }
   } else {
+    setDemoSandboxRunActive(false);
     activeCampaign = "p1";
     activeCampaignMultiplier = 1.0;
     if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
@@ -6665,21 +6679,11 @@ function returnToMapFromPause() {
 
 async function seedDemoSlotProgress(slot) {
   if (!slot || !slot.townId) return;
-  const completedTowns = Math.max(0, Number(slot.completedTowns) || 0);
-  if (completedTowns <= 0) return;
-  const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const mapScreen = typeof window !== "undefined" ? window.MapScreen : null;
-  if (!mapData?.towns || typeof mapScreen?.recordTownCompletion !== "function") return;
-
-  const regularTownIds = mapData.towns
-    .filter((town) => town && town.type !== "capital")
-    .map((town) => town.id)
-    .filter(Boolean);
-  const targetIds = regularTownIds.slice(0, Math.min(regularTownIds.length, completedTowns));
-  for (const townId of targetIds) {
-    // Seed each prior town as completed at 100 congregation for fake save slots.
-    await mapScreen.recordTownCompletion(townId, 100, "p1", {});
-  }
+  if (typeof mapScreen?.setDemoProfile !== "function") return;
+  mapScreen.setDemoProfile({
+    completedTowns: Math.max(0, Number(slot.completedTowns) || 0),
+  });
 }
 
 async function refreshTitleCloudSaveOption() {
@@ -15661,6 +15665,22 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("t")) {
+    if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextTown === "function") {
+      void (async () => {
+        const result = await window.MapScreen.devAwardNextTown({
+          congregationCount: 100,
+          campaign: "p1",
+          churchPowerupLevels: Object.fromEntries(churchPowerupLevels),
+        });
+        if (result?.awardedTownName) {
+          setDevStatus(`Awarded town: ${result.awardedTownName}`, 2.3);
+        } else {
+          setDevStatus("No eligible town to award", 2.0);
+        }
+      })();
+    }
+  }
+  if (keysJustPressed.has("y")) {
     speedrunTimer.visible = !speedrunTimer.visible;
     setDevStatus(speedrunTimer.visible ? "Timer shown" : "Timer hidden", 2.0);
   }
@@ -16289,7 +16309,8 @@ function showDeveloperShortcutsOverlay() {
     { key: "6", label: "Act 3 Battle 3 Boss (current town)" },
     { key: "7", label: "Unlock All Towns (Map)" },
     { key: "9", label: "Grace Rush" },
-    { key: "T", label: "Toggle Timer" },
+    { key: "T", label: "Award Next Town" },
+    { key: "Y", label: "Toggle Timer" },
     { key: "C", label: "+5 Congregation" },
     { key: "O", label: "Touch Controls" },
     { key: "P", label: "Swap Powerups" },
@@ -16533,6 +16554,7 @@ function handleTitleScreen() {
       },
       onActivate: (button) => {
         if (button.key === "continue") {
+          setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = true;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
@@ -16541,6 +16563,7 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "back") {
+          setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = false;
           if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
             window.playMenuAdvanceSfx(0.55);
@@ -16567,6 +16590,7 @@ function handleTitleScreen() {
         }
         if (String(button.key || "").startsWith("cloudsave:")) {
           void (async () => {
+            setDemoSandboxRunActive(false);
             titleDemoSaveOverride = null;
             const saveId = String(button.key).slice("cloudsave:".length);
             titleCloudSelectedSaveId = saveId || titleCloudSelectedSaveId;
@@ -16730,6 +16754,7 @@ function handleTitleScreen() {
         }
         if (button.key === "play" || button.key === "map") {
           // Play button now goes to map screen so player must pick a town
+          setDemoSandboxRunActive(false);
           titleScreenActive = false;
           mapActive = true;
           if (window.MapScreen) window.MapScreen.open();
@@ -16739,6 +16764,7 @@ function handleTitleScreen() {
           const slot = TITLE_DEMO_SAVE_SLOTS.find((entry) => entry.key === button.key);
           if (slot?.townId) {
             void (async () => {
+              setDemoSandboxRunActive(true);
               await seedDemoSlotProgress(slot);
               titleDemoSaveOverride = {
                 townId: slot.townId,
@@ -17120,7 +17146,7 @@ function handleLevelAnnouncements() {
             window.lastRunScore = finalScore;
           }
           // Only record town completion on the FINAL level of the town
-          if (isFinalTownLevel && window.MapScreen?.recordTownCompletion) {
+          if (isFinalTownLevel && window.MapScreen?.recordTownCompletion && !demoSandboxRunActive) {
             const powerupSnapshot = Object.fromEntries(churchPowerupLevels);
             window.MapScreen.recordTownCompletion(activeTownId, finalScore, activeCampaign, powerupSnapshot);
           }
