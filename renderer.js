@@ -7967,10 +7967,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       player,
       haloBladeState,
       haloBladeStateSecondary,
+      haloBladeStateBonus,
       spearState,
       spearStateSecondary,
+      spearStateBonus,
       sentryState,
       sentryStateSecondary,
+      sentryStateBonus,
       effects,
       floatingTexts,
       cannonSplashRadius,
@@ -8822,10 +8825,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Draw spears above other sprites/effects so they remain visible in chaos.
     drawSentryTurret(ctx, sentryState);
     drawSentryTurret(ctx, sentryStateSecondary);
+    drawSentryTurret(ctx, sentryStateBonus);
     drawHaloBlade(ctx, haloBladeState);
     drawHaloBlade(ctx, haloBladeStateSecondary);
+    drawHaloBlade(ctx, haloBladeStateBonus);
     drawSpearDart(ctx, spearState);
     drawSpearDart(ctx, spearStateSecondary);
+    drawSpearDart(ctx, spearStateBonus);
 
       // --- Enemy-player collision and damage logic ---
       if (!visitorStageActive && player && Array.isArray(enemies)) {

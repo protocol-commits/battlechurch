@@ -3469,6 +3469,7 @@ const createHaloBladeState = () => ({
 });
 const haloBladeState = createHaloBladeState();
 const haloBladeStateSecondary = createHaloBladeState();
+const haloBladeStateBonus = createHaloBladeState();
 
 const createSpearState = () => ({
   active: false,
@@ -3513,6 +3514,7 @@ const createSpearState = () => ({
 });
 const spearState = createSpearState();
 const spearStateSecondary = createSpearState();
+const spearStateBonus = createSpearState();
 spearStateSecondary.trailOuterColor = "#B6E6FF";
 spearStateSecondary.trailInnerColor = "#F2FCFF";
 spearStateSecondary.glowColor = "#55CCFF";
@@ -3521,6 +3523,14 @@ spearStateSecondary.trailOuterWidth = 7;
 spearStateSecondary.trailInnerWidth = 3.2;
 spearStateSecondary.glowBlur = 28;
 spearStateSecondary.pauseFlashBlur = 40;
+spearStateBonus.trailOuterColor = "#FFD2A8";
+spearStateBonus.trailInnerColor = "#FFF4D6";
+spearStateBonus.glowColor = "#FFC86B";
+spearStateBonus.pauseFlashColor = "#FFE2A6";
+spearStateBonus.trailOuterWidth = 6;
+spearStateBonus.trailInnerWidth = 2.6;
+spearStateBonus.glowBlur = 30;
+spearStateBonus.pauseFlashBlur = 42;
 
 const createSentryState = () => ({
   active: false,
@@ -3569,15 +3579,23 @@ const createSentryState = () => ({
 });
 const sentryState = createSentryState();
 const sentryStateSecondary = createSentryState();
+const sentryStateBonus = createSentryState();
 sentryState.orbitEnabled = true;
 sentryState.orbitAngleOffset = 0;
 sentryStateSecondary.orbitEnabled = true;
 sentryStateSecondary.orbitAngleOffset = Math.PI;
+sentryStateBonus.orbitEnabled = true;
+sentryStateBonus.orbitAngleOffset = (Math.PI * 2) / 3;
 sentryStateSecondary.beamOuterColor = "rgba(182, 230, 255, 0.85)";
 sentryStateSecondary.beamInnerColor = "rgba(242, 252, 255, 0.95)";
 sentryStateSecondary.glowColor = "rgba(130, 210, 255, 0.75)";
 sentryStateSecondary.glowBlur = 18;
 sentryStateSecondary.beamStartDelay = 0.06;
+sentryStateBonus.beamOuterColor = "rgba(255, 215, 155, 0.85)";
+sentryStateBonus.beamInnerColor = "rgba(255, 247, 220, 0.95)";
+sentryStateBonus.glowColor = "rgba(255, 200, 120, 0.72)";
+sentryStateBonus.glowBlur = 18;
+sentryStateBonus.beamStartDelay = 0.08;
 
 // Melee Attack System Constants (tunable via GameBalance.melee.*)
 const MELEE_SWING_LENGTH_BASE = 260;
@@ -4076,10 +4094,13 @@ Renderer.initialize({
   get maxComboThisTown() { return maxComboThisTown; },
   get haloBladeState() { return haloBladeState; },
   get haloBladeStateSecondary() { return haloBladeStateSecondary; },
+  get haloBladeStateBonus() { return haloBladeStateBonus; },
   get spearState() { return spearState; },
   get spearStateSecondary() { return spearStateSecondary; },
+  get spearStateBonus() { return spearStateBonus; },
   get sentryState() { return sentryState; },
   get sentryStateSecondary() { return sentryStateSecondary; },
+  get sentryStateBonus() { return sentryStateBonus; },
   formatNumberWithCommas,
   updatePlayerDuringCongregation,
   resolveCongregationCollisions,
@@ -7834,6 +7855,9 @@ function applyWeaponPickupEffect(pickup) {
       const config = resolveWeaponPowerupConfig("spreadGun", def);
       const sgLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("spreadGun") || 1);
       const sgDuration = getChurchPowerupInstanceDuration(config.duration, sgLevel, 1);
+      if (player.spreadGunTimer > 0) {
+        player.spreadGunBonusTimer = Math.max(player.spreadGunBonusTimer || 0, sgDuration);
+      }
       player.spreadGunTimer = Math.max(player.spreadGunTimer, sgDuration);
       player.spreadGunDuration = Math.max(player.spreadGunDuration, sgDuration);
       player.spreadGunMaxDuration = config.duration;
@@ -7846,6 +7870,11 @@ function applyWeaponPickupEffect(pickup) {
       const haloLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("halo") || 1);
       const haloPrimaryDur = getChurchPowerupInstanceDuration(config.duration, haloLevel, 1);
       const haloSecondaryDur = getChurchPowerupInstanceDuration(config.duration, haloLevel, 2);
+      const hadPrimary = (player.haloTimer || 0) > 0;
+      const hadSecondary = (player.haloTimerSecondary || 0) > 0;
+      if (hadPrimary && (haloSecondaryDur <= 0 || hadSecondary)) {
+        player.haloTimerBonus = Math.max(player.haloTimerBonus || 0, haloPrimaryDur);
+      }
       player.haloTimer = Math.max(player.haloTimer, haloPrimaryDur);
       player.haloDuration = Math.max(player.haloDuration, haloPrimaryDur);
       player.haloMaxDuration = config.duration;
@@ -7859,6 +7888,11 @@ function applyWeaponPickupEffect(pickup) {
       const spearLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("spear") || 1);
       const spearPrimaryDur = getChurchPowerupInstanceDuration(config.duration, spearLevel, 1);
       const spearSecondaryDur = getChurchPowerupInstanceDuration(config.duration, spearLevel, 2);
+      const hadPrimary = (player.spearTimer || 0) > 0;
+      const hadSecondary = (player.spearTimerSecondary || 0) > 0;
+      if (hadPrimary && (spearSecondaryDur <= 0 || hadSecondary)) {
+        player.spearTimerBonus = Math.max(player.spearTimerBonus || 0, spearPrimaryDur);
+      }
       player.spearTimer = Math.max(player.spearTimer, spearPrimaryDur);
       player.spearDuration = Math.max(player.spearDuration, spearPrimaryDur);
       player.spearMaxDuration = config.duration;
@@ -7872,6 +7906,11 @@ function applyWeaponPickupEffect(pickup) {
       const sentryLevel = Math.min(CHURCH_POWERUP_MAX_LEVEL, churchPowerupLevels.get("sentry") || 1);
       const sentryPrimaryDur = getChurchPowerupInstanceDuration(config.duration, sentryLevel, 1);
       const sentrySecondaryDur = getChurchPowerupInstanceDuration(config.duration, sentryLevel, 2);
+      const hadPrimary = (player.sentryTimer || 0) > 0;
+      const hadSecondary = (player.sentryTimerSecondary || 0) > 0;
+      if (hadPrimary && (sentrySecondaryDur <= 0 || hadSecondary)) {
+        player.sentryTimerBonus = Math.max(player.sentryTimerBonus || 0, sentryPrimaryDur);
+      }
       player.sentryTimer = Math.max(player.sentryTimer, sentryPrimaryDur);
       player.sentryDuration = Math.max(player.sentryDuration, sentryPrimaryDur);
       player.sentryMaxDuration = config.duration;
@@ -8426,9 +8465,13 @@ function resetHaloBladeState(state) {
 }
 
 function updateHaloBlade(dt) {
-  if (!player || player.state === "death" || player.haloTimer <= 0) {
+  const hasPrimary = (player?.haloTimer || 0) > 0;
+  const hasSecondary = (player?.haloTimerSecondary || 0) > 0;
+  const hasBonus = (player?.haloTimerBonus || 0) > 0;
+  if (!player || player.state === "death" || (!hasPrimary && !hasSecondary && !hasBonus)) {
     resetHaloBladeState(haloBladeState);
     resetHaloBladeState(haloBladeStateSecondary);
+    resetHaloBladeState(haloBladeStateBonus);
     return;
   }
   haloBladeState.active = true;
@@ -8438,16 +8481,25 @@ function updateHaloBlade(dt) {
   if (!haloBladeStateSecondary.sprite) {
     haloBladeStateSecondary.sprite = haloBladeState.sprite;
   }
+  if (!haloBladeStateBonus.sprite) {
+    haloBladeStateBonus.sprite = haloBladeState.sprite;
+  }
   const angle = (haloBladeState.angle || 0) + haloBladeState.speed * dt;
   const baseAngle = angle % (Math.PI * 2);
   haloBladeState.angle = baseAngle;
   updateHaloBladeInstance(haloBladeState, baseAngle, dt);
 
-  if ((player.haloTimerSecondary || 0) > 0) {
+  if (hasSecondary) {
     haloBladeStateSecondary.active = true;
     updateHaloBladeInstance(haloBladeStateSecondary, baseAngle + Math.PI, dt);
   } else {
     resetHaloBladeState(haloBladeStateSecondary);
+  }
+  if (hasBonus) {
+    haloBladeStateBonus.active = true;
+    updateHaloBladeInstance(haloBladeStateBonus, baseAngle + (Math.PI * 2) / 3, dt);
+  } else {
+    resetHaloBladeState(haloBladeStateBonus);
   }
 }
 
@@ -9199,9 +9251,13 @@ function updateSpearDartInstance(state, dt) {
 }
 
 function updateSpearDart(dt) {
-  if (!player || player.state === "death" || player.spearTimer <= 0) {
+  const hasPrimary = (player?.spearTimer || 0) > 0;
+  const hasSecondary = (player?.spearTimerSecondary || 0) > 0;
+  const hasBonus = (player?.spearTimerBonus || 0) > 0;
+  if (!player || player.state === "death" || (!hasPrimary && !hasSecondary && !hasBonus)) {
     resetSpearState(spearState);
     resetSpearState(spearStateSecondary);
+    resetSpearState(spearStateBonus);
     return;
   }
   if (!spearState.sprite && assets?.churchPowerups?.spear?.image) {
@@ -9210,8 +9266,11 @@ function updateSpearDart(dt) {
   if (!spearStateSecondary.sprite) {
     spearStateSecondary.sprite = spearState.sprite;
   }
+  if (!spearStateBonus.sprite) {
+    spearStateBonus.sprite = spearState.sprite;
+  }
   updateSpearDartInstance(spearState, dt);
-  if ((player.spearTimerSecondary || 0) > 0) {
+  if (hasSecondary) {
     if (!spearStateSecondary.active && spearStateSecondary.startDelayTimer <= 0) {
       spearStateSecondary.startDelayTimer = 0.1;
       spearStateSecondary.spawnOffset.x = 24 * WORLD_SCALE;
@@ -9227,10 +9286,29 @@ function updateSpearDart(dt) {
   } else {
     resetSpearState(spearStateSecondary);
   }
+  if (hasBonus) {
+    if (!spearStateBonus.active && spearStateBonus.startDelayTimer <= 0) {
+      spearStateBonus.startDelayTimer = 0.12;
+      spearStateBonus.spawnOffset.x = -22 * WORLD_SCALE;
+      spearStateBonus.spawnOffset.y = -18 * WORLD_SCALE;
+      spearStateBonus.useSpawnOffset = true;
+    }
+    if (spearStateBonus.startDelayTimer > 0) {
+      spearStateBonus.startDelayTimer = Math.max(0, spearStateBonus.startDelayTimer - dt);
+    }
+    if (spearStateBonus.startDelayTimer <= 0) {
+      updateSpearDartInstance(spearStateBonus, dt);
+    }
+  } else {
+    resetSpearState(spearStateBonus);
+  }
 }
 
 function updateSentryTurret(dt) {
-  if (!player || player.state === "death" || player.sentryTimer <= 0) {
+  const hasPrimary = (player?.sentryTimer || 0) > 0;
+  const hasSecondary = (player?.sentryTimerSecondary || 0) > 0;
+  const hasBonus = (player?.sentryTimerBonus || 0) > 0;
+  if (!player || player.state === "death" || (!hasPrimary && !hasSecondary && !hasBonus)) {
     if (sentryState.active) {
       const sprite = sentryState.sprite;
       const radius =
@@ -9247,8 +9325,17 @@ function updateSentryTurret(dt) {
           : 24 * WORLD_SCALE;
       spawnPuffEffect(sentryStateSecondary.x, sentryStateSecondary.y, radius * 3);
     }
+    if (sentryStateBonus.active) {
+      const sprite = sentryStateBonus.sprite;
+      const radius =
+        sprite && sprite.width
+          ? Math.max(sprite.width, sprite.height) * (sentryStateBonus.scale || 1) * 0.35
+          : 24 * WORLD_SCALE;
+      spawnPuffEffect(sentryStateBonus.x, sentryStateBonus.y, radius * 3);
+    }
     resetSentryState(sentryState);
     resetSentryState(sentryStateSecondary);
+    resetSentryState(sentryStateBonus);
     return;
   }
   const orbitSpeed = 0.6;
@@ -9260,17 +9347,26 @@ function updateSentryTurret(dt) {
       : 1;
   sentryState.fadeAlpha = fadeAlpha;
   sentryStateSecondary.fadeAlpha = fadeAlpha;
+  sentryStateBonus.fadeAlpha = fadeAlpha;
   if (!sentryState.sprite && assets?.churchPowerups?.sentry?.image) {
     sentryState.sprite = assets.churchPowerups.sentry.image;
   }
   if (!sentryStateSecondary.sprite) {
     sentryStateSecondary.sprite = sentryState.sprite;
   }
+  if (!sentryStateBonus.sprite) {
+    sentryStateBonus.sprite = sentryState.sprite;
+  }
   updateSentryTurretInstance(sentryState, dt);
-  if ((player.sentryTimerSecondary || 0) > 0) {
+  if (hasSecondary) {
     updateSentryTurretInstance(sentryStateSecondary, dt);
   } else {
     resetSentryState(sentryStateSecondary);
+  }
+  if (hasBonus) {
+    updateSentryTurretInstance(sentryStateBonus, dt);
+  } else {
+    resetSentryState(sentryStateBonus);
   }
 }
 

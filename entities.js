@@ -933,6 +933,7 @@
     this.fireShotsMax = 1;
     this.fireCooldownMultiplier = 1;
     this.spreadGunTimer = 0;
+    this.spreadGunBonusTimer = 0;
     this.spreadGunDuration = 0;
     this.spreadGunMaxDuration = 0;
     this.spreadGunExtraTimer = 0;
@@ -943,16 +944,19 @@
     this.haloMaxDuration = 0;
     this.haloLevel = 0;
     this.haloTimerSecondary = 0;
+    this.haloTimerBonus = 0;
     this.spearTimer = 0;
     this.spearDuration = 0;
     this.spearMaxDuration = 0;
     this.spearLevel = 0;
     this.spearTimerSecondary = 0;
+    this.spearTimerBonus = 0;
     this.sentryTimer = 0;
     this.sentryDuration = 0;
     this.sentryMaxDuration = 0;
     this.sentryLevel = 0;
     this.sentryTimerSecondary = 0;
+    this.sentryTimerBonus = 0;
     this.armorTimer = 0;
     this.armorReduction = 0;
     this.weaponPowerTimer = 0;
@@ -1021,7 +1025,14 @@
       this.magicSpeedMultiplier = 1;
     }
     this.spreadGunTimer = Math.max(0, this.spreadGunTimer - dt * timerDrainScale);
+    this.spreadGunBonusTimer = Math.max(0, this.spreadGunBonusTimer - dt * timerDrainScale);
     if (this.spreadGunTimer <= 0) {
+      if (this.spreadGunBonusTimer > 0) {
+        this.spreadGunTimer = this.spreadGunBonusTimer;
+        this.spreadGunBonusTimer = 0;
+      }
+    }
+    if (this.spreadGunTimer <= 0 && this.spreadGunBonusTimer <= 0) {
       this.spreadGunDuration = 0;
       this.spreadGunLevel = 0;
       this.spreadGunAlternate = false;
@@ -1029,24 +1040,60 @@
     this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt);
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
     this.haloTimerSecondary = Math.max(0, this.haloTimerSecondary - dt * timerDrainScale);
-    if (this.haloTimer <= 0) {
+    this.haloTimerBonus = Math.max(0, this.haloTimerBonus - dt * timerDrainScale);
+    if (this.haloTimer <= 0 && this.haloTimerSecondary > 0) {
+      this.haloTimer = this.haloTimerSecondary;
+      this.haloTimerSecondary = 0;
+    }
+    if (this.haloTimerSecondary <= 0 && this.haloTimerBonus > 0) {
+      this.haloTimerSecondary = this.haloTimerBonus;
+      this.haloTimerBonus = 0;
+    }
+    if (this.haloTimer <= 0 && this.haloTimerSecondary > 0) {
+      this.haloTimer = this.haloTimerSecondary;
+      this.haloTimerSecondary = 0;
+    }
+    if (this.haloTimer <= 0 && this.haloTimerSecondary <= 0 && this.haloTimerBonus <= 0) {
       this.haloDuration = 0;
       this.haloLevel = 0;
-      this.haloTimerSecondary = 0;
     }
     this.spearTimer = Math.max(0, this.spearTimer - dt * timerDrainScale);
     this.spearTimerSecondary = Math.max(0, this.spearTimerSecondary - dt * timerDrainScale);
-    if (this.spearTimer <= 0) {
+    this.spearTimerBonus = Math.max(0, this.spearTimerBonus - dt * timerDrainScale);
+    if (this.spearTimer <= 0 && this.spearTimerSecondary > 0) {
+      this.spearTimer = this.spearTimerSecondary;
+      this.spearTimerSecondary = 0;
+    }
+    if (this.spearTimerSecondary <= 0 && this.spearTimerBonus > 0) {
+      this.spearTimerSecondary = this.spearTimerBonus;
+      this.spearTimerBonus = 0;
+    }
+    if (this.spearTimer <= 0 && this.spearTimerSecondary > 0) {
+      this.spearTimer = this.spearTimerSecondary;
+      this.spearTimerSecondary = 0;
+    }
+    if (this.spearTimer <= 0 && this.spearTimerSecondary <= 0 && this.spearTimerBonus <= 0) {
       this.spearDuration = 0;
       this.spearLevel = 0;
-      this.spearTimerSecondary = 0;
     }
     this.sentryTimer = Math.max(0, this.sentryTimer - dt * timerDrainScale);
     this.sentryTimerSecondary = Math.max(0, this.sentryTimerSecondary - dt * timerDrainScale);
-    if (this.sentryTimer <= 0) {
+    this.sentryTimerBonus = Math.max(0, this.sentryTimerBonus - dt * timerDrainScale);
+    if (this.sentryTimer <= 0 && this.sentryTimerSecondary > 0) {
+      this.sentryTimer = this.sentryTimerSecondary;
+      this.sentryTimerSecondary = 0;
+    }
+    if (this.sentryTimerSecondary <= 0 && this.sentryTimerBonus > 0) {
+      this.sentryTimerSecondary = this.sentryTimerBonus;
+      this.sentryTimerBonus = 0;
+    }
+    if (this.sentryTimer <= 0 && this.sentryTimerSecondary > 0) {
+      this.sentryTimer = this.sentryTimerSecondary;
+      this.sentryTimerSecondary = 0;
+    }
+    if (this.sentryTimer <= 0 && this.sentryTimerSecondary <= 0 && this.sentryTimerBonus <= 0) {
       this.sentryDuration = 0;
       this.sentryLevel = 0;
-      this.sentryTimerSecondary = 0;
     }
 
     const decayBase = this.powerExtendTimer > 0 ? 0.5 : 1;
@@ -1745,12 +1792,14 @@
     const level = Math.max(1, Math.min(10, this.spreadGunLevel || 1));
     // streamCount = individual extra shots (1–5). Even counts = symmetric pairs. Odd = pairs + 1 alternating.
     const streamCount = Math.ceil(level / 2);
-    const rateMultiplier = (level / 2) / streamCount; // 0.5 at odd levels, 1.0 at even
+    const bonusStreams = this.spreadGunBonusTimer > 0 ? 2 : 0;
+    const effectiveStreamCount = Math.min(7, streamCount + bonusStreams);
+    const rateMultiplier = Math.max(0.35, (level / 2) / effectiveStreamCount); // keep bonus stream spam bounded
     this.spreadGunExtraTimer = this.getArrowCooldown() / rateMultiplier;
     const spreadStep = 0.15;
     const perp = { x: -direction.y, y: direction.x };
-    const pairs = Math.floor(streamCount / 2);
-    const hasAlternating = (streamCount % 2) === 1;
+    const pairs = Math.floor(effectiveStreamCount / 2);
+    const hasAlternating = (effectiveStreamCount % 2) === 1;
 
     // Symmetric pairs (streams 1+2, 3+4, ...)
     for (let tier = 1; tier <= pairs; tier += 1) {
