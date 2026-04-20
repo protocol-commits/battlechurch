@@ -16229,12 +16229,22 @@ function showSettingsOverlay({ source = "title" } = {}) {
     bodyHtml,
     buttonText: "Back",
     variant: "settings",
-    onRender: ({ bodyEl }) => {
+    onRender: ({ bodyEl, overlay }) => {
       if (!bodyEl) return;
       const setSliderValue = (key, value) => {
         const valueEl = bodyEl.querySelector(`[data-setting-value="${key}"]`);
         if (valueEl) valueEl.textContent = `${Math.round(value * 100)}%`;
       };
+      if (overlay) {
+        let footerHint = overlay.querySelector(".dialog-overlay__footer-hint");
+        if (!footerHint) {
+          footerHint = document.createElement("div");
+          footerHint.className = "dialog-overlay__footer-hint";
+          overlay.appendChild(footerHint);
+        }
+        footerHint.textContent =
+          "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+      }
       const musicToggle = bodyEl.querySelector('[data-setting="musicEnabled"]');
       const musicSlider = bodyEl.querySelector('[data-setting="musicVolume"]');
       const sfxToggle = bodyEl.querySelector('[data-setting="sfxEnabled"]');

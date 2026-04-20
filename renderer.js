@@ -5344,6 +5344,46 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.lineWidth = 3;
     ctx.strokeText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
     ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
+
+    const controlsHint =
+      "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetY = 0;
+    const hintX = layout.virtualCanvas.width / 2;
+    const hintY = layout.virtualCanvas.height - 10;
+    ctx.fillText(controlsHint, hintX, hintY);
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const shimmerCycleSec = 4.8;
+    const shimmerWindowSec = 0.95;
+    const cycleTime = nowSec % shimmerCycleSec;
+    if (cycleTime <= shimmerWindowSec) {
+      const progress = cycleTime / shimmerWindowSec;
+      const intensity = Math.sin(progress * Math.PI);
+      const hintWidth = ctx.measureText(controlsHint).width;
+      const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
+      const sweepGradient = ctx.createLinearGradient(
+        sweepCenterX - 90,
+        0,
+        sweepCenterX + 90,
+        0
+      );
+      sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+      sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
+      sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.save();
+      ctx.fillStyle = sweepGradient;
+      ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
+      ctx.shadowBlur = 6 * intensity;
+      ctx.fillText(controlsHint, hintX, hintY);
+      ctx.restore();
+    }
+    ctx.restore();
     ctx.restore();
 
     ctx.restore();
@@ -6934,6 +6974,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       fireOverlay.draw(ctx);
     }
+    if (titleDemoSaveMenuActive) {
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.74)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
 
     if (typeof window !== "undefined") {
       const uidText = window.cloudUid ? `UID: ${window.cloudUid}` : "UID: --";
@@ -7378,20 +7424,47 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         });
       });
 
-      // Subtle title-screen controls hint for first-time clarity.
-      const controlsHint =
-        "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+    }
+    // Subtle title-screen controls hint (shown for both main title buttons and Play/Load menu).
+    const controlsHint =
+      "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetY = 0;
+    const hintX = layout.virtualCanvas.width / 2;
+    const hintY = layout.virtualCanvas.height - 10;
+    ctx.fillText(controlsHint, hintX, hintY);
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const shimmerCycleSec = 4.8;
+    const shimmerWindowSec = 0.95;
+    const cycleTime = nowSec % shimmerCycleSec;
+    if (cycleTime <= shimmerWindowSec) {
+      const progress = cycleTime / shimmerWindowSec;
+      const intensity = Math.sin(progress * Math.PI);
+      const hintWidth = ctx.measureText(controlsHint).width;
+      const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
+      const sweepGradient = ctx.createLinearGradient(
+        sweepCenterX - 90,
+        0,
+        sweepCenterX + 90,
+        0
+      );
+      sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+      sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
+      sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
       ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = `500 11px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
-      ctx.shadowBlur = 2;
-      ctx.shadowOffsetY = 0;
-      ctx.fillText(controlsHint, layout.virtualCanvas.width / 2, layout.virtualCanvas.height - 10);
+      ctx.fillStyle = sweepGradient;
+      ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
+      ctx.shadowBlur = 6 * intensity;
+      ctx.fillText(controlsHint, hintX, hintY);
       ctx.restore();
     }
+    ctx.restore();
     if (typeof window !== "undefined") {
       window.__titleMenuButtonBounds = bounds;
       window.__announcementButtons = { key: "title", buttons: bounds };
@@ -7877,6 +7950,45 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           blockAlign: "center",
         });
       }
+      const controlsHint =
+        "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetY = 0;
+      const hintX = canvas.width / 2;
+      const hintY = canvas.height - 10;
+      ctx.fillText(controlsHint, hintX, hintY);
+      const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+      const shimmerCycleSec = 4.8;
+      const shimmerWindowSec = 0.95;
+      const cycleTime = nowSec % shimmerCycleSec;
+      if (cycleTime <= shimmerWindowSec) {
+        const progress = cycleTime / shimmerWindowSec;
+        const intensity = Math.sin(progress * Math.PI);
+        const hintWidth = ctx.measureText(controlsHint).width;
+        const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
+        const sweepGradient = ctx.createLinearGradient(
+          sweepCenterX - 90,
+          0,
+          sweepCenterX + 90,
+          0
+        );
+        sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+        sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
+        sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+        ctx.save();
+        ctx.fillStyle = sweepGradient;
+        ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
+        ctx.shadowBlur = 6 * intensity;
+        ctx.fillText(controlsHint, hintX, hintY);
+        ctx.restore();
+      }
+      ctx.restore();
       return;
     }
     if (titleScreenActive) {
@@ -10256,6 +10368,45 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
 
+    ctx.restore();
+    const controlsHint =
+      "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetY = 0;
+    const hintX = vw / 2;
+    const hintY = vh - 10;
+    ctx.fillText(controlsHint, hintX, hintY);
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const shimmerCycleSec = 4.8;
+    const shimmerWindowSec = 0.95;
+    const cycleTime = nowSec % shimmerCycleSec;
+    if (cycleTime <= shimmerWindowSec) {
+      const progress = cycleTime / shimmerWindowSec;
+      const intensity = Math.sin(progress * Math.PI);
+      const hintWidth = ctx.measureText(controlsHint).width;
+      const sweepCenterX = hintX - hintWidth * 0.72 + progress * hintWidth * 1.44;
+      const sweepGradient = ctx.createLinearGradient(
+        sweepCenterX - 90,
+        0,
+        sweepCenterX + 90,
+        0
+      );
+      sweepGradient.addColorStop(0, "rgba(255, 255, 255, 0)");
+      sweepGradient.addColorStop(0.5, `rgba(255, 244, 210, ${0.5 * intensity})`);
+      sweepGradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.save();
+      ctx.fillStyle = sweepGradient;
+      ctx.shadowColor = "rgba(255, 214, 148, 0.6)";
+      ctx.shadowBlur = 6 * intensity;
+      ctx.fillText(controlsHint, hintX, hintY);
+      ctx.restore();
+    }
     ctx.restore();
     ctx.restore();
   }

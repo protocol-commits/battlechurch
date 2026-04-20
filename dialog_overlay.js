@@ -188,9 +188,20 @@
 
   function hide() {
     if (!overlay || !visible) return;
+    const activeElement = document.activeElement;
+    if (activeElement && overlay.contains(activeElement) && typeof activeElement.blur === "function") {
+      activeElement.blur();
+    }
     overlay.classList.remove("visible");
     overlay.classList.add("hidden");
     overlay.setAttribute("aria-hidden", "true");
+    if (document.body && typeof document.body.focus === "function") {
+      try {
+        document.body.focus({ preventScroll: true });
+      } catch (e) {
+        document.body.focus();
+      }
+    }
     visible = false;
     if (variantClass) {
       const classToRemove = variantClass;

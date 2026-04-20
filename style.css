@@ -574,6 +574,11 @@ body.layout-rotate-warning #rotatePrompt {
   font-family: "Orbitron", sans-serif;
   text-align: left;
 }
+.dialog-overlay--settings {
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.74);
+}
 .dialog-overlay--settings .dialog-overlay__title {
   text-align: left;
   font-size: clamp(26px, 3vw, 34px);
@@ -583,6 +588,29 @@ body.layout-rotate-warning #rotatePrompt {
   background: linear-gradient(180deg, #b45a22 0%, #7b3318 100%);
   color: #fdf1d9;
   border: 1px solid rgba(242, 200, 125, 0.5);
+}
+.dialog-overlay__footer-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(94%, 1120px);
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: rgba(231, 176, 102, 0.72);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+  animation: controlsHintPulse 4.8s ease-in-out infinite;
+}
+@keyframes controlsHintPulse {
+  0%, 74%, 100% {
+    opacity: 0.78;
+  }
+  84% {
+    opacity: 1;
+  }
 }
 .settings-panel {
   display: grid;
