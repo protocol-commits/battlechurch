@@ -11070,7 +11070,7 @@ class CozyNpc {
         : 2.4;
     const formation = getFormationBonuses();
     const harmonyMultiplier = npcHarmonyBuffTimer > 0 ? HARMONY_BUFF_MULTIPLIER : 1;
-    const totalMultiplier = harmonyMultiplier * (1 + (formation.rof || 0));
+    const fireRateMultiplier = harmonyMultiplier * (1 + (formation.rof || 0));
 
     // NPC weapon power-up handling
     const weaponMode = npcWeaponState.mode || "arrow";
@@ -11094,7 +11094,7 @@ class CozyNpc {
       baseCooldown = baseCfg.cooldownAfterFire * npcRateScale;
     }
 
-    const cooldown = Math.max(0.02, (baseCooldown * npcCooldownMult) / totalMultiplier);
+    const cooldown = Math.max(0.02, (baseCooldown * npcCooldownMult) / fireRateMultiplier);
 
     let damageBase =
       weaponMode === "arrow"
@@ -11103,12 +11103,12 @@ class CozyNpc {
     let damage =
       damageBase *
       (weaponMode === "arrow" ? 1 : npcDamageMult) *
-      totalMultiplier *
+      harmonyMultiplier *
       (1 + (formation.damage || 0));
     damage = Math.max(1, Math.round(damage));
 
     const baseScale = weaponMode === "arrow" ? 1.6 : (baseCfg?.scale || 2) * 0.5;
-    const scale = baseScale * totalMultiplier;
+    const scale = baseScale * fireRateMultiplier;
     const speedOverride =
       weaponMode === "arrow"
         ? null

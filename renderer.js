@@ -1259,20 +1259,20 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     {
       key: "circle",
       label: "GUIDED COURSE",
-      desc: "Focused teaching and practical insight",
-      stat: "+Damage, Pierces Armor",
+      desc: "",
+      stat: "+Damage",
     },
     {
       key: "line",
       label: "BIBLE STUDY",
-      desc: "Scripture study and shared prayer",
+      desc: "",
       stat: "+Rate of Fire",
     },
     {
       key: "crescent",
       label: "CARE GROUP",
-      desc: "Guided group sharing and mutual support",
-      stat: "+10% Prayer Meter speed",
+      desc: "",
+      stat: "+Prayer Meter",
     },
   ];
   const escapeHtml = (value) =>
@@ -1287,7 +1287,6 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       (opt) =>
         `<button class="formation-option" data-formation="${opt.key}">
           <span class="formation-option__label">${opt.label}</span>
-          <span class="formation-option__desc">${opt.desc}</span>
           <span class="formation-option__stat"><strong>${opt.stat || ""}</strong></span>
         </button>`,
     )
@@ -1657,22 +1656,22 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         {
           key: "circle",
           label: "GUIDED COURSE",
-          desc: "Focused teaching and practical insight",
-          stat: "+Damage, Pierces Armor",
+          desc: "",
+          stat: "+Damage",
           iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
         },
         {
           key: "line",
           label: "BIBLE STUDY",
-          desc: "Scripture study and shared prayer",
+          desc: "",
           stat: "+Rate of Fire",
           iconSrc: "assets/sprites/items/icons/I25_Book.png",
         },
         {
           key: "crescent",
           label: "CARE GROUP",
-          desc: "Guided group sharing and mutual support",
-          stat: "+10% Prayer Meter speed",
+          desc: "",
+          stat: "+Prayer Meter",
           iconSrc: "assets/sprites/items/icons/I41_Candle.png",
         },
       ]
