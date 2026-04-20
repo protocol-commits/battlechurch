@@ -16588,6 +16588,26 @@ function handleTitleScreen() {
           })();
           return;
         }
+        if (button.key === "logoutGoogle") {
+          void (async () => {
+            try {
+              if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+                window.playMenuItemPickSfx(0.55);
+              }
+              setDemoSandboxRunActive(false);
+              titleDemoSaveOverride = null;
+              if (window.Cloud?.signOut) {
+                await window.Cloud.signOut();
+              }
+              await refreshTitleCloudSaveOption();
+            } catch (e) {
+              if (typeof window?.alert === "function") {
+                window.alert(`Logout failed: ${e?.message || "Unknown error"}`);
+              }
+            }
+          })();
+          return;
+        }
         if (String(button.key || "").startsWith("cloudsave:")) {
           void (async () => {
             setDemoSandboxRunActive(false);
@@ -16679,16 +16699,6 @@ function handleTitleScreen() {
             if (typeof window.MapScreen?.renameSaveFile === "function") {
               await window.MapScreen.renameSaveFile(saveId, nextName.trim());
             }
-            await refreshTitleCloudSaveOption();
-          })();
-          return;
-        }
-        if (button.key === "setActiveCloudSave") {
-          void (async () => {
-            const saveId = resolveCloudTargetSaveId();
-            if (!saveId || typeof window.MapScreen?.setActiveSave !== "function") return;
-            await window.MapScreen.setActiveSave(saveId);
-            titleCloudSelectedSaveId = saveId;
             await refreshTitleCloudSaveOption();
           })();
           return;

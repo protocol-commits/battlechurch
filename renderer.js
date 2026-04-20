@@ -7004,16 +7004,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       })));
       const loginLabel =
         typeof window !== "undefined" && window.cloudAuthProvider === "google"
-          ? "Refresh Google Save"
+          ? "Sync Google Saves"
           : "Login with Google";
       buttonConfigs.push({ key: "loginGoogle", label: loginLabel });
       if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
+        buttonConfigs.push({ key: "logoutGoogle", label: "Logout" });
         buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
         buttonConfigs.push({ key: "duplicateCloudSave", label: "Save File As" });
         buttonConfigs.push({ key: "renameCloudSave", label: "Rename" });
-        buttonConfigs.push({ key: "setActiveCloudSave", label: "Set Active" });
         buttonConfigs.push({ key: "deleteCloudSave", label: "Delete Save" });
-        buttonConfigs.push({ key: "resetGoogleSave", label: "Reset Google Save" });
+        buttonConfigs.push({ key: "resetGoogleSave", label: "Reset Highlighted" });
       }
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (assetsLoaded) {
@@ -7069,10 +7069,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const subtitleY = titleY + 20;
       const actionKeys = new Set([
         "loginGoogle",
+        "logoutGoogle",
         "newCloudSave",
         "duplicateCloudSave",
         "renameCloudSave",
-        "setActiveCloudSave",
         "deleteCloudSave",
         "resetGoogleSave",
         "back",
@@ -7138,13 +7138,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const x = Math.round(rowX);
         const y = Math.round(listStartY + rowIndex * (rowH + rowGap));
         const focused = isAnnouncementButtonFocused("title", index);
+        const selected = Boolean(config?.isSelected);
         const meta = describeRow(config);
         ctx.save();
-        ctx.fillStyle = focused ? "rgba(82, 44, 20, 0.88)" : "rgba(14, 12, 16, 0.88)";
-        ctx.strokeStyle = focused ? "rgba(242, 200, 125, 0.95)" : "rgba(242, 200, 125, 0.35)";
-        ctx.lineWidth = focused ? 2.2 : 1.2;
+        ctx.fillStyle = focused
+          ? "rgba(82, 44, 20, 0.88)"
+          : selected
+          ? "rgba(46, 32, 26, 0.88)"
+          : "rgba(14, 12, 16, 0.88)";
+        ctx.strokeStyle = focused
+          ? "rgba(242, 200, 125, 0.95)"
+          : selected
+          ? "rgba(242, 200, 125, 0.62)"
+          : "rgba(242, 200, 125, 0.35)";
+        ctx.lineWidth = focused ? 2.2 : selected ? 1.7 : 1.2;
         roundRect(ctx, x, y, rowW, rowH, 8, true, true);
-        if (focused) {
+        if (focused || selected) {
           ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
           ctx.fillRect(x + 6, y + 8, 3, rowH - 16);
         }
@@ -7155,10 +7164,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
         ctx.font = `600 19px ${UI_FONT_FAMILY}`;
-        const activePrefix = config?.isActive ? "[A] " : "";
-        const selectedPrefix = config?.isSelected && !config?.isActive ? "[S] " : "";
         const focusPrefix = focused ? "> " : "";
-        ctx.fillText(`${focusPrefix}${activePrefix}${selectedPrefix}${config.label}`, x + 16, y + 26);
+        ctx.fillText(`${focusPrefix}${config.label}`, x + 16, y + 26);
         if (meta) {
           ctx.font = `500 13px ${UI_FONT_FAMILY}`;
           ctx.fillStyle = "rgba(231, 176, 102, 0.74)";
