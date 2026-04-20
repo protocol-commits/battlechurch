@@ -5050,7 +5050,26 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       congregationMembers,
     } = requireBindings();
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
-    const fullTitleText = "Welcome Pastor. We're pleased to meet you!";
+    const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+    const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
+    const townData = activeTownId && mapData?.towns
+      ? mapData.towns.find((town) => town.id === activeTownId)
+      : null;
+    const townName = townData?.name || "this town";
+    const firstTownId = mapData?.getFirstTownId?.() || mapData?.towns?.[0]?.id || null;
+    const campaignData =
+      activeTownId && typeof window?.MapScreen?.getTownCampaignData === "function"
+        ? window.MapScreen.getTownCampaignData(activeTownId)
+        : null;
+    const campaign = String(campaignData?.campaign || "p1").toLowerCase();
+    const isFirstPlaythroughForTown = campaign === "p1";
+    const isFirstTown = Boolean(activeTownId && firstTownId && activeTownId === firstTownId);
+    const showTutorialHints = isFirstPlaythroughForTown && isFirstTown;
+    const fullTitleText = showTutorialHints
+      ? "Welcome Pastor. We're pleased to meet you!"
+      : isFirstPlaythroughForTown
+      ? `Welcome to ${townName}. Pleased to meet you.`
+      : `Welcome back to ${townName}.`;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const stage = levelStatus?.stage || "";
     const introKey = `levelIntro-${levelStatus?.level || 1}-${levelStatus?.battle || 0}`;
@@ -5285,7 +5304,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
     ctx.restore();
-    drawInstructionButtons();
+    if (showTutorialHints) {
+      drawInstructionButtons();
+    }
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
     }

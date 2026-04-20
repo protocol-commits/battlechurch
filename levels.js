@@ -776,17 +776,6 @@
       state.pendingGraceRushAfterFinalWave = false;
       state.lastWaveTransitionCueNum = 0;
       state.lastClearedWasBoss = false;
-  // For levels beyond the first, skip the level-intro overlay and start the next battle immediately.
-  if (levelNumber > 1) {
-    state.waitingForCongregation = false;
-    state.npcRushActive = false;
-    state.npcRushTimer = 0;
-    state.timer = 0;
-    resetStage("levelIntro", 0);
-    buildCongregationMembers();
-    beginBattle();
-    return;
-  }
   const skipIntroAnnouncement =
     Boolean(options && options.skipIntroAnnouncement) ||
     Boolean(typeof window !== "undefined" && window.__skipInitialMonthAnnouncement);
