@@ -3452,7 +3452,7 @@ const createHaloBladeState = () => ({
   x: 0,
   y: 0,
   radius: 288 * WORLD_SCALE,
-  speed: 4.2,
+  speed: 5.6,
   damage: 20,
   hitRadius: 22 * WORLD_SCALE,
   hitCooldown: 0.25,
@@ -3464,6 +3464,8 @@ const createHaloBladeState = () => ({
   trailSpacing: 10 * WORLD_SCALE,
   trailLife: 0.4,
   maxTrail: 18,
+  tetherDamageMultiplier: 0.65,
+  tetherHitRadius: 12 * WORLD_SCALE,
 });
 const haloBladeState = createHaloBladeState();
 const haloBladeStateSecondary = createHaloBladeState();
@@ -8325,6 +8327,12 @@ function updateHaloBladeInstance(state, angle, dt) {
   const now =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
   const hitRadius = state.hitRadius;
+  const tetherDamage = Math.max(1, Math.round((state.damage || 0) * (state.tetherDamageMultiplier || 0.65)));
+  const tetherHitRadius = Math.max(0, Number(state.tetherHitRadius) || 0);
+  const tetherStartX = player.x;
+  const tetherStartY = player.y - (player.radius || 24) * 0.18;
+  const tetherEndX = state.x;
+  const tetherEndY = state.y;
 
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
@@ -8332,34 +8340,79 @@ function updateHaloBladeInstance(state, angle, dt) {
     const targetRadius = getEnemyHitboxRadius(enemy);
     const dx = center.x - state.x;
     const dy = center.y - state.y;
-    if (dx * dx + dy * dy > (hitRadius + targetRadius) ** 2) return;
+    const bladeHit = dx * dx + dy * dy <= (hitRadius + targetRadius) ** 2;
+    let tetherHit = false;
+    let tetherImpactX = center.x;
+    let tetherImpactY = center.y;
+    if (!bladeHit && tetherHitRadius > 0) {
+      const closest = closestPointOnSegment(
+        center.x,
+        center.y,
+        tetherStartX,
+        tetherStartY,
+        tetherEndX,
+        tetherEndY,
+      );
+      const cdx = center.x - closest.x;
+      const cdy = center.y - closest.y;
+      tetherHit = cdx * cdx + cdy * cdy <= (targetRadius + tetherHitRadius) ** 2;
+      tetherImpactX = closest.x;
+      tetherImpactY = closest.y;
+    }
+    if (!bladeHit && !tetherHit) return;
     const lastHit = state.lastHit.get(enemy) || 0;
     if (now - lastHit < state.hitCooldown) return;
     state.lastHit.set(enemy, now);
     const enemyDamageClass = String(enemy.damageClass || enemy.config?.damageClass || "").toLowerCase();
-    const haloDamage = (enemyDamageClass === "armored" || enemyDamageClass === "tank")
-      ? state.damage * 2
-      : state.damage;
+    const baseDamage = bladeHit ? state.damage : tetherDamage;
+    const bladeArmorBonus = bladeHit && (enemyDamageClass === "armored" || enemyDamageClass === "tank");
+    const haloDamage = bladeArmorBonus ? baseDamage * 2 : baseDamage;
     enemy.takeDamage(haloDamage, { damageType: "melee" });
     registerComboHit(enemy, haloDamage);
-    spawnFlashEffect(center.x, center.y - targetRadius * 0.3);
+    spawnFlashEffect(
+      bladeHit ? center.x : tetherImpactX,
+      bladeHit ? center.y - targetRadius * 0.3 : tetherImpactY,
+    );
   });
 
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
     const dx = activeBoss.x - state.x;
     const dy = activeBoss.y - state.y;
-    if (dx * dx + dy * dy <= (hitRadius + activeBoss.radius * 0.9) ** 2) {
+    const bossBladeHit = dx * dx + dy * dy <= (hitRadius + activeBoss.radius * 0.9) ** 2;
+    let bossTetherHit = false;
+    let bossImpactX = activeBoss.x;
+    let bossImpactY = activeBoss.y;
+    if (!bossBladeHit && tetherHitRadius > 0) {
+      const closest = closestPointOnSegment(
+        activeBoss.x,
+        activeBoss.y,
+        tetherStartX,
+        tetherStartY,
+        tetherEndX,
+        tetherEndY,
+      );
+      const cdx = activeBoss.x - closest.x;
+      const cdy = activeBoss.y - closest.y;
+      bossTetherHit = cdx * cdx + cdy * cdy <= (activeBoss.radius * 0.9 + tetherHitRadius) ** 2;
+      bossImpactX = closest.x;
+      bossImpactY = closest.y;
+    }
+    if (bossBladeHit || bossTetherHit) {
       const lastHit = state.lastHit.get(activeBoss) || 0;
       if (now - lastHit >= state.hitCooldown) {
         state.lastHit.set(activeBoss, now);
-        activeBoss.takeDamage(state.damage, {
-          hitX: state.x,
-          hitY: state.y,
+        const bossDamage = bossBladeHit ? state.damage : tetherDamage;
+        activeBoss.takeDamage(bossDamage, {
+          hitX: bossBladeHit ? state.x : bossImpactX,
+          hitY: bossBladeHit ? state.y : bossImpactY,
           damageType: "melee",
           skipImpactEffect: true,
         });
-        registerComboHit(activeBoss, state.damage);
-        spawnFlashEffect(state.x, state.y);
+        registerComboHit(activeBoss, bossDamage);
+        spawnFlashEffect(
+          bossBladeHit ? state.x : bossImpactX,
+          bossBladeHit ? state.y : bossImpactY,
+        );
       }
     }
   }
@@ -12043,6 +12096,21 @@ function circleIntersectsRect(cx, cy, radius, rect) {
   const dx = cx - closestX;
   const dy = cy - closestY;
   return dx * dx + dy * dy <= radius * radius;
+}
+
+function closestPointOnSegment(px, py, ax, ay, bx, by) {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const abLenSq = abx * abx + aby * aby;
+  if (abLenSq <= 1e-6) return { x: ax, y: ay, t: 0 };
+  const apx = px - ax;
+  const apy = py - ay;
+  const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / abLenSq));
+  return {
+    x: ax + abx * t,
+    y: ay + aby * t,
+    t,
+  };
 }
 
 class Projectile {

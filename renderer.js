@@ -463,6 +463,59 @@ const MELEE_SWING_LENGTH = 260;
       ctx.stroke();
       ctx.restore();
     }
+    if (player) {
+      const anchorX = player.x;
+      const anchorY = player.y - (player.radius || 24) * 0.18;
+      const dx = haloState.x - anchorX;
+      const dy = haloState.y - anchorY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > 2) {
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const px = -ny;
+        const py = nx;
+        const clearance = 15;
+        const ropeStartX = anchorX + nx * clearance;
+        const ropeStartY = anchorY + ny * clearance;
+        const ropeDist = Math.max(0, dist - clearance);
+        if (ropeDist > 1) {
+          const pulse = 0.65 + 0.35 * Math.sin(((typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001) * 9);
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha *= 0.85 * fadeAlpha;
+          ctx.lineCap = "round";
+          const outerGradient = ctx.createLinearGradient(ropeStartX, ropeStartY, haloState.x, haloState.y);
+          outerGradient.addColorStop(0, "rgba(255, 210, 125, 0.00)");
+          outerGradient.addColorStop(0.18, "rgba(255, 210, 125, 0.45)");
+          outerGradient.addColorStop(1, "rgba(255, 210, 125, 0.72)");
+          const innerAlpha = (0.32 * pulse).toFixed(3);
+          const innerGradient = ctx.createLinearGradient(ropeStartX, ropeStartY, haloState.x, haloState.y);
+          innerGradient.addColorStop(0, "rgba(255, 245, 180, 0.00)");
+          innerGradient.addColorStop(0.18, `rgba(255, 245, 180, ${(0.22 * pulse).toFixed(3)})`);
+          innerGradient.addColorStop(1, `rgba(255, 245, 180, ${innerAlpha})`);
+          ctx.shadowColor = "#FFDFA8";
+          ctx.shadowBlur = 18;
+          ctx.strokeStyle = outerGradient;
+          ctx.lineWidth = 3.2;
+          ctx.beginPath();
+          ctx.moveTo(ropeStartX, ropeStartY);
+          ctx.lineTo(haloState.x, haloState.y);
+          ctx.stroke();
+          ctx.shadowBlur = 28;
+          ctx.strokeStyle = innerGradient;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(ropeStartX + px * 1.1, ropeStartY + py * 1.1);
+          ctx.lineTo(haloState.x + px * 1.1, haloState.y + py * 1.1);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(ropeStartX - px * 1.1, ropeStartY - py * 1.1);
+          ctx.lineTo(haloState.x - px * 1.1, haloState.y - py * 1.1);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
     const size = Math.max(12, sprite.width || 12) * (haloState.scale || 1);
     const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
     const spin = now * 20;
