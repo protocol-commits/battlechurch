@@ -10,9 +10,6 @@
     body: "#E7B066",
     dim: "rgba(231, 176, 102, 0.68)",
   });
-  const IS_LOCAL_HOST =
-    typeof window !== "undefined" &&
-    (window.location?.hostname === "localhost" || window.location?.hostname === "127.0.0.1");
 
   let mapImage = null;
   let mapImageLoaded = false;
@@ -312,11 +309,6 @@ async function loadPlayerProgress() {
     if (state.loading) return;
     state.loading = true;
     try {
-      if (IS_LOCAL_HOST) {
-        state.mapProgress = ensureProgress();
-        state.selectedTownId = state.selectedTownId || pickInitialTown();
-        return;
-      }
       if (window.Cloud?.initCloud) {
         await window.Cloud.initCloud();
       }
@@ -334,7 +326,11 @@ async function loadPlayerProgress() {
         state.selectedTownId = pickInitialTown();
       }
     } catch (e) {
-      // swallow errors for offline/local runs
+      // Offline/local fallback: keep map playable with in-memory fresh progress.
+      state.mapProgress = ensureProgress();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
+      }
     } finally {
       state.loading = false;
       state.lastMapLoad = Date.now();
