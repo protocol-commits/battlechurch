@@ -10057,17 +10057,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
 
     // Dim background
-    ctx.fillStyle = "rgba(0,0,0,0.72)";
+    ctx.fillStyle = "rgba(0,0,0,0.74)";
     ctx.fillRect(0, 0, vw, vh);
 
     // Panel
-    ctx.fillStyle = "rgba(10,18,32,0.97)";
-    ctx.strokeStyle = "rgba(155,217,255,0.28)";
+    ctx.fillStyle = "rgba(16,8,6,0.96)";
+    ctx.strokeStyle = "rgba(242,200,125,0.36)";
     ctx.lineWidth = 2;
     roundRect(ctx, panelX, panelY, panelW, panelH, 18, true, true);
 
     // Title bar divider
-    ctx.strokeStyle = "rgba(155,217,255,0.2)";
+    ctx.strokeStyle = "rgba(242,200,125,0.2)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(panelX + 20, panelY + 56);
@@ -10082,7 +10082,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillText("Playing Instructions", panelX + panelW / 2, panelY + 22);
 
     // Subtitle hint
-    ctx.fillStyle = "rgba(155,217,255,0.55)";
+    ctx.fillStyle = "rgba(231,176,102,0.75)";
     ctx.font = `12px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.fillText("W / S  to scroll   ·   SPACE or ESC to close", panelX + panelW / 2, panelY + 42);
@@ -10146,7 +10146,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     };
 
     if (!lines) {
-      ctx.fillStyle = "#9BD9FF";
+      ctx.fillStyle = "#E7B066";
       ctx.font = `14px ${UI_FONT_FAMILY}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -10192,13 +10192,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.fillStyle = "#FFD978";
           ctx.font = `700 ${SIZES.h1}px ${UI_FONT_FAMILY}`;
         } else if (block.type === "h2") {
-          ctx.fillStyle = "#9BD9FF";
+          ctx.fillStyle = "#E7B066";
           ctx.font = `600 ${SIZES.h2}px ${UI_FONT_FAMILY}`;
         } else if (block.type === "bullet") {
-          ctx.fillStyle = "#EAF6FF";
+          ctx.fillStyle = "#FDF1D9";
           ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
         } else {
-          ctx.fillStyle = "#C8E8FF";
+          ctx.fillStyle = "#EEDAB8";
           ctx.font = `${SIZES.body}px ${UI_FONT_FAMILY}`;
         }
 
@@ -10207,10 +10207,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           const text = block.wrapped[lineIndex];
           if (block.type === "bullet") {
             if (lineIndex === 0) {
-              ctx.fillStyle = "#9BD9FF";
+              ctx.fillStyle = "#E7B066";
               ctx.font = `600 ${SIZES.bullet}px ${UI_FONT_FAMILY}`;
               ctx.fillText("•", contentX, textY);
-              ctx.fillStyle = "#EAF6FF";
+              ctx.fillStyle = "#FDF1D9";
               ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
             }
             ctx.fillText(text, contentX + BULLET_GAP, textY);
@@ -10227,14 +10227,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
       ctx.save();
       if (scrollY > 0) {
-        ctx.fillStyle = "rgba(155,217,255,0.45)";
+        ctx.fillStyle = "rgba(231,176,102,0.58)";
         ctx.font = `11px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.fillText("▲", panelX + panelW - 22, contentY + 2);
       }
       if (scrollY < maxScroll) {
-        ctx.fillStyle = "rgba(155,217,255,0.45)";
+        ctx.fillStyle = "rgba(231,176,102,0.58)";
         ctx.font = `11px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";

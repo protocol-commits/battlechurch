@@ -568,15 +568,21 @@ body.layout-rotate-warning #rotatePrompt {
 
 .dialog-overlay--settings .dialog-overlay__panel {
   width: min(640px, 92%);
-  background: rgba(8, 14, 26, 0.92);
-  border: 1px solid rgba(155, 217, 255, 0.28);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.65);
+  background: rgba(16, 8, 6, 0.92);
+  border: 1px solid rgba(242, 200, 125, 0.35);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7);
   font-family: "Orbitron", sans-serif;
   text-align: left;
 }
 .dialog-overlay--settings .dialog-overlay__title {
   text-align: left;
   font-size: clamp(26px, 3vw, 34px);
+  color: #f2c87d;
+}
+.dialog-overlay--settings .dialog-overlay__button {
+  background: linear-gradient(180deg, #b45a22 0%, #7b3318 100%);
+  color: #fdf1d9;
+  border: 1px solid rgba(242, 200, 125, 0.5);
 }
 .settings-panel {
   display: grid;
@@ -590,8 +596,8 @@ body.layout-rotate-warning #rotatePrompt {
   gap: 16px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(12, 20, 36, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(28, 14, 10, 0.78);
+  border: 1px solid rgba(242, 200, 125, 0.18);
 }
 .settings-row--slider {
   grid-template-columns: 1fr;
@@ -600,7 +606,7 @@ body.layout-rotate-warning #rotatePrompt {
   font-size: 14px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(234, 246, 255, 0.9);
+  color: rgba(242, 210, 146, 0.95);
 }
 .settings-toggle {
   display: inline-flex;
@@ -609,12 +615,12 @@ body.layout-rotate-warning #rotatePrompt {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(253, 241, 217, 0.92);
 }
 .settings-toggle input {
   width: 18px;
   height: 18px;
-  accent-color: #ffc86a;
+  accent-color: #f2c87d;
 }
 .settings-slider {
   display: grid;
@@ -625,13 +631,13 @@ body.layout-rotate-warning #rotatePrompt {
 }
 .settings-slider input[type="range"] {
   width: 100%;
-  accent-color: #9bd9ff;
+  accent-color: #d36a2f;
 }
 .settings-slider__value {
   min-width: 56px;
   text-align: right;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(253, 241, 217, 0.88);
 }
 
 .dev-action-grid {
@@ -657,7 +663,7 @@ body.layout-rotate-warning #rotatePrompt {
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(180, 210, 255, 0.78);
+  color: rgba(231, 176, 102, 0.78);
 }
 
 .dev-shortcuts-grid {
@@ -670,8 +676,8 @@ body.layout-rotate-warning #rotatePrompt {
   min-height: 86px;
   padding: 12px 10px;
   border-radius: 14px;
-  background: rgba(12, 20, 36, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(28, 14, 10, 0.78);
+  border: 1px solid rgba(242, 200, 125, 0.18);
   display: grid;
   align-content: start;
   gap: 6px;
