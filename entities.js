@@ -1800,7 +1800,7 @@
     const perp = { x: -direction.y, y: direction.x };
     const pairs = Math.floor(effectiveStreamCount / 2);
     const hasAlternating = (effectiveStreamCount % 2) === 1;
-    const useLightSpreadVisual = this.getActiveWeaponMode() === "arrow";
+    const useLightSpreadVisual = true;
     const buildSpreadShotOverrides = (dx, dy) => {
       const overrides = { damage, scale, life, source: this };
       if (useLightSpreadVisual) {
