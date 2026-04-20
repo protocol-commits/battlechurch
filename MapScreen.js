@@ -300,9 +300,9 @@
     if (!state.mapProgress.towns || typeof state.mapProgress.towns !== "object") {
       state.mapProgress.towns = {};
     }
-    if (!state.mapProgress.unlockedTownIds.length) {
-      const firstTownId = mapData.getFirstTownId();
-      if (firstTownId) state.mapProgress.unlockedTownIds.push(firstTownId);
+    const firstTownId = mapData.getFirstTownId();
+    if (firstTownId && !state.mapProgress.unlockedTownIds.includes(firstTownId)) {
+      state.mapProgress.unlockedTownIds.push(firstTownId);
     }
     ensureNextTownUnlocked(state.mapProgress, mapData);
     return state.mapProgress;
@@ -359,8 +359,8 @@ async function loadPlayerProgress() {
     return progress.unlockedTownIds.includes(townId);
   }
 
-  function getTownStars(townId) {
-    // Returns number of completed campaigns (0–3), used for glow scaling
+  function getTownCampaignCompletionCount(townId) {
+    // Returns number of completed campaigns (0-3), used for map node glow scaling.
     const progress = ensureProgress();
     const townEntry = progress?.towns?.[townId];
     if (!townEntry) return 0;
@@ -503,7 +503,7 @@ async function loadPlayerProgress() {
     const radius = HIT_RADIUS_BASE * dpr;
     const unlocked = isTownUnlocked(town.id);
     const selected = state.selectedTownId === town.id;
-    const starCount = getTownStars(town.id);
+    const completionCount = getTownCampaignCompletionCount(town.id);
     const bestCount = getTownBestCount(town.id);
     const isCapital = town.type === "capital";
     const nodeRadius = isCapital ? radius * 3.6 : radius;
@@ -517,8 +517,8 @@ async function loadPlayerProgress() {
     const isDemonTown = bestCount == null;
 
     if (bestCount != null) {
-      const glowStars = Math.max(1, Math.min(3, starCount || 1));
-      const glowRadius = (glowStars * 100) * (isCapital ? 1.3 : 1);
+      const glowSteps = Math.max(1, Math.min(3, completionCount || 1));
+      const glowRadius = (glowSteps * 100) * (isCapital ? 1.3 : 1);
       const glow = ctx.createRadialGradient(
         position.x,
         position.y,
@@ -1526,7 +1526,6 @@ async function loadPlayerProgress() {
     if (!progress) return;
 
     const activeCampaign = campaign || "p1";
-    const stars = mapData.calculateStars(congregationCount);
 
     if (!progress.towns[townId]) progress.towns[townId] = {};
     const existingCamp = progress.towns[townId][activeCampaign] || {};
@@ -1534,7 +1533,6 @@ async function loadPlayerProgress() {
 
     const campData = {
       completed: true,
-      stars: Math.max(existingCamp.stars || 0, stars),
       bestCount: currentBest == null || congregationCount > currentBest ? congregationCount : currentBest,
     };
     // Save powerup snapshot for P1 and P2 (P3 doesn't carry forward)
@@ -1656,7 +1654,6 @@ async function loadPlayerProgress() {
       if (!progress.towns[town.id]) progress.towns[town.id] = { p1: null, p2: null, p3: null };
       progress.towns[town.id].p1 = {
         completed: true,
-        stars: mapData.calculateStars(100),
         bestCount: 100,
         churchPowerupLevels: {},
       };

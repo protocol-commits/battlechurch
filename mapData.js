@@ -29,15 +29,6 @@
     { id: "highgate", name: "Highgate", type: "capital", x: 0.7836, y: 0.7102 },
   ];
 
-
-  function calculateStars(congregationCount) {
-    const score = Number(congregationCount) || 0;
-    if (score >= 151) return 3;
-    if (score >= 126) return 2;
-    if (score >= 100) return 1;
-    return 0;
-  }
-
   function getDefaultTownStartCount(townId) {
     void townId;
     return 50;
@@ -70,7 +61,6 @@
   window.BattlechurchMapData = {
     districts,
     towns,
-    calculateStars,
     getDefaultTownStartCount,
     getDistricts,
     getBattlechurchCounties,

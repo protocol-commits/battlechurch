@@ -17,7 +17,6 @@ let auth = null;
 let db = null;
 let user = null;
 let initPromise = null;
-let bestScoreCache = null;
 let authListenerBound = false;
 
 async function ensureUser() {
@@ -74,20 +73,6 @@ async function initCloud() {
   return initPromise;
 }
 
-async function loadBestScore() {
-  await initCloud();
-  if (!user) return null;
-  const snap = await getDoc(doc(db, "players", user.uid));
-  if (!snap.exists()) {
-    bestScoreCache = null;
-    return null;
-  }
-  const raw = snap.data()?.bestScore;
-  const value = Number(raw);
-  bestScoreCache = Number.isFinite(value) ? value : null;
-  return bestScoreCache;
-}
-
 async function loadPlayerDoc() {
   await initCloud();
   if (!user) return null;
@@ -103,19 +88,19 @@ async function savePlayerDoc(data) {
   return true;
 }
 
-async function saveBestScore(score) {
-  const numericScore = Number(score);
-  if (!Number.isFinite(numericScore)) return false;
+async function resetPlayerProgress() {
   await initCloud();
   if (!user) return false;
-  if (bestScoreCache == null) {
-    await loadBestScore();
-  }
-  if (Number.isFinite(bestScoreCache) && numericScore <= bestScoreCache) {
-    return false;
-  }
-  await setDoc(doc(db, "players", user.uid), { bestScore: numericScore }, { merge: true });
-  bestScoreCache = numericScore;
+  const freshMapProgress = {
+    version: 2,
+    towns: {},
+    unlockedTownIds: [],
+  };
+  await setDoc(
+    doc(db, "players", user.uid),
+    { mapProgress: freshMapProgress },
+    { merge: true },
+  );
   return true;
 }
 
@@ -127,21 +112,11 @@ async function signInWithGoogle() {
     const result = await signInWithPopup(auth, provider);
     user = result?.user || auth.currentUser || null;
     updateAuthGlobals(user);
-    bestScoreCache = null;
-    const best = await loadBestScore();
-    if (typeof window !== "undefined") {
-      window.bestScore = Number.isFinite(best) ? best : null;
-    }
     return user;
   } catch (err) {
     await signInAnonymously(auth);
     user = auth.currentUser || null;
     updateAuthGlobals(user);
-    bestScoreCache = null;
-    const best = await loadBestScore();
-    if (typeof window !== "undefined") {
-      window.bestScore = Number.isFinite(best) ? best : null;
-    }
     return user;
   }
 }
@@ -153,20 +128,14 @@ async function signOutCloud() {
   await signInAnonymously(auth);
   user = auth.currentUser || null;
   updateAuthGlobals(user);
-  bestScoreCache = null;
-  const best = await loadBestScore();
-  if (typeof window !== "undefined") {
-    window.bestScore = Number.isFinite(best) ? best : null;
-  }
   return user;
 }
 
 window.Cloud = {
   initCloud,
-  loadBestScore,
-  saveBestScore,
   loadPlayerDoc,
   savePlayerDoc,
+  resetPlayerProgress,
   signInWithGoogle,
   signOut: signOutCloud,
 };

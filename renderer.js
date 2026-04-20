@@ -6877,6 +6877,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       mapReady,
       titleDemoSaveMenuActive,
       titleDemoSaveSlots,
+      titleCloudSaveOption,
     } = requireBindings();
     ctx.save();
     const titleImage = assets?.titleBackground || null;
@@ -6933,8 +6934,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     if (typeof window !== "undefined") {
-      const bestScoreValue = Number.isFinite(window.bestScore) ? window.bestScore : null;
-      const bestText = `Best: ${bestScoreValue == null ? "--" : Math.round(bestScoreValue)}`;
       const uidText = window.cloudUid ? `UID: ${window.cloudUid}` : "UID: --";
       const emailText =
         window.cloudAuthProvider === "google" && window.cloudEmail
@@ -6957,10 +6956,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.font = `600 ${Math.round(18 * debugScale)}px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = "#EAF6FF";
       }
-      ctx.fillText(bestText, canvas.width - 28, lineY + 8);
       ctx.font = `500 ${Math.round(14 * debugScale)}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "rgba(234, 246, 255, 0.8)";
-      ctx.fillText(uidText, canvas.width - 28, lineY + 30);
+      ctx.fillText(uidText, canvas.width - 28, lineY + 8);
       ctx.restore();
     }
 
@@ -6973,10 +6971,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     let buttonConfigs;
     if (titleDemoSaveMenuActive) {
       const slots = Array.isArray(titleDemoSaveSlots) ? titleDemoSaveSlots : [];
-      buttonConfigs = slots.map((slot, index) => ({
+      const cloudButtons = [];
+      if (titleCloudSaveOption?.loading) {
+        cloudButtons.push({ key: "cloudsavePending", label: "Loading Google Save..." });
+      } else if (titleCloudSaveOption?.available) {
+        cloudButtons.push({ key: "cloudsave", label: titleCloudSaveOption.label || "Continue Google Save" });
+      }
+      buttonConfigs = cloudButtons.concat(slots.map((slot, index) => ({
         key: slot?.key || `slot${index + 1}`,
         label: slot?.label || `Slot ${index + 1}`,
-      }));
+      })));
+      const loginLabel =
+        typeof window !== "undefined" && window.cloudAuthProvider === "google"
+          ? "Refresh Google Save"
+          : "Login with Google";
+      buttonConfigs.push({ key: "loginGoogle", label: loginLabel });
+      if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
+        buttonConfigs.push({ key: "resetGoogleSave", label: "Reset Google Save" });
+      }
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (assetsLoaded) {
       buttonConfigs = [
@@ -7331,11 +7343,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     if (typeof window !== "undefined") {
       const lastRunScore = Number.isFinite(window.lastRunScore) ? window.lastRunScore : null;
-      const bestScoreValue = Number.isFinite(window.bestScore) ? window.bestScore : null;
       const scoreTextSize = Math.round(bodySize * 0.85);
       const lineGap = Math.round(scoreTextSize * 1.2);
       const latestText = `Latest Run: ${lastRunScore == null ? "--" : Math.round(lastRunScore)}`;
-      const bestText = `Personal Best: ${bestScoreValue == null ? "--" : Math.round(bestScoreValue)}`;
       const rightX = canvas.width - 28;
       const topY = 22;
       ctx.save();
@@ -7346,8 +7356,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.font = `600 ${scoreTextSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.fillStyle = "#EAF6FF";
       ctx.fillText(latestText, rightX, topY);
-      ctx.fillStyle = "#FFD978";
-      ctx.fillText(bestText, rightX, topY + lineGap);
       ctx.restore();
     }
 

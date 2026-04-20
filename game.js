@@ -153,6 +153,12 @@ const bossHazards = [];
 let titleScreenActive = true;
 let titleDemoSaveMenuActive = false;
 let titleDemoSaveOverride = null;
+let titleCloudSaveOption = {
+  loading: false,
+  available: false,
+  label: "",
+  townId: null,
+};
 const TITLE_DEMO_SAVE_SLOTS = [
   {
     key: "slot1",
@@ -3867,20 +3873,16 @@ let mapActive = false;
 let activeTownId = null;
 let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
 let activeCampaignMultiplier = 1.0; // 1.0 | 1.15 | 1.1
-let bestScoreSaveQueued = false;
 let cloudInitAttempted = false;
 
 function tryBootstrapCloud() {
   if (cloudInitAttempted) return;
-  if (!window.Cloud?.initCloud || !window.Cloud?.loadBestScore) {
+  if (!window.Cloud?.initCloud) {
     setTimeout(tryBootstrapCloud, 250);
     return;
   }
   cloudInitAttempted = true;
   window.Cloud.initCloud().catch(() => {});
-  window.Cloud.loadBestScore().then((value) => {
-    window.bestScore = Number.isFinite(value) ? value : null;
-  }).catch(() => {});
 }
 
 Input.initialize({
@@ -3993,6 +3995,7 @@ Renderer.initialize({
   get titleScreenActive() { return titleScreenActive; },
   get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
   get titleDemoSaveSlots() { return TITLE_DEMO_SAVE_SLOTS; },
+  get titleCloudSaveOption() { return titleCloudSaveOption; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
@@ -6675,6 +6678,57 @@ async function seedDemoSlotProgress(slot) {
   for (const townId of targetIds) {
     // Seed each prior town as completed at 100 congregation for fake save slots.
     await mapScreen.recordTownCompletion(townId, 100, "p1", {});
+  }
+}
+
+async function refreshTitleCloudSaveOption() {
+  titleCloudSaveOption.loading = true;
+  titleCloudSaveOption.available = false;
+  titleCloudSaveOption.label = "Loading Google Save...";
+  titleCloudSaveOption.townId = null;
+  try {
+    if (typeof window === "undefined") return;
+    if (window.cloudAuthProvider !== "google" || !window.Cloud?.loadPlayerDoc) {
+      titleCloudSaveOption.loading = false;
+      titleCloudSaveOption.available = false;
+      titleCloudSaveOption.label = "";
+      return;
+    }
+    const doc = await window.Cloud.loadPlayerDoc();
+    const progress = doc?.mapProgress;
+    const mapData = window.BattlechurchMapData;
+    const unlockedTownIds = Array.isArray(progress?.unlockedTownIds)
+      ? progress.unlockedTownIds.filter(Boolean)
+      : [];
+    if (!mapData?.towns || unlockedTownIds.length === 0) {
+      titleCloudSaveOption.loading = false;
+      titleCloudSaveOption.available = false;
+      titleCloudSaveOption.label = "";
+      return;
+    }
+
+    const townOrder = mapData.towns.map((town) => town.id);
+    const firstIncompleteUnlocked =
+      townOrder.find((townId) => {
+        if (!unlockedTownIds.includes(townId)) return false;
+        return !(progress?.towns?.[townId]?.p1?.completed);
+      }) || null;
+    const lastUnlocked =
+      [...townOrder].reverse().find((townId) => unlockedTownIds.includes(townId)) || null;
+    const suggestedTownId = firstIncompleteUnlocked || lastUnlocked || unlockedTownIds[0];
+    const suggestedTownName =
+      mapData.towns.find((town) => town.id === suggestedTownId)?.name || "Map";
+    const regularP1Completed = mapData.towns.filter((town) =>
+      town.type !== "capital" && progress?.towns?.[town.id]?.p1?.completed
+    ).length;
+    titleCloudSaveOption.loading = false;
+    titleCloudSaveOption.available = true;
+    titleCloudSaveOption.townId = suggestedTownId;
+    titleCloudSaveOption.label = `Continue Google Save (${regularP1Completed}/9) - ${suggestedTownName}`;
+  } catch (e) {
+    titleCloudSaveOption.loading = false;
+    titleCloudSaveOption.available = false;
+    titleCloudSaveOption.label = "";
   }
 }
 
@@ -16388,6 +16442,7 @@ function handleTitleScreen() {
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
+          void refreshTitleCloudSaveOption();
           return;
         }
         if (button.key === "back") {
@@ -16395,6 +16450,64 @@ function handleTitleScreen() {
           if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
             window.playMenuAdvanceSfx(0.55);
           }
+          return;
+        }
+        if (button.key === "loginGoogle") {
+          void (async () => {
+            if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+              window.playMenuItemPickSfx(0.55);
+            }
+            try {
+              if (window.cloudAuthProvider === "google") {
+                await refreshTitleCloudSaveOption();
+              } else if (window.Cloud?.signInWithGoogle) {
+                await window.Cloud.signInWithGoogle();
+                await refreshTitleCloudSaveOption();
+              }
+            } catch (e) {
+              // Keep menu responsive even if Google sign-in popup is blocked/canceled.
+            }
+          })();
+          return;
+        }
+        if (button.key === "cloudsave") {
+          titleDemoSaveOverride = null;
+          const suggestedTownId = titleCloudSaveOption?.townId || null;
+          if (suggestedTownId && typeof window !== "undefined" && window.MapScreen?.selectTown) {
+            window.MapScreen.selectTown(suggestedTownId);
+          }
+          if (suggestedTownId) {
+            activeTownId = suggestedTownId;
+            if (typeof window !== "undefined") {
+              window.activeTownId = activeTownId;
+            }
+          }
+          titleScreenActive = false;
+          mapActive = true;
+          if (window.MapScreen) window.MapScreen.open();
+          titleDemoSaveMenuActive = false;
+          return;
+        }
+        if (button.key === "resetGoogleSave") {
+          void (async () => {
+            const confirmed =
+              typeof window === "undefined" ||
+              typeof window.confirm !== "function" ||
+              window.confirm("Reset Google save data and start fresh? This cannot be undone.");
+            if (!confirmed) return;
+            try {
+              if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+                window.playMenuItemPickSfx(0.55);
+              }
+              if (window.Cloud?.resetPlayerProgress) {
+                await window.Cloud.resetPlayerProgress();
+              }
+              titleDemoSaveOverride = null;
+              await refreshTitleCloudSaveOption();
+            } catch (e) {
+              // Ignore failures so the menu remains usable.
+            }
+          })();
           return;
         }
         if (button.key === "play" || button.key === "map") {
@@ -16735,16 +16848,6 @@ function handleLevelAnnouncements() {
             : getCongregationSize();
           if (typeof window !== "undefined") {
             window.lastRunScore = finalScore;
-            if (Number.isFinite(finalScore)) {
-              const existingBest = Number.isFinite(window.bestScore) ? window.bestScore : null;
-              if (existingBest == null || finalScore > existingBest) {
-                window.bestScore = finalScore;
-              }
-            }
-          }
-          if (!bestScoreSaveQueued && window.Cloud?.saveBestScore) {
-            bestScoreSaveQueued = true;
-            window.Cloud.saveBestScore(finalScore).catch(() => {});
           }
           // Only record town completion on the FINAL level of the town
           if (isFinalTownLevel && window.MapScreen?.recordTownCompletion) {
@@ -21631,7 +21734,6 @@ function restartGame() {
   cancelStartCountdown();
   needsCountdown = false;
   hpFlashTimer = 0;
-  bestScoreSaveQueued = false;
   spawnTimer = 3.6;
   gameOver = false;
   paused = true;
