@@ -102,23 +102,30 @@ async function loadPlayerDoc() {
 async function savePlayerDoc(data) {
   await initCloud();
   if (!user || !data || typeof data !== "object") return false;
-  await setDoc(doc(db, "players", user.uid), data, { merge: true });
+  // Full overwrite is required so removed nested save-file keys are truly deleted.
+  await setDoc(doc(db, "players", user.uid), data);
   return true;
 }
 
 async function resetPlayerProgress() {
   await initCloud();
   if (!user) return false;
-  const freshMapProgress = {
-    version: 2,
-    towns: {},
-    unlockedTownIds: [],
+  const freshMapProgress = { version: 2, towns: {}, unlockedTownIds: [] };
+  const freshDoc = {
+    saveFiles: {
+      save_1: {
+        saveName: "Save 1",
+        playerName: "Pastor",
+        createdAt: Date.now(),
+        lastPlayedAt: Date.now(),
+        playtimeSec: 0,
+        mapProgress: freshMapProgress,
+      },
+    },
+    activeSaveId: "save_1",
+    mapProgress: freshMapProgress,
   };
-  await setDoc(
-    doc(db, "players", user.uid),
-    { mapProgress: freshMapProgress },
-    { merge: true },
-  );
+  await setDoc(doc(db, "players", user.uid), freshDoc);
   return true;
 }
 

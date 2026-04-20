@@ -1804,11 +1804,13 @@ async function loadPlayerProgress() {
     }
     const source = sourceSaveId && state.playerDoc.saveFiles[sourceSaveId]
       ? state.playerDoc.saveFiles[sourceSaveId]
-      : state.playerDoc.saveFiles[state.playerDoc.activeSaveId];
+      : null;
+    // "New Save" should be fresh. Cloning only happens when sourceSaveId is provided ("Save File As").
     const sourceMapProgress = source?.mapProgress ? deepClone(source.mapProgress) : createFreshMapProgress(window.BattlechurchMapData);
+    const fallbackPlayerName = state.playerDoc.saveFiles[state.playerDoc.activeSaveId]?.playerName || "Pastor";
     state.playerDoc.saveFiles[saveId] = {
       saveName: typeof saveName === "string" && saveName.trim() ? saveName.trim() : `Save ${Object.keys(state.playerDoc.saveFiles).length + 1}`,
-      playerName: typeof playerName === "string" && playerName.trim() ? playerName.trim() : (source?.playerName || "Pastor"),
+      playerName: typeof playerName === "string" && playerName.trim() ? playerName.trim() : (source?.playerName || fallbackPlayerName),
       createdAt: Date.now(),
       lastPlayedAt: Date.now(),
       playtimeSec: 0,
@@ -1825,6 +1827,23 @@ async function loadPlayerProgress() {
     syncActiveSaveProgressMirror();
     await persistPlayerDoc();
     return saveId;
+  }
+
+  async function resetSaveFile(saveId) {
+    const target = state.playerDoc?.saveFiles?.[saveId];
+    if (!target) return false;
+    target.mapProgress = createFreshMapProgress(window.BattlechurchMapData);
+    target.lastPlayedAt = Date.now();
+    if (state.playerDoc.activeSaveId === saveId) {
+      state.mapProgress = target.mapProgress;
+      ensureProgress();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
+      }
+    }
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
+    return true;
   }
 
   async function renameSaveFile(saveId, saveName, playerName = null) {
@@ -1987,6 +2006,7 @@ async function loadPlayerProgress() {
     getSaveFileSummaries,
     setActiveSave,
     createSaveFile,
+    resetSaveFile,
     renameSaveFile,
     deleteSaveFile,
     isCountyDone,

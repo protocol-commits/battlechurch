@@ -16435,6 +16435,24 @@ function handleTitleScreen() {
       typeof window !== "undefined" && window.__announcementButtons?.key === "title"
         ? window.__announcementButtons.buttons
         : null;
+    const getFocusedCloudSaveId = () => {
+      const focus =
+        typeof window !== "undefined" && window.__announcementFocus?.key === "title"
+          ? window.__announcementFocus
+          : null;
+      if (!focus || !Array.isArray(buttons)) return null;
+      const focusedButton = buttons[focus.index] || null;
+      const key = String(focusedButton?.key || "");
+      if (!key.startsWith("cloudsave:")) return null;
+      const saveId = key.slice("cloudsave:".length);
+      return saveId || null;
+    };
+    const resolveCloudTargetSaveId = () =>
+      getFocusedCloudSaveId() ||
+      titleCloudSelectedSaveId ||
+      titleCloudActiveSaveId ||
+      titleCloudSaveRows[0]?.id ||
+      null;
     const handled = handleAnnouncementButtons({
       key: "title",
       buttons,
@@ -16604,7 +16622,7 @@ function handleTitleScreen() {
         }
         if (button.key === "duplicateCloudSave") {
           void (async () => {
-            const sourceId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            const sourceId = resolveCloudTargetSaveId();
             if (!sourceId) return;
             const source = titleCloudSaveRows.find((row) => row.id === sourceId);
             const defaultName = source ? `${source.label.split(" (")[0]} Copy` : "Save Copy";
@@ -16626,7 +16644,7 @@ function handleTitleScreen() {
         }
         if (button.key === "renameCloudSave") {
           void (async () => {
-            const saveId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            const saveId = resolveCloudTargetSaveId();
             if (!saveId) return;
             const current = titleCloudSaveRows.find((row) => row.id === saveId);
             const currentName = current?.label?.split(" (")[0] || "Save";
@@ -16643,45 +16661,69 @@ function handleTitleScreen() {
         }
         if (button.key === "setActiveCloudSave") {
           void (async () => {
-            const saveId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            const saveId = resolveCloudTargetSaveId();
             if (!saveId || typeof window.MapScreen?.setActiveSave !== "function") return;
             await window.MapScreen.setActiveSave(saveId);
+            titleCloudSelectedSaveId = saveId;
             await refreshTitleCloudSaveOption();
           })();
           return;
         }
         if (button.key === "deleteCloudSave") {
           void (async () => {
-            const saveId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            const saveId = resolveCloudTargetSaveId();
             if (!saveId || typeof window.MapScreen?.deleteSaveFile !== "function") return;
             const confirmed =
               typeof window === "undefined" ||
               typeof window.confirm !== "function" ||
               window.confirm("Delete selected save file? This cannot be undone.");
             if (!confirmed) return;
-            await window.MapScreen.deleteSaveFile(saveId);
+            try {
+              const deleted = await window.MapScreen.deleteSaveFile(saveId);
+              if (!deleted && typeof window?.alert === "function") {
+                window.alert("Could not delete save. You must keep at least one save file.");
+              }
+            } catch (e) {
+              if (typeof window?.alert === "function") {
+                window.alert(`Delete failed: ${e?.message || "Unknown error"}`);
+              }
+            }
             await refreshTitleCloudSaveOption();
           })();
           return;
         }
         if (button.key === "resetGoogleSave") {
           void (async () => {
+            const saveId = resolveCloudTargetSaveId();
+            if (!saveId) return;
             const confirmed =
               typeof window === "undefined" ||
               typeof window.confirm !== "function" ||
-              window.confirm("Reset Google save data and start fresh? This cannot be undone.");
+              window.confirm("Reset highlighted save file progress to a fresh start? This cannot be undone.");
             if (!confirmed) return;
             try {
               if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
                 window.playMenuItemPickSfx(0.55);
               }
-              if (window.Cloud?.resetPlayerProgress) {
-                await window.Cloud.resetPlayerProgress();
+              if (typeof window.MapScreen?.resetSaveFile === "function") {
+                const ok = await window.MapScreen.resetSaveFile(saveId);
+                if (!ok && typeof window?.alert === "function") {
+                  window.alert("Reset failed. Please try again.");
+                }
+              } else if (window.Cloud?.resetPlayerProgress) {
+                // Legacy fallback only if per-save reset is unavailable.
+                const ok = await window.Cloud.resetPlayerProgress();
+                if (!ok && typeof window?.alert === "function") {
+                  window.alert("Reset failed. Please try again.");
+                }
               }
+              titleCloudSelectedSaveId = saveId;
               titleDemoSaveOverride = null;
               await refreshTitleCloudSaveOption();
             } catch (e) {
-              // Ignore failures so the menu remains usable.
+              if (typeof window?.alert === "function") {
+                window.alert(`Reset failed: ${e?.message || "Unknown error"}`);
+              }
             }
           })();
           return;
