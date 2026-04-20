@@ -6983,7 +6983,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "continue", label: "Continue" },
         { key: "play", label: "Play" },
         { key: "settings", label: "Settings" },
-        { key: "developer", label: "Developer" },
         { key: "howtoplay", label: "How to Play" },
       ];
     } else if (mapReady) {
@@ -6991,7 +6990,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "map", label: "Map" },
         { key: "settings", label: "Settings" },
-        { key: "developer", label: "Developer" },
         { key: "howtoplay", label: "How to Play" },
       ];
     } else {
@@ -6999,7 +6997,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "play", label: "Loading..." },
         { key: "settings", label: "Settings" },
-        { key: "developer", label: "Developer" },
         { key: "howtoplay", label: "How to Play" },
       ];
     }
@@ -7022,69 +7019,124 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
-    // Title screen shows only background art and buttons.
-    const buttonWidth = Math.min(240, Math.floor(layout.virtualCanvas.width / buttonConfigs.length) - 24);
-    const buttonHeight = 64;
-    const buttonGap = 28;
-    const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
-    const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
-    const buttonY = Math.round(layout.buttonY || 0);
     const bounds = [];
     const { loadingProgress } = requireBindings();
     const progress = Math.max(0, Math.min(100, loadingProgress || 0));
-    buttonConfigs.forEach((config, index) => {
-      const x = startX + index * (buttonWidth + buttonGap);
-      // Show loading progress on play button (fully loading) or map button (gameplay loading)
-      const isLoading =
-        !titleDemoSaveMenuActive &&
-        ((config.key === "play" && !assetsLoaded) ||
-          (config.key === "map" && mapReady && !assetsLoaded));
-      ctx.save();
-      if (isLoading) {
-        // Loading button as progress meter: dark background with fill
-        ctx.fillStyle = EMBER_BUTTON_PALETTE.loadingBase;
-        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
-        ctx.lineWidth = 2;
-        roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
-        // Progress fill (clipped to button shape)
-        const fillWidth = buttonWidth * (progress / 100);
-        if (fillWidth > 0) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(x, buttonY, buttonWidth, buttonHeight, 16);
-          ctx.clip();
-          ctx.fillStyle = EMBER_BUTTON_PALETTE.loadingFill;
-          ctx.fillRect(x, buttonY, fillWidth, buttonHeight);
-          ctx.restore();
-        }
-      } else {
-        // Normal button
-        ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
-        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
-        ctx.lineWidth = 2;
-        roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
-      }
-      if (isAnnouncementButtonFocused("title", index)) {
-        drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
-        drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
-      }
+    if (titleDemoSaveMenuActive) {
+      const panelW = Math.round(Math.min(620, layout.virtualCanvas.width * 0.58));
+      const panelH = Math.round(Math.min(500, layout.virtualCanvas.height * 0.66));
+      const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
+      const panelY = Math.round(layout.virtualCanvas.height / 2 - panelH / 2);
+      const buttonWidth = panelW - 72;
+      const buttonHeight = 56;
+      const buttonGap = 12;
+      const titleY = panelY + 56;
+      const listStartY = titleY + 36;
+
+      ctx.fillStyle = "rgba(16, 8, 6, 0.84)";
+      ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+      ctx.lineWidth = 2;
+      roundRect(ctx, panelX, panelY, panelW, panelH, 20, true, true);
+
       ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
       ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
-      ctx.shadowBlur = 6;
+      ctx.shadowBlur = 8;
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `600 ${titleDemoSaveMenuActive ? 20 : 22}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
-      ctx.restore();
-      bounds.push({
-        key: config.key,
-        x: layout.offsetX + x * layout.scale,
-        y: layout.offsetY + buttonY * layout.scale,
-        width: buttonWidth * layout.scale,
-        height: buttonHeight * layout.scale,
+      ctx.font = `700 30px ${UI_FONT_FAMILY}`;
+      ctx.fillText("Select Save Slot", panelX + panelW / 2, titleY);
+
+      buttonConfigs.forEach((config, index) => {
+        const x = Math.round(panelX + (panelW - buttonWidth) / 2);
+        const y = Math.round(listStartY + index * (buttonHeight + buttonGap));
+        ctx.save();
+        ctx.fillStyle = getEmberButtonGradient(ctx, y, buttonHeight);
+        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+        ctx.lineWidth = 2;
+        roundRect(ctx, x, y, buttonWidth, buttonHeight, 14, true, true);
+        if (isAnnouncementButtonFocused("title", index)) {
+          drawFocusRing(ctx, x - 3, y - 3, buttonWidth + 6, buttonHeight + 6, 16);
+          drawButtonReflection(ctx, x, y, buttonWidth, buttonHeight, 14, 0.45);
+        }
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 1;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `600 21px ${UI_FONT_FAMILY}`;
+        ctx.fillText(config.label, x + buttonWidth / 2, y + 38);
+        ctx.restore();
+        bounds.push({
+          key: config.key,
+          x: layout.offsetX + x * layout.scale,
+          y: layout.offsetY + y * layout.scale,
+          width: buttonWidth * layout.scale,
+          height: buttonHeight * layout.scale,
+        });
       });
-    });
+    } else {
+      // Title screen shows only background art and buttons.
+      const buttonWidth = Math.min(240, Math.floor(layout.virtualCanvas.width / buttonConfigs.length) - 24);
+      const buttonHeight = 64;
+      const buttonGap = 28;
+      const rowWidth = buttonWidth * buttonConfigs.length + buttonGap * (buttonConfigs.length - 1);
+      const startX = Math.round(layout.virtualCanvas.width / 2 - rowWidth / 2);
+      const buttonY = Math.round(layout.buttonY || 0);
+      buttonConfigs.forEach((config, index) => {
+        const x = startX + index * (buttonWidth + buttonGap);
+        // Show loading progress on play button (fully loading) or map button (gameplay loading)
+        const isLoading =
+          (config.key === "play" && !assetsLoaded) ||
+          (config.key === "map" && mapReady && !assetsLoaded);
+        ctx.save();
+        if (isLoading) {
+          // Loading button as progress meter: dark background with fill
+          ctx.fillStyle = EMBER_BUTTON_PALETTE.loadingBase;
+          ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+          ctx.lineWidth = 2;
+          roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+          // Progress fill (clipped to button shape)
+          const fillWidth = buttonWidth * (progress / 100);
+          if (fillWidth > 0) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(x, buttonY, buttonWidth, buttonHeight, 16);
+            ctx.clip();
+            ctx.fillStyle = EMBER_BUTTON_PALETTE.loadingFill;
+            ctx.fillRect(x, buttonY, fillWidth, buttonHeight);
+            ctx.restore();
+          }
+        } else {
+          // Normal button
+          ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+          ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+          ctx.lineWidth = 2;
+          roundRect(ctx, x, buttonY, buttonWidth, buttonHeight, 16, true, true);
+        }
+        if (isAnnouncementButtonFocused("title", index)) {
+          drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
+          drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 16, 0.45);
+        }
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 1;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+        ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
+        ctx.restore();
+        bounds.push({
+          key: config.key,
+          x: layout.offsetX + x * layout.scale,
+          y: layout.offsetY + buttonY * layout.scale,
+          width: buttonWidth * layout.scale,
+          height: buttonHeight * layout.scale,
+        });
+      });
+    }
     if (typeof window !== "undefined") {
       window.__titleMenuButtonBounds = bounds;
       window.__announcementButtons = { key: "title", buttons: bounds };
