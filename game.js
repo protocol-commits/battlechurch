@@ -21547,11 +21547,28 @@ function updateGame(dt) {
     if (!musicState.introStarted && !musicState.introStopped) {
       startIntroMusic();
     }
-    // Dev shortcut: Shift+7 — unlock all towns in memory so County 2/3/4 towns are accessible
+    // Map-screen dev shortcuts
     if (keysJustPressed.size) {
       const _mapModifiers = typeof Input !== "undefined" ? Input.modifiers : null;
       const _mapPressed = typeof Input !== "undefined" ? Input.keysPressed : null;
       const _mapShift = Boolean(_mapModifiers?.shift || _mapPressed?.has?.("Shift"));
+      if (_mapShift && keysJustPressed.has("t")) {
+        if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextTown === "function") {
+          void (async () => {
+            const result = await window.MapScreen.devAwardNextTown({
+              congregationCount: 100,
+              campaign: "p1",
+              churchPowerupLevels: {},
+            });
+            if (result?.awardedTownName) {
+              setDevStatus(`Awarded town: ${result.awardedTownName}`, 2.3);
+            } else {
+              setDevStatus("No eligible town to award", 2.0);
+            }
+          })();
+        }
+        keysJustPressed.delete("t");
+      }
       if (_mapShift && keysJustPressed.has("7")) {
         if (typeof window !== "undefined" && typeof window.MapScreen?.devUnlockAllTowns === "function") {
           const ok = window.MapScreen.devUnlockAllTowns();
