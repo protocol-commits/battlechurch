@@ -1251,13 +1251,23 @@
     state.denomUpgrade = null;
   }
 
+  function resetDenomSelections() {
+    const du = state.denomUpgrade;
+    if (!du || !du.active) return;
+    if (du.selectedKeys.length > 0) {
+      du.selectedKeys = [];
+    }
+    du.focusedIndex = 0;
+  }
+
   function handleDenomUpgradeInput(input, keysJustPressed) {
     const du = state.denomUpgrade;
     if (!du) return;
     const defs = (typeof window !== "undefined" && window.BattlechurchPowerupDefinitions?.churchPowerupDefs) || {};
     const powerupKeys = Object.keys(defs).filter(function(k) { return !defs[k].disabled; });
     const confirmIndex = powerupKeys.length;
-    const totalSlots = powerupKeys.length + 1; // cards + confirm
+    const resetIndex = powerupKeys.length + 1;
+    const totalSlots = powerupKeys.length + 2; // cards + confirm + reset
 
     const direction = getNavigationDirection(input, keysJustPressed);
     if (direction === "left" || direction === "up") {
@@ -1276,6 +1286,9 @@
     if (confirmPressed) {
       if (du.focusedIndex === confirmIndex) {
         confirmDenomUpgrade();
+      } else if (du.focusedIndex === resetIndex) {
+        resetDenomSelections();
+        if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
       } else {
         const key = powerupKeys[du.focusedIndex];
         if (key) {
@@ -1284,6 +1297,9 @@
             du.selectedKeys.splice(idx, 1);
           } else if (du.selectedKeys.length < du.maxPicks) {
             du.selectedKeys.push(key);
+            if (du.selectedKeys.length >= du.maxPicks) {
+              du.focusedIndex = confirmIndex;
+            }
           }
           if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
         }
@@ -1368,6 +1384,11 @@
             if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
             confirmDenomUpgrade();
           }
+        } else if (hit.key === "reset") {
+          if (hit.enabled !== false) {
+            resetDenomSelections();
+            if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
+          }
         } else {
           const du = state.denomUpgrade;
           const idx = du.selectedKeys.indexOf(hit.key);
@@ -1375,6 +1396,11 @@
             du.selectedKeys.splice(idx, 1);
           } else if (du.selectedKeys.length < du.maxPicks) {
             du.selectedKeys.push(hit.key);
+            if (du.selectedKeys.length >= du.maxPicks) {
+              const defs = (typeof window !== "undefined" && window.BattlechurchPowerupDefinitions?.churchPowerupDefs) || {};
+              const powerupKeys = Object.keys(defs).filter(function(k) { return !defs[k].disabled; });
+              du.focusedIndex = powerupKeys.length;
+            }
           }
           if (typeof window.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.55);
         }

@@ -9932,24 +9932,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     // Dim the map behind the overlay
     ctx.save();
-    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
 
     const confirmEnabled = selectedKeys.length >= maxPicks;
-    const picksLeft = maxPicks - selectedKeys.length;
+    const picksLeft = Math.max(0, maxPicks - selectedKeys.length);
     const title = "Denominational Upgrade";
-    const subtitle = picksLeft > 0
-      ? `The denomination sees your work. Choose ${picksLeft} more ${picksLeft === 1 ? "upgrade" : "upgrades"}.`
-      : "Your upgrades are ready. Confirm to begin.";
-
     const buttonHeight = 200;
     const buttonCount = stats.length;
 
     ctx.save();
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title,
-      subtitle,
+      subtitle: "",
       titleSize: TEXT_STYLES.h1.size,
       subtitleSize: TEXT_STYLES.h2.size,
       lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
@@ -9965,7 +9961,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
 
-    // Title + subtitle (no typewriter — this is a selection screen, not an announcement)
+    // Title only (instruction is now on the action button)
     const vw = layout.virtualCanvas.width;
     ctx.save();
     ctx.textAlign = "center";
@@ -9975,11 +9971,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = "#F3E2C4";
     ctx.font = `${TEXT_STYLES.h1.weight} ${TEXT_STYLES.h1.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.fillText(title, vw / 2, layout.titleY);
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = "rgba(235, 215, 170, 0.85)";
-    ctx.font = `${TEXT_STYLES.h2.weight} ${TEXT_STYLES.h2.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-    const subtitleY = layout.titleY + Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
-    ctx.fillText(subtitle, vw / 2, subtitleY);
     ctx.restore();
 
     const { powerupIconStyles } = requireBindings();
@@ -10135,11 +10126,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       });
     });
 
-    // Confirm button (centered, single button)
+    // Confirm + Reset buttons
     const confirmY = buttonY + buttonHeight + 30;
     const confirmHeight = 56;
-    const confirmWidth = Math.min(340, totalAvailable * 0.5);
-    const confirmX = Math.round((vw - confirmWidth) / 2);
+    const actionGap = 18;
+    const confirmWidth = Math.min(340, totalAvailable * 0.46);
+    const resetWidth = Math.min(220, totalAvailable * 0.32);
+    const actionsRowWidth = confirmWidth + actionGap + resetWidth;
+    const actionsStartX = Math.round((vw - actionsRowWidth) / 2);
+    const confirmX = actionsStartX;
+    const resetX = confirmX + confirmWidth + actionGap;
+    const resetEnabled = selectedKeys.length > 0;
+    const confirmLabel = confirmEnabled
+      ? "Start Battle"
+      : `Select ${picksLeft} ${picksLeft === 1 ? "Upgrade" : "Upgrades"}`;
 
     ctx.save();
     ctx.fillStyle = confirmEnabled
@@ -10160,7 +10160,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.font = `600 22px ${uiFontFamily}`;
-    ctx.fillText("Confirm", confirmX + confirmWidth / 2, confirmY + confirmHeight / 2);
+    ctx.fillText(confirmLabel, confirmX + confirmWidth / 2, confirmY + confirmHeight / 2);
     ctx.restore();
 
     bounds.push({
@@ -10170,6 +10170,34 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       width: confirmWidth * layout.scale,
       height: confirmHeight * layout.scale,
       enabled: confirmEnabled,
+    });
+
+    ctx.save();
+    ctx.fillStyle = resetEnabled
+      ? "rgba(42, 34, 26, 0.92)"
+      : EMBER_BUTTON_PALETTE.disabledFill;
+    ctx.strokeStyle = resetEnabled
+      ? "rgba(210, 170, 105, 0.7)"
+      : EMBER_BUTTON_PALETTE.disabledBorder;
+    ctx.lineWidth = 2;
+    roundRect(ctx, resetX, confirmY, resetWidth, confirmHeight, 18, true, true);
+    if (isAnnouncementButtonFocused("denomUpgradeScreen", buttonCount + 1)) {
+      drawFocusRing(ctx, resetX - 3, confirmY - 3, resetWidth + 6, confirmHeight + 6, 20);
+    }
+    ctx.fillStyle = resetEnabled ? EMBER_BUTTON_PALETTE.text : EMBER_BUTTON_PALETTE.textDisabled;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `600 20px ${uiFontFamily}`;
+    ctx.fillText("Reset Picks", resetX + resetWidth / 2, confirmY + confirmHeight / 2);
+    ctx.restore();
+
+    bounds.push({
+      key: "reset",
+      x: layout.offsetX + resetX * layout.scale,
+      y: layout.offsetY + confirmY * layout.scale,
+      width: resetWidth * layout.scale,
+      height: confirmHeight * layout.scale,
+      enabled: resetEnabled,
     });
 
     if (typeof window !== "undefined") {
