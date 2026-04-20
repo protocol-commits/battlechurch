@@ -5065,6 +5065,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const isFirstPlaythroughForTown = campaign === "p1";
     const isFirstTown = Boolean(activeTownId && firstTownId && activeTownId === firstTownId);
     const showTutorialHints = isFirstPlaythroughForTown && isFirstTown;
+    if (typeof window !== "undefined") {
+      window.__congregationShowTutorialHints = showTutorialHints;
+    }
     const fullTitleText = showTutorialHints
       ? "Welcome Pastor. We're pleased to meet you!"
       : isFirstPlaythroughForTown
