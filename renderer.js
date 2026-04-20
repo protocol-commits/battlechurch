@@ -1260,7 +1260,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       key: "circle",
       label: "GUIDED COURSE",
       desc: "Focused teaching and practical insight",
-      stat: "+Damage",
+      stat: "+Damage, Pierces Armor",
     },
     {
       key: "line",
@@ -1658,7 +1658,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           key: "circle",
           label: "GUIDED COURSE",
           desc: "Focused teaching and practical insight",
-          stat: "+Damage",
+          stat: "+Damage, Pierces Armor",
           iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
         },
         {

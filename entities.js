@@ -3345,9 +3345,16 @@
       }
       const damageType = options?.damageType || null;
       const damageClass = (this.config?.damageClass || "normal").toLowerCase();
+      const ignoreProjectileResistance = Boolean(
+        options?.ignoreProjectileResistance &&
+        damageType === "projectile" &&
+        (damageClass === "tank" || damageClass === "armored")
+      );
       let multiplier = 1;
       if (damageType) {
-        if (damageClass === "tank") {
+        if (ignoreProjectileResistance) {
+          multiplier = 1;
+        } else if (damageClass === "tank") {
           multiplier =
             damageType === "projectile" ? 0.9 : damageType === "melee" ? 1.25 : 1.0;
         } else if (damageClass === "armored") {
@@ -3469,7 +3476,7 @@
           Number.isFinite(Number(options?.hurtDuration)) &&
           Number(options.hurtDuration) > 0;
         const suppressProjectileStun =
-          damageType === "projectile" && damageClass === "armored";
+          damageType === "projectile" && damageClass === "armored" && !ignoreProjectileResistance;
         const suppressRepeatedLightStun =
           repeatedLightPressure && damageClass === "armored";
         if (!chargeProtected && !suppressProjectileStun && !suppressRepeatedLightStun) {

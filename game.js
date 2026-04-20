@@ -1962,7 +1962,14 @@ const devTools = {
 
 function clearFormationSelection() {
   formationState.current = null;
-  formationState.bonuses = { rof: 0, damage: 0, powerupDuration: 0, prayerChargeGain: 0 };
+  formationState.bonuses = {
+    rof: 0,
+    damage: 0,
+    powerupDuration: 0,
+    prayerChargeGain: 0,
+    armorPierce: false,
+    projectileType: null,
+  };
   formationState.homePressure = 0;
   formationState.combatSpreadScaleCurrent = formationState.combatSpreadScale || 1.18;
 }
@@ -1978,7 +1985,14 @@ function selectFormation(key) {
 }
 
 function getFormationBonuses() {
-  return formationState?.bonuses || { rof: 0, damage: 0, powerupDuration: 0, prayerChargeGain: 0 };
+  return formationState?.bonuses || {
+    rof: 0,
+    damage: 0,
+    powerupDuration: 0,
+    prayerChargeGain: 0,
+    armorPierce: false,
+    projectileType: null,
+  };
 }
 
 function resolveNpcWeaponPowerup(effect, def = {}) {
@@ -4936,7 +4950,12 @@ let devPowerupSwapIndex = 0;
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 // NPC buff presets and state. The legacy keys still drive anchor/layout behavior.
 const FORMATION_PRESETS = {
-  circle: { key: "circle", label: "Guided Study", spokenLabel: "Guided Study", bonuses: { damage: 0.2 } },
+  circle: {
+    key: "circle",
+    label: "Guided Study",
+    spokenLabel: "Guided Study",
+    bonuses: { damage: 0.2, armorPierce: true, projectileType: "lichBolt" },
+  },
   line: { key: "line", label: "Bible Study", spokenLabel: "Bible Study", bonuses: { rof: 0.2 } },
   crescent: { key: "crescent", label: "Shared Burdens", spokenLabel: "Care Group", bonuses: { prayerChargeGain: 0.1 } },
 };
@@ -4950,7 +4969,14 @@ const npcWeaponState = {
 };
 const formationState = {
   current: null,
-  bonuses: { rof: 0, damage: 0, powerupDuration: 0, prayerChargeGain: 0 },
+  bonuses: {
+    rof: 0,
+    damage: 0,
+    powerupDuration: 0,
+    prayerChargeGain: 0,
+    armorPierce: false,
+    projectileType: null,
+  },
   anchors: [],
   jitterRadius: 28,
   swappedThisBattle: new Set(),
@@ -11048,6 +11074,12 @@ class CozyNpc {
 
     // NPC weapon power-up handling
     const weaponMode = npcWeaponState.mode || "arrow";
+    const guidedStudyArrowShot =
+      weaponMode === "arrow" &&
+      formation.armorPierce === true &&
+      typeof formation.projectileType === "string" &&
+      formation.projectileType.length > 0;
+    const shotType = guidedStudyArrowShot ? formation.projectileType : weaponMode;
     const npcDamageMult = npcWeaponState.damageMultiplier || 1;
     const npcCooldownMult = npcWeaponState.cooldownMultiplier || 1;
     const npcSpeedMult = npcWeaponState.speedMultiplier || 1;
@@ -11093,7 +11125,11 @@ class CozyNpc {
     if (speedOverride && speedOverride > 0) {
       shotOverrides.speed = speedOverride;
     }
-    spawnProjectile(weaponMode, this.x, this.y, dir.x, dir.y, shotOverrides);
+    if (guidedStudyArrowShot) {
+      shotOverrides.ignoreArmorDeflect = true;
+      shotOverrides.ignoreProjectileResistance = true;
+    }
+    spawnProjectile(shotType, this.x, this.y, dir.x, dir.y, shotOverrides);
     if (weaponMode === "arrow" && typeof playDefaultArrowSfx === "function") {
       playDefaultArrowSfx(0.55);
     }
@@ -11793,6 +11829,7 @@ function isArmoredProjectileDeflectTarget(target, projectile, damageType) {
   if (!target || !projectile) return false;
   if (damageType !== "projectile") return false;
   if (!projectile.friendly) return false;
+  if (projectile.ignoreArmorDeflect) return false;
   const damageClass = String(target.damageClass || target.config?.damageClass || "").toLowerCase();
   if (damageClass !== "armored") return false;
   return ARMORED_PROJECTILE_DEFLECT_TYPES.has(projectile.type);
@@ -18213,6 +18250,7 @@ function processProjectileCollisions(dt) {
         enemy.takeDamage(counterHit.damage, {
           damageType,
           damageText: counterHit.damageText,
+          ignoreProjectileResistance: projectile.ignoreProjectileResistance === true,
         });
         if (projectile.source?.isPlayer) {
           registerProjectileComboHit(enemy, counterHit.damage, projectile);
@@ -18289,6 +18327,7 @@ function processProjectileCollisions(dt) {
               damageType,
               skipImpactEffect: true,
               damageText: counterHit.damageText,
+              ignoreProjectileResistance: projectile.ignoreProjectileResistance === true,
             });
             if (projectile.source?.isPlayer) {
               registerProjectileComboHit(activeBoss, counterHit.damage, projectile);
