@@ -7019,7 +7019,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (assetsLoaded) {
       buttonConfigs = [
-        { key: "continue", label: "Continue" },
         { key: "play", label: "Play" },
         { key: "settings", label: "Settings" },
         { key: "howtoplay", label: "How to Play" },

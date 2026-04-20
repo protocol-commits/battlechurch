@@ -161,7 +161,19 @@ let titleCloudSelectedSaveId = null;
 const TITLE_DEMO_SAVE_SLOTS = [
   {
     key: "slot1",
-    label: "Demo Slot 1: County 2",
+    label: "Demo: New Playthrough",
+    townId: "pine_hollow",
+    completedTowns: 0,
+    campaignData: {
+      campaign: "p1",
+      startCount: 50,
+      campaignMultiplier: 1.0,
+      restoredChurchPowerupLevels: {},
+    },
+  },
+  {
+    key: "slot2",
+    label: "Demo: Area 1 Cleared",
     townId: "red_creek",
     completedTowns: 3,
     campaignData: {
@@ -172,8 +184,8 @@ const TITLE_DEMO_SAVE_SLOTS = [
     },
   },
   {
-    key: "slot2",
-    label: "Demo Slot 2: County 3",
+    key: "slot3",
+    label: "Demo: Area 2 Cleared",
     townId: "lowmoor",
     completedTowns: 6,
     campaignData: {
@@ -183,23 +195,6 @@ const TITLE_DEMO_SAVE_SLOTS = [
       restoredChurchPowerupLevels: {
         spreadGun: 5,
         halo: 5,
-      },
-    },
-  },
-  {
-    key: "slot3",
-    label: "Demo Slot 3: Boss Run",
-    townId: "highgate",
-    completedTowns: 9,
-    campaignData: {
-      campaign: "p1",
-      startCount: 170,
-      campaignMultiplier: 1.0,
-      restoredChurchPowerupLevels: {
-        spreadGun: 5,
-        halo: 5,
-        spear: 5,
-        sentry: 5,
       },
     },
   },
@@ -16493,7 +16488,12 @@ function handleTitleScreen() {
       buttons,
       allowSpace: true,
       resolveFocusIndex: ({ buttons, focusIndex, direction }) => {
-        if (!titleDemoSaveMenuActive || !Array.isArray(buttons) || buttons.length === 0) return focusIndex;
+        if (!Array.isArray(buttons) || buttons.length === 0) return focusIndex;
+        if (!titleDemoSaveMenuActive) {
+          if (buttons.length <= 1) return focusIndex;
+          const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
+          return (focusIndex + linearDirection + buttons.length) % buttons.length;
+        }
         const current = buttons[focusIndex] || null;
         const rows = buttons
           .map((button, index) => ({ button, index }))
@@ -16567,7 +16567,7 @@ function handleTitleScreen() {
         if (saveId) titleCloudSelectedSaveId = saveId;
       },
       onActivate: (button) => {
-        if (button.key === "continue") {
+        if (button.key === "continue" || button.key === "play") {
           setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = true;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
@@ -16840,15 +16840,15 @@ function handleTitleScreen() {
           })();
           return;
         }
-        if (button.key === "play" || button.key === "map") {
-          // Play button now goes to map screen so player must pick a town
+        if (button.key === "map") {
+          // Loading-state fallback: open map directly.
           setDemoSandboxRunActive(false);
           titleScreenActive = false;
           mapActive = true;
           if (window.MapScreen) window.MapScreen.open();
           titleDemoSaveMenuActive = false;
           titleDemoSaveOverride = null;
-        } else if (button.key === "slot1" || button.key === "slot2" || button.key === "slot3") {
+        } else if (TITLE_DEMO_SAVE_SLOTS.some((entry) => entry.key === button.key)) {
           const slot = TITLE_DEMO_SAVE_SLOTS.find((entry) => entry.key === button.key);
           if (slot?.townId) {
             void (async () => {
