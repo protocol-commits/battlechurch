@@ -12244,6 +12244,7 @@ class Projectile {
     this.onDestroyedTriggered = false;
     this.friendly = config.friendly ?? true;
     this.visualOnly = Boolean(config.visualOnly);
+    this.lightSpreadShot = Boolean(config.lightSpreadShot);
     this.collisionDisabled = Boolean(config.collisionDisabled);
     this.damageType = config.damageType || null;
     this.source = config.source || null;
@@ -12530,6 +12531,10 @@ class Projectile {
       this.type === "word_of_god"
         ? Math.max(0, Math.min(1, this.life / 0.2))
         : 1;
+    if (this.lightSpreadShot) {
+      drawLightTracerProjectile(this, fadeAlpha);
+      return;
+    }
     const shouldGlow = this.friendly || this.type === "miniTrident";
     if (this.frames) {
       const frame = this.frames[this.frameIndex];
@@ -12741,6 +12746,49 @@ function drawProjectileGlow(
       ctx.drawImage(sprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
     }
   }
+  ctx.restore();
+}
+
+function drawLightTracerProjectile(projectile, fadeAlpha = 1) {
+  if (!projectile) return;
+  const vx = Number(projectile.vx) || 0;
+  const vy = Number(projectile.vy) || 0;
+  const speed = Math.max(1, Math.hypot(vx, vy));
+  const dirX = vx / speed;
+  const dirY = vy / speed;
+  const len = Math.max(18, Math.min(40, (projectile.radius || 10) * 2.1));
+  const halfW = Math.max(0.8, (projectile.radius || 8) * 0.14);
+  const x = projectile.x || 0;
+  const y = projectile.y || 0;
+  const tailX = x - dirX * len;
+  const tailY = y - dirY * len;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha *= Math.max(0, Math.min(1, fadeAlpha));
+  const outer = ctx.createLinearGradient(tailX, tailY, x, y);
+  outer.addColorStop(0, "rgba(120, 200, 255, 0.00)");
+  outer.addColorStop(0.26, "rgba(135, 218, 255, 0.30)");
+  outer.addColorStop(1, "rgba(215, 245, 255, 0.96)");
+  ctx.strokeStyle = outer;
+  ctx.lineCap = "round";
+  ctx.lineWidth = halfW * 2.4;
+  ctx.shadowColor = "rgba(150, 225, 255, 0.96)";
+  ctx.shadowBlur = 18;
+  ctx.beginPath();
+  ctx.moveTo(tailX, tailY);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+  const inner = ctx.createLinearGradient(tailX, tailY, x, y);
+  inner.addColorStop(0, "rgba(215, 245, 255, 0.00)");
+  inner.addColorStop(0.34, "rgba(220, 248, 255, 0.50)");
+  inner.addColorStop(1, "rgba(250, 255, 255, 1.00)");
+  ctx.strokeStyle = inner;
+  ctx.lineWidth = halfW * 0.9;
+  ctx.shadowBlur = 12;
+  ctx.beginPath();
+  ctx.moveTo(tailX, tailY);
+  ctx.lineTo(x, y);
+  ctx.stroke();
   ctx.restore();
 }
 

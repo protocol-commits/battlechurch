@@ -1794,20 +1794,39 @@
     const streamCount = Math.ceil(level / 2);
     const bonusStreams = this.spreadGunBonusTimer > 0 ? 2 : 0;
     const effectiveStreamCount = Math.min(7, streamCount + bonusStreams);
-    const rateMultiplier = Math.max(0.35, (level / 2) / effectiveStreamCount); // keep bonus stream spam bounded
+    const rateMultiplier = Math.max(0.7, ((level / 2) / effectiveStreamCount) * 2.0); // faster spread cadence for machine-gun feel
     this.spreadGunExtraTimer = this.getArrowCooldown() / rateMultiplier;
     const spreadStep = 0.15;
     const perp = { x: -direction.y, y: direction.x };
     const pairs = Math.floor(effectiveStreamCount / 2);
     const hasAlternating = (effectiveStreamCount % 2) === 1;
+    const useLightSpreadVisual = this.getActiveWeaponMode() === "arrow";
+    const buildSpreadShotOverrides = (dx, dy) => {
+      const overrides = { damage, scale, life, source: this };
+      if (useLightSpreadVisual) {
+        const baseArrowSpeed = Number.isFinite(PROJECTILE_CONFIG?.arrow?.speed)
+          ? PROJECTILE_CONFIG.arrow.speed
+          : null;
+        if (baseArrowSpeed && baseArrowSpeed > 0) {
+          // Laser tracers should feel snappy and precise.
+          overrides.speed = baseArrowSpeed * 1.9;
+          const travelDistance = Number.isFinite(life) ? baseArrowSpeed * life : null;
+          if (travelDistance && travelDistance > 0) {
+            overrides.life = travelDistance / overrides.speed;
+          }
+        }
+        overrides.lightSpreadShot = true;
+      }
+      return overrides;
+    };
 
     // Symmetric pairs (streams 1+2, 3+4, ...)
     for (let tier = 1; tier <= pairs; tier += 1) {
       const spread = spreadStep * tier;
       const left = normalizeVector(direction.x + perp.x * spread, direction.y + perp.y * spread);
       const right = normalizeVector(direction.x - perp.x * spread, direction.y - perp.y * spread);
-      spawnProjectile("arrow", originX, originY, left.x, left.y, { damage, scale, life, source: this });
-      spawnProjectile("arrow", originX, originY, right.x, right.y, { damage, scale, life, source: this });
+      spawnProjectile("arrow", originX, originY, left.x, left.y, buildSpreadShotOverrides(left.x, left.y));
+      spawnProjectile("arrow", originX, originY, right.x, right.y, buildSpreadShotOverrides(right.x, right.y));
     }
 
     // Odd stream: alternates left/right each shot so it stays visually balanced
@@ -1818,7 +1837,7 @@
         direction.x + perp.x * spread * side,
         direction.y + perp.y * spread * side,
       );
-      spawnProjectile("arrow", originX, originY, altDir.x, altDir.y, { damage, scale, life, source: this });
+      spawnProjectile("arrow", originX, originY, altDir.x, altDir.y, buildSpreadShotOverrides(altDir.x, altDir.y));
       this.spreadGunAlternate = !this.spreadGunAlternate;
     }
   }
