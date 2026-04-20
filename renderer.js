@@ -5068,11 +5068,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof window !== "undefined") {
       window.__congregationShowTutorialHints = showTutorialHints;
     }
-    const fullTitleText = showTutorialHints
-      ? "Welcome Pastor. We're pleased to meet you!"
-      : isFirstPlaythroughForTown
-      ? `Welcome to ${townName}. Pleased to meet you.`
-      : `Welcome back to ${townName}.`;
+    const fullTitleText = isFirstPlaythroughForTown
+      ? `Welcome to ${townName} Church. Pleased to meet you.`
+      : `Welcome back to ${townName} Church.`;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const stage = levelStatus?.stage || "";
     const introKey = `levelIntro-${levelStatus?.level || 1}-${levelStatus?.battle || 0}`;
@@ -5106,7 +5104,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       subtitleSize: TEXT_STYLES.h2.size,
       lineGap,
       weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 1,
+      maxWidthScale: 0.86,
       position: "top",
       topMargin: 70,
       bottomMargin: 90,
@@ -5226,7 +5224,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       alpha: titleAlpha,
       typewriter: typewriterReady,
       textPalette: HELLFIRE_TEXT_PALETTE,
-      maxWidthScale: 1,
+      maxWidthScale: 0.86,
     });
     const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
     const wordSize = Math.min(canvas.width * 0.14, canvas.height * 0.16, 140);
