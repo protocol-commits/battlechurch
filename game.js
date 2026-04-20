@@ -153,12 +153,10 @@ const bossHazards = [];
 let titleScreenActive = true;
 let titleDemoSaveMenuActive = false;
 let titleDemoSaveOverride = null;
-let titleCloudSaveOption = {
-  loading: false,
-  available: false,
-  label: "",
-  townId: null,
-};
+let titleCloudSaveLoading = false;
+let titleCloudSaveRows = [];
+let titleCloudActiveSaveId = null;
+let titleCloudSelectedSaveId = null;
 const TITLE_DEMO_SAVE_SLOTS = [
   {
     key: "slot1",
@@ -3995,7 +3993,10 @@ Renderer.initialize({
   get titleScreenActive() { return titleScreenActive; },
   get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
   get titleDemoSaveSlots() { return TITLE_DEMO_SAVE_SLOTS; },
-  get titleCloudSaveOption() { return titleCloudSaveOption; },
+  get titleCloudSaveLoading() { return titleCloudSaveLoading; },
+  get titleCloudSaveRows() { return titleCloudSaveRows; },
+  get titleCloudActiveSaveId() { return titleCloudActiveSaveId; },
+  get titleCloudSelectedSaveId() { return titleCloudSelectedSaveId; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
@@ -6682,71 +6683,63 @@ async function seedDemoSlotProgress(slot) {
 }
 
 async function refreshTitleCloudSaveOption() {
-  titleCloudSaveOption.loading = true;
-  titleCloudSaveOption.available = false;
-  titleCloudSaveOption.label = "Loading Google Save...";
-  titleCloudSaveOption.townId = null;
+  titleCloudSaveLoading = true;
+  titleCloudSaveRows = [];
+  titleCloudActiveSaveId = null;
   try {
     if (typeof window === "undefined") return;
-    if (window.cloudAuthProvider !== "google" || !window.Cloud?.loadPlayerDoc) {
-      titleCloudSaveOption.loading = false;
-      titleCloudSaveOption.available = false;
-      titleCloudSaveOption.label = "";
+    if (window.cloudAuthProvider !== "google") {
+      titleCloudSaveLoading = false;
+      titleCloudSaveRows = [];
+      titleCloudSelectedSaveId = null;
       return;
     }
-    const doc = await window.Cloud.loadPlayerDoc();
-    const progress = doc?.mapProgress || { towns: {}, unlockedTownIds: [] };
-    const mapData = window.BattlechurchMapData;
-    const towns = Array.isArray(mapData?.towns) ? mapData.towns : [];
-    const townOrder = towns.map((town) => town.id).filter(Boolean);
-    const firstTownId = mapData?.getFirstTownId?.() || townOrder[0] || null;
-    const regularTownIds = towns.filter((town) => town.type !== "capital").map((town) => town.id);
-    const capitalTownId = towns.find((town) => town.type === "capital")?.id || null;
-    const unlockedSet = new Set();
-    if (firstTownId) unlockedSet.add(firstTownId);
-    for (let i = 0; i < regularTownIds.length; i += 1) {
-      const townId = regularTownIds[i];
-      if (progress?.towns?.[townId]?.p1?.completed === true) {
-        const nextRegularTownId = regularTownIds[i + 1];
-        if (nextRegularTownId) unlockedSet.add(nextRegularTownId);
-      }
+    if (window.MapScreen?.reloadProgress) {
+      await window.MapScreen.reloadProgress();
     }
-    const allRegularP1Done =
-      regularTownIds.length > 0 &&
-      regularTownIds.every((townId) => progress?.towns?.[townId]?.p1?.completed === true);
-    if (allRegularP1Done && capitalTownId) {
-      unlockedSet.add(capitalTownId);
+    if (typeof window.MapScreen?.getSaveFileSummaries !== "function") {
+      titleCloudSaveLoading = false;
+      titleCloudSaveRows = [];
+      titleCloudSelectedSaveId = null;
+      return;
     }
-    const unlockedTownIds = townOrder.filter((townId) => unlockedSet.has(townId));
-
-    const firstIncompleteUnlocked =
-      townOrder.find((townId) => {
-        if (!unlockedTownIds.includes(townId)) return false;
-        return !(progress?.towns?.[townId]?.p1?.completed);
-      }) || null;
-    const lastUnlocked =
-      [...townOrder].reverse().find((townId) => unlockedTownIds.includes(townId)) || null;
-    const suggestedTownId = firstIncompleteUnlocked || lastUnlocked || unlockedTownIds[0] || firstTownId || null;
-    const suggestedTownName =
-      mapData?.towns?.find((town) => town.id === suggestedTownId)?.name || "Map";
-    const completedP1Towns = towns.filter((town) =>
-      progress?.towns?.[town.id]?.p1?.completed
-    ).length;
-    const totalTowns = townOrder.length;
-    titleCloudSaveOption.loading = false;
-    titleCloudSaveOption.available = true;
-    titleCloudSaveOption.townId = suggestedTownId;
-    const progressLabel =
-      completedP1Towns > 0
-        ? `(${completedP1Towns}/${Math.max(1, totalTowns)}) - ${suggestedTownName}`
-        : "(No progress yet)";
-    titleCloudSaveOption.label = `Play Google Save ${progressLabel}`;
+    const summary = window.MapScreen.getSaveFileSummaries();
+    const saves = Array.isArray(summary?.saves) ? summary.saves : [];
+    titleCloudActiveSaveId = summary?.activeSaveId || null;
+    titleCloudSaveRows = saves.map((save) => {
+      const completed = Number.isFinite(save?.completedP1Towns) ? save.completedP1Towns : 0;
+      const total = Math.max(1, Number.isFinite(save?.totalTowns) ? save.totalTowns : 10);
+      const progressLabel = completed > 0 ? `(${completed}/${total})` : "(No progress yet)";
+      const suggestedTownName = save?.suggestedTownName || "Pine Hollow";
+      const townRows = Array.isArray(save?.townProgressRows) ? save.townProgressRows : [];
+      const completedTownRows = townRows.filter((row) => row?.p1Completed === true);
+      return {
+        id: save.id,
+        key: `cloudsave:${save.id}`,
+        label: `${save.saveName} ${progressLabel}`,
+        meta: `${save.playerName || "Pastor"} • ${suggestedTownName}`,
+        suggestedTownId: save?.suggestedTownId || null,
+        isActive: save?.isActive === true,
+        details: {
+          saveName: save?.saveName || "Save",
+          playerName: save?.playerName || "Pastor",
+          completedTowns: completed,
+          totalTowns: total,
+          totalCongregationBest: Number.isFinite(save?.totalCongregationBest) ? save.totalCongregationBest : 0,
+          totalReplayCompletions: Number.isFinite(save?.totalReplayCompletions) ? save.totalReplayCompletions : completedTownRows.length,
+          totalUpgradeLevels: Number.isFinite(save?.totalUpgradeLevels) ? save.totalUpgradeLevels : 0,
+          townRows: townRows,
+        },
+      };
+    });
+    if (!titleCloudSelectedSaveId || !titleCloudSaveRows.some((row) => row.id === titleCloudSelectedSaveId)) {
+      titleCloudSelectedSaveId = titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+    }
+    titleCloudSaveLoading = false;
   } catch (e) {
-    // If cloud read fails, still expose an entry point to map progression.
-    titleCloudSaveOption.loading = false;
-    titleCloudSaveOption.available = true;
-    titleCloudSaveOption.townId = window.BattlechurchMapData?.getFirstTownId?.() || null;
-    titleCloudSaveOption.label = "Play Google Save";
+    titleCloudSaveLoading = false;
+    titleCloudSaveRows = [];
+    titleCloudSelectedSaveId = null;
   }
 }
 
@@ -15651,21 +15644,13 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("6")) {
-    const battlesPerTown = Number.isFinite(window.BATTLES_PER_TOWN) ? window.BATTLES_PER_TOWN : 3;
     if (!levelManager?.isActive?.()) {
-      setDevStatus("Battle 3 boss skip failed (level inactive)", 2.0);
+      setDevStatus("Act 3 Battle 3 boss skip failed (level inactive)", 2.0);
     } else {
-      let currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : 1;
-      let guard = 0;
-      while (currentLevel < battlesPerTown && guard < 5) {
-        if (!levelManager?.devSkipLevel?.()) break;
-        currentLevel = levelManager?.getLevelNumber ? levelManager.getLevelNumber() : currentLevel + 1;
-        guard += 1;
-      }
-      if (levelManager?.devSkipToBoss?.({ showExterior: false })?.success) {
-        setDevStatus("Battle 3 boss engaged", 2.4);
+      if (levelManager?.devSkipToTownFinalBoss?.({ showExterior: false })?.success) {
+        setDevStatus("Act 3 Battle 3 boss engaged", 2.4);
       } else {
-        setDevStatus("Battle 3 boss skip failed", 2.0);
+        setDevStatus("Act 3 Battle 3 boss skip failed", 2.0);
       }
     }
   }
@@ -16301,7 +16286,7 @@ function showDeveloperShortcutsOverlay() {
     { key: "3", label: "Skip Battle" },
     { key: "4", label: "Skip Level" },
     { key: "5", label: "Current Battle Boss" },
-    { key: "6", label: "Battle 3 Boss (current town)" },
+    { key: "6", label: "Act 3 Battle 3 Boss (current town)" },
     { key: "7", label: "Unlock All Towns (Map)" },
     { key: "9", label: "Grace Rush" },
     { key: "T", label: "Toggle Timer" },
@@ -16454,6 +16439,80 @@ function handleTitleScreen() {
       key: "title",
       buttons,
       allowSpace: true,
+      resolveFocusIndex: ({ buttons, focusIndex, direction }) => {
+        if (!titleDemoSaveMenuActive || !Array.isArray(buttons) || buttons.length === 0) return focusIndex;
+        const current = buttons[focusIndex] || null;
+        const rows = buttons
+          .map((button, index) => ({ button, index }))
+          .filter((entry) => entry.button?.navZone === "rows");
+        const actions = buttons
+          .map((button, index) => ({ button, index }))
+          .filter((entry) => entry.button?.navZone === "actions");
+        if (!rows.length && !actions.length) return focusIndex;
+
+        if (current?.navZone === "rows") {
+          const rowPos = rows.findIndex((entry) => entry.index === focusIndex);
+          if (rowPos < 0) return focusIndex;
+          if (direction === "up") return rows[(rowPos - 1 + rows.length) % rows.length].index;
+          if (direction === "down") return rows[(rowPos + 1) % rows.length].index;
+          if (direction === "right" && actions.length) {
+            const firstActionRow = Math.min(...actions.map((entry) => Number(entry.button?.navRow) || 0));
+            const target = actions.find((entry) => (Number(entry.button?.navRow) || 0) === firstActionRow);
+            return target?.index ?? actions[0].index;
+          }
+          return focusIndex;
+        }
+
+        if (current?.navZone === "actions") {
+          const curRow = Number(current.navRow) || 0;
+          const curCol = Number(current.navCol) || 0;
+          const byRow = (row) => actions.filter((entry) => (Number(entry.button?.navRow) || 0) === row);
+          const currentRowButtons = byRow(curRow);
+          if (direction === "left") {
+            const leftTarget = currentRowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol - 1);
+            if (leftTarget) return leftTarget.index;
+            if (rows.length) return rows[Math.min(rows.length - 1, curRow)].index;
+            return focusIndex;
+          }
+          if (direction === "right") {
+            const rightTarget = currentRowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol + 1);
+            return rightTarget?.index ?? focusIndex;
+          }
+          if (direction === "up") {
+            const targetRow = curRow - 1;
+            if (targetRow >= 0) {
+              const rowButtons = byRow(targetRow);
+              if (rowButtons.length) {
+                const target = rowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol) || rowButtons[0];
+                return target.index;
+              }
+            }
+            if (rows.length) return rows[Math.min(rows.length - 1, Math.max(0, curRow))].index;
+            return focusIndex;
+          }
+          if (direction === "down") {
+            const maxRow = Math.max(...actions.map((entry) => Number(entry.button?.navRow) || 0));
+            const targetRow = curRow + 1;
+            if (targetRow <= maxRow) {
+              const rowButtons = byRow(targetRow);
+              if (rowButtons.length) {
+                const target = rowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol) || rowButtons[0];
+                return target.index;
+              }
+            }
+            return focusIndex;
+          }
+        }
+
+        return focusIndex;
+      },
+      onFocusChange: (button) => {
+        if (!titleDemoSaveMenuActive) return;
+        const key = String(button?.key || "");
+        if (!key.startsWith("cloudsave:")) return;
+        const saveId = key.slice("cloudsave:".length);
+        if (saveId) titleCloudSelectedSaveId = saveId;
+      },
       onActivate: (button) => {
         if (button.key === "continue") {
           titleDemoSaveMenuActive = true;
@@ -16488,10 +16547,19 @@ function handleTitleScreen() {
           })();
           return;
         }
-        if (button.key === "cloudsave") {
+        if (String(button.key || "").startsWith("cloudsave:")) {
           void (async () => {
             titleDemoSaveOverride = null;
-            const suggestedTownId = titleCloudSaveOption?.townId || null;
+            const saveId = String(button.key).slice("cloudsave:".length);
+            titleCloudSelectedSaveId = saveId || titleCloudSelectedSaveId;
+            if (saveId && typeof window.MapScreen?.setActiveSave === "function") {
+              await window.MapScreen.setActiveSave(saveId);
+            }
+            const selectedRow =
+              titleCloudSaveRows.find((row) => row.id === saveId) ||
+              titleCloudSaveRows.find((row) => row.id === titleCloudSelectedSaveId) ||
+              null;
+            const suggestedTownId = selectedRow?.suggestedTownId || null;
             titleScreenActive = false;
             mapActive = true;
             if (window.MapScreen) {
@@ -16510,6 +16578,89 @@ function handleTitleScreen() {
               }
             }
             titleDemoSaveMenuActive = false;
+          })();
+          return;
+        }
+        if (button.key === "newCloudSave") {
+          void (async () => {
+            const name = typeof window?.prompt === "function"
+              ? window.prompt("New save file name:", `Save ${Math.max(1, (titleCloudSaveRows?.length || 0) + 1)}`)
+              : null;
+            if (!name || !name.trim()) return;
+            const playerName = typeof window?.prompt === "function"
+              ? window.prompt("Player name:", "Pastor")
+              : null;
+            if (typeof window.MapScreen?.createSaveFile === "function") {
+              const newId = await window.MapScreen.createSaveFile({
+                saveName: name.trim(),
+                playerName: (playerName || "Pastor").trim(),
+                setActive: true,
+              });
+              if (newId) titleCloudSelectedSaveId = newId;
+            }
+            await refreshTitleCloudSaveOption();
+          })();
+          return;
+        }
+        if (button.key === "duplicateCloudSave") {
+          void (async () => {
+            const sourceId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            if (!sourceId) return;
+            const source = titleCloudSaveRows.find((row) => row.id === sourceId);
+            const defaultName = source ? `${source.label.split(" (")[0]} Copy` : "Save Copy";
+            const name = typeof window?.prompt === "function"
+              ? window.prompt("Save File As:", defaultName)
+              : null;
+            if (!name || !name.trim()) return;
+            if (typeof window.MapScreen?.createSaveFile === "function") {
+              const newId = await window.MapScreen.createSaveFile({
+                saveName: name.trim(),
+                sourceSaveId: sourceId,
+                setActive: true,
+              });
+              if (newId) titleCloudSelectedSaveId = newId;
+            }
+            await refreshTitleCloudSaveOption();
+          })();
+          return;
+        }
+        if (button.key === "renameCloudSave") {
+          void (async () => {
+            const saveId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            if (!saveId) return;
+            const current = titleCloudSaveRows.find((row) => row.id === saveId);
+            const currentName = current?.label?.split(" (")[0] || "Save";
+            const nextName = typeof window?.prompt === "function"
+              ? window.prompt("Rename save file:", currentName)
+              : null;
+            if (!nextName || !nextName.trim()) return;
+            if (typeof window.MapScreen?.renameSaveFile === "function") {
+              await window.MapScreen.renameSaveFile(saveId, nextName.trim());
+            }
+            await refreshTitleCloudSaveOption();
+          })();
+          return;
+        }
+        if (button.key === "setActiveCloudSave") {
+          void (async () => {
+            const saveId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            if (!saveId || typeof window.MapScreen?.setActiveSave !== "function") return;
+            await window.MapScreen.setActiveSave(saveId);
+            await refreshTitleCloudSaveOption();
+          })();
+          return;
+        }
+        if (button.key === "deleteCloudSave") {
+          void (async () => {
+            const saveId = titleCloudSelectedSaveId || titleCloudActiveSaveId || titleCloudSaveRows[0]?.id || null;
+            if (!saveId || typeof window.MapScreen?.deleteSaveFile !== "function") return;
+            const confirmed =
+              typeof window === "undefined" ||
+              typeof window.confirm !== "function" ||
+              window.confirm("Delete selected save file? This cannot be undone.");
+            if (!confirmed) return;
+            await window.MapScreen.deleteSaveFile(saveId);
+            await refreshTitleCloudSaveOption();
           })();
           return;
         }
@@ -16722,7 +16873,31 @@ function getAnnouncementNavDirection() {
   return 0;
 }
 
-function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true }) {
+function getAnnouncementNavCardinal() {
+  const leftKeys = ["arrowleft", "a"];
+  const rightKeys = ["arrowright", "d"];
+  const upKeys = ["arrowup", "w"];
+  const downKeys = ["arrowdown", "s"];
+  if (leftKeys.some((key) => keysJustPressed.has(key))) {
+    leftKeys.forEach((key) => keysJustPressed.delete(key));
+    return "left";
+  }
+  if (rightKeys.some((key) => keysJustPressed.has(key))) {
+    rightKeys.forEach((key) => keysJustPressed.delete(key));
+    return "right";
+  }
+  if (upKeys.some((key) => keysJustPressed.has(key))) {
+    upKeys.forEach((key) => keysJustPressed.delete(key));
+    return "up";
+  }
+  if (downKeys.some((key) => keysJustPressed.has(key))) {
+    downKeys.forEach((key) => keysJustPressed.delete(key));
+    return "down";
+  }
+  return null;
+}
+
+function handleAnnouncementButtons({ key, buttons, onActivate, onFocusChange, resolveFocusIndex, allowSpace = true }) {
   if (!Array.isArray(buttons) || buttons.length === 0) return false;
   const focus = typeof window !== "undefined" ? window.__announcementFocus : null;
   let focusIndex = focus && focus.key === key ? focus.index : 0;
@@ -16730,15 +16905,43 @@ function handleAnnouncementButtons({ key, buttons, onActivate, allowSpace = true
     focusIndex = 0;
   }
   const previousIndex = focusIndex;
-  const direction = getAnnouncementNavDirection();
-  if (direction !== 0 && buttons.length > 1) {
-    focusIndex = (focusIndex + direction + buttons.length) % buttons.length;
+  const cardinalDirection = getAnnouncementNavCardinal();
+  if (cardinalDirection) {
+    if (typeof resolveFocusIndex === "function") {
+      const resolved = resolveFocusIndex({ buttons, focusIndex, direction: cardinalDirection });
+      if (
+        Number.isFinite(resolved) &&
+        resolved >= 0 &&
+        resolved < buttons.length
+      ) {
+        focusIndex = resolved;
+      }
+    } else if (buttons.length > 1) {
+      const linearDirection = cardinalDirection === "left" || cardinalDirection === "up" ? -1 : 1;
+      focusIndex = (focusIndex + linearDirection + buttons.length) % buttons.length;
+    }
+  } else {
+    const direction = getAnnouncementNavDirection();
+    if (direction !== 0 && buttons.length > 1) {
+      focusIndex = (focusIndex + direction + buttons.length) % buttons.length;
+    }
   }
   if (focusIndex !== previousIndex && typeof window?.playMenuMoveSfx === "function") {
     window.playMenuMoveSfx(0.45);
   }
   if (typeof window !== "undefined") {
     window.__announcementFocus = { key, index: focusIndex };
+  }
+  if (
+    typeof onFocusChange === "function" &&
+    (
+      focusIndex !== previousIndex ||
+      !focus ||
+      focus.key !== key ||
+      !Number.isFinite(focus.index)
+    )
+  ) {
+    onFocusChange(buttons[focusIndex], focusIndex);
   }
   const clickPos = Input.consumeCanvasClick?.();
   if (clickPos) {

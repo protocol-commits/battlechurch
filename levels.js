@@ -2191,6 +2191,33 @@ state.waveIndex = -1;
         state.timer = 0;
         return { success: true, needsExteriorShot: false };
       },
+      devSkipToTownFinalBoss({ showExterior = false } = {}) {
+        if (!state.active) return false;
+        devClearOpponents({ includeBoss: true });
+        const totalBattles = Math.max(
+          1,
+          Number.isFinite(state.definition?.battles?.length)
+            ? state.definition.battles.length
+            : BATTLES_PER_TOWN,
+        );
+        const targetBattleNumber = totalBattles;
+        if ((state.level || 1) !== targetBattleNumber) {
+          beginLevel(targetBattleNumber, { skipIntroAnnouncement: true });
+        }
+        const finalMissionIndex = Math.max(0, totalBattles * Math.max(1, MISSIONS_PER_BATTLE) - 1);
+        state.monthIndex = finalMissionIndex;
+        state.waveIndex = getBattleHordeCount(currentBattle()) - 1;
+        state.activeWave = null;
+        state.pendingPortalSpawnBaseline = 0;
+        state.finalWaveDelay = 0;
+        if (showExterior) {
+          resetStage("battleIntermission", 99999);
+          return { success: true, needsExteriorShot: true };
+        }
+        beginBossIntro();
+        state.timer = 0;
+        return { success: true, needsExteriorShot: false };
+      },
       triggerBossIntro() {
         if (!state.active) return false;
         beginBossIntro();

@@ -6877,7 +6877,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       mapReady,
       titleDemoSaveMenuActive,
       titleDemoSaveSlots,
-      titleCloudSaveOption,
+      titleCloudSaveLoading,
+      titleCloudSaveRows,
+      titleCloudSelectedSaveId,
     } = requireBindings();
     ctx.save();
     const titleImage = assets?.titleBackground || null;
@@ -6971,15 +6973,34 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     let buttonConfigs;
     if (titleDemoSaveMenuActive) {
       const slots = Array.isArray(titleDemoSaveSlots) ? titleDemoSaveSlots : [];
-      const cloudButtons = [];
-      if (titleCloudSaveOption?.loading) {
-        cloudButtons.push({ key: "cloudsavePending", label: "Loading Google Save..." });
-      } else if (titleCloudSaveOption?.available) {
-        cloudButtons.push({ key: "cloudsave", label: titleCloudSaveOption.label || "Continue Google Save" });
-      }
+      const cloudRows = Array.isArray(titleCloudSaveRows) ? titleCloudSaveRows : [];
+      const cloudButtons = titleCloudSaveLoading
+        ? [{ key: "cloudsavePending", label: "Loading Google Save Files...", meta: "Reading account saves" }]
+        : cloudRows.map((row) => ({
+            key: row.key,
+            label: row.label,
+            meta: row.meta,
+            isActive: row.isActive,
+            isSelected: row.id && row.id === titleCloudSelectedSaveId,
+          }));
       buttonConfigs = cloudButtons.concat(slots.map((slot, index) => ({
         key: slot?.key || `slot${index + 1}`,
         label: slot?.label || `Slot ${index + 1}`,
+        meta: "Demo profile for QA/testing",
+        demoDetails: {
+          key: slot?.key || `slot${index + 1}`,
+          townId: slot?.townId || null,
+          completedTowns: Math.max(0, Number(slot?.completedTowns) || 0),
+          campaign: String(slot?.campaignData?.campaign || "p1").toUpperCase(),
+          startCount: Math.max(0, Number(slot?.campaignData?.startCount) || 0),
+          campaignMultiplier: Number.isFinite(slot?.campaignData?.campaignMultiplier)
+            ? slot.campaignData.campaignMultiplier
+            : 1.0,
+          upgradeLevels: Object.values(slot?.campaignData?.restoredChurchPowerupLevels || {}).reduce(
+            (sum, level) => sum + Math.max(0, Number(level) || 0),
+            0,
+          ),
+        },
       })));
       const loginLabel =
         typeof window !== "undefined" && window.cloudAuthProvider === "google"
@@ -6987,6 +7008,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           : "Login with Google";
       buttonConfigs.push({ key: "loginGoogle", label: loginLabel });
       if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
+        buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
+        buttonConfigs.push({ key: "duplicateCloudSave", label: "Save File As" });
+        buttonConfigs.push({ key: "renameCloudSave", label: "Rename" });
+        buttonConfigs.push({ key: "setActiveCloudSave", label: "Set Active" });
+        buttonConfigs.push({ key: "deleteCloudSave", label: "Delete Save" });
         buttonConfigs.push({ key: "resetGoogleSave", label: "Reset Google Save" });
       }
       buttonConfigs.push({ key: "back", label: "Back" });
@@ -7035,15 +7061,35 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const { loadingProgress } = requireBindings();
     const progress = Math.max(0, Math.min(100, loadingProgress || 0));
     if (titleDemoSaveMenuActive) {
-      const panelW = Math.round(Math.min(620, layout.virtualCanvas.width * 0.58));
-      const panelH = Math.round(Math.min(500, layout.virtualCanvas.height * 0.66));
+      const panelW = Math.round(Math.min(1020, layout.virtualCanvas.width * 0.9));
+      const panelH = Math.round(Math.min(520, layout.virtualCanvas.height * 0.7));
       const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
       const panelY = Math.round(layout.virtualCanvas.height / 2 - panelH / 2);
-      const buttonWidth = panelW - 72;
-      const buttonHeight = 56;
-      const buttonGap = 12;
-      const titleY = panelY + 56;
-      const listStartY = titleY + 36;
+      const titleY = panelY + 46;
+      const subtitleY = titleY + 20;
+      const actionKeys = new Set([
+        "loginGoogle",
+        "newCloudSave",
+        "duplicateCloudSave",
+        "renameCloudSave",
+        "setActiveCloudSave",
+        "deleteCloudSave",
+        "resetGoogleSave",
+        "back",
+      ]);
+      const indexedConfigs = buttonConfigs.map((config, index) => ({ config, index }));
+      const rowEntries = indexedConfigs.filter((entry) => !actionKeys.has(entry.config.key));
+      const actionEntries = indexedConfigs.filter((entry) => actionKeys.has(entry.config.key));
+      const boundsByIndex = new Array(buttonConfigs.length);
+      const leftColumnW = Math.max(390, Math.min(520, Math.floor(panelW * 0.52)));
+      const detailsColumnW = panelW - leftColumnW - 66;
+      const rowX = panelX + 24;
+      const rowW = leftColumnW;
+      const detailsX = rowX + rowW + 18;
+      const rowH = 62;
+      const rowGap = 10;
+      const listStartY = subtitleY + 28;
+      const cloudRows = Array.isArray(titleCloudSaveRows) ? titleCloudSaveRows : [];
 
       ctx.fillStyle = "rgba(16, 8, 6, 0.84)";
       ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
@@ -7056,37 +7102,226 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `700 30px ${UI_FONT_FAMILY}`;
+      ctx.font = `700 28px ${UI_FONT_FAMILY}`;
       ctx.fillText("Choose Save Source", panelX + panelW / 2, titleY);
+      ctx.font = `500 15px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(242, 200, 125, 0.72)";
+      ctx.fillText("Use cloud progress or a demo profile", panelX + panelW / 2, subtitleY);
 
-      buttonConfigs.forEach((config, index) => {
-        const x = Math.round(panelX + (panelW - buttonWidth) / 2);
-        const y = Math.round(listStartY + index * (buttonHeight + buttonGap));
+      const describeRow = (config) => {
+        if (typeof config?.meta === "string" && config.meta.trim()) return config.meta;
+        if (config?.key === "cloudsavePending") return "Reading cloud save...";
+        return "";
+      };
+
+      const focusInfo =
+        typeof window !== "undefined" && window.__announcementFocus?.key === "title"
+          ? window.__announcementFocus
+          : null;
+      const focusedRowConfig = focusInfo
+        ? (rowEntries.find((entry) => entry.index === focusInfo.index)?.config || null)
+        : null;
+      const focusedKey = String(focusedRowConfig?.key || "");
+      const selectedCloudRow =
+        cloudRows.find((row) => row.id === titleCloudSelectedSaveId) ||
+        cloudRows.find((row) => row.isActive) ||
+        cloudRows[0] ||
+        null;
+      const focusCloudRow = focusedKey.startsWith("cloudsave:")
+        ? cloudRows.find((row) => row.key === focusedKey) || null
+        : null;
+      const focusDemoDetails = focusedRowConfig?.demoDetails || null;
+      const details = focusCloudRow?.details || selectedCloudRow?.details || null;
+      const showDemoDetails = !focusCloudRow && !!focusDemoDetails;
+
+      rowEntries.forEach(({ config, index }, rowIndex) => {
+        const x = Math.round(rowX);
+        const y = Math.round(listStartY + rowIndex * (rowH + rowGap));
+        const focused = isAnnouncementButtonFocused("title", index);
+        const meta = describeRow(config);
         ctx.save();
-        ctx.fillStyle = getEmberButtonGradient(ctx, y, buttonHeight);
-        ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
-        ctx.lineWidth = 2;
-        roundRect(ctx, x, y, buttonWidth, buttonHeight, 14, true, true);
-        if (isAnnouncementButtonFocused("title", index)) {
-          drawFocusRing(ctx, x - 3, y - 3, buttonWidth + 6, buttonHeight + 6, 16);
-          drawButtonReflection(ctx, x, y, buttonWidth, buttonHeight, 14, 0.45);
+        ctx.fillStyle = focused ? "rgba(82, 44, 20, 0.88)" : "rgba(14, 12, 16, 0.88)";
+        ctx.strokeStyle = focused ? "rgba(242, 200, 125, 0.95)" : "rgba(242, 200, 125, 0.35)";
+        ctx.lineWidth = focused ? 2.2 : 1.2;
+        roundRect(ctx, x, y, rowW, rowH, 8, true, true);
+        if (focused) {
+          ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
+          ctx.fillRect(x + 6, y + 8, 3, rowH - 16);
         }
         ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-        ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
-        ctx.shadowBlur = 6;
-        ctx.shadowOffsetY = 1;
-        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetY = 0;
+        ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `600 21px ${UI_FONT_FAMILY}`;
-        ctx.fillText(config.label, x + buttonWidth / 2, y + 38);
+        ctx.font = `600 19px ${UI_FONT_FAMILY}`;
+        const activePrefix = config?.isActive ? "[A] " : "";
+        const selectedPrefix = config?.isSelected && !config?.isActive ? "[S] " : "";
+        const focusPrefix = focused ? "> " : "";
+        ctx.fillText(`${focusPrefix}${activePrefix}${selectedPrefix}${config.label}`, x + 16, y + 26);
+        if (meta) {
+          ctx.font = `500 13px ${UI_FONT_FAMILY}`;
+          ctx.fillStyle = "rgba(231, 176, 102, 0.74)";
+          ctx.fillText(meta, x + 16, y + 47);
+        }
         ctx.restore();
-        bounds.push({
+        boundsByIndex[index] = {
           key: config.key,
+          navZone: "rows",
+          navRow: rowIndex,
+          navCol: 0,
           x: layout.offsetX + x * layout.scale,
           y: layout.offsetY + y * layout.scale,
-          width: buttonWidth * layout.scale,
-          height: buttonHeight * layout.scale,
+          width: rowW * layout.scale,
+          height: rowH * layout.scale,
+        };
+      });
+
+      const detailsY = listStartY;
+      const actionColumns = actionEntries.length > 4 ? 2 : 1;
+      const actionButtonH = 34;
+      const actionRowGap = 8;
+      const actionHeaderH = 18;
+      const actionBodyTopPad = 8;
+      const actionBodyBottomPad = 12;
+      const actionRows = actionEntries.length > 0 ? Math.ceil(actionEntries.length / actionColumns) : 0;
+      const actionsPanelH =
+        actionEntries.length > 0
+          ? actionHeaderH + actionBodyTopPad + actionBodyBottomPad + actionRows * actionButtonH + Math.max(0, actionRows - 1) * actionRowGap
+          : 0;
+      const detailsH = panelH - (detailsY - panelY) - (actionsPanelH > 0 ? actionsPanelH + 20 : 18);
+      ctx.save();
+      ctx.fillStyle = "rgba(11, 10, 14, 0.78)";
+      ctx.strokeStyle = "rgba(242, 200, 125, 0.32)";
+      ctx.lineWidth = 1.2;
+      roundRect(ctx, detailsX, detailsY, detailsColumnW, detailsH, 10, true, true);
+
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.shadowColor = "rgba(0,0,0,0.55)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+      ctx.font = `700 18px ${UI_FONT_FAMILY}`;
+      ctx.fillText("Save Details", detailsX + 14, detailsY + 24);
+
+      if (showDemoDetails && focusDemoDetails) {
+        const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+        const townName =
+          mapData?.towns?.find((town) => town?.id === focusDemoDetails.townId)?.name ||
+          focusDemoDetails.townId ||
+          "Unknown Town";
+        const detailLeft = detailsX + 14;
+        let lineY = detailsY + 48;
+        const detailLineGap = 18;
+        const fmt = (value) => `${Math.max(0, Number(value) || 0)}`;
+        const fmtFloat = (value) => Number(value || 1).toFixed(2).replace(/\.00$/, "");
+        ctx.font = `600 14px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = "rgba(242, 210, 146, 0.95)";
+        ctx.fillText(`Demo Slot`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Start Town: ${townName}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Towns Preset: ${fmt(focusDemoDetails.completedTowns)}/10`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Campaign: ${focusDemoDetails.campaign}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Start Congregation: ${fmt(focusDemoDetails.startCount)}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Campaign Multiplier: x${fmtFloat(focusDemoDetails.campaignMultiplier)}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Upgrade Levels: ${fmt(focusDemoDetails.upgradeLevels)}`, detailLeft, lineY); lineY += detailLineGap;
+      } else if (!details) {
+        ctx.font = `500 14px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = "rgba(231, 176, 102, 0.8)";
+        ctx.fillText("Select a Google save row to inspect.", detailsX + 14, detailsY + 48);
+      } else {
+        const detailLeft = detailsX + 14;
+        let lineY = detailsY + 48;
+        const detailLineGap = 18;
+        const fmt = (value) => `${Math.max(0, Number(value) || 0)}`;
+        ctx.font = `600 14px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = "rgba(242, 210, 146, 0.95)";
+        ctx.fillText(`Save: ${details.saveName || "Save"}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Player: ${details.playerName || "Pastor"}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Towns Cleared: ${fmt(details.completedTowns)}/${fmt(details.totalTowns)}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Congregation Total: ${fmt(details.totalCongregationBest)}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Replay Clears: ${fmt(details.totalReplayCompletions)}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Upgrade Levels: ${fmt(details.totalUpgradeLevels)}`, detailLeft, lineY); lineY += 24;
+
+        ctx.font = `700 13px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.fillText("Town Breakdown", detailLeft, lineY);
+        lineY += 16;
+
+        const rows = Array.isArray(details.townRows) ? details.townRows : [];
+        const maxRows = Math.max(1, Math.floor((detailsY + detailsH - lineY - 8) / 15));
+        const visibleRows = rows.slice(0, maxRows);
+        ctx.font = `500 12px ${UI_FONT_FAMILY}`;
+        visibleRows.forEach((row) => {
+          const leftText = `${row?.townName || "Town"} ${row?.p1Completed ? "DONE" : "--"}`;
+          const rightText = `C:${fmt(row?.bestCount)} R:${fmt(row?.completions)} U:${fmt(row?.upgradeLevelTotal)}`;
+          ctx.fillStyle = row?.p1Completed ? "rgba(242, 210, 146, 0.9)" : "rgba(214, 157, 96, 0.66)";
+          ctx.fillText(leftText, detailLeft, lineY);
+          ctx.fillStyle = "rgba(231, 176, 102, 0.76)";
+          ctx.textAlign = "right";
+          ctx.fillText(rightText, detailsX + detailsColumnW - 12, lineY);
+          ctx.textAlign = "left";
+          lineY += 15;
         });
+      }
+      ctx.restore();
+
+      if (actionEntries.length > 0) {
+        const actionsY = detailsY + detailsH + 10;
+        ctx.save();
+        ctx.fillStyle = "rgba(10, 9, 13, 0.82)";
+        ctx.strokeStyle = "rgba(242, 200, 125, 0.28)";
+        ctx.lineWidth = 1.1;
+        roundRect(ctx, detailsX, actionsY, detailsColumnW, actionsPanelH, 10, true, true);
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `700 13px ${UI_FONT_FAMILY}`;
+        ctx.fillText("Actions", detailsX + 12, actionsY + 16);
+        ctx.restore();
+
+        const actionInnerX = detailsX + 12;
+        const actionInnerY = actionsY + actionHeaderH + actionBodyTopPad;
+        const actionInnerW = detailsColumnW - 24;
+        const actionColGap = 10;
+        const actionW = Math.max(
+          120,
+          Math.floor((actionInnerW - actionColGap * Math.max(0, actionColumns - 1)) / Math.max(1, actionColumns)),
+        );
+        actionEntries.forEach(({ config, index }, actionIndex) => {
+          const col = actionIndex % actionColumns;
+          const row = Math.floor(actionIndex / actionColumns);
+          const x = actionInnerX + col * (actionW + actionColGap);
+          const y = actionInnerY + row * (actionButtonH + actionRowGap);
+          const focused = isAnnouncementButtonFocused("title", index);
+          ctx.save();
+          ctx.fillStyle = focused ? "rgba(95, 50, 22, 0.95)" : "rgba(24, 20, 24, 0.9)";
+          ctx.strokeStyle = focused ? EMBER_BUTTON_PALETTE.border : "rgba(242, 200, 125, 0.32)";
+          ctx.lineWidth = focused ? 2 : 1;
+          roundRect(ctx, x, y, actionW, actionButtonH, 8, true, true);
+          ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+          ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetY = 0;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "alphabetic";
+          ctx.font = `600 14px ${UI_FONT_FAMILY}`;
+          ctx.fillText(config.label, x + actionW / 2, y + 23);
+          ctx.restore();
+          boundsByIndex[index] = {
+            key: config.key,
+            navZone: "actions",
+            navRow: row,
+            navCol: col,
+            x: layout.offsetX + x * layout.scale,
+            y: layout.offsetY + y * layout.scale,
+            width: actionW * layout.scale,
+            height: actionButtonH * layout.scale,
+          };
+        });
+      }
+      boundsByIndex.forEach((item) => {
+        if (item) bounds.push(item);
       });
     } else {
       // Title screen shows only background art and buttons.

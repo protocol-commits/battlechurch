@@ -40,6 +40,138 @@
       fadeDuration: 900,
     },
   };
+  const DEFAULT_SAVE_ID = "main";
+
+  function deepClone(value) {
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function createFreshMapProgress(mapData) {
+    const firstTownId = mapData?.getFirstTownId?.() || null;
+    return {
+      version: 2,
+      towns: {},
+      unlockedTownIds: firstTownId ? [firstTownId] : [],
+    };
+  }
+
+  function normalizePlayerDocForSaves(playerDoc, mapData) {
+    const normalized = playerDoc && typeof playerDoc === "object" ? deepClone(playerDoc) || {} : {};
+    let dirty = false;
+    if (!normalized.saveFiles || typeof normalized.saveFiles !== "object" || Array.isArray(normalized.saveFiles)) {
+      const legacyMapProgress =
+        normalized.mapProgress && typeof normalized.mapProgress === "object"
+          ? normalized.mapProgress
+          : createFreshMapProgress(mapData);
+      normalized.saveFiles = {
+        [DEFAULT_SAVE_ID]: {
+          saveName: "Main Save",
+          playerName: "Pastor",
+          createdAt: Date.now(),
+          lastPlayedAt: Date.now(),
+          playtimeSec: 0,
+          mapProgress: legacyMapProgress,
+        },
+      };
+      normalized.activeSaveId = DEFAULT_SAVE_ID;
+      dirty = true;
+    }
+
+    const saveIds = Object.keys(normalized.saveFiles);
+    if (!saveIds.length) {
+      normalized.saveFiles[DEFAULT_SAVE_ID] = {
+        saveName: "Main Save",
+        playerName: "Pastor",
+        createdAt: Date.now(),
+        lastPlayedAt: Date.now(),
+        playtimeSec: 0,
+        mapProgress: createFreshMapProgress(mapData),
+      };
+      normalized.activeSaveId = DEFAULT_SAVE_ID;
+      dirty = true;
+    }
+
+    for (const saveId of Object.keys(normalized.saveFiles)) {
+      const save = normalized.saveFiles[saveId];
+      if (!save || typeof save !== "object") {
+        normalized.saveFiles[saveId] = {
+          saveName: `Save ${saveId}`,
+          playerName: "Pastor",
+          createdAt: Date.now(),
+          lastPlayedAt: Date.now(),
+          playtimeSec: 0,
+          mapProgress: createFreshMapProgress(mapData),
+        };
+        dirty = true;
+        continue;
+      }
+      if (!save.saveName || typeof save.saveName !== "string") {
+        save.saveName = `Save ${saveId}`;
+        dirty = true;
+      }
+      if (!save.playerName || typeof save.playerName !== "string") {
+        save.playerName = "Pastor";
+        dirty = true;
+      }
+      if (!Number.isFinite(save.createdAt)) {
+        save.createdAt = Date.now();
+        dirty = true;
+      }
+      if (!Number.isFinite(save.lastPlayedAt)) {
+        save.lastPlayedAt = save.createdAt || Date.now();
+        dirty = true;
+      }
+      if (!Number.isFinite(save.playtimeSec) || save.playtimeSec < 0) {
+        save.playtimeSec = 0;
+        dirty = true;
+      }
+      if (!save.mapProgress || typeof save.mapProgress !== "object") {
+        save.mapProgress = createFreshMapProgress(mapData);
+        dirty = true;
+      }
+    }
+
+    if (!normalized.activeSaveId || !normalized.saveFiles[normalized.activeSaveId]) {
+      normalized.activeSaveId = Object.keys(normalized.saveFiles)[0] || DEFAULT_SAVE_ID;
+      dirty = true;
+    }
+    normalized.mapProgress = normalized.saveFiles[normalized.activeSaveId]?.mapProgress || createFreshMapProgress(mapData);
+    return { doc: normalized, dirty };
+  }
+
+  function getActiveSave() {
+    const saveId = state.playerDoc?.activeSaveId;
+    if (!saveId) return null;
+    const save = state.playerDoc?.saveFiles?.[saveId];
+    return save && typeof save === "object" ? save : null;
+  }
+
+  function syncActiveSaveProgressMirror() {
+    if (!state.playerDoc || typeof state.playerDoc !== "object") return;
+    const activeSave = getActiveSave();
+    if (!activeSave) return;
+    activeSave.mapProgress = state.mapProgress;
+    state.playerDoc.mapProgress = state.mapProgress;
+  }
+
+  async function persistPlayerDoc() {
+    if (!state.playerDoc || typeof state.playerDoc !== "object") return false;
+    if (!window.Cloud?.savePlayerDoc) return false;
+    try {
+      await window.Cloud.savePlayerDoc({
+        saveFiles: state.playerDoc.saveFiles,
+        activeSaveId: state.playerDoc.activeSaveId,
+        mapProgress: state.playerDoc.mapProgress,
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 
   const MAP_AMBIENT_SRCS = [
     "assets/sfx/rpg/Monsters/monster_1.wav",
@@ -302,6 +434,7 @@
       state.mapProgress.unlockedTownIds.push(firstTownId);
     }
     ensureNextTownUnlocked(state.mapProgress, mapData);
+    syncActiveSaveProgressMirror();
     return state.mapProgress;
   }
 
@@ -315,18 +448,22 @@ async function loadPlayerProgress() {
       if (window.Cloud?.loadPlayerDoc) {
         state.playerDoc = await window.Cloud.loadPlayerDoc();
       }
-      state.mapProgress = state.playerDoc?.mapProgress || null;
+      const normalized = normalizePlayerDocForSaves(state.playerDoc, window.BattlechurchMapData);
+      state.playerDoc = normalized.doc;
+      state.mapProgress = state.playerDoc?.saveFiles?.[state.playerDoc?.activeSaveId]?.mapProgress || null;
       const progress = ensureProgress();
-      // Save fresh v2 progress if no doc exists or doc is pre-v2 (clean break)
-      const isV2 = state.playerDoc?.mapProgress?.version === 2;
-      if (!isV2 && window.Cloud?.savePlayerDoc) {
-        await window.Cloud.savePlayerDoc({ mapProgress: progress });
+      const isV2 = progress?.version === 2;
+      if ((normalized.dirty || !isV2) && window.Cloud?.savePlayerDoc) {
+        await persistPlayerDoc();
       }
       if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
         state.selectedTownId = pickInitialTown();
       }
     } catch (e) {
       // Offline/local fallback: keep map playable with in-memory fresh progress.
+      const fallback = normalizePlayerDocForSaves(state.playerDoc, window.BattlechurchMapData);
+      state.playerDoc = fallback.doc;
+      state.mapProgress = state.playerDoc?.saveFiles?.[state.playerDoc?.activeSaveId]?.mapProgress || null;
       state.mapProgress = ensureProgress();
       if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
         state.selectedTownId = pickInitialTown();
@@ -1540,11 +1677,12 @@ async function loadPlayerProgress() {
     // Recompute sequential town unlocks
     ensureNextTownUnlocked(progress, mapData);
 
-    if (window.Cloud?.savePlayerDoc) {
-      try {
-        await window.Cloud.savePlayerDoc({ mapProgress: progress });
-      } catch (e) {}
+    const activeSave = getActiveSave();
+    if (activeSave) {
+      activeSave.lastPlayedAt = Date.now();
     }
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
   }
 
   function open() {
@@ -1561,6 +1699,165 @@ async function loadPlayerProgress() {
   async function reloadProgress() {
     await loadPlayerProgress();
     return ensureProgress();
+  }
+
+  function getSaveFileSummaries() {
+    const mapData = window.BattlechurchMapData;
+    const towns = Array.isArray(mapData?.towns) ? mapData.towns : [];
+    const saveFiles = state.playerDoc?.saveFiles || {};
+    const activeSaveId = state.playerDoc?.activeSaveId || null;
+    const summaries = Object.entries(saveFiles).map(([id, save]) => {
+      const mapProgress = save?.mapProgress || { towns: {}, unlockedTownIds: [] };
+      const completedP1Towns = towns.filter((town) => mapProgress?.towns?.[town.id]?.p1?.completed === true).length;
+      const totalTowns = Math.max(1, towns.length || 10);
+      let totalCongregationBest = 0;
+      let totalReplayCompletions = 0;
+      let totalUpgradeLevels = 0;
+      const townProgressRows = towns.map((town) => {
+        const townProgress = mapProgress?.towns?.[town.id] || {};
+        const p1 = townProgress?.p1 || {};
+        const p2 = townProgress?.p2 || {};
+        const p3 = townProgress?.p3 || {};
+        const campaignsCompleted = [p1, p2, p3].filter((campaign) => campaign?.completed === true).length;
+        const bestCount = Number.isFinite(p1?.bestCount) ? p1.bestCount : 0;
+        if (bestCount > 0) totalCongregationBest += bestCount;
+        totalReplayCompletions += campaignsCompleted;
+        const upgradeEntries = Object.entries(p1?.churchPowerupLevels || {}).filter(([, level]) => Number(level) > 0);
+        const upgradeTypeCount = upgradeEntries.length;
+        const upgradeLevelTotal = upgradeEntries.reduce((sum, [, level]) => sum + Number(level || 0), 0);
+        totalUpgradeLevels += upgradeLevelTotal;
+        return {
+          townId: town.id,
+          townName: town.name || town.id || "Unknown Town",
+          p1Completed: p1?.completed === true,
+          bestCount,
+          completions: campaignsCompleted,
+          upgradeTypeCount,
+          upgradeLevelTotal,
+        };
+      });
+      const firstTownId = mapData?.getFirstTownId?.() || towns[0]?.id || null;
+      const regularTownIds = towns.filter((town) => town.type !== "capital").map((town) => town.id);
+      const capitalTownId = towns.find((town) => town.type === "capital")?.id || null;
+      const unlocked = new Set(firstTownId ? [firstTownId] : []);
+      for (let i = 0; i < regularTownIds.length; i += 1) {
+        if (mapProgress?.towns?.[regularTownIds[i]]?.p1?.completed === true && regularTownIds[i + 1]) {
+          unlocked.add(regularTownIds[i + 1]);
+        }
+      }
+      if (regularTownIds.length > 0 && regularTownIds.every((townId) => mapProgress?.towns?.[townId]?.p1?.completed === true) && capitalTownId) {
+        unlocked.add(capitalTownId);
+      }
+      const orderedTownIds = towns.map((town) => town.id);
+      const suggestedTownId =
+        orderedTownIds.find((townId) => unlocked.has(townId) && !(mapProgress?.towns?.[townId]?.p1?.completed)) ||
+        [...orderedTownIds].reverse().find((townId) => unlocked.has(townId)) ||
+        firstTownId ||
+        null;
+      return {
+        id,
+        saveName: save?.saveName || `Save ${id}`,
+        playerName: save?.playerName || "Pastor",
+        createdAt: Number.isFinite(save?.createdAt) ? save.createdAt : null,
+        lastPlayedAt: Number.isFinite(save?.lastPlayedAt) ? save.lastPlayedAt : null,
+        playtimeSec: Number.isFinite(save?.playtimeSec) ? save.playtimeSec : 0,
+        completedP1Towns,
+        totalTowns,
+        totalCongregationBest,
+        totalReplayCompletions,
+        totalUpgradeLevels,
+        townProgressRows,
+        suggestedTownId,
+        suggestedTownName: towns.find((town) => town.id === suggestedTownId)?.name || "",
+        isActive: id === activeSaveId,
+      };
+    });
+    summaries.sort((a, b) => {
+      if (a.isActive && !b.isActive) return -1;
+      if (!a.isActive && b.isActive) return 1;
+      return (b.lastPlayedAt || 0) - (a.lastPlayedAt || 0);
+    });
+    return { activeSaveId, saves: summaries };
+  }
+
+  async function setActiveSave(saveId) {
+    if (!saveId || !state.playerDoc?.saveFiles?.[saveId]) return false;
+    state.playerDoc.activeSaveId = saveId;
+    state.mapProgress = state.playerDoc.saveFiles[saveId].mapProgress;
+    ensureProgress();
+    if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+      state.selectedTownId = pickInitialTown();
+    }
+    const activeSave = getActiveSave();
+    if (activeSave) activeSave.lastPlayedAt = Date.now();
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
+    return true;
+  }
+
+  async function createSaveFile({ saveName, playerName, sourceSaveId = null, setActive = true } = {}) {
+    if (!state.playerDoc || !state.playerDoc.saveFiles) return null;
+    const baseId = String(Date.now());
+    let saveId = `save_${baseId}`;
+    while (state.playerDoc.saveFiles[saveId]) {
+      saveId = `save_${baseId}_${Math.floor(Math.random() * 1000)}`;
+    }
+    const source = sourceSaveId && state.playerDoc.saveFiles[sourceSaveId]
+      ? state.playerDoc.saveFiles[sourceSaveId]
+      : state.playerDoc.saveFiles[state.playerDoc.activeSaveId];
+    const sourceMapProgress = source?.mapProgress ? deepClone(source.mapProgress) : createFreshMapProgress(window.BattlechurchMapData);
+    state.playerDoc.saveFiles[saveId] = {
+      saveName: typeof saveName === "string" && saveName.trim() ? saveName.trim() : `Save ${Object.keys(state.playerDoc.saveFiles).length + 1}`,
+      playerName: typeof playerName === "string" && playerName.trim() ? playerName.trim() : (source?.playerName || "Pastor"),
+      createdAt: Date.now(),
+      lastPlayedAt: Date.now(),
+      playtimeSec: 0,
+      mapProgress: sourceMapProgress,
+    };
+    if (setActive) {
+      state.playerDoc.activeSaveId = saveId;
+      state.mapProgress = state.playerDoc.saveFiles[saveId].mapProgress;
+      ensureProgress();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
+      }
+    }
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
+    return saveId;
+  }
+
+  async function renameSaveFile(saveId, saveName, playerName = null) {
+    const target = state.playerDoc?.saveFiles?.[saveId];
+    if (!target) return false;
+    if (typeof saveName === "string" && saveName.trim()) {
+      target.saveName = saveName.trim();
+    }
+    if (typeof playerName === "string" && playerName.trim()) {
+      target.playerName = playerName.trim();
+    }
+    target.lastPlayedAt = Date.now();
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
+    return true;
+  }
+
+  async function deleteSaveFile(saveId) {
+    if (!saveId || !state.playerDoc?.saveFiles?.[saveId]) return false;
+    const ids = Object.keys(state.playerDoc.saveFiles);
+    if (ids.length <= 1) return false;
+    delete state.playerDoc.saveFiles[saveId];
+    if (state.playerDoc.activeSaveId === saveId) {
+      state.playerDoc.activeSaveId = Object.keys(state.playerDoc.saveFiles)[0];
+      state.mapProgress = state.playerDoc.saveFiles[state.playerDoc.activeSaveId].mapProgress;
+      ensureProgress();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
+      }
+    }
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
+    return true;
   }
 
   function close() {
@@ -1687,6 +1984,11 @@ async function loadPlayerProgress() {
     isP2UnlockedForTown,
     isP3UnlockedForTown,
     reloadProgress,
+    getSaveFileSummaries,
+    setActiveSave,
+    createSaveFile,
+    renameSaveFile,
+    deleteSaveFile,
     isCountyDone,
     isCapitalUnlocked,
     getCapitalScoreMultiplier,
