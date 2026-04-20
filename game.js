@@ -6612,6 +6612,9 @@ function startGameFromTitle() {
 function startRunForTown(townId) {
   activeTownId = townId || null;
   mapActive = false;
+  if (typeof window !== "undefined" && typeof window.MapScreen?.close === "function") {
+    window.MapScreen.close();
+  }
   if (typeof window !== "undefined") {
     window.activeTownId = activeTownId;
   }
@@ -22240,7 +22243,8 @@ function gameLoop(timestamp) {
 
   if (typeof window !== "undefined") {
     window.__battlechurchTitleScreenActive = Boolean(titleScreenActive);
-    window.__battlechurchPauseMenuActive = Boolean(paused && !gameOver);
+    window.__battlechurchPauseMenuActive = Boolean(window.isPauseOverlayActive);
+    window.__battlechurchMapScreenActive = Boolean(mapActive);
   }
 
   if (typeof Input?.pollGamepad === "function") {

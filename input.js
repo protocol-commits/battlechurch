@@ -489,23 +489,47 @@
     if (typeof window === "undefined") return false;
     if (window.UpgradeScreen?.isVisible?.()) return true;
     if (window.DialogOverlay?.isVisible?.()) return true;
-    if (window.MapScreen?.isActive?.()) return true;
+    if (window.__battlechurchMapScreenActive) return true;
     if (window.__battlechurchTitleScreenActive) return true;
-    if (window.__battlechurchHowToPlayActive) return true;
+    if (window.PlayingInstructions?.state?.open) return true;
     if (window.__battlechurchPauseMenuActive) return true;
     if (window.__missionBriefActive) return true;
-    return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
+    const announcementKey = String(window.__announcementButtons?.key || "").toLowerCase();
+    const menuAnnouncementKeys = new Set([
+      "title",
+      "pause",
+      "missionbrief",
+      "chapterbreak",
+      "visitorintro",
+      "recap",
+      "pastorfinal",
+      "pastorpostrecap",
+      "denomupgradescreen",
+    ]);
+    return menuAnnouncementKeys.has(announcementKey);
   }
 
   function shouldUseGamepadEastButtonAsBack() {
     if (typeof window === "undefined") return false;
     if (window.DialogOverlay?.isVisible?.()) return true;
-    if (window.MapScreen?.isActive?.()) return true;
+    if (window.__battlechurchMapScreenActive) return true;
     if (window.__battlechurchTitleScreenActive) return true;
-    if (window.__battlechurchHowToPlayActive) return true;
+    if (window.PlayingInstructions?.state?.open) return true;
     if (window.__battlechurchPauseMenuActive) return true;
     if (window.__missionBriefActive) return true;
-    return Array.isArray(window.__announcementButtons?.buttons) && window.__announcementButtons.buttons.length > 0;
+    const announcementKey = String(window.__announcementButtons?.key || "").toLowerCase();
+    const backAnnouncementKeys = new Set([
+      "title",
+      "pause",
+      "missionbrief",
+      "chapterbreak",
+      "visitorintro",
+      "recap",
+      "pastorfinal",
+      "pastorpostrecap",
+      "denomupgradescreen",
+    ]);
+    return backAnnouncementKeys.has(announcementKey);
   }
 
   function pollGamepad() {
@@ -572,14 +596,18 @@
       gamepadState.aim.active = false;
     }
 
+    const useSouthAsConfirm = shouldUseGamepadSouthButtonAsConfirm();
+    const useEastAsBack = shouldUseGamepadEastButtonAsBack();
+    const inMenuLikeContext = useSouthAsConfirm || useEastAsBack;
+    const cButtonIndex = inMenuLikeContext ? 2 : 3; // Gameplay: C -> Xbox Y (north button).
     const buttonMap = [
-      shouldUseGamepadSouthButtonAsConfirm()
+      useSouthAsConfirm
         ? { index: 0, key: "enter" }
         : { index: 0, key: "ArrowLeft", setNesA: true },
-      shouldUseGamepadEastButtonAsBack()
+      useEastAsBack
         ? { index: 1, key: "escape" }
         : { index: 1, key: "ArrowDown" },
-      { index: 2, key: "ArrowRight", setPrayerBomb: true },
+      { index: cButtonIndex, key: "ArrowRight", setPrayerBomb: true },
       { index: 9, key: " " },
     ];
 
