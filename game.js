@@ -162,7 +162,7 @@ let titleCloudSaveOption = {
 const TITLE_DEMO_SAVE_SLOTS = [
   {
     key: "slot1",
-    label: "Slot 1: County 2",
+    label: "Demo Slot 1: County 2",
     townId: "red_creek",
     completedTowns: 3,
     campaignData: {
@@ -174,7 +174,7 @@ const TITLE_DEMO_SAVE_SLOTS = [
   },
   {
     key: "slot2",
-    label: "Slot 2: County 3",
+    label: "Demo Slot 2: County 3",
     townId: "lowmoor",
     completedTowns: 6,
     campaignData: {
@@ -189,7 +189,7 @@ const TITLE_DEMO_SAVE_SLOTS = [
   },
   {
     key: "slot3",
-    label: "Slot 3: Boss Run",
+    label: "Demo Slot 3: Boss Run",
     townId: "highgate",
     completedTowns: 9,
     campaignData: {
@@ -6695,19 +6695,30 @@ async function refreshTitleCloudSaveOption() {
       return;
     }
     const doc = await window.Cloud.loadPlayerDoc();
-    const progress = doc?.mapProgress;
+    const progress = doc?.mapProgress || { towns: {}, unlockedTownIds: [] };
     const mapData = window.BattlechurchMapData;
-    const unlockedTownIds = Array.isArray(progress?.unlockedTownIds)
-      ? progress.unlockedTownIds.filter(Boolean)
-      : [];
-    if (!mapData?.towns || unlockedTownIds.length === 0) {
-      titleCloudSaveOption.loading = false;
-      titleCloudSaveOption.available = false;
-      titleCloudSaveOption.label = "";
-      return;
+    const towns = Array.isArray(mapData?.towns) ? mapData.towns : [];
+    const townOrder = towns.map((town) => town.id).filter(Boolean);
+    const firstTownId = mapData?.getFirstTownId?.() || townOrder[0] || null;
+    const regularTownIds = towns.filter((town) => town.type !== "capital").map((town) => town.id);
+    const capitalTownId = towns.find((town) => town.type === "capital")?.id || null;
+    const unlockedSet = new Set();
+    if (firstTownId) unlockedSet.add(firstTownId);
+    for (let i = 0; i < regularTownIds.length; i += 1) {
+      const townId = regularTownIds[i];
+      if (progress?.towns?.[townId]?.p1?.completed === true) {
+        const nextRegularTownId = regularTownIds[i + 1];
+        if (nextRegularTownId) unlockedSet.add(nextRegularTownId);
+      }
     }
+    const allRegularP1Done =
+      regularTownIds.length > 0 &&
+      regularTownIds.every((townId) => progress?.towns?.[townId]?.p1?.completed === true);
+    if (allRegularP1Done && capitalTownId) {
+      unlockedSet.add(capitalTownId);
+    }
+    const unlockedTownIds = townOrder.filter((townId) => unlockedSet.has(townId));
 
-    const townOrder = mapData.towns.map((town) => town.id);
     const firstIncompleteUnlocked =
       townOrder.find((townId) => {
         if (!unlockedTownIds.includes(townId)) return false;
@@ -6715,20 +6726,27 @@ async function refreshTitleCloudSaveOption() {
       }) || null;
     const lastUnlocked =
       [...townOrder].reverse().find((townId) => unlockedTownIds.includes(townId)) || null;
-    const suggestedTownId = firstIncompleteUnlocked || lastUnlocked || unlockedTownIds[0];
+    const suggestedTownId = firstIncompleteUnlocked || lastUnlocked || unlockedTownIds[0] || firstTownId || null;
     const suggestedTownName =
-      mapData.towns.find((town) => town.id === suggestedTownId)?.name || "Map";
-    const regularP1Completed = mapData.towns.filter((town) =>
-      town.type !== "capital" && progress?.towns?.[town.id]?.p1?.completed
+      mapData?.towns?.find((town) => town.id === suggestedTownId)?.name || "Map";
+    const completedP1Towns = towns.filter((town) =>
+      progress?.towns?.[town.id]?.p1?.completed
     ).length;
+    const totalTowns = townOrder.length;
     titleCloudSaveOption.loading = false;
     titleCloudSaveOption.available = true;
     titleCloudSaveOption.townId = suggestedTownId;
-    titleCloudSaveOption.label = `Continue Google Save (${regularP1Completed}/9) - ${suggestedTownName}`;
+    const progressLabel =
+      completedP1Towns > 0
+        ? `(${completedP1Towns}/${Math.max(1, totalTowns)}) - ${suggestedTownName}`
+        : "(No progress yet)";
+    titleCloudSaveOption.label = `Play Google Save ${progressLabel}`;
   } catch (e) {
+    // If cloud read fails, still expose an entry point to map progression.
     titleCloudSaveOption.loading = false;
-    titleCloudSaveOption.available = false;
-    titleCloudSaveOption.label = "";
+    titleCloudSaveOption.available = true;
+    titleCloudSaveOption.townId = window.BattlechurchMapData?.getFirstTownId?.() || null;
+    titleCloudSaveOption.label = "Play Google Save";
   }
 }
 
@@ -16471,21 +16489,28 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "cloudsave") {
-          titleDemoSaveOverride = null;
-          const suggestedTownId = titleCloudSaveOption?.townId || null;
-          if (suggestedTownId && typeof window !== "undefined" && window.MapScreen?.selectTown) {
-            window.MapScreen.selectTown(suggestedTownId);
-          }
-          if (suggestedTownId) {
-            activeTownId = suggestedTownId;
-            if (typeof window !== "undefined") {
-              window.activeTownId = activeTownId;
+          void (async () => {
+            titleDemoSaveOverride = null;
+            const suggestedTownId = titleCloudSaveOption?.townId || null;
+            titleScreenActive = false;
+            mapActive = true;
+            if (window.MapScreen) {
+              window.MapScreen.open();
+              if (typeof window.MapScreen.reloadProgress === "function") {
+                await window.MapScreen.reloadProgress();
+              }
+              if (suggestedTownId && typeof window.MapScreen.selectTown === "function") {
+                window.MapScreen.selectTown(suggestedTownId);
+              }
             }
-          }
-          titleScreenActive = false;
-          mapActive = true;
-          if (window.MapScreen) window.MapScreen.open();
-          titleDemoSaveMenuActive = false;
+            if (suggestedTownId) {
+              activeTownId = suggestedTownId;
+              if (typeof window !== "undefined") {
+                window.activeTownId = activeTownId;
+              }
+            }
+            titleDemoSaveMenuActive = false;
+          })();
           return;
         }
         if (button.key === "resetGoogleSave") {

@@ -330,7 +330,7 @@ async function loadPlayerProgress() {
       if (!isV2 && window.Cloud?.savePlayerDoc) {
         await window.Cloud.savePlayerDoc({ mapProgress: progress });
       }
-      if (!state.selectedTownId) {
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
         state.selectedTownId = pickInitialTown();
       }
     } catch (e) {
@@ -1562,6 +1562,11 @@ async function loadPlayerProgress() {
     startMapAmbient();
   }
 
+  async function reloadProgress() {
+    await loadPlayerProgress();
+    return ensureProgress();
+  }
+
   function close() {
     state.active = false;
     state.panelOpen = false;
@@ -1685,6 +1690,7 @@ async function loadPlayerProgress() {
     getNextCampaignForTown,
     isP2UnlockedForTown,
     isP3UnlockedForTown,
+    reloadProgress,
     isCountyDone,
     isCapitalUnlocked,
     getCapitalScoreMultiplier,

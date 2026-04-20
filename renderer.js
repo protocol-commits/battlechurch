@@ -7057,7 +7057,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
       ctx.font = `700 30px ${UI_FONT_FAMILY}`;
-      ctx.fillText("Select Save Slot", panelX + panelW / 2, titleY);
+      ctx.fillText("Choose Save Source", panelX + panelW / 2, titleY);
 
       buttonConfigs.forEach((config, index) => {
         const x = Math.round(panelX + (panelW - buttonWidth) / 2);

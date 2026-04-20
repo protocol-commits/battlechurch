@@ -61,7 +61,25 @@ async function initCloud() {
         updateAuthGlobals(user);
       });
     }
-    if (!auth.currentUser) {
+    // Wait for Firebase to restore any persisted session before falling back
+    // to anonymous auth. Without this, we can clobber a valid Google session.
+    const restoredUser = await new Promise((resolve, reject) => {
+      const unsub = onAuthStateChanged(
+        auth,
+        (nextUser) => {
+          unsub();
+          resolve(nextUser || null);
+        },
+        (err) => {
+          unsub();
+          reject(err);
+        },
+      );
+    });
+    if (restoredUser) {
+      user = restoredUser;
+      updateAuthGlobals(user);
+    } else {
       await signInAnonymously(auth);
     }
     await ensureUser();
