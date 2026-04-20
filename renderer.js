@@ -7007,6 +7007,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ? "Sync Google Saves"
           : "Login with Google";
       buttonConfigs.push({ key: "loginGoogle", label: loginLabel });
+      buttonConfigs.push({ key: "viewCloudSaveDetails", label: "View Full Details" });
       if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
         buttonConfigs.push({ key: "logoutGoogle", label: "Logout" });
         buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
@@ -7026,7 +7027,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else if (mapReady) {
       // Map ready but gameplay still loading - allow map browsing
       buttonConfigs = [
-        { key: "map", label: "Map" },
+        { key: "map", label: "Loading" },
         { key: "settings", label: "Settings" },
         { key: "howtoplay", label: "How to Play" },
       ];
@@ -7069,6 +7070,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const subtitleY = titleY + 20;
       const actionKeys = new Set([
         "loginGoogle",
+        "viewCloudSaveDetails",
         "logoutGoogle",
         "newCloudSave",
         "duplicateCloudSave",
@@ -7107,6 +7109,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.font = `500 15px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "rgba(242, 200, 125, 0.72)";
       ctx.fillText("Use cloud progress or a demo profile", panelX + panelW / 2, subtitleY);
+      const accountLine =
+        typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail
+          ? `Signed in as: ${window.cloudEmail}`
+          : "Not signed in";
+      ctx.font = `500 13px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle =
+        typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail
+          ? "rgba(231, 176, 102, 0.82)"
+          : "rgba(231, 176, 102, 0.58)";
+      ctx.fillText(accountLine, panelX + panelW / 2, subtitleY + 18);
 
       const describeRow = (config) => {
         if (typeof config?.meta === "string" && config.meta.trim()) return config.meta;
@@ -7231,7 +7243,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillText(`Campaign: ${focusDemoDetails.campaign}`, detailLeft, lineY); lineY += detailLineGap;
         ctx.fillText(`Start Congregation: ${fmt(focusDemoDetails.startCount)}`, detailLeft, lineY); lineY += detailLineGap;
         ctx.fillText(`Campaign Multiplier: x${fmtFloat(focusDemoDetails.campaignMultiplier)}`, detailLeft, lineY); lineY += detailLineGap;
-        ctx.fillText(`Upgrade Levels: ${fmt(focusDemoDetails.upgradeLevels)}`, detailLeft, lineY); lineY += detailLineGap;
       } else if (!details) {
         ctx.font = `500 14px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = "rgba(231, 176, 102, 0.8)";
@@ -7247,29 +7258,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillText(`Player: ${details.playerName || "Pastor"}`, detailLeft, lineY); lineY += detailLineGap;
         ctx.fillText(`Towns Cleared: ${fmt(details.completedTowns)}/${fmt(details.totalTowns)}`, detailLeft, lineY); lineY += detailLineGap;
         ctx.fillText(`Congregation Total: ${fmt(details.totalCongregationBest)}`, detailLeft, lineY); lineY += detailLineGap;
-        ctx.fillText(`Replay Clears: ${fmt(details.totalReplayCompletions)}`, detailLeft, lineY); lineY += detailLineGap;
-        ctx.fillText(`Upgrade Levels: ${fmt(details.totalUpgradeLevels)}`, detailLeft, lineY); lineY += 24;
-
-        ctx.font = `700 13px ${UI_FONT_FAMILY}`;
-        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-        ctx.fillText("Town Breakdown", detailLeft, lineY);
-        lineY += 16;
-
-        const rows = Array.isArray(details.townRows) ? details.townRows : [];
-        const maxRows = Math.max(1, Math.floor((detailsY + detailsH - lineY - 8) / 15));
-        const visibleRows = rows.slice(0, maxRows);
-        ctx.font = `500 12px ${UI_FONT_FAMILY}`;
-        visibleRows.forEach((row) => {
-          const leftText = `${row?.townName || "Town"} ${row?.p1Completed ? "DONE" : "--"}`;
-          const rightText = `C:${fmt(row?.bestCount)} R:${fmt(row?.completions)} U:${fmt(row?.upgradeLevelTotal)}`;
-          ctx.fillStyle = row?.p1Completed ? "rgba(242, 210, 146, 0.9)" : "rgba(214, 157, 96, 0.66)";
-          ctx.fillText(leftText, detailLeft, lineY);
-          ctx.fillStyle = "rgba(231, 176, 102, 0.76)";
-          ctx.textAlign = "right";
-          ctx.fillText(rightText, detailsX + detailsColumnW - 12, lineY);
-          ctx.textAlign = "left";
-          lineY += 15;
-        });
       }
       ctx.restore();
 

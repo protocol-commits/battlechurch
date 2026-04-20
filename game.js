@@ -16474,6 +16474,20 @@ function handleTitleScreen() {
       titleCloudActiveSaveId ||
       titleCloudSaveRows[0]?.id ||
       null;
+    const getFocusedTitleRowKey = () => {
+      const focus =
+        typeof window !== "undefined" && window.__announcementFocus?.key === "title"
+          ? window.__announcementFocus
+          : null;
+      if (!focus || !Array.isArray(buttons)) return null;
+      const focusedButton = buttons[focus.index] || null;
+      return String(focusedButton?.key || "") || null;
+    };
+    const escapeHtml = (value) =>
+      String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
     const handled = handleAnnouncementButtons({
       key: "title",
       buttons,
@@ -16586,6 +16600,70 @@ function handleTitleScreen() {
               // Keep menu responsive even if Google sign-in popup is blocked/canceled.
             }
           })();
+          return;
+        }
+        if (button.key === "viewCloudSaveDetails") {
+          const focusedKey = getFocusedTitleRowKey();
+          const focusedCloudId =
+            focusedKey && focusedKey.startsWith("cloudsave:")
+              ? focusedKey.slice("cloudsave:".length)
+              : null;
+          const targetCloudId = focusedCloudId || resolveCloudTargetSaveId();
+          const cloudRow = targetCloudId
+            ? titleCloudSaveRows.find((row) => row.id === targetCloudId) || null
+            : null;
+          let title = "Save Details";
+          let lines = [];
+          if (cloudRow?.details) {
+            const d = cloudRow.details;
+            const townRows = Array.isArray(d.townRows) ? d.townRows : [];
+            title = `${d.saveName || "Save"} - Full Details`;
+            lines.push(`Player: ${d.playerName || "Pastor"}`);
+            lines.push(`Towns Cleared: ${Number(d.completedTowns) || 0}/${Number(d.totalTowns) || 10}`);
+            lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
+            lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
+            lines.push(`Upgrade Levels: ${Number(d.totalUpgradeLevels) || 0}`);
+            lines.push("");
+            lines.push("Town Breakdown:");
+            townRows.forEach((row) => {
+              lines.push(
+                `${row?.townName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
+              );
+            });
+          } else {
+            const demoKey = focusedKey && focusedKey.startsWith("slot") ? focusedKey : null;
+            const demoSlot = demoKey ? TITLE_DEMO_SAVE_SLOTS.find((slot) => slot.key === demoKey) : null;
+            if (demoSlot) {
+              const campaignData = demoSlot.campaignData || {};
+              title = `${demoSlot.label || "Demo Slot"} - Details`;
+              lines.push(`Start Town: ${demoSlot.townId || "unknown"}`);
+              lines.push(`Preset Towns Cleared: ${Math.max(0, Number(demoSlot.completedTowns) || 0)}/10`);
+              lines.push(`Campaign: ${String(campaignData.campaign || "p1").toUpperCase()}`);
+              lines.push(`Start Congregation: ${Math.max(0, Number(campaignData.startCount) || 0)}`);
+              lines.push(`Campaign Multiplier: x${Number(campaignData.campaignMultiplier || 1).toFixed(2).replace(/\\.00$/, "")}`);
+              const upgrades = Object.entries(campaignData.restoredChurchPowerupLevels || {});
+              lines.push(
+                `Upgrades: ${
+                  upgrades.length
+                    ? upgrades.map(([id, level]) => `${id} ${Number(level) || 0}`).join(", ")
+                    : "None"
+                }`,
+              );
+            }
+          }
+          if (!lines.length) {
+            lines = ["Select a save row first, then choose View Full Details."];
+          }
+          if (window.DialogOverlay?.show) {
+            window.DialogOverlay.show({
+              title,
+              bodyHtml: `<div class="settings-panel"><pre style="white-space: pre-wrap; max-height: 58vh; overflow-y: auto; margin: 0;">${escapeHtml(lines.join("\n"))}</pre></div>`,
+              buttonText: "Close",
+              variant: "settings",
+            });
+          } else if (typeof window?.alert === "function") {
+            window.alert(`${title}\n\n${lines.join("\n")}`);
+          }
           return;
         }
         if (button.key === "logoutGoogle") {
