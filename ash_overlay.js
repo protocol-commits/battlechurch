@@ -142,8 +142,9 @@ class AshOverlay {
   setEmberRatio(ratio) {
     const next = Math.max(0, Math.min(1, Number(ratio)));
     if (!Number.isFinite(next)) return;
+    if (Math.abs(next - this.emberRatio) < 0.0001) return;
     this.emberRatio = next;
-    this._seedParticles();
+    this._applyEmberRatioToExistingParticles();
   }
 
   setEmbersOnly(value) {
@@ -168,6 +169,39 @@ class AshOverlay {
     this.count = next;
     this.particles = new Array(this.count);
     this._seedParticles();
+  }
+
+  _applyEmberRatioToExistingParticles() {
+    if (!Array.isArray(this.particles) || !this.particles.length) return;
+    const emberCount = Math.max(1, Math.round(this.count * this.emberRatio));
+    for (let i = 0; i < this.particles.length; i += 1) {
+      const p = this.particles[i];
+      if (!p) continue;
+      const shouldBeEmber = i < emberCount;
+      if (p.isEmber === shouldBeEmber) continue;
+      p.isEmber = shouldBeEmber;
+      if (shouldBeEmber) {
+        p.size = this._rand(0.9, 2.2);
+        p.alpha = this._rand(0.18, 0.3);
+        p.color = "rgba(255, 120, 40, 0.95)";
+        p.life = this._rand(6, 8);
+        p.lifeTimer = Math.random() * p.life * 0.35;
+        p.alphaScale = 1;
+        p.shape = 0;
+        p.vx = this._rand(-6, 6);
+        p.vy = -this._rand(10, 18);
+      } else {
+        p.size = this._rand(0.6, 1.4);
+        p.alpha = this._rand(0.03, 0.08);
+        p.color = "rgba(140, 110, 90, 0.7)";
+        p.life = 0;
+        p.lifeTimer = 0;
+        p.alphaScale = 1;
+        p.shape = Math.random() < 0.2 ? 1 : 0;
+        p.vx = this._rand(-5, 5);
+        p.vy = -this._rand(6, 12);
+      }
+    }
   }
 
   _seedParticles() {

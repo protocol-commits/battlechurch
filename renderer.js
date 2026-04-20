@@ -6397,6 +6397,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     "bossVictoryCelebrate",
   ]);
   const WAVE_ATMOSPHERE_TRANSITION_MS = 500;
+  const BOSS_PHASE3_HEAT_TRANSITION_MS = 500;
   const WAVE_ATMOSPHERE_CONFIG = Object.freeze({
     assumedWavesPerBattle: 3,
     tintMinAlpha: 0.02,
@@ -6421,6 +6422,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     emberRatio: null,
     intensity: null,
     sizeScale: null,
+  };
+  const bossPhase3HeatTweenState = {
+    initialized: false,
+    lastMs: 0,
+    blend: 0,
   };
 
   function getWaveTargetProgress(levelStatus) {
@@ -6464,6 +6470,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     return Math.max(0, Math.min(1, waveAtmosphereTweenState.progress));
   }
 
+  function getBossPhase3HeatBlend(levelStatus) {
+    const bossPhase = Math.max(0, Number(levelStatus?.bossPhase) || 0);
+    const targetActive =
+      levelStatus?.stage === "bossVictoryCelebrate" ||
+      ((levelStatus?.stage === "bossActive" || levelStatus?.stage === "bossIntro") && bossPhase >= 3);
+    const target = targetActive ? 1 : 0;
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (!bossPhase3HeatTweenState.initialized) {
+      bossPhase3HeatTweenState.initialized = true;
+      bossPhase3HeatTweenState.lastMs = nowMs;
+      bossPhase3HeatTweenState.blend = target;
+      return target;
+    }
+    const elapsedMs = Math.max(0, nowMs - (bossPhase3HeatTweenState.lastMs || nowMs));
+    bossPhase3HeatTweenState.lastMs = nowMs;
+    const durationMs = Math.max(1, BOSS_PHASE3_HEAT_TRANSITION_MS);
+    const step = Math.max(0, Math.min(1, elapsedMs / durationMs));
+    bossPhase3HeatTweenState.blend += (target - bossPhase3HeatTweenState.blend) * step;
+    return Math.max(0, Math.min(1, bossPhase3HeatTweenState.blend));
+  }
+
   function drawWaveProgressionAtmosphere(ctx, progress, bounds) {
     if (!ctx || !bounds) return;
     if (!(progress > 0.001)) return;
@@ -6475,16 +6502,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     // Subtle heat ramp across waves: deeper red tint + warm ember lift.
     const levelStatus = requireBindings().levelManager?.getStatus?.() || null;
-    const bossPhase = Math.max(0, Number(levelStatus?.bossPhase) || 0);
-    const bossPhase3Active =
-      levelStatus?.stage === "bossVictoryCelebrate" ||
-      ((levelStatus?.stage === "bossActive" || levelStatus?.stage === "bossIntro") && bossPhase >= 3);
-    const tintMaxAlpha = bossPhase3Active
-      ? WAVE_ATMOSPHERE_CONFIG.bossPhase3TintMaxAlpha
-      : WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha;
-    const emberMaxAlpha = bossPhase3Active
-      ? WAVE_ATMOSPHERE_CONFIG.bossPhase3EmberMaxAlpha
-      : WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha;
+    const bossPhase3Blend = getBossPhase3HeatBlend(levelStatus);
+    const tintMaxAlpha =
+      WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha +
+      (WAVE_ATMOSPHERE_CONFIG.bossPhase3TintMaxAlpha - WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha) * bossPhase3Blend;
+    const emberMaxAlpha =
+      WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha +
+      (WAVE_ATMOSPHERE_CONFIG.bossPhase3EmberMaxAlpha - WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha) * bossPhase3Blend;
 
     const tintAlpha =
       WAVE_ATMOSPHERE_CONFIG.tintMinAlpha +
@@ -6851,6 +6875,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       HUD_HEIGHT,
       assetsLoaded,
       mapReady,
+      titleDemoSaveMenuActive,
+      titleDemoSaveSlots,
     } = requireBindings();
     ctx.save();
     const titleImage = assets?.titleBackground || null;
@@ -6943,11 +6969,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const titleSize = TEXT_STYLES.h1.size;
     const subtitleSize = TEXT_STYLES.h2.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
-    // Show Loading while loading, Map when map-ready but gameplay loading, Play when fully ready
+    // Show either the fake-save picker or the normal title actions.
     let buttonConfigs;
-    if (assetsLoaded) {
-      // Fully loaded - show Play button
+    if (titleDemoSaveMenuActive) {
+      const slots = Array.isArray(titleDemoSaveSlots) ? titleDemoSaveSlots : [];
+      buttonConfigs = slots.map((slot, index) => ({
+        key: slot?.key || `slot${index + 1}`,
+        label: slot?.label || `Slot ${index + 1}`,
+      }));
+      buttonConfigs.push({ key: "back", label: "Back" });
+    } else if (assetsLoaded) {
       buttonConfigs = [
+        { key: "continue", label: "Continue" },
         { key: "play", label: "Play" },
         { key: "settings", label: "Settings" },
         { key: "developer", label: "Developer" },
@@ -7002,8 +7035,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     buttonConfigs.forEach((config, index) => {
       const x = startX + index * (buttonWidth + buttonGap);
       // Show loading progress on play button (fully loading) or map button (gameplay loading)
-      const isLoading = (config.key === "play" && !assetsLoaded) ||
-                        (config.key === "map" && mapReady && !assetsLoaded);
+      const isLoading =
+        !titleDemoSaveMenuActive &&
+        ((config.key === "play" && !assetsLoaded) ||
+          (config.key === "map" && mapReady && !assetsLoaded));
       ctx.save();
       if (isLoading) {
         // Loading button as progress meter: dark background with fill
@@ -7039,7 +7074,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+      ctx.font = `600 ${titleDemoSaveMenuActive ? 20 : 22}px ${UI_FONT_FAMILY}`;
       ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
       ctx.restore();
       bounds.push({
@@ -8416,10 +8451,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const arenaHeight = canvas.height - fogHeight;
     const waveProgress = getWaveProgressRatio(levelStatus);
     const stageName = levelStatus?.stage || "";
-    const bossPhase = Math.max(0, Number(levelStatus?.bossPhase) || 0);
-    const bossPhase3Heat =
-      stageName === "bossVictoryCelebrate" ||
-      ((stageName === "bossIntro" || stageName === "bossActive") && bossPhase >= 3);
+    const bossPhase3HeatBlend = getBossPhase3HeatBlend(levelStatus);
     const isVictoryCelebrate =
       (levelStatus?.stage || "") === "victoryCelebrate" ||
       (levelStatus?.stage || "") === "bossVictoryCelebrate";
@@ -8433,32 +8465,42 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       1,
       Number(levelStatus?.waveNum) || Number(levelStatus?.wave) || 1,
     );
+    const bossPhase = Math.max(0, Number(levelStatus?.bossPhase) || 0);
+    const bossPhase3TargetActive =
+      stageName === "bossVictoryCelebrate" ||
+      ((stageName === "bossIntro" || stageName === "bossActive") && bossPhase >= 3);
     const waveThreeEmberBoost = currentWaveNumber >= 3;
     const maxHeatEmberBoost =
       waveThreeEmberBoost ||
       stageName === "bossIntro" ||
       stageName === "bossActive" ||
       stageName === "bossVictoryCelebrate";
-    const ashMaxAlpha = bossPhase3Heat
-      ? WAVE_ATMOSPHERE_CONFIG.bossPhase3AshMaxAlpha
-      : WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha;
+    const ashMaxAlpha =
+      WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha +
+      (WAVE_ATMOSPHERE_CONFIG.bossPhase3AshMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMaxAlpha) * bossPhase3HeatBlend;
     const ashAlpha =
       WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha +
       (ashMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
-      const baseParticleCount = bossPhase3Heat ? 260 : (maxHeatEmberBoost ? 180 : 100);
+      const baseParticleCount = bossPhase3TargetActive ? 180 : (maxHeatEmberBoost ? 180 : 100);
       const targetParticleCount = preserveEmberComposition
         ? (Number.isFinite(ashEmberTuneState.particleCount) ? ashEmberTuneState.particleCount : baseParticleCount)
         : Math.max(
             40,
             Math.round(baseParticleCount * victoryHeatFadeRatio),
           );
-      const baseEmberRatio = bossPhase3Heat ? 0.9 : (maxHeatEmberBoost ? 0.82 : 0.55);
+      const phase3EmberRatio = 0.72;
+      const nonPhase3EmberRatio = maxHeatEmberBoost ? 0.82 : 0.55;
+      const baseEmberRatio =
+        nonPhase3EmberRatio + (phase3EmberRatio - nonPhase3EmberRatio) * bossPhase3HeatBlend;
       const targetEmberRatio = preserveEmberComposition
         ? (Number.isFinite(ashEmberTuneState.emberRatio) ? ashEmberTuneState.emberRatio : baseEmberRatio)
         : Math.max(0.12, baseEmberRatio * victoryHeatFadeRatio);
-      const baseIntensity = bossPhase3Heat ? 2.05 : (maxHeatEmberBoost ? 1.55 : 1.0);
+      const phase3Intensity = 1.72;
+      const nonPhase3Intensity = maxHeatEmberBoost ? 1.55 : 1.0;
+      const baseIntensity =
+        nonPhase3Intensity + (phase3Intensity - nonPhase3Intensity) * bossPhase3HeatBlend;
       const targetIntensity = Math.max(0.2, baseIntensity * victoryHeatFadeRatio);
       const targetSizeScale = 1.0;
       if (typeof ashOverlay.setParticleCount === "function" && ashEmberTuneState.particleCount !== targetParticleCount) {

@@ -151,6 +151,54 @@ let levelManager = null;
 let activeBoss = null;
 const bossHazards = [];
 let titleScreenActive = true;
+let titleDemoSaveMenuActive = false;
+let titleDemoSaveOverride = null;
+const TITLE_DEMO_SAVE_SLOTS = [
+  {
+    key: "slot1",
+    label: "Slot 1: County 2",
+    townId: "red_creek",
+    completedTowns: 3,
+    campaignData: {
+      campaign: "p1",
+      startCount: 85,
+      campaignMultiplier: 1.0,
+      restoredChurchPowerupLevels: {},
+    },
+  },
+  {
+    key: "slot2",
+    label: "Slot 2: County 3",
+    townId: "lowmoor",
+    completedTowns: 6,
+    campaignData: {
+      campaign: "p2",
+      startCount: 120,
+      campaignMultiplier: 1.15,
+      restoredChurchPowerupLevels: {
+        spreadGun: 5,
+        halo: 5,
+      },
+    },
+  },
+  {
+    key: "slot3",
+    label: "Slot 3: Boss Run",
+    townId: "highgate",
+    completedTowns: 9,
+    campaignData: {
+      campaign: "p1",
+      startCount: 170,
+      campaignMultiplier: 1.0,
+      restoredChurchPowerupLevels: {
+        spreadGun: 5,
+        halo: 5,
+        spear: 5,
+        sentry: 5,
+      },
+    },
+  },
+];
 let assetsLoaded = false;
 let mapReady = false; // True when title/map can be used (before full gameplay assets)
 let gameplayAssetsPromise = null; // Promise for background gameplay asset loading
@@ -3943,6 +3991,8 @@ Renderer.initialize({
   CAMERA_SHAKE_DURATION,
   get cameraShakeMagnitude() { return cameraShakeMagnitude; },
   get titleScreenActive() { return titleScreenActive; },
+  get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
+  get titleDemoSaveSlots() { return TITLE_DEMO_SAVE_SLOTS; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
@@ -6479,7 +6529,11 @@ function startGameFromTitle() {
   maxComboThisTown = 0;
   // Load campaign data (start count, multiplier, powerup restore)
   if (typeof window !== "undefined" && window.MapScreen?.getTownCampaignData) {
-    const campaignData = window.MapScreen.getTownCampaignData(activeTownId);
+    const overrideCampaignData =
+      titleDemoSaveOverride && titleDemoSaveOverride.townId === activeTownId
+        ? titleDemoSaveOverride.campaignData
+        : null;
+    const campaignData = overrideCampaignData || window.MapScreen.getTownCampaignData(activeTownId);
     activeCampaign = campaignData?.campaign || "p1";
     activeCampaignMultiplier = Number.isFinite(campaignData?.campaignMultiplier) ? campaignData.campaignMultiplier : 1.0;
     if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
@@ -6500,6 +6554,7 @@ function startGameFromTitle() {
     townStartCongregation = INITIAL_CONGREGATION_SIZE;
     resetChurchPowerups();
   }
+  titleDemoSaveOverride = null;
   // Apply denominational upgrade powerups (free picks granted before County 2/3/4 towns)
   const _denomPowerups = typeof window !== "undefined" ? window.pendingDenomPowerups : null;
   if (Array.isArray(_denomPowerups) && _denomPowerups.length > 0) {
@@ -6554,6 +6609,7 @@ function startRunForTown(townId) {
 function exitMapScreen() {
   mapActive = false;
   titleScreenActive = true;
+  titleDemoSaveMenuActive = false;
 }
 
 function returnToMapWithNextTown() {
@@ -6600,6 +6656,25 @@ function returnToMapFromPause() {
       window.MapScreen.selectTown(activeTownId);
     }
     window.MapScreen.open();
+  }
+}
+
+async function seedDemoSlotProgress(slot) {
+  if (!slot || !slot.townId) return;
+  const completedTowns = Math.max(0, Number(slot.completedTowns) || 0);
+  if (completedTowns <= 0) return;
+  const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+  const mapScreen = typeof window !== "undefined" ? window.MapScreen : null;
+  if (!mapData?.towns || typeof mapScreen?.recordTownCompletion !== "function") return;
+
+  const regularTownIds = mapData.towns
+    .filter((town) => town && town.type !== "capital")
+    .map((town) => town.id)
+    .filter(Boolean);
+  const targetIds = regularTownIds.slice(0, Math.min(regularTownIds.length, completedTowns));
+  for (const townId of targetIds) {
+    // Seed each prior town as completed at 100 congregation for fake save slots.
+    await mapScreen.recordTownCompletion(townId, 100, "p1", {});
   }
 }
 
@@ -16308,11 +16383,49 @@ function handleTitleScreen() {
       buttons,
       allowSpace: true,
       onActivate: (button) => {
+        if (button.key === "continue") {
+          titleDemoSaveMenuActive = true;
+          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
+          }
+          return;
+        }
+        if (button.key === "back") {
+          titleDemoSaveMenuActive = false;
+          if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+            window.playMenuAdvanceSfx(0.55);
+          }
+          return;
+        }
         if (button.key === "play" || button.key === "map") {
           // Play button now goes to map screen so player must pick a town
           titleScreenActive = false;
           mapActive = true;
           if (window.MapScreen) window.MapScreen.open();
+          titleDemoSaveMenuActive = false;
+          titleDemoSaveOverride = null;
+        } else if (button.key === "slot1" || button.key === "slot2" || button.key === "slot3") {
+          const slot = TITLE_DEMO_SAVE_SLOTS.find((entry) => entry.key === button.key);
+          if (slot?.townId) {
+            void (async () => {
+              await seedDemoSlotProgress(slot);
+              titleDemoSaveOverride = {
+                townId: slot.townId,
+                campaignData: slot.campaignData || null,
+              };
+              if (typeof window !== "undefined" && window.MapScreen?.selectTown) {
+                window.MapScreen.selectTown(slot.townId);
+              }
+              activeTownId = slot.townId;
+              if (typeof window !== "undefined") {
+                window.activeTownId = activeTownId;
+              }
+              titleScreenActive = false;
+              mapActive = true;
+              if (window.MapScreen?.open) window.MapScreen.open();
+              titleDemoSaveMenuActive = false;
+            })();
+          }
         } else if (button.key === "settings") {
           showSettingsOverlay({ source: "title" });
         } else if (button.key === "developer") {
@@ -21573,6 +21686,7 @@ function restartGame() {
   levelManager = Levels.createLevelManager();
   levelManager.begin();
   titleScreenActive = true;
+  titleDemoSaveMenuActive = false;
   paused = true;
   gameStarted = false;
   congregationOverlay.active = false;
@@ -21934,6 +22048,7 @@ async function init() {
     activeBoss = null;
     npcsSuspended = false;
     titleScreenActive = true;
+    titleDemoSaveMenuActive = false;
     paused = true;
     gameStarted = false;
     levelManager = Levels.createLevelManager();
