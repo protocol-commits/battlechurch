@@ -7377,6 +7377,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           height: buttonHeight * layout.scale,
         });
       });
+
+      // Subtle title-screen controls hint for first-time clarity.
+      const controlsHint =
+        "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetY = 0;
+      ctx.fillText(controlsHint, layout.virtualCanvas.width / 2, layout.virtualCanvas.height - 10);
+      ctx.restore();
     }
     if (typeof window !== "undefined") {
       window.__titleMenuButtonBounds = bounds;
