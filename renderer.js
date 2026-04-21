@@ -8894,6 +8894,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     gracePickups.forEach((pickup) => {
       if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
     });
+    const bossDeathExplosionActive =
+      Boolean(activeBoss) &&
+      activeBoss?.state === "death" &&
+      (
+        (Number.isFinite(activeBoss?.deathExplosionTimer) && activeBoss.deathExplosionTimer > 0) ||
+        (Number.isFinite(activeBoss?.deathPostDelay) && activeBoss.deathPostDelay > 0)
+      );
+    if (player && bossDeathExplosionActive) {
+      // During boss death explosions, keep the player behind the explosion stack.
+      player.draw();
+    }
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
       effects.forEach((effect) => effect.draw());
     }
@@ -8916,7 +8927,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         player.animator.draw(ctx, _ghostTarget.x, _ghostTarget.y, { flipX: player.facing === "left" });
         ctx.restore();
       }
-      player.draw();
+      if (!bossDeathExplosionActive) {
+        player.draw();
+      }
       drawPlayerPrayerHoldMeter(player);
       drawPlayerRingFireChargeMeter(player);
       drawPlayerWeaponMeter(player);
