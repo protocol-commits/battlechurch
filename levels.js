@@ -1537,7 +1537,7 @@
       state.currentBossTheme = randomChoice(BOSS_BATTLE_THEMES);
       const bossMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + MONTHS_PER_LEVEL;
       const bossMonthName = getMonthName(bossMonthNumber);
-      queueLevelAnnouncement("Boss Battle", "", {
+      queueLevelAnnouncement("Imagine Epic Zelda Type Boss Battles", "", {
         duration: LEVEL_INTRO_DURATION,
         requiresConfirm: true,
         bossMissionBrief: true,

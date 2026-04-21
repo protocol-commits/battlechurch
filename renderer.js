@@ -4420,9 +4420,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
       return;
     }
+    const bossAnnouncement = levelAnnouncements[0] || {};
+    const bossTitle = String(bossAnnouncement.title || "").trim() || "Boss Battle";
+    const bossSubtitle = String(bossAnnouncement.subtitle || "").trim();
     drawMissionBriefScreen(ctx, canvas, {
-      title: "Boss Battle",
-      subtitle: "Boss intro text goes here",
+      title: bossTitle,
+      subtitle: bossSubtitle,
       showFormation: false,
       showButtons: true,
       uiFontFamily: UI_FONT_FAMILY,

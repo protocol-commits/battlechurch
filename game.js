@@ -13372,25 +13372,17 @@ class BossEncounter {
   }
 
   summonMinions() {
-    const minionPool = ["skeleton", "orc", "swordsman", "wizard"];
+    const minionType = "miniFireImp";
     const count = Math.min(3, 2 + Math.floor(this.level / 2));
     if (enemies.length >= MAX_ACTIVE_ENEMIES + 2) return;
     for (let i = 0; i < count; i += 1) {
       const offset = randomInRange(60, 140);
       const angle = Math.random() * Math.PI * 2;
-      spawnEnemyOfType(randomChoice(minionPool), {
+      spawnEnemyOfType(minionType, {
         x: this.x + Math.cos(angle) * offset,
         y: this.y + Math.sin(angle) * offset,
       });
     }
-    addFloatingTextAt(this.x, this.y - this.radius - 30, "Arise!", "#FFC86A", {
-      speechBubble: true,
-      vy: 0,
-      life: 1.8,
-      entity: this,
-      offsetY: -this.radius - 30,
-      bubbleTheme: "evil",
-    });
   }
 
   spawnHazard() {
