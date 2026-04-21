@@ -5759,10 +5759,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const rushActive = Boolean(rushState?.active) || inGraceRushStage || inBossVictoryCelebrate;
     if (!rushActive) return;
     const isBossRush = rushState?.reason === "boss" || inBossVictoryCelebrate;
-    const { ctx, canvas, npcs, graceRushFadeAlpha } = requireBindings();
+    const { ctx, canvas, npcs, graceRushFadeAlpha, levelAnnouncements } = requireBindings();
+    const activeAnnouncementTitle = String(levelAnnouncements?.[0]?.title || "").trim();
+    if (activeAnnouncementTitle === "Victory!") return;
     let payoffLine = "";
     if (isBossRush) {
-      payoffLine = "You held the line against your personal demons.";
+      payoffLine = "You stood firm in your personal battles and are now stronger to lead your flock.";
     } else {
       const scenarioRaw =
         typeof levelStatus.battleScenario === "string" ? levelStatus.battleScenario.trim() : "";
@@ -5810,7 +5812,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       subtitle: "",
       yBase: getAnnouncementYBase(requireBindings().HUD_HEIGHT),
       alpha: textAlpha,
-      typewriter: false,
+      typewriter: true,
       titleSize: Math.max(28, Math.round(TEXT_STYLES.h1.size * 0.76)),
       lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
       weight: "700",
