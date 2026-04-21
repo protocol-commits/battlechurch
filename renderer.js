@@ -1511,6 +1511,10 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     topMargin = 90,
     maxWidthScale = 0.96,
     blockAlign = null,
+    eyebrowText = "",
+    eyebrowSize = 11,
+    eyebrowOffset = -8,
+    eyebrowColor = "rgba(231, 196, 126, 0.9)",
   } = options;
   const promptText = "How will you focus them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
@@ -1680,6 +1684,38 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       maxWidthScale,
       blockAlign: blockAlign || "full",
     });
+    if (eyebrowText && fullTextLayout.titleLines.length >= 2) {
+      const scaleHint = Math.min(
+        1,
+        Math.max(0.6, Math.min(layout.virtualCanvas.width / 1280, layout.virtualCanvas.height / 720)),
+      );
+      const secondLineBaseline = layout.titleY + (fullTextLayout.titleLineHeights[0] || fullTextLayout.titleLineHeight);
+      const eyebrowY = Math.round(secondLineBaseline + eyebrowOffset * scaleHint);
+      const effectiveEyebrowSize = Math.max(8, Math.round(eyebrowSize * scaleHint));
+      const eyebrowLineHeight = Math.round(effectiveEyebrowSize * 1.18);
+      ctx.save();
+      ctx.font = `700 ${effectiveEyebrowSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      const eyebrowLines = wrapAnnouncementText(
+        ctx,
+        String(eyebrowText || "").trim(),
+        fullTextLayout.maxWidth,
+      );
+      let lineY = eyebrowY - Math.round(((eyebrowLines.length - 1) * eyebrowLineHeight) / 2);
+      eyebrowLines.forEach((line) => {
+        const lineX = layout.virtualCanvas.width / 2 - (ctx.measureText(line).width || 0) / 2;
+        ctx.fillStyle = eyebrowColor;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+        ctx.shadowBlur = 8;
+        ctx.lineJoin = "round";
+        ctx.miterLimit = 2;
+        ctx.strokeStyle = "rgba(20, 8, 6, 0.8)";
+        ctx.lineWidth = 1.4;
+        ctx.strokeText(line, lineX, lineY);
+        ctx.fillText(line, lineX, lineY);
+        lineY += eyebrowLineHeight;
+      });
+      ctx.restore();
+    }
     revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
   }
   if (!revealComplete) {
@@ -4438,6 +4474,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       uiFontFamily: UI_FONT_FAMILY,
       maxWidthScale: 0.86,
       topMargin: 52,
+      eyebrowText: "A Pastor's Personal Struggles",
+      eyebrowSize: 11,
+      eyebrowOffset: -8,
       titleLineGap: 10,
       titleLineEmphasis: {
         mode: "shimmer",
