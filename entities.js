@@ -1247,7 +1247,7 @@
     if (consumePrayerBombClick()) {
       const isFullCharge = typeof this.getPrayerChargeRatio === "function" && this.getPrayerChargeRatio() >= 1.0;
       this.castPrayerBomb();
-      window.FloatingText?.heroSay?.(isFullCharge ? "Prayer Storm" : "Prayer Bomb");
+      window.FloatingText?.heroSay?.(isFullCharge ? "Congregational Prayers" : "Prayer Bomb");
     }
 
       // Visitor mini-game: autolock on closest visitor or chatty NPC
@@ -1648,6 +1648,9 @@
         spawnRayboltEffect(this.x, this.y, radius);
       }
       const comboCount = struckEnemies.length + (bossHit ? 1 : 0);
+      if (comboCount > 0 && levelManager?.recordPrayerBombContribution) {
+        levelManager.recordPrayerBombContribution(comboCount);
+      }
       if (comboCount > 0 && typeof window !== "undefined" && typeof window.showPrayerBombBlastCombo === "function") {
         const comboY = this.y - (this.radius || 24) - 20;
         window.showPrayerBombBlastCombo(comboCount, this.x, comboY);
@@ -1701,6 +1704,9 @@
         }
       }
       const comboCount = struckEnemies.length + (bossHit ? 1 : 0);
+      if (comboCount > 0 && levelManager?.recordPrayerBombContribution) {
+        levelManager.recordPrayerBombContribution(comboCount);
+      }
       if (comboCount > 0 && typeof window !== "undefined" && typeof window.showPrayerBombBlastCombo === "function") {
         const comboY = this.y - (this.radius || 24) - 20;
         window.showPrayerBombBlastCombo(comboCount, this.x, comboY);

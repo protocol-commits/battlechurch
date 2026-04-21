@@ -7280,6 +7280,12 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
         .map((value) => (Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0))
         .filter((value) => value > 0)
     : [];
+  const prayerBombContributions = Array.isArray(summary?.prayerBombContributions)
+    ? summary.prayerBombContributions
+        .map((value) => (Number.isFinite(value) ? Math.max(0, Math.round(value)) : 0))
+        .filter((value) => value > 0)
+    : [];
+  const prayerBombTotal = prayerBombContributions.reduce((sum, value) => sum + value, 0);
   const prayerBombComboTotal = prayerBombComboContributions.reduce((sum, value) => sum + value, 0);
   const battleMaxCombo = Number.isFinite(summary?.battleMaxCombo)
     ? Math.max(0, Math.round(summary.battleMaxCombo))
@@ -7300,19 +7306,22 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const perfectProtectionValue = !isBossSummary && totalNpcFaith >= 500 ? 100 : 0;
   const pastorHealthValue = playerHealthAtRecap;
   const maxComboPerformanceValue = battleMaxCombo;
-  const prayerBombPerformanceValue = prayerBombComboTotal;
+  const prayerBombPerformanceValue = prayerBombTotal;
+  const congregationalPrayersPerformanceValue = prayerBombComboTotal;
   const performancePointTotal =
     perfectProtectionValue +
     pastorHealthValue +
     maxComboPerformanceValue +
-    prayerBombPerformanceValue;
+    prayerBombPerformanceValue +
+    congregationalPrayersPerformanceValue;
   const performanceCongregationReward = Math.floor(performancePointTotal / 100);
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const PERFORMANCE_BONUS_BADGE_SRCS = {
     perfectCongregation: "assets/sprites/items/icons/I07_Apple.png",
     pastorHealth: "assets/sprites/items/Weapons/W14_Sword.png",
     maxCombo: "assets/sprites/items/icons/I36_Hammer.png",
-    prayerBomb: "assets/sprites/items/icons/I02_HP_Potion_M.png",
+    prayerBomb: "assets/sprites/items/icons/A32_Decorative_Shield.png",
+    congregationalPrayers: "assets/sprites/items/icons/A29_Iron_Shield.png",
   };
   const performanceBadgeBreakdown = [];
   if (pastorHealthValue > 0) {
@@ -7345,6 +7354,14 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       label: "Prayer Bomb",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.prayerBomb,
       value: prayerBombPerformanceValue,
+    });
+  }
+  if (congregationalPrayersPerformanceValue > 0) {
+    performanceBadgeBreakdown.push({
+      id: "congregationalPrayers",
+      label: "Congregational Prayers",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.congregationalPrayers,
+      value: congregationalPrayersPerformanceValue,
     });
   }
   if (!summary.congregationDeltaApplied) {
