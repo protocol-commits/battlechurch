@@ -3401,9 +3401,52 @@ function maybeSpawnPrayerStormGroundFire(x, y) {
   if (Array.isArray(fireSets) && fireSets.length) {
     frames = fireSets[Math.floor(Math.random() * fireSets.length)] || null;
   }
+  const getUWallSpawnPoint = () => {
+    const home = getNpcHomeBounds();
+    if (!home) return { x, y };
+    const spanX = Math.max(1, home.maxX - home.minX);
+    const spanY = Math.max(1, home.maxY - home.minY);
+    const sideRoll = Math.random();
+    const bottomBias = 0.40;
+    const sideInsetX = spanX * 0.1;
+    const sideInsetY = spanY * 0.12;
+    const wallOffsetMin = Math.max(18, 26 * WORLD_SCALE);
+    const wallOffsetMax = Math.max(wallOffsetMin + 10, 72 * WORLD_SCALE);
+    let sx = x;
+    let sy = y;
+    if (sideRoll < (1 - bottomBias) * 0.5) {
+      // Left wall
+      sx = home.minX - randomInRange(wallOffsetMin, wallOffsetMax);
+      sy = randomInRange(home.minY + sideInsetY, home.maxY - sideInsetY * 0.65);
+    } else if (sideRoll < (1 - bottomBias)) {
+      // Right wall
+      sx = home.maxX + randomInRange(wallOffsetMin, wallOffsetMax);
+      sy = randomInRange(home.minY + sideInsetY, home.maxY - sideInsetY * 0.65);
+    } else {
+      // Bottom wall
+      sx = randomInRange(home.minX + sideInsetX, home.maxX - sideInsetX);
+      sy = home.maxY + randomInRange(wallOffsetMin, wallOffsetMax);
+    }
+    // Keep this effect explicitly out of the "north/top" side of the home base.
+    sy = Math.max(home.minY + sideInsetY, sy);
+    const dx = sx - home.x;
+    const dy = sy - home.y;
+    const dist = Math.hypot(dx, dy);
+    const minDist = home.radius + Math.max(14, 18 * WORLD_SCALE);
+    if (dist < minDist) {
+      const angle = Math.atan2(dy, dx);
+      sx = home.x + Math.cos(angle) * minDist;
+      sy = home.y + Math.sin(angle) * minDist;
+    }
+    return {
+      x: Math.max(8, Math.min(canvas.width - 8, sx)),
+      y: Math.max(HUD_HEIGHT + 8, Math.min(canvas.height - 8, sy)),
+    };
+  };
+  const spawnPoint = getUWallSpawnPoint();
   prayerStormGroundFires.push({
-    x,
-    y,
+    x: spawnPoint.x,
+    y: spawnPoint.y,
     life: PRAYER_STORM_GROUND_FIRE_DURATION,
     duration: PRAYER_STORM_GROUND_FIRE_DURATION,
     fadeDuration: PRAYER_STORM_GROUND_FIRE_FADE_DURATION,
@@ -3884,16 +3927,16 @@ const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.12
 const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 10);
 const PRAYER_STORM_GROUND_FIRE_TARGET_MIN = Math.max(
   1,
-  Math.floor(_gb('prayerBomb.groundFireTargetMin', 8)),
+  Math.floor(_gb('prayerBomb.groundFireTargetMin', 16)),
 );
 const PRAYER_STORM_GROUND_FIRE_TARGET_MAX = Math.max(
   PRAYER_STORM_GROUND_FIRE_TARGET_MIN,
-  Math.floor(_gb('prayerBomb.groundFireTargetMax', 10)),
+  Math.floor(_gb('prayerBomb.groundFireTargetMax', 20)),
 );
 const PRAYER_STORM_GROUND_FIRE_DAMAGE = _gb('prayerBomb.groundFireDamage', 10);
 const PRAYER_STORM_GROUND_FIRE_BOSS_DAMAGE = _gb('prayerBomb.groundFireBossDamage', 10);
 const PRAYER_STORM_GROUND_FIRE_HIT_COOLDOWN = _gb('prayerBomb.groundFireHitCooldown', 0.5);
-const PRAYER_STORM_GROUND_FIRE_DURATION = _gb('prayerBomb.groundFireDuration', 9);
+const PRAYER_STORM_GROUND_FIRE_DURATION = _gb('prayerBomb.groundFireDuration', 14);
 const PRAYER_STORM_GROUND_FIRE_FADE_DURATION = _gb('prayerBomb.groundFireFadeDuration', 1.2);
 const PRAYER_STORM_GROUND_FIRE_RADIUS = _gb('prayerBomb.groundFireRadius', 42) * WORLD_SCALE;
 const PRAYER_STORM_GROUND_FIRE_SCALE = _gb('prayerBomb.groundFireScale', 2.6) * WORLD_SCALE;
