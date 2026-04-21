@@ -16,8 +16,8 @@
     { id: "northvale", name: "Northvale", districtId: "northwest", x: 0.3403, y: 0.7400 },
 
     // Ashvale (northeast) — middle column
-    { id: "red_creek", name: "Red Creek", districtId: "northeast", x: 0.5183, y: 0.22 },
-    { id: "ash_crossing", name: "Ash Crossing", districtId: "northeast", x: 0.5073, y: 0.48 },
+    { id: "red_creek", name: "Red Creek", districtId: "northeast", x: 0.5183, y: 0.2894 },
+    { id: "ash_crossing", name: "Ash Crossing", districtId: "northeast", x: 0.5073, y: 0.53 },
     { id: "millhaven", name: "Millhaven", districtId: "northeast", x: 0.5256, y: 0.8897 },
 
     // Lowmarch (southwest) — right column (upper 2/3)
