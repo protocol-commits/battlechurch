@@ -4461,7 +4461,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const bossAnnouncement = levelAnnouncements[0] || {};
     const missionLabel =
       String(bossAnnouncement.missionBriefTitle || "").trim() || "Mission 1: Foothold";
-    const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle 1";
+    const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle";
     const pastorProblem = formatScenarioForTitle(String(bossAnnouncement.subtitle || "").trim());
     const bossProblemLine = pastorProblem
       ? `${bossBattleLabel}: ${pastorProblem}`
@@ -5755,40 +5755,45 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   function drawGraceRushOverlay(levelStatus, rushState) {
     const inGraceRushStage = levelStatus?.stage === "graceRush";
-    const rushActive = Boolean(rushState?.active) || inGraceRushStage;
+    const inBossVictoryCelebrate = levelStatus?.stage === "bossVictoryCelebrate";
+    const rushActive = Boolean(rushState?.active) || inGraceRushStage || inBossVictoryCelebrate;
     if (!rushActive) return;
-    if (rushState?.reason === "boss") return;
+    const isBossRush = rushState?.reason === "boss" || inBossVictoryCelebrate;
     const { ctx, canvas, npcs, graceRushFadeAlpha } = requireBindings();
-    const scenarioRaw =
-      typeof levelStatus.battleScenario === "string" ? levelStatus.battleScenario.trim() : "";
-    const problemPhrase = (
-      scenarioRaw.replace(/[.!?]+$/g, "").replace(/\s+/g, " ").trim() ||
-      "their current struggles"
-    );
+    let payoffLine = "";
+    if (isBossRush) {
+      payoffLine = "You held the line against your personal demons.";
+    } else {
+      const scenarioRaw =
+        typeof levelStatus.battleScenario === "string" ? levelStatus.battleScenario.trim() : "";
+      const problemPhrase = (
+        scenarioRaw.replace(/[.!?]+$/g, "").replace(/\s+/g, " ").trim() ||
+        "their current struggles"
+      );
 
-    const survivors = Array.isArray(npcs)
-      ? npcs
-          .filter((npc) => npc && !npc.departed && npc.active)
-          .map((npc) => (typeof npc.name === "string" ? npc.name.trim() : ""))
-          .filter(Boolean)
-      : [];
-    const uniqueNames = [];
-    const seen = new Set();
-    survivors.forEach((name) => {
-      if (seen.has(name)) return;
-      seen.add(name);
-      uniqueNames.push(name);
-    });
-    let namesText = "your congregation";
-    if (uniqueNames.length === 1) {
-      namesText = uniqueNames[0];
-    } else if (uniqueNames.length === 2) {
-      namesText = `${uniqueNames[0]} and ${uniqueNames[1]}`;
-    } else if (uniqueNames.length > 2) {
-      namesText = `${uniqueNames.slice(0, -1).join(", ")}, and ${uniqueNames[uniqueNames.length - 1]}`;
+      const survivors = Array.isArray(npcs)
+        ? npcs
+            .filter((npc) => npc && !npc.departed && npc.active)
+            .map((npc) => (typeof npc.name === "string" ? npc.name.trim() : ""))
+            .filter(Boolean)
+        : [];
+      const uniqueNames = [];
+      const seen = new Set();
+      survivors.forEach((name) => {
+        if (seen.has(name)) return;
+        seen.add(name);
+        uniqueNames.push(name);
+      });
+      let namesText = "your congregation";
+      if (uniqueNames.length === 1) {
+        namesText = uniqueNames[0];
+      } else if (uniqueNames.length === 2) {
+        namesText = `${uniqueNames[0]} and ${uniqueNames[1]}`;
+      } else if (uniqueNames.length > 2) {
+        namesText = `${uniqueNames.slice(0, -1).join(", ")}, and ${uniqueNames[uniqueNames.length - 1]}`;
+      }
+      payoffLine = `You helped ${namesText} gain the tools to face ${problemPhrase}.`;
     }
-
-    const payoffLine = `You helped ${namesText} gain the tools to face ${problemPhrase}.`;
     const stageTimer = Number.isFinite(levelStatus?.stageTimer)
       ? Math.max(0, Number(levelStatus.stageTimer))
       : (Number.isFinite(rushState?.timer) ? Math.max(0, Number(rushState.timer)) : 0);
@@ -9248,7 +9253,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       });
       ctx.restore();
     }
-    if (levelStatus?.stage === "graceRush" || graceRushState?.active) {
+    if (
+      levelStatus?.stage === "graceRush" ||
+      levelStatus?.stage === "bossVictoryCelebrate" ||
+      graceRushState?.active
+    ) {
       drawGraceRushOverlay(levelStatus, graceRushState);
     }
     if (visitorStageActive) {

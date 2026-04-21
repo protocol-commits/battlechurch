@@ -1558,7 +1558,7 @@
         ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
         : 1;
       const missionBriefTitle = `Mission ${currentActNum}: ${actMissionLabels[currentActNum] || `Mission ${currentActNum}`}`;
-      queueLevelAnnouncement("Boss Battle 1", state.currentBossProblem, {
+      queueLevelAnnouncement("Boss Battle", state.currentBossProblem, {
         duration: LEVEL_INTRO_DURATION,
         requiresConfirm: true,
         bossMissionBrief: true,
