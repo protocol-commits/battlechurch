@@ -1701,8 +1701,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         fullTextLayout.maxWidth,
       );
       let lineY = eyebrowY - Math.round(((eyebrowLines.length - 1) * eyebrowLineHeight) / 2);
+      ctx.textAlign = "center";
       eyebrowLines.forEach((line) => {
-        const lineX = layout.virtualCanvas.width / 2 - (ctx.measureText(line).width || 0) / 2;
+        const lineX = layout.virtualCanvas.width / 2;
         ctx.fillStyle = eyebrowColor;
         ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
         ctx.shadowBlur = 8;
@@ -4475,7 +4476,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       maxWidthScale: 0.86,
       topMargin: 52,
       eyebrowText: "A Pastor's Personal Struggles",
-      eyebrowSize: 11,
+      eyebrowSize: 14,
       eyebrowOffset: -8,
       titleLineGap: 10,
       titleLineEmphasis: {
