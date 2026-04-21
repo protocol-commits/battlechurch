@@ -557,7 +557,8 @@
       state.mapRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
       return state.mapRect;
     }
-    const scale = Math.min(canvas.width / mapImage.width, canvas.height / mapImage.height);
+    // Use cover so map.jpg always fills the viewport with no top/bottom letterbox gaps.
+    const scale = Math.max(canvas.width / mapImage.width, canvas.height / mapImage.height);
     const w = mapImage.width * scale;
     const h = mapImage.height * scale;
     const x = (canvas.width - w) / 2;
@@ -816,71 +817,6 @@
     if (!isCapital && unlocked) {
       drawCampaignDots(ctx, town, position, radius, rect);
     }
-  }
-
-  function drawPhaseBox(ctx, rect) {
-    const progress = ensureProgress();
-    const op = getActiveOperation(progress);
-    const scale = rect.w / 1280;
-    const boxW = Math.round(182 * scale);
-    const boxH = Math.round(64 * scale);
-    const pad = Math.round(18 * scale);
-    const boxX = rect.x + rect.w - boxW - pad;
-    const boxY = rect.y + rect.h - boxH - pad;
-    const textX = boxX + Math.round(12 * scale);
-
-    ctx.save();
-
-    // Background
-    ctx.fillStyle = "rgba(4, 8, 14, 0.88)";
-    ctx.fillRect(boxX, boxY, boxW, boxH);
-
-    // Border
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(boxX, boxY, boxW, boxH);
-
-    // Left accent bar in operation color
-    ctx.fillStyle = op.color;
-    ctx.shadowColor = op.glow;
-    ctx.shadowBlur = 8;
-    ctx.fillRect(boxX, boxY, Math.max(2, Math.round(3 * scale)), boxH);
-    ctx.shadowBlur = 0;
-
-    // "OPERATION:" tag — tiny, muted
-    const tagSize = Math.max(7, Math.round(8 * scale));
-    const nameSize = Math.max(11, Math.round(14 * scale));
-    const statusSize = Math.max(7, Math.round(9 * scale));
-
-    ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-
-    ctx.font = `600 ${tagSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "rgba(180, 190, 200, 0.5)";
-    ctx.fillText("OPERATION", textX, boxY + boxH * 0.22);
-
-    // Operation name — bold, colored
-    ctx.font = `700 ${nameSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = op.color;
-    ctx.shadowColor = op.glow;
-    ctx.shadowBlur = 6;
-    ctx.fillText(op.name, textX, boxY + boxH * 0.52);
-    ctx.shadowBlur = 0;
-
-    // Status line — small dot + text
-    const dotR = Math.max(2, Math.round(2.5 * scale));
-    const dotX = textX + dotR;
-    const statusY = boxY + boxH * 0.82;
-    ctx.beginPath();
-    ctx.arc(dotX, statusY, dotR, 0, Math.PI * 2);
-    ctx.fillStyle = op.color;
-    ctx.fill();
-
-    ctx.font = `400 ${statusSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "rgba(190, 205, 220, 0.65)";
-    ctx.fillText(op.statusLine, textX + dotR * 2 + Math.round(5 * scale), statusY);
-
-    ctx.restore();
   }
 
   function drawMapLabels(ctx, canvas, rect) {
@@ -1537,83 +1473,6 @@
     return regularTowns.length > 0 && regularTowns.every((t) => progress.towns[t.id]?.p1?.completed === true);
   }
 
-  // Returns the status of a county for the operation box
-  function getCountyOperationStatus(districtId, progress) {
-    const mapData = window.BattlechurchMapData;
-    if (!mapData || !progress) return "advancing";
-    const towns = mapData.getTownsByDistrict(districtId).slice(0, 3);
-    if (!towns.length) return "advancing";
-    const allP3 = towns.every((t) => progress.towns?.[t.id]?.p3?.completed === true);
-    if (allP3) return "secured";
-    const allP2 = towns.every((t) => progress.towns?.[t.id]?.p2?.completed === true);
-    if (allP2) return "final_push";
-    const allP1 = towns.every((t) => progress.towns?.[t.id]?.p1?.completed === true);
-    if (allP1) return "contested";
-    return "advancing";
-  }
-
-  // Returns the active military operation to display in the status box
-  function getActiveOperation(progress) {
-    const mapData = window.BattlechurchMapData;
-    const defaultOp = {
-      name: "WESTREACH", statusLine: "Secure the beachhead",
-      color: "#D4A843", glow: "rgba(212,168,67,0.5)",
-    };
-    if (!mapData || !progress) return defaultOp;
-
-    const districts = mapData.getDistricts(); // sorted by order
-    const districtObjectives = {
-      northwest: {
-        name: "WESTREACH",
-        advancing:   "Secure the beachhead",
-        contested:   "Hold the beachhead",
-        final_push:  "Clear the county",
-      },
-      northeast: {
-        name: "ASHVALE",
-        advancing:   "Push inland",
-        contested:   "Deny the counteroffensive",
-        final_push:  "Break the resistance",
-      },
-      southwest: {
-        name: "LOWMARCH",
-        advancing:   "Cut off the capital",
-        contested:   "Hold the flanks",
-        final_push:  "Encircle Highgate",
-      },
-    };
-
-    // Show the front line — furthest county the player has reached that isn't fully secured
-    let activeDistrict = null;
-    for (const district of districts) {
-      const towns = mapData.getTownsByDistrict(district.id).slice(0, 3);
-      const hasActivity = towns.some((t) => isTownUnlocked(t.id) || progress.towns?.[t.id] != null);
-      const status = getCountyOperationStatus(district.id, progress);
-      if (hasActivity && status !== "secured") activeDistrict = district;
-    }
-
-    if (activeDistrict) {
-      const status = getCountyOperationStatus(activeDistrict.id, progress);
-      const obj = districtObjectives[activeDistrict.id];
-      const name = obj?.name || activeDistrict.name.toUpperCase();
-      const statusLine = obj?.[status] || "Advance";
-      if (status === "contested") {
-        return { name, statusLine, color: "#FF6B6B", glow: "rgba(255,107,107,0.5)" };
-      }
-      if (status === "final_push") {
-        return { name, statusLine, color: "#A8E890", glow: "rgba(168,232,144,0.5)" };
-      }
-      return { name, statusLine, color: "#D4A843", glow: "rgba(212,168,67,0.5)" };
-    }
-
-    // All regular counties secured — check capital
-    const capital = mapData.towns.find((t) => t.type === "capital");
-    if (capital && progress.towns?.[capital.id]?.p1?.completed) {
-      return { name: "HIGHGATE", statusLine: "All objectives met", color: "#FFD978", glow: "rgba(255,217,120,0.5)" };
-    }
-    return { name: "HIGHGATE", statusLine: "Storm the gates", color: "#FF4040", glow: "rgba(255,64,64,0.55)" };
-  }
-
   // Returns 'p1' | 'p2' | 'p3' — the next campaign to play for a town
   function getNextCampaignForTown(townId, progress) {
     if (!progress) return "p1";
@@ -2062,7 +1921,6 @@
     }
     handleMapClicks(rect);
     drawTownPanel(ctx, canvas);
-    drawPhaseBox(ctx, rect);
     drawDenomUpgradeOverlay(ctx, canvas);
     ctx.restore();
   }
