@@ -3546,30 +3546,31 @@ function updatePrayerStormGroundFires(dt) {
         fire.frameIndex = ((fire.frameIndex || 0) + 1) % frames.length;
       }
     }
-    const canHit = (entity) => {
-      if (!entity || entity.dead || entity.state === "death") return false;
+    const canTickEntity = (entity) => {
+      if (!entity || entity.dead) return false;
+      if (entity.state === "death") return false;
       const lastAt = fire.hitMap?.get(entity) || 0;
       return now - lastAt >= (fire.hitCooldown || PRAYER_STORM_GROUND_FIRE_HIT_COOLDOWN) * 1000;
     };
-    const markHit = (entity) => {
+    const markTick = (entity) => {
       if (fire.hitMap) fire.hitMap.set(entity, now);
     };
     enemies.forEach((enemy) => {
-      if (!canHit(enemy)) return;
+      if (!canTickEntity(enemy)) return;
       const center = getEnemyHitboxCenter(enemy);
       const dist = Math.hypot(center.x - fire.x, center.y - fire.y);
       const targetRadius = getEnemyHitboxRadius(enemy);
       if (dist > (fire.radius || PRAYER_STORM_GROUND_FIRE_RADIUS) + targetRadius * 0.7) return;
-      markHit(enemy);
+      markTick(enemy);
       enemy.takeDamage(fire.damage || PRAYER_STORM_GROUND_FIRE_DAMAGE, { damageType: "charged" });
       spawnEnemyHitEffect(enemy, center.x, center.y, { damageType: "charged" });
     });
-    if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed && canHit(activeBoss)) {
+    if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed && canTickEntity(activeBoss)) {
       const center = getEnemyHitboxCenter(activeBoss);
       const dist = Math.hypot(center.x - fire.x, center.y - fire.y);
       const targetRadius = activeBoss.radius || 0;
       if (dist <= (fire.radius || PRAYER_STORM_GROUND_FIRE_RADIUS) + targetRadius * 0.7) {
-        markHit(activeBoss);
+        markTick(activeBoss);
         activeBoss.takeDamage(fire.bossDamage || PRAYER_STORM_GROUND_FIRE_BOSS_DAMAGE, {
           hitX: center.x,
           hitY: center.y,
@@ -3578,6 +3579,22 @@ function updatePrayerStormGroundFires(dt) {
         spawnEnemyHitEffect(activeBoss, center.x, center.y, { damageType: "charged" });
       }
     }
+    projectiles.forEach((projectile) => {
+      if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+      if (!canTickEntity(projectile)) return;
+      const pr = Math.max(0, projectile.radius || 0);
+      const dist = Math.hypot((projectile.x || 0) - fire.x, (projectile.y || 0) - fire.y);
+      if (dist > (fire.radius || PRAYER_STORM_GROUND_FIRE_RADIUS) + pr * 0.8) return;
+      markTick(projectile);
+      const projectileDied = applyProjectileDurabilityDamage(
+        projectile,
+        fire.damage || PRAYER_STORM_GROUND_FIRE_DAMAGE,
+      );
+      if (projectileDied) {
+        spawnImpactEffect(projectile.x, projectile.y);
+        spawnFlashEffect(projectile.x, projectile.y);
+      }
+    });
     if (fire.life <= 0) {
       prayerStormGroundFires.splice(i, 1);
     }
