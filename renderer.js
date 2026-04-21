@@ -1510,6 +1510,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     bodyWeight = TEXT_STYLES.h2.weight,
     topMargin = 90,
     maxWidthScale = 0.96,
+    blockAlign = null,
   } = options;
   const promptText = "How will you focus them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
@@ -1677,7 +1678,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       highlight,
       textPalette: HELLFIRE_TEXT_PALETTE,
       maxWidthScale,
-      blockAlign: "full",
+      blockAlign: blockAlign || "full",
     });
     revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
   }
@@ -4424,7 +4425,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const missionLabel =
       String(bossAnnouncement.missionBriefTitle || "").trim() || "Mission 1: Foothold";
     const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle 1";
-    const pastorProblem = String(bossAnnouncement.subtitle || "").trim();
+    const pastorProblem = formatScenarioForTitle(String(bossAnnouncement.subtitle || "").trim());
     const bossProblemLine = pastorProblem
       ? `${bossBattleLabel}: ${pastorProblem}`
       : bossBattleLabel;
@@ -4433,6 +4434,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       subtitle: "",
       showFormation: false,
       showButtons: true,
+      blockAlign: "fullCenter",
       uiFontFamily: UI_FONT_FAMILY,
       maxWidthScale: 0.86,
       topMargin: 52,
