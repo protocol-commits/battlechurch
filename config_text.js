@@ -33,7 +33,7 @@
         body: "You have no strength to continue the battle.\nThe church and the town are lost to darkness.",
       },
       map: {
-        tagline: "",
+        tagline: "Spiritual Warfare Map",
         altTagline: "Smite the hordes, save your flock, grow your church, save the town.",
       },
     },

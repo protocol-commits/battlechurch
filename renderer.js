@@ -1000,6 +1000,7 @@ const MELEE_SWING_LENGTH = 260;
     textPalette = null,
     maxWidthScale = 0.96,
     blockAlign = "center",
+    subtitleOffsetY = 0,
   }) {
     const scaleHint = Math.min(
       1,
@@ -1012,6 +1013,7 @@ const MELEE_SWING_LENGTH = 260;
     const effectiveTitleLineGap = Math.round(titleLineGap * scaleHint);
     const effectiveSubtitleSize = Math.round(subtitleSize * scaleHint);
     const effectiveLineGap = Math.round(lineGap * scaleHint);
+    const effectiveSubtitleOffsetY = Math.round(subtitleOffsetY * scaleHint);
     // "Announcement Text" refers to this renderer's font/size/wrap style.
     // "Announcement Text Engine" means this renderer at full-width on the main canvas.
     const wrapText = (text, maxWidth) => wrapAnnouncementText(ctx, text, maxWidth);
@@ -1177,6 +1179,7 @@ const MELEE_SWING_LENGTH = 260;
     });
     if (subtitleLines.length) {
       currentY += Math.max(0, effectiveLineGap - lastTitleLineHeight);
+      currentY += effectiveSubtitleOffsetY;
     ctx.font = `${subtitleWeight} ${effectiveSubtitleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       if (blockAlign === "center") {
         const fullSubtitleWidths = subtitleLines.map((line) => ctx.measureText(line).width || 0);
@@ -8122,15 +8125,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         typeof GameText !== 'undefined' && GameText.screens?.map?.tagline !== undefined;
       const mapTagline = hasMapTagline
         ? GameText.screens.map.tagline
-        : "Smite the hordes. Defend the churches. Protect the people.";
+        : "Spiritual Warfare Map";
+      const mapSubhead = "Smite the Hordes. Save the people.";
       if (mapTagline) {
         drawAnnouncementText(ctx, canvas, {
           title: mapTagline,
-          subtitle: "",
-          yBase: Math.round(canvas.height * 0.06),
+          subtitle: mapSubhead,
+          yBase: Math.round(canvas.height * 0.095),
           titleSize: TEXT_STYLES.h2.size,
-          subtitleSize: TEXT_STYLES.body.size,
-          lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+          subtitleSize: Math.max(14, Math.round(TEXT_STYLES.body.size * 0.82)),
+          lineGap: Math.round(TEXT_STYLES.h2.size * 0.1),
+          subtitleOffsetY: -28,
           weight: TEXT_STYLES.h2.weight,
           subtitleWeight: TEXT_STYLES.body.weight,
           typewriter: true,

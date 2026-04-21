@@ -884,19 +884,9 @@
   }
 
   function drawMapLabels(ctx, canvas, rect) {
-    const mapData = window.BattlechurchMapData;
-    if (!mapData) return;
-    const scale = rect.w / 1280;
-    const taglineSize = Math.round(40 * scale);
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
-    ctx.font = `800 ${taglineSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillText("Smite the hordes. Save the people.", canvas.width / 2, rect.y + Math.round(16 * scale) + 35);
-    ctx.restore();
+    // Map title/subhead are rendered in renderer.js to keep map text
+    // presentation centralized and avoid duplicate headings.
+    return;
   }
 
   function findTownAtPosition(point, rect) {
