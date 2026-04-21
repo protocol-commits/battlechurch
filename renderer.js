@@ -6052,7 +6052,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const { ctx, assets, prayerStormGroundFires = [] } = requireBindings();
     if (!ctx || !Array.isArray(prayerStormGroundFires) || !prayerStormGroundFires.length) return;
     const fallbackFrames = assets?.projectiles?.fire?.frames || [];
-    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
     for (let i = 0; i < prayerStormGroundFires.length; i += 1) {
@@ -6062,9 +6061,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         Array.isArray(fire.frames) && fire.frames.length ? fire.frames : fallbackFrames;
       if (!frames || !frames.length) continue;
       const fadeDuration = Math.max(0.01, Number(fire.fadeDuration) || 1.2);
-      const alphaFade = Math.min(1, Math.max(0, fire.life / fadeDuration));
-      const pulse = 0.9 + 0.12 * Math.sin(now * 8.2 + i * 0.7);
-      const alpha = Math.max(0, Math.min(1, alphaFade * pulse));
+      const isFadingOut = fire.life <= fadeDuration;
+      const alpha = isFadingOut
+        ? Math.max(0, Math.min(1, fire.life / fadeDuration))
+        : 1;
       const frame = frames[(Math.floor(fire.frameIndex || 0) + frames.length) % frames.length];
       const drawSize = Math.max(24, (fire.scale || 1) * 32);
       ctx.globalAlpha = alpha;
