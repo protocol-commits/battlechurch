@@ -4421,14 +4421,34 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const bossAnnouncement = levelAnnouncements[0] || {};
-    const bossTitle = String(bossAnnouncement.title || "").trim() || "Boss Battle";
-    const bossSubtitle = String(bossAnnouncement.subtitle || "").trim();
+    const missionLabel =
+      String(bossAnnouncement.missionBriefTitle || "").trim() || "Mission 1: Foothold";
+    const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle 1";
+    const pastorProblem = String(bossAnnouncement.subtitle || "").trim();
+    const bossProblemLine = pastorProblem
+      ? `${bossBattleLabel}: ${pastorProblem}`
+      : bossBattleLabel;
     drawMissionBriefScreen(ctx, canvas, {
-      title: bossTitle,
-      subtitle: bossSubtitle,
+      title: `${missionLabel}\n${bossProblemLine}`,
+      subtitle: "",
       showFormation: false,
       showButtons: true,
       uiFontFamily: UI_FONT_FAMILY,
+      maxWidthScale: 0.86,
+      topMargin: 52,
+      titleLineGap: 10,
+      titleLineEmphasis: {
+        mode: "shimmer",
+        matchPrefix: "Boss Battle ",
+        continueOnWrappedLines: true,
+        baseColor: "#E7C47E",
+        peakColor: "#FFF2CF",
+        glowColor: "rgba(235, 189, 102, 0.95)",
+      },
+      titleLineSizes: [
+        Math.max(16, Math.round(TEXT_STYLES.h2.size * 0.76)),
+        Math.round(TEXT_STYLES.h1.size * 1.14),
+      ],
     });
     ctx.restore();
     return;

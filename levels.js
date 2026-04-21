@@ -13,6 +13,15 @@
   const CONGREGATION_WAVE_INTRO = congregationDialogue.waveIntro || {};
   const BATTLE_SCENARIOS = levelData.battleScenarios || [];
   const BOSS_BATTLE_THEMES = levelData.bossBattleThemes || [];
+  const BOSS_PASTOR_PROBLEMS =
+    levelData.bossPastorProblems || [
+      "Burnout and spiritual exhaustion",
+      "Carrying grief while still leading others",
+      "Leading through conflict without losing compassion",
+      "Feeling isolated under the weight of responsibility",
+      "Resisting pride and despair at the same time",
+      "Holding faith steady through relentless opposition",
+    ];
   const HORDE_CLEAR_LINES = levelData.hordeClearLines || [];
 
 
@@ -632,6 +641,7 @@
       conversationQueue: [],
       currentBattleScenario: "",
       currentBossTheme: "",
+      currentBossProblem: "",
       battleNpcStartCount: 0,
       battleStartCongregation: 0,
       battleNpcRoster: [],
@@ -799,6 +809,7 @@
   }
       state.currentBattleScenario = "";
       state.currentBossTheme = "";
+      state.currentBossProblem = "";
       buildCongregationMembers();
     }
 
@@ -847,7 +858,7 @@
   // fallback of 5 so summaries reflect the expected battle baseline.
   const detected = npcs.filter((npc) => !npc.departed && npc.active).length;
   state.battleNpcStartCount = detected > 0 ? detected : 5;
-  state.currentBattleScenario = randomChoice(BATTLE_SCENARIOS);
+      state.currentBattleScenario = randomChoice(BATTLE_SCENARIOS);
   // Show Level + Month name instead of literal 'Battle N'
   const startedProcession = typeof deps.prepareNpcProcession === "function" && deps.prepareNpcProcession();
   if (startedProcession) {
@@ -1535,12 +1546,24 @@
       state.battleStartCongregation =
         typeof deps.getCongregationSize === "function" ? deps.getCongregationSize() : 0;
       state.currentBossTheme = randomChoice(BOSS_BATTLE_THEMES);
+      state.currentBossProblem = randomChoice(BOSS_PASTOR_PROBLEMS) || "";
       const bossMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + MONTHS_PER_LEVEL;
       const bossMonthName = getMonthName(bossMonthNumber);
-      queueLevelAnnouncement("Imagine Epic Zelda Type Boss Battles", "", {
+      const actMissionLabels = {
+        1: "Foothold",
+        2: "Counterattack",
+        3: "Breakthrough",
+      };
+      const currentActNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
+        ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
+        : 1;
+      const missionBriefTitle = `Mission ${currentActNum}: ${actMissionLabels[currentActNum] || `Mission ${currentActNum}`}`;
+      queueLevelAnnouncement("Boss Battle 1", state.currentBossProblem, {
         duration: LEVEL_INTRO_DURATION,
         requiresConfirm: true,
         bossMissionBrief: true,
+        missionBriefTitle,
+        missionNumber: 1,
       });
       resetStage("bossIntro", LEVEL_INTRO_DURATION);
       setDevStatus("Boss Battle", LEVEL_INTRO_DURATION + 1);
