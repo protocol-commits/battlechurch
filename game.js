@@ -19,6 +19,7 @@ const weaponPickups = [];
 const utilityPowerUps = [];
 const churchPowerupPickups = [];
 const ringOfFireHazards = [];
+const prayerStormGroundFires = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
@@ -108,6 +109,11 @@ let prayerBombRainTimer = 0;
 let prayerBombRainSpawnTimer = 0;
 let prayerBombScreenFadeTimer = 0;
 let prayerBombScreenFadeDuration = 0.8;
+let prayerStormGroundFireTargetThisCast = 0;
+let prayerStormGroundFireSpawnedThisCast = 0;
+let prayerStormRainImpactCountThisCast = 0;
+let prayerStormGroundFireNextSpawnAtImpact = Infinity;
+let prayerStormGroundFireImpactSpacing = Infinity;
 const prayerBombComboState = {
   active: false,
   hits: 0,
@@ -3348,8 +3354,29 @@ function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB
 }
 
 function startPrayerBombFireRain(duration = PRAYER_BOMB_RAIN_DURATION) {
-  prayerBombRainTimer = Math.max(prayerBombRainTimer, Number(duration) || 0);
+  const castDuration = Math.max(0, Number(duration) || 0);
+  prayerBombRainTimer = Math.max(prayerBombRainTimer, castDuration);
   prayerBombRainSpawnTimer = 0;
+  prayerStormGroundFireTargetThisCast =
+    PRAYER_STORM_GROUND_FIRE_TARGET_MIN +
+    Math.floor(
+      Math.random() *
+        (PRAYER_STORM_GROUND_FIRE_TARGET_MAX - PRAYER_STORM_GROUND_FIRE_TARGET_MIN + 1),
+    );
+  prayerStormGroundFireSpawnedThisCast = 0;
+  prayerStormRainImpactCountThisCast = 0;
+  const estimatedImpacts = Math.max(
+    1,
+    Math.ceil(castDuration / Math.max(0.001, PRAYER_BOMB_RAIN_INTERVAL)) * 2,
+  );
+  prayerStormGroundFireImpactSpacing = Math.max(
+    1,
+    estimatedImpacts / Math.max(1, prayerStormGroundFireTargetThisCast),
+  );
+  prayerStormGroundFireNextSpawnAtImpact = Math.max(
+    1,
+    prayerStormGroundFireImpactSpacing * 0.5,
+  );
   startPrayerBombCombo();
 }
 
@@ -3362,6 +3389,37 @@ function triggerPrayerBombScreenDarken(duration = 0.8) {
 function handlePrayerBombRainImpact() {
   triggerPrayerBombScreenDarken(PRAYER_BOMB_RAIN_DARKEN_DURATION);
   applyCameraShake(PRAYER_BOMB_RAIN_SHAKE_DURATION, PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE);
+}
+
+function maybeSpawnPrayerStormGroundFire(x, y) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+  if (prayerStormGroundFireSpawnedThisCast >= prayerStormGroundFireTargetThisCast) return;
+  prayerStormRainImpactCountThisCast += 1;
+  if (prayerStormRainImpactCountThisCast < prayerStormGroundFireNextSpawnAtImpact) return;
+  const fireSets = assets?.effects?.prayerStormGroundFire || [];
+  let frames = null;
+  if (Array.isArray(fireSets) && fireSets.length) {
+    frames = fireSets[Math.floor(Math.random() * fireSets.length)] || null;
+  }
+  prayerStormGroundFires.push({
+    x,
+    y,
+    life: PRAYER_STORM_GROUND_FIRE_DURATION,
+    duration: PRAYER_STORM_GROUND_FIRE_DURATION,
+    fadeDuration: PRAYER_STORM_GROUND_FIRE_FADE_DURATION,
+    frameTimer: 0,
+    frameIndex: Math.floor(Math.random() * 14),
+    frameDuration: PRAYER_STORM_GROUND_FIRE_FRAME_DURATION,
+    frames,
+    radius: PRAYER_STORM_GROUND_FIRE_RADIUS,
+    scale: PRAYER_STORM_GROUND_FIRE_SCALE,
+    damage: PRAYER_STORM_GROUND_FIRE_DAMAGE,
+    bossDamage: PRAYER_STORM_GROUND_FIRE_BOSS_DAMAGE,
+    hitCooldown: PRAYER_STORM_GROUND_FIRE_HIT_COOLDOWN,
+    hitMap: new WeakMap(),
+  });
+  prayerStormGroundFireSpawnedThisCast += 1;
+  prayerStormGroundFireNextSpawnAtImpact += prayerStormGroundFireImpactSpacing;
 }
 
 function spawnPrayerBombFireball(target) {
@@ -3389,6 +3447,7 @@ function spawnPrayerBombFireball(target) {
       }
       handlePrayerBombRainImpact();
       triggerPrayerBombExplosionAt(proj.x, proj.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+      maybeSpawnPrayerStormGroundFire(proj.x, proj.y);
     },
     onExpire: (proj) => {
       if (typeof window !== "undefined" && typeof window.playPrayerBombRainSfx === "function") {
@@ -3396,6 +3455,7 @@ function spawnPrayerBombFireball(target) {
       }
       handlePrayerBombRainImpact();
       triggerPrayerBombExplosionAt(proj.x, proj.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+      maybeSpawnPrayerStormGroundFire(proj.x, proj.y);
     },
   });
   if (!proj) {
@@ -3404,6 +3464,7 @@ function spawnPrayerBombFireball(target) {
     }
     handlePrayerBombRainImpact();
     triggerPrayerBombExplosionAt(target.x, target.y, PRAYER_BOMB_RAIN_RADIUS, PRAYER_BOMB_LEVEL3_DAMAGE);
+    maybeSpawnPrayerStormGroundFire(target.x, target.y);
   }
 }
 
@@ -3421,6 +3482,61 @@ function updatePrayerBombFireRain(dt) {
     for (let burstIndex = 0; burstIndex < 2; burstIndex += 1) {
       const pos = randomSpreadPosition();
       spawnPrayerBombFireball(pos);
+    }
+  }
+}
+
+function updatePrayerStormGroundFires(dt) {
+  if (!prayerStormGroundFires.length) return;
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  for (let i = prayerStormGroundFires.length - 1; i >= 0; i -= 1) {
+    const fire = prayerStormGroundFires[i];
+    fire.life = Math.max(0, (fire.life || 0) - dt);
+    fire.frameTimer = (fire.frameTimer || 0) + dt;
+    const frames = fire.frames || [];
+    const frameDuration = Math.max(0.01, fire.frameDuration || PRAYER_STORM_GROUND_FIRE_FRAME_DURATION);
+    if (frames.length) {
+      while (fire.frameTimer >= frameDuration) {
+        fire.frameTimer -= frameDuration;
+        fire.frameIndex = ((fire.frameIndex || 0) + 1) % frames.length;
+      }
+    }
+    const canHit = (entity) => {
+      if (!entity || entity.dead || entity.state === "death") return false;
+      const lastAt = fire.hitMap?.get(entity) || 0;
+      return now - lastAt >= (fire.hitCooldown || PRAYER_STORM_GROUND_FIRE_HIT_COOLDOWN) * 1000;
+    };
+    const markHit = (entity) => {
+      if (fire.hitMap) fire.hitMap.set(entity, now);
+    };
+    enemies.forEach((enemy) => {
+      if (!canHit(enemy)) return;
+      const center = getEnemyHitboxCenter(enemy);
+      const dist = Math.hypot(center.x - fire.x, center.y - fire.y);
+      const targetRadius = getEnemyHitboxRadius(enemy);
+      if (dist > (fire.radius || PRAYER_STORM_GROUND_FIRE_RADIUS) + targetRadius * 0.7) return;
+      markHit(enemy);
+      enemy.takeDamage(fire.damage || PRAYER_STORM_GROUND_FIRE_DAMAGE, { damageType: "charged" });
+      spawnEnemyHitEffect(enemy, center.x, center.y, { damageType: "charged" });
+    });
+    if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed && canHit(activeBoss)) {
+      const center = getEnemyHitboxCenter(activeBoss);
+      const dist = Math.hypot(center.x - fire.x, center.y - fire.y);
+      const targetRadius = activeBoss.radius || 0;
+      if (dist <= (fire.radius || PRAYER_STORM_GROUND_FIRE_RADIUS) + targetRadius * 0.7) {
+        markHit(activeBoss);
+        activeBoss.takeDamage(fire.bossDamage || PRAYER_STORM_GROUND_FIRE_BOSS_DAMAGE, {
+          hitX: center.x,
+          hitY: center.y,
+          damageType: "charged",
+        });
+        spawnEnemyHitEffect(activeBoss, center.x, center.y, { damageType: "charged" });
+      }
+    }
+    if (fire.life <= 0) {
+      prayerStormGroundFires.splice(i, 1);
     }
   }
 }
@@ -3766,6 +3882,32 @@ const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = _gb('prayerBomb.screenDarkenAlpha', 0.65
 const PRAYER_BOMB_RAIN_DARKEN_DURATION = _gb('prayerBomb.rainDarkenDuration', 0.5);
 const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.12);
 const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 10);
+const PRAYER_STORM_GROUND_FIRE_TARGET_MIN = Math.max(
+  1,
+  Math.floor(_gb('prayerBomb.groundFireTargetMin', 8)),
+);
+const PRAYER_STORM_GROUND_FIRE_TARGET_MAX = Math.max(
+  PRAYER_STORM_GROUND_FIRE_TARGET_MIN,
+  Math.floor(_gb('prayerBomb.groundFireTargetMax', 10)),
+);
+const PRAYER_STORM_GROUND_FIRE_DAMAGE = _gb('prayerBomb.groundFireDamage', 10);
+const PRAYER_STORM_GROUND_FIRE_BOSS_DAMAGE = _gb('prayerBomb.groundFireBossDamage', 10);
+const PRAYER_STORM_GROUND_FIRE_HIT_COOLDOWN = _gb('prayerBomb.groundFireHitCooldown', 0.5);
+const PRAYER_STORM_GROUND_FIRE_DURATION = _gb('prayerBomb.groundFireDuration', 9);
+const PRAYER_STORM_GROUND_FIRE_FADE_DURATION = _gb('prayerBomb.groundFireFadeDuration', 1.2);
+const PRAYER_STORM_GROUND_FIRE_RADIUS = _gb('prayerBomb.groundFireRadius', 42) * WORLD_SCALE;
+const PRAYER_STORM_GROUND_FIRE_SCALE = _gb('prayerBomb.groundFireScale', 2.6) * WORLD_SCALE;
+const PRAYER_STORM_GROUND_FIRE_FRAME_DURATION = _gb('prayerBomb.groundFireFrameDuration', 0.07);
+const PRAYER_STORM_GROUND_FIRE_SHEETS = [
+  "assets/sprites/items/fire/Group 4 - 1.png",
+  "assets/sprites/items/fire/Group 4 - 2.png",
+  "assets/sprites/items/fire/Group 4 - 3.png",
+  "assets/sprites/items/fire/Group 4 - 4.png",
+  "assets/sprites/items/fire/Group 4 - 5.png",
+  "assets/sprites/items/fire/Group 5 - 1.png",
+  "assets/sprites/items/fire/Group 5 - 2.png",
+  "assets/sprites/items/fire/Group 5 - 3.png",
+];
 const CONGREGATION_COMMAND_CHARGE_TIME = _gb('congregationCommand.chargeTime', 7);
 const CONGREGATION_COMMAND_DAMAGE = _gb('congregationCommand.damage', 30);
 const CONGREGATION_COMMAND_SPEED_MULTIPLIER = _gb('congregationCommand.speedMultiplier', 1.1);
@@ -4071,6 +4213,7 @@ Renderer.initialize({
   get cannonSplashRadius() { return FAITH_CANNON_SPLASH_RADIUS; },
   effects,
   ringOfFireHazards,
+  prayerStormGroundFires,
   floatingTexts,
   pointerState,
   get paused() { return paused; },
@@ -6068,6 +6211,13 @@ async function loadEffectAssets(cache, assets) {
         extractFrame(img, img.width, img.height, 0),
       ),
     ),
+  );
+  assets.effects.prayerStormGroundFire = await Promise.all(
+    PRAYER_STORM_GROUND_FIRE_SHEETS.map(async (src) => {
+      const img = await loadCachedImage(cache, src);
+      const frameWidth = Math.max(1, Math.floor(img.width / 14));
+      return extractFrames(img, frameWidth, img.height).slice(0, 14);
+    }),
   );
 }
 
@@ -22190,6 +22340,7 @@ function updateGame(dt) {
 
   updateEnemiesAndEntities(dt);
   updateRingOfFireHazards(dt);
+  updatePrayerStormGroundFires(dt);
 
   if (player.shieldTimer > 0) {
     enemies.forEach((enemy) => {
@@ -22403,6 +22554,11 @@ function restartGame() {
   stopPlayerDeathBell();
   prayerBombRainTimer = 0;
   prayerBombRainSpawnTimer = 0;
+  prayerStormGroundFireTargetThisCast = 0;
+  prayerStormGroundFireSpawnedThisCast = 0;
+  prayerStormRainImpactCountThisCast = 0;
+  prayerStormGroundFireNextSpawnAtImpact = Infinity;
+  prayerStormGroundFireImpactSpacing = Infinity;
   resetCongregationSize();
   resetYearNpcPool();
   enemies.splice(0, enemies.length);
@@ -22411,6 +22567,7 @@ function restartGame() {
   churchPowerupPickups.splice(0, churchPowerupPickups.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
   ringOfFireHazards.splice(0, ringOfFireHazards.length);
+  prayerStormGroundFires.splice(0, prayerStormGroundFires.length);
   clearGracePickups();
   resetChurchPowerups();
   playerGraceCount = 0;
@@ -22818,6 +22975,12 @@ async function init() {
     respawnIndicatorTimer = 0;
     utilityPowerUps.length = 0;
     ringOfFireHazards.length = 0;
+    prayerStormGroundFires.length = 0;
+    prayerStormGroundFireTargetThisCast = 0;
+    prayerStormGroundFireSpawnedThisCast = 0;
+    prayerStormRainImpactCountThisCast = 0;
+    prayerStormGroundFireNextSpawnAtImpact = Infinity;
+    prayerStormGroundFireImpactSpacing = Infinity;
     resetCozyNpcs(5);
     clearCongregationMembers();
     spawnTimer = 3.8;

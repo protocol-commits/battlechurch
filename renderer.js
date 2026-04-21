@@ -6048,6 +6048,37 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawPrayerStormGroundFires() {
+    const { ctx, assets, prayerStormGroundFires = [] } = requireBindings();
+    if (!ctx || !Array.isArray(prayerStormGroundFires) || !prayerStormGroundFires.length) return;
+    const fallbackFrames = assets?.projectiles?.fire?.frames || [];
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < prayerStormGroundFires.length; i += 1) {
+      const fire = prayerStormGroundFires[i];
+      if (!fire || fire.life <= 0) continue;
+      const frames =
+        Array.isArray(fire.frames) && fire.frames.length ? fire.frames : fallbackFrames;
+      if (!frames || !frames.length) continue;
+      const fadeDuration = Math.max(0.01, Number(fire.fadeDuration) || 1.2);
+      const alphaFade = Math.min(1, Math.max(0, fire.life / fadeDuration));
+      const pulse = 0.9 + 0.12 * Math.sin(now * 8.2 + i * 0.7);
+      const alpha = Math.max(0, Math.min(1, alphaFade * pulse));
+      const frame = frames[(Math.floor(fire.frameIndex || 0) + frames.length) % frames.length];
+      const drawSize = Math.max(24, (fire.scale || 1) * 32);
+      ctx.globalAlpha = alpha;
+      ctx.drawImage(
+        frame,
+        Math.round(fire.x - drawSize * 0.5),
+        Math.round(fire.y - drawSize * 0.84),
+        drawSize,
+        drawSize,
+      );
+    }
+    ctx.restore();
+  }
+
   function drawRingOfFireDebugCircle(ctx, centerX, centerY, radius, band = 20, progress = 1, alpha = 1, startAngle = -Math.PI * 0.5, direction = 1) {
     if (!ctx || radius <= 0 || progress <= 0) return;
     const clamped = Math.max(0, Math.min(1, progress));
@@ -8797,6 +8828,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
     weaponPickups.forEach((pickup) => pickup.draw());
     churchPowerupPickups.forEach((pickup) => pickup.draw());
+    drawPrayerStormGroundFires();
     drawRingOfFireEffects(player);
     drawCongregationCommandMeter(player, battleNpcs);
     if (player) {
