@@ -4512,10 +4512,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     if (npcNames.length) {
-      if (!levelAnnouncements[0].missionBriefScenario) {
-        levelAnnouncements[0].missionBriefScenario = missionBriefScenarios[Math.floor(Math.random() * missionBriefScenarios.length)];
+      const announcement = levelAnnouncements[0] || null;
+      const subtitleScenario =
+        typeof announcement?.subtitle === "string" ? announcement.subtitle.trim() : "";
+      if (subtitleScenario) {
+        announcement.missionBriefScenario = subtitleScenario;
+      } else if (!announcement?.missionBriefScenario) {
+        announcement.missionBriefScenario =
+          missionBriefScenarios[Math.floor(Math.random() * missionBriefScenarios.length)];
       }
-      const scenario = levelAnnouncements[0].missionBriefScenario;
+      const scenario = announcement?.missionBriefScenario || subtitleScenario || "";
       const scenarioTitle = formatScenarioForTitle(getScenarioTitle(scenario)) || "A Crisis";
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = scenario;
@@ -4529,7 +4535,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (npcNames.length > 2) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
-      const announcement = levelAnnouncements[0] || null;
       const actMissionLabels = {
         1: "Foothold",
         2: "Counterattack",

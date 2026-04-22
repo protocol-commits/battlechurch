@@ -12,13 +12,16 @@
   const NPC_AGREEMENT_LINES = levelData.npcAgreementLines || [];
   const CONGREGATION_WAVE_INTRO = congregationDialogue.waveIntro || {};
   const BATTLE_SCENARIOS = levelData.battleScenarios || [];
-  const MISSION_BRIEF_SCENARIO_TITLES =
-    ((typeof window !== "undefined" && window.BattlechurchMissionBrief?.scenarios) || [])
-      .map((entry) => (typeof entry?.title === "string" ? entry.title.trim() : ""))
-      .filter(Boolean);
-  const AVAILABLE_BATTLE_SCENARIOS = BATTLE_SCENARIOS.length
-    ? BATTLE_SCENARIOS
-    : MISSION_BRIEF_SCENARIO_TITLES;
+  function getAvailableBattleScenarios() {
+    if (Array.isArray(BATTLE_SCENARIOS) && BATTLE_SCENARIOS.length) {
+      return BATTLE_SCENARIOS;
+    }
+    const runtimeTitles =
+      ((typeof window !== "undefined" && window.BattlechurchMissionBrief?.scenarios) || [])
+        .map((entry) => (typeof entry?.title === "string" ? entry.title.trim() : ""))
+        .filter(Boolean);
+    return runtimeTitles;
+  }
   const BATTLE_SCENARIO_WAVE_ARCS = Object.freeze({
     "death of a close family member": [
       "Shock and Numbness",
@@ -1007,7 +1010,7 @@
   // fallback of 5 so summaries reflect the expected battle baseline.
   const detected = npcs.filter((npc) => !npc.departed && npc.active).length;
   state.battleNpcStartCount = detected > 0 ? detected : 5;
-      const pickedScenario = randomChoice(AVAILABLE_BATTLE_SCENARIOS);
+      const pickedScenario = randomChoice(getAvailableBattleScenarios());
       state.currentBattleScenario =
         typeof pickedScenario === "string"
           ? pickedScenario
