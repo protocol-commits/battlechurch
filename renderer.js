@@ -2828,7 +2828,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const sectionGap = Math.round(bodySize * 0.35);
   const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
   const headingTitle = `${title || "Battle Report"}:`;
-  const headingProblem = String(recapData?.problemTitle || "").trim();
+  const headingProblem =
+    formatScenarioForTitle(String(recapData?.problemTitle || "").trim());
   const headingCombined = headingProblem ? `${headingTitle} ${headingProblem}` : headingTitle;
   let cursorY = Math.round(layout.titleY);
   const panelPaddingX = 36;
@@ -5777,10 +5778,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else {
       const scenarioRaw =
         typeof levelStatus.battleScenario === "string" ? levelStatus.battleScenario.trim() : "";
-      const problemPhrase = (
+      const problemPhraseRaw =
         scenarioRaw.replace(/[.!?]+$/g, "").replace(/\s+/g, " ").trim() ||
-        "their current struggles"
-      );
+        "their current struggles";
+      const problemPhrase =
+        formatScenarioForSentence(problemPhraseRaw) || "their current struggles";
 
       const survivors = Array.isArray(npcs)
         ? npcs
