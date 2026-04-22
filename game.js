@@ -17132,9 +17132,11 @@ function handleTitleScreen() {
               title = `${demoSlot.label || "Demo Slot"} - Details`;
               lines.push(`Start Town: ${demoSlot.townId || "unknown"}`);
               lines.push(`Preset Towns Cleared: ${Math.max(0, Number(demoSlot.completedTowns) || 0)}/10`);
-              lines.push(`Campaign: ${String(campaignData.campaign || "p1").toUpperCase()}`);
+              const campaignId = String(campaignData.campaign || "p1").toLowerCase();
+              const visitLabel = campaignId === "p1" ? "Visit 1" : campaignId === "p2" ? "Visit 2" : "Visit 3";
+              lines.push(`Visit: ${visitLabel}`);
               lines.push(`Start Congregation: ${Math.max(0, Number(campaignData.startCount) || 0)}`);
-              lines.push(`Campaign Multiplier: x${Number(campaignData.campaignMultiplier || 1).toFixed(2).replace(/\\.00$/, "")}`);
+              lines.push(`Visit Multiplier: x${Number(campaignData.campaignMultiplier || 1).toFixed(2).replace(/\\.00$/, "")}`);
               const upgrades = Object.entries(campaignData.restoredChurchPowerupLevels || {});
               lines.push(
                 `Upgrades: ${

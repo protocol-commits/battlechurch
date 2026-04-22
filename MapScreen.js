@@ -1012,7 +1012,7 @@
       ctx.fillText(`Score ×${getCapitalScoreMultiplier(progress).toFixed(2)}`, canvas.width / 2, panelY + 76);
     } else {
       const nextCamp = progress ? getNextCampaignForTown(town.id, progress) : "p1";
-      const campLabel = nextCamp === "p1" ? "Campaign I" : nextCamp === "p2" ? "Campaign II" : "Campaign III";
+      const campLabel = nextCamp === "p1" ? "Visit 1" : nextCamp === "p2" ? "Visit 2" : "Visit 3";
       const campAvail = nextCamp === "p1" || (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
       const campText = campAvail ? campLabel : `${campLabel} (locked)`;
       ctx.fillText(campText, canvas.width / 2, panelY + 76);

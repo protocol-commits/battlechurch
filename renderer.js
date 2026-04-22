@@ -7507,9 +7507,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillText(`Demo Slot`, detailLeft, lineY); lineY += detailLineGap;
         ctx.fillText(`Start Town: ${townName}`, detailLeft, lineY); lineY += detailLineGap;
         ctx.fillText(`Towns Preset: ${fmt(focusDemoDetails.completedTowns)}/10`, detailLeft, lineY); lineY += detailLineGap;
-        ctx.fillText(`Campaign: ${focusDemoDetails.campaign}`, detailLeft, lineY); lineY += detailLineGap;
+        const visitLabel =
+          focusDemoDetails.campaign === "P1"
+            ? "Visit 1"
+            : focusDemoDetails.campaign === "P2"
+              ? "Visit 2"
+              : focusDemoDetails.campaign === "P3"
+                ? "Visit 3"
+                : `Visit ${focusDemoDetails.campaign}`;
+        ctx.fillText(`Visit: ${visitLabel}`, detailLeft, lineY); lineY += detailLineGap;
         ctx.fillText(`Start Congregation: ${fmt(focusDemoDetails.startCount)}`, detailLeft, lineY); lineY += detailLineGap;
-        ctx.fillText(`Campaign Multiplier: x${fmtFloat(focusDemoDetails.campaignMultiplier)}`, detailLeft, lineY); lineY += detailLineGap;
+        ctx.fillText(`Visit Multiplier: x${fmtFloat(focusDemoDetails.campaignMultiplier)}`, detailLeft, lineY); lineY += detailLineGap;
       } else if (!details) {
         ctx.font = `500 14px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = "rgba(231, 176, 102, 0.8)";
@@ -8126,7 +8134,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const mapTagline = hasMapTagline
         ? GameText.screens.map.tagline
         : "Spiritual Warfare Map";
-      const mapSubhead = "Smite the Hordes. Save the people.";
+      const mapSubhead = "Smite the Hordes. Shepherd the Flock.";
       if (mapTagline) {
         drawAnnouncementText(ctx, canvas, {
           title: mapTagline,
