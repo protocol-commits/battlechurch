@@ -30,12 +30,12 @@
     ],
     "death of a spouse": [
       "Grief and Emptiness",
-      "Loneliness and Identity Crisis",
+      "Role Loss and Loneliness",
       "Holding On in Faith While Relearning Life",
     ],
     "divorce": [
       "Acute Grief",
-      "Isolation and Uncertainty",
+      "Rejection Wounds and Future Fear",
       "Fighting Forward in Trust Toward Healing and Peace",
     ],
     "ongoing marital conflict": [
@@ -45,22 +45,22 @@
     ],
     "loss of a job": [
       "Panic and Loss of Security",
-      "Fear and Self-Doubt",
+      "Vocational Shame and Self-Doubt",
       "Fighting Forward in Faith for New Direction",
     ],
     "long-term unemployment": [
       "Discouragement Loop",
-      "Shame and Identity Crisis",
+      "Identity Erosion and Hopelessness",
       "Fighting in Faith with Renewed Hope",
     ],
     "severe financial hardship": [
-      "Pressure and Panic",
+      "Decision Fatigue and Financial Pressure",
       "Fear of Not Having Enough",
       "Fighting in Trust for Daily Provision",
     ],
     "foreclosure or loss of a home": [
       "Shock and Disorientation",
-      "Fear and Rootlessness",
+      "Displacement Grief and Rootlessness",
       "Fighting in Faith for Shelter and Steady Ground",
     ],
     "chronic illness": [
@@ -74,7 +74,7 @@
       "Holding On in Faith with Meaningful Presence",
     ],
     "mental health struggles": [
-      "Inner Turbulence",
+      "Racing Thoughts and Emotional Numbness",
       "Isolation Spiral",
       "Holding On in Trust for Light and Help",
     ],
@@ -84,18 +84,18 @@
       "Fighting in Faith for Recovery and Integrity",
     ],
     "relapse after recovery": [
-      "Setback and Despair",
+      "Failure and Relapse Despair",
       "Shame and Self-Condemnation",
       "Fighting Back in Trust Toward Restoration",
     ],
     "caring for an aging parent": [
-      "Worry and Overwhelm",
+      "Role Reversal Grief and Overwhelm",
       "Compassion Fatigue",
       "Fighting in Trust for Grace in Daily Care",
     ],
     "parenting a child with special needs": [
-      "Exhaustion and Overwhelm",
-      "Decision Fatigue and Emotional Exhaustion",
+      "Constant Vigilance and Emotional Exhaustion",
+      "Decision Fatigue and Advocacy Burnout",
       "Fighting in Faith for Sustainable Support",
     ],
     "parenting a troubled child": [
@@ -110,11 +110,11 @@
     ],
     "deep loneliness": [
       "Silent Isolation",
-      "Shame and Self-Worth Doubt",
+      "Rejection Fear and Self-Worth Doubt",
       "Holding On in Trust for Belonging",
     ],
     "workplace hostility": [
-      "Ongoing Strain",
+      "Moral Injury and Chronic Stress",
       "Fear and Hypervigilance",
       "Standing Firm in Faith with Courage and Clarity",
     ],
