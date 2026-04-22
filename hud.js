@@ -292,8 +292,22 @@
       } else if (!scenarioTitle) {
         scenarioTitle = (typeof GameText !== 'undefined' && GameText.hud?.defaultMissionTitle) || 'the crisis';
       }
-      const missionLabel = (typeof GameText !== 'undefined' && GameText.hud?.mission) || 'Battle';
-      ctx.fillText(`${missionLabel}: ${scenarioTitle}`.toUpperCase(), hpBarX, panelY + 14);
+      const maxScenarioWidth = hpBarWidth;
+      const toUpper = (value) => String(value || "").toUpperCase();
+      const truncateToWidth = (value, maxWidth) => {
+        const raw = String(value || "");
+        if (!raw) return "";
+        if ((ctx.measureText(raw).width || 0) <= maxWidth) return raw;
+        const ellipsis = "…";
+        let out = raw;
+        while (out.length > 1 && (ctx.measureText(`${out}${ellipsis}`).width || 0) > maxWidth) {
+          out = out.slice(0, -1);
+        }
+        return `${out}${ellipsis}`;
+      };
+      const baseLabel = toUpper(scenarioTitle);
+      const displayLabel = truncateToWidth(baseLabel, maxScenarioWidth);
+      ctx.fillText(displayLabel, hpBarX, panelY + 14);
       ctx.restore();
       ctx.fillStyle = 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
