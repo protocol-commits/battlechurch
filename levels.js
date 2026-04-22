@@ -29,8 +29,8 @@
       "Holding On in Grief with Steady Trust",
     ],
     "death of a spouse": [
-      "Empty Home Silence",
-      "Identity and Loneliness",
+      "Grief and Emptiness",
+      "Loneliness and Identity Crisis",
       "Holding On in Faith While Relearning Life",
     ],
     "divorce": [
@@ -44,27 +44,27 @@
       "Standing Firm in Faith for Repair and Forgiveness",
     ],
     "loss of a job": [
-      "Sudden Instability",
+      "Panic and Instability",
       "Fear and Self-Doubt",
       "Fighting Forward in Trust for New Direction",
     ],
     "long-term unemployment": [
       "Discouragement Loop",
-      "Identity and Shame",
+      "Shame and Identity Crisis",
       "Fighting in Faith with Renewed Hope",
     ],
     "severe financial hardship": [
-      "Constant Pressure",
+      "Pressure and Panic",
       "Scarcity and Anxiety",
       "Fighting in Trust for Daily Provision",
     ],
     "foreclosure or loss of a home": [
-      "Displacement Shock",
-      "Loss of Security",
+      "Shock and Disorientation",
+      "Fear and Rootlessness",
       "Fighting in Faith for Shelter and Steady Ground",
     ],
     "chronic illness": [
-      "Ongoing Symptoms",
+      "Weariness and Uncertainty",
       "Fatigue and Frustration",
       "Holding On in Trust for Strength Today",
     ],
@@ -85,32 +85,32 @@
     ],
     "relapse after recovery": [
       "Setback and Despair",
-      "Honest Reflection",
+      "Shame and Self-Condemnation",
       "Fighting Back in Trust Toward Restoration",
     ],
     "caring for an aging parent": [
-      "Growing Demands",
+      "Worry and Overwhelm",
       "Compassion Fatigue",
       "Fighting in Trust for Grace in Daily Care",
     ],
     "parenting a child with special needs": [
-      "Daily Overload",
+      "Exhaustion and Overwhelm",
       "Advocacy Fatigue",
       "Fighting in Faith for Sustainable Support",
     ],
     "parenting a troubled child": [
-      "Crisis and Conflict",
-      "Fear and Helplessness",
+      "Chaos and Conflict",
+      "Helplessness and Heartbreak",
       "Fighting in Trust with Patient Hope",
     ],
     "betrayal by a close friend": [
       "Shock and Anger",
-      "Trust Collapse",
+      "Mistrust and Bitterness",
       "Holding On in Faith with Forgiveness and Boundaries",
     ],
     "deep loneliness": [
       "Silent Isolation",
-      "Worth and Belonging",
+      "Shame and Self-Worth Doubt",
       "Holding On in Trust for Belonging",
     ],
     "workplace hostility": [
