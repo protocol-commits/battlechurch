@@ -12,6 +12,110 @@
   const NPC_AGREEMENT_LINES = levelData.npcAgreementLines || [];
   const CONGREGATION_WAVE_INTRO = congregationDialogue.waveIntro || {};
   const BATTLE_SCENARIOS = levelData.battleScenarios || [];
+  const MISSION_BRIEF_SCENARIO_TITLES =
+    ((typeof window !== "undefined" && window.BattlechurchMissionBrief?.scenarios) || [])
+      .map((entry) => (typeof entry?.title === "string" ? entry.title.trim() : ""))
+      .filter(Boolean);
+  const AVAILABLE_BATTLE_SCENARIOS = BATTLE_SCENARIOS.length
+    ? BATTLE_SCENARIOS
+    : MISSION_BRIEF_SCENARIO_TITLES;
+  const BATTLE_SCENARIO_WAVE_ARCS = Object.freeze({
+    "death of a close family member": [
+      "Shock and Numbness",
+      "Waves of Grief",
+      "Finding Steady Ground",
+    ],
+    "death of a spouse": [
+      "Empty Home Silence",
+      "Identity and Loneliness",
+      "Relearning Daily Life",
+    ],
+    "divorce": [
+      "Acute Grief",
+      "Isolation and Uncertainty",
+      "Rebuilding with Support",
+    ],
+    "ongoing marital conflict": [
+      "Escalating Tension",
+      "Emotional Exhaustion",
+      "Repair and Boundaries",
+    ],
+    "loss of a job": [
+      "Sudden Instability",
+      "Fear and Self-Doubt",
+      "New Direction",
+    ],
+    "long-term unemployment": [
+      "Discouragement Loop",
+      "Identity and Shame",
+      "Persistence and Hope",
+    ],
+    "severe financial hardship": [
+      "Constant Pressure",
+      "Scarcity and Anxiety",
+      "Stabilizing Essentials",
+    ],
+    "foreclosure or loss of a home": [
+      "Displacement Shock",
+      "Loss of Security",
+      "Rebuilding Home Base",
+    ],
+    "chronic illness": [
+      "Ongoing Symptoms",
+      "Fatigue and Frustration",
+      "Sustainable Rhythms",
+    ],
+    "caring for a terminally ill loved one": [
+      "Anticipatory Grief",
+      "Caregiver Burnout",
+      "Meaningful Presence",
+    ],
+    "mental health struggles": [
+      "Inner Turbulence",
+      "Isolation Spiral",
+      "Reaching for Support",
+    ],
+    "addiction": [
+      "Cravings and Triggers",
+      "Consequences and Shame",
+      "Accountability and Recovery",
+    ],
+    "relapse after recovery": [
+      "Setback and Despair",
+      "Honest Reflection",
+      "Returning to the Path",
+    ],
+    "caring for an aging parent": [
+      "Growing Demands",
+      "Compassion Fatigue",
+      "Shared Care Plan",
+    ],
+    "parenting a child with special needs": [
+      "Daily Overload",
+      "Advocacy Fatigue",
+      "Sustainable Support",
+    ],
+    "parenting a troubled child": [
+      "Crisis and Conflict",
+      "Fear and Helplessness",
+      "Consistency and Hope",
+    ],
+    "betrayal by a close friend": [
+      "Shock and Anger",
+      "Trust Collapse",
+      "Wise Boundaries",
+    ],
+    "deep loneliness": [
+      "Silent Isolation",
+      "Worth and Belonging",
+      "Reconnection",
+    ],
+    "workplace hostility": [
+      "Ongoing Strain",
+      "Fear and Hypervigilance",
+      "Clarity and Action",
+    ],
+  });
   const BOSS_BATTLE_THEMES = levelData.bossBattleThemes || [];
   const BOSS_PASTOR_PROBLEMS =
     levelData.bossPastorProblems || [
@@ -213,6 +317,51 @@
       );
     }
     return Math.max(1, Number(WAVES_PER_MISSION) || 1);
+  }
+
+  function normalizeScenarioKey(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[.!?]+$/g, "");
+  }
+
+  function getWaveArcForScenario(scenarioTitle, waveCount = 3) {
+    const defaultArc = [
+      "Facing the Weight",
+      "Holding Through the Strain",
+      "Choosing the Next Step",
+    ];
+    const key = normalizeScenarioKey(scenarioTitle);
+    const base = Array.isArray(BATTLE_SCENARIO_WAVE_ARCS[key])
+      ? [...BATTLE_SCENARIO_WAVE_ARCS[key]]
+      : [...defaultArc];
+    const safeCount = Math.max(1, Number(waveCount) || 1);
+    while (base.length < safeCount) {
+      base.push("Staying the Course");
+    }
+    return base.slice(0, safeCount);
+  }
+
+  function applyWaveArcToBattleHordes(hordes, scenarioTitle) {
+    if (!Array.isArray(hordes) || !hordes.length) return;
+    const firstHordeByWave = new Map();
+    for (let i = 0; i < hordes.length; i += 1) {
+      const horde = hordes[i];
+      const waveNum = Number.isFinite(horde?.waveNumber)
+        ? Math.max(1, Math.floor(horde.waveNumber))
+        : Math.floor(i / Math.max(1, HORDES_PER_WAVE)) + 1;
+      if (!firstHordeByWave.has(waveNum)) {
+        firstHordeByWave.set(waveNum, horde);
+      }
+    }
+    const waveNumbers = Array.from(firstHordeByWave.keys()).sort((a, b) => a - b);
+    const waveLabels = getWaveArcForScenario(scenarioTitle, waveNumbers.length);
+    waveNumbers.forEach((waveNum, idx) => {
+      const firstHorde = firstHordeByWave.get(waveNum);
+      if (!firstHorde) return;
+      firstHorde.waveIntroText = `Wave ${waveNum}: ${waveLabels[idx]}`;
+    });
   }
 
   const deps = {
@@ -858,7 +1007,13 @@
   // fallback of 5 so summaries reflect the expected battle baseline.
   const detected = npcs.filter((npc) => !npc.departed && npc.active).length;
   state.battleNpcStartCount = detected > 0 ? detected : 5;
-      state.currentBattleScenario = randomChoice(BATTLE_SCENARIOS);
+      const pickedScenario = randomChoice(AVAILABLE_BATTLE_SCENARIOS);
+      state.currentBattleScenario =
+        typeof pickedScenario === "string"
+          ? pickedScenario
+          : (typeof pickedScenario?.title === "string" ? pickedScenario.title : "Mental health struggles");
+      const battleHordes = currentBattle()?.hordes;
+      applyWaveArcToBattleHordes(battleHordes, state.currentBattleScenario);
   // Show Level + Month name instead of literal 'Battle N'
   const startedProcession = typeof deps.prepareNpcProcession === "function" && deps.prepareNpcProcession();
   if (startedProcession) {
@@ -908,6 +1063,7 @@
         duration: BATTLE_INTRO_DURATION,
         requiresConfirm: true,
         missionBriefTitle,
+        missionBriefScenario: state.currentBattleScenario,
         missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
