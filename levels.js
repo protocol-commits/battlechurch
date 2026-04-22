@@ -46,7 +46,7 @@
     "loss of a job": [
       "Panic and Loss of Security",
       "Fear and Self-Doubt",
-      "Fighting Forward in Trust for New Direction",
+      "Fighting Forward in Faith for New Direction",
     ],
     "long-term unemployment": [
       "Discouragement Loop",
