@@ -54,7 +54,7 @@
       "Fighting in Faith with Renewed Hope",
     ],
     "severe financial hardship": [
-      "Decision Fatigue and Financial Pressure",
+      "Financial Anxiety and Decision Fatigue",
       "Fear of Not Having Enough",
       "Fighting in Trust for Daily Provision",
     ],
@@ -84,7 +84,7 @@
       "Fighting in Faith for Recovery and Integrity",
     ],
     "relapse after recovery": [
-      "Failure and Relapse Despair",
+      "Setback Shock and Relapse Despair",
       "Shame and Self-Condemnation",
       "Fighting Back in Trust Toward Restoration",
     ],
