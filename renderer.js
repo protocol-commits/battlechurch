@@ -1315,19 +1315,19 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     {
       key: "circle",
       label: "GUIDED COURSE",
-      desc: "",
+      desc: "Armor-piercing bolts for heavy demons.",
       stat: "+Damage",
     },
     {
       key: "line",
       label: "BIBLE STUDY",
-      desc: "",
+      desc: "Higher rate of fire to thin swarms.",
       stat: "+Rate of Fire",
     },
     {
       key: "crescent",
       label: "CARE GROUP",
-      desc: "",
+      desc: "Prayer meter fills faster in battle.",
       stat: "+Prayer Meter",
     },
   ];
@@ -1343,6 +1343,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
       (opt) =>
         `<button class="formation-option" data-formation="${opt.key}">
           <span class="formation-option__label">${opt.label}</span>
+          <span class="formation-option__desc">${escapeHtml(opt.desc || "")}</span>
           <span class="formation-option__stat"><strong>${opt.stat || ""}</strong></span>
         </button>`,
     )
@@ -1750,21 +1751,21 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         {
           key: "circle",
           label: "GUIDED COURSE",
-          desc: "",
+          desc: "Armor-piercing bolts for heavy demons.",
           stat: "+Damage",
           iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
         },
         {
           key: "line",
           label: "BIBLE STUDY",
-          desc: "",
+          desc: "Higher rate of fire to thin swarms.",
           stat: "+Rate of Fire",
           iconSrc: "assets/sprites/items/icons/I25_Book.png",
         },
         {
           key: "crescent",
           label: "CARE GROUP",
-          desc: "",
+          desc: "Prayer meter fills faster in battle.",
           stat: "+Prayer Meter",
           iconSrc: "assets/sprites/items/icons/I41_Candle.png",
         },
