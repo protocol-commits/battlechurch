@@ -44,7 +44,7 @@
       "Standing Firm in Faith for Repair and Forgiveness",
     ],
     "loss of a job": [
-      "Panic and Instability",
+      "Panic and Loss of Security",
       "Fear and Self-Doubt",
       "Fighting Forward in Trust for New Direction",
     ],
@@ -55,7 +55,7 @@
     ],
     "severe financial hardship": [
       "Pressure and Panic",
-      "Scarcity and Anxiety",
+      "Fear of Not Having Enough",
       "Fighting in Trust for Daily Provision",
     ],
     "foreclosure or loss of a home": [
@@ -80,7 +80,7 @@
     ],
     "addiction": [
       "Cravings and Triggers",
-      "Consequences and Shame",
+      "Guilt, Shame, and Self-Condemnation",
       "Fighting in Faith for Recovery and Integrity",
     ],
     "relapse after recovery": [
@@ -95,11 +95,11 @@
     ],
     "parenting a child with special needs": [
       "Exhaustion and Overwhelm",
-      "Advocacy Fatigue",
+      "Decision Fatigue and Emotional Exhaustion",
       "Fighting in Faith for Sustainable Support",
     ],
     "parenting a troubled child": [
-      "Chaos and Conflict",
+      "Inner Turmoil and Relational Conflict",
       "Helplessness and Heartbreak",
       "Fighting in Trust with Patient Hope",
     ],
