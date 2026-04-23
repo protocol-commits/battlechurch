@@ -1954,17 +1954,39 @@ if (typeof window !== "undefined") {
     return false;
   };
 }
-let heroLives = 3;
+const DEFAULT_HERO_LIVES = 1;
+const DEV_OVERRIDE_HERO_LIVES = 3;
+const DEV_THREE_LIVES_STORAGE_KEY = "battlechurch.devThreeLivesMode";
+function loadDevThreeLivesMode() {
+  try {
+    if (typeof localStorage === "undefined") return false;
+    return localStorage.getItem(DEV_THREE_LIVES_STORAGE_KEY) === "1";
+  } catch (_error) {
+    return false;
+  }
+}
+function persistDevThreeLivesMode(enabled) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(DEV_THREE_LIVES_STORAGE_KEY, enabled ? "1" : "0");
+  } catch (_error) {}
+}
+
 let enemyDevLabelsVisible = false;
 const devTools = {
   godMode: false,
   showCombatDebug: false,
   showNpcZones: false,
+  threeLivesMode: loadDevThreeLivesMode(),
   enemyHpBarThreshold: 100,
   // Adjustable runtime tuning for NPC combat behaviour
   npcFireCooldown: 1.2, // seconds between NPC arrow shots when at full faith
   npcFaithPerEnemy: 0, // faith gained by NPCs per enemy defeated
 };
+function getConfiguredHeroLives() {
+  return devTools.threeLivesMode ? DEV_OVERRIDE_HERO_LIVES : DEFAULT_HERO_LIVES;
+}
+let heroLives = getConfiguredHeroLives();
 
 function clearFormationSelection() {
   formationState.current = null;
@@ -16849,6 +16871,8 @@ function showDeveloperOverlay() {
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="bossHitbox">Boss Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="shortcuts">Developer Shortcuts</button>
       </div>
+      <div class="settings-row"><div class="settings-row__label"><strong>Run Rules</strong></div></div>
+      <div class="settings-row" data-dev-lives-row></div>
       <div class="settings-row"><div class="settings-row__label"><strong>Debug Toggles</strong></div></div>
       <div class="settings-row" data-hitbox-debug-row></div>
     </div>
@@ -16860,6 +16884,28 @@ function showDeveloperOverlay() {
     variant: "settings",
     onRender: ({ bodyEl }) => {
       if (!bodyEl) return;
+      const livesRow = bodyEl.querySelector("[data-dev-lives-row]");
+      if (livesRow) {
+        livesRow.style.display = "flex";
+        livesRow.style.flexWrap = "wrap";
+        livesRow.style.gap = "8px";
+        const livesButton = document.createElement("button");
+        livesButton.type = "button";
+        livesButton.className = "dialog-overlay__button";
+        const syncLivesButton = () => {
+          const enabled = Boolean(devTools.threeLivesMode);
+          livesButton.textContent = `Lives Mode: ${enabled ? "Dev (3 Lives)" : "Standard (1 Life)"}`;
+          livesButton.style.opacity = enabled ? "1" : "0.85";
+        };
+        syncLivesButton();
+        livesButton.addEventListener("click", () => {
+          devTools.threeLivesMode = !devTools.threeLivesMode;
+          persistDevThreeLivesMode(devTools.threeLivesMode);
+          heroLives = getConfiguredHeroLives();
+          syncLivesButton();
+        });
+        livesRow.appendChild(livesButton);
+      }
       const hitboxRow = bodyEl.querySelector("[data-hitbox-debug-row]");
       if (hitboxRow) {
         const defs = [
@@ -22696,7 +22742,7 @@ function restartGame() {
     assets.player,
   );
   player.health = player.maxHealth;
-  heroLives = 3;
+  heroLives = getConfiguredHeroLives();
   resetCozyNpcs(5);
   clearCongregationMembers();
   heroRescueCooldown = 0;
@@ -23040,7 +23086,7 @@ async function init() {
     assets.player,
   );
   player.health = player.maxHealth;
-    heroLives = 3;
+    heroLives = getConfiguredHeroLives();
     playerRespawnPending = false;
     respawnTimer = 0;
     respawnIndicatorTimer = 0;
