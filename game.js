@@ -3760,17 +3760,15 @@ const createSentryState = () => ({
   beamEndX: 0,
   beamEndY: 0,
   beamSpeed: 2800 * WORLD_SCALE,
-  beamCooldown: 0.5,
+  beamCooldown: 0.55,
   beamCooldownTimer: 0,
-  boreSfxTimer: 0,
+  beamPulseDuration: 0.34,
+  beamPulseTimer: 0,
   beamStartDelay: 0,
   beamStartDelayTimer: 0,
   beamHitSfxTimer: 0,
-  hitInterval: 0.05,
+  hitInterval: 0.02,
   hitTimer: 0,
-  burnTimer: 0,
-  burnInterval: 0,
-  burnEffect: null,
   damage: 10,
   hitRadius: 18 * WORLD_SCALE,
   beamOuterWidth: 10 * WORLD_SCALE,
@@ -3779,7 +3777,14 @@ const createSentryState = () => ({
   beamInnerColor: "rgba(255, 250, 220, 0.95)",
   fadeAlpha: 1,
   target: null,
-  lockedTarget: null,
+  sweepAngle: Number.NaN,
+  sweepStep: Math.PI / 9,
+  sweepPhaseOffset: 0,
+  sweepDirection: 1,
+  pulseSweepAmount: Math.PI / 10,
+  pulseSweepSpeed: 0.4,
+  pulseSweepRemaining: 0,
+  pulseSweepDirection: 1,
 });
 const sentryState = createSentryState();
 const sentryStateSecondary = createSentryState();
@@ -3795,11 +3800,16 @@ sentryStateSecondary.beamInnerColor = "rgba(242, 252, 255, 0.95)";
 sentryStateSecondary.glowColor = "rgba(130, 210, 255, 0.75)";
 sentryStateSecondary.glowBlur = 18;
 sentryStateSecondary.beamStartDelay = 0.06;
+sentryStateSecondary.sweepPhaseOffset = (Math.PI * 2) / 3;
+sentryStateSecondary.sweepStep = Math.PI / 9;
+sentryStateSecondary.pulseSweepDirection = -1;
 sentryStateBonus.beamOuterColor = "rgba(255, 215, 155, 0.85)";
 sentryStateBonus.beamInnerColor = "rgba(255, 247, 220, 0.95)";
 sentryStateBonus.glowColor = "rgba(255, 200, 120, 0.72)";
 sentryStateBonus.glowBlur = 18;
 sentryStateBonus.beamStartDelay = 0.08;
+sentryStateBonus.sweepPhaseOffset = (Math.PI * 4) / 3;
+sentryStateBonus.sweepStep = Math.PI / 9;
 
 // Melee Attack System Constants (tunable via GameBalance.melee.*)
 const MELEE_SWING_LENGTH_BASE = 260;
@@ -9136,17 +9146,9 @@ function findNearestSpearTarget(fromX, fromY, options = {}) {
   return best;
 }
 
-function isSentryBoreTarget(target) {
-  if (!target) return false;
-  const damageClass = String(target.damageClass || target.config?.damageClass || "").toLowerCase();
-  return damageClass === "tank" || damageClass === "armored";
-}
-
 function collectSentryBeamHits(state, originX, originY, dirX, dirY, maxDistance) {
   const hits = [];
-  let armoredTarget = null;
-  let armoredDist = Infinity;
-  const checkTarget = (target, center, baseRadius, allowBore) => {
+  const checkTarget = (target, center, baseRadius) => {
     const dx = center.x - originX;
     const dy = center.y - originY;
     const t = dx * dirX + dy * dirY;
@@ -9157,17 +9159,13 @@ function collectSentryBeamHits(state, originX, originY, dirX, dirY, maxDistance)
     const radius = (state.hitRadius || 0) + baseRadius;
     if (dist > radius) return;
     hits.push({ target, hitX: px, hitY: py, dist: t });
-    if (allowBore && isSentryBoreTarget(target) && t < armoredDist) {
-      armoredDist = t;
-      armoredTarget = target;
-    }
   };
 
   enemies.forEach((enemy) => {
     if (!isEnemyTargetableForAutoAim(enemy)) return;
     const center = getEnemyHitboxCenter(enemy);
     const radius = getEnemyHitboxRadius(enemy) * 0.6;
-    checkTarget(enemy, center, radius, true);
+    checkTarget(enemy, center, radius);
   });
   projectiles.forEach((projectile) => {
     if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
@@ -9175,16 +9173,56 @@ function collectSentryBeamHits(state, originX, originY, dirX, dirY, maxDistance)
       projectile,
       { x: projectile.x || 0, y: projectile.y || 0 },
       Math.max(6, (projectile.radius || 0) * 0.9),
-      false,
     );
   });
 
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
     const radius = (activeBoss.radius || 0) * 0.8;
-    checkTarget(activeBoss, { x: activeBoss.x, y: activeBoss.y }, radius, false);
+    checkTarget(activeBoss, { x: activeBoss.x, y: activeBoss.y }, radius);
   }
 
-  return { hits, armoredTarget, armoredDist };
+  return hits;
+}
+
+function findSentryTargetInSector(fromX, fromY, sectorAngle, halfWidth) {
+  const normalizeDelta = (delta) => {
+    let value = delta;
+    while (value > Math.PI) value -= Math.PI * 2;
+    while (value < -Math.PI) value += Math.PI * 2;
+    return value;
+  };
+
+  let bestTarget = null;
+  let bestDist = Infinity;
+
+  const checkCandidate = (target, center) => {
+    const dx = center.x - fromX;
+    const dy = center.y - fromY;
+    const angle = Math.atan2(dy, dx);
+    const diff = Math.abs(normalizeDelta(angle - sectorAngle));
+    if (diff > halfWidth) return;
+    const dist = dx * dx + dy * dy;
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestTarget = target;
+    }
+  };
+
+  enemies.forEach((enemy) => {
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
+    checkCandidate(enemy, getEnemyHitboxCenter(enemy));
+  });
+
+  projectiles.forEach((projectile) => {
+    if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
+    checkCandidate(projectile, { x: projectile.x || 0, y: projectile.y || 0 });
+  });
+
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
+    checkCandidate(activeBoss, { x: activeBoss.x, y: activeBoss.y });
+  }
+
+  return bestTarget;
 }
 
 function resetSentryState(state) {
@@ -9196,15 +9234,13 @@ function resetSentryState(state) {
   state.beamEndY = state.y;
   state.baseAngle = state.angle || 0;
   state.beamCooldownTimer = 0;
+  state.beamPulseTimer = 0;
+  state.pulseSweepRemaining = 0;
   state.hitTimer = 0;
-  state.burnTimer = 0;
-  state.boreSfxTimer = 0;
   state.beamStartDelayTimer = 0;
   state.beamHitSfxTimer = 0;
-  if (state.burnEffect) state.burnEffect.dead = true;
-  state.burnEffect = null;
   state.target = null;
-  state.lockedTarget = null;
+  state.sweepAngle = Number.NaN;
 }
 
 function updateSentryTurretInstance(state, dt) {
@@ -9241,108 +9277,79 @@ function updateSentryTurretInstance(state, dt) {
       }
       if (state.beamStartDelayTimer > 0) return;
     }
-    const initialTarget = findNearestSpearTarget(state.x, state.y);
-    if (!initialTarget) return;
+    if (!hasSpearTargets()) return;
     state.beamActive = true;
     state.beamProgress = 0;
     state.beamLength = 0;
     state.hitTimer = 0;
-    state.boreSfxTimer = 0;
     state.beamStartDelayTimer = 0;
-    state.lockedTarget = null;
-    const center = getSpearTargetCenter(initialTarget);
-    state.angle = Math.atan2(center.y - state.y, center.x - state.x);
-    state.target = initialTarget;
-    state.baseAngle = state.angle || 0;
+    state.beamPulseTimer = Math.max(0.05, state.beamPulseDuration || 0.12);
+    if (!Number.isFinite(state.sweepAngle)) {
+      state.sweepAngle = sentryOrbitAngle + (state.sweepPhaseOffset || 0);
+    }
+    const step = Number.isFinite(state.sweepStep) ? state.sweepStep : Math.PI / 7;
+    const direction = state.sweepDirection >= 0 ? 1 : -1;
+    const safeStep = Math.max(0.08, Math.abs(step));
+    const halfWidth = Math.min(Math.PI * 0.45, Math.max(0.18, safeStep * 0.5));
+    const sectorCount = Math.max(1, Math.ceil((Math.PI * 2) / safeStep));
+    let cursor = state.sweepAngle;
+    let selectedTarget = null;
+
+    for (let i = 0; i < sectorCount; i += 1) {
+      const candidate = findSentryTargetInSector(state.x, state.y, cursor, halfWidth);
+      if (candidate) {
+        selectedTarget = candidate;
+        break;
+      }
+      cursor += safeStep * direction;
+      if (cursor >= Math.PI * 2) cursor -= Math.PI * 2;
+      if (cursor < 0) cursor += Math.PI * 2;
+    }
+
+    if (!selectedTarget) {
+      selectedTarget = findNearestSpearTarget(state.x, state.y);
+      if (!selectedTarget) {
+        state.beamActive = false;
+        state.beamPulseTimer = 0;
+        return;
+      }
+    }
+
+    const selectedCenter = getSpearTargetCenter(selectedTarget);
+    state.angle = selectedCenter
+      ? Math.atan2(selectedCenter.y - state.y, selectedCenter.x - state.x)
+      : cursor;
+    state.sweepAngle = cursor + safeStep * direction;
+    if (state.sweepAngle >= Math.PI * 2) state.sweepAngle -= Math.PI * 2;
+    if (state.sweepAngle < 0) state.sweepAngle += Math.PI * 2;
+    state.target = selectedTarget;
+    state.pulseSweepRemaining = Math.max(0, Number(state.pulseSweepAmount) || 0);
     playSentryBeamSfx(0.5);
   }
 
   if (!state.beamActive) return;
-
-  state.burnTimer = Math.max(0, (state.burnTimer || 0) - dt);
-  if (state.burnEffect && state.burnEffect.dead) {
-    state.burnEffect = null;
-  }
-
-  if (state.lockedTarget && (state.lockedTarget.dead || state.lockedTarget.state === "death")) {
-    state.lockedTarget = null;
-  }
-  if (!state.lockedTarget && state.burnEffect) {
-    state.burnEffect.dead = true;
-    state.burnEffect = null;
-  }
-
-  const aimTarget = state.lockedTarget || findNearestSpearTarget(state.x, state.y);
-  if (!aimTarget && !state.lockedTarget) {
-    state.beamActive = false;
-    state.beamProgress = 0;
-    state.beamLength = 0;
-    state.hitTimer = 0;
-    return;
-  }
-  if (aimTarget) {
-    const center = getSpearTargetCenter(aimTarget);
-    const desiredAngle = Math.atan2(center.y - state.y, center.x - state.x);
-    const currentAngle = state.angle || 0;
-    const maxOffset = Math.PI / 18;
-    const baseAngle = state.baseAngle || 0;
-    let diff = desiredAngle - baseAngle;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    const clampedTarget = baseAngle + Math.max(-maxOffset, Math.min(maxOffset, diff));
-    const turnSpeed = 3.6;
-    state.angle = approachAngle(currentAngle, clampedTarget, turnSpeed * dt);
-    state.target = aimTarget;
+  state.beamPulseTimer = Math.max(0, (state.beamPulseTimer || 0) - dt);
+  if ((state.pulseSweepRemaining || 0) > 0) {
+    const sweepDir = (state.pulseSweepDirection || state.sweepDirection || 1) >= 0 ? 1 : -1;
+    const sweepSpeed = Math.max(0, Number(state.pulseSweepSpeed) || 0);
+    const sweepStep = Math.min(state.pulseSweepRemaining, sweepSpeed * dt);
+    state.angle += sweepStep * sweepDir;
+    state.pulseSweepRemaining = Math.max(0, state.pulseSweepRemaining - sweepStep);
+    if (state.angle >= Math.PI * 2) state.angle -= Math.PI * 2;
+    if (state.angle < 0) state.angle += Math.PI * 2;
   }
 
   const dirX = Math.cos(state.angle || 0);
   const dirY = Math.sin(state.angle || 0);
   const maxDistance = distanceToArenaEdge(state.x, state.y, dirX, dirY);
-  const hitInfo = collectSentryBeamHits(state, state.x, state.y, dirX, dirY, maxDistance);
-
-  let blockDistance = maxDistance;
-  if (state.lockedTarget) {
-    const center = getSpearTargetCenter(state.lockedTarget);
-    if (center) {
-      const dx = center.x - state.x;
-      const dy = center.y - state.y;
-      const t = dx * dirX + dy * dirY;
-      if (t > 0) {
-        blockDistance = Math.min(blockDistance, t);
-      } else {
-        state.lockedTarget = null;
-      }
-    } else {
-      state.lockedTarget = null;
-    }
-  }
-  if (!state.lockedTarget && hitInfo.armoredTarget && Number.isFinite(hitInfo.armoredDist)) {
-    state.lockedTarget = hitInfo.armoredTarget;
-    blockDistance = Math.min(blockDistance, hitInfo.armoredDist);
-  }
 
   const speed = Math.max(1, state.beamSpeed || 1);
-  state.beamProgress = Math.min(state.beamProgress + speed * dt, blockDistance);
-  state.beamLength = Math.min(state.beamProgress, maxDistance);
+  state.beamProgress = Math.min(state.beamProgress + speed * dt, maxDistance);
+  state.beamLength = maxDistance;
   state.beamEndX = state.x + dirX * state.beamLength;
   state.beamEndY = state.y + dirY * state.beamLength;
 
-  const isBoringActive =
-    state.lockedTarget &&
-    !state.lockedTarget.dead &&
-    state.lockedTarget.state !== "death" &&
-    isSentryBoreTarget(state.lockedTarget);
-  if (isBoringActive) {
-    state.boreSfxTimer = Math.max(0, (state.boreSfxTimer || 0) - dt);
-    if (state.boreSfxTimer <= 0) {
-      playSentryBoreLoopSfx(0.9);
-      state.boreSfxTimer = 0.12;
-    }
-  } else {
-    state.boreSfxTimer = 0;
-  }
-
-  if (!state.lockedTarget && state.beamProgress >= maxDistance) {
+  if (state.beamPulseTimer <= 0) {
     state.beamActive = false;
     state.beamCooldownTimer = state.beamCooldown || 1;
     state.beamProgress = 0;
@@ -9366,7 +9373,7 @@ function updateSentryTurretInstance(state, dt) {
       state.beamLength,
     );
     let hitSfxPlayed = false;
-    currentHits.hits.forEach((hit) => {
+    currentHits.forEach((hit) => {
       const target = hit.target;
       if (!target || target.dead || target.state === "death") return;
       const hitX = hit.hitX;
@@ -9394,35 +9401,12 @@ function updateSentryTurretInstance(state, dt) {
       const targetHealth =
         target === activeBoss ? activeBoss?.health : target?.health;
       const targetDead = Number.isFinite(targetHealth) ? targetHealth <= 0 : false;
-      const isBoreTarget =
-        state.lockedTarget && target === state.lockedTarget && isSentryBoreTarget(target);
-      if (!isBoreTarget && !hitSfxPlayed && state.beamHitSfxTimer <= 0) {
+      if (!targetDead && !hitSfxPlayed && state.beamHitSfxTimer <= 0) {
         playSpearHitSfx(0.8);
         hitSfxPlayed = true;
         state.beamHitSfxTimer = 0.12;
       }
-      if (isBoreTarget) {
-        if (targetDead) {
-          if (state.burnEffect) {
-            state.burnEffect.dead = true;
-            state.burnEffect = null;
-          }
-          spawnSentryBoreKillEffect(hitX, hitY);
-          playSentryBoreKillSfx(1.0);
-        } else {
-          const burnFrames = assets?.effects?.sentryBurn;
-          const burnFrame = burnFrames && burnFrames.length ? burnFrames[0] : null;
-          const frameHeight = burnFrame?.height || 0;
-          const scale = 1.6;
-          const offsetY = frameHeight > 0 ? (frameHeight * scale) / 2 : 0;
-          if (state.burnEffect) {
-            state.burnEffect.x = hitX;
-            state.burnEffect.y = hitY - offsetY + 5;
-          } else if (!state.burnEffect) {
-            state.burnEffect = spawnSentryBurnEffect(hitX, hitY - offsetY + 5);
-          }
-        }
-      } else if (!targetDead) {
+      if (!targetDead) {
         spawnSentryBeamHitEffect(hitX, hitY);
       }
     });

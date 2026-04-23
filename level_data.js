@@ -13554,16 +13554,16 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "armoredSkeleton",
-                          "count": 4
+                          "enemy": "miniImp",
+                          "count": 100
                         },
                         {
-                          "enemy": "armoredAxeman",
-                          "count": 4
+                          "enemy": "orc",
+                          "count": 10
                         },
                         {
-                          "enemy": "armoredOrc",
-                          "count": 4
+                          "enemy": "miniClawedDemon",
+                          "count": 10
                         }
                       ],
                       "weights": {},
@@ -13579,11 +13579,19 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         },
                         {
                           "enemy": "armoredEliteOrc",
                           "count": 1
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
                         }
                       ],
                       "weights": {},
@@ -13599,11 +13607,19 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 100
                         },
                         {
                           "enemy": "armoredSkeleton",
                           "count": 1
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
                         }
                       ],
                       "weights": {},
@@ -13613,6 +13629,54 @@ window.BattlechurchLevelData = {
                       "duration": 4,
                       "mode": "explicit",
                       "delays": {}
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 100
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 10
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 10
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
                     }
                   ]
                 },
@@ -13626,7 +13690,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 110
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 20
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 15
                         }
                       ],
                       "weights": {},
@@ -13642,7 +13714,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 110
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 20
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 15
                         }
                       ],
                       "weights": {},
@@ -13658,11 +13738,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniClawedDemon",
-                          "count": 20
+                          "count": 15
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 50
+                          "count": 110
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 20
                         }
                       ],
                       "weights": {},
@@ -13672,6 +13756,54 @@ window.BattlechurchLevelData = {
                       "duration": 4,
                       "delays": {},
                       "mode": "explicit"
+                    },
+                    {
+                      "index": 4,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 110
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 20
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 15
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
+                    },
+                    {
+                      "index": 5,
+                      "entries": [
+                        {
+                          "enemy": "miniImp",
+                          "count": 110
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 20
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 15
+                        }
+                      ],
+                      "weights": {},
+                      "delays": {},
+                      "delaysWeighted": {},
+                      "delaysExplicit": {},
+                      "mode": "explicit",
+                      "allKill": false,
+                      "duration": 4
                     }
                   ]
                 },
@@ -13689,7 +13821,15 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 1
+                          "count": 120
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 30
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 20
                         }
                       ],
                       "mode": "explicit",
@@ -13705,7 +13845,7 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniClawedDemon",
-                          "count": 6
+                          "count": 20
                         },
                         {
                           "enemy": "miniHighDemon",
@@ -13713,11 +13853,15 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 60
+                          "count": 120
                         },
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 30
                         }
                       ],
                       "mode": "explicit",
@@ -13733,15 +13877,19 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 60
+                          "count": 120
                         },
                         {
                           "enemy": "miniClawedDemon",
-                          "count": 10
+                          "count": 20
                         },
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 30
                         }
                       ],
                       "mode": "explicit",
@@ -13757,7 +13905,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 40
+                          "count": 120
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 30
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 20
                         }
                       ],
                       "weights": {},
@@ -13773,7 +13929,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 40
+                          "count": 120
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 30
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 20
                         }
                       ],
                       "weights": {},
@@ -13789,7 +13953,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 40
+                          "count": 120
+                        },
+                        {
+                          "enemy": "orc",
+                          "count": 30
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 20
                         }
                       ],
                       "weights": {},
