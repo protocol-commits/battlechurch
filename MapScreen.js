@@ -1291,7 +1291,11 @@
     }
 
     const direction = getNavigationDirection(input, keysJustPressed);
-    if (direction) state.selectedTownId = pickNextTown(direction);
+    if (direction) {
+      state.selectedTownId = pickNextTown(direction);
+      // Give keyboard navigation priority until mouse moves again.
+      if (input.pointerState) input.pointerState.active = false;
+    }
 
     if (state.selectedTownId && state.selectedTownId !== prevSelection) {
       if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
@@ -1394,7 +1398,8 @@
 
   function updateSelectionFromHover(rect) {
     const input = window.Input;
-    if (!input?.pointerState) return;
+    if (!input?.pointerState?.active) return;
+    if (state.panelOpen) return;
     const town = findTownAtPosition(input.pointerState, rect);
     if (town && isTownUnlocked(town.id)) {
       if (town.id !== state.selectedTownId) {
