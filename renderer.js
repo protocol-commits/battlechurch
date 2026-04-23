@@ -6917,8 +6917,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const townData = activeTownId && mapData?.towns
       ? mapData.towns.find((t) => t.id === activeTownId)
       : null;
-    const townName = townData?.name || "Unknown Town";
-    const crumbParts = [townName, actLabel];
+    const townNumber = Number.isFinite(townData?.index)
+      ? Math.max(1, Math.floor(townData.index))
+      : Math.max(
+          1,
+          (Array.isArray(mapData?.towns)
+            ? mapData.towns.findIndex((t) => t.id === activeTownId) + 1
+            : 1),
+        );
+    const crumbParts = [`Town ${townNumber}`, actLabel];
     if (stage === "bossIntro") {
       crumbParts.push("Boss Intro");
     } else if (stage === "bossActive") {
