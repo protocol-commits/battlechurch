@@ -6749,12 +6749,28 @@ function showTownIntroDialog() {
 }
 
 function queueTownIntroAnnouncement() {
-  const act1Title = (typeof GameText !== 'undefined' && GameText.battleActs?.[1]) || "Mission I: Foothold";
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "this town";
   const act1Subtitle = `Win 3 battles to secure a foothold in ${townName}.`;
+  const devStartOverride =
+    pendingDevBattleStartOverride &&
+    pendingDevBattleStartOverride.townId === activeTownId
+      ? pendingDevBattleStartOverride
+      : null;
+  const localBattleNumber = Number.isFinite(devStartOverride?.localBattleNumber)
+    ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
+    : 1;
+  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 1));
+  const upcomingOrderNumber = Math.floor((localBattleNumber - 1) / missionsPerBattle) + 1;
+  const upcomingMissionNumber = ((localBattleNumber - 1) % missionsPerBattle) + 1;
   pendingTownIntroStart = true;
-  queueLevelAnnouncement(act1Subtitle, "", { requiresConfirm: true, skipMissionBrief: true, townIntro: true });
+  queueLevelAnnouncement(act1Subtitle, "", {
+    requiresConfirm: true,
+    skipMissionBrief: true,
+    townIntro: true,
+    upcomingOrderNumber,
+    upcomingMissionNumber,
+  });
 }
 
 function queueExteriorShotAnnouncement({ force = false } = {}) {

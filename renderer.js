@@ -4483,8 +4483,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const bossAnnouncement = levelAnnouncements[0] || {};
+    const actMissionLabels = {
+      1: "Foothold",
+      2: "Counterattack",
+      3: "Breakthrough",
+    };
+    const bossActNum = Number.isFinite(currentLevelStatus?.actNum)
+      ? currentLevelStatus.actNum
+      : 1;
+    const bossFallbackMissionLabel = `Mission ${bossActNum}: ${actMissionLabels[bossActNum] || `Mission ${bossActNum}`}`;
     const missionLabel =
-      String(bossAnnouncement.missionBriefTitle || "").trim() || "Mission 1: Foothold";
+      String(bossAnnouncement.missionBriefTitle || "").trim() || bossFallbackMissionLabel;
     const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle";
     const pastorProblem = formatScenarioForTitle(String(bossAnnouncement.subtitle || "").trim());
     const bossProblemLine = pastorProblem
@@ -4563,7 +4572,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const missionNumber = Number.isFinite(announcement?.missionNumber)
         ? announcement.missionNumber
         : null;
-      const currentAct = Number.isFinite(currentLevelStatus?.level) ? currentLevelStatus.level : 1;
+      const currentAct = Number.isFinite(currentLevelStatus?.actNum) ? currentLevelStatus.actNum : 1;
       const fallbackMissionLabel = `Mission ${currentAct}: ${actMissionLabels[currentAct] || `Mission ${currentAct}`}`;
       const missionLabel =
         (announcement && announcement.missionBriefTitle) || fallbackMissionLabel;
