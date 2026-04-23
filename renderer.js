@@ -5840,7 +5840,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (uniqueNames.length > 2) {
         namesText = `${uniqueNames.slice(0, -1).join(", ")}, and ${uniqueNames[uniqueNames.length - 1]}`;
       }
-      payoffLine = `You helped ${namesText} gain the tools to face ${problemPhrase}.`;
+      payoffLine = `You helped ${namesText} gain tools to face ${problemPhrase}.`;
     }
     const stageTimer = Number.isFinite(levelStatus?.stageTimer)
       ? Math.max(0, Number(levelStatus.stageTimer))
