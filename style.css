@@ -589,6 +589,30 @@ body.layout-rotate-warning #rotatePrompt {
   color: #fdf1d9;
   border: 1px solid rgba(242, 200, 125, 0.5);
 }
+.dialog-overlay--panel-default .dialog-overlay__panel {
+  width: min(var(--hellfire-default-panel-width-max), var(--hellfire-default-panel-width-ratio));
+  background: linear-gradient(180deg, rgba(12, 18, 30, 0.95) 0%, rgba(7, 10, 18, 0.95) 100%);
+  border: 2px solid rgba(255, 218, 162, 0.34);
+  border-radius: 18px;
+  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.62);
+}
+.dialog-overlay--panel-default .dialog-overlay__title {
+  width: 100%;
+  text-align: var(--hellfire-default-title-align);
+  text-transform: var(--hellfire-default-title-transform);
+  color: var(--hellfire-default-title-color);
+  font-size: clamp(26px, 3vw, var(--hellfire-default-title-size));
+}
+.dialog-overlay--panel-default .dialog-overlay__title::after {
+  content: "";
+  display: block;
+  width: calc(100% - (var(--hellfire-default-divider-inset-x) * 2));
+  margin: var(--hellfire-default-divider-margin-top) auto 0;
+  border-top: 1px solid rgba(255, 214, 148, 0.22);
+}
+.dialog-overlay--panel-default .dialog-overlay__body {
+  margin-top: 8px;
+}
 .dialog-overlay__footer-hint {
   position: absolute;
   left: 50%;

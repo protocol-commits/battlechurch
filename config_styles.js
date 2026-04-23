@@ -183,20 +183,42 @@
           panelHeightRatio: 0.84,
           panelHeightMax: 700,
           padX: 38,
+          // Vertical start of the scrollable body area.
+          // Line -> body spacing = padTop - dividerY
           padTop: 110,
           padBottom: 40,
           titleText: "HOW TO PLAY",
-          titleY: 44,
+          // Distance from panel top edge to title baseline region.
+          // Top edge -> title spacing = titleY
+          titleY: 34,
           titleColor: "#FFD978",
           titleFontSize: 24,
-          hintY: 66,
+          // Distance from panel top edge to hint line.
+          // Title -> hint spacing = hintY - titleY
+          hintY: 56,
           hintColor: "rgba(231,176,102,0.82)",
           hintFontSize: 12,
-          dividerY: 82,
+          // Distance from panel top edge to divider line.
+          // Hint -> line spacing = dividerY - hintY
+          dividerY: 83,
           hintText: "W / S to scroll  ·  SPACE or ESC to close",
           bodyColor: "#E8D2AE",
           bulletColor: "#F7E8CA",
           arrowColor: "rgba(231,176,102,0.72)",
+        },
+        default: {
+          // Panel with no eyebrow and no hint line.
+          // Intended for straightforward modal content (title + divider + body).
+          panelWidthMax: 780,
+          panelWidthRatio: 0.9,
+          titleTextTransform: "uppercase",
+          titleAlign: "center",
+          titleColor: "#FFD978",
+          titleFontSize: 30,
+          // Horizontal inset on each side of the divider line.
+          // Smaller = longer line, larger = shorter line.
+          dividerInsetX: 0,
+          dividerY: 70,
         },
       },
     },

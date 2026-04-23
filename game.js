@@ -16744,6 +16744,62 @@ function showSettingsOverlay({ source = "title" } = {}) {
         if (valueEl) valueEl.textContent = `${Math.round(value * 100)}%`;
       };
       if (overlay) {
+        overlay.classList.remove("dialog-overlay--panel-default");
+        const setOverlayCssVar = (key, value) => {
+          if (value === null || value === undefined || value === "") {
+            overlay.style.removeProperty(key);
+            return;
+          }
+          overlay.style.setProperty(key, String(value));
+        };
+        if (source === "title") {
+          overlay.classList.add("dialog-overlay--panel-default");
+          const defaultPanelStyle = window.UIStyles?.panels?.hellfire?.default || {};
+          const widthMax = Number(defaultPanelStyle.panelWidthMax);
+          const widthRatio = Number(defaultPanelStyle.panelWidthRatio);
+          setOverlayCssVar(
+            "--hellfire-default-panel-width-max",
+            Number.isFinite(widthMax) ? `${widthMax}px` : null,
+          );
+          setOverlayCssVar(
+            "--hellfire-default-panel-width-ratio",
+            Number.isFinite(widthRatio) ? `${Math.round(widthRatio * 100)}%` : null,
+          );
+          setOverlayCssVar(
+            "--hellfire-default-title-transform",
+            defaultPanelStyle.titleTextTransform || null,
+          );
+          setOverlayCssVar(
+            "--hellfire-default-title-align",
+            defaultPanelStyle.titleAlign || null,
+          );
+          setOverlayCssVar(
+            "--hellfire-default-title-color",
+            defaultPanelStyle.titleColor || null,
+          );
+          setOverlayCssVar(
+            "--hellfire-default-title-size",
+            Number.isFinite(defaultPanelStyle.titleFontSize) ? `${defaultPanelStyle.titleFontSize}px` : null,
+          );
+          setOverlayCssVar(
+            "--hellfire-default-divider-inset-x",
+            Number.isFinite(defaultPanelStyle.dividerInsetX) ? `${Math.max(0, defaultPanelStyle.dividerInsetX)}px` : null,
+          );
+          const dividerMarginTop = Number(defaultPanelStyle.dividerY) - 56;
+          setOverlayCssVar(
+            "--hellfire-default-divider-margin-top",
+            Number.isFinite(dividerMarginTop) ? `${Math.max(0, dividerMarginTop)}px` : null,
+          );
+        } else {
+          setOverlayCssVar("--hellfire-default-panel-width-max", null);
+          setOverlayCssVar("--hellfire-default-panel-width-ratio", null);
+          setOverlayCssVar("--hellfire-default-title-transform", null);
+          setOverlayCssVar("--hellfire-default-title-align", null);
+          setOverlayCssVar("--hellfire-default-title-color", null);
+          setOverlayCssVar("--hellfire-default-title-size", null);
+          setOverlayCssVar("--hellfire-default-divider-inset-x", null);
+          setOverlayCssVar("--hellfire-default-divider-margin-top", null);
+        }
         let footerHint = overlay.querySelector(".dialog-overlay__footer-hint");
         if (!footerHint) {
           footerHint = document.createElement("div");
