@@ -982,46 +982,77 @@
     if (!state.panelOpen || !state.selectedTownId) return;
     const town = getTownById(state.selectedTownId);
     if (!town) return;
-    const district = getDistrictById(town.districtId);
-    const panelW = Math.min(520, canvas.width * 0.7);
-    const panelH = 220;
+    const panelStyle = window.UIStyles?.panels?.hellfire?.withEyebrow || {};
+    const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
+    const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
+    const panelW = Math.min(panelStyle.panelWidthMax ?? 560, canvas.width * (panelStyle.panelWidthRatio ?? 0.76));
+    const panelH = panelStyle.panelHeight ?? 252;
     const panelX = canvas.width / 2 - panelW / 2;
-    const panelY = canvas.height - panelH - 40;
+    const panelY = canvas.height - panelH - (panelStyle.panelBottomOffset ?? 40);
 
     ctx.save();
-    ctx.fillStyle = "rgba(8, 12, 20, 0.85)";
-    ctx.strokeStyle = "rgba(255,255,255,0.2)";
-    ctx.lineWidth = 2;
-    roundRect(ctx, panelX, panelY, panelW, panelH, 16, true, true);
+    ctx.shadowColor = shellStyle.shadowColor || "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = shellStyle.shadowBlur ?? 24;
+    ctx.shadowOffsetY = shellStyle.shadowOffsetY ?? 10;
+    const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+    panelGradient.addColorStop(0, shellStyle.gradientTop || "rgba(12, 18, 30, 0.95)");
+    panelGradient.addColorStop(1, shellStyle.gradientBottom || "rgba(7, 10, 18, 0.95)");
+    ctx.fillStyle = panelGradient;
+    ctx.strokeStyle = shellStyle.borderColor || "rgba(255, 218, 162, 0.34)";
+    ctx.lineWidth = shellStyle.borderWidth ?? 2;
+    roundRect(ctx, panelX, panelY, panelW, panelH, shellStyle.radius ?? 18, true, true);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
 
-    ctx.fillStyle = "#FFD978";
-    ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+    const centerX = canvas.width / 2;
+    ctx.fillStyle = panelStyle.eyebrowColor || MAP_HELLFIRE_TEXT.dim;
+    ctx.font = `700 ${panelStyle.eyebrowFontSize ?? 11}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(town.name, canvas.width / 2, panelY + 16);
+    ctx.fillText(panelStyle.eyebrowText || "TOWN SELECTED", centerX, panelY + (panelStyle.eyebrowY ?? 14));
 
-    ctx.fillStyle = MAP_HELLFIRE_TEXT.body;
-    ctx.font = `500 16px ${UI_FONT_FAMILY}`;
-    const districtLabel = town.type === "capital" ? "Capital" : (district ? district.name : "");
-    ctx.fillText(districtLabel, canvas.width / 2, panelY + 46);
+    ctx.fillStyle = panelStyle.titleColor || "#FFD978";
+    ctx.font = `700 ${panelStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(town.name, centerX, panelY + (panelStyle.titleY ?? 34));
 
-    ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
-    ctx.font = `500 16px ${UI_FONT_FAMILY}`;
+    ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
+    ctx.lineWidth = dividerStyle.width ?? 1;
+    ctx.beginPath();
+    ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 78));
+    ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 78));
+    ctx.stroke();
+
     const progress = ensureProgress();
+    let primaryLine = "";
+    let secondaryLine = "";
     if (town.type === "capital") {
-      ctx.fillText(`Score ×${getCapitalScoreMultiplier(progress).toFixed(2)}`, canvas.width / 2, panelY + 76);
+      primaryLine = "Final Mission";
+      secondaryLine = `Score Multiplier: ×${getCapitalScoreMultiplier(progress).toFixed(2)}`;
     } else {
       const nextCamp = progress ? getNextCampaignForTown(town.id, progress) : "p1";
       const campLabel = nextCamp === "p1" ? "Visit 1" : nextCamp === "p2" ? "Visit 2" : "Visit 3";
-      const campAvail = nextCamp === "p1" || (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
-      const campText = campAvail ? campLabel : `${campLabel} (locked)`;
-      ctx.fillText(campText, canvas.width / 2, panelY + 76);
+      const campAvail =
+        nextCamp === "p1" ||
+        (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
+      primaryLine = `Next Run: ${campLabel}${campAvail ? "" : " (Locked)"}`;
+      secondaryLine = campAvail
+        ? "Choose Play to begin this mission."
+        : "Complete prior visits to unlock.";
     }
+    ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
+    ctx.font = `600 ${panelStyle.primaryFontSize ?? 17}px ${UI_FONT_FAMILY}`;
+    ctx.fillText(primaryLine, centerX, panelY + (panelStyle.primaryY ?? 94));
+    ctx.fillStyle = panelStyle.secondaryColor || MAP_HELLFIRE_TEXT.body;
+    ctx.font = `500 ${panelStyle.secondaryFontSize ?? 14}px ${UI_FONT_FAMILY}`;
+    ctx.fillText(secondaryLine, centerX, panelY + (panelStyle.secondaryY ?? 124));
 
     const buttonW = 140;
     const buttonH = 44;
     const gap = 20;
-    const buttonY = panelY + panelH - 70;
+    const buttonY = panelY + panelH - 68;
     const totalW = buttonW * 2 + gap;
     const startX = canvas.width / 2 - totalW / 2;
     // Check if gameplay assets are still loading

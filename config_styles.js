@@ -136,6 +136,70 @@
       meterGlossRight: 0.18,
       disabledButton: 0.5,
     },
+
+    // =====================
+    // PANEL SYSTEM
+    // =====================
+    panels: {
+      hellfire: {
+        shell: {
+          radius: 18,
+          shadowColor: "rgba(0, 0, 0, 0.45)",
+          shadowBlur: 24,
+          shadowOffsetY: 10,
+          gradientTop: "rgba(12, 18, 30, 0.95)",
+          gradientBottom: "rgba(7, 10, 18, 0.95)",
+          borderColor: "rgba(255, 218, 162, 0.34)",
+          borderWidth: 2,
+        },
+        divider: {
+          color: "rgba(255, 214, 148, 0.22)",
+          width: 1,
+          insetX: 24,
+        },
+        withEyebrow: {
+          panelWidthMax: 560,
+          panelWidthRatio: 0.76,
+          panelHeight: 252,
+          panelBottomOffset: 40,
+          eyebrowText: "TOWN SELECTED",
+          eyebrowY: 14,
+          eyebrowColor: "rgba(231, 176, 102, 0.68)",
+          eyebrowFontSize: 11,
+          titleY: 34,
+          titleColor: "#FFD978",
+          titleFontSize: 28,
+          dividerY: 78,
+          primaryY: 94,
+          secondaryY: 124,
+          primaryColor: "#F2C87D",
+          secondaryColor: "#E7B066",
+          primaryFontSize: 17,
+          secondaryFontSize: 14,
+        },
+        withHint: {
+          panelWidthMax: 780,
+          panelWidthRatio: 0.9,
+          panelHeightRatio: 0.84,
+          panelHeightMax: 700,
+          padX: 38,
+          padTop: 110,
+          padBottom: 40,
+          titleText: "HOW TO PLAY",
+          titleY: 44,
+          titleColor: "#FFD978",
+          titleFontSize: 24,
+          hintY: 66,
+          hintColor: "rgba(231,176,102,0.82)",
+          hintFontSize: 12,
+          dividerY: 82,
+          hintText: "W / S to scroll  ·  SPACE or ESC to close",
+          bodyColor: "#E8D2AE",
+          bulletColor: "#F7E8CA",
+          arrowColor: "rgba(231,176,102,0.72)",
+        },
+      },
+    },
   };
 
   // Export to global namespace

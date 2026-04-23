@@ -10421,15 +10421,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const pi = typeof window !== "undefined" ? window.PlayingInstructions : null;
     if (!pi || !pi.state.open) return;
 
+    const panelStyle = window.UIStyles?.panels?.hellfire?.withHint || {};
+    const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
+    const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
     const vw = canvas.width;
     const vh = canvas.height;
-    const panelW = Math.min(760, vw * 0.88);
-    const panelH = Math.min(vh * 0.82, 680);
+    const panelW = Math.min(panelStyle.panelWidthMax ?? 780, vw * (panelStyle.panelWidthRatio ?? 0.9));
+    const panelH = Math.min(vh * (panelStyle.panelHeightRatio ?? 0.84), panelStyle.panelHeightMax ?? 700);
     const panelX = Math.round((vw - panelW) / 2);
     const panelY = Math.round((vh - panelH) / 2);
-    const padX = 36;
-    const padTop = 70;
-    const padBottom = 44;
+    const padX = panelStyle.padX ?? 38;
+    const padTop = panelStyle.padTop ?? 106;
+    const padBottom = panelStyle.padBottom ?? 44;
     const contentW = panelW - padX * 2;
     const contentH = panelH - padTop - padBottom;
     const contentX = panelX + padX;
@@ -10441,32 +10444,41 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = "rgba(0,0,0,0.74)";
     ctx.fillRect(0, 0, vw, vh);
 
-    // Panel
-    ctx.fillStyle = "rgba(16,8,6,0.96)";
-    ctx.strokeStyle = "rgba(242,200,125,0.36)";
-    ctx.lineWidth = 2;
-    roundRect(ctx, panelX, panelY, panelW, panelH, 18, true, true);
+    // Hellfire panel shell
+    ctx.shadowColor = shellStyle.shadowColor || "rgba(0, 0, 0, 0.45)";
+    ctx.shadowBlur = shellStyle.shadowBlur ?? 24;
+    ctx.shadowOffsetY = shellStyle.shadowOffsetY ?? 10;
+    const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+    panelGradient.addColorStop(0, shellStyle.gradientTop || "rgba(12, 18, 30, 0.95)");
+    panelGradient.addColorStop(1, shellStyle.gradientBottom || "rgba(7, 10, 18, 0.95)");
+    ctx.fillStyle = panelGradient;
+    ctx.strokeStyle = shellStyle.borderColor || "rgba(255, 218, 162, 0.34)";
+    ctx.lineWidth = shellStyle.borderWidth ?? 2;
+    roundRect(ctx, panelX, panelY, panelW, panelH, shellStyle.radius ?? 18, true, true);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
 
-    // Title bar divider
-    ctx.strokeStyle = "rgba(242,200,125,0.2)";
-    ctx.lineWidth = 1;
+    // Header divider
+    ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
+    ctx.lineWidth = dividerStyle.width ?? 1;
     ctx.beginPath();
-    ctx.moveTo(panelX + 20, panelY + 56);
-    ctx.lineTo(panelX + panelW - 20, panelY + 56);
+    ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 82));
+    ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 82));
     ctx.stroke();
 
     // Title
-    ctx.fillStyle = "#FFD978";
-    ctx.font = `700 18px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = panelStyle.titleColor || "#FFD978";
+    ctx.font = `700 ${panelStyle.titleFontSize ?? 24}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("Playing Instructions", panelX + panelW / 2, panelY + 22);
+    ctx.fillText(panelStyle.titleText || "HOW TO PLAY", panelX + panelW / 2, panelY + (panelStyle.titleY ?? 44));
 
-    // Subtitle hint
-    ctx.fillStyle = "rgba(231,176,102,0.75)";
-    ctx.font = `12px ${UI_FONT_FAMILY}`;
+    // Header hint
+    ctx.fillStyle = panelStyle.hintColor || "rgba(231,176,102,0.82)";
+    ctx.font = `600 ${panelStyle.hintFontSize ?? 12}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
-    ctx.fillText("W / S  to scroll   ·   SPACE or ESC to close", panelX + panelW / 2, panelY + 42);
+    ctx.fillText(panelStyle.hintText || "W / S to scroll  ·  SPACE or ESC to close", panelX + panelW / 2, panelY + (panelStyle.hintY ?? 66));
 
     // Clip content area
     ctx.save();
@@ -10576,10 +10588,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.fillStyle = "#E7B066";
           ctx.font = `600 ${SIZES.h2}px ${UI_FONT_FAMILY}`;
         } else if (block.type === "bullet") {
-          ctx.fillStyle = "#FDF1D9";
+          ctx.fillStyle = panelStyle.bulletColor || "#F7E8CA";
           ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
         } else {
-          ctx.fillStyle = "#EEDAB8";
+          ctx.fillStyle = panelStyle.bodyColor || "#E8D2AE";
           ctx.font = `${SIZES.body}px ${UI_FONT_FAMILY}`;
         }
 
@@ -10608,15 +10620,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
       ctx.save();
       if (scrollY > 0) {
-        ctx.fillStyle = "rgba(231,176,102,0.58)";
-        ctx.font = `11px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = panelStyle.arrowColor || "rgba(231,176,102,0.72)";
+        ctx.font = `600 11px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.fillText("▲", panelX + panelW - 22, contentY + 2);
       }
       if (scrollY < maxScroll) {
-        ctx.fillStyle = "rgba(231,176,102,0.58)";
-        ctx.font = `11px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = panelStyle.arrowColor || "rgba(231,176,102,0.72)";
+        ctx.font = `600 11px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
         ctx.fillText("▼", panelX + panelW - 22, contentY + contentH - 2);
