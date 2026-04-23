@@ -4653,9 +4653,13 @@ function isNoCooldownDamageSource(type) {
   return NPC_DAMAGE_COOLDOWN_EXCEPTIONS.some((token) => normalized.includes(token));
 }
 
-// Mission names replace calendar month names in the new terminology
-// Each Battle has multiple Missions (default 3)
-const MISSIONS_PER_BATTLE = (typeof window !== "undefined" && window.MONTHS_PER_LEVEL) || 3;
+// Mission names replace calendar month names in the new terminology.
+// Each Battle has multiple Missions (default 3).
+const MISSIONS_PER_BATTLE =
+  (typeof window !== "undefined" && Number.isFinite(window.MISSIONS_PER_BATTLE)
+    ? window.MISSIONS_PER_BATTLE
+    : null) ||
+  3;
 
 function getMissionName(globalMissionNumber) {
   if (!Number.isFinite(globalMissionNumber) || globalMissionNumber <= 0) return "Mission 1";
@@ -6929,19 +6933,48 @@ function startDevLevelTestFromEditor({
   }
   const townNumber = Math.max(1, Math.floor(Number(town) || 1));
   const townIndex = Math.min(towns.length - 1, townNumber - 1);
-  const townId = towns[townIndex]?.id || null;
+  const matchedTown =
+    towns.find((t) => Number(t?.index) === townNumber) || towns[townIndex] || null;
+  const townId = matchedTown?.id || null;
   if (!townId) {
     setDevStatus("Dev test failed: invalid town", 2.2);
     return false;
   }
   const missionNumber = Math.max(1, Math.floor(Number(mission) || 1));
   const battleNumber = Math.max(1, Math.floor(Number(battle) || 1));
-  const battlesPerMission = Math.max(1, Number(MISSIONS_PER_BATTLE) || 1);
-  const localBattleNumber = (missionNumber - 1) * battlesPerMission + battleNumber;
-  const maxBattlesInTown =
-    typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
-      ? Math.max(1, Math.floor(window.BATTLES_PER_TOWN))
-      : battlesPerMission * 3;
+  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 1));
+  const localBattleNumber = (missionNumber - 1) * missionsPerBattle + battleNumber;
+  const getMaxBattlesInTown = () => {
+    const fallbackBattlesPerTown =
+      typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
+        ? Math.max(1, Math.floor(Number(window.BATTLES_PER_TOWN) || 1))
+        : 3;
+    const fallbackTotal = fallbackBattlesPerTown * missionsPerBattle;
+    const cfg =
+      (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
+      (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
+    const townCfg =
+      (Array.isArray(cfg?.towns) &&
+        (cfg.towns.find((t) => Number(t?.index) === townNumber) || cfg.towns[townNumber - 1])) ||
+      null;
+    const battleList = Array.isArray(townCfg?.battles)
+      ? townCfg.battles
+      : Array.isArray(townCfg?.months)
+        ? townCfg.months
+        : [];
+    if (!battleList.length) return fallbackTotal;
+    let total = 0;
+    for (const battleCfg of battleList) {
+      const missionList = Array.isArray(battleCfg?.missions)
+        ? battleCfg.missions
+        : Array.isArray(battleCfg?.battles)
+          ? battleCfg.battles
+          : [];
+      total += missionList.length || missionsPerBattle;
+    }
+    return Math.max(1, total);
+  };
+  const maxBattlesInTown = getMaxBattlesInTown();
   pendingDevBattleStartOverride = {
     townId,
     localBattleNumber: Math.max(1, Math.min(maxBattlesInTown, localBattleNumber)),
