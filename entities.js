@@ -1247,7 +1247,7 @@
     if (consumePrayerBombClick()) {
       const isFullCharge = typeof this.getPrayerChargeRatio === "function" && this.getPrayerChargeRatio() >= 1.0;
       this.castPrayerBomb();
-      window.FloatingText?.heroSay?.(isFullCharge ? "Congregational Prayers" : "Prayer Bomb");
+      window.FloatingText?.heroSay?.(isFullCharge ? "Group Prayer" : "Prayer Bomb");
     }
 
       // Visitor mini-game: autolock on closest visitor or chatty NPC

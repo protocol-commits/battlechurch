@@ -152,7 +152,8 @@
   const BETWEEN_WAVE_PAUSE = 2.3;
   const LEVEL_INTRO_DURATION = 2.6;
   const BATTLE_INTRO_DURATION = 3.0;
-  const WAVE_INTRO_DURATION = 2.8;
+  const WAVE_INTRO_DURATION = 3.8;
+  const FIRST_WAVE_INTRO_DURATION = 5.0;
   const WAVE_CLEAR_DURATION = 2.2;
   const ANNOUNCEMENT_FADE_DURATION = 1.5;
   const GRACE_RUSH_DURATION = 8;
@@ -172,7 +173,7 @@
   const ACT_BREAK_MESSAGE = "Wave Cleared";
   const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
   const WAVE_INTENSITY_TRANSITION_SECONDS = 0.5;
-  const WAVE_INTRO_LINGER_BONUS = 2.0;
+  const WAVE_INTRO_LINGER_BONUS = 4.2;
   const WAVE_INTRO_FADE_OUT_DURATION = 0.6;
   const VICTORY_CELEBRATE_DURATION = 5.0;
   const GRACE_RUSH_FADE_DURATION = 1.0;
@@ -898,7 +899,7 @@
         ? baseDuration - WAVE_INTENSITY_TRANSITION_SECONDS
         : baseDuration;
       return {
-        duration: Math.max(2.2, adjustedDuration + WAVE_INTRO_LINGER_BONUS),
+        duration: Math.max(3.4, adjustedDuration + WAVE_INTRO_LINGER_BONUS),
         fadeOutDuration: WAVE_INTRO_FADE_OUT_DURATION,
         skipMissionBrief: true,
       };
@@ -1381,7 +1382,7 @@
         } catch (e) {}
       }
       const waveNumber = state.waveIndex + 1;
-      const introDuration = waveNumber === 1 ? 4.0 : WAVE_INTRO_DURATION;
+      const introDuration = waveNumber === 1 ? FIRST_WAVE_INTRO_DURATION : WAVE_INTRO_DURATION;
       resetStage("waveIntro", introDuration);
       if (waveNumber === 1) {
         const introText = state.activeWave?.waveIntroText || "";

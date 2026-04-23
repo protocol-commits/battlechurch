@@ -3960,7 +3960,7 @@ const PRAYER_BOMB_RAIN_DURATION = _gb('prayerBomb.rainDuration', 7);
 const PRAYER_BOMB_RAIN_INTERVAL = _gb('prayerBomb.rainInterval', 0.12);
 const PRAYER_BOMB_RAIN_RADIUS = _gb('prayerBomb.rainRadius', 160) * WORLD_SCALE;
 const PRAYER_BOMB_BOSS_DAMAGE_SCALE = _gb('prayerBomb.bossDamageScale', 0.5);
-const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = _gb('prayerBomb.screenDarkenAlpha', 0.65);
+const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = _gb('prayerBomb.screenDarkenAlpha', 0.38);
 const PRAYER_BOMB_RAIN_DARKEN_DURATION = _gb('prayerBomb.rainDarkenDuration', 0.5);
 const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.12);
 const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 10);
@@ -7381,7 +7381,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (congregationalPrayersPerformanceValue > 0) {
     performanceBadgeBreakdown.push({
       id: "congregationalPrayers",
-      label: "Congregational Prayers",
+      label: "Group Prayer",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.congregationalPrayers,
       value: congregationalPrayersPerformanceValue,
     });

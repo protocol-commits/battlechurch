@@ -107,7 +107,7 @@
       rainDuration: 7,
       rainInterval: 0.12,
       rainRadius: 160,
-      screenDarkenAlpha: 0.65,
+      screenDarkenAlpha: 0.38,
       rainDarkenDuration: 0.5,
       rainShakeDuration: 0.12,
       rainShakeMagnitude: 10,

@@ -6294,7 +6294,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = '#EAF6FF';
     const lines = [
       'Move with WASD, aim with arrow keys or mouse.',
-      'Prayer Meter holds 6 Prayers: Prayer Bomb costs 2, Congregational Prayers costs 6.',
+      'Prayer Meter holds 6 Prayers: Prayer Bomb costs 2, Group Prayer costs 6.',
       'Protect the congregation and survive the waves.',
     ];
     let y = HUD_HEIGHT + 110;
@@ -6326,7 +6326,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const lines = [
       'Move with WASD or the virtual stick.',
       'Aim with mouse or right stick; press Space to start.',
-      'Prayer Meter holds 6 Prayers: Prayer Bomb costs 2, Congregational Prayers costs 6.',
+      'Prayer Meter holds 6 Prayers: Prayer Bomb costs 2, Group Prayer costs 6.',
     ];
     let y = HUD_HEIGHT + 120;
     lines.forEach((l) => {
