@@ -12566,6 +12566,11 @@ function spawnArmoredProjectileDeflect(projectile, target, hitX, hitY) {
       life,
       scale: projectile.scale,
       flipHorizontal: dir.x < 0,
+      // Preserve the original projectile visual style on deflect.
+      lightSpreadShot: Boolean(projectile.lightSpreadShot),
+      frames: Array.isArray(projectile.frames) && projectile.frames.length ? projectile.frames : undefined,
+      frameDuration: Number.isFinite(projectile.frameDuration) ? projectile.frameDuration : undefined,
+      loopFrames: Boolean(projectile.loopFrames),
       visualOnly: true,
       onExpire: (proj) => {
         spawnEnemyHitEffect(
