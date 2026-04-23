@@ -206,6 +206,24 @@
           bulletColor: "#F7E8CA",
           arrowColor: "rgba(231,176,102,0.72)",
         },
+        playLoadWithHint: {
+          panelWidthMax: 1080,
+          panelWidthRatio: 0.95,
+          panelHeightRatio: 0.8,
+          panelHeightMax: 560,
+          padX: 30,
+          padTop: 106,
+          padBottom: 28,
+          titleText: "CHOOSE SAVE SOURCE",
+          titleY: 48,
+          titleColor: "#FFD978",
+          titleFontSize: 28,
+          hintY: 66,
+          hintColor: "rgba(231,176,102,0.82)",
+          hintFontSize: 12,
+          dividerY: 82,
+          hintText: "W / S move  ·  A / D switch panels  ·  SPACE select  ·  ESC back",
+        },
         default: {
           // Panel with no eyebrow and no hint line.
           // Intended for straightforward modal content (title + divider + body).

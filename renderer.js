@@ -7370,12 +7370,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const { loadingProgress } = requireBindings();
     const progress = Math.max(0, Math.min(100, loadingProgress || 0));
     if (titleDemoSaveMenuActive) {
-      const panelW = Math.round(Math.min(1020, layout.virtualCanvas.width * 0.9));
-      const panelH = Math.round(Math.min(520, layout.virtualCanvas.height * 0.7));
+      const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
+      const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
+      const hintStyle = window.UIStyles?.panels?.hellfire?.withHint || {};
+      const panelStyle = window.UIStyles?.panels?.hellfire?.playLoadWithHint || {};
+      const panelW = Math.round(
+        Math.min(
+          panelStyle.panelWidthMax ?? hintStyle.panelWidthMax ?? 1020,
+          layout.virtualCanvas.width * (panelStyle.panelWidthRatio ?? hintStyle.panelWidthRatio ?? 0.9),
+        ),
+      );
+      const panelH = Math.round(
+        Math.min(
+          layout.virtualCanvas.height * (panelStyle.panelHeightRatio ?? 0.7),
+          panelStyle.panelHeightMax ?? 520,
+        ),
+      );
       const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
       const panelY = Math.round(layout.virtualCanvas.height / 2 - panelH / 2);
-      const titleY = panelY + 46;
-      const subtitleY = titleY + 20;
+      const titleY = panelY + (panelStyle.titleY ?? hintStyle.titleY ?? 34);
+      const hintY = panelY + (panelStyle.hintY ?? hintStyle.hintY ?? 56);
+      const dividerY = panelY + (panelStyle.dividerY ?? hintStyle.dividerY ?? 82);
       const actionKeys = new Set([
         "loginGoogle",
         "viewCloudSaveDetails",
@@ -7398,13 +7413,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const detailsX = rowX + rowW + 18;
       const rowH = 62;
       const rowGap = 10;
-      const listStartY = subtitleY + 28;
+      const listStartY = panelY + (panelStyle.padTop ?? hintStyle.padTop ?? 110);
       const cloudRows = Array.isArray(titleCloudSaveRows) ? titleCloudSaveRows : [];
 
-      ctx.fillStyle = "rgba(16, 8, 6, 0.84)";
-      ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
-      ctx.lineWidth = 2;
-      roundRect(ctx, panelX, panelY, panelW, panelH, 20, true, true);
+      ctx.shadowColor = shellStyle.shadowColor || "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = shellStyle.shadowBlur ?? 24;
+      ctx.shadowOffsetY = shellStyle.shadowOffsetY ?? 10;
+      const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+      panelGradient.addColorStop(0, shellStyle.gradientTop || "rgba(12, 18, 30, 0.95)");
+      panelGradient.addColorStop(1, shellStyle.gradientBottom || "rgba(7, 10, 18, 0.95)");
+      ctx.fillStyle = panelGradient;
+      ctx.strokeStyle = shellStyle.borderColor || "rgba(255, 218, 162, 0.34)";
+      ctx.lineWidth = shellStyle.borderWidth ?? 2;
+      roundRect(ctx, panelX, panelY, panelW, panelH, shellStyle.radius ?? 18, true, true);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
 
       ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
       ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
@@ -7412,21 +7436,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `700 28px ${UI_FONT_FAMILY}`;
-      ctx.fillText("Choose Save Source", panelX + panelW / 2, titleY);
-      ctx.font = `500 15px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "rgba(242, 200, 125, 0.72)";
-      ctx.fillText("Use cloud progress or a demo profile", panelX + panelW / 2, subtitleY);
+      ctx.font = `700 ${panelStyle.titleFontSize ?? hintStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
+      ctx.fillText(panelStyle.titleText || "CHOOSE SAVE SOURCE", panelX + panelW / 2, titleY);
+      ctx.font = `600 ${panelStyle.hintFontSize ?? hintStyle.hintFontSize ?? 12}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = panelStyle.hintColor || hintStyle.hintColor || "rgba(231,176,102,0.82)";
+      ctx.fillText(
+        panelStyle.hintText || hintStyle.hintText || "W / S move  ·  A / D switch panels  ·  SPACE select  ·  ESC back",
+        panelX + panelW / 2,
+        hintY,
+      );
+      ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
+      ctx.lineWidth = dividerStyle.width ?? 1;
+      ctx.beginPath();
+      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), dividerY);
+      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), dividerY);
+      ctx.stroke();
       const accountLine =
         typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail
           ? `Signed in as: ${window.cloudEmail}`
           : "Not signed in";
-      ctx.font = `500 13px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle =
-        typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail
-          ? "rgba(231, 176, 102, 0.82)"
-          : "rgba(231, 176, 102, 0.58)";
-      ctx.fillText(accountLine, panelX + panelW / 2, subtitleY + 18);
 
       const describeRow = (config) => {
         if (typeof config?.meta === "string" && config.meta.trim()) return config.meta;
@@ -7531,6 +7559,28 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
       ctx.font = `700 18px ${UI_FONT_FAMILY}`;
       ctx.fillText("Save Details", detailsX + 14, detailsY + 24);
+      const accountTextColor =
+        typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail
+          ? "rgba(231, 176, 102, 0.9)"
+          : "rgba(231, 176, 102, 0.58)";
+      const accountPrefix = "Google:";
+      const maxAccountWidth = detailsColumnW - 28;
+      const rawAccountText = `${accountPrefix} ${accountLine}`;
+      const fitText = (text, maxWidth) => {
+        if (!text || ctx.measureText(text).width <= maxWidth) return text;
+        const ellipsis = "...";
+        let end = text.length;
+        while (end > 0) {
+          const candidate = `${text.slice(0, end)}${ellipsis}`;
+          if (ctx.measureText(candidate).width <= maxWidth) return candidate;
+          end -= 1;
+        }
+        return ellipsis;
+      };
+      ctx.font = `500 12px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = accountTextColor;
+      ctx.fillText(fitText(rawAccountText, maxAccountWidth), detailsX + 14, detailsY + 41);
+      const detailsBodyStartY = detailsY + 64;
 
       if (showDemoDetails && focusDemoDetails) {
         const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
@@ -7539,7 +7589,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           focusDemoDetails.townId ||
           "Unknown Town";
         const detailLeft = detailsX + 14;
-        let lineY = detailsY + 48;
+        let lineY = detailsBodyStartY;
         const detailLineGap = 18;
         const fmt = (value) => `${Math.max(0, Number(value) || 0)}`;
         const fmtFloat = (value) => Number(value || 1).toFixed(2).replace(/\.00$/, "");
@@ -7562,10 +7612,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (!details) {
         ctx.font = `500 14px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = "rgba(231, 176, 102, 0.8)";
-        ctx.fillText("Select a Google save row to inspect.", detailsX + 14, detailsY + 48);
+        ctx.fillText("Select a Google save row to inspect.", detailsX + 14, detailsBodyStartY);
       } else {
         const detailLeft = detailsX + 14;
-        let lineY = detailsY + 48;
+        let lineY = detailsBodyStartY;
         const detailLineGap = 18;
         const fmt = (value) => `${Math.max(0, Number(value) || 0)}`;
         ctx.font = `600 14px ${UI_FONT_FAMILY}`;
