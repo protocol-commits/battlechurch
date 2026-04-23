@@ -19248,16 +19248,9 @@ window.BattlechurchLevelData = {
                       "delaysExplicit": {},
                       "allKill": false,
                       "duration": 4
-                    }
-                  ]
-                },
-                {
-                  "index": 4,
-                  "introText": "This is the final wave! There's 4 hordes! Prepare!",
-                  "breakerDuration": 3,
-                  "hordes": [
+                    },
                     {
-                      "index": 1,
+                      "index": 4,
                       "entries": [
                         {
                           "enemy": "miniImp",
@@ -19273,7 +19266,7 @@ window.BattlechurchLevelData = {
                       "duration": 4
                     },
                     {
-                      "index": 2,
+                      "index": 5,
                       "entries": [
                         {
                           "enemy": "miniImp",
@@ -19289,7 +19282,7 @@ window.BattlechurchLevelData = {
                       "duration": 4
                     },
                     {
-                      "index": 3,
+                      "index": 6,
                       "entries": [
                         {
                           "enemy": "miniImp",

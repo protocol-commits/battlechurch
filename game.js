@@ -4148,6 +4148,138 @@ let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
 let activeCampaignMultiplier = 1.0; // 1.0 | 1.15 | 1.1
 let cloudInitAttempted = false;
 let pendingDevBattleStartOverride = null; // { townId, localBattleNumber }
+let devPlaytestLaunchInProgress = false;
+let devPlaytestSession = {
+  active: false,
+  scope: null, // { town, mission, battle }
+};
+let devPlaytestQuickActionsEl = null;
+
+function setDevPlaytestSession(active, scope = null) {
+  const normalizedScope =
+    scope && typeof scope === "object"
+      ? {
+          town: Math.max(1, Math.floor(Number(scope.town) || 1)),
+          mission: Math.max(1, Math.floor(Number(scope.mission) || 1)),
+          battle: Math.max(1, Math.floor(Number(scope.battle) || 1)),
+        }
+      : null;
+  devPlaytestSession = {
+    active: Boolean(active),
+    scope: normalizedScope,
+  };
+  if (typeof window !== "undefined") {
+    window.__battlechurchDevPlaytestSession = {
+      active: devPlaytestSession.active,
+      scope: devPlaytestSession.scope ? { ...devPlaytestSession.scope } : null,
+    };
+  }
+}
+
+function getDevPlaytestScopeLabel() {
+  const scope = devPlaytestSession.scope;
+  if (!scope) return "Playtest";
+  return `T${scope.town} M${scope.mission} B${scope.battle}`;
+}
+
+function ensureDevPlaytestQuickActions() {
+  if (typeof document === "undefined") return null;
+  if (devPlaytestQuickActionsEl && document.body.contains(devPlaytestQuickActionsEl)) {
+    return devPlaytestQuickActionsEl;
+  }
+  const root = document.createElement("div");
+  root.className = "dev-playtest-quick-actions";
+  root.setAttribute("aria-label", "Playtest quick actions");
+  root.innerHTML = `
+    <div class="dev-playtest-quick-actions__label">PLAYTEST</div>
+    <button type="button" class="dev-playtest-quick-actions__button" data-action="back">Back to Editor</button>
+  `;
+  root.addEventListener("pointerdown", (event) => {
+    event.stopPropagation();
+  });
+  root.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const target = event.target?.closest?.("[data-action]");
+    if (!target) return;
+    const action = String(target.getAttribute("data-action") || "");
+    if (action === "back") {
+      returnFromDevPlaytestToEditor();
+    }
+  });
+  document.body.appendChild(root);
+  devPlaytestQuickActionsEl = root;
+  return root;
+}
+
+function syncDevPlaytestQuickActions() {
+  const root = ensureDevPlaytestQuickActions();
+  if (!root) return;
+  const scopeLabel = getDevPlaytestScopeLabel();
+  const labelEl = root.querySelector(".dev-playtest-quick-actions__label");
+  if (labelEl) {
+    labelEl.textContent = `PLAYTEST ${scopeLabel}`;
+  }
+  const builderVisible = Boolean(window.BattlechurchLevelBuilder?.isVisible?.());
+  const shouldShow =
+    devPlaytestSession.active &&
+    !builderVisible &&
+    !titleScreenActive &&
+    !mapActive &&
+    !gameOver &&
+    !epilogueActive &&
+    !townVictoryActive &&
+    !window.DialogOverlay?.isVisible?.() &&
+    !window.UpgradeScreen?.isVisible?.();
+  root.style.display = shouldShow ? "flex" : "none";
+  root.setAttribute("data-scope", scopeLabel);
+}
+
+function returnFromDevPlaytestToEditor() {
+  if (!devPlaytestSession.active) return false;
+  const scope = devPlaytestSession.scope
+    ? { ...devPlaytestSession.scope }
+    : { town: 1, mission: 1, battle: 1 };
+  try {
+    if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  } catch (e) {}
+  pendingTownIntroStart = false;
+  suppressInitialAnnouncements = false;
+  pendingDevBattleStartOverride = null;
+  pendingBossIntroAfterExterior = false;
+  pendingExteriorShotAfterVisitor = false;
+  paused = true;
+  gameStarted = false;
+  mapActive = false;
+  titleScreenActive = false;
+  gameOver = false;
+  postDeathSequenceActive = false;
+  if (typeof stopBattleMusicFast === "function") {
+    stopBattleMusicFast();
+  }
+  if (window.DialogOverlay?.isVisible?.()) {
+    window.DialogOverlay.hide();
+  }
+  if (window.MapScreen?.close) {
+    window.MapScreen.close();
+  }
+  if (window.UpgradeScreen?.isVisible?.()) {
+    window.UpgradeScreen.hide();
+  }
+  if (levelManager?.reset) {
+    levelManager.reset();
+  }
+  if (window.BattlechurchLevelBuilder?.showAtScope) {
+    window.BattlechurchLevelBuilder.showAtScope(scope);
+  } else {
+    window.BattlechurchLevelBuilder?.show?.();
+    if (window.BattlechurchLevelBuilder?.setScope) {
+      window.BattlechurchLevelBuilder.setScope(scope);
+    }
+  }
+  setDevStatus(`Back to editor — Town ${scope.town} Mission ${scope.mission} Battle ${scope.battle}`, 2.8);
+  syncDevPlaytestQuickActions();
+  return true;
+}
 
 function tryBootstrapCloud() {
   if (cloudInitAttempted) return;
@@ -6850,6 +6982,9 @@ function queueInitialMonthAnnouncementFromCongregation() {
 function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
+  if (!pendingDevBattleStartOverride && !devPlaytestLaunchInProgress) {
+    setDevPlaytestSession(false, null);
+  }
   townVisitorMinigamePlayed = false;
   maxComboThisTown = 0;
   // Load campaign data (start count, multiplier, powerup restore)
@@ -6924,6 +7059,10 @@ function startGameFromTitle() {
 }
 
 function startRunForTown(townId) {
+  if (!devPlaytestLaunchInProgress) {
+    setDevPlaytestSession(false, null);
+  }
+  devPlaytestLaunchInProgress = false;
   activeTownId = townId || null;
   mapActive = false;
   if (typeof window !== "undefined" && typeof window.MapScreen?.close === "function") {
@@ -6958,6 +7097,11 @@ function startDevLevelTestFromEditor({
   }
   const missionNumber = Math.max(1, Math.floor(Number(mission) || 1));
   const battleNumber = Math.max(1, Math.floor(Number(battle) || 1));
+  setDevPlaytestSession(true, {
+    town: townNumber,
+    mission: missionNumber,
+    battle: battleNumber,
+  });
   const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 1));
   const localBattleNumber = (missionNumber - 1) * missionsPerBattle + battleNumber;
   const getMaxBattlesInTown = () => {
@@ -7000,6 +7144,7 @@ function startDevLevelTestFromEditor({
     window.BattlechurchLevelBuilder?.hide?.();
   }
   activeTownId = townId;
+  devPlaytestLaunchInProgress = true;
 
   // Route through existing county-based denomination picker flow first.
   mapActive = true;
@@ -22367,6 +22512,7 @@ function updateArcControlCooldowns() {
 }
 
 function updateGame(dt) {
+  syncDevPlaytestQuickActions();
   if (window.MapScreen?.updateAmbient) {
     window.MapScreen.updateAmbient(dt);
   }

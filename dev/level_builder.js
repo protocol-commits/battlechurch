@@ -1695,6 +1695,42 @@
     else show();
   }
 
+  function clampInt(value, min, max, fallback) {
+    const raw = Number.isFinite(Number(value)) ? Number(value) : fallback;
+    return Math.max(min, Math.min(max, Math.floor(raw)));
+  }
+
+  // Public scope shape uses UI labels:
+  // { town, mission, battle } where mission maps to internal state.scope.battle
+  // and battle maps to internal state.scope.mission.
+  function setScope(scope = {}) {
+    const s = state.config?.structure || {};
+    const maxTown = Math.max(1, Number(s.towns) || 10);
+    const maxMission = Math.max(1, Number(s.battlesPerTown) || 3);
+    const maxBattle = Math.max(1, Number(s.missionsPerBattle) || 3);
+    const town = clampInt(scope.town, 1, maxTown, state.scope.town || 1);
+    const mission = clampInt(scope.mission, 1, maxMission, state.scope.battle || 1);
+    const battle = clampInt(scope.battle, 1, maxBattle, state.scope.mission || 1);
+    state.scope = {
+      town,
+      battle: mission,
+      mission: battle,
+    };
+    refreshUI();
+  }
+
+  function getScope() {
+    return {
+      town: Number(state.scope.town) || 1,
+      mission: Number(state.scope.battle) || 1,
+      battle: Number(state.scope.mission) || 1,
+    };
+  }
+
+  function isVisible() {
+    return overlay.style.display === "block";
+  }
+
   function isTypingTarget(el) {
     if (!el) return false;
     const tag = (el.tagName || "").toLowerCase();
@@ -1742,9 +1778,17 @@
     },
     getConfig: () => state.config,
     save: () => saveToStorage(state.config),
+    saveAndSync: () => persistConfig(),
     load: () => loadFromStorage(),
+    getScope,
+    setScope,
     show,
+    showAtScope(scope = {}) {
+      setScope(scope);
+      show();
+    },
     hide,
     toggle,
+    isVisible,
   };
 })(typeof window !== "undefined" ? window : null, typeof document !== "undefined" ? document : null);
