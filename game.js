@@ -3654,7 +3654,13 @@ const createHaloBladeState = () => ({
   damage: 20,
   hitRadius: 22 * WORLD_SCALE,
   hitCooldown: 0.25,
+  armoredHitCooldown: 0.004,
+  armoredDamageMultiplier: 4.0,
+  armoredMaxHitsPerSecond: 120,
+  armoredHitWindowSeconds: 1,
   lastHit: new WeakMap(),
+  lastBladeHit: new WeakMap(),
+  hitWindowStats: new WeakMap(),
   sprite: null,
   scale: 3.4 * WORLD_SCALE,
   trail: [],
@@ -8903,13 +8909,32 @@ function updateHaloBladeInstance(state, angle, dt) {
       tetherImpactY = closest.y;
     }
     if (!bladeHit && !tetherHit) return;
-    const lastHit = state.lastHit.get(enemy) || 0;
-    if (now - lastHit < state.hitCooldown) return;
-    state.lastHit.set(enemy, now);
     const enemyDamageClass = String(enemy.damageClass || enemy.config?.damageClass || "").toLowerCase();
+    const isArmoredTarget = enemyDamageClass === "armored" || enemyDamageClass === "tank";
+    const bladeArmoredBonusActive = bladeHit && isArmoredTarget;
+    const effectiveHitCooldown = bladeArmoredBonusActive
+      ? Math.max(0.001, Number(state.armoredHitCooldown) || 0.004)
+      : Math.max(0.02, Number(state.hitCooldown) || 0.25);
+    const hitMap = bladeArmoredBonusActive ? state.lastBladeHit : state.lastHit;
+    const lastHit = hitMap.get(enemy) || 0;
+    if (now - lastHit < effectiveHitCooldown) return;
+    if (bladeArmoredBonusActive) {
+      const maxHits = Math.max(1, Math.floor(Number(state.armoredMaxHitsPerSecond) || 120));
+      const windowSeconds = Math.max(0.1, Number(state.armoredHitWindowSeconds) || 1);
+      const existing = state.hitWindowStats.get(enemy);
+      let stats =
+        existing && now - existing.windowStart < windowSeconds
+          ? existing
+          : { windowStart: now, count: 0 };
+      if ((stats.count || 0) >= maxHits) return;
+      stats.count = (stats.count || 0) + 1;
+      state.hitWindowStats.set(enemy, stats);
+    }
+    hitMap.set(enemy, now);
     const baseDamage = bladeHit ? state.damage : tetherDamage;
-    const bladeArmorBonus = bladeHit && (enemyDamageClass === "armored" || enemyDamageClass === "tank");
-    const haloDamage = bladeArmorBonus ? baseDamage * 2 : baseDamage;
+    const haloDamage = bladeArmoredBonusActive
+      ? baseDamage * Math.max(1, Number(state.armoredDamageMultiplier) || 4.0)
+      : baseDamage;
     enemy.takeDamage(haloDamage, { damageType: "melee" });
     registerComboHit(enemy, haloDamage);
     spawnFlashEffect(
@@ -8966,6 +8991,8 @@ function resetHaloBladeState(state) {
   state.trail.length = 0;
   state.trailTimer = 0;
   state.lastHit = new WeakMap();
+  state.lastBladeHit = new WeakMap();
+  state.hitWindowStats = new WeakMap();
 }
 
 function updateHaloBlade(dt) {

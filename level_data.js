@@ -13554,12 +13554,16 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniImp",
-                          "count": 50
+                          "enemy": "armoredSkeleton",
+                          "count": 4
+                        },
+                        {
+                          "enemy": "armoredAxeman",
+                          "count": 4
                         },
                         {
                           "enemy": "armoredOrc",
-                          "count": 1
+                          "count": 4
                         }
                       ],
                       "weights": {},
