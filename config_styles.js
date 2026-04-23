@@ -238,6 +238,12 @@
           dividerInsetX: 0,
           dividerY: 70,
         },
+        defaultWide: {
+          // Wider variant of panel-default for dense utility/admin dialogs.
+          // Keep all other values aligned with `default`.
+          panelWidthMax: 1080,
+          panelWidthRatio: 0.95,
+        },
       },
     },
   };

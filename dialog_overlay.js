@@ -28,6 +28,16 @@
   let navNextTime = 0;
   let confirmHeld = false;
   let backHeld = false;
+  const PANEL_DEFAULT_CSS_VARS = [
+    "--hellfire-default-panel-width-max",
+    "--hellfire-default-panel-width-ratio",
+    "--hellfire-default-title-transform",
+    "--hellfire-default-title-align",
+    "--hellfire-default-title-color",
+    "--hellfire-default-title-size",
+    "--hellfire-default-divider-inset-x",
+    "--hellfire-default-divider-margin-top",
+  ];
 
   function getNavigableControls() {
     return Array.from(
@@ -140,6 +150,8 @@
     onRender = null,
   }) {
     if (!overlay) return;
+    overlay.classList.remove("dialog-overlay--panel-default");
+    PANEL_DEFAULT_CSS_VARS.forEach((key) => overlay.style.removeProperty(key));
     if (titleEl) titleEl.style.cssText = "";
     if (bodyEl) bodyEl.style.cssText = "";
     titleEl.textContent = title;
