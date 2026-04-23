@@ -4365,6 +4365,7 @@ Renderer.initialize({
   get prayerBombScreenFadeTimer() { return prayerBombScreenFadeTimer; },
   get prayerBombScreenFadeDuration() { return prayerBombScreenFadeDuration; },
   get prayerBombScreenDarkenAlpha() { return PRAYER_BOMB_SCREEN_DARKEN_ALPHA; },
+  get prayerBombComboActive() { return Boolean(prayerBombComboState.active); },
   get RUSH_RADIUS() { return RUSH_RADIUS; },
   get meleeAttackState() { return window._meleeAttackState; },
   get devTools() { return devTools; },

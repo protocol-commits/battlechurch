@@ -5209,6 +5209,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   function drawHudComboUnderlay(ctx, canvas, uiFontFamily, hudHeight) {
     if (typeof window === "undefined") return;
+    const bindings = requireBindings();
+    if (bindings?.prayerBombComboActive) return;
     const display = window.__hudComboDisplay;
     if (!display || typeof display !== "object") return;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
