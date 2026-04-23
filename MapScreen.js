@@ -1194,6 +1194,14 @@
     _launchTown(townId);
   }
 
+  function devStartRunForTown(townId) {
+    if (!townId) return false;
+    state.selectedTownId = townId;
+    state.panelOpen = false;
+    startRunForTown(townId);
+    return true;
+  }
+
   function confirmDenomUpgrade() {
     const du = state.denomUpgrade;
     if (!du || !du.active || du.selectedKeys.length < du.maxPicks) return;
@@ -2002,6 +2010,8 @@
     getTownStartCount,
     ensureTownStartCount,
     getTownCampaignData,
+    getDenomPickCountForTown,
+    devStartRunForTown,
     getNextCampaignForTown,
     isP2UnlockedForTown,
     isP3UnlockedForTown,

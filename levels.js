@@ -1848,6 +1848,26 @@
       beginFromTownIntro(levelNumber = 1) {
         beginLevel(levelNumber, { skipIntroAnnouncement: true });
       },
+      beginBattleFromTownIntro(levelNumber = 1, localBattleNumber = 1) {
+        beginLevel(levelNumber, { skipIntroAnnouncement: true });
+        const totalBattles = Math.max(
+          1,
+          Number.isFinite(state.definition?.battles?.length)
+            ? state.definition.battles.length
+            : BATTLES_PER_TOWN,
+        );
+        const targetBattle = Math.max(
+          1,
+          Math.min(totalBattles, Math.floor(Number(localBattleNumber) || 1)),
+        );
+        state.waitingForCongregation = false;
+        finishNpcRush();
+        state.npcRushActive = false;
+        state.npcRushTimer = 0;
+        state.monthIndex = targetBattle - 2;
+        state.waveIndex = -1;
+        beginBattle();
+      },
       reset() {
         state.active = false;
 state.monthIndex = -1;

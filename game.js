@@ -4147,6 +4147,7 @@ let activeTownId = null;
 let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
 let activeCampaignMultiplier = 1.0; // 1.0 | 1.15 | 1.1
 let cloudInitAttempted = false;
+let pendingDevBattleStartOverride = null; // { townId, localBattleNumber }
 
 function tryBootstrapCloud() {
   if (cloudInitAttempted) return;
@@ -4396,6 +4397,7 @@ window.addEventListener("resize", () => {
 
 if (typeof window !== "undefined") {
   window.startRunForTown = startRunForTown;
+  window.startDevLevelTestFromEditor = startDevLevelTestFromEditor;
   window.exitMapScreen = exitMapScreen;
   // Expose loading state for MapScreen to check
   Object.defineProperty(window, "gameAssetsLoaded", {
@@ -6912,6 +6914,64 @@ function startRunForTown(townId) {
   }
   // activeCampaign and activeCampaignMultiplier are set inside startGameFromTitle via getTownCampaignData
   startGameFromTitle();
+}
+
+function startDevLevelTestFromEditor({
+  town = 1,
+  mission = 1,
+  battle = 1,
+} = {}) {
+  const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+  const towns = Array.isArray(mapData?.towns) ? mapData.towns : [];
+  if (!towns.length) {
+    setDevStatus("Dev test failed: no map towns loaded", 2.2);
+    return false;
+  }
+  const townNumber = Math.max(1, Math.floor(Number(town) || 1));
+  const townIndex = Math.min(towns.length - 1, townNumber - 1);
+  const townId = towns[townIndex]?.id || null;
+  if (!townId) {
+    setDevStatus("Dev test failed: invalid town", 2.2);
+    return false;
+  }
+  const missionNumber = Math.max(1, Math.floor(Number(mission) || 1));
+  const battleNumber = Math.max(1, Math.floor(Number(battle) || 1));
+  const battlesPerMission = Math.max(1, Number(MISSIONS_PER_BATTLE) || 1);
+  const localBattleNumber = (missionNumber - 1) * battlesPerMission + battleNumber;
+  const maxBattlesInTown =
+    typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
+      ? Math.max(1, Math.floor(window.BATTLES_PER_TOWN))
+      : battlesPerMission * 3;
+  pendingDevBattleStartOverride = {
+    townId,
+    localBattleNumber: Math.max(1, Math.min(maxBattlesInTown, localBattleNumber)),
+  };
+  if (typeof window !== "undefined") {
+    window.activeTownId = townId;
+    window.BattlechurchLevelBuilder?.hide?.();
+  }
+  activeTownId = townId;
+
+  // Route through existing county-based denomination picker flow first.
+  mapActive = true;
+  titleScreenActive = false;
+  titleDemoSaveMenuActive = false;
+  if (typeof window !== "undefined" && window.MapScreen?.open) {
+    window.MapScreen.selectTown?.(townId);
+    window.MapScreen.open();
+    if (typeof window.MapScreen.devStartRunForTown === "function") {
+      window.MapScreen.devStartRunForTown(townId);
+    } else {
+      startRunForTown(townId);
+    }
+    setDevStatus(
+      `Dev test: Town ${townNumber} Mission ${missionNumber} Battle ${battleNumber}`,
+      2.8,
+    );
+    return true;
+  }
+  startRunForTown(townId);
+  return true;
 }
 
 function exitMapScreen() {
@@ -9994,7 +10054,17 @@ function dismissCurrentLevelAnnouncement() {
       suppressInitialAnnouncements = false;
       pendingTownIntroStart = false;
     }
-    if (levelManager && typeof levelManager.beginFromTownIntro === "function") {
+    const devStartOverride =
+      pendingDevBattleStartOverride &&
+      pendingDevBattleStartOverride.townId === activeTownId
+        ? pendingDevBattleStartOverride
+        : null;
+    const targetBattle = Number.isFinite(devStartOverride?.localBattleNumber)
+      ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
+      : 1;
+    if (devStartOverride && levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
+      levelManager.beginBattleFromTownIntro(_levelNum, targetBattle);
+    } else if (levelManager && typeof levelManager.beginFromTownIntro === "function") {
       levelManager.beginFromTownIntro(_levelNum);
     } else if (levelManager && typeof levelManager.begin === "function") {
       levelManager.begin();
@@ -10003,6 +10073,7 @@ function dismissCurrentLevelAnnouncement() {
     } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
       levelManager.advanceFromBriefing(_levelNum);
     }
+    pendingDevBattleStartOverride = null;
     if (Array.isArray(levelAnnouncements)) {
       levelAnnouncements.length = 0;
     }

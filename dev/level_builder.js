@@ -518,6 +518,7 @@
           </div>
           <div class="group">
             <button id="lb-undo" class="secondary" type="button" disabled>Undo</button>
+            <button id="lb-playtest" type="button">Play Test</button>
             <button id="lb-close" class="secondary">Close (Esc)</button>
             <button id="lb-load" class="secondary" type="button">Load from file</button>
             <button id="lb-save" type="button">Save</button>
@@ -543,6 +544,7 @@
     save:        overlay.querySelector("#lb-save"),
     saveAs:      overlay.querySelector("#lb-saveAs"),
     undo:        overlay.querySelector("#lb-undo"),
+    playtest:    overlay.querySelector("#lb-playtest"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
     copyMenuWrap: overlay.querySelector("#lb-copyMenuWrap"),
@@ -1607,6 +1609,23 @@
     if (els.undo) {
       els.undo.addEventListener("click", () => {
         undoLastEdit();
+      });
+    }
+
+    if (els.playtest) {
+      els.playtest.addEventListener("click", () => {
+        if (typeof window.startDevLevelTestFromEditor !== "function") {
+          setStatus("Play Test unavailable", true);
+          return;
+        }
+        const townNum = Number(state.scope.town) || 1;
+        const missionNum = Number(state.scope.battle) || 1;
+        const battleNum = Number(state.scope.mission) || 1;
+        window.startDevLevelTestFromEditor({
+          town: townNum,
+          mission: missionNum,
+          battle: battleNum,
+        });
       });
     }
 

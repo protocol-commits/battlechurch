@@ -7332,6 +7332,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "play", label: "Play" },
         { key: "settings", label: "Settings" },
+        { key: "developer", label: "Developer" },
         { key: "howtoplay", label: "How to Play" },
       ];
     } else if (mapReady) {
@@ -7339,6 +7340,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "map", label: "Loading" },
         { key: "settings", label: "Settings" },
+        { key: "developer", label: "Developer" },
         { key: "howtoplay", label: "How to Play" },
       ];
     } else {
@@ -7346,6 +7348,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = [
         { key: "play", label: "Loading..." },
         { key: "settings", label: "Settings" },
+        { key: "developer", label: "Developer" },
         { key: "howtoplay", label: "How to Play" },
       ];
     }
