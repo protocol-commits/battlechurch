@@ -983,6 +983,11 @@ const MELEE_SWING_LENGTH = 260;
   function drawAnnouncementText(ctx, canvas, {
     title,
     subtitle,
+    eyebrowText = "",
+    eyebrowSize = Math.max(11, Math.round(TEXT_STYLES.body.size * 0.52)),
+    eyebrowWeight = 700,
+    eyebrowColor = "rgba(231, 196, 126, 0.92)",
+    eyebrowGap = 18,
     yBase,
     alpha = 1,
     titleSize = TEXT_STYLES.h2.size,
@@ -1007,6 +1012,8 @@ const MELEE_SWING_LENGTH = 260;
       Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)),
     );
     const effectiveTitleSize = Math.round(titleSize * scaleHint);
+    const effectiveEyebrowSize = Math.round(eyebrowSize * scaleHint);
+    const effectiveEyebrowGap = Math.round(eyebrowGap * scaleHint);
     const effectiveTitleLineSizes = Array.isArray(titleLineSizes) && titleLineSizes.length
       ? titleLineSizes.map((size) => Math.round(size * scaleHint))
       : null;
@@ -1098,6 +1105,18 @@ const MELEE_SWING_LENGTH = 260;
     }
     let remainingTitle = displayTitle.length;
     let currentY = yBase;
+    const eyebrowLabel = String(eyebrowText || "").trim();
+    if (eyebrowLabel) {
+      const eyebrowLineHeight = Math.round(effectiveEyebrowSize * 1.2);
+      const eyebrowY = yBase - eyebrowLineHeight - effectiveEyebrowGap;
+      ctx.font = `${eyebrowWeight} ${effectiveEyebrowSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.fillStyle = eyebrowColor;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowBlur = 12;
+      const eyebrowLine = eyebrowLabel.toUpperCase();
+      const eyebrowX = canvas.width / 2 - (ctx.measureText(eyebrowLine).width || 0) / 2;
+      ctx.fillText(eyebrowLine, eyebrowX, eyebrowY);
+    }
     let emphasisCarryForward = false;
     titleLines.forEach((line, index) => {
       const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
@@ -4735,9 +4754,23 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else {
       const titleY = getAnnouncementTitleY(HUD_HEIGHT, boxHeight);
       const shouldShowSubtitle = Boolean(levelAnnouncements[0]?.showSubtitle);
+      const isWaveIntroAnnouncement = /^wave\s+\d+:/i.test(String(displayTitle || ""));
+      const eyebrowSource = (() => {
+        const direct = String(levelAnnouncements[0]?.eyebrowText || "").trim();
+        if (direct) return direct;
+        if (isWaveIntroAnnouncement) {
+          return String(currentLevelStatus?.battleScenario || "").trim();
+        }
+        return "";
+      })();
+      const eyebrowText = formatScenarioForTitle(getScenarioTitle(eyebrowSource));
+      // Increase this to add more vertical space between eyebrow and wave title.
+      const waveEyebrowGap = 30;
       drawAnnouncementText(ctx, canvas, {
         title: displayTitle || "",
         subtitle: shouldShowSubtitle ? String(subtitle || "") : "",
+        eyebrowText,
+        eyebrowGap: waveEyebrowGap,
         yBase: titleY,
         alpha,
         typewriter: true,

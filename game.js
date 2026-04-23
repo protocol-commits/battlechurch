@@ -9898,9 +9898,14 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     ? Math.max(0.05, options.fadeOutDuration)
     : null;
   const showSubtitle = Boolean(options.showSubtitle);
+  const eyebrowText =
+    typeof options.eyebrowText === "string" && options.eyebrowText.trim().length
+      ? options.eyebrowText.trim()
+      : "";
   const announcement = {
     title,
     subtitle,
+    eyebrowText,
     duration,
     timer: duration,
     requiresConfirm,

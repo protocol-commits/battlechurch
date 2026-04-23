@@ -1389,6 +1389,7 @@
           queueLevelAnnouncement(introText, "", {
             duration: introDuration,
             skipMissionBrief: true,
+            eyebrowText: state.currentBattleScenario || "",
           });
         }
         const spawnDelay = Math.max(0, introDuration - ANNOUNCEMENT_FADE_DURATION);
