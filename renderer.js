@@ -6394,7 +6394,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const titleText = "Paused";
-    const subtitleText = "Take a breather. Resume when you're ready.";
+    const subtitleText = "";
     const titleSize = TEXT_STYLES.h1.size;
     const isDenseBody = titleText === "Controls" || titleText === "Story";
     const subtitleSize = isDenseBody
