@@ -16625,12 +16625,6 @@ function handleDeveloperHotkeys() {
       }
     }
   }
-  if (keysJustPressed.has("7")) {
-    if (typeof window !== "undefined" && typeof window.MapScreen?.devUnlockAllTowns === "function") {
-      const ok = window.MapScreen.devUnlockAllTowns();
-      setDevStatus(ok ? "All 9 towns unlocked (dev)" : "Town unlock failed", 2.5);
-    }
-  }
   if (keysJustPressed.has("t")) {
     if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextTown === "function") {
       void (async () => {
@@ -17350,7 +17344,6 @@ function showDeveloperShortcutsOverlay() {
     { key: "4", label: "Skip Battle" },
     { key: "5", label: "Current Battle Boss" },
     { key: "6", label: "Act 3 Battle 3 Boss (current town)" },
-    { key: "7", label: "Unlock All Towns (Map)" },
     { key: "9", label: "Grace Rush" },
     { key: "T", label: "Award Next Town" },
     { key: "Y", label: "Toggle Timer" },
@@ -22826,13 +22819,6 @@ function updateGame(dt) {
           })();
         }
         keysJustPressed.delete("t");
-      }
-      if (_mapShift && keysJustPressed.has("7")) {
-        if (typeof window !== "undefined" && typeof window.MapScreen?.devUnlockAllTowns === "function") {
-          const ok = window.MapScreen.devUnlockAllTowns();
-          setDevStatus(ok ? "All 9 towns unlocked (dev)" : "Town unlock failed", 2.5);
-        }
-        keysJustPressed.delete("7");
       }
     }
     if (window.MapScreen) {
