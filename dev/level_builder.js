@@ -157,7 +157,6 @@
     config: loadFromStorage(),
     scope: { town: 1, battle: 1, mission: 1 },
     mode: "explicit",
-    showHidden: false,
     clipboard: null, // { type: 'horde'|'wave'|'mission'|'battle', data: deepClone }
     enemyFilter: "all",
     undoStack: [],
@@ -229,6 +228,52 @@
       .replace(/([A-Z])/g, " $1")
       .trim();
     return base || String(key || "");
+  }
+
+  function isBossEnemy(key, catalog) {
+    const def = catalog?.[key] || {};
+    const tier = Number(def.bossTier) || 0;
+    if (tier > 0) return true;
+    const behaviors = Array.isArray(def.specialBehavior) ? def.specialBehavior : [];
+    return behaviors.includes("boss");
+  }
+
+  function hasBossPrefix(key) {
+    return /^boss/i.test(String(key || ""));
+  }
+
+  function isEditorHiddenEnemy(key) {
+    const normalized = String(key || "").trim();
+    if (!normalized) return false;
+    if (hasBossPrefix(normalized)) return true;
+    return normalized === "tormentorFlame";
+  }
+
+  function compareEnemyKeys(a, b, catalog) {
+    if (a === b) return 0;
+    if (a === "miniImp") return -1;
+    if (b === "miniImp") return 1;
+
+    const aIsMiniImpVariant = /^miniimp/i.test(String(a || ""));
+    const bIsMiniImpVariant = /^miniimp/i.test(String(b || ""));
+    if (aIsMiniImpVariant !== bIsMiniImpVariant) return aIsMiniImpVariant ? -1 : 1;
+
+    const aType = getEnemyType(a, catalog);
+    const bType = getEnemyType(b, catalog);
+    if (aType !== bType) {
+      if (aType === "normal") return -1;
+      if (bType === "normal") return 1;
+    }
+
+    const aIsBoss = isBossEnemy(a, catalog);
+    const bIsBoss = isBossEnemy(b, catalog);
+    if (aIsBoss !== bIsBoss) return aIsBoss ? 1 : -1;
+
+    const aLabel = formatEnemyLabel(a, catalog).toLowerCase();
+    const bLabel = formatEnemyLabel(b, catalog).toLowerCase();
+    if (aLabel < bLabel) return -1;
+    if (aLabel > bLabel) return 1;
+    return String(a).localeCompare(String(b));
   }
 
   const THUMB_SIZE = 26;
@@ -331,6 +376,7 @@
     const townObj    = ensureTown(town);
     const battleObj  = ensureBattle(townObj, battle);
     const missionObj = ensureMission(battleObj, mission);
+    if (typeof missionObj.editorNotes !== "string") missionObj.editorNotes = "";
     return { townObj, battleObj, missionObj };
   }
 
@@ -389,7 +435,7 @@
         background: rgba(23, 16, 10, 0.58);
         color: #f3e2c1;
       }
-      #levelBuilderOverlay .lb-topbar { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
+      #levelBuilderOverlay .lb-topbar { display:flex; flex-wrap:nowrap; gap:12px; align-items:flex-end; }
       #levelBuilderOverlay .lb-topbar .group { display:flex; gap:8px; align-items:flex-end; }
       #levelBuilderOverlay .lb-topbar label { margin:0 6px 0 0; }
       #levelBuilderOverlay .lb-topbar select, #levelBuilderOverlay .lb-topbar input
@@ -413,7 +459,8 @@
         position:sticky; left:0; z-index:5;
         background:rgba(12, 18, 30, 0.98);
         display:flex; flex-direction:column;
-        min-width:220px; border-right:1px solid var(--lb-divider);
+        width:max-content; min-width:0;
+        border-right:1px solid var(--lb-divider);
       }
       #levelBuilderOverlay .lb-label-col .lb-label-header {
         height:64px; display:flex; align-items:center;
@@ -428,26 +475,33 @@
       }
       #levelBuilderOverlay .lb-label-row canvas { flex-shrink:0; }
       #levelBuilderOverlay .lb-wave-col {
-        min-width:120px; max-width:120px;
+        min-width:64px; max-width:64px;
         background:rgba(255, 176, 86, 0.08);
         border-right:2px solid rgba(255, 214, 148, 0.26);
         display:flex; flex-direction:column;
       }
       #levelBuilderOverlay .lb-wave-header {
-        height:64px; display:flex; align-items:center; justify-content:space-between;
-        padding:0 8px; font-size:11px; font-weight:700;
+        height:64px; display:flex; align-items:center; justify-content:center;
+        padding:0 6px; font-size:11px; font-weight:700;
         color:var(--lb-title);
         border-bottom:1px solid var(--lb-divider);
         background:rgba(255, 176, 86, 0.12);
       }
-      #levelBuilderOverlay .lb-wave-body { padding:0; flex:1; display:flex; flex-direction:column; }
-      #levelBuilderOverlay .lb-wave-fields { padding:6px 8px; display:flex; flex-direction:column; gap:4px; }
-      #levelBuilderOverlay .lb-wave-fields textarea {
-        width:100%; resize:vertical; font-size:10px; min-height:48px;
-        margin:0; padding:4px;
+      #levelBuilderOverlay .lb-wave-menu-btn {
+        width:58px;
+        background:rgba(255,255,255,0.1);
+        border:1px solid rgba(255,255,255,0.22);
+        color:#f3e2c1;
+        border-radius:4px;
+        padding:3px 4px;
+        font-size:10px;
+        font-weight:700;
+        cursor:pointer;
       }
-      #levelBuilderOverlay .lb-wave-fields label { font-size:10px; }
-      #levelBuilderOverlay .lb-wave-fields input[type=number] { width:60px; margin:0; padding:3px 5px; }
+      #levelBuilderOverlay .lb-wave-menu-btn:hover {
+        background:rgba(255,255,255,0.16);
+      }
+      #levelBuilderOverlay .lb-wave-body { padding:0; flex:1; display:flex; flex-direction:column; }
       #levelBuilderOverlay .lb-col-menu-field {
         display:flex; align-items:center; justify-content:space-between; gap:8px;
         padding:6px 14px 4px 14px; font-size:11px; color:#cfe6ff;
@@ -455,7 +509,6 @@
       #levelBuilderOverlay .lb-col-menu-field input[type=number] {
         width:64px; margin:0; padding:3px 5px;
       }
-      #levelBuilderOverlay .lb-wave-footer { padding:6px 8px; display:flex; gap:4px; }
       #levelBuilderOverlay .lb-horde-col {
         min-width:70px; max-width:70px;
         border-right:1px solid rgba(120,170,220,0.15);
@@ -527,9 +580,6 @@
             <select id="lb-mission"></select>
           </div>
           <div class="group">
-            <label><input type="checkbox" id="lb-showHidden"> Show hidden</label>
-          </div>
-          <div class="group">
             <div id="lb-copyMenuWrap" style="position:relative;display:inline-block;">
               <button id="lb-copyMenuButton" class="secondary" type="button">Copy ▾</button>
               <div id="lb-copyMenu" class="lb-col-menu" style="top:calc(100% + 4px);left:0;right:auto;min-width:120px;">
@@ -544,9 +594,16 @@
             <button id="lb-undo" class="secondary" type="button" disabled>Undo</button>
             <button id="lb-playtest" type="button">Play Test</button>
             <button id="lb-close" class="secondary">Close (Esc)</button>
-            <button id="lb-load" class="secondary" type="button">Load from file</button>
-            <button id="lb-save" type="button">Save</button>
             <button id="lb-saveAs" type="button" class="secondary">Save As...</button>
+          </div>
+          <div class="group" style="align-items:center;gap:8px;margin-left:auto;min-width:0;flex:1;justify-content:flex-end;">
+            <label for="lb-battleNotes" style="font-size:11px;white-space:nowrap;">Battle Notes</label>
+            <input
+              id="lb-battleNotes"
+              type="text"
+              placeholder="Notes for this battle (editor only)"
+              style="min-width:120px;flex:1;max-width:420px;"
+            >
           </div>
         </div>
         <div id="lb-status" style="margin-top:8px;font-size:12px;color:var(--lb-hint);"></div>
@@ -564,11 +621,10 @@
     battle:      overlay.querySelector("#lb-battle"),
     mission:     overlay.querySelector("#lb-mission"),
     content:     overlay.querySelector("#lb-contentArea"),
-    load:        overlay.querySelector("#lb-load"),
-    save:        overlay.querySelector("#lb-save"),
     saveAs:      overlay.querySelector("#lb-saveAs"),
     undo:        overlay.querySelector("#lb-undo"),
     playtest:    overlay.querySelector("#lb-playtest"),
+    battleNotes: overlay.querySelector("#lb-battleNotes"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
     copyMenuWrap: overlay.querySelector("#lb-copyMenuWrap"),
@@ -652,15 +708,22 @@
   function renderMissionView() {
     updateScopeFromSelects();
     const { missionObj } = getOrCreateMission();
+    if (els.battleNotes) {
+      const notes = typeof missionObj.editorNotes === "string" ? missionObj.editorNotes : "";
+      if (els.battleNotes !== document.activeElement) {
+        els.battleNotes.value = notes;
+      } else if (els.battleNotes.value !== notes) {
+        missionObj.editorNotes = els.battleNotes.value;
+      }
+    }
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
     const enemyKeys = Object.keys(catalog);
-    const hiddenSet = new Set(state.config.globals.hiddenEnemies || []);
     const filterOptions = buildEnemyFilterOptions(catalog);
     if (!filterOptions.includes(state.enemyFilter)) state.enemyFilter = "all";
     const visibleKeys = enemyKeys.filter((key) => {
-      if (!state.showHidden && hiddenSet.has(key)) return false;
+      if (isEditorHiddenEnemy(key)) return false;
       return getEnemyFilterTags(key, catalog).has(state.enemyFilter);
-    });
+    }).sort((a, b) => compareEnemyKeys(a, b, catalog));
 
     // Close any open column menus on outside click.
     const closeMenus = () => {
@@ -715,7 +778,6 @@
     visibleKeys.forEach((key) => {
       const row = document.createElement("div");
       row.className = "lb-label-row";
-      const isHidden = hiddenSet.has(key);
       const displayLabel = formatEnemyLabel(key, catalog);
       const totalCount = enemyBattleTotals[key] || 0;
       const typeColor = TYPE_COLORS[getEnemyType(key, catalog)] || "#e8f4ff";
@@ -723,9 +785,8 @@
         <div style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:4px;">
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
-        <span title="${key}" style="font-size:10px;flex:1;opacity:${isHidden ? "0.45" : "1"};color:${typeColor};">${displayLabel}</span>
+        <span title="${key}" style="font-size:10px;white-space:nowrap;color:${typeColor};">${displayLabel}</span>
         <button data-clear-key="${key}" title="Clear this enemy from all hordes in this battle" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
-        <button data-hide-key="${key}" title="${isHidden ? "Show" : "Hide"}" style="font-size:9px;padding:1px 4px;opacity:0.6;flex-shrink:0;">${isHidden ? "👁" : "—"}</button>
       `;
       const clearBtn = row.querySelector(`[data-clear-key="${key}"]`);
       if (clearBtn) {
@@ -733,13 +794,6 @@
           pushUndoSnapshot();
           clearEnemyFromMission(missionObj, key);
           saveToStorage(state.config);
-          renderMissionView();
-        });
-      }
-      const hideBtn = row.querySelector(`[data-hide-key="${key}"]`);
-      if (hideBtn) {
-        hideBtn.addEventListener("click", () => {
-          toggleHiddenEnemy(key);
           renderMissionView();
         });
       }
@@ -758,12 +812,9 @@
       const waveHeader = document.createElement("div");
       waveHeader.className = "lb-wave-header";
       waveHeader.style.position = "relative";
-      const waveTitleSpan = document.createElement("span");
-      waveTitleSpan.textContent = `Wave ${wIdx + 1}`;
-      waveHeader.appendChild(waveTitleSpan);
       const waveMenuBtn = document.createElement("button");
-      waveMenuBtn.className = "lb-col-menu-btn";
-      waveMenuBtn.textContent = "▾";
+      waveMenuBtn.className = "lb-wave-menu-btn";
+      waveMenuBtn.textContent = `W${wIdx + 1} ▾`;
       const waveMenu = document.createElement("div");
       waveMenu.className = "lb-col-menu";
       waveMenu.style.cssText = "min-width:150px;";
@@ -773,6 +824,7 @@
       waveMenu.innerHTML = `
         <button class="lb-col-menu-item" data-action="insert-before">Insert Wave Before</button>
         <button class="lb-col-menu-item" data-action="insert-after">Insert Wave After</button>
+        <button class="lb-col-menu-item" data-action="add-horde">Add Horde</button>
         <button class="lb-col-menu-item" data-action="move-left"${!canShiftLeft ? " disabled" : ""}>← Shift Break Left</button>
         <button class="lb-col-menu-item" data-action="move-right"${!canShiftRight ? " disabled" : ""}>Shift Break Right →</button>
         <button class="lb-col-menu-item danger" data-action="delete-wave">Remove Wave Break</button>
@@ -815,6 +867,11 @@
             missionObj.waves.splice(wIdx + 1, 0, { index: 0, introText: "", breakerDuration: 3, hordes: [] });
             missionObj.waves.forEach((w, i) => { w.index = i + 1; });
             saveToStorage(state.config); renderMissionView();
+          } else if (action === "add-horde") {
+            pushUndoSnapshot();
+            const newIdx = wave.hordes.length + 1;
+            wave.hordes.push(makeDefaultHorde(newIdx));
+            saveToStorage(state.config); renderMissionView();
           } else if (action === "move-left" && canShiftLeft) {
             pushUndoSnapshot();
             // Shift the break left: move the first horde of this wave to the end of the previous wave
@@ -853,21 +910,6 @@
 
       const waveBody = document.createElement("div");
       waveBody.className = "lb-wave-body";
-      // Wave fields (intro text + breaker) sit directly under the wave header
-      const waveFields = document.createElement("div");
-      waveFields.className = "lb-wave-fields";
-      const introLabel = document.createElement("label");
-      introLabel.textContent = "Intro text";
-      const introTA = document.createElement("textarea");
-      introTA.value = wave.introText || "";
-      introTA.addEventListener("change", () => {
-        pushUndoSnapshot();
-        wave.introText = introTA.value;
-        saveToStorage(state.config);
-      });
-      waveFields.appendChild(introLabel);
-      waveFields.appendChild(introTA);
-      waveBody.appendChild(waveFields);
       // Enemy rows spacer — must match lb-horde-cell-row heights exactly (no gap/padding)
       visibleKeys.forEach(() => {
         const spacer = document.createElement("div");
@@ -875,22 +917,6 @@
         waveBody.appendChild(spacer);
       });
       waveCol.appendChild(waveBody);
-
-      const waveFooter = document.createElement("div");
-      waveFooter.className = "lb-wave-footer";
-      const addHordeBtn = document.createElement("button");
-      addHordeBtn.className = "secondary";
-      addHordeBtn.style.cssText = "padding:3px 6px;font-size:10px;width:100%;";
-      addHordeBtn.textContent = "+ Horde";
-      addHordeBtn.addEventListener("click", () => {
-        pushUndoSnapshot();
-        const newIdx = wave.hordes.length + 1;
-        wave.hordes.push(makeDefaultHorde(newIdx));
-        saveToStorage(state.config);
-        renderMissionView();
-      });
-      waveFooter.appendChild(addHordeBtn);
-      waveCol.appendChild(waveFooter);
       container.appendChild(waveCol);
 
       // Horde columns within this wave
@@ -1433,20 +1459,6 @@
     }
   }
 
-  function toggleHiddenEnemy(key) {
-    pushUndoSnapshot();
-    const hidden = state.config.globals.hiddenEnemies || [];
-    const idx = hidden.indexOf(key);
-    if (idx >= 0) hidden.splice(idx, 1);
-    else hidden.push(key);
-    state.config.globals.hiddenEnemies = hidden;
-    // Remove stat overrides for hidden enemies
-    if (idx < 0 && state.config.globals.enemyStats) {
-      delete state.config.globals.enemyStats[key];
-    }
-    saveToStorage(state.config);
-  }
-
   function setStatus(text, isError = false) {
     if (!els || !els.status) return;
     els.status.textContent = text || "";
@@ -1542,12 +1554,14 @@
       });
     });
 
-    // Show Hidden checkbox
-    const showHiddenCheckbox = overlay.querySelector("#lb-showHidden");
-    if (showHiddenCheckbox) {
-      showHiddenCheckbox.addEventListener("change", () => {
-        state.showHidden = showHiddenCheckbox.checked;
-        renderMissionView();
+    if (els.battleNotes) {
+      els.battleNotes.addEventListener("change", () => {
+        const { missionObj } = getOrCreateMission();
+        const nextValue = String(els.battleNotes.value || "");
+        if (missionObj.editorNotes === nextValue) return;
+        pushUndoSnapshot();
+        missionObj.editorNotes = nextValue;
+        saveToStorage(state.config);
       });
     }
 
@@ -1656,16 +1670,6 @@
     overlay.addEventListener("click", (e) => {
       if (e.target.closest("#lb-copyMenuWrap")) return;
       closeTopMenus();
-    });
-
-    if (els.load) {
-      els.load.addEventListener("click", () => {
-        syncFromServer({ showStatus: true });
-      });
-    }
-
-    els.save.addEventListener("click", () => {
-      persistConfig();
     });
 
     if (els.saveAs) {
