@@ -1102,7 +1102,7 @@
       primaryLine = `Next Run: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       secondaryLine = campAvail
         ? `Missions Completed: ${completedVisits}/3`
-        : "Complete prior missions to unlock.";
+        : `Complete all area towns to unlock ${campLabel}.`;
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
     ctx.font = `600 ${panelStyle.primaryFontSize ?? 17}px ${UI_FONT_FAMILY}`;
