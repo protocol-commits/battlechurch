@@ -16561,10 +16561,26 @@ function handleDeveloperHotkeys() {
     setDevStatus(devTools.godMode ? "God mode enabled" : "God mode disabled", 2.5);
   }
   if (keysJustPressed.has("2")) {
-    devClearOpponents({ includeBoss: true });
-    setDevStatus("All hostiles eliminated", 2.0);
+    devClearOpponents({ includeBoss: false });
+    setDevStatus("On-screen enemies eliminated", 2.0);
   }
   if (keysJustPressed.has("3")) {
+    const result = levelManager?.devAdvanceToNextWaveWithBreak?.();
+    if (result?.success) {
+      if (result.mode === "started_first_wave") {
+        setDevStatus("Wave 1 started", 2.0);
+      } else {
+        setDevStatus("Advanced to next wave", 2.0);
+      }
+    } else if (result?.reason === "last_wave") {
+      setDevStatus("Already on final wave", 2.0);
+    } else if (result?.reason === "boss") {
+      setDevStatus("Cannot advance wave during boss phase", 2.0);
+    } else {
+      setDevStatus("Wave advance unavailable", 2.0);
+    }
+  }
+  if (keysJustPressed.has("4")) {
     if (levelManager?.devSkipWave?.()) {
       setDevStatus("Battle skipped", 2.0);
     }
@@ -16593,22 +16609,6 @@ function handleDeveloperHotkeys() {
     if (typeof window !== "undefined" && typeof window.MapScreen?.devUnlockAllTowns === "function") {
       const ok = window.MapScreen.devUnlockAllTowns();
       setDevStatus(ok ? "All 9 towns unlocked (dev)" : "Town unlock failed", 2.5);
-    }
-  }
-  if (keysJustPressed.has("8")) {
-    const result = levelManager?.devAdvanceToNextWaveWithBreak?.();
-    if (result?.success) {
-      if (result.mode === "started_first_wave") {
-        setDevStatus("Wave 1 started", 2.0);
-      } else {
-        setDevStatus("Advanced to next wave", 2.0);
-      }
-    } else if (result?.reason === "last_wave") {
-      setDevStatus("Already on final wave", 2.0);
-    } else if (result?.reason === "boss") {
-      setDevStatus("Cannot advance wave during boss phase", 2.0);
-    } else {
-      setDevStatus("Wave advance unavailable", 2.0);
     }
   }
   if (keysJustPressed.has("t")) {
@@ -16669,11 +16669,6 @@ function handleDeveloperHotkeys() {
         ? "Prayer bomb level 2"
         : "Prayer bomb level 1";
       setDevStatus(levelLabel, 2.0);
-    }
-  }
-  if (keysJustPressed.has("4")) {
-    if (levelManager?.devSkipLevel?.()) {
-      setDevStatus("Level skipped", 2.5);
     }
   }
   if (keysJustPressed.has("v")) {
@@ -17330,9 +17325,9 @@ function showDeveloperShortcutsOverlay() {
   if (!window.DialogOverlay) return;
   const shortcutCards = [
     { key: "1", label: "God Mode" },
-    { key: "2", label: "Clear Hostiles" },
-    { key: "3", label: "Skip Battle" },
-    { key: "4", label: "Skip Level" },
+    { key: "2", label: "Kill On-Screen Enemies" },
+    { key: "3", label: "Skip Wave" },
+    { key: "4", label: "Skip Battle" },
     { key: "5", label: "Current Battle Boss" },
     { key: "6", label: "Act 3 Battle 3 Boss (current town)" },
     { key: "7", label: "Unlock All Towns (Map)" },
