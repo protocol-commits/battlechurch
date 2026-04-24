@@ -17503,7 +17503,19 @@ function handleTitleScreen() {
                 await refreshTitleCloudSaveOption();
               }
             } catch (e) {
-              // Keep menu responsive even if Google sign-in popup is blocked/canceled.
+              const code = e?.code || window.cloudLastAuthErrorCode || "";
+              let message = "Google sign-in failed. Please try again.";
+              if (code === "auth/unauthorized-domain") {
+                message = "Google sign-in blocked: add this site domain in Firebase Auth > Settings > Authorized domains.";
+              } else if (code === "auth/operation-not-allowed") {
+                message = "Google sign-in is disabled in Firebase. Enable Google provider in Firebase Auth > Sign-in method.";
+              } else if (code === "auth/popup-blocked") {
+                message = "Popup was blocked. Allow popups for this site and try again.";
+              }
+              setDevStatus(message, 5);
+              if (typeof window?.alert === "function") {
+                window.alert(message);
+              }
             }
           })();
           return;

@@ -19,6 +19,18 @@ let user = null;
 let initPromise = null;
 let authListenerBound = false;
 
+function setLastAuthError(err) {
+  if (typeof window === "undefined") return;
+  window.cloudLastAuthErrorCode = err?.code || null;
+  window.cloudLastAuthErrorMessage = err?.message || null;
+}
+
+function clearLastAuthError() {
+  if (typeof window === "undefined") return;
+  window.cloudLastAuthErrorCode = null;
+  window.cloudLastAuthErrorMessage = null;
+}
+
 async function ensureUser() {
   if (user) return user;
   await new Promise((resolve, reject) => {
@@ -139,11 +151,18 @@ async function signInWithGoogle() {
     const result = await signInWithPopup(auth, provider);
     user = result?.user || auth.currentUser || null;
     updateAuthGlobals(user);
+    clearLastAuthError();
     return user;
   } catch (err) {
+    setLastAuthError(err);
     await signInAnonymously(auth);
     user = auth.currentUser || null;
     updateAuthGlobals(user);
+    const code = err?.code || "";
+    const userDismissed = code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request";
+    if (!userDismissed) {
+      throw err;
+    }
     return user;
   }
 }
