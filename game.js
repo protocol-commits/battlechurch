@@ -7274,15 +7274,14 @@ async function refreshTitleCloudSaveOption() {
     titleCloudSaveRows = saves.map((save) => {
       const completed = Number.isFinite(save?.completedP1Towns) ? save.completedP1Towns : 0;
       const total = Math.max(1, Number.isFinite(save?.totalTowns) ? save.totalTowns : 10);
-      const progressLabel = completed > 0 ? `(${completed}/${total})` : "(No progress yet)";
-      const suggestedTownName = save?.suggestedTownName || "Pine Hollow";
+      const totalCongregationBest = Number.isFinite(save?.totalCongregationBest) ? save.totalCongregationBest : 0;
       const townRows = Array.isArray(save?.townProgressRows) ? save.townProgressRows : [];
       const completedTownRows = townRows.filter((row) => row?.p1Completed === true);
       return {
         id: save.id,
         key: `cloudsave:${save.id}`,
-        label: `${save.saveName} ${progressLabel}`,
-        meta: `${save.playerName || "Pastor"} • ${suggestedTownName}`,
+        label: save?.saveName || "Save",
+        meta: `Towns ${completed}/${total} • Congregation ${totalCongregationBest}`,
         suggestedTownId: save?.suggestedTownId || null,
         isActive: save?.isActive === true,
         details: {
@@ -7290,7 +7289,7 @@ async function refreshTitleCloudSaveOption() {
           playerName: save?.playerName || "Pastor",
           completedTowns: completed,
           totalTowns: total,
-          totalCongregationBest: Number.isFinite(save?.totalCongregationBest) ? save.totalCongregationBest : 0,
+          totalCongregationBest,
           totalReplayCompletions: Number.isFinite(save?.totalReplayCompletions) ? save.totalReplayCompletions : completedTownRows.length,
           totalUpgradeLevels: Number.isFinite(save?.totalUpgradeLevels) ? save.totalUpgradeLevels : 0,
           townRows: townRows,

@@ -46,6 +46,8 @@ function updateAuthGlobals(nextUser) {
   window.cloudIsAnonymous = Boolean(nextUser?.isAnonymous);
   window.cloudAuthProvider = nextUser?.isAnonymous ? "anonymous" : (nextUser ? "google" : null);
   window.cloudEmail = nextUser?.email || null;
+  window.cloudDisplayName = nextUser?.displayName || null;
+  window.cloudPhotoUrl = nextUser?.photoURL || null;
 }
 
 async function initCloud() {
