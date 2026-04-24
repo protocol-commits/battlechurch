@@ -16561,8 +16561,28 @@ function handleDeveloperHotkeys() {
     setDevStatus(devTools.godMode ? "God mode enabled" : "God mode disabled", 2.5);
   }
   if (keysJustPressed.has("2")) {
+    let bossDamaged = false;
+    if (
+      activeBoss &&
+      !activeBoss.dead &&
+      activeBoss.state !== "death" &&
+      typeof activeBoss.takeDamage === "function"
+    ) {
+      const healthBefore = Number.isFinite(activeBoss.health) ? activeBoss.health : null;
+      activeBoss.takeDamage(1000);
+      if (healthBefore !== null && Number.isFinite(activeBoss.health)) {
+        bossDamaged = activeBoss.health < healthBefore;
+      } else {
+        bossDamaged = true;
+      }
+    }
     devClearOpponents({ includeBoss: false });
-    setDevStatus("On-screen enemies eliminated", 2.0);
+    setDevStatus(
+      bossDamaged
+        ? "On-screen enemies eliminated, boss -1000 HP"
+        : "On-screen enemies eliminated",
+      2.0,
+    );
   }
   if (keysJustPressed.has("3")) {
     const result = levelManager?.devAdvanceToNextWaveWithBreak?.();
@@ -17325,7 +17345,7 @@ function showDeveloperShortcutsOverlay() {
   if (!window.DialogOverlay) return;
   const shortcutCards = [
     { key: "1", label: "God Mode" },
-    { key: "2", label: "Kill On-Screen Enemies" },
+    { key: "2", label: "Kill On-Screen + Boss -1000" },
     { key: "3", label: "Skip Wave" },
     { key: "4", label: "Skip Battle" },
     { key: "5", label: "Current Battle Boss" },
