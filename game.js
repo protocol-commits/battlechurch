@@ -19435,10 +19435,7 @@ function getDashButtonDirection() {
 }
 
 function getComboLabelFontSize(hits) {
-  const comboHits = Math.max(2, Math.round(hits || 0));
-  if (comboHits < 10) return 32;
-  const tier = Math.floor(comboHits / 10);
-  return 38 + Math.max(0, tier - 1) * 6;
+  return 32;
 }
 
 function getComboLabelColor(hits) {
