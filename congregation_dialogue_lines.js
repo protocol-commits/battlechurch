@@ -128,7 +128,7 @@
   };
 
   const welcomeLines = [
-    "Tip: Press W, A, S, D keys to move.",
+    "Tip: Press W, A, S, D keys to move, or you can use an X-Box controller.",
     'Tip: "A" button is the LEFT key. "B" button is DOWN key. "C" button is the RIGHT key.',
     "Tip: Your Prayer Meter fills as you smite enemies. (Not shown here).",
     "Tip: Your Prayer Meter holds 6 Prayers. Prayer moves spend Prayers.",
