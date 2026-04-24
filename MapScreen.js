@@ -607,7 +607,7 @@
     const scale = rect.w / 1280;
     const dotRadius = Math.max(3, Math.round(5 * scale));
     const dotGap = Math.round(14 * scale);
-    const dotY = position.y - radius - 28 * scale;
+    const dotY = position.y - radius - 40 * scale;
     const campaigns = ["p1", "p2", "p3"];
     const totalWidth = (campaigns.length - 1) * dotGap;
     const startX = position.x - totalWidth / 2;
@@ -1037,9 +1037,14 @@
       const campAvail =
         nextCamp === "p1" ||
         (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
+      const townEntry = progress?.towns?.[town.id] || {};
+      const completedVisits = ["p1", "p2", "p3"].reduce(
+        (sum, camp) => sum + (townEntry?.[camp]?.completed === true ? 1 : 0),
+        0,
+      );
       primaryLine = `Next Run: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       secondaryLine = campAvail
-        ? "Choose Play to begin this mission."
+        ? `Visits Completed: ${completedVisits}/3`
         : "Complete prior visits to unlock.";
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
