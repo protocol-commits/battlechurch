@@ -88,7 +88,7 @@
   function setStatus(message, isError = false) {
     if (!els.status) return;
     els.status.textContent = message || "";
-    els.status.style.color = isError ? "#ffb2b2" : "#9bd9ff";
+    els.status.style.color = isError ? "#ffb2b2" : "rgba(231, 176, 102, 0.82)";
     if (state.statusTimer) {
       clearTimeout(state.statusTimer);
       state.statusTimer = null;
@@ -319,15 +319,23 @@
   overlay.innerHTML = `
     <style>
       #${OVERLAY_ID} {
+        --hb-shell-top: rgba(12, 18, 30, 0.95);
+        --hb-shell-bottom: rgba(7, 10, 18, 0.95);
+        --hb-shell-border: rgba(255, 218, 162, 0.34);
+        --hb-divider: rgba(255, 214, 148, 0.22);
+        --hb-title: #ffd978;
+        --hb-body: #e8d2ae;
+        --hb-hint: rgba(231, 176, 102, 0.82);
+        --hb-button-bg: rgba(255, 154, 58, 0.16);
+        --hb-button-border: rgba(255, 196, 98, 0.42);
+        --hb-button-text: #f6e4c8;
         position: fixed;
         inset: 0;
         z-index: 10020;
         display: none;
-        color: #eaf6ff;
-        background:
-          radial-gradient(circle at top, rgba(90, 166, 214, 0.18), transparent 28%),
-          linear-gradient(180deg, rgba(7, 12, 24, 0.985), rgba(4, 8, 18, 0.995));
-        font-family: Georgia, "Times New Roman", serif;
+        color: var(--hb-body);
+        background: rgba(6, 10, 18, 0.9);
+        font-family: var(--ui-font-family, "Orbitron"), sans-serif;
       }
       #${OVERLAY_ID} .hitbox-studio {
         display: grid;
@@ -338,13 +346,10 @@
         box-sizing: border-box;
       }
       #${OVERLAY_ID} .studio-panel {
-        background:
-          linear-gradient(180deg, rgba(18, 28, 44, 0.96), rgba(12, 20, 34, 0.94));
-        border: 1px solid rgba(160, 198, 238, 0.18);
-        border-radius: 22px;
-        box-shadow:
-          0 24px 80px rgba(0, 0, 0, 0.42),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        background: linear-gradient(180deg, var(--hb-shell-top) 0%, var(--hb-shell-bottom) 100%);
+        border: 2px solid var(--hb-shell-border);
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
       }
       #${OVERLAY_ID} .studio-header {
         display: flex;
@@ -355,14 +360,16 @@
       }
       #${OVERLAY_ID} .studio-title {
         margin: 0;
-        font: 700 28px "Trebuchet MS", Georgia, serif;
+        font: 700 28px var(--ui-font-family, "Orbitron"), sans-serif;
         letter-spacing: 0.04em;
         text-transform: uppercase;
+        color: var(--hb-title);
       }
       #${OVERLAY_ID} .studio-subtitle {
         margin: 6px 0 0;
-        color: rgba(232, 244, 255, 0.72);
-        font: 14px "Trebuchet MS", Arial, sans-serif;
+        color: var(--hb-body);
+        opacity: 0.82;
+        font-size: 14px;
       }
       #${OVERLAY_ID} .studio-actions,
       #${OVERLAY_ID} .studio-filters {
@@ -373,27 +380,32 @@
       }
       #${OVERLAY_ID} button,
       #${OVERLAY_ID} .filter-pill {
-        border: none;
-        border-radius: 999px;
+        border-radius: 10px;
         padding: 10px 14px;
         cursor: pointer;
-        font: 700 12px "Trebuchet MS", Arial, sans-serif;
+        font: 700 12px var(--ui-font-family, "Orbitron"), sans-serif;
         letter-spacing: 0.04em;
       }
       #${OVERLAY_ID} button {
-        background: linear-gradient(180deg, #8fd5ff, #5299d7);
-        color: #07101c;
-        box-shadow: 0 8px 22px rgba(37, 94, 147, 0.35);
+        border: 1px solid var(--hb-button-border);
+        background: var(--hb-button-bg);
+        color: var(--hb-button-text);
+        box-shadow: none;
       }
       #${OVERLAY_ID} button.secondary,
       #${OVERLAY_ID} .filter-pill {
-        background: rgba(255, 255, 255, 0.08);
-        color: #eaf6ff;
+        border: 1px solid var(--hb-shell-border);
+        background: rgba(255, 222, 163, 0.1);
+        color: var(--hb-button-text);
         box-shadow: none;
       }
+      #${OVERLAY_ID} button:hover,
+      #${OVERLAY_ID} .filter-pill:hover {
+        background: rgba(255, 172, 78, 0.24);
+      }
       #${OVERLAY_ID} .filter-pill.is-active {
-        background: rgba(155, 217, 255, 0.22);
-        color: #9bd9ff;
+        background: rgba(255, 176, 86, 0.2);
+        color: #ffd978;
       }
       #${OVERLAY_ID} .studio-toolbar {
         display: flex;
@@ -406,10 +418,10 @@
         min-width: 280px;
         padding: 11px 14px;
         border-radius: 999px;
-        border: 1px solid rgba(155, 217, 255, 0.24);
-        background: rgba(255, 255, 255, 0.06);
-        color: #eaf6ff;
-        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+        border: 1px solid var(--hb-shell-border);
+        background: rgba(23, 16, 10, 0.58);
+        color: #f3e2c1;
+        font: 600 13px var(--ui-font-family, "Orbitron"), sans-serif;
       }
       #${OVERLAY_ID} .studio-body {
         display: grid;
@@ -430,11 +442,11 @@
         flex-direction: column;
       }
       #${OVERLAY_ID} .entity-card {
-        border: 1px solid rgba(155, 217, 255, 0.14);
+        border: 1px solid rgba(255, 214, 148, 0.16);
         border-radius: 16px;
         padding: 12px 14px;
-        background: rgba(10, 16, 28, 0.78);
-        color: #eaf6ff;
+        background: rgba(10, 14, 24, 0.82);
+        color: #f6e4c8;
         text-align: left;
       }
       #${OVERLAY_ID} .entity-card.is-active {
@@ -448,7 +460,7 @@
         align-items: baseline;
       }
       #${OVERLAY_ID} .entity-card__name {
-        font: 700 15px "Trebuchet MS", Arial, sans-serif;
+        font: 700 15px var(--ui-font-family, "Orbitron"), sans-serif;
       }
       #${OVERLAY_ID} .entity-card__meta,
       #${OVERLAY_ID} .inspector-note,
@@ -457,10 +469,10 @@
         font: 12px "Trebuchet MS", Arial, sans-serif;
       }
       #${OVERLAY_ID} .entity-card__tag {
-        font: 700 10px "Trebuchet MS", Arial, sans-serif;
+        font: 700 10px var(--ui-font-family, "Orbitron"), sans-serif;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #9bd9ff;
+        color: var(--hb-hint);
       }
       #${OVERLAY_ID} .preview-pane {
         padding: 14px;
@@ -473,8 +485,8 @@
         overflow: hidden;
         background:
           linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
-          radial-gradient(circle at top, rgba(155, 217, 255, 0.12), rgba(9, 16, 28, 0.96));
-        border: 1px solid rgba(155, 217, 255, 0.16);
+          radial-gradient(circle at top, rgba(255, 176, 86, 0.14), rgba(9, 16, 28, 0.96));
+        border: 1px solid rgba(255, 214, 148, 0.18);
       }
       #${OVERLAY_ID} .preview-stage canvas {
         width: 100%;
@@ -497,10 +509,10 @@
         flex-direction: column;
       }
       #${OVERLAY_ID} .inspector-block {
-        border: 1px solid rgba(155, 217, 255, 0.12);
+        border: 1px solid rgba(255, 214, 148, 0.14);
         border-radius: 16px;
         padding: 14px;
-        background: rgba(9, 16, 28, 0.82);
+        background: rgba(10, 14, 24, 0.86);
       }
       #${OVERLAY_ID} .inspector-block h3 {
         margin: 0 0 10px;
@@ -534,11 +546,11 @@
         min-width: 0;
         box-sizing: border-box;
         border-radius: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        background: rgba(255, 255, 255, 0.07);
-        color: #eaf6ff;
+        border: 1px solid var(--hb-shell-border);
+        background: rgba(23, 16, 10, 0.58);
+        color: #f3e2c1;
         padding: 9px 10px;
-        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+        font: 600 13px var(--ui-font-family, "Orbitron"), sans-serif;
       }
       #${OVERLAY_ID} input[type="number"]:disabled {
         opacity: 0.45;
