@@ -1078,6 +1078,7 @@
     const district = town?.districtId ? getDistrictById(town.districtId) : null;
     const areaNumber = Number.isFinite(district?.order) ? district.order + 1 : null;
     const areaLabel = Number.isFinite(areaNumber) ? `District ${areaNumber}` : "";
+    const districtScopeLabel = Number.isFinite(areaNumber) ? `District ${areaNumber}` : "this District";
     const hasAreaLabel = Boolean(areaLabel);
     const areaVerticalOffset = hasAreaLabel ? 18 : 0;
     if (hasAreaLabel) {
@@ -1117,9 +1118,9 @@
       if (campAvail) {
         secondaryLine = `Missions Completed: ${completedVisits}/3`;
       } else if (nextCamp === "p2") {
-        secondaryLine = "Plant a church in all district towns to unlock Pastoral Visit I.";
+        secondaryLine = `Plant a church in all ${districtScopeLabel} towns to unlock Pastoral Visit I.`;
       } else {
-        secondaryLine = "Complete Pastoral Visit I in all district towns to unlock Pastoral Visit II.";
+        secondaryLine = `Complete Pastoral Visit I in all ${districtScopeLabel} towns to unlock Pastoral Visit II.`;
       }
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
