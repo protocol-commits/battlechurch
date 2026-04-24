@@ -22806,6 +22806,9 @@ function updateGame(dt) {
     updateCozyNpcs(dt, { previewOnly: true });
   }
 
+  // Keep queued victory chatter progressing even while confirm overlays are active.
+  updateBattleVictoryNpcDialogue(dt);
+
   if (handleLevelAnnouncements()) {
     return;
   }
@@ -22846,7 +22849,6 @@ function updateGame(dt) {
     stage = levelStatus?.stage;
   }
 
-  updateBattleVictoryNpcDialogue(dt);
   updateCongregationWaveIntroDialogue(dt, levelStatus);
 
   // Process pickups BEFORE player update so weapon changes apply immediately

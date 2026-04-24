@@ -1560,12 +1560,7 @@
 
       if (finalMissionBeforeBoss) {
         state.finalWaveDelay = 0;
-        state.pendingBossAfterFinalWave = true;
-        if (typeof startActBreakFade === "function") {
-          startActBreakFade(ACT_BREAK_HOLD_SECONDS);
-        }
-        resetStage("waveCleared", ACT_BREAK_FADE_TOTAL);
-        setDevStatus(`Boss incoming after Wave ${battleNumber}-${waveNumber}`, ACT_BREAK_FADE_TOTAL);
+        beginBattleVictoryCelebrate(getMonthName((state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber));
         return;
       }
 
@@ -1976,6 +1971,9 @@ state.waveIndex = -1;
             if (finalWave) {
               if (state.pendingBossAfterFinalWave) {
                 state.pendingBossAfterFinalWave = false;
+                if (typeof deps.showBattleVictoryNpcDialogue === "function") {
+                  deps.showBattleVictoryNpcDialogue();
+                }
                 handleBattleComplete();
               } else if (state.pendingGraceRushAfterFinalWave) {
                 state.pendingGraceRushAfterFinalWave = false;
