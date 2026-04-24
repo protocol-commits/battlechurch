@@ -7332,7 +7332,7 @@ const PAUSE_HOTKEYS_HTML = `
 
 const GAME_OVER_BODY =
   uiTexts.gameOverBody ||
-  "You have no strength to continue the battle.\nThe church and the town are lost to darkness.";
+  "You have no strength to continue the battle.\nThe church plant and the town are lost to darkness.";
 
 
 function resumeFromPause() {
@@ -17557,7 +17557,8 @@ function handleTitleScreen() {
               lines.push(`Start Town: ${demoSlot.townId || "unknown"}`);
               lines.push(`Preset Towns Cleared: ${Math.max(0, Number(demoSlot.completedTowns) || 0)}/10`);
               const campaignId = String(campaignData.campaign || "p1").toLowerCase();
-              const visitLabel = campaignId === "p1" ? "Visit 1" : campaignId === "p2" ? "Visit 2" : "Visit 3";
+              const visitLabel =
+                campaignId === "p1" ? "Church Plant" : campaignId === "p2" ? "Pastoral Visit I" : "Pastoral Visit II";
               lines.push(`Visit: ${visitLabel}`);
               lines.push(`Start Congregation: ${Math.max(0, Number(campaignData.startCount) || 0)}`);
               lines.push(`Visit Multiplier: x${Number(campaignData.campaignMultiplier || 1).toFixed(2).replace(/\\.00$/, "")}`);

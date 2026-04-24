@@ -20,7 +20,7 @@
       title: {
         body: [
           "Wage war against the powers of darkness as they attack your flock with temptation, lies, and despair.",
-          "You have one campaign to save the church... and the town.",
+          "You have one campaign to plant churches in these towns... and drive back the darkness.",
         ].join(" "),
       },
       pause: {
@@ -30,11 +30,11 @@
         ].join(" "),
       },
       gameOver: {
-        body: "You have no strength to continue the battle.\nThe church and the town are lost to darkness.",
+        body: "You have no strength to continue the battle.\nThe church plant and the town are lost to darkness.",
       },
       map: {
         tagline: "Spiritual Warfare Map",
-        altTagline: "Smite the hordes, save your flock, grow your church, save the town.",
+        altTagline: "Smite the hordes, gather your flock, plant churches, save the towns.",
       },
     },
 

@@ -1033,7 +1033,7 @@
       secondaryLine = `Score Multiplier: ×${getCapitalScoreMultiplier(progress).toFixed(2)}`;
     } else {
       const nextCamp = progress ? getNextCampaignForTown(town.id, progress) : "p1";
-      const campLabel = nextCamp === "p1" ? "Visit 1" : nextCamp === "p2" ? "Visit 2" : "Visit 3";
+      const campLabel = nextCamp === "p1" ? "Church Plant" : nextCamp === "p2" ? "Pastoral Visit I" : "Pastoral Visit II";
       const campAvail =
         nextCamp === "p1" ||
         (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
@@ -1044,8 +1044,8 @@
       );
       primaryLine = `Next Run: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       secondaryLine = campAvail
-        ? `Visits Completed: ${completedVisits}/3`
-        : "Complete prior visits to unlock.";
+        ? `Missions Completed: ${completedVisits}/3`
+        : "Complete prior missions to unlock.";
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
     ctx.font = `600 ${panelStyle.primaryFontSize ?? 17}px ${UI_FONT_FAMILY}`;
