@@ -1579,6 +1579,9 @@
       state.finalWaveDelay = 0;
       state.graceRushContext = "battle";
       setDevStatus(`Grace Abounds – ${monthName}`, GRACE_RUSH_DURATION);
+      if (typeof deps.showBattleVictoryNpcDialogue === "function") {
+        deps.showBattleVictoryNpcDialogue();
+      }
       if (typeof deps.startBattleGraceRush === "function") {
         deps.startBattleGraceRush(GRACE_RUSH_DURATION, {
           reason: "battle",
@@ -1624,9 +1627,6 @@
       setDevStatus(`Victory! – ${monthName}`, VICTORY_CELEBRATE_DURATION);
       if (typeof deps.playBattleVictoryMusic === "function") {
         deps.playBattleVictoryMusic();
-      }
-      if (typeof deps.showBattleVictoryNpcDialogue === "function") {
-        deps.showBattleVictoryNpcDialogue();
       }
       const namesText = buildVictoryNamesText();
       const problemPhrase = buildVictoryProblemPhrase();
