@@ -19634,6 +19634,29 @@ function finalizeComboState(state) {
   });
 }
 
+const PROJECTILE_CHIP_COMBO_INCREMENT = 0.1;
+const PROJECTILE_CHIP_COMBO_WINDOW_MS = 2000;
+const PROJECTILE_CHIP_COMBO_CAP_PER_WINDOW = 1.0;
+
+function isComboTargetDefeated(target) {
+  if (!target) return false;
+  if (target instanceof Projectile || (target && target.visualOnly !== undefined && target.friendly !== undefined)) {
+    return Boolean(target.dead);
+  }
+  if (target.dead || target.state === "death") return true;
+  return Number.isFinite(target.health) ? target.health <= 0 : false;
+}
+
+function getProjectileComboIncrement(target) {
+  if (!target) return 1;
+  if (isComboTargetDefeated(target)) return 1;
+  const damageClass = String(target.damageClass || target.config?.damageClass || "").toLowerCase();
+  if (damageClass === "armored" || damageClass === "tank") {
+    return PROJECTILE_CHIP_COMBO_INCREMENT;
+  }
+  return 1;
+}
+
 const comboTracker = {
   state: null,
   flush(now) {
@@ -19652,7 +19675,7 @@ const comboTracker = {
       finalizeComboState(state);
     }
   },
-  registerHit(target, damage, now) {
+  registerHit(target, damage, now, options = {}) {
     if (!target || !Number.isFinite(damage) || damage <= 0) return;
     const timeNow =
       typeof now === "number"
@@ -19670,16 +19693,35 @@ const comboTracker = {
             killed: false,
             lastX: null,
             lastY: null,
+            chipGainByTarget: new Map(),
           };
     // Directional gating removed: combos now accumulate regardless of projectile direction.
-    current.hits += 1;
+    let comboIncrement = Number.isFinite(options.increment)
+      ? Math.max(0, options.increment)
+      : 1;
+    if (comboIncrement > 0 && comboIncrement < 1) {
+      const chipWindowMs = Number.isFinite(options.chipWindowMs)
+        ? Math.max(100, options.chipWindowMs)
+        : PROJECTILE_CHIP_COMBO_WINDOW_MS;
+      const chipCapPerWindow = Number.isFinite(options.chipCapPerWindow)
+        ? Math.max(0, options.chipCapPerWindow)
+        : PROJECTILE_CHIP_COMBO_CAP_PER_WINDOW;
+      let chipState = current.chipGainByTarget.get(target);
+      if (!chipState || timeNow - chipState.windowStart > chipWindowMs) {
+        chipState = { windowStart: timeNow, gain: 0 };
+      }
+      const remaining = Math.max(0, chipCapPerWindow - chipState.gain);
+      comboIncrement = Math.min(comboIncrement, remaining);
+      chipState.gain += comboIncrement;
+      current.chipGainByTarget.set(target, chipState);
+    }
+    if (comboIncrement <= 0) return;
+    current.hits += comboIncrement;
     current.damage += damage;
     current.lastX = Number.isFinite(target.x) ? target.x : current.lastX;
     current.lastY = Number.isFinite(target.y) ? target.y : current.lastY;
     if (
-      target.dead ||
-      target.state === "death" ||
-      (Number.isFinite(target.health) && target.health <= 0)
+      isComboTargetDefeated(target)
     ) {
       current.killed = true;
     }
@@ -19717,7 +19759,11 @@ function registerProjectileComboHit(target, damage, projectile) {
     recordPrayerBombComboHits(1);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
-  comboTracker.registerHit(target, damage);
+  comboTracker.registerHit(target, damage, undefined, {
+    increment: getProjectileComboIncrement(target),
+    chipWindowMs: PROJECTILE_CHIP_COMBO_WINDOW_MS,
+    chipCapPerWindow: PROJECTILE_CHIP_COMBO_CAP_PER_WINDOW,
+  });
 }
 
 function spawnGraceArcBurst(baseX, baseY, count, spread) {
