@@ -3680,8 +3680,9 @@ const createSpearState = () => ({
   x: 0,
   y: 0,
   angle: 0,
-  speed: 1200 * WORLD_SCALE,
+  speed: 2400 * WORLD_SCALE,
   damage: 20,
+  armoredDamageMultiplier: 5.5,
   hitRadius: 18 * WORLD_SCALE,
   hitCooldown: 0.15,
   lastHit: new WeakMap(),
@@ -3693,9 +3694,9 @@ const createSpearState = () => ({
   maxTrail: 16,
   sprite: null,
   scale: 3.4 * WORLD_SCALE,
-  minTravel: 520 * WORLD_SCALE,
+  minTravel: 180 * WORLD_SCALE,
   travelSinceHit: 0,
-  pauseDuration: 0.06,
+  pauseDuration: 0.04,
   pauseTimer: 0,
   pendingRetarget: false,
   hits: 0,
@@ -9429,24 +9430,29 @@ function applySpearHit(state, target, hitX, hitY) {
   const lastHit = state.lastHit.get(target) || 0;
   if (now - lastHit < state.hitCooldown) return false;
   state.lastHit.set(target, now);
+  const damageClass = String(target?.damageClass || target?.config?.damageClass || "").toLowerCase();
+  const isArmoredTarget = damageClass === "armored" || damageClass === "tank";
+  const hitDamage = isArmoredTarget
+    ? state.damage * Math.max(1, Number(state.armoredDamageMultiplier) || 1)
+    : state.damage;
   if (target === activeBoss) {
-    activeBoss.takeDamage(state.damage, {
+    activeBoss.takeDamage(hitDamage, {
       hitX,
       hitY,
       damageType: "projectile",
       skipImpactEffect: true,
     });
-    registerComboHit(activeBoss, state.damage);
+    registerComboHit(activeBoss, hitDamage);
   } else if (target instanceof Projectile || (target && target.visualOnly !== undefined && target.friendly !== undefined)) {
     const destroyed = target.maxDurability > 0
-      ? applyProjectileDurabilityDamage(target, state.damage)
+      ? applyProjectileDurabilityDamage(target, hitDamage)
       : ((target.dead = true), true);
     if (destroyed) {
       spawnImpactEffect(hitX, hitY);
     }
   } else {
-    target.takeDamage(state.damage, { damageType: "projectile" });
-    registerComboHit(target, state.damage);
+    target.takeDamage(hitDamage, { damageType: "projectile" });
+    registerComboHit(target, hitDamage);
   }
   playSpearHitSfx(0.8);
   spawnFlashEffect(hitX, hitY);
