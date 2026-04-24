@@ -391,6 +391,7 @@ const BOSS_LIGHTNING_THUNDER_SFX_SRCS = [
 const BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE = 6;
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
+const SAVE_PROGRESS_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const RECAP_TICK_SFX_SRC = "assets/sfx/utility/utility9.mp3";
 const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
 const INTRO_MUSIC_SRC = "assets/music/title-music.mp3";
@@ -442,6 +443,7 @@ const PRAYER_BOMB_RAIN_SFX_POOL_SIZE = 4;
 const MENU_SELECT_SFX_POOL_SIZE = 4;
 const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
 const GRACE_PICKUP_SFX_POOL_SIZE = 4;
+const SAVE_PROGRESS_SFX_POOL_SIZE = 3;
 const RECAP_TICK_SFX_POOL_SIZE = 6;
 const RECAP_FINAL_SFX_POOL_SIZE = 3;
 const RECAP_GRACE_FLY_SFX_POOL_SIZE = 6;
@@ -495,6 +497,7 @@ const menuSelectSfxPool = [];
 const menuMoveSfxPool = [];
 const enemySpawnSfxPool = [];
 const gracePickupSfxPool = [];
+const saveProgressSfxPool = [];
 const recapTickSfxPool = [];
 const recapFinalSfxPool = [];
 const recapGraceFlySfxPool = [];
@@ -1114,6 +1117,14 @@ function playGracePickupSfx(volume = 0.2) {
 
 if (typeof window !== "undefined") {
   window.playGracePickupSfx = playGracePickupSfx;
+}
+
+function playProgressSavedSfx(volume = 0.55) {
+  playPooledSfx(saveProgressSfxPool, SAVE_PROGRESS_SFX_SRC, SAVE_PROGRESS_SFX_POOL_SIZE, { volume });
+}
+
+if (typeof window !== "undefined") {
+  window.playProgressSavedSfx = playProgressSavedSfx;
 }
 
 function playMenuSelectSfx(volume = 0.55) {
@@ -7027,6 +7038,9 @@ function startGameFromTitle() {
         localBattleNumber: resumeLocalBattleNumber,
       };
     }
+    if (Number.isFinite(campaignData?.savedGraceCount)) {
+      playerGraceCount = Math.max(0, Math.round(campaignData.savedGraceCount));
+    }
     townStartCongregation = Number.isFinite(campaignData?.startCount) ? campaignData.startCount : INITIAL_CONGREGATION_SIZE;
     resetChurchPowerups();
     // Restore church powerup levels from prior campaigns
@@ -10406,8 +10420,12 @@ async function saveMissionProgressContext(context) {
         context.finalScore,
         context.campaign,
         powerupSnapshot,
+        getGraceCount(),
       );
       showProgressSaveToast("Progress Saved");
+      if (typeof playProgressSavedSfx === "function") {
+        playProgressSavedSfx(0.55);
+      }
       return true;
     }
     if (context.kind === "missionCheckpoint") {
@@ -10417,12 +10435,16 @@ async function saveMissionProgressContext(context) {
         resumeLocalBattleNumber: context.resumeLocalBattleNumber,
         startCount: context.startCount,
         churchPowerupLevels: powerupSnapshot,
+        graceCount: getGraceCount(),
       });
       if (ok === false) {
         showProgressSaveToast("Save Failed", 2.2);
         return false;
       }
       showProgressSaveToast("Progress Saved");
+      if (typeof playProgressSavedSfx === "function") {
+        playProgressSavedSfx(0.55);
+      }
       return true;
     }
   } catch (error) {

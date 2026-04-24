@@ -57,6 +57,7 @@
       version: 2,
       towns: {},
       unlockedTownIds: firstTownId ? [firstTownId] : [],
+      graceCount: 0,
       activeRun: null,
     };
   }
@@ -133,6 +134,10 @@
       }
       if (!save.mapProgress || typeof save.mapProgress !== "object") {
         save.mapProgress = createFreshMapProgress(mapData);
+        dirty = true;
+      }
+      if (!Number.isFinite(save.mapProgress.graceCount) || save.mapProgress.graceCount < 0) {
+        save.mapProgress.graceCount = 0;
         dirty = true;
       }
       if (!("activeRun" in save.mapProgress)) {
@@ -538,6 +543,24 @@
     return best;
   }
 
+  function getTownDisplayCount(townId) {
+    const best = getTownBestCount(townId);
+    if (Number.isFinite(best)) return Math.max(0, Math.round(best));
+    return isTownUnlocked(townId) ? 0 : null;
+  }
+
+  function getTotalCongregationCount() {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData?.towns?.length) return 0;
+    let total = 0;
+    for (const town of mapData.towns) {
+      if (!town?.id || !isTownUnlocked(town.id)) continue;
+      const count = getTownDisplayCount(town.id);
+      if (Number.isFinite(count)) total += count;
+    }
+    return total;
+  }
+
   function getTownById(townId) {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return null;
@@ -659,6 +682,7 @@
     const selected = state.selectedTownId === town.id;
     const completionCount = getTownCampaignCompletionCount(town.id);
     const bestCount = getTownBestCount(town.id);
+    const displayCount = getTownDisplayCount(town.id);
     const isCapital = town.type === "capital";
     const nodeRadius = isCapital ? radius * 3.6 : radius;
     const districtId = town.districtId || "";
@@ -795,7 +819,7 @@
         flipX: true,
       });
     }
-    if (bestCount != null) {
+    if (displayCount != null) {
       ctx.save();
       const nameSize = Math.round(14 * (rect.w / 1280));
       ctx.font = `600 ${nameSize}px ${UI_FONT_FAMILY}`;
@@ -804,7 +828,7 @@
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
-      ctx.fillText(`${town.name} (${Math.round(bestCount)})`, position.x, position.y - radius - 10);
+      ctx.fillText(`${town.name} (${Math.round(displayCount)})`, position.x, position.y - radius - 10);
       ctx.restore();
     } else if (selected) {
       ctx.save();
@@ -828,6 +852,34 @@
     // Map title/subhead are rendered in renderer.js to keep map text
     // presentation centralized and avoid duplicate headings.
     return;
+  }
+
+  function drawTotalCongregationBadge(ctx, canvas) {
+    const total = getTotalCongregationCount();
+    const label = "Total Congregation";
+    const value = Number(total || 0).toLocaleString();
+    const badgeW = Math.max(260, Math.round(canvas.width * 0.24));
+    const badgeH = 62;
+    const x = 28;
+    const y = canvas.height - badgeH - 28;
+    ctx.save();
+    const gradient = ctx.createLinearGradient(0, y, 0, y + badgeH);
+    gradient.addColorStop(0, "rgba(22, 10, 8, 0.9)");
+    gradient.addColorStop(1, "rgba(10, 6, 8, 0.94)");
+    ctx.fillStyle = gradient;
+    ctx.strokeStyle = "rgba(255, 206, 136, 0.8)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, x, y, badgeW, badgeH, 12, true, true);
+    ctx.fillStyle = "rgba(255, 206, 136, 0.92)";
+    ctx.font = `600 13px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(label, x + 14, y + 10);
+    ctx.fillStyle = "#FFE7B8";
+    ctx.font = `700 24px ${UI_FONT_FAMILY}`;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(value, x + 14, y + badgeH - 12);
+    ctx.restore();
   }
 
   function findTownAtPosition(point, rect) {
@@ -1582,6 +1634,9 @@
     }
     const multiplier = campaign === "p1" ? 1.0 : campaign === "p2" ? 1.15 : 1.1;
     const activeRun = progress?.activeRun;
+    const baseGraceCount = Number.isFinite(progress?.graceCount)
+      ? Math.max(0, Math.round(progress.graceCount))
+      : 0;
     const canResumeFromCheckpoint =
       activeRun &&
       activeRun.townId === townId &&
@@ -1597,11 +1652,15 @@
     const resolvedStartCount = canResumeFromCheckpoint && checkpointStartCount != null
       ? checkpointStartCount
       : startCount;
+    const savedGraceCount = canResumeFromCheckpoint && Number.isFinite(activeRun?.graceCount)
+      ? Math.max(0, Math.round(activeRun.graceCount))
+      : baseGraceCount;
     return {
       campaign,
       startCount: resolvedStartCount,
       campaignMultiplier: multiplier,
       restoredChurchPowerupLevels,
+      savedGraceCount,
       resumeLocalBattleNumber: canResumeFromCheckpoint
         ? Math.max(1, Math.floor(activeRun.resumeLocalBattleNumber))
         : 1,
@@ -1616,7 +1675,7 @@
 
   // campaign: 'p1' | 'p2' | 'p3'
   // savedChurchPowerupLevels: plain object { [powerupId]: 0|1|2 } (omit for p3)
-  async function recordTownCompletion(townId, congregationCount, campaign, savedChurchPowerupLevels) {
+  async function recordTownCompletion(townId, congregationCount, campaign, savedChurchPowerupLevels, graceCount = null) {
     if (!townId) return;
     const mapData = window.BattlechurchMapData;
     if (!mapData) return;
@@ -1641,6 +1700,9 @@
       campData.churchPowerupLevels = savedChurchPowerupLevels || {};
     }
     progress.towns[townId][activeCampaign] = campData;
+    if (Number.isFinite(graceCount) && graceCount >= 0) {
+      progress.graceCount = Math.max(0, Math.round(graceCount));
+    }
     if (progress.activeRun && progress.activeRun.townId === townId && progress.activeRun.campaign === activeCampaign) {
       progress.activeRun = null;
     }
@@ -1662,6 +1724,7 @@
     resumeLocalBattleNumber,
     startCount,
     churchPowerupLevels,
+    graceCount,
   } = {}) {
     if (!townId || !campaign) return false;
     const mapData = window.BattlechurchMapData;
@@ -1681,8 +1744,12 @@
       churchPowerupLevels: churchPowerupLevels && typeof churchPowerupLevels === "object"
         ? { ...churchPowerupLevels }
         : {},
+      graceCount: Number.isFinite(graceCount) ? Math.max(0, Math.round(graceCount)) : 0,
       savedAt: Date.now(),
     };
+    if (Number.isFinite(graceCount) && graceCount >= 0) {
+      progress.graceCount = Math.max(0, Math.round(graceCount));
+    }
     const activeSave = getActiveSave();
     if (activeSave) {
       activeSave.lastPlayedAt = Date.now();
@@ -1743,8 +1810,11 @@
         const p2 = townProgress?.p2 || {};
         const p3 = townProgress?.p3 || {};
         const campaignsCompleted = [p1, p2, p3].filter((campaign) => campaign?.completed === true).length;
-        const bestCount = Number.isFinite(p1?.bestCount) ? p1.bestCount : 0;
-        if (bestCount > 0) totalCongregationBest += bestCount;
+        const bestCountByTown = [p1?.bestCount, p2?.bestCount, p3?.bestCount]
+          .filter((value) => Number.isFinite(value))
+          .reduce((max, value) => Math.max(max, Number(value)), 0);
+        const bestCount = Math.max(0, Math.round(bestCountByTown));
+        totalCongregationBest += bestCount;
         totalReplayCompletions += campaignsCompleted;
         const upgradeEntries = Object.entries(p1?.churchPowerupLevels || {}).filter(([, level]) => Number(level) > 0);
         const upgradeTypeCount = upgradeEntries.length;
@@ -2047,6 +2117,7 @@
       fireOverlay.draw(ctx);
     }
     drawMapLabels(ctx, canvas, rect);
+    drawTotalCongregationBadge(ctx, canvas);
     updateSelectionFromHover(rect);
     const pulse = Math.sin((Date.now() / 1000) * 3) * 2;
     const mapData = window.BattlechurchMapData;
@@ -2100,6 +2171,7 @@
     getTownStartCount,
     ensureTownStartCount,
     getTownCampaignData,
+    getTotalCongregationCount,
     saveMissionCheckpoint,
     clearMissionCheckpoint,
     getDenomPickCountForTown,
