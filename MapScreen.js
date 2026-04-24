@@ -1075,11 +1075,25 @@
     ctx.textBaseline = "top";
     ctx.fillText(town.name, centerX, panelY + (panelStyle.titleY ?? 34));
 
+    const district = town?.districtId ? getDistrictById(town.districtId) : null;
+    const areaNumber = Number.isFinite(district?.order) ? district.order + 1 : null;
+    const areaLabel = Number.isFinite(areaNumber) ? `District ${areaNumber}` : "";
+    const hasAreaLabel = Boolean(areaLabel);
+    const areaVerticalOffset = hasAreaLabel ? 18 : 0;
+    if (hasAreaLabel) {
+      const areaY = panelY + (panelStyle.titleY ?? 34) + (panelStyle.titleFontSize ?? 28) + 4;
+      ctx.fillStyle = panelStyle.eyebrowColor || MAP_HELLFIRE_TEXT.dim;
+      ctx.font = `600 ${Math.max(10, (panelStyle.eyebrowFontSize ?? 11) + 1)}px ${UI_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(areaLabel, centerX, areaY);
+    }
+
     ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
     ctx.lineWidth = dividerStyle.width ?? 1;
     ctx.beginPath();
-    ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 78));
-    ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 78));
+    ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 78) + areaVerticalOffset);
+    ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), panelY + (panelStyle.dividerY ?? 78) + areaVerticalOffset);
     ctx.stroke();
 
     const progress = ensureProgress();
@@ -1100,16 +1114,20 @@
         0,
       );
       primaryLine = `Next Run: ${campLabel}${campAvail ? "" : " (Locked)"}`;
-      secondaryLine = campAvail
-        ? `Missions Completed: ${completedVisits}/3`
-        : `Complete all area towns to unlock ${campLabel}.`;
+      if (campAvail) {
+        secondaryLine = `Missions Completed: ${completedVisits}/3`;
+      } else if (nextCamp === "p2") {
+        secondaryLine = "Plant a church in all district towns to unlock Pastoral Visit I.";
+      } else {
+        secondaryLine = "Complete Pastoral Visit I in all district towns to unlock Pastoral Visit II.";
+      }
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
     ctx.font = `600 ${panelStyle.primaryFontSize ?? 17}px ${UI_FONT_FAMILY}`;
-    ctx.fillText(primaryLine, centerX, panelY + (panelStyle.primaryY ?? 94));
+    ctx.fillText(primaryLine, centerX, panelY + (panelStyle.primaryY ?? 94) + areaVerticalOffset);
     ctx.fillStyle = panelStyle.secondaryColor || MAP_HELLFIRE_TEXT.body;
     ctx.font = `500 ${panelStyle.secondaryFontSize ?? 14}px ${UI_FONT_FAMILY}`;
-    ctx.fillText(secondaryLine, centerX, panelY + (panelStyle.secondaryY ?? 124));
+    ctx.fillText(secondaryLine, centerX, panelY + (panelStyle.secondaryY ?? 124) + areaVerticalOffset);
 
     const buttonW = 140;
     const buttonH = 44;
