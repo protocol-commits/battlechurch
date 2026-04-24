@@ -16595,6 +16595,22 @@ function handleDeveloperHotkeys() {
       setDevStatus(ok ? "All 9 towns unlocked (dev)" : "Town unlock failed", 2.5);
     }
   }
+  if (keysJustPressed.has("8")) {
+    const result = levelManager?.devAdvanceToNextWaveWithBreak?.();
+    if (result?.success) {
+      if (result.mode === "started_first_wave") {
+        setDevStatus("Wave 1 started", 2.0);
+      } else {
+        setDevStatus("Advanced to next wave", 2.0);
+      }
+    } else if (result?.reason === "last_wave") {
+      setDevStatus("Already on final wave", 2.0);
+    } else if (result?.reason === "boss") {
+      setDevStatus("Cannot advance wave during boss phase", 2.0);
+    } else {
+      setDevStatus("Wave advance unavailable", 2.0);
+    }
+  }
   if (keysJustPressed.has("t")) {
     if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextTown === "function") {
       void (async () => {

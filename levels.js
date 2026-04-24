@@ -818,6 +818,7 @@
       skipPostBattleAdvance: false,
       breakPreviewWaveNum: null,
       lastWaveTransitionCueNum: 0,
+      waveSpawnEpoch: 0,
     };
 
     function resetStage(stage, duration = 0) {
@@ -1436,6 +1437,7 @@
     function spawnActiveWave() {
       const horde = state.activeWave;
       if (!horde) return;
+      const spawnEpoch = ++state.waveSpawnEpoch;
       const waveActiveDuration = Number.isFinite(horde?.duration) ? horde.duration : 12;
       const currentBattle = state.definition?.battles?.[state.monthIndex] || null;
       const totalHordes = getBattleHordeCount(currentBattle);
@@ -1455,6 +1457,7 @@
           ? { healthMultiplier }
           : {};
         const spawnTask = () => {
+          if (spawnEpoch !== state.waveSpawnEpoch) return;
           if (isMiniImpTypeEntry) {
             spawnMiniImpGroup(count, null, { ignoreCap: true, ...spawnOpts }, type);
           } else if (typeof schedulePortalSpawn === "function") {
@@ -2316,6 +2319,63 @@ state.waveIndex = -1;
         }
         state.timer = 0;
         return true;
+      },
+      devAdvanceToNextWaveWithBreak() {
+        if (!state.active) return { success: false, reason: "inactive" };
+        const bossContext =
+          state.stage === "bossActive" ||
+          state.stage === "bossIntro" ||
+          (state.stage === "graceRush" && state.graceRushContext === "boss");
+        if (bossContext) return { success: false, reason: "boss" };
+        const battle = currentBattle();
+        const totalHordes = getBattleHordeCount(battle);
+        if (!Number.isFinite(totalHordes) || totalHordes <= 0) {
+          return { success: false, reason: "no_hordes" };
+        }
+        const hordes = Array.isArray(battle?.hordes) ? battle.hordes : [];
+        const currentIdx = Number.isFinite(state.waveIndex) ? state.waveIndex : -1;
+        let targetIndex = -1;
+        if (currentIdx < 0) {
+          targetIndex = 0;
+        } else {
+          const currentWaveNum = getActualWaveNumber(hordes[currentIdx], currentIdx);
+          for (let i = currentIdx + 1; i < hordes.length; i += 1) {
+            if (getActualWaveNumber(hordes[i], i) > currentWaveNum) {
+              targetIndex = i;
+              break;
+            }
+          }
+        }
+        if (targetIndex < 0 || targetIndex >= totalHordes) {
+          return { success: false, reason: "last_wave" };
+        }
+        // Invalidate any delayed spawns from the current horde/wave.
+        state.waveSpawnEpoch += 1;
+        devClearOpponents({ includeBoss: true });
+        state.pendingPortalSpawnBaseline = 0;
+        state.pendingWaveEntrySpawns = 0;
+        state.finalWaveDelay = 0;
+        state.waveIndex = targetIndex - 1;
+        beginWave();
+        if (!state.activeWave) {
+          return { success: false, reason: "next_wave_missing" };
+        }
+        // Ensure wave intro copy appears when skipping directly.
+        const nextWaveIntroText = state.activeWave?.waveIntroText || "";
+        if (nextWaveIntroText) {
+          const waveNumber = state.waveIndex + 1;
+          const introDuration = waveNumber === 1 ? FIRST_WAVE_INTRO_DURATION : WAVE_INTRO_DURATION;
+          queueLevelAnnouncement(
+            nextWaveIntroText,
+            "",
+            getWaveIntroAnnouncementOptions(introDuration, { transitionDelayConsumed: false }),
+          );
+        }
+        state.timer = Math.max(0, Number(state.timer) || 0);
+        return {
+          success: true,
+          mode: targetIndex === 0 ? "started_first_wave" : "advanced_with_break",
+        };
       },
       devSkipBattle() {
         if (!state.active) return false;
