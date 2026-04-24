@@ -8093,6 +8093,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       assets,
       townVictoryTownName,
       townVictoryScore,
+      townVictoryCampaign,
       townVictoryScroll,
       HUD_HEIGHT,
       UI_FONT_FAMILY,
@@ -8129,21 +8130,57 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Build the text content
     const townName = townVictoryTownName || "this town";
     const score = Number.isFinite(townVictoryScore) ? Math.round(townVictoryScore) : 0;
+    const campaignId = String(townVictoryCampaign || "p1").toLowerCase();
+    const visitLabel =
+      campaignId === "p2" ? "Pastoral Visit I" : campaignId === "p3" ? "Pastoral Visit II" : "Church Plant";
 
-    const lines = [
-      { type: "heading", text: `Hope Returns to ${townName}`, size: headingSize, color: "#ffd978" },
-      { type: "spacer", height: 50 },
-      { type: "body", text: "The darkness has been driven back.", size: bodySize, color: "#EAF6FF" },
-      { type: "body", text: "Your congregation stood firm in faith.", size: bodySize, color: "#EAF6FF" },
-      { type: "spacer", height: 30 },
-      { type: "body", text: "The people of this town can rebuild,", size: bodySize, color: "#EAF6FF" },
-      { type: "body", text: "free from the hordes that once threatened them.", size: bodySize, color: "#EAF6FF" },
-      { type: "spacer", height: 50 },
-      { type: "score", text: `Final Congregation: ${score}`, size: scoreSize, color: "#ffd978" },
-      { type: "spacer", height: 40 },
-      { type: "body", text: "But other towns still need your help...", size: bodySize, color: "#c8dce8" },
-      { type: "spacer", height: 80 },
-    ];
+    let lines;
+    if (campaignId === "p1") {
+      lines = [
+        { type: "heading", text: `A Church Is Planted in ${townName}`, size: headingSize, color: "#ffd978" },
+        { type: "spacer", height: 50 },
+        { type: "body", text: "The darkness has been pushed back.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "A new shepherd now stands in this town.", size: bodySize, color: "#EAF6FF" },
+        { type: "spacer", height: 30 },
+        { type: "body", text: "You leave behind a living church,", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "and raise a pastor to keep the work growing.", size: bodySize, color: "#EAF6FF" },
+        { type: "spacer", height: 50 },
+        { type: "score", text: `Congregation at Handoff: ${score}`, size: scoreSize, color: "#ffd978" },
+        { type: "spacer", height: 40 },
+        { type: "body", text: "Now another unchurched town awaits...", size: bodySize, color: "#c8dce8" },
+        { type: "spacer", height: 80 },
+      ];
+    } else if (campaignId === "p2") {
+      lines = [
+        { type: "heading", text: `${visitLabel} Complete in ${townName}`, size: headingSize, color: "#ffd978" },
+        { type: "spacer", height: 50 },
+        { type: "body", text: "You returned to strengthen the pastor you raised.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Through teaching and prayer, the church held firm.", size: bodySize, color: "#EAF6FF" },
+        { type: "spacer", height: 30 },
+        { type: "body", text: "Faith deepens where the church was planted.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "The district sees new signs of life.", size: bodySize, color: "#EAF6FF" },
+        { type: "spacer", height: 50 },
+        { type: "score", text: `Congregation After Visit I: ${score}`, size: scoreSize, color: "#ffd978" },
+        { type: "spacer", height: 40 },
+        { type: "body", text: "Keep going. More churches need this support.", size: bodySize, color: "#c8dce8" },
+        { type: "spacer", height: 80 },
+      ];
+    } else {
+      lines = [
+        { type: "heading", text: `${visitLabel} Complete in ${townName}`, size: headingSize, color: "#ffd978" },
+        { type: "spacer", height: 50 },
+        { type: "body", text: "Your second return brought endurance and unity.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "This church is no longer surviving. It is leading.", size: bodySize, color: "#EAF6FF" },
+        { type: "spacer", height: 30 },
+        { type: "body", text: "The pastor and congregation stand ready to serve others.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Another town can now be strengthened.", size: bodySize, color: "#EAF6FF" },
+        { type: "spacer", height: 50 },
+        { type: "score", text: `Congregation After Visit II: ${score}`, size: scoreSize, color: "#ffd978" },
+        { type: "spacer", height: 40 },
+        { type: "body", text: "Press on. Build the highest total congregation.", size: bodySize, color: "#c8dce8" },
+        { type: "spacer", height: 80 },
+      ];
+    }
 
     // Calculate total content height
     let totalHeight = 0;

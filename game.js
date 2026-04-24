@@ -4506,6 +4506,7 @@ Renderer.initialize({
   get townVictoryActive() { return townVictoryActive; },
   get townVictoryTownName() { return townVictoryTownName; },
   get townVictoryScore() { return townVictoryScore; },
+  get townVictoryCampaign() { return townVictoryCampaign; },
   get townVictoryScroll() { return townVictoryScroll; },
   get ashOverlay() { return ashOverlay; },
   get fireOverlay() { return fireOverlay; },
@@ -7445,6 +7446,7 @@ const epilogueScroll = {
 let townVictoryActive = false;
 let townVictoryTownName = "";
 let townVictoryScore = 0;
+let townVictoryCampaign = "p1";
 const townVictoryScroll = {
   scrollY: 0,
   scrollSpeed: 35, // pixels per second (slightly slower than epilogue)
@@ -7454,9 +7456,12 @@ const townVictoryScroll = {
   showButton: false,
 };
 
-function activateTownVictory(townName, score) {
+function activateTownVictory(townName, score, campaign = "p1") {
   townVictoryTownName = townName || "this town";
   townVictoryScore = Number.isFinite(score) ? score : 0;
+  townVictoryCampaign = ["p1", "p2", "p3"].includes(String(campaign || "").toLowerCase())
+    ? String(campaign).toLowerCase()
+    : "p1";
   townVictoryScroll.scrollY = 0;
   townVictoryScroll.delayTimer = 0;
   townVictoryScroll.contentHeight = 0;
@@ -18436,7 +18441,7 @@ function handleLevelAnnouncements() {
         const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
         const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
         const score = typeof window !== "undefined" && Number.isFinite(window.lastRunScore) ? window.lastRunScore : 0;
-        activateTownVictory(townName, score);
+        activateTownVictory(townName, score, activeCampaign);
       },
     });
     if (handled) return true;
@@ -18447,7 +18452,7 @@ function handleLevelAnnouncements() {
       const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
       const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
       const score = typeof window !== "undefined" && Number.isFinite(window.lastRunScore) ? window.lastRunScore : 0;
-      activateTownVictory(townName, score);
+      activateTownVictory(townName, score, activeCampaign);
       return true;
     }
     return true;
