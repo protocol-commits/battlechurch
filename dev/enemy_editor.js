@@ -1575,6 +1575,7 @@
     els.list.innerHTML = "";
     const keys = Object.keys(state.cfg.catalog || {}).sort();
     keys.forEach((key) => {
+      if (/^boss/i.test(String(key || ""))) return;
       if (state.search) {
         const haystack = `${key} ${(state.cfg.catalog[key]?.displayName || "")}`.toLowerCase();
         if (!haystack.includes(state.search)) return;

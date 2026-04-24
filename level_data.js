@@ -38,9 +38,6 @@ window.BattlechurchLevelData = {
       },
       "miniDemonFireKeeper": {
         "speed": 75
-      },
-      "miniSuccubus": {
-        "speed": 75
       }
     },
     "enemyTags": {},
@@ -723,10 +720,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniDemoness",
                           "count": 1
-                        },
-                        {
-                          "enemy": "miniSuccubus",
-                          "count": 1
                         }
                       ],
                       "mode": "explicit",
@@ -806,10 +799,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniDemoness",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniSuccubus",
                           "count": 1
                         }
                       ],

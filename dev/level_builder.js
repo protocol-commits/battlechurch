@@ -184,10 +184,22 @@
     tags.add("all");
     tags.add(getEnemyType(key, catalog));
     if (def.ranged === true) tags.add("ranged");
-    if (def.projectileType && def.projectileType !== null) tags.add("projectile");
     const behaviors = Array.isArray(def.specialBehavior) ? def.specialBehavior : [];
     behaviors.forEach((tag) => {
-      if (tag && !["popcorn", "elite", "axe"].includes(tag)) tags.add(String(tag));
+      if (!tag) return;
+      const normalized = String(tag).trim();
+      if (!normalized || ["popcorn", "elite", "axe"].includes(normalized)) return;
+      // Legacy behavior tag: route "heavy" to modern tank classification.
+      if (normalized.toLowerCase() === "heavy") {
+        tags.add("tank");
+        return;
+      }
+      // Legacy behavior tag: route "projectile" to the unified ranged category.
+      if (normalized.toLowerCase() === "projectile") {
+        tags.add("ranged");
+        return;
+      }
+      tags.add(normalized);
     });
     return tags;
   }
@@ -202,7 +214,7 @@
   }
 
   function buildEnemyFilterOptions(catalog) {
-    const baseOrder = ["all", "normal", "tank", "armored", "ranged", "projectile"];
+    const baseOrder = ["all", "normal", "tank", "armored", "ranged"];
     const options = [];
     const seen = new Set();
     baseOrder.forEach((tag) => {
@@ -761,7 +773,7 @@
     settingsSpacer.innerHTML =
       `<div style="height:32px;line-height:32px;padding:0 8px;border-bottom:1px solid rgba(120,170,220,0.1);">Duration (s)</div><div style="height:32px;line-height:32px;padding:0 8px;">All Kill</div>`;
     labelCol.appendChild(settingsSpacer);
-    const TYPE_COLORS = { normal: "#8cb4e0", tank: "#e0a040", projectile: "#e06060", armored: "#a0a0b0" };
+    const TYPE_COLORS = { normal: "#8cb4e0", tank: "#e0a040", armored: "#a0a0b0" };
     const enemyBattleTotals = {};
     waves.forEach((wave) => {
       const hordes = Array.isArray(wave?.hordes) ? wave.hordes : [];
