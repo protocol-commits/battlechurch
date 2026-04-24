@@ -57,6 +57,7 @@
       version: 2,
       towns: {},
       unlockedTownIds: firstTownId ? [firstTownId] : [],
+      activeRun: null,
     };
   }
 
@@ -132,6 +133,10 @@
       }
       if (!save.mapProgress || typeof save.mapProgress !== "object") {
         save.mapProgress = createFreshMapProgress(mapData);
+        dirty = true;
+      }
+      if (!("activeRun" in save.mapProgress)) {
+        save.mapProgress.activeRun = null;
         dirty = true;
       }
     }
@@ -1576,8 +1581,32 @@
       startCount = progress.towns?.[townId]?.p2?.bestCount ?? defaultStart;
     }
     const multiplier = campaign === "p1" ? 1.0 : campaign === "p2" ? 1.15 : 1.1;
-    const restoredChurchPowerupLevels = mergeChurchPowerupLevels(townId, campaign, progress);
-    return { campaign, startCount, campaignMultiplier: multiplier, restoredChurchPowerupLevels };
+    const activeRun = progress?.activeRun;
+    const canResumeFromCheckpoint =
+      activeRun &&
+      activeRun.townId === townId &&
+      activeRun.campaign === campaign &&
+      Number.isFinite(activeRun.resumeLocalBattleNumber) &&
+      activeRun.resumeLocalBattleNumber > 1;
+    const restoredChurchPowerupLevels = canResumeFromCheckpoint
+      ? { ...(activeRun.churchPowerupLevels || {}) }
+      : mergeChurchPowerupLevels(townId, campaign, progress);
+    const checkpointStartCount = Number.isFinite(activeRun?.startCount)
+      ? Math.max(0, Math.round(activeRun.startCount))
+      : null;
+    const resolvedStartCount = canResumeFromCheckpoint && checkpointStartCount != null
+      ? checkpointStartCount
+      : startCount;
+    return {
+      campaign,
+      startCount: resolvedStartCount,
+      campaignMultiplier: multiplier,
+      restoredChurchPowerupLevels,
+      resumeLocalBattleNumber: canResumeFromCheckpoint
+        ? Math.max(1, Math.floor(activeRun.resumeLocalBattleNumber))
+        : 1,
+      resumeFromCheckpoint: Boolean(canResumeFromCheckpoint),
+    };
   }
 
   function selectTown(townId) {
@@ -1612,6 +1641,9 @@
       campData.churchPowerupLevels = savedChurchPowerupLevels || {};
     }
     progress.towns[townId][activeCampaign] = campData;
+    if (progress.activeRun && progress.activeRun.townId === townId && progress.activeRun.campaign === activeCampaign) {
+      progress.activeRun = null;
+    }
 
     // Recompute sequential town unlocks
     ensureNextTownUnlocked(progress, mapData);
@@ -1622,6 +1654,59 @@
     }
     syncActiveSaveProgressMirror();
     await persistPlayerDoc();
+  }
+
+  async function saveMissionCheckpoint({
+    townId,
+    campaign,
+    resumeLocalBattleNumber,
+    startCount,
+    churchPowerupLevels,
+  } = {}) {
+    if (!townId || !campaign) return false;
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return false;
+    if (!state.mapProgress) {
+      await loadPlayerProgress();
+    }
+    const progress = ensureProgress();
+    if (!progress) return false;
+    progress.activeRun = {
+      townId,
+      campaign,
+      resumeLocalBattleNumber: Number.isFinite(resumeLocalBattleNumber)
+        ? Math.max(1, Math.floor(resumeLocalBattleNumber))
+        : 1,
+      startCount: Number.isFinite(startCount) ? Math.max(0, Math.round(startCount)) : 0,
+      churchPowerupLevels: churchPowerupLevels && typeof churchPowerupLevels === "object"
+        ? { ...churchPowerupLevels }
+        : {},
+      savedAt: Date.now(),
+    };
+    const activeSave = getActiveSave();
+    if (activeSave) {
+      activeSave.lastPlayedAt = Date.now();
+    }
+    syncActiveSaveProgressMirror();
+    return await persistPlayerDoc();
+  }
+
+  async function clearMissionCheckpoint(options = {}) {
+    const townId = options && typeof options === "object" ? options.townId : null;
+    const campaign = options && typeof options === "object" ? options.campaign : null;
+    if (!state.mapProgress) {
+      await loadPlayerProgress();
+    }
+    const progress = ensureProgress();
+    if (!progress?.activeRun) return true;
+    const matchesTown = !townId || progress.activeRun.townId === townId;
+    const matchesCampaign = !campaign || progress.activeRun.campaign === campaign;
+    if (!matchesTown || !matchesCampaign) return true;
+    progress.activeRun = null;
+    const activeSave = getActiveSave();
+    if (activeSave) activeSave.lastPlayedAt = Date.now();
+    syncActiveSaveProgressMirror();
+    return await persistPlayerDoc();
   }
 
   function open() {
@@ -2015,6 +2100,8 @@
     getTownStartCount,
     ensureTownStartCount,
     getTownCampaignData,
+    saveMissionCheckpoint,
+    clearMissionCheckpoint,
     getDenomPickCountForTown,
     devStartRunForTown,
     getNextCampaignForTown,

@@ -7015,6 +7015,18 @@ function startGameFromTitle() {
     activeCampaign = campaignData?.campaign || "p1";
     activeCampaignMultiplier = Number.isFinite(campaignData?.campaignMultiplier) ? campaignData.campaignMultiplier : 1.0;
     if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
+    const resumeLocalBattleNumber = Number.isFinite(campaignData?.resumeLocalBattleNumber)
+      ? Math.max(1, Math.floor(campaignData.resumeLocalBattleNumber))
+      : 1;
+    const hasDevStartOverrideForTown =
+      pendingDevBattleStartOverride &&
+      pendingDevBattleStartOverride.townId === activeTownId;
+    if (!overrideCampaignData && !hasDevStartOverrideForTown && resumeLocalBattleNumber > 1) {
+      pendingDevBattleStartOverride = {
+        townId: activeTownId,
+        localBattleNumber: resumeLocalBattleNumber,
+      };
+    }
     townStartCongregation = Number.isFinite(campaignData?.startCount) ? campaignData.startCount : INITIAL_CONGREGATION_SIZE;
     resetChurchPowerups();
     // Restore church powerup levels from prior campaigns
@@ -7389,10 +7401,16 @@ function showGameOverDialog() {
 
 let pendingUpgradeAfterSummary = false;
 let pendingPastorPostRecapAfterUpgrade = false;
+let pendingMissionSaveContext = null;
 let epilogueActive = false;
 let epilogueTitle = "Epilogue";
 let epilogueText = "";
 let epilogueBackgroundKey = "epilogue";
+const progressSaveToast = {
+  text: "",
+  timer: 0,
+  duration: 1.8,
+};
 
 // Scrolling epilogue/credits system
 const epilogueScroll = {
@@ -10341,6 +10359,91 @@ function drawDevStatus() {
   // Developer status messages are intentionally not drawn in the HUD.
   // They can still be stored (devStatus) for programmatic checks but are hidden.
   return;
+}
+
+function showProgressSaveToast(text = "Progress Saved", duration = 1.8) {
+  progressSaveToast.text = String(text || "Progress Saved");
+  progressSaveToast.duration = Number.isFinite(duration) ? Math.max(0.8, duration) : 1.8;
+  progressSaveToast.timer = progressSaveToast.duration;
+}
+
+function updateProgressSaveToast(dt) {
+  if (progressSaveToast.timer <= 0) return;
+  progressSaveToast.timer = Math.max(0, progressSaveToast.timer - Math.max(0, Number(dt) || 0));
+}
+
+function drawProgressSaveToast() {
+  if (progressSaveToast.timer <= 0 || !ctx || !canvas) return;
+  const t = progressSaveToast.duration > 0 ? progressSaveToast.timer / progressSaveToast.duration : 0;
+  const alpha = Math.max(0, Math.min(1, t));
+  const toastWidth = 240;
+  const toastHeight = 42;
+  const x = (canvas.width - toastWidth) / 2;
+  const y = HUD_HEIGHT + 16;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(9, 22, 16, 0.86)";
+  ctx.strokeStyle = "rgba(114, 240, 172, 0.92)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, toastWidth, toastHeight, 12, true, true);
+  ctx.fillStyle = "#D9FFE8";
+  ctx.font = `700 18px ${UI_FONT_FAMILY}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(progressSaveToast.text, x + toastWidth / 2, y + toastHeight / 2 + 1);
+  ctx.restore();
+}
+
+async function saveMissionProgressContext(context) {
+  if (!context || demoSandboxRunActive) return true;
+  if (!window.MapScreen) return false;
+  showProgressSaveToast("Saving...", 12);
+  try {
+    const powerupSnapshot = Object.fromEntries(churchPowerupLevels);
+    if (context.kind === "finalTown") {
+      await window.MapScreen.recordTownCompletion(
+        context.townId,
+        context.finalScore,
+        context.campaign,
+        powerupSnapshot,
+      );
+      showProgressSaveToast("Progress Saved");
+      return true;
+    }
+    if (context.kind === "missionCheckpoint") {
+      const ok = await window.MapScreen.saveMissionCheckpoint({
+        townId: context.townId,
+        campaign: context.campaign,
+        resumeLocalBattleNumber: context.resumeLocalBattleNumber,
+        startCount: context.startCount,
+        churchPowerupLevels: powerupSnapshot,
+      });
+      if (ok === false) {
+        showProgressSaveToast("Save Failed", 2.2);
+        return false;
+      }
+      showProgressSaveToast("Progress Saved");
+      return true;
+    }
+  } catch (error) {
+    console.warn && console.warn("Failed to save mission progress", error);
+  }
+  showProgressSaveToast("Save Failed", 2.2);
+  return false;
+}
+
+function runPostUpgradeSaveThen(callback) {
+  const context = pendingMissionSaveContext;
+  pendingMissionSaveContext = null;
+  const finish = typeof callback === "function" ? callback : () => {};
+  if (!context) {
+    finish();
+    return;
+  }
+  void (async () => {
+    await saveMissionProgressContext(context);
+    finish();
+  })();
 }
 
 function drawNpcHomeBounds() {
@@ -16725,7 +16828,9 @@ function checkDialogOverlays() {
       console.log("FINAL TOWN LEVEL - showing upgrade then pastor post-recap");
       const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
       window.UpgradeScreen.show(() => {
-        queuePastorBossPostRecapAnnouncement(targetLevel, false);
+        runPostUpgradeSaveThen(() => {
+          queuePastorBossPostRecapAnnouncement(targetLevel, false);
+        });
       });
       pendingPastorPostRecapAfterUpgrade = false;
     // Check if we need to show chapter break after upgrade
@@ -16736,22 +16841,26 @@ function checkDialogOverlays() {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Mission 2, Level 2 done → Mission 3
       console.log("SHOWING CHAPTER BREAK for Mission", actNumber);
       window.UpgradeScreen.show(() => {
-        console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
-        if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
-          townVisitorMinigamePlayed = true;
-          if (levelManager?.triggerVisitorMinigame) {
-            const started = levelManager.triggerVisitorMinigame(() => {
-              showChapterBreak(actNumber);
-            });
-            if (started) return;
+        runPostUpgradeSaveThen(() => {
+          console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
+          if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
+            townVisitorMinigamePlayed = true;
+            if (levelManager?.triggerVisitorMinigame) {
+              const started = levelManager.triggerVisitorMinigame(() => {
+                showChapterBreak(actNumber);
+              });
+              if (started) return;
+            }
           }
-        }
-        showChapterBreak(actNumber);
+          showChapterBreak(actNumber);
+        });
       });
     } else {
       console.log("NO CHAPTER BREAK - lastCompletedLevel is", lastCompletedLevel);
       window.UpgradeScreen.show(() => {
-        queueExteriorShotAnnouncement();
+        runPostUpgradeSaveThen(() => {
+          queueExteriorShotAnnouncement();
+        });
       });
     }
 
@@ -18146,7 +18255,7 @@ function handleLevelAnnouncements() {
         const levelsPerTown = Number.isFinite(window.BATTLES_PER_TOWN) ? window.BATTLES_PER_TOWN : 3;
         const isFinalTownLevel = lastCompletedLevel >= levelsPerTown;
 
-        // Record town completion and save score only for FINAL level of town
+        let missionSaveContext = null;
         if (currentAnnouncement.levelSummary) {
           const recapData = currentAnnouncement.recapData;
           const finalScore = Number.isFinite(recapData?.totalCount)
@@ -18155,10 +18264,23 @@ function handleLevelAnnouncements() {
           if (typeof window !== "undefined") {
             window.lastRunScore = finalScore;
           }
-          // Only record town completion on the FINAL level of the town
-          if (isFinalTownLevel && window.MapScreen?.recordTownCompletion && !demoSandboxRunActive) {
-            const powerupSnapshot = Object.fromEntries(churchPowerupLevels);
-            window.MapScreen.recordTownCompletion(activeTownId, finalScore, activeCampaign, powerupSnapshot);
+          if (!demoSandboxRunActive && activeTownId) {
+            if (isFinalTownLevel) {
+              missionSaveContext = {
+                kind: "finalTown",
+                townId: activeTownId,
+                campaign: activeCampaign,
+                finalScore,
+              };
+            } else {
+              missionSaveContext = {
+                kind: "missionCheckpoint",
+                townId: activeTownId,
+                campaign: activeCampaign,
+                resumeLocalBattleNumber: lastCompletedLevel + 1,
+                startCount: finalScore,
+              };
+            }
           }
         }
         if (currentAnnouncement.recapFinalYear) {
@@ -18174,6 +18296,14 @@ function handleLevelAnnouncements() {
           pendingUpgradeAfterSummary = true;
         } else {
           pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter);
+        }
+        if (pendingUpgradeAfterSummary) {
+          pendingMissionSaveContext = missionSaveContext;
+        } else {
+          pendingMissionSaveContext = null;
+          if (missionSaveContext) {
+            void saveMissionProgressContext(missionSaveContext);
+          }
         }
         const recapData = currentAnnouncement.recapData;
         if (recapData && !recapData.graceApplied && recapData.graceBonus > 0) {
@@ -23209,6 +23339,7 @@ function restartGame() {
 function gameLoop(timestamp) {
   const delta = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
+  updateProgressSaveToast(delta);
 
   if (typeof window !== "undefined") {
     window.__battlechurchTitleScreenActive = Boolean(titleScreenActive);
@@ -23224,6 +23355,7 @@ function gameLoop(timestamp) {
   if (window.UpgradeScreen?.isVisible?.()) {
     window.UpgradeScreen.draw();
   }
+  drawProgressSaveToast();
   keysJustPressed.clear();
 
   gameLoopHandle = requestAnimationFrame(gameLoop);
