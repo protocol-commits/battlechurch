@@ -54,10 +54,10 @@
       "idle": "Walk",
       "attack": "Attack02"
     },
-    "health": 10,
+    "health": 30,
     "maxHealth": 220,
     "damage": 5,
-    "speed": 70,
+    "speed": 60,
     "baseRadius": 15,
     "scale": 3.4,
     "attackBonus": 34,
@@ -95,7 +95,7 @@
     "health": 400,
     "maxHealth": 745,
     "damage": 5,
-    "speed": 50,
+    "speed": 60,
     "baseRadius": 17,
     "scale": 4,
     "attackBonus": 36,
@@ -138,10 +138,10 @@
       "idle": "Walk",
       "attack": "Attack02"
     },
-    "health": 315,
+    "health": 600,
     "maxHealth": 315,
     "damage": 5,
-    "speed": 50,
+    "speed": 56,
     "baseRadius": 18,
     "scale": 4.2,
     "attackBonus": 38,
@@ -253,7 +253,7 @@
     "damage": 10,
     "speed": 100,
     "baseRadius": 10,
-    "scale": 4.5,
+    "scale": 5,
     "attackBonus": 20,
     "cooldown": 0.9,
     "score": 36,
@@ -391,7 +391,7 @@
     "spriteSrc": "assets/sprites/enemies/mini-demoness/MiniDemoness.png",
     "assetFolder": "Mini Demoness",
     "assetBaseName": "Mini Demoness",
-    "health": 300,
+    "health": 400,
     "maxHealth": 45,
     "damage": 8,
     "speed": 70,
@@ -460,7 +460,8 @@
         68,
         69
       ]
-    }
+    },
+    "contactDamage": 80
   },
   "miniClawedDemon": {
     "displayName": "Clawed Demon",
@@ -877,7 +878,7 @@
     "spriteSrc": "assets/sprites/enemies/mini-demon-fire-keeper/MiniDemonFireKeeper.png",
     "assetFolder": "Mini Demon Fire Keeper",
     "assetBaseName": "Mini Demon Fire Keeper",
-    "health": 40,
+    "health": 60,
     "maxHealth": 45,
     "damage": 10,
     "speed": 70,
@@ -959,7 +960,7 @@
     "damage": 15,
     "speed": 80,
     "baseRadius": 10,
-    "scale": 5,
+    "scale": 6,
     "attackBonus": 30,
     "cooldown": 0.85,
     "score": 36,
@@ -1098,10 +1099,10 @@
       "idle": "Walk",
       "attack": "Attack03"
     },
-    "health": 400,
+    "health": 800,
     "maxHealth": 410,
     "damage": 5,
-    "speed": 50,
+    "speed": 54,
     "baseRadius": 16,
     "scale": 4.5,
     "attackBonus": 36,
@@ -1253,16 +1254,16 @@
     "damageClass": "tank",
     "hitbox": {
       "width": 18,
-      "height": 20,
+      "height": 24,
       "offsetX": 0,
       "offsetY": 9
     },
     "attackHitFrame": 4,
     "attackHitDamage": 15,
     "weaponHitbox": {
-      "width": 10,
-      "height": 20,
-      "offsetX": 13,
+      "width": 15,
+      "height": 24,
+      "offsetX": 15,
       "offsetY": 0
     },
     "assetGrid": {

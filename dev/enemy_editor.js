@@ -238,6 +238,7 @@
   let state = {
     cfg: loadConfig(),
     search: "",
+    filter: "all",
   };
 
   // UI
@@ -720,6 +721,9 @@
         <div class="toolbar">
           <div class="toolbar-left">
             <input type="text" id="ee-search" class="search" placeholder="Search enemies...">
+            <select id="ee-filter" title="Filter enemies">
+              <option value="all">All</option>
+            </select>
             <div class="status" id="ee-status"></div>
           </div>
         </div>
@@ -733,6 +737,7 @@
 
   const els = {
     search: overlay.querySelector("#ee-search"),
+    filter: overlay.querySelector("#ee-filter"),
     status: overlay.querySelector("#ee-status"),
     save: overlay.querySelector("#ee-save"),
     exportBtn: overlay.querySelector("#ee-export"),
@@ -1180,6 +1185,62 @@
     return "Melee";
   }
 
+  function getEnemyTypeTag(enemy) {
+    if (!enemy) return "normal";
+    const damageClass = String(enemy.damageClass || "").toLowerCase();
+    if (damageClass === "armored") return "armored";
+    if (damageClass === "tank") return "tank";
+    return "normal";
+  }
+
+  function getEnemyFilterTags(enemy) {
+    const tags = new Set(["all", getEnemyTypeTag(enemy)]);
+    if (enemy?.ranged === true) tags.add("ranged");
+    const behaviors = Array.isArray(enemy?.specialBehavior) ? enemy.specialBehavior : [];
+    behaviors.forEach((tag) => {
+      const normalized = String(tag || "").trim();
+      if (!normalized || ["popcorn", "elite", "axe", "mini"].includes(normalized)) return;
+      if (normalized.toLowerCase() === "heavy") {
+        tags.add("tank");
+        return;
+      }
+      if (normalized.toLowerCase() === "projectile") {
+        tags.add("ranged");
+        return;
+      }
+      tags.add(normalized);
+    });
+    return tags;
+  }
+
+  function formatEnemyFilterLabel(tag) {
+    if (tag === "all") return "All";
+    if (tag === "npcPriority") return "NPC Priority";
+    return String(tag || "")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (s) => s.toUpperCase())
+      .trim();
+  }
+
+  function buildEnemyFilterOptions(catalog) {
+    const baseOrder = ["all", "normal", "tank", "armored", "ranged"];
+    const options = [];
+    const seen = new Set();
+    baseOrder.forEach((tag) => {
+      seen.add(tag);
+      options.push(tag);
+    });
+    Object.values(catalog || {}).forEach((enemy) => {
+      getEnemyFilterTags(enemy).forEach((tag) => {
+        if (!seen.has(tag)) {
+          seen.add(tag);
+          options.push(tag);
+        }
+      });
+    });
+    return options;
+  }
+
   function getEnemySpecialWiringLabels(key, enemy) {
     const labels = [];
     const behaviors = new Set(Array.isArray(enemy?.specialBehavior) ? enemy.specialBehavior : []);
@@ -1573,11 +1634,35 @@
     spriteCells = new Map();
     projectileThumbCells = new Map();
     els.list.innerHTML = "";
-    const keys = Object.keys(state.cfg.catalog || {}).sort();
+    const catalog = state.cfg.catalog || {};
+    const filterOptions = buildEnemyFilterOptions(catalog);
+    if (!filterOptions.includes(state.filter)) state.filter = "all";
+    if (els.filter) {
+      const currentValue = String(els.filter.value || "");
+      const expected = filterOptions.map((tag) => String(tag));
+      const hasSameOptions =
+        els.filter.options.length === expected.length &&
+        expected.every((tag, index) => els.filter.options[index]?.value === tag);
+      if (!hasSameOptions) {
+        els.filter.innerHTML = "";
+        expected.forEach((tag) => {
+          const option = document.createElement("option");
+          option.value = tag;
+          option.textContent = formatEnemyFilterLabel(tag);
+          els.filter.appendChild(option);
+        });
+      }
+      if (currentValue !== state.filter) {
+        els.filter.value = state.filter;
+      }
+    }
+    const keys = Object.keys(catalog).sort();
     keys.forEach((key) => {
       if (/^boss/i.test(String(key || ""))) return;
+      const enemy = catalog[key] || {};
+      if (!getEnemyFilterTags(enemy).has(state.filter)) return;
       if (state.search) {
-        const haystack = `${key} ${(state.cfg.catalog[key]?.displayName || "")}`.toLowerCase();
+        const haystack = `${key} ${(enemy?.displayName || "")}`.toLowerCase();
         if (!haystack.includes(state.search)) return;
       }
       renderRow(key);
@@ -1588,7 +1673,9 @@
   function show() {
     state.cfg = loadConfig();
     state.search = "";
+    state.filter = "all";
     if (els.search) els.search.value = "";
+    if (els.filter) els.filter.value = "all";
     overlay.style.display = "block";
     renderTable();
     setStatus("");
@@ -1618,6 +1705,13 @@
   if (els.search) {
     els.search.addEventListener("input", () => {
       state.search = String(els.search.value || "").trim().toLowerCase();
+      renderTable();
+    });
+  }
+
+  if (els.filter) {
+    els.filter.addEventListener("change", () => {
+      state.filter = String(els.filter.value || "all");
       renderTable();
     });
   }
