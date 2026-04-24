@@ -340,21 +340,39 @@
   overlay.innerHTML = `
     <style>
       #levelBuilderOverlay {
+        --lb-shell-top: rgba(12, 18, 30, 0.95);
+        --lb-shell-bottom: rgba(7, 10, 18, 0.95);
+        --lb-shell-border: rgba(255, 218, 162, 0.34);
+        --lb-divider: rgba(255, 214, 148, 0.22);
+        --lb-title: #ffd978;
+        --lb-body: #e8d2ae;
+        --lb-hint: rgba(231, 176, 102, 0.82);
+        --lb-button-bg: rgba(255, 154, 58, 0.16);
+        --lb-button-border: rgba(255, 196, 98, 0.42);
+        --lb-button-text: #f6e4c8;
         position: fixed; inset: 0;
-        background: rgba(6, 10, 18, 0.94);
-        color: #e8f4ff;
-        font-family: "Inter", Arial, sans-serif;
+        background: rgba(6, 10, 18, 0.9);
+        color: var(--lb-body);
+        font-family: var(--ui-font-family, "Orbitron"), sans-serif;
         z-index: 9999; display: none;
         padding: 16px; box-sizing: border-box;
       }
       #levelBuilderOverlay *, #levelBuilderOverlay *::before, #levelBuilderOverlay *::after {
         box-sizing: border-box;
       }
-      #levelBuilderOverlay .lb-shell { display:flex; flex-direction:column; gap:12px; height:100%; }
+      #levelBuilderOverlay .lb-shell {
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+        height:100%;
+        max-width: 1380px;
+        margin: 0 auto;
+      }
       #levelBuilderOverlay .panel {
-        background: rgba(18,28,44,0.85);
-        border: 1px solid rgba(120,170,220,0.35);
-        border-radius: 8px; padding: 10px;
+        background: linear-gradient(180deg, var(--lb-shell-top) 0%, var(--lb-shell-bottom) 100%);
+        border: 2px solid var(--lb-shell-border);
+        border-radius: 18px; padding: 10px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
         overflow: hidden; display: flex; flex-direction: column;
       }
       #levelBuilderOverlay #lb-topPanel {
@@ -362,12 +380,14 @@
         position: relative;
         z-index: 30;
       }
-      #levelBuilderOverlay h3 { margin:0 0 8px 0; font-size:15px; letter-spacing:0.3px; }
-      #levelBuilderOverlay label { font-size:12px; opacity:0.9; }
+      #levelBuilderOverlay h3 { margin:0 0 8px 0; font-size:15px; letter-spacing:0.3px; color: var(--lb-title); }
+      #levelBuilderOverlay label { font-size:12px; opacity:0.9; color: var(--lb-body); }
       #levelBuilderOverlay input, #levelBuilderOverlay select, #levelBuilderOverlay textarea {
         width:100%; padding:6px 8px; margin:4px 0 10px 0;
-        border-radius:6px; border:1px solid rgba(255,255,255,0.18);
-        background:rgba(255,255,255,0.06); color:#e8f4ff;
+        border-radius:8px;
+        border:1px solid var(--lb-shell-border);
+        background: rgba(23, 16, 10, 0.58);
+        color: #f3e2c1;
       }
       #levelBuilderOverlay .lb-topbar { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; }
       #levelBuilderOverlay .lb-topbar .group { display:flex; gap:8px; align-items:flex-end; }
@@ -375,11 +395,14 @@
       #levelBuilderOverlay .lb-topbar select, #levelBuilderOverlay .lb-topbar input
         { width:auto; min-width:72px; margin:0; }
       #levelBuilderOverlay button {
-        background:#2b74ff; color:#fff; border:none;
+        background: var(--lb-button-bg);
+        color: var(--lb-button-text);
+        border:1px solid var(--lb-button-border);
         padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600;
       }
-      #levelBuilderOverlay button.secondary { background:rgba(255,255,255,0.08); }
+      #levelBuilderOverlay button.secondary { background:rgba(255, 222, 163, 0.1); }
       #levelBuilderOverlay button.danger { background:rgba(200,50,50,0.7); }
+      #levelBuilderOverlay button:hover { background: rgba(255, 172, 78, 0.24); }
       #levelBuilderOverlay button:disabled {
         opacity:0.45; cursor:not-allowed;
       }
@@ -388,33 +411,34 @@
       #levelBuilderOverlay .lb-mission-cols { display:flex; gap:0; width:max-content; }
       #levelBuilderOverlay .lb-label-col {
         position:sticky; left:0; z-index:5;
-        background:rgba(18,28,44,0.98);
+        background:rgba(12, 18, 30, 0.98);
         display:flex; flex-direction:column;
-        min-width:220px; border-right:1px solid rgba(120,170,220,0.25);
+        min-width:220px; border-right:1px solid var(--lb-divider);
       }
       #levelBuilderOverlay .lb-label-col .lb-label-header {
         height:64px; display:flex; align-items:center;
         padding:0 8px; font-size:11px; font-weight:700;
-        border-bottom:1px solid rgba(120,170,220,0.2);
-        background:rgba(18,28,44,0.98);
+        border-bottom:1px solid var(--lb-divider);
+        background:rgba(12, 18, 30, 0.98);
       }
       #levelBuilderOverlay .lb-label-row {
         display:flex; align-items:center; gap:6px;
         height:32px; padding:0 6px;
-        border-bottom:1px solid rgba(120,170,220,0.1); font-size:11px;
+        border-bottom:1px solid rgba(255, 214, 148, 0.1); font-size:11px;
       }
       #levelBuilderOverlay .lb-label-row canvas { flex-shrink:0; }
       #levelBuilderOverlay .lb-wave-col {
         min-width:120px; max-width:120px;
-        background:rgba(255,200,80,0.07);
-        border-right:2px solid rgba(255,200,80,0.3);
+        background:rgba(255, 176, 86, 0.08);
+        border-right:2px solid rgba(255, 214, 148, 0.26);
         display:flex; flex-direction:column;
       }
       #levelBuilderOverlay .lb-wave-header {
         height:64px; display:flex; align-items:center; justify-content:space-between;
         padding:0 8px; font-size:11px; font-weight:700;
-        color:#ffd060; border-bottom:1px solid rgba(255,200,80,0.25);
-        background:rgba(255,200,80,0.12);
+        color:var(--lb-title);
+        border-bottom:1px solid var(--lb-divider);
+        background:rgba(255, 176, 86, 0.12);
       }
       #levelBuilderOverlay .lb-wave-body { padding:0; flex:1; display:flex; flex-direction:column; }
       #levelBuilderOverlay .lb-wave-fields { padding:6px 8px; display:flex; flex-direction:column; gap:4px; }
@@ -473,19 +497,19 @@
       /* Column context menu */
       #levelBuilderOverlay .lb-col-menu {
         position:absolute; top:100%; right:0; z-index:20;
-        background:rgba(18,28,44,0.98);
-        border:1px solid rgba(120,170,220,0.4);
+        background:rgba(12, 18, 30, 0.98);
+        border:1px solid var(--lb-shell-border);
         border-radius:6px; padding:4px 0; min-width:130px;
         box-shadow:0 4px 16px rgba(0,0,0,0.5); display:none;
       }
       #levelBuilderOverlay .lb-col-menu.open { display:block; }
       #levelBuilderOverlay .lb-col-menu-item {
         display:block; width:100%; text-align:left;
-        background:none; border:none; color:#e8f4ff;
+        background:none; border:none; color:#f3e2c1;
         padding:6px 14px; font-size:11px; cursor:pointer; font-weight:normal;
         border-radius:0;
       }
-      #levelBuilderOverlay .lb-col-menu-item:hover { background:rgba(255,255,255,0.1); }
+      #levelBuilderOverlay .lb-col-menu-item:hover { background:rgba(255, 172, 78, 0.2); }
       #levelBuilderOverlay .lb-add-wave-col {
         min-width:48px; display:flex; align-items:center; justify-content:center;
         padding:0 8px;
@@ -525,7 +549,7 @@
             <button id="lb-saveAs" type="button" class="secondary">Save As...</button>
           </div>
         </div>
-        <div id="lb-status" style="margin-top:8px;font-size:12px;color:#9bf0ff;"></div>
+        <div id="lb-status" style="margin-top:8px;font-size:12px;color:var(--lb-hint);"></div>
       </div>
       <div class="panel" id="lb-mainPanel">
         <div class="scroll" id="lb-contentArea"></div>
