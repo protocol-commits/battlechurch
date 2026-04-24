@@ -9454,8 +9454,19 @@ function applySpearHit(state, target, hitX, hitY) {
     target.takeDamage(hitDamage, { damageType: "projectile" });
     registerComboHit(target, hitDamage);
   }
+  const targetHealth = target === activeBoss ? activeBoss?.health : target?.health;
+  const targetDead =
+    target instanceof Projectile || (target && target.visualOnly !== undefined && target.friendly !== undefined)
+      ? Boolean(target?.dead)
+      : Number.isFinite(targetHealth)
+        ? targetHealth <= 0
+        : Boolean(target?.dead || target?.state === "death");
   playSpearHitSfx(0.8);
-  spawnFlashEffect(hitX, hitY);
+  if (targetDead) {
+    spawnFlashEffect(hitX, hitY, { tintColor: "#FFFFFF", tintAlpha: 0.95, scale: 2.0 });
+  } else {
+    spawnFlashEffect(hitX, hitY);
+  }
   return true;
 }
 

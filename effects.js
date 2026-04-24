@@ -184,9 +184,17 @@
     spawnPuffEffect(x, y);
   }
 
-  function spawnFlashEffect(x, y) {
+  function spawnFlashEffect(x, y, options = {}) {
     const frames = resolveAssets()?.effects?.flash;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale: 1.8 });
+    const tintColor = typeof options?.tintColor === "string" ? options.tintColor : null;
+    const tintAlpha = Number.isFinite(options?.tintAlpha) ? options.tintAlpha : 0.65;
+    const scale = Number.isFinite(options?.scale) ? options.scale : 1.8;
+    return spawnEffectFromFrames(frames, x, y, {
+      frameDuration: 0.04,
+      scale,
+      tintColor,
+      tintAlpha,
+    });
   }
 
   function spawnSentryBurnEffect(x, y) {
