@@ -246,13 +246,21 @@
   overlay.innerHTML = `
     <style>
       #${OVERLAY_ID} {
+        --ee-shell-top: rgba(12, 18, 30, 0.95);
+        --ee-shell-bottom: rgba(7, 10, 18, 0.95);
+        --ee-shell-border: rgba(255, 218, 162, 0.34);
+        --ee-divider: rgba(255, 214, 148, 0.22);
+        --ee-title: #ffd978;
+        --ee-body: #e8d2ae;
+        --ee-hint: rgba(231, 176, 102, 0.82);
+        --ee-button-bg: rgba(255, 154, 58, 0.16);
+        --ee-button-border: rgba(255, 196, 98, 0.42);
+        --ee-button-text: #f6e4c8;
         position: fixed;
         inset: 0;
-        background:
-          radial-gradient(circle at top, rgba(72, 122, 196, 0.18), transparent 32%),
-          linear-gradient(180deg, rgba(7, 12, 24, 0.98), rgba(4, 8, 18, 0.99));
-        color: #e8f4ff;
-        font-family: Georgia, "Times New Roman", serif;
+        background: rgba(6, 10, 18, 0.9);
+        color: var(--ee-body);
+        font-family: var(--ui-font-family, "Orbitron"), sans-serif;
         z-index: 10000;
         display: none;
         padding: 22px;
@@ -265,13 +273,10 @@
         height: 100%;
       }
       #${OVERLAY_ID} .panel {
-        background:
-          linear-gradient(180deg, rgba(18, 28, 44, 0.96), rgba(12, 20, 34, 0.94));
-        border: 1px solid rgba(160, 198, 238, 0.2);
-        border-radius: 20px;
-        box-shadow:
-          0 24px 80px rgba(0, 0, 0, 0.42),
-          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        background: linear-gradient(180deg, var(--ee-shell-top) 0%, var(--ee-shell-bottom) 100%);
+        border: 2px solid var(--ee-shell-border);
+        border-radius: 18px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
         padding: 18px;
         display: flex;
         flex-direction: column;
@@ -282,24 +287,25 @@
         font-size: 28px;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        font-family: "Trebuchet MS", Georgia, serif;
+        color: var(--ee-title);
       }
       #${OVERLAY_ID} button {
-        background: linear-gradient(180deg, #8fd5ff, #5299d7);
-        color: #07101c;
-        border: none;
+        background: var(--ee-button-bg);
+        color: var(--ee-button-text);
+        border: 1px solid var(--ee-button-border);
         padding: 10px 14px;
-        border-radius: 999px;
+        border-radius: 10px;
         cursor: pointer;
         font-weight: 700;
-        font-family: "Trebuchet MS", Arial, sans-serif;
+        font-family: inherit;
         letter-spacing: 0.02em;
-        box-shadow: 0 8px 22px rgba(37, 94, 147, 0.35);
+        box-shadow: none;
       }
       #${OVERLAY_ID} button.secondary {
-        background: rgba(255,255,255,0.08);
-        color: #e8f4ff;
-        box-shadow: none;
+        background: rgba(255, 222, 163, 0.1);
+      }
+      #${OVERLAY_ID} button:hover {
+        background: rgba(255, 172, 78, 0.24);
       }
       #${OVERLAY_ID} .controls,
       #${OVERLAY_ID} .toolbar-left,
@@ -327,22 +333,23 @@
       }
       #${OVERLAY_ID} .headline p {
         margin: 0;
-        color: rgba(232, 244, 255, 0.72);
-        font: 14px "Trebuchet MS", Arial, sans-serif;
+        color: var(--ee-body);
+        opacity: 0.82;
+        font-size: 14px;
       }
       #${OVERLAY_ID} .status {
         min-height: 18px;
-        color: #9bf0ff;
-        font: 12px "Trebuchet MS", Arial, sans-serif;
+        color: var(--ee-hint);
+        font-size: 12px;
       }
       #${OVERLAY_ID} .search {
         min-width: 240px;
         padding: 10px 14px;
         border-radius: 999px;
-        border: 1px solid rgba(155, 217, 255, 0.24);
-        background: rgba(255, 255, 255, 0.06);
-        color: #e8f4ff;
-        font: 600 13px "Trebuchet MS", Arial, sans-serif;
+        border: 1px solid var(--ee-shell-border);
+        background: rgba(23, 16, 10, 0.58);
+        color: #f3e2c1;
+        font: 600 13px var(--ui-font-family, "Orbitron"), sans-serif;
       }
       #${OVERLAY_ID} .list-wrap {
         overflow: auto;
@@ -363,8 +370,8 @@
         border-radius: 18px;
         background:
           linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
-          rgba(9, 16, 28, 0.9);
-        border: 1px solid rgba(155, 217, 255, 0.16);
+          rgba(10, 14, 24, 0.9);
+        border: 1px solid rgba(255, 214, 148, 0.16);
       }
       #${OVERLAY_ID} .enemy-preview {
         display: flex;
@@ -376,11 +383,11 @@
         min-width: ${SPRITE_CELL_SIZE}px;
         min-height: ${SPRITE_CELL_SIZE}px;
         border-radius: 16px;
-        border: 1px solid rgba(255,255,255,0.12);
+        border: 1px solid rgba(255, 214, 148, 0.2);
         background:
           linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.03) 75%),
           linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,0.03) 75%),
-          radial-gradient(circle at top, rgba(155, 217, 255, 0.14), rgba(7, 12, 22, 0.92));
+          radial-gradient(circle at top, rgba(255, 176, 86, 0.16), rgba(7, 12, 22, 0.92));
         background-size: 18px 18px, 18px 18px, auto;
         background-position: 0 0, 9px 9px, 0 0;
         display: flex;
@@ -395,16 +402,16 @@
         gap: 4px;
       }
       #${OVERLAY_ID} .enemy-name {
-        font: 700 16px "Trebuchet MS", Arial, sans-serif;
-        color: #f5fbff;
+        font: 700 16px var(--ui-font-family, "Orbitron"), sans-serif;
+        color: #f6e4c8;
       }
       #${OVERLAY_ID} .enemy-key {
-        font: 12px "Trebuchet MS", Arial, sans-serif;
-        color: rgba(232, 244, 255, 0.58);
+        font-size: 12px;
+        color: rgba(246, 228, 200, 0.68);
       }
       #${OVERLAY_ID} .enemy-scale-note {
-        font: 11px "Trebuchet MS", Arial, sans-serif;
-        color: rgba(155, 217, 255, 0.84);
+        font-size: 11px;
+        color: var(--ee-hint);
       }
       #${OVERLAY_ID} .enemy-main {
         display: flex;
@@ -418,7 +425,7 @@
         gap: 8px;
         padding: 10px 12px;
         border-radius: 14px;
-        border: 1px solid rgba(155, 217, 255, 0.14);
+        border: 1px solid rgba(255, 214, 148, 0.16);
         background: rgba(255, 255, 255, 0.04);
       }
       #${OVERLAY_ID} .enemy-summary-title {
@@ -441,10 +448,10 @@
         align-items: center;
         padding: 6px 10px;
         border-radius: 999px;
-        background: rgba(143, 213, 255, 0.12);
-        border: 1px solid rgba(143, 213, 255, 0.16);
-        color: #dff4ff;
-        font: 700 11px "Trebuchet MS", Arial, sans-serif;
+        background: rgba(255, 176, 86, 0.14);
+        border: 1px solid rgba(255, 214, 148, 0.24);
+        color: #f6e4c8;
+        font: 700 11px var(--ui-font-family, "Orbitron"), sans-serif;
         letter-spacing: 0.02em;
         white-space: nowrap;
       }
@@ -459,8 +466,8 @@
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
-        font: 600 12px "Trebuchet MS", Arial, sans-serif;
-        color: rgba(232, 244, 255, 0.78);
+        font: 600 12px var(--ui-font-family, "Orbitron"), sans-serif;
+        color: rgba(246, 228, 200, 0.86);
       }
       #${OVERLAY_ID} .toggles label {
         display: inline-flex;
@@ -513,11 +520,11 @@
         min-width: 0;
         padding: 7px 8px;
         border-radius: 10px;
-        border: 1px solid rgba(255,255,255,0.16);
-        background: rgba(255,255,255,0.07);
-        color: #e8f4ff;
+        border: 1px solid var(--ee-shell-border);
+        background: rgba(23, 16, 10, 0.58);
+        color: #f3e2c1;
         box-sizing: border-box;
-        font: 600 12px "Trebuchet MS", Arial, sans-serif;
+        font: 600 12px var(--ui-font-family, "Orbitron"), sans-serif;
       }
       #${OVERLAY_ID} input[type="number"]:disabled,
       #${OVERLAY_ID} select:disabled {
@@ -741,7 +748,7 @@
   function setStatus(text, isError = false) {
     if (!els.status) return;
     els.status.textContent = text || "";
-    els.status.style.color = isError ? "#ffb3b3" : "#9bf0ff";
+    els.status.style.color = isError ? "#ffb3b3" : "rgba(231, 176, 102, 0.82)";
   }
 
   function ensureEnemy(key) {
