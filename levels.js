@@ -544,7 +544,9 @@
     // Collect builder overrides (weighted + explicit can both apply)
     const explicitEntries = Array.isArray(scope.horde?.entries)
       ? scope.horde.entries
-          .filter((e) => e && e.enemy && !hidden.has(e.enemy))
+          // Explicitly placed entries should always spawn, even if the enemy
+          // is globally hidden from procedural pools.
+          .filter((e) => e && e.enemy)
           .map((e) => ({
             type: e.enemy,
             count: Math.max(1, Math.floor(e.count || 1)),
