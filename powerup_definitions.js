@@ -182,9 +182,8 @@
   };
 
   // Per-level purchase costs for church powerups.
-  // Levels 1-5 (single instance building to full duration): base cost.
-  // Levels 6-10 (second instance building to full duration): slightly higher.
-  const CHURCH_LEVEL_COSTS = [40, 40, 40, 40, 40, 50, 50, 50, 50, 50];
+  // All levels use the same flat purchase cost.
+  const CHURCH_LEVEL_COSTS = [50, 50, 50, 50, 50, 50, 50, 50, 50, 50];
 
   const churchPowerupDefs = {
     spreadGun: {
