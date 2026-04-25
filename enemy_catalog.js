@@ -197,7 +197,7 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.2,
+    "swarmSpacing": 1,
     "hitbox": {
       "width": 16,
       "height": 16,

@@ -24708,7 +24708,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 1000
+                          "count": 500
                         }
                       ],
                       "weights": {},

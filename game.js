@@ -10893,7 +10893,18 @@ function resolveEntityCollisions(entity, targets, { allowPush = true, overlapSca
         const pullFactor = 0.5;
         const entityGrace = Boolean(entity.spawnPushGrace && entity.spawnPushGrace > 0);
         const otherGrace = Boolean(other.spawnPushGrace && other.spawnPushGrace > 0);
-        if (entityGrace && !otherGrace) {
+        if (entityGrace && otherGrace) {
+          const entitySeq = Number.isFinite(entity.spawnSequence) ? entity.spawnSequence : 0;
+          const otherSeq = Number.isFinite(other.spawnSequence) ? other.spawnSequence : 0;
+          const newerIsEntity = entitySeq > otherSeq;
+          if (newerIsEntity) {
+            entity.x += nx * (overlap * pushFactor);
+            entity.y += ny * (overlap * pushFactor);
+          } else {
+            other.x -= nx * (overlap * pullFactor);
+            other.y -= ny * (overlap * pullFactor);
+          }
+        } else if (entityGrace && !otherGrace) {
           entity.x += nx * (overlap * pushFactor);
           entity.y += ny * (overlap * pushFactor);
         } else if (otherGrace && !entityGrace) {

@@ -36,6 +36,7 @@
   let miniSpawnedThisLevel = false;
   let oneEnemySpawnedLevel1 = false;
   let pendingPortalSpawns = 0;
+  let spawnSequenceCounter = 0;
 
   function getCanvasSize() {
     try {
@@ -285,6 +286,7 @@
     enemy.ignoreWorldBounds = true;
     enemy.initialSpawnX = spawnPos.x;
     enemy.initialSpawnY = spawnPos.y;
+    enemy.spawnSequence = ++spawnSequenceCounter;
 
     deps.enemies.push(enemy);
     const skipSpawnEffects = options.skipSpawnEffects === true;
