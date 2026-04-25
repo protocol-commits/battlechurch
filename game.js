@@ -1989,6 +1989,7 @@ const devTools = {
   showCombatDebug: false,
   showNpcZones: false,
   showSpawnDebug: false,
+  disableCameraScroll: true,
   threeLivesMode: loadDevThreeLivesMode(),
   enemyHpBarThreshold: 100,
   // Adjustable runtime tuning for NPC combat behaviour
@@ -17560,6 +17561,7 @@ function showDeveloperOverlay() {
         const defs = [
           { key: "npcZones", label: "NPC Zones", custom: true },
           { key: "spawnDebug", label: "Spawn Borders", custom: true },
+          { key: "cameraScroll", label: "Camera Scroll", custom: true },
           { key: "playerMelee", label: "Player / Melee" },
           { key: "npcs", label: "NPCs" },
           { key: "enemies", label: "Enemies" },
@@ -17578,6 +17580,8 @@ function showDeveloperOverlay() {
                 ? Boolean(devTools.showNpcZones)
                 : key === "spawnDebug"
                   ? Boolean(devTools.showSpawnDebug)
+                  : key === "cameraScroll"
+                    ? !Boolean(devTools.disableCameraScroll)
                   : false
               : Boolean(window.BattlechurchHitboxDebug?.[key]);
             button.textContent = `${label}: ${active ? "On" : "Off"}`;
@@ -17590,6 +17594,8 @@ function showDeveloperOverlay() {
                 devTools.showNpcZones = !devTools.showNpcZones;
               } else if (key === "spawnDebug") {
                 devTools.showSpawnDebug = !devTools.showSpawnDebug;
+              } else if (key === "cameraScroll") {
+                devTools.disableCameraScroll = !devTools.disableCameraScroll;
               }
             } else {
               window.BattlechurchToggleHitboxDebug?.(key);
@@ -18854,9 +18860,13 @@ function updateCameraAndVisualEffects(dt) {
   }
 
   try {
-    const desired = player.x - canvas.width / 2;
-    const clamped = Math.max(-CAMERA_SCROLL_LIMIT, Math.min(CAMERA_SCROLL_LIMIT, desired));
-    cameraOffsetX += (clamped - cameraOffsetX) * Math.min(1, dt * 8);
+    if (devTools.disableCameraScroll) {
+      cameraOffsetX = 0;
+    } else {
+      const desired = player.x - canvas.width / 2;
+      const clamped = Math.max(-CAMERA_SCROLL_LIMIT, Math.min(CAMERA_SCROLL_LIMIT, desired));
+      cameraOffsetX += (clamped - cameraOffsetX) * Math.min(1, dt * 8);
+    }
     backgroundPan.mid = backgroundPan.mid || { x: 0 };
     backgroundPan.far = backgroundPan.far || { x: 0 };
     backgroundPan.mid.x = cameraOffsetX * 0.45;
