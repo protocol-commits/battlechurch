@@ -174,8 +174,9 @@
         navCooldown = 0.18;
       }
     } else if (event.code === "Space" || event.code === "Enter" || event.keyCode === 32) {
+      // Confirm is handled in update() via Input.keysJustPressed so one key press
+      // cannot trigger both keydown + update purchases.
       event.preventDefault();
-      activateFocused();
     }
   }
 
