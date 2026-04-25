@@ -16871,7 +16871,6 @@ function checkDialogOverlays() {
     return true;
   }
   if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible()) {
-    clearGracePickups();
     clearAllPowerUps();
     Effects.clear();
 
