@@ -24708,7 +24708,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 500
+                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24716,7 +24716,7 @@ window.BattlechurchLevelData = {
                       "delays": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
-                      "allKill": true,
+                      "allKill": false,
                       "duration": 4
                     },
                     {
