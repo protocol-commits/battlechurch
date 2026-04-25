@@ -11089,6 +11089,14 @@ function splitPowerupLabel(text) {
 
 function drawPowerupIcon(context, { x, y, size, shape, color, accent, text, iconImage }) {
   if (!context) return;
+  const hasDrawableIcon = Boolean(
+    iconImage &&
+      iconImage.complete &&
+      Number.isFinite(iconImage.naturalWidth) &&
+      Number.isFinite(iconImage.naturalHeight) &&
+      iconImage.naturalWidth > 0 &&
+      iconImage.naturalHeight > 0
+  );
   const half = size / 2;
   context.save();
   context.translate(x, y);
@@ -11138,7 +11146,7 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text, icon
     context.restore();
   }
 
-  if (iconImage) {
+  if (hasDrawableIcon) {
     const iconSize = size * 0.6;
     const iconX = -iconSize / 2;
     const iconY = -iconSize / 2;
@@ -11148,7 +11156,7 @@ function drawPowerupIcon(context, { x, y, size, shape, color, accent, text, icon
     context.restore();
   }
 
-  const lines = iconImage ? [] : splitPowerupLabel(text);
+  const lines = hasDrawableIcon ? [] : splitPowerupLabel(text);
   if (lines.length) {
     const maxWidth = size * 0.82;
     let fontSize = Math.round(size * 0.22);
