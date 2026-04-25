@@ -1026,7 +1026,7 @@
     "spriteSrc": "assets/sprites/enemies/bat/bat.png",
     "assetFolder": "Bat",
     "assetBaseName": "Bat",
-    "health": 40,
+    "health": 10,
     "maxHealth": 40,
     "damage": 5,
     "speed": 80,
