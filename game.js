@@ -3691,7 +3691,7 @@ const createSpearState = () => ({
   x: 0,
   y: 0,
   angle: 0,
-  speed: 2400 * WORLD_SCALE,
+  speed: 1000 * WORLD_SCALE,
   damage: 20,
   armoredDamageMultiplier: 5.5,
   hitRadius: 18 * WORLD_SCALE,
