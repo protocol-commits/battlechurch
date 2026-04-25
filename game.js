@@ -14638,7 +14638,7 @@ function randomSpawnPosition() {
     const minX = viewMinX + horizontalMargin;
     const maxX = viewMaxX - horizontalMargin;
     const span = Math.max(0, maxX - minX);
-    const gapWidth = Math.min(span * 0.46, Math.max(220, Math.floor(width * 0.22)));
+    const gapWidth = Math.min(span * 0.62, Math.max(320, Math.floor(width * 0.32)));
     const centerX = (minX + maxX) * 0.5;
     const leftMin = minX;
     const leftMax = Math.max(leftMin, centerX - gapWidth * 0.5);

@@ -4886,6 +4886,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const rightSpawnX = viewMaxX + horizontalMargin;
     const leftGuideX = viewMinX + 2;
     const rightGuideX = viewMaxX - 2;
+    const bottomSpawnMinX = viewMinX + horizontalMargin;
+    const bottomSpawnMaxX = viewMaxX - horizontalMargin;
+    const bottomSpan = Math.max(0, bottomSpawnMaxX - bottomSpawnMinX);
+    const bottomCenterGap = Math.min(bottomSpan * 0.62, Math.max(320, Math.floor(width * 0.32)));
+    const bottomCenterX = (bottomSpawnMinX + bottomSpawnMaxX) * 0.5;
+    const bottomLeftMaxX = Math.max(bottomSpawnMinX, bottomCenterX - bottomCenterGap * 0.5);
+    const bottomRightMinX = Math.min(bottomSpawnMaxX, bottomCenterX + bottomCenterGap * 0.5);
 
     ctx.save();
     ctx.lineWidth = 2;
@@ -4917,6 +4924,59 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.lineTo(viewMaxX, sideMaxY);
     ctx.stroke();
 
+    // Bottom spawn side-lane indicators + center no-spawn zone.
+    const bottomBandHeight = Math.max(20, Math.floor(height * 0.035));
+    const bottomBandY = height - bottomBandHeight - 4;
+    ctx.setLineDash([]);
+    if (bottomLeftMaxX > bottomSpawnMinX) {
+      ctx.fillStyle = "rgba(90, 230, 140, 0.22)";
+      ctx.fillRect(bottomSpawnMinX, bottomBandY, bottomLeftMaxX - bottomSpawnMinX, bottomBandHeight);
+    }
+    if (bottomSpawnMaxX > bottomRightMinX) {
+      ctx.fillStyle = "rgba(90, 230, 140, 0.22)";
+      ctx.fillRect(bottomRightMinX, bottomBandY, bottomSpawnMaxX - bottomRightMinX, bottomBandHeight);
+    }
+    const hasBottomCenterBlockedZone = bottomRightMinX > bottomLeftMaxX;
+    if (hasBottomCenterBlockedZone) {
+      ctx.fillStyle = "rgba(255, 90, 90, 0.22)";
+      ctx.fillRect(bottomLeftMaxX, bottomBandY, bottomRightMinX - bottomLeftMaxX, bottomBandHeight);
+    }
+
+    // Keep center deadzone cues local to the bottom lane area (not full-height).
+    ctx.strokeStyle = "rgba(255, 90, 90, 0.9)";
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(bottomLeftMaxX, bottomBandY - 10);
+    ctx.lineTo(bottomLeftMaxX, height);
+    ctx.moveTo(bottomRightMinX, bottomBandY - 10);
+    ctx.lineTo(bottomRightMinX, height);
+    ctx.stroke();
+
+    // Optional hatch pattern to make the blocked center lane obvious.
+    if (hasBottomCenterBlockedZone) {
+      const blockW = bottomRightMinX - bottomLeftMaxX;
+      const hatchStep = 12;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(bottomLeftMaxX, bottomBandY, blockW, bottomBandHeight);
+      ctx.clip();
+      ctx.strokeStyle = "rgba(255, 120, 120, 0.7)";
+      ctx.setLineDash([]);
+      ctx.lineWidth = 1.2;
+      for (let x = bottomLeftMaxX - bottomBandHeight; x <= bottomRightMinX + bottomBandHeight; x += hatchStep) {
+        ctx.beginPath();
+        ctx.moveTo(x, bottomBandY + bottomBandHeight);
+        ctx.lineTo(x + bottomBandHeight, bottomBandY);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = "rgba(255, 210, 210, 0.95)";
+      ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("NO SPAWN ZONE", (bottomLeftMaxX + bottomRightMinX) * 0.5, bottomBandY + bottomBandHeight * 0.5);
+    }
+
     // Visible in-viewport markers for offscreen vertical spawn guides.
     ctx.strokeStyle = "rgba(255, 170, 70, 0.95)";
     ctx.setLineDash([4, 6]);
@@ -4937,6 +4997,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillText("SPAWN LANE", viewMinX + 8, Math.max(2, bottomCutoff + 4));
     ctx.fillStyle = "rgba(255, 170, 70, 0.95)";
     ctx.fillText(`SIDE SPAWN: ${horizontalMargin}px OFFSCREEN`, viewMinX + 8, Math.max(2, bottomCutoff + 22));
+    ctx.fillStyle = "rgba(90, 230, 140, 0.95)";
+    ctx.fillText("BOTTOM SPAWN ALLOWED (LEFT/RIGHT)", viewMinX + 8, Math.max(2, bottomCutoff + 40));
+    ctx.fillStyle = "rgba(255, 90, 90, 0.95)";
+    ctx.fillText("BOTTOM CENTER BLOCKED", viewMinX + 8, Math.max(2, bottomCutoff + 58));
 
     const points = getEnemySpawnPoints?.();
     if (points && points.length) {

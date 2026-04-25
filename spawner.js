@@ -72,7 +72,7 @@
     const playableMinX = viewport.minX + radius + 24;
     const playableMaxX = viewport.maxX - radius - 24;
     const playableSpan = Math.max(0, playableMaxX - playableMinX);
-    const bottomCenterGap = Math.min(playableSpan * 0.46, Math.max(220, Math.floor(width * 0.22)));
+    const bottomCenterGap = Math.min(playableSpan * 0.62, Math.max(320, Math.floor(width * 0.32)));
     const centerX = (playableMinX + playableMaxX) * 0.5;
     const bottomLeftMaxX = Math.max(playableMinX, centerX - bottomCenterGap * 0.5);
     const bottomRightMinX = Math.min(playableMaxX, centerX + bottomCenterGap * 0.5);
