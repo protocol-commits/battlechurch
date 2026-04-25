@@ -1991,7 +1991,7 @@ const devTools = {
   threeLivesMode: loadDevThreeLivesMode(),
   enemyHpBarThreshold: 100,
   // Adjustable runtime tuning for NPC combat behaviour
-  npcFireCooldown: 1.2, // seconds between NPC arrow shots when at full faith
+  npcFireCooldown: 0.6, // seconds between NPC arrow shots when at full faith
   npcFaithPerEnemy: 0, // faith gained by NPCs per enemy defeated
 };
 function getConfiguredHeroLives() {
