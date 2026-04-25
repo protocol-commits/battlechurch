@@ -819,6 +819,7 @@
       breakPreviewWaveNum: null,
       lastWaveTransitionCueNum: 0,
       waveSpawnEpoch: 0,
+      queuedWaveIntroIndices: new Set(),
     };
 
     function resetStage(stage, duration = 0) {
@@ -906,6 +907,31 @@
       };
     }
 
+    function queueWaveIntroAnnouncementForWave(waveDef, waveIndex, holdDuration, options = {}) {
+      const introText = waveDef?.waveIntroText || "";
+      if (!introText) return false;
+      const normalizedWaveIndex = Number.isFinite(waveIndex) ? Math.max(0, Math.floor(waveIndex)) : -1;
+      if (normalizedWaveIndex >= 0 && state.queuedWaveIntroIndices.has(normalizedWaveIndex)) {
+        return false;
+      }
+      queueLevelAnnouncement(
+        introText,
+        "",
+        {
+          ...getWaveIntroAnnouncementOptions(holdDuration, {
+            transitionDelayConsumed: Boolean(options.transitionDelayConsumed),
+          }),
+          ...(typeof options.eyebrowText === "string" && options.eyebrowText.trim().length
+            ? { eyebrowText: options.eyebrowText.trim() }
+            : {}),
+        },
+      );
+      if (normalizedWaveIndex >= 0) {
+        state.queuedWaveIntroIndices.add(normalizedWaveIndex);
+      }
+      return true;
+    }
+
     function hasActiveOpponents(includeBoss = true) {
       const activeEnemies = enemies.some((enemy) => !enemy.dead && enemy.state !== "death");
       const bossAlive =
@@ -940,6 +966,7 @@
       state.pendingBossAfterFinalWave = false;
       state.pendingGraceRushAfterFinalWave = false;
       state.lastWaveTransitionCueNum = 0;
+      state.queuedWaveIntroIndices.clear();
       state.lastClearedWasBoss = false;
   const skipIntroAnnouncement =
     Boolean(options && options.skipIntroAnnouncement) ||
@@ -981,6 +1008,7 @@
       state.monthIndex += 1;
       state.waveIndex = -1;
       state.lastWaveTransitionCueNum = 0;
+      state.queuedWaveIntroIndices.clear();
       state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
       state.battleMaxCombo = 0;
       state.battlePrayerBombContributions = [];
@@ -1340,6 +1368,7 @@
       state.waitingForCongregation = true;
       state.npcRushActive = false;
       state.npcRushTimer = 0;
+      state.queuedWaveIntroIndices.clear();
       state.currentBattleScenario = "";
       state.currentBossTheme = "";
       buildCongregationMembers();
@@ -1386,14 +1415,10 @@
       const introDuration = waveNumber === 1 ? FIRST_WAVE_INTRO_DURATION : WAVE_INTRO_DURATION;
       resetStage("waveIntro", introDuration);
       if (waveNumber === 1) {
-        const introText = state.activeWave?.waveIntroText || "";
-        if (introText) {
-          queueLevelAnnouncement(introText, "", {
-            duration: introDuration,
-            skipMissionBrief: true,
-            eyebrowText: state.currentBattleScenario || "",
-          });
-        }
+        queueWaveIntroAnnouncementForWave(state.activeWave, state.waveIndex, introDuration, {
+          transitionDelayConsumed: false,
+          eyebrowText: state.currentBattleScenario || "",
+        });
         const spawnDelay = Math.max(0, introDuration - ANNOUNCEMENT_FADE_DURATION);
         if (typeof setTimeoutFn === "function") {
           setTimeoutFn(() => {
@@ -1407,6 +1432,9 @@
           spawnPowerUpDrops();
         }
       } else {
+        queueWaveIntroAnnouncementForWave(state.activeWave, state.waveIndex, introDuration, {
+          transitionDelayConsumed: false,
+        });
         state.powerUpsEnabled = true;
       }
       const waveLabel = `${state.monthIndex + 1}-${state.waveIndex + 1}`;
@@ -1532,10 +1560,11 @@
                 setTimeoutFn(() => {
                   if (state.stage !== "allKillBreak") return;
                   playWaveTransitionCue(nextActualWaveNumber);
-                  queueLevelAnnouncement(
-                    nextWaveIntroText,
-                    "",
-                    getWaveIntroAnnouncementOptions(holdDuration, { transitionDelayConsumed: true }),
+                  queueWaveIntroAnnouncementForWave(
+                    nextHorde,
+                    state.waveIndex + 1,
+                    holdDuration,
+                    { transitionDelayConsumed: true },
                   );
                 }, postTransitionDelayMs);
               }, delayMs);
@@ -1544,10 +1573,11 @@
                 ? nextActualWaveNumber
                 : null;
               playWaveTransitionCue(nextActualWaveNumber);
-              queueLevelAnnouncement(
-                nextWaveIntroText,
-                "",
-                getWaveIntroAnnouncementOptions(holdDuration, { transitionDelayConsumed: false }),
+              queueWaveIntroAnnouncementForWave(
+                nextHorde,
+                state.waveIndex + 1,
+                holdDuration,
+                { transitionDelayConsumed: false },
               );
             }
           }
@@ -1871,6 +1901,7 @@ state.waveIndex = -1;
         state.pendingBossRestore = false;
         state.npcRushActive = false;
         state.npcRushTimer = 0;
+        state.queuedWaveIntroIndices.clear();
         state.lastClearedWasBoss = false;
         state.battleEnemiesStart = 0;
         state.battleMaxCombo = 0;
@@ -2354,11 +2385,9 @@ state.waveIndex = -1;
         if (nextWaveIntroText) {
           const waveNumber = state.waveIndex + 1;
           const introDuration = waveNumber === 1 ? FIRST_WAVE_INTRO_DURATION : WAVE_INTRO_DURATION;
-          queueLevelAnnouncement(
-            nextWaveIntroText,
-            "",
-            getWaveIntroAnnouncementOptions(introDuration, { transitionDelayConsumed: false }),
-          );
+          queueWaveIntroAnnouncementForWave(state.activeWave, state.waveIndex, introDuration, {
+            transitionDelayConsumed: false,
+          });
         }
         state.timer = Math.max(0, Number(state.timer) || 0);
         return {
