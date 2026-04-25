@@ -1635,17 +1635,6 @@
         duration: 2.6,
         skipMissionBrief: true,
       });
-      const lastPos = typeof deps.getLastEnemyDeathPosition === "function"
-        ? deps.getLastEnemyDeathPosition()
-        : null;
-      if (typeof deps.spawnVictoryGraceBurst === "function") {
-        deps.spawnVictoryGraceBurst({
-          reason: "battle",
-          amount: 36,
-          centerX: lastPos?.x,
-          centerY: lastPos?.y,
-        });
-      }
     }
 
     function handleBattleComplete() {

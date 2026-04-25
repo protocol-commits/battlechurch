@@ -183,7 +183,7 @@
 
   // Per-level purchase costs for church powerups.
   // All levels use the same flat purchase cost.
-  const CHURCH_LEVEL_COSTS = [50, 50, 50, 50, 50, 50, 50, 50, 50, 50];
+  const CHURCH_LEVEL_COSTS = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100];
 
   const churchPowerupDefs = {
     spreadGun: {
