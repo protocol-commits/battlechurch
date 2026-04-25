@@ -769,7 +769,10 @@ window.BattlechurchLevelData = {
                   ]
                 }
               ],
-              "editorNotes": "1.1.1 Just two generic enemies as an intro"
+              "editorNotes": "1.1.1 Just two generic enemies as an intro",
+              "assumedChurchPowerupLevels": {
+                "spreadGun": 2
+              }
             },
             {
               "index": 3,
@@ -1160,7 +1163,10 @@ window.BattlechurchLevelData = {
                   ]
                 }
               ],
-              "editorNotes": "High Demon at end"
+              "editorNotes": "High Demon at end",
+              "assumedChurchPowerupLevels": {
+                "spreadGun": 4
+              }
             }
           ]
         },

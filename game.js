@@ -4176,6 +4176,7 @@ let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
 let activeCampaignMultiplier = 1.0; // 1.0 | 1.15 | 1.1
 let cloudInitAttempted = false;
 let pendingDevBattleStartOverride = null; // { townId, localBattleNumber }
+let pendingDevCampaignDataOverride = null; // { townId, campaignData }
 let devPlaytestLaunchInProgress = false;
 let devPlaytestSession = {
   active: false,
@@ -4273,6 +4274,7 @@ function returnFromDevPlaytestToEditor() {
   pendingTownIntroStart = false;
   suppressInitialAnnouncements = false;
   pendingDevBattleStartOverride = null;
+  pendingDevCampaignDataOverride = null;
   pendingBossIntroAfterExterior = false;
   pendingExteriorShotAfterVisitor = false;
   paused = true;
@@ -7022,8 +7024,17 @@ function startGameFromTitle() {
       titleDemoSaveOverride && titleDemoSaveOverride.townId === activeTownId
         ? titleDemoSaveOverride.campaignData
         : null;
+    const devCampaignDataOverride =
+      pendingDevCampaignDataOverride && pendingDevCampaignDataOverride.townId === activeTownId
+        ? pendingDevCampaignDataOverride.campaignData
+        : null;
     setDemoSandboxRunActive(Boolean(overrideCampaignData));
-    const campaignData = overrideCampaignData || window.MapScreen.getTownCampaignData(activeTownId);
+    const baseCampaignData = window.MapScreen.getTownCampaignData(activeTownId);
+    const campaignData = overrideCampaignData
+      ? overrideCampaignData
+      : devCampaignDataOverride
+        ? { ...baseCampaignData, ...devCampaignDataOverride }
+        : baseCampaignData;
     activeCampaign = campaignData?.campaign || "p1";
     activeCampaignMultiplier = Number.isFinite(campaignData?.campaignMultiplier) ? campaignData.campaignMultiplier : 1.0;
     if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
@@ -7061,6 +7072,9 @@ function startGameFromTitle() {
     resetChurchPowerups();
   }
   titleDemoSaveOverride = null;
+  if (pendingDevCampaignDataOverride?.townId === activeTownId) {
+    pendingDevCampaignDataOverride = null;
+  }
   // Apply denominational upgrade powerups (free picks granted before County 2/3/4 towns)
   const _denomPowerups = typeof window !== "undefined" ? window.pendingDenomPowerups : null;
   if (Array.isArray(_denomPowerups) && _denomPowerups.length > 0) {
@@ -7105,6 +7119,7 @@ function startGameFromTitle() {
 function startRunForTown(townId) {
   if (!devPlaytestLaunchInProgress) {
     setDevPlaytestSession(false, null);
+    pendingDevCampaignDataOverride = null;
   }
   devPlaytestLaunchInProgress = false;
   activeTownId = townId || null;
@@ -7124,6 +7139,58 @@ function startDevLevelTestFromEditor({
   mission = 1,
   battle = 1,
 } = {}) {
+  pendingDevCampaignDataOverride = null;
+  const getDevEditorAssumedPowerups = ({ townNum, missionNum, battleNum }) => {
+    const cfg =
+      (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
+      (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
+    if (!cfg || typeof cfg !== "object") return {};
+    const townList = Array.isArray(cfg?.towns)
+      ? cfg.towns
+      : Array.isArray(cfg?.levels)
+        ? cfg.levels
+        : [];
+    const townCfg =
+      townList.find((entry) => Number(entry?.index) === townNum) || townList[townNum - 1] || null;
+    const battleList = Array.isArray(townCfg?.battles)
+      ? townCfg.battles
+      : Array.isArray(townCfg?.months)
+        ? townCfg.months
+        : [];
+    const battleCfg =
+      battleList.find((entry) => Number(entry?.index) === missionNum) ||
+      battleList[missionNum - 1] ||
+      null;
+    const missionList = Array.isArray(battleCfg?.missions)
+      ? battleCfg.missions
+      : Array.isArray(battleCfg?.battles)
+        ? battleCfg.battles
+        : [];
+    const missionCfg =
+      missionList.find((entry) => Number(entry?.index) === battleNum) ||
+      missionList[battleNum - 1] ||
+      null;
+    const assumedLevels = missionCfg?.assumedChurchPowerupLevels;
+    if (!assumedLevels || typeof assumedLevels !== "object" || Array.isArray(assumedLevels)) {
+      return {};
+    }
+    const defs =
+      (typeof window !== "undefined" && window.BattlechurchPowerupDefinitions?.churchPowerupDefs) ||
+      {};
+    const hasKnownDefs = Object.keys(defs).length > 0;
+    const maxLevel = Number.isFinite(CHURCH_POWERUP_MAX_LEVEL)
+      ? CHURCH_POWERUP_MAX_LEVEL
+      : 10;
+    const sanitized = {};
+    for (const [key, value] of Object.entries(assumedLevels)) {
+      if (hasKnownDefs && !defs[key]) continue;
+      if (defs[key]?.disabled) continue;
+      const level = Math.max(0, Math.min(maxLevel, Math.floor(Number(value) || 0)));
+      if (level > 0) sanitized[key] = level;
+    }
+    return sanitized;
+  };
+
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const towns = Array.isArray(mapData?.towns) ? mapData.towns : [];
   if (!towns.length) {
@@ -7141,6 +7208,17 @@ function startDevLevelTestFromEditor({
   }
   const missionNumber = Math.max(1, Math.floor(Number(mission) || 1));
   const battleNumber = Math.max(1, Math.floor(Number(battle) || 1));
+  const assumedPowerupLevels = getDevEditorAssumedPowerups({
+    townNum: townNumber,
+    missionNum: missionNumber,
+    battleNum: battleNumber,
+  });
+  pendingDevCampaignDataOverride = {
+    townId,
+    campaignData: {
+      restoredChurchPowerupLevels: assumedPowerupLevels,
+    },
+  };
   setDevPlaytestSession(true, {
     town: townNumber,
     mission: missionNumber,

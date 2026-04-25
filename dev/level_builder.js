@@ -289,6 +289,7 @@
   }
 
   const THUMB_SIZE = 26;
+  const ASSUMED_UPGRADE_MAX_LEVEL = 10;
   const thumbAnimState = { items: [], rafId: null, lastTime: 0 };
   const manifestThumbImages = new Map();
   const thumbImageListeners = new WeakSet();
@@ -350,6 +351,7 @@
       const wavesPerMission = state.config.structure.defaultWavesPerMission || 3;
       battleObj.missions.push({
         index: idx,
+        assumedChurchPowerupLevels: {},
         waves: Array.from({ length: wavesPerMission }, (_, i) => makeDefaultWave(i + 1)),
       });
     }
@@ -452,6 +454,45 @@
       #levelBuilderOverlay .lb-topbar label { margin:0 6px 0 0; }
       #levelBuilderOverlay .lb-topbar select, #levelBuilderOverlay .lb-topbar input
         { width:auto; min-width:72px; margin:0; }
+      #levelBuilderOverlay .lb-topbar--secondary { margin-top:8px; }
+      #levelBuilderOverlay .lb-topbar--secondary .group { align-items:center; width:100%; }
+      #levelBuilderOverlay .lb-upgrades-label {
+        font-size:11px;
+        color: var(--lb-title);
+        white-space: nowrap;
+        margin-right: 2px;
+      }
+      #levelBuilderOverlay .lb-upgrade-grid {
+        display:flex;
+        align-items:center;
+        gap:6px;
+        overflow-x:auto;
+        padding-bottom:2px;
+        flex:1;
+        min-height:30px;
+      }
+      #levelBuilderOverlay .lb-upgrade-pill {
+        display:inline-flex;
+        align-items:center;
+        gap:5px;
+        background:rgba(255, 188, 102, 0.1);
+        border:1px solid rgba(255, 206, 135, 0.34);
+        border-radius:999px;
+        padding:4px 7px;
+        white-space:nowrap;
+      }
+      #levelBuilderOverlay .lb-upgrade-pill span {
+        font-size:10px;
+        color:#ffe6b6;
+      }
+      #levelBuilderOverlay .lb-upgrade-pill input[type=number] {
+        width:44px;
+        min-width:44px;
+        padding:2px 4px;
+        margin:0;
+        font-size:11px;
+        text-align:center;
+      }
       #levelBuilderOverlay button {
         background: var(--lb-button-bg);
         color: var(--lb-button-text);
@@ -618,6 +659,13 @@
             >
           </div>
         </div>
+        <div class="lb-topbar lb-topbar--secondary">
+          <div class="group">
+            <span class="lb-upgrades-label">Assumed Upgrades</span>
+            <div id="lb-assumedUpgrades" class="lb-upgrade-grid"></div>
+            <button id="lb-clearAssumedUpgrades" class="secondary" type="button">Reset Upgrades</button>
+          </div>
+        </div>
         <div id="lb-status" style="margin-top:8px;font-size:12px;color:var(--lb-hint);"></div>
       </div>
       <div class="panel" id="lb-mainPanel">
@@ -637,6 +685,8 @@
     undo:        overlay.querySelector("#lb-undo"),
     playtest:    overlay.querySelector("#lb-playtest"),
     battleNotes: overlay.querySelector("#lb-battleNotes"),
+    assumedUpgrades: overlay.querySelector("#lb-assumedUpgrades"),
+    clearAssumedUpgrades: overlay.querySelector("#lb-clearAssumedUpgrades"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
     copyMenuWrap: overlay.querySelector("#lb-copyMenuWrap"),
@@ -728,6 +778,7 @@
         missionObj.editorNotes = els.battleNotes.value;
       }
     }
+    renderAssumedUpgradeInputs(missionObj);
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
     const enemyKeys = Object.keys(catalog);
     const filterOptions = buildEnemyFilterOptions(catalog);
@@ -1099,6 +1150,93 @@
       closeMenus();
     };
     initThumbAnimations();
+  }
+
+  function getChurchPowerupDefs() {
+    const defs =
+      (typeof window !== "undefined" &&
+        window.BattlechurchPowerupDefinitions?.churchPowerupDefs) ||
+      {};
+    return defs && typeof defs === "object" ? defs : {};
+  }
+
+  function getPowerupLabel(key, def) {
+    const display = String(def?.displayName || "").trim();
+    if (display) return display;
+    return String(key || "")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/^./, (s) => s.toUpperCase())
+      .trim();
+  }
+
+  function clampAssumedUpgradeLevel(value) {
+    const parsed = Math.floor(Number(value) || 0);
+    return Math.max(0, Math.min(ASSUMED_UPGRADE_MAX_LEVEL, parsed));
+  }
+
+  function getMissionAssumedLevels(missionObj) {
+    const raw = missionObj?.assumedChurchPowerupLevels;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    return raw;
+  }
+
+  function setMissionAssumedLevel(missionObj, powerupKey, level) {
+    const nextLevel = clampAssumedUpgradeLevel(level);
+    const current =
+      missionObj?.assumedChurchPowerupLevels &&
+      typeof missionObj.assumedChurchPowerupLevels === "object" &&
+      !Array.isArray(missionObj.assumedChurchPowerupLevels)
+        ? missionObj.assumedChurchPowerupLevels
+        : {};
+    if (nextLevel > 0) current[powerupKey] = nextLevel;
+    else delete current[powerupKey];
+    if (Object.keys(current).length) missionObj.assumedChurchPowerupLevels = current;
+    else delete missionObj.assumedChurchPowerupLevels;
+  }
+
+  function renderAssumedUpgradeInputs(missionObj) {
+    if (!els?.assumedUpgrades) return;
+    const defs = getChurchPowerupDefs();
+    const powerupKeys = Object.keys(defs)
+      .filter((key) => !defs[key]?.disabled)
+      .sort((a, b) => getPowerupLabel(a, defs[a]).localeCompare(getPowerupLabel(b, defs[b])));
+    const assumed = getMissionAssumedLevels(missionObj);
+    els.assumedUpgrades.innerHTML = "";
+    if (!powerupKeys.length) {
+      const empty = document.createElement("span");
+      empty.style.cssText = "font-size:10px;opacity:0.72;white-space:nowrap;";
+      empty.textContent = "No church powerup definitions found.";
+      els.assumedUpgrades.appendChild(empty);
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    powerupKeys.forEach((key) => {
+      const def = defs[key] || {};
+      const pill = document.createElement("label");
+      pill.className = "lb-upgrade-pill";
+      const name = document.createElement("span");
+      name.textContent = getPowerupLabel(key, def);
+      name.title = key;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.max = String(ASSUMED_UPGRADE_MAX_LEVEL);
+      input.step = "1";
+      input.value = String(clampAssumedUpgradeLevel(assumed[key] || 0));
+      input.addEventListener("change", () => {
+        const nextLevel = clampAssumedUpgradeLevel(input.value);
+        input.value = String(nextLevel);
+        const currentLevel = clampAssumedUpgradeLevel(assumed[key] || 0);
+        if (nextLevel === currentLevel) return;
+        pushUndoSnapshot();
+        setMissionAssumedLevel(missionObj, key, nextLevel);
+        saveToStorage(state.config);
+      });
+      pill.appendChild(name);
+      pill.appendChild(input);
+      fragment.appendChild(pill);
+    });
+    els.assumedUpgrades.appendChild(fragment);
   }
 
   function inferFrameSizeForManifestEntry(entry, image, key) {
@@ -1574,6 +1712,18 @@
         pushUndoSnapshot();
         missionObj.editorNotes = nextValue;
         saveToStorage(state.config);
+      });
+    }
+    if (els.clearAssumedUpgrades) {
+      els.clearAssumedUpgrades.addEventListener("click", () => {
+        const { missionObj } = getOrCreateMission();
+        const existing = getMissionAssumedLevels(missionObj);
+        if (!Object.keys(existing).length) return;
+        pushUndoSnapshot();
+        delete missionObj.assumedChurchPowerupLevels;
+        saveToStorage(state.config);
+        renderAssumedUpgradeInputs(missionObj);
+        setStatus("Cleared assumed upgrades for this battle");
       });
     }
 
