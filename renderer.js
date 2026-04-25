@@ -4862,11 +4862,80 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawSpawnPointDebug(ctx) {
-    const { SHOW_ENEMY_SPAWN_DEBUG, getEnemySpawnPoints } = requireBindings();
+    const {
+      SHOW_ENEMY_SPAWN_DEBUG,
+      getEnemySpawnPoints,
+      canvas,
+      HUD_HEIGHT = 0,
+      cameraOffsetX = 0,
+      UI_FONT_FAMILY = "sans-serif",
+    } = requireBindings();
     if (!SHOW_ENEMY_SPAWN_DEBUG) return;
+    if (!canvas) return;
+    const width = canvas.width || 0;
+    const height = canvas.height || 0;
+    const viewMinX = Number.isFinite(cameraOffsetX) ? cameraOffsetX : 0;
+    const viewMaxX = viewMinX + width;
+    const horizontalMargin = Math.max(120, Math.floor(width * 0.12));
+    const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
+    const sideMaxY = height - Math.max(32, Math.floor(height * 0.1));
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 8]);
+
+    // Viewport bounds (what should be visible).
+    ctx.strokeStyle = "rgba(80, 220, 255, 0.95)";
+    ctx.beginPath();
+    ctx.moveTo(viewMinX, 0);
+    ctx.lineTo(viewMinX, height);
+    ctx.moveTo(viewMaxX, 0);
+    ctx.lineTo(viewMaxX, height);
+    ctx.moveTo(viewMinX, HUD_HEIGHT);
+    ctx.lineTo(viewMaxX, HUD_HEIGHT);
+    ctx.moveTo(viewMinX, height);
+    ctx.lineTo(viewMaxX, height);
+    ctx.stroke();
+
+    // Spawn lane guide (randomSpawnPosition side/bottom region).
+    ctx.strokeStyle = "rgba(255, 90, 210, 0.92)";
+    ctx.beginPath();
+    ctx.moveTo(viewMinX - horizontalMargin, bottomCutoff);
+    ctx.lineTo(viewMinX - horizontalMargin, sideMaxY);
+    ctx.moveTo(viewMaxX + horizontalMargin, bottomCutoff);
+    ctx.lineTo(viewMaxX + horizontalMargin, sideMaxY);
+    ctx.moveTo(viewMinX, bottomCutoff);
+    ctx.lineTo(viewMaxX, bottomCutoff);
+    ctx.moveTo(viewMinX, sideMaxY);
+    ctx.lineTo(viewMaxX, sideMaxY);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(80, 220, 255, 0.95)";
+    ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText("VIEWPORT", viewMinX + 8, Math.max(2, HUD_HEIGHT + 4));
+    ctx.fillStyle = "rgba(255, 90, 210, 0.95)";
+    ctx.fillText("SPAWN LANE", viewMinX + 8, Math.max(2, bottomCutoff + 4));
+
     const points = getEnemySpawnPoints?.();
-    if (!points || !points.length) return;
-    // intentionally disabled – dev spawn markers removed per request
+    if (points && points.length) {
+      ctx.fillStyle = "rgba(255, 235, 140, 0.95)";
+      ctx.strokeStyle = "rgba(255, 235, 140, 0.95)";
+      ctx.lineWidth = 1.5;
+      points.forEach((point) => {
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
+        ctx.stroke();
+        const label = String(point.label || "");
+        if (label) {
+          ctx.fillText(label, point.x + 10, point.y - 6);
+        }
+      });
+    }
+    ctx.restore();
   }
 
   function getEnemyWeaponHitboxRect(enemy) {

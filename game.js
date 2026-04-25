@@ -4394,7 +4394,7 @@ const aimAssist = {
   vertices: null,
   targetKind: null,
 };
-const SHOW_ENEMY_SPAWN_DEBUG = false;
+const SHOW_ENEMY_SPAWN_DEBUG = true;
 
 function toggleHudHitboxDebug(key) {
   if (typeof window === "undefined" || !window.BattlechurchHitboxDebug) return false;
