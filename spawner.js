@@ -69,6 +69,13 @@
     const playHeight = height - hud;
     const sideOffscreenX = Math.max(radius + 140, Math.floor(width * 0.24), 320);
     const sideRadiusPadding = Math.max(8, radius);
+    const playableMinX = viewport.minX + radius + 24;
+    const playableMaxX = viewport.maxX - radius - 24;
+    const playableSpan = Math.max(0, playableMaxX - playableMinX);
+    const bottomCenterGap = Math.min(playableSpan * 0.46, Math.max(220, Math.floor(width * 0.22)));
+    const centerX = (playableMinX + playableMaxX) * 0.5;
+    const bottomLeftMaxX = Math.max(playableMinX, centerX - bottomCenterGap * 0.5);
+    const bottomRightMinX = Math.min(playableMaxX, centerX + bottomCenterGap * 0.5);
     return {
       width,
       height,
@@ -83,7 +90,27 @@
       sideMaxY: height - Math.max(radius + 24, Math.floor(height * 0.1)),
       viewportMinX: viewport.minX,
       viewportMaxX: viewport.maxX,
+      bottomLeftMinX: playableMinX,
+      bottomLeftMaxX,
+      bottomRightMinX,
+      bottomRightMaxX: playableMaxX,
     };
+  }
+
+  function pickBottomSideLaneX(bounds, laneCount = 3, jitter = 42) {
+    const leftMin = Number.isFinite(bounds?.bottomLeftMinX) ? bounds.bottomLeftMinX : 0;
+    const leftMax = Number.isFinite(bounds?.bottomLeftMaxX) ? bounds.bottomLeftMaxX : leftMin;
+    const rightMin = Number.isFinite(bounds?.bottomRightMinX) ? bounds.bottomRightMinX : leftMax;
+    const rightMax = Number.isFinite(bounds?.bottomRightMaxX) ? bounds.bottomRightMaxX : rightMin;
+    const canLeft = leftMax > leftMin;
+    const canRight = rightMax > rightMin;
+    if (!canLeft && !canRight) {
+      return Math.max(leftMin, Math.min(rightMax, (leftMin + rightMax) * 0.5));
+    }
+    const useLeft = canLeft && (!canRight || Math.random() < 0.5);
+    return useLeft
+      ? pickSpawnLane(leftMin, leftMax, laneCount, jitter)
+      : pickSpawnLane(rightMin, rightMax, laneCount, jitter);
   }
 
   function pickSpawnLane(min, max, laneCount = 4, jitter = 0) {
@@ -131,10 +158,27 @@
       clamped.y = Math.max(bounds.sideMinY, Math.min(bounds.sideMaxY, clamped.y));
     } else {
       clamped.y = Math.max(clamped.y, bounds.bottomMinY);
-      clamped.x = Math.max(
-        bounds.viewportMinX + radius + 24,
-        Math.min(bounds.viewportMaxX - radius - 24, clamped.x),
-      );
+      const leftMin = bounds.bottomLeftMinX;
+      const leftMax = bounds.bottomLeftMaxX;
+      const rightMin = bounds.bottomRightMinX;
+      const rightMax = bounds.bottomRightMaxX;
+      const canLeft = leftMax > leftMin;
+      const canRight = rightMax > rightMin;
+      if (canLeft || canRight) {
+        const distToLeft = Math.abs(clamped.x - leftMax);
+        const distToRight = Math.abs(clamped.x - rightMin);
+        const chooseLeft = canLeft && (!canRight || distToLeft <= distToRight);
+        if (chooseLeft) {
+          clamped.x = Math.max(leftMin, Math.min(leftMax, clamped.x));
+        } else {
+          clamped.x = Math.max(rightMin, Math.min(rightMax, clamped.x));
+        }
+      } else {
+        clamped.x = Math.max(
+          bounds.viewportMinX + radius + 24,
+          Math.min(bounds.viewportMaxX - radius - 24, clamped.x),
+        );
+      }
     }
     return clamped;
   }
@@ -155,7 +199,7 @@
       };
     }
     return {
-      x: pickSpawnLane(minX + radius + 48, maxX - radius - 48, 5, 56),
+      x: pickBottomSideLaneX(bounds, 3, 42),
       y: height + marginY,
       __spawnEdge: "bottom",
     };

@@ -14634,6 +14634,24 @@ function randomSpawnPosition() {
     HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3) - 150,
   );
   const sideMaxY = height - Math.max(32, Math.floor(height * 0.1));
+  const pickBottomSideX = () => {
+    const minX = viewMinX + horizontalMargin;
+    const maxX = viewMaxX - horizontalMargin;
+    const span = Math.max(0, maxX - minX);
+    const gapWidth = Math.min(span * 0.46, Math.max(220, Math.floor(width * 0.22)));
+    const centerX = (minX + maxX) * 0.5;
+    const leftMin = minX;
+    const leftMax = Math.max(leftMin, centerX - gapWidth * 0.5);
+    const rightMin = Math.min(maxX, centerX + gapWidth * 0.5);
+    const rightMax = maxX;
+    const canLeft = leftMax > leftMin;
+    const canRight = rightMax > rightMin;
+    if (!canLeft && !canRight) return (minX + maxX) * 0.5;
+    const useLeft = canLeft && (!canRight || Math.random() < 0.5);
+    return useLeft
+      ? pickLane(leftMin, leftMax, 3, 42)
+      : pickLane(rightMin, rightMax, 3, 42);
+  };
   const pickLane = (min, max, laneCount = 4, jitter = 0) => {
     if (max <= min) return min;
     const count = Math.max(1, Math.round(laneCount));
@@ -14661,7 +14679,7 @@ function randomSpawnPosition() {
     };
   }
   return {
-    x: pickLane(viewMinX + horizontalMargin, viewMaxX - horizontalMargin, 5, 56),
+    x: pickBottomSideX(),
     y: height + verticalMargin,
     __spawnEdge: "bottom",
   };
