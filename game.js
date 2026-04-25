@@ -5265,6 +5265,7 @@ if (typeof window !== "undefined") {
     miniImpMinGroupsPerHorde: MINI_IMP_MIN_GROUPS_PER_HORDE,
     enemySpawnStaggerMs: ENEMY_GROUP_SPAWN_STAGGER_MS,
     worldScale: WORLD_SCALE,
+    getCameraOffsetX: () => cameraOffsetX,
   });
 
 const spawnEnemyOfType = Spawner.spawnEnemyOfType;
@@ -14622,6 +14623,9 @@ function getEnemySpawnPoints() {
 function randomSpawnPosition() {
   const width = canvas.width;
   const height = canvas.height;
+  const viewOffsetX = Number.isFinite(cameraOffsetX) ? cameraOffsetX : 0;
+  const viewMinX = viewOffsetX;
+  const viewMaxX = viewOffsetX + width;
   const horizontalMargin = Math.max(120, Math.floor(width * 0.12));
   const verticalMargin = Math.max(100, Math.floor(height * 0.12));
   const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
@@ -14639,7 +14643,7 @@ function randomSpawnPosition() {
   if (edge === 0) {
     // left wall
     return {
-      x: -horizontalMargin,
+      x: viewMinX - horizontalMargin,
       y: pickLane(bottomCutoff, sideMaxY, 4, 42),
       __spawnEdge: "left",
     };
@@ -14647,13 +14651,13 @@ function randomSpawnPosition() {
   if (edge === 1) {
     // right wall
     return {
-      x: width + horizontalMargin,
+      x: viewMaxX + horizontalMargin,
       y: pickLane(bottomCutoff, sideMaxY, 4, 42),
       __spawnEdge: "right",
     };
   }
   return {
-    x: pickLane(horizontalMargin, width - horizontalMargin, 5, 56),
+    x: pickLane(viewMinX + horizontalMargin, viewMaxX - horizontalMargin, 5, 56),
     y: height + verticalMargin,
     __spawnEdge: "bottom",
   };

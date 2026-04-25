@@ -31,6 +31,7 @@
     enemySpawnStaggerMs: 80,
     worldScale: 1,
     miniImpSpread: 10, /* How tight a miniimp formation is */
+    getCameraOffsetX: () => 0,
   };
 
   let miniSpawnedThisLevel = false;
@@ -50,19 +51,35 @@
     }
   }
 
+  function getViewportXBounds() {
+    const { width } = getCanvasSize();
+    const offsetX =
+      typeof deps.getCameraOffsetX === "function" && Number.isFinite(deps.getCameraOffsetX())
+        ? deps.getCameraOffsetX()
+        : 0;
+    return {
+      minX: offsetX,
+      maxX: offsetX + width,
+      width,
+    };
+  }
+
   function getSpawnIngressBounds(radius = 0) {
     const { width, height } = getCanvasSize();
+    const viewport = getViewportXBounds();
     const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
     const playHeight = height - hud;
     return {
       width,
       height,
       hud,
-      leftMaxX: Math.max(radius + 28, Math.floor(width * 0.08)),
-      rightMinX: width - Math.max(radius + 28, Math.floor(width * 0.08)),
+      leftMaxX: viewport.minX + Math.max(radius + 28, Math.floor(width * 0.08)),
+      rightMinX: viewport.maxX - Math.max(radius + 28, Math.floor(width * 0.08)),
       bottomMinY: height - Math.max(radius + 36, Math.floor(playHeight * 0.18)),
       sideMinY: hud + Math.floor(playHeight * (1 / 3)),
       sideMaxY: height - Math.max(radius + 24, Math.floor(height * 0.1)),
+      viewportMinX: viewport.minX,
+      viewportMaxX: viewport.maxX,
     };
   }
 
@@ -82,12 +99,13 @@
     if (position.__spawnEdge === "left" || position.__spawnEdge === "right" || position.__spawnEdge === "bottom") {
       return position.__spawnEdge;
     }
-    const { width, height } = getCanvasSize();
-    if (position.x <= 0) return "left";
-    if (position.x >= width) return "right";
+    const { height } = getCanvasSize();
+    const { minX, maxX } = getViewportXBounds();
+    if (position.x <= minX) return "left";
+    if (position.x >= maxX) return "right";
     if (position.y >= height) return "bottom";
-    const leftDist = Math.abs(position.x);
-    const rightDist = Math.abs(width - position.x);
+    const leftDist = Math.abs(position.x - minX);
+    const rightDist = Math.abs(maxX - position.x);
     const bottomDist = Math.abs(height - position.y);
     if (leftDist <= rightDist && leftDist <= bottomDist) return "left";
     if (rightDist <= leftDist && rightDist <= bottomDist) return "right";
@@ -117,19 +135,20 @@
 
   function randomOffscreenPosition(radius = 0, extraMargin = 0) {
     const { width, height } = getCanvasSize();
+    const { minX, maxX } = getViewportXBounds();
     const marginX = Math.max(140, Math.floor(width * 0.14)) + radius + extraMargin;
     const marginY = Math.max(120, Math.floor(height * 0.12)) + radius + extraMargin;
     const bounds = getSpawnIngressBounds(radius);
     const edge = ["left", "right", "bottom"][Math.floor(Math.random() * 3)];
     if (edge === "left" || edge === "right") {
       return {
-        x: edge === "left" ? -marginX : width + marginX,
+        x: edge === "left" ? minX - marginX : maxX + marginX,
         y: pickSpawnLane(bounds.sideMinY, bounds.sideMaxY, 4, 42),
         __spawnEdge: edge,
       };
     }
     return {
-      x: pickSpawnLane(radius + 48, width - radius - 48, 5, 56),
+      x: pickSpawnLane(minX + radius + 48, maxX - radius - 48, 5, 56),
       y: height + marginY,
       __spawnEdge: "bottom",
     };
