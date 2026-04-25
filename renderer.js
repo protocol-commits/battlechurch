@@ -4877,7 +4877,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const viewMinX = 0;
     const viewMaxX = width;
     const horizontalMargin = Math.max(320, Math.floor(width * 0.24));
-    const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
+    const bottomCutoff = Math.max(
+      HUD_HEIGHT + 16,
+      HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3) - 150,
+    );
     const sideMaxY = height - Math.max(32, Math.floor(height * 0.1));
     const leftSpawnX = viewMinX - horizontalMargin;
     const rightSpawnX = viewMaxX + horizontalMargin;

@@ -14628,7 +14628,10 @@ function randomSpawnPosition() {
   const viewMaxX = width;
   const horizontalMargin = Math.max(320, Math.floor(width * 0.24));
   const verticalMargin = Math.max(100, Math.floor(height * 0.12));
-  const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
+  const bottomCutoff = Math.max(
+    HUD_HEIGHT + 16,
+    HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3) - 150,
+  );
   const sideMaxY = height - Math.max(32, Math.floor(height * 0.1));
   const pickLane = (min, max, laneCount = 4, jitter = 0) => {
     if (max <= min) return min;
