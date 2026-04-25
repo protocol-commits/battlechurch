@@ -69,14 +69,17 @@
     const viewport = getViewportXBounds();
     const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
     const playHeight = height - hud;
+    const sideOffscreenX = Math.max(radius + 28, Math.floor(width * 0.08));
     return {
       width,
       height,
       hud,
-      leftMaxX: viewport.minX + Math.max(radius + 28, Math.floor(width * 0.08)),
-      rightMinX: viewport.maxX - Math.max(radius + 28, Math.floor(width * 0.08)),
+      // Side lanes stay outside the visible viewport so enemies walk in.
+      leftMaxX: viewport.minX - sideOffscreenX,
+      rightMinX: viewport.maxX + sideOffscreenX,
       bottomMinY: height - Math.max(radius + 36, Math.floor(playHeight * 0.18)),
-      sideMinY: hud + Math.floor(playHeight * (1 / 3)),
+      // Allow side-edge spawns over most of the arena height to avoid a hard cutoff line.
+      sideMinY: hud + Math.max(radius + 20, Math.floor(playHeight * 0.08)),
       sideMaxY: height - Math.max(radius + 24, Math.floor(height * 0.1)),
       viewportMinX: viewport.minX,
       viewportMaxX: viewport.maxX,
@@ -128,7 +131,10 @@
       clamped.y = Math.max(bounds.sideMinY, Math.min(bounds.sideMaxY, clamped.y));
     } else {
       clamped.y = Math.max(clamped.y, bounds.bottomMinY);
-      clamped.x = Math.max(radius + 24, Math.min(bounds.width - radius - 24, clamped.x));
+      clamped.x = Math.max(
+        bounds.viewportMinX + radius + 24,
+        Math.min(bounds.viewportMaxX - radius - 24, clamped.x),
+      );
     }
     return clamped;
   }
