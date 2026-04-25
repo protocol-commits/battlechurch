@@ -1988,6 +1988,7 @@ const devTools = {
   godMode: false,
   showCombatDebug: false,
   showNpcZones: false,
+  showSpawnDebug: false,
   threeLivesMode: loadDevThreeLivesMode(),
   enemyHpBarThreshold: 100,
   // Adjustable runtime tuning for NPC combat behaviour
@@ -4394,7 +4395,7 @@ const aimAssist = {
   vertices: null,
   targetKind: null,
 };
-const SHOW_ENEMY_SPAWN_DEBUG = true;
+const SHOW_ENEMY_SPAWN_DEBUG = false;
 
 function toggleHudHitboxDebug(key) {
   if (typeof window === "undefined" || !window.BattlechurchHitboxDebug) return false;
@@ -4415,7 +4416,7 @@ Renderer.initialize({
   HUD_HEIGHT,
   UI_FONT_FAMILY,
   bossHazards,
-  SHOW_ENEMY_SPAWN_DEBUG,
+  get SHOW_ENEMY_SPAWN_DEBUG() { return Boolean(devTools.showSpawnDebug); },
   getEnemySpawnPoints,
   congregationMembers,
   buildCongregationMembers,
@@ -17558,6 +17559,7 @@ function showDeveloperOverlay() {
       if (hitboxRow) {
         const defs = [
           { key: "npcZones", label: "NPC Zones", custom: true },
+          { key: "spawnDebug", label: "Spawn Borders", custom: true },
           { key: "playerMelee", label: "Player / Melee" },
           { key: "npcs", label: "NPCs" },
           { key: "enemies", label: "Enemies" },
@@ -17571,14 +17573,24 @@ function showDeveloperOverlay() {
           button.type = "button";
           button.className = "dialog-overlay__button";
           const sync = () => {
-            const active = custom ? Boolean(devTools.showNpcZones) : Boolean(window.BattlechurchHitboxDebug?.[key]);
+            const active = custom
+              ? key === "npcZones"
+                ? Boolean(devTools.showNpcZones)
+                : key === "spawnDebug"
+                  ? Boolean(devTools.showSpawnDebug)
+                  : false
+              : Boolean(window.BattlechurchHitboxDebug?.[key]);
             button.textContent = `${label}: ${active ? "On" : "Off"}`;
             button.style.opacity = active ? "1" : "0.7";
           };
           sync();
           button.addEventListener("click", () => {
             if (custom) {
-              devTools.showNpcZones = !devTools.showNpcZones;
+              if (key === "npcZones") {
+                devTools.showNpcZones = !devTools.showNpcZones;
+              } else if (key === "spawnDebug") {
+                devTools.showSpawnDebug = !devTools.showSpawnDebug;
+              }
             } else {
               window.BattlechurchToggleHitboxDebug?.(key);
             }
