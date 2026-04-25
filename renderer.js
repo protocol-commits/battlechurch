@@ -4867,18 +4867,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       getEnemySpawnPoints,
       canvas,
       HUD_HEIGHT = 0,
-      cameraOffsetX = 0,
       UI_FONT_FAMILY = "sans-serif",
     } = requireBindings();
     if (!SHOW_ENEMY_SPAWN_DEBUG) return;
     if (!canvas) return;
     const width = canvas.width || 0;
     const height = canvas.height || 0;
-    const viewMinX = Number.isFinite(cameraOffsetX) ? cameraOffsetX : 0;
-    const viewMaxX = viewMinX + width;
-    const horizontalMargin = Math.max(120, Math.floor(width * 0.12));
+    // Draw debug guides in world/arena space so they move with camera panning.
+    const viewMinX = 0;
+    const viewMaxX = width;
+    const horizontalMargin = Math.max(320, Math.floor(width * 0.24));
     const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
     const sideMaxY = height - Math.max(32, Math.floor(height * 0.1));
+    const leftSpawnX = viewMinX - horizontalMargin;
+    const rightSpawnX = viewMaxX + horizontalMargin;
+    const leftGuideX = viewMinX + 2;
+    const rightGuideX = viewMaxX - 2;
 
     ctx.save();
     ctx.lineWidth = 2;
@@ -4900,14 +4904,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Spawn lane guide (randomSpawnPosition side/bottom region).
     ctx.strokeStyle = "rgba(255, 90, 210, 0.92)";
     ctx.beginPath();
-    ctx.moveTo(viewMinX - horizontalMargin, bottomCutoff);
-    ctx.lineTo(viewMinX - horizontalMargin, sideMaxY);
-    ctx.moveTo(viewMaxX + horizontalMargin, bottomCutoff);
-    ctx.lineTo(viewMaxX + horizontalMargin, sideMaxY);
+    ctx.moveTo(leftSpawnX, bottomCutoff);
+    ctx.lineTo(leftSpawnX, sideMaxY);
+    ctx.moveTo(rightSpawnX, bottomCutoff);
+    ctx.lineTo(rightSpawnX, sideMaxY);
     ctx.moveTo(viewMinX, bottomCutoff);
     ctx.lineTo(viewMaxX, bottomCutoff);
     ctx.moveTo(viewMinX, sideMaxY);
     ctx.lineTo(viewMaxX, sideMaxY);
+    ctx.stroke();
+
+    // Visible in-viewport markers for offscreen vertical spawn guides.
+    ctx.strokeStyle = "rgba(255, 170, 70, 0.95)";
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.moveTo(leftGuideX, bottomCutoff);
+    ctx.lineTo(leftGuideX, sideMaxY);
+    ctx.moveTo(rightGuideX, bottomCutoff);
+    ctx.lineTo(rightGuideX, sideMaxY);
     ctx.stroke();
 
     ctx.setLineDash([]);
@@ -4918,6 +4932,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillText("VIEWPORT", viewMinX + 8, Math.max(2, HUD_HEIGHT + 4));
     ctx.fillStyle = "rgba(255, 90, 210, 0.95)";
     ctx.fillText("SPAWN LANE", viewMinX + 8, Math.max(2, bottomCutoff + 4));
+    ctx.fillStyle = "rgba(255, 170, 70, 0.95)";
+    ctx.fillText(`SIDE SPAWN: ${horizontalMargin}px OFFSCREEN`, viewMinX + 8, Math.max(2, bottomCutoff + 22));
 
     const points = getEnemySpawnPoints?.();
     if (points && points.length) {

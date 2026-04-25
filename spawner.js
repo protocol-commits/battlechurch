@@ -53,10 +53,8 @@
 
   function getViewportXBounds() {
     const { width } = getCanvasSize();
-    const offsetX =
-      typeof deps.getCameraOffsetX === "function" && Number.isFinite(deps.getCameraOffsetX())
-        ? deps.getCameraOffsetX()
-        : 0;
+    // Keep spawn ingress anchored to world/arena coordinates, not camera offset.
+    const offsetX = 0;
     return {
       minX: offsetX,
       maxX: offsetX + width,
@@ -69,14 +67,16 @@
     const viewport = getViewportXBounds();
     const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
     const playHeight = height - hud;
-    const sideOffscreenX = Math.max(radius + 28, Math.floor(width * 0.08));
+    const sideOffscreenX = Math.max(radius + 140, Math.floor(width * 0.24), 320);
+    const sideRadiusPadding = Math.max(8, radius);
     return {
       width,
       height,
       hud,
       // Side lanes stay outside the visible viewport so enemies walk in.
-      leftMaxX: viewport.minX - sideOffscreenX,
-      rightMinX: viewport.maxX + sideOffscreenX,
+      // Include radius padding so the full body starts outside the side guide.
+      leftMaxX: viewport.minX - sideOffscreenX - sideRadiusPadding,
+      rightMinX: viewport.maxX + sideOffscreenX + sideRadiusPadding,
       bottomMinY: height - Math.max(radius + 36, Math.floor(playHeight * 0.18)),
       // Allow side-edge spawns over most of the arena height to avoid a hard cutoff line.
       sideMinY: hud + Math.max(radius + 20, Math.floor(playHeight * 0.08)),
@@ -142,7 +142,7 @@
   function randomOffscreenPosition(radius = 0, extraMargin = 0) {
     const { width, height } = getCanvasSize();
     const { minX, maxX } = getViewportXBounds();
-    const marginX = Math.max(140, Math.floor(width * 0.14)) + radius + extraMargin;
+    const marginX = Math.max(320, Math.floor(width * 0.24)) + radius + extraMargin;
     const marginY = Math.max(120, Math.floor(height * 0.12)) + radius + extraMargin;
     const bounds = getSpawnIngressBounds(radius);
     const edge = ["left", "right", "bottom"][Math.floor(Math.random() * 3)];

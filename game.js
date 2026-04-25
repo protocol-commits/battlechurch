@@ -14623,10 +14623,10 @@ function getEnemySpawnPoints() {
 function randomSpawnPosition() {
   const width = canvas.width;
   const height = canvas.height;
-  const viewOffsetX = Number.isFinite(cameraOffsetX) ? cameraOffsetX : 0;
-  const viewMinX = viewOffsetX;
-  const viewMaxX = viewOffsetX + width;
-  const horizontalMargin = Math.max(120, Math.floor(width * 0.12));
+  // Spawn bounds are world-anchored to the arena/floor, not camera-anchored.
+  const viewMinX = 0;
+  const viewMaxX = width;
+  const horizontalMargin = Math.max(320, Math.floor(width * 0.24));
   const verticalMargin = Math.max(100, Math.floor(height * 0.12));
   const bottomCutoff = HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3);
   const sideMaxY = height - Math.max(32, Math.floor(height * 0.1));
@@ -19265,11 +19265,27 @@ function updateEnemiesAndEntities(dt) {
     }
     enemy.spawnOffscreenTimer = Math.max(0, (enemy.spawnOffscreenTimer || 0) - enemyDt);
     if (enemy.spawnOffscreenTimer <= 0) {
-      enemy.ignoreWorldBounds = false;
-      enemy.spawnPushGrace = Math.max(enemy.spawnPushGrace || 0, 0.4);
+      // Do not immediately clamp on the same frame spawn grace ends.
+      // Keep the enemy out-of-bounds-capable until it naturally enters
+      // the playable arena, then re-enable world bounds.
+      const radius = Math.max(enemy.radius || 0, 0);
+      const lateralMargin = Math.max(radius, 16);
+      const verticalMargin = Math.max(radius, 16);
+      const insideArenaX = enemy.x >= lateralMargin && enemy.x <= canvas.width - lateralMargin;
+      const insideArenaY =
+        enemy.y >= HUD_HEIGHT + verticalMargin && enemy.y <= canvas.height - verticalMargin;
+      if (insideArenaX && insideArenaY) {
+        enemy.ignoreWorldBounds = false;
+        enemy.spawnPushGrace = Math.max(enemy.spawnPushGrace || 0, 0.4);
+      } else {
+        enemy.ignoreWorldBounds = true;
+      }
     }
     enemy.touchCooldown = Math.max(0, (enemy.touchCooldown || 0) - enemyDt);
     if (enemy.spawnOffscreenTimer > 0) {
+      return;
+    }
+    if (enemy.ignoreWorldBounds) {
       return;
     }
     enemy.spawnPushGrace = Math.max(0, (enemy.spawnPushGrace || 0) - enemyDt);

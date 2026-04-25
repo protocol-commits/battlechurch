@@ -2223,6 +2223,14 @@
         this.fireThrowerBombActive = null;
       }
 
+      // Keep newly spawned enemies parked at their offscreen spawn position
+      // until spawnOffscreenTimer elapses, so they don't drift inward before
+      // entering the arena.
+      if (this.spawnOffscreenTimer > 0 && !this._orbiting) {
+        this.animator.update(dt);
+        return;
+      }
+
       if (this._orbiting && this.orbitParent) {
         if (this.orbitParent.dead || this.orbitParent.state === "death") {
           if (this.type === "tormentorFlame") {
