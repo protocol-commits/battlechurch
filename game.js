@@ -14627,7 +14627,8 @@ function randomSpawnPosition() {
   const viewMinX = 0;
   const viewMaxX = width;
   const horizontalMargin = Math.max(320, Math.floor(width * 0.24));
-  const verticalMargin = Math.max(100, Math.floor(height * 0.12));
+  // Bottom spawns should appear sooner so they are visible before NPCs clear them.
+  const verticalMargin = Math.max(28, Math.floor(height * 0.05));
   const bottomCutoff = Math.max(
     HUD_HEIGHT + 16,
     HUD_HEIGHT + (height - HUD_HEIGHT) * (1 / 3) - 150,

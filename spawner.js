@@ -143,7 +143,8 @@
     const { width, height } = getCanvasSize();
     const { minX, maxX } = getViewportXBounds();
     const marginX = Math.max(320, Math.floor(width * 0.24)) + radius + extraMargin;
-    const marginY = Math.max(120, Math.floor(height * 0.12)) + radius + extraMargin;
+    const bottomExtraMargin = Math.min(120, Math.max(0, extraMargin * 0.25));
+    const marginY = Math.max(40, Math.floor(height * 0.06)) + Math.min(radius, 20) + bottomExtraMargin;
     const bounds = getSpawnIngressBounds(radius);
     const edge = ["left", "right", "bottom"][Math.floor(Math.random() * 3)];
     if (edge === "left" || edge === "right") {
