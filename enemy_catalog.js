@@ -1021,6 +1021,80 @@
       ]
     }
   },
+  "miniGhost": {
+    "displayName": "Mini Ghost",
+    "spriteSrc": "assets/sprites/enemies/mini-ghost/MiniGhost.png",
+    "assetFolder": "Mini Ghost",
+    "assetBaseName": "Mini Ghost",
+    "health": 24,
+    "maxHealth": 60,
+    "damage": 7,
+    "speed": 78,
+    "baseRadius": 10,
+    "scale": 5,
+    "attackBonus": 22,
+    "cooldown": 0.9,
+    "score": 40,
+    "ranged": false,
+    "projectileType": null,
+    "preferEdges": false,
+    "desiredRange": 42,
+    "projectileCooldown": 0.9,
+    "bossTier": 0,
+    "preferredTarget": "player",
+    "specialBehavior": [
+      "closestAny",
+      "swarmable"
+    ],
+    "swarmSpacing": 0.2,
+    "hitbox": {
+      "width": 14,
+      "height": 16,
+      "offsetX": 0,
+      "offsetY": 6
+    },
+    "assetGrid": {
+      "cols": 8,
+      "rows": 5
+    },
+    "animationFrameMaps": {
+      "idle": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "walk": [
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "attack": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "hurt": [
+        24,
+        25
+      ],
+      "death": [
+        32,
+        33,
+        34,
+        35,
+        36
+      ]
+    }
+  },
   "bat": {
     "displayName": "Bat",
     "spriteSrc": "assets/sprites/enemies/bat/bat.png",
