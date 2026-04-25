@@ -197,7 +197,7 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.1,
+    "swarmSpacing": 0.2,
     "hitbox": {
       "width": 16,
       "height": 16,
@@ -1385,8 +1385,7 @@
         36
       ]
     }
-  },
-  
+  }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
   ns.catalog = ENEMY_CATALOG;

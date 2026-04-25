@@ -170,7 +170,7 @@
     // ENEMY SPAWNING
     // =====================
     spawning: {
-      maxActiveEnemies: 120,
+      maxActiveEnemies: 500,
       skeletonMinCount: 4,
       skeletonPackSize: 4,
       miniImpBaseGroupSize: 48,

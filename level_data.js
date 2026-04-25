@@ -24703,16 +24703,12 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
                           "enemy": "wingedImp",
                           "count": 30
                         },
                         {
-                          "enemy": "bat",
-                          "count": 100
+                          "enemy": "miniImp",
+                          "count": 1000
                         }
                       ],
                       "weights": {},
@@ -24728,14 +24724,6 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 100
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
                           "count": 100
                         }
                       ],
@@ -24757,14 +24745,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 10
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24785,14 +24765,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 10
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24813,14 +24785,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 10
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24844,14 +24808,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 50
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24872,14 +24828,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 110
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24900,14 +24848,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 110
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24928,14 +24868,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 20
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24956,14 +24888,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 20
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -24991,14 +24915,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 20
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "mode": "explicit",
@@ -25019,14 +24935,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniImp",
                           "count": 110
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "mode": "explicit",
@@ -25047,14 +24955,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 20
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "mode": "explicit",
@@ -25075,14 +24975,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 20
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},
@@ -25103,14 +24995,6 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniClawedDemon",
                           "count": 20
-                        },
-                        {
-                          "enemy": "miniGhost",
-                          "count": 50
-                        },
-                        {
-                          "enemy": "bat",
-                          "count": 100
                         }
                       ],
                       "weights": {},

@@ -2410,13 +2410,13 @@ function maybeSwapNpcPositions(options = {}) {
   }
 }
 // Enemy spawning constants (tunable via GameBalance.spawning.*)
-const MAX_ACTIVE_ENEMIES = _gb('spawning.maxActiveEnemies', 120);
+const MAX_ACTIVE_ENEMIES = _gb('spawning.maxActiveEnemies', 1000);
 const SKELETON_MIN_COUNT = _gb('spawning.skeletonMinCount', 4);
 const SKELETON_PACK_SIZE = _gb('spawning.skeletonPackSize', 4);
 const MINI_IMP_BASE_GROUP_SIZE = _gb('spawning.miniImpBaseGroupSize', 48);
 const MINI_IMP_MAX_GROUP_SIZE = _gb('spawning.miniImpMaxGroupSize', 120);
 const MINI_IMP_MIN_GROUPS_PER_HORDE = _gb('spawning.miniImpMinGroupsPerHorde', 1);
-const ENEMY_GROUP_SPAWN_STAGGER_MS = _gb('spawning.groupSpawnStaggerMs', 80);
+const ENEMY_GROUP_SPAWN_STAGGER_MS = 20; // test override: spawn grouped enemies immediately
 const RESPAWN_DELAY = _gb('player.respawnDelay', 2.5);
 const RESPAWN_STATUS_INTERVAL = _gb('player.respawnStatusInterval', 0.5);
 const RESPAWN_SHIELD_DURATION = _gb('player.respawnShieldDuration', 6);
