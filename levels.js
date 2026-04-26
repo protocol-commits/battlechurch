@@ -1489,7 +1489,7 @@
         const spawnTask = () => {
           if (spawnEpoch !== state.waveSpawnEpoch) return;
           if (isMiniImpTypeEntry) {
-            spawnMiniImpGroup(count, null, { ignoreCap: true, ...spawnOpts }, type);
+            spawnMiniImpGroup(count, null, { ...spawnOpts }, type);
           } else if (typeof schedulePortalSpawn === "function") {
             for (let i = 0; i < count; i += 1) {
               const spawnPos =

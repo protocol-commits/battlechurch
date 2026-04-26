@@ -38,6 +38,11 @@
   let oneEnemySpawnedLevel1 = false;
   let pendingPortalSpawns = 0;
   let spawnSequenceCounter = 0;
+  const MINI_IMP_MAX_PACK_SIZE = 100;
+  const MINI_IMP_INTER_PACK_STAGGER_MS = 80;
+  const MINI_IMP_INTRA_PACK_STAGGER_MS = 0;
+  const SPAWN_CAP_RETRY_DELAY_MS = 120;
+  const SPAWN_CAP_RETRY_MAX_ATTEMPTS = 1200;
 
   function getCanvasSize() {
     try {
@@ -97,7 +102,7 @@
     };
   }
 
-  function pickBottomSideLaneX(bounds, laneCount = 3, jitter = 42) {
+  function pickBottomSideLaneX(bounds, laneCount = 3, jitter = 42, preferredSide = null) {
     const leftMin = Number.isFinite(bounds?.bottomLeftMinX) ? bounds.bottomLeftMinX : 0;
     const leftMax = Number.isFinite(bounds?.bottomLeftMaxX) ? bounds.bottomLeftMaxX : leftMin;
     const rightMin = Number.isFinite(bounds?.bottomRightMinX) ? bounds.bottomRightMinX : leftMax;
@@ -107,7 +112,13 @@
     if (!canLeft && !canRight) {
       return Math.max(leftMin, Math.min(rightMax, (leftMin + rightMax) * 0.5));
     }
-    const useLeft = canLeft && (!canRight || Math.random() < 0.5);
+    const preferLeft = preferredSide === "left";
+    const preferRight = preferredSide === "right";
+    const useLeft = canLeft && (
+      !canRight ||
+      preferLeft ||
+      (!preferRight && Math.random() < 0.5)
+    );
     return useLeft
       ? pickSpawnLane(leftMin, leftMax, laneCount, jitter)
       : pickSpawnLane(rightMin, rightMax, laneCount, jitter);
@@ -203,6 +214,74 @@
       y: height + marginY,
       __spawnEdge: "bottom",
     };
+  }
+
+  function randomOffscreenPositionForZone(zone = "bottom", radius = 0, extraMargin = 0) {
+    const { width, height } = getCanvasSize();
+    const { minX, maxX } = getViewportXBounds();
+    const marginX = Math.max(320, Math.floor(width * 0.24)) + radius + extraMargin;
+    const bottomExtraMargin = Math.min(120, Math.max(0, extraMargin * 0.25));
+    const marginY = Math.max(40, Math.floor(height * 0.06)) + Math.min(radius, 20) + bottomExtraMargin;
+    const bounds = getSpawnIngressBounds(radius);
+    const upperSideMaxY = Math.max(bounds.sideMinY, bounds.hud + Math.floor((height - bounds.hud) * 0.45));
+    const lowerSideMinY = Math.min(bounds.sideMaxY, bounds.hud + Math.floor((height - bounds.hud) * 0.45));
+    if (zone === "upper_left" || zone === "side_upper_left") {
+      return {
+        x: minX - marginX,
+        y: pickSpawnLane(bounds.sideMinY, upperSideMaxY, 3, 32),
+        __spawnEdge: "left",
+      };
+    }
+    if (zone === "upper_right" || zone === "side_upper_right") {
+      return {
+        x: maxX + marginX,
+        y: pickSpawnLane(bounds.sideMinY, upperSideMaxY, 3, 32),
+        __spawnEdge: "right",
+      };
+    }
+    if (zone === "lower_left" || zone === "side_lower_left") {
+      return {
+        x: minX - marginX,
+        y: pickSpawnLane(lowerSideMinY, bounds.sideMaxY, 3, 32),
+        __spawnEdge: "left",
+      };
+    }
+    if (zone === "lower_right" || zone === "side_lower_right") {
+      return {
+        x: maxX + marginX,
+        y: pickSpawnLane(lowerSideMinY, bounds.sideMaxY, 3, 32),
+        __spawnEdge: "right",
+      };
+    }
+    if (zone === "left" || zone === "side_left") {
+      return {
+        x: minX - marginX,
+        y: pickSpawnLane(bounds.sideMinY, bounds.sideMaxY, 4, 42),
+        __spawnEdge: "left",
+      };
+    }
+    if (zone === "right" || zone === "side_right") {
+      return {
+        x: maxX + marginX,
+        y: pickSpawnLane(bounds.sideMinY, bounds.sideMaxY, 4, 42),
+        __spawnEdge: "right",
+      };
+    }
+    if (zone === "bottom_left") {
+      return {
+        x: pickBottomSideLaneX(bounds, 3, 42, "left"),
+        y: height + marginY,
+        __spawnEdge: "bottom",
+      };
+    }
+    if (zone === "bottom_right") {
+      return {
+        x: pickBottomSideLaneX(bounds, 3, 42, "right"),
+        y: height + marginY,
+        __spawnEdge: "bottom",
+      };
+    }
+    return randomOffscreenPosition(radius, extraMargin);
   }
 
   function findNonOverlappingSpawn(basePos, radius = 20, attempts = 6, spacing = 1) {
@@ -398,15 +477,31 @@
         ? { x: position.x, y: position.y }
         : randomOffscreenPosition(0, extraMargin);
     let completed = false;
+    let capRetryAttempts = 0;
     const markComplete = () => {
       if (completed) return;
       completed = true;
       pendingPortalSpawns = Math.max(0, pendingPortalSpawns - 1);
     };
     const task = () => {
+      if (!ignoreCap && deps.enemies.length >= deps.maxActiveEnemies) {
+        capRetryAttempts += 1;
+        if (capRetryAttempts <= SPAWN_CAP_RETRY_MAX_ATTEMPTS && typeof setTimeout === "function") {
+          setTimeout(task, SPAWN_CAP_RETRY_DELAY_MS);
+          return;
+        }
+        markComplete();
+        return;
+      }
+      const spawned = spawnEnemyOfType(type, spawnPos, options);
+      if (!spawned && !ignoreCap && deps.enemies.length >= deps.maxActiveEnemies) {
+        capRetryAttempts += 1;
+        if (capRetryAttempts <= SPAWN_CAP_RETRY_MAX_ATTEMPTS && typeof setTimeout === "function") {
+          setTimeout(task, SPAWN_CAP_RETRY_DELAY_MS);
+          return;
+        }
+      }
       markComplete();
-      if (!ignoreCap && deps.enemies.length >= deps.maxActiveEnemies) return;
-      spawnEnemyOfType(type, spawnPos, options);
     };
     if (delayMs > 0 && typeof setTimeout === "function") {
       setTimeout(task, delayMs);
@@ -435,27 +530,57 @@
   }
 
   function spawnMiniImpGroup(count, position = null, options = {}, type = "miniImp") {
+    const totalCount = Math.max(0, Math.floor(Number(count) || 0));
+    if (totalCount <= 0) return;
     const avgRadius = deps.enemyTypes?.[type]?.hitRadius || 20;
     const spacing = computeSwarmSpacing(deps.enemyTypes?.[type]?.swarmSpacing);
-    const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, count))) * spacing;
-    const base = position || randomOffscreenPosition(avgRadius, groupExtra);
+    const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, totalCount))) * spacing;
+    const perPackExtraMargin = Math.min(240, groupExtra);
     const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
-    const spread = (spreadBase * (1 + Math.max(0, count - 1) * 0.06)) / spacing;
-    for (let i = 0; i < count; i += 1) {
-      const offsetX = deps.randomInRange(-spread * 0.6, spread * 0.6);
-      const offsetY = deps.randomInRange(-spread * 0.6, spread * 0.6);
-      const spawnPos = { x: base.x + offsetX, y: base.y + offsetY };
-      const spawnOptions = {
-        ...(options || {}),
-        applyCameraShake: i === 0,
-        extraMargin: groupExtra,
-      };
-      schedulePortalSpawn(
-        typeof type === "string" && type ? type : "miniImp",
-        spawnPos,
-        i * (deps.enemySpawnStaggerMs || 0),
-        spawnOptions,
-      );
+    const anchorZones = [
+      "upper_left",
+      "upper_right",
+      "lower_left",
+      "lower_right",
+      "bottom_left",
+      "bottom_right",
+    ];
+    const rotateStart = Math.floor(Math.random() * anchorZones.length);
+    let spawnedSoFar = 0;
+    const useAnchorRotation = totalCount > MINI_IMP_MAX_PACK_SIZE;
+
+    while (spawnedSoFar < totalCount) {
+      const packIndex = Math.floor(spawnedSoFar / MINI_IMP_MAX_PACK_SIZE);
+      const packSize = Math.min(MINI_IMP_MAX_PACK_SIZE, totalCount - spawnedSoFar);
+      const base = useAnchorRotation
+        ? randomOffscreenPositionForZone(
+            anchorZones[(rotateStart + packIndex) % anchorZones.length],
+            avgRadius,
+            perPackExtraMargin,
+          )
+        : (position || randomOffscreenPosition(avgRadius, groupExtra));
+      const rawPackSpread = (spreadBase * (1 + Math.max(0, packSize - 1) * 0.06)) / spacing;
+      const packSpread = Math.min(280, rawPackSpread);
+      for (let i = 0; i < packSize; i += 1) {
+        const offsetX = deps.randomInRange(-packSpread * 0.6, packSpread * 0.6);
+        const offsetY = deps.randomInRange(-packSpread * 0.6, packSpread * 0.6);
+        const spawnPos = { x: base.x + offsetX, y: base.y + offsetY };
+        const spawnOptions = {
+          ...(options || {}),
+          applyCameraShake: spawnedSoFar === 0 && i === 0,
+          extraMargin: useAnchorRotation ? perPackExtraMargin : groupExtra,
+        };
+        const delayMs =
+          packIndex * MINI_IMP_INTER_PACK_STAGGER_MS +
+          i * MINI_IMP_INTRA_PACK_STAGGER_MS;
+        schedulePortalSpawn(
+          typeof type === "string" && type ? type : "miniImp",
+          spawnPos,
+          delayMs,
+          spawnOptions,
+        );
+      }
+      spawnedSoFar += packSize;
     }
   }
 
