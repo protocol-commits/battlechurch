@@ -12,6 +12,7 @@
     npcs: [],
     getAssets: () => null,
     enemyTypes: {},
+    getEnemyCatalog: () => (typeof window !== "undefined" ? window.BattlechurchEnemyCatalog?.catalog || {} : {}),
     createEnemyInstance: null,
     randomSpawnPosition: () => ({ x: 0, y: 0 }),
     spawnPuffEffect: noop,
@@ -43,6 +44,45 @@
   const MINI_IMP_INTRA_PACK_STAGGER_MS = 0;
   const SPAWN_CAP_RETRY_DELAY_MS = 120;
   const SPAWN_CAP_RETRY_MAX_ATTEMPTS = 1200;
+  const GROUP_ANCHOR_ZONES = [
+    "upper_left",
+    "upper_right",
+    "lower_left",
+    "lower_right",
+    "bottom_left",
+    "bottom_right",
+  ];
+
+  function getEnemyCatalog() {
+    try {
+      return typeof deps.getEnemyCatalog === "function" ? deps.getEnemyCatalog() || {} : {};
+    } catch (error) {
+      return {};
+    }
+  }
+
+  function getEnemyGroupSpawnConfig(type, totalCount = 0) {
+    const enemyTypes = resolveEnemyTypes() || {};
+    const catalog = getEnemyCatalog();
+    const src = catalog?.[type] || enemyTypes?.[type] || {};
+    const isMiniImpType = type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3";
+    const configuredMax = Math.floor(Number(src?.maxGroupSize) || 0);
+    const defaultMax = isMiniImpType ? MINI_IMP_MAX_PACK_SIZE : Math.max(0, totalCount);
+    const maxGroupSize = Math.max(1, configuredMax > 0 ? configuredMax : defaultMax || totalCount || 1);
+    const configuredInter = Number(src?.interGroupDelayMs);
+    const configuredIntra = Number(src?.intraGroupDelayMs);
+    const interGroupDelayMs = Number.isFinite(configuredInter)
+      ? Math.max(0, configuredInter)
+      : (isMiniImpType ? MINI_IMP_INTER_PACK_STAGGER_MS : 0);
+    const intraGroupDelayMs = Number.isFinite(configuredIntra)
+      ? Math.max(0, configuredIntra)
+      : (isMiniImpType ? MINI_IMP_INTRA_PACK_STAGGER_MS : Math.max(0, deps.enemySpawnStaggerMs || 0));
+    return {
+      maxGroupSize,
+      interGroupDelayMs,
+      intraGroupDelayMs,
+    };
+  }
 
   function getCanvasSize() {
     try {
@@ -532,29 +572,22 @@
   function spawnMiniImpGroup(count, position = null, options = {}, type = "miniImp") {
     const totalCount = Math.max(0, Math.floor(Number(count) || 0));
     if (totalCount <= 0) return;
+    const groupCfg = getEnemyGroupSpawnConfig(type, totalCount);
     const avgRadius = deps.enemyTypes?.[type]?.hitRadius || 20;
     const spacing = computeSwarmSpacing(deps.enemyTypes?.[type]?.swarmSpacing);
     const groupExtra = Math.min(1200, 40 * Math.sqrt(Math.max(1, totalCount))) * spacing;
     const perPackExtraMargin = Math.min(240, groupExtra);
     const spreadBase = Number.isFinite(deps.miniImpSpread) ? deps.miniImpSpread : 70;
-    const anchorZones = [
-      "upper_left",
-      "upper_right",
-      "lower_left",
-      "lower_right",
-      "bottom_left",
-      "bottom_right",
-    ];
-    const rotateStart = Math.floor(Math.random() * anchorZones.length);
+    const rotateStart = Math.floor(Math.random() * GROUP_ANCHOR_ZONES.length);
     let spawnedSoFar = 0;
-    const useAnchorRotation = totalCount > MINI_IMP_MAX_PACK_SIZE;
+    const useAnchorRotation = totalCount > groupCfg.maxGroupSize;
 
     while (spawnedSoFar < totalCount) {
-      const packIndex = Math.floor(spawnedSoFar / MINI_IMP_MAX_PACK_SIZE);
-      const packSize = Math.min(MINI_IMP_MAX_PACK_SIZE, totalCount - spawnedSoFar);
+      const packIndex = Math.floor(spawnedSoFar / groupCfg.maxGroupSize);
+      const packSize = Math.min(groupCfg.maxGroupSize, totalCount - spawnedSoFar);
       const base = useAnchorRotation
         ? randomOffscreenPositionForZone(
-            anchorZones[(rotateStart + packIndex) % anchorZones.length],
+            GROUP_ANCHOR_ZONES[(rotateStart + packIndex) % GROUP_ANCHOR_ZONES.length],
             avgRadius,
             perPackExtraMargin,
           )
@@ -571,14 +604,53 @@
           extraMargin: useAnchorRotation ? perPackExtraMargin : groupExtra,
         };
         const delayMs =
-          packIndex * MINI_IMP_INTER_PACK_STAGGER_MS +
-          i * MINI_IMP_INTRA_PACK_STAGGER_MS;
+          packIndex * groupCfg.interGroupDelayMs +
+          i * groupCfg.intraGroupDelayMs;
         schedulePortalSpawn(
           typeof type === "string" && type ? type : "miniImp",
           spawnPos,
           delayMs,
           spawnOptions,
         );
+      }
+      spawnedSoFar += packSize;
+    }
+  }
+
+  function spawnEnemyGroup(count, position = null, options = {}, type = "skeleton") {
+    const enemyType = typeof type === "string" && type ? type : "skeleton";
+    if (enemyType === "miniImp" || enemyType === "miniImpLevel2" || enemyType === "miniImpLevel3") {
+      spawnMiniImpGroup(count, position, options, enemyType);
+      return;
+    }
+    const totalCount = Math.max(0, Math.floor(Number(count) || 0));
+    if (totalCount <= 0) return;
+    const groupCfg = getEnemyGroupSpawnConfig(enemyType, totalCount);
+    const enemyTypes = resolveEnemyTypes() || {};
+    const avgRadius = enemyTypes?.[enemyType]?.hitRadius || 20;
+    const rotateStart = Math.floor(Math.random() * GROUP_ANCHOR_ZONES.length);
+    const useAnchorRotation = totalCount > groupCfg.maxGroupSize;
+    let spawnedSoFar = 0;
+    while (spawnedSoFar < totalCount) {
+      const packIndex = Math.floor(spawnedSoFar / groupCfg.maxGroupSize);
+      const packSize = Math.min(groupCfg.maxGroupSize, totalCount - spawnedSoFar);
+      const base = useAnchorRotation
+        ? randomOffscreenPositionForZone(
+            GROUP_ANCHOR_ZONES[(rotateStart + packIndex) % GROUP_ANCHOR_ZONES.length],
+            avgRadius,
+            0,
+          )
+        : (position || randomOffscreenPosition(avgRadius, 0));
+      const spread = Math.max(14, Math.min(120, 14 + packSize * 1.2));
+      for (let i = 0; i < packSize; i += 1) {
+        const spawnPos = {
+          x: base.x + deps.randomInRange(-spread, spread),
+          y: base.y + deps.randomInRange(-spread * 0.8, spread * 0.8),
+        };
+        const delayMs =
+          packIndex * groupCfg.interGroupDelayMs +
+          i * groupCfg.intraGroupDelayMs;
+        schedulePortalSpawn(enemyType, spawnPos, delayMs, options || {});
       }
       spawnedSoFar += packSize;
     }
@@ -714,6 +786,7 @@
     spawnEnemyOfType,
     spawnSkeletonGroup,
     spawnMiniImpGroup,
+    spawnEnemyGroup,
     schedulePortalSpawn,
     spawnEnemy,
     maintainSkeletonHorde,
@@ -721,5 +794,6 @@
     resetLevelFlags,
     resetAllFlags,
     getPendingPortalSpawnCount,
+    getEnemyGroupSpawnConfig,
   });
 })(typeof window !== "undefined" ? window : null);

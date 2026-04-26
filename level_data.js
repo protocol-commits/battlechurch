@@ -24708,7 +24708,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniImp",
-                          "count": 1000
+                          "count": 200
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 60
                         }
                       ],
                       "weights": {},
@@ -24724,7 +24728,11 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 100
+                          "count": 200
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 60
                         }
                       ],
                       "weights": {},
@@ -24740,7 +24748,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 100
+                          "count": 200
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "bat",
+                          "count": 40
                         }
                       ],
                       "weights": {},
@@ -24756,7 +24772,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 100
+                          "count": 200
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "bat",
+                          "count": 40
                         }
                       ],
                       "weights": {},
@@ -24772,7 +24796,15 @@ window.BattlechurchLevelData = {
                       "entries": [
                         {
                           "enemy": "miniImp",
-                          "count": 100
+                          "count": 200
+                        },
+                        {
+                          "enemy": "miniClawedDemon",
+                          "count": 60
+                        },
+                        {
+                          "enemy": "bat",
+                          "count": 40
                         }
                       ],
                       "weights": {},

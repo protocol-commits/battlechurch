@@ -82,7 +82,8 @@
       "offsetY": 0
     },
     "swarmSpacing": 0.4,
-    "damageClass": "armored"
+    "damageClass": "armored",
+    "maxGroupSize": 50
   },
   "armoredOrc": {
     "displayName": "Armored Orc",
@@ -241,7 +242,8 @@
         27,
         28
       ]
-    }
+    },
+    "maxGroupSize": 100
   },
   "miniImpLevel2": {
     "displayName": "Imp Lieutenant",
@@ -533,7 +535,8 @@
         39,
         40
       ]
-    }
+    },
+    "maxGroupSize": 20
   },
   "miniHighDemon": {
     "displayName": "High Demon",
@@ -1052,7 +1055,8 @@
       "height": 12,
       "offsetX": 0,
       "offsetY": 6
-    }
+    },
+    "maxGroupSize": 20
   },
   "tormentorFlame": {
     "displayName": "Tormentor Flame",
@@ -1384,7 +1388,8 @@
         35,
         36
       ]
-    }
+    },
+    "maxGroupSize": 20
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});

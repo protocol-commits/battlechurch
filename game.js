@@ -5248,6 +5248,7 @@ if (typeof window !== "undefined") {
     npcs,
     getAssets: () => assets,
     enemyTypes: ENEMY_TYPES,
+    getEnemyCatalog: () => ENEMY_CATALOG,
     createEnemyInstance,
     randomSpawnPosition,
     spawnPuffEffect,
@@ -5273,6 +5274,7 @@ if (typeof window !== "undefined") {
 const spawnEnemyOfType = Spawner.spawnEnemyOfType;
 const spawnSkeletonGroup = Spawner.spawnSkeletonGroup;
 const spawnMiniImpGroup = Spawner.spawnMiniImpGroup;
+const spawnEnemyGroup = Spawner.spawnEnemyGroup;
 const schedulePortalSpawn = Spawner.schedulePortalSpawn;
 const spawnEnemy = Spawner.spawnEnemy;
 const maintainSkeletonHorde = Spawner.maintainSkeletonHorde;
@@ -5298,6 +5300,7 @@ Levels.initialize({
   getMonthName,
   spawnEnemyOfType,
   spawnMiniImpGroup,
+  spawnEnemyGroup,
   schedulePortalSpawn,
   randomSpawnPosition,
   spawnPowerUpDrops,

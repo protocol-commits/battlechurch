@@ -378,6 +378,7 @@
     getMonthName: () => "Battle 1",
     spawnEnemyOfType: noop,
     spawnMiniImpGroup: noop,
+    spawnEnemyGroup: noop,
     schedulePortalSpawn: noop,
     randomSpawnPosition: null,
     spawnPowerUpDrops: noop,
@@ -728,6 +729,7 @@
       getMonthName,
       spawnEnemyOfType,
       spawnMiniImpGroup,
+      spawnEnemyGroup,
       randomSpawnPosition,
       spawnPowerUpDrops,
       spawnBossForLevel,
@@ -1488,7 +1490,9 @@
           : {};
         const spawnTask = () => {
           if (spawnEpoch !== state.waveSpawnEpoch) return;
-          if (isMiniImpTypeEntry) {
+          if (typeof spawnEnemyGroup === "function") {
+            spawnEnemyGroup(count, null, { ...spawnOpts }, type);
+          } else if (isMiniImpTypeEntry) {
             spawnMiniImpGroup(count, null, { ...spawnOpts }, type);
           } else if (typeof schedulePortalSpawn === "function") {
             for (let i = 0; i < count; i += 1) {

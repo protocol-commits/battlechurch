@@ -8,6 +8,7 @@
   const SPRITE_FRAME_RATE = 6;
   const TAGS = [
     "ranged",
+    "swarmable",
     "npcPriority",
     "preferEdges",
     "closestAny",
@@ -1133,6 +1134,48 @@
     return wrapper;
   }
 
+  function createGroupSizeInput(key) {
+    const enemy = ensureEnemy(key);
+    const wrapper = createField("Max Group");
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "1";
+    input.step = "1";
+    input.placeholder = "off";
+    input.value = enemy.maxGroupSize ?? "";
+    input.addEventListener("change", () => {
+      const raw = input.value === "" ? null : Number(input.value);
+      if (!Number.isFinite(raw) || raw <= 0) {
+        delete enemy.maxGroupSize;
+        return;
+      }
+      enemy.maxGroupSize = Math.max(1, Math.floor(raw));
+    });
+    wrapper.appendChild(input);
+    return wrapper;
+  }
+
+  function createGroupDelayInput(key, field, label) {
+    const enemy = ensureEnemy(key);
+    const wrapper = createField(label);
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.step = "1";
+    input.placeholder = "default";
+    input.value = enemy[field] ?? "";
+    input.addEventListener("change", () => {
+      const raw = input.value === "" ? null : Number(input.value);
+      if (!Number.isFinite(raw) || raw < 0) {
+        delete enemy[field];
+        return;
+      }
+      enemy[field] = Math.max(0, Math.floor(raw));
+    });
+    wrapper.appendChild(input);
+    return wrapper;
+  }
+
   function getProjectileKeys() {
     const cfg = (typeof window !== "undefined" && window.BattlechurchProjectileConfig?.config) || {};
     const hiddenProjectileKeys = new Set([
@@ -1617,6 +1660,12 @@
     grid.appendChild(createNumberInput(key, "cooldown", "Cooldown"));
     grid.appendChild(createNumberInput(key, "scale", "Scale"));
     grid.appendChild(createSwarmSpacingCell(key));
+    const behaviorTags = new Set(sanitizeSpecialBehavior(enemy.specialBehavior));
+    if (behaviorTags.has("swarmable")) {
+      grid.appendChild(createGroupSizeInput(key));
+      grid.appendChild(createGroupDelayInput(key, "interGroupDelayMs", "Group Gap ms"));
+      grid.appendChild(createGroupDelayInput(key, "intraGroupDelayMs", "Intra Gap ms"));
+    }
     grid.appendChild(createTagsCell(key));
     if (enemy.ranged) {
       grid.appendChild(createProjectileSelect(key));
