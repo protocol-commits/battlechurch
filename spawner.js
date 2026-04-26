@@ -53,7 +53,7 @@
     "bottom_right",
   ];
   const SIDE_SPAWN_INSIDE_PX = 12;
-  const SIDE_SPAWN_OUTSIDE_PX = 0;
+  const SIDE_SPAWN_OUTSIDE_PX = 2;
   const BOTTOM_SPAWN_OUTSIDE_PX = 10;
 
   function getEnemyCatalog() {
@@ -115,7 +115,7 @@
     const viewport = getViewportXBounds();
     const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
     const playHeight = height - hud;
-    const sideOffscreenX = Math.max(SIDE_SPAWN_OUTSIDE_PX, 2);
+    const sideOffscreenX = SIDE_SPAWN_OUTSIDE_PX;
     const sideRadiusPadding = Math.max(8, radius);
     const playableMinX = viewport.minX + radius + 24;
     const playableMaxX = viewport.maxX - radius - 24;

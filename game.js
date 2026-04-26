@@ -12729,24 +12729,9 @@ function getEnemyHitboxCenter(enemy) {
   };
 }
 
-function isEnemyOutsideSpawnBorder(enemy) {
-  if (!enemy || enemy.dead || enemy.state === "death") return false;
-  if (enemy._orbiting) return false;
-  if ((enemy.spawnOffscreenTimer || 0) > 0) return true;
-  if (
-    enemy.ignoreWorldBounds === true &&
-    Number.isFinite(enemy.initialSpawnX) &&
-    Number.isFinite(enemy.initialSpawnY)
-  ) {
-    return true;
-  }
-  return false;
-}
-
 function isEnemyTargetableForAutoAim(enemy) {
   if (!enemy || enemy.dead || enemy.state === "death") return false;
   if (enemy.type === "miniDemonFireKeeper" && enemy.fireKeeperPhase === "hidden") return false;
-  if (isEnemyOutsideSpawnBorder(enemy)) return false;
   return true;
 }
 
