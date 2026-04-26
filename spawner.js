@@ -596,9 +596,7 @@
     while (spawnedSoFar < totalCount) {
       const packIndex = Math.floor(spawnedSoFar / groupCfg.maxGroupSize);
       const packSize = Math.min(groupCfg.maxGroupSize, totalCount - spawnedSoFar);
-      const swarmGroupId = useAnchorRotation
-        ? `swarm:${type}:${++swarmGroupCounter}`
-        : null;
+      const swarmGroupId = `swarm:${type}:${++swarmGroupCounter}`;
       const base = useAnchorRotation
         ? randomOffscreenPositionForZone(
             GROUP_ANCHOR_ZONES[(rotateStart + packIndex) % GROUP_ANCHOR_ZONES.length],
@@ -646,13 +644,15 @@
     const groupCfg = getEnemyGroupSpawnConfig(enemyType, totalCount);
     const enemyTypes = resolveEnemyTypes() || {};
     const avgRadius = enemyTypes?.[enemyType]?.hitRadius || 20;
+    const catalogEntry = getEnemyCatalog()?.[enemyType] || {};
+    const isSwarmable = Array.isArray(catalogEntry.specialBehavior) && catalogEntry.specialBehavior.includes("swarmable");
     const rotateStart = Math.floor(Math.random() * GROUP_ANCHOR_ZONES.length);
     const useAnchorRotation = totalCount > groupCfg.maxGroupSize;
     let spawnedSoFar = 0;
     while (spawnedSoFar < totalCount) {
       const packIndex = Math.floor(spawnedSoFar / groupCfg.maxGroupSize);
       const packSize = Math.min(groupCfg.maxGroupSize, totalCount - spawnedSoFar);
-      const swarmGroupId = useAnchorRotation
+      const swarmGroupId = (isSwarmable || useAnchorRotation)
         ? `swarm:${enemyType}:${++swarmGroupCounter}`
         : null;
       const base = useAnchorRotation
