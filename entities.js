@@ -2947,6 +2947,12 @@
     fireRangedProjectile(dx, dy, options = {}) {
       if (!this.projectileType) return;
       if (typeof normalizeVector !== "function" || typeof spawnProjectile !== "function") return;
+      if (
+        typeof isEnemyTargetableForAutoAim === "function" &&
+        !isEnemyTargetableForAutoAim(this)
+      ) {
+        return;
+      }
       const triggerAttackAnimation = options?.triggerAttackAnimation !== false;
       const setAttackTimer = options?.setAttackTimer !== false;
       const dir = normalizeVector(dx, dy);
