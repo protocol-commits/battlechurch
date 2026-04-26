@@ -5097,12 +5097,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (!group || group.count <= 0) return;
       const x = group.sumX / group.count;
       const y = group.sumY / group.count;
-      const fontSize = Math.max(52, Math.min(100, 42 + group.initialCount * 0.22));
+      const fontSize = Math.max(20, Math.min(50, 10 + group.initialCount * 0.22));
       const label = String(group.count);
-      ctx.font = `900 ${Math.round(fontSize)}px 'Orbitron', sans-serif`;
+      ctx.font = `500 ${Math.round(fontSize)}px 'Orbitron', sans-serif`;
       ctx.lineWidth = Math.max(6, Math.round(fontSize * 0.16));
       ctx.strokeStyle = "rgba(25, 10, 6, 0.95)";
-      ctx.fillStyle = "rgba(255, 244, 180, 0.98)";
+      ctx.fillStyle = "#FF6B6B";
       ctx.shadowColor = "rgba(255, 130, 70, 0.55)";
       ctx.shadowBlur = Math.max(8, Math.round(fontSize * 0.18));
       ctx.strokeText(label, x, y);
