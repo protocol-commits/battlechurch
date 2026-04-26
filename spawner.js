@@ -52,6 +52,9 @@
     "bottom_left",
     "bottom_right",
   ];
+  const SIDE_SPAWN_INSIDE_PX = 12;
+  const SIDE_SPAWN_OUTSIDE_PX = 0;
+  const BOTTOM_SPAWN_OUTSIDE_PX = 10;
 
   function getEnemyCatalog() {
     try {
@@ -112,7 +115,7 @@
     const viewport = getViewportXBounds();
     const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
     const playHeight = height - hud;
-    const sideOffscreenX = Math.max(radius + 140, Math.floor(width * 0.24), 320);
+    const sideOffscreenX = Math.max(SIDE_SPAWN_OUTSIDE_PX, 2);
     const sideRadiusPadding = Math.max(8, radius);
     const playableMinX = viewport.minX + radius + 24;
     const playableMaxX = viewport.maxX - radius - 24;
@@ -127,8 +130,8 @@
       hud,
       // Side lanes stay outside the visible viewport so enemies walk in.
       // Include radius padding so the full body starts outside the side guide.
-      leftMaxX: viewport.minX - sideOffscreenX - sideRadiusPadding,
-      rightMinX: viewport.maxX + sideOffscreenX + sideRadiusPadding,
+      leftMaxX: viewport.minX + SIDE_SPAWN_INSIDE_PX,
+      rightMinX: viewport.maxX - SIDE_SPAWN_INSIDE_PX,
       bottomMinY: height - Math.max(radius + 36, Math.floor(playHeight * 0.18)),
       // Allow side-edge spawns over most of the arena height to avoid a hard cutoff line.
       sideMinY: hud + Math.max(radius + 20, Math.floor(playHeight * 0.08)),
@@ -235,74 +238,71 @@
   }
 
   function randomOffscreenPosition(radius = 0, extraMargin = 0) {
-    const { width, height } = getCanvasSize();
-    const { minX, maxX } = getViewportXBounds();
-    const marginX = Math.max(320, Math.floor(width * 0.24)) + radius + extraMargin;
-    const bottomExtraMargin = Math.min(120, Math.max(0, extraMargin * 0.25));
-    const marginY = Math.max(40, Math.floor(height * 0.06)) + Math.min(radius, 20) + bottomExtraMargin;
     const bounds = getSpawnIngressBounds(radius);
+    const sideOutsidePad = SIDE_SPAWN_OUTSIDE_PX + Math.min(20, Math.max(0, extraMargin * 0.08));
+    const bottomOutsidePad = BOTTOM_SPAWN_OUTSIDE_PX + Math.min(28, Math.max(0, extraMargin * 0.12));
     const edge = ["left", "right", "bottom"][Math.floor(Math.random() * 3)];
     if (edge === "left" || edge === "right") {
       return {
-        x: edge === "left" ? minX - marginX : maxX + marginX,
+        x: edge === "left" ? bounds.leftMaxX - sideOutsidePad : bounds.rightMinX + sideOutsidePad,
         y: pickSpawnLane(bounds.sideMinY, bounds.sideMaxY, 4, 42),
         __spawnEdge: edge,
       };
     }
     return {
       x: pickBottomSideLaneX(bounds, 3, 42),
-      y: height + marginY,
+      y: bounds.bottomMinY + bottomOutsidePad,
       __spawnEdge: "bottom",
     };
   }
 
   function randomOffscreenPositionForZone(zone = "bottom", radius = 0, extraMargin = 0) {
-    const { width, height } = getCanvasSize();
-    const { minX, maxX } = getViewportXBounds();
-    const marginX = Math.max(320, Math.floor(width * 0.24)) + radius + extraMargin;
-    const bottomExtraMargin = Math.min(120, Math.max(0, extraMargin * 0.25));
-    const marginY = Math.max(40, Math.floor(height * 0.06)) + Math.min(radius, 20) + bottomExtraMargin;
+    const { height } = getCanvasSize();
     const bounds = getSpawnIngressBounds(radius);
+    const sideOutsidePad = SIDE_SPAWN_OUTSIDE_PX + Math.min(20, Math.max(0, extraMargin * 0.08));
+    const bottomOutsidePad = BOTTOM_SPAWN_OUTSIDE_PX + Math.min(28, Math.max(0, extraMargin * 0.12));
+    const leftSpawnX = bounds.leftMaxX - sideOutsidePad;
+    const rightSpawnX = bounds.rightMinX + sideOutsidePad;
     const upperSideMaxY = Math.max(bounds.sideMinY, bounds.hud + Math.floor((height - bounds.hud) * 0.45));
     const lowerSideMinY = Math.min(bounds.sideMaxY, bounds.hud + Math.floor((height - bounds.hud) * 0.45));
     if (zone === "upper_left" || zone === "side_upper_left") {
       return {
-        x: minX - marginX,
+        x: leftSpawnX,
         y: pickSpawnLane(bounds.sideMinY, upperSideMaxY, 3, 32),
         __spawnEdge: "left",
       };
     }
     if (zone === "upper_right" || zone === "side_upper_right") {
       return {
-        x: maxX + marginX,
+        x: rightSpawnX,
         y: pickSpawnLane(bounds.sideMinY, upperSideMaxY, 3, 32),
         __spawnEdge: "right",
       };
     }
     if (zone === "lower_left" || zone === "side_lower_left") {
       return {
-        x: minX - marginX,
+        x: leftSpawnX,
         y: pickSpawnLane(lowerSideMinY, bounds.sideMaxY, 3, 32),
         __spawnEdge: "left",
       };
     }
     if (zone === "lower_right" || zone === "side_lower_right") {
       return {
-        x: maxX + marginX,
+        x: rightSpawnX,
         y: pickSpawnLane(lowerSideMinY, bounds.sideMaxY, 3, 32),
         __spawnEdge: "right",
       };
     }
     if (zone === "left" || zone === "side_left") {
       return {
-        x: minX - marginX,
+        x: leftSpawnX,
         y: pickSpawnLane(bounds.sideMinY, bounds.sideMaxY, 4, 42),
         __spawnEdge: "left",
       };
     }
     if (zone === "right" || zone === "side_right") {
       return {
-        x: maxX + marginX,
+        x: rightSpawnX,
         y: pickSpawnLane(bounds.sideMinY, bounds.sideMaxY, 4, 42),
         __spawnEdge: "right",
       };
@@ -310,14 +310,14 @@
     if (zone === "bottom_left") {
       return {
         x: pickBottomSideLaneX(bounds, 3, 42, "left"),
-        y: height + marginY,
+        y: bounds.bottomMinY + bottomOutsidePad,
         __spawnEdge: "bottom",
       };
     }
     if (zone === "bottom_right") {
       return {
         x: pickBottomSideLaneX(bounds, 3, 42, "right"),
-        y: height + marginY,
+        y: bounds.bottomMinY + bottomOutsidePad,
         __spawnEdge: "bottom",
       };
     }
