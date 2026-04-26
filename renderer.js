@@ -5065,6 +5065,52 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawSwarmGroupCounters(ctx, enemies) {
+    if (!ctx || !Array.isArray(enemies) || !enemies.length) return;
+    const groups = new Map();
+    enemies.forEach((enemy) => {
+      if (!enemy || enemy.dead || enemy.state === "death") return;
+      const groupId = enemy.swarmGroupId;
+      if (!groupId) return;
+      let group = groups.get(groupId);
+      if (!group) {
+        group = {
+          count: 0,
+          sumX: 0,
+          sumY: 0,
+          initialCount: Math.max(1, Math.floor(Number(enemy.swarmGroupInitialCount) || 1)),
+        };
+        groups.set(groupId, group);
+      }
+      group.count += 1;
+      group.sumX += Number(enemy.x) || 0;
+      group.sumY += Number(enemy.y) || 0;
+      const initial = Math.max(1, Math.floor(Number(enemy.swarmGroupInitialCount) || 1));
+      if (initial > group.initialCount) group.initialCount = initial;
+    });
+    if (!groups.size) return;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    groups.forEach((group) => {
+      if (!group || group.count <= 0) return;
+      const x = group.sumX / group.count;
+      const y = group.sumY / group.count;
+      const fontSize = Math.max(52, Math.min(100, 42 + group.initialCount * 0.22));
+      const label = String(group.count);
+      ctx.font = `900 ${Math.round(fontSize)}px 'Orbitron', sans-serif`;
+      ctx.lineWidth = Math.max(6, Math.round(fontSize * 0.16));
+      ctx.strokeStyle = "rgba(25, 10, 6, 0.95)";
+      ctx.fillStyle = "rgba(255, 244, 180, 0.98)";
+      ctx.shadowColor = "rgba(255, 130, 70, 0.55)";
+      ctx.shadowBlur = Math.max(8, Math.round(fontSize * 0.18));
+      ctx.strokeText(label, x, y);
+      ctx.fillText(label, x, y);
+    });
+    ctx.restore();
+  }
+
   function drawCombatHitboxDebugs(ctx, player, npcs, enemies, activeBoss, projectiles) {
     const hitboxDebug =
       typeof window !== "undefined" ? window.BattlechurchHitboxDebug || null : null;
@@ -9228,6 +9274,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
       });
       orderedEnemies.forEach((enemy) => enemy.draw());
+      drawSwarmGroupCounters(ctx, orderedEnemies);
       if (activeBoss) activeBoss.draw(ctx);
       drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);
     }

@@ -39,6 +39,7 @@
   let oneEnemySpawnedLevel1 = false;
   let pendingPortalSpawns = 0;
   let spawnSequenceCounter = 0;
+  let swarmGroupCounter = 0;
   const MINI_IMP_MAX_PACK_SIZE = 100;
   const MINI_IMP_INTER_PACK_STAGGER_MS = 80;
   const MINI_IMP_INTRA_PACK_STAGGER_MS = 0;
@@ -476,6 +477,16 @@
     enemy.initialSpawnX = spawnPos.x;
     enemy.initialSpawnY = spawnPos.y;
     enemy.spawnSequence = ++spawnSequenceCounter;
+    if (options?.swarmGroupId) {
+      enemy.swarmGroupId = String(options.swarmGroupId);
+      enemy.swarmGroupInitialCount = Math.max(
+        1,
+        Math.floor(Number(options.swarmGroupInitialCount) || 1),
+      );
+      enemy.swarmGroupType = String(options.swarmGroupType || type || "");
+      enemy.swarmGroupLabel =
+        options.swarmGroupLabel != null ? String(options.swarmGroupLabel) : null;
+    }
 
     deps.enemies.push(enemy);
     const skipSpawnEffects = options.skipSpawnEffects === true;
@@ -585,6 +596,9 @@
     while (spawnedSoFar < totalCount) {
       const packIndex = Math.floor(spawnedSoFar / groupCfg.maxGroupSize);
       const packSize = Math.min(groupCfg.maxGroupSize, totalCount - spawnedSoFar);
+      const swarmGroupId = useAnchorRotation
+        ? `swarm:${type}:${++swarmGroupCounter}`
+        : null;
       const base = useAnchorRotation
         ? randomOffscreenPositionForZone(
             GROUP_ANCHOR_ZONES[(rotateStart + packIndex) % GROUP_ANCHOR_ZONES.length],
@@ -602,6 +616,10 @@
           ...(options || {}),
           applyCameraShake: spawnedSoFar === 0 && i === 0,
           extraMargin: useAnchorRotation ? perPackExtraMargin : groupExtra,
+          swarmGroupId,
+          swarmGroupInitialCount: packSize,
+          swarmGroupType: type,
+          swarmGroupLabel: useAnchorRotation ? String(packSize) : null,
         };
         const delayMs =
           packIndex * groupCfg.interGroupDelayMs +
@@ -634,6 +652,9 @@
     while (spawnedSoFar < totalCount) {
       const packIndex = Math.floor(spawnedSoFar / groupCfg.maxGroupSize);
       const packSize = Math.min(groupCfg.maxGroupSize, totalCount - spawnedSoFar);
+      const swarmGroupId = useAnchorRotation
+        ? `swarm:${enemyType}:${++swarmGroupCounter}`
+        : null;
       const base = useAnchorRotation
         ? randomOffscreenPositionForZone(
             GROUP_ANCHOR_ZONES[(rotateStart + packIndex) % GROUP_ANCHOR_ZONES.length],
@@ -650,7 +671,14 @@
         const delayMs =
           packIndex * groupCfg.interGroupDelayMs +
           i * groupCfg.intraGroupDelayMs;
-        schedulePortalSpawn(enemyType, spawnPos, delayMs, options || {});
+        const spawnOptions = {
+          ...(options || {}),
+          swarmGroupId,
+          swarmGroupInitialCount: packSize,
+          swarmGroupType: enemyType,
+          swarmGroupLabel: useAnchorRotation ? String(packSize) : null,
+        };
+        schedulePortalSpawn(enemyType, spawnPos, delayMs, spawnOptions);
       }
       spawnedSoFar += packSize;
     }
