@@ -490,7 +490,7 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 1.05,
+    "swarmSpacing": 1,
     "damageClass": "tank",
     "hitbox": {
       "width": 20,
