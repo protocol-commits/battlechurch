@@ -9074,6 +9074,32 @@ function updateHaloBladeInstance(state, angle, dt) {
     );
   });
 
+  projectiles.forEach((proj) => {
+    if (!proj || proj.dead || proj.friendly || proj.visualOnly) return;
+    const px = proj.x || 0;
+    const py = proj.y || 0;
+    const pr = proj.radius || 0;
+    const dx = px - state.x;
+    const dy = py - state.y;
+    const bladeHit = dx * dx + dy * dy <= (hitRadius + pr) ** 2;
+    let tetherHit = false;
+    let impactX = px;
+    let impactY = py;
+    if (!bladeHit && tetherHitRadius > 0) {
+      const closest = closestPointOnSegment(px, py, tetherStartX, tetherStartY, tetherEndX, tetherEndY);
+      const cdx = px - closest.x;
+      const cdy = py - closest.y;
+      tetherHit = cdx * cdx + cdy * cdy <= (pr + tetherHitRadius) ** 2;
+      impactX = closest.x;
+      impactY = closest.y;
+    }
+    if (!bladeHit && !tetherHit) return;
+    const destroyed = applyProjectileDurabilityDamage(proj, state.damage);
+    if (destroyed) {
+      spawnImpactEffect(bladeHit ? px : impactX, bladeHit ? py : impactY);
+    }
+  });
+
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated) {
     const dx = activeBoss.x - state.x;
     const dy = activeBoss.y - state.y;
