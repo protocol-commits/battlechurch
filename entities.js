@@ -1258,7 +1258,18 @@
 
   // Collect possible targets: enemies, bosses, visitors, chatty NPCs
   let possibleTargets = [];
-  if (Array.isArray(enemies)) possibleTargets = possibleTargets.concat(enemies);
+  if (Array.isArray(enemies)) {
+    for (const enemy of enemies) {
+      if (!enemy) continue;
+      if (
+        typeof isEnemyTargetableForAutoAim === "function" &&
+        !isEnemyTargetableForAutoAim(enemy)
+      ) {
+        continue;
+      }
+      possibleTargets.push(enemy);
+    }
+  }
   if (typeof activeBoss !== 'undefined' && activeBoss && !activeBoss.dead && activeBoss.state !== "death") possibleTargets.push(activeBoss);
   if (typeof visitorSession !== 'undefined' && Array.isArray(visitorSession.visitors)) possibleTargets = possibleTargets.concat(visitorSession.visitors);
       // Always include chatty NPCs in possibleTargets

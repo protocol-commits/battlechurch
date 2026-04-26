@@ -12726,9 +12726,24 @@ function getEnemyHitboxCenter(enemy) {
   };
 }
 
+function isEnemyOutsideSpawnBorder(enemy) {
+  if (!enemy || enemy.dead || enemy.state === "death") return false;
+  if (enemy._orbiting) return false;
+  if ((enemy.spawnOffscreenTimer || 0) > 0) return true;
+  if (
+    enemy.ignoreWorldBounds === true &&
+    Number.isFinite(enemy.initialSpawnX) &&
+    Number.isFinite(enemy.initialSpawnY)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function isEnemyTargetableForAutoAim(enemy) {
   if (!enemy || enemy.dead || enemy.state === "death") return false;
   if (enemy.type === "miniDemonFireKeeper" && enemy.fireKeeperPhase === "hidden") return false;
+  if (isEnemyOutsideSpawnBorder(enemy)) return false;
   return true;
 }
 
@@ -19421,6 +19436,7 @@ function processProjectileCollisions(dt) {
       // Friendly projectiles hitting enemies
       for (const enemy of enemies) {
         if (enemy.dead || enemy.state === "death") continue;
+        if (!isEnemyTargetableForAutoAim(enemy)) continue;
         if (projectile.hitEntities.has(enemy)) continue;
         if (!projectile.hitTest(enemy)) continue;
         projectile.hitEntities.add(enemy);
@@ -20183,6 +20199,7 @@ function applyProjectileSplashDamage(
   const damageType = projectile.damageType || (projectile.isDivineShot ? "charged" : "projectile");
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
+    if (!isEnemyTargetableForAutoAim(enemy)) return;
     const center = getEnemyHitboxCenter(enemy);
     const distance = Math.hypot(center.x - centerX, center.y - centerY);
     const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;
