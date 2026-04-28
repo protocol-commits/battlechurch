@@ -9065,7 +9065,11 @@ function updateHaloBladeInstance(state, angle, dt) {
     const haloDamage = bladeArmoredBonusActive
       ? baseDamage * Math.max(1, Number(state.armoredDamageMultiplier) || 4.0)
       : baseDamage;
+    const haloWasAlive = !enemy.dead && enemy.state !== "death";
     enemy.takeDamage(haloDamage, { damageType: "melee" });
+    if (haloWasAlive && (enemy.dead || enemy.state === "death")) {
+      enemy.killedByChurchPowerup = true;
+    }
     registerComboHit(enemy, haloDamage);
     spawnFlashEffect(
       bladeHit ? center.x : tetherImpactX,
@@ -10684,6 +10688,7 @@ function detonateWisdomMissleProjectile(projectile) {
   const baseDamage = projectile.getDamage() * MAGIC_SPLASH_DAMAGE_MULTIPLIER;
   applyProjectileSplashDamage(projectile, centerX, centerY, radius, baseDamage, {
     skipBossImpact: true,
+    churchPowerup: true,
   });
   spawnMagicSplashEffect(centerX, centerY, radius);
   projectile.dead = true;
@@ -10704,6 +10709,7 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
   const splashDamage = projectile.getDamage() * FAITH_CANNON_SPLASH_DAMAGE_MULTIPLIER;
   applyProjectileSplashDamage(projectile, centerX, centerY, radius, splashDamage, {
     skipBossImpact: true,
+    churchPowerup: true,
   });
   if (endOfRange) {
     spawnImpactDustEffect(centerX, centerY);
@@ -19397,12 +19403,20 @@ function processDeadEnemies() {
     if (!killedByPrayer && player && typeof player.addPrayerCharge === "function") {
       const enemyHp = Math.max(0, Number(enemy.maxHealth) || Number(enemy.config?.health) || 0);
       const formation = getFormationBonuses();
-      const chargeScale = 1 + Math.max(0, Number(formation?.prayerChargeGain) || 0);
+      const rushBonus = enemy.killedByRush ? 0.10 : 0;
+      const churchBonus = enemy.killedByChurchPowerup ? 0.05 : 0;
+      const chargeScale = 1 + Math.max(0, Number(formation?.prayerChargeGain) || 0) + rushBonus + churchBonus;
       const chargeAmount = enemyHp * chargeScale;
       if (chargeAmount > 0) player.addPrayerCharge(chargeAmount);
     }
     if (enemy.killedByPrayerBomb) {
       delete enemy.killedByPrayerBomb;
+    }
+    if (enemy.killedByRush) {
+      delete enemy.killedByRush;
+    }
+    if (enemy.killedByChurchPowerup) {
+      delete enemy.killedByChurchPowerup;
     }
 
     const skipFaithReward = NPC_FAITH_KILL_REWARD_EXCLUSIONS.has(enemy.type);
@@ -19469,11 +19483,20 @@ function processProjectileCollisions(dt) {
         const counterHit = projectile.isDivineShot
           ? getCounterHitResult(enemy, projectileDamage, meleeAttackState)
           : { damage: projectileDamage, damageText: null };
+        const npcPowerupWasAlive = !enemy.dead && enemy.state !== "death";
         enemy.takeDamage(counterHit.damage, {
           damageType,
           damageText: counterHit.damageText,
           ignoreProjectileResistance: projectile.ignoreProjectileResistance === true,
         });
+        if (
+          npcPowerupWasAlive &&
+          (enemy.dead || enemy.state === "death") &&
+          !projectile.source?.isPlayer &&
+          projectile.type !== "arrow"
+        ) {
+          enemy.killedByChurchPowerup = true;
+        }
         if (projectile.source?.isPlayer) {
           registerProjectileComboHit(enemy, counterHit.damage, projectile);
           if (projectile.isDivineShot && meleeAttackState) {
@@ -20199,7 +20222,7 @@ function applyProjectileSplashDamage(
   centerY,
   radius,
   damage,
-  { skipBossImpact = false } = {},
+  { skipBossImpact = false, churchPowerup = false } = {},
 ) {
   if (!projectile) return;
   const fromPlayer = Boolean(projectile?.source?.isPlayer);
@@ -20211,7 +20234,11 @@ function applyProjectileSplashDamage(
     const distance = Math.hypot(center.x - centerX, center.y - centerY);
     const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;
     if (distance <= threshold) {
+      const splashWasAlive = !enemy.dead && enemy.state !== "death";
       enemy.takeDamage(damage, { damageType });
+      if (churchPowerup && splashWasAlive && (enemy.dead || enemy.state === "death")) {
+        enemy.killedByChurchPowerup = true;
+      }
       if (fromPlayer) {
         registerProjectileComboHit(enemy, damage, projectile);
       }
@@ -20386,7 +20413,11 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     meleeAttackState.rushHitEntities.add(enemy);
     const counterHit = getCounterHitResult(enemy, RUSH_DAMAGE, meleeAttackState);
     const damage = counterHit.damage;
+    const wasAlive = !enemy.dead && enemy.state !== "death";
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
+    if (wasAlive && (enemy.dead || enemy.state === "death")) {
+      enemy.killedByRush = true;
+    }
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
     registerMeleeComboHit(enemy, meleeAttackState);
