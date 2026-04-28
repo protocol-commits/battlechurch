@@ -4030,7 +4030,7 @@ const CONGREGATION_COMMAND_SHAKE_MAGNITUDE = _gb('congregationCommand.shakeMagni
 if (typeof window !== "undefined") {
   window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
 }
-const PRAYER_BOMB_CHARGE_PER_KILL = 0.5;
+const PRAYER_BOMB_CHARGE_PER_KILL = 0.25;
 const PRAYER_BOMB_CHARGE_TYPE_MODIFIERS = {
   miniImp: 0.1,
   miniImpLevel2: 0.1,
