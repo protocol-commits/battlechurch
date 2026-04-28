@@ -10448,14 +10448,6 @@ function dismissCurrentLevelAnnouncement() {
   if (levelManager?.acknowledgeAnnouncement) {
     try { levelManager.acknowledgeAnnouncement(); } catch (e) {}
   }
-  if (levelManager?.getStatus && !current.townIntro && !current.exteriorShot) {
-    try {
-      const status = levelManager.getStatus();
-      if (status?.stage === "levelIntro" && typeof levelManager.advanceFromCongregation === "function") {
-        levelManager.advanceFromCongregation();
-      }
-    } catch (e) {}
-  }
 }
 
 function isBattleSummaryAnnouncement(announcement) {
