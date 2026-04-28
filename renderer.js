@@ -1394,20 +1394,20 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   const formationOptions = [
     {
       key: "circle",
-      label: "GUIDED COURSE",
-      desc: "Armor-piercing bolts for heavy demons.",
+      label: "Heavy Ordnance",
+      desc: "Armor-piercing bolts that cut through the heaviest resistance.",
       stat: "+Damage",
     },
     {
       key: "line",
-      label: "BIBLE STUDY",
-      desc: "Higher rate of fire to thin swarms.",
+      label: "Rapid Fire",
+      desc: "Rapid fire — keep the darkness scattered and on the run.",
       stat: "+Rate of Fire",
     },
     {
       key: "crescent",
-      label: "CARE GROUP",
-      desc: "Prayer meter fills faster in battle.",
+      label: "Tactical Support",
+      desc: "Your inner light refills faster. Hold the line longer.",
       stat: "+Prayer Meter",
     },
   ];
@@ -1429,7 +1429,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
     )
     .join("");
   const bodyHtml = `
-    <div class="mission-brief-prompt">How will you focus them?</div>
+    <div class="mission-brief-prompt">How will you equip them?</div>
     <div class="formation-picker">${buttonsHtml}</div>
   `;
   const finishMissionBrief = (shouldHide = false) => {
@@ -1600,7 +1600,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     eyebrowOffset = -8,
     eyebrowColor = "rgba(231, 196, 126, 0.9)",
   } = options;
-  const promptText = "How will you focus them?";
+  const promptText = "How will you equip them?";
   const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
   const promptSize = 0;
   const displayButtons = showButtons !== false;
@@ -1830,22 +1830,22 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ? [
         {
           key: "circle",
-          label: "GUIDED COURSE",
-          desc: "Armor-piercing bolts for heavy demons.",
+          label: "Heavy Ordnance",
+          desc: "Armor-piercing bolts that cut through the heaviest resistance.",
           stat: "+Damage",
           iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
         },
         {
           key: "line",
-          label: "BIBLE STUDY",
-          desc: "Higher rate of fire to thin swarms.",
+          label: "Rapid Fire",
+          desc: "Rapid fire — keep the darkness scattered and on the run.",
           stat: "+Rate of Fire",
           iconSrc: "assets/sprites/items/icons/I25_Book.png",
         },
         {
           key: "crescent",
-          label: "CARE GROUP",
-          desc: "Prayer meter fills faster in battle.",
+          label: "Tactical Support",
+          desc: "Your inner light refills faster. Hold the line longer.",
           stat: "+Prayer Meter",
           iconSrc: "assets/sprites/items/icons/I41_Candle.png",
         },

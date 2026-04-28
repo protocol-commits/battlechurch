@@ -5376,12 +5376,12 @@ const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 const FORMATION_PRESETS = {
   circle: {
     key: "circle",
-    label: "Guided Study",
-    spokenLabel: "Guided Study",
+    label: "Heavy Ordnance",
+    spokenLabel: "Heavy Ordnance",
     bonuses: { damage: 0.2, armorPierce: true, projectileType: "lichBolt" },
   },
-  line: { key: "line", label: "Bible Study", spokenLabel: "Bible Study", bonuses: { rof: 0.2 } },
-  crescent: { key: "crescent", label: "Shared Burdens", spokenLabel: "Care Group", bonuses: { prayerChargeGain: 0.1 } },
+  line: { key: "line", label: "Rapid Fire", spokenLabel: "Rapid Fire", bonuses: { rof: 0.2 } },
+  crescent: { key: "crescent", label: "Tactical Support", spokenLabel: "Tactical Support", bonuses: { prayerChargeGain: 0.1 } },
 };
 const npcWeaponState = {
   mode: null,
