@@ -3460,9 +3460,6 @@
       }
       const scaledDamage = Math.max(0, Math.round(amount * multiplier));
       this.health -= scaledDamage;
-      if (scaledDamage > 0 && levelManager?.notifyEnemyDamaged) {
-        levelManager.notifyEnemyDamaged(scaledDamage);
-      }
       const damageText = options?.damageText || null;
       if (typeof showDamage === "function") {
         showDamage(this, scaledDamage, {
@@ -3501,6 +3498,10 @@
           this.radius = 0;
           if (levelManager && typeof levelManager.notifyEnemyDefeated === "function") {
             levelManager.notifyEnemyDefeated();
+            const baseHp = Math.max(0, Number(this.maxHealth) || Number(this.config?.health) || 0);
+            if (baseHp > 0 && typeof levelManager.notifyEnemyDamaged === "function") {
+              levelManager.notifyEnemyDamaged(baseHp);
+            }
           }
           return;
         }
@@ -3541,6 +3542,10 @@
         }
         if (levelManager && typeof levelManager.notifyEnemyDefeated === "function") {
           levelManager.notifyEnemyDefeated();
+          const baseHp = Math.max(0, Number(this.maxHealth) || Number(this.config?.health) || 0);
+          if (baseHp > 0 && typeof levelManager.notifyEnemyDamaged === "function") {
+            levelManager.notifyEnemyDamaged(baseHp);
+          }
         }
       } else {
         if (this.type === "tormentorFlame") {

@@ -14135,6 +14135,8 @@ class BossEncounter {
     lastEnemyDeathPosition = { x: this.x, y: this.y };
     if (!this.deathNotified) {
       levelManager?.notifyEnemyDefeated();
+      const bossBaseHp = Math.max(0, Number(this.maxHealth) || Number(this.config?.health) || 0);
+      if (bossBaseHp > 0) levelManager?.notifyEnemyDamaged?.(bossBaseHp);
       spawnPowerUpDrops(4 + Math.min(3, this.level));
       spawnMagicSplashEffect(this.x, this.y, this.radius * 2.8);
       spawnImpactDustEffect(this.x, this.y, this.radius * 1.2);

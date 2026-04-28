@@ -84,7 +84,7 @@
     prayerBomb: {
       radius: 520,
       damageMultiplier: 12.0,
-      chargeRequired: 60000,
+      chargeRequired: 40000,
       holdTime: 1.0,
 
       // Thresholds (0-1 ratio) — aligned to 6-section meter (1/6 per section)
