@@ -11,7 +11,7 @@
     WORLD_SCALE: 1,
     PLAYER_BASE_SCALE: 3.28,
     HERO_MAX_HEALTH: 100,
-    PRAYER_BOMB_CHARGE_REQUIRED: 60,
+    PRAYER_BOMB_CHARGE_REQUIRED: 6000,
     CONGREGATION_COMMAND_CHARGE_TIME: 12,
     DAMAGE_FLASH_INTENSITY: 1,
     ARROW_DAMAGE: 10,
@@ -1218,7 +1218,7 @@
     const congregationCommand =
       typeof consumeCongregationClick === "function" ? consumeCongregationClick() : false;
     if (congregationCommand) {
-      const cTapCost = (this.prayerChargeRequired || 60) / 6;
+      const cTapCost = (this.prayerChargeRequired || 6000) / 6;
       if (this.isCongregationCommandReady() && (this.prayerCharge || 0) >= cTapCost) {
         const triggerCongregationCommand =
           typeof window !== "undefined" ? window.triggerCongregationCommand : null;
@@ -1752,7 +1752,7 @@
     if (level === 3) {
       this.prayerCharge = 0;
     } else {
-      const twoBars = (this.prayerChargeRequired || 60) / 3; // 2/6 of the meter
+      const twoBars = (this.prayerChargeRequired || 6000) / 3; // 2/6 of the meter
       this.prayerCharge = Math.max(0, (this.prayerCharge || 0) - twoBars);
     }
     this.state = "attackPrayer";

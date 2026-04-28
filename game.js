@@ -3976,7 +3976,7 @@ const SPAWN_CAMERA_SHAKE_MAGNITUDE =
 // Prayer Bomb constants (tunable via GameBalance.prayerBomb.*)
 const PRAYER_BOMB_RADIUS = _gb('prayerBomb.radius', 520) * WORLD_SCALE;
 const PRAYER_BOMB_DAMAGE_MULTIPLIER = _gb('prayerBomb.damageMultiplier', 12.0);
-const PRAYER_BOMB_CHARGE_REQUIRED = _gb('prayerBomb.chargeRequired', 60);
+const PRAYER_BOMB_CHARGE_REQUIRED = _gb('prayerBomb.chargeRequired', 60000);
 const PRAYER_BOMB_LEVEL1_THRESHOLD = _gb('prayerBomb.level1Threshold', 2 / 6);
 const PRAYER_BOMB_LEVEL2_THRESHOLD = _gb('prayerBomb.level2Threshold', 4 / 6);
 const PRAYER_BOMB_LEVEL3_THRESHOLD = _gb('prayerBomb.level3Threshold', 1.0);
@@ -4030,11 +4030,6 @@ const CONGREGATION_COMMAND_SHAKE_MAGNITUDE = _gb('congregationCommand.shakeMagni
 if (typeof window !== "undefined") {
   window.PRAYER_BOMB_RAIN_DURATION = PRAYER_BOMB_RAIN_DURATION;
 }
-const PRAYER_BOMB_CHARGE_PER_KILL = 0.25;
-const PRAYER_BOMB_CHARGE_TYPE_MODIFIERS = {
-  miniImp: 0.1,
-  miniImpLevel2: 0.1,
-};
 const PRAYER_BOMB_HOLD_TIME = 1.0;
 const HIT_FREEZE_DURATION = 0.08;
 const CAMERA_SHAKE_DURATION = 0.3;
@@ -16060,7 +16055,7 @@ function updatePlayerDuringCongregation(dt) {
   // is set by updatePlayer's pre-suppression block which runs AFTER this player.update() call.
   if (window._meleeAttackState && player && typeof Input !== "undefined") {
     const _ms = window._meleeAttackState;
-    const prayerSuperCost = (player.prayerChargeRequired || 60) / 3;
+    const prayerSuperCost = (player.prayerChargeRequired || 6000) / 3;
     const aFullyCharged =
       _ms.isCharging &&
       _ms.buttonDown &&
@@ -18776,14 +18771,14 @@ function updateCongregationStage(dt, levelStatus) {
   }
   if (typeof window !== "undefined") window.__congregationTutorialActive = tutorialHintsEnabled;
   if (tutorialHintsEnabled && !congregationTutorialPrayerInit && player) {
-    const fiveSixths = Math.round((player.prayerChargeRequired || 60) * 5 / 6);
+    const fiveSixths = Math.round((player.prayerChargeRequired || 6000) * 5 / 6);
     player.prayerCharge = fiveSixths;
     player.prayerHoldLocked = false;
     congregationTutorialPrayerInit = true;
     congregationTutorialRefillTimer = 0;
   }
   if (tutorialHintsEnabled && player && congregationTutorialPrayerInit) {
-    const fiveSixths = Math.round((player.prayerChargeRequired || 60) * 5 / 6);
+    const fiveSixths = Math.round((player.prayerChargeRequired || 6000) * 5 / 6);
     if (player.prayerCharge < fiveSixths) {
       player.prayerCharge = fiveSixths;
       player.prayerHoldLocked = false;
@@ -18999,7 +18994,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     const comboWinMs = (typeof MELEE_DOUBLE_TAP_WINDOW === "number" ? MELEE_DOUBLE_TAP_WINDOW : 0.18) * 1000;
 
     // A+C super: arm when both meters are simultaneously full with enough prayer
-    const prayerSuperCost = (player.prayerChargeRequired || 60) / 3;
+    const prayerSuperCost = (player.prayerChargeRequired || 6000) / 3;
     const bothFull =
       _ms.isCharging &&
       _ms.buttonDown &&
@@ -19023,7 +19018,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     const cRecentForCombo = cLastPressed > 0 && (nowPre - cLastPressed) <= comboWinMs;
     const aJustPressedNow = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
     const prayerStrikeBlocking = cRecentForCombo && aJustPressedNow &&
-      (player.prayerCharge || 0) >= (player.prayerChargeRequired || 60) / 3;
+      (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000) / 3;
 
     // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
     const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0);
@@ -19406,10 +19401,10 @@ function processDeadEnemies() {
 
     const killedByPrayer = Boolean(enemy.killedByPrayerBomb);
     if (!killedByPrayer && player && typeof player.addPrayerCharge === "function") {
-      const modifier = PRAYER_BOMB_CHARGE_TYPE_MODIFIERS[enemy.type] ?? 1;
+      const enemyHp = Math.max(0, Number(enemy.maxHealth) || Number(enemy.config?.health) || 0);
       const formation = getFormationBonuses();
       const chargeScale = 1 + Math.max(0, Number(formation?.prayerChargeGain) || 0);
-      const chargeAmount = PRAYER_BOMB_CHARGE_PER_KILL * modifier * chargeScale;
+      const chargeAmount = enemyHp * chargeScale;
       if (chargeAmount > 0) player.addPrayerCharge(chargeAmount);
     }
     if (enemy.killedByPrayerBomb) {
@@ -21779,7 +21774,7 @@ function executePowerupTeleport(meleeAttackState) {
   applyMeleeInvulnerability(meleeAttackState, "rush", TELEPORT_INVULNERABILITY_DURATION);
   spawnFlashEffect(player.x, player.y);
   applyCameraShake(0.18, 0.5);
-  const teleportCost = (player.prayerChargeRequired || 60) / 3;
+  const teleportCost = (player.prayerChargeRequired || 6000) / 3;
   player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - teleportCost);
   player.prayerHoldTimer = 0;
   player.prayerHoldLocked = false;
@@ -22557,7 +22552,7 @@ function updateMeleeAttackSystem(dt) {
         comboTriggered = true;
       }
     }
-    const holyDashCost = player ? (player.prayerChargeRequired || 60) / 6 : 10;
+    const holyDashCost = player ? (player.prayerChargeRequired || 6000) / 6 : 10;
     // C/B Holy Dash: C must have been tapped (released) recently, then B pressed.
     // Holding C then pressing B routes to the B-charge path for Teleport instead.
     const bJustPressedRaw = keysJustPressed.has("ArrowDown");
@@ -22602,7 +22597,7 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete("ArrowDown");
       comboTriggered = true;
     }
-    const prayerStrikeCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
+    const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 3 : 20;
     const comboPrayerStrike =
       !comboTriggered &&
       comboPrayerStrikeOrder &&
@@ -22648,7 +22643,7 @@ function updateMeleeAttackSystem(dt) {
     }
     if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
       meleeAttackState.spinChargeTimer += dt;
-      const teleportCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
+      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 3 : 20;
       const bFullyCharged = meleeAttackState.spinChargeTimer >= (meleeAttackState.spinHoldTime || 0);
       const cHeld = keysPressed.has("ArrowRight");
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
@@ -22689,7 +22684,7 @@ function updateMeleeAttackSystem(dt) {
     if (meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
       const cHeldOnBRelease = keysPressed.has("ArrowRight");
-      const teleportCost = player ? (player.prayerChargeRequired || 60) / 3 * 2 : 40;
+      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 3 * 2 : 40;
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
       const shouldTeleport = meleeAttackState.bcTeleportArmed ||
         (fullyCharged && cHeldOnBRelease && hasPrayerForTeleport);
@@ -22791,7 +22786,7 @@ function updateMeleeAttackSystem(dt) {
           meleeAttackState.spinChargeTimer = 0;
           executeSwordRush(meleeAttackState);
         } else if (canACSuper) {
-          const acSuperCost = player ? (player.prayerChargeRequired || 60) / 3 : 20;
+          const acSuperCost = player ? (player.prayerChargeRequired || 6000) / 3 : 20;
           if (player) player.prayerCharge = Math.max(0, player.prayerCharge - acSuperCost);
           if (player) { player.prayerHoldLocked = false; player.prayerHoldTimer = 0; }
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
