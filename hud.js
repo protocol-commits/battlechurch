@@ -18,6 +18,7 @@
     congregation: "assets/sprites/items/icons/I28_Idol.png",
     grace: "assets/sprites/items/icons/I62_Gem_L.png",
     enemies: "assets/sprites/items/Weapons/W01_Blade.png",
+    damageDealt: "assets/sprites/items/icons/A33_Mirror_Shield.png",
   };
   const scoreboardIcons = {};
   Object.entries(scoreboardIconSources).forEach(([key, src]) => {
@@ -639,6 +640,7 @@
 
       const graceCount = typeof getGraceCount === 'function' ? getGraceCount() : 0;
       const enemyKills = stats?.enemiesDefeated ?? 0;
+      const damageDealt = stats?.damageDealt ?? 0;
       const formatNumber =
         typeof bindings?.formatNumberWithCommas === 'function'
           ? bindings.formatNumberWithCommas
@@ -672,6 +674,13 @@
       const enemyText = formatNumber(enemyKills);
       ctx.fillText(enemyText, x, rowY);
       x += ctx.measureText(enemyText).width + 14;
+      if (scoreboardIcons.damageDealt && scoreboardIcons.damageDealt.complete) {
+        ctx.drawImage(scoreboardIcons.damageDealt, x, rowY - iconSize / 2, iconSize, iconSize);
+        x += iconSize + gap;
+      }
+      const damageDealtText = formatNumber(damageDealt);
+      ctx.fillText(damageDealtText, x, rowY);
+      x += ctx.measureText(damageDealtText).width + 14;
       const comboLabel = (typeof GameText !== 'undefined' && GameText.hud?.maxCombo) || "Max Combo:";
       const comboValue = Number.isFinite(maxComboThisTown) ? Math.max(0, Math.round(maxComboThisTown)) : 0;
       const comboText = formatNumber(comboValue);

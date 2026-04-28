@@ -784,6 +784,7 @@
       boss: null,
       stats: {
         enemiesDefeated: 0,
+        damageDealt: 0,
         npcsRescued: 0,
         npcsLost: 0,
         lostPortraits: [],
@@ -2128,6 +2129,9 @@ state.waveIndex = -1;
       },
       notifyEnemyDefeated() {
         state.stats.enemiesDefeated += 1;
+      },
+      notifyEnemyDamaged(amount) {
+        state.stats.damageDealt = (state.stats.damageDealt || 0) + Math.round(amount);
       },
       notifyNpcLost(portrait) {
         state.stats.npcsLost += 1;

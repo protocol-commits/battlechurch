@@ -3460,6 +3460,9 @@
       }
       const scaledDamage = Math.max(0, Math.round(amount * multiplier));
       this.health -= scaledDamage;
+      if (scaledDamage > 0 && levelManager?.notifyEnemyDamaged) {
+        levelManager.notifyEnemyDamaged(scaledDamage);
+      }
       const damageText = options?.damageText || null;
       if (typeof showDamage === "function") {
         showDamage(this, scaledDamage, {
