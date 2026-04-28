@@ -7370,10 +7370,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `500 ${eyebrowSize}px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
-    ctx.shadowBlur = 8;
+    ctx.font = `600 ${eyebrowSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = HELLFIRE_TEXT_PALETTE.subtitle;
+    ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
     ctx.fillText(eyebrowText, centerX, eyebrowY);
     ctx.restore();
 
