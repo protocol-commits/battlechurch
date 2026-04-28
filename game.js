@@ -21985,7 +21985,11 @@ function updateRingOfFireHazards(dt) {
       const targetRadius = getEnemyHitboxRadius(enemy);
       if (dist - targetRadius > outerRadius) return;
       markHit(enemy);
+      const ringWasAlive = !enemy.dead && enemy.state !== "death";
       enemy.takeDamage(hazard.damage, { damageType: "charged" });
+      if (ringWasAlive && (enemy.dead || enemy.state === "death")) {
+        enemy.killedByChurchPowerup = true;
+      }
       if (!enemy.dead && enemy.state !== "death") {
         applyEnemyMeleeKnockback(enemy, hazard.x, hazard.y, MELEE_DAMAGE_KNOCKBACK * 0.75);
       }
