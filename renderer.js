@@ -9742,6 +9742,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (isCongregationStage) {
       drawCongregationScene(levelStatus);
+    } else {
+      congregationIntroState.lastStage = null;
     }
     drawMeleeSwingOverlay(ctx, player);
     drawSpeedrunTimer();
