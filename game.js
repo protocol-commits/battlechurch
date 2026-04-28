@@ -6946,11 +6946,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-  const orderHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-    1: "Mission I: Establish a Foothold",
-    2: "Mission II: Repel the Counter Attack",
-    3: "Mission III: Liberate the Town",
-  };
+  const _ohCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
+  const _ohLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
+  const orderHeadings = _ohLabels.actTitles?.[_ohCamp] || _ohLabels.actTitles?.p1 || {};
   const missionNumber = Math.max(
     1,
     Number.isFinite(status?.battle) ? status.battle : 1,
@@ -7043,7 +7041,10 @@ function startGameFromTitle() {
         : baseCampaignData;
     activeCampaign = campaignData?.campaign || "p1";
     activeCampaignMultiplier = Number.isFinite(campaignData?.campaignMultiplier) ? campaignData.campaignMultiplier : 1.0;
-    if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
+    if (typeof window !== "undefined") {
+      window.activeCampaign = activeCampaign;
+      window.activeCampaignMultiplier = activeCampaignMultiplier;
+    }
     const resumeLocalBattleNumber = Number.isFinite(campaignData?.resumeLocalBattleNumber)
       ? Math.max(1, Math.floor(campaignData.resumeLocalBattleNumber))
       : 1;
@@ -7073,7 +7074,10 @@ function startGameFromTitle() {
     setDemoSandboxRunActive(false);
     activeCampaign = "p1";
     activeCampaignMultiplier = 1.0;
-    if (typeof window !== "undefined") window.activeCampaignMultiplier = activeCampaignMultiplier;
+    if (typeof window !== "undefined") {
+      window.activeCampaign = activeCampaign;
+      window.activeCampaignMultiplier = activeCampaignMultiplier;
+    }
     townStartCongregation = INITIAL_CONGREGATION_SIZE;
     resetChurchPowerups();
   }
@@ -17886,8 +17890,8 @@ function handleTitleScreen() {
               lines.push(`Start Town: ${demoSlot.townId || "unknown"}`);
               lines.push(`Preset Towns Cleared: ${Math.max(0, Number(demoSlot.completedTowns) || 0)}/10`);
               const campaignId = String(campaignData.campaign || "p1").toLowerCase();
-              const visitLabel =
-                campaignId === "p1" ? "Church Plant" : campaignId === "p2" ? "Pastoral Visit I" : "Pastoral Visit II";
+              const _phases = window.BattlechurchCampaignLabels?.phases || {};
+              const visitLabel = _phases[campaignId] || campaignId.toUpperCase();
               lines.push(`Visit: ${visitLabel}`);
               lines.push(`Start Congregation: ${Math.max(0, Number(campaignData.startCount) || 0)}`);
               lines.push(`Visit Multiplier: x${Number(campaignData.campaignMultiplier || 1).toFixed(2).replace(/\\.00$/, "")}`);

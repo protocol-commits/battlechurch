@@ -42,14 +42,14 @@
     // MISSION TEXT
     // =====================
     battleActs: {
-      1: "Mission I: Foothold",
+      1: "Mission I: Assault",
       2: "Mission II: Repel",
       3: "Mission III: Breakthrough",
     },
     actVillainText: {
-      1: "Win 3 battles to secure a foothold",
-      2: "Repel 3 enemy counterattacks",
-      3: "Win 3 battles to break through enemy lines",
+      1: "Win 3 battles to establish a foothold.",
+      2: "Repel 3 enemy counterattacks.",
+      3: "Break through and seize the town.",
     },
 
     // =====================

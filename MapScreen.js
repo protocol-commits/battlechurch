@@ -1105,7 +1105,8 @@
       secondaryLine = `Score Multiplier: ×${getCapitalScoreMultiplier(progress).toFixed(2)}`;
     } else {
       const nextCamp = progress ? getNextCampaignForTown(town.id, progress) : "p1";
-      const campLabel = nextCamp === "p1" ? "Church Plant" : nextCamp === "p2" ? "Pastoral Visit I" : "Pastoral Visit II";
+      const _phases = window.BattlechurchCampaignLabels?.phases || {};
+      const campLabel = _phases[nextCamp] || nextCamp.toUpperCase();
       const campAvail =
         nextCamp === "p1" ||
         (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
@@ -1118,9 +1119,9 @@
       if (campAvail) {
         secondaryLine = `Missions Completed: ${completedVisits}/3`;
       } else if (nextCamp === "p2") {
-        secondaryLine = `Plant a church in all ${districtScopeLabel} towns to unlock Pastoral Visit I.`;
+        secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} towns to unlock ${_phases.p2 || "Occupation"}.`;
       } else {
-        secondaryLine = `Complete Pastoral Visit I in all ${districtScopeLabel} towns to unlock Pastoral Visit II.`;
+        secondaryLine = `Complete ${_phases.p2 || "Occupation"} in all ${districtScopeLabel} towns to unlock ${_phases.p3 || "Fortification"}.`;
       }
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;

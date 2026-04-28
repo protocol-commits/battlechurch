@@ -1077,19 +1077,14 @@
       const currentActNum = MISSIONS_PER_BATTLE > 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1 : 1;
       const battleInAct = MISSIONS_PER_BATTLE > 0 ? (state.monthIndex % MISSIONS_PER_BATTLE) + 1 : localMonthNumber;
       console.info && console.info('queueAnnouncement', { title: `Town ${state.level} Mission ${currentActNum} Battle ${battleInAct}`, level: state.level, actNum: currentActNum, battleInAct, monthIndex: state.monthIndex });
-      const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-        1: "Mission I: Establish a Foothold",
-        2: "Mission II: Repel the Counter Attack",
-        3: "Mission III: Liberate the Town",
-      };
-      const actMissionLabels = {
-        1: "Foothold",
-        2: "Counterattack",
-        3: "Breakthrough",
-      };
-      const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+      const _atCamp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
+      const _atLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
+      const actTitles = _atLabels.actTitles?.[_atCamp] || _atLabels.actTitles?.p1 || {};
+      const _camp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
+      const _missionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
+      const actMissionLabels = _missionsByPhase[_camp] || _missionsByPhase.p1 || {};
       const missionNumber = battleInAct;
-      const missionLabelText = actMissionLabels[currentActNum] || `Mission ${romanNumerals[currentActNum] || currentActNum}`;
+      const missionLabelText = actMissionLabels[currentActNum] || `Mission ${currentActNum}`;
       const missionBriefTitle = `Mission ${currentActNum}: ${missionLabelText}`;
       const missionBriefHeading = `Battle ${missionNumber}`;
       if (typeof window !== "undefined") {
@@ -1104,7 +1099,7 @@
         missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
-      setDevStatus(`Mission ${romanNumerals[currentActNum] || currentActNum} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
+      setDevStatus(`Mission ${currentActNum} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
     }
 
     function finalizeBattleNpcResults() {
@@ -1733,11 +1728,9 @@
       state.currentBossProblem = randomChoice(BOSS_PASTOR_PROBLEMS) || "";
       const bossMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + MONTHS_PER_LEVEL;
       const bossMonthName = getMonthName(bossMonthNumber);
-      const actMissionLabels = {
-        1: "Foothold",
-        2: "Counterattack",
-        3: "Breakthrough",
-      };
+      const _bCamp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
+      const _bMissionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
+      const actMissionLabels = _bMissionsByPhase[_bCamp] || _bMissionsByPhase.p1 || {};
       const currentActNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
         ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
         : 1;

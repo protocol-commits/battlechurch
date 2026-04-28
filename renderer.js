@@ -4544,11 +4544,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const bossAnnouncement = levelAnnouncements[0] || {};
-    const actMissionLabels = {
-      1: "Foothold",
-      2: "Counterattack",
-      3: "Breakthrough",
-    };
+    const _bosscamp = window.activeCampaign || "p1";
+    const _bossMissions = window.BattlechurchCampaignLabels?.missions || {};
+    const actMissionLabels = _bossMissions[_bosscamp] || _bossMissions.p1 || {};
     const bossActNum = Number.isFinite(currentLevelStatus?.actNum)
       ? currentLevelStatus.actNum
       : 1;
@@ -4625,11 +4623,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (npcNames.length > 2) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
-      const actMissionLabels = {
-        1: "Foothold",
-        2: "Counterattack",
-        3: "Breakthrough",
-      };
+      const _camp = window.activeCampaign || "p1";
+      const _missions = window.BattlechurchCampaignLabels?.missions || {};
+      const actMissionLabels = _missions[_camp] || _missions.p1 || {};
       const missionNumber = Number.isFinite(announcement?.missionNumber)
         ? announcement.missionNumber
         : null;
@@ -7302,30 +7298,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
-    // Define text based on act number - use centralized text if available
-    const actTitles = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-      1: "Mission I: Establish a Foothold",
-      2: "Mission II: Repel the Counter Attack",
-      3: "Mission III: Liberate the Town",
-    };
-    const actVillainText = (typeof GameText !== 'undefined' && GameText.actVillainText) || {
-      1: "Win 3 battles to get established",
-      2: "Win 3 counter-attack battles",
-      3: "Win 3 battles deep in the heart of the town",
-    };
+    // Define text based on act number — per-phase from campaign_labels.js
+    const _cbCamp = window.activeCampaign || "p1";
+    const _cbLabels = window.BattlechurchCampaignLabels || {};
+    const actTitles = _cbLabels.actTitles?.[_cbCamp] || _cbLabels.actTitles?.p1 || {};
+    const actVillainText = _cbLabels.actDescriptions?.[_cbCamp] || _cbLabels.actDescriptions?.p1 || {};
     const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
-    const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-    const townData = activeTownId && mapData?.towns
-      ? mapData.towns.find((t) => t.id === activeTownId)
-      : null;
-    const townName = townData?.name || "this town";
     const battleTitle =
       actTitles[chapterBreakActNumber] || `Mission ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
-    let villainText = actVillainText[chapterBreakActNumber] || "";
-    if (chapterBreakActNumber === 1) {
-      villainText = `Win 3 battles to secure a foothold in ${townName}.`;
-    }
+    const villainText = actVillainText[chapterBreakActNumber] || "";
 
     const centerX = canvas.width / 2;
 
@@ -8329,53 +8310,53 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const townName = townVictoryTownName || "this town";
     const score = Number.isFinite(townVictoryScore) ? Math.round(townVictoryScore) : 0;
     const campaignId = String(townVictoryCampaign || "p1").toLowerCase();
-    const visitLabel =
-      campaignId === "p2" ? "Pastoral Visit I" : campaignId === "p3" ? "Pastoral Visit II" : "Church Plant";
+    const _phases = window.BattlechurchCampaignLabels?.phases || {};
+    const phaseLabel = _phases[campaignId] || campaignId.toUpperCase();
 
     let lines;
     if (campaignId === "p1") {
       lines = [
-        { type: "heading", text: `A Church Is Planted in ${townName}`, size: headingSize, color: "#ffd978" },
+        { type: "heading", text: `Foothold Established in ${townName}`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
-        { type: "body", text: "The darkness has been pushed back.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "A new shepherd now stands in this town.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "The enemy has been driven back.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Ground has been taken in hostile territory.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 30 },
-        { type: "body", text: "You leave behind a living church,", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "and raise a pastor to keep the work growing.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "You leave behind a garrison to hold the line,", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "and a commander to keep the advance going.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 50 },
-        { type: "score", text: `Congregation at Handoff: ${score}`, size: scoreSize, color: "#ffd978" },
+        { type: "score", text: `Troops at Handoff: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
-        { type: "body", text: "Now another unchurched town awaits...", size: bodySize, color: "#c8dce8" },
+        { type: "body", text: "Another town awaits liberation...", size: bodySize, color: "#c8dce8" },
         { type: "spacer", height: 80 },
       ];
     } else if (campaignId === "p2") {
       lines = [
-        { type: "heading", text: `${visitLabel} Complete in ${townName}`, size: headingSize, color: "#ffd978" },
+        { type: "heading", text: `${phaseLabel} of ${townName} Secured`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
-        { type: "body", text: "You returned to strengthen the pastor you raised.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "Through teaching and prayer, the church held firm.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "You returned to reinforce the position you seized.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Under renewed assault, the garrison held firm.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 30 },
-        { type: "body", text: "Faith deepens where the church was planted.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "The district sees new signs of life.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "The district is falling further under your control.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Resistance across the region is weakening.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 50 },
-        { type: "score", text: `Congregation After Visit I: ${score}`, size: scoreSize, color: "#ffd978" },
+        { type: "score", text: `Strength After Occupation: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
-        { type: "body", text: "Keep going. More churches need this support.", size: bodySize, color: "#c8dce8" },
+        { type: "body", text: "Keep pushing. More towns need to fall.", size: bodySize, color: "#c8dce8" },
         { type: "spacer", height: 80 },
       ];
     } else {
       lines = [
-        { type: "heading", text: `${visitLabel} Complete in ${townName}`, size: headingSize, color: "#ffd978" },
+        { type: "heading", text: `${townName} Fully Fortified`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
-        { type: "body", text: "Your second return brought endurance and unity.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "This church is no longer surviving. It is leading.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Your return hardened the garrison into a fighting force.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "This position is no longer holding. It is advancing.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 30 },
-        { type: "body", text: "The pastor and congregation stand ready to serve others.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "Another town can now be strengthened.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "The commander and troops stand ready to support the next push.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Another town can now be strengthened from here.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 50 },
-        { type: "score", text: `Congregation After Visit II: ${score}`, size: scoreSize, color: "#ffd978" },
+        { type: "score", text: `Strength After Fortification: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
-        { type: "body", text: "Press on. Build the highest total congregation.", size: bodySize, color: "#c8dce8" },
+        { type: "body", text: "Press on. Build the largest force possible.", size: bodySize, color: "#c8dce8" },
         { type: "spacer", height: 80 },
       ];
     }
@@ -8714,11 +8695,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
       const announcementSubtitle = levelAnnouncements?.[0]?.subtitle || "";
-      const battleHeadings = (typeof GameText !== 'undefined' && GameText.battleActs) || {
-        1: "Mission I: Establish a Foothold",
-        2: "Mission II: Repel the Counter Attack",
-        3: "Mission III: Liberate the Town",
-      };
+      const _bhCamp = window.activeCampaign || "p1";
+      const _bhLabels = window.BattlechurchCampaignLabels || {};
+      const battleHeadings = _bhLabels.actTitles?.[_bhCamp] || _bhLabels.actTitles?.p1 || {};
       const announcement = levelAnnouncements?.[0] || {};
       const inferredUpcomingNumber = Math.max(
         1,
