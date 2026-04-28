@@ -1393,16 +1393,16 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
   const useAnnouncementText = options?.useAnnouncementText === true;
   const formationOptions = [
     {
-      key: "circle",
-      label: "Heavy Ordnance",
-      desc: "Armor-piercing bolts that cut through the heaviest resistance.",
-      stat: "+Damage",
-    },
-    {
       key: "line",
       label: "Rapid Fire",
       desc: "Rapid fire — keep the darkness scattered and on the run.",
       stat: "+Rate of Fire",
+    },
+    {
+      key: "circle",
+      label: "Heavy Ordnance",
+      desc: "Armor-piercing bolts that cut through the heaviest resistance.",
+      stat: "+Damage",
     },
     {
       key: "crescent",
@@ -1829,18 +1829,18 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   const buttonConfigs = showFormation
     ? [
         {
-          key: "circle",
-          label: "Heavy Ordnance",
-          desc: "Armor-piercing bolts that cut through the heaviest resistance.",
-          stat: "+Damage",
-          iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
-        },
-        {
           key: "line",
           label: "Rapid Fire",
           desc: "Rapid fire — keep the darkness scattered and on the run.",
           stat: "+Rate of Fire",
           iconSrc: "assets/sprites/items/icons/I25_Book.png",
+        },
+        {
+          key: "circle",
+          label: "Heavy Ordnance",
+          desc: "Armor-piercing bolts that cut through the heaviest resistance.",
+          stat: "+Damage",
+          iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
         },
         {
           key: "crescent",
