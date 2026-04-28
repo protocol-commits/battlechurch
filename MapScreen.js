@@ -1067,7 +1067,7 @@
     ctx.font = `700 ${panelStyle.eyebrowFontSize ?? 11}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(panelStyle.eyebrowText || "TOWN SELECTED", centerX, panelY + (panelStyle.eyebrowY ?? 14));
+    ctx.fillText(panelStyle.eyebrowText || "TOWN TARGETED", centerX, panelY + (panelStyle.eyebrowY ?? 14));
 
     ctx.fillStyle = panelStyle.titleColor || "#FFD978";
     ctx.font = `700 ${panelStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
@@ -1115,7 +1115,7 @@
         (sum, camp) => sum + (townEntry?.[camp]?.completed === true ? 1 : 0),
         0,
       );
-      primaryLine = `Next Run: ${campLabel}${campAvail ? "" : " (Locked)"}`;
+      primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       if (campAvail) {
         secondaryLine = `Missions Completed: ${completedVisits}/3`;
       } else if (nextCamp === "p2") {

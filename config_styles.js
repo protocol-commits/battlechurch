@@ -162,7 +162,7 @@
           panelWidthRatio: 0.76,
           panelHeight: 252,
           panelBottomOffset: 40,
-          eyebrowText: "TOWN SELECTED",
+          eyebrowText: "TOWN TARGETED",
           eyebrowY: 14,
           eyebrowColor: "rgba(231, 176, 102, 0.68)",
           eyebrowFontSize: 11,

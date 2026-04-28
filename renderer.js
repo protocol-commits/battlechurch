@@ -7310,7 +7310,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const phaseName = _cbLabels.phases?.[_cbCamp] || _cbCamp.toUpperCase();
     const townNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
-    const eyebrowText = `Campaign ${townNumber}: ${phaseName}`;
+    const eyebrowText = `Phase ${townNumber}: ${phaseName}`;
     const eyebrowSize = 18;
     const eyebrowGap = 16;
 
@@ -8731,7 +8731,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const battleHeading = battleHeadings[orderNumber] || `Mission ${orderNumber}`;
       const _bhPhaseName = _bhLabels.phases?.[_bhCamp] || _bhCamp.toUpperCase();
       const _bhTownNumber = levelStatus?.level || 1;
-      const eyebrowText = `Campaign ${_bhTownNumber}: ${_bhPhaseName}`;
+      const eyebrowText = `Phase ${_bhTownNumber}: ${_bhPhaseName}`;
       const eyebrowSize = 18;
       const eyebrowGap = 16;
       const headerTitleSize = 64;
