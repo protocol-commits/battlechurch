@@ -5376,7 +5376,7 @@ const FORMATION_PRESETS = {
     bonuses: { damage: 0.2, armorPierce: true, projectileType: "lichBolt" },
   },
   line: { key: "line", label: "Rapid Fire", spokenLabel: "Rapid Fire", bonuses: { rof: 0.2 } },
-  crescent: { key: "crescent", label: "Tactical Support", spokenLabel: "Tactical Support", bonuses: { prayerChargeGain: 0.1 } },
+  crescent: { key: "crescent", label: "Tactical Support", spokenLabel: "Tactical Support", bonuses: { prayerChargeGain: 0.2 } },
 };
 const npcWeaponState = {
   mode: null,
