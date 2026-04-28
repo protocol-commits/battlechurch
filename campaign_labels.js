@@ -40,19 +40,19 @@
     // ── Chapter-break subtitle descriptions ───────────────────────────────
     actDescriptions: Object.freeze({
       p1: Object.freeze({
-        1: "Win 3 battles to establish a foothold.",
-        2: "Repel 3 enemy counterattacks.",
-        3: "Break through and seize the town.",
+        1: "Win 3 battles to complete the mission.",
+        2: "Win 3 battles to complete the mission.",
+        3: "Win 3 battles to complete the mission.",
       }),
       p2: Object.freeze({
-        1: "Sweep the area clear in 3 battles.",
-        2: "Hold your position through 3 assaults.",
-        3: "Secure complete control in 3 battles.",
+        1: "Win 3 battles to complete the mission.",
+        2: "Win 3 battles to complete the mission.",
+        3: "Win 3 battles to complete the mission.",
       }),
       p3: Object.freeze({
-        1: "Reinforce the position in 3 battles.",
-        2: "Defend against 3 waves of enemy forces.",
-        3: "Entrench and hold in 3 final battles.",
+        1: "Win 3 battles to complete the mission.",
+        2: "Win 3 battles to complete the mission.",
+        3: "Win 3 battles to complete the mission.",
       }),
     }),
   });

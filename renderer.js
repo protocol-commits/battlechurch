@@ -7308,6 +7308,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       actTitles[chapterBreakActNumber] || `Mission ${romanNumerals[chapterBreakActNumber] || chapterBreakActNumber}`;
     const villainText = actVillainText[chapterBreakActNumber] || "";
 
+    const phaseName = _cbLabels.phases?.[_cbCamp] || _cbCamp.toUpperCase();
+    const townNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
+    const eyebrowText = `Campaign ${townNumber}: ${phaseName}`;
+    const eyebrowSize = 18;
+    const eyebrowGap = 16;
+
     const centerX = canvas.width / 2;
 
     const chapterTitleSize = 64;
@@ -7332,14 +7338,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     });
     const headerBodyGap = 28;
     const textGroupHeight =
-      headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
+      eyebrowSize + eyebrowGap + headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
     const textGroupTopY = Math.max(
       90,
       Math.round((canvas.height - textGroupHeight) / 2),
     );
-    const titleY = textGroupTopY + headerLayout.titleLineHeight;
+    const eyebrowY = textGroupTopY + eyebrowSize;
+    const titleY = eyebrowY + eyebrowGap + headerLayout.titleLineHeight;
     const bodyYBase =
-      textGroupTopY +
+      titleY - headerLayout.titleLineHeight +
       headerLayout.textBlockHeight +
       headerBodyGap +
       bodyLayout.titleLineHeight;
@@ -7359,6 +7366,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonCount: 1,
       HUD_HEIGHT,
     });
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `500 ${eyebrowSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(231, 176, 102, 0.72)";
+    ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+    ctx.shadowBlur = 8;
+    ctx.fillText(eyebrowText, centerX, eyebrowY);
+    ctx.restore();
 
     ctx.save();
     ctx.textAlign = "center";
@@ -8710,6 +8727,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? announcement.upcomingOrderNumber
         : inferredUpcomingNumber;
       const battleHeading = battleHeadings[orderNumber] || `Mission ${orderNumber}`;
+      const _bhPhaseName = _bhLabels.phases?.[_bhCamp] || _bhCamp.toUpperCase();
+      const _bhTownNumber = levelStatus?.level || 1;
+      const eyebrowText = `Campaign ${_bhTownNumber}: ${_bhPhaseName}`;
+      const eyebrowSize = 18;
+      const eyebrowGap = 16;
       const headerTitleSize = 64;
       const headerSubtitleSize = 34;
       const bodyTitleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
@@ -8733,17 +8755,29 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       });
       const headerBodyGap = 28;
       const textGroupHeight =
-        headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
+        eyebrowSize + eyebrowGap + headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
       const textGroupTopY = Math.max(
         90,
         Math.round((canvas.height - textGroupHeight) / 2),
       );
-      const headerYBase = textGroupTopY + headerLayout.titleLineHeight;
+      const eyebrowY = textGroupTopY + eyebrowSize;
+      const headerYBase = eyebrowY + eyebrowGap + headerLayout.titleLineHeight;
       const bodyYBase =
-        textGroupTopY +
+        headerYBase - headerLayout.titleLineHeight +
         headerLayout.textBlockHeight +
         headerBodyGap +
         bodyLayout.titleLineHeight;
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = `600 ${eyebrowSize}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = HELLFIRE_TEXT_PALETTE.subtitle;
+      ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.fillText(eyebrowText, canvas.width / 2, eyebrowY);
+      ctx.restore();
       {
         drawAnnouncementText(ctx, canvas, {
           title: battleHeading,

@@ -47,9 +47,9 @@
       3: "Mission III: Breakthrough",
     },
     actVillainText: {
-      1: "Win 3 battles to establish a foothold.",
-      2: "Repel 3 enemy counterattacks.",
-      3: "Break through and seize the town.",
+      1: "Win 3 battles to complete the mission.",
+      2: "Win 3 battles to complete the mission.",
+      3: "Win 3 battles to complete the mission.",
     },
 
     // =====================
