@@ -1062,6 +1062,8 @@ const MELEE_SWING_LENGTH = 260;
     weight = TEXT_STYLES.h2.weight,
     subtitleWeight = TEXT_STYLES.body.weight,
     typewriter = false,
+    typewriterRateMs = 18,
+    freezeTypewriter = false,
     highlight = null,
     textPalette = null,
     maxWidthScale = 0.96,
@@ -1127,10 +1129,12 @@ const MELEE_SWING_LENGTH = 260;
         entry = { titleProgress: 0, subtitleProgress: 0, lastTime: now };
         announcementReveal.set(key, entry);
       }
-      const dt = Math.max(0, now - (entry.lastTime || now));
+      const dt = freezeTypewriter ? 0 : Math.max(0, now - (entry.lastTime || now));
+      // Always advance lastTime so hidden/frozen periods don't "catch up" instantly.
       entry.lastTime = now;
-      const titleRate = 18;
-      const subtitleRate = 18;
+      const revealRate = Math.max(1, Number(typewriterRateMs) || 18);
+      const titleRate = revealRate;
+      const subtitleRate = revealRate;
       if (entry.titleProgress < titleText.length) {
         entry.titleTimer = (entry.titleTimer || 0) + dt;
         while (entry.titleTimer >= titleRate && entry.titleProgress < titleText.length) {
@@ -8996,6 +9000,33 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
     const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const getMapLaunchFadeInAlpha = () => {
+      if (typeof window === "undefined" || !window.__mapTownLaunchFadeIn) return;
+      const fadeState = window.__mapTownLaunchFadeIn;
+      if (typeof fadeState.startMs !== "number" || !Number.isFinite(fadeState.startMs)) {
+        fadeState.startMs = nowMs;
+      }
+      const startMs = fadeState.startMs;
+      const durationMs = Math.max(50, Number(fadeState.durationMs) || 1050);
+      const t = Math.max(0, Math.min(1, (nowMs - startMs) / durationMs));
+      const eased = t * t * (3 - 2 * t);
+      const maxAlpha = Math.max(0, Math.min(0.92, Number(fadeState.maxAlpha) || 0.62));
+      const alpha = Math.max(0, Math.min(maxAlpha, (1 - eased) * maxAlpha));
+      if (alpha <= 0.001) {
+        delete window.__mapTownLaunchFadeIn;
+        return 0;
+      }
+      return alpha;
+    };
+    const drawMapLaunchFadeInOverlay = () => {
+      const alpha = getMapLaunchFadeInAlpha();
+      if (!alpha) return 0;
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      return alpha;
+    };
     updateWaveClearWipe(levelStatus, nowMs);
     const townIntroTransitionActive = Boolean(requireBindings().townIntroTransitionActive);
     if (townIntroTransitionActive) {
@@ -9029,6 +9060,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.restore();
+        drawMapLaunchFadeInOverlay();
         return;
       }
       townIntroOverlay = {
@@ -9106,6 +9138,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const _bhPhaseName = _bhLabels.phases?.[_bhCamp] || _bhCamp.toUpperCase();
       const _bhTownNumber = levelStatus?.level || 1;
       const eyebrowText = `Phase ${_bhTownNumber}: ${_bhPhaseName}`;
+      const headerSubtitleText = upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "";
+      const eyebrowDone = isAnnouncementRevealComplete(eyebrowText, "");
+      const headerDone = isAnnouncementRevealComplete(battleHeading, headerSubtitleText);
       const eyebrowSize = 18;
       const eyebrowGap = 16;
       const headerTitleSize = 64;
@@ -9143,28 +9178,34 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         headerLayout.textBlockHeight +
         headerBodyGap +
         bodyLayout.titleLineHeight;
-      ctx.save();
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = `600 ${eyebrowSize}px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = HELLFIRE_TEXT_PALETTE.subtitle;
-      ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-      ctx.fillText(eyebrowText, canvas.width / 2, eyebrowY);
-      ctx.restore();
+      drawAnnouncementText(ctx, canvas, {
+        title: eyebrowText,
+        subtitle: "",
+        yBase: eyebrowY + Math.round(eyebrowSize * 0.55),
+        titleSize: eyebrowSize,
+        weight: "600",
+        typewriter: true,
+        typewriterRateMs: 10,
+        textPalette: {
+          title: HELLFIRE_TEXT_PALETTE.subtitle,
+          shadow: HELLFIRE_TEXT_PALETTE.shadow,
+        },
+        maxWidthScale: 0.9,
+        blockAlign: "center",
+      });
       {
         drawAnnouncementText(ctx, canvas, {
           title: battleHeading,
-          subtitle: upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "",
+          subtitle: headerSubtitleText,
           yBase: headerYBase,
           titleSize: headerTitleSize,
           subtitleSize: headerSubtitleSize,
           lineGap: Math.round(headerTitleSize * 1.1),
           weight: "bold",
           subtitleWeight: "bold",
-          typewriter: false,
+          typewriter: true,
+          typewriterRateMs: 10,
+          freezeTypewriter: !eyebrowDone,
           textPalette: HELLFIRE_TEXT_PALETTE,
           maxWidthScale: 0.9,
           blockAlign: "center",
@@ -9196,12 +9237,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           yBase: bodyYBase,
           alpha: 1,
           typewriter: true,
+          typewriterRateMs: 10,
+          freezeTypewriter: !eyebrowDone || !headerDone,
           titleSize: bodyTitleSize,
           weight: TEXT_STYLES.h1.weight,
           textPalette: HELLFIRE_TEXT_PALETTE,
           maxWidthScale: 0.92,
         });
         ctx.restore();
+      }
+      const showContinueButton =
+        eyebrowDone &&
+        headerDone &&
+        isAnnouncementRevealComplete(announcementTitle, announcementSubtitle);
+      if (!showContinueButton) {
+        if (typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak") {
+          window.__announcementButtons = null;
+        }
+        drawMapLaunchFadeInOverlay();
+        return;
       }
       ctx.save();
       const buttonText = "Continue";
@@ -9264,11 +9318,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textBaseline = "alphabetic";
       ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
       ctx.restore();
+      drawMapLaunchFadeInOverlay();
       return;
     }
     if (exteriorShotActive) {
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
       const img = assets?.backgrounds?.townIntro || null;
+      const mapLaunchFadeAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
       ctx.save();
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -9307,12 +9363,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         yBase: layout.titleY,
         alpha: 1,
         typewriter: true,
+        typewriterRateMs: 8,
+        freezeTypewriter: mapLaunchFadeAlpha > 0.08,
         titleSize,
         weight: TEXT_STYLES.h1.weight,
         textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale: 0.92,
       });
       ctx.restore();
+      drawMapLaunchFadeInOverlay();
       return;
     }
     // If we're in briefing, draw briefing first; otherwise if levelIntro draw congregation

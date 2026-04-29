@@ -3,6 +3,7 @@
 
   const MAP_IMAGE_PRIMARY = "./assets/backgrounds/map.jpg";
   const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
+  const TOWN_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/game-over.jpg";
   const HIT_RADIUS_BASE = 10;
   const UI_FONT_FAMILY = "'Orbitron', sans-serif";
   const MAP_HELLFIRE_TEXT = Object.freeze({
@@ -14,6 +15,9 @@
   let mapImage = null;
   let mapImageLoaded = false;
   let mapImageFailed = false;
+  let townExteriorImage = null;
+  let townExteriorImageLoaded = false;
+  let townExteriorImageFailed = false;
   let mapAssets = null;
   const townAnimators = new Map();
 
@@ -60,6 +64,18 @@
       routeStops: [],
       previewClockMs: 0,
       previewPhase: 0,
+    },
+    mapLaunchTransition: {
+      active: false,
+      townId: null,
+      timer: 0,
+      duration: 2.7,
+      maxScale: 3.8,
+      zoomInRatio: 0.22,
+      holdRatio: 0.01,
+      crossfadeRatio: 0.24,
+      handoffRatio: 0.68,
+      launched: false,
     },
   };
   const DEFAULT_SAVE_ID = "main";
@@ -368,6 +384,18 @@
       mapImageFailed = true;
     };
     mapImage.src = MAP_IMAGE_PRIMARY;
+  }
+
+  function loadTownExteriorImage() {
+    if (townExteriorImage || townExteriorImageLoaded || townExteriorImageFailed) return;
+    townExteriorImage = new Image();
+    townExteriorImage.onload = () => {
+      townExteriorImageLoaded = true;
+    };
+    townExteriorImage.onerror = () => {
+      townExteriorImageFailed = true;
+    };
+    townExteriorImage.src = TOWN_EXTERIOR_IMAGE_PRIMARY;
   }
 
   function setAssets(assets) {
@@ -1298,6 +1326,13 @@
   }
 
   function _launchTown(townId) {
+    if (typeof window !== "undefined") {
+      window.__mapTownLaunchFadeIn = {
+        startMs: undefined,
+        durationMs: 120,
+        maxAlpha: 0.12,
+      };
+    }
     if (typeof window.startRunForTown === "function") {
       window.startRunForTown(townId);
       return;
@@ -1315,7 +1350,12 @@
       state.denomUpgrade = { active: true, townId: townId, maxPicks: picks, selectedKeys: [], focusedIndex: 0 };
       return;
     }
-    _launchTown(townId);
+    const transition = state.mapLaunchTransition;
+    transition.active = true;
+    transition.townId = townId;
+    transition.timer = 0;
+    transition.launched = false;
+    state.panelOpen = false;
   }
 
   function devStartRunForTown(townId) {
@@ -1407,6 +1447,10 @@
     if (!input) return;
     const keysJustPressed = input.keysJustPressed;
     if (!keysJustPressed) return;
+    if (state.mapLaunchTransition?.active) {
+      if (keysJustPressed.size) keysJustPressed.clear();
+      return;
+    }
     if (state.armyMarch?.active) {
       if (keysJustPressed.size) keysJustPressed.clear();
       return;
@@ -1466,6 +1510,7 @@
   function handleMapClicks(rect) {
     const input = window.Input;
     if (!input?.consumeCanvasClick) return;
+    if (state.mapLaunchTransition?.active) return;
     if (state.armyMarch?.active) return;
     const click = input.consumeCanvasClick();
     if (!click) return;
@@ -2125,12 +2170,17 @@
   function close() {
     state.active = false;
     state.panelOpen = false;
+    state.mapLaunchTransition.active = false;
+    state.mapLaunchTransition.townId = null;
+    state.mapLaunchTransition.timer = 0;
+    state.mapLaunchTransition.launched = false;
     stopMapAmbient();
   }
 
   function update(dt) {
     if (!state.active) return;
     loadMapImage();
+    loadTownExteriorImage();
     updateArmyMarchAnimation(dt);
     handleMapInput();
     const mapData = window.BattlechurchMapData;
@@ -2148,6 +2198,21 @@
           animState.maxHold,
         );
       });
+    }
+    const transition = state.mapLaunchTransition;
+    if (transition.active) {
+      const step = Number.isFinite(dt) ? dt : 0;
+      const duration = Math.max(0.05, Number(transition.duration) || 1.25);
+      transition.timer = Math.min(duration, transition.timer + Math.max(0, step));
+      const handoffRatio = Math.max(0.05, Math.min(0.995, Number(transition.handoffRatio) || 0.98));
+      if (!transition.launched && transition.timer >= duration * handoffRatio) {
+        transition.launched = true;
+        const launchTownId = transition.townId || state.selectedTownId;
+        transition.active = false;
+        transition.townId = null;
+        transition.timer = 0;
+        _launchTown(launchTownId);
+      }
     }
   }
 
@@ -2174,7 +2239,54 @@
   function draw(ctx, canvas) {
     if (!state.active) return;
     ctx.save();
-    const rect = drawMapBackground(ctx, canvas);
+    const transition = state.mapLaunchTransition;
+    const transitionActive = Boolean(transition?.active);
+    const transitionDuration = Math.max(0.05, Number(transition?.duration) || 1.25);
+    const transitionProgress = transitionActive
+      ? Math.max(0, Math.min(1, Number(transition.timer || 0) / transitionDuration))
+      : 0;
+    const easedProgress = transitionProgress * transitionProgress * (3 - 2 * transitionProgress);
+    const zoomInRatio = Math.max(0.05, Math.min(0.8, Number(transition?.zoomInRatio) || 0.22));
+    const holdRatio = Math.max(0.05, Math.min(0.9, Number(transition?.holdRatio) || 0.54));
+    const crossfadeRatio = Math.max(0.05, Math.min(0.9, Number(transition?.crossfadeRatio) || 0.24));
+    const zoomEnd = zoomInRatio;
+    const holdEnd = Math.min(0.99, zoomEnd + holdRatio);
+    const crossfadeStart = holdEnd;
+    const crossfadeEnd = Math.min(1, crossfadeStart + crossfadeRatio);
+    const zoomT = transitionProgress <= zoomEnd
+      ? Math.max(0, Math.min(1, transitionProgress / Math.max(0.001, zoomEnd)))
+      : 1;
+    const easedZoomT = zoomT * zoomT * (3 - 2 * zoomT);
+    const crossfadeT = transitionProgress <= crossfadeStart
+      ? 0
+      : Math.max(
+          0,
+          Math.min(
+            1,
+            (transitionProgress - crossfadeStart) / Math.max(0.001, crossfadeEnd - crossfadeStart),
+          ),
+        );
+    const easedCrossfadeT = crossfadeT * crossfadeT * (3 - 2 * crossfadeT);
+    let rect = computeMapRect(canvas);
+    if (transitionActive) {
+      const town = getTownById(transition.townId || state.selectedTownId);
+      if (town) {
+        const target = getTownPosition(town, rect);
+        if (target && Number.isFinite(target.x) && Number.isFinite(target.y)) {
+          const maxScale = Math.max(1, Number(transition.maxScale) || 1.85);
+          const scale = 1 + (maxScale - 1) * easedZoomT;
+          const centerX = canvas.width * 0.5;
+          const centerY = canvas.height * 0.5;
+          const panX = (centerX - target.x) * easedZoomT;
+          const panY = (centerY - target.y) * easedZoomT;
+          ctx.translate(panX, panY);
+          ctx.translate(target.x, target.y);
+          ctx.scale(scale, scale);
+          ctx.translate(-target.x, -target.y);
+        }
+      }
+    }
+    rect = drawMapBackground(ctx, canvas);
     const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
     if (fireOverlay && typeof fireOverlay.draw === "function") {
       if (typeof fireOverlay.setBounds === "function") {
@@ -2190,7 +2302,9 @@
     }
     drawMapLabels(ctx, canvas, rect);
     drawTotalCongregationBadge(ctx, canvas);
-    updateSelectionFromHover(rect);
+    if (!transitionActive) {
+      updateSelectionFromHover(rect);
+    }
     const pulse = Math.sin((Date.now() / 1000) * 3) * 2;
     drawFrontlineBoundary(ctx, rect);
     const mapData = window.BattlechurchMapData;
@@ -2199,9 +2313,28 @@
     }
     drawInitialMarchOriginMarker(ctx);
     drawArmyMarchOverlay(ctx);
-    handleMapClicks(rect);
-    drawTownPanel(ctx, canvas);
-    drawDenomUpgradeOverlay(ctx, canvas);
+    if (!transitionActive) {
+      handleMapClicks(rect);
+      drawTownPanel(ctx, canvas);
+      drawDenomUpgradeOverlay(ctx, canvas);
+    }
+    if (transitionActive) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      if (townExteriorImageLoaded && townExteriorImage) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, easedCrossfadeT));
+        const baseScale = Math.max(canvas.width / townExteriorImage.width, canvas.height / townExteriorImage.height);
+        const drawW = townExteriorImage.width * baseScale;
+        const drawH = townExteriorImage.height * baseScale;
+        const offsetX = (canvas.width - drawW) / 2;
+        const offsetY = (canvas.height - drawH) / 2;
+        ctx.drawImage(townExteriorImage, offsetX, offsetY, drawW, drawH);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, Math.min(0.35, easedCrossfadeT * 0.35))})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }
     ctx.restore();
   }
 
