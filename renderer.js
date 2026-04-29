@@ -10399,7 +10399,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const duration = Math.max(0.001, Number(levelStatus.stageDuration) || 0);
 
     let alpha = 0;
-    if (stage === "congregationToTeaser") {
+    if (stage === "congregationToTeaser" || stage === "upgradeToTeaser") {
       const progress = Math.max(0, Math.min(1, 1 - timer / duration));
       alpha = progress;
     } else if (stage === "briefingTeaser") {

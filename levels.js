@@ -165,6 +165,7 @@
   const MONTH_INTRO_DURATION = 4.0;
   const BRIEF_TEASER_DURATION = 5.0;
   const CONGREGATION_TO_TEASER_DURATION = 1.6;
+  const UPGRADE_TO_TEASER_DURATION = 1.6;
   const ACT_BREAK_DELAY = 2.0;
   const ACT_BREAK_FADE_IN = 0.45;
   const ACT_BREAK_FADE_OUT = 0.45;
@@ -826,6 +827,7 @@
       breakPreviewWaveNum: null,
       lastWaveTransitionCueNum: 0,
       waveSpawnEpoch: 0,
+      pendingUpgradeToTeaser: false,
       queuedWaveIntroIndices: new Set(),
     };
 
@@ -1953,6 +1955,13 @@ state.waveIndex = -1;
               setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
             }
             break;
+          case "upgradeToTeaser":
+            state.timer -= dt;
+            if (state.timer <= 0) {
+              resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
+              setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
+            }
+            break;
           case "npcArrival":
             if (!state.awaitingNpcProcession) {
               beginBattleIntroStage();
@@ -2054,6 +2063,12 @@ state.waveIndex = -1;
           }
           state.timer -= dt;
           if (state.timer <= 0) {
+            if (state.pendingUpgradeToTeaser) {
+              state.pendingUpgradeToTeaser = false;
+              resetStage("upgradeToTeaser", UPGRADE_TO_TEASER_DURATION);
+              setDevStatus("Transitioning to skirmish...", UPGRADE_TO_TEASER_DURATION);
+              break;
+            }
             if (state.pendingVisitorMinigame) {
               const resumed = beginVisitorMinigame(() => {
                 state.pendingVisitorMinigame = false;
@@ -2282,6 +2297,9 @@ state.waveIndex = -1;
       },
       getCurrentWave() {
         return currentWave();
+      },
+      requestUpgradeToTeaserTransition() {
+        state.pendingUpgradeToTeaser = true;
       },
       getWaveTimer() {
         return state.stage === "waveActive" ? state.timer : null;

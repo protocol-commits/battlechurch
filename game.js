@@ -17089,6 +17089,9 @@ function checkDialogOverlays() {
       const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
       window.UpgradeScreen.show(() => {
         runPostUpgradeSaveThen(() => {
+          if (typeof levelManager?.requestUpgradeToTeaserTransition === "function") {
+            levelManager.requestUpgradeToTeaserTransition();
+          }
           queuePastorBossPostRecapAnnouncement(targetLevel, false);
         });
       });
@@ -17102,6 +17105,9 @@ function checkDialogOverlays() {
       console.log("SHOWING CHAPTER BREAK for Mission", actNumber);
       window.UpgradeScreen.show(() => {
         runPostUpgradeSaveThen(() => {
+          if (typeof levelManager?.requestUpgradeToTeaserTransition === "function") {
+            levelManager.requestUpgradeToTeaserTransition();
+          }
           console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
           if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
             townVisitorMinigamePlayed = true;
@@ -17119,6 +17125,9 @@ function checkDialogOverlays() {
       console.log("NO CHAPTER BREAK - lastCompletedLevel is", lastCompletedLevel);
       window.UpgradeScreen.show(() => {
         runPostUpgradeSaveThen(() => {
+          if (typeof levelManager?.requestUpgradeToTeaserTransition === "function") {
+            levelManager.requestUpgradeToTeaserTransition();
+          }
           queueExteriorShotAnnouncement();
         });
       });
@@ -23273,6 +23282,9 @@ function updateGame(dt) {
       briefTeaserState.active = true;
       briefTeaserState.spawnScheduled = false;
       clearBriefTeaserSpawnTimers();
+      if ((!Array.isArray(npcs) || npcs.length === 0) && typeof resetCozyNpcs === "function") {
+        resetCozyNpcs(5);
+      }
       try {
         if (typeof setCozyNpcsToFrontlineFormation === "function") {
           setCozyNpcsToFrontlineFormation();
@@ -23682,6 +23694,19 @@ function restartGame() {
   startGameLoop();
 }
 
+function drawGlobalTeaserTransitionOverlay() {
+  const status = levelManager?.getStatus ? levelManager.getStatus() : null;
+  if (!status || status.stage !== "upgradeToTeaser") return;
+  const timer = Number(status.stageTimer) || 0;
+  const duration = Math.max(0.001, Number(status.stageDuration) || 0.001);
+  const progress = Math.max(0, Math.min(1, 1 - timer / duration));
+  if (progress <= 0.001) return;
+  ctx.save();
+  ctx.fillStyle = `rgba(0, 0, 0, ${progress})`;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
 function gameLoop(timestamp) {
   const delta = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
@@ -23701,6 +23726,7 @@ function gameLoop(timestamp) {
   if (window.UpgradeScreen?.isVisible?.()) {
     window.UpgradeScreen.draw();
   }
+  drawGlobalTeaserTransitionOverlay();
   drawProgressSaveToast();
   keysJustPressed.clear();
 
