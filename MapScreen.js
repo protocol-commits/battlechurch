@@ -2195,6 +2195,7 @@
     drawTotalCongregationBadge(ctx, canvas);
     updateSelectionFromHover(rect);
     const pulse = Math.sin((Date.now() / 1000) * 3) * 2;
+    drawFrontlineBoundary(ctx, rect);
     const mapData = window.BattlechurchMapData;
     if (mapData) {
       mapData.towns.forEach((town) => drawTownNode(ctx, town, rect, pulse));
@@ -2204,6 +2205,251 @@
     handleMapClicks(rect);
     drawTownPanel(ctx, canvas);
     drawDenomUpgradeOverlay(ctx, canvas);
+    ctx.restore();
+  }
+
+  function getOccupiedTownPositions(rect) {
+    const mapData = window.BattlechurchMapData;
+    const progress = ensureProgress();
+    if (!mapData?.towns?.length || !progress) return [];
+    return mapData.towns
+      .filter((town) => town && town.id && town.type !== "capital")
+      .filter((town) => progress.towns?.[town.id]?.p1?.completed === true)
+      .map((town) => getTownPosition(town, rect))
+      .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+  }
+
+  function buildConvexHull(points) {
+    if (!Array.isArray(points) || points.length < 3) return points ? points.slice() : [];
+    const pts = points
+      .map((p) => ({ x: p.x, y: p.y }))
+      .sort((a, b) => (a.x === b.x ? a.y - b.y : a.x - b.x));
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lower = [];
+    for (const p of pts) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+      lower.push(p);
+    }
+    const upper = [];
+    for (let i = pts.length - 1; i >= 0; i -= 1) {
+      const p = pts[i];
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+      upper.push(p);
+    }
+    lower.pop();
+    upper.pop();
+    return lower.concat(upper);
+  }
+
+  function expandHull(points, padding) {
+    if (!Array.isArray(points) || !points.length) return [];
+    const cx = points.reduce((s, p) => s + p.x, 0) / points.length;
+    const cy = points.reduce((s, p) => s + p.y, 0) / points.length;
+    return points.map((p) => {
+      const dx = p.x - cx;
+      const dy = p.y - cy;
+      const len = Math.hypot(dx, dy) || 1;
+      return {
+        x: p.x + (dx / len) * padding,
+        y: p.y + (dy / len) * padding,
+      };
+    });
+  }
+
+  function drawFrontlineBoundary(ctx, rect) {
+    const mapData = window.BattlechurchMapData;
+    const progress = ensureProgress();
+    const occupied = getOccupiedTownPositions(rect);
+    if (!occupied.length || !mapData?.towns?.length || !progress) return;
+    const regularTowns = mapData.towns.filter((town) => town && town.id && town.type !== "capital");
+    const occupiedSet = new Set(
+      regularTowns
+        .filter((town) => progress.towns?.[town.id]?.p1?.completed === true)
+        .map((town) => town.id),
+    );
+    const occupiedPoints = regularTowns
+      .filter((town) => occupiedSet.has(town.id))
+      .map((town) => getTownPosition(town, rect))
+      .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y))
+      .sort((a, b) => a.y - b.y);
+    const enemyPoints = regularTowns
+      .filter((town) => !occupiedSet.has(town.id))
+      .map((town) => getTownPosition(town, rect))
+      .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+    if (!occupiedPoints.length) return;
+    const linePad = 14;
+    const topY = rect.y + linePad;
+    const botY = rect.y + rect.h - linePad;
+    const absMinPad = 50;
+    const occPad = 200;
+    const enemyPad = 150;
+    const yInfluence = enemyPad * 1.7;
+    // Friendly "coverage" range should be tight; otherwise one town falsely covers nearby enemy towns.
+    const friendlyHoldY = absMinPad * 1.2;
+    const leftBound = rect.x + linePad;
+    const rightBound = rect.x + rect.w - linePad;
+    const frontierPts = occupiedPoints.map((p) => {
+      let x = p.x + occPad;
+      let enemyCapX = Infinity;
+      let enemyCanOverrideMin = false;
+      for (const e of enemyPoints) {
+        const dy = Math.abs(e.y - p.y);
+        if (dy > yInfluence) continue;
+        const friendlyCoversThisEnemy = dy <= friendlyHoldY;
+        if (friendlyCoversThisEnemy) continue;
+        const squeeze = 1 - (dy / yInfluence);
+        const cap = e.x - enemyPad * (0.8 + 0.2 * squeeze);
+        if (cap < x) x = cap;
+        if (cap < enemyCapX) enemyCapX = cap;
+        if (cap < (p.x + occPad)) enemyCanOverrideMin = true;
+      }
+      x = Math.max(leftBound + 18, Math.min(rightBound, x));
+      return {
+        x,
+        y: p.y,
+        minX: p.x + occPad,
+        hardMinX: p.x + absMinPad,
+        enemyCapX,
+        enemyCanOverrideMin,
+      };
+    });
+    // Keep the contour from zig-zagging too sharply.
+    for (let i = 1; i < frontierPts.length; i += 1) {
+      const prev = frontierPts[i - 1];
+      const cur = frontierPts[i];
+      const maxStep = 86;
+      if (Math.abs(cur.x - prev.x) > maxStep) {
+        cur.x = prev.x + Math.sign(cur.x - prev.x) * maxStep;
+      }
+    }
+    for (let i = frontierPts.length - 2; i >= 0; i -= 1) {
+      const next = frontierPts[i + 1];
+      const cur = frontierPts[i];
+      const maxStep = 86;
+      if (Math.abs(cur.x - next.x) > maxStep) {
+        cur.x = next.x + Math.sign(cur.x - next.x) * maxStep;
+      }
+    }
+    // Friendly towns hold the line unless enemy influence is outside friendly range.
+    for (const p of frontierPts) {
+      if (Number.isFinite(p.enemyCapX)) {
+        p.x = Math.min(p.enemyCapX, p.x);
+      }
+      if (!p.enemyCanOverrideMin) {
+        p.x = Math.max(p.minX, p.x);
+      }
+      // Absolute minimum friendly territory radius (cannot be overridden).
+      p.x = Math.max(p.hardMinX, p.x);
+      p.x = Math.max(leftBound + 18, Math.min(rightBound, p.x));
+    }
+    const topBulge = {
+      x: Math.max(leftBound, frontierPts[0].x - 38),
+      y: topY,
+    };
+    const bottomAnchorY = frontierPts.length <= 2
+      ? (topY + (botY - topY) * 0.62)
+      : botY;
+    const botBulge = {
+      x: Math.max(leftBound, frontierPts[frontierPts.length - 1].x - 34),
+      y: bottomAnchorY,
+    };
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    const dashOffset = -((now / 1000) * 42);
+    const fillColor = "rgba(165, 28, 20, 0.12)";
+    const strokeColor = "rgba(244, 110, 78, 0.92)";
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.setLineDash([16, 10]);
+    ctx.lineDashOffset = dashOffset;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = strokeColor;
+    ctx.shadowColor = "rgba(255, 70, 45, 0.6)";
+    ctx.shadowBlur = 10;
+    // First foothold: keep occupancy concentrated in the northwest corner,
+    // rather than stretching a full vertical strip through the map.
+    if (frontierPts.length === 1) {
+      const fp = frontierPts[0];
+      const footholdBottomY = topY + (botY - topY) * 0.52;
+      const topShoulderX = Math.max(leftBound + 24, fp.x - occPad * 0.72);
+      const lowerShoulderX = Math.max(leftBound + 8, fp.x - occPad * 0.82);
+      ctx.beginPath();
+      ctx.moveTo(leftBound, topY);
+      ctx.lineTo(topShoulderX, topY);
+      ctx.quadraticCurveTo(fp.x - 20, fp.y - occPad * 0.34, fp.x, fp.y);
+      ctx.quadraticCurveTo(fp.x - 14, fp.y + occPad * 0.5, lowerShoulderX, footholdBottomY);
+      ctx.lineTo(leftBound, footholdBottomY);
+      ctx.closePath();
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(topShoulderX, topY);
+      ctx.quadraticCurveTo(fp.x - 20, fp.y - occPad * 0.34, fp.x, fp.y);
+      ctx.quadraticCurveTo(fp.x - 14, fp.y + occPad * 0.5, lowerShoulderX, footholdBottomY);
+      ctx.lineTo(leftBound, footholdBottomY);
+      ctx.stroke();
+      ctx.restore();
+      return;
+    }
+
+    // Fill occupied territory from the west edge to the squiggly frontline.
+    ctx.beginPath();
+    ctx.moveTo(leftBound, topY);
+    ctx.lineTo(topBulge.x, topBulge.y);
+    if (frontierPts.length === 1) {
+      const p = frontierPts[0];
+      ctx.quadraticCurveTo(p.x, p.y - 28, p.x, p.y);
+    } else {
+      ctx.quadraticCurveTo(frontierPts[0].x, frontierPts[0].y - 24, frontierPts[0].x, frontierPts[0].y);
+      for (let i = 0; i < frontierPts.length - 1; i += 1) {
+        const a = frontierPts[i];
+        const b = frontierPts[i + 1];
+        const mx = (a.x + b.x) * 0.5;
+        const my = (a.y + b.y) * 0.5;
+        ctx.quadraticCurveTo(a.x, a.y, mx, my);
+      }
+      const last = frontierPts[frontierPts.length - 1];
+      ctx.quadraticCurveTo(last.x, last.y, last.x, last.y);
+    }
+    ctx.quadraticCurveTo(botBulge.x + 18, botBulge.y - 20, botBulge.x, botBulge.y);
+    ctx.lineTo(leftBound, bottomAnchorY);
+    ctx.closePath();
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+
+    // Front line stroke along the same contour path.
+    ctx.beginPath();
+    ctx.moveTo(topBulge.x, topBulge.y);
+    if (frontierPts.length === 1) {
+      const p = frontierPts[0];
+      ctx.quadraticCurveTo(p.x, p.y - 28, p.x, p.y);
+      ctx.quadraticCurveTo(p.x + 6, p.y + 26, botBulge.x, botBulge.y);
+      const c1x = botBulge.x - 34;
+      const c1y = botBulge.y + 10;
+      const c2x = leftBound + 20;
+      const c2y = botBulge.y - 8;
+      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, leftBound, botBulge.y);
+    } else {
+      ctx.quadraticCurveTo(frontierPts[0].x, frontierPts[0].y - 24, frontierPts[0].x, frontierPts[0].y);
+      for (let i = 0; i < frontierPts.length - 1; i += 1) {
+        const a = frontierPts[i];
+        const b = frontierPts[i + 1];
+        const mx = (a.x + b.x) * 0.5;
+        const my = (a.y + b.y) * 0.5;
+        ctx.quadraticCurveTo(a.x, a.y, mx, my);
+      }
+      const last = frontierPts[frontierPts.length - 1];
+      ctx.quadraticCurveTo(last.x, last.y, botBulge.x, botBulge.y);
+      if (frontierPts.length <= 2) {
+        const c1x = botBulge.x - 30;
+        const c1y = botBulge.y + 12;
+        const c2x = leftBound + 22;
+        const c2y = botBulge.y - 6;
+        ctx.bezierCurveTo(c1x, c1y, c2x, c2y, leftBound, botBulge.y);
+      }
+    }
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -2285,9 +2531,35 @@
     const targetTown = towns.find((town) => progress.towns?.[town.id]?.p1?.completed !== true) || null;
     if (!targetTown) return null;
     const to = getTownPosition(targetTown, rect);
-    const from = lastCompletedId
+    let from = lastCompletedId
       ? getTownPosition(getTownById(lastCompletedId), rect)
       : getInitialMarchOrigin(rect);
+    // If this is the first town in a district with no occupied towns yet in that district,
+    // stage the attack from the nearest occupied town (frontline hop), not strictly last cleared.
+    if (completedIds.length > 0) {
+      const districtTowns = mapData.getTownsByDistrict?.(targetTown.districtId) || [];
+      const isDistrictEntry = districtTowns.length > 0 && districtTowns[0]?.id === targetTown.id;
+      const occupiedInTargetDistrict = districtTowns.some((town) => progress.towns?.[town.id]?.p1?.completed === true);
+      if (isDistrictEntry && !occupiedInTargetDistrict) {
+        let nearestFrom = null;
+        let nearestDist = Infinity;
+        for (const completedId of completedIds) {
+          const occupiedTown = getTownById(completedId);
+          if (!occupiedTown) continue;
+          if (occupiedTown.type === "capital") continue;
+          const pos = getTownPosition(occupiedTown, rect);
+          if (!pos) continue;
+          const dx = to.x - pos.x;
+          const dy = to.y - pos.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < nearestDist) {
+            nearestDist = d2;
+            nearestFrom = pos;
+          }
+        }
+        if (nearestFrom) from = nearestFrom;
+      }
+    }
     if (!from || !to) return null;
     return { from, to };
   }
