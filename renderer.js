@@ -7539,7 +7539,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Hide HUD when congregation intro screen is showing ("Welcome Pastor")
     const bindings = requireBindings();
     const levelStatus = bindings.levelManager?.getStatus?.();
-    if (levelStatus?.stage === "levelIntro" || levelStatus?.stage === "briefingTeaser") return;
+    if (
+      levelStatus?.stage === "levelIntro" ||
+      levelStatus?.stage === "congregationToTeaser" ||
+      levelStatus?.stage === "briefingTeaser"
+    ) return;
     window.BattlechurchHUD?.draw?.(bindings, sharedShakeOffset, roundRect);
     // Mission label moved to HUD column 1.
   }

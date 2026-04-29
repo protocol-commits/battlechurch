@@ -6965,7 +6965,7 @@ function showTownIntroDialog() {
 function queueTownIntroAnnouncement() {
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "this town";
-  const act1Subtitle = "Win 3 battles to complete the mission.";
+  const act1Subtitle = "Secure 3 battlefields to complete the mission.";
   const devStartOverride =
     pendingDevBattleStartOverride &&
     pendingDevBattleStartOverride.townId === activeTownId
