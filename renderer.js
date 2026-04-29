@@ -5560,7 +5560,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       congregationIntroState.active = true;
       congregationIntroState.key = introKey;
       congregationIntroState.startTime = now;
-      congregationIntroState.resetCountReveal = true;
       congregationIntroState.lastNow = now;
       congregationIntroState.handoffAnimStart = now;
     }
@@ -5568,7 +5567,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       congregationIntroState.active = true;
       congregationIntroState.key = introKey;
       congregationIntroState.startTime = now;
-      congregationIntroState.resetCountReveal = true;
       congregationIntroState.lastNow = now;
       congregationIntroState.handoffAnimStart = now;
     }
@@ -5579,7 +5577,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else if (wasBlocked || congregationIntroState.waitingForAnnouncementClear) {
       // Start congregation intro only after previous announcement card is gone.
       congregationIntroState.startTime = now;
-      congregationIntroState.resetCountReveal = true;
       congregationIntroState.waitingForAnnouncementClear = false;
       congregationIntroState.handoffAnimStart = now;
     }
@@ -5761,88 +5758,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         maxWidthScale: 0.86,
       });
     }
-    const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
-    const wordSize = Math.min(canvas.width * 0.14, canvas.height * 0.16, 140);
-    const numberSize = Math.min(canvas.width * 0.28, canvas.height * 0.32, 220);
-    const countCenterX = layout.virtualCanvas.width / 2;
-    const countCenterY = layout.titleY + Math.round(wordSize * 1.6);
-    const countKey = `congregation-count-${Math.round(countValue || 0)}`;
-    if (congregationIntroState.resetCountReveal) {
-      announcementReveal.delete(countKey);
-      congregationIntroState.resetCountReveal = false;
-    }
-    let entry = announcementReveal.get(countKey);
-    if (!entry) {
-      entry = {
-        phase: 0,
-        timer: 0,
-        lastTime: now,
-        sfxPhase: -1,
-      };
-      announcementReveal.set(countKey, entry);
-    }
-    const dt = congregationIntroBlockedByAnnouncement
-      ? 0
-      : Math.max(0, (now - (entry.lastTime || now)) / 1000);
-    entry.lastTime = now;
-    if (!canShowCongregationText) {
-      entry.timer = 0;
-      entry.phase = 0;
-    } else {
-      entry.timer += dt;
-    }
-    if (!canShowCongregationText) {
-      // Hold window or blocked: keep reveal state reset.
-      entry.phase = 0;
-      entry.timer = 0;
-    } else if (entry.phase === 0) {
-      if (typewriterReady && isAnnouncementRevealComplete(fullTitleText, "", "")) {
-        entry.phase = 1;
-        entry.timer = 0;
-      }
-    } else if (entry.phase === 1 && entry.timer >= 0.5) {
-      entry.phase = 2;
-      entry.timer = 0;
-    } else if (entry.phase === 2 && entry.timer >= 0.45) {
-      entry.phase = 3;
-      entry.timer = 0;
-    } else if (entry.phase === 3 && entry.timer >= 0.45) {
-      entry.phase = 4;
-    }
-    if (entry.phase > 0 && entry.phase !== entry.sfxPhase) {
-      entry.sfxPhase = entry.phase;
-      if (typeof window !== "undefined" && typeof window.playCongregationCountPopSfx === "function") {
-        window.playCongregationCountPopSfx(0.6);
-      }
-    }
-    const countFadeAlpha = canShowCongregationText ? handoffAnimProgress : 0;
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
-    ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
-    ctx.shadowBlur = 16;
-    ctx.shadowOffsetX = 4;
-    ctx.shadowOffsetY = 4;
-    const congregationText = (typeof GameText !== 'undefined' && GameText.congregation) || {};
-    ctx.globalAlpha *= countFadeAlpha;
-    if (entry.phase >= 2) {
-      const countWordScale = 0.72 + handoffAnimProgress * 0.28;
-      ctx.font = `900 ${Math.round(wordSize * countWordScale)}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(congregationText.title || "CONGREGATION", countCenterX, countCenterY);
-    }
-    if (entry.phase >= 3) {
-      const popScale = 1.35 - handoffAnimProgress * 0.35;
-      ctx.font = `900 ${Math.round(wordSize * popScale)}px ${UI_FONT_FAMILY}`;
-      if (entry.phase >= 4) {
-        const countLabel = congregationText.count || "COUNT";
-        const countTextStr = `${countLabel}: ${Math.max(0, Math.round(countValue || 0))}`;
-        ctx.fillText(countTextStr, countCenterX, countCenterY + wordSize * 1.05);
-      } else {
-        ctx.fillText(congregationText.countLabel || "COUNT:", countCenterX, countCenterY + wordSize * 1.05);
-      }
-    }
-    ctx.restore();
     if (showTutorialHints) {
       drawInstructionButtons();
     }
@@ -7189,7 +7104,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     key: null,
     startTime: 0,
     lastStage: null,
-    resetCountReveal: false,
   };
 
   function drawHUD() {
