@@ -10013,6 +10013,32 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
+    const smiteBombFlashTimer = requireBindings().smiteBombFlashTimer || 0;
+    if (smiteBombFlashTimer > 0) {
+      const smiteBombFlashDuration = Math.max(0.001, requireBindings().smiteBombFlashDuration || 0.16);
+      const t = Math.min(1, Math.max(0, smiteBombFlashTimer / smiteBombFlashDuration));
+      const progress = 1 - t;
+      const alpha = Math.max(0, Math.min(0.92, t * 0.92));
+      const rayboltFrames = requireBindings().assets?.effects?.raybolt || [];
+      if (alpha > 0.001 && Array.isArray(rayboltFrames) && rayboltFrames.length) {
+        const frameIndex = Math.min(
+          rayboltFrames.length - 1,
+          Math.max(0, Math.floor(progress * rayboltFrames.length)),
+        );
+        const frame = rayboltFrames[frameIndex] || rayboltFrames[rayboltFrames.length - 1];
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.globalCompositeOperation = "screen";
+        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      } else if (alpha > 0.001) {
+        ctx.save();
+        ctx.fillStyle = `rgba(235, 246, 255, ${alpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+    }
+
     const bossLightningFlashAlpha = requireBindings().bossLightningFlashAlpha || 0;
     if (bossLightningFlashAlpha > 0) {
       const flicker = 0.86 + Math.random() * 0.24;

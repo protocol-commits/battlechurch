@@ -109,6 +109,8 @@ let prayerBombRainTimer = 0;
 let prayerBombRainSpawnTimer = 0;
 let prayerBombScreenFadeTimer = 0;
 let prayerBombScreenFadeDuration = 0.8;
+let smiteBombFlashTimer = 0;
+const SMITE_BOMB_FLASH_DURATION = 0.22;
 let prayerStormGroundFireTargetThisCast = 0;
 let prayerStormGroundFireSpawnedThisCast = 0;
 let prayerStormRainImpactCountThisCast = 0;
@@ -4583,6 +4585,8 @@ Renderer.initialize({
   get prayerBombScreenFadeDuration() { return prayerBombScreenFadeDuration; },
   get prayerBombScreenDarkenAlpha() { return PRAYER_BOMB_SCREEN_DARKEN_ALPHA; },
   get prayerBombComboActive() { return Boolean(prayerBombComboState.active); },
+  get smiteBombFlashTimer() { return smiteBombFlashTimer; },
+  get smiteBombFlashDuration() { return SMITE_BOMB_FLASH_DURATION; },
   get RUSH_RADIUS() { return RUSH_RADIUS; },
   get meleeAttackState() { return window._meleeAttackState; },
   get devTools() { return devTools; },
@@ -8774,6 +8778,7 @@ function applyUtilityPowerUp(powerUp) {
       if (typeof playPrayerBombSfx === "function") {
         playPrayerBombSfx(0.85);
       }
+      smiteBombFlashTimer = Math.max(smiteBombFlashTimer, SMITE_BOMB_FLASH_DURATION);
       applyCameraShake(CAMERA_SHAKE_DURATION, CAMERA_SHAKE_INTENSITY * 1.35);
       let hitAny = false;
       projectiles.forEach((projectile) => {
@@ -18990,6 +18995,7 @@ function updateCameraAndVisualEffects(dt) {
   damageHitFlash = Math.max(0, damageHitFlash - dt);
   heroRescueCooldown = Math.max(0, heroRescueCooldown - dt);
   prayerBombScreenFadeTimer = Math.max(0, prayerBombScreenFadeTimer - dt);
+  smiteBombFlashTimer = Math.max(0, smiteBombFlashTimer - dt);
 }
 
 function handlePauseMenu() {
