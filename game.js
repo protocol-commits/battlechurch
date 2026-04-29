@@ -20549,6 +20549,9 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
     if (wasAlive && (enemy.dead || enemy.state === "death")) {
       enemy.killedByRush = true;
+      meleeAttackState.rushKillCount = (meleeAttackState.rushKillCount || 0) + 1;
+      meleeAttackState.rushKillSumX = (meleeAttackState.rushKillSumX || 0) + enemy.x;
+      meleeAttackState.rushKillSumY = (meleeAttackState.rushKillSumY || 0) + enemy.y;
     }
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
@@ -20693,11 +20696,31 @@ function updateRushMovement(dt, direction, meleeAttackState) {
   }
 
   if (meleeAttackState.rushDistanceRemaining <= 0) {
+    const rushKillCount = Math.max(0, Math.round(meleeAttackState.rushKillCount || 0));
+    if (rushKillCount > 0) {
+      const rushKillSumX = Number(meleeAttackState.rushKillSumX) || 0;
+      const rushKillSumY = Number(meleeAttackState.rushKillSumY) || 0;
+      const popX = rushKillSumX / rushKillCount;
+      const popY = rushKillSumY / rushKillCount;
+      addFloatingTextAt(popX, popY - 28, `${rushKillCount}`, "#FFE6A3", {
+        speechBubble: false,
+        vy: -18,
+        life: 0.9,
+        fadeDelay: 0.08,
+        fontSize: 34,
+        fontWeight: "900",
+        priority: 7,
+        clampToScreen: true,
+      });
+    }
     meleeAttackState.isRushing = false;
     meleeAttackState.rushJustEnded = true;
     meleeAttackState.rushDamageEnabled = false;
     meleeAttackState.rushInvulnerable = false;
     meleeAttackState.rushHitEntities = null;
+    meleeAttackState.rushKillCount = 0;
+    meleeAttackState.rushKillSumX = 0;
+    meleeAttackState.rushKillSumY = 0;
     meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
     meleeAttackState.cooldown = 0;
     meleeAttackState.rushLockTimer = 0;
@@ -21806,6 +21829,9 @@ function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
   meleeAttackState.rushDustAccumulator = 0;
   meleeAttackState.rushHitEntities = new Set();
+  meleeAttackState.rushKillCount = 0;
+  meleeAttackState.rushKillSumX = 0;
+  meleeAttackState.rushKillSumY = 0;
   if (meleeAttackState.lastComboTimes) {
     meleeAttackState.lastComboTimes.A = 0;
     meleeAttackState.lastComboTimes.B = 0;
