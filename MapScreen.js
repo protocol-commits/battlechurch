@@ -2278,8 +2278,16 @@
       .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
     if (!occupiedPoints.length) return;
     const linePad = 14;
-    const topY = rect.y + linePad;
+    const topY = rect.y;
     const botY = rect.y + rect.h - linePad;
+    const occupiedCount = occupiedPoints.length;
+    const lateCampaign = occupiedCount >= 8;
+    let startAnchorY = topY;
+    if (occupiedCount === 8) {
+      startAnchorY = topY + (botY - topY) * 0.45;
+    } else if (occupiedCount >= 9) {
+      startAnchorY = topY + (botY - topY) * 0.54;
+    }
     const absMinPad = 50;
     const occPad = 200;
     const enemyPad = 150;
@@ -2342,15 +2350,21 @@
       p.x = Math.max(p.hardMinX, p.x);
       p.x = Math.max(leftBound + 18, Math.min(rightBound, p.x));
     }
+    const drawFrontierPts = lateCampaign
+      ? frontierPts.filter((p) => p.y >= (startAnchorY - 8))
+      : frontierPts;
+    if (!drawFrontierPts.length) return;
     const topBulge = {
-      x: Math.max(leftBound, frontierPts[0].x - 38),
-      y: topY,
+      x: lateCampaign
+        ? rightBound
+        : Math.max(leftBound, Math.min(rightBound, drawFrontierPts[0].x - 38)),
+      y: startAnchorY,
     };
-    const bottomAnchorY = frontierPts.length <= 2
+    const bottomAnchorY = drawFrontierPts.length <= 2
       ? (topY + (botY - topY) * 0.62)
       : botY;
     const botBulge = {
-      x: Math.max(leftBound, frontierPts[frontierPts.length - 1].x - 34),
+      x: Math.max(leftBound, drawFrontierPts[drawFrontierPts.length - 1].x - 34),
       y: bottomAnchorY,
     };
     const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
@@ -2395,21 +2409,21 @@
 
     // Fill occupied territory from the west edge to the squiggly frontline.
     ctx.beginPath();
-    ctx.moveTo(leftBound, topY);
+    ctx.moveTo(leftBound, startAnchorY);
     ctx.lineTo(topBulge.x, topBulge.y);
-    if (frontierPts.length === 1) {
-      const p = frontierPts[0];
+    if (drawFrontierPts.length === 1) {
+      const p = drawFrontierPts[0];
       ctx.quadraticCurveTo(p.x, p.y - 28, p.x, p.y);
     } else {
-      ctx.quadraticCurveTo(frontierPts[0].x, frontierPts[0].y - 24, frontierPts[0].x, frontierPts[0].y);
-      for (let i = 0; i < frontierPts.length - 1; i += 1) {
-        const a = frontierPts[i];
-        const b = frontierPts[i + 1];
+      ctx.quadraticCurveTo(drawFrontierPts[0].x, drawFrontierPts[0].y - 24, drawFrontierPts[0].x, drawFrontierPts[0].y);
+      for (let i = 0; i < drawFrontierPts.length - 1; i += 1) {
+        const a = drawFrontierPts[i];
+        const b = drawFrontierPts[i + 1];
         const mx = (a.x + b.x) * 0.5;
         const my = (a.y + b.y) * 0.5;
         ctx.quadraticCurveTo(a.x, a.y, mx, my);
       }
-      const last = frontierPts[frontierPts.length - 1];
+      const last = drawFrontierPts[drawFrontierPts.length - 1];
       ctx.quadraticCurveTo(last.x, last.y, last.x, last.y);
     }
     ctx.quadraticCurveTo(botBulge.x + 18, botBulge.y - 20, botBulge.x, botBulge.y);
@@ -2421,8 +2435,8 @@
     // Front line stroke along the same contour path.
     ctx.beginPath();
     ctx.moveTo(topBulge.x, topBulge.y);
-    if (frontierPts.length === 1) {
-      const p = frontierPts[0];
+    if (drawFrontierPts.length === 1) {
+      const p = drawFrontierPts[0];
       ctx.quadraticCurveTo(p.x, p.y - 28, p.x, p.y);
       ctx.quadraticCurveTo(p.x + 6, p.y + 26, botBulge.x, botBulge.y);
       const c1x = botBulge.x - 34;
@@ -2431,17 +2445,17 @@
       const c2y = botBulge.y - 8;
       ctx.bezierCurveTo(c1x, c1y, c2x, c2y, leftBound, botBulge.y);
     } else {
-      ctx.quadraticCurveTo(frontierPts[0].x, frontierPts[0].y - 24, frontierPts[0].x, frontierPts[0].y);
-      for (let i = 0; i < frontierPts.length - 1; i += 1) {
-        const a = frontierPts[i];
-        const b = frontierPts[i + 1];
+      ctx.quadraticCurveTo(drawFrontierPts[0].x, drawFrontierPts[0].y - 24, drawFrontierPts[0].x, drawFrontierPts[0].y);
+      for (let i = 0; i < drawFrontierPts.length - 1; i += 1) {
+        const a = drawFrontierPts[i];
+        const b = drawFrontierPts[i + 1];
         const mx = (a.x + b.x) * 0.5;
         const my = (a.y + b.y) * 0.5;
         ctx.quadraticCurveTo(a.x, a.y, mx, my);
       }
-      const last = frontierPts[frontierPts.length - 1];
+      const last = drawFrontierPts[drawFrontierPts.length - 1];
       ctx.quadraticCurveTo(last.x, last.y, botBulge.x, botBulge.y);
-      if (frontierPts.length <= 2) {
+      if (drawFrontierPts.length <= 2) {
         const c1x = botBulge.x - 30;
         const c1y = botBulge.y + 12;
         const c2x = leftBound + 22;
