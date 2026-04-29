@@ -9337,6 +9337,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         if (typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak") {
           window.__announcementButtons = null;
         }
+        if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
+          const _coverImg = assets?.backgrounds?.townIntro || null;
+          ctx.save();
+          ctx.globalAlpha = townIntroOverlay.alpha;
+          ctx.fillStyle = "#0b111a";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          if (_coverImg) {
+            drawCoverImage(ctx, canvas, _coverImg, townIntroOverlay.scale, townIntroOverlay.focusX, townIntroOverlay.focusY);
+            ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+          ctx.restore();
+        }
         drawMapLaunchFadeInOverlay();
         return;
       }
@@ -9401,6 +9414,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textBaseline = "alphabetic";
       ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
       ctx.restore();
+      if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
+        const _coverImg = assets?.backgrounds?.townIntro || null;
+        ctx.save();
+        ctx.globalAlpha = townIntroOverlay.alpha;
+        ctx.fillStyle = "#0b111a";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (_coverImg) {
+          drawCoverImage(ctx, canvas, _coverImg, townIntroOverlay.scale, townIntroOverlay.focusX, townIntroOverlay.focusY);
+          ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.restore();
+      }
       drawMapLaunchFadeInOverlay();
       return;
     }
