@@ -700,6 +700,89 @@
     return rect;
   }
 
+  function drawFireOverlayInCurrentTransform(
+    renderCtx,
+    canvas,
+    intensity = 1.8,
+    sizeScale = 1.0,
+    alpha = 1,
+    bounds = null,
+  ) {
+    if (!renderCtx) return false;
+    const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
+    if (!fireOverlay || typeof fireOverlay.draw !== "function") return false;
+    if (!canvas) return false;
+    if (typeof fireOverlay.setBounds === "function") {
+      const bx = Number(bounds?.x);
+      const by = Number(bounds?.y);
+      const bw = Number(bounds?.w);
+      const bh = Number(bounds?.h);
+      if (
+        Number.isFinite(bx) &&
+        Number.isFinite(by) &&
+        Number.isFinite(bw) &&
+        Number.isFinite(bh) &&
+        bw > 0 &&
+        bh > 0
+      ) {
+        fireOverlay.setBounds(bx, by, bw, bh);
+      } else {
+        fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+      }
+    }
+    if (typeof fireOverlay.setIntensity === "function") {
+      fireOverlay.setIntensity(intensity);
+    }
+    if (typeof fireOverlay.setSizeScale === "function") {
+      fireOverlay.setSizeScale(sizeScale);
+    }
+    if (alpha < 0.999) {
+      const prev = fireOverlay.intensity;
+      fireOverlay.setIntensity((Number.isFinite(prev) ? prev : intensity) * Math.max(0, Math.min(1, alpha)));
+      fireOverlay.draw(renderCtx);
+      fireOverlay.setIntensity(prev);
+    } else {
+      fireOverlay.draw(renderCtx);
+    }
+    return true;
+  }
+
+  function drawWavyCoverImage(ctx, canvas, image, alpha = 1) {
+    if (!ctx || !canvas || !image || !image.width || !image.height) return;
+    const stripHeight = 14;
+    const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const amp = 0.9;
+    const focusX = 0.5;
+    const focusY = 0.5;
+    const baseScale = Math.max(canvas.width / image.width, canvas.height / image.height);
+    const drawW = image.width * baseScale;
+    const drawH = image.height * baseScale;
+    const offsetX = canvas.width * focusX - drawW * focusX;
+    const offsetY = canvas.height * focusY - drawH * focusY;
+    const scaleY = drawH / image.height;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+    for (let y = 0; y < image.height; y += stripHeight) {
+      const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
+      const offset = wave * amp;
+      const srcH = Math.min(stripHeight, image.height - y);
+      const destY = offsetY + y * scaleY;
+      const destH = srcH * scaleY;
+      ctx.drawImage(
+        image,
+        0,
+        y,
+        image.width,
+        srcH,
+        offsetX + offset,
+        destY,
+        drawW,
+        destH,
+      );
+    }
+    ctx.restore();
+  }
+
   // Draws P1/P2/P3 campaign completion dots above a town node
   function drawCampaignDots(ctx, town, position, radius, rect) {
     const progress = ensureProgress();
@@ -2287,18 +2370,25 @@
       }
     }
     rect = drawMapBackground(ctx, canvas);
-    const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
-    if (fireOverlay && typeof fireOverlay.draw === "function") {
-      if (typeof fireOverlay.setBounds === "function") {
-        fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+    if (transitionActive) {
+      const mapEmberAlpha = Math.max(0, Math.min(1, 1 - easedCrossfadeT));
+      if (mapEmberAlpha > 0.001) {
+        drawFireOverlayInCurrentTransform(ctx, canvas, 1.8, 1.0, mapEmberAlpha, rect);
       }
-      if (typeof fireOverlay.setIntensity === "function") {
-        fireOverlay.setIntensity(1.8);
+    } else {
+      const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
+      if (fireOverlay && typeof fireOverlay.draw === "function") {
+        if (typeof fireOverlay.setBounds === "function") {
+          fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+        }
+        if (typeof fireOverlay.setIntensity === "function") {
+          fireOverlay.setIntensity(1.8);
+        }
+        if (typeof fireOverlay.setSizeScale === "function") {
+          fireOverlay.setSizeScale(1);
+        }
+        fireOverlay.draw(ctx);
       }
-      if (typeof fireOverlay.setSizeScale === "function") {
-        fireOverlay.setSizeScale(1);
-      }
-      fireOverlay.draw(ctx);
     }
     drawMapLabels(ctx, canvas, rect);
     drawTotalCongregationBadge(ctx, canvas);
@@ -2321,15 +2411,23 @@
     if (transitionActive) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       if (townExteriorImageLoaded && townExteriorImage) {
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, Math.min(1, easedCrossfadeT));
-        const baseScale = Math.max(canvas.width / townExteriorImage.width, canvas.height / townExteriorImage.height);
-        const drawW = townExteriorImage.width * baseScale;
-        const drawH = townExteriorImage.height * baseScale;
-        const offsetX = (canvas.width - drawW) / 2;
-        const offsetY = (canvas.height - drawH) / 2;
-        ctx.drawImage(townExteriorImage, offsetX, offsetY, drawW, drawH);
-        ctx.restore();
+        drawWavyCoverImage(ctx, canvas, townExteriorImage, Math.max(0, Math.min(1, easedCrossfadeT)));
+        const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
+        if (fireOverlay && typeof fireOverlay.draw === "function") {
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, easedCrossfadeT));
+          if (typeof fireOverlay.setBounds === "function") {
+            fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+          }
+          if (typeof fireOverlay.setIntensity === "function") {
+            fireOverlay.setIntensity(1.9);
+          }
+          if (typeof fireOverlay.setSizeScale === "function") {
+            fireOverlay.setSizeScale(0.7);
+          }
+          fireOverlay.draw(ctx);
+          ctx.restore();
+        }
       } else {
         ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, Math.min(0.35, easedCrossfadeT * 0.35))})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);

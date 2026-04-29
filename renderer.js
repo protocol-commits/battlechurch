@@ -8994,6 +8994,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     const townIntroActive = Boolean(levelAnnouncements?.[0]?.townIntro);
     const exteriorShotActive = Boolean(levelAnnouncements?.[0]?.exteriorShot);
+    const mapLaunchHandoffActive =
+      typeof window !== "undefined" && Boolean(window.__mapTownLaunchFadeIn);
     let townIntroOverlay = null;
     sharedShakeOffset.x = 0;
     sharedShakeOffset.y = 0;
@@ -9027,6 +9029,70 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
       return alpha;
     };
+    const drawWavyExteriorBackdrop = (image, { amp = 0.9, overlayAlpha = 0.35 } = {}) => {
+      if (!image) return false;
+      const stripHeight = 14;
+      const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+      const focusX = 0.5;
+      const focusY = 0.5;
+      const baseScale = Math.max(canvas.width / image.width, canvas.height / image.height);
+      const drawW = image.width * baseScale;
+      const drawH = image.height * baseScale;
+      const offsetX = canvas.width * focusX - drawW * focusX;
+      const offsetY = canvas.height * focusY - drawH * focusY;
+      const scaleY = drawH / image.height;
+      for (let y = 0; y < image.height; y += stripHeight) {
+        const wave = Math.sin(time * 2 + y * 0.15) + Math.sin(time * 1.2 + y * 0.05);
+        const offset = wave * amp;
+        const srcH = Math.min(stripHeight, image.height - y);
+        const destY = offsetY + y * scaleY;
+        const destH = srcH * scaleY;
+        ctx.drawImage(
+          image,
+          0,
+          y,
+          image.width,
+          srcH,
+          offsetX + offset,
+          destY,
+          drawW,
+          destH,
+        );
+      }
+      ctx.fillStyle = `rgba(8, 12, 20, ${Math.max(0, Math.min(1, overlayAlpha))})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return true;
+    };
+    // During map -> mission handoff, force-render exterior backdrop immediately so
+    // we never flash congregation/pause content between states.
+    if (mapLaunchHandoffActive && !townIntroActive && !exteriorShotActive) {
+      const handoffAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
+      const introImage = assets?.backgrounds?.townIntro || null;
+      ctx.save();
+      ctx.fillStyle = "#0b111a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawWavyExteriorBackdrop(introImage, { amp: 0.9, overlayAlpha: 0.35 });
+      if (handoffAlpha > 0.001) {
+        // Darken base image first so embers remain visible above it.
+        ctx.fillStyle = `rgba(0, 0, 0, ${handoffAlpha})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      const fireOverlay = requireBindings().fireOverlay;
+      if (fireOverlay && typeof fireOverlay.draw === "function") {
+        if (typeof fireOverlay.setBounds === "function") {
+          fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+        }
+        if (typeof fireOverlay.setIntensity === "function") {
+          fireOverlay.setIntensity(1.9);
+        }
+        if (typeof fireOverlay.setSizeScale === "function") {
+          fireOverlay.setSizeScale(0.7);
+        }
+        fireOverlay.draw(ctx);
+      }
+      ctx.restore();
+      return;
+    }
     updateWaveClearWipe(levelStatus, nowMs);
     const townIntroTransitionActive = Boolean(requireBindings().townIntroTransitionActive);
     if (townIntroTransitionActive) {
@@ -9056,9 +9122,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.save();
         ctx.fillStyle = "#0b111a";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        drawCoverImage(ctx, canvas, img, scale, focusX, focusY);
-        ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawWavyExteriorBackdrop(img, { amp: 0.9, overlayAlpha: 0.25 });
+        const fireOverlay = requireBindings().fireOverlay;
+        if (fireOverlay && typeof fireOverlay.draw === "function") {
+          if (typeof fireOverlay.setBounds === "function") {
+            fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+          }
+          if (typeof fireOverlay.setIntensity === "function") {
+            fireOverlay.setIntensity(1.9);
+          }
+          if (typeof fireOverlay.setSizeScale === "function") {
+            fireOverlay.setSizeScale(0.7);
+          }
+          fireOverlay.draw(ctx);
+        }
         ctx.restore();
         drawMapLaunchFadeInOverlay();
         return;
@@ -9114,6 +9191,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (fireOverlay && typeof fireOverlay.draw === "function") {
         if (typeof fireOverlay.setBounds === "function") {
           fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+        }
+        if (typeof fireOverlay.setIntensity === "function") {
+          fireOverlay.setIntensity(1.9);
+        }
+        if (typeof fireOverlay.setSizeScale === "function") {
+          fireOverlay.setSizeScale(0.7);
         }
         fireOverlay.draw(ctx);
       }
@@ -9337,6 +9420,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (fireOverlay && typeof fireOverlay.draw === "function") {
         if (typeof fireOverlay.setBounds === "function") {
           fireOverlay.setBounds(0, 0, canvas.width, canvas.height);
+        }
+        if (typeof fireOverlay.setIntensity === "function") {
+          fireOverlay.setIntensity(1.9);
+        }
+        if (typeof fireOverlay.setSizeScale === "function") {
+          fireOverlay.setSizeScale(0.7);
         }
         fireOverlay.draw(ctx);
       }
@@ -10231,7 +10320,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawSpeedrunTimer();
     drawCongregationOverlay();
     // Effects are drawn earlier in the world pass so the player stays on top.
-    if (paused && !gameOver) {
+    if (paused && !gameOver && !mapLaunchHandoffActive) {
       drawPauseOverlay();
       drawPlayingInstructionsOverlay();
       return;
