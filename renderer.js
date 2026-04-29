@@ -1634,7 +1634,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     position: "top",
     topMargin,
     bottomMargin: showFormation ? 70 : 100,
-    rowGap: showFormation ? 40 : 60,
+    rowGap: showFormation ? 52 : 60,
     buttonHeight,
     buttonCount: layoutButtonCount,
     promptSize,
@@ -4681,10 +4681,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         eyebrowText: callForHelpLine,
         uiFontFamily: UI_FONT_FAMILY,
         maxWidthScale: 0.86,
-        topMargin: 52,
-        bodySize: Math.max(30, Math.round(TEXT_STYLES.body.size * 1.1)),
+        topMargin: Math.max(HUD_HEIGHT + 28, 120),
+        titleSize: Math.max(64, Math.round(TEXT_STYLES.h1.size * 1.22)),
+        bodySize: Math.max(36, Math.round(TEXT_STYLES.body.size * 1.35)),
         bodyWeight: TEXT_STYLES.body.weight,
         titleLineGap: 10,
+        eyebrowSize: 19,
+        eyebrowOffset: -4,
         titleLineEmphasis: {
           mode: "shimmer",
           matchPrefix: "Battlefield ",
@@ -4694,8 +4697,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           glowColor: "rgba(235, 189, 102, 0.95)",
         },
         titleLineSizes: [
-          Math.max(16, Math.round(TEXT_STYLES.h2.size * 0.76)),
-          Math.round(TEXT_STYLES.h1.size * 1.14),
+          Math.max(62, Math.round(TEXT_STYLES.h1.size * 1.24)),
         ],
       });
       ctx.restore();
