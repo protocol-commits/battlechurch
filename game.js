@@ -15969,7 +15969,7 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
       radius: CONGREGATION_MEMBER_RADIUS,
       bobTimer: Math.random() * Math.PI * 2,
       wanderPause: Math.random() * 1.5,
-      speed: randomInRange(22, 36) * WORLD_SCALE,
+      speed: randomInRange(11, 18) * WORLD_SCALE,
       name,
       gender,
     };

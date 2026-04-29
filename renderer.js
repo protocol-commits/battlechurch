@@ -5742,7 +5742,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
-    drawCongregationThreatApparitions(ctx, layout.virtualCanvas, now, introKey);
+    drawCongregationThreatApparitions(ctx, layout.virtualCanvas, now, introKey, congregationMembers);
     if (canShowCongregationText) {
       drawAnnouncementText(ctx, layout.virtualCanvas, {
         title: titleText,
@@ -7108,6 +7108,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const CONGREGATION_THREAT_RESPAWN_MAX_SEC = 0.9;
   const CONGREGATION_THREAT_MIN_GAP_PX = 130;
   const CONGREGATION_THREAT_SPAWN_ATTEMPTS = 12;
+  const CONGREGATION_THREAT_ATTACK_CHANCE = 0.38;
+  const CONGREGATION_THREAT_ATTACK_APPROACH_SEC = 0.95;
+  const CONGREGATION_THREAT_ATTACK_WINDUP_SEC = 0.35;
+  const CONGREGATION_THREAT_ATTACK_SWING_SEC = 0.55;
+  const CONGREGATION_THREAT_ATTACK_RECOVER_SEC = 0.25;
+  const CONGREGATION_THREAT_TARGET_EDGE_BAND_RATIO = 0.28;
+  const CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS = 120;
   const congregationThreatState = {
     key: null,
     nextSpawnAt: 0,
@@ -7143,12 +7150,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const clip = clipBundle?.walk || clipBundle?.idle || clipBundle?.attack || null;
       const catalogScale = Number(enemyCatalog?.[key]?.scale);
       const resolvedScale = Number.isFinite(catalogScale) && catalogScale > 0 ? catalogScale : 1;
-      if (clip?.image) pool.push({ key, clip, scale: resolvedScale });
+      const weaponHitboxOffsetX = Number(enemyCatalog?.[key]?.weaponHitbox?.offsetX);
+      if (clip?.image) {
+        pool.push({
+          key,
+          clip,
+          clipBundle,
+          scale: resolvedScale,
+          attackHitboxOffsetX: Number.isFinite(weaponHitboxOffsetX) ? Math.abs(weaponHitboxOffsetX) : 20,
+        });
+      }
     }
     return pool;
   }
 
-  function spawnCongregationThreatApparition(virtualCanvas, clipPool, existingApparitions = []) {
+  function spawnCongregationThreatApparition(
+    virtualCanvas,
+    clipPool,
+    existingApparitions = [],
+    congregationMembers = [],
+    allowAttack = true,
+  ) {
     const width = virtualCanvas?.width || 1920;
     const height = virtualCanvas?.height || 1080;
     for (let attempt = 0; attempt < CONGREGATION_THREAT_SPAWN_ATTEMPTS; attempt += 1) {
@@ -7181,22 +7203,66 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       if (overlaps) continue;
       const picked = clipPool[Math.floor(Math.random() * clipPool.length)] || null;
+      const targetCandidates = Array.isArray(congregationMembers)
+        ? congregationMembers.filter((m) => m && Number.isFinite(m.x) && Number.isFinite(m.y))
+        : [];
+      let preferredTargets = targetCandidates;
+      if (targetCandidates.length) {
+        const edgeBand = Math.max(120, width * CONGREGATION_THREAT_TARGET_EDGE_BAND_RATIO);
+        const minInnerX = edgeBand;
+        const maxInnerX = width - edgeBand;
+        const sideTargets = targetCandidates.filter((m) => m.x <= minInnerX || m.x >= maxInnerX);
+        if (sideTargets.length) preferredTargets = sideTargets;
+      }
+      const crowdRadiusSq = CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS * CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS;
+      const scoredTargets = preferredTargets.map((m) => {
+        let neighbors = 0;
+        for (const other of targetCandidates) {
+          if (!other || other === m) continue;
+          const dx = other.x - m.x;
+          const dy = other.y - m.y;
+          if (dx * dx + dy * dy <= crowdRadiusSq) neighbors += 1;
+        }
+        return { member: m, neighbors };
+      });
+      scoredTargets.sort((a, b) => a.neighbors - b.neighbors);
+      const lowCrowdTargets = scoredTargets.length
+        ? scoredTargets.filter((entry) => entry.neighbors <= scoredTargets[0].neighbors + 1).map((entry) => entry.member)
+        : [];
+      const canAttack = allowAttack && targetCandidates.length > 0 && Math.random() < CONGREGATION_THREAT_ATTACK_CHANCE;
+      const targetMember = canAttack
+        ? lowCrowdTargets[Math.floor(Math.random() * lowCrowdTargets.length)] || null
+        : null;
+      const attackLifetime =
+        CONGREGATION_THREAT_FADE_IN_SEC +
+        CONGREGATION_THREAT_ATTACK_APPROACH_SEC +
+        CONGREGATION_THREAT_ATTACK_WINDUP_SEC +
+        CONGREGATION_THREAT_ATTACK_SWING_SEC +
+        CONGREGATION_THREAT_ATTACK_RECOVER_SEC +
+        CONGREGATION_THREAT_FADE_OUT_SEC;
       return {
         x,
         y,
+        startX: x,
+        startY: y,
         edge,
         clip: picked?.clip || null,
+        clips: picked?.clipBundle || null,
         clipKey: picked?.key || "",
         drawScale: Number.isFinite(picked?.scale) && picked.scale > 0 ? picked.scale : 1,
+        attackHitboxOffsetX: Number.isFinite(picked?.attackHitboxOffsetX) ? picked.attackHitboxOffsetX : 20,
         bornAt: 0,
         rotation: 0,
         frameSeed: Math.floor(Math.random() * 1000),
+        mode: targetMember ? "attack" : "ambient",
+        targetMember: targetMember || null,
+        lifetimeSec: targetMember ? attackLifetime : null,
       };
     }
     return null;
   }
 
-  function drawCongregationThreatApparitions(ctx, virtualCanvas, nowMs, introKey) {
+  function drawCongregationThreatApparitions(ctx, virtualCanvas, nowMs, introKey, congregationMembers = []) {
     const clipPool = getCongregationThreatClipPool();
     if (!clipPool.length) return;
     const nowSec = nowMs / 1000;
@@ -7210,8 +7276,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     for (let i = congregationThreatState.apparitions.length - 1; i >= 0; i -= 1) {
       const app = congregationThreatState.apparitions[i];
       const ageSec = nowSec - app.bornAt;
-      if (ageSec >= totalLifetimeSec) congregationThreatState.apparitions.splice(i, 1);
+      const lifeSec = Number.isFinite(app?.lifetimeSec) ? app.lifetimeSec : totalLifetimeSec;
+      if (ageSec >= lifeSec) congregationThreatState.apparitions.splice(i, 1);
     }
+    const hasAttackInFlight = congregationThreatState.apparitions.some((app) => app?.mode === "attack");
     if (
       congregationThreatState.apparitions.length < CONGREGATION_THREAT_MAX_ACTIVE &&
       nowSec >= congregationThreatState.nextSpawnAt
@@ -7220,6 +7288,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         virtualCanvas,
         clipPool,
         congregationThreatState.apparitions,
+        congregationMembers,
+        !hasAttackInFlight,
       );
       if (apparition) {
         apparition.bornAt = nowSec;
@@ -7231,7 +7301,41 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       congregationThreatState.nextSpawnAt = nowSec + respawnDelay;
     }
     congregationThreatState.apparitions.forEach((app) => {
-      const clip = app.clip;
+      const isAttack = app?.mode === "attack";
+      const ageSec = nowSec - app.bornAt;
+      let drawX = app.x;
+      let drawY = app.y;
+      let clip = app.clip;
+      let forceFaceRight = null;
+      if (isAttack && app.targetMember && Number.isFinite(app.targetMember.x) && Number.isFinite(app.targetMember.y)) {
+        const targetX = app.targetMember.x;
+        const targetY = app.targetMember.y - Math.max(4, (app.targetMember.radius || 20) * 0.25);
+        const clipForSizing = app.clips?.attack || app.clips?.walk || app.clips?.idle || app.clip;
+        const sizeImg = clipForSizing?.image || null;
+        const sizeFrameWidth = Math.max(1, clipForSizing?.frameWidth || sizeImg?.width || 1);
+        const sizeRenderScale =
+          Number.isFinite(clipForSizing?.renderScale) && clipForSizing.renderScale > 0 ? clipForSizing.renderScale : 1;
+        const sizeScale = Math.max(0.001, (Number.isFinite(app.drawScale) ? app.drawScale : 1) * sizeRenderScale);
+        const attackerHalfW = sizeFrameWidth * sizeScale * 0.5;
+        const hitOffset = Math.max(8, Number.isFinite(app.attackHitboxOffsetX) ? Math.abs(app.attackHitboxOffsetX) : 20);
+        const sideSign = app.startX <= targetX ? -1 : 1;
+        // Keep attacker beside the NPC but close enough that the NPC sits inside the strike reach.
+        const standOff = Math.max(
+          (app.targetMember.radius || 24) + 8,
+          hitOffset + (app.targetMember.radius || 24) * 0.28,
+        );
+        const anchorX = targetX + sideSign * standOff;
+        const t = Math.max(0, Math.min(1, ageSec / Math.max(0.001, CONGREGATION_THREAT_ATTACK_APPROACH_SEC)));
+        const ease = 1 - Math.pow(1 - t, 3);
+        drawX = app.startX + (anchorX - app.startX) * ease;
+        drawY = app.startY + (targetY - app.startY) * ease;
+        forceFaceRight = sideSign > 0;
+        const attackStart = CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_ATTACK_APPROACH_SEC;
+        if (ageSec >= attackStart) {
+          const attackClip = app.clips?.attack || app.clips?.walk || app.clips?.idle || app.clip;
+          if (attackClip?.image) clip = attackClip;
+        }
+      }
       if (!clip?.image) return;
       const img = clip.image;
       const frameWidth = Math.max(1, clip.frameWidth || img.width || 1);
@@ -7241,15 +7345,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const mappedFrames = Array.isArray(clip.frameMap) && clip.frameMap.length
         ? clip.frameMap
         : null;
-      const ageSec = nowSec - app.bornAt;
       let alpha = 0;
-      if (ageSec < CONGREGATION_THREAT_FADE_IN_SEC) {
-        alpha = ageSec / Math.max(0.001, CONGREGATION_THREAT_FADE_IN_SEC);
-      } else if (ageSec < CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_HOLD_SEC) {
-        alpha = 1;
+      if (!isAttack) {
+        if (ageSec < CONGREGATION_THREAT_FADE_IN_SEC) {
+          alpha = ageSec / Math.max(0.001, CONGREGATION_THREAT_FADE_IN_SEC);
+        } else if (ageSec < CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_HOLD_SEC) {
+          alpha = 1;
+        } else {
+          const outAge = ageSec - CONGREGATION_THREAT_FADE_IN_SEC - CONGREGATION_THREAT_HOLD_SEC;
+          alpha = 1 - outAge / Math.max(0.001, CONGREGATION_THREAT_FADE_OUT_SEC);
+        }
       } else {
-        const outAge = ageSec - CONGREGATION_THREAT_FADE_IN_SEC - CONGREGATION_THREAT_HOLD_SEC;
-        alpha = 1 - outAge / Math.max(0.001, CONGREGATION_THREAT_FADE_OUT_SEC);
+        const lifeSec = Number.isFinite(app?.lifetimeSec) ? app.lifetimeSec : 0;
+        const fadeOutStart = Math.max(0, lifeSec - CONGREGATION_THREAT_FADE_OUT_SEC);
+        if (ageSec < CONGREGATION_THREAT_FADE_IN_SEC) {
+          alpha = ageSec / Math.max(0.001, CONGREGATION_THREAT_FADE_IN_SEC);
+        } else if (ageSec < fadeOutStart) {
+          alpha = 1;
+        } else {
+          const outAge = ageSec - fadeOutStart;
+          alpha = 1 - outAge / Math.max(0.001, CONGREGATION_THREAT_FADE_OUT_SEC);
+        }
       }
       alpha = Math.max(0, Math.min(1, alpha));
       if (alpha <= 0.001) return;
@@ -7267,11 +7383,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const drawWidth = frameWidth * drawScale;
       const drawHeight = frameHeight * drawScale;
       ctx.save();
-      ctx.translate(app.x, app.y);
+      ctx.translate(drawX, drawY);
       ctx.rotate(app.rotation);
       const centerX = (virtualCanvas?.width || 1920) * 0.5;
-      const isOnRightSide = app.x > centerX;
-      if (isOnRightSide) ctx.scale(-1, 1);
+      const faceRight = forceFaceRight !== null ? forceFaceRight : drawX <= centerX;
+      if (faceRight) ctx.scale(-1, 1);
       ctx.globalAlpha = 0.48 * alpha;
       ctx.shadowColor = "rgba(255, 40, 10, 0.65)";
       ctx.shadowBlur = 20;
@@ -7287,6 +7403,34 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         drawHeight,
       );
       ctx.restore();
+
+      if (isAttack && app.targetMember && Number.isFinite(app.targetMember.x) && Number.isFinite(app.targetMember.y)) {
+        const attackStart = CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_ATTACK_APPROACH_SEC + CONGREGATION_THREAT_ATTACK_WINDUP_SEC;
+        const attackEnd = attackStart + CONGREGATION_THREAT_ATTACK_SWING_SEC;
+        if (ageSec >= attackStart && ageSec <= attackEnd) {
+          const pulse = 1 - Math.min(1, (ageSec - attackStart) / Math.max(0.001, CONGREGATION_THREAT_ATTACK_SWING_SEC));
+          const flashAlpha = Math.max(0, 0.45 * pulse);
+          const flashRadius = Math.max(18, (app.targetMember.radius || 24) * (1.25 + pulse * 0.4));
+          ctx.save();
+          ctx.globalAlpha = flashAlpha;
+          const grad = ctx.createRadialGradient(
+            app.targetMember.x,
+            app.targetMember.y,
+            Math.max(2, flashRadius * 0.15),
+            app.targetMember.x,
+            app.targetMember.y,
+            flashRadius,
+          );
+          grad.addColorStop(0, "rgba(255, 88, 60, 0.95)");
+          grad.addColorStop(0.55, "rgba(190, 34, 20, 0.45)");
+          grad.addColorStop(1, "rgba(120, 12, 8, 0)");
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(app.targetMember.x, app.targetMember.y, flashRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
     });
   }
 
