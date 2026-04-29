@@ -1601,7 +1601,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     eyebrowColor = "rgba(231, 196, 126, 0.9)",
   } = options;
   const promptText = "How will you equip them?";
-  const combinedSubtitle = showFormation ? `${subtitle}\n${promptText}` : subtitle;
+  const combinedSubtitle = showFormation
+    ? (String(subtitle || "").trim().length ? `${subtitle}\n${promptText}` : promptText)
+    : subtitle;
   const promptSize = 0;
   const displayButtons = showButtons !== false;
   const buttonHeight = displayButtons ? (showFormation ? 148 : 72) : 0;
@@ -1681,6 +1683,42 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       lowerYBase + Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight) + 18,
     );
     drawTextBackdrop();
+
+    if (eyebrowText) {
+      const eyebrowLabel = String(eyebrowText || "").trim();
+      if (eyebrowLabel) {
+        const scaleHint = Math.min(
+          1,
+          Math.max(0.6, Math.min(layout.virtualCanvas.width / 1280, layout.virtualCanvas.height / 720)),
+        );
+        const effectiveEyebrowSize = Math.max(8, Math.round(eyebrowSize * scaleHint));
+        const eyebrowLineHeight = Math.round(effectiveEyebrowSize * 1.18);
+        const eyebrowY = Math.round(titleYBase - (titleLayout.titleLineHeight || 42) * 0.95);
+        ctx.save();
+        ctx.font = `700 ${effectiveEyebrowSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        const eyebrowLines = wrapAnnouncementText(
+          ctx,
+          eyebrowLabel,
+          titleLayout.maxWidth,
+        );
+        let lineY = eyebrowY - Math.round(((eyebrowLines.length - 1) * eyebrowLineHeight) / 2);
+        ctx.textAlign = "center";
+        eyebrowLines.forEach((line) => {
+          const lineX = layout.virtualCanvas.width / 2;
+          ctx.fillStyle = eyebrowColor;
+          ctx.shadowColor = "rgba(0, 0, 0, 0.45)";
+          ctx.shadowBlur = 8;
+          ctx.lineJoin = "round";
+          ctx.miterLimit = 2;
+          ctx.strokeStyle = "rgba(20, 8, 6, 0.8)";
+          ctx.lineWidth = 1.4;
+          ctx.strokeText(line, lineX, lineY);
+          ctx.fillText(line, lineX, lineY);
+          lineY += eyebrowLineHeight;
+        });
+        ctx.restore();
+      }
+    }
 
     drawAnnouncementText(ctx, layout.virtualCanvas, {
       title,
@@ -4614,7 +4652,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = scenario;
       }
-      const monthName = currentLevelStatus?.month || (requireBindings().getMonthName ? requireBindings().getMonthName(currentLevelStatus?.level || 1) : null);
       let nameSentence = '';
       if (npcNames.length === 1) {
         nameSentence = npcNames[0];
@@ -4623,32 +4660,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (npcNames.length > 2) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
-      const _camp = window.activeCampaign || "p1";
-      const _missions = window.BattlechurchCampaignLabels?.missions || {};
-      const actMissionLabels = _missions[_camp] || _missions.p1 || {};
       const missionNumber = Number.isFinite(announcement?.missionNumber)
         ? announcement.missionNumber
         : null;
-      const currentAct = Number.isFinite(currentLevelStatus?.actNum) ? currentLevelStatus.actNum : 1;
-      const fallbackMissionLabel = `Mission ${currentAct}: ${actMissionLabels[currentAct] || `Mission ${currentAct}`}`;
-      const missionLabel =
-        (announcement && announcement.missionBriefTitle) || fallbackMissionLabel;
-      const fallbackBattleLabel = missionNumber ? `Battle ${missionNumber}` : "Battle";
-      const battleLabel = (announcement && announcement.title) || fallbackBattleLabel;
+      const battlefieldNumber = missionNumber || 1;
       const battleProblemLine = scenarioTitle
-        ? `${battleLabel}: ${scenarioTitle}`
-        : battleLabel;
+        ? `Battlefield ${battlefieldNumber}: ${scenarioTitle}`
+        : `Battlefield ${battlefieldNumber}`;
       const needsVerb = npcNames.length === 1 ? "needs" : "need";
-      const missionHeading = `${missionLabel}\n${battleProblemLine}`;
-      const missionBrief = `${nameSentence} ${needsVerb} your guidance.`;
+      const missionHeading = battleProblemLine;
+      const callForHelpLine = `${nameSentence} ${needsVerb} help on`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
       }
       drawMissionBriefScreen(ctx, canvas, {
         title: missionHeading,
-        subtitle: missionBrief,
+        subtitle: "",
         showFormation: true,
+        eyebrowText: callForHelpLine,
         uiFontFamily: UI_FONT_FAMILY,
         maxWidthScale: 0.86,
         topMargin: 52,
@@ -4657,7 +4687,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         titleLineGap: 10,
         titleLineEmphasis: {
           mode: "shimmer",
-          matchPrefix: "Battle ",
+          matchPrefix: "Battlefield ",
           continueOnWrappedLines: true,
           baseColor: "#E7C47E",
           peakColor: "#FFF2CF",
