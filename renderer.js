@@ -7173,23 +7173,80 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ) {
     const width = virtualCanvas?.width || 1920;
     const height = virtualCanvas?.height || 1080;
+    const targetCandidates = Array.isArray(congregationMembers)
+      ? congregationMembers.filter((m) => m && Number.isFinite(m.x) && Number.isFinite(m.y))
+      : [];
+    let preferredTargets = targetCandidates;
+    if (targetCandidates.length) {
+      const edgeBand = Math.max(120, width * CONGREGATION_THREAT_TARGET_EDGE_BAND_RATIO);
+      const minInnerX = edgeBand;
+      const maxInnerX = width - edgeBand;
+      const sideTargets = targetCandidates.filter((m) => m.x <= minInnerX || m.x >= maxInnerX);
+      if (sideTargets.length) preferredTargets = sideTargets;
+    }
+    const crowdRadiusSq = CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS * CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS;
+    const scoredTargets = preferredTargets.map((m) => {
+      let neighbors = 0;
+      for (const other of targetCandidates) {
+        if (!other || other === m) continue;
+        const dx = other.x - m.x;
+        const dy = other.y - m.y;
+        if (dx * dx + dy * dy <= crowdRadiusSq) neighbors += 1;
+      }
+      return { member: m, neighbors };
+    });
+    scoredTargets.sort((a, b) => a.neighbors - b.neighbors);
+    const lowCrowdTargets = scoredTargets.length
+      ? scoredTargets.filter((entry) => entry.neighbors <= scoredTargets[0].neighbors + 1).map((entry) => entry.member)
+      : [];
+    const canAttack = allowAttack && targetCandidates.length > 0 && Math.random() < CONGREGATION_THREAT_ATTACK_CHANCE;
+    const targetMember = canAttack
+      ? lowCrowdTargets[Math.floor(Math.random() * lowCrowdTargets.length)] || null
+      : null;
     for (let attempt = 0; attempt < CONGREGATION_THREAT_SPAWN_ATTEMPTS; attempt += 1) {
-      const edge = ["left", "right", "top", "bottom"][Math.floor(Math.random() * 4)];
       const pad = 42;
+      let edge = "left";
       let x = width * 0.5;
       let y = height * 0.5;
-      if (edge === "left") {
-        x = pad;
-        y = Math.random() * (height - 2 * pad) + pad;
-      } else if (edge === "right") {
-        x = width - pad;
-        y = Math.random() * (height - 2 * pad) + pad;
-      } else if (edge === "top") {
-        x = Math.random() * (width - 2 * pad) + pad;
-        y = pad;
+      if (targetMember) {
+        // Attack apparitions come from the nearest boundary to the target NPC.
+        const leftDist = targetMember.x - pad;
+        const rightDist = (width - pad) - targetMember.x;
+        const topDist = targetMember.y - pad;
+        const bottomDist = (height - pad) - targetMember.y;
+        const minDist = Math.min(leftDist, rightDist, topDist, bottomDist);
+        if (minDist === leftDist) {
+          edge = "left";
+          x = pad;
+          y = Math.max(pad, Math.min(height - pad, targetMember.y + randomInRange(-60, 60)));
+        } else if (minDist === rightDist) {
+          edge = "right";
+          x = width - pad;
+          y = Math.max(pad, Math.min(height - pad, targetMember.y + randomInRange(-60, 60)));
+        } else if (minDist === topDist) {
+          edge = "top";
+          x = Math.max(pad, Math.min(width - pad, targetMember.x + randomInRange(-80, 80)));
+          y = pad;
+        } else {
+          edge = "bottom";
+          x = Math.max(pad, Math.min(width - pad, targetMember.x + randomInRange(-80, 80)));
+          y = height - pad;
+        }
       } else {
-        x = Math.random() * (width - 2 * pad) + pad;
-        y = height - pad;
+        edge = ["left", "right", "top", "bottom"][Math.floor(Math.random() * 4)];
+        if (edge === "left") {
+          x = pad;
+          y = Math.random() * (height - 2 * pad) + pad;
+        } else if (edge === "right") {
+          x = width - pad;
+          y = Math.random() * (height - 2 * pad) + pad;
+        } else if (edge === "top") {
+          x = Math.random() * (width - 2 * pad) + pad;
+          y = pad;
+        } else {
+          x = Math.random() * (width - 2 * pad) + pad;
+          y = height - pad;
+        }
       }
       let overlaps = false;
       for (const app of existingApparitions) {
@@ -7203,36 +7260,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       if (overlaps) continue;
       const picked = clipPool[Math.floor(Math.random() * clipPool.length)] || null;
-      const targetCandidates = Array.isArray(congregationMembers)
-        ? congregationMembers.filter((m) => m && Number.isFinite(m.x) && Number.isFinite(m.y))
-        : [];
-      let preferredTargets = targetCandidates;
-      if (targetCandidates.length) {
-        const edgeBand = Math.max(120, width * CONGREGATION_THREAT_TARGET_EDGE_BAND_RATIO);
-        const minInnerX = edgeBand;
-        const maxInnerX = width - edgeBand;
-        const sideTargets = targetCandidates.filter((m) => m.x <= minInnerX || m.x >= maxInnerX);
-        if (sideTargets.length) preferredTargets = sideTargets;
-      }
-      const crowdRadiusSq = CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS * CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS;
-      const scoredTargets = preferredTargets.map((m) => {
-        let neighbors = 0;
-        for (const other of targetCandidates) {
-          if (!other || other === m) continue;
-          const dx = other.x - m.x;
-          const dy = other.y - m.y;
-          if (dx * dx + dy * dy <= crowdRadiusSq) neighbors += 1;
-        }
-        return { member: m, neighbors };
-      });
-      scoredTargets.sort((a, b) => a.neighbors - b.neighbors);
-      const lowCrowdTargets = scoredTargets.length
-        ? scoredTargets.filter((entry) => entry.neighbors <= scoredTargets[0].neighbors + 1).map((entry) => entry.member)
-        : [];
-      const canAttack = allowAttack && targetCandidates.length > 0 && Math.random() < CONGREGATION_THREAT_ATTACK_CHANCE;
-      const targetMember = canAttack
-        ? lowCrowdTargets[Math.floor(Math.random() * lowCrowdTargets.length)] || null
-        : null;
       const attackLifetime =
         CONGREGATION_THREAT_FADE_IN_SEC +
         CONGREGATION_THREAT_ATTACK_APPROACH_SEC +
@@ -7329,7 +7356,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const ease = 1 - Math.pow(1 - t, 3);
         drawX = app.startX + (anchorX - app.startX) * ease;
         drawY = app.startY + (targetY - app.startY) * ease;
-        forceFaceRight = sideSign > 0;
+        forceFaceRight = sideSign < 0;
         const attackStart = CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_ATTACK_APPROACH_SEC;
         if (ageSec >= attackStart) {
           const attackClip = app.clips?.attack || app.clips?.walk || app.clips?.idle || app.clip;
@@ -7386,8 +7413,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.translate(drawX, drawY);
       ctx.rotate(app.rotation);
       const centerX = (virtualCanvas?.width || 1920) * 0.5;
+      // Sprites are right-facing at baseline; flip when we need to face left.
       const faceRight = forceFaceRight !== null ? forceFaceRight : drawX <= centerX;
-      if (faceRight) ctx.scale(-1, 1);
+      const flipX = !faceRight;
+      if (flipX) ctx.scale(-1, 1);
       ctx.globalAlpha = 0.48 * alpha;
       ctx.shadowColor = "rgba(255, 40, 10, 0.65)";
       ctx.shadowBlur = 20;
