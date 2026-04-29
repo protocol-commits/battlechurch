@@ -794,8 +794,8 @@ window.BattlechurchLevelData = {
                           "count": 50
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniHighDemon",
+                          "count": 2
                         }
                       ],
                       "weights": {},
@@ -820,6 +820,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 2
                         }
                       ],
                       "weights": {},
@@ -846,8 +850,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 2
                         }
                       ],
                       "weights": {},
@@ -872,6 +876,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 2
                         }
                       ],
                       "weights": {},
@@ -898,8 +906,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 2
                         }
                       ],
                       "weights": {},
@@ -929,7 +937,7 @@ window.BattlechurchLevelData = {
                           "count": 30
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -957,8 +965,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -985,8 +993,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1013,8 +1021,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1041,7 +1049,7 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -1077,11 +1085,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "count": 4
                         }
                       ],
                       "mode": "explicit",
@@ -1108,8 +1112,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 4
                         }
                       ],
                       "mode": "explicit",
@@ -1137,11 +1141,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "count": 4
                         }
                       ],
                       "mode": "explicit",
@@ -1168,8 +1168,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -1197,11 +1197,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -1245,8 +1241,8 @@ window.BattlechurchLevelData = {
                           "count": 50
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniHighDemon",
+                          "count": 5
                         }
                       ],
                       "weights": {},
@@ -1271,6 +1267,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1297,8 +1297,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1323,6 +1323,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1349,8 +1353,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1380,7 +1384,7 @@ window.BattlechurchLevelData = {
                           "count": 30
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -1408,8 +1412,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1436,8 +1440,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1464,8 +1468,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1492,7 +1496,7 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -1528,10 +1532,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -1559,8 +1559,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "mode": "explicit",
@@ -1588,10 +1588,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -1619,8 +1615,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1648,10 +1644,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -1691,8 +1683,8 @@ window.BattlechurchLevelData = {
                           "count": 50
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniHighDemon",
+                          "count": 10
                         }
                       ],
                       "weights": {},
@@ -1717,6 +1709,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1743,8 +1739,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1769,6 +1765,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1795,8 +1795,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1826,7 +1826,7 @@ window.BattlechurchLevelData = {
                           "count": 30
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -1854,8 +1854,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1882,8 +1882,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1910,8 +1910,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -1938,7 +1938,7 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -1974,10 +1974,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -2005,8 +2001,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "mode": "explicit",
@@ -2034,10 +2030,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -2065,8 +2057,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2094,10 +2086,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -2137,8 +2125,8 @@ window.BattlechurchLevelData = {
                           "count": 50
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniHighDemon",
+                          "count": 15
                         }
                       ],
                       "weights": {},
@@ -2163,6 +2151,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2189,8 +2181,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2215,6 +2207,10 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2241,8 +2237,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2272,7 +2268,7 @@ window.BattlechurchLevelData = {
                           "count": 30
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -2300,8 +2296,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2328,8 +2324,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2356,8 +2352,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2384,7 +2380,7 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
                         }
                       ],
@@ -2420,10 +2416,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -2451,8 +2443,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "mode": "explicit",
@@ -2480,10 +2472,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -2511,8 +2499,8 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
                         }
                       ],
                       "weights": {},
@@ -2540,10 +2528,6 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
-                        },
-                        {
-                          "enemy": "miniDemonLord",
                           "count": 3
                         }
                       ],
@@ -2580,8 +2564,12 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
+                          "enemy": "miniClawedDemon",
+                          "count": 50
+                        },
+                        {
                           "enemy": "miniDemonFireThrower",
-                          "count": 6
+                          "count": 10
                         }
                       ],
                       "weights": {},
@@ -2608,8 +2596,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2636,8 +2628,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2664,8 +2660,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2692,8 +2692,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2723,8 +2727,12 @@ window.BattlechurchLevelData = {
                           "count": 30
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 12
                         }
                       ],
                       "weights": {},
@@ -2751,8 +2759,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2779,8 +2791,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2807,8 +2823,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2835,8 +2855,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2871,7 +2895,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
                           "enemy": "miniDemonFireThrower",
@@ -2902,8 +2926,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "mode": "explicit",
@@ -2931,11 +2959,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
                           "enemy": "miniDemonFireThrower",
-                          "count": 3
+                          "count": 4
                         }
                       ],
                       "mode": "explicit",
@@ -2962,8 +2990,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonFireThrower",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -2991,11 +3023,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
                           "enemy": "miniDemonFireThrower",
-                          "count": 3
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3026,16 +3058,12 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniFireImp",
-                          "count": 20
-                        },
-                        {
                           "enemy": "miniClawedDemon",
                           "count": 50
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 10
                         }
                       ],
                       "weights": {},
@@ -3060,6 +3088,14 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3086,8 +3122,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3112,6 +3152,14 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3138,8 +3186,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3169,8 +3221,12 @@ window.BattlechurchLevelData = {
                           "count": 30
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 12
                         }
                       ],
                       "weights": {},
@@ -3197,8 +3253,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3225,8 +3285,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3253,8 +3317,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3281,8 +3349,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3317,11 +3389,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 10
                         }
                       ],
                       "mode": "explicit",
@@ -3348,8 +3420,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "mode": "explicit",
@@ -3377,11 +3453,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "mode": "explicit",
@@ -3408,8 +3484,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3437,11 +3517,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 4
                         }
                       ],
                       "weights": {},
@@ -3472,16 +3552,12 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniFireImp",
-                          "count": 20
-                        },
-                        {
                           "enemy": "miniClawedDemon",
                           "count": 50
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 10
                         }
                       ],
                       "weights": {},
@@ -3506,6 +3582,14 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3532,8 +3616,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3558,6 +3646,14 @@ window.BattlechurchLevelData = {
                         {
                           "enemy": "miniFireImp",
                           "count": 5
+                        },
+                        {
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3584,8 +3680,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3615,8 +3715,12 @@ window.BattlechurchLevelData = {
                           "count": 30
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 12
                         }
                       ],
                       "weights": {},
@@ -3643,8 +3747,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3671,8 +3779,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3699,8 +3811,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 1
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3727,8 +3843,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
+                          "enemy": "miniHighDemon",
                           "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3763,11 +3883,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 10
                         }
                       ],
                       "mode": "explicit",
@@ -3794,8 +3914,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "mode": "explicit",
@@ -3823,11 +3947,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "mode": "explicit",
@@ -3854,8 +3978,12 @@ window.BattlechurchLevelData = {
                           "count": 5
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 2
+                          "enemy": "miniHighDemon",
+                          "count": 3
+                        },
+                        {
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
@@ -3883,11 +4011,11 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniHighDemon",
-                          "count": 1
+                          "count": 3
                         },
                         {
-                          "enemy": "miniDemonLord",
-                          "count": 3
+                          "enemy": "miniDemonFireThrower",
+                          "count": 6
                         }
                       ],
                       "weights": {},
