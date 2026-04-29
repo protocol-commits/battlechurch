@@ -7175,6 +7175,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     existingApparitions = [],
     congregationMembers = [],
     allowAttack = true,
+    forceAttack = false,
   ) {
     const width = virtualCanvas?.width || 1920;
     const height = virtualCanvas?.height || 1080;
@@ -7204,7 +7205,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const lowCrowdTargets = scoredTargets.length
       ? scoredTargets.filter((entry) => entry.neighbors <= scoredTargets[0].neighbors + 1).map((entry) => entry.member)
       : [];
-    const canAttack = allowAttack && targetCandidates.length > 0 && Math.random() < CONGREGATION_THREAT_ATTACK_CHANCE;
+    const canAttack = allowAttack && targetCandidates.length > 0 &&
+      (forceAttack || Math.random() < CONGREGATION_THREAT_ATTACK_CHANCE);
     const targetMember = canAttack
       ? lowCrowdTargets[Math.floor(Math.random() * lowCrowdTargets.length)] || null
       : null;
@@ -7313,15 +7315,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (ageSec >= lifeSec) congregationThreatState.apparitions.splice(i, 1);
     }
     const hasAttackInFlight = congregationThreatState.apparitions.some((app) => app?.mode === "attack");
+    if (!hasAttackInFlight && congregationThreatState.apparitions.length >= CONGREGATION_THREAT_MAX_ACTIVE) {
+      const ambientIndex = congregationThreatState.apparitions.findIndex((app) => app?.mode !== "attack");
+      if (ambientIndex >= 0) congregationThreatState.apparitions.splice(ambientIndex, 1);
+    }
     if (
       congregationThreatState.apparitions.length < CONGREGATION_THREAT_MAX_ACTIVE &&
-      nowSec >= congregationThreatState.nextSpawnAt
+      (nowSec >= congregationThreatState.nextSpawnAt || !hasAttackInFlight)
     ) {
       const apparition = spawnCongregationThreatApparition(
         virtualCanvas,
         clipPool,
         congregationThreatState.apparitions,
         congregationMembers,
+        !hasAttackInFlight,
         !hasAttackInFlight,
       );
       if (apparition) {
