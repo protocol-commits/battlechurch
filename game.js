@@ -10730,6 +10730,11 @@ function applyShieldImpact(target) {
   }
   registerComboHit(target, damage);
   spawnFlashEffect(target.x, target.y - targetRadius / 2);
+  spawnPuffEffect(center.x, center.y, Math.max(18, targetRadius * 0.65));
+  if (typeof playFaithHitSfx === "function") {
+    playFaithHitSfx(0.75);
+  }
+  applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
   if (typeof target.touchCooldown === "number") {
     target.touchCooldown = Math.max(target.touchCooldown, SHIELD_LARGE_COOLDOWN);
   }
