@@ -7112,6 +7112,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const CONGREGATION_THREAT_FADE_OUT_SEC = 0.9;
   const CONGREGATION_THREAT_RESPAWN_MIN_SEC = 0.2;
   const CONGREGATION_THREAT_RESPAWN_MAX_SEC = 0.9;
+  const CONGREGATION_THREAT_MIN_GAP_PX = 130;
+  const CONGREGATION_THREAT_SPAWN_ATTEMPTS = 12;
   const congregationThreatState = {
     key: null,
     nextSpawnAt: 0,
@@ -7128,54 +7130,76 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const assets = requireBindings().assets;
     const enemyClips = assets?.enemies || null;
     if (!enemyClips) return [];
+    const enemyCatalog = (typeof window !== "undefined" ? window.BattlechurchEnemyCatalog?.catalog : null) || {};
     const preferredKeys = [
       "miniDemon",
       "miniDemoness",
+      "miniClawedDemon",
+      "miniHighDemon",
+      "miniDemonLord",
       "miniDemonFireThrower",
       "miniDemonTormentor",
       "miniDemonFireKeeper",
     ];
     const pool = [];
     for (const key of preferredKeys) {
+      const damageClass = String(enemyCatalog?.[key]?.damageClass || "").toLowerCase();
+      if (damageClass === "armored") continue;
       const clipBundle = enemyClips[key];
-      const clip = clipBundle?.idle || clipBundle?.walk || clipBundle?.attack || null;
-      if (clip?.image) pool.push({ key, clip });
+      const clip = clipBundle?.walk || clipBundle?.idle || clipBundle?.attack || null;
+      const catalogScale = Number(enemyCatalog?.[key]?.scale);
+      const resolvedScale = Number.isFinite(catalogScale) && catalogScale > 0 ? catalogScale : 1;
+      if (clip?.image) pool.push({ key, clip, scale: resolvedScale });
     }
     return pool;
   }
 
-  function spawnCongregationThreatApparition(virtualCanvas, clipPool) {
+  function spawnCongregationThreatApparition(virtualCanvas, clipPool, existingApparitions = []) {
     const width = virtualCanvas?.width || 1920;
     const height = virtualCanvas?.height || 1080;
-    const edge = ["left", "right", "top", "bottom"][Math.floor(Math.random() * 4)];
-    const pad = 42;
-    let x = width * 0.5;
-    let y = height * 0.5;
-    if (edge === "left") {
-      x = pad;
-      y = Math.random() * (height - 2 * pad) + pad;
-    } else if (edge === "right") {
-      x = width - pad;
-      y = Math.random() * (height - 2 * pad) + pad;
-    } else if (edge === "top") {
-      x = Math.random() * (width - 2 * pad) + pad;
-      y = pad;
-    } else {
-      x = Math.random() * (width - 2 * pad) + pad;
-      y = height - pad;
+    for (let attempt = 0; attempt < CONGREGATION_THREAT_SPAWN_ATTEMPTS; attempt += 1) {
+      const edge = ["left", "right", "top", "bottom"][Math.floor(Math.random() * 4)];
+      const pad = 42;
+      let x = width * 0.5;
+      let y = height * 0.5;
+      if (edge === "left") {
+        x = pad;
+        y = Math.random() * (height - 2 * pad) + pad;
+      } else if (edge === "right") {
+        x = width - pad;
+        y = Math.random() * (height - 2 * pad) + pad;
+      } else if (edge === "top") {
+        x = Math.random() * (width - 2 * pad) + pad;
+        y = pad;
+      } else {
+        x = Math.random() * (width - 2 * pad) + pad;
+        y = height - pad;
+      }
+      let overlaps = false;
+      for (const app of existingApparitions) {
+        if (!app) continue;
+        const dx = x - app.x;
+        const dy = y - app.y;
+        if (dx * dx + dy * dy < CONGREGATION_THREAT_MIN_GAP_PX * CONGREGATION_THREAT_MIN_GAP_PX) {
+          overlaps = true;
+          break;
+        }
+      }
+      if (overlaps) continue;
+      const picked = clipPool[Math.floor(Math.random() * clipPool.length)] || null;
+      return {
+        x,
+        y,
+        edge,
+        clip: picked?.clip || null,
+        clipKey: picked?.key || "",
+        drawScale: Number.isFinite(picked?.scale) && picked.scale > 0 ? picked.scale : 1,
+        bornAt: 0,
+        rotation: 0,
+        frameSeed: Math.floor(Math.random() * 1000),
+      };
     }
-    const picked = clipPool[Math.floor(Math.random() * clipPool.length)] || null;
-    return {
-      x,
-      y,
-      edge,
-      clip: picked?.clip || null,
-      clipKey: picked?.key || "",
-      size: 84 + Math.random() * 32,
-      bornAt: 0,
-      rotation: (Math.random() - 0.5) * 0.35,
-      frameSeed: Math.floor(Math.random() * 1000),
-    };
+    return null;
   }
 
   function drawCongregationThreatApparitions(ctx, virtualCanvas, nowMs, introKey) {
@@ -7198,9 +7222,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       congregationThreatState.apparitions.length < CONGREGATION_THREAT_MAX_ACTIVE &&
       nowSec >= congregationThreatState.nextSpawnAt
     ) {
-      const apparition = spawnCongregationThreatApparition(virtualCanvas, clipPool);
-      apparition.bornAt = nowSec;
-      congregationThreatState.apparitions.push(apparition);
+      const apparition = spawnCongregationThreatApparition(
+        virtualCanvas,
+        clipPool,
+        congregationThreatState.apparitions,
+      );
+      if (apparition) {
+        apparition.bornAt = nowSec;
+        congregationThreatState.apparitions.push(apparition);
+      }
       const respawnDelay =
         CONGREGATION_THREAT_RESPAWN_MIN_SEC +
         Math.random() * (CONGREGATION_THREAT_RESPAWN_MAX_SEC - CONGREGATION_THREAT_RESPAWN_MIN_SEC);
@@ -7237,6 +7267,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const frameId = Number.isFinite(frameRef) ? Math.max(0, Math.floor(frameRef)) : 0;
       const sx = (frameId % cols) * frameWidth;
       const sy = Math.floor(frameId / cols) * frameHeight;
+      const clipRenderScale =
+        Number.isFinite(clip.renderScale) && clip.renderScale > 0 ? clip.renderScale : 1;
+      const drawScale = Math.max(0.001, (Number.isFinite(app.drawScale) ? app.drawScale : 1) * clipRenderScale);
+      const drawWidth = frameWidth * drawScale;
+      const drawHeight = frameHeight * drawScale;
       ctx.save();
       ctx.translate(app.x, app.y);
       ctx.rotate(app.rotation);
@@ -7252,10 +7287,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         sy,
         frameWidth,
         frameHeight,
-        -app.size * 0.5,
-        -app.size * 0.5,
-        app.size,
-        app.size,
+        -drawWidth * 0.5,
+        -drawHeight * 0.5,
+        drawWidth,
+        drawHeight,
       );
       ctx.restore();
     });
