@@ -412,7 +412,7 @@
     "specialBehavior": [
       "closestAny"
     ],
-    "attackHitFrame": 4,
+    "attackHitFrame": 5,
     "hitbox": {
       "width": 18,
       "height": 20,
@@ -536,7 +536,9 @@
         40
       ]
     },
-    "maxGroupSize": 20
+    "maxGroupSize": 20,
+    "attackHitFrame": 3,
+    "attackHitDamage": 10
   },
   "miniHighDemon": {
     "displayName": "High Demon",
@@ -711,7 +713,8 @@
         86,
         87
       ]
-    }
+    },
+    "attackHitFrame": 3
   },
   "miniDemonLord": {
     "displayName": "Demon Lord",
@@ -747,7 +750,7 @@
       "offsetX": -1,
       "offsetY": 9
     },
-    "attackHitFrame": 8,
+    "attackHitFrame": 7,
     "attackHitDamage": 20,
     "weaponHitbox": {
       "width": 18,
@@ -827,7 +830,7 @@
       "closestAny",
       "ranged"
     ],
-    "attackHitFrame": 5,
+    "attackHitFrame": 4,
     "swarmSpacing": 1,
     "hitbox": {
       "width": 16,
@@ -901,7 +904,7 @@
       "closestAny",
       "ranged"
     ],
-    "attackHitFrame": 5,
+    "attackHitFrame": 4,
     "swarmSpacing": 0.1,
     "hitbox": {
       "width": 18,
