@@ -12156,6 +12156,7 @@ class CozyNpc {
       scale,
       flipHorizontal: dir.x < 0,
       scriptureFeedback: weaponMode === "fire",
+      encouragementFaithFeedback: weaponMode === "arrow" && npcHarmonyBuffTimer > 0,
     };
     if (speedOverride && speedOverride > 0) {
       shotOverrides.speed = speedOverride;
@@ -19603,6 +19604,15 @@ function processProjectileCollisions(dt) {
           projectile.type === "faith_cannon"
         ) {
           spawnEnemyHitEffect(enemy, hitX, hitY, { damageType });
+          const encouragementFaithFeedback =
+            projectile.encouragementFaithFeedback ||
+            (projectile.friendly && projectile.type === "arrow" && npcHarmonyBuffTimer > 0);
+          if (encouragementFaithFeedback) {
+            if (typeof playFaithHitSfx === "function") {
+              playFaithHitSfx(0.8);
+            }
+            applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+          }
           if (projectile.scriptureFeedback) {
             triggerScriptureHitFeedback(hitX, hitY, { isBoss: false });
           }
@@ -19683,6 +19693,15 @@ function processProjectileCollisions(dt) {
               projectile.type === "faith_cannon"
             ) {
               spawnFlashEffect(hitX, hitY);
+              const encouragementFaithFeedback =
+                projectile.encouragementFaithFeedback ||
+                (projectile.friendly && projectile.type === "arrow" && npcHarmonyBuffTimer > 0);
+              if (encouragementFaithFeedback) {
+                if (typeof playFaithHitSfx === "function") {
+                  playFaithHitSfx(0.8);
+                }
+                applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+              }
               if (projectile.scriptureFeedback) {
                 triggerScriptureHitFeedback(hitX, hitY, { isBoss: true });
               }
