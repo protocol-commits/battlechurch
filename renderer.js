@@ -5523,6 +5523,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       getMonthName,
       getCongregationSize,
       congregationMembers,
+      levelAnnouncements,
     } = requireBindings();
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
@@ -5549,27 +5550,65 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       : `Welcome back to ${townName} Church.`;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const stage = levelStatus?.stage || "";
+    const activeAnnouncement = Array.isArray(levelAnnouncements) ? levelAnnouncements[0] : null;
+    const congregationIntroBlockedByAnnouncement = Boolean(activeAnnouncement);
+    const lastNow = Number.isFinite(congregationIntroState.lastNow) ? congregationIntroState.lastNow : now;
+    const frameDtSec = Math.max(0, (now - lastNow) / 1000);
+    congregationIntroState.lastNow = now;
     const introKey = `levelIntro-${levelStatus?.level || 1}-${levelStatus?.battle || 0}`;
     if (stage === "levelIntro" && congregationIntroState.lastStage !== "levelIntro") {
       congregationIntroState.active = true;
       congregationIntroState.key = introKey;
       congregationIntroState.startTime = now;
       congregationIntroState.resetCountReveal = true;
+      congregationIntroState.lastNow = now;
+      congregationIntroState.handoffAnimStart = now;
     }
     if (!congregationIntroState.active || congregationIntroState.key !== introKey) {
       congregationIntroState.active = true;
       congregationIntroState.key = introKey;
       congregationIntroState.startTime = now;
       congregationIntroState.resetCountReveal = true;
+      congregationIntroState.lastNow = now;
+      congregationIntroState.handoffAnimStart = now;
+    }
+    const wasBlocked = congregationIntroState.blockedByAnnouncement === true;
+    congregationIntroState.blockedByAnnouncement = congregationIntroBlockedByAnnouncement;
+    if (congregationIntroBlockedByAnnouncement) {
+      congregationIntroState.waitingForAnnouncementClear = true;
+    } else if (wasBlocked || congregationIntroState.waitingForAnnouncementClear) {
+      // Start congregation intro only after previous announcement card is gone.
+      congregationIntroState.startTime = now;
+      congregationIntroState.resetCountReveal = true;
+      congregationIntroState.waitingForAnnouncementClear = false;
+      congregationIntroState.handoffAnimStart = now;
+    }
+    if (congregationIntroBlockedByAnnouncement) {
+      // Freeze congregation intro timers while exterior/town-intro cards are
+      // on top so welcome/count text starts when this screen is visible.
+      congregationIntroState.startTime += frameDtSec * 1000;
     }
     congregationIntroState.lastStage = stage;
     const introElapsed = Math.max(0, (now - (congregationIntroState.startTime || now)) / 1000);
-    const typewriterDelay = 2.0;
-    const typewriterReady = introElapsed >= typewriterDelay;
-    const titleText = typewriterReady ? fullTitleText : "";
-    const titleFadeStart = 5.0;
-    const titleFadeEnd = 6.2;
-    const titleAlpha = introElapsed >= titleFadeEnd ? 0 : introElapsed >= titleFadeStart ? 1 - (introElapsed - titleFadeStart) / (titleFadeEnd - titleFadeStart) : 1;
+    const congregationTextHoldAfterHandoff = 4.0;
+    const typewriterReady = !congregationIntroBlockedByAnnouncement;
+    const handoffAnimDuration = 0.65;
+    const handoffElapsed = congregationIntroBlockedByAnnouncement
+      ? 0
+      : Math.max(
+          0,
+          (now - (Number.isFinite(congregationIntroState.handoffAnimStart)
+            ? congregationIntroState.handoffAnimStart
+            : now)) / 1000,
+        );
+    const textWindowElapsed = Math.max(0, handoffElapsed - congregationTextHoldAfterHandoff);
+    const canShowCongregationText = !congregationIntroBlockedByAnnouncement && textWindowElapsed > 0;
+    const handoffAnimProgress = canShowCongregationText
+      ? Math.max(0, Math.min(1, textWindowElapsed / handoffAnimDuration))
+      : 0;
+    const titleText = canShowCongregationText ? fullTitleText : "";
+    const titleAlpha = canShowCongregationText ? handoffAnimProgress : 0;
+    const titleYOffset = (1 - handoffAnimProgress) * 48;
 
     const titleSize = TEXT_STYLES.h1.size;
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
@@ -5709,17 +5748,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
-    drawAnnouncementText(ctx, layout.virtualCanvas, {
-      title: titleText,
-      yBase: layout.titleY,
-      titleSize,
-      weight: TEXT_STYLES.h1.weight,
-      lineGap,
-      alpha: titleAlpha,
-      typewriter: typewriterReady,
-      textPalette: HELLFIRE_TEXT_PALETTE,
-      maxWidthScale: 0.86,
-    });
+    if (canShowCongregationText) {
+      drawAnnouncementText(ctx, layout.virtualCanvas, {
+        title: titleText,
+        yBase: layout.titleY + titleYOffset,
+        titleSize,
+        weight: TEXT_STYLES.h1.weight,
+        lineGap,
+        alpha: titleAlpha,
+        typewriter: false,
+        textPalette: HELLFIRE_TEXT_PALETTE,
+        maxWidthScale: 0.86,
+      });
+    }
     const countValue = typeof getCongregationSize === "function" ? getCongregationSize() : 0;
     const wordSize = Math.min(canvas.width * 0.14, canvas.height * 0.16, 140);
     const numberSize = Math.min(canvas.width * 0.28, canvas.height * 0.32, 220);
@@ -5740,15 +5781,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       };
       announcementReveal.set(countKey, entry);
     }
-    const dt = Math.max(0, (now - (entry.lastTime || now)) / 1000);
+    const dt = congregationIntroBlockedByAnnouncement
+      ? 0
+      : Math.max(0, (now - (entry.lastTime || now)) / 1000);
     entry.lastTime = now;
-    if (!typewriterReady) {
+    if (!canShowCongregationText) {
       entry.timer = 0;
       entry.phase = 0;
     } else {
       entry.timer += dt;
     }
-    if (entry.phase === 0) {
+    if (canShowCongregationText) {
+      // Deterministic display: once previous screen is gone, show full
+      // congregation label and count immediately.
+      entry.phase = 4;
+      entry.sfxPhase = 4;
+    } else if (entry.phase === 0) {
       if (typewriterReady && isAnnouncementRevealComplete(fullTitleText, "", "")) {
         entry.phase = 1;
         entry.timer = 0;
@@ -5768,12 +5816,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         window.playCongregationCountPopSfx(0.6);
       }
     }
-    const countVisibleSeconds = typewriterReady ? Math.max(0, introElapsed - typewriterDelay) : 0;
-    const countFadeDelay = 5;
-    const countFadeDuration = 1.2;
-    const countFadeAlpha = countVisibleSeconds <= countFadeDelay
-      ? 1
-      : Math.max(0, 1 - (countVisibleSeconds - countFadeDelay) / countFadeDuration);
+    const countFadeAlpha = canShowCongregationText ? handoffAnimProgress : 0;
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -5785,11 +5828,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const congregationText = (typeof GameText !== 'undefined' && GameText.congregation) || {};
     ctx.globalAlpha *= countFadeAlpha;
     if (entry.phase >= 2) {
-      ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
+      const countWordScale = 0.72 + handoffAnimProgress * 0.28;
+      ctx.font = `900 ${Math.round(wordSize * countWordScale)}px ${UI_FONT_FAMILY}`;
       ctx.fillText(congregationText.title || "CONGREGATION", countCenterX, countCenterY);
     }
     if (entry.phase >= 3) {
-      ctx.font = `900 ${Math.round(wordSize)}px ${UI_FONT_FAMILY}`;
+      const popScale = 1.35 - handoffAnimProgress * 0.35;
+      ctx.font = `900 ${Math.round(wordSize * popScale)}px ${UI_FONT_FAMILY}`;
       if (entry.phase >= 4) {
         const countLabel = congregationText.count || "COUNT";
         const countTextStr = `${countLabel}: ${Math.max(0, Math.round(countValue || 0))}`;
