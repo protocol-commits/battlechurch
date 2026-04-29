@@ -23266,6 +23266,11 @@ function updateGame(dt) {
       briefTeaserState.active = true;
       briefTeaserState.spawnScheduled = false;
       clearBriefTeaserSpawnTimers();
+      try {
+        if (typeof setCozyNpcsToFrontlineFormation === "function") {
+          setCozyNpcsToFrontlineFormation();
+        }
+      } catch (error) {}
       scheduleBriefTeaserSpawns();
     }
     const teaserSkipPressed =
@@ -23289,15 +23294,6 @@ function updateGame(dt) {
     briefTeaserState.active = false;
     briefTeaserState.spawnScheduled = false;
     clearBriefTeaserSpawnTimers();
-    // Clear teaser enemies before entering briefing so the ask-for-help screen is clean.
-    for (let i = enemies.length - 1; i >= 0; i -= 1) {
-      const enemy = enemies[i];
-      if (!enemy) continue;
-      const type = String(enemy.type || "");
-      if (type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3") {
-        enemies.splice(i, 1);
-      }
-    }
   }
   npcDamageImmuneForBriefTeaser = briefTeaserStage;
   const congregationStageActive = stage === "levelIntro";
