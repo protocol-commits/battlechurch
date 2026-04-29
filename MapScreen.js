@@ -57,6 +57,9 @@
       onDone: null,
       lastTownId: null,
       hasStartedOnce: false,
+      routeStops: [],
+      previewClockMs: 0,
+      previewPhase: 0,
     },
   };
   const DEFAULT_SAVE_ID = "main";
@@ -471,6 +474,27 @@
     return state.mapProgress;
   }
 
+  function rebuildArmyMarchRouteFromProgress() {
+    const mapData = window.BattlechurchMapData;
+    const progress = ensureProgress();
+    const march = state.armyMarch;
+    if (!march) return;
+    const baseStops = [{ type: "origin" }];
+    if (!mapData?.towns?.length || !progress?.towns) {
+      march.routeStops = baseStops;
+      march.lastTownId = null;
+      march.hasStartedOnce = false;
+      return;
+    }
+    const completedTownIds = mapData.towns
+      .filter((town) => town && town.id)
+      .filter((town) => progress.towns?.[town.id]?.p1?.completed === true)
+      .map((town) => town.id);
+    march.routeStops = baseStops.concat(completedTownIds.map((id) => ({ type: "town", id })));
+    march.lastTownId = completedTownIds.length ? completedTownIds[completedTownIds.length - 1] : null;
+    march.hasStartedOnce = completedTownIds.length > 0;
+  }
+
   async function loadPlayerProgress() {
     if (state.loading) return;
     state.loading = true;
@@ -478,6 +502,7 @@
       if (typeof window !== "undefined" && window.__demoSandboxRunActive && state.demoProfile?.mapProgress) {
         state.mapProgress = deepClone(state.demoProfile.mapProgress) || state.demoProfile.mapProgress;
         const progress = ensureProgress();
+        rebuildArmyMarchRouteFromProgress();
         if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
           state.selectedTownId = pickInitialTown();
         }
@@ -495,6 +520,7 @@
       state.playerDoc = normalized.doc;
       state.mapProgress = state.playerDoc?.saveFiles?.[state.playerDoc?.activeSaveId]?.mapProgress || null;
       const progress = ensureProgress();
+      rebuildArmyMarchRouteFromProgress();
       const isV2 = progress?.version === 2;
       if ((normalized.dirty || !isV2) && window.Cloud?.savePlayerDoc) {
         await persistPlayerDoc();
@@ -508,6 +534,7 @@
       state.playerDoc = fallback.doc;
       state.mapProgress = state.playerDoc?.saveFiles?.[state.playerDoc?.activeSaveId]?.mapProgress || null;
       state.mapProgress = ensureProgress();
+      rebuildArmyMarchRouteFromProgress();
       if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
         state.selectedTownId = pickInitialTown();
       }
@@ -1291,9 +1318,7 @@
       state.denomUpgrade = { active: true, townId: townId, maxPicks: picks, selectedKeys: [], focusedIndex: 0 };
       return;
     }
-    beginArmyMarchToTown(townId, function() {
-      _launchTown(townId);
-    });
+    _launchTown(townId);
   }
 
   function devStartRunForTown(townId) {
@@ -1311,9 +1336,7 @@
       window.pendingDenomPowerups = du.selectedKeys.slice();
     }
     state.denomUpgrade = null;
-    beginArmyMarchToTown(du.townId, function() {
-      _launchTown(du.townId);
-    });
+    _launchTown(du.townId);
   }
 
   function cancelDenomUpgrade() {
@@ -1927,6 +1950,7 @@
     state.playerDoc.activeSaveId = saveId;
     state.mapProgress = state.playerDoc.saveFiles[saveId].mapProgress;
     ensureProgress();
+    rebuildArmyMarchRouteFromProgress();
     if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
       state.selectedTownId = pickInitialTown();
     }
@@ -1962,6 +1986,7 @@
       state.playerDoc.activeSaveId = saveId;
       state.mapProgress = state.playerDoc.saveFiles[saveId].mapProgress;
       ensureProgress();
+      rebuildArmyMarchRouteFromProgress();
       if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
         state.selectedTownId = pickInitialTown();
       }
@@ -1979,6 +2004,7 @@
     if (state.playerDoc.activeSaveId === saveId) {
       state.mapProgress = target.mapProgress;
       ensureProgress();
+      rebuildArmyMarchRouteFromProgress();
       if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
         state.selectedTownId = pickInitialTown();
       }
@@ -2189,28 +2215,17 @@
       if (typeof onDone === "function") onDone();
       return;
     }
-    const target = getTownPosition(town, rect);
-    let startX;
-    let startY;
-    if (!state.armyMarch.hasStartedOnce) {
-      const origin = getInitialMarchOrigin(rect);
-      startX = origin.x;
-      startY = origin.y;
-    } else if (state.armyMarch.lastTownId) {
-      const prevTown = getTownById(state.armyMarch.lastTownId);
-      const prevPos = prevTown ? getTownPosition(prevTown, rect) : target;
-      startX = prevPos.x;
-      startY = prevPos.y;
-    } else {
-      startX = target.x - 200;
-      startY = target.y;
-    }
     const march = state.armyMarch;
+    const target = getTownPosition(town, rect);
+    if (!Array.isArray(march.routeStops) || !march.routeStops.length) {
+      march.routeStops = [{ type: "origin" }];
+    }
+    const routeStart = resolveRouteStopPoint(march.routeStops[march.routeStops.length - 1], rect) || getInitialMarchOrigin(rect);
     march.active = true;
     march.phase = "dash";
     march.townId = townId;
-    march.fromX = startX;
-    march.fromY = startY;
+    march.fromX = routeStart.x;
+    march.fromY = routeStart.y;
     march.toX = target.x;
     march.toY = target.y;
     march.timer = 0;
@@ -2228,100 +2243,160 @@
     march.onDone = null;
     march.lastTownId = townId || march.lastTownId;
     march.hasStartedOnce = true;
+    if (townId) {
+      if (!Array.isArray(march.routeStops) || !march.routeStops.length) {
+        march.routeStops = [{ type: "origin" }];
+      }
+      const last = march.routeStops[march.routeStops.length - 1];
+      if (!(last && last.type === "town" && last.id === townId)) {
+        march.routeStops.push({ type: "town", id: townId });
+      }
+    }
     if (typeof done === "function") done();
   }
 
   function updateArmyMarchAnimation(dt) {
     const march = state.armyMarch;
-    if (!march?.active) return;
-    march.timer += Math.max(0, Number(dt) || 0);
-    if (march.phase === "dash" && march.timer >= march.dashDuration) {
-      march.phase = "x";
-      march.timer = 0;
-      return;
+    if (!march) return;
+    const nowMs = (typeof performance !== "undefined" ? performance.now() : Date.now());
+    if (!Number.isFinite(march.previewClockMs) || march.previewClockMs <= 0) {
+      march.previewClockMs = nowMs;
     }
-    if (march.phase === "x" && march.timer >= march.xHoldDuration) {
-      march.phase = "fade";
-      march.timer = 0;
-      return;
+    let dtSec = Number(dt);
+    if (!Number.isFinite(dtSec) || dtSec <= 0) {
+      dtSec = Math.max(0, (nowMs - march.previewClockMs) / 1000);
     }
-    if (march.phase === "fade" && march.timer >= march.fadeDuration) {
-      finishArmyMarchAnimation();
+    march.previewClockMs = nowMs;
+    const duration = Math.max(0.001, Number(march.dashDuration) || 1.4);
+    const phase = (Number(march.previewPhase) || 0) + (dtSec / duration);
+    march.previewPhase = phase % 1;
+  }
+
+  function getPreviewMarchLeg(rect) {
+    const mapData = window.BattlechurchMapData;
+    const progress = ensureProgress();
+    if (!mapData?.towns?.length || !progress) return null;
+    const towns = mapData.towns.filter((town) => town && town.id);
+    if (!towns.length) return null;
+    const completedIds = towns
+      .filter((town) => progress.towns?.[town.id]?.p1?.completed === true)
+      .map((town) => town.id);
+    const lastCompletedId = completedIds.length ? completedIds[completedIds.length - 1] : null;
+    const targetTown = towns.find((town) => progress.towns?.[town.id]?.p1?.completed !== true) || null;
+    if (!targetTown) return null;
+    const to = getTownPosition(targetTown, rect);
+    const from = lastCompletedId
+      ? getTownPosition(getTownById(lastCompletedId), rect)
+      : getInitialMarchOrigin(rect);
+    if (!from || !to) return null;
+    return { from, to };
+  }
+
+  function resolveRouteStopPoint(stop, rect) {
+    if (!stop) return null;
+    if (stop.type === "origin") return getInitialMarchOrigin(rect);
+    if (stop.type === "town" && stop.id) {
+      const town = getTownById(stop.id);
+      if (!town) return null;
+      return getTownPosition(town, rect);
     }
+    return null;
+  }
+
+  function drawCompletedArmyRoute(ctx) {
+    const march = state.armyMarch;
+    if (!Array.isArray(march?.routeStops) || march.routeStops.length < 2) return;
+    const rect = state.mapRect;
+    if (!rect || !Number.isFinite(rect.w) || rect.w <= 0) return;
+    const pulse = 0.55 + 0.45 * Math.sin((typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.012);
+    ctx.save();
+    ctx.lineCap = "butt";
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(255, 110, 96, 0.8)";
+    ctx.shadowColor = "rgba(255, 56, 40, 0.7)";
+    ctx.shadowBlur = 8;
+    const dashSegments = Math.max(6, Math.floor(march.dashCount || 16));
+    const dashSlots = dashSegments * 2;
+    for (let i = 0; i < march.routeStops.length - 1; i += 1) {
+      const from = resolveRouteStopPoint(march.routeStops[i], rect);
+      const to = resolveRouteStopPoint(march.routeStops[i + 1], rect);
+      if (!from || !to) continue;
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const lineLen = Math.hypot(dx, dy) || 1;
+      const nx = dx / lineLen;
+      const ny = dy / lineLen;
+      const slotStepLen = lineLen / Math.max(1, dashSlots);
+      const dashLen = Math.max(4, slotStepLen * 0.68);
+      for (let slot = 0; slot < dashSlots; slot += 1) {
+        if (slot % 2 === 1) continue;
+        const p = (slot + 1) / dashSlots;
+        const x = from.x + dx * p;
+        const y = from.y + dy * p;
+        const onLatestLeg = i === march.routeStops.length - 2;
+        const leadPulse = onLatestLeg && slot >= dashSlots - 2 ? (0.76 + 0.16 * pulse) : 0.8;
+        ctx.globalAlpha = leadPulse;
+        ctx.beginPath();
+        ctx.moveTo(x - nx * dashLen * 0.5, y - ny * dashLen * 0.5);
+        ctx.lineTo(x + nx * dashLen * 0.5, y + ny * dashLen * 0.5);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
 
   function drawArmyMarchOverlay(ctx) {
     const march = state.armyMarch;
-    if (!march?.active) return;
-    const dx = march.toX - march.fromX;
-    const dy = march.toY - march.fromY;
+    const rect = state.mapRect;
+    if (!march || !rect || !Number.isFinite(rect.w) || rect.w <= 0) return;
+    const leg = getPreviewMarchLeg(rect);
+    if (!leg) return;
+    const fromX = leg.from.x;
+    const fromY = leg.from.y;
+    const toX = leg.to.x;
+    const toY = leg.to.y;
+    const dx = toX - fromX;
+    const dy = toY - fromY;
     const lineLen = Math.hypot(dx, dy) || 1;
     const nx = dx / lineLen;
     const ny = dy / lineLen;
-    const marchProgress =
-      march.phase === "dash"
-        ? Math.max(0, Math.min(1, march.timer / Math.max(0.001, march.dashDuration)))
-        : 1;
+    const marchProgress = Math.max(0, Math.min(1, Number(march.previewPhase) || 0));
     const pulse = 0.55 + 0.45 * Math.sin((typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.012);
     ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "rgba(255, 232, 180, 0.95)";
-    ctx.shadowColor = "rgba(255, 170, 70, 0.7)";
-    ctx.shadowBlur = 8;
-    const dashSegments = Math.max(6, Math.floor(march.dashCount || 16));
+    ctx.lineCap = "butt";
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(255, 110, 96, 0.96)";
+    ctx.shadowColor = "rgba(255, 56, 40, 0.85)";
+    ctx.shadowBlur = 10;
+    const dashSegments = Math.max(8, Math.floor(march.dashCount || 16));
     const dashSlots = dashSegments * 2; // every other slot is a gap
-    const laidSlotCount = march.phase === "dash"
-      ? Math.max(0, Math.min(dashSlots, Math.floor(marchProgress * dashSlots)))
-      : dashSlots;
+    const laidSlotCount = Math.max(0, Math.min(dashSlots, Math.floor(marchProgress * dashSlots)));
     for (let slot = 0; slot < laidSlotCount; slot += 1) {
       if (slot % 2 === 1) continue; // keep visible gap between dashes
       const p = (slot + 1) / dashSlots;
-      const x = march.fromX + dx * p;
-      const y = march.fromY + dy * p;
-      const dashLen = 9;
-      const isLeadingDash = slot >= laidSlotCount - 2 && march.phase === "dash";
+      const x = fromX + dx * p;
+      const y = fromY + dy * p;
+      const slotStepLen = lineLen / Math.max(1, dashSlots);
+      const dashLen = Math.max(4, slotStepLen * 0.68);
+      const isLeadingDash = slot >= laidSlotCount - 2;
       ctx.globalAlpha = isLeadingDash ? (0.75 + 0.25 * pulse) : 0.9;
       ctx.beginPath();
       ctx.moveTo(x - nx * dashLen * 0.5, y - ny * dashLen * 0.5);
       ctx.lineTo(x + nx * dashLen * 0.5, y + ny * dashLen * 0.5);
       ctx.stroke();
     }
-    if (march.phase !== "dash") {
-      const fadeAlpha = march.phase === "fade"
-        ? Math.max(0, 1 - march.timer / Math.max(0.001, march.fadeDuration))
-        : 1;
-      const xSize = 24 + pulse * 6;
-      ctx.globalAlpha = 0.95 * fadeAlpha;
-      ctx.lineWidth = 8;
-      ctx.strokeStyle = "rgba(255, 92, 92, 0.96)";
-      ctx.shadowColor = "rgba(255, 48, 32, 0.85)";
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.moveTo(march.toX - xSize, march.toY - xSize);
-      ctx.lineTo(march.toX + xSize, march.toY + xSize);
-      ctx.moveTo(march.toX + xSize, march.toY - xSize);
-      ctx.lineTo(march.toX - xSize, march.toY + xSize);
-      ctx.stroke();
-    }
-    // Draw a subtle origin X during the full march so it reads as X -> X.
-    {
-      const fadeAlpha = march.phase === "fade"
-        ? Math.max(0, 1 - march.timer / Math.max(0.001, march.fadeDuration))
-        : 1;
-      const oxSize = 15 + pulse * 3;
-      ctx.globalAlpha = 0.62 * fadeAlpha;
-      ctx.lineWidth = 6;
-      ctx.strokeStyle = "rgba(255, 188, 122, 0.92)";
-      ctx.shadowColor = "rgba(255, 132, 72, 0.65)";
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.moveTo(march.fromX - oxSize, march.fromY - oxSize);
-      ctx.lineTo(march.fromX + oxSize, march.fromY + oxSize);
-      ctx.moveTo(march.fromX + oxSize, march.fromY - oxSize);
-      ctx.lineTo(march.fromX - oxSize, march.fromY + oxSize);
-      ctx.stroke();
-    }
+    const oxSize = 15 + pulse * 3;
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "rgba(255, 188, 122, 0.95)";
+    ctx.shadowColor = "rgba(255, 132, 72, 0.72)";
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(fromX - oxSize, fromY - oxSize);
+    ctx.lineTo(fromX + oxSize, fromY + oxSize);
+    ctx.moveTo(fromX + oxSize, fromY - oxSize);
+    ctx.lineTo(fromX - oxSize, fromY + oxSize);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -2345,8 +2420,11 @@
   }
 
   function drawInitialMarchOriginMarker(ctx) {
-    const march = state.armyMarch;
-    if (!state.active || march.hasStartedOnce || march.active) return;
+    if (!state.active) return;
+    const progress = ensureProgress();
+    const mapData = window.BattlechurchMapData;
+    const hasAnyCompleted = !!(mapData?.towns || []).find((town) => progress?.towns?.[town.id]?.p1?.completed === true);
+    if (hasAnyCompleted) return;
     const origin = getInitialMarchOrigin(state.mapRect);
     const pulse = 0.55 + 0.45 * Math.sin((typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.012);
     const size = 15 + pulse * 3;
