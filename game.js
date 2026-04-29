@@ -158,6 +158,7 @@ let npcDamageImmuneForBriefTeaser = false;
 const briefTeaserState = {
   active: false,
   spawnScheduled: false,
+  introTextQueued: false,
   spawnTimers: [],
 };
 
@@ -23281,7 +23282,17 @@ function updateGame(dt) {
     if (!briefTeaserState.active) {
       briefTeaserState.active = true;
       briefTeaserState.spawnScheduled = false;
+      briefTeaserState.introTextQueued = false;
       clearBriefTeaserSpawnTimers();
+      if (!briefTeaserState.introTextQueued) {
+        queueLevelAnnouncement("On the frontline...", "", {
+          duration: 2.8,
+          fadeOutDuration: 0.6,
+          skipMissionBrief: true,
+          showSubtitle: false,
+        });
+        briefTeaserState.introTextQueued = true;
+      }
       if ((!Array.isArray(npcs) || npcs.length === 0) && typeof resetCozyNpcs === "function") {
         resetCozyNpcs(5);
       }
@@ -23312,6 +23323,7 @@ function updateGame(dt) {
   } else if (briefTeaserState.active) {
     briefTeaserState.active = false;
     briefTeaserState.spawnScheduled = false;
+    briefTeaserState.introTextQueued = false;
     clearBriefTeaserSpawnTimers();
   }
   npcDamageImmuneForBriefTeaser = briefTeaserStage;
@@ -23579,6 +23591,7 @@ function restartGame() {
   clearBriefTeaserSpawnTimers();
   briefTeaserState.active = false;
   briefTeaserState.spawnScheduled = false;
+  briefTeaserState.introTextQueued = false;
   npcDamageImmuneForBriefTeaser = false;
   resetMusicState();
   stopPlayerDeathBell();
