@@ -256,6 +256,8 @@ const CONGREGATION_DIALOGUE_DATA =
   (typeof window !== "undefined" && window.BattlechurchCongregationDialogue) || {};
 const CONGREGATION_DIALOGUE_LINES =
   CONGREGATION_DIALOGUE_DATA.lines || [];
+const CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN =
+  CONGREGATION_DIALOGUE_DATA.linesByCampaign || {};
 const CONGREGATION_WAVE_INTRO_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveIntro || {};
 const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {};
@@ -271,6 +273,20 @@ function getActiveCongregationWelcomeLines() {
     return CONGREGATION_WELCOME_LINES_XBOX;
   }
   return CONGREGATION_WELCOME_LINES;
+}
+
+function getCongregationIntroLinesForCampaign(campaignIdRaw) {
+  const campaignId = String(campaignIdRaw || "").toLowerCase();
+  const fromCampaign =
+    Array.isArray(CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN?.[campaignId]) &&
+    CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN[campaignId].length
+      ? CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN[campaignId]
+      : null;
+  if (fromCampaign) return fromCampaign;
+  if (Array.isArray(CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN?.p1) && CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN.p1.length) {
+    return CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN.p1;
+  }
+  return Array.isArray(CONGREGATION_DIALOGUE_LINES) ? CONGREGATION_DIALOGUE_LINES : [];
 }
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
@@ -18768,9 +18784,8 @@ function updateCongregationStage(dt, levelStatus) {
     powerUpsClearedForCongregation = true;
   }
   if (typeof window !== "undefined") window.__congregationTutorialActive = false;
-  const activeWelcomeLines = Array.isArray(CONGREGATION_DIALOGUE_LINES)
-    ? CONGREGATION_DIALOGUE_LINES.filter((line) => typeof line === "string" && line.trim())
-    : [];
+  const activeWelcomeLines = getCongregationIntroLinesForCampaign(activeCampaign)
+    .filter((line) => typeof line === "string" && line.trim());
   const welcomeHintLimit = Math.min(MAX_CONGREGATION_WELCOME_HINTS, activeWelcomeLines.length);
   if (!congregationGreetingShown) {
     heroSay("I'm glad to see you all!", { life: 3.6 });

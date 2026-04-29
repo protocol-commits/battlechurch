@@ -1,15 +1,40 @@
 (function(global) {
   const lines = [
     "Things have been hopeless for years. We're glad you're here.",
-    'To use the Prayer Bomb, hold down "C".',
-    'To create a Hedge of Protection, hold down "B".',
-    'To cast Divine Shot, hold down "A".',
-    "To punish counter, evade a melee attack and strike back with a combo.",
-    "To combo, chain sword attacks together.",
-    "Your congregation grows when you protect visitors.",
-    "Lost members can be won back. Stay close and keep fighting.",
-    "Dash through danger, then turn and punish.",
+    "We have been praying for someone to stand with us.",
+    "Thank you for coming to shepherd us.",
+    "It helps to know we're not facing this alone.",
+    "We're ready to stand together.",
+    "Hope feels possible again.",
+    "We're trusting God to carry us through this.",
+    "We're grateful you're leading us.",
+    "We'll hold fast together.",
   ];
+
+  const linesByCampaign = {
+    p1: [
+      "We're meeting like this for the first time. Thank you for coming.",
+      "We've prayed for a church to take root here.",
+      "This ground has been dark for a long time.",
+      "We're stepping into hard places together.",
+      "We'll stand with you as we press forward.",
+      "We're hopeful, even with the danger around us.",
+      "It means a lot to have a pastor with us now.",
+      "We'll keep faith as we move into this town.",
+      "Let's hold our line together.",
+    ],
+    p2: [
+      "Welcome back, Pastor. We're ready to keep pressing forward.",
+      "We've seen what God can do here. Let's keep going.",
+      "The pressure is still here, but we're stronger now.",
+      "We're glad you're leading us again.",
+      "We'll stand together and hold the ground we've gained.",
+      "Hope is growing in this town.",
+      "Let's keep faith and keep moving.",
+      "We'll face this together again.",
+      "We're ready for what's next.",
+    ],
+  };
 
   const waveIntro = {
     firstWave: {
@@ -166,6 +191,7 @@
 
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
+  ns.linesByCampaign = linesByCampaign;
   ns.welcomeLines = welcomeLines;
   ns.welcomeLinesXbox = welcomeLinesXbox;
   ns.waveIntro = waveIntro;
