@@ -7336,26 +7336,30 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       let forceFaceRight = null;
       if (isAttack && app.targetMember && Number.isFinite(app.targetMember.x) && Number.isFinite(app.targetMember.y)) {
         const targetX = app.targetMember.x;
-        const targetY = app.targetMember.y - Math.max(4, (app.targetMember.radius || 20) * 0.25);
         const clipForSizing = app.clips?.attack || app.clips?.walk || app.clips?.idle || app.clip;
         const sizeImg = clipForSizing?.image || null;
         const sizeFrameWidth = Math.max(1, clipForSizing?.frameWidth || sizeImg?.width || 1);
+        const sizeFrameHeight = Math.max(1, clipForSizing?.frameHeight || sizeImg?.height || 1);
         const sizeRenderScale =
           Number.isFinite(clipForSizing?.renderScale) && clipForSizing.renderScale > 0 ? clipForSizing.renderScale : 1;
         const sizeScale = Math.max(0.001, (Number.isFinite(app.drawScale) ? app.drawScale : 1) * sizeRenderScale);
         const attackerHalfW = sizeFrameWidth * sizeScale * 0.5;
+        const attackerHalfH = sizeFrameHeight * sizeScale * 0.5;
         const hitOffset = Math.max(8, Number.isFinite(app.attackHitboxOffsetX) ? Math.abs(app.attackHitboxOffsetX) : 20);
         const sideSign = app.startX <= targetX ? -1 : 1;
         // Keep attacker beside the NPC but close enough that the NPC sits inside the strike reach.
         const standOff = Math.max(
-          (app.targetMember.radius || 24) + 8,
+          (app.targetMember.radius || 24) + 53,
           hitOffset + (app.targetMember.radius || 24) * 0.28,
         );
         const anchorX = targetX + sideSign * standOff;
+        // Align feet to the same floor plane as the target NPC.
+        const targetGroundY = app.targetMember.y + (app.targetMember.radius || 24) * 0.96;
+        const anchorY = targetGroundY - attackerHalfH;
         const t = Math.max(0, Math.min(1, ageSec / Math.max(0.001, CONGREGATION_THREAT_ATTACK_APPROACH_SEC)));
         const ease = 1 - Math.pow(1 - t, 3);
         drawX = app.startX + (anchorX - app.startX) * ease;
-        drawY = app.startY + (targetY - app.startY) * ease;
+        drawY = app.startY + (anchorY - app.startY) * ease;
         forceFaceRight = sideSign < 0;
         const attackStart = CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_ATTACK_APPROACH_SEC;
         if (ageSec >= attackStart) {
@@ -9440,7 +9444,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
         const drawAlpha = npcFadeAlpha * alpha;
         if (drawAlpha > 0) {
-          member.animator.draw(ctx, member.x, member.y, { alpha: drawAlpha });
+          member.animator.draw(ctx, member.x, member.y - 12, { alpha: drawAlpha });
           const nameY = member.y - (member.radius || 28) - 2;
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         }
