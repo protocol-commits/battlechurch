@@ -7010,6 +7010,21 @@ function queueTownIntroAnnouncement() {
   const localBattleNumber = Number.isFinite(devStartOverride?.localBattleNumber)
     ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
     : 1;
+  if (devStartOverride && localBattleNumber > 1) {
+    // Dev level-editor playtest jump into an in-town battle:
+    // skip town intro/congregation and start at teaser -> battle brief flow.
+    const townList = mapData?.towns || [];
+    const townIndex = townList.findIndex((t) => t?.id === activeTownId);
+    const levelNumber = townIndex >= 0 ? townIndex + 1 : 1;
+    pendingTownIntroStart = false;
+    suppressInitialAnnouncements = false;
+    paused = false;
+    if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
+      levelManager.beginBattleFromTownIntro(levelNumber, localBattleNumber);
+    }
+    pendingDevBattleStartOverride = null;
+    return;
+  }
   const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 1));
   const upcomingOrderNumber = Math.floor((localBattleNumber - 1) / missionsPerBattle) + 1;
   const upcomingMissionNumber = ((localBattleNumber - 1) % missionsPerBattle) + 1;
@@ -10436,6 +10451,15 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     pastorPostRecapDelay,
     pastorPostRecapUpgradeAfter,
   };
+  if (requiresConfirm && Array.isArray(levelAnnouncements) && levelAnnouncements.length) {
+    // Confirm-gated overlays (mission brief, recap, etc.) must take priority.
+    // Clear transient timed overlays so they can't sit in front and block flow.
+    for (let i = levelAnnouncements.length - 1; i >= 0; i -= 1) {
+      if (!levelAnnouncements[i]?.requiresConfirm) {
+        levelAnnouncements.splice(i, 1);
+      }
+    }
+  }
   if (
     missionBriefTitle &&
     !bossMissionBrief &&
@@ -18535,7 +18559,25 @@ function handleLevelAnnouncements() {
     typeof window !== "undefined" ? window.__missionBriefButtonBounds : null;
   const missionActive =
     typeof window !== "undefined" ? window.__missionBriefActive : false;
-  if (missionActive && Array.isArray(missionButtons) && missionButtons.length) {
+  const currentAnnouncement = levelAnnouncements.length ? levelAnnouncements[0] : null;
+  const currentIsSummary = isBattleSummaryAnnouncement(currentAnnouncement);
+  const missionAnnouncementActive = Boolean(
+    currentAnnouncement &&
+    currentAnnouncement.requiresConfirm &&
+    !currentIsSummary &&
+    !currentAnnouncement.isVisitorSummary &&
+    !currentAnnouncement.townIntro &&
+    !currentAnnouncement.exteriorShot &&
+    !currentAnnouncement.pastorFinal &&
+    !currentAnnouncement.pastorPostRecap &&
+    !currentAnnouncement.skipMissionBrief,
+  );
+  if (missionActive && !missionAnnouncementActive && typeof window !== "undefined") {
+    // Prevent stale mission-brief state from hijacking recap/other overlays.
+    window.__missionBriefActive = false;
+    window.__missionBriefButtonBounds = null;
+  }
+  if (missionAnnouncementActive && missionActive && Array.isArray(missionButtons) && missionButtons.length) {
     const handled = handleAnnouncementButtons({
       key: "missionBrief",
       buttons: missionButtons,
@@ -18566,8 +18608,7 @@ function handleLevelAnnouncements() {
     if (handled) return true;
   }
   if (!levelAnnouncements.length || !levelAnnouncements[0].requiresConfirm) return false;
-  const currentAnnouncement = levelAnnouncements[0];
-  const isSummary = isBattleSummaryAnnouncement(currentAnnouncement);
+  const isSummary = currentIsSummary;
   if (isSummary) {
     if (!currentAnnouncement.recapPrepared) {
       const battleSummary = levelManager?.getLastBattleSummary?.() || {};
@@ -18648,6 +18689,12 @@ function handleLevelAnnouncements() {
           pendingUpgradeAfterSummary = true;
         } else {
           pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter);
+        }
+        // Level-editor playtests should stay in combat flow and avoid campaign
+        // detours (upgrade/chapter breaks), which can desync staged skip starts.
+        if (devPlaytestSession?.active) {
+          pendingUpgradeAfterSummary = false;
+          pendingPastorPostRecapAfterUpgrade = false;
         }
         if (pendingUpgradeAfterSummary) {
           pendingMissionSaveContext = missionSaveContext;

@@ -1901,6 +1901,11 @@
         state.npcRushTimer = 0;
         state.monthIndex = targetBattle - 2;
         state.waveIndex = -1;
+        if (targetBattle > 1) {
+          resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
+          setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
+          return;
+        }
         beginBattle();
       },
       reset() {
