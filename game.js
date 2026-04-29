@@ -23243,7 +23243,14 @@ function updateGame(dt) {
     Array.isArray(npcs) &&
     npcs.length
   ) {
-    updateCozyNpcs(dt, { previewOnly: true });
+    const previewStage = levelStatus?.stage;
+    const freezeNpcPreview =
+      previewStage === "battleIntro" ||
+      previewStage === "bossIntro" ||
+      previewStage === "briefingTeaser";
+    if (!freezeNpcPreview) {
+      updateCozyNpcs(dt, { previewOnly: true });
+    }
   }
 
   // Keep queued victory chatter progressing even while confirm overlays are active.

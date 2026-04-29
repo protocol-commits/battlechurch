@@ -10404,7 +10404,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       alpha = progress;
     } else if (stage === "briefingTeaser") {
       const progress = Math.max(0, Math.min(1, 1 - timer / duration));
-      const fadeInWindow = 0.2;
+      const fadeInWindow = 1.00;
       if (progress <= fadeInWindow) {
         const t = progress / Math.max(0.001, fadeInWindow);
         alpha = 1 - t;

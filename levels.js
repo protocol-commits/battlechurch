@@ -1002,6 +1002,7 @@
     }
 
     function beginBattle() {
+      const comingFromBriefTeaser = state.stage === "briefingTeaser";
       clearStagePowerUps();
       finishNpcRush();
       state.waitingForCongregation = false;
@@ -1026,7 +1027,9 @@
   const monthName = getMonthName(globalMonthNumber);
   state.battleStartCongregation =
     typeof deps.getCongregationSize === "function" ? deps.getCongregationSize() : 0;
-  resetCozyNpcs(5);
+  if (!comingFromBriefTeaser) {
+    resetCozyNpcs(5);
+  }
   state.battleLostRecords = [];
   state.battleNpcRoster = Array.isArray(npcs)
     ? npcs.slice(0, 5).map((npc, index) => {
@@ -1055,7 +1058,10 @@
       const battleHordes = currentBattle()?.hordes;
       applyWaveArcToBattleHordes(battleHordes, state.currentBattleScenario);
   // Show Level + Month name instead of literal 'Battle N'
-  const startedProcession = typeof deps.prepareNpcProcession === "function" && deps.prepareNpcProcession();
+  const startedProcession =
+    !comingFromBriefTeaser &&
+    typeof deps.prepareNpcProcession === "function" &&
+    deps.prepareNpcProcession();
   if (startedProcession) {
         state.awaitingNpcProcession = true;
         resetStage("npcArrival", 0);
@@ -1064,7 +1070,7 @@
         state.awaitingNpcProcession = false;
         beginBattleIntroStage();
       }
-      if (typeof window.applyFormationAnchors === "function") {
+      if (!comingFromBriefTeaser && typeof window.applyFormationAnchors === "function") {
         try {
           window.applyFormationAnchors();
         } catch (e) {}
