@@ -4042,8 +4042,8 @@ const PRAYER_BOMB_RAIN_RADIUS = _gb('prayerBomb.rainRadius', 160) * WORLD_SCALE;
 const PRAYER_BOMB_BOSS_DAMAGE_SCALE = _gb('prayerBomb.bossDamageScale', 0.5);
 const PRAYER_BOMB_SCREEN_DARKEN_ALPHA = _gb('prayerBomb.screenDarkenAlpha', 0.38);
 const PRAYER_BOMB_RAIN_DARKEN_DURATION = _gb('prayerBomb.rainDarkenDuration', 0.5);
-const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.12);
-const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 10);
+const PRAYER_BOMB_RAIN_SHAKE_DURATION = _gb('prayerBomb.rainShakeDuration', 0.24);
+const PRAYER_BOMB_RAIN_SHAKE_MAGNITUDE = _gb('prayerBomb.rainShakeMagnitude', 22);
 const PRAYER_STORM_GROUND_FIRE_TARGET_MIN = Math.max(
   1,
   Math.floor(_gb('prayerBomb.groundFireTargetMin', 16)),
@@ -4084,10 +4084,16 @@ const PRAYER_BOMB_HOLD_TIME = 1.0;
 const HIT_FREEZE_DURATION = 0.08;
 const CAMERA_SHAKE_DURATION = 0.3;
 const CAMERA_SHAKE_INTENSITY = 18;
-const WISDOM_HIT_SHAKE_DURATION = 0.15;
-const WISDOM_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.40;
-const FAITH_HIT_SHAKE_DURATION = 0.15;
-const FAITH_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.25;
+const WISDOM_HIT_SHAKE_DURATION = 0.2;
+const WISDOM_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.72;
+const FAITH_HIT_SHAKE_DURATION = 0.16;
+const FAITH_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.36;
+const SCRIPTURE_HIT_SHAKE_DURATION = 0.16;
+const SCRIPTURE_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.62;
+const SCRIPTURE_HIT_BURST_WINDOW_MS = 160;
+const SCRIPTURE_HIT_BURST_MAX_SFX = 20;
+let scriptureHitBurstStartedAt = 0;
+let scriptureHitBurstSfxCount = 0;
 const DAMAGE_FLASH_DURATION = 0.6;
 const DAMAGE_FLASH_INTENSITY = 1.35;
 const SHIELD_SMALL_DAMAGE = 999;
@@ -10770,6 +10776,25 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
   applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
 }
 
+function triggerScriptureHitFeedback(hitX, hitY, { isBoss = false } = {}) {
+  const now = typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+  if (now - scriptureHitBurstStartedAt > SCRIPTURE_HIT_BURST_WINDOW_MS) {
+    scriptureHitBurstStartedAt = now;
+    scriptureHitBurstSfxCount = 0;
+  }
+  if (scriptureHitBurstSfxCount < SCRIPTURE_HIT_BURST_MAX_SFX) {
+    scriptureHitBurstSfxCount += 1;
+    if (typeof playFaithHitSfx === "function") {
+      const volume = isBoss ? 0.75 : 0.62 + Math.random() * 0.12;
+      playFaithHitSfx(volume);
+    }
+  }
+  spawnPuffEffect(hitX, hitY, isBoss ? 22 : 20);
+  applyCameraShake(SCRIPTURE_HIT_SHAKE_DURATION, SCRIPTURE_HIT_SHAKE_MAGNITUDE);
+}
+
 function updateAimAssist() {
   aimAssist.target = null;
   aimAssist.targetKind = null;
@@ -12123,6 +12148,7 @@ class CozyNpc {
       source: this,
       scale,
       flipHorizontal: dir.x < 0,
+      scriptureFeedback: weaponMode === "fire",
     };
     if (speedOverride && speedOverride > 0) {
       shotOverrides.speed = speedOverride;
@@ -13121,6 +13147,7 @@ class Projectile {
     this.homingDuration = Math.max(0, config.homingDuration || 0);
     this.homingStrength = Math.max(0, config.homingStrength ?? 0);
     this.isDivineShot = Boolean(config.isDivineShot);
+    this.scriptureFeedback = Boolean(config.scriptureFeedback);
     this.fireThrowerBomb = Boolean(config.fireThrowerBomb);
     this.fireThrowerBombState = this.fireThrowerBomb ? "flight" : null;
     this.fireThrowerFlightTimer = Math.max(0, Number(config.flightDuration) || 0);
@@ -14578,6 +14605,16 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   config.friendly = overrides.friendly ?? true;
   config.source = overrides.source || null;
+  if (overrides.scriptureFeedback !== undefined) {
+    config.scriptureFeedback = Boolean(overrides.scriptureFeedback);
+  } else {
+    config.scriptureFeedback = Boolean(
+      type === "fire" &&
+      config.friendly === true &&
+      config.source?.isPlayer &&
+      player?.weaponMode === "fire",
+    );
+  }
   if (
     config.friendly &&
     config.source &&
@@ -19568,6 +19605,9 @@ function processProjectileCollisions(dt) {
           projectile.type === "faith_cannon"
         ) {
           spawnEnemyHitEffect(enemy, hitX, hitY, { damageType });
+          if (projectile.scriptureFeedback) {
+            triggerScriptureHitFeedback(hitX, hitY, { isBoss: false });
+          }
         }
         if (enemy.health > 0 && enemy.type !== "tormentorFlame") {
           const puffRadius = Math.max(24, getEnemyHitboxRadius(enemy)) * 0.6;
@@ -19645,6 +19685,9 @@ function processProjectileCollisions(dt) {
               projectile.type === "faith_cannon"
             ) {
               spawnFlashEffect(hitX, hitY);
+              if (projectile.scriptureFeedback) {
+                triggerScriptureHitFeedback(hitX, hitY, { isBoss: true });
+              }
             }
             projectile.onHit(activeBoss);
             if (shouldDeflect) projectile.dead = true;

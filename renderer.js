@@ -8942,29 +8942,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (window.MapScreen?.draw) {
         window.MapScreen.draw(ctx, canvas);
       }
-      const hasMapTagline =
-        typeof GameText !== 'undefined' && GameText.screens?.map?.tagline !== undefined;
-      const mapTagline = hasMapTagline
-        ? GameText.screens.map.tagline
-        : "Spiritual Warfare Map";
-      const mapSubhead = "Smite the Hordes. Shepherd the Flock.";
-      if (mapTagline) {
-        drawAnnouncementText(ctx, canvas, {
-          title: mapTagline,
-          subtitle: mapSubhead,
-          yBase: Math.round(canvas.height * 0.095),
-          titleSize: TEXT_STYLES.h2.size,
-          subtitleSize: Math.max(14, Math.round(TEXT_STYLES.body.size * 0.82)),
-          lineGap: Math.round(TEXT_STYLES.h2.size * 0.1),
-          subtitleOffsetY: -28,
-          weight: TEXT_STYLES.h2.weight,
-          subtitleWeight: TEXT_STYLES.body.weight,
-          typewriter: true,
-          textPalette: HELLFIRE_TEXT_PALETTE,
-          maxWidthScale: 0.9,
-          blockAlign: "center",
-        });
-      }
       drawFooterControlsHint(ctx, canvas.width / 2, canvas.height - 10, UI_FONT_FAMILY);
       ctx.restore();
       return;
