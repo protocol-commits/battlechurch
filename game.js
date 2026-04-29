@@ -17381,7 +17381,12 @@ function updateMusicState(levelStatus) {
 
 function updateGraceRushFadeRelease(dt) {
   if (!graceRushFadeHold) return;
-  if (window.DialogOverlay?.isVisible?.()) {
+  const announcementConfirmActive = Boolean(
+    Array.isArray(levelAnnouncements) &&
+      levelAnnouncements.length &&
+      levelAnnouncements[0]?.requiresConfirm,
+  );
+  if (window.DialogOverlay?.isVisible?.() || announcementConfirmActive) {
     if (graceRushFadeReleaseTimer <= 0) {
       graceRushFadeReleaseTimer = 0.2;
     }
@@ -23454,6 +23459,15 @@ function updateGame(dt) {
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   updateSpeedrunTimer(levelStatus);
   updateMusicState(levelStatus);
+  if (levelStatus?.stage !== "graceRush" && (graceRushBlackout || graceRushFadeHold)) {
+    graceRushBlackout = false;
+    graceRushFadeHold = false;
+    graceRushFadeTimer = 0;
+    graceRushFadeDuration = 0;
+    graceRushFadeAlpha = 0;
+    graceRushFadeReleaseTimer = 0;
+    graceRushHardBlackoutTimer = 0;
+  }
   if (
     levelStatus?.stage === "graceRush" &&
     keysJustPressed.has(" ") &&

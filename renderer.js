@@ -4738,6 +4738,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Prevent a one-frame fallback "Continue" card flash while recap data
     // is being prepared between victory fade and bonus screen.
     if (!recapData) {
+      drawMissionBriefScreen(ctx, canvas, {
+        title: "Preparing Battle Report",
+        subtitle: "",
+        showFormation: false,
+        showButtons: false,
+        uiFontFamily: UI_FONT_FAMILY,
+        setMissionBriefActive: false,
+      });
       ctx.restore();
       return;
     }
