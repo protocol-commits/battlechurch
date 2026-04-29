@@ -3023,6 +3023,13 @@
     updateAmbient: updateMapAmbient,
     startAmbient: startMapAmbient,
     stopAmbient: stopMapAmbient,
+    isLaunchTransitionActive: () => Boolean(state.mapLaunchTransition?.active),
+    getLaunchTransitionProgress: () => {
+      const transition = state.mapLaunchTransition;
+      if (!transition?.active) return 0;
+      const duration = Math.max(0.05, Number(transition.duration) || 1.25);
+      return Math.max(0, Math.min(1, Number(transition.timer || 0) / duration));
+    },
     isActive: () => state.active,
     get mapRect() { return { ...state.mapRect }; },
   };

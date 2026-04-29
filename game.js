@@ -7167,12 +7167,6 @@ function startGameFromTitle() {
   } catch (e) {}
   try {
     titleScreenActive = false;
-    if (typeof setTimeout === "function") {
-      setTimeout(() => {
-        queueTownIntroAnnouncement();
-      }, 0);
-      return;
-    }
     queueTownIntroAnnouncement();
     return;
   } catch (e) {}

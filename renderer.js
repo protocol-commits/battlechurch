@@ -204,10 +204,13 @@ const MELEE_SWING_LENGTH = 260;
     return window?.Input?.gamepadState?.connected ? XBOX_CONTROLS_HINT : KEYBOARD_CONTROLS_HINT;
   }
 
-  function drawFooterControlsHint(ctx, hintX, hintY, fontFamily) {
+  function drawFooterControlsHint(ctx, hintX, hintY, fontFamily, alpha = 1) {
     if (!ctx) return;
+    const hintAlpha = Math.max(0, Math.min(1, Number(alpha) || 0));
+    if (hintAlpha <= 0.001) return;
     const controlsHint = getControlsHintText();
     ctx.save();
+    ctx.globalAlpha = hintAlpha;
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.font = `500 11px ${fontFamily}`;
@@ -8952,7 +8955,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (window.MapScreen?.draw) {
         window.MapScreen.draw(ctx, canvas);
       }
-      drawFooterControlsHint(ctx, canvas.width / 2, canvas.height - 10, UI_FONT_FAMILY);
+      const mapTransitionProgress =
+        typeof window?.MapScreen?.getLaunchTransitionProgress === "function"
+          ? window.MapScreen.getLaunchTransitionProgress()
+          : 0;
+      const hintFadeOutEnd = 0.52;
+      const hintT = Math.max(0, Math.min(1, mapTransitionProgress / Math.max(0.001, hintFadeOutEnd)));
+      const hintEase = hintT * hintT * (3 - 2 * hintT);
+      const hintAlpha = 1 - hintEase;
+      drawFooterControlsHint(
+        ctx,
+        canvas.width / 2,
+        canvas.height - 10,
+        UI_FONT_FAMILY,
+        hintAlpha,
+      );
       ctx.restore();
       return;
     }
@@ -8969,6 +8986,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const missionOverlayActive = Boolean(window.isMissionBriefOverlayActive);
     const pauseOverlayActive = Boolean(window.isPauseOverlayActive);
     const upgradeOverlayActive = Boolean(window.UpgradeScreen?.isVisible?.());
+    const mapLaunchHandoffActive =
+      typeof window !== "undefined" && Boolean(window.__mapTownLaunchFadeIn);
     // Check if recap/summary or pastor-final announcement is active - should show arena behind it
     const recapAnnouncementActive = Boolean(
       levelAnnouncements?.[0]?.requiresConfirm &&
@@ -8980,6 +8999,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       recapAnnouncementActive || pastorFinalActive || pastorPostRecapActive;
     if (
       isModalActive &&
+      !mapLaunchHandoffActive &&
       !missionOverlayActive &&
       !pauseOverlayActive &&
       !congregationAnnouncementActive &&
@@ -8994,8 +9014,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     const townIntroActive = Boolean(levelAnnouncements?.[0]?.townIntro);
     const exteriorShotActive = Boolean(levelAnnouncements?.[0]?.exteriorShot);
-    const mapLaunchHandoffActive =
-      typeof window !== "undefined" && Boolean(window.__mapTownLaunchFadeIn);
     let townIntroOverlay = null;
     sharedShakeOffset.x = 0;
     sharedShakeOffset.y = 0;
