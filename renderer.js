@@ -7447,17 +7447,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
       if (isAttack && app.targetMember && Number.isFinite(app.targetMember.x) && Number.isFinite(app.targetMember.y)) {
         const attackStart = CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_ATTACK_APPROACH_SEC + CONGREGATION_THREAT_ATTACK_WINDUP_SEC;
-        const attackEnd = attackStart + CONGREGATION_THREAT_ATTACK_SWING_SEC;
-        if (ageSec >= attackStart && ageSec <= attackEnd) {
-          if (!Array.isArray(app._hitFrameSet)) {
-            const baseHit = Number.isFinite(app.attackHitFrame) ? app.attackHitFrame : 3;
-            const frames = [baseHit, baseHit + 2, baseHit + 4]
-              .map((f) => Math.max(0, Math.floor(f)) % Math.max(1, logicalFrameCount));
-            app._hitFrameSet = Array.from(new Set(frames));
+        const lifeSec = Number.isFinite(app?.lifetimeSec) ? app.lifetimeSec : 0;
+        const attackActiveEnd = Math.max(attackStart, lifeSec - CONGREGATION_THREAT_FADE_OUT_SEC);
+        if (ageSec >= attackStart && ageSec <= attackActiveEnd) {
+          const activeT = (ageSec - attackStart) / Math.max(0.001, attackActiveEnd - attackStart);
+          const clampedSwingT = Math.max(0, Math.min(1, activeT));
+          const clipRate = Number.isFinite(clip.frameRate) && clip.frameRate > 0 ? clip.frameRate : 8;
+          const hitIntervalSec = Math.max(0.12, Math.min(0.26, 1 / Math.max(2, clipRate * 0.6)));
+          if (!Number.isFinite(app._nextHitAtAgeSec)) {
+            app._nextHitAtAgeSec = attackStart + hitIntervalSec * 0.5;
           }
-          if (app._lastLogicalFrame !== logicalFrameIndex) {
-            app._lastLogicalFrame = logicalFrameIndex;
-            if (app._hitFrameSet.includes(logicalFrameIndex)) {
+          while (ageSec >= app._nextHitAtAgeSec && app._nextHitAtAgeSec <= attackActiveEnd + 0.001) {
+            app._nextHitAtAgeSec += hitIntervalSec;
             const nowMsExact = nowMs;
             const target = app.targetMember;
             const dx = target.x - drawX;
@@ -7468,9 +7469,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             target.__threatKnockUntil = nowMsExact + CONGREGATION_THREAT_KNOCKBACK_MS;
             target.__threatKnockDirX = dx / len;
             target.__threatKnockDirY = dy / len;
-            }
           }
-          const pulse = 1 - Math.min(1, (ageSec - attackStart) / Math.max(0.001, CONGREGATION_THREAT_ATTACK_SWING_SEC));
+          const pulse = 1 - clampedSwingT;
           const flashAlpha = Math.max(0, 0.45 * pulse);
           const flashRadius = Math.max(18, (app.targetMember.radius || 24) * (1.25 + pulse * 0.4));
           ctx.save();
