@@ -7115,6 +7115,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const CONGREGATION_THREAT_ATTACK_RECOVER_SEC = 0.25;
   const CONGREGATION_THREAT_TARGET_EDGE_BAND_RATIO = 0.28;
   const CONGREGATION_THREAT_TARGET_NEIGHBOR_RADIUS = 120;
+  const CONGREGATION_THREAT_HIT_FLASH_MS = 130;
+  const CONGREGATION_THREAT_KNOCKBACK_MS = 180;
+  const CONGREGATION_THREAT_KNOCKBACK_PX = 4;
   const congregationThreatState = {
     key: null,
     nextSpawnAt: 0,
@@ -7151,6 +7154,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const catalogScale = Number(enemyCatalog?.[key]?.scale);
       const resolvedScale = Number.isFinite(catalogScale) && catalogScale > 0 ? catalogScale : 1;
       const weaponHitboxOffsetX = Number(enemyCatalog?.[key]?.weaponHitbox?.offsetX);
+      const attackHitFrame = Number(enemyCatalog?.[key]?.attackHitFrame);
       if (clip?.image) {
         pool.push({
           key,
@@ -7158,6 +7162,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           clipBundle,
           scale: resolvedScale,
           attackHitboxOffsetX: Number.isFinite(weaponHitboxOffsetX) ? Math.abs(weaponHitboxOffsetX) : 20,
+          attackHitFrame: Number.isFinite(attackHitFrame) ? Math.max(0, Math.floor(attackHitFrame)) : 3,
         });
       }
     }
@@ -7278,6 +7283,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         clipKey: picked?.key || "",
         drawScale: Number.isFinite(picked?.scale) && picked.scale > 0 ? picked.scale : 1,
         attackHitboxOffsetX: Number.isFinite(picked?.attackHitboxOffsetX) ? picked.attackHitboxOffsetX : 20,
+        attackHitFrame: Number.isFinite(picked?.attackHitFrame) ? picked.attackHitFrame : 3,
         bornAt: 0,
         rotation: 0,
         frameSeed: Math.floor(Math.random() * 1000),
@@ -7402,8 +7408,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (alpha <= 0.001) return;
       const frameRate = Number.isFinite(clip.frameRate) && clip.frameRate > 0 ? clip.frameRate : 8;
       const animatedFrame = Math.floor(ageSec * frameRate + app.frameSeed);
+      const logicalFrameCount = mappedFrames ? mappedFrames.length : Math.max(1, cols * rows);
+      const logicalFrameIndex = logicalFrameCount > 0 ? (animatedFrame % logicalFrameCount) : 0;
       const frameRef = mappedFrames
-        ? mappedFrames[animatedFrame % mappedFrames.length]
+        ? mappedFrames[logicalFrameIndex]
         : animatedFrame % Math.max(1, cols * rows);
       const frameId = Number.isFinite(frameRef) ? Math.max(0, Math.floor(frameRef)) : 0;
       const sx = (frameId % cols) * frameWidth;
@@ -7441,6 +7449,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const attackStart = CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_ATTACK_APPROACH_SEC + CONGREGATION_THREAT_ATTACK_WINDUP_SEC;
         const attackEnd = attackStart + CONGREGATION_THREAT_ATTACK_SWING_SEC;
         if (ageSec >= attackStart && ageSec <= attackEnd) {
+          if (!Array.isArray(app._hitFrameSet)) {
+            const baseHit = Number.isFinite(app.attackHitFrame) ? app.attackHitFrame : 3;
+            const frames = [baseHit, baseHit + 2, baseHit + 4]
+              .map((f) => Math.max(0, Math.floor(f)) % Math.max(1, logicalFrameCount));
+            app._hitFrameSet = Array.from(new Set(frames));
+          }
+          if (app._lastLogicalFrame !== logicalFrameIndex) {
+            app._lastLogicalFrame = logicalFrameIndex;
+            if (app._hitFrameSet.includes(logicalFrameIndex)) {
+            const nowMsExact = nowMs;
+            const target = app.targetMember;
+            const dx = target.x - drawX;
+            const dy = target.y - drawY;
+            const len = Math.hypot(dx, dy) || 1;
+            target.__threatHitFlashUntil = nowMsExact + CONGREGATION_THREAT_HIT_FLASH_MS;
+            target.__threatKnockStart = nowMsExact;
+            target.__threatKnockUntil = nowMsExact + CONGREGATION_THREAT_KNOCKBACK_MS;
+            target.__threatKnockDirX = dx / len;
+            target.__threatKnockDirY = dy / len;
+            }
+          }
           const pulse = 1 - Math.min(1, (ageSec - attackStart) / Math.max(0.001, CONGREGATION_THREAT_ATTACK_SWING_SEC));
           const flashAlpha = Math.max(0, 0.45 * pulse);
           const flashRadius = Math.max(18, (app.targetMember.radius || 24) * (1.25 + pulse * 0.4));
@@ -9444,7 +9473,28 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
         const drawAlpha = npcFadeAlpha * alpha;
         if (drawAlpha > 0) {
-          member.animator.draw(ctx, member.x, member.y - 12, { alpha: drawAlpha });
+          const flashRemainingMs = Number.isFinite(member.__threatHitFlashUntil)
+            ? Math.max(0, member.__threatHitFlashUntil - now)
+            : 0;
+          const knockUntil = Number.isFinite(member.__threatKnockUntil) ? member.__threatKnockUntil : 0;
+          const knockStart = Number.isFinite(member.__threatKnockStart) ? member.__threatKnockStart : 0;
+          let knockX = 0;
+          let knockY = 0;
+          if (knockUntil > now && knockStart < knockUntil) {
+            const tKnock = (now - knockStart) / Math.max(1, knockUntil - knockStart);
+            const easeOut = 1 - Math.min(1, Math.max(0, tKnock));
+            const dirX = Number.isFinite(member.__threatKnockDirX) ? member.__threatKnockDirX : 0;
+            const dirY = Number.isFinite(member.__threatKnockDirY) ? member.__threatKnockDirY : 0;
+            knockX = dirX * CONGREGATION_THREAT_KNOCKBACK_PX * easeOut;
+            knockY = dirY * CONGREGATION_THREAT_KNOCKBACK_PX * easeOut;
+          }
+          const flashStrength = flashRemainingMs > 0
+            ? Math.max(0.2, Math.min(1, flashRemainingMs / CONGREGATION_THREAT_HIT_FLASH_MS))
+            : 0;
+          member.animator.draw(ctx, member.x + knockX, member.y - 12 + knockY, {
+            alpha: drawAlpha,
+            flashWhite: flashStrength,
+          });
           const nameY = member.y - (member.radius || 28) - 2;
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         }
