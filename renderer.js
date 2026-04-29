@@ -5745,6 +5745,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
+    drawCongregationThreatApparitions(ctx, layout.virtualCanvas, now, introKey);
     if (canShowCongregationText) {
       drawAnnouncementText(ctx, layout.virtualCanvas, {
         title: titleText,
@@ -7105,6 +7106,160 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     startTime: 0,
     lastStage: null,
   };
+  const CONGREGATION_THREAT_MAX_ACTIVE = 4;
+  const CONGREGATION_THREAT_HOLD_SEC = 3.0;
+  const CONGREGATION_THREAT_FADE_IN_SEC = 0.6;
+  const CONGREGATION_THREAT_FADE_OUT_SEC = 0.9;
+  const CONGREGATION_THREAT_RESPAWN_MIN_SEC = 0.2;
+  const CONGREGATION_THREAT_RESPAWN_MAX_SEC = 0.9;
+  const congregationThreatState = {
+    key: null,
+    nextSpawnAt: 0,
+    apparitions: [],
+  };
+
+  function resetCongregationThreatState() {
+    congregationThreatState.key = null;
+    congregationThreatState.nextSpawnAt = 0;
+    congregationThreatState.apparitions.length = 0;
+  }
+
+  function getCongregationThreatClipPool() {
+    const assets = requireBindings().assets;
+    const enemyClips = assets?.enemies || null;
+    if (!enemyClips) return [];
+    const preferredKeys = [
+      "miniDemon",
+      "miniDemoness",
+      "miniDemonFireThrower",
+      "miniDemonTormentor",
+      "miniDemonFireKeeper",
+    ];
+    const pool = [];
+    for (const key of preferredKeys) {
+      const clipBundle = enemyClips[key];
+      const clip = clipBundle?.idle || clipBundle?.walk || clipBundle?.attack || null;
+      if (clip?.image) pool.push({ key, clip });
+    }
+    return pool;
+  }
+
+  function spawnCongregationThreatApparition(virtualCanvas, clipPool) {
+    const width = virtualCanvas?.width || 1920;
+    const height = virtualCanvas?.height || 1080;
+    const edge = ["left", "right", "top", "bottom"][Math.floor(Math.random() * 4)];
+    const pad = 42;
+    let x = width * 0.5;
+    let y = height * 0.5;
+    if (edge === "left") {
+      x = pad;
+      y = Math.random() * (height - 2 * pad) + pad;
+    } else if (edge === "right") {
+      x = width - pad;
+      y = Math.random() * (height - 2 * pad) + pad;
+    } else if (edge === "top") {
+      x = Math.random() * (width - 2 * pad) + pad;
+      y = pad;
+    } else {
+      x = Math.random() * (width - 2 * pad) + pad;
+      y = height - pad;
+    }
+    const picked = clipPool[Math.floor(Math.random() * clipPool.length)] || null;
+    return {
+      x,
+      y,
+      edge,
+      clip: picked?.clip || null,
+      clipKey: picked?.key || "",
+      size: 84 + Math.random() * 32,
+      bornAt: 0,
+      rotation: (Math.random() - 0.5) * 0.35,
+      frameSeed: Math.floor(Math.random() * 1000),
+    };
+  }
+
+  function drawCongregationThreatApparitions(ctx, virtualCanvas, nowMs, introKey) {
+    const clipPool = getCongregationThreatClipPool();
+    if (!clipPool.length) return;
+    const nowSec = nowMs / 1000;
+    if (congregationThreatState.key !== introKey) {
+      congregationThreatState.key = introKey;
+      congregationThreatState.nextSpawnAt = nowSec;
+      congregationThreatState.apparitions.length = 0;
+    }
+    const totalLifetimeSec =
+      CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_HOLD_SEC + CONGREGATION_THREAT_FADE_OUT_SEC;
+    for (let i = congregationThreatState.apparitions.length - 1; i >= 0; i -= 1) {
+      const app = congregationThreatState.apparitions[i];
+      const ageSec = nowSec - app.bornAt;
+      if (ageSec >= totalLifetimeSec) congregationThreatState.apparitions.splice(i, 1);
+    }
+    if (
+      congregationThreatState.apparitions.length < CONGREGATION_THREAT_MAX_ACTIVE &&
+      nowSec >= congregationThreatState.nextSpawnAt
+    ) {
+      const apparition = spawnCongregationThreatApparition(virtualCanvas, clipPool);
+      apparition.bornAt = nowSec;
+      congregationThreatState.apparitions.push(apparition);
+      const respawnDelay =
+        CONGREGATION_THREAT_RESPAWN_MIN_SEC +
+        Math.random() * (CONGREGATION_THREAT_RESPAWN_MAX_SEC - CONGREGATION_THREAT_RESPAWN_MIN_SEC);
+      congregationThreatState.nextSpawnAt = nowSec + respawnDelay;
+    }
+    congregationThreatState.apparitions.forEach((app) => {
+      const clip = app.clip;
+      if (!clip?.image) return;
+      const img = clip.image;
+      const frameWidth = Math.max(1, clip.frameWidth || img.width || 1);
+      const frameHeight = Math.max(1, clip.frameHeight || img.height || 1);
+      const cols = Math.max(1, Math.floor((img.width || frameWidth) / frameWidth));
+      const rows = Math.max(1, Math.floor((img.height || frameHeight) / frameHeight));
+      const mappedFrames = Array.isArray(clip.frameMap) && clip.frameMap.length
+        ? clip.frameMap
+        : null;
+      const ageSec = nowSec - app.bornAt;
+      let alpha = 0;
+      if (ageSec < CONGREGATION_THREAT_FADE_IN_SEC) {
+        alpha = ageSec / Math.max(0.001, CONGREGATION_THREAT_FADE_IN_SEC);
+      } else if (ageSec < CONGREGATION_THREAT_FADE_IN_SEC + CONGREGATION_THREAT_HOLD_SEC) {
+        alpha = 1;
+      } else {
+        const outAge = ageSec - CONGREGATION_THREAT_FADE_IN_SEC - CONGREGATION_THREAT_HOLD_SEC;
+        alpha = 1 - outAge / Math.max(0.001, CONGREGATION_THREAT_FADE_OUT_SEC);
+      }
+      alpha = Math.max(0, Math.min(1, alpha));
+      if (alpha <= 0.001) return;
+      const frameRate = Number.isFinite(clip.frameRate) && clip.frameRate > 0 ? clip.frameRate : 8;
+      const animatedFrame = Math.floor(ageSec * frameRate + app.frameSeed);
+      const frameRef = mappedFrames
+        ? mappedFrames[animatedFrame % mappedFrames.length]
+        : animatedFrame % Math.max(1, cols * rows);
+      const frameId = Number.isFinite(frameRef) ? Math.max(0, Math.floor(frameRef)) : 0;
+      const sx = (frameId % cols) * frameWidth;
+      const sy = Math.floor(frameId / cols) * frameHeight;
+      ctx.save();
+      ctx.translate(app.x, app.y);
+      ctx.rotate(app.rotation);
+      const centerX = (virtualCanvas?.width || 1920) * 0.5;
+      const isOnRightSide = app.x > centerX;
+      if (isOnRightSide) ctx.scale(-1, 1);
+      ctx.globalAlpha = 0.48 * alpha;
+      ctx.shadowColor = "rgba(255, 40, 10, 0.65)";
+      ctx.shadowBlur = 20;
+      ctx.drawImage(
+        img,
+        sx,
+        sy,
+        frameWidth,
+        frameHeight,
+        -app.size * 0.5,
+        -app.size * 0.5,
+        app.size,
+        app.size,
+      );
+      ctx.restore();
+    });
+  }
 
   function drawHUD() {
     // Hide HUD when congregation intro screen is showing ("Welcome Pastor")
@@ -9702,6 +9857,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawCongregationScene(levelStatus);
     } else {
       congregationIntroState.lastStage = null;
+      resetCongregationThreatState();
     }
     drawMeleeSwingOverlay(ctx, player);
     drawSpeedrunTimer();
