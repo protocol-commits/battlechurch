@@ -2413,7 +2413,7 @@
       if (townExteriorImageLoaded && townExteriorImage) {
         drawWavyCoverImage(ctx, canvas, townExteriorImage, Math.max(0, Math.min(1, easedCrossfadeT)));
         const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
-        if (fireOverlay && typeof fireOverlay.draw === "function") {
+        if (fireOverlay && typeof fireOverlay.draw === "function" && easedCrossfadeT > 0.001) {
           ctx.save();
           ctx.globalAlpha = Math.max(0, Math.min(1, easedCrossfadeT));
           if (typeof fireOverlay.setBounds === "function") {
