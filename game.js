@@ -18725,8 +18725,6 @@ function updateCongregationStage(dt, levelStatus) {
   let stage = levelStatus?.stage;
   let congregationStageActive = stage === "levelIntro";
   if (!congregationStageActive) return { updated: false, levelStatus };
-  const tutorialHintsEnabled =
-    typeof window === "undefined" ? true : window.__congregationShowTutorialHints !== false;
   if (!mapAmbientFadeQueued && typeof window !== "undefined" && window.MapScreen?.stopAmbient) {
     mapAmbientFadeQueued = true;
     window.MapScreen.stopAmbient({ fade: true });
@@ -18769,60 +18767,41 @@ function updateCongregationStage(dt, levelStatus) {
     clearAllPowerUps();
     powerUpsClearedForCongregation = true;
   }
-  if (typeof window !== "undefined") window.__congregationTutorialActive = tutorialHintsEnabled;
-  if (tutorialHintsEnabled && !congregationTutorialPrayerInit && player) {
-    const fiveSixths = Math.round((player.prayerChargeRequired || 6000) * 5 / 6);
-    player.prayerCharge = fiveSixths;
-    player.prayerHoldLocked = false;
-    congregationTutorialPrayerInit = true;
-    congregationTutorialRefillTimer = 0;
+  if (typeof window !== "undefined") window.__congregationTutorialActive = false;
+  const activeWelcomeLines = Array.isArray(CONGREGATION_DIALOGUE_LINES)
+    ? CONGREGATION_DIALOGUE_LINES.filter((line) => typeof line === "string" && line.trim())
+    : [];
+  const welcomeHintLimit = Math.min(MAX_CONGREGATION_WELCOME_HINTS, activeWelcomeLines.length);
+  if (!congregationGreetingShown) {
+    heroSay("I'm glad to see you all!", { life: 3.6 });
+    congregationGreetingShown = true;
+    congregationWelcomeTimer = 2.2;
   }
-  if (tutorialHintsEnabled && player && congregationTutorialPrayerInit) {
-    const fiveSixths = Math.round((player.prayerChargeRequired || 6000) * 5 / 6);
-    if (player.prayerCharge < fiveSixths) {
-      player.prayerCharge = fiveSixths;
-      player.prayerHoldLocked = false;
-    }
-  }
-  if (tutorialHintsEnabled) {
-    const activeWelcomeLines = getActiveCongregationWelcomeLines();
-    const welcomeHintLimit = Math.min(MAX_CONGREGATION_WELCOME_HINTS, activeWelcomeLines.length);
-    if (!congregationGreetingShown) {
-      heroSay("I'm glad to see you all!", { life: 3.6 });
-      congregationGreetingShown = true;
-      congregationWelcomeTimer = 2.2;
-    }
-    congregationWelcomeTimer -= dt;
-    if (congregationWelcomeTimer <= 0 && congregationGreetingCount < welcomeHintLimit && activeWelcomeLines.length && congregationMembers.length) {
-      const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-      const available = congregationMembers.filter(
-        (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
-      );
-      if (available.length) {
-        const member = available[Math.floor(Math.random() * available.length)];
-        const line = activeWelcomeLines[congregationGreetingCount % activeWelcomeLines.length];
-        if (member.dialogueBubble) {
-          member.dialogueBubble.life = 0;
-          member.dialogueBubble = null;
-        }
-        const bubble = addFloatingTextAt(
-          member.x,
-          member.y - member.radius - 20,
-          line,
-          "#f4fbff",
-          { speechBubble: true, vy: 0, life: 8.0, fadeDelay: 7.0, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
-        );
-        member.dialogueBubble = bubble || null;
-        member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
-        congregationGreetingCount += 1;
+  congregationWelcomeTimer -= dt;
+  if (congregationWelcomeTimer <= 0 && congregationGreetingCount < welcomeHintLimit && activeWelcomeLines.length && congregationMembers.length) {
+    const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    const available = congregationMembers.filter(
+      (m) => m && (!Number.isFinite(m.dialogueCooldownUntil) || now >= m.dialogueCooldownUntil) && !m.dialogueBubble
+    );
+    if (available.length) {
+      const member = available[Math.floor(Math.random() * available.length)];
+      const line = activeWelcomeLines[congregationGreetingCount % activeWelcomeLines.length];
+      if (member.dialogueBubble) {
+        member.dialogueBubble.life = 0;
+        member.dialogueBubble = null;
       }
-      congregationWelcomeTimer = 7.5 + Math.random() * 1.5;
+      const bubble = addFloatingTextAt(
+        member.x,
+        member.y - member.radius - 20,
+        line,
+        "#f4fbff",
+        { speechBubble: true, vy: 0, life: 8.0, fadeDelay: 7.0, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
+      );
+      member.dialogueBubble = bubble || null;
+      member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
+      congregationGreetingCount += 1;
     }
-  } else {
-    congregationGreetingShown = false;
-    congregationWelcomeTimer = 0;
-    congregationGreetingCount = 0;
-    clearCongregationSpeechBubbles();
+    congregationWelcomeTimer = 7.5 + Math.random() * 1.5;
   }
   updateCongregationMembers(dt);
   resolveCongregationMemberCollisions();

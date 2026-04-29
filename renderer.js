@@ -5532,22 +5532,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ? mapData.towns.find((town) => town.id === activeTownId)
       : null;
     const townName = townData?.name || "this town";
-    const firstTownId = mapData?.getFirstTownId?.() || mapData?.towns?.[0]?.id || null;
     const campaignData =
       activeTownId && typeof window?.MapScreen?.getTownCampaignData === "function"
         ? window.MapScreen.getTownCampaignData(activeTownId)
         : null;
     const campaign = String(campaignData?.campaign || "p1").toLowerCase();
     const isFirstPlaythroughForTown = campaign === "p1";
-    const isFirstTown = Boolean(activeTownId && firstTownId && activeTownId === firstTownId);
-    const showTutorialHints = isFirstPlaythroughForTown && isFirstTown;
     const gamepadConnected = Boolean(window?.Input?.gamepadState?.connected);
     if (typeof window !== "undefined") {
-      window.__congregationShowTutorialHints = showTutorialHints;
+      window.__congregationShowTutorialHints = false;
     }
     const fullTitleText = isFirstPlaythroughForTown
-      ? `Welcome to ${townName} Church. Pleased to meet you.`
-      : `Welcome back to ${townName} Church.`;
+      ? `Welcome to ${townName} Church`
+      : `Welcome back to ${townName} Church`;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const stage = levelStatus?.stage || "";
     const activeAnnouncement = Array.isArray(levelAnnouncements) ? levelAnnouncements[0] : null;
@@ -5758,9 +5755,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale: 0.86,
       });
-    }
-    if (showTutorialHints) {
-      drawInstructionButtons();
     }
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
@@ -7108,8 +7102,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   };
   const CONGREGATION_THREAT_MAX_ACTIVE = 4;
   const CONGREGATION_THREAT_HOLD_SEC = 3.0;
-  const CONGREGATION_THREAT_FADE_IN_SEC = 0.6;
-  const CONGREGATION_THREAT_FADE_OUT_SEC = 0.9;
+  const CONGREGATION_THREAT_FADE_IN_SEC = 1.25;
+  const CONGREGATION_THREAT_FADE_OUT_SEC = 1.6;
   const CONGREGATION_THREAT_RESPAWN_MIN_SEC = 0.2;
   const CONGREGATION_THREAT_RESPAWN_MAX_SEC = 0.9;
   const CONGREGATION_THREAT_MIN_GAP_PX = 130;
