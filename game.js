@@ -154,6 +154,39 @@ let townVisitorMinigamePlayed = false;
 let suppressInitialAnnouncements = false;
 const levelAnnouncements = [];
 let levelManager = null;
+let npcDamageImmuneForBriefTeaser = false;
+const briefTeaserState = {
+  active: false,
+  spawnScheduled: false,
+  spawnTimers: [],
+};
+
+function clearBriefTeaserSpawnTimers() {
+  if (!Array.isArray(briefTeaserState.spawnTimers)) return;
+  for (const timerId of briefTeaserState.spawnTimers) {
+    if (typeof clearTimeout === "function" && timerId) {
+      clearTimeout(timerId);
+    }
+  }
+  briefTeaserState.spawnTimers.length = 0;
+}
+
+function scheduleBriefTeaserSpawns() {
+  if (briefTeaserState.spawnScheduled) return;
+  briefTeaserState.spawnScheduled = true;
+  const scheduleAt = [150, 1450, 2750];
+  scheduleAt.forEach((delayMs) => {
+    if (typeof setTimeout !== "function") return;
+    const timerId = setTimeout(() => {
+      try {
+        if (typeof window !== "undefined" && window.Spawner?.spawnEnemyGroup) {
+          window.Spawner.spawnEnemyGroup(20, null, { skipSpawnEffects: false }, "miniImp");
+        }
+      } catch (error) {}
+    }, delayMs);
+    briefTeaserState.spawnTimers.push(timerId);
+  });
+}
 let activeBoss = null;
 const bossHazards = [];
 let titleScreenActive = true;
@@ -12118,6 +12151,13 @@ class CozyNpc {
 
   sufferAttack(damage = 1, options = {}) {
     if (!this.active || this.departed) return;
+    if (npcDamageImmuneForBriefTeaser) {
+      this.damageFlashTimer = Math.max(this.damageFlashTimer || 0, DAMAGE_FLASH_DURATION * 0.75);
+      this.faithBarTimer = Math.max(this.faithBarTimer || 0, 1.2);
+      this.faithBarVisible = true;
+      spawnFlashEffect(this.x, this.y - this.radius / 2);
+      return false;
+    }
     const { sourceType, bypassCooldown = false } = options || {};
     const noCooldownSource = bypassCooldown || isNoCooldownDamageSource(sourceType);
     if (this.damageCooldown > 0 && !noCooldownSource) return false;
@@ -23220,6 +23260,46 @@ function updateGame(dt) {
     levelStatus = congregationResult.levelStatus;
     stage = levelStatus?.stage;
   }
+  const briefTeaserStage = stage === "briefingTeaser";
+  if (briefTeaserStage) {
+    if (!briefTeaserState.active) {
+      briefTeaserState.active = true;
+      briefTeaserState.spawnScheduled = false;
+      clearBriefTeaserSpawnTimers();
+      scheduleBriefTeaserSpawns();
+    }
+    const teaserSkipPressed =
+      keysJustPressed.has(" ") ||
+      keysJustPressed.has("enter") ||
+      keysJustPressed.has("Enter") ||
+      wasActionJustPressed("pause") ||
+      wasActionJustPressed("restart") ||
+      Boolean(Input.consumeCanvasClick?.());
+    if (teaserSkipPressed && typeof levelManager?.advanceFromBriefTeaser === "function") {
+      keysJustPressed.delete(" ");
+      keysJustPressed.delete("enter");
+      keysJustPressed.delete("Enter");
+      keysJustPressed.delete("pause");
+      keysJustPressed.delete("restart");
+      levelManager.advanceFromBriefTeaser();
+      levelStatus = levelManager?.getStatus ? levelManager.getStatus() : levelStatus;
+      stage = levelStatus?.stage;
+    }
+  } else if (briefTeaserState.active) {
+    briefTeaserState.active = false;
+    briefTeaserState.spawnScheduled = false;
+    clearBriefTeaserSpawnTimers();
+    // Clear teaser enemies before entering briefing so the ask-for-help screen is clean.
+    for (let i = enemies.length - 1; i >= 0; i -= 1) {
+      const enemy = enemies[i];
+      if (!enemy) continue;
+      const type = String(enemy.type || "");
+      if (type === "miniImp" || type === "miniImpLevel2" || type === "miniImpLevel3") {
+        enemies.splice(i, 1);
+      }
+    }
+  }
+  npcDamageImmuneForBriefTeaser = briefTeaserStage;
   const congregationStageActive = stage === "levelIntro";
 
   const visualDt = dt;
@@ -23239,11 +23319,11 @@ function updateGame(dt) {
     return;
   }
 
-  if (paused) return;
+  if (paused && !briefTeaserStage) return;
 
   const blockingConfirmAnnouncement =
     Boolean(levelAnnouncements.length && levelAnnouncements[0]?.requiresConfirm);
-  if (!gameOver && levelManager && !congregationStageActive && !blockingConfirmAnnouncement) {
+  if (!gameOver && levelManager && (!paused || briefTeaserStage) && !congregationStageActive && !blockingConfirmAnnouncement) {
     levelManager.update(dt);
     levelStatus = levelManager.getStatus ? levelManager.getStatus() : null;
     stage = levelStatus?.stage;
@@ -23256,11 +23336,13 @@ function updateGame(dt) {
   updateChurchPowerupPickups(dt);
   updateUtilityPowerUps(dt);
 
-  updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
-  if (gameOver) return;
-  resolveEntityObstacles(player);
-  resolveEntityCollisions(player, enemies, { allowPush: false, overlapScale: 0.6 });
-  clampEntityToBounds(player);
+  if (!briefTeaserStage) {
+    updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
+    if (gameOver) return;
+    resolveEntityObstacles(player);
+    resolveEntityCollisions(player, enemies, { allowPush: false, overlapScale: 0.6 });
+    clampEntityToBounds(player);
+  }
 
   if (visitorSession.active) {
     updateVisitorSession(dt);
@@ -23479,6 +23561,10 @@ function onPlayerDeath() {
 function restartGame() {
   teardownGame();
   endVisitorSession({ reason: "reset" });
+  clearBriefTeaserSpawnTimers();
+  briefTeaserState.active = false;
+  briefTeaserState.spawnScheduled = false;
+  npcDamageImmuneForBriefTeaser = false;
   resetMusicState();
   stopPlayerDeathBell();
   prayerBombRainTimer = 0;

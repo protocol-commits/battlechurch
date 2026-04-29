@@ -7507,7 +7507,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Hide HUD when congregation intro screen is showing ("Welcome Pastor")
     const bindings = requireBindings();
     const levelStatus = bindings.levelManager?.getStatus?.();
-    if (levelStatus?.stage === "levelIntro") return;
+    if (levelStatus?.stage === "levelIntro" || levelStatus?.stage === "briefingTeaser") return;
     window.BattlechurchHUD?.draw?.(bindings, sharedShakeOffset, roundRect);
     // Mission label moved to HUD column 1.
   }
@@ -9725,7 +9725,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         (Number.isFinite(activeBoss?.deathExplosionTimer) && activeBoss.deathExplosionTimer > 0) ||
         (Number.isFinite(activeBoss?.deathPostDelay) && activeBoss.deathPostDelay > 0)
       );
-    if (player && bossDeathExplosionActive) {
+    const hidePlayerForBriefTeaser = levelStatus?.stage === "briefingTeaser";
+    if (player && bossDeathExplosionActive && !hidePlayerForBriefTeaser) {
       // During boss death explosions, keep the player behind the explosion stack.
       player.draw();
     }
@@ -9738,7 +9739,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawPrayerStormGroundFires();
     drawRingOfFireEffects(player);
     drawCongregationCommandMeter(player, battleNpcs);
-    if (player) {
+    if (player && !hidePlayerForBriefTeaser) {
       const _ghostTarget = window._meleeAttackState?.teleportGhostTarget;
       if (_ghostTarget) {
         const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;

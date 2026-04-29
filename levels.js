@@ -163,6 +163,7 @@
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
+  const BRIEF_TEASER_DURATION = 5.0;
   const ACT_BREAK_DELAY = 2.0;
   const ACT_BREAK_FADE_IN = 0.45;
   const ACT_BREAK_FADE_OUT = 0.45;
@@ -1251,6 +1252,14 @@
       if (state.stage !== "levelIntro") return;
       if (!state.waitingForCongregation) return;
       state.waitingForCongregation = false;
+      resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
+      setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
+    }
+
+    function advanceFromBriefTeaser() {
+      if (state.stage !== "briefingTeaser") return;
+      // Continue with the normal battle start path so we get the themed,
+      // mission-specific brief (not the legacy how-to-play screen).
       beginBattle();
     }
 
@@ -1914,14 +1923,20 @@ state.waveIndex = -1;
             if (state.waitingForCongregation && state.npcRushActive) {
               const done = updateNpcRush(dt);
               if (done) {
-                resetStage("briefing", 0);
-                setDevStatus('Briefing: press Space to continue', 4.0);
+                resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
+                setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
               }
               break;
             }
             if (!state.waitingForCongregation) {
               state.timer -= dt;
               if (state.timer <= 0) beginBattle();
+            }
+            break;
+          case "briefingTeaser":
+            state.timer -= dt;
+            if (state.timer <= 0) {
+              advanceFromBriefTeaser();
             }
             break;
           case "npcArrival":
@@ -2536,6 +2551,7 @@ state.waveIndex = -1;
       },
       setWaitingForCongregation,
       advanceFromCongregation,
+      advanceFromBriefTeaser,
       skipGraceRush,
     };
   }
