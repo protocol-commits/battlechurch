@@ -5117,6 +5117,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (initial > group.initialCount) group.initialCount = initial;
     });
     if (!groups.size) return;
+    const paletteColors =
+      typeof UIStyles !== "undefined" && UIStyles && UIStyles.colors
+        ? UIStyles.colors
+        : {};
+    const counterFill = paletteColors.teal || "#5FE3C0";
+    const counterStroke = paletteColors.deepNavy || "#0A0F1F";
 
     ctx.save();
     ctx.textAlign = "center";
@@ -5125,14 +5131,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (!group || group.count <= 0) return;
       const x = group.sumX / group.count;
       const y = group.sumY / group.count;
-      const fontSize = Math.max(20, Math.min(50, 10 + group.initialCount * 0.22));
+      const fontSize = Math.max(28, Math.min(50, 10 + group.initialCount * 0.22));
       const label = String(group.count);
       ctx.font = `500 ${Math.round(fontSize)}px 'Orbitron', sans-serif`;
       ctx.lineWidth = Math.max(6, Math.round(fontSize * 0.16));
-      ctx.strokeStyle = "rgba(25, 10, 6, 0.95)";
-      ctx.fillStyle = "#FF6B6B";
-      ctx.shadowColor = "rgba(255, 130, 70, 0.55)";
-      ctx.shadowBlur = Math.max(8, Math.round(fontSize * 0.18));
+      ctx.strokeStyle = counterStroke;
+      ctx.fillStyle = counterFill;
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
       ctx.strokeText(label, x, y);
       ctx.fillText(label, x, y);
     });
