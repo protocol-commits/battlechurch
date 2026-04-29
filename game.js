@@ -19611,6 +19611,9 @@ function processProjectileCollisions(dt) {
             applyMeleeHitstop(enemy, meleeAttackState, counterHit);
             registerPunishComboDamage(enemy, counterHit.damage, meleeAttackState);
             registerDivineShotComboHit(enemy, meleeAttackState);
+            if (npcPowerupWasAlive && (enemy.dead || enemy.state === "death")) {
+              registerDivineShotKill(meleeAttackState, enemy);
+            }
           }
         }
         if (
@@ -19686,6 +19689,7 @@ function processProjectileCollisions(dt) {
             const counterHit = projectile.isDivineShot
               ? getCounterHitResult(activeBoss, bossDamage, meleeAttackState)
               : { damage: bossDamage, damageText: null };
+            const bossWasAlive = !activeBoss.dead && activeBoss.state !== "death";
             activeBoss.takeDamage(counterHit.damage, {
               hitX,
               hitY,
@@ -19700,6 +19704,9 @@ function processProjectileCollisions(dt) {
                 applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
                 registerPunishComboDamage(activeBoss, counterHit.damage, meleeAttackState);
                 registerDivineShotComboHit(activeBoss, meleeAttackState);
+                if (bossWasAlive && (activeBoss.dead || activeBoss.state === "death")) {
+                  registerDivineShotKill(meleeAttackState, activeBoss);
+                }
               }
             }
             if (
@@ -20702,11 +20709,16 @@ function updateRushMovement(dt, direction, meleeAttackState) {
       const rushKillSumY = Number(meleeAttackState.rushKillSumY) || 0;
       const popX = rushKillSumX / rushKillCount;
       const popY = rushKillSumY / rushKillCount;
-      addFloatingTextAt(popX, popY - 28, `${rushKillCount}`, "#FFE6A3", {
+      const edgeMargin = 20;
+      const sx = popX - cameraOffsetX;
+      const sy = popY - 28;
+      const clampedSx = Math.max(edgeMargin, Math.min(canvas.width - edgeMargin, sx));
+      const clampedSy = Math.max(HUD_HEIGHT + edgeMargin, Math.min(canvas.height - edgeMargin, sy));
+      addFloatingTextAt(clampedSx + cameraOffsetX, clampedSy, `${rushKillCount}`, "#FFE6A3", {
         speechBubble: false,
-        vy: -18,
+        vy: 0,
         life: 0.9,
-        fadeDelay: 0.08,
+        fadeDelay: 0.2,
         fontSize: 34,
         fontWeight: "900",
         priority: 7,
@@ -21203,6 +21215,116 @@ function registerDivineShotComboHit(target, meleeAttackState) {
     rewardMeleeGraceBurst(target, PUNISH_COUNTER_GRACE_GEMS, 72);
     meleeAttackState.punishCounterTextShown = true;
   }
+}
+
+function registerDivineShotKill(meleeAttackState, target) {
+  if (!meleeAttackState || !target) return;
+  meleeAttackState.divineKillCount = Math.max(
+    0,
+    Math.round((meleeAttackState.divineKillCount || 0) + 1),
+  );
+  const tx = Number.isFinite(target.x) ? target.x : player?.x || 0;
+  const ty = Number.isFinite(target.y) ? target.y : player?.y || 0;
+  meleeAttackState.divineKillAnchorX = tx;
+  meleeAttackState.divineKillAnchorY = ty;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  meleeAttackState.divineKillDisplayUntil = now + 1400;
+}
+
+function updateDivineShotKillLabel(meleeAttackState, now) {
+  if (!meleeAttackState) return;
+  const count = Math.max(0, Math.round(meleeAttackState.divineKillCount || 0));
+  const showUntil = Number(meleeAttackState.divineKillDisplayUntil) || 0;
+  if (!count || !showUntil || now > showUntil) {
+    if (meleeAttackState.divineKillLabel) {
+      meleeAttackState.divineKillLabel.persist = false;
+      meleeAttackState.divineKillLabel.life = Math.min(
+        meleeAttackState.divineKillLabel.life || 0.2,
+        0.2,
+      );
+      meleeAttackState.divineKillLabel = null;
+    }
+    meleeAttackState.divineKillCount = 0;
+    meleeAttackState.divineKillDisplayUntil = 0;
+    return;
+  }
+  let anchorX = Number(meleeAttackState.divineKillAnchorX) || (player?.x || cameraOffsetX + canvas.width * 0.5);
+  let anchorY = Number(meleeAttackState.divineKillAnchorY) || (player?.y || canvas.height * 0.5);
+  const activeDivineShot = projectiles.find(
+    (proj) =>
+      proj &&
+      !proj.dead &&
+      proj.friendly &&
+      proj.isDivineShot &&
+      proj.source?.isPlayer,
+  );
+  if (activeDivineShot && Number.isFinite(activeDivineShot.x) && Number.isFinite(activeDivineShot.y)) {
+    anchorX = activeDivineShot.x;
+    anchorY = activeDivineShot.y;
+    meleeAttackState.divineKillAnchorX = anchorX;
+    meleeAttackState.divineKillAnchorY = anchorY;
+  }
+  const edgeMargin = 20;
+  const sx = anchorX - cameraOffsetX;
+  const sy = anchorY;
+  const clampedSx = Math.max(edgeMargin, Math.min(canvas.width - edgeMargin, sx));
+  const clampedSy = Math.max(HUD_HEIGHT + edgeMargin, Math.min(canvas.height - edgeMargin, sy));
+  const clampedAtEdge = Math.abs(clampedSx - sx) > 0.5 || Math.abs(clampedSy - sy) > 0.5;
+  if (clampedAtEdge) {
+    if (!Number.isFinite(meleeAttackState.divineKillEdgeClampedAt)) {
+      meleeAttackState.divineKillEdgeClampedAt = now;
+    }
+  } else {
+    meleeAttackState.divineKillEdgeClampedAt = null;
+    meleeAttackState.divineKillFadeStartAt = null;
+  }
+  const edgeHoldMs = 200;
+  if (
+    Number.isFinite(meleeAttackState.divineKillEdgeClampedAt) &&
+    now - meleeAttackState.divineKillEdgeClampedAt >= edgeHoldMs
+  ) {
+    if (!Number.isFinite(meleeAttackState.divineKillFadeStartAt)) {
+      meleeAttackState.divineKillFadeStartAt = now;
+    }
+  }
+  const labelX = clampedSx + cameraOffsetX;
+  const labelY = clampedSy;
+  let textColor = "#FFF2B8";
+  if (Number.isFinite(meleeAttackState.divineKillFadeStartAt)) {
+    const fadeMs = 700;
+    const t = Math.max(0, Math.min(1, (now - meleeAttackState.divineKillFadeStartAt) / fadeMs));
+    const alpha = 1 - t;
+    textColor = `rgba(255, 242, 184, ${alpha.toFixed(3)})`;
+  }
+  const text = `${formatNumberWithCommas(count)}`;
+  if (!meleeAttackState.divineKillLabel) {
+    meleeAttackState.divineKillLabel = addFloatingTextAt(labelX, labelY, text, textColor, {
+      speechBubble: false,
+      vy: 0,
+      life: 2.0,
+      fadeDelay: 0.25,
+      fontSize: 36,
+      fontWeight: "900",
+      priority: 8,
+      persist: true,
+      clampToScreen: true,
+    });
+    return;
+  }
+  meleeAttackState.divineKillLabel.text = text;
+  meleeAttackState.divineKillLabel.x = labelX;
+  meleeAttackState.divineKillLabel.y = labelY;
+  meleeAttackState.divineKillLabel.color = textColor;
+  meleeAttackState.divineKillLabel.entity = null;
+  meleeAttackState.divineKillLabel.persist = true;
+  meleeAttackState.divineKillLabel.vy = 0;
+  meleeAttackState.divineKillLabel.life = Math.max(
+    meleeAttackState.divineKillLabel.life || 0,
+    0.4,
+  );
 }
 
 function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, forceImmediate = false) {
@@ -22404,6 +22526,11 @@ function updateMeleeAttackSystem(dt) {
     divineComboShown: false,
     divineComboTarget: null,
     divineComboHits: 0,
+    divineKillCount: 0,
+    divineKillAnchorX: 0,
+    divineKillAnchorY: 0,
+    divineKillDisplayUntil: 0,
+    divineKillLabel: null,
     normalSlashTarget: null,
     normalSlashHits: 0,
     normalSlashExpiresAt: 0,
@@ -22452,6 +22579,16 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.meleeComboExpiresAt = 0;
       clearActiveCounterHitText(meleeAttackState);
       clearPunishCounterState(meleeAttackState);
+      if (meleeAttackState.divineKillLabel) {
+        meleeAttackState.divineKillLabel.persist = false;
+        meleeAttackState.divineKillLabel.life = Math.min(
+          meleeAttackState.divineKillLabel.life || 0.2,
+          0.2,
+        );
+        meleeAttackState.divineKillLabel = null;
+      }
+      meleeAttackState.divineKillCount = 0;
+      meleeAttackState.divineKillDisplayUntil = 0;
       clearDivineChargeSparkVisual();
       return;
     }
@@ -23145,6 +23282,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.divineComboTarget = null;
       meleeAttackState.divineComboHits = 0;
     }
+    updateDivineShotKillLabel(meleeAttackState, comboNow);
   }
 }
 
