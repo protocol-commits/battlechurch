@@ -632,7 +632,7 @@ if (musicState.visitor) {
 }
 if (musicState.exterior) {
   musicState.exterior.preload = "auto";
-  musicState.exterior.loop = false;
+  musicState.exterior.loop = true;
 }
 if (musicState.exteriorBoss) {
   musicState.exteriorBoss.preload = "auto";
@@ -1296,6 +1296,20 @@ function startIntroMusic() {
   playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
 }
 
+function handleIntroMusicEnded() {
+  if (!musicState.unlocked) return;
+  if (titleScreenActive) return;
+  if (musicState.introStopped) return;
+  if (musicState.battleStarted && !musicState.battleStopped) return;
+  if (musicState.recapStarted && !musicState.recapStopped) return;
+  if (musicState.visitorStarted && !musicState.visitorStopped) return;
+  if (musicState.exteriorStarted && !musicState.exteriorStopped) return;
+  if (musicState.exteriorBossStarted && !musicState.exteriorBossStopped) return;
+  if (musicState.bossDeathStarted && !musicState.bossDeathStopped) return;
+  musicState.introStopped = true;
+  startExteriorMusic({ boss: false });
+}
+
 function startExteriorMusic({ boss = false } = {}) {
   const target = boss ? musicState.exteriorBoss : musicState.exterior;
   if (!target) return;
@@ -1314,7 +1328,7 @@ function startExteriorMusic({ boss = false } = {}) {
   try {
     target.currentTime = 0;
   } catch (e) {}
-  playMusic(target, { volume: MUSIC_VOLUME_INTRO, loop: false });
+  playMusic(target, { volume: MUSIC_VOLUME_INTRO, loop: !boss });
 }
 
 function stopExteriorMusic() {
@@ -1337,6 +1351,10 @@ function startMapMusic() {
   musicState.introStarted = true;
   cancelFade(musicState.intro);
   playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
+}
+
+if (musicState.intro) {
+  musicState.intro.addEventListener("ended", handleIntroMusicEnded);
 }
 
 function triggerIntroMusicFromInput() {
@@ -17345,12 +17363,9 @@ function updateMusicState(levelStatus) {
   } else if (musicState.battleStarted && !musicState.battleStopped) {
     fadeOutBattleMusic();
   }
-  if (
-    stage === "levelIntro" ||
-    stage === "briefing" ||
-    stage === "npcArrival"
-  ) {
-    if (musicState.exteriorStarted || musicState.exteriorBossStarted) stopExteriorMusic();
+  if (stage === "levelIntro" || stage === "briefing" || stage === "npcArrival") {
+    // Keep exterior/map-chain music alive through town intro + congregation + briefing.
+    // It will be faded out naturally when battle music starts.
     if (musicState.recapStarted && !musicState.recapStopped) stopRecapMusic();
     if (musicState.visitorStarted && !musicState.visitorStopped) stopVisitorMusic();
   }

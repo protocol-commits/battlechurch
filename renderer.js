@@ -4735,6 +4735,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
   if (isBattleSummary || isVisitorSummary) {
     const recapData = levelAnnouncements?.[0]?.recapData || null;
+    // Prevent a one-frame fallback "Continue" card flash while recap data
+    // is being prepared between victory fade and bonus screen.
+    if (!recapData) {
+      ctx.restore();
+      return;
+    }
     let summaryTitle = recapData?.title || levelAnnouncements?.[0]?.recapTitle || "";
     if (!summaryTitle) {
       if (isVisitorSummary) {
@@ -4746,24 +4752,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         summaryTitle = monthLabel ? `${monthLabel} Recap` : "Recap";
       }
     }
-    if (recapData) {
-      drawRecapBonusScreen(ctx, canvas, {
-        title: summaryTitle,
-        recapData,
-        uiFontFamily: UI_FONT_FAMILY,
-        buttonKey: "recap",
-      });
-    } else {
-      const summaryBody = levelAnnouncements?.[0]?.recapBody || "";
-      drawMissionBriefScreen(ctx, canvas, {
-        title: summaryTitle,
-        subtitle: summaryBody,
-        showFormation: false,
-        uiFontFamily: UI_FONT_FAMILY,
-        buttonKey: "recap",
-        setMissionBriefActive: false,
-      });
-    }
+    drawRecapBonusScreen(ctx, canvas, {
+      title: summaryTitle,
+      recapData,
+      uiFontFamily: UI_FONT_FAMILY,
+      buttonKey: "recap",
+    });
     ctx.restore();
     return;
   }
@@ -5629,7 +5623,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     congregationIntroState.lastStage = stage;
     const introElapsed = Math.max(0, (now - (congregationIntroState.startTime || now)) / 1000);
-    const congregationTextHoldAfterHandoff = 4.0;
+    const congregationTextHoldAfterHandoff = 0.45;
     const typewriterReady = !congregationIntroBlockedByAnnouncement;
     const handoffAnimDuration = 0.65;
     const handoffElapsed = congregationIntroBlockedByAnnouncement

@@ -2922,7 +2922,7 @@
     const fallbackX = safeRect.x + safeRect.w * 0.2;
     const fallbackY = safeRect.y + safeRect.h * 0.25;
     const firstPos = firstTown ? getTownPosition(firstTown, safeRect) : { x: fallbackX, y: fallbackY };
-    let x = firstPos.x - 145;
+    let x = firstPos.x - 95;
     let y = firstPos.y - 165;
     const minX = safeRect.x + 28;
     const maxX = safeRect.x + safeRect.w - 28;
