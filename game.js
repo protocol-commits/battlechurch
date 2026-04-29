@@ -7041,9 +7041,6 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     upcomingMissionNumber,
     upcomingOrderNumber,
   });
-  if (typeof startExteriorMusic === "function") {
-    startExteriorMusic({ boss: isBossExterior });
-  }
 }
 
 function startTownIntroTransition() {
@@ -18765,17 +18762,7 @@ function handleLevelAnnouncements() {
   if (currentAnnouncement.exteriorShot) {
     if (!currentAnnouncement._musicStarted) {
       currentAnnouncement._musicStarted = true;
-      if (typeof startExteriorMusic === "function") {
-        const status = levelManager?.getStatus ? levelManager.getStatus() : null;
-        const bossBattleNumber =
-          typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
-            ? window.MONTHS_PER_LEVEL
-            : 4;
-        // Check if this is a boss exterior - either by battle number OR by pending boss flag (from dev hotkey 5)
-        const isBossExterior = pendingBossIntroAfterExterior ||
-          (Number.isFinite(status?.battle) && status.battle >= bossBattleNumber);
-        startExteriorMusic({ boss: isBossExterior });
-      }
+      // Keep currently playing map/intro music active during exterior shot.
     }
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     const lastTick = currentAnnouncement._lastTick || now;
