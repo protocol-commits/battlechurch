@@ -5756,7 +5756,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         weight: TEXT_STYLES.h1.weight,
         lineGap,
         alpha: titleAlpha,
-        typewriter: false,
+        typewriter: true,
         textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale: 0.86,
       });
@@ -5791,23 +5791,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else {
       entry.timer += dt;
     }
-    if (canShowCongregationText) {
-      // Deterministic display: once previous screen is gone, show full
-      // congregation label and count immediately.
-      entry.phase = 4;
-      entry.sfxPhase = 4;
+    if (!canShowCongregationText) {
+      // Hold window or blocked: keep reveal state reset.
+      entry.phase = 0;
+      entry.timer = 0;
     } else if (entry.phase === 0) {
       if (typewriterReady && isAnnouncementRevealComplete(fullTitleText, "", "")) {
         entry.phase = 1;
         entry.timer = 0;
       }
-    } else if (entry.phase === 1 && entry.timer >= 1.0) {
+    } else if (entry.phase === 1 && entry.timer >= 0.5) {
       entry.phase = 2;
       entry.timer = 0;
-    } else if (entry.phase === 2 && entry.timer >= 0.4) {
+    } else if (entry.phase === 2 && entry.timer >= 0.45) {
       entry.phase = 3;
       entry.timer = 0;
-    } else if (entry.phase === 3 && entry.timer >= 0.4) {
+    } else if (entry.phase === 3 && entry.timer >= 0.45) {
       entry.phase = 4;
     }
     if (entry.phase > 0 && entry.phase !== entry.sfxPhase) {
