@@ -273,6 +273,7 @@ let powerUpsClearedForCongregation = false;
 let congregationGreetingShown = false;
 let congregationWelcomeTimer = 0;
 let congregationGreetingCount = 0;
+let congregationMonsterAmbientTimer = 0;
 let congregationTutorialPrayerInit = false;
 let congregationDialogueIndex = 0;
 const congregationWaveIntroDialogueState = {
@@ -472,6 +473,13 @@ const CONGREGATION_OVERLAY_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions
 const CONGREGATION_FIGHT_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_40.wav";
 const CONGREGATION_COUNT_POP_UP_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_24.wav";
 const CONGREGATION_COUNT_POP_DOWN_SFX_SRC = "assets/sfx/utility/utility3.mp3";
+const CONGREGATION_MONSTER_AMBIENT_SRCS = [
+  "assets/sfx/rpg/Monsters/monster_1.wav",
+  "assets/sfx/rpg/Monsters/monster_1.wav",
+  "assets/sfx/rpg/Monsters/monster_10.wav",
+  "assets/sfx/rpg/Monsters/monster_11.wav",
+  "assets/sfx/rpg/Monsters/monster_12.wav",
+];
 const ENEMY_SPAWN_HIGH_SFX = [
   { minHealth: 500, src: "assets/sfx/rpg/Monsters/monster_12.wav" },
   { minHealth: 400, src: "assets/sfx/rpg/Monsters/monster_11.wav" },
@@ -18885,6 +18893,16 @@ function updateCongregationStage(dt, levelStatus) {
     heroSay("I'm glad to see you all!", { life: 3.6 });
     congregationGreetingShown = true;
     congregationWelcomeTimer = 2.2;
+    congregationMonsterAmbientTimer = 0.6 + Math.random() * 0.9;
+  }
+  congregationMonsterAmbientTimer = Math.max(0, congregationMonsterAmbientTimer - dt);
+  if (congregationMonsterAmbientTimer <= 0) {
+    const src =
+      CONGREGATION_MONSTER_AMBIENT_SRCS[
+        Math.floor(Math.random() * CONGREGATION_MONSTER_AMBIENT_SRCS.length)
+      ] || CONGREGATION_MONSTER_AMBIENT_SRCS[0];
+    playPooledSfx(enemySpawnSfxPool, src, ENEMY_SPAWN_SFX_POOL_SIZE, { volume: 0.45 });
+    congregationMonsterAmbientTimer = 0.6 + Math.random() * 0.9;
   }
   congregationWelcomeTimer -= dt;
   if (congregationWelcomeTimer <= 0 && congregationGreetingCount < welcomeHintLimit && activeWelcomeLines.length && congregationMembers.length) {
@@ -18964,6 +18982,7 @@ function updateCongregationStage(dt, levelStatus) {
     congregationGreetingCount = 0;
     mapAmbientFadeQueued = false;
     congregationTutorialPrayerInit = false;
+    congregationMonsterAmbientTimer = 0;
     if (typeof window !== "undefined") window.__congregationTutorialActive = false;
   }
   return { updated: true, levelStatus };
