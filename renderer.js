@@ -9276,9 +9276,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else {
       battleNpcs = npcs.filter(Boolean);
     }
-    if (isCongregationStage && !battleNpcs.length) {
-      battleNpcs = npcs.filter(Boolean);
-    }
     }
     if (dynamicNameTags.length) {
       ctx.save();
@@ -9435,7 +9432,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (activeBoss) activeBoss.draw(ctx);
       drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);
     }
-    if (!visitorStageActive && battleNpcs.length) {
+    if (!visitorStageActive && !isCongregationStage && battleNpcs.length) {
       drawBattleNpcs(ctx, battleNpcs, npcFadeAlpha);
     }
     if (!visitorStageActive && orderedEnemies.length) {
