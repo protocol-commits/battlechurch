@@ -9402,7 +9402,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       recapCongregationPreviewBuilt = false;
     }
     const visitorStageActive = Boolean(visitorSession?.active || levelStatus?.stage === "visitorMinigame");
-    const isCongregationStage = levelStatus?.stage === "levelIntro" && !gameOver && !visitorStageActive;
+    const isCongregationStage =
+      (levelStatus?.stage === "levelIntro" || levelStatus?.stage === "congregationToTeaser") &&
+      !gameOver &&
+      !visitorStageActive;
     const shakeOffset = getCameraShakeOffset();
     sharedShakeOffset.x = shakeOffset.x;
     sharedShakeOffset.y = shakeOffset.y;
@@ -10142,6 +10145,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
+    // Keep this near the end so congregation UI (text/button) also fades.
+    drawCongregationToTeaserFade(levelStatus);
+
     // Debug overlay (DEV-ONLY)
     const bindings = requireBindings();
     if (bindings && typeof bindings.renderDebugOverlay === "function") {
@@ -10383,6 +10389,33 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.drawImage(swooshImg, rectX, -ds2Height * 0.5, ds2Width, ds2Height);
       ctx.restore();
     }
+  }
+
+  function drawCongregationToTeaserFade(levelStatus) {
+    const { ctx, canvas } = requireBindings();
+    if (!ctx || !canvas || !levelStatus) return;
+    const stage = levelStatus.stage;
+    const timer = Number(levelStatus.stageTimer) || 0;
+    const duration = Math.max(0.001, Number(levelStatus.stageDuration) || 0);
+
+    let alpha = 0;
+    if (stage === "congregationToTeaser") {
+      const progress = Math.max(0, Math.min(1, 1 - timer / duration));
+      alpha = progress;
+    } else if (stage === "briefingTeaser") {
+      const progress = Math.max(0, Math.min(1, 1 - timer / duration));
+      const fadeInWindow = 0.2;
+      if (progress <= fadeInWindow) {
+        const t = progress / Math.max(0.001, fadeInWindow);
+        alpha = 1 - t;
+      }
+    }
+
+    if (alpha <= 0.001) return;
+    ctx.save();
+    ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, Math.min(1, alpha))})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
   }
 
   function drawSpeedrunTimer() {

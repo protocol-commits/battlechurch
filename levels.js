@@ -164,6 +164,7 @@
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
   const MONTH_INTRO_DURATION = 4.0;
   const BRIEF_TEASER_DURATION = 5.0;
+  const CONGREGATION_TO_TEASER_DURATION = 1.6;
   const ACT_BREAK_DELAY = 2.0;
   const ACT_BREAK_FADE_IN = 0.45;
   const ACT_BREAK_FADE_OUT = 0.45;
@@ -1252,8 +1253,8 @@
       if (state.stage !== "levelIntro") return;
       if (!state.waitingForCongregation) return;
       state.waitingForCongregation = false;
-      resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
-      setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
+      resetStage("congregationToTeaser", CONGREGATION_TO_TEASER_DURATION);
+      setDevStatus("Transitioning to skirmish...", CONGREGATION_TO_TEASER_DURATION);
     }
 
     function advanceFromBriefTeaser() {
@@ -1937,6 +1938,13 @@ state.waveIndex = -1;
             state.timer -= dt;
             if (state.timer <= 0) {
               advanceFromBriefTeaser();
+            }
+            break;
+          case "congregationToTeaser":
+            state.timer -= dt;
+            if (state.timer <= 0) {
+              resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
+              setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
             }
             break;
           case "npcArrival":
