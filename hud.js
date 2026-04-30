@@ -1238,6 +1238,7 @@
       const combos = Array.isArray(window.__devArenaConfirmedCombos)
         ? window.__devArenaConfirmedCombos.slice(-6)
         : [];
+      const orderedCombos = combos.slice().reverse();
       const panelWidth = 290;
       const panelX = canvas.width - panelWidth - 14;
       const panelY = hudHeight + 14;
@@ -1261,7 +1262,7 @@
       ctx.fillText('Confirmed from damage combo hits', panelX + 14, panelY + 31);
 
       let rowY = panelY + 50;
-      combos.forEach((combo) => {
+      orderedCombos.forEach((combo) => {
         if (rowY > panelY + panelHeight - lineHeight) return;
         const hits = Math.max(2, Math.floor(Number(combo?.hits) || 2));
         const moves = Array.isArray(combo?.moves) ? combo.moves.slice(0, hits) : [];

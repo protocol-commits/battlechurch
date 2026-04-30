@@ -21290,30 +21290,15 @@ function updateComboMoveCallout(meleeAttackState) {
 function registerComboMoveName(meleeAttackState, moveName) {
   if (!meleeAttackState || !moveName) return;
   pushDevMeleeMove(moveName);
-  const now =
-    typeof performance !== "undefined" && typeof performance.now === "function"
-      ? performance.now()
-      : Date.now();
-  const expiry = Number(meleeAttackState.comboMovesWindowUntil) || 0;
-  if (expiry > 0 && now > expiry) {
-    meleeAttackState.comboMoveNames = [];
-  }
-  const names = Array.isArray(meleeAttackState.comboMoveNames)
-    ? meleeAttackState.comboMoveNames
-    : [];
-  names.push(String(moveName));
-  meleeAttackState.comboMoveNames = names.slice(-8);
-  meleeAttackState.comboMovesWindowUntil = now + COMBO_WINDOW_MS;
   meleeAttackState.pendingComboMoveName = String(moveName);
 }
 
 function getComboMoveNameForHit(meleeAttackState, explicitMoveName = null) {
   if (explicitMoveName) return String(explicitMoveName);
-  const pending = String(meleeAttackState?.pendingComboMoveName || "").trim();
-  if (pending) return pending;
   const hitboxType = String(meleeAttackState?.currentAttackHitboxType || "").trim();
   if (hitboxType === "rush") return "Rush Attack";
   if (hitboxType === "slash" || hitboxType === "dashSlash") return "Slash";
+  if (hitboxType === "spin") return "Spin Attack";
   return "Slash";
 }
 
@@ -22530,6 +22515,7 @@ function executeRingOfFireAttack(meleeAttackState) {
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
   registerComboMoveName(meleeAttackState, "Spin Attack");
+  meleeAttackState.currentAttackHitboxType = "spin";
   meleeAttackState.swingLength = null;
   const dir = getSpinAttackDirection();
   if (typeof player.updateFacing === "function") {
