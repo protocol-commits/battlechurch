@@ -1675,7 +1675,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     const dividerGap = 10;
     const titleYBase = layout.titleY;
     const titleBlockHeight = titleLayout.textBlockHeight;
-    const titleBottomY = titleYBase + titleBlockHeight;
+    // titleYBase is the baseline of the first line (already offset by titleLineHeight),
+    // so subtract the first line height to avoid double-counting it.
+    const titleBottomY = titleYBase + titleBlockHeight - (titleLayout.titleLineHeights[0] || titleLayout.titleLineHeight);
     const desiredLowerYBase = Math.round(
       titleBottomY + dividerGap + sectionGap + lowerLayout.subtitleLineHeight,
     );
