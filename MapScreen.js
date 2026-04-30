@@ -2067,6 +2067,7 @@
         activeRunTownId: activeRun?.townId || null,
         activeRunTownName,
         activeRunMission: Number.isFinite(activeRun?.resumeLocalBattleNumber) ? activeRun.resumeLocalBattleNumber : null,
+        activeRunCongregation: Number.isFinite(activeRun?.startCount) ? activeRun.startCount : null,
       };
     });
     summaries.sort((a, b) => {

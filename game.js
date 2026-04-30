@@ -7893,6 +7893,10 @@ async function refreshTitleCloudSaveOption() {
       const completedTownRows = townRows.filter((row) => row?.p1Completed === true);
       const activeRunTownName = save?.activeRunTownName || null;
       const activeRunMission = Number.isFinite(save?.activeRunMission) ? save.activeRunMission : null;
+      const activeRunCongregation = Number.isFinite(save?.activeRunCongregation) ? save.activeRunCongregation : null;
+      const congregationDisplay = activeRunCongregation != null
+        ? activeRunCongregation
+        : totalCongregationBest;
       const inProgressPart = activeRunTownName && activeRunMission
         ? ` • ${activeRunTownName}: ${activeRunMission - 1}/3 missions`
         : "";
@@ -7900,7 +7904,7 @@ async function refreshTitleCloudSaveOption() {
         id: save.id,
         key: `cloudsave:${save.id}`,
         label: save?.saveName || "Save",
-        meta: `Towns ${completed}/${total}${inProgressPart} • Congregation ${totalCongregationBest}`,
+        meta: `Towns ${completed}/${total}${inProgressPart} • Congregation ${congregationDisplay}`,
         suggestedTownId: save?.suggestedTownId || null,
         isActive: save?.isActive === true,
         details: {
