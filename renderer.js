@@ -11226,7 +11226,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const confirmEnabled = selectedKeys.length >= maxPicks;
     const picksLeft = Math.max(0, maxPicks - selectedKeys.length);
-    const title = "Denominational Upgrade";
+    const title = "How Will You Equip Your Church?";
     const buttonHeight = 200;
     const buttonCount = stats.length;
 

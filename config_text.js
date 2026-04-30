@@ -140,10 +140,10 @@
     // CHURCH POWERUP SKILL NAMES (HUD meters)
     // =====================
     skills: {
-      spreadGun: "Small Groups",
-      halo: "Prayer Team",
-      spear: "Care Team",
-      sentry: "Leadership Team",
+      spreadGun: "Tracer",
+      halo: "Halo",
+      spear: "Lance",
+      sentry: "Sentry",
     },
   };
 
