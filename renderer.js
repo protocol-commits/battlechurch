@@ -2925,7 +2925,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     buttonKey = "recap",
   } = options;
 
-  const titleSize = 38;
+  const titleSize = 32;
   const bodySize = 28;
   const lineGap = Math.round(titleSize * 1.08);
   ctx.save();
