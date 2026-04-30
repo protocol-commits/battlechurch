@@ -3479,13 +3479,30 @@
             damageType === "projectile" ? 0.9 : damageType === "melee" ? 1.25 : 1.0;
         } else if (damageClass === "armored") {
           multiplier =
-            damageType === "projectile" ? 0.7 : damageType === "melee" ? 0.95 : 1.35;
+            damageType === "projectile" ? 0.7 : damageType === "melee" ? 1.0 : 1.35;
         } else {
           multiplier =
             damageType === "projectile" ? 1.0 : damageType === "melee" ? 1.0 : 1.1;
         }
       }
       const scaledDamage = Math.max(0, Math.round(amount * multiplier));
+      if (
+        typeof window !== "undefined" &&
+        window.__battlechurchDevMeleeArenaMode === true
+      ) {
+        window.__devArenaLastAppliedDamage = {
+          at:
+            typeof performance !== "undefined" && typeof performance.now === "function"
+              ? performance.now()
+              : Date.now(),
+          target: this.config?.displayName || this.type || "Enemy",
+          damageType: damageType || "none",
+          damageClass,
+          baseDamage: Math.max(0, Math.round(Number(amount) || 0)),
+          multiplier: Number(multiplier) || 1,
+          appliedDamage: scaledDamage,
+        };
+      }
       this.health -= scaledDamage;
       const damageText = options?.damageText || null;
       if (typeof showDamage === "function") {

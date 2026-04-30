@@ -1315,8 +1315,23 @@
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = 'rgba(234,246,255,0.8)';
       ctx.fillText('Confirmed from damage combo hits', panelX + 14, panelY + 31);
+      const lastApplied = window.__devArenaLastAppliedDamage || null;
+      if (lastApplied) {
+        const baseDamage = Math.max(0, Math.round(Number(lastApplied.baseDamage) || 0));
+        const appliedDamage = Math.max(0, Math.round(Number(lastApplied.appliedDamage) || 0));
+        const multiplier = Number.isFinite(lastApplied.multiplier)
+          ? Number(lastApplied.multiplier).toFixed(2)
+          : "1.00";
+        ctx.fillStyle = 'rgba(255,220,150,0.95)';
+        ctx.font = `700 10px ${UI_FONT_FAMILY}`;
+        ctx.fillText(
+          `Last: ${baseDamage} x${multiplier} = ${appliedDamage} (${lastApplied.damageType}/${lastApplied.damageClass})`,
+          panelX + 14,
+          panelY + 44,
+        );
+      }
 
-      let rowY = panelY + 50;
+      let rowY = panelY + 62;
       orderedCombos.forEach((combo) => {
         if (rowY > panelY + panelHeight - lineHeight) return;
         const rawDetails = Array.isArray(combo?.details) ? combo.details : [];
