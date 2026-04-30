@@ -3047,6 +3047,7 @@ const addFloatingText = FloatingText.add;
 const addFloatingTextAt = FloatingText.addAt;
 const showDamage = FloatingText.showDamage;
 const heroSay = FloatingText.heroSay;
+const heroComboCallout = FloatingText.heroComboCallout;
 const npcCheer = FloatingText.npcCheer;
 const addStatusText = FloatingText.addStatusText;
 const updateFloatingTexts = FloatingText.update;
@@ -21045,6 +21046,53 @@ function clearMeleeComboLabel(meleeAttackState) {
   meleeAttackState.meleeComboLabel = null;
 }
 
+function resetComboMoveNames(meleeAttackState) {
+  if (!meleeAttackState) return;
+  meleeAttackState.comboMoveNames = [];
+  meleeAttackState.comboMovesWindowUntil = 0;
+}
+
+function registerComboMoveName(meleeAttackState, moveName) {
+  if (!meleeAttackState || !moveName) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const expiry = Number(meleeAttackState.comboMovesWindowUntil) || 0;
+  if (expiry > 0 && now > expiry) {
+    meleeAttackState.comboMoveNames = [];
+  }
+  const names = Array.isArray(meleeAttackState.comboMoveNames)
+    ? meleeAttackState.comboMoveNames
+    : [];
+  names.push(String(moveName));
+  meleeAttackState.comboMoveNames = names.slice(-8);
+  meleeAttackState.comboMovesWindowUntil = now + COMBO_WINDOW_MS;
+}
+
+function maybeAnnounceComboMoveNames(meleeAttackState, hits) {
+  if (!meleeAttackState || !heroComboCallout) return;
+  const hitCount = Math.max(0, Math.round(hits || 0));
+  if (hitCount < 2) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const names = Array.isArray(meleeAttackState.comboMoveNames)
+    ? meleeAttackState.comboMoveNames.filter((name) => typeof name === "string" && name.length)
+    : [];
+  if (!names.length) return;
+  if (
+    Number.isFinite(meleeAttackState.lastComboMoveCalloutAt) &&
+    now - meleeAttackState.lastComboMoveCalloutAt < 120
+  ) {
+    return;
+  }
+  heroComboCallout(names.join(" / "), { life: 2.2 });
+  meleeAttackState.lastComboMoveCalloutAt = now;
+  resetComboMoveNames(meleeAttackState);
+}
+
 function getMeleeCombatLabelConfig(meleeAttackState, target) {
   if (!meleeAttackState || !target) return null;
   const now =
@@ -21446,6 +21494,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     meleeState.comboLockoutUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   }
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
+  maybeAnnounceComboMoveNames(meleeState, hits);
   const labelFontSize = getComboLabelFontSize(hits);
   const labelColor = getComboLabelColor(hits);
   maybeUpdateMaxComboInTown(hits, entity.x, entity.y);
@@ -21460,6 +21509,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
 
 function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY, options = {}) {
   // Canonical move name: "Slash" is the default A melee attack.
+  registerComboMoveName(meleeAttackState, "Slash");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -21978,6 +22028,7 @@ function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
   if (!isSharedBButtonReady()) return false;
   if (!dir || (dir.x === 0 && dir.y === 0)) return false;
   if (!skipYell) playerYell("Rush Attack", 2.4);
+  registerComboMoveName(meleeAttackState, "Rush Attack");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -22216,6 +22267,7 @@ function executeSpinAttack(meleeAttackState, moveDir) {
 
 function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false } = {}) {
   if (!skipYell) playerYell("Divine Shot!");
+  registerComboMoveName(meleeAttackState, "Divine Shot");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -22541,6 +22593,9 @@ function updateMeleeAttackSystem(dt) {
     pendingComboShowAt: 0,
     pendingComboHits: 0,
     pendingComboLastAt: 0,
+    comboMoveNames: [],
+    comboMovesWindowUntil: 0,
+    lastComboMoveCalloutAt: 0,
     comboLockoutUntil: 0,
     lastComboTextTarget: null,
     lastComboTextAt: 0,
@@ -22624,6 +22679,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.isCharging = false;
       meleeAttackState.awaitRush = false;
       clearMeleeComboLabel(meleeAttackState);
+      resetComboMoveNames(meleeAttackState);
       meleeAttackState.pendingBasicAttack = null;
       meleeAttackState.meleeComboTarget = null;
       meleeAttackState.meleeComboHits = 0;
@@ -23239,6 +23295,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.meleeComboTarget = null;
       meleeAttackState.meleeComboHits = 0;
       meleeAttackState.meleeComboExpiresAt = 0;
+      resetComboMoveNames(meleeAttackState);
       clearActiveCounterHitText(meleeAttackState);
       clearPunishCounterState(meleeAttackState);
     } else if (

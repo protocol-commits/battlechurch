@@ -10863,33 +10863,40 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const bubbleTheme = ft.bubbleTheme || "default";
         const isNpcBubble = bubbleTheme === "npc";
         const isHeroBubble = bubbleTheme === "hero";
-        const isStyledBubble = isNpcBubble || isHeroBubble;
+        const isHeroComboBubble = bubbleTheme === "heroCombo";
+        const isStyledBubble = isNpcBubble || isHeroBubble || isHeroComboBubble;
         const now_b = typeof performance !== "undefined" ? performance.now() : Date.now();
         // Pulse frequency: hero slightly faster for a livelier feel
-        const pulseSpeed = isHeroBubble ? 0.005 : 0.004;
+        const pulseSpeed = isHeroBubble || isHeroComboBubble ? 0.005 : 0.004;
         const stylePulse = isStyledBubble ? 0.55 + 0.45 * Math.sin(now_b * pulseSpeed) : 0;
         // Old style (preserved for easy revert): fillColor "rgba(24,38,64,0.82)", strokeColor "rgba(150,215,255,0.6)", lineWidth 2, no shadow
-        const fillColor = isHeroBubble
+        const fillColor = isHeroComboBubble
+          ? "rgba(46, 18, 6, 0.95)"
+          : isHeroBubble
           ? "rgba(36, 24, 8, 0.92)"        // warm dark for pastor
           : isNpcBubble
             ? "rgba(10, 28, 58, 0.92)"     // deep blue for NPCs
             : "rgba(24, 38, 64, 0.82)";    // original default
-        const strokeColor = isHeroBubble
+        const strokeColor = isHeroComboBubble
+          ? `rgba(255, ${Math.round(220 + 30 * stylePulse)}, ${Math.round(90 + 60 * stylePulse)}, ${0.8 + 0.2 * stylePulse})`
+          : isHeroBubble
           ? `rgba(255, ${Math.round(200 + 40 * stylePulse)}, ${Math.round(80 + 60 * stylePulse)}, ${0.7 + 0.3 * stylePulse})`
           : isNpcBubble
             ? `rgba(${Math.round(120 + 100 * stylePulse)}, ${Math.round(200 + 55 * stylePulse)}, 255, ${0.7 + 0.3 * stylePulse})`
             : "rgba(150, 215, 255, 0.6)"; // original default
-        const shadowCol = isHeroBubble
+        const shadowCol = isHeroComboBubble
+          ? `rgba(255, 170, 40, ${0.6 + 0.4 * stylePulse})`
+          : isHeroBubble
           ? `rgba(255, 180, 60, ${0.5 + 0.5 * stylePulse})`
           : `rgba(100, 200, 255, ${0.5 + 0.5 * stylePulse})`;
         ctx.save();
         ctx.globalAlpha = compositeAlpha * 0.9;
         ctx.fillStyle = fillColor;
         ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = isStyledBubble ? 2.5 : 2;
-        if (isStyledBubble) {
+        ctx.lineWidth = isStyledBubble || isHeroComboBubble ? 2.5 : 2;
+        if (isStyledBubble || isHeroComboBubble) {
           ctx.shadowColor = shadowCol;
-          ctx.shadowBlur = 8 + 10 * stylePulse;
+          ctx.shadowBlur = (isHeroComboBubble ? 12 : 8) + 10 * stylePulse;
         }
         ctx.beginPath();
         ctx.moveTo(bubbleX + cornerRadius, bubbleY);

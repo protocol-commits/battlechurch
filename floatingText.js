@@ -281,6 +281,34 @@
     if (bubble) bubble.life = bubbleLife;
   }
 
+  function heroComboCallout(line, { life = 2.1 } = {}) {
+    const player = playerResolver();
+    if (!player || !line) return;
+    const bubbleLife = Math.max(0.1, life);
+    const existing = activeTexts.find(
+      (ft) => ft && ft.speechBubble && ft.bubbleTheme === "heroCombo" && ft.life > 0,
+    );
+    if (existing) {
+      existing.text = line;
+      existing.life = Math.max(existing.life, bubbleLife);
+      existing.initialLife = Math.max(existing.initialLife, bubbleLife);
+      existing.fadeLength = Math.max(existing.fadeLength, bubbleLife);
+      existing.priority = HERO_SPEECH_PRIORITY + 5;
+      return;
+    }
+    const bubble = add(line, "#fff4b8", {
+      speechBubble: true,
+      vy: 0,
+      life: bubbleLife,
+      offsetY: -player.radius - 44,
+      bubbleTheme: "heroCombo",
+      fontSize: 18,
+      fontWeight: "800",
+      priority: HERO_SPEECH_PRIORITY + 5,
+    });
+    if (bubble) bubble.life = bubbleLife;
+  }
+
   function npcCheer(npc, line, color = "#c9ffe5", { life = 1.6, fadeDelay = 0 } = {}) {
     if (!npc || !line) return;
     const bubbleLife = Math.max(0.1, life);
@@ -372,6 +400,7 @@
     addAt,
     showDamage,
     heroSay,
+    heroComboCallout,
     npcCheer,
     addStatusText,
     update,

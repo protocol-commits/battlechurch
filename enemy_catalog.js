@@ -412,7 +412,7 @@
     "specialBehavior": [
       "closestAny"
     ],
-    "attackHitFrame": 5,
+    "attackHitFrame": 4,
     "hitbox": {
       "width": 18,
       "height": 20,
@@ -1106,7 +1106,7 @@
       "idle": "Walk",
       "attack": "Attack03"
     },
-    "health": 800,
+    "health": 10000,
     "maxHealth": 410,
     "damage": 5,
     "speed": 54,
