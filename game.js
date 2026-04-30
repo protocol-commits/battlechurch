@@ -3937,7 +3937,7 @@ const COUNTER_HIT_MULTIPLIER = 1.20;
 const PUNISH_COUNTER_MULTIPLIER = 1.30;
 const COUNTER_HIT_TEXT_LIFE = 2.9;
 const PUNISH_COUNTER_TEXT_LIFE = 2.9;
-const MELEE_COMBO_TEXT_LIFE = 2.9;
+const MELEE_COMBO_TEXT_LIFE = 4.2;
 const COUNTER_HIT_GRACE_GEMS = 3;
 const PUNISH_COUNTER_GRACE_GEMS = 6;
 const MELEE_COMBO_GRACE_GEMS_BASE = 2;
@@ -21394,9 +21394,9 @@ function registerComboMoveName(meleeAttackState, moveName) {
 function getComboMoveNameForHit(meleeAttackState, explicitMoveName = null) {
   if (explicitMoveName) return String(explicitMoveName);
   const hitboxType = String(meleeAttackState?.currentAttackHitboxType || "").trim();
-  if (hitboxType === "rush") return "Rush Attack";
+  if (hitboxType === "rush") return "Rush";
   if (hitboxType === "slash" || hitboxType === "dashSlash") return "Slash";
-  if (hitboxType === "spin") return "Spin Attack";
+  if (hitboxType === "spin") return "Spin";
   return "Slash";
 }
 
@@ -21615,6 +21615,34 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
     isCounterHit: Boolean(hitMeta?.isCounterHit),
     isPunishCounter: Boolean(hitMeta?.isPunishCounter),
   });
+  if (isDevMeleeArenaActive() && typeof window !== "undefined") {
+    const finalDamage = Math.max(0, Math.round(Number(hitMeta?.damage) || 0));
+    const baseDamage = Math.max(
+      0,
+      Math.round(Number(hitMeta?.baseDamage) || Number(hitMeta?.damage) || 0),
+    );
+    const bonusDamage = Math.max(0, finalDamage - baseDamage);
+    const isPunishCounter = Boolean(hitMeta?.isPunishCounter);
+    const isCounterHit = Boolean(hitMeta?.isCounterHit);
+    const counterMultiplier = isPunishCounter
+      ? PUNISH_COUNTER_MULTIPLIER
+      : isCounterHit
+        ? COUNTER_HIT_MULTIPLIER
+        : 1;
+    window.__devArenaLastMeleeHit = {
+      at:
+        typeof performance !== "undefined" && typeof performance.now === "function"
+          ? performance.now()
+          : Date.now(),
+      move: moveName,
+      damage: finalDamage,
+      baseDamage,
+      bonusDamage,
+      isCounterHit,
+      isPunishCounter,
+      counterMultiplier,
+    };
+  }
   const targetLen = 8;
   while (names.length > targetLen) names.shift();
   while (detailEntries.length > targetLen) detailEntries.shift();
@@ -21690,7 +21718,7 @@ function registerNormalSlashChainHit(target, meleeAttackState, now) {
 
 function registerDivineShotComboHit(target, meleeAttackState, hitMeta = null) {
   if (!target || !meleeAttackState) return;
-  registerMeleeComboHit(target, meleeAttackState, "Divine Shot", hitMeta);
+  registerMeleeComboHit(target, meleeAttackState, "Blast", hitMeta);
   if (
     meleeAttackState.punishCounterTarget === target &&
     meleeAttackState.punishCounterPrimed &&
@@ -21892,7 +21920,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     damage: comboDamage,
     fontSize: labelFontSize,
     color: labelColor,
-    durationMs: 1100,
+    durationMs: 1800,
   });
 }
 
@@ -22479,8 +22507,8 @@ function executeRushAttack(dir, meleeAttackState, { skipYell = false } = {}) {
   if (playerDashState?.isDashing) return false;
   if (!isSharedBButtonReady()) return false;
   if (!dir || (dir.x === 0 && dir.y === 0)) return false;
-  if (!skipYell) playerYell("Rush Attack", 2.4);
-  registerComboMoveName(meleeAttackState, "Rush Attack");
+  if (!skipYell) playerYell("Rush", 2.4);
+  registerComboMoveName(meleeAttackState, "Rush");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -22702,7 +22730,7 @@ function executeRingOfFireAttack(meleeAttackState) {
 
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
-  registerComboMoveName(meleeAttackState, "Spin Attack");
+  registerComboMoveName(meleeAttackState, "Spin");
   meleeAttackState.currentAttackHitboxType = "spin";
   meleeAttackState.swingLength = null;
   const dir = getSpinAttackDirection();
@@ -22740,8 +22768,8 @@ function executeSpinAttack(meleeAttackState, moveDir) {
 }
 
 function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false } = {}) {
-  if (!skipYell) playerYell("Divine Shot!");
-  registerComboMoveName(meleeAttackState, "Divine Shot");
+  if (!skipYell) playerYell("Blast!");
+  registerComboMoveName(meleeAttackState, "Blast");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -23499,7 +23527,6 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.lastComboTimes.A = 0;
       if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - prayerStrikeCost);
-      playerYell("Prayer Strike!");
       executeSpinAttack(meleeAttackState, null);
       meleeAttackState.swingLength = MELEE_SWING_LENGTH_BASE * 1.5;
       keysJustPressed.delete("ArrowLeft");

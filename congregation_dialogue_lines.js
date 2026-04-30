@@ -160,14 +160,14 @@
     'Tip: The little circle below you means Button B is ready, including B-combos.',
     "Tip: Hold B to dash further toward a powerup.",
     "Tip: Hold A + Hold B for a Sword Rush!",
-    "Tip: Press A then B quickly to Double Strike.",
-    "Tip: Press B then A quickly for a Rush Attack.",
+    "Tip: Press A then B quickly for Cleave.",
+    "Tip: Press B then A quickly for a Rush.",
     "Tip: Tap C to make us fire at enemies!",
     "Tip: Hold C down for a Prayer Bomb!",
     "Tip: Double-tap C and we'll protect you!",
     "Tip: Hold C + Hold A for a Holy Ground ring of fire.",
     "Tip: Hold B + Hold C to Blink Teleport to a powerup.",
-    "Tip: Tap C then A quickly for a Prayer Strike spin.",
+    "Tip: Tap C then A quickly for Spin.",
   ];
 
   const welcomeLinesXbox = [
@@ -178,14 +178,14 @@
     'Tip: The little circle below you means Button B is ready, including B-combos.',
     "Tip: Hold B to dash further toward a powerup.",
     "Tip: Hold A + Hold B for a Sword Rush!",
-    "Tip: Press A then B quickly to Double Strike.",
-    "Tip: Press B then A quickly for a Rush Attack.",
+    "Tip: Press A then B quickly for Cleave.",
+    "Tip: Press B then A quickly for a Rush.",
     "Tip: Tap RB to make us fire at enemies!",
     "Tip: Hold RB for a Prayer Bomb!",
     "Tip: Double-tap RB and we'll protect you!",
     "Tip: Hold RB + Hold A for a Holy Ground ring of fire.",
     "Tip: Hold B + Hold RB to Blink Teleport to a powerup.",
-    "Tip: Tap RB then A quickly for a Prayer Strike spin.",
+    "Tip: Tap RB then A quickly for Spin.",
     "Tip: Press Menu button to start the fight.",
   ];
 

@@ -23,14 +23,14 @@
 ## Button A — Sword (Left Arrow)
 
 - Tap A — Sword slash
-- Hold A — Shoots Sword Slash (Divine Shot)
-- A->B — Double Strike
+- Hold A — Shoots Sword Slash (Blast)
+- A->B — Cleave
 
 ## Button B — Dash (Down Arrow)
 
 - B — Dash (must be available)
 - Hold B - Dash Towards PowerUp
-- B->A - Rush Attack
+- B->A - Rush
 
 ## Button C — Prayer (Right Arrow)
 (Note: Prayer moves use your Prayer Meter. The meter holds 6 Prayers.)
@@ -39,14 +39,14 @@
 - Double-tap C — Pastor Protection (congregation fires and clears a path for you). 1 Prayer.
 - Hold C (not full) - Prayer Bomb. 2 Prayers.
 - Hold C (full) — Prayer Storm. 6 Prayers.
-- C->A - Prayer Strike (spin attack). 2 Prayers.
+- C->A - Spin. 2 Prayers.
 - C->B - Prayer Dash (BUG - DOESN'T WORK). 1 Prayer.
 
 ## Double Charges 
 (Costs 2 Prayers)
 
 - A+C — Holy Ground (ring of fire surrounds you)
-- A+B — Sword Rush (Divine Shot plus Rush Attack together)
+- A+B — Sword Rush (Blast plus Rush together)
 - B+C — Blink Teleport (teleport to nearest powerup)
 
 ## Xbox Controller Layout
@@ -70,7 +70,7 @@ Your C-button Prayer abilities spend Prayers.
 - The longer the combo the more damage.
 - Conterattack Buff - strike after enemy whiff
 - Punish Counter - combo after enemy whiff
-- Max Damage would be a Punish Counter followed by a 4 sword combo (Divine Shot / Slash / Rush Attach / Slash Charged-A, A, B->A, A)
+- Max Damage would be a Punish Counter followed by a 4 sword combo (Blast / Slash / Rush / Slash Charged-A, A, B->A, A)
 - Other combos possible
 
 ## Map
@@ -88,4 +88,3 @@ Your C-button Prayer abilities spend Prayers.
 - Google Auth is already wired for saving
 - X-Box Controller kinda works already. 
 123 
-

@@ -75,7 +75,7 @@
       pierce: false,
     },
     divine_shot: {
-      displayName: "Divine Shot",
+      displayName: "Blast",
       speed: 690 * WORLD_SCALE,
       damage: 1000,
       life: 3.0,

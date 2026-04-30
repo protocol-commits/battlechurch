@@ -1239,14 +1239,14 @@
       const panelWidth = 300;
       const panelX = 14;
       const panelY = hudHeight + 14;
-      const lineHeight = 18;
-      const panelHeight = 56 + lineHeight * 10;
+      const rowHeight = 20;
+      const panelHeight = 300;
       const moveRows = [
-        { label: "Melee", value: ref.melee },
-        { label: "Cleave", value: ref.cleave },
-        { label: "Rush Attack", value: ref.rushAttack },
-        { label: "Divine Shot", value: ref.divineShot },
-        { label: "Spin Attack", value: ref.spinAttack },
+        { label: "Slash", input: "A", value: ref.melee },
+        { label: "Cleave", input: "A/B", value: ref.cleave },
+        { label: "Rush", input: "B/A", value: ref.rushAttack },
+        { label: "Blast", input: "Hold A", value: ref.divineShot },
+        { label: "Spin", input: "Hold B", value: ref.spinAttack },
       ];
       const counterMult = Number(ref?.modifiers?.counterHit) || 0;
       const punishMult = Number(ref?.modifiers?.punishCounter) || 0;
@@ -1265,26 +1265,59 @@
       ctx.fillText('Melee Damage Reference', panelX + 14, panelY + 12);
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = 'rgba(234,246,255,0.8)';
-      ctx.fillText('Base hit values', panelX + 14, panelY + 31);
+      ctx.fillText('Moves + Inputs', panelX + 14, panelY + 31);
 
-      let rowY = panelY + 50;
+      const dividerX = panelX + 14;
+      const dividerW = panelWidth - 28;
+      ctx.strokeStyle = 'rgba(155,217,255,0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(dividerX, panelY + 45);
+      ctx.lineTo(dividerX + dividerW, panelY + 45);
+      ctx.stroke();
+
+      let rowY = panelY + 54;
       moveRows.forEach((row) => {
         ctx.fillStyle = PALETTE.softWhite;
-        ctx.font = `13px ${UI_FONT_FAMILY}`;
+        ctx.font = `12px ${UI_FONT_FAMILY}`;
         const dmg = Number.isFinite(row.value) ? row.value : 0;
-        ctx.fillText(`${row.label}: ${dmg}`, panelX + 14, rowY);
-        rowY += lineHeight;
+        ctx.fillText(`${row.label} (${row.input})`, panelX + 14, rowY);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.font = `700 13px ${UI_FONT_FAMILY}`;
+        ctx.fillText(String(dmg), panelX + panelWidth - 16, rowY);
+        ctx.textAlign = 'left';
+        rowY += rowHeight;
       });
+
       rowY += 2;
+      ctx.strokeStyle = 'rgba(155,217,255,0.22)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(dividerX, rowY);
+      ctx.lineTo(dividerX + dividerW, rowY);
+      ctx.stroke();
+      rowY += 10;
+
       ctx.fillStyle = 'rgba(255,200,106,0.92)';
       ctx.font = `700 11px ${UI_FONT_FAMILY}`;
       ctx.fillText('Modifiers', panelX + 14, rowY);
-      rowY += lineHeight;
+      rowY += rowHeight;
       ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `13px ${UI_FONT_FAMILY}`;
-      ctx.fillText(`Counter Hit: x${counterMult.toFixed(2)}`, panelX + 14, rowY);
-      rowY += lineHeight;
-      ctx.fillText(`Punish Counter: x${punishMult.toFixed(2)}`, panelX + 14, rowY);
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.fillText('Counter Attack (CA)', panelX + 14, rowY);
+      ctx.textAlign = 'right';
+      ctx.font = `700 13px ${UI_FONT_FAMILY}`;
+      ctx.fillText(`x${counterMult.toFixed(2)}`, panelX + panelWidth - 16, rowY);
+      ctx.textAlign = 'left';
+      rowY += rowHeight;
+      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.fillText('Punish Counter (PC)', panelX + 14, rowY);
+      ctx.textAlign = 'right';
+      ctx.font = `700 13px ${UI_FONT_FAMILY}`;
+      ctx.fillText(`x${punishMult.toFixed(2)}`, panelX + panelWidth - 16, rowY);
+      ctx.textAlign = 'left';
       ctx.restore();
     };
 
@@ -1298,7 +1331,7 @@
       const panelX = canvas.width - panelWidth - 14;
       const panelY = hudHeight + 14;
       const lineHeight = 18;
-      const panelHeight = 56 + lineHeight * 12;
+      const panelHeight = 70 + lineHeight * 18;
 
       ctx.save();
       ctx.globalAlpha = 0.94;
@@ -1332,6 +1365,32 @@
       }
 
       let rowY = panelY + 62;
+      const latestHit = window.__devArenaLastMeleeHit || null;
+      if (latestHit) {
+        const latestMove = String(latestHit?.move || "Move");
+        const latestBase = Math.max(0, Math.round(Number(latestHit?.baseDamage) || 0));
+        const latestBonus = Math.max(0, Math.round(Number(latestHit?.bonusDamage) || 0));
+        const latestFinal = Math.max(0, Math.round(Number(latestHit?.damage) || 0));
+        const counterMultiplier = Number.isFinite(latestHit?.counterMultiplier)
+          ? Number(latestHit.counterMultiplier)
+          : 1;
+        const latestTags = [];
+        if (latestHit?.isPunishCounter) latestTags.push("PC");
+        else if (latestHit?.isCounterHit) latestTags.push("CA");
+        const latestTagSuffix = latestTags.length
+          ? ` [${latestTags.join(" + ")} x${counterMultiplier.toFixed(2)}]`
+          : "";
+        const latestBreakdown = latestBonus > 0 ? `${latestBase}+${latestBonus}` : `${latestBase}`;
+        ctx.fillStyle = 'rgba(155,217,255,0.96)';
+        ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+        ctx.fillText("LATEST HIT", panelX + 14, rowY);
+        rowY += lineHeight - 2;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `700 16px ${UI_FONT_FAMILY}`;
+        ctx.fillText(`${latestMove}: ${latestFinal} (${latestBreakdown})${latestTagSuffix}`, panelX + 14, rowY);
+        rowY += lineHeight + 6;
+      }
+
       orderedCombos.forEach((combo) => {
         if (rowY > panelY + panelHeight - lineHeight) return;
         const rawDetails = Array.isArray(combo?.details) ? combo.details : [];
@@ -1340,7 +1399,7 @@
         const totalDamage = Math.max(0, Math.round(Number(combo?.totalDamage) || 0));
         const tagParts = [];
         if (combo?.hasPunishCounter) tagParts.push("PC");
-        if (combo?.hasCounterHit) tagParts.push("CA");
+        else if (combo?.hasCounterHit) tagParts.push("CA");
         const tagSuffix = tagParts.length ? ` [${tagParts.join(" + ")}]` : "";
         ctx.fillStyle = 'rgba(255,200,106,0.92)';
         ctx.font = `700 11px ${UI_FONT_FAMILY}`;
@@ -1356,7 +1415,7 @@
           const moveDamage = Math.max(0, Math.round(Number(entry?.damage) || 0));
           const entryTags = [];
           if (entry?.isPunishCounter) entryTags.push("PC");
-          if (entry?.isCounterHit) entryTags.push("CA");
+          else if (entry?.isCounterHit) entryTags.push("CA");
           const entryTagSuffix = entryTags.length ? ` (${entryTags.join(" + ")})` : "";
           const breakdown =
             bonusDamage > 0
