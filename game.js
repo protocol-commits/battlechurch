@@ -21042,6 +21042,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
   if (!meleeAttackState.rushDamageEnabled || !meleeAttackState.rushHitEntities) return;
   if (!player) return;
   const isBlitz = Boolean(meleeAttackState.swordRushActive);
+  const rushMoveName = isBlitz ? "Blitz" : "Rush";
   const rushHitDamage = isBlitz ? BLITZ_DAMAGE : RUSH_DAMAGE;
   meleeAttackState.currentAttackHitboxType = isBlitz ? "swordRush" : "rush";
   const dir = normalizeVector(direction.x, direction.y);
@@ -21073,7 +21074,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     }
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
-    registerMeleeComboHit(enemy, meleeAttackState, null, {
+    registerMeleeComboHit(enemy, meleeAttackState, rushMoveName, {
       damage,
       isCounterHit: Boolean(counterHit?.isCounterHit),
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
@@ -21138,7 +21139,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
         });
         applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
-        registerMeleeComboHit(activeBoss, meleeAttackState, null, {
+        registerMeleeComboHit(activeBoss, meleeAttackState, rushMoveName, {
           damage,
           isCounterHit: Boolean(counterHit?.isCounterHit),
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
@@ -22742,9 +22743,13 @@ function applyDashSlashTravelDamage(meleeAttackState) {
   }
 }
 
-function executeRushAttack(dir, meleeAttackState, { skipYell = false, moveName = "Rush" } = {}) {
+function executeRushAttack(
+  dir,
+  meleeAttackState,
+  { skipYell = false, moveName = "Rush", bypassCooldown = false } = {},
+) {
   if (playerDashState?.isDashing) return false;
-  if (!isSharedBButtonReady()) return false;
+  if (!bypassCooldown && !isSharedBButtonReady()) return false;
   if (!dir || (dir.x === 0 && dir.y === 0)) return false;
   const displayName = String(moveName || "Rush");
   if (!skipYell) playerYell(displayName, 2.4);
@@ -23781,7 +23786,9 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.spinButtonDown = false;
       meleeAttackState.spinCharging = false;
       meleeAttackState.spinChargeTimer = 0;
-      const startedRush = executeRushAttack(getDashButtonDirection(), meleeAttackState);
+      const startedRush = executeRushAttack(getDashButtonDirection(), meleeAttackState, {
+        bypassCooldown: true,
+      });
       if (startedRush) {
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
@@ -23974,15 +23981,30 @@ function updateMeleeAttackSystem(dt) {
     if (spaceJustPressed && !meleeAttackState.buttonDown && !rushLockActive) {
       meleeAttackState.acSuperArmed = false;
       if (meleeAttackState.spinTimer > 0) {
-        meleeAttackState.spinTimer = 0;
-        meleeAttackState.spinMoveDir = null;
-        meleeAttackState.spinMoveDistanceRemaining = 0;
-        meleeAttackState.spinHitEntities = new Set();
-        meleeAttackState.spinMeleeQueued = false;
-        if (player) {
-          queueBasicMeleeAttack(dir, meleeAttackState);
-          player.state = "attackMelee";
-          player.animator.play("attackMelee", { restart: true });
+        const attemptedSpinToRush =
+          comboRushKeyOrder &&
+          !meleeAttackState.isRushing &&
+          executeRushAttack(getDashButtonDirection(), meleeAttackState, {
+            bypassCooldown: true,
+          });
+        if (attemptedSpinToRush) {
+          meleeAttackState.awaitRush = false;
+          meleeAttackState.awaitTimer = 0;
+          meleeAttackState.rushBypassUntil = 0;
+          keysJustPressed.delete("ArrowLeft");
+          keysJustPressed.delete(" ");
+          comboTriggered = true;
+        } else {
+          meleeAttackState.spinTimer = 0;
+          meleeAttackState.spinMoveDir = null;
+          meleeAttackState.spinMoveDistanceRemaining = 0;
+          meleeAttackState.spinHitEntities = new Set();
+          meleeAttackState.spinMeleeQueued = false;
+          if (player && !meleeAttackState.isRushing) {
+            queueBasicMeleeAttack(dir, meleeAttackState);
+            player.state = "attackMelee";
+            player.animator.play("attackMelee", { restart: true });
+          }
         }
       } else {
       if (playerDashState.isDashing) {
