@@ -11452,9 +11452,7 @@ function createPlayerInstance(x, y, clips) {
 function createEnemyInstance(type, config, clips, x, y) {
   const factory = window.Entities?.createEnemy;
   if (typeof factory === "function") return factory(type, config, clips, x, y);
-  const EnemyClass = window.Entities?.Enemy;
-  if (typeof EnemyClass === "function") return new EnemyClass(type, config, clips, x, y);
-  throw new Error('Enemy factory unavailable');
+  throw new Error("Enemy factory unavailable: expected window.Entities.createEnemy");
 }
 
 function shouldEnemyHuntNpcs(type, config = {}) {
