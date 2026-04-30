@@ -6095,11 +6095,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else {
       const scenarioRaw =
         typeof levelStatus.battleScenario === "string" ? levelStatus.battleScenario.trim() : "";
+      const victoryPhraseOverride =
+        typeof levelStatus.battleScenarioVictoryPhrase === "string"
+          ? levelStatus.battleScenarioVictoryPhrase.trim()
+          : null;
       const problemPhraseRaw =
         scenarioRaw.replace(/[.!?]+$/g, "").replace(/\s+/g, " ").trim() ||
         "their current struggles";
       const problemPhrase =
-        formatScenarioForSentence(problemPhraseRaw) || "their current struggles";
+        victoryPhraseOverride ||
+        formatScenarioForSentence(problemPhraseRaw) ||
+        "their current struggles";
 
       const survivors = Array.isArray(npcs)
         ? npcs
@@ -6122,7 +6128,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (uniqueNames.length > 2) {
         namesText = `${uniqueNames.slice(0, -1).join(", ")}, and ${uniqueNames[uniqueNames.length - 1]}`;
       }
-      payoffLine = `You helped ${namesText} gain tools to face ${problemPhrase}.`;
+      payoffLine = `You equipped ${namesText} with weapons to face ${problemPhrase}.`;
     }
     const stageTimer = Number.isFinite(levelStatus?.stageTimer)
       ? Math.max(0, Number(levelStatus.stageTimer))
@@ -6141,7 +6147,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       yBase: getAnnouncementYBase(requireBindings().HUD_HEIGHT),
       alpha: textAlpha,
       typewriter: true,
-      titleSize: Math.max(28, Math.round(TEXT_STYLES.h1.size * 0.76)),
+      titleSize: Math.max(22, Math.round(TEXT_STYLES.h1.size * 0.62)),
       lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
       weight: "700",
       textPalette: HELLFIRE_TEXT_PALETTE,

@@ -801,6 +801,7 @@
       graceRushFadeTimer: 0,
       conversationQueue: [],
       currentBattleScenario: "",
+      currentBattleScenarioVictoryPhrase: null,
       currentBossTheme: "",
       currentBossProblem: "",
       battleNpcStartCount: 0,
@@ -1057,6 +1058,10 @@
         typeof pickedScenario === "string"
           ? pickedScenario
           : (typeof pickedScenario?.title === "string" ? pickedScenario.title : "Mental health struggles");
+      state.currentBattleScenarioVictoryPhrase =
+        typeof pickedScenario === "object" && typeof pickedScenario?.victoryPhrase === "string"
+          ? pickedScenario.victoryPhrase
+          : null;
       const battleHordes = currentBattle()?.hordes;
       applyWaveArcToBattleHordes(battleHordes, state.currentBattleScenario);
   // Show Level + Month name instead of literal 'Battle N'
@@ -1244,6 +1249,7 @@
           : 0,
         npcHealthBreakdown: npcHealthBreakdown,
         battleScenario: state.currentBattleScenario,
+          battleScenarioVictoryPhrase: state.currentBattleScenarioVictoryPhrase || null,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
         battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
         prayerBombContributions: Array.isArray(state.battlePrayerBombContributions)
@@ -1725,6 +1731,7 @@
           : 0,
         npcHealthBreakdown: [],
         battleScenario: state.currentBattleScenario,
+          battleScenarioVictoryPhrase: state.currentBattleScenarioVictoryPhrase || null,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
         battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
         prayerBombContributions: Array.isArray(state.battlePrayerBombContributions)
@@ -2306,6 +2313,7 @@ state.waveIndex = -1;
           pendingVisitorMinigame: Boolean(state.pendingVisitorMinigame),
           bossPhase: state.boss?.phase || 0,
           battleScenario: state.currentBattleScenario,
+          battleScenarioVictoryPhrase: state.currentBattleScenarioVictoryPhrase || null,
           bossTheme: state.currentBossTheme,
         };
       },

@@ -38,6 +38,7 @@
     },
     {
       title: "Caring for a terminally ill loved one",
+      victoryPhrase: "the weight of caring for a terminally ill loved one",
       recap: "Helped the members through caring for a terminally ill loved one.\nThey went on to help others, and some were added to the church plant:",
     },
     {
@@ -54,15 +55,16 @@
     },
     {
       title: "Caring for an aging parent",
+      victoryPhrase: "the weight of caring for an aging parent",
       recap: "Helped the members through caring for an aging parent.\nThey went on to help others, and some were added to the church plant:",
     },
     {
-      title: "Parenting a child with special needs",
-      recap: "Helped the members through parenting a child with special needs.\nThey went on to help others, and some were added to the church plant:",
+      title: "Raising a child with special needs",
+      recap: "Helped the members through raising a child with special needs.\nThey went on to help others, and some were added to the church plant:",
     },
     {
-      title: "Parenting a troubled child",
-      recap: "Helped the members through parenting a troubled child.\nThey went on to help others, and some were added to the church plant:",
+      title: "Raising a troubled child",
+      recap: "Helped the members through raising a troubled child.\nThey went on to help others, and some were added to the church plant:",
     },
     {
       title: "Betrayal by a close friend",
