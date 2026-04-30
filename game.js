@@ -21264,6 +21264,29 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
 
 function updateRushMovement(dt, direction, meleeAttackState) {
   if (!meleeAttackState.isRushing || !player) return;
+  if (!Number.isFinite(dt) || dt <= 0) return;
+
+  const resetRushState = () => {
+    meleeAttackState.isRushing = false;
+    meleeAttackState.rushJustEnded = true;
+    meleeAttackState.rushDamageEnabled = false;
+    meleeAttackState.rushInvulnerable = false;
+    meleeAttackState.rushHitEntities = null;
+    meleeAttackState.swordRushActive = false;
+    meleeAttackState.swordRushBlastHitEntities = null;
+    meleeAttackState.rushKillCount = 0;
+    meleeAttackState.rushKillSumX = 0;
+    meleeAttackState.rushKillSumY = 0;
+    meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+    meleeAttackState.cooldown = 0;
+    meleeAttackState.rushLockTimer = 0;
+    meleeAttackState.rushDistanceRemaining = 0;
+  };
+
+  if (!Number.isFinite(meleeAttackState.rushDistanceRemaining) || meleeAttackState.rushDistanceRemaining <= 0) {
+    resetRushState();
+    return;
+  }
 
   applyMeleeInvulnerability(meleeAttackState, "rush", RUSH_EXIT_INVULNERABILITY);
 
@@ -21321,19 +21344,7 @@ function updateRushMovement(dt, direction, meleeAttackState) {
         clampToScreen: true,
       });
     }
-    meleeAttackState.isRushing = false;
-    meleeAttackState.rushJustEnded = true;
-    meleeAttackState.rushDamageEnabled = false;
-    meleeAttackState.rushInvulnerable = false;
-    meleeAttackState.rushHitEntities = null;
-    meleeAttackState.swordRushActive = false;
-    meleeAttackState.swordRushBlastHitEntities = null;
-    meleeAttackState.rushKillCount = 0;
-    meleeAttackState.rushKillSumX = 0;
-    meleeAttackState.rushKillSumY = 0;
-    meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
-    meleeAttackState.cooldown = 0;
-    meleeAttackState.rushLockTimer = 0;
+    resetRushState();
   }
 }
 
@@ -22790,6 +22801,7 @@ function executeRushAttack(
   meleeAttackState.rushInvulnerable = true;
   meleeAttackState.swordRushActive = false;
   meleeAttackState.swordRushBlastHitEntities = null;
+  meleeAttackState.rushForceEndAt = now + rushTravelMs + 250;
   applyMeleeInvulnerability(meleeAttackState, "rush", RUSH_EXIT_INVULNERABILITY);
   meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
@@ -23096,6 +23108,14 @@ function executeSwordRush(meleeAttackState) {
     RUSH_DISTANCE * SWORD_RUSH_DISTANCE_MULTIPLIER,
     screenTravel,
   );
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const blitzTravelMs = Math.ceil(
+    (meleeAttackState.rushDistanceRemaining / Math.max(1, RUSH_SPEED || 1)) * 1000,
+  );
+  meleeAttackState.rushForceEndAt = now + blitzTravelMs + 300;
   meleeAttackState.swordRushActive = true;
   meleeAttackState.swordRushBlastHitEntities = new Set();
   meleeAttackState.currentAttackHitboxType = "swordRush";
@@ -23252,6 +23272,38 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.acSuperPrayerBombBlockTimer > 0) {
     meleeAttackState.acSuperPrayerBombBlockTimer = Math.max(0, meleeAttackState.acSuperPrayerBombBlockTimer - dt);
   }
+
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const rushForcedExpired =
+    Number.isFinite(meleeAttackState.rushForceEndAt) && now >= meleeAttackState.rushForceEndAt;
+  if (rushForcedExpired && (meleeAttackState.isRushing || meleeAttackState.rushDamageEnabled)) {
+    meleeAttackState.isRushing = false;
+    meleeAttackState.rushJustEnded = true;
+    meleeAttackState.rushDamageEnabled = false;
+    meleeAttackState.rushInvulnerable = false;
+    meleeAttackState.rushHitEntities = null;
+    meleeAttackState.swordRushActive = false;
+    meleeAttackState.swordRushBlastHitEntities = null;
+    meleeAttackState.rushDistanceRemaining = 0;
+    meleeAttackState.rushLockTimer = 0;
+  }
+  if (rushForcedExpired) {
+    meleeAttackState.rushForceEndAt = 0;
+  }
+
+  // Safety cleanup: if rush ended/interrupted but damage flag stayed on, clear rush visuals/hit state.
+  if (!meleeAttackState.isRushing && meleeAttackState.rushDamageEnabled) {
+    meleeAttackState.rushDamageEnabled = false;
+    meleeAttackState.rushInvulnerable = false;
+    meleeAttackState.rushHitEntities = null;
+    meleeAttackState.swordRushActive = false;
+    meleeAttackState.swordRushBlastHitEntities = null;
+    meleeAttackState.rushDistanceRemaining = 0;
+    meleeAttackState.rushForceEndAt = 0;
+  }
 }
 
 function updateChargeState(dt, meleeAttackState) {
@@ -23362,6 +23414,7 @@ function updateMeleeAttackSystem(dt) {
       rushJustEnded: false,
       rushDir: { x: 1, y: 0 },
       rushDistanceRemaining: 0,
+      rushForceEndAt: 0,
       rushHitEntities: null,
       rushCooldown: 0,
       rushDustAccumulator: 0,
