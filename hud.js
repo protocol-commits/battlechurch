@@ -1235,13 +1235,14 @@
 
     const drawDevArenaMoveFeed = () => {
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
-      const rawFeed = Array.isArray(window.__devArenaMeleeFeed) ? window.__devArenaMeleeFeed : [];
-      const feed = rawFeed.slice(-10);
+      const combos = Array.isArray(window.__devArenaConfirmedCombos)
+        ? window.__devArenaConfirmedCombos.slice(-6)
+        : [];
       const panelWidth = 290;
       const panelX = canvas.width - panelWidth - 14;
       const panelY = hudHeight + 14;
-      const lineHeight = 20;
-      const panelHeight = 56 + lineHeight * 10;
+      const lineHeight = 18;
+      const panelHeight = 56 + lineHeight * 12;
 
       ctx.save();
       ctx.globalAlpha = 0.94;
@@ -1257,26 +1258,30 @@
       ctx.fillText('Melee Input Feed', panelX + 14, panelY + 12);
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = 'rgba(234,246,255,0.8)';
-      ctx.fillText('Latest moves (grouped by combo)', panelX + 14, panelY + 31);
+      ctx.fillText('Confirmed from damage combo hits', panelX + 14, panelY + 31);
 
       let rowY = panelY + 50;
-      let currentComboId = null;
-      feed.forEach((entry) => {
+      combos.forEach((combo) => {
         if (rowY > panelY + panelHeight - lineHeight) return;
-        const comboId = entry?.comboId || "";
-        const moveName = entry?.move || "";
-        if (!moveName) return;
-        const isNewCombo = comboId !== currentComboId;
-        currentComboId = comboId;
-        if (isNewCombo) {
-          ctx.fillStyle = 'rgba(255,200,106,0.92)';
-          ctx.font = `700 11px ${UI_FONT_FAMILY}`;
-          ctx.fillText('COMBO', panelX + 14, rowY + 2);
-        }
-        ctx.fillStyle = PALETTE.softWhite;
-        ctx.font = `13px ${UI_FONT_FAMILY}`;
-        ctx.fillText(`- ${moveName}`, panelX + (isNewCombo ? 70 : 30), rowY);
+        const hits = Math.max(2, Math.floor(Number(combo?.hits) || 2));
+        const moves = Array.isArray(combo?.moves) ? combo.moves.slice(0, hits) : [];
+        ctx.fillStyle = 'rgba(255,200,106,0.92)';
+        ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+        ctx.fillText(`COMBO ${hits}`, panelX + 14, rowY + 2);
         rowY += lineHeight;
+        moves.forEach((moveName) => {
+          if (rowY > panelY + panelHeight - lineHeight) return;
+          ctx.fillStyle = PALETTE.softWhite;
+          ctx.font = `13px ${UI_FONT_FAMILY}`;
+          ctx.fillText(`- ${moveName}`, panelX + 30, rowY);
+          rowY += lineHeight;
+        });
+        if (rowY <= panelY + panelHeight - lineHeight) {
+          ctx.fillStyle = 'rgba(143,163,191,0.8)';
+          ctx.font = `10px ${UI_FONT_FAMILY}`;
+          ctx.fillText('-----', panelX + 30, rowY);
+          rowY += lineHeight - 4;
+        }
       });
       ctx.restore();
     };

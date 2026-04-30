@@ -4271,6 +4271,9 @@ let pendingDevMeleeArenaLaunch = false;
 const DEV_MELEE_FEED_MAX = 12;
 const DEV_MELEE_COMBO_WINDOW_MS = 1300;
 let devMeleeMoveFeed = [];
+const DEV_MELEE_CONFIRMED_COMBO_MAX = 8;
+let devMeleeConfirmedCombos = [];
+let devMeleeComboSerial = 0;
 
 function isDevMeleeArenaActive() {
   return devMeleeArenaMode === true;
@@ -4278,8 +4281,11 @@ function isDevMeleeArenaActive() {
 
 function resetDevMeleeMoveFeed() {
   devMeleeMoveFeed = [];
+  devMeleeConfirmedCombos = [];
+  devMeleeComboSerial = 0;
   if (typeof window !== "undefined") {
     window.__devArenaMeleeFeed = devMeleeMoveFeed;
+    window.__devArenaConfirmedCombos = devMeleeConfirmedCombos;
   }
 }
 
@@ -4304,6 +4310,38 @@ function pushDevMeleeMove(moveName) {
   if (typeof window !== "undefined") {
     window.__devArenaMeleeFeed = devMeleeMoveFeed;
   }
+}
+
+function syncDevArenaConfirmedCombos() {
+  if (typeof window !== "undefined") {
+    window.__devArenaConfirmedCombos = devMeleeConfirmedCombos;
+  }
+}
+
+function upsertDevArenaConfirmedCombo(comboId, hits, moves) {
+  if (!isDevMeleeArenaActive()) return;
+  if (!comboId || !Number.isFinite(hits) || hits < 2) return;
+  const normalizedMoves = Array.isArray(moves)
+    ? moves.filter((name) => typeof name === "string" && name.trim()).slice(0, hits)
+    : [];
+  const payload = {
+    comboId: String(comboId),
+    hits: Math.max(2, Math.floor(hits)),
+    moves: normalizedMoves,
+  };
+  const last = devMeleeConfirmedCombos.length
+    ? devMeleeConfirmedCombos[devMeleeConfirmedCombos.length - 1]
+    : null;
+  if (last && last.comboId === payload.comboId) {
+    last.hits = payload.hits;
+    last.moves = payload.moves;
+  } else {
+    devMeleeConfirmedCombos.push(payload);
+    if (devMeleeConfirmedCombos.length > DEV_MELEE_CONFIRMED_COMBO_MAX) {
+      devMeleeConfirmedCombos = devMeleeConfirmedCombos.slice(-DEV_MELEE_CONFIRMED_COMBO_MAX);
+    }
+  }
+  syncDevArenaConfirmedCombos();
 }
 
 function getDevMeleeArenaCenter() {
@@ -21457,6 +21495,10 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const chainActive = sameTargetChainActive || swarmRetargetActive;
   meleeAttackState.meleeComboTarget = target;
   const previousHits = currentHits;
+  if (!chainActive || previousHits <= 0 || !meleeAttackState.devArenaComboId) {
+    devMeleeComboSerial += 1;
+    meleeAttackState.devArenaComboId = `confirmed-${devMeleeComboSerial}`;
+  }
   meleeAttackState.meleeComboHits = chainActive
     ? Math.max(1, currentHits + 1)
     : 1;
@@ -21475,6 +21517,16 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   meleeAttackState.comboMovesWindowUntil = now + COMBO_WINDOW_MS;
   meleeAttackState.pendingComboMoveName = null;
   updateComboMoveCallout(meleeAttackState);
+  if (meleeAttackState.meleeComboHits >= 2) {
+    const confirmedMoves = Array.isArray(meleeAttackState.comboMoveNames)
+      ? meleeAttackState.comboMoveNames.slice(-meleeAttackState.meleeComboHits)
+      : [];
+    upsertDevArenaConfirmedCombo(
+      meleeAttackState.devArenaComboId,
+      meleeAttackState.meleeComboHits,
+      confirmedMoves,
+    );
+  }
   if (meleeAttackState.meleeComboHits >= 2) {
     const comboGemCount = Math.min(
       MELEE_COMBO_GRACE_GEMS_MAX,
