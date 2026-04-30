@@ -8,9 +8,9 @@
       "offsetY": 4
     },
     "weaponHitbox": {
-      "width": 190,
+      "width": 250,
       "height": 100,
-      "offsetX": 55,
+      "offsetX": 97,
       "offsetY": 0
     },
     "dashSlashHitbox": {
