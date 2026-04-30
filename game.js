@@ -4357,6 +4357,16 @@ function enforceDevMeleeArenaVitals() {
   if (player) {
     player.maxHealth = DEV_MELEE_ARENA_HEALTH;
     player.health = DEV_MELEE_ARENA_HEALTH;
+    const prayerRequired = Math.max(
+      1,
+      Number(player.prayerChargeRequired) || Number(PRAYER_BOMB_CHARGE_REQUIRED) || 1,
+    );
+    player.prayerCharge = prayerRequired;
+    const commandRequired = Math.max(
+      0.001,
+      Number(player.congregationCommandChargeRequired) || Number(CONGREGATION_COMMAND_CHARGE_TIME) || 1,
+    );
+    player.congregationCommandCharge = commandRequired;
   }
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
