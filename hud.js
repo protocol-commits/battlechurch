@@ -1240,16 +1240,19 @@
       const panelX = 14;
       const panelY = hudHeight + 14;
       const rowHeight = 20;
-      const panelHeight = 300;
       const moveRows = [
         { label: "Slash", input: "A", value: ref.melee },
         { label: "Cleave", input: "A/B", value: ref.cleave },
         { label: "Rush", input: "B/A", value: ref.rushAttack },
+        { label: "Power Dash", input: "Hold B", value: null },
         { label: "Blast", input: "Hold A", value: ref.divineShot },
         { label: "Spin", input: "C/A", value: ref.spinAttack },
+        { label: "Refuge", input: "A+C", value: null },
+        { label: "Blitz", input: "A+B", value: ref.blitz },
+        { label: "Teleport", input: "Hold B+C", value: null },
+        { label: "Holy Dash", input: "C/B", value: null },
       ];
-      const counterMult = Number(ref?.modifiers?.counterHit) || 0;
-      const punishMult = Number(ref?.modifiers?.punishCounter) || 0;
+      const panelHeight = 68 + rowHeight * moveRows.length;
 
       ctx.save();
       ctx.globalAlpha = 0.94;
@@ -1280,7 +1283,7 @@
       moveRows.forEach((row) => {
         ctx.fillStyle = PALETTE.softWhite;
         ctx.font = `12px ${UI_FONT_FAMILY}`;
-        const dmg = Number.isFinite(row.value) ? row.value : 0;
+        const dmg = Number.isFinite(row.value) ? row.value : '--';
         ctx.fillText(`${row.label} (${row.input})`, panelX + 14, rowY);
         ctx.textAlign = 'right';
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
@@ -1289,35 +1292,6 @@
         ctx.textAlign = 'left';
         rowY += rowHeight;
       });
-
-      rowY += 2;
-      ctx.strokeStyle = 'rgba(155,217,255,0.22)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(dividerX, rowY);
-      ctx.lineTo(dividerX + dividerW, rowY);
-      ctx.stroke();
-      rowY += 10;
-
-      ctx.fillStyle = 'rgba(255,200,106,0.92)';
-      ctx.font = `700 11px ${UI_FONT_FAMILY}`;
-      ctx.fillText('Modifiers', panelX + 14, rowY);
-      rowY += rowHeight;
-      ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText('Counter Attack (CA)', panelX + 14, rowY);
-      ctx.textAlign = 'right';
-      ctx.font = `700 13px ${UI_FONT_FAMILY}`;
-      ctx.fillText(`x${counterMult.toFixed(2)}`, panelX + panelWidth - 16, rowY);
-      ctx.textAlign = 'left';
-      rowY += rowHeight;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = PALETTE.softWhite;
-      ctx.fillText('Punish Counter (PC)', panelX + 14, rowY);
-      ctx.textAlign = 'right';
-      ctx.font = `700 13px ${UI_FONT_FAMILY}`;
-      ctx.fillText(`x${punishMult.toFixed(2)}`, panelX + panelWidth - 16, rowY);
-      ctx.textAlign = 'left';
       ctx.restore();
     };
 

@@ -4448,6 +4448,7 @@ function enforceDevMeleeArenaVitals() {
         rushAttack: Math.round(RUSH_DAMAGE),
         divineShot: Math.round(DIVINE_SHOT_DAMAGE),
         spinAttack: Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER),
+        blitz: Math.round(BLITZ_DAMAGE),
         modifiers: {
           counterHit: COUNTER_HIT_MULTIPLIER,
           punishCounter: PUNISH_COUNTER_MULTIPLIER,
@@ -19609,7 +19610,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     const cRecentForCombo = cLastPressed > 0 && (nowPre - cLastPressed) <= comboWinMs;
     const aJustPressedNow = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
     const prayerStrikeBlocking = cRecentForCombo && aJustPressedNow &&
-      (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000) / 3;
+      (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000) / 6;
 
     // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
     const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0);
@@ -20982,6 +20983,19 @@ function tryStartDash(direction) {
   playerDashState.isHolyDash = false;
   playerDashState.dashDir = direction;
   playerDashState.dashDistanceRemaining = DASH_DISTANCE;
+  playerDashState.dashDustAccumulator = 0;
+  setSharedBButtonCooldown(DASH_COOLDOWN);
+  playDashSfx(0.9);
+  return true;
+}
+
+function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5) {
+  if (playerDashState.isDashing) return false;
+  if (!direction || (direction.x === 0 && direction.y === 0)) return false;
+  playerDashState.isDashing = true;
+  playerDashState.isHolyDash = true;
+  playerDashState.dashDir = direction;
+  playerDashState.dashDistanceRemaining = Math.max(DASH_DISTANCE, distance);
   playerDashState.dashDustAccumulator = 0;
   setSharedBButtonCooldown(DASH_COOLDOWN);
   playDashSfx(0.9);
@@ -23790,10 +23804,8 @@ function updateMeleeAttackSystem(dt) {
       (player.prayerCharge || 0) >= holyDashCost;
     if (comboHolyDash) {
       const holyDir = getDashButtonDirection();
-      if (tryStartDash(holyDir)) {
+      if (forceStartHolyDash(holyDir, DASH_DISTANCE * 2.5)) {
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
-        playerDashState.dashDistanceRemaining = DASH_DISTANCE * 2.5;
-        playerDashState.isHolyDash = true;
         player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
         playerYell("Holy Dash");
         keysJustPressed.delete("ArrowDown");
@@ -23815,7 +23827,7 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete("ArrowDown");
       comboTriggered = true;
     }
-    const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 3 : 20;
+    const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 6 : 10;
     const comboPrayerStrike =
       !comboTriggered &&
       comboPrayerStrikeOrder &&
