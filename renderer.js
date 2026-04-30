@@ -2410,6 +2410,12 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
             target: Number.isFinite(entry?.faith) ? Math.max(0, Math.round(entry.faith)) : 0,
             penaltyApplied: false,
           })),
+          penaltyPerNpc: Math.max(
+            1,
+            Math.round(
+              Number(current?.zeroHealthPenaltyValue) || 0,
+            ) / Math.max(1, Math.round(Number(current?.zeroHealthPenaltyCount) || 0)),
+          ) || 1,
           activeNpcIndex: 0,
           activeHealth: Number.isFinite(entries?.[0]?.faith) ? Math.max(0, Math.round(entries[0].faith)) : 0,
           totalHealth: 0,
@@ -2537,7 +2543,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
           activeEntry.penaltyApplied = true;
           anim.congregationPenaltyApplied += 1;
           if (affectsTotal) {
-            recapTallyState.totalValue -= 1;
+            recapTallyState.totalValue -= Math.max(1, Math.round(anim.penaltyPerNpc || 1));
             recapTallyState.flashTimer = RECAP_FLASH_DURATION;
           }
           if (typeof window?.playCongregationCountPopSfx === "function") {
@@ -3350,7 +3356,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const popX = countNumberX + countTextWidth / 2;
       for (let ghostIndex = 0; ghostIndex < popCount; ghostIndex += 1) {
         spawnRecapGhostEffect(
-          "-1",
+          `-${Math.max(1, Math.round(anim.penaltyPerNpc || 1))}`,
           popX,
           countNumberY - 12,
           popX,

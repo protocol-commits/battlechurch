@@ -8209,8 +8209,9 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
         },
         0,
       );
+  const lostCongregationPenalty = zeroHealthPenaltyCount * NPC_LOSS_CONGREGATION_PENALTY;
   const healthRewardBase = isBossSummary ? 0 : Math.max(0, Math.min(5, Math.floor(totalNpcFaith / 100)));
-  const healthReward = isBossSummary ? 0 : (healthRewardBase - zeroHealthPenaltyCount);
+  const healthReward = isBossSummary ? 0 : (healthRewardBase - lostCongregationPenalty);
   const perfectProtectionValue = !isBossSummary && totalNpcFaith >= 500 ? 100 : 0;
   const pastorHealthValue = playerHealthAtRecap;
   const maxComboPerformanceValue = battleMaxCombo;
@@ -8319,6 +8320,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       totalHealth: totalNpcFaith,
       positiveHealthBonus: healthRewardBase,
       zeroHealthPenaltyCount,
+      zeroHealthPenaltyValue: lostCongregationPenalty,
       npcHealthBreakdown,
     });
   }
@@ -8367,7 +8369,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       paragraph += `${names} ${verb} left the church. `;
     }
     const zeroPenaltyLabel = zeroHealthPenaltyCount === 1 ? "zero-health penalty" : "zero-health penalties";
-    paragraph += `Their remaining health was ${formatNumberWithCommas(totalNpcFaith)} (${formatDelta(healthRewardBase)}), with ${formatNumberWithCommas(zeroHealthPenaltyCount)} ${zeroPenaltyLabel} (${formatDelta(-zeroHealthPenaltyCount)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
+    paragraph += `Their remaining health was ${formatNumberWithCommas(totalNpcFaith)} (${formatDelta(healthRewardBase)}), with ${formatNumberWithCommas(zeroHealthPenaltyCount)} ${zeroPenaltyLabel} (${formatDelta(-lostCongregationPenalty)}). Current Congregation Size: (${formatDelta(totalDelta)}) ${formatNumberWithCommas(congregationTotal)}`;
   }
   const body = paragraph;
   if (announcement) {
@@ -15522,6 +15524,8 @@ function resetCongregationSize() {
     : INITIAL_CONGREGATION_SIZE;
 }
 
+const NPC_LOSS_CONGREGATION_PENALTY = 5;
+
 function adjustCongregationSize(delta) {
   if (!Number.isFinite(delta) || delta === 0) return congregationSize;
   congregationSize = Math.max(0, Math.round(congregationSize + delta));
@@ -15529,7 +15533,7 @@ function adjustCongregationSize(delta) {
 }
 
 function handleNpcLostFromCongregation() {
-  adjustCongregationSize(-1);
+  adjustCongregationSize(-NPC_LOSS_CONGREGATION_PENALTY);
 }
 
 function getCongregationSize() {

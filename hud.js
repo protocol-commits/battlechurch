@@ -900,7 +900,7 @@
       const baselineCongregation = typeof initialCongregationSize === 'number' ? initialCongregationSize : 0;
       const congregationTotal = congregationProvider
         ? congregationProvider()
-        : Math.max(0, (baselineCongregation || 0) - (stats?.npcsLost ?? 0));
+        : Math.max(0, baselineCongregation || 0);
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
