@@ -5589,9 +5589,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof window !== "undefined") {
       window.__congregationShowTutorialHints = false;
     }
-    const fullTitleText = isFirstPlaythroughForTown
-      ? `Welcome to ${townName} Church`
-      : `Welcome back to ${townName} Church`;
+    const isDevArena = Boolean(
+      typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode === true,
+    );
+    const fullTitleText = isDevArena
+      ? "Welcome to Dev Church"
+      : isFirstPlaythroughForTown
+        ? `Welcome to ${townName} Church`
+        : `Welcome back to ${townName} Church`;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const stage = levelStatus?.stage || "";
     const activeAnnouncement = Array.isArray(levelAnnouncements) ? levelAnnouncements[0] : null;

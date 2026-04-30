@@ -36,6 +36,8 @@
     } catch (e) {}
     return false;
   };
+  const isDevMeleeArenaActive = () =>
+    Boolean(typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode === true);
 
   const circleIntersectsRect = (cx, cy, radius, rect) => {
     const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.width));
@@ -1306,7 +1308,7 @@
         const meleeBlocking = meleeState && meleeState.projectileBlockTimer > 0;
 
       // Autofire using the player's current weapon, including during visitor sessions.
-      if (!meleeBlocking) {
+      if (!meleeBlocking && !isDevMeleeArenaActive()) {
         if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
           this.tryAttack("arrow");
         } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
@@ -1415,6 +1417,12 @@
 
   tryAttack(type) {
   if (this.state === "hurt" || this.state === "death") return;
+  if (
+    isDevMeleeArenaActive() &&
+    (type === "arrow" || type === "wisdom_missle" || type === "faith_cannon" || type === "fire")
+  ) {
+    return;
+  }
   const meleeAttackState = window._meleeAttackState;
   if (meleeAttackState?.projectileBlockTimer > 0) return;
   const meleeInputBlocking =
@@ -2420,6 +2428,23 @@
       const distance = Math.hypot(dx, dy) || 1;
       const targetRadius = targetIsPlayer ? (player?.radius || 0) : target.radius || NPC_RADIUS;
       const targetHitboxRect = getTargetHitboxRect(target);
+      const isImmobileDummy = this.devImmobileTestDummy === true;
+      if (isImmobileDummy) {
+        if (!Number.isFinite(this.devAnchorX) || !Number.isFinite(this.devAnchorY)) {
+          this.devAnchorX = this.x;
+          this.devAnchorY = this.y;
+        }
+        this.x = this.devAnchorX;
+        this.y = this.devAnchorY;
+        this.knockbackVx = 0;
+        this.knockbackVy = 0;
+        this.knockbackTimer = 0;
+        this.knockbackDuration = 0;
+        this.scatterVx = 0;
+        this.scatterVy = 0;
+        this.scatterTimer = 0;
+        this.scatterDuration = 0;
+      }
 
       this.attackTimer = Math.max(0, this.attackTimer - dt);
 
@@ -2432,7 +2457,7 @@
       }
 
       if (this.state === "attack") {
-        if (this._attackLock && this._attackLock.target) {
+        if (!isImmobileDummy && this._attackLock && this._attackLock.target) {
           const t = this._attackLock.target;
           if (!t || t.departed || (typeof t.active !== "undefined" && !t.active)) {
             this._attackLock = null;
@@ -2582,7 +2607,7 @@
       }
 
       if (this.isRanged) {
-        this.updateRangedBehavior(dt, dx, dy, distance, targetRadius);
+        this.updateRangedBehavior(dt, dx, dy, distance, targetRadius, isImmobileDummy);
         this.animator.update(dt);
         return;
       }
@@ -2634,8 +2659,10 @@
         moveY = desired.y;
       }
       const moveDir = normalizeVector(moveX, moveY);
-      this.x += moveDir.x * this.config.speed * dt;
-      this.y += moveDir.y * this.config.speed * dt;
+      if (!isImmobileDummy) {
+        this.x += moveDir.x * this.config.speed * dt;
+        this.y += moveDir.y * this.config.speed * dt;
+      }
       this.updateFacing(moveDir.x, moveDir.y);
 
       if (this.knockbackTimer > 0) {
@@ -3187,7 +3214,7 @@
       return true;
     }
 
-    updateRangedBehavior(dt, dx, dy, distance, targetRadius = 0) {
+    updateRangedBehavior(dt, dx, dy, distance, targetRadius = 0, isImmobileDummy = false) {
       const desiredRange = this.desiredRange;
       const rangeBuffer = Math.max(0, targetRadius * 0.5);
       const minDistance = desiredRange * 0.55 + rangeBuffer;
@@ -3196,11 +3223,11 @@
       let moveX = 0;
       let moveY = 0;
 
-      if (this.tryStartDemonLordJump(dx, dy, distance, targetRadius)) {
+      if (!isImmobileDummy && this.tryStartDemonLordJump(dx, dy, distance, targetRadius)) {
         return;
       }
 
-      if (this.preferEdges) {
+      if (!isImmobileDummy && this.preferEdges) {
         if (!this.edgeTarget || Math.random() < 0.002) {
           this.edgeTarget = this.chooseEdgePosition();
         }
@@ -3214,15 +3241,15 @@
         }
       }
 
-      if (distance < minDistance && distance > 1) {
+      if (!isImmobileDummy && distance < minDistance && distance > 1) {
         moveX -= dx / distance;
         moveY -= dy / distance;
-      } else if (distance > maxDistance) {
+      } else if (!isImmobileDummy && distance > maxDistance) {
         moveX += dx / distance;
         moveY += dy / distance;
       }
 
-      if (isDemonLord && distance > 1) {
+      if (!isImmobileDummy && isDemonLord && distance > 1) {
         const lateralSign =
           Number.isFinite(this.jumpCurveSign) && this.jumpCurveSign !== 0
             ? this.jumpCurveSign
@@ -3240,7 +3267,7 @@
         }
       }
 
-      if (moveX !== 0 || moveY !== 0) {
+      if (!isImmobileDummy && (moveX !== 0 || moveY !== 0)) {
         const moveDir = normalizeVector(moveX, moveY);
         this.x += moveDir.x * this.config.speed * dt;
         this.y += moveDir.y * this.config.speed * dt;

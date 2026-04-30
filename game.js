@@ -4265,6 +4265,154 @@ let devPlaytestSession = {
   scope: null, // { town, mission, battle }
 };
 let devPlaytestQuickActionsEl = null;
+const DEV_MELEE_ARENA_HEALTH = 100000;
+let devMeleeArenaMode = false;
+let pendingDevMeleeArenaLaunch = false;
+const DEV_MELEE_FEED_MAX = 12;
+const DEV_MELEE_COMBO_WINDOW_MS = 1300;
+let devMeleeMoveFeed = [];
+
+function isDevMeleeArenaActive() {
+  return devMeleeArenaMode === true;
+}
+
+function resetDevMeleeMoveFeed() {
+  devMeleeMoveFeed = [];
+  if (typeof window !== "undefined") {
+    window.__devArenaMeleeFeed = devMeleeMoveFeed;
+  }
+}
+
+function pushDevMeleeMove(moveName) {
+  if (!isDevMeleeArenaActive() || !moveName) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const move = String(moveName);
+  const prev = devMeleeMoveFeed.length
+    ? devMeleeMoveFeed[devMeleeMoveFeed.length - 1]
+    : null;
+  const comboId =
+    prev && now - prev.at <= DEV_MELEE_COMBO_WINDOW_MS
+      ? prev.comboId
+      : `combo-${Math.floor(now)}-${Math.floor(Math.random() * 1000)}`;
+  devMeleeMoveFeed.push({ move, at: now, comboId });
+  if (devMeleeMoveFeed.length > DEV_MELEE_FEED_MAX) {
+    devMeleeMoveFeed = devMeleeMoveFeed.slice(-DEV_MELEE_FEED_MAX);
+  }
+  if (typeof window !== "undefined") {
+    window.__devArenaMeleeFeed = devMeleeMoveFeed;
+  }
+}
+
+function getDevMeleeArenaCenter() {
+  const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
+  return {
+    x: (canvas?.width || 0) * 0.5,
+    y: hud + ((canvas?.height || 0) - hud) * 0.5,
+  };
+}
+
+function enforceDevMeleeArenaVitals() {
+  if (!isDevMeleeArenaActive()) return;
+  if (player) {
+    player.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    player.health = DEV_MELEE_ARENA_HEALTH;
+  }
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    enemy.health = DEV_MELEE_ARENA_HEALTH;
+    if (enemy.config) {
+      enemy.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
+      enemy.config.health = DEV_MELEE_ARENA_HEALTH;
+    }
+  });
+}
+
+function spawnDevMeleeArenaEnemy() {
+  const center = getDevMeleeArenaCenter();
+  const enemy = spawnEnemyOfType("armoredSkeleton", center, {
+    skipSpawnEffects: true,
+    applyCameraShake: false,
+  });
+  if (!enemy) return false;
+  enemy.x = center.x;
+  enemy.y = center.y;
+  enemy.devAnchorX = center.x;
+  enemy.devAnchorY = center.y;
+  enemy.devImmobileTestDummy = true;
+  enemy.spawnOffscreenTimer = 0;
+  enemy.ignoreWorldBounds = false;
+  enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
+  enemy.health = DEV_MELEE_ARENA_HEALTH;
+  if (enemy.config) {
+    enemy.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    enemy.config.health = DEV_MELEE_ARENA_HEALTH;
+  }
+  return true;
+}
+
+function activateDevMeleeArenaMode() {
+  devMeleeArenaMode = true;
+  resetDevMeleeMoveFeed();
+  if (typeof window !== "undefined") {
+    window.__battlechurchDevMeleeArenaMode = true;
+    window.__devArenaMeleeFeed = devMeleeMoveFeed;
+  }
+  paused = false;
+  gameOver = false;
+  postDeathSequenceActive = false;
+  pendingTownIntroStart = false;
+  suppressInitialAnnouncements = false;
+  if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  clearCongregationMembers();
+  clearCongregationSpeechBubbles();
+  resetCozyNpcs(0);
+  enemies.splice(0, enemies.length);
+  projectiles.splice(0, projectiles.length);
+  bossHazards.splice(0, bossHazards.length);
+  clearAllPowerUps();
+  clearGracePickups();
+  activeBoss = null;
+  if (player) {
+    const center = getDevMeleeArenaCenter();
+    player.x = center.x;
+    player.y = center.y + 180;
+    clampEntityToBounds(player);
+    player.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    player.health = DEV_MELEE_ARENA_HEALTH;
+  }
+  spawnDevMeleeArenaEnemy();
+  enforceDevMeleeArenaVitals();
+  setDevStatus("Dev Arena active", 2.2);
+}
+
+function requestDevMeleeArenaLaunch() {
+  pendingDevMeleeArenaLaunch = true;
+  if (!titleScreenActive && !mapActive && player) {
+    pendingDevMeleeArenaLaunch = false;
+    activateDevMeleeArenaMode();
+    return;
+  }
+  const towns = Array.isArray(window.BattlechurchMapData?.towns) ? window.BattlechurchMapData.towns : [];
+  const townId = towns[0]?.id || null;
+  if (!townId) {
+    if (player) {
+      pendingDevMeleeArenaLaunch = false;
+      activateDevMeleeArenaMode();
+    } else {
+      setDevStatus("Dev Arena failed: no town/map loaded", 2.4);
+    }
+    return;
+  }
+  if (typeof window !== "undefined") {
+    window.activeTownId = townId;
+  }
+  activeTownId = townId;
+  startRunForTown(townId);
+}
 
 function setDevPlaytestSession(active, scope = null) {
   const normalizedScope =
@@ -7111,6 +7259,11 @@ function queueInitialMonthAnnouncementFromCongregation() {
 function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
+  devMeleeArenaMode = false;
+  resetDevMeleeMoveFeed();
+  if (typeof window !== "undefined") {
+    window.__battlechurchDevMeleeArenaMode = false;
+  }
   if (!pendingDevBattleStartOverride && !devPlaytestLaunchInProgress) {
     setDevPlaytestSession(false, null);
   }
@@ -8058,12 +8211,21 @@ function spawnSinglePowerUpDrop() {
 }
 
 function queuePowerUpDrops(count = 1) {
+  if (isDevMeleeArenaActive()) {
+    queuedPowerUpDrops = 0;
+    return;
+  }
   const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
   if (stageName === "victoryCelebrate") return;
   queuedPowerUpDrops += Math.max(0, Math.floor(count));
 }
 
 function processQueuedPowerUpDrops() {
+  if (isDevMeleeArenaActive()) {
+    queuedPowerUpDrops = 0;
+    powerUpStaggerTimer = 0;
+    return false;
+  }
   const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
   if (stageName === "victoryCelebrate") {
     queuedPowerUpDrops = 0;
@@ -8079,6 +8241,7 @@ function processQueuedPowerUpDrops() {
 }
 
 function spawnPowerUpDrops(count = 1) {
+  if (isDevMeleeArenaActive()) return false;
   const stageName = typeof levelManager?.getStatus === "function" ? levelManager.getStatus()?.stage : "";
   if (stageName === "victoryCelebrate") return false;
   queuePowerUpDrops(count);
@@ -14658,6 +14821,9 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   config.friendly = overrides.friendly ?? true;
   config.source = overrides.source || null;
+  if (isDevMeleeArenaActive() && config.friendly) {
+    return null;
+  }
   if (overrides.scriptureFeedback !== undefined) {
     config.scriptureFeedback = Boolean(overrides.scriptureFeedback);
   } else {
@@ -15054,6 +15220,7 @@ function spawnCozyNpc() {
 
 function resetCozyNpcs(count = 5) {
   npcs.splice(0, npcs.length);
+  if (isDevMeleeArenaActive()) return;
   const targetCount = count ?? 5;
   for (let i = 0; i < targetCount; i += 1) {
     if (!spawnCozyNpc()) break;
@@ -16063,6 +16230,7 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
   congregationMembers.splice(0, congregationMembers.length);
   congregationWanderBounds = null;
   congregationDialogueIndex = 0;
+  if (isDevMeleeArenaActive()) return;
   if (!assets?.npcs) return;
   const total = Math.max(0, count);
   if (total === 0) return;
@@ -17702,6 +17870,7 @@ function showDeveloperOverlay() {
       <div class="dev-action-grid">
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="enemy">Enemy Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="arena">Dev Arena</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="hitbox">Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="bossHitbox">Boss Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="shortcuts">Developer Shortcuts</button>
@@ -17800,6 +17969,9 @@ function showDeveloperOverlay() {
           } else if (action === "level") {
             window.DialogOverlay.hide();
             window.BattlechurchLevelBuilder?.show?.();
+          } else if (action === "arena") {
+            window.DialogOverlay.hide();
+            requestDevMeleeArenaLaunch();
           } else if (action === "hitbox") {
             window.DialogOverlay.hide();
             window.BattlechurchHitboxEditor?.setActive?.(true);
@@ -21074,6 +21246,21 @@ function updateComboMoveCallout(meleeAttackState) {
 
 function registerComboMoveName(meleeAttackState, moveName) {
   if (!meleeAttackState || !moveName) return;
+  pushDevMeleeMove(moveName);
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const expiry = Number(meleeAttackState.comboMovesWindowUntil) || 0;
+  if (expiry > 0 && now > expiry) {
+    meleeAttackState.comboMoveNames = [];
+  }
+  const names = Array.isArray(meleeAttackState.comboMoveNames)
+    ? meleeAttackState.comboMoveNames
+    : [];
+  names.push(String(moveName));
+  meleeAttackState.comboMoveNames = names.slice(-8);
+  meleeAttackState.comboMovesWindowUntil = now + COMBO_WINDOW_MS;
   meleeAttackState.pendingComboMoveName = String(moveName);
 }
 
@@ -21529,6 +21716,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
     meleeState.comboLockoutUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
   }
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
+  maybeAnnounceComboMoveNames(meleeState, hits);
   const labelFontSize = getComboLabelFontSize(hits);
   const labelColor = getComboLabelColor(hits);
   maybeUpdateMaxComboInTown(hits, entity.x, entity.y);
@@ -22284,6 +22472,7 @@ function executeRingOfFireAttack(meleeAttackState) {
 
 function executeSpinAttack(meleeAttackState, moveDir) {
   if (!player) return;
+  registerComboMoveName(meleeAttackState, "Spin Attack");
   meleeAttackState.swingLength = null;
   const dir = getSpinAttackDirection();
   if (typeof player.updateFacing === "function") {
@@ -23504,7 +23693,19 @@ function updateGame(dt) {
     }
     return;
   }
+  if (pendingDevMeleeArenaLaunch && player && !titleScreenActive && !mapActive) {
+    pendingDevMeleeArenaLaunch = false;
+    activateDevMeleeArenaMode();
+  }
   if (!player) return;
+  if (isDevMeleeArenaActive()) {
+    enforceDevMeleeArenaVitals();
+    clearAllPowerUps();
+    clearGracePickups();
+    projectiles.forEach((projectile) => {
+      if (projectile?.friendly) projectile.dead = true;
+    });
+  }
   handleDeveloperHotkeys();
 
   updateDebugSystems(dt);
@@ -23649,7 +23850,9 @@ function updateGame(dt) {
     graceRushHardBlackoutTimer = 0;
   }
   updateGraceRushFadeRelease(dt);
-  updateLevelManagement();
+  if (!isDevMeleeArenaActive()) {
+    updateLevelManagement();
+  }
 
   if (updatePlayerRespawn(dt)) {
     // Player respawn is in progress, continue with rest of update
@@ -23774,7 +23977,14 @@ function updateGame(dt) {
 
   const blockingConfirmAnnouncement =
     Boolean(levelAnnouncements.length && levelAnnouncements[0]?.requiresConfirm);
-  if (!gameOver && levelManager && (!paused || briefTeaserStage) && !congregationStageActive && !blockingConfirmAnnouncement) {
+  if (
+    !isDevMeleeArenaActive() &&
+    !gameOver &&
+    levelManager &&
+    (!paused || briefTeaserStage) &&
+    !congregationStageActive &&
+    !blockingConfirmAnnouncement
+  ) {
     levelManager.update(dt);
     levelStatus = levelManager.getStatus ? levelManager.getStatus() : null;
     stage = levelStatus?.stage;
@@ -23783,9 +23993,11 @@ function updateGame(dt) {
   updateCongregationWaveIntroDialogue(dt, levelStatus);
 
   // Process pickups BEFORE player update so weapon changes apply immediately
-  updateWeaponPickups(dt);
-  updateChurchPowerupPickups(dt);
-  updateUtilityPowerUps(dt);
+  if (!isDevMeleeArenaActive()) {
+    updateWeaponPickups(dt);
+    updateChurchPowerupPickups(dt);
+    updateUtilityPowerUps(dt);
+  }
 
   if (!briefTeaserStage) {
     updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
@@ -23829,7 +24041,9 @@ function updateGame(dt) {
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   powerUpStaggerTimer = Math.max(0, powerUpStaggerTimer - dt);
-  const powerUpSpawnedThisFrame = processQueuedPowerUpDrops();
+  const powerUpSpawnedThisFrame = isDevMeleeArenaActive()
+    ? false
+    : processQueuedPowerUpDrops();
   // Ensure power-ups obey spawn rules per stage
   try {
     const stageName = levelStatus?.stage;
@@ -23842,6 +24056,7 @@ function updateGame(dt) {
       ? levelManager.arePowerUpsEnabled()
       : true;
     const shouldEnsurePowerUp =
+      !isDevMeleeArenaActive() &&
       !titleScreenActive &&
       !paused &&
       !gameOver &&
@@ -24010,6 +24225,12 @@ function onPlayerDeath() {
 
 
 function restartGame() {
+  devMeleeArenaMode = false;
+  pendingDevMeleeArenaLaunch = false;
+  resetDevMeleeMoveFeed();
+  if (typeof window !== "undefined") {
+    window.__battlechurchDevMeleeArenaMode = false;
+  }
   teardownGame();
   endVisitorSession({ reason: "reset" });
   clearBriefTeaserSpawnTimers();

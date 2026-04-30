@@ -1233,9 +1233,58 @@
       ctx.restore();
     };
 
+    const drawDevArenaMoveFeed = () => {
+      if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
+      const rawFeed = Array.isArray(window.__devArenaMeleeFeed) ? window.__devArenaMeleeFeed : [];
+      const feed = rawFeed.slice(-10);
+      const panelWidth = 290;
+      const panelX = canvas.width - panelWidth - 14;
+      const panelY = hudHeight + 14;
+      const lineHeight = 20;
+      const panelHeight = 56 + lineHeight * 10;
+
+      ctx.save();
+      ctx.globalAlpha = 0.94;
+      ctx.fillStyle = 'rgba(10,15,31,0.78)';
+      ctx.strokeStyle = 'rgba(155,217,255,0.7)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 10, true, true);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.font = `700 15px ${UI_FONT_FAMILY}`;
+      ctx.fillText('Melee Input Feed', panelX + 14, panelY + 12);
+      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = 'rgba(234,246,255,0.8)';
+      ctx.fillText('Latest moves (grouped by combo)', panelX + 14, panelY + 31);
+
+      let rowY = panelY + 50;
+      let currentComboId = null;
+      feed.forEach((entry) => {
+        if (rowY > panelY + panelHeight - lineHeight) return;
+        const comboId = entry?.comboId || "";
+        const moveName = entry?.move || "";
+        if (!moveName) return;
+        const isNewCombo = comboId !== currentComboId;
+        currentComboId = comboId;
+        if (isNewCombo) {
+          ctx.fillStyle = 'rgba(255,200,106,0.92)';
+          ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+          ctx.fillText('COMBO', panelX + 14, rowY + 2);
+        }
+        ctx.fillStyle = PALETTE.softWhite;
+        ctx.font = `13px ${UI_FONT_FAMILY}`;
+        ctx.fillText(`- ${moveName}`, panelX + (isNewCombo ? 70 : 30), rowY);
+        rowY += lineHeight;
+      });
+      ctx.restore();
+    };
+
     drawPlayerInfo();
     drawNpcInfo();
     drawTownProgress();
+    drawDevArenaMoveFeed();
 
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
