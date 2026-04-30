@@ -1271,9 +1271,14 @@
         (sum, camp) => sum + (townEntry?.[camp]?.completed === true ? 1 : 0),
         0,
       );
-      primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
+      const activeRun = progress?.activeRun;
+      const hasActiveRunHere = activeRun?.townId === town.id && Number.isFinite(activeRun?.resumeLocalBattleNumber);
+      const inProgressMissions = hasActiveRunHere ? activeRun.resumeLocalBattleNumber - 1 : 0;
+primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       if (campAvail) {
-        secondaryLine = `Missions Completed: ${completedVisits}/3`;
+        secondaryLine = hasActiveRunHere && inProgressMissions > 0
+          ? `In Progress: ${inProgressMissions}/3 missions`
+          : `Missions Completed: ${completedVisits}/3`;
       } else if (nextCamp === "p2") {
         secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} towns to unlock ${_phases.p2 || "Occupation"}.`;
       } else {

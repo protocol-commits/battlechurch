@@ -7439,8 +7439,9 @@ function queueTownIntroAnnouncement() {
 }
 
 function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {}) {
+  console.log("[exteriorShot] called, actNumber:", actNumber, "force:", force);
   const monthName = getUpcomingMonthName();
-  if (!monthName) return;
+  if (!monthName) { console.log("[exteriorShot] early exit: no monthName"); return; }
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const _ohCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
   const _ohLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
@@ -7468,7 +7469,10 @@ function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {})
   const upcomingOrderNumber = orderNumber;
   // Only skip for the normal (non-chapter-break) case where we're not at mission 1
   const isChapterBreakTransition = Number.isFinite(actNumber) && actNumber > 1;
-  if (!isChapterBreakTransition && upcomingMissionNumber !== 1) return;
+  if (!isChapterBreakTransition && upcomingMissionNumber !== 1) {
+    console.log("[exteriorShot] early exit: upcomingMissionNumber", upcomingMissionNumber, "isChapterBreakTransition", isChapterBreakTransition);
+    return;
+  }
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
@@ -7476,7 +7480,11 @@ function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {})
     return;
   }
   pendingExteriorShotAfterVisitor = false;
-  if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) return;
+  if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) {
+    console.log("[exteriorShot] skipped — already queued");
+    return;
+  }
+  console.log("[exteriorShot] queuing with upcomingOrderNumber:", upcomingOrderNumber, "title:", battleTitle);
   queueLevelAnnouncement(battleTitle, "", {
     duration: 1.4,
     requiresConfirm: true,
@@ -17581,6 +17589,7 @@ function handleChapterBreak() {
         levelAnnouncements.shift();
       }
       // Queue exterior shot for the next Order's first mission, using the correct act image
+      console.log("[chapterBreak] dismissed via button, queuing exterior shot for act", chapterBreakActNumber);
       queueExteriorShotAnnouncement({ actNumber: chapterBreakActNumber });
     },
   });
@@ -17599,6 +17608,7 @@ function handleChapterBreak() {
       levelAnnouncements.shift();
     }
     // Queue exterior shot for the next Order's first mission, using the correct act image
+    console.log("[chapterBreak] dismissed via key, queuing exterior shot for act", chapterBreakActNumber);
     queueExteriorShotAnnouncement({ actNumber: chapterBreakActNumber });
     keysJustPressed.delete(" ");
     console.log("Chapter break dismissed by user");
