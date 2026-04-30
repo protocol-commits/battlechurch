@@ -18690,10 +18690,9 @@ function handleLevelAnnouncements() {
         } else {
           pendingUpgradeAfterSummary = Boolean(currentAnnouncement.recapUpgradeAfter);
         }
-        // Level-editor playtests should stay in combat flow and avoid campaign
-        // detours (upgrade/chapter breaks), which can desync staged skip starts.
+        // Level-editor playtests should still keep the standard upgrade step
+        // after recap, but avoid extra pastor/chapter detours.
         if (devPlaytestSession?.active) {
-          pendingUpgradeAfterSummary = false;
           pendingPastorPostRecapAfterUpgrade = false;
         }
         if (pendingUpgradeAfterSummary) {
