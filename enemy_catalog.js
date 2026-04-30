@@ -1324,12 +1324,12 @@
     "spriteSrc": "assets/sprites/enemies/mini-ghost/MiniGhost.png",
     "assetFolder": "Mini Ghost",
     "assetBaseName": "Mini Ghost",
-    "health": 24,
+    "health": 20,
     "maxHealth": 60,
     "damage": 7,
-    "speed": 78,
+    "speed": 100,
     "baseRadius": 10,
-    "scale": 5,
+    "scale": 3.5,
     "attackBonus": 22,
     "cooldown": 0.9,
     "score": 40,
@@ -1344,7 +1344,7 @@
       "closestAny",
       "swarmable"
     ],
-    "swarmSpacing": 0.2,
+    "swarmSpacing": 1,
     "hitbox": {
       "width": 14,
       "height": 16,
@@ -1392,7 +1392,9 @@
         36
       ]
     },
-    "maxGroupSize": 20
+    "maxGroupSize": 20,
+    "contactDamage": 1,
+    "attackDamage": 1
   }
 };
   const ns = global.BattlechurchEnemyCatalog || (global.BattlechurchEnemyCatalog = {});
