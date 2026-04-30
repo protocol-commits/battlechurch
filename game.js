@@ -24391,6 +24391,9 @@ function updateGame(dt) {
 
   // Town Victory scene update (mini-epilogue after completing a town)
   if (townVictoryActive) {
+    // Keep grace pickups alive/visible behind the victory card flow.
+    updateGracePickups(dt);
+    updateGraceHudFlyEffects(dt);
     // Allow continue when button is shown (check FIRST before consuming keys)
     if (townVictoryScroll.showButton) {
       const spacePressed =
@@ -24539,6 +24542,14 @@ function updateGame(dt) {
 
   // Keep queued victory chatter progressing even while confirm overlays are active.
   updateBattleVictoryNpcDialogue(dt);
+  const confirmAnnouncementActive = Boolean(
+    levelAnnouncements.length && levelAnnouncements[0]?.requiresConfirm,
+  );
+  if (confirmAnnouncementActive) {
+    // Keep grace gems updating while recap/victory confirm overlays are active.
+    updateGracePickups(dt);
+    updateGraceHudFlyEffects(dt);
+  }
 
   if (handleLevelAnnouncements()) {
     return;
