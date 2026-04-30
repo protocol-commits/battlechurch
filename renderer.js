@@ -6269,6 +6269,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawPlayerWeaponMeter(player) {
     const { ctx, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
     if (!ctx || !player || !meleeAttackState || player.state === "death") return;
+    if (meleeAttackState.dualChargeReadyMove === "Blitz" || meleeAttackState.dualChargeReadyMove === "Refuge") return;
     if (!meleeAttackState.isCharging || !meleeAttackState.buttonDown) return;
     const holdTime = Math.max(0.001, meleeAttackState.holdTime || 0);
     const chargeRatio = Math.max(0, Math.min(1, (meleeAttackState.chargeTimer || 0) / holdTime));
@@ -6336,6 +6337,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawPlayerRingFireChargeMeter(player) {
     const { ctx, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
     if (!ctx || !player || !meleeAttackState || player.state === "death") return;
+    if (meleeAttackState.dualChargeReadyMove === "Blitz") return;
     if (!meleeAttackState.spinCharging || !meleeAttackState.spinButtonDown) return;
     const holdTime = Math.max(0.001, meleeAttackState.spinHoldTime || 0);
     const chargeRatio = Math.max(0, Math.min(1, (meleeAttackState.spinChargeTimer || 0) / holdTime));
@@ -6363,8 +6365,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawPlayerPrayerHoldMeter(player) {
-    const { ctx, WORLD_SCALE = 1 } = requireBindings();
+    const { ctx, WORLD_SCALE = 1, meleeAttackState } = requireBindings();
     if (!ctx || !player || player.state === "death") return;
+    if (meleeAttackState?.dualChargeReadyMove === "Refuge") return;
     if (!(player.prayerHoldTimer > 0)) return;
     const PRAYER_BOMB_HOLD_TIME = 1.0;
     const chargeRatio = Math.max(0, Math.min(1, (player.prayerHoldTimer || 0) / PRAYER_BOMB_HOLD_TIME));

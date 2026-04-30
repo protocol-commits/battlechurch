@@ -4002,6 +4002,7 @@ const DIVINE_SHOT_AUTO_AIM_STRENGTH = 3.2;
 const DIVINE_SHOT_AUTO_AIM_MIN_DOT = 0.25;
 const DIVINE_SHOT_PROJECTILE_PRIORITY = 5;
 const SWORD_RUSH_BLAST_DAMAGE = DIVINE_SHOT_DAMAGE;
+const BLITZ_DAMAGE = _gb("rush.blitzDamage", RUSH_DAMAGE + SWORD_RUSH_BLAST_DAMAGE);
 
 const CANVAS_BASE_WIDTH = 1280;
 const CANVAS_BASE_HEIGHT = 720;
@@ -21025,7 +21026,9 @@ function updateDashMovement(dt) {
 function applyRushDamageFromSwoosh(direction, meleeAttackState) {
   if (!meleeAttackState.rushDamageEnabled || !meleeAttackState.rushHitEntities) return;
   if (!player) return;
-  meleeAttackState.currentAttackHitboxType = meleeAttackState.swordRushActive ? "swordRush" : "rush";
+  const isBlitz = Boolean(meleeAttackState.swordRushActive);
+  const rushHitDamage = isBlitz ? BLITZ_DAMAGE : RUSH_DAMAGE;
+  meleeAttackState.currentAttackHitboxType = isBlitz ? "swordRush" : "rush";
   const dir = normalizeVector(direction.x, direction.y);
   const angle = Math.atan2(dir.y, dir.x);
   const hitboxRect = getPlayerRushHitboxLocalRect(player);
@@ -21043,7 +21046,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     const hit = circleIntersectsRect(localX, localY, 0, hitboxRect);
     if (!hit) return;
     meleeAttackState.rushHitEntities.add(enemy);
-    const counterHit = getCounterHitResult(enemy, RUSH_DAMAGE, meleeAttackState);
+    const counterHit = getCounterHitResult(enemy, rushHitDamage, meleeAttackState);
     const damage = counterHit.damage;
     const wasAlive = !enemy.dead && enemy.state !== "death";
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
@@ -21076,7 +21079,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
         : damage;
       meleeAttackState.rushComboActiveUntil = now + 450;
       meleeAttackState.rushComboShown = false;
-      meleeAttackState.rushComboHits = meleeCancelActive ? 2 : 1;
+      meleeAttackState.rushComboHits = isBlitz ? 1 : (meleeCancelActive ? 2 : 1);
       meleeAttackState.rushComboTarget = enemy;
       if (meleeCancelActive) {
         meleeAttackState.meleeCancelUntil = 0;
@@ -21110,7 +21113,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       const hit = circleIntersectsRect(localX, localY, 0, hitboxRect);
       if (hit) {
         meleeAttackState.rushHitEntities.add(activeBoss);
-        const counterHit = getCounterHitResult(activeBoss, RUSH_DAMAGE, meleeAttackState);
+        const counterHit = getCounterHitResult(activeBoss, rushHitDamage, meleeAttackState);
         const damage = counterHit.damage;
         activeBoss.takeDamage(damage, {
           hitX: activeBoss.x,
@@ -21139,7 +21142,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
             : damage;
           meleeAttackState.rushComboActiveUntil = now + 450;
           meleeAttackState.rushComboShown = false;
-          meleeAttackState.rushComboHits = meleeCancelActive ? 2 : 1;
+          meleeAttackState.rushComboHits = isBlitz ? 1 : (meleeCancelActive ? 2 : 1);
           meleeAttackState.rushComboTarget = activeBoss;
           if (meleeCancelActive) {
             meleeAttackState.meleeCancelUntil = 0;
@@ -21176,7 +21179,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
 
 function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
   if (!meleeAttackState?.swordRushActive || !meleeAttackState?.swordRushBlastHitEntities || !player) return;
-  meleeAttackState.currentAttackHitboxType = "blast";
+  meleeAttackState.currentAttackHitboxType = "swordRush";
   const dir = normalizeVector(direction.x, direction.y);
   const angle = Math.atan2(dir.y, dir.x);
   const hitboxRect = {
@@ -21202,7 +21205,7 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
-    registerMeleeComboHit(enemy, meleeAttackState, "Blast", {
+    registerMeleeComboHit(enemy, meleeAttackState, "Blitz", {
       damage,
       isCounterHit: Boolean(counterHit?.isCounterHit),
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
@@ -21230,7 +21233,7 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
         });
         applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
-        registerMeleeComboHit(activeBoss, meleeAttackState, "Blast", {
+        registerMeleeComboHit(activeBoss, meleeAttackState, "Blitz", {
           damage,
           isCounterHit: Boolean(counterHit?.isCounterHit),
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
@@ -21268,7 +21271,9 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     RUSH_HITBOX_DEBUG_DURATION,
   );
   applyRushDamageFromSwoosh(direction, meleeAttackState);
-  applySwordRushBlastWaveDamage(direction, meleeAttackState);
+  if (!meleeAttackState.swordRushActive) {
+    applySwordRushBlastWaveDamage(direction, meleeAttackState);
+  }
   meleeAttackState.rushDistanceRemaining -= actualMoved;
   meleeAttackState.rushDustAccumulator += actualMoved;
 
@@ -22875,6 +22880,37 @@ function playerYell(text, life = 1.6) {
   window.FloatingText?.heroSay(text, { life });
 }
 
+function clearDualChargeReadyPreview(meleeAttackState, { force = false } = {}) {
+  if (!meleeAttackState) return;
+  const bubble = meleeAttackState.dualChargeReadyBubble;
+  const shouldClearBubble = Boolean(
+    bubble &&
+    (force || meleeAttackState.dualChargeReadyMove || bubble.persist),
+  );
+  if (shouldClearBubble) {
+    bubble.persist = false;
+    bubble.life = Math.min(bubble.life || 0.2, 0.2);
+  }
+  meleeAttackState.dualChargeReadyBubble = null;
+  meleeAttackState.dualChargeReadyMove = "";
+}
+
+function showDualChargeReadyPreview(meleeAttackState, moveName, { executed = false } = {}) {
+  if (!meleeAttackState || !moveName) return;
+  const text = executed ? moveName : `${moveName}...`;
+  const bubble = window.FloatingText?.heroComboCallout?.(text, { life: executed ? 0.9 : 1.2 });
+  if (bubble) {
+    bubble.persist = !executed;
+    if (!executed) {
+      bubble.life = Math.max(bubble.life || 0, 1.2);
+      bubble.initialLife = Math.max(bubble.initialLife || 0, 1.2);
+      bubble.fadeLength = Math.max(bubble.fadeLength || 0, 1.2);
+    }
+  }
+  meleeAttackState.dualChargeReadyBubble = bubble || null;
+  meleeAttackState.dualChargeReadyMove = executed ? "" : moveName;
+}
+
 function npcsYell(text, life = 1.6) {
   if (!Array.isArray(npcs)) return;
   npcs.forEach((npc) => {
@@ -22889,7 +22925,7 @@ function executePowerupTeleport(meleeAttackState) {
   if (!player) return;
   const target = meleeAttackState.teleportGhostTarget || getNearestActivePowerup();
   if (!target) return;
-  playerYell("Teleport");
+  showDualChargeReadyPreview(meleeAttackState, "Teleport", { executed: true });
   player.x = target.x;
   player.y = target.y;
   resolveEntityObstacles(player);
@@ -22908,6 +22944,7 @@ function executePowerupTeleport(meleeAttackState) {
   if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
   meleeAttackState.bcTeleportArmed = false;
   meleeAttackState.teleportGhostTarget = null;
+  meleeAttackState.teleportTargetIndex = -1;
   meleeAttackState.bcTeleportBlockTimer = 0.4;
 }
 
@@ -23031,7 +23068,7 @@ function executeSwordRush(meleeAttackState) {
     moveName: "Blitz",
   });
   if (!startedRush) return;
-  playerYell("Blitz");
+  showDualChargeReadyPreview(meleeAttackState, "Blitz", { executed: true });
   const screenTravel = Math.max(canvas?.width || 0, canvas?.height || 0) * 1.1;
   meleeAttackState.rushDistanceRemaining = Math.max(
     RUSH_DISTANCE * SWORD_RUSH_DISTANCE_MULTIPLIER,
@@ -23198,7 +23235,10 @@ function updateMeleeTimers(dt, meleeAttackState) {
 function updateChargeState(dt, meleeAttackState) {
   const chargingA = meleeAttackState.isCharging;
   const chargingB = meleeAttackState.spinCharging;
-  if (!chargingA && !chargingB) return;
+  if (!chargingA && !chargingB) {
+    clearDualChargeReadyPreview(meleeAttackState);
+    return;
+  }
 
   if (chargingA) {
     meleeAttackState.chargeTimer += dt;
@@ -23255,6 +23295,27 @@ function updateChargeState(dt, meleeAttackState) {
       divineChargeFlashEffect.x = anchor.x;
       divineChargeFlashEffect.y = anchor.y;
     }
+  }
+
+  const holdA = Math.max(0.001, meleeAttackState.holdTime || 0);
+  const holdB = Math.max(0.001, meleeAttackState.spinHoldTime || 0);
+  const aFull =
+    Boolean(meleeAttackState.buttonDown && meleeAttackState.isCharging) &&
+    (meleeAttackState.chargeTimer || 0) >= holdA;
+  const bFull =
+    Boolean(meleeAttackState.spinButtonDown && meleeAttackState.spinCharging) &&
+    (meleeAttackState.spinChargeTimer || 0) >= holdB;
+  const prayerSuperCost = player ? (player.prayerChargeRequired || 6000) / 3 : 0;
+  const acReady =
+    Boolean(meleeAttackState.acSuperArmed) ||
+    Boolean(aFull && player && player.prayerHoldLocked && (player.prayerCharge || 0) >= prayerSuperCost);
+  const abReady = Boolean(meleeAttackState.abSuperArmed) || Boolean(aFull && bFull);
+  const teleportReady = Boolean(meleeAttackState.bcTeleportArmed);
+  const readyMove = abReady ? "Blitz" : acReady ? "Refuge" : teleportReady ? "Teleport" : "";
+  if (readyMove) {
+    showDualChargeReadyPreview(meleeAttackState, readyMove);
+  } else {
+    clearDualChargeReadyPreview(meleeAttackState);
   }
 }
 
@@ -23377,6 +23438,8 @@ function updateMeleeAttackSystem(dt) {
     pendingBasicAttack: null,
     currentAttackHitboxType: "slash",
     abSuperArmed: false,
+    dualChargeReadyMove: "",
+    dualChargeReadyBubble: null,
     acSuperPrayerBombBlockTimer: 0,
     bcTeleportArmed: false,
     teleportGhostTarget: null,
@@ -23390,6 +23453,7 @@ function updateMeleeAttackSystem(dt) {
   if (input && player) {
     const playerAlive = Boolean(player && player.state !== "death");
     if (!playerAlive) {
+      clearDualChargeReadyPreview(meleeAttackState, { force: true });
       meleeAttackState.buttonDown = false;
       meleeAttackState.isCharging = false;
       meleeAttackState.awaitRush = false;
@@ -23803,6 +23867,7 @@ function updateMeleeAttackSystem(dt) {
       if (!meleeAttackState.bcTeleportArmed && bFullyCharged && cHeld && hasPrayerForTeleport) {
         meleeAttackState.bcTeleportArmed = true;
         meleeAttackState.teleportTargetIndex = -1;
+        showDualChargeReadyPreview(meleeAttackState, "Teleport");
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       }
       if (meleeAttackState.bcTeleportArmed) {
@@ -23948,7 +24013,7 @@ function updateMeleeAttackSystem(dt) {
           );
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
           if (typeof cancelCongregationTap === "function") cancelCongregationTap();
-          playerYell("Refuge");
+          showDualChargeReadyPreview(meleeAttackState, "Refuge", { executed: true });
           executeRingOfFireAttack(meleeAttackState);
         } else if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);
