@@ -7438,7 +7438,7 @@ function queueTownIntroAnnouncement() {
   });
 }
 
-function queueExteriorShotAnnouncement({ force = false } = {}) {
+function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
@@ -7449,7 +7449,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     1,
     Number.isFinite(status?.battle) ? status.battle : 1,
   );
-  const orderNumber = Math.max(1, Number.isFinite(status?.level) ? status.level : 1);
+  const orderNumber = Number.isFinite(actNumber) && actNumber >= 1
+    ? actNumber
+    : Math.max(1, Number.isFinite(status?.level) ? status.level : 1);
   const bossBattleNumber =
     typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
       ? window.MONTHS_PER_LEVEL
@@ -7464,8 +7466,9 @@ function queueExteriorShotAnnouncement({ force = false } = {}) {
     ? bossBattleNumber
     : Math.max(1, (Number.isFinite(status?.battle) ? status.battle : 0) + 1);
   const upcomingOrderNumber = orderNumber;
-  const shouldShowExterior = upcomingMissionNumber === 1;
-  if (!shouldShowExterior) return;
+  // Only skip for the normal (non-chapter-break) case where we're not at mission 1
+  const isChapterBreakTransition = Number.isFinite(actNumber) && actNumber > 1;
+  if (!isChapterBreakTransition && upcomingMissionNumber !== 1) return;
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
@@ -17577,8 +17580,8 @@ function handleChapterBreak() {
       while (levelAnnouncements.length && levelAnnouncements[0].missionBriefTitle) {
         levelAnnouncements.shift();
       }
-      // Queue exterior shot for the next Order's first mission
-      queueExteriorShotAnnouncement();
+      // Queue exterior shot for the next Order's first mission, using the correct act image
+      queueExteriorShotAnnouncement({ actNumber: chapterBreakActNumber });
     },
   });
   if (handled) return false;
@@ -17595,8 +17598,8 @@ function handleChapterBreak() {
     while (levelAnnouncements.length && levelAnnouncements[0].missionBriefTitle) {
       levelAnnouncements.shift();
     }
-    // Queue exterior shot for the next Order's first mission
-    queueExteriorShotAnnouncement();
+    // Queue exterior shot for the next Order's first mission, using the correct act image
+    queueExteriorShotAnnouncement({ actNumber: chapterBreakActNumber });
     keysJustPressed.delete(" ");
     console.log("Chapter break dismissed by user");
     return false;
