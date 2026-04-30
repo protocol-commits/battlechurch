@@ -9906,6 +9906,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (activeBoss) activeBoss.draw(ctx);
       drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);
     }
+    // Draw grace gems before NPCs so NPCs remain readable when gems overlap.
+    gracePickups.forEach((pickup) => {
+      if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
+    });
     if (!visitorStageActive && !isCongregationStage && battleNpcs.length) {
       drawBattleNpcs(ctx, battleNpcs, npcFadeAlpha);
     }
@@ -9954,10 +9958,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     });
     drawCombatHitboxDebugs(ctx, player, battleNpcs, orderedEnemies, activeBoss, projectiles);
-    // Draw grace behind active effects (explosions, flashes), but keep other pickups above.
-    gracePickups.forEach((pickup) => {
-      if (pickup && typeof pickup.draw === "function") pickup.draw(ctx);
-    });
     const bossDeathExplosionActive =
       Boolean(activeBoss) &&
       activeBoss?.state === "death" &&
