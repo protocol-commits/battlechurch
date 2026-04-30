@@ -1246,7 +1246,7 @@
         { label: "Cleave", input: "A/B", value: ref.cleave },
         { label: "Rush", input: "B/A", value: ref.rushAttack },
         { label: "Blast", input: "Hold A", value: ref.divineShot },
-        { label: "Spin", input: "Hold B", value: ref.spinAttack },
+        { label: "Spin", input: "C/A", value: ref.spinAttack },
       ];
       const counterMult = Number(ref?.modifiers?.counterHit) || 0;
       const punishMult = Number(ref?.modifiers?.punishCounter) || 0;
@@ -1331,7 +1331,7 @@
       const panelX = canvas.width - panelWidth - 14;
       const panelY = hudHeight + 14;
       const lineHeight = 18;
-      const panelHeight = 70 + lineHeight * 18;
+      const panelHeight = 70 + lineHeight * 14;
 
       ctx.save();
       ctx.globalAlpha = 0.94;

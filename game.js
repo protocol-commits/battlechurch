@@ -3930,7 +3930,7 @@ const MELEE_CHARGE_MOVE_MULTIPLIER = 0.6;
 const MELEE_SPIN_DURATION = _gb('melee.spinDuration', 0.45);
 const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
 const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
-const CLEAVE_DAMAGE_MULTIPLIER = 2.0;
+const CLEAVE_DAMAGE_MULTIPLIER = 3.0;
 const CLEAVE_RANGE_MULTIPLIER = 1.35;
 const COUNTER_HIT_WINDOW = 0.3;
 const COUNTER_HIT_MULTIPLIER = 1.20;
@@ -4267,6 +4267,10 @@ let devPlaytestSession = {
 };
 let devPlaytestQuickActionsEl = null;
 const DEV_MELEE_ARENA_HEALTH = 100000;
+const DEV_ARENA_IMP_GROUP_SIZE = 100;
+const DEV_ARENA_IMP_RESPAWN_MS = 3000;
+const DEV_ARENA_IMP_GRID_COLS = 10;
+const DEV_ARENA_IMP_SPACING = 30;
 let devMeleeArenaMode = false;
 let pendingDevMeleeArenaLaunch = false;
 const DEV_MELEE_FEED_MAX = 12;
@@ -4275,6 +4279,7 @@ let devMeleeMoveFeed = [];
 const DEV_MELEE_CONFIRMED_COMBO_MAX = 8;
 let devMeleeConfirmedCombos = [];
 let devMeleeComboSerial = 0;
+let devArenaImpHordeSlots = [];
 
 function isDevMeleeArenaActive() {
   return devMeleeArenaMode === true;
@@ -4431,11 +4436,13 @@ function enforceDevMeleeArenaVitals() {
   }
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
-    enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
-    enemy.health = DEV_MELEE_ARENA_HEALTH;
-    if (enemy.config) {
-      enemy.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
-      enemy.config.health = DEV_MELEE_ARENA_HEALTH;
+    if (enemy.devArenaPrimaryDummy === true) {
+      enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
+      enemy.health = DEV_MELEE_ARENA_HEALTH;
+      if (enemy.config) {
+        enemy.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
+        enemy.config.health = DEV_MELEE_ARENA_HEALTH;
+      }
     }
   });
 }
@@ -4452,6 +4459,7 @@ function spawnDevMeleeArenaEnemy() {
   enemy.devAnchorX = center.x;
   enemy.devAnchorY = center.y;
   enemy.devImmobileTestDummy = true;
+  enemy.devArenaPrimaryDummy = true;
   enemy.spawnOffscreenTimer = 0;
   enemy.ignoreWorldBounds = false;
   enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
@@ -4461,6 +4469,94 @@ function spawnDevMeleeArenaEnemy() {
     enemy.config.health = DEV_MELEE_ARENA_HEALTH;
   }
   return true;
+}
+
+function getDevArenaImpHordeCenter() {
+  const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
+  return {
+    x: (canvas?.width || 0) - 220,
+    y: hud + ((canvas?.height || 0) - hud) - 160,
+  };
+}
+
+function initializeDevArenaImpHordeSlots() {
+  const center = getDevArenaImpHordeCenter();
+  const cols = DEV_ARENA_IMP_GRID_COLS;
+  const rows = Math.ceil(DEV_ARENA_IMP_GROUP_SIZE / cols);
+  const spacing = DEV_ARENA_IMP_SPACING;
+  const startX = center.x - ((cols - 1) * spacing) * 0.5;
+  const startY = center.y - ((rows - 1) * spacing) * 0.5;
+  devArenaImpHordeSlots = [];
+  for (let i = 0; i < DEV_ARENA_IMP_GROUP_SIZE; i += 1) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    devArenaImpHordeSlots.push({
+      index: i,
+      x: startX + col * spacing,
+      y: startY + row * spacing,
+      enemy: null,
+      respawnAt: 0,
+    });
+  }
+}
+
+function spawnDevArenaImpAtSlot(slot) {
+  if (!slot) return null;
+  const enemy = spawnEnemyOfType("miniImp", { x: slot.x, y: slot.y }, {
+    skipSpawnEffects: true,
+    applyCameraShake: false,
+    swarmGroupId: "devArenaImpHorde",
+    swarmGroupInitialCount: DEV_ARENA_IMP_GROUP_SIZE,
+    swarmGroupType: "miniImp",
+    swarmGroupLabel: String(DEV_ARENA_IMP_GROUP_SIZE),
+  });
+  if (!enemy) return null;
+  enemy.x = slot.x;
+  enemy.y = slot.y;
+  enemy.devAnchorX = slot.x;
+  enemy.devAnchorY = slot.y;
+  enemy.devImmobileTestDummy = true;
+  enemy.devArenaImpDummy = true;
+  enemy.devArenaImpSlotIndex = slot.index;
+  enemy.spawnOffscreenTimer = 0;
+  return enemy;
+}
+
+function maintainDevArenaImpHorde() {
+  if (!isDevMeleeArenaActive()) return;
+  if (!Array.isArray(devArenaImpHordeSlots) || !devArenaImpHordeSlots.length) {
+    initializeDevArenaImpHordeSlots();
+  }
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  devArenaImpHordeSlots.forEach((slot) => {
+    if (!slot) return;
+    const enemy = slot.enemy;
+    if (!enemy) {
+      if (now >= (slot.respawnAt || 0)) {
+        slot.enemy = spawnDevArenaImpAtSlot(slot);
+      }
+      return;
+    }
+    const defeated =
+      enemy.dead ||
+      enemy.state === "death" ||
+      enemy.removed ||
+      enemy.invalid ||
+      (Number.isFinite(enemy.health) && enemy.health <= 0);
+    if (defeated) {
+      slot.enemy = null;
+      slot.respawnAt = now + DEV_ARENA_IMP_RESPAWN_MS;
+      return;
+    }
+    slot.respawnAt = 0;
+    enemy.x = slot.x;
+    enemy.y = slot.y;
+    enemy.devAnchorX = slot.x;
+    enemy.devAnchorY = slot.y;
+  });
 }
 
 function activateDevMeleeArenaMode() {
@@ -4485,6 +4581,7 @@ function activateDevMeleeArenaMode() {
   clearAllPowerUps();
   clearGracePickups();
   activeBoss = null;
+  devArenaImpHordeSlots = [];
   if (player) {
     const center = getDevMeleeArenaCenter();
     player.x = center.x;
@@ -4494,6 +4591,8 @@ function activateDevMeleeArenaMode() {
     player.health = DEV_MELEE_ARENA_HEALTH;
   }
   spawnDevMeleeArenaEnemy();
+  initializeDevArenaImpHordeSlots();
+  maintainDevArenaImpHorde();
   enforceDevMeleeArenaVitals();
   setDevStatus("Dev Arena active", 2.2);
 }
@@ -23940,6 +24039,7 @@ function updateGame(dt) {
   if (!player) return;
   if (isDevMeleeArenaActive()) {
     enforceDevMeleeArenaVitals();
+    maintainDevArenaImpHorde();
     clearAllPowerUps();
     clearGracePickups();
     projectiles.forEach((projectile) => {
