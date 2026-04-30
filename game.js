@@ -3930,7 +3930,8 @@ const MELEE_CHARGE_MOVE_MULTIPLIER = 0.6;
 const MELEE_SPIN_DURATION = _gb('melee.spinDuration', 0.45);
 const MELEE_SPIN_COOLDOWN = _gb('melee.spinCooldown', 2.0);
 const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
-const DOUBLE_STRIKE_DELAY = 0.13;
+const CLEAVE_DAMAGE_MULTIPLIER = 2.0;
+const CLEAVE_RANGE_MULTIPLIER = 1.35;
 const COUNTER_HIT_WINDOW = 0.3;
 const COUNTER_HIT_MULTIPLIER = 1.25;
 const PUNISH_COUNTER_MULTIPLIER = 1.35;
@@ -21783,7 +21784,10 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
 
 function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY, options = {}) {
   // Canonical move name: "Slash" is the default A melee attack.
-  registerComboMoveName(meleeAttackState, "Slash");
+  const moveName = String(options?.moveNameOverride || "Slash");
+  registerComboMoveName(meleeAttackState, moveName);
+  const damageMultiplier = Math.max(0.1, Number(options?.damageMultiplier) || 1);
+  const rangeMultiplier = Math.max(0.5, Number(options?.rangeMultiplier) || 1);
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -21811,7 +21815,15 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   let meleeDamageTotal = 0;
   let meleePrimaryTarget = null;
   const attackAngle = Math.atan2(dir.y, dir.x);
-  const attackRect = getPlayerWeaponHitboxLocalRect(player);
+  const attackRectRaw = getPlayerWeaponHitboxLocalRect(player);
+  const attackRect = attackRectRaw
+    ? {
+        x: attackRectRaw.x - (attackRectRaw.width * (rangeMultiplier - 1)) * 0.5,
+        y: attackRectRaw.y - (attackRectRaw.height * (rangeMultiplier - 1)) * 0.5,
+        width: attackRectRaw.width * rangeMultiplier,
+        height: attackRectRaw.height * rangeMultiplier,
+      }
+    : null;
   const cos = Math.cos(-attackAngle);
   const sin = Math.sin(-attackAngle);
   enemies.forEach((enemy) => {
@@ -21828,13 +21840,17 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       const dx = enemy.x - swingCenterX;
       const dy = enemy.y - swingCenterY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > MELEE_SWING_RANGE + hitRadius) return;
+      if (dist > MELEE_SWING_RANGE * rangeMultiplier + hitRadius) return;
       const dotProduct = dx * dir.x + dy * dir.y;
-      if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius) return;
+      if (dotProduct < 0 && dist > MELEE_CLOSE_RANGE * rangeMultiplier + hitRadius) return;
     }
     hitEnemies.push(enemy);
     if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
-    const counterHit = getCounterHitResult(enemy, MELEE_BASE_DAMAGE, meleeAttackState);
+    const counterHit = getCounterHitResult(
+      enemy,
+      Math.round(MELEE_BASE_DAMAGE * damageMultiplier),
+      meleeAttackState,
+    );
     const damage = counterHit.damage;
     const slashChainHitsBefore = getNormalSlashChainHits(enemy, meleeAttackState, now);
     const repeatedSlashPressure = slashChainHitsBefore >= 1;
@@ -21845,7 +21861,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     });
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
-    registerMeleeComboHit(enemy, meleeAttackState);
+    registerMeleeComboHit(enemy, meleeAttackState, moveName);
     registerNormalSlashChainHit(enemy, meleeAttackState, now);
     registerComboHit(enemy, damage);
     meleeDamageTotal += damage;
@@ -21920,12 +21936,16 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           const dx = activeBoss.x - swingCenterX;
           const dy = activeBoss.y - swingCenterY;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > MELEE_SWING_RANGE + hitRadius) return false;
+          if (dist > MELEE_SWING_RANGE * rangeMultiplier + hitRadius) return false;
           const dotProduct = dx * dir.x + dy * dir.y;
-          return !(dotProduct < 0 && dist > MELEE_CLOSE_RANGE + hitRadius);
+          return !(dotProduct < 0 && dist > MELEE_CLOSE_RANGE * rangeMultiplier + hitRadius);
         })();
     if (bossHit) {
-        const counterHit = getCounterHitResult(activeBoss, MELEE_BASE_DAMAGE, meleeAttackState);
+        const counterHit = getCounterHitResult(
+          activeBoss,
+          Math.round(MELEE_BASE_DAMAGE * damageMultiplier),
+          meleeAttackState,
+        );
         const damage = counterHit.damage;
         const slashChainHitsBefore = getNormalSlashChainHits(activeBoss, meleeAttackState, now);
         const repeatedSlashPressure = slashChainHitsBefore >= 1;
@@ -21938,7 +21958,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
         });
         applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
-        registerMeleeComboHit(activeBoss, meleeAttackState);
+        registerMeleeComboHit(activeBoss, meleeAttackState, moveName);
         registerNormalSlashChainHit(activeBoss, meleeAttackState, now);
         registerComboHit(activeBoss, damage);
         meleeDamageTotal += damage;
@@ -22035,6 +22055,20 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     }
   }
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+}
+
+function executeCleaveAttack(dir, meleeAttackState) {
+  if (!player || !dir) return false;
+  const angleRad = Math.atan2(dir.y, dir.x);
+  const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
+  const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+  executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY, {
+    missSwingSfx: "rush",
+    moveNameOverride: "Cleave",
+    damageMultiplier: CLEAVE_DAMAGE_MULTIPLIER,
+    rangeMultiplier: CLEAVE_RANGE_MULTIPLIER,
+  });
+  return true;
 }
 
 function executeSwooshAttack(dir, meleeAttackState, angleRad) {
@@ -22752,28 +22786,6 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.cBHolyDashBlockTimer > 0) {
     meleeAttackState.cBHolyDashBlockTimer = Math.max(0, meleeAttackState.cBHolyDashBlockTimer - dt);
   }
-  if (meleeAttackState.doubleStrikeTimer > 0) {
-    meleeAttackState.doubleStrikeTimer = Math.max(0, meleeAttackState.doubleStrikeTimer - dt);
-    if (meleeAttackState.doubleStrikeTimer <= 0 && meleeAttackState.doubleStrikePending) {
-      meleeAttackState.doubleStrikePending = false;
-      const d = meleeAttackState.doubleStrikeDir;
-      if (player && d) {
-        const angleRad = Math.atan2(d.y, d.x);
-        const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
-        const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
-        executeBasicMeleeAttack(d, meleeAttackState, swingCenterX, swingCenterY, {
-          missSwingSfx: "rush",
-        });
-        meleeAttackState.swooshTimer = 0;
-        meleeAttackState.doubleStrikeSwooshTimer = GAME_MELEE_SWING_DURATION * 2.5;
-        meleeAttackState.doubleStrikeSwooshDir = { x: d.x, y: d.y };
-      }
-      meleeAttackState.doubleStrikeDir = null;
-    }
-  }
-  if (meleeAttackState.doubleStrikeSwooshTimer > 0) {
-    meleeAttackState.doubleStrikeSwooshTimer = Math.max(0, meleeAttackState.doubleStrikeSwooshTimer - dt);
-  }
 }
 
 function updateChargeState(dt, meleeAttackState) {
@@ -22960,11 +22972,6 @@ function updateMeleeAttackSystem(dt) {
     teleportTargetIndex: -1,
     bcTeleportBlockTimer: 0,
     cBHolyDashBlockTimer: 0,
-    doubleStrikePending: false,
-    doubleStrikeTimer: 0,
-    doubleStrikeDir: null,
-    doubleStrikeSwooshTimer: 0,
-    doubleStrikeSwooshDir: null,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -23312,13 +23319,9 @@ function updateMeleeAttackSystem(dt) {
       comboDoubleStrikeOrder &&
       !meleeAttackState.isRushing &&
       !meleeAttackState.spinButtonDown &&
-      !meleeAttackState.doubleStrikePending &&
       playerDashState.dashCooldown <= 0;
     if (comboDoubleStrike) {
-      playerYell("Double Strike!");
-      meleeAttackState.doubleStrikePending = true;
-      meleeAttackState.doubleStrikeTimer = DOUBLE_STRIKE_DELAY;
-      meleeAttackState.doubleStrikeDir = { x: dir.x, y: dir.y };
+      executeCleaveAttack(dir, meleeAttackState);
       meleeAttackState.lastComboTimes.A = 0;
       meleeAttackState.lastComboTimes.B = 0;
       setSharedBButtonCooldown(DASH_COOLDOWN);
