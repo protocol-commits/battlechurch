@@ -7543,8 +7543,15 @@ function startGameFromTitle() {
       window.activeCampaign = activeCampaign;
       window.activeCampaignMultiplier = activeCampaignMultiplier;
     }
-    const resumeLocalBattleNumber = Number.isFinite(campaignData?.resumeLocalBattleNumber)
+    // resumeLocalBattleNumber is an act number (1, 2, 3).
+    // beginBattleFromTownIntro expects a flat local battle number within the town,
+    // so convert: act 2 → battle 4 (with MISSIONS_PER_BATTLE=3: (2-1)*3+1=4).
+    const resumeActNumber = Number.isFinite(campaignData?.resumeLocalBattleNumber)
       ? Math.max(1, Math.floor(campaignData.resumeLocalBattleNumber))
+      : 1;
+    const missionsPerBattle = Number.isFinite(window.MISSIONS_PER_BATTLE) ? window.MISSIONS_PER_BATTLE : 3;
+    const resumeLocalBattleNumber = resumeActNumber > 1
+      ? (resumeActNumber - 1) * missionsPerBattle + 1
       : 1;
     const hasDevStartOverrideForTown =
       pendingDevBattleStartOverride &&
@@ -7884,11 +7891,16 @@ async function refreshTitleCloudSaveOption() {
       const totalCongregationBest = Number.isFinite(save?.totalCongregationBest) ? save.totalCongregationBest : 0;
       const townRows = Array.isArray(save?.townProgressRows) ? save.townProgressRows : [];
       const completedTownRows = townRows.filter((row) => row?.p1Completed === true);
+      const activeRunTownName = save?.activeRunTownName || null;
+      const activeRunMission = Number.isFinite(save?.activeRunMission) ? save.activeRunMission : null;
+      const inProgressPart = activeRunTownName && activeRunMission
+        ? ` • ${activeRunTownName}: ${activeRunMission - 1}/3 missions`
+        : "";
       return {
         id: save.id,
         key: `cloudsave:${save.id}`,
         label: save?.saveName || "Save",
-        meta: `Towns ${completed}/${total} • Congregation ${totalCongregationBest}`,
+        meta: `Towns ${completed}/${total}${inProgressPart} • Congregation ${totalCongregationBest}`,
         suggestedTownId: save?.suggestedTownId || null,
         isActive: save?.isActive === true,
         details: {
@@ -7900,6 +7912,9 @@ async function refreshTitleCloudSaveOption() {
           totalReplayCompletions: Number.isFinite(save?.totalReplayCompletions) ? save.totalReplayCompletions : completedTownRows.length,
           totalUpgradeLevels: Number.isFinite(save?.totalUpgradeLevels) ? save.totalUpgradeLevels : 0,
           townRows: townRows,
+          activeRunTownId: save?.activeRunTownId || null,
+          activeRunTownName,
+          activeRunMission,
         },
       };
     });
@@ -18458,14 +18473,19 @@ function handleTitleScreen() {
             title = `${d.saveName || "Save"} - Full Details`;
             lines.push(`Player: ${d.playerName || "Pastor"}`);
             lines.push(`Towns Cleared: ${Number(d.completedTowns) || 0}/${Number(d.totalTowns) || 10}`);
+            if (d.activeRunTownName && Number.isFinite(d.activeRunMission)) {
+              lines.push(`In Progress: ${d.activeRunTownName} — ${d.activeRunMission - 1}/3 missions`);
+            }
             lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
             lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
             lines.push(`Upgrade Levels: ${Number(d.totalUpgradeLevels) || 0}`);
             lines.push("");
             lines.push("Town Breakdown:");
             townRows.forEach((row) => {
+              const isActiveRunTown = d.activeRunTownId && row?.townId === d.activeRunTownId;
+              const statusLabel = row?.p1Completed ? "DONE" : isActiveRunTown ? `${(d.activeRunMission || 1) - 1}/3` : "--";
               lines.push(
-                `${row?.townName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
+                `${row?.townName || "Town"} | ${statusLabel} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
               );
             });
           } else {

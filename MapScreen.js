@@ -2044,6 +2044,10 @@
         [...orderedTownIds].reverse().find((townId) => unlocked.has(townId)) ||
         firstTownId ||
         null;
+      const activeRun = mapProgress?.activeRun || null;
+      const activeRunTownName = activeRun?.townId
+        ? (towns.find((t) => t.id === activeRun.townId)?.name || activeRun.townId)
+        : null;
       return {
         id,
         saveName: save?.saveName || `Save ${id}`,
@@ -2060,6 +2064,9 @@
         suggestedTownId,
         suggestedTownName: towns.find((town) => town.id === suggestedTownId)?.name || "",
         isActive: id === activeSaveId,
+        activeRunTownId: activeRun?.townId || null,
+        activeRunTownName,
+        activeRunMission: Number.isFinite(activeRun?.resumeLocalBattleNumber) ? activeRun.resumeLocalBattleNumber : null,
       };
     });
     summaries.sort((a, b) => {
