@@ -4118,7 +4118,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  const title = "How will you guide your church forward?";
+  const title = "How Will You Equip Your Church?";
   const staticSubtitle = "";
   const buttonHeight = 200;
   const buttonCount = stats.length;
@@ -4445,38 +4445,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const actionButtonWidth = Math.min(320, (totalAvailable - actionGap) / 2);
   const actionRowWidth = actionButtonWidth * 2 + actionGap;
   const actionStartX = Math.round((layout.virtualCanvas.width - actionRowWidth) / 2);
-  const undoX = actionStartX;
-  const continueX2 = actionStartX + actionButtonWidth + actionGap;
-
-  ctx.save();
-  ctx.fillStyle = undoAvailable
-    ? getEmberButtonGradient(ctx, continueY, continueHeight)
-    : EMBER_BUTTON_PALETTE.disabledFill;
-  ctx.strokeStyle = undoAvailable ? EMBER_BUTTON_PALETTE.border : EMBER_BUTTON_PALETTE.disabledBorder;
-  ctx.lineWidth = 2;
-  roundRect(ctx, undoX, continueY, actionButtonWidth, continueHeight, 18, true, true);
-  if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount)) {
-    drawFocusRing(ctx, undoX - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
-  }
-  ctx.fillStyle = undoAvailable ? EMBER_BUTTON_PALETTE.text : EMBER_BUTTON_PALETTE.textDisabled;
-  if (undoAvailable) {
-    ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
-    ctx.shadowBlur = 6;
-    ctx.shadowOffsetY = 1;
-  }
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `600 22px ${uiFontFamily}`;
-  const undoLabel = (typeof GameText !== 'undefined' && GameText.buttons?.undo) || "Undo";
-  ctx.fillText(undoLabel, undoX + actionButtonWidth / 2, continueY + continueHeight / 2);
-  ctx.restore();
+  const continueX2 = actionStartX;
+  const resetX = actionStartX + actionButtonWidth + actionGap;
 
   ctx.save();
   ctx.fillStyle = getEmberButtonGradient(ctx, continueY, continueHeight);
   ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
   ctx.lineWidth = 2;
   roundRect(ctx, continueX2, continueY, actionButtonWidth, continueHeight, 18, true, true);
-  if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount + 1)) {
+  if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount)) {
     drawFocusRing(ctx, continueX2 - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
   }
   ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
@@ -4490,20 +4467,39 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ctx.fillText(continueLabel2, continueX2 + actionButtonWidth / 2, continueY + continueHeight / 2);
   ctx.restore();
 
-  bounds.push({
-    key: "undo",
-    x: layout.offsetX + undoX * layout.scale,
-    y: layout.offsetY + continueY * layout.scale,
-    width: actionButtonWidth * layout.scale,
-    height: continueHeight * layout.scale,
-    canAfford: undoAvailable,
-  });
+  ctx.save();
+  ctx.fillStyle = undoAvailable
+    ? "rgba(42, 34, 26, 0.92)"
+    : EMBER_BUTTON_PALETTE.disabledFill;
+  ctx.strokeStyle = undoAvailable
+    ? "rgba(210, 170, 105, 0.7)"
+    : EMBER_BUTTON_PALETTE.disabledBorder;
+  ctx.lineWidth = 2;
+  roundRect(ctx, resetX, continueY, actionButtonWidth, continueHeight, 18, true, true);
+  if (isAnnouncementButtonFocused("churchUpgradeScreen", buttonCount + 1)) {
+    drawFocusRing(ctx, resetX - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
+  }
+  ctx.fillStyle = undoAvailable ? EMBER_BUTTON_PALETTE.text : EMBER_BUTTON_PALETTE.textDisabled;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `600 22px ${uiFontFamily}`;
+  ctx.fillText("Reset", resetX + actionButtonWidth / 2, continueY + continueHeight / 2);
+  ctx.restore();
+
   bounds.push({
     key: "continue",
     x: layout.offsetX + continueX2 * layout.scale,
     y: layout.offsetY + continueY * layout.scale,
     width: actionButtonWidth * layout.scale,
     height: continueHeight * layout.scale,
+  });
+  bounds.push({
+    key: "reset",
+    x: layout.offsetX + resetX * layout.scale,
+    y: layout.offsetY + continueY * layout.scale,
+    width: actionButtonWidth * layout.scale,
+    height: continueHeight * layout.scale,
+    enabled: undoAvailable,
   });
 
   if (typeof window !== "undefined") {

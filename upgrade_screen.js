@@ -52,6 +52,27 @@
     return true;
   }
 
+  function resetPurchases() {
+    let refundedAny = false;
+    while (purchaseHistory.length > 0) {
+      const key = purchaseHistory[purchaseHistory.length - 1];
+      if (!attemptRefund(key)) break;
+      purchaseHistory.pop();
+      refundedAny = true;
+    }
+    if (refundedAny && typeof window.playMenuItemPickSfx === "function") {
+      window.playMenuItemPickSfx(0.45);
+    }
+    return refundedAny;
+  }
+
+  function canPurchaseStat(stat, graceCount) {
+    const level = Number.isFinite(stat?.level) ? stat.level : (stat?.owned ? 1 : 0);
+    const maxLevel = Number.isFinite(stat?.maxLevel) ? stat.maxLevel : 1;
+    const maxed = level >= maxLevel;
+    return Boolean(stat && !stat.disabled && !maxed && graceCount >= stat.cost);
+  }
+
   function show(callback) {
     onCloseCallback = typeof callback === "function" ? callback : null;
     visible = true;
@@ -112,20 +133,20 @@
     if (!visible) return;
     const stats = getStats();
     const statCount = stats.length;
-    const undoIndex = statCount;
-    const continueIndex = statCount + 1;
-    const isOnUndo = focusedIndex === undoIndex;
+    const continueIndex = statCount;
+    const resetIndex = statCount + 1;
     const isOnContinue = focusedIndex === continueIndex;
+    const isOnReset = focusedIndex === resetIndex;
 
     if (event.code === "ArrowLeft" || event.code === "KeyA") {
       event.preventDefault();
-      if (isOnUndo) {
-        focusedIndex = continueIndex;
+      if (isOnContinue) {
+        focusedIndex = resetIndex;
         window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
-      } else if (isOnContinue) {
-        focusedIndex = undoIndex;
+      } else if (isOnReset) {
+        focusedIndex = continueIndex;
         window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
@@ -138,13 +159,13 @@
       }
     } else if (event.code === "ArrowRight" || event.code === "KeyD") {
       event.preventDefault();
-      if (isOnUndo) {
-        focusedIndex = continueIndex;
+      if (isOnContinue) {
+        focusedIndex = resetIndex;
         window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
-      } else if (isOnContinue) {
-        focusedIndex = undoIndex;
+      } else if (isOnReset) {
+        focusedIndex = continueIndex;
         window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
@@ -157,16 +178,16 @@
       }
     } else if (event.code === "ArrowDown" || event.code === "KeyS") {
       event.preventDefault();
-      if (!isOnUndo && !isOnContinue) {
-        // Move to Undo button
-        focusedIndex = undoIndex;
+      if (!isOnReset && !isOnContinue) {
+        // Move to Continue button
+        focusedIndex = continueIndex;
         window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
         if (typeof window.playMenuMoveSfx === "function") window.playMenuMoveSfx(0.4);
         navCooldown = 0.18;
       }
     } else if (event.code === "ArrowUp" || event.code === "KeyW") {
       event.preventDefault();
-      if ((isOnContinue || isOnUndo) && statCount > 0) {
+      if ((isOnContinue || isOnReset) && statCount > 0) {
         // Move back to first upgrade button
         focusedIndex = 0;
         window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
@@ -184,34 +205,34 @@
     if (!visible) return;
     const stats = getStats();
     const statCount = stats.length;
-    const undoIndex = statCount;
-    const continueIndex = statCount + 1;
-    const isOnUndo = focusedIndex === undoIndex;
+    const continueIndex = statCount;
+    const resetIndex = statCount + 1;
     const isOnContinue = focusedIndex === continueIndex;
+    const isOnReset = focusedIndex === resetIndex;
     let moved = false;
 
     if (direction === "left") {
-      if (isOnUndo) {
+      if (isOnContinue) {
+        focusedIndex = resetIndex;
+      } else if (isOnReset) {
         focusedIndex = continueIndex;
-      } else if (isOnContinue) {
-        focusedIndex = undoIndex;
       } else if (statCount > 0) {
         focusedIndex = (focusedIndex - 1 + statCount) % statCount;
       }
       moved = true;
     } else if (direction === "right") {
-      if (isOnUndo) {
+      if (isOnContinue) {
+        focusedIndex = resetIndex;
+      } else if (isOnReset) {
         focusedIndex = continueIndex;
-      } else if (isOnContinue) {
-        focusedIndex = undoIndex;
       } else if (statCount > 0) {
         focusedIndex = (focusedIndex + 1) % statCount;
       }
       moved = true;
-    } else if (direction === "down" && !isOnUndo && !isOnContinue) {
-      focusedIndex = undoIndex;
+    } else if (direction === "down" && !isOnReset && !isOnContinue) {
+      focusedIndex = continueIndex;
       moved = true;
-    } else if (direction === "up" && (isOnContinue || isOnUndo) && statCount > 0) {
+    } else if (direction === "up" && (isOnContinue || isOnReset) && statCount > 0) {
       focusedIndex = 0;
       moved = true;
     }
@@ -231,6 +252,19 @@
     if (navCooldown > 0) {
       navCooldown = Math.max(0, navCooldown - dt);
       return;
+    }
+    const stats = getStats();
+    const graceCount = getGraceCount();
+    const statCount = stats.length;
+    const continueIndex = statCount;
+    const resetIndex = statCount + 1;
+    const anyPurchasable = stats.some((stat) => canPurchaseStat(stat, graceCount));
+    if (!anyPurchasable && focusedIndex < statCount) {
+      focusedIndex = continueIndex;
+      window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
+    } else if (focusedIndex === resetIndex && purchaseHistory.length <= 0) {
+      focusedIndex = continueIndex;
+      window.__announcementFocus = { key: "churchUpgradeScreen", index: focusedIndex };
     }
     const confirmKeys = [" ", "enter", "Enter"];
     if (confirmKeys.some((k) => input.keysJustPressed?.has(k))) {
@@ -276,8 +310,8 @@
     if (!visible) return;
     const stats = getStats();
     const statCount = stats.length;
-    const undoIndex = statCount;
-    const continueIndex = statCount + 1;
+    const continueIndex = statCount;
+    const resetIndex = statCount + 1;
     consumedAction = true;
     if (focusedIndex < statCount) {
       const stat = stats[focusedIndex];
@@ -296,8 +330,8 @@
       }
       return;
     }
-    if (focusedIndex === undoIndex) {
-      undoLastPurchase();
+    if (focusedIndex === resetIndex) {
+      resetPurchases();
       return;
     }
     if (typeof window.playMenuAdvanceSfx === "function") {
@@ -319,8 +353,8 @@
             window.playMenuAdvanceSfx(0.55);
           }
           hide();
-        } else if (btn.key === "undo") {
-          undoLastPurchase();
+        } else if (btn.key === "reset") {
+          resetPurchases();
         } else if (btn.canAfford !== false) {
           const purchased = attemptPurchase(btn.key);
           if (purchased && typeof window.playMenuItemPickSfx === "function") {
