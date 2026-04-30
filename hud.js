@@ -1319,8 +1319,9 @@
       let rowY = panelY + 50;
       orderedCombos.forEach((combo) => {
         if (rowY > panelY + panelHeight - lineHeight) return;
-        const hits = Math.max(2, Math.floor(Number(combo?.hits) || 2));
-        const details = Array.isArray(combo?.details) ? combo.details.slice(0, hits) : [];
+        const rawDetails = Array.isArray(combo?.details) ? combo.details : [];
+        const hits = Math.max(2, Math.floor(Number(combo?.hits) || 2), rawDetails.length);
+        const details = rawDetails.slice(0, hits).reverse();
         const totalDamage = Math.max(0, Math.round(Number(combo?.totalDamage) || 0));
         const tagParts = [];
         if (combo?.hasPunishCounter) tagParts.push("Punish");

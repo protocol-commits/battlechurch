@@ -4342,9 +4342,15 @@ function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
   );
   const hasCounterHit = normalizedDetails.some((entry) => entry.isCounterHit);
   const hasPunishCounter = normalizedDetails.some((entry) => entry.isPunishCounter);
+  const hitCount = Math.max(
+    2,
+    Math.floor(hits),
+    normalizedMoves.length,
+    normalizedDetails.length,
+  );
   const payload = {
     comboId: String(comboId),
-    hits: Math.max(2, Math.floor(hits)),
+    hits: hitCount,
     moves: normalizedMoves,
     details: normalizedDetails,
     totalDamage: computedTotalDamage,
@@ -4357,6 +4363,10 @@ function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
   if (last && last.comboId === payload.comboId) {
     last.hits = payload.hits;
     last.moves = payload.moves;
+    last.details = payload.details;
+    last.totalDamage = payload.totalDamage;
+    last.hasCounterHit = payload.hasCounterHit;
+    last.hasPunishCounter = payload.hasPunishCounter;
   } else {
     devMeleeConfirmedCombos.push(payload);
     if (devMeleeConfirmedCombos.length > DEV_MELEE_CONFIRMED_COMBO_MAX) {
@@ -21567,7 +21577,7 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
     isCounterHit: Boolean(hitMeta?.isCounterHit),
     isPunishCounter: Boolean(hitMeta?.isPunishCounter),
   });
-  const targetLen = Math.max(1, Math.round(meleeAttackState.meleeComboHits || 1));
+  const targetLen = 8;
   while (names.length > targetLen) names.shift();
   while (detailEntries.length > targetLen) detailEntries.shift();
   meleeAttackState.comboMoveNames = names;
