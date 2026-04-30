@@ -2068,13 +2068,17 @@ state.waveIndex = -1;
           }
           state.timer -= dt;
           if (state.timer <= 0) {
-            if (state.pendingUpgradeToTeaser) {
+            // Boss check must come first — pendingUpgradeToTeaser can be left over
+            // from the previous battle's upgrade screen closing and must not
+            // hijack the transition when the boss is due.
+            if (MISSIONS_PER_BATTLE > 0 && (state.monthIndex + 1) % MISSIONS_PER_BATTLE === 0) {
+              state.pendingUpgradeToTeaser = false;
+              beginBossIntro();
+            } else if (state.pendingUpgradeToTeaser) {
               state.pendingUpgradeToTeaser = false;
               resetStage("upgradeToTeaser", UPGRADE_TO_TEASER_DURATION);
               setDevStatus("Transitioning to skirmish...", UPGRADE_TO_TEASER_DURATION);
-              break;
-            }
-            if (state.pendingVisitorMinigame) {
+            } else if (state.pendingVisitorMinigame) {
               const resumed = beginVisitorMinigame(() => {
                 state.pendingVisitorMinigame = false;
                 beginBattle();
@@ -2083,9 +2087,7 @@ state.waveIndex = -1;
               if (resumed) {
                 return;
               }
-            }
-            if (MISSIONS_PER_BATTLE > 0 && (state.monthIndex + 1) % MISSIONS_PER_BATTLE === 0) {
-              beginBossIntro();
+              beginBattle();
             } else {
               beginBattle();
             }
