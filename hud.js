@@ -1052,11 +1052,12 @@
       const mapData = typeof window !== 'undefined' ? window.BattlechurchMapData : null;
       const townName = mapData?.towns?.find((t) => t.id === townId)?.name || "Town";
 
+      const positionLabel = `${currentAct}.${currentMission}`;
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText(townName.toUpperCase(), x, panelY + 14);
+      ctx.fillText(`${townName.toUpperCase()} ${positionLabel}`, x, panelY + 14);
       ctx.restore();
 
       const meterX = x;
