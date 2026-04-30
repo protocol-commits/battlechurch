@@ -22449,6 +22449,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
 
 function executeCleaveAttack(dir, meleeAttackState) {
   if (!player || !dir) return false;
+  playerYell("Cleave");
   const angleRad = Math.atan2(dir.y, dir.x);
   const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
   const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
@@ -22986,7 +22987,7 @@ function executeRingOfFireAttack(meleeAttackState) {
   if (!player) return false;
   const centerX = player.x;
   const centerY = player.y;
-  executeSpinAttack(meleeAttackState, null);
+  executeSpinAttack(meleeAttackState, null, { skipYell: true });
   // Preserve Refuge identity for callouts/feed instead of generic Spin.
   meleeAttackState.currentAttackHitboxType = "holyGround";
   registerComboMoveName(meleeAttackState, "Refuge");
@@ -23003,8 +23004,9 @@ function executeRingOfFireAttack(meleeAttackState) {
   return true;
 }
 
-function executeSpinAttack(meleeAttackState, moveDir) {
+function executeSpinAttack(meleeAttackState, moveDir, { skipYell = false } = {}) {
   if (!player) return;
+  if (!skipYell) playerYell("Spin");
   registerComboMoveName(meleeAttackState, "Spin");
   meleeAttackState.currentAttackHitboxType = "spin";
   meleeAttackState.swingLength = null;
@@ -23024,7 +23026,7 @@ function executeSpinAttack(meleeAttackState, moveDir) {
     meleeAttackState.spinMoveDir = null;
     meleeAttackState.spinMoveDistanceRemaining = 0;
   }
-  setSharedBButtonCooldown(MELEE_SPIN_COOLDOWN);
+  // Spin should not consume shared B cooldown; keep dash/rush dot available after C/A.
   meleeAttackState.buttonDown = false;
   meleeAttackState.isCharging = false;
   meleeAttackState.chargeTimer = 0;
@@ -23779,9 +23781,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.spinButtonDown = false;
       meleeAttackState.spinCharging = false;
       meleeAttackState.spinChargeTimer = 0;
-      const startedRush = executeRushAttack(getDashButtonDirection(), meleeAttackState, {
-        skipYell: true,
-      });
+      const startedRush = executeRushAttack(getDashButtonDirection(), meleeAttackState);
       if (startedRush) {
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
