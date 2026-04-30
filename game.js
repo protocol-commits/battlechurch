@@ -7924,7 +7924,7 @@ const PAUSE_HOTKEYS_HTML = `
       <li>Arc or Arrow keys: Aim</li>
       <li>A/Left Arrow: Melee (hold to charge)</li>
       <li>B/Up Arrow: Dash</li>
-      <li>C/Right Arrow: Tap volley, hold Prayer Bomb</li>
+      <li>C/Right Arrow: Tap volley, hold Purge</li>
       <li>Mouse: Aim</li>
       <li>Space: Pause / Resume</li>
     </ul>
@@ -8256,7 +8256,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (prayerBombPerformanceValue > 0) {
     performanceBadgeBreakdown.push({
       id: "prayerBomb",
-      label: "Prayer Bomb",
+      label: "Purge",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.prayerBomb,
       value: prayerBombPerformanceValue,
     });
@@ -8264,7 +8264,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (congregationalPrayersPerformanceValue > 0) {
     performanceBadgeBreakdown.push({
       id: "congregationalPrayers",
-      label: "Group Prayer",
+      label: "Smite",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.congregationalPrayers,
       value: congregationalPrayersPerformanceValue,
     });
@@ -18081,7 +18081,7 @@ function showDeveloperShortcutsOverlay() {
     { key: "C", label: "+5 Congregation" },
     { key: "O", label: "Touch Controls" },
     { key: "P", label: "Swap Powerups" },
-    { key: "B", label: "Prayer Bomb Charge" },
+    { key: "B", label: "Purge Charge" },
     { key: "V", label: "Visitor Session" },
     { key: "M", label: "Debug Overlay" },
     { key: "G", label: "+500 Grace" },
@@ -21612,7 +21612,7 @@ function getComboMoveNameForHit(meleeAttackState, explicitMoveName = null) {
   const hitboxType = String(meleeAttackState?.currentAttackHitboxType || "").trim();
   if (hitboxType === "swordRush") return "Blitz";
   if (hitboxType === "rush") return "Rush";
-  if (hitboxType === "holyGround") return "Holy Ground";
+  if (hitboxType === "holyGround") return "Refuge";
   if (hitboxType === "slash" || hitboxType === "dashSlash") return "Slash";
   if (hitboxType === "spin") return "Spin";
   return "Slash";
@@ -22935,9 +22935,9 @@ function executeRingOfFireAttack(meleeAttackState) {
   const centerX = player.x;
   const centerY = player.y;
   executeSpinAttack(meleeAttackState, null);
-  // Preserve Holy Ground identity for callouts/feed instead of generic Spin.
+  // Preserve Refuge identity for callouts/feed instead of generic Spin.
   meleeAttackState.currentAttackHitboxType = "holyGround";
-  registerComboMoveName(meleeAttackState, "Holy Ground");
+  registerComboMoveName(meleeAttackState, "Refuge");
   meleeAttackState.ringFireActive = true;
   meleeAttackState.ringFirePhase = "trace";
   meleeAttackState.ringFireCenterX = centerX;
@@ -23948,7 +23948,7 @@ function updateMeleeAttackSystem(dt) {
           );
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
           if (typeof cancelCongregationTap === "function") cancelCongregationTap();
-          playerYell("Holy Ground");
+          playerYell("Refuge");
           executeRingOfFireAttack(meleeAttackState);
         } else if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);

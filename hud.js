@@ -605,7 +605,7 @@
         ctx.restore();
       }
       if (fullPrayerReady) {
-        const readyText = "Group Prayer Ready";
+        const readyText = "Smite Ready";
         const flashPulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
         let fontSize = 11;
         const minFontSize = 7;

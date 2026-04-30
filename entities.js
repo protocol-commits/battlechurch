@@ -1256,7 +1256,7 @@
     if (!suppressPrayerBombInput && consumePrayerBombClick()) {
       const isFullCharge = typeof this.getPrayerChargeRatio === "function" && this.getPrayerChargeRatio() >= 1.0;
       this.castPrayerBomb();
-      window.FloatingText?.heroSay?.(isFullCharge ? "Group Prayer" : "Prayer Bomb");
+      window.FloatingText?.heroSay?.(isFullCharge ? "Smite" : "Purge");
     }
 
       // Visitor mini-game: autolock on closest visitor or chatty NPC
