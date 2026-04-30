@@ -3916,6 +3916,7 @@ const MELEE_DAMAGE_DURATION = _gb('melee.damageDuration', 0.25);
 const GAME_MELEE_SWING_DURATION = _gb('melee.swingDuration', 0.2);
 const MELEE_COOLDOWN = _gb('melee.cooldown', 0.4);
 const MELEE_DOUBLE_TAP_WINDOW = _gb('melee.doubleTapWindow', 0.18);
+const HOLY_DASH_COMBO_WINDOW = _gb('melee.holyDashWindow', 0.35);
 const NORMAL_A_CHAIN_WINDOW_MS = Math.max(520, MELEE_COOLDOWN * 1000 + 140);
 const NORMAL_A_REHIT_HURT_DURATION = 0.1;
 const MELEE_HOLD_CHARGE_TIME = _gb('melee.holdChargeTime', 1.5);
@@ -19610,7 +19611,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     const cRecentForCombo = cLastPressed > 0 && (nowPre - cLastPressed) <= comboWinMs;
     const aJustPressedNow = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
     const prayerStrikeBlocking = cRecentForCombo && aJustPressedNow &&
-      (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000) / 6;
+      (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000) / 12;
 
     // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
     const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0);
@@ -20989,7 +20990,7 @@ function tryStartDash(direction) {
   return true;
 }
 
-function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5) {
+function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5 + 200 * WORLD_SCALE) {
   if (playerDashState.isDashing) return false;
   if (!direction || (direction.x === 0 && direction.y === 0)) return false;
   playerDashState.isDashing = true;
@@ -23452,6 +23453,7 @@ function updateMeleeAttackSystem(dt) {
     pendingBasicAttack: null,
     currentAttackHitboxType: "slash",
     abSuperArmed: false,
+    holyDashArmUntil: 0,
     dualChargeReadyMove: "",
     dualChargeReadyBubble: null,
     acSuperPrayerBombBlockTimer: 0,
@@ -23509,6 +23511,7 @@ function updateMeleeAttackSystem(dt) {
     }
     if (!meleeAttackState.isRushing && keysJustPressed.has("ArrowRight")) {
       meleeAttackState.lastComboTimes.C = now;
+      meleeAttackState.holyDashArmUntil = now + HOLY_DASH_COMBO_WINDOW * 1000;
     }
     const comboWindowMs = MELEE_DOUBLE_TAP_WINDOW * 1000;
     const aRecent = now - meleeAttackState.lastComboTimes.A <= comboWindowMs;
@@ -23788,15 +23791,17 @@ function updateMeleeAttackSystem(dt) {
         comboTriggered = true;
       }
     }
-    const holyDashCost = player ? (player.prayerChargeRequired || 6000) / 6 : 10;
+    const holyDashCost = player ? (player.prayerChargeRequired || 6000) / 12 : 5;
     // C/B Holy Dash: C must have been tapped (released) recently, then B pressed.
     // Holding C then pressing B routes to the B-charge path for Teleport instead.
     const bJustPressedRaw = keysJustPressed.has("ArrowDown");
+    const holyDashArmed =
+      Number.isFinite(meleeAttackState.holyDashArmUntil) &&
+      now <= meleeAttackState.holyDashArmUntil;
     const comboHolyDash =
       !comboTriggered &&
       !playerDashState.isDashing &&
-      cRecent &&
-      !keysPressed.has("ArrowRight") &&
+      holyDashArmed &&
       bJustPressedRaw &&
       !meleeAttackState.spinButtonDown &&
       !meleeAttackState.isRushing &&
@@ -23804,10 +23809,11 @@ function updateMeleeAttackSystem(dt) {
       (player.prayerCharge || 0) >= holyDashCost;
     if (comboHolyDash) {
       const holyDir = getDashButtonDirection();
-      if (forceStartHolyDash(holyDir, DASH_DISTANCE * 2.5)) {
+      if (forceStartHolyDash(holyDir, DASH_DISTANCE * 2.5 + 200 * WORLD_SCALE)) {
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
         player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
         playerYell("Holy Dash");
+        meleeAttackState.holyDashArmUntil = 0;
         keysJustPressed.delete("ArrowDown");
         meleeAttackState.cBHolyDashBlockTimer = 0.5;
         comboTriggered = true;
@@ -23827,7 +23833,7 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete("ArrowDown");
       comboTriggered = true;
     }
-    const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 6 : 10;
+    const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 12 : 5;
     const comboPrayerStrike =
       !comboTriggered &&
       comboPrayerStrikeOrder &&
