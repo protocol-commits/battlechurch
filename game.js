@@ -4319,16 +4319,37 @@ function syncDevArenaConfirmedCombos() {
   }
 }
 
-function upsertDevArenaConfirmedCombo(comboId, hits, moves) {
+function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
   if (!isDevMeleeArenaActive()) return;
   if (!comboId || !Number.isFinite(hits) || hits < 2) return;
   const normalizedMoves = Array.isArray(moves)
     ? moves.filter((name) => typeof name === "string" && name.trim()).slice(0, hits)
     : [];
+  const normalizedDetails = Array.isArray(details)
+    ? details
+        .slice(0, hits)
+        .map((entry) => ({
+          move: String(entry?.move || ""),
+          damage: Math.max(0, Math.round(Number(entry?.damage) || 0)),
+          isCounterHit: Boolean(entry?.isCounterHit),
+          isPunishCounter: Boolean(entry?.isPunishCounter),
+        }))
+        .filter((entry) => entry.move)
+    : [];
+  const computedTotalDamage = normalizedDetails.reduce(
+    (sum, entry) => sum + Math.max(0, Number(entry.damage) || 0),
+    0,
+  );
+  const hasCounterHit = normalizedDetails.some((entry) => entry.isCounterHit);
+  const hasPunishCounter = normalizedDetails.some((entry) => entry.isPunishCounter);
   const payload = {
     comboId: String(comboId),
     hits: Math.max(2, Math.floor(hits)),
     moves: normalizedMoves,
+    details: normalizedDetails,
+    totalDamage: computedTotalDamage,
+    hasCounterHit,
+    hasPunishCounter,
   };
   const last = devMeleeConfirmedCombos.length
     ? devMeleeConfirmedCombos[devMeleeConfirmedCombos.length - 1]
@@ -4368,6 +4389,19 @@ function enforceDevMeleeArenaVitals() {
       Number(player.congregationCommandChargeRequired) || Number(CONGREGATION_COMMAND_CHARGE_TIME) || 1,
     );
     player.congregationCommandCharge = commandRequired;
+    if (typeof window !== "undefined") {
+      window.__devArenaDamageReference = {
+        melee: Math.round(MELEE_BASE_DAMAGE),
+        cleave: Math.round(MELEE_BASE_DAMAGE * CLEAVE_DAMAGE_MULTIPLIER),
+        rushAttack: Math.round(RUSH_DAMAGE),
+        divineShot: Math.round(DIVINE_SHOT_DAMAGE),
+        spinAttack: Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER),
+        modifiers: {
+          counterHit: COUNTER_HIT_MULTIPLIER,
+          punishCounter: PUNISH_COUNTER_MULTIPLIER,
+        },
+      };
+    }
   }
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
@@ -19888,7 +19922,11 @@ function processProjectileCollisions(dt) {
           if (projectile.isDivineShot && meleeAttackState) {
             applyMeleeHitstop(enemy, meleeAttackState, counterHit);
             registerPunishComboDamage(enemy, counterHit.damage, meleeAttackState);
-            registerDivineShotComboHit(enemy, meleeAttackState);
+            registerDivineShotComboHit(enemy, meleeAttackState, {
+              damage: counterHit.damage,
+              isCounterHit: Boolean(counterHit?.isCounterHit),
+              isPunishCounter: Boolean(counterHit?.isPunishCounter),
+            });
             if (npcPowerupWasAlive && (enemy.dead || enemy.state === "death")) {
               registerDivineShotKill(meleeAttackState, enemy);
             }
@@ -19981,7 +20019,11 @@ function processProjectileCollisions(dt) {
               if (projectile.isDivineShot && meleeAttackState) {
                 applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
                 registerPunishComboDamage(activeBoss, counterHit.damage, meleeAttackState);
-                registerDivineShotComboHit(activeBoss, meleeAttackState);
+                registerDivineShotComboHit(activeBoss, meleeAttackState, {
+                  damage: counterHit.damage,
+                  isCounterHit: Boolean(counterHit?.isCounterHit),
+                  isPunishCounter: Boolean(counterHit?.isPunishCounter),
+                });
                 if (bossWasAlive && (activeBoss.dead || activeBoss.state === "death")) {
                   registerDivineShotKill(meleeAttackState, activeBoss);
                 }
@@ -20840,7 +20882,11 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     }
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
-    registerMeleeComboHit(enemy, meleeAttackState);
+    registerMeleeComboHit(enemy, meleeAttackState, null, {
+      damage,
+      isCounterHit: Boolean(counterHit?.isCounterHit),
+      isPunishCounter: Boolean(counterHit?.isPunishCounter),
+    });
     registerComboHit(enemy, damage);
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
@@ -20900,7 +20946,11 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
         });
         applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
-        registerMeleeComboHit(activeBoss, meleeAttackState);
+        registerMeleeComboHit(activeBoss, meleeAttackState, null, {
+          damage,
+          isCounterHit: Boolean(counterHit?.isCounterHit),
+          isPunishCounter: Boolean(counterHit?.isPunishCounter),
+        });
         registerComboHit(activeBoss, damage);
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
         if (!activeBoss.dead && activeBoss.state === "hurt") {
@@ -21469,7 +21519,7 @@ function updateMeleeComboLabel(meleeAttackState) {
   meleeAttackState.meleeComboLabel.fontWeight = labelConfig.fontWeight;
 }
 
-function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null) {
+function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null, hitMeta = null) {
   if (!target || !meleeAttackState) return;
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
@@ -21503,13 +21553,25 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const names = Array.isArray(meleeAttackState.comboMoveNames)
     ? meleeAttackState.comboMoveNames
     : [];
+  const detailEntries = Array.isArray(meleeAttackState.devArenaComboEntries)
+    ? meleeAttackState.devArenaComboEntries
+    : [];
   if (!chainActive || previousHits <= 0) {
     names.length = 0;
+    detailEntries.length = 0;
   }
   names.push(moveName);
+  detailEntries.push({
+    move: moveName,
+    damage: Math.max(0, Math.round(Number(hitMeta?.damage) || 0)),
+    isCounterHit: Boolean(hitMeta?.isCounterHit),
+    isPunishCounter: Boolean(hitMeta?.isPunishCounter),
+  });
   const targetLen = Math.max(1, Math.round(meleeAttackState.meleeComboHits || 1));
   while (names.length > targetLen) names.shift();
+  while (detailEntries.length > targetLen) detailEntries.shift();
   meleeAttackState.comboMoveNames = names;
+  meleeAttackState.devArenaComboEntries = detailEntries;
   meleeAttackState.comboMovesWindowUntil = now + COMBO_WINDOW_MS;
   meleeAttackState.pendingComboMoveName = null;
   updateComboMoveCallout(meleeAttackState);
@@ -21517,10 +21579,14 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
     const confirmedMoves = Array.isArray(meleeAttackState.comboMoveNames)
       ? meleeAttackState.comboMoveNames.slice(-meleeAttackState.meleeComboHits)
       : [];
+    const confirmedDetails = Array.isArray(meleeAttackState.devArenaComboEntries)
+      ? meleeAttackState.devArenaComboEntries.slice(-meleeAttackState.meleeComboHits)
+      : [];
     upsertDevArenaConfirmedCombo(
       meleeAttackState.devArenaComboId,
       meleeAttackState.meleeComboHits,
       confirmedMoves,
+      confirmedDetails,
     );
   }
   if (meleeAttackState.meleeComboHits >= 2) {
@@ -21574,9 +21640,9 @@ function registerNormalSlashChainHit(target, meleeAttackState, now) {
   return nextHits;
 }
 
-function registerDivineShotComboHit(target, meleeAttackState) {
+function registerDivineShotComboHit(target, meleeAttackState, hitMeta = null) {
   if (!target || !meleeAttackState) return;
-  registerMeleeComboHit(target, meleeAttackState, "Divine Shot");
+  registerMeleeComboHit(target, meleeAttackState, "Divine Shot", hitMeta);
   if (
     meleeAttackState.punishCounterTarget === target &&
     meleeAttackState.punishCounterPrimed &&
@@ -21861,7 +21927,11 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     });
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
-    registerMeleeComboHit(enemy, meleeAttackState, moveName);
+    registerMeleeComboHit(enemy, meleeAttackState, moveName, {
+      damage,
+      isCounterHit: Boolean(counterHit?.isCounterHit),
+      isPunishCounter: Boolean(counterHit?.isPunishCounter),
+    });
     registerNormalSlashChainHit(enemy, meleeAttackState, now);
     registerComboHit(enemy, damage);
     meleeDamageTotal += damage;
@@ -21958,7 +22028,11 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
         });
         applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
-        registerMeleeComboHit(activeBoss, meleeAttackState, moveName);
+        registerMeleeComboHit(activeBoss, meleeAttackState, moveName, {
+          damage,
+          isCounterHit: Boolean(counterHit?.isCounterHit),
+          isPunishCounter: Boolean(counterHit?.isPunishCounter),
+        });
         registerNormalSlashChainHit(activeBoss, meleeAttackState, now);
         registerComboHit(activeBoss, damage);
         meleeDamageTotal += damage;
@@ -22116,7 +22190,11 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     enemy.takeDamage(finalDamage, { damageType: "melee", damageText: counterHit.damageText });
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, finalDamage, meleeAttackState);
-    registerMeleeComboHit(enemy, meleeAttackState);
+    registerMeleeComboHit(enemy, meleeAttackState, null, {
+      damage: finalDamage,
+      isCounterHit: Boolean(counterHit?.isCounterHit),
+      isPunishCounter: Boolean(counterHit?.isPunishCounter),
+    });
     registerComboHit(enemy, finalDamage);
     meleeDamageTotal += finalDamage;
     if (
@@ -22179,7 +22257,11 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       });
       applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
       registerPunishComboDamage(activeBoss, finalDamage, meleeAttackState);
-      registerMeleeComboHit(activeBoss, meleeAttackState);
+      registerMeleeComboHit(activeBoss, meleeAttackState, null, {
+        damage: finalDamage,
+        isCounterHit: Boolean(counterHit?.isCounterHit),
+        isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      });
       registerComboHit(activeBoss, finalDamage);
       meleeDamageTotal += finalDamage;
       if (
@@ -22273,7 +22355,11 @@ function applyDashSlashTravelDamage(meleeAttackState) {
     enemy.takeDamage(finalDamage, { damageType: "melee", damageText: counterHit.damageText });
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, finalDamage, meleeAttackState);
-    registerMeleeComboHit(enemy, meleeAttackState);
+    registerMeleeComboHit(enemy, meleeAttackState, null, {
+      damage: finalDamage,
+      isCounterHit: Boolean(counterHit?.isCounterHit),
+      isPunishCounter: Boolean(counterHit?.isPunishCounter),
+    });
     registerComboHit(enemy, finalDamage);
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
@@ -22321,7 +22407,11 @@ function applyDashSlashTravelDamage(meleeAttackState) {
       });
       applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
       registerPunishComboDamage(activeBoss, finalDamage, meleeAttackState);
-      registerMeleeComboHit(activeBoss, meleeAttackState);
+      registerMeleeComboHit(activeBoss, meleeAttackState, null, {
+        damage: finalDamage,
+        isCounterHit: Boolean(counterHit?.isCounterHit),
+        isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      });
       registerComboHit(activeBoss, finalDamage);
       if (typeof activeBoss.knockbackVx === "number") {
         applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
@@ -22902,6 +22992,7 @@ function updateMeleeAttackSystem(dt) {
     pendingComboHits: 0,
     pendingComboLastAt: 0,
     comboMoveNames: [],
+    devArenaComboEntries: [],
     comboMovesWindowUntil: 0,
     pendingComboMoveName: null,
     lastComboMoveCalloutAt: 0,
@@ -23121,7 +23212,11 @@ function updateMeleeAttackSystem(dt) {
         enemy.takeDamage(spinDamage, { damageType: "charged", damageText: counterHit.damageText });
         applyMeleeHitstop(enemy, meleeAttackState, counterHit);
         registerPunishComboDamage(enemy, spinDamage, meleeAttackState);
-        registerMeleeComboHit(enemy, meleeAttackState);
+        registerMeleeComboHit(enemy, meleeAttackState, null, {
+          damage: spinDamage,
+          isCounterHit: Boolean(counterHit?.isCounterHit),
+          isPunishCounter: Boolean(counterHit?.isPunishCounter),
+        });
         registerComboHit(enemy, spinDamage);
         spinDamageTotal += spinDamage;
         if (!enemy.dead && enemy.state !== "death") {
@@ -23193,7 +23288,11 @@ function updateMeleeAttackSystem(dt) {
             });
             applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
             registerPunishComboDamage(activeBoss, spinDamage, meleeAttackState);
-            registerMeleeComboHit(activeBoss, meleeAttackState);
+            registerMeleeComboHit(activeBoss, meleeAttackState, null, {
+              damage: spinDamage,
+              isCounterHit: Boolean(counterHit?.isCounterHit),
+              isPunishCounter: Boolean(counterHit?.isPunishCounter),
+            });
             registerComboHit(activeBoss, spinDamage);
             spinDamageTotal += spinDamage;
             if (typeof activeBoss.knockbackVx === "number") {

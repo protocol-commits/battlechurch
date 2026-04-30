@@ -1233,6 +1233,61 @@
       ctx.restore();
     };
 
+    const drawDevArenaMoveReference = () => {
+      if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
+      const ref = window.__devArenaDamageReference || {};
+      const panelWidth = 300;
+      const panelX = 14;
+      const panelY = hudHeight + 14;
+      const lineHeight = 18;
+      const panelHeight = 56 + lineHeight * 10;
+      const moveRows = [
+        { label: "Melee", value: ref.melee },
+        { label: "Cleave", value: ref.cleave },
+        { label: "Rush Attack", value: ref.rushAttack },
+        { label: "Divine Shot", value: ref.divineShot },
+        { label: "Spin Attack", value: ref.spinAttack },
+      ];
+      const counterMult = Number(ref?.modifiers?.counterHit) || 0;
+      const punishMult = Number(ref?.modifiers?.punishCounter) || 0;
+
+      ctx.save();
+      ctx.globalAlpha = 0.94;
+      ctx.fillStyle = 'rgba(10,15,31,0.78)';
+      ctx.strokeStyle = 'rgba(155,217,255,0.7)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 10, true, true);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.font = `700 15px ${UI_FONT_FAMILY}`;
+      ctx.fillText('Melee Damage Reference', panelX + 14, panelY + 12);
+      ctx.font = `11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = 'rgba(234,246,255,0.8)';
+      ctx.fillText('Base hit values', panelX + 14, panelY + 31);
+
+      let rowY = panelY + 50;
+      moveRows.forEach((row) => {
+        ctx.fillStyle = PALETTE.softWhite;
+        ctx.font = `13px ${UI_FONT_FAMILY}`;
+        const dmg = Number.isFinite(row.value) ? row.value : 0;
+        ctx.fillText(`${row.label}: ${dmg}`, panelX + 14, rowY);
+        rowY += lineHeight;
+      });
+      rowY += 2;
+      ctx.fillStyle = 'rgba(255,200,106,0.92)';
+      ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+      ctx.fillText('Modifiers', panelX + 14, rowY);
+      rowY += lineHeight;
+      ctx.fillStyle = PALETTE.softWhite;
+      ctx.font = `13px ${UI_FONT_FAMILY}`;
+      ctx.fillText(`Counter Hit: x${counterMult.toFixed(2)}`, panelX + 14, rowY);
+      rowY += lineHeight;
+      ctx.fillText(`Punish Counter: x${punishMult.toFixed(2)}`, panelX + 14, rowY);
+      ctx.restore();
+    };
+
     const drawDevArenaMoveFeed = () => {
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
       const combos = Array.isArray(window.__devArenaConfirmedCombos)
@@ -1265,16 +1320,27 @@
       orderedCombos.forEach((combo) => {
         if (rowY > panelY + panelHeight - lineHeight) return;
         const hits = Math.max(2, Math.floor(Number(combo?.hits) || 2));
-        const moves = Array.isArray(combo?.moves) ? combo.moves.slice(0, hits) : [];
+        const details = Array.isArray(combo?.details) ? combo.details.slice(0, hits) : [];
+        const totalDamage = Math.max(0, Math.round(Number(combo?.totalDamage) || 0));
+        const tagParts = [];
+        if (combo?.hasPunishCounter) tagParts.push("Punish");
+        if (combo?.hasCounterHit) tagParts.push("Counter");
+        const tagSuffix = tagParts.length ? ` [${tagParts.join(" + ")}]` : "";
         ctx.fillStyle = 'rgba(255,200,106,0.92)';
         ctx.font = `700 11px ${UI_FONT_FAMILY}`;
-        ctx.fillText(`COMBO ${hits}`, panelX + 14, rowY + 2);
+        ctx.fillText(`COMBO ${hits} - ${totalDamage}${tagSuffix}`, panelX + 14, rowY + 2);
         rowY += lineHeight;
-        moves.forEach((moveName) => {
+        details.forEach((entry) => {
           if (rowY > panelY + panelHeight - lineHeight) return;
           ctx.fillStyle = PALETTE.softWhite;
           ctx.font = `13px ${UI_FONT_FAMILY}`;
-          ctx.fillText(`- ${moveName}`, panelX + 30, rowY);
+          const moveName = String(entry?.move || "Move");
+          const moveDamage = Math.max(0, Math.round(Number(entry?.damage) || 0));
+          const entryTags = [];
+          if (entry?.isPunishCounter) entryTags.push("Punish");
+          if (entry?.isCounterHit) entryTags.push("Counter");
+          const entryTagSuffix = entryTags.length ? ` (${entryTags.join(" + ")})` : "";
+          ctx.fillText(`- ${moveName}: ${moveDamage}${entryTagSuffix}`, panelX + 30, rowY);
           rowY += lineHeight;
         });
         if (rowY <= panelY + panelHeight - lineHeight) {
@@ -1290,6 +1356,7 @@
     drawPlayerInfo();
     drawNpcInfo();
     drawTownProgress();
+    drawDevArenaMoveReference();
     drawDevArenaMoveFeed();
 
     const savedCount = stats?.npcsRescued ?? 0;
