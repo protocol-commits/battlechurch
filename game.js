@@ -7438,10 +7438,24 @@ function queueTownIntroAnnouncement() {
   });
 }
 
-function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {}) {
-  console.log("[exteriorShot] called, actNumber:", actNumber, "force:", force);
+function queueActBreakTownIntro(actNumber) {
+  const act = Math.max(2, Math.floor(actNumber));
+  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
+  const flatBattleStart = (act - 1) * missionsPerBattle + 1;
+  if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  queueLevelAnnouncement("", "", {
+    requiresConfirm: true,
+    skipMissionBrief: true,
+    townIntro: true,
+    upcomingOrderNumber: act,
+    upcomingMissionNumber: 1,
+    actBreakFlatBattle: flatBattleStart,
+  });
+}
+
+function queueExteriorShotAnnouncement({ force = false } = {}) {
   const monthName = getUpcomingMonthName();
-  if (!monthName) { console.log("[exteriorShot] early exit: no monthName"); return; }
+  if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const _ohCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
   const _ohLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
@@ -7450,9 +7464,7 @@ function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {})
     1,
     Number.isFinite(status?.battle) ? status.battle : 1,
   );
-  const orderNumber = Number.isFinite(actNumber) && actNumber >= 1
-    ? actNumber
-    : Math.max(1, Number.isFinite(status?.level) ? status.level : 1);
+  const orderNumber = Math.max(1, Number.isFinite(status?.level) ? status.level : 1);
   const bossBattleNumber =
     typeof window !== "undefined" && Number.isFinite(window.MONTHS_PER_LEVEL)
       ? window.MONTHS_PER_LEVEL
@@ -7467,12 +7479,9 @@ function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {})
     ? bossBattleNumber
     : Math.max(1, (Number.isFinite(status?.battle) ? status.battle : 0) + 1);
   const upcomingOrderNumber = orderNumber;
-  // Only skip for the normal (non-chapter-break) case where we're not at mission 1
-  const isChapterBreakTransition = Number.isFinite(actNumber) && actNumber > 1;
-  if (!isChapterBreakTransition && upcomingMissionNumber !== 1) {
-    console.log("[exteriorShot] early exit: upcomingMissionNumber", upcomingMissionNumber, "isChapterBreakTransition", isChapterBreakTransition);
-    return;
-  }
+  // actBreak bypasses the mission-1 guard — chapter breaks always need the exterior shot + zoom
+  const shouldShowExterior = actBreak || upcomingMissionNumber === 1;
+  if (!shouldShowExterior) return;
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
   if (!force && (visitorActive || status?.pendingVisitorMinigame)) {
@@ -7480,11 +7489,7 @@ function queueExteriorShotAnnouncement({ force = false, actNumber = null } = {})
     return;
   }
   pendingExteriorShotAfterVisitor = false;
-  if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) {
-    console.log("[exteriorShot] skipped — already queued");
-    return;
-  }
-  console.log("[exteriorShot] queuing with upcomingOrderNumber:", upcomingOrderNumber, "title:", battleTitle);
+  if (levelAnnouncements.some((announcement) => announcement?.exteriorShot)) return;
   queueLevelAnnouncement(battleTitle, "", {
     duration: 1.4,
     requiresConfirm: true,
@@ -7554,23 +7559,18 @@ function startGameFromTitle() {
       window.activeCampaign = activeCampaign;
       window.activeCampaignMultiplier = activeCampaignMultiplier;
     }
-    // resumeLocalBattleNumber is an act number (1, 2, 3).
-    // beginBattleFromTownIntro expects a flat local battle number within the town,
-    // so convert: act 2 → battle 4 (with MISSIONS_PER_BATTLE=3: (2-1)*3+1=4).
-    const resumeActNumber = Number.isFinite(campaignData?.resumeLocalBattleNumber)
+    const resumeLocalBattleNumber = Number.isFinite(campaignData?.resumeLocalBattleNumber)
       ? Math.max(1, Math.floor(campaignData.resumeLocalBattleNumber))
-      : 1;
-    const missionsPerBattle = Number.isFinite(window.MISSIONS_PER_BATTLE) ? window.MISSIONS_PER_BATTLE : 3;
-    const resumeLocalBattleNumber = resumeActNumber > 1
-      ? (resumeActNumber - 1) * missionsPerBattle + 1
       : 1;
     const hasDevStartOverrideForTown =
       pendingDevBattleStartOverride &&
       pendingDevBattleStartOverride.townId === activeTownId;
     if (!overrideCampaignData && !hasDevStartOverrideForTown && resumeLocalBattleNumber > 1) {
+      const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
+      const flatBattleNumber = (resumeLocalBattleNumber - 1) * missionsPerBattle + 1;
       pendingDevBattleStartOverride = {
         townId: activeTownId,
-        localBattleNumber: resumeLocalBattleNumber,
+        localBattleNumber: flatBattleNumber,
       };
     }
     if (Number.isFinite(campaignData?.savedGraceCount)) {
@@ -7903,19 +7903,19 @@ async function refreshTitleCloudSaveOption() {
       const townRows = Array.isArray(save?.townProgressRows) ? save.townProgressRows : [];
       const completedTownRows = townRows.filter((row) => row?.p1Completed === true);
       const activeRunTownName = save?.activeRunTownName || null;
-      const activeRunMission = Number.isFinite(save?.activeRunMission) ? save.activeRunMission : null;
+      const activeRunActNumber = Number.isFinite(save?.activeRunActNumber) ? save.activeRunActNumber : null;
       const activeRunCongregation = Number.isFinite(save?.activeRunCongregation) ? save.activeRunCongregation : null;
-      const congregationDisplay = activeRunCongregation != null
-        ? activeRunCongregation
-        : totalCongregationBest;
-      const inProgressPart = activeRunTownName && activeRunMission
-        ? ` • ${activeRunTownName}: ${activeRunMission - 1}/3 missions`
-        : "";
+      const congregationDisplay = activeRunCongregation !== null ? activeRunCongregation : totalCongregationBest;
+      let metaParts = [`Towns ${completed}/${total}`];
+      if (activeRunTownName && activeRunActNumber !== null) {
+        metaParts.push(`${activeRunTownName}: Mission ${activeRunActNumber - 1}/3 done`);
+      }
+      metaParts.push(`Congregation ${congregationDisplay}`);
       return {
         id: save.id,
         key: `cloudsave:${save.id}`,
         label: save?.saveName || "Save",
-        meta: `Towns ${completed}/${total}${inProgressPart} • Congregation ${congregationDisplay}`,
+        meta: metaParts.join(" • "),
         suggestedTownId: save?.suggestedTownId || null,
         isActive: save?.isActive === true,
         details: {
@@ -7927,9 +7927,6 @@ async function refreshTitleCloudSaveOption() {
           totalReplayCompletions: Number.isFinite(save?.totalReplayCompletions) ? save.totalReplayCompletions : completedTownRows.length,
           totalUpgradeLevels: Number.isFinite(save?.totalUpgradeLevels) ? save.totalUpgradeLevels : 0,
           townRows: townRows,
-          activeRunTownId: save?.activeRunTownId || null,
-          activeRunTownName,
-          activeRunMission,
         },
       };
     });
@@ -10866,6 +10863,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     : 0;
   const pastorPostRecapUpgradeAfter = Boolean(options.pastorPostRecapUpgradeAfter);
   const levelSummary = Boolean(options.levelSummary);
+  const actBreakFlatBattle = Number.isFinite(options.actBreakFlatBattle) ? Math.max(1, Math.floor(options.actBreakFlatBattle)) : null;
   const fadeOutDuration = Number.isFinite(options.fadeOutDuration)
     ? Math.max(0.05, options.fadeOutDuration)
     : null;
@@ -10897,6 +10895,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     pastorPostRecap,
     pastorPostRecapDelay,
     pastorPostRecapUpgradeAfter,
+    actBreakFlatBattle,
   };
   if (requiresConfirm && Array.isArray(levelAnnouncements) && levelAnnouncements.length) {
     // Confirm-gated overlays (mission brief, recap, etc.) must take priority.
@@ -10973,6 +10972,17 @@ function dismissCurrentLevelAnnouncement() {
     if (_levelNum > 1) {
       suppressInitialAnnouncements = false;
       pendingTownIntroStart = false;
+    }
+    // Act 2/3 chapter-break intros: skip congregation, jump straight to teaser → battle brief
+    if (Number.isFinite(current.actBreakFlatBattle) && current.actBreakFlatBattle > 1) {
+      suppressInitialAnnouncements = false;
+      pendingTownIntroStart = false;
+      if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
+        levelManager.beginBattleFromTownIntro(_levelNum, current.actBreakFlatBattle);
+      }
+      pendingDevBattleStartOverride = null;
+      if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+      return;
     }
     const devStartOverride =
       pendingDevBattleStartOverride &&
@@ -17583,14 +17593,7 @@ function handleChapterBreak() {
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
       }
-      // Clear any mission brief announcements that were queued while chapter break was showing
-      // The exterior shot should come before the mission brief
-      while (levelAnnouncements.length && levelAnnouncements[0].missionBriefTitle) {
-        levelAnnouncements.shift();
-      }
-      // Queue exterior shot for the next Order's first mission, using the correct act image
-      console.log("[chapterBreak] dismissed via button, queuing exterior shot for act", chapterBreakActNumber);
-      queueExteriorShotAnnouncement({ actNumber: chapterBreakActNumber });
+      queueActBreakTownIntro(chapterBreakActNumber);
     },
   });
   if (handled) return false;
@@ -17602,14 +17605,7 @@ function handleChapterBreak() {
     if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
       window.playMenuAdvanceSfx(0.55);
     }
-    // Clear any mission brief announcements that were queued while chapter break was showing
-    // The exterior shot should come before the mission brief
-    while (levelAnnouncements.length && levelAnnouncements[0].missionBriefTitle) {
-      levelAnnouncements.shift();
-    }
-    // Queue exterior shot for the next Order's first mission, using the correct act image
-    console.log("[chapterBreak] dismissed via key, queuing exterior shot for act", chapterBreakActNumber);
-    queueExteriorShotAnnouncement({ actNumber: chapterBreakActNumber });
+    queueActBreakTownIntro(chapterBreakActNumber);
     keysJustPressed.delete(" ");
     console.log("Chapter break dismissed by user");
     return false;
@@ -18490,19 +18486,14 @@ function handleTitleScreen() {
             title = `${d.saveName || "Save"} - Full Details`;
             lines.push(`Player: ${d.playerName || "Pastor"}`);
             lines.push(`Towns Cleared: ${Number(d.completedTowns) || 0}/${Number(d.totalTowns) || 10}`);
-            if (d.activeRunTownName && Number.isFinite(d.activeRunMission)) {
-              lines.push(`In Progress: ${d.activeRunTownName} — ${d.activeRunMission - 1}/3 missions`);
-            }
             lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
             lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
             lines.push(`Upgrade Levels: ${Number(d.totalUpgradeLevels) || 0}`);
             lines.push("");
             lines.push("Town Breakdown:");
             townRows.forEach((row) => {
-              const isActiveRunTown = d.activeRunTownId && row?.townId === d.activeRunTownId;
-              const statusLabel = row?.p1Completed ? "DONE" : isActiveRunTown ? `${(d.activeRunMission || 1) - 1}/3` : "--";
               lines.push(
-                `${row?.townName || "Town"} | ${statusLabel} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
+                `${row?.townName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
               );
             });
           } else {

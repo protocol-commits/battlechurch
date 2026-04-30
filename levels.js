@@ -2064,6 +2064,7 @@ state.waveIndex = -1;
       }
         case "battleIntermission":
           if (
+            state.skipPostBattleAdvance &&
             typeof deps.isPostBattleFlowBlocked === "function" &&
             deps.isPostBattleFlowBlocked()
           ) {

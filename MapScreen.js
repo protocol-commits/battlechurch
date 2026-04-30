@@ -1271,14 +1271,15 @@
         (sum, camp) => sum + (townEntry?.[camp]?.completed === true ? 1 : 0),
         0,
       );
-      const activeRun = progress?.activeRun;
-      const hasActiveRunHere = activeRun?.townId === town.id && Number.isFinite(activeRun?.resumeLocalBattleNumber);
-      const inProgressMissions = hasActiveRunHere ? activeRun.resumeLocalBattleNumber - 1 : 0;
-primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
+      primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       if (campAvail) {
-        secondaryLine = hasActiveRunHere && inProgressMissions > 0
-          ? `In Progress: ${inProgressMissions}/3 missions`
-          : `Missions Completed: ${completedVisits}/3`;
+        const activeRun = progress?.activeRun;
+        const isInProgress = activeRun?.townId === town.id && activeRun?.campaign === nextCamp && Number.isFinite(activeRun?.resumeLocalBattleNumber) && activeRun.resumeLocalBattleNumber > 1;
+        if (isInProgress) {
+          secondaryLine = `In Progress: Mission ${activeRun.resumeLocalBattleNumber - 1}/3 done`;
+        } else {
+          secondaryLine = `Missions Completed: ${completedVisits}/3`;
+        }
       } else if (nextCamp === "p2") {
         secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} towns to unlock ${_phases.p2 || "Occupation"}.`;
       } else {
@@ -2050,9 +2051,10 @@ primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
         firstTownId ||
         null;
       const activeRun = mapProgress?.activeRun || null;
-      const activeRunTownName = activeRun?.townId
-        ? (towns.find((t) => t.id === activeRun.townId)?.name || activeRun.townId)
-        : null;
+      const activeRunTownId = activeRun?.townId || null;
+      const activeRunTownName = activeRunTownId ? (towns.find((t) => t.id === activeRunTownId)?.name || activeRunTownId) : null;
+      const activeRunActNumber = Number.isFinite(activeRun?.resumeLocalBattleNumber) ? activeRun.resumeLocalBattleNumber : null;
+      const activeRunCongregation = Number.isFinite(activeRun?.startCount) ? activeRun.startCount : null;
       return {
         id,
         saveName: save?.saveName || `Save ${id}`,
@@ -2069,10 +2071,10 @@ primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
         suggestedTownId,
         suggestedTownName: towns.find((town) => town.id === suggestedTownId)?.name || "",
         isActive: id === activeSaveId,
-        activeRunTownId: activeRun?.townId || null,
+        activeRunTownId,
         activeRunTownName,
-        activeRunMission: Number.isFinite(activeRun?.resumeLocalBattleNumber) ? activeRun.resumeLocalBattleNumber : null,
-        activeRunCongregation: Number.isFinite(activeRun?.startCount) ? activeRun.startCount : null,
+        activeRunActNumber,
+        activeRunCongregation,
       };
     });
     summaries.sort((a, b) => {
