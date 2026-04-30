@@ -14821,7 +14821,7 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   config.friendly = overrides.friendly ?? true;
   config.source = overrides.source || null;
-  if (isDevMeleeArenaActive() && config.friendly) {
+  if (isDevMeleeArenaActive() && config.friendly && type !== "divine_shot") {
     return null;
   }
   if (overrides.scriptureFeedback !== undefined) {
@@ -19067,6 +19067,11 @@ function updateCongregationStage(dt, levelStatus) {
   let stage = levelStatus?.stage;
   let congregationStageActive = stage === "levelIntro";
   if (!congregationStageActive) return { updated: false, levelStatus };
+  if (isDevMeleeArenaActive() && typeof levelManager?.advanceFromCongregation === "function") {
+    levelManager.advanceFromCongregation();
+    levelStatus = levelManager?.getStatus ? levelManager.getStatus() : levelStatus;
+    return { updated: true, levelStatus };
+  }
   if (!mapAmbientFadeQueued && typeof window !== "undefined" && window.MapScreen?.stopAmbient) {
     mapAmbientFadeQueued = true;
     window.MapScreen.stopAmbient({ fade: true });
@@ -23703,7 +23708,9 @@ function updateGame(dt) {
     clearAllPowerUps();
     clearGracePickups();
     projectiles.forEach((projectile) => {
-      if (projectile?.friendly) projectile.dead = true;
+      if (!projectile?.friendly) return;
+      if (projectile.type === "divine_shot") return;
+      projectile.dead = true;
     });
   }
   handleDeveloperHotkeys();

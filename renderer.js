@@ -5813,66 +5813,76 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     void memberCount;
 
-    const buttonText = "FIGHT!";
-    const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
-    const buttonHeight = 52;
-    const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
-    const buttonTopY = getAnnouncementScreenTopY({
-      canvasHeight: layout.virtualCanvas.height,
-      HUD_HEIGHT,
-      blockHeight: buttonHeight,
-      position: "bottom",
-      topMargin: 90,
-      bottomMargin: 90,
-    });
-    const buttonY = Math.round(buttonTopY);
-    if (typeof window !== "undefined") {
-      window.__congregationPlayButtonBounds = {
-        x: layout.offsetX + buttonX * layout.scale,
-        y: layout.offsetY + buttonY * layout.scale,
-        width: buttonWidth * layout.scale,
-        height: buttonHeight * layout.scale,
-      };
-      window.__announcementButtons = {
-        key: "congregation",
-        buttons: [
-          {
-            key: "play",
-            x: layout.offsetX + buttonX * layout.scale,
-            y: layout.offsetY + buttonY * layout.scale,
-            width: buttonWidth * layout.scale,
-            height: buttonHeight * layout.scale,
-          },
-        ],
-      };
+    const isDevArenaMode = Boolean(
+      typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode === true,
+    );
+    if (isDevArenaMode) {
+      if (typeof window !== "undefined") {
+        window.__congregationPlayButtonBounds = null;
+        window.__announcementButtons = { key: "congregation", buttons: [] };
+      }
+    } else {
+      const buttonText = "FIGHT!";
+      const buttonWidth = Math.min(260, layout.virtualCanvas.width * 0.6);
+      const buttonHeight = 52;
+      const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
+      const buttonTopY = getAnnouncementScreenTopY({
+        canvasHeight: layout.virtualCanvas.height,
+        HUD_HEIGHT,
+        blockHeight: buttonHeight,
+        position: "bottom",
+        topMargin: 90,
+        bottomMargin: 90,
+      });
+      const buttonY = Math.round(buttonTopY);
+      if (typeof window !== "undefined") {
+        window.__congregationPlayButtonBounds = {
+          x: layout.offsetX + buttonX * layout.scale,
+          y: layout.offsetY + buttonY * layout.scale,
+          width: buttonWidth * layout.scale,
+          height: buttonHeight * layout.scale,
+        };
+        window.__announcementButtons = {
+          key: "congregation",
+          buttons: [
+            {
+              key: "play",
+              x: layout.offsetX + buttonX * layout.scale,
+              y: layout.offsetY + buttonY * layout.scale,
+              width: buttonWidth * layout.scale,
+              height: buttonHeight * layout.scale,
+            },
+          ],
+        };
+      }
+      ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
+      ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+      ctx.lineWidth = 2;
+      roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
+      if (isAnnouncementButtonFocused("congregation", 0)) {
+        drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
+        drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
+      }
+      ctx.fillStyle = "#FFF2CF";
+      ctx.shadowColor = "rgba(24, 6, 5, 0.9)";
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetY = 2;
+      ctx.textAlign = "center";
+      ctx.font = `900 26px 'Orbitron', ${UI_FONT_FAMILY}`;
+      ctx.textBaseline = "middle";
+      const mainTextY = buttonY + buttonHeight / 2 + 1;
+      ctx.strokeStyle = "rgba(73, 18, 12, 0.95)";
+      ctx.lineWidth = 3;
+      ctx.strokeText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
+      ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
+      const fightHintText = gamepadConnected ? "Press Menu button to start" : "Press Space to start";
+      ctx.fillStyle = "rgba(231, 176, 102, 0.86)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetY = 1;
+      ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+      ctx.fillText(fightHintText, layout.virtualCanvas.width / 2, buttonY + buttonHeight + 16);
     }
-    ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
-    ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
-    ctx.lineWidth = 2;
-    roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
-    if (isAnnouncementButtonFocused("congregation", 0)) {
-      drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
-      drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
-    }
-    ctx.fillStyle = "#FFF2CF";
-    ctx.shadowColor = "rgba(24, 6, 5, 0.9)";
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 2;
-    ctx.textAlign = "center";
-    ctx.font = `900 26px 'Orbitron', ${UI_FONT_FAMILY}`;
-    ctx.textBaseline = "middle";
-    const mainTextY = buttonY + buttonHeight / 2 + 1;
-    ctx.strokeStyle = "rgba(73, 18, 12, 0.95)";
-    ctx.lineWidth = 3;
-    ctx.strokeText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
-    ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
-    const fightHintText = gamepadConnected ? "Press Menu button to start" : "Press Space to start";
-    ctx.fillStyle = "rgba(231, 176, 102, 0.86)";
-    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetY = 1;
-    ctx.font = `700 12px ${UI_FONT_FAMILY}`;
-    ctx.fillText(fightHintText, layout.virtualCanvas.width / 2, buttonY + buttonHeight + 16);
 
     drawFooterControlsHint(
       ctx,
