@@ -28937,10 +28937,6 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "miniImp",
-                          "count": 120
-                        },
-                        {
                           "enemy": "armoredEliteOrc",
                           "count": 1
                         }
@@ -29242,7 +29238,7 @@ window.BattlechurchLevelData = {
                   ]
                 }
               ],
-              "editorNotes": "1.1.1 Just two generic enemies as an intro"
+              "editorNotes": "Combo Testing"
             },
             {
               "index": 2,

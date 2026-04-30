@@ -281,7 +281,7 @@
     if (bubble) bubble.life = bubbleLife;
   }
 
-  function heroComboCallout(line, { life = 2.1 } = {}) {
+  function heroComboCallout(line, { life = 2.1, color = "#fff4b8" } = {}) {
     const player = playerResolver();
     if (!player || !line) return;
     const bubbleLife = Math.max(0.1, life);
@@ -290,13 +290,30 @@
     );
     if (existing) {
       existing.text = line;
+      existing.color = color;
       existing.life = Math.max(existing.life, bubbleLife);
       existing.initialLife = Math.max(existing.initialLife, bubbleLife);
       existing.fadeLength = Math.max(existing.fadeLength, bubbleLife);
       existing.priority = HERO_SPEECH_PRIORITY + 5;
-      return;
+      return existing;
     }
-    const bubble = add(line, "#fff4b8", {
+    const existingHero = activeTexts.find(
+      (ft) => ft && ft.speechBubble && ft.bubbleTheme === "hero" && ft.life > 0,
+    );
+    if (existingHero) {
+      existingHero.text = line;
+      existingHero.color = color;
+      existingHero.bubbleTheme = "heroCombo";
+      existingHero.fontSize = 18;
+      existingHero.fontWeight = "800";
+      existingHero.offsetY = -player.radius - 44;
+      existingHero.life = Math.max(existingHero.life, bubbleLife);
+      existingHero.initialLife = Math.max(existingHero.initialLife, bubbleLife);
+      existingHero.fadeLength = Math.max(existingHero.fadeLength, bubbleLife);
+      existingHero.priority = HERO_SPEECH_PRIORITY + 5;
+      return existingHero;
+    }
+    const bubble = add(line, color, {
       speechBubble: true,
       vy: 0,
       life: bubbleLife,
@@ -307,6 +324,7 @@
       priority: HERO_SPEECH_PRIORITY + 5,
     });
     if (bubble) bubble.life = bubbleLife;
+    return bubble;
   }
 
   function npcCheer(npc, line, color = "#c9ffe5", { life = 1.6, fadeDelay = 0 } = {}) {
