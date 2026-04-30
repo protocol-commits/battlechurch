@@ -22645,8 +22645,8 @@ function playerYell(text, life = 1.6) {
   if (comboBubbleActive) {
     const normalized = String(text || "").replace(/[!]/g, "").trim().toLowerCase();
     if (
-      normalized === "rush attack" ||
-      normalized === "divine shot" ||
+      normalized === "rush" ||
+      normalized === "blast" ||
       normalized === "sword rush"
     ) {
       return;
@@ -23460,7 +23460,9 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.spinButtonDown = false;
       meleeAttackState.spinCharging = false;
       meleeAttackState.spinChargeTimer = 0;
-      const startedRush = executeRushAttack(getDashButtonDirection(), meleeAttackState);
+      const startedRush = executeRushAttack(getDashButtonDirection(), meleeAttackState, {
+        skipYell: true,
+      });
       if (startedRush) {
         meleeAttackState.awaitRush = false;
         meleeAttackState.awaitTimer = 0;
