@@ -5822,7 +5822,9 @@ Levels.initialize({
     Boolean(
       levelAnnouncements.length ||
       window.DialogOverlay?.isVisible?.() ||
-      window.UpgradeScreen?.isVisible?.(),
+      window.UpgradeScreen?.isVisible?.() ||
+      chapterBreakActive ||
+      pendingUpgradeAfterSummary,
     ),
   startVisitorMinigame: startPostBossVisitorSession,
   getPendingPortalSpawnCount,

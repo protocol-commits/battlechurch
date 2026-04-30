@@ -2167,6 +2167,13 @@ state.waveIndex = -1;
                 resetStage("idle", 0);
                 state.active = false;
               } else {
+                // Hold here until the upgrade screen, chapter break, and visitor
+                // minigame flows in game.js have finished. acknowledgeAnnouncement()
+                // zeros this timer the moment the summary is confirmed, so without
+                // this guard beginBattle() would fire before any of those scenes run.
+                if (typeof deps.isPostBattleFlowBlocked === "function" && deps.isPostBattleFlowBlocked()) {
+                  break;
+                }
                 // More acts remain in this town — continue to next act
                 beginBattle();
               }
