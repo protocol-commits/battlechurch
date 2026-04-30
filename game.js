@@ -3933,8 +3933,8 @@ const MELEE_SPIN_DAMAGE_MULTIPLIER = _gb('melee.spinDamageMultiplier', 2);
 const CLEAVE_DAMAGE_MULTIPLIER = 2.0;
 const CLEAVE_RANGE_MULTIPLIER = 1.35;
 const COUNTER_HIT_WINDOW = 0.3;
-const COUNTER_HIT_MULTIPLIER = 1.25;
-const PUNISH_COUNTER_MULTIPLIER = 1.35;
+const COUNTER_HIT_MULTIPLIER = 1.20;
+const PUNISH_COUNTER_MULTIPLIER = 1.30;
 const COUNTER_HIT_TEXT_LIFE = 2.9;
 const PUNISH_COUNTER_TEXT_LIFE = 2.9;
 const MELEE_COMBO_TEXT_LIFE = 2.9;
@@ -4328,12 +4328,28 @@ function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
   const normalizedDetails = Array.isArray(details)
     ? details
         .slice(0, hits)
-        .map((entry) => ({
-          move: String(entry?.move || ""),
-          damage: Math.max(0, Math.round(Number(entry?.damage) || 0)),
-          isCounterHit: Boolean(entry?.isCounterHit),
-          isPunishCounter: Boolean(entry?.isPunishCounter),
-        }))
+        .map((entry) => {
+          const damage = Math.max(0, Math.round(Number(entry?.damage) || 0));
+          const baseDamage = Math.max(
+            0,
+            Math.round(Number(entry?.baseDamage) || Number(entry?.damage) || 0),
+          );
+          const bonusDamage = Math.max(
+            0,
+            Math.round(
+              Number(entry?.bonusDamage) ||
+              (Number(entry?.damage) || 0) - (Number(entry?.baseDamage) || Number(entry?.damage) || 0),
+            ),
+          );
+          return {
+            move: String(entry?.move || ""),
+            damage,
+            baseDamage,
+            bonusDamage,
+            isCounterHit: Boolean(entry?.isCounterHit),
+            isPunishCounter: Boolean(entry?.isPunishCounter),
+          };
+        })
         .filter((entry) => entry.move)
     : [];
   const computedTotalDamage = normalizedDetails.reduce(
@@ -14441,16 +14457,7 @@ class BossEncounter {
     const damageClass = (this.damageClass || this.config?.damageClass || "normal").toLowerCase();
     let multiplier = 1;
     if (damageType) {
-      if (damageClass === "tank") {
-        multiplier =
-          damageType === "projectile" ? 0.9 : damageType === "melee" ? 1.25 : 1.0;
-      } else if (damageClass === "armored") {
-        multiplier =
-          damageType === "projectile" ? 0.7 : damageType === "melee" ? 1.00 : 1.35;
-      } else {
-        multiplier =
-          damageType === "projectile" ? 1.0 : damageType === "melee" ? 1.0 : 1.1;
-      }
+      multiplier = damageType === "projectile" && damageClass === "armored" ? 0.7 : 1.0;
     }
     const scaledDamage = Math.max(0, Math.round(amount * multiplier));
     if (isDevMeleeArenaActive() && typeof window !== "undefined") {
@@ -19948,6 +19955,7 @@ function processProjectileCollisions(dt) {
               damage: counterHit.damage,
               isCounterHit: Boolean(counterHit?.isCounterHit),
               isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
             });
             if (npcPowerupWasAlive && (enemy.dead || enemy.state === "death")) {
               registerDivineShotKill(meleeAttackState, enemy);
@@ -20045,6 +20053,7 @@ function processProjectileCollisions(dt) {
                   damage: counterHit.damage,
                   isCounterHit: Boolean(counterHit?.isCounterHit),
                   isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
                 });
                 if (bossWasAlive && (activeBoss.dead || activeBoss.state === "death")) {
                   registerDivineShotKill(meleeAttackState, activeBoss);
@@ -20908,6 +20917,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       damage,
       isCounterHit: Boolean(counterHit?.isCounterHit),
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
     registerComboHit(enemy, damage);
     if (!enemy.dead && enemy.state !== "death") {
@@ -20972,6 +20982,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           damage,
           isCounterHit: Boolean(counterHit?.isCounterHit),
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
         });
         registerComboHit(activeBoss, damage);
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -21281,8 +21292,10 @@ function queueCounterHitText(target, meleeAttackState, delayMs = 110) {
 }
 
 function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
-  const damage = Math.max(0, Math.round(baseDamage || 0));
-  if (!target || damage <= 0) return { damage, isCounterHit: false, damageText: null };
+  const base = Math.max(0, Math.round(baseDamage || 0));
+  if (!target || base <= 0) {
+    return { damage: base, baseDamage: base, isCounterHit: false, damageText: null };
+  }
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
@@ -21294,7 +21307,8 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
     now <= meleeAttackState.punishCounterExpiresAt;
   if (punishActive) {
     return {
-      damage: Math.max(1, Math.round(damage * PUNISH_COUNTER_MULTIPLIER)),
+      damage: Math.max(1, Math.round(base * PUNISH_COUNTER_MULTIPLIER)),
+      baseDamage: base,
       isCounterHit: true,
       isPunishCounter: true,
       damageText: {
@@ -21307,7 +21321,7 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
   }
   const counterUntil = Number(target.counterHitUntil) || 0;
   if (counterUntil <= 0 || now > counterUntil) {
-    return { damage, isCounterHit: false, damageText: null };
+    return { damage: base, baseDamage: base, isCounterHit: false, damageText: null };
   }
   target.counterHitUntil = 0;
   if (meleeAttackState) {
@@ -21319,7 +21333,8 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
   rewardMeleeGraceBurst(target, COUNTER_HIT_GRACE_GEMS, 48);
   queueCounterHitText(target, meleeAttackState);
   return {
-    damage: Math.max(1, Math.round(damage * PUNISH_COUNTER_MULTIPLIER)),
+    damage: Math.max(1, Math.round(base * PUNISH_COUNTER_MULTIPLIER)),
+    baseDamage: base,
     isCounterHit: true,
     isPunishCounter: false,
     damageText: {
@@ -21586,6 +21601,17 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   detailEntries.push({
     move: moveName,
     damage: Math.max(0, Math.round(Number(hitMeta?.damage) || 0)),
+    baseDamage: Math.max(
+      0,
+      Math.round(Number(hitMeta?.baseDamage) || Number(hitMeta?.damage) || 0),
+    ),
+    bonusDamage: Math.max(
+      0,
+      Math.round(
+        (Number(hitMeta?.damage) || 0) -
+        (Number(hitMeta?.baseDamage) || Number(hitMeta?.damage) || 0),
+      ),
+    ),
     isCounterHit: Boolean(hitMeta?.isCounterHit),
     isPunishCounter: Boolean(hitMeta?.isPunishCounter),
   });
@@ -21953,6 +21979,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       damage,
       isCounterHit: Boolean(counterHit?.isCounterHit),
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
     registerNormalSlashChainHit(enemy, meleeAttackState, now);
     registerComboHit(enemy, damage);
@@ -22054,6 +22081,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
           damage,
           isCounterHit: Boolean(counterHit?.isCounterHit),
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
         });
         registerNormalSlashChainHit(activeBoss, meleeAttackState, now);
         registerComboHit(activeBoss, damage);
@@ -22216,6 +22244,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       damage: finalDamage,
       isCounterHit: Boolean(counterHit?.isCounterHit),
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
     registerComboHit(enemy, finalDamage);
     meleeDamageTotal += finalDamage;
@@ -22283,6 +22312,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
         damage: finalDamage,
         isCounterHit: Boolean(counterHit?.isCounterHit),
         isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
       });
       registerComboHit(activeBoss, finalDamage);
       meleeDamageTotal += finalDamage;
@@ -22381,6 +22411,7 @@ function applyDashSlashTravelDamage(meleeAttackState) {
       damage: finalDamage,
       isCounterHit: Boolean(counterHit?.isCounterHit),
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
     registerComboHit(enemy, finalDamage);
     if (!enemy.dead && enemy.state !== "death") {
@@ -22433,6 +22464,7 @@ function applyDashSlashTravelDamage(meleeAttackState) {
         damage: finalDamage,
         isCounterHit: Boolean(counterHit?.isCounterHit),
         isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
       });
       registerComboHit(activeBoss, finalDamage);
       if (typeof activeBoss.knockbackVx === "number") {
@@ -23238,6 +23270,7 @@ function updateMeleeAttackSystem(dt) {
           damage: spinDamage,
           isCounterHit: Boolean(counterHit?.isCounterHit),
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
         });
         registerComboHit(enemy, spinDamage);
         spinDamageTotal += spinDamage;
@@ -23314,6 +23347,7 @@ function updateMeleeAttackSystem(dt) {
               damage: spinDamage,
               isCounterHit: Boolean(counterHit?.isCounterHit),
               isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
             });
             registerComboHit(activeBoss, spinDamage);
             spinDamageTotal += spinDamage;

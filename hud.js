@@ -1339,8 +1339,8 @@
         const details = rawDetails.slice(0, hits).reverse();
         const totalDamage = Math.max(0, Math.round(Number(combo?.totalDamage) || 0));
         const tagParts = [];
-        if (combo?.hasPunishCounter) tagParts.push("Punish");
-        if (combo?.hasCounterHit) tagParts.push("Counter");
+        if (combo?.hasPunishCounter) tagParts.push("PC");
+        if (combo?.hasCounterHit) tagParts.push("CA");
         const tagSuffix = tagParts.length ? ` [${tagParts.join(" + ")}]` : "";
         ctx.fillStyle = 'rgba(255,200,106,0.92)';
         ctx.font = `700 11px ${UI_FONT_FAMILY}`;
@@ -1351,12 +1351,22 @@
           ctx.fillStyle = PALETTE.softWhite;
           ctx.font = `13px ${UI_FONT_FAMILY}`;
           const moveName = String(entry?.move || "Move");
+          const baseDamage = Math.max(0, Math.round(Number(entry?.baseDamage) || 0));
+          const bonusDamage = Math.max(0, Math.round(Number(entry?.bonusDamage) || 0));
           const moveDamage = Math.max(0, Math.round(Number(entry?.damage) || 0));
           const entryTags = [];
-          if (entry?.isPunishCounter) entryTags.push("Punish");
-          if (entry?.isCounterHit) entryTags.push("Counter");
+          if (entry?.isPunishCounter) entryTags.push("PC");
+          if (entry?.isCounterHit) entryTags.push("CA");
           const entryTagSuffix = entryTags.length ? ` (${entryTags.join(" + ")})` : "";
-          ctx.fillText(`- ${moveName}: ${moveDamage}${entryTagSuffix}`, panelX + 30, rowY);
+          const breakdown =
+            bonusDamage > 0
+              ? `${baseDamage}+${bonusDamage}`
+              : `${baseDamage}`;
+          ctx.fillText(
+            `- ${moveName}: ${moveDamage} (${breakdown})${entryTagSuffix}`,
+            panelX + 30,
+            rowY,
+          );
           rowY += lineHeight;
         });
         if (rowY <= panelY + panelHeight - lineHeight) {

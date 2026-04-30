@@ -3474,15 +3474,8 @@
       if (damageType) {
         if (ignoreProjectileResistance) {
           multiplier = 1;
-        } else if (damageClass === "tank") {
-          multiplier =
-            damageType === "projectile" ? 0.9 : damageType === "melee" ? 1.25 : 1.0;
-        } else if (damageClass === "armored") {
-          multiplier =
-            damageType === "projectile" ? 0.7 : damageType === "melee" ? 1.0 : 1.35;
         } else {
-          multiplier =
-            damageType === "projectile" ? 1.0 : damageType === "melee" ? 1.0 : 1.1;
+          multiplier = damageType === "projectile" && damageClass === "armored" ? 0.7 : 1.0;
         }
       }
       const scaledDamage = Math.max(0, Math.round(amount * multiplier));
