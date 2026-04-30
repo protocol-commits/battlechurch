@@ -8333,7 +8333,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       performanceBadgeBreakdown,
     });
   }
-  const recapTitle = "Battle Report";
+  const recapTitle = "Battlefield Report";
   const recapStartCount = Number.isFinite(summary?.battleStartCongregation)
     ? Math.round(summary.battleStartCongregation)
     : Math.round(congregationTotal - totalDelta);

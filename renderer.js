@@ -2952,7 +2952,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const lineSpacing = Math.round(bodySize * 1.4);
   const sectionGap = Math.round(bodySize * 0.35);
   const lines = Array.isArray(recapData?.lines) ? recapData.lines : [];
-  const headingTitle = `${title || "Battle Report"}:`;
+  const headingTitle = `${title || "Battlefield Report"}:`;
   const headingProblem =
     formatScenarioForTitle(String(recapData?.problemTitle || "").trim());
   const headingCombined = headingProblem ? `${headingTitle} ${headingProblem}` : headingTitle;
@@ -3618,7 +3618,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.fillStyle = highlightValueColor;
   ctx.font = `${TEXT_STYLES.h1.weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const wrappedHeadingTitle = wrapText(ctx, headingCombined, contentWidth);
-  const titleMetrics = getFontMetrics("Battle Report", titleSize);
+  const titleMetrics = getFontMetrics("Battlefield Report", titleSize);
   wrappedHeadingTitle.forEach((textLine) => {
     ctx.fillText(textLine, contentX, cursorY);
     cursorY += headingTitleLineHeight;
@@ -4739,7 +4739,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // is being prepared between victory fade and bonus screen.
     if (!recapData) {
       drawMissionBriefScreen(ctx, canvas, {
-        title: "Preparing Battle Report",
+        title: "Preparing Battlefield Report",
         subtitle: "",
         showFormation: false,
         showButtons: false,
