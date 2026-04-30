@@ -1246,7 +1246,14 @@
       }
     }
 
-    if (consumePrayerBombClick()) {
+    const suppressPrayerBombInput =
+      typeof window !== "undefined" &&
+      typeof window.isPrayerBombInputSuppressed === "function" &&
+      window.isPrayerBombInputSuppressed();
+    if (suppressPrayerBombInput && typeof window !== "undefined" && window.Input) {
+      window.Input.prayerBombClickQueued = false;
+    }
+    if (!suppressPrayerBombInput && consumePrayerBombClick()) {
       const isFullCharge = typeof this.getPrayerChargeRatio === "function" && this.getPrayerChargeRatio() >= 1.0;
       this.castPrayerBomb();
       window.FloatingText?.heroSay?.(isFullCharge ? "Group Prayer" : "Prayer Bomb");

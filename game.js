@@ -4854,6 +4854,17 @@ const wasActionJustPressed = Input.wasActionJustPressed;
 const consumePrayerBombClick = Input.consumePrayerBombClick;
 const consumeCongregationClick = Input.consumeCongregationClick;
 const cancelCongregationTap = Input.cancelCongregationTap;
+const AC_SUPER_PRAYER_BOMB_BLOCK_TIME = 0.3;
+
+function isPrayerBombInputSuppressed() {
+  const meleeState = window._meleeAttackState;
+  if (!meleeState) return false;
+  return Boolean(
+    meleeState.acSuperArmed ||
+    (meleeState.acSuperPrayerBombBlockTimer || 0) > 0,
+  );
+}
+window.isPrayerBombInputSuppressed = isPrayerBombInputSuppressed;
 const aimAssist = {
   target: null,
   vertices: null,
@@ -16617,8 +16628,12 @@ function updatePlayerDuringCongregation(dt) {
       _ms.acSuperArmed ||
       (aFullyCharged && player.prayerHoldLocked && (player.prayerCharge || 0) >= prayerSuperCost) ||
       (aFullyCharged && keysPressed.has("ArrowRight"));
-    if (acComboActive || _ms.spinButtonDown || _ms.bcTeleportArmed) {
+    const acPostReleaseBlocking = (_ms.acSuperPrayerBombBlockTimer || 0) > 0;
+    if (acComboActive || acPostReleaseBlocking || _ms.spinButtonDown || _ms.bcTeleportArmed) {
       Input.prayerBombClickQueued = false;
+    }
+    if ((acComboActive || acPostReleaseBlocking) && typeof cancelCongregationTap === "function") {
+      cancelCongregationTap();
     }
   }
   player.update(dt);
@@ -19597,11 +19612,12 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
 
     // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
     const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0);
-    if (_ms.acSuperArmed || prayerStrikeBlocking || bChargingSuppressBomb) {
+    const acPostReleaseBlocking = (_ms.acSuperPrayerBombBlockTimer || 0) > 0;
+    if (_ms.acSuperArmed || prayerStrikeBlocking || acPostReleaseBlocking || bChargingSuppressBomb) {
       Input.prayerBombClickQueued = false;
     }
     // Cancel any pending congregation tap whenever a C+A or C+B combo is intercepting C.
-    if ((_ms.acSuperArmed || prayerStrikeBlocking) && typeof cancelCongregationTap === "function") {
+    if ((_ms.acSuperArmed || prayerStrikeBlocking || acPostReleaseBlocking) && typeof cancelCongregationTap === "function") {
       cancelCongregationTap();
     }
   }
@@ -23174,6 +23190,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.cBHolyDashBlockTimer > 0) {
     meleeAttackState.cBHolyDashBlockTimer = Math.max(0, meleeAttackState.cBHolyDashBlockTimer - dt);
   }
+  if (meleeAttackState.acSuperPrayerBombBlockTimer > 0) {
+    meleeAttackState.acSuperPrayerBombBlockTimer = Math.max(0, meleeAttackState.acSuperPrayerBombBlockTimer - dt);
+  }
 }
 
 function updateChargeState(dt, meleeAttackState) {
@@ -23358,6 +23377,7 @@ function updateMeleeAttackSystem(dt) {
     pendingBasicAttack: null,
     currentAttackHitboxType: "slash",
     abSuperArmed: false,
+    acSuperPrayerBombBlockTimer: 0,
     bcTeleportArmed: false,
     teleportGhostTarget: null,
     teleportTargetIndex: -1,
@@ -23922,6 +23942,10 @@ function updateMeleeAttackSystem(dt) {
           const acSuperCost = player ? (player.prayerChargeRequired || 6000) / 3 : 20;
           if (player) player.prayerCharge = Math.max(0, player.prayerCharge - acSuperCost);
           if (player) { player.prayerHoldLocked = false; player.prayerHoldTimer = 0; }
+          meleeAttackState.acSuperPrayerBombBlockTimer = Math.max(
+            meleeAttackState.acSuperPrayerBombBlockTimer || 0,
+            AC_SUPER_PRAYER_BOMB_BLOCK_TIME,
+          );
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
           if (typeof cancelCongregationTap === "function") cancelCongregationTap();
           playerYell("Holy Ground");
