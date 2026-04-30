@@ -46,7 +46,7 @@
 (Costs 2 Prayers)
 
 - A+C — Holy Ground (ring of fire surrounds you)
-- A+B — Sword Rush (Blast plus Rush together)
+- A+B — Blitz (Blast plus Rush together)
 - B+C — Blink Teleport (teleport to nearest powerup)
 
 ## Xbox Controller Layout
