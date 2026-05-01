@@ -601,10 +601,13 @@ const MELEE_SWING_LENGTH = 260;
   function drawShieldTrail(ctx, trailState) {
     if (!trailState || !trailState.active) return;
     const { player } = requireBindings();
-    if (!player || (player.shieldTimer || 0) <= 0) return;
+    if (!player) return;
     if (!Array.isArray(trailState.trail) || trailState.trail.length < 2) return;
     const shieldDuration = player.shieldDuration || 9;
-    const fadeAlpha = Math.max(0.15, Math.min(1, (player.shieldTimer / shieldDuration) * 1.4));
+    const shieldTimer = player.shieldTimer || 0;
+    const fadeAlpha = shieldTimer > 0
+      ? Math.max(0.15, Math.min(1, (shieldTimer / shieldDuration) * 1.4))
+      : 1.0;
     const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
     // Outer glow pass
     ctx.save();

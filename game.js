@@ -9884,7 +9884,12 @@ function updateShieldTrailInstance(state, angle, dt) {
 }
 
 function updateShieldTrails(dt) {
-  if (!player || player.state === "death" || (player.shieldTimer || 0) <= 0) {
+  const meleeState = window._meleeAttackState;
+  const rushActive = Boolean(meleeState?.isRushing) || (meleeState?.rushShieldDebugTimer || 0) > 0;
+  const swooshActive = (meleeState?.swooshShieldDebugTimer || 0) > 0 ||
+    ((meleeState?.swooshTimer || 0) > 0 && (player?.invulnerableTimer || 0) > 0);
+  const shieldActive = (player?.shieldTimer || 0) > 0 || rushActive || swooshActive;
+  if (!player || player.state === "death" || !shieldActive) {
     resetShieldTrailState(shieldTrailStateA);
     resetShieldTrailState(shieldTrailStateB);
     return;

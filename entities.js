@@ -2078,54 +2078,6 @@
       ctx.restore();
     }
   this.animator.draw(ctx, this.x, drawY, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
-    const meleeState = window?._meleeAttackState || null;
-    const rushShieldDebugTimer = meleeState?.rushShieldDebugTimer || 0;
-    const swooshShieldDebugTimer = meleeState?.swooshShieldDebugTimer || 0;
-    const rushActive = rushShieldDebugTimer > 0 || Boolean(meleeState?.isRushing);
-    const swooshActive =
-      swooshShieldDebugTimer > 0 ||
-      ((meleeState?.swooshTimer || 0) > 0 && (this.invulnerableTimer || 0) > 0);
-    const invulnerabilityDebugTimer =
-      rushShieldDebugTimer > 0 || swooshShieldDebugTimer > 0
-        ? Math.max(rushShieldDebugTimer, swooshShieldDebugTimer)
-        : (rushActive || swooshActive) && (this.invulnerableTimer || 0) > 0
-          ? this.invulnerableTimer
-          : 0;
-    if (this.shieldTimer > 0 || rushActive || swooshActive) {
-      const shieldAlpha =
-        this.shieldTimer > 0
-          ? Math.max(0.2, Math.min(0.6, this.shieldTimer / 6))
-          : Math.max(
-              0.3,
-              Math.min(
-                0.75,
-                invulnerabilityDebugTimer / Math.max(0.001, 0.2),
-              ),
-            );
-      const clip = this.animator?.currentClip || null;
-      const animatorScale = Number.isFinite(this.animator?.scale) && this.animator.scale > 0
-        ? this.animator.scale
-        : 1;
-      const clipRenderScale =
-        clip && Number.isFinite(clip.renderScale) && clip.renderScale > 0 ? clip.renderScale : 1;
-      const frameScale = animatorScale * clipRenderScale;
-      const frameSize = clip ? Math.max(clip.frameWidth || 0, clip.frameHeight || 0) : 0;
-      const playerHitboxRect = getTargetHitboxRect(this);
-      const shieldCenterX = playerHitboxRect ? playerHitboxRect.x + playerHitboxRect.width * 0.5 : this.x;
-      const shieldCenterY = playerHitboxRect ? playerHitboxRect.y + playerHitboxRect.height * 0.5 : this.y;
-      const hitboxRadius = playerHitboxRect
-        ? Math.max(playerHitboxRect.width, playerHitboxRect.height) * 0.72
-        : 0;
-      const visualRadius = Math.max(this.radius * 1.6, hitboxRadius, frameSize * frameScale * 0.48);
-      const lineWidth = Math.max(3, Math.round(3.5 * (settings.WORLD_SCALE || 1)));
-      ctx.save();
-      ctx.strokeStyle = `rgba(180, 240, 255, ${shieldAlpha})`;
-      ctx.lineWidth = lineWidth;
-      ctx.beginPath();
-      ctx.arc(shieldCenterX, shieldCenterY, visualRadius, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 }
 
