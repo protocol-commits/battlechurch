@@ -82,15 +82,16 @@ let arenaFadeAlpha = 0;
 let bossBonusTransitionFadeTimer = 0;
 let bossBonusTransitionFadeDuration = 0;
 let bossBonusTransitionFadeAlpha = 0;
-let actBreakFadeTimer = 0;
-let actBreakFadeDuration = 0;
-let actBreakFadeAlpha = 0;
-const ACT_BREAK_FADE_IN = 0.8;
-const ACT_BREAK_FADE_OUT = 0.8;
-const ACT_BREAK_HOLD_SECONDS = 2;
-let chapterBreakActive = false;
-let chapterBreakActNumber = 2;
-let chapterBreakImage = null;
+let missionIntroFadeTimer = 0;
+let missionIntroFadeDuration = 0;
+let missionIntroFadeAlpha = 0;
+const CONGREGATION_SCREEN_DURATION = 4.0;
+const MISSION_INTRO_FADE_IN = 0.8;
+const MISSION_INTRO_FADE_OUT = 0.8;
+const MISSION_INTRO_HOLD_SECONDS = 2;
+let missionIntroActive = false;
+let missionIntroNumber = 2;
+let missionIntroImage = null;
 let lastCompletedLevel = 0;
 let lastSummaryWasLevelEnd = false;
 let pendingPostUpgradeTransition = false;
@@ -1586,12 +1587,12 @@ function fadeOutBattleMusic() {
   fadeAudio(activeBattleAudio, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
 }
 
-function startActBreakFade(holdSeconds = ACT_BREAK_HOLD_SECONDS) {
+function startMissionIntroFade(holdSeconds = MISSION_INTRO_HOLD_SECONDS) {
   const hold = Math.max(0, Number(holdSeconds) || 0);
-  const total = ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT + hold;
-  actBreakFadeDuration = Math.max(total, ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT);
-  actBreakFadeTimer = actBreakFadeDuration;
-  actBreakFadeAlpha = 0;
+  const total = MISSION_INTRO_FADE_IN + MISSION_INTRO_FADE_OUT + hold;
+  missionIntroFadeDuration = Math.max(total, MISSION_INTRO_FADE_IN + MISSION_INTRO_FADE_OUT);
+  missionIntroFadeTimer = missionIntroFadeDuration;
+  missionIntroFadeAlpha = 0;
 }
 
 function startGraceRushEndFade(duration = 1) {
@@ -5032,10 +5033,10 @@ Renderer.initialize({
   get pauseRestartConfirmActive() { return pauseRestartConfirmActive; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
-  get actBreakFadeAlpha() { return actBreakFadeAlpha; },
-  get chapterBreakActive() { return chapterBreakActive; },
-  get chapterBreakActNumber() { return chapterBreakActNumber; },
-  get chapterBreakImage() { return chapterBreakImage; },
+  get missionIntroFadeAlpha() { return missionIntroFadeAlpha; },
+  get missionIntroActive() { return missionIntroActive; },
+  get missionIntroNumber() { return missionIntroNumber; },
+  get missionIntroImage() { return missionIntroImage; },
   get graceRushFadeAlpha() { return graceRushFadeAlpha; },
   get graceRushBlackout() { return graceRushBlackout; },
   get bossBonusTransitionFadeAlpha() { return bossBonusTransitionFadeAlpha; },
@@ -5838,7 +5839,7 @@ Levels.initialize({
   prepareNpcProcession,
   isNpcProcessionComplete: areNpcProcessionsComplete,
   getConversationResponders: getCongregationConversationResponders,
-  startActBreakFade,
+  startMissionIntroFade,
   startGraceRushEndFade,
   triggerCongregationOverlay,
   getCongregationSize,
@@ -5859,7 +5860,7 @@ Levels.initialize({
       levelAnnouncements.length ||
       window.DialogOverlay?.isVisible?.() ||
       window.UpgradeScreen?.isVisible?.() ||
-      chapterBreakActive ||
+      missionIntroActive ||
       pendingUpgradeAfterSummary ||
       pendingPostUpgradeTransition ||
       levelManager?.getStatus?.()?.stage === "visitorMinigame",
@@ -7470,13 +7471,13 @@ function queueTownIntroAnnouncement() {
   queueLevelAnnouncement(act1Subtitle, "", {
     requiresConfirm: true,
     skipMissionBrief: true,
-    townIntro: true,
+    missionIntro: true,
     upcomingOrderNumber,
     upcomingMissionNumber,
   });
 }
 
-function queueActBreakTownIntro(actNumber) {
+function queueMissionIntroTransition(actNumber) {
   const act = Math.max(2, Math.floor(actNumber));
   const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
   const flatBattleStart = (act - 1) * missionsPerBattle + 1;
@@ -7484,7 +7485,7 @@ function queueActBreakTownIntro(actNumber) {
   queueLevelAnnouncement("", "", {
     requiresConfirm: true,
     skipMissionBrief: true,
-    townIntro: true,
+    missionIntro: true,
     upcomingOrderNumber: act,
     upcomingMissionNumber: 1,
     actBreakFlatBattle: flatBattleStart,
@@ -7497,7 +7498,7 @@ function queueExteriorShotAnnouncement({ force = false, actBreak = false } = {})
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
   const _ohCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
   const _ohLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
-  const orderHeadings = _ohLabels.actTitles?.[_ohCamp] || _ohLabels.actTitles?.p1 || {};
+  const orderHeadings = _ohLabels.missionIntroTitles?.[_ohCamp] || _ohLabels.missionIntroTitles?.p1 || {};
   const missionNumber = Math.max(
     1,
     Number.isFinite(status?.battle) ? status.battle : 1,
@@ -7557,10 +7558,10 @@ function queueInitialMonthAnnouncementFromCongregation() {
     levelManager.setWaitingForCongregation(false);
   }
   queueLevelAnnouncement(`Level ${levelNumber}: ${monthName}`, "A new month of ministry begins", {
-    duration: MONTH_INTRO_DURATION,
+    duration: CONGREGATION_SCREEN_DURATION,
     requiresConfirm: true,
   });
-  setDevStatus(`Preparing ${monthName}`, MONTH_INTRO_DURATION);
+  setDevStatus(`Preparing ${monthName}`, CONGREGATION_SCREEN_DURATION);
 }
 
 function startGameFromTitle() {
@@ -8164,7 +8165,7 @@ function getSpeedrunSectionName(levelStatus) {
   if (
     pendingTownIntroStart ||
     townIntroTransitionActive ||
-    levelAnnouncements[0]?.townIntro ||
+    levelAnnouncements[0]?.missionIntro ||
     stage === "briefing" ||
     stage === "levelIntro"
   ) {
@@ -11008,7 +11009,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   }
   const requiresConfirm = Boolean(options.requiresConfirm);
   const skipMissionBrief = Boolean(options.skipMissionBrief);
-  const townIntro = Boolean(options.townIntro);
+  const missionIntro = Boolean(options.missionIntro);
   const exteriorShot = Boolean(options.exteriorShot);
   const allowDuringSuppression = Boolean(options.allowDuringSuppression);
   if (suppressInitialAnnouncements && !allowDuringSuppression) return;
@@ -11050,7 +11051,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     requiresConfirm,
     skipMissionBrief,
     missionBriefTitle,
-    townIntro,
+    missionIntro,
     exteriorShot,
     bossMissionBrief,
     missionNumber,
@@ -11127,7 +11128,7 @@ function dismissCurrentLevelAnnouncement() {
     visitorSession.awaitingSummaryConfirm = false;
     completeVisitorSession(reason);
   }
-  if (current.townIntro) {
+  if (current.missionIntro) {
     pendingTownIntroStart = true;
     townIntroDismissedAt =
       typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
@@ -17741,10 +17742,10 @@ function updateDeathBellAudio(dt) {
   }
 }
 
-function showChapterBreak(actNumber) {
-  chapterBreakActive = true;
-  chapterBreakActNumber = actNumber;
-  chapterBreakImage = actNumber === 2 ? assets?.backgrounds?.act2 : assets?.backgrounds?.act3;
+function showMissionIntro(actNumber) {
+  missionIntroActive = true;
+  missionIntroNumber = actNumber;
+  missionIntroImage = actNumber === 2 ? assets?.backgrounds?.act2 : assets?.backgrounds?.act3;
   keysJustPressed.delete(" ");
 }
 
@@ -17763,7 +17764,7 @@ function startActBreakTeaser(actNumber) {
 }
 
 function handleChapterBreak() {
-  if (!chapterBreakActive) return false;
+  if (!missionIntroActive) return false;
 
   const buttons =
     typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak"
@@ -17774,24 +17775,24 @@ function handleChapterBreak() {
     buttons,
     allowSpace: true,
     onActivate: () => {
-      chapterBreakActive = false;
-      chapterBreakImage = null;
+      missionIntroActive = false;
+      missionIntroImage = null;
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
       }
-      startActBreakTeaser(chapterBreakActNumber);
+      startActBreakTeaser(missionIntroNumber);
     },
   });
   if (handled) return false;
 
   // Check for space press to dismiss immediately
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-    chapterBreakActive = false;
-    chapterBreakImage = null;
+    missionIntroActive = false;
+    missionIntroImage = null;
     if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
       window.playMenuAdvanceSfx(0.55);
     }
-    startActBreakTeaser(chapterBreakActNumber);
+    startActBreakTeaser(missionIntroNumber);
     keysJustPressed.delete(" ");
     return false;
   }
@@ -17842,12 +17843,12 @@ function checkDialogOverlays() {
             townVisitorMinigamePlayed = true;
             if (levelManager?.triggerVisitorMinigame) {
               const started = levelManager.triggerVisitorMinigame(() => {
-                showChapterBreak(actNumber);
+                showMissionIntro(actNumber);
               });
               if (started) return;
             }
           }
-          showChapterBreak(actNumber);
+          showMissionIntro(actNumber);
         });
       });
     } else {
@@ -17900,20 +17901,20 @@ function updatePostDeathSequence(dt) {
 }
 
 function updateFadeEffects(dt) {
-  if (actBreakFadeTimer > 0) {
-    actBreakFadeTimer = Math.max(0, actBreakFadeTimer - dt);
-    const elapsed = actBreakFadeDuration - actBreakFadeTimer;
-    const fadeIn = Math.min(actBreakFadeDuration, ACT_BREAK_FADE_IN);
-    const fadeOut = Math.min(actBreakFadeDuration, ACT_BREAK_FADE_OUT);
+  if (missionIntroFadeTimer > 0) {
+    missionIntroFadeTimer = Math.max(0, missionIntroFadeTimer - dt);
+    const elapsed = missionIntroFadeDuration - missionIntroFadeTimer;
+    const fadeIn = Math.min(missionIntroFadeDuration, MISSION_INTRO_FADE_IN);
+    const fadeOut = Math.min(missionIntroFadeDuration, MISSION_INTRO_FADE_OUT);
     if (elapsed < fadeIn) {
-      actBreakFadeAlpha = fadeIn > 0 ? Math.min(1, elapsed / fadeIn) : 1;
-    } else if (actBreakFadeTimer <= fadeOut) {
-      actBreakFadeAlpha = fadeOut > 0 ? Math.min(1, actBreakFadeTimer / fadeOut) : 0;
+      missionIntroFadeAlpha = fadeIn > 0 ? Math.min(1, elapsed / fadeIn) : 1;
+    } else if (missionIntroFadeTimer <= fadeOut) {
+      missionIntroFadeAlpha = fadeOut > 0 ? Math.min(1, missionIntroFadeTimer / fadeOut) : 0;
     } else {
-      actBreakFadeAlpha = 1;
+      missionIntroFadeAlpha = 1;
     }
   } else {
-    actBreakFadeAlpha = 0;
+    missionIntroFadeAlpha = 0;
   }
 
   if (graceRushFadeTimer > 0) {
@@ -19207,7 +19208,7 @@ function handleLevelAnnouncements() {
     currentAnnouncement.requiresConfirm &&
     !currentIsSummary &&
     !currentAnnouncement.isVisitorSummary &&
-    !currentAnnouncement.townIntro &&
+    !currentAnnouncement.missionIntro &&
     !currentAnnouncement.exteriorShot &&
     !currentAnnouncement.pastorFinal &&
     !currentAnnouncement.pastorPostRecap &&
@@ -19500,7 +19501,7 @@ function handleLevelAnnouncements() {
     }
     return true;
   }
-  if (currentAnnouncement.townIntro) {
+  if (currentAnnouncement.missionIntro) {
     const buttons =
       typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak"
         ? window.__announcementButtons.buttons
@@ -19519,7 +19520,7 @@ function handleLevelAnnouncements() {
     if (handled) return true;
   }
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-    if (currentAnnouncement.townIntro) {
+    if (currentAnnouncement.missionIntro) {
       startTownIntroTransition();
     } else {
       dismissCurrentLevelAnnouncement();
@@ -25160,12 +25161,12 @@ function restartGame() {
   miniImpWaveDispatched = false;
   arenaFadeTimer = 0;
   arenaFadeAlpha = 0;
-  actBreakFadeTimer = 0;
-  actBreakFadeDuration = 0;
-  actBreakFadeAlpha = 0;
-  chapterBreakActive = false;
-  chapterBreakActNumber = 2;
-  chapterBreakImage = null;
+  missionIntroFadeTimer = 0;
+  missionIntroFadeDuration = 0;
+  missionIntroFadeAlpha = 0;
+  missionIntroActive = false;
+  missionIntroNumber = 2;
+  missionIntroImage = null;
   lastCompletedLevel = 0;
   pendingPostUpgradeTransition = false;
   graceRushFadeTimer = 0;

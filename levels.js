@@ -162,19 +162,19 @@
   const BOSS_BONUS_TRANSITION_DURATION = 1.0;
   const LEVEL_SUMMARY_DURATION = 5;
   const PORTRAIT_CAP = 24; // how many portraits to keep in cumulative stats (was 12)
-  const MONTH_INTRO_DURATION = 4.0;
+  const CONGREGATION_SCREEN_DURATION = 4.0;
   const BRIEF_TEASER_DURATION = 5.0;
   const CONGREGATION_TO_TEASER_DURATION = 1.6;
   const UPGRADE_TO_TEASER_DURATION = 1.6;
-  const ACT_BREAK_DELAY = 2.0;
-  const ACT_BREAK_FADE_IN = 0.45;
-  const ACT_BREAK_FADE_OUT = 0.45;
-  const ACT_BREAK_HOLD_SECONDS = 0.8;
-  const ACT_BREAK_FADE_TOTAL = ACT_BREAK_FADE_IN + ACT_BREAK_FADE_OUT + ACT_BREAK_HOLD_SECONDS;
-  const ACT_BREAK_PRE_FADE_DELAY = 1.0;
-  const ACT_BREAK_MESSAGE_LEAD = 0.5;
-  const ACT_BREAK_MESSAGE = "Wave Cleared";
-  const ACT_BREAK_ANNOUNCEMENT_EXTRA = 1.0;
+  const MISSION_INTRO_DELAY = 2.0;
+  const MISSION_INTRO_FADE_IN = 0.45;
+  const MISSION_INTRO_FADE_OUT = 0.45;
+  const MISSION_INTRO_HOLD_SECONDS = 0.8;
+  const MISSION_INTRO_FADE_TOTAL = MISSION_INTRO_FADE_IN + MISSION_INTRO_FADE_OUT + MISSION_INTRO_HOLD_SECONDS;
+  const MISSION_INTRO_PRE_FADE_DELAY = 1.0;
+  const MISSION_INTRO_MESSAGE_LEAD = 0.5;
+  const MISSION_INTRO_MESSAGE = "Wave Cleared";
+  const MISSION_INTRO_ANNOUNCEMENT_EXTRA = 1.0;
   const WAVE_INTENSITY_TRANSITION_SECONDS = 0.5;
   const WAVE_INTRO_LINGER_BONUS = 4.2;
   const WAVE_INTRO_FADE_OUT_DURATION = 0.6;
@@ -404,7 +404,7 @@
     prepareNpcProcession: noop,
     isNpcProcessionComplete: () => true,
     getConversationResponders: () => [],
-    startActBreakFade: noop,
+    startMissionIntroFade: noop,
     startGraceRushEndFade: noop,
     getAvailableMiniFolkKeys: () => [],
     hasEnemyAsset: () => true,
@@ -676,8 +676,8 @@
               // h.index is 1-based; createHordeDefinition expects 0-based
               // Pass wIdx so getScopeConfig looks only within the correct wave
               const def = createHordeDefinition(levelNumber, bIdx, mIdx, wIdx, h.index - 1, helpers);
-              def.actNumber = bIdx + 1;
-              def.missionNumber = mIdx + 1;
+              def.missionNumber = bIdx + 1;
+              def.battleNumber = mIdx + 1;
               def.waveNumber = wIdx + 1;
               def.hordeInWave = wHIdx + 1;
               // Tag the first horde of each wave with the wave's intro text
@@ -715,7 +715,7 @@
       console.log(`[LevelDef] Town ${levelNumber}: ${battles.length} sequential game battles`);
       battles.forEach((b, i) => {
         const h0 = b.hordes?.[0];
-        console.log(`  Game Battle ${i + 1} → editor Mission ${h0?.actNumber ?? '?'}, Battle ${h0?.missionNumber ?? '?'} (${b.hordes?.length ?? 0} hordes)`);
+        console.log(`  Game Battle ${i + 1} → editor Mission ${h0?.missionNumber ?? '?'}, Battle ${h0?.battleNumber ?? '?'} (${b.hordes?.length ?? 0} hordes)`);
       });
     }
     return { levelNumber, battles };
@@ -746,7 +746,7 @@
       heroSay,
       npcCheer,
       getConversationResponders,
-      startActBreakFade,
+      startMissionIntroFade,
       startGraceRushEndFade,
       playWaveTransitionSfx,
       getAvailableMiniFolkKeys,
@@ -990,11 +990,11 @@
     const actLabel = `Mission ${actRomanNumerals[levelNumber] || levelNumber}`;
     console.info && console.info('queueAnnouncement', { title: actLabel, level: levelNumber });
     queueLevelAnnouncement(actLabel, "A new battle begins", {
-          duration: MONTH_INTRO_DURATION,
+          duration: CONGREGATION_SCREEN_DURATION,
           requiresConfirm: true,
         });
-    resetStage("levelIntro", MONTH_INTRO_DURATION);
-    setDevStatus(`Preparing ${actLabel}`, MONTH_INTRO_DURATION);
+    resetStage("levelIntro", CONGREGATION_SCREEN_DURATION);
+    setDevStatus(`Preparing ${actLabel}`, CONGREGATION_SCREEN_DURATION);
   } else {
     resetStage("levelIntro", 0);
     setDevStatus(`Preparing Mission ${levelNumber}`, 2.0);
@@ -1096,7 +1096,7 @@
       console.info && console.info('queueAnnouncement', { title: `Town ${state.level} Mission ${currentActNum} Battle ${battleInAct}`, level: state.level, actNum: currentActNum, battleInAct, monthIndex: state.monthIndex });
       const _atCamp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
       const _atLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
-      const actTitles = _atLabels.actTitles?.[_atCamp] || _atLabels.actTitles?.p1 || {};
+      const actTitles = _atLabels.missionIntroTitles?.[_atCamp] || _atLabels.missionIntroTitles?.p1 || {};
       const _camp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
       const _missionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
       const actMissionLabels = _missionsByPhase[_camp] || _missionsByPhase.p1 || {};
@@ -1430,11 +1430,11 @@
       // of the level; use month index fallback to 1.
       const missionNum = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       queueLevelAnnouncement(`Battle ${missionNum}`, "A new battle begins", {
-        duration: MONTH_INTRO_DURATION,
+        duration: CONGREGATION_SCREEN_DURATION,
         requiresConfirm: true,
       });
-      resetStage("levelIntro", MONTH_INTRO_DURATION);
-      setDevStatus(`Preparing Mission ${missionNum}`, MONTH_INTRO_DURATION);
+      resetStage("levelIntro", CONGREGATION_SCREEN_DURATION);
+      setDevStatus(`Preparing Mission ${missionNum}`, CONGREGATION_SCREEN_DURATION);
     }
 
     function beginWave() {
@@ -1578,11 +1578,11 @@
         }
         state.finalWaveDelay = 0;
         if (state.activeWave?.allKill === true) {
-          const preFadeDelay = ACT_BREAK_PRE_FADE_DELAY + ACT_BREAK_MESSAGE_LEAD;
+          const preFadeDelay = MISSION_INTRO_PRE_FADE_DELAY + MISSION_INTRO_MESSAGE_LEAD;
           if (typeof deps.rotateNpcPositionsForActBreak === "function") {
             deps.rotateNpcPositionsForActBreak();
           }
-          const announcementHold = ACT_BREAK_DELAY + ACT_BREAK_ANNOUNCEMENT_EXTRA;
+          const announcementHold = MISSION_INTRO_DELAY + MISSION_INTRO_ANNOUNCEMENT_EXTRA;
           const breakerDuration = Number.isFinite(state.activeWave?.waveBreakDuration)
             ? state.activeWave.waveBreakDuration
             : announcementHold + preFadeDelay;
@@ -2316,8 +2316,8 @@ state.waveIndex = -1;
           battle: battleNumber,
           globalBattle: globalMonthNumber,
           wave: waveNumber,
-          actNum: currentHordeDef?.actNumber ?? derivedActNum,
-          missionNum: currentHordeDef?.missionNumber ?? derivedMissionNum,
+          missionNum: currentHordeDef?.missionNumber ?? derivedActNum,
+          battleNum: currentHordeDef?.battleNumber ?? derivedMissionNum,
           waveNum: statusWaveNum || null,
           waveTotal: actualWaveTotal,
           hordeNum: currentHordeDef?.hordeInWave ?? null,

@@ -19,7 +19,7 @@
     // ── Chapter-break act titles (shown on the between-battle screen) ─────
     // Format: "Mission I: {label}"  — built at runtime from missions above,
     // but override here if you need a longer descriptive form.
-    actTitles: Object.freeze({
+    missionIntroTitles: Object.freeze({
       p1: Object.freeze({
         1: "Mission I: Assault",
         2: "Mission II: Repel",
@@ -38,7 +38,7 @@
     }),
 
     // ── Chapter-break subtitle descriptions ───────────────────────────────
-    actDescriptions: Object.freeze({
+    missionIntroDescriptions: Object.freeze({
       p1: Object.freeze({
         1: "Win 3 battles to complete the mission.",
         2: "Win 3 battles to complete the mission.",
