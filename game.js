@@ -11225,24 +11225,6 @@ function drawDevStatus() {
 
 function _triggerProgressSavedEffects() {
   if (typeof playProgressSavedSfx === "function") playProgressSavedSfx(0.7);
-  if (typeof playWisdomHitSfx === "function") {
-    playWisdomHitSfx(0.65);
-    setTimeout(() => { if (typeof playWisdomHitSfx === "function") playWisdomHitSfx(0.55); }, 220);
-    setTimeout(() => { if (typeof playWisdomHitSfx === "function") playWisdomHitSfx(0.45); }, 460);
-  }
-  if (canvas && window.Effects?.spawnFlashEffect) {
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const hw = 200; const hh = 44;
-    const positions = [
-      { x: cx - hw, y: cy - hh }, { x: cx + hw, y: cy - hh },
-      { x: cx - hw, y: cy + hh }, { x: cx + hw, y: cy + hh },
-      { x: cx,      y: cy - hh - 18 },
-    ];
-    positions.forEach((pos, i) => {
-      setTimeout(() => { window.Effects.spawnFlashEffect(pos.x, pos.y, { scale: 1.6 }); }, i * 65);
-    });
-  }
 }
 
 function showProgressSaveToast(text = "Progress Saved", duration = 5.5) {
