@@ -21588,6 +21588,19 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     return;
   }
 
+  // Blitz cancel: pressing the opposite direction stops the blitz early
+  if (meleeAttackState.swordRushActive) {
+    const liveInput = window.Input?.movementDirection;
+    if (liveInput && (liveInput.x !== 0 || liveInput.y !== 0)) {
+      const rushDir = meleeAttackState.rushDir || direction;
+      const dot = liveInput.x * rushDir.x + liveInput.y * rushDir.y;
+      if (dot < -0.3) {
+        resetRushState();
+        return;
+      }
+    }
+  }
+
   applyMeleeInvulnerability(meleeAttackState, "rush", RUSH_EXIT_INVULNERABILITY);
 
   const startX = player.x;
@@ -23880,11 +23893,43 @@ function updateMeleeAttackSystem(dt) {
     updateArcControlCooldowns();
     resolveQueuedBasicMeleeAttack(meleeAttackState);
 
+    let blitzCancelledIntoMove = false;
     if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
-      updateRushMovement(dt, direction, meleeAttackState);
+      // Blitz cancel into C or A: let the button press fall through as a move
+      if (meleeAttackState.swordRushActive) {
+        const cJustPressed = keysJustPressed.has("ArrowRight");
+        const aJustPressed = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
+        if (cJustPressed || aJustPressed) {
+          meleeAttackState.isRushing = false;
+          meleeAttackState.rushJustEnded = true;
+          meleeAttackState.rushDamageEnabled = false;
+          meleeAttackState.rushInvulnerable = false;
+          meleeAttackState.rushHitEntities = null;
+          meleeAttackState.swordRushActive = false;
+          meleeAttackState.swordRushBlastHitEntities = null;
+          meleeAttackState.rushKillCount = 0;
+          meleeAttackState.rushKillSumX = 0;
+          meleeAttackState.rushKillSumY = 0;
+          meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+          meleeAttackState.cooldown = 0;
+          meleeAttackState.rushLockTimer = 0;
+          meleeAttackState.rushDistanceRemaining = 0;
+          blitzCancelledIntoMove = true;
+          if (cJustPressed) {
+            meleeAttackState.lastComboTimes.C = now;
+            meleeAttackState.holyDashArmUntil = now + HOLY_DASH_COMBO_WINDOW * 1000;
+          }
+          if (aJustPressed) {
+            meleeAttackState.lastComboTimes.A = now;
+          }
+        }
+      }
+      if (meleeAttackState.isRushing) {
+        updateRushMovement(dt, direction, meleeAttackState);
+      }
     }
-    if (meleeAttackState.isRushing || meleeAttackState.rushJustEnded) {
+    if (!blitzCancelledIntoMove && (meleeAttackState.isRushing || meleeAttackState.rushJustEnded)) {
       keysJustPressed.delete("ArrowDown");
       keysJustPressed.delete("ArrowLeft");
       keysJustPressed.delete(" ");
