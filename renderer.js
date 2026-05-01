@@ -10059,6 +10059,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         player.animator.draw(ctx, _ghostTarget.x, _ghostTarget.y, { flipX: player.facing === "left" });
         ctx.restore();
       }
+      if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
+        try { drawFloatingTextsOverlay(ctx); } catch (e) {}
+        try { drawEnemyHpLabelsOverlay(ctx); } catch (e) {}
+      }
       if (!bossDeathExplosionActive) {
         player.draw();
       }
@@ -10078,9 +10082,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawHaloBlade(ctx, haloBladeState);
     drawHaloBlade(ctx, haloBladeStateSecondary);
     drawHaloBlade(ctx, haloBladeStateBonus);
-    const { shieldTrailStateA, shieldTrailStateB } = requireBindings();
-    drawShieldTrail(ctx, shieldTrailStateA);
-    drawShieldTrail(ctx, shieldTrailStateB);
     drawSpearDart(ctx, spearState);
     drawSpearDart(ctx, spearStateSecondary);
     drawSpearDart(ctx, spearStateBonus);
@@ -10284,13 +10285,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
-      // Floating damage numbers, power-up labels, etc.
-      try {
-        drawFloatingTextsOverlay(ctx);
-      } catch (e) {}
-      try {
-        drawEnemyHpLabelsOverlay(ctx);
-      } catch (e) {}
+      const { shieldTrailStateA, shieldTrailStateB } = requireBindings();
+      drawShieldTrail(ctx, shieldTrailStateA);
+      drawShieldTrail(ctx, shieldTrailStateB);
     }
 
     if (
