@@ -10559,9 +10559,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const originX = player.x - cameraOffsetX + shakeX;
     const originY = player.y - cameraOffsetY + shakeY;
     const duration = Math.max(0.001, MELEE_SWING_DURATION);
+    const rushProgress = (state.isRushing || state.rushDamageEnabled)
+      ? Math.min(1, Math.max(0, (state.rushDistanceRemaining ?? 0) / Math.max(1, bindings?.RUSH_DISTANCE ?? 220)))
+      : 0;
     const intensity = state.swooshTimer > 0
       ? Math.min(1, state.swooshTimer / duration)
-      : 0.85;
+      : (state.isRushing || state.rushDamageEnabled) ? rushProgress : 0.85;
     const rectX =
       activeHitbox && Number.isFinite(activeHitbox.offsetX)
         ? activeHitbox.offsetX - drawWidth * 0.5

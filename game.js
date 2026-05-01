@@ -4969,6 +4969,7 @@ Renderer.initialize({
   WORLD_SCALE,
   get MELEE_SWING_RANGE() { return MELEE_SWING_RANGE; },
   get MELEE_CLOSE_RANGE() { return MELEE_CLOSE_RANGE; },
+  get RUSH_DISTANCE() { return RUSH_DISTANCE; },
   get DASH_COOLDOWN() { return DASH_COOLDOWN; },
   get playerDashState() { return playerDashState; },
   get damageHitFlash() { return damageHitFlash; },
