@@ -3940,10 +3940,9 @@ const PUNISH_COUNTER_MULTIPLIER = 1.30;
 const COUNTER_HIT_TEXT_LIFE = 2.9;
 const PUNISH_COUNTER_TEXT_LIFE = 2.9;
 const MELEE_COMBO_TEXT_LIFE = 4.2;
-const COUNTER_HIT_GRACE_GEMS = 3;
-const PUNISH_COUNTER_GRACE_GEMS = 6;
-const MELEE_COMBO_GRACE_GEMS_BASE = 2;
-const MELEE_COMBO_GRACE_GEMS_MAX = 4;
+const COUNTER_HIT_GRACE_GEMS = 1;
+const PUNISH_COUNTER_GRACE_GEMS = 3;
+const MELEE_COMBO_GRACE_GEMS = 1;
 const MELEE_HITSTOP_DURATION = 0.09;
 const MELEE_COMBO_HITSTOP_DURATION = 0.11;
 const MELEE_COUNTER_HITSTOP_DURATION = MELEE_HITSTOP_DURATION;
@@ -10716,7 +10715,7 @@ function maybeDropGraceFromEnemy(enemy) {
     const blocks = Math.max(1, Math.floor(baseHealth / 100));
     let guaranteed = 0;
     for (let i = 0; i < blocks; i += 1) {
-      guaranteed += Math.floor(randomInRange(3, 6));
+      guaranteed += 1;
     }
     spawnGraceArcBurst(enemy.x, enemy.y, guaranteed);
     return;
@@ -21968,11 +21967,7 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
     );
   }
   if (meleeAttackState.meleeComboHits >= 2) {
-    const comboGemCount = Math.min(
-      MELEE_COMBO_GRACE_GEMS_MAX,
-      MELEE_COMBO_GRACE_GEMS_BASE + Math.max(0, meleeAttackState.meleeComboHits - 2),
-    );
-    rewardMeleeGraceBurst(target, comboGemCount, 40 + meleeAttackState.meleeComboHits * 8);
+    rewardMeleeGraceBurst(target, MELEE_COMBO_GRACE_GEMS, 40);
   }
   if (meleeAttackState.punishCounterTarget === target) {
     meleeAttackState.punishCounterExpiresAt = meleeAttackState.meleeComboExpiresAt;
