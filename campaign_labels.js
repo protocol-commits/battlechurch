@@ -40,9 +40,9 @@
     // ── Chapter-break subtitle descriptions ───────────────────────────────
     missionIntroDescriptions: Object.freeze({
       p1: Object.freeze({
-        1: "Win 3 battles to complete the mission.",
-        2: "Win 3 battles to complete the mission.",
-        3: "Win 3 battles to complete the mission.",
+        1: "Win 3 battles",
+        2: "Win 3 battles",
+        3: "Win 3 battles",
       }),
       p2: Object.freeze({
         1: "Win 3 battles to complete the mission.",
