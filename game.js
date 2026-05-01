@@ -282,7 +282,7 @@ let congregationDialogueIndex = 0;
 const congregationWaveIntroDialogueState = {
   activeKey: "",
   queue: [],
-  firstResponder: null,
+  usedResponders: new Set(),
 };
 const battleVictoryDialogueState = {
   queue: [],
@@ -3200,7 +3200,7 @@ function getCongregationConversationResponders() {
 function resetCongregationWaveIntroDialogueState() {
   congregationWaveIntroDialogueState.activeKey = "";
   congregationWaveIntroDialogueState.queue.length = 0;
-  congregationWaveIntroDialogueState.firstResponder = null;
+  congregationWaveIntroDialogueState.usedResponders = new Set();
 }
 
 function queueCongregationWaveIntroDialogue(levelStatus) {
@@ -3215,7 +3215,7 @@ function queueCongregationWaveIntroDialogue(levelStatus) {
   if (!key) return;
   congregationWaveIntroDialogueState.activeKey = key;
   congregationWaveIntroDialogueState.queue.length = 0;
-  congregationWaveIntroDialogueState.firstResponder = null;
+  congregationWaveIntroDialogueState.usedResponders = new Set();
   const formationLabel = getCurrentFormationDialogueLabel();
   const pastorText =
     typeof pastorLine?.text === "function"
@@ -3229,39 +3229,25 @@ function queueCongregationWaveIntroDialogue(levelStatus) {
       },
     });
   }
-  if (responses[0]?.text) {
+  responses.forEach((response, idx) => {
+    if (!response?.text) return;
     congregationWaveIntroDialogueState.queue.push({
-      delay: Math.max(0, Number(responses[0].delay) || 1.35),
+      delay: Math.max(0, Number(response.delay) || 1.35),
       run() {
         const available = getCongregationConversationResponders();
         if (!available.length) return;
-        const npc = randomChoice(available);
-        if (!npc) return;
-        congregationWaveIntroDialogueState.firstResponder = npc;
-        npcCheer(npc, responses[0].text, "#f4fbff", {
-          life: Number(responses[0].life) || 3.2,
-        });
-      },
-    });
-  }
-  if (responses[1]?.text) {
-    congregationWaveIntroDialogueState.queue.push({
-      delay: Math.max(0, Number(responses[1].delay) || 2.45),
-      run() {
-        const available = getCongregationConversationResponders();
-        if (!available.length) return;
-        const candidates =
-          available.length > 1 && congregationWaveIntroDialogueState.firstResponder
-            ? available.filter((npc) => npc !== congregationWaveIntroDialogueState.firstResponder)
-            : available;
+        const used = congregationWaveIntroDialogueState.usedResponders;
+        const fresh = available.filter((npc) => !used.has(npc));
+        const candidates = fresh.length ? fresh : available;
         const npc = randomChoice(candidates);
         if (!npc) return;
-        npcCheer(npc, responses[1].text, "#f4fbff", {
-          life: Number(responses[1].life) || 3.6,
+        used.add(npc);
+        npcCheer(npc, response.text, "#f4fbff", {
+          life: Number(response.life) || 3.2,
         });
       },
     });
-  }
+  });
 }
 
 function updateCongregationWaveIntroDialogue(dt, levelStatus) {
