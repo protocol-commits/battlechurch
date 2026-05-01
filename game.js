@@ -19552,13 +19552,13 @@ function updateCongregationStage(dt, levelStatus) {
         member.y - member.radius - 20,
         line,
         "#f4fbff",
-        { speechBubble: true, vy: 0, life: 8.0, fadeDelay: 7.0, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
+        { speechBubble: true, vy: 0, life: 3.5, fadeDelay: 2.5, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
       );
       member.dialogueBubble = bubble || null;
       member.dialogueCooldownUntil = now + CONGREGATION_DIALOGUE_COOLDOWN_MS;
       congregationGreetingCount += 1;
     }
-    congregationWelcomeTimer = 7.5 + Math.random() * 1.5;
+    congregationWelcomeTimer = 1.5 + Math.random() * 0.5;
   }
   updateCongregationMembers(dt);
   resolveCongregationMemberCollisions();
