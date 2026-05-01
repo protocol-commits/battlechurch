@@ -978,6 +978,7 @@
       state.lastWaveTransitionCueNum = 0;
       state.queuedWaveIntroIndices.clear();
       state.lastClearedWasBoss = false;
+      state.pendingUpgradeToTeaser = false;
   const skipIntroAnnouncement =
     Boolean(options && options.skipIntroAnnouncement) ||
     Boolean(typeof window !== "undefined" && window.__skipInitialMonthAnnouncement);

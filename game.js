@@ -5824,7 +5824,8 @@ Levels.initialize({
       window.DialogOverlay?.isVisible?.() ||
       window.UpgradeScreen?.isVisible?.() ||
       chapterBreakActive ||
-      pendingUpgradeAfterSummary,
+      pendingUpgradeAfterSummary ||
+      levelManager?.getStatus?.()?.stage === "visitorMinigame",
     ),
   startVisitorMinigame: startPostBossVisitorSession,
   getPendingPortalSpawnCount,
@@ -17654,9 +17655,6 @@ function checkDialogOverlays() {
       console.log("SHOWING CHAPTER BREAK for Mission", actNumber);
       window.UpgradeScreen.show(() => {
         runPostUpgradeSaveThen(() => {
-          if (typeof levelManager?.requestUpgradeToTeaserTransition === "function") {
-            levelManager.requestUpgradeToTeaserTransition();
-          }
           console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
           if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
             townVisitorMinigamePlayed = true;
