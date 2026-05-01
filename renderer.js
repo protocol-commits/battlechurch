@@ -1922,21 +1922,21 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         {
           key: "line",
           label: "Rapid Fire",
-          desc: "Rapid fire — keep the darkness scattered and on the run.",
+          desc: "Meet weekly for group Bible study.",
           stat: "+Rate of Fire",
           iconSrc: "assets/sprites/items/icons/I25_Book.png",
         },
         {
           key: "circle",
           label: "Heavy Ordnance",
-          desc: "Armor-piercing bolts that cut through the heaviest resistance.",
+          desc: "Lead a guided topical study targeting specfic issues.",
           stat: "+Damage",
           iconSrc: "assets/sprites/items/icons/I23_Scroll.png",
         },
         {
           key: "crescent",
           label: "Tactical Support",
-          desc: "Your inner light refills faster. Hold the line longer.",
+          desc: "Organize them into a care and support group.",
           stat: "+Prayer Meter",
           iconSrc: "assets/sprites/items/icons/I41_Candle.png",
         },
@@ -6002,24 +6002,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawVisitorFaithBar(actor) {
-    const {
-      ctx,
-    } = requireBindings();
     if (!actor || typeof actor.maxFaith !== "number") return;
+    const { WORLD_SCALE = 1 } = requireBindings();
     const ratio = actor.maxFaith > 0 ? Math.max(0, Math.min(1, actor.faith / actor.maxFaith)) : 0;
-    const width = 82;
-    const height = 10;
+    const width = Math.round(52 * WORLD_SCALE);
+    const height = Math.max(9, Math.round(11 * WORLD_SCALE));
     const barX = actor.x - width / 2;
-    const barY = actor.y - (actor.radius || 28) - 18;
-    ctx.save();
-    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-    ctx.fillRect(barX, barY, width, height);
-    ctx.strokeStyle = "rgba(255,255,255,0.12)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(barX + 0.5, barY + 0.5, width - 1, height - 1);
-    ctx.fillStyle = actor.saved ? "#FFC86A" : "#5FE3C0";
-    ctx.fillRect(barX + 2, barY + 2, (width - 4) * ratio, height - 4);
-    ctx.restore();
+    const barY = actor.y - (actor.radius || 28) - height - Math.round(6 * WORLD_SCALE);
+    const palette = getCombatMeterPalette();
+    const fillColor = actor.saved ? palette.sword : palette.dash;
+    const glowColor = actor.saved ? palette.swordGlow : palette.dashGlow;
+    drawCompactWorldMeter(barX, barY, width, height, ratio, fillColor, glowColor);
   }
 
   function drawVisitorOverlay(visitorState) {
@@ -6028,43 +6021,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx,
       canvas,
       UI_FONT_FAMILY,
-      getCongregationSize,
     } = requireBindings();
     const centerX = canvas.width / 2;
-    const panelWidth = Math.min(canvas.width * 0.4, 460);
-    const panelHeight = 64;
-    const panelX = centerX - panelWidth / 2;
-    const panelY = 12;
-    ctx.save();
-    ctx.fillStyle = "rgba(8, 12, 22, 0.75)";
-    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
-    ctx.strokeStyle = "rgba(255, 222, 142, 0.4)";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#FFC86A";
-    ctx.font = `22px ${UI_FONT_FAMILY}`;
-    const visitationTitle = (typeof GameText !== 'undefined' && GameText.visitation?.title) || "Visitation Hour";
-    ctx.fillText(visitationTitle, centerX, panelY + 24);
-    const remaining = Math.max(0, visitorState.timer || 0);
-    const minutes = Math.floor(remaining / 60);
-    const seconds = Math.floor(remaining % 60);
-    const timerText = `${minutes}:${seconds.toString().padStart(2, "0")}`;
-    const congregationTotal = typeof getCongregationSize === "function" ? getCongregationSize() : null;
-    const savedText = `Visitors: ${visitorState.savedVisitors || 0}/${visitorState.targetVisitors || 0}`;
-    const calmText = `Members Calmed: ${visitorState.quietedBlockers || 0}`;
-    ctx.font = `14px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = "#EAF6FF";
-    const statusLine = [
-      `Timer ${timerText}`,
-      savedText,
-      calmText,
-      typeof congregationTotal === "number" ? `Congregation ${congregationTotal}` : null,
-    ]
-      .filter(Boolean)
-      .join("   •   ");
-    ctx.fillText(statusLine, centerX, panelY + panelHeight - 12);
-    ctx.restore();
 
     if (!visitorState.summaryActive) {
       const remainingSeconds = Math.ceil(visitorState.timer || 0);

@@ -567,6 +567,7 @@ const recapFinalSfxPool = [];
 const recapGraceFlySfxPool = [];
 const visitorHitSfxPool = [];
 const chattyHitSfxPool = [];
+let visitorWelcomeSayCooldown = 0;
 const visitorSavedSfxPool = [];
 const npcHurtSfxPool = [];
 const playerHurtSfxPool = [];
@@ -16292,6 +16293,7 @@ function createVisitorBlocker(bounds, index = 0, total = VISITOR_GUEST_COUNT) {
 
 function updateVisitorSession(dt) {
   if (!visitorSession.active) return;
+  visitorWelcomeSayCooldown = Math.max(0, visitorWelcomeSayCooldown - dt);
   if (visitorSession.summaryActive) {
     visitorSession.timer = 0;
     return;
@@ -16589,6 +16591,10 @@ function applyHeartToEntity(entity, options = {}) {
     }
     entity.faith = Math.min(entity.maxFaith, entity.faith + HEART_FAITH_PER_HIT);
     entity.highlightTimer = 0.4;
+    if (visitorWelcomeSayCooldown <= 0) {
+      heroSay("Welcome!", { life: 1.8 });
+      visitorWelcomeSayCooldown = 2.5;
+    }
     addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Welcome +1", "#5FE3C0", {
       life: 0.6,
       vy: -18,
@@ -24897,6 +24903,7 @@ function updateGame(dt) {
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
   powerUpStaggerTimer = Math.max(0, powerUpStaggerTimer - dt);
+  visitorWelcomeSayCooldown = Math.max(0, visitorWelcomeSayCooldown - dt);
   const powerUpSpawnedThisFrame = isDevMeleeArenaActive()
     ? false
     : processQueuedPowerUpDrops();
