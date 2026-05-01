@@ -17671,6 +17671,9 @@ function checkDialogOverlays() {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Mission 2, Level 2 done → Mission 3
       console.log("SHOWING CHAPTER BREAK for Mission", actNumber);
       window.UpgradeScreen.show(() => {
+        // Block levelSummary from advancing during async save gap
+        chapterBreakActive = true;
+        chapterBreakActNumber = actNumber;
         runPostUpgradeSaveThen(() => {
           console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
           if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
@@ -17679,7 +17682,10 @@ function checkDialogOverlays() {
               const started = levelManager.triggerVisitorMinigame(() => {
                 showChapterBreak(actNumber);
               });
-              if (started) return;
+              if (started) {
+                chapterBreakActive = false;
+                return;
+              }
             }
           }
           showChapterBreak(actNumber);
