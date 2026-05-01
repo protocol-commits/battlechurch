@@ -8088,7 +8088,11 @@ let epilogueBackgroundKey = "epilogue";
 const progressSaveToast = {
   text: "",
   timer: 0,
-  duration: 1.8,
+  duration: 5.5,
+  // simulated save bar state
+  barProgress: 0,    // 0.0–1.0
+  barDone: false,    // true once bar completed and "saved" phase triggered
+  barFillDuration: 1.4, // seconds to fill bar to 100%
 };
 
 // Scrolling epilogue/credits system
@@ -11219,43 +11223,145 @@ function drawDevStatus() {
   return;
 }
 
-function showProgressSaveToast(text = "Progress Saved", duration = 1.8) {
+function _triggerProgressSavedEffects() {
+  if (typeof playProgressSavedSfx === "function") playProgressSavedSfx(0.7);
+  if (typeof playWisdomHitSfx === "function") {
+    playWisdomHitSfx(0.65);
+    setTimeout(() => { if (typeof playWisdomHitSfx === "function") playWisdomHitSfx(0.55); }, 220);
+    setTimeout(() => { if (typeof playWisdomHitSfx === "function") playWisdomHitSfx(0.45); }, 460);
+  }
+  if (canvas && window.Effects?.spawnFlashEffect) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const hw = 200; const hh = 44;
+    const positions = [
+      { x: cx - hw, y: cy - hh }, { x: cx + hw, y: cy - hh },
+      { x: cx - hw, y: cy + hh }, { x: cx + hw, y: cy + hh },
+      { x: cx,      y: cy - hh - 18 },
+    ];
+    positions.forEach((pos, i) => {
+      setTimeout(() => { window.Effects.spawnFlashEffect(pos.x, pos.y, { scale: 1.6 }); }, i * 65);
+    });
+  }
+}
+
+function showProgressSaveToast(text = "Progress Saved", duration = 5.5) {
+  const isProgressSaved = text === "Progress Saved" || text === "progress saved";
   progressSaveToast.text = String(text || "Progress Saved");
-  progressSaveToast.duration = Number.isFinite(duration) ? Math.max(0.8, duration) : 1.8;
+  progressSaveToast.duration = Number.isFinite(duration) ? Math.max(0.8, duration) : 5.5;
   progressSaveToast.timer = progressSaveToast.duration;
+  progressSaveToast.barProgress = 0;
+  progressSaveToast.barDone = true; // skip bar phase — show text directly
+
+  if (isProgressSaved) {
+    _triggerProgressSavedEffects();
+  }
+}
+
+function startSaveProgressBar() {
+  progressSaveToast.text = "Saving...";
+  progressSaveToast.duration = 999;
+  progressSaveToast.timer = 999;
+  progressSaveToast.barProgress = 0;
+  progressSaveToast.barDone = false;
 }
 
 function updateProgressSaveToast(dt) {
   if (progressSaveToast.timer <= 0) return;
-  progressSaveToast.timer = Math.max(0, progressSaveToast.timer - Math.max(0, Number(dt) || 0));
+  const delta = Math.max(0, Number(dt) || 0);
+  // Animate the simulated save bar
+  if (!progressSaveToast.barDone) {
+    progressSaveToast.barProgress = Math.min(1, progressSaveToast.barProgress + delta / progressSaveToast.barFillDuration);
+    if (progressSaveToast.barProgress >= 1) {
+      progressSaveToast.barDone = true;
+      progressSaveToast.text = "Progress Saved";
+      progressSaveToast.duration = 4.0;
+      progressSaveToast.timer = 4.0;
+      _triggerProgressSavedEffects();
+      return;
+    }
+    return; // hold timer while bar is filling
+  }
+  progressSaveToast.timer = Math.max(0, progressSaveToast.timer - delta);
 }
 
 function drawProgressSaveToast() {
   if (progressSaveToast.timer <= 0 || !ctx || !canvas) return;
-  const t = progressSaveToast.duration > 0 ? progressSaveToast.timer / progressSaveToast.duration : 0;
-  const alpha = Math.max(0, Math.min(1, t));
-  const toastWidth = 240;
-  const toastHeight = 42;
+  const isSaving = !progressSaveToast.barDone;
+  // Always fully opaque while saving; fade out after saved
+  let alpha = 1;
+  if (!isSaving) {
+    const t = progressSaveToast.duration > 0 ? progressSaveToast.timer / progressSaveToast.duration : 0;
+    alpha = Math.max(0, Math.min(1, t * (progressSaveToast.duration / 0.6)));
+  }
+  const toastWidth = 440;
+  const toastHeight = isSaving ? 114 : 96;
   const x = (canvas.width - toastWidth) / 2;
-  const y = HUD_HEIGHT + 16;
+  const y = (canvas.height - toastHeight) / 2;
+  const r = 10;
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.fillStyle = "rgba(9, 22, 16, 0.86)";
-  ctx.strokeStyle = "rgba(114, 240, 172, 0.92)";
-  ctx.lineWidth = 2;
-  roundRect(ctx, x, y, toastWidth, toastHeight, 12, true, true);
-  ctx.fillStyle = "#D9FFE8";
-  ctx.font = `700 18px ${UI_FONT_FAMILY}`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(progressSaveToast.text, x + toastWidth / 2, y + toastHeight / 2 + 1);
+  // Dark brown gradient fill
+  const grad = ctx.createLinearGradient(x, y, x, y + toastHeight);
+  grad.addColorStop(0, "#2A2118");
+  grad.addColorStop(1, "#1E1812");
+  ctx.fillStyle = grad;
+  roundRect(ctx, x, y, toastWidth, toastHeight, r, true, false);
+  // Gold outer border
+  ctx.strokeStyle = "rgba(200,160,90,0.85)";
+  ctx.lineWidth = 3;
+  roundRect(ctx, x, y, toastWidth, toastHeight, r, false, true);
+  // Inner cream accent line
+  ctx.strokeStyle = "rgba(243,226,196,0.25)";
+  ctx.lineWidth = 1;
+  roundRect(ctx, x + 4, y + 4, toastWidth - 8, toastHeight - 8, r - 2, false, true);
+  if (isSaving) {
+    // "Saving..." label at top
+    ctx.fillStyle = "#F3E2C4";
+    ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Saving...", x + toastWidth / 2, y + 36);
+    // Progress bar track
+    const barPad = 24;
+    const barY = y + 62;
+    const barH = 22;
+    const barW = toastWidth - barPad * 2;
+    const bx = x + barPad;
+    ctx.fillStyle = "rgba(62, 20, 14, 0.94)";
+    roundRect(ctx, bx, barY, barW, barH, 6, true, false);
+    ctx.strokeStyle = "rgba(200,160,90,0.6)";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, bx, barY, barW, barH, 6, false, true);
+    // Progress fill
+    const fillW = barW * progressSaveToast.barProgress;
+    if (fillW > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(bx, barY, barW, barH, 6);
+      ctx.clip();
+      const fillGrad = ctx.createLinearGradient(bx, barY, bx, barY + barH);
+      fillGrad.addColorStop(0, "#F1882F");
+      fillGrad.addColorStop(1, "#A83C10");
+      ctx.fillStyle = fillGrad;
+      ctx.fillRect(bx, barY, fillW, barH);
+      ctx.restore();
+    }
+  } else {
+    // "Progress Saved" centered
+    ctx.fillStyle = "#F3E2C4";
+    ctx.font = `800 30px ${UI_FONT_FAMILY}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(progressSaveToast.text, x + toastWidth / 2, y + toastHeight / 2 + 1);
+  }
   ctx.restore();
 }
 
 async function saveMissionProgressContext(context) {
   if (!context || demoSandboxRunActive) return true;
   if (!window.MapScreen) return false;
-  showProgressSaveToast("Saving...", 12);
+  startSaveProgressBar();
   try {
     const powerupSnapshot = Object.fromEntries(churchPowerupLevels);
     if (context.kind === "finalTown") {
@@ -11266,10 +11372,7 @@ async function saveMissionProgressContext(context) {
         powerupSnapshot,
         getGraceCount(),
       );
-      showProgressSaveToast("Progress Saved");
-      if (typeof playProgressSavedSfx === "function") {
-        playProgressSavedSfx(0.55);
-      }
+      // Bar auto-transitions to "Progress Saved" — no need to call showProgressSaveToast here
       return true;
     }
     if (context.kind === "missionCheckpoint") {
@@ -11284,10 +11387,6 @@ async function saveMissionProgressContext(context) {
       if (ok === false) {
         showProgressSaveToast("Save Failed", 2.2);
         return false;
-      }
-      showProgressSaveToast("Progress Saved");
-      if (typeof playProgressSavedSfx === "function") {
-        playProgressSavedSfx(0.55);
       }
       return true;
     }
