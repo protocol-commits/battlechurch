@@ -19518,11 +19518,10 @@ function updateCongregationStage(dt, levelStatus) {
   if (typeof window !== "undefined") window.__congregationTutorialActive = false;
   const activeWelcomeLines = getCongregationIntroLinesForCampaign(activeCampaign)
     .filter((line) => typeof line === "string" && line.trim());
-  const welcomeHintLimit = Math.min(MAX_CONGREGATION_WELCOME_HINTS, activeWelcomeLines.length);
+  const welcomeHintLimit = activeWelcomeLines.length;
   if (!congregationGreetingShown) {
-    heroSay("I'm glad to see you all!", { life: 3.6 });
     congregationGreetingShown = true;
-    congregationWelcomeTimer = 2.2;
+    congregationWelcomeTimer = 0.0;
     congregationMonsterAmbientTimer = 0.6 + Math.random() * 0.9;
   }
   congregationMonsterAmbientTimer = Math.max(0, congregationMonsterAmbientTimer - dt);
