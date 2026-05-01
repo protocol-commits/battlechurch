@@ -1496,7 +1496,7 @@ function queuePastorFinalAnnouncement() {
 }
 
 const PASTOR_BOSS_POST_RECAP_LINES = {
-  default: "Great job, everyone. Now let's go out there and love our neighbors as ourselves.",
+  default: "You're now in good hands. I'm needed in the next town. I'll come back to visit.",
 };
 
 function queuePastorBossPostRecapAnnouncement(levelNumber, upgradeAfter = false) {
