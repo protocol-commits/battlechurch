@@ -6036,64 +6036,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillText(String(remainingSeconds), canvas.width / 2, canvas.height / 2 + fontSize * 0.35);
         ctx.restore();
       }
-    } else {
-      const overlayPadding = 40;
-      ctx.save();
-      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-      ctx.fillRect(overlayPadding, overlayPadding, canvas.width - overlayPadding * 2, canvas.height - overlayPadding * 2);
-      ctx.strokeStyle = "rgba(255, 222, 142, 0.4)";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(overlayPadding, overlayPadding, canvas.width - overlayPadding * 2, canvas.height - overlayPadding * 2);
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#FFC86A";
-      ctx.font = `46px ${UI_FONT_FAMILY}`;
-      const timesUpText = (typeof GameText !== 'undefined' && GameText.visitation?.timesUp) || "Time's Up! Welcome new members!";
-      ctx.fillText(timesUpText, centerX, HUD_HEIGHT + 140);
-      const portraits = Array.isArray(visitorState.newMemberPortraits) ? visitorState.newMemberPortraits : [];
-      const portraitNames = Array.isArray(visitorState.newMemberNames) ? visitorState.newMemberNames : [];
-      const portraitSize = 96;
-      const portraitSpacing = 20;
-      const maxPerRow = Math.max(1, Math.floor((canvas.width - overlayPadding * 2 - 80) / (portraitSize + portraitSpacing)));
-      if (portraits.length) {
-        const rows = Math.ceil(portraits.length / maxPerRow);
-        const startY = HUD_HEIGHT + 200;
-        for (let row = 0; row < rows; row += 1) {
-          const cols = Math.min(maxPerRow, portraits.length - row * maxPerRow);
-          const rowWidth = cols * portraitSize + (cols - 1) * portraitSpacing;
-          let startX = canvas.width / 2 - rowWidth / 2;
-          for (let col = 0; col < cols; col += 1) {
-            const index = row * maxPerRow + col;
-            const portrait = portraits[index];
-            const name = portraitNames[index] || "";
-            if (!portrait) continue;
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(startX, startY + row * (portraitSize + portraitSpacing), portraitSize, portraitSize);
-            ctx.clip();
-            ctx.drawImage(portrait, startX, startY + row * (portraitSize + portraitSpacing), portraitSize, portraitSize);
-            ctx.restore();
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-            ctx.strokeRect(startX, startY + row * (portraitSize + portraitSpacing), portraitSize, portraitSize);
-            // Draw name tag above portrait
-            if (name) {
-              ctx.save();
-              ctx.font = `14px ${UI_FONT_FAMILY}`;
-              ctx.textAlign = "center";
-              ctx.globalAlpha = 0.6;
-              ctx.fillStyle = "#fff";
-              ctx.fillText(name, startX + portraitSize / 2, startY + row * (portraitSize + portraitSpacing) - 10);
-              ctx.restore();
-            }
-            startX += portraitSize + portraitSpacing;
-          }
-        }
-      } else {
-        ctx.font = `24px ${UI_FONT_FAMILY}`;
-        ctx.fillStyle = "#EAF6FF";
-        const noMembersText = (typeof GameText !== 'undefined' && GameText.visitation?.noNewMembers) || "No new members this round.";
-        ctx.fillText(noMembersText, centerX, HUD_HEIGHT + 220);
-      }
-      ctx.restore();
     }
   }
 
