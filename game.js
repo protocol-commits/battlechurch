@@ -7459,7 +7459,7 @@ function queueActBreakTownIntro(actNumber) {
   });
 }
 
-function queueExteriorShotAnnouncement({ force = false } = {}) {
+function queueExteriorShotAnnouncement({ force = false, actBreak = false } = {}) {
   const monthName = getUpcomingMonthName();
   if (!monthName) return;
   const status = levelManager?.getStatus ? levelManager.getStatus() : null;
