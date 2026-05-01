@@ -5119,6 +5119,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawSwarmGroupCounters(ctx, enemies) {
+    if (typeof window !== "undefined" && window.__suppressDamageNumbers) return;
     if (!ctx || !Array.isArray(enemies) || !enemies.length) return;
     const groups = new Map();
     enemies.forEach((enemy) => {

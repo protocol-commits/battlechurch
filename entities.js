@@ -777,8 +777,7 @@
       const sy = Math.floor(effectiveIndex / cols) * clip.frameHeight;
 
       context.save();
-      const _teaserFade = (typeof window !== "undefined" && Number.isFinite(window.__briefTeaserFadeAlpha)) ? window.__briefTeaserFadeAlpha : 1;
-      context.globalAlpha = alpha * _teaserFade;
+      context.globalAlpha = alpha;
       if (blur > 0) {
         context.filter = `blur(${blur}px)`;
       }
@@ -1998,7 +1997,7 @@
     const prevHealth = this.health;
     const reductionFactor = 1 - Math.min(0.8, this.armorReduction || 0);
     const appliedDamage = Math.max(1, Math.round(baseDamage * reductionFactor));
-    showDamage(this, appliedDamage, {
+    if (!(typeof window !== "undefined" && window.__suppressDamageNumbers)) showDamage(this, appliedDamage, {
       color: "#ffd966",
       offsetY: this.radius * 0.5,
       fadeDelay: 0.5,
@@ -3506,7 +3505,7 @@
       }
       this.health -= scaledDamage;
       const damageText = options?.damageText || null;
-      if (typeof showDamage === "function") {
+      if (typeof showDamage === "function" && !(typeof window !== "undefined" && window.__suppressDamageNumbers)) {
         showDamage(this, scaledDamage, {
           color: damageText?.color || "#ff8181",
           fontSize: damageText?.fontSize || null,

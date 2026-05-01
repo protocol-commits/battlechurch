@@ -1283,6 +1283,11 @@
           }
         }
       }
+      if (typeof window !== "undefined") {
+        if (typeof window.applyPrayerBombDamageAt === "function") {
+          window.applyPrayerBombDamageAt(0, 0, 99999, 999999);
+        }
+      }
       // Continue with the normal battle start path so we get the themed,
       // mission-specific brief (not the legacy how-to-play screen).
       beginBattle();

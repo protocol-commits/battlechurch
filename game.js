@@ -165,7 +165,6 @@ const briefTeaserState = {
   spawnScheduled: false,
   introTextQueued: false,
   spawnTimers: [],
-  fadeAlpha: 1,
 };
 
 function clearBriefTeaserSpawnTimers() {
@@ -3749,6 +3748,8 @@ if (typeof window !== "undefined") {
   window.startPrayerBombFireRain = startPrayerBombFireRain;
   window.triggerPrayerBombScreenDarken = triggerPrayerBombScreenDarken;
   window.showPrayerBombBlastCombo = showPrayerBombBlastCombo;
+  window.triggerPrayerBombExplosionAt = triggerPrayerBombExplosionAt;
+  window.applyPrayerBombDamageAt = applyPrayerBombDamageAt;
 }
 let heroRescueCooldown = 0;
 
@@ -14092,8 +14093,7 @@ class Projectile {
       } else {
         ctx.rotate(this.rotation);
       }
-      const _teaserFade = (typeof window !== "undefined" && Number.isFinite(window.__briefTeaserFadeAlpha)) ? window.__briefTeaserFadeAlpha : 1;
-      ctx.globalAlpha *= projectileAlpha * _teaserFade;
+      if (projectileAlpha < 1) ctx.globalAlpha *= projectileAlpha;
       if (shouldGlow) {
         let glowOptions = undefined;
         let suppressGlow = false;
@@ -24611,16 +24611,6 @@ function updateGame(dt) {
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   updateSpeedrunTimer(levelStatus);
   updateMusicState(levelStatus);
-  if (levelStatus?.stage === "briefingTeaser") {
-    const teaserTimeLeft = levelStatus?.stageTimer ?? 0;
-    const TEASER_FADE_WINDOW = 1.2;
-    briefTeaserState.fadeAlpha = teaserTimeLeft > TEASER_FADE_WINDOW
-      ? 1
-      : Math.max(0, teaserTimeLeft / TEASER_FADE_WINDOW);
-  } else {
-    briefTeaserState.fadeAlpha = 1;
-  }
-  if (typeof window !== "undefined") window.__briefTeaserFadeAlpha = briefTeaserState.fadeAlpha;
   if (levelStatus?.stage !== "graceRush" && (graceRushBlackout || graceRushFadeHold)) {
     graceRushBlackout = false;
     graceRushFadeHold = false;
@@ -24717,6 +24707,7 @@ function updateGame(dt) {
     stage = levelStatus?.stage;
   }
   const briefTeaserStage = stage === "briefingTeaser";
+  window.__suppressDamageNumbers = briefTeaserStage;
   if (briefTeaserStage) {
     if (!briefTeaserState.active) {
       briefTeaserState.active = true;
@@ -24759,11 +24750,6 @@ function updateGame(dt) {
       levelStatus = levelManager?.getStatus ? levelManager.getStatus() : levelStatus;
       stage = levelStatus?.stage;
     }
-    const teaserTimeLeft = levelStatus?.stageTimer ?? 0;
-    const TEASER_FADE_WINDOW = 1.2;
-    briefTeaserState.fadeAlpha = teaserTimeLeft > TEASER_FADE_WINDOW
-      ? 1
-      : Math.max(0, teaserTimeLeft / TEASER_FADE_WINDOW);
   } else if (briefTeaserState.active) {
     briefTeaserState.active = false;
     briefTeaserState.spawnScheduled = false;
