@@ -1772,9 +1772,12 @@
       const _bCamp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
       const _bMissionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
       const actMissionLabels = _bMissionsByPhase[_bCamp] || _bMissionsByPhase.p1 || {};
-      const currentActNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
-        ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
-        : 1;
+      const currentActNum = Math.min(
+        BATTLES_PER_TOWN,
+        MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
+          ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
+          : 1,
+      );
       const missionBriefTitle = `Mission ${currentActNum}: ${actMissionLabels[currentActNum] || `Mission ${currentActNum}`}`;
       queueLevelAnnouncement("Boss Battle", state.currentBossProblem, {
         duration: LEVEL_INTRO_DURATION,
@@ -2572,14 +2575,10 @@ state.waveIndex = -1;
           1,
           Number.isFinite(state.definition?.battles?.length)
             ? state.definition.battles.length
-            : BATTLES_PER_TOWN,
+            : BATTLES_PER_TOWN * MISSIONS_PER_BATTLE,
         );
-        const targetBattleNumber = totalBattles;
-        if ((state.level || 1) !== targetBattleNumber) {
-          beginLevel(targetBattleNumber, { skipIntroAnnouncement: true });
-        }
-        const finalMissionIndex = Math.max(0, totalBattles * Math.max(1, MISSIONS_PER_BATTLE) - 1);
-        state.monthIndex = finalMissionIndex;
+        // Jump to the last battle entry in this town — do NOT change state.level
+        state.monthIndex = totalBattles - 1;
         state.waveIndex = getBattleHordeCount(currentBattle()) - 1;
         state.activeWave = null;
         state.pendingPortalSpawnBaseline = 0;

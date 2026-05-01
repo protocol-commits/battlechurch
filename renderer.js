@@ -9674,13 +9674,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         if (!member) return;
         if (member.__congregationFadeToken !== congregationFadeState.token) {
           member.__congregationFadeToken = congregationFadeState.token;
-          if (Math.random() < 0.5) {
-            member.__congregationFadeStart = now + 1000 + Math.random() * 4000;
-            member.__congregationFadeDuration = 1200;
-          } else {
-            member.__congregationFadeStart = now;
-            member.__congregationFadeDuration = 0;
-          }
+          member.__congregationFadeStart = now;
+          member.__congregationFadeDuration = 0;
         }
         const entry = {
           start: member.__congregationFadeStart,

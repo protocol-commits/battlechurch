@@ -7641,6 +7641,18 @@ function startGameFromTitle() {
     }
     window.pendingDenomPowerups = null;
   }
+  // Hard-clear any leftover state from a previous town (e.g. dev skip).
+  // buildCongregationMembers() is called inside beginLevel() so clearing here is safe.
+  enemies.splice(0, enemies.length);
+  npcs.splice(0, npcs.length);
+  clearCongregationMembers();
+  bossHazards.splice(0, bossHazards.length);
+  projectiles.splice(0, projectiles.length);
+  activeBoss = null;
+  evacuatedNpcCount = 0;
+  npcsSuspended = false;
+  Effects.clear?.();
+  Spawner.resetAllFlags?.();
   resetCongregationSize();
   // Ensure title is hidden and game is paused while we enter briefing.
   paused = true;
