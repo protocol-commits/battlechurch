@@ -165,6 +165,7 @@ const briefTeaserState = {
   spawnScheduled: false,
   introTextQueued: false,
   spawnTimers: [],
+  fadeAlpha: 1,
 };
 
 function clearBriefTeaserSpawnTimers() {
@@ -450,10 +451,11 @@ const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const SAVE_PROGRESS_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const RECAP_TICK_SFX_SRC = "assets/sfx/utility/utility9.mp3";
 const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
-const INTRO_MUSIC_SRC = "assets/music/title-music.mp3";
-const BATTLE_MUSIC_SRC = "assets/music/battle-music.mp3";
+const INTRO_MUSIC_SRC = "assets/music/boss-fight-3.mp3";
+const BATTLE_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
 const WAVE3_BATTLE_MUSIC_SRC = "assets/music/boss-fight-4.mp3";
 const BOSS_PHASE3_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
+const CONGREGATION_MUSIC_SRC = "assets/music/suspense.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
@@ -594,6 +596,7 @@ const musicState = {
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
   battleWave3: typeof Audio !== "undefined" ? new Audio(WAVE3_BATTLE_MUSIC_SRC) : null,
   battleBossPhase3: typeof Audio !== "undefined" ? new Audio(BOSS_PHASE3_MUSIC_SRC) : null,
+  congregation: typeof Audio !== "undefined" ? new Audio(CONGREGATION_MUSIC_SRC) : null,
   recap: typeof Audio !== "undefined" ? new Audio(RECAP_MUSIC_SRC) : null,
   visitor: typeof Audio !== "undefined" ? new Audio(VISITOR_MUSIC_SRC) : null,
   exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
@@ -601,6 +604,7 @@ const musicState = {
   bossDeath: typeof Audio !== "undefined" ? new Audio(BOSS_DEATH_MUSIC_SRC) : null,
   introStarted: false,
   battleStarted: false,
+  congregationStarted: false,
   recapStarted: false,
   visitorStarted: false,
   exteriorStarted: false,
@@ -608,6 +612,7 @@ const musicState = {
   bossDeathStarted: false,
   introStopped: false,
   battleStopped: false,
+  congregationStopped: false,
   recapStopped: false,
   visitorStopped: false,
   exteriorStopped: false,
@@ -1304,7 +1309,7 @@ function playMusic(audio, { volume = 0.7, loop = false } = {}) {
 function startIntroMusic() {
   if (!musicState.intro || musicState.introStarted || musicState.introStopped) return;
   musicState.introStarted = true;
-  playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: false });
+  playMusic(musicState.intro, { volume: MUSIC_VOLUME_INTRO, loop: true });
 }
 
 function handleIntroMusicEnded() {
@@ -1422,7 +1427,22 @@ function startBossDeathMusic() {
 
 function startBattleVictoryMusic() {
   if (!musicState.unlocked) return;
-  startExteriorMusic({ boss: true });
+  fadeOutBattleMusic();
+  startRecapMusic();
+}
+
+function startCongregationMusic() {
+  if (!musicState.congregation || !musicState.unlocked) return;
+  if (musicState.congregationStarted && !musicState.congregationStopped) return;
+  musicState.congregationStarted = true;
+  musicState.congregationStopped = false;
+  playMusic(musicState.congregation, { volume: MUSIC_VOLUME_INTRO, loop: true });
+}
+
+function stopCongregationMusic() {
+  if (!musicState.congregation || musicState.congregationStopped) return;
+  musicState.congregationStopped = true;
+  fadeAudio(musicState.congregation, { to: 0, durationMs: MUSIC_FADE_OUT_MS, stopOnZero: true });
 }
 
 function startRecapMusic() {
@@ -1626,7 +1646,6 @@ function resumeBattleMusicIfNeeded() {
   const stage = status?.stage || "";
   const shouldPlay =
     stage === "npcArrival" ||
-    stage === "battleIntro" ||
     stage === "waveIntro" ||
     stage === "waveActive" ||
     stage === "allKillBreak" ||
@@ -1656,7 +1675,6 @@ function shouldStartBattleMusicNow() {
   if (!formationState?.current) return false;
   return Boolean(
     status?.stage === "npcArrival" ||
-      status?.stage === "battleIntro" ||
       status?.stage === "waveIntro" ||
       status?.stage === "waveActive" ||
       status?.stage === "allKillBreak" ||
@@ -1696,6 +1714,12 @@ function resetMusicState() {
     musicState.intro.pause();
     musicState.intro.currentTime = 0;
     musicState.intro.volume = 0;
+  }
+  if (musicState.congregation) {
+    cancelFade(musicState.congregation);
+    musicState.congregation.pause();
+    musicState.congregation.currentTime = 0;
+    musicState.congregation.volume = 0;
   }
   if (musicState.battle) {
     cancelFade(musicState.battle);
@@ -1746,6 +1770,7 @@ function resetMusicState() {
     musicState.bossDeath.volume = 0;
   }
   musicState.introStarted = false;
+  musicState.congregationStarted = false;
   musicState.battleStarted = false;
   musicState.recapStarted = false;
   musicState.visitorStarted = false;
@@ -1753,6 +1778,7 @@ function resetMusicState() {
   musicState.exteriorBossStarted = false;
   musicState.bossDeathStarted = false;
   musicState.introStopped = false;
+  musicState.congregationStopped = false;
   musicState.battleStopped = false;
   musicState.recapStopped = false;
   musicState.visitorStopped = false;
@@ -7510,6 +7536,8 @@ function startTownIntroTransition() {
   if (townIntroTransitionActive) return;
   townIntroTransitionActive = true;
   townIntroTransitionTimer = 0;
+  stopIntroMusic();
+  startCongregationMusic();
   dismissCurrentLevelAnnouncement();
 }
 
@@ -8168,7 +8196,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       ?? (levelManager?.getActNumber ? levelManager.getActNumber() : 1);
     lastSummaryWasLevelEnd = true;
   }
-  startRecapMusic();
   const summary = levelManager?.getLastBattleSummary?.() || {};
   const status = levelManager?.getStatus?.() || null;
   const savedNames = Array.isArray(summary.savedNames)
@@ -14065,7 +14092,8 @@ class Projectile {
       } else {
         ctx.rotate(this.rotation);
       }
-      if (projectileAlpha < 1) ctx.globalAlpha *= projectileAlpha;
+      const _teaserFade = (typeof window !== "undefined" && Number.isFinite(window.__briefTeaserFadeAlpha)) ? window.__briefTeaserFadeAlpha : 1;
+      ctx.globalAlpha *= projectileAlpha * _teaserFade;
       if (shouldGlow) {
         let glowOptions = undefined;
         let suppressGlow = false;
@@ -17915,7 +17943,6 @@ function updateMusicState(levelStatus) {
   }
   const battleShouldPlay =
     stage === "npcArrival" ||
-    stage === "battleIntro" ||
     stage === "waveIntro" ||
     stage === "waveActive" ||
     stage === "allKillBreak" ||
@@ -19293,6 +19320,7 @@ function handleLevelAnnouncements() {
         graceRushFadeTimer = 0;
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
+        stopRecapMusic();
         dismissCurrentLevelAnnouncement();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
@@ -19475,6 +19503,7 @@ function updateCongregationStage(dt, levelStatus) {
       if (player) { player.prayerCharge = 0; player.prayerHoldLocked = false; }
       if (typeof window !== "undefined") window.__congregationTutorialActive = false;
       clearCongregationSpeechBubbles();
+      stopCongregationMusic();
       levelManager.advanceFromCongregation();
       playCongregationFightSfx(0.65);
       levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
@@ -24409,6 +24438,9 @@ function updateGame(dt) {
   }
   // Handle title screen even before player/assets are loaded
   if (titleScreenActive) {
+    if (musicState.unlocked && !musicState.introStarted && !musicState.introStopped) {
+      startIntroMusic();
+    }
     if (handleTitleScreen()) {
       return;
     }
@@ -24579,6 +24611,16 @@ function updateGame(dt) {
   let levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
   updateSpeedrunTimer(levelStatus);
   updateMusicState(levelStatus);
+  if (levelStatus?.stage === "briefingTeaser") {
+    const teaserTimeLeft = levelStatus?.stageTimer ?? 0;
+    const TEASER_FADE_WINDOW = 1.2;
+    briefTeaserState.fadeAlpha = teaserTimeLeft > TEASER_FADE_WINDOW
+      ? 1
+      : Math.max(0, teaserTimeLeft / TEASER_FADE_WINDOW);
+  } else {
+    briefTeaserState.fadeAlpha = 1;
+  }
+  if (typeof window !== "undefined") window.__briefTeaserFadeAlpha = briefTeaserState.fadeAlpha;
   if (levelStatus?.stage !== "graceRush" && (graceRushBlackout || graceRushFadeHold)) {
     graceRushBlackout = false;
     graceRushFadeHold = false;
@@ -24717,6 +24759,11 @@ function updateGame(dt) {
       levelStatus = levelManager?.getStatus ? levelManager.getStatus() : levelStatus;
       stage = levelStatus?.stage;
     }
+    const teaserTimeLeft = levelStatus?.stageTimer ?? 0;
+    const TEASER_FADE_WINDOW = 1.2;
+    briefTeaserState.fadeAlpha = teaserTimeLeft > TEASER_FADE_WINDOW
+      ? 1
+      : Math.max(0, teaserTimeLeft / TEASER_FADE_WINDOW);
   } else if (briefTeaserState.active) {
     briefTeaserState.active = false;
     briefTeaserState.spawnScheduled = false;

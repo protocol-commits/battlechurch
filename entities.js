@@ -777,7 +777,8 @@
       const sy = Math.floor(effectiveIndex / cols) * clip.frameHeight;
 
       context.save();
-      context.globalAlpha = alpha;
+      const _teaserFade = (typeof window !== "undefined" && Number.isFinite(window.__briefTeaserFadeAlpha)) ? window.__briefTeaserFadeAlpha : 1;
+      context.globalAlpha = alpha * _teaserFade;
       if (blur > 0) {
         context.filter = `blur(${blur}px)`;
       }
