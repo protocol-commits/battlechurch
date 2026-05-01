@@ -1050,9 +1050,14 @@
 
       const townId = typeof window !== 'undefined' ? window.activeTownId : null;
       const mapData = typeof window !== 'undefined' ? window.BattlechurchMapData : null;
-      const townName = mapData?.towns?.find((t) => t.id === townId)?.name || "Town";
+      const towns = mapData?.towns || [];
+      const townIndex = towns.findIndex((t) => t.id === townId);
+      const townNumber = townIndex >= 0 ? townIndex + 1 : null;
+      const townName = towns[townIndex]?.name || "Town";
 
-      const positionLabel = `${currentAct}.${currentMission}`;
+      const positionLabel = townNumber !== null
+        ? `${townNumber}.${currentAct}-${currentMission}`
+        : `${currentAct}.${currentMission}`;
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
