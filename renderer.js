@@ -598,6 +598,47 @@ const MELEE_SWING_LENGTH = 260;
     ctx.restore();
   }
 
+  function drawShieldTrail(ctx, trailState) {
+    if (!trailState || !trailState.active) return;
+    const { player } = requireBindings();
+    if (!player || (player.shieldTimer || 0) <= 0) return;
+    if (!Array.isArray(trailState.trail) || trailState.trail.length < 2) return;
+    const shieldDuration = player.shieldDuration || 9;
+    const fadeAlpha = Math.max(0.15, Math.min(1, (player.shieldTimer / shieldDuration) * 1.4));
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+    // Outer glow pass
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha *= fadeAlpha;
+    ctx.shadowColor = "#FFE45C";
+    ctx.shadowBlur = 14;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    trailState.trail.forEach((point, idx) => {
+      const jitter = Math.sin(now * 16 + idx * 1.1) * 1.2;
+      const wx = player.x + point.offX + jitter;
+      const wy = player.y + point.offY - jitter;
+      if (idx === 0) ctx.moveTo(wx, wy);
+      else ctx.lineTo(wx, wy);
+    });
+    ctx.strokeStyle = "#FFD94A";
+    ctx.lineWidth = 5;
+    ctx.stroke();
+    // Inner bright core pass
+    ctx.beginPath();
+    trailState.trail.forEach((point, idx) => {
+      const jitter = Math.sin(now * 16 + idx * 1.1) * 0.6;
+      const wx = player.x + point.offX + jitter;
+      const wy = player.y + point.offY - jitter;
+      if (idx === 0) ctx.moveTo(wx, wy);
+      else ctx.lineTo(wx, wy);
+    });
+    ctx.strokeStyle = "#FFF7A8";
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
   function drawSpearDart(ctx, spearState) {
     if (!spearState || !spearState.active) return;
     const { player } = requireBindings();
@@ -10034,6 +10075,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawHaloBlade(ctx, haloBladeState);
     drawHaloBlade(ctx, haloBladeStateSecondary);
     drawHaloBlade(ctx, haloBladeStateBonus);
+    const { shieldTrailStateA, shieldTrailStateB } = requireBindings();
+    drawShieldTrail(ctx, shieldTrailStateA);
+    drawShieldTrail(ctx, shieldTrailStateB);
     drawSpearDart(ctx, spearState);
     drawSpearDart(ctx, spearStateSecondary);
     drawSpearDart(ctx, spearStateBonus);

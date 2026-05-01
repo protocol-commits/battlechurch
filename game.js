@@ -3798,6 +3798,22 @@ const haloBladeState = createHaloBladeState();
 const haloBladeStateSecondary = createHaloBladeState();
 const haloBladeStateBonus = createHaloBladeState();
 
+const createShieldTrailState = () => ({
+  active: false,
+  angle: 0,
+  x: 0,
+  y: 0,
+  radius: 55 * WORLD_SCALE,
+  speed: 12.0,
+  trail: [],
+  trailTimer: 0,
+  trailSpacing: 4 * WORLD_SCALE,
+  trailLife: 0.22,
+  maxTrail: 35,
+});
+const shieldTrailStateA = createShieldTrailState();
+const shieldTrailStateB = createShieldTrailState();
+
 const createSpearState = () => ({
   active: false,
   x: 0,
@@ -4993,6 +5009,8 @@ Renderer.initialize({
   get haloBladeState() { return haloBladeState; },
   get haloBladeStateSecondary() { return haloBladeStateSecondary; },
   get haloBladeStateBonus() { return haloBladeStateBonus; },
+  get shieldTrailStateA() { return shieldTrailStateA; },
+  get shieldTrailStateB() { return shieldTrailStateB; },
   get spearState() { return spearState; },
   get spearStateSecondary() { return spearStateSecondary; },
   get spearStateBonus() { return spearStateBonus; },
@@ -9834,6 +9852,49 @@ function updateHaloBlade(dt) {
   } else {
     resetHaloBladeState(haloBladeStateBonus);
   }
+}
+
+function resetShieldTrailState(state) {
+  state.active = false;
+  state.trail.length = 0;
+  state.trailTimer = 0;
+}
+
+function updateShieldTrailInstance(state, angle, dt) {
+  const radiusX = state.radius;
+  const offX = Math.cos(angle) * radiusX;
+  const offY = Math.sin(angle) * radiusX;
+  const prevOffX = state.offX || 0;
+  const prevOffY = state.offY || 0;
+  state.offX = offX;
+  state.offY = offY;
+  state.x = player.x + offX;
+  state.y = player.y + offY;
+  state.angle = angle;
+  const travel = Math.hypot(offX - prevOffX, offY - prevOffY);
+  state.trailTimer += travel;
+  if (state.trailTimer >= state.trailSpacing) {
+    state.trailTimer = 0;
+    // Store relative to player so the trail moves with them
+    state.trail.push({ offX, offY, life: state.trailLife, maxLife: state.trailLife });
+    if (state.trail.length > state.maxTrail) state.trail.shift();
+  }
+  state.trail.forEach((point) => { point.life -= dt; });
+  while (state.trail.length && state.trail[0].life <= 0) state.trail.shift();
+}
+
+function updateShieldTrails(dt) {
+  if (!player || player.state === "death" || (player.shieldTimer || 0) <= 0) {
+    resetShieldTrailState(shieldTrailStateA);
+    resetShieldTrailState(shieldTrailStateB);
+    return;
+  }
+  const angle = (shieldTrailStateA.angle || 0) + shieldTrailStateA.speed * dt;
+  const baseAngle = angle % (Math.PI * 2);
+  shieldTrailStateA.active = true;
+  updateShieldTrailInstance(shieldTrailStateA, baseAngle, dt);
+  shieldTrailStateB.active = true;
+  updateShieldTrailInstance(shieldTrailStateB, baseAngle + Math.PI, dt);
 }
 
 function getSpearTargetCenter(target) {
@@ -24834,6 +24895,7 @@ function updateGame(dt) {
   }
 
   updateHaloBlade(dt);
+  updateShieldTrails(dt);
   updateCozyNpcs(dt);
   updateGracePickups(dt);
   updateSpearDart(dt);
