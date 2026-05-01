@@ -1478,16 +1478,12 @@ function startEpilogueMusic() {
 
 function getFinalEndingState() {
   const finalSize = getCongregationSize();
-  const badEnding = finalSize < 70;
   const grew = finalSize > INITIAL_CONGREGATION_SIZE;
-  return { finalSize, badEnding, grew };
+  return { finalSize, grew };
 }
 
 function queuePastorFinalAnnouncement() {
-  const { badEnding } = getFinalEndingState();
-  const line = badEnding
-    ? "\"I heard from the denomination, and unfortunately they can't justify keeping this church open any longer. We have to close.\""
-    : "\"I heard from the denomination, and they've decided to keep this church open. I look forward to spending more time with you all and continuing to bring love, joy, and peace into this town!\"";
+  const line = "\"I heard from the denomination, and they've decided to keep this church open. I look forward to spending more time with you all and continuing to bring love, joy, and peace into this town!\"";
   queueLevelAnnouncement(line, "", {
     requiresConfirm: true,
     skipMissionBrief: true,
@@ -1512,12 +1508,6 @@ function queuePastorBossPostRecapAnnouncement(levelNumber, upgradeAfter = false)
 }
 
 function activateEpilogue() {
-  const { finalSize, badEnding, grew } = getFinalEndingState();
-  const introLine = grew
-    ? `Over the course of the campaign, you grew your church to ${finalSize} members.`
-    : `Over the course of the campaign your congregation shrunk to ${finalSize} members.`;
-  const middleLine =
-    "Unfortunately, the demonimation has chosen to close your church leaving the town in darknesss.";
   const ministryOptions = [
     "rehab clinics",
     "food pantries",
@@ -1535,19 +1525,15 @@ function activateEpilogue() {
   }
   const pickedMinistries = ministryOptions.slice(0, 3);
   const ministrySentence = `${pickedMinistries[0]}, ${pickedMinistries[1]}, and ${pickedMinistries[2]}.`;
-  const positiveLine =
+  epilogueTitle = "Epilogue";
+  epilogueBackgroundKey = "epilogue";
+  epilogueText =
     "Because of your hard work, the members of your church made a difference in the town.\n\n" +
     "In the years that followed, your church members went in the community and ministered in " +
     `${ministrySentence}\n\n` +
     "The town is thriving and has become a place of light and hope for all its residents and families.\n\n" +
     "Thank you for your faithful service.\n\n\n\n" +
     "Other towns need a pastor like you...";
-  const endLine = badEnding ? "Try again." : "";
-  epilogueTitle = "Epilogue";
-  epilogueBackgroundKey = badEnding ? "gameOver" : "epilogue";
-  epilogueText = badEnding
-    ? [introLine, middleLine, endLine].filter(Boolean).join(" ")
-    : positiveLine;
   // Reset scroll state for epilogue/credits sequence
   epilogueScroll.phase = "epilogue";
   epilogueScroll.scrollY = 0;
