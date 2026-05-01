@@ -13,15 +13,17 @@
 
   const linesByCampaign = {
     p1: [
-      "We're meeting like this for the first time. Thank you for coming.",
-      "We've prayed for a church to take root here.",
-      "This ground has been dark for a long time.",
-      "We're stepping into hard places together.",
-      "We'll stand with you as we press forward.",
-      "We're hopeful, even with the danger around us.",
-      "It means a lot to have a pastor with us now.",
-      "We'll keep faith as we move into this town.",
-      "Let's hold our line together.",
+"I'm glad you're here.",
+"People don't usually stay.",
+"Things fade here.",
+"We've tried to keep things going.",
+"It gets heavy some days.",
+"Hard to explain, really.",
+"They just… drifted off.",
+"It wasn't always like this.",
+"...Like something's pressing in.",
+"We've been waiting.",
+"Didn't think anyone would come.",
     ],
     p2: [
       "Welcome back, Pastor. We're ready to keep pressing forward.",
