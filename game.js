@@ -10978,8 +10978,12 @@ function dismissCurrentLevelAnnouncement() {
     if (Number.isFinite(current.actBreakFlatBattle) && current.actBreakFlatBattle > 1) {
       suppressInitialAnnouncements = false;
       pendingTownIntroStart = false;
+      console.log("[ActBreak] beginBattleFromTownIntro called — levelNum:", _levelNum, "flatBattle:", current.actBreakFlatBattle);
       if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
         levelManager.beginBattleFromTownIntro(_levelNum, current.actBreakFlatBattle);
+        console.log("[ActBreak] after beginBattleFromTownIntro — stage:", levelManager.getStatus?.()?.stage, "monthIndex:", levelManager.getStatus?.()?.monthIndex);
+      } else {
+        console.warn("[ActBreak] levelManager.beginBattleFromTownIntro not available", typeof levelManager, typeof levelManager?.beginBattleFromTownIntro);
       }
       pendingDevBattleStartOverride = null;
       if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
@@ -17577,6 +17581,20 @@ function showChapterBreak(actNumber) {
   keysJustPressed.delete(" ");
 }
 
+function startActBreakTeaser(actNumber) {
+  const act = Math.max(2, Math.floor(actNumber));
+  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
+  const flatBattleStart = (act - 1) * missionsPerBattle + 1;
+  const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+  const townList = mapData?.towns || [];
+  const townIndex = townList.findIndex((t) => t?.id === activeTownId);
+  const levelNumber = townIndex >= 0 ? townIndex + 1 : 1;
+  if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
+    levelManager.beginBattleFromTownIntro(levelNumber, flatBattleStart);
+  }
+}
+
 function handleChapterBreak() {
   if (!chapterBreakActive) return false;
 
@@ -17594,7 +17612,7 @@ function handleChapterBreak() {
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
       }
-      queueActBreakTownIntro(chapterBreakActNumber);
+      startActBreakTeaser(chapterBreakActNumber);
     },
   });
   if (handled) return false;
@@ -17606,9 +17624,8 @@ function handleChapterBreak() {
     if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
       window.playMenuAdvanceSfx(0.55);
     }
-    queueActBreakTownIntro(chapterBreakActNumber);
+    startActBreakTeaser(chapterBreakActNumber);
     keysJustPressed.delete(" ");
-    console.log("Chapter break dismissed by user");
     return false;
   }
 

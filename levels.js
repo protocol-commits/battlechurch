@@ -1274,6 +1274,15 @@
 
     function advanceFromBriefTeaser() {
       if (state.stage !== "briefingTeaser") return;
+      // Clear any non-confirm announcements (e.g. "On the frontline..." teaser text)
+      // so the upcoming battle brief lands at index 0 and blocks the game loop.
+      if (typeof window !== "undefined" && Array.isArray(window.levelAnnouncements)) {
+        for (let i = window.levelAnnouncements.length - 1; i >= 0; i--) {
+          if (!window.levelAnnouncements[i]?.requiresConfirm) {
+            window.levelAnnouncements.splice(i, 1);
+          }
+        }
+      }
       // Continue with the normal battle start path so we get the themed,
       // mission-specific brief (not the legacy how-to-play screen).
       beginBattle();
@@ -1903,6 +1912,7 @@
           1,
           Math.min(totalBattles, Math.floor(Number(localBattleNumber) || 1)),
         );
+        console.log("[beginBattleFromTownIntro] levelNumber:", levelNumber, "localBattleNumber:", localBattleNumber, "targetBattle:", targetBattle, "totalBattles:", totalBattles);
         state.waitingForCongregation = false;
         finishNpcRush();
         state.npcRushActive = false;
@@ -1912,8 +1922,10 @@
         if (targetBattle > 1) {
           resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
           setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
+          console.log("[beginBattleFromTownIntro] set stage=briefingTeaser, monthIndex:", state.monthIndex);
           return;
         }
+        console.log("[beginBattleFromTownIntro] targetBattle<=1, calling beginBattle directly");
         beginBattle();
       },
       reset() {
