@@ -4024,6 +4024,9 @@ const UPGRADE_ICON_SOURCES = {
   category: "assets/sprites/items/icons/I25_Book.png",
 };
 let upgradeCategoryIcon = null;
+let _pauseHoverIndex = -1;
+let _pauseHoverX = -1;
+let _pauseHoverY = -1;
 const churchPowerupIcons = new Map();
 const CHURCH_POWERUP_ICON_DEFAULT = {
   shape: "square",
@@ -6744,15 +6747,20 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof window !== "undefined") {
       window.__announcementButtons = { key: "pause", buttons: bounds };
       if (pointerState && typeof pointerState.x === "number" && typeof pointerState.y === "number") {
-        const hoverIndex = bounds.findIndex(
-          (btn) =>
-            pointerState.x >= btn.x &&
-            pointerState.x <= btn.x + btn.width &&
-            pointerState.y >= btn.y &&
-            pointerState.y <= btn.y + btn.height,
-        );
-        if (hoverIndex >= 0) {
-          window.__announcementFocus = { key: "pause", index: hoverIndex };
+        const px = pointerState.x, py = pointerState.y;
+        const pointerMoved = px !== _pauseHoverX || py !== _pauseHoverY;
+        if (pointerMoved) {
+          _pauseHoverX = px;
+          _pauseHoverY = py;
+          const hoverIndex = bounds.findIndex(
+            (btn) =>
+              px >= btn.x && px <= btn.x + btn.width &&
+              py >= btn.y && py <= btn.y + btn.height,
+          );
+          _pauseHoverIndex = hoverIndex;
+          if (hoverIndex >= 0) {
+            window.__announcementFocus = { key: "pause", index: hoverIndex };
+          }
         }
       }
     }

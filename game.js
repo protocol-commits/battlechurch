@@ -7946,10 +7946,21 @@ async function refreshTitleCloudSaveOption() {
       const activeRunActNumber = Number.isFinite(save?.activeRunActNumber) ? save.activeRunActNumber : null;
       const activeRunCongregation = Number.isFinite(save?.activeRunCongregation) ? save.activeRunCongregation : null;
       const congregationDisplay = activeRunCongregation !== null ? activeRunCongregation : totalCongregationBest;
-      let metaParts = [`Towns ${completed}/${total}`];
-      if (activeRunTownName && activeRunActNumber !== null) {
-        metaParts.push(`${activeRunTownName}: Mission ${activeRunActNumber - 1}/3 done`);
-      }
+      const activeRunTownId = save?.activeRunTownId || null;
+      const townIndex = activeRunTownId
+        ? townRows.findIndex((row) => row.townId === activeRunTownId)
+        : -1;
+      const townNumber = townIndex >= 0 ? townIndex + 1 : null;
+      const missionNumber = activeRunActNumber !== null ? activeRunActNumber : null;
+      const townMissionLabel = townNumber !== null && missionNumber !== null
+        ? `Town ${townNumber}.${missionNumber}`
+        : townNumber !== null
+          ? `Town ${townNumber}.1`
+          : completed > 0
+            ? `Town ${completed + 1}.1`
+            : null;
+      let metaParts = [];
+      if (townMissionLabel) metaParts.push(townMissionLabel);
       metaParts.push(`Congregation ${congregationDisplay}`);
       return {
         id: save.id,
@@ -19733,6 +19744,7 @@ function handlePauseMenu() {
     if (!gameOver) {
       window.isPauseOverlayActive = true;
       pauseRestartConfirmActive = false;
+      window.__announcementFocus = { key: "pause", index: 0 };
       if (typeof window !== "undefined" && typeof window.pauseAllMusic === "function") {
         window.pauseAllMusic();
       }
