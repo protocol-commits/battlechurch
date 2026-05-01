@@ -91,6 +91,7 @@ let chapterBreakActNumber = 2;
 let chapterBreakImage = null;
 let lastCompletedLevel = 0;
 let lastSummaryWasLevelEnd = false;
+let pendingPostUpgradeTransition = false;
 let graceRushFadeTimer = 0;
 let graceRushFadeDuration = 0;
 let graceRushFadeAlpha = 0;
@@ -5825,6 +5826,7 @@ Levels.initialize({
       window.UpgradeScreen?.isVisible?.() ||
       chapterBreakActive ||
       pendingUpgradeAfterSummary ||
+      pendingPostUpgradeTransition ||
       levelManager?.getStatus?.()?.stage === "visitorMinigame",
     ),
   startVisitorMinigame: startPostBossVisitorSession,
@@ -17655,10 +17657,9 @@ function checkDialogOverlays() {
       console.log("FINAL TOWN LEVEL - showing upgrade then pastor post-recap");
       const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
       window.UpgradeScreen.show(() => {
+        pendingPostUpgradeTransition = true;
         runPostUpgradeSaveThen(() => {
-          if (typeof levelManager?.requestUpgradeToTeaserTransition === "function") {
-            levelManager.requestUpgradeToTeaserTransition();
-          }
+          pendingPostUpgradeTransition = false;
           queuePastorBossPostRecapAnnouncement(targetLevel, false);
         });
       });
@@ -17671,10 +17672,9 @@ function checkDialogOverlays() {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Mission 2, Level 2 done → Mission 3
       console.log("SHOWING CHAPTER BREAK for Mission", actNumber);
       window.UpgradeScreen.show(() => {
-        // Block levelSummary from advancing during async save gap
-        chapterBreakActive = true;
-        chapterBreakActNumber = actNumber;
+        pendingPostUpgradeTransition = true;
         runPostUpgradeSaveThen(() => {
+          pendingPostUpgradeTransition = false;
           console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
           if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
             townVisitorMinigamePlayed = true;
@@ -17682,10 +17682,7 @@ function checkDialogOverlays() {
               const started = levelManager.triggerVisitorMinigame(() => {
                 showChapterBreak(actNumber);
               });
-              if (started) {
-                chapterBreakActive = false;
-                return;
-              }
+              if (started) return;
             }
           }
           showChapterBreak(actNumber);
@@ -25001,6 +24998,7 @@ function restartGame() {
   chapterBreakActNumber = 2;
   chapterBreakImage = null;
   lastCompletedLevel = 0;
+  pendingPostUpgradeTransition = false;
   graceRushFadeTimer = 0;
   graceRushFadeDuration = 0;
   graceRushFadeAlpha = 0;
