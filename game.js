@@ -9532,6 +9532,9 @@ function updateGraceSpendFlyEffects(dt) {
         graceSpendAnimState.remaining = Math.max(0, graceSpendAnimState.remaining - effect.costPerParticle);
         window.__graceSpendAnimState = graceSpendAnimState;
       }
+      if (typeof window.playGracePickupSfx === "function") {
+        window.playGracePickupSfx(0.15);
+      }
       graceSpendFlyEffects.splice(i, 1);
     }
   }
