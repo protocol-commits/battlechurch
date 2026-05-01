@@ -1912,7 +1912,6 @@
           1,
           Math.min(totalBattles, Math.floor(Number(localBattleNumber) || 1)),
         );
-        console.log("[beginBattleFromTownIntro] levelNumber:", levelNumber, "localBattleNumber:", localBattleNumber, "targetBattle:", targetBattle, "totalBattles:", totalBattles);
         state.waitingForCongregation = false;
         finishNpcRush();
         state.npcRushActive = false;
@@ -1922,10 +1921,8 @@
         if (targetBattle > 1) {
           resetStage("briefingTeaser", BRIEF_TEASER_DURATION);
           setDevStatus("Congregation skirmish...", BRIEF_TEASER_DURATION);
-          console.log("[beginBattleFromTownIntro] set stage=briefingTeaser, monthIndex:", state.monthIndex);
           return;
         }
-        console.log("[beginBattleFromTownIntro] targetBattle<=1, calling beginBattle directly");
         beginBattle();
       },
       reset() {

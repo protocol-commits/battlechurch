@@ -4401,31 +4401,43 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillText(detailText, textLeft + badgePadX, valueY);
     }
 
-    const costText = stat.disabled
+    const spendAnim = typeof window !== "undefined" ? window.__graceSpendAnimState : null;
+    const isSpending = spendAnim && spendAnim.key === stat.key;
+    const displayCost = isSpending ? Math.ceil(spendAnim.remaining) : stat.cost;
+    const costLabel = stat.disabled
       ? "Coming soon"
       : maxed
         ? "Maxed"
         : level > 0
-          ? `Upgrade to Level ${level + 1}: ${stat.cost}`
-          : `Cost: ${stat.cost}`;
+          ? `Upgrade to Level ${level + 1}: ${displayCost}`
+          : `Cost: ${displayCost}`;
     const costY = cardY + cardH - 26;
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
     ctx.font = `700 13px ${uiFontFamily}`;
     const costPadX = 14;
-    const costPadY = 7;
-    const costWidth = ctx.measureText(costText).width + costPadX * 2;
+    const costWidth = ctx.measureText(costLabel).width + costPadX * 2;
     const costHeight = 24;
     const costX = cardX + cardW - 22 - costWidth;
     const costYPos = costY - costHeight / 2;
-    ctx.fillStyle = canAfford ? "rgba(120, 34, 34, 0.95)" : "rgba(70, 55, 45, 0.55)";
-    ctx.strokeStyle = canAfford ? "rgba(255, 220, 170, 0.8)" : "rgba(255, 255, 255, 0.2)";
+    // Record pill center in screen coords for the spend fly effect target
+    if (!maxed && !stat.disabled && typeof window !== "undefined") {
+      if (!window.__costPillPositions) window.__costPillPositions = {};
+      const pillCenterVX = costX + costWidth / 2;
+      const pillCenterVY = costYPos + costHeight / 2;
+      window.__costPillPositions[stat.key] = {
+        x: pillCenterVX * layout.scale + layout.offsetX,
+        y: pillCenterVY * layout.scale + layout.offsetY,
+      };
+    }
+    ctx.fillStyle = isSpending ? "rgba(80, 20, 20, 0.95)" : canAfford ? "rgba(120, 34, 34, 0.95)" : "rgba(70, 55, 45, 0.55)";
+    ctx.strokeStyle = isSpending ? "rgba(255, 180, 100, 1)" : canAfford ? "rgba(255, 220, 170, 0.8)" : "rgba(255, 255, 255, 0.2)";
     ctx.lineWidth = 1.5;
     roundRect(ctx, costX, costYPos, costWidth, costHeight, 12, true, true);
-    ctx.fillStyle = canAfford ? "#F6E6C6" : "rgba(220, 210, 190, 0.7)";
+    ctx.fillStyle = isSpending ? "#FFD080" : canAfford ? "#F6E6C6" : "rgba(220, 210, 190, 0.7)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(costText, costX + costWidth / 2, costY);
+    ctx.fillText(costLabel, costX + costWidth / 2, costY);
     ctx.textAlign = "left";
 
     ctx.restore();
@@ -10352,6 +10364,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       });
       ctx.restore();
     }
+    const graceSpendFlyEffects = requireBindings().graceSpendFlyEffects;
+    if (graceSpendFlyEffects && graceSpendFlyEffects.length) {
+      ctx.save();
+      graceSpendFlyEffects.forEach((effect) => {
+        if (!effect || !effect.frame || effect.timer < effect.delay) return;
+        const size = effect.size || 14;
+        ctx.globalAlpha = typeof effect.alpha === "number" ? effect.alpha : 1;
+        ctx.drawImage(effect.frame, effect.x - size / 2, effect.y - size / 2, size, size);
+      });
+      ctx.restore();
+    }
     const powerupHudFlyEffects = requireBindings().powerupHudFlyEffects;
     if (powerupHudFlyEffects && powerupHudFlyEffects.length) {
       ctx.save();
@@ -11727,6 +11750,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawGraceSpendFlyEffectsOverlay() {
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas?.getContext("2d");
+    if (!ctx || !canvas) return;
+    const effects = requireBindings().graceSpendFlyEffects;
+    if (!effects || !effects.length) return;
+    ctx.save();
+    effects.forEach((effect) => {
+      if (!effect || !effect.frame || effect.timer < effect.delay) return;
+      const size = effect.size || 14;
+      ctx.globalAlpha = typeof effect.alpha === "number" ? effect.alpha : 1;
+      ctx.drawImage(effect.frame, effect.x - size / 2, effect.y - size / 2, size, size);
+    });
+    ctx.restore();
+  }
+
   window.Renderer = {
     initialize,
     drawFrame,
@@ -11734,6 +11773,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawChurchUpgradeScreen,
     drawDenomUpgradeScreen,
     drawPlayingInstructionsOverlay,
+    drawGraceSpendFlyEffectsOverlay,
     getControlsHintText,
   };
 })(typeof window !== "undefined" ? window : null);

@@ -23,6 +23,8 @@ const prayerStormGroundFires = [];
 const gracePickups = [];
 const graceHudFlyEffects = [];
 const powerupHudFlyEffects = [];
+const graceSpendFlyEffects = [];
+let graceSpendAnimState = null;
 // Helper to read from GameBalance config with fallback
 const _gb = (path, fallback) => {
   if (typeof GameBalance === 'undefined') return fallback;
@@ -2829,6 +2831,7 @@ function purchaseChurchPowerup(key) {
   if (level >= CHURCH_POWERUP_MAX_LEVEL) return false;
   const cost = getChurchPowerupLevelCost(def, level);
   if (getGraceCount() < cost) return false;
+  spawnGraceSpendFlyEffects(key, cost);
   addGrace(-cost);
   return unlockChurchPowerup(key);
 }
@@ -4958,6 +4961,7 @@ Renderer.initialize({
   get powerupIconStyles() { return POWERUP_ICON_STYLES; },
   get graceHudFlyEffects() { return graceHudFlyEffects; },
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
+  get graceSpendFlyEffects() { return graceSpendFlyEffects; },
   get maxComboThisTown() { return maxComboThisTown; },
   get haloBladeState() { return haloBladeState; },
   get haloBladeStateSecondary() { return haloBladeStateSecondary; },
@@ -8163,7 +8167,6 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     lastCompletedLevel = announcement.completedActNum
       ?? (levelManager?.getActNumber ? levelManager.getActNumber() : 1);
     lastSummaryWasLevelEnd = true;
-    console.log("Mission completed, lastCompletedLevel set to:", lastCompletedLevel);
   }
   startRecapMusic();
   const summary = levelManager?.getLastBattleSummary?.() || {};
@@ -9471,6 +9474,75 @@ function updateGraceHudFlyEffects(dt) {
     effect.alpha = Math.max(0, 1 - t * 0.15);
     if (t >= 1) {
       graceHudFlyEffects.splice(i, 1);
+    }
+  }
+}
+
+function spawnGraceSpendFlyEffects(key, cost) {
+  const source = typeof window !== "undefined" ? window.__hudGraceIconPos : null;
+  const positions = typeof window !== "undefined" ? window.__costPillPositions : null;
+  const target = positions ? positions[key] : null;
+  if (!source || !target) return;
+  const frame = (assets?.items?.gracePickup?.frames || [])[0];
+  if (!frame) return;
+  const MAX_PARTICLES = 20;
+  const count = Math.min(cost, MAX_PARTICLES);
+  const costPerParticle = cost / count;
+  graceSpendAnimState = { key, remaining: cost, total: cost, costPerParticle, resetTimer: 0, resetting: false };
+  if (typeof window !== "undefined") window.__graceSpendAnimState = graceSpendAnimState;
+  for (let i = 0; i < count; i++) {
+    const delay = i * (0.35 / Math.max(1, count));
+    graceSpendFlyEffects.push({
+      frame,
+      x: source.x,
+      y: source.y,
+      startX: source.x,
+      startY: source.y,
+      targetX: target.x,
+      targetY: target.y,
+      timer: 0,
+      delay,
+      duration: 0.45,
+      size: 14,
+      alpha: 1,
+      costPerParticle,
+      arrived: false,
+    });
+  }
+}
+
+function updateGraceSpendFlyEffects(dt) {
+  for (let i = graceSpendFlyEffects.length - 1; i >= 0; i--) {
+    const effect = graceSpendFlyEffects[i];
+    if (!effect) continue;
+    if (effect.timer < effect.delay) {
+      effect.timer += dt;
+      continue;
+    }
+    const elapsed = effect.timer - effect.delay;
+    effect.timer += dt;
+    const t = Math.min(1, elapsed / Math.max(0.001, effect.duration));
+    const ease = 1 - Math.pow(1 - t, 3);
+    effect.x = effect.startX + (effect.targetX - effect.startX) * ease;
+    effect.y = effect.startY + (effect.targetY - effect.startY) * ease;
+    effect.alpha = t < 0.8 ? 1 : Math.max(0, 1 - (t - 0.8) / 0.2);
+    if (t >= 1 && !effect.arrived) {
+      effect.arrived = true;
+      if (graceSpendAnimState && graceSpendAnimState.key) {
+        graceSpendAnimState.remaining = Math.max(0, graceSpendAnimState.remaining - effect.costPerParticle);
+        window.__graceSpendAnimState = graceSpendAnimState;
+      }
+      graceSpendFlyEffects.splice(i, 1);
+    }
+  }
+  if (graceSpendAnimState && graceSpendFlyEffects.length === 0 && !graceSpendAnimState.resetting) {
+    graceSpendAnimState.resetting = true;
+  }
+  if (graceSpendAnimState?.resetting) {
+    graceSpendAnimState.resetTimer = (graceSpendAnimState.resetTimer || 0) + dt;
+    if (graceSpendAnimState.resetTimer >= 0.4) {
+      graceSpendAnimState = null;
+      if (typeof window !== "undefined") window.__graceSpendAnimState = null;
     }
   }
 }
@@ -10979,12 +11051,8 @@ function dismissCurrentLevelAnnouncement() {
     if (Number.isFinite(current.actBreakFlatBattle) && current.actBreakFlatBattle > 1) {
       suppressInitialAnnouncements = false;
       pendingTownIntroStart = false;
-      console.log("[ActBreak] beginBattleFromTownIntro called — levelNum:", _levelNum, "flatBattle:", current.actBreakFlatBattle);
       if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
         levelManager.beginBattleFromTownIntro(_levelNum, current.actBreakFlatBattle);
-        console.log("[ActBreak] after beginBattleFromTownIntro — stage:", levelManager.getStatus?.()?.stage, "monthIndex:", levelManager.getStatus?.()?.monthIndex);
-      } else {
-        console.warn("[ActBreak] levelManager.beginBattleFromTownIntro not available", typeof levelManager, typeof levelManager?.beginBattleFromTownIntro);
       }
       pendingDevBattleStartOverride = null;
       if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
@@ -17574,11 +17642,9 @@ function updateDeathBellAudio(dt) {
 }
 
 function showChapterBreak(actNumber) {
-  console.log("showChapterBreak called with actNumber:", actNumber);
   chapterBreakActive = true;
   chapterBreakActNumber = actNumber;
   chapterBreakImage = actNumber === 2 ? assets?.backgrounds?.act2 : assets?.backgrounds?.act3;
-  console.log("chapterBreakActive set to true, image:", chapterBreakImage ? "loaded" : "null");
   keysJustPressed.delete(" ");
 }
 
@@ -17653,7 +17719,6 @@ function checkDialogOverlays() {
 
     // Check if this is final town level - show pastor post-recap after upgrade
     if (pendingPastorPostRecapAfterUpgrade) {
-      console.log("FINAL TOWN LEVEL - showing upgrade then pastor post-recap");
       const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
       window.UpgradeScreen.show(() => {
         pendingPostUpgradeTransition = true;
@@ -17669,12 +17734,10 @@ function checkDialogOverlays() {
     // Level 1 complete → Mission 2, Level 2 complete → Mission 3
     } else if (lastSummaryWasLevelEnd && (lastCompletedLevel === 1 || lastCompletedLevel === 2)) {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Mission 2, Level 2 done → Mission 3
-      console.log("SHOWING CHAPTER BREAK for Mission", actNumber);
       window.UpgradeScreen.show(() => {
         pendingPostUpgradeTransition = true;
         runPostUpgradeSaveThen(() => {
           pendingPostUpgradeTransition = false;
-          console.log("UPGRADE SCREEN CLOSED, calling showChapterBreak");
           if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
             townVisitorMinigamePlayed = true;
             if (levelManager?.triggerVisitorMinigame) {
@@ -17688,7 +17751,6 @@ function checkDialogOverlays() {
         });
       });
     } else {
-      console.log("NO CHAPTER BREAK - lastCompletedLevel is", lastCompletedLevel);
       window.UpgradeScreen.show(() => {
         runPostUpgradeSaveThen(() => {
           if (typeof levelManager?.requestUpgradeToTeaserTransition === "function") {
@@ -24437,6 +24499,7 @@ function updateGame(dt) {
     // Keep grace pickups alive/visible behind the victory card flow.
     updateGracePickups(dt);
     updateGraceHudFlyEffects(dt);
+    updateGraceSpendFlyEffects(dt);
     // Allow continue when button is shown (check FIRST before consuming keys)
     if (townVictoryScroll.showButton) {
       const spacePressed =
@@ -24488,6 +24551,8 @@ function updateGame(dt) {
     if (typeof window.UpgradeScreen.update === "function") {
       window.UpgradeScreen.update(dt);
     }
+    updateGraceHudFlyEffects(dt);
+    updateGraceSpendFlyEffects(dt);
   }
 
   if (checkDialogOverlays()) {
@@ -24592,6 +24657,7 @@ function updateGame(dt) {
     // Keep grace gems updating while recap/victory confirm overlays are active.
     updateGracePickups(dt);
     updateGraceHudFlyEffects(dt);
+    updateGraceSpendFlyEffects(dt);
   }
 
   if (handleLevelAnnouncements()) {
@@ -24738,6 +24804,7 @@ function updateGame(dt) {
   updateSpearDart(dt);
   updateSentryTurret(dt);
   updateGraceHudFlyEffects(visualDt);
+  updateGraceSpendFlyEffects(visualDt);
   updatePowerupHudFlyEffects(visualDt);
   updateGraceRushState(dt);
   powerUpRespawnTimer = Math.max(0, powerUpRespawnTimer - dt);
@@ -25085,6 +25152,7 @@ function gameLoop(timestamp) {
   Renderer.drawFrame();
   if (window.UpgradeScreen?.isVisible?.()) {
     window.UpgradeScreen.draw();
+    Renderer.drawGraceSpendFlyEffectsOverlay?.();
   }
   drawGlobalTeaserTransitionOverlay();
   drawProgressSaveToast();
