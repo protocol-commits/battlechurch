@@ -7663,6 +7663,11 @@ function startGameFromTitle() {
   townIntroTransitionActive = false;
   townIntroTransitionTimer = 0;
   pendingBossIntroAfterExterior = false;
+  missionIntroActive = false;
+  missionIntroFadeTimer = 0;
+  missionIntroFadeDuration = 0;
+  missionIntroFadeAlpha = 0;
+  missionIntroImage = null;
   startSpeedrunTimer();
   resetYearNpcPool();
   // Clear any previously queued announcements so the congregation doesn't show
