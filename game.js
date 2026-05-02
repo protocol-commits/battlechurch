@@ -23645,7 +23645,7 @@ function executePowerupTeleport(meleeAttackState) {
   applyMeleeInvulnerability(meleeAttackState, "rush", TELEPORT_INVULNERABILITY_DURATION);
   spawnFlashEffect(player.x, player.y);
   applyCameraShake(0.18, 0.5);
-  const teleportCost = (player.prayerChargeRequired || 6000) / 3;
+  const teleportCost = (player.prayerChargeRequired || 6000) / 6;
   player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - teleportCost);
   player.prayerHoldTimer = 0;
   player.prayerHoldLocked = false;
@@ -24609,7 +24609,7 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete("ArrowDown");
       comboTriggered = true;
     }
-    const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 12 : 5;
+    const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 6 : 5;
     const comboPrayerStrike =
       !comboTriggered &&
       comboPrayerStrikeOrder &&
@@ -24654,7 +24654,7 @@ function updateMeleeAttackSystem(dt) {
     }
     if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
       meleeAttackState.spinChargeTimer += dt;
-      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 3 : 20;
+      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 6 : 20;
       const bFullyCharged = meleeAttackState.spinChargeTimer >= (meleeAttackState.spinHoldTime || 0);
       const cHeld = keysPressed.has("ArrowRight");
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
@@ -24696,7 +24696,7 @@ function updateMeleeAttackSystem(dt) {
     if (meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
       const cHeldOnBRelease = keysPressed.has("ArrowRight");
-      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 3 * 2 : 40;
+      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 6 : 40;
       const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
       const shouldTeleport = meleeAttackState.bcTeleportArmed ||
         (fullyCharged && cHeldOnBRelease && hasPrayerForTeleport);
