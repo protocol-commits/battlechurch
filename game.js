@@ -4307,6 +4307,81 @@ let devMeleeComboSerial = 0;
 let devArenaImpHordeSlots = [];
 let devArenaPrayerRefillAt = 0;
 let devArenaLastPrayerCharge = null;
+const DEV_ARENA_PICKUP_LIFE = 6;
+const DEV_ARENA_PICKUP_RESPAWN_DELAY = 1.5;
+let devArenaPickupSlots = [];
+
+function getDevArenaPickupSlotPositions() {
+  const center = getDevMeleeArenaCenter();
+  const y = center.y - 260;
+  const spacing = 140;
+  return [
+    { x: center.x - spacing, y },
+    { x: center.x,           y },
+    { x: center.x + spacing, y },
+  ];
+}
+
+function initDevArenaPickupSlots() {
+  const positions = getDevArenaPickupSlotPositions();
+  devArenaPickupSlots = [
+    { kind: "playerWeapon", x: positions[0].x, y: positions[0].y, pickup: null, respawnAt: 0 },
+    { kind: "npcWeapon",    x: positions[1].x, y: positions[1].y, pickup: null, respawnAt: 0 },
+    { kind: "utility",      x: positions[2].x, y: positions[2].y, pickup: null, respawnAt: 0 },
+  ];
+}
+
+function maintainDevArenaPickups() {
+  if (!devArenaPickupSlots.length) initDevArenaPickupSlots();
+  const now = typeof performance !== "undefined" ? performance.now() / 1000 : Date.now() / 1000;
+  devArenaPickupSlots.forEach((slot) => {
+    if (slot.pickup) {
+      if (slot.pickup.expired || slot.pickup.life <= 0 || !slot.pickup.active) {
+        slot.pickup = null;
+        slot.respawnAt = now + DEV_ARENA_PICKUP_RESPAWN_DELAY;
+      }
+      return;
+    }
+    if (now < slot.respawnAt) return;
+    const pos = { x: slot.x, y: slot.y };
+    if (slot.kind === "playerWeapon") {
+      const playerTypes = ["faith", "scripture", "wisdom"];
+      const type = playerTypes[Math.floor(Math.random() * playerTypes.length)];
+      const def = assets?.weaponPickups?.[type];
+      if (def) {
+        const pickup = new WeaponPickup({ ...def, type, life: DEV_ARENA_PICKUP_LIFE, speed: 0 });
+        pickup.x = slot.x;
+        pickup.y = slot.y;
+        pickup.baseY = slot.y;
+        weaponPickups.push(pickup);
+        slot.pickup = pickup;
+      }
+    } else if (slot.kind === "npcWeapon") {
+      const npcTypes = ["npcScripture", "npcWisdom", "npcFaith"];
+      const type = npcTypes[Math.floor(Math.random() * npcTypes.length)];
+      const def = assets?.weaponPickups?.[type];
+      if (def) {
+        const pickup = new WeaponPickup({ ...def, type, life: DEV_ARENA_PICKUP_LIFE, speed: 0 });
+        pickup.x = slot.x;
+        pickup.y = slot.y;
+        pickup.baseY = slot.y;
+        weaponPickups.push(pickup);
+        slot.pickup = pickup;
+      }
+    } else if (slot.kind === "utility") {
+      const utilTypes = Object.keys(UTILITY_POWERUP_DEFS);
+      const type = utilTypes[Math.floor(Math.random() * utilTypes.length)];
+      const asset = assets?.utility?.[type];
+      const def = UTILITY_POWERUP_DEFS[type];
+      if (asset?.image && def) {
+        const pickup = new UtilityPowerUp({ ...def, ...asset, type, life: DEV_ARENA_PICKUP_LIFE }, slot.x, slot.y);
+        pickup.baseY = slot.y;
+        utilityPowerUps.push(pickup);
+        slot.pickup = pickup;
+      }
+    }
+  });
+}
 
 function isDevMeleeArenaActive() {
   return devMeleeArenaMode === true;
@@ -4630,6 +4705,7 @@ function activateDevMeleeArenaMode() {
   devArenaImpHordeSlots = [];
   devArenaPrayerRefillAt = 0;
   devArenaLastPrayerCharge = null;
+  devArenaPickupSlots = [];
   if (player) {
     const center = getDevMeleeArenaCenter();
     player.x = center.x;
@@ -24704,7 +24780,7 @@ function updateGame(dt) {
   if (isDevMeleeArenaActive()) {
     enforceDevMeleeArenaVitals();
     maintainDevArenaImpHorde();
-    clearAllPowerUps();
+    maintainDevArenaPickups();
     clearGracePickups();
     projectiles.forEach((projectile) => {
       if (!projectile?.friendly) return;
@@ -25018,10 +25094,10 @@ function updateGame(dt) {
 
   // Process pickups BEFORE player update so weapon changes apply immediately
   if (!isDevMeleeArenaActive()) {
-    updateWeaponPickups(dt);
     updateChurchPowerupPickups(dt);
-    updateUtilityPowerUps(dt);
   }
+  updateWeaponPickups(dt);
+  updateUtilityPowerUps(dt);
 
   if (!briefTeaserStage) {
     updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation);
