@@ -1315,7 +1315,7 @@
         const meleeBlocking = meleeState && meleeState.projectileBlockTimer > 0;
 
       // Autofire using the player's current weapon, including during visitor sessions.
-      if (!meleeBlocking && !isDevMeleeArenaActive()) {
+      if (!meleeBlocking) {
         if (activeWeapon === "arrow" && this.arrowCooldown <= 0) {
           this.tryAttack("arrow");
         } else if (activeWeapon === "wisdom_missle" && this.magicCooldown <= 0) {
@@ -1426,7 +1426,7 @@
   if (this.state === "hurt" || this.state === "death") return;
   if (
     isDevMeleeArenaActive() &&
-    (type === "arrow" || type === "wisdom_missle" || type === "faith_cannon" || type === "fire")
+    type === "arrow"
   ) {
     return;
   }

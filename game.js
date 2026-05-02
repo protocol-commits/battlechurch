@@ -4305,10 +4305,15 @@ const DEV_MELEE_CONFIRMED_COMBO_MAX = 8;
 let devMeleeConfirmedCombos = [];
 let devMeleeComboSerial = 0;
 let devArenaImpHordeSlots = [];
+let devArenaDemonLord = null;
+let devArenaDemonLordRespawnAt = 0;
 let devArenaPrayerRefillAt = 0;
 let devArenaLastPrayerCharge = null;
-const DEV_ARENA_PICKUP_LIFE = 6;
-const DEV_ARENA_PICKUP_RESPAWN_DELAY = 1.5;
+const DEV_ARENA_DEMON_LORD_RESPAWN_MS = 3000;
+const DEV_ARENA_PICKUP_LIFE = 4;
+const DEV_ARENA_PICKUP_EFFECT_DURATION = 3;
+const DEV_ARENA_PLAYER_WEAPON_EFFECT_DURATION = 6;
+const DEV_ARENA_PICKUP_RESPAWN_DELAY = 1.0;
 let devArenaPickupSlots = [];
 
 function getDevArenaPickupSlotPositions() {
@@ -4573,10 +4578,10 @@ function spawnDevMeleeArenaEnemy() {
     applyCameraShake: false,
   });
   if (!enemy) return false;
-  enemy.x = center.x;
-  enemy.y = center.y;
-  enemy.devAnchorX = center.x;
-  enemy.devAnchorY = center.y;
+  enemy.x = center.x - 100;
+  enemy.y = center.y + 100;
+  enemy.devAnchorX = center.x - 100;
+  enemy.devAnchorY = center.y + 100;
   enemy.devImmobileTestDummy = true;
   enemy.devArenaPrimaryDummy = true;
   enemy.spawnOffscreenTimer = 0;
@@ -4678,6 +4683,69 @@ function maintainDevArenaImpHorde() {
   });
 }
 
+function getDevArenaDemonLordPosition() {
+  const center = getDevMeleeArenaCenter();
+  return { x: center.x + 100, y: center.y + 100 };
+}
+
+function spawnDevArenaDemonLord() {
+  const pos = getDevArenaDemonLordPosition();
+  const enemy = spawnEnemyOfType("miniHighDemon", pos, {
+    skipSpawnEffects: true,
+    applyCameraShake: false,
+  });
+  if (!enemy) return null;
+  enemy.x = pos.x;
+  enemy.y = pos.y;
+  enemy.devAnchorX = pos.x;
+  enemy.devAnchorY = pos.y;
+  enemy.devImmobileTestDummy = true;
+  enemy.spawnOffscreenTimer = 0;
+  enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
+  enemy.health = DEV_MELEE_ARENA_HEALTH;
+  if (enemy.config) {
+    enemy.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    enemy.config.health = DEV_MELEE_ARENA_HEALTH;
+  }
+  return enemy;
+}
+
+function maintainDevArenaDemonLord() {
+  if (!isDevMeleeArenaActive()) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  if (!devArenaDemonLord) {
+    if (now >= devArenaDemonLordRespawnAt) {
+      devArenaDemonLord = spawnDevArenaDemonLord();
+    }
+    return;
+  }
+  const defeated =
+    devArenaDemonLord.dead ||
+    devArenaDemonLord.state === "death" ||
+    devArenaDemonLord.removed ||
+    devArenaDemonLord.invalid ||
+    (Number.isFinite(devArenaDemonLord.health) && devArenaDemonLord.health <= 0);
+  if (defeated) {
+    devArenaDemonLord = null;
+    devArenaDemonLordRespawnAt = now + DEV_ARENA_DEMON_LORD_RESPAWN_MS;
+    return;
+  }
+  const pos = getDevArenaDemonLordPosition();
+  devArenaDemonLord.x = pos.x;
+  devArenaDemonLord.y = pos.y;
+  devArenaDemonLord.devAnchorX = pos.x;
+  devArenaDemonLord.devAnchorY = pos.y;
+  devArenaDemonLord.maxHealth = DEV_MELEE_ARENA_HEALTH;
+  devArenaDemonLord.health = DEV_MELEE_ARENA_HEALTH;
+  if (devArenaDemonLord.config) {
+    devArenaDemonLord.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    devArenaDemonLord.config.health = DEV_MELEE_ARENA_HEALTH;
+  }
+}
+
 function activateDevMeleeArenaMode() {
   devMeleeArenaMode = true;
   resetDevMeleeMoveFeed();
@@ -4703,6 +4771,8 @@ function activateDevMeleeArenaMode() {
   clearGracePickups();
   activeBoss = null;
   devArenaImpHordeSlots = [];
+  devArenaDemonLord = null;
+  devArenaDemonLordRespawnAt = 0;
   devArenaPrayerRefillAt = 0;
   devArenaLastPrayerCharge = null;
   devArenaPickupSlots = [];
@@ -9455,7 +9525,15 @@ function updateUtilityPowerUps(dt) {
     const dy = powerUp.y - player.y;
     const distance = Math.hypot(dx, dy);
     if (distance <= (powerUp.radius || 24) + player.radius * 0.7) {
+      powerUp.expired = true;
       applyUtilityPowerUp(powerUp);
+      if (isDevMeleeArenaActive() && player) {
+        const d = DEV_ARENA_PICKUP_EFFECT_DURATION;
+        if ((player.shieldTimer || 0) > d) { player.shieldTimer = d; player.shieldDuration = d; }
+        if ((player.speedBoostTimer || 0) > d) { player.speedBoostTimer = d; player.speedBoostDuration = d; }
+        if ((player.powerExtendTimer || 0) > d) { player.powerExtendTimer = d; player.powerExtendDuration = d; }
+        if ((player.harmonyTimer || 0) > d) player.harmonyTimer = d;
+      }
       utilityPowerUps.splice(i, 1);
     }
   }
@@ -9485,7 +9563,14 @@ function updateWeaponPickups(dt) {
     const dy = pickup.y - player.y;
     const distance = Math.hypot(dx, dy);
     if (distance <= (pickup.radius || 0) + player.radius) {
+      pickup.expired = true;
       applyWeaponPickupEffect(pickup);
+      if (isDevMeleeArenaActive() && player) {
+        const pd = DEV_ARENA_PLAYER_WEAPON_EFFECT_DURATION;
+        const nd = DEV_ARENA_PICKUP_EFFECT_DURATION;
+        if (player.weaponPowerTimer > pd) { player.weaponPowerTimer = pd; player.weaponPowerDuration = pd; }
+        if (npcWeaponState.timer > nd) { npcWeaponState.timer = nd; npcWeaponState.duration = nd; }
+      }
       weaponPickups.splice(i, 1);
     }
   }
@@ -15447,7 +15532,7 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   config.friendly = overrides.friendly ?? true;
   config.source = overrides.source || null;
-  if (isDevMeleeArenaActive() && config.friendly && type !== "divine_shot" && type !== "fire" && type !== "wisdom_missle") {
+  if (isDevMeleeArenaActive() && config.friendly && type !== "divine_shot" && type !== "fire" && type !== "wisdom_missle" && type !== "faith_cannon") {
     return null;
   }
   if (overrides.scriptureFeedback !== undefined) {
@@ -24780,13 +24865,17 @@ function updateGame(dt) {
   if (isDevMeleeArenaActive()) {
     enforceDevMeleeArenaVitals();
     maintainDevArenaImpHorde();
+    maintainDevArenaDemonLord();
     maintainDevArenaPickups();
+    powerUpRespawnTimer = 0;
+    powerUpStaggerTimer = 0;
     clearGracePickups();
     projectiles.forEach((projectile) => {
       if (!projectile?.friendly) return;
       if (projectile.type === "divine_shot") return;
       if (projectile.type === "fire") return;
       if (projectile.type === "wisdom_missle") return;
+      if (projectile.type === "faith_cannon") return;
       projectile.dead = true;
     });
   }
