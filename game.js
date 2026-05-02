@@ -5234,6 +5234,7 @@ Renderer.initialize({
   get cameraShakeTimer() { return cameraShakeTimer; },
   CAMERA_SHAKE_DURATION,
   get cameraShakeMagnitude() { return cameraShakeMagnitude; },
+  clearCameraShake() { cameraShakeTimer = 0; cameraShakeMagnitude = 0; },
   get titleScreenActive() { return titleScreenActive; },
   get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
   get titleDemoSaveSlots() { return TITLE_DEMO_SAVE_SLOTS; },
@@ -25311,7 +25312,7 @@ function updateGame(dt) {
       briefTeaserState.introTextQueued = false;
       clearBriefTeaserSpawnTimers();
       if (!briefTeaserState.introTextQueued) {
-        queueLevelAnnouncement("On the frontline...", "", {
+        queueLevelAnnouncement("Somewhere on the frontline...", "", {
           duration: 2.8,
           fadeOutDuration: 0.6,
           skipMissionBrief: true,

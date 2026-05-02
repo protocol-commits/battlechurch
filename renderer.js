@@ -1672,6 +1672,9 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ctx.restore();
   };
   ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // Kill any active camera shake so the background doesn't shake while the player reads the brief.
+  requireBindings().clearCameraShake?.();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
     subtitle: combinedSubtitle,
@@ -5599,8 +5602,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const y = Number.isFinite(window.__comboTextFixedY)
       ? window.__comboTextFixedY
       : (hudHeight || 0) + 36;
+    const shake = getCameraShakeOffset();
     ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, shake.x, shake.y);
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillStyle = display.color || "#FFF2B8";
@@ -7616,6 +7620,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const detailText = "";
 
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.font = `12px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = "rgba(230, 238, 255, 0.92)";
     ctx.textAlign = "left";
