@@ -4416,6 +4416,7 @@ function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
     last.hasCounterHit = payload.hasCounterHit;
     last.hasPunishCounter = payload.hasPunishCounter;
   } else {
+    payload.recordedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
     devMeleeConfirmedCombos.push(payload);
     if (devMeleeConfirmedCombos.length > DEV_MELEE_CONFIRMED_COMBO_MAX) {
       devMeleeConfirmedCombos = devMeleeConfirmedCombos.slice(-DEV_MELEE_CONFIRMED_COMBO_MAX);

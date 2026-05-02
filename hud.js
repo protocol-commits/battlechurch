@@ -1242,62 +1242,124 @@
     const drawDevArenaMoveReference = () => {
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
       const ref = window.__devArenaDamageReference || {};
-      const panelWidth = 300;
+      const mod = ref.modifiers || {};
+      const panelWidth = 310;
       const panelX = 14;
       const panelY = hudHeight + 14;
-      const rowHeight = 20;
-      const moveRows = [
-        { label: "Slash", input: "A", value: ref.melee },
-        { label: "Cleave", input: "A/B", value: ref.cleave },
-        { label: "Rush", input: "B/A", value: ref.rushAttack },
-        { label: "Power Dash", input: "Hold B", value: null },
-        { label: "Blast", input: "Hold A", value: ref.divineShot },
-        { label: "Spin", input: "C/A", value: ref.spinAttack },
-        { label: "Refuge", input: "A+C", value: null },
-        { label: "Blitz", input: "A+B", value: ref.blitz },
-        { label: "Teleport", input: "Hold B+C", value: null },
-        { label: "Holy Dash", input: "C/B", value: null },
+      const rowHeight = 18;
+      const sectionGap = 10;
+
+      // { label, input, value } — null value shows '--', undefined hides the value column entirely
+      // { section: "Title" } — section header with divider
+      const rows = [
+        { section: "Basic" },
+        { label: "Autoaim Projectiles", input: null,       value: undefined },
+        { label: "Slashing",            input: "A",        value: undefined },
+        { label: "Dashing",             input: "B",        value: undefined },
+        { label: "Prayer",              input: "C",        value: undefined },
+
+        { section: "Slash" },
+        { label: "Slash",               input: "A",        value: ref.melee },
+        { label: "Blast",               input: "A Charge", value: ref.divineShot },
+        { label: "Cleave",              input: "A/B",      value: ref.cleave },
+        { label: "Spin",                input: "C/A",      value: ref.spinAttack },
+        { label: "Blitz",               input: "Charge A+B", value: ref.blitz },
+        { label: "Refuge",              input: "Charge A+C", value: null },
+
+        { section: "Dash" },
+        { label: "Dash",                input: "B",        value: null },
+        { label: "Power Dash",          input: "B Charge", value: null },
+        { label: "Rush",                input: "B/A",      value: ref.rushAttack },
+        { label: "Holy Dash",           input: "C/B",      value: null },
+        { label: "Teleport",            input: "Charge B+C", value: null },
+
+        { section: "Prayer" },
+        { label: "Unity Strike",        input: "C",        value: null },
+        { label: "Pastor Protect",      input: "CC",       value: null },
+        { label: "Smite Bomb",          input: "C Charge", value: null },
+
+        { section: "Modifiers" },
+        { label: "Counter Hit",         input: null, value: Number.isFinite(mod.counterHit) ? `×${mod.counterHit.toFixed(2)}` : null, isText: true },
+        { label: "Punish Counter",      input: null, value: Number.isFinite(mod.punishCounter) ? `×${mod.punishCounter.toFixed(2)}` : null, isText: true },
+
+        { section: "Combo" },
+        { label: "Special moves can chain", input: null, value: undefined },
       ];
-      const panelHeight = 68 + rowHeight * moveRows.length;
+
+      // Calculate height
+      let totalHeight = 32; // title block
+      rows.forEach((row) => {
+        if (row.section) totalHeight += sectionGap + 18;
+        else totalHeight += rowHeight;
+      });
+      totalHeight += 10;
 
       ctx.save();
       ctx.globalAlpha = 0.94;
-      ctx.fillStyle = 'rgba(10,15,31,0.78)';
+      ctx.fillStyle = 'rgba(10,15,31,0.82)';
       ctx.strokeStyle = 'rgba(155,217,255,0.7)';
       ctx.lineWidth = 2;
-      roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 10, true, true);
+      roundRect(ctx, panelX, panelY, panelWidth, totalHeight, 10, true, true);
       ctx.globalAlpha = 1;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
+
+      // Title
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `700 15px ${UI_FONT_FAMILY}`;
-      ctx.fillText('Melee Damage Reference', panelX + 14, panelY + 12);
-      ctx.font = `11px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = 'rgba(234,246,255,0.8)';
-      ctx.fillText('Moves + Inputs', panelX + 14, panelY + 31);
+      ctx.fillText('Moves List', panelX + 14, panelY + 12);
 
-      const dividerX = panelX + 14;
-      const dividerW = panelWidth - 28;
-      ctx.strokeStyle = 'rgba(155,217,255,0.22)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(dividerX, panelY + 45);
-      ctx.lineTo(dividerX + dividerW, panelY + 45);
-      ctx.stroke();
+      let rowY = panelY + 32;
 
-      let rowY = panelY + 54;
-      moveRows.forEach((row) => {
-        ctx.fillStyle = PALETTE.softWhite;
+      rows.forEach((row) => {
+        if (row.section) {
+          rowY += sectionGap;
+          // Section divider line
+          ctx.strokeStyle = 'rgba(155,217,255,0.18)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(panelX + 14, rowY);
+          ctx.lineTo(panelX + panelWidth - 14, rowY);
+          ctx.stroke();
+          rowY += 4;
+          // Section label
+          ctx.fillStyle = 'rgba(155,217,255,0.9)';
+          ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+          ctx.fillText(row.section.toUpperCase(), panelX + 14, rowY);
+          rowY += 14;
+          return;
+        }
+
+        // Three columns: label (left) | input (center-right) | damage (far right)
+        const colDamageX = panelX + panelWidth - 16;  // damage right edge
+        const colInputX  = colDamageX - 48;            // input right edge, leaving room for damage
+
+        ctx.fillStyle = 'rgba(234,246,255,0.85)';
         ctx.font = `12px ${UI_FONT_FAMILY}`;
-        const dmg = Number.isFinite(row.value) ? row.value : '--';
-        ctx.fillText(`${row.label} (${row.input})`, panelX + 14, rowY);
-        ctx.textAlign = 'right';
-        ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.font = `700 13px ${UI_FONT_FAMILY}`;
-        ctx.fillText(String(dmg), panelX + panelWidth - 16, rowY);
-        ctx.textAlign = 'left';
+        ctx.fillText(row.label, panelX + 14, rowY);
+
+        if (row.input) {
+          ctx.fillStyle = 'rgba(155,217,255,0.7)';
+          ctx.font = `11px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = 'right';
+          ctx.fillText(row.input, colInputX, rowY + 1);
+          ctx.textAlign = 'left';
+        }
+
+        if (row.value !== undefined) {
+          const display = row.isText
+            ? (row.value || '--')
+            : (Number.isFinite(row.value) ? String(row.value) : '--');
+          ctx.textAlign = 'right';
+          ctx.fillStyle = 'rgba(255,220,120,0.95)';
+          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.fillText(display, colDamageX, rowY);
+          ctx.textAlign = 'left';
+        }
+
         rowY += rowHeight;
       });
+
       ctx.restore();
     };
 
