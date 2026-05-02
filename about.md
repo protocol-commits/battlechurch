@@ -5,6 +5,16 @@
 - I really really need help with the Hero sprite and his moves.
 - I guess I gotta get some people to look at the game now.
 
+# How I'm Thinking User Progression Will Go
+- Learn to move and just use the autoaim
+- Oh crap, that powerup is way over there I better learn (B) DASH
+- Oh crap, that power up is in the middle of a swarm I better learn (B/A) SMASH
+- Oh crap, some enemies take forever to kill, I need to (A) Slash them.
+- Oh crap, some enemies are really hard, I need to Combo Slash them.
+- Oh crap, the NPCs are surrounded, I better learn (C) Prayer
+- Oh crap, I can't just spam C, I need to learn Prayer Management
+- Oh crap, this is getting hard, I need to learn all the C moves and see where they work.
+
 # Websites / Social
 https://www.instagram.com/battlechurchgame 
 https://battlechurch.itch.io/battlechurch  

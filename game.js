@@ -4441,7 +4441,7 @@ function syncDevArenaConfirmedCombos() {
   }
 }
 
-function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
+function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null, enemyName = null) {
   if (!isDevMeleeArenaActive()) return;
   if (!comboId || !Number.isFinite(hits) || hits < 2) return;
   const normalizedMoves = Array.isArray(moves)
@@ -4494,6 +4494,7 @@ function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
     totalDamage: computedTotalDamage,
     hasCounterHit,
     hasPunishCounter,
+    enemyName: enemyName ? String(enemyName) : null,
   };
   const last = devMeleeConfirmedCombos.length
     ? devMeleeConfirmedCombos[devMeleeConfirmedCombos.length - 1]
@@ -4505,6 +4506,7 @@ function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
     last.totalDamage = payload.totalDamage;
     last.hasCounterHit = payload.hasCounterHit;
     last.hasPunishCounter = payload.hasPunishCounter;
+    if (payload.enemyName) last.enemyName = payload.enemyName;
   } else {
     payload.recordedAt = typeof performance !== "undefined" ? performance.now() : Date.now();
     devMeleeConfirmedCombos.push(payload);
@@ -22210,6 +22212,19 @@ function clearMeleeComboLabel(meleeAttackState) {
     meleeAttackState.meleeComboLabel.fadeDelay = 0;
   }
   meleeAttackState.meleeComboLabel = null;
+  if (meleeAttackState.meleeComboMap) {
+    for (const entry of meleeAttackState.meleeComboMap.values()) {
+      releaseEntryComboLabel(entry);
+    }
+  }
+}
+
+function releaseEntryComboLabel(entry) {
+  if (!entry?.label) return;
+  entry.label.persist = false;
+  entry.label.life = Math.max(entry.label.life || 0, MELEE_COMBO_TEXT_LIFE);
+  entry.label.fadeDelay = 0;
+  entry.label = null;
 }
 
 function resetComboMoveNames(meleeAttackState) {
@@ -22335,75 +22350,65 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
 
 function updateMeleeComboLabel(meleeAttackState) {
   if (!meleeAttackState) return;
-  const comboTarget = meleeAttackState.meleeComboTarget;
-  const specialTarget = meleeAttackState.activeCounterHitTarget;
-  const target = comboTarget || specialTarget;
-  if (!target) {
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  const map = meleeAttackState.meleeComboMap;
+  if (!map || map.size === 0) {
     clearMeleeComboLabel(meleeAttackState);
     return;
   }
-  if (target.dead || target.state === "death" || target.removed) {
-    meleeAttackState.meleeComboMap?.delete(target);
-    if (meleeAttackState.punishCounterTarget === target) {
-      clearPunishCounterState(meleeAttackState);
+  for (const [target, entry] of map) {
+    if (target.dead || target.state === "death" || target.removed) {
+      releaseEntryComboLabel(entry);
+      map.delete(target);
+      if (meleeAttackState.punishCounterTarget === target) clearPunishCounterState(meleeAttackState);
+      if (meleeAttackState.meleeComboTarget === target) meleeAttackState.meleeComboTarget = null;
+      continue;
     }
-    const now =
-      typeof performance !== "undefined" && typeof performance.now === "function"
-        ? performance.now()
-        : Date.now();
-    const liveMax = getMaxLiveMeleeComboHits(meleeAttackState, now);
-    if (liveMax > 0) {
-      meleeAttackState.meleeComboHits = liveMax;
-      if (meleeAttackState.meleeComboTarget === target) {
-        meleeAttackState.meleeComboTarget = null;
-      }
+    if (entry.expiresAt < now) {
+      releaseEntryComboLabel(entry);
+      continue;
+    }
+    const labelConfig = getMeleeCombatLabelConfig(meleeAttackState, target);
+    if (!labelConfig) {
+      releaseEntryComboLabel(entry);
+      continue;
+    }
+    const comboLabelY = target.y + labelConfig.offsetY;
+    if (!entry.label) {
+      entry.label = addFloatingTextAt(
+        target.x,
+        comboLabelY,
+        labelConfig.text,
+        labelConfig.color,
+        {
+          speechBubble: false,
+          vy: 0,
+          life: MELEE_COMBO_TEXT_LIFE,
+          entity: target,
+          offsetY: labelConfig.offsetY,
+          fontSize: labelConfig.fontSize,
+          fontWeight: labelConfig.fontWeight,
+          priority: 6,
+          persist: true,
+        },
+      );
     } else {
-      clearMeleeComboLabel(meleeAttackState);
-      meleeAttackState.meleeComboTarget = null;
-      meleeAttackState.meleeComboHits = 0;
-      meleeAttackState.meleeComboExpiresAt = 0;
+      entry.label.text = labelConfig.text;
+      entry.label.x = target.x;
+      entry.label.y = comboLabelY;
+      entry.label.entity = target;
+      entry.label.offsetY = labelConfig.offsetY;
+      entry.label.color = labelConfig.color;
+      entry.label.persist = true;
+      entry.label.life = Math.max(entry.label.life || 0, MELEE_COMBO_TEXT_LIFE);
+      entry.label.fontSize = labelConfig.fontSize;
+      entry.label.fontWeight = labelConfig.fontWeight;
     }
-    return;
   }
-  const labelConfig = getMeleeCombatLabelConfig(meleeAttackState, target);
-  if (!labelConfig) {
-    clearMeleeComboLabel(meleeAttackState);
-    return;
-  }
-  const comboLabelY = target.y + labelConfig.offsetY;
-  if (!meleeAttackState.meleeComboLabel) {
-    meleeAttackState.meleeComboLabel = addFloatingTextAt(
-      target.x,
-      comboLabelY,
-      labelConfig.text,
-      labelConfig.color,
-      {
-        speechBubble: false,
-        vy: 0,
-        life: MELEE_COMBO_TEXT_LIFE,
-        entity: target,
-        offsetY: labelConfig.offsetY,
-        fontSize: labelConfig.fontSize,
-        fontWeight: labelConfig.fontWeight,
-        priority: 6,
-        persist: true,
-      },
-    );
-    return;
-  }
-  meleeAttackState.meleeComboLabel.text = labelConfig.text;
-  meleeAttackState.meleeComboLabel.x = target.x;
-  meleeAttackState.meleeComboLabel.y = comboLabelY;
-  meleeAttackState.meleeComboLabel.entity = target;
-  meleeAttackState.meleeComboLabel.offsetY = labelConfig.offsetY;
-  meleeAttackState.meleeComboLabel.color = labelConfig.color;
-  meleeAttackState.meleeComboLabel.persist = true;
-  meleeAttackState.meleeComboLabel.life = Math.max(
-    meleeAttackState.meleeComboLabel.life || 0,
-    MELEE_COMBO_TEXT_LIFE,
-  );
-  meleeAttackState.meleeComboLabel.fontSize = labelConfig.fontSize;
-  meleeAttackState.meleeComboLabel.fontWeight = labelConfig.fontWeight;
+  meleeAttackState.meleeComboHits = getMaxLiveMeleeComboHits(meleeAttackState, now);
 }
 
 function getMaxLiveMeleeComboHits(meleeAttackState, now) {
@@ -22488,7 +22493,9 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const targetLen = 8;
   while (names.length > targetLen) names.shift();
   while (detailEntries.length > targetLen) detailEntries.shift();
-  map.set(target, { hits: newHits, expiresAt: now + COMBO_WINDOW_MS, comboId, names, details: detailEntries });
+  const existingLabel = chainActive ? (existing?.label || null) : null;
+  if (!chainActive && existing?.label) releaseEntryComboLabel(existing);
+  map.set(target, { hits: newHits, expiresAt: now + COMBO_WINDOW_MS, comboId, names, details: detailEntries, label: existingLabel, enemy: target });
   meleeAttackState.meleeComboHits = getMaxLiveMeleeComboHits(meleeAttackState, now);
   meleeAttackState.comboMoveNames = names;
   meleeAttackState.devArenaComboEntries = detailEntries;
@@ -22501,11 +22508,13 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
       if (entry.expiresAt >= now && (!bestEntry || entry.hits > bestEntry.hits)) bestEntry = entry;
     }
     if (bestEntry) {
+      const bestEnemyName = bestEntry.enemy?.config?.displayName || bestEntry.enemy?.type || null;
       upsertDevArenaConfirmedCombo(
         bestEntry.comboId,
         bestEntry.hits,
         bestEntry.names || [],
         bestEntry.details || [],
+        bestEnemyName,
       );
     }
   }

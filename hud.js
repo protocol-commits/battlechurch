@@ -1423,9 +1423,10 @@
         const tagSuffix = tagParts.length ? ` [${tagParts.join("+")}]` : "";
 
         ctx.globalAlpha = alpha;
+        const enemyLabel = combo.enemyName ? ` · ${combo.enemyName}` : "";
         ctx.fillStyle = 'rgba(255,200,106,0.92)';
         ctx.font = `700 11px ${UI_FONT_FAMILY}`;
-        ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}`, textX, rowY);
+        ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}${enemyLabel}`, textX, rowY);
         rowY += lineHeight;
 
         details.forEach((entry) => {
