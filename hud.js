@@ -1253,7 +1253,7 @@
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
       const ref = window.__devArenaDamageReference || {};
       const mod = ref.modifiers || {};
-      const panelWidth = 310;
+      const panelWidth = 240;
       const panelX = 14;
       const panelY = hudHeight + 14;
       const rowHeight = 18;
