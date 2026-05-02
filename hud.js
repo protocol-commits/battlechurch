@@ -1254,36 +1254,36 @@
       const rows = [
         { section: "Basic" },
         { label: "Autoaim Projectiles", input: null,       value: undefined },
-        { label: "Slashing",            input: "A",        value: undefined },
-        { label: "Dashing",             input: "B",        value: undefined },
-        { label: "Prayer",              input: "C",        value: undefined },
+        { label: "Slash",            input: "A",        value: ref.melee },
+        { label: "Dash",             input: "B",        value: null },
+        { label: "Pray",              input: "C",        value: undefined },
 
-        { section: "Slash" },
-        { label: "Slash",               input: "A",        value: ref.melee },
+        { section: "Slash Specials" },
         { label: "Blast",               input: "A Charge", value: ref.divineShot },
         { label: "Cleave",              input: "A/B",      value: ref.cleave },
-        { label: "Spin",                input: "C/A",      value: ref.spinAttack },
-        { label: "Blitz",               input: "Charge A+B", value: ref.blitz },
-        { label: "Refuge",              input: "Charge A+C", value: null },
+        { label: "Reap",                input: "C/A",      value: ref.spinAttack },
+        { label: "Thrash",              input: "Charge B+A", value: ref.blitz },
+        { label: "Ward",                input: "Charge A+C", value: null },
 
         { section: "Dash" },
-        { label: "Dash",                input: "B",        value: null },
-        { label: "Power Dash",          input: "B Charge", value: null },
-        { label: "Rush",                input: "B/A",      value: ref.rushAttack },
-        { label: "Holy Dash",           input: "C/B",      value: null },
-        { label: "Teleport",            input: "Charge B+C", value: null },
+        { label: "Crash",               input: "B Charge", value: null },
+        { label: "Smash",               input: "B/A",      value: ref.rushAttack },
+        { label: "Clash",               input: "C/B",      value: null },
+        { label: "Flash",               input: "Charge B+C", value: null },
 
         { section: "Prayer" },
         { label: "Unity Strike",        input: "C",        value: null },
         { label: "Pastor Protect",      input: "CC",       value: null },
         { label: "Smite Bomb",          input: "C Charge", value: null },
 
+        { section: "Combos" },
+        { label: "Normals and specials chain", input: null, value: undefined },
+
         { section: "Modifiers" },
         { label: "Counter Hit",         input: null, value: Number.isFinite(mod.counterHit) ? `×${mod.counterHit.toFixed(2)}` : null, isText: true },
         { label: "Punish Counter",      input: null, value: Number.isFinite(mod.punishCounter) ? `×${mod.punishCounter.toFixed(2)}` : null, isText: true },
 
-        { section: "Combo" },
-        { label: "Special moves can chain", input: null, value: undefined },
+        
       ];
 
       // Calculate height
