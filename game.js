@@ -15371,7 +15371,7 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   config.friendly = overrides.friendly ?? true;
   config.source = overrides.source || null;
-  if (isDevMeleeArenaActive() && config.friendly && type !== "divine_shot") {
+  if (isDevMeleeArenaActive() && config.friendly && type !== "divine_shot" && type !== "fire" && type !== "wisdom_missle") {
     return null;
   }
   if (overrides.scriptureFeedback !== undefined) {
@@ -24709,6 +24709,8 @@ function updateGame(dt) {
     projectiles.forEach((projectile) => {
       if (!projectile?.friendly) return;
       if (projectile.type === "divine_shot") return;
+      if (projectile.type === "fire") return;
+      if (projectile.type === "wisdom_missle") return;
       projectile.dead = true;
     });
   }
