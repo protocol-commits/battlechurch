@@ -536,6 +536,7 @@ const DEFAULT_AUDIO_SETTINGS = {
   musicVolume: 1,
   sfxEnabled: true,
   sfxVolume: 1,
+  showSpeedrunTimer: false,
 };
 let audioSettings = { ...DEFAULT_AUDIO_SETTINGS };
 const MUSIC_FADE_OUT_MS = 1200;
@@ -703,6 +704,7 @@ function getEffectiveSfxVolume(volume) {
 if (typeof window !== "undefined") {
   window.getEffectiveSfxVolume = getEffectiveSfxVolume;
   window.isSfxEnabled = () => Boolean(audioSettings.sfxEnabled);
+  Object.defineProperty(window, "audioSettings", { get: () => audioSettings, configurable: true });
 }
 
 function getEffectiveMusicVolume(volume) {
@@ -4306,6 +4308,7 @@ let devMeleeMoveFeed = [];
 const DEV_MELEE_CONFIRMED_COMBO_MAX = 8;
 let devMeleeConfirmedCombos = [];
 let devMeleeComboSerial = 0;
+let devArenaBestCombo = null;
 let devArenaImpHordeSlots = [];
 let devArenaDemonLord = null;
 let devArenaDemonLordRespawnAt = 0;
@@ -4398,9 +4401,11 @@ function resetDevMeleeMoveFeed() {
   devMeleeMoveFeed = [];
   devMeleeConfirmedCombos = [];
   devMeleeComboSerial = 0;
+  devArenaBestCombo = null;
   if (typeof window !== "undefined") {
     window.__devArenaMeleeFeed = devMeleeMoveFeed;
     window.__devArenaConfirmedCombos = devMeleeConfirmedCombos;
+    window.__devArenaBestCombo = null;
   }
 }
 
@@ -4430,6 +4435,7 @@ function pushDevMeleeMove(moveName) {
 function syncDevArenaConfirmedCombos() {
   if (typeof window !== "undefined") {
     window.__devArenaConfirmedCombos = devMeleeConfirmedCombos;
+    window.__devArenaBestCombo = devArenaBestCombo;
   }
 }
 
@@ -4503,6 +4509,12 @@ function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null) {
     if (devMeleeConfirmedCombos.length > DEV_MELEE_CONFIRMED_COMBO_MAX) {
       devMeleeConfirmedCombos = devMeleeConfirmedCombos.slice(-DEV_MELEE_CONFIRMED_COMBO_MAX);
     }
+  }
+  const finalHits = last && last.comboId === payload.comboId ? last.hits : payload.hits;
+  if (!devArenaBestCombo || finalHits > devArenaBestCombo.hits) {
+    devArenaBestCombo = last && last.comboId === payload.comboId
+      ? { ...last }
+      : { ...payload };
   }
   syncDevArenaConfirmedCombos();
 }
@@ -4601,7 +4613,7 @@ function getDevArenaImpHordeCenter() {
   const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
   return {
     x: (canvas?.width || 0) - 220,
-    y: hud + ((canvas?.height || 0) - hud) - 310,
+    y: hud + ((canvas?.height || 0) - hud) - 410,
   };
 }
 
@@ -18449,6 +18461,13 @@ function showSettingsOverlay({ source = "title" } = {}) {
           <span class="settings-slider__value" data-setting-value="sfxVolume">100%</span>
         </div>
       </div>
+      <div class="settings-row">
+        <div class="settings-row__label">Speedrun Timer</div>
+        <label class="settings-toggle">
+          <input type="checkbox" data-setting="showSpeedrunTimer">
+          <span>On</span>
+        </label>
+      </div>
     </div>
   `;
   window.DialogOverlay.show({
@@ -18486,6 +18505,8 @@ function showSettingsOverlay({ source = "title" } = {}) {
       if (sfxSlider) sfxSlider.value = String(Math.round(audioSettings.sfxVolume * 100));
       setSliderValue("musicVolume", audioSettings.musicVolume);
       setSliderValue("sfxVolume", audioSettings.sfxVolume);
+      const timerToggle = bodyEl.querySelector('[data-setting="showSpeedrunTimer"]');
+      if (timerToggle) timerToggle.checked = Boolean(audioSettings.showSpeedrunTimer);
 
       const updateSetting = (key, value) => {
         audioSettings[key] = value;
@@ -18515,6 +18536,11 @@ function showSettingsOverlay({ source = "title" } = {}) {
           const next = clamp01(Number(event.target.value) / 100);
           setSliderValue("sfxVolume", next);
           updateSetting("sfxVolume", next);
+        });
+      }
+      if (timerToggle) {
+        timerToggle.addEventListener("change", (event) => {
+          updateSetting("showSpeedrunTimer", event.target.checked);
         });
       }
     },

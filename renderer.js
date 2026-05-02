@@ -10668,6 +10668,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawSpeedrunTimer() {
     const { ctx, canvas, speedrunTimer } = requireBindings();
     if (!ctx || !canvas || !speedrunTimer || !speedrunTimer.visible) return;
+    if (typeof window !== "undefined" && window.audioSettings?.showSpeedrunTimer === false) return;
     const formatTime = (ms) => {
       const total = Math.max(0, Math.floor(ms / 1000));
       const minutes = Math.floor(total / 60);

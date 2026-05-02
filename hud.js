@@ -1447,11 +1447,60 @@
       ctx.restore();
     };
 
+    const drawDevArenaBestCombo = () => {
+      if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
+      const best = window.__devArenaBestCombo || null;
+      if (!best || !best.hits || best.hits < 2) return;
+
+      const rawDetails = Array.isArray(best.details) ? best.details : [];
+      const hits = Math.max(2, Math.floor(Number(best.hits) || 2), rawDetails.length);
+      const details = rawDetails.slice(0, hits).reverse();
+      const totalDamage = Math.max(0, Math.round(Number(best.totalDamage) || 0));
+      const tagParts = [];
+      if (best.hasPunishCounter) tagParts.push("PC");
+      else if (best.hasCounterHit) tagParts.push("CA");
+      const tagSuffix = tagParts.length ? ` [${tagParts.join("+")}]` : "";
+
+      const lineHeight = 18;
+      const textX = canvas.width - 12;
+      const labelH = 14 + lineHeight + details.length * lineHeight + 6;
+      let rowY = canvas.height - labelH - 12;
+
+      ctx.save();
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+
+      ctx.fillStyle = 'rgba(255,220,80,0.6)';
+      ctx.font = `700 10px ${UI_FONT_FAMILY}`;
+      ctx.fillText('BEST COMBO', textX, rowY);
+      rowY += 14;
+
+      ctx.fillStyle = 'rgba(255,200,106,0.95)';
+      ctx.font = `700 15px ${UI_FONT_FAMILY}`;
+      ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}`, textX, rowY);
+      rowY += lineHeight;
+
+      details.forEach((entry) => {
+        const moveName = String(entry?.move || "Move");
+        const entryBase = Math.max(0, Math.round(Number(entry?.baseDamage) || 0));
+        const entryBonus = Math.max(0, Math.round(Number(entry?.bonusDamage) || 0));
+        const entryTag = entry?.isPunishCounter ? "PC" : entry?.isCounterHit ? "CA" : "";
+        const entryTagSuffix = entryTag && entryBonus > 0 ? ` (+${entryBonus}${entryTag})` : "";
+        ctx.fillStyle = 'rgba(234,246,255,0.88)';
+        ctx.font = `12px ${UI_FONT_FAMILY}`;
+        ctx.fillText(`  ${moveName}: ${entryBase}${entryTagSuffix}`, textX, rowY);
+        rowY += lineHeight;
+      });
+
+      ctx.restore();
+    };
+
     drawPlayerInfo();
     drawNpcInfo();
     drawTownProgress();
     drawDevArenaMoveReference();
     drawDevArenaMoveFeed();
+    drawDevArenaBestCombo();
 
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
