@@ -5657,7 +5657,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode === true,
     );
     const fullTitleText = isDevArena
-      ? "Welcome to Dev Church"
+      ? "Learn the Moves"
       : isFirstPlaythroughForTown
         ? `Welcome to ${townName} Church`
         : `Welcome back to ${townName} Church`;
