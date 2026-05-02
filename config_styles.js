@@ -187,7 +187,7 @@
           // Line -> body spacing = padTop - dividerY
           padTop: 110,
           padBottom: 40,
-          titleText: "HOW TO PLAY",
+          titleText: "ABOUT",
           // Distance from panel top edge to title baseline region.
           // Top edge -> title spacing = titleY
           titleY: 34,

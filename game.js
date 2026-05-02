@@ -4312,6 +4312,8 @@ let devArenaBestCombo = null;
 let devArenaImpHordeSlots = [];
 let devArenaDemonLord = null;
 let devArenaDemonLordRespawnAt = 0;
+let devArenaFireKeeper = null;
+let devArenaFireKeeperRespawnAt = 0;
 let devArenaPrayerRefillAt = 0;
 let devArenaLastPrayerCharge = null;
 const DEV_ARENA_DEMON_LORD_RESPAWN_MS = 3000;
@@ -4760,6 +4762,69 @@ function maintainDevArenaDemonLord() {
   }
 }
 
+function getDevArenaFireKeeperPosition() {
+  const pos = getDevArenaDemonLordPosition();
+  return { x: pos.x, y: pos.y + 80 };
+}
+
+function spawnDevArenaFireKeeper() {
+  const pos = getDevArenaFireKeeperPosition();
+  const enemy = spawnEnemyOfType("miniDemonFireKeeper", pos, {
+    skipSpawnEffects: true,
+    applyCameraShake: false,
+  });
+  if (!enemy) return null;
+  enemy.x = pos.x;
+  enemy.y = pos.y;
+  enemy.devAnchorX = pos.x;
+  enemy.devAnchorY = pos.y;
+  enemy.devImmobileTestDummy = true;
+  enemy.spawnOffscreenTimer = 0;
+  enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
+  enemy.health = DEV_MELEE_ARENA_HEALTH;
+  if (enemy.config) {
+    enemy.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    enemy.config.health = DEV_MELEE_ARENA_HEALTH;
+  }
+  return enemy;
+}
+
+function maintainDevArenaFireKeeper() {
+  if (!isDevMeleeArenaActive()) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  if (!devArenaFireKeeper) {
+    if (now >= devArenaFireKeeperRespawnAt) {
+      devArenaFireKeeper = spawnDevArenaFireKeeper();
+    }
+    return;
+  }
+  const defeated =
+    devArenaFireKeeper.dead ||
+    devArenaFireKeeper.state === "death" ||
+    devArenaFireKeeper.removed ||
+    devArenaFireKeeper.invalid ||
+    (Number.isFinite(devArenaFireKeeper.health) && devArenaFireKeeper.health <= 0);
+  if (defeated) {
+    devArenaFireKeeper = null;
+    devArenaFireKeeperRespawnAt = now + DEV_ARENA_DEMON_LORD_RESPAWN_MS;
+    return;
+  }
+  const pos = getDevArenaFireKeeperPosition();
+  devArenaFireKeeper.x = pos.x;
+  devArenaFireKeeper.y = pos.y;
+  devArenaFireKeeper.devAnchorX = pos.x;
+  devArenaFireKeeper.devAnchorY = pos.y;
+  devArenaFireKeeper.maxHealth = DEV_MELEE_ARENA_HEALTH;
+  devArenaFireKeeper.health = DEV_MELEE_ARENA_HEALTH;
+  if (devArenaFireKeeper.config) {
+    devArenaFireKeeper.config.maxHealth = DEV_MELEE_ARENA_HEALTH;
+    devArenaFireKeeper.config.health = DEV_MELEE_ARENA_HEALTH;
+  }
+}
+
 function activateDevMeleeArenaMode() {
   devMeleeArenaMode = true;
   resetDevMeleeMoveFeed();
@@ -4787,6 +4852,8 @@ function activateDevMeleeArenaMode() {
   devArenaImpHordeSlots = [];
   devArenaDemonLord = null;
   devArenaDemonLordRespawnAt = 0;
+  devArenaFireKeeper = null;
+  devArenaFireKeeperRespawnAt = 0;
   devArenaPrayerRefillAt = 0;
   devArenaLastPrayerCharge = null;
   devArenaPickupSlots = [];
@@ -4806,6 +4873,8 @@ function activateDevMeleeArenaMode() {
   spawnDevMeleeArenaEnemy();
   initializeDevArenaImpHordeSlots();
   maintainDevArenaImpHorde();
+  maintainDevArenaDemonLord();
+  maintainDevArenaFireKeeper();
   enforceDevMeleeArenaVitals();
   pauseAllMusic();
   if (musicState.devArena) {
@@ -18468,6 +18537,10 @@ function showSettingsOverlay({ source = "title" } = {}) {
           <span>On</span>
         </label>
       </div>
+      <div class="settings-row">
+        <div class="settings-row__label">About</div>
+        <button class="settings-btn--hellfire" id="settingsAboutBtn">About</button>
+      </div>
     </div>
   `;
   window.DialogOverlay.show({
@@ -18541,6 +18614,13 @@ function showSettingsOverlay({ source = "title" } = {}) {
       if (timerToggle) {
         timerToggle.addEventListener("change", (event) => {
           updateSetting("showSpeedrunTimer", event.target.checked);
+        });
+      }
+      const aboutBtn = bodyEl.querySelector("#settingsAboutBtn");
+      if (aboutBtn) {
+        aboutBtn.addEventListener("click", () => {
+          window.DialogOverlay?.hide?.();
+          if (window.PlayingInstructions) window.PlayingInstructions.open();
         });
       }
     },
@@ -19202,9 +19282,7 @@ function handleTitleScreen() {
         } else if (button.key === "developer") {
           showDeveloperOverlay();
         } else if (button.key === "howtoplay") {
-          if (typeof window !== "undefined" && window.PlayingInstructions) {
-            window.PlayingInstructions.open();
-          }
+          requestDevMeleeArenaLaunch();
         }
       },
     });
@@ -24901,6 +24979,7 @@ function updateGame(dt) {
     enforceDevMeleeArenaVitals();
     maintainDevArenaImpHorde();
     maintainDevArenaDemonLord();
+    maintainDevArenaFireKeeper();
     maintainDevArenaPickups();
     powerUpRespawnTimer = 0;
     powerUpStaggerTimer = 0;

@@ -6542,7 +6542,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#EAF6FF';
     ctx.font = `44px ${UI_FONT_FAMILY}`;
-    const howToPlayTitle = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to Play';
+    const howToPlayTitle = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'About';
     ctx.fillText(howToPlayTitle, canvas.width / 2, HUD_HEIGHT + 60);
 
     ctx.font = `18px ${UI_FONT_FAMILY}`;
@@ -6573,7 +6573,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ctx.textAlign = 'center';
   ctx.fillStyle = '#EAF6FF';
     ctx.font = `48px ${UI_FONT_FAMILY}`;
-    const howToPlayTitle2 = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to play';
+    const howToPlayTitle2 = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'About';
     ctx.fillText(howToPlayTitle2, canvas.width / 2, HUD_HEIGHT + 66);
 
     ctx.font = `18px ${UI_FONT_FAMILY}`;
@@ -6693,7 +6693,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const row1Configs = [
       { key: "resume", label: "Resume" },
-      { key: "howToPlay", label: "How to Play" },
       { key: "settings", label: "Settings" },
     ];
     const row2Configs = [
@@ -7982,25 +7981,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else if (assetsLoaded) {
       buttonConfigs = [
         { key: "play", label: "Play" },
+        { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
         { key: "developer", label: "Developer" },
-        { key: "howtoplay", label: "How to Play" },
       ];
     } else if (mapReady) {
       // Map ready but gameplay still loading - allow map browsing
       buttonConfigs = [
         { key: "map", label: "Loading" },
+        { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
         { key: "developer", label: "Developer" },
-        { key: "howtoplay", label: "How to Play" },
       ];
     } else {
       // Still loading title/map assets
       buttonConfigs = [
         { key: "play", label: "Loading..." },
+        { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
         { key: "developer", label: "Developer" },
-        { key: "howtoplay", label: "How to Play" },
       ];
     }
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
@@ -11534,7 +11533,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.font = `700 ${panelStyle.titleFontSize ?? 24}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(panelStyle.titleText || "HOW TO PLAY", panelX + panelW / 2, panelY + (panelStyle.titleY ?? 44));
+    ctx.fillText(panelStyle.titleText || "ABOUT", panelX + panelW / 2, panelY + (panelStyle.titleY ?? 44));
 
     // Header hint
     ctx.fillStyle = panelStyle.hintColor || "rgba(231,176,102,0.82)";
@@ -11552,8 +11551,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const scrollY = pi.state.scrollY || 0;
     let cursorY = contentY - scrollY;
 
-    const SIZES = { h1: 20, h2: 15, body: 13, bullet: 13 };
-    const LINE_H = { h1: 32, h2: 26, body: 20, bullet: 20, spacer: 10 };
+    const SIZES = { h1: 20, h2: 15, body: 13, bullet: 13, link: 13 };
+    const LINE_H = { h1: 32, h2: 26, body: 20, bullet: 20, spacer: 10, link: 22 };
+    pi.state.linkRects = [];
     const BULLET_GAP = 14;
 
     const wrapText = (text, maxWidth) => {
@@ -11621,6 +11621,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.font = `600 ${SIZES.h2}px ${UI_FONT_FAMILY}`;
         } else if (type === "bullet") {
           ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
+        } else if (type === "link") {
+          ctx.font = `${SIZES.link}px ${UI_FONT_FAMILY}`;
         } else {
           ctx.font = `${SIZES.body}px ${UI_FONT_FAMILY}`;
         }
@@ -11652,6 +11654,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         } else if (block.type === "bullet") {
           ctx.fillStyle = panelStyle.bulletColor || "#F7E8CA";
           ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
+        } else if (block.type === "link") {
+          ctx.fillStyle = "#7DCFFF";
+          ctx.font = `${SIZES.link}px ${UI_FONT_FAMILY}`;
         } else {
           ctx.fillStyle = panelStyle.bodyColor || "#E8D2AE";
           ctx.font = `${SIZES.body}px ${UI_FONT_FAMILY}`;
@@ -11669,6 +11674,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
               ctx.font = `${SIZES.bullet}px ${UI_FONT_FAMILY}`;
             }
             ctx.fillText(text, contentX + BULLET_GAP, textY);
+          } else if (block.type === "link") {
+            ctx.fillText(text, contentX, textY);
+            const tw = ctx.measureText(text).width;
+            ctx.fillRect(contentX, textY + SIZES.link + 1, tw, 1);
+            pi.state.linkRects.push({ url: block.wrapped[0], x: contentX, y: textY, w: tw, h: block.lh });
           } else {
             ctx.fillText(text, contentX, textY);
           }

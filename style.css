@@ -692,6 +692,29 @@ body.layout-rotate-warning #rotatePrompt {
   color: rgba(253, 241, 217, 0.88);
 }
 
+.settings-btn--hellfire {
+  padding: 8px 20px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255, 180, 60, 0.7);
+  background: linear-gradient(160deg, #c85a10 0%, #7a2a08 100%);
+  color: #ffe4a8;
+  font-family: var(--ui-font-family);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.12s ease, transform 0.1s ease;
+  box-shadow: 0 0 10px rgba(220, 100, 20, 0.45);
+}
+.settings-btn--hellfire:hover {
+  filter: brightness(1.2);
+}
+.settings-btn--hellfire:active {
+  transform: translateY(1px);
+  filter: brightness(0.9);
+}
+
 .dev-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

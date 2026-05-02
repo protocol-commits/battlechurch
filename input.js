@@ -277,6 +277,9 @@
   function handleCanvasClick(event, isPointer) {
     if (event.button === 0 || typeof event.button === "undefined") {
       const coords = getCanvasCoordinates(event);
+      if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
+        if (window.PlayingInstructions.handleClick(coords.x, coords.y)) return;
+      }
       canvasClickQueued = true;
       canvasClickPos = coords;
     }

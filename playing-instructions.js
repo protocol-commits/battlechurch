@@ -5,9 +5,10 @@
     open: false,
     scrollY: 0,
     maxScrollY: 0,
-    lines: null,   // parsed lines, null until loaded
+    lines: null,
     loading: false,
     error: false,
+    linkRects: [],
   };
 
   // Parse minimal markdown: # h1, ## h2, - bullet, blank = spacer, else body
@@ -24,6 +25,8 @@
         lines.push({ type: "bullet", text: line.slice(2).trim() });
       } else if (line.trim() === "") {
         lines.push({ type: "spacer" });
+      } else if (/^https?:\/\/\S+$/.test(line.trim())) {
+        lines.push({ type: "link", text: line.trim() });
       } else {
         lines.push({ type: "body", text: line.trim() });
       }
@@ -40,7 +43,7 @@
   function load() {
     if (state.lines !== null || state.loading) return;
     state.loading = true;
-    fetch("playing-instructions.md")
+    fetch("about.md")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.text();
@@ -50,7 +53,7 @@
         state.loading = false;
       })
       .catch(() => {
-        state.lines = [{ type: "body", text: "Could not load playing-instructions.md." }];
+        state.lines = [{ type: "body", text: "Could not load about.md." }];
         state.loading = false;
         state.error = true;
       });
@@ -74,5 +77,17 @@
     state.maxScrollY = Math.max(0, v);
   }
 
-  window.PlayingInstructions = { state, open, close, scrollBy, setMaxScrollY };
+  function handleClick(canvasX, canvasY) {
+    if (!state.open) return false;
+    for (const rect of state.linkRects) {
+      if (canvasX >= rect.x && canvasX <= rect.x + rect.w &&
+          canvasY >= rect.y && canvasY <= rect.y + rect.h) {
+        window.open(rect.url, "_blank");
+        return true;
+      }
+    }
+    return false;
+  }
+
+  window.PlayingInstructions = { state, open, close, scrollBy, setMaxScrollY, handleClick };
 })(typeof window !== "undefined" ? window : null);
