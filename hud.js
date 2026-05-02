@@ -1280,8 +1280,8 @@
         { label: "Normals and specials chain", input: null, value: undefined },
 
         { section: "Modifiers" },
-        { label: "Counter Hit",         input: null, value: Number.isFinite(mod.counterHit) ? `×${mod.counterHit.toFixed(2)}` : null, isText: true },
-        { label: "Punish Counter",      input: null, value: Number.isFinite(mod.punishCounter) ? `×${mod.punishCounter.toFixed(2)}` : null, isText: true },
+        { label: "Counter Attack (CA)", input: null, value: Number.isFinite(mod.counterHit) ? `×${mod.counterHit.toFixed(2)}` : null, isText: true },
+        { label: "Punish Counter (PC)", input: null, value: Number.isFinite(mod.punishCounter) ? `×${mod.punishCounter.toFixed(2)}` : null, isText: true },
 
         
       ];

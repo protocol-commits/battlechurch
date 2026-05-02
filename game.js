@@ -4300,11 +4300,12 @@ let devPlaytestQuickActionsEl = null;
 // any repeats. Edit either list freely.
 const DEV_ARENA_SKELETON_INTRO = "Ow! OK fine. I'll give you hints.";
 const DEV_ARENA_SKELETON_HINTS = [
-  "Hint 1",
-  "Hint 2",
-  "Hint 3",
-  "Hint 4",
-  "Hint 5",
+  "B/A 'Smash' is great to grab powerups in chaos.",
+  "CC 'Pastor Protect' the congregants target enemies near you.",
+  "Save the Smite bomb (Charge C) for the final waves.",
+  "Max battle bonuses to max congregation.",
+  "If congregant loses all faith, save them before they leave.",
+  "Smite bomb gives a huge battle bonus so manage prayer meter well.",
 ];
 let devArenaSkeletonHintBubble = null;
 let devArenaSkeletonHintNextAt = 0;
@@ -22394,27 +22395,32 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
   const mapEntry = meleeAttackState.meleeComboMap?.get(target);
   const targetHits = (mapEntry && mapEntry.expiresAt >= now) ? mapEntry.hits : 0;
   const hits = Math.max(0, Math.round(targetHits || 0));
-  const comboText = hits >= 2 ? `×${hits}` : "";
-  if (!specialText && !comboText) return null;
-  const lines = [];
-  if (specialText) lines.push(specialText);
-  if (comboText) lines.push(comboText);
+
+  let labelText = "";
+  if (hits >= 2 && specialKind) {
+    // Merged: ×4 PC or ×2 CA
+    const tag = specialKind === "punish" ? "PC" : "CA";
+    labelText = `×${hits} ${tag}`;
+  } else if (hits >= 2) {
+    labelText = `×${hits}`;
+  } else if (specialKind) {
+    labelText = specialKind === "punish" ? "PC" : "CA";
+  }
+  if (!labelText) return null;
+
   const hitboxRect = getEnemyHitboxRect(target);
-  const topAnchorOffset = hitboxRect
-    ? hitboxRect.y - target.y
-    : -(target.radius || target.config?.hitRadius || 24);
   const centerOffsetY = hitboxRect
     ? (hitboxRect.y - target.y) + hitboxRect.height * (3 / 4)
     : (target.radius || target.config?.hitRadius || 24) * (1 / 3);
   return {
-    text: lines.join("\n"),
+    text: labelText,
     color:
       specialKind === "punish"
         ? "#FFD84F"
         : specialKind === "counter"
           ? "#FFE7A1"
           : "#FFE083",
-    fontSize: specialText ? 22 : 28,
+    fontSize: 28,
     fontWeight: specialKind === "punish" ? "900" : "800",
     offsetY: centerOffsetY,
   };
