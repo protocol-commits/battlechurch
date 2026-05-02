@@ -463,7 +463,7 @@
         69
       ]
     },
-    "contactDamage": 80
+    "contactDamage": 5
   },
   "miniClawedDemon": {
     "displayName": "Clawed Demon",
