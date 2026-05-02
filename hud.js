@@ -1378,12 +1378,12 @@
         .slice(-2)
         .reverse();
 
-      const textX = canvas.width - 304;
+      const textX = canvas.width - 12;
       const lineHeight = 18;
       let rowY = hudHeight + 14;
 
       ctx.save();
-      ctx.textAlign = 'left';
+      ctx.textAlign = 'right';
       ctx.textBaseline = 'top';
 
       // Last Move (persistent)
