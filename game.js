@@ -5307,6 +5307,7 @@ if (typeof window !== "undefined") {
   window.startRunForTown = startRunForTown;
   window.startDevLevelTestFromEditor = startDevLevelTestFromEditor;
   window.exitMapScreen = exitMapScreen;
+  window.returnToTitleScreen = restartGame;
   // Expose loading state for MapScreen to check
   Object.defineProperty(window, "gameAssetsLoaded", {
     get: () => assetsLoaded,
@@ -22322,7 +22323,7 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
   const mapEntry = meleeAttackState.meleeComboMap?.get(target);
   const targetHits = (mapEntry && mapEntry.expiresAt >= now) ? mapEntry.hits : 0;
   const hits = Math.max(0, Math.round(targetHits || 0));
-  const comboText = hits >= 2 ? `Combo ${hits}` : "";
+  const comboText = hits >= 2 ? `×${hits}` : "";
   if (!specialText && !comboText) return null;
   const lines = [];
   if (specialText) lines.push(specialText);
@@ -22332,8 +22333,8 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
     ? hitboxRect.y - target.y
     : -(target.radius || target.config?.hitRadius || 24);
   const centerOffsetY = hitboxRect
-    ? (hitboxRect.y - target.y) + hitboxRect.height / 2
-    : 0;
+    ? (hitboxRect.y - target.y) + hitboxRect.height * (3 / 4)
+    : (target.radius || target.config?.hitRadius || 24) * (1 / 3);
   return {
     text: lines.join("\n"),
     color:
@@ -22342,9 +22343,9 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
         : specialKind === "counter"
           ? "#FFE7A1"
           : "#FFE083",
-    fontSize: specialText ? 22 : 20,
+    fontSize: specialText ? 22 : 28,
     fontWeight: specialKind === "punish" ? "900" : "800",
-    offsetY: centerOffsetY + 5,
+    offsetY: centerOffsetY,
   };
 }
 

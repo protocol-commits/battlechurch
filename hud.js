@@ -1360,6 +1360,21 @@
         rowY += rowHeight;
       });
 
+      // Back to Title button
+      const btnH = 22;
+      const btnY = panelY + totalHeight + 6;
+      const btnW = panelWidth;
+      ctx.fillStyle = 'rgba(180,60,20,0.85)';
+      roundRect(ctx, panelX, btnY, btnW, btnH, 7, true, false);
+      ctx.fillStyle = '#ffe4a8';
+      ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('← Back to Title', panelX + btnW / 2, btnY + btnH / 2);
+      if (typeof window !== 'undefined') {
+        window.__devArenaBackBtnRect = { x: panelX, y: btnY, w: btnW, h: btnH };
+      }
+
       ctx.restore();
     };
 

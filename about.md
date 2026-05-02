@@ -5,6 +5,9 @@
 - I really really need help with the Hero sprite and his moves.
 - I guess I gotta get some people to look at the game now.
 
+# Game Philosophy
+- "Yeah, but is it cool?"
+
 # How I'm Thinking User Progression Will Go
 - Learn to move and just use the autoaim
 - Oh crap, that powerup is way over there I better learn (B) DASH

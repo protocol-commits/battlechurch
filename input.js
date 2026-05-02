@@ -280,6 +280,13 @@
       if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
         if (window.PlayingInstructions.handleClick(coords.x, coords.y)) return;
       }
+      if (typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode) {
+        const b = window.__devArenaBackBtnRect;
+        if (b && coords.x >= b.x && coords.x <= b.x + b.w && coords.y >= b.y && coords.y <= b.y + b.h) {
+          if (typeof window.returnToTitleScreen === "function") window.returnToTitleScreen();
+          return;
+        }
+      }
       canvasClickQueued = true;
       canvasClickPos = coords;
     }
