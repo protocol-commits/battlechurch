@@ -3997,7 +3997,7 @@ const RING_OF_FIRE_DAMAGE = 34;
 const RING_OF_FIRE_BOSS_DAMAGE = 18;
 const RING_OF_FIRE_HIT_COOLDOWN = 0.38;
 const RING_OF_FIRE_INVULNERABILITY = 0.72;
-const COMBO_WINDOW_MS = 350;
+const COMBO_WINDOW_MS = 400;
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
 const DASH_DUST_SPACING = 20 * WORLD_SCALE;
@@ -4687,7 +4687,7 @@ function maintainDevArenaImpHorde() {
 
 function getDevArenaDemonLordPosition() {
   const center = getDevMeleeArenaCenter();
-  return { x: center.x - 250, y: center.y - 50 };
+  return { x: center.x - 250, y: center.y - 150 };
 }
 
 function spawnDevArenaDemonLord() {
