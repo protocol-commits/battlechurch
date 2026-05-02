@@ -122,6 +122,7 @@
   const CONGREGATION_DOUBLE_TAP_WINDOW_MS = 220;
   let congregationTapCount = 0;
   let congregationTapStartedAt = 0;
+  let congregationTapDirtied = false;
 
   function normalizeKey(key) {
     if (typeof key !== "string") return key;
@@ -166,12 +167,16 @@
     // C button uses tap vs hold on release.
     if (event.key === "ArrowRight" && !event.repeat) {
       cButtonHeldAt = typeof performance !== "undefined" ? performance.now() : Date.now();
+      congregationTapDirtied = false;
       event.preventDefault();
     }
       // NES 'A' button test: left arrow
       if (event.key === "ArrowLeft") {
         nesAButtonActive = true;
       }
+    if ((event.key === "ArrowLeft" || event.key === "ArrowDown") && (cButtonHeldAt > 0 || congregationTapCount === 1)) {
+      congregationTapDirtied = true;
+    }
     // Update movement direction for WASD
     let changed = false;
     if (key === "w") { movementDirection.y = -1; changed = true; }
@@ -215,6 +220,11 @@
       const heldMs = cButtonHeldAt > 0 ? now - cButtonHeldAt : 0;
       if (heldMs >= PRAYER_BOMB_HOLD_THRESHOLD_MS) {
         prayerBombClickQueued = true;
+        congregationTapDirtied = false;
+      } else if (congregationTapDirtied) {
+        congregationTapCount = 0;
+        congregationTapStartedAt = 0;
+        congregationTapDirtied = false;
       } else {
         if (
           congregationTapCount === 1 &&
@@ -450,9 +460,11 @@
           congregationClickKind = "path";
           congregationTapCount = 0;
           congregationTapStartedAt = 0;
+          congregationTapDirtied = false;
         } else {
           congregationTapCount = 1;
           congregationTapStartedAt = now;
+          congregationTapDirtied = false;
         }
       }
       cButtonHeldAt = 0;
@@ -648,9 +660,11 @@
           congregationClickKind = "path";
           congregationTapCount = 0;
           congregationTapStartedAt = 0;
+          congregationTapDirtied = false;
         } else {
           congregationTapCount = 1;
           congregationTapStartedAt = now;
+          congregationTapDirtied = false;
         }
       }
       cButtonHeldAt = 0;
@@ -955,6 +969,12 @@
     if (!congregationClickQueued && congregationTapCount === 1 && congregationTapStartedAt > 0) {
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
       if (now - congregationTapStartedAt >= CONGREGATION_DOUBLE_TAP_WINDOW_MS) {
+        if (congregationTapDirtied) {
+          congregationTapCount = 0;
+          congregationTapStartedAt = 0;
+          congregationTapDirtied = false;
+          return false;
+        }
         congregationClickQueued = true;
         congregationClickKind = "volley";
         congregationTapCount = 0;
