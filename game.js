@@ -23893,35 +23893,42 @@ function updateMeleeAttackSystem(dt) {
     updateArcControlCooldowns();
     resolveQueuedBasicMeleeAttack(meleeAttackState);
 
-    let blitzCancelledIntoMove = false;
+    let rushCancelledIntoMove = false;
     if (meleeAttackState.isRushing && player) {
       const direction = meleeAttackState.rushDir;
-      // Blitz cancel into C or A: let the button press fall through as a move
-      if (meleeAttackState.swordRushActive) {
-        const cJustPressed = keysJustPressed.has("ArrowRight");
-        const aJustPressed = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
-        if (cJustPressed || aJustPressed) {
-          meleeAttackState.isRushing = false;
-          meleeAttackState.rushJustEnded = true;
-          meleeAttackState.rushDamageEnabled = false;
-          meleeAttackState.rushInvulnerable = false;
-          meleeAttackState.rushHitEntities = null;
-          meleeAttackState.swordRushActive = false;
-          meleeAttackState.swordRushBlastHitEntities = null;
-          meleeAttackState.rushKillCount = 0;
-          meleeAttackState.rushKillSumX = 0;
-          meleeAttackState.rushKillSumY = 0;
-          meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
-          meleeAttackState.cooldown = 0;
-          meleeAttackState.rushLockTimer = 0;
-          meleeAttackState.rushDistanceRemaining = 0;
-          blitzCancelledIntoMove = true;
-          if (cJustPressed) {
-            meleeAttackState.lastComboTimes.C = now;
-            meleeAttackState.holyDashArmUntil = now + HOLY_DASH_COMBO_WINDOW * 1000;
-          }
-          if (aJustPressed) {
-            meleeAttackState.lastComboTimes.A = now;
+      const aJustPressed = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
+      const cJustPressed = keysJustPressed.has("ArrowRight");
+      // A during any rush cancels it and fires melee immediately
+      // C during Blitz cancels it and arms the holy dash combo
+      if (aJustPressed || (cJustPressed && meleeAttackState.swordRushActive)) {
+        meleeAttackState.isRushing = false;
+        meleeAttackState.rushJustEnded = true;
+        meleeAttackState.rushDamageEnabled = false;
+        meleeAttackState.rushInvulnerable = false;
+        meleeAttackState.rushHitEntities = null;
+        meleeAttackState.swordRushActive = false;
+        meleeAttackState.swordRushBlastHitEntities = null;
+        meleeAttackState.rushKillCount = 0;
+        meleeAttackState.rushKillSumX = 0;
+        meleeAttackState.rushKillSumY = 0;
+        meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
+        meleeAttackState.cooldown = 0;
+        meleeAttackState.rushLockTimer = 0;
+        meleeAttackState.rushDistanceRemaining = 0;
+        rushCancelledIntoMove = true;
+        if (cJustPressed) {
+          meleeAttackState.lastComboTimes.C = now;
+          meleeAttackState.holyDashArmUntil = now + HOLY_DASH_COMBO_WINDOW * 1000;
+        }
+        if (aJustPressed) {
+          // Zero B so comboRushKeyOrder can't re-trigger a rush this frame; leave A intact for next B/A combo
+          meleeAttackState.lastComboTimes.B = 0;
+          keysJustPressed.delete("ArrowLeft");
+          keysJustPressed.delete(" ");
+          if (meleeAttackState.cooldown <= 0 && !meleeAttackState.buttonDown) {
+            queueBasicMeleeAttack(getMeleeAttackDirection(), meleeAttackState);
+            player.state = "attackMelee";
+            player.animator?.play("attackMelee", { restart: true });
           }
         }
       }
@@ -23929,7 +23936,7 @@ function updateMeleeAttackSystem(dt) {
         updateRushMovement(dt, direction, meleeAttackState);
       }
     }
-    if (!blitzCancelledIntoMove && (meleeAttackState.isRushing || meleeAttackState.rushJustEnded)) {
+    if (!rushCancelledIntoMove && (meleeAttackState.isRushing || meleeAttackState.rushJustEnded)) {
       keysJustPressed.delete("ArrowDown");
       keysJustPressed.delete("ArrowLeft");
       keysJustPressed.delete(" ");
