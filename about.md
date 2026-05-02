@@ -3,6 +3,7 @@
 - Levels are not balanced. 
 - Enemies are not balanced.
 - I really really need help with the Hero sprite and his moves.
+- OMG, I really had to add bosses didn't I?
 - I guess I gotta get some people to look at the game now.
 
 # Game Philosophy
