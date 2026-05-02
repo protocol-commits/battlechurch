@@ -22331,9 +22331,9 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
   const topAnchorOffset = hitboxRect
     ? hitboxRect.y - target.y
     : -(target.radius || target.config?.hitRadius || 24);
-  const lineCount = lines.length;
-  const verticalClearance = specialText ? 28 : 18;
-  const stackedLineOffset = lineCount > 1 ? 24 : 0;
+  const centerOffsetY = hitboxRect
+    ? (hitboxRect.y - target.y) + hitboxRect.height / 2
+    : 0;
   return {
     text: lines.join("\n"),
     color:
@@ -22344,7 +22344,7 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
           : "#FFE083",
     fontSize: specialText ? 22 : 20,
     fontWeight: specialKind === "punish" ? "900" : "800",
-    offsetY: topAnchorOffset - 28 - verticalClearance - stackedLineOffset,
+    offsetY: centerOffsetY + 5,
   };
 }
 
@@ -22369,6 +22369,7 @@ function updateMeleeComboLabel(meleeAttackState) {
     }
     if (entry.expiresAt < now) {
       releaseEntryComboLabel(entry);
+      map.delete(target);
       continue;
     }
     const labelConfig = getMeleeCombatLabelConfig(meleeAttackState, target);
@@ -24811,7 +24812,10 @@ function updateMeleeAttackSystem(dt) {
     ) {
       if (meleeAttackState.meleeComboMap) {
         for (const [enemy, entry] of meleeAttackState.meleeComboMap) {
-          if (entry.expiresAt < comboNow) meleeAttackState.meleeComboMap.delete(enemy);
+          if (entry.expiresAt < comboNow) {
+            releaseEntryComboLabel(entry);
+            meleeAttackState.meleeComboMap.delete(enemy);
+          }
         }
       }
       const liveMax = getMaxLiveMeleeComboHits(meleeAttackState, comboNow);
