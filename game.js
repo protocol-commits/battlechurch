@@ -4364,6 +4364,7 @@ function initDevArenaPickupSlots() {
 
 function maintainDevArenaPickups() {
   if (!devArenaPickupSlots.length) initDevArenaPickupSlots();
+  if (typeof window !== "undefined") window.__devArenaPickupSlots = devArenaPickupSlots;
   const now = typeof performance !== "undefined" ? performance.now() / 1000 : Date.now() / 1000;
   devArenaPickupSlots.forEach((slot) => {
     if (slot.pickup) {

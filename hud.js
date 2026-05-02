@@ -1529,6 +1529,31 @@
     drawDevArenaBestCombo();
 
     if (window.__battlechurchDevMeleeArenaMode === true) {
+      const slots = window.__devArenaPickupSlots;
+      if (Array.isArray(slots) && slots.length) {
+        const kindLabels = { playerWeapon: "Pastor", npcWeapon: "Congregants", utility: "Other" };
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = `600 11px ${UI_FONT_FAMILY}`;
+        slots.forEach((slot) => {
+          if (!slot.pickup) return;
+          const label = kindLabels[slot.kind];
+          if (!label) return;
+          const lx = slot.x;
+          const ly = slot.pickup.y - 32;
+          ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+          ctx.lineWidth = 2.5;
+          ctx.lineJoin = 'round';
+          ctx.fillStyle = 'rgba(231, 200, 140, 0.85)';
+          ctx.strokeText(label, lx, ly);
+          ctx.fillText(label, lx, ly);
+        });
+        ctx.restore();
+      }
+    }
+
+    if (window.__battlechurchDevMeleeArenaMode === true) {
       const hintText = window.Renderer?.getControlsHintText?.() ||
         'Keyboard: Navigation/Movement: WASD | Action Buttons: Left (A), Down (B), Right (C) | Select: Space | Back: Esc';
       ctx.save();
