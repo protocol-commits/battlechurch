@@ -2408,6 +2408,20 @@
       this.attackTimer = Math.max(0, this.attackTimer - dt);
 
       if (this.type === "miniDemonFireKeeper") {
+        if (this.devArenaIdleOnly) {
+          this.fireKeeperPhase = "materialize";
+          this.fireKeeperVisualAlpha = 1;
+          this.touchCooldown = 0;
+          if (this.state !== "idle" && this.animator?.clips?.idle) {
+            this.state = "idle";
+            this.animator.play("idle");
+          } else if (this.state !== "walk" && !this.animator?.clips?.idle) {
+            this.state = "walk";
+            this.animator.play("walk");
+          }
+          this.animator.update(dt);
+          return;
+        }
         this.updateFireKeeperBehavior(dt, target, dx, dy, distance, targetRadius);
         return;
       }

@@ -4779,6 +4779,7 @@ function spawnDevArenaFireKeeper() {
   enemy.devAnchorX = pos.x;
   enemy.devAnchorY = pos.y;
   enemy.devImmobileTestDummy = true;
+  enemy.devArenaIdleOnly = true;
   enemy.spawnOffscreenTimer = 0;
   enemy.maxHealth = DEV_MELEE_ARENA_HEALTH;
   enemy.health = DEV_MELEE_ARENA_HEALTH;
