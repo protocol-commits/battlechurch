@@ -22199,7 +22199,9 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
     meleeAttackState.activeCounterHitKind = null;
     meleeAttackState.activeCounterHitUntil = 0;
   }
-  const hits = Math.max(0, Math.round(meleeAttackState.meleeComboHits || 0));
+  const mapEntry = meleeAttackState.meleeComboMap?.get(target);
+  const targetHits = (mapEntry && mapEntry.expiresAt >= now) ? mapEntry.hits : 0;
+  const hits = Math.max(0, Math.round(targetHits || 0));
   const comboText = hits >= 2 ? `Combo ${hits}` : "";
   if (!specialText && !comboText) return null;
   const lines = [];
@@ -22236,33 +22238,26 @@ function updateMeleeComboLabel(meleeAttackState) {
     return;
   }
   if (target.dead || target.state === "death" || target.removed) {
-    const labelConfig = getMeleeCombatLabelConfig(meleeAttackState, target);
-    if (meleeAttackState.meleeComboLabel && labelConfig) {
-      meleeAttackState.meleeComboLabel.text = labelConfig.text;
-      meleeAttackState.meleeComboLabel.color = labelConfig.color;
-      meleeAttackState.meleeComboLabel.fontSize = labelConfig.fontSize;
-      meleeAttackState.meleeComboLabel.fontWeight = labelConfig.fontWeight;
-      meleeAttackState.meleeComboLabel.x = target.x;
-      meleeAttackState.meleeComboLabel.y = target.y + labelConfig.offsetY;
-      meleeAttackState.meleeComboLabel.entity = null;
-      meleeAttackState.meleeComboLabel.offsetX = 0;
-      meleeAttackState.meleeComboLabel.offsetY = 0;
-      meleeAttackState.meleeComboLabel.persist = false;
-      meleeAttackState.meleeComboLabel.fadeDelay = 0;
-      meleeAttackState.meleeComboLabel.life = Math.max(
-        meleeAttackState.meleeComboLabel.life || 0,
-        MELEE_COMBO_TEXT_LIFE,
-      );
-      meleeAttackState.meleeComboLabel = null;
-    } else {
-      clearMeleeComboLabel(meleeAttackState);
-    }
+    meleeAttackState.meleeComboMap?.delete(target);
     if (meleeAttackState.punishCounterTarget === target) {
       clearPunishCounterState(meleeAttackState);
     }
-    meleeAttackState.meleeComboTarget = null;
-    meleeAttackState.meleeComboHits = 0;
-    meleeAttackState.meleeComboExpiresAt = 0;
+    const now =
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    const liveMax = getMaxLiveMeleeComboHits(meleeAttackState, now);
+    if (liveMax > 0) {
+      meleeAttackState.meleeComboHits = liveMax;
+      if (meleeAttackState.meleeComboTarget === target) {
+        meleeAttackState.meleeComboTarget = null;
+      }
+    } else {
+      clearMeleeComboLabel(meleeAttackState);
+      meleeAttackState.meleeComboTarget = null;
+      meleeAttackState.meleeComboHits = 0;
+      meleeAttackState.meleeComboExpiresAt = 0;
+    }
     return;
   }
   const labelConfig = getMeleeCombatLabelConfig(meleeAttackState, target);
@@ -22306,47 +22301,39 @@ function updateMeleeComboLabel(meleeAttackState) {
   meleeAttackState.meleeComboLabel.fontWeight = labelConfig.fontWeight;
 }
 
+function getMaxLiveMeleeComboHits(meleeAttackState, now) {
+  if (!meleeAttackState?.meleeComboMap) return 0;
+  let max = 0;
+  for (const entry of meleeAttackState.meleeComboMap.values()) {
+    if (entry.expiresAt >= now) max = Math.max(max, entry.hits);
+  }
+  return max;
+}
+
 function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null, hitMeta = null) {
   if (!target || !meleeAttackState) return;
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now();
-  const currentTarget = meleeAttackState.meleeComboTarget || null;
-  const currentHits = Math.max(0, Math.round(meleeAttackState.meleeComboHits || 0));
-  const comboWindowActive =
-    Number.isFinite(meleeAttackState.meleeComboExpiresAt) &&
-    now <= meleeAttackState.meleeComboExpiresAt;
-  const sameTargetChainActive =
-    currentTarget === target &&
-    comboWindowActive;
-  const swarmRetargetActive =
-    currentTarget &&
-    currentTarget !== target &&
-    currentHits === 1 &&
-    comboWindowActive;
-  const chainActive = sameTargetChainActive || swarmRetargetActive;
+  if (!meleeAttackState.meleeComboMap) meleeAttackState.meleeComboMap = new Map();
+  const map = meleeAttackState.meleeComboMap;
+  const existing = map.get(target);
+  const chainActive = existing && existing.expiresAt >= now;
+  const previousHits = chainActive ? existing.hits : 0;
+  const newHits = chainActive ? previousHits + 1 : 1;
+  const comboId = chainActive && existing.comboId
+    ? existing.comboId
+    : (() => { devMeleeComboSerial += 1; return `confirmed-${devMeleeComboSerial}`; })();
+  const names = chainActive && Array.isArray(existing.names) ? existing.names : [];
+  const detailEntries = chainActive && Array.isArray(existing.details) ? existing.details : [];
+  if (!chainActive) { names.length = 0; detailEntries.length = 0; }
   meleeAttackState.meleeComboTarget = target;
-  const previousHits = currentHits;
-  if (!chainActive || previousHits <= 0 || !meleeAttackState.devArenaComboId) {
-    devMeleeComboSerial += 1;
-    meleeAttackState.devArenaComboId = `confirmed-${devMeleeComboSerial}`;
-  }
-  meleeAttackState.meleeComboHits = chainActive
-    ? Math.max(1, currentHits + 1)
-    : 1;
   meleeAttackState.meleeComboExpiresAt = now + COMBO_WINDOW_MS;
+  meleeAttackState.devArenaComboId = comboId;
+  meleeAttackState.comboMoveNames = names;
+  meleeAttackState.devArenaComboEntries = detailEntries;
   const moveName = getComboMoveNameForHit(meleeAttackState, moveNameOverride);
-  const names = Array.isArray(meleeAttackState.comboMoveNames)
-    ? meleeAttackState.comboMoveNames
-    : [];
-  const detailEntries = Array.isArray(meleeAttackState.devArenaComboEntries)
-    ? meleeAttackState.devArenaComboEntries
-    : [];
-  if (!chainActive || previousHits <= 0) {
-    names.length = 0;
-    detailEntries.length = 0;
-  }
   names.push(moveName);
   detailEntries.push({
     move: moveName,
@@ -22396,24 +22383,26 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const targetLen = 8;
   while (names.length > targetLen) names.shift();
   while (detailEntries.length > targetLen) detailEntries.shift();
+  map.set(target, { hits: newHits, expiresAt: now + COMBO_WINDOW_MS, comboId, names, details: detailEntries });
+  meleeAttackState.meleeComboHits = getMaxLiveMeleeComboHits(meleeAttackState, now);
   meleeAttackState.comboMoveNames = names;
   meleeAttackState.devArenaComboEntries = detailEntries;
   meleeAttackState.comboMovesWindowUntil = now + COMBO_WINDOW_MS;
   meleeAttackState.pendingComboMoveName = null;
   updateComboMoveCallout(meleeAttackState);
   if (meleeAttackState.meleeComboHits >= 2) {
-    const confirmedMoves = Array.isArray(meleeAttackState.comboMoveNames)
-      ? meleeAttackState.comboMoveNames.slice(-meleeAttackState.meleeComboHits)
-      : [];
-    const confirmedDetails = Array.isArray(meleeAttackState.devArenaComboEntries)
-      ? meleeAttackState.devArenaComboEntries.slice(-meleeAttackState.meleeComboHits)
-      : [];
-    upsertDevArenaConfirmedCombo(
-      meleeAttackState.devArenaComboId,
-      meleeAttackState.meleeComboHits,
-      confirmedMoves,
-      confirmedDetails,
-    );
+    let bestEntry = null;
+    for (const entry of map.values()) {
+      if (entry.expiresAt >= now && (!bestEntry || entry.hits > bestEntry.hits)) bestEntry = entry;
+    }
+    if (bestEntry) {
+      upsertDevArenaConfirmedCombo(
+        bestEntry.comboId,
+        bestEntry.hits,
+        bestEntry.names || [],
+        bestEntry.details || [],
+      );
+    }
   }
   if (meleeAttackState.meleeComboHits >= 2) {
     rewardMeleeGraceBurst(target, MELEE_COMBO_GRACE_GEMS, 40);
@@ -23988,6 +23977,7 @@ function updateMeleeAttackSystem(dt) {
     meleeComboTarget: null,
     meleeComboHits: 0,
     meleeComboExpiresAt: 0,
+    meleeComboMap: new Map(),
     meleeComboLabel: null,
     punishCounterTarget: null,
     punishCounterExpiresAt: 0,
@@ -24029,6 +24019,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.meleeComboTarget = null;
       meleeAttackState.meleeComboHits = 0;
       meleeAttackState.meleeComboExpiresAt = 0;
+      meleeAttackState.meleeComboMap?.clear();
       clearActiveCounterHitText(meleeAttackState);
       clearPunishCounterState(meleeAttackState);
       if (meleeAttackState.divineKillLabel) {
@@ -24704,13 +24695,23 @@ function updateMeleeAttackSystem(dt) {
       comboNow > meleeAttackState.meleeComboExpiresAt &&
       !comboCarryActive
     ) {
-      clearMeleeComboLabel(meleeAttackState);
-      meleeAttackState.meleeComboTarget = null;
-      meleeAttackState.meleeComboHits = 0;
-      meleeAttackState.meleeComboExpiresAt = 0;
-      resetComboMoveNames(meleeAttackState);
-      clearActiveCounterHitText(meleeAttackState);
-      clearPunishCounterState(meleeAttackState);
+      if (meleeAttackState.meleeComboMap) {
+        for (const [enemy, entry] of meleeAttackState.meleeComboMap) {
+          if (entry.expiresAt < comboNow) meleeAttackState.meleeComboMap.delete(enemy);
+        }
+      }
+      const liveMax = getMaxLiveMeleeComboHits(meleeAttackState, comboNow);
+      if (liveMax > 0) {
+        meleeAttackState.meleeComboHits = liveMax;
+      } else {
+        clearMeleeComboLabel(meleeAttackState);
+        meleeAttackState.meleeComboTarget = null;
+        meleeAttackState.meleeComboHits = 0;
+        meleeAttackState.meleeComboExpiresAt = 0;
+        resetComboMoveNames(meleeAttackState);
+        clearActiveCounterHitText(meleeAttackState);
+        clearPunishCounterState(meleeAttackState);
+      }
     } else if (
       meleeAttackState.meleeComboLabel &&
       (meleeAttackState.meleeComboTarget || meleeAttackState.activeCounterHitTarget)
