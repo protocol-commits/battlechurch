@@ -373,9 +373,13 @@
       const hpValueText = (typeof GameText !== 'undefined' && GameText.hud?.health) || 'Health';
       ctx.save();
       ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(hpValueText, hpBarX + hpBarWidth / 2, hpBarY + hpBarHeight / 2 + 1);
+      ctx.fillStyle = PALETTE.softWhite;
       ctx.fillText(hpValueText, hpBarX + hpBarWidth / 2, hpBarY + hpBarHeight / 2 + 1);
       ctx.restore();
 
@@ -604,32 +608,38 @@
         ctx.fillRect(sparkX - sparkW, sparkY, sparkW, sparkH);
         ctx.restore();
       }
-      if (fullPrayerReady) {
-        const readyText = "Smite Ready";
-        const flashPulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
-        let fontSize = 11;
-        const minFontSize = 7;
-        const maxTextWidth = meterWidth - 10;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        while (fontSize > minFontSize) {
-          ctx.font = `700 ${fontSize}px ${UI_FONT_FAMILY}`;
-          if (ctx.measureText(readyText).width <= maxTextWidth) break;
-          fontSize -= 1;
-        }
-        ctx.save();
-        ctx.globalAlpha = 0.55 + flashPulse * 0.45;
-        ctx.fillStyle = PALETTE.softWhite;
-        ctx.shadowColor = "rgba(255, 212, 124, 0.9)";
-        ctx.shadowBlur = 6 + flashPulse * 6;
-        ctx.shadowOffsetY = 0;
-        ctx.strokeStyle = "rgba(65, 18, 8, 0.9)";
-        ctx.lineWidth = 2;
+      {
         const textX = meterX + meterWidth / 2;
         const textY = meterY + meterHeight / 2 + 0.5;
-        ctx.strokeText(readyText, textX, textY);
-        ctx.fillText(readyText, textX, textY);
-        ctx.restore();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        if (fullPrayerReady) {
+          const readyText = "Smite Ready";
+          const flashPulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
+          ctx.save();
+          ctx.font = `12px ${UI_FONT_FAMILY}`;
+          ctx.globalAlpha = 0.55 + flashPulse * 0.45;
+          ctx.fillStyle = PALETTE.softWhite;
+          ctx.shadowColor = "rgba(255, 212, 124, 0.9)";
+          ctx.shadowBlur = 6 + flashPulse * 6;
+          ctx.shadowOffsetY = 0;
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(readyText, textX, textY);
+          ctx.fillText(readyText, textX, textY);
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.font = `12px ${UI_FONT_FAMILY}`;
+          ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.strokeText("Prayer", textX, textY);
+          ctx.fillStyle = PALETTE.softWhite;
+          ctx.fillText("Prayer", textX, textY);
+          ctx.restore();
+        }
       }
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = ready
