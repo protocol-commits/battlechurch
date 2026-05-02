@@ -6094,7 +6094,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (uniqueNames.length > 2) {
         namesText = `${uniqueNames.slice(0, -1).join(", ")}, and ${uniqueNames[uniqueNames.length - 1]}`;
       }
-      payoffLine = `You equipped ${namesText} with weapons to face ${problemPhrase}.`;
+      payoffLine = `You equipped ${namesText} with the weapons to face ${problemPhrase}.`;
     }
     const stageTimer = Number.isFinite(levelStatus?.stageTimer)
       ? Math.max(0, Number(levelStatus.stageTimer))
@@ -7626,7 +7626,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "left";
     const marginX = 16;
     const marginY = canvas.height - 24;
-    ctx.fillText(breadcrumb, marginX, marginY);
+    ctx.fillText(`Dev Helper: ${breadcrumb}`, marginX, marginY);
     if (SHOW_TEXT_SOURCE_LABELS) {
       ctx.font = `11px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "rgba(170, 198, 224, 0.92)";
