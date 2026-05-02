@@ -1392,15 +1392,8 @@
         const latestMove = String(latestHit?.move || "Move");
         const latestBase = Math.max(0, Math.round(Number(latestHit?.baseDamage) || 0));
         const latestBonus = Math.max(0, Math.round(Number(latestHit?.bonusDamage) || 0));
-        const latestFinal = Math.max(0, Math.round(Number(latestHit?.damage) || 0));
-        const counterMultiplier = Number.isFinite(latestHit?.counterMultiplier)
-          ? Number(latestHit.counterMultiplier) : 1;
-        const latestTags = [];
-        if (latestHit?.isPunishCounter) latestTags.push("PC");
-        else if (latestHit?.isCounterHit) latestTags.push("CA");
-        const tagSuffix = latestTags.length
-          ? ` [${latestTags.join("+")} ×${counterMultiplier.toFixed(2)}]` : "";
-        const breakdown = latestBonus > 0 ? `${latestBase}+${latestBonus}` : `${latestBase}`;
+        const latestTag = latestHit?.isPunishCounter ? "PC" : latestHit?.isCounterHit ? "CA" : "";
+        const tagSuffix = latestTag && latestBonus > 0 ? ` (+${latestBonus}${latestTag})` : "";
 
         ctx.fillStyle = 'rgba(155,217,255,0.7)';
         ctx.font = `700 10px ${UI_FONT_FAMILY}`;
@@ -1408,7 +1401,7 @@
         rowY += 14;
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
         ctx.font = `700 15px ${UI_FONT_FAMILY}`;
-        ctx.fillText(`${latestMove}: ${latestFinal} (${breakdown})${tagSuffix}`, textX, rowY);
+        ctx.fillText(`${latestMove}: ${latestBase}${tagSuffix}`, textX, rowY);
         rowY += lineHeight + 8;
       }
 
@@ -1437,17 +1430,13 @@
 
         details.forEach((entry) => {
           const moveName = String(entry?.move || "Move");
-          const baseDamage = Math.max(0, Math.round(Number(entry?.baseDamage) || 0));
-          const bonusDamage = Math.max(0, Math.round(Number(entry?.bonusDamage) || 0));
-          const moveDamage = Math.max(0, Math.round(Number(entry?.damage) || 0));
-          const entryTags = [];
-          if (entry?.isPunishCounter) entryTags.push("PC");
-          else if (entry?.isCounterHit) entryTags.push("CA");
-          const entryTagSuffix = entryTags.length ? ` (${entryTags.join("+")})` : "";
-          const breakdown = bonusDamage > 0 ? `${baseDamage}+${bonusDamage}` : `${baseDamage}`;
+          const entryBase = Math.max(0, Math.round(Number(entry?.baseDamage) || 0));
+          const entryBonus = Math.max(0, Math.round(Number(entry?.bonusDamage) || 0));
+          const entryTag = entry?.isPunishCounter ? "PC" : entry?.isCounterHit ? "CA" : "";
+          const entryTagSuffix = entryTag && entryBonus > 0 ? ` (+${entryBonus}${entryTag})` : "";
           ctx.fillStyle = 'rgba(234,246,255,0.88)';
           ctx.font = `12px ${UI_FONT_FAMILY}`;
-          ctx.fillText(`  ${moveName}: ${moveDamage} (${breakdown})${entryTagSuffix}`, textX, rowY);
+          ctx.fillText(`  ${moveName}: ${entryBase}${entryTagSuffix}`, textX, rowY);
           rowY += lineHeight;
         });
 
