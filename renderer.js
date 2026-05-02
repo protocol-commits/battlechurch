@@ -196,7 +196,7 @@ const MELEE_SWING_LENGTH = 260;
   }
 
   const KEYBOARD_CONTROLS_HINT =
-    "Keyboard: Navigation/Movement: WASD | Action Buttons: Left, Down, Right | Select: Space | Back: Esc";
+    "Keyboard: Navigation/Movement: WASD | Action Buttons: Left (A), Down (B), Right (C) | Select: Space | Back: Esc";
   const XBOX_CONTROLS_HINT =
     "Xbox: Navigation/Movement: Left Stick or D-Pad | Action Buttons: A, B, RB | Select: A | Back: B";
 
@@ -7562,6 +7562,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawMissionBriefInArena() {
+    if (typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode) return;
     const {
       ctx,
       canvas,
@@ -11707,6 +11708,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
 
+    ctx.restore();
+    // Draw dim layer behind the hint so it's readable over the fog
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(0, vh - 30, vw, 30);
     ctx.restore();
     drawFooterControlsHint(ctx, vw / 2, vh - 10, UI_FONT_FAMILY);
     ctx.restore();

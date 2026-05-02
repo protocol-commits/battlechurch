@@ -4294,6 +4294,20 @@ let devPlaytestSession = {
   scope: null, // { town, mission, battle }
 };
 let devPlaytestQuickActionsEl = null;
+// ── Dev Arena: Armored Skeleton hint bubbles ─────────────────────────────────
+// Edit this list freely — each entry is shown in order, cycling back to the start.
+const DEV_ARENA_SKELETON_HINTS = [
+  "Hint 1",
+  "Hint 2",
+  "Hint 3",
+  "Hint 4",
+  "Hint 5",
+];
+let devArenaSkeletonHintIndex = 0;
+let devArenaSkeletonHintBubble = null;
+let devArenaSkeletonHintNextAt = 0;
+// ─────────────────────────────────────────────────────────────────────────────
+
 const DEV_MELEE_ARENA_HEALTH = 100000;
 const DEV_MELEE_ARENA_PRAYER_REFILL_MS = 3000;
 const DEV_ARENA_IMP_GROUP_SIZE = 100;
@@ -4404,11 +4418,41 @@ function resetDevMeleeMoveFeed() {
   devMeleeConfirmedCombos = [];
   devMeleeComboSerial = 0;
   devArenaBestCombo = null;
+  devArenaSkeletonHintIndex = 0;
+  devArenaSkeletonHintBubble = null;
+  devArenaSkeletonHintNextAt = 0;
   if (typeof window !== "undefined") {
     window.__devArenaMeleeFeed = devMeleeMoveFeed;
     window.__devArenaConfirmedCombos = devMeleeConfirmedCombos;
     window.__devArenaBestCombo = null;
   }
+}
+
+function showDevArenaSkeletonHint(target) {
+  if (!DEV_ARENA_SKELETON_HINTS.length) return;
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  if (now < devArenaSkeletonHintNextAt) return;
+  if (devArenaSkeletonHintBubble) {
+    devArenaSkeletonHintBubble.life = 0;
+    devArenaSkeletonHintBubble = null;
+  }
+  const text = DEV_ARENA_SKELETON_HINTS[devArenaSkeletonHintIndex % DEV_ARENA_SKELETON_HINTS.length];
+  devArenaSkeletonHintIndex = (devArenaSkeletonHintIndex + 1) % DEV_ARENA_SKELETON_HINTS.length;
+  const hintLifeSec = 3.5;
+  devArenaSkeletonHintNextAt = now + hintLifeSec * 1000;
+  devArenaSkeletonHintBubble = addFloatingTextAt(
+    target.x, target.y - (target.radius || 30) - 28,
+    text, "#f4fbff",
+    {
+      speechBubble: true,
+      bubbleTheme: "npc",
+      entity: target,
+      offsetY: -(target.radius || 30) - 28,
+      life: hintLifeSec,
+      fadeDelay: 2.5,
+      priority: 150,
+    }
+  );
 }
 
 function pushDevMeleeMove(moveName) {
@@ -21359,6 +21403,9 @@ function registerComboHit(target, damage) {
   if (prayerBombComboState.active && target) {
     recordPrayerBombComboHits(1);
   }
+  if (isDevMeleeArenaActive() && target?.devArenaPrimaryDummy === true) {
+    showDevArenaSkeletonHint(target);
+  }
   if (!window.BattlechurchComboTrackerEnabled) return;
   comboTracker.registerHit(target, damage);
 }
@@ -21366,6 +21413,9 @@ function registerComboHit(target, damage) {
 function registerProjectileComboHit(target, damage, projectile) {
   if (prayerBombComboState.active && target) {
     recordPrayerBombComboHits(1);
+  }
+  if (isDevMeleeArenaActive() && target?.devArenaPrimaryDummy === true) {
+    showDevArenaSkeletonHint(target);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
   comboTracker.registerHit(target, damage, undefined, {
@@ -22491,6 +22541,9 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
       isPunishCounter,
       counterMultiplier,
     };
+  }
+  if (isDevMeleeArenaActive() && target.devArenaPrimaryDummy === true) {
+    showDevArenaSkeletonHint(target);
   }
   const targetLen = 8;
   while (names.length > targetLen) names.shift();

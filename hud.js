@@ -1518,6 +1518,23 @@
     drawDevArenaMoveFeed();
     drawDevArenaBestCombo();
 
+    if (window.__battlechurchDevMeleeArenaMode === true) {
+      const hintText = window.Renderer?.getControlsHintText?.() ||
+        'Keyboard: Navigation/Movement: WASD | Action Buttons: Left (A), Down (B), Right (C) | Select: Space | Back: Esc';
+      ctx.save();
+      ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = 'rgba(231, 176, 102, 0.68)';
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = 2;
+      ctx.fillText(hintText, canvas.width / 2, 8 + 84 + 16);
+      ctx.fillStyle = 'rgba(231, 176, 102, 0.45)';
+      ctx.fillText('Xbox Controller Supported', canvas.width / 2, 8 + 84 + 30);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
   }
