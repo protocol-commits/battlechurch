@@ -22,6 +22,20 @@
         .filter(Boolean);
     return runtimeTitles;
   }
+  let _battleScenarioPool = [];
+  function pickNextBattleScenario() {
+    const all = getAvailableBattleScenarios();
+    if (!all.length) return null;
+    if (!_battleScenarioPool.length) {
+      // Refill and Fisher-Yates shuffle
+      _battleScenarioPool = all.slice();
+      for (let i = _battleScenarioPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [_battleScenarioPool[i], _battleScenarioPool[j]] = [_battleScenarioPool[j], _battleScenarioPool[i]];
+      }
+    }
+    return _battleScenarioPool.pop();
+  }
   const BATTLE_SCENARIO_WAVE_ARCS = Object.freeze({
     "death of a close family member": [
       "Shock and Numbness",
@@ -1054,7 +1068,7 @@
   // fallback of 5 so summaries reflect the expected battle baseline.
   const detected = npcs.filter((npc) => !npc.departed && npc.active).length;
   state.battleNpcStartCount = detected > 0 ? detected : 5;
-      const pickedScenario = randomChoice(getAvailableBattleScenarios());
+      const pickedScenario = pickNextBattleScenario();
       state.currentBattleScenario =
         typeof pickedScenario === "string"
           ? pickedScenario
