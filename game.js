@@ -21299,6 +21299,9 @@ function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5 + 200 * WO
   playerDashState.dashDir = direction;
   playerDashState.dashDistanceRemaining = Math.max(DASH_DISTANCE, distance);
   playerDashState.dashDustAccumulator = 0;
+  playerDashState.crashDashActive = true;
+  playerDashState.crashDashHitEntities = new Set();
+  playerDashState.crashDashDamage = 100;
   setSharedBButtonCooldown(DASH_COOLDOWN);
   playDashSfx(0.9);
   return true;
@@ -21327,6 +21330,20 @@ function updateDashMovement(dt) {
 
   applyDashSlashTravelDamage(window._meleeAttackState);
 
+  // Crash body-contact damage: anything the player's body touches during the protected dash
+  if (playerDashState.crashDashActive && playerDashState.crashDashHitEntities) {
+    const hitSet = playerDashState.crashDashHitEntities;
+    const contactRadius = (player.radius || 24) * (playerDashState.isHolyDash ? 1.875 : 1.1);
+    enemies.forEach((enemy) => {
+      if (!enemy || enemy.dead || enemy.state === "death") return;
+      if (hitSet.has(enemy)) return;
+      if (Math.hypot(enemy.x - player.x, enemy.y - player.y) <= contactRadius + (enemy.radius || 20)) {
+        hitSet.add(enemy);
+        enemy.takeDamage(playerDashState.crashDashDamage || 20, { damageType: "melee" });
+      }
+    });
+  }
+
   // End dash when distance complete
   if (playerDashState.dashDistanceRemaining <= 0) {
     playerDashState.isDashing = false;
@@ -21335,6 +21352,9 @@ function updateDashMovement(dt) {
       window._meleeAttackState.swooshDamageEnabled = false;
       window._meleeAttackState.swooshHitEntities = null;
     }
+    playerDashState.crashDashActive = false;
+    playerDashState.crashDashHitEntities = null;
+    playerDashState.crashDashDamage = 0;
     setSharedBButtonCooldown(DASH_COOLDOWN);
   }
 }
@@ -23182,21 +23202,15 @@ function getNearestTeleportTargetIndex(targets) {
 function executeProtectedDash(meleeAttackState) {
   if (!player) return;
   playerYell("Crash");
-  const target = getNearestActivePowerup();
-  let dir;
-  if (target) {
-    const dx = target.x - player.x;
-    const dy = target.y - player.y;
-    const dist = Math.hypot(dx, dy);
-    dir = dist > 0 ? { x: dx / dist, y: dy / dist } : getDashButtonDirection();
-  } else {
-    dir = getDashButtonDirection();
-  }
+  const dir = getDashButtonDirection();
   if (!dir || (dir.x === 0 && dir.y === 0)) return;
   if (tryStartDash(dir)) {
     playerDashState.dashDistanceRemaining = PROTECTED_DASH_DISTANCE;
     const dashDuration = PROTECTED_DASH_DISTANCE / Math.max(1, DASH_SPEED);
     applyMeleeInvulnerability(meleeAttackState, "rush", dashDuration + RUSH_EXIT_INVULNERABILITY);
+    playerDashState.crashDashActive = true;
+    playerDashState.crashDashHitEntities = new Set();
+    playerDashState.crashDashDamage = 20;
   }
 }
 
