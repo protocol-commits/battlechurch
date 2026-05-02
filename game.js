@@ -4295,7 +4295,10 @@ let devPlaytestSession = {
 };
 let devPlaytestQuickActionsEl = null;
 // ── Dev Arena: Armored Skeleton hint bubbles ─────────────────────────────────
-// Edit this list freely — each entry is shown in order, cycling back to the start.
+// First hit always shows DEV_ARENA_SKELETON_INTRO. Subsequent hits draw from
+// DEV_ARENA_SKELETON_HINTS in shuffled order — every hint appears once before
+// any repeats. Edit either list freely.
+const DEV_ARENA_SKELETON_INTRO = "Ow! OK fine. I'll give you hints.";
 const DEV_ARENA_SKELETON_HINTS = [
   "Hint 1",
   "Hint 2",
@@ -4303,9 +4306,10 @@ const DEV_ARENA_SKELETON_HINTS = [
   "Hint 4",
   "Hint 5",
 ];
-let devArenaSkeletonHintIndex = 0;
 let devArenaSkeletonHintBubble = null;
 let devArenaSkeletonHintNextAt = 0;
+let devArenaSkeletonIntroShown = false;
+let devArenaSkeletonHintPool = [];   // shuffled pool, refilled when empty
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEV_MELEE_ARENA_HEALTH = 100000;
@@ -4418,9 +4422,10 @@ function resetDevMeleeMoveFeed() {
   devMeleeConfirmedCombos = [];
   devMeleeComboSerial = 0;
   devArenaBestCombo = null;
-  devArenaSkeletonHintIndex = 0;
   devArenaSkeletonHintBubble = null;
   devArenaSkeletonHintNextAt = 0;
+  devArenaSkeletonIntroShown = false;
+  devArenaSkeletonHintPool = [];
   if (typeof window !== "undefined") {
     window.__devArenaMeleeFeed = devMeleeMoveFeed;
     window.__devArenaConfirmedCombos = devMeleeConfirmedCombos;
@@ -4429,15 +4434,31 @@ function resetDevMeleeMoveFeed() {
 }
 
 function showDevArenaSkeletonHint(target) {
-  if (!DEV_ARENA_SKELETON_HINTS.length) return;
   const now = typeof performance !== "undefined" ? performance.now() : Date.now();
   if (now < devArenaSkeletonHintNextAt) return;
   if (devArenaSkeletonHintBubble) {
     devArenaSkeletonHintBubble.life = 0;
     devArenaSkeletonHintBubble = null;
   }
-  const text = DEV_ARENA_SKELETON_HINTS[devArenaSkeletonHintIndex % DEV_ARENA_SKELETON_HINTS.length];
-  devArenaSkeletonHintIndex = (devArenaSkeletonHintIndex + 1) % DEV_ARENA_SKELETON_HINTS.length;
+
+  let text;
+  if (!devArenaSkeletonIntroShown) {
+    text = DEV_ARENA_SKELETON_INTRO;
+    devArenaSkeletonIntroShown = true;
+  } else {
+    if (!DEV_ARENA_SKELETON_HINTS.length) return;
+    if (!devArenaSkeletonHintPool.length) {
+      // Refill and shuffle a fresh copy of the hints array
+      devArenaSkeletonHintPool = DEV_ARENA_SKELETON_HINTS.slice();
+      for (let i = devArenaSkeletonHintPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [devArenaSkeletonHintPool[i], devArenaSkeletonHintPool[j]] =
+          [devArenaSkeletonHintPool[j], devArenaSkeletonHintPool[i]];
+      }
+    }
+    text = devArenaSkeletonHintPool.pop();
+  }
+
   const hintLifeSec = 3.5;
   devArenaSkeletonHintNextAt = now + hintLifeSec * 1000;
   devArenaSkeletonHintBubble = addFloatingTextAt(
