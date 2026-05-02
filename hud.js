@@ -1365,48 +1365,28 @@
 
     const drawDevArenaMoveFeed = () => {
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
-      const combos = Array.isArray(window.__devArenaConfirmedCombos)
-        ? window.__devArenaConfirmedCombos.slice(-6)
+
+      const COMBO_LIFETIME_MS = 15000;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+
+      const allCombos = Array.isArray(window.__devArenaConfirmedCombos)
+        ? window.__devArenaConfirmedCombos
         : [];
-      const orderedCombos = combos.slice().reverse();
-      const panelWidth = 290;
-      const panelX = canvas.width - panelWidth - 14;
-      const panelY = hudHeight + 14;
+      // Latest 2 combos that are still within their 15s lifetime
+      const liveCombos = allCombos
+        .filter((c) => Number.isFinite(c.recordedAt) && (now - c.recordedAt) < COMBO_LIFETIME_MS)
+        .slice(-2)
+        .reverse();
+
+      const textX = canvas.width - 304;
       const lineHeight = 18;
-      const panelHeight = 70 + lineHeight * 14;
+      let rowY = hudHeight + 14;
 
       ctx.save();
-      ctx.globalAlpha = 0.94;
-      ctx.fillStyle = 'rgba(10,15,31,0.78)';
-      ctx.strokeStyle = 'rgba(155,217,255,0.7)';
-      ctx.lineWidth = 2;
-      roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 10, true, true);
-      ctx.globalAlpha = 1;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `700 15px ${UI_FONT_FAMILY}`;
-      ctx.fillText('Melee Input Feed', panelX + 14, panelY + 12);
-      ctx.font = `11px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = 'rgba(234,246,255,0.8)';
-      ctx.fillText('Confirmed from damage combo hits', panelX + 14, panelY + 31);
-      const lastApplied = window.__devArenaLastAppliedDamage || null;
-      if (lastApplied) {
-        const baseDamage = Math.max(0, Math.round(Number(lastApplied.baseDamage) || 0));
-        const appliedDamage = Math.max(0, Math.round(Number(lastApplied.appliedDamage) || 0));
-        const multiplier = Number.isFinite(lastApplied.multiplier)
-          ? Number(lastApplied.multiplier).toFixed(2)
-          : "1.00";
-        ctx.fillStyle = 'rgba(255,220,150,0.95)';
-        ctx.font = `700 10px ${UI_FONT_FAMILY}`;
-        ctx.fillText(
-          `Last: ${baseDamage} x${multiplier} = ${appliedDamage} (${lastApplied.damageType}/${lastApplied.damageClass})`,
-          panelX + 14,
-          panelY + 44,
-        );
-      }
 
-      let rowY = panelY + 62;
+      // Last Move (persistent)
       const latestHit = window.__devArenaLastMeleeHit || null;
       if (latestHit) {
         const latestMove = String(latestHit?.move || "Move");
@@ -1414,27 +1394,32 @@
         const latestBonus = Math.max(0, Math.round(Number(latestHit?.bonusDamage) || 0));
         const latestFinal = Math.max(0, Math.round(Number(latestHit?.damage) || 0));
         const counterMultiplier = Number.isFinite(latestHit?.counterMultiplier)
-          ? Number(latestHit.counterMultiplier)
-          : 1;
+          ? Number(latestHit.counterMultiplier) : 1;
         const latestTags = [];
         if (latestHit?.isPunishCounter) latestTags.push("PC");
         else if (latestHit?.isCounterHit) latestTags.push("CA");
-        const latestTagSuffix = latestTags.length
-          ? ` [${latestTags.join(" + ")} x${counterMultiplier.toFixed(2)}]`
-          : "";
-        const latestBreakdown = latestBonus > 0 ? `${latestBase}+${latestBonus}` : `${latestBase}`;
-        ctx.fillStyle = 'rgba(155,217,255,0.96)';
-        ctx.font = `700 12px ${UI_FONT_FAMILY}`;
-        ctx.fillText("LATEST HIT", panelX + 14, rowY);
-        rowY += lineHeight - 2;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `700 16px ${UI_FONT_FAMILY}`;
-        ctx.fillText(`${latestMove}: ${latestFinal} (${latestBreakdown})${latestTagSuffix}`, panelX + 14, rowY);
-        rowY += lineHeight + 6;
+        const tagSuffix = latestTags.length
+          ? ` [${latestTags.join("+")} ×${counterMultiplier.toFixed(2)}]` : "";
+        const breakdown = latestBonus > 0 ? `${latestBase}+${latestBonus}` : `${latestBase}`;
+
+        ctx.fillStyle = 'rgba(155,217,255,0.7)';
+        ctx.font = `700 10px ${UI_FONT_FAMILY}`;
+        ctx.fillText('LAST MOVE', textX, rowY);
+        rowY += 14;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.font = `700 15px ${UI_FONT_FAMILY}`;
+        ctx.fillText(`${latestMove}: ${latestFinal} (${breakdown})${tagSuffix}`, textX, rowY);
+        rowY += lineHeight + 8;
       }
 
-      orderedCombos.forEach((combo) => {
-        if (rowY > panelY + panelHeight - lineHeight) return;
+      // Latest 2 combos with 15s lifetime fade
+      liveCombos.forEach((combo) => {
+        const age = now - (combo.recordedAt || now);
+        const fadeStart = COMBO_LIFETIME_MS * 0.7;
+        const alpha = age > fadeStart
+          ? Math.max(0, 1 - (age - fadeStart) / (COMBO_LIFETIME_MS - fadeStart))
+          : 1;
+
         const rawDetails = Array.isArray(combo?.details) ? combo.details : [];
         const hits = Math.max(2, Math.floor(Number(combo?.hits) || 2), rawDetails.length);
         const details = rawDetails.slice(0, hits).reverse();
@@ -1442,15 +1427,15 @@
         const tagParts = [];
         if (combo?.hasPunishCounter) tagParts.push("PC");
         else if (combo?.hasCounterHit) tagParts.push("CA");
-        const tagSuffix = tagParts.length ? ` [${tagParts.join(" + ")}]` : "";
+        const tagSuffix = tagParts.length ? ` [${tagParts.join("+")}]` : "";
+
+        ctx.globalAlpha = alpha;
         ctx.fillStyle = 'rgba(255,200,106,0.92)';
         ctx.font = `700 11px ${UI_FONT_FAMILY}`;
-        ctx.fillText(`COMBO ${hits} - ${totalDamage}${tagSuffix}`, panelX + 14, rowY + 2);
+        ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}`, textX, rowY);
         rowY += lineHeight;
+
         details.forEach((entry) => {
-          if (rowY > panelY + panelHeight - lineHeight) return;
-          ctx.fillStyle = PALETTE.softWhite;
-          ctx.font = `13px ${UI_FONT_FAMILY}`;
           const moveName = String(entry?.move || "Move");
           const baseDamage = Math.max(0, Math.round(Number(entry?.baseDamage) || 0));
           const bonusDamage = Math.max(0, Math.round(Number(entry?.bonusDamage) || 0));
@@ -1458,25 +1443,18 @@
           const entryTags = [];
           if (entry?.isPunishCounter) entryTags.push("PC");
           else if (entry?.isCounterHit) entryTags.push("CA");
-          const entryTagSuffix = entryTags.length ? ` (${entryTags.join(" + ")})` : "";
-          const breakdown =
-            bonusDamage > 0
-              ? `${baseDamage}+${bonusDamage}`
-              : `${baseDamage}`;
-          ctx.fillText(
-            `- ${moveName}: ${moveDamage} (${breakdown})${entryTagSuffix}`,
-            panelX + 30,
-            rowY,
-          );
+          const entryTagSuffix = entryTags.length ? ` (${entryTags.join("+")})` : "";
+          const breakdown = bonusDamage > 0 ? `${baseDamage}+${bonusDamage}` : `${baseDamage}`;
+          ctx.fillStyle = 'rgba(234,246,255,0.88)';
+          ctx.font = `12px ${UI_FONT_FAMILY}`;
+          ctx.fillText(`  ${moveName}: ${moveDamage} (${breakdown})${entryTagSuffix}`, textX, rowY);
           rowY += lineHeight;
         });
-        if (rowY <= panelY + panelHeight - lineHeight) {
-          ctx.fillStyle = 'rgba(143,163,191,0.8)';
-          ctx.font = `10px ${UI_FONT_FAMILY}`;
-          ctx.fillText('-----', panelX + 30, rowY);
-          rowY += lineHeight - 4;
-        }
+
+        ctx.globalAlpha = 1;
+        rowY += 6;
       });
+
       ctx.restore();
     };
 
