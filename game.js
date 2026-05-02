@@ -592,6 +592,7 @@ if (playerDeathBellAudio) {
   playerDeathBellAudio.preload = "auto";
   playerDeathBellAudio.volume = 1;
 }
+const DEV_ARENA_MUSIC_SRC = "assets/music/suspense.mp3";
 const musicState = {
   intro: typeof Audio !== "undefined" ? new Audio(INTRO_MUSIC_SRC) : null,
   battle: typeof Audio !== "undefined" ? new Audio(BATTLE_MUSIC_SRC) : null,
@@ -603,6 +604,7 @@ const musicState = {
   exterior: typeof Audio !== "undefined" ? new Audio(EXTERIOR_MUSIC_SRC) : null,
   exteriorBoss: typeof Audio !== "undefined" ? new Audio(EXTERIOR_BOSS_MUSIC_SRC) : null,
   bossDeath: typeof Audio !== "undefined" ? new Audio(BOSS_DEATH_MUSIC_SRC) : null,
+  devArena: typeof Audio !== "undefined" ? new Audio(DEV_ARENA_MUSIC_SRC) : null,
   introStarted: false,
   battleStarted: false,
   congregationStarted: false,
@@ -4578,9 +4580,9 @@ function spawnDevMeleeArenaEnemy() {
     applyCameraShake: false,
   });
   if (!enemy) return false;
-  enemy.x = center.x - 100;
+  enemy.x = center.x + 100;
   enemy.y = center.y + 100;
-  enemy.devAnchorX = center.x - 100;
+  enemy.devAnchorX = center.x + 100;
   enemy.devAnchorY = center.y + 100;
   enemy.devImmobileTestDummy = true;
   enemy.devArenaPrimaryDummy = true;
@@ -4599,7 +4601,7 @@ function getDevArenaImpHordeCenter() {
   const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
   return {
     x: (canvas?.width || 0) - 220,
-    y: hud + ((canvas?.height || 0) - hud) - 160,
+    y: hud + ((canvas?.height || 0) - hud) - 310,
   };
 }
 
@@ -4685,7 +4687,7 @@ function maintainDevArenaImpHorde() {
 
 function getDevArenaDemonLordPosition() {
   const center = getDevMeleeArenaCenter();
-  return { x: center.x + 100, y: center.y + 100 };
+  return { x: center.x - 250, y: center.y - 50 };
 }
 
 function spawnDevArenaDemonLord() {
@@ -4793,6 +4795,11 @@ function activateDevMeleeArenaMode() {
   initializeDevArenaImpHordeSlots();
   maintainDevArenaImpHorde();
   enforceDevMeleeArenaVitals();
+  pauseAllMusic();
+  if (musicState.devArena) {
+    musicState.devArena.currentTime = 0;
+    playMusic(musicState.devArena, { volume: MUSIC_VOLUME_BATTLE, loop: true });
+  }
   setDevStatus("Dev Arena active", 2.2);
 }
 
@@ -7704,6 +7711,7 @@ function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
   devMeleeArenaMode = false;
+  if (musicState.devArena) musicState.devArena.pause();
   resetDevMeleeMoveFeed();
   if (typeof window !== "undefined") {
     window.__battlechurchDevMeleeArenaMode = false;
@@ -25418,6 +25426,7 @@ function onPlayerDeath() {
 
 function restartGame() {
   devMeleeArenaMode = false;
+  if (musicState.devArena) musicState.devArena.pause();
   pendingDevMeleeArenaLaunch = false;
   resetDevMeleeMoveFeed();
   if (typeof window !== "undefined") {
