@@ -9617,7 +9617,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const isCongregationStage =
       (levelStatus?.stage === "levelIntro" || levelStatus?.stage === "congregationToTeaser") &&
       !gameOver &&
-      !visitorStageActive;
+      !visitorStageActive &&
+      !window.__battlechurchDevMeleeArenaMode;
     const shakeOffset = getCameraShakeOffset();
     sharedShakeOffset.x = shakeOffset.x;
     sharedShakeOffset.y = shakeOffset.y;
@@ -9652,7 +9653,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     drawHudComboUnderlay(ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT);
 
-  // ...existing code...
   drawSpawnPointDebug(ctx);
   drawNpcHomeBounds(ctx);
 

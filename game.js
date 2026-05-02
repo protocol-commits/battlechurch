@@ -4429,7 +4429,7 @@ function getDevMeleeArenaCenter() {
   const hud = typeof HUD_HEIGHT !== "undefined" ? HUD_HEIGHT : 0;
   return {
     x: (canvas?.width || 0) * 0.5,
-    y: hud + ((canvas?.height || 0) - hud) * 0.5,
+    y: hud + ((canvas?.height || 0) - hud) * 0.67,
   };
 }
 
@@ -4618,7 +4618,9 @@ function activateDevMeleeArenaMode() {
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   clearCongregationMembers();
   clearCongregationSpeechBubbles();
-  resetCozyNpcs(0);
+  npcsSuspended = false;
+  missionIntroFadeAlpha = 0;
+  resetCozyNpcs(5);
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
   bossHazards.splice(0, bossHazards.length);
@@ -4631,7 +4633,7 @@ function activateDevMeleeArenaMode() {
   if (player) {
     const center = getDevMeleeArenaCenter();
     player.x = center.x;
-    player.y = center.y + 180;
+    player.y = center.y - 180;
     clampEntityToBounds(player);
     player.maxHealth = DEV_MELEE_ARENA_HEALTH;
     player.health = DEV_MELEE_ARENA_HEALTH;
@@ -13014,10 +13016,6 @@ class CozyNpc {
 
   updateFaithVisibility(force = false) {
     this.faithBarVisible = force || this.faith < this.maxFaith || this.state !== "wander";
-    // Debug: whether the faith bar should be visible now
-    if (typeof console !== 'undefined' && console.debug) {
-      console.debug && console.debug('NPC.updateFaithVisibility', { type: this.type, force, faith: this.faith, maxFaith: this.maxFaith, state: this.state, faithBarVisible: this.faithBarVisible });
-    }
   }
 
   setStatusBubble(message, { color = "#EAF6FF", duration = 2.5, persist = false, critical = false } = {}) {
@@ -15772,7 +15770,6 @@ function spawnCozyNpc() {
 
 function resetCozyNpcs(count = 5) {
   npcs.splice(0, npcs.length);
-  if (isDevMeleeArenaActive()) return;
   const targetCount = count ?? 5;
   for (let i = 0; i < targetCount; i += 1) {
     if (!spawnCozyNpc()) break;
