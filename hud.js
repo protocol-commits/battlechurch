@@ -726,50 +726,6 @@
       const playerLabel = (typeof GameText !== 'undefined' && GameText.hud?.player) || 'PLAYER';
       ctx.fillText(playerLabel, x, playerRowY);
 
-      const playerLabelWidth = ctx.measureText(playerLabel).width || 0;
-      const churchPowerupOptions =
-        typeof window !== 'undefined' && window.ChurchPowerups?.getOptions
-          ? window.ChurchPowerups.getOptions()
-          : [];
-      const churchPowerupOrder = ['spreadGun', 'halo', 'spear', 'sentry'];
-      const churchPowerupLevelsByKey = new Map();
-      if (Array.isArray(churchPowerupOptions)) {
-        churchPowerupOptions.forEach((option) => {
-          if (!option || !option.key) return;
-          churchPowerupLevelsByKey.set(option.key, Math.max(0, Math.floor(Number(option.level) || 0)));
-        });
-      }
-      const churchUpgradeEntries = churchPowerupOrder
-        .map((key) => ({
-          key,
-          level: churchPowerupLevelsByKey.get(key) || 0,
-          icon:
-            assets?.churchPowerups?.[key]?.iconImage ||
-            scoreboardIcons.congregation ||
-            null,
-        }))
-        .filter((entry) => entry.level > 0);
-      if (churchUpgradeEntries.length) {
-        const iconSize = 14;
-        const gap = 4;
-        const itemGap = 10;
-        const textPadding = 2;
-        let chipX = x + playerLabelWidth + 12;
-        const chipMaxX = x + width;
-        churchUpgradeEntries.forEach((entry) => {
-          const levelText = `${entry.level}`;
-          const levelTextWidth = ctx.measureText(levelText).width || 0;
-          const itemWidth =
-            (entry.icon && entry.icon.complete ? iconSize + gap : 0) + levelTextWidth + textPadding;
-          if (chipX + itemWidth > chipMaxX) return;
-          if (entry.icon && entry.icon.complete) {
-            ctx.drawImage(entry.icon, chipX, playerRowY - iconSize / 2 - 5, iconSize, iconSize);
-            chipX += iconSize + gap;
-          }
-          ctx.fillText(levelText, chipX, playerRowY);
-          chipX += levelTextWidth + itemGap;
-        });
-      }
       ctx.restore();
 
       const rows = [];
@@ -1072,7 +1028,53 @@
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
-      ctx.fillText(`${townName.toUpperCase()} ${positionLabel}`, x, panelY + 14);
+      const townRowY = panelY + 14;
+      const townLabelText = `${townName.toUpperCase()} ${positionLabel}`;
+      ctx.fillText(townLabelText, x, townRowY);
+      const townLabelWidth = ctx.measureText(townLabelText).width || 0;
+      const churchPowerupOptions =
+        typeof window !== 'undefined' && window.ChurchPowerups?.getOptions
+          ? window.ChurchPowerups.getOptions()
+          : [];
+      const churchPowerupOrder = ['spreadGun', 'halo', 'spear', 'sentry'];
+      const churchPowerupLevelsByKey = new Map();
+      if (Array.isArray(churchPowerupOptions)) {
+        churchPowerupOptions.forEach((option) => {
+          if (!option || !option.key) return;
+          churchPowerupLevelsByKey.set(option.key, Math.max(0, Math.floor(Number(option.level) || 0)));
+        });
+      }
+      const churchUpgradeEntries = churchPowerupOrder
+        .map((key) => ({
+          key,
+          level: churchPowerupLevelsByKey.get(key) || 0,
+          icon:
+            assets?.churchPowerups?.[key]?.iconImage ||
+            scoreboardIcons.congregation ||
+            null,
+        }))
+        .filter((entry) => entry.level > 0);
+      if (churchUpgradeEntries.length) {
+        const iconSize = 14;
+        const gap = 4;
+        const itemGap = 10;
+        const textPadding = 2;
+        let chipX = x + townLabelWidth + 12;
+        const chipMaxX = x + width;
+        churchUpgradeEntries.forEach((entry) => {
+          const levelText = `${entry.level}`;
+          const levelTextWidth = ctx.measureText(levelText).width || 0;
+          const itemWidth =
+            (entry.icon && entry.icon.complete ? iconSize + gap : 0) + levelTextWidth + textPadding;
+          if (chipX + itemWidth > chipMaxX) return;
+          if (entry.icon && entry.icon.complete) {
+            ctx.drawImage(entry.icon, chipX, townRowY - iconSize / 2 - 5, iconSize, iconSize);
+            chipX += iconSize + gap;
+          }
+          ctx.fillText(levelText, chipX, townRowY);
+          chipX += levelTextWidth + itemGap;
+        });
+      }
       ctx.restore();
 
       const meterX = x;
