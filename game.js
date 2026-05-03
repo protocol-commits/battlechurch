@@ -21676,6 +21676,8 @@ function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5 + 200 * WO
   playerDashState.crashDashActive = true;
   playerDashState.crashDashHitEntities = new Set();
   playerDashState.crashDashDamage = 100;
+  playerDashState.clashFeedbackCooldown = 0;
+  playerDashState.clashHitAccum = 0;
   setSharedBButtonCooldown(DASH_COOLDOWN);
   playDashSfx(0.9);
   return true;
@@ -21714,8 +21716,21 @@ function updateDashMovement(dt) {
       if (Math.hypot(enemy.x - player.x, enemy.y - player.y) <= contactRadius + (enemy.radius || 20)) {
         hitSet.add(enemy);
         enemy.takeDamage(playerDashState.crashDashDamage || 20, { damageType: "melee" });
+        if (playerDashState.isHolyDash) {
+          playerDashState.clashHitAccum = (playerDashState.clashHitAccum || 0) + 1;
+          if ((playerDashState.clashFeedbackCooldown || 0) <= 0) {
+            const shakeMult = Math.min(1 + (playerDashState.clashHitAccum - 1) * 0.2, 2.5);
+            playThrashHitSfx(0.8);
+            applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE * shakeMult);
+            playerDashState.clashFeedbackCooldown = 0.18;
+            playerDashState.clashHitAccum = 0;
+          }
+        }
       }
     });
+  }
+  if ((playerDashState.clashFeedbackCooldown || 0) > 0) {
+    playerDashState.clashFeedbackCooldown = Math.max(0, playerDashState.clashFeedbackCooldown - dt);
   }
 
   // End dash when distance complete
@@ -21922,6 +21937,14 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
     const counterHit = getCounterHitResult(enemy, SWORD_RUSH_BLAST_DAMAGE, meleeAttackState);
     const damage = counterHit.damage;
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
+    meleeAttackState.wardHitAccum = (meleeAttackState.wardHitAccum || 0) + 1;
+    if ((meleeAttackState.wardFeedbackCooldown || 0) <= 0) {
+      const shakeMult = Math.min(1 + (meleeAttackState.wardHitAccum - 1) * 0.2, 2.5);
+      playThrashHitSfx(0.8);
+      applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE * shakeMult);
+      meleeAttackState.wardFeedbackCooldown = 0.18;
+      meleeAttackState.wardHitAccum = 0;
+    }
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
     registerMeleeComboHit(enemy, meleeAttackState, "Thrash", {
@@ -22034,7 +22057,11 @@ function updateRushMovement(dt, direction, meleeAttackState) {
 
   while (meleeAttackState.rushDustAccumulator >= RUSH_DUST_SPACING) {
     meleeAttackState.rushDustAccumulator -= RUSH_DUST_SPACING;
-    spawnPuffEffect(player.x, player.y + player.radius * 0.5, 18 * WORLD_SCALE);
+    if (meleeAttackState.swordRushActive) {
+      spawnFlashEffect(player.x, player.y);
+    } else {
+      spawnPuffEffect(player.x, player.y + player.radius * 0.5, 18 * WORLD_SCALE);
+    }
   }
 
   if (meleeAttackState.rushDistanceRemaining <= 0 || blockedByBounds) {
@@ -23832,6 +23859,8 @@ function executeSwordRush(meleeAttackState) {
   meleeAttackState.swordRushActive = true;
   meleeAttackState.swordRushBlastHitEntities = new Set();
   meleeAttackState.currentAttackHitboxType = "swordRush";
+  meleeAttackState.wardFeedbackCooldown = 0;
+  meleeAttackState.wardHitAccum = 0;
 }
 
 function updateRingOfFireMotion(dt, meleeAttackState) {
@@ -23972,6 +24001,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
   if ((meleeAttackState.thrashFeedbackCooldown || 0) > 0) {
     meleeAttackState.thrashFeedbackCooldown = Math.max(0, meleeAttackState.thrashFeedbackCooldown - dt);
+  }
+  if ((meleeAttackState.wardFeedbackCooldown || 0) > 0) {
+    meleeAttackState.wardFeedbackCooldown = Math.max(0, meleeAttackState.wardFeedbackCooldown - dt);
   }
   if (meleeAttackState.rushShieldDebugTimer > 0) {
     meleeAttackState.rushShieldDebugTimer = Math.max(0, meleeAttackState.rushShieldDebugTimer - dt);
