@@ -102,6 +102,7 @@ let graceRushFadeHold = false;
 let graceRushFadeReleaseTimer = 0;
 let graceRushBlackout = false;
 let graceRushHardBlackoutTimer = 0;
+let bossVictoryElapsed = 0;
 let recapIntroFadeTimer = 0;
 let recapIntroFadeDuration = 0;
 let recapIntroFadeAlpha = 0;
@@ -25239,6 +25240,20 @@ function updateGame(dt) {
     graceRushFadeReleaseTimer = 0;
     graceRushBlackout = false;
     graceRushHardBlackoutTimer = 0;
+  }
+  const _bossVictoryStage = levelStatus?.stage === "bossVictoryCelebrate" || levelStatus?.stage === "bossBonusTransition";
+  if (_bossVictoryStage) {
+    bossVictoryElapsed += dt;
+  } else {
+    bossVictoryElapsed = 0;
+  }
+  if (_bossVictoryStage && keysJustPressed.has(" ") && bossVictoryElapsed >= 1.5) {
+    keysJustPressed.delete(" ");
+    bossBonusTransitionFadeTimer = 0;
+    bossBonusTransitionFadeDuration = 0;
+    bossBonusTransitionFadeAlpha = 0;
+    bossVictoryElapsed = 0;
+    if (levelManager?.skipBossVictory) levelManager.skipBossVictory();
   }
   updateGraceRushFadeRelease(dt);
   if (!isDevMeleeArenaActive()) {

@@ -1333,6 +1333,18 @@
       return true;
     }
 
+    function skipBossVictory() {
+      if (state.stage !== "bossVictoryCelebrate" && state.stage !== "bossBonusTransition") return false;
+      state.timer = 0;
+      state.graceRushContext = null;
+      if (state.pendingBossRestore) {
+        restoreNpcsAfterBoss();
+        state.pendingBossRestore = false;
+      }
+      handleLevelCleared();
+      return true;
+    }
+
     function startNpcRush() {
       const home = typeof getNpcHomeBounds === "function" ? getNpcHomeBounds() : null;
       const members = typeof congregationMembers !== "undefined" ? congregationMembers : null;
@@ -2635,6 +2647,7 @@ state.waveIndex = -1;
       advanceFromCongregation,
       advanceFromBriefTeaser,
       skipGraceRush,
+      skipBossVictory,
     };
   }
 
