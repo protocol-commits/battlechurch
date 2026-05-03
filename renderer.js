@@ -6548,20 +6548,45 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawRingOfFireDebugCircle(ctx, centerX, centerY, radius, band = 20, progress = 1, alpha = 1, startAngle = -Math.PI * 0.5, direction = 1) {
     if (!ctx || radius <= 0 || progress <= 0) return;
     const clamped = Math.max(0, Math.min(1, progress));
-    const endAngle = startAngle + direction * Math.PI * 2 * clamped;
-    const anticlockwise = direction < 0;
+    const circumference = Math.PI * 2 * radius * clamped;
+    const segmentCount = Math.max(12, Math.round(circumference / 10));
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+    // Build arc points
+    const points = [];
+    for (let i = 0; i <= segmentCount; i++) {
+      const t = i / segmentCount;
+      const angle = startAngle + direction * t * Math.PI * 2 * clamped;
+      points.push({ x: centerX + Math.cos(angle) * radius, y: centerY + Math.sin(angle) * radius, idx: i });
+    }
     ctx.save();
-    ctx.globalAlpha = 0.18 * alpha;
-    ctx.strokeStyle = "#FFB347";
-    ctx.lineWidth = Math.max(2, band);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.shadowColor = "#FFE45C";
+    ctx.shadowBlur = 18;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    // Outer glow pass
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle, anticlockwise);
+    points.forEach((p, i) => {
+      const jitter = Math.sin(now * 16 + p.idx * 1.1) * 1.8;
+      const px = p.x + jitter;
+      const py = p.y - jitter;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.strokeStyle = "#FFD94A";
+    ctx.lineWidth = 5;
     ctx.stroke();
-    ctx.globalAlpha = 0.75 * alpha;
-    ctx.strokeStyle = "#FFE7A1";
-    ctx.lineWidth = 3;
+    // Inner bright core pass
+    ctx.shadowBlur = 8;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle, anticlockwise);
+    points.forEach((p, i) => {
+      const jitter = Math.sin(now * 16 + p.idx * 1.1) * 0.8;
+      const px = p.x + jitter;
+      const py = p.y - jitter;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.strokeStyle = "#FFF7A8";
+    ctx.lineWidth = 2.2;
     ctx.stroke();
     ctx.restore();
   }
