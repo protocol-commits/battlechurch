@@ -1474,6 +1474,7 @@
           ? PROJECTILE_CONFIG.arrow.life * bossRangeMultiplier
           : undefined,
         source: this,
+        perseveranceFeedback: this.isArrowExtendProjectileBuffActive(),
       });
       this.spawnSpreadGunShots(direction, originX, originY, bossRangeMultiplier);
       const playArrowSfx =
@@ -1834,7 +1835,7 @@
     const hasAlternating = (effectiveStreamCount % 2) === 1;
     const useLightSpreadVisual = true;
     const buildSpreadShotOverrides = (dx, dy) => {
-      const overrides = { damage, scale, life, source: this };
+      const overrides = { damage, scale, life, source: this, perseveranceFeedback: this.isArrowExtendProjectileBuffActive() };
       if (useLightSpreadVisual) {
         const baseArrowSpeed = Number.isFinite(PROJECTILE_CONFIG?.arrow?.speed)
           ? PROJECTILE_CONFIG.arrow.speed

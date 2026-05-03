@@ -14232,6 +14232,7 @@ class Projectile {
     this.homingStrength = Math.max(0, config.homingStrength ?? 0);
     this.isDivineShot = Boolean(config.isDivineShot);
     this.scriptureFeedback = Boolean(config.scriptureFeedback);
+    this.perseveranceFeedback = Boolean(config.perseveranceFeedback);
     this.fireThrowerBomb = Boolean(config.fireThrowerBomb);
     this.fireThrowerBombState = this.fireThrowerBomb ? "flight" : null;
     this.fireThrowerFlightTimer = Math.max(0, Number(config.flightDuration) || 0);
@@ -20779,6 +20780,11 @@ function processProjectileCollisions(dt) {
               playFaithHitSfx(0.8);
             }
             applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+          } else if (projectile.perseveranceFeedback) {
+            if (typeof playFaithHitSfx === "function") {
+              playFaithHitSfx(0.75);
+            }
+            applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
           }
           if (projectile.scriptureFeedback) {
             triggerScriptureHitFeedback(hitX, hitY, { isBoss: false });
@@ -20875,6 +20881,11 @@ function processProjectileCollisions(dt) {
               if (encouragementFaithFeedback) {
                 if (typeof playFaithHitSfx === "function") {
                   playFaithHitSfx(0.8);
+                }
+                applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+              } else if (projectile.perseveranceFeedback) {
+                if (typeof playFaithHitSfx === "function") {
+                  playFaithHitSfx(0.75);
                 }
                 applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
               }
