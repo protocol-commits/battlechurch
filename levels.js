@@ -445,7 +445,7 @@
     if (typeof deps.getScore !== "function") deps.getScore = () => 0;
   }
 
-  function clearStagePowerUps() {
+  function clearStagePowerUps({ keepGrace = false } = {}) {
     if (typeof deps.clearPowerUps === "function") {
       try {
         deps.clearPowerUps();
@@ -453,7 +453,7 @@
         console.warn && console.warn("clearPowerUps hook failed", err);
       }
     }
-    if (typeof deps.clearGrace === "function") {
+    if (!keepGrace && typeof deps.clearGrace === "function") {
       try {
         deps.clearGrace();
       } catch (err) {
@@ -1715,7 +1715,7 @@
     }
 
     function beginBattleVictoryCelebrate(monthName) {
-      clearStagePowerUps();
+      clearStagePowerUps({ keepGrace: true });
       resetStage("victoryCelebrate", VICTORY_CELEBRATE_DURATION);
       state.finalWaveDelay = 0;
       state.graceRushContext = null;
