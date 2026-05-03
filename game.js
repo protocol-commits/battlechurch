@@ -303,19 +303,7 @@ const CONGREGATION_DIALOGUE_LINES_BY_CAMPAIGN =
 const CONGREGATION_WAVE_INTRO_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveIntro || {};
 const CONGREGATION_WAVE_END_DIALOGUE = CONGREGATION_DIALOGUE_DATA.waveEnd || {};
 const CONGREGATION_RED_FAITH_DIALOGUE = CONGREGATION_DIALOGUE_DATA.redFaith || {};
-const CONGREGATION_NPC_POWERUP_DIALOGUE = CONGREGATION_DIALOGUE_DATA.npcPowerups || {};
 const CONGREGATION_BATTLE_VICTORY_DIALOGUE = CONGREGATION_DIALOGUE_DATA.battleVictory || {};
-const CONGREGATION_WELCOME_LINES = CONGREGATION_DIALOGUE_DATA.welcomeLines || [];
-const CONGREGATION_WELCOME_LINES_XBOX = CONGREGATION_DIALOGUE_DATA.welcomeLinesXbox || [];
-const MAX_CONGREGATION_WELCOME_HINTS = 11;
-
-function getActiveCongregationWelcomeLines() {
-  const gamepadConnected = Boolean(window?.Input?.gamepadState?.connected);
-  if (gamepadConnected && Array.isArray(CONGREGATION_WELCOME_LINES_XBOX) && CONGREGATION_WELCOME_LINES_XBOX.length) {
-    return CONGREGATION_WELCOME_LINES_XBOX;
-  }
-  return CONGREGATION_WELCOME_LINES;
-}
 
 function getCongregationIntroLinesForCampaign(campaignIdRaw) {
   const campaignId = String(campaignIdRaw || "").toLowerCase();

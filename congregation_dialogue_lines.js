@@ -108,39 +108,6 @@
     ],
   };
 
-  const npcPowerups = {
-    life: 5.6,
-    linesByEffect: {
-      npcScriptureWeapon: [
-        "I see how that verse applies!",
-        "That passage makes sense to me now.",
-        "I can finally see what that scripture means.",
-        "That verse is speaking right to this battle.",
-        "I know how to stand on that scripture now.",
-      ],
-      npcFaithWeapon: [
-        "I see God's sovereignty in this.",
-        "God is still in control here.",
-        "I'm learning to trust God in this fight.",
-        "I can act in faith here.",
-        "The Lord is steady, even in this.",
-      ],
-      npcWisdomWeapon: [
-        "Oh, that's how it applies.",
-        "I understand how to use that now.",
-        "That gives me wisdom for this battle.",
-        "I can see what I need to do now.",
-        "That helps me discern what's happening.",
-      ],
-      harmony: [
-        "Let's pray for one another.",
-        "We're stronger when we stand together.",
-        "Let's stay in one spirit.",
-        "I feel us growing closer already.",
-        "Let's carry this burden together.",
-      ],
-    },
-  };
 
   const battleVictory = {
     maxSpeakers: 5,
@@ -162,51 +129,11 @@
     ],
   };
 
-  const welcomeLines = [
-    "Tip: Press W, A, S, D keys to move, or you can use an X-Box controller.",
-    'Tip: "A" button is the LEFT key. "B" button is DOWN key. "C" button is the RIGHT key.',
-    "Tip: Your Prayer Meter fills as you smite enemies. (Not shown here).",
-    "Tip: Your Prayer Meter holds 6 Prayers. Prayer moves spend Prayers.",
-    'Tip: The little circle below you means Button B is ready, including B-combos.',
-    "Tip: Hold B to dash further toward a powerup.",
-    "Tip: Hold A + Hold B for a Blitz!",
-    "Tip: Press A then B quickly for Cleave.",
-    "Tip: Press B then A quickly for a Rush.",
-    "Tip: Tap C to make us fire at enemies!",
-    "Tip: Hold C down for Purge!",
-    "Tip: Double-tap C and we'll protect you!",
-    "Tip: Hold C + Hold A for a Hedge.",
-    "Tip: Hold B + Hold C to Blink Teleport to a powerup.",
-    "Tip: Tap C then A quickly for Spin.",
-  ];
-
-  const welcomeLinesXbox = [
-    "Tip: Use Left Stick or D-Pad to move.",
-    'Tip: Controller mapping: "A" is Button A, "B" is Button B, and "C" is RB.',
-    "Tip: Your Prayer Meter fills as you smite enemies. (Not shown here).",
-    "Tip: Your Prayer Meter holds 6 Prayers. Prayer moves spend Prayers.",
-    'Tip: The little circle below you means Button B is ready, including B-combos.',
-    "Tip: Hold B to dash further toward a powerup.",
-    "Tip: Hold A + Hold B for a Blitz!",
-    "Tip: Press A then B quickly for Cleave.",
-    "Tip: Press B then A quickly for a Rush.",
-    "Tip: Tap RB to make us fire at enemies!",
-    "Tip: Hold RB for Purge!",
-    "Tip: Double-tap RB and we'll protect you!",
-    "Tip: Hold RB + Hold A for a Hedge.",
-    "Tip: Hold B + Hold RB to Blink Teleport to a powerup.",
-    "Tip: Tap RB then A quickly for Spin.",
-    "Tip: Press Menu button to start the fight.",
-  ];
-
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
   ns.linesByCampaign = linesByCampaign;
-  ns.welcomeLines = welcomeLines;
-  ns.welcomeLinesXbox = welcomeLinesXbox;
   ns.waveIntro = waveIntro;
   ns.waveEnd = waveEnd;
   ns.redFaith = redFaith;
-  ns.npcPowerups = npcPowerups;
   ns.battleVictory = battleVictory;
 })(typeof window !== "undefined" ? window : globalThis);
