@@ -18242,6 +18242,7 @@ function checkDialogOverlays() {
     if (pendingPastorPostRecapAfterUpgrade) {
       const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
       window.UpgradeScreen.show(() => {
+        stopRecapMusic();
         pendingPostUpgradeTransition = true;
         runPostUpgradeSaveThen(() => {
           pendingPostUpgradeTransition = false;
@@ -18256,6 +18257,7 @@ function checkDialogOverlays() {
     } else if (lastSummaryWasLevelEnd && (lastCompletedLevel === 1 || lastCompletedLevel === 2)) {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Mission 2, Level 2 done → Mission 3
       window.UpgradeScreen.show(() => {
+        stopRecapMusic();
         pendingPostUpgradeTransition = true;
         runPostUpgradeSaveThen(() => {
           pendingPostUpgradeTransition = false;
@@ -18273,6 +18275,7 @@ function checkDialogOverlays() {
       });
     } else {
       window.UpgradeScreen.show(() => {
+        stopRecapMusic();
         runPostUpgradeSaveThen(() => {
           if (typeof levelManager?.requestUpgradeToTeaserTransition === "function") {
             levelManager.requestUpgradeToTeaserTransition();
