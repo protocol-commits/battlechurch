@@ -7819,7 +7819,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       UI_FONT_FAMILY,
     } = requireBindings();
 
-    console.log("drawMissionIntroScreen called - missionNumber:", missionIntroNumber, "fadeAlpha:", missionIntroFadeAlpha, "hasImage:", !!missionIntroImage);
 
     // Draw background image (Act 1 gets heat shimmer like title/map).
     if (missionIntroImage) {
@@ -9251,7 +9250,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // we never flash congregation/pause content between states.
     if (mapLaunchHandoffActive && !townIntroActive && !exteriorShotActive) {
       const handoffAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
-      const introImage = assets?.backgrounds?.townIntro || null;
+      const _handoffMissionNum = requireBindings().missionIntroNumber || 1;
+      const introImage = (_handoffMissionNum === 2 ? assets?.backgrounds?.act2 : _handoffMissionNum >= 3 ? assets?.backgrounds?.act3 : null) || assets?.backgrounds?.townIntro || null;
       ctx.save();
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -9287,8 +9287,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         TOWN_INTRO_ZOOM_DURATION,
         TOWN_INTRO_FADE_DURATION,
         townIntroTransitionTimer,
+        missionIntroNumber: _transitionMissionNum,
       } = requireBindings();
-      const img = assets?.backgrounds?.townIntro || null;
+      const img = (_transitionMissionNum === 2 ? assets?.backgrounds?.act2 : _transitionMissionNum >= 3 ? assets?.backgrounds?.act3 : null) || assets?.backgrounds?.townIntro || null;
       const zoomDuration = Math.max(0.001, TOWN_INTRO_ZOOM_DURATION || 0.5);
       const fadeDuration = Math.max(0.001, TOWN_INTRO_FADE_DURATION || 0.5);
       const zoomProgress = Math.min(1, Math.max(0, townIntroTransitionTimer / zoomDuration));

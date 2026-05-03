@@ -7747,14 +7747,21 @@ function queueTownIntroAnnouncement() {
     ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
     : 1;
   if (devStartOverride && localBattleNumber > 1) {
-    // Dev level-editor playtest jump into an in-town battle:
-    // skip town intro/congregation and start at teaser -> battle brief flow.
+    const missionsPerBattleJ = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
+    const jumpOrderNumber = Math.floor((localBattleNumber - 1) / missionsPerBattleJ) + 1;
     const townList = mapData?.towns || [];
     const townIndex = townList.findIndex((t) => t?.id === activeTownId);
     const levelNumber = townIndex >= 0 ? townIndex + 1 : 1;
     pendingTownIntroStart = false;
     suppressInitialAnnouncements = false;
     paused = false;
+    // Resuming at Mission 2 or 3: show the act-break intro screen first.
+    // startActBreakTeaser (called on dismiss) will jump to the right flat battle.
+    if (jumpOrderNumber > 1) {
+      pendingDevBattleStartOverride = null;
+      showMissionIntro(jumpOrderNumber);
+      return;
+    }
     if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
       levelManager.beginBattleFromTownIntro(levelNumber, localBattleNumber);
     }
@@ -18152,7 +18159,7 @@ function updateDeathBellAudio(dt) {
 function showMissionIntro(actNumber) {
   missionIntroActive = true;
   missionIntroNumber = actNumber;
-  missionIntroImage = actNumber === 2 ? assets?.backgrounds?.act2 : assets?.backgrounds?.act3;
+  missionIntroImage = actNumber === 2 ? assets?.backgrounds?.act2 : actNumber === 3 ? assets?.backgrounds?.act3 : null;
   keysJustPressed.delete(" ");
 }
 
