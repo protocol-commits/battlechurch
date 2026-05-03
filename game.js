@@ -4021,7 +4021,7 @@ const TORMENTOR_FLAME_THROW_SPEED = 420;
 const TORMENTOR_FLAME_THROW_DURATION = 0.48;
 const TORMENTOR_FLAME_THROW_TOUCH_DELAY = 0.14;
 const DIVINE_SHOT_DAMAGE = 100;
-const DIVINE_SHOT_SPEED = 920 * SPEED_SCALE;
+const DIVINE_SHOT_SPEED = 1400 * SPEED_SCALE;
 const DIVINE_SHOT_LIFE = 2.8;
 const DIVINE_SHOT_AUTO_AIM_DURATION = 1.6;
 const DIVINE_SHOT_AUTO_AIM_STRENGTH = 3.2;
@@ -23814,6 +23814,7 @@ function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false }
     friendly: true,
     damage: DIVINE_SHOT_DAMAGE,
     life: DIVINE_SHOT_LIFE,
+    speed: DIVINE_SHOT_SPEED,
     source: player,
     damageType: "charged",
     autoAimDuration: DIVINE_SHOT_AUTO_AIM_DURATION,
