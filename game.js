@@ -22403,7 +22403,7 @@ function getComboMoveNameForHit(meleeAttackState, explicitMoveName = null) {
   const hitboxType = String(meleeAttackState?.currentAttackHitboxType || "").trim();
   if (hitboxType === "swordRush") return "Thrash";
   if (hitboxType === "rush") return "Smash";
-  if (hitboxType === "holyGround") return "Ward";
+  if (hitboxType === "holyGround") return "Hedge";
   if (hitboxType === "slash" || hitboxType === "dashSlash") return "Slash";
   if (hitboxType === "spin") return "Reap";
   return "Slash";
@@ -23750,7 +23750,7 @@ function executeRingOfFireAttack(meleeAttackState) {
   executeSpinAttack(meleeAttackState, null, { skipYell: true });
   // Preserve Refuge identity for callouts/feed instead of generic Spin.
   meleeAttackState.currentAttackHitboxType = "holyGround";
-  registerComboMoveName(meleeAttackState, "Ward");
+  registerComboMoveName(meleeAttackState, "Hedge");
   meleeAttackState.ringFireActive = true;
   meleeAttackState.ringFirePhase = "trace";
   meleeAttackState.ringFireCenterX = centerX;
@@ -24136,7 +24136,7 @@ function updateChargeState(dt, meleeAttackState) {
     Boolean(aFull && player && player.prayerHoldLocked && (player.prayerCharge || 0) >= prayerSuperCost);
   const abReady = Boolean(meleeAttackState.abSuperArmed) || Boolean(aFull && bFull);
   const teleportReady = Boolean(meleeAttackState.bcTeleportArmed);
-  const readyMove = abReady ? "Thrash" : acReady ? "Ward" : teleportReady ? "Flash" : "";
+  const readyMove = abReady ? "Thrash" : acReady ? "Hedge" : teleportReady ? "Flash" : "";
   if (readyMove) {
     showDualChargeReadyPreview(meleeAttackState, readyMove);
   } else {
@@ -24898,7 +24898,7 @@ function updateMeleeAttackSystem(dt) {
           );
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
           if (typeof cancelCongregationTap === "function") cancelCongregationTap();
-          showDualChargeReadyPreview(meleeAttackState, "Ward", { executed: true });
+          showDualChargeReadyPreview(meleeAttackState, "Hedge", { executed: true });
           executeRingOfFireAttack(meleeAttackState);
         } else if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);

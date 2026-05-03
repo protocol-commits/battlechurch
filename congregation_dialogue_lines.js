@@ -175,7 +175,7 @@
     "Tip: Tap C to make us fire at enemies!",
     "Tip: Hold C down for Purge!",
     "Tip: Double-tap C and we'll protect you!",
-    "Tip: Hold C + Hold A for a Holy Ground ring of fire.",
+    "Tip: Hold C + Hold A for a Hedge.",
     "Tip: Hold B + Hold C to Blink Teleport to a powerup.",
     "Tip: Tap C then A quickly for Spin.",
   ];
@@ -193,7 +193,7 @@
     "Tip: Tap RB to make us fire at enemies!",
     "Tip: Hold RB for Purge!",
     "Tip: Double-tap RB and we'll protect you!",
-    "Tip: Hold RB + Hold A for a Holy Ground ring of fire.",
+    "Tip: Hold RB + Hold A for a Hedge.",
     "Tip: Hold B + Hold RB to Blink Teleport to a powerup.",
     "Tip: Tap RB then A quickly for Spin.",
     "Tip: Press Menu button to start the fight.",

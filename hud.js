@@ -1273,7 +1273,7 @@
         { label: "Cleave",              input: "A/B",      value: ref.cleave },
         { label: "Reap",                input: "C/A",      value: ref.spinAttack },
         { label: "Thrash",              input: "Charge B+A", value: ref.blitz },
-        { label: "Ward",                input: "Charge A+C", value: null },
+        { label: "Hedge",               input: "Charge A+C", value: null },
 
         { section: "Dash" },
         { label: "Crash",               input: "B Charge", value: null },
