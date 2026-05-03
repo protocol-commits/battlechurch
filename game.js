@@ -20168,7 +20168,8 @@ function handlePauseMenu() {
   if (overlayActive) {
     keysJustPressed.delete(" ");
   }
-  if (!overlayActive && !paused && wasActionJustPressed("pause")) {
+  const _pauseBlockStage = levelManager?.getStatus?.()?.stage;
+  if (!overlayActive && !paused && wasActionJustPressed("pause") && _pauseBlockStage !== "congregationToTeaser") {
     paused = true;
     if (!gameOver) {
       window.isPauseOverlayActive = true;
