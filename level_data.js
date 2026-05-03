@@ -5437,7 +5437,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniDemonLord",
-                          "count": 3
+                          "count": 1
                         }
                       ],
                       "weights": {},
@@ -5863,7 +5863,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniDemonLord",
-                          "count": 3
+                          "count": 2
                         }
                       ],
                       "weights": {},
@@ -6289,7 +6289,7 @@ window.BattlechurchLevelData = {
                         },
                         {
                           "enemy": "miniDemonLord",
-                          "count": 3
+                          "count": 2
                         }
                       ],
                       "weights": {},
