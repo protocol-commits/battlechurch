@@ -5392,7 +5392,7 @@ const PLAYER_SPRITE_PATH = "assets/sprites/pastor/characters/";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
-const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/game-over.jpg";
+const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/mission-1.jpg";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
 const OBSTACLE_DEFS = {};
 const OBSTACLE_LAYOUT = [];
@@ -7317,12 +7317,12 @@ async function loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromis
 async function loadBackgroundAssets(cache, assets) {
   const townIntroPromise = loadImage(TOWN_INTRO_BACKGROUND_PATH)
     .then((img) => {
-      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
-      assets.backgrounds.townIntro = img;
+      if (!assets.backgrounds) assets.backgrounds = { mission1: null };
+      assets.backgrounds.mission1 = img;
     })
     .catch(() => {
-      if (!assets.backgrounds) assets.backgrounds = { townIntro: null };
-      assets.backgrounds.townIntro = null;
+      if (!assets.backgrounds) assets.backgrounds = { mission1: null };
+      assets.backgrounds.mission1 = null;
     });
   const epiloguePromise = loadImage("assets/backgrounds/epilogue.jpg")
     .then((img) => {
@@ -7333,25 +7333,25 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
       assets.backgrounds.epilogue = null;
     });
-  const act2Promise = loadImage("assets/backgrounds/act2.jpg")
+  const act2Promise = loadImage("assets/backgrounds/mission-2.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
-      assets.backgrounds.act2 = img;
+      assets.backgrounds.mission2 = img;
     })
     .catch(() => {
       if (!assets.backgrounds) assets.backgrounds = {};
-      assets.backgrounds.act2 = null;
+      assets.backgrounds.mission2 = null;
     });
-  const act3Promise = loadImage("assets/backgrounds/act3.jpg")
+  const act3Promise = loadImage("assets/backgrounds/mission-3.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
-      assets.backgrounds.act3 = img;
+      assets.backgrounds.mission3 = img;
     })
     .catch(() => {
       if (!assets.backgrounds) assets.backgrounds = {};
-      assets.backgrounds.act3 = null;
+      assets.backgrounds.mission3 = null;
     });
-  const gameOverBackgroundPromise = loadImage("assets/backgrounds/game-over.jpg")
+  const gameOverBackgroundPromise = loadImage("assets/backgrounds/mission-1.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
       assets.backgrounds.gameOver = img;
@@ -18159,7 +18159,7 @@ function updateDeathBellAudio(dt) {
 function showMissionIntro(actNumber) {
   missionIntroActive = true;
   missionIntroNumber = actNumber;
-  missionIntroImage = actNumber === 2 ? assets?.backgrounds?.act2 : actNumber === 3 ? assets?.backgrounds?.act3 : null;
+  missionIntroImage = actNumber === 2 ? assets?.backgrounds?.mission2 : actNumber === 3 ? assets?.backgrounds?.mission3 : assets?.backgrounds?.mission1;
   keysJustPressed.delete(" ");
 }
 

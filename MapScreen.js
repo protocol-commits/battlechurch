@@ -3,7 +3,7 @@
 
   const MAP_IMAGE_PRIMARY = "./assets/backgrounds/map.jpg";
   const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
-  const TOWN_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/game-over.jpg";
+  const TOWN_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.jpg";
   const HIT_RADIUS_BASE = 10;
   const UI_FONT_FAMILY = "'Orbitron', sans-serif";
   const MAP_HELLFIRE_TEXT = Object.freeze({

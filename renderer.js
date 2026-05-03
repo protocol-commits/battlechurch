@@ -5428,11 +5428,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         // Determine which background to use based on current Order
         // Order 1 uses townIntro, Order 2 uses act2, Order 3 uses act3
         const orderNumber = current.upcomingOrderNumber || 1;
-        let img = assets?.backgrounds?.townIntro;
-        if (orderNumber === 2 && assets?.backgrounds?.act2) {
-          img = assets.backgrounds.act2;
-        } else if (orderNumber >= 3 && assets?.backgrounds?.act3) {
-          img = assets.backgrounds.act3;
+        let img = assets?.backgrounds?.mission1;
+        if (orderNumber === 2 && assets?.backgrounds?.mission2) {
+          img = assets.backgrounds.mission2;
+        } else if (orderNumber >= 3 && assets?.backgrounds?.mission3) {
+          img = assets.backgrounds.mission3;
         }
         if (img) {
           ctx.save();
@@ -9251,7 +9251,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (mapLaunchHandoffActive && !townIntroActive && !exteriorShotActive) {
       const handoffAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
       const _handoffMissionNum = requireBindings().missionIntroNumber || 1;
-      const introImage = (_handoffMissionNum === 2 ? assets?.backgrounds?.act2 : _handoffMissionNum >= 3 ? assets?.backgrounds?.act3 : null) || assets?.backgrounds?.townIntro || null;
+      const introImage = (_handoffMissionNum === 2 ? assets?.backgrounds?.mission2 : _handoffMissionNum >= 3 ? assets?.backgrounds?.mission3 : null) || assets?.backgrounds?.mission1 || null;
       ctx.save();
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -9289,7 +9289,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         townIntroTransitionTimer,
         missionIntroNumber: _transitionMissionNum,
       } = requireBindings();
-      const img = (_transitionMissionNum === 2 ? assets?.backgrounds?.act2 : _transitionMissionNum >= 3 ? assets?.backgrounds?.act3 : null) || assets?.backgrounds?.townIntro || null;
+      const img = (_transitionMissionNum === 2 ? assets?.backgrounds?.mission2 : _transitionMissionNum >= 3 ? assets?.backgrounds?.mission3 : null) || assets?.backgrounds?.mission1 || null;
       const zoomDuration = Math.max(0.001, TOWN_INTRO_ZOOM_DURATION || 0.5);
       const fadeDuration = Math.max(0.001, TOWN_INTRO_FADE_DURATION || 0.5);
       const zoomProgress = Math.min(1, Math.max(0, townIntroTransitionTimer / zoomDuration));
@@ -9338,8 +9338,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? introAnnouncement.upcomingOrderNumber
         : 1;
       const effectiveCameraX = resolveCameraX();
-      if (introOrderNumber === 1 && assets?.backgrounds?.townIntro) {
-        const introImage = assets.backgrounds.townIntro;
+      if (introOrderNumber === 1 && assets?.backgrounds?.mission1) {
+        const introImage = assets.backgrounds.mission1;
         const stripHeight = 14;
         const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
         const amp = 0.9;
@@ -9523,7 +9523,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           window.__announcementButtons = null;
         }
         if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
-          const _coverImg = assets?.backgrounds?.townIntro || null;
+          const _coverImg = assets?.backgrounds?.mission1 || null;
           ctx.save();
           ctx.globalAlpha = townIntroOverlay.alpha;
           ctx.fillStyle = "#0b111a";
@@ -9600,7 +9600,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
       ctx.restore();
       if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
-        const _coverImg = assets?.backgrounds?.townIntro || null;
+        const _coverImg = assets?.backgrounds?.mission1 || null;
         ctx.save();
         ctx.globalAlpha = townIntroOverlay.alpha;
         ctx.fillStyle = "#0b111a";
@@ -9617,7 +9617,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (exteriorShotActive) {
       const announcementTitle = levelAnnouncements?.[0]?.title || "";
-      const img = assets?.backgrounds?.townIntro || null;
+      const img = assets?.backgrounds?.mission1 || null;
       const mapLaunchFadeAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
       ctx.save();
       ctx.fillStyle = "#0b111a";
@@ -10549,7 +10549,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.globalAlpha = townIntroOverlay.alpha;
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      const img = assets?.backgrounds?.townIntro || null;
+      const img = assets?.backgrounds?.mission1 || null;
       drawCoverImage(ctx, canvas, img, townIntroOverlay.scale, townIntroOverlay.focusX, townIntroOverlay.focusY);
       ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
