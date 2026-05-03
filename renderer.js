@@ -5481,6 +5481,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     floorHeight: 0,
     padding: 400, // Extra width for parallax movement
   };
+  const godRayCacheVictory = {
+    canvas: null,
+    screenWidth: 0,
+    height: 0,
+    floorHeight: 0,
+    padding: 400,
+  };
 
   function buildGodRayCache(screenWidth, height, floorHeight) {
     const padding = godRayCache.padding;
@@ -5546,7 +5553,87 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
   }
 
-  function drawArenaGodRays(ctx, canvas, floorHeight, cameraX = 0) {
+  function buildGodRayCacheVictory(screenWidth, height) {
+    const cache = godRayCacheVictory;
+    const padding = cache.padding;
+    const cacheWidth = screenWidth + padding * 2;
+    if (!cache.canvas) cache.canvas = document.createElement("canvas");
+    cache.canvas.width = cacheWidth;
+    cache.canvas.height = height;
+    cache.screenWidth = screenWidth;
+    cache.height = height;
+    cache.floorHeight = 0;
+    const offCtx = cache.canvas.getContext("2d");
+    offCtx.clearRect(0, 0, cacheWidth, height);
+    const topY = -40;
+    const baseBottomY = height + 60;
+    const rayWidth = 90;
+    const baseSlant = 260;
+    const rayGap = 70;
+    const depthOffset = 80;
+    const rayCount = 5;
+    const baseX = screenWidth + padding - 20;
+    offCtx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < rayCount; i++) {
+      const topX = baseX + i * rayGap;
+      const bottomX = topX - baseSlant;
+      const bottomY = baseBottomY - (rayCount - 1 - i) * depthOffset;
+      const layers = [
+        { widthMult: 3.0, alphaMult: 0.6 },
+        { widthMult: 1.8, alphaMult: 0.85 },
+        { widthMult: 1.0, alphaMult: 1.0  },
+      ];
+      for (const layer of layers) {
+        const layerWidth = rayWidth * layer.widthMult;
+        const layerAlpha = layer.alphaMult;
+        const offsetX = (layerWidth - rayWidth) / 2;
+        const gradient = offCtx.createLinearGradient(topX, topY, bottomX, bottomY);
+        gradient.addColorStop(0,    `rgba(255, 250, 220, ${layerAlpha.toFixed(3)})`);
+        gradient.addColorStop(0.25, `rgba(255, 245, 200, ${(layerAlpha * 0.8).toFixed(3)})`);
+        gradient.addColorStop(0.55, `rgba(255, 238, 180, ${(layerAlpha * 0.45).toFixed(3)})`);
+        gradient.addColorStop(1,    "rgba(255, 230, 160, 0)");
+        offCtx.fillStyle = gradient;
+        offCtx.beginPath();
+        offCtx.moveTo(topX - offsetX, topY);
+        offCtx.lineTo(topX - offsetX + layerWidth, topY);
+        offCtx.lineTo(bottomX - offsetX + layerWidth, bottomY);
+        offCtx.lineTo(bottomX - offsetX, bottomY);
+        offCtx.closePath();
+        offCtx.fill();
+      }
+    }
+  }
+
+  function drawVictoryGodRays(ctx, canvas) {
+    if (!ctx || !canvas) return;
+    if (
+      godRayCacheVictory.screenWidth !== canvas.width ||
+      godRayCacheVictory.height !== canvas.height
+    ) {
+      buildGodRayCacheVictory(canvas.width, canvas.height);
+    }
+    const time = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const wave1 = Math.sin(time * 0.0004);
+    const wave2 = Math.sin(time * 0.00067) * 0.5;
+    const wave3 = Math.sin(time * 0.00023) * 0.7;
+    const wave4 = Math.sin(time * 0.0011) * 0.25;
+    const combined = (wave1 + wave2 + wave3 + wave4) / 2.45;
+    const normalizedBreath = (combined + 1) / 2; // 0..1
+    const intensity = 0.82 + 0.18 * normalizedBreath; // 0.82–1.0
+    const cache = godRayCacheVictory;
+    const drawX = -cache.padding;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = intensity;
+    ctx.drawImage(cache.canvas, drawX, 0);
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(cache.canvas, drawX, 0);
+    ctx.restore();
+  }
+
+  function drawArenaGodRays(ctx, canvas, floorHeight, cameraX = 0, intensityBoost = 1) {
     if (!ctx || !canvas) return;
 
     // Rebuild cache if canvas size or floor height changed
@@ -5566,7 +5653,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const wave4 = Math.sin(time * 0.0011) * 0.25;    // Faster flutter
     const combined = (wave1 + wave2 + wave3 + wave4) / 2.45;
     const breath = 0.55 + 0.4 * combined; // Range roughly 0.35 to 0.95
-    const intensity = Math.min(1, breath * 1.35);
+    // For victory (intensityBoost > 1), remap organic pulse to 0.80–1.0 range
+    const normalizedBreath = (breath - 0.35) / 0.60; // 0..1 across natural range
+    const intensity = intensityBoost > 1
+      ? 0.80 + 0.20 * Math.max(0, Math.min(1, normalizedBreath))
+      : Math.min(1, breath * 1.35);
 
     // Floor band is in translated context (1:1 with camera), so match that
     const parallaxOffset = Math.floor(cameraX);
@@ -8723,6 +8814,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Slight overlay for text readability
     ctx.fillStyle = "rgba(6, 10, 18, 0.45)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // God rays — victory-strength, stacked for maximum brightness
+    drawVictoryGodRays(ctx, canvas);
+    drawVictoryGodRays(ctx, canvas);
+    drawVictoryGodRays(ctx, canvas);
+    drawVictoryGodRays(ctx, canvas);
 
     // Scale factor for responsive text
     const scaleHint = Math.min(1, Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)));
