@@ -9250,8 +9250,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // we never flash congregation/pause content between states.
     if (mapLaunchHandoffActive && !townIntroActive && !exteriorShotActive) {
       const handoffAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
-      const _handoffMissionNum = requireBindings().missionIntroNumber || 1;
-      const introImage = (_handoffMissionNum === 2 ? assets?.backgrounds?.mission2 : _handoffMissionNum >= 3 ? assets?.backgrounds?.mission3 : null) || assets?.backgrounds?.mission1 || null;
+      const introImage = assets?.backgrounds?.mission1 || null;
       ctx.save();
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -9287,9 +9286,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         TOWN_INTRO_ZOOM_DURATION,
         TOWN_INTRO_FADE_DURATION,
         townIntroTransitionTimer,
-        missionIntroNumber: _transitionMissionNum,
       } = requireBindings();
-      const img = (_transitionMissionNum === 2 ? assets?.backgrounds?.mission2 : _transitionMissionNum >= 3 ? assets?.backgrounds?.mission3 : null) || assets?.backgrounds?.mission1 || null;
+      const img = assets?.backgrounds?.mission1 || null;
       const zoomDuration = Math.max(0.001, TOWN_INTRO_ZOOM_DURATION || 0.5);
       const fadeDuration = Math.max(0.001, TOWN_INTRO_FADE_DURATION || 0.5);
       const zoomProgress = Math.min(1, Math.max(0, townIntroTransitionTimer / zoomDuration));
