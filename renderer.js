@@ -6591,6 +6591,26 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawWardDomeFill(ctx, centerX, centerY, radius, alpha = 1) {
+    if (!ctx || radius <= 0 || alpha <= 0) return;
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+    const pulse = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(now * 2.5));
+    const effectiveAlpha = alpha * pulse;
+    if (effectiveAlpha <= 0) return;
+    const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+    grad.addColorStop(0, `rgba(255, 245, 180, ${Math.min(1, effectiveAlpha * 1.0)})`);
+    grad.addColorStop(0.5, `rgba(255, 210, 60, ${Math.min(1, effectiveAlpha * 0.85)})`);
+    grad.addColorStop(1, `rgba(255, 140, 10, 0)`);
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+  }
+
   function drawRingOfFireEffects(player) {
     const { ctx, meleeAttackState, ringOfFireHazards = [] } = requireBindings();
     if (!ctx) return;
@@ -6636,6 +6656,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         (0.45 + fade * 0.55) * blinkAlpha,
       );
       drawRingOfFireArc(ctx, hazard.x, hazard.y, hazard.radius, 1, (0.35 + fade * 0.45) * blinkAlpha);
+    });
+  }
+
+  function drawRingOfFireDomeOverlay() {
+    const { ctx, meleeAttackState, ringOfFireHazards = [] } = requireBindings();
+    if (!ctx) return;
+    if (meleeAttackState?.ringFireActive) {
+      const activeProgress =
+        meleeAttackState.ringFirePhase === "trace"
+          ? Math.max(0.08, meleeAttackState.ringFireTraceProgress || 0)
+          : 1;
+      drawWardDomeFill(ctx, meleeAttackState.ringFireCenterX, meleeAttackState.ringFireCenterY, meleeAttackState.ringFireRadius * activeProgress, activeProgress);
+    }
+    ringOfFireHazards.forEach((hazard) => {
+      if (!hazard || !hazard.life || hazard.life <= 0) return;
+      const fadeWindow = 2.0;
+      const domeFade = hazard.life >= fadeWindow ? 1 : Math.max(0, hazard.life / fadeWindow);
+      drawWardDomeFill(ctx, hazard.x, hazard.y, hazard.radius, domeFade);
     });
   }
 
@@ -10096,6 +10134,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (!bossDeathExplosionActive) {
         player.draw();
       }
+      drawRingOfFireDomeOverlay();
       drawPlayerPrayerHoldMeter(player);
       drawPlayerRingFireChargeMeter(player);
       drawPlayerWeaponMeter(player);
