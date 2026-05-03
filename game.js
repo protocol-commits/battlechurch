@@ -415,6 +415,14 @@ const FAITH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_23.wav",
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
+const THRASH_HIT_SFX_SRCS = [
+  "assets/sfx/rpg/Explosions/Explosions_38.wav",
+  "assets/sfx/rpg/Explosions/Explosions_39.wav",
+  "assets/sfx/rpg/Explosions/Explosions_40.wav",
+  "assets/sfx/rpg/Impacts/impact_5.wav",
+  "assets/sfx/rpg/Impacts/impact_6.wav",
+];
+const THRASH_HIT_SFX_POOL_SIZE = 6;
 const SENTRY_BEAM_SFX_SRCS = [
   "assets/sfx/Weapons/spell11.mp3",
   "assets/sfx/Weapons/spell12.mp3",
@@ -557,6 +565,7 @@ const faithCannonSfxPool = [];
 const powerupPickupSfxPool = [];
 const wisdomHitSfxPool = [];
 const faithHitSfxPool = [];
+const thrashHitSfxPool = [];
 const prayerBombSfxPool = [];
 const prayerBombRainSfxPool = [];
 const bossDeathExplosionSfxPool = [];
@@ -1173,6 +1182,10 @@ function playFaithHitSfx(volume = 0.8) {
 
 if (typeof window !== "undefined") {
   window.playFaithHitSfx = playFaithHitSfx;
+}
+
+function playThrashHitSfx(volume = 0.8) {
+  playPooledSfx(thrashHitSfxPool, THRASH_HIT_SFX_SRCS, THRASH_HIT_SFX_POOL_SIZE, { volume });
 }
 
 function playPowerupPickupSfx(volume = 1.2) {
@@ -21748,6 +21761,14 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     const damage = counterHit.damage;
     const wasAlive = !enemy.dead && enemy.state !== "death";
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
+    meleeAttackState.thrashHitAccum = (meleeAttackState.thrashHitAccum || 0) + 1;
+    if ((meleeAttackState.thrashFeedbackCooldown || 0) <= 0) {
+      const shakeMult = Math.min(1 + (meleeAttackState.thrashHitAccum - 1) * 0.2, 2.5);
+      playThrashHitSfx(0.8);
+      applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE * shakeMult);
+      meleeAttackState.thrashFeedbackCooldown = 0.18;
+      meleeAttackState.thrashHitAccum = 0;
+    }
     if (wasAlive && (enemy.dead || enemy.state === "death")) {
       enemy.killedByRush = true;
       meleeAttackState.rushKillCount = (meleeAttackState.rushKillCount || 0) + 1;
@@ -23488,6 +23509,8 @@ function executeRushAttack(
   meleeAttackState.rushKillCount = 0;
   meleeAttackState.rushKillSumX = 0;
   meleeAttackState.rushKillSumY = 0;
+  meleeAttackState.thrashFeedbackCooldown = 0;
+  meleeAttackState.thrashHitAccum = 0;
   if (meleeAttackState.lastComboTimes) {
     meleeAttackState.lastComboTimes.A = 0;
     meleeAttackState.lastComboTimes.B = 0;
@@ -23947,6 +23970,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   }
 
   meleeAttackState.rushLockTimer = Math.max(0, meleeAttackState.rushLockTimer - dt);
+  if ((meleeAttackState.thrashFeedbackCooldown || 0) > 0) {
+    meleeAttackState.thrashFeedbackCooldown = Math.max(0, meleeAttackState.thrashFeedbackCooldown - dt);
+  }
   if (meleeAttackState.rushShieldDebugTimer > 0) {
     meleeAttackState.rushShieldDebugTimer = Math.max(0, meleeAttackState.rushShieldDebugTimer - dt);
   }
@@ -25876,7 +25902,7 @@ function updateDebugOverlayData() {
   const audioPools = [
     arrowSfxPool, enemyHitSfxPool, enemyDeathSfxPool, swordSfxPool,
     swordKillSfxPool, fireballSfxPool, wisdomSfxPool, faithCannonSfxPool,
-    powerupPickupSfxPool, wisdomHitSfxPool, faithHitSfxPool, prayerBombSfxPool,
+    powerupPickupSfxPool, wisdomHitSfxPool, faithHitSfxPool, thrashHitSfxPool, prayerBombSfxPool,
     prayerBombRainSfxPool, bossDeathExplosionSfxPool, menuSelectSfxPool, enemySpawnSfxPool, gracePickupSfxPool,
     visitorHitSfxPool, chattyHitSfxPool, visitorSavedSfxPool, npcHurtSfxPool,
     playerHurtSfxPool
