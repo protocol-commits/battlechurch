@@ -8,7 +8,7 @@
     "assetFiles": {
       "idle": "Walk"
     },
-    "health": 1000,
+    "health": 2500,
     "maxHealth": 780,
     "damage": 15,
     "speed": 50,
@@ -43,7 +43,8 @@
       "offsetX": 24,
       "offsetY": 3
     },
-    "contactDamage": 0
+    "contactDamage": 0,
+    "attackDamage": 10
   },
   "orc": {
     "displayName": "Orc",
@@ -93,7 +94,7 @@
     "assetFiles": {
       "idle": "Walk"
     },
-    "health": 400,
+    "health": 1500,
     "maxHealth": 745,
     "damage": 5,
     "speed": 60,
@@ -803,7 +804,9 @@
         76,
         77
       ]
-    }
+    },
+    "contactDamage": 15,
+    "attackDamage": 15
   },
   "miniDemonFireThrower": {
     "displayName": "Demon Fire Thrower",
@@ -1106,7 +1109,7 @@
       "idle": "Walk",
       "attack": "Attack03"
     },
-    "health": 10000,
+    "health": 2000,
     "maxHealth": 410,
     "damage": 5,
     "speed": 54,
