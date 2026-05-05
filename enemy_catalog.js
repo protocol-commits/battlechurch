@@ -11,9 +11,9 @@
     "health": 2500,
     "maxHealth": 780,
     "damage": 15,
-    "speed": 50,
+    "speed": 35,
     "baseRadius": 15,
-    "scale": 4,
+    "scale": 5,
     "attackBonus": 34,
     "cooldown": 1.9,
     "score": 240,
@@ -97,7 +97,7 @@
     "health": 1500,
     "maxHealth": 745,
     "damage": 5,
-    "speed": 60,
+    "speed": 40,
     "baseRadius": 17,
     "scale": 4,
     "attackBonus": 36,
@@ -140,10 +140,10 @@
       "idle": "Walk",
       "attack": "Attack02"
     },
-    "health": 600,
+    "health": 1000,
     "maxHealth": 315,
     "damage": 5,
-    "speed": 56,
+    "speed": 40,
     "baseRadius": 18,
     "scale": 4.2,
     "attackBonus": 38,
@@ -327,7 +327,7 @@
     "health": 20,
     "maxHealth": 45,
     "damage": 5,
-    "speed": 70,
+    "speed": 45,
     "baseRadius": 12,
     "scale": 5,
     "attackBonus": 20,
@@ -342,7 +342,8 @@
     "preferredTarget": "player",
     "specialBehavior": [
       "projectile",
-      "closestAny"
+      "closestAny",
+      "ranged"
     ],
     "hitbox": {
       "width": 12,
@@ -387,7 +388,10 @@
         48,
         49
       ]
-    }
+    },
+    "maxGroupSize": 5,
+    "interGroupDelayMs": 2,
+    "swarmSpacing": 1.2
   },
   "miniDemoness": {
     "displayName": "Demoness",
@@ -474,9 +478,9 @@
     "health": 30,
     "maxHealth": 45,
     "damage": 5,
-    "speed": 50,
+    "speed": 45,
     "baseRadius": 12,
-    "scale": 4,
+    "scale": 5,
     "attackBonus": 24,
     "cooldown": 1.3,
     "score": 55,
@@ -1112,9 +1116,9 @@
     "health": 2000,
     "maxHealth": 410,
     "damage": 5,
-    "speed": 54,
+    "speed": 35,
     "baseRadius": 16,
-    "scale": 4.5,
+    "scale": 5,
     "attackBonus": 36,
     "cooldown": 1,
     "score": 260,
