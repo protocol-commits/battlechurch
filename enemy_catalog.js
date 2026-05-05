@@ -244,7 +244,9 @@
         28
       ]
     },
-    "maxGroupSize": 100
+    "maxGroupSize": 100,
+    "contactDamage": 2,
+    "attackDamage": 2
   },
   "miniImpLevel2": {
     "displayName": "Imp Lieutenant",
@@ -543,7 +545,9 @@
     },
     "maxGroupSize": 20,
     "attackHitFrame": 3,
-    "attackHitDamage": 10
+    "attackHitDamage": 10,
+    "contactDamage": 4,
+    "attackDamage": 4
   },
   "miniHighDemon": {
     "displayName": "High Demon",
