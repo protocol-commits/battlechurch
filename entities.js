@@ -17,6 +17,253 @@
     ARROW_DAMAGE: 10,
   };
 
+  const MANA_SEED_ROOT = "assets/sprites/npcs/mana-seed";
+  const PAPERDOLL_FRAME_SIZE = 64;
+  const PAPERDOLL_LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
+  const PAPERDOLL_FACING_MAP = {
+    down: "south",
+    left: "west",
+    right: "east",
+    up: "north",
+  };
+  const PAPERDOLL_FACING_INDEX = {
+    south: 0,
+    west: 1,
+    east: 2,
+    north: 3,
+  };
+  const PAPERDOLL_ANIMS = {
+    walk: { page: "p1", framesByFacing: [[32, 33, 34, 35, 36, 37], [40, 41, 42, 43, 44, 45], [48, 49, 50, 51, 52, 53], [56, 57, 58, 59, 60, 61]], timingMs: [135, 135, 135, 135, 135, 135] },
+    run: { page: "p1", framesByFacing: [[32, 33, 38, 35, 36, 39], [40, 41, 46, 43, 44, 47], [48, 49, 54, 51, 52, 55], [56, 57, 62, 59, 60, 63]], timingMs: [80, 55, 125, 80, 55, 125] },
+    draw_sheath: { page: "pONE1", framesByFacing: [[0, 1, 2], [8, 9, 10], [16, 17, 18], [24, 25, 26]], timingMs: [160, 120, 180], oneShot: true },
+    combat_idle: { page: "pONE2", framesByFacing: [[0, 1, 2, 3], [8, 9, 10, 11], [16, 17, 18, 19], [24, 25, 26, 27]], timingMs: [200, 200, 200, 200] },
+    combat_move: { page: "pONE2", framesByFacing: [[4, 5], [12, 13], [20, 21], [28, 29]], timingMs: [140, 140] },
+    slash_1: { page: "pONE3", framesByFacing: [[0, 1, 2, 3], [8, 9, 10, 11], [16, 17, 18, 19], [24, 25, 26, 27]], timingMs: [160, 65, 65, 200], oneShot: true },
+    slash_2: { page: "pONE3", framesByFacing: [[4, 5, 6, 7], [12, 13, 14, 15], [20, 21, 22, 23], [28, 29, 30, 31]], timingMs: [160, 65, 65, 200], oneShot: true },
+    thrust: { page: "pONE3", framesByFacing: [[32, 33, 34, 35], [40, 41, 42, 43], [48, 49, 50, 51], [56, 57, 58, 59]], timingMs: [160, 65, 65, 200], oneShot: true },
+    shield_bash: { page: "pONE3", framesByFacing: [[36, 37, 38, 39], [44, 45, 46, 47], [52, 53, 54, 55], [60, 61, 62, 63]], timingMs: [160, 65, 65, 200], oneShot: true },
+  };
+  const SHIELD_FRONT_FRAMES = {
+    pONE1: new Set([1, 4, 8, 10, 11, 13, 19, 20, 27, 28]),
+    pONE2: new Set([0, 1, 2, 3, 4, 5, 6, 7, 32, 33, 34]),
+    pONE3: new Set([0, 3, 6, 7, 10, 11, 13, 32, 35, 36, 42, 43, 45, 46, 47, 54, 55, 60, 62, 63]),
+  };
+  const paperdollImageCache = new Map();
+  const paperdollMissingCache = new Set();
+
+  function normalizePresetKey(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+
+  function getPastorConfig() {
+    return window.BATTLECHURCH_PASTOR_PAPERDOLL || null;
+  }
+
+  function resolvePresetByName(name, presets) {
+    if (!name || !Array.isArray(presets) || !presets.length) return null;
+    const normalizedTarget = normalizePresetKey(name);
+    if (!normalizedTarget) return null;
+    let best = null;
+    let bestScore = -1;
+    for (const preset of presets) {
+      if (!preset || typeof preset !== "object") continue;
+      const rawName = String(preset.name || "").trim();
+      const normalizedName = normalizePresetKey(rawName);
+      if (!normalizedName) continue;
+      let score = -1;
+      if (normalizedName === normalizedTarget) score = 100;
+      else if (normalizedName.includes(normalizedTarget) || normalizedTarget.includes(normalizedName)) score = 70;
+      else {
+        const noVowelsA = normalizedName.replace(/[aeiou]/g, "");
+        const noVowelsB = normalizedTarget.replace(/[aeiou]/g, "");
+        if (noVowelsA && noVowelsA === noVowelsB) score = 55;
+      }
+      if (score > bestScore) {
+        best = preset;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  function getMapValueCaseInsensitive(mapObj, key) {
+    if (!mapObj || typeof mapObj !== "object") return null;
+    const target = normalizePresetKey(key);
+    if (!target) return null;
+    for (const [k, v] of Object.entries(mapObj)) {
+      if (normalizePresetKey(k) === target) return v;
+    }
+    return null;
+  }
+
+  function isProjectileFast(player, weaponMode) {
+    const mode = String(weaponMode || "").toLowerCase();
+    if (mode === "arrow") {
+      if (typeof player.getArrowCooldown === "function" && player.getArrowCooldown() <= 0.2) return true;
+      if ((player.spreadGunTimer || 0) > 0) return true;
+      return false;
+    }
+    if (mode === "faith_cannon") {
+      if (typeof player.getFaithCannonCooldown === "function" && player.getFaithCannonCooldown() <= 0.32) return true;
+      return true;
+    }
+    return false;
+  }
+
+  function pickDesiredPresetName(player) {
+    const melee = window._meleeAttackState || {};
+    const bindings = window.__battlechurchBindings || {};
+    const dash = bindings.playerDashState || null;
+    const cfg = getPastorConfig() || {};
+    const powerupMap = cfg.powerupPresetMap || {};
+    const actionMap = {
+      idle: "idle",
+      walk: "walk",
+      run: "run",
+      cleave: "SlashUp",
+      normalSlash: "SlashDown",
+      slashBash: "SlashBash",
+      projectile: "Projectile",
+      projectileWand: "ProjectileWand",
+      projectileWandFast: "ProjectileWandFast",
+      thrust: "thrust",
+      fallback: "SlashDown",
+    };
+
+    const hitboxType = String(melee.currentAttackHitboxType || "").toLowerCase();
+    const comboNames = Array.isArray(melee.comboMoveNames)
+      ? melee.comboMoveNames.map((n) => String(n || "").toLowerCase())
+      : [];
+    const weaponMode = String(player?.getActiveWeaponMode?.() || player?.weaponMode || "arrow").toLowerCase();
+
+    if (player.state === "attackArrow") {
+      const desired = isProjectileFast(player, "arrow") ? actionMap.projectileWandFast : actionMap.projectile;
+      return getMapValueCaseInsensitive(powerupMap, weaponMode) || desired;
+    }
+    if (player.state === "attackMagic") {
+      if (isProjectileFast(player, weaponMode)) {
+        return getMapValueCaseInsensitive(powerupMap, weaponMode) || actionMap.projectileWandFast;
+      }
+      return getMapValueCaseInsensitive(powerupMap, weaponMode) || actionMap.projectileWand;
+    }
+    if (comboNames.includes("cleave")) return actionMap.cleave;
+    if (comboNames.includes("smash") || comboNames.includes("crash")) return actionMap.slashBash;
+    if (comboNames.includes("thrash")) return actionMap.thrust;
+    if (hitboxType === "dashslash") return actionMap.slashBash;
+    if (hitboxType === "slash") return actionMap.normalSlash;
+    if (hitboxType === "rush" || hitboxType === "swordrush") return actionMap.thrust;
+    if (hitboxType === "spin" || hitboxType === "holyground") return actionMap.thrust;
+    if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
+
+    const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
+    if (dashing || (player?.speedBoostTimer || 0) > 0) return actionMap.run;
+    if (player.state === "walk") return actionMap.walk;
+    if (player.state === "idle") return actionMap.idle;
+    return actionMap.fallback;
+  }
+
+  function resolvePastorPaperdollPreset(player) {
+    const cfg = getPastorConfig();
+    if (!cfg || !Array.isArray(cfg.presets)) return null;
+    const desiredName = pickDesiredPresetName(player);
+    const actionMap = cfg.animationPresetMap || {};
+    const mappedName = getMapValueCaseInsensitive(actionMap, desiredName) || desiredName;
+    return resolvePresetByName(mappedName, cfg.presets) || resolvePresetByName("SlashDown", cfg.presets);
+  }
+
+  function paperdollLayerPath(page, layerKey, token) {
+    if (!token || token === "none") return null;
+    const clean = String(token || "").trim();
+    if (!clean) return null;
+    const filename = clean.endsWith(".png")
+      ? clean
+      : `char_a_${page}_${layerKey}_${clean}.png`;
+    if (layerKey === "0bas") return `${MANA_SEED_ROOT}/char_a_${page}/${filename}`;
+    return `${MANA_SEED_ROOT}/char_a_${page}/${layerKey}/${filename}`;
+  }
+
+  function getPaperdollImage(path) {
+    if (!path || paperdollMissingCache.has(path)) return null;
+    if (paperdollImageCache.has(path)) return paperdollImageCache.get(path);
+    const img = new Image();
+    img.src = path;
+    img.onerror = () => paperdollMissingCache.add(path);
+    paperdollImageCache.set(path, img);
+    return img;
+  }
+
+  function updatePastorPaperdollState(player, dt) {
+    const preset = resolvePastorPaperdollPreset(player);
+    if (!preset) return;
+    const animKey = String(preset.animation || "combat_idle");
+    const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
+    if (!player._paperdollState) {
+      player._paperdollState = { key: "", frameCursor: 0, elapsedMs: 0 };
+    }
+    const pd = player._paperdollState;
+    const stateKey = `${String(preset.name || "")}|${animKey}|${String(player.facing || "down")}`;
+    if (pd.key !== stateKey) {
+      pd.key = stateKey;
+      pd.frameCursor = 0;
+      pd.elapsedMs = 0;
+    }
+    const facing = PAPERDOLL_FACING_MAP[player.facing] || "south";
+    const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
+    const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
+    if (!frames.length) return;
+    pd.elapsedMs += Math.max(0, dt) * 1000;
+    const timing = animDef.timingMs[Math.min(pd.frameCursor, animDef.timingMs.length - 1)] || 120;
+    if (pd.elapsedMs >= timing) {
+      pd.elapsedMs = 0;
+      pd.frameCursor += 1;
+      if (pd.frameCursor >= frames.length) {
+        pd.frameCursor = animDef.oneShot ? (frames.length - 1) : 0;
+      }
+    }
+  }
+
+  function drawPastorPaperdoll(player, context, x, y, { alpha = 1 } = {}) {
+    const preset = resolvePastorPaperdollPreset(player);
+    if (!preset) return false;
+    const animKey = String(preset.animation || "combat_idle");
+    const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
+    const facing = PAPERDOLL_FACING_MAP[player.facing] || "south";
+    const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
+    const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
+    if (!frames.length) return false;
+    const pd = player._paperdollState || { frameCursor: 0 };
+    const frameCursor = Math.max(0, Math.min(frames.length - 1, Number(pd.frameCursor) || 0));
+    const frameIdx = frames[frameCursor];
+    const page = String(preset.page || animDef.page || "pONE2");
+
+    const shieldFrontSet = SHIELD_FRONT_FRAMES[page] || null;
+    const shieldFront = !shieldFrontSet || shieldFrontSet.has(frameIdx);
+    const baseOrder = ["0bas", "1out", "4har", "5hat", "6tla"];
+    const scale = Math.max(1, (settings.WORLD_SCALE || 1) * 1.6);
+    const dw = PAPERDOLL_FRAME_SIZE * scale;
+    const dh = PAPERDOLL_FRAME_SIZE * scale;
+    const drawLayer = (layerKey) => {
+      const layer = preset.layers?.[layerKey];
+      if (!layer || layer.visible === false) return;
+      const path = paperdollLayerPath(page, layerKey, layer.asset);
+      if (!path) return;
+      const img = getPaperdollImage(path);
+      if (!img || !img.complete || !img.naturalWidth) return;
+      const cols = Math.max(1, Math.floor(img.naturalWidth / PAPERDOLL_FRAME_SIZE));
+      const sx = (frameIdx % cols) * PAPERDOLL_FRAME_SIZE;
+      const sy = Math.floor(frameIdx / cols) * PAPERDOLL_FRAME_SIZE;
+      context.drawImage(img, sx, sy, PAPERDOLL_FRAME_SIZE, PAPERDOLL_FRAME_SIZE, x - dw / 2, y - dh / 2, dw, dh);
+    };
+
+    context.save();
+    context.globalAlpha = Math.max(0, Math.min(1, alpha));
+    if (!shieldFront) drawLayer("7tlb");
+    baseOrder.forEach(drawLayer);
+    if (shieldFront) drawLayer("7tlb");
+    context.restore();
+    return true;
+  }
+
   const isMovementLocked = () =>
     Boolean(
       typeof window !== "undefined" &&
@@ -1363,6 +1610,7 @@
       }
     }
 
+    updatePastorPaperdollState(this, dt);
     this.animator.update(dt);
   }
 
@@ -2078,7 +2326,10 @@
       });
       ctx.restore();
     }
-  this.animator.draw(ctx, this.x, drawY, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
+    const drewPaperdoll = drawPastorPaperdoll(this, ctx, this.x, drawY, { alpha: flicker });
+    if (!drewPaperdoll) {
+      this.animator.draw(ctx, this.x, drawY, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
+    }
   }
 }
 
