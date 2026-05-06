@@ -3,6 +3,7 @@
 
   const OVERLAY_ID = "paperdollSandboxOverlay";
   const BASE_ROOT = "assets/sprites/npcs/mana-seed";
+  const PRESET_STORAGE_KEY = "battlechurch.pastorPaperdollPresets.v1";
   const PAGE_KEYS = ["p1", "pONE1", "pONE2", "pONE3"];
   const LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
   const LAYER_LABELS = Object.freeze({
@@ -110,6 +111,8 @@
     imageCache: new Map(),
     missingCache: new Set(),
     rafId: 0,
+    presets: [],
+    selectedPresetIndex: 0,
   };
 
   let overlay = null;
@@ -122,6 +125,15 @@
   function buttonHtml(action, label, title = "") {
     const safeTitle = String(title || "").replace(/"/g, "&quot;");
     return `<button type="button" data-action="${action}" title="${safeTitle}" style="padding:4px 8px;background:#1b2740;color:#e8edf7;border:1px solid #3a4b72;border-radius:6px;cursor:pointer;">${label}</button>`;
+  }
+
+  function safeParse(json, fallback) {
+    try {
+      const parsed = JSON.parse(String(json || ""));
+      return parsed && typeof parsed === "object" ? parsed : fallback;
+    } catch (_) {
+      return fallback;
+    }
   }
 
   function getAnimDef() {
@@ -201,21 +213,18 @@
       <div style="display:grid;grid-template-columns:340px 1fr 460px;gap:16px;height:100%;padding:16px;box-sizing:border-box;">
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;overflow:auto;">
           <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Paperdoll Sandbox</div>
-          <div style="opacity:.8;font-size:12px;line-height:1.5;">
-            Shift+X open/close | Esc exit<br>
-            Up/Down layer focus | Left/Right change option<br>
-            W/S animation | A/D facing | Q/E page<br>
-            Space pause/play | [ ] speed | Enter one-shot restart<br>
-            Tab behavior profile | V toggle layer visibility
-          </div>
-          <div id="paperdollSandboxControls" style="margin-top:10px;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;"></div>
-          <pre id="paperdollSandboxState" style="margin-top:10px;white-space:pre-wrap;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;"></pre>
+          <div id="paperdollSandboxControls" style="margin-top:10px;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;max-height:76vh;overflow:auto;"></div>
         </div>
         <div style="display:flex;align-items:center;justify-content:center;background:rgba(12,16,24,0.6);border:1px solid #2a334a;border-radius:10px;position:relative;overflow:hidden;">
           <canvas id="paperdollSandboxCanvas" width="900" height="640" style="width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:900/640;image-rendering:pixelated;"></canvas>
         </div>
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Build Spec Export</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+            <label for="paperdollPresetName" style="font-size:12px;opacity:.9;">Preset name</label>
+            <input id="paperdollPresetName" type="text" value="Pastor Preset" style="flex:1;background:#0d1220;color:#e8edf7;border:1px solid #2a334a;border-radius:6px;padding:6px;font-size:12px;">
+          </div>
+          <div id="paperdollPresetControls" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:24vh;overflow:auto;"></div>
           <textarea id="paperdollSandboxSpec" readonly style="flex:1;min-height:200px;background:#0d1220;color:#e8edf7;border:1px solid #2a334a;border-radius:8px;padding:10px;font-size:12px;"></textarea>
           <div style="display:flex;gap:8px;margin-top:8px;">
             <button id="paperdollCopyJson" type="button" style="flex:1;padding:8px;background:#1b2740;color:#e8edf7;border:1px solid #3a4b72;border-radius:8px;cursor:pointer;">Copy JSON</button>
@@ -240,7 +249,137 @@
       const text = buildSpecShort();
       if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text);
     });
+    controlsRoot?.addEventListener("pointerdown", onControlsClick);
     controlsRoot?.addEventListener("click", onControlsClick);
+    overlay.querySelector("#paperdollPresetControls")?.addEventListener("pointerdown", onPresetControlsClick);
+    overlay.querySelector("#paperdollPresetControls")?.addEventListener("click", onPresetControlsClick);
+  }
+
+  function getPresetNameInput() {
+    return overlay?.querySelector?.("#paperdollPresetName") || null;
+  }
+
+  function exportStateForPreset(name = "") {
+    return {
+      name: String(name || "Pastor Preset").trim() || "Pastor Preset",
+      pageIndex: state.pageIndex,
+      facingIndex: state.facingIndex,
+      animIndex: state.animIndex,
+      behaviorIndex: state.behaviorIndex,
+      playbackSpeed: state.playbackSpeed,
+      loop: Boolean(state.loop),
+      layerSelection: { ...state.layerSelection },
+      layerVisible: { ...state.layerVisible },
+      savedAt: Date.now(),
+    };
+  }
+
+  function applyPresetData(preset) {
+    if (!preset || typeof preset !== "object") return false;
+    state.pageIndex = clampWrap(Number(preset.pageIndex) || 0, PAGE_KEYS.length);
+    state.facingIndex = clampWrap(Number(preset.facingIndex) || 0, FACING_KEYS.length);
+    state.animIndex = clampWrap(Number(preset.animIndex) || 0, animDefs.length);
+    state.behaviorIndex = clampWrap(Number(preset.behaviorIndex) || 0, behaviorProfiles.length);
+    state.playbackSpeed = Math.max(0.25, Math.min(4, Number(preset.playbackSpeed) || 1));
+    state.loop = Boolean(preset.loop);
+    const sel = preset.layerSelection && typeof preset.layerSelection === "object" ? preset.layerSelection : {};
+    const vis = preset.layerVisible && typeof preset.layerVisible === "object" ? preset.layerVisible : {};
+    LAYERS.forEach((k) => {
+      const listLen = (layerCatalog[k] || []).length || 1;
+      state.layerSelection[k] = clampWrap(Number(sel[k]) || 0, listLen);
+      state.layerVisible[k] = vis[k] !== false;
+    });
+    state.frameCursor = 0;
+    state.frameElapsed = 0;
+    state.holdFrame = false;
+    return true;
+  }
+
+  function loadPresetsFromStorage() {
+    const raw = window.localStorage?.getItem?.(PRESET_STORAGE_KEY);
+    const parsed = safeParse(raw, []);
+    state.presets = Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+    state.selectedPresetIndex = clampWrap(state.selectedPresetIndex, Math.max(1, state.presets.length || 1));
+  }
+
+  function savePresetsToStorage() {
+    if (!window.localStorage?.setItem) return;
+    window.localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(state.presets || []));
+  }
+
+  function saveCurrentToPresetSlot(slotIndex) {
+    const nameInput = getPresetNameInput();
+    const name = nameInput ? nameInput.value : "Pastor Preset";
+    const entry = exportStateForPreset(name);
+    const idx = Math.max(0, Math.floor(Number(slotIndex) || 0));
+    while (state.presets.length <= idx) state.presets.push(null);
+    state.presets[idx] = entry;
+    state.selectedPresetIndex = idx;
+    savePresetsToStorage();
+  }
+
+  function loadPresetSlot(slotIndex) {
+    const idx = Math.max(0, Math.floor(Number(slotIndex) || 0));
+    const entry = state.presets[idx];
+    if (!entry) return false;
+    const ok = applyPresetData(entry);
+    if (!ok) return false;
+    state.selectedPresetIndex = idx;
+    const nameInput = getPresetNameInput();
+    if (nameInput) nameInput.value = String(entry.name || `Preset ${idx + 1}`);
+    return true;
+  }
+
+  function deletePresetSlot(slotIndex) {
+    const idx = Math.max(0, Math.floor(Number(slotIndex) || 0));
+    if (!state.presets[idx]) return;
+    state.presets[idx] = null;
+    savePresetsToStorage();
+  }
+
+  function renderPresetControls() {
+    const root = overlay?.querySelector?.("#paperdollPresetControls");
+    if (!root) return;
+    const rows = [];
+    for (let i = 0; i < 4; i += 1) {
+      const preset = state.presets[i];
+      const selected = state.selectedPresetIndex === i;
+      const label = preset?.name || `Empty Slot ${i + 1}`;
+      rows.push(`
+        <div style="display:grid;grid-template-columns:1fr 58px 58px 28px;gap:6px;align-items:center;">
+          <div style="padding:4px 6px;border:1px solid ${selected ? "#5f78b5" : "#2a334a"};border-radius:6px;background:${selected ? "#16213a" : "#0d1220"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;" title="${label}">${label}</div>
+          ${buttonHtml(`preset-save:${i}`, "Save", `Save to slot ${i + 1}`)}
+          ${buttonHtml(`preset-load:${i}`, "Load", `Load slot ${i + 1}`)}
+          ${buttonHtml(`preset-del:${i}`, "×", `Delete slot ${i + 1}`)}
+        </div>
+      `);
+    }
+    root.innerHTML = `
+      <div style="font-size:12px;opacity:.9;margin-bottom:4px;">Pastor Presets (local)</div>
+      ${rows.join("")}
+    `;
+  }
+
+  function onPresetControlsClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const btn = e.target?.closest?.("button[data-action]");
+    if (!btn) return;
+    const action = String(btn.getAttribute("data-action") || "");
+    if (!action) return;
+    if (action.startsWith("preset-save:")) {
+      const idx = Number(action.slice("preset-save:".length)) || 0;
+      saveCurrentToPresetSlot(idx);
+    } else if (action.startsWith("preset-load:")) {
+      const idx = Number(action.slice("preset-load:".length)) || 0;
+      loadPresetSlot(idx);
+    } else if (action.startsWith("preset-del:")) {
+      const idx = Number(action.slice("preset-del:".length)) || 0;
+      deletePresetSlot(idx);
+    }
+    controlsDirty = true;
+    refreshPanels();
+    render();
   }
 
   function renderControls() {
@@ -468,25 +607,10 @@
 
   function refreshPanels() {
     if (!overlay) return;
-    const stateEl = overlay.querySelector("#paperdollSandboxState");
-    if (stateEl) {
-      const lines = [];
-      lines.push(`Focused layer: ${layerLabel(focusedLayer())}`);
-      lines.push(`Page: ${getPageKey()}`);
-      lines.push(`Facing: ${FACING_KEYS[state.facingIndex]}`);
-      lines.push(`Animation: ${getAnimDef().key}`);
-      lines.push(`Behavior profile: ${(behaviorProfiles[state.behaviorIndex] || {}).key || "n/a"}`);
-      lines.push("");
-      LAYERS.forEach((k) => {
-        const mark = k === focusedLayer() ? ">" : " ";
-        const vis = state.layerVisible[k] ? "ON" : "OFF";
-        lines.push(`${mark} ${layerLabel(k)} [${vis}]: ${getLayerFilename(k) || "none"}`);
-      });
-      stateEl.textContent = lines.join("\n");
-    }
     if (specBox) {
       specBox.value = buildSpecJson();
     }
+    renderPresetControls();
     if (controlsDirty) {
       renderControls();
     }
@@ -593,6 +717,7 @@
   function open() {
     ensureOverlay();
     if (!overlay || state.open) return;
+    loadPresetsFromStorage();
     state.open = true;
     overlay.style.display = "block";
     controlsDirty = true;
