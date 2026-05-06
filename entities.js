@@ -55,6 +55,20 @@
   };
   const paperdollImageCache = new Map();
   const paperdollMissingCache = new Set();
+  const paperdollCompositeCanvas =
+    (typeof OffscreenCanvas !== "undefined"
+      ? new OffscreenCanvas(PAPERDOLL_FRAME_SIZE, PAPERDOLL_FRAME_SIZE)
+      : (typeof document !== "undefined" && typeof document.createElement === "function"
+        ? (() => {
+            const c = document.createElement("canvas");
+            c.width = PAPERDOLL_FRAME_SIZE;
+            c.height = PAPERDOLL_FRAME_SIZE;
+            return c;
+          })()
+        : null));
+  const paperdollCompositeContext = paperdollCompositeCanvas
+    ? paperdollCompositeCanvas.getContext("2d", { willReadFrequently: true })
+    : null;
 
   function normalizePresetKey(value) {
     return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -62,6 +76,135 @@
 
   function getPastorConfig() {
     return window.BATTLECHURCH_PASTOR_PAPERDOLL || null;
+  }
+
+  function normalizePastorPaperdollRenderStyle(style) {
+    if (!style || typeof style !== "object") return null;
+    const brightness = Number(style.brightness);
+    const saturation = Number(style.saturation);
+    const contrast = Number(style.contrast);
+    const tintColor = typeof style.tintColor === "string" ? style.tintColor.trim() : "";
+    const tintIntensity = Number(style.tintIntensity);
+    const shadowCrush = Number(style.shadowCrush);
+    const shadowThreshold = Number(style.shadowThreshold);
+    return {
+      brightness:
+        Number.isFinite(brightness) && brightness > 0
+          ? brightness
+          : 1,
+      saturation:
+        Number.isFinite(saturation) && saturation > 0
+          ? saturation
+          : 1,
+      contrast:
+        Number.isFinite(contrast) && contrast > 0
+          ? contrast
+          : 1,
+      tintColor: tintColor || null,
+      tintIntensity:
+        Number.isFinite(tintIntensity)
+          ? Math.max(0, Math.min(1, tintIntensity))
+          : 0,
+      shadowCrush:
+        Number.isFinite(shadowCrush)
+          ? Math.max(0, Math.min(1, shadowCrush))
+          : 1,
+      shadowThreshold:
+        Number.isFinite(shadowThreshold)
+          ? Math.max(0, Math.min(1, shadowThreshold))
+          : 1.0,
+    };
+  }
+
+  function resolvePastorPaperdollRenderStyle(cfg, preset) {
+    const globalRaw = cfg?.renderStyle || cfg?.paperdollRenderStyle || cfg?.harmonizer || null;
+    const presetRaw = preset?.renderStyle || preset?.paperdollRenderStyle || preset?.harmonizer || null;
+    const globalStyle = normalizePastorPaperdollRenderStyle(globalRaw) || {};
+    const presetStyle = normalizePastorPaperdollRenderStyle(presetRaw) || {};
+    const presetHas = (key) =>
+      Boolean(
+        presetRaw &&
+          typeof presetRaw === "object" &&
+          Object.prototype.hasOwnProperty.call(presetRaw, key),
+      );
+    return {
+      brightness:
+        presetHas("brightness") && Number.isFinite(presetStyle.brightness) && presetStyle.brightness > 0
+          ? presetStyle.brightness
+          : (Number.isFinite(globalStyle.brightness) && globalStyle.brightness > 0
+            ? globalStyle.brightness
+            : 1),
+      saturation:
+        presetHas("saturation") && Number.isFinite(presetStyle.saturation) && presetStyle.saturation > 0
+          ? presetStyle.saturation
+          : (Number.isFinite(globalStyle.saturation) && globalStyle.saturation > 0
+            ? globalStyle.saturation
+            : 1),
+      contrast:
+        presetHas("contrast") && Number.isFinite(presetStyle.contrast) && presetStyle.contrast > 0
+          ? presetStyle.contrast
+          : (Number.isFinite(globalStyle.contrast) && globalStyle.contrast > 0
+            ? globalStyle.contrast
+            : 1),
+      tintColor:
+        (presetHas("tintColor") ? presetStyle.tintColor : null) ||
+        globalStyle.tintColor ||
+        null,
+      tintIntensity:
+        presetHas("tintIntensity") && Number.isFinite(presetStyle.tintIntensity)
+          ? Math.max(0, Math.min(1, presetStyle.tintIntensity))
+          : (Number.isFinite(globalStyle.tintIntensity)
+            ? Math.max(0, Math.min(1, globalStyle.tintIntensity))
+            : 0),
+      shadowCrush:
+        presetHas("shadowCrush") && Number.isFinite(presetStyle.shadowCrush)
+          ? Math.max(0, Math.min(1, presetStyle.shadowCrush))
+          : (Number.isFinite(globalStyle.shadowCrush)
+            ? Math.max(0, Math.min(1, globalStyle.shadowCrush))
+            : 0),
+      shadowThreshold:
+        presetHas("shadowThreshold") && Number.isFinite(presetStyle.shadowThreshold)
+          ? Math.max(0, Math.min(1, presetStyle.shadowThreshold))
+          : (Number.isFinite(globalStyle.shadowThreshold)
+            ? Math.max(0, Math.min(1, globalStyle.shadowThreshold))
+            : 0.5),
+    };
+  }
+
+  function applyShadowCrushToPaperdoll(context2d, width, height, renderStyle) {
+    if (!context2d || !width || !height) return;
+    const shadowCrush =
+      Number.isFinite(renderStyle?.shadowCrush)
+        ? Math.max(0, Math.min(1, renderStyle.shadowCrush))
+        : 0;
+    if (shadowCrush <= 0) return;
+    const shadowThreshold =
+      Number.isFinite(renderStyle?.shadowThreshold)
+        ? Math.max(0.02, Math.min(1, renderStyle.shadowThreshold))
+        : 0.5;
+    let imageData = null;
+    try {
+      imageData = context2d.getImageData(0, 0, width, height);
+    } catch (e) {
+      return;
+    }
+    const pixels = imageData.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const a = pixels[i + 3];
+      if (!a) continue;
+      const r = pixels[i];
+      const g = pixels[i + 1];
+      const b = pixels[i + 2];
+      const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      if (luminance >= shadowThreshold) continue;
+      const under = (shadowThreshold - luminance) / shadowThreshold;
+      const darken = Math.max(0, Math.min(1, under * shadowCrush));
+      const mult = 1 - darken;
+      pixels[i] = Math.max(0, Math.min(255, Math.round(r * mult)));
+      pixels[i + 1] = Math.max(0, Math.min(255, Math.round(g * mult)));
+      pixels[i + 2] = Math.max(0, Math.min(255, Math.round(b * mult)));
+    }
+    context2d.putImageData(imageData, 0, 0);
   }
 
   function getRuntimeBattleState() {
@@ -613,6 +756,8 @@
   function drawPastorPaperdoll(player, context, x, y, { alpha = 1 } = {}) {
     const preset = resolvePastorPaperdollPreset(player);
     if (!preset) return false;
+    const cfg = getPastorConfig();
+    const renderStyle = resolvePastorPaperdollRenderStyle(cfg, preset);
     const animKey = String(preset.animation || "combat_idle");
     const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
     const rawFacing = String(player.facing || "down");
@@ -647,14 +792,79 @@
       const cols = Math.max(1, Math.floor(img.naturalWidth / PAPERDOLL_FRAME_SIZE));
       const sx = (frameIdx % cols) * PAPERDOLL_FRAME_SIZE;
       const sy = Math.floor(frameIdx / cols) * PAPERDOLL_FRAME_SIZE;
-      context.drawImage(img, sx, sy, PAPERDOLL_FRAME_SIZE, PAPERDOLL_FRAME_SIZE, x - dw / 2, y - dh / 2, dw, dh);
+      const targetCtx = paperdollCompositeContext || context;
+      if (targetCtx === context) {
+        context.drawImage(img, sx, sy, PAPERDOLL_FRAME_SIZE, PAPERDOLL_FRAME_SIZE, x - dw / 2, y - dh / 2, dw, dh);
+        return;
+      }
+      targetCtx.drawImage(
+        img,
+        sx,
+        sy,
+        PAPERDOLL_FRAME_SIZE,
+        PAPERDOLL_FRAME_SIZE,
+        0,
+        0,
+        PAPERDOLL_FRAME_SIZE,
+        PAPERDOLL_FRAME_SIZE,
+      );
     };
 
     context.save();
     context.globalAlpha = Math.max(0, Math.min(1, alpha));
+    const brightness =
+      Number.isFinite(renderStyle?.brightness) && renderStyle.brightness > 0
+        ? renderStyle.brightness
+        : 1;
+    const saturation =
+      Number.isFinite(renderStyle?.saturation) && renderStyle.saturation > 0
+        ? renderStyle.saturation
+        : 1;
+    const contrast =
+      Number.isFinite(renderStyle?.contrast) && renderStyle.contrast > 0
+        ? renderStyle.contrast
+        : 1;
+    if (paperdollCompositeContext && paperdollCompositeCanvas) {
+      paperdollCompositeContext.clearRect(0, 0, PAPERDOLL_FRAME_SIZE, PAPERDOLL_FRAME_SIZE);
+    }
+    if (brightness !== 1 || saturation !== 1 || contrast !== 1) {
+      context.filter = `brightness(${brightness}) saturate(${saturation}) contrast(${contrast})`;
+    }
     if (!shieldFront) drawLayer("7tlb");
     baseOrder.forEach(drawLayer);
     if (shieldFront) drawLayer("7tlb");
+    if (paperdollCompositeContext && paperdollCompositeCanvas) {
+      applyShadowCrushToPaperdoll(
+        paperdollCompositeContext,
+        PAPERDOLL_FRAME_SIZE,
+        PAPERDOLL_FRAME_SIZE,
+        renderStyle,
+      );
+      context.drawImage(
+        paperdollCompositeCanvas,
+        0,
+        0,
+        PAPERDOLL_FRAME_SIZE,
+        PAPERDOLL_FRAME_SIZE,
+        x - dw / 2,
+        y - dh / 2,
+        dw,
+        dh,
+      );
+    }
+    const tintColor = renderStyle?.tintColor || null;
+    const tintIntensity =
+      Number.isFinite(renderStyle?.tintIntensity)
+        ? Math.max(0, Math.min(1, renderStyle.tintIntensity))
+        : 0;
+    if (tintColor && tintIntensity > 0) {
+      context.save();
+      context.globalCompositeOperation = "source-atop";
+      context.globalAlpha = Math.max(0, Math.min(1, alpha * tintIntensity));
+      context.fillStyle = tintColor;
+      context.fillRect(x - dw / 2, y - dh / 2, dw, dh);
+      context.restore();
+    }
     context.restore();
     return true;
   }

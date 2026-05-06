@@ -7,6 +7,10 @@
   "animation": "combat_idle",
   "playbackSpeed": 1,
   "loop": true,
+  "renderStyle": {
+    "shadowCrush": 1.0,
+    "shadowThreshold": 0.65
+  },
   "behavior": {
     "key": "melee_slash",
     "melee_style": "slash_1",
