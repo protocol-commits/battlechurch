@@ -90,7 +90,7 @@
     },
     {
       "slot": 3,
-      "name": "Projectile",
+      "name": "SlashBash",
       "page": "pONE1",
       "facing": "east",
       "animation": "draw_sheath",
@@ -132,7 +132,7 @@
     },
     {
       "slot": 4,
-      "name": "Slash1",
+      "name": "SlashUp",
       "page": "pONE3",
       "facing": "east",
       "animation": "slash_1",
@@ -216,7 +216,7 @@
     },
     {
       "slot": 7,
-      "name": "Slash2",
+      "name": "SlashDown",
       "page": "pONE3",
       "facing": "east",
       "animation": "slash_2",
