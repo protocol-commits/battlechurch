@@ -2,10 +2,10 @@
 (function initPastorPaperdollConfig(global) {
   const FILE_DEFAULT = {
   "source": "mana-seed",
-  "page": "pONE1",
+  "page": "pONE2",
   "facing": "east",
-  "animation": "draw_sheath",
-  "playbackSpeed": 2,
+  "animation": "combat_idle",
+  "playbackSpeed": 1,
   "loop": true,
   "behavior": {
     "key": "melee_slash",
@@ -36,12 +36,12 @@
     },
     "6tla": {
       "label": "Main Hand",
-      "asset": "mc01_v05",
+      "asset": "none",
       "visible": true
     },
     "7tlb": {
       "label": "Off Hand",
-      "asset": "sh01_v03",
+      "asset": "none",
       "visible": true
     }
   },
@@ -78,12 +78,12 @@
         },
         "6tla": {
           "label": "Main Hand",
-          "asset": "sw01_v05",
+          "asset": "none",
           "visible": true
         },
         "7tlb": {
           "label": "Off Hand",
-          "asset": "sh02_v01",
+          "asset": "none",
           "visible": true
         }
       }

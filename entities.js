@@ -23,9 +23,9 @@
   const PAPERDOLL_LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
   const PAPERDOLL_FACING_MAP = {
     down: "south",
-    left: "west",
+    left: "north",
     right: "east",
-    up: "north",
+    up: "west",
   };
   const PAPERDOLL_FACING_INDEX = {
     south: 0,
@@ -144,6 +144,10 @@
       Boolean(melee?.swooshTimer > 0) ||
       Boolean(melee?.spinTimer > 0) ||
       Boolean(melee?.isRushing);
+    const movingNow = Boolean(player?._paperdollMoving);
+
+    const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
+    if (movingNow && !dashing) return actionMap.walk;
 
     if (player.state === "attackArrow") {
       const desired = isProjectileFast(player, "arrow") ? actionMap.projectileWandFast : actionMap.projectile;
@@ -166,9 +170,8 @@
       if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
     }
 
-    const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
-    if (dashing || (player?.speedBoostTimer || 0) > 0) return actionMap.run;
     if (player.state === "walk") return actionMap.walk;
+    if (dashing) return actionMap.run;
     if (player.state === "idle") return actionMap.idle;
     return actionMap.fallback;
   }
@@ -179,7 +182,31 @@
     const desiredName = pickDesiredPresetName(player);
     const actionMap = cfg.animationPresetMap || {};
     const mappedName = getMapValueCaseInsensitive(actionMap, desiredName) || desiredName;
-    return resolvePresetByName(mappedName, cfg.presets) || resolvePresetByName("SlashDown", cfg.presets);
+    const direct = resolvePresetByName(mappedName, cfg.presets);
+    if (direct) return direct;
+
+    const desiredKey = normalizePresetKey(mappedName);
+    const movementAnimationByKey = {
+      idle: "combat_idle",
+      walk: "walk",
+      run: "run",
+    };
+    const desiredAnim = movementAnimationByKey[desiredKey] || null;
+
+    // Paperdoll-only fallback for movement states:
+    // use a base preset's layers, but force desired movement animation.
+    if (desiredAnim) {
+      const animMatch = (cfg.presets || []).find(
+        (p) => p && typeof p === "object" && normalizePresetKey(p.animation) === normalizePresetKey(desiredAnim),
+      );
+      const idleBase = resolvePresetByName("idle", cfg.presets);
+      const slashBase = resolvePresetByName("SlashDown", cfg.presets);
+      const base = animMatch || idleBase || slashBase || cfg.presets.find((p) => p && typeof p === "object");
+      if (!base) return null;
+      return { ...base, animation: desiredAnim, _derived: true };
+    }
+
+    return resolvePresetByName("SlashDown", cfg.presets);
   }
 
   function paperdollLayerPath(page, layerKey, token) {
@@ -262,7 +289,7 @@
     const pd = player._paperdollState || { frameCursor: 0 };
     const frameCursor = Math.max(0, Math.min(frames.length - 1, Number(pd.frameCursor) || 0));
     const frameIdx = frames[frameCursor];
-    const page = String(preset.page || animDef.page || "pONE2");
+    const page = String(animDef.page || preset.page || "pONE2");
 
     const shieldFrontSet = SHIELD_FRONT_FRAMES[page] || null;
     const shieldFront = !shieldFrontSet || shieldFrontSet.has(frameIdx);
@@ -1427,6 +1454,7 @@
     }
 
     const moving = moveX !== 0 || moveY !== 0;
+    this._paperdollMoving = moving;
 
     if (moving) {
       const { x, y } = normalizeVector(moveX, moveY);
