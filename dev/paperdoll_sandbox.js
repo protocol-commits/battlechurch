@@ -225,7 +225,7 @@
           <canvas id="paperdollSandboxCanvas" width="900" height="640" style="width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:900/640;image-rendering:pixelated;"></canvas>
         </div>
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Build Spec Export</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Build Spec</div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
             <label for="paperdollPresetName" style="font-size:12px;opacity:.9;">Preset name</label>
             <input id="paperdollPresetName" type="text" value="Pastor Preset" style="flex:1;background:#0d1220;color:#e8edf7;border:1px solid #2a334a;border-radius:6px;padding:6px;font-size:12px;">
@@ -233,8 +233,7 @@
           <div id="paperdollPresetControls" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:24vh;overflow:auto;"></div>
           <textarea id="paperdollSandboxSpec" readonly style="flex:1;min-height:200px;background:#0d1220;color:#e8edf7;border:1px solid #2a334a;border-radius:8px;padding:10px;font-size:12px;"></textarea>
           <div style="display:flex;gap:8px;margin-top:8px;">
-            <button id="paperdollCopyJson" type="button" style="flex:1;padding:8px;background:#1b2740;color:#e8edf7;border:1px solid #3a4b72;border-radius:8px;cursor:pointer;">Copy JSON</button>
-            <button id="paperdollCopyShort" type="button" style="flex:1;padding:8px;background:#1b2740;color:#e8edf7;border:1px solid #3a4b72;border-radius:8px;cursor:pointer;">Copy Short</button>
+            <button id="paperdollSaveGameConfig" type="button" style="flex:1;padding:8px;background:#254122;color:#e8edf7;border:1px solid #4f8d45;border-radius:8px;cursor:pointer;">Save Config File</button>
           </div>
         </div>
       </div>
@@ -247,14 +246,7 @@
     specBox = overlay.querySelector("#paperdollSandboxSpec");
     controlsRoot = overlay.querySelector("#paperdollSandboxControls");
 
-    overlay.querySelector("#paperdollCopyJson")?.addEventListener("click", () => {
-      const text = buildSpecJson();
-      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text);
-    });
-    overlay.querySelector("#paperdollCopyShort")?.addEventListener("click", () => {
-      const text = buildSpecShort();
-      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text);
-    });
+    overlay.querySelector("#paperdollSaveGameConfig")?.addEventListener("click", saveConfigFileWithPrompt);
     controlsRoot?.addEventListener("pointerdown", onControlsClick);
     controlsRoot?.addEventListener("click", onControlsClick);
     overlay.querySelector("#paperdollPresetControls")?.addEventListener("pointerdown", onPresetControlsClick);
@@ -672,6 +664,78 @@
       `MainHand=${obj.layers["Main Hand"]}`,
       `OffHand=${obj.layers["Off Hand"]}`,
     ].join(" | ");
+  }
+
+  function buildGameConfigObject() {
+    const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
+    return {
+      source: "mana-seed",
+      page: getPageKey(),
+      facing: FACING_KEYS[state.facingIndex],
+      animation: getAnimDef().key,
+      playbackSpeed: Number(state.playbackSpeed.toFixed(2)),
+      loop: Boolean(state.loop),
+      behavior: {
+        key: behavior.key,
+        melee_style: behavior.melee_style,
+        projectile_style: behavior.projectile_style,
+        movement_set: behavior.movement_set,
+      },
+      layers: Object.fromEntries(
+        LAYERS.map((k) => [
+          k,
+          {
+            label: layerLabel(k),
+            asset: getLayerFilename(k) || "none",
+            visible: Boolean(state.layerVisible[k]),
+          },
+        ]),
+      ),
+    };
+  }
+
+  function buildGameConfigJs() {
+    const cfg = buildGameConfigObject();
+    return [
+      "// Generated from dev/paperdoll_sandbox.js",
+      "(function initPastorPaperdollConfig(global) {",
+      "  const FILE_DEFAULT = " + JSON.stringify(cfg, null, 2) + ";",
+      "  global.BATTLECHURCH_PASTOR_PAPERDOLL = FILE_DEFAULT;",
+      "})(typeof window !== \"undefined\" ? window : globalThis);",
+      "",
+    ].join("\n");
+  }
+
+  async function saveConfigFileWithPrompt() {
+    const text = buildGameConfigJs();
+    if (typeof window.showSaveFilePicker === "function") {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: "config_pastor_paperdoll.js",
+          types: [
+            {
+              description: "JavaScript",
+              accept: { "application/javascript": [".js"] },
+            },
+          ],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        return;
+      } catch (_) {
+        // user cancel or unsupported context; fallback below
+      }
+    }
+    const blob = new Blob([text], { type: "application/javascript;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "config_pastor_paperdoll.js";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   function refreshPanels() {
