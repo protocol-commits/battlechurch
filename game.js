@@ -7903,13 +7903,18 @@ function startGameFromTitle() {
     const resumeLocalBattleNumber = Number.isFinite(campaignData?.resumeLocalBattleNumber)
       ? Math.max(1, Math.floor(campaignData.resumeLocalBattleNumber))
       : 1;
+    const maxMissionsPerTown =
+      typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
+        ? Math.max(1, Math.floor(Number(window.BATTLES_PER_TOWN) || 1))
+        : 3;
+    const clampedResumeLocalBattleNumber = Math.min(resumeLocalBattleNumber, maxMissionsPerTown);
     const hasDevStartOverrideForTown =
       pendingDevBattleStartOverride &&
       pendingDevBattleStartOverride.townId === activeTownId;
-    if (!overrideCampaignData && !hasDevStartOverrideForTown && resumeLocalBattleNumber > 1) {
+    if (!overrideCampaignData && !hasDevStartOverrideForTown && clampedResumeLocalBattleNumber > 1) {
       pendingDevBattleStartOverride = {
         townId: activeTownId,
-        localBattleNumber: resumeLocalBattleNumber,
+        localBattleNumber: clampedResumeLocalBattleNumber,
       };
     }
     if (Number.isFinite(campaignData?.savedGraceCount)) {
@@ -18234,7 +18239,7 @@ function checkDialogOverlays() {
     // lastCompletedLevel was set when the battle summary showed
     // Show chapter break after level 1 (month 4) and level 2 (month 8)
     // Level 1 complete → Mission 2, Level 2 complete → Mission 3
-    } else if (lastSummaryWasLevelEnd && (lastCompletedLevel === 1 || lastCompletedLevel === 2)) {
+    } else if (lastCompletedLevel === 1 || lastCompletedLevel === 2) {
       const actNumber = lastCompletedLevel + 1; // Level 1 done → Mission 2, Level 2 done → Mission 3
       window.UpgradeScreen.show(() => {
         stopRecapMusic();

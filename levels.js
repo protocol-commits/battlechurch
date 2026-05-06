@@ -680,9 +680,16 @@
     // Each mission in the data becomes one battle entry here so the level manager
     // doesn't need to know about the town→battle→mission→wave nesting.
     const battles = [];
-    const numBattles = townData?.battles?.length
+    const rawBattleCount = townData?.battles?.length
       || townData?.months?.length
       || BATTLE_MONTHS_PER_LEVEL;
+    const numBattles = Math.max(
+      1,
+      Math.min(
+        Math.max(1, Number(BATTLES_PER_TOWN) || 1),
+        Math.max(1, Number(rawBattleCount) || 1),
+      ),
+    );
     for (let bIdx = 0; bIdx < numBattles; bIdx += 1) {
       const battleData = townData?.battles?.[bIdx] || townData?.months?.[bIdx];
       const missionList = Array.isArray(battleData?.missions) ? battleData.missions
