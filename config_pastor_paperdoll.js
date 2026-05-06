@@ -3,9 +3,9 @@
   const FILE_DEFAULT = {
   "source": "mana-seed",
   "page": "pONE2",
-  "facing": "south",
-  "animation": "combat_move",
-  "playbackSpeed": 0.9,
+  "facing": "east",
+  "animation": "combat_idle",
+  "playbackSpeed": 1,
   "loop": true,
   "behavior": {
     "key": "melee_slash",
@@ -36,13 +36,13 @@
     },
     "6tla": {
       "label": "Main Hand",
-      "asset": "mc01_v05",
+      "asset": "none",
       "visible": true
     },
     "7tlb": {
       "label": "Off Hand",
-      "asset": "sh01_v03",
-      "visible": false
+      "asset": "none",
+      "visible": true
     }
   },
   "presets": [
@@ -715,6 +715,48 @@
           "label": "Off Hand",
           "asset": "sh01_v03",
           "visible": false
+        }
+      }
+    },
+    {
+      "slot": 19,
+      "name": "thrustmagic",
+      "page": "pONE3",
+      "facing": "east",
+      "animation": "thrust",
+      "behavior": "melee_thrust",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "mc01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh02_v01",
+          "visible": true
         }
       }
     }

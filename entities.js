@@ -131,6 +131,7 @@
       normalSlash: "SlashDown",
       slashBash: "SlashBash",
       blast: "Blast",
+      thrustMagic: "thrustmagic",
       readyToFire: "readytofire",
       smash: "Smash",
       thrust: "thrust",
@@ -263,7 +264,8 @@
     if (meleeAttackActive) {
       if (comboNames.includes("cleave")) return actionMap.cleave;
       if (hitboxType === "slash") return actionMap.normalSlash;
-      if (hitboxType === "spin" || hitboxType === "holyground") return actionMap.thrust;
+      if (hitboxType === "holyground" || comboNames.includes("hedge")) return actionMap.thrustMagic;
+      if (hitboxType === "spin") return actionMap.thrust;
       if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
       return actionMap.normalSlash;
     }
@@ -475,6 +477,14 @@
         )
       );
     const usingSmashPreset = normalizePresetKey(String(preset?.name || "")) === "smash";
+    const usingThrustMagicPreset = normalizePresetKey(String(preset?.name || "")) === "thrustmagic";
+    const hedgeFrame4LockActive =
+      usingThrustMagicPreset &&
+      (
+        hitboxType === "holyground" ||
+        comboNames.includes("hedge")
+      ) &&
+      Boolean(melee?.spinTimer > 0);
     const blastReadyReleased =
       !lockBlastReadyFrame1 &&
       Boolean(player._paperdollBlastReadyHeld) &&
@@ -498,6 +508,11 @@
     }
     if (clashFrame3LockActive) {
       pd.frameCursor = Math.min(2, Math.max(0, frames.length - 1));
+      pd.elapsedMs = 0;
+      return;
+    }
+    if (hedgeFrame4LockActive) {
+      pd.frameCursor = Math.min(3, Math.max(0, frames.length - 1));
       pd.elapsedMs = 0;
       return;
     }
