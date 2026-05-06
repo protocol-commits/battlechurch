@@ -473,6 +473,10 @@
         ${buttonHtml("play-toggle", state.holdFrame ? "Play" : "Pause", "Toggle playback")}
         ${buttonHtml("anim-restart", "Restart", "Restart current animation")}
       </div>
+      <div style="display:flex;gap:6px;margin-top:0;margin-bottom:8px;">
+        ${buttonHtml("frame-prev", "Prev Frame", "Step one frame backward (works best while paused)")}
+        ${buttonHtml("frame-next", "Next Frame", "Step one frame forward (works best while paused)")}
+      </div>
       <div style="font-weight:700;margin-bottom:6px;">Behavior Preview</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
         ${buttonHtml("behavior-trigger", "Use Behavior", "Play behavior profile action, then return")}
@@ -494,6 +498,7 @@
     const action = String(btn.getAttribute("data-action") || "");
     if (!action) return;
 
+    let keepFrameCursor = false;
     if (action === "page-prev") stepPage(-1);
     else if (action === "page-next") stepPage(1);
     else if (action === "anim-prev") stepAnim(-1);
@@ -510,6 +515,12 @@
       state.frameElapsed = 0;
       state.holdFrame = false;
       state.transientAction = null;
+    } else if (action === "frame-prev") {
+      stepFrame(-1);
+      keepFrameCursor = true;
+    } else if (action === "frame-next") {
+      stepFrame(1);
+      keepFrameCursor = true;
     } else if (action === "behavior-trigger") {
       const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
       triggerTransientAction(behavior?.melee_style || "slash_1");
@@ -542,11 +553,20 @@
       if (layerKey in state.layerVisible) state.layerVisible[layerKey] = !state.layerVisible[layerKey];
     }
 
-    state.frameCursor = 0;
-    state.frameElapsed = 0;
+    if (!keepFrameCursor) {
+      state.frameCursor = 0;
+      state.frameElapsed = 0;
+    }
     controlsDirty = true;
     refreshPanels();
     render();
+  }
+
+  function stepFrame(delta) {
+    const frames = computeAnimFrames();
+    if (!frames.length) return;
+    state.frameCursor = clampWrap((state.frameCursor || 0) + delta, frames.length);
+    state.frameElapsed = 0;
   }
 
   function triggerTransientAction(animKey) {
@@ -932,9 +952,11 @@
     } else if (key === "ArrowDown") {
       state.focusedLayerIndex = clampWrap(state.focusedLayerIndex + 1, LAYERS.length);
     } else if (key === "ArrowLeft") {
-      stepLayer(-1);
+      if (state.holdFrame) stepFrame(-1);
+      else stepLayer(-1);
     } else if (key === "ArrowRight") {
-      stepLayer(1);
+      if (state.holdFrame) stepFrame(1);
+      else stepLayer(1);
     } else if (lower === "w") {
       stepAnim(-1);
     } else if (lower === "s") {
