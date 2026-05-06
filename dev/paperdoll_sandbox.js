@@ -102,6 +102,13 @@
   let canvas = null;
   let ctx = null;
   let specBox = null;
+  let controlsRoot = null;
+  let controlsDirty = true;
+
+  function buttonHtml(action, label, title = "") {
+    const safeTitle = String(title || "").replace(/"/g, "&quot;");
+    return `<button type="button" data-action="${action}" title="${safeTitle}" style="padding:4px 8px;background:#1b2740;color:#e8edf7;border:1px solid #3a4b72;border-radius:6px;cursor:pointer;">${label}</button>`;
+  }
 
   function getAnimDef() {
     return animDefs[state.animIndex] || animDefs[0];
@@ -187,6 +194,7 @@
             Space pause/play | [ ] speed | Enter one-shot restart<br>
             Tab behavior profile | V toggle layer visibility
           </div>
+          <div id="paperdollSandboxControls" style="margin-top:10px;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;"></div>
           <pre id="paperdollSandboxState" style="margin-top:10px;white-space:pre-wrap;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;"></pre>
         </div>
         <div style="display:flex;align-items:center;justify-content:center;background:rgba(12,16,24,0.6);border:1px solid #2a334a;border-radius:10px;position:relative;">
@@ -208,6 +216,7 @@
     ctx = canvas.getContext("2d");
     if (ctx) ctx.imageSmoothingEnabled = false;
     specBox = overlay.querySelector("#paperdollSandboxSpec");
+    controlsRoot = overlay.querySelector("#paperdollSandboxControls");
 
     overlay.querySelector("#paperdollCopyJson")?.addEventListener("click", () => {
       const text = buildSpecJson();
@@ -217,6 +226,97 @@
       const text = buildSpecShort();
       if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text);
     });
+    controlsRoot?.addEventListener("click", onControlsClick);
+  }
+
+  function renderControls() {
+    if (!controlsRoot) return;
+    const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
+    const globalRows = [
+      { label: "Page", value: getPageKey(), prev: "page-prev", next: "page-next" },
+      { label: "Animation", value: getAnimDef().key, prev: "anim-prev", next: "anim-next" },
+      { label: "Facing", value: FACING_KEYS[state.facingIndex], prev: "facing-prev", next: "facing-next" },
+      { label: "Behavior", value: behavior.key, prev: "behavior-prev", next: "behavior-next" },
+      { label: "Speed", value: `${state.playbackSpeed.toFixed(2)}x`, prev: "speed-down", next: "speed-up" },
+    ];
+
+    const rowsHtml = globalRows.map((row) => `
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">${row.label}</div>
+        ${buttonHtml(row.prev, "◀", `Previous ${row.label.toLowerCase()}`)}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${row.value}</div>
+        ${buttonHtml(row.next, "▶", `Next ${row.label.toLowerCase()}`)}
+      </div>
+    `).join("");
+
+    const layerRowsHtml = LAYERS.map((layerKey) => {
+      const layerName = layerLabel(layerKey);
+      const value = getLayerFilename(layerKey) || "none";
+      const vis = state.layerVisible[layerKey] ? "Visible" : "Hidden";
+      return `
+        <div style="display:grid;grid-template-columns:88px 28px 1fr 28px 64px;gap:6px;align-items:center;margin-bottom:6px;">
+          <div style="opacity:.9;">${layerName}</div>
+          ${buttonHtml(`layer-prev:${layerKey}`, "◀", `Previous ${layerName.toLowerCase()}`)}
+          <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
+          ${buttonHtml(`layer-next:${layerKey}`, "▶", `Next ${layerName.toLowerCase()}`)}
+          ${buttonHtml(`layer-toggle:${layerKey}`, vis, `Toggle ${layerName.toLowerCase()} visibility`)}
+        </div>
+      `;
+    }).join("");
+
+    controlsRoot.innerHTML = `
+      <div style="font-weight:700;margin-bottom:6px;">Mouse Controls</div>
+      ${rowsHtml}
+      <div style="display:flex;gap:6px;margin-top:8px;margin-bottom:8px;">
+        ${buttonHtml("play-toggle", state.holdFrame ? "Play" : "Pause", "Toggle playback")}
+        ${buttonHtml("anim-restart", "Restart", "Restart current animation")}
+      </div>
+      <div style="font-weight:700;margin-bottom:6px;">Layers</div>
+      ${layerRowsHtml}
+    `;
+    controlsDirty = false;
+  }
+
+  function onControlsClick(e) {
+    const btn = e.target?.closest?.("button[data-action]");
+    if (!btn) return;
+    e.preventDefault();
+    const action = String(btn.getAttribute("data-action") || "");
+    if (!action) return;
+
+    if (action === "page-prev") stepPage(-1);
+    else if (action === "page-next") stepPage(1);
+    else if (action === "anim-prev") stepAnim(-1);
+    else if (action === "anim-next") stepAnim(1);
+    else if (action === "facing-prev") stepFacing(-1);
+    else if (action === "facing-next") stepFacing(1);
+    else if (action === "behavior-prev") state.behaviorIndex = clampWrap(state.behaviorIndex - 1, behaviorProfiles.length);
+    else if (action === "behavior-next") state.behaviorIndex = clampWrap(state.behaviorIndex + 1, behaviorProfiles.length);
+    else if (action === "speed-down") state.playbackSpeed = Math.max(0.25, state.playbackSpeed - 0.1);
+    else if (action === "speed-up") state.playbackSpeed = Math.min(4.0, state.playbackSpeed + 0.1);
+    else if (action === "play-toggle") state.holdFrame = !state.holdFrame;
+    else if (action === "anim-restart") {
+      state.frameCursor = 0;
+      state.frameElapsed = 0;
+      state.holdFrame = false;
+    } else if (action.startsWith("layer-prev:")) {
+      const layerKey = action.slice("layer-prev:".length);
+      const list = layerCatalog[layerKey] || [];
+      if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) - 1, list.length);
+    } else if (action.startsWith("layer-next:")) {
+      const layerKey = action.slice("layer-next:".length);
+      const list = layerCatalog[layerKey] || [];
+      if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) + 1, list.length);
+    } else if (action.startsWith("layer-toggle:")) {
+      const layerKey = action.slice("layer-toggle:".length);
+      if (layerKey in state.layerVisible) state.layerVisible[layerKey] = !state.layerVisible[layerKey];
+    }
+
+    state.frameCursor = 0;
+    state.frameElapsed = 0;
+    controlsDirty = true;
+    refreshPanels();
+    render();
   }
 
   function imageForPath(path) {
@@ -276,7 +376,7 @@
     ctx.font = "14px ui-monospace, Menlo, monospace";
     ctx.fillText(`Page: ${getPageKey()}  |  Anim: ${getAnimDef().key}  |  Facing: ${FACING_KEYS[state.facingIndex]}`, 22, 28);
     ctx.fillText(`Frame: ${frameIdx} (${state.frameCursor + 1}/${frames.length})  |  Speed: ${state.playbackSpeed.toFixed(2)}x`, 22, 48);
-    ctx.fillText(`Focused Layer: ${focusedLayer()}`, 22, 68);
+    ctx.fillText(`Focused Layer: ${layerLabel(focusedLayer())}`, 22, 68);
   }
 
   function update(dtMs) {
@@ -373,6 +473,9 @@
     if (specBox) {
       specBox.value = buildSpecJson();
     }
+    if (controlsDirty) {
+      renderControls();
+    }
   }
 
   function stepLayer(delta) {
@@ -458,6 +561,7 @@
       const layer = focusedLayer();
       state.layerVisible[layer] = !state.layerVisible[layer];
     }
+    controlsDirty = true;
     refreshPanels();
     render();
   }
@@ -477,6 +581,7 @@
     if (!overlay || state.open) return;
     state.open = true;
     overlay.style.display = "block";
+    controlsDirty = true;
     refreshPanels();
     render();
     state.rafId = requestAnimationFrame(() => tick(performance.now()));
