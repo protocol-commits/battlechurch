@@ -1775,6 +1775,7 @@
         {
           duration: BETWEEN_BATTLE_PAUSE,
           requiresConfirm: true,
+          completedActNum: missionOrdinal,
         },
       );
       resetStage("battleIntermission", BETWEEN_BATTLE_PAUSE);

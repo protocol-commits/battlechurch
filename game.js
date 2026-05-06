@@ -8526,12 +8526,12 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   startRecapIntroFade(1.5);
   const isFinalYear = Boolean(announcement?.finalYear);
   const shouldUpgradeAfter = Boolean(upgradeAfter);
-  // Track which level was just completed for chapter breaks (boss/level summary only)
-  if (announcement?.levelSummary) {
-    lastCompletedLevel = announcement.completedActNum
-      ?? (levelManager?.getActNumber ? levelManager.getActNumber() : 1);
-    lastSummaryWasLevelEnd = true;
-  }
+  // Track which mission was just completed for chapter-break/visitor routing.
+  const completedActNum = Number.isFinite(announcement?.completedActNum)
+    ? announcement.completedActNum
+    : (levelManager?.getActNumber ? levelManager.getActNumber() : 1);
+  lastCompletedLevel = completedActNum;
+  lastSummaryWasLevelEnd = true;
   const summary = levelManager?.getLastBattleSummary?.() || {};
   const status = levelManager?.getStatus?.() || null;
   const savedNames = Array.isArray(summary.savedNames)
