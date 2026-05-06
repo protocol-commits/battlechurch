@@ -131,6 +131,7 @@
       normalSlash: "SlashDown",
       slashBash: "SlashBash",
       blast: "Blast",
+      projectileWand: "ProjectileWand",
       thrustMagic: "thrustmagic",
       readyToFire: "readytofire",
       smash: "Smash",
@@ -159,6 +160,9 @@
     const blastWindowActive =
       Number.isFinite(player._paperdollBlastUntil) &&
       nowMs <= player._paperdollBlastUntil;
+    const congregationCommandVisualActive =
+      Number.isFinite(player?._paperdollCongregationCommandUntil) &&
+      nowMs <= player._paperdollCongregationCommandUntil;
     const movingNow = Boolean(player?._paperdollMoving);
     const chargingA = Boolean(melee?.buttonDown) || Boolean(melee?.isCharging);
     const blastChargeReady =
@@ -211,6 +215,10 @@
     // 2) Charged A release (Blast) is a short one-shot visual window.
     if (blastWindowActive) {
       return actionMap.blast;
+    }
+
+    if (congregationCommandVisualActive) {
+      return actionMap.projectileWand;
     }
 
     // 2b) Prayer Smite charged while still holding C.
@@ -479,6 +487,7 @@
       );
     const usingSmashPreset = normalizePresetKey(String(preset?.name || "")) === "smash";
     const usingSlashDownPreset = normalizePresetKey(String(preset?.name || "")) === "slashdown";
+    const usingSlashUpPreset = normalizePresetKey(String(preset?.name || "")) === "slashup";
     const usingThrustMagicPreset = normalizePresetKey(String(preset?.name || "")) === "thrustmagic";
     const hedgeFrame4LockActive =
       usingThrustMagicPreset &&
@@ -495,6 +504,13 @@
       usingSlashDownPreset &&
       hitboxType === "slash" &&
       Boolean(melee?.swooshTimer > 0) &&
+      Number(player?.meleeHitstopTimer || 0) > 0;
+    const cleaveHitFreezeFrame2LockActive =
+      usingSlashUpPreset &&
+      (
+        comboNames.includes("cleave") ||
+        String(melee?.pendingComboMoveName || "").toLowerCase().includes("cleave")
+      ) &&
       Number(player?.meleeHitstopTimer || 0) > 0;
     player._paperdollBlastReadyHeld = lockBlastReadyFrame1;
     const nowMs =
@@ -515,6 +531,12 @@
     }
     if (slashHitFreezeFrame2LockActive) {
       // During successful slash hitstop, hold frame 2 (1-based) for clearer sword trail.
+      pd.frameCursor = Math.min(1, Math.max(0, frames.length - 1));
+      pd.elapsedMs = 0;
+      return;
+    }
+    if (cleaveHitFreezeFrame2LockActive) {
+      // During successful cleave hitstop, hold frame 2 (1-based).
       pd.frameCursor = Math.min(1, Math.max(0, frames.length - 1));
       pd.elapsedMs = 0;
       return;
@@ -1849,6 +1871,11 @@
           typeof triggerCongregationCommand === "function" &&
           triggerCongregationCommand(this, { mode: congregationCommand })
         ) {
+          const nowMs =
+            (typeof performance !== "undefined" && typeof performance.now === "function")
+              ? performance.now()
+              : Date.now();
+          this._paperdollCongregationCommandUntil = nowMs + 380;
           this.congregationCommandCharge = 0;
           this.prayerCharge = Math.max(0, (this.prayerCharge || 0) - cTapCost);
           if (congregationCommand === "path") {
