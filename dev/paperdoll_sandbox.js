@@ -211,8 +211,8 @@
           <div id="paperdollSandboxControls" style="margin-top:10px;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;"></div>
           <pre id="paperdollSandboxState" style="margin-top:10px;white-space:pre-wrap;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;"></pre>
         </div>
-        <div style="display:flex;align-items:center;justify-content:center;background:rgba(12,16,24,0.6);border:1px solid #2a334a;border-radius:10px;position:relative;">
-          <canvas id="paperdollSandboxCanvas" width="900" height="640" style="width:100%;height:100%;image-rendering:pixelated;"></canvas>
+        <div style="display:flex;align-items:center;justify-content:center;background:rgba(12,16,24,0.6);border:1px solid #2a334a;border-radius:10px;position:relative;overflow:hidden;">
+          <canvas id="paperdollSandboxCanvas" width="900" height="640" style="width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:900/640;image-rendering:pixelated;"></canvas>
         </div>
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Build Spec Export</div>
