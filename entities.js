@@ -136,6 +136,14 @@
       ? melee.comboMoveNames.map((n) => String(n || "").toLowerCase())
       : [];
     const weaponMode = String(player?.getActiveWeaponMode?.() || player?.weaponMode || "arrow").toLowerCase();
+    const attackActive =
+      player.state === "attackMelee" ||
+      player.state === "attackArrow" ||
+      player.state === "attackMagic" ||
+      player.state === "attackPrayer" ||
+      Boolean(melee?.swooshTimer > 0) ||
+      Boolean(melee?.spinTimer > 0) ||
+      Boolean(melee?.isRushing);
 
     if (player.state === "attackArrow") {
       const desired = isProjectileFast(player, "arrow") ? actionMap.projectileWandFast : actionMap.projectile;
@@ -147,14 +155,16 @@
       }
       return getMapValueCaseInsensitive(powerupMap, weaponMode) || actionMap.projectileWand;
     }
-    if (comboNames.includes("cleave")) return actionMap.cleave;
-    if (comboNames.includes("smash") || comboNames.includes("crash")) return actionMap.slashBash;
-    if (comboNames.includes("thrash")) return actionMap.thrust;
-    if (hitboxType === "dashslash") return actionMap.slashBash;
-    if (hitboxType === "slash") return actionMap.normalSlash;
-    if (hitboxType === "rush" || hitboxType === "swordrush") return actionMap.thrust;
-    if (hitboxType === "spin" || hitboxType === "holyground") return actionMap.thrust;
-    if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
+    if (attackActive) {
+      if (comboNames.includes("cleave")) return actionMap.cleave;
+      if (comboNames.includes("smash") || comboNames.includes("crash")) return actionMap.slashBash;
+      if (comboNames.includes("thrash")) return actionMap.thrust;
+      if (hitboxType === "dashslash") return actionMap.slashBash;
+      if (hitboxType === "slash") return actionMap.normalSlash;
+      if (hitboxType === "rush" || hitboxType === "swordrush") return actionMap.thrust;
+      if (hitboxType === "spin" || hitboxType === "holyground") return actionMap.thrust;
+      if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
+    }
 
     const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
     if (dashing || (player?.speedBoostTimer || 0) > 0) return actionMap.run;
@@ -198,17 +208,29 @@
     if (!preset) return;
     const animKey = String(preset.animation || "combat_idle");
     const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
+    const bindings = window.__battlechurchBindings || {};
+    const dash = bindings.playerDashState || null;
+    const rawFacing = String(player.facing || "down");
+    const isMovementFacingSource =
+      player.state === "walk" || Boolean(dash?.isDashing);
+    if (isMovementFacingSource) {
+      player._paperdollLastMoveFacing = rawFacing;
+    }
+    const facingSource =
+      player.state === "idle" && player._paperdollLastMoveFacing
+        ? player._paperdollLastMoveFacing
+        : rawFacing;
     if (!player._paperdollState) {
       player._paperdollState = { key: "", frameCursor: 0, elapsedMs: 0 };
     }
     const pd = player._paperdollState;
-    const stateKey = `${String(preset.name || "")}|${animKey}|${String(player.facing || "down")}`;
+    const stateKey = `${String(preset.name || "")}|${animKey}|${String(facingSource || "down")}`;
     if (pd.key !== stateKey) {
       pd.key = stateKey;
       pd.frameCursor = 0;
       pd.elapsedMs = 0;
     }
-    const facing = PAPERDOLL_FACING_MAP[player.facing] || "south";
+    const facing = PAPERDOLL_FACING_MAP[facingSource] || "south";
     const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
     const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
     if (!frames.length) return;
@@ -228,7 +250,12 @@
     if (!preset) return false;
     const animKey = String(preset.animation || "combat_idle");
     const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
-    const facing = PAPERDOLL_FACING_MAP[player.facing] || "south";
+    const rawFacing = String(player.facing || "down");
+    const facingSource =
+      player.state === "idle" && player._paperdollLastMoveFacing
+        ? player._paperdollLastMoveFacing
+        : rawFacing;
+    const facing = PAPERDOLL_FACING_MAP[facingSource] || "south";
     const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
     const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
     if (!frames.length) return false;
