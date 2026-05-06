@@ -106,6 +106,7 @@
     frameElapsed: 0,
     loop: true,
     holdFrame: false,
+    transientAction: null, // { returnAnimIndex, returnPageIndex }
     layerSelection: createDefaultLayerSelection(),
     layerVisible: Object.fromEntries(LAYERS.map((k) => [k, true])),
     imageCache: new Map(),
@@ -430,6 +431,14 @@
         ${buttonHtml("play-toggle", state.holdFrame ? "Play" : "Pause", "Toggle playback")}
         ${buttonHtml("anim-restart", "Restart", "Restart current animation")}
       </div>
+      <div style="font-weight:700;margin-bottom:6px;">Behavior Preview</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        ${buttonHtml("behavior-trigger", "Use Behavior", "Play behavior profile action, then return")}
+        ${buttonHtml("attack-slash1", "Slash 1", "Play Slash 1, then return")}
+        ${buttonHtml("attack-slash2", "Slash 2", "Play Slash 2, then return")}
+        ${buttonHtml("attack-thrust", "Thrust", "Play Thrust, then return")}
+        ${buttonHtml("attack-bash", "Shield Bash", "Play Shield Bash, then return")}
+      </div>
       <div style="font-weight:700;margin-bottom:6px;">Layers</div>
       ${layerRowsHtml}
     `;
@@ -458,6 +467,18 @@
       state.frameCursor = 0;
       state.frameElapsed = 0;
       state.holdFrame = false;
+      state.transientAction = null;
+    } else if (action === "behavior-trigger") {
+      const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
+      triggerTransientAction(behavior?.melee_style || "slash_1");
+    } else if (action === "attack-slash1") {
+      triggerTransientAction("slash_1");
+    } else if (action === "attack-slash2") {
+      triggerTransientAction("slash_2");
+    } else if (action === "attack-thrust") {
+      triggerTransientAction("thrust");
+    } else if (action === "attack-bash") {
+      triggerTransientAction("shield_bash");
     } else if (action.startsWith("layer-prev:")) {
       const layerKey = action.slice("layer-prev:".length);
       const list = layerCatalog[layerKey] || [];
@@ -484,6 +505,24 @@
     controlsDirty = true;
     refreshPanels();
     render();
+  }
+
+  function triggerTransientAction(animKey) {
+    const idx = animDefs.findIndex((a) => a?.key === animKey);
+    if (idx < 0) return false;
+    const target = animDefs[idx];
+    state.transientAction = {
+      returnAnimIndex: state.animIndex,
+      returnPageIndex: state.pageIndex,
+    };
+    state.animIndex = idx;
+    const pageIdx = PAGE_KEYS.indexOf(target.page);
+    if (pageIdx >= 0) state.pageIndex = pageIdx;
+    state.frameCursor = 0;
+    state.frameElapsed = 0;
+    state.holdFrame = false;
+    controlsDirty = true;
+    return true;
   }
 
   function imageForPath(path) {
@@ -565,6 +604,17 @@
     state.frameCursor += 1;
 
     if (state.frameCursor >= frames.length) {
+      if (state.transientAction) {
+        state.animIndex = state.transientAction.returnAnimIndex;
+        state.pageIndex = state.transientAction.returnPageIndex;
+        state.transientAction = null;
+        ensureAnimationMatchesPage();
+        state.frameCursor = 0;
+        state.frameElapsed = 0;
+        state.holdFrame = false;
+        controlsDirty = true;
+        return;
+      }
       if (def.oneShot && !state.loop) {
         state.frameCursor = frames.length - 1;
         state.holdFrame = true;
@@ -693,6 +743,17 @@
 
   function onKeyDown(e) {
     if (!state.open) return;
+    const target = e.target;
+    const tag = String(target?.tagName || "").toLowerCase();
+    const isTypingTarget =
+      tag === "input" ||
+      tag === "textarea" ||
+      target?.isContentEditable === true;
+    if (isTypingTarget) {
+      // Allow normal typing/editing in preset name and any future text fields.
+      // Keep Escape available to close the sandbox quickly.
+      if (String(e.key || "") !== "Escape") return;
+    }
     const key = String(e.key || "");
     const lower = key.length === 1 ? key.toLowerCase() : key;
 
