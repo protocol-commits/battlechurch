@@ -19,6 +19,7 @@
 
   const MANA_SEED_ROOT = "assets/sprites/npcs/mana-seed";
   const PAPERDOLL_FRAME_SIZE = 64;
+  const PASTOR_PAPERDOLL_SCALE = 3;
   const PAPERDOLL_LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
   const PAPERDOLL_FACING_MAP = {
     down: "south",
@@ -239,7 +240,7 @@
     const shieldFrontSet = SHIELD_FRONT_FRAMES[page] || null;
     const shieldFront = !shieldFrontSet || shieldFrontSet.has(frameIdx);
     const baseOrder = ["0bas", "1out", "4har", "5hat", "6tla"];
-    const scale = Math.max(1, (settings.WORLD_SCALE || 1) * 1.6);
+    const scale = Math.max(1, (settings.WORLD_SCALE || 1) * PASTOR_PAPERDOLL_SCALE);
     const dw = PAPERDOLL_FRAME_SIZE * scale;
     const dh = PAPERDOLL_FRAME_SIZE * scale;
     const drawLayer = (layerKey) => {
