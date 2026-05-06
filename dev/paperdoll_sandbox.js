@@ -5,6 +5,14 @@
   const BASE_ROOT = "assets/sprites/npcs/mana-seed";
   const PAGE_KEYS = ["p1", "pONE1", "pONE2", "pONE3"];
   const LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
+  const LAYER_LABELS = Object.freeze({
+    "0bas": "Body",
+    "1out": "Outfit",
+    "4har": "Hair",
+    "5hat": "Hat",
+    "6tla": "Main Hand",
+    "7tlb": "Off Hand",
+  });
   const FACING_KEYS = ["south", "west", "east", "north"];
   const FRAME_SIZE = 64;
 
@@ -13,15 +21,18 @@
       ...Array.from({ length: 11 }, (_, i) => `humn_v${String(i).padStart(2, "0")}`),
     ],
     "1out": [
+      "none",
       "pfpn_v01", "pfpn_v02", "pfpn_v03", "pfpn_v04", "pfpn_v05",
       "fstr_v01", "fstr_v02", "fstr_v03", "fstr_v04", "fstr_v05",
       "undi_v01", "boxr_v01",
     ],
     "4har": [
+      "none",
       ...Array.from({ length: 14 }, (_, i) => `bob1_v${String(i).padStart(2, "0")}`),
       ...Array.from({ length: 14 }, (_, i) => `dap1_v${String(i).padStart(2, "0")}`),
     ],
     "5hat": [
+      "none",
       "pfht_v01", "pfht_v02", "pfht_v03", "pfht_v04", "pfht_v05",
       "pnty_v01", "pnty_v02", "pnty_v03", "pnty_v04", "pnty_v05",
     ],
@@ -81,6 +92,7 @@
     loop: true,
     holdFrame: false,
     layerSelection: Object.fromEntries(LAYERS.map((k) => [k, 0])),
+    layerVisible: Object.fromEntries(LAYERS.map((k) => [k, true])),
     imageCache: new Map(),
     missingCache: new Set(),
     rafId: 0,
@@ -97,6 +109,10 @@
 
   function focusedLayer() {
     return LAYERS[state.focusedLayerIndex] || LAYERS[0];
+  }
+
+  function layerLabel(layerKey) {
+    return LAYER_LABELS[layerKey] || layerKey;
   }
 
   function getPageKey() {
@@ -169,7 +185,7 @@
             Up/Down layer focus | Left/Right change option<br>
             W/S animation | A/D facing | Q/E page<br>
             Space pause/play | [ ] speed | Enter one-shot restart<br>
-            Tab behavior profile
+            Tab behavior profile | V toggle layer visibility
           </div>
           <pre id="paperdollSandboxState" style="margin-top:10px;white-space:pre-wrap;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;"></pre>
         </div>
@@ -250,6 +266,7 @@
 
     const drawOrder = layerDrawOrderForFrame(frameIdx);
     drawOrder.forEach((layerKey) => {
+      if (!state.layerVisible[layerKey]) return;
       const path = getLayerPath(layerKey);
       const img = imageForPath(path);
       drawFrameFromSheet(img, frameIdx, cx, cy, 4);
@@ -288,9 +305,13 @@
   function buildSpecObject() {
     const def = getAnimDef();
     const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
-    const layers = {};
+      const layers = {};
     LAYERS.forEach((k) => {
-      layers[k] = getLayerFilename(k) || "none";
+      layers[layerLabel(k)] = state.layerVisible[k] ? (getLayerFilename(k) || "none") : "hidden";
+    });
+    const rawLayers = {};
+    LAYERS.forEach((k) => {
+      rawLayers[k] = state.layerVisible[k] ? (getLayerFilename(k) || "none") : "hidden";
     });
     return {
       source: "mana-seed",
@@ -302,7 +323,11 @@
       frame_index: state.frameCursor,
       behavior_profile: behavior,
       layers,
-      paths: Object.fromEntries(LAYERS.map((k) => [k, getLayerPath(k) || "none"])),
+      raw_layers: rawLayers,
+      layer_visibility: Object.fromEntries(LAYERS.map((k) => [layerLabel(k), Boolean(state.layerVisible[k])])),
+      raw_layer_visibility: Object.fromEntries(LAYERS.map((k) => [k, Boolean(state.layerVisible[k])])),
+      paths: Object.fromEntries(LAYERS.map((k) => [layerLabel(k), getLayerPath(k) || "none"])),
+      raw_paths: Object.fromEntries(LAYERS.map((k) => [k, getLayerPath(k) || "none"])),
     };
   }
 
@@ -318,12 +343,12 @@
       `anim=${obj.animation}`,
       `melee=${obj.behavior_profile.melee_style}`,
       `projectile=${obj.behavior_profile.projectile_style}`,
-      `0bas=${obj.layers["0bas"]}`,
-      `1out=${obj.layers["1out"]}`,
-      `4har=${obj.layers["4har"]}`,
-      `5hat=${obj.layers["5hat"]}`,
-      `6tla=${obj.layers["6tla"]}`,
-      `7tlb=${obj.layers["7tlb"]}`,
+      `Body=${obj.layers["Body"]}`,
+      `Outfit=${obj.layers["Outfit"]}`,
+      `Hair=${obj.layers["Hair"]}`,
+      `Hat=${obj.layers["Hat"]}`,
+      `MainHand=${obj.layers["Main Hand"]}`,
+      `OffHand=${obj.layers["Off Hand"]}`,
     ].join(" | ");
   }
 
@@ -332,7 +357,7 @@
     const stateEl = overlay.querySelector("#paperdollSandboxState");
     if (stateEl) {
       const lines = [];
-      lines.push(`Focused layer: ${focusedLayer()}`);
+      lines.push(`Focused layer: ${layerLabel(focusedLayer())}`);
       lines.push(`Page: ${getPageKey()}`);
       lines.push(`Facing: ${FACING_KEYS[state.facingIndex]}`);
       lines.push(`Animation: ${getAnimDef().key}`);
@@ -340,7 +365,8 @@
       lines.push("");
       LAYERS.forEach((k) => {
         const mark = k === focusedLayer() ? ">" : " ";
-        lines.push(`${mark} ${k}: ${getLayerFilename(k) || "none"}`);
+        const vis = state.layerVisible[k] ? "ON" : "OFF";
+        lines.push(`${mark} ${layerLabel(k)} [${vis}]: ${getLayerFilename(k) || "none"}`);
       });
       stateEl.textContent = lines.join("\n");
     }
@@ -428,6 +454,9 @@
       state.playbackSpeed = Math.min(4.0, state.playbackSpeed + 0.1);
     } else if (key === "Tab") {
       state.behaviorIndex = clampWrap(state.behaviorIndex + 1, behaviorProfiles.length);
+    } else if (lower === "v") {
+      const layer = focusedLayer();
+      state.layerVisible[layer] = !state.layerVisible[layer];
     }
     refreshPanels();
     render();
