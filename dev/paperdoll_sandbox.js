@@ -751,6 +751,18 @@
   }
 
   function buildGameConfigObject() {
+    const existingCfg =
+      window.BATTLECHURCH_PASTOR_PAPERDOLL &&
+      typeof window.BATTLECHURCH_PASTOR_PAPERDOLL === "object"
+        ? window.BATTLECHURCH_PASTOR_PAPERDOLL
+        : {};
+    const cloneValue = (value, fallback) => {
+      try {
+        return JSON.parse(JSON.stringify(value));
+      } catch (_) {
+        return fallback;
+      }
+    };
     const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
     const presetSlots = [];
     for (let i = 0; i < MAX_PRESET_SLOTS; i += 1) {
@@ -780,7 +792,26 @@
         ),
       });
     }
+    const knownTopLevelKeys = new Set([
+      "source",
+      "page",
+      "facing",
+      "animation",
+      "playbackSpeed",
+      "loop",
+      "behavior",
+      "layers",
+      "presets",
+      "animationPresetMap",
+      "powerupPresetMap",
+    ]);
+    const preservedTopLevel = {};
+    for (const [key, value] of Object.entries(existingCfg || {})) {
+      if (knownTopLevelKeys.has(key)) continue;
+      preservedTopLevel[key] = cloneValue(value, value);
+    }
     return {
+      ...preservedTopLevel,
       source: "mana-seed",
       page: getPageKey(),
       facing: FACING_KEYS[state.facingIndex],
@@ -806,10 +837,10 @@
       presets: presetSlots,
       // Edit this map in config_pastor_paperdoll.js to pick a saved preset name per movement/animation.
       // Example: { walk: "Town Walk", combat_idle: "Sword Idle", slash_1: "Sword Attack A" }
-      animationPresetMap: {},
+      animationPresetMap: cloneValue(existingCfg.animationPresetMap, {}) || {},
       // Edit this map to switch pastor preset by powerup key.
       // Example: { powerupX: "Holy Fire Form", speedAura: "Sprint Form" }
-      powerupPresetMap: {},
+      powerupPresetMap: cloneValue(existingCfg.powerupPresetMap, {}) || {},
     };
   }
 

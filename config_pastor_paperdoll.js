@@ -9,7 +9,7 @@
   "loop": true,
   "renderStyle": {
     "shadowCrush": 1.0,
-    "shadowThreshold": 0.65
+    "shadowThreshold": 0.75
   },
   "behavior": {
     "key": "melee_slash",
@@ -213,7 +213,7 @@
         },
         "7tlb": {
           "label": "Off Hand",
-          "asset": "sh01_v03",
+          "asset": "none",
           "visible": true
         }
       }
@@ -297,7 +297,7 @@
         },
         "7tlb": {
           "label": "Off Hand",
-          "asset": "sh01_v03",
+          "asset": "none",
           "visible": true
         }
       }
