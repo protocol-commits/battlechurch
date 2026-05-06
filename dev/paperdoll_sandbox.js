@@ -175,6 +175,40 @@
     return `char_a_${page}_${layerKey}_${token}.png`;
   }
 
+  function prettyLayerToken(layerKey, token) {
+    if (!token || token === "none") return "none";
+    if (layerKey === "6tla") {
+      const m = /^([a-z]{2}\d{2})_v(\d{2})$/i.exec(token);
+      if (!m) return token;
+      const group = m[1].toLowerCase();
+      const color = Number(m[2]) || 0;
+      const name =
+        group === "sw01" ? "Sword"
+        : group === "ax01" ? "Axe"
+        : group === "mc01" ? "Mace"
+        : group;
+      return `${name} ${color}`;
+    }
+    if (layerKey === "7tlb") {
+      const m = /^(sh0[123])_v(\d{2})$/i.exec(token);
+      if (!m) return token;
+      const shield = m[1].toLowerCase();
+      const color = Number(m[2]) || 0;
+      const style =
+        shield === "sh01" ? "Shield 1"
+        : shield === "sh02" ? "Shield 2"
+        : "Shield 3";
+      const darkHint = shield === "sh03" ? " (dark)" : "";
+      return `${style} ${color}${darkHint}`;
+    }
+    return token;
+  }
+
+  function currentLayerDisplayValue(layerKey) {
+    const token = (layerCatalog[layerKey] || [])[clampWrap(state.layerSelection[layerKey] || 0, (layerCatalog[layerKey] || []).length)] || "";
+    return prettyLayerToken(layerKey, token);
+  }
+
   function getLayerPath(layerKey) {
     const filename = getLayerFilename(layerKey);
     if (!filename) return null;
@@ -201,6 +235,18 @@
     return order;
   }
 
+  const SHIELD_FRONT_FRAMES = Object.freeze({
+    pONE1: new Set([1, 4, 8, 10, 11, 13, 19, 20, 27, 28]),
+    pONE2: new Set([0, 1, 2, 3, 4, 5, 6, 7, 32, 33, 34]),
+    pONE3: new Set([0, 3, 6, 7, 10, 11, 13, 32, 35, 36, 42, 43, 45, 46, 47, 54, 55, 60, 62, 63]),
+  });
+
+  function isShieldFrontFrame(pageKey, frameIndex) {
+    const set = SHIELD_FRONT_FRAMES[pageKey];
+    if (!set) return true;
+    return set.has(frameIndex);
+  }
+
   function ensureOverlay() {
     if (overlay) return;
     overlay = document.createElement("div");
@@ -216,13 +262,13 @@
     ].join(";");
 
     overlay.innerHTML = `
-      <div style="display:grid;grid-template-columns:340px 1fr 460px;gap:16px;height:100%;padding:16px;box-sizing:border-box;">
+      <div style="display:grid;grid-template-columns:460px minmax(380px, 0.8fr) 380px;gap:16px;height:100%;padding:16px;box-sizing:border-box;">
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;overflow:auto;">
           <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Paperdoll Sandbox</div>
           <div id="paperdollSandboxControls" style="margin-top:10px;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;max-height:76vh;overflow:auto;"></div>
         </div>
         <div style="display:flex;align-items:center;justify-content:center;background:rgba(12,16,24,0.6);border:1px solid #2a334a;border-radius:10px;position:relative;overflow:hidden;">
-          <canvas id="paperdollSandboxCanvas" width="900" height="640" style="width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:900/640;image-rendering:pixelated;"></canvas>
+          <canvas id="paperdollSandboxCanvas" width="700" height="520" style="width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:700/520;image-rendering:pixelated;"></canvas>
         </div>
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Build Spec</div>
@@ -403,7 +449,7 @@
     const layerRowsHtml = LAYERS.map((layerKey) => {
       const layerName = layerLabel(layerKey);
       const unsupported = !pageSupportsLayer(getPageKey(), layerKey);
-      const value = unsupported ? "(not on this page)" : (getLayerFilename(layerKey) || "none");
+      const value = unsupported ? "(not on this page)" : currentLayerDisplayValue(layerKey);
       const vis = state.layerVisible[layerKey] ? "Visible" : "Hidden";
       return `
         <div style="display:grid;grid-template-columns:88px 28px 1fr 28px 64px;gap:6px;align-items:center;margin-bottom:6px;">
@@ -563,13 +609,27 @@
     const cy = Math.floor(h * 0.56);
 
     const drawOrder = layerDrawOrderForFrame(frameIdx);
-    drawOrder.forEach((layerKey) => {
+    const page = getPageKey();
+    const shieldFront = isShieldFrontFrame(page, frameIdx);
+    const drawLayer = (layerKey) => {
       if (!state.layerVisible[layerKey]) return;
-      if (!pageSupportsLayer(getPageKey(), layerKey)) return;
+      if (!pageSupportsLayer(page, layerKey)) return;
       const path = getLayerPath(layerKey);
       const img = imageForPath(path);
       drawFrameFromSheet(img, frameIdx, cx, cy, 4);
+    };
+
+    // Pass 1: behind-only shield frames (prevents dark shield overlay across torso).
+    if (!shieldFront) drawLayer("7tlb");
+
+    // Pass 2: main body stack and non-shield layers.
+    drawOrder.forEach((layerKey) => {
+      if (layerKey === "7tlb") return;
+      drawLayer(layerKey);
     });
+
+    // Pass 3: shield when this frame is marked as front-facing.
+    if (shieldFront) drawLayer("7tlb");
 
     ctx.fillStyle = "#9fb2d9";
     ctx.font = "14px ui-monospace, Menlo, monospace";

@@ -3,7 +3,7 @@
   const FILE_DEFAULT = {
   "source": "mana-seed",
   "page": "pONE1",
-  "facing": "east",
+  "facing": "south",
   "animation": "draw_sheath",
   "playbackSpeed": 1,
   "loop": true,
@@ -41,8 +41,8 @@
     },
     "7tlb": {
       "label": "Off Hand",
-      "asset": "char_a_pONE1_7tlb_sh01_v03.png",
-      "visible": false
+      "asset": "char_a_pONE1_7tlb_sh02_v01.png",
+      "visible": true
     }
   }
 };
