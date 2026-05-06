@@ -2,9 +2,9 @@
 (function initPastorPaperdollConfig(global) {
   const FILE_DEFAULT = {
   "source": "mana-seed",
-  "page": "pONE1",
-  "facing": "south",
-  "animation": "draw_sheath",
+  "page": "p1",
+  "facing": "east",
+  "animation": "run",
   "playbackSpeed": 1,
   "loop": true,
   "behavior": {
@@ -16,17 +16,17 @@
   "layers": {
     "0bas": {
       "label": "Body",
-      "asset": "char_a_pONE1_0bas_humn_v00.png",
+      "asset": "humn_v00",
       "visible": true
     },
     "1out": {
       "label": "Outfit",
-      "asset": "char_a_pONE1_1out_fstr_v02.png",
+      "asset": "fstr_v02",
       "visible": true
     },
     "4har": {
       "label": "Hair",
-      "asset": "char_a_pONE1_4har_dap1_v03.png",
+      "asset": "dap1_v03",
       "visible": true
     },
     "5hat": {
@@ -36,15 +36,313 @@
     },
     "6tla": {
       "label": "Main Hand",
-      "asset": "char_a_pONE1_6tla_sw01_v05.png",
+      "asset": "sw01_v05",
       "visible": true
     },
     "7tlb": {
       "label": "Off Hand",
-      "asset": "char_a_pONE1_7tlb_sh02_v01.png",
+      "asset": "sh01_v03",
       "visible": true
     }
-  }
+  },
+  "presets": [
+    {
+      "slot": 1,
+      "name": "idle",
+      "page": "pONE1",
+      "facing": "east",
+      "animation": "draw_sheath",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh02_v01",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 3,
+      "name": "Projectile",
+      "page": "pONE1",
+      "facing": "east",
+      "animation": "draw_sheath",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": false
+        }
+      }
+    },
+    {
+      "slot": 4,
+      "name": "Slash1",
+      "page": "pONE1",
+      "facing": "east",
+      "animation": "draw_sheath",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 5,
+      "name": "Run",
+      "page": "p1",
+      "facing": "east",
+      "animation": "run",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 6,
+      "name": "Slash2",
+      "page": "pONE3",
+      "facing": "east",
+      "animation": "slash_2",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 7,
+      "name": "Slash2",
+      "page": "pONE3",
+      "facing": "east",
+      "animation": "thrust",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 8,
+      "name": "ShieldBash",
+      "page": "pONE3",
+      "facing": "east",
+      "animation": "shield_bash",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    }
+  ],
+  "animationPresetMap": {},
+  "powerupPresetMap": {}
 };
   global.BATTLECHURCH_PASTOR_PAPERDOLL = FILE_DEFAULT;
 })(typeof window !== "undefined" ? window : globalThis);

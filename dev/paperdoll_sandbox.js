@@ -4,6 +4,7 @@
   const OVERLAY_ID = "paperdollSandboxOverlay";
   const BASE_ROOT = "assets/sprites/npcs/mana-seed";
   const PRESET_STORAGE_KEY = "battlechurch.pastorPaperdollPresets.v1";
+  const MAX_PRESET_SLOTS = 24;
   const PAGE_KEYS = ["p1", "pONE1", "pONE2", "pONE3"];
   const LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
   const LAYER_LABELS = Object.freeze({
@@ -119,7 +120,6 @@
   let overlay = null;
   let canvas = null;
   let ctx = null;
-  let specBox = null;
   let controlsRoot = null;
   let controlsDirty = true;
 
@@ -173,6 +173,12 @@
     if (!token || token === "none") return null;
     const page = getPageKey();
     return `char_a_${page}_${layerKey}_${token}.png`;
+  }
+
+  function getLayerToken(layerKey) {
+    const list = layerCatalog[layerKey] || [];
+    const idx = clampWrap(state.layerSelection[layerKey] || 0, list.length);
+    return list[idx] || "none";
   }
 
   function prettyLayerToken(layerKey, token) {
@@ -271,13 +277,12 @@
           <canvas id="paperdollSandboxCanvas" width="700" height="520" style="width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:700/520;image-rendering:pixelated;"></canvas>
         </div>
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;">
-          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Build Spec</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Pastor Presets</div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
             <label for="paperdollPresetName" style="font-size:12px;opacity:.9;">Preset name</label>
             <input id="paperdollPresetName" type="text" value="Pastor Preset" style="flex:1;background:#0d1220;color:#e8edf7;border:1px solid #2a334a;border-radius:6px;padding:6px;font-size:12px;">
           </div>
-          <div id="paperdollPresetControls" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;max-height:24vh;overflow:auto;"></div>
-          <textarea id="paperdollSandboxSpec" readonly style="flex:1;min-height:200px;background:#0d1220;color:#e8edf7;border:1px solid #2a334a;border-radius:8px;padding:10px;font-size:12px;"></textarea>
+          <div id="paperdollPresetControls" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;flex:1;min-height:200px;overflow:auto;"></div>
           <div style="display:flex;gap:8px;margin-top:8px;">
             <button id="paperdollSaveGameConfig" type="button" style="flex:1;padding:8px;background:#254122;color:#e8edf7;border:1px solid #4f8d45;border-radius:8px;cursor:pointer;">Save Config File</button>
           </div>
@@ -289,7 +294,6 @@
     canvas = overlay.querySelector("#paperdollSandboxCanvas");
     ctx = canvas.getContext("2d");
     if (ctx) ctx.imageSmoothingEnabled = false;
-    specBox = overlay.querySelector("#paperdollSandboxSpec");
     controlsRoot = overlay.querySelector("#paperdollSandboxControls");
 
     overlay.querySelector("#paperdollSaveGameConfig")?.addEventListener("click", saveConfigFileWithPrompt);
@@ -342,7 +346,7 @@
   function loadPresetsFromStorage() {
     const raw = window.localStorage?.getItem?.(PRESET_STORAGE_KEY);
     const parsed = safeParse(raw, []);
-    state.presets = Array.isArray(parsed) ? parsed.slice(0, 8) : [];
+    state.presets = Array.isArray(parsed) ? parsed.slice(0, MAX_PRESET_SLOTS) : [];
     state.selectedPresetIndex = clampWrap(state.selectedPresetIndex, Math.max(1, state.presets.length || 1));
   }
 
@@ -385,7 +389,7 @@
     const root = overlay?.querySelector?.("#paperdollPresetControls");
     if (!root) return;
     const rows = [];
-    for (let i = 0; i < 4; i += 1) {
+    for (let i = 0; i < MAX_PRESET_SLOTS; i += 1) {
       const preset = state.presets[i];
       const selected = state.selectedPresetIndex === i;
       const label = preset?.name || `Empty Slot ${i + 1}`;
@@ -728,6 +732,34 @@
 
   function buildGameConfigObject() {
     const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
+    const presetSlots = [];
+    for (let i = 0; i < 8; i += 1) {
+      const p = state.presets?.[i];
+      if (!p || typeof p !== "object") continue;
+      const name = String(p.name || `Preset ${i + 1}`).trim() || `Preset ${i + 1}`;
+      presetSlots.push({
+        slot: i + 1,
+        name,
+        page: PAGE_KEYS[clampWrap(Number(p.pageIndex) || 0, PAGE_KEYS.length)] || "pONE2",
+        facing: FACING_KEYS[clampWrap(Number(p.facingIndex) || 0, FACING_KEYS.length)] || "south",
+        animation: (animDefs[clampWrap(Number(p.animIndex) || 0, animDefs.length)] || animDefs[0]).key,
+        behavior: (behaviorProfiles[clampWrap(Number(p.behaviorIndex) || 0, behaviorProfiles.length)] || behaviorProfiles[0]).key,
+        playbackSpeed: Math.max(0.25, Math.min(4, Number(p.playbackSpeed) || 1)),
+        loop: Boolean(p.loop),
+        layers: Object.fromEntries(
+          LAYERS.map((k) => {
+            const list = layerCatalog[k] || [];
+            const idx = clampWrap(Number(p.layerSelection?.[k]) || 0, Math.max(1, list.length));
+            const token = list[idx] || "none";
+            return [k, {
+              label: layerLabel(k),
+              asset: token === "none" ? "none" : token,
+              visible: p.layerVisible?.[k] !== false,
+            }];
+          }),
+        ),
+      });
+    }
     return {
       source: "mana-seed",
       page: getPageKey(),
@@ -746,11 +778,18 @@
           k,
           {
             label: layerLabel(k),
-            asset: getLayerFilename(k) || "none",
+            asset: getLayerToken(k) || "none",
             visible: Boolean(state.layerVisible[k]),
           },
         ]),
       ),
+      presets: presetSlots,
+      // Edit this map in config_pastor_paperdoll.js to pick a saved preset name per movement/animation.
+      // Example: { walk: "Town Walk", combat_idle: "Sword Idle", slash_1: "Sword Attack A" }
+      animationPresetMap: {},
+      // Edit this map to switch pastor preset by powerup key.
+      // Example: { powerupX: "Holy Fire Form", speedAura: "Sprint Form" }
+      powerupPresetMap: {},
     };
   }
 
@@ -800,9 +839,6 @@
 
   function refreshPanels() {
     if (!overlay) return;
-    if (specBox) {
-      specBox.value = buildSpecJson();
-    }
     renderPresetControls();
     if (controlsDirty) {
       renderControls();
