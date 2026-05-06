@@ -5,7 +5,7 @@
   "page": "pONE1",
   "facing": "east",
   "animation": "draw_sheath",
-  "playbackSpeed": 0.9,
+  "playbackSpeed": 1,
   "loop": true,
   "behavior": {
     "key": "melee_slash",

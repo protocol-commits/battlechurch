@@ -156,6 +156,9 @@
       nowMs <= player._paperdollBlastUntil;
     const movingNow = Boolean(player?._paperdollMoving);
     const chargingA = Boolean(melee?.buttonDown) || Boolean(melee?.isCharging);
+    const blastChargeReady =
+      chargingA &&
+      Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
     const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
 
     // 1) High-priority movement attacks (Smash/Crash/Thrash) always use thrust.
@@ -206,12 +209,17 @@
     player._paperdollProjectileCasting = false;
     player._paperdollProjectilePrevFrame = 0;
 
-    // 4) Holding A should not show slash; attacks happen on release.
+    // 4) Fully charged A hold: show blast-ready windup pose.
+    if (blastChargeReady) {
+      return actionMap.slashBash;
+    }
+
+    // 5) Holding A before full charge should not show slash; attacks happen on release.
     if (chargingA) {
       return movingNow && !dashing ? actionMap.run : actionMap.idle;
     }
 
-    // 5) Melee execution states after release.
+    // 6) Melee execution states after release.
     const meleeAttackActive =
       player.state === "attackMelee" ||
       player.state === "attackPrayer" ||
@@ -363,10 +371,20 @@
       String(animKey).toLowerCase() === "thrust" &&
       isSmashCrashThrashMove &&
       movingDuringRush;
+    const lockBlastReadyFrame1 =
+      String(animKey).toLowerCase() === "draw_sheath" &&
+      Boolean(melee?.buttonDown || melee?.isCharging) &&
+      Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
     const nowMs =
       (typeof performance !== "undefined" && typeof performance.now === "function")
         ? performance.now()
         : Date.now();
+    // Frame 1 (1-based) is cursor index 0.
+    if (lockBlastReadyFrame1) {
+      pd.frameCursor = 0;
+      pd.elapsedMs = 0;
+      return;
+    }
     // Frame 3 (1-based) is cursor index 2.
     if (lockThrustFrame3) {
       pd.frameCursor = 2;
