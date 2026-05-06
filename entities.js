@@ -131,6 +131,7 @@
       normalSlash: "SlashDown",
       slashBash: "SlashBash",
       blast: "Blast",
+      readyToFire: "readytofire",
       smash: "Smash",
       thrust: "thrust",
       fallback: "SlashDown",
@@ -162,6 +163,11 @@
     const blastChargeReady =
       chargingA &&
       Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
+    const holdingPrayerKey = Boolean(window?.Input?.keysPressed?.has?.("ArrowRight"));
+    const prayerSmiteReadyHold =
+      holdingPrayerKey &&
+      Boolean(player?.prayerHoldLocked) &&
+      player.state !== "attackPrayer";
     const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
     const clashVisualLockActive =
       Boolean(melee?.clashVisualActive);
@@ -206,6 +212,11 @@
     // 2) Charged A release (Blast) is a short one-shot visual window.
     if (blastWindowActive) {
       return actionMap.blast;
+    }
+
+    // 2b) Prayer Smite charged while still holding C.
+    if (prayerSmiteReadyHold) {
+      return actionMap.readyToFire;
     }
 
     // 3) Projectile casting visuals.
@@ -514,13 +525,15 @@
       Number.isFinite(preset?.playbackSpeed) && Number(preset.playbackSpeed) > 0
         ? Number(preset.playbackSpeed)
         : 1;
+    const presetLoopEnabled =
+      typeof preset?.loop === "boolean" ? preset.loop : !animDef.oneShot;
     pd.elapsedMs += Math.max(0, dt) * 1000 * playbackSpeed;
     const timing = animDef.timingMs[Math.min(pd.frameCursor, animDef.timingMs.length - 1)] || 120;
     if (pd.elapsedMs >= timing) {
       pd.elapsedMs = 0;
       pd.frameCursor += 1;
       if (pd.frameCursor >= frames.length) {
-        pd.frameCursor = (animDef.oneShot && !projectileCasting) ? (frames.length - 1) : 0;
+        pd.frameCursor = (!presetLoopEnabled && !projectileCasting) ? (frames.length - 1) : 0;
       }
     }
   }
