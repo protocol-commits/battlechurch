@@ -44,6 +44,8 @@
     thrust: { page: "pONE3", framesByFacing: [[32, 33, 34, 35], [40, 41, 42, 43], [48, 49, 50, 51], [56, 57, 58, 59]], timingMs: [160, 65, 65, 200], oneShot: true },
     shield_bash: { page: "pONE3", framesByFacing: [[36, 37, 38, 39], [44, 45, 46, 47], [52, 53, 54, 55], [60, 61, 62, 63]], timingMs: [160, 65, 65, 200], oneShot: true },
   };
+  const PROJECTILE_POWERUP_PRESET_DOWN = "projectiledown";
+  const PROJECTILE_POWERUP_PRESET_UP = "projectileup";
   const SHIELD_FRONT_FRAMES = {
     pONE1: new Set([1, 4, 8, 10, 11, 13, 19, 20, 27, 28]),
     pONE2: new Set([0, 1, 2, 3, 4, 5, 6, 7, 32, 33, 34]),
@@ -146,19 +148,31 @@
       Boolean(melee?.isRushing);
     const movingNow = Boolean(player?._paperdollMoving);
 
+    if (player.state === "attackArrow" || player.state === "attackMagic") {
+      // Alternate when the underlying projectile attack animation restarts/wraps.
+      const animatorFrame = Number(player?.animator?.frameIndex) || 0;
+      if (!player._paperdollProjectileCasting) {
+        player._paperdollProjectileCasting = true;
+        player._paperdollProjectileAlt = false; // start with SlashDown
+        player._paperdollProjectilePrevFrame = animatorFrame;
+      } else {
+        const prev = Number(player._paperdollProjectilePrevFrame) || 0;
+        if (prev > 0 && animatorFrame === 0) {
+          player._paperdollProjectileAlt = !player._paperdollProjectileAlt;
+        }
+        player._paperdollProjectilePrevFrame = animatorFrame;
+      }
+      if (player.state === "attackMagic") {
+        return player._paperdollProjectileAlt
+          ? PROJECTILE_POWERUP_PRESET_UP
+          : PROJECTILE_POWERUP_PRESET_DOWN;
+      }
+      return player._paperdollProjectileAlt ? "SlashUp" : "SlashDown";
+    }
+    player._paperdollProjectileCasting = false;
+    player._paperdollProjectilePrevFrame = 0;
     const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
     if (movingNow && !dashing) return actionMap.walk;
-
-    if (player.state === "attackArrow") {
-      const desired = isProjectileFast(player, "arrow") ? actionMap.projectileWandFast : actionMap.projectile;
-      return getMapValueCaseInsensitive(powerupMap, weaponMode) || desired;
-    }
-    if (player.state === "attackMagic") {
-      if (isProjectileFast(player, weaponMode)) {
-        return getMapValueCaseInsensitive(powerupMap, weaponMode) || actionMap.projectileWandFast;
-      }
-      return getMapValueCaseInsensitive(powerupMap, weaponMode) || actionMap.projectileWand;
-    }
     if (attackActive) {
       if (comboNames.includes("cleave")) return actionMap.cleave;
       if (comboNames.includes("smash") || comboNames.includes("crash")) return actionMap.slashBash;
@@ -261,13 +275,15 @@
     const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
     const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
     if (!frames.length) return;
+    const projectileCasting =
+      player.state === "attackArrow" || player.state === "attackMagic";
     pd.elapsedMs += Math.max(0, dt) * 1000;
     const timing = animDef.timingMs[Math.min(pd.frameCursor, animDef.timingMs.length - 1)] || 120;
     if (pd.elapsedMs >= timing) {
       pd.elapsedMs = 0;
       pd.frameCursor += 1;
       if (pd.frameCursor >= frames.length) {
-        pd.frameCursor = animDef.oneShot ? (frames.length - 1) : 0;
+        pd.frameCursor = (animDef.oneShot && !projectileCasting) ? (frames.length - 1) : 0;
       }
     }
   }

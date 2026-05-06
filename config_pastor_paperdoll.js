@@ -297,6 +297,300 @@
           "visible": true
         }
       }
+    },
+    {
+      "slot": 10,
+      "name": "walk",
+      "page": "p1",
+      "facing": "east",
+      "animation": "walk",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh02_v01",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 11,
+      "name": "ProjectileWand",
+      "page": "pONE1",
+      "facing": "east",
+      "animation": "draw_sheath",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "mc01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 12,
+      "name": "ProjectileEmpty",
+      "page": "pONE1",
+      "facing": "east",
+      "animation": "draw_sheath",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "none",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 13,
+      "name": "ProjectileWandFast",
+      "page": "pONE1",
+      "facing": "east",
+      "animation": "draw_sheath",
+      "behavior": "melee_slash",
+      "playbackSpeed": 2.000000000000001,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "mc01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 14,
+      "name": "thust",
+      "page": "pONE3",
+      "facing": "east",
+      "animation": "thrust",
+      "behavior": "melee_thrust",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "sw01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "sh02_v01",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 15,
+      "name": "projectiledown",
+      "page": "pONE3",
+      "facing": "east",
+      "animation": "slash_2",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "mc01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "none",
+          "visible": true
+        }
+      }
+    },
+    {
+      "slot": 16,
+      "name": "projectileup",
+      "page": "pONE3",
+      "facing": "east",
+      "animation": "slash_1",
+      "behavior": "melee_slash",
+      "playbackSpeed": 1,
+      "loop": true,
+      "layers": {
+        "0bas": {
+          "label": "Body",
+          "asset": "humn_v00",
+          "visible": true
+        },
+        "1out": {
+          "label": "Outfit",
+          "asset": "fstr_v02",
+          "visible": true
+        },
+        "4har": {
+          "label": "Hair",
+          "asset": "dap1_v03",
+          "visible": true
+        },
+        "5hat": {
+          "label": "Hat",
+          "asset": "none",
+          "visible": true
+        },
+        "6tla": {
+          "label": "Main Hand",
+          "asset": "mc01_v05",
+          "visible": true
+        },
+        "7tlb": {
+          "label": "Off Hand",
+          "asset": "none",
+          "visible": true
+        }
+      }
     }
   ],
   "animationPresetMap": {},

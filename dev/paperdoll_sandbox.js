@@ -733,7 +733,7 @@
   function buildGameConfigObject() {
     const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
     const presetSlots = [];
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < MAX_PRESET_SLOTS; i += 1) {
       const p = state.presets?.[i];
       if (!p || typeof p !== "object") continue;
       const name = String(p.name || `Preset ${i + 1}`).trim() || `Preset ${i + 1}`;
