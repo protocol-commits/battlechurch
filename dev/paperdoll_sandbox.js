@@ -79,19 +79,33 @@
     { key: "projectile_throw", melee_style: "thrust", projectile_style: "throw", movement_set: "combat" },
   ];
 
+  function defaultIndexFor(layerKey, token) {
+    const list = layerCatalog[layerKey] || [];
+    const idx = list.indexOf(token);
+    return idx >= 0 ? idx : 0;
+  }
+
+  function createDefaultLayerSelection() {
+    const out = Object.fromEntries(LAYERS.map((k) => [k, 0]));
+    // Start with visible combat setup so main/off hand are immediately testable.
+    out["6tla"] = defaultIndexFor("6tla", "sw01_v01");
+    out["7tlb"] = defaultIndexFor("7tlb", "sh01_v01");
+    return out;
+  }
+
   const state = {
     open: false,
     focusedLayerIndex: 0,
-    pageIndex: 0,
+    pageIndex: 1, // pONE1 by default (combat paperdoll pages)
     facingIndex: 0,
-    animIndex: 0,
+    animIndex: 5, // draw_sheath (first pONE animation)
     behaviorIndex: 0,
     playbackSpeed: 1,
     frameCursor: 0,
     frameElapsed: 0,
     loop: true,
     holdFrame: false,
-    layerSelection: Object.fromEntries(LAYERS.map((k) => [k, 0])),
+    layerSelection: createDefaultLayerSelection(),
     layerVisible: Object.fromEntries(LAYERS.map((k) => [k, true])),
     imageCache: new Map(),
     missingCache: new Set(),
