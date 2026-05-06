@@ -2,14 +2,14 @@
 (function initPastorPaperdollConfig(global) {
   const FILE_DEFAULT = {
   "source": "mana-seed",
-  "page": "pONE2",
+  "page": "pONE1",
   "facing": "east",
-  "animation": "combat_idle",
+  "animation": "draw_sheath",
   "playbackSpeed": 1,
   "loop": true,
   "behavior": {
-    "key": "melee_slash",
-    "melee_style": "slash_1",
+    "key": "melee_thrust",
+    "melee_style": "thrust",
     "projectile_style": "none",
     "movement_set": "combat"
   },
@@ -36,7 +36,7 @@
     },
     "6tla": {
       "label": "Main Hand",
-      "asset": "none",
+      "asset": "mc01_v05",
       "visible": true
     },
     "7tlb": {
@@ -468,7 +468,7 @@
     },
     {
       "slot": 14,
-      "name": "thust",
+      "name": "thrust",
       "page": "pONE3",
       "facing": "east",
       "animation": "thrust",

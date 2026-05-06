@@ -20,6 +20,7 @@
   const MANA_SEED_ROOT = "assets/sprites/npcs/mana-seed";
   const PAPERDOLL_FRAME_SIZE = 64;
   const PASTOR_PAPERDOLL_SCALE = 3;
+  const THRUST_FRAME3_MIN_HOLD_MS = 420;
   const PAPERDOLL_LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
   const PAPERDOLL_FACING_MAP = {
     down: "south",
@@ -60,6 +61,13 @@
 
   function getPastorConfig() {
     return window.BATTLECHURCH_PASTOR_PAPERDOLL || null;
+  }
+
+  function getRuntimeBattleState() {
+    const bc = window.Battlechurch || null;
+    const dashState = bc && bc.playerDashState ? bc.playerDashState : null;
+    const meleeState = window._meleeAttackState || (bc && bc.meleeAttackState ? bc.meleeAttackState : null) || {};
+    return { dashState, meleeState };
   }
 
   function resolvePresetByName(name, presets) {
@@ -114,9 +122,7 @@
   }
 
   function pickDesiredPresetName(player) {
-    const melee = window._meleeAttackState || {};
-    const bindings = window.__battlechurchBindings || {};
-    const dash = bindings.playerDashState || null;
+    const { dashState: dash, meleeState: melee } = getRuntimeBattleState();
     const cfg = getPastorConfig() || {};
     const powerupMap = cfg.powerupPresetMap || {};
     const actionMap = {
@@ -149,14 +155,19 @@
     const movingNow = Boolean(player?._paperdollMoving);
 
     const thrustPriorityActive =
-      (hitboxType === "rush" ||
-        hitboxType === "swordrush" ||
-        hitboxType === "dashslash") &&
+      Boolean(melee?.isRushing) ||
+      Boolean(melee?.swordRushActive) ||
+      Boolean(dash?.crashDashActive) ||
+      Boolean(dash?.isHolyDash) ||
       (
-        Boolean(melee?.isRushing) ||
-        Boolean(melee?.rushDamageEnabled) ||
-        Boolean(melee?.swooshTimer > 0) ||
-        Boolean((dash?.isDashing))
+        (hitboxType === "rush" ||
+          hitboxType === "swordrush" ||
+          hitboxType === "dashslash") &&
+        (
+          Boolean(melee?.rushDamageEnabled) ||
+          Boolean(melee?.swooshTimer > 0) ||
+          Boolean((dash?.isDashing))
+        )
       );
     if (thrustPriorityActive) return actionMap.thrust;
 
@@ -274,10 +285,8 @@
     if (!preset) return;
     const animKey = String(preset.animation || "combat_idle");
     const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
-    const bindings = window.__battlechurchBindings || {};
-    const dash = bindings.playerDashState || null;
+    const { dashState: dash, meleeState: melee } = getRuntimeBattleState();
     const rawFacing = String(player.facing || "down");
-    const melee = window._meleeAttackState || {};
     const attackActive =
       player.state === "attackMelee" ||
       player.state === "attackPrayer" ||
@@ -317,25 +326,45 @@
     const comboNames = Array.isArray(melee.comboMoveNames)
       ? melee.comboMoveNames.map((n) => String(n || "").toLowerCase())
       : [];
+    const dashState = dash;
     const isSmashCrashThrashMove =
+      Boolean(melee?.isRushing) ||
+      Boolean(melee?.swordRushActive) ||
+      Boolean(dashState?.crashDashActive) ||
       hitboxType === "rush" ||
       hitboxType === "swordrush" ||
       hitboxType === "dashslash";
     const movingDuringRush =
       Boolean(melee?.isRushing) ||
+      Boolean(melee?.swordRushActive) ||
+      Boolean(dashState?.crashDashActive) ||
       Boolean(melee?.rushDamageEnabled) ||
       Boolean(melee?.swooshTimer > 0) ||
-      Boolean((window.__battlechurchBindings?.playerDashState || null)?.isDashing);
-    const holdThrustFrame3 =
+      Boolean(dashState?.isDashing);
+    const lockThrustFrame3 =
       String(animKey).toLowerCase() === "thrust" &&
       isSmashCrashThrashMove &&
       movingDuringRush;
+    const nowMs =
+      (typeof performance !== "undefined" && typeof performance.now === "function")
+        ? performance.now()
+        : Date.now();
     // Frame 3 (1-based) is cursor index 2.
-    if (holdThrustFrame3 && (pd.frameCursor || 0) >= 2) {
+    if (lockThrustFrame3) {
       pd.frameCursor = 2;
       pd.elapsedMs = 0;
       return;
     }
+    if (
+      String(animKey).toLowerCase() === "thrust" &&
+      Number.isFinite(player._paperdollThrustHoldUntil) &&
+      nowMs < player._paperdollThrustHoldUntil
+    ) {
+      pd.frameCursor = 2;
+      pd.elapsedMs = 0;
+      return;
+    }
+    player._paperdollThrustHoldUntil = 0;
     const projectileCasting =
       player.state === "attackArrow" || player.state === "attackMagic";
     pd.elapsedMs += Math.max(0, dt) * 1000;
