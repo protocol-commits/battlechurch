@@ -97,9 +97,9 @@
   const state = {
     open: false,
     focusedLayerIndex: 0,
-    pageIndex: 1, // pONE1 by default (combat paperdoll pages)
+    pageIndex: 2, // pONE2 by default (combat idle page)
     facingIndex: 0,
-    animIndex: 5, // draw_sheath (first pONE animation)
+    animIndex: 6, // combat_idle
     behaviorIndex: 0,
     playbackSpeed: 1,
     frameCursor: 0,
@@ -182,6 +182,11 @@
       return `${BASE_ROOT}/char_a_${page}/${filename}`;
     }
     return `${BASE_ROOT}/char_a_${page}/${layerKey}/${filename}`;
+  }
+
+  function pageSupportsLayer(pageKey, layerKey) {
+    if (pageKey === "p1" && (layerKey === "6tla" || layerKey === "7tlb")) return false;
+    return true;
   }
 
   function layerDrawOrderForFrame(frameIndex) {
@@ -404,7 +409,8 @@
 
     const layerRowsHtml = LAYERS.map((layerKey) => {
       const layerName = layerLabel(layerKey);
-      const value = getLayerFilename(layerKey) || "none";
+      const unsupported = !pageSupportsLayer(getPageKey(), layerKey);
+      const value = unsupported ? "(not on this page)" : (getLayerFilename(layerKey) || "none");
       const vis = state.layerVisible[layerKey] ? "Visible" : "Hidden";
       return `
         <div style="display:grid;grid-template-columns:88px 28px 1fr 28px 64px;gap:6px;align-items:center;margin-bottom:6px;">
@@ -456,10 +462,18 @@
       const layerKey = action.slice("layer-prev:".length);
       const list = layerCatalog[layerKey] || [];
       if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) - 1, list.length);
+      if ((layerKey === "6tla" || layerKey === "7tlb") && getPageKey() === "p1") {
+        state.pageIndex = 1; // pONE1
+        ensureAnimationMatchesPage();
+      }
     } else if (action.startsWith("layer-next:")) {
       const layerKey = action.slice("layer-next:".length);
       const list = layerCatalog[layerKey] || [];
       if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) + 1, list.length);
+      if ((layerKey === "6tla" || layerKey === "7tlb") && getPageKey() === "p1") {
+        state.pageIndex = 1; // pONE1
+        ensureAnimationMatchesPage();
+      }
     } else if (action.startsWith("layer-toggle:")) {
       const layerKey = action.slice("layer-toggle:".length);
       if (layerKey in state.layerVisible) state.layerVisible[layerKey] = !state.layerVisible[layerKey];
@@ -520,6 +534,7 @@
     const drawOrder = layerDrawOrderForFrame(frameIdx);
     drawOrder.forEach((layerKey) => {
       if (!state.layerVisible[layerKey]) return;
+      if (!pageSupportsLayer(getPageKey(), layerKey)) return;
       const path = getLayerPath(layerKey);
       const img = imageForPath(path);
       drawFrameFromSheet(img, frameIdx, cx, cy, 4);
@@ -530,6 +545,10 @@
     ctx.fillText(`Page: ${getPageKey()}  |  Anim: ${getAnimDef().key}  |  Facing: ${FACING_KEYS[state.facingIndex]}`, 22, 28);
     ctx.fillText(`Frame: ${frameIdx} (${state.frameCursor + 1}/${frames.length})  |  Speed: ${state.playbackSpeed.toFixed(2)}x`, 22, 48);
     ctx.fillText(`Focused Layer: ${layerLabel(focusedLayer())}`, 22, 68);
+    if (getPageKey() === "p1" && (getLayerFilename("6tla") || getLayerFilename("7tlb"))) {
+      ctx.fillStyle = "#f6c85f";
+      ctx.fillText("Main/Off Hand are unavailable on page p1 for this asset set.", 22, 90);
+    }
   }
 
   function update(dtMs) {
@@ -622,6 +641,10 @@
     if (!list.length) return;
     const next = clampWrap((state.layerSelection[key] || 0) + delta, list.length);
     state.layerSelection[key] = next;
+    if ((key === "6tla" || key === "7tlb") && getPageKey() === "p1") {
+      state.pageIndex = 1; // pONE1
+      ensureAnimationMatchesPage();
+    }
     state.frameCursor = 0;
     state.frameElapsed = 0;
   }
@@ -636,6 +659,25 @@
     state.holdFrame = false;
   }
 
+  function ensureAnimationMatchesPage() {
+    const page = getPageKey();
+    const current = getAnimDef();
+    if (current?.page === page) return;
+    const fallbackByPage = {
+      p1: "walk",
+      pONE1: "draw_sheath",
+      pONE2: "combat_idle",
+      pONE3: "slash_1",
+    };
+    const preferred = fallbackByPage[page] || "walk";
+    let idx = animDefs.findIndex((a) => a?.page === page && a?.key === preferred);
+    if (idx < 0) idx = animDefs.findIndex((a) => a?.page === page);
+    if (idx >= 0) state.animIndex = idx;
+    state.frameCursor = 0;
+    state.frameElapsed = 0;
+    state.holdFrame = false;
+  }
+
   function stepFacing(delta) {
     state.facingIndex = clampWrap(state.facingIndex + delta, FACING_KEYS.length);
     state.frameCursor = 0;
@@ -644,6 +686,7 @@
 
   function stepPage(delta) {
     state.pageIndex = clampWrap(state.pageIndex + delta, PAGE_KEYS.length);
+    ensureAnimationMatchesPage();
     state.frameCursor = 0;
     state.frameElapsed = 0;
   }
@@ -718,6 +761,7 @@
     ensureOverlay();
     if (!overlay || state.open) return;
     loadPresetsFromStorage();
+    loadPresetSlot(0);
     state.open = true;
     overlay.style.display = "block";
     controlsDirty = true;
