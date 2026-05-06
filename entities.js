@@ -349,6 +349,15 @@
     return y >= 0 ? "down" : "up";
   }
 
+  function facingFromSpinProgress(progress01, clockwise = true) {
+    const p = Math.max(0, Math.min(1, Number(progress01) || 0));
+    const steps = clockwise
+      ? ["up", "right", "down", "left"]
+      : ["up", "left", "down", "right"];
+    const idx = Math.floor(p * 4) % 4;
+    return steps[idx] || "up";
+  }
+
   function updatePastorPaperdollState(player, dt) {
     const preset = resolvePastorPaperdollPreset(player);
     if (!preset) return;
@@ -367,6 +376,14 @@
       Boolean(melee?.swooshTimer > 0) ||
       Boolean(melee?.spinTimer > 0) ||
       Boolean(melee?.isRushing);
+    const spinFrame3LockActive = Boolean(melee?.spinTimer > 0);
+    if (spinFrame3LockActive) {
+      const spinDuration = Math.max(0.0001, Number(melee?.spinDuration) || 0.0001);
+      const spinTimer = Math.max(0, Number(melee?.spinTimer) || 0);
+      const spinProgress = 1 - Math.min(1, spinTimer / spinDuration);
+      const spinClockwise = (Number(melee?.spinVisualDirection) || 1) >= 0;
+      player._paperdollAttackFacing = facingFromSpinProgress(spinProgress, spinClockwise);
+    } else
     if (rushFacingActive) {
       const rushDir = melee?.rushDir || null;
       const dashDir = dash?.dashDir || null;
@@ -480,6 +497,11 @@
       return;
     }
     if (clashFrame3LockActive) {
+      pd.frameCursor = Math.min(2, Math.max(0, frames.length - 1));
+      pd.elapsedMs = 0;
+      return;
+    }
+    if (spinFrame3LockActive && String(animKey).toLowerCase() === "thrust") {
       pd.frameCursor = Math.min(2, Math.max(0, frames.length - 1));
       pd.elapsedMs = 0;
       return;
