@@ -129,6 +129,7 @@
       cleave: "SlashUp",
       normalSlash: "SlashDown",
       slashBash: "SlashBash",
+      blast: "Blast",
       thrust: "thrust",
       fallback: "SlashDown",
     };
@@ -181,7 +182,7 @@
 
     // 2) Charged A release (Blast) is a short one-shot visual window.
     if (blastWindowActive) {
-      return actionMap.slashBash;
+      return actionMap.blast;
     }
 
     // 3) Projectile casting visuals.
@@ -211,7 +212,7 @@
 
     // 4) Fully charged A hold: show blast-ready windup pose.
     if (blastChargeReady) {
-      return actionMap.slashBash;
+      return actionMap.blast;
     }
 
     // 5) Holding A before full charge should not show slash; attacks happen on release.
@@ -375,6 +376,11 @@
       String(animKey).toLowerCase() === "draw_sheath" &&
       Boolean(melee?.buttonDown || melee?.isCharging) &&
       Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
+    const blastReadyReleased =
+      !lockBlastReadyFrame1 &&
+      Boolean(player._paperdollBlastReadyHeld) &&
+      String(animKey).toLowerCase() === "draw_sheath";
+    player._paperdollBlastReadyHeld = lockBlastReadyFrame1;
     const nowMs =
       (typeof performance !== "undefined" && typeof performance.now === "function")
         ? performance.now()
@@ -382,6 +388,12 @@
     // Frame 1 (1-based) is cursor index 0.
     if (lockBlastReadyFrame1) {
       pd.frameCursor = 0;
+      pd.elapsedMs = 0;
+      return;
+    }
+    if (blastReadyReleased) {
+      // On charged-A release, continue instantly at frame 2 (1-based).
+      pd.frameCursor = 1;
       pd.elapsedMs = 0;
       return;
     }

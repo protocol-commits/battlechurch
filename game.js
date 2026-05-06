@@ -23809,8 +23809,29 @@ function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false }
   const spawnY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
   const vx = Math.cos(angleRad) * DIVINE_SHOT_SPEED;
   const vy = Math.sin(angleRad) * DIVINE_SHOT_SPEED;
+  meleeAttackState.pendingDivineShot = {
+    delay: 0.1,
+    spawnX,
+    spawnY,
+    vx,
+    vy,
+  };
 
-  spawnProjectile("divine_shot", spawnX, spawnY, vx, vy, {
+  meleeAttackState.divineShotFollowUpUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
+  meleeAttackState.cooldown = 0;
+}
+
+function flushPendingDivineShot(meleeAttackState, dt) {
+  if (!meleeAttackState?.pendingDivineShot) return;
+  meleeAttackState.pendingDivineShot.delay = Math.max(
+    0,
+    Number(meleeAttackState.pendingDivineShot.delay || 0) - Math.max(0, dt),
+  );
+  if (meleeAttackState.pendingDivineShot.delay > 0) return;
+
+  const pending = meleeAttackState.pendingDivineShot;
+  meleeAttackState.pendingDivineShot = null;
+  spawnProjectile("divine_shot", pending.spawnX, pending.spawnY, pending.vx, pending.vy, {
     friendly: true,
     damage: DIVINE_SHOT_DAMAGE,
     life: DIVINE_SHOT_LIFE,
@@ -23823,13 +23844,9 @@ function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false }
     priority: DIVINE_SHOT_PROJECTILE_PRIORITY,
     isDivineShot: true,
   });
-
   if (typeof playDivineShotSfx === "function") {
     playDivineShotSfx(0.6);
   }
-
-  meleeAttackState.divineShotFollowUpUntil = now + MELEE_DOUBLE_TAP_WINDOW * 1000;
-  meleeAttackState.cooldown = 0;
 }
 
 function executeSwordRush(meleeAttackState) {
@@ -24238,6 +24255,7 @@ function updateMeleeAttackSystem(dt) {
     divineKillAnchorY: 0,
     divineKillDisplayUntil: 0,
     divineKillLabel: null,
+    pendingDivineShot: null,
     normalSlashTarget: null,
     normalSlashHits: 0,
     normalSlashExpiresAt: 0,
@@ -24304,6 +24322,7 @@ function updateMeleeAttackSystem(dt) {
     }
     meleeAttackState.holdTime = MELEE_HOLD_CHARGE_TIME;
     meleeAttackState.spinHoldTime = SPIN_HOLD_CHARGE_TIME;
+    flushPendingDivineShot(meleeAttackState, dt);
     const prevSpinTimer = meleeAttackState.spinTimer || 0;
     updateMeleeTimers(dt, meleeAttackState);
     const spinJustEnded = prevSpinTimer > 0 && meleeAttackState.spinTimer <= 0;
