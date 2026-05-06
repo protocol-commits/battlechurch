@@ -164,9 +164,7 @@
     const blastChargeReady =
       chargingA &&
       Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
-    const holdingPrayerKey = Boolean(window?.Input?.keysPressed?.has?.("ArrowRight"));
     const prayerSmiteReadyHold =
-      holdingPrayerKey &&
       Boolean(player?.prayerHoldLocked) &&
       player.state !== "attackPrayer";
     const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
@@ -261,13 +259,16 @@
       player.state === "attackPrayer" ||
       Boolean(melee?.swooshTimer > 0) ||
       Boolean(melee?.spinTimer > 0);
+    const normalSlashVisualActive =
+      Boolean(melee?.swooshTimer > 0) &&
+      String(hitboxType) === "slash";
     if (meleeAttackActive) {
       if (comboNames.includes("cleave")) return actionMap.cleave;
-      if (hitboxType === "slash") return actionMap.normalSlash;
+      if (normalSlashVisualActive) return actionMap.normalSlash;
       if (hitboxType === "holyground" || comboNames.includes("hedge")) return actionMap.thrustMagic;
       if (hitboxType === "spin") return actionMap.thrust;
       if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
-      return actionMap.normalSlash;
+      return movingNow && !dashing ? actionMap.run : actionMap.idle;
     }
 
     if (dashing) return actionMap.run;
@@ -477,6 +478,7 @@
         )
       );
     const usingSmashPreset = normalizePresetKey(String(preset?.name || "")) === "smash";
+    const usingSlashDownPreset = normalizePresetKey(String(preset?.name || "")) === "slashdown";
     const usingThrustMagicPreset = normalizePresetKey(String(preset?.name || "")) === "thrustmagic";
     const hedgeFrame4LockActive =
       usingThrustMagicPreset &&
@@ -489,6 +491,11 @@
       !lockBlastReadyFrame1 &&
       Boolean(player._paperdollBlastReadyHeld) &&
       String(animKey).toLowerCase() === "draw_sheath";
+    const slashHitFreezeFrame2LockActive =
+      usingSlashDownPreset &&
+      hitboxType === "slash" &&
+      Boolean(melee?.swooshTimer > 0) &&
+      Number(player?.meleeHitstopTimer || 0) > 0;
     player._paperdollBlastReadyHeld = lockBlastReadyFrame1;
     const nowMs =
       (typeof performance !== "undefined" && typeof performance.now === "function")
@@ -503,6 +510,12 @@
     if (blastReadyReleased) {
       // On charged-A release, continue instantly at frame 2 (1-based).
       pd.frameCursor = 1;
+      pd.elapsedMs = 0;
+      return;
+    }
+    if (slashHitFreezeFrame2LockActive) {
+      // During successful slash hitstop, hold frame 2 (1-based) for clearer sword trail.
+      pd.frameCursor = Math.min(1, Math.max(0, frames.length - 1));
       pd.elapsedMs = 0;
       return;
     }
