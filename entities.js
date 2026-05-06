@@ -21,6 +21,7 @@
   const PAPERDOLL_FRAME_SIZE = 64;
   const PASTOR_PAPERDOLL_SCALE = 3;
   const THRUST_FRAME3_MIN_HOLD_MS = 420;
+  const SMASH_FRAME3_POST_HOLD_MS = 0;
   const PAPERDOLL_LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
   const PAPERDOLL_FACING_MAP = {
     down: "south",
@@ -130,6 +131,7 @@
       normalSlash: "SlashDown",
       slashBash: "SlashBash",
       blast: "Blast",
+      smash: "Smash",
       thrust: "thrust",
       fallback: "SlashDown",
     };
@@ -161,6 +163,21 @@
       chargingA &&
       Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
     const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
+    const smashMoveActive =
+      Boolean(melee?.isRushing) &&
+      !Boolean(melee?.swordRushActive) &&
+      !Boolean(dash?.crashDashActive) &&
+      !Boolean(dash?.isHolyDash) &&
+      (
+        comboNames.includes("smash") ||
+        pendingComboMoveName.includes("smash") ||
+        (
+          String(hitboxType) === "rush" &&
+          (Boolean(melee?.isRushing) || Boolean(melee?.rushDamageEnabled))
+        )
+      );
+
+    if (smashMoveActive) return actionMap.smash;
 
     // 1) High-priority movement attacks (Smash/Crash/Thrash) always use thrust.
     const thrustPriorityActive =
@@ -376,6 +393,20 @@
       String(animKey).toLowerCase() === "draw_sheath" &&
       Boolean(melee?.buttonDown || melee?.isCharging) &&
       Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
+    const smashMoveActive =
+      Boolean(melee?.isRushing) &&
+      !Boolean(melee?.swordRushActive) &&
+      !Boolean(dashState?.crashDashActive) &&
+      !Boolean(dashState?.isHolyDash) &&
+      (
+        comboNames.includes("smash") ||
+        String(melee?.pendingComboMoveName || "").toLowerCase().includes("smash") ||
+        (
+          String(hitboxType) === "rush" &&
+          (Boolean(melee?.isRushing) || Boolean(melee?.rushDamageEnabled))
+        )
+      );
+    const usingSmashPreset = normalizePresetKey(String(preset?.name || "")) === "smash";
     const blastReadyReleased =
       !lockBlastReadyFrame1 &&
       Boolean(player._paperdollBlastReadyHeld) &&
@@ -396,6 +427,25 @@
       pd.frameCursor = 1;
       pd.elapsedMs = 0;
       return;
+    }
+    if (usingSmashPreset) {
+      if (smashMoveActive) {
+        player._paperdollSmashFrame3HoldUntil = nowMs + SMASH_FRAME3_POST_HOLD_MS;
+        pd.frameCursor = 2;
+        pd.elapsedMs = 0;
+        return;
+      }
+      if (
+        Number.isFinite(player._paperdollSmashFrame3HoldUntil) &&
+        nowMs < player._paperdollSmashFrame3HoldUntil
+      ) {
+        pd.frameCursor = 2;
+        pd.elapsedMs = 0;
+        return;
+      }
+      player._paperdollSmashFrame3HoldUntil = 0;
+    } else {
+      player._paperdollSmashFrame3HoldUntil = 0;
     }
     // Frame 3 (1-based) is cursor index 2.
     if (lockThrustFrame3) {
