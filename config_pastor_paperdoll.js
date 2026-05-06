@@ -5,11 +5,11 @@
   "page": "pONE1",
   "facing": "east",
   "animation": "draw_sheath",
-  "playbackSpeed": 1,
+  "playbackSpeed": 0.9,
   "loop": true,
   "behavior": {
-    "key": "melee_thrust",
-    "melee_style": "thrust",
+    "key": "melee_slash",
+    "melee_style": "slash_1",
     "projectile_style": "none",
     "movement_set": "combat"
   },
@@ -36,13 +36,13 @@
     },
     "6tla": {
       "label": "Main Hand",
-      "asset": "mc01_v05",
+      "asset": "sw01_v05",
       "visible": true
     },
     "7tlb": {
       "label": "Off Hand",
-      "asset": "none",
-      "visible": true
+      "asset": "sh01_v03",
+      "visible": false
     }
   },
   "presets": [
@@ -95,7 +95,7 @@
       "facing": "east",
       "animation": "draw_sheath",
       "behavior": "melee_slash",
-      "playbackSpeed": 1,
+      "playbackSpeed": 0.9,
       "loop": true,
       "layers": {
         "0bas": {

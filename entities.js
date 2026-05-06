@@ -123,18 +123,12 @@
 
   function pickDesiredPresetName(player) {
     const { dashState: dash, meleeState: melee } = getRuntimeBattleState();
-    const cfg = getPastorConfig() || {};
-    const powerupMap = cfg.powerupPresetMap || {};
     const actionMap = {
       idle: "idle",
-      walk: "walk",
       run: "run",
       cleave: "SlashUp",
       normalSlash: "SlashDown",
       slashBash: "SlashBash",
-      projectile: "Projectile",
-      projectileWand: "ProjectileWand",
-      projectileWandFast: "ProjectileWandFast",
       thrust: "thrust",
       fallback: "SlashDown",
     };
@@ -143,17 +137,28 @@
     const comboNames = Array.isArray(melee.comboMoveNames)
       ? melee.comboMoveNames.map((n) => String(n || "").toLowerCase())
       : [];
-    const weaponMode = String(player?.getActiveWeaponMode?.() || player?.weaponMode || "arrow").toLowerCase();
-    const attackActive =
-      player.state === "attackMelee" ||
-      player.state === "attackArrow" ||
-      player.state === "attackMagic" ||
-      player.state === "attackPrayer" ||
-      Boolean(melee?.swooshTimer > 0) ||
-      Boolean(melee?.spinTimer > 0) ||
-      Boolean(melee?.isRushing);
+    const pendingComboMoveName = String(melee?.pendingComboMoveName || "").toLowerCase();
+    const nowMs =
+      (typeof performance !== "undefined" && typeof performance.now === "function")
+        ? performance.now()
+        : Date.now();
+    const prevPendingComboMoveName = String(player._paperdollPrevPendingComboMoveName || "").toLowerCase();
+    const blastStartTriggered =
+      pendingComboMoveName.includes("blast") &&
+      !prevPendingComboMoveName.includes("blast");
+    if (blastStartTriggered) {
+      // Short one-shot blast visual window, then return to normal mappings.
+      player._paperdollBlastUntil = nowMs + 320;
+    }
+    player._paperdollPrevPendingComboMoveName = pendingComboMoveName;
+    const blastWindowActive =
+      Number.isFinite(player._paperdollBlastUntil) &&
+      nowMs <= player._paperdollBlastUntil;
     const movingNow = Boolean(player?._paperdollMoving);
+    const chargingA = Boolean(melee?.buttonDown) || Boolean(melee?.isCharging);
+    const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
 
+    // 1) High-priority movement attacks (Smash/Crash/Thrash) always use thrust.
     const thrustPriorityActive =
       Boolean(melee?.isRushing) ||
       Boolean(melee?.swordRushActive) ||
@@ -171,6 +176,12 @@
       );
     if (thrustPriorityActive) return actionMap.thrust;
 
+    // 2) Charged A release (Blast) is a short one-shot visual window.
+    if (blastWindowActive) {
+      return actionMap.slashBash;
+    }
+
+    // 3) Projectile casting visuals.
     if (player.state === "attackArrow" || player.state === "attackMagic") {
       // Alternate when the underlying projectile attack animation restarts/wraps.
       const animatorFrame = Number(player?.animator?.frameIndex) || 0;
@@ -194,21 +205,28 @@
     }
     player._paperdollProjectileCasting = false;
     player._paperdollProjectilePrevFrame = 0;
-    const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
-    if (movingNow && !dashing) return actionMap.run;
-    if (attackActive) {
-      if (comboNames.includes("cleave")) return actionMap.cleave;
-    if (comboNames.includes("smash") || comboNames.includes("crash")) return actionMap.thrust;
-    if (comboNames.includes("thrash")) return actionMap.thrust;
-    if (hitboxType === "dashslash") return actionMap.thrust;
-      if (hitboxType === "slash") return actionMap.normalSlash;
-      if (hitboxType === "rush" || hitboxType === "swordrush") return actionMap.thrust;
-      if (hitboxType === "spin" || hitboxType === "holyground") return actionMap.thrust;
-      if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
+
+    // 4) Holding A should not show slash; attacks happen on release.
+    if (chargingA) {
+      return movingNow && !dashing ? actionMap.run : actionMap.idle;
     }
 
-    if (player.state === "walk") return actionMap.run;
+    // 5) Melee execution states after release.
+    const meleeAttackActive =
+      player.state === "attackMelee" ||
+      player.state === "attackPrayer" ||
+      Boolean(melee?.swooshTimer > 0) ||
+      Boolean(melee?.spinTimer > 0);
+    if (meleeAttackActive) {
+      if (comboNames.includes("cleave")) return actionMap.cleave;
+      if (hitboxType === "slash") return actionMap.normalSlash;
+      if (hitboxType === "spin" || hitboxType === "holyground") return actionMap.thrust;
+      if (String(melee?.dualChargeReadyMove || "").toLowerCase() === "cleave") return actionMap.cleave;
+      return actionMap.normalSlash;
+    }
+
     if (dashing) return actionMap.run;
+    if (movingNow) return actionMap.run;
     if (player.state === "idle") return actionMap.idle;
     return actionMap.fallback;
   }
@@ -367,7 +385,11 @@
     player._paperdollThrustHoldUntil = 0;
     const projectileCasting =
       player.state === "attackArrow" || player.state === "attackMagic";
-    pd.elapsedMs += Math.max(0, dt) * 1000;
+    const playbackSpeed =
+      Number.isFinite(preset?.playbackSpeed) && Number(preset.playbackSpeed) > 0
+        ? Number(preset.playbackSpeed)
+        : 1;
+    pd.elapsedMs += Math.max(0, dt) * 1000 * playbackSpeed;
     const timing = animDef.timingMs[Math.min(pd.frameCursor, animDef.timingMs.length - 1)] || 120;
     if (pd.elapsedMs >= timing) {
       pd.elapsedMs = 0;
