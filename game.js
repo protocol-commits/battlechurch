@@ -21731,17 +21731,18 @@ function updateDashMovement(dt) {
   }
 
   // End dash when distance complete
-  if (playerDashState.dashDistanceRemaining <= 0) {
-    playerDashState.isDashing = false;
-    playerDashState.isHolyDash = false;
-    if (window._meleeAttackState) {
-      window._meleeAttackState.swooshDamageEnabled = false;
-      window._meleeAttackState.swooshHitEntities = null;
-    }
-    playerDashState.crashDashActive = false;
-    playerDashState.crashDashHitEntities = null;
-    playerDashState.crashDashDamage = 0;
-    setSharedBButtonCooldown(DASH_COOLDOWN);
+    if (playerDashState.dashDistanceRemaining <= 0) {
+      playerDashState.isDashing = false;
+      playerDashState.isHolyDash = false;
+      if (window._meleeAttackState) {
+        window._meleeAttackState.swooshDamageEnabled = false;
+        window._meleeAttackState.swooshHitEntities = null;
+        window._meleeAttackState.clashVisualActive = false;
+      }
+      playerDashState.crashDashActive = false;
+      playerDashState.crashDashHitEntities = null;
+      playerDashState.crashDashDamage = 0;
+      setSharedBButtonCooldown(DASH_COOLDOWN);
   }
 }
 
@@ -24201,6 +24202,7 @@ function updateMeleeAttackSystem(dt) {
       ringFireDirection: 1,
       ringFireAngle: 0,
       ringFireTraceProgress: 0,
+      clashVisualActive: false,
       spinMoveDir: null,
     spinMoveDistanceRemaining: 0,
     spinMeleeQueued: false,
@@ -24679,6 +24681,8 @@ function updateMeleeAttackSystem(dt) {
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
         player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
         playerYell("Clash");
+        registerComboMoveName(meleeAttackState, "Clash");
+        meleeAttackState.clashVisualActive = true;
         meleeAttackState.holyDashArmUntil = 0;
         keysJustPressed.delete("ArrowDown");
         meleeAttackState.cBHolyDashBlockTimer = 0.5;

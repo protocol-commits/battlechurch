@@ -163,6 +163,12 @@
       chargingA &&
       Number(melee?.chargeTimer || 0) >= Number(melee?.holdTime || Infinity);
     const dashing = Boolean(dash?.isDashing) || Boolean(melee?.isRushing);
+    const clashVisualLockActive =
+      Boolean(melee?.clashVisualActive);
+
+    // Absolute priority: while Clash is active, never allow projectile/run presets.
+    if (clashVisualLockActive) return actionMap.thrust;
+
     const smashMoveActive =
       Boolean(melee?.isRushing) &&
       !Boolean(melee?.swordRushActive) &&
@@ -324,6 +330,14 @@
     return img;
   }
 
+  function facingFromVector(dx, dy, fallback = "down") {
+    const x = Number(dx) || 0;
+    const y = Number(dy) || 0;
+    if (Math.abs(x) < 1e-6 && Math.abs(y) < 1e-6) return fallback;
+    if (Math.abs(x) >= Math.abs(y)) return x >= 0 ? "right" : "left";
+    return y >= 0 ? "down" : "up";
+  }
+
   function updatePastorPaperdollState(player, dt) {
     const preset = resolvePastorPaperdollPreset(player);
     if (!preset) return;
@@ -331,12 +345,24 @@
     const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
     const { dashState: dash, meleeState: melee } = getRuntimeBattleState();
     const rawFacing = String(player.facing || "down");
+    const rushFacingActive =
+      Boolean(melee?.isRushing) ||
+      Boolean(melee?.swordRushActive) ||
+      Boolean(dash?.crashDashActive) ||
+      Boolean(dash?.isHolyDash);
     const attackActive =
       player.state === "attackMelee" ||
       player.state === "attackPrayer" ||
       Boolean(melee?.swooshTimer > 0) ||
       Boolean(melee?.spinTimer > 0) ||
       Boolean(melee?.isRushing);
+    if (rushFacingActive) {
+      const rushDir = melee?.rushDir || null;
+      const dashDir = dash?.dashDir || null;
+      const dir = dashDir || rushDir;
+      const forcedFacing = facingFromVector(dir?.x, dir?.y, rawFacing);
+      player._paperdollAttackFacing = forcedFacing;
+    } else
     if (attackActive) {
       if (!player._paperdollAttackFacing) player._paperdollAttackFacing = rawFacing;
     } else {
@@ -375,6 +401,9 @@
       Boolean(melee?.isRushing) ||
       Boolean(melee?.swordRushActive) ||
       Boolean(dashState?.crashDashActive) ||
+      Boolean(dashState?.isHolyDash) ||
+      Boolean(melee?.clashVisualActive) ||
+      (Boolean(dashState?.isDashing) && Boolean(dashState?.isHolyDash)) ||
       hitboxType === "rush" ||
       hitboxType === "swordrush" ||
       hitboxType === "dashslash";
@@ -382,11 +411,22 @@
       Boolean(melee?.isRushing) ||
       Boolean(melee?.swordRushActive) ||
       Boolean(dashState?.crashDashActive) ||
+      Boolean(dashState?.isHolyDash) ||
+      Boolean(melee?.clashVisualActive) ||
+      (Boolean(dashState?.isDashing) && Boolean(dashState?.isHolyDash)) ||
       Boolean(melee?.rushDamageEnabled) ||
       Boolean(melee?.swooshTimer > 0) ||
       Boolean(dashState?.isDashing);
+    const clashMoveActive =
+      Boolean(dashState?.isHolyDash) ||
+      (Boolean(dashState?.isDashing) && Boolean(dashState?.crashDashActive));
+    const clashFrame3LockActive =
+      Boolean(melee?.clashVisualActive);
     const lockThrustFrame3 =
-      String(animKey).toLowerCase() === "thrust" &&
+      (
+        String(animKey).toLowerCase() === "thrust" ||
+        clashMoveActive
+      ) &&
       isSmashCrashThrashMove &&
       movingDuringRush;
     const lockBlastReadyFrame1 =
@@ -428,6 +468,11 @@
       pd.elapsedMs = 0;
       return;
     }
+    if (clashFrame3LockActive) {
+      pd.frameCursor = Math.min(2, Math.max(0, frames.length - 1));
+      pd.elapsedMs = 0;
+      return;
+    }
     if (usingSmashPreset) {
       if (smashMoveActive) {
         player._paperdollSmashFrame3HoldUntil = nowMs + SMASH_FRAME3_POST_HOLD_MS;
@@ -449,7 +494,7 @@
     }
     // Frame 3 (1-based) is cursor index 2.
     if (lockThrustFrame3) {
-      pd.frameCursor = 2;
+      pd.frameCursor = Math.min(2, Math.max(0, frames.length - 1));
       pd.elapsedMs = 0;
       return;
     }
