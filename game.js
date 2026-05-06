@@ -17898,6 +17898,10 @@ if (typeof window !== "undefined") {
 }
 
 function handleDeveloperHotkeys() {
+  if (typeof window !== "undefined" && window.PaperdollSandbox?.isOpen?.()) {
+    keysJustPressed.clear();
+    return;
+  }
   if (typeof window !== "undefined" && window.__BC_ENEMY_EDITOR_ACTIVE) {
     keysJustPressed.clear();
     return;
@@ -18052,7 +18056,8 @@ function handleDeveloperHotkeys() {
 function isAnyDialogActive() {
   return Boolean(
     window.DialogOverlay?.isVisible?.() ||
-    window.UpgradeScreen?.isVisible?.()
+    window.UpgradeScreen?.isVisible?.() ||
+    window.PaperdollSandbox?.isOpen?.()
   );
 }
 
@@ -18207,6 +18212,10 @@ function handleChapterBreak() {
 }
 
 function checkDialogOverlays() {
+  if (window.PaperdollSandbox?.consumeAction?.()) {
+    keysJustPressed.clear();
+    return true;
+  }
   if (window.DialogOverlay?.consumeAction?.() || window.UpgradeScreen?.consumeAction?.()) {
     keysJustPressed.delete(" ");
     keysJustPressed.delete("pause");
