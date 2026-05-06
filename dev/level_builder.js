@@ -16,7 +16,7 @@
     structure: {
       towns: 10,
       battlesPerTown: 3,
-      missionsPerBattle: 3,
+      missionsPerBattle: 1,
       defaultWavesPerMission: 3,
       defaultHordesPerWave: 7,
       defaultHordeDuration: 4,
@@ -75,7 +75,7 @@
       structure: {
         towns: 10,
         battlesPerTown: oldStruct.monthsPerLevel || 3,
-        missionsPerBattle: oldStruct.battlesPerMonth || 3,
+        missionsPerBattle: 1,
         defaultWavesPerMission: DEFAULTS.structure.defaultWavesPerMission,
         defaultHordesPerWave: DEFAULTS.structure.defaultHordesPerWave,
         defaultHordeDuration: oldStruct.defaultHordeDuration || 4,
@@ -102,6 +102,8 @@
     while (merged.towns.length < targetTowns) {
       merged.towns.push({ index: merged.towns.length + 1, battles: [] });
     }
+    // Mission is now the only editable encounter layer per town battle bucket.
+    merged.structure.missionsPerBattle = 1;
     // Ensure new enemies show up even if they were hidden in older configs.
     if (Array.isArray(merged.globals.hiddenEnemies)) {
       merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
@@ -303,7 +305,7 @@
     state.scope = {
       town:    Number(els.town?.value)    || 1,
       battle:  Number(els.battle?.value)  || 1,
-      mission: Number(els.mission?.value) || 1,
+      mission: 1,
     };
   }
 
@@ -629,7 +631,7 @@
             <select id="lb-town"></select>
             <label>Mission</label>
             <select id="lb-battle"></select>
-            <label>Battle</label>
+            <label>Encounter</label>
             <select id="lb-mission"></select>
           </div>
           <div class="group">
@@ -638,7 +640,7 @@
               <div id="lb-copyMenu" class="lb-col-menu" style="top:calc(100% + 4px);left:0;right:auto;min-width:120px;">
                 <button class="lb-col-menu-item" data-copy-type="town" type="button">Copy Town</button>
                 <button class="lb-col-menu-item" data-copy-type="battle" type="button">Copy Mission</button>
-                <button class="lb-col-menu-item" data-copy-type="mission" type="button">Copy Battle</button>
+                <button class="lb-col-menu-item" data-copy-type="mission" type="button">Copy Encounter</button>
               </div>
             </div>
             <button id="lb-paste" class="secondary" type="button">Paste</button>
@@ -650,11 +652,11 @@
             <button id="lb-saveAs" type="button" class="secondary">Save As...</button>
           </div>
           <div class="group" style="align-items:center;gap:8px;margin-left:auto;min-width:0;flex:1;justify-content:flex-end;">
-            <label for="lb-battleNotes" style="font-size:11px;white-space:nowrap;">Battle Notes</label>
+            <label for="lb-battleNotes" style="font-size:11px;white-space:nowrap;">Encounter Notes</label>
             <input
               id="lb-battleNotes"
               type="text"
-              placeholder="Notes for this battle (editor only)"
+              placeholder="Notes for this encounter (editor only)"
               style="min-width:120px;flex:1;max-width:420px;"
             >
           </div>
@@ -709,10 +711,11 @@
     const s = state.config.structure;
     populateSelect(els.town,    s.towns           || 10);
     populateSelect(els.battle,  s.battlesPerTown  || 3);
-    populateSelect(els.mission, s.missionsPerBattle || 3);
+    populateSelect(els.mission, 1);
     els.town.value    = String(state.scope.town);
     els.battle.value  = String(state.scope.battle);
-    els.mission.value = String(state.scope.mission);
+    els.mission.value = "1";
+    if (els.mission) els.mission.disabled = true;
   }
 
   function clearUndoHistory() {
@@ -736,8 +739,8 @@
       els.paste.textContent = "Paste Mission";
       els.paste.title = "Paste copied mission";
     } else if (type === "mission") {
-      els.paste.textContent = "Paste Battle";
-      els.paste.title = "Paste copied battle";
+      els.paste.textContent = "Paste Encounter";
+      els.paste.title = "Paste copied encounter";
     } else {
       els.paste.textContent = "Paste";
       els.paste.title = "Paste";
@@ -849,7 +852,7 @@
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
         <span title="${key}" style="font-size:10px;white-space:nowrap;color:${typeColor};">${displayLabel}</span>
-        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this battle" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
+        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this encounter" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
       `;
       const clearBtn = row.querySelector(`[data-clear-key="${key}"]`);
       if (clearBtn) {
@@ -1723,7 +1726,7 @@
         delete missionObj.assumedChurchPowerupLevels;
         saveToStorage(state.config);
         renderAssumedUpgradeInputs(missionObj);
-        setStatus("Cleared assumed upgrades for this battle");
+        setStatus("Cleared assumed upgrades for this encounter");
       });
     }
 
@@ -1755,7 +1758,7 @@
             const { missionObj } = getOrCreateMission();
             const { battle: battleIdx, mission: missionIdx } = state.scope;
             state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
-            setStatus(`Copied Battle ${missionIdx} from Mission ${battleIdx}`);
+            setStatus(`Copied Encounter ${missionIdx} from Mission ${battleIdx}`);
           }
           updatePasteButtonState();
           closeTopMenus();
@@ -1799,7 +1802,7 @@
           else mList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted Battle ${missionIdx} into Town ${townIdx} Mission ${battleIdx}`);
+          setStatus(`Pasted Encounter ${missionIdx} into Town ${townIdx} Mission ${battleIdx}`);
         } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
           setStatus("Use the column ▾ menu to paste hordes/waves", true);
         }
@@ -1897,7 +1900,7 @@
     const s = state.config?.structure || {};
     const maxTown = Math.max(1, Number(s.towns) || 10);
     const maxMission = Math.max(1, Number(s.battlesPerTown) || 3);
-    const maxBattle = Math.max(1, Number(s.missionsPerBattle) || 3);
+    const maxBattle = Math.max(1, Number(s.missionsPerBattle) || 1);
     const town = clampInt(scope.town, 1, maxTown, state.scope.town || 1);
     const mission = clampInt(scope.mission, 1, maxMission, state.scope.battle || 1);
     const battle = clampInt(scope.battle, 1, maxBattle, state.scope.mission || 1);

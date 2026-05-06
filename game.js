@@ -5632,18 +5632,16 @@ function isNoCooldownDamageSource(type) {
 }
 
 // Mission names replace calendar month names in the new terminology.
-// Each Battle has multiple Missions (default 3).
-const MISSIONS_PER_BATTLE =
-  (typeof window !== "undefined" && Number.isFinite(window.MISSIONS_PER_BATTLE)
-    ? window.MISSIONS_PER_BATTLE
+const MISSIONS_PER_TOWN =
+  (typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
+    ? window.BATTLES_PER_TOWN
     : null) ||
   3;
 
 function getMissionName(globalMissionNumber) {
   if (!Number.isFinite(globalMissionNumber) || globalMissionNumber <= 0) return "Mission 1";
-  // Calculate which mission within the current battle (1-indexed)
-  const missionInBattle = ((globalMissionNumber - 1) % MISSIONS_PER_BATTLE) + 1;
-  return `Mission ${missionInBattle}`;
+  const missionInTown = ((globalMissionNumber - 1) % MISSIONS_PER_TOWN) + 1;
+  return `Mission ${missionInTown}`;
 }
 
 // Alias for backwards compatibility
@@ -5659,7 +5657,7 @@ function getUpcomingMissionName() {
   const match = String(currentMission).match(/Mission\s*(\d+)/i);
   if (match) {
     const currentNum = parseInt(match[1], 10);
-    const nextNum = (currentNum % MISSIONS_PER_BATTLE) + 1;
+    const nextNum = (currentNum % MISSIONS_PER_TOWN) + 1;
     return `Mission ${nextNum}`;
   }
   return String(currentMission);
@@ -7747,8 +7745,7 @@ function queueTownIntroAnnouncement() {
     ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
     : 1;
   if (devStartOverride && localBattleNumber > 1) {
-    const missionsPerBattleJ = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
-    const jumpOrderNumber = Math.floor((localBattleNumber - 1) / missionsPerBattleJ) + 1;
+    const jumpOrderNumber = localBattleNumber;
     const townList = mapData?.towns || [];
     const townIndex = townList.findIndex((t) => t?.id === activeTownId);
     const levelNumber = townIndex >= 0 ? townIndex + 1 : 1;
@@ -7768,9 +7765,8 @@ function queueTownIntroAnnouncement() {
     pendingDevBattleStartOverride = null;
     return;
   }
-  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 1));
-  const upcomingOrderNumber = Math.floor((localBattleNumber - 1) / missionsPerBattle) + 1;
-  const upcomingMissionNumber = ((localBattleNumber - 1) % missionsPerBattle) + 1;
+  const upcomingOrderNumber = localBattleNumber;
+  const upcomingMissionNumber = 1;
   pendingTownIntroStart = true;
   queueLevelAnnouncement(act1Subtitle, "", {
     requiresConfirm: true,
@@ -7783,8 +7779,7 @@ function queueTownIntroAnnouncement() {
 
 function queueMissionIntroTransition(actNumber) {
   const act = Math.max(2, Math.floor(actNumber));
-  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
-  const flatBattleStart = (act - 1) * missionsPerBattle + 1;
+  const flatBattleStart = act;
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   queueLevelAnnouncement("", "", {
     requiresConfirm: true,
@@ -7912,11 +7907,9 @@ function startGameFromTitle() {
       pendingDevBattleStartOverride &&
       pendingDevBattleStartOverride.townId === activeTownId;
     if (!overrideCampaignData && !hasDevStartOverrideForTown && resumeLocalBattleNumber > 1) {
-      const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
-      const flatBattleNumber = (resumeLocalBattleNumber - 1) * missionsPerBattle + 1;
       pendingDevBattleStartOverride = {
         townId: activeTownId,
-        localBattleNumber: flatBattleNumber,
+        localBattleNumber: resumeLocalBattleNumber,
       };
     }
     if (Number.isFinite(campaignData?.savedGraceCount)) {
@@ -8107,14 +8100,13 @@ function startDevLevelTestFromEditor({
     mission: missionNumber,
     battle: battleNumber,
   });
-  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 1));
-  const localBattleNumber = (missionNumber - 1) * missionsPerBattle + battleNumber;
+  const localBattleNumber = missionNumber;
   const getMaxBattlesInTown = () => {
     const fallbackBattlesPerTown =
       typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
         ? Math.max(1, Math.floor(Number(window.BATTLES_PER_TOWN) || 1))
         : 3;
-    const fallbackTotal = fallbackBattlesPerTown * missionsPerBattle;
+    const fallbackTotal = fallbackBattlesPerTown;
     const cfg =
       (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
       (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
@@ -8130,12 +8122,7 @@ function startDevLevelTestFromEditor({
     if (!battleList.length) return fallbackTotal;
     let total = 0;
     for (const battleCfg of battleList) {
-      const missionList = Array.isArray(battleCfg?.missions)
-        ? battleCfg.missions
-        : Array.isArray(battleCfg?.battles)
-          ? battleCfg.battles
-          : [];
-      total += missionList.length || missionsPerBattle;
+      total += 1;
     }
     return Math.max(1, total);
   };
@@ -18165,8 +18152,7 @@ function showMissionIntro(actNumber) {
 
 function startActBreakTeaser(actNumber) {
   const act = Math.max(2, Math.floor(actNumber));
-  const missionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 3));
-  const flatBattleStart = (act - 1) * missionsPerBattle + 1;
+  const flatBattleStart = act;
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const townList = mapData?.towns || [];
   const townIndex = townList.findIndex((t) => t?.id === activeTownId);

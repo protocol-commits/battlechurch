@@ -154,7 +154,7 @@
   const BATTLES_PER_TOWN =
     levelData?.structure?.battlesPerTown ?? levelData?.structure?.monthsPerLevel ?? 3;
   const MISSIONS_PER_BATTLE =
-    levelData?.structure?.missionsPerBattle ?? levelData?.structure?.battlesPerMonth ?? 3;
+    levelData?.structure?.missionsPerBattle ?? levelData?.structure?.battlesPerMonth ?? 1;
   const WAVES_PER_MISSION = levelData?.structure?.defaultWavesPerMission ?? 3;
   const HORDES_PER_WAVE = levelData?.structure?.defaultHordesPerWave ?? 7;
   // Legacy aliases kept for external consumers (game.js, etc.)
@@ -445,6 +445,17 @@
     if (typeof deps.getScore !== "function") deps.getScore = () => 0;
   }
 
+  function getMissionCountForTown(definition) {
+    const count = Number(definition?.battles?.length);
+    if (Number.isFinite(count) && count > 0) return count;
+    return Math.max(1, Number(BATTLES_PER_TOWN) || 1);
+  }
+
+  function getMissionOrdinalForMonthIndex(monthIndex) {
+    if (!Number.isFinite(monthIndex) || monthIndex < 0) return 1;
+    return monthIndex + 1;
+  }
+
   function clearStagePowerUps({ keepGrace = false } = {}) {
     if (typeof deps.clearPowerUps === "function") {
       try {
@@ -676,7 +687,14 @@
       const battleData = townData?.battles?.[bIdx] || townData?.months?.[bIdx];
       const missionList = Array.isArray(battleData?.missions) ? battleData.missions
         : (Array.isArray(battleData?.battles) ? battleData.battles : []);
-      const numMissions = missionList.length || MISSIONS_PER_BATTLE;
+      const configuredMissionsPerBattle = Math.max(1, Math.floor(Number(MISSIONS_PER_BATTLE) || 1));
+      const numMissions = Math.max(
+        1,
+        Math.min(
+          configuredMissionsPerBattle,
+          missionList.length || configuredMissionsPerBattle,
+        ),
+      );
       for (let mIdx = 0; mIdx < numMissions; mIdx += 1) {
         const missionData = missionList[mIdx];
         const hordes = [];
@@ -1104,20 +1122,18 @@
       state.powerUpsEnabled = false;
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
       const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
-      const monthName = getMonthName(globalMonthNumber);
-      const currentActNum = MISSIONS_PER_BATTLE > 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1 : 1;
-      const battleInAct = MISSIONS_PER_BATTLE > 0 ? (state.monthIndex % MISSIONS_PER_BATTLE) + 1 : localMonthNumber;
-      console.info && console.info('queueAnnouncement', { title: `Town ${state.level} Mission ${currentActNum} Battle ${battleInAct}`, level: state.level, actNum: currentActNum, battleInAct, monthIndex: state.monthIndex });
+      const missionOrdinal = getMissionOrdinalForMonthIndex(state.monthIndex);
+      console.info && console.info('queueAnnouncement', { title: `Town ${state.level} Mission ${missionOrdinal}`, level: state.level, missionOrdinal, monthIndex: state.monthIndex });
       const _atCamp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
       const _atLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
       const actTitles = _atLabels.missionIntroTitles?.[_atCamp] || _atLabels.missionIntroTitles?.p1 || {};
       const _camp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
       const _missionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
       const actMissionLabels = _missionsByPhase[_camp] || _missionsByPhase.p1 || {};
-      const missionNumber = battleInAct;
-      const missionLabelText = actMissionLabels[currentActNum] || `Mission ${currentActNum}`;
-      const missionBriefTitle = `Mission ${currentActNum}: ${missionLabelText}`;
-      const missionBriefHeading = `Battle ${missionNumber}`;
+      const missionNumber = missionOrdinal;
+      const missionLabelText = actMissionLabels[missionOrdinal] || `Mission ${missionOrdinal}`;
+      const missionBriefTitle = `Mission ${missionOrdinal}: ${missionLabelText}`;
+      const missionBriefHeading = `Mission ${missionNumber}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
       }
@@ -1130,7 +1146,7 @@
         missionNumber,
       });
       resetStage("battleIntro", BATTLE_INTRO_DURATION);
-      setDevStatus(`Mission ${currentActNum} — Battle ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
+      setDevStatus(`Mission ${missionNumber} forming`, BATTLE_INTRO_DURATION + 0.5);
     }
 
     function finalizeBattleNpcResults() {
@@ -1596,7 +1612,8 @@
       state.pendingWaveEntrySpawns = 0;
       spawnPowerUpDrops(state.activeWave?.powerUps || 1);
       const localMonthNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
-      const finalMissionBeforeBoss = MISSIONS_PER_BATTLE > 0 && (state.monthIndex + 1) % MISSIONS_PER_BATTLE === 0;
+      const totalMissionsInTown = getMissionCountForTown(state.definition);
+      const finalMissionBeforeBoss = localMonthNumber >= totalMissionsInTown;
 
       if (!finalWave) {
         if (endedActualWave && typeof deps.showWaveHealthSnapshot === "function") {
@@ -1741,11 +1758,10 @@
   finalizeBattleNpcResults();
   // Also call after normal battle completion, not just hotkey skip
       const flavor = HORDE_CLEAR_LINES[state.monthIndex % HORDE_CLEAR_LINES.length];
-      const localMissionNumber = state.monthIndex >= 0 ? state.monthIndex + 1 : 1;
-      const globalBattleNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMissionNumber;
+      const missionOrdinal = getMissionOrdinalForMonthIndex(state.monthIndex);
       const clearedRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-      const clearedActLabel = `Mission ${clearedRomanNumerals[state.level] || state.level} — Battle ${globalBattleNumber}`;
-      console.info && console.info('queueAnnouncement', { title: `${clearedActLabel} Cleared`, level: state.level, monthIndex: state.monthIndex });
+      const clearedActLabel = `Mission ${clearedRomanNumerals[missionOrdinal] || missionOrdinal}`;
+      console.info && console.info('queueAnnouncement', { title: `${clearedActLabel} Cleared`, level: state.level, missionOrdinal, monthIndex: state.monthIndex });
       queueLevelAnnouncement(
         `${clearedActLabel} Cleared`,
         flavor,
@@ -1799,10 +1815,8 @@
       const _bMissionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
       const actMissionLabels = _bMissionsByPhase[_bCamp] || _bMissionsByPhase.p1 || {};
       const currentActNum = Math.min(
-        BATTLES_PER_TOWN,
-        MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
-          ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
-          : 1,
+        Math.max(1, Number(BATTLES_PER_TOWN) || 1),
+        getMissionOrdinalForMonthIndex(state.monthIndex),
       );
       const missionBriefTitle = `Mission ${currentActNum}: ${actMissionLabels[currentActNum] || `Mission ${currentActNum}`}`;
       queueLevelAnnouncement("Boss Battle", state.currentBossProblem, {
@@ -1902,10 +1916,10 @@
       clearStagePowerUps();
       const summarySubtitle = `Enemies ${state.stats.enemiesDefeated} • NPCs saved ${state.stats.npcsRescued}`;
   const summaryRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-  const completedActNum = MISSIONS_PER_BATTLE > 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1 : 1;
+  const completedActNum = getMissionOrdinalForMonthIndex(state.monthIndex);
   const summaryActLabel = `Mission ${summaryRomanNumerals[completedActNum] || completedActNum} Cleared`;
   console.info && console.info('queueAnnouncement', { title: summaryActLabel, level: state.level, actNum: completedActNum, monthIndex: state.monthIndex });
-  const totalBattlesInTown = state.definition?.battles?.length || (BATTLES_PER_TOWN * MISSIONS_PER_BATTLE);
+  const totalBattlesInTown = state.definition?.battles?.length || Math.max(1, Number(BATTLES_PER_TOWN) || 1);
       queueLevelAnnouncement(
         summaryActLabel,
         summarySubtitle,
@@ -2122,7 +2136,9 @@ state.waveIndex = -1;
             // Boss check must come first — pendingUpgradeToTeaser can be left over
             // from the previous battle's upgrade screen closing and must not
             // hijack the transition when the boss is due.
-            if (MISSIONS_PER_BATTLE > 0 && (state.monthIndex + 1) % MISSIONS_PER_BATTLE === 0) {
+            const completedMissionOrdinal = getMissionOrdinalForMonthIndex(state.monthIndex);
+            const totalMissionsInTown = getMissionCountForTown(state.definition);
+            if (completedMissionOrdinal >= totalMissionsInTown) {
               state.pendingUpgradeToTeaser = false;
               beginBossIntro();
             } else if (state.pendingUpgradeToTeaser) {
@@ -2214,7 +2230,7 @@ state.waveIndex = -1;
           case "levelSummary":
             state.timer -= dt;
             if (state.timer <= 0) {
-              const _totalBattles = state.definition?.battles?.length || (BATTLES_PER_TOWN * MISSIONS_PER_BATTLE);
+              const _totalBattles = state.definition?.battles?.length || Math.max(1, Number(BATTLES_PER_TOWN) || 1);
               if (state.monthIndex + 1 >= _totalBattles) {
                 // All acts complete — town is done
                 resetStage("idle", 0);
@@ -2322,12 +2338,8 @@ state.waveIndex = -1;
           ? MONTHS_PER_LEVEL
           : (state.monthIndex >= 0 ? state.monthIndex + 1 : 1);
         const globalMonthNumber = (state.level - 1) * MONTHS_PER_LEVEL + localMonthNumber;
-        const derivedActNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
-          ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1
-          : 1;
-        const derivedMissionNum = MISSIONS_PER_BATTLE > 0 && state.monthIndex >= 0
-          ? (state.monthIndex % MISSIONS_PER_BATTLE) + 1
-          : 1;
+        const derivedActNum = getMissionOrdinalForMonthIndex(state.monthIndex);
+        const derivedMissionNum = 1;
         const derivedWaveNum = state.waveIndex >= 0
           ? Math.floor(state.waveIndex / Math.max(1, HORDES_PER_WAVE)) + 1
           : 0;
@@ -2374,8 +2386,7 @@ state.waveIndex = -1;
         return state.level || 1;
       },
       getActNumber() {
-        if (state.monthIndex < 0 || MISSIONS_PER_BATTLE <= 0) return 1;
-        return Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) + 1;
+        return getMissionOrdinalForMonthIndex(state.monthIndex);
       },
       getStats() {
         return state.stats;
@@ -2582,8 +2593,13 @@ state.waveIndex = -1;
           return { success: true, needsExteriorShot: false };
         }
         devClearOpponents({ includeBoss: true });
-        const _curActIdx = state.monthIndex >= 0 ? Math.floor(state.monthIndex / MISSIONS_PER_BATTLE) : 0;
-        state.monthIndex = (_curActIdx + 1) * MISSIONS_PER_BATTLE - 1;
+        const totalBattles = Math.max(
+          1,
+          Number.isFinite(state.definition?.battles?.length)
+            ? state.definition.battles.length
+            : Math.max(1, Number(BATTLES_PER_TOWN) || 1),
+        );
+        state.monthIndex = totalBattles - 1;
         state.waveIndex = getBattleHordeCount(currentBattle()) - 1;
         if (showExterior) {
           // Set stage to battleIntermission with long timer - exterior shot will trigger boss
@@ -2601,7 +2617,7 @@ state.waveIndex = -1;
           1,
           Number.isFinite(state.definition?.battles?.length)
             ? state.definition.battles.length
-            : BATTLES_PER_TOWN * MISSIONS_PER_BATTLE,
+            : Math.max(1, Number(BATTLES_PER_TOWN) || 1),
         );
         // Jump to the last battle entry in this town — do NOT change state.level
         state.monthIndex = totalBattles - 1;

@@ -6,7 +6,7 @@ window.BattlechurchLevelData = {
   "structure": {
     "towns": 10,
     "battlesPerTown": 3,
-    "missionsPerBattle": 3,
+    "missionsPerBattle": 1,
     "defaultWavesPerMission": 3,
     "defaultHordesPerWave": 7,
     "defaultHordeDuration": 4

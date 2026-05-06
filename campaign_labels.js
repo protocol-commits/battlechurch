@@ -40,19 +40,19 @@
     // ── Chapter-break subtitle descriptions ───────────────────────────────
     missionIntroDescriptions: Object.freeze({
       p1: Object.freeze({
-        1: "Secure 3 battlefields",
-        2: "Secure 3 battlefields",
-        3: "Secure 3 battlefields",
+        1: "Hold the line through 3 waves",
+        2: "Hold the line through 3 waves",
+        3: "Hold the line through 3 waves",
       }),
       p2: Object.freeze({
-        1: "Secure 3 battlefields",
-        2: "Secure 3 battlefields",
-        3: "Secure 3 battlefields",
+        1: "Hold the line through 3 waves",
+        2: "Hold the line through 3 waves",
+        3: "Hold the line through 3 waves",
       }),
       p3: Object.freeze({
-        1: "Secure 3 battlefields",
-        2: "Secure 3 battlefields",
-        3: "Secure 3 battlefields",
+        1: "Hold the line through 3 waves",
+        2: "Hold the line through 3 waves",
+        3: "Hold the line through 3 waves",
       }),
     }),
   });
