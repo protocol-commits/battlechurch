@@ -148,6 +148,18 @@
       Boolean(melee?.isRushing);
     const movingNow = Boolean(player?._paperdollMoving);
 
+    const thrustPriorityActive =
+      (hitboxType === "rush" ||
+        hitboxType === "swordrush" ||
+        hitboxType === "dashslash") &&
+      (
+        Boolean(melee?.isRushing) ||
+        Boolean(melee?.rushDamageEnabled) ||
+        Boolean(melee?.swooshTimer > 0) ||
+        Boolean((dash?.isDashing))
+      );
+    if (thrustPriorityActive) return actionMap.thrust;
+
     if (player.state === "attackArrow" || player.state === "attackMagic") {
       // Alternate when the underlying projectile attack animation restarts/wraps.
       const animatorFrame = Number(player?.animator?.frameIndex) || 0;
@@ -301,6 +313,29 @@
     const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
     const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
     if (!frames.length) return;
+    const hitboxType = String(melee.currentAttackHitboxType || "").toLowerCase();
+    const comboNames = Array.isArray(melee.comboMoveNames)
+      ? melee.comboMoveNames.map((n) => String(n || "").toLowerCase())
+      : [];
+    const isSmashCrashThrashMove =
+      hitboxType === "rush" ||
+      hitboxType === "swordrush" ||
+      hitboxType === "dashslash";
+    const movingDuringRush =
+      Boolean(melee?.isRushing) ||
+      Boolean(melee?.rushDamageEnabled) ||
+      Boolean(melee?.swooshTimer > 0) ||
+      Boolean((window.__battlechurchBindings?.playerDashState || null)?.isDashing);
+    const holdThrustFrame3 =
+      String(animKey).toLowerCase() === "thrust" &&
+      isSmashCrashThrashMove &&
+      movingDuringRush;
+    // Frame 3 (1-based) is cursor index 2.
+    if (holdThrustFrame3 && (pd.frameCursor || 0) >= 2) {
+      pd.frameCursor = 2;
+      pd.elapsedMs = 0;
+      return;
+    }
     const projectileCasting =
       player.state === "attackArrow" || player.state === "attackMagic";
     pd.elapsedMs += Math.max(0, dt) * 1000;
