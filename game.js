@@ -16261,7 +16261,19 @@ function createNpcPixelAppearance(gender = null) {
   const picks = {};
   for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
     const pool = buildNpcPixelAllowedPool(g, layerKey, cfg, seedTokensByLayer[layerKey] || []);
-    picks[layerKey] = randomChoice(pool) || pool[0] || "none";
+    if (g === "female" && layerKey === "head") {
+      const hasNone = pool.includes("none");
+      const nonNonePool = pool.filter((token) => token !== "none");
+      if (hasNone && nonNonePool.length > 0) {
+        picks[layerKey] = Math.random() < 0.7
+          ? "none"
+          : (randomChoice(nonNonePool) || nonNonePool[0] || "none");
+      } else {
+        picks[layerKey] = randomChoice(pool) || pool[0] || "none";
+      }
+    } else {
+      picks[layerKey] = randomChoice(pool) || pool[0] || "none";
+    }
   }
   const walkLayers = [];
   const swingLayers = [];
