@@ -572,10 +572,15 @@
     if (!targetCtx || !cfg || typeof cfg !== "object") return;
     const customFace = cfg.customFace;
     if (!customFace || typeof customFace !== "object" || customFace.enabled !== true) return;
+    const northMode = String(customFace.northFaceMode || "back");
+    const effectiveFacing =
+      facing === "north"
+        ? (northMode === "side_east" ? "east" : northMode === "side_west" ? "west" : "north")
+        : facing;
     const faceSrc =
-      facing === "south"
+      effectiveFacing === "south"
         ? customFace.front
-        : facing === "north"
+        : effectiveFacing === "north"
           ? customFace.back
           : customFace.side;
     const path = String(faceSrc || "").trim();
@@ -602,9 +607,9 @@
     const offsetXNorthSouth = Number(customFace.offsetXNorthSouth ?? customFace.offsetX ?? 0);
     const offsetXEastWestBase = Number(customFace.offsetXEastWest ?? customFace.offsetX ?? 0);
     const offsetX =
-      facing === "east"
+      effectiveFacing === "east"
         ? offsetXEastWestBase
-        : facing === "west"
+        : effectiveFacing === "west"
           ? -offsetXEastWestBase
           : offsetXNorthSouth;
     const offsetY = Number(customFace.offsetY || -12);
@@ -612,8 +617,8 @@
     const invertSideDirections = Boolean(customFace.invertSideDirections);
     const sideFacingUsesOriginal = invertSideDirections ? "east" : "west";
     const shouldMirror =
-      (facing === "east" || facing === "west") &&
-      facing !== sideFacingUsesOriginal &&
+      (effectiveFacing === "east" || effectiveFacing === "west") &&
+      effectiveFacing !== sideFacingUsesOriginal &&
       flipSideForEast;
     const drawW = Math.round(faceW * frameScale);
     const drawH = Math.round(faceH * frameScale);
@@ -663,9 +668,21 @@
     return steps[idx] || "up";
   }
 
+  function resolveNorthSideFacing(rawFacing, player, cfg) {
+    const facing = String(rawFacing || "down");
+    const isNorthFacing = facing === "up" || facing === "north";
+    if (!isNorthFacing) return facing;
+    const mode = String(cfg?.customFace?.northFaceMode || "back");
+    if (mode !== "side_west" && mode !== "side_east") return facing;
+    const lastHorizontal = String(player?._paperdollLastHorizontalFacing || "");
+    if (lastHorizontal === "left" || lastHorizontal === "right") return lastHorizontal;
+    return mode === "side_west" ? "left" : "right";
+  }
+
   function updatePastorPaperdollState(player, dt) {
     const preset = resolvePastorPaperdollPreset(player);
     if (!preset) return;
+    const cfg = getPastorConfig();
     const animKey = String(preset.animation || "combat_idle");
     const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
     const { dashState: dash, meleeState: melee } = getRuntimeBattleState();
@@ -705,12 +722,16 @@
       player.state === "walk" || Boolean(dash?.isDashing);
     if (isMovementFacingSource) {
       player._paperdollLastMoveFacing = rawFacing;
+      if (rawFacing === "left" || rawFacing === "right") {
+        player._paperdollLastHorizontalFacing = rawFacing;
+      }
     }
-    const facingSource = player._paperdollAttackFacing
+    const baseFacingSource = player._paperdollAttackFacing
       ? player._paperdollAttackFacing
       : (player.state === "idle" && player._paperdollLastMoveFacing
           ? player._paperdollLastMoveFacing
           : rawFacing);
+    const facingSource = resolveNorthSideFacing(baseFacingSource, player, cfg);
     if (!player._paperdollState) {
       player._paperdollState = { key: "", frameCursor: 0, elapsedMs: 0 };
     }
@@ -913,12 +934,13 @@
     const animKey = String(preset.animation || "combat_idle");
     const animDef = PAPERDOLL_ANIMS[animKey] || PAPERDOLL_ANIMS.combat_idle;
     const rawFacing = String(player.facing || "down");
-    const facingSource =
+    const baseFacingSource =
       player._paperdollAttackFacing
         ? player._paperdollAttackFacing
         : (player.state === "idle" && player._paperdollLastMoveFacing
         ? player._paperdollLastMoveFacing
         : rawFacing);
+    const facingSource = resolveNorthSideFacing(baseFacingSource, player, cfg);
     const facing = PAPERDOLL_FACING_MAP[facingSource] || "south";
     const faceFacing = FACE_UPLOAD_FACING_MAP[facingSource] || facing;
     const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;

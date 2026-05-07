@@ -149,8 +149,15 @@
       cropH: 100,
       flipSideForEast: true,
       invertSideDirections: false,
+      northFaceMode: "back", // "back" | "side_west" | "side_east"
       status: "No face images loaded.",
     },
+  };
+  const NORTH_FACE_MODES = ["back", "side_west", "side_east"];
+  const NORTH_FACE_MODE_LABELS = {
+    back: "Back",
+    side_west: "Side-West",
+    side_east: "Side-East",
   };
   const FILE_DEFAULT_FACE_PROFILE = deepClone(
     window.BATTLECHURCH_PASTOR_PAPERDOLL?.customFace || null,
@@ -638,6 +645,9 @@
           cropH: Math.max(5, Math.min(100, Number(face.cropH || 100))),
           flipSideForEast: face.flipSideForEast !== false,
           invertSideDirections: Boolean(face.invertSideDirections),
+          northFaceMode: NORTH_FACE_MODES.includes(String(face.northFaceMode || ""))
+            ? String(face.northFaceMode)
+            : "back",
         },
       };
     });
@@ -675,6 +685,9 @@
         cropH: Math.max(5, Math.min(100, Number(state.customFace.cropH || 100))),
         flipSideForEast: state.customFace.flipSideForEast !== false,
         invertSideDirections: Boolean(state.customFace.invertSideDirections),
+        northFaceMode: NORTH_FACE_MODES.includes(String(state.customFace.northFaceMode || ""))
+          ? String(state.customFace.northFaceMode)
+          : "back",
       },
       savedAt: Date.now(),
     };
@@ -772,6 +785,9 @@
       cropH: Math.max(5, Math.min(100, Number(state.customFace.cropH || 100))),
       flipSideForEast: state.customFace.flipSideForEast !== false,
       invertSideDirections: Boolean(state.customFace.invertSideDirections),
+      northFaceMode: NORTH_FACE_MODES.includes(String(state.customFace.northFaceMode || ""))
+        ? String(state.customFace.northFaceMode)
+        : "back",
       appearanceLayers: getAppearanceSelectionFromState(),
     };
   }
@@ -797,6 +813,9 @@
     state.customFace.cropH = Math.max(5, Math.min(100, Number(profile.cropH || 100)));
     state.customFace.flipSideForEast = profile.flipSideForEast !== false;
     state.customFace.invertSideDirections = Boolean(profile.invertSideDirections);
+    state.customFace.northFaceMode = NORTH_FACE_MODES.includes(String(profile.northFaceMode || ""))
+      ? String(profile.northFaceMode)
+      : "back";
     applyAppearanceSelectionToState(profile.appearanceLayers || null);
     return true;
   }
@@ -998,6 +1017,10 @@
           <span style="opacity:.9;">Invert side directions</span>
           <input type="checkbox" id="paperdollFaceInvertSides" ${state.customFace.invertSideDirections ? "checked" : ""}>
         </label>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+          <span style="opacity:.9;">North Face Source</span>
+          ${buttonHtml("face-north-mode-cycle", NORTH_FACE_MODE_LABELS[String(state.customFace.northFaceMode || "back")] || "Back", "Cycle north face source")}
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
         <div style="opacity:.85;">Face X N/S</div>
@@ -1120,6 +1143,10 @@
           <span style="opacity:.9;">Invert side directions</span>
           <input type="checkbox" id="paperdollFaceInvertSides" ${state.customFace.invertSideDirections ? "checked" : ""}>
         </label>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
+          <span style="opacity:.9;">North Face Source</span>
+          ${buttonHtml("face-north-mode-cycle", NORTH_FACE_MODE_LABELS[String(state.customFace.northFaceMode || "back")] || "Back", "Cycle north face source")}
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
         <div style="opacity:.85;">Face X N/S</div>
@@ -1445,6 +1472,12 @@
       state.customFace.offsetXEastWest = Math.max(-24, Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0) - 1);
     } else if (action === "face-xew-up") {
       state.customFace.offsetXEastWest = Math.min(24, Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0) + 1);
+    } else if (action === "face-north-mode-cycle") {
+      const current = String(state.customFace.northFaceMode || "back");
+      const idx = NORTH_FACE_MODES.indexOf(current);
+      const next = NORTH_FACE_MODES[(idx + 1 + NORTH_FACE_MODES.length) % NORTH_FACE_MODES.length] || "back";
+      state.customFace.northFaceMode = next;
+      state.customFace.status = `North face source: ${NORTH_FACE_MODE_LABELS[next] || "Back"}`;
     } else if (action === "face-y-down") {
       state.customFace.offsetY = Math.max(-32, Number(state.customFace.offsetY || 0) - 1);
     } else if (action === "face-y-up") {
@@ -1573,10 +1606,15 @@
 
   function faceImageForFacing() {
     const facing = FACING_KEYS[state.facingIndex] || "south";
+    const northMode = String(state.customFace.northFaceMode || "back");
+    const effectiveFacing =
+      facing === "north"
+        ? (northMode === "side_east" ? "east" : northMode === "side_west" ? "west" : "north")
+        : facing;
     const source =
-      facing === "south"
+      effectiveFacing === "south"
         ? state.customFace.front
-        : facing === "north"
+        : effectiveFacing === "north"
           ? state.customFace.back
           : state.customFace.side;
     if (!source) return null;
@@ -1585,11 +1623,16 @@
 
   function shouldMirrorFaceForFacing() {
     const facing = FACING_KEYS[state.facingIndex] || "south";
-    if (facing !== "east" && facing !== "west") return false;
+    const northMode = String(state.customFace.northFaceMode || "back");
+    const effectiveFacing =
+      facing === "north"
+        ? (northMode === "side_east" ? "east" : northMode === "side_west" ? "west" : "north")
+        : facing;
+    if (effectiveFacing !== "east" && effectiveFacing !== "west") return false;
     const invert = Boolean(state.customFace.invertSideDirections);
     const flipEast = state.customFace.flipSideForEast !== false;
     const sideFacingUsesOriginal = invert ? "east" : "west";
-    if (facing === sideFacingUsesOriginal) return false;
+    if (effectiveFacing === sideFacingUsesOriginal) return false;
     return flipEast;
   }
 
@@ -1601,11 +1644,16 @@
     const w = Math.max(8, Number(state.customFace.width || 22)) * FACE_SCALE;
     const h = Math.max(8, Number(state.customFace.height || 20)) * FACE_SCALE;
     const facing = FACING_KEYS[state.facingIndex] || "south";
+    const northMode = String(state.customFace.northFaceMode || "back");
+    const effectiveFacing =
+      facing === "north"
+        ? (northMode === "side_east" ? "east" : northMode === "side_west" ? "west" : "north")
+        : facing;
     const xNs = Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0);
     const xEwBase = Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0);
     const ox =
-      facing === "east" ? xEwBase
-      : facing === "west" ? -xEwBase
+      effectiveFacing === "east" ? xEwBase
+      : effectiveFacing === "west" ? -xEwBase
       : xNs;
     const oy = Number(state.customFace.offsetY || -12);
     const mirror = shouldMirrorFaceForFacing();
@@ -1942,6 +1990,9 @@
         cropH: Math.max(5, Math.min(100, Number(state.customFace.cropH || 100))),
         flipSideForEast: state.customFace.flipSideForEast !== false,
         invertSideDirections: Boolean(state.customFace.invertSideDirections),
+        northFaceMode: NORTH_FACE_MODES.includes(String(state.customFace.northFaceMode || ""))
+          ? String(state.customFace.northFaceMode)
+          : "back",
       },
     };
   }
@@ -2196,6 +2247,9 @@
       state.customFace.cropH = Math.max(5, Math.min(100, Number(cfg.customFace.cropH || 100)));
       state.customFace.flipSideForEast = cfg.customFace.flipSideForEast !== false;
       state.customFace.invertSideDirections = Boolean(cfg.customFace.invertSideDirections);
+      state.customFace.northFaceMode = NORTH_FACE_MODES.includes(String(cfg.customFace.northFaceMode || ""))
+        ? String(cfg.customFace.northFaceMode)
+        : "back";
     }
     if (cfg?.appearanceLayers && typeof cfg.appearanceLayers === "object") {
       applyAppearanceSelectionToState(cfg.appearanceLayers);
