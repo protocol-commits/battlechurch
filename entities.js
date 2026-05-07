@@ -981,15 +981,14 @@
     baseOrder.forEach(drawLayer);
     if (shieldFront) drawLayer("7tlb");
     if (paperdollCompositeContext && paperdollCompositeCanvas) {
-      drawCustomFaceOverlay(paperdollCompositeContext, cfg, faceFacing, 1);
-    }
-    if (paperdollCompositeContext && paperdollCompositeCanvas) {
       applyShadowCrushToPaperdoll(
         paperdollCompositeContext,
         PAPERDOLL_FRAME_SIZE,
         PAPERDOLL_FRAME_SIZE,
         renderStyle,
       );
+      // Keep uploaded face photos uncrushed by applying them after shadow crush.
+      drawCustomFaceOverlay(paperdollCompositeContext, cfg, faceFacing, 1);
       context.drawImage(
         paperdollCompositeCanvas,
         0,
