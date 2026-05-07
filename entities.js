@@ -29,6 +29,13 @@
     right: "east",
     up: "west",
   };
+  // Keep uploaded face directions intuitive even if animation facings are remapped.
+  const FACE_UPLOAD_FACING_MAP = {
+    down: "south",
+    left: "west",
+    right: "east",
+    up: "north",
+  };
   const PAPERDOLL_FACING_INDEX = {
     south: 0,
     west: 1,
@@ -694,6 +701,7 @@
       pd.elapsedMs = 0;
     }
     const facing = PAPERDOLL_FACING_MAP[facingSource] || "south";
+    const faceFacing = FACE_UPLOAD_FACING_MAP[facingSource] || facing;
     const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
     const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
     if (!frames.length) return;
@@ -891,6 +899,7 @@
         ? player._paperdollLastMoveFacing
         : rawFacing);
     const facing = PAPERDOLL_FACING_MAP[facingSource] || "south";
+    const faceFacing = FACE_UPLOAD_FACING_MAP[facingSource] || facing;
     const facingIndex = PAPERDOLL_FACING_INDEX[facing] || 0;
     const frames = animDef.framesByFacing[facingIndex] || animDef.framesByFacing[0] || [0];
     if (!frames.length) return false;
@@ -972,7 +981,7 @@
     baseOrder.forEach(drawLayer);
     if (shieldFront) drawLayer("7tlb");
     if (paperdollCompositeContext && paperdollCompositeCanvas) {
-      drawCustomFaceOverlay(paperdollCompositeContext, cfg, facing, 1);
+      drawCustomFaceOverlay(paperdollCompositeContext, cfg, faceFacing, 1);
     }
     if (paperdollCompositeContext && paperdollCompositeCanvas) {
       applyShadowCrushToPaperdoll(
