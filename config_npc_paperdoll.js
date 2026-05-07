@@ -18,6 +18,10 @@
     "policy": "include-first-else-exclude",
     "previewCount": 10
   },
+  "renderStyle": {
+    "shadowCrush": 1.0,
+    "shadowThreshold": 0.75
+  },
   "assetPool": {
     "base": {
       "mode": "exclude",

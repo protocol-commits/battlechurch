@@ -5443,7 +5443,7 @@ const NPC_DIRECTION_ROW_MAP = {
   up: 3,
 };
 const NPC_WALK_FRAME_DURATION = 0.1;
-const NPC_SCALE = 2.8 * WORLD_SCALE;
+const NPC_SCALE = 3.08 * WORLD_SCALE;
 const NPC_RADIUS = 28 * WORLD_SCALE;
 const NPC_BASE_VARIANT = "char1_walk.png";
 const NPC_EYE_LAYER = "eyes_walk.png";
@@ -16090,6 +16090,61 @@ function getNpcPixelConfig() {
   return cfg;
 }
 
+function normalizeNpcPixelRenderStyle(style) {
+  if (!style || typeof style !== "object") return null;
+  const shadowCrush = Number(style.shadowCrush);
+  const shadowThreshold = Number(style.shadowThreshold);
+  return {
+    shadowCrush: Number.isFinite(shadowCrush) ? Math.max(0, Math.min(1, shadowCrush)) : 0,
+    shadowThreshold: Number.isFinite(shadowThreshold) ? Math.max(0.02, Math.min(1, shadowThreshold)) : 0.5,
+  };
+}
+
+function resolveNpcPixelRenderStyle(config) {
+  if (!config || typeof config !== "object") return { shadowCrush: 0, shadowThreshold: 0.5 };
+  const raw =
+    config.renderStyle ||
+    config.paperdollRenderStyle ||
+    config.harmonizer ||
+    null;
+  const style = normalizeNpcPixelRenderStyle(raw);
+  return style || { shadowCrush: 0, shadowThreshold: 0.5 };
+}
+
+function applyShadowCrushToNpcSheet(context2d, width, height, renderStyle) {
+  if (!context2d || !width || !height) return;
+  const shadowCrush = Number.isFinite(renderStyle?.shadowCrush)
+    ? Math.max(0, Math.min(1, renderStyle.shadowCrush))
+    : 0;
+  if (shadowCrush <= 0) return;
+  const shadowThreshold = Number.isFinite(renderStyle?.shadowThreshold)
+    ? Math.max(0.02, Math.min(1, renderStyle.shadowThreshold))
+    : 0.5;
+  let imageData = null;
+  try {
+    imageData = context2d.getImageData(0, 0, width, height);
+  } catch (e) {
+    return;
+  }
+  const pixels = imageData.data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const a = pixels[i + 3];
+    if (!a) continue;
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (luminance >= shadowThreshold) continue;
+    const under = (shadowThreshold - luminance) / shadowThreshold;
+    const darken = Math.max(0, Math.min(1, under * shadowCrush));
+    const mult = 1 - darken;
+    pixels[i] = Math.max(0, Math.min(255, Math.round(r * mult)));
+    pixels[i + 1] = Math.max(0, Math.min(255, Math.round(g * mult)));
+    pixels[i + 2] = Math.max(0, Math.min(255, Math.round(b * mult)));
+  }
+  context2d.putImageData(imageData, 0, 0);
+}
+
 function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {
   const catalog = (NPC_PIXEL_LAYER_CATALOG[gender]?.[layerKey] || []).slice();
   const set = new Set([...catalog, ...(Array.isArray(seed) ? seed : [])].filter(Boolean));
@@ -16107,7 +16162,7 @@ function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {
   return pool;
 }
 
-function composeNpcPixelLayerSheet(layerTokens, sourceImages, rowBase = 0) {
+function composeNpcPixelLayerSheet(layerTokens, sourceImages, rowBase = 0, renderStyle = null) {
   const frameW = NPC_PIXEL_FRAME_WIDTH;
   const frameH = NPC_PIXEL_FRAME_HEIGHT;
   const framesPerDir = 6;
@@ -16145,11 +16200,13 @@ function composeNpcPixelLayerSheet(layerTokens, sourceImages, rowBase = 0) {
       }
     }
   }
+  applyShadowCrushToNpcSheet(ctx2d, canvas.width, canvas.height, renderStyle);
   return canvas;
 }
 
 function createNpcPixelAppearance(gender = null) {
   const cfg = getNpcPixelConfig();
+  const renderStyle = resolveNpcPixelRenderStyle(cfg);
   const sourceImages = assets?.npcs?.pixelLineImages;
   if (!cfg || !sourceImages || !(sourceImages instanceof Map)) return null;
   const g = normalizeNpcGender(gender);
@@ -16182,7 +16239,7 @@ function createNpcPixelAppearance(gender = null) {
     if (layerKey === "weapon") continue;
     // Walk animation rows in this pack start after idle rows.
     const walkRowBase = 3;
-    const sheet = composeNpcPixelLayerSheet([picks[layerKey]], sourceImages, walkRowBase);
+    const sheet = composeNpcPixelLayerSheet([picks[layerKey]], sourceImages, walkRowBase, renderStyle);
     if (sheet) walkLayers.push(sheet);
   }
   if (!walkLayers.length) return null;
