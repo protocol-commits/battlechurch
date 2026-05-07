@@ -4806,6 +4806,7 @@
   Entities.Animator = Animator;
   Entities.Player = Player;
   Entities.Enemy = Enemy;
+  Entities.drawPastorPaperdoll = drawPastorPaperdoll;
   Entities.createPlayer = function createPlayer(x, y, clips) {
     return new Player(x, y, clips);
   };

@@ -1433,6 +1433,32 @@
     return { width: drawW, height: drawH, scale: fitScale * clipScale };
   }
 
+  function drawPlayerPaperdollPreview(ctx, centerX, centerY) {
+    const drawPaperdoll = window?.Entities?.drawPastorPaperdoll;
+    const player = getPlayerPreview();
+    if (typeof drawPaperdoll !== "function" || !player) return false;
+    const prevState = player.state;
+    const prevMoving = player._paperdollMoving;
+    try {
+      if (state.playerPreviewState === "idle") {
+        player.state = "idle";
+        player._paperdollMoving = false;
+      } else if (state.playerPreviewState === "walk") {
+        player.state = "walk";
+        player._paperdollMoving = true;
+      } else {
+        player.state = "attackMelee";
+        player._paperdollMoving = false;
+      }
+      return Boolean(drawPaperdoll(player, ctx, centerX, centerY, { alpha: 1 }));
+    } catch (_e) {
+      return false;
+    } finally {
+      player.state = prevState;
+      player._paperdollMoving = prevMoving;
+    }
+  }
+
   function drawEnemyPreview(ctx, canvas, data) {
     const centerX = canvas.width * 0.5;
     const centerY = canvas.height * 0.58;
@@ -1499,7 +1525,13 @@
       (state.playerPreviewState === "attackMelee" || state.playerPreviewState === "dashSlash")
         ? Math.max(0, (Number(data.attackHitFrame) || 1) - 1)
         : 0;
-    const preview = drawSpritePreview(ctx, clip, centerX, centerY, baseScale * fitScale, preferredFrame);
+    let preview = null;
+    const usedPaperdoll =
+      data.entryType === "player" &&
+      drawPlayerPaperdollPreview(ctx, centerX, centerY);
+    if (!usedPaperdoll) {
+      preview = drawSpritePreview(ctx, clip, centerX, centerY, baseScale * fitScale, preferredFrame);
+    }
     const overlayScale = worldSized ? fitScale : (preview?.scale || baseScale * fitScale);
     const hitbox = data.hitbox;
     const width = hitbox.width * overlayScale;
