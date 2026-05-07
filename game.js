@@ -4172,6 +4172,14 @@ const ENEMY_SHADOW_THRESHOLD = Math.max(
   0.02,
   Math.min(1, Number(_gb("enemyRenderStyle.shadowThreshold", 0.72)) || 0.72),
 );
+const ARENA_BG_SHADOW_CRUSH = Math.max(
+  0,
+  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowCrush", 0.75)) || 0),
+);
+const ARENA_BG_SHADOW_THRESHOLD = Math.max(
+  0.02,
+  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowThreshold", 0.7)) || 0.7),
+);
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/projectiles/";
@@ -6813,6 +6821,15 @@ function buildShadowCrushedImageCopy(image, renderStyle) {
   return applyShadowCrushToCanvas(canvas, renderStyle);
 }
 
+function maybeApplyArenaBackgroundShadowCrush(image) {
+  if (!image) return image;
+  if (ARENA_BG_SHADOW_CRUSH <= 0) return image;
+  return buildShadowCrushedImageCopy(image, {
+    shadowCrush: ARENA_BG_SHADOW_CRUSH,
+    shadowThreshold: ARENA_BG_SHADOW_THRESHOLD,
+  });
+}
+
 function extractFrame(image, frameWidth, frameHeight, frameIndex = 0) {
   const fw = frameWidth || image.width;
   const fh = frameHeight || image.height;
@@ -7439,7 +7456,7 @@ async function loadBackgroundAssets(cache, assets) {
   const townIntroPromise = loadImage(TOWN_INTRO_BACKGROUND_PATH)
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { mission1: null };
-      assets.backgrounds.mission1 = img;
+      assets.backgrounds.mission1 = maybeApplyArenaBackgroundShadowCrush(img);
     })
     .catch(() => {
       if (!assets.backgrounds) assets.backgrounds = { mission1: null };
@@ -7448,7 +7465,7 @@ async function loadBackgroundAssets(cache, assets) {
   const epiloguePromise = loadImage("assets/backgrounds/epilogue.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
-      assets.backgrounds.epilogue = img;
+      assets.backgrounds.epilogue = maybeApplyArenaBackgroundShadowCrush(img);
     })
     .catch(() => {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
@@ -7457,7 +7474,7 @@ async function loadBackgroundAssets(cache, assets) {
   const act2Promise = loadImage("assets/backgrounds/mission-2.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
-      assets.backgrounds.mission2 = img;
+      assets.backgrounds.mission2 = maybeApplyArenaBackgroundShadowCrush(img);
     })
     .catch(() => {
       if (!assets.backgrounds) assets.backgrounds = {};
@@ -7466,7 +7483,7 @@ async function loadBackgroundAssets(cache, assets) {
   const act3Promise = loadImage("assets/backgrounds/mission-3.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
-      assets.backgrounds.mission3 = img;
+      assets.backgrounds.mission3 = maybeApplyArenaBackgroundShadowCrush(img);
     })
     .catch(() => {
       if (!assets.backgrounds) assets.backgrounds = {};
@@ -7475,17 +7492,17 @@ async function loadBackgroundAssets(cache, assets) {
   const gameOverBackgroundPromise = loadImage("assets/backgrounds/mission-1.jpg")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
-      assets.backgrounds.gameOver = img;
+      assets.backgrounds.gameOver = maybeApplyArenaBackgroundShadowCrush(img);
     })
     .catch(() => {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
       assets.backgrounds.gameOver = null;
     });
   const midPromise = loadImage(BACKGROUND_MID_PATH)
-    .then((img) => { assets.backgroundLayers.mid = img; })
+    .then((img) => { assets.backgroundLayers.mid = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.mid = null; });
   const floorPromise = loadImage("assets/backgrounds/floor.png")
-    .then((img) => { assets.backgroundLayers.floor = img; })
+    .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floor = null; });
   const titleBackgroundPromise = loadImage(TITLE_BACKGROUND_PATH)
     .then((img) => { assets.titleBackground = img; })
