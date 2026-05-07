@@ -14,6 +14,10 @@
     "left": 2
   },
   "leftMirrorsRight": true,
+  "renderStyle": {
+    "shadowCrush": 1,
+    "shadowThreshold": 0.6
+  },
   "randomGeneration": {
     "policy": "include-first-else-exclude",
     "previewCount": 10
