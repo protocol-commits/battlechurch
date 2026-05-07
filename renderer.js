@@ -6387,7 +6387,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (hasSpeechBubble) return;
       const radius = Math.max(18, npc.radius || 0);
       const meterCenterX = (npc.x || 0) + shakeX;
-      const meterY = (npc.y || 0) - radius - height - Math.round(26 * WORLD_SCALE);
+      const meterY = (npc.y || 0) - radius - height - Math.round(39 * WORLD_SCALE);
       const dotSize = Math.max(height + 4 * WORLD_SCALE, 12 * WORLD_SCALE);
       drawCompactReadyDot(
         meterCenterX,
@@ -9876,7 +9876,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             alpha: drawAlpha,
             flashWhite: flashStrength,
           });
-          const nameY = member.y - (member.radius || 28) - 2;
+          const nameY = member.y - (member.radius || 28) - 15;
           dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         }
       });
@@ -10070,7 +10070,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.save();
         ctx.globalAlpha *= drawAlpha;
         if (npc?.name) {
-          const nameY = npc.y - (npc.radius || 28) - 10;
+          const nameY = npc.y - (npc.radius || 28) - 20;
           drawNameTag(ctx, npc.name, npc.x, nameY, UI_FONT_FAMILY);
         }
         const overlay = overlayByOwner.get(npc);

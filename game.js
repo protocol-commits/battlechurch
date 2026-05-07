@@ -13830,7 +13830,7 @@ class CozyNpc {
     const width = NPC_FAITH_BAR_WIDTH;
     const height = NPC_FAITH_BAR_HEIGHT;
     const barX = this.x - width / 2;
-    const barY = this.y - this.radius - 4;
+    const barY = this.y - this.radius - 14;
     if (LOG_NPC_FAITH_BAR && typeof console !== 'undefined' && console.debug) {
       console.debug &&
         console.debug('NPC.drawFaithBar', {
