@@ -5,6 +5,8 @@
   const BASE_ROOT = "assets/sprites/npcs/mana-seed";
   const PRESET_STORAGE_KEY = "battlechurch.pastorPaperdollPresets.v1";
   const CUSTOM_FACE_STORAGE_KEY = "battlechurch.pastorPaperdollCustomFace.v1";
+  const CUSTOMIZE_PRESET_STORAGE_KEY = "battlechurch.pastorCustomizePresets.v1";
+  const CUSTOMIZE_PRESET_SLOTS = 5;
   const MAX_PRESET_SLOTS = 24;
   const PAGE_KEYS = ["p1", "pONE1", "pONE2", "pONE3"];
   const LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
@@ -125,6 +127,8 @@
     rafId: 0,
     presets: [],
     selectedPresetIndex: 0,
+    customizePresets: [],
+    customizeStatus: "",
     customFace: {
       enabled: false,
       front: null,
@@ -315,15 +319,15 @@
     ].join(";");
 
     overlay.innerHTML = `
-      <div style="display:grid;grid-template-columns:460px minmax(380px, 0.8fr) 380px;gap:16px;height:100%;padding:16px;box-sizing:border-box;">
+      <div id="paperdollSandboxGrid" style="display:grid;grid-template-columns:460px minmax(380px, 0.8fr) 380px;gap:16px;height:100%;padding:16px;box-sizing:border-box;">
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;overflow:auto;">
           <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Paperdoll Sandbox</div>
           <div id="paperdollSandboxControls" style="margin-top:10px;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;max-height:76vh;overflow:auto;"></div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:center;background:rgba(12,16,24,0.6);border:1px solid #2a334a;border-radius:10px;position:relative;overflow:hidden;">
+        <div id="paperdollPreviewCol" style="display:flex;align-items:center;justify-content:center;background:rgba(12,16,24,0.6);border:1px solid #2a334a;border-radius:10px;position:relative;overflow:hidden;">
           <canvas id="paperdollSandboxCanvas" width="700" height="520" style="width:auto;height:auto;max-width:100%;max-height:100%;aspect-ratio:700/520;image-rendering:pixelated;"></canvas>
         </div>
-        <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;">
+        <div id="paperdollRightCol" style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:0;">
           <div style="font-size:14px;font-weight:700;margin-bottom:6px;">Pastor Presets</div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
             <label for="paperdollPresetName" style="font-size:12px;opacity:.9;">Preset name</label>
@@ -344,10 +348,8 @@
     controlsRoot = overlay.querySelector("#paperdollSandboxControls");
 
     overlay.querySelector("#paperdollSaveGameConfig")?.addEventListener("click", saveConfigFileWithPrompt);
-    controlsRoot?.addEventListener("pointerdown", onControlsClick);
     controlsRoot?.addEventListener("click", onControlsClick);
     controlsRoot?.addEventListener("change", onControlsInput);
-    overlay.querySelector("#paperdollPresetControls")?.addEventListener("pointerdown", onPresetControlsClick);
     overlay.querySelector("#paperdollPresetControls")?.addEventListener("click", onPresetControlsClick);
   }
 
@@ -418,6 +420,139 @@
   function savePresetsToStorage() {
     if (!window.localStorage?.setItem) return;
     window.localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(state.presets || []));
+  }
+
+  function loadCustomizePresetsFromStorage() {
+    const raw = window.localStorage?.getItem?.(CUSTOMIZE_PRESET_STORAGE_KEY);
+    const parsed = safeParse(raw, []);
+    const rows = Array.isArray(parsed) ? parsed.slice(0, CUSTOMIZE_PRESET_SLOTS) : [];
+    // Migrate older heavy slots that stored full image blobs.
+    state.customizePresets = rows.map((entry) => {
+      if (!entry || typeof entry !== "object") return entry;
+      const face = entry.customFace && typeof entry.customFace === "object" ? entry.customFace : {};
+      return {
+        ...entry,
+        customFace: {
+          enabled: Boolean(face.enabled),
+          offsetX: Number(face.offsetX || 0),
+          offsetY: Number(face.offsetY || -10),
+          width: Math.max(8, Number(face.width || 22)),
+          height: Math.max(8, Number(face.height || 20)),
+          cropX: Math.max(0, Math.min(95, Number(face.cropX || 0))),
+          cropY: Math.max(0, Math.min(95, Number(face.cropY || 0))),
+          cropW: Math.max(5, Math.min(100, Number(face.cropW || 100))),
+          cropH: Math.max(5, Math.min(100, Number(face.cropH || 100))),
+          flipSideForEast: face.flipSideForEast !== false,
+          invertSideDirections: Boolean(face.invertSideDirections),
+        },
+      };
+    });
+  }
+
+  function saveCustomizePresetsToStorage() {
+    if (!window.localStorage?.setItem) return;
+    try {
+      window.localStorage.setItem(
+        CUSTOMIZE_PRESET_STORAGE_KEY,
+        JSON.stringify((state.customizePresets || []).slice(0, CUSTOMIZE_PRESET_SLOTS)),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function buildCustomizePresetPayload(name = "") {
+    return {
+      name: String(name || "").trim() || "",
+      appearanceLayers: getAppearanceSelectionFromState(),
+      // Keep slots lightweight; image blobs are saved once in global customFace storage.
+      customFace: {
+        enabled: Boolean(state.customFace.enabled),
+        offsetX: Number(state.customFace.offsetX || 0),
+        offsetY: Number(state.customFace.offsetY || -10),
+        width: Math.max(8, Number(state.customFace.width || 22)),
+        height: Math.max(8, Number(state.customFace.height || 20)),
+        cropX: Math.max(0, Math.min(95, Number(state.customFace.cropX || 0))),
+        cropY: Math.max(0, Math.min(95, Number(state.customFace.cropY || 0))),
+        cropW: Math.max(5, Math.min(100, Number(state.customFace.cropW || 100))),
+        cropH: Math.max(5, Math.min(100, Number(state.customFace.cropH || 100))),
+        flipSideForEast: state.customFace.flipSideForEast !== false,
+        invertSideDirections: Boolean(state.customFace.invertSideDirections),
+      },
+      savedAt: Date.now(),
+    };
+  }
+
+  function saveCurrentToCustomizeSlot(slotIndex) {
+    const idx = Math.max(0, Math.min(CUSTOMIZE_PRESET_SLOTS - 1, Math.floor(Number(slotIndex) || 0)));
+    while (state.customizePresets.length <= idx) state.customizePresets.push(null);
+    const existingName = String(state.customizePresets[idx]?.name || "").trim();
+    const payload = buildCustomizePresetPayload(existingName || `Custom ${idx + 1}`);
+    state.customizePresets[idx] = payload;
+    const ok = saveCustomizePresetsToStorage();
+    state.customizeStatus = ok
+      ? `Saved to custom slot ${idx + 1}.`
+      : `Save failed for slot ${idx + 1} (storage full).`;
+    state.customFace.status = state.customizeStatus;
+    if (ok) saveCustomFaceToStorage();
+  }
+
+  function loadCustomizeSlot(slotIndex) {
+    const idx = Math.max(0, Math.min(CUSTOMIZE_PRESET_SLOTS - 1, Math.floor(Number(slotIndex) || 0)));
+    const entry = state.customizePresets[idx];
+    if (!entry || typeof entry !== "object") return false;
+    applyAppearanceSelectionToState(entry.appearanceLayers || null);
+    const current = getCustomFaceProfileFromState();
+    applyCustomFaceProfileToState({
+      ...current,
+      ...(entry.customFace || {}),
+      // preserve currently uploaded images across slot loads
+      front: current.front,
+      side: current.side,
+      back: current.back,
+      frontName: current.frontName,
+      sideName: current.sideName,
+      backName: current.backName,
+    });
+    state.customizeStatus = `Loaded custom slot ${idx + 1}.`;
+    state.customFace.status = state.customizeStatus;
+    saveCustomFaceToStorage();
+    return true;
+  }
+
+  function clearCustomizeSlot(slotIndex) {
+    const idx = Math.max(0, Math.min(CUSTOMIZE_PRESET_SLOTS - 1, Math.floor(Number(slotIndex) || 0)));
+    if (!state.customizePresets[idx]) return;
+    state.customizePresets[idx] = null;
+    const ok = saveCustomizePresetsToStorage();
+    state.customizeStatus = ok
+      ? `Cleared custom slot ${idx + 1}.`
+      : `Clear failed for slot ${idx + 1} (storage full).`;
+    state.customFace.status = state.customizeStatus;
+  }
+
+  function renderCustomizePresetRows() {
+    const rows = [];
+    for (let i = 0; i < CUSTOMIZE_PRESET_SLOTS; i += 1) {
+      const entry = state.customizePresets[i];
+      const label = String(entry?.name || `Empty Slot ${i + 1}`);
+      rows.push(`
+        <div style="display:grid;grid-template-columns:1fr 58px 58px 28px;gap:6px;align-items:center;margin-bottom:6px;">
+          <div style="padding:4px 6px;border:1px solid #2a334a;border-radius:6px;background:#0d1220;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;" title="${label}">${label}</div>
+          ${buttonHtml(`custom-slot-save:${i}`, "Save", `Save customize preset ${i + 1}`)}
+          ${buttonHtml(`custom-slot-load:${i}`, "Load", `Load customize preset ${i + 1}`)}
+          ${buttonHtml(`custom-slot-del:${i}`, "×", `Clear customize preset ${i + 1}`)}
+        </div>
+      `);
+    }
+    return `
+      <div style="font-weight:700;margin:10px 0 6px;">Custom Presets (Local)</div>
+      ${rows.join("")}
+      <div style="font-size:11px;line-height:1.35;color:#9fb2d9;opacity:.95;min-height:16px;margin-bottom:6px;">
+        ${String(state.customizeStatus || "")}
+      </div>
+    `;
   }
 
   function getCustomFaceProfileFromState() {
@@ -624,6 +759,11 @@
       controlsRoot.innerHTML = `
       <div style="font-weight:700;margin-bottom:6px;">Customize Character</div>
       <div style="font-size:12px;opacity:.9;margin-bottom:8px;">Pick your look. Weapon/attack settings are hidden in this mode.</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        ${buttonHtml("custom-close", "Back to Title", "Close customize screen")}
+        ${buttonHtml("custom-play", "Play", "Close and start game")}
+      </div>
+      ${renderCustomizePresetRows()}
       <div style="font-weight:700;margin-bottom:6px;">Appearance</div>
       ${layerRowsHtml}
       <div style="font-weight:700;margin:10px 0 6px;">Custom Face (Upload)</div>
@@ -866,6 +1006,42 @@
     });
   }
 
+  async function compressFaceDataUrl(dataUrl, maxEdge = 256, quality = 0.82) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const sw = Math.max(1, Number(img.naturalWidth) || 1);
+          const sh = Math.max(1, Number(img.naturalHeight) || 1);
+          const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+          const tw = Math.max(1, Math.round(sw * scale));
+          const th = Math.max(1, Math.round(sh * scale));
+          const c = document.createElement("canvas");
+          c.width = tw;
+          c.height = th;
+          const cctx = c.getContext("2d");
+          if (!cctx) return resolve(dataUrl);
+          cctx.imageSmoothingEnabled = true;
+          cctx.drawImage(img, 0, 0, tw, th);
+          let out = "";
+          try {
+            out = c.toDataURL("image/webp", quality);
+          } catch (_) {}
+          if (!out || !out.startsWith("data:image/")) {
+            try {
+              out = c.toDataURL("image/jpeg", quality);
+            } catch (_) {}
+          }
+          resolve(out && out.startsWith("data:image/") ? out : dataUrl);
+        } catch (_) {
+          resolve(dataUrl);
+        }
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
   async function validateImageDataUrl(dataUrl) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -913,7 +1089,8 @@
       if (!file) return;
       try {
         const dataUrl = await fileToDataUrl(file);
-        const valid = await validateImageDataUrl(dataUrl);
+        const compactDataUrl = await compressFaceDataUrl(dataUrl, 256, 0.82);
+        const valid = await validateImageDataUrl(compactDataUrl);
         if (!valid.ok) {
           state.customFace.status = `Failed to decode ${file.name}. Try PNG or JPG.`;
           controlsDirty = true;
@@ -921,9 +1098,9 @@
           render();
           return;
         }
-        if (id === "paperdollFaceFront") state.customFace.front = dataUrl;
-        else if (id === "paperdollFaceSide") state.customFace.side = dataUrl;
-        else state.customFace.back = dataUrl;
+        if (id === "paperdollFaceFront") state.customFace.front = compactDataUrl;
+        else if (id === "paperdollFaceSide") state.customFace.side = compactDataUrl;
+        else state.customFace.back = compactDataUrl;
         if (id === "paperdollFaceFront") state.customFace.frontName = file.name || "";
         else if (id === "paperdollFaceSide") state.customFace.sideName = file.name || "";
         else state.customFace.backName = file.name || "";
@@ -1000,6 +1177,24 @@
       triggerTransientAction("thrust");
     } else if (action === "attack-bash") {
       triggerTransientAction("shield_bash");
+    } else if (action === "custom-close") {
+      close();
+      return;
+    } else if (action === "custom-play") {
+      close();
+      if (typeof window?.startGameFromTitle === "function") {
+        window.startGameFromTitle();
+      }
+      return;
+    } else if (action.startsWith("custom-slot-save:")) {
+      const idx = Number(action.slice("custom-slot-save:".length)) || 0;
+      saveCurrentToCustomizeSlot(idx);
+    } else if (action.startsWith("custom-slot-load:")) {
+      const idx = Number(action.slice("custom-slot-load:".length)) || 0;
+      loadCustomizeSlot(idx);
+    } else if (action.startsWith("custom-slot-del:")) {
+      const idx = Number(action.slice("custom-slot-del:".length)) || 0;
+      clearCustomizeSlot(idx);
     } else if (action.startsWith("layer-prev:")) {
       const layerKey = action.slice("layer-prev:".length);
       if (state.uiMode === "customize" && !APPEARANCE_LAYERS.includes(layerKey)) return;
@@ -1229,25 +1424,72 @@
 
     const drawOrder = layerDrawOrderForFrame(frameIdx);
     const page = getPageKey();
-    const shieldFront = isShieldFrontFrame(page, frameIdx);
-    const drawLayer = (layerKey) => {
+    const drawLayerForFacing = (layerKey, facingIndex, drawCx, drawCy, drawScale = 4) => {
       if (!state.layerVisible[layerKey]) return;
       if (!pageSupportsLayer(page, layerKey)) return;
       const path = getLayerPath(layerKey);
       const img = imageForPath(path);
-      drawFrameFromSheet(img, frameIdx, cx, cy, 4);
+      const cols = Math.max(1, Math.floor((img?.naturalWidth || 0) / FRAME_SIZE));
+      if (!img || !img.complete || !img.naturalWidth || cols < 1) return;
+      const sx = (frameIdx % cols) * FRAME_SIZE;
+      const sy = Math.floor(frameIdx / cols) * FRAME_SIZE;
+      const dw = FRAME_SIZE * drawScale;
+      const dh = FRAME_SIZE * drawScale;
+      ctx.drawImage(img, sx, sy, FRAME_SIZE, FRAME_SIZE, drawCx - dw / 2, drawCy - dh / 2, dw, dh);
     };
 
-    // Pass 1: behind-only shield frames (prevents dark shield overlay across torso).
-    if (!shieldFront) drawLayer("7tlb");
+    const drawSingleFacing = (facingIndex, drawCx, drawCy, drawScale = 4, label = "") => {
+      const prevFacing = state.facingIndex;
+      state.facingIndex = facingIndex;
+      const facingFrames = computeAnimFrames();
+      const localFrameIdx = facingFrames[clampWrap(state.frameCursor, facingFrames.length)] || 0;
+      const localDrawOrder = layerDrawOrderForFrame(localFrameIdx);
+      const shieldFront = isShieldFrontFrame(page, localFrameIdx);
+      const drawLayer = (layerKey) => {
+        if (!state.layerVisible[layerKey]) return;
+        if (!pageSupportsLayer(page, layerKey)) return;
+        const path = getLayerPath(layerKey);
+        const img = imageForPath(path);
+        drawFrameFromSheet(img, localFrameIdx, drawCx, drawCy, drawScale);
+      };
+      if (!shieldFront) drawLayer("7tlb");
+      localDrawOrder.forEach((layerKey) => {
+        if (layerKey === "7tlb") return;
+        drawLayer(layerKey);
+      });
+      if (shieldFront) drawLayer("7tlb");
+      drawCustomFacePreview(drawCx, drawCy, drawScale);
+      if (label) {
+        ctx.fillStyle = "#9fb2d9";
+        ctx.font = "12px ui-monospace, Menlo, monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(label, drawCx, drawCy + FRAME_SIZE * drawScale * 0.58);
+      }
+      state.facingIndex = prevFacing;
+    };
 
-    // Pass 2: main body stack and non-shield layers.
+    if (state.uiMode === "customize") {
+      const positions = [
+        { idx: 0, label: "South", x: Math.floor(w * 0.30), y: Math.floor(h * 0.36) },
+        { idx: 1, label: "North", x: Math.floor(w * 0.70), y: Math.floor(h * 0.36) },
+        { idx: 2, label: "East", x: Math.floor(w * 0.30), y: Math.floor(h * 0.72) },
+        { idx: 3, label: "West", x: Math.floor(w * 0.70), y: Math.floor(h * 0.72) },
+      ];
+      positions.forEach((p) => drawSingleFacing(p.idx, p.x, p.y, 3, p.label));
+      ctx.fillStyle = "#9fb2d9";
+      ctx.font = "14px ui-monospace, Menlo, monospace";
+      ctx.textAlign = "left";
+      ctx.fillText("Customize Preview (all directions)", 22, 28);
+      return;
+    }
+
+    const shieldFront = isShieldFrontFrame(page, frameIdx);
+    const drawLayer = (layerKey) => drawLayerForFacing(layerKey, state.facingIndex, cx, cy, 4);
+    if (!shieldFront) drawLayer("7tlb");
     drawOrder.forEach((layerKey) => {
       if (layerKey === "7tlb") return;
       drawLayer(layerKey);
     });
-
-    // Pass 3: shield when this frame is marked as front-facing.
     if (shieldFront) drawLayer("7tlb");
     drawCustomFacePreview(cx, cy, 4);
 
@@ -1512,6 +1754,22 @@
 
   function refreshPanels() {
     if (!overlay) return;
+    const grid = overlay.querySelector("#paperdollSandboxGrid");
+    const rightCol = overlay.querySelector("#paperdollRightCol");
+    const presetNameInput = overlay.querySelector("#paperdollPresetName");
+    const presetNameRow = presetNameInput?.closest("div");
+    const saveConfigButton = overlay.querySelector("#paperdollSaveGameConfig");
+    if (state.uiMode === "customize") {
+      if (grid) grid.style.gridTemplateColumns = "460px minmax(560px, 1fr)";
+      if (rightCol) rightCol.style.display = "none";
+      if (presetNameRow) presetNameRow.style.display = "none";
+      if (saveConfigButton) saveConfigButton.style.display = "none";
+    } else {
+      if (grid) grid.style.gridTemplateColumns = "460px minmax(380px, 0.8fr) 380px";
+      if (rightCol) rightCol.style.display = "";
+      if (presetNameRow) presetNameRow.style.display = "";
+      if (saveConfigButton) saveConfigButton.style.display = "";
+    }
     renderPresetControls();
     if (controlsDirty) {
       renderControls();
@@ -1576,16 +1834,27 @@
 
   function onKeyDown(e) {
     if (!state.open) return;
-    const target = e.target;
+    const activeEl = document?.activeElement || null;
+    const target = e.target || activeEl;
     const tag = String(target?.tagName || "").toLowerCase();
+    const activeTag = String(activeEl?.tagName || "").toLowerCase();
     const isTypingTarget =
       tag === "input" ||
+      tag === "select" ||
       tag === "textarea" ||
-      target?.isContentEditable === true;
+      target?.isContentEditable === true ||
+      activeTag === "input" ||
+      activeTag === "select" ||
+      activeTag === "textarea" ||
+      activeEl?.isContentEditable === true;
     if (isTypingTarget) {
       // Allow normal typing/editing in preset name and any future text fields.
       // Keep Escape available to close the sandbox quickly.
-      if (String(e.key || "") !== "Escape") return;
+      if (String(e.key || "") !== "Escape") {
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+        return;
+      }
     }
     const key = String(e.key || "");
     const lower = key.length === 1 ? key.toLowerCase() : key;
@@ -1658,6 +1927,7 @@
     if (!overlay || state.open) return;
     state.uiMode = mode === "customize" ? "customize" : "dev";
     loadPresetsFromStorage();
+    loadCustomizePresetsFromStorage();
     loadPresetSlot(0);
     const cfg =
       window.BATTLECHURCH_PASTOR_PAPERDOLL &&
