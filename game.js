@@ -4164,6 +4164,14 @@ const HERO_BASE_HEARTS = 6;
 const HERO_MAX_HEALTH = 100;
 const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
 const LOG_NPC_FAITH_BAR = false;
+const ENEMY_SHADOW_CRUSH = Math.max(
+  0,
+  Math.min(1, Number(_gb("enemyRenderStyle.shadowCrush", 0.75)) || 0),
+);
+const ENEMY_SHADOW_THRESHOLD = Math.max(
+  0.02,
+  Math.min(1, Number(_gb("enemyRenderStyle.shadowThreshold", 0.72)) || 0.72),
+);
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/projectiles/";
@@ -6508,7 +6516,7 @@ async function reloadEnemyClipsForKey(key) {
     const newClips = {};
     const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
       try {
-        const clip = await loadAnimationClip(def, devImageCache);
+        const clip = await loadAnimationClip(def, devImageCache, { isEnemy: true });
         newClips[state] = clip;
       } catch (e) {
         console.warn('reloadEnemyClipsForKey: failed loading state', { key, state, def, e });
@@ -6637,7 +6645,7 @@ function generateDefaultFrameMapsForMini(key, clips) {
   }
 }
 
-async function loadAnimationClip(definition, cache) {
+async function loadAnimationClip(definition, cache, options = {}) {
   if (!cache.has(definition.src)) {
     cache.set(definition.src, loadImage(definition.src));
   }
@@ -6737,11 +6745,72 @@ async function loadAnimationClip(definition, cache) {
     }
   }
 
-  const clip = new AnimationClip(image, frameWidth, frameHeight, definition.frameRate, definition);
+  const useEnemyShadowCrush =
+    Boolean(options?.isEnemy) &&
+    ENEMY_SHADOW_CRUSH > 0;
+  const imageForClip = useEnemyShadowCrush
+    ? buildShadowCrushedImageCopy(image, {
+        shadowCrush: ENEMY_SHADOW_CRUSH,
+        shadowThreshold: ENEMY_SHADOW_THRESHOLD,
+      })
+    : image;
+  const clip = new AnimationClip(imageForClip, frameWidth, frameHeight, definition.frameRate, definition);
   if (Array.isArray(definition.frameMap) && definition.frameMap.length) {
     clip.frameMap = definition.frameMap.slice();
   }
   return clip;
+}
+
+function applyShadowCrushToCanvas(canvas, renderStyle) {
+  if (!canvas || typeof canvas.getContext !== "function") return canvas;
+  const shadowCrush = Number.isFinite(renderStyle?.shadowCrush)
+    ? Math.max(0, Math.min(1, renderStyle.shadowCrush))
+    : 0;
+  if (shadowCrush <= 0) return canvas;
+  const shadowThreshold = Number.isFinite(renderStyle?.shadowThreshold)
+    ? Math.max(0.02, Math.min(1, renderStyle.shadowThreshold))
+    : 0.5;
+  const ctx2d = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx2d) return canvas;
+  let imageData = null;
+  try {
+    imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
+  } catch (e) {
+    return canvas;
+  }
+  const pixels = imageData.data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const a = pixels[i + 3];
+    if (!a) continue;
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (luminance >= shadowThreshold) continue;
+    const under = (shadowThreshold - luminance) / shadowThreshold;
+    const darken = Math.max(0, Math.min(1, under * shadowCrush));
+    const mult = 1 - darken;
+    pixels[i] = Math.max(0, Math.min(255, Math.round(r * mult)));
+    pixels[i + 1] = Math.max(0, Math.min(255, Math.round(g * mult)));
+    pixels[i + 2] = Math.max(0, Math.min(255, Math.round(b * mult)));
+  }
+  ctx2d.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
+function buildShadowCrushedImageCopy(image, renderStyle) {
+  if (!image || !image.width || !image.height) return image;
+  if (typeof document === "undefined" || typeof document.createElement !== "function") {
+    return image;
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const ctx2d = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx2d) return image;
+  ctx2d.imageSmoothingEnabled = false;
+  ctx2d.drawImage(image, 0, 0);
+  return applyShadowCrushToCanvas(canvas, renderStyle);
 }
 
 function extractFrame(image, frameWidth, frameHeight, frameIndex = 0) {
@@ -7025,7 +7094,7 @@ async function loadMapEnemyAssets(cache, assets) {
     .map(async ([enemyName, enemyDefs]) => {
       assets.enemies[enemyName] = {};
       const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
-        const clip = await loadAnimationClip(def, cache);
+        const clip = await loadAnimationClip(def, cache, { isEnemy: true });
         assets.enemies[enemyName][state] = clip;
       });
       await Promise.all(loaders);
@@ -7044,7 +7113,7 @@ async function loadEnemyAssets(cache, assets, skipMapEnemies = false) {
     .map(async ([enemyName, enemyDefs]) => {
       assets.enemies[enemyName] = {};
       const loaders = Object.entries(enemyDefs).map(async ([state, def]) => {
-        const clip = await loadAnimationClip(def, cache);
+        const clip = await loadAnimationClip(def, cache, { isEnemy: true });
         assets.enemies[enemyName][state] = clip;
       });
       await Promise.all(loaders);
