@@ -5450,6 +5450,7 @@ const PROJECTILE_FRAME_DURATIONS = {
   wisdom_missle: 0.05,
   faith_cannon: 0.06,
   word_of_god: 0.06,
+  divine_shot: 0.05,
 };
 const ARMORED_PROJECTILE_DEFLECT_DISTANCE = 75 * WORLD_SCALE;
 const ARMORED_PROJECTILE_DEFLECT_SPEED_SCALE = 0.45;
@@ -7401,6 +7402,13 @@ async function loadProjectileFrames(cache, assets, projectileFrames) {
   if (projectileFrames.fireOrb.length) {
     assets.projectiles.fireOrb = { frames: projectileFrames.fireOrb };
   }
+
+  // Divine shot (Blast) — animated fire4 frames replace the static blast.png
+  projectileFrames.divine_shot = await Promise.all(
+    Array.from({ length: 11 }, (_, i) =>
+      loadImage(`assets/sprites/projectiles/fire4/1_${i}.png`),
+    ),
+  );
 }
 
 async function loadEffectAssets(cache, assets) {
