@@ -3437,6 +3437,7 @@ const spawnRayboltEffect = Effects.spawnRayboltEffect;
 const spawnPrayerBombGlow = Effects.spawnPrayerBombGlow;
 const spawnPrayerBombExplosion = Effects.spawnPrayerBombExplosion;
 const spawnEnemyDeathExplosion = Effects.spawnEnemyDeathExplosion;
+const spawnSlashBurstEffect = Effects.spawnSlashBurstEffect;
 
 function triggerPrayerBombExplosionAt(x, y, radius, damage) {
   if (typeof spawnPrayerBombExplosion === "function") {
@@ -23652,6 +23653,18 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     player.state = "attackMelee";
     player.animator.play("attackMelee", { restart: true });
   }
+  if (player && typeof spawnSlashBurstEffect === "function") {
+    const attackAngle = Math.atan2(dir.y, dir.x);
+    const wHitbox = player.config?.weaponHitbox;
+    const hbOffsetX = (wHitbox && Number.isFinite(wHitbox.offsetX)) ? wHitbox.offsetX : 0;
+    const hbWidth = (wHitbox && Number.isFinite(wHitbox.width) && wHitbox.width > 0) ? wHitbox.width : 80;
+    const cos = Math.cos(attackAngle);
+    const sin = Math.sin(attackAngle);
+    const burstX = player.x + cos * hbOffsetX;
+    const burstY = player.y + sin * hbOffsetX;
+    const burstScale = hbWidth / 48;
+    spawnSlashBurstEffect(burstX, burstY, attackAngle, burstScale);
+  }
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
 
   const hitEnemies = [];
@@ -24501,6 +24514,20 @@ function executeSpinAttack(meleeAttackState, moveDir, { skipYell = false } = {})
   meleeAttackState.spinTimer = MELEE_SPIN_DURATION;
   meleeAttackState.spinDuration = MELEE_SPIN_DURATION;
   meleeAttackState.spinHitEntities = new Set();
+  {
+    // Queue 4 bursts: up, right, down, left — fired as spinTimer counts down
+    const d = MELEE_SPIN_DURATION;
+    meleeAttackState.spinBurstQueue = [
+      { fireAt: d - 0.001,      angle: -Math.PI / 2       },  // up
+      { fireAt: d * (6 / 7),   angle: -Math.PI / 4       },  // up-right
+      { fireAt: d * (5 / 7),   angle:  0                  },  // right
+      { fireAt: d * (4 / 7),   angle:  Math.PI / 4        },  // down-right
+      { fireAt: d * (3 / 7),   angle:  Math.PI / 2        },  // down
+      { fireAt: d * (2 / 7),   angle:  Math.PI * 3 / 4   },  // down-left
+      { fireAt: d * (1 / 7),   angle:  Math.PI            },  // left
+      { fireAt: d * 0.00,       angle: -Math.PI * 3 / 4   },  // up-left
+    ];
+  }
   meleeAttackState.spinFacingDir = { x: dir.x, y: dir.y };
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
   if (player && player.animator) {
@@ -24718,7 +24745,24 @@ function updateMeleeTimers(dt, meleeAttackState) {
     meleeAttackState.swooshShieldDebugTimer = Math.max(0, meleeAttackState.swooshShieldDebugTimer - dt);
   }
   if (meleeAttackState.spinTimer > 0) {
+    const prevSpin = meleeAttackState.spinTimer;
     meleeAttackState.spinTimer = Math.max(0, meleeAttackState.spinTimer - dt);
+    const queue = meleeAttackState.spinBurstQueue;
+    if (queue && queue.length && player && typeof spawnSlashBurstEffect === "function") {
+      const wHitbox = player.config?.weaponHitbox;
+      const hbOffsetX = (wHitbox && Number.isFinite(wHitbox.offsetX)) ? wHitbox.offsetX : 62;
+      const hbWidth = (wHitbox && Number.isFinite(wHitbox.width) && wHitbox.width > 0) ? wHitbox.width : 80;
+      const burstScale = hbWidth / 48;
+      for (let i = queue.length - 1; i >= 0; i -= 1) {
+        const entry = queue[i];
+        if (prevSpin > entry.fireAt && meleeAttackState.spinTimer <= entry.fireAt) {
+          const bx = player.x + Math.cos(entry.angle) * hbOffsetX;
+          const by = player.y + Math.sin(entry.angle) * hbOffsetX;
+          spawnSlashBurstEffect(bx, by, entry.angle, burstScale);
+          queue.splice(i, 1);
+        }
+      }
+    }
   }
 
   if (meleeAttackState.projectileBlockTimer > 0) {

@@ -10645,35 +10645,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     if (state.spinTimer > 0) {
-      if (!swooshImg) return;
-      const duration = Math.max(0.001, state.spinDuration || 0.45);
-      const progress = 1 - Math.min(1, state.spinTimer / duration);
-      const spinDirection =
-        state.spinVisualDirection ||
-        ((player.facing === "left" || player.flipHorizontal === true) ? -1 : 1);
-      const startAngle = -Math.PI * 0.5;
-      const angle = startAngle + progress * Math.PI * 2 * spinDirection;
-      const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
-      const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
-      const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
-      const drawWidth = swooshImg.width * swingScale;
-      const drawHeight = swooshImg.height * swingScale * arcScale;
-      const originX = player.x - cameraOffsetX + shakeX;
-      const originY = player.y - cameraOffsetY + shakeY;
-      ctx.save();
-      ctx.translate(originX, originY);
-      ctx.rotate(angle);
-      ctx.globalAlpha = 0.75;
-      ctx.drawImage(
-        swooshImg,
-        0,
-        -drawHeight * 0.5,
-        drawWidth,
-        drawHeight,
-      );
-      ctx.restore();
       return;
     }
+    // Basic slash now uses the animated explosion burst via Effects — skip the static swoosh image for that case.
+    if (!state.isRushing && !state.rushDamageEnabled) return;
     if (!swooshImg) return;
     const dirVec =
       (state.isRushing && state.rushDir) ||
