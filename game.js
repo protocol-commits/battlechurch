@@ -17486,6 +17486,8 @@ function updateCongregationMembers(dt) {
   if (!congregationMembers.length) return;
   const bobSpeed = 2.0;
   congregationMembers.forEach((member) => {
+    const prevBaseX = member.baseX;
+    const prevBaseY = member.baseY;
     member.bobTimer += dt * bobSpeed;
     member.animator.update(dt);
     member.wanderPause = Math.max(0, (member.wanderPause || 0) - dt);
@@ -17500,6 +17502,13 @@ function updateCongregationMembers(dt) {
       member.baseY += ny * step;
     } else if (dist <= 2) {
       assignCongregationTarget(member);
+    }
+    const movedDx = member.baseX - prevBaseX;
+    const movedDy = member.baseY - prevBaseY;
+    const isMoving = Math.hypot(movedDx, movedDy) > 0.01;
+    member.animator.setMoving(isMoving);
+    if (isMoving) {
+      member.animator.setDirectionFromVector(movedDx, movedDy);
     }
     member.x = member.baseX;
     member.y = member.baseY + Math.sin(member.bobTimer) * 4;
