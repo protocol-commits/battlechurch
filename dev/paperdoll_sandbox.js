@@ -19,6 +19,13 @@
   });
   const FACING_KEYS = ["south", "north", "east", "west"];
   const FRAME_SIZE = 64;
+  const deepClone = (value, fallback = null) => {
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch (_) {
+      return fallback;
+    }
+  };
 
   const layerCatalog = {
     "0bas": [
@@ -139,6 +146,23 @@
       status: "No face images loaded.",
     },
   };
+  const FILE_DEFAULT_FACE_PROFILE = deepClone(
+    window.BATTLECHURCH_PASTOR_PAPERDOLL?.customFace || null,
+    null,
+  );
+  function getDefaultAppearanceFromIdlePreset() {
+    const cfg = window.BATTLECHURCH_PASTOR_PAPERDOLL;
+    const presets = Array.isArray(cfg?.presets) ? cfg.presets : [];
+    const idle = presets.find((p) => String(p?.name || "").trim().toLowerCase() === "idle");
+    const out = {};
+    APPEARANCE_LAYERS.forEach((layerKey) => {
+      const token = String(idle?.layers?.[layerKey]?.asset || "").trim();
+      if (token && token !== "none") out[layerKey] = token;
+    });
+    if (Object.keys(out).length) return out;
+    return deepClone(cfg?.appearanceLayers || null, null);
+  }
+  const FILE_DEFAULT_APPEARANCE_LAYERS = getDefaultAppearanceFromIdlePreset();
 
   let overlay = null;
   let canvas = null;
@@ -683,6 +707,7 @@
       </div>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         ${buttonHtml("face-clear", "Clear Face Uploads")}
+        ${buttonHtml("face-load-default", "Load Default Pastor")}
       </div>
       <div style="font-size:11px;line-height:1.35;color:#9fb2d9;opacity:.95;">
         ${String(state.customFace.status || "")}
@@ -795,6 +820,7 @@
       </div>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         ${buttonHtml("face-clear", "Clear Face Uploads")}
+        ${buttonHtml("face-load-default", "Load Default Pastor")}
       </div>
       <div style="font-size:11px;line-height:1.35;color:#9fb2d9;opacity:.95;">
         ${String(state.customFace.status || "")}
@@ -917,6 +943,22 @@
     }
   }
 
+  function cycleLayerSelection(layerKey, delta) {
+    const list = layerCatalog[layerKey] || [];
+    if (!list.length) return;
+    let next = clampWrap((state.layerSelection[layerKey] || 0) + delta, list.length);
+    if (state.uiMode === "customize" && layerKey === "1out" && list.length > 1) {
+      if (String(list[next] || "").toLowerCase() === "none") {
+        next = clampWrap(next + (delta >= 0 ? 1 : -1), list.length);
+      }
+      if (String(list[next] || "").toLowerCase() === "none") {
+        const firstReal = list.findIndex((token) => String(token || "").toLowerCase() !== "none");
+        if (firstReal >= 0) next = firstReal;
+      }
+    }
+    state.layerSelection[layerKey] = next;
+  }
+
   function onControlsClick(e) {
     const btn = e.target?.closest?.("button[data-action]");
     if (!btn) return;
@@ -961,8 +1003,7 @@
     } else if (action.startsWith("layer-prev:")) {
       const layerKey = action.slice("layer-prev:".length);
       if (state.uiMode === "customize" && !APPEARANCE_LAYERS.includes(layerKey)) return;
-      const list = layerCatalog[layerKey] || [];
-      if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) - 1, list.length);
+      cycleLayerSelection(layerKey, -1);
       if ((layerKey === "6tla" || layerKey === "7tlb") && getPageKey() === "p1") {
         state.pageIndex = 1; // pONE1
         ensureAnimationMatchesPage();
@@ -971,8 +1012,7 @@
     } else if (action.startsWith("layer-next:")) {
       const layerKey = action.slice("layer-next:".length);
       if (state.uiMode === "customize" && !APPEARANCE_LAYERS.includes(layerKey)) return;
-      const list = layerCatalog[layerKey] || [];
-      if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) + 1, list.length);
+      cycleLayerSelection(layerKey, 1);
       if ((layerKey === "6tla" || layerKey === "7tlb") && getPageKey() === "p1") {
         state.pageIndex = 1; // pONE1
         ensureAnimationMatchesPage();
@@ -1023,6 +1063,14 @@
       state.customFace.backName = "";
       state.customFace.enabled = false;
       state.customFace.status = "No face images loaded.";
+    } else if (action === "face-load-default") {
+      if (FILE_DEFAULT_FACE_PROFILE && typeof FILE_DEFAULT_FACE_PROFILE === "object") {
+        applyCustomFaceProfileToState(FILE_DEFAULT_FACE_PROFILE);
+      }
+      if (FILE_DEFAULT_APPEARANCE_LAYERS && typeof FILE_DEFAULT_APPEARANCE_LAYERS === "object") {
+        applyAppearanceSelectionToState(FILE_DEFAULT_APPEARANCE_LAYERS);
+      }
+      state.customFace.status = "Loaded default pastor from config file.";
     }
     state.customFace.cropX = Math.max(0, Math.min(95, Number(state.customFace.cropX || 0)));
     state.customFace.cropY = Math.max(0, Math.min(95, Number(state.customFace.cropY || 0)));
@@ -1428,10 +1476,14 @@
 
   async function saveConfigFileWithPrompt() {
     const text = buildGameConfigJs();
+    const defaultFilename =
+      state.uiMode === "customize"
+        ? "custom-pastor-paperdoll.js"
+        : "default-pastor-paperdoll.js";
     if (typeof window.showSaveFilePicker === "function") {
       try {
         const handle = await window.showSaveFilePicker({
-          suggestedName: "config_pastor_paperdoll.js",
+          suggestedName: defaultFilename,
           types: [
             {
               description: "JavaScript",
@@ -1451,7 +1503,7 @@
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "config_pastor_paperdoll.js";
+    a.download = defaultFilename;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1634,8 +1686,16 @@
     if (cfg?.appearanceLayers && typeof cfg.appearanceLayers === "object") {
       applyAppearanceSelectionToState(cfg.appearanceLayers);
     }
-    loadCustomFaceFromStorage();
+    const loadedLocalCustomization = loadCustomFaceFromStorage();
     if (state.uiMode === "customize") {
+      if (!loadedLocalCustomization) {
+        if (FILE_DEFAULT_FACE_PROFILE && typeof FILE_DEFAULT_FACE_PROFILE === "object") {
+          applyCustomFaceProfileToState(FILE_DEFAULT_FACE_PROFILE);
+        }
+        if (FILE_DEFAULT_APPEARANCE_LAYERS && typeof FILE_DEFAULT_APPEARANCE_LAYERS === "object") {
+          applyAppearanceSelectionToState(FILE_DEFAULT_APPEARANCE_LAYERS);
+        }
+      }
       state.pageIndex = 2; // pONE2
       state.animIndex = animDefs.findIndex((a) => a.key === "combat_idle");
       if (state.animIndex < 0) state.animIndex = 0;
@@ -1651,6 +1711,12 @@
       state.layerVisible["5hat"] = true;
       state.layerVisible["6tla"] = false;
       state.layerVisible["7tlb"] = false;
+      const outfitList = layerCatalog["1out"] || [];
+      const outfitToken = String(outfitList[state.layerSelection["1out"]] || "").toLowerCase();
+      if (outfitToken === "none") {
+        const firstRealOutfit = outfitList.findIndex((token) => String(token || "").toLowerCase() !== "none");
+        if (firstRealOutfit >= 0) state.layerSelection["1out"] = firstRealOutfit;
+      }
     }
     state.open = true;
     overlay.style.display = "block";
@@ -1688,7 +1754,8 @@
     if ((e.shiftKey && lower === "x") || (key === "X" && e.shiftKey)) {
       e.preventDefault();
       e.stopPropagation();
-      toggle();
+      if (state.open) close();
+      else openCustomize();
       return;
     }
 

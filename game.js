@@ -19480,6 +19480,7 @@ function showDeveloperOverlay() {
   const bodyHtml = `
     <div class="settings-panel settings-panel--developer">
       <div class="dev-action-grid">
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="pastorDev">Pastor Dev Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="enemy">Enemy Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="arena">Dev Arena</button>
@@ -19575,7 +19576,10 @@ function showDeveloperOverlay() {
       bodyEl.querySelectorAll("[data-dev-action]").forEach((button) => {
         button.addEventListener("click", () => {
           const action = button.getAttribute("data-dev-action");
-          if (action === "enemy") {
+          if (action === "pastorDev") {
+            window.DialogOverlay.hide();
+            window.PaperdollSandbox?.open?.();
+          } else if (action === "enemy") {
             window.DialogOverlay.hide();
             window.BattlechurchEnemyEditor?.show?.();
           } else if (action === "level") {
