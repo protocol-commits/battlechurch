@@ -75,11 +75,11 @@
   "current": {
     "gender": "male",
     "skinTone": "pale",
-    "animation": "swing",
+    "animation": "walk",
     "direction": "back",
     "speed": 1,
     "loop": true,
-    "frame": 3,
+    "frame": 0,
     "layers": {
       "base": {
         "visible": true,
