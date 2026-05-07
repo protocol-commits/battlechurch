@@ -173,10 +173,200 @@
   let ctx = null;
   let controlsRoot = null;
   let controlsDirty = true;
+  let faceCropOverlay = null;
+  const faceCropState = {
+    slot: null, // "front" | "side" | "back"
+    img: null,
+    zoom: 1,
+    offsetX: 0,
+    offsetY: 0,
+    dragging: false,
+    lastX: 0,
+    lastY: 0,
+  };
 
   function buttonHtml(action, label, title = "") {
     const safeTitle = String(title || "").replace(/"/g, "&quot;");
     return `<button type="button" data-action="${action}" title="${safeTitle}" style="padding:4px 8px;background:#1b2740;color:#e8edf7;border:1px solid #3a4b72;border-radius:6px;cursor:pointer;">${label}</button>`;
+  }
+
+  function ensureFaceCropOverlay() {
+    if (faceCropOverlay) return faceCropOverlay;
+    const root = document.createElement("div");
+    root.id = "paperdollFaceCropOverlay";
+    root.style.cssText = [
+      "position:fixed",
+      "inset:0",
+      "z-index:100000",
+      "display:none",
+      "background:rgba(5,8,14,0.88)",
+      "color:#e8edf7",
+      "font-family: ui-monospace, SFMono-Regular, Menlo, monospace",
+    ].join(";");
+    root.innerHTML = `
+      <div style="max-width:760px;margin:36px auto;background:#0f1627;border:1px solid #2a334a;border-radius:12px;padding:14px;">
+        <div style="font-size:16px;font-weight:700;margin-bottom:8px;">Face Crop</div>
+        <div style="font-size:12px;opacity:.9;margin-bottom:10px;">Drag image to position. Mouse wheel or slider to zoom. Oval area is what gets used.</div>
+        <div style="display:grid;grid-template-columns:1fr 220px;gap:12px;align-items:start;">
+          <div style="display:flex;align-items:center;justify-content:center;background:#0a1020;border:1px solid #2a334a;border-radius:10px;min-height:460px;">
+            <canvas id="paperdollFaceCropCanvas" width="420" height="420" style="image-rendering:pixelated;background:#0a1020;border-radius:8px;"></canvas>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label style="font-size:12px;opacity:.9;">Zoom</label>
+            <input id="paperdollFaceCropZoom" type="range" min="0.5" max="4" step="0.01" value="1">
+            <div id="paperdollFaceCropZoomLabel" style="font-size:12px;opacity:.9;">100%</div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button type="button" id="paperdollFaceCropApply" style="flex:1;padding:8px;background:#254122;color:#e8edf7;border:1px solid #4f8d45;border-radius:8px;cursor:pointer;">Apply</button>
+              <button type="button" id="paperdollFaceCropCancel" style="flex:1;padding:8px;background:#2a334a;color:#e8edf7;border:1px solid #4a5a7c;border-radius:8px;cursor:pointer;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+    faceCropOverlay = root;
+
+    const cropCanvas = root.querySelector("#paperdollFaceCropCanvas");
+    const cropCtx = cropCanvas?.getContext("2d");
+    const zoomInput = root.querySelector("#paperdollFaceCropZoom");
+    const zoomLabel = root.querySelector("#paperdollFaceCropZoomLabel");
+    const renderCrop = () => {
+      if (!cropCtx || !cropCanvas) return;
+      cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+      cropCtx.fillStyle = "#0b1220";
+      cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+      const img = faceCropState.img;
+      if (img && img.complete && img.naturalWidth) {
+        const base = Math.min(cropCanvas.width / img.naturalWidth, cropCanvas.height / img.naturalHeight);
+        const scale = base * Math.max(0.5, Math.min(4, faceCropState.zoom || 1));
+        const dw = img.naturalWidth * scale;
+        const dh = img.naturalHeight * scale;
+        const dx = Math.round((cropCanvas.width - dw) * 0.5 + (faceCropState.offsetX || 0));
+        const dy = Math.round((cropCanvas.height - dh) * 0.5 + (faceCropState.offsetY || 0));
+        cropCtx.drawImage(img, dx, dy, dw, dh);
+      }
+      // Darken outside oval
+      cropCtx.save();
+      cropCtx.fillStyle = "rgba(0,0,0,0.55)";
+      cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
+      cropCtx.globalCompositeOperation = "destination-out";
+      cropCtx.beginPath();
+      cropCtx.ellipse(cropCanvas.width / 2, cropCanvas.height / 2, 138, 176, 0, 0, Math.PI * 2);
+      cropCtx.fill();
+      cropCtx.restore();
+      // Oval guide
+      cropCtx.strokeStyle = "rgba(230,244,255,0.9)";
+      cropCtx.lineWidth = 2;
+      cropCtx.beginPath();
+      cropCtx.ellipse(cropCanvas.width / 2, cropCanvas.height / 2, 138, 176, 0, 0, Math.PI * 2);
+      cropCtx.stroke();
+      if (zoomLabel) zoomLabel.textContent = `${Math.round((faceCropState.zoom || 1) * 100)}%`;
+    };
+
+    cropCanvas?.addEventListener("pointerdown", (e) => {
+      faceCropState.dragging = true;
+      faceCropState.lastX = e.clientX;
+      faceCropState.lastY = e.clientY;
+      cropCanvas.setPointerCapture?.(e.pointerId);
+    });
+    cropCanvas?.addEventListener("pointermove", (e) => {
+      if (!faceCropState.dragging) return;
+      const dx = e.clientX - faceCropState.lastX;
+      const dy = e.clientY - faceCropState.lastY;
+      faceCropState.lastX = e.clientX;
+      faceCropState.lastY = e.clientY;
+      faceCropState.offsetX += dx;
+      faceCropState.offsetY += dy;
+      renderCrop();
+    });
+    const endDrag = () => { faceCropState.dragging = false; };
+    cropCanvas?.addEventListener("pointerup", endDrag);
+    cropCanvas?.addEventListener("pointercancel", endDrag);
+    cropCanvas?.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const step = e.deltaY > 0 ? -0.08 : 0.08;
+      faceCropState.zoom = Math.max(0.5, Math.min(4, (faceCropState.zoom || 1) + step));
+      if (zoomInput) zoomInput.value = String(faceCropState.zoom);
+      renderCrop();
+    }, { passive: false });
+    zoomInput?.addEventListener("input", () => {
+      faceCropState.zoom = Math.max(0.5, Math.min(4, Number(zoomInput.value) || 1));
+      renderCrop();
+    });
+    root.querySelector("#paperdollFaceCropCancel")?.addEventListener("click", () => {
+      root.style.display = "none";
+      faceCropState.slot = null;
+      faceCropState.img = null;
+    });
+    root.querySelector("#paperdollFaceCropApply")?.addEventListener("click", () => {
+      const img = faceCropState.img;
+      const slot = faceCropState.slot;
+      if (!img || !slot) return;
+      const out = document.createElement("canvas");
+      out.width = 256;
+      out.height = 256;
+      const octx = out.getContext("2d");
+      if (!octx) return;
+      const base = Math.min(cropCanvas.width / img.naturalWidth, cropCanvas.height / img.naturalHeight);
+      const scale = base * Math.max(0.5, Math.min(4, faceCropState.zoom || 1));
+      const dw = img.naturalWidth * scale;
+      const dh = img.naturalHeight * scale;
+      const dx = Math.round((cropCanvas.width - dw) * 0.5 + (faceCropState.offsetX || 0));
+      const dy = Math.round((cropCanvas.height - dh) * 0.5 + (faceCropState.offsetY || 0));
+      octx.save();
+      octx.beginPath();
+      octx.ellipse(out.width / 2, out.height / 2, 84, 108, 0, 0, Math.PI * 2);
+      octx.clip();
+      // map 420-space to 256-space
+      const map = out.width / cropCanvas.width;
+      octx.setTransform(map, 0, 0, map, 0, 0);
+      octx.drawImage(img, dx, dy, dw, dh);
+      octx.restore();
+      const result = out.toDataURL("image/png");
+      if (slot === "front") state.customFace.front = result;
+      else if (slot === "side") state.customFace.side = result;
+      else if (slot === "back") state.customFace.back = result;
+      state.customFace.enabled = true;
+      state.customFace.status = `Applied oval crop to ${slot}.`;
+      saveCustomFaceToStorage();
+      controlsDirty = true;
+      refreshPanels();
+      render();
+      root.style.display = "none";
+      faceCropState.slot = null;
+      faceCropState.img = null;
+    });
+
+    root._renderFaceCrop = renderCrop;
+    return root;
+  }
+
+  function openFaceCropEditor(slot) {
+    const source =
+      slot === "front" ? state.customFace.front :
+      slot === "side" ? state.customFace.side :
+      slot === "back" ? state.customFace.back : null;
+    if (!source) {
+      state.customFace.status = `Upload ${slot} image first.`;
+      controlsDirty = true;
+      refreshPanels();
+      render();
+      return;
+    }
+    const root = ensureFaceCropOverlay();
+    const img = new Image();
+    img.onload = () => {
+      faceCropState.slot = slot;
+      faceCropState.img = img;
+      faceCropState.zoom = 1;
+      faceCropState.offsetX = 0;
+      faceCropState.offsetY = 0;
+      const zoomInput = root.querySelector("#paperdollFaceCropZoom");
+      if (zoomInput) zoomInput.value = "1";
+      root.style.display = "block";
+      root._renderFaceCrop?.();
+    };
+    img.src = source;
   }
 
   function safeParse(json, fallback) {
@@ -777,16 +967,19 @@
           <input type="file" id="paperdollFaceFront" accept="image/*">
         </label>
         <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.frontName || "(none)"}</div>
+        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-front", "Edit Front", "Crop front face in oval")}</div>
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="opacity:.9;">Side (left/right)</span>
           <input type="file" id="paperdollFaceSide" accept="image/*">
         </label>
         <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.sideName || "(none)"}</div>
+        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-side", "Edit Side", "Crop side face in oval")}</div>
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="opacity:.9;">Back</span>
           <input type="file" id="paperdollFaceBack" accept="image/*">
         </label>
         <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.backName || "(none)"}</div>
+        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-back", "Edit Back", "Crop back face in oval")}</div>
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="opacity:.9;">Flip side on East</span>
           <input type="checkbox" id="paperdollFaceFlipEast" ${state.customFace.flipSideForEast !== false ? "checked" : ""}>
@@ -890,16 +1083,19 @@
           <input type="file" id="paperdollFaceFront" accept="image/*">
         </label>
         <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.frontName || "(none)"}</div>
+        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-front", "Edit Front", "Crop front face in oval")}</div>
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="opacity:.9;">Side (left/right)</span>
           <input type="file" id="paperdollFaceSide" accept="image/*">
         </label>
         <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.sideName || "(none)"}</div>
+        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-side", "Edit Side", "Crop side face in oval")}</div>
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="opacity:.9;">Back</span>
           <input type="file" id="paperdollFaceBack" accept="image/*">
         </label>
         <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.backName || "(none)"}</div>
+        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-back", "Edit Back", "Crop back face in oval")}</div>
         <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span style="opacity:.9;">Flip side on East</span>
           <input type="checkbox" id="paperdollFaceFlipEast" ${state.customFace.flipSideForEast !== false ? "checked" : ""}>
@@ -1249,6 +1445,15 @@
       state.customFace.cropH = Math.max(5, Number(state.customFace.cropH || 100) - 1);
     } else if (action === "face-ch-up") {
       state.customFace.cropH = Math.min(100, Number(state.customFace.cropH || 100) + 1);
+    } else if (action === "face-edit-front") {
+      openFaceCropEditor("front");
+      return;
+    } else if (action === "face-edit-side") {
+      openFaceCropEditor("side");
+      return;
+    } else if (action === "face-edit-back") {
+      openFaceCropEditor("back");
+      return;
     } else if (action === "face-clear") {
       state.customFace.front = null;
       state.customFace.side = null;
