@@ -260,6 +260,10 @@
     return uniqueStrings(p.include).length > 0 ? "include" : "exclude";
   }
 
+  function layerRequiresNonNone(layerKey) {
+    return layerKey === "hair" || layerKey === "chest" || layerKey === "legs";
+  }
+
   function isTokenAllowed(layerKey, token) {
     const t = String(token || "");
     if (!t || t === "none") return true;
@@ -356,18 +360,67 @@
     };
   }
 
-  function drawLayerImage(path, rect, drawX, drawY, drawW, drawH, mirror) {
+  function drawLayerImage(path, rect, drawX, drawY, drawW, drawH, mirror, layerKey = "") {
     const img = imageFor(path);
     if (!img || !img.complete || !img.naturalWidth) return;
-    if (rect.sx + rect.sw > img.naturalWidth || rect.sy + rect.sh > img.naturalHeight) return;
+    let sx = rect.sx;
+    let sy = rect.sy;
+    let sw = rect.sw;
+    let sh = rect.sh;
+
+    // Weapon/tool overlays in this pack are often 4-frame action strips
+    // with their own cell size, not the base 34x36/6-column grid.
+    if (layerKey === "weapon") {
+      const cols = 4;
+      const rows = 3;
+      const cellW = Math.floor(img.naturalWidth / cols);
+      const cellH = Math.floor(img.naturalHeight / rows);
+      const frameCol = Math.floor((rect.sx / FRAME_W)) % cols;
+      const dirRow = Math.floor((rect.sy / FRAME_H)) % rows;
+      sx = frameCol * cellW;
+      sy = dirRow * cellH;
+      sw = cellW;
+      sh = cellH;
+    }
+
+    if (sx + sw > img.naturalWidth || sy + sh > img.naturalHeight) return;
     ctx.save();
     if (mirror) {
       ctx.translate(drawX + drawW / 2, 0);
       ctx.scale(-1, 1);
       ctx.translate(-(drawX + drawW / 2), 0);
     }
-    ctx.drawImage(img, rect.sx, rect.sy, rect.sw, rect.sh, drawX, drawY, drawW, drawH);
+    ctx.drawImage(img, sx, sy, sw, sh, drawX, drawY, drawW, drawH);
     ctx.restore();
+  }
+
+  function weaponFrameCountForToken(token) {
+    const t = String(token || "").toLowerCase();
+    if (!t || t === "none") return 0;
+    const img = imageFor(token);
+    if (img && img.complete && img.naturalWidth > 0) {
+      const cols = Math.max(1, Math.round(img.naturalWidth / Math.max(1, Math.floor(img.naturalWidth / 4))));
+      // For this pack weapon/action overlays are authored as 4-frame strips.
+      return Math.min(4, cols) || 4;
+    }
+    return 4;
+  }
+
+  function effectiveFrameCount(anim) {
+    const animKey = String(anim?.key || "").toLowerCase();
+    // Pack-specific overrides requested for preview correctness.
+    if (animKey === "mine") return 5;
+    if (animKey === "swing") return 4;
+    if (animKey === "pickup") return 4;
+
+    const baseCount = Math.max(1, Number(anim?.frames) || 6);
+    const weaponAnimAllowed = new Set(["swing", "mine", "walk_hold"]);
+    if (!weaponAnimAllowed.has(animKey)) return baseCount;
+    if (!state.layerVisible.weapon) return baseCount;
+    const weaponToken = getLayerToken("weapon");
+    const weaponCount = weaponFrameCountForToken(weaponToken);
+    if (!weaponCount) return baseCount;
+    return Math.max(1, Math.min(baseCount, weaponCount));
   }
 
   function prettyName(path) {
@@ -406,14 +459,14 @@
       const excludeCount = uniqueStrings(policy.exclude).length;
       const showLabel = Boolean(state.layerLabelVisible[key]);
       parts.push(`
-        <div style="display:grid;grid-template-columns:100px 32px 1fr 32px 62px 86px 64px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="display:grid;grid-template-columns:88px 28px minmax(0,1fr) 28px 52px 72px 56px;gap:5px;align-items:center;margin-bottom:6px;">
           <div>${LABELS[key]}</div>
-          <button data-action="layer:${key}:-1" style="padding:4px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;">◀</button>
-          <div style="padding:4px 6px;border:1px solid #2a334a;background:#0d1220;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
-          <button data-action="layer:${key}:1" style="padding:4px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;">▶</button>
-          <button data-action="toggle:${key}" style="padding:4px;border:1px solid #3a4b72;background:${state.layerVisible[key] ? "#1f3d2a" : "#3a1f24"};color:#e8edf7;border-radius:6px;">${state.layerVisible[key] ? "On" : "Off"}</button>
-          <button data-action="allow:${key}:${allowed ? 0 : 1}" style="padding:4px;border:1px solid #3a4b72;background:${allowed ? "#1f3d2a" : "#4a2328"};color:#e8edf7;border-radius:6px;">${allowed ? "Use: Yes" : "Use: No"}</button>
-          <button data-action="labeltoggle:${key}" style="padding:4px;border:1px solid #3a4b72;background:${showLabel ? "#294063" : "#1b2740"};color:#e8edf7;border-radius:6px;">Label</button>
+          <button data-action="layer:${key}:-1" style="padding:3px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;font-size:11px;">◀</button>
+          <div style="padding:3px 5px;border:1px solid #2a334a;background:#0d1220;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;line-height:1.2;" title="${value}">${value}</div>
+          <button data-action="layer:${key}:1" style="padding:3px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;font-size:11px;">▶</button>
+          <button data-action="toggle:${key}" style="padding:3px;border:1px solid #3a4b72;background:${state.layerVisible[key] ? "#1f3d2a" : "#3a1f24"};color:#e8edf7;border-radius:6px;font-size:10px;">${state.layerVisible[key] ? "On" : "Off"}</button>
+          <button data-action="allow:${key}:${allowed ? 0 : 1}" style="padding:3px;border:1px solid #3a4b72;background:${allowed ? "#1f3d2a" : "#4a2328"};color:#e8edf7;border-radius:6px;font-size:10px;">${allowed ? "Use" : "No"}</button>
+          <button data-action="labeltoggle:${key}" style="padding:3px;border:1px solid #3a4b72;background:${showLabel ? "#294063" : "#1b2740"};color:#e8edf7;border-radius:6px;font-size:10px;">Lbl</button>
         </div>
         <div style="display:grid;grid-template-columns:100px 88px 88px 88px 1fr;gap:6px;align-items:center;margin-top:-2px;margin-bottom:8px;">
           <div style="opacity:.75;font-size:11px;">Pool (${mode})</div>
@@ -545,10 +598,10 @@
       state.frameElapsed = 0;
     } else if (action === "frame:-1") {
       state.paused = true;
-      state.frame = clampWrap(state.frame - 1, currentAnim().frames);
+      state.frame = clampWrap(state.frame - 1, effectiveFrameCount(currentAnim()));
     } else if (action === "frame:1") {
       state.paused = true;
-      state.frame = clampWrap(state.frame + 1, currentAnim().frames);
+      state.frame = clampWrap(state.frame + 1, effectiveFrameCount(currentAnim()));
     } else if (action.startsWith("gender:")) {
       state.genderIndex = clampWrap(state.genderIndex + Number(action.split(":")[1] || 0), GENDERS.length);
       ensureLayerSelectionsInBounds();
@@ -920,7 +973,10 @@
   }
 
   function allowedTokensForLayer(layerKey, gender) {
-    const full = catalogForLayerForGender(layerKey, gender);
+    const fullRaw = catalogForLayerForGender(layerKey, gender);
+    const full = layerRequiresNonNone(layerKey)
+      ? fullRaw.filter((t) => t && t !== "none")
+      : fullRaw;
     const p = policyFor(layerKey);
     const include = uniqueStrings(p.include);
     const exclude = uniqueStrings(p.exclude);
@@ -1002,14 +1058,15 @@
   function update(dtMs) {
     if (state.paused) return;
     const anim = currentAnim();
+    const frameCount = effectiveFrameCount(anim);
     const timings = anim.timings || [120];
     const duration = timings[Math.min(state.frame, timings.length - 1)] || 120;
     state.frameElapsed += Math.max(0, dtMs) * state.speed;
     if (state.frameElapsed >= duration) {
       state.frameElapsed = 0;
       state.frame += 1;
-      if (state.frame >= anim.frames) {
-        state.frame = state.loop ? 0 : anim.frames - 1;
+      if (state.frame >= frameCount) {
+        state.frame = state.loop ? 0 : frameCount - 1;
       }
     }
   }
@@ -1021,7 +1078,9 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const anim = currentAnim();
+    const frameCount = effectiveFrameCount(anim);
     const dir = currentDirection();
+    if (state.frame >= frameCount) state.frame = Math.max(0, frameCount - 1);
     const rect = sheetFrameRect(anim, dir, state.frame);
 
     const scale = 3;
@@ -1037,7 +1096,7 @@
     for (const key of drawOrder) {
       if (key === "weapon" && !shouldDrawWeaponLayer) continue;
       if (!state.layerVisible[key]) continue;
-      drawLayerImage(getLayerToken(key), rect, x, y, drawW, drawH, dir.mirror);
+      drawLayerImage(getLayerToken(key), rect, x, y, drawW, drawH, dir.mirror, key);
     }
 
     const enabledLabelLayers = LAYERS.filter((k) => state.layerLabelVisible[k]);
@@ -1054,7 +1113,7 @@
 
     ctx.fillStyle = "rgba(232,237,247,0.95)";
     ctx.font = "16px ui-monospace, Menlo, monospace";
-    ctx.fillText(`Anim: ${anim.key} | Dir: ${dir.key} | Frame: ${state.frame + 1}/${anim.frames}`, 16, 26);
+    ctx.fillText(`Anim: ${anim.key} | Dir: ${dir.key} | Frame: ${state.frame + 1}/${frameCount}`, 16, 26);
 
     ctx.strokeStyle = "rgba(95,120,181,0.55)";
     ctx.lineWidth = 2;
@@ -1087,7 +1146,7 @@
         if (key === "weapon" && !shouldDrawWeaponLayer) continue;
         const token = npc.layers[key];
         if (!token || token === "none") continue;
-        drawLayerImage(token, rect, dx, dy, drawW, drawH, dir.mirror);
+        drawLayerImage(token, rect, dx, dy, drawW, drawH, dir.mirror, key);
       }
       if (enabledLabelLayers.length) {
         ctx.fillStyle = "rgba(220,228,245,0.9)";

@@ -27,12 +27,22 @@
     "legs": {
       "mode": "exclude",
       "include": [],
-      "exclude": []
+      "exclude": [
+        "Clothes Female/Legs/Base_character_Female_Pants_Villager.png"
+      ]
     },
     "chest": {
       "mode": "exclude",
       "include": [],
-      "exclude": []
+      "exclude": [
+        "Clothes Male/Chest/Base_character_Male_Steel_Armor_Chest.png",
+        "Clothes Female/Chest/Base_character_Female_Black_Cape.png",
+        "Clothes Female/Chest/Base_character_Female_Green_Ranger_Cape.png",
+        "Clothes Male/Chest/Base_character_Male_Knight_Cape.png",
+        "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
+        "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
+        "Clothes Male/Chest/Base_character_Male_King_Cloak.png"
+      ]
     },
     "hair": {
       "mode": "exclude",
@@ -43,9 +53,15 @@
       "mode": "exclude",
       "include": [],
       "exclude": [
-        "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
+        "Clothes Female/Head/Base_character_Female_Spooky_Pumpkin.png",
         "Clothes Female/Head/Base_character_Female_Hat_Witch.png",
-        "Clothes Female/Head/Base_character_Female_Spooky_Pumpkin.png"
+        "Clothes Male/Head/Base_character_Male_Hat_Adventurer.png",
+        "Clothes Male/Head/Base_character_Male_Hat_Wizard.png",
+        "Clothes Male/Head/Base_character_Male_Helmet_Knight_Closed.png",
+        "Clothes Male/Head/Base_character_Male_King_Crown.png",
+        "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
+        "Clothes Female/Head/Base_character_Female_Crown.png",
+        "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png"
       ]
     },
     "weapon": {
@@ -55,33 +71,33 @@
     }
   },
   "current": {
-    "gender": "female",
+    "gender": "male",
     "skinTone": "pale",
-    "animation": "idle",
+    "animation": "walk",
     "direction": "front",
     "speed": 1,
     "loop": true,
-    "frame": 0,
+    "frame": 4,
     "layers": {
       "base": {
         "visible": true,
-        "asset": "Base_character_Itchio_all_Female_Pale.png"
+        "asset": "Base_character_Itchio_all_Male_Pale.png"
       },
       "legs": {
         "visible": true,
-        "asset": "none"
+        "asset": "Clothes Male/Pants/Base_character_Male_Pants_Villager.png"
       },
       "chest": {
         "visible": true,
-        "asset": "none"
+        "asset": "Clothes Male/Chest/Base_character_Male_King_Cloak.png"
       },
       "hair": {
         "visible": true,
-        "asset": "none"
+        "asset": "Hair Male/Base_character_Male_Short_Brown.png"
       },
       "head": {
         "visible": true,
-        "asset": "Clothes Female/Head/Base_character_Female_Spooky_Pumpkin.png"
+        "asset": "Clothes Male/Head/Base_character_Male_Hat_Wizard.png"
       },
       "weapon": {
         "visible": true,
@@ -97,12 +113,22 @@
       "legs": {
         "mode": "exclude",
         "include": [],
-        "exclude": []
+        "exclude": [
+          "Clothes Female/Legs/Base_character_Female_Pants_Villager.png"
+        ]
       },
       "chest": {
         "mode": "exclude",
         "include": [],
-        "exclude": []
+        "exclude": [
+          "Clothes Male/Chest/Base_character_Male_Steel_Armor_Chest.png",
+          "Clothes Female/Chest/Base_character_Female_Black_Cape.png",
+          "Clothes Female/Chest/Base_character_Female_Green_Ranger_Cape.png",
+          "Clothes Male/Chest/Base_character_Male_Knight_Cape.png",
+          "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
+          "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
+          "Clothes Male/Chest/Base_character_Male_King_Cloak.png"
+        ]
       },
       "hair": {
         "mode": "exclude",
@@ -113,9 +139,15 @@
         "mode": "exclude",
         "include": [],
         "exclude": [
-          "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
+          "Clothes Female/Head/Base_character_Female_Spooky_Pumpkin.png",
           "Clothes Female/Head/Base_character_Female_Hat_Witch.png",
-          "Clothes Female/Head/Base_character_Female_Spooky_Pumpkin.png"
+          "Clothes Male/Head/Base_character_Male_Hat_Adventurer.png",
+          "Clothes Male/Head/Base_character_Male_Hat_Wizard.png",
+          "Clothes Male/Head/Base_character_Male_Helmet_Knight_Closed.png",
+          "Clothes Male/Head/Base_character_Male_King_Crown.png",
+          "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
+          "Clothes Female/Head/Base_character_Female_Crown.png",
+          "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png"
         ]
       },
       "weapon": {
