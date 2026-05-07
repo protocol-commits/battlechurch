@@ -178,6 +178,7 @@
     focusLayerIndex: 0,
     presets: [],
     selectedPresetIndex: 0,
+    randomNpcs: [],
     imageCache: new Map(),
     missingCache: new Set(),
     raf: 0,
@@ -209,6 +210,11 @@
 
   function catalogForLayer(layerKey) {
     const g = currentGender();
+    return catalogForLayerForGender(layerKey, g);
+  }
+
+  function catalogForLayerForGender(layerKey, gender) {
+    const g = gender === "female" ? "female" : "male";
     if (layerKey === "base") {
       const byTone = g === "female" ? femaleBases : maleBases;
       return TONES.map((tone) => byTone[tone]).filter(Boolean);
@@ -454,6 +460,9 @@
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button data-action="save-config" style="flex:1;padding:8px;border:1px solid #4f8d45;background:#254122;color:#e8edf7;border-radius:8px;">Save Config File</button>
       </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button data-action="reroll-10" style="flex:1;padding:8px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:8px;">Reroll 10 NPCs</button>
+      </div>
     `;
 
     renderPresetRows();
@@ -578,6 +587,8 @@
       loadPresetSlot(Number(action.split(":")[1] || 0));
     } else if (action.startsWith("preset-del:")) {
       deletePresetSlot(Number(action.split(":")[1] || 0));
+    } else if (action === "reroll-10") {
+      generateRandomNpcLineup();
     } else if (action === "save-config") {
       saveConfigFileWithPrompt();
     }
@@ -754,6 +765,46 @@
     };
   }
 
+  function randomItem(list) {
+    if (!Array.isArray(list) || !list.length) return null;
+    const idx = Math.floor(Math.random() * list.length);
+    return list[idx] ?? null;
+  }
+
+  function allowedTokensForLayer(layerKey, gender) {
+    const full = catalogForLayerForGender(layerKey, gender);
+    const p = policyFor(layerKey);
+    const include = uniqueStrings(p.include);
+    const exclude = uniqueStrings(p.exclude);
+    let pool = [];
+    if (include.length) {
+      pool = include.filter((t) => full.includes(t));
+    } else {
+      pool = full.filter((t) => !exclude.includes(t));
+    }
+    if (!pool.length) pool = [...full];
+    return pool;
+  }
+
+  function generateRandomNpcLineup() {
+    const out = [];
+    for (let i = 0; i < 10; i += 1) {
+      const gender = randomItem(GENDERS) || "male";
+      out.push({
+        gender,
+        layers: {
+          base: randomItem(allowedTokensForLayer("base", gender)) || "none",
+          legs: randomItem(allowedTokensForLayer("legs", gender)) || "none",
+          chest: randomItem(allowedTokensForLayer("chest", gender)) || "none",
+          hair: randomItem(allowedTokensForLayer("hair", gender)) || "none",
+          head: randomItem(allowedTokensForLayer("head", gender)) || "none",
+          weapon: randomItem(allowedTokensForLayer("weapon", gender)) || "none",
+        },
+      });
+    }
+    state.randomNpcs = out;
+  }
+
   function buildConfigJs() {
     const cfg = buildConfigObject();
     return [
@@ -816,11 +867,12 @@
     const dir = currentDirection();
     const rect = sheetFrameRect(anim, dir, state.frame);
 
-    const scale = 7;
+    const scale = 3;
     const drawW = FRAME_W * scale;
     const drawH = FRAME_H * scale;
+    const splitY = Math.floor(canvas.height * 0.5);
     const x = Math.round(canvas.width * 0.5 - drawW * 0.5);
-    const y = Math.round(canvas.height * 0.5 - drawH * 0.5);
+    const y = Math.round(splitY * 0.5 - drawH * 0.5);
 
     const drawOrder = ["base", "legs", "chest", "hair", "head", "weapon"];
     for (const key of drawOrder) {
@@ -831,6 +883,40 @@
     ctx.fillStyle = "rgba(232,237,247,0.95)";
     ctx.font = "16px ui-monospace, Menlo, monospace";
     ctx.fillText(`Anim: ${anim.key} | Dir: ${dir.key} | Frame: ${state.frame + 1}/${anim.frames}`, 16, 26);
+
+    ctx.strokeStyle = "rgba(95,120,181,0.55)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, splitY);
+    ctx.lineTo(canvas.width, splitY);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(232,237,247,0.92)";
+    ctx.font = "14px ui-monospace, Menlo, monospace";
+    ctx.fillText("Random NPC Preview (10)", 16, splitY + 22);
+
+    const lineup = Array.isArray(state.randomNpcs) ? state.randomNpcs : [];
+    const cols = 5;
+    const gapX = 22;
+    const gapY = 16;
+    const cellW = drawW;
+    const cellH = drawH;
+    const gridW = cols * cellW + (cols - 1) * gapX;
+    const startX = Math.round((canvas.width - gridW) * 0.5);
+    const startY = splitY + 34;
+    for (let i = 0; i < Math.min(10, lineup.length); i += 1) {
+      const npc = lineup[i];
+      if (!npc || !npc.layers) continue;
+      const row = Math.floor(i / cols);
+      const col = i % cols;
+      const dx = startX + col * (cellW + gapX);
+      const dy = startY + row * (cellH + gapY);
+      for (const key of drawOrder) {
+        const token = npc.layers[key];
+        if (!token || token === "none") continue;
+        drawLayerImage(token, rect, dx, dy, drawW, drawH, dir.mirror);
+      }
+    }
   }
 
   function tick(lastTs) {
@@ -848,6 +934,7 @@
     state.open = true;
     overlay.style.display = "block";
     ensureLayerSelectionsInBounds();
+    generateRandomNpcLineup();
     renderControls();
     render();
     state.raf = requestAnimationFrame(() => tick(performance.now()));
