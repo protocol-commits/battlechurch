@@ -7120,9 +7120,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const BOSS_PHASE3_HEAT_TRANSITION_MS = 500;
   const WAVE_ATMOSPHERE_CONFIG = Object.freeze({
     assumedWavesPerBattle: 3,
-    tintMinAlpha: 0.02,
-    tintMaxAlpha: 0.1,
-    bossPhase3TintMaxAlpha: 0.16,
+    tintMinAlpha: 0.12,
+    tintMaxAlpha: 0.32,
+    bossPhase3TintMaxAlpha: 0.42,
     tintColor: "rgba(165, 14, 22, 1)",
     emberMinAlpha: 0.06,
     emberMaxAlpha: 0.24,
@@ -7226,37 +7226,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const tintMaxAlpha =
       WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha +
       (WAVE_ATMOSPHERE_CONFIG.bossPhase3TintMaxAlpha - WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha) * bossPhase3Blend;
-    const emberMaxAlpha =
-      WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha +
-      (WAVE_ATMOSPHERE_CONFIG.bossPhase3EmberMaxAlpha - WAVE_ATMOSPHERE_CONFIG.emberMaxAlpha) * bossPhase3Blend;
-
     const tintAlpha =
       WAVE_ATMOSPHERE_CONFIG.tintMinAlpha +
       (tintMaxAlpha - WAVE_ATMOSPHERE_CONFIG.tintMinAlpha) * progress;
-    const emberAlpha =
-      WAVE_ATMOSPHERE_CONFIG.emberMinAlpha +
-      (emberMaxAlpha - WAVE_ATMOSPHERE_CONFIG.emberMinAlpha) * progress;
     ctx.save();
     ctx.beginPath();
     ctx.rect(x, y, width, height);
     ctx.clip();
-    ctx.globalCompositeOperation = "multiply";
+    // Direct full-scene red wash so it is clearly visible.
+    ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = Math.max(0, Math.min(1, tintAlpha));
-    ctx.fillStyle = WAVE_ATMOSPHERE_CONFIG.tintColor;
-    ctx.fillRect(x, y, width, height);
-    ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = Math.max(0, Math.min(1, emberAlpha));
-    const emberGradient = ctx.createRadialGradient(
-      x + width * 0.5,
-      y + height * 0.78,
-      Math.max(40, width * 0.12),
-      x + width * 0.5,
-      y + height * 0.78,
-      Math.max(120, width * 0.95),
-    );
-    emberGradient.addColorStop(0, WAVE_ATMOSPHERE_CONFIG.emberColor);
-    emberGradient.addColorStop(1, "rgba(255, 120, 48, 0)");
-    ctx.fillStyle = emberGradient;
+    ctx.fillStyle = "rgba(110, 12, 16, 1)";
     ctx.fillRect(x, y, width, height);
     ctx.restore();
 
