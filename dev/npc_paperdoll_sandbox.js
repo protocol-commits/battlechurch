@@ -172,6 +172,9 @@
     frameElapsed: 0,
     layerVisible: Object.fromEntries(LAYERS.map((k) => [k, true])),
     layerSel: Object.fromEntries(LAYERS.map((k) => [k, 0])),
+    assetPolicy: Object.fromEntries(
+      LAYERS.map((k) => [k, { include: [], exclude: [] }]),
+    ),
     focusLayerIndex: 0,
     presets: [],
     selectedPresetIndex: 0,
@@ -221,6 +224,101 @@
   function getLayerToken(layerKey) {
     const list = catalogForLayer(layerKey);
     return list[clampWrap(state.layerSel[layerKey] || 0, list.length)] || "none";
+  }
+
+  function uniqueStrings(values) {
+    const out = [];
+    const seen = new Set();
+    for (const value of values || []) {
+      const s = String(value || "").trim();
+      if (!s || seen.has(s)) continue;
+      seen.add(s);
+      out.push(s);
+    }
+    return out;
+  }
+
+  function policyFor(layerKey) {
+    if (!state.assetPolicy[layerKey] || typeof state.assetPolicy[layerKey] !== "object") {
+      state.assetPolicy[layerKey] = { include: [], exclude: [] };
+    }
+    const p = state.assetPolicy[layerKey];
+    if (!Array.isArray(p.include)) p.include = [];
+    if (!Array.isArray(p.exclude)) p.exclude = [];
+    return p;
+  }
+
+  function policyMode(layerKey) {
+    const p = policyFor(layerKey);
+    return uniqueStrings(p.include).length > 0 ? "include" : "exclude";
+  }
+
+  function isTokenAllowed(layerKey, token) {
+    const t = String(token || "");
+    if (!t || t === "none") return true;
+    const p = policyFor(layerKey);
+    const include = uniqueStrings(p.include);
+    const exclude = uniqueStrings(p.exclude);
+    if (include.length) return include.includes(t);
+    return !exclude.includes(t);
+  }
+
+  function setTokenAllowed(layerKey, token, allowed) {
+    const t = String(token || "");
+    if (!t || t === "none") return;
+    const p = policyFor(layerKey);
+    p.include = uniqueStrings(p.include).filter((x) => x !== t);
+    p.exclude = uniqueStrings(p.exclude).filter((x) => x !== t);
+    if (allowed) {
+      if (policyMode(layerKey) === "include") p.include = uniqueStrings([...p.include, t]);
+      return;
+    }
+    if (policyMode(layerKey) === "include") {
+      p.include = uniqueStrings(p.include).filter((x) => x !== t);
+      return;
+    }
+    p.exclude = uniqueStrings([...p.exclude, t]);
+  }
+
+  function setPolicyMode(layerKey, mode) {
+    const p = policyFor(layerKey);
+    if (mode === "include") {
+      p.exclude = [];
+      p.include = uniqueStrings(p.include);
+      return;
+    }
+    p.include = [];
+    p.exclude = uniqueStrings(p.exclude);
+  }
+
+  function setLayerAllowAll(layerKey) {
+    const p = policyFor(layerKey);
+    p.include = [];
+    p.exclude = [];
+  }
+
+  function setLayerBlockAll(layerKey) {
+    const p = policyFor(layerKey);
+    const list = catalogForLayer(layerKey).filter((t) => t && t !== "none");
+    if (policyMode(layerKey) === "include") {
+      p.include = [];
+      p.exclude = [];
+      return;
+    }
+    p.exclude = uniqueStrings(list);
+  }
+
+  function invertLayerPolicy(layerKey) {
+    const p = policyFor(layerKey);
+    const list = catalogForLayer(layerKey).filter((t) => t && t !== "none");
+    const allowed = list.filter((t) => isTokenAllowed(layerKey, t));
+    if (policyMode(layerKey) === "include") {
+      p.include = uniqueStrings(list.filter((t) => !allowed.includes(t)));
+      p.exclude = [];
+      return;
+    }
+    p.include = [];
+    p.exclude = uniqueStrings(allowed);
   }
 
   function ensureLayerSelectionsInBounds() {
@@ -293,13 +391,34 @@
     parts.push(`<div style="margin:8px 0 4px;font-weight:700;">Layers</div>`);
     for (const key of LAYERS) {
       const value = prettyName(getLayerToken(key));
+      const token = getLayerToken(key);
+      const allowed = isTokenAllowed(key, token);
+      const mode = policyMode(key);
+      const policy = policyFor(key);
+      const includeCount = uniqueStrings(policy.include).length;
+      const excludeCount = uniqueStrings(policy.exclude).length;
       parts.push(`
-        <div style="display:grid;grid-template-columns:100px 32px 1fr 32px 62px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="display:grid;grid-template-columns:100px 32px 1fr 32px 62px 86px;gap:6px;align-items:center;margin-bottom:6px;">
           <div>${LABELS[key]}</div>
           <button data-action="layer:${key}:-1" style="padding:4px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;">◀</button>
           <div style="padding:4px 6px;border:1px solid #2a334a;background:#0d1220;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
           <button data-action="layer:${key}:1" style="padding:4px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;">▶</button>
           <button data-action="toggle:${key}" style="padding:4px;border:1px solid #3a4b72;background:${state.layerVisible[key] ? "#1f3d2a" : "#3a1f24"};color:#e8edf7;border-radius:6px;">${state.layerVisible[key] ? "On" : "Off"}</button>
+          <button data-action="allow:${key}:${allowed ? 0 : 1}" style="padding:4px;border:1px solid #3a4b72;background:${allowed ? "#1f3d2a" : "#4a2328"};color:#e8edf7;border-radius:6px;">${allowed ? "Use: Yes" : "Use: No"}</button>
+        </div>
+        <div style="display:grid;grid-template-columns:100px 88px 88px 88px 1fr;gap:6px;align-items:center;margin-top:-2px;margin-bottom:8px;">
+          <div style="opacity:.75;font-size:11px;">Pool (${mode})</div>
+          <button data-action="mode:${key}:exclude" style="padding:3px;border:1px solid #3a4b72;background:${mode === "exclude" ? "#294063" : "#1b2740"};color:#e8edf7;border-radius:6px;font-size:11px;">Blocklist</button>
+          <button data-action="mode:${key}:include" style="padding:3px;border:1px solid #3a4b72;background:${mode === "include" ? "#294063" : "#1b2740"};color:#e8edf7;border-radius:6px;font-size:11px;">Allowlist</button>
+          <button data-action="layer-policy:${key}:invert" style="padding:3px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;font-size:11px;">Invert</button>
+          <div style="font-size:11px;opacity:.85;">inc:${includeCount} / exc:${excludeCount}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:100px 88px 88px 88px 1fr;gap:6px;align-items:center;margin-top:-4px;margin-bottom:10px;">
+          <div style="opacity:.75;font-size:11px;">Quick</div>
+          <button data-action="layer-policy:${key}:allowall" style="padding:3px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;font-size:11px;">Allow All</button>
+          <button data-action="layer-policy:${key}:blockall" style="padding:3px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;font-size:11px;">Block All</button>
+          <button data-action="layer-policy:${key}:clear" style="padding:3px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;font-size:11px;">Clear Rules</button>
+          <div></div>
         </div>
       `);
     }
@@ -442,6 +561,17 @@
     } else if (action.startsWith("toggle:")) {
       const key = action.split(":")[1];
       state.layerVisible[key] = !state.layerVisible[key];
+    } else if (action.startsWith("allow:")) {
+      const [, key, allowRaw] = action.split(":");
+      setTokenAllowed(key, getLayerToken(key), Number(allowRaw) === 1);
+    } else if (action.startsWith("mode:")) {
+      const [, key, mode] = action.split(":");
+      setPolicyMode(key, mode);
+    } else if (action.startsWith("layer-policy:")) {
+      const [, key, cmd] = action.split(":");
+      if (cmd === "allowall" || cmd === "clear") setLayerAllowAll(key);
+      else if (cmd === "blockall") setLayerBlockAll(key);
+      else if (cmd === "invert") invertLayerPolicy(key);
     } else if (action.startsWith("preset-save:")) {
       savePresetSlot(Number(action.split(":")[1] || 0));
     } else if (action.startsWith("preset-load:")) {
@@ -469,6 +599,14 @@
         visible: Boolean(state.layerVisible[key]),
         asset: getLayerToken(key),
       }])),
+      assetPool: Object.fromEntries(LAYERS.map((key) => {
+        const p = policyFor(key);
+        return [key, {
+          mode: policyMode(key),
+          include: uniqueStrings(p.include),
+          exclude: uniqueStrings(p.exclude),
+        }];
+      })),
     };
   }
 
@@ -483,6 +621,7 @@
       loop: state.loop,
       layerSel: { ...state.layerSel },
       layerVisible: { ...state.layerVisible },
+      assetPolicy: JSON.parse(JSON.stringify(state.assetPolicy || {})),
       savedAt: Date.now(),
     };
   }
@@ -497,10 +636,14 @@
     state.loop = p.loop !== false;
     const sel = p.layerSel && typeof p.layerSel === "object" ? p.layerSel : {};
     const vis = p.layerVisible && typeof p.layerVisible === "object" ? p.layerVisible : {};
+    const pol = p.assetPolicy && typeof p.assetPolicy === "object" ? p.assetPolicy : {};
     for (const key of LAYERS) {
       const list = catalogForLayer(key);
       state.layerSel[key] = clampWrap(Number(sel[key]) || 0, Math.max(1, list.length));
       state.layerVisible[key] = vis[key] !== false;
+      const src = pol[key] && typeof pol[key] === "object" ? pol[key] : {};
+      policyFor(key).include = uniqueStrings(src.include || []);
+      policyFor(key).exclude = uniqueStrings(src.exclude || []);
     }
     state.frame = 0;
     state.frameElapsed = 0;
@@ -588,6 +731,16 @@
                       : weaponByGender[GENDERS[clampWrap(Number(p.genderIndex) || 0, GENDERS.length)]]) || ["none"];
           const token = arr[clampWrap(Number(p.layerSel?.[key]) || 0, arr.length)] || "none";
           return [key, { visible: p.layerVisible?.[key] !== false, asset: token }];
+        })),
+        assetPool: Object.fromEntries(LAYERS.map((key) => {
+          const src = p.assetPolicy?.[key] && typeof p.assetPolicy[key] === "object" ? p.assetPolicy[key] : {};
+          const include = uniqueStrings(src.include || []);
+          const exclude = uniqueStrings(src.exclude || []);
+          return [key, {
+            mode: include.length ? "include" : "exclude",
+            include,
+            exclude,
+          }];
         })),
       });
     }
