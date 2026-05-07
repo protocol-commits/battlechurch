@@ -4180,6 +4180,14 @@ const ARENA_BG_SHADOW_THRESHOLD = Math.max(
   0.02,
   Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowThreshold", 0.7)) || 0.7),
 );
+const TITLE_BG_SHADOW_CRUSH = Math.max(
+  0,
+  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowCrush", 0.6)) || 0.6),
+);
+const TITLE_BG_SHADOW_THRESHOLD = Math.max(
+  0.02,
+  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowThreshold", 0.7)) || 0.7),
+);
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/projectiles/";
@@ -6830,6 +6838,15 @@ function maybeApplyArenaBackgroundShadowCrush(image) {
   });
 }
 
+function maybeApplyTitleBackgroundShadowCrush(image) {
+  if (!image) return image;
+  if (TITLE_BG_SHADOW_CRUSH <= 0) return image;
+  return buildShadowCrushedImageCopy(image, {
+    shadowCrush: TITLE_BG_SHADOW_CRUSH,
+    shadowThreshold: TITLE_BG_SHADOW_THRESHOLD,
+  });
+}
+
 function extractFrame(image, frameWidth, frameHeight, frameIndex = 0) {
   const fw = frameWidth || image.width;
   const fh = frameHeight || image.height;
@@ -7505,7 +7522,7 @@ async function loadBackgroundAssets(cache, assets) {
     .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floor = null; });
   const titleBackgroundPromise = loadImage(TITLE_BACKGROUND_PATH)
-    .then((img) => { assets.titleBackground = img; })
+    .then((img) => { assets.titleBackground = maybeApplyTitleBackgroundShadowCrush(img); })
     .catch(() => { assets.titleBackground = null; });
 
   await Promise.all([
@@ -7540,7 +7557,8 @@ async function loadTitleMapAssets() {
   };
   // Load title background
   try {
-    assets.titleBackground = await loadImage(TITLE_BACKGROUND_PATH);
+    const img = await loadImage(TITLE_BACKGROUND_PATH);
+    assets.titleBackground = maybeApplyTitleBackgroundShadowCrush(img);
   } catch (e) {
     console.warn("Failed to load title background:", e);
   }

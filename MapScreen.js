@@ -11,6 +11,8 @@
     body: "#E7B066",
     dim: "rgba(231, 176, 102, 0.68)",
   });
+  const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0.6;
+  const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.7;
 
   let mapImage = null;
   let mapImageLoaded = false;
@@ -20,6 +22,79 @@
   let townExteriorImageFailed = false;
   let mapAssets = null;
   const townAnimators = new Map();
+
+  function readMapScreenRenderStyleNumber(key, fallback) {
+    const root =
+      (typeof window !== "undefined" && window.BattlechurchBalanceConfig && window.BattlechurchBalanceConfig.mapScreenRenderStyle)
+        ? window.BattlechurchBalanceConfig.mapScreenRenderStyle
+        : null;
+    const raw = root ? Number(root[key]) : NaN;
+    return Number.isFinite(raw) ? raw : fallback;
+  }
+
+  function getMapScreenShadowStyle() {
+    const shadowCrush = Math.max(
+      0,
+      Math.min(1, readMapScreenRenderStyleNumber("shadowCrush", MAP_SCREEN_SHADOW_CRUSH_DEFAULT)),
+    );
+    const shadowThreshold = Math.max(
+      0.02,
+      Math.min(1, readMapScreenRenderStyleNumber("shadowThreshold", MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT)),
+    );
+    return { shadowCrush, shadowThreshold };
+  }
+
+  function applyShadowCrushToCanvas(canvas, renderStyle) {
+    if (!canvas || typeof canvas.getContext !== "function") return canvas;
+    const shadowCrush = Number.isFinite(renderStyle?.shadowCrush)
+      ? Math.max(0, Math.min(1, renderStyle.shadowCrush))
+      : 0;
+    if (shadowCrush <= 0) return canvas;
+    const shadowThreshold = Number.isFinite(renderStyle?.shadowThreshold)
+      ? Math.max(0.02, Math.min(1, renderStyle.shadowThreshold))
+      : 0.5;
+    const ctx2d = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx2d) return canvas;
+    let imageData = null;
+    try {
+      imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
+    } catch (e) {
+      return canvas;
+    }
+    const pixels = imageData.data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const a = pixels[i + 3];
+      if (!a) continue;
+      const r = pixels[i];
+      const g = pixels[i + 1];
+      const b = pixels[i + 2];
+      const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+      if (luminance >= shadowThreshold) continue;
+      const under = (shadowThreshold - luminance) / shadowThreshold;
+      const darken = Math.max(0, Math.min(1, under * shadowCrush));
+      const mult = 1 - darken;
+      pixels[i] = Math.max(0, Math.min(255, Math.round(r * mult)));
+      pixels[i + 1] = Math.max(0, Math.min(255, Math.round(g * mult)));
+      pixels[i + 2] = Math.max(0, Math.min(255, Math.round(b * mult)));
+    }
+    ctx2d.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  function maybeApplyMapScreenShadowCrush(image) {
+    if (!image || !image.width || !image.height) return image;
+    const style = getMapScreenShadowStyle();
+    if (style.shadowCrush <= 0) return image;
+    if (typeof document === "undefined" || typeof document.createElement !== "function") return image;
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx2d = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx2d) return image;
+    ctx2d.imageSmoothingEnabled = false;
+    ctx2d.drawImage(image, 0, 0);
+    return applyShadowCrushToCanvas(canvas, style);
+  }
 
   const state = {
     active: false,
@@ -375,6 +450,7 @@
     mapImage = new Image();
     mapImage.onload = () => {
       mapImageLoaded = true;
+      mapImage = maybeApplyMapScreenShadowCrush(mapImage);
     };
     mapImage.onerror = () => {
       if (mapImage && mapImage.src === MAP_IMAGE_PRIMARY) {
@@ -391,6 +467,7 @@
     townExteriorImage = new Image();
     townExteriorImage.onload = () => {
       townExteriorImageLoaded = true;
+      townExteriorImage = maybeApplyMapScreenShadowCrush(townExteriorImage);
     };
     townExteriorImage.onerror = () => {
       townExteriorImageFailed = true;
