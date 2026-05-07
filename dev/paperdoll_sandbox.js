@@ -15,7 +15,7 @@
     "6tla": "Main Hand",
     "7tlb": "Off Hand",
   });
-  const FACING_KEYS = ["south", "west", "east", "north"];
+  const FACING_KEYS = ["south", "north", "east", "west"];
   const FRAME_SIZE = 64;
 
   const layerCatalog = {
@@ -115,6 +115,22 @@
     rafId: 0,
     presets: [],
     selectedPresetIndex: 0,
+    customFace: {
+      enabled: false,
+      front: null,
+      side: null,
+      back: null,
+      frontName: "",
+      sideName: "",
+      backName: "",
+      offsetX: 0,
+      offsetY: -10,
+      width: 22,
+      height: 20,
+      flipSideForEast: true,
+      invertSideDirections: false,
+      status: "No face images loaded.",
+    },
   };
 
   let overlay = null;
@@ -299,6 +315,7 @@
     overlay.querySelector("#paperdollSaveGameConfig")?.addEventListener("click", saveConfigFileWithPrompt);
     controlsRoot?.addEventListener("pointerdown", onControlsClick);
     controlsRoot?.addEventListener("click", onControlsClick);
+    controlsRoot?.addEventListener("change", onControlsInput);
     overlay.querySelector("#paperdollPresetControls")?.addEventListener("pointerdown", onPresetControlsClick);
     overlay.querySelector("#paperdollPresetControls")?.addEventListener("click", onPresetControlsClick);
   }
@@ -487,8 +504,178 @@
       </div>
       <div style="font-weight:700;margin-bottom:6px;">Layers</div>
       ${layerRowsHtml}
+      <div style="font-weight:700;margin:10px 0 6px;">Custom Face (Upload)</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px;">
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Enable</span>
+          <input type="checkbox" id="paperdollFaceEnabled" ${state.customFace.enabled ? "checked" : ""}>
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Front</span>
+          <input type="file" id="paperdollFaceFront" accept="image/*">
+        </label>
+        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.frontName || "(none)"}</div>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Side (left/right)</span>
+          <input type="file" id="paperdollFaceSide" accept="image/*">
+        </label>
+        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.sideName || "(none)"}</div>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Back</span>
+          <input type="file" id="paperdollFaceBack" accept="image/*">
+        </label>
+        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.backName || "(none)"}</div>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Flip side on East</span>
+          <input type="checkbox" id="paperdollFaceFlipEast" ${state.customFace.flipSideForEast !== false ? "checked" : ""}>
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Invert side directions</span>
+          <input type="checkbox" id="paperdollFaceInvertSides" ${state.customFace.invertSideDirections ? "checked" : ""}>
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face X</div>
+        ${buttonHtml("face-x-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetX || 0)}</div>
+        ${buttonHtml("face-x-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face Y</div>
+        ${buttonHtml("face-y-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetY || 0)}</div>
+        ${buttonHtml("face-y-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face W</div>
+        ${buttonHtml("face-w-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.width || 0)}</div>
+        ${buttonHtml("face-w-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
+        <div style="opacity:.85;">Face H</div>
+        ${buttonHtml("face-h-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.height || 0)}</div>
+        ${buttonHtml("face-h-up", "▶")}
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        ${buttonHtml("face-clear", "Clear Face Uploads")}
+      </div>
+      <div style="font-size:11px;line-height:1.35;color:#9fb2d9;opacity:.95;">
+        ${String(state.customFace.status || "")}
+      </div>
     `;
+    bindFaceControlListeners();
     controlsDirty = false;
+  }
+
+  function bindFaceControlListeners() {
+    const enabled = controlsRoot?.querySelector?.("#paperdollFaceEnabled");
+    const front = controlsRoot?.querySelector?.("#paperdollFaceFront");
+    const side = controlsRoot?.querySelector?.("#paperdollFaceSide");
+    const back = controlsRoot?.querySelector?.("#paperdollFaceBack");
+    const flipEast = controlsRoot?.querySelector?.("#paperdollFaceFlipEast");
+    const invertSides = controlsRoot?.querySelector?.("#paperdollFaceInvertSides");
+    if (enabled) {
+      enabled.onchange = onControlsInput;
+    }
+    if (front) {
+      front.onchange = onControlsInput;
+    }
+    if (side) {
+      side.onchange = onControlsInput;
+    }
+    if (back) {
+      back.onchange = onControlsInput;
+    }
+    if (flipEast) {
+      flipEast.onchange = onControlsInput;
+    }
+    if (invertSides) {
+      invertSides.onchange = onControlsInput;
+    }
+  }
+
+  async function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function validateImageDataUrl(dataUrl) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ ok: true, width: img.naturalWidth || 0, height: img.naturalHeight || 0 });
+      img.onerror = () => resolve({ ok: false, width: 0, height: 0 });
+      img.src = dataUrl;
+    });
+  }
+
+  async function onControlsInput(e) {
+    const target = e?.target;
+    if (!target) return;
+    const id = String(target.id || "");
+    if (id === "paperdollFaceEnabled") {
+      state.customFace.enabled = Boolean(target.checked);
+      state.customFace.status = state.customFace.enabled
+        ? "Face overlay enabled."
+        : "Face overlay disabled.";
+      controlsDirty = true;
+      refreshPanels();
+      render();
+      return;
+    }
+    if (id === "paperdollFaceFlipEast") {
+      state.customFace.flipSideForEast = Boolean(target.checked);
+      state.customFace.status = `Flip on East: ${state.customFace.flipSideForEast ? "ON" : "OFF"}`;
+      controlsDirty = true;
+      refreshPanels();
+      render();
+      return;
+    }
+    if (id === "paperdollFaceInvertSides") {
+      state.customFace.invertSideDirections = Boolean(target.checked);
+      state.customFace.status = `Invert side directions: ${state.customFace.invertSideDirections ? "ON" : "OFF"}`;
+      controlsDirty = true;
+      refreshPanels();
+      render();
+      return;
+    }
+    if (id === "paperdollFaceFront" || id === "paperdollFaceSide" || id === "paperdollFaceBack") {
+      const file = target.files && target.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await fileToDataUrl(file);
+        const valid = await validateImageDataUrl(dataUrl);
+        if (!valid.ok) {
+          state.customFace.status = `Failed to decode ${file.name}. Try PNG or JPG.`;
+          controlsDirty = true;
+          refreshPanels();
+          render();
+          return;
+        }
+        if (id === "paperdollFaceFront") state.customFace.front = dataUrl;
+        else if (id === "paperdollFaceSide") state.customFace.side = dataUrl;
+        else state.customFace.back = dataUrl;
+        if (id === "paperdollFaceFront") state.customFace.frontName = file.name || "";
+        else if (id === "paperdollFaceSide") state.customFace.sideName = file.name || "";
+        else state.customFace.backName = file.name || "";
+        state.customFace.enabled = true;
+        const slot = id === "paperdollFaceFront" ? "front" : id === "paperdollFaceSide" ? "side" : "back";
+        state.customFace.status = `Loaded ${slot}: ${file.name} (${valid.width}x${valid.height})`;
+        controlsDirty = true;
+        refreshPanels();
+        render();
+      } catch (_) {
+        state.customFace.status = "Face upload failed while reading file.";
+        controlsDirty = true;
+        refreshPanels();
+        render();
+      }
+    }
   }
 
   function onControlsClick(e) {
@@ -551,6 +738,31 @@
     } else if (action.startsWith("layer-toggle:")) {
       const layerKey = action.slice("layer-toggle:".length);
       if (layerKey in state.layerVisible) state.layerVisible[layerKey] = !state.layerVisible[layerKey];
+    } else if (action === "face-x-down") {
+      state.customFace.offsetX = Math.max(-24, Number(state.customFace.offsetX || 0) - 1);
+    } else if (action === "face-x-up") {
+      state.customFace.offsetX = Math.min(24, Number(state.customFace.offsetX || 0) + 1);
+    } else if (action === "face-y-down") {
+      state.customFace.offsetY = Math.max(-32, Number(state.customFace.offsetY || 0) - 1);
+    } else if (action === "face-y-up") {
+      state.customFace.offsetY = Math.min(24, Number(state.customFace.offsetY || 0) + 1);
+    } else if (action === "face-w-down") {
+      state.customFace.width = Math.max(8, Number(state.customFace.width || 0) - 1);
+    } else if (action === "face-w-up") {
+      state.customFace.width = Math.min(40, Number(state.customFace.width || 0) + 1);
+    } else if (action === "face-h-down") {
+      state.customFace.height = Math.max(8, Number(state.customFace.height || 0) - 1);
+    } else if (action === "face-h-up") {
+      state.customFace.height = Math.min(40, Number(state.customFace.height || 0) + 1);
+    } else if (action === "face-clear") {
+      state.customFace.front = null;
+      state.customFace.side = null;
+      state.customFace.back = null;
+      state.customFace.frontName = "";
+      state.customFace.sideName = "";
+      state.customFace.backName = "";
+      state.customFace.enabled = false;
+      state.customFace.status = "No face images loaded.";
     }
 
     if (!keepFrameCursor) {
@@ -610,6 +822,53 @@
     ctx.drawImage(img, sx, sy, FRAME_SIZE, FRAME_SIZE, x - dw / 2, y - dh / 2, dw, dh);
   }
 
+  function faceImageForFacing() {
+    const facing = FACING_KEYS[state.facingIndex] || "south";
+    const source =
+      facing === "south"
+        ? state.customFace.front
+        : facing === "north"
+          ? state.customFace.back
+          : state.customFace.side;
+    if (!source) return null;
+    return imageForPath(source);
+  }
+
+  function shouldMirrorFaceForFacing() {
+    const facing = FACING_KEYS[state.facingIndex] || "south";
+    if (facing !== "east" && facing !== "west") return false;
+    const invert = Boolean(state.customFace.invertSideDirections);
+    const flipEast = state.customFace.flipSideForEast !== false;
+    const sideFacingUsesOriginal = invert ? "east" : "west";
+    if (facing === sideFacingUsesOriginal) return false;
+    return flipEast;
+  }
+
+  function drawCustomFacePreview(cx, cy, scale = 4) {
+    if (!state.customFace.enabled) return;
+    const img = faceImageForFacing();
+    if (!img || !img.complete || !img.naturalWidth) return;
+    const w = Math.max(8, Number(state.customFace.width || 22));
+    const h = Math.max(8, Number(state.customFace.height || 20));
+    const ox = Number(state.customFace.offsetX || 0);
+    const oy = Number(state.customFace.offsetY || -10);
+    const mirror = shouldMirrorFaceForFacing();
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    const dx = Math.floor(cx + ox * scale - (w * scale) / 2);
+    const dy = Math.floor(cy + oy * scale - (h * scale) / 2);
+    const dw = Math.floor(w * scale);
+    const dh = Math.floor(h * scale);
+    if (mirror) {
+      ctx.translate(dx + dw, dy);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, dw, dh);
+    } else {
+      ctx.drawImage(img, dx, dy, dw, dh);
+    }
+    ctx.restore();
+  }
+
   function render() {
     if (!state.open || !ctx || !canvas) return;
     const w = canvas.width;
@@ -654,6 +913,7 @@
 
     // Pass 3: shield when this frame is marked as front-facing.
     if (shieldFront) drawLayer("7tlb");
+    drawCustomFacePreview(cx, cy, 4);
 
     ctx.fillStyle = "#9fb2d9";
     ctx.font = "14px ui-monospace, Menlo, monospace";
@@ -841,6 +1101,21 @@
       // Edit this map to switch pastor preset by powerup key.
       // Example: { powerupX: "Holy Fire Form", speedAura: "Sprint Form" }
       powerupPresetMap: cloneValue(existingCfg.powerupPresetMap, {}) || {},
+      customFace: {
+        enabled: Boolean(state.customFace.enabled),
+        front: state.customFace.front || null,
+        side: state.customFace.side || null,
+        back: state.customFace.back || null,
+        frontName: state.customFace.frontName || "",
+        sideName: state.customFace.sideName || "",
+        backName: state.customFace.backName || "",
+        offsetX: Number(state.customFace.offsetX || 0),
+        offsetY: Number(state.customFace.offsetY || 0),
+        width: Math.max(8, Number(state.customFace.width || 22)),
+        height: Math.max(8, Number(state.customFace.height || 20)),
+        flipSideForEast: state.customFace.flipSideForEast !== false,
+        invertSideDirections: Boolean(state.customFace.invertSideDirections),
+      },
     };
   }
 
@@ -1036,6 +1311,26 @@
     if (!overlay || state.open) return;
     loadPresetsFromStorage();
     loadPresetSlot(0);
+    const cfg =
+      window.BATTLECHURCH_PASTOR_PAPERDOLL &&
+      typeof window.BATTLECHURCH_PASTOR_PAPERDOLL === "object"
+        ? window.BATTLECHURCH_PASTOR_PAPERDOLL
+        : null;
+    if (cfg?.customFace && typeof cfg.customFace === "object") {
+      state.customFace.enabled = Boolean(cfg.customFace.enabled);
+      state.customFace.front = cfg.customFace.front || null;
+      state.customFace.side = cfg.customFace.side || null;
+      state.customFace.back = cfg.customFace.back || null;
+      state.customFace.frontName = cfg.customFace.frontName || "";
+      state.customFace.sideName = cfg.customFace.sideName || "";
+      state.customFace.backName = cfg.customFace.backName || "";
+      state.customFace.offsetX = Number(cfg.customFace.offsetX || 0);
+      state.customFace.offsetY = Number(cfg.customFace.offsetY || -10);
+      state.customFace.width = Math.max(8, Number(cfg.customFace.width || 22));
+      state.customFace.height = Math.max(8, Number(cfg.customFace.height || 20));
+      state.customFace.flipSideForEast = cfg.customFace.flipSideForEast !== false;
+      state.customFace.invertSideDirections = Boolean(cfg.customFace.invertSideDirections);
+    }
     state.open = true;
     overlay.style.display = "block";
     controlsDirty = true;

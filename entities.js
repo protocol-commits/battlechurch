@@ -561,6 +561,47 @@
     return img;
   }
 
+  function drawCustomFaceOverlay(targetCtx, cfg, facing, frameScale = 1) {
+    if (!targetCtx || !cfg || typeof cfg !== "object") return;
+    const customFace = cfg.customFace;
+    if (!customFace || typeof customFace !== "object" || customFace.enabled !== true) return;
+    const faceSrc =
+      facing === "south"
+        ? customFace.front
+        : facing === "north"
+          ? customFace.back
+          : customFace.side;
+    const path = String(faceSrc || "").trim();
+    if (!path) return;
+    const img = getPaperdollImage(path);
+    if (!img || !img.complete || !img.naturalWidth) return;
+    const faceW = Math.max(8, Number(customFace.width || 22));
+    const faceH = Math.max(8, Number(customFace.height || 20));
+    const offsetX = Number(customFace.offsetX || 0);
+    const offsetY = Number(customFace.offsetY || -10);
+    const flipSideForEast = customFace.flipSideForEast !== false;
+    const invertSideDirections = Boolean(customFace.invertSideDirections);
+    const sideFacingUsesOriginal = invertSideDirections ? "east" : "west";
+    const shouldMirror =
+      (facing === "east" || facing === "west") &&
+      facing !== sideFacingUsesOriginal &&
+      flipSideForEast;
+    const drawW = Math.round(faceW * frameScale);
+    const drawH = Math.round(faceH * frameScale);
+    const drawX = Math.round((PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetX * frameScale - drawW * 0.5);
+    const drawY = Math.round((PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetY * frameScale - drawH * 0.5);
+    targetCtx.imageSmoothingEnabled = false;
+    if (shouldMirror) {
+      targetCtx.save();
+      targetCtx.translate(drawX + drawW, drawY);
+      targetCtx.scale(-1, 1);
+      targetCtx.drawImage(img, 0, 0, drawW, drawH);
+      targetCtx.restore();
+      return;
+    }
+    targetCtx.drawImage(img, drawX, drawY, drawW, drawH);
+  }
+
   function facingFromVector(dx, dy, fallback = "down") {
     const x = Number(dx) || 0;
     const y = Number(dy) || 0;
@@ -899,6 +940,9 @@
     if (!shieldFront) drawLayer("7tlb");
     baseOrder.forEach(drawLayer);
     if (shieldFront) drawLayer("7tlb");
+    if (paperdollCompositeContext && paperdollCompositeCanvas) {
+      drawCustomFaceOverlay(paperdollCompositeContext, cfg, facing, 1);
+    }
     if (paperdollCompositeContext && paperdollCompositeCanvas) {
       applyShadowCrushToPaperdoll(
         paperdollCompositeContext,
