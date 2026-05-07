@@ -5413,7 +5413,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-const PLAYER_SPRITE_PATH = "assets/sprites/pastor/characters/";
+const PLAYER_SPRITE_PATH = "assets/sprites/npcs/mana-seed/";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
@@ -5426,7 +5426,7 @@ const DIVINE_CHARGE_SPARK_COUNT = 16;
 const DIVINE_CHARGE_SPARK_FRAME_DURATION = 0.06;
 const DIVINE_CHARGE_SPARK_SCALE = 1.5;
 const DIVINE_CHARGE_SPARK_OFFSET = 18;
-const MELEE_SWOOSH_PATH = "assets/sprites/pastor/actions/swoosh.png";
+const MELEE_SWOOSH_PATH = "assets/sprites/projectiles/blast/blast.png";
 const WISDOM_FRAME_START = 9;
 const WISDOM_FRAME_END = 18;
 const WISDOM_FRAME_SOURCES = Array.from(
@@ -6882,9 +6882,12 @@ async function loadCozyNpcAssets(cache) {
   const mapHurtFilename = (filename) =>
     NPC_HURT_FILENAME_OVERRIDES[filename] || filename.replace("_walk.png", "_hurt.png");
 
-  const baseWalk = await loadCachedImage(cache, `${NPC_WALK_ROOT}/${NPC_BASE_VARIANT}`);
-  const baseHurt = await loadCachedImage(cache, `${NPC_COZY_HURT_ROOT}/${NPC_BASE_HURT_VARIANT}`);
-  const eyes = await loadCachedImage(cache, `${NPC_WALK_ROOT}/eyes/${NPC_EYE_LAYER}`);
+  let baseWalk = null;
+  let baseHurt = null;
+  let eyes = null;
+  try { baseWalk = await loadCachedImage(cache, `${NPC_WALK_ROOT}/${NPC_BASE_VARIANT}`); } catch (_e) {}
+  try { baseHurt = await loadCachedImage(cache, `${NPC_COZY_HURT_ROOT}/${NPC_BASE_HURT_VARIANT}`); } catch (_e) {}
+  try { eyes = await loadCachedImage(cache, `${NPC_WALK_ROOT}/eyes/${NPC_EYE_LAYER}`); } catch (_e) {}
 
   const loadVariantGroup = async (folder, filenames) => {
     const walkRoot = `${NPC_WALK_ROOT}/${folder}`;
@@ -6976,13 +6979,18 @@ async function loadCozyNpcAssets(cache) {
       return { walk: walkMap, hurt: hurtMap };
     }
 
-    const walkEntries = await Promise.all(
+    const walkEntriesRaw = await Promise.all(
       filenames.map(async (filename) => {
         const src = `${walkRoot}/${filename}`;
-        const image = await loadCachedImage(cache, src);
-        return [makeWalkKey(filename), image];
+        try {
+          const image = await loadCachedImage(cache, src);
+          return [makeWalkKey(filename), image];
+        } catch (_e) {
+          return null;
+        }
       }),
     );
+    const walkEntries = walkEntriesRaw.filter(Boolean);
     const walkMap = Object.fromEntries(walkEntries);
 
     const hurtEntries = await Promise.all(
@@ -7104,11 +7112,50 @@ async function loadCoinAssets(cache) {
 }
 
 async function loadPlayerAssets(cache, assets) {
-  const playerEntries = Object.entries(ASSET_MANIFEST.player).map(
-    async ([key, def]) => {
+  const buildFallbackClip = (baseDef = {}, key = "idle") => {
+    const frameWidth = Math.max(1, Number(baseDef.frameWidth) || 64);
+    const frameHeight = Math.max(1, Number(baseDef.frameHeight) || 64);
+    const frameMap =
+      Array.isArray(baseDef.frameMap) && baseDef.frameMap.length
+        ? baseDef.frameMap.slice()
+        : [0];
+    const frameCount = Math.max(1, frameMap.length);
+    const canvas = document.createElement("canvas");
+    canvas.width = frameWidth * frameCount;
+    canvas.height = frameHeight;
+    const c = canvas.getContext("2d");
+    if (c) {
+      c.imageSmoothingEnabled = false;
+      for (let i = 0; i < frameCount; i += 1) {
+        const x = i * frameWidth;
+        c.fillStyle = i % 2 === 0 ? "#6aa7ff" : "#93c0ff";
+        c.fillRect(x, 0, frameWidth, frameHeight);
+        c.fillStyle = "#102238";
+        c.fillRect(
+          x + Math.floor(frameWidth * 0.2),
+          Math.floor(frameHeight * 0.2),
+          Math.floor(frameWidth * 0.6),
+          Math.floor(frameHeight * 0.6),
+        );
+      }
+    }
+    return {
+      image: canvas,
+      frameWidth,
+      frameHeight,
+      frameRate: Number(baseDef.frameRate) || (key === "walk" ? 10 : 8),
+      loop: baseDef.loop !== false,
+      frameMap,
+      renderScale: Number(baseDef.renderScale) || 1,
+    };
+  };
+  const playerEntries = Object.entries(ASSET_MANIFEST.player).map(async ([key, def]) => {
+    try {
       assets.player[key] = await loadAnimationClip(def, cache);
-    },
-  );
+    } catch (_e) {
+      assets.player[key] = buildFallbackClip(def, key);
+    }
+  });
   await Promise.all(playerEntries);
 }
 

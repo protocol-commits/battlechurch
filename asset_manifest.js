@@ -46,7 +46,7 @@
 
   function build(config = {}) {
     const {
-      playerSpritePath = "assets/sprites/pastor/characters/",
+      playerSpritePath = "assets/sprites/npcs/mana-seed/",
       projectilePath = "assets/sprites/projectiles/",
       magicPackRoot = "assets/sprites/projectiles",
       heartProjectileSrc = "assets/sprites/items/Weapons/W43_Recurve_Bow.png",
@@ -195,9 +195,9 @@
           loop: false,
         },
         divine_shot: {
-          src: `assets/sprites/pastor/actions/swoosh.png`,
-          frameWidth: 200,
-          frameHeight: 200,
+          src: `assets/sprites/projectiles/blast/blast.png`,
+          frameWidth: 64,
+          frameHeight: 64,
           frameRate: 0,
           loop: false,
         },
