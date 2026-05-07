@@ -384,7 +384,11 @@
         }
         player._paperdollProjectilePrevFrame = animatorFrame;
       }
-      if (player.state === "attackMagic") {
+      const perseveranceProjectileActive =
+        player.state === "attackArrow" &&
+        typeof player?.isArrowExtendProjectileBuffActive === "function" &&
+        player.isArrowExtendProjectileBuffActive();
+      if (player.state === "attackMagic" || perseveranceProjectileActive) {
         return player._paperdollProjectileAlt
           ? PROJECTILE_POWERUP_PRESET_UP
           : PROJECTILE_POWERUP_PRESET_DOWN;
