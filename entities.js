@@ -582,10 +582,31 @@
     if (!path) return;
     const img = getPaperdollImage(path);
     if (!img || !img.complete || !img.naturalWidth) return;
-    const FACE_SCALE = 1.2;
-    const faceW = Math.max(8, Number(customFace.width || 22)) * FACE_SCALE;
-    const faceH = Math.max(8, Number(customFace.height || 20)) * FACE_SCALE;
-    const offsetX = Number(customFace.offsetX || 0);
+    const FACE_SCALE = 1.44;
+    // In-game world scale can make photo faces read as squashed/small compared to preview.
+    // Apply a mild compensation only when WORLD_SCALE < 1 so gameplay matches editor closer.
+    const worldScale =
+      Number.isFinite(settings?.WORLD_SCALE) && settings.WORLD_SCALE > 0
+        ? settings.WORLD_SCALE
+        : 1;
+    const worldFaceCompensation =
+      worldScale < 1 ? Math.min(1.25, 1 / worldScale) : 1;
+    const faceW =
+      Math.max(8, Number(customFace.width || 22)) *
+      FACE_SCALE *
+      worldFaceCompensation;
+    const faceH =
+      Math.max(8, Number(customFace.height || 20)) *
+      FACE_SCALE *
+      worldFaceCompensation;
+    const offsetXNorthSouth = Number(customFace.offsetXNorthSouth ?? customFace.offsetX ?? 0);
+    const offsetXEastWestBase = Number(customFace.offsetXEastWest ?? customFace.offsetX ?? 0);
+    const offsetX =
+      facing === "east"
+        ? offsetXEastWestBase
+        : facing === "west"
+          ? -offsetXEastWestBase
+          : offsetXNorthSouth;
     const offsetY = Number(customFace.offsetY || -12);
     const flipSideForEast = customFace.flipSideForEast !== false;
     const invertSideDirections = Boolean(customFace.invertSideDirections);

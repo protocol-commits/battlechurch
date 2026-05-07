@@ -138,6 +138,8 @@
       sideName: "",
       backName: "",
       offsetX: 0,
+      offsetXNorthSouth: 0,
+      offsetXEastWest: 0,
       offsetY: -12,
       width: 22,
       height: 20,
@@ -625,6 +627,8 @@
         customFace: {
           enabled: Boolean(face.enabled),
           offsetX: Number(face.offsetX || 0),
+          offsetXNorthSouth: Number(face.offsetXNorthSouth ?? face.offsetX ?? 0),
+          offsetXEastWest: Number(face.offsetXEastWest ?? face.offsetX ?? 0),
           offsetY: Number(face.offsetY || -12),
           width: Math.max(8, Number(face.width || 22)),
           height: Math.max(8, Number(face.height || 20)),
@@ -660,6 +664,8 @@
       customFace: {
         enabled: Boolean(state.customFace.enabled),
         offsetX: Number(state.customFace.offsetX || 0),
+        offsetXNorthSouth: Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0),
+        offsetXEastWest: Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0),
         offsetY: Number(state.customFace.offsetY || -12),
         width: Math.max(8, Number(state.customFace.width || 22)),
         height: Math.max(8, Number(state.customFace.height || 20)),
@@ -755,6 +761,8 @@
       sideName: state.customFace.sideName || "",
       backName: state.customFace.backName || "",
       offsetX: Number(state.customFace.offsetX || 0),
+      offsetXNorthSouth: Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0),
+      offsetXEastWest: Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0),
       offsetY: Number(state.customFace.offsetY || -12),
       width: Math.max(8, Number(state.customFace.width || 22)),
       height: Math.max(8, Number(state.customFace.height || 20)),
@@ -778,6 +786,8 @@
     state.customFace.sideName = profile.sideName || "";
     state.customFace.backName = profile.backName || "";
     state.customFace.offsetX = Number(profile.offsetX || 0);
+    state.customFace.offsetXNorthSouth = Number(profile.offsetXNorthSouth ?? profile.offsetX ?? 0);
+    state.customFace.offsetXEastWest = Number(profile.offsetXEastWest ?? profile.offsetX ?? 0);
     state.customFace.offsetY = Number(profile.offsetY || -12);
     state.customFace.width = Math.max(8, Number(profile.width || 22));
     state.customFace.height = Math.max(8, Number(profile.height || 20));
@@ -990,10 +1000,16 @@
         </label>
       </div>
       <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face X</div>
-        ${buttonHtml("face-x-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetX || 0)}</div>
-        ${buttonHtml("face-x-up", "▶")}
+        <div style="opacity:.85;">Face X N/S</div>
+        ${buttonHtml("face-xns-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0)}</div>
+        ${buttonHtml("face-xns-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face X E/W</div>
+        ${buttonHtml("face-xew-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0)}</div>
+        ${buttonHtml("face-xew-up", "▶")}
       </div>
       <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
         <div style="opacity:.85;">Face Y</div>
@@ -1106,10 +1122,16 @@
         </label>
       </div>
       <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face X</div>
-        ${buttonHtml("face-x-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetX || 0)}</div>
-        ${buttonHtml("face-x-up", "▶")}
+        <div style="opacity:.85;">Face X N/S</div>
+        ${buttonHtml("face-xns-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0)}</div>
+        ${buttonHtml("face-xns-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face X E/W</div>
+        ${buttonHtml("face-xew-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0)}</div>
+        ${buttonHtml("face-xew-up", "▶")}
       </div>
       <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
         <div style="opacity:.85;">Face Y</div>
@@ -1413,10 +1435,16 @@
       const layerKey = action.slice("layer-toggle:".length);
       if (state.uiMode === "customize") return;
       if (layerKey in state.layerVisible) state.layerVisible[layerKey] = !state.layerVisible[layerKey];
-    } else if (action === "face-x-down") {
-      state.customFace.offsetX = Math.max(-24, Number(state.customFace.offsetX || 0) - 1);
-    } else if (action === "face-x-up") {
-      state.customFace.offsetX = Math.min(24, Number(state.customFace.offsetX || 0) + 1);
+    } else if (action === "face-xns-down") {
+      state.customFace.offsetXNorthSouth = Math.max(-24, Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0) - 1);
+      state.customFace.offsetX = Number(state.customFace.offsetXNorthSouth || 0);
+    } else if (action === "face-xns-up") {
+      state.customFace.offsetXNorthSouth = Math.min(24, Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0) + 1);
+      state.customFace.offsetX = Number(state.customFace.offsetXNorthSouth || 0);
+    } else if (action === "face-xew-down") {
+      state.customFace.offsetXEastWest = Math.max(-24, Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0) - 1);
+    } else if (action === "face-xew-up") {
+      state.customFace.offsetXEastWest = Math.min(24, Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0) + 1);
     } else if (action === "face-y-down") {
       state.customFace.offsetY = Math.max(-32, Number(state.customFace.offsetY || 0) - 1);
     } else if (action === "face-y-up") {
@@ -1569,10 +1597,16 @@
     if (!state.customFace.enabled) return;
     const img = faceImageForFacing();
     if (!img || !img.complete || !img.naturalWidth) return;
-    const FACE_SCALE = 1.2;
+    const FACE_SCALE = 1.44;
     const w = Math.max(8, Number(state.customFace.width || 22)) * FACE_SCALE;
     const h = Math.max(8, Number(state.customFace.height || 20)) * FACE_SCALE;
-    const ox = Number(state.customFace.offsetX || 0);
+    const facing = FACING_KEYS[state.facingIndex] || "south";
+    const xNs = Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0);
+    const xEwBase = Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0);
+    const ox =
+      facing === "east" ? xEwBase
+      : facing === "west" ? -xEwBase
+      : xNs;
     const oy = Number(state.customFace.offsetY || -12);
     const mirror = shouldMirrorFaceForFacing();
     ctx.save();
@@ -1897,6 +1931,8 @@
         sideName: state.customFace.sideName || "",
         backName: state.customFace.backName || "",
         offsetX: Number(state.customFace.offsetX || 0),
+        offsetXNorthSouth: Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0),
+        offsetXEastWest: Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0),
         offsetY: Number(state.customFace.offsetY || 0),
         width: Math.max(8, Number(state.customFace.width || 22)),
         height: Math.max(8, Number(state.customFace.height || 20)),
@@ -2149,6 +2185,8 @@
       state.customFace.sideName = cfg.customFace.sideName || "";
       state.customFace.backName = cfg.customFace.backName || "";
       state.customFace.offsetX = Number(cfg.customFace.offsetX || 0);
+      state.customFace.offsetXNorthSouth = Number(cfg.customFace.offsetXNorthSouth ?? cfg.customFace.offsetX ?? 0);
+      state.customFace.offsetXEastWest = Number(cfg.customFace.offsetXEastWest ?? cfg.customFace.offsetX ?? 0);
       state.customFace.offsetY = Number(cfg.customFace.offsetY || -12);
       state.customFace.width = Math.max(8, Number(cfg.customFace.width || 22));
       state.customFace.height = Math.max(8, Number(cfg.customFace.height || 20));
