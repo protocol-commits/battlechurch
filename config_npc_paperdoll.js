@@ -42,7 +42,9 @@
         "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
         "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
         "Clothes Male/Chest/Base_character_Male_King_Cloak.png",
-        "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png"
+        "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png",
+        "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Blue.png",
+        "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Red.png"
       ]
     },
     "hair": {
@@ -83,7 +85,7 @@
     "direction": "front",
     "speed": 1,
     "loop": true,
-    "frame": 2,
+    "frame": 0,
     "layers": {
       "base": {
         "visible": true,
@@ -95,7 +97,7 @@
       },
       "chest": {
         "visible": true,
-        "asset": "Clothes Male/Chest/Base_character_Male_Shirt_with_Vest_RED_Elegant.png"
+        "asset": "Clothes Male/Chest/Base_character_Male_Shirt_beige.png"
       },
       "hair": {
         "visible": true,
@@ -134,7 +136,9 @@
           "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
           "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
           "Clothes Male/Chest/Base_character_Male_King_Cloak.png",
-          "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png"
+          "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png",
+          "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Blue.png",
+          "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Red.png"
         ]
       },
       "hair": {

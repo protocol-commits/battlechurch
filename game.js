@@ -16280,6 +16280,11 @@ function applyShadowCrushToNpcSheet(context2d, width, height, renderStyle) {
 
 function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {
   const catalog = (NPC_PIXEL_LAYER_CATALOG[gender]?.[layerKey] || []).slice();
+  const includeMaleLegsForFemale = gender === "female" && layerKey === "legs";
+  if (includeMaleLegsForFemale) {
+    const maleLegs = NPC_PIXEL_LAYER_CATALOG?.male?.legs || [];
+    catalog.push(...maleLegs);
+  }
   const set = new Set([...catalog, ...(Array.isArray(seed) ? seed : [])].filter(Boolean));
   const full = [...set];
   const poolDef = config?.assetPool?.[layerKey] || null;
@@ -16291,6 +16296,24 @@ function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {
   }
   if (!pool.length) {
     pool = full.filter((t) => (layerKey === "hair" || layerKey === "chest" || layerKey === "legs") ? t !== "none" : true);
+  }
+  if (includeMaleLegsForFemale) {
+    const maleLegSet = new Set(NPC_PIXEL_LAYER_CATALOG?.male?.legs || []);
+    const maleTokens = pool.filter((t) => maleLegSet.has(t));
+    const femaleTokens = pool.filter((t) => !maleLegSet.has(t));
+    if (maleTokens.length && femaleTokens.length) {
+      // Weight male-leg picks to roughly a 2:1 ratio versus female-leg picks.
+      const weightedPool = [];
+      const maleRepeat = Math.max(1, femaleTokens.length * 2);
+      const femaleRepeat = Math.max(1, maleTokens.length);
+      maleTokens.forEach((token) => {
+        for (let i = 0; i < maleRepeat; i += 1) weightedPool.push(token);
+      });
+      femaleTokens.forEach((token) => {
+        for (let i = 0; i < femaleRepeat; i += 1) weightedPool.push(token);
+      });
+      pool = weightedPool;
+    }
   }
   return pool;
 }
