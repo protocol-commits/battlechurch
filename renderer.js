@@ -7829,7 +7829,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           );
         }
       } else {
-        ctx.drawImage(missionIntroImage, 0, 0, canvas.width, canvas.height);
+        // Preserve image aspect ratio for non-Act-1 mission intro backgrounds.
+        drawCoverImage(ctx, canvas, missionIntroImage, 1, 0.5, 0.5);
       }
       ctx.restore();
     } else {
