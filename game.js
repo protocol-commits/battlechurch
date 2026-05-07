@@ -5459,6 +5459,11 @@ const NPC_BASE_HURT_VARIANT = "char1_hurt.png";
 const NPC_HURT_FRAME_DURATION = 0.18;
 const NPC_PIXEL_FRAME_WIDTH = 34;
 const NPC_PIXEL_FRAME_HEIGHT = 36;
+const NPC_PIXEL_SWING_ROW_BASE = 9;
+const NPC_PIXEL_SWING_FRAME_COUNT = 4;
+const NPC_PIXEL_SWING_FRAME_DURATION = 0.095;
+const NPC_FIRE_SWING_VISUAL_DURATION =
+  NPC_PIXEL_SWING_FRAME_COUNT * NPC_PIXEL_SWING_FRAME_DURATION + 0.02;
 const NPC_MAX_FAITH = 100;
 const NPC_FAITH_DRAIN_RATE = 14;
 const NPC_FAITH_RECOVERY_PER_COIN = 22;
@@ -13005,6 +13010,9 @@ class CozyNpc {
     this.damageFlashTimer = 0;
     this.damageCooldown = 0;
     this.projectileGlowTimer = 0;
+    this.attackVisualTimer = 0;
+    this.attackVisualDirX = 0;
+    this.attackVisualDirY = 1;
     this.knockbackVx = 0;
     this.knockbackVy = 0;
     this.knockbackTimer = 0;
@@ -13305,6 +13313,9 @@ class CozyNpc {
       shotOverrides.ignoreProjectileResistance = true;
     }
     spawnProjectile(shotType, this.x, this.y, dir.x, dir.y, shotOverrides);
+    this.attackVisualTimer = Math.max(this.attackVisualTimer || 0, NPC_FIRE_SWING_VISUAL_DURATION);
+    this.attackVisualDirX = dir.x;
+    this.attackVisualDirY = dir.y;
     if (weaponMode === "arrow" && typeof playDefaultArrowSfx === "function") {
       playDefaultArrowSfx(0.55);
     }
@@ -13465,6 +13476,7 @@ class CozyNpc {
       this.faithBarTimer = Math.max(0, (this.faithBarTimer || 0) - dt * timerScale);
       this.damageFlashTimer = Math.max(0, this.damageFlashTimer - dt);
       this.projectileGlowTimer = Math.max(0, (this.projectileGlowTimer || 0) - dt);
+      this.attackVisualTimer = Math.max(0, (this.attackVisualTimer || 0) - dt);
       if (this.faithDamageFlash?.timer > 0) {
         this.faithDamageFlash.timer = Math.max(0, this.faithDamageFlash.timer - dt);
       }
@@ -13476,24 +13488,25 @@ class CozyNpc {
       if (this.statusBubbleTimer <= 0) this.clearStatusBubble();
     }
 
+    const attackVisualActive = (this.attackVisualTimer || 0) > 0;
     switch (this.state) {
       case "wander":
-        this.updateWander(dt);
+        this.updateWander(dt, { preserveAttackVisual: attackVisualActive });
         break;
       case "ensnared":
         this.updateEnsnared(dt);
         break;
       case "procession":
-        this.updateProcession(dt);
+        this.updateProcession(dt, { preserveAttackVisual: attackVisualActive });
         break;
       case "drained":
         this.updateDrained(dt);
         break;
       case "lostFaith":
-        this.updateLostFaith(dt);
+        this.updateLostFaith(dt, { preserveAttackVisual: attackVisualActive });
         break;
       case "returning":
-        this.updateReturning(dt);
+        this.updateReturning(dt, { preserveAttackVisual: attackVisualActive });
         break;
       default:
         break;
@@ -13515,16 +13528,23 @@ class CozyNpc {
     const movedDy = this.y - frameStartY;
     const movedDistance = Math.hypot(movedDx, movedDy);
     const hasMeaningfulMovement = movedDistance > 0.05;
-    this.animator.setMoving(hasMeaningfulMovement);
-    if (hasMeaningfulMovement) {
-      this.animator.setDirectionFromVector(movedDx, movedDy);
+    if (attackVisualActive) {
+      this.animator.setState("attack", { restart: this.animator.getState() !== "attack" });
+      this.animator.setMoving(false);
+      this.animator.setDirectionFromVector(this.attackVisualDirX || 0, this.attackVisualDirY || 1);
+    } else {
+      this.animator.setMoving(hasMeaningfulMovement);
+      if (hasMeaningfulMovement) {
+        this.animator.setDirectionFromVector(movedDx, movedDy);
+      }
     }
 
     this.animator.update(dt);
   }
 
-  updateProcession(dt) {
-    this.animator.setState("walk");
+  updateProcession(dt, options = {}) {
+    const preserveAttackVisual = Boolean(options?.preserveAttackVisual);
+    if (!preserveAttackVisual) this.animator.setState("walk");
     const target = this.processionTarget || this.getReturnPoint();
     if (!target) {
       this.resumeWander();
@@ -13542,15 +13562,18 @@ class CozyNpc {
     const speed = this.processionSpeed || this.speed;
     this.x += dirX * speed * dt;
     this.y += dirY * speed * dt;
-    this.animator.setDirectionFromVector(dirX, dirY);
-    this.animator.setMoving(true);
+    if (!preserveAttackVisual) {
+      this.animator.setDirectionFromVector(dirX, dirY);
+      this.animator.setMoving(true);
+    }
     resolveEntityObstacles(this);
     clampEntityToBounds(this);
     this.updateFaithVisibility(false);
   }
 
-  updateWander(dt) {
-    this.animator.setState("walk");
+  updateWander(dt, options = {}) {
+    const preserveAttackVisual = Boolean(options?.preserveAttackVisual);
+    if (!preserveAttackVisual) this.animator.setState("walk");
     this.patrolClock = (this.patrolClock || 0) + dt * 1.45;
     if ((this.formationWarmupTimer || 0) > 0 && this.formationAnchor) {
       this.formationWarmupTimer = Math.max(0, this.formationWarmupTimer - dt);
@@ -13558,7 +13581,7 @@ class CozyNpc {
       this.y = this.formationAnchor.y;
       this.target = { x: this.x, y: this.y };
       this.zoneMoveMode = "frontline";
-      this.animator.setMoving(false);
+      if (!preserveAttackVisual) this.animator.setMoving(false);
       this.updateFaithVisibility(false);
       return;
     }
@@ -13582,7 +13605,7 @@ class CozyNpc {
         ? threatRetreatTarget
         : getNpcFrontlineDesiredPoint(this);
     if (!this.target) {
-      this.animator.setMoving(false);
+      if (!preserveAttackVisual) this.animator.setMoving(false);
       this.updateFaithVisibility(false);
       return;
     }
@@ -13604,8 +13627,10 @@ class CozyNpc {
     const movementSpeed = this.speed * (this.zoneMoveMode === "retreat" ? 1.3 : 1.04);
     this.x += dirX * movementSpeed * dt;
     this.y += dirY * movementSpeed * dt;
-    this.animator.setDirectionFromVector(dirX, dirY);
-    this.animator.setMoving(true);
+    if (!preserveAttackVisual) {
+      this.animator.setDirectionFromVector(dirX, dirY);
+      this.animator.setMoving(true);
+    }
 
     resolveEntityObstacles(this);
     clampEntityToBounds(this);
@@ -13690,9 +13715,10 @@ class CozyNpc {
     this.updateFaithVisibility(true);
   }
 
-  updateLostFaith(dt) {
-    this.animator.setState("walk");
-    this.animator.setMoving(true);
+  updateLostFaith(dt, options = {}) {
+    const preserveAttackVisual = Boolean(options?.preserveAttackVisual);
+    if (!preserveAttackVisual) this.animator.setState("walk");
+    if (!preserveAttackVisual) this.animator.setMoving(true);
     this.updateFaithVisibility(true);
     if (!this.exitTarget) this.exitTarget = this.getExitPoint();
     const prevX = this.x;
@@ -13702,7 +13728,7 @@ class CozyNpc {
     const distance = Math.hypot(dx, dy) || 1;
     const dirX = dx / distance;
     const dirY = dy / distance;
-    this.animator.setDirectionFromVector(dirX, dirY);
+    if (!preserveAttackVisual) this.animator.setDirectionFromVector(dirX, dirY);
     this.x += dirX * (this.speed * 0.92) * dt;
     this.y += dirY * (this.speed * 0.92) * dt;
     const margin = 160;
@@ -13733,8 +13759,9 @@ class CozyNpc {
     }
   }
 
-  updateReturning(dt) {
-    this.animator.setState("walk");
+  updateReturning(dt, options = {}) {
+    const preserveAttackVisual = Boolean(options?.preserveAttackVisual);
+    if (!preserveAttackVisual) this.animator.setState("walk");
     if (!this.returnTarget) this.returnTarget = this.getReturnPoint();
     const dx = this.returnTarget.x - this.x;
     const dy = this.returnTarget.y - this.y;
@@ -13746,8 +13773,10 @@ class CozyNpc {
     }
     const dirX = dx / distance;
     const dirY = dy / distance;
-    this.animator.setDirectionFromVector(dirX, dirY);
-    this.animator.setMoving(true);
+    if (!preserveAttackVisual) {
+      this.animator.setDirectionFromVector(dirX, dirY);
+      this.animator.setMoving(true);
+    }
     this.x += dirX * this.speed * dt;
     this.y += dirY * this.speed * dt;
     resolveEntityObstacles(this);
@@ -16235,12 +16264,20 @@ function createNpcPixelAppearance(gender = null) {
     picks[layerKey] = randomChoice(pool) || pool[0] || "none";
   }
   const walkLayers = [];
+  const swingLayers = [];
   for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
     if (layerKey === "weapon") continue;
     // Walk animation rows in this pack start after idle rows.
     const walkRowBase = 3;
     const sheet = composeNpcPixelLayerSheet([picks[layerKey]], sourceImages, walkRowBase, renderStyle);
     if (sheet) walkLayers.push(sheet);
+    const swingSheet = composeNpcPixelLayerSheet(
+      [picks[layerKey]],
+      sourceImages,
+      NPC_PIXEL_SWING_ROW_BASE,
+      renderStyle,
+    );
+    if (swingSheet) swingLayers.push(swingSheet);
   }
   if (!walkLayers.length) return null;
   return {
@@ -16259,6 +16296,14 @@ function createNpcPixelAppearance(gender = null) {
         framesPerDirection: 1,
         frameWidth: NPC_PIXEL_FRAME_WIDTH,
         frameHeight: NPC_PIXEL_FRAME_HEIGHT,
+      },
+      attack: {
+        layers: swingLayers.length ? swingLayers : walkLayers,
+        frameDuration: NPC_PIXEL_SWING_FRAME_DURATION,
+        framesPerDirection: NPC_PIXEL_SWING_FRAME_COUNT,
+        frameWidth: NPC_PIXEL_FRAME_WIDTH,
+        frameHeight: NPC_PIXEL_FRAME_HEIGHT,
+        animateWhenIdle: true,
       },
     },
   };
