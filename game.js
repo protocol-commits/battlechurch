@@ -17479,7 +17479,7 @@ function assignCongregationTarget(member, { immediate = false } = {}) {
   if (!congregationWanderBounds) return;
   member.targetX = randomInRange(congregationWanderBounds.minX, congregationWanderBounds.maxX);
   member.targetY = randomInRange(congregationWanderBounds.minY, congregationWanderBounds.maxY);
-  member.wanderPause = immediate ? 0 : randomInRange(0.6, 1.8);
+  member.wanderPause = immediate ? 0 : randomInRange(0.18, 0.65);
 }
 
 function updateCongregationMembers(dt) {
@@ -17494,6 +17494,26 @@ function updateCongregationMembers(dt) {
     const dx = (member.targetX ?? member.baseX) - member.baseX;
     const dy = (member.targetY ?? member.baseY) - member.baseY;
     const dist = Math.hypot(dx, dy);
+    // Randomly insert brief idle breaks while wandering so members don't move nonstop.
+    member.idleBreakTimer = Math.max(0, (member.idleBreakTimer || 0) - dt);
+    if (member.wanderPause <= 0 && dist > 10 && member.idleBreakTimer <= 0) {
+      if (Math.random() < 0.14) {
+        member.wanderPause = randomInRange(2.8, 4.6);
+        member.idleBreakTimer = randomInRange(2.2, 4.2);
+      } else {
+        member.idleBreakTimer = randomInRange(0.45, 1.1);
+      }
+    }
+    // Periodically retarget while moving so members naturally change direction more often.
+    member.retargetTimer = Math.max(0, (member.retargetTimer || 0) - dt);
+    if (member.wanderPause <= 0 && dist > 18 && member.retargetTimer <= 0) {
+      if (Math.random() < 0.22) {
+        assignCongregationTarget(member, { immediate: true });
+        member.retargetTimer = randomInRange(0.45, 0.95);
+      } else {
+        member.retargetTimer = randomInRange(0.25, 0.6);
+      }
+    }
     if (member.wanderPause <= 0 && dist > 2) {
       const step = Math.min(dist, (member.speed || 28) * dt);
       const nx = dx / dist;
@@ -17511,7 +17531,7 @@ function updateCongregationMembers(dt) {
       member.animator.setDirectionFromVector(movedDx, movedDy);
     }
     member.x = member.baseX;
-    member.y = member.baseY + Math.sin(member.bobTimer) * 4;
+    member.y = member.baseY + (isMoving ? Math.sin(member.bobTimer) * 4 : 0);
   });
 }
 
@@ -17583,6 +17603,10 @@ function clampToWanderBounds(member) {
   member.baseY = Math.max(congregationWanderBounds.minY, Math.min(congregationWanderBounds.maxY, member.baseY));
 }
 
+function getCongregationBobOffset(member) {
+  return member?.animator?.moving ? Math.sin(member.bobTimer) * 4 : 0;
+}
+
 function resolveCongregationCollisions() {
   if (!player || !congregationMembers.length) return;
   const playerRadius = player.radius || 24;
@@ -17608,7 +17632,7 @@ function resolveCongregationCollisions() {
       member.baseY -= ny * overlap * 0.35;
       clampToWanderBounds(member);
       member.x = member.baseX;
-      member.y = member.baseY + Math.sin(member.bobTimer) * 4;
+      member.y = member.baseY + getCongregationBobOffset(member);
     }
   });
 }
@@ -17643,11 +17667,11 @@ function resolveCongregationMemberCollisions() {
       }
     }
     a.x = a.baseX;
-    a.y = a.baseY + Math.sin(a.bobTimer) * 4;
+    a.y = a.baseY + getCongregationBobOffset(a);
   }
   const last = congregationMembers[count - 1];
   last.x = last.baseX;
-  last.y = last.baseY + Math.sin(last.bobTimer) * 4;
+  last.y = last.baseY + getCongregationBobOffset(last);
 }
 
 function getNextCongregationDialogueLine() {
