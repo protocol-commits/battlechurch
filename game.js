@@ -4167,7 +4167,7 @@ const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
 const LOG_NPC_FAITH_BAR = false;
 const ENEMY_SHADOW_CRUSH = Math.max(
   0,
-  Math.min(1, Number(_gb("enemyRenderStyle.shadowCrush", 0.75)) || 0),
+  Math.min(1, Number(_gb("enemyRenderStyle.shadowCrush", 0.52)) || 0),
 );
 const ENEMY_SHADOW_THRESHOLD = Math.max(
   0.02,
@@ -4175,7 +4175,7 @@ const ENEMY_SHADOW_THRESHOLD = Math.max(
 );
 const ARENA_BG_SHADOW_CRUSH = Math.max(
   0,
-  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowCrush", 0.75)) || 0),
+  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowCrush", 0.5)) || 0),
 );
 const ARENA_BG_SHADOW_THRESHOLD = Math.max(
   0.02,
@@ -4183,7 +4183,7 @@ const ARENA_BG_SHADOW_THRESHOLD = Math.max(
 );
 const TITLE_BG_SHADOW_CRUSH = Math.max(
   0,
-  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowCrush", 0.6)) || 0.6),
+  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowCrush", 0.42)) || 0.42),
 );
 const TITLE_BG_SHADOW_THRESHOLD = Math.max(
   0.02,

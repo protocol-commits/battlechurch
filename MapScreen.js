@@ -11,7 +11,7 @@
     body: "#E7B066",
     dim: "rgba(231, 176, 102, 0.68)",
   });
-  const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0.6;
+  const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0.42;
   const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.7;
 
   let mapImage = null;
