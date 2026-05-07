@@ -7121,8 +7121,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const WAVE_ATMOSPHERE_CONFIG = Object.freeze({
     assumedWavesPerBattle: 3,
     tintMinAlpha: 0.12,
-    tintMaxAlpha: 0.32,
-    bossPhase3TintMaxAlpha: 0.42,
+    tintMaxAlpha: 0.22,
+    bossPhase3TintMaxAlpha: 0.32,
     tintColor: "rgba(165, 14, 22, 1)",
     emberMinAlpha: 0.06,
     emberMaxAlpha: 0.24,

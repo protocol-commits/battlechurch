@@ -18,10 +18,6 @@
     "policy": "include-first-else-exclude",
     "previewCount": 10
   },
-  "renderStyle": {
-    "shadowCrush": 1.0,
-    "shadowThreshold": 0.75
-  },
   "assetPool": {
     "base": {
       "mode": "exclude",
@@ -45,14 +41,16 @@
         "Clothes Male/Chest/Base_character_Male_Knight_Cape.png",
         "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
         "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
-        "Clothes Male/Chest/Base_character_Male_King_Cloak.png"
+        "Clothes Male/Chest/Base_character_Male_King_Cloak.png",
+        "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png"
       ]
     },
     "hair": {
       "mode": "exclude",
       "include": [],
       "exclude": [
-        "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png"
+        "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png",
+        "Hair Female/Base_character_Female_Hair_Queen_Crown_Bun.png"
       ]
     },
     "head": {
@@ -67,7 +65,9 @@
         "Clothes Male/Head/Base_character_Male_King_Crown.png",
         "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
         "Clothes Female/Head/Base_character_Female_Crown.png",
-        "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png"
+        "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png",
+        "Clothes Female/Head/Base_character_Female_Hat_Light_Brown_Turqoiuse.png",
+        "Clothes Female/Head/Base_character_Female_Hat_White_red.png"
       ]
     },
     "weapon": {
@@ -80,10 +80,10 @@
     "gender": "male",
     "skinTone": "pale",
     "animation": "walk",
-    "direction": "back",
+    "direction": "front",
     "speed": 1,
     "loop": true,
-    "frame": 0,
+    "frame": 2,
     "layers": {
       "base": {
         "visible": true,
@@ -95,11 +95,11 @@
       },
       "chest": {
         "visible": true,
-        "asset": "Clothes Male/Chest/Base_character_Male_Knight_Cape.png"
+        "asset": "Clothes Male/Chest/Base_character_Male_Shirt_with_Vest_RED_Elegant.png"
       },
       "hair": {
         "visible": true,
-        "asset": "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png"
+        "asset": "none"
       },
       "head": {
         "visible": true,
@@ -133,14 +133,16 @@
           "Clothes Male/Chest/Base_character_Male_Knight_Cape.png",
           "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
           "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
-          "Clothes Male/Chest/Base_character_Male_King_Cloak.png"
+          "Clothes Male/Chest/Base_character_Male_King_Cloak.png",
+          "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png"
         ]
       },
       "hair": {
         "mode": "exclude",
         "include": [],
         "exclude": [
-          "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png"
+          "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png",
+          "Hair Female/Base_character_Female_Hair_Queen_Crown_Bun.png"
         ]
       },
       "head": {
@@ -155,7 +157,9 @@
           "Clothes Male/Head/Base_character_Male_King_Crown.png",
           "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
           "Clothes Female/Head/Base_character_Female_Crown.png",
-          "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png"
+          "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png",
+          "Clothes Female/Head/Base_character_Female_Hat_Light_Brown_Turqoiuse.png",
+          "Clothes Female/Head/Base_character_Female_Hat_White_red.png"
         ]
       },
       "weapon": {
