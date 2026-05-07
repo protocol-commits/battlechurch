@@ -5430,6 +5430,7 @@ const ARMORED_PROJECTILE_DEFLECT_ANGLE = Math.PI * 0.22;
 const ARMORED_PROJECTILE_DEFLECT_ANGLE_VARIANCE = Math.PI * 0.08;
 const ARMORED_PROJECTILE_DEFLECT_TYPES = new Set(["arrow"]);
 const NPC_COZY_ROOT = "assets/sprites/npcs";
+const NPC_PIXEL_LINE_ROOT = "assets/sprites/npcs/npcs-pixel-line";
 const NPC_WALK_ROOT = `${NPC_COZY_ROOT}/separate/walk`;
 const NPC_SHADOW_PATH = `${NPC_COZY_ROOT}/shadow.png`;
 const NPC_FRAME_WIDTH = 32;
@@ -5456,6 +5457,8 @@ const NPC_COZY_WALK_FRAME_COUNT = NPC_FRAMES_PER_DIRECTION;
 const NPC_COZY_HURT_ROOT = `${NPC_COZY_ROOT}/separate/hurt`;
 const NPC_BASE_HURT_VARIANT = "char1_hurt.png";
 const NPC_HURT_FRAME_DURATION = 0.18;
+const NPC_PIXEL_FRAME_WIDTH = 34;
+const NPC_PIXEL_FRAME_HEIGHT = 36;
 const NPC_MAX_FAITH = 100;
 const NPC_FAITH_DRAIN_RATE = 14;
 const NPC_FAITH_RECOVERY_PER_COIN = 22;
@@ -6918,6 +6921,50 @@ async function loadCozyNpcAssets(cache) {
     shadow = null;
   }
 
+  const npcPixelConfig = getNpcPixelConfig();
+  const pixelLineImages = new Map();
+  if (npcPixelConfig) {
+    const candidatePaths = new Set();
+    const addLayerAsset = (token) => {
+      const t = String(token || "").trim();
+      if (!t || t === "none") return;
+      candidatePaths.add(`${NPC_PIXEL_LINE_ROOT}/${t}`);
+    };
+    const addFromLayerObject = (layersObj) => {
+      if (!layersObj || typeof layersObj !== "object") return;
+      for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+        addLayerAsset(layersObj?.[layerKey]?.asset);
+      }
+    };
+    if (Array.isArray(npcPixelConfig.presets)) {
+      npcPixelConfig.presets.forEach((preset) => addFromLayerObject(preset?.layers));
+    }
+    addFromLayerObject(npcPixelConfig?.current?.layers);
+    const cfgPool = npcPixelConfig.assetPool || null;
+    if (cfgPool && typeof cfgPool === "object") {
+      for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+        const pool = cfgPool[layerKey] || {};
+        (pool.include || []).forEach(addLayerAsset);
+        (pool.exclude || []).forEach(addLayerAsset);
+      }
+    }
+    // Always include baseline catalog entries so random generation has usable pools.
+    Object.values(NPC_PIXEL_LAYER_CATALOG).forEach((byLayer) => {
+      Object.values(byLayer || {}).forEach((arr) => {
+        (arr || []).forEach((token) => addLayerAsset(token));
+      });
+    });
+    for (const fullPath of candidatePaths) {
+      try {
+        const img = await loadCachedImage(cache, fullPath);
+        const rel = fullPath.startsWith(`${NPC_PIXEL_LINE_ROOT}/`)
+          ? fullPath.slice(`${NPC_PIXEL_LINE_ROOT}/`.length)
+          : fullPath;
+        pixelLineImages.set(rel, img);
+      } catch (error) {}
+    }
+  }
+
   return {
     shadow,
     eyes,
@@ -6935,6 +6982,8 @@ async function loadCozyNpcAssets(cache) {
       clothes: clothingVariants.hurt,
       accessories: accessoryVariants.hurt,
     },
+    pixelLineConfig: npcPixelConfig || null,
+    pixelLineImages,
   };
 }
 
@@ -12772,14 +12821,16 @@ class CozyNpcAnimator {
     const outerAlpha = context.globalAlpha;
     const data = this.stateData;
     if (!data || !data.layers || !data.layers.length) return;
+    const frameWidth = Number.isFinite(data.frameWidth) && data.frameWidth > 0 ? data.frameWidth : this.frameWidth;
+    const frameHeight = Number.isFinite(data.frameHeight) && data.frameHeight > 0 ? data.frameHeight : this.frameHeight;
     const framesPerDirection = Math.max(1, data.framesPerDirection || 1);
     if (framesPerDirection <= 0) return;
     if (this.frameIndex >= framesPerDirection) this.frameIndex = 0;
     const rowIndex = NPC_DIRECTION_ROW_MAP[this.direction] ?? 0;
-    const sx = this.frameIndex * this.frameWidth;
-    const sy = rowIndex * this.frameHeight;
-    const drawWidth = this.frameWidth * this.scale;
-    const drawHeight = this.frameHeight * this.scale;
+    const sx = this.frameIndex * frameWidth;
+    const sy = rowIndex * frameHeight;
+    const drawWidth = frameWidth * this.scale;
+    const drawHeight = frameHeight * this.scale;
 
     if (this.shadow) {
       const shadowWidth = this.shadow.width * this.scale;
@@ -12807,8 +12858,8 @@ class CozyNpcAnimator {
         source,
         sx + offsetX,
         sy + offsetY,
-        this.frameWidth,
-        this.frameHeight,
+        frameWidth,
+        frameHeight,
         -drawWidth / 2,
         -drawHeight / 2,
         drawWidth,
@@ -12831,8 +12882,8 @@ class CozyNpcAnimator {
           source,
           sx + offsetX,
           sy + offsetY,
-          this.frameWidth,
-          this.frameHeight,
+          frameWidth,
+          frameHeight,
           -drawWidth / 2,
           -drawHeight / 2,
           drawWidth,
@@ -12861,8 +12912,17 @@ function captureNpcPortrait(npc) {
   animator.setState("walk", { restart: true });
   animator.setMoving(false);
   animator.setDirectionFromVector(0, 1);
-  const drawWidth = NPC_FRAME_WIDTH * baseScale;
-  const drawHeight = NPC_FRAME_HEIGHT * baseScale;
+  const walkData = appearance?.animations?.walk || null;
+  const portraitFrameWidth =
+    Number.isFinite(walkData?.frameWidth) && walkData.frameWidth > 0
+      ? walkData.frameWidth
+      : NPC_FRAME_WIDTH;
+  const portraitFrameHeight =
+    Number.isFinite(walkData?.frameHeight) && walkData.frameHeight > 0
+      ? walkData.frameHeight
+      : NPC_FRAME_HEIGHT;
+  const drawWidth = portraitFrameWidth * baseScale;
+  const drawHeight = portraitFrameHeight * baseScale;
   const size = Math.ceil(Math.max(drawWidth, drawHeight));
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -15911,7 +15971,232 @@ function getGenderedVariantBases(folder, gender) {
   return combined.map((entry) => entry.replace("_walk.png", "").replace(".png", ""));
 }
 
+const NPC_PIXEL_LAYER_ORDER = ["base", "legs", "chest", "hair", "head", "weapon"];
+const NPC_PIXEL_MALE_BASES = {
+  pale: "Base_character_Itchio_all_Male_Pale.png",
+  pinkish: "Base_character_Itchio_all_Male_Pinkish.png",
+  medium: "Base_character_Itchio_all_Male_medium.png",
+  tanned: "Base_character_Itchio_all_Male_tanned.png",
+  dark: "Base_character_Itchio_all_Male_dark.png",
+};
+const NPC_PIXEL_FEMALE_BASES = {
+  pale: "Base_character_Itchio_all_Female_Pale.png",
+  pinkish: "Base_character_Itchio_all_Female_Pinkish.png",
+  medium: "Base_character_Itchio_all_Female_Medium.png",
+  tanned: "Base_character_Itchio_all_Female_Tanned.png",
+  dark: "Base_character_Itchio_all_Female_Dark.png",
+};
+const NPC_PIXEL_LAYER_CATALOG = {
+  male: {
+    base: Object.values(NPC_PIXEL_MALE_BASES),
+    hair: [
+      "Hair Male/Base_character_Male_Short_Brown.png",
+      "Hair Male/Base_character_Male_Short_Dark_Blonde.png",
+      "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png",
+      "Hair Male/Base_character_Male_Hair_Blonde_with_beard.png",
+      "Hair Male/Base_character_Male_Old_Man_Hair_Elegant.png",
+    ],
+    head: [
+      "none",
+      "Clothes Male/Head/Base_character_Male_Hat_Adventurer.png",
+      "Clothes Male/Head/Base_character_Male_Hat_Wizard.png",
+      "Clothes Male/Head/Base_character_Male_Helmet_Knight_Closed.png",
+      "Clothes Male/Head/Base_character_Male_King_Crown.png",
+      "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
+    ],
+    chest: [
+      "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
+      "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png",
+      "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
+      "Clothes Male/Chest/Base_character_Male_King_Cloak.png",
+      "Clothes Male/Chest/Base_character_Male_Knight_Cape.png",
+      "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Blue.png",
+      "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Red.png",
+      "Clothes Male/Chest/Base_character_Male_Shirt_beige.png",
+      "Clothes Male/Chest/Base_character_Male_Shirt_with_Vest_RED_Elegant.png",
+      "Clothes Male/Chest/Base_character_Male_Shirt_with_Vest_brown.png",
+      "Clothes Male/Chest/Base_character_Male_Steel_Armor_Chest.png",
+    ],
+    legs: [
+      "Clothes Male/Pants/Base_character_Male_Pants_Fur_Pants.png",
+      "Clothes Male/Pants/Base_character_Male_Pants_Noble_Gold.png",
+      "Clothes Male/Pants/Base_character_Male_Pants_Peasant.png",
+      "Clothes Male/Pants/Base_character_Male_Pants_Villager.png",
+      "Clothes Male/Pants/Base_character_Male_Pants_Villager_red.png",
+      "Clothes Male/Pants/Base_character_Male_Steel_Armor_Legs.png",
+    ],
+    weapon: ["none"],
+  },
+  female: {
+    base: Object.values(NPC_PIXEL_FEMALE_BASES),
+    hair: [
+      "Hair Female/Base_character_Female_Hair_Bun_Peasant_Brown.png",
+      "Hair Female/Base_character_Female_Hair_Gray_Bun.png",
+      "Hair Female/Base_character_Female_Hair_Long_Blond_Glossy.png",
+      "Hair Female/Base_character_Female_Hair_Long_Purple_witchy.png",
+      "Hair Female/Base_character_Female_Hair_Long_Unisex_Black.png",
+      "Hair Female/Base_character_Female_Hair_Queen_Crown_Bun.png",
+      "Hair Female/Base_character_Female_Hair_Short_Pixie.png",
+    ],
+    head: [
+      "none",
+      "Clothes Female/Head/Base_character_Female_Crown.png",
+      "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png",
+      "Clothes Female/Head/Base_character_Female_Hat_Light_Brown_Turqoiuse.png",
+      "Clothes Female/Head/Base_character_Female_Hat_White_red.png",
+      "Clothes Female/Head/Base_character_Female_Hat_Witch.png",
+      "Clothes Female/Head/Base_character_Female_Spooky_Pumpkin.png",
+    ],
+    chest: [
+      "Clothes Female/Chest/Base_character_Female_Beige_Shirt_Adventurer.png",
+      "Clothes Female/Chest/Base_character_Female_Black_Cape.png",
+      "Clothes Female/Chest/Base_character_Female_Dress_Royal_Blue.png",
+      "Clothes Female/Chest/Base_character_Female_Fur_Armor_Chest.png",
+      "Clothes Female/Chest/Base_character_Female_Green_Ranger_Cape.png",
+      "Clothes Female/Chest/Base_character_Female_Peasant_Red_Shirt.png",
+      "Clothes Female/Chest/Base_character_Female_Peasant_White_Shirt.png",
+      "Clothes Female/Chest/Base_character_Female_Purple_Witch_Dress.png",
+      "Clothes Female/Chest/Base_character_Female_Villager_Pink_Skirt.png",
+    ],
+    legs: [
+      "Clothes Female/Legs/Base_character_Female_Fur_Armor_Pants.png",
+      "Clothes Female/Legs/Base_character_Female_Gold_Pants.png",
+      "Clothes Female/Legs/Base_character_Female_Pants_Peasant.png",
+      "Clothes Female/Legs/Base_character_Female_Pants_Villager.png",
+      "Clothes Female/Legs/Base_character_Female_Peasant_Skirt_with_Apron.png",
+    ],
+    weapon: ["none"],
+  },
+};
+
+function getNpcPixelConfig() {
+  const cfg =
+    typeof window !== "undefined" &&
+    window.BATTLECHURCH_NPC_PAPERDOLL &&
+    typeof window.BATTLECHURCH_NPC_PAPERDOLL === "object"
+      ? window.BATTLECHURCH_NPC_PAPERDOLL
+      : null;
+  return cfg;
+}
+
+function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {
+  const catalog = (NPC_PIXEL_LAYER_CATALOG[gender]?.[layerKey] || []).slice();
+  const set = new Set([...catalog, ...(Array.isArray(seed) ? seed : [])].filter(Boolean));
+  const full = [...set];
+  const poolDef = config?.assetPool?.[layerKey] || null;
+  const include = Array.isArray(poolDef?.include) ? poolDef.include.filter(Boolean) : [];
+  const exclude = new Set(Array.isArray(poolDef?.exclude) ? poolDef.exclude.filter(Boolean) : []);
+  let pool = include.length ? include.filter((t) => full.includes(t)) : full.filter((t) => !exclude.has(t));
+  if (layerKey === "hair" || layerKey === "chest" || layerKey === "legs") {
+    pool = pool.filter((t) => t !== "none");
+  }
+  if (!pool.length) {
+    pool = full.filter((t) => (layerKey === "hair" || layerKey === "chest" || layerKey === "legs") ? t !== "none" : true);
+  }
+  return pool;
+}
+
+function composeNpcPixelLayerSheet(layerTokens, sourceImages) {
+  const frameW = NPC_PIXEL_FRAME_WIDTH;
+  const frameH = NPC_PIXEL_FRAME_HEIGHT;
+  const framesPerDir = 6;
+  const dirs = ["front", "left", "right", "back"];
+  const dirRowMap = { front: 0, back: 1, right: 2, left: 2 };
+  const canvas = document.createElement("canvas");
+  canvas.width = frameW * framesPerDir;
+  canvas.height = frameH * dirs.length;
+  const ctx2d = canvas.getContext("2d");
+  if (!ctx2d) return null;
+  ctx2d.imageSmoothingEnabled = false;
+  for (const token of layerTokens) {
+    if (!token || token === "none") continue;
+    const img = sourceImages?.get?.(token) || null;
+    if (!img || !img.complete || !img.naturalWidth) continue;
+    for (let d = 0; d < dirs.length; d += 1) {
+      const dir = dirs[d];
+      const srcRow = dirRowMap[dir] || 0;
+      const mirror = dir === "left";
+      for (let f = 0; f < framesPerDir; f += 1) {
+        const sx = f * frameW;
+        const sy = srcRow * frameH;
+        const dx = f * frameW;
+        const dy = d * frameH;
+        if (sx + frameW > img.naturalWidth || sy + frameH > img.naturalHeight) continue;
+        if (!mirror) {
+          ctx2d.drawImage(img, sx, sy, frameW, frameH, dx, dy, frameW, frameH);
+        } else {
+          ctx2d.save();
+          ctx2d.translate(dx + frameW, dy);
+          ctx2d.scale(-1, 1);
+          ctx2d.drawImage(img, sx, sy, frameW, frameH, 0, 0, frameW, frameH);
+          ctx2d.restore();
+        }
+      }
+    }
+  }
+  return canvas;
+}
+
+function createNpcPixelAppearance(gender = null) {
+  const cfg = getNpcPixelConfig();
+  const sourceImages = assets?.npcs?.pixelLineImages;
+  if (!cfg || !sourceImages || !(sourceImages instanceof Map)) return null;
+  const g = normalizeNpcGender(gender);
+  const seedTokensByLayer = {};
+  if (Array.isArray(cfg.presets)) {
+    cfg.presets.forEach((p) => {
+      if (!p || typeof p !== "object") return;
+      if (String(p.gender || "").toLowerCase() !== g) return;
+      for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+        const token = p?.layers?.[layerKey]?.asset;
+        if (!seedTokensByLayer[layerKey]) seedTokensByLayer[layerKey] = [];
+        if (token) seedTokensByLayer[layerKey].push(token);
+      }
+    });
+  }
+  if (cfg.current && typeof cfg.current === "object" && String(cfg.current.gender || "").toLowerCase() === g) {
+    for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+      const token = cfg?.current?.layers?.[layerKey]?.asset;
+      if (!seedTokensByLayer[layerKey]) seedTokensByLayer[layerKey] = [];
+      if (token) seedTokensByLayer[layerKey].push(token);
+    }
+  }
+  const picks = {};
+  for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+    const pool = buildNpcPixelAllowedPool(g, layerKey, cfg, seedTokensByLayer[layerKey] || []);
+    picks[layerKey] = randomChoice(pool) || pool[0] || "none";
+  }
+  const walkLayers = [];
+  for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+    if (layerKey === "weapon") continue;
+    const sheet = composeNpcPixelLayerSheet([picks[layerKey]], sourceImages);
+    if (sheet) walkLayers.push(sheet);
+  }
+  if (!walkLayers.length) return null;
+  return {
+    shadow: null,
+    animations: {
+      walk: {
+        layers: walkLayers,
+        frameDuration: NPC_WALK_FRAME_DURATION,
+        framesPerDirection: 6,
+        frameWidth: NPC_PIXEL_FRAME_WIDTH,
+        frameHeight: NPC_PIXEL_FRAME_HEIGHT,
+      },
+      hurt: {
+        layers: walkLayers,
+        frameDuration: NPC_HURT_FRAME_DURATION,
+        framesPerDirection: 1,
+        frameWidth: NPC_PIXEL_FRAME_WIDTH,
+        frameHeight: NPC_PIXEL_FRAME_HEIGHT,
+      },
+    },
+  };
+}
+
 function createRandomNpcLayers(gender = null) {
+  const pixelAppearance = createNpcPixelAppearance(gender);
+  if (pixelAppearance) return pixelAppearance;
   if (!assets?.npcs) return null;
   const { walk, hurt, eyes, shadow } = assets.npcs;
   if (!walk?.base || !hurt?.base) return null;
