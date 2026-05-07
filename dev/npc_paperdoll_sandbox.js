@@ -694,6 +694,130 @@
     savePresets();
   }
 
+  function applyAssetPoolObject(assetPool) {
+    if (!assetPool || typeof assetPool !== "object") return;
+    for (const key of LAYERS) {
+      const src = assetPool[key];
+      if (!src || typeof src !== "object") continue;
+      const include = uniqueStrings(src.include || []);
+      const exclude = uniqueStrings(src.exclude || []);
+      policyFor(key).include = include;
+      policyFor(key).exclude = include.length ? [] : exclude;
+    }
+  }
+
+  function applyCurrentSpecObject(spec) {
+    if (!spec || typeof spec !== "object") return;
+    if (typeof spec.gender === "string") {
+      const idx = GENDERS.findIndex((g) => g === spec.gender.toLowerCase());
+      if (idx >= 0) state.genderIndex = idx;
+    }
+    if (typeof spec.skinTone === "string") {
+      const idx = TONES.findIndex((t) => t === spec.skinTone.toLowerCase());
+      if (idx >= 0) state.toneIndex = idx;
+    }
+    if (typeof spec.animation === "string") {
+      const idx = ANIMATIONS.findIndex((a) => a.key === spec.animation);
+      if (idx >= 0) state.animationIndex = idx;
+    }
+    if (typeof spec.direction === "string") {
+      const idx = DIRECTIONS.findIndex((d) => d.key === spec.direction);
+      if (idx >= 0) state.directionIndex = idx;
+    }
+    if (Number.isFinite(Number(spec.speed))) {
+      state.speed = Math.max(0.25, Math.min(4, Number(spec.speed)));
+    }
+    if (typeof spec.loop === "boolean") state.loop = spec.loop;
+    if (spec.layers && typeof spec.layers === "object") {
+      for (const key of LAYERS) {
+        const info = spec.layers[key];
+        if (!info || typeof info !== "object") continue;
+        if (typeof info.visible === "boolean") state.layerVisible[key] = info.visible;
+        if (typeof info.asset === "string") {
+          const list = catalogForLayer(key);
+          const idx = list.indexOf(info.asset);
+          if (idx >= 0) state.layerSel[key] = idx;
+        }
+      }
+    }
+    if (spec.assetPool && typeof spec.assetPool === "object") {
+      applyAssetPoolObject(spec.assetPool);
+    }
+  }
+
+  function presetFromConfigPreset(preset, index) {
+    if (!preset || typeof preset !== "object") return null;
+    const gender = String(preset.gender || "male").toLowerCase();
+    const skinTone = String(preset.skinTone || "pale").toLowerCase();
+    const animation = String(preset.animation || "idle");
+    const direction = String(preset.direction || "front");
+    const genderIndex = Math.max(0, GENDERS.findIndex((g) => g === gender));
+    const toneIndex = Math.max(0, TONES.findIndex((t) => t === skinTone));
+    const animationIndex = Math.max(0, ANIMATIONS.findIndex((a) => a.key === animation));
+    const directionIndex = Math.max(0, DIRECTIONS.findIndex((d) => d.key === direction));
+    const layerSel = {};
+    const layerVisible = {};
+    for (const key of LAYERS) {
+      const arr = catalogForLayerForGender(key, GENDERS[genderIndex] || "male");
+      const layerInfo = preset.layers?.[key] || {};
+      const asset = typeof layerInfo.asset === "string" ? layerInfo.asset : "none";
+      const idx = arr.indexOf(asset);
+      layerSel[key] = idx >= 0 ? idx : 0;
+      layerVisible[key] = layerInfo.visible !== false;
+    }
+    return {
+      name: String(preset.name || `Preset ${index + 1}`),
+      genderIndex,
+      toneIndex,
+      animationIndex,
+      directionIndex,
+      speed: Math.max(0.25, Math.min(4, Number(preset.speed) || 1)),
+      loop: preset.loop !== false,
+      layerSel,
+      layerVisible,
+      assetPolicy: (() => {
+        const out = {};
+        for (const key of LAYERS) {
+          const pool = preset.assetPool?.[key] || {};
+          const include = uniqueStrings(pool.include || []);
+          const exclude = uniqueStrings(pool.exclude || []);
+          out[key] = { include, exclude: include.length ? [] : exclude };
+        }
+        return out;
+      })(),
+      savedAt: Date.now(),
+    };
+  }
+
+  function loadFromConfigFile() {
+    const cfg =
+      window.BATTLECHURCH_NPC_PAPERDOLL &&
+      typeof window.BATTLECHURCH_NPC_PAPERDOLL === "object"
+        ? window.BATTLECHURCH_NPC_PAPERDOLL
+        : null;
+    if (!cfg) return false;
+    if (cfg.assetPool && typeof cfg.assetPool === "object") {
+      applyAssetPoolObject(cfg.assetPool);
+    }
+    const convertedPresets = Array.isArray(cfg.presets)
+      ? cfg.presets
+          .map((p, idx) => presetFromConfigPreset(p, idx))
+          .filter((p) => p && typeof p === "object")
+          .slice(0, MAX_PRESET_SLOTS)
+      : [];
+    if (convertedPresets.length) {
+      state.presets = convertedPresets;
+      state.selectedPresetIndex = 0;
+      applyPreset(convertedPresets[0]);
+    }
+    if (cfg.current && typeof cfg.current === "object") {
+      applyCurrentSpecObject(cfg.current);
+    } else if (!convertedPresets.length && cfg.layers) {
+      applyCurrentSpecObject(cfg);
+    }
+    return true;
+  }
+
   function loadPresetSlot(idx) {
     const index = Math.max(0, Math.floor(Number(idx) || 0));
     const p = state.presets[index];
@@ -761,6 +885,21 @@
       frameGrid: { width: FRAME_W, height: FRAME_H, columns: SHEET_COLS },
       directionRows: { front: 0, back: 1, right: 2, left: 2 },
       leftMirrorsRight: true,
+      randomGeneration: {
+        policy: "include-first-else-exclude",
+        previewCount: 10,
+      },
+      assetPool: Object.fromEntries(LAYERS.map((key) => {
+        const p = policyFor(key);
+        const include = uniqueStrings(p.include);
+        const exclude = uniqueStrings(p.exclude);
+        return [key, {
+          mode: include.length ? "include" : "exclude",
+          include,
+          exclude,
+        }];
+      })),
+      current: buildCurrentSpec(),
       presets: slots,
     };
   }
@@ -818,7 +957,16 @@
   }
 
   async function saveConfigFileWithPrompt() {
-    const text = buildConfigJs();
+    const cfg = buildConfigObject();
+    window.BATTLECHURCH_NPC_PAPERDOLL = cfg;
+    const text = [
+      "// Generated from dev/npc_paperdoll_sandbox.js",
+      "(function initNpcPaperdollConfig(global) {",
+      "  const FILE_DEFAULT = " + JSON.stringify(cfg, null, 2) + ";",
+      "  global.BATTLECHURCH_NPC_PAPERDOLL = FILE_DEFAULT;",
+      "})(typeof window !== \"undefined\" ? window : globalThis);",
+      "",
+    ].join("\n");
     if (typeof window.showSaveFilePicker === "function") {
       try {
         const handle = await window.showSaveFilePicker({
@@ -930,7 +1078,8 @@
   function open() {
     ensureOverlay();
     if (!overlay || state.open) return;
-    loadPresets();
+    const loadedFromConfig = loadFromConfigFile();
+    if (!loadedFromConfig) loadPresets();
     state.open = true;
     overlay.style.display = "block";
     ensureLayerSelectionsInBounds();
