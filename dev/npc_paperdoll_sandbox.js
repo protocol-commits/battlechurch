@@ -360,7 +360,7 @@
     };
   }
 
-  function drawLayerImage(path, rect, drawX, drawY, drawW, drawH, mirror, layerKey = "") {
+  function drawLayerImage(path, rect, drawX, drawY, drawW, drawH, mirror, layerKey = "", directionKey = "front") {
     const img = imageFor(path);
     if (!img || !img.complete || !img.naturalWidth) return;
     let sx = rect.sx;
@@ -376,7 +376,15 @@
       const cellW = Math.floor(img.naturalWidth / cols);
       const cellH = Math.floor(img.naturalHeight / rows);
       const frameCol = Math.floor((rect.sx / FRAME_W)) % cols;
-      const dirRow = Math.floor((rect.sy / FRAME_H)) % rows;
+      const genericDirRow = Math.floor((rect.sy / FRAME_H)) % rows;
+      const lowerPath = String(path || "").toLowerCase();
+      const isSwordSheet = lowerPath.includes("swing_sword");
+      // Keep original left/right behavior; only force north/back to the back row.
+      const dirKey = String(directionKey || "").toLowerCase();
+      const dirRow =
+        isSwordSheet && dirKey === "back"
+          ? 2
+          : genericDirRow;
       sx = frameCol * cellW;
       sy = dirRow * cellH;
       sw = cellW;
@@ -1090,13 +1098,16 @@
     const x = Math.round(canvas.width * 0.5 - drawW * 0.5);
     const y = Math.round(splitY * 0.5 - drawH * 0.5);
 
-    const drawOrder = ["base", "legs", "chest", "hair", "head", "weapon"];
+    const drawOrder =
+      String(dir.key || "").toLowerCase() === "back"
+        ? ["weapon", "base", "legs", "chest", "hair", "head"]
+        : ["base", "legs", "chest", "hair", "head", "weapon"];
     const weaponAnimAllowed = new Set(["swing", "mine", "walk_hold"]);
     const shouldDrawWeaponLayer = weaponAnimAllowed.has(String(anim.key || "").toLowerCase());
     for (const key of drawOrder) {
       if (key === "weapon" && !shouldDrawWeaponLayer) continue;
       if (!state.layerVisible[key]) continue;
-      drawLayerImage(getLayerToken(key), rect, x, y, drawW, drawH, dir.mirror, key);
+      drawLayerImage(getLayerToken(key), rect, x, y, drawW, drawH, dir.mirror, key, dir.key);
     }
 
     const enabledLabelLayers = LAYERS.filter((k) => state.layerLabelVisible[k]);
@@ -1146,7 +1157,7 @@
         if (key === "weapon" && !shouldDrawWeaponLayer) continue;
         const token = npc.layers[key];
         if (!token || token === "none") continue;
-        drawLayerImage(token, rect, dx, dy, drawW, drawH, dir.mirror, key);
+        drawLayerImage(token, rect, dx, dy, drawW, drawH, dir.mirror, key, dir.key);
       }
       if (enabledLabelLayers.length) {
         ctx.fillStyle = "rgba(220,228,245,0.9)";

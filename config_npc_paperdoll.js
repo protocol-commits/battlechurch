@@ -47,7 +47,9 @@
     "hair": {
       "mode": "exclude",
       "include": [],
-      "exclude": []
+      "exclude": [
+        "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png"
+      ]
     },
     "head": {
       "mode": "exclude",
@@ -73,11 +75,11 @@
   "current": {
     "gender": "male",
     "skinTone": "pale",
-    "animation": "walk",
-    "direction": "front",
+    "animation": "swing",
+    "direction": "back",
     "speed": 1,
     "loop": true,
-    "frame": 4,
+    "frame": 3,
     "layers": {
       "base": {
         "visible": true,
@@ -89,19 +91,19 @@
       },
       "chest": {
         "visible": true,
-        "asset": "Clothes Male/Chest/Base_character_Male_King_Cloak.png"
+        "asset": "Clothes Male/Chest/Base_character_Male_Knight_Cape.png"
       },
       "hair": {
         "visible": true,
-        "asset": "Hair Male/Base_character_Male_Short_Brown.png"
+        "asset": "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png"
       },
       "head": {
         "visible": true,
-        "asset": "Clothes Male/Head/Base_character_Male_Hat_Wizard.png"
+        "asset": "none"
       },
       "weapon": {
         "visible": true,
-        "asset": "none"
+        "asset": "Tools and Weapons/Weapons/Base_character_Male_Swing_Sword.png"
       }
     },
     "assetPool": {
@@ -133,7 +135,9 @@
       "hair": {
         "mode": "exclude",
         "include": [],
-        "exclude": []
+        "exclude": [
+          "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png"
+        ]
       },
       "head": {
         "mode": "exclude",
