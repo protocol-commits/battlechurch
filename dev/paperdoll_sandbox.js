@@ -161,7 +161,7 @@
     const out = {};
     APPEARANCE_LAYERS.forEach((layerKey) => {
       const token = String(idle?.layers?.[layerKey]?.asset || "").trim();
-      if (token && token !== "none") out[layerKey] = token;
+      if (token) out[layerKey] = token;
     });
     if (Object.keys(out).length) return out;
     return deepClone(cfg?.appearanceLayers || null, null);
