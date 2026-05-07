@@ -10106,7 +10106,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.filter = "grayscale(1) brightness(2.35) contrast(0.45) blur(0.9px)";
         ctx.shadowColor = "rgba(255, 255, 255, 0.55)";
         ctx.shadowBlur = 10;
-        player.animator.draw(ctx, _ghostTarget.x, _ghostTarget.y, { flipX: player.facing === "left" });
+        const _drewGhostPaperdoll = typeof Entities?.drawPastorPaperdoll === "function" &&
+          Entities.drawPastorPaperdoll(player, ctx, _ghostTarget.x, _ghostTarget.y);
+        if (!_drewGhostPaperdoll) {
+          player.animator.draw(ctx, _ghostTarget.x, _ghostTarget.y, { flipX: player.facing === "left" });
+        }
         ctx.restore();
       }
       if (!graceRushBlackout && !(graceRushHardBlackoutTimer > 0)) {
