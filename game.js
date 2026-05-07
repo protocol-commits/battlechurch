@@ -13448,6 +13448,8 @@ class CozyNpc {
   }
 
   update(dt, options = {}) {
+    const frameStartX = this.x;
+    const frameStartY = this.y;
     const previewOnly = Boolean(options?.previewOnly);
     if (this.departed) return;
     if (previewOnly) {
@@ -13507,6 +13509,15 @@ class CozyNpc {
         this.knockbackVy = 0;
       }
       clampEntityToBounds(this);
+    }
+
+    const movedDx = this.x - frameStartX;
+    const movedDy = this.y - frameStartY;
+    const movedDistance = Math.hypot(movedDx, movedDy);
+    const hasMeaningfulMovement = movedDistance > 0.05;
+    this.animator.setMoving(hasMeaningfulMovement);
+    if (hasMeaningfulMovement) {
+      this.animator.setDirectionFromVector(movedDx, movedDy);
     }
 
     this.animator.update(dt);
@@ -16096,7 +16107,7 @@ function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {
   return pool;
 }
 
-function composeNpcPixelLayerSheet(layerTokens, sourceImages) {
+function composeNpcPixelLayerSheet(layerTokens, sourceImages, rowBase = 0) {
   const frameW = NPC_PIXEL_FRAME_WIDTH;
   const frameH = NPC_PIXEL_FRAME_HEIGHT;
   const framesPerDir = 6;
@@ -16114,7 +16125,7 @@ function composeNpcPixelLayerSheet(layerTokens, sourceImages) {
     if (!img || !img.complete || !img.naturalWidth) continue;
     for (let d = 0; d < dirs.length; d += 1) {
       const dir = dirs[d];
-      const srcRow = dirRowMap[dir] || 0;
+      const srcRow = (dirRowMap[dir] || 0) + rowBase;
       const mirror = dir === "left";
       for (let f = 0; f < framesPerDir; f += 1) {
         const sx = f * frameW;
@@ -16169,7 +16180,9 @@ function createNpcPixelAppearance(gender = null) {
   const walkLayers = [];
   for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
     if (layerKey === "weapon") continue;
-    const sheet = composeNpcPixelLayerSheet([picks[layerKey]], sourceImages);
+    // Walk animation rows in this pack start after idle rows.
+    const walkRowBase = 3;
+    const sheet = composeNpcPixelLayerSheet([picks[layerKey]], sourceImages, walkRowBase);
     if (sheet) walkLayers.push(sheet);
   }
   if (!walkLayers.length) return null;
