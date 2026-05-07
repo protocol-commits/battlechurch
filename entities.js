@@ -901,11 +901,26 @@
     const shieldFrontSet = SHIELD_FRONT_FRAMES[page] || null;
     const shieldFront = !shieldFrontSet || shieldFrontSet.has(frameIdx);
     const baseOrder = ["0bas", "1out", "4har", "5hat", "6tla"];
+    const appearanceOverrides =
+      cfg?.appearanceLayers && typeof cfg.appearanceLayers === "object"
+        ? cfg.appearanceLayers
+        : null;
     const scale = Math.max(1, (settings.WORLD_SCALE || 1) * PASTOR_PAPERDOLL_SCALE);
     const dw = PAPERDOLL_FRAME_SIZE * scale;
     const dh = PAPERDOLL_FRAME_SIZE * scale;
     const drawLayer = (layerKey) => {
-      const layer = preset.layers?.[layerKey];
+      const baseLayer = preset.layers?.[layerKey];
+      const overrideToken =
+        (layerKey === "0bas" || layerKey === "1out" || layerKey === "4har" || layerKey === "5hat") && appearanceOverrides
+          ? String(appearanceOverrides[layerKey] || "").trim()
+          : "";
+      const layer = overrideToken
+        ? {
+            ...(baseLayer || { label: layerKey }),
+            asset: overrideToken,
+            visible: true,
+          }
+        : baseLayer;
       if (!layer || layer.visible === false) return;
       const path = paperdollLayerPath(page, layerKey, layer.asset);
       if (!path) return;

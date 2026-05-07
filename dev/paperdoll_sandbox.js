@@ -4,9 +4,11 @@
   const OVERLAY_ID = "paperdollSandboxOverlay";
   const BASE_ROOT = "assets/sprites/npcs/mana-seed";
   const PRESET_STORAGE_KEY = "battlechurch.pastorPaperdollPresets.v1";
+  const CUSTOM_FACE_STORAGE_KEY = "battlechurch.pastorPaperdollCustomFace.v1";
   const MAX_PRESET_SLOTS = 24;
   const PAGE_KEYS = ["p1", "pONE1", "pONE2", "pONE3"];
   const LAYERS = ["0bas", "1out", "4har", "5hat", "6tla", "7tlb"];
+  const APPEARANCE_LAYERS = ["0bas", "1out", "4har", "5hat"];
   const LAYER_LABELS = Object.freeze({
     "0bas": "Body",
     "1out": "Outfit",
@@ -97,6 +99,7 @@
 
   const state = {
     open: false,
+    uiMode: "dev", // "dev" | "customize"
     focusedLayerIndex: 0,
     pageIndex: 2, // pONE2 by default (combat idle page)
     facingIndex: 0,
@@ -371,9 +374,106 @@
     state.selectedPresetIndex = clampWrap(state.selectedPresetIndex, Math.max(1, state.presets.length || 1));
   }
 
+  function getAppearanceSelectionFromState() {
+    return Object.fromEntries(
+      APPEARANCE_LAYERS.map((layerKey) => [layerKey, getLayerToken(layerKey)]),
+    );
+  }
+
+  function applyAppearanceSelectionToState(selection) {
+    if (!selection || typeof selection !== "object") return;
+    APPEARANCE_LAYERS.forEach((layerKey) => {
+      const token = String(selection[layerKey] || "").trim();
+      if (!token) return;
+      const list = layerCatalog[layerKey] || [];
+      const idx = list.indexOf(token);
+      if (idx >= 0) state.layerSelection[layerKey] = idx;
+    });
+  }
+
   function savePresetsToStorage() {
     if (!window.localStorage?.setItem) return;
     window.localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(state.presets || []));
+  }
+
+  function getCustomFaceProfileFromState() {
+    return {
+      enabled: Boolean(state.customFace.enabled),
+      front: state.customFace.front || null,
+      side: state.customFace.side || null,
+      back: state.customFace.back || null,
+      frontName: state.customFace.frontName || "",
+      sideName: state.customFace.sideName || "",
+      backName: state.customFace.backName || "",
+      offsetX: Number(state.customFace.offsetX || 0),
+      offsetY: Number(state.customFace.offsetY || -10),
+      width: Math.max(8, Number(state.customFace.width || 22)),
+      height: Math.max(8, Number(state.customFace.height || 20)),
+      cropX: Math.max(0, Math.min(95, Number(state.customFace.cropX || 0))),
+      cropY: Math.max(0, Math.min(95, Number(state.customFace.cropY || 0))),
+      cropW: Math.max(5, Math.min(100, Number(state.customFace.cropW || 100))),
+      cropH: Math.max(5, Math.min(100, Number(state.customFace.cropH || 100))),
+      flipSideForEast: state.customFace.flipSideForEast !== false,
+      invertSideDirections: Boolean(state.customFace.invertSideDirections),
+      appearanceLayers: getAppearanceSelectionFromState(),
+    };
+  }
+
+  function applyCustomFaceProfileToState(profile) {
+    if (!profile || typeof profile !== "object") return false;
+    state.customFace.enabled = Boolean(profile.enabled);
+    state.customFace.front = profile.front || null;
+    state.customFace.side = profile.side || null;
+    state.customFace.back = profile.back || null;
+    state.customFace.frontName = profile.frontName || "";
+    state.customFace.sideName = profile.sideName || "";
+    state.customFace.backName = profile.backName || "";
+    state.customFace.offsetX = Number(profile.offsetX || 0);
+    state.customFace.offsetY = Number(profile.offsetY || -10);
+    state.customFace.width = Math.max(8, Number(profile.width || 22));
+    state.customFace.height = Math.max(8, Number(profile.height || 20));
+    state.customFace.cropX = Math.max(0, Math.min(95, Number(profile.cropX || 0)));
+    state.customFace.cropY = Math.max(0, Math.min(95, Number(profile.cropY || 0)));
+    state.customFace.cropW = Math.max(5, Math.min(100, Number(profile.cropW || 100)));
+    state.customFace.cropH = Math.max(5, Math.min(100, Number(profile.cropH || 100)));
+    state.customFace.flipSideForEast = profile.flipSideForEast !== false;
+    state.customFace.invertSideDirections = Boolean(profile.invertSideDirections);
+    applyAppearanceSelectionToState(profile.appearanceLayers || null);
+    return true;
+  }
+
+  function applyCustomFaceProfileToGlobalConfig(profile) {
+    if (typeof window === "undefined") return;
+    if (!window.BATTLECHURCH_PASTOR_PAPERDOLL || typeof window.BATTLECHURCH_PASTOR_PAPERDOLL !== "object") {
+      window.BATTLECHURCH_PASTOR_PAPERDOLL = {};
+    }
+    window.BATTLECHURCH_PASTOR_PAPERDOLL.customFace = {
+      ...(window.BATTLECHURCH_PASTOR_PAPERDOLL.customFace || {}),
+      ...(profile || {}),
+    };
+    window.BATTLECHURCH_PASTOR_PAPERDOLL.appearanceLayers = {
+      ...(window.BATTLECHURCH_PASTOR_PAPERDOLL.appearanceLayers || {}),
+      ...(profile?.appearanceLayers || {}),
+    };
+  }
+
+  function saveCustomFaceToStorage() {
+    if (!window.localStorage?.setItem) return;
+    try {
+      const profile = getCustomFaceProfileFromState();
+      window.localStorage.setItem(CUSTOM_FACE_STORAGE_KEY, JSON.stringify(profile));
+      applyCustomFaceProfileToGlobalConfig(profile);
+    } catch (_) {}
+  }
+
+  function loadCustomFaceFromStorage() {
+    const raw = window.localStorage?.getItem?.(CUSTOM_FACE_STORAGE_KEY);
+    if (!raw) return false;
+    const profile = safeParse(raw, null);
+    if (!profile || typeof profile !== "object") return false;
+    const ok = applyCustomFaceProfileToState(profile);
+    if (ok) applyCustomFaceProfileToGlobalConfig(getCustomFaceProfileFromState());
+    return ok;
   }
 
   function saveCurrentToPresetSlot(slotIndex) {
@@ -409,6 +509,12 @@
   function renderPresetControls() {
     const root = overlay?.querySelector?.("#paperdollPresetControls");
     if (!root) return;
+    if (state.uiMode === "customize") {
+      root.innerHTML = "";
+      root.style.display = "none";
+      return;
+    }
+    root.style.display = "flex";
     const rows = [];
     for (let i = 0; i < MAX_PRESET_SLOTS; i += 1) {
       const preset = state.presets[i];
@@ -453,6 +559,7 @@
 
   function renderControls() {
     if (!controlsRoot) return;
+    const showAppearanceOnly = state.uiMode === "customize";
     const behavior = behaviorProfiles[state.behaviorIndex] || behaviorProfiles[0];
     const globalRows = [
       { label: "Page", value: getPageKey(), prev: "page-prev", next: "page-next" },
@@ -471,21 +578,120 @@
       </div>
     `).join("");
 
-    const layerRowsHtml = LAYERS.map((layerKey) => {
+    const visibleLayers = showAppearanceOnly ? APPEARANCE_LAYERS : LAYERS;
+    const layerRowsHtml = visibleLayers.map((layerKey) => {
       const layerName = layerLabel(layerKey);
       const unsupported = !pageSupportsLayer(getPageKey(), layerKey);
       const value = unsupported ? "(not on this page)" : currentLayerDisplayValue(layerKey);
       const vis = state.layerVisible[layerKey] ? "Visible" : "Hidden";
+      const showVisibilityToggle = !showAppearanceOnly;
       return `
-        <div style="display:grid;grid-template-columns:88px 28px 1fr 28px 64px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="display:grid;grid-template-columns:${showVisibilityToggle ? "88px 28px 1fr 28px 64px" : "88px 28px 1fr 28px"};gap:6px;align-items:center;margin-bottom:6px;">
           <div style="opacity:.9;">${layerName}</div>
           ${buttonHtml(`layer-prev:${layerKey}`, "◀", `Previous ${layerName.toLowerCase()}`)}
           <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
           ${buttonHtml(`layer-next:${layerKey}`, "▶", `Next ${layerName.toLowerCase()}`)}
-          ${buttonHtml(`layer-toggle:${layerKey}`, vis, `Toggle ${layerName.toLowerCase()} visibility`)}
+          ${showVisibilityToggle ? buttonHtml(`layer-toggle:${layerKey}`, vis, `Toggle ${layerName.toLowerCase()} visibility`) : ""}
         </div>
       `;
     }).join("");
+
+    if (showAppearanceOnly) {
+      controlsRoot.innerHTML = `
+      <div style="font-weight:700;margin-bottom:6px;">Customize Character</div>
+      <div style="font-size:12px;opacity:.9;margin-bottom:8px;">Pick your look. Weapon/attack settings are hidden in this mode.</div>
+      <div style="font-weight:700;margin-bottom:6px;">Appearance</div>
+      ${layerRowsHtml}
+      <div style="font-weight:700;margin:10px 0 6px;">Custom Face (Upload)</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px;">
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Enable</span>
+          <input type="checkbox" id="paperdollFaceEnabled" ${state.customFace.enabled ? "checked" : ""}>
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Front</span>
+          <input type="file" id="paperdollFaceFront" accept="image/*">
+        </label>
+        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.frontName || "(none)"}</div>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Side (left/right)</span>
+          <input type="file" id="paperdollFaceSide" accept="image/*">
+        </label>
+        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.sideName || "(none)"}</div>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Back</span>
+          <input type="file" id="paperdollFaceBack" accept="image/*">
+        </label>
+        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.backName || "(none)"}</div>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Flip side on East</span>
+          <input type="checkbox" id="paperdollFaceFlipEast" ${state.customFace.flipSideForEast !== false ? "checked" : ""}>
+        </label>
+        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span style="opacity:.9;">Invert side directions</span>
+          <input type="checkbox" id="paperdollFaceInvertSides" ${state.customFace.invertSideDirections ? "checked" : ""}>
+        </label>
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face X</div>
+        ${buttonHtml("face-x-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetX || 0)}</div>
+        ${buttonHtml("face-x-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face Y</div>
+        ${buttonHtml("face-y-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetY || 0)}</div>
+        ${buttonHtml("face-y-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Face W</div>
+        ${buttonHtml("face-w-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.width || 0)}</div>
+        ${buttonHtml("face-w-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
+        <div style="opacity:.85;">Face H</div>
+        ${buttonHtml("face-h-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.height || 0)}</div>
+        ${buttonHtml("face-h-up", "▶")}
+      </div>
+      <div style="font-weight:700;margin:8px 0 6px;">Crop (%)</div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Crop X</div>
+        ${buttonHtml("face-cx-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropX || 0)}</div>
+        ${buttonHtml("face-cx-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Crop Y</div>
+        ${buttonHtml("face-cy-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropY || 0)}</div>
+        ${buttonHtml("face-cy-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Crop W</div>
+        ${buttonHtml("face-cw-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropW || 100)}</div>
+        ${buttonHtml("face-cw-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
+        <div style="opacity:.85;">Crop H</div>
+        ${buttonHtml("face-ch-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropH || 100)}</div>
+        ${buttonHtml("face-ch-up", "▶")}
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        ${buttonHtml("face-clear", "Clear Face Uploads")}
+      </div>
+      <div style="font-size:11px;line-height:1.35;color:#9fb2d9;opacity:.95;">
+        ${String(state.customFace.status || "")}
+      </div>
+    `;
+      bindFaceControlListeners();
+      controlsDirty = false;
+      return;
+    }
 
     controlsRoot.innerHTML = `
       <div style="font-weight:700;margin-bottom:6px;">Mouse Controls</div>
@@ -652,6 +858,7 @@
       state.customFace.status = state.customFace.enabled
         ? "Face overlay enabled."
         : "Face overlay disabled.";
+      saveCustomFaceToStorage();
       controlsDirty = true;
       refreshPanels();
       render();
@@ -660,6 +867,7 @@
     if (id === "paperdollFaceFlipEast") {
       state.customFace.flipSideForEast = Boolean(target.checked);
       state.customFace.status = `Flip on East: ${state.customFace.flipSideForEast ? "ON" : "OFF"}`;
+      saveCustomFaceToStorage();
       controlsDirty = true;
       refreshPanels();
       render();
@@ -668,6 +876,7 @@
     if (id === "paperdollFaceInvertSides") {
       state.customFace.invertSideDirections = Boolean(target.checked);
       state.customFace.status = `Invert side directions: ${state.customFace.invertSideDirections ? "ON" : "OFF"}`;
+      saveCustomFaceToStorage();
       controlsDirty = true;
       refreshPanels();
       render();
@@ -695,6 +904,7 @@
         state.customFace.enabled = true;
         const slot = id === "paperdollFaceFront" ? "front" : id === "paperdollFaceSide" ? "side" : "back";
         state.customFace.status = `Loaded ${slot}: ${file.name} (${valid.width}x${valid.height})`;
+        saveCustomFaceToStorage();
         controlsDirty = true;
         refreshPanels();
         render();
@@ -750,22 +960,27 @@
       triggerTransientAction("shield_bash");
     } else if (action.startsWith("layer-prev:")) {
       const layerKey = action.slice("layer-prev:".length);
+      if (state.uiMode === "customize" && !APPEARANCE_LAYERS.includes(layerKey)) return;
       const list = layerCatalog[layerKey] || [];
       if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) - 1, list.length);
       if ((layerKey === "6tla" || layerKey === "7tlb") && getPageKey() === "p1") {
         state.pageIndex = 1; // pONE1
         ensureAnimationMatchesPage();
       }
+      saveCustomFaceToStorage();
     } else if (action.startsWith("layer-next:")) {
       const layerKey = action.slice("layer-next:".length);
+      if (state.uiMode === "customize" && !APPEARANCE_LAYERS.includes(layerKey)) return;
       const list = layerCatalog[layerKey] || [];
       if (list.length) state.layerSelection[layerKey] = clampWrap((state.layerSelection[layerKey] || 0) + 1, list.length);
       if ((layerKey === "6tla" || layerKey === "7tlb") && getPageKey() === "p1") {
         state.pageIndex = 1; // pONE1
         ensureAnimationMatchesPage();
       }
+      saveCustomFaceToStorage();
     } else if (action.startsWith("layer-toggle:")) {
       const layerKey = action.slice("layer-toggle:".length);
+      if (state.uiMode === "customize") return;
       if (layerKey in state.layerVisible) state.layerVisible[layerKey] = !state.layerVisible[layerKey];
     } else if (action === "face-x-down") {
       state.customFace.offsetX = Math.max(-24, Number(state.customFace.offsetX || 0) - 1);
@@ -818,6 +1033,9 @@
     }
     if (state.customFace.cropY + state.customFace.cropH > 100) {
       state.customFace.cropH = Math.max(5, 100 - state.customFace.cropY);
+    }
+    if (action.startsWith("face-")) {
+      saveCustomFaceToStorage();
     }
 
     if (!keepFrameCursor) {
@@ -1134,6 +1352,7 @@
       "presets",
       "animationPresetMap",
       "powerupPresetMap",
+      "appearanceLayers",
     ]);
     const preservedTopLevel = {};
     for (const [key, value] of Object.entries(existingCfg || {})) {
@@ -1171,6 +1390,8 @@
       // Edit this map to switch pastor preset by powerup key.
       // Example: { powerupX: "Holy Fire Form", speedAura: "Sprint Form" }
       powerupPresetMap: cloneValue(existingCfg.powerupPresetMap, {}) || {},
+      // Per-player appearance override for base look layers.
+      appearanceLayers: getAppearanceSelectionFromState(),
       customFace: {
         enabled: Boolean(state.customFace.enabled),
         front: state.customFace.front || null,
@@ -1380,9 +1601,10 @@
     state.rafId = requestAnimationFrame(() => tick(now));
   }
 
-  function open() {
+  function openWithMode(mode = "dev") {
     ensureOverlay();
     if (!overlay || state.open) return;
+    state.uiMode = mode === "customize" ? "customize" : "dev";
     loadPresetsFromStorage();
     loadPresetSlot(0);
     const cfg =
@@ -1409,12 +1631,41 @@
       state.customFace.flipSideForEast = cfg.customFace.flipSideForEast !== false;
       state.customFace.invertSideDirections = Boolean(cfg.customFace.invertSideDirections);
     }
+    if (cfg?.appearanceLayers && typeof cfg.appearanceLayers === "object") {
+      applyAppearanceSelectionToState(cfg.appearanceLayers);
+    }
+    loadCustomFaceFromStorage();
+    if (state.uiMode === "customize") {
+      state.pageIndex = 2; // pONE2
+      state.animIndex = animDefs.findIndex((a) => a.key === "combat_idle");
+      if (state.animIndex < 0) state.animIndex = 0;
+      state.facingIndex = 0; // south
+      state.behaviorIndex = 0;
+      state.playbackSpeed = 1;
+      state.holdFrame = false;
+      state.frameCursor = 0;
+      state.frameElapsed = 0;
+      state.layerVisible["0bas"] = true;
+      state.layerVisible["1out"] = true;
+      state.layerVisible["4har"] = true;
+      state.layerVisible["5hat"] = true;
+      state.layerVisible["6tla"] = false;
+      state.layerVisible["7tlb"] = false;
+    }
     state.open = true;
     overlay.style.display = "block";
     controlsDirty = true;
     refreshPanels();
     render();
     state.rafId = requestAnimationFrame(() => tick(performance.now()));
+  }
+
+  function open() {
+    openWithMode("dev");
+  }
+
+  function openCustomize() {
+    openWithMode("customize");
   }
 
   function close() {
@@ -1446,12 +1697,16 @@
 
   const api = {
     open,
+    openCustomize,
     close,
     toggle,
     isOpen: () => state.open,
     consumeAction: () => state.open,
     getSpec: () => buildSpecObject(),
+    saveCustomFaceToStorage,
+    loadCustomFaceFromStorage,
   };
 
+  loadCustomFaceFromStorage();
   window.PaperdollSandbox = api;
 })(typeof window !== "undefined" ? window : null, typeof document !== "undefined" ? document : null);

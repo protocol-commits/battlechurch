@@ -19419,6 +19419,8 @@ function isDeveloperToolActive() {
   if (typeof window === "undefined" || typeof document === "undefined") return false;
   if (window.__battlechurchHitboxEditorActive) return true;
   if (window.__BC_ENEMY_EDITOR_ACTIVE) return true;
+  if (window.PaperdollSandbox?.isOpen?.()) return true;
+  if (window.NpcPaperdollSandbox?.isOpen?.()) return true;
   const levelBuilderOverlay = document.getElementById("levelBuilderOverlay");
   return Boolean(levelBuilderOverlay && levelBuilderOverlay.style.display === "block");
 }
@@ -20062,6 +20064,12 @@ function handleTitleScreen() {
           }
         } else if (button.key === "settings") {
           showSettingsOverlay({ source: "title" });
+        } else if (button.key === "customizeCharacter") {
+          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
+          }
+          window.PaperdollSandbox?.loadCustomFaceFromStorage?.();
+          window.PaperdollSandbox?.openCustomize?.();
         } else if (button.key === "developer") {
           showDeveloperOverlay();
         } else if (button.key === "howtoplay") {
