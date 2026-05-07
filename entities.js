@@ -48,6 +48,13 @@
   };
   const PROJECTILE_POWERUP_PRESET_DOWN = "projectiledown";
   const PROJECTILE_POWERUP_PRESET_UP = "projectileup";
+  const DEFAULT_PROJECTILE_PRESET_LOOP = [
+    "projectiledown",
+    "projectileup",
+    "ProjectileWand",
+    "projectileup",
+    "thrustmagic",
+  ];
   const SHIELD_FRONT_FRAMES = {
     pONE1: new Set([1, 4, 8, 10, 11, 13, 19, 20, 27, 28]),
     pONE2: new Set([0, 1, 2, 3, 4, 5, 6, 7, 32, 33, 34]),
@@ -371,32 +378,87 @@
 
     // 3) Projectile casting visuals.
     if (player.state === "attackArrow" || player.state === "attackMagic") {
+      const activeWeaponMode =
+        typeof player?.getActiveWeaponMode === "function"
+          ? String(player.getActiveWeaponMode() || "").toLowerCase()
+          : String(player?.weaponMode || "").toLowerCase();
+      const usesThrustMagicProjectileVisual =
+        activeWeaponMode === "wisdom_missle" || activeWeaponMode === "fire";
+      if (usesThrustMagicProjectileVisual) {
+        return actionMap.thrustMagic;
+      }
       // Alternate when the underlying projectile attack animation restarts/wraps.
       const animatorFrame = Number(player?.animator?.frameIndex) || 0;
-      if (!player._paperdollProjectileCasting) {
-        player._paperdollProjectileCasting = true;
-        player._paperdollProjectileAlt = false; // start with SlashDown
-        player._paperdollProjectilePrevFrame = animatorFrame;
-      } else {
-        const prev = Number(player._paperdollProjectilePrevFrame) || 0;
-        if (prev > 0 && animatorFrame === 0) {
-          player._paperdollProjectileAlt = !player._paperdollProjectileAlt;
-        }
-        player._paperdollProjectilePrevFrame = animatorFrame;
-      }
       const perseveranceProjectileActive =
         player.state === "attackArrow" &&
         typeof player?.isArrowExtendProjectileBuffActive === "function" &&
         player.isArrowExtendProjectileBuffActive();
+      const defaultArrowProjectileActive =
+        player.state === "attackArrow" &&
+        activeWeaponMode === "arrow" &&
+        !perseveranceProjectileActive;
+      if (!player._paperdollProjectileCasting) {
+        player._paperdollProjectileCasting = true;
+        player._paperdollProjectileAlt = false; // start with SlashDown
+        player._paperdollProjectilePrevFrame = animatorFrame;
+        player._paperdollPrevArrowCooldown =
+          Number.isFinite(Number(player?.arrowCooldown)) ? Number(player.arrowCooldown) : null;
+        if (!Number.isFinite(player._paperdollDefaultProjectileLoopIndex)) {
+          player._paperdollDefaultProjectileLoopIndex = 0;
+        }
+      } else {
+        let shouldToggle = false;
+        let shouldAdvanceDefaultArrowLoop = false;
+        if (perseveranceProjectileActive) {
+          const currentCooldown = Number(player?.arrowCooldown);
+          const prevCooldown = Number(player?._paperdollPrevArrowCooldown);
+          if (Number.isFinite(currentCooldown) && Number.isFinite(prevCooldown)) {
+            // Shot fired -> cooldown jumps back up to full.
+            if (currentCooldown > prevCooldown + 0.001) shouldToggle = true;
+          }
+          player._paperdollPrevArrowCooldown =
+            Number.isFinite(currentCooldown) ? currentCooldown : prevCooldown;
+        } else if (defaultArrowProjectileActive) {
+          const currentCooldown = Number(player?.arrowCooldown);
+          const prevCooldown = Number(player?._paperdollPrevArrowCooldown);
+          if (Number.isFinite(currentCooldown) && Number.isFinite(prevCooldown)) {
+            if (currentCooldown > prevCooldown + 0.001) shouldAdvanceDefaultArrowLoop = true;
+          }
+          player._paperdollPrevArrowCooldown =
+            Number.isFinite(currentCooldown) ? currentCooldown : prevCooldown;
+        } else {
+          const prev = Number(player._paperdollProjectilePrevFrame) || 0;
+          if (prev > 0 && animatorFrame === 0) shouldToggle = true;
+        }
+        if (shouldToggle) {
+          player._paperdollProjectileAlt = !player._paperdollProjectileAlt;
+        }
+        if (shouldAdvanceDefaultArrowLoop) {
+          const nextIndex =
+            (Number(player._paperdollDefaultProjectileLoopIndex) || 0) + 1;
+          player._paperdollDefaultProjectileLoopIndex =
+            nextIndex % DEFAULT_PROJECTILE_PRESET_LOOP.length;
+        }
+        player._paperdollProjectilePrevFrame = animatorFrame;
+      }
+      if (defaultArrowProjectileActive) {
+        const loopIndex =
+          (Number(player._paperdollDefaultProjectileLoopIndex) || 0) %
+          DEFAULT_PROJECTILE_PRESET_LOOP.length;
+        return DEFAULT_PROJECTILE_PRESET_LOOP[loopIndex] || DEFAULT_PROJECTILE_PRESET_LOOP[0];
+      }
       if (player.state === "attackMagic" || perseveranceProjectileActive) {
         return player._paperdollProjectileAlt
           ? PROJECTILE_POWERUP_PRESET_UP
           : PROJECTILE_POWERUP_PRESET_DOWN;
       }
-      return player._paperdollProjectileAlt ? "SlashUp" : "SlashDown";
+      return player._paperdollProjectileAlt
+        ? PROJECTILE_POWERUP_PRESET_UP
+        : PROJECTILE_POWERUP_PRESET_DOWN;
     }
     player._paperdollProjectileCasting = false;
     player._paperdollProjectilePrevFrame = 0;
+    player._paperdollPrevArrowCooldown = null;
 
     // 4) Fully charged A hold: show blast-ready windup pose.
     if (blastChargeReady) {

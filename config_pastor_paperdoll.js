@@ -1,19 +1,19 @@
 // Generated from dev/paperdoll_sandbox.js
 (function initPastorPaperdollConfig(global) {
   const FILE_DEFAULT = {
-  "source": "mana-seed",
-  "page": "pONE2",
-  "facing": "east",
-  "animation": "combat_idle",
-  "playbackSpeed": 1,
-  "loop": true,
   "renderStyle": {
-    "shadowCrush": 1.0,
+    "shadowCrush": 1,
     "shadowThreshold": 0.75
   },
+  "source": "mana-seed",
+  "page": "pONE3",
+  "facing": "east",
+  "animation": "thrust",
+  "playbackSpeed": 1,
+  "loop": true,
   "behavior": {
-    "key": "melee_slash",
-    "melee_style": "slash_1",
+    "key": "melee_thrust",
+    "melee_style": "thrust",
     "projectile_style": "none",
     "movement_set": "combat"
   },
@@ -40,12 +40,12 @@
     },
     "6tla": {
       "label": "Main Hand",
-      "asset": "none",
+      "asset": "mc01_v05",
       "visible": true
     },
     "7tlb": {
       "label": "Off Hand",
-      "asset": "none",
+      "asset": "sh02_v01",
       "visible": true
     }
   },
