@@ -575,10 +575,11 @@
     if (!path) return;
     const img = getPaperdollImage(path);
     if (!img || !img.complete || !img.naturalWidth) return;
-    const faceW = Math.max(8, Number(customFace.width || 22));
-    const faceH = Math.max(8, Number(customFace.height || 20));
+    const FACE_SCALE = 1.2;
+    const faceW = Math.max(8, Number(customFace.width || 22)) * FACE_SCALE;
+    const faceH = Math.max(8, Number(customFace.height || 20)) * FACE_SCALE;
     const offsetX = Number(customFace.offsetX || 0);
-    const offsetY = Number(customFace.offsetY || -10);
+    const offsetY = Number(customFace.offsetY || -12);
     const flipSideForEast = customFace.flipSideForEast !== false;
     const invertSideDirections = Boolean(customFace.invertSideDirections);
     const sideFacingUsesOriginal = invertSideDirections ? "east" : "west";

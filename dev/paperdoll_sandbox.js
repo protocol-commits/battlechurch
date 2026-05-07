@@ -138,7 +138,7 @@
       sideName: "",
       backName: "",
       offsetX: 0,
-      offsetY: -10,
+      offsetY: -12,
       width: 22,
       height: 20,
       cropX: 0,
@@ -625,7 +625,7 @@
         customFace: {
           enabled: Boolean(face.enabled),
           offsetX: Number(face.offsetX || 0),
-          offsetY: Number(face.offsetY || -10),
+          offsetY: Number(face.offsetY || -12),
           width: Math.max(8, Number(face.width || 22)),
           height: Math.max(8, Number(face.height || 20)),
           cropX: Math.max(0, Math.min(95, Number(face.cropX || 0))),
@@ -660,7 +660,7 @@
       customFace: {
         enabled: Boolean(state.customFace.enabled),
         offsetX: Number(state.customFace.offsetX || 0),
-        offsetY: Number(state.customFace.offsetY || -10),
+        offsetY: Number(state.customFace.offsetY || -12),
         width: Math.max(8, Number(state.customFace.width || 22)),
         height: Math.max(8, Number(state.customFace.height || 20)),
         cropX: Math.max(0, Math.min(95, Number(state.customFace.cropX || 0))),
@@ -755,7 +755,7 @@
       sideName: state.customFace.sideName || "",
       backName: state.customFace.backName || "",
       offsetX: Number(state.customFace.offsetX || 0),
-      offsetY: Number(state.customFace.offsetY || -10),
+      offsetY: Number(state.customFace.offsetY || -12),
       width: Math.max(8, Number(state.customFace.width || 22)),
       height: Math.max(8, Number(state.customFace.height || 20)),
       cropX: Math.max(0, Math.min(95, Number(state.customFace.cropX || 0))),
@@ -778,7 +778,7 @@
     state.customFace.sideName = profile.sideName || "";
     state.customFace.backName = profile.backName || "";
     state.customFace.offsetX = Number(profile.offsetX || 0);
-    state.customFace.offsetY = Number(profile.offsetY || -10);
+    state.customFace.offsetY = Number(profile.offsetY || -12);
     state.customFace.width = Math.max(8, Number(profile.width || 22));
     state.customFace.height = Math.max(8, Number(profile.height || 20));
     state.customFace.cropX = Math.max(0, Math.min(95, Number(profile.cropX || 0)));
@@ -1569,10 +1569,11 @@
     if (!state.customFace.enabled) return;
     const img = faceImageForFacing();
     if (!img || !img.complete || !img.naturalWidth) return;
-    const w = Math.max(8, Number(state.customFace.width || 22));
-    const h = Math.max(8, Number(state.customFace.height || 20));
+    const FACE_SCALE = 1.2;
+    const w = Math.max(8, Number(state.customFace.width || 22)) * FACE_SCALE;
+    const h = Math.max(8, Number(state.customFace.height || 20)) * FACE_SCALE;
     const ox = Number(state.customFace.offsetX || 0);
-    const oy = Number(state.customFace.offsetY || -10);
+    const oy = Number(state.customFace.offsetY || -12);
     const mirror = shouldMirrorFaceForFacing();
     ctx.save();
     ctx.imageSmoothingEnabled = false;
@@ -2148,7 +2149,7 @@
       state.customFace.sideName = cfg.customFace.sideName || "";
       state.customFace.backName = cfg.customFace.backName || "";
       state.customFace.offsetX = Number(cfg.customFace.offsetX || 0);
-      state.customFace.offsetY = Number(cfg.customFace.offsetY || -10);
+      state.customFace.offsetY = Number(cfg.customFace.offsetY || -12);
       state.customFace.width = Math.max(8, Number(cfg.customFace.width || 22));
       state.customFace.height = Math.max(8, Number(cfg.customFace.height || 20));
       state.customFace.cropX = Math.max(0, Math.min(95, Number(cfg.customFace.cropX || 0)));
