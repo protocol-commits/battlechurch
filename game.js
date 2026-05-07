@@ -3437,6 +3437,7 @@ const spawnRayboltEffect = Effects.spawnRayboltEffect;
 const spawnPrayerBombGlow = Effects.spawnPrayerBombGlow;
 const spawnPrayerBombExplosion = Effects.spawnPrayerBombExplosion;
 const spawnEnemyDeathExplosion = Effects.spawnEnemyDeathExplosion;
+const spawnRushBurstEffect = Effects.spawnRushBurstEffect;
 const spawnSlashBurstEffect = Effects.spawnSlashBurstEffect;
 
 function triggerPrayerBombExplosionAt(x, y, radius, damage) {
@@ -7455,6 +7456,9 @@ async function loadEffectAssets(cache, assets) {
   assets.effects.enemyDeathExplosionAlt2 = await loadImage(
     "assets/sprites/explosions/3/Explosion VFX 3(48x48).png",
   ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
+  assets.effects.rushBurstExplosion = await loadImage(
+    "assets/sprites/explosions/Explosion VFX 26(64x64).png",
+  ).then((img) => extractFrames(img, 64, 64)).catch(() => null);
   assets.effects.prayerBombExplosion = await loadImage(
     "assets/sprites/explosions/Explosion VFX 21/Explosion VFX 21(64x64).png",
   ).then((img) => extractFrames(img, 64, 64));
@@ -24273,6 +24277,17 @@ function executeRushAttack(
   applyMeleeInvulnerability(meleeAttackState, "rush", RUSH_EXIT_INVULNERABILITY);
   meleeAttackState.rushLockTimer = MELEE_RUSH_LOCKOUT;
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
+  if (player && typeof spawnRushBurstEffect === "function") {
+    const attackAngle = Math.atan2(dir.y, dir.x);
+    const rHitbox = player.config?.rushHitbox;
+    const hbOffsetX = (rHitbox && Number.isFinite(rHitbox.offsetX)) ? rHitbox.offsetX : 88;
+    const hbWidth = (rHitbox && Number.isFinite(rHitbox.width) && rHitbox.width > 0) ? rHitbox.width : 437;
+    // Place burst at the far edge of the hitbox (offsetX + half-width) so it reads as "out in front"
+    const burstDist = hbOffsetX + hbWidth * 0.5;
+    const burstX = player.x + Math.cos(attackAngle) * burstDist;
+    const burstY = player.y + Math.sin(attackAngle) * burstDist;
+    spawnRushBurstEffect(burstX, burstY, attackAngle, hbWidth / 64);
+  }
   playRushAttackSfx(0.9);
   return true;
 }

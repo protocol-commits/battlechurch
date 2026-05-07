@@ -10553,15 +10553,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const state = window._meleeAttackState;
     if (!state || (state.swooshTimer <= 0 && !state.isRushing && !state.rushDamageEnabled && state.spinTimer <= 0)) return;
     const bindings = requireBindings();
-    const worldScale = bindings?.WORLD_SCALE ?? 1;
     const closeRange = bindings?.MELEE_CLOSE_RANGE ?? 0;
     const meleeRange = bindings?.MELEE_SWING_RANGE ?? 0;
-    const assets = bindings?.assets;
     const cameraOffsetX = bindings?.cameraOffsetX || 0;
     const cameraOffsetY = bindings?.cameraOffsetY || 0;
     const shakeX = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.x : 0) || 0;
     const shakeY = (typeof sharedShakeOffset !== "undefined" ? sharedShakeOffset.y : 0) || 0;
-    const swooshImg = assets?.effects?.meleeSwoosh;
     const showMeleeHitboxDebug =
       typeof window !== "undefined"
         ? window.BattlechurchHitboxDebug?.playerMelee === true
@@ -10647,116 +10644,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (state.spinTimer > 0) {
       return;
     }
-    // Basic slash now uses the animated explosion burst via Effects — skip the static swoosh image for that case.
+    // Rush attack now uses the animated explosion burst via Effects — only keep hitbox debug.
     if (!state.isRushing && !state.rushDamageEnabled) return;
-    if (!swooshImg) return;
-    const dirVec =
-      (state.isRushing && state.rushDir) ||
-      state.swooshDir ||
-      window.Input.lastMovementDirection ||
-      { x: 1, y: 0 };
-    const len = Math.hypot(dirVec.x, dirVec.y) || 1;
-    const normalized = { x: dirVec.x / len, y: dirVec.y / len };
-    const angle = Math.atan2(normalized.y, normalized.x);
-    const activeHitbox =
-      state.isRushing || state.rushDamageEnabled
-        ? rushHitbox
-        : state.currentAttackHitboxType === "dashSlash"
-          ? dashSlashHitbox
-        : slashHitbox;
-    const hitboxWidth =
-      activeHitbox && Number.isFinite(activeHitbox.width) && activeHitbox.width > 0
-        ? activeHitbox.width
-        : null;
-    const hitboxHeight =
-      activeHitbox && Number.isFinite(activeHitbox.height) && activeHitbox.height > 0
-        ? activeHitbox.height
-        : null;
-    const targetLength = (state.swingLength ?? MELEE_SWING_LENGTH) * worldScale;
-    const arcScale = bindings?.MELEE_SWOOSH_ARC_SCALE ?? 1.5;
-    const swingScale = state.swingScale ?? targetLength / Math.max(1, swooshImg.width);
-    const fallbackWidth = swooshImg.width * swingScale;
-    const fallbackHeight = swooshImg.height * swingScale * arcScale;
-    const drawWidth = hitboxWidth || fallbackWidth;
-    const drawHeight = hitboxHeight || fallbackHeight;
-    const originX = player.x - cameraOffsetX + shakeX;
-    const originY = player.y - cameraOffsetY + shakeY;
-    const duration = Math.max(0.001, MELEE_SWING_DURATION);
-    const rushProgress = (state.isRushing || state.rushDamageEnabled)
-      ? Math.min(1, Math.max(0, (state.rushDistanceRemaining ?? 0) / Math.max(1, bindings?.RUSH_DISTANCE ?? 220)))
-      : 0;
-    const intensity = state.swooshTimer > 0
-      ? Math.min(1, state.swooshTimer / duration)
-      : (state.isRushing || state.rushDamageEnabled) ? rushProgress : 0.85;
-    const rectX =
-      activeHitbox && Number.isFinite(activeHitbox.offsetX)
-        ? activeHitbox.offsetX - drawWidth * 0.5
-        : 0;
-    const rectY =
-      activeHitbox && Number.isFinite(activeHitbox.offsetY)
-        ? activeHitbox.offsetY - drawHeight * 0.5
-        : -drawHeight * 0.5;
-    ctx.save();
-    ctx.translate(originX, originY);
-    ctx.rotate(angle);
-    ctx.globalAlpha = Math.min(0.9, 0.65 + intensity * 0.35);
-    ctx.drawImage(
-      swooshImg,
-      rectX,
-      rectY,
-      drawWidth,
-      drawHeight,
-    );
-    if (state.isRushing || state.rushDamageEnabled) {
-      const frontWidth = drawWidth;
-      const frontHeight = drawHeight;
-      ctx.globalAlpha = Math.min(0.85, 0.45 + intensity * 0.35);
-      ctx.drawImage(
-        swooshImg,
-        rectX + drawWidth * 0.06,
-        rectY,
-        frontWidth,
-        frontHeight,
-      );
-      if (
-        showMeleeHitboxDebug &&
-        rushHitbox &&
-        Number.isFinite(rushHitbox.width) &&
-        Number.isFinite(rushHitbox.height)
-      ) {
-        const rectX = (Number.isFinite(rushHitbox.offsetX) ? rushHitbox.offsetX : 0) - rushHitbox.width * 0.5;
-        const rectY = (Number.isFinite(rushHitbox.offsetY) ? rushHitbox.offsetY : 0) - rushHitbox.height * 0.5;
-        ctx.save();
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = "rgba(255, 80, 120, 0.16)";
-        ctx.strokeStyle = "rgba(255, 80, 120, 0.95)";
-        ctx.lineWidth = 2;
-        ctx.fillRect(rectX, rectY, rushHitbox.width, rushHitbox.height);
-        ctx.strokeRect(rectX, rectY, rushHitbox.width, rushHitbox.height);
-        ctx.restore();
-      }
-    }
-    ctx.restore();
-
-    // Double strike second swoosh — yellow, offset outward, slightly bigger, longer linger
-    if ((state.doubleStrikeSwooshTimer || 0) > 0 && state.doubleStrikeSwooshDir) {
-      const ds2Duration = MELEE_SWING_DURATION * 2.5;
-      const ds2Intensity = Math.min(1, state.doubleStrikeSwooshTimer / ds2Duration);
-      const ds2Scale = 1.28;
-      const ds2Width = drawWidth * ds2Scale;
-      const ds2Height = drawHeight * ds2Scale;
-      const ds2Dir = state.doubleStrikeSwooshDir;
-      const ds2Len = Math.hypot(ds2Dir.x, ds2Dir.y) || 1;
-      const ds2Angle = Math.atan2(ds2Dir.y, ds2Dir.x);
-      const offsetPx = 5;
-      const ds2OriginX = originX + (ds2Dir.x / ds2Len) * offsetPx;
-      const ds2OriginY = originY + (ds2Dir.y / ds2Len) * offsetPx;
+    if (showMeleeHitboxDebug && rushHitbox && Number.isFinite(rushHitbox.width) && Number.isFinite(rushHitbox.height)) {
+      const dirVec = (state.isRushing && state.rushDir) || window.Input.lastMovementDirection || { x: 1, y: 0 };
+      const len = Math.hypot(dirVec.x, dirVec.y) || 1;
+      const angle = Math.atan2(dirVec.y / len, dirVec.x / len);
+      const originX = player.x - cameraOffsetX + shakeX;
+      const originY = player.y - cameraOffsetY + shakeY;
+      const rectX = (Number.isFinite(rushHitbox.offsetX) ? rushHitbox.offsetX : 0) - rushHitbox.width * 0.5;
+      const rectY = (Number.isFinite(rushHitbox.offsetY) ? rushHitbox.offsetY : 0) - rushHitbox.height * 0.5;
       ctx.save();
-      ctx.translate(ds2OriginX, ds2OriginY);
-      ctx.rotate(ds2Angle);
-      ctx.filter = "sepia(1) saturate(8) hue-rotate(10deg) brightness(1.4)";
-      ctx.globalAlpha = ds2Intensity * 0.85;
-      ctx.drawImage(swooshImg, rectX, -ds2Height * 0.5, ds2Width, ds2Height);
+      ctx.translate(originX, originY);
+      ctx.rotate(angle);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(255, 80, 120, 0.16)";
+      ctx.strokeStyle = "rgba(255, 80, 120, 0.95)";
+      ctx.lineWidth = 2;
+      ctx.fillRect(rectX, rectY, rushHitbox.width, rushHitbox.height);
+      ctx.strokeRect(rectX, rectY, rushHitbox.width, rushHitbox.height);
       ctx.restore();
     }
   }

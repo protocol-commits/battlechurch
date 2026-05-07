@@ -297,6 +297,13 @@
 
 
 
+  function spawnRushBurstEffect(x, y, angle, scale = 4) {
+    const frames = resolveAssets()?.effects?.rushBurstExplosion;
+    if (!frames || !frames.length) return null;
+    const rotation = angle + Math.PI / 2;
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation });
+  }
+
   function spawnSlashBurstEffect(x, y, angle, scale = 3.5) {
     const frames = resolveAssets()?.effects?.enemyDeathExplosionAlt;
     if (!frames || !frames.length) return null;
@@ -456,6 +463,7 @@
     spawnSentryBurnEffect,
     spawnSentryBeamHitEffect,
     spawnSentryBoreKillEffect,
+    spawnRushBurstEffect,
     spawnSlashBurstEffect,
     spawnLoopingEffect,
     Effect,
