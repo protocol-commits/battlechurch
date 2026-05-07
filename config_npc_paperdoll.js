@@ -14,10 +14,6 @@
     "left": 2
   },
   "leftMirrorsRight": true,
-  "renderStyle": {
-    "shadowCrush": 1,
-    "shadowThreshold": 0.6
-  },
   "randomGeneration": {
     "policy": "include-first-else-exclude",
     "previewCount": 10
@@ -89,7 +85,7 @@
     "direction": "front",
     "speed": 1,
     "loop": true,
-    "frame": 0,
+    "frame": 3,
     "layers": {
       "base": {
         "visible": true,
@@ -105,7 +101,7 @@
       },
       "hair": {
         "visible": true,
-        "asset": "none"
+        "asset": "Hair Male/Base_character_Male_Short_Brown.png"
       },
       "head": {
         "visible": true,
@@ -183,7 +179,7 @@
       "name": "Test1",
       "gender": "male",
       "skinTone": "pale",
-      "animation": "idle",
+      "animation": "walk",
       "direction": "front",
       "speed": 1,
       "loop": true,
@@ -194,23 +190,23 @@
         },
         "legs": {
           "visible": true,
-          "asset": "none"
+          "asset": "Clothes Male/Pants/Base_character_Male_Pants_Villager.png"
         },
         "chest": {
           "visible": true,
-          "asset": "none"
+          "asset": "Clothes Male/Chest/Base_character_Male_Shirt_beige.png"
         },
         "hair": {
           "visible": true,
-          "asset": "none"
+          "asset": "Hair Male/Base_character_Male_Short_Brown.png"
         },
         "head": {
           "visible": true,
-          "asset": "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png"
+          "asset": "none"
         },
         "weapon": {
           "visible": true,
-          "asset": "none"
+          "asset": "Tools and Weapons/Weapons/Base_character_Male_Swing_Sword.png"
         }
       },
       "assetPool": {
@@ -222,23 +218,49 @@
         "legs": {
           "mode": "exclude",
           "include": [],
-          "exclude": []
+          "exclude": [
+            "Clothes Female/Legs/Base_character_Female_Pants_Villager.png"
+          ]
         },
         "chest": {
           "mode": "exclude",
           "include": [],
-          "exclude": []
+          "exclude": [
+            "Clothes Male/Chest/Base_character_Male_Steel_Armor_Chest.png",
+            "Clothes Female/Chest/Base_character_Female_Black_Cape.png",
+            "Clothes Female/Chest/Base_character_Female_Green_Ranger_Cape.png",
+            "Clothes Male/Chest/Base_character_Male_Knight_Cape.png",
+            "Clothes Male/Chest/Base_character_Male_Cape_Black.png",
+            "Clothes Male/Chest/Base_character_Male_Fur_Armor.png",
+            "Clothes Male/Chest/Base_character_Male_King_Cloak.png",
+            "Clothes Male/Chest/Base_character_Male_Cape_Green_Ranger.png",
+            "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Blue.png",
+            "Clothes Male/Chest/Base_character_Male_Shirt_Royal_Red.png"
+          ]
         },
         "hair": {
           "mode": "exclude",
           "include": [],
-          "exclude": []
+          "exclude": [
+            "Hair Male/Base_character_Male_Long_Hair_Black_Unisex.png",
+            "Hair Female/Base_character_Female_Hair_Queen_Crown_Bun.png"
+          ]
         },
         "head": {
           "mode": "exclude",
           "include": [],
           "exclude": [
-            "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png"
+            "Clothes Female/Head/Base_character_Female_Spooky_Pumpkin.png",
+            "Clothes Female/Head/Base_character_Female_Hat_Witch.png",
+            "Clothes Male/Head/Base_character_Male_Hat_Adventurer.png",
+            "Clothes Male/Head/Base_character_Male_Hat_Wizard.png",
+            "Clothes Male/Head/Base_character_Male_Helmet_Knight_Closed.png",
+            "Clothes Male/Head/Base_character_Male_King_Crown.png",
+            "Clothes Male/Head/Base_character_Male_Spooky_Pumpkin.png",
+            "Clothes Female/Head/Base_character_Female_Crown.png",
+            "Clothes Female/Head/Base_character_Female_Hat_Adventurer.png",
+            "Clothes Female/Head/Base_character_Female_Hat_Light_Brown_Turqoiuse.png",
+            "Clothes Female/Head/Base_character_Female_Hat_White_red.png"
           ]
         },
         "weapon": {

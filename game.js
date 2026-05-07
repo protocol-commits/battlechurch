@@ -135,6 +135,7 @@ if (typeof window !== "undefined" && !window.triggerDamageFlash) {
   };
 }
 const npcs = [];
+let hitboxEditorNpcPreview = null;
 const effects = Effects.getActive();
 let divineChargeSparkEffect = null;
 let divineChargeFlashEffect = null;
@@ -16448,6 +16449,73 @@ function createNpcPixelAppearance(gender = null) {
   };
 }
 
+function createNpcPixelAppearanceFromPresetName(presetName = "") {
+  const cfg = getNpcPixelConfig();
+  const renderStyle = resolveNpcPixelRenderStyle(cfg);
+  const sourceImages = assets?.npcs?.pixelLineImages;
+  if (!cfg || !sourceImages || !(sourceImages instanceof Map)) return null;
+  const target = String(presetName || "").trim().toLowerCase();
+  if (!target) return null;
+  const preset = Array.isArray(cfg.presets)
+    ? cfg.presets.find((p) => String(p?.name || "").trim().toLowerCase() === target)
+    : null;
+  if (!preset || typeof preset !== "object") return null;
+  const g = normalizeNpcGender(preset.gender);
+  const picks = {};
+  for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+    const token = preset?.layers?.[layerKey]?.asset;
+    if (token && token !== "none") {
+      picks[layerKey] = token;
+      continue;
+    }
+    const pool = buildNpcPixelAllowedPool(g, layerKey, cfg, []);
+    picks[layerKey] = randomChoice(pool) || pool[0] || "none";
+  }
+  const walkLayers = [];
+  const swingLayers = [];
+  for (const layerKey of NPC_PIXEL_LAYER_ORDER) {
+    if (layerKey === "weapon") continue;
+    const walkRowBase = 3;
+    const sheet = composeNpcPixelLayerSheet([picks[layerKey]], sourceImages, walkRowBase, renderStyle);
+    if (sheet) walkLayers.push(sheet);
+    const swingSheet = composeNpcPixelLayerSheet(
+      [picks[layerKey]],
+      sourceImages,
+      NPC_PIXEL_SWING_ROW_BASE,
+      renderStyle,
+    );
+    if (swingSheet) swingLayers.push(swingSheet);
+  }
+  if (!walkLayers.length) return null;
+  return {
+    shadow: null,
+    animations: {
+      walk: {
+        layers: walkLayers,
+        frameDuration: NPC_WALK_FRAME_DURATION,
+        framesPerDirection: 6,
+        frameWidth: NPC_PIXEL_FRAME_WIDTH,
+        frameHeight: NPC_PIXEL_FRAME_HEIGHT,
+      },
+      hurt: {
+        layers: walkLayers,
+        frameDuration: NPC_HURT_FRAME_DURATION,
+        framesPerDirection: 1,
+        frameWidth: NPC_PIXEL_FRAME_WIDTH,
+        frameHeight: NPC_PIXEL_FRAME_HEIGHT,
+      },
+      attack: {
+        layers: swingLayers.length ? swingLayers : walkLayers,
+        frameDuration: NPC_PIXEL_SWING_FRAME_DURATION,
+        framesPerDirection: NPC_PIXEL_SWING_FRAME_COUNT,
+        frameWidth: NPC_PIXEL_FRAME_WIDTH,
+        frameHeight: NPC_PIXEL_FRAME_HEIGHT,
+        animateWhenIdle: true,
+      },
+    },
+  };
+}
+
 function createRandomNpcLayers(gender = null) {
   const pixelAppearance = createNpcPixelAppearance(gender);
   if (pixelAppearance) return pixelAppearance;
@@ -16620,6 +16688,18 @@ function createCozyNpc() {
   const npc = new CozyNpc({ appearance });
   npc.name = name || "Friend";
   npc.gender = gender;
+  return npc;
+}
+
+function createNpcPixelLinePreviewNpc() {
+  const appearance =
+    createNpcPixelAppearanceFromPresetName("Test1") ||
+    createNpcPixelAppearance(normalizeNpcGender());
+  if (!appearance) return null;
+  const name = "Test1 NPC";
+  const npc = new CozyNpc({ appearance });
+  npc.name = name || "Friend";
+  npc.gender = normalizeNpcGender("male");
   return npc;
 }
 
@@ -26649,7 +26729,17 @@ async function init() {
         getEnemyTypes: () => ENEMY_TYPES,
         getPlayerPreview: () => player,
         getPlayerConfig: () => PLAYER_CONFIG,
-        getNpcPreview: () => (Array.isArray(npcs) ? npcs.find((npc) => npc && !npc.departed) || null : null),
+        getNpcPreview: () => {
+          const liveNpc = Array.isArray(npcs) ? npcs.find((npc) => npc && !npc.departed) || null : null;
+          if (liveNpc) return liveNpc;
+          if (!hitboxEditorNpcPreview || hitboxEditorNpcPreview.departed) {
+            hitboxEditorNpcPreview = createNpcPixelLinePreviewNpc();
+            if (hitboxEditorNpcPreview?.animator?.play) {
+              hitboxEditorNpcPreview.animator.play("walk", { restart: true });
+            }
+          }
+          return hitboxEditorNpcPreview || null;
+        },
         getProjectileConfig: () => PROJECTILE_CONFIG,
         onHitboxChange: applyHitboxChange,
         onPlayerHitboxChange: (hitbox) => {
