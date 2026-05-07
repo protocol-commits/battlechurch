@@ -568,7 +568,7 @@
     return img;
   }
 
-  function drawCustomFaceOverlay(targetCtx, cfg, facing, frameScale = 1) {
+  function drawCustomFaceOverlay(targetCtx, cfg, facing, frameScale = 1, originX = 0, originY = 0) {
     if (!targetCtx || !cfg || typeof cfg !== "object") return;
     const customFace = cfg.customFace;
     if (!customFace || typeof customFace !== "object" || customFace.enabled !== true) return;
@@ -617,8 +617,8 @@
       flipSideForEast;
     const drawW = Math.round(faceW * frameScale);
     const drawH = Math.round(faceH * frameScale);
-    const drawX = Math.round((PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetX * frameScale - drawW * 0.5);
-    const drawY = Math.round((PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetY * frameScale - drawH * 0.5);
+    const drawX = Math.round(originX + (PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetX * frameScale - drawW * 0.5);
+    const drawY = Math.round(originY + (PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetY * frameScale - drawH * 0.5);
     const cropX01 = Math.max(0, Math.min(1, Number(customFace.cropX || 0) / 100));
     const cropY01 = Math.max(0, Math.min(1, Number(customFace.cropY || 0) / 100));
     const cropW01 = Math.max(0.05, Math.min(1, Number(customFace.cropW || 100) / 100));
@@ -1008,8 +1008,6 @@
         PAPERDOLL_FRAME_SIZE,
         renderStyle,
       );
-      // Keep uploaded face photos uncrushed by applying them after shadow crush.
-      drawCustomFaceOverlay(paperdollCompositeContext, cfg, faceFacing, 1);
       context.drawImage(
         paperdollCompositeCanvas,
         0,
@@ -1020,6 +1018,16 @@
         y - dh / 2,
         dw,
         dh,
+      );
+      // Draw uploaded face directly in world-space so it is scaled once with the actor,
+      // instead of being rasterized to the tiny frame then scaled again.
+      drawCustomFaceOverlay(
+        context,
+        cfg,
+        faceFacing,
+        scale,
+        x - dw / 2,
+        y - dh / 2,
       );
     }
     const tintColor = renderStyle?.tintColor || null;
