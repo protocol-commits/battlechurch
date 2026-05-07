@@ -127,6 +127,10 @@
       offsetY: -10,
       width: 22,
       height: 20,
+      cropX: 0,
+      cropY: 0,
+      cropW: 100,
+      cropH: 100,
       flipSideForEast: true,
       invertSideDirections: false,
       status: "No face images loaded.",
@@ -558,6 +562,31 @@
         <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.height || 0)}</div>
         ${buttonHtml("face-h-up", "▶")}
       </div>
+      <div style="font-weight:700;margin:8px 0 6px;">Crop (%)</div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Crop X</div>
+        ${buttonHtml("face-cx-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropX || 0)}</div>
+        ${buttonHtml("face-cx-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Crop Y</div>
+        ${buttonHtml("face-cy-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropY || 0)}</div>
+        ${buttonHtml("face-cy-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="opacity:.85;">Crop W</div>
+        ${buttonHtml("face-cw-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropW || 100)}</div>
+        ${buttonHtml("face-cw-up", "▶")}
+      </div>
+      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
+        <div style="opacity:.85;">Crop H</div>
+        ${buttonHtml("face-ch-down", "◀")}
+        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropH || 100)}</div>
+        ${buttonHtml("face-ch-up", "▶")}
+      </div>
       <div style="display:flex;gap:6px;margin-bottom:8px;">
         ${buttonHtml("face-clear", "Clear Face Uploads")}
       </div>
@@ -754,6 +783,22 @@
       state.customFace.height = Math.max(8, Number(state.customFace.height || 0) - 1);
     } else if (action === "face-h-up") {
       state.customFace.height = Math.min(40, Number(state.customFace.height || 0) + 1);
+    } else if (action === "face-cx-down") {
+      state.customFace.cropX = Math.max(0, Number(state.customFace.cropX || 0) - 1);
+    } else if (action === "face-cx-up") {
+      state.customFace.cropX = Math.min(95, Number(state.customFace.cropX || 0) + 1);
+    } else if (action === "face-cy-down") {
+      state.customFace.cropY = Math.max(0, Number(state.customFace.cropY || 0) - 1);
+    } else if (action === "face-cy-up") {
+      state.customFace.cropY = Math.min(95, Number(state.customFace.cropY || 0) + 1);
+    } else if (action === "face-cw-down") {
+      state.customFace.cropW = Math.max(5, Number(state.customFace.cropW || 100) - 1);
+    } else if (action === "face-cw-up") {
+      state.customFace.cropW = Math.min(100, Number(state.customFace.cropW || 100) + 1);
+    } else if (action === "face-ch-down") {
+      state.customFace.cropH = Math.max(5, Number(state.customFace.cropH || 100) - 1);
+    } else if (action === "face-ch-up") {
+      state.customFace.cropH = Math.min(100, Number(state.customFace.cropH || 100) + 1);
     } else if (action === "face-clear") {
       state.customFace.front = null;
       state.customFace.side = null;
@@ -763,6 +808,16 @@
       state.customFace.backName = "";
       state.customFace.enabled = false;
       state.customFace.status = "No face images loaded.";
+    }
+    state.customFace.cropX = Math.max(0, Math.min(95, Number(state.customFace.cropX || 0)));
+    state.customFace.cropY = Math.max(0, Math.min(95, Number(state.customFace.cropY || 0)));
+    state.customFace.cropW = Math.max(5, Math.min(100, Number(state.customFace.cropW || 100)));
+    state.customFace.cropH = Math.max(5, Math.min(100, Number(state.customFace.cropH || 100)));
+    if (state.customFace.cropX + state.customFace.cropW > 100) {
+      state.customFace.cropW = Math.max(5, 100 - state.customFace.cropX);
+    }
+    if (state.customFace.cropY + state.customFace.cropH > 100) {
+      state.customFace.cropH = Math.max(5, 100 - state.customFace.cropY);
     }
 
     if (!keepFrameCursor) {
@@ -859,12 +914,27 @@
     const dy = Math.floor(cy + oy * scale - (h * scale) / 2);
     const dw = Math.floor(w * scale);
     const dh = Math.floor(h * scale);
+    const cropX01 = Math.max(0, Math.min(1, Number(state.customFace.cropX || 0) / 100));
+    const cropY01 = Math.max(0, Math.min(1, Number(state.customFace.cropY || 0) / 100));
+    const cropW01 = Math.max(0.05, Math.min(1, Number(state.customFace.cropW || 100) / 100));
+    const cropH01 = Math.max(0.05, Math.min(1, Number(state.customFace.cropH || 100) / 100));
+    const sx = Math.floor(cropX01 * img.naturalWidth);
+    const sy = Math.floor(cropY01 * img.naturalHeight);
+    const sw = Math.max(1, Math.floor(cropW01 * img.naturalWidth));
+    const sh = Math.max(1, Math.floor(cropH01 * img.naturalHeight));
+    const safeSw = Math.min(sw, Math.max(1, img.naturalWidth - sx));
+    const safeSh = Math.min(sh, Math.max(1, img.naturalHeight - sy));
+    const fit = Math.min(dw / safeSw, dh / safeSh);
+    const fitW = Math.max(1, Math.floor(safeSw * fit));
+    const fitH = Math.max(1, Math.floor(safeSh * fit));
+    const fitX = dx + Math.floor((dw - fitW) / 2);
+    const fitY = dy + Math.floor((dh - fitH) / 2);
     if (mirror) {
-      ctx.translate(dx + dw, dy);
+      ctx.translate(fitX + fitW, fitY);
       ctx.scale(-1, 1);
-      ctx.drawImage(img, 0, 0, dw, dh);
+      ctx.drawImage(img, sx, sy, safeSw, safeSh, 0, 0, fitW, fitH);
     } else {
-      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.drawImage(img, sx, sy, safeSw, safeSh, fitX, fitY, fitW, fitH);
     }
     ctx.restore();
   }
@@ -1113,6 +1183,10 @@
         offsetY: Number(state.customFace.offsetY || 0),
         width: Math.max(8, Number(state.customFace.width || 22)),
         height: Math.max(8, Number(state.customFace.height || 20)),
+        cropX: Math.max(0, Math.min(95, Number(state.customFace.cropX || 0))),
+        cropY: Math.max(0, Math.min(95, Number(state.customFace.cropY || 0))),
+        cropW: Math.max(5, Math.min(100, Number(state.customFace.cropW || 100))),
+        cropH: Math.max(5, Math.min(100, Number(state.customFace.cropH || 100))),
         flipSideForEast: state.customFace.flipSideForEast !== false,
         invertSideDirections: Boolean(state.customFace.invertSideDirections),
       },
@@ -1328,6 +1402,10 @@
       state.customFace.offsetY = Number(cfg.customFace.offsetY || -10);
       state.customFace.width = Math.max(8, Number(cfg.customFace.width || 22));
       state.customFace.height = Math.max(8, Number(cfg.customFace.height || 20));
+      state.customFace.cropX = Math.max(0, Math.min(95, Number(cfg.customFace.cropX || 0)));
+      state.customFace.cropY = Math.max(0, Math.min(95, Number(cfg.customFace.cropY || 0)));
+      state.customFace.cropW = Math.max(5, Math.min(100, Number(cfg.customFace.cropW || 100)));
+      state.customFace.cropH = Math.max(5, Math.min(100, Number(cfg.customFace.cropH || 100)));
       state.customFace.flipSideForEast = cfg.customFace.flipSideForEast !== false;
       state.customFace.invertSideDirections = Boolean(cfg.customFace.invertSideDirections);
     }

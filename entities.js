@@ -590,16 +590,31 @@
     const drawH = Math.round(faceH * frameScale);
     const drawX = Math.round((PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetX * frameScale - drawW * 0.5);
     const drawY = Math.round((PAPERDOLL_FRAME_SIZE * frameScale) * 0.5 + offsetY * frameScale - drawH * 0.5);
+    const cropX01 = Math.max(0, Math.min(1, Number(customFace.cropX || 0) / 100));
+    const cropY01 = Math.max(0, Math.min(1, Number(customFace.cropY || 0) / 100));
+    const cropW01 = Math.max(0.05, Math.min(1, Number(customFace.cropW || 100) / 100));
+    const cropH01 = Math.max(0.05, Math.min(1, Number(customFace.cropH || 100) / 100));
+    const sx = Math.floor(cropX01 * img.naturalWidth);
+    const sy = Math.floor(cropY01 * img.naturalHeight);
+    const sw = Math.max(1, Math.floor(cropW01 * img.naturalWidth));
+    const sh = Math.max(1, Math.floor(cropH01 * img.naturalHeight));
+    const safeSw = Math.min(sw, Math.max(1, img.naturalWidth - sx));
+    const safeSh = Math.min(sh, Math.max(1, img.naturalHeight - sy));
+    const fit = Math.min(drawW / safeSw, drawH / safeSh);
+    const fitW = Math.max(1, Math.floor(safeSw * fit));
+    const fitH = Math.max(1, Math.floor(safeSh * fit));
+    const fitX = drawX + Math.floor((drawW - fitW) / 2);
+    const fitY = drawY + Math.floor((drawH - fitH) / 2);
     targetCtx.imageSmoothingEnabled = false;
     if (shouldMirror) {
       targetCtx.save();
-      targetCtx.translate(drawX + drawW, drawY);
+      targetCtx.translate(fitX + fitW, fitY);
       targetCtx.scale(-1, 1);
-      targetCtx.drawImage(img, 0, 0, drawW, drawH);
+      targetCtx.drawImage(img, sx, sy, safeSw, safeSh, 0, 0, fitW, fitH);
       targetCtx.restore();
       return;
     }
-    targetCtx.drawImage(img, drawX, drawY, drawW, drawH);
+    targetCtx.drawImage(img, sx, sy, safeSw, safeSh, fitX, fitY, fitW, fitH);
   }
 
   function facingFromVector(dx, dy, fallback = "down") {
