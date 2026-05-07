@@ -171,6 +171,7 @@
     frame: 0,
     frameElapsed: 0,
     layerVisible: Object.fromEntries(LAYERS.map((k) => [k, true])),
+    layerLabelVisible: Object.fromEntries(LAYERS.map((k) => [k, false])),
     layerSel: Object.fromEntries(LAYERS.map((k) => [k, 0])),
     assetPolicy: Object.fromEntries(
       LAYERS.map((k) => [k, { include: [], exclude: [] }]),
@@ -403,14 +404,16 @@
       const policy = policyFor(key);
       const includeCount = uniqueStrings(policy.include).length;
       const excludeCount = uniqueStrings(policy.exclude).length;
+      const showLabel = Boolean(state.layerLabelVisible[key]);
       parts.push(`
-        <div style="display:grid;grid-template-columns:100px 32px 1fr 32px 62px 86px;gap:6px;align-items:center;margin-bottom:6px;">
+        <div style="display:grid;grid-template-columns:100px 32px 1fr 32px 62px 86px 64px;gap:6px;align-items:center;margin-bottom:6px;">
           <div>${LABELS[key]}</div>
           <button data-action="layer:${key}:-1" style="padding:4px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;">◀</button>
           <div style="padding:4px 6px;border:1px solid #2a334a;background:#0d1220;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${value}</div>
           <button data-action="layer:${key}:1" style="padding:4px;border:1px solid #3a4b72;background:#1b2740;color:#e8edf7;border-radius:6px;">▶</button>
           <button data-action="toggle:${key}" style="padding:4px;border:1px solid #3a4b72;background:${state.layerVisible[key] ? "#1f3d2a" : "#3a1f24"};color:#e8edf7;border-radius:6px;">${state.layerVisible[key] ? "On" : "Off"}</button>
           <button data-action="allow:${key}:${allowed ? 0 : 1}" style="padding:4px;border:1px solid #3a4b72;background:${allowed ? "#1f3d2a" : "#4a2328"};color:#e8edf7;border-radius:6px;">${allowed ? "Use: Yes" : "Use: No"}</button>
+          <button data-action="labeltoggle:${key}" style="padding:4px;border:1px solid #3a4b72;background:${showLabel ? "#294063" : "#1b2740"};color:#e8edf7;border-radius:6px;">Label</button>
         </div>
         <div style="display:grid;grid-template-columns:100px 88px 88px 88px 1fr;gap:6px;align-items:center;margin-top:-2px;margin-bottom:8px;">
           <div style="opacity:.75;font-size:11px;">Pool (${mode})</div>
@@ -570,6 +573,9 @@
     } else if (action.startsWith("toggle:")) {
       const key = action.split(":")[1];
       state.layerVisible[key] = !state.layerVisible[key];
+    } else if (action.startsWith("labeltoggle:")) {
+      const key = action.split(":")[1];
+      state.layerLabelVisible[key] = !state.layerLabelVisible[key];
     } else if (action.startsWith("allow:")) {
       const [, key, allowRaw] = action.split(":");
       setTokenAllowed(key, getLayerToken(key), Number(allowRaw) === 1);
@@ -632,6 +638,7 @@
       loop: state.loop,
       layerSel: { ...state.layerSel },
       layerVisible: { ...state.layerVisible },
+      layerLabelVisible: { ...state.layerLabelVisible },
       assetPolicy: JSON.parse(JSON.stringify(state.assetPolicy || {})),
       savedAt: Date.now(),
     };
@@ -647,11 +654,13 @@
     state.loop = p.loop !== false;
     const sel = p.layerSel && typeof p.layerSel === "object" ? p.layerSel : {};
     const vis = p.layerVisible && typeof p.layerVisible === "object" ? p.layerVisible : {};
+    const labelVis = p.layerLabelVisible && typeof p.layerLabelVisible === "object" ? p.layerLabelVisible : {};
     const pol = p.assetPolicy && typeof p.assetPolicy === "object" ? p.assetPolicy : {};
     for (const key of LAYERS) {
       const list = catalogForLayer(key);
       state.layerSel[key] = clampWrap(Number(sel[key]) || 0, Math.max(1, list.length));
       state.layerVisible[key] = vis[key] !== false;
+      state.layerLabelVisible[key] = labelVis[key] === true;
       const src = pol[key] && typeof pol[key] === "object" ? pol[key] : {};
       policyFor(key).include = uniqueStrings(src.include || []);
       policyFor(key).exclude = uniqueStrings(src.exclude || []);
@@ -1023,9 +1032,24 @@
     const y = Math.round(splitY * 0.5 - drawH * 0.5);
 
     const drawOrder = ["base", "legs", "chest", "hair", "head", "weapon"];
+    const weaponAnimAllowed = new Set(["swing", "mine", "walk_hold"]);
+    const shouldDrawWeaponLayer = weaponAnimAllowed.has(String(anim.key || "").toLowerCase());
     for (const key of drawOrder) {
+      if (key === "weapon" && !shouldDrawWeaponLayer) continue;
       if (!state.layerVisible[key]) continue;
       drawLayerImage(getLayerToken(key), rect, x, y, drawW, drawH, dir.mirror);
+    }
+
+    const enabledLabelLayers = LAYERS.filter((k) => state.layerLabelVisible[k]);
+    if (enabledLabelLayers.length) {
+      ctx.fillStyle = "rgba(220,228,245,0.95)";
+      ctx.font = "12px ui-monospace, Menlo, monospace";
+      let ty = y + drawH + 16;
+      for (const key of enabledLabelLayers) {
+        const token = getLayerToken(key);
+        ctx.fillText(`${LABELS[key]}: ${prettyName(token)}`, Math.max(10, x - 30), ty);
+        ty += 14;
+      }
     }
 
     ctx.fillStyle = "rgba(232,237,247,0.95)";
@@ -1060,9 +1084,21 @@
       const dx = startX + col * (cellW + gapX);
       const dy = startY + row * (cellH + gapY);
       for (const key of drawOrder) {
+        if (key === "weapon" && !shouldDrawWeaponLayer) continue;
         const token = npc.layers[key];
         if (!token || token === "none") continue;
         drawLayerImage(token, rect, dx, dy, drawW, drawH, dir.mirror);
+      }
+      if (enabledLabelLayers.length) {
+        ctx.fillStyle = "rgba(220,228,245,0.9)";
+        ctx.font = "10px ui-monospace, Menlo, monospace";
+        let ly = dy + drawH + 12;
+        for (const key of enabledLabelLayers) {
+          const token = npc.layers[key] || "none";
+          const shortName = prettyName(token);
+          ctx.fillText(shortName, dx, ly);
+          ly += 11;
+        }
       }
     }
   }
