@@ -256,7 +256,8 @@
     const cfg = getDevConfig();
     if (!cfg) return {};
     const districtList = Array.isArray(cfg.districts) ? cfg.districts
-      : (Array.isArray(cfg.levels) ? cfg.levels : []);
+      : (Array.isArray(cfg.towns) ? cfg.towns
+      : (Array.isArray(cfg.levels) ? cfg.levels : []));
     const districtCfg = districtList.find((t) => t?.index === districtIdx);
     if (!districtCfg) return {};
     const battleList = Array.isArray(districtCfg.battles) ? districtCfg.battles
@@ -675,6 +676,7 @@
     const cfg = getDevConfig();
     // v2: towns[]; v1 fallback: levels[]
     const districtData = cfg?.districts?.find((t) => t.index === levelNumber)
+      || cfg?.towns?.find((t) => t.index === levelNumber)
       || cfg?.levels?.find((l) => l.index === levelNumber);
     // The level manager iterates battles[] sequentially using state.monthIndex.
     // Each mission in the data becomes one battle entry here so the level manager
