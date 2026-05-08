@@ -1376,7 +1376,7 @@
     let primaryLine = "";
     let secondaryLine = "";
     if (district.type === "capital") {
-      primaryLine = `Final ${(typeof window !== "undefined" && window.STAGE_LABEL) || "Mission"}`;
+      primaryLine = `Final ${(typeof window !== "undefined" && window.PHASE_LABEL) || "Mission"}`;
       secondaryLine = `Score Multiplier: ×${getCapitalScoreMultiplier(progress).toFixed(2)}`;
     } else {
       const nextCamp = progress ? getNextCampaignForDistrict(district.id, progress) : "p1";
@@ -1390,14 +1390,14 @@
         (sum, camp) => sum + (districtEntry?.[camp]?.completed === true ? 1 : 0),
         0,
       );
-      primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
+      primaryLine = `Current ${(typeof window !== "undefined" && window.PHASE_LABEL) || "Mission"}: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       if (campAvail) {
         const activeRun = progress?.activeRun;
         const isInProgress = activeRun?.districtId === district.id && activeRun?.campaign === nextCamp && Number.isFinite(activeRun?.resumeLocalBattleNumber) && activeRun.resumeLocalBattleNumber > 1;
         if (isInProgress) {
-          secondaryLine = `In Progress: ${(typeof window !== "undefined" && window.STAGE_LABEL) || "Mission"} ${activeRun.resumeLocalBattleNumber - 1}/3 done`;
+          secondaryLine = `In Progress: ${(typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield"} ${activeRun.resumeLocalBattleNumber - 1}/3 done`;
         } else {
-          secondaryLine = `${(typeof window !== "undefined" && window.STAGE_LABEL) || "Mission"}s Completed: ${completedVisits}/3`;
+          secondaryLine = `${(typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield"}s Completed: ${completedVisits}/3`;
         }
       } else if (nextCamp === "p2") {
         secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} districts to unlock ${_phases.p2 || "Occupation"}.`;

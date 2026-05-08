@@ -162,7 +162,8 @@
   const MONTHS_PER_LEVEL = BATTLES_PER_DISTRICT;
   const BATTLE_MONTHS_PER_LEVEL = Math.max(1, BATTLES_PER_DISTRICT);
   const HORDES_PER_BATTLE = HORDES_PER_WAVE * WAVES_PER_MISSION;
-  const STAGE_LABEL = "Mission";
+  const STAGE_LABEL = "Battlefield";
+  const PHASE_LABEL = "Mission";
   const BETWEEN_BATTLE_PAUSE = 3;
   const BETWEEN_WAVE_PAUSE = 2.3;
   const LEVEL_INTRO_DURATION = 2.6;
@@ -218,6 +219,7 @@
     window.MISSIONS_PER_BATTLE = MISSIONS_PER_BATTLE;
     window.DISTRICTS_PER_GAME = DISTRICTS_PER_GAME;
     window.STAGE_LABEL = STAGE_LABEL;
+    window.PHASE_LABEL = PHASE_LABEL;
   }
 
   function getDevConfig() {

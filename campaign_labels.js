@@ -21,19 +21,19 @@
     // but override here if you need a longer descriptive form.
     missionIntroTitles: Object.freeze({
       p1: Object.freeze({
-        1: "Mission I: Assault",
-        2: "Mission II: Repel",
-        3: "Mission III: Breakthrough",
+        1: "Battlefield I: Assault",
+        2: "Battlefield II: Repel",
+        3: "Battlefield III: Breakthrough",
       }),
       p2: Object.freeze({
-        1: "Mission I: Sweep",
-        2: "Mission II: Hold",
-        3: "Mission III: Secure",
+        1: "Battlefield I: Sweep",
+        2: "Battlefield II: Hold",
+        3: "Battlefield III: Secure",
       }),
       p3: Object.freeze({
-        1: "Mission I: Reinforce",
-        2: "Mission II: Defend",
-        3: "Mission III: Entrench",
+        1: "Battlefield I: Reinforce",
+        2: "Battlefield II: Defend",
+        3: "Battlefield III: Entrench",
       }),
     }),
 

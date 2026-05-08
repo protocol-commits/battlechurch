@@ -4661,7 +4661,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const bossActNum = Number.isFinite(currentLevelStatus?.missionNum)
       ? currentLevelStatus.missionNum
       : 1;
-    const bossFallbackMissionLabel = `Mission ${bossActNum}: ${actMissionLabels[bossActNum] || `Mission ${bossActNum}`}`;
+    const _bfLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
+    const bossFallbackMissionLabel = `${_bfLabel} ${bossActNum}: ${actMissionLabels[bossActNum] || `${_bfLabel} ${bossActNum}`}`;
     const missionLabel =
       String(bossAnnouncement.missionBriefTitle || "").trim() || bossFallbackMissionLabel;
     const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle";
@@ -7715,7 +7716,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const waveNum = levelStatus.waveNum;
     const hordeNum = levelStatus.hordeNum;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const _stageLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Mission";
+    const _stageLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
     const actLabel = `${_stageLabel} ${crumbRomanNumerals[levelStatus.missionNum || 1] || (levelStatus.missionNum || 1)}`;
     // Get town name from activeDistrictId
     const activeDistrictId = typeof window !== "undefined" ? window.activeDistrictId : null;
@@ -7847,13 +7848,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const actTitles = _cbLabels.missionIntroTitles?.[_cbCamp] || _cbLabels.missionIntroTitles?.p1 || {};
     const actVillainText = _cbLabels.missionIntroDescriptions?.[_cbCamp] || _cbLabels.missionIntroDescriptions?.p1 || {};
     const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+    const _stageLabel2 = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
     const battleTitle =
-      actTitles[missionIntroNumber] || `Mission ${romanNumerals[missionIntroNumber] || missionIntroNumber}`;
+      actTitles[missionIntroNumber] || `${_stageLabel2} ${romanNumerals[missionIntroNumber] || missionIntroNumber}`;
     const villainText = actVillainText[missionIntroNumber] || "";
 
     const phaseName = _cbLabels.phases?.[_cbCamp] || _cbCamp.toUpperCase();
     const districtNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
-    const eyebrowText = `Phase ${districtNumber}: ${phaseName}`;
+    const _phaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
+    const eyebrowText = `${_phaseLabel} ${districtNumber}: ${phaseName}`;
     const eyebrowSize = 18;
     const eyebrowGap = 16;
 
