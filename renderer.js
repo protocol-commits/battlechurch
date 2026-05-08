@@ -7714,9 +7714,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const waveNumber = Math.max(1, levelStatus.wave || 1);
     const waveNum = levelStatus.waveNum;
     const hordeNum = levelStatus.hordeNum;
-    const missionNumber = levelStatus.battleNum || 1;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const actLabel = `Mission ${crumbRomanNumerals[levelStatus.missionNum || 1] || (levelStatus.missionNum || 1)}`;
+    const _stageLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Mission";
+    const actLabel = `${_stageLabel} ${crumbRomanNumerals[levelStatus.missionNum || 1] || (levelStatus.missionNum || 1)}`;
     // Get town name from activeDistrictId
     const activeDistrictId = typeof window !== "undefined" ? window.activeDistrictId : null;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
@@ -7745,9 +7745,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else if (stage === "npcArrival") {
       crumbParts.push("Congregation");
     } else if (waveNum != null && hordeNum != null) {
-      crumbParts.push(`Battle ${missionNumber}`, `Wave ${waveNum}`, `Horde ${hordeNum}`);
+      crumbParts.push(`Wave ${waveNum}`, `Horde ${hordeNum}`);
     } else {
-      crumbParts.push(`Battle ${missionNumber}`, `Horde ${waveNumber}`);
+      crumbParts.push(`Horde ${waveNumber}`);
     }
     const breadcrumb = crumbParts.join(" / ");
     const detailText = "";
