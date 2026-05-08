@@ -41,16 +41,6 @@
     // =====================
     // MISSION TEXT
     // =====================
-    battleActs: {
-      1: "Battlefield I: Assault",
-      2: "Battlefield II: Repel",
-      3: "Battlefield III: Breakthrough",
-    },
-    actVillainText: {
-      1: "Clear 3 battlefields to complete the mission.",
-      2: "Clear 3 battlefields to complete the mission.",
-      3: "Clear 3 battlefields to complete the mission.",
-    },
 
     // =====================
     // HUD LABELS

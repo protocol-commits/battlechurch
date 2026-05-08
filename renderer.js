@@ -4655,14 +4655,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const bossAnnouncement = levelAnnouncements[0] || {};
-    const _bosscamp = window.activeCampaign || "p1";
-    const _bossMissions = window.BattlechurchCampaignLabels?.missions || {};
-    const actMissionLabels = _bossMissions[_bosscamp] || _bossMissions.p1 || {};
     const bossActNum = Number.isFinite(currentLevelStatus?.missionNum)
       ? currentLevelStatus.missionNum
       : 1;
     const _bfLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
-    const bossFallbackMissionLabel = `${_bfLabel} ${bossActNum}: ${actMissionLabels[bossActNum] || `${_bfLabel} ${bossActNum}`}`;
+    const _bfRoman = { 1: 'I', 2: 'II', 3: 'III' };
+    const bossFallbackMissionLabel = `${_bfLabel} ${_bfRoman[bossActNum] || bossActNum}`;
     const missionLabel =
       String(bossAnnouncement.missionBriefTitle || "").trim() || bossFallbackMissionLabel;
     const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle";
@@ -7842,16 +7840,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
-    // Define text based on act number — per-phase from campaign_labels.js
-    const _cbCamp = window.activeCampaign || "p1";
     const _cbLabels = window.BattlechurchCampaignLabels || {};
-    const actTitles = _cbLabels.missionIntroTitles?.[_cbCamp] || _cbLabels.missionIntroTitles?.p1 || {};
-    const actVillainText = _cbLabels.missionIntroDescriptions?.[_cbCamp] || _cbLabels.missionIntroDescriptions?.p1 || {};
-    const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const _stageLabel2 = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
-    const battleTitle =
-      actTitles[missionIntroNumber] || `${_stageLabel2} ${romanNumerals[missionIntroNumber] || missionIntroNumber}`;
-    const villainText = actVillainText[missionIntroNumber] || "";
+    const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
+    const battleTitle = `${_stageLabel2} ${romanNumerals[missionIntroNumber] || missionIntroNumber}`;
+    const villainText = "";
 
     const phaseName = _cbLabels.phases?.[_cbCamp] || _cbCamp.toUpperCase();
     const districtNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
@@ -7863,47 +7856,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const centerX = canvas.width / 2;
 
     const chapterTitleSize = 64;
-    const bodyTitleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
-    const headerLayout = getAnnouncementTextLayout(ctx, canvas, {
+    const textGroupHeight = eyebrowSize + eyebrowGap + chapterTitleSize * 1.4;
+    const textGroupTopY = Math.max(90, Math.round((canvas.height - textGroupHeight) / 2));
+    const eyebrowY = textGroupTopY + eyebrowSize;
+    const titleY = eyebrowY + eyebrowGap + chapterTitleSize;
+    const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: battleTitle,
       subtitle: "",
       titleSize: chapterTitleSize,
       subtitleSize: 0,
-      lineGap: Math.round(chapterTitleSize * 1.1),
+      lineGap: 0,
       weight: "bold",
       maxWidthScale: 0.9,
-    });
-    const bodyLayout = getAnnouncementTextLayout(ctx, canvas, {
-      title: villainText,
-      subtitle: "",
-      titleSize: bodyTitleSize,
-      subtitleSize: TEXT_STYLES.h2.size,
-      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-      weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 0.92,
-    });
-    const headerBodyGap = 28;
-    const textGroupHeight =
-      eyebrowSize + eyebrowGap + headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
-    const textGroupTopY = Math.max(
-      90,
-      Math.round((canvas.height - textGroupHeight) / 2),
-    );
-    const eyebrowY = textGroupTopY + eyebrowSize;
-    const titleY = eyebrowY + eyebrowGap + headerLayout.titleLineHeight;
-    const bodyYBase =
-      titleY - headerLayout.titleLineHeight +
-      headerLayout.textBlockHeight +
-      headerBodyGap +
-      bodyLayout.titleLineHeight;
-    const layout = getAnnouncementScreenLayout(ctx, canvas, {
-      title: villainText,
-      subtitle: "",
-      titleSize: bodyTitleSize,
-      subtitleSize: TEXT_STYLES.h2.size,
-      lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-      weight: TEXT_STYLES.h1.weight,
-      maxWidthScale: 0.92,
       position: "bottom",
       topMargin: 90,
       bottomMargin: 80,
@@ -7935,21 +7899,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
     ctx.fillText(battleTitle, centerX, titleY);
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(layout.offsetX, layout.offsetY);
-    ctx.scale(layout.scale, layout.scale);
-    drawAnnouncementText(ctx, layout.virtualCanvas, {
-      title: villainText,
-      yBase: bodyYBase,
-      alpha: 1,
-      typewriter: true,
-      titleSize: bodyTitleSize,
-      weight: TEXT_STYLES.h1.weight,
-      textPalette: HELLFIRE_TEXT_PALETTE,
-      maxWidthScale: 0.92,
-    });
     ctx.restore();
 
     ctx.save();
@@ -9363,12 +9312,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
         fireOverlay.draw(ctx);
       }
-      // Chapter Break (aka Battle Break) screen: Battle I/II/III + exterior shot.
-      const announcementTitle = levelAnnouncements?.[0]?.title || "";
-      const announcementSubtitle = levelAnnouncements?.[0]?.subtitle || "";
-      const _bhCamp = window.activeCampaign || "p1";
+      // Chapter Break (aka Battle Break) screen: Battlefield I/II/III + exterior shot.
       const _bhLabels = window.BattlechurchCampaignLabels || {};
-      const battleHeadings = _bhLabels.missionIntroTitles?.[_bhCamp] || _bhLabels.missionIntroTitles?.p1 || {};
+      const _bhStageLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
+      const _bhPhaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
       const announcement = levelAnnouncements?.[0] || {};
       const inferredUpcomingNumber = Math.max(
         1,
@@ -9380,11 +9327,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
         ? announcement.upcomingOrderNumber
         : inferredUpcomingNumber;
-      const battleHeading = battleHeadings[orderNumber] || `Mission ${orderNumber}`;
-      const _bhPhaseName = _bhLabels.phases?.[_bhCamp] || _bhCamp.toUpperCase();
+      const _bhRoman = { 1: 'I', 2: 'II', 3: 'III' };
+      const battleHeading = `${_bhStageLabel} ${_bhRoman[orderNumber] || orderNumber}`;
+      const _bhPhaseName = _bhLabels.phases?.[window.activeCampaign || "p1"] || "";
       const _bhDistrictNumber = levelStatus?.level || 1;
-      const eyebrowText = `Phase ${_bhDistrictNumber}: ${_bhPhaseName}`;
-      const headerSubtitleText = upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "";
+      const eyebrowText = `${_bhPhaseLabel} ${_bhDistrictNumber}: ${_bhPhaseName}`;
+      const headerSubtitleText = "";
       const eyebrowDone = isAnnouncementRevealComplete(eyebrowText, "");
       const headerDone = isAnnouncementRevealComplete(battleHeading, headerSubtitleText);
       const eyebrowSize = 18;
@@ -9401,29 +9349,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         weight: "bold",
         maxWidthScale: 0.9,
       });
-      const bodyLayout = getAnnouncementTextLayout(ctx, canvas, {
-        title: announcementTitle,
-        subtitle: announcementSubtitle,
-        titleSize: bodyTitleSize,
-        subtitleSize: TEXT_STYLES.h2.size,
-        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-        weight: TEXT_STYLES.h1.weight,
-        maxWidthScale: 0.92,
-      });
       const headerBodyGap = 28;
       const textGroupHeight =
-        eyebrowSize + eyebrowGap + headerLayout.textBlockHeight + headerBodyGap + bodyLayout.textBlockHeight;
+        eyebrowSize + eyebrowGap + headerLayout.textBlockHeight + headerBodyGap;
       const textGroupTopY = Math.max(
         90,
         Math.round((canvas.height - textGroupHeight) / 2),
       );
       const eyebrowY = textGroupTopY + eyebrowSize;
       const headerYBase = eyebrowY + eyebrowGap + headerLayout.titleLineHeight;
-      const bodyYBase =
-        headerYBase - headerLayout.titleLineHeight +
-        headerLayout.textBlockHeight +
-        headerBodyGap +
-        bodyLayout.titleLineHeight;
       drawAnnouncementText(ctx, canvas, {
         title: eyebrowText,
         subtitle: "",
@@ -9457,45 +9391,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           blockAlign: "center",
         });
       }
-      {
-        const layout = getAnnouncementScreenLayout(ctx, canvas, {
-          title: announcementTitle,
-          subtitle: announcementSubtitle,
-          titleSize: bodyTitleSize,
-          subtitleSize: TEXT_STYLES.h2.size,
-          lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-          weight: TEXT_STYLES.h1.weight,
-          maxWidthScale: 0.92,
-          position: "bottom",
-          topMargin: 90,
-          bottomMargin: 80,
-          rowGap: 32,
-          buttonHeight: 50,
-          buttonCount: 1,
-          HUD_HEIGHT,
-        });
-        ctx.save();
-        ctx.translate(layout.offsetX, layout.offsetY);
-        ctx.scale(layout.scale, layout.scale);
-        drawAnnouncementText(ctx, layout.virtualCanvas, {
-          title: announcementTitle,
-          subtitle: announcementSubtitle,
-          yBase: bodyYBase,
-          alpha: 1,
-          typewriter: true,
-          typewriterRateMs: 10,
-          freezeTypewriter: !eyebrowDone || !headerDone,
-          titleSize: bodyTitleSize,
-          weight: TEXT_STYLES.h1.weight,
-          textPalette: HELLFIRE_TEXT_PALETTE,
-          maxWidthScale: 0.92,
-        });
-        ctx.restore();
-      }
-      const showContinueButton =
-        eyebrowDone &&
-        headerDone &&
-        isAnnouncementRevealComplete(announcementTitle, announcementSubtitle);
+      const showContinueButton = eyebrowDone && headerDone;
       if (!showContinueButton) {
         if (typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak") {
           window.__announcementButtons = null;
@@ -9520,11 +9416,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const buttonText = "Continue";
       const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
-        title: announcementTitle,
-        subtitle: announcementSubtitle,
+        title: battleHeading,
+        subtitle: "",
         titleSize,
-        subtitleSize: TEXT_STYLES.h2.size,
-        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+        subtitleSize: 0,
+        lineGap: 0,
         weight: TEXT_STYLES.h1.weight,
         maxWidthScale: 0.92,
         position: "bottom",
