@@ -8813,11 +8813,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = "rgba(6, 10, 18, 0.45)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // God rays — victory-strength, stacked for maximum brightness
-    drawVictoryGodRays(ctx, canvas);
-    drawVictoryGodRays(ctx, canvas);
-    drawVictoryGodRays(ctx, canvas);
-    drawVictoryGodRays(ctx, canvas);
 
     // Scale factor for responsive text
     const scaleHint = Math.min(1, Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)));
@@ -10028,7 +10023,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     // Draw god rays above characters so light appears between viewer and characters
-    drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX);
+    const _victoryStage = (levelStatus?.stage || "") === "victoryCelebrate" || (levelStatus?.stage || "") === "bossVictoryCelebrate" || (levelStatus?.stage || "") === "graceRush";
+    drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX, _victoryStage ? 2 : 1);
+    if (_victoryStage) {
+      drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX, 2);
+      drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX, 2);
+    }
 
     // Draw spears above other sprites/effects so they remain visible in chaos.
     drawSentryTurret(ctx, sentryState);
