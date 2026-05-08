@@ -24572,18 +24572,32 @@ function executeSpinAttack(meleeAttackState, moveDir, { skipYell = false } = {})
   meleeAttackState.spinDuration = MELEE_SPIN_DURATION;
   meleeAttackState.spinHitEntities = new Set();
   {
-    // Queue 4 bursts: up, right, down, left — fired as spinTimer counts down
     const d = MELEE_SPIN_DURATION;
-    meleeAttackState.spinBurstQueue = [
-      { fireAt: d - 0.001,      angle: -Math.PI / 2       },  // up
-      { fireAt: d * (6 / 7),   angle: -Math.PI / 4       },  // up-right
-      { fireAt: d * (5 / 7),   angle:  0                  },  // right
-      { fireAt: d * (4 / 7),   angle:  Math.PI / 4        },  // down-right
-      { fireAt: d * (3 / 7),   angle:  Math.PI / 2        },  // down
-      { fireAt: d * (2 / 7),   angle:  Math.PI * 3 / 4   },  // down-left
-      { fireAt: d * (1 / 7),   angle:  Math.PI            },  // left
-      { fireAt: d * 0.00,       angle: -Math.PI * 3 / 4   },  // up-left
-    ];
+    if (facingLeft) {
+      // Counterclockwise: up → up-left → left → down-left → down → down-right → right → up-right
+      meleeAttackState.spinBurstQueue = [
+        { fireAt: d - 0.001,    angle: -Math.PI / 2       },  // up
+        { fireAt: d * (6 / 7), angle: -Math.PI * 3 / 4   },  // up-left
+        { fireAt: d * (5 / 7), angle:  Math.PI            },  // left
+        { fireAt: d * (4 / 7), angle:  Math.PI * 3 / 4   },  // down-left
+        { fireAt: d * (3 / 7), angle:  Math.PI / 2        },  // down
+        { fireAt: d * (2 / 7), angle:  Math.PI / 4        },  // down-right
+        { fireAt: d * (1 / 7), angle:  0                  },  // right
+        { fireAt: d * 0.00,    angle: -Math.PI / 4        },  // up-right
+      ];
+    } else {
+      // Clockwise: up → up-right → right → down-right → down → down-left → left → up-left
+      meleeAttackState.spinBurstQueue = [
+        { fireAt: d - 0.001,    angle: -Math.PI / 2       },  // up
+        { fireAt: d * (6 / 7), angle: -Math.PI / 4        },  // up-right
+        { fireAt: d * (5 / 7), angle:  0                  },  // right
+        { fireAt: d * (4 / 7), angle:  Math.PI / 4        },  // down-right
+        { fireAt: d * (3 / 7), angle:  Math.PI / 2        },  // down
+        { fireAt: d * (2 / 7), angle:  Math.PI * 3 / 4   },  // down-left
+        { fireAt: d * (1 / 7), angle:  Math.PI            },  // left
+        { fireAt: d * 0.00,    angle: -Math.PI * 3 / 4   },  // up-left
+      ];
+    }
   }
   meleeAttackState.spinFacingDir = { x: dir.x, y: dir.y };
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
