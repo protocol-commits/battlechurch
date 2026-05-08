@@ -1087,6 +1087,31 @@
     return;
   }
 
+  function drawMapHeadingText(ctx, canvas) {
+    const cx = canvas.width * 0.5;
+    const scale = canvas.width / 1280;
+    const line1Size = Math.round(30 * scale);
+    const line2Size = Math.round(20 * scale);
+    const topY = Math.round(38 * scale);
+    const lineGap = Math.round(10 * scale);
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.shadowColor = "rgba(0,0,0,0.85)";
+    ctx.shadowBlur = 8;
+
+    ctx.font = `700 ${line1Size}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
+    ctx.fillText("Your hometown is overrun.", cx, topY);
+
+    ctx.font = `700 ${line2Size}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = MAP_HELLFIRE_TEXT.dim;
+    ctx.fillText("You have been called to save it.", cx, topY + line1Size + lineGap);
+
+    ctx.restore();
+  }
+
   function drawTotalCongregationBadge(ctx, canvas) {
     const total = getTotalCongregationCount();
     const label = "Total Congregation";
@@ -2483,6 +2508,7 @@
       }
     }
     drawMapLabels(ctx, canvas, rect);
+    drawMapHeadingText(ctx, canvas);
     drawTotalCongregationBadge(ctx, canvas);
     if (!transitionActive) {
       updateSelectionFromHover(rect);
