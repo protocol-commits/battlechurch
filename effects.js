@@ -301,7 +301,7 @@
     const frames = resolveAssets()?.effects?.rushBurstExplosion;
     if (!frames || !frames.length) return null;
     const rotation = angle + Math.PI / 2;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation });
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation, tintColor: "#ffffff", tintAlpha: 0.55 });
   }
 
   function spawnSlashBurstEffect(x, y, angle, scale = 3.5) {
