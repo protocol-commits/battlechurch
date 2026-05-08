@@ -22546,6 +22546,11 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       meleeAttackState.rushKillSumX = (meleeAttackState.rushKillSumX || 0) + enemy.x;
       meleeAttackState.rushKillSumY = (meleeAttackState.rushKillSumY || 0) + enemy.y;
     }
+    if (player?.animator) {
+      player.animator.frameIndex = 2;
+      player.animator.accumulator = 0;
+    }
+    beginMeleeHitstopSequence(meleeAttackState);
     applyMeleeHitstop(enemy, meleeAttackState, counterHit);
     registerPunishComboDamage(enemy, damage, meleeAttackState);
     registerMeleeComboHit(enemy, meleeAttackState, rushMoveName, {
