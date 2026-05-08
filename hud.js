@@ -4,12 +4,12 @@
     lastRatio: 0,
     lastTime: 0,
   };
-  const townProgressSpark = {
+  const districtProgressSpark = {
     timer: 0,
     lastRatio: 0,
     lastTime: 0,
   };
-  const townProgressAnim = {
+  const districtProgressAnim = {
     animators: {},
     lastTime: 0,
     clipKeys: {},
@@ -918,7 +918,7 @@
       });
     };
 
-    const drawTownProgress = () => {
+    const drawDistrictProgress = () => {
       const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
       if (!levelStatus) return;
       const x = columnXs[3] + 6;
@@ -956,7 +956,7 @@
         totalUnits += battleTotal;
       }
 
-      const townBattleIndex = Math.max(
+      const districtBattleIndex = Math.max(
         1,
         Number.isFinite(levelStatus.globalBattle)
           ? levelStatus.globalBattle
@@ -966,8 +966,8 @@
             + Math.max(1, Number.isFinite(levelStatus.battle) ? levelStatus.battle : 1)
           ),
       );
-      const derivedAct = Math.ceil(townBattleIndex / Math.max(1, missionsPerBattle));
-      const derivedMission = ((townBattleIndex - 1) % Math.max(1, missionsPerBattle)) + 1;
+      const derivedAct = Math.ceil(districtBattleIndex / Math.max(1, missionsPerBattle));
+      const derivedMission = ((districtBattleIndex - 1) % Math.max(1, missionsPerBattle)) + 1;
       const currentAct = Math.max(
         1,
         Math.min(
@@ -1014,24 +1014,24 @@
       if (totalUnits <= 0) totalUnits = 1;
       const progressRatio = Math.max(0, Math.min(1, progressUnits / totalUnits));
 
-      const townId = typeof window !== 'undefined' ? window.activeTownId : null;
+      const districtId = typeof window !== 'undefined' ? window.activeDistrictId : null;
       const mapData = typeof window !== 'undefined' ? window.BattlechurchMapData : null;
-      const towns = mapData?.towns || [];
-      const townIndex = towns.findIndex((t) => t.id === townId);
-      const townNumber = townIndex >= 0 ? townIndex + 1 : null;
-      const townName = towns[townIndex]?.name || "Town";
+      const districts = mapData?.districts || [];
+      const districtIndex = districts.findIndex((t) => t.id === districtId);
+      const districtNumber = districtIndex >= 0 ? districtIndex + 1 : null;
+      const districtName = districts[districtIndex]?.name || "District";
 
-      const positionLabel = townNumber !== null
-        ? `${townNumber}.${currentAct}-${currentMission}`
+      const positionLabel = districtNumber !== null
+        ? `${districtNumber}.${currentAct}-${currentMission}`
         : `${currentAct}.${currentMission}`;
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
-      const townRowY = panelY + 14;
-      const townLabelText = `${townName.toUpperCase()} ${positionLabel}`;
-      ctx.fillText(townLabelText, x, townRowY);
-      const townLabelWidth = ctx.measureText(townLabelText).width || 0;
+      const districtRowY = panelY + 14;
+      const districtLabelText = `${districtName.toUpperCase()} ${positionLabel}`;
+      ctx.fillText(districtLabelText, x, districtRowY);
+      const districtLabelWidth = ctx.measureText(districtLabelText).width || 0;
       const churchPowerupOptions =
         typeof window !== 'undefined' && window.ChurchPowerups?.getOptions
           ? window.ChurchPowerups.getOptions()
@@ -1059,7 +1059,7 @@
         const gap = 4;
         const itemGap = 10;
         const textPadding = 2;
-        let chipX = x + townLabelWidth + 12;
+        let chipX = x + districtLabelWidth + 12;
         const chipMaxX = x + width;
         churchUpgradeEntries.forEach((entry) => {
           const levelText = `${entry.level}`;
@@ -1068,10 +1068,10 @@
             (entry.icon && entry.icon.complete ? iconSize + gap : 0) + levelTextWidth + textPadding;
           if (chipX + itemWidth > chipMaxX) return;
           if (entry.icon && entry.icon.complete) {
-            ctx.drawImage(entry.icon, chipX, townRowY - iconSize / 2 - 5, iconSize, iconSize);
+            ctx.drawImage(entry.icon, chipX, districtRowY - iconSize / 2 - 5, iconSize, iconSize);
             chipX += iconSize + gap;
           }
-          ctx.fillText(levelText, chipX, townRowY);
+          ctx.fillText(levelText, chipX, districtRowY);
           chipX += levelTextWidth + itemGap;
         });
       }
@@ -1093,12 +1093,12 @@
       const innerW = meterWidth - 4;
       const innerH = meterHeight - 2;
       const now = performance.now() * 0.001;
-      const dt = townProgressSpark.lastTime ? Math.min(0.1, Math.max(0, now - townProgressSpark.lastTime)) : 0;
-      townProgressSpark.lastTime = now;
-      if (progressRatio > townProgressSpark.lastRatio + 0.002) {
-        townProgressSpark.timer = 0.45;
+      const dt = districtProgressSpark.lastTime ? Math.min(0.1, Math.max(0, now - districtProgressSpark.lastTime)) : 0;
+      districtProgressSpark.lastTime = now;
+      if (progressRatio > districtProgressSpark.lastRatio + 0.002) {
+        districtProgressSpark.timer = 0.45;
       }
-      townProgressSpark.lastRatio = progressRatio;
+      districtProgressSpark.lastRatio = progressRatio;
       const fillW = Math.floor(innerW * progressRatio);
       const battleColors = [PALETTE.ice, PALETTE.gold, PALETTE.teal];
       const outerGap = 2;
@@ -1190,9 +1190,9 @@
       }
       ctx.restore();
 
-      if (townProgressSpark.timer > 0 && fillW > 0) {
-        townProgressSpark.timer = Math.max(0, townProgressSpark.timer - dt);
-        const sparkAlpha = Math.min(1, townProgressSpark.timer / 0.45);
+      if (districtProgressSpark.timer > 0 && fillW > 0) {
+        districtProgressSpark.timer = Math.max(0, districtProgressSpark.timer - dt);
+        const sparkAlpha = Math.min(1, districtProgressSpark.timer / 0.45);
         const sparkX = innerX + fillW;
         const sparkY = meterY + 2;
         const sparkW = 10;
@@ -1211,28 +1211,28 @@
       const miniImpClips = assets?.enemies?.miniImp || null;
       const demonLordClips = assets?.enemies?.miniDemonLord || null;
       if (Animator && miniImpClips) {
-        const ensureTownMeterAnimator = (key, clips) => {
+        const ensureDistrictMeterAnimator = (key, clips) => {
           if (!clips) return null;
           if (
-            !townProgressAnim.animators[key]
-            || townProgressAnim.clipKeys[key] !== clips
+            !districtProgressAnim.animators[key]
+            || districtProgressAnim.clipKeys[key] !== clips
           ) {
             const animator = new Animator(clips, 1.8);
             animator.play("walk", { restart: true, loop: true });
-            townProgressAnim.animators[key] = animator;
-            townProgressAnim.clipKeys[key] = clips;
-            townProgressAnim.lastTime = 0;
+            districtProgressAnim.animators[key] = animator;
+            districtProgressAnim.clipKeys[key] = clips;
+            districtProgressAnim.lastTime = 0;
           }
-          return townProgressAnim.animators[key] || null;
+          return districtProgressAnim.animators[key] || null;
         };
         const segmentAnimators = [
-          ensureTownMeterAnimator("segment1", miniImpClips),
-          ensureTownMeterAnimator("segment2", miniImpClips),
-          ensureTownMeterAnimator("segment3", demonLordClips || miniImpClips),
+          ensureDistrictMeterAnimator("segment1", miniImpClips),
+          ensureDistrictMeterAnimator("segment2", miniImpClips),
+          ensureDistrictMeterAnimator("segment3", demonLordClips || miniImpClips),
         ];
         const now = performance.now();
-        const dt = townProgressAnim.lastTime ? Math.min(0.05, Math.max(0, (now - townProgressAnim.lastTime) / 1000)) : 0;
-        townProgressAnim.lastTime = now;
+        const dt = districtProgressAnim.lastTime ? Math.min(0.05, Math.max(0, (now - districtProgressAnim.lastTime) / 1000)) : 0;
+        districtProgressAnim.lastTime = now;
         if (segmentAnimators.some(Boolean)) {
           segmentAnimators.forEach((animator) => animator?.update(dt));
           const bossCenters = [
@@ -1525,7 +1525,7 @@
 
     drawPlayerInfo();
     drawNpcInfo();
-    drawTownProgress();
+    drawDistrictProgress();
     drawDevArenaMoveReference();
     drawDevArenaMoveFeed();
     drawDevArenaBestCombo();

@@ -822,7 +822,7 @@ body.layout-rotate-warning .pause-hotkeys__list {
   background-position: center;
   background-repeat: no-repeat;
 }
-.dialog-overlay--town-intro {
+.dialog-overlay--district-intro {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.65);
@@ -831,7 +831,7 @@ body.layout-rotate-warning .pause-hotkeys__list {
   background-position: center;
   background-repeat: no-repeat;
 }
-.dialog-overlay--town-intro .dialog-overlay__panel {
+.dialog-overlay--district-intro .dialog-overlay__panel {
   width: min(980px, 92%);
   background: rgba(8, 16, 28, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -839,10 +839,10 @@ body.layout-rotate-warning .pause-hotkeys__list {
   font-family: "Orbitron", sans-serif;
   text-align: center;
 }
-.dialog-overlay--town-intro .dialog-overlay__body {
+.dialog-overlay--district-intro .dialog-overlay__body {
   margin-top: 0;
 }
-.town-intro-text {
+.district-intro-text {
   font-size: clamp(26px, 4.4vw, 46px);
   line-height: 1.2;
   font-weight: 600;
@@ -851,7 +851,7 @@ body.layout-rotate-warning .pause-hotkeys__list {
   text-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
   white-space: pre-line;
 }
-.dialog-overlay--town-intro .town-intro-text {
+.dialog-overlay--district-intro .district-intro-text {
   font-size: clamp(22px, 3.6vw, 38px);
   margin-top: -8px;
   margin-bottom: 20px;

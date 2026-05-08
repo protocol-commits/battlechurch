@@ -4838,12 +4838,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   if (recapTallyState.id) {
     recapTallyState.id = null;
   }
-    const isTownIntro = Boolean(levelAnnouncements[0]?.missionIntro);
+    const isDistrictIntro = Boolean(levelAnnouncements[0]?.missionIntro);
     const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
     const isPastorFinal = Boolean(levelAnnouncements[0]?.pastorFinal);
     const isPastorPostRecap = Boolean(levelAnnouncements[0]?.pastorPostRecap);
     const isPastorSpeech = isPastorFinal || isPastorPostRecap;
-    if (isTownIntro || isExteriorShot || isPastorSpeech) {
+    if (isDistrictIntro || isExteriorShot || isPastorSpeech) {
       if (isExteriorShot) {
         const fireOverlay = requireBindings().fireOverlay;
         if (fireOverlay && typeof fireOverlay.draw === "function") {
@@ -5426,7 +5426,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const current = levelAnnouncements[0];
       if (current && (current.missionIntro || current.exteriorShot)) {
         // Determine which background to use based on current Order
-        // Order 1 uses townIntro, Order 2 uses act2, Order 3 uses act3
+        // Order 1 uses districtIntro, Order 2 uses act2, Order 3 uses act3
         const orderNumber = current.upcomingOrderNumber || 1;
         let img = assets?.backgrounds?.mission1;
         if (orderNumber === 2 && assets?.backgrounds?.mission2) {
@@ -5733,17 +5733,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } = requireBindings();
     const memberCount = Array.isArray(congregationMembers) ? congregationMembers.length : 0;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-    const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
-    const townData = activeTownId && mapData?.towns
-      ? mapData.towns.find((town) => town.id === activeTownId)
+    const activeDistrictId = typeof window !== "undefined" ? window.activeDistrictId : null;
+    const districtData = activeDistrictId && mapData?.districts
+      ? mapData.districts.find((district) => district.id === activeDistrictId)
       : null;
-    const townName = townData?.name || "this town";
+    const districtName = districtData?.name || "this town";
     const campaignData =
-      activeTownId && typeof window?.MapScreen?.getTownCampaignData === "function"
-        ? window.MapScreen.getTownCampaignData(activeTownId)
+      activeDistrictId && typeof window?.MapScreen?.getDistrictCampaignData === "function"
+        ? window.MapScreen.getDistrictCampaignData(activeDistrictId)
         : null;
     const campaign = String(campaignData?.campaign || "p1").toLowerCase();
-    const isFirstPlaythroughForTown = campaign === "p1";
+    const isFirstPlaythroughForDistrict = campaign === "p1";
     const gamepadConnected = Boolean(window?.Input?.gamepadState?.connected);
     if (typeof window !== "undefined") {
       window.__congregationShowTutorialHints = false;
@@ -5753,9 +5753,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     );
     const fullTitleText = isDevArena
       ? "Learn the Moves"
-      : isFirstPlaythroughForTown
-        ? `Welcome to ${townName} Church`
-        : `Welcome back to ${townName} Church`;
+      : isFirstPlaythroughForDistrict
+        ? `Welcome to ${districtName} Church`
+        : `Welcome back to ${districtName} Church`;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const stage = levelStatus?.stage || "";
     const activeAnnouncement = Array.isArray(levelAnnouncements) ? levelAnnouncements[0] : null;
@@ -5789,7 +5789,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       congregationIntroState.handoffAnimStart = now;
     }
     if (congregationIntroBlockedByAnnouncement) {
-      // Freeze congregation intro timers while exterior/town-intro cards are
+      // Freeze congregation intro timers while exterior/district-intro cards are
       // on top so welcome/count text starts when this screen is visible.
       congregationIntroState.startTime += frameDtSec * 1000;
     }
@@ -7717,21 +7717,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const missionNumber = levelStatus.battleNum || 1;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const actLabel = `Mission ${crumbRomanNumerals[levelStatus.missionNum || 1] || (levelStatus.missionNum || 1)}`;
-    // Get town name from activeTownId
-    const activeTownId = typeof window !== "undefined" ? window.activeTownId : null;
+    // Get town name from activeDistrictId
+    const activeDistrictId = typeof window !== "undefined" ? window.activeDistrictId : null;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-    const townData = activeTownId && mapData?.towns
-      ? mapData.towns.find((t) => t.id === activeTownId)
+    const districtData = activeDistrictId && mapData?.districts
+      ? mapData.districts.find((t) => t.id === activeDistrictId)
       : null;
-    const townNumber = Number.isFinite(townData?.index)
-      ? Math.max(1, Math.floor(townData.index))
+    const districtNumber = Number.isFinite(districtData?.index)
+      ? Math.max(1, Math.floor(districtData.index))
       : Math.max(
           1,
-          (Array.isArray(mapData?.towns)
-            ? mapData.towns.findIndex((t) => t.id === activeTownId) + 1
+          (Array.isArray(mapData?.districts)
+            ? mapData.districts.findIndex((t) => t.id === activeDistrictId) + 1
             : 1),
         );
-    const crumbParts = [`Town ${townNumber}`, actLabel];
+    const crumbParts = [`District ${districtNumber}`, actLabel];
     if (stage === "bossIntro") {
       crumbParts.push("Boss Intro");
     } else if (stage === "bossActive") {
@@ -7852,8 +7852,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const villainText = actVillainText[missionIntroNumber] || "";
 
     const phaseName = _cbLabels.phases?.[_cbCamp] || _cbCamp.toUpperCase();
-    const townNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
-    const eyebrowText = `Phase ${townNumber}: ${phaseName}`;
+    const districtNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
+    const eyebrowText = `Phase ${districtNumber}: ${phaseName}`;
     const eyebrowSize = 18;
     const eyebrowGap = 16;
 
@@ -8089,8 +8089,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         meta: "Demo profile for QA/testing",
         demoDetails: {
           key: slot?.key || `slot${index + 1}`,
-          townId: slot?.townId || null,
-          completedTowns: Math.max(0, Number(slot?.completedTowns) || 0),
+          districtId: slot?.districtId || null,
+          completedDistricts: Math.max(0, Number(slot?.completedDistricts) || 0),
           campaign: String(slot?.campaignData?.campaign || "p1").toUpperCase(),
           startCount: Math.max(0, Number(slot?.campaignData?.startCount) || 0),
           campaignMultiplier: Number.isFinite(slot?.campaignData?.campaignMultiplier)
@@ -8830,15 +8830,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawTownVictoryScreen() {
+  function drawDistrictVictoryScreen() {
     const {
       ctx,
       canvas,
       assets,
-      townVictoryTownName,
-      townVictoryScore,
-      townVictoryCampaign,
-      townVictoryScroll,
+      districtVictoryName,
+      districtVictoryScore,
+      districtVictoryCampaign,
+      districtVictoryScroll,
       HUD_HEIGHT,
       UI_FONT_FAMILY,
     } = requireBindings();
@@ -8878,16 +8878,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const centerX = canvas.width / 2;
 
     // Build the text content
-    const townName = townVictoryTownName || "this town";
-    const score = Number.isFinite(townVictoryScore) ? Math.round(townVictoryScore) : 0;
-    const campaignId = String(townVictoryCampaign || "p1").toLowerCase();
+    const districtName = districtVictoryName || "this town";
+    const score = Number.isFinite(districtVictoryScore) ? Math.round(districtVictoryScore) : 0;
+    const campaignId = String(districtVictoryCampaign || "p1").toLowerCase();
     const _phases = window.BattlechurchCampaignLabels?.phases || {};
     const phaseLabel = _phases[campaignId] || campaignId.toUpperCase();
 
     let lines;
     if (campaignId === "p1") {
       lines = [
-        { type: "heading", text: `Foothold Established in ${townName}`, size: headingSize, color: "#ffd978" },
+        { type: "heading", text: `Foothold Established in ${districtName}`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
         { type: "body", text: "The enemy has been driven back.", size: bodySize, color: "#EAF6FF" },
         { type: "body", text: "Ground has been taken in hostile territory.", size: bodySize, color: "#EAF6FF" },
@@ -8897,12 +8897,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { type: "spacer", height: 50 },
         { type: "score", text: `Troops at Handoff: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
-        { type: "body", text: "Another town awaits liberation...", size: bodySize, color: "#c8dce8" },
+        { type: "body", text: "Another district awaits liberation...", size: bodySize, color: "#c8dce8" },
         { type: "spacer", height: 80 },
       ];
     } else if (campaignId === "p2") {
       lines = [
-        { type: "heading", text: `${phaseLabel} of ${townName} Secured`, size: headingSize, color: "#ffd978" },
+        { type: "heading", text: `${phaseLabel} of ${districtName} Secured`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
         { type: "body", text: "You returned to reinforce the position you seized.", size: bodySize, color: "#EAF6FF" },
         { type: "body", text: "Under renewed assault, the garrison held firm.", size: bodySize, color: "#EAF6FF" },
@@ -8912,18 +8912,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { type: "spacer", height: 50 },
         { type: "score", text: `Strength After Occupation: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
-        { type: "body", text: "Keep pushing. More towns need to fall.", size: bodySize, color: "#c8dce8" },
+        { type: "body", text: "Keep pushing. More districts need to fall.", size: bodySize, color: "#c8dce8" },
         { type: "spacer", height: 80 },
       ];
     } else {
       lines = [
-        { type: "heading", text: `${townName} Fully Fortified`, size: headingSize, color: "#ffd978" },
+        { type: "heading", text: `${districtName} Fully Fortified`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
         { type: "body", text: "Your return hardened the garrison into a fighting force.", size: bodySize, color: "#EAF6FF" },
         { type: "body", text: "This position is no longer holding. It is advancing.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 30 },
         { type: "body", text: "The commander and troops stand ready to support the next push.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "Another town can now be strengthened from here.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Another district can now be strengthened from here.", size: bodySize, color: "#EAF6FF" },
         { type: "spacer", height: 50 },
         { type: "score", text: `Strength After Fortification: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
@@ -8943,11 +8943,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     });
 
     // Store content height for scroll calculations
-    townVictoryScroll.contentHeight = totalHeight;
+    districtVictoryScroll.contentHeight = totalHeight;
 
     // Calculate scroll position - text starts vertically centered
     const startY = (canvas.height - totalHeight) / 2 + canvas.height * 0.15;
-    const scrollOffset = townVictoryScroll.scrollY;
+    const scrollOffset = districtVictoryScroll.scrollY;
     const fadeZoneHeight = 80;
 
     // Calculate when text has scrolled enough (final line at ~35% from top)
@@ -8956,8 +8956,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const scrollComplete = lastItemScreenY <= finalTargetY + totalHeight * 0.3;
 
     // Update showButton state
-    if (scrollComplete && !townVictoryScroll.showButton) {
-      townVictoryScroll.showButton = true;
+    if (scrollComplete && !districtVictoryScroll.showButton) {
+      districtVictoryScroll.showButton = true;
     }
 
     // Render all items with scroll offset
@@ -8999,7 +8999,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     });
 
     // Draw "Continue" button when scroll is complete
-    if (townVictoryScroll.showButton) {
+    if (districtVictoryScroll.showButton) {
       const buttonWidth = Math.min(360, Math.round(canvas.width * 0.4));
       const buttonHeight = Math.round(60 * scaleHint);
       const buttonX = Math.round((canvas.width - buttonWidth) / 2);
@@ -9094,9 +9094,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       drawEpilogueScreen();
       return;
     }
-    const townVictoryState = requireBindings();
-    if (townVictoryState.townVictoryActive) {
-      drawTownVictoryScreen();
+    const districtVictoryState = requireBindings();
+    if (districtVictoryState.districtVictoryActive) {
+      drawDistrictVictoryScreen();
       return;
     }
     if (mapActive) {
@@ -9135,7 +9135,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const pauseOverlayActive = Boolean(window.isPauseOverlayActive);
     const upgradeOverlayActive = Boolean(window.UpgradeScreen?.isVisible?.());
     const mapLaunchHandoffActive =
-      typeof window !== "undefined" && Boolean(window.__mapTownLaunchFadeIn);
+      typeof window !== "undefined" && Boolean(window.__mapDistrictLaunchFadeIn);
     // Check if recap/summary or pastor-final announcement is active - should show arena behind it
     const recapAnnouncementActive = Boolean(
       levelAnnouncements?.[0]?.requiresConfirm &&
@@ -9160,17 +9160,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
       return;
     }
-    const townIntroActive = Boolean(levelAnnouncements?.[0]?.missionIntro);
+    const districtIntroActive = Boolean(levelAnnouncements?.[0]?.missionIntro);
     const exteriorShotActive = Boolean(levelAnnouncements?.[0]?.exteriorShot);
-    let townIntroOverlay = null;
+    let districtIntroOverlay = null;
     sharedShakeOffset.x = 0;
     sharedShakeOffset.y = 0;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
     const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
     const getMapLaunchFadeInAlpha = () => {
-      if (typeof window === "undefined" || !window.__mapTownLaunchFadeIn) return;
-      const fadeState = window.__mapTownLaunchFadeIn;
+      if (typeof window === "undefined" || !window.__mapDistrictLaunchFadeIn) return;
+      const fadeState = window.__mapDistrictLaunchFadeIn;
       if (typeof fadeState.startMs !== "number" || !Number.isFinite(fadeState.startMs)) {
         fadeState.startMs = nowMs;
       }
@@ -9181,7 +9181,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const maxAlpha = Math.max(0, Math.min(0.92, Number(fadeState.maxAlpha) || 0.62));
       const alpha = Math.max(0, Math.min(maxAlpha, (1 - eased) * maxAlpha));
       if (alpha <= 0.001) {
-        delete window.__mapTownLaunchFadeIn;
+        delete window.__mapDistrictLaunchFadeIn;
         return 0;
       }
       return alpha;
@@ -9231,7 +9231,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     };
     // During map -> mission handoff, force-render exterior backdrop immediately so
     // we never flash congregation/pause content between states.
-    if (mapLaunchHandoffActive && !townIntroActive && !exteriorShotActive) {
+    if (mapLaunchHandoffActive && !districtIntroActive && !exteriorShotActive) {
       const handoffAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
       const introImage = assets?.backgrounds?.mission1 || null;
       ctx.save();
@@ -9260,24 +9260,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     updateWaveClearWipe(levelStatus, nowMs);
-    const townIntroTransitionActive = Boolean(requireBindings().townIntroTransitionActive);
-    if (townIntroTransitionActive) {
+    const districtIntroTransitionActive = Boolean(requireBindings().districtIntroTransitionActive);
+    if (districtIntroTransitionActive) {
       const {
         assets,
         canvas,
         ctx,
-        TOWN_INTRO_ZOOM_DURATION,
-        TOWN_INTRO_FADE_DURATION,
-        townIntroTransitionTimer,
+        DISTRICT_INTRO_ZOOM_DURATION,
+        DISTRICT_INTRO_FADE_DURATION,
+        districtIntroTransitionTimer,
       } = requireBindings();
       const img = assets?.backgrounds?.mission1 || null;
-      const zoomDuration = Math.max(0.001, TOWN_INTRO_ZOOM_DURATION || 0.5);
-      const fadeDuration = Math.max(0.001, TOWN_INTRO_FADE_DURATION || 0.5);
-      const zoomProgress = Math.min(1, Math.max(0, townIntroTransitionTimer / zoomDuration));
+      const zoomDuration = Math.max(0.001, DISTRICT_INTRO_ZOOM_DURATION || 0.5);
+      const fadeDuration = Math.max(0.001, DISTRICT_INTRO_FADE_DURATION || 0.5);
+      const zoomProgress = Math.min(1, Math.max(0, districtIntroTransitionTimer / zoomDuration));
       const fadeStart = zoomDuration * 0.4;
       const fadeProgress = Math.min(
         1,
-        Math.max(0, (townIntroTransitionTimer - fadeStart) / fadeDuration),
+        Math.max(0, (districtIntroTransitionTimer - fadeStart) / fadeDuration),
       );
       const easedZoom = zoomProgress * zoomProgress * (3 - 2 * zoomProgress);
       const easedFade = fadeProgress * fadeProgress * (3 - 2 * fadeProgress);
@@ -9306,14 +9306,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         drawMapLaunchFadeInOverlay();
         return;
       }
-      townIntroOverlay = {
+      districtIntroOverlay = {
         alpha: Math.max(0, Math.min(1, 1 - easedFade)),
         focusX,
         focusY,
         scale,
       };
     }
-    if (townIntroActive) {
+    if (districtIntroActive) {
       const introAnnouncement = levelAnnouncements?.[0] || {};
       const introOrderNumber = Number.isFinite(introAnnouncement.upcomingOrderNumber)
         ? introAnnouncement.upcomingOrderNumber
@@ -9385,8 +9385,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         : inferredUpcomingNumber;
       const battleHeading = battleHeadings[orderNumber] || `Mission ${orderNumber}`;
       const _bhPhaseName = _bhLabels.phases?.[_bhCamp] || _bhCamp.toUpperCase();
-      const _bhTownNumber = levelStatus?.level || 1;
-      const eyebrowText = `Phase ${_bhTownNumber}: ${_bhPhaseName}`;
+      const _bhDistrictNumber = levelStatus?.level || 1;
+      const eyebrowText = `Phase ${_bhDistrictNumber}: ${_bhPhaseName}`;
       const headerSubtitleText = upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "";
       const eyebrowDone = isAnnouncementRevealComplete(eyebrowText, "");
       const headerDone = isAnnouncementRevealComplete(battleHeading, headerSubtitleText);
@@ -9503,14 +9503,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         if (typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak") {
           window.__announcementButtons = null;
         }
-        if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
+        if (districtIntroOverlay && districtIntroOverlay.alpha > 0.001) {
           const _coverImg = assets?.backgrounds?.mission1 || null;
           ctx.save();
-          ctx.globalAlpha = townIntroOverlay.alpha;
+          ctx.globalAlpha = districtIntroOverlay.alpha;
           ctx.fillStyle = "#0b111a";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           if (_coverImg) {
-            drawCoverImage(ctx, canvas, _coverImg, townIntroOverlay.scale, townIntroOverlay.focusX, townIntroOverlay.focusY);
+            drawCoverImage(ctx, canvas, _coverImg, districtIntroOverlay.scale, districtIntroOverlay.focusX, districtIntroOverlay.focusY);
             ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
           }
@@ -9545,7 +9545,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const buttonX = layout.virtualCanvas.width / 2 - buttonWidth / 2;
       const buttonY = Math.round(layout.buttonY || 0);
       if (typeof window !== "undefined") {
-        window.__townIntroPlayButtonBounds = {
+        window.__districtIntroPlayButtonBounds = {
           x: layout.offsetX + buttonX * layout.scale,
           y: layout.offsetY + buttonY * layout.scale,
           width: buttonWidth * layout.scale,
@@ -9580,14 +9580,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textBaseline = "alphabetic";
       ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
       ctx.restore();
-      if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
+      if (districtIntroOverlay && districtIntroOverlay.alpha > 0.001) {
         const _coverImg = assets?.backgrounds?.mission1 || null;
         ctx.save();
-        ctx.globalAlpha = townIntroOverlay.alpha;
+        ctx.globalAlpha = districtIntroOverlay.alpha;
         ctx.fillStyle = "#0b111a";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         if (_coverImg) {
-          drawCoverImage(ctx, canvas, _coverImg, townIntroOverlay.scale, townIntroOverlay.focusX, townIntroOverlay.focusY);
+          drawCoverImage(ctx, canvas, _coverImg, districtIntroOverlay.scale, districtIntroOverlay.focusX, districtIntroOverlay.focusY);
           ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
@@ -10529,13 +10529,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     drawPlayingInstructionsOverlay();
-    if (townIntroOverlay && townIntroOverlay.alpha > 0.001) {
+    if (districtIntroOverlay && districtIntroOverlay.alpha > 0.001) {
       ctx.save();
-      ctx.globalAlpha = townIntroOverlay.alpha;
+      ctx.globalAlpha = districtIntroOverlay.alpha;
       ctx.fillStyle = "#0b111a";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       const img = assets?.backgrounds?.mission1 || null;
-      drawCoverImage(ctx, canvas, img, townIntroOverlay.scale, townIntroOverlay.focusX, townIntroOverlay.focusY);
+      drawCoverImage(ctx, canvas, img, districtIntroOverlay.scale, districtIntroOverlay.focusX, districtIntroOverlay.focusY);
       ctx.fillStyle = "rgba(8, 12, 20, 0.25)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();

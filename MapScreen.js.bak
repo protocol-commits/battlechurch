@@ -3,7 +3,7 @@
 
   const MAP_IMAGE_PRIMARY = "./assets/backgrounds/map.jpg";
   const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
-  const DISTRICT_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.jpg";
+  const TOWN_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.jpg";
   const HIT_RADIUS_BASE = 10;
   const UI_FONT_FAMILY = "'Orbitron', sans-serif";
   const MAP_HELLFIRE_TEXT = Object.freeze({
@@ -99,9 +99,9 @@
   const state = {
     active: false,
     mapRect: { x: 0, y: 0, w: 0, h: 0 },
-    selectedDistrictId: null,
+    selectedTownId: null,
     panelOpen: false,
-    denomUpgrade: null, // { active, districtId, maxPicks, selectedKeys[], focusedIndex }
+    denomUpgrade: null, // { active, townId, maxPicks, selectedKeys[], focusedIndex }
     panelFocus: 0,
     navHoldDir: 0,
     navNextTime: 0,
@@ -122,7 +122,7 @@
     armyMarch: {
       active: false,
       phase: "idle",
-      districtId: null,
+      townId: null,
       fromX: 0,
       fromY: 0,
       toX: 0,
@@ -134,7 +134,7 @@
       dashCount: 16,
       dashSpacing: 0.09,
       onDone: null,
-      lastDistrictId: null,
+      lastTownId: null,
       hasStartedOnce: false,
       routeStops: [],
       previewClockMs: 0,
@@ -142,7 +142,7 @@
     },
     mapLaunchTransition: {
       active: false,
-      districtId: null,
+      townId: null,
       timer: 0,
       duration: 2.7,
       maxScale: 3.8,
@@ -164,11 +164,11 @@
   }
 
   function createFreshMapProgress(mapData) {
-    const firstDistrictId = mapData?.getFirstDistrictId?.() || null;
+    const firstTownId = mapData?.getFirstTownId?.() || null;
     return {
       version: 2,
-      districts: {},
-      unlockedDistrictIds: firstDistrictId ? [firstDistrictId] : [],
+      towns: {},
+      unlockedTownIds: firstTownId ? [firstTownId] : [],
       graceCount: 0,
       activeRun: null,
     };
@@ -476,7 +476,7 @@
     districtExteriorImage.onerror = () => {
       districtExteriorImageFailed = true;
     };
-    districtExteriorImage.src = DISTRICT_EXTERIOR_IMAGE_PRIMARY;
+    districtExteriorImage.src = TOWN_EXTERIOR_IMAGE_PRIMARY;
   }
 
   function setAssets(assets) {
@@ -619,8 +619,8 @@
         state.mapProgress = deepClone(state.demoProfile.mapProgress) || state.demoProfile.mapProgress;
         const progress = ensureProgress();
         rebuildArmyMarchRouteFromProgress();
-        if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-          state.selectedDistrictId = pickInitialDistrict();
+        if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+          state.selectedTownId = pickInitialTown();
         }
         state.demoProfile.mapProgress = progress;
         return;
@@ -641,8 +641,8 @@
       if ((normalized.dirty || !isV2) && window.Cloud?.savePlayerDoc) {
         await persistPlayerDoc();
       }
-      if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-        state.selectedDistrictId = pickInitialDistrict();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
       }
     } catch (e) {
       // Offline/local fallback: keep map playable with in-memory fresh progress.
@@ -651,8 +651,8 @@
       state.mapProgress = state.playerDoc?.saveFiles?.[state.playerDoc?.activeSaveId]?.mapProgress || null;
       state.mapProgress = ensureProgress();
       rebuildArmyMarchRouteFromProgress();
-      if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-        state.selectedDistrictId = pickInitialDistrict();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
       }
     } finally {
       state.loading = false;
@@ -660,43 +660,43 @@
     }
   }
 
-  function getDistrictStartCount(districtId) {
-    // Legacy shim — prefer getDistrictCampaignData for v2 campaign-aware start counts
-    const data = getDistrictCampaignData(districtId);
+  function getTownStartCount(townId) {
+    // Legacy shim — prefer getTownCampaignData for v2 campaign-aware start counts
+    const data = getTownCampaignData(townId);
     return data?.startCount ?? 50;
   }
 
-  async function ensureDistrictStartCount(districtId) {
+  async function ensureTownStartCount(townId) {
     // In v2, start count is derived from campaign history; no separate persistence needed
     if (!state.mapProgress) await loadPlayerProgress();
-    return getDistrictStartCount(districtId);
+    return getTownStartCount(townId);
   }
 
-  function isDistrictUnlocked(districtId) {
+  function isTownUnlocked(townId) {
     const progress = ensureProgress();
     if (!progress) return false;
-    return progress.unlockedDistrictIds.includes(districtId);
+    return progress.unlockedTownIds.includes(townId);
   }
 
-  function getDistrictCampaignCompletionCount(districtId) {
+  function getTownCampaignCompletionCount(townId) {
     // Returns number of completed campaigns (0-3), used for map node glow scaling.
     const progress = ensureProgress();
-    const districtEntry = progress?.districts?.[districtId];
-    if (!districtEntry) return 0;
+    const townEntry = progress?.towns?.[townId];
+    if (!townEntry) return 0;
     let count = 0;
     for (const camp of ["p1", "p2", "p3"]) {
-      if (districtEntry[camp]?.completed === true) count += 1;
+      if (townEntry[camp]?.completed === true) count += 1;
     }
     return count;
   }
 
-  function getDistrictBestCount(districtId) {
+  function getTownBestCount(townId) {
     const progress = ensureProgress();
-    const districtEntry = progress?.districts?.[districtId];
-    if (!districtEntry) return null;
+    const townEntry = progress?.towns?.[townId];
+    if (!townEntry) return null;
     let best = null;
     for (const camp of ["p1", "p2", "p3"]) {
-      const count = districtEntry[camp]?.bestCount;
+      const count = townEntry[camp]?.bestCount;
       if (Number.isFinite(count)) {
         best = best == null ? count : Math.max(best, count);
       }
@@ -704,40 +704,40 @@
     return best;
   }
 
-  function getDistrictDisplayCount(districtId) {
-    const best = getDistrictBestCount(districtId);
+  function getTownDisplayCount(townId) {
+    const best = getTownBestCount(townId);
     if (Number.isFinite(best)) return Math.max(0, Math.round(best));
-    return isDistrictUnlocked(districtId) ? 0 : null;
+    return isTownUnlocked(townId) ? 0 : null;
   }
 
   function getTotalCongregationCount() {
     const mapData = window.BattlechurchMapData;
-    if (!mapData?.districts?.length) return 0;
+    if (!mapData?.towns?.length) return 0;
     let total = 0;
-    for (const district of mapData.districts) {
-      if (!district?.id || !isDistrictUnlocked(district.id)) continue;
-      const count = getDistrictDisplayCount(district.id);
+    for (const town of mapData.towns) {
+      if (!town?.id || !isTownUnlocked(town.id)) continue;
+      const count = getTownDisplayCount(town.id);
       if (Number.isFinite(count)) total += count;
     }
     return total;
   }
 
+  function getTownById(townId) {
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return null;
+    return mapData.towns.find((town) => town.id === townId) || null;
+  }
+
   function getDistrictById(districtId) {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return null;
-    return mapData.districts.find((d) => d.id === districtId) || null;
+    return mapData.districts.find((district) => district.id === districtId) || null;
   }
 
-  function getFrontById(frontId) {
-    const mapData = window.BattlechurchMapData;
-    if (!mapData) return null;
-    return mapData.fronts.find((f) => f.id === frontId) || null;
-  }
-
-  function getDistrictPosition(district, rect) {
+  function getTownPosition(town, rect) {
     return {
-      x: rect.x + district.x * rect.w,
-      y: rect.y + district.y * rect.h,
+      x: rect.x + town.x * rect.w,
+      y: rect.y + town.y * rect.h,
     };
   }
 
@@ -871,11 +871,11 @@
     ctx.restore();
   }
 
-  // Draws P1/P2/P3 campaign completion dots above a district node
-  function drawCampaignDots(ctx, district, position, radius, rect) {
+  // Draws P1/P2/P3 campaign completion dots above a town node
+  function drawCampaignDots(ctx, town, position, radius, rect) {
     const progress = ensureProgress();
     if (!progress) return;
-    const districtEntry = progress.districts?.[district.id];
+    const townEntry = progress.towns?.[town.id];
     const scale = rect.w / 1280;
     const dotRadius = Math.max(3, Math.round(5 * scale));
     const dotGap = Math.round(14 * scale);
@@ -884,13 +884,13 @@
     const totalWidth = (campaigns.length - 1) * dotGap;
     const startX = position.x - totalWidth / 2;
 
-    const p2Available = isP2UnlockedForDistrict(district.id, progress);
-    const p3Available = isP3UnlockedForDistrict(district.id, progress);
+    const p2Available = isP2UnlockedForTown(town.id, progress);
+    const p3Available = isP3UnlockedForTown(town.id, progress);
 
     ctx.save();
     campaigns.forEach((camp, i) => {
       const cx = startX + i * dotGap;
-      const completed = districtEntry?.[camp]?.completed === true;
+      const completed = townEntry?.[camp]?.completed === true;
       const available = camp === "p1" || (camp === "p2" && p2Available) || (camp === "p3" && p3Available);
 
       ctx.beginPath();
@@ -918,25 +918,25 @@
     ctx.restore();
   }
 
-  function drawDistrictNode(ctx, district, rect, pulse) {
-    const position = getDistrictPosition(district, rect);
+  function drawTownNode(ctx, town, rect, pulse) {
+    const position = getTownPosition(town, rect);
     const dpr = window.devicePixelRatio || 1;
     const radius = HIT_RADIUS_BASE * dpr;
-    const unlocked = isDistrictUnlocked(district.id);
-    const selected = state.selectedDistrictId === district.id;
-    const completionCount = getDistrictCampaignCompletionCount(district.id);
-    const bestCount = getDistrictBestCount(district.id);
-    const displayCount = getDistrictDisplayCount(district.id);
-    const isCapital = district.type === "capital";
+    const unlocked = isTownUnlocked(town.id);
+    const selected = state.selectedTownId === town.id;
+    const completionCount = getTownCampaignCompletionCount(town.id);
+    const bestCount = getTownBestCount(town.id);
+    const displayCount = getTownDisplayCount(town.id);
+    const isCapital = town.type === "capital";
     const nodeRadius = isCapital ? radius * 3.6 : radius;
-    const frontId = district.frontId || "";
+    const districtId = town.districtId || "";
     const districtStyles = {
       northwest: { core: "#FFD978", glow: "rgba(255, 217, 120, 0.8)", ring: "rgba(255, 235, 180, 0.9)" },
       northeast: { core: "#8FD7FF", glow: "rgba(140, 215, 255, 0.75)", ring: "rgba(190, 235, 255, 0.9)" },
       southwest: { core: "#C8FFB0", glow: "rgba(200, 255, 176, 0.75)", ring: "rgba(230, 255, 210, 0.9)" },
     };
-    const style = districtStyles[frontId] || districtStyles.northwest;
-    const isDemonDistrict = bestCount == null;
+    const style = districtStyles[districtId] || districtStyles.northwest;
+    const isDemonTown = bestCount == null;
 
     if (bestCount != null) {
       const glowSteps = Math.max(1, Math.min(3, completionCount || 1));
@@ -977,14 +977,14 @@
         else ctx.lineTo(x, y);
       }
       ctx.closePath();
-    } else if (frontId === "northeast") {
+    } else if (districtId === "northeast") {
       const size = nodeRadius * 1.1;
       ctx.moveTo(position.x, position.y - size);
       ctx.lineTo(position.x + size, position.y);
       ctx.lineTo(position.x, position.y + size);
       ctx.lineTo(position.x - size, position.y);
       ctx.closePath();
-    } else if (frontId === "southwest") {
+    } else if (districtId === "southwest") {
       const size = nodeRadius * 1.05;
       for (let i = 0; i < 6; i += 1) {
         const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
@@ -1015,10 +1015,10 @@
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
-    ctx.lineWidth = isDemonDistrict ? 2.6 : 2;
+    ctx.lineWidth = isDemonTown ? 2.6 : 2;
     ctx.strokeStyle = "rgba(140, 35, 35, 0.95)";
     ctx.stroke();
-    if (isDemonDistrict) {
+    if (isDemonTown) {
       ctx.save();
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = "rgba(210, 90, 90, 0.6)";
@@ -1048,12 +1048,12 @@
     ctx.restore();
 
 
-    const animState = getDistrictAnimatorState(district, bestCount);
+    const animState = getTownAnimatorState(town, bestCount);
     const animator = animState?.animator || null;
     const clip = animator?.currentClip || null;
-    if (animator && clip && (district.type === "capital" || bestCount == null)) {
-      let baseTarget = district.type === "capital" ? radius * 8.4 : radius * 3.75;
-      if (district.frontId === "northeast") {
+    if (animator && clip && (town.type === "capital" || bestCount == null)) {
+      let baseTarget = town.type === "capital" ? radius * 8.4 : radius * 3.75;
+      if (town.districtId === "northeast") {
         baseTarget *= 0.75;
       }
       const baseSize = Math.max(clip.frameWidth || 1, clip.frameHeight || 1);
@@ -1072,7 +1072,7 @@
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
-      ctx.fillText(`${district.name} (${Math.round(displayCount)})`, position.x, position.y - radius - 10);
+      ctx.fillText(`${town.name} (${Math.round(displayCount)})`, position.x, position.y - radius - 10);
       ctx.restore();
     } else if (selected) {
       ctx.save();
@@ -1082,13 +1082,13 @@
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
-      ctx.fillText(district.name, position.x, position.y - radius - 10);
+      ctx.fillText(town.name, position.x, position.y - radius - 10);
       ctx.restore();
     }
 
-    // Campaign dots (P1/P2/P3) above the name label for regular districts
+    // Campaign dots (P1/P2/P3) above the name label for regular towns
     if (!isCapital && unlocked) {
-      drawCampaignDots(ctx, district, position, radius, rect);
+      drawCampaignDots(ctx, town, position, radius, rect);
     }
   }
 
@@ -1157,61 +1157,61 @@
     ctx.restore();
   }
 
-  function findDistrictAtPosition(point, rect) {
+  function findTownAtPosition(point, rect) {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return null;
     const dpr = window.devicePixelRatio || 1;
     // Use a larger hit radius than the visual node to make clicking easier
     const radius = HIT_RADIUS_BASE * dpr * 2.8;
-    for (const district of mapData.districts) {
-      const pos = getDistrictPosition(district, rect);
+    for (const town of mapData.towns) {
+      const pos = getTownPosition(town, rect);
       const dx = point.x - pos.x;
       const dy = point.y - pos.y;
-      if (Math.hypot(dx, dy) <= radius) return district;
+      if (Math.hypot(dx, dy) <= radius) return town;
     }
     return null;
   }
 
-  function getUnlockedDistricts() {
+  function getUnlockedTowns() {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return [];
-    return mapData.districts.filter((district) => isDistrictUnlocked(district.id));
+    return mapData.towns.filter((town) => isTownUnlocked(town.id));
   }
 
-  function pickInitialDistrict() {
-    const unlocked = getUnlockedDistricts();
+  function pickInitialTown() {
+    const unlocked = getUnlockedTowns();
     if (!unlocked.length) return null;
     return unlocked[0].id;
   }
 
-  function getOrderedUnlockedDistricts() {
+  function getOrderedUnlockedTowns() {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return [];
-    const fronts = mapData.getFronts ? mapData.getFronts() : []; // Already sorted by order: NW, NE, SW, SE
+    const districts = mapData.getDistricts(); // Already sorted by order: NW, NE, SW, SE
     const ordered = [];
-    // Add districts front by front
-    fronts.forEach((front) => {
-      const districtsInFront = mapData.getDistrictsByFront(front.id);
-      districtsInFront.forEach((district) => {
-        if (isDistrictUnlocked(district.id)) {
-          ordered.push(district);
+    // Add towns district by district
+    districts.forEach((district) => {
+      const townsInDistrict = mapData.getTownsByDistrict(district.id);
+      townsInDistrict.forEach((town) => {
+        if (isTownUnlocked(town.id)) {
+          ordered.push(town);
         }
       });
     });
     // Add capital last
-    const capital = mapData.districts.find((t) => t.type === "capital");
-    if (capital && isDistrictUnlocked(capital.id)) {
+    const capital = mapData.towns.find((t) => t.type === "capital");
+    if (capital && isTownUnlocked(capital.id)) {
       ordered.push(capital);
     }
     return ordered;
   }
 
-  function pickNextDistrict(direction) {
+  function pickNextTown(direction) {
     const mapData = window.BattlechurchMapData;
-    if (!mapData || !state.selectedDistrictId) return state.selectedDistrictId;
-    const ordered = getOrderedUnlockedDistricts();
-    if (!ordered.length) return state.selectedDistrictId;
-    const currentIndex = ordered.findIndex((t) => t.id === state.selectedDistrictId);
+    if (!mapData || !state.selectedTownId) return state.selectedTownId;
+    const ordered = getOrderedUnlockedTowns();
+    if (!ordered.length) return state.selectedTownId;
+    const currentIndex = ordered.findIndex((t) => t.id === state.selectedTownId);
     if (currentIndex < 0) return ordered[0].id;
     // Right/Down = next in sequence, Left/Up = previous in sequence
     const forward = direction === "right" || direction === "down";
@@ -1229,37 +1229,37 @@
   // County number: 1=Westreach, 2=Ashvale, 3=Lowmarch, 4=Capital.
   // To remap counties, update the district order in mapData.js.
   // ---------------------------------------------------------------------------
-  function getCountyNumberForDistrict(districtId) {
+  function getCountyNumberForTown(townId) {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return 1;
-    const district = mapData.districts.find(function(t) { return t.id === districtId; });
-    if (!district) return 1;
-    if (district.type === "capital") return 4;
-    const fronts = mapData.getFronts ? mapData.getFronts() : []; // sorted by order
-    const idx = fronts.findIndex(function(f) { return f.id === district.frontId; });
+    const town = mapData.towns.find(function(t) { return t.id === townId; });
+    if (!town) return 1;
+    if (town.type === "capital") return 4;
+    const districts = mapData.getDistricts(); // sorted by order
+    const idx = districts.findIndex(function(d) { return d.id === town.districtId; });
     return idx >= 0 ? idx + 1 : 1;
   }
 
   // County 1 = no picks; County 2 = 1 pick; County 3 = 2 picks; County 4 = 3 picks.
-  function getDenomPickCountForDistrict(districtId) {
-    const county = getCountyNumberForDistrict(districtId);
+  function getDenomPickCountForTown(townId) {
+    const county = getCountyNumberForTown(townId);
     if (county === 2) return 1;
     if (county === 3) return 2;
     if (county === 4) return 3;
     return 0;
   }
 
-  function openDistrictPanel(districtId) {
-    if (!isDistrictUnlocked(districtId)) return;
+  function openTownPanel(townId) {
+    if (!isTownUnlocked(townId)) return;
     if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
       window.playMenuItemPickSfx(0.55);
     }
-    state.selectedDistrictId = districtId;
+    state.selectedTownId = townId;
     state.panelOpen = true;
     state.panelFocus = 0;
   }
 
-  function closeDistrictPanel() {
+  function closeTownPanel() {
     state.panelOpen = false;
     state.navHoldDir = 0;
     state.navNextTime = 0;
@@ -1310,10 +1310,10 @@
     return null;
   }
 
-  function drawDistrictPanel(ctx, canvas) {
-    if (!state.panelOpen || !state.selectedDistrictId) return;
-    const district = getDistrictById(state.selectedDistrictId);
-    if (!district) return;
+  function drawTownPanel(ctx, canvas) {
+    if (!state.panelOpen || !state.selectedTownId) return;
+    const town = getTownById(state.selectedTownId);
+    if (!town) return;
     const panelStyle = window.UIStyles?.panels?.hellfire?.withEyebrow || {};
     const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
     const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
@@ -1342,18 +1342,18 @@
     ctx.font = `700 ${panelStyle.eyebrowFontSize ?? 11}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(panelStyle.eyebrowText || "DISTRICT TARGETED", centerX, panelY + (panelStyle.eyebrowY ?? 14));
+    ctx.fillText(panelStyle.eyebrowText || "TOWN TARGETED", centerX, panelY + (panelStyle.eyebrowY ?? 14));
 
     ctx.fillStyle = panelStyle.titleColor || "#FFD978";
     ctx.font = `700 ${panelStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(district.name, centerX, panelY + (panelStyle.titleY ?? 34));
+    ctx.fillText(town.name, centerX, panelY + (panelStyle.titleY ?? 34));
 
-    const front = district.frontId ? getFrontById(district.frontId) : null;
-    const areaNumber = Number.isFinite(front?.order) ? front.order + 1 : null;
-    const areaLabel = Number.isFinite(areaNumber) ? `Front ${areaNumber}` : "";
-    const districtScopeLabel = Number.isFinite(areaNumber) ? `Front ${areaNumber}` : "this Front";
+    const district = town?.districtId ? getDistrictById(town.districtId) : null;
+    const areaNumber = Number.isFinite(district?.order) ? district.order + 1 : null;
+    const areaLabel = Number.isFinite(areaNumber) ? `District ${areaNumber}` : "";
+    const districtScopeLabel = Number.isFinite(areaNumber) ? `District ${areaNumber}` : "this District";
     const hasAreaLabel = Boolean(areaLabel);
     const areaVerticalOffset = hasAreaLabel ? 18 : 0;
     if (hasAreaLabel) {
@@ -1375,34 +1375,34 @@
     const progress = ensureProgress();
     let primaryLine = "";
     let secondaryLine = "";
-    if (district.type === "capital") {
+    if (town.type === "capital") {
       primaryLine = "Final Mission";
       secondaryLine = `Score Multiplier: ×${getCapitalScoreMultiplier(progress).toFixed(2)}`;
     } else {
-      const nextCamp = progress ? getNextCampaignForDistrict(district.id, progress) : "p1";
+      const nextCamp = progress ? getNextCampaignForTown(town.id, progress) : "p1";
       const _phases = window.BattlechurchCampaignLabels?.phases || {};
       const campLabel = _phases[nextCamp] || nextCamp.toUpperCase();
       const campAvail =
         nextCamp === "p1" ||
-        (nextCamp === "p2" ? isP2UnlockedForDistrict(district.id, progress) : isP3UnlockedForDistrict(district.id, progress));
-      const districtEntry = progress?.districts?.[district.id] || {};
+        (nextCamp === "p2" ? isP2UnlockedForTown(town.id, progress) : isP3UnlockedForTown(town.id, progress));
+      const townEntry = progress?.towns?.[town.id] || {};
       const completedVisits = ["p1", "p2", "p3"].reduce(
-        (sum, camp) => sum + (districtEntry?.[camp]?.completed === true ? 1 : 0),
+        (sum, camp) => sum + (townEntry?.[camp]?.completed === true ? 1 : 0),
         0,
       );
       primaryLine = `Current Phase: ${campLabel}${campAvail ? "" : " (Locked)"}`;
       if (campAvail) {
         const activeRun = progress?.activeRun;
-        const isInProgress = activeRun?.districtId === district.id && activeRun?.campaign === nextCamp && Number.isFinite(activeRun?.resumeLocalBattleNumber) && activeRun.resumeLocalBattleNumber > 1;
+        const isInProgress = activeRun?.townId === town.id && activeRun?.campaign === nextCamp && Number.isFinite(activeRun?.resumeLocalBattleNumber) && activeRun.resumeLocalBattleNumber > 1;
         if (isInProgress) {
           secondaryLine = `In Progress: Mission ${activeRun.resumeLocalBattleNumber - 1}/3 done`;
         } else {
           secondaryLine = `Missions Completed: ${completedVisits}/3`;
         }
       } else if (nextCamp === "p2") {
-        secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} districts to unlock ${_phases.p2 || "Occupation"}.`;
+        secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} towns to unlock ${_phases.p2 || "Occupation"}.`;
       } else {
-        secondaryLine = `Complete ${_phases.p2 || "Occupation"} in all ${districtScopeLabel} districts to unlock ${_phases.p3 || "Fortification"}.`;
+        secondaryLine = `Complete ${_phases.p2 || "Occupation"} in all ${districtScopeLabel} towns to unlock ${_phases.p3 || "Fortification"}.`;
       }
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
@@ -1512,12 +1512,12 @@
         if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
           window.playMenuItemPickSfx(0.55);
         }
-        startRunForDistrict(state.selectedDistrictId);
+        startRunForTown(state.selectedTownId);
       } else {
         if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
           window.playMenuItemPickSfx(0.55);
         }
-        closeDistrictPanel();
+        closeTownPanel();
       }
     }
     const backPressed =
@@ -1528,21 +1528,21 @@
       if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
         window.playMenuItemPickSfx(0.55);
       }
-      closeDistrictPanel();
+      closeTownPanel();
     }
     return true;
   }
 
-  function _launchDistrict(districtId) {
+  function _launchTown(townId) {
     if (typeof window !== "undefined") {
-      window.__mapDistrictLaunchFadeIn = {
+      window.__mapTownLaunchFadeIn = {
         startMs: undefined,
         durationMs: 120,
         maxAlpha: 0.12,
       };
     }
-    if (typeof window.startRunForDistrict === "function") {
-      window.startRunForDistrict(districtId);
+    if (typeof window.startRunForTown === "function") {
+      window.startRunForTown(townId);
       return;
     }
     if (typeof window.startGameFromTitle === "function") {
@@ -1550,27 +1550,27 @@
     }
   }
 
-  function startRunForDistrict(districtId) {
-    const picks = getDenomPickCountForDistrict(districtId);
+  function startRunForTown(townId) {
+    const picks = getDenomPickCountForTown(townId);
     if (picks > 0) {
       // Show denominational upgrade screen before launching
       state.panelOpen = false;
-      state.denomUpgrade = { active: true, districtId: districtId, maxPicks: picks, selectedKeys: [], focusedIndex: 0 };
+      state.denomUpgrade = { active: true, townId: townId, maxPicks: picks, selectedKeys: [], focusedIndex: 0 };
       return;
     }
     const transition = state.mapLaunchTransition;
     transition.active = true;
-    transition.districtId = districtId;
+    transition.townId = townId;
     transition.timer = 0;
     transition.launched = false;
     state.panelOpen = false;
   }
 
-  function devStartRunForDistrict(districtId) {
-    if (!districtId) return false;
-    state.selectedDistrictId = districtId;
+  function devStartRunForTown(townId) {
+    if (!townId) return false;
+    state.selectedTownId = townId;
     state.panelOpen = false;
-    startRunForDistrict(districtId);
+    startRunForTown(townId);
     return true;
   }
 
@@ -1581,7 +1581,7 @@
       window.pendingDenomPowerups = du.selectedKeys.slice();
     }
     state.denomUpgrade = null;
-    _launchDistrict(du.districtId);
+    _launchTown(du.townId);
   }
 
   function cancelDenomUpgrade() {
@@ -1670,7 +1670,7 @@
       return;
     }
 
-    const prevSelection = state.selectedDistrictId;
+    const prevSelection = state.selectedTownId;
     if (state.panelOpen) {
       if (handlePanelInput(input, keysJustPressed)) {
         keysJustPressed.clear();
@@ -1680,12 +1680,12 @@
 
     const direction = getNavigationDirection(input, keysJustPressed);
     if (direction) {
-      state.selectedDistrictId = pickNextDistrict(direction);
+      state.selectedTownId = pickNextTown(direction);
       // Give keyboard navigation priority until mouse moves again.
       if (input.pointerState) input.pointerState.active = false;
     }
 
-    if (state.selectedDistrictId && state.selectedDistrictId !== prevSelection) {
+    if (state.selectedTownId && state.selectedTownId !== prevSelection) {
       if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
         window.playMenuItemPickSfx(0.55);
       }
@@ -1697,8 +1697,8 @@
       keysJustPressed.has("Enter") ||
       keysJustPressed.has("ArrowLeft");
     if (confirmPressed) {
-      if (state.selectedDistrictId) {
-        openDistrictPanel(state.selectedDistrictId);
+      if (state.selectedTownId) {
+        openTownPanel(state.selectedTownId);
       }
     }
 
@@ -1768,21 +1768,21 @@
           window.playMenuItemPickSfx(0.55);
         }
         if (hit.key === "play") {
-          startRunForDistrict(state.selectedDistrictId);
+          startRunForTown(state.selectedTownId);
         } else {
-          closeDistrictPanel();
+          closeTownPanel();
         }
       return;
     }
     }
-    const district = findDistrictAtPosition(click, rect);
-    if (district && isDistrictUnlocked(district.id)) {
-      if (district.id !== state.selectedDistrictId) {
+    const town = findTownAtPosition(click, rect);
+    if (town && isTownUnlocked(town.id)) {
+      if (town.id !== state.selectedTownId) {
         if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
           window.playMenuItemPickSfx(0.55);
         }
       }
-      openDistrictPanel(district.id);
+      openTownPanel(town.id);
     }
   }
 
@@ -1791,10 +1791,10 @@
     if (!input?.pointerState?.active) return;
     if (state.armyMarch?.active) return;
     if (state.panelOpen) return;
-    const district = findDistrictAtPosition(input.pointerState, rect);
-    if (district && isDistrictUnlocked(district.id)) {
-      if (district.id !== state.selectedDistrictId) {
-        state.selectedDistrictId = district.id;
+    const town = findTownAtPosition(input.pointerState, rect);
+    if (town && isTownUnlocked(town.id)) {
+      if (town.id !== state.selectedTownId) {
+        state.selectedTownId = town.id;
         if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
           window.playMenuItemPickSfx(0.4);
         }
@@ -1802,119 +1802,119 @@
     }
   }
 
-  function ensureNextDistrictUnlocked(progress, mapData) {
+  function ensureNextTownUnlocked(progress, mapData) {
     if (!progress || !mapData) return;
-    const allDistricts = mapData.districts || [];
-    const regularDistricts = allDistricts.filter((t) => t.type !== "capital");
-    const unlockIds = new Set(progress.unlockedDistrictIds || []);
+    const allTowns = mapData.towns || [];
+    const regularTowns = allTowns.filter((t) => t.type !== "capital");
+    const unlockIds = new Set(progress.unlockedTownIds || []);
 
-    // First district is always unlocked
-    const firstDistrictId = mapData.getFirstDistrictId ? mapData.getFirstDistrictId() : mapData.getFirstTownId();
-    if (firstDistrictId) unlockIds.add(firstDistrictId);
+    // First town is always unlocked
+    const firstTownId = mapData.getFirstTownId();
+    if (firstTownId) unlockIds.add(firstTownId);
 
     // For each P1-completed regular town, unlock the next regular town in sequence
-    let allRegularP1Done = regularDistricts.length > 0;
-    for (const district of regularDistricts) {
-      const p1Done = progress.districts[district.id]?.p1?.completed === true;
+    let allRegularP1Done = regularTowns.length > 0;
+    for (const town of regularTowns) {
+      const p1Done = progress.towns[town.id]?.p1?.completed === true;
       if (!p1Done) {
         allRegularP1Done = false;
         continue;
       }
-      const nextId = getNextDistrictInOrder(district.id);
+      const nextId = getNextTownInOrder(town.id);
       if (nextId) {
-        const nextDistrict = allDistricts.find((t) => t.id === nextId);
-        if (nextDistrict && nextDistrict.type !== "capital") unlockIds.add(nextId);
+        const nextTown = allTowns.find((t) => t.id === nextId);
+        if (nextTown && nextTown.type !== "capital") unlockIds.add(nextId);
       }
     }
 
     // Capital unlocks only when all 9 regular towns have P1 done
     if (allRegularP1Done) {
-      const capital = allDistricts.find((t) => t.type === "capital");
+      const capital = allTowns.find((t) => t.type === "capital");
       if (capital) unlockIds.add(capital.id);
     }
 
-    progress.unlockedDistrictIds = Array.from(unlockIds);
+    progress.unlockedTownIds = Array.from(unlockIds);
   }
 
-  function getNextDistrictInOrder(districtId) {
+  function getNextTownInOrder(townId) {
     const mapData = window.BattlechurchMapData;
-    if (!mapData || !districtId) return null;
-    const district = getDistrictById(districtId);
-    if (!district) return null;
+    if (!mapData || !townId) return null;
+    const town = getTownById(townId);
+    if (!town) return null;
 
-    // Capital (Highgate) is the final district - no next one
-    if (district.type === "capital") return null;
+    // Capital (Highgate) is the final town - no next town
+    if (town.type === "capital") return null;
 
-    const fronts = mapData.getFronts ? mapData.getFronts() : [];
-    const frontIndex = fronts.findIndex((f) => f.id === district.frontId);
-    if (frontIndex < 0) return null;
+    const districts = mapData.getDistricts();
+    const districtIndex = districts.findIndex((d) => d.id === town.districtId);
+    if (districtIndex < 0) return null;
 
-    const districtsInFront = mapData.getDistrictsByFront(fronts[frontIndex].id);
-    const indexInFront = districtsInFront.findIndex((t) => t.id === districtId);
+    const townsInDistrict = mapData.getTownsByDistrict(districts[districtIndex].id);
+    const townIndex = townsInDistrict.findIndex((t) => t.id === townId);
 
-    // Next district in same front
-    if (indexInFront >= 0 && indexInFront < districtsInFront.length - 1) {
-      return districtsInFront[indexInFront + 1].id;
+    // Next town in same district
+    if (townIndex >= 0 && townIndex < townsInDistrict.length - 1) {
+      return townsInDistrict[townIndex + 1].id;
     }
 
-    // First district in next front
-    if (frontIndex < fronts.length - 1) {
-      const nextFrontDistricts = mapData.getDistrictsByFront(fronts[frontIndex + 1].id);
-      if (nextFrontDistricts.length) return nextFrontDistricts[0].id;
+    // First town in next district
+    if (districtIndex < districts.length - 1) {
+      const nextDistrictTowns = mapData.getTownsByDistrict(districts[districtIndex + 1].id);
+      if (nextDistrictTowns.length) return nextDistrictTowns[0].id;
     }
 
-    // All fronts done - go to capital (Highgate)
-    const capital = mapData.districts.find((t) => t.type === "capital");
+    // All districts done - go to capital (Highgate)
+    const capital = mapData.towns.find((t) => t.type === "capital");
     return capital ? capital.id : null;
   }
 
   // --- Campaign phase / unlock helpers ---
 
   // Returns true if all towns in a county have the given campaign completed
-  function isCountyDone(frontId, campaign, progress) {
+  function isCountyDone(districtId, campaign, progress) {
     const mapData = window.BattlechurchMapData;
-    if (!mapData || !frontId || !progress) return false;
-    const districts = mapData.getDistrictsByFront(frontId);
-    return districts.length > 0 && districts.every((t) => progress.districts[t.id]?.[campaign]?.completed === true);
+    if (!mapData || !districtId || !progress) return false;
+    const towns = mapData.getTownsByDistrict(districtId);
+    return towns.length > 0 && towns.every((t) => progress.towns[t.id]?.[campaign]?.completed === true);
   }
 
-  // Returns true if P2 is unlocked for this district (front has all P1s done)
-  function isP2UnlockedForDistrict(districtId, progress) {
-    const district = getDistrictById(districtId);
-    if (!district || district.type === "capital") return false;
-    return isCountyDone(district.frontId, "p1", progress);
+  // Returns true if P2 is unlocked for this town (county has all P1s done)
+  function isP2UnlockedForTown(townId, progress) {
+    const town = getTownById(townId);
+    if (!town || town.type === "capital") return false;
+    return isCountyDone(town.districtId, "p1", progress);
   }
 
-  // Returns true if P3 is unlocked for this district (front has all P2s done)
-  function isP3UnlockedForDistrict(districtId, progress) {
-    const district = getDistrictById(districtId);
-    if (!district || district.type === "capital") return false;
-    return isCountyDone(district.frontId, "p2", progress);
+  // Returns true if P3 is unlocked for this town (county has all P2s done)
+  function isP3UnlockedForTown(townId, progress) {
+    const town = getTownById(townId);
+    if (!town || town.type === "capital") return false;
+    return isCountyDone(town.districtId, "p2", progress);
   }
 
   // Returns true if capital (Highgate) is unlocked (all 9 regular towns P1 done)
   function isCapitalUnlocked(progress) {
     const mapData = window.BattlechurchMapData;
     if (!mapData || !progress) return false;
-    const regularDistricts = mapData.districts.filter((t) => t.type !== "capital");
-    return regularDistricts.length > 0 && regularDistricts.every((t) => progress.districts[t.id]?.p1?.completed === true);
+    const regularTowns = mapData.towns.filter((t) => t.type !== "capital");
+    return regularTowns.length > 0 && regularTowns.every((t) => progress.towns[t.id]?.p1?.completed === true);
   }
 
   // Returns 'p1' | 'p2' | 'p3' — the next campaign to play for a town
-  function getNextCampaignForDistrict(districtId, progress) {
+  function getNextCampaignForTown(townId, progress) {
     if (!progress) return "p1";
-    const districtEntry = progress.districts?.[districtId];
-    if (!districtEntry?.p1?.completed) return "p1";
-    if (!districtEntry?.p2?.completed) return "p2";
+    const townEntry = progress.towns?.[townId];
+    if (!townEntry?.p1?.completed) return "p1";
+    if (!townEntry?.p2?.completed) return "p2";
     return "p3"; // p3 done or in progress — replay p3 if all done
   }
 
   // Merges church powerup levels from prior campaigns for the given campaign
-  function mergeChurchPowerupLevels(districtId, campaign, progress) {
+  function mergeChurchPowerupLevels(townId, campaign, progress) {
     if (campaign === "p1") return {};
-    const p1Levels = progress?.districts?.[districtId]?.p1?.churchPowerupLevels || {};
+    const p1Levels = progress?.towns?.[townId]?.p1?.churchPowerupLevels || {};
     if (campaign === "p2") return { ...p1Levels };
-    const p2Levels = progress?.districts?.[districtId]?.p2?.churchPowerupLevels || {};
+    const p2Levels = progress?.towns?.[townId]?.p2?.churchPowerupLevels || {};
     // P3: merge P1+P2, taking the max level per powerup
     const merged = { ...p1Levels };
     for (const [id, lvl] of Object.entries(p2Levels)) {
@@ -1927,31 +1927,31 @@
   function getCapitalScoreMultiplier(progress) {
     const mapData = window.BattlechurchMapData;
     if (!mapData || !progress) return 1.0;
-    const regularDistricts = mapData.districts.filter((t) => t.type !== "capital");
-    if (!regularDistricts.length) return 1.0;
-    const allP3 = regularDistricts.every((t) => progress.districts?.[t.id]?.p3?.completed === true);
+    const regularTowns = mapData.towns.filter((t) => t.type !== "capital");
+    if (!regularTowns.length) return 1.0;
+    const allP3 = regularTowns.every((t) => progress.towns?.[t.id]?.p3?.completed === true);
     if (allP3) return 1.1;
-    const allP2 = regularDistricts.every((t) => progress.districts?.[t.id]?.p2?.completed === true);
+    const allP2 = regularTowns.every((t) => progress.towns?.[t.id]?.p2?.completed === true);
     if (allP2) return 1.05;
     return 1.0;
   }
 
   // Returns all data needed to start a campaign run for a town
-  function getDistrictCampaignData(districtId) {
+  function getTownCampaignData(townId) {
     const progress = ensureProgress();
     const mapData = window.BattlechurchMapData;
-    const defaultStart = mapData ? (mapData.getDefaultDistrictStartCount ? mapData.getDefaultDistrictStartCount(districtId) : mapData.getDefaultTownStartCount(districtId)) : 50;
+    const defaultStart = mapData ? mapData.getDefaultTownStartCount(townId) : 50;
     if (!progress) {
       return { campaign: "p1", startCount: defaultStart, campaignMultiplier: 1.0, restoredChurchPowerupLevels: {} };
     }
-    const campaign = getNextCampaignForDistrict(districtId, progress);
+    const campaign = getNextCampaignForTown(townId, progress);
     let startCount;
     if (campaign === "p1") {
       startCount = defaultStart;
     } else if (campaign === "p2") {
-      startCount = progress.districts?.[districtId]?.p1?.bestCount ?? defaultStart;
+      startCount = progress.towns?.[townId]?.p1?.bestCount ?? defaultStart;
     } else {
-      startCount = progress.districts?.[districtId]?.p2?.bestCount ?? defaultStart;
+      startCount = progress.towns?.[townId]?.p2?.bestCount ?? defaultStart;
     }
     const multiplier = campaign === "p1" ? 1.0 : campaign === "p2" ? 1.15 : 1.1;
     const activeRun = progress?.activeRun;
@@ -1960,13 +1960,13 @@
       : 0;
     const canResumeFromCheckpoint =
       activeRun &&
-      activeRun.districtId === districtId &&
+      activeRun.townId === townId &&
       activeRun.campaign === campaign &&
       Number.isFinite(activeRun.resumeLocalBattleNumber) &&
       activeRun.resumeLocalBattleNumber > 1;
     const restoredChurchPowerupLevels = canResumeFromCheckpoint
       ? { ...(activeRun.churchPowerupLevels || {}) }
-      : mergeChurchPowerupLevels(districtId, campaign, progress);
+      : mergeChurchPowerupLevels(townId, campaign, progress);
     const checkpointStartCount = Number.isFinite(activeRun?.startCount)
       ? Math.max(0, Math.round(activeRun.startCount))
       : null;
@@ -1989,15 +1989,15 @@
     };
   }
 
-  function selectDistrict(districtId) {
-    if (!districtId) return;
-    state.selectedDistrictId = districtId;
+  function selectTown(townId) {
+    if (!townId) return;
+    state.selectedTownId = townId;
   }
 
   // campaign: 'p1' | 'p2' | 'p3'
   // savedChurchPowerupLevels: plain object { [powerupId]: 0|1|2 } (omit for p3)
-  async function recordDistrictCompletion(districtId, congregationCount, campaign, savedChurchPowerupLevels, graceCount = null) {
-    if (!districtId) return;
+  async function recordTownCompletion(townId, congregationCount, campaign, savedChurchPowerupLevels, graceCount = null) {
+    if (!townId) return;
     const mapData = window.BattlechurchMapData;
     if (!mapData) return;
     if (!state.mapProgress) {
@@ -2008,8 +2008,8 @@
 
     const activeCampaign = campaign || "p1";
 
-    if (!progress.districts[districtId]) progress.districts[districtId] = {};
-    const existingCamp = progress.districts[districtId][activeCampaign] || {};
+    if (!progress.towns[townId]) progress.towns[townId] = {};
+    const existingCamp = progress.towns[townId][activeCampaign] || {};
     const currentBest = existingCamp.bestCount;
 
     const campData = {
@@ -2020,16 +2020,16 @@
     if (activeCampaign !== "p3") {
       campData.churchPowerupLevels = savedChurchPowerupLevels || {};
     }
-    progress.districts[districtId][activeCampaign] = campData;
+    progress.towns[townId][activeCampaign] = campData;
     if (Number.isFinite(graceCount) && graceCount >= 0) {
       progress.graceCount = Math.max(0, Math.round(graceCount));
     }
-    if (progress.activeRun && progress.activeRun.districtId === districtId && progress.activeRun.campaign === activeCampaign) {
+    if (progress.activeRun && progress.activeRun.townId === townId && progress.activeRun.campaign === activeCampaign) {
       progress.activeRun = null;
     }
 
     // Recompute sequential town unlocks
-    ensureNextDistrictUnlocked(progress, mapData);
+    ensureNextTownUnlocked(progress, mapData);
 
     const activeSave = getActiveSave();
     if (activeSave) {
@@ -2040,14 +2040,14 @@
   }
 
   async function saveMissionCheckpoint({
-    districtId,
+    townId,
     campaign,
     resumeLocalBattleNumber,
     startCount,
     churchPowerupLevels,
     graceCount,
   } = {}) {
-    if (!districtId || !campaign) return false;
+    if (!townId || !campaign) return false;
     const mapData = window.BattlechurchMapData;
     if (!mapData) return false;
     if (!state.mapProgress) {
@@ -2056,7 +2056,7 @@
     const progress = ensureProgress();
     if (!progress) return false;
     progress.activeRun = {
-      districtId,
+      townId,
       campaign,
       resumeLocalBattleNumber: Number.isFinite(resumeLocalBattleNumber)
         ? Math.max(1, Math.floor(resumeLocalBattleNumber))
@@ -2080,14 +2080,14 @@
   }
 
   async function clearMissionCheckpoint(options = {}) {
-    const districtId = options && typeof options === "object" ? options.districtId : null;
+    const townId = options && typeof options === "object" ? options.townId : null;
     const campaign = options && typeof options === "object" ? options.campaign : null;
     if (!state.mapProgress) {
       await loadPlayerProgress();
     }
     const progress = ensureProgress();
     if (!progress?.activeRun) return true;
-    const matchesTown = !districtId || progress.activeRun.districtId === districtId;
+    const matchesTown = !townId || progress.activeRun.townId === townId;
     const matchesCampaign = !campaign || progress.activeRun.campaign === campaign;
     if (!matchesTown || !matchesCampaign) return true;
     progress.activeRun = null;
@@ -2100,7 +2100,7 @@
   function open() {
     state.active = true;
     state.panelOpen = false;
-    if (!state.selectedDistrictId) state.selectedDistrictId = pickInitialDistrict();
+    if (!state.selectedTownId) state.selectedTownId = pickInitialTown();
     loadPlayerProgress();
     if (typeof window.startMapMusic === "function") {
       window.startMapMusic();
@@ -2115,21 +2115,21 @@
 
   function getSaveFileSummaries() {
     const mapData = window.BattlechurchMapData;
-    const districts = Array.isArray(mapData?.districts) ? mapData.districts : [];
+    const towns = Array.isArray(mapData?.towns) ? mapData.towns : [];
     const saveFiles = state.playerDoc?.saveFiles || {};
     const activeSaveId = state.playerDoc?.activeSaveId || null;
     const summaries = Object.entries(saveFiles).map(([id, save]) => {
-      const mapProgress = save?.mapProgress || { districts: {}, unlockedDistrictIds: [] };
-      const completedP1Districts = districts.filter((district) => mapProgress?.districts?.[district.id]?.p1?.completed === true).length;
-      const totalDistricts = Math.max(1, districts.length || 10);
+      const mapProgress = save?.mapProgress || { towns: {}, unlockedTownIds: [] };
+      const completedP1Towns = towns.filter((town) => mapProgress?.towns?.[town.id]?.p1?.completed === true).length;
+      const totalTowns = Math.max(1, towns.length || 10);
       let totalCongregationBest = 0;
       let totalReplayCompletions = 0;
       let totalUpgradeLevels = 0;
-      const districtProgressRows = districts.map((district) => {
-        const districtProgress = mapProgress?.districts?.[district.id] || {};
-        const p1 = districtProgress?.p1 || {};
-        const p2 = districtProgress?.p2 || {};
-        const p3 = districtProgress?.p3 || {};
+      const townProgressRows = towns.map((town) => {
+        const townProgress = mapProgress?.towns?.[town.id] || {};
+        const p1 = townProgress?.p1 || {};
+        const p2 = townProgress?.p2 || {};
+        const p3 = townProgress?.p3 || {};
         const campaignsCompleted = [p1, p2, p3].filter((campaign) => campaign?.completed === true).length;
         const bestCountByTown = [p1?.bestCount, p2?.bestCount, p3?.bestCount]
           .filter((value) => Number.isFinite(value))
@@ -2142,8 +2142,8 @@
         const upgradeLevelTotal = upgradeEntries.reduce((sum, [, level]) => sum + Number(level || 0), 0);
         totalUpgradeLevels += upgradeLevelTotal;
         return {
-          districtId: district.id,
-          districtName: district.name || district.id || "Unknown Town",
+          townId: town.id,
+          townName: town.name || town.id || "Unknown Town",
           p1Completed: p1?.completed === true,
           bestCount,
           completions: campaignsCompleted,
@@ -2151,27 +2151,27 @@
           upgradeLevelTotal,
         };
       });
-      const firstDistrictId = mapData?.getFirstDistrictId?.() || districts[0]?.id || null;
-      const regularDistrictIds = districts.filter((district) => district.type !== "capital").map((district) => district.id);
-      const capitalDistrictId = districts.find((district) => district.type === "capital")?.id || null;
-      const unlocked = new Set(firstDistrictId ? [firstDistrictId] : []);
-      for (let i = 0; i < regularDistrictIds.length; i += 1) {
-        if (mapProgress?.districts?.[regularDistrictIds[i]]?.p1?.completed === true && regularDistrictIds[i + 1]) {
-          unlocked.add(regularDistrictIds[i + 1]);
+      const firstTownId = mapData?.getFirstTownId?.() || towns[0]?.id || null;
+      const regularTownIds = towns.filter((town) => town.type !== "capital").map((town) => town.id);
+      const capitalTownId = towns.find((town) => town.type === "capital")?.id || null;
+      const unlocked = new Set(firstTownId ? [firstTownId] : []);
+      for (let i = 0; i < regularTownIds.length; i += 1) {
+        if (mapProgress?.towns?.[regularTownIds[i]]?.p1?.completed === true && regularTownIds[i + 1]) {
+          unlocked.add(regularTownIds[i + 1]);
         }
       }
-      if (regularDistrictIds.length > 0 && regularDistrictIds.every((districtId) => mapProgress?.districts?.[districtId]?.p1?.completed === true) && capitalDistrictId) {
-        unlocked.add(capitalDistrictId);
+      if (regularTownIds.length > 0 && regularTownIds.every((townId) => mapProgress?.towns?.[townId]?.p1?.completed === true) && capitalTownId) {
+        unlocked.add(capitalTownId);
       }
-      const orderedDistrictIds = districts.map((district) => district.id);
-      const suggestedDistrictId =
-        orderedDistrictIds.find((districtId) => unlocked.has(districtId) && !(mapProgress?.districts?.[districtId]?.p1?.completed)) ||
-        [...orderedDistrictIds].reverse().find((districtId) => unlocked.has(districtId)) ||
-        firstDistrictId ||
+      const orderedTownIds = towns.map((town) => town.id);
+      const suggestedTownId =
+        orderedTownIds.find((townId) => unlocked.has(townId) && !(mapProgress?.towns?.[townId]?.p1?.completed)) ||
+        [...orderedTownIds].reverse().find((townId) => unlocked.has(townId)) ||
+        firstTownId ||
         null;
       const activeRun = mapProgress?.activeRun || null;
-      const activeRunDistrictId = activeRun?.districtId || null;
-      const activeRunDistrictName = activeRunDistrictId ? (districts.find((t) => t.id === activeRunDistrictId)?.name || activeRunDistrictId) : null;
+      const activeRunTownId = activeRun?.townId || null;
+      const activeRunTownName = activeRunTownId ? (towns.find((t) => t.id === activeRunTownId)?.name || activeRunTownId) : null;
       const activeRunActNumber = Number.isFinite(activeRun?.resumeLocalBattleNumber) ? activeRun.resumeLocalBattleNumber : null;
       const activeRunCongregation = Number.isFinite(activeRun?.startCount) ? activeRun.startCount : null;
       return {
@@ -2181,17 +2181,17 @@
         createdAt: Number.isFinite(save?.createdAt) ? save.createdAt : null,
         lastPlayedAt: Number.isFinite(save?.lastPlayedAt) ? save.lastPlayedAt : null,
         playtimeSec: Number.isFinite(save?.playtimeSec) ? save.playtimeSec : 0,
-        completedP1Districts,
-        totalDistricts,
+        completedP1Towns,
+        totalTowns,
         totalCongregationBest,
         totalReplayCompletions,
         totalUpgradeLevels,
-        districtProgressRows,
-        suggestedDistrictId,
-        suggestedDistrictName: districts.find((district) => district.id === suggestedDistrictId)?.name || "",
+        townProgressRows,
+        suggestedTownId,
+        suggestedTownName: towns.find((town) => town.id === suggestedTownId)?.name || "",
         isActive: id === activeSaveId,
-        activeRunDistrictId,
-        activeRunDistrictName,
+        activeRunTownId,
+        activeRunTownName,
         activeRunActNumber,
         activeRunCongregation,
       };
@@ -2210,8 +2210,8 @@
     state.mapProgress = state.playerDoc.saveFiles[saveId].mapProgress;
     ensureProgress();
     rebuildArmyMarchRouteFromProgress();
-    if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-      state.selectedDistrictId = pickInitialDistrict();
+    if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+      state.selectedTownId = pickInitialTown();
     }
     const activeSave = getActiveSave();
     if (activeSave) activeSave.lastPlayedAt = Date.now();
@@ -2248,8 +2248,8 @@
       state.mapProgress = state.playerDoc.saveFiles[saveId].mapProgress;
       ensureProgress();
       rebuildArmyMarchRouteFromProgress();
-      if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-        state.selectedDistrictId = pickInitialDistrict();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
       }
     }
     syncActiveSaveProgressMirror();
@@ -2266,8 +2266,8 @@
       state.mapProgress = target.mapProgress;
       ensureProgress();
       rebuildArmyMarchRouteFromProgress();
-      if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-        state.selectedDistrictId = pickInitialDistrict();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
       }
     }
     syncActiveSaveProgressMirror();
@@ -2275,25 +2275,25 @@
     return true;
   }
 
-  async function devAwardNextDistrict({
+  async function devAwardNextTown({
     congregationCount = 100,
     campaign = "p1",
     churchPowerupLevels = {},
   } = {}) {
     const progress = ensureProgress();
     const mapData = window.BattlechurchMapData;
-    if (!mapData?.districts?.length) return null;
-    ensureNextDistrictUnlocked(progress, mapData);
-    const orderedDistricts = mapData.districts.filter((district) => district && district.id);
-    const unlockedSet = new Set(progress.unlockedDistrictIds || []);
-    const targetDistrict =
-      orderedDistricts.find((district) => unlockedSet.has(district.id) && !progress?.districts?.[district.id]?.p1?.completed) ||
+    if (!mapData?.towns?.length) return null;
+    ensureNextTownUnlocked(progress, mapData);
+    const orderedTowns = mapData.towns.filter((town) => town && town.id);
+    const unlockedSet = new Set(progress.unlockedTownIds || []);
+    const targetTown =
+      orderedTowns.find((town) => unlockedSet.has(town.id) && !progress?.towns?.[town.id]?.p1?.completed) ||
       null;
-    if (!targetDistrict) return null;
+    if (!targetTown) return null;
 
-    if (!progress.districts[targetDistrict.id]) progress.districts[targetDistrict.id] = {};
-    const existing = progress.districts[targetDistrict.id][campaign] || {};
-    progress.districts[targetDistrict.id][campaign] = {
+    if (!progress.towns[targetTown.id]) progress.towns[targetTown.id] = {};
+    const existing = progress.towns[targetTown.id][campaign] || {};
+    progress.towns[targetTown.id][campaign] = {
       ...existing,
       completed: true,
       bestCount:
@@ -2306,45 +2306,45 @@
           : existing?.churchPowerupLevels,
     };
 
-    ensureNextDistrictUnlocked(progress, mapData);
-    const nextDistrict =
-      orderedDistricts.find((district) => (progress.unlockedDistrictIds || []).includes(district.id) && !progress?.districts?.[district.id]?.p1?.completed) ||
-      targetDistrict;
-    state.selectedDistrictId = nextDistrict?.id || targetDistrict.id;
+    ensureNextTownUnlocked(progress, mapData);
+    const nextTown =
+      orderedTowns.find((town) => (progress.unlockedTownIds || []).includes(town.id) && !progress?.towns?.[town.id]?.p1?.completed) ||
+      targetTown;
+    state.selectedTownId = nextTown?.id || targetTown.id;
     const activeSave = getActiveSave();
     if (activeSave) activeSave.lastPlayedAt = Date.now();
     syncActiveSaveProgressMirror();
     await persistPlayerDoc();
     return {
-      awardedDistrictId: targetDistrict.id,
-      awardedDistrictName: targetDistrict.name || targetDistrict.id,
-      nextDistrictId: nextDistrict?.id || null,
-      nextDistrictName: nextDistrict?.name || nextDistrict?.id || null,
+      awardedTownId: targetTown.id,
+      awardedTownName: targetTown.name || targetTown.id,
+      nextTownId: nextTown?.id || null,
+      nextTownName: nextTown?.name || nextTown?.id || null,
     };
   }
 
-  function setDemoProfile({ completedDistricts = 0 } = {}) {
+  function setDemoProfile({ completedTowns = 0 } = {}) {
     const mapData = window.BattlechurchMapData;
-    if (!mapData?.districts?.length) return false;
+    if (!mapData?.towns?.length) return false;
     const progress = createFreshMapProgress(mapData);
-    const regularDistrictIds = mapData.districts
-      .filter((district) => district && district.type !== "capital")
-      .map((district) => district.id)
+    const regularTownIds = mapData.towns
+      .filter((town) => town && town.type !== "capital")
+      .map((town) => town.id)
       .filter(Boolean);
-    const targetIds = regularDistrictIds.slice(0, Math.max(0, Number(completedDistricts) || 0));
-    targetIds.forEach((districtId) => {
-      if (!progress.districts[districtId]) progress.districts[districtId] = {};
-      progress.districts[districtId].p1 = {
+    const targetIds = regularTownIds.slice(0, Math.max(0, Number(completedTowns) || 0));
+    targetIds.forEach((townId) => {
+      if (!progress.towns[townId]) progress.towns[townId] = {};
+      progress.towns[townId].p1 = {
         completed: true,
         bestCount: 100,
         churchPowerupLevels: {},
       };
     });
-    ensureNextDistrictUnlocked(progress, mapData);
+    ensureNextTownUnlocked(progress, mapData);
     state.demoProfile = { mapProgress: progress };
     state.mapProgress = progress;
-    if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-      state.selectedDistrictId = pickInitialDistrict();
+    if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+      state.selectedTownId = pickInitialTown();
     }
     return true;
   }
@@ -2377,8 +2377,8 @@
       state.playerDoc.activeSaveId = Object.keys(state.playerDoc.saveFiles)[0];
       state.mapProgress = state.playerDoc.saveFiles[state.playerDoc.activeSaveId].mapProgress;
       ensureProgress();
-      if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
-        state.selectedDistrictId = pickInitialDistrict();
+      if (!state.selectedTownId || !isTownUnlocked(state.selectedTownId)) {
+        state.selectedTownId = pickInitialTown();
       }
     }
     syncActiveSaveProgressMirror();
@@ -2390,7 +2390,7 @@
     state.active = false;
     state.panelOpen = false;
     state.mapLaunchTransition.active = false;
-    state.mapLaunchTransition.districtId = null;
+    state.mapLaunchTransition.townId = null;
     state.mapLaunchTransition.timer = 0;
     state.mapLaunchTransition.launched = false;
     stopMapAmbient();
@@ -2399,14 +2399,14 @@
   function update(dt) {
     if (!state.active) return;
     loadMapImage();
-    loadDistrictExteriorImage();
+    loadTownExteriorImage();
     updateArmyMarchAnimation(dt);
     handleMapInput();
     const mapData = window.BattlechurchMapData;
     if (mapData) {
-      mapData.districts.forEach((district) => {
-        const bestCount = getDistrictBestCount(district.id);
-        const animState = getDistrictAnimatorState(district, bestCount);
+      mapData.towns.forEach((town) => {
+        const bestCount = getTownBestCount(town.id);
+        const animState = getTownAnimatorState(town, bestCount);
         if (!animState) return;
         animState.animator.update(dt);
         updateAnimatorCycle(
@@ -2426,11 +2426,11 @@
       const handoffRatio = Math.max(0.05, Math.min(0.995, Number(transition.handoffRatio) || 0.98));
       if (!transition.launched && transition.timer >= duration * handoffRatio) {
         transition.launched = true;
-        const launchDistrictId = transition.districtId || state.selectedDistrictId;
+        const launchTownId = transition.townId || state.selectedTownId;
         transition.active = false;
-        transition.districtId = null;
+        transition.townId = null;
         transition.timer = 0;
-        _launchDistrict(launchDistrictId);
+        _launchTown(launchTownId);
       }
     }
   }
@@ -2488,9 +2488,9 @@
     const easedCrossfadeT = crossfadeT * crossfadeT * (3 - 2 * crossfadeT);
     let rect = computeMapRect(canvas);
     if (transitionActive) {
-      const district = getDistrictById(transition.districtId || state.selectedDistrictId);
-      if (district) {
-        const target = getDistrictPosition(district, rect);
+      const town = getTownById(transition.townId || state.selectedTownId);
+      if (town) {
+        const target = getTownPosition(town, rect);
         if (target && Number.isFinite(target.x) && Number.isFinite(target.y)) {
           const maxScale = Math.max(1, Number(transition.maxScale) || 1.85);
           const scale = 1 + (maxScale - 1) * easedZoomT;
@@ -2536,19 +2536,19 @@
     drawFrontlineBoundary(ctx, rect);
     const mapData = window.BattlechurchMapData;
     if (mapData) {
-      mapData.districts.forEach((district) => drawDistrictNode(ctx, district, rect, pulse));
+      mapData.towns.forEach((town) => drawTownNode(ctx, town, rect, pulse));
     }
     drawInitialMarchOriginMarker(ctx);
     drawArmyMarchOverlay(ctx);
     if (!transitionActive) {
       handleMapClicks(rect);
-      drawDistrictPanel(ctx, canvas);
+      drawTownPanel(ctx, canvas);
       drawDenomUpgradeOverlay(ctx, canvas);
     }
     if (transitionActive) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      if (districtExteriorImageLoaded && districtExteriorImage) {
-        drawWavyCoverImage(ctx, canvas, districtExteriorImage, Math.max(0, Math.min(1, easedCrossfadeT)));
+      if (townExteriorImageLoaded && townExteriorImage) {
+        drawWavyCoverImage(ctx, canvas, townExteriorImage, Math.max(0, Math.min(1, easedCrossfadeT)));
         const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
         if (fireOverlay && typeof fireOverlay.draw === "function" && easedCrossfadeT > 0.001) {
           ctx.save();
@@ -2573,14 +2573,14 @@
     ctx.restore();
   }
 
-  function getOccupiedDistrictPositions(rect) {
+  function getOccupiedTownPositions(rect) {
     const mapData = window.BattlechurchMapData;
     const progress = ensureProgress();
-    if (!mapData?.districts?.length || !progress) return [];
-    return mapData.districts
-      .filter((district) => district && district.id && district.type !== "capital")
-      .filter((district) => progress.districts?.[district.id]?.p1?.completed === true)
-      .map((district) => getDistrictPosition(district, rect))
+    if (!mapData?.towns?.length || !progress) return [];
+    return mapData.towns
+      .filter((town) => town && town.id && town.type !== "capital")
+      .filter((town) => progress.towns?.[town.id]?.p1?.completed === true)
+      .map((town) => getTownPosition(town, rect))
       .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
   }
 
@@ -2624,22 +2624,22 @@
   function drawFrontlineBoundary(ctx, rect) {
     const mapData = window.BattlechurchMapData;
     const progress = ensureProgress();
-    const occupied = getOccupiedDistrictPositions(rect);
-    if (!occupied.length || !mapData?.districts?.length || !progress) return;
-    const regularDistricts = mapData.districts.filter((district) => district && district.id && district.type !== "capital");
+    const occupied = getOccupiedTownPositions(rect);
+    if (!occupied.length || !mapData?.towns?.length || !progress) return;
+    const regularTowns = mapData.towns.filter((town) => town && town.id && town.type !== "capital");
     const occupiedSet = new Set(
-      regularDistricts
-        .filter((district) => progress.districts?.[district.id]?.p1?.completed === true)
-        .map((district) => district.id),
+      regularTowns
+        .filter((town) => progress.towns?.[town.id]?.p1?.completed === true)
+        .map((town) => town.id),
     );
-    const occupiedPoints = regularDistricts
-      .filter((district) => occupiedSet.has(district.id))
-      .map((district) => getDistrictPosition(district, rect))
+    const occupiedPoints = regularTowns
+      .filter((town) => occupiedSet.has(town.id))
+      .map((town) => getTownPosition(town, rect))
       .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y))
       .sort((a, b) => a.y - b.y);
-    const enemyPoints = regularDistricts
-      .filter((district) => !occupiedSet.has(district.id))
-      .map((district) => getDistrictPosition(district, rect))
+    const enemyPoints = regularTowns
+      .filter((town) => !occupiedSet.has(town.id))
+      .map((town) => getTownPosition(town, rect))
       .filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
     if (!occupiedPoints.length) return;
     const linePad = 14;
@@ -2832,23 +2832,23 @@
     ctx.restore();
   }
 
-  function beginArmyMarchToDistrict(districtId, onDone) {
+  function beginArmyMarchToTown(townId, onDone) {
     const mapData = window.BattlechurchMapData;
-    const district = getDistrictById(districtId);
+    const town = getTownById(townId);
     const rect = state.mapRect;
-    if (!mapData || !district || !rect || !Number.isFinite(rect.w) || rect.w <= 0) {
+    if (!mapData || !town || !rect || !Number.isFinite(rect.w) || rect.w <= 0) {
       if (typeof onDone === "function") onDone();
       return;
     }
     const march = state.armyMarch;
-    const target = getDistrictPosition(district, rect);
+    const target = getTownPosition(town, rect);
     if (!Array.isArray(march.routeStops) || !march.routeStops.length) {
       march.routeStops = [{ type: "origin" }];
     }
     const routeStart = resolveRouteStopPoint(march.routeStops[march.routeStops.length - 1], rect) || getInitialMarchOrigin(rect);
     march.active = true;
     march.phase = "dash";
-    march.districtId = districtId;
+    march.townId = townId;
     march.fromX = routeStart.x;
     march.fromY = routeStart.y;
     march.toX = target.x;
@@ -2860,21 +2860,21 @@
   function finishArmyMarchAnimation() {
     const march = state.armyMarch;
     const done = march.onDone;
-    const districtId = march.districtId;
+    const townId = march.townId;
     march.active = false;
     march.phase = "idle";
-    march.districtId = null;
+    march.townId = null;
     march.timer = 0;
     march.onDone = null;
-    march.lastDistrictId = districtId || march.lastDistrictId;
+    march.lastTownId = townId || march.lastTownId;
     march.hasStartedOnce = true;
-    if (districtId) {
+    if (townId) {
       if (!Array.isArray(march.routeStops) || !march.routeStops.length) {
         march.routeStops = [{ type: "origin" }];
       }
       const last = march.routeStops[march.routeStops.length - 1];
-      if (!(last && last.type === "district" && last.id === districtId)) {
-        march.routeStops.push({ type: "district", id: districtId });
+      if (!(last && last.type === "town" && last.id === townId)) {
+        march.routeStops.push({ type: "town", id: townId });
       }
     }
     if (typeof done === "function") done();
@@ -2900,33 +2900,33 @@
   function getPreviewMarchLeg(rect) {
     const mapData = window.BattlechurchMapData;
     const progress = ensureProgress();
-    if (!mapData?.districts?.length || !progress) return null;
-    const districts = mapData.districts.filter((district) => district && district.id);
-    if (!districts.length) return null;
-    const completedIds = districts
-      .filter((district) => progress.districts?.[district.id]?.p1?.completed === true)
-      .map((district) => district.id);
+    if (!mapData?.towns?.length || !progress) return null;
+    const towns = mapData.towns.filter((town) => town && town.id);
+    if (!towns.length) return null;
+    const completedIds = towns
+      .filter((town) => progress.towns?.[town.id]?.p1?.completed === true)
+      .map((town) => town.id);
     const lastCompletedId = completedIds.length ? completedIds[completedIds.length - 1] : null;
-    const targetDistrict = districts.find((district) => progress.districts?.[district.id]?.p1?.completed !== true) || null;
-    if (!targetDistrict) return null;
-    const to = getDistrictPosition(targetDistrict, rect);
+    const targetTown = towns.find((town) => progress.towns?.[town.id]?.p1?.completed !== true) || null;
+    if (!targetTown) return null;
+    const to = getTownPosition(targetTown, rect);
     let from = lastCompletedId
-      ? getDistrictPosition(getDistrictById(lastCompletedId), rect)
+      ? getTownPosition(getTownById(lastCompletedId), rect)
       : getInitialMarchOrigin(rect);
     // If this is the first town in a district with no occupied towns yet in that district,
     // stage the attack from the nearest occupied town (frontline hop), not strictly last cleared.
     if (completedIds.length > 0) {
-      const districtTowns = mapData.getDistrictsByFront?.(targetDistrict.frontId) || [];
-      const isDistrictEntry = districtTowns.length > 0 && districtTowns[0]?.id === targetDistrict.id;
-      const occupiedInTargetDistrict = districtTowns.some((district) => progress.districts?.[district.id]?.p1?.completed === true);
+      const districtTowns = mapData.getTownsByDistrict?.(targetTown.districtId) || [];
+      const isDistrictEntry = districtTowns.length > 0 && districtTowns[0]?.id === targetTown.id;
+      const occupiedInTargetDistrict = districtTowns.some((town) => progress.towns?.[town.id]?.p1?.completed === true);
       if (isDistrictEntry && !occupiedInTargetDistrict) {
         let nearestFrom = null;
         let nearestDist = Infinity;
         for (const completedId of completedIds) {
-          const occupiedDistrict = getDistrictById(completedId);
-          if (!occupiedDistrict) continue;
-          if (occupiedDistrict.type === "capital") continue;
-          const pos = getDistrictPosition(occupiedDistrict, rect);
+          const occupiedTown = getTownById(completedId);
+          if (!occupiedTown) continue;
+          if (occupiedTown.type === "capital") continue;
+          const pos = getTownPosition(occupiedTown, rect);
           if (!pos) continue;
           const dx = to.x - pos.x;
           const dy = to.y - pos.y;
@@ -2946,10 +2946,10 @@
   function resolveRouteStopPoint(stop, rect) {
     if (!stop) return null;
     if (stop.type === "origin") return getInitialMarchOrigin(rect);
-    if (stop.type === "district" && stop.id) {
-      const district = getDistrictById(stop.id);
-      if (!district) return null;
-      return getDistrictPosition(district, rect);
+    if (stop.type === "town" && stop.id) {
+      const town = getTownById(stop.id);
+      if (!town) return null;
+      return getTownPosition(town, rect);
     }
     return null;
   }
@@ -3054,11 +3054,11 @@
   function getInitialMarchOrigin(rect) {
     const mapData = window.BattlechurchMapData;
     const safeRect = rect || state.mapRect || { x: 0, y: 0, w: 1280, h: 720 };
-    const firstDistrictId = mapData?.getFirstDistrictId?.() || mapData?.districts?.[0]?.id;
-    const firstDistrict = firstDistrictId ? getDistrictById(firstDistrictId) : null;
+    const firstTownId = mapData?.getFirstTownId?.() || mapData?.towns?.[0]?.id;
+    const firstTown = firstTownId ? getTownById(firstTownId) : null;
     const fallbackX = safeRect.x + safeRect.w * 0.2;
     const fallbackY = safeRect.y + safeRect.h * 0.25;
-    const firstPos = firstDistrict ? getDistrictPosition(firstDistrict, safeRect) : { x: fallbackX, y: fallbackY };
+    const firstPos = firstTown ? getTownPosition(firstTown, safeRect) : { x: fallbackX, y: fallbackY };
     let x = firstPos.x - 95;
     let y = firstPos.y - 165;
     const minX = safeRect.x + 28;
@@ -3074,7 +3074,7 @@
     if (!state.active) return;
     const progress = ensureProgress();
     const mapData = window.BattlechurchMapData;
-    const hasAnyCompleted = !!(mapData?.districts || []).find((district) => progress?.districts?.[district.id]?.p1?.completed === true);
+    const hasAnyCompleted = !!(mapData?.towns || []).find((town) => progress?.towns?.[town.id]?.p1?.completed === true);
     if (hasAnyCompleted) return;
     const origin = getInitialMarchOrigin(state.mapRect);
     const pulse = 0.55 + 0.45 * Math.sin((typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.012);
@@ -3096,29 +3096,29 @@
   }
 
   // Dev-only: mark all 9 regular towns as P1-completed (100 congregation) in memory.
-  // Does NOT save to Firebase. Automatically unlocks the capital via ensureNextDistrictUnlocked.
-  function devUnlockAllDistricts() {
+  // Does NOT save to Firebase. Automatically unlocks the capital via ensureNextTownUnlocked.
+  function devUnlockAllTowns() {
     const mapData = window.BattlechurchMapData;
     if (!mapData) return false;
     const progress = ensureProgress();
     if (!progress) return false;
-    const regularDistricts = (mapData.districts || []).filter(function(t) { return t.type !== "capital"; });
-    if (!progress.districts) progress.districts = {};
-    regularDistricts.forEach(function(district) {
-      if (!progress.districts[district.id]) progress.districts[district.id] = { p1: null, p2: null, p3: null };
-      progress.districts[district.id].p1 = {
+    const regularTowns = (mapData.towns || []).filter(function(t) { return t.type !== "capital"; });
+    if (!progress.towns) progress.towns = {};
+    regularTowns.forEach(function(town) {
+      if (!progress.towns[town.id]) progress.towns[town.id] = { p1: null, p2: null, p3: null };
+      progress.towns[town.id].p1 = {
         completed: true,
         bestCount: 100,
         churchPowerupLevels: {},
       };
     });
     // Directly unlock every town (regular + capital) — don't rely on chain logic
-    progress.unlockedDistrictIds = (mapData.districts || []).map(function(t) { return t.id; });
+    progress.unlockedTownIds = (mapData.towns || []).map(function(t) { return t.id; });
     // Close any open panel or overlay so WASD navigation works immediately
     state.panelOpen = false;
     state.denomUpgrade = null;
     if (typeof console !== "undefined") {
-      console.log("[DEV] devUnlockAllDistricts: unlockedDistrictIds =", progress.unlockedDistrictIds.join(", "));
+      console.log("[DEV] devUnlockAllTowns: unlockedTownIds =", progress.unlockedTownIds.join(", "));
     }
     return true;
   }
@@ -3128,22 +3128,22 @@
     close,
     update,
     draw,
-    recordDistrictCompletion,
-    devUnlockAllDistricts,
-    getNextDistrictInOrder,
-    selectDistrict,
+    recordTownCompletion,
+    devUnlockAllTowns,
+    getNextTownInOrder,
+    selectTown,
     setAssets,
-    getDistrictStartCount,
-    ensureDistrictStartCount,
-    getDistrictCampaignData,
+    getTownStartCount,
+    ensureTownStartCount,
+    getTownCampaignData,
     getTotalCongregationCount,
     saveMissionCheckpoint,
     clearMissionCheckpoint,
-    getDenomPickCountForDistrict,
-    devStartRunForDistrict,
-    getNextCampaignForDistrict,
-    isP2UnlockedForDistrict,
-    isP3UnlockedForDistrict,
+    getDenomPickCountForTown,
+    devStartRunForTown,
+    getNextCampaignForTown,
+    isP2UnlockedForTown,
+    isP3UnlockedForTown,
     reloadProgress,
     getSaveFileSummaries,
     setActiveSave,
@@ -3151,7 +3151,7 @@
     resetSaveFile,
     renameSaveFile,
     deleteSaveFile,
-    devAwardNextDistrict,
+    devAwardNextTown,
     setDemoProfile,
     clearDemoProfile,
     isCountyDone,

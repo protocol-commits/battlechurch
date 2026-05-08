@@ -269,8 +269,8 @@
       actBreakHoldSeconds: 2,
       playerDeathFadeTarget: 0.5,
       playerDeathFadeSpeed: 6,
-      townIntroZoomDuration: 1.0,
-      townIntroFadeDuration: 2.0,
+      districtIntroZoomDuration: 1.0,
+      districtIntroFadeDuration: 2.0,
     },
   };
 

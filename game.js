@@ -152,13 +152,13 @@ let playerDashState = {
 };
 let ashOverlay = null;
 let fireOverlay = null;
-let pendingTownIntroStart = false;
-let townIntroDismissedAt = 0;
-const TOWN_INTRO_ZOOM_DURATION = 1.0;
-const TOWN_INTRO_FADE_DURATION = 2.0;
-let townIntroTransitionActive = false;
-let townIntroTransitionTimer = 0;
-let townVisitorMinigamePlayed = false;
+let pendingDistrictIntroStart = false;
+let districtIntroDismissedAt = 0;
+const DISTRICT_INTRO_ZOOM_DURATION = 1.0;
+const DISTRICT_INTRO_FADE_DURATION = 2.0;
+let districtIntroTransitionActive = false;
+let districtIntroTransitionTimer = 0;
+let districtVisitorMinigamePlayed = false;
 let suppressInitialAnnouncements = false;
 const levelAnnouncements = [];
 let levelManager = null;
@@ -210,8 +210,8 @@ const TITLE_DEMO_SAVE_SLOTS = [
   {
     key: "slot1",
     label: "Demo: New Playthrough",
-    townId: "pine_hollow",
-    completedTowns: 0,
+    districtId: "pine_hollow",
+    completedDistricts: 0,
     campaignData: {
       campaign: "p1",
       startCount: 50,
@@ -222,8 +222,8 @@ const TITLE_DEMO_SAVE_SLOTS = [
   {
     key: "slot2",
     label: "Demo: Area 1 Cleared",
-    townId: "red_creek",
-    completedTowns: 3,
+    districtId: "red_creek",
+    completedDistricts: 3,
     campaignData: {
       campaign: "p1",
       startCount: 85,
@@ -234,8 +234,8 @@ const TITLE_DEMO_SAVE_SLOTS = [
   {
     key: "slot3",
     label: "Demo: Area 2 Cleared",
-    townId: "lowmoor",
-    completedTowns: 6,
+    districtId: "lowmoor",
+    completedDistricts: 6,
     campaignData: {
       campaign: "p2",
       startCount: 120,
@@ -320,7 +320,7 @@ function getCongregationIntroLinesForCampaign(campaignIdRaw) {
 }
 const NPC_PROCESSION_SPEED_MULTIPLIER = 3.5;
 let congregationSize = INITIAL_CONGREGATION_SIZE;
-let townStartCongregation = INITIAL_CONGREGATION_SIZE;
+let districtStartCongregation = INITIAL_CONGREGATION_SIZE;
 const NPC_PROCESSION_ENTRY_MARGIN = 220;
 const VISITOR_GUEST_COUNT = 10;
 const VISITOR_SESSION_DURATION = 30;
@@ -4310,12 +4310,12 @@ let gameStarted = false;
 let pauseDialogActive = false;
 let pauseRestartConfirmActive = false;
 let mapActive = false;
-let activeTownId = null;
+let activeDistrictId = null;
 let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
 let activeCampaignMultiplier = 1.0; // 1.0 | 1.15 | 1.1
 let cloudInitAttempted = false;
-let pendingDevBattleStartOverride = null; // { townId, localBattleNumber }
-let pendingDevCampaignDataOverride = null; // { townId, campaignData }
+let pendingDevBattleStartOverride = null; // { districtId, localBattleNumber }
+let pendingDevCampaignDataOverride = null; // { districtId, campaignData }
 let devPlaytestLaunchInProgress = false;
 let devPlaytestSession = {
   active: false,
@@ -4933,7 +4933,7 @@ function activateDevMeleeArenaMode() {
   paused = false;
   gameOver = false;
   postDeathSequenceActive = false;
-  pendingTownIntroStart = false;
+  pendingDistrictIntroStart = false;
   suppressInitialAnnouncements = false;
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   clearCongregationMembers();
@@ -4989,9 +4989,9 @@ function requestDevMeleeArenaLaunch() {
     activateDevMeleeArenaMode();
     return;
   }
-  const towns = Array.isArray(window.BattlechurchMapData?.towns) ? window.BattlechurchMapData.towns : [];
-  const townId = towns[0]?.id || null;
-  if (!townId) {
+  const districts = Array.isArray(window.BattlechurchMapData?.districts) ? window.BattlechurchMapData.districts : [];
+  const districtId = districts[0]?.id || null;
+  if (!districtId) {
     if (player) {
       pendingDevMeleeArenaLaunch = false;
       activateDevMeleeArenaMode();
@@ -5001,10 +5001,10 @@ function requestDevMeleeArenaLaunch() {
     return;
   }
   if (typeof window !== "undefined") {
-    window.activeTownId = townId;
+    window.activeDistrictId = districtId;
   }
-  activeTownId = townId;
-  startRunForTown(townId);
+  activeDistrictId = districtId;
+  startRunForDistrict(districtId);
 }
 
 function setDevPlaytestSession(active, scope = null) {
@@ -5079,7 +5079,7 @@ function syncDevPlaytestQuickActions() {
     !mapActive &&
     !gameOver &&
     !epilogueActive &&
-    !townVictoryActive &&
+    !districtVictoryActive &&
     !window.DialogOverlay?.isVisible?.() &&
     !window.UpgradeScreen?.isVisible?.();
   root.style.display = shouldShow ? "flex" : "none";
@@ -5094,7 +5094,7 @@ function returnFromDevPlaytestToEditor() {
   try {
     if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   } catch (e) {}
-  pendingTownIntroStart = false;
+  pendingDistrictIntroStart = false;
   suppressInitialAnnouncements = false;
   pendingDevBattleStartOverride = null;
   pendingDevCampaignDataOverride = null;
@@ -5344,11 +5344,11 @@ Renderer.initialize({
   get epilogueBackgroundKey() { return epilogueBackgroundKey; },
   get epilogueScroll() { return epilogueScroll; },
   get creditsContent() { return CREDITS_CONTENT; },
-  get townVictoryActive() { return townVictoryActive; },
-  get townVictoryTownName() { return townVictoryTownName; },
-  get townVictoryScore() { return townVictoryScore; },
-  get townVictoryCampaign() { return townVictoryCampaign; },
-  get townVictoryScroll() { return townVictoryScroll; },
+  get districtVictoryActive() { return districtVictoryActive; },
+  get districtVictoryName() { return districtVictoryName; },
+  get districtVictoryScore() { return districtVictoryScore; },
+  get districtVictoryCampaign() { return districtVictoryCampaign; },
+  get districtVictoryScroll() { return districtVictoryScroll; },
   get ashOverlay() { return ashOverlay; },
   get fireOverlay() { return fireOverlay; },
   get congregationOverlay() { return congregationOverlay; },
@@ -5375,10 +5375,10 @@ Renderer.initialize({
   get meleeAttackState() { return window._meleeAttackState; },
   get devTools() { return devTools; },
   getEnemyHitboxRect,
-  get townIntroTransitionActive() { return townIntroTransitionActive; },
-  get townIntroTransitionTimer() { return townIntroTransitionTimer; },
-  TOWN_INTRO_ZOOM_DURATION,
-  TOWN_INTRO_FADE_DURATION,
+  get districtIntroTransitionActive() { return districtIntroTransitionActive; },
+  get districtIntroTransitionTimer() { return districtIntroTransitionTimer; },
+  DISTRICT_INTRO_ZOOM_DURATION,
+  DISTRICT_INTRO_FADE_DURATION,
   renderDebugOverlay,
 });
 function bootInputAndResize() {
@@ -5400,7 +5400,7 @@ window.addEventListener("resize", () => {
 }, { passive: true });
 
 if (typeof window !== "undefined") {
-  window.startRunForTown = startRunForTown;
+  window.startRunForDistrict = startRunForDistrict;
   window.startDevLevelTestFromEditor = startDevLevelTestFromEditor;
   window.exitMapScreen = exitMapScreen;
   window.returnToTitleScreen = restartGame;
@@ -5419,7 +5419,7 @@ const PLAYER_SPRITE_PATH = "assets/sprites/npcs/mana-seed/";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
-const TOWN_INTRO_BACKGROUND_PATH = "assets/backgrounds/mission-1.jpg";
+const DISTRICT_INTRO_BACKGROUND_PATH = "assets/backgrounds/mission-1.jpg";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
 const OBSTACLE_DEFS = {};
 const OBSTACLE_LAYOUT = [];
@@ -5669,8 +5669,8 @@ function isNoCooldownDamageSource(type) {
 
 // Mission names replace calendar month names in the new terminology.
 const MISSIONS_PER_TOWN =
-  (typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
-    ? window.BATTLES_PER_TOWN
+  (typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_DISTRICT)
+    ? window.BATTLES_PER_DISTRICT
     : null) ||
   3;
 
@@ -7531,7 +7531,7 @@ async function loadItemFrames(cache, assets, keyFramesPromise, torchFramesPromis
 }
 
 async function loadBackgroundAssets(cache, assets) {
-  const townIntroPromise = loadImage(TOWN_INTRO_BACKGROUND_PATH)
+  const districtIntroPromise = loadImage(DISTRICT_INTRO_BACKGROUND_PATH)
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { mission1: null };
       assets.backgrounds.mission1 = maybeApplyArenaBackgroundShadowCrush(img);
@@ -7587,7 +7587,7 @@ async function loadBackgroundAssets(cache, assets) {
     .catch(() => { assets.titleBackground = null; });
 
   await Promise.all([
-    townIntroPromise,
+    districtIntroPromise,
     epiloguePromise,
     act2Promise,
     act3Promise,
@@ -7611,7 +7611,7 @@ async function loadTitleMapAssets() {
     utility: {},
     effects: {},
     background: null,
-    backgrounds: { townIntro: null },
+    backgrounds: { districtIntro: null },
     backgroundLayers: { far: null, mid: null, floor: null },
     npcs: null,
     items: {},
@@ -7925,15 +7925,15 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function showTownIntroDialog() {
+function showDistrictIntroDialog() {
   if (!window.DialogOverlay) return false;
   const body =
     "You are the new pastor to the last church in a town under spiritual attack. Grow your congregation in one year, or the town falls with you.";
   window.DialogOverlay.show({
     title: "",
-    bodyHtml: `<div class="town-intro-text"></div>`,
+    bodyHtml: `<div class="district-intro-text"></div>`,
     buttonText: "Continue",
-    variant: "town-intro",
+    variant: "district-intro",
     devLabel: "",
     onRender: ({ overlay }) => startMissionTypewriter(overlay, body, 18),
     onContinue: () => {
@@ -7951,13 +7951,13 @@ function showTownIntroDialog() {
   return true;
 }
 
-function queueTownIntroAnnouncement() {
+function queueDistrictIntroAnnouncement() {
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-  const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "this town";
+  const districtName = mapData?.districts?.find((t) => t.id === activeDistrictId)?.name || "this town";
   const act1Subtitle = "Secure 3 battlefields";
   const devStartOverride =
     pendingDevBattleStartOverride &&
-    pendingDevBattleStartOverride.townId === activeTownId
+    pendingDevBattleStartOverride.districtId === activeDistrictId
       ? pendingDevBattleStartOverride
       : null;
   const localBattleNumber = Number.isFinite(devStartOverride?.localBattleNumber)
@@ -7965,10 +7965,10 @@ function queueTownIntroAnnouncement() {
     : 1;
   if (devStartOverride && localBattleNumber > 1) {
     const jumpOrderNumber = localBattleNumber;
-    const townList = mapData?.towns || [];
-    const townIndex = townList.findIndex((t) => t?.id === activeTownId);
-    const levelNumber = townIndex >= 0 ? townIndex + 1 : 1;
-    pendingTownIntroStart = false;
+    const districtList = mapData?.districts || [];
+    const districtIndex = districtList.findIndex((t) => t?.id === activeDistrictId);
+    const levelNumber = districtIndex >= 0 ? districtIndex + 1 : 1;
+    pendingDistrictIntroStart = false;
     suppressInitialAnnouncements = false;
     paused = false;
     // Resuming at Mission 2 or 3: show the act-break intro screen first.
@@ -7978,15 +7978,15 @@ function queueTownIntroAnnouncement() {
       showMissionIntro(jumpOrderNumber);
       return;
     }
-    if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
-      levelManager.beginBattleFromTownIntro(levelNumber, localBattleNumber);
+    if (levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
+      levelManager.beginBattleFromDistrictIntro(levelNumber, localBattleNumber);
     }
     pendingDevBattleStartOverride = null;
     return;
   }
   const upcomingOrderNumber = localBattleNumber;
   const upcomingMissionNumber = 1;
-  pendingTownIntroStart = true;
+  pendingDistrictIntroStart = true;
   queueLevelAnnouncement(act1Subtitle, "", {
     requiresConfirm: true,
     skipMissionBrief: true,
@@ -8057,10 +8057,10 @@ function queueExteriorShotAnnouncement({ force = false, actBreak = false } = {})
   });
 }
 
-function startTownIntroTransition() {
-  if (townIntroTransitionActive) return;
-  townIntroTransitionActive = true;
-  townIntroTransitionTimer = 0;
+function startDistrictIntroTransition() {
+  if (districtIntroTransitionActive) return;
+  districtIntroTransitionActive = true;
+  districtIntroTransitionTimer = 0;
   stopIntroMusic();
   startCongregationMusic();
   dismissCurrentLevelAnnouncement();
@@ -8094,20 +8094,20 @@ function startGameFromTitle() {
   if (!pendingDevBattleStartOverride && !devPlaytestLaunchInProgress) {
     setDevPlaytestSession(false, null);
   }
-  townVisitorMinigamePlayed = false;
+  districtVisitorMinigamePlayed = false;
   maxComboThisTown = 0;
   // Load campaign data (start count, multiplier, powerup restore)
-  if (typeof window !== "undefined" && window.MapScreen?.getTownCampaignData) {
+  if (typeof window !== "undefined" && window.MapScreen?.getDistrictCampaignData) {
     const overrideCampaignData =
-      titleDemoSaveOverride && titleDemoSaveOverride.townId === activeTownId
+      titleDemoSaveOverride && titleDemoSaveOverride.districtId === activeDistrictId
         ? titleDemoSaveOverride.campaignData
         : null;
     const devCampaignDataOverride =
-      pendingDevCampaignDataOverride && pendingDevCampaignDataOverride.townId === activeTownId
+      pendingDevCampaignDataOverride && pendingDevCampaignDataOverride.districtId === activeDistrictId
         ? pendingDevCampaignDataOverride.campaignData
         : null;
     setDemoSandboxRunActive(Boolean(overrideCampaignData));
-    const baseCampaignData = window.MapScreen.getTownCampaignData(activeTownId);
+    const baseCampaignData = window.MapScreen.getDistrictCampaignData(activeDistrictId);
     const campaignData = overrideCampaignData
       ? overrideCampaignData
       : devCampaignDataOverride
@@ -8123,23 +8123,23 @@ function startGameFromTitle() {
       ? Math.max(1, Math.floor(campaignData.resumeLocalBattleNumber))
       : 1;
     const maxMissionsPerTown =
-      typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
-        ? Math.max(1, Math.floor(Number(window.BATTLES_PER_TOWN) || 1))
+      typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_DISTRICT)
+        ? Math.max(1, Math.floor(Number(window.BATTLES_PER_DISTRICT) || 1))
         : 3;
     const clampedResumeLocalBattleNumber = Math.min(resumeLocalBattleNumber, maxMissionsPerTown);
     const hasDevStartOverrideForTown =
       pendingDevBattleStartOverride &&
-      pendingDevBattleStartOverride.townId === activeTownId;
+      pendingDevBattleStartOverride.districtId === activeDistrictId;
     if (!overrideCampaignData && !hasDevStartOverrideForTown && clampedResumeLocalBattleNumber > 1) {
       pendingDevBattleStartOverride = {
-        townId: activeTownId,
+        districtId: activeDistrictId,
         localBattleNumber: clampedResumeLocalBattleNumber,
       };
     }
     if (Number.isFinite(campaignData?.savedGraceCount)) {
       playerGraceCount = Math.max(0, Math.round(campaignData.savedGraceCount));
     }
-    townStartCongregation = Number.isFinite(campaignData?.startCount) ? campaignData.startCount : INITIAL_CONGREGATION_SIZE;
+    districtStartCongregation = Number.isFinite(campaignData?.startCount) ? campaignData.startCount : INITIAL_CONGREGATION_SIZE;
     resetChurchPowerups();
     // Restore church powerup levels from prior campaigns
     const restored = campaignData?.restoredChurchPowerupLevels || {};
@@ -8157,11 +8157,11 @@ function startGameFromTitle() {
       window.activeCampaign = activeCampaign;
       window.activeCampaignMultiplier = activeCampaignMultiplier;
     }
-    townStartCongregation = INITIAL_CONGREGATION_SIZE;
+    districtStartCongregation = INITIAL_CONGREGATION_SIZE;
     resetChurchPowerups();
   }
   titleDemoSaveOverride = null;
-  if (pendingDevCampaignDataOverride?.townId === activeTownId) {
+  if (pendingDevCampaignDataOverride?.districtId === activeDistrictId) {
     pendingDevCampaignDataOverride = null;
   }
   // Apply denominational upgrade powerups (free picks granted before County 2/3/4 towns)
@@ -8194,8 +8194,8 @@ function startGameFromTitle() {
   paused = true;
   needsCountdown = false;
   gameStarted = false;
-  townIntroTransitionActive = false;
-  townIntroTransitionTimer = 0;
+  districtIntroTransitionActive = false;
+  districtIntroTransitionTimer = 0;
   pendingBossIntroAfterExterior = false;
   missionIntroActive = false;
   missionIntroFadeTimer = 0;
@@ -8211,26 +8211,26 @@ function startGameFromTitle() {
   } catch (e) {}
   try {
     titleScreenActive = false;
-    queueTownIntroAnnouncement();
+    queueDistrictIntroAnnouncement();
     return;
   } catch (e) {}
 }
 
-function startRunForTown(townId) {
+function startRunForDistrict(districtId) {
   if (!devPlaytestLaunchInProgress) {
     setDevPlaytestSession(false, null);
     pendingDevCampaignDataOverride = null;
   }
   devPlaytestLaunchInProgress = false;
-  activeTownId = townId || null;
+  activeDistrictId = districtId || null;
   mapActive = false;
   if (typeof window !== "undefined" && typeof window.MapScreen?.close === "function") {
     window.MapScreen.close();
   }
   if (typeof window !== "undefined") {
-    window.activeTownId = activeTownId;
+    window.activeDistrictId = activeDistrictId;
   }
-  // activeCampaign and activeCampaignMultiplier are set inside startGameFromTitle via getTownCampaignData
+  // activeCampaign and activeCampaignMultiplier are set inside startGameFromTitle via getDistrictCampaignData
   startGameFromTitle();
 }
 
@@ -8240,22 +8240,22 @@ function startDevLevelTestFromEditor({
   battle = 1,
 } = {}) {
   pendingDevCampaignDataOverride = null;
-  const getDevEditorAssumedPowerups = ({ townNum, missionNum, battleNum }) => {
+  const getDevEditorAssumedPowerups = ({ districtNum, missionNum, battleNum }) => {
     const cfg =
       (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
       (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
     if (!cfg || typeof cfg !== "object") return {};
-    const townList = Array.isArray(cfg?.towns)
-      ? cfg.towns
+    const districtList = Array.isArray(cfg?.districts)
+      ? cfg.districts
       : Array.isArray(cfg?.levels)
         ? cfg.levels
         : [];
-    const townCfg =
-      townList.find((entry) => Number(entry?.index) === townNum) || townList[townNum - 1] || null;
-    const battleList = Array.isArray(townCfg?.battles)
-      ? townCfg.battles
-      : Array.isArray(townCfg?.months)
-        ? townCfg.months
+    const districtCfg =
+      districtList.find((entry) => Number(entry?.index) === districtNum) || districtList[districtNum - 1] || null;
+    const battleList = Array.isArray(districtCfg?.battles)
+      ? districtCfg.battles
+      : Array.isArray(districtCfg?.months)
+        ? districtCfg.months
         : [];
     const battleCfg =
       battleList.find((entry) => Number(entry?.index) === missionNum) ||
@@ -8292,56 +8292,56 @@ function startDevLevelTestFromEditor({
   };
 
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-  const towns = Array.isArray(mapData?.towns) ? mapData.towns : [];
-  if (!towns.length) {
+  const districts = Array.isArray(mapData?.districts) ? mapData.districts : [];
+  if (!districts.length) {
     setDevStatus("Dev test failed: no map towns loaded", 2.2);
     return false;
   }
-  const townNumber = Math.max(1, Math.floor(Number(town) || 1));
-  const townIndex = Math.min(towns.length - 1, townNumber - 1);
-  const matchedTown =
-    towns.find((t) => Number(t?.index) === townNumber) || towns[townIndex] || null;
-  const townId = matchedTown?.id || null;
-  if (!townId) {
+  const districtNumber = Math.max(1, Math.floor(Number(town) || 1));
+  const districtIndex = Math.min(districts.length - 1, districtNumber - 1);
+  const matchedDistrict =
+    districts.find((t) => Number(t?.index) === districtNumber) || districts[districtIndex] || null;
+  const districtId = matchedDistrict?.id || null;
+  if (!districtId) {
     setDevStatus("Dev test failed: invalid town", 2.2);
     return false;
   }
   const missionNumber = Math.max(1, Math.floor(Number(mission) || 1));
   const battleNumber = Math.max(1, Math.floor(Number(battle) || 1));
   const assumedPowerupLevels = getDevEditorAssumedPowerups({
-    townNum: townNumber,
+    districtNum: districtNumber,
     missionNum: missionNumber,
     battleNum: battleNumber,
   });
   pendingDevCampaignDataOverride = {
-    townId,
+    districtId,
     campaignData: {
       restoredChurchPowerupLevels: assumedPowerupLevels,
     },
   };
   setDevPlaytestSession(true, {
-    town: townNumber,
+    town: districtNumber,
     mission: missionNumber,
     battle: battleNumber,
   });
   const localBattleNumber = missionNumber;
-  const getMaxBattlesInTown = () => {
+  const getMaxBattlesInDistrict = () => {
     const fallbackBattlesPerTown =
-      typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
-        ? Math.max(1, Math.floor(Number(window.BATTLES_PER_TOWN) || 1))
+      typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_DISTRICT)
+        ? Math.max(1, Math.floor(Number(window.BATTLES_PER_DISTRICT) || 1))
         : 3;
     const fallbackTotal = fallbackBattlesPerTown;
     const cfg =
       (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
       (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
-    const townCfg =
-      (Array.isArray(cfg?.towns) &&
-        (cfg.towns.find((t) => Number(t?.index) === townNumber) || cfg.towns[townNumber - 1])) ||
+    const districtCfg =
+      (Array.isArray(cfg?.districts) &&
+        (cfg.districts.find((t) => Number(t?.index) === districtNumber) || cfg.districts[districtNumber - 1])) ||
       null;
-    const battleList = Array.isArray(townCfg?.battles)
-      ? townCfg.battles
-      : Array.isArray(townCfg?.months)
-        ? townCfg.months
+    const battleList = Array.isArray(districtCfg?.battles)
+      ? districtCfg.battles
+      : Array.isArray(districtCfg?.months)
+        ? districtCfg.months
         : [];
     if (!battleList.length) return fallbackTotal;
     let total = 0;
@@ -8350,16 +8350,16 @@ function startDevLevelTestFromEditor({
     }
     return Math.max(1, total);
   };
-  const maxBattlesInTown = getMaxBattlesInTown();
+  const maxBattlesInDistrict = getMaxBattlesInDistrict();
   pendingDevBattleStartOverride = {
-    townId,
-    localBattleNumber: Math.max(1, Math.min(maxBattlesInTown, localBattleNumber)),
+    districtId,
+    localBattleNumber: Math.max(1, Math.min(maxBattlesInDistrict, localBattleNumber)),
   };
   if (typeof window !== "undefined") {
-    window.activeTownId = townId;
+    window.activeDistrictId = districtId;
     window.BattlechurchLevelBuilder?.hide?.();
   }
-  activeTownId = townId;
+  activeDistrictId = districtId;
   devPlaytestLaunchInProgress = true;
 
   // Route through existing county-based denomination picker flow first.
@@ -8367,20 +8367,20 @@ function startDevLevelTestFromEditor({
   titleScreenActive = false;
   titleDemoSaveMenuActive = false;
   if (typeof window !== "undefined" && window.MapScreen?.open) {
-    window.MapScreen.selectTown?.(townId);
+    window.MapScreen.selectDistrict?.(districtId);
     window.MapScreen.open();
-    if (typeof window.MapScreen.devStartRunForTown === "function") {
-      window.MapScreen.devStartRunForTown(townId);
+    if (typeof window.MapScreen.devStartRunForDistrict === "function") {
+      window.MapScreen.devStartRunForDistrict(districtId);
     } else {
-      startRunForTown(townId);
+      startRunForDistrict(districtId);
     }
     setDevStatus(
-      `Dev test: Town ${townNumber} Mission ${missionNumber} Battle ${battleNumber}`,
+      `Dev test: Town ${districtNumber} Mission ${missionNumber} Battle ${battleNumber}`,
       2.8,
     );
     return true;
   }
-  startRunForTown(townId);
+  startRunForDistrict(districtId);
   return true;
 }
 
@@ -8397,7 +8397,7 @@ function returnToMapWithNextTown() {
   titleScreenActive = false;
   mapActive = true;
   pendingBossIntroAfterExterior = false;
-  townVisitorMinigamePlayed = false;
+  districtVisitorMinigamePlayed = false;
   // Clear any pending announcements
   try {
     if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
@@ -8406,9 +8406,9 @@ function returnToMapWithNextTown() {
   if (levelManager?.reset) levelManager.reset();
   // Select next town and open map
   if (window.MapScreen) {
-    const nextTownId = window.MapScreen.getNextTownInOrder(activeTownId);
-    if (nextTownId) {
-      window.MapScreen.selectTown(nextTownId);
+    const nextDistrictId = window.MapScreen.getNextDistrictInOrder(activeDistrictId);
+    if (nextDistrictId) {
+      window.MapScreen.selectDistrict(nextDistrictId);
     }
     window.MapScreen.open();
   }
@@ -8420,7 +8420,7 @@ function returnToMapFromPause() {
   titleScreenActive = false;
   mapActive = true;
   pendingBossIntroAfterExterior = false;
-  townVisitorMinigamePlayed = false;
+  districtVisitorMinigamePlayed = false;
   window.isPauseOverlayActive = false;
   pauseRestartConfirmActive = false;
   // Clear any pending announcements
@@ -8430,19 +8430,19 @@ function returnToMapFromPause() {
   // Reset level manager
   if (levelManager?.reset) levelManager.reset();
   if (window.MapScreen) {
-    if (activeTownId) {
-      window.MapScreen.selectTown(activeTownId);
+    if (activeDistrictId) {
+      window.MapScreen.selectDistrict(activeDistrictId);
     }
     window.MapScreen.open();
   }
 }
 
 async function seedDemoSlotProgress(slot) {
-  if (!slot || !slot.townId) return;
+  if (!slot || !slot.districtId) return;
   const mapScreen = typeof window !== "undefined" ? window.MapScreen : null;
   if (typeof mapScreen?.setDemoProfile !== "function") return;
   mapScreen.setDemoProfile({
-    completedTowns: Math.max(0, Number(slot.completedTowns) || 0),
+    completedDistricts: Math.max(0, Number(slot.completedDistricts) || 0),
   });
 }
 
@@ -8472,46 +8472,46 @@ async function refreshTitleCloudSaveOption() {
     titleCloudActiveSaveId = summary?.activeSaveId || null;
     titleCloudSaveRows = saves.map((save) => {
       const completed = Number.isFinite(save?.completedP1Towns) ? save.completedP1Towns : 0;
-      const total = Math.max(1, Number.isFinite(save?.totalTowns) ? save.totalTowns : 10);
+      const total = Math.max(1, Number.isFinite(save?.totalDistricts) ? save.totalDistricts : 10);
       const totalCongregationBest = Number.isFinite(save?.totalCongregationBest) ? save.totalCongregationBest : 0;
-      const townRows = Array.isArray(save?.townProgressRows) ? save.townProgressRows : [];
-      const completedTownRows = townRows.filter((row) => row?.p1Completed === true);
-      const activeRunTownName = save?.activeRunTownName || null;
+      const districtRows = Array.isArray(save?.districtProgressRows) ? save.districtProgressRows : [];
+      const completedDistrictRows = districtRows.filter((row) => row?.p1Completed === true);
+      const activeRunDistrictName = save?.activeRunDistrictName || null;
       const activeRunActNumber = Number.isFinite(save?.activeRunActNumber) ? save.activeRunActNumber : null;
       const activeRunCongregation = Number.isFinite(save?.activeRunCongregation) ? save.activeRunCongregation : null;
       const congregationDisplay = activeRunCongregation !== null ? activeRunCongregation : totalCongregationBest;
-      const activeRunTownId = save?.activeRunTownId || null;
-      const townIndex = activeRunTownId
-        ? townRows.findIndex((row) => row.townId === activeRunTownId)
+      const activeRunDistrictId = save?.activeRunDistrictId || null;
+      const districtIndex = activeRunDistrictId
+        ? districtRows.findIndex((row) => row.districtId === activeRunDistrictId)
         : -1;
-      const townNumber = townIndex >= 0 ? townIndex + 1 : null;
+      const districtNumber = districtIndex >= 0 ? districtIndex + 1 : null;
       const missionNumber = activeRunActNumber !== null ? activeRunActNumber : null;
-      const townMissionLabel = townNumber !== null && missionNumber !== null
-        ? `Town ${townNumber}.${missionNumber}`
-        : townNumber !== null
-          ? `Town ${townNumber}.1`
+      const districtMissionLabel = districtNumber !== null && missionNumber !== null
+        ? `Town ${districtNumber}.${missionNumber}`
+        : districtNumber !== null
+          ? `Town ${districtNumber}.1`
           : completed > 0
             ? `Town ${completed + 1}.1`
             : null;
       let metaParts = [];
-      if (townMissionLabel) metaParts.push(townMissionLabel);
+      if (districtMissionLabel) metaParts.push(districtMissionLabel);
       metaParts.push(`Congregation ${congregationDisplay}`);
       return {
         id: save.id,
         key: `cloudsave:${save.id}`,
         label: save?.saveName || "Save",
         meta: metaParts.join(" • "),
-        suggestedTownId: save?.suggestedTownId || null,
+        suggestedDistrictId: save?.suggestedDistrictId || null,
         isActive: save?.isActive === true,
         details: {
           saveName: save?.saveName || "Save",
           playerName: save?.playerName || "Pastor",
-          completedTowns: completed,
-          totalTowns: total,
+          completedDistricts: completed,
+          totalDistricts: total,
           totalCongregationBest,
-          totalReplayCompletions: Number.isFinite(save?.totalReplayCompletions) ? save.totalReplayCompletions : completedTownRows.length,
+          totalReplayCompletions: Number.isFinite(save?.totalReplayCompletions) ? save.totalReplayCompletions : completedDistrictRows.length,
           totalUpgradeLevels: Number.isFinite(save?.totalUpgradeLevels) ? save.totalUpgradeLevels : 0,
-          townRows: townRows,
+          districtRows: districtRows,
         },
       };
     });
@@ -8639,11 +8639,11 @@ const epilogueScroll = {
 };
 
 // Town Victory scene (mini-epilogue after completing a town)
-let townVictoryActive = false;
-let townVictoryTownName = "";
-let townVictoryScore = 0;
-let townVictoryCampaign = "p1";
-const townVictoryScroll = {
+let districtVictoryActive = false;
+let districtVictoryName = "";
+let districtVictoryScore = 0;
+let districtVictoryCampaign = "p1";
+const districtVictoryScroll = {
   scrollY: 0,
   scrollSpeed: 35, // pixels per second (slightly slower than epilogue)
   startDelay: 1.0, // seconds before scrolling starts
@@ -8652,17 +8652,17 @@ const townVictoryScroll = {
   showButton: false,
 };
 
-function activateTownVictory(townName, score, campaign = "p1") {
-  townVictoryTownName = townName || "this town";
-  townVictoryScore = Number.isFinite(score) ? score : 0;
-  townVictoryCampaign = ["p1", "p2", "p3"].includes(String(campaign || "").toLowerCase())
+function activateDistrictVictory(districtName, score, campaign = "p1") {
+  districtVictoryName = districtName || "this town";
+  districtVictoryScore = Number.isFinite(score) ? score : 0;
+  districtVictoryCampaign = ["p1", "p2", "p3"].includes(String(campaign || "").toLowerCase())
     ? String(campaign).toLowerCase()
     : "p1";
-  townVictoryScroll.scrollY = 0;
-  townVictoryScroll.delayTimer = 0;
-  townVictoryScroll.contentHeight = 0;
-  townVictoryScroll.showButton = false;
-  townVictoryActive = true;
+  districtVictoryScroll.scrollY = 0;
+  districtVictoryScroll.delayTimer = 0;
+  districtVictoryScroll.contentHeight = 0;
+  districtVictoryScroll.showButton = false;
+  districtVictoryActive = true;
   // Continue recap music - don't change music
 }
 
@@ -8700,8 +8700,8 @@ const speedrunTimer = {
 function getSpeedrunSectionName(levelStatus) {
   const stage = levelStatus?.stage;
   if (
-    pendingTownIntroStart ||
-    townIntroTransitionActive ||
+    pendingDistrictIntroStart ||
+    districtIntroTransitionActive ||
     levelAnnouncements[0]?.missionIntro ||
     stage === "briefing" ||
     stage === "levelIntro"
@@ -9166,11 +9166,11 @@ function resolveBossClips(type) {
 }
 
 function chooseBossType(levelNumber) {
-  const townBossCount =
-    typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_TOWN)
-      ? window.BATTLES_PER_TOWN
+  const districtBossCount =
+    typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_DISTRICT)
+      ? window.BATTLES_PER_DISTRICT
       : 3;
-  if (levelNumber >= townBossCount) {
+  if (levelNumber >= districtBossCount) {
     return FINAL_TOWN_BOSS_TYPE;
   }
   if (!EARLY_BOSS_TYPE_POOL.length) return FINAL_TOWN_BOSS_TYPE;
@@ -11647,7 +11647,7 @@ function updateLevelAnnouncements(dt) {
       announcement.timer -= dt;
       if (announcement.timer <= 0) {
         if (i === 0) {
-          startTownIntroTransition();
+          startDistrictIntroTransition();
           return;
         }
         levelAnnouncements.splice(i, 1);
@@ -11681,26 +11681,26 @@ function dismissCurrentLevelAnnouncement() {
     completeVisitorSession(reason);
   }
   if (current.missionIntro) {
-    pendingTownIntroStart = true;
-    townIntroDismissedAt =
+    pendingDistrictIntroStart = true;
+    districtIntroDismissedAt =
       typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
     suppressInitialAnnouncements = true;
     paused = false;
-    const _townList = window.BattlechurchMapData?.towns;
-    const _townIdx = _townList ? _townList.findIndex((t) => t.id === activeTownId) : -1;
-    const _levelNum = _townIdx >= 0 ? _townIdx + 1 : 1;
+    const _districtList = window.BattlechurchMapData?.towns;
+    const _districtIdx = _districtList ? _districtList.findIndex((t) => t.id === activeDistrictId) : -1;
+    const _levelNum = _districtIdx >= 0 ? _districtIdx + 1 : 1;
     // Towns beyond the first skip the congregation screen in levels.js, so
     // suppressInitialAnnouncements would never be cleared — clear it now.
     if (_levelNum > 1) {
       suppressInitialAnnouncements = false;
-      pendingTownIntroStart = false;
+      pendingDistrictIntroStart = false;
     }
     // Act 2/3 chapter-break intros: skip congregation, jump straight to teaser → battle brief
     if (Number.isFinite(current.actBreakFlatBattle) && current.actBreakFlatBattle > 1) {
       suppressInitialAnnouncements = false;
-      pendingTownIntroStart = false;
-      if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
-        levelManager.beginBattleFromTownIntro(_levelNum, current.actBreakFlatBattle);
+      pendingDistrictIntroStart = false;
+      if (levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
+        levelManager.beginBattleFromDistrictIntro(_levelNum, current.actBreakFlatBattle);
       }
       pendingDevBattleStartOverride = null;
       if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
@@ -11708,16 +11708,16 @@ function dismissCurrentLevelAnnouncement() {
     }
     const devStartOverride =
       pendingDevBattleStartOverride &&
-      pendingDevBattleStartOverride.townId === activeTownId
+      pendingDevBattleStartOverride.districtId === activeDistrictId
         ? pendingDevBattleStartOverride
         : null;
     const targetBattle = Number.isFinite(devStartOverride?.localBattleNumber)
       ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
       : 1;
-    if (devStartOverride && levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
-      levelManager.beginBattleFromTownIntro(_levelNum, targetBattle);
-    } else if (levelManager && typeof levelManager.beginFromTownIntro === "function") {
-      levelManager.beginFromTownIntro(_levelNum);
+    if (devStartOverride && levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
+      levelManager.beginBattleFromDistrictIntro(_levelNum, targetBattle);
+    } else if (levelManager && typeof levelManager.beginFromDistrictIntro === "function") {
+      levelManager.beginFromDistrictIntro(_levelNum);
     } else if (levelManager && typeof levelManager.begin === "function") {
       levelManager.begin();
     } else if (levelManager && typeof levelManager.startBriefing === "function") {
@@ -11890,8 +11890,8 @@ async function saveMissionProgressContext(context) {
   try {
     const powerupSnapshot = Object.fromEntries(churchPowerupLevels);
     if (context.kind === "finalTown") {
-      await window.MapScreen.recordTownCompletion(
-        context.townId,
+      await window.MapScreen.recordDistrictCompletion(
+        context.districtId,
         context.finalScore,
         context.campaign,
         powerupSnapshot,
@@ -11902,7 +11902,7 @@ async function saveMissionProgressContext(context) {
     }
     if (context.kind === "missionCheckpoint") {
       const ok = await window.MapScreen.saveMissionCheckpoint({
-        townId: context.townId,
+        districtId: context.districtId,
         campaign: context.campaign,
         resumeLocalBattleNumber: context.resumeLocalBattleNumber,
         startCount: context.startCount,
@@ -16816,8 +16816,8 @@ function applyFormationAnchors() {
 }
 
 function resetCongregationSize() {
-  congregationSize = Number.isFinite(townStartCongregation)
-    ? townStartCongregation
+  congregationSize = Number.isFinite(districtStartCongregation)
+    ? districtStartCongregation
     : INITIAL_CONGREGATION_SIZE;
 }
 
@@ -18685,7 +18685,7 @@ function handleDeveloperHotkeys() {
     if (!levelManager?.isActive?.()) {
       setDevStatus("Act 3 Battle 3 boss skip failed (level inactive)", 2.0);
     } else {
-      if (levelManager?.devSkipToTownFinalBoss?.({ showExterior: false })?.success) {
+      if (levelManager?.devSkipToDistrictFinalBoss?.({ showExterior: false })?.success) {
         setDevStatus("Act 3 Battle 3 boss engaged", 2.4);
       } else {
         setDevStatus("Act 3 Battle 3 boss skip failed", 2.0);
@@ -18693,15 +18693,15 @@ function handleDeveloperHotkeys() {
     }
   }
   if (keysJustPressed.has("t")) {
-    if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextTown === "function") {
+    if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextDistrict === "function") {
       void (async () => {
-        const result = await window.MapScreen.devAwardNextTown({
+        const result = await window.MapScreen.devAwardNextDistrict({
           congregationCount: 100,
           campaign: "p1",
           churchPowerupLevels: Object.fromEntries(churchPowerupLevels),
         });
-        if (result?.awardedTownName) {
-          setDevStatus(`Awarded town: ${result.awardedTownName}`, 2.3);
+        if (result?.awardedDistrictName) {
+          setDevStatus(`Awarded town: ${result.awardedDistrictName}`, 2.3);
         } else {
           setDevStatus("No eligible town to award", 2.0);
         }
@@ -18783,18 +18783,18 @@ function updateDebugSystems(dt) {
   }
 }
 
-function updateTownIntroTransition(dt) {
-  if (!townIntroTransitionActive) return false;
+function updateDistrictIntroTransition(dt) {
+  if (!districtIntroTransitionActive) return false;
 
-  townIntroTransitionTimer = Math.min(
-    TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION,
-    townIntroTransitionTimer + dt,
+  districtIntroTransitionTimer = Math.min(
+    DISTRICT_INTRO_ZOOM_DURATION + DISTRICT_INTRO_FADE_DURATION,
+    districtIntroTransitionTimer + dt,
   );
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-    townIntroTransitionTimer = TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION;
+    districtIntroTransitionTimer = DISTRICT_INTRO_ZOOM_DURATION + DISTRICT_INTRO_FADE_DURATION;
   }
-  if (townIntroTransitionTimer >= TOWN_INTRO_ZOOM_DURATION + TOWN_INTRO_FADE_DURATION) {
-    townIntroTransitionActive = false;
+  if (districtIntroTransitionTimer >= DISTRICT_INTRO_ZOOM_DURATION + DISTRICT_INTRO_FADE_DURATION) {
+    districtIntroTransitionActive = false;
     // Check if we need to trigger boss intro after exterior shot (dev hotkey 5)
     if (pendingBossIntroAfterExterior) {
       pendingBossIntroAfterExterior = false;
@@ -18876,12 +18876,12 @@ function startActBreakTeaser(actNumber) {
   const act = Math.max(2, Math.floor(actNumber));
   const flatBattleStart = act;
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-  const townList = mapData?.towns || [];
-  const townIndex = townList.findIndex((t) => t?.id === activeTownId);
-  const levelNumber = townIndex >= 0 ? townIndex + 1 : 1;
+  const districtList = mapData?.districts || [];
+  const districtIndex = districtList.findIndex((t) => t?.id === activeDistrictId);
+  const levelNumber = districtIndex >= 0 ? districtIndex + 1 : 1;
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
-  if (levelManager && typeof levelManager.beginBattleFromTownIntro === "function") {
-    levelManager.beginBattleFromTownIntro(levelNumber, flatBattleStart);
+  if (levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
+    levelManager.beginBattleFromDistrictIntro(levelNumber, flatBattleStart);
   }
 }
 
@@ -18967,8 +18967,8 @@ function checkDialogOverlays() {
         pendingPostUpgradeTransition = true;
         runPostUpgradeSaveThen(() => {
           pendingPostUpgradeTransition = false;
-          if (lastCompletedLevel === 2 && !townVisitorMinigamePlayed) {
-            townVisitorMinigamePlayed = true;
+          if (lastCompletedLevel === 2 && !districtVisitorMinigamePlayed) {
+            districtVisitorMinigamePlayed = true;
             if (levelManager?.triggerVisitorMinigame) {
               const started = levelManager.triggerVisitorMinigame(() => {
                 showMissionIntro(actNumber);
@@ -19821,18 +19821,18 @@ function handleTitleScreen() {
           let lines = [];
           if (cloudRow?.details) {
             const d = cloudRow.details;
-            const townRows = Array.isArray(d.townRows) ? d.townRows : [];
+            const districtRows = Array.isArray(d.districtRows) ? d.districtRows : [];
             title = `${d.saveName || "Save"} - Full Details`;
             lines.push(`Player: ${d.playerName || "Pastor"}`);
-            lines.push(`Towns Cleared: ${Number(d.completedTowns) || 0}/${Number(d.totalTowns) || 10}`);
+            lines.push(`Towns Cleared: ${Number(d.completedDistricts) || 0}/${Number(d.totalDistricts) || 10}`);
             lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
             lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
             lines.push(`Upgrade Levels: ${Number(d.totalUpgradeLevels) || 0}`);
             lines.push("");
             lines.push("Town Breakdown:");
-            townRows.forEach((row) => {
+            districtRows.forEach((row) => {
               lines.push(
-                `${row?.townName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
+                `${row?.districtName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
               );
             });
           } else {
@@ -19841,8 +19841,8 @@ function handleTitleScreen() {
             if (demoSlot) {
               const campaignData = demoSlot.campaignData || {};
               title = `${demoSlot.label || "Demo Slot"} - Details`;
-              lines.push(`Start Town: ${demoSlot.townId || "unknown"}`);
-              lines.push(`Preset Towns Cleared: ${Math.max(0, Number(demoSlot.completedTowns) || 0)}/10`);
+              lines.push(`Start Town: ${demoSlot.districtId || "unknown"}`);
+              lines.push(`Preset Towns Cleared: ${Math.max(0, Number(demoSlot.completedDistricts) || 0)}/10`);
               const campaignId = String(campaignData.campaign || "p1").toLowerCase();
               const _phases = window.BattlechurchCampaignLabels?.phases || {};
               const visitLabel = _phases[campaignId] || campaignId.toUpperCase();
@@ -19907,7 +19907,7 @@ function handleTitleScreen() {
               titleCloudSaveRows.find((row) => row.id === saveId) ||
               titleCloudSaveRows.find((row) => row.id === titleCloudSelectedSaveId) ||
               null;
-            const suggestedTownId = selectedRow?.suggestedTownId || null;
+            const suggestedDistrictId = selectedRow?.suggestedDistrictId || null;
             titleScreenActive = false;
             mapActive = true;
             if (window.MapScreen) {
@@ -19915,14 +19915,14 @@ function handleTitleScreen() {
               if (typeof window.MapScreen.reloadProgress === "function") {
                 await window.MapScreen.reloadProgress();
               }
-              if (suggestedTownId && typeof window.MapScreen.selectTown === "function") {
-                window.MapScreen.selectTown(suggestedTownId);
+              if (suggestedDistrictId && typeof window.MapScreen.selectDistrict === "function") {
+                window.MapScreen.selectDistrict(suggestedDistrictId);
               }
             }
-            if (suggestedTownId) {
-              activeTownId = suggestedTownId;
+            if (suggestedDistrictId) {
+              activeDistrictId = suggestedDistrictId;
               if (typeof window !== "undefined") {
-                window.activeTownId = activeTownId;
+                window.activeDistrictId = activeDistrictId;
               }
             }
             titleDemoSaveMenuActive = false;
@@ -20062,20 +20062,20 @@ function handleTitleScreen() {
           titleDemoSaveOverride = null;
         } else if (TITLE_DEMO_SAVE_SLOTS.some((entry) => entry.key === button.key)) {
           const slot = TITLE_DEMO_SAVE_SLOTS.find((entry) => entry.key === button.key);
-          if (slot?.townId) {
+          if (slot?.districtId) {
             void (async () => {
               setDemoSandboxRunActive(true);
               await seedDemoSlotProgress(slot);
               titleDemoSaveOverride = {
-                townId: slot.townId,
+                districtId: slot.districtId,
                 campaignData: slot.campaignData || null,
               };
-              if (typeof window !== "undefined" && window.MapScreen?.selectTown) {
-                window.MapScreen.selectTown(slot.townId);
+              if (typeof window !== "undefined" && window.MapScreen?.selectDistrict) {
+                window.MapScreen.selectDistrict(slot.districtId);
               }
-              activeTownId = slot.townId;
+              activeDistrictId = slot.districtId;
               if (typeof window !== "undefined") {
-                window.activeTownId = activeTownId;
+                window.activeDistrictId = activeDistrictId;
               }
               titleScreenActive = false;
               mapActive = true;
@@ -20455,8 +20455,8 @@ function handleLevelAnnouncements() {
         graceRushFadeDuration = 0;
         graceRushFadeAlpha = 0;
         // Determine if this is the final level of the current town
-        const levelsPerTown = Number.isFinite(window.BATTLES_PER_TOWN) ? window.BATTLES_PER_TOWN : 3;
-        const isFinalTownLevel = lastCompletedLevel >= levelsPerTown;
+        const levelsPerDistrict = Number.isFinite(window.BATTLES_PER_DISTRICT) ? window.BATTLES_PER_DISTRICT : 3;
+        const isFinalDistrictLevel = lastCompletedLevel >= levelsPerDistrict;
 
         let missionSaveContext = null;
         if (currentAnnouncement.levelSummary) {
@@ -20467,18 +20467,18 @@ function handleLevelAnnouncements() {
           if (typeof window !== "undefined") {
             window.lastRunScore = finalScore;
           }
-          if (!demoSandboxRunActive && activeTownId) {
-            if (isFinalTownLevel) {
+          if (!demoSandboxRunActive && activeDistrictId) {
+            if (isFinalDistrictLevel) {
               missionSaveContext = {
                 kind: "finalTown",
-                townId: activeTownId,
+                districtId: activeDistrictId,
                 campaign: activeCampaign,
                 finalScore,
               };
             } else {
               missionSaveContext = {
                 kind: "missionCheckpoint",
-                townId: activeTownId,
+                districtId: activeDistrictId,
                 campaign: activeCampaign,
                 resumeLocalBattleNumber: lastCompletedLevel + 1,
                 startCount: finalScore,
@@ -20490,7 +20490,7 @@ function handleLevelAnnouncements() {
           // Campaign final (Level 25 / capital)
           pendingUpgradeAfterSummary = false;
           queuePastorFinalAnnouncement();
-        } else if (currentAnnouncement.levelSummary && isFinalTownLevel) {
+        } else if (currentAnnouncement.levelSummary && isFinalDistrictLevel) {
           // Final level of this town - show upgrade screen first, then pastor post-recap
           pendingUpgradeAfterSummary = true;
           pendingPastorPostRecapAfterUpgrade = true;
@@ -20621,9 +20621,9 @@ function handleLevelAnnouncements() {
         dismissCurrentLevelAnnouncement();
         // Activate town victory scene before returning to map
         const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-        const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
+        const districtName = mapData?.districts?.find((t) => t.id === activeDistrictId)?.name || "This town";
         const score = typeof window !== "undefined" && Number.isFinite(window.lastRunScore) ? window.lastRunScore : 0;
-        activateTownVictory(townName, score, activeCampaign);
+        activateDistrictVictory(districtName, score, activeCampaign);
       },
     });
     if (handled) return true;
@@ -20632,9 +20632,9 @@ function handleLevelAnnouncements() {
       dismissCurrentLevelAnnouncement();
       // Activate town victory scene before returning to map
       const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
-      const townName = mapData?.towns?.find((t) => t.id === activeTownId)?.name || "This town";
+      const districtName = mapData?.districts?.find((t) => t.id === activeDistrictId)?.name || "This town";
       const score = typeof window !== "undefined" && Number.isFinite(window.lastRunScore) ? window.lastRunScore : 0;
-      activateTownVictory(townName, score, activeCampaign);
+      activateDistrictVictory(districtName, score, activeCampaign);
       return true;
     }
     return true;
@@ -20650,12 +20650,12 @@ function handleLevelAnnouncements() {
     currentAnnouncement._lastTick = now;
     currentAnnouncement.timer = Math.max(0, (currentAnnouncement.timer || 0) - dt);
     if (currentAnnouncement.timer <= 0) {
-      startTownIntroTransition();
+      startDistrictIntroTransition();
       return true;
     }
     const clickPos = Input.consumeCanvasClick?.();
     if (clickPos) {
-      startTownIntroTransition();
+      startDistrictIntroTransition();
       return true;
     }
     const skipKeys = ["enter", "Enter"];
@@ -20664,7 +20664,7 @@ function handleLevelAnnouncements() {
       keysJustPressed.delete(" ");
       keysJustPressed.delete("pause");
       keysJustPressed.delete("restart");
-      startTownIntroTransition();
+      startDistrictIntroTransition();
       return true;
     }
     return true;
@@ -20679,7 +20679,7 @@ function handleLevelAnnouncements() {
       buttons,
       allowSpace: true,
       onActivate: () => {
-        startTownIntroTransition();
+        startDistrictIntroTransition();
         if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
           window.playMenuAdvanceSfx(0.55);
         }
@@ -20689,7 +20689,7 @@ function handleLevelAnnouncements() {
   }
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
     if (currentAnnouncement.missionIntro) {
-      startTownIntroTransition();
+      startDistrictIntroTransition();
     } else {
       dismissCurrentLevelAnnouncement();
     }
@@ -20726,12 +20726,12 @@ function updateCongregationStage(dt, levelStatus) {
     onActivate: () => {
       if (typeof levelManager?.advanceFromCongregation !== "function") return;
       const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-      if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
+      if (pendingDistrictIntroStart && now - districtIntroDismissedAt < 300) {
         Input.consumeCanvasClick?.();
         return;
       }
-      if (pendingTownIntroStart) {
-        pendingTownIntroStart = false;
+      if (pendingDistrictIntroStart) {
+        pendingDistrictIntroStart = false;
         suppressInitialAnnouncements = false;
       }
       // Clear any pending prayer bomb input to prevent accidental activation
@@ -20816,14 +20816,14 @@ function updateCongregationStage(dt, levelStatus) {
         stage = levelStatus?.stage;
       } else if (wasActionJustPressed("pause")) {
         const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
-        if (pendingTownIntroStart && now - townIntroDismissedAt < 300) {
+        if (pendingDistrictIntroStart && now - districtIntroDismissedAt < 300) {
           keysJustPressed.delete(" ");
           keysJustPressed.delete("pause");
           keysJustPressed.delete("restart");
           return { updated: true, levelStatus };
         }
-        if (pendingTownIntroStart) {
-          pendingTownIntroStart = false;
+        if (pendingDistrictIntroStart) {
+          pendingDistrictIntroStart = false;
           suppressInitialAnnouncements = false;
         }
         // Clear any pending prayer bomb input to prevent accidental activation
@@ -25919,15 +25919,15 @@ function updateGame(dt) {
       const _mapPressed = typeof Input !== "undefined" ? Input.keysPressed : null;
       const _mapShift = Boolean(_mapModifiers?.shift || _mapPressed?.has?.("Shift"));
       if (_mapShift && keysJustPressed.has("t")) {
-        if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextTown === "function") {
+        if (typeof window !== "undefined" && typeof window.MapScreen?.devAwardNextDistrict === "function") {
           void (async () => {
-            const result = await window.MapScreen.devAwardNextTown({
+            const result = await window.MapScreen.devAwardNextDistrict({
               congregationCount: 100,
               campaign: "p1",
               churchPowerupLevels: {},
             });
-            if (result?.awardedTownName) {
-              setDevStatus(`Awarded town: ${result.awardedTownName}`, 2.3);
+            if (result?.awardedDistrictName) {
+              setDevStatus(`Awarded town: ${result.awardedDistrictName}`, 2.3);
             } else {
               setDevStatus("No eligible town to award", 2.0);
             }
@@ -26001,13 +26001,13 @@ function updateGame(dt) {
   }
 
   // Town Victory scene update (mini-epilogue after completing a town)
-  if (townVictoryActive) {
+  if (districtVictoryActive) {
     // Keep grace pickups alive/visible behind the victory card flow.
     updateGracePickups(dt);
     updateGraceHudFlyEffects(dt);
     updateGraceSpendFlyEffects(dt);
     // Allow continue when button is shown (check FIRST before consuming keys)
-    if (townVictoryScroll.showButton) {
+    if (districtVictoryScroll.showButton) {
       const spacePressed =
         keysJustPressed.has(" ") || keysJustPressed.has("enter") || keysJustPressed.has("Enter");
       const actionPressed = wasActionJustPressed("restart");
@@ -26016,21 +26016,21 @@ function updateGame(dt) {
         keysJustPressed.delete(" ");
         keysJustPressed.delete("enter");
         keysJustPressed.delete("Enter");
-        townVictoryActive = false;
+        districtVictoryActive = false;
         returnToMapWithNextTown();
         return;
       }
     } else {
       // Update scroll (only when button not yet shown)
       // Handle start delay
-      if (townVictoryScroll.delayTimer < townVictoryScroll.startDelay) {
-        townVictoryScroll.delayTimer += dt;
+      if (districtVictoryScroll.delayTimer < districtVictoryScroll.startDelay) {
+        districtVictoryScroll.delayTimer += dt;
       } else {
         // Scroll the content (hold spacebar to fast-forward - no skipping)
         const fastForward =
           (typeof Input !== "undefined" && Input.keysPressed?.has?.(" ")) || false;
         const speedMultiplier = fastForward ? 3 : 1;
-        townVictoryScroll.scrollY += townVictoryScroll.scrollSpeed * dt * speedMultiplier;
+        districtVictoryScroll.scrollY += districtVictoryScroll.scrollSpeed * dt * speedMultiplier;
       }
     }
     return;
@@ -26038,7 +26038,7 @@ function updateGame(dt) {
 
   updatePrayerBombFireRain(dt);
 
-  if (updateTownIntroTransition(dt)) {
+  if (updateDistrictIntroTransition(dt)) {
     return;
   }
 

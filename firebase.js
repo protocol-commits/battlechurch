@@ -124,7 +124,7 @@ async function savePlayerDoc(data) {
 async function resetPlayerProgress() {
   await initCloud();
   if (!user) return false;
-  const freshMapProgress = { version: 2, towns: {}, unlockedTownIds: [] };
+  const freshMapProgress = { version: 2, districts: {}, unlockedDistrictIds: [] };
   const freshDoc = {
     saveFiles: {
       save_1: {
