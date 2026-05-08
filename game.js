@@ -19938,10 +19938,14 @@ function handleTitleScreen() {
             const playerName = typeof window?.prompt === "function"
               ? window.prompt("Player name:", "Pastor")
               : null;
+            const cityName = typeof window?.prompt === "function"
+              ? window.prompt("Name a city to liberate:", "")
+              : null;
             if (typeof window.MapScreen?.createSaveFile === "function") {
               const newId = await window.MapScreen.createSaveFile({
                 saveName: name.trim(),
                 playerName: (playerName || "Pastor").trim(),
+                cityName: (cityName || "").trim(),
                 setActive: true,
               });
               if (newId) titleCloudSelectedSaveId = newId;

@@ -232,6 +232,10 @@
         save.playerName = "Pastor";
         dirty = true;
       }
+      if (typeof save.cityName !== "string") {
+        save.cityName = "";
+        dirty = true;
+      }
       if (!Number.isFinite(save.createdAt)) {
         save.createdAt = Date.now();
         dirty = true;
@@ -1088,12 +1092,17 @@
   }
 
   function drawMapHeadingText(ctx, canvas) {
+    const cityName = getActiveSave()?.cityName?.trim() || "";
     const cx = canvas.width * 0.5;
     const scale = canvas.width / 1280;
     const line1Size = Math.round(30 * scale);
     const line2Size = Math.round(20 * scale);
     const topY = Math.round(38 * scale);
     const lineGap = Math.round(10 * scale);
+
+    const line1 = cityName
+      ? `${cityName} is overrun with spiritual darkness.`
+      : "Your hometown is overrun with spiritual darkness.";
 
     ctx.save();
     ctx.textAlign = "center";
@@ -1103,11 +1112,12 @@
 
     ctx.font = `700 ${line1Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
-    ctx.fillText("Your hometown is overrun.", cx, topY);
+    ctx.fillText(line1, cx, topY);
 
+    const playerName = getActiveSave()?.playerName?.trim() || "Pastor";
     ctx.font = `700 ${line2Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.dim;
-    ctx.fillText("You have been called to save it.", cx, topY + line1Size + lineGap);
+    ctx.fillText(`Pastor ${playerName}, will you answer the call to save it?`, cx, topY + line1Size + lineGap);
 
     ctx.restore();
   }
@@ -2203,7 +2213,7 @@
     return true;
   }
 
-  async function createSaveFile({ saveName, playerName, sourceSaveId = null, setActive = true } = {}) {
+  async function createSaveFile({ saveName, playerName, cityName, sourceSaveId = null, setActive = true } = {}) {
     if (!state.playerDoc || !state.playerDoc.saveFiles) return null;
     const baseId = String(Date.now());
     let saveId = `save_${baseId}`;
@@ -2216,9 +2226,11 @@
     // "New Save" should be fresh. Cloning only happens when sourceSaveId is provided ("Save File As").
     const sourceMapProgress = source?.mapProgress ? deepClone(source.mapProgress) : createFreshMapProgress(window.BattlechurchMapData);
     const fallbackPlayerName = state.playerDoc.saveFiles[state.playerDoc.activeSaveId]?.playerName || "Pastor";
+    const fallbackCityName = state.playerDoc.saveFiles[state.playerDoc.activeSaveId]?.cityName || "";
     state.playerDoc.saveFiles[saveId] = {
       saveName: typeof saveName === "string" && saveName.trim() ? saveName.trim() : `Save ${Object.keys(state.playerDoc.saveFiles).length + 1}`,
       playerName: typeof playerName === "string" && playerName.trim() ? playerName.trim() : (source?.playerName || fallbackPlayerName),
+      cityName: typeof cityName === "string" && cityName.trim() ? cityName.trim() : (source?.cityName || fallbackCityName),
       createdAt: Date.now(),
       lastPlayedAt: Date.now(),
       playtimeSec: 0,
