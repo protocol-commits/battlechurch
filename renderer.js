@@ -4767,10 +4767,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? announcement.missionNumber
         : null;
       const battlefieldNumber = missionNumber || 1;
-      const areVerb = npcNames.length === 1 ? "is" : "are";
+      const needVerb = npcNames.length === 1 ? "needs" : "need";
       const missionHeading = scenarioTitle
-        ? `${nameSentence} ${areVerb} fighting personal demons while going through ${scenarioTitle.toUpperCase()}.`
-        : `${nameSentence} ${areVerb} fighting personal demons.`;
+        ? `${nameSentence} ${needVerb} your help as they battle personal demons while facing ${scenarioTitle.toUpperCase()}.`
+        : `${nameSentence} ${needVerb} your help as they battle personal demons.`;
       const callForHelpLine = `Battlefield ${battlefieldNumber}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
