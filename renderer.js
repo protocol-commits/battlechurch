@@ -7846,6 +7846,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const battleTitle = `${_stageLabel2} ${romanNumerals[missionIntroNumber] || missionIntroNumber}`;
     const villainText = "";
 
+    const _cbCamp = window.activeCampaign || "p1";
     const phaseName = _cbLabels.phases?.[_cbCamp] || _cbCamp.toUpperCase();
     const districtNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
     const _phaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
