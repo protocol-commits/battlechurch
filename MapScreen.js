@@ -1352,8 +1352,8 @@
 
     const front = district.frontId ? getFrontById(district.frontId) : null;
     const areaNumber = Number.isFinite(front?.order) ? front.order + 1 : null;
-    const areaLabel = Number.isFinite(areaNumber) ? `Front ${areaNumber}` : "";
-    const districtScopeLabel = Number.isFinite(areaNumber) ? `Front ${areaNumber}` : "this Front";
+    const areaLabel = front?.name || district.frontName || (Number.isFinite(areaNumber) ? `Front ${areaNumber}` : "");
+    const districtScopeLabel = areaLabel || "this Front";
     const hasAreaLabel = Boolean(areaLabel);
     const areaVerticalOffset = hasAreaLabel ? 18 : 0;
     if (hasAreaLabel) {

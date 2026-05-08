@@ -1,10 +1,18 @@
 (function setupMapData(window) {
   if (!window) return;
 
+  // ── Front display names ── change these to rename the fronts anywhere they appear
+  const FRONT_NAMES = {
+    northwest: "Western Front",
+    northeast: "Central Front",
+    southwest: "Eastern Front",
+    capital:   "Final Front",
+  };
+
   const fronts = [
-    { id: "northwest", name: "Westreach", order: 0 },
-    { id: "northeast", name: "Ashvale", order: 1 },
-    { id: "southwest", name: "Lowmarch", order: 2 },
+    { id: "northwest", name: FRONT_NAMES.northwest, order: 0 },
+    { id: "northeast", name: FRONT_NAMES.northeast, order: 1 },
+    { id: "southwest", name: FRONT_NAMES.southwest, order: 2 },
   ];
 
   // Active districts (3 per front) + capital = 10 total for current pacing.
@@ -26,7 +34,7 @@
     { id: "marsh_end", name: "Marsh End", frontId: "southwest", x: 0.6924, y: 0.4833 },
 
     // Capital (final boss) — right column (lower 1/3)
-    { id: "highgate", name: "Highgate", type: "capital", x: 0.7836, y: 0.7102 },
+    { id: "highgate", name: "Highgate", frontName: FRONT_NAMES.capital, type: "capital", x: 0.7836, y: 0.7102 },
   ];
 
   function getDefaultDistrictStartCount(districtId) {
