@@ -19341,6 +19341,15 @@ function showSettingsOverlay({ source = "title" } = {}) {
         <div class="settings-row__label">About</div>
         <button class="settings-btn--hellfire" id="settingsAboutBtn">About</button>
       </div>
+      ${source === "title" ? `
+      <div class="settings-row">
+        <div class="settings-row__label">Customize Character</div>
+        <button class="settings-btn--hellfire" id="settingsCustomizeBtn">Customize</button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row__label">Developer</div>
+        <button class="settings-btn--hellfire" id="settingsDeveloperBtn">Developer</button>
+      </div>` : ""}
     </div>
   `;
   window.DialogOverlay.show({
@@ -19421,6 +19430,21 @@ function showSettingsOverlay({ source = "title" } = {}) {
         aboutBtn.addEventListener("click", () => {
           window.DialogOverlay?.hide?.();
           if (window.PlayingInstructions) window.PlayingInstructions.open();
+        });
+      }
+      const customizeBtn = bodyEl.querySelector("#settingsCustomizeBtn");
+      if (customizeBtn) {
+        customizeBtn.addEventListener("click", () => {
+          window.DialogOverlay?.hide?.();
+          window.PaperdollSandbox?.loadCustomFaceFromStorage?.();
+          window.PaperdollSandbox?.openCustomize?.();
+        });
+      }
+      const developerBtn = bodyEl.querySelector("#settingsDeveloperBtn");
+      if (developerBtn) {
+        developerBtn.addEventListener("click", () => {
+          window.DialogOverlay?.hide?.();
+          showDeveloperOverlay();
         });
       }
     },

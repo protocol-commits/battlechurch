@@ -8120,28 +8120,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else if (assetsLoaded) {
       buttonConfigs = [
         { key: "play", label: "Play" },
-        { key: "customizeCharacter", label: "Customize Character" },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
-        { key: "developer", label: "Developer" },
       ];
     } else if (mapReady) {
       // Map ready but gameplay still loading - allow map browsing
       buttonConfigs = [
         { key: "map", label: "Loading" },
-        { key: "customizeCharacter", label: "Customize Character" },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
-        { key: "developer", label: "Developer" },
       ];
     } else {
       // Still loading title/map assets
       buttonConfigs = [
         { key: "play", label: "Loading..." },
-        { key: "customizeCharacter", label: "Customize Character" },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
-        { key: "developer", label: "Developer" },
       ];
     }
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
