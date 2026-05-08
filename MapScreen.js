@@ -2178,6 +2178,7 @@
         id,
         saveName: save?.saveName || `Save ${id}`,
         playerName: save?.playerName || "Pastor",
+        cityName: save?.cityName || "",
         createdAt: Number.isFinite(save?.createdAt) ? save.createdAt : null,
         lastPlayedAt: Number.isFinite(save?.lastPlayedAt) ? save.lastPlayedAt : null,
         playtimeSec: Number.isFinite(save?.playtimeSec) ? save.playtimeSec : 0,

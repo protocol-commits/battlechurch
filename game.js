@@ -8493,9 +8493,13 @@ async function refreshTitleCloudSaveOption() {
           : completed > 0
             ? `Town ${completed + 1}.1`
             : null;
+      const cityName = (save?.cityName || "").trim();
+      const congregationMeta = cityName
+        ? `${cityName}, Congregation Size: ${congregationDisplay}`
+        : `Congregation Size: ${congregationDisplay}`;
       let metaParts = [];
       if (districtMissionLabel) metaParts.push(districtMissionLabel);
-      metaParts.push(`Congregation ${congregationDisplay}`);
+      metaParts.push(congregationMeta);
       return {
         id: save.id,
         key: `cloudsave:${save.id}`,
@@ -19936,16 +19940,18 @@ function handleTitleScreen() {
               : null;
             if (!name || !name.trim()) return;
             const playerName = typeof window?.prompt === "function"
-              ? window.prompt("Player name:", "Pastor")
+              ? window.prompt("Player name:", "Name")
               : null;
+            if (playerName === null || !playerName.trim()) return;
             const cityName = typeof window?.prompt === "function"
-              ? window.prompt("Name a city to liberate:", "")
+              ? window.prompt("Name a city, region, or country to liberate:", "City")
               : null;
+            if (cityName === null || !cityName.trim()) return;
             if (typeof window.MapScreen?.createSaveFile === "function") {
               const newId = await window.MapScreen.createSaveFile({
                 saveName: name.trim(),
-                playerName: (playerName || "Pastor").trim(),
-                cityName: (cityName || "").trim(),
+                playerName: playerName.trim(),
+                cityName: cityName.trim(),
                 setActive: true,
               });
               if (newId) titleCloudSelectedSaveId = newId;
