@@ -654,12 +654,8 @@
     const initialCombined = [...miniImpEntries, ...mergeEnemyCounts(entries)];
     const combinedEntries = mergeEnemyCounts(initialCombined);
     const rangedTypes = new Set([
-      "archer",
-      "skeletonArcher",
-      "wizard",
       "miniDemonFireThrower",
       "miniFireImp",
-      "priest",
     ]);
     const hasRangedSupport = combinedEntries.some((entry) => rangedTypes.has(entry.type));
     if (!hasRangedSupport) {

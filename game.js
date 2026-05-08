@@ -6119,12 +6119,9 @@ if (typeof window !== "undefined") {
   });
 
 const spawnEnemyOfType = Spawner.spawnEnemyOfType;
-const spawnSkeletonGroup = Spawner.spawnSkeletonGroup;
 const spawnMiniImpGroup = Spawner.spawnMiniImpGroup;
 const spawnEnemyGroup = Spawner.spawnEnemyGroup;
 const schedulePortalSpawn = Spawner.schedulePortalSpawn;
-const spawnEnemy = Spawner.spawnEnemy;
-const maintainSkeletonHorde = Spawner.maintainSkeletonHorde;
 const maintainMiniImpHorde = Spawner.maintainMiniImpHorde;
 const getPendingPortalSpawnCount = Spawner.getPendingPortalSpawnCount;
 
@@ -26436,7 +26433,6 @@ function updateGame(dt) {
   updateEffects(visualDt);
   if (!levelManager?.isActive()) {
     maintainMiniImpHorde(levelStatus);
-    maintainSkeletonHorde();
   }
 
   processDeadEnemies();

@@ -24,8 +24,7 @@
     getLevelManager: () => null,
     miniFolks: [],
     maxActiveEnemies: Number.POSITIVE_INFINITY,
-    skeletonMinCount: 4,
-    skeletonPackSize: 4,
+
     miniImpBaseGroupSize: 48,
     miniImpMaxGroupSize: 120,
     miniImpMinGroupsPerHorde: 1,
@@ -684,70 +683,12 @@
     }
   }
 
-  function spawnEnemy() {
-    if (deps.enemies.length >= deps.maxActiveEnemies) return;
-    const levelManager = resolveLevelManager();
-    const currentLevel =
-      (levelManager && typeof levelManager.getLevelNumber === "function"
-        ? levelManager.getLevelNumber()
-        : 1) || 1;
-    if (currentLevel === 1 && oneEnemySpawnedLevel1) return;
-
-    const assets = resolveAssets();
-    if (!assets?.enemies) return;
-
-    if (currentLevel === 1) {
-      const miniKeys = (deps.miniFolks || [])
-        .map((entry) => entry?.key)
-        .filter((key) => key && assets.enemies[key]);
-      if (!miniKeys.length) return;
-      if (!miniSpawnedThisLevel) {
-        const selected = deps.randomChoice(miniKeys);
-        if (selected) {
-          spawnEnemyOfType(selected, deps.randomSpawnPosition());
-          miniSpawnedThisLevel = true;
-          oneEnemySpawnedLevel1 = true;
-        }
-      }
-      return;
-    }
-
-    const enemyTypes = Object.keys(resolveEnemyTypes() || {});
-    if (!enemyTypes.length) return;
-
-    const weightedPool = enemyTypes.flatMap((name) => {
-      if (name === "skeleton") return Array(6).fill(name);
-      if (name === "archer") return Array(5).fill(name);
-      if (name === "skeletonArcher") return Array(4).fill(name);
-      return [name];
-    });
-
-    const selection = deps.randomChoice(weightedPool) || "skeleton";
-    const position = deps.randomSpawnPosition();
-    if (selection === "skeleton") spawnSkeletonGroup(position, deps.skeletonPackSize);
-    else spawnEnemyOfType(selection, position);
-  }
-
   function computeSwarmSpacing(val) {
     if (Number.isFinite(val) && val > 0) {
       if (val <= 1) return Math.max(0.1, val * 0.4);
       return Math.max(0.25, Math.min(2, val));
     }
     return 0.4;
-  }
-
-  function maintainSkeletonHorde() {
-    if (deps.enemies.length >= deps.maxActiveEnemies) return;
-    const skeletonCount = deps.enemies.filter(
-      (enemy) => enemy?.type === "skeleton" && !enemy.dead && enemy.state !== "death",
-    ).length;
-    if (skeletonCount >= deps.skeletonMinCount) return;
-    const needed = deps.skeletonMinCount - skeletonCount;
-    const packs = Math.ceil(needed / Math.max(1, deps.skeletonPackSize));
-    for (let i = 0; i < packs; i += 1) {
-      if (deps.enemies.length >= deps.maxActiveEnemies) break;
-      spawnSkeletonGroup();
-    }
   }
 
   function maintainMiniImpHorde(levelStatus = null) {
@@ -816,8 +757,6 @@
     spawnMiniImpGroup,
     spawnEnemyGroup,
     schedulePortalSpawn,
-    spawnEnemy,
-    maintainSkeletonHorde,
     maintainMiniImpHorde,
     resetLevelFlags,
     resetAllFlags,
