@@ -1650,6 +1650,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     eyebrowSize = 11,
     eyebrowOffset = -8,
     eyebrowColor = "rgba(231, 196, 126, 0.9)",
+    sectionGap = 22,
   } = options;
   const promptText = "How will you equip them?";
   const combinedSubtitle = showFormation
@@ -1698,17 +1699,6 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   ctx.scale(layout.scale, layout.scale);
   let revealComplete = false;
   if (showFormation) {
-    const titleLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
-      title,
-      subtitle: "",
-      titleSize,
-      titleLineSizes,
-      titleLineGap,
-      subtitleSize: bodySize,
-      lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
-      weight: titleWeight,
-      maxWidthScale,
-    });
     const lowerLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
       title: "",
       subtitle: combinedSubtitle,
@@ -1718,22 +1708,46 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       weight: bodyWeight,
       maxWidthScale,
     });
-    const sectionGap = 22;
-    const dividerGap = 10;
-    const titleYBase = layout.titleY;
+    // Fixed button position anchored from canvas bottom — independent of text layout.
+    const fixedButtonY = Math.round(layout.virtualCanvas.height - 148 - 22);
+    const lowerBlockBottomLimit = fixedButtonY - 14;
+    const lowerBlockHeight = Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight);
+    // Lower block is anchored a fixed gap above the formation cards.
+    const anchoredLowerYBase = Math.round(lowerBlockBottomLimit - lowerBlockHeight);
+    const lowerSectionTopY = anchoredLowerYBase - lowerLayout.subtitleLineHeight;
+    // Title gets whatever space is left above the lower block.
+    const availableForTitle = Math.round(lowerSectionTopY - sectionGap - topMargin);
+    // Shrink titleSize until the title block fits in availableForTitle.
+    let fittingTitleSize = titleSize;
+    let titleLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
+      title,
+      subtitle: "",
+      titleSize: fittingTitleSize,
+      titleLineSizes: [fittingTitleSize],
+      titleLineGap,
+      subtitleSize: bodySize,
+      lineGap: Math.round(fittingTitleSize * TEXT_STYLES.h1.lineHeight),
+      weight: titleWeight,
+      maxWidthScale,
+    });
+    while (titleLayout.textBlockHeight > availableForTitle && fittingTitleSize > 14) {
+      fittingTitleSize = Math.round(fittingTitleSize * 0.92);
+      titleLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
+        title,
+        subtitle: "",
+        titleSize: fittingTitleSize,
+        titleLineSizes: [fittingTitleSize],
+        titleLineGap,
+        subtitleSize: bodySize,
+        lineGap: Math.round(fittingTitleSize * TEXT_STYLES.h1.lineHeight),
+        weight: titleWeight,
+        maxWidthScale,
+      });
+    }
+    const titleYBase = Math.round(topMargin + (titleLayout.titleLineHeights[0] || titleLayout.titleLineHeight));
     const titleBlockHeight = titleLayout.textBlockHeight;
-    // titleYBase is the baseline of the first line (already offset by titleLineHeight),
-    // so subtract the first line height to avoid double-counting it.
-    const titleBottomY = titleYBase + titleBlockHeight - (titleLayout.titleLineHeights[0] || titleLayout.titleLineHeight);
-    const desiredLowerYBase = Math.round(
-      titleBottomY + dividerGap + sectionGap + lowerLayout.subtitleLineHeight,
-    );
-    const lowerBlockBottomLimit = Math.round((layout.buttonY || layout.virtualCanvas.height) - 22);
-    const maxLowerYBase = Math.round(
-      lowerBlockBottomLimit - Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight),
-    );
-    const lowerYBase = Math.round(Math.min(desiredLowerYBase, maxLowerYBase));
-    const lowerSectionTopY = lowerYBase - lowerLayout.subtitleLineHeight;
+    const titleBottomY = Math.round(titleYBase + titleBlockHeight - (titleLayout.titleLineHeights[0] || titleLayout.titleLineHeight));
+    const lowerYBase = Math.round(Math.max(anchoredLowerYBase, titleBottomY + sectionGap + lowerLayout.subtitleLineHeight));
     const textPanelTop = Math.round(titleYBase - titleLayout.titleLineHeight * 0.7 - 14);
     const textPanelBottom = Math.round(
       lowerYBase + Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight) + 18,
@@ -1780,8 +1794,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       title,
       subtitle: "",
       yBase: titleYBase,
-      titleSize,
-      titleLineSizes,
+      titleSize: fittingTitleSize,
+      titleLineSizes: [fittingTitleSize],
       titleLineGap,
       titleLineEmphasis,
       titleStrokeColor: "rgba(26, 10, 8, 0.92)",
@@ -1789,7 +1803,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize: bodySize,
       weight: titleWeight,
       subtitleWeight: bodyWeight,
-      lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
+      lineGap: Math.round(fittingTitleSize * TEXT_STYLES.h1.lineHeight),
       alpha: 1,
       typewriter: true,
       highlight,
@@ -1963,7 +1977,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ? buttonWidth * buttonCount + buttonGap * (buttonCount - 1)
     : buttonWidth;
   const buttonStartX = Math.round((layout.virtualCanvas.width - buttonRowWidth) / 2);
-  const buttonY = Math.round(layout.buttonY || 0);
+  const buttonY = showFormation ? Math.round(layout.virtualCanvas.height - 148 - 22) : Math.round(layout.buttonY || 0);
   const promptY = layout.promptY;
 
   if (!showFormation && promptText && promptY) {
@@ -4736,12 +4750,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? announcement.missionNumber
         : null;
       const battlefieldNumber = missionNumber || 1;
-      const battleProblemLine = scenarioTitle
-        ? `Battlefield ${battlefieldNumber}: ${scenarioTitle}`
-        : `Battlefield ${battlefieldNumber}`;
-      const needsVerb = npcNames.length === 1 ? "needs" : "need";
-      const missionHeading = battleProblemLine;
-      const callForHelpLine = `${nameSentence} ${needsVerb} help on`;
+      const areVerb = npcNames.length === 1 ? "is" : "are";
+      const missionHeading = scenarioTitle
+        ? `${nameSentence} ${areVerb} fighting personal demons while going through ${scenarioTitle.toUpperCase()}.`
+        : `${nameSentence} ${areVerb} fighting personal demons.`;
+      const callForHelpLine = `Battlefield ${battlefieldNumber}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
@@ -4754,22 +4767,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         uiFontFamily: UI_FONT_FAMILY,
         maxWidthScale: 0.86,
         topMargin: Math.max(HUD_HEIGHT + 28, 120),
-        titleSize: Math.max(64, Math.round(TEXT_STYLES.h1.size * 1.22)),
-        bodySize: Math.max(36, Math.round(TEXT_STYLES.body.size * 1.35)),
+        titleSize: Math.max(32, Math.round(TEXT_STYLES.h1.size * 0.6)),
+        bodySize: Math.max(22, Math.round(TEXT_STYLES.body.size * 0.85)),
         bodyWeight: TEXT_STYLES.body.weight,
-        titleLineGap: 10,
+        titleLineGap: 8,
         eyebrowSize: 19,
         eyebrowOffset: -4,
-        titleLineEmphasis: {
-          mode: "shimmer",
-          matchPrefix: "Battlefield ",
-          continueOnWrappedLines: true,
-          baseColor: "#E7C47E",
-          peakColor: "#FFF2CF",
-          glowColor: "rgba(235, 189, 102, 0.95)",
-        },
+        sectionGap: 18,
         titleLineSizes: [
-          Math.max(62, Math.round(TEXT_STYLES.h1.size * 1.24)),
+          Math.max(32, Math.round(TEXT_STYLES.h1.size * 0.6)),
         ],
       });
       ctx.restore();
