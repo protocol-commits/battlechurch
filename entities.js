@@ -14,7 +14,6 @@
     PRAYER_BOMB_CHARGE_REQUIRED: 6000,
     CONGREGATION_COMMAND_CHARGE_TIME: 12,
     DAMAGE_FLASH_INTENSITY: 1,
-    ARROW_DAMAGE: 10,
   };
 
   const MANA_SEED_ROOT = "assets/sprites/npcs/mana-seed";
@@ -4842,14 +4841,6 @@
           }
         }
       }
-      const alwaysShow =
-        typeof devTools !== "undefined" && Boolean(devTools.alwaysShowEnemyHP);
-      const forceShow = Boolean(this.forceShowHpBar);
-      const isBossLike =
-        typeof this.type === "string" && this.type.toLowerCase().includes("boss");
-      if (this.state !== "death" && (alwaysShow || forceShow || isBossLike)) {
-        this.drawHealthBars();
-      }
       if (this.state !== "death") {
         const hitRadius = this.radius || 0;
         const labelY = drawY - (hitRadius > 0 ? hitRadius * 0.6 : 6);
@@ -4909,29 +4900,6 @@
       this._pendingFrontDemonessBindOverlay = false;
     }
 
-    drawHealthBars() {
-      const baseWidth = Math.min(110, Math.max(48, (this.radius || 0) * 1.4));
-      const rowHeight = 6;
-      const gap = 2;
-      const baseY = this.y - (this.radius || 0) - 10;
-      let remaining = this.health;
-      ctx.save();
-      for (let row = 0; row < HEALTH_BAR_ROW_HITS.length && remaining > 0; row += 1) {
-        const hits = HEALTH_BAR_ROW_HITS[row];
-        const rowMaxHealth = hits * ARROW_DAMAGE;
-        const rowHealth = Math.min(remaining, rowMaxHealth);
-        remaining -= rowHealth;
-        const ratio = rowMaxHealth === 0 ? 0 : rowHealth / rowMaxHealth;
-        const barX = this.x - baseWidth / 2;
-        const barY = baseY - row * (rowHeight + gap);
-        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-        ctx.fillRect(barX, barY, baseWidth, rowHeight);
-        const color = HEALTH_BAR_COLORS[row] || HEALTH_BAR_COLORS[HEALTH_BAR_COLORS.length - 1];
-        ctx.fillStyle = color;
-        ctx.fillRect(barX + 1, barY + 1, (baseWidth - 2) * ratio, rowHeight - 2);
-      }
-      ctx.restore();
-    }
   }
 
   Entities.initialize = initialize;

@@ -6199,7 +6199,6 @@ Levels.initialize({
 
 const AIM_ASSIST_LENGTH = 520;
 const AIM_ASSIST_FOV = Math.PI / 4;
-const ARROW_DAMAGE = 10;
 const ENEMY_SPAWN_MARGIN = 140;
 const ENEMY_SPAWN_JITTER = 26;
 const ENEMY_SPAWN_DEBUG_BOX_SIZE = 80;
@@ -6387,8 +6386,6 @@ function buildEnemyTypesFallback(defs) {
   );
 }
 
-const HEALTH_BAR_ROW_HITS = [3, 6, 12, 24, 48];
-const HEALTH_BAR_COLORS = ["#ff4d4d", "#ff9f43", "#FFC86A", "#a8ff82", "#9BD9FF"];
 
 class Obstacle {
   constructor(asset, xRatio, yRatio) {
