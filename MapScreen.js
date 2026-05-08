@@ -1124,7 +1124,7 @@
     const playerName = getActiveSave()?.playerName?.trim() || "Pastor";
     ctx.font = `700 ${line2Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.dim;
-    ctx.fillText(`Pastor ${playerName}, will you answer the call to save it?`, cx, topY + line1Size + lineGap);
+    ctx.fillText(`Pastor ${playerName}, you have been called to liberate it.`, cx, topY + line1Size + lineGap);
 
     ctx.restore();
   }
