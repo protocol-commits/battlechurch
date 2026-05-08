@@ -1063,6 +1063,7 @@
       state.lastWaveTransitionCueNum = 0;
       state.queuedWaveIntroIndices.clear();
       state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
+      state.battleDamageStart = state.stats?.damageDealt || 0;
       state.battleMaxCombo = 0;
       state.battlePrayerBombContributions = [];
       state.battlePrayerBombComboContributions = [];
@@ -1291,6 +1292,7 @@
         battleScenario: state.currentBattleScenario,
           battleScenarioVictoryPhrase: state.currentBattleScenarioVictoryPhrase || null,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
+        battleDamageDealt: Math.max(0, (state.stats.damageDealt || 0) - (state.battleDamageStart || 0)),
         battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
         prayerBombContributions: Array.isArray(state.battlePrayerBombContributions)
           ? state.battlePrayerBombContributions.slice()
@@ -1800,6 +1802,7 @@
         battleScenario: state.currentBattleScenario,
           battleScenarioVictoryPhrase: state.currentBattleScenarioVictoryPhrase || null,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
+        battleDamageDealt: Math.max(0, (state.stats.damageDealt || 0) - (state.battleDamageStart || 0)),
         battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
         prayerBombContributions: Array.isArray(state.battlePrayerBombContributions)
           ? state.battlePrayerBombContributions.slice()
@@ -1812,6 +1815,7 @@
 
     function beginBossIntro() {
       state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
+      state.battleDamageStart = state.stats?.damageDealt || 0;
       state.battleMaxCombo = 0;
       state.battlePrayerBombContributions = [];
       state.battlePrayerBombComboContributions = [];

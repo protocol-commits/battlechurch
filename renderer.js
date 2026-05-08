@@ -2690,6 +2690,7 @@ function updateRecapTallyState(recapData, allowAdvance, spawnBounds) {
             label: entry?.label || "",
             iconSrc: entry?.iconSrc || "",
             target: Number.isFinite(entry?.value) ? Math.max(0, Math.round(entry.value)) : 0,
+            rawStat: Number.isFinite(entry?.rawStat) ? Math.max(0, Math.round(entry.rawStat)) : null,
           })),
           activeBadgeIndex: 0,
           activeValue: Number.isFinite(entries?.[0]?.value) ? Math.max(0, Math.round(entries[0].value)) : 0,
@@ -3560,6 +3561,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       nameLines.forEach((textLine, lineIndex) => {
         ctx.fillText(textLine, badgeCenterX, nameStartY + lineIndex * 16);
       });
+      if (entry?.rawStat != null) {
+        ctx.fillStyle = "rgba(234, 246, 255, 0.6)";
+        ctx.font = `500 11px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        ctx.fillText(formatNumber(entry.rawStat), badgeCenterX, nameStartY + nameLines.length * 16 + 2);
+      }
       ctx.restore();
     });
 

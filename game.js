@@ -8831,12 +8831,18 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const maxComboPerformanceValue = battleMaxCombo;
   const prayerBombPerformanceValue = prayerBombTotal;
   const congregationalPrayersPerformanceValue = prayerBombComboTotal;
+  const battleEnemiesDefeated = Number.isFinite(summary?.battleEnemiesDefeated) ? Math.max(0, summary.battleEnemiesDefeated) : 0;
+  const battleDamageDealt = Number.isFinite(summary?.battleDamageDealt) ? Math.max(0, summary.battleDamageDealt) : 0;
+  const enemiesKilledPerformanceValue = Math.floor(battleEnemiesDefeated / 1000) * 100;
+  const damageDealtPerformanceValue = Math.floor(battleDamageDealt / 10000) * 100;
   const performancePointTotal =
     perfectProtectionValue +
     pastorHealthValue +
     maxComboPerformanceValue +
     prayerBombPerformanceValue +
-    congregationalPrayersPerformanceValue;
+    congregationalPrayersPerformanceValue +
+    enemiesKilledPerformanceValue +
+    damageDealtPerformanceValue;
   const performanceCongregationReward = Math.floor(performancePointTotal / 100);
   const bossHealth = Number.isFinite(player?.health) ? player.health : 0;
   const PERFORMANCE_BONUS_BADGE_SRCS = {
@@ -8845,6 +8851,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     maxCombo: "assets/sprites/items/icons/I36_Hammer.png",
     prayerBomb: "assets/sprites/items/icons/A32_Decorative_Shield.png",
     congregationalPrayers: "assets/sprites/items/icons/A29_Iron_Shield.png",
+    enemiesKilled: "assets/sprites/items/icons/A28_Kite_Shield.png",
+    damageDealt: "assets/sprites/items/icons/A30_Tower_Shield.png",
   };
   const performanceBadgeBreakdown = [];
   if (pastorHealthValue > 0) {
@@ -8885,6 +8893,24 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       label: "Smite",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.congregationalPrayers,
       value: congregationalPrayersPerformanceValue,
+    });
+  }
+  if (enemiesKilledPerformanceValue > 0) {
+    performanceBadgeBreakdown.push({
+      id: "enemiesKilled",
+      label: "Enemies Slain",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.enemiesKilled,
+      value: enemiesKilledPerformanceValue,
+      rawStat: battleEnemiesDefeated,
+    });
+  }
+  if (damageDealtPerformanceValue > 0) {
+    performanceBadgeBreakdown.push({
+      id: "damageDealt",
+      label: "Damage Dealt",
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.damageDealt,
+      value: damageDealtPerformanceValue,
+      rawStat: battleDamageDealt,
     });
   }
   if (!summary.congregationDeltaApplied) {
