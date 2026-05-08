@@ -3732,6 +3732,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
   ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const totalValue = recapTallyState.totalValue;
+  const startCount = Number.isFinite(recapData?.startCount) ? recapData.startCount : 0;
+  const deltaAdded = Math.max(0, Math.round(totalValue - startCount));
   const countLabel = "Congregation Count:";
   ctx.fillStyle = baseLabelColor;
   ctx.textAlign = "left";
@@ -3739,6 +3741,15 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   countNumberX = recapTotalColumnX;
   ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
   ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
+  if (deltaAdded > 0) {
+    const totalValueWidth = ctx.measureText(formatNumber(totalValue || 0)).width;
+    ctx.save();
+    ctx.fillStyle = "#E7C47E";
+    ctx.font = `700 ${Math.round(countSize * 0.55)}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.textAlign = "left";
+    ctx.fillText(`(+${formatNumber(deltaAdded)})`, countNumberX + totalValueWidth + 10, cursorY);
+    ctx.restore();
+  }
   countNumberY = cursorY;
   cursorY += Math.round(countSize * 0.84);
 
