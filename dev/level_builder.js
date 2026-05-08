@@ -1378,7 +1378,54 @@
     return false;
   }
 
+  function getCatalogThumbData(key) {
+    const catalog =
+      (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
+    const def = catalog?.[key] || null;
+    if (!def || !def.spriteSrc) return null;
+    const gridCols = Number(def?.assetGrid?.cols);
+    const gridRows = Number(def?.assetGrid?.rows);
+    if (!(gridCols > 0) || !(gridRows > 0)) return null;
+
+    let img = manifestThumbImages.get(def.spriteSrc);
+    if (!img) {
+      img = new Image();
+      img.src = def.spriteSrc;
+      manifestThumbImages.set(def.spriteSrc, img);
+    }
+    if (!ensureThumbImageReady(img)) return null;
+
+    const frameWidth = Math.max(1, Math.floor(img.width / gridCols));
+    const frameHeight = Math.max(1, Math.floor(img.height / gridRows));
+    const frameCountFromGrid = Math.max(1, gridCols * gridRows);
+    const walkMap = Array.isArray(def?.animationFrameMaps?.walk)
+      ? def.animationFrameMaps.walk.filter((n) => Number.isFinite(n) && n >= 0)
+      : null;
+    const idleMap = Array.isArray(def?.animationFrameMaps?.idle)
+      ? def.animationFrameMaps.idle.filter((n) => Number.isFinite(n) && n >= 0)
+      : null;
+    const frameMap =
+      (walkMap && walkMap.length ? walkMap : null) ||
+      (idleMap && idleMap.length ? idleMap : null) ||
+      null;
+    const frameRate = 6;
+    const renderScale = Number.isFinite(def?.scale) && def.scale > 0 ? def.scale : 1;
+    return {
+      clip: { image: img, frameWidth, frameHeight, frameRate, renderScale },
+      frameMap: frameMap ? frameMap.slice() : null,
+      frameWidth,
+      frameHeight,
+      frameCount: frameMap ? frameMap.length : frameCountFromGrid,
+      frameRate,
+      cols: gridCols,
+      renderScale,
+    };
+  }
+
   function getManifestClipData(key) {
+    const catalog =
+      (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
+    const catalogDef = catalog?.[key] || null;
     const manifestEntry =
       (window.ASSET_MANIFEST && window.ASSET_MANIFEST.enemies && window.ASSET_MANIFEST.enemies[key]) ||
       null;
@@ -1394,10 +1441,22 @@
     const inferred = inferFrameSizeForManifestEntry(entry, img, key);
     const frameWidth = inferred.frameWidth || entry.frameWidth || 100;
     const frameHeight = inferred.frameHeight || entry.frameHeight || 100;
-    const frameMap =
+    let frameMap =
       Array.isArray(entry.frameMap) && entry.frameMap.length ? entry.frameMap.slice() : null;
     const cols = Math.max(1, Math.floor(img.width / Math.max(1, frameWidth)));
     const rows = Math.max(1, Math.floor(img.height / Math.max(1, frameHeight)));
+    const catalogWalkMap = Array.isArray(catalogDef?.animationFrameMaps?.walk)
+      ? catalogDef.animationFrameMaps.walk.filter((n) => Number.isFinite(n) && n >= 0)
+      : null;
+    const catalogIdleMap = Array.isArray(catalogDef?.animationFrameMaps?.idle)
+      ? catalogDef.animationFrameMaps.idle.filter((n) => Number.isFinite(n) && n >= 0)
+      : null;
+    const preferredCatalogMap =
+      (catalogWalkMap && catalogWalkMap.length ? catalogWalkMap : null) ||
+      (catalogIdleMap && catalogIdleMap.length ? catalogIdleMap : null);
+    if (preferredCatalogMap && preferredCatalogMap.length) {
+      frameMap = preferredCatalogMap.slice();
+    }
     const frameCount = frameMap ? frameMap.length : Math.max(1, entry.frameCount || cols * rows);
     const frameRate = Number.isFinite(entry.frameRate) && entry.frameRate > 0 ? entry.frameRate : 6;
     const renderScale =
@@ -1415,6 +1474,13 @@
   }
 
   function getThumbClipData(key) {
+    const keyStr = String(key || "");
+    const isMiniEnemyThumb =
+      /^mini/i.test(keyStr) && /(imp|demon|ghost)/i.test(keyStr);
+    if (isMiniEnemyThumb) {
+      const catalogData = getCatalogThumbData(key);
+      if (catalogData) return catalogData;
+    }
     const assets =
       (typeof bindings.getAssets === "function" && bindings.getAssets()) ||
       window.assets ||
@@ -1427,17 +1493,46 @@
     if (!ensureThumbImageReady(clip.image)) {
       return getManifestClipData(key);
     }
+    const catalog =
+      (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
+    const catalogDef = catalog?.[key] || null;
     const inferredSize =
       Number.isFinite(clip.frameWidth) && clip.frameWidth > 0 &&
       Number.isFinite(clip.frameHeight) && clip.frameHeight > 0
         ? { frameWidth: clip.frameWidth, frameHeight: clip.frameHeight }
         : inferFrameSizeForClip(clip, key);
-    const frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
-    const frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
-    const frameMap =
+    let frameWidth = inferredSize.frameWidth || clip.frameWidth || clip.image.width;
+    let frameHeight = inferredSize.frameHeight || clip.frameHeight || clip.image.height;
+    let frameMap =
       Array.isArray(clip.frameMap) && clip.frameMap.length ? clip.frameMap.slice() : null;
+    const keyStr2 = String(key || "");
+    const isMiniEnemyThumb2 =
+      /^mini/i.test(keyStr2) && /(imp|demon|ghost)/i.test(keyStr2);
+    if (isMiniEnemyThumb2) {
+      const gridCols = Number(catalogDef?.assetGrid?.cols);
+      const gridRows = Number(catalogDef?.assetGrid?.rows);
+      if (gridCols > 0 && gridRows > 0) {
+        frameWidth = Math.max(1, Math.floor(clip.image.width / gridCols));
+        frameHeight = Math.max(1, Math.floor(clip.image.height / gridRows));
+      }
+    }
     const cols = Math.max(1, Math.floor(clip.image.width / Math.max(1, frameWidth)));
     const rows = Math.max(1, Math.floor(clip.image.height / Math.max(1, frameHeight)));
+    const catalogWalkMap = Array.isArray(catalogDef?.animationFrameMaps?.walk)
+      ? catalogDef.animationFrameMaps.walk.filter((n) => Number.isFinite(n) && n >= 0)
+      : null;
+    const catalogIdleMap = Array.isArray(catalogDef?.animationFrameMaps?.idle)
+      ? catalogDef.animationFrameMaps.idle.filter((n) => Number.isFinite(n) && n >= 0)
+      : null;
+    const preferredCatalogMap =
+      (catalogWalkMap && catalogWalkMap.length ? catalogWalkMap : null) ||
+      (catalogIdleMap && catalogIdleMap.length ? catalogIdleMap : null);
+    if (preferredCatalogMap && preferredCatalogMap.length) {
+      frameMap = preferredCatalogMap.slice();
+    } else if (isMiniEnemyThumb2) {
+      const idleFrames = Math.max(1, Math.min(4, cols));
+      frameMap = Array.from({ length: idleFrames }, (_, i) => i);
+    }
     const frameCount = frameMap ? frameMap.length : Math.max(1, clip.frameCount || cols * rows);
     const frameRate = Number.isFinite(clip.frameRate) && clip.frameRate > 0 ? clip.frameRate : 6;
     const renderScale = Number.isFinite(clip.renderScale) && clip.renderScale > 0 ? clip.renderScale : 1;
