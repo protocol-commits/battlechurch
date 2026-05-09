@@ -4850,7 +4850,9 @@
           try {
             const hpValue = Math.max(0, Math.round(this.health || 0));
             const hitRadius = this.radius || 0;
-            const labelY = drawY - hitRadius - 8;
+            // Damage numbers spawn at entity.y - radius and float upward.
+            // HP label sits just below that origin point.
+            const labelY = drawY - hitRadius + 14;
             ctx.save();
             ctx.font = "600 14px Arial";
             ctx.textAlign = "center";
@@ -4867,7 +4869,7 @@
           const hpValue = Math.max(0, Math.round(this.health || 0));
           if (maxHp > 100) {
             const hitRadius = this.radius || 0;
-            window.__battlechurchEnemyHpLabels.push({ x: this.x, y: drawY - hitRadius - 8, hp: hpValue });
+            window.__battlechurchEnemyHpLabels.push({ x: this.x, y: drawY - hitRadius + 14, hp: hpValue });
           }
         }
       }
