@@ -33,8 +33,8 @@
     },
     {
       id: "class6",
-      classTitle: "Placeholder Denomination",
-      classDescription: "Placeholder text.",
+      classTitle: "Other",
+      classDescription: "Other description.",
     },
     {
       id: "class7",

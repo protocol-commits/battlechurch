@@ -38,6 +38,7 @@ const _gb = (path, fallback) => {
 };
 
 const CLASS_SELECTION_STORAGE_KEY = "battlechurch.selectedClassId";
+const CLASS_SELECTION_HINT_SEEN_KEY = "battlechurch.classHintShown";
 const classConfig =
   (typeof window !== "undefined" && window.BattlechurchClassConfig) || {};
 const classEntries = Array.isArray(classConfig.classes) ? classConfig.classes : [];
@@ -76,10 +77,52 @@ function saveSelectedClassIdToStorage(classId) {
   } catch (_error) {}
 }
 
-function setActiveClassId(classId) {
+function hasSelectedClassStorageKey() {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    return localStorage.getItem(CLASS_SELECTION_STORAGE_KEY) != null;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function hasShownClassSelectionHint() {
+  if (typeof localStorage === "undefined") return false;
+  try {
+    return localStorage.getItem(CLASS_SELECTION_HINT_SEEN_KEY) === "1";
+  } catch (_error) {
+    return false;
+  }
+}
+
+function markClassSelectionHintShown() {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(CLASS_SELECTION_HINT_SEEN_KEY, "1");
+  } catch (_error) {}
+}
+
+function getSortedClassMenuEntries(list) {
+  const entries = Array.isArray(list) ? list.slice() : [];
+  entries.sort((a, b) => {
+    const aLabel = String(a?.classTitle || a?.id || "");
+    const bLabel = String(b?.classTitle || b?.id || "");
+    const aPinned = aLabel.toLowerCase() === "non-denominational";
+    const bPinned = bLabel.toLowerCase() === "non-denominational";
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return aLabel.localeCompare(bLabel, undefined, { sensitivity: "base" });
+  });
+  return entries;
+}
+
+function setActiveClassId(classId, { syncToActiveSave = true } = {}) {
   const resolved = getClassById(classId);
   activeClassId = resolved?.id || defaultClassId;
   saveSelectedClassIdToStorage(activeClassId);
+  if (syncToActiveSave && window.MapScreen?.setClassForActiveSave) {
+    void window.MapScreen.setClassForActiveSave(activeClassId, { persist: true });
+  }
   return activeClassId;
 }
 
@@ -8671,7 +8714,9 @@ async function refreshTitleCloudSaveOption() {
       const congregationMeta = cityName
         ? `${cityName}, Congregation Size: ${congregationDisplay}`
         : `Congregation Size: ${congregationDisplay}`;
+      const classTitle = String(save?.classTitle || "").trim() || "Unknown";
       let metaParts = [];
+      metaParts.push(`Denomination: ${classTitle}`);
       if (districtMissionLabel) metaParts.push(districtMissionLabel);
       metaParts.push(congregationMeta);
       return {
@@ -8684,6 +8729,7 @@ async function refreshTitleCloudSaveOption() {
         details: {
           saveName: save?.saveName || "Save",
           playerName: save?.playerName || "Pastor",
+          classTitle,
           completedDistricts: completed,
           totalDistricts: total,
           totalCongregationBest,
@@ -8702,6 +8748,105 @@ async function refreshTitleCloudSaveOption() {
     titleCloudSaveRows = [];
     titleCloudSelectedSaveId = null;
   }
+}
+
+function showNewCloudSaveDialog() {
+  if (!window.DialogOverlay?.show) return false;
+  const classOptions = getSortedClassMenuEntries(classEntries);
+  const defaultSaveName = `Save ${Math.max(1, (titleCloudSaveRows?.length || 0) + 1)}`;
+  const activeClassIdForDefault =
+    window.BattlechurchClasses?.getActiveId?.() ||
+    window.BattlechurchClassConfig?.defaultClassId ||
+    classOptions[0]?.id ||
+    "class1";
+  const optionsHtml = classOptions
+    .map((entry) => {
+      const id = String(entry?.id || "");
+      const label = String(entry?.classTitle || id || "Class");
+      const selected = id === activeClassIdForDefault ? " selected" : "";
+      return `<option value="${id}"${selected}>${label}</option>`;
+    })
+    .join("");
+  window.DialogOverlay.show({
+    title: "Create New Save",
+    buttonText: "",
+    variant: "settings",
+    bodyHtml: `
+      <div class="settings-panel" style="display:grid; gap:10px;">
+        <label style="display:grid; gap:4px;">
+          <span>File Name</span>
+          <input id="newSaveFileName" type="text" value="${defaultSaveName}" style="width:100%;" />
+        </label>
+        <label style="display:grid; gap:4px;">
+          <span>Player Name</span>
+          <input id="newSavePlayerName" type="text" value="Name" style="width:100%;" />
+        </label>
+        <label style="display:grid; gap:4px;">
+          <span>City</span>
+          <input id="newSaveCityName" type="text" value="City" style="width:100%;" />
+        </label>
+        <label style="display:grid; gap:4px;">
+          <span>Class</span>
+          <select id="newSaveClassId" style="width:100%;">${optionsHtml}</select>
+        </label>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+          <button type="button" id="newSaveCancelBtn" class="dialog-overlay__button">Cancel</button>
+          <button type="button" id="newSaveCreateBtn" class="dialog-overlay__button">Create Save</button>
+        </div>
+      </div>
+    `,
+    onRender: ({ bodyEl }) => {
+      const fileNameInput = bodyEl?.querySelector("#newSaveFileName");
+      const playerNameInput = bodyEl?.querySelector("#newSavePlayerName");
+      const cityNameInput = bodyEl?.querySelector("#newSaveCityName");
+      const classSelect = bodyEl?.querySelector("#newSaveClassId");
+      const cancelBtn = bodyEl?.querySelector("#newSaveCancelBtn");
+      const createBtn = bodyEl?.querySelector("#newSaveCreateBtn");
+      if (fileNameInput) {
+        setTimeout(() => {
+          try {
+            fileNameInput.focus();
+            fileNameInput.select?.();
+          } catch (_e) {}
+        }, 0);
+      }
+      cancelBtn?.addEventListener("click", () => {
+        window.DialogOverlay?.hide?.();
+      });
+      createBtn?.addEventListener("click", () => {
+        const saveName = String(fileNameInput?.value || "").trim();
+        const playerName = String(playerNameInput?.value || "").trim();
+        const cityName = String(cityNameInput?.value || "").trim();
+        const classId = String(classSelect?.value || "").trim();
+        if (!saveName || !playerName || !cityName || !classId) {
+          if (typeof setDevStatus === "function") {
+            setDevStatus("Please fill File Name, Player Name, City, and Class.", 2.5);
+          }
+          return;
+        }
+        window.DialogOverlay?.hide?.();
+        void (async () => {
+          try {
+            if (typeof window.MapScreen?.createSaveFile === "function") {
+              const newId = await window.MapScreen.createSaveFile({
+                saveName,
+                playerName,
+                cityName,
+                classId,
+                setActive: true,
+              });
+              if (newId) titleCloudSelectedSaveId = newId;
+            }
+            if (typeof window.BattlechurchClasses?.setActive === "function") {
+              window.BattlechurchClasses.setActive(classId);
+            }
+            await refreshTitleCloudSaveOption();
+          } catch (_e) {}
+        })();
+      });
+    },
+  });
+  return true;
 }
 
 const PAUSE_BODY =
@@ -18830,6 +18975,9 @@ if (typeof window !== "undefined") {
 }
 
 function handleDeveloperHotkeys() {
+  if (typeof window !== "undefined" && window.DialogOverlay?.isVisible?.()) {
+    return;
+  }
   if (typeof window !== "undefined" && window.PaperdollSandbox?.isOpen?.()) {
     keysJustPressed.clear();
     return;
@@ -19862,6 +20010,10 @@ function showDeveloperOverlay() {
 
 function handleTitleScreen() {
   if (!titleScreenActive) return false;
+  if (!hasSelectedClassStorageKey() && !hasShownClassSelectionHint()) {
+    showProgressSaveToast("Choose Your Denomination", 2.2);
+    markClassSelectionHintShown();
+  }
   if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
     const SCROLL_SPEED = 180;
     if (isActionActive("up")) window.PlayingInstructions.scrollBy(-SCROLL_SPEED * (1 / 60));
@@ -20052,9 +20204,7 @@ function handleTitleScreen() {
         if (button.key === "class") {
           titleClassMenuActive = true;
           const selectedId = window.BattlechurchClasses?.getActiveId?.() || null;
-          const classList = Array.isArray(window.BattlechurchClassConfig?.classes)
-            ? window.BattlechurchClassConfig.classes
-            : [];
+          const classList = getSortedClassMenuEntries(window.BattlechurchClassConfig?.classes);
           const selectedIndex = Math.max(
             0,
             classList.findIndex((entry) => entry?.id === selectedId),
@@ -20114,6 +20264,7 @@ function handleTitleScreen() {
             const districtRows = Array.isArray(d.districtRows) ? d.districtRows : [];
             title = `${d.saveName || "Save"} - Full Details`;
             lines.push(`Player: ${d.playerName || "Pastor"}`);
+            lines.push(`Denomination: ${d.classTitle || "Unknown"}`);
             lines.push(`Towns Cleared: ${Number(d.completedDistricts) || 0}/${Number(d.totalDistricts) || 10}`);
             lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
             lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
@@ -20220,30 +20371,7 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "newCloudSave") {
-          void (async () => {
-            const name = typeof window?.prompt === "function"
-              ? window.prompt("New save file name:", `Save ${Math.max(1, (titleCloudSaveRows?.length || 0) + 1)}`)
-              : null;
-            if (!name || !name.trim()) return;
-            const playerName = typeof window?.prompt === "function"
-              ? window.prompt("Player name:", "Name")
-              : null;
-            if (playerName === null || !playerName.trim()) return;
-            const cityName = typeof window?.prompt === "function"
-              ? window.prompt("Name a city, region, or country to liberate:", "City")
-              : null;
-            if (cityName === null || !cityName.trim()) return;
-            if (typeof window.MapScreen?.createSaveFile === "function") {
-              const newId = await window.MapScreen.createSaveFile({
-                saveName: name.trim(),
-                playerName: playerName.trim(),
-                cityName: cityName.trim(),
-                setActive: true,
-              });
-              if (newId) titleCloudSelectedSaveId = newId;
-            }
-            await refreshTitleCloudSaveOption();
-          })();
+          showNewCloudSaveDialog();
           return;
         }
         if (button.key === "duplicateCloudSave") {
@@ -26267,7 +26395,7 @@ function updateGame(dt) {
       startIntroMusic();
     }
     // Map-screen dev shortcuts
-    if (keysJustPressed.size) {
+    if (keysJustPressed.size && !(typeof window !== "undefined" && window.DialogOverlay?.isVisible?.())) {
       const _mapModifiers = typeof Input !== "undefined" ? Input.modifiers : null;
       const _mapPressed = typeof Input !== "undefined" ? Input.keysPressed : null;
       const _mapShift = Boolean(_mapModifiers?.shift || _mapPressed?.has?.("Shift"));

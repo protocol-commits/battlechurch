@@ -250,6 +250,17 @@
 
   function handleKeyDown(event) {
     if (!visible) return;
+    const target = event?.target;
+    const tagName = String(target?.tagName || "").toLowerCase();
+    const inputType = String(target?.type || "").toLowerCase();
+    const isTextEntryTarget =
+      (tagName === "input" &&
+        !["button", "checkbox", "radio", "range", "submit", "reset"].includes(inputType)) ||
+      tagName === "textarea";
+    // While typing in text fields, do not hijack WASD/arrow/space for menu nav.
+    if (isTextEntryTarget) {
+      return;
+    }
     const key = String(event.key || "");
     if (key === "ArrowUp" || key === "w" || key === "W") {
       event.preventDefault();
@@ -285,6 +296,21 @@
 
   function updateNavigation() {
     if (visible && window.Input && typeof window.Input.isActionActive === "function") {
+      const activeEl = document?.activeElement;
+      const activeTag = String(activeEl?.tagName || "").toLowerCase();
+      const activeType = String(activeEl?.type || "").toLowerCase();
+      const textEntryFocused =
+        (activeTag === "input" &&
+          !["button", "checkbox", "radio", "range", "submit", "reset"].includes(activeType)) ||
+        activeTag === "textarea";
+      if (textEntryFocused) {
+        navHoldDir = null;
+        navNextTime = 0;
+        confirmHeld = false;
+        backHeld = false;
+        window.requestAnimationFrame(updateNavigation);
+        return;
+      }
       const keysPressed = window.Input.keysPressed;
       if (keysPressed) {
         const confirmPressed =

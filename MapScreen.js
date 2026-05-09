@@ -155,6 +155,24 @@
   };
   const DEFAULT_SAVE_ID = "main";
 
+  function getDefaultClassIdForSaves() {
+    const configuredDefault = String(window.BattlechurchClassConfig?.defaultClassId || "").trim();
+    if (configuredDefault) return configuredDefault;
+    const fallbackFromRuntime = String(window.BattlechurchClasses?.getActiveId?.() || "").trim();
+    if (fallbackFromRuntime) return fallbackFromRuntime;
+    const firstClassId = String(window.BattlechurchClassConfig?.classes?.[0]?.id || "").trim();
+    return firstClassId || "class1";
+  }
+
+  function resolveClassMetaForSave(classId) {
+    const runtimeById = typeof window.BattlechurchClasses?.getById === "function"
+      ? window.BattlechurchClasses.getById(classId)
+      : null;
+    const resolvedId = String(runtimeById?.id || classId || "").trim() || getDefaultClassIdForSaves();
+    const classTitle = String(runtimeById?.classTitle || resolvedId || "").trim() || "Unknown";
+    return { classId: resolvedId, classTitle };
+  }
+
   function deepClone(value) {
     try {
       return JSON.parse(JSON.stringify(value));
@@ -186,6 +204,7 @@
         [DEFAULT_SAVE_ID]: {
           saveName: "Main Save",
           playerName: "Pastor",
+          classId: getDefaultClassIdForSaves(),
           createdAt: Date.now(),
           lastPlayedAt: Date.now(),
           playtimeSec: 0,
@@ -201,6 +220,7 @@
       normalized.saveFiles[DEFAULT_SAVE_ID] = {
         saveName: "Main Save",
         playerName: "Pastor",
+        classId: getDefaultClassIdForSaves(),
         createdAt: Date.now(),
         lastPlayedAt: Date.now(),
         playtimeSec: 0,
@@ -216,6 +236,7 @@
         normalized.saveFiles[saveId] = {
           saveName: `Save ${saveId}`,
           playerName: "Pastor",
+          classId: getDefaultClassIdForSaves(),
           createdAt: Date.now(),
           lastPlayedAt: Date.now(),
           playtimeSec: 0,
@@ -230,6 +251,15 @@
       }
       if (!save.playerName || typeof save.playerName !== "string") {
         save.playerName = "Pastor";
+        dirty = true;
+      }
+      if (typeof save.classId !== "string" || !save.classId.trim()) {
+        save.classId = getDefaultClassIdForSaves();
+        dirty = true;
+      }
+      const classMeta = resolveClassMetaForSave(save.classId);
+      if (save.classId !== classMeta.classId) {
+        save.classId = classMeta.classId;
         dirty = true;
       }
       if (typeof save.cityName !== "string") {
@@ -2178,6 +2208,8 @@
         id,
         saveName: save?.saveName || `Save ${id}`,
         playerName: save?.playerName || "Pastor",
+        classId: save?.classId || getDefaultClassIdForSaves(),
+        classTitle: resolveClassMetaForSave(save?.classId).classTitle,
         cityName: save?.cityName || "",
         createdAt: Number.isFinite(save?.createdAt) ? save.createdAt : null,
         lastPlayedAt: Number.isFinite(save?.lastPlayedAt) ? save.lastPlayedAt : null,
@@ -2209,6 +2241,11 @@
     if (!saveId || !state.playerDoc?.saveFiles?.[saveId]) return false;
     state.playerDoc.activeSaveId = saveId;
     state.mapProgress = state.playerDoc.saveFiles[saveId].mapProgress;
+    const saveClassMeta = resolveClassMetaForSave(state.playerDoc.saveFiles[saveId].classId);
+    state.playerDoc.saveFiles[saveId].classId = saveClassMeta.classId;
+    if (typeof window.BattlechurchClasses?.setActive === "function") {
+      window.BattlechurchClasses.setActive(saveClassMeta.classId);
+    }
     ensureProgress();
     rebuildArmyMarchRouteFromProgress();
     if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
@@ -2221,7 +2258,7 @@
     return true;
   }
 
-  async function createSaveFile({ saveName, playerName, cityName, sourceSaveId = null, setActive = true } = {}) {
+  async function createSaveFile({ saveName, playerName, cityName, classId = null, sourceSaveId = null, setActive = true } = {}) {
     if (!state.playerDoc || !state.playerDoc.saveFiles) return null;
     const baseId = String(Date.now());
     let saveId = `save_${baseId}`;
@@ -2235,10 +2272,13 @@
     const sourceMapProgress = source?.mapProgress ? deepClone(source.mapProgress) : createFreshMapProgress(window.BattlechurchMapData);
     const fallbackPlayerName = state.playerDoc.saveFiles[state.playerDoc.activeSaveId]?.playerName || "Pastor";
     const fallbackCityName = state.playerDoc.saveFiles[state.playerDoc.activeSaveId]?.cityName || "";
+    const fallbackClassId = state.playerDoc.saveFiles[state.playerDoc.activeSaveId]?.classId || getDefaultClassIdForSaves();
+    const newSaveClassMeta = resolveClassMetaForSave(classId || source?.classId || fallbackClassId);
     state.playerDoc.saveFiles[saveId] = {
       saveName: typeof saveName === "string" && saveName.trim() ? saveName.trim() : `Save ${Object.keys(state.playerDoc.saveFiles).length + 1}`,
       playerName: typeof playerName === "string" && playerName.trim() ? playerName.trim() : (source?.playerName || fallbackPlayerName),
       cityName: typeof cityName === "string" && cityName.trim() ? cityName.trim() : (source?.cityName || fallbackCityName),
+      classId: newSaveClassMeta.classId,
       createdAt: Date.now(),
       lastPlayedAt: Date.now(),
       playtimeSec: 0,
@@ -2273,6 +2313,20 @@
     }
     syncActiveSaveProgressMirror();
     await persistPlayerDoc();
+    return true;
+  }
+
+  async function setClassForActiveSave(classId, { persist = true } = {}) {
+    if (!state.playerDoc?.saveFiles || !state.playerDoc.activeSaveId) return false;
+    const activeSave = state.playerDoc.saveFiles[state.playerDoc.activeSaveId];
+    if (!activeSave || typeof activeSave !== "object") return false;
+    const classMeta = resolveClassMetaForSave(classId);
+    activeSave.classId = classMeta.classId;
+    activeSave.lastPlayedAt = Date.now();
+    syncActiveSaveProgressMirror();
+    if (persist) {
+      await persistPlayerDoc();
+    }
     return true;
   }
 
@@ -3152,6 +3206,7 @@
     resetSaveFile,
     renameSaveFile,
     deleteSaveFile,
+    setClassForActiveSave,
     devAwardNextDistrict,
     setDemoProfile,
     clearDemoProfile,
