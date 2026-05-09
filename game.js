@@ -37,6 +37,73 @@ const _gb = (path, fallback) => {
   return val !== undefined ? val : fallback;
 };
 
+const CLASS_SELECTION_STORAGE_KEY = "battlechurch.selectedClassId";
+const classConfig =
+  (typeof window !== "undefined" && window.BattlechurchClassConfig) || {};
+const classEntries = Array.isArray(classConfig.classes) ? classConfig.classes : [];
+const classById = classConfig.byId && typeof classConfig.byId === "object" ? classConfig.byId : {};
+const defaultClassId =
+  typeof classConfig.defaultClassId === "string" && classConfig.defaultClassId.trim()
+    ? classConfig.defaultClassId.trim()
+    : (classEntries[0]?.id || "default");
+let activeClassId = defaultClassId;
+
+function getClassById(classId) {
+  const key = String(classId || "").trim();
+  return (key && classById[key]) || classById[defaultClassId] || classEntries[0] || null;
+}
+
+function loadSelectedClassIdFromStorage() {
+  if (typeof localStorage === "undefined") return defaultClassId;
+  try {
+    const raw = localStorage.getItem(CLASS_SELECTION_STORAGE_KEY);
+    const selected = String(raw || "").trim();
+    return getClassById(selected)?.id || defaultClassId;
+  } catch (_error) {
+    return defaultClassId;
+  }
+}
+
+function saveSelectedClassIdToStorage(classId) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(CLASS_SELECTION_STORAGE_KEY, classId);
+  } catch (_error) {}
+}
+
+function setActiveClassId(classId) {
+  const resolved = getClassById(classId);
+  activeClassId = resolved?.id || defaultClassId;
+  saveSelectedClassIdToStorage(activeClassId);
+  return activeClassId;
+}
+
+function getActiveClass() {
+  return getClassById(activeClassId);
+}
+
+activeClassId = loadSelectedClassIdFromStorage();
+
+if (typeof window !== "undefined") {
+  window.BattlechurchClasses = {
+    getAll() {
+      return classEntries.slice();
+    },
+    getActive() {
+      return getActiveClass();
+    },
+    getActiveId() {
+      return activeClassId;
+    },
+    setActive(classId) {
+      return setActiveClassId(classId);
+    },
+    getById(classId) {
+      return getClassById(classId);
+    },
+  };
+}
+
 const POWERUP_RESPAWN_DELAY = _gb('powerups.respawnDelay', 5);
 const POWERUP_ACTIVE_LIFETIME = _gb('powerups.activeLifetime', 8);
 const POWERUP_BLINK_DURATION = _gb('powerups.blinkDuration', 2);
