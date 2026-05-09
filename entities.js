@@ -4849,10 +4849,15 @@
         if (maxHp > 100 && typeof window !== "undefined" && window.__battlechurchShowEnemyDevLabels) {
           try {
             const hpValue = Math.max(0, Math.round(this.health || 0));
-            const hitRadius = this.radius || 0;
-            // Damage numbers spawn at entity.y - radius and float upward.
-            // HP label sits just below that origin point.
-            const labelY = drawY - hitRadius + 14;
+            // Mirror the exact anchor showDamage uses so HP sits right below the damage pop.
+            const hitbox = this.config?.hitbox || null;
+            const hasHitbox = hitbox &&
+              Number.isFinite(hitbox.width) && Number.isFinite(hitbox.height) &&
+              hitbox.width > 0 && hitbox.height > 0;
+            const damageAnchorOffsetY = hasHitbox
+              ? (Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0) - hitbox.height * 0.5
+              : -(this.radius || 0);
+            const labelY = drawY + damageAnchorOffsetY + 0;
             ctx.save();
             ctx.font = "600 14px Arial";
             ctx.textAlign = "center";
@@ -4864,13 +4869,6 @@
             ctx.fillText(`${hpValue}`, this.x, labelY);
             ctx.restore();
           } catch (e) {}
-        }
-        if (Array.isArray(window?.__battlechurchEnemyHpLabels)) {
-          const hpValue = Math.max(0, Math.round(this.health || 0));
-          if (maxHp > 100) {
-            const hitRadius = this.radius || 0;
-            window.__battlechurchEnemyHpLabels.push({ x: this.x, y: drawY - hitRadius + 14, hp: hpValue });
-          }
         }
       }
 

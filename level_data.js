@@ -29268,12 +29268,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 3,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 10
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
@@ -29284,12 +29279,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 4,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 10
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delays": {},
                       "delaysWeighted": {},
@@ -29300,12 +29290,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 5,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 10
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delays": {},
                       "delaysWeighted": {},
@@ -29323,12 +29308,7 @@ window.BattlechurchLevelData = {
                   "hordes": [
                     {
                       "index": 1,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 50
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
@@ -29339,12 +29319,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 2,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
@@ -29355,12 +29330,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 3,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delaysWeighted": {},
                       "delaysExplicit": {},
@@ -29371,12 +29341,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 4,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delays": {},
                       "delaysWeighted": {},
@@ -29387,12 +29352,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 5,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delays": {},
                       "delaysWeighted": {},
@@ -29410,12 +29370,7 @@ window.BattlechurchLevelData = {
                   "hordes": [
                     {
                       "index": 1,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "mode": "explicit",
                       "weights": {},
                       "delays": {},
@@ -29426,12 +29381,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 2,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "mode": "explicit",
                       "weights": {},
                       "delays": {},
@@ -29442,12 +29392,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 3,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "mode": "explicit",
                       "weights": {},
                       "delays": {},
@@ -29458,12 +29403,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 4,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delays": {},
                       "delaysWeighted": {},
@@ -29474,12 +29414,7 @@ window.BattlechurchLevelData = {
                     },
                     {
                       "index": 5,
-                      "entries": [
-                        {
-                          "enemy": "miniClawedDemon",
-                          "count": 20
-                        }
-                      ],
+                      "entries": [],
                       "weights": {},
                       "delays": {},
                       "delaysWeighted": {},
