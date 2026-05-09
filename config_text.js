@@ -55,7 +55,7 @@
       // Meters
       prayerMeterLabels: ["Prayer", "2", "3"],
       dash: "DASH",
-      maxCombo: "Max Combo:",
+      maxCombo: "Max Chain:",
 
       // Boss stage fallback
       bossStageTitle: "Personal Struggles",

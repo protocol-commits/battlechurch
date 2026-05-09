@@ -170,6 +170,25 @@
     "preferEdges",
     "npcPriority",
   ]);
+  const campaignUiLabels = (() => {
+    const districtLabel =
+      (typeof window !== "undefined" &&
+        (window.DISTRICT_LABEL || window.TOWN_LABEL || window.COUNTY_LABEL)) ||
+      "District";
+    const battleLabel =
+      (typeof window !== "undefined" &&
+        (window.STAGE_LABEL || window.BATTLE_LABEL || window.BATTLEFIELD_LABEL)) ||
+      "Battlefield";
+    const missionLabel =
+      (typeof window !== "undefined" &&
+        (window.PHASE_LABEL || window.MISSION_LABEL || window.ENCOUNTER_LABEL)) ||
+      "Mission";
+    return {
+      district: String(districtLabel),
+      battle: String(battleLabel),
+      mission: String(missionLabel),
+    };
+  })();
 
   // Classify enemies into filter tags based on catalog properties.
   function getEnemyType(key, catalog) {
@@ -627,20 +646,17 @@
       <div class="panel" id="lb-topPanel">
         <div class="lb-topbar">
           <div class="group">
-            <label>Town</label>
+            <label>${campaignUiLabels.district}</label>
             <select id="lb-town"></select>
-            <label>Mission</label>
+            <label>${campaignUiLabels.battle}</label>
             <select id="lb-battle"></select>
-            <label>Encounter</label>
-            <select id="lb-mission"></select>
           </div>
           <div class="group">
             <div id="lb-copyMenuWrap" style="position:relative;display:inline-block;">
               <button id="lb-copyMenuButton" class="secondary" type="button">Copy ▾</button>
               <div id="lb-copyMenu" class="lb-col-menu" style="top:calc(100% + 4px);left:0;right:auto;min-width:120px;">
-                <button class="lb-col-menu-item" data-copy-type="town" type="button">Copy Town</button>
-                <button class="lb-col-menu-item" data-copy-type="battle" type="button">Copy Mission</button>
-                <button class="lb-col-menu-item" data-copy-type="mission" type="button">Copy Encounter</button>
+                <button class="lb-col-menu-item" data-copy-type="town" type="button">Copy ${campaignUiLabels.district}</button>
+                <button class="lb-col-menu-item" data-copy-type="battle" type="button">Copy ${campaignUiLabels.battle}</button>
               </div>
             </div>
             <button id="lb-paste" class="secondary" type="button">Paste</button>
@@ -652,7 +668,7 @@
             <button id="lb-saveAs" type="button" class="secondary">Save As...</button>
           </div>
           <div class="group" style="align-items:center;gap:8px;margin-left:auto;min-width:0;flex:1;justify-content:flex-end;">
-            <label for="lb-battleNotes" style="font-size:11px;white-space:nowrap;">Encounter Notes</label>
+            <label for="lb-battleNotes" style="font-size:11px;white-space:nowrap;">${campaignUiLabels.mission} Notes</label>
             <input
               id="lb-battleNotes"
               type="text"
@@ -681,7 +697,6 @@
     overlay,
     town:        overlay.querySelector("#lb-town"),
     battle:      overlay.querySelector("#lb-battle"),
-    mission:     overlay.querySelector("#lb-mission"),
     content:     overlay.querySelector("#lb-contentArea"),
     saveAs:      overlay.querySelector("#lb-saveAs"),
     undo:        overlay.querySelector("#lb-undo"),
@@ -711,11 +726,8 @@
     const s = state.config.structure;
     populateSelect(els.town,    s.towns           || 10);
     populateSelect(els.battle,  s.battlesPerTown  || 3);
-    populateSelect(els.mission, 1);
     els.town.value    = String(state.scope.town);
     els.battle.value  = String(state.scope.battle);
-    els.mission.value = "1";
-    if (els.mission) els.mission.disabled = true;
   }
 
   function clearUndoHistory() {
@@ -733,14 +745,14 @@
     if (!els || !els.paste) return;
     const type = state.clipboard?.type;
     if (type === "town") {
-      els.paste.textContent = "Paste Town";
-      els.paste.title = "Paste copied town";
+      els.paste.textContent = `Paste ${campaignUiLabels.district}`;
+      els.paste.title = `Paste copied ${campaignUiLabels.district.toLowerCase()}`;
     } else if (type === "battle") {
-      els.paste.textContent = "Paste Mission";
-      els.paste.title = "Paste copied mission";
+      els.paste.textContent = `Paste ${campaignUiLabels.battle}`;
+      els.paste.title = `Paste copied ${campaignUiLabels.battle.toLowerCase()}`;
     } else if (type === "mission") {
-      els.paste.textContent = "Paste Encounter";
-      els.paste.title = "Paste copied encounter";
+      els.paste.textContent = `Paste ${campaignUiLabels.mission}`;
+      els.paste.title = `Paste copied ${campaignUiLabels.mission.toLowerCase()}`;
     } else {
       els.paste.textContent = "Paste";
       els.paste.title = "Paste";
@@ -786,11 +798,6 @@
     const enemyKeys = Object.keys(catalog);
     const filterOptions = buildEnemyFilterOptions(catalog);
     if (!filterOptions.includes(state.enemyFilter)) state.enemyFilter = "all";
-    const visibleKeys = enemyKeys.filter((key) => {
-      if (isEditorHiddenEnemy(key)) return false;
-      return getEnemyFilterTags(key, catalog).has(state.enemyFilter);
-    }).sort((a, b) => compareEnemyKeys(a, b, catalog));
-
     // Close any open column menus on outside click.
     const closeMenus = () => {
       els.content.querySelectorAll(".lb-col-menu.open").forEach((m) => m.classList.remove("open"));
@@ -841,6 +848,18 @@
       });
     });
 
+    const visibleKeys = enemyKeys
+      .filter((key) => {
+        if (isEditorHiddenEnemy(key)) return false;
+        return getEnemyFilterTags(key, catalog).has(state.enemyFilter);
+      })
+      .sort((a, b) => {
+        const totalA = enemyBattleTotals[a] || 0;
+        const totalB = enemyBattleTotals[b] || 0;
+        if (totalA !== totalB) return totalB - totalA;
+        return compareEnemyKeys(a, b, catalog);
+      });
+
     visibleKeys.forEach((key) => {
       const row = document.createElement("div");
       row.className = "lb-label-row";
@@ -852,7 +871,7 @@
           <canvas class="enemy-thumb" data-thumb-key="${key}" width="${THUMB_SIZE}" height="${THUMB_SIZE}" style="width:${THUMB_SIZE}px;height:${THUMB_SIZE}px;"></canvas>
         </div>
         <span title="${key}" style="font-size:10px;white-space:nowrap;color:${typeColor};">${displayLabel}</span>
-        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this encounter" style="font-size:9px;padding:1px 4px;opacity:0.7;flex-shrink:0;">${totalCount}</button>
+        <button data-clear-key="${key}" title="Clear this enemy from all hordes in this encounter" style="font-size:13px;font-weight:700;padding:2px 8px;opacity:0.95;line-height:1.1;flex-shrink:0;">${totalCount}</button>
       `;
       const clearBtn = row.querySelector(`[data-clear-key="${key}"]`);
       if (clearBtn) {
@@ -1795,7 +1814,7 @@
     };
 
     // Scope dropdowns
-    ["town", "battle", "mission"].forEach((key) => {
+    ["town", "battle"].forEach((key) => {
       els[key].addEventListener("change", () => {
         updateScopeFromSelects();
         refreshUI();
@@ -1842,18 +1861,20 @@
             const { town: townIdx } = state.scope;
             const townObj = ensureTown(townIdx);
             state.clipboard = { type: "town", data: JSON.parse(JSON.stringify(townObj)) };
-            setStatus(`Copied Town ${townIdx}`);
+            setStatus(`Copied ${campaignUiLabels.district} ${townIdx}`);
           } else if (copyType === "battle") {
             const { town: townIdx, battle: battleIdx } = state.scope;
             const townObj = ensureTown(townIdx);
             const battleObj = ensureBattle(townObj, battleIdx);
             state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(battleObj)) };
-            setStatus(`Copied Mission ${battleIdx}`);
+            setStatus(`Copied ${campaignUiLabels.battle} ${battleIdx}`);
           } else if (copyType === "mission") {
             const { missionObj } = getOrCreateMission();
             const { battle: battleIdx, mission: missionIdx } = state.scope;
             state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
-            setStatus(`Copied Encounter ${missionIdx} from Mission ${battleIdx}`);
+            setStatus(
+              `Copied ${campaignUiLabels.mission} ${missionIdx} from ${campaignUiLabels.battle} ${battleIdx}`,
+            );
           }
           updatePasteButtonState();
           closeTopMenus();
@@ -1874,7 +1895,7 @@
           state.config.towns[townIdx - 1] = pasted;
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted Town ${townIdx}`);
+          setStatus(`Pasted ${campaignUiLabels.district} ${townIdx}`);
         } else if (state.clipboard.type === "battle") {
           pushUndoSnapshot();
           const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
@@ -1885,7 +1906,9 @@
           else bList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted Mission into Town ${townIdx} Mission ${battleIdx}`);
+          setStatus(
+            `Pasted ${campaignUiLabels.battle} into ${campaignUiLabels.district} ${townIdx} ${campaignUiLabels.battle} ${battleIdx}`,
+          );
         } else if (state.clipboard.type === "mission") {
           pushUndoSnapshot();
           const battleObj = ensureBattle(townObj, battleIdx);
@@ -1897,7 +1920,9 @@
           else mList.push(pasted);
           saveToStorage(state.config);
           refreshUI();
-          setStatus(`Pasted Encounter ${missionIdx} into Town ${townIdx} Mission ${battleIdx}`);
+          setStatus(
+            `Pasted ${campaignUiLabels.mission} ${missionIdx} into ${campaignUiLabels.district} ${townIdx} ${campaignUiLabels.battle} ${battleIdx}`,
+          );
         } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
           setStatus("Use the column ▾ menu to paste hordes/waves", true);
         }

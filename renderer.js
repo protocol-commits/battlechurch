@@ -5716,12 +5716,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ? window.__comboTextFixedY
       : (hudHeight || 0) + 36;
     const shake = getCameraShakeOffset();
+    const flashAge = display.milestoneFlashAt ? (now - display.milestoneFlashAt) / 1000 : 1;
+    const flashPulse = flashAge < 0.4 ? Math.max(0, 1 - flashAge / 0.4) : 0;
+    const flashScale = 1 + flashPulse * 0.35;
+    const baseSize = Math.round(display.fontSize || 32);
+    const drawSize = Math.round(baseSize * flashScale);
+    const drawColor = flashPulse > 0 ? "#FFFFFF" : (display.color || "#FFF2B8");
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, shake.x, shake.y);
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillStyle = display.color || "#FFF2B8";
-    ctx.font = `800 ${Math.round(display.fontSize || 32)}px ${uiFontFamily}`;
+    ctx.fillStyle = drawColor;
+    if (flashPulse > 0) {
+      ctx.shadowColor = "rgba(255, 230, 100, 0.9)";
+      ctx.shadowBlur = 18 + flashPulse * 24;
+    }
+    ctx.font = `800 ${drawSize}px ${uiFontFamily}`;
     ctx.fillText(display.labelText || "", x, y);
     ctx.restore();
   }

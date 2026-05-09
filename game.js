@@ -8866,7 +8866,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (maxComboPerformanceValue > 0) {
     performanceBadgeBreakdown.push({
       id: "maxCombo",
-      label: "Max Combo",
+      label: "Max Chain",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.maxCombo,
       value: maxComboPerformanceValue,
     });
@@ -21913,7 +21913,9 @@ function getDashButtonDirection() {
 }
 
 function getComboLabelFontSize(hits) {
-  return 32;
+  const h = Math.max(1, Math.round(hits || 0));
+  // Grows by ~0.6px every 10 hits, capped at 56px at ~400 hits
+  return Math.min(56, 32 + Math.floor(h / 10) * 0.6);
 }
 
 function getComboLabelColor(hits) {
@@ -21934,16 +21936,36 @@ function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
       : Date.now();
   const labelHits = Number.isFinite(hits) ? Math.max(2, Math.round(hits)) : 2;
   const damageValue = Number.isFinite(damage) ? Math.round(damage) : 0;
-  const labelText = `${labelHits} Hit Combo`;
+  const labelText = `${labelHits} Hit Chain`;
+  const prevHits = hudComboDisplay ? (hudComboDisplay._hits || 0) : 0;
+  const prevMilestone = Math.floor(prevHits / 100);
+  const newMilestone = Math.floor(labelHits / 100);
+  const crossedMilestone = newMilestone > prevMilestone && newMilestone > 0;
   hudComboDisplay = {
     labelText,
     color: color || "#FFF2B8",
     fontSize: fontSize || 32,
     updatedAt: now,
     expiresAt: now + (Number.isFinite(durationMs) ? durationMs : 1100),
+    milestoneFlashAt: crossedMilestone ? now : (hudComboDisplay?.milestoneFlashAt || null),
+    _hits: labelHits,
   };
   if (typeof window !== "undefined") {
     window.__hudComboDisplay = hudComboDisplay;
+  }
+  if (crossedMilestone) {
+    const milestoneCount = newMilestone * 100;
+    const px = typeof player !== "undefined" && Number.isFinite(player?.x) ? player.x : (typeof cameraOffsetX !== "undefined" ? cameraOffsetX + canvas.width / 2 : 0);
+    const py = typeof player !== "undefined" && Number.isFinite(player?.y) ? player.y - (player.radius || 24) - 20 : canvas.height / 2;
+    addFloatingTextAt(px, py, `${milestoneCount}`, "#FFE566", {
+      vy: -90,
+      life: 1.2,
+      fontSize: 52,
+      fontWeight: "900",
+      fadeDelay: 0.5,
+      speechBubble: false,
+      priority: 8,
+    });
   }
 }
 
@@ -22088,7 +22110,7 @@ function maybeUpdateMaxComboInTown(hits, x, y, options = {}) {
 
 function updateLiveComboText(state, target) {
   if (!state || !target || state.hits < 2) return;
-  const label = `${Math.max(2, Math.round(state.hits))} Hit Combo`;
+  const label = `${Math.max(2, Math.round(state.hits))} Hit Chain`;
   const labelFontSize = getComboLabelFontSize(state.hits);
   const labelColor = getComboLabelColor(state.hits);
   maybeUpdateMaxComboInTown(state.hits, target.x, target.y);

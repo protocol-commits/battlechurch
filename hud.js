@@ -1453,7 +1453,7 @@
         const enemyLabel = combo.enemyName ? ` · ${combo.enemyName}` : "";
         ctx.fillStyle = 'rgba(255,200,106,0.92)';
         ctx.font = `700 11px ${UI_FONT_FAMILY}`;
-        ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}${enemyLabel}`, textX, rowY);
+        ctx.fillText(`CHAIN ${hits}  —  ${totalDamage}${tagSuffix}${enemyLabel}`, textX, rowY);
         rowY += lineHeight;
 
         details.forEach((entry) => {
@@ -1500,12 +1500,12 @@
 
       ctx.fillStyle = 'rgba(255,220,80,0.6)';
       ctx.font = `700 10px ${UI_FONT_FAMILY}`;
-      ctx.fillText('BEST COMBO', textX, rowY);
+      ctx.fillText('BEST CHAIN', textX, rowY);
       rowY += 14;
 
       ctx.fillStyle = 'rgba(255,200,106,0.95)';
       ctx.font = `700 15px ${UI_FONT_FAMILY}`;
-      ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}`, textX, rowY);
+      ctx.fillText(`CHAIN ${hits}  —  ${totalDamage}${tagSuffix}`, textX, rowY);
       rowY += lineHeight;
 
       details.forEach((entry) => {
