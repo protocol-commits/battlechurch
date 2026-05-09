@@ -29215,35 +29215,7 @@ window.BattlechurchLevelData = {
                       "index": 1,
                       "entries": [
                         {
-                          "enemy": "armoredEliteOrc",
-                          "count": 3
-                        },
-                        {
-                          "enemy": "miniDemoness",
-                          "count": 2
-                        },
-                        {
-                          "enemy": "miniDemonTormentor",
-                          "count": 2
-                        },
-                        {
-                          "enemy": "armoredAxeman",
-                          "count": 2
-                        },
-                        {
-                          "enemy": "armoredOrc",
-                          "count": 2
-                        },
-                        {
                           "enemy": "armoredSkeleton",
-                          "count": 2
-                        },
-                        {
-                          "enemy": "miniDemonLord",
-                          "count": 2
-                        },
-                        {
-                          "enemy": "miniHighDemon",
                           "count": 2
                         }
                       ],

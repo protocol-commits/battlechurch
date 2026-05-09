@@ -1031,6 +1031,11 @@
       const districtRowY = panelY + 14;
       const districtLabelText = `${districtName.toUpperCase()} ${positionLabel}`;
       ctx.fillText(districtLabelText, x, districtRowY);
+      if (typeof window !== "undefined") {
+        window.__comboFeedFixedX = x + width;
+        // Keep combo callout directly under the district progress meter.
+        window.__comboFeedFixedY = panelY + 26 + 18 + 17;
+      }
       const districtLabelWidth = ctx.measureText(districtLabelText).width || 0;
       const churchPowerupOptions =
         typeof window !== 'undefined' && window.ChurchPowerups?.getOptions
@@ -1523,9 +1528,42 @@
       ctx.restore();
     };
 
+    const drawGameplayComboFeed = () => {
+      if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode === true) return;
+      const combo = window.__hudConfirmedCombo || null;
+      if (!combo || !Number.isFinite(combo.recordedAt)) return;
+      const COMBO_LIFETIME_MS = 3800;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const age = now - combo.recordedAt;
+      if (age >= COMBO_LIFETIME_MS) return;
+      const fadeStart = COMBO_LIFETIME_MS * 0.55;
+      const alpha = age > fadeStart
+        ? Math.max(0, 1 - (age - fadeStart) / (COMBO_LIFETIME_MS - fadeStart))
+        : 1;
+      const hits = Math.max(2, Math.floor(Number(combo.hits) || 2));
+      const totalDamage = Math.max(0, Math.round(Number(combo.totalDamage) || 0));
+      const modifier = combo.hasPunishCounter ? "PC" : (combo.hasCounterHit ? "CA" : "");
+      const bracketText = modifier ? `${totalDamage}+${modifier}` : `${totalDamage}`;
+      const text = `${hits} Hit Combo [${bracketText}]`;
+      const textX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
+      const textY = Number.isFinite(window.__comboFeedFixedY) ? window.__comboFeedFixedY : (hudHeight + 34);
+      const chainSize = 24;
+      const chainColor = window.__hudComboDisplay?.color || "#FFF2B8";
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = chainColor;
+      ctx.font = `800 ${chainSize}px ${UI_FONT_FAMILY}`;
+      ctx.fillText(text, textX, textY);
+      ctx.restore();
+    };
+
     drawPlayerInfo();
     drawNpcInfo();
     drawDistrictProgress();
+    drawGameplayComboFeed();
     drawDevArenaMoveReference();
     drawDevArenaMoveFeed();
     drawDevArenaBestCombo();

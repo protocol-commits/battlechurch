@@ -4537,6 +4537,40 @@ function syncDevArenaConfirmedCombos() {
   }
 }
 
+function syncHudConfirmedCombo(comboId, hits, details = null, enemyName = null) {
+  if (typeof window === "undefined") return;
+  if (!comboId || !Number.isFinite(hits) || hits < 2) return;
+  const normalizedDetails = Array.isArray(details)
+    ? details
+        .slice(0, hits)
+        .map((entry) => ({
+          move: String(entry?.move || ""),
+          damage: Math.max(0, Math.round(Number(entry?.damage) || 0)),
+          isCounterHit: Boolean(entry?.isCounterHit),
+          isPunishCounter: Boolean(entry?.isPunishCounter),
+        }))
+        .filter((entry) => entry.move)
+    : [];
+  const totalDamage = normalizedDetails.reduce(
+    (sum, entry) => sum + Math.max(0, Number(entry.damage) || 0),
+    0,
+  );
+  const hasPunishCounter = normalizedDetails.some((entry) => entry.isPunishCounter);
+  const hasCounterHit = normalizedDetails.some((entry) => entry.isCounterHit);
+  window.__hudConfirmedCombo = {
+    comboId: String(comboId),
+    hits: Math.max(2, Math.floor(hits), normalizedDetails.length),
+    totalDamage,
+    hasPunishCounter,
+    hasCounterHit,
+    enemyName: enemyName ? String(enemyName) : null,
+    recordedAt:
+      typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now(),
+  };
+}
+
 function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null, enemyName = null) {
   if (!isDevMeleeArenaActive()) return;
   if (!comboId || !Number.isFinite(hits) || hits < 2) return;
@@ -23476,6 +23510,12 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
         bestEntry.comboId,
         bestEntry.hits,
         bestEntry.names || [],
+        bestEntry.details || [],
+        bestEnemyName,
+      );
+      syncHudConfirmedCombo(
+        bestEntry.comboId,
+        bestEntry.hits,
         bestEntry.details || [],
         bestEnemyName,
       );
