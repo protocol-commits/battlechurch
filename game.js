@@ -4003,7 +4003,8 @@ const RING_OF_FIRE_DAMAGE = 34;
 const RING_OF_FIRE_BOSS_DAMAGE = 18;
 const RING_OF_FIRE_HIT_COOLDOWN = 0.38;
 const RING_OF_FIRE_INVULNERABILITY = 0.72;
-const COMBO_WINDOW_MS = 400;
+const MELEE_COMBO_WINDOW_MS = 400;  // melee button chain window
+const HIT_CHAIN_WINDOW_MS = 400;    // enemy hit chain window
 const DASH_DISTANCE = 200 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
 const DASH_DUST_SPACING = 20 * WORLD_SCALE;
@@ -10305,7 +10306,7 @@ function updateHaloBladeInstance(state, angle, dt) {
     if (haloWasAlive && (enemy.dead || enemy.state === "death")) {
       enemy.killedByChurchPowerup = true;
     }
-    registerComboHit(enemy, haloDamage);
+    registerChainHit(enemy, haloDamage);
     spawnFlashEffect(
       bladeHit ? center.x : tetherImpactX,
       bladeHit ? center.y - targetRadius * 0.3 : tetherImpactY,
@@ -10371,7 +10372,7 @@ function updateHaloBladeInstance(state, angle, dt) {
           damageType: "melee",
           skipImpactEffect: true,
         });
-        registerComboHit(activeBoss, bossDamage);
+        registerChainHit(activeBoss, bossDamage);
         spawnFlashEffect(
           bossBladeHit ? state.x : bossImpactX,
           bossBladeHit ? state.y : bossImpactY,
@@ -10818,7 +10819,7 @@ function updateSentryTurretInstance(state, dt) {
           damageType: "projectile",
           skipImpactEffect: true,
         });
-        registerComboHit(activeBoss, state.damage);
+        registerChainHit(activeBoss, state.damage);
       } else if (target instanceof Projectile || (target.visualOnly !== undefined && target.friendly !== undefined)) {
         // Hostile projectile — destroy it, no takeDamage method exists
         const destroyed = target.maxDurability > 0
@@ -10829,7 +10830,7 @@ function updateSentryTurretInstance(state, dt) {
         }
       } else {
         target.takeDamage(state.damage, { damageType: "projectile" });
-        registerComboHit(target, state.damage);
+        registerChainHit(target, state.damage);
       }
       const targetHealth =
         target === activeBoss ? activeBoss?.health : target?.health;
@@ -10874,7 +10875,7 @@ function applySpearHit(state, target, hitX, hitY) {
       damageType: "projectile",
       skipImpactEffect: true,
     });
-    registerComboHit(activeBoss, hitDamage);
+    registerChainHit(activeBoss, hitDamage);
   } else if (target instanceof Projectile || (target && target.visualOnly !== undefined && target.friendly !== undefined)) {
     const destroyed = target.maxDurability > 0
       ? applyProjectileDurabilityDamage(target, hitDamage)
@@ -10884,7 +10885,7 @@ function applySpearHit(state, target, hitX, hitY) {
     }
   } else {
     target.takeDamage(hitDamage, { damageType: "projectile" });
-    registerComboHit(target, hitDamage);
+    registerChainHit(target, hitDamage);
   }
   const targetHealth = target === activeBoss ? activeBoss?.health : target?.health;
   const targetDead =
@@ -12049,7 +12050,7 @@ function applyShieldImpact(target) {
     }
     target.shieldHitCooldown = SHIELD_LARGE_COOLDOWN;
   }
-  registerComboHit(target, damage);
+  registerChainHit(target, damage);
   spawnFlashEffect(target.x, target.y - targetRadius / 2);
   spawnPuffEffect(center.x, center.y, Math.max(18, targetRadius * 0.65));
   if (typeof playFaithHitSfx === "function") {
@@ -22119,7 +22120,7 @@ function updateLiveChainText(state, target) {
     damage: state.damage,
     fontSize: labelFontSize,
     color: labelColor,
-    durationMs: COMBO_WINDOW_MS * 4,
+    durationMs: HIT_CHAIN_WINDOW_MS * 4,
   });
 }
 
@@ -22134,9 +22135,9 @@ function finalizeComboState(state) {
   });
 }
 
-const PROJECTILE_CHIP_COMBO_INCREMENT = 0.1;
-const PROJECTILE_CHIP_COMBO_WINDOW_MS = 2000;
-const PROJECTILE_CHIP_COMBO_CAP_PER_WINDOW = 1.0;
+const PROJECTILE_CHIP_CHAIN_INCREMENT = 0.1;
+const PROJECTILE_CHIP_CHAIN_WINDOW_MS = 2000;
+const PROJECTILE_CHIP_CHAIN_CAP_PER_WINDOW = 1.0;
 
 function isComboTargetDefeated(target) {
   if (!target) return false;
@@ -22152,12 +22153,12 @@ function getProjectileComboIncrement(target) {
   if (isComboTargetDefeated(target)) return 1;
   const damageClass = String(target.damageClass || target.config?.damageClass || "").toLowerCase();
   if (damageClass === "armored" || damageClass === "tank") {
-    return PROJECTILE_CHIP_COMBO_INCREMENT;
+    return PROJECTILE_CHIP_CHAIN_INCREMENT;
   }
   return 1;
 }
 
-const comboTracker = {
+const chainTracker = {
   state: null,
   flush(now) {
     if (!this.state) return;
@@ -22202,10 +22203,10 @@ const comboTracker = {
     if (comboIncrement > 0 && comboIncrement < 1) {
       const chipWindowMs = Number.isFinite(options.chipWindowMs)
         ? Math.max(100, options.chipWindowMs)
-        : PROJECTILE_CHIP_COMBO_WINDOW_MS;
+        : PROJECTILE_CHIP_CHAIN_WINDOW_MS;
       const chipCapPerWindow = Number.isFinite(options.chipCapPerWindow)
         ? Math.max(0, options.chipCapPerWindow)
-        : PROJECTILE_CHIP_COMBO_CAP_PER_WINDOW;
+        : PROJECTILE_CHIP_CHAIN_CAP_PER_WINDOW;
       let chipState = current.chipGainByTarget.get(target);
       if (!chipState || timeNow - chipState.windowStart > chipWindowMs) {
         chipState = { windowStart: timeNow, gain: 0 };
@@ -22225,7 +22226,7 @@ const comboTracker = {
     ) {
       current.killed = true;
     }
-    current.expiresAt = timeNow + COMBO_WINDOW_MS;
+    current.expiresAt = timeNow + HIT_CHAIN_WINDOW_MS;
     this.state = current;
     if (current.hits >= 2) {
       updateLiveChainText(current, target);
@@ -22246,7 +22247,7 @@ const comboTracker = {
   },
 };
 
-function registerComboHit(target, damage) {
+function registerChainHit(target, damage) {
   if (prayerBombComboState.active && target) {
     recordPrayerBombComboHits(1);
   }
@@ -22254,7 +22255,7 @@ function registerComboHit(target, damage) {
     showDevArenaSkeletonHint(target);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
-  comboTracker.registerHit(target, damage);
+  chainTracker.registerHit(target, damage);
 }
 
 function registerProjectileComboHit(target, damage, projectile) {
@@ -22265,10 +22266,10 @@ function registerProjectileComboHit(target, damage, projectile) {
     showDevArenaSkeletonHint(target);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
-  comboTracker.registerHit(target, damage, undefined, {
+  chainTracker.registerHit(target, damage, undefined, {
     increment: getProjectileComboIncrement(target),
-    chipWindowMs: PROJECTILE_CHIP_COMBO_WINDOW_MS,
-    chipCapPerWindow: PROJECTILE_CHIP_COMBO_CAP_PER_WINDOW,
+    chipWindowMs: PROJECTILE_CHIP_CHAIN_WINDOW_MS,
+    chipCapPerWindow: PROJECTILE_CHIP_CHAIN_CAP_PER_WINDOW,
   });
 }
 
@@ -22605,7 +22606,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
-    registerComboHit(enemy, damage);
+    registerChainHit(enemy, damage);
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, RUSH_PUSHBACK_STRENGTH);
     }
@@ -22670,7 +22671,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
         });
-        registerComboHit(activeBoss, damage);
+        registerChainHit(activeBoss, damage);
         const now = typeof performance !== "undefined" ? performance.now() : Date.now();
         if (!activeBoss.dead && activeBoss.state === "hurt") {
           const meleeCancelActive =
@@ -22760,7 +22761,7 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
-    registerComboHit(enemy, damage);
+    registerChainHit(enemy, damage);
     spawnEnemyHitEffect(enemy);
   });
   if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
@@ -22788,7 +22789,7 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
           baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
         });
-        registerComboHit(activeBoss, damage);
+        registerChainHit(activeBoss, damage);
         spawnEnemyHitEffect(activeBoss);
       }
     }
@@ -23124,7 +23125,7 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
   target.counterHitUntil = 0;
   if (meleeAttackState) {
     meleeAttackState.punishCounterTarget = target;
-    meleeAttackState.punishCounterExpiresAt = now + COMBO_WINDOW_MS;
+    meleeAttackState.punishCounterExpiresAt = now + MELEE_COMBO_WINDOW_MS;
     meleeAttackState.punishCounterPrimed = true;
     meleeAttackState.punishCounterTextShown = false;
   }
@@ -23388,7 +23389,7 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const detailEntries = chainActive && Array.isArray(existing.details) ? existing.details : [];
   if (!chainActive) { names.length = 0; detailEntries.length = 0; }
   meleeAttackState.meleeComboTarget = target;
-  meleeAttackState.meleeComboExpiresAt = now + COMBO_WINDOW_MS;
+  meleeAttackState.meleeComboExpiresAt = now + MELEE_COMBO_WINDOW_MS;
   meleeAttackState.devArenaComboId = comboId;
   meleeAttackState.comboMoveNames = names;
   meleeAttackState.devArenaComboEntries = detailEntries;
@@ -23447,11 +23448,11 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   while (detailEntries.length > targetLen) detailEntries.shift();
   const existingLabel = chainActive ? (existing?.label || null) : null;
   if (!chainActive && existing?.label) releaseEntryComboLabel(existing);
-  map.set(target, { hits: newHits, expiresAt: now + COMBO_WINDOW_MS, comboId, names, details: detailEntries, label: existingLabel, enemy: target });
+  map.set(target, { hits: newHits, expiresAt: now + MELEE_COMBO_WINDOW_MS, comboId, names, details: detailEntries, label: existingLabel, enemy: target });
   meleeAttackState.meleeComboHits = getMaxLiveMeleeComboHits(meleeAttackState, now);
   meleeAttackState.comboMoveNames = names;
   meleeAttackState.devArenaComboEntries = detailEntries;
-  meleeAttackState.comboMovesWindowUntil = now + COMBO_WINDOW_MS;
+  meleeAttackState.comboMovesWindowUntil = now + MELEE_COMBO_WINDOW_MS;
   meleeAttackState.pendingComboMoveName = null;
   updateComboMoveCallout(meleeAttackState);
   if (meleeAttackState.meleeComboHits >= 2) {
@@ -23823,7 +23824,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
     registerNormalSlashChainHit(enemy, meleeAttackState, now);
-    registerComboHit(enemy, damage);
+    registerChainHit(enemy, damage);
     meleeDamageTotal += damage;
     if (
       !meleeAttackState.divineComboShown &&
@@ -23925,7 +23926,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
         });
         registerNormalSlashChainHit(activeBoss, meleeAttackState, now);
-        registerComboHit(activeBoss, damage);
+        registerChainHit(activeBoss, damage);
         meleeDamageTotal += damage;
         if (
           !meleeAttackState.divineComboShown &&
@@ -24088,7 +24089,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
-    registerComboHit(enemy, finalDamage);
+    registerChainHit(enemy, finalDamage);
     meleeDamageTotal += finalDamage;
     if (
       !meleeAttackState.divineComboShown &&
@@ -24156,7 +24157,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
         isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
       });
-      registerComboHit(activeBoss, finalDamage);
+      registerChainHit(activeBoss, finalDamage);
       meleeDamageTotal += finalDamage;
       if (
         !meleeAttackState.divineComboShown &&
@@ -24255,7 +24256,7 @@ function applyDashSlashTravelDamage(meleeAttackState) {
       isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
     });
-    registerComboHit(enemy, finalDamage);
+    registerChainHit(enemy, finalDamage);
     if (!enemy.dead && enemy.state !== "death") {
       applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
     }
@@ -24308,7 +24309,7 @@ function applyDashSlashTravelDamage(meleeAttackState) {
         isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
       });
-      registerComboHit(activeBoss, finalDamage);
+      registerChainHit(activeBoss, finalDamage);
       if (typeof activeBoss.knockbackVx === "number") {
         applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
       }
@@ -24333,7 +24334,7 @@ function executeRushAttack(
       ? performance.now()
       : Date.now();
   const rushTravelMs = Math.ceil((RUSH_DISTANCE / Math.max(1, RUSH_SPEED || 1)) * 1000);
-  const rushComboCarryUntil = now + rushTravelMs + COMBO_WINDOW_MS;
+  const rushComboCarryUntil = now + rushTravelMs + MELEE_COMBO_WINDOW_MS;
   if (meleeAttackState.meleeComboTarget && (meleeAttackState.meleeComboHits || 0) > 0) {
     meleeAttackState.meleeComboExpiresAt = Math.max(
       Number(meleeAttackState.meleeComboExpiresAt) || 0,
@@ -25364,7 +25365,7 @@ function updateMeleeAttackSystem(dt) {
           isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
         });
-        registerComboHit(enemy, spinDamage);
+        registerChainHit(enemy, spinDamage);
         spinDamageTotal += spinDamage;
         if (!enemy.dead && enemy.state !== "death") {
           applyEnemyMeleeKnockback(enemy, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
@@ -25441,7 +25442,7 @@ function updateMeleeAttackSystem(dt) {
               isPunishCounter: Boolean(counterHit?.isPunishCounter),
       baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
             });
-            registerComboHit(activeBoss, spinDamage);
+            registerChainHit(activeBoss, spinDamage);
             spinDamageTotal += spinDamage;
             if (typeof activeBoss.knockbackVx === "number") {
               applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
@@ -25889,7 +25890,7 @@ function updateMeleeAttackSystem(dt) {
       if (comboCarryActive) {
         meleeAttackState.meleeComboExpiresAt = Math.max(
           Number(meleeAttackState.meleeComboExpiresAt) || 0,
-          comboNow + COMBO_WINDOW_MS,
+          comboNow + MELEE_COMBO_WINDOW_MS,
         );
         if (meleeAttackState.punishCounterTarget === meleeAttackState.meleeComboTarget) {
           meleeAttackState.punishCounterExpiresAt = Math.max(
@@ -26483,7 +26484,7 @@ function updateGame(dt) {
   processDeadEnemies();
 
 
-  comboTracker.update(
+  chainTracker.update(
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now(),
