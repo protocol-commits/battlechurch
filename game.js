@@ -21023,6 +21023,8 @@ function handlePauseMenu() {
       window.isPauseOverlayActive = true;
       pauseRestartConfirmActive = false;
       window.__announcementFocus = { key: "pause", index: 0 };
+      // Prevent the same Space press that opened pause from auto-confirming a menu action.
+      window.__battlechurchSuppressMenuConfirmUntilRelease = true;
       if (typeof window !== "undefined" && typeof window.pauseAllMusic === "function") {
         window.pauseAllMusic();
       }
@@ -22617,6 +22619,12 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
   if (!hitboxRect) return;
   const cos = Math.cos(-angle);
   const sin = Math.sin(-angle);
+  const applyRushHitstopOnce = (target, counterHit) => {
+    if (!meleeAttackState || meleeAttackState.rushHitstopConsumed) return;
+    beginMeleeHitstopSequence(meleeAttackState);
+    applyMeleeHitstop(target, meleeAttackState, counterHit);
+    meleeAttackState.rushHitstopConsumed = true;
+  };
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     if (meleeAttackState.rushHitEntities.has(enemy)) return;
@@ -22650,8 +22658,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
       player.animator.frameIndex = 2;
       player.animator.accumulator = 0;
     }
-    beginMeleeHitstopSequence(meleeAttackState);
-    applyMeleeHitstop(enemy, meleeAttackState, counterHit);
+    applyRushHitstopOnce(enemy, counterHit);
     if (Number.isFinite(meleeAttackState.rushForceEndAt) && meleeAttackState.rushForceEndAt > 0) {
       const hitstopMs = (Number(player?.meleeHitstopTimer) || MELEE_HITSTOP_DURATION) * 1000;
       meleeAttackState.rushForceEndAt += hitstopMs;
@@ -22720,7 +22727,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
           damageType: "charged",
           damageText: counterHit.damageText,
         });
-        applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
+        applyRushHitstopOnce(activeBoss, counterHit);
         registerPunishComboDamage(activeBoss, damage, meleeAttackState);
         registerMeleeComboHit(activeBoss, meleeAttackState, rushMoveName, {
           damage,
@@ -24416,6 +24423,7 @@ function executeRushAttack(
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
   meleeAttackState.rushDustAccumulator = 0;
   meleeAttackState.rushHitEntities = new Set();
+  meleeAttackState.rushHitstopConsumed = false;
   meleeAttackState.rushKillCount = 0;
   meleeAttackState.rushKillSumX = 0;
   meleeAttackState.rushKillSumY = 0;
@@ -25121,6 +25129,7 @@ function updateMeleeAttackSystem(dt) {
       rushDistanceRemaining: 0,
       rushForceEndAt: 0,
       rushHitEntities: null,
+      rushHitstopConsumed: false,
       rushCooldown: 0,
       rushDustAccumulator: 0,
       rushShieldDebugTimer: 0,
