@@ -16062,6 +16062,16 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
   }
   const projectile = new Projectile(type, config, clip, x, y, dx, dy);
   projectiles.push(projectile);
+  // Keep the hit chain alive during slow-projectile travel time so the chain
+  // doesn't expire mid-flight between wisdom/scripture shots.
+  if (config.friendly && config.source?.isPlayer && (type === "wisdom_missle" || type === "fire")) {
+    const travelMs = Number.isFinite(config.life) ? config.life * 1000 : 1500;
+    const now = typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now() : Date.now();
+    if (chainTracker.state) {
+      chainTracker.state.expiresAt = Math.max(chainTracker.state.expiresAt, now + travelMs + HIT_CHAIN_WINDOW_MS);
+    }
+  }
   return projectile;
 }
 
