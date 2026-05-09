@@ -1542,9 +1542,11 @@
         : 1;
       const hits = Math.max(2, Math.floor(Number(combo.hits) || 2));
       const totalDamage = Math.max(0, Math.round(Number(combo.totalDamage) || 0));
-      const modifier = combo.hasPunishCounter ? "PC" : (combo.hasCounterHit ? "CA" : "");
-      const bracketText = modifier ? `${totalDamage}+${modifier}` : `${totalDamage}`;
+      const bracketText = `${totalDamage}`;
       const text = `${hits} Hit Combo [${bracketText}]`;
+      const subtext = combo.hasPunishCounter
+        ? "Punish Counter"
+        : (combo.hasCounterHit ? "Counter Attack" : "");
       const textX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
       const textY = Number.isFinite(window.__comboFeedFixedY) ? window.__comboFeedFixedY : (hudHeight + 34);
       const chainSize = 24;
@@ -1557,6 +1559,11 @@
       ctx.fillStyle = chainColor;
       ctx.font = `800 ${chainSize}px ${UI_FONT_FAMILY}`;
       ctx.fillText(text, textX, textY);
+      if (subtext) {
+        ctx.fillStyle = "rgba(234,246,255,0.78)";
+        ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+        ctx.fillText(subtext, textX, textY + chainSize + 2);
+      }
       ctx.restore();
     };
 
