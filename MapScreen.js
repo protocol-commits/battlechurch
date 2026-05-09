@@ -2423,6 +2423,34 @@
     return true;
   }
 
+  async function updateSaveFileMetadata(
+    saveId,
+    { saveName = null, playerName = null, cityName = null, classId = null } = {},
+  ) {
+    const target = state.playerDoc?.saveFiles?.[saveId];
+    if (!target) return false;
+    if (typeof saveName === "string" && saveName.trim()) {
+      target.saveName = saveName.trim();
+    }
+    if (typeof playerName === "string" && playerName.trim()) {
+      target.playerName = playerName.trim();
+    }
+    if (typeof cityName === "string") {
+      target.cityName = cityName.trim();
+    }
+    if (typeof classId === "string" && classId.trim()) {
+      const classMeta = resolveClassMetaForSave(classId);
+      target.classId = classMeta.classId;
+      if (state.playerDoc.activeSaveId === saveId && typeof window.BattlechurchClasses?.setActive === "function") {
+        window.BattlechurchClasses.setActive(classMeta.classId);
+      }
+    }
+    target.lastPlayedAt = Date.now();
+    syncActiveSaveProgressMirror();
+    await persistPlayerDoc();
+    return true;
+  }
+
   async function deleteSaveFile(saveId) {
     if (!saveId || !state.playerDoc?.saveFiles?.[saveId]) return false;
     const ids = Object.keys(state.playerDoc.saveFiles);
@@ -3205,6 +3233,7 @@
     createSaveFile,
     resetSaveFile,
     renameSaveFile,
+    updateSaveFileMetadata,
     deleteSaveFile,
     setClassForActiveSave,
     devAwardNextDistrict,

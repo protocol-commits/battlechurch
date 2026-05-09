@@ -8116,8 +8116,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
         buttonConfigs.push({ key: "logoutGoogle", label: "Logout" });
         buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
+        buttonConfigs.push({ key: "editCloudSave", label: "Edit Save" });
         buttonConfigs.push({ key: "duplicateCloudSave", label: "Save File As" });
-        buttonConfigs.push({ key: "renameCloudSave", label: "Rename" });
         buttonConfigs.push({ key: "deleteCloudSave", label: "Delete Save" });
         buttonConfigs.push({ key: "resetGoogleSave", label: "Reset Highlighted" });
       }
@@ -8234,8 +8234,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         "viewCloudSaveDetails",
         "logoutGoogle",
         "newCloudSave",
+        "editCloudSave",
         "duplicateCloudSave",
-        "renameCloudSave",
         "deleteCloudSave",
         "resetGoogleSave",
         "back",

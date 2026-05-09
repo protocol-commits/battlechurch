@@ -8729,7 +8729,9 @@ async function refreshTitleCloudSaveOption() {
         details: {
           saveName: save?.saveName || "Save",
           playerName: save?.playerName || "Pastor",
+          cityName: cityName,
           classTitle,
+          classId: save?.classId || null,
           completedDistricts: completed,
           totalDistricts: total,
           totalCongregationBest,
@@ -8841,6 +8843,98 @@ function showNewCloudSaveDialog() {
               window.BattlechurchClasses.setActive(classId);
             }
             await refreshTitleCloudSaveOption();
+          } catch (_e) {}
+        })();
+      });
+    },
+  });
+  return true;
+}
+
+function showEditCloudSaveDialog(saveId) {
+  if (!window.DialogOverlay?.show) return false;
+  const row = titleCloudSaveRows.find((entry) => entry.id === saveId) || null;
+  if (!row) return false;
+  const details = row.details || {};
+  const classOptions = getSortedClassMenuEntries(classEntries);
+  const currentClassId =
+    String(details.classId || "").trim() ||
+    String(window.BattlechurchClasses?.getActiveId?.() || "").trim() ||
+    String(window.BattlechurchClassConfig?.defaultClassId || "").trim() ||
+    "class1";
+  const optionsHtml = classOptions
+    .map((entry) => {
+      const id = String(entry?.id || "");
+      const label = String(entry?.classTitle || id || "Class");
+      const selected = id === currentClassId ? " selected" : "";
+      return `<option value="${id}"${selected}>${label}</option>`;
+    })
+    .join("");
+  const currentSaveName = String(details.saveName || row.label || "").trim() || "Save";
+  const currentPlayerName = String(details.playerName || "Pastor").trim() || "Pastor";
+  const currentCityName = String(details.cityName || "").trim();
+  window.DialogOverlay.show({
+    title: "Edit Save",
+    buttonText: "",
+    variant: "settings",
+    bodyHtml: `
+      <div class="settings-panel" style="display:grid; gap:10px;">
+        <label style="display:grid; gap:4px;">
+          <span>File Name</span>
+          <input id="editSaveFileName" type="text" value="${escapeHtml(currentSaveName)}" style="width:100%;" />
+        </label>
+        <label style="display:grid; gap:4px;">
+          <span>Player Name</span>
+          <input id="editSavePlayerName" type="text" value="${escapeHtml(currentPlayerName)}" style="width:100%;" />
+        </label>
+        <label style="display:grid; gap:4px;">
+          <span>City</span>
+          <input id="editSaveCityName" type="text" value="${escapeHtml(currentCityName)}" style="width:100%;" />
+        </label>
+        <label style="display:grid; gap:4px;">
+          <span>Class</span>
+          <select id="editSaveClassId" style="width:100%;">${optionsHtml}</select>
+        </label>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+          <button type="button" id="editSaveCancelBtn" class="dialog-overlay__button">Cancel</button>
+          <button type="button" id="editSaveApplyBtn" class="dialog-overlay__button">Apply Changes</button>
+        </div>
+      </div>
+    `,
+    onRender: ({ bodyEl }) => {
+      const fileNameInput = bodyEl?.querySelector("#editSaveFileName");
+      const playerNameInput = bodyEl?.querySelector("#editSavePlayerName");
+      const cityNameInput = bodyEl?.querySelector("#editSaveCityName");
+      const classSelect = bodyEl?.querySelector("#editSaveClassId");
+      const cancelBtn = bodyEl?.querySelector("#editSaveCancelBtn");
+      const applyBtn = bodyEl?.querySelector("#editSaveApplyBtn");
+      cancelBtn?.addEventListener("click", () => {
+        window.DialogOverlay?.hide?.();
+      });
+      applyBtn?.addEventListener("click", () => {
+        const saveName = String(fileNameInput?.value || "").trim();
+        const playerName = String(playerNameInput?.value || "").trim();
+        const cityName = String(cityNameInput?.value || "").trim();
+        const classId = String(classSelect?.value || "").trim();
+        if (!saveName || !playerName || !classId) {
+          if (typeof setDevStatus === "function") {
+            setDevStatus("File Name, Player Name, and Class are required.", 2.5);
+          }
+          return;
+        }
+        window.DialogOverlay?.hide?.();
+        void (async () => {
+          try {
+            if (typeof window.MapScreen?.updateSaveFileMetadata === "function") {
+              await window.MapScreen.updateSaveFileMetadata(saveId, {
+                saveName,
+                playerName,
+                cityName,
+                classId,
+              });
+            }
+            await refreshTitleCloudSaveOption();
+            titleCloudSelectedSaveId = saveId;
           } catch (_e) {}
         })();
       });
@@ -20372,6 +20466,11 @@ function handleTitleScreen() {
         }
         if (button.key === "newCloudSave") {
           showNewCloudSaveDialog();
+          return;
+        }
+        if (button.key === "editCloudSave") {
+          const saveId = resolveCloudTargetSaveId();
+          if (saveId) showEditCloudSaveDialog(saveId);
           return;
         }
         if (button.key === "duplicateCloudSave") {
