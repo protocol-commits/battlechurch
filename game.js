@@ -22168,7 +22168,7 @@ function getProjectileComboIncrement(target) {
   return 1;
 }
 
-const chainTracker = {
+const chainTracker = window.chainTracker = {
   state: null,
   flush(now) {
     if (!this.state) return;

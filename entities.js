@@ -3062,6 +3062,9 @@
       fadeDelay: 0.5,
     });
     this.health = Math.max(0, this.health - appliedDamage);
+    if (appliedDamage > 0 && typeof window !== "undefined" && window.chainTracker) {
+      window.chainTracker.state = null;
+    }
     if (appliedDamage > 0 && (this.maxHealth || 0) > 0) {
       const startRatio = prevHealth / this.maxHealth;
       const endRatio = this.health / this.maxHealth;
