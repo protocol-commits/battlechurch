@@ -7282,7 +7282,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   const enemyHpLabels = [];
   const npcFaithOverlays = [];
-  let showEnemyDevLabels = false;
+  let showEnemyDevLabels = true;
   let showCannonSplashRadius = true;
   if (typeof window !== "undefined") {
     window.__battlechurchEnemyHpLabels = enemyHpLabels;

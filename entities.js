@@ -4845,22 +4845,29 @@
         }
       }
       if (this.state !== "death") {
-        const hitRadius = this.radius || 0;
-        const labelY = drawY - (hitRadius > 0 ? hitRadius * 0.6 : 6);
-        if (typeof window !== "undefined" && Array.isArray(window.__battlechurchEnemyHpLabels)) {
+        const maxHp = Math.max(0, Math.round(this.maxHealth || this.health || 0));
+        if (maxHp > 100 && typeof window !== "undefined" && window.__battlechurchShowEnemyDevLabels) {
+          try {
+            const hpValue = Math.max(0, Math.round(this.health || 0));
+            const hitRadius = this.radius || 0;
+            const labelY = drawY - hitRadius - 8;
+            ctx.save();
+            ctx.font = "600 14px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.strokeStyle = "rgba(0,0,0,0.85)";
+            ctx.lineWidth = 3;
+            ctx.strokeText(`${hpValue}`, this.x, labelY);
+            ctx.fillStyle = "#ff6b6b";
+            ctx.fillText(`${hpValue}`, this.x, labelY);
+            ctx.restore();
+          } catch (e) {}
+        }
+        if (Array.isArray(window?.__battlechurchEnemyHpLabels)) {
           const hpValue = Math.max(0, Math.round(this.health || 0));
-          const forceLabels = Boolean(window.__battlechurchShowEnemyDevLabels);
-          if (forceLabels || hpValue > 100) {
-            window.__battlechurchEnemyHpLabels.push({
-              x: this.x,
-              y: labelY,
-              name: this.displayName || this.type,
-              hp: hpValue,
-              damage: this.config?.damage || 0,
-              speed: this.config?.speed || 0,
-              scale: this.config?.scale || 1,
-              catalogScale: this.config?.catalogScale || this.config?.scale || 1,
-            });
+          if (maxHp > 100) {
+            const hitRadius = this.radius || 0;
+            window.__battlechurchEnemyHpLabels.push({ x: this.x, y: drawY - hitRadius - 8, hp: hpValue });
           }
         }
       }
