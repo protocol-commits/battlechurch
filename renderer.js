@@ -8127,7 +8127,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? window.BattlechurchClassConfig.classes
         : [];
       const classRows = classes.map((entry) => {
-        const title = String(entry.classTitle || entry.displayName || entry.denominationLabel || entry.id);
+        const title = String(entry.classTitle || entry.id);
         const description = String(entry.classDescription || "Choose a calling and shape your path.");
         return {
           entry,
@@ -8157,7 +8157,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (assetsLoaded) {
       const activeClassLabel =
-        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.displayName || "Baptist";
+        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.classTitle || "Baptist";
       buttonConfigs = [
         { key: "play", label: "Play" },
         { key: "class", label: "Class", meta: activeClassLabel },
@@ -8167,7 +8167,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else if (mapReady) {
       // Map ready but gameplay still loading - allow map browsing
       const activeClassLabel =
-        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.displayName || "Baptist";
+        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.classTitle || "Baptist";
       buttonConfigs = [
         { key: "map", label: "Loading" },
         { key: "class", label: "Class", meta: activeClassLabel },
@@ -8177,7 +8177,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } else {
       // Still loading title/map assets
       const activeClassLabel =
-        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.displayName || "Baptist";
+        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.classTitle || "Baptist";
       buttonConfigs = [
         { key: "play", label: "Loading..." },
         { key: "class", label: "Class", meta: activeClassLabel },

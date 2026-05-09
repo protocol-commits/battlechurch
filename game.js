@@ -20023,8 +20023,8 @@ function handleTitleScreen() {
                 window.playMenuItemPickSfx(0.55);
               }
               const selectedName =
-                selectedClass?.displayName ||
-                window.BattlechurchClassConfig?.byId?.[classId]?.displayName ||
+                selectedClass?.classTitle ||
+                window.BattlechurchClassConfig?.byId?.[classId]?.classTitle ||
                 classId;
               showProgressSaveToast(`Class Selected: ${selectedName}`, 1.8);
             }
