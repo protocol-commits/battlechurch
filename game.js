@@ -49,7 +49,7 @@ let churchPowerupEnsureTimer = 0;
 let queuedPowerUpDrops = 0;
 let powerUpEnsureCycleIndex = 0;
 let playerGraceCount = 0;
-let maxComboThisTown = 0;
+let maxChainThisTown = 0;
 let hudComboDisplay = null;
 const unlockedChurchPowerups = new Set();
 const churchPowerupLevels = new Map();
@@ -5316,7 +5316,7 @@ Renderer.initialize({
   get graceHudFlyEffects() { return graceHudFlyEffects; },
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
   get graceSpendFlyEffects() { return graceSpendFlyEffects; },
-  get maxComboThisTown() { return maxComboThisTown; },
+  get maxChainThisTown() { return maxChainThisTown; },
   get haloBladeState() { return haloBladeState; },
   get haloBladeStateSecondary() { return haloBladeStateSecondary; },
   get haloBladeStateBonus() { return haloBladeStateBonus; },
@@ -8089,7 +8089,7 @@ function startGameFromTitle() {
     setDevPlaytestSession(false, null);
   }
   districtVisitorMinigamePlayed = false;
-  maxComboThisTown = 0;
+  maxChainThisTown = 0;
   // Load campaign data (start count, multiplier, powerup restore)
   if (typeof window !== "undefined" && window.MapScreen?.getDistrictCampaignData) {
     const overrideCampaignData =
@@ -8809,8 +8809,8 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
     : [];
   const prayerBombTotal = prayerBombContributions.reduce((sum, value) => sum + value, 0);
   const prayerBombComboTotal = prayerBombComboContributions.reduce((sum, value) => sum + value, 0);
-  const battleMaxCombo = Number.isFinite(summary?.battleMaxCombo)
-    ? Math.max(0, Math.round(summary.battleMaxCombo))
+  const battleMaxChain = Number.isFinite(summary?.battleMaxChain)
+    ? Math.max(0, Math.round(summary.battleMaxChain))
     : 0;
   const zeroHealthPenaltyCount = isBossSummary
     ? 0
@@ -8828,7 +8828,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const healthReward = isBossSummary ? 0 : (healthRewardBase - lostCongregationPenalty);
   const perfectProtectionValue = !isBossSummary && totalNpcFaith >= 500 ? 100 : 0;
   const pastorHealthValue = playerHealthAtRecap;
-  const maxComboPerformanceValue = battleMaxCombo;
+  const maxChainPerformanceValue = battleMaxChain;
   const prayerBombPerformanceValue = prayerBombTotal;
   const congregationalPrayersPerformanceValue = prayerBombComboTotal;
   const battleEnemiesDefeated = Number.isFinite(summary?.battleEnemiesDefeated) ? Math.max(0, summary.battleEnemiesDefeated) : 0;
@@ -8838,7 +8838,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const performancePointTotal =
     perfectProtectionValue +
     pastorHealthValue +
-    maxComboPerformanceValue +
+    maxChainPerformanceValue +
     prayerBombPerformanceValue +
     congregationalPrayersPerformanceValue +
     enemiesKilledPerformanceValue +
@@ -8848,7 +8848,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   const PERFORMANCE_BONUS_BADGE_SRCS = {
     perfectCongregation: "assets/sprites/items/icons/I07_Apple.png",
     pastorHealth: "assets/sprites/items/Weapons/W14_Sword.png",
-    maxCombo: "assets/sprites/items/icons/I36_Hammer.png",
+    maxChain: "assets/sprites/items/icons/I36_Hammer.png",
     prayerBomb: "assets/sprites/items/icons/A32_Decorative_Shield.png",
     congregationalPrayers: "assets/sprites/items/icons/A29_Iron_Shield.png",
     enemiesKilled: "assets/sprites/items/icons/A28_Kite_Shield.png",
@@ -8863,12 +8863,12 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
       value: pastorHealthValue,
     });
   }
-  if (maxComboPerformanceValue > 0) {
+  if (maxChainPerformanceValue > 0) {
     performanceBadgeBreakdown.push({
-      id: "maxCombo",
+      id: "maxChain",
       label: "Max Chain",
-      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.maxCombo,
-      value: maxComboPerformanceValue,
+      iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.maxChain,
+      value: maxChainPerformanceValue,
     });
   }
   if (perfectProtectionValue > 0) {
@@ -21912,13 +21912,13 @@ function getDashButtonDirection() {
   return normalizeVector(dir.x, dir.y);
 }
 
-function getComboLabelFontSize(hits) {
+function getChainLabelFontSize(hits) {
   const h = Math.max(1, Math.round(hits || 0));
   // Grows by ~0.6px every 10 hits, capped at 56px at ~400 hits
   return Math.min(56, 32 + Math.floor(h / 10) * 0.6);
 }
 
-function getComboLabelColor(hits) {
+function getChainLabelColor(hits) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   const tier = Math.floor(comboHits / 10);
   if (tier >= 5) return "#FFF7F0";
@@ -21987,8 +21987,8 @@ function updatePrayerBombComboDisplay() {
   }
   const centerX = prayerBombComboState.anchorX;
   const centerY = prayerBombComboState.anchorY;
-  const fontSize = getComboLabelFontSize(hits) * 2;
-  const color = getComboLabelColor(hits);
+  const fontSize = getChainLabelFontSize(hits) * 2;
+  const color = getChainLabelColor(hits);
   const labelText = `${formatNumberWithCommas(hits)} HIT\nCOMBO`;
   if (!prayerBombComboState.label) {
     const label = addFloatingTextAt(centerX, centerY, labelText, color, {
@@ -22062,7 +22062,7 @@ function recordPrayerBombComboHits(count) {
   if (!addCount) return;
   prayerBombComboState.hits += addCount;
   updatePrayerBombComboDisplay();
-  maybeUpdateMaxComboInTown(
+  maybeUpdateMaxChainInTown(
     prayerBombComboState.hits,
     cameraOffsetX + canvas.width / 2,
     canvas.height / 2,
@@ -22073,8 +22073,8 @@ function recordPrayerBombComboHits(count) {
 function showPrayerBombBlastCombo(count, x, y) {
   const hits = Math.max(0, Math.round(count || 0));
   if (!hits) return;
-  const fontSize = getComboLabelFontSize(hits) * 2;
-  const color = getComboLabelColor(hits);
+  const fontSize = getChainLabelFontSize(hits) * 2;
+  const color = getChainLabelColor(hits);
   const labelText = `${formatNumberWithCommas(hits)} HIT\nCOMBO`;
   const label = addFloatingTextAt(x, y, labelText, color, {
     speechBubble: false,
@@ -22094,26 +22094,26 @@ function showPrayerBombBlastCombo(count, x, y) {
     label.floorPitch = 0.35;
     label.floorShear = 0;
   }
-  maybeUpdateMaxComboInTown(hits, x, y, { skipHudFly: true });
+  maybeUpdateMaxChainInTown(hits, x, y, { skipHudFly: true });
 }
 
-function maybeUpdateMaxComboInTown(hits, x, y, options = {}) {
+function maybeUpdateMaxChainInTown(hits, x, y, options = {}) {
   const comboHits = Math.max(2, Math.round(hits || 0));
   if (!Number.isFinite(comboHits)) return;
-  if (levelManager?.setBattleMaxCombo) {
-    levelManager.setBattleMaxCombo(comboHits);
+  if (levelManager?.setBattleMaxChain) {
+    levelManager.setBattleMaxChain(comboHits);
   }
-  if (comboHits <= maxComboThisTown) return;
-  maxComboThisTown = comboHits;
+  if (comboHits <= maxChainThisTown) return;
+  maxChainThisTown = comboHits;
   // HUD fly effect disabled per design; keep max combo updated without animation.
 }
 
-function updateLiveComboText(state, target) {
+function updateLiveChainText(state, target) {
   if (!state || !target || state.hits < 2) return;
   const label = `${Math.max(2, Math.round(state.hits))} Hit Chain`;
-  const labelFontSize = getComboLabelFontSize(state.hits);
-  const labelColor = getComboLabelColor(state.hits);
-  maybeUpdateMaxComboInTown(state.hits, target.x, target.y);
+  const labelFontSize = getChainLabelFontSize(state.hits);
+  const labelColor = getChainLabelColor(state.hits);
+  maybeUpdateMaxChainInTown(state.hits, target.x, target.y);
   updateHudComboDisplay({
     hits: state.hits,
     damage: state.damage,
@@ -22128,8 +22128,8 @@ function finalizeComboState(state) {
   updateHudComboDisplay({
     hits: state.hits,
     damage: state.damage,
-    fontSize: getComboLabelFontSize(state.hits),
-    color: getComboLabelColor(state.hits),
+    fontSize: getChainLabelFontSize(state.hits),
+    color: getChainLabelColor(state.hits),
     durationMs: 800,
   });
 }
@@ -22228,7 +22228,7 @@ const comboTracker = {
     current.expiresAt = timeNow + COMBO_WINDOW_MS;
     this.state = current;
     if (current.hits >= 2) {
-      updateLiveComboText(current, target);
+      updateLiveChainText(current, target);
     }
   },
   update(now) {
@@ -23713,9 +23713,9 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
   }
   const hits = Number.isFinite(hitCount) && hitCount > 0 ? Math.round(hitCount) : 2;
   maybeAnnounceComboMoveNames(meleeState, hits);
-  const labelFontSize = getComboLabelFontSize(hits);
-  const labelColor = getComboLabelColor(hits);
-  maybeUpdateMaxComboInTown(hits, entity.x, entity.y);
+  const labelFontSize = getChainLabelFontSize(hits);
+  const labelColor = getChainLabelColor(hits);
+  maybeUpdateMaxChainInTown(hits, entity.x, entity.y);
   updateHudComboDisplay({
     hits,
     damage: comboDamage,

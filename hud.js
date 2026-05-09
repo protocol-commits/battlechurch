@@ -58,7 +58,7 @@
       npcHarmonyBuffTimer,
       npcHarmonyBuffDuration,
       powerupIconStyles,
-      maxComboThisTown,
+      maxChainThisTown,
       touchControlsVisible,
       touchControlsAvailable,
       DASH_COOLDOWN,
@@ -691,8 +691,8 @@
       const damageDealtText = formatNumber(damageDealt);
       ctx.fillText(damageDealtText, x, rowY);
       x += ctx.measureText(damageDealtText).width + 14;
-      const comboLabel = (typeof GameText !== 'undefined' && GameText.hud?.maxCombo) || "Max Combo:";
-      const comboValue = Number.isFinite(maxComboThisTown) ? Math.max(0, Math.round(maxComboThisTown)) : 0;
+      const comboLabel = (typeof GameText !== 'undefined' && GameText.hud?.maxChain) || "Max Chain:";
+      const comboValue = Number.isFinite(maxChainThisTown) ? Math.max(0, Math.round(maxChainThisTown)) : 0;
       const comboText = formatNumber(comboValue);
       ctx.fillStyle = PALETTE.muted;
       ctx.fillText(comboLabel, x, rowY);

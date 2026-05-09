@@ -835,7 +835,7 @@
         savedPortraits: [],
       },
       battleEnemiesStart: 0,
-      battleMaxCombo: 0,
+      battleMaxChain: 0,
       battlePrayerBombContributions: [],
       battlePrayerBombComboContributions: [],
       lastBattleSummary: null,
@@ -1064,7 +1064,7 @@
       state.queuedWaveIntroIndices.clear();
       state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
       state.battleDamageStart = state.stats?.damageDealt || 0;
-      state.battleMaxCombo = 0;
+      state.battleMaxChain = 0;
       state.battlePrayerBombContributions = [];
       state.battlePrayerBombComboContributions = [];
   const battleNumber = state.monthIndex + 1;
@@ -1293,7 +1293,7 @@
           battleScenarioVictoryPhrase: state.currentBattleScenarioVictoryPhrase || null,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
         battleDamageDealt: Math.max(0, (state.stats.damageDealt || 0) - (state.battleDamageStart || 0)),
-        battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
+        battleMaxChain: Math.max(0, state.battleMaxChain || 0),
         prayerBombContributions: Array.isArray(state.battlePrayerBombContributions)
           ? state.battlePrayerBombContributions.slice()
           : [],
@@ -1803,7 +1803,7 @@
           battleScenarioVictoryPhrase: state.currentBattleScenarioVictoryPhrase || null,
         battleEnemiesDefeated: Math.max(0, state.stats.enemiesDefeated - (state.battleEnemiesStart || 0)),
         battleDamageDealt: Math.max(0, (state.stats.damageDealt || 0) - (state.battleDamageStart || 0)),
-        battleMaxCombo: Math.max(0, state.battleMaxCombo || 0),
+        battleMaxChain: Math.max(0, state.battleMaxChain || 0),
         prayerBombContributions: Array.isArray(state.battlePrayerBombContributions)
           ? state.battlePrayerBombContributions.slice()
           : [],
@@ -1816,7 +1816,7 @@
     function beginBossIntro() {
       state.battleEnemiesStart = state.stats?.enemiesDefeated || 0;
       state.battleDamageStart = state.stats?.damageDealt || 0;
-      state.battleMaxCombo = 0;
+      state.battleMaxChain = 0;
       state.battlePrayerBombContributions = [];
       state.battlePrayerBombComboContributions = [];
       state.battleStartCongregation =
@@ -2006,7 +2006,7 @@ state.waveIndex = -1;
         state.queuedWaveIntroIndices.clear();
         state.lastClearedWasBoss = false;
         state.battleEnemiesStart = 0;
-        state.battleMaxCombo = 0;
+        state.battleMaxChain = 0;
       },
       update(dt) {
         if (!state.active) return;
@@ -2405,10 +2405,10 @@ state.waveIndex = -1;
       getStats() {
         return state.stats;
       },
-      setBattleMaxCombo(value) {
+      setBattleMaxChain(value) {
         if (!Number.isFinite(value)) return;
         const next = Math.max(0, Math.round(value));
-        state.battleMaxCombo = Math.max(state.battleMaxCombo || 0, next);
+        state.battleMaxChain = Math.max(state.battleMaxChain || 0, next);
       },
       recordPrayerBombComboContribution(value) {
         if (!Number.isFinite(value)) return;
