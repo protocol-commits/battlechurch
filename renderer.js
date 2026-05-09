@@ -8127,16 +8127,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ? window.BattlechurchClassConfig.classes
         : [];
       const classBlurbsById = {
-        presbyterian: "Reformed — Stand firm through truth, discipline, and spiritual endurance.",
-        pentecostal: "Charismatic — Expect God to move powerfully in the middle of chaos.",
-        nondenominational: "Evangelical — Bring the lost home before the darkness takes them.",
-        anglican: "Liturgical — Preserve sacred order against the collapse of the world.",
-        lutheran: "Liturgical — Preserve sacred order against the collapse of the world.",
-        orthodox: "Orthodox — Become holy through endurance, mystery, and ancient faith.",
-        catholic: "Catholic — Hold the line through sacrament, mercy, and enduring unity.",
-        baptist: "Baptist — Build a faithful church one committed soul at a time.",
-        methodist: "Methodist — Strengthen the weary through compassion, discipline, and service.",
-        adventist: "Evangelical — Live with watchfulness, mission, and hopeful endurance.",
+        class4: "Reformed — Stand firm through truth, discipline, and spiritual endurance.",
+        class7: "Charismatic — Expect God to move powerfully in the middle of chaos.",
+        class10: "Evangelical — Bring the lost home before the darkness takes them.",
+        class6: "Liturgical — Preserve sacred order against the collapse of the world.",
+        class5: "Liturgical — Preserve sacred order against the collapse of the world.",
+        class8: "Orthodox — Become holy through endurance, mystery, and ancient faith.",
+        class2: "Catholic — Hold the line through sacrament, mercy, and enduring unity.",
+        class1: "Baptist — Build a faithful church one committed soul at a time.",
+        class3: "Methodist — Strengthen the weary through compassion, discipline, and service.",
+        class9: "Non-Denominational — Live with watchfulness, mission, and hopeful endurance.",
       };
       const splitClassBlurb = (blurb) => {
         const text = String(blurb || "").trim();
@@ -8159,14 +8159,30 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const description = text.slice(splitIndex + splitLen).trim();
         return { title, description };
       };
-      buttonConfigs = classes.map((entry) => ({
+      const classRows = classes.map((entry) => {
+        const blurb = classBlurbsById[entry.id] || "Choose a calling and shape your path.";
+        const parsed = splitClassBlurb(blurb);
+        return {
+          entry,
+          label: parsed.title || entry.displayName || entry.denominationLabel || entry.id,
+          meta: parsed.description || blurb,
+        };
+      });
+      classRows.sort((a, b) => {
+        const aLabel = String(a?.label || "");
+        const bLabel = String(b?.label || "");
+        const aPinned = aLabel.toLowerCase() === "non-denominational";
+        const bPinned = bLabel.toLowerCase() === "non-denominational";
+        if (aPinned && !bPinned) return -1;
+        if (!aPinned && bPinned) return 1;
+        return aLabel.localeCompare(bLabel, undefined, { sensitivity: "base" });
+      });
+      buttonConfigs = classRows.map(({ entry, label, meta }) => ({
         ...(function () {
-          const blurb = classBlurbsById[entry.id] || "Choose a calling and shape your path.";
-          const parsed = splitClassBlurb(blurb);
           return {
             key: `class:${entry.id}`,
-            label: parsed.title || entry.displayName || entry.denominationLabel || entry.id,
-            meta: parsed.description || blurb,
+            label,
+            meta,
             isSelected: entry.id === titleSelectedClassId,
           };
         })(),
@@ -8642,7 +8658,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
       ctx.font = `700 ${hintStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
-      ctx.fillText("CHOOSE CLASS", panelX + panelW / 2, titleY);
+      ctx.fillText("CHOOSE YOUR DENOMINATION", panelX + panelW / 2, titleY);
       ctx.font = `600 ${hintStyle.hintFontSize ?? 12}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = hintStyle.hintColor || "rgba(231,176,102,0.82)";
       ctx.fillText("W / S move  ·  SPACE select  ·  ESC back", panelX + panelW / 2, hintY);
@@ -8664,20 +8680,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const icon = classMenuIcons[index % classMenuIcons.length] || null;
         ctx.save();
         ctx.fillStyle = focused
-          ? "rgba(82, 44, 20, 0.88)"
+          ? "rgba(182, 98, 38, 0.96)"
           : selected
           ? "rgba(46, 32, 26, 0.88)"
           : "rgba(14, 12, 16, 0.88)";
         ctx.strokeStyle = focused
-          ? "rgba(242, 200, 125, 0.95)"
+          ? "rgba(255, 244, 190, 1)"
           : selected
           ? "rgba(242, 200, 125, 0.62)"
           : "rgba(242, 200, 125, 0.35)";
-        ctx.lineWidth = focused ? 2.2 : selected ? 1.7 : 1.2;
+        ctx.lineWidth = focused ? 3.2 : selected ? 1.7 : 1.2;
         roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
         if (focused || selected) {
-          ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
-          ctx.fillRect(rowX + 6, y + 8, 3, rowH - 16);
+          ctx.fillStyle = focused
+            ? "rgba(255, 245, 196, 1)"
+            : "rgba(242, 200, 125, 0.9)";
+          ctx.fillRect(rowX + 6, y + 7, focused ? 5 : 3, rowH - 14);
         }
         if (icon && icon.complete) {
           ctx.drawImage(icon, rowX + 14, y + Math.round((rowH - iconSize) / 2) - 1, iconSize, iconSize);

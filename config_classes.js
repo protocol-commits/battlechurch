@@ -1,21 +1,21 @@
 (function setupBattlechurchClasses(global) {
   if (!global) return;
 
-  const DEFAULT_CLASS_ID = "baptist";
+  const DEFAULT_CLASS_ID = "class1";
 
   // Balance schema for denomination classes.
   // All multipliers are intentionally neutral (1.0) as a safe baseline.
   const classes = [
-    { id: "baptist", denominationLabel: "Baptist", displayName: "Baptist", tags: ["evangelical"] },
-    { id: "catholic", denominationLabel: "Catholic", displayName: "Catholic", tags: ["liturgical"] },
-    { id: "methodist", denominationLabel: "Methodist", displayName: "Methodist", tags: ["wesleyan"] },
-    { id: "presbyterian", denominationLabel: "Presbyterian", displayName: "Presbyterian", tags: ["reformed"] },
-    { id: "lutheran", denominationLabel: "Lutheran", displayName: "Lutheran", tags: ["liturgical"] },
-    { id: "anglican", denominationLabel: "Anglican", displayName: "Anglican", tags: ["liturgical"] },
-    { id: "pentecostal", denominationLabel: "Pentecostal", displayName: "Pentecostal", tags: ["charismatic"] },
-    { id: "orthodox", denominationLabel: "Orthodox", displayName: "Orthodox", tags: ["eastern"] },
-    { id: "adventist", denominationLabel: "Adventist", displayName: "Adventist", tags: ["restorationist"] },
-    { id: "nondenominational", denominationLabel: "Non-Denominational", displayName: "Non-Denominational", tags: ["modern"] },
+    { id: "class1", denominationLabel: "Baptist", displayName: "Baptist", tags: ["evangelical"] },
+    { id: "class2", denominationLabel: "Catholic", displayName: "Catholic", tags: ["liturgical"] },
+    { id: "class3", denominationLabel: "Methodist", displayName: "Methodist", tags: ["wesleyan"] },
+    { id: "class4", denominationLabel: "Presbyterian", displayName: "Presbyterian", tags: ["reformed"] },
+    { id: "class5", denominationLabel: "Lutheran", displayName: "Lutheran", tags: ["liturgical"] },
+    { id: "class6", denominationLabel: "Anglican", displayName: "Anglican", tags: ["liturgical"] },
+    { id: "class7", denominationLabel: "Pentecostal", displayName: "Pentecostal", tags: ["charismatic"] },
+    { id: "class8", denominationLabel: "Orthodox", displayName: "Orthodox", tags: ["eastern"] },
+    { id: "class9", denominationLabel: "Adventist", displayName: "Adventist", tags: ["restorationist"] },
+    { id: "class10", denominationLabel: "Non-Denominational", displayName: "Non-Denominational", tags: ["modern"] },
   ].map((entry) => ({
     ...entry,
     tuning: {
@@ -57,10 +57,23 @@
     }, {}),
   );
 
+  const legacyIdMap = Object.freeze({
+    baptist: "class1",
+    catholic: "class2",
+    methodist: "class3",
+    presbyterian: "class4",
+    lutheran: "class5",
+    anglican: "class6",
+    pentecostal: "class7",
+    orthodox: "class8",
+    adventist: "class9",
+    nondenominational: "class10",
+  });
+
   global.BattlechurchClassConfig = Object.freeze({
     defaultClassId: DEFAULT_CLASS_ID,
     classes: Object.freeze(classes.map((entry) => byId[entry.id])),
     byId,
+    legacyIdMap,
   });
 })(typeof window !== "undefined" ? window : null);
-

@@ -42,6 +42,10 @@ const classConfig =
   (typeof window !== "undefined" && window.BattlechurchClassConfig) || {};
 const classEntries = Array.isArray(classConfig.classes) ? classConfig.classes : [];
 const classById = classConfig.byId && typeof classConfig.byId === "object" ? classConfig.byId : {};
+const classLegacyIdMap =
+  classConfig.legacyIdMap && typeof classConfig.legacyIdMap === "object"
+    ? classConfig.legacyIdMap
+    : {};
 const defaultClassId =
   typeof classConfig.defaultClassId === "string" && classConfig.defaultClassId.trim()
     ? classConfig.defaultClassId.trim()
@@ -49,7 +53,8 @@ const defaultClassId =
 let activeClassId = defaultClassId;
 
 function getClassById(classId) {
-  const key = String(classId || "").trim();
+  const rawKey = String(classId || "").trim();
+  const key = (rawKey && classLegacyIdMap[rawKey]) || rawKey;
   return (key && classById[key]) || classById[defaultClassId] || classEntries[0] || null;
 }
 
