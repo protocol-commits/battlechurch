@@ -136,6 +136,11 @@ function applySmiteDamageClassMultiplier(baseDamage) {
   return Math.max(0, Number(baseDamage || 0) * mult);
 }
 
+function applyPlayerCooldownClassMultiplier(baseCooldown) {
+  const mult = Math.max(0.05, getActiveClassMultiplier("player.cooldownMultiplier", 1));
+  return Math.max(0, Number(baseCooldown || 0) * mult);
+}
+
 activeClassId = loadSelectedClassIdFromStorage();
 
 if (typeof window !== "undefined") {
@@ -22621,8 +22626,9 @@ function getHeldMovementDirection() {
 }
 
 function setSharedBButtonCooldown(duration) {
+  const scaledDuration = applyPlayerCooldownClassMultiplier(duration);
   const next = Math.max(
-    Number(duration) || 0,
+    Number(scaledDuration) || 0,
     playerDashState?.dashCooldown || 0,
     window._meleeAttackState?.rushCooldown || 0,
     window._meleeAttackState?.spinCooldown || 0,
@@ -23991,7 +23997,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   meleeAttackState.currentAttackHitboxType = "slash";
   beginMeleeHitstopSequence(meleeAttackState);
   meleeAttackState.didAttackThisPress = true;
-  meleeAttackState.cooldown = MELEE_COOLDOWN;
+  meleeAttackState.cooldown = applyPlayerCooldownClassMultiplier(MELEE_COOLDOWN);
   meleeAttackState.swooshTimer = GAME_MELEE_SWING_DURATION;
   meleeAttackState.swooshDir = { x: dir.x, y: dir.y };
 
@@ -24462,7 +24468,7 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
   if (typeof playSwooshSfx === "function") {
     playSwooshSfx(0.6);
   }
-  meleeAttackState.cooldown = MELEE_COOLDOWN;
+  meleeAttackState.cooldown = applyPlayerCooldownClassMultiplier(MELEE_COOLDOWN);
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
   meleeAttackState.awaitRush = true;
   meleeAttackState.awaitTimer = MELEE_DOUBLE_TAP_WINDOW;

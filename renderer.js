@@ -8126,46 +8126,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const classes = Array.isArray(window.BattlechurchClassConfig?.classes)
         ? window.BattlechurchClassConfig.classes
         : [];
-      const classBlurbsById = {
-        class4: "Reformed — Stand firm through truth, discipline, and spiritual endurance.",
-        class7: "Charismatic — Expect God to move powerfully in the middle of chaos.",
-        class10: "Evangelical — Bring the lost home before the darkness takes them.",
-        class6: "Liturgical — Preserve sacred order against the collapse of the world.",
-        class5: "Liturgical — Preserve sacred order against the collapse of the world.",
-        class8: "Orthodox — Become holy through endurance, mystery, and ancient faith.",
-        class2: "Catholic — Hold the line through sacrament, mercy, and enduring unity.",
-        class1: "Baptist — Build a faithful church one committed soul at a time.",
-        class3: "Methodist — Strengthen the weary through compassion, discipline, and service.",
-        class9: "Non-Denominational — Live with watchfulness, mission, and hopeful endurance.",
-      };
-      const splitClassBlurb = (blurb) => {
-        const text = String(blurb || "").trim();
-        if (!text) return { title: "", description: "" };
-        const emDashIndex = text.indexOf("—");
-        const hyphenIndex = text.indexOf(" - ");
-        let splitIndex = -1;
-        let splitLen = 0;
-        if (emDashIndex >= 0) {
-          splitIndex = emDashIndex;
-          splitLen = 1;
-        } else if (hyphenIndex >= 0) {
-          splitIndex = hyphenIndex;
-          splitLen = 3;
-        }
-        if (splitIndex < 0) {
-          return { title: text, description: "" };
-        }
-        const title = text.slice(0, splitIndex).trim();
-        const description = text.slice(splitIndex + splitLen).trim();
-        return { title, description };
-      };
       const classRows = classes.map((entry) => {
-        const blurb = classBlurbsById[entry.id] || "Choose a calling and shape your path.";
-        const parsed = splitClassBlurb(blurb);
+        const title = String(entry.classTitle || entry.displayName || entry.denominationLabel || entry.id);
+        const description = String(entry.classDescription || "Choose a calling and shape your path.");
         return {
           entry,
-          label: parsed.title || entry.displayName || entry.denominationLabel || entry.id,
-          meta: parsed.description || blurb,
+          label: title,
+          meta: description,
         };
       });
       classRows.sort((a, b) => {

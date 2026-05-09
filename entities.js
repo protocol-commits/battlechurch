@@ -2959,7 +2959,9 @@
 
   getWisdomMissleCooldown() {
     return (
-      PROJECTILE_CONFIG.wisdom_missle.cooldownAfterFire * this.magicCooldownMultiplier
+      PROJECTILE_CONFIG.wisdom_missle.cooldownAfterFire *
+      this.magicCooldownMultiplier *
+      this.getClassCooldownMultiplier()
     );
   }
 
@@ -2977,7 +2979,8 @@
   getFaithCannonCooldown() {
     return (
       PROJECTILE_CONFIG.faith_cannon.cooldownAfterFire *
-      this.faithCannonCooldownMultiplier
+      this.faithCannonCooldownMultiplier *
+      this.getClassCooldownMultiplier()
     );
   }
 
@@ -2990,7 +2993,11 @@
   }
 
   getFireCooldown() {
-    return PROJECTILE_CONFIG.fire.cooldownAfterFire * this.fireCooldownMultiplier;
+    return (
+      PROJECTILE_CONFIG.fire.cooldownAfterFire *
+      this.fireCooldownMultiplier *
+      this.getClassCooldownMultiplier()
+    );
   }
 
   getMagicDamage() {
@@ -3012,13 +3019,24 @@
 
   getArrowCooldown() {
     const baseCooldown = this.config.arrowCooldown || 0.1;
-    return this.isArrowExtendProjectileBuffActive()
+    const cooldown = this.isArrowExtendProjectileBuffActive()
       ? Math.max(0.02, baseCooldown * 0.5)
       : baseCooldown;
+    return cooldown * this.getClassCooldownMultiplier();
+  }
+
+  getClassCooldownMultiplier() {
+    const activeClass = window?.BattlechurchClasses?.getActive?.();
+    const value = Number(activeClass?.tuning?.player?.cooldownMultiplier);
+    return Number.isFinite(value) && value > 0 ? Math.max(0.05, value) : 1;
   }
 
   getSpeedMultiplier() {
     let multiplier = 1;
+    const classSpeed = Number(window?.BattlechurchClasses?.getActive?.()?.tuning?.player?.moveSpeedMultiplier);
+    if (Number.isFinite(classSpeed) && classSpeed > 0) {
+      multiplier *= Math.max(0.1, classSpeed);
+    }
     if (this.speedBoostTimer > 0) multiplier *= 1.4;
     const meleeChargeSlow =
       window._meleeAttackState?.isCharging && window._meleeAttackState?.buttonDown;
