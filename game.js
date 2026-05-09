@@ -82,6 +82,55 @@ function getActiveClass() {
   return getClassById(activeClassId);
 }
 
+function getActiveClassMultiplier(path, fallback = 1) {
+  const active = getActiveClass();
+  if (!active || !active.tuning) return fallback;
+  const parts = String(path || "").split(".");
+  let value = active.tuning;
+  for (const part of parts) {
+    if (!value || typeof value !== "object" || !(part in value)) return fallback;
+    value = value[part];
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function applyPlayerMeleeClassMultiplier(baseDamage) {
+  return Math.max(
+    1,
+    Math.round(Number(baseDamage || 0) * getActiveClassMultiplier("player.meleeDamageMultiplier", 1)),
+  );
+}
+
+function applyPlayerProjectileClassMultiplier(baseDamage) {
+  return Math.max(
+    1,
+    Math.round(Number(baseDamage || 0) * getActiveClassMultiplier("player.projectileDamageMultiplier", 1)),
+  );
+}
+
+function applyNpcDamageClassMultiplier(baseDamage) {
+  return Math.max(
+    1,
+    Math.round(Number(baseDamage || 0) * getActiveClassMultiplier("npc.damageMultiplier", 1)),
+  );
+}
+
+function applyNpcRofClassMultiplier(baseCooldown) {
+  const rof = Math.max(0.05, getActiveClassMultiplier("npc.rofMultiplier", 1));
+  return Math.max(0.02, Number(baseCooldown || 0) / rof);
+}
+
+function applyPrayerGainClassMultiplier(baseGain) {
+  const mult = Math.max(0, getActiveClassMultiplier("player.prayerGainMultiplier", 1));
+  return Math.max(0, Number(baseGain || 0) * mult);
+}
+
+function applySmiteDamageClassMultiplier(baseDamage) {
+  const mult = Math.max(0, getActiveClassMultiplier("player.smiteDamageMultiplier", 1));
+  return Math.max(0, Number(baseDamage || 0) * mult);
+}
+
 activeClassId = loadSelectedClassIdFromStorage();
 
 if (typeof window !== "undefined") {
@@ -267,6 +316,7 @@ let activeBoss = null;
 const bossHazards = [];
 let titleScreenActive = true;
 let titleDemoSaveMenuActive = false;
+let titleClassMenuActive = false;
 let titleDemoSaveOverride = null;
 let demoSandboxRunActive = false;
 let titleCloudSaveLoading = false;
@@ -3515,6 +3565,7 @@ function triggerPrayerBombExplosionAt(x, y, radius, damage) {
 }
 
 function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB_BOSS_DAMAGE_SCALE } = {}) {
+  const classScaledDamage = applySmiteDamageClassMultiplier(damage);
   const hits = [];
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
@@ -3522,7 +3573,7 @@ function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB
     const center = getEnemyHitboxCenter(enemy);
     const distance = Math.hypot(center.x - x, center.y - y);
     if (distance <= radius + hitRadius * 0.8) {
-      enemy.takeDamage(damage);
+      enemy.takeDamage(classScaledDamage);
       if (enemy.dead || enemy.state === "death" || (Number.isFinite(enemy.health) && enemy.health <= 0)) {
         enemy.killedByPrayerBomb = true;
       }
@@ -3534,7 +3585,7 @@ function applyPrayerBombDamageAt(x, y, radius, damage, { bossScale = PRAYER_BOMB
     const bossRadius = activeBoss.radius || 0;
     const bossDistance = Math.hypot(activeBoss.x - x, activeBoss.y - y);
     if (bossDistance <= radius + bossRadius * 0.8) {
-      activeBoss.takeDamage(damage * bossScale);
+      activeBoss.takeDamage(classScaledDamage * bossScale);
       bossHit = true;
     }
   }
@@ -5380,6 +5431,10 @@ Renderer.initialize({
   clearCameraShake() { cameraShakeTimer = 0; cameraShakeMagnitude = 0; },
   get titleScreenActive() { return titleScreenActive; },
   get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
+  get titleClassMenuActive() { return titleClassMenuActive; },
+  get titleSelectedClassId() {
+    return window.BattlechurchClasses?.getActiveId?.() || null;
+  },
   get titleDemoSaveSlots() { return TITLE_DEMO_SAVE_SLOTS; },
   get titleCloudSaveLoading() { return titleCloudSaveLoading; },
   get titleCloudSaveRows() { return titleCloudSaveRows; },
@@ -13579,7 +13634,9 @@ class CozyNpc {
       baseCooldown = baseCfg.cooldownAfterFire * npcRateScale;
     }
 
-    const cooldown = Math.max(0.02, (baseCooldown * npcCooldownMult) / fireRateMultiplier);
+    const cooldown = applyNpcRofClassMultiplier(
+      Math.max(0.02, (baseCooldown * npcCooldownMult) / fireRateMultiplier),
+    );
 
     let damageBase =
       weaponMode === "arrow"
@@ -13590,7 +13647,7 @@ class CozyNpc {
       (weaponMode === "arrow" ? 1 : npcDamageMult) *
       harmonyMultiplier *
       (1 + (formation.damage || 0));
-    damage = Math.max(1, Math.round(damage));
+    damage = applyNpcDamageClassMultiplier(Math.max(1, Math.round(damage)));
 
     const baseScale = weaponMode === "arrow" ? 1.6 : (baseCfg?.scale || 2) * 0.5;
     const scale = baseScale * fireRateMultiplier;
@@ -15060,17 +15117,21 @@ function applyProjectileDurabilityDamage(projectile, amount = null) {
 }
 
 function getPlayerProjectileDeflectDamage(meleeAttackState) {
-  if (!meleeAttackState) return MELEE_BASE_DAMAGE;
+  if (!meleeAttackState) return applyPlayerMeleeClassMultiplier(MELEE_BASE_DAMAGE);
   if (meleeAttackState.isRushing || meleeAttackState.rushDamageEnabled) {
-    return RUSH_DAMAGE;
+    return applyPlayerMeleeClassMultiplier(RUSH_DAMAGE);
   }
   if (meleeAttackState.spinTimer > 0) {
-    return Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER);
+    return applyPlayerMeleeClassMultiplier(
+      Math.round(MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER),
+    );
   }
   if (meleeAttackState.swooshTimer > 0) {
-    return Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE);
+    return applyPlayerMeleeClassMultiplier(
+      Math.round(MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE),
+    );
   }
-  return MELEE_BASE_DAMAGE;
+  return applyPlayerMeleeClassMultiplier(MELEE_BASE_DAMAGE);
 }
 
 let projectileGlowSprite = null;
@@ -19858,6 +19919,9 @@ function handleTitleScreen() {
         if (!titleDemoSaveMenuActive) {
           if (buttons.length <= 1) return focusIndex;
           const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
+          if (titleClassMenuActive) {
+            return Math.max(0, Math.min(buttons.length - 1, focusIndex + linearDirection));
+          }
           return (focusIndex + linearDirection + buttons.length) % buttons.length;
         }
         const current = buttons[focusIndex] || null;
@@ -19933,6 +19997,30 @@ function handleTitleScreen() {
         if (saveId) titleCloudSelectedSaveId = saveId;
       },
       onActivate: (button) => {
+        if (titleClassMenuActive) {
+          if (button.key === "back") {
+            titleClassMenuActive = false;
+            if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+              window.playMenuAdvanceSfx(0.55);
+            }
+            return;
+          }
+          if (String(button.key || "").startsWith("class:")) {
+            const classId = String(button.key).slice("class:".length);
+            if (classId) {
+              const selectedClass = window.BattlechurchClasses?.setActive?.(classId) || null;
+              if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+                window.playMenuItemPickSfx(0.55);
+              }
+              const selectedName =
+                selectedClass?.displayName ||
+                window.BattlechurchClassConfig?.byId?.[classId]?.displayName ||
+                classId;
+              showProgressSaveToast(`Class Selected: ${selectedName}`, 1.8);
+            }
+            return;
+          }
+        }
         if (button.key === "continue" || button.key === "play") {
           setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = true;
@@ -19945,8 +20033,27 @@ function handleTitleScreen() {
         if (button.key === "back") {
           setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = false;
+          titleClassMenuActive = false;
           if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
             window.playMenuAdvanceSfx(0.55);
+          }
+          return;
+        }
+        if (button.key === "class") {
+          titleClassMenuActive = true;
+          const selectedId = window.BattlechurchClasses?.getActiveId?.() || null;
+          const classList = Array.isArray(window.BattlechurchClassConfig?.classes)
+            ? window.BattlechurchClassConfig.classes
+            : [];
+          const selectedIndex = Math.max(
+            0,
+            classList.findIndex((entry) => entry?.id === selectedId),
+          );
+          if (typeof window !== "undefined") {
+            window.__announcementFocus = { key: "title", index: selectedIndex };
+          }
+          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
+            window.playMenuItemPickSfx(0.55);
           }
           return;
         }
@@ -21561,7 +21668,7 @@ function processDeadEnemies() {
       const rushBonus = enemy.killedByRush ? 0.10 : 0;
       const churchBonus = enemy.killedByChurchPowerup ? 0.05 : 0;
       const chargeScale = 1 + Math.max(0, Number(formation?.prayerChargeGain) || 0) + rushBonus + churchBonus;
-      const chargeAmount = enemyHp * chargeScale;
+      const chargeAmount = applyPrayerGainClassMultiplier(enemyHp * chargeScale);
       if (chargeAmount > 0) player.addPrayerCharge(chargeAmount);
     }
     if (enemy.killedByPrayerBomb) {
@@ -23941,7 +24048,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (!meleePrimaryTarget) meleePrimaryTarget = enemy;
     const counterHit = getCounterHitResult(
       enemy,
-      Math.round(MELEE_BASE_DAMAGE * damageMultiplier),
+      applyPlayerMeleeClassMultiplier(Math.round(MELEE_BASE_DAMAGE * damageMultiplier)),
       meleeAttackState,
     );
     const damage = counterHit.damage;
@@ -24041,7 +24148,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     if (bossHit) {
         const counterHit = getCounterHitResult(
           activeBoss,
-          Math.round(MELEE_BASE_DAMAGE * damageMultiplier),
+          applyPlayerMeleeClassMultiplier(Math.round(MELEE_BASE_DAMAGE * damageMultiplier)),
           meleeAttackState,
         );
         const damage = counterHit.damage;
@@ -24833,7 +24940,7 @@ function flushPendingDivineShot(meleeAttackState, dt) {
   meleeAttackState.pendingDivineShot = null;
   spawnProjectile("divine_shot", pending.spawnX, pending.spawnY, pending.vx, pending.vy, {
     friendly: true,
-    damage: DIVINE_SHOT_DAMAGE,
+    damage: applyPlayerProjectileClassMultiplier(DIVINE_SHOT_DAMAGE),
     life: DIVINE_SHOT_LIFE,
     speed: DIVINE_SHOT_SPEED,
     source: player,

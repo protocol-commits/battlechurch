@@ -199,6 +199,23 @@ const MELEE_SWING_LENGTH = 260;
     "Keyboard: Navigation/Movement: WASD | Action Buttons: Left (A), Down (B), Right (C) | Select: Space | Back: Esc";
   const XBOX_CONTROLS_HINT =
     "Xbox: Navigation/Movement: Left Stick or D-Pad | Action Buttons: A, B, RB | Select: A | Back: B";
+  const classMenuIconSources = [
+    "assets/sprites/items/icons/I25_Book.png",
+    "assets/sprites/items/icons/I28_Idol.png",
+    "assets/sprites/items/icons/I27_Rune.png",
+    "assets/sprites/items/icons/I41_Candle.png",
+    "assets/sprites/items/icons/I23_Scroll.png",
+    "assets/sprites/items/icons/I24_Note.png",
+    "assets/sprites/items/icons/I56_Diamond.png",
+    "assets/sprites/items/icons/I62_Gem_L.png",
+    "assets/sprites/items/icons/I57_Coin.png",
+    "assets/sprites/items/icons/I43_Torch.png",
+  ];
+  const classMenuIcons = classMenuIconSources.map((src) => {
+    const img = new Image();
+    img.src = src;
+    return img;
+  });
 
   function getControlsHintText() {
     return window?.Input?.gamepadState?.connected ? XBOX_CONTROLS_HINT : KEYBOARD_CONTROLS_HINT;
@@ -7985,10 +8002,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       assetsLoaded,
       mapReady,
       titleDemoSaveMenuActive,
+      titleClassMenuActive,
       titleDemoSaveSlots,
       titleCloudSaveLoading,
       titleCloudSaveRows,
       titleCloudSelectedSaveId,
+      titleSelectedClassId,
     } = requireBindings();
     ctx.save();
     const titleImage = assets?.titleBackground || null;
@@ -8043,7 +8062,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       fireOverlay.draw(ctx);
     }
-    if (titleDemoSaveMenuActive) {
+    if (titleDemoSaveMenuActive || titleClassMenuActive) {
       ctx.save();
       ctx.fillStyle = "rgba(0, 0, 0, 0.74)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -8103,23 +8122,82 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         buttonConfigs.push({ key: "resetGoogleSave", label: "Reset Highlighted" });
       }
       buttonConfigs.push({ key: "back", label: "Back" });
+    } else if (titleClassMenuActive) {
+      const classes = Array.isArray(window.BattlechurchClassConfig?.classes)
+        ? window.BattlechurchClassConfig.classes
+        : [];
+      const classBlurbsById = {
+        presbyterian: "Reformed — Stand firm through truth, discipline, and spiritual endurance.",
+        pentecostal: "Charismatic — Expect God to move powerfully in the middle of chaos.",
+        nondenominational: "Evangelical — Bring the lost home before the darkness takes them.",
+        anglican: "Liturgical — Preserve sacred order against the collapse of the world.",
+        lutheran: "Liturgical — Preserve sacred order against the collapse of the world.",
+        orthodox: "Orthodox — Become holy through endurance, mystery, and ancient faith.",
+        catholic: "Catholic — Hold the line through sacrament, mercy, and enduring unity.",
+        baptist: "Baptist — Build a faithful church one committed soul at a time.",
+        methodist: "Methodist — Strengthen the weary through compassion, discipline, and service.",
+        adventist: "Evangelical — Live with watchfulness, mission, and hopeful endurance.",
+      };
+      const splitClassBlurb = (blurb) => {
+        const text = String(blurb || "").trim();
+        if (!text) return { title: "", description: "" };
+        const emDashIndex = text.indexOf("—");
+        const hyphenIndex = text.indexOf(" - ");
+        let splitIndex = -1;
+        let splitLen = 0;
+        if (emDashIndex >= 0) {
+          splitIndex = emDashIndex;
+          splitLen = 1;
+        } else if (hyphenIndex >= 0) {
+          splitIndex = hyphenIndex;
+          splitLen = 3;
+        }
+        if (splitIndex < 0) {
+          return { title: text, description: "" };
+        }
+        const title = text.slice(0, splitIndex).trim();
+        const description = text.slice(splitIndex + splitLen).trim();
+        return { title, description };
+      };
+      buttonConfigs = classes.map((entry) => ({
+        ...(function () {
+          const blurb = classBlurbsById[entry.id] || "Choose a calling and shape your path.";
+          const parsed = splitClassBlurb(blurb);
+          return {
+            key: `class:${entry.id}`,
+            label: parsed.title || entry.displayName || entry.denominationLabel || entry.id,
+            meta: parsed.description || blurb,
+            isSelected: entry.id === titleSelectedClassId,
+          };
+        })(),
+      }));
+      buttonConfigs.push({ key: "back", label: "Back" });
     } else if (assetsLoaded) {
+      const activeClassLabel =
+        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.displayName || "Baptist";
       buttonConfigs = [
         { key: "play", label: "Play" },
+        { key: "class", label: "Class", meta: activeClassLabel },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
       ];
     } else if (mapReady) {
       // Map ready but gameplay still loading - allow map browsing
+      const activeClassLabel =
+        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.displayName || "Baptist";
       buttonConfigs = [
         { key: "map", label: "Loading" },
+        { key: "class", label: "Class", meta: activeClassLabel },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
       ];
     } else {
       // Still loading title/map assets
+      const activeClassLabel =
+        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.displayName || "Baptist";
       buttonConfigs = [
         { key: "play", label: "Loading..." },
+        { key: "class", label: "Class", meta: activeClassLabel },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
       ];
@@ -8504,6 +8582,163 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       boundsByIndex.forEach((item) => {
         if (item) bounds.push(item);
       });
+    } else if (titleClassMenuActive) {
+      const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
+      const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
+      const hintStyle = window.UIStyles?.panels?.hellfire?.withHint || {};
+      const panelW = Math.round(Math.min(760, layout.virtualCanvas.width * 0.62));
+      const panelH = Math.round(Math.min(680, layout.virtualCanvas.height * 0.78));
+      const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
+      const panelY = Math.round(layout.virtualCanvas.height / 2 - panelH / 2);
+      const titleY = panelY + 34;
+      const hintY = panelY + 56;
+      const dividerY = panelY + 82;
+
+      const rowH = 50;
+      const rowGap = 6;
+      const rowX = panelX + 22;
+      const rowW = panelW - 44;
+      const listStartY = panelY + 100;
+      const listBottomY = panelY + panelH - 16;
+      const rowStep = rowH + rowGap;
+      const maxVisibleRows = Math.max(1, Math.floor((listBottomY - listStartY) / rowStep));
+      const totalRows = buttonConfigs.length;
+      const rawFocus =
+        typeof window !== "undefined" && window.__announcementFocus?.key === "title"
+          ? Number(window.__announcementFocus.index)
+          : 0;
+      const focusIndex = Number.isFinite(rawFocus)
+        ? Math.max(0, Math.min(totalRows - 1, Math.floor(rawFocus)))
+        : 0;
+      const maxScrollStart = Math.max(0, totalRows - maxVisibleRows);
+      let scrollStart = Math.max(0, Math.min(maxScrollStart, focusIndex - Math.floor(maxVisibleRows / 2)));
+      if (focusIndex >= totalRows - 1) {
+        scrollStart = maxScrollStart;
+      }
+      const visibleStart = scrollStart;
+      const visibleEnd = Math.min(totalRows, visibleStart + maxVisibleRows);
+      const showScrollUp = visibleStart > 0;
+      const showScrollDown = visibleEnd < totalRows;
+      const boundsByIndex = new Array(totalRows);
+
+      ctx.shadowColor = shellStyle.shadowColor || "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = shellStyle.shadowBlur ?? 24;
+      ctx.shadowOffsetY = shellStyle.shadowOffsetY ?? 10;
+      const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+      panelGradient.addColorStop(0, shellStyle.gradientTop || "rgba(12, 18, 30, 0.95)");
+      panelGradient.addColorStop(1, shellStyle.gradientBottom || "rgba(7, 10, 18, 0.95)");
+      ctx.fillStyle = panelGradient;
+      ctx.strokeStyle = shellStyle.borderColor || "rgba(255, 218, 162, 0.34)";
+      ctx.lineWidth = shellStyle.borderWidth ?? 2;
+      roundRect(ctx, panelX, panelY, panelW, panelH, shellStyle.radius ?? 18, true, true);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+      ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 1;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `700 ${hintStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
+      ctx.fillText("CHOOSE CLASS", panelX + panelW / 2, titleY);
+      ctx.font = `600 ${hintStyle.hintFontSize ?? 12}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = hintStyle.hintColor || "rgba(231,176,102,0.82)";
+      ctx.fillText("W / S move  ·  SPACE select  ·  ESC back", panelX + panelW / 2, hintY);
+      ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
+      ctx.lineWidth = dividerStyle.width ?? 1;
+      ctx.beginPath();
+      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), dividerY);
+      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), dividerY);
+      ctx.stroke();
+
+      for (let index = visibleStart; index < visibleEnd; index += 1) {
+        const config = buttonConfigs[index];
+        const visibleRow = index - visibleStart;
+        const y = Math.round(listStartY + visibleRow * rowStep);
+        const focused = isAnnouncementButtonFocused("title", index);
+        const selected = Boolean(config?.isSelected);
+        const isBack = config?.key === "back";
+        const iconSize = 18;
+        const icon = classMenuIcons[index % classMenuIcons.length] || null;
+        ctx.save();
+        ctx.fillStyle = focused
+          ? "rgba(82, 44, 20, 0.88)"
+          : selected
+          ? "rgba(46, 32, 26, 0.88)"
+          : "rgba(14, 12, 16, 0.88)";
+        ctx.strokeStyle = focused
+          ? "rgba(242, 200, 125, 0.95)"
+          : selected
+          ? "rgba(242, 200, 125, 0.62)"
+          : "rgba(242, 200, 125, 0.35)";
+        ctx.lineWidth = focused ? 2.2 : selected ? 1.7 : 1.2;
+        roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
+        if (focused || selected) {
+          ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
+          ctx.fillRect(rowX + 6, y + 8, 3, rowH - 16);
+        }
+        if (icon && icon.complete) {
+          ctx.drawImage(icon, rowX + 14, y + Math.round((rowH - iconSize) / 2) - 1, iconSize, iconSize);
+        }
+        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetY = 0;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `600 16px ${UI_FONT_FAMILY}`;
+        const focusPrefix = focused ? "> " : "";
+        const selectedSuffix = selected && !isBack ? "  [Selected]" : "";
+        const labelText = `${focusPrefix}${config.label}${selectedSuffix}`;
+        ctx.fillText(labelText, rowX + 40, y + 20);
+        if (!isBack && config?.meta) {
+          ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+          ctx.fillStyle = "rgba(231, 176, 102, 0.82)";
+          ctx.fillText(String(config.meta), rowX + 40, y + 38);
+        }
+        ctx.restore();
+
+        bounds.push({
+          key: config.key,
+          x: layout.offsetX + rowX * layout.scale,
+          y: layout.offsetY + y * layout.scale,
+          width: rowW * layout.scale,
+          height: rowH * layout.scale,
+        });
+        boundsByIndex[index] = bounds[bounds.length - 1];
+      }
+
+      for (let index = 0; index < totalRows; index += 1) {
+        if (boundsByIndex[index]) continue;
+        boundsByIndex[index] = {
+          key: buttonConfigs[index]?.key,
+          x: -99999,
+          y: -99999,
+          width: 0,
+          height: 0,
+        };
+      }
+      bounds.length = 0;
+      boundsByIndex.forEach((entry) => {
+        if (entry) bounds.push(entry);
+      });
+
+      if (showScrollUp || showScrollDown) {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
+        ctx.font = `700 14px ${UI_FONT_FAMILY}`;
+        if (showScrollUp) {
+          ctx.fillText("▲", panelX + panelW - 16, listStartY - 4);
+        }
+        if (showScrollDown) {
+          ctx.fillText("▼", panelX + panelW - 16, listBottomY - 2);
+        }
+        ctx.restore();
+      }
     } else {
       // Title screen shows only background art and buttons.
       const buttonWidth = Math.min(240, Math.floor(layout.virtualCanvas.width / buttonConfigs.length) - 24);
