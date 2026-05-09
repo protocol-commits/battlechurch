@@ -8943,6 +8943,130 @@ function showEditCloudSaveDialog(saveId) {
   return true;
 }
 
+function showCloudSaveDetailsDialog(saveId) {
+  const cloudRow = saveId
+    ? titleCloudSaveRows.find((row) => row.id === saveId) || null
+    : null;
+  if (!cloudRow?.details) return false;
+  const d = cloudRow.details;
+  const districtRows = Array.isArray(d.districtRows) ? d.districtRows : [];
+  const title = `${d.saveName || "Save"} - Full Details`;
+  const lines = [];
+  lines.push(`Player: ${d.playerName || "Pastor"}`);
+  lines.push(`Denomination: ${d.classTitle || "Unknown"}`);
+  lines.push(`Towns Cleared: ${Number(d.completedDistricts) || 0}/${Number(d.totalDistricts) || 10}`);
+  lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
+  lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
+  lines.push(`Upgrade Levels: ${Number(d.totalUpgradeLevels) || 0}`);
+  lines.push("");
+  lines.push("Town Breakdown:");
+  districtRows.forEach((row) => {
+    lines.push(
+      `${row?.districtName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
+    );
+  });
+  if (window.DialogOverlay?.show) {
+    window.DialogOverlay.show({
+      title,
+      bodyHtml: `<div class="settings-panel"><pre style="white-space: pre-wrap; max-height: 58vh; overflow-y: auto; margin: 0;">${escapeHtml(lines.join("\n"))}</pre></div>`,
+      buttonText: "Close",
+      variant: "settings",
+    });
+  } else if (typeof window?.alert === "function") {
+    window.alert(`${title}\n\n${lines.join("\n")}`);
+  }
+  return true;
+}
+
+function showCloudSaveMoreMenu(saveId) {
+  if (!saveId || !window.DialogOverlay?.show) return false;
+  const row = titleCloudSaveRows.find((entry) => entry.id === saveId) || null;
+  if (!row) return false;
+  if (typeof window !== "undefined") {
+    window.__titleCloudRowMoreOpenFor = saveId;
+  }
+  window.DialogOverlay.show({
+    title: `${row.label || "Save"} - More`,
+    buttonText: "",
+    variant: "settings",
+    bodyHtml: `
+      <div class="settings-panel" style="display:grid; gap:8px;">
+        <button type="button" id="cloudMoreView" class="dialog-overlay__button">View Full Details</button>
+        <button type="button" id="cloudMoreEdit" class="dialog-overlay__button">Edit Save</button>
+        <button type="button" id="cloudMoreReset" class="dialog-overlay__button">Reset Save Progress</button>
+        <button type="button" id="cloudMoreDelete" class="dialog-overlay__button">Delete Save</button>
+        <button type="button" id="cloudMoreClose" class="dialog-overlay__button">Close</button>
+      </div>
+    `,
+    onRender: ({ bodyEl }) => {
+      const closeMenu = () => {
+        if (typeof window !== "undefined") {
+          window.__battlechurchSuppressMenuConfirmUntilRelease = true;
+        }
+        if (typeof Input !== "undefined" && Input?.keysJustPressed) {
+          Input.keysJustPressed.delete(" ");
+          Input.keysJustPressed.delete("enter");
+          Input.keysJustPressed.delete("Enter");
+        }
+        if (typeof window !== "undefined") {
+          window.__titleCloudRowMoreOpenFor = null;
+        }
+        window.DialogOverlay?.hide?.();
+      };
+      bodyEl?.querySelector("#cloudMoreClose")?.addEventListener("click", closeMenu);
+      bodyEl?.querySelector("#cloudMoreView")?.addEventListener("click", () => {
+        closeMenu();
+        setTimeout(() => {
+          showCloudSaveDetailsDialog(saveId);
+        }, 0);
+      });
+      bodyEl?.querySelector("#cloudMoreEdit")?.addEventListener("click", () => {
+        closeMenu();
+        setTimeout(() => {
+          showEditCloudSaveDialog(saveId);
+        }, 0);
+      });
+      bodyEl?.querySelector("#cloudMoreReset")?.addEventListener("click", () => {
+        closeMenu();
+        void (async () => {
+          const confirmed =
+            typeof window === "undefined" ||
+            typeof window.confirm !== "function" ||
+            window.confirm("Reset highlighted save file progress to a fresh start? This cannot be undone.");
+          if (!confirmed) return;
+          if (typeof window.MapScreen?.resetSaveFile === "function") {
+            await window.MapScreen.resetSaveFile(saveId);
+          }
+          titleCloudSelectedSaveId = saveId;
+          await refreshTitleCloudSaveOption();
+        })();
+      });
+      bodyEl?.querySelector("#cloudMoreDelete")?.addEventListener("click", () => {
+        closeMenu();
+        void (async () => {
+          const confirmed =
+            typeof window === "undefined" ||
+            typeof window.confirm !== "function" ||
+            window.confirm("Delete selected save file? This cannot be undone.");
+          if (!confirmed) return;
+          try {
+            const deleted = await window.MapScreen?.deleteSaveFile?.(saveId);
+            if (!deleted && typeof window?.alert === "function") {
+              window.alert("Could not delete save. You must keep at least one save file.");
+            }
+          } catch (e) {
+            if (typeof window?.alert === "function") {
+              window.alert(`Delete failed: ${e?.message || "Unknown error"}`);
+            }
+          }
+          await refreshTitleCloudSaveOption();
+        })();
+      });
+    },
+  });
+  return true;
+}
+
 const PAUSE_BODY =
   uiTexts.pauseBody ||
   [
@@ -20120,6 +20244,16 @@ function handleTitleScreen() {
     }
     return true;
   }
+  if (window.DialogOverlay?.isVisible?.()) {
+    // While any dialog is open, block title-menu navigation/confirm keys underneath it.
+    keysJustPressed.delete(" ");
+    keysJustPressed.delete("enter");
+    keysJustPressed.delete("Enter");
+    keysJustPressed.delete("escape");
+    keysJustPressed.delete("Escape");
+    window.DialogOverlay?.consumeAction?.();
+    return true;
+  }
   if (window.DialogOverlay?.consumeAction?.()) {
     keysJustPressed.delete(" ");
     keysJustPressed.delete("enter");
@@ -20195,6 +20329,14 @@ function handleTitleScreen() {
           if (direction === "up") return rows[(rowPos - 1 + rows.length) % rows.length].index;
           if (direction === "down") return rows[(rowPos + 1) % rows.length].index;
           if (direction === "right" && actions.length) {
+            const rowKey = String(current.key || "");
+            if (rowKey.startsWith("cloudsave:")) {
+              const saveId = rowKey.slice("cloudsave:".length);
+              const rowMoreIndex = buttons.findIndex(
+                (btn) => String(btn?.key || "") === `cloudrowmore:${saveId}`,
+              );
+              if (rowMoreIndex >= 0) return rowMoreIndex;
+            }
             const firstActionRow = Math.min(...actions.map((entry) => Number(entry.button?.navRow) || 0));
             const target = actions.find((entry) => (Number(entry.button?.navRow) || 0) === firstActionRow);
             return target?.index ?? actions[0].index;
@@ -20466,6 +20608,14 @@ function handleTitleScreen() {
         }
         if (button.key === "newCloudSave") {
           showNewCloudSaveDialog();
+          return;
+        }
+        if (String(button.key || "").startsWith("cloudrowmore:")) {
+          const saveId = String(button.key).slice("cloudrowmore:".length);
+          if (saveId) {
+            titleCloudSelectedSaveId = saveId;
+            showCloudSaveMoreMenu(saveId);
+          }
           return;
         }
         if (button.key === "editCloudSave") {
@@ -20822,6 +20972,7 @@ function handleAnnouncementButtons({ key, buttons, onActivate, onFocusChange, re
   }
   if (typeof window !== "undefined") {
     window.__announcementFocus = { key, index: focusIndex };
+    window.__announcementFocusedButtonKey = String(buttons[focusIndex]?.key || "");
   }
   if (
     typeof onFocusChange === "function" &&
@@ -20836,13 +20987,25 @@ function handleAnnouncementButtons({ key, buttons, onActivate, onFocusChange, re
   }
   const clickPos = Input.consumeCanvasClick?.();
   if (clickPos) {
-    const hitIndex = buttons.findIndex(
-      (btn) =>
+    // Resolve top-most/smallest target first so inline chips (like row ellipsis)
+    // are not swallowed by larger parent row hitboxes.
+    let hitIndex = -1;
+    let hitArea = Number.POSITIVE_INFINITY;
+    for (let i = buttons.length - 1; i >= 0; i -= 1) {
+      const btn = buttons[i];
+      if (!btn) continue;
+      const inside =
         clickPos.x >= btn.x &&
         clickPos.x <= btn.x + btn.width &&
         clickPos.y >= btn.y &&
-        clickPos.y <= btn.y + btn.height,
-    );
+        clickPos.y <= btn.y + btn.height;
+      if (!inside) continue;
+      const area = Math.max(1, Number(btn.width) || 1) * Math.max(1, Number(btn.height) || 1);
+      if (area <= hitArea) {
+        hitArea = area;
+        hitIndex = i;
+      }
+    }
     if (hitIndex >= 0) {
       focusIndex = hitIndex;
       if (typeof window !== "undefined") {

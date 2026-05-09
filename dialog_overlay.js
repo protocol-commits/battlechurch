@@ -42,11 +42,11 @@
   function getNavigableControls() {
     return Array.from(
       overlay.querySelectorAll(
-        "button.dialog-overlay__button, input[type='checkbox'], input[type='range']"
+        "button.dialog-overlay__button, input, select, textarea"
       )
     ).filter((el) => {
       if (!el || el.disabled) return false;
-      if (el.offsetParent === null && el !== button) return false;
+      if (el.offsetParent === null) return false;
       return true;
     });
   }

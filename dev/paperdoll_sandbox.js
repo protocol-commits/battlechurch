@@ -2318,6 +2318,17 @@
   document.addEventListener("keydown", (e) => {
     const key = String(e.key || "");
     const lower = key.length === 1 ? key.toLowerCase() : key;
+    const target = e?.target;
+    const tag = String(target?.tagName || "").toLowerCase();
+    const inputType = String(target?.type || "").toLowerCase();
+    const typingIntoField =
+      (tag === "input" && !["button", "checkbox", "radio", "range", "submit", "reset"].includes(inputType)) ||
+      tag === "textarea" ||
+      tag === "select";
+    if (typingIntoField || window?.DialogOverlay?.isVisible?.()) {
+      if (state.open) onKeyDown(e);
+      return;
+    }
 
     if ((e.shiftKey && lower === "x") || (key === "X" && e.shiftKey)) {
       e.preventDefault();

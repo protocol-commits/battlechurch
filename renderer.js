@@ -8112,14 +8112,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ? "Sync Google Saves"
           : "Login with Google";
       buttonConfigs.push({ key: "loginGoogle", label: loginLabel });
-      buttonConfigs.push({ key: "viewCloudSaveDetails", label: "View Full Details" });
       if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
         buttonConfigs.push({ key: "logoutGoogle", label: "Logout" });
         buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
-        buttonConfigs.push({ key: "editCloudSave", label: "Edit Save" });
         buttonConfigs.push({ key: "duplicateCloudSave", label: "Save File As" });
-        buttonConfigs.push({ key: "deleteCloudSave", label: "Delete Save" });
-        buttonConfigs.push({ key: "resetGoogleSave", label: "Reset Highlighted" });
       }
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (titleClassMenuActive) {
@@ -8231,19 +8227,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const dividerY = panelY + (panelStyle.dividerY ?? hintStyle.dividerY ?? 82);
       const actionKeys = new Set([
         "loginGoogle",
-        "viewCloudSaveDetails",
         "logoutGoogle",
         "newCloudSave",
-        "editCloudSave",
         "duplicateCloudSave",
-        "deleteCloudSave",
-        "resetGoogleSave",
         "back",
       ]);
       const indexedConfigs = buttonConfigs.map((config, index) => ({ config, index }));
       const rowEntries = indexedConfigs.filter((entry) => !actionKeys.has(entry.config.key));
       const actionEntries = indexedConfigs.filter((entry) => actionKeys.has(entry.config.key));
       const boundsByIndex = new Array(buttonConfigs.length);
+      const rowActionBounds = [];
       const leftColumnW = Math.max(390, Math.min(520, Math.floor(panelW * 0.52)));
       const detailsColumnW = panelW - leftColumnW - 66;
       const rowX = panelX + 24;
@@ -8344,6 +8337,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.moveTo(-1.9, 0.3);
           ctx.lineTo(1.9, 0.3);
           ctx.stroke();
+        } else if (actionKey === "cloudSaveMore") {
+          ctx.beginPath();
+          ctx.arc(-3.2, 0, 0.9, 0, Math.PI * 2);
+          ctx.arc(0, 0, 0.9, 0, Math.PI * 2);
+          ctx.arc(3.2, 0, 0.9, 0, Math.PI * 2);
+          ctx.fill();
         } else if (actionKey === "duplicateCloudSave") {
           ctx.strokeRect(-5.2, -3.8, 6.4, 7.6);
           ctx.strokeRect(-1.2, -5.6, 6.4, 7.6);
@@ -8435,12 +8434,52 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
         ctx.font = `600 19px ${UI_FONT_FAMILY}`;
+        const isCloudSaveRow = String(config?.key || "").startsWith("cloudsave:");
+        const rowTextMaxWidth = isCloudSaveRow ? rowW - 74 : rowW - 32;
         const focusPrefix = focused ? "> " : "";
-        ctx.fillText(`${focusPrefix}${config.label}`, x + 16, y + 26);
+        ctx.fillText(fitText(`${focusPrefix}${config.label}`, rowTextMaxWidth), x + 16, y + 26);
         if (meta) {
           ctx.font = `500 13px ${UI_FONT_FAMILY}`;
           ctx.fillStyle = "rgba(231, 176, 102, 0.78)";
-          ctx.fillText(fitText(meta, rowW - 32), x + 16, y + 46);
+          ctx.fillText(fitText(meta, rowTextMaxWidth), x + 16, y + 46);
+        }
+        // Per-save inline "more" chip so actions are attached to each row directly.
+        if (isCloudSaveRow) {
+          const moreW = 34;
+          const moreH = 24;
+          const moreX = x + rowW - moreW - 10;
+          const moreY = y + Math.round((rowH - moreH) / 2);
+          const saveId = String(config.key).slice("cloudsave:".length);
+          const moreKey = `cloudrowmore:${saveId}`;
+          const focusedButtonKey =
+            typeof window !== "undefined"
+              ? String(window.__announcementFocusedButtonKey || "")
+              : "";
+          const moreFocused = focusedButtonKey === moreKey;
+          const moreActive = moreFocused;
+          ctx.fillStyle = moreActive ? "rgba(95, 50, 22, 0.95)" : "rgba(20, 18, 24, 0.92)";
+          ctx.strokeStyle = moreActive ? EMBER_BUTTON_PALETTE.border : "rgba(242, 200, 125, 0.36)";
+          ctx.lineWidth = moreActive ? 2 : 1;
+          roundRect(ctx, moreX, moreY, moreW, moreH, 7, true, true);
+          if (moreActive) {
+            drawFocusRing(ctx, moreX - 2, moreY - 2, moreW + 4, moreH + 4, 8);
+          }
+          ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+          ctx.beginPath();
+          ctx.arc(moreX + 11, moreY + moreH / 2, 1.3, 0, Math.PI * 2);
+          ctx.arc(moreX + 17, moreY + moreH / 2, 1.3, 0, Math.PI * 2);
+          ctx.arc(moreX + 23, moreY + moreH / 2, 1.3, 0, Math.PI * 2);
+          ctx.fill();
+          rowActionBounds.push({
+            key: moreKey,
+            navZone: "actions",
+            navRow: rowIndex,
+            navCol: 0,
+            x: layout.offsetX + moreX * layout.scale,
+            y: layout.offsetY + moreY * layout.scale,
+            width: moreW * layout.scale,
+            height: moreH * layout.scale,
+          });
         }
         ctx.restore();
         boundsByIndex[index] = {
@@ -8565,6 +8604,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       boundsByIndex.forEach((item) => {
         if (item) bounds.push(item);
       });
+      rowActionBounds.forEach((item) => bounds.push(item));
     } else if (titleClassMenuActive) {
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
       const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
