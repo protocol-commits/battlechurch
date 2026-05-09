@@ -4540,6 +4540,7 @@ function syncDevArenaConfirmedCombos() {
 function syncHudConfirmedCombo(comboId, hits, details = null, enemyName = null) {
   if (typeof window === "undefined") return;
   if (!comboId || !Number.isFinite(hits) || hits < 2) return;
+  const HUD_COMBO_MAX = 8;
   const normalizedDetails = Array.isArray(details)
     ? details
         .slice(0, hits)
@@ -4557,7 +4558,7 @@ function syncHudConfirmedCombo(comboId, hits, details = null, enemyName = null) 
   );
   const hasPunishCounter = normalizedDetails.some((entry) => entry.isPunishCounter);
   const hasCounterHit = normalizedDetails.some((entry) => entry.isCounterHit);
-  window.__hudConfirmedCombo = {
+  const payload = {
     comboId: String(comboId),
     hits: Math.max(2, Math.floor(hits), normalizedDetails.length),
     totalDamage,
@@ -4569,6 +4570,18 @@ function syncHudConfirmedCombo(comboId, hits, details = null, enemyName = null) 
         ? performance.now()
         : Date.now(),
   };
+  const list = Array.isArray(window.__hudConfirmedCombos)
+    ? window.__hudConfirmedCombos.slice()
+    : [];
+  const existingIdx = list.findIndex((entry) => entry?.comboId === payload.comboId);
+  if (existingIdx >= 0) list[existingIdx] = payload;
+  else list.push(payload);
+  list.sort((a, b) => {
+    const hitDiff = (Number(b?.hits) || 0) - (Number(a?.hits) || 0);
+    if (hitDiff !== 0) return hitDiff;
+    return (Number(b?.recordedAt) || 0) - (Number(a?.recordedAt) || 0);
+  });
+  window.__hudConfirmedCombos = list.slice(0, HUD_COMBO_MAX);
 }
 
 function upsertDevArenaConfirmedCombo(comboId, hits, moves, details = null, enemyName = null) {

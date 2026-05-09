@@ -1530,40 +1530,55 @@
 
     const drawGameplayComboFeed = () => {
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode === true) return;
-      const combo = window.__hudConfirmedCombo || null;
-      if (!combo || !Number.isFinite(combo.recordedAt)) return;
+      const combos = Array.isArray(window.__hudConfirmedCombos)
+        ? window.__hudConfirmedCombos
+        : [];
+      if (!combos.length) return;
       const COMBO_LIFETIME_MS = 3800;
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
-      const age = now - combo.recordedAt;
-      if (age >= COMBO_LIFETIME_MS) return;
-      const fadeStart = COMBO_LIFETIME_MS * 0.55;
-      const alpha = age > fadeStart
-        ? Math.max(0, 1 - (age - fadeStart) / (COMBO_LIFETIME_MS - fadeStart))
-        : 1;
-      const hits = Math.max(2, Math.floor(Number(combo.hits) || 2));
-      const totalDamage = Math.max(0, Math.round(Number(combo.totalDamage) || 0));
-      const bracketText = `${totalDamage}`;
-      const text = `${hits} Hit Combo [${bracketText}]`;
-      const subtext = combo.hasPunishCounter
-        ? "Punish Counter"
-        : (combo.hasCounterHit ? "Counter Attack" : "");
       const textX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
       const textY = Number.isFinite(window.__comboFeedFixedY) ? window.__comboFeedFixedY : (hudHeight + 34);
       const chainSize = 24;
       const chainColor = window.__hudComboDisplay?.color || "#FFF2B8";
+      const rowHeight = chainSize + 18;
+      const fadeStart = COMBO_LIFETIME_MS * 0.55;
+      const liveCombos = combos
+        .filter((entry) => Number.isFinite(entry?.recordedAt) && (now - entry.recordedAt) < COMBO_LIFETIME_MS)
+        .sort((a, b) => {
+          const hitDiff = (Number(b?.hits) || 0) - (Number(a?.hits) || 0);
+          if (hitDiff !== 0) return hitDiff;
+          return (Number(b?.recordedAt) || 0) - (Number(a?.recordedAt) || 0);
+        })
+        .slice(0, 3);
+      if (!liveCombos.length) return;
+      window.__hudConfirmedCombos = liveCombos;
 
       ctx.save();
-      ctx.globalAlpha = alpha;
       ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      ctx.fillStyle = chainColor;
-      ctx.font = `800 ${chainSize}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(text, textX, textY);
-      if (subtext) {
-        ctx.fillStyle = "rgba(234,246,255,0.78)";
-        ctx.font = `700 12px ${UI_FONT_FAMILY}`;
-        ctx.fillText(subtext, textX, textY + chainSize + 2);
-      }
+      liveCombos.forEach((combo, idx) => {
+        const age = now - combo.recordedAt;
+        const alpha = age > fadeStart
+          ? Math.max(0, 1 - (age - fadeStart) / (COMBO_LIFETIME_MS - fadeStart))
+          : 1;
+        const hits = Math.max(2, Math.floor(Number(combo.hits) || 2));
+        const totalDamage = Math.max(0, Math.round(Number(combo.totalDamage) || 0));
+        const lineY = textY + idx * rowHeight;
+        const text = `${hits} Hit Combo [${totalDamage}]`;
+        const subtext = combo.hasPunishCounter
+          ? "Punish Counter"
+          : (combo.hasCounterHit ? "Counter Attack" : "");
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = chainColor;
+        ctx.font = `800 ${chainSize}px ${UI_FONT_FAMILY}`;
+        ctx.fillText(text, textX, lineY);
+        if (subtext) {
+          ctx.fillStyle = "rgba(234,246,255,0.78)";
+          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.fillText(subtext, textX, lineY + chainSize + 2);
+        }
+      });
       ctx.restore();
     };
 
