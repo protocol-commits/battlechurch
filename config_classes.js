@@ -116,31 +116,31 @@
     "classFlavor": "Stand firm through truth, discipline, and spiritual endurance.",
     "tuning": {
       "player": {
-        "meleeDamageMultiplier": 4,
-        "projectileDamageMultiplier": 1,
+        "meleeDamageMultiplier": 1.1,
+        "projectileDamageMultiplier": 1.1,
         "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 2,
-        "prayerGainMultiplier": 4,
+        "moveSpeedMultiplier": 1.2,
+        "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
         "smiteDamageMultiplier": 1
       },
       "npc": {
-        "rofMultiplier": 4,
-        "damageMultiplier": 4,
+        "rofMultiplier": 1,
+        "damageMultiplier": 1,
         "faithGainMultiplier": 1
       },
       "powerups": {
-        "wisdomWeightMultiplier": 5,
-        "scriptureWeightMultiplier": 5,
-        "faithWeightMultiplier": 5,
-        "perseveranceWeightMultiplier": 5
+        "wisdomWeightMultiplier": 1,
+        "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1,
+        "perseveranceWeightMultiplier": 1
       },
       "churchUpgrades": {
-        "costMultiplier": 0.5,
-        "effectMultiplier": 5
+        "costMultiplier": 1,
+        "effectMultiplier": 1
       },
       "economy": {
-        "graceGainMultiplier": 5
+        "graceGainMultiplier": 1
       }
     }
   },

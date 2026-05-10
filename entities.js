@@ -1424,7 +1424,7 @@
   const playerCollisionRadius = 12;
   return {
     scale: playerScale,
-    speed: 260 * playerSpeedScale,
+    speed: 312 * playerSpeedScale,
     arrowCooldown: 0.35 / 2,
       maxHealth: settings.HERO_MAX_HEALTH || 100,
       radius: playerCollisionRadius * playerScale,
