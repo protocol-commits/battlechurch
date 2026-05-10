@@ -8774,26 +8774,26 @@ function showNewCloudSaveDialog() {
     buttonText: "",
     variant: "settings",
     bodyHtml: `
-      <div class="settings-panel" style="display:grid; gap:10px;">
-        <label style="display:grid; gap:4px;">
-          <span>File Name</span>
-          <input id="newSaveFileName" type="text" value="${defaultSaveName}" style="width:100%;" />
-        </label>
-        <label style="display:grid; gap:4px;">
-          <span>Player Name</span>
-          <input id="newSavePlayerName" type="text" value="Name" style="width:100%;" />
-        </label>
-        <label style="display:grid; gap:4px;">
-          <span>City</span>
-          <input id="newSaveCityName" type="text" value="City" style="width:100%;" />
-        </label>
-        <label style="display:grid; gap:4px;">
-          <span>Class</span>
-          <select id="newSaveClassId" style="width:100%;">${optionsHtml}</select>
-        </label>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
-          <button type="button" id="newSaveCancelBtn" class="dialog-overlay__button">Cancel</button>
-          <button type="button" id="newSaveCreateBtn" class="dialog-overlay__button">Create Save</button>
+      <div class="settings-panel">
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">File Name</span>
+          <input id="newSaveFileName" type="text" value="${defaultSaveName}" class="save-dialog__input" />
+        </div>
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">Player Name</span>
+          <input id="newSavePlayerName" type="text" value="Name" class="save-dialog__input" />
+        </div>
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">City</span>
+          <input id="newSaveCityName" type="text" value="City" class="save-dialog__input" />
+        </div>
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">Denomination</span>
+          <select id="newSaveClassId" class="save-dialog__input">${optionsHtml}</select>
+        </div>
+        <div class="save-dialog__actions">
+          <button type="button" id="newSaveCancelBtn" class="save-dialog__btn-cancel">Cancel</button>
+          <button type="button" id="newSaveCreateBtn" class="save-dialog__btn-primary">Create Save</button>
         </div>
       </div>
     `,
@@ -8878,26 +8878,26 @@ function showEditCloudSaveDialog(saveId) {
     buttonText: "",
     variant: "settings",
     bodyHtml: `
-      <div class="settings-panel" style="display:grid; gap:10px;">
-        <label style="display:grid; gap:4px;">
-          <span>File Name</span>
-          <input id="editSaveFileName" type="text" value="${escapeHtml(currentSaveName)}" style="width:100%;" />
-        </label>
-        <label style="display:grid; gap:4px;">
-          <span>Player Name</span>
-          <input id="editSavePlayerName" type="text" value="${escapeHtml(currentPlayerName)}" style="width:100%;" />
-        </label>
-        <label style="display:grid; gap:4px;">
-          <span>City</span>
-          <input id="editSaveCityName" type="text" value="${escapeHtml(currentCityName)}" style="width:100%;" />
-        </label>
-        <label style="display:grid; gap:4px;">
-          <span>Class</span>
-          <select id="editSaveClassId" style="width:100%;">${optionsHtml}</select>
-        </label>
-        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
-          <button type="button" id="editSaveCancelBtn" class="dialog-overlay__button">Cancel</button>
-          <button type="button" id="editSaveApplyBtn" class="dialog-overlay__button">Apply Changes</button>
+      <div class="settings-panel">
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">File Name</span>
+          <input id="editSaveFileName" type="text" value="${escapeHtml(currentSaveName)}" class="save-dialog__input" />
+        </div>
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">Player Name</span>
+          <input id="editSavePlayerName" type="text" value="${escapeHtml(currentPlayerName)}" class="save-dialog__input" />
+        </div>
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">City</span>
+          <input id="editSaveCityName" type="text" value="${escapeHtml(currentCityName)}" class="save-dialog__input" />
+        </div>
+        <div class="save-dialog__field">
+          <span class="save-dialog__label">Denomination</span>
+          <select id="editSaveClassId" class="save-dialog__input">${optionsHtml}</select>
+        </div>
+        <div class="save-dialog__actions">
+          <button type="button" id="editSaveCancelBtn" class="save-dialog__btn-cancel">Cancel</button>
+          <button type="button" id="editSaveApplyBtn" class="save-dialog__btn-primary">Apply Changes</button>
         </div>
       </div>
     `,
@@ -8990,12 +8990,41 @@ function showCloudSaveMoreMenu(saveId) {
     buttonText: "",
     variant: "settings",
     bodyHtml: `
-      <div class="settings-panel" style="display:grid; gap:8px;">
-        <button type="button" id="cloudMoreView" class="dialog-overlay__button">View Full Details</button>
-        <button type="button" id="cloudMoreEdit" class="dialog-overlay__button">Edit Save</button>
-        <button type="button" id="cloudMoreReset" class="dialog-overlay__button">Reset Save Progress</button>
-        <button type="button" id="cloudMoreDelete" class="dialog-overlay__button">Delete Save</button>
-        <button type="button" id="cloudMoreClose" class="dialog-overlay__button">Close</button>
+      <div class="more-menu">
+        <button type="button" id="cloudMoreView" class="more-menu__item">
+          <span class="more-menu__icon">📋</span>
+          <span class="more-menu__text">
+            <span class="more-menu__name">View Full Details</span>
+            <span class="more-menu__desc">Town breakdown, congregation totals, upgrades</span>
+          </span>
+        </button>
+        <button type="button" id="cloudMoreEdit" class="more-menu__item">
+          <span class="more-menu__icon">✏️</span>
+          <span class="more-menu__text">
+            <span class="more-menu__name">Edit Save</span>
+            <span class="more-menu__desc">Rename file, player name, city, denomination</span>
+          </span>
+        </button>
+        <button type="button" id="cloudMoreReset" class="more-menu__item more-menu__item--danger">
+          <span class="more-menu__icon">↺</span>
+          <span class="more-menu__text">
+            <span class="more-menu__name">Reset Save Progress</span>
+            <span class="more-menu__desc">Wipe all progress and start fresh</span>
+          </span>
+        </button>
+        <button type="button" id="cloudMoreDelete" class="more-menu__item more-menu__item--danger">
+          <span class="more-menu__icon">🗑</span>
+          <span class="more-menu__text">
+            <span class="more-menu__name">Delete Save</span>
+            <span class="more-menu__desc">Permanently remove this save file</span>
+          </span>
+        </button>
+        <button type="button" id="cloudMoreClose" class="more-menu__item more-menu__item--close">
+          <span class="more-menu__icon">✕</span>
+          <span class="more-menu__text">
+            <span class="more-menu__name">Close</span>
+          </span>
+        </button>
       </div>
     `,
     onRender: ({ bodyEl }) => {
