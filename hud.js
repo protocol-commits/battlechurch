@@ -1050,18 +1050,14 @@
       const mapData = typeof window !== 'undefined' ? window.BattlechurchMapData : null;
       const districts = mapData?.districts || [];
       const districtIndex = districts.findIndex((t) => t.id === districtId);
-      const districtNumber = districtIndex >= 0 ? districtIndex + 1 : null;
       const districtName = districts[districtIndex]?.name || "District";
 
-      const positionLabel = districtNumber !== null
-        ? `${districtNumber}.${currentAct}-${currentMission}`
-        : `${currentAct}.${currentMission}`;
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       const districtRowY = panelY + 14;
-      const districtLabelText = `${districtName.toUpperCase()} ${positionLabel}`;
+      const districtLabelText = districtName.toUpperCase();
       ctx.fillText(districtLabelText, x, districtRowY);
       if (typeof window !== "undefined") {
         window.__comboFeedFixedX = x + width;
