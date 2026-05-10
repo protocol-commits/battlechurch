@@ -1615,7 +1615,7 @@
       const PILL_W = 22;
       const PILL_H = 17;
       const SEP_W = 14;
-      const PREFIX_W = 36;
+      const PREFIX_W = 40;
       const PAD_X = 10;
       const PAD_Y = 8;
       const LINE_GAP = 6;
@@ -1628,7 +1628,7 @@
       banner.tokens.forEach((tok) => {
         if (tok.type === "btn") tokenRowW += PILL_W;
         else if (tok.type === "seq" || tok.type === "sim") tokenRowW += SEP_W;
-        else if (tok.type === "hld" || tok.type === "chg") tokenRowW += PREFIX_W;
+        else if (tok.type === "chg") tokenRowW += PREFIX_W;
       });
 
       const innerW = Math.max(nameW, tokenRowW);
@@ -1707,19 +1707,12 @@
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
           tx += SEP_W;
-        } else if (tok.type === "hld") {
-          ctx.fillStyle = "rgba(220, 200, 140, 0.6)";
-          ctx.font = `italic 11px ${UI_FONT_FAMILY}`;
-          ctx.textBaseline = "middle";
-          ctx.fillText("Hold", tx, tokenCenterY);
-          tx += ctx.measureText("Hold").width + 4;
-          ctx.textBaseline = "top";
         } else if (tok.type === "chg") {
           ctx.fillStyle = "rgba(220, 200, 140, 0.6)";
           ctx.font = `italic 11px ${UI_FONT_FAMILY}`;
           ctx.textBaseline = "middle";
           ctx.fillText("Charge", tx, tokenCenterY);
-          tx += ctx.measureText("Charge").width + 4;
+          tx += ctx.measureText("Charge").width + 8;
           ctx.textBaseline = "top";
         }
       });

@@ -25070,6 +25070,7 @@ function getNearestTeleportTargetIndex(targets) {
 function executeProtectedDash(meleeAttackState) {
   if (!player) return;
   playerYell("Crash");
+  showMoveBanner("Crash");
   const dir = getDashButtonDirection();
   if (!dir || (dir.x === 0 && dir.y === 0)) return;
   if (tryStartDash(dir)) {
@@ -25109,17 +25110,22 @@ const _MB = {
   btn: (label) => ({ type: "btn", label }),
   seq: () => ({ type: "seq" }),
   sim: () => ({ type: "sim" }),
-  hld: () => ({ type: "hld" }),
   chg: () => ({ type: "chg" }),
 };
 const MOVE_BANNER_TOKENS = Object.freeze({
-  Smash:  [_MB.btn("B"), _MB.seq(), _MB.btn("A")],
-  Thrash: [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("A")],
-  Reap:   [_MB.btn("C"), _MB.seq(), _MB.btn("A")],
-  Clash:  [_MB.btn("C"), _MB.seq(), _MB.btn("B")],
-  Flash:  [_MB.hld(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
-  Hedge:  [_MB.hld(), _MB.btn("A"), _MB.sim(), _MB.btn("C")],
-  Cleave: [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
+  Blast:           [_MB.chg(), _MB.btn("A")],
+  Crash:           [_MB.chg(), _MB.btn("B")],
+  Smash:           [_MB.btn("B"), _MB.seq(), _MB.btn("A")],
+  Thrash:          [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("A")],
+  Reap:            [_MB.btn("C"), _MB.seq(), _MB.btn("A")],
+  Clash:           [_MB.btn("C"), _MB.seq(), _MB.btn("B")],
+  Flash:           [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
+  Hedge:           [_MB.chg(), _MB.btn("A"), _MB.sim(), _MB.btn("C")],
+  Cleave:          [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
+  "Unity Strike":  [_MB.btn("C")],
+  "Pastor Protect":[_MB.btn("C"), _MB.seq(), _MB.btn("C")],
+  "Smite Bomb":    [_MB.chg(), _MB.btn("C")],
+  "Purge":         [_MB.chg(), _MB.btn("C")],
 });
 
 function showMoveBanner(moveName) {
@@ -25169,6 +25175,7 @@ function npcsYell(text, life = 1.6) {
   });
 }
 window.npcsYell = npcsYell;
+window.showMoveBanner = showMoveBanner;
 
 function executePowerupTeleport(meleeAttackState) {
   if (!player) return;
@@ -25309,6 +25316,7 @@ function executeSpinAttack(meleeAttackState, moveDir, { skipYell = false } = {})
 
 function executeDivineShot(dir, meleeAttackState, angleRad, { skipYell = false } = {}) {
   if (!skipYell) playerYell("Blast");
+  showMoveBanner("Blast");
   registerComboMoveName(meleeAttackState, "Blast");
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"

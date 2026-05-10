@@ -2296,8 +2296,12 @@
                 }
               });
             }
+            window.FloatingText?.heroSay?.("Protect", { life: 1.8 });
+            window.showMoveBanner?.("Pastor Protect");
           } else {
             window.npcsYell?.("Unity Attack");
+            window.FloatingText?.heroSay?.("Unite", { life: 1.8 });
+            window.showMoveBanner?.("Unity Strike");
           }
         }
       }
@@ -2314,6 +2318,7 @@
       const isFullCharge = typeof this.getPrayerChargeRatio === "function" && this.getPrayerChargeRatio() >= 1.0;
       this.castPrayerBomb();
       window.FloatingText?.heroSay?.(isFullCharge ? "Smite" : "Purge");
+      window.showMoveBanner?.(isFullCharge ? "Smite Bomb" : "Purge");
     }
 
       // Visitor mini-game: autolock on closest visitor or chatty NPC
