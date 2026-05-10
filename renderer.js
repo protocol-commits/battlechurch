@@ -8166,31 +8166,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }));
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (assetsLoaded) {
-      const activeClassLabel =
-        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.classTitle || "Baptist";
       buttonConfigs = [
         { key: "play", label: "Play" },
-        { key: "class", label: "Class", meta: activeClassLabel },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
       ];
     } else if (mapReady) {
       // Map ready but gameplay still loading - allow map browsing
-      const activeClassLabel =
-        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.classTitle || "Baptist";
       buttonConfigs = [
         { key: "map", label: "Loading" },
-        { key: "class", label: "Class", meta: activeClassLabel },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
       ];
     } else {
       // Still loading title/map assets
-      const activeClassLabel =
-        window.BattlechurchClassConfig?.byId?.[titleSelectedClassId]?.classTitle || "Baptist";
       buttonConfigs = [
         { key: "play", label: "Loading..." },
-        { key: "class", label: "Class", meta: activeClassLabel },
         { key: "howtoplay", label: "How to Play" },
         { key: "settings", label: "Settings" },
       ];

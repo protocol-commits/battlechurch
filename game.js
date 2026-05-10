@@ -20059,6 +20059,7 @@ function isDeveloperToolActive() {
   if (window.__BC_ENEMY_EDITOR_ACTIVE) return true;
   if (window.PaperdollSandbox?.isOpen?.()) return true;
   if (window.NpcPaperdollSandbox?.isOpen?.()) return true;
+  if (window.BattlechurchClassEditor?.isOpen?.()) return true;
   const levelBuilderOverlay = document.getElementById("levelBuilderOverlay");
   return Boolean(levelBuilderOverlay && levelBuilderOverlay.style.display === "block");
 }
@@ -20119,6 +20120,7 @@ function showDeveloperOverlay() {
     <div class="settings-panel settings-panel--developer">
       <div class="dev-action-grid">
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="pastorDev">Pastor Dev Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="classDev">Class Dev Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="enemy">Enemy Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="arena">Dev Arena</button>
@@ -20217,6 +20219,9 @@ function showDeveloperOverlay() {
           if (action === "pastorDev") {
             window.DialogOverlay.hide();
             window.PaperdollSandbox?.open?.();
+          } else if (action === "classDev") {
+            window.DialogOverlay.hide();
+            window.BattlechurchClassEditor?.show?.();
           } else if (action === "enemy") {
             window.DialogOverlay.hide();
             window.BattlechurchEnemyEditor?.show?.();
@@ -20435,22 +20440,6 @@ function handleTitleScreen() {
           titleClassMenuActive = false;
           if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
             window.playMenuAdvanceSfx(0.55);
-          }
-          return;
-        }
-        if (button.key === "class") {
-          titleClassMenuActive = true;
-          const selectedId = window.BattlechurchClasses?.getActiveId?.() || null;
-          const classList = getSortedClassMenuEntries(window.BattlechurchClassConfig?.classes);
-          const selectedIndex = Math.max(
-            0,
-            classList.findIndex((entry) => entry?.id === selectedId),
-          );
-          if (typeof window !== "undefined") {
-            window.__announcementFocus = { key: "title", index: selectedIndex };
-          }
-          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
-            window.playMenuItemPickSfx(0.55);
           }
           return;
         }
