@@ -7150,6 +7150,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     disabledBorder: "rgba(130, 108, 98, 0.42)",
   });
 
+  // Shared canvas tokens — mirror the --hf-* CSS vars so canvas and HTML panels stay in sync.
+  const HELLFIRE_UI_TOKENS = Object.freeze({
+    text: "#fdf1d9",
+    label: "rgba(242, 210, 146, 0.8)",
+    meta: "rgba(231, 176, 102, 0.78)",
+    accent: "rgba(242, 200, 125, 0.9)",
+    rowBg: "rgba(28, 14, 10, 0.82)",
+    rowBgFocused: "rgba(82, 44, 20, 0.92)",
+    rowBgSelected: "rgba(46, 32, 26, 0.88)",
+    rowBorder: "rgba(242, 200, 125, 0.22)",
+    rowBorderFocused: "rgba(242, 200, 125, 0.95)",
+    rowBorderSelected: "rgba(242, 200, 125, 0.55)",
+    danger: "#f07060",
+  });
+
   const HELLFIRE_TEXT_PALETTE = Object.freeze({
     title: "#F2C87D",
     subtitle: "#E7B066",
@@ -8206,192 +8221,75 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (titleDemoSaveMenuActive) {
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
       const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
-      const hintStyle = window.UIStyles?.panels?.hellfire?.withHint || {};
-      const panelStyle = window.UIStyles?.panels?.hellfire?.playLoadWithHint || {};
-      const panelW = Math.round(
-        Math.min(
-          panelStyle.panelWidthMax ?? hintStyle.panelWidthMax ?? 1020,
-          layout.virtualCanvas.width * (panelStyle.panelWidthRatio ?? hintStyle.panelWidthRatio ?? 0.9),
-        ),
-      );
+
+      // ── Layout constants ────────────────────────────────────────────────
+      const PAD_X = 28;
+      const HEADER_H = 58;       // title + account row
+      const DIVIDER_GAP = 14;    // space around each divider
+      const CARD_H = 72;
+      const CARD_GAP = 8;
+      const ACTION_H = 40;       // bottom action buttons
+      const ACTION_GAP = 10;
+      const FOOTER_H = 36;       // hint line area
+      const MAX_VISIBLE_CARDS = 5;
+
+      const actionKeys = new Set(["loginGoogle", "logoutGoogle", "newCloudSave", "duplicateCloudSave", "back"]);
+      const indexedConfigs = buttonConfigs.map((config, index) => ({ config, index }));
+      const saveEntries = indexedConfigs.filter((e) => !actionKeys.has(e.config.key));
+      const actionEntries = indexedConfigs.filter((e) => actionKeys.has(e.config.key));
+      const saveCount = saveEntries.length;
+      const visibleSaveCount = Math.min(saveCount, MAX_VISIBLE_CARDS);
+
+      const listH = visibleSaveCount * CARD_H + Math.max(0, visibleSaveCount - 1) * CARD_GAP;
+      const actionRowH = actionEntries.length > 0 ? ACTION_H : 0;
+      const actionRowDividerH = actionEntries.length > 0 ? DIVIDER_GAP * 2 + 1 : 0;
       const panelH = Math.round(
-        Math.min(
-          layout.virtualCanvas.height * (panelStyle.panelHeightRatio ?? 0.7),
-          panelStyle.panelHeightMax ?? 520,
-        ),
+        HEADER_H + DIVIDER_GAP * 2 + 1 + listH + actionRowDividerH + actionRowH + FOOTER_H + PAD_X,
+      );
+      const panelW = Math.round(
+        Math.min(660, layout.virtualCanvas.width * 0.78),
       );
       const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
       const panelY = Math.round(layout.virtualCanvas.height / 2 - panelH / 2);
-      const titleY = panelY + (panelStyle.titleY ?? hintStyle.titleY ?? 34);
-      const hintY = panelY + (panelStyle.hintY ?? hintStyle.hintY ?? 56);
-      const dividerY = panelY + (panelStyle.dividerY ?? hintStyle.dividerY ?? 82);
-      const actionKeys = new Set([
-        "loginGoogle",
-        "logoutGoogle",
-        "newCloudSave",
-        "duplicateCloudSave",
-        "back",
-      ]);
-      const indexedConfigs = buttonConfigs.map((config, index) => ({ config, index }));
-      const rowEntries = indexedConfigs.filter((entry) => !actionKeys.has(entry.config.key));
-      const actionEntries = indexedConfigs.filter((entry) => actionKeys.has(entry.config.key));
-      const boundsByIndex = new Array(buttonConfigs.length);
-      const rowActionBounds = [];
-      const leftColumnW = Math.max(390, Math.min(520, Math.floor(panelW * 0.52)));
-      const detailsColumnW = panelW - leftColumnW - 66;
-      const rowX = panelX + 24;
-      const rowW = leftColumnW;
-      const detailsX = rowX + rowW + 18;
-      const rowH = 60;
-      const rowGap = 10;
-      const listStartY = panelY + (panelStyle.padTop ?? hintStyle.padTop ?? 110);
 
-      ctx.shadowColor = shellStyle.shadowColor || "rgba(0, 0, 0, 0.45)";
-      ctx.shadowBlur = shellStyle.shadowBlur ?? 24;
-      ctx.shadowOffsetY = shellStyle.shadowOffsetY ?? 10;
+      // ── Panel shell ─────────────────────────────────────────────────────
+      ctx.shadowColor = shellStyle.shadowColor || "rgba(0,0,0,0.5)";
+      ctx.shadowBlur = shellStyle.shadowBlur ?? 28;
+      ctx.shadowOffsetY = shellStyle.shadowOffsetY ?? 12;
       const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
-      panelGradient.addColorStop(0, shellStyle.gradientTop || "rgba(12, 18, 30, 0.95)");
-      panelGradient.addColorStop(1, shellStyle.gradientBottom || "rgba(7, 10, 18, 0.95)");
+      panelGradient.addColorStop(0, shellStyle.gradientTop || "rgba(18,9,6,0.96)");
+      panelGradient.addColorStop(1, shellStyle.gradientBottom || "rgba(10,5,3,0.96)");
       ctx.fillStyle = panelGradient;
-      ctx.strokeStyle = shellStyle.borderColor || "rgba(255, 218, 162, 0.34)";
+      ctx.strokeStyle = shellStyle.borderColor || "rgba(255,218,162,0.34)";
       ctx.lineWidth = shellStyle.borderWidth ?? 2;
       roundRect(ctx, panelX, panelY, panelW, panelH, shellStyle.radius ?? 18, true, true);
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
 
-      ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-      ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
-      ctx.shadowBlur = 8;
+      // ── Header: title left, avatar + account right ───────────────────
+      const isSignedIn = typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail;
+      const accountText = isSignedIn ? String(window.cloudEmail) : "Not signed in";
+      const headerMidY = panelY + Math.round(HEADER_H / 2);
+      const avatarSize = 32;
+      const avatarX = panelX + panelW - PAD_X - Math.round(avatarSize / 2);
+      const avatarY = headerMidY;
+
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.font = `700 22px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
+      ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
+      ctx.shadowBlur = 6;
       ctx.shadowOffsetY = 1;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.font = `700 ${panelStyle.titleFontSize ?? hintStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
-      ctx.fillText(panelStyle.titleText || "CHOOSE SAVE SOURCE", panelX + panelW / 2, titleY);
-      ctx.font = `600 ${panelStyle.hintFontSize ?? hintStyle.hintFontSize ?? 12}px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = panelStyle.hintColor || hintStyle.hintColor || "rgba(231,176,102,0.82)";
-      ctx.fillText(
-        panelStyle.hintText || hintStyle.hintText || "W / S move  ·  A / D switch panels  ·  SPACE select  ·  ESC back",
-        panelX + panelW / 2,
-        hintY,
-      );
-      ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
-      ctx.lineWidth = dividerStyle.width ?? 1;
-      ctx.beginPath();
-      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), dividerY);
-      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), dividerY);
-      ctx.stroke();
-      const accountLine =
-        typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail
-          ? `Signed in as: ${window.cloudEmail}`
-          : "Not signed in";
+      ctx.fillText("Choose Save", panelX + PAD_X, headerMidY);
 
-      const drawPlayLoadActionIcon = (key, cx, cy, size, active = false) => {
-        const actionKey = String(key || "");
-        const radius = size * 0.5;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.fillStyle = active ? "rgba(242, 200, 125, 0.22)" : "rgba(242, 200, 125, 0.14)";
-        ctx.strokeStyle = active ? "rgba(242, 200, 125, 0.75)" : "rgba(242, 200, 125, 0.45)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.strokeStyle = active ? "rgba(246, 220, 170, 0.95)" : "rgba(246, 220, 170, 0.82)";
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.lineWidth = 1.6;
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-
-        if (actionKey === "loginGoogle" || actionKey === "logoutGoogle") {
-          ctx.beginPath();
-          ctx.arc(0, -1.2, 2.5, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(-4.5, 4.5);
-          ctx.quadraticCurveTo(0, 1.5, 4.5, 4.5);
-          ctx.stroke();
-        } else if (actionKey === "viewCloudSaveDetails") {
-          ctx.strokeRect(-4.8, -5, 9.6, 10);
-          ctx.beginPath();
-          ctx.moveTo(-2.8, -2.2);
-          ctx.lineTo(2.8, -2.2);
-          ctx.moveTo(-2.8, 0.2);
-          ctx.lineTo(2.8, 0.2);
-          ctx.moveTo(-2.8, 2.6);
-          ctx.lineTo(1.3, 2.6);
-          ctx.stroke();
-        } else if (actionKey === "newCloudSave") {
-          ctx.beginPath();
-          ctx.moveTo(-4.5, -3.8);
-          ctx.lineTo(2, -3.8);
-          ctx.lineTo(4.5, -1.4);
-          ctx.lineTo(4.5, 4.2);
-          ctx.lineTo(-4.5, 4.2);
-          ctx.closePath();
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(0, -1.6);
-          ctx.lineTo(0, 2.2);
-          ctx.moveTo(-1.9, 0.3);
-          ctx.lineTo(1.9, 0.3);
-          ctx.stroke();
-        } else if (actionKey === "cloudSaveMore") {
-          ctx.beginPath();
-          ctx.arc(-3.2, 0, 0.9, 0, Math.PI * 2);
-          ctx.arc(0, 0, 0.9, 0, Math.PI * 2);
-          ctx.arc(3.2, 0, 0.9, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (actionKey === "duplicateCloudSave") {
-          ctx.strokeRect(-5.2, -3.8, 6.4, 7.6);
-          ctx.strokeRect(-1.2, -5.6, 6.4, 7.6);
-        } else if (actionKey === "renameCloudSave") {
-          ctx.beginPath();
-          ctx.moveTo(-4.6, 3.6);
-          ctx.lineTo(-2.8, 5.4);
-          ctx.lineTo(-1.8, 4.2);
-          ctx.lineTo(-3.4, 2.4);
-          ctx.closePath();
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(-2.6, 3.2);
-          ctx.lineTo(4.6, -4.1);
-          ctx.stroke();
-        } else if (actionKey === "deleteCloudSave" || actionKey === "resetGoogleSave") {
-          ctx.strokeRect(-3.6, -2.4, 7.2, 7);
-          ctx.beginPath();
-          ctx.moveTo(-4.6, -2.4);
-          ctx.lineTo(4.6, -2.4);
-          ctx.moveTo(-1.8, -4.5);
-          ctx.lineTo(1.8, -4.5);
-          ctx.stroke();
-        } else if (actionKey === "back") {
-          ctx.beginPath();
-          ctx.moveTo(4.5, -4.5);
-          ctx.lineTo(-2.5, 0);
-          ctx.lineTo(4.5, 4.5);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(-2.5, 0);
-          ctx.lineTo(5.2, 0);
-          ctx.stroke();
-        } else {
-          ctx.beginPath();
-          ctx.moveTo(-4, -4);
-          ctx.lineTo(4, 4);
-          ctx.moveTo(-4, 4);
-          ctx.lineTo(4, -4);
-          ctx.stroke();
-        }
-        ctx.restore();
-      };
-
-      const describeRow = (config) => {
-        if (typeof config?.meta === "string" && config.meta.trim()) return config.meta;
-        if (config?.key === "cloudsavePending") return "Reading account saves...";
-        return "";
-      };
+      // account email right-aligned before avatar
+      ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = isSignedIn ? HELLFIRE_UI_TOKENS.meta : "rgba(231,176,102,0.42)";
+      ctx.shadowBlur = 0;
+      ctx.textAlign = "right";
+      const accountTextMaxW = panelW - PAD_X * 2 - avatarSize - 16 - (ctx.measureText("Choose Save").width + 16);
       const fitText = (text, maxWidth) => {
         if (!text || ctx.measureText(text).width <= maxWidth) return text;
         const ellipsis = "...";
@@ -8403,77 +8301,129 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
         return ellipsis;
       };
+      ctx.fillText(fitText(accountText, Math.max(60, accountTextMaxW)), avatarX - Math.round(avatarSize / 2) - 10, headerMidY);
+      ctx.textBaseline = "alphabetic";
 
-      rowEntries.forEach(({ config, index }, rowIndex) => {
-        const x = Math.round(rowX);
-        const y = Math.round(listStartY + rowIndex * (rowH + rowGap));
+      drawCloudProfileAvatar(ctx, avatarX, avatarY, avatarSize, typeof window !== "undefined" ? window.cloudPhotoUrl : null);
+
+      // ── Divider under header ────────────────────────────────────────────
+      const headerDividerY = panelY + HEADER_H + DIVIDER_GAP;
+      ctx.strokeStyle = dividerStyle.color || "rgba(255,214,148,0.18)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(panelX + PAD_X, headerDividerY);
+      ctx.lineTo(panelX + panelW - PAD_X, headerDividerY);
+      ctx.stroke();
+
+      // ── Save cards ──────────────────────────────────────────────────────
+      const cardX = panelX + PAD_X;
+      const cardW = panelW - PAD_X * 2;
+      const listStartY = headerDividerY + DIVIDER_GAP;
+
+      // Scrolling: keep focused save visible
+      const rawFocusIndex =
+        typeof window !== "undefined" && window.__announcementFocus?.key === "title"
+          ? Number(window.__announcementFocus.index)
+          : 0;
+      const focusedSavePos = saveEntries.findIndex((e) => e.index === rawFocusIndex);
+      const focusedSavePosClamp = Math.max(0, focusedSavePos);
+      const maxScrollStart = Math.max(0, saveCount - MAX_VISIBLE_CARDS);
+      let scrollStart = Math.max(0, Math.min(maxScrollStart, focusedSavePosClamp - Math.floor(MAX_VISIBLE_CARDS / 2)));
+      if (focusedSavePosClamp >= saveCount - 1) scrollStart = maxScrollStart;
+      const visibleEnd = Math.min(saveCount, scrollStart + MAX_VISIBLE_CARDS);
+      const showScrollUp = scrollStart > 0;
+      const showScrollDown = visibleEnd < saveCount;
+
+      const boundsByIndex = new Array(buttonConfigs.length);
+      const rowActionBounds = [];
+
+      for (let vi = scrollStart; vi < visibleEnd; vi++) {
+        const { config, index } = saveEntries[vi];
+        const visRow = vi - scrollStart;
+        const cardY = Math.round(listStartY + visRow * (CARD_H + CARD_GAP));
         const focused = isAnnouncementButtonFocused("title", index);
         const selected = Boolean(config?.isSelected);
-        const meta = describeRow(config);
+        const isCloudSaveRow = String(config?.key || "").startsWith("cloudsave:");
+        const meta = typeof config?.meta === "string" ? config.meta.trim() : config?.key === "cloudsavePending" ? "Reading account saves..." : "";
+
         ctx.save();
-        ctx.fillStyle = focused
-          ? "rgba(82, 44, 20, 0.88)"
-          : selected
-          ? "rgba(46, 32, 26, 0.88)"
-          : "rgba(14, 12, 16, 0.88)";
-        ctx.strokeStyle = focused
-          ? "rgba(242, 200, 125, 0.95)"
-          : selected
-          ? "rgba(242, 200, 125, 0.62)"
-          : "rgba(242, 200, 125, 0.35)";
-        ctx.lineWidth = focused ? 2.2 : selected ? 1.7 : 1.2;
-        roundRect(ctx, x, y, rowW, rowH, 8, true, true);
+        ctx.fillStyle = focused ? HELLFIRE_UI_TOKENS.rowBgFocused : selected ? HELLFIRE_UI_TOKENS.rowBgSelected : HELLFIRE_UI_TOKENS.rowBg;
+        ctx.strokeStyle = focused ? HELLFIRE_UI_TOKENS.rowBorderFocused : selected ? HELLFIRE_UI_TOKENS.rowBorderSelected : HELLFIRE_UI_TOKENS.rowBorder;
+        ctx.lineWidth = focused ? 2.2 : selected ? 1.6 : 1;
+        roundRect(ctx, cardX, cardY, cardW, CARD_H, 12, true, true);
+
+        // Amber accent bar (left edge, selected/focused)
         if (focused || selected) {
-          ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
-          ctx.fillRect(x + 6, y + 8, 3, rowH - 16);
+          ctx.fillStyle = HELLFIRE_UI_TOKENS.accent;
+          ctx.fillRect(cardX + 7, cardY + 12, 3, CARD_H - 24);
         }
+
+        const textX = cardX + (focused || selected ? 20 : 16);
+        const moreChipW = isCloudSaveRow ? 42 : 0;
+        const textMaxW = cardW - (textX - cardX) - moreChipW - 12;
+
+        // Save name
+        ctx.font = `700 17px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowColor = "rgba(0,0,0,0.55)";
         ctx.shadowBlur = 3;
         ctx.shadowOffsetY = 0;
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `600 19px ${UI_FONT_FAMILY}`;
-        const isCloudSaveRow = String(config?.key || "").startsWith("cloudsave:");
-        const rowTextMaxWidth = isCloudSaveRow ? rowW - 74 : rowW - 32;
-        const focusPrefix = focused ? "> " : "";
-        ctx.fillText(fitText(`${focusPrefix}${config.label}`, rowTextMaxWidth), x + 16, y + 26);
+        ctx.fillText(fitText(config.label, textMaxW), textX, cardY + 30);
+
+        // Meta line
         if (meta) {
-          ctx.font = `500 13px ${UI_FONT_FAMILY}`;
-          ctx.fillStyle = "rgba(231, 176, 102, 0.78)";
-          ctx.fillText(fitText(meta, rowTextMaxWidth), x + 16, y + 46);
+          ctx.font = `400 11px ${UI_FONT_FAMILY}`;
+          ctx.fillStyle = HELLFIRE_UI_TOKENS.meta;
+          ctx.shadowBlur = 0;
+          ctx.fillText(fitText(meta, textMaxW), textX, cardY + 50);
         }
-        // Per-save inline "more" chip so actions are attached to each row directly.
+
+        // Active badge
+        if (config?.isActive) {
+          const badgeText = "ACTIVE";
+          ctx.font = `700 9px ${UI_FONT_FAMILY}`;
+          const badgeW = ctx.measureText(badgeText).width + 10;
+          const badgeH = 16;
+          const badgeX = cardX + cardW - moreChipW - badgeW - (moreChipW > 0 ? 6 : 10);
+          const badgeY = cardY + Math.round((CARD_H - badgeH) / 2);
+          ctx.fillStyle = "rgba(242, 200, 125, 0.15)";
+          ctx.strokeStyle = "rgba(242, 200, 125, 0.5)";
+          ctx.lineWidth = 1;
+          roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 4, true, true);
+          ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2);
+          ctx.textBaseline = "alphabetic";
+        }
+
+        // More chip (•••)
         if (isCloudSaveRow) {
           const moreW = 34;
           const moreH = 24;
-          const moreX = x + rowW - moreW - 10;
-          const moreY = y + Math.round((rowH - moreH) / 2);
+          const moreX = cardX + cardW - moreW - 10;
+          const moreY = cardY + Math.round((CARD_H - moreH) / 2);
           const saveId = String(config.key).slice("cloudsave:".length);
           const moreKey = `cloudrowmore:${saveId}`;
-          const focusedButtonKey =
-            typeof window !== "undefined"
-              ? String(window.__announcementFocusedButtonKey || "")
-              : "";
+          const focusedButtonKey = typeof window !== "undefined" ? String(window.__announcementFocusedButtonKey || "") : "";
           const moreFocused = focusedButtonKey === moreKey;
-          const moreActive = moreFocused;
-          ctx.fillStyle = moreActive ? "rgba(95, 50, 22, 0.95)" : "rgba(20, 18, 24, 0.92)";
-          ctx.strokeStyle = moreActive ? EMBER_BUTTON_PALETTE.border : "rgba(242, 200, 125, 0.36)";
-          ctx.lineWidth = moreActive ? 2 : 1;
-          roundRect(ctx, moreX, moreY, moreW, moreH, 7, true, true);
-          if (moreActive) {
-            drawFocusRing(ctx, moreX - 2, moreY - 2, moreW + 4, moreH + 4, 8);
-          }
-          ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+          ctx.fillStyle = moreFocused ? HELLFIRE_UI_TOKENS.rowBgFocused : "rgba(14,10,8,0.7)";
+          ctx.strokeStyle = moreFocused ? HELLFIRE_UI_TOKENS.rowBorderFocused : HELLFIRE_UI_TOKENS.rowBorder;
+          ctx.lineWidth = moreFocused ? 2 : 1;
+          roundRect(ctx, moreX, moreY, moreW, moreH, 8, true, true);
+          if (moreFocused) drawFocusRing(ctx, moreX - 2, moreY - 2, moreW + 4, moreH + 4, 10);
+          ctx.fillStyle = moreFocused ? HELLFIRE_UI_TOKENS.accent : HELLFIRE_UI_TOKENS.meta;
           ctx.beginPath();
-          ctx.arc(moreX + 11, moreY + moreH / 2, 1.3, 0, Math.PI * 2);
-          ctx.arc(moreX + 17, moreY + moreH / 2, 1.3, 0, Math.PI * 2);
-          ctx.arc(moreX + 23, moreY + moreH / 2, 1.3, 0, Math.PI * 2);
+          ctx.arc(moreX + 9,  moreY + moreH / 2, 1.4, 0, Math.PI * 2);
+          ctx.arc(moreX + 17, moreY + moreH / 2, 1.4, 0, Math.PI * 2);
+          ctx.arc(moreX + 25, moreY + moreH / 2, 1.4, 0, Math.PI * 2);
           ctx.fill();
           rowActionBounds.push({
             key: moreKey,
             navZone: "actions",
-            navRow: rowIndex,
+            navRow: vi,
             navCol: 0,
             x: layout.offsetX + moreX * layout.scale,
             y: layout.offsetY + moreY * layout.scale,
@@ -8481,129 +8431,113 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             height: moreH * layout.scale,
           });
         }
+
         ctx.restore();
         boundsByIndex[index] = {
           key: config.key,
           navZone: "rows",
-          navRow: rowIndex,
+          navRow: vi,
           navCol: 0,
-          x: layout.offsetX + x * layout.scale,
-          y: layout.offsetY + y * layout.scale,
-          width: rowW * layout.scale,
-          height: rowH * layout.scale,
+          x: layout.offsetX + cardX * layout.scale,
+          y: layout.offsetY + cardY * layout.scale,
+          width: cardW * layout.scale,
+          height: CARD_H * layout.scale,
         };
-      });
+      }
 
-      const detailsY = listStartY;
-      const actionColumns = actionEntries.length > 4 ? 2 : 1;
-      const actionButtonH = 34;
-      const actionRowGap = 8;
-      const actionHeaderH = 18;
-      const actionBodyTopPad = 8;
-      const actionBodyBottomPad = 12;
-      const actionRows = actionEntries.length > 0 ? Math.ceil(actionEntries.length / actionColumns) : 0;
-      const actionsBodyH =
-        actionEntries.length > 0
-          ? actionHeaderH + actionBodyTopPad + actionBodyBottomPad + actionRows * actionButtonH + Math.max(0, actionRows - 1) * actionRowGap
-          : 0;
-      const accountHeaderH = 56;
-      const actionsPanelH = accountHeaderH + 8 + actionsBodyH;
-      ctx.save();
-      ctx.fillStyle = "rgba(11, 10, 14, 0.78)";
-      ctx.strokeStyle = "rgba(242, 200, 125, 0.32)";
-      ctx.lineWidth = 1.2;
-      roundRect(ctx, detailsX, detailsY, detailsColumnW, actionsPanelH, 10, true, true);
+      // Off-screen bounds for non-visible save entries (required by nav system)
+      for (let vi = 0; vi < saveCount; vi++) {
+        const { index } = saveEntries[vi];
+        if (!boundsByIndex[index]) {
+          boundsByIndex[index] = { key: saveEntries[vi].config.key, navZone: "rows", navRow: vi, navCol: 0, x: -99999, y: -99999, width: 0, height: 0 };
+        }
+      }
 
-      ctx.textAlign = "left";
-      ctx.textBaseline = "alphabetic";
-      ctx.shadowColor = "rgba(0,0,0,0.55)";
-      ctx.shadowBlur = 3;
-      ctx.shadowOffsetY = 0;
-      const accountTextColor =
-        typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail
-          ? "rgba(231, 176, 102, 0.9)"
-          : "rgba(231, 176, 102, 0.58)";
-      const avatarInset = 6;
-      const avatarSize = Math.max(28, accountHeaderH - avatarInset * 2);
-      const avatarX = detailsX + 12 + Math.round(avatarSize / 2);
-      const avatarY = detailsY + Math.round(accountHeaderH / 2);
-      const textX = detailsX + 12 + avatarSize + 12;
-      const maxAccountWidth = detailsColumnW - (textX - detailsX) - 12;
-      const accountHeaderLabel = "GOOGLE ACCOUNT";
-      const rawAccountText = accountLine;
-      ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-      ctx.font = `700 13px ${UI_FONT_FAMILY}`;
-      ctx.fillText(fitText(accountHeaderLabel, maxAccountWidth), textX, detailsY + 22);
-      ctx.font = `500 12px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = accountTextColor;
-      ctx.fillText(fitText(rawAccountText, maxAccountWidth), textX, detailsY + 41);
-      drawCloudProfileAvatar(
-        ctx,
-        avatarX,
-        avatarY,
-        avatarSize,
-        typeof window !== "undefined" ? window.cloudPhotoUrl : null,
-      );
-      ctx.strokeStyle = "rgba(242, 200, 125, 0.2)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(detailsX + 12, detailsY + accountHeaderH);
-      ctx.lineTo(detailsX + detailsColumnW - 12, detailsY + accountHeaderH);
-      ctx.stroke();
-      ctx.restore();
-
-      if (actionEntries.length > 0) {
-        const actionInnerX = detailsX + 12;
-        const actionInnerY = detailsY + accountHeaderH + 8 + actionHeaderH + actionBodyTopPad;
-        const actionInnerW = detailsColumnW - 24;
-        const actionColGap = 10;
-        const actionW = Math.max(
-          120,
-          Math.floor((actionInnerW - actionColGap * Math.max(0, actionColumns - 1)) / Math.max(1, actionColumns)),
-        );
+      // Scroll indicators
+      if (showScrollUp || showScrollDown) {
         ctx.save();
-        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-        ctx.textAlign = "left";
+        ctx.fillStyle = HELLFIRE_UI_TOKENS.accent;
+        ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `700 13px ${UI_FONT_FAMILY}`;
-        ctx.fillText("Actions", detailsX + 12, detailsY + accountHeaderH + 22);
+        ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+        if (showScrollUp) ctx.fillText("▲", panelX + panelW - 18, listStartY + 12);
+        if (showScrollDown) ctx.fillText("▼", panelX + panelW - 18, listStartY + listH);
         ctx.restore();
-        actionEntries.forEach(({ config, index }, actionIndex) => {
-          const col = actionIndex % actionColumns;
-          const row = Math.floor(actionIndex / actionColumns);
-          const x = actionInnerX + col * (actionW + actionColGap);
-          const y = actionInnerY + row * (actionButtonH + actionRowGap);
+      }
+
+      // ── Divider above action row ────────────────────────────────────────
+      const listBottomY = listStartY + listH;
+      if (actionEntries.length > 0) {
+        const actionDividerY = listBottomY + DIVIDER_GAP;
+        ctx.strokeStyle = dividerStyle.color || "rgba(255,214,148,0.18)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(panelX + PAD_X, actionDividerY);
+        ctx.lineTo(panelX + panelW - PAD_X, actionDividerY);
+        ctx.stroke();
+
+        // ── Action buttons (horizontal row) ───────────────────────────────
+        const actionY = actionDividerY + DIVIDER_GAP;
+        const actionGap = ACTION_GAP;
+        const totalGaps = (actionEntries.length - 1) * actionGap;
+        const actionBtnW = Math.floor((cardW - totalGaps) / actionEntries.length);
+
+        actionEntries.forEach(({ config, index }, ai) => {
+          const ax = cardX + ai * (actionBtnW + actionGap);
           const focused = isAnnouncementButtonFocused("title", index);
+          const isPrimary = config.key === "newCloudSave";
+          const isBack = config.key === "back";
+
           ctx.save();
-          ctx.fillStyle = focused ? "rgba(95, 50, 22, 0.95)" : "rgba(24, 20, 24, 0.9)";
-          ctx.strokeStyle = focused ? EMBER_BUTTON_PALETTE.border : "rgba(242, 200, 125, 0.32)";
+          if (isPrimary) {
+            const grad = ctx.createLinearGradient(ax, actionY, ax, actionY + ACTION_H);
+            grad.addColorStop(0, focused ? "#e06818" : "#c85a10");
+            grad.addColorStop(1, focused ? "#8f3010" : "#7a2a08");
+            ctx.fillStyle = grad;
+            ctx.strokeStyle = focused ? "rgba(255,200,100,0.9)" : "rgba(255,180,60,0.6)";
+          } else if (isBack) {
+            ctx.fillStyle = focused ? HELLFIRE_UI_TOKENS.rowBgFocused : "rgba(14,10,8,0.5)";
+            ctx.strokeStyle = focused ? HELLFIRE_UI_TOKENS.rowBorderFocused : "rgba(242,200,125,0.12)";
+          } else {
+            ctx.fillStyle = focused ? HELLFIRE_UI_TOKENS.rowBgFocused : HELLFIRE_UI_TOKENS.rowBg;
+            ctx.strokeStyle = focused ? HELLFIRE_UI_TOKENS.rowBorderFocused : HELLFIRE_UI_TOKENS.rowBorder;
+          }
           ctx.lineWidth = focused ? 2 : 1;
-          roundRect(ctx, x, y, actionW, actionButtonH, 8, true, true);
-          drawPlayLoadActionIcon(config.key, x + 14, y + actionButtonH / 2, 14, focused);
-          ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+          roundRect(ctx, ax, actionY, actionBtnW, ACTION_H, 10, true, true);
+
+          ctx.fillStyle = isPrimary ? "#ffe4a8" : isBack ? "rgba(253,241,217,0.55)" : EMBER_BUTTON_PALETTE.text;
+          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
           ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetY = 0;
-          ctx.textAlign = "left";
-          ctx.textBaseline = "alphabetic";
-          ctx.font = `600 14px ${UI_FONT_FAMILY}`;
-          ctx.fillText(config.label, x + 26, y + 23);
+          ctx.shadowBlur = 3;
+          ctx.fillText(fitText(config.label, actionBtnW - 16), ax + actionBtnW / 2, actionY + ACTION_H / 2);
           ctx.restore();
+
           boundsByIndex[index] = {
             key: config.key,
             navZone: "actions",
-            navRow: row,
-            navCol: col,
-            x: layout.offsetX + x * layout.scale,
-            y: layout.offsetY + y * layout.scale,
-            width: actionW * layout.scale,
-            height: actionButtonH * layout.scale,
+            navRow: 0,
+            navCol: ai,
+            x: layout.offsetX + ax * layout.scale,
+            y: layout.offsetY + actionY * layout.scale,
+            width: actionBtnW * layout.scale,
+            height: ACTION_H * layout.scale,
           };
         });
       }
-      boundsByIndex.forEach((item) => {
-        if (item) bounds.push(item);
-      });
+
+      // ── Hint line ────────────────────────────────────────────────────────
+      const hintY = panelY + panelH - 14;
+      ctx.save();
+      ctx.font = `500 10px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(231,176,102,0.5)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText("↑ ↓  move  ·  Space  select  ·  →  more options  ·  Esc  back", panelX + panelW / 2, hintY);
+      ctx.restore();
+
+      boundsByIndex.forEach((item) => { if (item) bounds.push(item); });
       rowActionBounds.forEach((item) => bounds.push(item));
     } else if (titleClassMenuActive) {
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};

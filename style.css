@@ -111,6 +111,27 @@ body.touch-enabled .joystick-handle {
   --arc-size: 220px;
   --arc-thickness: 72px;
   --arc-glow: rgba(255, 200, 106, 0.55);
+
+  /* Hellfire UI tokens — shared by dialogs, save screen, more menu */
+  --hf-text: #fdf1d9;
+  --hf-label: rgba(242, 210, 146, 0.8);
+  --hf-meta: rgba(231, 176, 102, 0.78);
+  --hf-accent: rgba(242, 200, 125, 0.9);
+  --hf-row-bg: rgba(28, 14, 10, 0.82);
+  --hf-row-bg-focused: rgba(82, 44, 20, 0.92);
+  --hf-row-bg-selected: rgba(46, 32, 26, 0.88);
+  --hf-row-border: rgba(242, 200, 125, 0.22);
+  --hf-row-border-focused: rgba(242, 200, 125, 0.95);
+  --hf-row-border-selected: rgba(242, 200, 125, 0.55);
+  --hf-input-bg: rgba(10, 5, 3, 0.72);
+  --hf-input-border: rgba(242, 200, 125, 0.3);
+  --hf-input-border-focus: rgba(242, 200, 125, 0.65);
+  --hf-btn-primary-top: #c85a10;
+  --hf-btn-primary-bottom: #7a2a08;
+  --hf-btn-primary-border: rgba(255, 180, 60, 0.7);
+  --hf-btn-primary-glow: rgba(220, 100, 20, 0.4);
+  --hf-danger: #f07060;
+  --hf-danger-border: rgba(200, 60, 40, 0.3);
 }
 
 /* Global reset */
@@ -585,9 +606,9 @@ body.layout-rotate-warning #rotatePrompt {
   color: #f2c87d;
 }
 .dialog-overlay--settings .dialog-overlay__button {
-  background: linear-gradient(180deg, #b45a22 0%, #7b3318 100%);
-  color: #fdf1d9;
-  border: 1px solid rgba(242, 200, 125, 0.5);
+  background: linear-gradient(180deg, var(--hf-btn-primary-top) 0%, var(--hf-btn-primary-bottom) 100%);
+  color: var(--hf-text);
+  border: 1px solid var(--hf-btn-primary-border);
 }
 .dialog-overlay--panel-default .dialog-overlay__panel {
   width: min(var(--hellfire-default-panel-width-max), var(--hellfire-default-panel-width-ratio));
@@ -648,8 +669,8 @@ body.layout-rotate-warning #rotatePrompt {
   gap: 16px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(28, 14, 10, 0.78);
-  border: 1px solid rgba(242, 200, 125, 0.18);
+  background: var(--hf-row-bg);
+  border: 1px solid var(--hf-row-border);
 }
 .settings-row--slider {
   grid-template-columns: 1fr;
@@ -658,7 +679,7 @@ body.layout-rotate-warning #rotatePrompt {
   font-size: 14px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(242, 210, 146, 0.95);
+  color: var(--hf-label);
 }
 .settings-toggle {
   display: inline-flex;
@@ -695,9 +716,9 @@ body.layout-rotate-warning #rotatePrompt {
 .settings-btn--hellfire {
   padding: 8px 20px;
   border-radius: 10px;
-  border: 1.5px solid rgba(255, 180, 60, 0.7);
-  background: linear-gradient(160deg, #c85a10 0%, #7a2a08 100%);
-  color: #ffe4a8;
+  border: 1.5px solid var(--hf-btn-primary-border);
+  background: linear-gradient(160deg, var(--hf-btn-primary-top) 0%, var(--hf-btn-primary-bottom) 100%);
+  color: var(--hf-text);
   font-family: var(--ui-font-family);
   font-size: 12px;
   font-weight: 700;
@@ -705,7 +726,7 @@ body.layout-rotate-warning #rotatePrompt {
   text-transform: uppercase;
   cursor: pointer;
   transition: filter 0.12s ease, transform 0.1s ease;
-  box-shadow: 0 0 10px rgba(220, 100, 20, 0.45);
+  box-shadow: 0 0 10px var(--hf-btn-primary-glow);
 }
 .settings-btn--hellfire:hover {
   filter: brightness(1.2);
@@ -740,15 +761,15 @@ body.layout-rotate-warning #rotatePrompt {
   gap: 6px;
   padding: 10px 14px 12px;
   border-radius: 12px;
-  background: rgba(28, 14, 10, 0.78);
-  border: 1px solid rgba(242, 200, 125, 0.18);
+  background: var(--hf-row-bg);
+  border: 1px solid var(--hf-row-border);
 }
 
 .save-dialog__label {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(242, 210, 146, 0.8);
+  color: var(--hf-label);
 }
 
 .save-dialog__input {
@@ -756,9 +777,9 @@ body.layout-rotate-warning #rotatePrompt {
   box-sizing: border-box;
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(242, 200, 125, 0.3);
-  background: rgba(10, 5, 3, 0.7);
-  color: #fdf1d9;
+  border: 1px solid var(--hf-input-border);
+  background: var(--hf-input-bg);
+  color: var(--hf-text);
   font-family: var(--ui-font-family);
   font-size: 13px;
   outline: none;
@@ -768,13 +789,13 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .save-dialog__input:focus {
-  border-color: rgba(242, 200, 125, 0.65);
+  border-color: var(--hf-input-border-focus);
   box-shadow: 0 0 0 2px rgba(242, 200, 125, 0.12);
 }
 
 .save-dialog__input option {
   background: #1a0a05;
-  color: #fdf1d9;
+  color: var(--hf-text);
 }
 
 .save-dialog__actions {
@@ -787,8 +808,8 @@ body.layout-rotate-warning #rotatePrompt {
 .save-dialog__btn-cancel {
   padding: 9px 20px;
   border-radius: 10px;
-  border: 1px solid rgba(242, 200, 125, 0.25);
-  background: rgba(28, 14, 10, 0.7);
+  border: 1px solid var(--hf-row-border);
+  background: var(--hf-row-bg);
   color: rgba(253, 241, 217, 0.7);
   font-family: var(--ui-font-family);
   font-size: 11px;
@@ -806,16 +827,16 @@ body.layout-rotate-warning #rotatePrompt {
 .save-dialog__btn-primary {
   padding: 9px 20px;
   border-radius: 10px;
-  border: 1.5px solid rgba(255, 180, 60, 0.7);
-  background: linear-gradient(160deg, #c85a10 0%, #7a2a08 100%);
-  color: #ffe4a8;
+  border: 1.5px solid var(--hf-btn-primary-border);
+  background: linear-gradient(160deg, var(--hf-btn-primary-top) 0%, var(--hf-btn-primary-bottom) 100%);
+  color: var(--hf-text);
   font-family: var(--ui-font-family);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(220, 100, 20, 0.4);
+  box-shadow: 0 0 10px var(--hf-btn-primary-glow);
   transition: filter 0.12s ease, transform 0.1s ease;
 }
 
@@ -840,9 +861,9 @@ body.layout-rotate-warning #rotatePrompt {
   gap: 14px;
   padding: 12px 16px;
   border-radius: 12px;
-  background: rgba(28, 14, 10, 0.78);
-  border: 1px solid rgba(242, 200, 125, 0.18);
-  color: #fdf1d9;
+  background: var(--hf-row-bg);
+  border: 1px solid var(--hf-row-border);
+  color: var(--hf-text);
   font-family: var(--ui-font-family);
   cursor: pointer;
   text-align: left;
@@ -852,7 +873,7 @@ body.layout-rotate-warning #rotatePrompt {
 
 .more-menu__item:hover {
   filter: brightness(1.2);
-  border-color: rgba(242, 200, 125, 0.35);
+  border-color: var(--hf-row-border-selected);
 }
 
 .more-menu__item:active {
@@ -860,7 +881,7 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .more-menu__item--danger {
-  border-color: rgba(200, 60, 40, 0.3);
+  border-color: var(--hf-danger-border);
 }
 
 .more-menu__item--danger:hover {
@@ -902,7 +923,7 @@ body.layout-rotate-warning #rotatePrompt {
 
 .more-menu__item--danger .more-menu__icon,
 .more-menu__item--danger .more-menu__name {
-  color: #f07060;
+  color: var(--hf-danger);
 }
 
 .dev-shortcuts-hint {
@@ -922,8 +943,8 @@ body.layout-rotate-warning #rotatePrompt {
   min-height: 86px;
   padding: 12px 10px;
   border-radius: 14px;
-  background: rgba(28, 14, 10, 0.78);
-  border: 1px solid rgba(242, 200, 125, 0.18);
+  background: var(--hf-row-bg);
+  border: 1px solid var(--hf-row-border);
   display: grid;
   align-content: start;
   gap: 6px;

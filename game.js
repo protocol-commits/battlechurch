@@ -20344,74 +20344,60 @@ function handleTitleScreen() {
           return (focusIndex + linearDirection + buttons.length) % buttons.length;
         }
         const current = buttons[focusIndex] || null;
-        const rows = buttons
+        // Save rows: navZone "rows". More chips + action buttons: navZone "actions".
+        const saveRows = buttons
           .map((button, index) => ({ button, index }))
-          .filter((entry) => entry.button?.navZone === "rows");
-        const actions = buttons
+          .filter((entry) => entry.button?.navZone === "rows")
+          .sort((a, b) => (Number(a.button?.navRow) || 0) - (Number(b.button?.navRow) || 0));
+        const actionBtns = buttons
           .map((button, index) => ({ button, index }))
-          .filter((entry) => entry.button?.navZone === "actions");
-        if (!rows.length && !actions.length) return focusIndex;
+          .filter((entry) => entry.button?.navZone === "actions" && !String(entry.button?.key || "").startsWith("cloudrowmore:"))
+          .sort((a, b) => (Number(a.button?.navCol) || 0) - (Number(b.button?.navCol) || 0));
 
         if (current?.navZone === "rows") {
-          const rowPos = rows.findIndex((entry) => entry.index === focusIndex);
+          const rowPos = saveRows.findIndex((entry) => entry.index === focusIndex);
           if (rowPos < 0) return focusIndex;
-          if (direction === "up") return rows[(rowPos - 1 + rows.length) % rows.length].index;
-          if (direction === "down") return rows[(rowPos + 1) % rows.length].index;
-          if (direction === "right" && actions.length) {
+          if (direction === "up") return saveRows[(rowPos - 1 + saveRows.length) % saveRows.length].index;
+          if (direction === "down") {
+            // Wrap from last save down into action buttons
+            if (rowPos === saveRows.length - 1 && actionBtns.length) return actionBtns[0].index;
+            return saveRows[(rowPos + 1) % saveRows.length].index;
+          }
+          if (direction === "right") {
+            // Focus the more chip for this save row
             const rowKey = String(current.key || "");
             if (rowKey.startsWith("cloudsave:")) {
               const saveId = rowKey.slice("cloudsave:".length);
-              const rowMoreIndex = buttons.findIndex(
-                (btn) => String(btn?.key || "") === `cloudrowmore:${saveId}`,
-              );
-              if (rowMoreIndex >= 0) return rowMoreIndex;
+              const moreIdx = buttons.findIndex((btn) => String(btn?.key || "") === `cloudrowmore:${saveId}`);
+              if (moreIdx >= 0) return moreIdx;
             }
-            const firstActionRow = Math.min(...actions.map((entry) => Number(entry.button?.navRow) || 0));
-            const target = actions.find((entry) => (Number(entry.button?.navRow) || 0) === firstActionRow);
-            return target?.index ?? actions[0].index;
           }
           return focusIndex;
         }
 
         if (current?.navZone === "actions") {
-          const curRow = Number(current.navRow) || 0;
-          const curCol = Number(current.navCol) || 0;
-          const byRow = (row) => actions.filter((entry) => (Number(entry.button?.navRow) || 0) === row);
-          const currentRowButtons = byRow(curRow);
-          if (direction === "left") {
-            const leftTarget = currentRowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol - 1);
-            if (leftTarget) return leftTarget.index;
-            if (rows.length) return rows[Math.min(rows.length - 1, curRow)].index;
+          const curKey = String(current.key || "");
+          // More chip — left returns to its save row, up/down behaves like the save row
+          if (curKey.startsWith("cloudrowmore:")) {
+            if (direction === "left" || direction === "up" || direction === "down") {
+              const saveId = curKey.slice("cloudrowmore:".length);
+              const saveIdx = buttons.findIndex((btn) => String(btn?.key || "") === `cloudsave:${saveId}`);
+              return saveIdx >= 0 ? saveIdx : focusIndex;
+            }
             return focusIndex;
+          }
+          // Bottom action buttons — left/right cycles, up returns to last save row
+          const curCol = Number(current.navCol) || 0;
+          if (direction === "left") {
+            const prev = actionBtns.find((e) => (Number(e.button?.navCol) || 0) === curCol - 1);
+            return prev?.index ?? focusIndex;
           }
           if (direction === "right") {
-            const rightTarget = currentRowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol + 1);
-            return rightTarget?.index ?? focusIndex;
+            const next = actionBtns.find((e) => (Number(e.button?.navCol) || 0) === curCol + 1);
+            return next?.index ?? focusIndex;
           }
-          if (direction === "up") {
-            const targetRow = curRow - 1;
-            if (targetRow >= 0) {
-              const rowButtons = byRow(targetRow);
-              if (rowButtons.length) {
-                const target = rowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol) || rowButtons[0];
-                return target.index;
-              }
-            }
-            if (rows.length) return rows[Math.min(rows.length - 1, Math.max(0, curRow))].index;
-            return focusIndex;
-          }
-          if (direction === "down") {
-            const maxRow = Math.max(...actions.map((entry) => Number(entry.button?.navRow) || 0));
-            const targetRow = curRow + 1;
-            if (targetRow <= maxRow) {
-              const rowButtons = byRow(targetRow);
-              if (rowButtons.length) {
-                const target = rowButtons.find((entry) => (Number(entry.button?.navCol) || 0) === curCol) || rowButtons[0];
-                return target.index;
-              }
-            }
-            return focusIndex;
-          }
+          if (direction === "up" && saveRows.length) return saveRows[saveRows.length - 1].index;
+          return focusIndex;
         }
 
         return focusIndex;
