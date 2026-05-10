@@ -57,18 +57,18 @@
     "Purge",
   ];
 
-  // Two-column powerup weapon rows: label, weight field, rof field
+  // Three-column powerup weapon rows: label, weight, damage, rof
   const POWERUP_WEAPON_ROWS = [
-    { label: "Wisdom",      weightField: "wisdomWeightMultiplier",      rofField: "wisdomRofMultiplier" },
-    { label: "Scripture",   weightField: "scriptureWeightMultiplier",   rofField: "scriptureRofMultiplier" },
-    { label: "Faith",       weightField: "faithWeightMultiplier",       rofField: "faithRofMultiplier" },
+    { label: "Wisdom",    weightField: "wisdomWeightMultiplier",    damageField: "wisdomDamageMultiplier",    rofField: "wisdomRofMultiplier" },
+    { label: "Scripture", weightField: "scriptureWeightMultiplier", damageField: "scriptureDamageMultiplier", rofField: "scriptureRofMultiplier" },
+    { label: "Faith",     weightField: "faithWeightMultiplier",     damageField: "faithDamageMultiplier",     rofField: "faithRofMultiplier" },
   ];
 
-  // Two-column NPC weapon rows: label, weight field, rof field
+  // Three-column NPC weapon rows: label, weight, damage, rof
   const NPC_WEAPON_ROWS = [
-    { label: "Wisdom",      weightField: "npcWisdomWeightMultiplier",    rofField: "npcWisdomRofMultiplier" },
-    { label: "Scripture",   weightField: "npcScriptureWeightMultiplier", rofField: "npcScriptureRofMultiplier" },
-    { label: "Faith",       weightField: "npcFaithWeightMultiplier",     rofField: "npcFaithRofMultiplier" },
+    { label: "Wisdom",    weightField: "npcWisdomWeightMultiplier",    damageField: "npcWisdomDamageMultiplier",    rofField: "npcWisdomRofMultiplier" },
+    { label: "Scripture", weightField: "npcScriptureWeightMultiplier", damageField: "npcScriptureDamageMultiplier", rofField: "npcScriptureRofMultiplier" },
+    { label: "Faith",     weightField: "npcFaithWeightMultiplier",     damageField: "npcFaithDamageMultiplier",     rofField: "npcFaithRofMultiplier" },
   ];
 
   function deepClone(value) {
@@ -220,13 +220,15 @@
       });
     });
     if (!entry.tuning.powerups || typeof entry.tuning.powerups !== "object") entry.tuning.powerups = {};
-    POWERUP_WEAPON_ROWS.forEach(({ weightField, rofField }) => {
+    POWERUP_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
       if (!Number.isFinite(entry.tuning.powerups[weightField])) entry.tuning.powerups[weightField] = 1.0;
+      if (!Number.isFinite(entry.tuning.powerups[damageField])) entry.tuning.powerups[damageField] = 1.0;
       if (!Number.isFinite(entry.tuning.powerups[rofField])) entry.tuning.powerups[rofField] = 1.0;
     });
     if (!entry.tuning.npc || typeof entry.tuning.npc !== "object") entry.tuning.npc = {};
-    NPC_WEAPON_ROWS.forEach(({ weightField, rofField }) => {
+    NPC_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
       if (!Number.isFinite(entry.tuning.npc[weightField])) entry.tuning.npc[weightField] = 1.0;
+      if (!Number.isFinite(entry.tuning.npc[damageField])) entry.tuning.npc[damageField] = 1.0;
       if (!Number.isFinite(entry.tuning.npc[rofField])) entry.tuning.npc[rofField] = 1.0;
     });
     if (!entry.tuning.player || typeof entry.tuning.player !== "object") entry.tuning.player = {};
@@ -282,14 +284,19 @@
     }).join("");
 
     const inputStyle = "padding:6px 8px;border-radius:6px;border:1px solid rgba(255,196,98,.42);background:rgba(16,20,28,.95);color:#f6e4c8;font:600 13px Orbitron,sans-serif;width:100%;box-sizing:border-box;";
-    const weaponRows = POWERUP_WEAPON_ROWS.map(({ label, weightField, rofField }) => {
-      const wt = clampNum(selected.tuning.powerups[weightField]);
+    const colHeader = "font:600 11px Orbitron,sans-serif;color:rgba(231,176,102,.7);text-align:center;";
+    const colGrid = "display:grid;grid-template-columns:100px 1fr 1fr 1fr;gap:8px;";
+
+    const weaponRows = POWERUP_WEAPON_ROWS.map(({ label, weightField, damageField, rofField }) => {
+      const wt  = clampNum(selected.tuning.powerups[weightField]);
+      const dmg = clampNum(selected.tuning.powerups[damageField]);
       const rof = clampNum(selected.tuning.powerups[rofField]);
       return `
-        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
+        <div style="${colGrid}align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
           <span style="font:600 13px Orbitron,sans-serif;color:#f0dfc3;">${label}</span>
-          <input data-group="powerups" data-field="${weightField}" type="number" step="0.05" min="0" max="10" value="${wt.toFixed(2)}" style="${inputStyle}" />
-          <input data-group="powerups" data-field="${rofField}" type="number" step="0.05" min="0" max="10" value="${rof.toFixed(2)}" style="${inputStyle}" />
+          <input data-group="powerups" data-field="${weightField}" type="number" step="0.05" min="0" max="10" value="${wt.toFixed(2)}"  style="${inputStyle}" />
+          <input data-group="powerups" data-field="${damageField}" type="number" step="0.05" min="0" max="10" value="${dmg.toFixed(2)}" style="${inputStyle}" />
+          <input data-group="powerups" data-field="${rofField}"    type="number" step="0.05" min="0" max="10" value="${rof.toFixed(2)}" style="${inputStyle}" />
         </div>
       `;
     }).join("");
@@ -297,23 +304,26 @@
     const weaponSection = `
       <section style="border:1px solid rgba(255,214,148,.2);border-radius:10px;padding:10px 12px;background:rgba(10,14,22,.75);">
         <div style="font:700 14px Orbitron,sans-serif;color:#ffd978;margin-bottom:4px;">Weapon Powerups</div>
-        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;margin-bottom:6px;">
+        <div style="${colGrid}margin-bottom:6px;">
           <span></span>
-          <span style="font:600 11px Orbitron,sans-serif;color:rgba(231,176,102,.7);text-align:center;">Drop Weight</span>
-          <span style="font:600 11px Orbitron,sans-serif;color:rgba(231,176,102,.7);text-align:center;">Rate of Fire</span>
+          <span style="${colHeader}">Drop Weight</span>
+          <span style="${colHeader}">Damage</span>
+          <span style="${colHeader}">Rate of Fire</span>
         </div>
         ${weaponRows}
       </section>
     `;
 
-    const npcWeaponRows = NPC_WEAPON_ROWS.map(({ label, weightField, rofField }) => {
-      const wt = clampNum(selected.tuning.npc[weightField]);
+    const npcWeaponRows = NPC_WEAPON_ROWS.map(({ label, weightField, damageField, rofField }) => {
+      const wt  = clampNum(selected.tuning.npc[weightField]);
+      const dmg = clampNum(selected.tuning.npc[damageField]);
       const rof = clampNum(selected.tuning.npc[rofField]);
       return `
-        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
+        <div style="${colGrid}align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
           <span style="font:600 13px Orbitron,sans-serif;color:#f0dfc3;">${label}</span>
-          <input data-group="npc" data-field="${weightField}" type="number" step="0.05" min="0" max="10" value="${wt.toFixed(2)}" style="${inputStyle}" />
-          <input data-group="npc" data-field="${rofField}" type="number" step="0.05" min="0" max="10" value="${rof.toFixed(2)}" style="${inputStyle}" />
+          <input data-group="npc" data-field="${weightField}" type="number" step="0.05" min="0" max="10" value="${wt.toFixed(2)}"  style="${inputStyle}" />
+          <input data-group="npc" data-field="${damageField}" type="number" step="0.05" min="0" max="10" value="${dmg.toFixed(2)}" style="${inputStyle}" />
+          <input data-group="npc" data-field="${rofField}"    type="number" step="0.05" min="0" max="10" value="${rof.toFixed(2)}" style="${inputStyle}" />
         </div>
       `;
     }).join("");
@@ -321,10 +331,11 @@
     const npcWeaponSection = `
       <section style="border:1px solid rgba(255,214,148,.2);border-radius:10px;padding:10px 12px;background:rgba(10,14,22,.75);">
         <div style="font:700 14px Orbitron,sans-serif;color:#ffd978;margin-bottom:4px;">NPC Weapon Powerups</div>
-        <div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:8px;margin-bottom:6px;">
+        <div style="${colGrid}margin-bottom:6px;">
           <span></span>
-          <span style="font:600 11px Orbitron,sans-serif;color:rgba(231,176,102,.7);text-align:center;">Drop Weight</span>
-          <span style="font:600 11px Orbitron,sans-serif;color:rgba(231,176,102,.7);text-align:center;">Rate of Fire</span>
+          <span style="${colHeader}">Drop Weight</span>
+          <span style="${colHeader}">Damage</span>
+          <span style="${colHeader}">Rate of Fire</span>
         </div>
         ${npcWeaponRows}
       </section>
@@ -388,12 +399,14 @@
         entry.tuning[group.key][field] = 1.0;
       });
     });
-    POWERUP_WEAPON_ROWS.forEach(({ weightField, rofField }) => {
+    POWERUP_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
       entry.tuning.powerups[weightField] = 1.0;
+      entry.tuning.powerups[damageField] = 1.0;
       entry.tuning.powerups[rofField] = 1.0;
     });
-    NPC_WEAPON_ROWS.forEach(({ weightField, rofField }) => {
+    NPC_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
       entry.tuning.npc[weightField] = 1.0;
+      entry.tuning.npc[damageField] = 1.0;
       entry.tuning.npc[rofField] = 1.0;
     });
     MOVE_NAMES.forEach((moveName) => {

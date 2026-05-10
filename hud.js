@@ -759,8 +759,23 @@
           speed: player.fireSpeedMultiplier,
         };
       }
+      const weaponStatKeyMap = {
+        wisdom_missle: { dmg: 'wisdomDamageMultiplier',    rof: 'wisdomRofMultiplier' },
+        faith_cannon:  { dmg: 'faithDamageMultiplier',     rof: 'faithRofMultiplier' },
+        fire:          { dmg: 'scriptureDamageMultiplier', rof: 'scriptureRofMultiplier' },
+      };
+      const weaponStatKeys = weaponStatKeyMap[weaponMode];
+      const activeClass = window.BattlechurchClasses?.getActive?.();
+      const weaponDmgMult = weaponStatKeys ? (activeClass?.tuning?.powerups?.[weaponStatKeys.dmg] ?? 1) : 1;
+      const weaponRofMult = weaponStatKeys ? (activeClass?.tuning?.powerups?.[weaponStatKeys.rof] ?? 1) : 1;
+      const weaponDmgPct  = Math.round((weaponDmgMult - 1) * 100);
+      const weaponRofPct  = Math.round((weaponRofMult - 1) * 100);
+      const weaponStatParts = [];
+      if (weaponDmgPct !== 0) weaponStatParts.push(`D${weaponDmgPct > 0 ? '+' : ''}${weaponDmgPct}%`);
+      if (weaponRofPct !== 0) weaponStatParts.push(`ROF${weaponRofPct > 0 ? '+' : ''}${weaponRofPct}%`);
+      const weaponStatSuffix = weaponStatParts.length ? ` [${weaponStatParts.join(', ')}]` : '';
       rows.push({
-        label: getWeaponLabel(weaponMode),
+        label: getWeaponLabel(weaponMode) + weaponStatSuffix,
         ratio: weaponMode === 'arrow' ? 0 : weaponRatio,
         color: weaponMode === 'arrow' ? PALETTE.ice : getIconStyleColor('player', PALETTE.ice),
         iconImage: weaponIcon,
@@ -893,8 +908,23 @@
             cooldown: npcWeaponState?.cooldownMultiplier,
             speed: npcWeaponState?.speedMultiplier,
           };
+      const npcStatKeyMap = {
+        wisdom_missle: { dmg: 'npcWisdomDamageMultiplier',    rof: 'npcWisdomRofMultiplier' },
+        faith_cannon:  { dmg: 'npcFaithDamageMultiplier',     rof: 'npcFaithRofMultiplier' },
+        fire:          { dmg: 'npcScriptureDamageMultiplier', rof: 'npcScriptureRofMultiplier' },
+      };
+      const npcStatKeys = npcStatKeyMap[npcMode];
+      const npcActiveClass = window.BattlechurchClasses?.getActive?.();
+      const npcDmgMult = npcStatKeys ? (npcActiveClass?.tuning?.npc?.[npcStatKeys.dmg] ?? 1) : 1;
+      const npcRofMult = npcStatKeys ? (npcActiveClass?.tuning?.npc?.[npcStatKeys.rof] ?? 1) : 1;
+      const npcDmgPct  = Math.round((npcDmgMult - 1) * 100);
+      const npcRofPct  = Math.round((npcRofMult - 1) * 100);
+      const npcStatParts = [];
+      if (npcDmgPct !== 0) npcStatParts.push(`D${npcDmgPct > 0 ? '+' : ''}${npcDmgPct}%`);
+      if (npcRofPct !== 0) npcStatParts.push(`ROF${npcRofPct > 0 ? '+' : ''}${npcRofPct}%`);
+      const npcStatSuffix = npcStatParts.length ? ` [${npcStatParts.join(', ')}]` : '';
       rows.push({
-        label: getNpcWeaponLabel(npcMode),
+        label: getNpcWeaponLabel(npcMode) + npcStatSuffix,
         ratio: npcMode === 'arrow' ? 0 : (npcTimer / npcDuration),
         color: npcMode === 'arrow' ? PALETTE.gold : getIconStyleColor('npc', PALETTE.gold),
         iconImage: npcWeaponIcon,

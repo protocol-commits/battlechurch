@@ -44,7 +44,10 @@
         "npcScriptureWeightMultiplier": 1,
         "npcScriptureRofMultiplier": 1,
         "npcFaithWeightMultiplier": 1,
-        "npcFaithRofMultiplier": 1
+        "npcFaithRofMultiplier": 1,
+        "npcWisdomDamageMultiplier": 1,
+        "npcScriptureDamageMultiplier": 1,
+        "npcFaithDamageMultiplier": 1
       },
       "powerups": {
         "wisdomWeightMultiplier": 1,
@@ -53,7 +56,10 @@
         "perseveranceWeightMultiplier": 1,
         "wisdomRofMultiplier": 1,
         "scriptureRofMultiplier": 1,
-        "faithRofMultiplier": 1
+        "faithRofMultiplier": 1,
+        "wisdomDamageMultiplier": 1,
+        "scriptureDamageMultiplier": 1,
+        "faithDamageMultiplier": 1
       },
       "churchUpgrades": {
         "costMultiplier": 1,
@@ -174,16 +180,22 @@
         "npcScriptureWeightMultiplier": 1,
         "npcScriptureRofMultiplier": 5,
         "npcFaithWeightMultiplier": 1,
-        "npcFaithRofMultiplier": 5
+        "npcFaithRofMultiplier": 5,
+        "npcWisdomDamageMultiplier": 3,
+        "npcScriptureDamageMultiplier": 3,
+        "npcFaithDamageMultiplier": 3
       },
       "powerups": {
         "wisdomWeightMultiplier": 1,
         "scriptureWeightMultiplier": 1,
         "faithWeightMultiplier": 1,
         "perseveranceWeightMultiplier": 1,
-        "wisdomRofMultiplier": 5,
-        "scriptureRofMultiplier": 5,
-        "faithRofMultiplier": 5
+        "wisdomRofMultiplier": 4,
+        "scriptureRofMultiplier": 4,
+        "faithRofMultiplier": 4,
+        "wisdomDamageMultiplier": 2,
+        "scriptureDamageMultiplier": 2,
+        "faithDamageMultiplier": 2
       },
       "churchUpgrades": {
         "costMultiplier": 1,

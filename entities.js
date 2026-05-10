@@ -1976,6 +1976,7 @@
     this.arrowDamageMultiplier = 1;
     this.magicCooldownMultiplier = 1;
     this.magicSpeedMultiplier = 1;
+    this.wisdomDamageMultiplier = 1;
     this.wisdomMissleShotsMax = 1;
     this.faithCannonDamageMultiplier = 1;
     this.faithCannonSpeedMultiplier = 1;
@@ -2155,6 +2156,7 @@
     if (this.weaponPowerTimer <= 0 && this.weaponMode !== "arrow") {
       this.weaponMode = "arrow";
       this.wisdomMissleShotsMax = 1;
+      this.wisdomDamageMultiplier = 1;
       this.magicCooldownMultiplier = 1;
       this.magicSpeedMultiplier = 1;
       this.faithCannonShotsMax = 1;
@@ -2955,7 +2957,7 @@
   }
 
   getWisdomMissleDamage() {
-    return PROJECTILE_CONFIG.wisdom_missle.damage;
+    return PROJECTILE_CONFIG.wisdom_missle.damage * (this.wisdomDamageMultiplier || 1);
   }
 
   getWisdomMissleSpeed() {
