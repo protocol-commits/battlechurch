@@ -3257,5 +3257,6 @@
     },
     isActive: () => state.active,
     get mapRect() { return { ...state.mapRect }; },
+    getPlayerName: () => (getActiveSave()?.playerName?.trim() || "Pastor"),
   };
 })(typeof window !== "undefined" ? window : null);
