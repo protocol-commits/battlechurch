@@ -59,9 +59,9 @@
 
   // Three-column powerup weapon rows: label, weight, damage, rof
   const POWERUP_WEAPON_ROWS = [
-    { label: "Wisdom",    weightField: "wisdomWeightMultiplier",    damageField: "wisdomDamageMultiplier",    rofField: "wisdomRofMultiplier" },
-    { label: "Scripture", weightField: "scriptureWeightMultiplier", damageField: "scriptureDamageMultiplier", rofField: "scriptureRofMultiplier" },
-    { label: "Faith",     weightField: "faithWeightMultiplier",     damageField: "faithDamageMultiplier",     rofField: "faithRofMultiplier" },
+    { label: "Wisdom",    weightField: "wisdomWeightMultiplier",    damageField: "wisdomDamageMultiplier",    rofField: "wisdomRofMultiplier",    maxShotsField: "wisdomMaxShotsMultiplier" },
+    { label: "Scripture", weightField: "scriptureWeightMultiplier", damageField: "scriptureDamageMultiplier", rofField: "scriptureRofMultiplier", maxShotsField: "scriptureMaxShotsMultiplier" },
+    { label: "Faith",     weightField: "faithWeightMultiplier",     damageField: "faithDamageMultiplier",     rofField: "faithRofMultiplier",    maxShotsField: "faithMaxShotsMultiplier" },
   ];
 
   // Three-column NPC weapon rows: label, weight, damage, rof
@@ -220,10 +220,11 @@
       });
     });
     if (!entry.tuning.powerups || typeof entry.tuning.powerups !== "object") entry.tuning.powerups = {};
-    POWERUP_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
+    POWERUP_WEAPON_ROWS.forEach(({ weightField, damageField, rofField, maxShotsField }) => {
       if (!Number.isFinite(entry.tuning.powerups[weightField])) entry.tuning.powerups[weightField] = 1.0;
       if (!Number.isFinite(entry.tuning.powerups[damageField])) entry.tuning.powerups[damageField] = 1.0;
       if (!Number.isFinite(entry.tuning.powerups[rofField])) entry.tuning.powerups[rofField] = 1.0;
+      if (!Number.isFinite(entry.tuning.powerups[maxShotsField])) entry.tuning.powerups[maxShotsField] = 1.0;
     });
     if (!entry.tuning.npc || typeof entry.tuning.npc !== "object") entry.tuning.npc = {};
     NPC_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
@@ -285,18 +286,21 @@
 
     const inputStyle = "padding:6px 8px;border-radius:6px;border:1px solid rgba(255,196,98,.42);background:rgba(16,20,28,.95);color:#f6e4c8;font:600 13px Orbitron,sans-serif;width:100%;box-sizing:border-box;";
     const colHeader = "font:600 11px Orbitron,sans-serif;color:rgba(231,176,102,.7);text-align:center;";
-    const colGrid = "display:grid;grid-template-columns:100px 1fr 1fr 1fr;gap:8px;";
+    const colGrid = "display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr;gap:8px;";
+    const npcColGrid = "display:grid;grid-template-columns:100px 1fr 1fr 1fr;gap:8px;";
 
-    const weaponRows = POWERUP_WEAPON_ROWS.map(({ label, weightField, damageField, rofField }) => {
+    const weaponRows = POWERUP_WEAPON_ROWS.map(({ label, weightField, damageField, rofField, maxShotsField }) => {
       const wt  = clampNum(selected.tuning.powerups[weightField]);
       const dmg = clampNum(selected.tuning.powerups[damageField]);
       const rof = clampNum(selected.tuning.powerups[rofField]);
+      const ms  = clampNum(selected.tuning.powerups[maxShotsField]);
       return `
         <div style="${colGrid}align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
           <span style="font:600 13px Orbitron,sans-serif;color:#f0dfc3;">${label}</span>
-          <input data-group="powerups" data-field="${weightField}" type="number" step="0.05" min="0" max="10" value="${wt.toFixed(2)}"  style="${inputStyle}" />
-          <input data-group="powerups" data-field="${damageField}" type="number" step="0.05" min="0" max="10" value="${dmg.toFixed(2)}" style="${inputStyle}" />
-          <input data-group="powerups" data-field="${rofField}"    type="number" step="0.05" min="0" max="10" value="${rof.toFixed(2)}" style="${inputStyle}" />
+          <input data-group="powerups" data-field="${weightField}"    type="number" step="0.05" min="0"   max="10" value="${wt.toFixed(2)}"  style="${inputStyle}" />
+          <input data-group="powerups" data-field="${damageField}"   type="number" step="0.05" min="0"   max="10" value="${dmg.toFixed(2)}" style="${inputStyle}" />
+          <input data-group="powerups" data-field="${rofField}"      type="number" step="0.05" min="0"   max="10" value="${rof.toFixed(2)}" style="${inputStyle}" />
+          <input data-group="powerups" data-field="${maxShotsField}" type="number" step="0.25" min="0.5" max="10" value="${ms.toFixed(2)}"  style="${inputStyle}" />
         </div>
       `;
     }).join("");
@@ -309,6 +313,7 @@
           <span style="${colHeader}">Drop Weight</span>
           <span style="${colHeader}">Damage</span>
           <span style="${colHeader}">Rate of Fire</span>
+          <span style="${colHeader}">Max Shots</span>
         </div>
         ${weaponRows}
       </section>
@@ -319,7 +324,7 @@
       const dmg = clampNum(selected.tuning.npc[damageField]);
       const rof = clampNum(selected.tuning.npc[rofField]);
       return `
-        <div style="${colGrid}align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
+        <div style="${npcColGrid}align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
           <span style="font:600 13px Orbitron,sans-serif;color:#f0dfc3;">${label}</span>
           <input data-group="npc" data-field="${weightField}" type="number" step="0.05" min="0" max="10" value="${wt.toFixed(2)}"  style="${inputStyle}" />
           <input data-group="npc" data-field="${damageField}" type="number" step="0.05" min="0" max="10" value="${dmg.toFixed(2)}" style="${inputStyle}" />
@@ -331,7 +336,7 @@
     const npcWeaponSection = `
       <section style="border:1px solid rgba(255,214,148,.2);border-radius:10px;padding:10px 12px;background:rgba(10,14,22,.75);">
         <div style="font:700 14px Orbitron,sans-serif;color:#ffd978;margin-bottom:4px;">NPC Weapon Powerups</div>
-        <div style="${colGrid}margin-bottom:6px;">
+        <div style="${npcColGrid}margin-bottom:6px;">
           <span></span>
           <span style="${colHeader}">Drop Weight</span>
           <span style="${colHeader}">Damage</span>
@@ -399,10 +404,11 @@
         entry.tuning[group.key][field] = 1.0;
       });
     });
-    POWERUP_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
+    POWERUP_WEAPON_ROWS.forEach(({ weightField, damageField, rofField, maxShotsField }) => {
       entry.tuning.powerups[weightField] = 1.0;
       entry.tuning.powerups[damageField] = 1.0;
       entry.tuning.powerups[rofField] = 1.0;
+      entry.tuning.powerups[maxShotsField] = 1.0;
     });
     NPC_WEAPON_ROWS.forEach(({ weightField, damageField, rofField }) => {
       entry.tuning.npc[weightField] = 1.0;

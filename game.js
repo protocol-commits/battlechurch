@@ -10161,9 +10161,10 @@ function applyWeaponPickupEffect(pickup) {
       player.weaponMode = "wisdom_missle";
       player.weaponPowerTimer = config.duration;
       player.weaponPowerDuration = config.duration;
-      player.wisdomMissleShotsMax = config.maxShots;
+      const wisdomShotsMult = Math.max(1, getActiveClassMultiplier("powerups.wisdomMaxShotsMultiplier", 1));
+      player.wisdomMissleShotsMax = Math.max(1, Math.round(config.maxShots * wisdomShotsMult));
       player.wisdomDamageMultiplier = config.damageMultiplier * getActiveClassMultiplier("powerups.wisdomDamageMultiplier", 1);
-      player.magicCooldownMultiplier = config.cooldownMultiplier / Math.max(0.05, getActiveClassMultiplier("powerups.wisdomRofMultiplier", 1));
+      player.magicCooldownMultiplier = (config.cooldownMultiplier / Math.max(0.05, getActiveClassMultiplier("powerups.wisdomRofMultiplier", 1))) * (config.maxShots / player.wisdomMissleShotsMax);
       player.magicSpeedMultiplier = config.speedMultiplier;
       player.magicBuffTimer = config.duration;
       player.magicCooldown = 0;
@@ -10181,8 +10182,9 @@ function applyWeaponPickupEffect(pickup) {
       player.weaponMode = "faith_cannon";
       player.weaponPowerTimer = config.duration;
       player.weaponPowerDuration = config.duration;
-      player.faithCannonShotsMax = config.maxShots;
-      player.faithCannonCooldownMultiplier = config.cooldownMultiplier / Math.max(0.05, getActiveClassMultiplier("powerups.faithRofMultiplier", 1));
+      const faithShotsMult = Math.max(1, getActiveClassMultiplier("powerups.faithMaxShotsMultiplier", 1));
+      player.faithCannonShotsMax = Math.max(1, Math.round(config.maxShots * faithShotsMult));
+      player.faithCannonCooldownMultiplier = (config.cooldownMultiplier / Math.max(0.05, getActiveClassMultiplier("powerups.faithRofMultiplier", 1))) * (config.maxShots / player.faithCannonShotsMax);
       player.faithCannonSpeedMultiplier = config.speedMultiplier;
       player.faithCannonDamageMultiplier = config.damageMultiplier * getActiveClassMultiplier("powerups.faithDamageMultiplier", 1);
       player.magicCooldown = 0;
@@ -10200,8 +10202,9 @@ function applyWeaponPickupEffect(pickup) {
       player.weaponMode = "fire";
       player.weaponPowerTimer = config.duration;
       player.weaponPowerDuration = config.duration;
-      player.fireShotsMax = config.maxShots;
-      player.fireCooldownMultiplier = config.cooldownMultiplier / Math.max(0.05, getActiveClassMultiplier("powerups.scriptureRofMultiplier", 1));
+      const scriptureShotsMult = Math.max(1, getActiveClassMultiplier("powerups.scriptureMaxShotsMultiplier", 1));
+      player.fireShotsMax = Math.max(1, Math.round(config.maxShots * scriptureShotsMult));
+      player.fireCooldownMultiplier = (config.cooldownMultiplier / Math.max(0.05, getActiveClassMultiplier("powerups.scriptureRofMultiplier", 1))) * (config.maxShots / player.fireShotsMax);
       player.fireSpeedMultiplier = config.speedMultiplier;
       player.fireDamageMultiplier = config.damageMultiplier * getActiveClassMultiplier("powerups.scriptureDamageMultiplier", 1);
       player.magicCooldown = 0;

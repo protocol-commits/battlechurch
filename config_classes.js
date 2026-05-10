@@ -59,7 +59,10 @@
         "faithRofMultiplier": 1,
         "wisdomDamageMultiplier": 1,
         "scriptureDamageMultiplier": 1,
-        "faithDamageMultiplier": 1
+        "faithDamageMultiplier": 1,
+        "wisdomMaxShotsMultiplier": 1,
+        "scriptureMaxShotsMultiplier": 1,
+        "faithMaxShotsMultiplier": 1
       },
       "churchUpgrades": {
         "costMultiplier": 1,
@@ -151,7 +154,7 @@
         "projectileDamageMultiplier": 1.1,
         "cooldownMultiplier": 1,
         "moveSpeedMultiplier": 1.2,
-        "prayerGainMultiplier": 1,
+        "prayerGainMultiplier": 10,
         "smiteChargeRateMultiplier": 1,
         "smiteDamageMultiplier": 1,
         "moves": {
@@ -195,14 +198,17 @@
         "faithRofMultiplier": 4,
         "wisdomDamageMultiplier": 2,
         "scriptureDamageMultiplier": 2,
-        "faithDamageMultiplier": 2
+        "faithDamageMultiplier": 2,
+        "wisdomMaxShotsMultiplier": 1,
+        "scriptureMaxShotsMultiplier": 1,
+        "faithMaxShotsMultiplier": 1
       },
       "churchUpgrades": {
         "costMultiplier": 1,
         "effectMultiplier": 1
       },
       "economy": {
-        "graceGainMultiplier": 1
+        "graceGainMultiplier": 10
       }
     }
   },
