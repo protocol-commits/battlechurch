@@ -17,7 +17,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.0,
+          "Crash": 1.0,
+          "Blast": 1.0,
+          "Thrash": 1.0,
+          "Clash": 1.0,
+          "Reap": 1.0,
+          "Hedge": 1.0,
+          "Flash": 1.0,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.0,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -52,7 +68,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.0,
+          "Crash": 1.0,
+          "Blast": 1.0,
+          "Thrash": 1.0,
+          "Clash": 1.0,
+          "Reap": 1.0,
+          "Hedge": 1.25,
+          "Flash": 1.0,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.3,
+          "Smite Bomb": 1.0,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -87,7 +119,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.2,
+          "Smash": 1.0,
+          "Crash": 1.0,
+          "Blast": 1.0,
+          "Thrash": 1.0,
+          "Clash": 1.0,
+          "Reap": 1.2,
+          "Hedge": 1.0,
+          "Flash": 1.0,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.0,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -122,7 +170,23 @@
         "moveSpeedMultiplier": 1.2,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.2,
+          "Cleave": 1.0,
+          "Smash": 1.25,
+          "Crash": 1.0,
+          "Blast": 1.2,
+          "Thrash": 1.0,
+          "Clash": 1.0,
+          "Reap": 1.0,
+          "Hedge": 1.0,
+          "Flash": 1.0,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.0,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -157,7 +221,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.0,
+          "Crash": 1.0,
+          "Blast": 1.0,
+          "Thrash": 1.0,
+          "Clash": 1.0,
+          "Reap": 1.0,
+          "Hedge": 1.2,
+          "Flash": 1.0,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.2,
+          "Smite Bomb": 1.2,
+          "Purge": 1.2
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -192,7 +272,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.0,
+          "Crash": 1.0,
+          "Blast": 1.3,
+          "Thrash": 1.0,
+          "Clash": 1.0,
+          "Reap": 1.0,
+          "Hedge": 1.0,
+          "Flash": 1.0,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.2,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -227,7 +323,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.0,
+          "Crash": 1.0,
+          "Blast": 1.0,
+          "Thrash": 1.25,
+          "Clash": 1.3,
+          "Reap": 1.0,
+          "Hedge": 1.0,
+          "Flash": 1.25,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.0,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -262,7 +374,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.0,
+          "Crash": 1.0,
+          "Blast": 1.0,
+          "Thrash": 1.0,
+          "Clash": 1.0,
+          "Reap": 1.3,
+          "Hedge": 1.3,
+          "Flash": 1.0,
+          "Unity Strike": 1.2,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.0,
+          "Purge": 1.3
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -297,7 +425,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.15,
+          "Crash": 1.15,
+          "Blast": 1.0,
+          "Thrash": 1.15,
+          "Clash": 1.0,
+          "Reap": 1.0,
+          "Hedge": 1.0,
+          "Flash": 1.0,
+          "Unity Strike": 1.0,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.0,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,
@@ -332,7 +476,23 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "smiteDamageMultiplier": 1,
+        "moves": {
+          "Slash": 1.0,
+          "Cleave": 1.0,
+          "Smash": 1.0,
+          "Crash": 1.2,
+          "Blast": 1.0,
+          "Thrash": 1.0,
+          "Clash": 1.2,
+          "Reap": 1.0,
+          "Hedge": 1.0,
+          "Flash": 1.2,
+          "Unity Strike": 1.2,
+          "Pastor Protect": 1.0,
+          "Smite Bomb": 1.0,
+          "Purge": 1.0
+        }
       },
       "npc": {
         "rofMultiplier": 1,

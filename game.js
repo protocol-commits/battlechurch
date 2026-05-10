@@ -184,6 +184,13 @@ function applyPlayerCooldownClassMultiplier(baseCooldown) {
   return Math.max(0, Number(baseCooldown || 0) * mult);
 }
 
+function getMoveMultiplier(moveName) {
+  const cls = window.BattlechurchClasses?.getActive?.();
+  const mult = cls?.tuning?.player?.moves?.[moveName];
+  const val = typeof mult === "number" ? mult : 1.0;
+  return Math.max(0.1, val);
+}
+
 activeClassId = loadSelectedClassIdFromStorage();
 
 if (typeof window !== "undefined") {
@@ -23118,7 +23125,7 @@ function updateDashMovement(dt) {
       if (hitSet.has(enemy)) return;
       if (Math.hypot(enemy.x - player.x, enemy.y - player.y) <= contactRadius + (enemy.radius || 20)) {
         hitSet.add(enemy);
-        enemy.takeDamage(playerDashState.crashDashDamage || 20, { damageType: "melee" });
+        enemy.takeDamage((playerDashState.crashDashDamage || 20) * getMoveMultiplier(playerDashState.isHolyDash ? "Clash" : "Crash"), { damageType: "melee" });
         if (playerDashState.isHolyDash) {
           playerDashState.clashHitAccum = (playerDashState.clashHitAccum || 0) + 1;
           if ((playerDashState.clashFeedbackCooldown || 0) <= 0) {
@@ -23158,7 +23165,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
   if (!player) return;
   const isBlitz = Boolean(meleeAttackState.swordRushActive);
   const rushMoveName = isBlitz ? "Thrash" : "Smash";
-  const rushHitDamage = isBlitz ? BLITZ_DAMAGE : RUSH_DAMAGE;
+  const rushHitDamage = (isBlitz ? BLITZ_DAMAGE : RUSH_DAMAGE) * getMoveMultiplier(rushMoveName);
   meleeAttackState.currentAttackHitboxType = isBlitz ? "swordRush" : "rush";
   const dir = normalizeVector(direction.x, direction.y);
   const angle = Math.atan2(dir.y, dir.x);
@@ -23353,7 +23360,7 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
     const localY = relX * sin + relY * cos;
     if (!circleIntersectsRect(localX, localY, 0, hitboxRect)) return;
     meleeAttackState.swordRushBlastHitEntities.add(enemy);
-    const counterHit = getCounterHitResult(enemy, SWORD_RUSH_BLAST_DAMAGE, meleeAttackState);
+    const counterHit = getCounterHitResult(enemy, SWORD_RUSH_BLAST_DAMAGE * getMoveMultiplier("Thrash"), meleeAttackState);
     const damage = counterHit.damage;
     enemy.takeDamage(damage, { damageType: "charged", damageText: counterHit.damageText });
     meleeAttackState.wardHitAccum = (meleeAttackState.wardHitAccum || 0) + 1;
@@ -23384,7 +23391,7 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
       const localY = relX * sin + relY * cos;
       if (circleIntersectsRect(localX, localY, 0, hitboxRect)) {
         meleeAttackState.swordRushBlastHitEntities.add(activeBoss);
-        const counterHit = getCounterHitResult(activeBoss, SWORD_RUSH_BLAST_DAMAGE, meleeAttackState);
+        const counterHit = getCounterHitResult(activeBoss, SWORD_RUSH_BLAST_DAMAGE * getMoveMultiplier("Thrash"), meleeAttackState);
         const damage = counterHit.damage;
         activeBoss.takeDamage(damage, {
           hitX: activeBoss.x,
@@ -24348,7 +24355,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
   // Canonical move name: "Slash" is the default A melee attack.
   const moveName = String(options?.moveNameOverride || "Slash");
   registerComboMoveName(meleeAttackState, moveName);
-  const damageMultiplier = Math.max(0.1, Number(options?.damageMultiplier) || 1);
+  const damageMultiplier = Math.max(0.1, Number(options?.damageMultiplier) || 1) * getMoveMultiplier(moveName);
   const rangeMultiplier = Math.max(0.5, Number(options?.rangeMultiplier) || 1);
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
@@ -25352,7 +25359,7 @@ function flushPendingDivineShot(meleeAttackState, dt) {
   meleeAttackState.pendingDivineShot = null;
   spawnProjectile("divine_shot", pending.spawnX, pending.spawnY, pending.vx, pending.vy, {
     friendly: true,
-    damage: applyPlayerProjectileClassMultiplier(DIVINE_SHOT_DAMAGE),
+    damage: applyPlayerProjectileClassMultiplier(DIVINE_SHOT_DAMAGE) * getMoveMultiplier("Blast"),
     life: DIVINE_SHOT_LIFE,
     speed: DIVINE_SHOT_SPEED,
     source: player,
@@ -25992,6 +25999,9 @@ function updateMeleeAttackSystem(dt) {
       }
       const hitSet = meleeAttackState.spinHitEntities || new Set();
       meleeAttackState.spinHitEntities = hitSet;
+      const spinHitboxType = String(meleeAttackState.currentAttackHitboxType || "");
+      const spinMoveName = spinHitboxType === "holyGround" ? "Hedge" : "Reap";
+      const spinMoveMultiplier = getMoveMultiplier(spinMoveName);
       const cos = Math.cos(-angle);
       const sin = Math.sin(-angle);
       enemies.forEach((enemy) => {
@@ -26012,7 +26022,7 @@ function updateMeleeAttackSystem(dt) {
         hitSet.add(enemy);
         const counterHit = getCounterHitResult(
           enemy,
-          MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER,
+          MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER * spinMoveMultiplier,
           meleeAttackState,
         );
         const spinDamage = counterHit.damage;
@@ -26084,7 +26094,7 @@ function updateMeleeAttackSystem(dt) {
             hitSet.add(activeBoss);
             const counterHit = getCounterHitResult(
               activeBoss,
-              MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER,
+              MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER * spinMoveMultiplier,
               meleeAttackState,
             );
             const spinDamage = counterHit.damage;
