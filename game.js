@@ -12043,7 +12043,7 @@ function maybeDropGraceFromEnemy(enemy) {
     spawnGraceArcBurst(enemy.x, enemy.y, guaranteed);
     return;
   }
-  let chance = GRACE_DROP_BASE_CHANCE;
+  let chance = GRACE_DROP_BASE_CHANCE * Math.max(0, getActiveClassMultiplier("economy.graceGainMultiplier", 1));
   const referenceRadius = enemy.radius || enemy.config?.radius || 24;
   const sizeRatio = Math.max(0, referenceRadius - 24) / 48;
   chance += sizeRatio * GRACE_DROP_SIZE_CHANCE_FACTOR;

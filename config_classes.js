@@ -154,7 +154,7 @@
         "projectileDamageMultiplier": 1.1,
         "cooldownMultiplier": 1,
         "moveSpeedMultiplier": 1.2,
-        "prayerGainMultiplier": 10,
+        "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
         "smiteDamageMultiplier": 1,
         "moves": {

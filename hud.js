@@ -724,7 +724,9 @@
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       const playerRowY = panelY + 14;
       const playerLabel = (typeof GameText !== 'undefined' && GameText.hud?.player) || 'PLAYER';
-      ctx.fillText(playerLabel, x, playerRowY);
+      const playerClassTitle = window.BattlechurchClasses?.getActive?.()?.classTitle;
+      const classSuffix = playerClassTitle ? ` [${playerClassTitle}]` : '';
+      ctx.fillText(playerLabel + classSuffix, x, playerRowY);
 
       ctx.restore();
 
