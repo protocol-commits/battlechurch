@@ -1584,6 +1584,7 @@
 
     const drawMoveAnnouncementBanner = () => {
       if (typeof window === "undefined") return;
+      if (window.__battlechurchDevMeleeArenaMode === true) return;
       const banner = window.__moveAnnouncementBanner;
       if (!banner || !banner.moveName || !Array.isArray(banner.tokens)) return;
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
