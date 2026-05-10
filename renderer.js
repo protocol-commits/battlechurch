@@ -8130,7 +8130,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
         buttonConfigs.push({ key: "logoutGoogle", label: "Logout" });
         buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
-        buttonConfigs.push({ key: "duplicateCloudSave", label: "Save File As" });
       }
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (titleClassMenuActive) {
@@ -8233,7 +8232,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const FOOTER_H = 36;       // hint line area
       const MAX_VISIBLE_CARDS = 5;
 
-      const actionKeys = new Set(["loginGoogle", "logoutGoogle", "newCloudSave", "duplicateCloudSave", "back"]);
+      const actionKeys = new Set(["loginGoogle", "logoutGoogle", "newCloudSave", "back"]);
       const indexedConfigs = buttonConfigs.map((config, index) => ({ config, index }));
       const saveEntries = indexedConfigs.filter((e) => !actionKeys.has(e.config.key));
       const actionEntries = indexedConfigs.filter((e) => actionKeys.has(e.config.key));
@@ -8534,7 +8533,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = "rgba(231,176,102,0.5)";
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.fillText("↑ ↓  move  ·  Space  select  ·  →  more options  ·  Esc  back", panelX + panelW / 2, hintY);
+      ctx.fillText("W·S / ↑↓  move  ·  Space  select  ·  D / →  more  ·  Esc  back", panelX + panelW / 2, hintY);
       ctx.restore();
 
       boundsByIndex.forEach((item) => { if (item) bounds.push(item); });

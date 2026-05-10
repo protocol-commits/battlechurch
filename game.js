@@ -8711,19 +8711,15 @@ async function refreshTitleCloudSaveOption() {
             ? `Town ${completed + 1}.1`
             : null;
       const cityName = (save?.cityName || "").trim();
-      const congregationMeta = cityName
-        ? `${cityName}, Congregation Size: ${congregationDisplay}`
-        : `Congregation Size: ${congregationDisplay}`;
       const classTitle = String(save?.classTitle || "").trim() || "Unknown";
-      let metaParts = [];
-      metaParts.push(`Denomination: ${classTitle}`);
-      if (districtMissionLabel) metaParts.push(districtMissionLabel);
-      metaParts.push(congregationMeta);
+      const _terms = window.BattlechurchCampaignLabels?.terms || {};
+      const districtsLabel = _terms.districts || "Districts";
+      const meta = `${classTitle}  ·  ${completed} / ${total} ${districtsLabel}`;
       return {
         id: save.id,
         key: `cloudsave:${save.id}`,
-        label: save?.saveName || "Save",
-        meta: metaParts.join(" • "),
+        label: save?.playerName || save?.saveName || "Pastor",
+        meta,
         suggestedDistrictId: save?.suggestedDistrictId || null,
         isActive: save?.isActive === true,
         details: {
@@ -8776,16 +8772,12 @@ function showNewCloudSaveDialog() {
     bodyHtml: `
       <div class="settings-panel">
         <div class="save-dialog__field">
-          <span class="save-dialog__label">File Name</span>
-          <input id="newSaveFileName" type="text" value="${defaultSaveName}" class="save-dialog__input" />
-        </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Player Name</span>
-          <input id="newSavePlayerName" type="text" value="Name" class="save-dialog__input" />
+          <span class="save-dialog__label">Pastor Name</span>
+          <input id="newSavePlayerName" type="text" value="" placeholder="Your pastor's name" class="save-dialog__input" />
         </div>
         <div class="save-dialog__field">
           <span class="save-dialog__label">City</span>
-          <input id="newSaveCityName" type="text" value="City" class="save-dialog__input" />
+          <input id="newSaveCityName" type="text" value="" placeholder="Your city" class="save-dialog__input" />
         </div>
         <div class="save-dialog__field">
           <span class="save-dialog__label">Denomination</span>
@@ -8798,17 +8790,15 @@ function showNewCloudSaveDialog() {
       </div>
     `,
     onRender: ({ bodyEl }) => {
-      const fileNameInput = bodyEl?.querySelector("#newSaveFileName");
       const playerNameInput = bodyEl?.querySelector("#newSavePlayerName");
       const cityNameInput = bodyEl?.querySelector("#newSaveCityName");
       const classSelect = bodyEl?.querySelector("#newSaveClassId");
       const cancelBtn = bodyEl?.querySelector("#newSaveCancelBtn");
       const createBtn = bodyEl?.querySelector("#newSaveCreateBtn");
-      if (fileNameInput) {
+      if (playerNameInput) {
         setTimeout(() => {
           try {
-            fileNameInput.focus();
-            fileNameInput.select?.();
+            playerNameInput.focus();
           } catch (_e) {}
         }, 0);
       }
@@ -8816,13 +8806,12 @@ function showNewCloudSaveDialog() {
         window.DialogOverlay?.hide?.();
       });
       createBtn?.addEventListener("click", () => {
-        const saveName = String(fileNameInput?.value || "").trim();
         const playerName = String(playerNameInput?.value || "").trim();
         const cityName = String(cityNameInput?.value || "").trim();
         const classId = String(classSelect?.value || "").trim();
-        if (!saveName || !playerName || !cityName || !classId) {
+        if (!playerName || !classId) {
           if (typeof setDevStatus === "function") {
-            setDevStatus("Please fill File Name, Player Name, City, and Class.", 2.5);
+            setDevStatus("Please enter a Pastor Name and choose a Denomination.", 2.5);
           }
           return;
         }
@@ -8831,7 +8820,7 @@ function showNewCloudSaveDialog() {
           try {
             if (typeof window.MapScreen?.createSaveFile === "function") {
               const newId = await window.MapScreen.createSaveFile({
-                saveName,
+                saveName: playerName,
                 playerName,
                 cityName,
                 classId,
@@ -8880,11 +8869,7 @@ function showEditCloudSaveDialog(saveId) {
     bodyHtml: `
       <div class="settings-panel">
         <div class="save-dialog__field">
-          <span class="save-dialog__label">File Name</span>
-          <input id="editSaveFileName" type="text" value="${escapeHtml(currentSaveName)}" class="save-dialog__input" />
-        </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Player Name</span>
+          <span class="save-dialog__label">Pastor Name</span>
           <input id="editSavePlayerName" type="text" value="${escapeHtml(currentPlayerName)}" class="save-dialog__input" />
         </div>
         <div class="save-dialog__field">
@@ -8902,7 +8887,6 @@ function showEditCloudSaveDialog(saveId) {
       </div>
     `,
     onRender: ({ bodyEl }) => {
-      const fileNameInput = bodyEl?.querySelector("#editSaveFileName");
       const playerNameInput = bodyEl?.querySelector("#editSavePlayerName");
       const cityNameInput = bodyEl?.querySelector("#editSaveCityName");
       const classSelect = bodyEl?.querySelector("#editSaveClassId");
@@ -8912,13 +8896,12 @@ function showEditCloudSaveDialog(saveId) {
         window.DialogOverlay?.hide?.();
       });
       applyBtn?.addEventListener("click", () => {
-        const saveName = String(fileNameInput?.value || "").trim();
         const playerName = String(playerNameInput?.value || "").trim();
         const cityName = String(cityNameInput?.value || "").trim();
         const classId = String(classSelect?.value || "").trim();
-        if (!saveName || !playerName || !classId) {
+        if (!playerName || !classId) {
           if (typeof setDevStatus === "function") {
-            setDevStatus("File Name, Player Name, and Class are required.", 2.5);
+            setDevStatus("Pastor Name and Denomination are required.", 2.5);
           }
           return;
         }
@@ -8927,7 +8910,7 @@ function showEditCloudSaveDialog(saveId) {
           try {
             if (typeof window.MapScreen?.updateSaveFileMetadata === "function") {
               await window.MapScreen.updateSaveFileMetadata(saveId, {
-                saveName,
+                saveName: playerName,
                 playerName,
                 cityName,
                 classId,
@@ -8950,19 +8933,22 @@ function showCloudSaveDetailsDialog(saveId) {
   if (!cloudRow?.details) return false;
   const d = cloudRow.details;
   const districtRows = Array.isArray(d.districtRows) ? d.districtRows : [];
-  const title = `${d.saveName || "Save"} - Full Details`;
+  const _detailTerms = window.BattlechurchCampaignLabels?.terms || {};
+  const _districtTerm = _detailTerms.district || "District";
+  const _districtsTerm = _detailTerms.districts || "Districts";
+  const title = `${d.playerName || d.saveName || "Save"} - Full Details`;
   const lines = [];
-  lines.push(`Player: ${d.playerName || "Pastor"}`);
+  lines.push(`Pastor: ${d.playerName || "Pastor"}`);
   lines.push(`Denomination: ${d.classTitle || "Unknown"}`);
-  lines.push(`Towns Cleared: ${Number(d.completedDistricts) || 0}/${Number(d.totalDistricts) || 10}`);
+  lines.push(`${_districtsTerm} Cleared: ${Number(d.completedDistricts) || 0}/${Number(d.totalDistricts) || 10}`);
   lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
-  lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
+  lines.push(`Runs: ${Number(d.totalReplayCompletions) || 0}`);
   lines.push(`Upgrade Levels: ${Number(d.totalUpgradeLevels) || 0}`);
   lines.push("");
-  lines.push("Town Breakdown:");
+  lines.push(`${_districtTerm} Breakdown:`);
   districtRows.forEach((row) => {
     lines.push(
-      `${row?.districtName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
+      `${row?.districtName || _districtTerm} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
     );
   });
   if (window.DialogOverlay?.show) {
@@ -20516,15 +20502,18 @@ function handleTitleScreen() {
             title = `${d.saveName || "Save"} - Full Details`;
             lines.push(`Player: ${d.playerName || "Pastor"}`);
             lines.push(`Denomination: ${d.classTitle || "Unknown"}`);
-            lines.push(`Towns Cleared: ${Number(d.completedDistricts) || 0}/${Number(d.totalDistricts) || 10}`);
+            const _vdTerms = window.BattlechurchCampaignLabels?.terms || {};
+            const _vdDistrict = _vdTerms.district || "District";
+            const _vdDistricts = _vdTerms.districts || "Districts";
+            lines.push(`${_vdDistricts} Cleared: ${Number(d.completedDistricts) || 0}/${Number(d.totalDistricts) || 10}`);
             lines.push(`Congregation Total: ${Number(d.totalCongregationBest) || 0}`);
-            lines.push(`Town Runs: ${Number(d.totalReplayCompletions) || 0}`);
+            lines.push(`Runs: ${Number(d.totalReplayCompletions) || 0}`);
             lines.push(`Upgrade Levels: ${Number(d.totalUpgradeLevels) || 0}`);
             lines.push("");
-            lines.push("Town Breakdown:");
+            lines.push(`${_vdDistrict} Breakdown:`);
             districtRows.forEach((row) => {
               lines.push(
-                `${row?.districtName || "Town"} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
+                `${row?.districtName || _vdDistrict} | ${row?.p1Completed ? "DONE" : "--"} | C:${Number(row?.bestCount) || 0} R:${Number(row?.completions) || 0} U:${Number(row?.upgradeLevelTotal) || 0}`,
               );
             });
           } else {
@@ -20534,7 +20523,8 @@ function handleTitleScreen() {
               const campaignData = demoSlot.campaignData || {};
               title = `${demoSlot.label || "Demo Slot"} - Details`;
               lines.push(`Start Town: ${demoSlot.districtId || "unknown"}`);
-              lines.push(`Preset Towns Cleared: ${Math.max(0, Number(demoSlot.completedDistricts) || 0)}/10`);
+              const _dsTerms = window.BattlechurchCampaignLabels?.terms || {};
+              lines.push(`Preset ${_dsTerms.districts || "Districts"} Cleared: ${Math.max(0, Number(demoSlot.completedDistricts) || 0)}/10`);
               const campaignId = String(campaignData.campaign || "p1").toLowerCase();
               const _phases = window.BattlechurchCampaignLabels?.phases || {};
               const visitLabel = _phases[campaignId] || campaignId.toUpperCase();
@@ -20638,28 +20628,7 @@ function handleTitleScreen() {
           if (saveId) showEditCloudSaveDialog(saveId);
           return;
         }
-        if (button.key === "duplicateCloudSave") {
-          void (async () => {
-            const sourceId = resolveCloudTargetSaveId();
-            if (!sourceId) return;
-            const source = titleCloudSaveRows.find((row) => row.id === sourceId);
-            const defaultName = source ? `${source.label.split(" (")[0]} Copy` : "Save Copy";
-            const name = typeof window?.prompt === "function"
-              ? window.prompt("Save File As:", defaultName)
-              : null;
-            if (!name || !name.trim()) return;
-            if (typeof window.MapScreen?.createSaveFile === "function") {
-              const newId = await window.MapScreen.createSaveFile({
-                saveName: name.trim(),
-                sourceSaveId: sourceId,
-                setActive: true,
-              });
-              if (newId) titleCloudSelectedSaveId = newId;
-            }
-            await refreshTitleCloudSaveOption();
-          })();
-          return;
-        }
+
         if (button.key === "renameCloudSave") {
           void (async () => {
             const saveId = resolveCloudTargetSaveId();

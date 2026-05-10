@@ -9,5 +9,12 @@
       p3: "Fortification",
     }),
 
+    // ── Game terminology — change here to rename across the UI ────────────
+    terms: Object.freeze({
+      district: "District",
+      districts: "Districts",
+      front: "Front",
+    }),
+
   });
 })(typeof window !== "undefined" ? window : null);

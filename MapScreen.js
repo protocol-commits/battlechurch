@@ -1372,7 +1372,8 @@
     ctx.font = `700 ${panelStyle.eyebrowFontSize ?? 11}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillText(panelStyle.eyebrowText || "DISTRICT TARGETED", centerX, panelY + (panelStyle.eyebrowY ?? 14));
+    const _eyebrowDistrictTerm = window.BattlechurchCampaignLabels?.terms?.district || "District";
+    ctx.fillText(panelStyle.eyebrowText || `${_eyebrowDistrictTerm.toUpperCase()} TARGETED`, centerX, panelY + (panelStyle.eyebrowY ?? 14));
 
     ctx.fillStyle = panelStyle.titleColor || "#FFD978";
     ctx.font = `700 ${panelStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
@@ -1430,9 +1431,11 @@
           secondaryLine = `${(typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield"}s Completed: ${completedVisits}/3`;
         }
       } else if (nextCamp === "p2") {
-        secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} districts to unlock ${_phases.p2 || "Occupation"}.`;
+        const _unlockDistrictTerm = window.BattlechurchCampaignLabels?.terms?.districts || "districts";
+        secondaryLine = `Complete ${_phases.p1 || "Invasion"} in all ${districtScopeLabel} ${_unlockDistrictTerm.toLowerCase()} to unlock ${_phases.p2 || "Occupation"}.`;
       } else {
-        secondaryLine = `Complete ${_phases.p2 || "Occupation"} in all ${districtScopeLabel} districts to unlock ${_phases.p3 || "Fortification"}.`;
+        const _unlockDistrictTerm2 = window.BattlechurchCampaignLabels?.terms?.districts || "districts";
+        secondaryLine = `Complete ${_phases.p2 || "Occupation"} in all ${districtScopeLabel} ${_unlockDistrictTerm2.toLowerCase()} to unlock ${_phases.p3 || "Fortification"}.`;
       }
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;

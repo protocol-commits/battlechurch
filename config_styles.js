@@ -162,7 +162,7 @@
           panelWidthRatio: 0.76,
           panelHeight: 252,
           panelBottomOffset: 40,
-          eyebrowText: "DISTRICT TARGETED",
+          eyebrowText: null,
           eyebrowY: 14,
           eyebrowColor: "rgba(231, 176, 102, 0.68)",
           eyebrowFontSize: 11,
@@ -222,7 +222,7 @@
           hintColor: "rgba(231,176,102,0.72)",
           hintFontSize: 11,
           dividerY: 86,
-          hintText: "↑ ↓  move  ·  Space  select  ·  →  more options  ·  Esc  back",
+          hintText: "W·S / ↑↓  move  ·  Space  select  ·  D / →  more  ·  Esc  back",
         },
         default: {
           // Panel with no eyebrow and no hint line.
