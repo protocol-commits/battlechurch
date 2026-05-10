@@ -23085,6 +23085,7 @@ function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5 + 200 * WO
   playerDashState.clashHitAccum = 0;
   setSharedBButtonCooldown(DASH_COOLDOWN);
   playDashSfx(0.9);
+  if (player) player.ignoreEntityCollisions = true;
   return true;
 }
 
@@ -23151,6 +23152,7 @@ function updateDashMovement(dt) {
       playerDashState.crashDashHitEntities = null;
       playerDashState.crashDashDamage = 0;
       setSharedBButtonCooldown(DASH_COOLDOWN);
+      if (player) player.ignoreEntityCollisions = false;
   }
 }
 
@@ -23427,6 +23429,7 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     meleeAttackState.cooldown = 0;
     meleeAttackState.rushLockTimer = 0;
     meleeAttackState.rushDistanceRemaining = 0;
+    if (player) player.ignoreEntityCollisions = false;
   };
 
   if (!Number.isFinite(meleeAttackState.rushDistanceRemaining) || meleeAttackState.rushDistanceRemaining <= 0) {
@@ -24968,6 +24971,7 @@ function executeRushAttack(
     );
   }
   meleeAttackState.isRushing = true;
+  if (player) player.ignoreEntityCollisions = true;
   beginMeleeHitstopSequence(meleeAttackState);
   meleeAttackState.rushDir = { x: dir.x, y: dir.y };
   meleeAttackState.rushDistanceRemaining = RUSH_DISTANCE;
@@ -25080,6 +25084,7 @@ function executeProtectedDash(meleeAttackState) {
     playerDashState.crashDashActive = true;
     playerDashState.crashDashHitEntities = new Set();
     playerDashState.crashDashDamage = 20;
+    player.ignoreEntityCollisions = true;
   }
 }
 
@@ -25586,6 +25591,7 @@ function updateMeleeTimers(dt, meleeAttackState) {
     meleeAttackState.swordRushBlastHitEntities = null;
     meleeAttackState.rushDistanceRemaining = 0;
     meleeAttackState.rushLockTimer = 0;
+    if (player) player.ignoreEntityCollisions = false;
   }
   if (rushForcedExpired) {
     meleeAttackState.rushForceEndAt = 0;
@@ -25600,6 +25606,7 @@ function updateMeleeTimers(dt, meleeAttackState) {
     meleeAttackState.swordRushBlastHitEntities = null;
     meleeAttackState.rushDistanceRemaining = 0;
     meleeAttackState.rushForceEndAt = 0;
+    if (player) player.ignoreEntityCollisions = false;
   }
 }
 
