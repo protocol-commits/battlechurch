@@ -8752,15 +8752,13 @@ function showNewCloudSaveDialog() {
   if (!window.DialogOverlay?.show) return false;
   const classOptions = getSortedClassMenuEntries(classEntries);
   const defaultSaveName = `Save ${Math.max(1, (titleCloudSaveRows?.length || 0) + 1)}`;
-  const activeClassIdForDefault =
-    window.BattlechurchClasses?.getActiveId?.() ||
-    window.BattlechurchClassConfig?.defaultClassId ||
-    classOptions[0]?.id ||
-    "class1";
+  const activeClassIdForDefault = classOptions[0]?.id || "class9";
   const optionsHtml = classOptions
     .map((entry) => {
       const id = String(entry?.id || "");
-      const label = String(entry?.classTitle || id || "Class");
+      const title = String(entry?.classTitle || id || "Class");
+      const desc = String(window.BattlechurchClassConfig?.byId?.[id]?.classDescription || "");
+      const label = desc ? `${title}  —  ${desc}` : title;
       const selected = id === activeClassIdForDefault ? " selected" : "";
       return `<option value="${id}"${selected}>${label}</option>`;
     })
@@ -8854,7 +8852,9 @@ function showEditCloudSaveDialog(saveId) {
   const optionsHtml = classOptions
     .map((entry) => {
       const id = String(entry?.id || "");
-      const label = String(entry?.classTitle || id || "Class");
+      const title = String(entry?.classTitle || id || "Class");
+      const desc = String(window.BattlechurchClassConfig?.byId?.[id]?.classDescription || "");
+      const label = desc ? `${title}  —  ${desc}` : title;
       const selected = id === currentClassId ? " selected" : "";
       return `<option value="${id}"${selected}>${label}</option>`;
     })

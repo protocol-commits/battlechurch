@@ -798,6 +798,7 @@ body.layout-rotate-warning #rotatePrompt {
   color: var(--hf-text);
 }
 
+
 .save-dialog__actions {
   display: flex;
   gap: 8px;
