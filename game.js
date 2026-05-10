@@ -20119,12 +20119,10 @@ function showDeveloperOverlay() {
   const bodyHtml = `
     <div class="settings-panel settings-panel--developer">
       <div class="dev-action-grid">
-        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="pastorDev">Pastor Dev Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="classDev">Class Dev Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="enemy">Enemy Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
-        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="arena">Dev Arena</button>
-        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="hitbox">Hitbox Editor</button>
+<button class="dialog-overlay__button dev-action-grid__button" data-dev-action="hitbox">Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="bossHitbox">Boss Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="shortcuts">Developer Shortcuts</button>
       </div>
@@ -20248,8 +20246,7 @@ function showDeveloperOverlay() {
 
 function handleTitleScreen() {
   if (!titleScreenActive) return false;
-  if (!hasSelectedClassStorageKey() && !hasShownClassSelectionHint()) {
-    showProgressSaveToast("Choose Your Denomination", 2.2);
+  if (!hasSelectedClassStorageKey()) {
     markClassSelectionHintShown();
   }
   if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
