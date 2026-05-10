@@ -24644,6 +24644,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
 function executeCleaveAttack(dir, meleeAttackState) {
   if (!player || !dir) return false;
   playerYell("Cleave");
+  showMoveBanner("Cleave");
   const angleRad = Math.atan2(dir.y, dir.x);
   const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
   const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
@@ -24946,6 +24947,7 @@ function executeRushAttack(
   if (!dir || (dir.x === 0 && dir.y === 0)) return false;
   const displayName = String(moveName || "Smash");
   if (!skipYell) playerYell(displayName, 2.4);
+  showMoveBanner(displayName);
   registerComboMoveName(meleeAttackState, displayName);
   const now =
     typeof performance !== "undefined" && typeof performance.now === "function"
@@ -25103,6 +25105,30 @@ function playerYell(text, life = 1.6) {
   window.FloatingText?.heroSay(text, { life });
 }
 
+const _MB = {
+  btn: (label) => ({ type: "btn", label }),
+  seq: () => ({ type: "seq" }),
+  sim: () => ({ type: "sim" }),
+  hld: () => ({ type: "hld" }),
+  chg: () => ({ type: "chg" }),
+};
+const MOVE_BANNER_TOKENS = Object.freeze({
+  Smash:  [_MB.btn("B"), _MB.seq(), _MB.btn("A")],
+  Thrash: [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("A")],
+  Reap:   [_MB.btn("C"), _MB.seq(), _MB.btn("A")],
+  Clash:  [_MB.btn("C"), _MB.seq(), _MB.btn("B")],
+  Flash:  [_MB.hld(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
+  Hedge:  [_MB.hld(), _MB.btn("A"), _MB.sim(), _MB.btn("C")],
+  Cleave: [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
+});
+
+function showMoveBanner(moveName) {
+  const tokens = MOVE_BANNER_TOKENS[moveName];
+  if (!tokens) return;
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  window.__moveAnnouncementBanner = { moveName, tokens, shownAt: now, duration: 2000 };
+}
+
 function clearDualChargeReadyPreview(meleeAttackState, { force = false } = {}) {
   if (!meleeAttackState) return;
   const bubble = meleeAttackState.dualChargeReadyBubble;
@@ -25149,6 +25175,7 @@ function executePowerupTeleport(meleeAttackState) {
   const target = meleeAttackState.teleportGhostTarget || getNearestActivePowerup();
   if (!target) return;
   showDualChargeReadyPreview(meleeAttackState, "Flash", { executed: true });
+  showMoveBanner("Flash");
   player.x = target.x;
   player.y = target.y;
   resolveEntityObstacles(player);
@@ -25214,6 +25241,7 @@ function executeRingOfFireAttack(meleeAttackState) {
 function executeSpinAttack(meleeAttackState, moveDir, { skipYell = false } = {}) {
   if (!player) return;
   if (!skipYell) playerYell("Reap");
+  showMoveBanner("Reap");
   registerComboMoveName(meleeAttackState, "Reap");
   meleeAttackState.currentAttackHitboxType = "spin";
   meleeAttackState.swingLength = null;
@@ -26179,6 +26207,7 @@ function updateMeleeAttackSystem(dt) {
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
         player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
         playerYell("Clash");
+        showMoveBanner("Clash");
         registerComboMoveName(meleeAttackState, "Clash");
         meleeAttackState.clashVisualActive = true;
         meleeAttackState.holyDashArmUntil = 0;
@@ -26415,6 +26444,7 @@ function updateMeleeAttackSystem(dt) {
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
           if (typeof cancelCongregationTap === "function") cancelCongregationTap();
           showDualChargeReadyPreview(meleeAttackState, "Hedge", { executed: true });
+          showMoveBanner("Hedge");
           executeRingOfFireAttack(meleeAttackState);
         } else if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);

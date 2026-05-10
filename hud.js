@@ -1582,10 +1582,156 @@
       ctx.restore();
     };
 
+    const drawMoveAnnouncementBanner = () => {
+      if (typeof window === "undefined") return;
+      const banner = window.__moveAnnouncementBanner;
+      if (!banner || !banner.moveName || !Array.isArray(banner.tokens)) return;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const elapsed = now - (banner.shownAt || now);
+      const duration = banner.duration || 2000;
+      const fadeOutMs = 300;
+      if (elapsed >= duration + fadeOutMs) {
+        window.__moveAnnouncementBanner = null;
+        return;
+      }
+
+      const alpha = elapsed < duration
+        ? Math.min(1, elapsed / 120)
+        : Math.max(0, 1 - (elapsed - duration) / fadeOutMs);
+      if (alpha <= 0) return;
+
+      // Y position: sit below the combo feed if it has live entries, else at combo feed Y
+      const comboFeedX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
+      const comboFeedY = Number.isFinite(window.__comboFeedFixedY) ? window.__comboFeedFixedY : (hudHeight + 34);
+      const liveCombos = Array.isArray(window.__hudConfirmedCombos) ? window.__hudConfirmedCombos : [];
+      const COMBO_LIFETIME_MS = 3800;
+      const liveComboCount = liveCombos.filter(
+        (c) => Number.isFinite(c?.recordedAt) && (now - c.recordedAt) < COMBO_LIFETIME_MS,
+      ).length;
+      const comboFeedHeight = liveComboCount > 0 ? liveComboCount * (24 + 18) : 0;
+      const panelTopY = comboFeedY + comboFeedHeight + (liveComboCount > 0 ? 8 : 0);
+
+      // Measure tokens to compute panel width
+      const PILL_W = 22;
+      const PILL_H = 17;
+      const SEP_W = 14;
+      const PREFIX_W = 36;
+      const PAD_X = 10;
+      const PAD_Y = 8;
+      const LINE_GAP = 6;
+
+      ctx.save();
+      ctx.font = `800 26px ${UI_FONT_FAMILY}`;
+      const nameW = ctx.measureText(banner.moveName.toUpperCase()).width;
+
+      let tokenRowW = 0;
+      banner.tokens.forEach((tok) => {
+        if (tok.type === "btn") tokenRowW += PILL_W;
+        else if (tok.type === "seq" || tok.type === "sim") tokenRowW += SEP_W;
+        else if (tok.type === "hld" || tok.type === "chg") tokenRowW += PREFIX_W;
+      });
+
+      const innerW = Math.max(nameW, tokenRowW);
+      const panelW = innerW + PAD_X * 2;
+      const nameLineH = 26;
+      const tokenLineH = PILL_H;
+      const panelH = PAD_Y + nameLineH + LINE_GAP + tokenLineH + PAD_Y;
+
+      const panelRight = comboFeedX;
+      const panelX = panelRight - panelW;
+      const panelY = panelTopY;
+
+      // Background + border
+      ctx.globalAlpha = alpha * 0.95;
+      ctx.fillStyle = "rgba(28, 10, 5, 0.88)";
+      ctx.shadowColor = "rgba(255, 160, 40, 0.45)";
+      ctx.shadowBlur = 10;
+      roundRect(ctx, panelX, panelY, panelW, panelH, 8, true, false);
+
+      const pulseSpeed = 0.005;
+      const stylePulse = 0.55 + 0.45 * Math.sin(now * pulseSpeed);
+      ctx.strokeStyle = `rgba(255, ${Math.round(175 + 25 * stylePulse)}, ${Math.round(60 + 20 * stylePulse)}, ${0.7 + 0.25 * stylePulse})`;
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = "rgba(255, 160, 40, 0.3)";
+      ctx.shadowBlur = 6;
+      roundRect(ctx, panelX, panelY, panelW, panelH, 8, false, true);
+      ctx.shadowBlur = 0;
+
+      // Move name
+      ctx.globalAlpha = alpha;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "#F2C87D";
+      ctx.font = `800 26px ${UI_FONT_FAMILY}`;
+      ctx.shadowColor = "rgba(20, 6, 4, 0.92)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(banner.moveName.toUpperCase(), panelX + PAD_X, panelY + PAD_Y);
+      ctx.shadowBlur = 0;
+
+      // Token row
+      const tokenY = panelY + PAD_Y + nameLineH + LINE_GAP;
+      const tokenCenterY = tokenY + PILL_H / 2;
+      let tx = panelX + PAD_X;
+
+      banner.tokens.forEach((tok) => {
+        if (tok.type === "btn") {
+          // Pill background
+          ctx.fillStyle = "rgba(160, 50, 15, 0.9)";
+          ctx.strokeStyle = "rgba(255, 190, 70, 0.85)";
+          ctx.lineWidth = 1.2;
+          roundRect(ctx, tx, tokenCenterY - PILL_H / 2, PILL_W, PILL_H, 5, true, true);
+          // Letter
+          ctx.fillStyle = "#ffffff";
+          ctx.font = `800 11px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(tok.label, tx + PILL_W / 2, tokenCenterY);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          tx += PILL_W;
+        } else if (tok.type === "seq") {
+          ctx.fillStyle = "rgba(230, 210, 160, 0.75)";
+          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("→", tx + SEP_W / 2, tokenCenterY);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          tx += SEP_W;
+        } else if (tok.type === "sim") {
+          ctx.fillStyle = "rgba(230, 210, 160, 0.75)";
+          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("+", tx + SEP_W / 2, tokenCenterY);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          tx += SEP_W;
+        } else if (tok.type === "hld") {
+          ctx.fillStyle = "rgba(220, 200, 140, 0.6)";
+          ctx.font = `italic 11px ${UI_FONT_FAMILY}`;
+          ctx.textBaseline = "middle";
+          ctx.fillText("Hold", tx, tokenCenterY);
+          tx += ctx.measureText("Hold").width + 4;
+          ctx.textBaseline = "top";
+        } else if (tok.type === "chg") {
+          ctx.fillStyle = "rgba(220, 200, 140, 0.6)";
+          ctx.font = `italic 11px ${UI_FONT_FAMILY}`;
+          ctx.textBaseline = "middle";
+          ctx.fillText("Charge", tx, tokenCenterY);
+          tx += ctx.measureText("Charge").width + 4;
+          ctx.textBaseline = "top";
+        }
+      });
+
+      ctx.restore();
+    };
+
     drawPlayerInfo();
     drawNpcInfo();
     drawDistrictProgress();
     drawGameplayComboFeed();
+    drawMoveAnnouncementBanner();
     drawDevArenaMoveReference();
     drawDevArenaMoveFeed();
     drawDevArenaBestCombo();
