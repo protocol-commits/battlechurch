@@ -147,9 +147,9 @@
           "visible": true
         },
         "7tlb": {
-          "label": "Off Hand",
-          "asset": "sh02_v01",
-          "visible": true
+        "label": "Off Hand",
+          "asset": "sh01_v03",
+          "visible": false
         }
       }
     },
