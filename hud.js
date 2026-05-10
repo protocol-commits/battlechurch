@@ -1632,11 +1632,24 @@
         else if (tok.type === "chg") tokenRowW += PREFIX_W;
       });
 
-      const innerW = Math.max(nameW, tokenRowW);
+      const activeClass = window.BattlechurchClasses?.getActive?.();
+      const moveMult = activeClass?.tuning?.player?.moves?.[banner.moveName];
+      const hasMoveMult = typeof moveMult === "number" && moveMult !== 1.0;
+      const denomLabel = activeClass?.classTitle || "";
+      const multPct = hasMoveMult ? Math.round((moveMult - 1) * 100) : 0;
+      const multSign = multPct >= 0 ? "+" : "";
+      const denomLine = hasMoveMult ? `${denomLabel}: ${multSign}${multPct}%` : "";
+
+      ctx.font = `600 10px ${UI_FONT_FAMILY}`;
+      const denomLineW = denomLine ? ctx.measureText(denomLine).width : 0;
+
+      const innerW = Math.max(nameW, tokenRowW, denomLineW);
       const panelW = innerW + PAD_X * 2;
       const nameLineH = 26;
       const tokenLineH = PILL_H;
-      const panelH = PAD_Y + nameLineH + LINE_GAP + tokenLineH + PAD_Y;
+      const denomLineH = denomLine ? 14 : 0;
+      const denomLineGap = denomLine ? 5 : 0;
+      const panelH = PAD_Y + nameLineH + LINE_GAP + tokenLineH + denomLineGap + denomLineH + PAD_Y;
 
       const panelRight = comboFeedX;
       const panelX = panelRight - panelW;
@@ -1717,6 +1730,16 @@
           ctx.textBaseline = "top";
         }
       });
+
+      if (denomLine) {
+        const denomY = tokenY + tokenLineH + denomLineGap;
+        ctx.globalAlpha = alpha * 0.72;
+        ctx.font = `600 10px ${UI_FONT_FAMILY}`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillStyle = multPct > 0 ? "#e8c87a" : "#b0c8e8";
+        ctx.fillText(denomLine, panelX + PAD_X, denomY);
+      }
 
       ctx.restore();
     };

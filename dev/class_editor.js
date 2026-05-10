@@ -45,6 +45,23 @@
     },
   ];
 
+  const MOVE_NAMES = [
+    "Slash",
+    "Cleave",
+    "Smash",
+    "Crash",
+    "Blast",
+    "Thrash",
+    "Clash",
+    "Reap",
+    "Hedge",
+    "Flash",
+    "Unity Strike",
+    "Pastor Protect",
+    "Smite Bomb",
+    "Purge",
+  ];
+
   function deepClone(value) {
     try {
       return JSON.parse(JSON.stringify(value));
@@ -193,6 +210,15 @@
         }
       });
     });
+    if (!entry.tuning.player || typeof entry.tuning.player !== "object") entry.tuning.player = {};
+    if (!entry.tuning.player.moves || typeof entry.tuning.player.moves !== "object") {
+      entry.tuning.player.moves = {};
+    }
+    MOVE_NAMES.forEach((moveName) => {
+      if (!Number.isFinite(entry.tuning.player.moves[moveName])) {
+        entry.tuning.player.moves[moveName] = 1.0;
+      }
+    });
   }
 
   function renderClassMeta() {
@@ -235,7 +261,27 @@
         </section>
       `;
     }).join("");
-    fieldRoot.innerHTML = sections;
+
+    const moveRows = MOVE_NAMES.map((moveName) => {
+      const value = clampNum(selected.tuning.player.moves[moveName]);
+      return `
+        <label style="display:grid;grid-template-columns:260px 120px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,214,148,.12);">
+          <span style="font:600 13px Orbitron,sans-serif;color:#f0dfc3;">${moveName}</span>
+          <input data-group="player.moves" data-field="${moveName}" type="number" step="0.05" min="0" max="10" value="${value.toFixed(2)}"
+            style="padding:6px 8px;border-radius:6px;border:1px solid rgba(255,196,98,.42);background:rgba(16,20,28,.95);color:#f6e4c8;font:600 13px Orbitron,sans-serif;" />
+        </label>
+      `;
+    }).join("");
+
+    const moveSection = `
+      <section style="border:1px solid rgba(255,214,148,.2);border-radius:10px;padding:10px 12px;background:rgba(10,14,22,.75);">
+        <div style="font:700 14px Orbitron,sans-serif;color:#ffd978;margin-bottom:8px;">Move Multipliers</div>
+        ${moveRows}
+      </section>
+    `;
+
+    fieldRoot.innerHTML = sections + moveSection;
+
     fieldRoot.querySelectorAll("input[data-group][data-field]").forEach((input) => {
       input.addEventListener("input", () => {
         const cls = getSelectedClass();
@@ -243,7 +289,11 @@
         const group = String(input.getAttribute("data-group") || "");
         const field = String(input.getAttribute("data-field") || "");
         const next = clampNum(input.value);
-        cls.tuning[group][field] = next;
+        if (group === "player.moves") {
+          cls.tuning.player.moves[field] = next;
+        } else {
+          cls.tuning[group][field] = next;
+        }
       });
     });
   }
@@ -269,6 +319,9 @@
       group.fields.forEach((field) => {
         entry.tuning[group.key][field] = 1.0;
       });
+    });
+    MOVE_NAMES.forEach((moveName) => {
+      entry.tuning.player.moves[moveName] = 1.0;
     });
   }
 
