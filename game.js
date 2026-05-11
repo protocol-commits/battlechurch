@@ -12363,6 +12363,7 @@ function setDevStatus(text, duration = 2.5) {
   }
   devStatus.text = text;
   devStatus.timer = duration;
+  console.log(`[stage] ${text}`);
 }
 
 function updateDevStatus(dt) {
@@ -12831,16 +12832,6 @@ function resolveEntityObstacles(entity) {
           entity.x += nx * overlap;
           entity.y += ny * overlap;
           adjusted = true;
-          console.debug &&
-            console.debug("ObstacleAdjust", {
-              type: entity?.type,
-              dx,
-              dy,
-              entityX: entity.x,
-              entityY: entity.y,
-              obstacleX: obstacle.x,
-              obstacleY: obstacle.y,
-            });
         }
       }
     }
@@ -13722,7 +13713,6 @@ function captureNpcPortrait(npc) {
     canvas.__battleRosterIndex = Number.isFinite(npc.__battleRosterIndex)
       ? npc.__battleRosterIndex
       : -1;
-    console.debug && console.debug('captureNpcPortrait: created', { id: canvas.__portraitId });
   } catch (e) {}
   return canvas;
 }
@@ -14129,18 +14119,6 @@ class CozyNpc {
     const cappedLoss = Math.min(NPC_MAX_FAITH_LOSS_PER_ATTACK, baseDamage);
     const damageScale = 1;
     const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale));
-    // Debug: report incoming damage and computed faith loss
-    if (typeof console !== 'undefined' && console.debug) {
-      console.debug &&
-        console.debug("NPC.sufferAttack", {
-          type: this.type,
-          incomingDamage: damage,
-          baseDamage,
-          cappedLoss,
-          scaledLoss,
-          prevFaith,
-        });
-    }
     this.faith = Math.max(0, this.faith - scaledLoss);
     this.maybeSpeakRedFaithDialogue(prevFaith);
     if (scaledLoss > 0 && (this.maxFaith || 0) > 0) {
@@ -16223,8 +16201,6 @@ class BossEncounter {
       const rate = clip && clip.frameRate ? clip.frameRate : 8;
       const expected = Math.max(0.05, frames / Math.max(0.0001, rate));
       this.deathTimer = expected + 0.3;
-      console.debug &&
-        console.debug("Boss death initiated", { frames, rate, expected, deathTimer: this.deathTimer });
     } catch (e) {}
   }
 
@@ -16342,7 +16318,6 @@ class BossEncounter {
       if (typeof this.deathTimer === 'number') {
         this.deathTimer -= dt;
         if (this.deathTimer <= 0 && !this.animator.isFinished()) {
-          console.debug && console.debug('Boss death timeout forcing finish', { x: this.x, y: this.y });
           this.animator.finished = true;
         }
       }

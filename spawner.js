@@ -443,13 +443,6 @@
     const initialPos = position || randomOffscreenPosition(spawnRadius, 0);
     const spawnPos = findNonOverlappingSpawn(initialPos, spawnRadius, 6, spacing);
     try {
-      console.debug &&
-        console.debug("Enemy spawn", {
-          type,
-          spawnX: spawnPos.x,
-          spawnY: spawnPos.y,
-          fromPosition: Boolean(position),
-        });
     } catch (error) {}
     const instanceConfig = { ...config };
     if (type === "bat") {

@@ -1529,8 +1529,7 @@
         });
         state.powerUpsEnabled = true;
       }
-      const waveLabel = `${state.monthIndex + 1}-${state.waveIndex + 1}`;
-      setDevStatus(`Wave ${waveLabel}`, introDuration + 0.6);
+      setDevStatus(`Battlefield ${state.monthIndex + 1}, Wave ${actualWaveNumber}, Horde ${state.activeWave?.hordeInWave ?? state.waveIndex + 1}`, introDuration + 0.6);
       if (waveNumber !== 1) {
         scheduleConversation(0.4, () => {
           heroSay(randomChoice(HERO_ENCOURAGEMENT_LINES));
@@ -1677,10 +1676,10 @@
             }
           }
       resetStage("allKillBreak", breakerDuration);
-      setDevStatus(`Mission break after Wave ${battleNumber}-${waveNumber}`, breakerDuration);
+      setDevStatus(`Battlefield ${battleNumber}, Wave ${currentActualWaveNumber} break`, breakerDuration);
       return;
     }
-        setDevStatus(`Wave ${battleNumber}-${waveNumber} advancing`, 1.2);
+        setDevStatus(`Battlefield ${battleNumber}, Wave ${currentActualWaveNumber} advancing`, 1.2);
         beginWave();
         spawnActiveWave();
         return;

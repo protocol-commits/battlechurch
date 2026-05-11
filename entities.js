@@ -1731,22 +1731,6 @@
       this.finished = false;
       this.playbackLoopOverride = loop;
 
-      if (name === "death") {
-        try {
-          const c = this.currentClip || {};
-          console.debug && console.debug("Animator.play: death requested", {
-            name,
-            clip: {
-              frameCount: c.frameCount,
-              frameRate: c.frameRate,
-              frameWidth: c.frameWidth,
-              frameHeight: c.frameHeight,
-              imageSrc: c.image && c.image.src,
-            },
-            playbackLoopOverride: this.playbackLoopOverride,
-          });
-        } catch (e) {}
-      }
 
       try {
         const clip = this.currentClip;
@@ -4636,8 +4620,6 @@
             const rate = clip && clip.frameRate ? clip.frameRate : 8;
             const expected = Math.max(0.05, frames / Math.max(0.0001, rate));
             this.deathTimer = expected + 0.25;
-            console.debug &&
-              console.debug("Enemy death initiated", { type: this.type, frames, rate, expected, deathTimer: this.deathTimer });
           } catch (e) {}
         }
         if (levelManager && typeof levelManager.notifyEnemyDefeated === "function") {
