@@ -1249,6 +1249,37 @@
           const iconY = innerY + innerH / 2 - 15;
           bossAnimator.draw(ctx, bossCenterX, iconY, { alpha: 0.95, flipX: true });
         }
+
+        const drawPastorPaperdoll = typeof window !== "undefined" ? window.Entities?.drawPastorPaperdoll : null;
+        if (drawPastorPaperdoll && fillW >= 4) {
+          if (!districtProgressAnim.pastorWalkState) {
+            districtProgressAnim.pastorWalkState = { frameCursor: 0, elapsedMs: 0 };
+          }
+          const pw = districtProgressAnim.pastorWalkState;
+          const WALK_FRAMES = 6;
+          const WALK_TIMING_MS = 135;
+          pw.elapsedMs += dt * 1000;
+          while (pw.elapsedMs >= WALK_TIMING_MS) {
+            pw.elapsedMs -= WALK_TIMING_MS;
+            pw.frameCursor = (pw.frameCursor + 1) % WALK_FRAMES;
+          }
+          const fakePastor = {
+            state: "walk",
+            facing: "right",
+            _paperdollState: { frameCursor: pw.frameCursor, elapsedMs: pw.elapsedMs },
+            _paperdollAttackFacing: null,
+            _paperdollLastMoveFacing: "right",
+          };
+          const pastorX = Math.min(innerX + fillW, innerX + innerW - 4);
+          const pastorY = innerY + innerH / 2;
+          const iconScale = 0.19;
+          ctx.save();
+          ctx.translate(pastorX, pastorY);
+          ctx.scale(iconScale, iconScale);
+          ctx.globalAlpha = 0.95;
+          drawPastorPaperdoll(fakePastor, ctx, 0, 0);
+          ctx.restore();
+        }
       }
 
       ctx.restore();
