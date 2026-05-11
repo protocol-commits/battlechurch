@@ -799,6 +799,15 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 
+.save-dialog__hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  margin-top: 10px;
+  margin-bottom: 2px;
+  letter-spacing: 0.02em;
+}
+
 .save-dialog__actions {
   display: flex;
   gap: 8px;

@@ -8904,6 +8904,7 @@ function showEditCloudSaveDialog(saveId) {
           <span class="save-dialog__label">Denomination</span>
           <select id="editSaveClassId" class="save-dialog__input">${optionsHtml}</select>
         </div>
+        <div class="save-dialog__hint">Press Tab to move between fields — W/S navigate buttons</div>
         <div class="save-dialog__actions">
           <button type="button" id="editSaveCancelBtn" class="save-dialog__btn-cancel">Cancel</button>
           <button type="button" id="editSaveApplyBtn" class="save-dialog__btn-primary">Apply Changes</button>

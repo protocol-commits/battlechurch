@@ -42,7 +42,7 @@
   function getNavigableControls() {
     return Array.from(
       overlay.querySelectorAll(
-        "button.dialog-overlay__button, input, select, textarea"
+        "button, input, select, textarea"
       )
     ).filter((el) => {
       if (!el || el.disabled) return false;
