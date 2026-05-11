@@ -1022,9 +1022,7 @@
       const currentMissionTotal = getMissionHordeCount(currentAct, currentMission);
       progressUnits += Math.min(currentMissionTotal, currentWave);
 
-      if (typeof window !== 'undefined' && window.__hudDistrictDebug) {
-        console.log('[districtProgress]', { townIndex, currentAct, currentMission, currentWave, battleTotals, currentMissionTotal, progressUnits, totalUnits, missionNum: levelStatus.missionNum, battleNum: levelStatus.battleNum, wave: levelStatus.wave, stage: levelStatus.stage });
-      }
+
 
       if (totalUnits <= 0) totalUnits = 1;
       const progressRatio = Math.max(0, Math.min(1, progressUnits / totalUnits));
