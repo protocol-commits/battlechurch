@@ -185,6 +185,9 @@ function applyPlayerCooldownClassMultiplier(baseCooldown) {
 }
 
 function getMoveMultiplier(moveName) {
+  if (location.hostname === 'localhost' && window.BattlechurchMoveCatalog && !window.BattlechurchMoveCatalog.byKey[moveName]) {
+    console.warn(`getMoveMultiplier: unknown move "${moveName}" — add it to move_catalog.js`);
+  }
   const cls = window.BattlechurchClasses?.getActive?.();
   const mult = cls?.tuning?.player?.moves?.[moveName];
   const val = typeof mult === "number" ? mult : 1.0;

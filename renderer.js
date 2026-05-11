@@ -6774,28 +6774,90 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const { ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT } = requireBindings();
     ctx.save();
     drawBackground();
-    // Slightly darker overlay than briefing to indicate a separate screen
     ctx.fillStyle = 'rgba(4,8,14,0.82)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#EAF6FF';
-    ctx.font = `48px ${UI_FONT_FAMILY}`;
-    const howToPlayTitle2 = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'About';
-    ctx.fillText(howToPlayTitle2, canvas.width / 2, HUD_HEIGHT + 66);
-
-    ctx.font = `18px ${UI_FONT_FAMILY}`;
+    const cx = canvas.width / 2;
+    ctx.textAlign = 'center';
     ctx.fillStyle = '#EAF6FF';
-    const lines = [
-      'Move with WASD or the virtual stick.',
-      'Aim with mouse or right stick; press Space to start.',
-      'Prayer Meter holds 6 Prayers: Purge costs 2, Smite costs 6.',
-    ];
-    let y = HUD_HEIGHT + 120;
-    lines.forEach((l) => {
-      ctx.fillText(l, canvas.width / 2, y);
-      y += 30;
+    ctx.font = `48px ${UI_FONT_FAMILY}`;
+    const title = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to Play';
+    ctx.fillText(title, cx, HUD_HEIGHT + 66);
+
+    // ── Basics ───────────────────────────────────────────────────────────────
+    ctx.font = `16px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = '#A8C8E8';
+    let y = HUD_HEIGHT + 106;
+    ['Move: WASD / virtual stick', 'Aim: mouse / right stick', 'Prayer Meter: 6 prayers total'].forEach((l) => {
+      ctx.fillText(l, cx, y);
+      y += 22;
     });
+
+    // ── Move table from catalog ──────────────────────────────────────────────
+    const mc = window.BattlechurchMoveCatalog;
+    if (!mc) { ctx.restore(); return; }
+
+    const moves = mc.catalog;
+    const colW = Math.min(420, canvas.width * 0.42);
+    const leftX = cx - colW - 12;
+    const rightX = cx + 12;
+
+    // Split into two columns: sword+combo left, prayer right
+    const leftMoves = moves.filter((m) => m.category === 'sword' || m.category === 'combo');
+    const rightMoves = moves.filter((m) => m.category === 'prayer');
+
+    const ROW_H = 38;
+    const TABLE_TOP = y + 18;
+
+    function drawMoveSection(label, list, startX, startY) {
+      ctx.textAlign = 'left';
+      ctx.font = `bold 13px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = '#FFC86A';
+      ctx.fillText(label.toUpperCase(), startX, startY);
+
+      let ry = startY + 16;
+      list.forEach((move) => {
+        // Input badge
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fillRect(startX, ry, colW, ROW_H - 4);
+
+        ctx.font = `bold 13px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = '#FFC86A';
+        ctx.fillText(move.publicName, startX + 8, ry + 15);
+
+        ctx.font = `12px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = '#7ABCDD';
+        ctx.fillText(`[${move.input}]`, startX + 8, ry + 29);
+
+        // Damage
+        const dmgStr = mc.damageLabel(move.key);
+        if (dmgStr !== '—') {
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#FF9966';
+          ctx.font = `bold 13px ${UI_FONT_FAMILY}`;
+          ctx.fillText(dmgStr, startX + colW - 8, ry + 15);
+          ctx.fillStyle = '#888';
+          ctx.font = `11px ${UI_FONT_FAMILY}`;
+          ctx.fillText('dmg', startX + colW - 8, ry + 28);
+          ctx.textAlign = 'left';
+        }
+
+        // Description
+        ctx.font = `11px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = '#BCD8EC';
+        // Truncate to fit column
+        let desc = move.desc;
+        while (ctx.measureText(desc).width > colW - (dmgStr !== '—' ? 70 : 16) && desc.length > 10) {
+          desc = desc.slice(0, -4) + '…';
+        }
+        ctx.fillText(desc, startX + (dmgStr !== '—' ? 60 : 8) + (dmgStr !== '—' ? 0 : 0), ry + 28);
+
+        ry += ROW_H;
+      });
+    }
+
+    drawMoveSection('Sword & Combos', leftMoves, leftX, TABLE_TOP);
+    drawMoveSection('Prayer', rightMoves, rightX, TABLE_TOP);
 
     ctx.restore();
   }
