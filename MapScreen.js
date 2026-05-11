@@ -2756,8 +2756,8 @@
     } else if (occupiedCount >= 9) {
       startAnchorY = topY + (botY - topY) * 0.54;
     }
-    const absMinPad = 50;
-    const occPad = 200;
+    const absMinPad = 100;
+    const occPad = 100;
     const enemyPad = 150;
     const yInfluence = enemyPad * 1.7;
     // Friendly "coverage" range should be tight; otherwise one town falsely covers nearby enemy towns.
@@ -2832,7 +2832,7 @@
       ? (topY + (botY - topY) * 0.62)
       : botY;
     const botBulge = {
-      x: Math.max(leftBound, drawFrontierPts[drawFrontierPts.length - 1].x - 34),
+      x: Math.max(leftBound, drawFrontierPts[drawFrontierPts.length - 1].x - 234),
       y: bottomAnchorY,
     };
     const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
@@ -2852,8 +2852,8 @@
     // rather than stretching a full vertical strip through the map.
     if (frontierPts.length === 1) {
       const fp = frontierPts[0];
-      const footholdBottomY = topY + (botY - topY) * 0.52;
-      const topShoulderX = Math.max(leftBound + 24, fp.x - occPad * 0.72);
+      const footholdBottomY = topY + (botY - topY) * 0.62;
+      const topShoulderX = Math.max(leftBound + 24, fp.x - occPad * .1);
       const lowerShoulderX = Math.max(leftBound + 8, fp.x - occPad * 0.82);
       ctx.beginPath();
       ctx.moveTo(leftBound, topY);
