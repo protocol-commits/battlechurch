@@ -959,18 +959,18 @@
       const structure = levelData?.structure || {};
       const battlesPerTown = Number.isFinite(structure.battlesPerTown) ? structure.battlesPerTown : 3;
       const missionsPerBattle = Number.isFinite(structure.missionsPerBattle) ? structure.missionsPerBattle : 3;
-      const defaultHordes = Number.isFinite(structure.defaultHordesPerBattle) ? structure.defaultHordesPerBattle : 18;
+      const defaultWavesPerMission = Number.isFinite(structure.defaultWavesPerMission) ? structure.defaultWavesPerMission : 3;
+      const defaultHordesPerWave = Number.isFinite(structure.defaultHordesPerWave) ? structure.defaultHordesPerWave : 7;
 
+      const townIndex = Math.max(0, (levelStatus.level || 1) - 1);
       const getMissionHordeCount = (battleIndex, missionIndex) => {
-        const level = levelData?.levels?.[battleIndex - 1] || null;
-        const month = level?.months?.[missionIndex - 1] || null;
-        const battle = month?.battles?.[missionIndex - 1] || month?.battles?.[0] || null;
-        const explicitCount = Array.isArray(battle?.hordes) ? battle.hordes.length : null;
-        const configured = Number.isFinite(battle?.hordesPerBattle) ? battle.hordesPerBattle : null;
-        const count = Number.isFinite(explicitCount) && explicitCount > 0
-          ? explicitCount
-          : (Number.isFinite(configured) && configured > 0 ? configured : defaultHordes);
-        return Math.max(1, count);
+        const town = levelData?.towns?.[townIndex] || null;
+        const battle = town?.battles?.[battleIndex - 1] || null;
+        const mission = battle?.missions?.[missionIndex - 1] || null;
+        if (!mission) return Math.max(1, defaultWavesPerMission * defaultHordesPerWave);
+        let total = 0;
+        (mission.waves || []).forEach((w) => { total += (w.hordes || []).length; });
+        return Math.max(1, total);
       };
 
       const battleTotals = [];
@@ -995,7 +995,6 @@
           ),
       );
       const derivedAct = Math.ceil(districtBattleIndex / Math.max(1, missionsPerBattle));
-      const derivedMission = ((districtBattleIndex - 1) % Math.max(1, missionsPerBattle)) + 1;
       const currentAct = Math.max(
         1,
         Math.min(
@@ -1003,6 +1002,7 @@
           Number.isFinite(levelStatus.missionNum) ? levelStatus.missionNum : derivedAct,
         ),
       );
+      const derivedMission = ((districtBattleIndex - 1) % Math.max(1, missionsPerBattle)) + 1;
       const currentMission = Math.max(
         1,
         Math.min(
@@ -1022,6 +1022,9 @@
       const currentMissionTotal = getMissionHordeCount(currentAct, currentMission);
       progressUnits += Math.min(currentMissionTotal, currentWave);
 
+      if (typeof window !== 'undefined' && window.__hudDistrictDebug) {
+        console.log('[districtProgress]', { townIndex, currentAct, currentMission, currentWave, battleTotals, currentMissionTotal, progressUnits, totalUnits, missionNum: levelStatus.missionNum, battleNum: levelStatus.battleNum, wave: levelStatus.wave, stage: levelStatus.stage });
+      }
 
       if (totalUnits <= 0) totalUnits = 1;
       const progressRatio = Math.max(0, Math.min(1, progressUnits / totalUnits));
