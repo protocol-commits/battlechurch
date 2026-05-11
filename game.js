@@ -6455,20 +6455,12 @@ const ENEMY_SPAWN_MARGIN = 140;
 const ENEMY_SPAWN_JITTER = 26;
 const ENEMY_SPAWN_DEBUG_BOX_SIZE = 80;
 const ENEMY_SPAWN_PUFF_DURATION = 0;
-const WEAPON_POWERUP_EFFECTS = new Set([
-  "wisdomWeapon",
-  "scriptureWeapon",
-  "cannonWeapon",
-  "npcScriptureWeapon",
-  "npcWisdomWeapon",
-  "npcFaithWeapon",
-]);
-const CHURCH_POWERUP_EFFECTS = new Set([
-  "spreadGun",
-  "halo",
-  "spear",
-  "sentry",
-]);
+const WEAPON_POWERUP_EFFECTS = new Set(
+  Object.values(powerupDefinitions.weaponDropDefs || {}).map((d) => d.effect).filter(Boolean)
+);
+const CHURCH_POWERUP_EFFECTS = new Set(
+  Object.values(powerupDefinitions.churchPowerupDefs || {}).map((d) => d.effect).filter(Boolean)
+);
 let devPowerupSwapIndex = 0;
 const weaponPowerupConfig = projectileSettings.weaponPowerups || {};
 // NPC buff presets and state. The legacy keys still drive anchor/layout behavior.
