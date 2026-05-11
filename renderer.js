@@ -4078,6 +4078,7 @@ let upgradeCategoryIcon = null;
 let _pauseHoverIndex = -1;
 let _pauseHoverX = -1;
 let _pauseHoverY = -1;
+let _pauseTipIndex = 0;
 const churchPowerupIcons = new Map();
 const CHURCH_POWERUP_ICON_DEFAULT = {
   shape: "square",
@@ -6902,19 +6903,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       { key: "resume", label: "Resume" },
       { key: "settings", label: "Settings" },
     ];
-    const row2Configs = [
-      { key: "map", label: "Return to Map" },
-      { key: "developer", label: "Developer" },
-    ];
     const buttonWidth = 240;
     const buttonHeight = 64;
     const buttonGap = 28;
-    const buttonRowGap = 16;
     const row1Width = buttonWidth * row1Configs.length + buttonGap * (row1Configs.length - 1);
-    const row2Width = buttonWidth * row2Configs.length + buttonGap * (row2Configs.length - 1);
     const centerX = layout.virtualCanvas.width / 2;
     const buttonY = Math.round(layout.buttonY || 0);
-    const buttonY2 = buttonY + buttonHeight + buttonRowGap;
     const bounds = [];
     const drawButtonRow = (configs, rowWidth, rowY) => {
       const startX = Math.round(centerX - rowWidth / 2);
@@ -6949,7 +6943,114 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       });
     };
     drawButtonRow(row1Configs, row1Width, buttonY);
-    drawButtonRow(row2Configs, row2Width, buttonY2);
+
+    // --- Tips panel ---
+    const tips = (typeof window !== "undefined" && Array.isArray(window.BattlechurchTips) && window.BattlechurchTips.length > 0)
+      ? window.BattlechurchTips : null;
+    if (tips) {
+      const tipIndex = (typeof window !== "undefined" && typeof window._pauseTipIndex === "number")
+        ? window._pauseTipIndex : _pauseTipIndex;
+      const tipText = tips[((tipIndex % tips.length) + tips.length) % tips.length];
+
+      const arrowW = 32;
+      const arrowGap = 12;
+      const panelW = Math.min(560, layout.virtualCanvas.width * 0.82);
+      const panelX = Math.round(centerX - panelW / 2);
+      const panelPadY = 14;
+      const panelPadX = 14;
+      const iconText = "💡";
+      const tipFontSize = 15;
+      const lineH = tipFontSize * 1.5;
+      const iconColW = 26;
+      const iconTextGap = 8;
+
+      // Text column starts after: panel pad + arrow + arrowGap + iconCol + iconTextGap
+      const textX = panelX + panelPadX + arrowW + arrowGap + iconColW + iconTextGap;
+      const textAreaW = panelW - panelPadX * 2 - (arrowW + arrowGap) * 2 - iconColW - iconTextGap;
+
+      // Word-wrap within the text column only
+      ctx.font = `400 ${tipFontSize}px ${UI_FONT_FAMILY}`;
+      const words = tipText.split(" ");
+      const lines = [];
+      let current = "";
+      for (const word of words) {
+        const test = current ? current + " " + word : word;
+        if (ctx.measureText(test).width > textAreaW && current) {
+          lines.push(current);
+          current = word;
+        } else {
+          current = test;
+        }
+      }
+      if (current) lines.push(current);
+
+      const panelH = panelPadY * 2 + lines.length * lineH;
+      const panelY = buttonY + buttonHeight + 24;
+
+      // Panel background
+      ctx.save();
+      ctx.fillStyle = "rgba(18, 8, 4, 0.88)";
+      ctx.strokeStyle = "rgba(242, 200, 125, 0.28)";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, panelX, panelY, panelW, panelH, 14, true, true);
+
+      // Icon — vertically centred in the panel, in its own column
+      const iconX = panelX + panelPadX + arrowW + arrowGap;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.font = `${tipFontSize}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "rgba(242, 200, 125, 0.85)";
+      ctx.shadowColor = "rgba(20, 6, 4, 0.8)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(iconText, iconX, panelY + panelH / 2);
+
+      // Tip text lines, top-aligned within the panel
+      ctx.textBaseline = "alphabetic";
+      ctx.font = `400 ${tipFontSize}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = "#fdf1d9";
+      ctx.shadowColor = "rgba(20, 6, 4, 0.72)";
+      ctx.shadowBlur = 3;
+      const textTopY = panelY + panelPadY + tipFontSize;
+      lines.forEach((line, i) => {
+        ctx.fillText(line, textX, textTopY + i * lineH);
+      });
+      ctx.restore();
+
+      // Arrow buttons, vertically centred on the panel
+      const arrowY = Math.round(panelY + panelH / 2 - arrowW / 2);
+      const leftArrowX = panelX + panelPadX;
+      const rightArrowX = panelX + panelW - panelPadX - arrowW;
+
+      const drawArrow = (ax, ay, label) => {
+        const globalIndex = bounds.length;
+        const focused = isAnnouncementButtonFocused("pause", globalIndex);
+        ctx.save();
+        ctx.fillStyle = focused ? "rgba(242, 200, 125, 0.18)" : "rgba(255,255,255,0.05)";
+        ctx.strokeStyle = focused ? "rgba(242, 200, 125, 0.7)" : "rgba(242, 200, 125, 0.22)";
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, ax, ay, arrowW, arrowW, 8, true, true);
+        ctx.fillStyle = focused ? "#F2C87D" : "rgba(242, 200, 125, 0.55)";
+        ctx.font = `600 17px ${UI_FONT_FAMILY}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowColor = "rgba(20,6,4,0.7)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(label, ax + arrowW / 2, ay + arrowW / 2 + 1);
+        ctx.restore();
+        bounds.push({
+          key: label === "‹" ? "tipPrev" : "tipNext",
+          x: layout.offsetX + ax * layout.scale,
+          y: layout.offsetY + ay * layout.scale,
+          width: arrowW * layout.scale,
+          height: arrowW * layout.scale,
+        });
+      };
+
+      drawArrow(leftArrowX, arrowY, "‹");
+      drawArrow(rightArrowX, arrowY, "›");
+    }
+    // --- End Tips panel ---
+
     if (typeof window !== "undefined") {
       window.__announcementButtons = { key: "pause", buttons: bounds };
       if (pointerState && typeof pointerState.x === "number" && typeof pointerState.y === "number") {

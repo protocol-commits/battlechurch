@@ -301,6 +301,14 @@
   }
 
   function getActiveSave() {
+    if (typeof window !== "undefined" && window.__demoSandboxRunActive && state.demoProfile) {
+      return {
+        mapProgress: state.demoProfile.mapProgress,
+        playerName: state.demoProfile.playerName || "DemoName",
+        cityName: state.demoProfile.cityName || "DemoTown",
+        classId: state.demoProfile.classId || getDefaultClassIdForSaves(),
+      };
+    }
     const saveId = state.playerDoc?.activeSaveId;
     if (!saveId) return null;
     const save = state.playerDoc?.saveFiles?.[saveId];
@@ -2381,7 +2389,7 @@
     };
   }
 
-  function setDemoProfile({ completedDistricts = 0 } = {}) {
+  function setDemoProfile({ completedDistricts = 0, playerName = null, cityName = null, classId = null } = {}) {
     const mapData = window.BattlechurchMapData;
     if (!mapData?.districts?.length) return false;
     const progress = createFreshMapProgress(mapData);
@@ -2399,10 +2407,19 @@
       };
     });
     ensureNextDistrictUnlocked(progress, mapData);
-    state.demoProfile = { mapProgress: progress };
+    const classMeta = resolveClassMetaForSave(classId);
+    state.demoProfile = {
+      mapProgress: progress,
+      playerName: typeof playerName === "string" && playerName.trim() ? playerName.trim() : null,
+      cityName: typeof cityName === "string" && cityName.trim() ? cityName.trim() : null,
+      classId: classMeta.classId || null,
+    };
     state.mapProgress = progress;
     if (!state.selectedDistrictId || !isDistrictUnlocked(state.selectedDistrictId)) {
       state.selectedDistrictId = pickInitialDistrict();
+    }
+    if (classMeta.classId && typeof window.BattlechurchClasses?.setActive === "function") {
+      window.BattlechurchClasses.setActive(classMeta.classId);
     }
     return true;
   }

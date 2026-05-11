@@ -389,6 +389,9 @@ const TITLE_DEMO_SAVE_SLOTS = [
     label: "Demo: New Playthrough",
     districtId: "pine_hollow",
     completedDistricts: 0,
+    playerName: "DemoName",
+    cityName: "DemoTown",
+    classId: "class9",
     campaignData: {
       campaign: "p1",
       startCount: 50,
@@ -401,6 +404,9 @@ const TITLE_DEMO_SAVE_SLOTS = [
     label: "Demo: Area 1 Cleared",
     districtId: "red_creek",
     completedDistricts: 3,
+    playerName: "DemoName",
+    cityName: "DemoTown",
+    classId: "class9",
     campaignData: {
       campaign: "p1",
       startCount: 85,
@@ -413,6 +419,9 @@ const TITLE_DEMO_SAVE_SLOTS = [
     label: "Demo: Area 2 Cleared",
     districtId: "lowmoor",
     completedDistricts: 6,
+    playerName: "DemoName",
+    cityName: "DemoTown",
+    classId: "class9",
     campaignData: {
       campaign: "p2",
       startCount: 120,
@@ -8677,6 +8686,9 @@ async function seedDemoSlotProgress(slot) {
   if (typeof mapScreen?.setDemoProfile !== "function") return;
   mapScreen.setDemoProfile({
     completedDistricts: Math.max(0, Number(slot.completedDistricts) || 0),
+    playerName: slot.playerName || null,
+    cityName: slot.cityName || null,
+    classId: slot.classId || null,
   });
 }
 
@@ -19963,11 +19975,11 @@ function showSettingsOverlay({ source = "title" } = {}) {
       <div class="settings-row">
         <div class="settings-row__label">Customize Character</div>
         <button class="settings-btn--hellfire" id="settingsCustomizeBtn">Customize</button>
-      </div>
+      </div>` : ""}
       <div class="settings-row">
         <div class="settings-row__label">Developer</div>
         <button class="settings-btn--hellfire" id="settingsDeveloperBtn">Developer</button>
-      </div>` : ""}
+      </div>
     </div>
   `;
   window.DialogOverlay.show({
@@ -21588,6 +21600,10 @@ function handlePauseMenu() {
       window.isPauseOverlayActive = true;
       pauseRestartConfirmActive = false;
       window.__announcementFocus = { key: "pause", index: 0 };
+      // Pick a random tip each time pause opens
+      if (Array.isArray(window.BattlechurchTips) && window.BattlechurchTips.length > 0) {
+        window._pauseTipIndex = Math.floor(Math.random() * window.BattlechurchTips.length);
+      }
       // Prevent the same Space press that opened pause from auto-confirming a menu action.
       window.__battlechurchSuppressMenuConfirmUntilRelease = true;
       if (typeof window !== "undefined" && typeof window.pauseAllMusic === "function") {
@@ -21605,8 +21621,13 @@ function handlePauseMenu() {
       buttons,
       allowSpace: true,
       onActivate: (button) => {
-        if (button.key === "map") {
-          returnToMapFromPause();
+        if (button.key === "tipPrev" || button.key === "tipNext") {
+          const tips = Array.isArray(window.BattlechurchTips) ? window.BattlechurchTips : [];
+          if (tips.length > 0) {
+            const current = typeof window._pauseTipIndex === "number" ? window._pauseTipIndex : 0;
+            const delta = button.key === "tipNext" ? 1 : -1;
+            window._pauseTipIndex = ((current + delta) % tips.length + tips.length) % tips.length;
+          }
           return;
         }
         if (button.key === "howToPlay") {
@@ -21619,11 +21640,6 @@ function handlePauseMenu() {
         if (button.key === "settings") {
           pauseRestartConfirmActive = false;
           showSettingsOverlay({ source: "pause" });
-          return;
-        }
-        if (button.key === "developer") {
-          pauseRestartConfirmActive = false;
-          showDeveloperOverlay();
           return;
         }
         pauseRestartConfirmActive = false;

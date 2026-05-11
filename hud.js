@@ -28,7 +28,6 @@
   });
   const defaultWeaponIcon = new Image();
   defaultWeaponIcon.src = "assets/sprites/items/Weapons/W43_Recurve_Bow.png";
-  const BOSS_PROGRESS_WEIGHT = 5;
 
   function drawOutlinedText(ctx, text, x, y, font, align, fillColor) {
     ctx.font = font;
@@ -981,9 +980,6 @@
         for (let missionIndex = 1; missionIndex <= missionsPerBattle; missionIndex += 1) {
           battleTotal += getMissionHordeCount(battleIndex, missionIndex);
         }
-        if (battleIndex === battlesPerTown) {
-          battleTotal += BOSS_PROGRESS_WEIGHT;
-        }
         battleTotals.push(battleTotal);
         totalUnits += battleTotal;
       }
@@ -1026,22 +1022,6 @@
       const currentMissionTotal = getMissionHordeCount(currentAct, currentMission);
       progressUnits += Math.min(currentMissionTotal, currentWave);
 
-      const bossStage =
-        levelStatus.stage === "bossIntro" ||
-        levelStatus.stage === "bossActive" ||
-        (levelStatus.stage === "graceRush" &&
-          currentAct === battlesPerTown &&
-          currentMission === missionsPerBattle);
-      if (bossStage && currentAct === battlesPerTown) {
-        let bossProgress = 0;
-        if (activeBoss && Number.isFinite(activeBoss.health) && Number.isFinite(activeBoss.maxHealth) && activeBoss.maxHealth > 0) {
-          const ratio = Math.max(0, Math.min(1, activeBoss.health / activeBoss.maxHealth));
-          bossProgress = BOSS_PROGRESS_WEIGHT * (1 - ratio);
-        } else if (levelStatus.stage === "graceRush") {
-          bossProgress = BOSS_PROGRESS_WEIGHT;
-        }
-        progressUnits += bossProgress;
-      }
 
       if (totalUnits <= 0) totalUnits = 1;
       const progressRatio = Math.max(0, Math.min(1, progressUnits / totalUnits));
@@ -1134,22 +1114,22 @@
       districtProgressSpark.lastRatio = progressRatio;
       const fillW = Math.floor(innerW * progressRatio);
       const battleColors = [PALETTE.ice, PALETTE.gold, PALETTE.teal];
-      const outerGap = 2;
       const span1 = Math.floor(innerW * (battleTotals[0] / totalUnits));
       const span2 = Math.floor(innerW * (battleTotals[1] / totalUnits));
       const span3 = Math.max(0, innerW - span1 - span2);
       const seg1Start = innerX;
-      const seg1Width = Math.max(0, span1 - outerGap);
-      const seg2Start = innerX + span1 + outerGap;
-      const seg2Width = Math.max(0, span2 - outerGap * 2);
-      const seg3Start = innerX + span1 + span2 + outerGap;
-      const seg3Width = Math.max(0, span3 - outerGap);
+      const seg1Width = span1;
+      const seg2Start = innerX + span1;
+      const seg2Width = span2;
+      const seg3Start = innerX + span1 + span2;
+      const seg3Width = span3;
 
       const segWidths = [seg1Width, seg2Width, seg3Width];
       const segStarts = [seg1Start, seg2Start, seg3Start];
       let remaining = fillW;
       for (let i = 0; i < segStarts.length; i += 1) {
-        const drawW = Math.min(segWidths[i], remaining);
+        const battlefieldDone = (i + 1) < currentAct;
+        const drawW = battlefieldDone ? segWidths[i] : Math.min(segWidths[i], remaining);
         if (drawW > 0) {
           ctx.fillStyle = battleColors[i] || battleColors[battleColors.length - 1];
           if (i === 0) {
@@ -1210,12 +1190,13 @@
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const segmentLabels = ["Foothold", "Repel Counter", "Breakthrough"];
+      const activeWaveNum = levelStatus.waveNum || currentWave || 1;
       for (let i = 0; i < battleTotals.length; i += 1) {
         const segStart = segStarts[i];
         const segEnd = segStart + segWidths[i];
         const centerX = (segStart + segEnd) / 2;
-        const label = `${i + 1}: ${segmentLabels[i] || (i + 1)}`;
+        const isActiveBattle = (i + 1) === currentAct;
+        const label = isActiveBattle ? `Wave ${activeWaveNum}` : `Battlefield ${i + 1}`;
         const maxLabelWidth = Math.max(26, segWidths[i] - 8);
         const fontSize = fitFontSize(label, 8, maxLabelWidth, "");
         ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
@@ -1258,26 +1239,15 @@
           }
           return districtProgressAnim.animators[key] || null;
         };
-        const segmentAnimators = [
-          ensureDistrictMeterAnimator("segment1", miniImpClips),
-          ensureDistrictMeterAnimator("segment2", miniImpClips),
-          ensureDistrictMeterAnimator("segment3", demonLordClips || miniImpClips),
-        ];
+        const bossAnimator = ensureDistrictMeterAnimator("segment3", demonLordClips || miniImpClips);
         const now = performance.now();
         const dt = districtProgressAnim.lastTime ? Math.min(0.05, Math.max(0, (now - districtProgressAnim.lastTime) / 1000)) : 0;
         districtProgressAnim.lastTime = now;
-        if (segmentAnimators.some(Boolean)) {
-          segmentAnimators.forEach((animator) => animator?.update(dt));
-          const bossCenters = [
-            seg1Start + seg1Width - 10,
-            seg2Start + seg2Width - 10,
-            seg3Start + seg3Width - 10,
-          ];
+        if (bossAnimator) {
+          bossAnimator.update(dt);
+          const bossCenterX = seg3Start + seg3Width - 10;
           const iconY = innerY + innerH / 2 - 15;
-          bossCenters.forEach((centerX, idx) => {
-            const animator = segmentAnimators[idx];
-            animator?.draw(ctx, centerX, iconY, { alpha: 0.95, flipX: true });
-          });
+          bossAnimator.draw(ctx, bossCenterX, iconY, { alpha: 0.95, flipX: true });
         }
       }
 
