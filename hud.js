@@ -1256,8 +1256,10 @@
           const pastorY = innerY + innerH / 2;
           const savedFacing = player.facing;
           const savedAttackFacing = player._paperdollAttackFacing;
+          const savedLastMoveFacing = player._paperdollLastMoveFacing;
           player.facing = "right";
           player._paperdollAttackFacing = null;
+          player._paperdollLastMoveFacing = "right";
           ctx.save();
           ctx.translate(pastorX, pastorY);
           ctx.scale(0.35, 0.35);
@@ -1266,6 +1268,7 @@
           ctx.restore();
           player.facing = savedFacing;
           player._paperdollAttackFacing = savedAttackFacing;
+          player._paperdollLastMoveFacing = savedLastMoveFacing;
         }
       }
 
