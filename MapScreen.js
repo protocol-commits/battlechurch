@@ -2835,15 +2835,34 @@
       x: Math.max(leftBound, drawFrontierPts[drawFrontierPts.length - 1].x - 234),
       y: bottomAnchorY,
     };
-    const now = (typeof performance !== "undefined" ? performance.now() : Date.now());
-    const dashOffset = -((now / 1000) * 42);
     const fillColor = "rgba(165, 28, 20, 0.12)";
     const strokeColor = "rgba(244, 110, 78, 0.92)";
+
+    function drawHatch(x0, y0, x1, y1) {
+      // Diagonal stripes (top-right to bottom-left / NE→SW) clipped to the current path.
+      ctx.save();
+      ctx.clip();
+      ctx.strokeStyle = "rgba(220, 80, 50, 0.18)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      ctx.lineDashOffset = 0;
+      ctx.shadowBlur = 0;
+      const spacing = 18;
+      const span = (x1 - x0) + (y1 - y0);
+      for (let offset = -span; offset <= span; offset += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(x1 - offset, y0);
+        ctx.lineTo(x0 - offset, y1);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.setLineDash([16, 10]);
-    ctx.lineDashOffset = dashOffset;
+    ctx.lineDashOffset = 0;
     ctx.lineWidth = 5;
     ctx.strokeStyle = strokeColor;
     ctx.shadowColor = "rgba(255, 70, 45, 0.6)";
@@ -2864,6 +2883,7 @@
       ctx.closePath();
       ctx.fillStyle = fillColor;
       ctx.fill();
+      drawHatch(leftBound, topY, fp.x, footholdBottomY);
 
       ctx.beginPath();
       ctx.moveTo(topShoulderX, topY);
@@ -2899,6 +2919,7 @@
     ctx.closePath();
     ctx.fillStyle = fillColor;
     ctx.fill();
+    drawHatch(leftBound, startAnchorY, botBulge.x, bottomAnchorY);
 
     // Front line stroke along the same contour path.
     ctx.beginPath();
