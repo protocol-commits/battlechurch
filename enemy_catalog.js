@@ -82,7 +82,7 @@
       "offsetX": 0,
       "offsetY": 0
     },
-    "swarmSpacing": 0.4,
+    "swarmSpacing": 0.5,
     "damageClass": "armored",
     "maxGroupSize": 50
   },
