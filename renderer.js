@@ -10027,11 +10027,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     if (recapCongregationPreviewBuilt && !congregationAnnouncementActive) {
-      const { clearCongregationMembers } = requireBindings();
-      if (typeof clearCongregationMembers === "function") {
-        clearCongregationMembers();
+      // Once the congregation stage is active, the members belong to the new battle — don't wipe them.
+      if (levelStatus?.stage === "levelIntro" || levelStatus?.stage === "congregationToTeaser") {
+        recapCongregationPreviewBuilt = false;
+      } else {
+        const { clearCongregationMembers } = requireBindings();
+        if (typeof clearCongregationMembers === "function") {
+          clearCongregationMembers();
+        }
+        recapCongregationPreviewBuilt = false;
       }
-      recapCongregationPreviewBuilt = false;
     }
     const visitorStageActive = Boolean(visitorSession?.active || levelStatus?.stage === "visitorMinigame");
     const isCongregationStage =
@@ -10085,6 +10090,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (isCongregationStage) {
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
       if (!congregationFadeState.active || congregationFadeState.memberCount !== congregationMembers.length) {
+        console.info('[congregation] render congregation start: memberCount:', congregationMembers.length, 'level:', levelStatus?.level, 'stage:', levelStatus?.stage);
         congregationFadeState.active = true;
         congregationFadeState.memberCount = congregationMembers.length;
         congregationFadeState.token += 1;

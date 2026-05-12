@@ -8433,6 +8433,12 @@ function startGameFromTitle() {
   battlefieldIntroFadeDuration = 0;
   battlefieldIntroFadeAlpha = 0;
   battlefieldIntroImage = null;
+  graceRushBlackout = false;
+  graceRushFadeHold = false;
+  graceRushFadeAlpha = 0;
+  graceRushFadeTimer = 0;
+  graceRushFadeDuration = 0;
+  graceRushFadeReleaseTimer = 0;
   startSpeedrunTimer();
   resetYearNpcPool();
   // Clear any previously queued announcements so the congregation doesn't show
