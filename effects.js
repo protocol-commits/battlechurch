@@ -300,10 +300,10 @@
 
 
   function spawnRushBurstEffect(x, y, angle, scale = 4) {
-    const frames = resolveAssets()?.effects?.rushBurstExplosion;
+    const frames = resolveAssets()?.effects?.swordSlash;
     if (!frames || !frames.length) return null;
-    const rotation = angle + Math.PI / 2;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation, tintColor: "#ffffff", tintAlpha: 0.55 });
+    const facingLeft = Math.cos(angle) < 0;
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation: angle, flipY: facingLeft, tintColor: "#ffffff", tintAlpha: 0.55 });
   }
 
   function spawnSlashBurstEffect(x, y, angle, scale = 3.5) {
