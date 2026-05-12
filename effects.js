@@ -27,7 +27,7 @@
   }
 
   class Effect {
-    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0, flipY = false } = {}) {
+    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0, flipY = false, delay = 0 } = {}) {
       this.frames = Array.isArray(frames) ? frames : [];
       this.x = x;
       this.y = y;
@@ -42,6 +42,7 @@
       this.tintedFrames = null;
       this.rotation = rotation || 0;
       this.flipY = Boolean(flipY);
+      this.delay = Math.max(0, delay || 0);
     }
 
     getFrame(frameIndex) {
@@ -66,6 +67,7 @@
 
     update(dt) {
       if (this.dead) return;
+      if (this.delay > 0) { this.delay -= dt; return; }
       this.timer += dt;
       if (this.timer >= this.frameDuration) {
         this.timer -= this.frameDuration;
@@ -82,7 +84,7 @@
     }
 
     draw() {
-      if (this.dead) return;
+      if (this.dead || this.delay > 0) return;
       const frame = this.getFrame(this.frameIndex);
       if (!frame) return;
       const ctx = resolveContext();
@@ -303,7 +305,14 @@
     const frames = resolveAssets()?.effects?.swordSlash;
     if (!frames || !frames.length) return null;
     const facingLeft = Math.cos(angle) < 0;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation: angle, flipY: facingLeft, tintColor: "#ffffff", tintAlpha: 0.55 });
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const step = 30;
+    const base = { frameDuration: 0.04, scale, rotation: angle, flipY: facingLeft };
+    spawnEffectFromFrames(frames, x - cos * step, y - sin * step, { ...base, delay: 0 });
+    spawnEffectFromFrames(frames, x,               y,               { ...base, delay: 0.08, tintColor: "#ffdd88", tintAlpha: 0.6 });
+    spawnEffectFromFrames(frames, x + cos * step, y + sin * step, { ...base, delay: 0.16, tintColor: "#ff5500", tintAlpha: 0.85 });
+    return null;
   }
 
   function spawnSlashBurstEffect(x, y, angle, scale = 3.5) {
