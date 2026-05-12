@@ -22704,12 +22704,6 @@ function recordPrayerBombComboHits(count) {
   if (!addCount) return;
   prayerBombComboState.hits += addCount;
   updatePrayerBombComboDisplay();
-  maybeUpdateMaxChainInTown(
-    prayerBombComboState.hits,
-    cameraOffsetX + canvas.width / 2,
-    canvas.height / 2,
-    { skipHudFly: true },
-  );
 }
 
 function showPrayerBombBlastCombo(count, x, y) {
@@ -22896,6 +22890,7 @@ function registerChainHit(target, damage) {
     showDevArenaSkeletonHint(target);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
+  if (prayerBombComboState.active) return;
   chainTracker.registerHit(target, damage);
 }
 
@@ -22907,6 +22902,7 @@ function registerProjectileComboHit(target, damage, projectile) {
     showDevArenaSkeletonHint(target);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
+  if (prayerBombComboState.active) return;
   chainTracker.registerHit(target, damage, undefined, {
     increment: getProjectileComboIncrement(target),
     chipWindowMs: PROJECTILE_CHIP_CHAIN_WINDOW_MS,
