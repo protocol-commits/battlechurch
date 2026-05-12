@@ -82,7 +82,7 @@
       "offsetX": 0,
       "offsetY": 0
     },
-    "swarmSpacing": 0.5,
+    "swarmSpacing": 0.4,
     "damageClass": "armored",
     "maxGroupSize": 50
   },
@@ -842,7 +842,7 @@
       "ranged"
     ],
     "attackHitFrame": 4,
-    "swarmSpacing": 1,
+    "maxGroupSize": 1,
     "hitbox": {
       "width": 16,
       "height": 16,
@@ -888,7 +888,8 @@
         50,
         51
       ]
-    }
+    },
+    "swarmSpacing": 1
   },
   "miniDemonFireKeeper": {
     "displayName": "Demon Fire Keeper",

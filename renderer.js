@@ -5248,6 +5248,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textBaseline = "middle";
     groups.forEach((group) => {
       if (!group || group.count <= 0) return;
+      if (group.initialCount < 10) return;
       const x = group.sumX / group.count;
       const y = group.sumY / group.count;
       const fontSize = Math.max(28, Math.min(50, 10 + group.initialCount * 0.22));

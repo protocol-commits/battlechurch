@@ -1660,9 +1660,9 @@
     grid.appendChild(createNumberInput(key, "cooldown", "Cooldown"));
     grid.appendChild(createNumberInput(key, "scale", "Scale"));
     grid.appendChild(createSwarmSpacingCell(key));
+    grid.appendChild(createGroupSizeInput(key));
     const behaviorTags = new Set(sanitizeSpecialBehavior(enemy.specialBehavior));
     if (behaviorTags.has("swarmable")) {
-      grid.appendChild(createGroupSizeInput(key));
       grid.appendChild(createGroupDelayInput(key, "interGroupDelayMs", "Group Gap ms"));
       grid.appendChild(createGroupDelayInput(key, "intraGroupDelayMs", "Intra Gap ms"));
     }

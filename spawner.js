@@ -609,7 +609,7 @@
           swarmGroupId,
           swarmGroupInitialCount: packSize,
           swarmGroupType: type,
-          swarmGroupLabel: useAnchorRotation ? String(packSize) : null,
+          swarmGroupLabel: useAnchorRotation && packSize >= 10 ? String(packSize) : null,
         };
         const delayMs =
           packIndex * groupCfg.interGroupDelayMs +
@@ -668,7 +668,7 @@
           swarmGroupId,
           swarmGroupInitialCount: packSize,
           swarmGroupType: enemyType,
-          swarmGroupLabel: useAnchorRotation ? String(packSize) : null,
+          swarmGroupLabel: useAnchorRotation && packSize >= 10 ? String(packSize) : null,
         };
         schedulePortalSpawn(enemyType, spawnPos, delayMs, spawnOptions);
       }
