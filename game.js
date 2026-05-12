@@ -15371,6 +15371,58 @@ class Projectile {
       return;
     }
     const shouldGlow = this.friendly || this.type === "miniTrident";
+    if (this.type === "divine_shot") {
+      const slashFrames = assets?.effects?.swordSlash;
+      if (slashFrames && slashFrames.length) {
+        const getTintedFrame = (frame, tint, cacheKey) => {
+          if (!frame) return null;
+          if (!this._tintCache) this._tintCache = {};
+          const key = `${cacheKey}_${frame.__frameIdx ?? slashFrames.indexOf(frame)}`;
+          if (this._tintCache[key]) return this._tintCache[key];
+          const oc = document.createElement("canvas");
+          oc.width = frame.width;
+          oc.height = frame.height;
+          const oc2d = oc.getContext("2d");
+          oc2d.drawImage(frame, 0, 0);
+          oc2d.globalCompositeOperation = "source-atop";
+          oc2d.globalAlpha = 0.65;
+          oc2d.fillStyle = tint;
+          oc2d.fillRect(0, 0, oc.width, oc.height);
+          this._tintCache[key] = oc;
+          return oc;
+        };
+        const slashScale = 3.5;
+        const facingLeft = Math.cos(this.rotation || 0) < 0;
+        const cos = Math.cos(this.rotation || 0);
+        const sin = Math.sin(this.rotation || 0);
+        const trailStep = 28;
+        const totalFrames = slashFrames.length;
+        const layers = [
+          { offset: trailStep * 2, frameOffset: 3, tint: null,     alpha: 0.55 },
+          { offset: trailStep,     frameOffset: 2, tint: "#aaddff", alpha: 0.70 },
+          { offset: 0,             frameOffset: 0, tint: "#ffffff", alpha: 0.90 },
+        ];
+        for (const layer of layers) {
+          const lx = this.x - cos * layer.offset;
+          const ly = this.y - sin * layer.offset;
+          const fi = (this.frameIndex + totalFrames - layer.frameOffset) % totalFrames;
+          const srcFrame = slashFrames[fi];
+          if (!srcFrame) continue;
+          const frame = layer.tint ? getTintedFrame(srcFrame, layer.tint, layer.tint) : srcFrame;
+          if (!frame) continue;
+          const w = srcFrame.width * slashScale;
+          const h = srcFrame.height * slashScale;
+          ctx.save();
+          ctx.globalAlpha = layer.alpha * fadeAlpha;
+          ctx.translate(lx, ly);
+          ctx.rotate(this.rotation || 0);
+          if (facingLeft) ctx.scale(1, -1);
+          ctx.drawImage(frame, -w / 2, -h / 2, w, h);
+          ctx.restore();
+        }
+      }
+      return;
+    }
     if (this.frames) {
       const frame = this.frames[this.frameIndex];
       if (!frame) return;
@@ -15436,32 +15488,7 @@ class Projectile {
       ctx.drawImage(frame, -width / 2, -height / 2, width, height);
       ctx.restore();
     } else if (this.animator) {
-      // Special handling for divine shot - draw as glowing golden orb
-      if (this.type === "divine_shot") {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-
-        // Overlay the melee swoosh sprite for charged shots.
-        const swooshImg = assets?.effects?.meleeSwoosh;
-        if (swooshImg) {
-          const targetWidth = MELEE_SWING_LENGTH_BASE * WORLD_SCALE;
-          const scale = targetWidth / Math.max(1, swooshImg.width);
-          const targetHeight = swooshImg.height * scale * MELEE_SWOOSH_ARC_SCALE;
-          ctx.save();
-          ctx.rotate(this.rotation || 0);
-          ctx.globalAlpha = 0.85 * fadeAlpha;
-          ctx.drawImage(
-            swooshImg,
-            -targetWidth / 2,
-            -targetHeight / 2,
-            targetWidth,
-            targetHeight,
-          );
-          ctx.restore();
-        }
-
-        ctx.restore();
-      } else {
+      {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
@@ -25373,6 +25400,7 @@ function flushPendingDivineShot(meleeAttackState, dt) {
     autoAimMinDot: DIVINE_SHOT_AUTO_AIM_MIN_DOT,
     priority: DIVINE_SHOT_PROJECTILE_PRIORITY,
     isDivineShot: true,
+    loopFrames: true,
   });
   if (typeof playDivineShotSfx === "function") {
     playDivineShotSfx(0.6);
