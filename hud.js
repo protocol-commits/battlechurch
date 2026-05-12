@@ -958,69 +958,44 @@
         (typeof window !== 'undefined' && window.BattlechurchLevelData) || null;
       const structure = levelData?.structure || {};
       const battlesPerTown = Number.isFinite(structure.battlesPerTown) ? structure.battlesPerTown : 3;
-      const missionsPerBattle = Number.isFinite(structure.missionsPerBattle) ? structure.missionsPerBattle : 3;
-      const defaultWavesPerMission = Number.isFinite(structure.defaultWavesPerMission) ? structure.defaultWavesPerMission : 3;
       const defaultHordesPerWave = Number.isFinite(structure.defaultHordesPerWave) ? structure.defaultHordesPerWave : 7;
+      const defaultWavesPerBattle = Number.isFinite(structure.defaultWavesPerMission) ? structure.defaultWavesPerMission : 3;
 
       const townIndex = Math.max(0, (levelStatus.level || 1) - 1);
-      const getMissionHordeCount = (battleIndex, missionIndex) => {
+      const getBattleHordeCount = (battleIndex) => {
         const town = levelData?.towns?.[townIndex] || null;
         const battle = town?.battles?.[battleIndex - 1] || null;
-        const mission = battle?.missions?.[missionIndex - 1] || null;
-        if (!mission) return Math.max(1, defaultWavesPerMission * defaultHordesPerWave);
+        if (!battle) return Math.max(1, defaultWavesPerBattle * defaultHordesPerWave);
         let total = 0;
-        (mission.waves || []).forEach((w) => { total += (w.hordes || []).length; });
+        (battle.waves || []).forEach((w) => { total += (w.hordes || []).length; });
         return Math.max(1, total);
       };
 
       const battleTotals = [];
       let totalUnits = 0;
       for (let battleIndex = 1; battleIndex <= battlesPerTown; battleIndex += 1) {
-        let battleTotal = 0;
-        for (let missionIndex = 1; missionIndex <= missionsPerBattle; missionIndex += 1) {
-          battleTotal += getMissionHordeCount(battleIndex, missionIndex);
-        }
+        const battleTotal = getBattleHordeCount(battleIndex);
         battleTotals.push(battleTotal);
         totalUnits += battleTotal;
       }
 
-      const districtBattleIndex = Math.max(
-        1,
-        Number.isFinite(levelStatus.globalBattle)
-          ? levelStatus.globalBattle
-          : (
-            ((Math.max(1, Number.isFinite(levelStatus.level) ? levelStatus.level : 1) - 1)
-              * Math.max(1, missionsPerBattle))
-            + Math.max(1, Number.isFinite(levelStatus.battle) ? levelStatus.battle : 1)
-          ),
-      );
-      const derivedAct = Math.ceil(districtBattleIndex / Math.max(1, missionsPerBattle));
       const currentBattlefield = Math.max(
         1,
         Math.min(
           battlesPerTown,
-          Number.isFinite(levelStatus.battlefieldNum) ? levelStatus.battlefieldNum : derivedAct,
+          Number.isFinite(levelStatus.battlefieldNum) ? levelStatus.battlefieldNum : 1,
         ),
       );
-      const derivedMission = ((districtBattleIndex - 1) % Math.max(1, missionsPerBattle)) + 1;
-      const currentMission = Math.max(
-        1,
-        Math.min(
-          missionsPerBattle,
-          Number.isFinite(levelStatus.subMissionNum) ? levelStatus.subMissionNum : derivedMission,
-        ),
-      );
-      const currentWave = Math.max(0, levelStatus.wave || 0);
+      // wave = waveIndex + 1 (1-based horde index). Hordes completed = wave - 1, or full count if final wave cleared.
+      const hordesCompletedInBattle = levelStatus.finalWaveCleared
+        ? getBattleHordeCount(currentBattlefield)
+        : Math.max(0, (levelStatus.wave || 1) - 1);
 
       let progressUnits = 0;
-      for (let actIndex = 1; actIndex < currentBattlefield; actIndex += 1) {
-        progressUnits += battleTotals[actIndex - 1] || 0;
+      for (let i = 1; i < currentBattlefield; i += 1) {
+        progressUnits += battleTotals[i - 1] || 0;
       }
-      for (let missionIndex = 1; missionIndex < currentMission; missionIndex += 1) {
-        progressUnits += getMissionHordeCount(currentBattlefield, missionIndex);
-      }
-      const currentMissionTotal = getMissionHordeCount(currentBattlefield, currentMission);
-      progressUnits += Math.min(currentMissionTotal, currentWave);
+      progressUnits += Math.min(getBattleHordeCount(currentBattlefield), hordesCompletedInBattle);
 
 
 
@@ -1191,7 +1166,7 @@
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const activeWaveNum = levelStatus.waveNum || currentWave || 1;
+      const activeWaveNum = levelStatus.waveNum || levelStatus.wave || 1;
       for (let i = 0; i < battleTotals.length; i += 1) {
         const segStart = segStarts[i];
         const segEnd = segStart + segWidths[i];
