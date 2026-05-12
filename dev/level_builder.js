@@ -1942,8 +1942,8 @@
           return;
         }
         const townNum = Number(state.scope.town) || 1;
-        const missionNum = Number(state.scope.battle) || 1;
-        const battleNum = Number(state.scope.mission) || 1;
+        const missionNum = Number(state.scope.mission) || 1;
+        const battleNum = Number(state.scope.battle) || 1;
         window.startDevLevelTestFromEditor({
           town: townNum,
           mission: missionNum,
