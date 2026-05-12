@@ -23123,6 +23123,29 @@ function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5 + 200 * WO
 function updateDashMovement(dt) {
   if (!playerDashState.isDashing || !player) return;
 
+  // Opposite-direction cancel for Crash/Clash (mirrors Thrash cancel in updateRushMovement)
+  if (playerDashState.crashDashActive) {
+    const liveInput = window.Input?.movementDirection;
+    if (liveInput && (liveInput.x !== 0 || liveInput.y !== 0)) {
+      const dot = liveInput.x * playerDashState.dashDir.x + liveInput.y * playerDashState.dashDir.y;
+      if (dot < -0.3) {
+        playerDashState.isDashing = false;
+        playerDashState.isHolyDash = false;
+        playerDashState.crashDashActive = false;
+        playerDashState.crashDashHitEntities = null;
+        playerDashState.crashDashDamage = 0;
+        if (window._meleeAttackState) {
+          window._meleeAttackState.swooshDamageEnabled = false;
+          window._meleeAttackState.swooshHitEntities = null;
+          window._meleeAttackState.clashVisualActive = false;
+        }
+        setSharedBButtonCooldown(DASH_COOLDOWN);
+        if (player) player.ignoreEntityCollisions = false;
+        return;
+      }
+    }
+  }
+
   const movement = Math.min(playerDashState.dashDistanceRemaining, DASH_SPEED * dt);
   player.x += playerDashState.dashDir.x * movement;
   player.y += playerDashState.dashDir.y * movement;
@@ -25972,6 +25995,35 @@ function updateMeleeAttackSystem(dt) {
         updateRushMovement(dt, direction, meleeAttackState);
       }
     }
+
+    // A-cancel for Crash/Clash: pressing A during the dash stops it and fires a melee (same pattern as Thrash → A)
+    if (playerDashState.isDashing && playerDashState.crashDashActive) {
+      const aJustPressed = keysJustPressed.has("ArrowLeft") || keysJustPressed.has(" ");
+      if (aJustPressed) {
+        playerDashState.isDashing = false;
+        playerDashState.isHolyDash = false;
+        playerDashState.crashDashActive = false;
+        playerDashState.crashDashHitEntities = null;
+        playerDashState.crashDashDamage = 0;
+        if (window._meleeAttackState) {
+          window._meleeAttackState.swooshDamageEnabled = false;
+          window._meleeAttackState.swooshHitEntities = null;
+          window._meleeAttackState.clashVisualActive = false;
+        }
+        setSharedBButtonCooldown(DASH_COOLDOWN);
+        if (player) player.ignoreEntityCollisions = false;
+        meleeAttackState.cooldown = 0;
+        meleeAttackState.lastComboTimes.B = 0;
+        keysJustPressed.delete("ArrowLeft");
+        keysJustPressed.delete(" ");
+        if (!meleeAttackState.buttonDown) {
+          queueBasicMeleeAttack(getMeleeAttackDirection(), meleeAttackState);
+          player.state = "attackMelee";
+          player.animator?.play("attackMelee", { restart: true });
+        }
+      }
+    }
+
     if (!rushCancelledIntoMove && (meleeAttackState.isRushing || meleeAttackState.rushJustEnded)) {
       keysJustPressed.delete("ArrowDown");
       keysJustPressed.delete("ArrowLeft");
