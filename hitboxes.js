@@ -20,9 +20,9 @@
       "offsetY": 0
     },
     "rushHitbox": {
-      "width": 327.59999999999997,
+      "width": 277,
       "height": 173,
-      "offsetX": 75,
+      "offsetX": 42,
       "offsetY": 0
     },
     "attackHitFrame": 2
