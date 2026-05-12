@@ -14973,6 +14973,11 @@ function getPlayerRushHitboxLocalRect(targetPlayer = player) {
 
 function queueBasicMeleeAttack(dir, meleeAttackState) {
   if (!player || !meleeAttackState || !dir) return;
+  if (typeof player.updateFacing === "function") {
+    player.updateFacing(dir.x, dir.y);
+  }
+  // Clear cached attack facing so the paperdoll picks up the new facing immediately.
+  player._paperdollAttackFacing = null;
   meleeAttackState.pendingBasicAttack = {
     dir: { x: dir.x, y: dir.y },
     queuedAt:
@@ -22507,41 +22512,25 @@ function cleanupDeadProjectiles() {
 function getMeleeAttackDirection() {
   const input = window.Input;
   if (!input || !player) return { x: 1, y: 0 };
-  let dir = input.movementDirection || { x: 0, y: 0 };
-  if (dir.x === 0 && dir.y === 0) {
-    dir = input.lastMovementDirection || { x: 1, y: 0 };
+  // If player is actively pressing a movement key/stick, use that direction.
+  const moveDir = input.movementDirection || { x: 0, y: 0 };
+  if (moveDir.x !== 0 || moveDir.y !== 0) {
+    return normalizeVector(moveDir.x, moveDir.y);
   }
-  if (dir.x === 0 && dir.y === 0) {
-    const aim = player.aim || { x: 1, y: 0 };
-    dir = { x: aim.x, y: aim.y };
+  // Otherwise use player.aim, which is kept current each frame by autoaim, pointer, or last move.
+  const aim = player.aim || { x: 1, y: 0 };
+  if (aim.x !== 0 || aim.y !== 0) {
+    return normalizeVector(aim.x, aim.y);
   }
-  return normalizeVector(dir.x, dir.y);
+  return { x: 1, y: 0 };
 }
 
 function getSpinAttackDirection() {
-  if (!player) return { x: 1, y: 0 };
-  const aimDir =
-    typeof player.getAimDirection === "function"
-      ? player.getAimDirection()
-      : normalizeVector(player.aim?.x || 0, player.aim?.y || 0);
-  if (aimDir.x !== 0 || aimDir.y !== 0) {
-    return normalizeVector(aimDir.x, aimDir.y);
-  }
   return getMeleeAttackDirection();
 }
 
 function getDashButtonDirection() {
-  const input = window.Input;
-  if (!input || !player) return { x: 1, y: 0 };
-  let dir = input.movementDirection || { x: 0, y: 0 };
-  if (dir.x === 0 && dir.y === 0) {
-    dir = input.lastMovementDirection || { x: 1, y: 0 };
-  }
-  if (dir.x === 0 && dir.y === 0) {
-    const aim = player.aim || { x: 1, y: 0 };
-    dir = { x: aim.x, y: aim.y };
-  }
-  return normalizeVector(dir.x, dir.y);
+  return getMeleeAttackDirection();
 }
 
 function getChainLabelFontSize(hits) {
@@ -23081,6 +23070,9 @@ function getDashSwooshInvulnerabilityDuration() {
 function tryStartDash(direction) {
   if (playerDashState.isDashing || playerDashState.dashCooldown > 0) return false;
   if (!direction || (direction.x === 0 && direction.y === 0)) return false;
+  if (player && typeof player.updateFacing === "function") {
+    player.updateFacing(direction.x, direction.y);
+  }
   playerDashState.isDashing = true;
   playerDashState.isHolyDash = false;
   playerDashState.dashDir = direction;
@@ -23094,6 +23086,9 @@ function tryStartDash(direction) {
 function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5 + 200 * WORLD_SCALE) {
   if (playerDashState.isDashing) return false;
   if (!direction || (direction.x === 0 && direction.y === 0)) return false;
+  if (player && typeof player.updateFacing === "function") {
+    player.updateFacing(direction.x, direction.y);
+  }
   playerDashState.isDashing = true;
   playerDashState.isHolyDash = true;
   playerDashState.dashDir = direction;
@@ -25025,6 +25020,9 @@ function executeRushAttack(
       Number(meleeAttackState.punishCounterExpiresAt) || 0,
       rushComboCarryUntil,
     );
+  }
+  if (player && dir && typeof player.updateFacing === "function") {
+    player.updateFacing(dir.x, dir.y);
   }
   meleeAttackState.isRushing = true;
   if (player) player.ignoreEntityCollisions = true;

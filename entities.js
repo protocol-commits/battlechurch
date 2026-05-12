@@ -2221,6 +2221,10 @@
       this.aim = { x, y };
       this.updateFacing(x, y);
       meleeFacingLocked = true;
+    } else if (this.state === "attackMelee") {
+      // Block autoaim from overriding facing during the basic melee animation,
+      // but don't actively re-set it — queueBasicMeleeAttack already set the correct facing.
+      meleeFacingLocked = true;
     }
 
     if (!meleeFacingLocked) {
