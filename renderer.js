@@ -3495,7 +3495,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const thresholdPulse = anim && anim.thresholdHoldTimer > 0 ? anim.thresholdHoldTimer : 0;
 
     const labelY = y;
-    const blockTopY = labelY + 20;
+    const blockTopY = labelY + 8;
     const badgeSlotSize = 64;
     const badgeGap = 16;
     const visibleBadgeWidth = visibleBadgeCount
@@ -3507,7 +3507,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     );
     const badgeAreaX = recapLeftColumnX;
     const totalBlockX = recapTotalColumnX;
-    const rowTopY = blockTopY + 32;
+    const rowTopY = blockTopY + 16;
     const rowBottomY = rowTopY + 148;
     const badgeRowWidth = visibleBadgeCount
       ? visibleBadgeCount * badgeSlotSize + Math.max(0, visibleBadgeCount - 1) * badgeGap
