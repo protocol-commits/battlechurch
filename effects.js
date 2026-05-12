@@ -27,7 +27,7 @@
   }
 
   class Effect {
-    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0 } = {}) {
+    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0, flipY = false } = {}) {
       this.frames = Array.isArray(frames) ? frames : [];
       this.x = x;
       this.y = y;
@@ -41,6 +41,7 @@
       this.tintAlpha = Math.max(0, Math.min(1, tintAlpha));
       this.tintedFrames = null;
       this.rotation = rotation || 0;
+      this.flipY = Boolean(flipY);
     }
 
     getFrame(frameIndex) {
@@ -91,6 +92,7 @@
       ctx.save();
       ctx.translate(this.x, this.y);
       if (this.rotation) ctx.rotate(this.rotation);
+      if (this.flipY) ctx.scale(1, -1);
       ctx.drawImage(frame, -width / 2, -height / 2, width, height);
       ctx.restore();
     }
@@ -305,12 +307,10 @@
   }
 
   function spawnSlashBurstEffect(x, y, angle, scale = 3.5) {
-    const frames = resolveAssets()?.effects?.enemyDeathExplosionAlt;
+    const frames = resolveAssets()?.effects?.swordSlash;
     if (!frames || !frames.length) return null;
-    // Sprite is vertical (48x64). Default angle is "up" (−π/2).
-    // Rotate so it faces the attack direction: angle is from Math.atan2(dy, dx).
-    const rotation = angle + Math.PI / 2;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation });
+    const facingLeft = Math.cos(angle) < 0;
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation: angle, flipY: facingLeft });
   }
 
   function spawnPuffEffect(x, y, radius = null, options = {}) {

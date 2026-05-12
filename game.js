@@ -7699,6 +7699,9 @@ async function loadEffectAssets(cache, assets) {
   assets.effects.enemyDeathExplosionAlt = await loadImage(
     "assets/sprites/explosions/17/Explosion VFX 17(48x64).png",
   ).then((img) => extractFrames(img, 48, 64).slice(0, 10));
+  assets.effects.swordSlash = await loadImage(
+    "assets/sprites/projectiles/sword-slash/sword_slash.png",
+  ).then((img) => extractFrames(img, 64, 47));
   assets.effects.enemyDeathExplosionAlt2 = await loadImage(
     "assets/sprites/explosions/3/Explosion VFX 3(48x48).png",
   ).then((img) => extractFrames(img, 48, 48).slice(0, 10));
