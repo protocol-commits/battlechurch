@@ -25580,7 +25580,7 @@ function updateMeleeTimers(dt, meleeAttackState) {
         if (prevSpin > entry.fireAt && meleeAttackState.spinTimer <= entry.fireAt) {
           const bx = player.x + Math.cos(entry.angle) * hbOffsetX;
           const by = player.y + Math.sin(entry.angle) * hbOffsetX;
-          spawnSlashBurstEffect(bx, by, entry.angle, burstScale);
+          spawnSlashBurstEffect(bx, by, entry.angle, burstScale, { tintColor: "#ff8800", tintAlpha: 0.75 });
           queue.splice(i, 1);
         }
       }
