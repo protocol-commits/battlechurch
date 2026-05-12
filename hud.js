@@ -995,11 +995,11 @@
           ),
       );
       const derivedAct = Math.ceil(districtBattleIndex / Math.max(1, missionsPerBattle));
-      const currentAct = Math.max(
+      const currentBattlefield = Math.max(
         1,
         Math.min(
           battlesPerTown,
-          Number.isFinite(levelStatus.missionNum) ? levelStatus.missionNum : derivedAct,
+          Number.isFinite(levelStatus.battlefieldNum) ? levelStatus.battlefieldNum : derivedAct,
         ),
       );
       const derivedMission = ((districtBattleIndex - 1) % Math.max(1, missionsPerBattle)) + 1;
@@ -1007,19 +1007,19 @@
         1,
         Math.min(
           missionsPerBattle,
-          Number.isFinite(levelStatus.battleNum) ? levelStatus.battleNum : derivedMission,
+          Number.isFinite(levelStatus.subMissionNum) ? levelStatus.subMissionNum : derivedMission,
         ),
       );
       const currentWave = Math.max(0, levelStatus.wave || 0);
 
       let progressUnits = 0;
-      for (let actIndex = 1; actIndex < currentAct; actIndex += 1) {
+      for (let actIndex = 1; actIndex < currentBattlefield; actIndex += 1) {
         progressUnits += battleTotals[actIndex - 1] || 0;
       }
       for (let missionIndex = 1; missionIndex < currentMission; missionIndex += 1) {
-        progressUnits += getMissionHordeCount(currentAct, missionIndex);
+        progressUnits += getMissionHordeCount(currentBattlefield, missionIndex);
       }
-      const currentMissionTotal = getMissionHordeCount(currentAct, currentMission);
+      const currentMissionTotal = getMissionHordeCount(currentBattlefield, currentMission);
       progressUnits += Math.min(currentMissionTotal, currentWave);
 
 
@@ -1129,7 +1129,7 @@
       const segStarts = [seg1Start, seg2Start, seg3Start];
       let remaining = fillW;
       for (let i = 0; i < segStarts.length; i += 1) {
-        const battlefieldDone = (i + 1) < currentAct;
+        const battlefieldDone = (i + 1) < currentBattlefield;
         const drawW = battlefieldDone ? segWidths[i] : Math.min(segWidths[i], remaining);
         if (drawW > 0) {
           ctx.fillStyle = battleColors[i] || battleColors[battleColors.length - 1];
@@ -1196,7 +1196,7 @@
         const segStart = segStarts[i];
         const segEnd = segStart + segWidths[i];
         const centerX = (segStart + segEnd) / 2;
-        const isActiveBattle = (i + 1) === currentAct;
+        const isActiveBattle = (i + 1) === currentBattlefield;
         const label = isActiveBattle ? `Wave ${activeWaveNum}` : `Battlefield ${i + 1}`;
         const maxLabelWidth = Math.max(26, segWidths[i] - 8);
         const fontSize = fitFontSize(label, 8, maxLabelWidth, "");
