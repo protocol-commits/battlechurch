@@ -3507,13 +3507,13 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     );
     const badgeAreaX = recapLeftColumnX;
     const totalBlockX = recapTotalColumnX;
-    const rowTopY = blockTopY + 18;
-    const rowBottomY = rowTopY + 126;
+    const rowTopY = blockTopY + 32;
+    const rowBottomY = rowTopY + 148;
     const badgeRowWidth = visibleBadgeCount
       ? visibleBadgeCount * badgeSlotSize + Math.max(0, visibleBadgeCount - 1) * badgeGap
       : badgeSlotSize;
     const badgeStartX = badgeAreaX;
-    const badgeCenterY = rowTopY + 48;
+    const badgeCenterY = rowTopY + 64;
     ctx.save();
     ctx.fillStyle = baseLabelColor;
     ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
@@ -3547,11 +3547,19 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
                 ? (thresholdPulse > 0 ? highlightValueFlash : highlightValueColor)
                 : "rgba(234, 246, 255, 0.82)")
             : "rgba(234, 246, 255, 0.82)";
+        if (entry?.rawStat != null) {
+          ctx.save();
+          ctx.fillStyle = "rgba(234, 246, 255, 0.5)";
+          ctx.font = `500 12px ${ANNOUNCEMENT_FONT_FAMILY}`;
+          ctx.textAlign = "center";
+          ctx.fillText(formatNumber(entry.rawStat), badgeCenterX, rowTopY - 2);
+          ctx.restore();
+        }
         ctx.save();
         ctx.fillStyle = badgeValueColor;
         ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
         ctx.textAlign = "center";
-        ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 6);
+        ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 18);
         ctx.restore();
       }
 
@@ -3574,15 +3582,10 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
       ctx.font = `600 13px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
-      const nameStartY = rowTopY + 100;
+      const nameStartY = rowTopY + 116;
       nameLines.forEach((textLine, lineIndex) => {
         ctx.fillText(textLine, badgeCenterX, nameStartY + lineIndex * 16);
       });
-      if (entry?.rawStat != null) {
-        ctx.fillStyle = "rgba(234, 246, 255, 0.6)";
-        ctx.font = `500 11px ${ANNOUNCEMENT_FONT_FAMILY}`;
-        ctx.fillText(formatNumber(entry.rawStat), badgeCenterX, nameStartY + nameLines.length * 16 + 2);
-      }
       ctx.restore();
     });
 
