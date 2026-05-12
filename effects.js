@@ -309,17 +309,20 @@
     const sin = Math.sin(angle);
     const step = 30;
     const base = { frameDuration: 0.04, scale, rotation: angle, flipY: facingLeft };
-    spawnEffectFromFrames(frames, x - cos * step, y - sin * step, { ...base, delay: 0 });
-    spawnEffectFromFrames(frames, x,               y,               { ...base, delay: 0.08, tintColor: "#ffdd88", tintAlpha: 0.6 });
-    spawnEffectFromFrames(frames, x + cos * step, y + sin * step, { ...base, delay: 0.16, tintColor: "#ff5500", tintAlpha: 0.85 });
+    spawnEffectFromFrames(frames, x - cos * step, y - sin * step, { ...base, delay: 0,    tintColor: "#ffcc00", tintAlpha: 0.55 });
+    spawnEffectFromFrames(frames, x,               y,               { ...base, delay: 0.08, tintColor: "#ff8800", tintAlpha: 0.70 });
+    spawnEffectFromFrames(frames, x + cos * step, y + sin * step, { ...base, delay: 0.16, tintColor: "#cc2200", tintAlpha: 0.85 });
     return null;
   }
 
-  function spawnSlashBurstEffect(x, y, angle, scale = 3.5) {
+  function spawnSlashBurstEffect(x, y, angle, scale = 3.5, { flipY: forceFlipY, tintColor, tintAlpha } = {}) {
     const frames = resolveAssets()?.effects?.swordSlash;
     if (!frames || !frames.length) return null;
     const facingLeft = Math.cos(angle) < 0;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation: angle, flipY: facingLeft });
+    const flipY = forceFlipY !== undefined ? forceFlipY : facingLeft;
+    const defaultTint = "#aaddff";
+    const defaultTintAlpha = 0.5;
+    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation: angle, flipY, tintColor: tintColor || defaultTint, tintAlpha: tintAlpha ?? defaultTintAlpha });
   }
 
   function spawnPuffEffect(x, y, radius = null, options = {}) {

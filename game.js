@@ -24417,7 +24417,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     const burstX = player.x + cos * hbOffsetX;
     const burstY = player.y + sin * hbOffsetX;
     const burstScale = hbWidth / 48;
-    spawnSlashBurstEffect(burstX, burstY, attackAngle, burstScale);
+    spawnSlashBurstEffect(burstX, burstY, attackAngle, burstScale, { flipY: Boolean(options.flipSlash), tintColor: options.slashTint || null, tintAlpha: options.slashTintAlpha });
   }
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
 
@@ -24691,6 +24691,9 @@ function executeCleaveAttack(dir, meleeAttackState) {
     moveNameOverride: "Cleave",
     damageMultiplier: CLEAVE_DAMAGE_MULTIPLIER,
     rangeMultiplier: CLEAVE_RANGE_MULTIPLIER,
+    flipSlash: true,
+    slashTint: "#9933ff",
+    slashTintAlpha: 0.6,
   });
   return true;
 }
