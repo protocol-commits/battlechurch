@@ -11028,7 +11028,7 @@ function resetShieldTrailState(state) {
 function updateShieldTrailInstance(state, angle, dt) {
   const radiusX = state.radius;
   const offX = Math.cos(angle) * radiusX;
-  const offY = Math.sin(angle) * radiusX;
+  const offY = Math.sin(angle) * radiusX - 7;
   const prevOffX = state.offX || 0;
   const prevOffY = state.offY || 0;
   state.offX = offX;
