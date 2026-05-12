@@ -23169,7 +23169,7 @@ function updateDashMovement(dt) {
   // Crash body-contact damage: anything the player's body touches during the protected dash
   if (playerDashState.crashDashActive && playerDashState.crashDashHitEntities) {
     const hitSet = playerDashState.crashDashHitEntities;
-    const hitFwdOffset = (player.radius || 24) * 2.5;
+    const hitFwdOffset = 100 * WORLD_SCALE;
     const hitCenterX = player.x + playerDashState.dashDir.x * hitFwdOffset;
     const hitCenterY = player.y + playerDashState.dashDir.y * hitFwdOffset;
     const contactRadius = (player.radius || 24) * (playerDashState.isHolyDash ? 1.875 : 1.1);
