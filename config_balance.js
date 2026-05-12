@@ -44,7 +44,7 @@
     // RUSH ATTACK
     // =====================
     rush: {
-      distance: 150,          // pixels (before world scale)
+      distance: 200,          // pixels (before world scale)
       speed: 1200,            // pixels per second (before speed scale)
       radius: 50,
       pushbackRadius: 52,
