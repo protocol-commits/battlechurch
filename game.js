@@ -23169,13 +23169,22 @@ function updateDashMovement(dt) {
   // Crash body-contact damage: anything the player's body touches during the protected dash
   if (playerDashState.crashDashActive && playerDashState.crashDashHitEntities) {
     const hitSet = playerDashState.crashDashHitEntities;
+    const hitFwdOffset = (player.radius || 24) * 2.5;
+    const hitCenterX = player.x + playerDashState.dashDir.x * hitFwdOffset;
+    const hitCenterY = player.y + playerDashState.dashDir.y * hitFwdOffset;
     const contactRadius = (player.radius || 24) * (playerDashState.isHolyDash ? 1.875 : 1.1);
     enemies.forEach((enemy) => {
       if (!enemy || enemy.dead || enemy.state === "death") return;
       if (hitSet.has(enemy)) return;
-      if (Math.hypot(enemy.x - player.x, enemy.y - player.y) <= contactRadius + (enemy.radius || 20)) {
+      if (Math.hypot(enemy.x - hitCenterX, enemy.y - hitCenterY) <= contactRadius + (enemy.radius || 20)) {
         hitSet.add(enemy);
-        enemy.takeDamage((playerDashState.crashDashDamage || 20) * getMoveMultiplier(playerDashState.isHolyDash ? "Clash" : "Crash"), { damageType: "melee" });
+        const dashMoveName = playerDashState.isHolyDash ? "Clash" : "Crash";
+        const dashDmg = (playerDashState.crashDashDamage || 20) * getMoveMultiplier(dashMoveName);
+        enemy.takeDamage(dashDmg, { damageType: "melee" });
+        if (window._meleeAttackState) {
+          registerMeleeComboHit(enemy, window._meleeAttackState, dashMoveName, { damage: dashDmg });
+        }
+        applyEnemyMeleeKnockback(enemy, hitCenterX, hitCenterY, MELEE_DAMAGE_KNOCKBACK * 2);
         if (playerDashState.isHolyDash) {
           playerDashState.clashHitAccum = (playerDashState.clashHitAccum || 0) + 1;
           if ((playerDashState.clashFeedbackCooldown || 0) <= 0) {
@@ -26016,7 +26025,7 @@ function updateMeleeAttackSystem(dt) {
         meleeAttackState.lastComboTimes.B = 0;
         keysJustPressed.delete("ArrowLeft");
         keysJustPressed.delete(" ");
-        if (!meleeAttackState.buttonDown) {
+        if (meleeAttackState.cooldown <= 0 && !meleeAttackState.buttonDown) {
           queueBasicMeleeAttack(getMeleeAttackDirection(), meleeAttackState);
           player.state = "attackMelee";
           player.animator?.play("attackMelee", { restart: true });
