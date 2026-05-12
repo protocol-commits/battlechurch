@@ -8706,7 +8706,7 @@ async function refreshTitleCloudSaveOption() {
     const saves = Array.isArray(summary?.saves) ? summary.saves : [];
     titleCloudActiveSaveId = summary?.activeSaveId || null;
     titleCloudSaveRows = saves.map((save) => {
-      const completed = Number.isFinite(save?.completedP1Towns) ? save.completedP1Towns : 0;
+      const completed = Number.isFinite(save?.completedP1Districts) ? save.completedP1Districts : 0;
       const total = Math.max(1, Number.isFinite(save?.totalDistricts) ? save.totalDistricts : 10);
       const totalCongregationBest = Number.isFinite(save?.totalCongregationBest) ? save.totalCongregationBest : 0;
       const districtRows = Array.isArray(save?.districtProgressRows) ? save.districtProgressRows : [];
