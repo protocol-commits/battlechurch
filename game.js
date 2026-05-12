@@ -261,16 +261,16 @@ let arenaFadeAlpha = 0;
 let bossBonusTransitionFadeTimer = 0;
 let bossBonusTransitionFadeDuration = 0;
 let bossBonusTransitionFadeAlpha = 0;
-let missionIntroFadeTimer = 0;
-let missionIntroFadeDuration = 0;
-let missionIntroFadeAlpha = 0;
+let battlefieldIntroFadeTimer = 0;
+let battlefieldIntroFadeDuration = 0;
+let battlefieldIntroFadeAlpha = 0;
 const CONGREGATION_SCREEN_DURATION = 4.0;
 const MISSION_INTRO_FADE_IN = 0.8;
 const MISSION_INTRO_FADE_OUT = 0.8;
 const MISSION_INTRO_HOLD_SECONDS = 2;
-let missionIntroActive = false;
-let missionIntroNumber = 2;
-let missionIntroImage = null;
+let battlefieldIntroActive = false;
+let battlefieldIntroNumber = 2;
+let battlefieldIntroImage = null;
 let lastCompletedLevel = 0;
 let lastSummaryWasLevelEnd = false;
 let pendingPostUpgradeTransition = false;
@@ -1771,9 +1771,9 @@ function fadeOutBattleMusic() {
 function startMissionIntroFade(holdSeconds = MISSION_INTRO_HOLD_SECONDS) {
   const hold = Math.max(0, Number(holdSeconds) || 0);
   const total = MISSION_INTRO_FADE_IN + MISSION_INTRO_FADE_OUT + hold;
-  missionIntroFadeDuration = Math.max(total, MISSION_INTRO_FADE_IN + MISSION_INTRO_FADE_OUT);
-  missionIntroFadeTimer = missionIntroFadeDuration;
-  missionIntroFadeAlpha = 0;
+  battlefieldIntroFadeDuration = Math.max(total, MISSION_INTRO_FADE_IN + MISSION_INTRO_FADE_OUT);
+  battlefieldIntroFadeTimer = battlefieldIntroFadeDuration;
+  battlefieldIntroFadeAlpha = 0;
 }
 
 function startGraceRushEndFade(duration = 1) {
@@ -4515,12 +4515,12 @@ let activeDistrictId = null;
 let activeCampaign = "p1"; // 'p1' | 'p2' | 'p3'
 let activeCampaignMultiplier = 1.0; // 1.0 | 1.15 | 1.1
 let cloudInitAttempted = false;
-let pendingDevBattleStartOverride = null; // { districtId, localBattleNumber }
+let pendingBattlefieldStartOverride = null; // { districtId, localBattlefieldNumber }
 let pendingDevCampaignDataOverride = null; // { districtId, campaignData }
 let devPlaytestLaunchInProgress = false;
 let devPlaytestSession = {
   active: false,
-  scope: null, // { town, mission, battle }
+  scope: null, // { town, battlefield }
 };
 let devPlaytestQuickActionsEl = null;
 // ── Dev Arena: Armored Skeleton hint bubbles ─────────────────────────────────
@@ -5187,7 +5187,7 @@ function activateDevMeleeArenaMode() {
   clearCongregationMembers();
   clearCongregationSpeechBubbles();
   npcsSuspended = false;
-  missionIntroFadeAlpha = 0;
+  battlefieldIntroFadeAlpha = 0;
   resetCozyNpcs(5);
   enemies.splice(0, enemies.length);
   projectiles.splice(0, projectiles.length);
@@ -5260,8 +5260,7 @@ function setDevPlaytestSession(active, scope = null) {
     scope && typeof scope === "object"
       ? {
           town: Math.max(1, Math.floor(Number(scope.town) || 1)),
-          mission: Math.max(1, Math.floor(Number(scope.mission) || 1)),
-          battle: Math.max(1, Math.floor(Number(scope.battle) || 1)),
+          battlefield: Math.max(1, Math.floor(Number(scope.battlefield || scope.mission) || 1)),
         }
       : null;
   devPlaytestSession = {
@@ -5279,7 +5278,7 @@ function setDevPlaytestSession(active, scope = null) {
 function getDevPlaytestScopeLabel() {
   const scope = devPlaytestSession.scope;
   if (!scope) return "Playtest";
-  return `T${scope.town} M${scope.mission} B${scope.battle}`;
+  return `T${scope.town} BF${scope.battlefield}`;
 }
 
 function ensureDevPlaytestQuickActions() {
@@ -5338,13 +5337,13 @@ function returnFromDevPlaytestToEditor() {
   if (!devPlaytestSession.active) return false;
   const scope = devPlaytestSession.scope
     ? { ...devPlaytestSession.scope }
-    : { town: 1, mission: 1, battle: 1 };
+    : { town: 1, battlefield: 1 };
   try {
     if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   } catch (e) {}
   pendingDistrictIntroStart = false;
   suppressInitialAnnouncements = false;
-  pendingDevBattleStartOverride = null;
+  pendingBattlefieldStartOverride = null;
   pendingDevCampaignDataOverride = null;
   pendingBossIntroAfterExterior = false;
   pendingExteriorShotAfterVisitor = false;
@@ -5377,7 +5376,7 @@ function returnFromDevPlaytestToEditor() {
       window.BattlechurchLevelBuilder.setScope(scope);
     }
   }
-  setDevStatus(`Back to editor — Town ${scope.town} Mission ${scope.mission} Battle ${scope.battle}`, 2.8);
+  setDevStatus(`Back to editor — Town ${scope.town} Battlefield ${scope.battlefield}`, 2.8);
   syncDevPlaytestQuickActions();
   return true;
 }
@@ -5608,10 +5607,10 @@ Renderer.initialize({
   get pauseRestartConfirmActive() { return pauseRestartConfirmActive; },
   get isModalActive() { return isAnyDialogActive(); },
   get arenaFadeAlpha() { return arenaFadeAlpha; },
-  get missionIntroFadeAlpha() { return missionIntroFadeAlpha; },
-  get missionIntroActive() { return missionIntroActive; },
-  get missionIntroNumber() { return missionIntroNumber; },
-  get missionIntroImage() { return missionIntroImage; },
+  get battlefieldIntroFadeAlpha() { return battlefieldIntroFadeAlpha; },
+  get battlefieldIntroActive() { return battlefieldIntroActive; },
+  get battlefieldIntroNumber() { return battlefieldIntroNumber; },
+  get battlefieldIntroImage() { return battlefieldIntroImage; },
   get graceRushFadeAlpha() { return graceRushFadeAlpha; },
   get graceRushBlackout() { return graceRushBlackout; },
   get bossBonusTransitionFadeAlpha() { return bossBonusTransitionFadeAlpha; },
@@ -6440,7 +6439,7 @@ Levels.initialize({
       levelAnnouncements.length ||
       window.DialogOverlay?.isVisible?.() ||
       window.UpgradeScreen?.isVisible?.() ||
-      missionIntroActive ||
+      battlefieldIntroActive ||
       pendingUpgradeAfterSummary ||
       pendingPostUpgradeTransition ||
       levelManager?.getStatus?.()?.stage === "visitorMinigame",
@@ -8197,57 +8196,48 @@ function queueDistrictIntroAnnouncement() {
   const districtName = mapData?.districts?.find((t) => t.id === activeDistrictId)?.name || "this town";
   const act1Subtitle = "Secure 3 battlefields";
   const devStartOverride =
-    pendingDevBattleStartOverride &&
-    pendingDevBattleStartOverride.districtId === activeDistrictId
-      ? pendingDevBattleStartOverride
+    pendingBattlefieldStartOverride &&
+    pendingBattlefieldStartOverride.districtId === activeDistrictId
+      ? pendingBattlefieldStartOverride
       : null;
-  const localBattleNumber = Number.isFinite(devStartOverride?.localBattleNumber)
-    ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
+  const localBattlefieldNumber = Number.isFinite(devStartOverride?.localBattlefieldNumber)
+    ? Math.max(1, Math.floor(devStartOverride.localBattlefieldNumber))
     : 1;
-  if (devStartOverride && localBattleNumber > 1) {
-    const jumpOrderNumber = localBattleNumber;
+  if (devStartOverride && localBattlefieldNumber > 1) {
     const districtList = mapData?.districts || [];
     const districtIndex = districtList.findIndex((t) => t?.id === activeDistrictId);
     const levelNumber = districtIndex >= 0 ? districtIndex + 1 : 1;
     pendingDistrictIntroStart = false;
     suppressInitialAnnouncements = false;
     paused = false;
-    // Resuming at Mission 2 or 3: show the act-break intro screen first.
-    // startActBreakTeaser (called on dismiss) will jump to the right flat battle.
-    if (jumpOrderNumber > 1) {
-      pendingDevBattleStartOverride = null;
-      showMissionIntro(jumpOrderNumber);
-      return;
-    }
-    if (levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
-      levelManager.beginBattleFromDistrictIntro(levelNumber, localBattleNumber);
-    }
-    pendingDevBattleStartOverride = null;
+    pendingBattlefieldStartOverride = null;
+    // Battlefield 2 or 3: show the between-battlefield intro screen first.
+    // startActBreakTeaser (called on dismiss) jumps to the right battlefield.
+    showBattlefieldIntro(localBattlefieldNumber);
     return;
   }
-  const upcomingOrderNumber = localBattleNumber;
-  const upcomingMissionNumber = 1;
+  const upcomingBattlefieldOrderNumber = localBattlefieldNumber;
+  const upcomingBattlefieldNumber = 1;
   pendingDistrictIntroStart = true;
   queueLevelAnnouncement(act1Subtitle, "", {
     requiresConfirm: true,
     skipMissionBrief: true,
-    missionIntro: true,
-    upcomingOrderNumber,
-    upcomingMissionNumber,
+    battlefieldIntro: true,
+    upcomingBattlefieldOrderNumber,
+    upcomingBattlefieldNumber,
   });
 }
 
-function queueMissionIntroTransition(actNumber) {
-  const act = Math.max(2, Math.floor(actNumber));
-  const flatBattleStart = act;
+function queueBattlefieldIntroTransition(battlefieldNumber) {
+  const targetBattlefield = Math.max(2, Math.floor(battlefieldNumber));
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   queueLevelAnnouncement("", "", {
     requiresConfirm: true,
     skipMissionBrief: true,
-    missionIntro: true,
-    upcomingOrderNumber: act,
-    upcomingMissionNumber: 1,
-    actBreakFlatBattle: flatBattleStart,
+    battlefieldIntro: true,
+    upcomingBattlefieldOrderNumber: targetBattlefield,
+    upcomingBattlefieldNumber: 1,
+    actBreakFlatBattle: targetBattlefield,
   });
 }
 
@@ -8258,7 +8248,7 @@ function queueExteriorShotAnnouncement({ force = false, actBreak = false } = {})
   const _ohCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
   const _ohLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
   const orderHeadings = _ohLabels.missionIntroTitles?.[_ohCamp] || _ohLabels.missionIntroTitles?.p1 || {};
-  const missionNumber = Math.max(
+  const currentBattlefieldNumber = Math.max(
     1,
     Number.isFinite(status?.battle) ? status.battle : 1,
   );
@@ -8273,12 +8263,12 @@ function queueExteriorShotAnnouncement({ force = false, actBreak = false } = {})
   const battleTitle = isBossExterior
     ? `Battle ${bossBattleNumber}`
     : (orderHeadings[orderNumber] || monthName);
-  const upcomingMissionNumber = isBossExterior
+  const upcomingBattlefieldNumber = isBossExterior
     ? bossBattleNumber
     : Math.max(1, (Number.isFinite(status?.battle) ? status.battle : 0) + 1);
-  const upcomingOrderNumber = orderNumber;
+  const upcomingBattlefieldOrderNumber = orderNumber;
   // actBreak bypasses the mission-1 guard — chapter breaks always need the exterior shot + zoom
-  const shouldShowExterior = actBreak || upcomingMissionNumber === 1;
+  const shouldShowExterior = actBreak || upcomingBattlefieldNumber === 1;
   if (!shouldShowExterior) return;
   const visitorActive =
     visitorSession?.active || visitorSession?.summaryActive || visitorSession?.introActive;
@@ -8293,8 +8283,8 @@ function queueExteriorShotAnnouncement({ force = false, actBreak = false } = {})
     requiresConfirm: true,
     skipMissionBrief: true,
     exteriorShot: true,
-    upcomingMissionNumber,
-    upcomingOrderNumber,
+    upcomingBattlefieldNumber,
+    upcomingBattlefieldOrderNumber,
   });
 }
 
@@ -8332,7 +8322,7 @@ function startGameFromTitle() {
   if (typeof window !== "undefined") {
     window.__battlechurchDevMeleeArenaMode = false;
   }
-  if (!pendingDevBattleStartOverride && !devPlaytestLaunchInProgress) {
+  if (!pendingBattlefieldStartOverride && !devPlaytestLaunchInProgress) {
     setDevPlaytestSession(false, null);
   }
   districtVisitorMinigamePlayed = false;
@@ -8369,12 +8359,12 @@ function startGameFromTitle() {
         : 3;
     const clampedResumeLocalBattleNumber = Math.min(resumeLocalBattleNumber, maxMissionsPerTown);
     const hasDevStartOverrideForTown =
-      pendingDevBattleStartOverride &&
-      pendingDevBattleStartOverride.districtId === activeDistrictId;
+      pendingBattlefieldStartOverride &&
+      pendingBattlefieldStartOverride.districtId === activeDistrictId;
     if (!overrideCampaignData && !hasDevStartOverrideForTown && clampedResumeLocalBattleNumber > 1) {
-      pendingDevBattleStartOverride = {
+      pendingBattlefieldStartOverride = {
         districtId: activeDistrictId,
-        localBattleNumber: clampedResumeLocalBattleNumber,
+        localBattlefieldNumber: clampedResumeLocalBattleNumber,
       };
     }
     if (Number.isFinite(campaignData?.savedGraceCount)) {
@@ -8438,11 +8428,11 @@ function startGameFromTitle() {
   districtIntroTransitionActive = false;
   districtIntroTransitionTimer = 0;
   pendingBossIntroAfterExterior = false;
-  missionIntroActive = false;
-  missionIntroFadeTimer = 0;
-  missionIntroFadeDuration = 0;
-  missionIntroFadeAlpha = 0;
-  missionIntroImage = null;
+  battlefieldIntroActive = false;
+  battlefieldIntroFadeTimer = 0;
+  battlefieldIntroFadeDuration = 0;
+  battlefieldIntroFadeAlpha = 0;
+  battlefieldIntroImage = null;
   startSpeedrunTimer();
   resetYearNpcPool();
   // Clear any previously queued announcements so the congregation doesn't show
@@ -8477,11 +8467,15 @@ function startRunForDistrict(districtId) {
 
 function startDevLevelTestFromEditor({
   town = 1,
-  mission = 1,
-  battle = 1,
+  battlefield = 1,
+  // legacy aliases
+  mission,
+  battle,
 } = {}) {
+  // Resolve legacy aliases (mission/battle were the old swapped names)
+  const resolvedBattlefield = battlefield !== 1 ? battlefield : (mission ?? battle ?? 1);
   pendingDevCampaignDataOverride = null;
-  const getDevEditorAssumedPowerups = ({ districtNum, missionNum, battleNum }) => {
+  const getDevEditorAssumedPowerups = ({ districtNum, battlefieldNum }) => {
     const cfg =
       (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
       (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
@@ -8498,20 +8492,14 @@ function startDevLevelTestFromEditor({
       : Array.isArray(districtCfg?.months)
         ? districtCfg.months
         : [];
-    const battleCfg =
-      battleList.find((entry) => Number(entry?.index) === missionNum) ||
-      battleList[missionNum - 1] ||
+    const battlefieldCfg =
+      battleList.find((entry) => Number(entry?.index) === battlefieldNum) ||
+      battleList[battlefieldNum - 1] ||
       null;
-    const missionList = Array.isArray(battleCfg?.missions)
-      ? battleCfg.missions
-      : Array.isArray(battleCfg?.battles)
-        ? battleCfg.battles
-        : [];
-    const missionCfg =
-      missionList.find((entry) => Number(entry?.index) === battleNum) ||
-      missionList[battleNum - 1] ||
-      null;
-    const assumedLevels = missionCfg?.assumedChurchPowerupLevels;
+    // Support both collapsed format (waves directly on battlefield) and legacy missions[] nesting
+    const assumedLevels =
+      battlefieldCfg?.assumedChurchPowerupLevels ??
+      battlefieldCfg?.missions?.[0]?.assumedChurchPowerupLevels;
     if (!assumedLevels || typeof assumedLevels !== "object" || Array.isArray(assumedLevels)) {
       return {};
     }
@@ -8547,12 +8535,10 @@ function startDevLevelTestFromEditor({
     setDevStatus("Dev test failed: invalid town", 2.2);
     return false;
   }
-  const missionNumber = Math.max(1, Math.floor(Number(mission) || 1));
-  const battleNumber = Math.max(1, Math.floor(Number(battle) || 1));
+  const battlefieldNumber = Math.max(1, Math.floor(Number(resolvedBattlefield) || 1));
   const assumedPowerupLevels = getDevEditorAssumedPowerups({
     districtNum: districtNumber,
-    missionNum: missionNumber,
-    battleNum: battleNumber,
+    battlefieldNum: battlefieldNumber,
   });
   pendingDevCampaignDataOverride = {
     districtId,
@@ -8562,10 +8548,9 @@ function startDevLevelTestFromEditor({
   };
   setDevPlaytestSession(true, {
     town: districtNumber,
-    mission: missionNumber,
-    battle: battleNumber,
+    battlefield: battlefieldNumber,
   });
-  const localBattleNumber = missionNumber;
+  const localBattlefieldNumber = battlefieldNumber;
   const getMaxBattlesInDistrict = () => {
     const fallbackBattlesPerTown =
       typeof window !== "undefined" && Number.isFinite(window.BATTLES_PER_DISTRICT)
@@ -8592,9 +8577,9 @@ function startDevLevelTestFromEditor({
     return Math.max(1, total);
   };
   const maxBattlesInDistrict = getMaxBattlesInDistrict();
-  pendingDevBattleStartOverride = {
+  pendingBattlefieldStartOverride = {
     districtId,
-    localBattleNumber: Math.max(1, Math.min(maxBattlesInDistrict, localBattleNumber)),
+    localBattlefieldNumber: Math.max(1, Math.min(maxBattlesInDistrict, localBattlefieldNumber)),
   };
   if (typeof window !== "undefined") {
     window.activeDistrictId = districtId;
@@ -8616,7 +8601,7 @@ function startDevLevelTestFromEditor({
       startRunForDistrict(districtId);
     }
     setDevStatus(
-      `Dev test: Town ${districtNumber} Mission ${missionNumber} Battle ${battleNumber}`,
+      `Dev test: Town ${districtNumber} Battlefield ${battlefieldNumber}`,
       2.8,
     );
     return true;
@@ -9286,7 +9271,7 @@ function getSpeedrunSectionName(levelStatus) {
   if (
     pendingDistrictIntroStart ||
     districtIntroTransitionActive ||
-    levelAnnouncements[0]?.missionIntro ||
+    levelAnnouncements[0]?.battlefieldIntro ||
     stage === "briefing" ||
     stage === "levelIntro"
   ) {
@@ -12175,7 +12160,7 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   }
   const requiresConfirm = Boolean(options.requiresConfirm);
   const skipMissionBrief = Boolean(options.skipMissionBrief);
-  const missionIntro = Boolean(options.missionIntro);
+  const battlefieldIntro = Boolean(options.battlefieldIntro || options.missionIntro);
   const exteriorShot = Boolean(options.exteriorShot);
   const allowDuringSuppression = Boolean(options.allowDuringSuppression);
   if (suppressInitialAnnouncements && !allowDuringSuppression) return;
@@ -12188,11 +12173,11 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
   const pastorFinal = Boolean(options.pastorFinal);
   const pastorPostRecap = Boolean(options.pastorPostRecap);
   const missionNumber = Number.isFinite(options.missionNumber) ? options.missionNumber : null;
-  const upcomingMissionNumber = Number.isFinite(options.upcomingMissionNumber)
-    ? options.upcomingMissionNumber
+  const upcomingBattlefieldNumber = Number.isFinite(options.upcomingBattlefieldNumber)
+    ? options.upcomingBattlefieldNumber
     : null;
-  const upcomingOrderNumber = Number.isFinite(options.upcomingOrderNumber)
-    ? options.upcomingOrderNumber
+  const upcomingBattlefieldOrderNumber = Number.isFinite(options.upcomingBattlefieldOrderNumber)
+    ? options.upcomingBattlefieldOrderNumber
     : null;
   const pastorPostRecapDelay = Number.isFinite(options.pastorPostRecapDelay)
     ? Math.max(0, options.pastorPostRecapDelay)
@@ -12217,12 +12202,12 @@ function queueLevelAnnouncement(title, subtitle = "", durationOrOptions = 2.5, m
     requiresConfirm,
     skipMissionBrief,
     missionBriefTitle,
-    missionIntro,
+    battlefieldIntro,
     exteriorShot,
     bossMissionBrief,
     missionNumber,
-    upcomingMissionNumber,
-    upcomingOrderNumber,
+    upcomingBattlefieldNumber,
+    upcomingBattlefieldOrderNumber,
     finalYear,
     levelSummary,
     fadeOutDuration,
@@ -12294,7 +12279,7 @@ function dismissCurrentLevelAnnouncement() {
     visitorSession.awaitingSummaryConfirm = false;
     completeVisitorSession(reason);
   }
-  if (current.missionIntro) {
+  if (current.battlefieldIntro) {
     pendingDistrictIntroStart = true;
     districtIntroDismissedAt =
       typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
@@ -12316,17 +12301,17 @@ function dismissCurrentLevelAnnouncement() {
       if (levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
         levelManager.beginBattleFromDistrictIntro(_levelNum, current.actBreakFlatBattle);
       }
-      pendingDevBattleStartOverride = null;
+      pendingBattlefieldStartOverride = null;
       if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
       return;
     }
     const devStartOverride =
-      pendingDevBattleStartOverride &&
-      pendingDevBattleStartOverride.districtId === activeDistrictId
-        ? pendingDevBattleStartOverride
+      pendingBattlefieldStartOverride &&
+      pendingBattlefieldStartOverride.districtId === activeDistrictId
+        ? pendingBattlefieldStartOverride
         : null;
-    const targetBattle = Number.isFinite(devStartOverride?.localBattleNumber)
-      ? Math.max(1, Math.floor(devStartOverride.localBattleNumber))
+    const targetBattle = Number.isFinite(devStartOverride?.localBattlefieldNumber)
+      ? Math.max(1, Math.floor(devStartOverride.localBattlefieldNumber))
       : 1;
     if (devStartOverride && levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
       levelManager.beginBattleFromDistrictIntro(_levelNum, targetBattle);
@@ -12339,7 +12324,7 @@ function dismissCurrentLevelAnnouncement() {
     } else if (levelManager && typeof levelManager.advanceFromBriefing === "function") {
       levelManager.advanceFromBriefing(_levelNum);
     }
-    pendingDevBattleStartOverride = null;
+    pendingBattlefieldStartOverride = null;
     if (Array.isArray(levelAnnouncements)) {
       levelAnnouncements.length = 0;
     }
@@ -19500,28 +19485,27 @@ function updateDeathBellAudio(dt) {
   }
 }
 
-function showMissionIntro(actNumber) {
-  missionIntroActive = true;
-  missionIntroNumber = actNumber;
-  missionIntroImage = actNumber === 2 ? assets?.backgrounds?.mission2 : actNumber === 3 ? assets?.backgrounds?.mission3 : assets?.backgrounds?.mission1;
+function showBattlefieldIntro(battlefieldNumber) {
+  battlefieldIntroActive = true;
+  battlefieldIntroNumber = battlefieldNumber;
+  battlefieldIntroImage = battlefieldNumber === 2 ? assets?.backgrounds?.mission2 : battlefieldNumber === 3 ? assets?.backgrounds?.mission3 : assets?.backgrounds?.mission1;
   keysJustPressed.delete(" ");
 }
 
-function startActBreakTeaser(actNumber) {
-  const act = Math.max(2, Math.floor(actNumber));
-  const flatBattleStart = act;
+function startActBreakTeaser(battlefieldNumber) {
+  const targetBattlefield = Math.max(2, Math.floor(battlefieldNumber));
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const districtList = mapData?.districts || [];
   const districtIndex = districtList.findIndex((t) => t?.id === activeDistrictId);
   const levelNumber = districtIndex >= 0 ? districtIndex + 1 : 1;
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
   if (levelManager && typeof levelManager.beginBattleFromDistrictIntro === "function") {
-    levelManager.beginBattleFromDistrictIntro(levelNumber, flatBattleStart);
+    levelManager.beginBattleFromDistrictIntro(levelNumber, targetBattlefield);
   }
 }
 
 function handleChapterBreak() {
-  if (!missionIntroActive) return false;
+  if (!battlefieldIntroActive) return false;
 
   const buttons =
     typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak"
@@ -19532,24 +19516,24 @@ function handleChapterBreak() {
     buttons,
     allowSpace: true,
     onActivate: () => {
-      missionIntroActive = false;
-      missionIntroImage = null;
+      battlefieldIntroActive = false;
+      battlefieldIntroImage = null;
       if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
         window.playMenuAdvanceSfx(0.55);
       }
-      startActBreakTeaser(missionIntroNumber);
+      startActBreakTeaser(battlefieldIntroNumber);
     },
   });
   if (handled) return false;
 
   // Check for space press to dismiss immediately
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-    missionIntroActive = false;
-    missionIntroImage = null;
+    battlefieldIntroActive = false;
+    battlefieldIntroImage = null;
     if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
       window.playMenuAdvanceSfx(0.55);
     }
-    startActBreakTeaser(missionIntroNumber);
+    startActBreakTeaser(battlefieldIntroNumber);
     keysJustPressed.delete(" ");
     return false;
   }
@@ -19606,12 +19590,12 @@ function checkDialogOverlays() {
             districtVisitorMinigamePlayed = true;
             if (levelManager?.triggerVisitorMinigame) {
               const started = levelManager.triggerVisitorMinigame(() => {
-                showMissionIntro(actNumber);
+                showBattlefieldIntro(actNumber);
               });
               if (started) return;
             }
           }
-          showMissionIntro(actNumber);
+          showBattlefieldIntro(actNumber);
         });
       });
     } else {
@@ -19665,20 +19649,20 @@ function updatePostDeathSequence(dt) {
 }
 
 function updateFadeEffects(dt) {
-  if (missionIntroFadeTimer > 0) {
-    missionIntroFadeTimer = Math.max(0, missionIntroFadeTimer - dt);
-    const elapsed = missionIntroFadeDuration - missionIntroFadeTimer;
-    const fadeIn = Math.min(missionIntroFadeDuration, MISSION_INTRO_FADE_IN);
-    const fadeOut = Math.min(missionIntroFadeDuration, MISSION_INTRO_FADE_OUT);
+  if (battlefieldIntroFadeTimer > 0) {
+    battlefieldIntroFadeTimer = Math.max(0, battlefieldIntroFadeTimer - dt);
+    const elapsed = battlefieldIntroFadeDuration - battlefieldIntroFadeTimer;
+    const fadeIn = Math.min(battlefieldIntroFadeDuration, MISSION_INTRO_FADE_IN);
+    const fadeOut = Math.min(battlefieldIntroFadeDuration, MISSION_INTRO_FADE_OUT);
     if (elapsed < fadeIn) {
-      missionIntroFadeAlpha = fadeIn > 0 ? Math.min(1, elapsed / fadeIn) : 1;
-    } else if (missionIntroFadeTimer <= fadeOut) {
-      missionIntroFadeAlpha = fadeOut > 0 ? Math.min(1, missionIntroFadeTimer / fadeOut) : 0;
+      battlefieldIntroFadeAlpha = fadeIn > 0 ? Math.min(1, elapsed / fadeIn) : 1;
+    } else if (battlefieldIntroFadeTimer <= fadeOut) {
+      battlefieldIntroFadeAlpha = fadeOut > 0 ? Math.min(1, battlefieldIntroFadeTimer / fadeOut) : 0;
     } else {
-      missionIntroFadeAlpha = 1;
+      battlefieldIntroFadeAlpha = 1;
     }
   } else {
-    missionIntroFadeAlpha = 0;
+    battlefieldIntroFadeAlpha = 0;
   }
 
   if (graceRushFadeTimer > 0) {
@@ -21062,7 +21046,7 @@ function handleLevelAnnouncements() {
     currentAnnouncement.requiresConfirm &&
     !currentIsSummary &&
     !currentAnnouncement.isVisitorSummary &&
-    !currentAnnouncement.missionIntro &&
+    !currentAnnouncement.battlefieldIntro &&
     !currentAnnouncement.exteriorShot &&
     !currentAnnouncement.pastorFinal &&
     !currentAnnouncement.pastorPostRecap &&
@@ -21355,7 +21339,7 @@ function handleLevelAnnouncements() {
     }
     return true;
   }
-  if (currentAnnouncement.missionIntro) {
+  if (currentAnnouncement.battlefieldIntro) {
     const buttons =
       typeof window !== "undefined" && window.__announcementButtons?.key === "chapterBreak"
         ? window.__announcementButtons.buttons
@@ -21374,7 +21358,7 @@ function handleLevelAnnouncements() {
     if (handled) return true;
   }
   if (wasActionJustPressed("pause") || wasActionJustPressed("restart")) {
-    if (currentAnnouncement.missionIntro) {
+    if (currentAnnouncement.battlefieldIntro) {
       startDistrictIntroTransition();
     } else {
       dismissCurrentLevelAnnouncement();
@@ -27436,12 +27420,12 @@ function restartGame() {
   miniImpWaveDispatched = false;
   arenaFadeTimer = 0;
   arenaFadeAlpha = 0;
-  missionIntroFadeTimer = 0;
-  missionIntroFadeDuration = 0;
-  missionIntroFadeAlpha = 0;
-  missionIntroActive = false;
-  missionIntroNumber = 2;
-  missionIntroImage = null;
+  battlefieldIntroFadeTimer = 0;
+  battlefieldIntroFadeDuration = 0;
+  battlefieldIntroFadeAlpha = 0;
+  battlefieldIntroActive = false;
+  battlefieldIntroNumber = 2;
+  battlefieldIntroImage = null;
   lastCompletedLevel = 0;
   pendingPostUpgradeTransition = false;
   graceRushFadeTimer = 0;

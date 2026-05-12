@@ -4707,8 +4707,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const bossAnnouncement = levelAnnouncements[0] || {};
-    const bossActNum = Number.isFinite(currentLevelStatus?.missionNum)
-      ? currentLevelStatus.missionNum
+    const bossActNum = Number.isFinite(currentLevelStatus?.battlefieldNum)
+      ? currentLevelStatus.battlefieldNum
       : 1;
     const _bfLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
     const _bfRoman = { 1: 'I', 2: 'II', 3: 'III' };
@@ -4881,7 +4881,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   if (recapTallyState.id) {
     recapTallyState.id = null;
   }
-    const isDistrictIntro = Boolean(levelAnnouncements[0]?.missionIntro);
+    const isDistrictIntro = Boolean(levelAnnouncements[0]?.battlefieldIntro);
     const isExteriorShot = Boolean(levelAnnouncements[0]?.exteriorShot);
     const isPastorFinal = Boolean(levelAnnouncements[0]?.pastorFinal);
     const isPastorPostRecap = Boolean(levelAnnouncements[0]?.pastorPostRecap);
@@ -5468,10 +5468,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     } = requireBindings();
     if (Array.isArray(levelAnnouncements) && levelAnnouncements.length) {
       const current = levelAnnouncements[0];
-      if (current && (current.missionIntro || current.exteriorShot)) {
+      if (current && (current.battlefieldIntro || current.exteriorShot)) {
         // Determine which background to use based on current Order
         // Order 1 uses districtIntro, Order 2 uses act2, Order 3 uses act3
-        const orderNumber = current.upcomingOrderNumber || 1;
+        const orderNumber = current.upcomingBattlefieldOrderNumber || 1;
         let img = assets?.backgrounds?.mission1;
         if (orderNumber === 2 && assets?.backgrounds?.mission2) {
           img = assets.backgrounds.mission2;
@@ -7947,7 +7947,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const hordeNum = levelStatus.hordeNum;
     const crumbRomanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
     const _stageLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
-    const actLabel = `${_stageLabel} ${crumbRomanNumerals[levelStatus.missionNum || 1] || (levelStatus.missionNum || 1)}`;
+    const actLabel = `${_stageLabel} ${crumbRomanNumerals[levelStatus.battlefieldNum || 1] || (levelStatus.battlefieldNum || 1)}`;
     // Get town name from activeDistrictId
     const activeDistrictId = typeof window !== "undefined" ? window.activeDistrictId : null;
     const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
@@ -8019,26 +8019,26 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawMissionIntroScreen() {
+  function drawBattlefieldIntroScreen() {
     const {
       ctx,
       canvas,
-      missionIntroImage,
-      missionIntroNumber,
-      missionIntroFadeAlpha,
+      battlefieldIntroImage,
+      battlefieldIntroNumber,
+      battlefieldIntroFadeAlpha,
       UI_FONT_FAMILY,
     } = requireBindings();
 
 
     // Draw background image (Act 1 gets heat shimmer like title/map).
-    if (missionIntroImage) {
+    if (battlefieldIntroImage) {
       ctx.save();
-      if (missionIntroNumber === 1) {
+      if (battlefieldIntroNumber === 1) {
         const stripHeight = 14;
         const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
         const amp = 0.9;
-        const srcW = missionIntroImage.width || 1;
-        const srcHAll = missionIntroImage.height || 1;
+        const srcW = battlefieldIntroImage.width || 1;
+        const srcHAll = battlefieldIntroImage.height || 1;
         const scaleY = canvas.height / srcHAll;
         const drawW = canvas.width + amp * 2;
         for (let y = 0; y < srcHAll; y += stripHeight) {
@@ -8048,7 +8048,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           const destY = y * scaleY;
           const destH = srcH * scaleY;
           ctx.drawImage(
-            missionIntroImage,
+            battlefieldIntroImage,
             0,
             y,
             srcW,
@@ -8061,7 +8061,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
       } else {
         // Preserve image aspect ratio for non-Act-1 mission intro backgrounds.
-        drawCoverImage(ctx, canvas, missionIntroImage, 1, 0.5, 0.5);
+        drawCoverImage(ctx, canvas, battlefieldIntroImage, 1, 0.5, 0.5);
       }
       ctx.restore();
     } else {
@@ -8075,7 +8075,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const _cbLabels = window.BattlechurchCampaignLabels || {};
     const _stageLabel2 = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
     const romanNumerals = { 1: 'I', 2: 'II', 3: 'III' };
-    const battleTitle = `${_stageLabel2} ${romanNumerals[missionIntroNumber] || missionIntroNumber}`;
+    const battleTitle = `${_stageLabel2} ${romanNumerals[battlefieldIntroNumber] || battlefieldIntroNumber}`;
     const villainText = "";
 
     const _cbCamp = window.activeCampaign || "p1";
@@ -9401,7 +9401,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       graceRushState,
       isModalActive,
       arenaFadeAlpha,
-      missionIntroFadeAlpha,
+      battlefieldIntroFadeAlpha,
       graceRushFadeAlpha,
       graceRushBlackout,
       bossBonusTransitionFadeAlpha,
@@ -9414,7 +9414,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       window.__announcementButtons = null;
     }
     const dynamicNameTags = [];
-    const npcFadeAlpha = Math.max(0, 1 - Math.min(1, missionIntroFadeAlpha));
+    const npcFadeAlpha = Math.max(0, 1 - Math.min(1, battlefieldIntroFadeAlpha));
     npcFaithOverlays.length = 0;
     if (epilogueActive) {
       drawEpilogueScreen();
@@ -9453,8 +9453,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const chapterBreakState = requireBindings();
-    if (chapterBreakState.missionIntroActive) {
-      drawMissionIntroScreen();
+    if (chapterBreakState.battlefieldIntroActive) {
+      drawBattlefieldIntroScreen();
       return;
     }
     const missionOverlayActive = Boolean(window.isMissionBriefOverlayActive);
@@ -9486,7 +9486,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
       return;
     }
-    const districtIntroActive = Boolean(levelAnnouncements?.[0]?.missionIntro);
+    const districtIntroActive = Boolean(levelAnnouncements?.[0]?.battlefieldIntro);
     const exteriorShotActive = Boolean(levelAnnouncements?.[0]?.exteriorShot);
     let districtIntroOverlay = null;
     sharedShakeOffset.x = 0;
@@ -9641,8 +9641,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (districtIntroActive) {
       const introAnnouncement = levelAnnouncements?.[0] || {};
-      const introOrderNumber = Number.isFinite(introAnnouncement.upcomingOrderNumber)
-        ? introAnnouncement.upcomingOrderNumber
+      const introOrderNumber = Number.isFinite(introAnnouncement.upcomingBattlefieldOrderNumber)
+        ? introAnnouncement.upcomingBattlefieldOrderNumber
         : 1;
       const effectiveCameraX = resolveCameraX();
       if (introOrderNumber === 1 && assets?.backgrounds?.mission1) {
@@ -9701,11 +9701,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         1,
         (Number.isFinite(levelStatus?.battle) ? levelStatus.battle : 0) + 1,
       );
-      const upcomingNumber = Number.isFinite(announcement.upcomingMissionNumber)
-        ? announcement.upcomingMissionNumber
+      const upcomingNumber = Number.isFinite(announcement.upcomingBattlefieldNumber)
+        ? announcement.upcomingBattlefieldNumber
         : inferredUpcomingNumber;
-      const orderNumber = Number.isFinite(announcement.upcomingOrderNumber)
-        ? announcement.upcomingOrderNumber
+      const orderNumber = Number.isFinite(announcement.upcomingBattlefieldOrderNumber)
+        ? announcement.upcomingBattlefieldOrderNumber
         : inferredUpcomingNumber;
       const _bhRoman = { 1: 'I', 2: 'II', 3: 'III' };
       const battleHeading = `${_bhStageLabel} ${_bhRoman[orderNumber] || orderNumber}`;
@@ -10675,9 +10675,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
 
-    if (missionIntroFadeAlpha > 0) {
+    if (battlefieldIntroFadeAlpha > 0) {
       ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.5, missionIntroFadeAlpha * 0.5)})`;
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(0.5, battlefieldIntroFadeAlpha * 0.5)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }

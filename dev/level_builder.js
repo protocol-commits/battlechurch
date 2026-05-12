@@ -85,14 +85,41 @@
     };
   }
 
+  function migrateV2toV3(cfg) {
+    // Collapse battles[].missions[0] → battles[] directly (missions nesting was always depth-1).
+    const towns = Array.isArray(cfg.towns) ? cfg.towns : [];
+    towns.forEach((town) => {
+      const battles = Array.isArray(town.battles) ? town.battles : [];
+      battles.forEach((battle) => {
+        if (!Array.isArray(battle.missions)) return;
+        const m0 = battle.missions[0];
+        if (m0) {
+          if (Array.isArray(m0.waves)) battle.waves = m0.waves;
+          if (m0.assumedChurchPowerupLevels) battle.assumedChurchPowerupLevels = m0.assumedChurchPowerupLevels;
+          if (typeof m0.editorNotes === "string") battle.editorNotes = m0.editorNotes;
+        }
+        delete battle.missions;
+      });
+    });
+    cfg.meta = { version: 3 };
+    delete cfg.structure?.missionsPerBattle;
+    return cfg;
+  }
+
   function normalizeConfig(raw) {
     const cfg = raw && typeof raw === "object" ? raw : {};
     // Migrate v1 data (has `levels` key, no `towns` key) to v2.
     if (Array.isArray(cfg.levels) && !Array.isArray(cfg.towns)) {
       return normalizeConfig(migrateV1toV2(cfg));
     }
+    // Migrate v2 data (battles[].missions[] nesting) to v3 (waves directly on battle).
+    const hasMissionsNesting = Array.isArray(cfg.towns) &&
+      cfg.towns.some((t) => Array.isArray(t.battles) && t.battles.some((b) => Array.isArray(b.missions)));
+    if (hasMissionsNesting || (cfg.meta?.version && cfg.meta.version < 3)) {
+      return normalizeConfig(migrateV2toV3(cfg));
+    }
     const merged = {
-      meta: { version: 2 },
+      meta: { version: 3 },
       structure: { ...deepClone(DEFAULTS.structure), ...(cfg.structure || {}) },
       globals: { ...deepClone(DEFAULTS.globals), ...(cfg.globals || {}) },
       towns: Array.isArray(cfg.towns) ? cfg.towns : [],
@@ -102,8 +129,7 @@
     while (merged.towns.length < targetTowns) {
       merged.towns.push({ index: merged.towns.length + 1, battles: [] });
     }
-    // Mission is now the only editable encounter layer per town battle bucket.
-    merged.structure.missionsPerBattle = 1;
+    delete merged.structure.missionsPerBattle;
     // Ensure new enemies show up even if they were hidden in older configs.
     if (Array.isArray(merged.globals.hiddenEnemies)) {
       merged.globals.hiddenEnemies = merged.globals.hiddenEnemies.filter(
@@ -157,7 +183,7 @@
 
   const state = {
     config: loadFromStorage(),
-    scope: { town: 1, battle: 1, mission: 1 },
+    scope: { town: 1, battle: 1 },
     mode: "explicit",
     clipboard: null, // { type: 'horde'|'wave'|'mission'|'battle', data: deepClone }
     enemyFilter: "all",
@@ -322,9 +348,8 @@
 
   function updateScopeFromSelects() {
     state.scope = {
-      town:    Number(els.town?.value)    || 1,
-      battle:  Number(els.battle?.value)  || 1,
-      mission: 1,
+      town:   Number(els.town?.value)   || 1,
+      battle: Number(els.battle?.value) || 1,
     };
   }
 
@@ -360,31 +385,23 @@
   function ensureBattle(townObj, battleIdx) {
     townObj.battles = townObj.battles || [];
     while (townObj.battles.length < battleIdx) {
-      townObj.battles.push({ index: townObj.battles.length + 1, missions: [] });
+      const idx = townObj.battles.length + 1;
+      const wavesPerBattle = state.config.structure.defaultWavesPerMission || 3;
+      townObj.battles.push({
+        index: idx,
+        assumedChurchPowerupLevels: {},
+        waves: Array.from({ length: wavesPerBattle }, (_, i) => makeDefaultWave(i + 1)),
+      });
     }
     return townObj.battles[battleIdx - 1];
   }
 
-  function ensureMission(battleObj, missionIdx) {
-    battleObj.missions = battleObj.missions || [];
-    while (battleObj.missions.length < missionIdx) {
-      const idx = battleObj.missions.length + 1;
-      const wavesPerMission = state.config.structure.defaultWavesPerMission || 3;
-      battleObj.missions.push({
-        index: idx,
-        assumedChurchPowerupLevels: {},
-        waves: Array.from({ length: wavesPerMission }, (_, i) => makeDefaultWave(i + 1)),
-      });
+  function ensureWave(battlefieldObj, waveIdx) {
+    battlefieldObj.waves = battlefieldObj.waves || [];
+    while (battlefieldObj.waves.length < waveIdx) {
+      battlefieldObj.waves.push(makeDefaultWave(battlefieldObj.waves.length + 1));
     }
-    return battleObj.missions[missionIdx - 1];
-  }
-
-  function ensureWave(missionObj, waveIdx) {
-    missionObj.waves = missionObj.waves || [];
-    while (missionObj.waves.length < waveIdx) {
-      missionObj.waves.push(makeDefaultWave(missionObj.waves.length + 1));
-    }
-    return missionObj.waves[waveIdx - 1];
+    return battlefieldObj.waves[waveIdx - 1];
   }
 
   function ensureHorde(waveObj, hordeIdx) {
@@ -395,8 +412,8 @@
     return waveObj.hordes[hordeIdx - 1];
   }
 
-  function clearEnemyFromMission(missionObj, enemyKey) {
-    const waves = Array.isArray(missionObj?.waves) ? missionObj.waves : [];
+  function clearEnemyFromBattlefield(battlefieldObj, enemyKey) {
+    const waves = Array.isArray(battlefieldObj?.waves) ? battlefieldObj.waves : [];
     waves.forEach((wave) => {
       const hordes = Array.isArray(wave?.hordes) ? wave.hordes : [];
       hordes.forEach((horde) => {
@@ -407,10 +424,10 @@
   }
 
   function getOrCreateMission() {
-    const { town, battle, mission } = state.scope;
-    const townObj    = ensureTown(town);
-    const battleObj  = ensureBattle(townObj, battle);
-    const missionObj = ensureMission(battleObj, mission);
+    const { town, battle } = state.scope;
+    const townObj      = ensureTown(town);
+    const battleObj    = ensureBattle(townObj, battle);
+    const missionObj   = battleObj; // battlefield IS the mission — no extra nesting
     if (typeof missionObj.editorNotes !== "string") missionObj.editorNotes = "";
     return { townObj, battleObj, missionObj };
   }
@@ -877,7 +894,7 @@
       if (clearBtn) {
         clearBtn.addEventListener("click", () => {
           pushUndoSnapshot();
-          clearEnemyFromMission(missionObj, key);
+          clearEnemyFromBattlefield(missionObj, key);
           saveToStorage(state.config);
           renderMissionView();
         });
@@ -1870,11 +1887,9 @@
             setStatus(`Copied ${campaignUiLabels.battle} ${battleIdx}`);
           } else if (copyType === "mission") {
             const { missionObj } = getOrCreateMission();
-            const { battle: battleIdx, mission: missionIdx } = state.scope;
-            state.clipboard = { type: "mission", data: JSON.parse(JSON.stringify(missionObj)) };
-            setStatus(
-              `Copied ${campaignUiLabels.mission} ${missionIdx} from ${campaignUiLabels.battle} ${battleIdx}`,
-            );
+            const { battle: battleIdx } = state.scope;
+            state.clipboard = { type: "battle", data: JSON.parse(JSON.stringify(missionObj)) };
+            setStatus(`Copied ${campaignUiLabels.battle} ${battleIdx}`);
           }
           updatePasteButtonState();
           closeTopMenus();
@@ -1909,20 +1924,6 @@
           setStatus(
             `Pasted ${campaignUiLabels.battle} into ${campaignUiLabels.district} ${townIdx} ${campaignUiLabels.battle} ${battleIdx}`,
           );
-        } else if (state.clipboard.type === "mission") {
-          pushUndoSnapshot();
-          const battleObj = ensureBattle(townObj, battleIdx);
-          const pasted = JSON.parse(JSON.stringify(state.clipboard.data));
-          pasted.index = missionIdx;
-          const mList = battleObj.missions;
-          const existingIdx = mList.findIndex((m) => m.index === missionIdx);
-          if (existingIdx >= 0) mList[existingIdx] = pasted;
-          else mList.push(pasted);
-          saveToStorage(state.config);
-          refreshUI();
-          setStatus(
-            `Pasted ${campaignUiLabels.mission} ${missionIdx} into ${campaignUiLabels.district} ${townIdx} ${campaignUiLabels.battle} ${battleIdx}`,
-          );
         } else if (state.clipboard.type === "horde" || state.clipboard.type === "wave") {
           setStatus("Use the column ▾ menu to paste hordes/waves", true);
         }
@@ -1941,13 +1942,9 @@
           setStatus("Play Test unavailable", true);
           return;
         }
-        const townNum = Number(state.scope.town) || 1;
-        const missionNum = Number(state.scope.mission) || 1;
-        const battleNum = Number(state.scope.battle) || 1;
         window.startDevLevelTestFromEditor({
-          town: townNum,
-          mission: missionNum,
-          battle: battleNum,
+          town: Number(state.scope.town) || 1,
+          battlefield: Number(state.scope.battle) || 1,
         });
       });
     }
@@ -2013,30 +2010,26 @@
     return Math.max(min, Math.min(max, Math.floor(raw)));
   }
 
-  // Public scope shape uses UI labels:
-  // { town, mission, battle } where mission maps to internal state.scope.battle
-  // and battle maps to internal state.scope.mission.
   function setScope(scope = {}) {
     const s = state.config?.structure || {};
     const maxTown = Math.max(1, Number(s.towns) || 10);
-    const maxMission = Math.max(1, Number(s.battlesPerTown) || 3);
-    const maxBattle = Math.max(1, Number(s.missionsPerBattle) || 1);
-    const town = clampInt(scope.town, 1, maxTown, state.scope.town || 1);
-    const mission = clampInt(scope.mission, 1, maxMission, state.scope.battle || 1);
-    const battle = clampInt(scope.battle, 1, maxBattle, state.scope.mission || 1);
+    const maxBattle = Math.max(1, Number(s.battlesPerTown) || 3);
+    // Accept both new shape { town, battle } and legacy { town, battlefield, mission }
+    const battlefieldValue = scope.battle ?? scope.battlefield ?? scope.mission;
     state.scope = {
-      town,
-      battle: mission,
-      mission: battle,
+      town:   clampInt(scope.town, 1, maxTown, state.scope.town || 1),
+      battle: clampInt(battlefieldValue, 1, maxBattle, state.scope.battle || 1),
     };
     refreshUI();
   }
 
   function getScope() {
     return {
-      town: Number(state.scope.town) || 1,
-      mission: Number(state.scope.battle) || 1,
-      battle: Number(state.scope.mission) || 1,
+      town:       Number(state.scope.town)   || 1,
+      battle:     Number(state.scope.battle) || 1,
+      // legacy aliases for external callers not yet updated
+      battlefield: Number(state.scope.battle) || 1,
+      mission:    Number(state.scope.battle) || 1,
     };
   }
 
