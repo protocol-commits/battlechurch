@@ -51,45 +51,45 @@
     // COLOR PALETTE
     // =====================
     colors: {
-      // Primary palette (used throughout HUD)
-      deepNavy: "#0A0F1F",
-      slate: "#233152",
-      ice: "#9BD9FF",
-      softWhite: "#EAF6FF",
-      gold: "#FFC86A",
-      crimson: "#FF6B6B",
-      teal: "#5FE3C0",
-      muted: "#8FA3BF",
+      // Primary palette (aligned to desolate-guest.hex / master_palette.png)
+      deepNavy: "#101024",
+      slate: "#324179",
+      ice: "#94C0D8",
+      softWhite: "#DFDFC4",
+      gold: "#DDA677",
+      crimson: "#D44E52",
+      teal: "#8BD0BA",
+      muted: "#7D6C57",
 
       // Health bar colors
-      healthFill: "#B23A3A",
-      healthLow: "rgba(255,60,60,0.65)",
-      healthFlash: "rgb(255, 200, 100)",
+      healthFill: "#B22E2E",
+      healthLow: "rgba(212,78,82,0.65)",
+      healthFlash: "#EC8A4B",
 
       // Prayer meter segment colors
-      prayerSegment1: "#14345A",
-      prayerSegment2: "#1F4F79",
-      prayerSegment3: "#2C6A99",
+      prayerSegment1: "#162C50",
+      prayerSegment2: "#324179",
+      prayerSegment3: "#3A7EBB",
 
       // Battle progress colors (maps to ice, gold, teal)
-      battleProgress: ["#9BD9FF", "#FFC86A", "#5FE3C0"],
+      battleProgress: ["#94C0D8", "#DDA677", "#8BD0BA"],
 
       // Backgrounds
-      hudPanelBg: "rgba(10,15,31,0.6)",
+      hudPanelBg: "rgba(16,16,36,0.6)",
       overlayBg: "rgba(0,0,0,0.7)",
 
       // Damage text
-      damageEnemy: "#ff7f7f",
-      damageFriendly: "#ffffff",
+      damageEnemy: "#D44E52",
+      damageFriendly: "#DFDFC4",
 
       // Speech bubbles
-      heroSpeech: "#f1f5ff",
-      npcSpeech: "#c9ffe5",
-      statusText: "#f4f8ff",
-      statusBg: "rgba(40, 52, 70, 0.9)",
+      heroSpeech: "#DFDFC4",
+      npcSpeech: "#8BD0BA",
+      statusText: "#DFDFC4",
+      statusBg: "rgba(35,26,91,0.9)",
 
       // Name tags
-      nameTag: "#FFC86A",
+      nameTag: "#DDA677",
     },
 
     // =====================
@@ -172,7 +172,7 @@
           dividerY: 78,
           primaryY: 94,
           secondaryY: 124,
-          primaryColor: "#F2C87D",
+          primaryColor: "#DDA677",
           secondaryColor: "#E7B066",
           primaryFontSize: 17,
           secondaryFontSize: 14,

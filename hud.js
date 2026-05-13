@@ -32,7 +32,9 @@
   function drawOutlinedText(ctx, text, x, y, font, align, fillColor) {
     ctx.font = font;
     ctx.textAlign = align;
-    ctx.fillStyle = fillColor || '#EAF6FF';
+    const fallbackSoftWhite =
+      (typeof UIStyles !== "undefined" && UIStyles.colors?.softWhite) || "#DFDFC4";
+    ctx.fillStyle = fillColor || fallbackSoftWhite;
     ctx.fillText(text, x, y);
   }
 
@@ -67,14 +69,14 @@
 
     // Use centralized styles if available, fallback to inline
     const PALETTE = (typeof UIStyles !== 'undefined' && UIStyles.colors) ? UIStyles.colors : {
-      deepNavy: "#0A0F1F",
-      slate: "#233152",
-      ice: "#9BD9FF",
-      softWhite: "#EAF6FF",
-      gold: "#FFC86A",
-      crimson: "#FF6B6B",
-      teal: "#5FE3C0",
-      muted: "#8FA3BF",
+      deepNavy: "#101024",
+      slate: "#324179",
+      ice: "#94C0D8",
+      softWhite: "#DFDFC4",
+      gold: "#DDA677",
+      crimson: "#D44E52",
+      teal: "#8BD0BA",
+      muted: "#7D6C57",
     };
 
     if (typeof window !== 'undefined') {
@@ -1378,7 +1380,7 @@
       const btnW = panelWidth;
       ctx.fillStyle = 'rgba(180,60,20,0.85)';
       roundRect(ctx, panelX, btnY, btnW, btnH, 7, true, false);
-      ctx.fillStyle = '#ffe4a8';
+      ctx.fillStyle = PALETTE.gold;
       ctx.font = `700 11px ${UI_FONT_FAMILY}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1534,7 +1536,7 @@
       const textX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
       const textY = Number.isFinite(window.__comboFeedFixedY) ? window.__comboFeedFixedY : (hudHeight + 34);
       const chainSize = 24;
-      const chainColor = window.__hudComboDisplay?.color || "#FFF2B8";
+      const chainColor = window.__hudComboDisplay?.color || PALETTE.softWhite;
       const rowHeight = chainSize + 18;
       const fadeStart = COMBO_LIFETIME_MS * 0.55;
       const liveCombos = combos
@@ -1670,7 +1672,7 @@
       ctx.globalAlpha = alpha;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillStyle = "#F2C87D";
+      ctx.fillStyle = PALETTE.gold;
       ctx.font = `800 26px ${UI_FONT_FAMILY}`;
       ctx.shadowColor = "rgba(20, 6, 4, 0.92)";
       ctx.shadowBlur = 4;
@@ -1690,7 +1692,7 @@
           ctx.lineWidth = 1.2;
           roundRect(ctx, tx, tokenCenterY - PILL_H / 2, PILL_W, PILL_H, 5, true, true);
           // Letter
-          ctx.fillStyle = "#ffffff";
+          ctx.fillStyle = PALETTE.softWhite;
           ctx.font = `800 11px ${UI_FONT_FAMILY}`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";

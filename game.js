@@ -455,7 +455,7 @@ const devStatus = { text: "", timer: 0 };
 const weaponPickupAnnouncement = {
   title: "",
   description: "",
-  color: "#EAF6FF",
+  color: "#DFDFC4",
   timer: 0,
   duration: 0,
 };
@@ -4237,7 +4237,9 @@ const BLITZ_DAMAGE = _gb("rush.blitzDamage", RUSH_DAMAGE + SWORD_RUSH_BLAST_DAMA
 const CANVAS_BASE_WIDTH = 1280;
 const CANVAS_BASE_HEIGHT = 720;
 const HUD_HEIGHT = 43;
-const UI_FONT_FAMILY = "'Orbitron', sans-serif";
+const UI_FONT_FAMILY =
+  (typeof window !== "undefined" && window.UIStyles?.fonts?.primary) ||
+  "'Orbitron', sans-serif";
 
 // Debug overlay toggle (DEV-ONLY)
 const DEBUG = true;
@@ -5769,7 +5771,7 @@ function resolveSwatchColor(propertyName, fallback) {
     return fallback;
   }
 }
-const GRACE_FLOAT_TEXT_COLOR = resolveSwatchColor("--swatch-accent-2", "#9BD9FF");
+const GRACE_FLOAT_TEXT_COLOR = resolveSwatchColor("--swatch-accent-2", "#94C0D8");
 const NPC_FAITH_BORDER_COLOR = resolveSwatchColor("--swatch-light", "rgba(255, 255, 255, 0.25)");
 const NPC_HURT_VARIANT_REMAP = {
   overalls: "overall",
@@ -6527,7 +6529,7 @@ function setWeaponPickupAnnouncement({ title, description, color, duration } = {
   if (!title && !description) return;
   weaponPickupAnnouncement.title = title || "";
   weaponPickupAnnouncement.description = description || "";
-  weaponPickupAnnouncement.color = color || "#EAF6FF";
+  weaponPickupAnnouncement.color = color || "#DFDFC4";
   weaponPickupAnnouncement.duration = Number.isFinite(duration) ? duration : 2.6;
   weaponPickupAnnouncement.timer = weaponPickupAnnouncement.duration;
 }
@@ -10135,7 +10137,7 @@ function applyWeaponPickupEffect(pickup) {
         typeof def.healAmount === "number" ? def.healAmount : Math.round(HERO_HEALTH_PER_HEART);
       player.health = Math.min(player.maxHealth, player.health + healAmount);
       addStatusText(player, "Health Up!", {
-        color: "#5FE3C0",
+        color: "#8BD0BA",
         bgColor: "rgba(30, 70, 50, 0.85)",
         life: 1.8,
       });
@@ -10309,7 +10311,7 @@ function applyWeaponPickupEffect(pickup) {
       triggerNpcPowerupDialogue("npcWisdomWeapon");
       showWeaponPowerupConfigText({
         text: "Apply Wisdom",
-        textColor: "#9BD9FF",
+        textColor: "#94C0D8",
         description: "NPCs launch wisdom missiles temporarily.",
         spokenName: "Wisdom",
       });
@@ -10367,7 +10369,7 @@ function applyUtilityPowerUp(powerUp) {
   setWeaponPickupAnnouncement({
     title: utilityTitle,
     description: powerUp.definition.description || "",
-    color: powerUp.definition.color || "#EAF6FF",
+    color: powerUp.definition.color || "#DFDFC4",
   });
   playerYell(utilitySpokenName, 3.2);
   switch (effect) {
@@ -13062,7 +13064,7 @@ function shouldEnemyHuntNpcs(type, config = {}) {
   return false;
 }
 
-function drawPickupLabel(context, text, x, y, color = "#EAF6FF") {
+function drawPickupLabel(context, text, x, y, color = "#DFDFC4") {
   if (!context || !text) return;
   context.save();
   context.font = `12px ${UI_FONT_FAMILY}`;
@@ -13083,7 +13085,7 @@ const POWERUP_ICON_STYLES = {
 };
 const POWERUP_ICON_OUTLINE = "rgba(10, 15, 31, 0.7)";
 const POWERUP_ICON_HIGHLIGHT = "rgba(255, 215, 64, 0.95)";
-const POWERUP_ICON_TEXT_COLOR = "#EAF6FF";
+const POWERUP_ICON_TEXT_COLOR = "#DFDFC4";
 
 function resolvePowerupIconCategory(effect = "") {
   if (String(effect).startsWith("npc")) return "npc";
@@ -13840,7 +13842,7 @@ class CozyNpc {
     this.animator.setState("walk", { restart: true });
     this.animator.setMoving(true);
     this.updateFaithVisibility(true);
-    this.setStatusBubble("I'm outta here!", { color: "#FF6B6B", persist: true, critical: true });
+    this.setStatusBubble("I'm outta here!", { color: "#D44E52", persist: true, critical: true });
     if (typeof captureNpcPortrait === "function") {
       this.pendingLossPortrait = captureNpcPortrait(this);
     } else {
@@ -13858,7 +13860,7 @@ class CozyNpc {
     this.animator.setMoving(true);
     this.updateFaithVisibility(this.faith < this.maxFaith);
     const returnLine = randomChoice(NPC_RETURN_LINES) || "I'm heading back.";
-    this.setStatusBubble(returnLine, { color: "#9BD9FF", duration: 2.6 });
+    this.setStatusBubble(returnLine, { color: "#94C0D8", duration: 2.6 });
     this.pendingLossPortrait = null;
     this.lossRecorded = false;
     if (announce && this.recoveryTextCooldown <= 0) {
@@ -14129,7 +14131,7 @@ class CozyNpc {
   // Visual debug: floating text showing faith lost
     try {
       showDamage(this, scaledLoss, {
-        color: "#EAF6FF",
+        color: "#DFDFC4",
         fadeDelay: 0.5,
       });
     } catch (e) {}
@@ -14161,7 +14163,7 @@ class CozyNpc {
     this.faithBarVisible = force || this.faith < this.maxFaith || this.state !== "wander";
   }
 
-  setStatusBubble(message, { color = "#EAF6FF", duration = 2.5, persist = false, critical = false } = {}) {
+  setStatusBubble(message, { color = "#DFDFC4", duration = 2.5, persist = false, critical = false } = {}) {
     if (this.statusBubble) this.statusBubble.life = 0;
     if (!message) {
       this.statusBubble = null;
@@ -16155,7 +16157,7 @@ class BossEncounter {
     const defaultDamageOffset =
       (hpBar?.offsetY || 0) + (hpBar?.height || 0) / 2;
     showDamage(this, amount, {
-      color: damageText?.color || "#FF6B6B",
+      color: damageText?.color || "#D44E52",
       fontSize: damageText?.fontSize || null,
       fontWeight: damageText?.fontWeight || null,
       offsetY:
@@ -16521,7 +16523,7 @@ class BossEncounter {
     context.globalAlpha *= Math.max(0, Math.min(1, alpha));
     context.fillStyle = "rgba(10,15,31,0.6)";
     context.lineWidth = 2.5;
-    context.strokeStyle = "#9BD9FF";
+    context.strokeStyle = "#94C0D8";
     roundRect(context, barX, barY, width, height, 6, true, true);
     const fillWidth = Math.max(0, Math.floor((width - 4) * ratio));
     if (fillWidth > 0) {
@@ -16544,7 +16546,7 @@ class BossEncounter {
       }
     }
     context.font = `12px ${UI_FONT_FAMILY}`;
-    context.fillStyle = "#EAF6FF";
+    context.fillStyle = "#DFDFC4";
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillText(label, barX + width / 2, barY + height / 2 + 1);
@@ -18320,7 +18322,7 @@ function applyHeartToEntity(entity, options = {}) {
       heroSay("Welcome!", { life: 1.8 });
       visitorWelcomeSayCooldown = 2.5;
     }
-    addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Welcome +1", "#5FE3C0", {
+    addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Welcome +1", "#8BD0BA", {
       life: 0.6,
       vy: -18,
     });
@@ -18346,7 +18348,7 @@ function applyHeartToEntity(entity, options = {}) {
       if (isActiveChatty) {
         try {
           if (typeof entity.animator?.flash === "function") {
-            entity.animator.flash({ color: "#9BD9FF", duration: 0.35, intensity: 1.6 });
+            entity.animator.flash({ color: "#94C0D8", duration: 0.35, intensity: 1.6 });
           }
         } catch (e) {}
         spawnMagicImpactEffect(entity.x, entity.y - (entity.radius || 26) / 2);
@@ -18398,7 +18400,7 @@ function boostVisitorFaithFromPrayerBomb(ratio = 0.5) {
     guest.faith = nextFaith;
     guest.highlightTimer = 0.6;
     const percent = Math.round((gain / maxFaith) * 100);
-    addFloatingTextAt(guest.x, guest.y - guest.radius - 24, `Prayer Boost +${percent}%`, "#EAF6FF", {
+    addFloatingTextAt(guest.x, guest.y - guest.radius - 24, `Prayer Boost +${percent}%`, "#DFDFC4", {
       life: 0.9,
       vy: -14,
     });
@@ -19835,7 +19837,7 @@ function updatePlayerRespawn(dt) {
   respawnIndicatorTimer -= dt;
   if (player && respawnIndicatorTimer <= 0) {
     addStatusText(player, "Exhausted", {
-      color: "#FF6B6B",
+      color: "#D44E52",
       bgColor: "rgba(60, 20, 20, 0.88)",
       life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
       offsetY: player.radius + 34,
@@ -22546,7 +22548,7 @@ function getChainLabelColor(hits) {
   if (tier >= 4) return "#FFF0C9";
   if (tier >= 3) return "#FFE6A3";
   if (tier >= 2) return "#FFD982";
-  if (tier >= 1) return "#FFF2B8";
+  if (tier >= 1) return "#DFDFC4";
   return "#E4D6B2";
 }
 
@@ -22564,7 +22566,7 @@ function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
   const crossedMilestone = newMilestone > prevMilestone && newMilestone > 0;
   hudComboDisplay = {
     labelText,
-    color: color || "#FFF2B8",
+    color: color || "#DFDFC4",
     fontSize: fontSize || 32,
     updatedAt: now,
     expiresAt: now + (Number.isFinite(durationMs) ? durationMs : 1100),
@@ -24279,7 +24281,7 @@ function updateDivineShotKillLabel(meleeAttackState, now) {
   }
   const labelX = clampedSx + cameraOffsetX;
   const labelY = clampedSy;
-  let textColor = "#FFF2B8";
+  let textColor = "#DFDFC4";
   if (Number.isFinite(meleeAttackState.divineKillFadeStartAt)) {
     const fadeMs = 700;
     const t = Math.max(0, Math.min(1, (now - meleeAttackState.divineKillFadeStartAt) / fadeMs));
@@ -27329,7 +27331,7 @@ function onPlayerDeath() {
       respawnIndicatorTimer = 0;
       if (player) {
         addStatusText(player, "Exhausted", {
-          color: "#FF6B6B",
+          color: "#D44E52",
           bgColor: "rgba(60, 20, 20, 0.88)",
           life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
           offsetY: player.radius + 34,
@@ -27886,7 +27888,7 @@ async function init() {
     ctx.save();
     ctx.fillStyle = "#0b0e16";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#FF6B6B";
+    ctx.fillStyle = "#D44E52";
     ctx.font = `28px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.fillText("Failed to start Battlefield Church", canvas.width / 2, canvas.height / 2 - 20);

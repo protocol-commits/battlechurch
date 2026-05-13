@@ -174,7 +174,7 @@ const MELEE_SWING_LENGTH = 260;
     ctx.font = `12px ${fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#FFC86A';
+    ctx.fillStyle = '#DDA677';
     ctx.fillText(name, x, y);
     ctx.restore();
   }
@@ -464,7 +464,7 @@ const MELEE_SWING_LENGTH = 260;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.globalAlpha = fadeAlpha;
-      ctx.fillStyle = "#EAF6FF";
+      ctx.fillStyle = "#DFDFC4";
       ctx.strokeStyle = "rgba(8, 12, 20, 0.8)";
       ctx.lineWidth = 3;
       ctx.lineJoin = "round";
@@ -605,7 +605,7 @@ const MELEE_SWING_LENGTH = 260;
     ctx.rotate((haloState.angle || 0) + Math.PI / 2 + spin);
     ctx.globalAlpha = 0.95 * fadeAlpha;
     ctx.globalCompositeOperation = "lighter";
-    ctx.shadowColor = "#9BD9FF";
+    ctx.shadowColor = "#94C0D8";
     ctx.shadowBlur = 28;
     ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
     ctx.shadowColor = "#E6F6FF";
@@ -1151,7 +1151,7 @@ const MELEE_SWING_LENGTH = 260;
     // "Announcement Text" refers to this renderer's font/size/wrap style.
     // "Announcement Text Engine" means this renderer at full-width on the main canvas.
     const wrapText = (text, maxWidth) => wrapAnnouncementText(ctx, text, maxWidth);
-    const titleColor = textPalette?.title || "#EAF6FF";
+    const titleColor = textPalette?.title || "#DFDFC4";
     const subtitleColor = textPalette?.subtitle || titleColor;
     const shadowColor = textPalette?.shadow || "rgba(6, 10, 18, 0.85)";
     ctx.save();
@@ -1999,7 +1999,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
 
   if (!showFormation && promptText && promptY) {
     ctx.save();
-    ctx.fillStyle = "#EAF6FF";
+    ctx.fillStyle = "#DFDFC4";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
     ctx.font = `${TEXT_STYLES.h2.weight} ${promptSize}px 'Orbitron', sans-serif`;
@@ -3082,7 +3082,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const sign = numeric >= 0 ? "+" : "-";
     return `${sign}${formatNumber(Math.abs(numeric))}`;
   };
-  const baseLabelColor = "#EAF6FF";
+  const baseLabelColor = "#DFDFC4";
   const highlightLabelColor = "#FFD978";
   const highlightValueColor = "#FFD978";
   const highlightValueFlash = "#FFE5A6";
@@ -3854,7 +3854,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const graceChunks = String(lineText).split("\n");
       const wrapped = graceChunks.flatMap((chunk) => wrapText(ctx, chunk, contentWidth));
       wrapped.forEach((textLine) => {
-        ctx.fillStyle = "#EAF6FF";
+        ctx.fillStyle = "#DFDFC4";
         ctx.fillText(textLine, contentX, cursorY);
         cursorY += lineSpacing;
       });
@@ -4295,7 +4295,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const graceText = `Grace Available: ${graceCount}`;
   const graceY = baseButtonY + 10;
   ctx.save();
-  ctx.fillStyle = "#FFC86A";
+  ctx.fillStyle = "#DDA677";
   ctx.font = `${TEXT_STYLES.h2.weight} ${TEXT_STYLES.h2.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
@@ -5240,8 +5240,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       typeof UIStyles !== "undefined" && UIStyles && UIStyles.colors
         ? UIStyles.colors
         : {};
-    const counterFill = paletteColors.teal || "#5FE3C0";
-    const counterStroke = paletteColors.deepNavy || "#0A0F1F";
+    const counterFill = paletteColors.teal || "#8BD0BA";
+    const counterStroke = paletteColors.deepNavy || "#101024";
 
     ctx.save();
     ctx.textAlign = "center";
@@ -5743,7 +5743,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const flashScale = 1 + flashPulse * 0.35;
     const baseSize = Math.round(display.fontSize || 32);
     const drawSize = Math.round(baseSize * flashScale);
-    const drawColor = flashPulse > 0 ? "#FFFFFF" : (display.color || "#FFF2B8");
+    const drawColor = flashPulse > 0 ? "#FFFFFF" : (display.color || "#DFDFC4");
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, shake.x, shake.y);
     ctx.textAlign = "left";
@@ -5956,11 +5956,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.lineWidth = 1;
           roundRect(ctx, keyX, keyY, keyWidth, keyHeight, 8, true, true);
 
-          ctx.fillStyle = active ? "#FFFFFF" : "#EAF6FF";
+          ctx.fillStyle = active ? "#FFFFFF" : "#DFDFC4";
           ctx.font = `700 11px ${UI_FONT_FAMILY}`;
           ctx.fillText(item.key, keyX + 8, startY + buttonHeight / 2 + 0.5);
 
-          ctx.fillStyle = active ? "#FFE2A3" : "#FFC86A";
+          ctx.fillStyle = active ? "#FFE2A3" : "#DDA677";
           ctx.font = `600 12px ${UI_FONT_FAMILY}`;
           ctx.fillText(item.action, keyX + keyWidth + 10, startY + buttonHeight / 2 + 0.5);
 
@@ -6181,7 +6181,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (remainingSeconds > 0) {
         ctx.save();
         ctx.globalAlpha = 0.32;
-        ctx.fillStyle = "#EAF6FF";
+        ctx.fillStyle = "#DFDFC4";
         const fontSize = Math.min(canvas.width, canvas.height) * 0.45;
         ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
@@ -6273,14 +6273,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const colors =
       (typeof UIStyles !== "undefined" && UIStyles.colors) || {};
     return {
-      bg: colors.deepNavy || "#0A0F1F",
-      frame: colors.slate || "#233152",
-      sword: colors.gold || "#FFC86A",
-      swordGlow: colors.softWhite || "#EAF6FF",
-      dash: colors.ice || "#9BD9FF",
-      dashGlow: colors.teal || "#5FE3C0",
-      prayer: colors.softWhite || "#EAF6FF",
-      prayerGlow: colors.gold || "#FFC86A",
+      bg: colors.deepNavy || "#101024",
+      frame: colors.slate || "#324179",
+      sword: colors.gold || "#DDA677",
+      swordGlow: colors.softWhite || "#DFDFC4",
+      dash: colors.ice || "#94C0D8",
+      dashGlow: colors.teal || "#8BD0BA",
+      prayer: colors.softWhite || "#DFDFC4",
+      prayerGlow: colors.gold || "#DDA677",
     };
   }
 
@@ -6752,13 +6752,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   // Removed dark translucent overlay for Mission Brief popup
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#EAF6FF';
+    ctx.fillStyle = '#DFDFC4';
     ctx.font = `44px ${UI_FONT_FAMILY}`;
     const howToPlayTitle = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'About';
     ctx.fillText(howToPlayTitle, canvas.width / 2, HUD_HEIGHT + 60);
 
     ctx.font = `18px ${UI_FONT_FAMILY}`;
-    ctx.fillStyle = '#EAF6FF';
+    ctx.fillStyle = '#DFDFC4';
     const lines = [
       'Move with WASD, aim with arrow keys or mouse.',
       'Prayer Meter holds 6 Prayers: Purge costs 2, Smite costs 6.',
@@ -6783,7 +6783,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const cx = canvas.width / 2;
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#EAF6FF';
+    ctx.fillStyle = '#DFDFC4';
     ctx.font = `48px ${UI_FONT_FAMILY}`;
     const title = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to Play';
     ctx.fillText(title, cx, HUD_HEIGHT + 66);
@@ -6816,7 +6816,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     function drawMoveSection(label, list, startX, startY) {
       ctx.textAlign = 'left';
       ctx.font = `bold 13px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = '#FFC86A';
+      ctx.fillStyle = '#DDA677';
       ctx.fillText(label.toUpperCase(), startX, startY);
 
       let ry = startY + 16;
@@ -6826,7 +6826,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillRect(startX, ry, colW, ROW_H - 4);
 
         ctx.font = `bold 13px ${UI_FONT_FAMILY}`;
-        ctx.fillStyle = '#FFC86A';
+        ctx.fillStyle = '#DDA677';
         ctx.fillText(move.publicName, startX + 8, ry + 15);
 
         ctx.font = `12px ${UI_FONT_FAMILY}`;
@@ -6901,7 +6901,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.textAlign = "center";
-    ctx.fillStyle = label === "FIGHT!" ? "#FFC86A" : "#EAF6FF";
+    ctx.fillStyle = label === "FIGHT!" ? "#DDA677" : "#DFDFC4";
     const fontSize = label === "FIGHT!" ? 64 : 72;
     ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
     ctx.fillText(label, canvas.width / 2, canvas.height / 2);
@@ -7095,7 +7095,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.strokeStyle = focused ? "rgba(242, 200, 125, 0.7)" : "rgba(242, 200, 125, 0.22)";
         ctx.lineWidth = 1.5;
         roundRect(ctx, ax, ay, arrowW, arrowW, 8, true, true);
-        ctx.fillStyle = focused ? "#F2C87D" : "rgba(242, 200, 125, 0.55)";
+        ctx.fillStyle = focused ? "#DDA677" : "rgba(242, 200, 125, 0.55)";
         ctx.font = `600 17px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -7273,7 +7273,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
-  function drawFocusRing(ctx, x, y, width, height, radius, color = "#FFC86A") {
+  function drawFocusRing(ctx, x, y, width, height, radius, color = "#DDA677") {
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const pulse = (Math.sin(now * 0.01) + 1) / 2;
     const glowAlpha = 0.65 + 0.35 * pulse;
@@ -7333,7 +7333,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   });
 
   const HELLFIRE_TEXT_PALETTE = Object.freeze({
-    title: "#F2C87D",
+    title: "#DDA677",
     subtitle: "#E7B066",
     shadow: "rgba(20, 6, 4, 0.92)",
   });
@@ -8662,7 +8662,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.lineWidth = focused ? 2 : 1;
           roundRect(ctx, ax, actionY, actionBtnW, ACTION_H, 10, true, true);
 
-          ctx.fillStyle = isPrimary ? "#ffe4a8" : isBack ? "rgba(253,241,217,0.55)" : EMBER_BUTTON_PALETTE.text;
+          ctx.fillStyle = isPrimary ? "#DDA677" : isBack ? "rgba(253,241,217,0.55)" : EMBER_BUTTON_PALETTE.text;
           ctx.font = `700 12px ${UI_FONT_FAMILY}`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
@@ -9001,7 +9001,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         y: totalHeight,
         size: bodySize,
         weight: TEXT_STYLES.body.weight,
-        color: "#EAF6FF",
+        color: "#DFDFC4",
       });
       totalHeight += bodySize * lineHeight;
     });
@@ -9048,7 +9048,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         default: // credit
           size = bodySize;
           weight = TEXT_STYLES.body.weight;
-          color = "#EAF6FF";
+          color = "#DFDFC4";
       }
 
       renderItems.push({
@@ -9129,7 +9129,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowColor = "rgba(6, 10, 18, 0.9)";
       ctx.shadowBlur = 12;
       ctx.font = `600 ${scoreTextSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
-      ctx.fillStyle = "#EAF6FF";
+      ctx.fillStyle = "#DFDFC4";
       ctx.fillText(latestText, rightX, topY);
       ctx.restore();
     }
@@ -9215,11 +9215,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lines = [
         { type: "heading", text: `Foothold Established in ${districtName}`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
-        { type: "body", text: "The enemy has been driven back.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "Ground has been taken in hostile territory.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "The enemy has been driven back.", size: bodySize, color: "#DFDFC4" },
+        { type: "body", text: "Ground has been taken in hostile territory.", size: bodySize, color: "#DFDFC4" },
         { type: "spacer", height: 30 },
-        { type: "body", text: "You leave behind a garrison to hold the line,", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "and a commander to keep the advance going.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "You leave behind a garrison to hold the line,", size: bodySize, color: "#DFDFC4" },
+        { type: "body", text: "and a commander to keep the advance going.", size: bodySize, color: "#DFDFC4" },
         { type: "spacer", height: 50 },
         { type: "score", text: `Troops at Handoff: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
@@ -9230,11 +9230,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lines = [
         { type: "heading", text: `${phaseLabel} of ${districtName} Secured`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
-        { type: "body", text: "You returned to reinforce the position you seized.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "Under renewed assault, the garrison held firm.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "You returned to reinforce the position you seized.", size: bodySize, color: "#DFDFC4" },
+        { type: "body", text: "Under renewed assault, the garrison held firm.", size: bodySize, color: "#DFDFC4" },
         { type: "spacer", height: 30 },
-        { type: "body", text: "The district is falling further under your control.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "Resistance across the region is weakening.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "The district is falling further under your control.", size: bodySize, color: "#DFDFC4" },
+        { type: "body", text: "Resistance across the region is weakening.", size: bodySize, color: "#DFDFC4" },
         { type: "spacer", height: 50 },
         { type: "score", text: `Strength After Occupation: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
@@ -9245,11 +9245,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lines = [
         { type: "heading", text: `${districtName} Fully Fortified`, size: headingSize, color: "#ffd978" },
         { type: "spacer", height: 50 },
-        { type: "body", text: "Your return hardened the garrison into a fighting force.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "This position is no longer holding. It is advancing.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "Your return hardened the garrison into a fighting force.", size: bodySize, color: "#DFDFC4" },
+        { type: "body", text: "This position is no longer holding. It is advancing.", size: bodySize, color: "#DFDFC4" },
         { type: "spacer", height: 30 },
-        { type: "body", text: "The commander and troops stand ready to support the next push.", size: bodySize, color: "#EAF6FF" },
-        { type: "body", text: "Another district can now be strengthened from here.", size: bodySize, color: "#EAF6FF" },
+        { type: "body", text: "The commander and troops stand ready to support the next push.", size: bodySize, color: "#DFDFC4" },
+        { type: "body", text: "Another district can now be strengthened from here.", size: bodySize, color: "#DFDFC4" },
         { type: "spacer", height: 50 },
         { type: "score", text: `Strength After Fortification: ${score}`, size: scoreSize, color: "#ffd978" },
         { type: "spacer", height: 40 },
@@ -10165,7 +10165,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const radius = Math.max(6, Math.floor(entry.height / 2));
       ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
       roundRect(ctx, entry.x, entry.y, entry.width, entry.height, radius, true, false);
-      ctx.fillStyle = typeof NPC_FAITH_FILL_COLOR !== "undefined" ? NPC_FAITH_FILL_COLOR : "#9BD9FF";
+      ctx.fillStyle = typeof NPC_FAITH_FILL_COLOR !== "undefined" ? NPC_FAITH_FILL_COLOR : "#94C0D8";
       const fillW = Math.max(0, entry.width - 4) * entry.ratio;
       if (fillW > 0) {
         roundRect(
@@ -11466,7 +11466,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const drawY = entry.y - cameraOffsetY + (sharedShakeOffset?.y || 0);
       const label = formatNumber(entry.hp || 0);
       ctx.strokeText(label, drawX, drawY);
-      ctx.fillStyle = "#ff6b6b";
+      ctx.fillStyle = "#D44E52";
       ctx.fillText(label, drawX, drawY);
     });
     ctx.restore();
