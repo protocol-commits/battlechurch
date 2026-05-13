@@ -225,6 +225,8 @@ const MELEE_SWING_LENGTH = 260;
       // Default to desolate danger red for smoke tinting.
       tint: String(cfg.tint || "#D44E52"),
       debugVisible: cfg.debugVisible === true,
+      wave3StageMultiplier: Math.max(0.1, Number(cfg.wave3StageMultiplier) || 1.35),
+      bossStageMultiplier: Math.max(0.1, Number(cfg.bossStageMultiplier) || 1.8),
     };
   }
 
@@ -324,11 +326,28 @@ const MELEE_SWING_LENGTH = 260;
       : Math.max(0, Math.min(0.05, nowSec - ambientSmokeState.lastNowSec));
     ambientSmokeState.lastNowSec = nowSec;
 
+    const levelStatus = bindings.levelManager?.getStatus?.() || null;
+    const stageName = levelStatus?.stage || "";
+    const waveNumber = Math.max(1, Number(levelStatus?.waveNum) || Number(levelStatus?.wave) || 1);
+    const bossSmokeStage =
+      stageName === "bossIntro" ||
+      stageName === "bossActive" ||
+      stageName === "bossVictoryCelebrate";
+    const wave3SmokeStage = !bossSmokeStage && waveNumber >= 3;
+    const stageSmokeMultiplier = bossSmokeStage
+      ? config.bossStageMultiplier
+      : wave3SmokeStage
+        ? config.wave3StageMultiplier
+        : 1;
+    const stageMaxPuffs = Math.max(0, Math.round(config.maxPuffs * stageSmokeMultiplier));
+    const stageSpawnPerSecond = Math.max(0, config.spawnPerSecond * stageSmokeMultiplier);
+    const stageAlphaMultiplier = 1 + Math.max(0, stageSmokeMultiplier - 1) * 0.85;
+
     if (!freezeSmoke) {
-      ambientSmokeState.spawnCarry += config.spawnPerSecond * dt;
+      ambientSmokeState.spawnCarry += stageSpawnPerSecond * dt;
       let toSpawn = Math.floor(ambientSmokeState.spawnCarry);
       ambientSmokeState.spawnCarry -= toSpawn;
-      const capacity = Math.max(0, config.maxPuffs - ambientSmokeState.puffs.length);
+      const capacity = Math.max(0, stageMaxPuffs - ambientSmokeState.puffs.length);
       toSpawn = Math.min(toSpawn, capacity);
       for (let i = 0; i < toSpawn; i += 1) {
         spawnAmbientSmokePuff(canvas, config, effectiveCameraY);
@@ -364,7 +383,7 @@ const MELEE_SWING_LENGTH = 260;
       const lifeT = clamp01(p.life / Math.max(0.001, p.maxLife));
       const fadeIn = clamp01((1 - lifeT) / 0.22);
       const fadeOut = clamp01(lifeT / 0.92);
-      const alpha = p.alpha * fadeIn * fadeOut;
+      const alpha = p.alpha * fadeIn * fadeOut * stageAlphaMultiplier;
       if (alpha <= 0.002) continue;
       const r = p.size;
       const tint = parseHexToRgb(p.tint);
@@ -395,7 +414,7 @@ const MELEE_SWING_LENGTH = 260;
       ctx.font = "700 14px monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillText(`SMOKE ${puffs.length}/${config.maxPuffs}`, 12, canvas.height - 24);
+      ctx.fillText(`SMOKE ${puffs.length}/${stageMaxPuffs}`, 12, canvas.height - 24);
     }
     ctx.restore();
   }
@@ -10841,23 +10860,32 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha +
       (ashMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
+    const waveSmokeTuning = requireBindings().waveSmokeTuning || {};
     if (ashOverlay && typeof ashOverlay.draw === "function") {
-      const baseParticleCount = bossPhase3TargetActive ? 190 : (maxHeatEmberBoost ? 180 : 150);
+      const baseParticleCount = bossPhase3TargetActive
+        ? Math.max(40, Math.round(Number(waveSmokeTuning.bossParticleCount) || 190))
+        : maxHeatEmberBoost
+          ? Math.max(40, Math.round(Number(waveSmokeTuning.wave3ParticleCount) || 180))
+          : Math.max(40, Math.round(Number(waveSmokeTuning.baseParticleCount) || 150));
       const targetParticleCount = preserveEmberComposition
         ? (Number.isFinite(ashEmberTuneState.particleCount) ? ashEmberTuneState.particleCount : baseParticleCount)
         : Math.max(
             40,
             Math.round(baseParticleCount * victoryHeatFadeRatio),
           );
-      const phase3EmberRatio = 0.72;
-      const nonPhase3EmberRatio = maxHeatEmberBoost ? 0.82 : 0.72;
+      const phase3EmberRatio = Math.max(0, Math.min(1, Number(waveSmokeTuning.bossEmberRatio) || 0.9));
+      const nonPhase3EmberRatio = maxHeatEmberBoost
+        ? Math.max(0, Math.min(1, Number(waveSmokeTuning.wave3EmberRatio) || 0.82))
+        : Math.max(0, Math.min(1, Number(waveSmokeTuning.baseEmberRatio) || 0.72));
       const baseEmberRatio =
         nonPhase3EmberRatio + (phase3EmberRatio - nonPhase3EmberRatio) * bossPhase3HeatBlend;
       const targetEmberRatio = preserveEmberComposition
         ? (Number.isFinite(ashEmberTuneState.emberRatio) ? ashEmberTuneState.emberRatio : baseEmberRatio)
         : Math.max(0.12, baseEmberRatio * victoryHeatFadeRatio);
-      const phase3Intensity = 1.72;
-      const nonPhase3Intensity = maxHeatEmberBoost ? 1.85 : 1.52;
+      const phase3Intensity = Math.max(0.1, Number(waveSmokeTuning.bossIntensity) || 1.72);
+      const nonPhase3Intensity = maxHeatEmberBoost
+        ? Math.max(0.1, Number(waveSmokeTuning.wave3Intensity) || 1.55)
+        : Math.max(0.1, Number(waveSmokeTuning.baseIntensity) || 1.32);
       const baseIntensity =
         nonPhase3Intensity + (phase3Intensity - nonPhase3Intensity) * bossPhase3HeatBlend;
       const targetIntensity = Math.max(0.2, baseIntensity * victoryHeatFadeRatio);

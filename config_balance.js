@@ -250,6 +250,19 @@
       sideBandRatio: 0.24,
       tint: "#D44E52",
       debugVisible: false,
+      // Battle ash/ember tuning by escalation tier.
+      baseParticleCount: 150,
+      wave3ParticleCount: 180,
+      bossParticleCount: 190,
+      baseEmberRatio: 0.72,
+      wave3EmberRatio: 0.82,
+      bossEmberRatio: 0.9,
+      baseIntensity: 1.32,
+      wave3Intensity: 1.55,
+      bossIntensity: 1.72,
+      // Red puff multipliers for ambient smoke itself.
+      wave3StageMultiplier: 1.85,
+      bossStageMultiplier: 2.8,
     },
 
     // =====================

@@ -4553,6 +4553,19 @@ const AMBIENT_SMOKE_CONFIG = Object.freeze({
   sideBandRatio: Math.max(0.02, Math.min(0.5, Number(_gb("ambientSmoke.sideBandRatio", 0.16)) || 0.16)),
   tint: String(_gb("ambientSmoke.tint", "#D44E52") || "#D44E52"),
   debugVisible: Boolean(_gb("ambientSmoke.debugVisible", false)),
+  wave3StageMultiplier: Math.max(0.1, Number(_gb("ambientSmoke.wave3StageMultiplier", 1.35)) || 1.35),
+  bossStageMultiplier: Math.max(0.1, Number(_gb("ambientSmoke.bossStageMultiplier", 1.8)) || 1.8),
+});
+const WAVE_SMOKE_TUNING = Object.freeze({
+  baseParticleCount: Math.max(40, Math.round(Number(_gb("ambientSmoke.baseParticleCount", 150)) || 150)),
+  wave3ParticleCount: Math.max(80, Math.round(Number(_gb("ambientSmoke.wave3ParticleCount", 290)) || 290)),
+  bossParticleCount: Math.max(40, Math.round(Number(_gb("ambientSmoke.bossParticleCount", 190)) || 190)),
+  baseEmberRatio: Math.max(0, Math.min(1, Number(_gb("ambientSmoke.baseEmberRatio", 0.72)) || 0.72)),
+  wave3EmberRatio: Math.max(0, Math.min(1, Number(_gb("ambientSmoke.wave3EmberRatio", 0.82)) || 0.82)),
+  bossEmberRatio: Math.max(0, Math.min(1, Number(_gb("ambientSmoke.bossEmberRatio", 0.9)) || 0.9)),
+  baseIntensity: Math.max(0.1, Number(_gb("ambientSmoke.baseIntensity", 1.32)) || 1.32),
+  wave3Intensity: Math.max(0.1, Number(_gb("ambientSmoke.wave3Intensity", 2.55)) || 2.55),
+  bossIntensity: Math.max(0.1, Number(_gb("ambientSmoke.bossIntensity", 1.72)) || 1.72),
 });
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const PROJECTILE_PATH =
@@ -5690,6 +5703,7 @@ Renderer.initialize({
     };
   },
   get ambientSmokeConfig() { return AMBIENT_SMOKE_CONFIG; },
+  get waveSmokeTuning() { return WAVE_SMOKE_TUNING; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
