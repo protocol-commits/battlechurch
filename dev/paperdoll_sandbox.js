@@ -845,13 +845,7 @@
   }
 
   function loadCustomFaceFromStorage() {
-    const raw = window.localStorage?.getItem?.(CUSTOM_FACE_STORAGE_KEY);
-    if (!raw) return false;
-    const profile = safeParse(raw, null);
-    if (!profile || typeof profile !== "object") return false;
-    const ok = applyCustomFaceProfileToState(profile);
-    if (ok) applyCustomFaceProfileToGlobalConfig(getCustomFaceProfileFromState());
-    return ok;
+    return false;
   }
 
   function saveCurrentToPresetSlot(slotIndex) {
@@ -985,105 +979,7 @@
       ${renderCustomizePresetRows()}
       <div style="font-weight:700;margin-bottom:6px;">Appearance</div>
       ${layerRowsHtml}
-      <div style="font-weight:700;margin:10px 0 6px;">Custom Face (Upload)</div>
-      <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px;">
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Enable</span>
-          <input type="checkbox" id="paperdollFaceEnabled" ${state.customFace.enabled ? "checked" : ""}>
-        </label>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Front</span>
-          <input type="file" id="paperdollFaceFront" accept="image/*">
-        </label>
-        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.frontName || "(none)"}</div>
-        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-front", "Edit Front", "Crop front face in oval")}</div>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Side (left/right)</span>
-          <input type="file" id="paperdollFaceSide" accept="image/*">
-        </label>
-        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.sideName || "(none)"}</div>
-        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-side", "Edit Side", "Crop side face in oval")}</div>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Back</span>
-          <input type="file" id="paperdollFaceBack" accept="image/*">
-        </label>
-        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.backName || "(none)"}</div>
-        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-back", "Edit Back", "Crop back face in oval")}</div>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Flip side on East</span>
-          <input type="checkbox" id="paperdollFaceFlipEast" ${state.customFace.flipSideForEast !== false ? "checked" : ""}>
-        </label>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Invert side directions</span>
-          <input type="checkbox" id="paperdollFaceInvertSides" ${state.customFace.invertSideDirections ? "checked" : ""}>
-        </label>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
-          <span style="opacity:.9;">North Face Source</span>
-          ${buttonHtml("face-north-mode-cycle", NORTH_FACE_MODE_LABELS[String(state.customFace.northFaceMode || "back")] || "Back", "Cycle north face source")}
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face X N/S</div>
-        ${buttonHtml("face-xns-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0)}</div>
-        ${buttonHtml("face-xns-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face X E/W</div>
-        ${buttonHtml("face-xew-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0)}</div>
-        ${buttonHtml("face-xew-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face Y</div>
-        ${buttonHtml("face-y-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetY || 0)}</div>
-        ${buttonHtml("face-y-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face W</div>
-        ${buttonHtml("face-w-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.width || 0)}</div>
-        ${buttonHtml("face-w-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
-        <div style="opacity:.85;">Face H</div>
-        ${buttonHtml("face-h-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.height || 0)}</div>
-        ${buttonHtml("face-h-up", "▶")}
-      </div>
-      <div style="font-weight:700;margin:8px 0 6px;">Crop (%)</div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Crop X</div>
-        ${buttonHtml("face-cx-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropX || 0)}</div>
-        ${buttonHtml("face-cx-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Crop Y</div>
-        ${buttonHtml("face-cy-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropY || 0)}</div>
-        ${buttonHtml("face-cy-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Crop W</div>
-        ${buttonHtml("face-cw-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropW || 100)}</div>
-        ${buttonHtml("face-cw-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
-        <div style="opacity:.85;">Crop H</div>
-        ${buttonHtml("face-ch-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropH || 100)}</div>
-        ${buttonHtml("face-ch-up", "▶")}
-      </div>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        ${buttonHtml("face-clear", "Clear Face Uploads")}
-        ${buttonHtml("face-load-default", "Load Default Pastor")}
-      </div>
-      <div style="font-size:11px;line-height:1.35;color:#9fb2d9;opacity:.95;">
-        ${String(state.customFace.status || "")}
-      </div>
+
     `;
       bindFaceControlListeners();
       controlsDirty = false;
@@ -1111,105 +1007,7 @@
       </div>
       <div style="font-weight:700;margin-bottom:6px;">Layers</div>
       ${layerRowsHtml}
-      <div style="font-weight:700;margin:10px 0 6px;">Custom Face (Upload)</div>
-      <div style="display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px;">
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Enable</span>
-          <input type="checkbox" id="paperdollFaceEnabled" ${state.customFace.enabled ? "checked" : ""}>
-        </label>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Front</span>
-          <input type="file" id="paperdollFaceFront" accept="image/*">
-        </label>
-        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.frontName || "(none)"}</div>
-        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-front", "Edit Front", "Crop front face in oval")}</div>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Side (left/right)</span>
-          <input type="file" id="paperdollFaceSide" accept="image/*">
-        </label>
-        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.sideName || "(none)"}</div>
-        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-side", "Edit Side", "Crop side face in oval")}</div>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Back</span>
-          <input type="file" id="paperdollFaceBack" accept="image/*">
-        </label>
-        <div style="font-size:11px;opacity:.85;">Loaded: ${state.customFace.backName || "(none)"}</div>
-        <div style="display:flex;justify-content:flex-end;">${buttonHtml("face-edit-back", "Edit Back", "Crop back face in oval")}</div>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Flip side on East</span>
-          <input type="checkbox" id="paperdollFaceFlipEast" ${state.customFace.flipSideForEast !== false ? "checked" : ""}>
-        </label>
-        <label style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-          <span style="opacity:.9;">Invert side directions</span>
-          <input type="checkbox" id="paperdollFaceInvertSides" ${state.customFace.invertSideDirections ? "checked" : ""}>
-        </label>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;">
-          <span style="opacity:.9;">North Face Source</span>
-          ${buttonHtml("face-north-mode-cycle", NORTH_FACE_MODE_LABELS[String(state.customFace.northFaceMode || "back")] || "Back", "Cycle north face source")}
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face X N/S</div>
-        ${buttonHtml("face-xns-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXNorthSouth ?? state.customFace.offsetX ?? 0)}</div>
-        ${buttonHtml("face-xns-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face X E/W</div>
-        ${buttonHtml("face-xew-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetXEastWest ?? state.customFace.offsetX ?? 0)}</div>
-        ${buttonHtml("face-xew-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face Y</div>
-        ${buttonHtml("face-y-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.offsetY || 0)}</div>
-        ${buttonHtml("face-y-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Face W</div>
-        ${buttonHtml("face-w-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.width || 0)}</div>
-        ${buttonHtml("face-w-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
-        <div style="opacity:.85;">Face H</div>
-        ${buttonHtml("face-h-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.height || 0)}</div>
-        ${buttonHtml("face-h-up", "▶")}
-      </div>
-      <div style="font-weight:700;margin:8px 0 6px;">Crop (%)</div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Crop X</div>
-        ${buttonHtml("face-cx-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropX || 0)}</div>
-        ${buttonHtml("face-cx-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Crop Y</div>
-        ${buttonHtml("face-cy-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropY || 0)}</div>
-        ${buttonHtml("face-cy-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;">
-        <div style="opacity:.85;">Crop W</div>
-        ${buttonHtml("face-cw-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropW || 100)}</div>
-        ${buttonHtml("face-cw-up", "▶")}
-      </div>
-      <div style="display:grid;grid-template-columns:88px 28px 1fr 28px;gap:6px;align-items:center;margin-bottom:8px;">
-        <div style="opacity:.85;">Crop H</div>
-        ${buttonHtml("face-ch-down", "◀")}
-        <div style="padding:3px 6px;background:#121a2f;border:1px solid #253252;border-radius:6px;">${Number(state.customFace.cropH || 100)}</div>
-        ${buttonHtml("face-ch-up", "▶")}
-      </div>
-      <div style="display:flex;gap:6px;margin-bottom:8px;">
-        ${buttonHtml("face-clear", "Clear Face Uploads")}
-        ${buttonHtml("face-load-default", "Load Default Pastor")}
-      </div>
-      <div style="font-size:11px;line-height:1.35;color:#9fb2d9;opacity:.95;">
-        ${String(state.customFace.status || "")}
-      </div>
+
     `;
     bindFaceControlListeners();
     controlsDirty = false;

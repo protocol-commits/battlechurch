@@ -230,6 +230,29 @@
     },
 
     // =====================
+    // AMBIENT SMOKE
+    // =====================
+    ambientSmoke: {
+      enabled: true,
+      maxPuffs: 4,
+      spawnPerSecond: 34,
+      minSize: 38,
+      maxSize: 140,
+      minLife: 4.5,
+      maxLife: 8.5,
+      riseSpeedMin: 10,
+      riseSpeedMax: 34,
+      driftSpeedMin: 10,
+      driftSpeedMax: 34,
+      baseAlpha: 0.22,
+      sideWeight: 0.7,
+      bottomBandRatio: 0.34,
+      sideBandRatio: 0.24,
+      tint: "#FFFFFF",
+      debugVisible: false,
+    },
+
+    // =====================
     // VISITOR MINIGAME
     // =====================
     visitor: {

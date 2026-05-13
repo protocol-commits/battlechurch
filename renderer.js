@@ -187,12 +187,185 @@ const MELEE_SWING_LENGTH = 260;
     loaded: false,
     failed: false,
   };
+  const ambientSmokeState = {
+    puffs: [],
+    spawnCarry: 0,
+    lastNowSec: 0,
+  };
 
   function requireBindings() {
     if (!bindings) {
       throw new Error("Renderer.initialize must be called before rendering.");
     }
     return bindings;
+  }
+
+  function clamp01(value) {
+    return Math.max(0, Math.min(1, value));
+  }
+
+  function getAmbientSmokeConfig() {
+    const cfg = requireBindings().ambientSmokeConfig || {};
+    return {
+      enabled: cfg.enabled !== false,
+      maxPuffs: Math.max(0, Number(cfg.maxPuffs) || 0),
+      spawnPerSecond: Math.max(0, Number(cfg.spawnPerSecond) || 0),
+      minSize: Math.max(4, Number(cfg.minSize) || 24),
+      maxSize: Math.max(6, Number(cfg.maxSize) || 64),
+      minLife: Math.max(0.2, Number(cfg.minLife) || 2.5),
+      maxLife: Math.max(0.3, Number(cfg.maxLife) || 5.5),
+      riseSpeedMin: Math.max(0, Number(cfg.riseSpeedMin) || 8),
+      riseSpeedMax: Math.max(0, Number(cfg.riseSpeedMax) || 22),
+      driftSpeedMin: Math.max(0, Number(cfg.driftSpeedMin) || 4),
+      driftSpeedMax: Math.max(0, Number(cfg.driftSpeedMax) || 16),
+      baseAlpha: clamp01(Number(cfg.baseAlpha) || 0.15),
+      sideWeight: clamp01(Number(cfg.sideWeight) || 0.42),
+      bottomBandRatio: clamp01(Number(cfg.bottomBandRatio) || 0.22),
+      sideBandRatio: clamp01(Number(cfg.sideBandRatio) || 0.16),
+      tint: String(cfg.tint || "#DFDFC4"),
+      debugVisible: cfg.debugVisible === true,
+    };
+  }
+
+  function parseHexToRgb(hex, fallback = { r: 223, g: 223, b: 196 }) {
+    const raw = String(hex || "").trim().replace(/^#/, "");
+    if (raw.length !== 6) return fallback;
+    const r = parseInt(raw.slice(0, 2), 16);
+    const g = parseInt(raw.slice(2, 4), 16);
+    const b = parseInt(raw.slice(4, 6), 16);
+    if (![r, g, b].every(Number.isFinite)) return fallback;
+    return { r, g, b };
+  }
+
+  function spawnAmbientSmokePuff(canvas, config, effectiveCameraY = 0) {
+    const sideSpawn = Math.random() < config.sideWeight;
+    const bottomBand = Math.max(20, canvas.height * config.bottomBandRatio);
+    const sideBand = Math.max(16, canvas.width * config.sideBandRatio);
+    const size = config.minSize + Math.random() * Math.max(1, config.maxSize - config.minSize);
+    let x = 0;
+    let y = 0;
+    let vx = 0;
+    if (sideSpawn) {
+      const leftSide = Math.random() < 0.5;
+      x = leftSide
+        ? Math.random() * sideBand
+        : canvas.width - Math.random() * sideBand;
+      y = canvas.height - Math.random() * bottomBand;
+      const drift = config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin);
+      vx = leftSide ? drift : -drift;
+    } else {
+      x = Math.random() * canvas.width;
+      y = canvas.height - Math.random() * bottomBand;
+      const drift = (Math.random() * 2 - 1) * (config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin));
+      vx = drift * 0.45;
+    }
+    const vy = -(config.riseSpeedMin + Math.random() * Math.max(1, config.riseSpeedMax - config.riseSpeedMin));
+    const life = config.minLife + Math.random() * Math.max(0.01, config.maxLife - config.minLife);
+    ambientSmokeState.puffs.push({
+      x,
+      y: y - effectiveCameraY,
+      vx,
+      vy,
+      wobbleAmp: 1.5 + Math.random() * 5,
+      wobbleFreq: 0.6 + Math.random() * 1.2,
+      size,
+      life,
+      maxLife: life,
+      alpha: config.baseAlpha * (0.72 + Math.random() * 0.55),
+      tint: config.tint,
+    });
+  }
+
+  function drawAmbientSmoke(effectiveCameraY = 0) {
+    const { ctx, canvas } = requireBindings();
+    const config = getAmbientSmokeConfig();
+    if (config.debugVisible) {
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 170, 255, 0.92)";
+      ctx.fillRect(10, 48, 250, 26);
+      ctx.fillStyle = "rgba(255,255,255,1)";
+      ctx.font = "700 14px monospace";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("SMOKE DRAW FN ACTIVE", 16, 61);
+      ctx.restore();
+    }
+    if (!ctx || !canvas || !config.enabled || config.maxPuffs <= 0 || config.baseAlpha <= 0) {
+      ambientSmokeState.puffs.length = 0;
+      ambientSmokeState.spawnCarry = 0;
+      return;
+    }
+
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    if (!ambientSmokeState.lastNowSec) ambientSmokeState.lastNowSec = nowSec;
+    const dt = Math.max(0, Math.min(0.05, nowSec - ambientSmokeState.lastNowSec));
+    ambientSmokeState.lastNowSec = nowSec;
+
+    ambientSmokeState.spawnCarry += config.spawnPerSecond * dt;
+    let toSpawn = Math.floor(ambientSmokeState.spawnCarry);
+    ambientSmokeState.spawnCarry -= toSpawn;
+    const capacity = Math.max(0, config.maxPuffs - ambientSmokeState.puffs.length);
+    toSpawn = Math.min(toSpawn, capacity);
+    for (let i = 0; i < toSpawn; i += 1) {
+      spawnAmbientSmokePuff(canvas, config, effectiveCameraY);
+    }
+
+    const puffs = ambientSmokeState.puffs;
+    for (let i = puffs.length - 1; i >= 0; i -= 1) {
+      const p = puffs[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        puffs.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt + Math.sin(nowSec * p.wobbleFreq + i * 0.37) * p.wobbleAmp * dt;
+      p.y += p.vy * dt;
+      if (p.y + p.size < -20 || p.x < -p.size * 2 || p.x > canvas.width + p.size * 2) {
+        puffs.splice(i, 1);
+      }
+    }
+
+    if (!puffs.length) return;
+    ctx.save();
+    ctx.translate(0, effectiveCameraY);
+    ctx.globalCompositeOperation = "source-over";
+    for (let i = 0; i < puffs.length; i += 1) {
+      const p = puffs[i];
+      const lifeT = clamp01(p.life / Math.max(0.001, p.maxLife));
+      const fadeIn = clamp01((1 - lifeT) / 0.22);
+      const fadeOut = clamp01(lifeT / 0.92);
+      const alpha = p.alpha * fadeIn * fadeOut;
+      if (alpha <= 0.002) continue;
+      const r = p.size;
+      const tint = parseHexToRgb(p.tint);
+      if (config.debugVisible) {
+        ctx.fillStyle = `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${Math.min(1, alpha + 0.35).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, r, r * (0.62 + Math.sin(nowSec + i) * 0.08), 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255, 64, 64, 0.95)";
+        ctx.stroke();
+      } else {
+        const grad = ctx.createRadialGradient(p.x, p.y, r * 0.12, p.x, p.y, r);
+        grad.addColorStop(0, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.8).toFixed(3)})`);
+        grad.addColorStop(0.55, `rgba(148, 192, 216, ${(alpha * 0.35).toFixed(3)})`);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, r, r * (0.62 + Math.sin(nowSec + i) * 0.08), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (config.debugVisible) {
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "rgba(255, 80, 80, 0.95)";
+      ctx.font = "700 14px monospace";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText(`SMOKE ${puffs.length}/${config.maxPuffs}`, 12, canvas.height - 24);
+    }
+    ctx.restore();
   }
 
   const KEYBOARD_CONTROLS_HINT =
@@ -5469,7 +5642,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       canvas,
       assets,
       levelAnnouncements,
+      ambientSmokeConfig,
     } = requireBindings();
+    if (ambientSmokeConfig?.debugVisible) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 0, 120, 0.9)";
+      ctx.fillRect(10, 10, 280, 34);
+      ctx.fillStyle = "rgba(255,255,255,1)";
+      ctx.font = "700 16px monospace";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText("RENDERER BG PATH ACTIVE", 16, 27);
+      ctx.restore();
+    }
     if (Array.isArray(levelAnnouncements) && levelAnnouncements.length) {
       const current = levelAnnouncements[0];
       if (current && (current.battlefieldIntro || current.exteriorShot)) {
@@ -5488,6 +5673,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.fillStyle = "rgba(8, 12, 20, 0.35)";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.restore();
+          drawAmbientSmoke(0);
           return;
         }
       }
@@ -5519,6 +5705,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.drawImage(floor, -floorPan + floor.width, drawY, floor.width, floor.height);
       ctx.restore();
     }
+    drawAmbientSmoke(effectiveCameraY);
   }
 
   // Cached offscreen canvas for god rays
@@ -12057,6 +12244,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawAmbientSmokeOverlay() {
+    // Draw on top as a fallback path for screens that bypass drawBackground().
+    drawAmbientSmoke(0);
+  }
+
   window.Renderer = {
     initialize,
     drawFrame,
@@ -12065,6 +12257,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawDenomUpgradeScreen,
     drawPlayingInstructionsOverlay,
     drawGraceSpendFlyEffectsOverlay,
+    drawAmbientSmokeOverlay,
     getControlsHintText,
   };
 })(typeof window !== "undefined" ? window : null);

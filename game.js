@@ -4535,6 +4535,25 @@ const MASTER_ASSET_SHADOW_STYLE = Object.freeze({
   shadowCrush: MASTER_SHADOW_CRUSH,
   shadowThreshold: MASTER_SHADOW_THRESHOLD,
 });
+const AMBIENT_SMOKE_CONFIG = Object.freeze({
+  enabled: Boolean(_gb("ambientSmoke.enabled", true)),
+  maxPuffs: Math.max(0, Math.min(96, Number(_gb("ambientSmoke.maxPuffs", 16)) || 16)),
+  spawnPerSecond: Math.max(0, Number(_gb("ambientSmoke.spawnPerSecond", 6.5)) || 6.5),
+  minSize: Math.max(4, Number(_gb("ambientSmoke.minSize", 26)) || 26),
+  maxSize: Math.max(6, Number(_gb("ambientSmoke.maxSize", 78)) || 78),
+  minLife: Math.max(0.2, Number(_gb("ambientSmoke.minLife", 2.8)) || 2.8),
+  maxLife: Math.max(0.3, Number(_gb("ambientSmoke.maxLife", 6.2)) || 6.2),
+  riseSpeedMin: Math.max(0, Number(_gb("ambientSmoke.riseSpeedMin", 8)) || 8),
+  riseSpeedMax: Math.max(0, Number(_gb("ambientSmoke.riseSpeedMax", 26)) || 26),
+  driftSpeedMin: Math.max(0, Number(_gb("ambientSmoke.driftSpeedMin", 4)) || 4),
+  driftSpeedMax: Math.max(0, Number(_gb("ambientSmoke.driftSpeedMax", 18)) || 18),
+  baseAlpha: Math.max(0, Math.min(1, Number(_gb("ambientSmoke.baseAlpha", 0.15)) || 0.15)),
+  sideWeight: Math.max(0, Math.min(1, Number(_gb("ambientSmoke.sideWeight", 0.42)) || 0.42)),
+  bottomBandRatio: Math.max(0.03, Math.min(0.6, Number(_gb("ambientSmoke.bottomBandRatio", 0.22)) || 0.22)),
+  sideBandRatio: Math.max(0.02, Math.min(0.5, Number(_gb("ambientSmoke.sideBandRatio", 0.16)) || 0.16)),
+  tint: String(_gb("ambientSmoke.tint", "#DFDFC4") || "#DFDFC4"),
+  debugVisible: Boolean(_gb("ambientSmoke.debugVisible", false)),
+});
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/projectiles/";
@@ -5670,6 +5689,7 @@ Renderer.initialize({
       shadowThreshold: MASTER_SHADOW_THRESHOLD,
     };
   },
+  get ambientSmokeConfig() { return AMBIENT_SMOKE_CONFIG; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
@@ -27647,6 +27667,20 @@ function gameLoop(timestamp) {
   }
   updateGame(delta);
   Renderer.drawFrame();
+  if (AMBIENT_SMOKE_CONFIG.enabled) {
+    Renderer.drawAmbientSmokeOverlay?.();
+  }
+  if (AMBIENT_SMOKE_CONFIG.debugVisible) {
+    ctx.save();
+    ctx.fillStyle = "rgba(255, 40, 40, 0.92)";
+    ctx.fillRect(12, 12, 300, 34);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "700 16px monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText("GAMELOOP DEBUG ACTIVE", 18, 29);
+    ctx.restore();
+  }
   if (window.UpgradeScreen?.isVisible?.()) {
     window.UpgradeScreen.draw();
     Renderer.drawGraceSpendFlyEffectsOverlay?.();
