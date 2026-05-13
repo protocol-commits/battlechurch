@@ -5669,8 +5669,8 @@ if (typeof window !== "undefined") {
 const PLAYER_SPRITE_PATH = "assets/sprites/npcs/mana-seed/";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
-const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
-const DISTRICT_INTRO_BACKGROUND_PATH = "assets/backgrounds/mission-1.jpg";
+const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.png";
+const DISTRICT_INTRO_BACKGROUND_PATH = "assets/backgrounds/mission-1.png";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
 const OBSTACLE_DEFS = {};
 const OBSTACLE_LAYOUT = [];
@@ -7780,7 +7780,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { mission1: null };
       assets.backgrounds.mission1 = null;
     });
-  const epiloguePromise = loadImage("assets/backgrounds/epilogue.jpg")
+  const epiloguePromise = loadImage("assets/backgrounds/epilogue.png")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
       assets.backgrounds.epilogue = maybeApplyArenaBackgroundShadowCrush(img);
@@ -7789,7 +7789,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { epilogue: null };
       assets.backgrounds.epilogue = null;
     });
-  const act2Promise = loadImage("assets/backgrounds/mission-2.jpg")
+  const act2Promise = loadImage("assets/backgrounds/mission-2.png")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.mission2 = maybeApplyArenaBackgroundShadowCrush(img);
@@ -7798,7 +7798,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.mission2 = null;
     });
-  const act3Promise = loadImage("assets/backgrounds/mission-3.jpg")
+  const act3Promise = loadImage("assets/backgrounds/mission-3.png")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.mission3 = maybeApplyArenaBackgroundShadowCrush(img);
@@ -7807,7 +7807,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.mission3 = null;
     });
-  const gameOverBackgroundPromise = loadImage("assets/backgrounds/mission-1.jpg")
+  const gameOverBackgroundPromise = loadImage("assets/backgrounds/mission-1.png")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
       assets.backgrounds.gameOver = maybeApplyArenaBackgroundShadowCrush(img);

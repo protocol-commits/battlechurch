@@ -1,9 +1,9 @@
 (function setupMapScreen(window) {
   if (!window) return;
 
-  const MAP_IMAGE_PRIMARY = "./assets/backgrounds/map.jpg";
-  const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.jpg";
-  const DISTRICT_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.jpg";
+  const MAP_IMAGE_PRIMARY = "./assets/backgrounds/map.png";
+  const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.png";
+  const DISTRICT_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.png";
   const HIT_RADIUS_BASE = 10;
   const UI_FONT_FAMILY = "'Orbitron', sans-serif";
   const MAP_HELLFIRE_TEXT = Object.freeze({
@@ -784,7 +784,7 @@
       state.mapRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
       return state.mapRect;
     }
-    // Use cover so map.jpg always fills the viewport with no top/bottom letterbox gaps.
+    // Use cover so map.png always fills the viewport with no top/bottom letterbox gaps.
     const scale = Math.max(canvas.width / mapImage.width, canvas.height / mapImage.height);
     const w = mapImage.width * scale;
     const h = mapImage.height * scale;

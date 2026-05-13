@@ -149,7 +149,8 @@ def main():
         dirs[:] = [d for d in dirs if d not in IGNORE_FOLDERS]
 
         for file_name in files:
-            if not file_name.lower().endswith((".png", ".jpg", ".jpeg")):
+            # PNG-only by design: JPG/JPEG are treated as non-authoritative backups.
+            if not file_name.lower().endswith(".png"):
                 continue
 
             input_path = os.path.join(root, file_name)
