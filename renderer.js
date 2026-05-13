@@ -7652,6 +7652,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     lastMs: 0,
     blend: 0,
   };
+  const warmBloomState = {
+    progress: 0,
+    lastMs: 0,
+  };
 
   function getWaveTargetProgress(levelStatus) {
     const stage = levelStatus?.stage || "";
@@ -7724,8 +7728,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const x = Number.isFinite(bounds.x) ? bounds.x : 0;
     const y = Number.isFinite(bounds.y) ? bounds.y : 0;
 
-    // Subtle heat ramp across waves: deeper red tint + warm ember lift.
+    // Combat mood tint: red during battle, warm gold while victory/grace-rush light takes over.
     const levelStatus = requireBindings().levelManager?.getStatus?.() || null;
+    const stageName = levelStatus?.stage || "";
+    const warmLightStage =
+      stageName === "victoryCelebrate" ||
+      stageName === "bossVictoryCelebrate" ||
+      stageName === "bossBonusTransition" ||
+      stageName === "graceRush";
+    const warmRamp = warmLightStage ? 1 : 0;
     const bossPhase3Blend = getBossPhase3HeatBlend(levelStatus);
     const tintMaxAlpha =
       WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha +
@@ -7738,8 +7749,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.rect(x, y, width, height);
     ctx.clip();
     ctx.globalCompositeOperation = "soft-light";
-    ctx.globalAlpha = Math.max(0, Math.min(1, tintAlpha));
-    ctx.fillStyle = "rgba(110, 12, 16, 1)";
+    if (warmLightStage) {
+      const warmAlpha = 0.30 * warmRamp;
+      ctx.globalAlpha = Math.max(0, Math.min(1, warmAlpha));
+      ctx.fillStyle = "rgba(221, 166, 119, 1)";
+    } else {
+      ctx.globalAlpha = Math.max(0, Math.min(1, tintAlpha));
+      ctx.fillStyle = "rgba(110, 12, 16, 1)";
+    }
     ctx.fillRect(x, y, width, height);
     ctx.restore();
 
@@ -7805,6 +7822,60 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.globalAlpha = Math.max(0, Math.min(1, vignetteAlpha));
     ctx.fillStyle = vignette;
     ctx.fillRect(x, y, width, height);
+    ctx.restore();
+  }
+
+  function drawWarmLightBloom(ctx, canvas, levelStatus, progress = 1) {
+    if (!ctx || !canvas || !levelStatus) return;
+    const stageName = levelStatus.stage || "";
+    const warmStage =
+      stageName === "victoryCelebrate" ||
+      stageName === "bossVictoryCelebrate" ||
+      stageName === "bossBonusTransition" ||
+      stageName === "graceRush";
+    if (!warmStage) {
+      warmBloomState.progress = 0;
+      warmBloomState.lastMs = 0;
+      return;
+    }
+
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const lastMs = Number.isFinite(warmBloomState.lastMs) && warmBloomState.lastMs > 0
+      ? warmBloomState.lastMs
+      : nowMs;
+    const dt = Math.max(0, Math.min(0.1, (nowMs - lastMs) / 1000));
+    warmBloomState.lastMs = nowMs;
+    const fadeInDurationSec = 2.5;
+    warmBloomState.progress = Math.max(
+      0,
+      Math.min(1, warmBloomState.progress + dt / Math.max(0.001, fadeInDurationSec)),
+    );
+    const fadeInEase = warmBloomState.progress * warmBloomState.progress * (3 - 2 * warmBloomState.progress);
+    const alpha = 0.231 * fadeInEase;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+    ctx.fillStyle = "rgba(255, 220, 150, 1)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    ctx.save();
+    const glow = ctx.createRadialGradient(
+      canvas.width * 0.5,
+      canvas.height * 0.28,
+      Math.max(1, canvas.width * 0.05),
+      canvas.width * 0.5,
+      canvas.height * 0.28,
+      Math.max(canvas.width, canvas.height) * 0.85,
+    );
+    glow.addColorStop(0, "rgba(255, 242, 196, 0.95)");
+    glow.addColorStop(0.4, "rgba(255, 224, 153, 0.45)");
+    glow.addColorStop(1, "rgba(255, 224, 153, 0)");
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.2 * fadeInEase;
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
   }
 
@@ -10955,27 +11026,38 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       { x: 0, y: 0, width: canvas.width, height: canvas.height },
     );
 
+    const warmLightStage =
+      stageName === "victoryCelebrate" ||
+      stageName === "bossVictoryCelebrate" ||
+      stageName === "bossBonusTransition" ||
+      stageName === "graceRush";
+    const warmRamp = warmLightStage ? 1 : 0;
+    const fogR = Math.round(40 + (74 - 40) * warmRamp);
+    const fogG = Math.round(0 + (56 - 0) * warmRamp);
+    const fogB = Math.round(0 + (32 - 0) * warmRamp);
     ctx.save();
     ctx.globalAlpha = 1.0;
     const fogGradientLeft = ctx.createLinearGradient(-fogWidth, 0, fogWidth, 0);
-    fogGradientLeft.addColorStop(0, 'rgba(40,0,0,0.98)');
-    fogGradientLeft.addColorStop(0.35, 'rgba(40,0,0,0.85)');
-    fogGradientLeft.addColorStop(1, 'rgba(40,0,0,0.0)');
+    fogGradientLeft.addColorStop(0, `rgba(${fogR},${fogG},${fogB},0.98)`);
+    fogGradientLeft.addColorStop(0.35, `rgba(${fogR},${fogG},${fogB},0.85)`);
+    fogGradientLeft.addColorStop(1, `rgba(${fogR},${fogG},${fogB},0.0)`);
     ctx.fillStyle = fogGradientLeft;
     ctx.fillRect(-fogWidth, 0, fogWidth * 2, canvas.height);
     const fogGradientRight = ctx.createLinearGradient(canvas.width - fogWidth, 0, canvas.width + fogWidth, 0);
-    fogGradientRight.addColorStop(0, 'rgba(40,0,0,0.0)');
-    fogGradientRight.addColorStop(0.65, 'rgba(40,0,0,0.85)');
-    fogGradientRight.addColorStop(1, 'rgba(40,0,0,0.98)');
+    fogGradientRight.addColorStop(0, `rgba(${fogR},${fogG},${fogB},0.0)`);
+    fogGradientRight.addColorStop(0.65, `rgba(${fogR},${fogG},${fogB},0.85)`);
+    fogGradientRight.addColorStop(1, `rgba(${fogR},${fogG},${fogB},0.98)`);
     ctx.fillStyle = fogGradientRight;
     ctx.fillRect(canvas.width - fogWidth, 0, fogWidth * 2, canvas.height);
     const fogGradientBottom = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - fogHeight);
-    fogGradientBottom.addColorStop(0, 'rgba(40,0,0,0.98)');
-    fogGradientBottom.addColorStop(0.35, 'rgba(40,0,0,0.85)');
+    fogGradientBottom.addColorStop(0, `rgba(${fogR},${fogG},${fogB},0.98)`);
+    fogGradientBottom.addColorStop(0.35, `rgba(${fogR},${fogG},${fogB},0.85)`);
     fogGradientBottom.addColorStop(1, 'rgba(0,0,0,0.0)');
     ctx.fillStyle = fogGradientBottom;
     ctx.fillRect(0, canvas.height - fogHeight, canvas.width, fogHeight);
     ctx.restore();
+
+    drawWarmLightBloom(ctx, canvas, levelStatus, waveProgress);
 
     if (!visitorStageActive) {
       try {
@@ -11047,7 +11129,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.restore();
     }
-    if (!congregationAnnouncementActive && graceRushFadeAlpha > 0) {
+    const preserveWarmVictoryBrightness = Boolean(
+      stageName === "victoryCelebrate" ||
+      stageName === "bossVictoryCelebrate" ||
+      stageName === "bossBonusTransition" ||
+      stageName === "graceRush"
+    );
+    if (!congregationAnnouncementActive && graceRushFadeAlpha > 0 && !preserveWarmVictoryBrightness) {
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, graceRushFadeAlpha)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -11068,7 +11156,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     }
 
-    if (bossBonusTransitionFadeAlpha > 0) {
+    if (bossBonusTransitionFadeAlpha > 0 && !preserveWarmVictoryBrightness) {
       ctx.save();
       ctx.fillStyle = `rgba(0, 0, 0, ${Math.min(1, bossBonusTransitionFadeAlpha)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
