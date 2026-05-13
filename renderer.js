@@ -7879,6 +7879,50 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawArenaEdgeVignette(ctx, canvas, levelStatus) {
+    if (!ctx || !canvas || !levelStatus) return;
+    const stage = levelStatus.stage || "";
+    const combatStage =
+      stage === "waveIntro" ||
+      stage === "waveActive" ||
+      stage === "allKillBreak" ||
+      stage === "waveCleared" ||
+      stage === "bossIntro" ||
+      stage === "bossActive";
+    if (!combatStage) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+
+    // Left edge shadow
+    const leftGrad = ctx.createLinearGradient(0, 0, w * 0.2, 0);
+    leftGrad.addColorStop(0, "rgba(0, 0, 0, 0.3)");
+    leftGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.14)");
+    leftGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = leftGrad;
+    ctx.fillRect(0, 0, w * 0.24, h);
+
+    // Right edge shadow
+    const rightGrad = ctx.createLinearGradient(w, 0, w - w * 0.2, 0);
+    rightGrad.addColorStop(0, "rgba(0, 0, 0, 0.3)");
+    rightGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.14)");
+    rightGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = rightGrad;
+    ctx.fillRect(w - w * 0.24, 0, w * 0.24, h);
+
+    // Bottom shadow (slightly stronger to imply enemies emerging upward)
+    const bottomGrad = ctx.createLinearGradient(0, h, 0, h - h * 0.24);
+    bottomGrad.addColorStop(0, "rgba(0, 0, 0, 0.34)");
+    bottomGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.16)");
+    bottomGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = bottomGrad;
+    ctx.fillRect(0, h - h * 0.28, w, h * 0.28);
+
+    ctx.restore();
+  }
+
   function getEmberButtonGradient(ctx, y, height) {
     const gradient = ctx.createLinearGradient(0, y, 0, y + height);
     gradient.addColorStop(0, EMBER_BUTTON_PALETTE.top);
@@ -11058,6 +11102,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
 
     drawWarmLightBloom(ctx, canvas, levelStatus, waveProgress);
+    drawArenaEdgeVignette(ctx, canvas, levelStatus);
 
     if (!visitorStageActive) {
       try {
