@@ -699,6 +699,7 @@ const ENEMY_DEATH_SFX_SRCS = [
   ...ENEMY_DEATH_GRUNT_SRCS,
 ];
 const SWORD_SWING_SFX_SRC = "assets/sfx/Weapons/attack10.mp3";
+const MELEE_WHIFF_SFX_SRC = "assets/sfx/Weapons/attack1.mp3";
 const RUSH_ATTACK_SFX_SRC = "assets/sfx/Weapons/spell3.mp3";
 const DASH_SFX_SRC = "assets/sfx/Weapons/attack10.mp3";
 const SWORD_KILL_SFX_SRCS = [
@@ -826,6 +827,7 @@ const ARROW_SFX_POOL_SIZE = 6;
 const ENEMY_HIT_SFX_POOL_SIZE = 8;
 const ENEMY_DEATH_SFX_POOL_SIZE = 6;
 const SWORD_SFX_POOL_SIZE = 4;
+const MELEE_WHIFF_SFX_POOL_SIZE = 4;
 const RUSH_ATTACK_SFX_POOL_SIZE = 2;
 const DASH_SFX_POOL_SIZE = 2;
 const SWORD_KILL_SFX_POOL_SIZE = 6;
@@ -880,6 +882,7 @@ const enemyDeathSfxPool = [];
 const enemyDeathGruntChannel =
   typeof Audio !== "undefined" ? new Audio() : null;
 const swordSfxPool = [];
+const meleeWhiffSfxPool = [];
 const rushAttackSfxPool = [];
 const dashSfxPool = [];
 const swordKillSfxPool = [];
@@ -1414,6 +1417,10 @@ function playSwordSfx(volume = 0.55) {
 
 function playSwooshSfx(volume = 0.55) {
   playSwordSwingSfx(volume);
+}
+
+function playMeleeWhiffSfx(volume = 0.9) {
+  playPooledSfx(meleeWhiffSfxPool, MELEE_WHIFF_SFX_SRC, MELEE_WHIFF_SFX_POOL_SIZE, { volume });
 }
 
 function playRushAttackSfx(volume = 0.7) {
@@ -4300,6 +4307,11 @@ const MELEE_DOUBLE_TAP_WINDOW = _gb('melee.doubleTapWindow', 0.18);
 const HOLY_DASH_COMBO_WINDOW = _gb('melee.holyDashWindow', 0.35);
 const NORMAL_A_CHAIN_WINDOW_MS = Math.max(520, MELEE_COOLDOWN * 1000 + 140);
 const NORMAL_A_REHIT_HURT_DURATION = 0.1;
+const A_MOVE_SFX_VOLUME_SLASH = 1.15;
+const A_MOVE_SFX_VOLUME_CLEAVE = 1.2;
+const A_MOVE_SFX_VOLUME_DASH_SLASH = 1.2;
+const A_MOVE_SFX_VOLUME_SMASH = 1.25;
+const A_MOVE_SFX_VOLUME_CHARGE_A = 1.0;
 const MELEE_HOLD_CHARGE_TIME = _gb('melee.holdChargeTime', 1.5);
 const MELEE_BASE_DAMAGE = _gb('melee.baseDamage', 100);
 const MELEE_SWOOSH_DAMAGE_SCALE = _gb('melee.swooshDamageScale', 1.2);
@@ -4797,6 +4809,7 @@ function maintainDevArenaPickups() {
         pickup.y = slot.y;
         pickup.baseY = slot.y;
         weaponPickups.push(pickup);
+        playGracePickupSfx(1.3);
         slot.pickup = pickup;
       }
     } else if (slot.kind === "npcWeapon") {
@@ -4809,6 +4822,7 @@ function maintainDevArenaPickups() {
         pickup.y = slot.y;
         pickup.baseY = slot.y;
         weaponPickups.push(pickup);
+        playGracePickupSfx(1.3);
         slot.pickup = pickup;
       }
     } else if (slot.kind === "utility") {
@@ -4820,6 +4834,7 @@ function maintainDevArenaPickups() {
         const pickup = new UtilityPowerUp({ ...def, ...asset, type, life: DEV_ARENA_PICKUP_LIFE }, slot.x, slot.y);
         pickup.baseY = slot.y;
         utilityPowerUps.push(pickup);
+        playGracePickupSfx(1.3);
         slot.pickup = pickup;
       }
     }
@@ -9851,6 +9866,7 @@ function spawnSinglePowerUpDrop() {
   pickup.y = Math.max(padding, Math.min(canvas.height - padding, pushed.y));
   pickup.baseY = pickup.y;
   weaponPickups.push(pickup);
+  playGracePickupSfx(1.3);
   return true;
 }
 
@@ -10046,6 +10062,7 @@ function spawnWeaponDrops(minCount = 1) {
   while (weaponPickups.length < minCount && canSpawnWeaponPowerUp()) {
     const [type, def] = entries[Math.floor(Math.random() * entries.length)];
     weaponPickups.push(new WeaponPickup({ ...def, type }));
+    playGracePickupSfx(1.3);
   }
 }
 
@@ -10145,6 +10162,7 @@ function spawnChurchPowerupPickup(type = null, position = null) {
   pickup.baseY = pickup.y;
   clampEntityToBounds(pickup);
   churchPowerupPickups.push(pickup);
+  playGracePickupSfx(1.3);
   return pickup;
 }
 
@@ -10214,6 +10232,7 @@ function spawnUtilityPowerUp(type = null, position = null) {
   const definition = { ...asset, type: selected };
   const powerUp = new UtilityPowerUp(definition, spawnX, spawnY);
   utilityPowerUps.push(powerUp);
+  playGracePickupSfx(1.3);
   return powerUp;
 }
 
@@ -10241,6 +10260,7 @@ function spawnWeaponPickup(position = null) {
   pickup.baseY = pickup.y;
   clampEntityToBounds(pickup);
   weaponPickups.push(pickup);
+  playGracePickupSfx(1.3);
   return pickup;
 }
 
@@ -24905,24 +24925,17 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     meleeAttackState.meleeCancelTarget = meleePrimaryTarget;
   }
   if (hitEnemies.length > 0 || hitBoss) {
+    playMeleeWhiffSfx(0.6);
+    if (typeof playSwordSfx === "function") {
+      const swingVolume =
+        moveName === "Cleave" ? A_MOVE_SFX_VOLUME_CLEAVE : A_MOVE_SFX_VOLUME_SLASH;
+      playSwordSfx(swingVolume);
+    }
     if (typeof playEnemyHitSfx === "function") {
       playEnemyHitSfx(0.6);
     }
   } else {
-    const missSwingSfx = options?.missSwingSfx || "sword";
-    if (missSwingSfx === "dash") {
-      if (typeof playDashSfx === "function") {
-        playDashSfx(0.6);
-      }
-    } else if (missSwingSfx === "rush") {
-      if (typeof playRushAttackSfx === "function") {
-        playRushAttackSfx(0.6);
-      }
-    } else if (missSwingSfx !== "none") {
-      if (typeof playSwordSfx === "function") {
-        playSwordSfx(0.5);
-      }
-    }
+    playMeleeWhiffSfx(0.6);
   }
   meleeAttackState.projectileBlockTimer = MELEE_PROJECTILE_COOLDOWN_AFTER;
 }
@@ -24964,6 +24977,9 @@ function executeSwooshAttack(dir, meleeAttackState, angleRad) {
     player.animator.play("attackMelee", { restart: true });
   }
   maybeFireWordOfGodProjectile(dir, angleRad);
+  if (typeof playRushAttackSfx === "function") {
+    playRushAttackSfx(A_MOVE_SFX_VOLUME_DASH_SLASH);
+  }
   meleeAttackState.swooshDamageEnabled = true;
   meleeAttackState.swooshHitEntities = new Set();
 
@@ -25296,7 +25312,7 @@ function executeRushAttack(
     const burstY = player.y + Math.sin(attackAngle) * burstDist;
     spawnRushBurstEffect(burstX, burstY, attackAngle, hbWidth / 64);
   }
-  playRushAttackSfx(0.9);
+  playRushAttackSfx(A_MOVE_SFX_VOLUME_SMASH);
   return true;
 }
 
@@ -25657,7 +25673,7 @@ function flushPendingDivineShot(meleeAttackState, dt) {
     loopFrames: true,
   });
   if (typeof playDivineShotSfx === "function") {
-    playDivineShotSfx(0.6);
+    playDivineShotSfx(A_MOVE_SFX_VOLUME_CHARGE_A);
   }
 }
 
