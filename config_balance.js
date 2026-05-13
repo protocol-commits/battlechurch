@@ -234,7 +234,7 @@
     // =====================
     ambientSmoke: {
       enabled: true,
-      maxPuffs: 12,
+      maxPuffs: 16,
       spawnPerSecond: 34,
       minSize: 38,
       maxSize: 140,
