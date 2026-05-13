@@ -1,5 +1,4 @@
 from PIL import Image
-import numpy as np
 import os
 
 # =====================================
@@ -22,112 +21,100 @@ IGNORE_FOLDERS = [
     "music",
     "sfx",
     ".vscode",
-    ".claude"
+    ".claude",
 ]
 
-# =====================================
-# LOAD PALETTE
-# =====================================
+# If True, write indexed PNG (mode "P") for assets without alpha.
+# This reduces file size and memory footprint for many sprite sheets.
+WRITE_INDEXED_PNG_WHEN_POSSIBLE = True
 
-palette_img = Image.open(PALETTE_IMAGE).convert("RGB")
-palette_colors = list(set(palette_img.getdata()))
-palette = np.array(palette_colors)
 
-# =====================================
-# FIND CLOSEST COLOR
-# =====================================
+def load_palette_colors(path):
+    """Load unique RGB colors from the palette image in scanline order."""
+    img = Image.open(path).convert("RGB")
+    seen = set()
+    ordered = []
+    for color in img.getdata():
+        if color in seen:
+            continue
+        seen.add(color)
+        ordered.append(color)
+    if not ordered:
+        raise ValueError(f"No colors found in palette image: {path}")
+    if len(ordered) > 256:
+        raise ValueError(
+            f"Palette has {len(ordered)} colors; PNG indexed palettes support up to 256."
+        )
+    return ordered
 
-def closest_color(pixel):
 
-    distances = np.sqrt(
-        ((palette - pixel) ** 2).sum(axis=1)
-    )
+def build_quantize_palette_image(colors):
+    """Build a Pillow palette image usable by Image.quantize()."""
+    pal_img = Image.new("P", (1, 1))
+    flat = []
+    for r, g, b in colors:
+        flat.extend((int(r), int(g), int(b)))
+    # Pillow expects exactly 768 entries (256 * RGB)
+    flat.extend([0] * (768 - len(flat)))
+    pal_img.putpalette(flat)
+    return pal_img
 
-    return tuple(
-        palette[np.argmin(distances)]
-    )
 
-# =====================================
-# CONVERT IMAGE
-# =====================================
+PALETTE_COLORS = load_palette_colors(PALETTE_IMAGE)
+QUANTIZE_PALETTE = build_quantize_palette_image(PALETTE_COLORS)
+
 
 def convert_image(input_path, output_path):
+    """
+    Convert an image to the master palette.
+    - Uses Pillow quantization (C-optimized, much faster than Python pixel loops)
+    - Preserves alpha channel exactly
+    - Optionally writes indexed PNG for opaque images
+    """
+    src = Image.open(input_path)
 
-    img = Image.open(input_path).convert("RGBA")
+    # Check transparency from original image before forced conversion.
+    has_alpha = "A" in src.getbands()
 
-    pixels = np.array(img)
-
-    height, width = pixels.shape[:2]
-
-    for y in range(height):
-
-        for x in range(width):
-
-            r, g, b, a = pixels[y, x]
-
-            # Preserve transparency
-            if a == 0:
-                continue
-
-            new_color = closest_color(
-                np.array([r, g, b])
-            )
-
-            pixels[y, x] = [
-                new_color[0],
-                new_color[1],
-                new_color[2],
-                a
-            ]
-
-    # Create output folder structure
-    os.makedirs(
-        os.path.dirname(output_path),
-        exist_ok=True
+    # Quantize RGB content to the shared master palette.
+    rgb = src.convert("RGB")
+    quantized = rgb.quantize(
+        palette=QUANTIZE_PALETTE,
+        dither=Image.Dither.NONE,
     )
 
-    Image.fromarray(pixels).save(output_path)
+    if has_alpha:
+        # Keep alpha exactly from source, but RGB values from quantized palette.
+        alpha = src.getchannel("A")
+        out = quantized.convert("RGBA")
+        out.putalpha(alpha)
+        out.save(output_path, optimize=True, compress_level=9)
+    else:
+        if WRITE_INDEXED_PNG_WHEN_POSSIBLE:
+            quantized.save(output_path, optimize=True, compress_level=9)
+        else:
+            quantized.convert("RGB").save(output_path, optimize=True, compress_level=9)
 
-# =====================================
-# MAIN LOOP
-# =====================================
 
-for root, dirs, files in os.walk(SOURCE_DIR):
+def main():
+    for root, dirs, files in os.walk(SOURCE_DIR):
+        dirs[:] = [d for d in dirs if d not in IGNORE_FOLDERS]
 
-    # Ignore folders
-    dirs[:] = [
-        d for d in dirs
-        if d not in IGNORE_FOLDERS
-    ]
+        for file_name in files:
+            if not file_name.lower().endswith((".png", ".jpg", ".jpeg")):
+                continue
 
-    for file in files:
+            input_path = os.path.join(root, file_name)
+            relative_path = os.path.relpath(input_path, SOURCE_DIR)
+            relative_path = os.path.splitext(relative_path)[0] + ".png"
+            output_path = os.path.join(OUTPUT_DIR, relative_path)
 
-        # Process PNG + JPG
-        if file.lower().endswith((".png", ".jpg", ".jpeg")):
-
-            input_path = os.path.join(root, file)
-
-            relative_path = os.path.relpath(
-                input_path,
-                SOURCE_DIR
-            )
-
-            # Force output to PNG
-            relative_path = (
-                os.path.splitext(relative_path)[0]
-                + ".png"
-            )
-
-            output_path = os.path.join(
-                OUTPUT_DIR,
-                relative_path
-            )
-
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             print(f"Converting: {relative_path}")
+            convert_image(input_path, output_path)
 
-            convert_image(
-                input_path,
-                output_path
-            )
+    print("DONE")
 
-print("DONE")
+
+if __name__ == "__main__":
+    main()
