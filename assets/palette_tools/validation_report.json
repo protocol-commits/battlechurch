@@ -1,0 +1,92 @@
+{
+  "summary": {
+    "files_scanned": 9,
+    "failures": 0,
+    "max_colors_limit": 256,
+    "allow_outside": false
+  },
+  "failures": [],
+  "results": [
+    {
+      "path": "assets/backgrounds/epilogue.png",
+      "width": 2400,
+      "height": 1792,
+      "unique_colors": 123,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/floor.png",
+      "width": 1668,
+      "height": 943,
+      "unique_colors": 54,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/game-over.png",
+      "width": 1024,
+      "height": 768,
+      "unique_colors": 72,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/map.png",
+      "width": 1372,
+      "height": 768,
+      "unique_colors": 47,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/mid-bg.png",
+      "width": 1024,
+      "height": 578,
+      "unique_colors": 62,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/mission-1.png",
+      "width": 1024,
+      "height": 768,
+      "unique_colors": 72,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/mission-2.png",
+      "width": 2400,
+      "height": 1792,
+      "unique_colors": 99,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/mission-3.png",
+      "width": 1024,
+      "height": 765,
+      "unique_colors": 99,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    },
+    {
+      "path": "assets/backgrounds/title.png",
+      "width": 1424,
+      "height": 848,
+      "unique_colors": 89,
+      "outside_palette_count": 0,
+      "max_nearest_distance": 0,
+      "alpha_present": false
+    }
+  ]
+}

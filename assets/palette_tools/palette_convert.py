@@ -1,18 +1,20 @@
 from PIL import Image
 import os
+from pathlib import Path
 
 # =====================================
 # CONFIG
 # =====================================
 
 # Only process files inside this folder
-SOURCE_DIR = "../convert-this"
+BASE_DIR = Path(__file__).resolve().parent
+SOURCE_DIR = str((BASE_DIR / "../convert-this").resolve())
 
 # Output converted files here
-OUTPUT_DIR = "../converted_assets"
+OUTPUT_DIR = str((BASE_DIR / "../converted_assets").resolve())
 
 # Master palette image
-PALETTE_IMAGE = "master_palette.png"
+PALETTE_IMAGE = str((BASE_DIR / "master_palette.png").resolve())
 
 # Folders to ignore
 IGNORE_FOLDERS = [
