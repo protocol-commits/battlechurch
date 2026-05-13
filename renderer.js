@@ -10061,10 +10061,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       const imgW = bandImg.width || 1;
       const imgH = bandImg.height || 1;
-      // Center horizontally, align to bottom
-      const drawX = Math.round((canvas.width - imgW) / 2);
-      const drawY = canvas.height - imgH;
-      ctx.drawImage(bandImg, 0, 0, imgW, imgH, drawX, drawY, imgW, imgH);
+      // Scale to canvas width so converted floor images don't appear zoomed/clipped.
+      const scale = canvas.width / Math.max(1, imgW);
+      const drawW = Math.round(imgW * scale);
+      const drawH = Math.round(imgH * scale);
+      // Center horizontally, align to bottom.
+      const drawX = Math.round((canvas.width - drawW) / 2);
+      const drawY = canvas.height - drawH;
+      ctx.drawImage(bandImg, 0, 0, imgW, imgH, drawX, drawY, drawW, drawH);
       ctx.restore();
     } else {
       console.debug && console.debug("drawGame: band image missing", { layer: assets?.backgroundLayers?.floor });
