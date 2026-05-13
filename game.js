@@ -779,6 +779,7 @@ const BOSS_LIGHTNING_THUNDER_SFX_SRCS = [
 const BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE = 6;
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
+const GRACE_LAND_SFX_SRC = "assets/sfx/utility/diamond.mp3";
 const SAVE_PROGRESS_SFX_SRC = "assets/sfx/utility/utility16.mp3";
 const RECAP_TICK_SFX_SRC = "assets/sfx/utility/utility9.mp3";
 const RECAP_FINAL_SFX_SRC = "assets/sfx/rpg/Explosions/Explosions_22.wav";
@@ -839,6 +840,7 @@ const PRAYER_BOMB_RAIN_SFX_POOL_SIZE = 4;
 const MENU_SELECT_SFX_POOL_SIZE = 4;
 const ENEMY_SPAWN_SFX_POOL_SIZE = 4;
 const GRACE_PICKUP_SFX_POOL_SIZE = 4;
+const GRACE_LAND_SFX_POOL_SIZE = 4;
 const SAVE_PROGRESS_SFX_POOL_SIZE = 3;
 const RECAP_TICK_SFX_POOL_SIZE = 6;
 const RECAP_FINAL_SFX_POOL_SIZE = 3;
@@ -895,6 +897,7 @@ const menuSelectSfxPool = [];
 const menuMoveSfxPool = [];
 const enemySpawnSfxPool = [];
 const gracePickupSfxPool = [];
+const graceLandSfxPool = [];
 const saveProgressSfxPool = [];
 const recapTickSfxPool = [];
 const recapFinalSfxPool = [];
@@ -1526,6 +1529,10 @@ function playGracePickupSfx(volume = 0.2) {
 
 if (typeof window !== "undefined") {
   window.playGracePickupSfx = playGracePickupSfx;
+}
+
+function playGraceLandSfx(volume = 0.28) {
+  playPooledSfx(graceLandSfxPool, GRACE_LAND_SFX_SRC, GRACE_LAND_SFX_POOL_SIZE, { volume });
 }
 
 function playProgressSavedSfx(volume = 0.55) {
@@ -5651,6 +5658,8 @@ const aimAssist = {
   targetKind: null,
 };
 const SHOW_ENEMY_SPAWN_DEBUG = false;
+const PLAYER_CORNER_CUTOFF_SIDE_INSET = 200;
+const PLAYER_CORNER_CUTOFF_DEPTH = 200;
 
 function toggleHudHitboxDebug(key) {
   if (typeof window === "undefined" || !window.BattlechurchHitboxDebug) return false;
@@ -5704,6 +5713,8 @@ Renderer.initialize({
   },
   get ambientSmokeConfig() { return AMBIENT_SMOKE_CONFIG; },
   get waveSmokeTuning() { return WAVE_SMOKE_TUNING; },
+  get playerCornerCutoffSideInset() { return PLAYER_CORNER_CUTOFF_SIDE_INSET; },
+  get playerCornerCutoffDepth() { return PLAYER_CORNER_CUTOFF_DEPTH; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
@@ -10782,6 +10793,7 @@ function spawnGracePickup(x, y, options = {}) {
     bounceDamp: Number.isFinite(options.bounceDamp) ? options.bounceDamp : 0.5,
     airDrag: Number.isFinite(options.airDrag) ? options.airDrag : GRACE_PICKUP_AIR_DRAG,
     collected: false,
+    landSfxPlayed: false,
     spawnBlink: 0.2,
     blinkTimer: 0,
     blinkAlpha: 1,
@@ -12257,6 +12269,10 @@ function updateGracePickups(dt) {
     if (pickup.bounce && Number.isFinite(pickup.floorY) && pickup.y >= pickup.floorY) {
       pickup.y = pickup.floorY;
       if (pickup.vy > 0) {
+        if (!pickup.landSfxPlayed) {
+          playGraceLandSfx(0.15);
+          pickup.landSfxPlayed = true;
+        }
         pickup.vy = -pickup.vy * pickup.bounceDamp;
         pickup.vx *= 0.85;
         if (Math.abs(pickup.vy) < 40) {
@@ -12963,7 +12979,66 @@ function clampEntityToBounds(entity) {
   const topLimit = HUD_HEIGHT + topPadding;
   const bottomLimit = canvas.height - verticalMargin;
   const clampedY = Math.max(topLimit, Math.min(bottomLimit, centerY));
-  entity.y = clampedY - offset.y;
+  let adjustedCenterX = clampedX;
+  let adjustedCenterY = clampedY;
+  if (entity?.isPlayer) {
+    const cornerCut = getPlayerCornerCutoffBounds(topLimit);
+    const cornerResolved = resolvePointAgainstCornerCutoffs(
+      adjustedCenterX,
+      adjustedCenterY,
+      cornerCut,
+      canvas.width,
+    );
+    adjustedCenterX = cornerResolved.x;
+    adjustedCenterY = cornerResolved.y;
+  }
+  entity.x = adjustedCenterX - offset.x;
+  entity.y = adjustedCenterY - offset.y;
+}
+
+function getPlayerCornerCutoffBounds(topY) {
+  return {
+    topY,
+    sideInset: PLAYER_CORNER_CUTOFF_SIDE_INSET,
+    depth: PLAYER_CORNER_CUTOFF_DEPTH,
+  };
+}
+
+function clampUnit(value) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function projectPointToSegment(px, py, ax, ay, bx, by) {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const abLenSq = abx * abx + aby * aby;
+  if (abLenSq <= 0.00001) return { x: ax, y: ay };
+  const apx = px - ax;
+  const apy = py - ay;
+  const t = clampUnit((apx * abx + apy * aby) / abLenSq);
+  return { x: ax + abx * t, y: ay + aby * t };
+}
+
+function resolvePointAgainstCornerCutoffs(x, y, cutoff, worldWidth) {
+  const sideInset = Math.max(8, Number(cutoff?.sideInset) || 0);
+  const depth = Math.max(8, Number(cutoff?.depth) || 0);
+  const topY = Number(cutoff?.topY) || HUD_HEIGHT;
+  const topCutY = topY + depth;
+
+  const leftLineYAtX = topCutY - (depth / sideInset) * x;
+  if (x <= sideInset && y <= leftLineYAtX) {
+    const projected = projectPointToSegment(x, y, 0, topCutY, sideInset, topY);
+    return { x: projected.x, y: projected.y };
+  }
+
+  const rx = worldWidth - x;
+  const rightLineYAtX = topCutY - (depth / sideInset) * rx;
+  if (rx <= sideInset && y <= rightLineYAtX) {
+    const projected = projectPointToSegment(x, y, worldWidth, topCutY, worldWidth - sideInset, topY);
+    return { x: projected.x, y: projected.y };
+  }
+
+  return { x, y };
 }
 
 function resolveEntityObstacles(entity) {
