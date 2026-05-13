@@ -6040,6 +6040,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     congregationIntroState.lastStage = stage;
     const introElapsed = Math.max(0, (now - (congregationIntroState.startTime || now)) / 1000);
+    drawCongregationAtmosphere(ctx, introElapsed, {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height,
+    });
     const congregationTextHoldAfterHandoff = 0.45;
     const typewriterReady = !congregationIntroBlockedByAnnouncement;
     const handoffAnimDuration = 0.65;
@@ -7554,6 +7560,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ashBaseMaxAlpha: 0.9,
     bossPhase3AshMaxAlpha: 1.0,
   });
+  const CONGREGATION_ATMOSPHERE_CONFIG = Object.freeze({
+    tintColor: "rgba(148, 192, 216, 1)",
+    glowColor: "rgba(139, 208, 186, 1)",
+    vignetteColor: "rgba(16, 16, 36, 1)",
+    tintMinAlpha: 0.05,
+    tintMaxAlpha: 0.1,
+    glowMinAlpha: 0.015,
+    glowMaxAlpha: 0.05,
+    vignetteMinAlpha: 0.04,
+    vignetteMaxAlpha: 0.09,
+    rampDurationSec: 1.8,
+  });
   const waveAtmosphereTweenState = {
     initialized: false,
     lastMs: 0,
@@ -7655,12 +7673,75 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.beginPath();
     ctx.rect(x, y, width, height);
     ctx.clip();
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = "soft-light";
     ctx.globalAlpha = Math.max(0, Math.min(1, tintAlpha));
     ctx.fillStyle = "rgba(110, 12, 16, 1)";
     ctx.fillRect(x, y, width, height);
     ctx.restore();
 
+  }
+
+  function drawCongregationAtmosphere(ctx, elapsedSec, bounds) {
+    if (!ctx || !bounds) return;
+    const width = Math.max(0, bounds.width || 0);
+    const height = Math.max(0, bounds.height || 0);
+    if (width <= 0 || height <= 0) return;
+    const x = Number.isFinite(bounds.x) ? bounds.x : 0;
+    const y = Number.isFinite(bounds.y) ? bounds.y : 0;
+
+    const ramp = Math.max(
+      0,
+      Math.min(1, (Number(elapsedSec) || 0) / Math.max(0.001, CONGREGATION_ATMOSPHERE_CONFIG.rampDurationSec)),
+    );
+    const tintAlpha =
+      CONGREGATION_ATMOSPHERE_CONFIG.tintMinAlpha +
+      (CONGREGATION_ATMOSPHERE_CONFIG.tintMaxAlpha - CONGREGATION_ATMOSPHERE_CONFIG.tintMinAlpha) * ramp;
+    const glowAlpha =
+      CONGREGATION_ATMOSPHERE_CONFIG.glowMinAlpha +
+      (CONGREGATION_ATMOSPHERE_CONFIG.glowMaxAlpha - CONGREGATION_ATMOSPHERE_CONFIG.glowMinAlpha) * ramp;
+    const vignetteAlpha =
+      CONGREGATION_ATMOSPHERE_CONFIG.vignetteMinAlpha +
+      (CONGREGATION_ATMOSPHERE_CONFIG.vignetteMaxAlpha - CONGREGATION_ATMOSPHERE_CONFIG.vignetteMinAlpha) * ramp;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.max(0, Math.min(1, tintAlpha));
+    ctx.fillStyle = CONGREGATION_ATMOSPHERE_CONFIG.tintColor;
+    ctx.fillRect(x, y, width, height);
+
+    const glow = ctx.createRadialGradient(
+      x + width * 0.5,
+      y + height * 0.7,
+      Math.max(1, width * 0.08),
+      x + width * 0.5,
+      y + height * 0.7,
+      Math.max(width, height) * 0.9,
+    );
+    glow.addColorStop(0, CONGREGATION_ATMOSPHERE_CONFIG.glowColor);
+    glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.globalAlpha = Math.max(0, Math.min(1, glowAlpha));
+    ctx.fillStyle = glow;
+    ctx.fillRect(x, y, width, height);
+    ctx.restore();
+
+    ctx.save();
+    const vignette = ctx.createRadialGradient(
+      x + width * 0.5,
+      y + height * 0.5,
+      Math.max(1, Math.min(width, height) * 0.28),
+      x + width * 0.5,
+      y + height * 0.5,
+      Math.max(width, height) * 0.8,
+    );
+    vignette.addColorStop(0, "rgba(0, 0, 0, 0)");
+    vignette.addColorStop(1, CONGREGATION_ATMOSPHERE_CONFIG.vignetteColor);
+    ctx.globalAlpha = Math.max(0, Math.min(1, vignetteAlpha));
+    ctx.fillStyle = vignette;
+    ctx.fillRect(x, y, width, height);
+    ctx.restore();
   }
 
   function getEmberButtonGradient(ctx, y, height) {
@@ -9378,6 +9459,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    drawCongregationAtmosphere(ctx, Number(districtVictoryScroll?.delayTimer) || 0, {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height,
+    });
     // Slight overlay for text readability
     ctx.fillStyle = "rgba(6, 10, 18, 0.45)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
