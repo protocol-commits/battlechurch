@@ -10146,8 +10146,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             alpha: drawAlpha,
             flashWhite: flashStrength,
           });
-          const nameY = member.y - (member.radius || 28) - 15;
-          dynamicNameTags.push({ name: member?.name || "Friend", x: member.x, y: nameY });
         }
       });
       ctx.restore();
