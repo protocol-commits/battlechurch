@@ -779,6 +779,7 @@ const BOSS_LIGHTNING_THUNDER_SFX_SRCS = [
 ];
 const BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE = 6;
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
+const POWERUP_SPAWN_SFX_SRC = "assets/sfx/utility/utility12.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const GRACE_LAND_SFX_SRC = "assets/sfx/utility/diamond.mp3";
 const SAVE_PROGRESS_SFX_SRC = "assets/sfx/utility/utility16.mp3";
@@ -835,6 +836,7 @@ const FIREBALL_SFX_POOL_SIZE = 6;
 const WISDOM_SFX_POOL_SIZE = 4;
 const FAITH_CANNON_SFX_POOL_SIZE = 4;
 const POWERUP_PICKUP_SFX_POOL_SIZE = 4;
+const POWERUP_SPAWN_SFX_POOL_SIZE = 4;
 const WISDOM_HIT_SFX_POOL_SIZE = 5;
 const FAITH_HIT_SFX_POOL_SIZE = 5;
 const PRAYER_BOMB_SFX_POOL_SIZE = 4;
@@ -890,6 +892,7 @@ const fireballSfxPool = [];
 const wisdomSfxPool = [];
 const faithCannonSfxPool = [];
 const powerupPickupSfxPool = [];
+const powerupSpawnSfxPool = [];
 const wisdomHitSfxPool = [];
 const faithHitSfxPool = [];
 const thrashHitSfxPool = [];
@@ -1522,6 +1525,13 @@ function playThrashHitSfx(volume = 0.8) {
 
 function playPowerupPickupSfx(volume = 1.2) {
   playPooledSfx(powerupPickupSfxPool, POWERUP_PICKUP_SFX_SRC, POWERUP_PICKUP_SFX_POOL_SIZE, { volume });
+}
+
+function playPowerupSpawnSfx(volume = 0.4) {
+  playPooledSfx(powerupSpawnSfxPool, POWERUP_SPAWN_SFX_SRC, POWERUP_SPAWN_SFX_POOL_SIZE, {
+    volume,
+    matchSrc: true,
+  });
 }
 
 if (typeof window !== "undefined") {
@@ -4809,7 +4819,7 @@ function maintainDevArenaPickups() {
         pickup.y = slot.y;
         pickup.baseY = slot.y;
         weaponPickups.push(pickup);
-        playGracePickupSfx(1.3);
+        playPowerupSpawnSfx();
         slot.pickup = pickup;
       }
     } else if (slot.kind === "npcWeapon") {
@@ -4822,7 +4832,7 @@ function maintainDevArenaPickups() {
         pickup.y = slot.y;
         pickup.baseY = slot.y;
         weaponPickups.push(pickup);
-        playGracePickupSfx(1.3);
+        playPowerupSpawnSfx();
         slot.pickup = pickup;
       }
     } else if (slot.kind === "utility") {
@@ -4834,7 +4844,7 @@ function maintainDevArenaPickups() {
         const pickup = new UtilityPowerUp({ ...def, ...asset, type, life: DEV_ARENA_PICKUP_LIFE }, slot.x, slot.y);
         pickup.baseY = slot.y;
         utilityPowerUps.push(pickup);
-        playGracePickupSfx(1.3);
+        playPowerupSpawnSfx();
         slot.pickup = pickup;
       }
     }
@@ -9866,7 +9876,7 @@ function spawnSinglePowerUpDrop() {
   pickup.y = Math.max(padding, Math.min(canvas.height - padding, pushed.y));
   pickup.baseY = pickup.y;
   weaponPickups.push(pickup);
-  playGracePickupSfx(1.3);
+  playPowerupSpawnSfx();
   return true;
 }
 
@@ -10062,7 +10072,7 @@ function spawnWeaponDrops(minCount = 1) {
   while (weaponPickups.length < minCount && canSpawnWeaponPowerUp()) {
     const [type, def] = entries[Math.floor(Math.random() * entries.length)];
     weaponPickups.push(new WeaponPickup({ ...def, type }));
-    playGracePickupSfx(1.3);
+    playPowerupSpawnSfx();
   }
 }
 
@@ -10162,7 +10172,7 @@ function spawnChurchPowerupPickup(type = null, position = null) {
   pickup.baseY = pickup.y;
   clampEntityToBounds(pickup);
   churchPowerupPickups.push(pickup);
-  playGracePickupSfx(1.3);
+  playPowerupSpawnSfx();
   return pickup;
 }
 
@@ -10232,7 +10242,7 @@ function spawnUtilityPowerUp(type = null, position = null) {
   const definition = { ...asset, type: selected };
   const powerUp = new UtilityPowerUp(definition, spawnX, spawnY);
   utilityPowerUps.push(powerUp);
-  playGracePickupSfx(1.3);
+  playPowerupSpawnSfx();
   return powerUp;
 }
 
@@ -10260,7 +10270,7 @@ function spawnWeaponPickup(position = null) {
   pickup.baseY = pickup.y;
   clampEntityToBounds(pickup);
   weaponPickups.push(pickup);
-  playGracePickupSfx(1.3);
+  playPowerupSpawnSfx();
   return pickup;
 }
 
