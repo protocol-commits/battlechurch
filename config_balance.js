@@ -226,7 +226,7 @@
       shadowThreshold: 0.35,
       // Global runtime color lock: remap all canvas colors to nearest
       // desolate palette swatch for visual consistency.
-      enforceDesolatePalette: true,
+      enforceDesolatePalette: false,
     },
 
     // =====================
