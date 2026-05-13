@@ -700,6 +700,12 @@
             <div id="lb-assumedUpgrades" class="lb-upgrade-grid"></div>
             <button id="lb-clearAssumedUpgrades" class="secondary" type="button">Reset Upgrades</button>
           </div>
+          <div class="group" style="margin-left:16px;align-items:center;gap:6px;">
+            <span class="lb-upgrades-label">Floor</span>
+            <select id="lb-floorBackground" style="width:auto;min-width:120px;margin:0;font-size:11px;">
+              <option value="">default (floor.png)</option>
+            </select>
+          </div>
         </div>
         <div id="lb-status" style="margin-top:8px;font-size:12px;color:var(--lb-hint);"></div>
       </div>
@@ -721,6 +727,7 @@
     battleNotes: overlay.querySelector("#lb-battleNotes"),
     assumedUpgrades: overlay.querySelector("#lb-assumedUpgrades"),
     clearAssumedUpgrades: overlay.querySelector("#lb-clearAssumedUpgrades"),
+    floorBackground: overlay.querySelector("#lb-floorBackground"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
     copyMenuWrap: overlay.querySelector("#lb-copyMenuWrap"),
@@ -801,7 +808,7 @@
   // Render the full column-based mission view.
   function renderMissionView() {
     updateScopeFromSelects();
-    const { missionObj } = getOrCreateMission();
+    const { townObj, missionObj } = getOrCreateMission();
     if (els.battleNotes) {
       const notes = typeof missionObj.editorNotes === "string" ? missionObj.editorNotes : "";
       if (els.battleNotes !== document.activeElement) {
@@ -809,6 +816,9 @@
       } else if (els.battleNotes.value !== notes) {
         missionObj.editorNotes = els.battleNotes.value;
       }
+    }
+    if (els.floorBackground && els.floorBackground !== document.activeElement) {
+      els.floorBackground.value = typeof townObj.floorBackground === "string" ? townObj.floorBackground : "";
     }
     renderAssumedUpgradeInputs(missionObj);
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
@@ -1848,6 +1858,21 @@
         saveToStorage(state.config);
       });
     }
+    if (els.floorBackground) {
+      els.floorBackground.addEventListener("change", () => {
+        const { townObj } = getOrCreateMission();
+        const nextValue = els.floorBackground.value;
+        if (townObj.floorBackground === nextValue) return;
+        pushUndoSnapshot();
+        if (nextValue) {
+          townObj.floorBackground = nextValue;
+        } else {
+          delete townObj.floorBackground;
+        }
+        saveToStorage(state.config);
+        setStatus(`Floor set for ${campaignUiLabels.district} ${state.scope.town}`);
+      });
+    }
     if (els.clearAssumedUpgrades) {
       els.clearAssumedUpgrades.addEventListener("click", () => {
         const { missionObj } = getOrCreateMission();
@@ -2077,6 +2102,25 @@
 
   attachEvents();
   syncFromServer();
+
+  if (IS_LOCALHOST && els.floorBackground) {
+    fetch(`${SYNC_ENDPOINT.replace(/\/level-config$/, "")}/floor-backgrounds`)
+      .then((r) => r.json())
+      .then(({ files }) => {
+        if (!Array.isArray(files)) return;
+        const select = els.floorBackground;
+        const current = select.value;
+        select.innerHTML = '<option value="">default (floor.png)</option>';
+        files.forEach((path) => {
+          const opt = document.createElement("option");
+          opt.value = path;
+          opt.textContent = path.replace("assets/backgrounds/", "");
+          select.appendChild(opt);
+        });
+        select.value = current;
+      })
+      .catch(() => {});
+  }
 
   window.BattlechurchLevelBuilder = {
     initialize(options = {}) {

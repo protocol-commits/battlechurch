@@ -4,6 +4,7 @@ const path = require("path");
 
 const PORT = Number(process.env.LEVEL_SERVER_PORT) || 4100;
 const LEVEL_DATA_PATH = path.join(__dirname, "level_data.js");
+const BACKGROUNDS_PATH = path.join(__dirname, "..", "assets", "backgrounds");
 const MAX_BODY_BYTES = 5 * 1024 * 1024;
 
 const corsHeaders = {
@@ -90,6 +91,19 @@ const server = http.createServer((req, res) => {
 
   if (req.method === "POST" && pathname === "/level-config") {
     handleSaveConfig(req, res);
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/floor-backgrounds") {
+    try {
+      const files = fs.readdirSync(BACKGROUNDS_PATH)
+        .filter((f) => f.match(/^floor.*\.(png|jpg|jpeg|webp)$/i))
+        .sort()
+        .map((f) => `assets/backgrounds/${f}`);
+      sendJson(res, 200, { ok: true, files });
+    } catch (err) {
+      sendJson(res, 500, { ok: false, error: err.message });
+    }
     return;
   }
 

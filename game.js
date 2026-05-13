@@ -5668,7 +5668,7 @@ if (typeof window !== "undefined") {
 
 const PLAYER_SPRITE_PATH = "assets/sprites/npcs/mana-seed/";
 const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
-const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
+const BACKGROUND_FLOOR_PATH = "assets/backgrounds/floor.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.jpg";
 const DISTRICT_INTRO_BACKGROUND_PATH = "assets/backgrounds/mission-1.jpg";
 const CHARACTER_ROOT = "assets/sprites/rpg-sprites/Characters(100x100)";
@@ -7819,7 +7819,7 @@ async function loadBackgroundAssets(cache, assets) {
   const midPromise = loadImage(BACKGROUND_MID_PATH)
     .then((img) => { assets.backgroundLayers.mid = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.mid = null; });
-  const floorPromise = loadImage("assets/backgrounds/floor.png")
+  const floorPromise = loadImage(BACKGROUND_FLOOR_PATH)
     .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floor = null; });
   const titleBackgroundPromise = loadImage(TITLE_BACKGROUND_PATH)
@@ -8316,6 +8316,16 @@ function queueInitialMonthAnnouncementFromCongregation() {
 function startGameFromTitle() {
   // Don't start if assets haven't loaded yet
   if (!assetsLoaded) return;
+  // Swap floor background if the district has a custom one configured
+  if (assets?.backgroundLayers) {
+    const floorPath = getFloorPathForDistrict(activeDistrictId);
+    if (floorPath !== (assets.backgroundLayers._floorPath || BACKGROUND_FLOOR_PATH)) {
+      assets.backgroundLayers._floorPath = floorPath;
+      loadImage(floorPath)
+        .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
+        .catch(() => { assets.backgroundLayers.floor = null; });
+    }
+  }
   devMeleeArenaMode = false;
   if (musicState.devArena) musicState.devArena.pause();
   resetDevMeleeMoveFeed();
@@ -8451,6 +8461,27 @@ function startGameFromTitle() {
     queueDistrictIntroAnnouncement();
     return;
   } catch (e) {}
+}
+
+function getFloorPathForDistrict(districtId) {
+  const cfg =
+    (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
+    (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
+  if (cfg && districtId) {
+    const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
+    const districts = Array.isArray(mapData?.districts) ? mapData.districts : [];
+    const districtIndex = districts.findIndex((t) => t?.id === districtId);
+    const townNumber = districtIndex >= 0 ? districtIndex + 1 : null;
+    if (townNumber != null) {
+      const townCfg =
+        (Array.isArray(cfg.towns) &&
+          (cfg.towns.find((t) => Number(t?.index) === townNumber) || cfg.towns[townNumber - 1])) ||
+        null;
+      const path = typeof townCfg?.floorBackground === "string" ? townCfg.floorBackground.trim() : "";
+      if (path) return path;
+    }
+  }
+  return BACKGROUND_FLOOR_PATH;
 }
 
 function startRunForDistrict(districtId) {
