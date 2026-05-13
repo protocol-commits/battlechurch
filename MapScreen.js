@@ -12,7 +12,7 @@
     dim: "rgba(231, 176, 102, 0.68)",
   });
   const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0;
-  const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.7;
+  const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.72;
 
   let mapImage = null;
   let mapImageLoaded = false;
@@ -24,10 +24,14 @@
   const districtAnimators = new Map();
 
   function readMapScreenRenderStyleNumber(key, fallback) {
-    const root =
-      (typeof window !== "undefined" && window.BattlechurchBalanceConfig && window.BattlechurchBalanceConfig.mapScreenRenderStyle)
-        ? window.BattlechurchBalanceConfig.mapScreenRenderStyle
-        : null;
+    const root = (() => {
+      if (typeof window === "undefined") return null;
+      const cfg = window.GameBalance || window.BattlechurchBalanceConfig || null;
+      if (!cfg) return null;
+      return cfg.masterRenderStyle
+        || cfg.mapScreenRenderStyle
+        || null;
+    })();
     const raw = root ? Number(root[key]) : NaN;
     return Number.isFinite(raw) ? raw : fallback;
   }
@@ -82,7 +86,18 @@
   }
 
   function maybeApplyMapScreenShadowCrush(image) {
-    return image;
+    if (!image || !image.width || !image.height) return image;
+    if (typeof document === "undefined" || typeof document.createElement !== "function") return image;
+    const style = getMapScreenShadowStyle();
+    if (!style.shadowCrush) return image;
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const ctx2d = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx2d) return image;
+    ctx2d.imageSmoothingEnabled = false;
+    ctx2d.drawImage(image, 0, 0);
+    return applyShadowCrushToCanvas(canvas, style);
   }
 
   const state = {

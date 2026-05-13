@@ -4378,22 +4378,6 @@ const ENEMY_SHADOW_THRESHOLD = Math.max(
   0.02,
   Math.min(1, Number(_gb("enemyRenderStyle.shadowThreshold", 0.72)) || 0.72),
 );
-const ARENA_BG_SHADOW_CRUSH = Math.max(
-  0,
-  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowCrush", 0)) || 0),
-);
-const ARENA_BG_SHADOW_THRESHOLD = Math.max(
-  0.02,
-  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowThreshold", 0.7)) || 0.7),
-);
-const TITLE_BG_SHADOW_CRUSH = Math.max(
-  0,
-  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowCrush", 0)) || 0),
-);
-const TITLE_BG_SHADOW_THRESHOLD = Math.max(
-  0.02,
-  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowThreshold", 0.7)) || 0.7),
-);
 const MASTER_SHADOW_CRUSH = Math.max(
   0,
   Math.min(1, Number(_gb("masterRenderStyle.shadowCrush", 0)) || 0),
@@ -4402,6 +4386,10 @@ const MASTER_SHADOW_THRESHOLD = Math.max(
   0.02,
   Math.min(1, Number(_gb("masterRenderStyle.shadowThreshold", 0.72)) || 0.72),
 );
+const MASTER_ASSET_SHADOW_STYLE = Object.freeze({
+  shadowCrush: MASTER_SHADOW_CRUSH,
+  shadowThreshold: MASTER_SHADOW_THRESHOLD,
+});
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const PROJECTILE_PATH =
   projectileSettings.projectilePath || "assets/sprites/projectiles/";
@@ -7018,7 +7006,7 @@ async function loadAnimationClip(definition, cache, options = {}) {
     }
   }
 
-  const imageForClip = image;
+  const imageForClip = buildShadowCrushedImageCopy(image, MASTER_ASSET_SHADOW_STYLE);
   const clip = new AnimationClip(imageForClip, frameWidth, frameHeight, definition.frameRate, definition);
   if (Array.isArray(definition.frameMap) && definition.frameMap.length) {
     clip.frameMap = definition.frameMap.slice();
@@ -7079,11 +7067,11 @@ function buildShadowCrushedImageCopy(image, renderStyle) {
 }
 
 function maybeApplyArenaBackgroundShadowCrush(image) {
-  return image;
+  return buildShadowCrushedImageCopy(image, MASTER_ASSET_SHADOW_STYLE);
 }
 
 function maybeApplyTitleBackgroundShadowCrush(image) {
-  return image;
+  return buildShadowCrushedImageCopy(image, MASTER_ASSET_SHADOW_STYLE);
 }
 
 function extractFrame(image, frameWidth, frameHeight, frameIndex = 0) {
@@ -16921,11 +16909,43 @@ function normalizeNpcPixelRenderStyle(style) {
 }
 
 function resolveNpcPixelRenderStyle(config) {
-  return { shadowCrush: 0, shadowThreshold: 0.5 };
+  const preferred = normalizeNpcPixelRenderStyle(config?.renderStyle);
+  if (preferred) return preferred;
+  return MASTER_ASSET_SHADOW_STYLE;
 }
 
 function applyShadowCrushToNpcSheet(context2d, width, height, renderStyle) {
-  return;
+  if (!context2d || !width || !height) return;
+  const shadowCrush = Number.isFinite(renderStyle?.shadowCrush)
+    ? Math.max(0, Math.min(1, renderStyle.shadowCrush))
+    : 0;
+  if (shadowCrush <= 0) return;
+  const shadowThreshold = Number.isFinite(renderStyle?.shadowThreshold)
+    ? Math.max(0.02, Math.min(1, renderStyle.shadowThreshold))
+    : 0.5;
+  let imageData = null;
+  try {
+    imageData = context2d.getImageData(0, 0, width, height);
+  } catch (_e) {
+    return;
+  }
+  const pixels = imageData.data;
+  for (let i = 0; i < pixels.length; i += 4) {
+    const a = pixels[i + 3];
+    if (!a) continue;
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    if (luminance >= shadowThreshold) continue;
+    const under = (shadowThreshold - luminance) / shadowThreshold;
+    const darken = Math.max(0, Math.min(1, under * shadowCrush));
+    const mult = 1 - darken;
+    pixels[i] = Math.max(0, Math.min(255, Math.round(r * mult)));
+    pixels[i + 1] = Math.max(0, Math.min(255, Math.round(g * mult)));
+    pixels[i + 2] = Math.max(0, Math.min(255, Math.round(b * mult)));
+  }
+  context2d.putImageData(imageData, 0, 0);
 }
 
 function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {

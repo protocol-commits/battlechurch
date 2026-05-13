@@ -219,10 +219,11 @@
     // MASTER RENDER STYLE
     // =====================
     masterRenderStyle: {
-      // Single global shadow crush pass applied before HUD render.
-      // Set to 0 to disable entirely.
-      shadowCrush: 0.12,
-      shadowThreshold: 0.72,
+      // Single global shadow crush style applied once at asset-load time
+      // (sprites/backgrounds/map/title). HUD colors are not post-processed.
+      // Set shadowCrush to 0 to disable.
+      shadowCrush: 0.92,
+      shadowThreshold: 0.35,
     },
 
     // =====================

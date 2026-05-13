@@ -941,45 +941,7 @@ const MELEE_SWING_LENGTH = 260;
   }
 
   function applyMasterShadowCrushBeforeHud() {
-    const { ctx, canvas, masterShadowCrushStyle } = requireBindings();
-    if (!ctx || !canvas) return;
-    const shadowCrush = Number.isFinite(masterShadowCrushStyle?.shadowCrush)
-      ? Math.max(0, Math.min(1, Number(masterShadowCrushStyle.shadowCrush)))
-      : 0;
-    if (shadowCrush <= 0) return;
-    const shadowThreshold = Number.isFinite(masterShadowCrushStyle?.shadowThreshold)
-      ? Math.max(0.02, Math.min(1, Number(masterShadowCrushStyle.shadowThreshold)))
-      : 0.72;
-    // Performance note:
-    // Avoid per-frame getImageData/putImageData on the full canvas.
-    // Use cheap blend overlays to approximate a global shadow-crush feel.
-    const baseAlpha = Math.max(0, Math.min(0.5, shadowCrush * 0.42));
-    const thresholdBias = Math.max(0, Math.min(1, (shadowThreshold - 0.5) * 1.6));
-    const edgeAlpha = baseAlpha * (0.4 + thresholdBias * 0.6);
-
-    ctx.save();
-    // Global darken (multiply) for unified look.
-    ctx.globalCompositeOperation = "multiply";
-    ctx.globalAlpha = baseAlpha;
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Slight extra side vignette to mimic deeper shadow response.
-    if (edgeAlpha > 0.001) {
-      ctx.globalAlpha = edgeAlpha;
-      const left = ctx.createLinearGradient(0, 0, canvas.width * 0.22, 0);
-      left.addColorStop(0, "rgba(0,0,0,1)");
-      left.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = left;
-      ctx.fillRect(0, 0, canvas.width * 0.22, canvas.height);
-
-      const right = ctx.createLinearGradient(canvas.width, 0, canvas.width * 0.78, 0);
-      right.addColorStop(0, "rgba(0,0,0,1)");
-      right.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.fillStyle = right;
-      ctx.fillRect(canvas.width * 0.78, 0, canvas.width * 0.22, canvas.height);
-    }
-    ctx.restore();
+    return;
   }
 
   function isAnnouncementButtonFocused(screenKey, index) {
@@ -10057,7 +10019,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       ctx.restore();
 
-      applyMasterShadowCrushBeforeHud();
       drawHUD();
       drawHUD();
       drawLevelAnnouncements();
@@ -10777,7 +10738,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     drawWaveClearWipe(ctx, canvas, nowMs);
-    applyMasterShadowCrushBeforeHud();
     drawHUD();
     const graceHudFlyEffects = requireBindings().graceHudFlyEffects;
     if (graceHudFlyEffects && graceHudFlyEffects.length) {
