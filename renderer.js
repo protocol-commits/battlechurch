@@ -5681,18 +5681,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const cameraX = resolveCameraX(effectiveCameraX);
     ctx.fillStyle = "#0b111a";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // Only draw mid and floor layers for congregation screen (no far-bg)
-    const mid = assets?.backgroundLayers?.mid || null;
-    if (mid) {
-      ctx.save();
-      ctx.translate(0, effectiveCameraY);
-      const rawPan = Math.floor(cameraX * 0.45);
-      const pan = ((rawPan % mid.width) + mid.width) % mid.width;
-      const drawY = 0;
-      ctx.drawImage(mid, -pan, drawY, mid.width, mid.height);
-      ctx.drawImage(mid, -pan + mid.width, drawY, mid.width, mid.height);
-      ctx.restore();
-    }
     // Draw floor layer (matches battle screen)
     const floor = assets?.backgroundLayers?.floor || null;
     if (floor) {
