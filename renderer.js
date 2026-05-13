@@ -7957,6 +7957,71 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawArenaTiltShift(ctx, canvas, levelStatus) {
+    if (!ctx || !canvas || !levelStatus) return;
+    const stage = levelStatus.stage || "";
+    const combatStage =
+      stage === "waveIntro" ||
+      stage === "waveActive" ||
+      stage === "allKillBreak" ||
+      stage === "waveCleared" ||
+      stage === "bossIntro" ||
+      stage === "bossActive";
+    if (!combatStage) return;
+
+    // Tilt-shift layout: top 1/4 and bottom 1/4 are blurred with a soft feather.
+    const w = canvas.width;
+    const h = canvas.height;
+    const topQuarterEnd = h * 0.25;
+    const bottomQuarterStart = h * 0.75;
+    const feather = Math.max(20, h * 0.07);
+    const blurPx = 5;
+
+    // Top quarter core blur
+    ctx.save();
+    ctx.filter = `blur(${blurPx}px)`;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.beginPath();
+    ctx.rect(0, 0, w, topQuarterEnd);
+    ctx.clip();
+    ctx.globalAlpha = 0.82;
+    ctx.drawImage(canvas, 0, 0);
+    ctx.restore();
+
+    // Top feather into focus band
+    ctx.save();
+    ctx.filter = `blur(${blurPx}px)`;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.beginPath();
+    ctx.rect(0, topQuarterEnd, w, feather);
+    ctx.clip();
+    ctx.globalAlpha = 0.35;
+    ctx.drawImage(canvas, 0, 0);
+    ctx.restore();
+
+    // Bottom quarter core blur
+    ctx.save();
+    ctx.filter = `blur(${blurPx}px)`;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.beginPath();
+    ctx.rect(0, bottomQuarterStart, w, h - bottomQuarterStart);
+    ctx.clip();
+    ctx.globalAlpha = 0.82;
+    ctx.drawImage(canvas, 0, 0);
+    ctx.restore();
+
+    // Bottom feather into focus band
+    ctx.save();
+    ctx.filter = `blur(${blurPx}px)`;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.beginPath();
+    ctx.rect(0, bottomQuarterStart - feather, w, feather);
+    ctx.clip();
+    ctx.globalAlpha = 0.35;
+    ctx.drawImage(canvas, 0, 0);
+    ctx.restore();
+  }
+
   function getEmberButtonGradient(ctx, y, height) {
     const gradient = ctx.createLinearGradient(0, y, 0, y + height);
     gradient.addColorStop(0, EMBER_BUTTON_PALETTE.top);
