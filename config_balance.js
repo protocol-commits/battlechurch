@@ -234,7 +234,7 @@
     // =====================
     ambientSmoke: {
       enabled: true,
-      maxPuffs: 4,
+      maxPuffs: 12,
       spawnPerSecond: 34,
       minSize: 38,
       maxSize: 140,
@@ -248,7 +248,7 @@
       sideWeight: 0.7,
       bottomBandRatio: 0.34,
       sideBandRatio: 0.24,
-      tint: "#FFFFFF",
+      tint: "#D44E52",
       debugVisible: false,
     },
 

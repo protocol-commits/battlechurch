@@ -222,7 +222,8 @@ const MELEE_SWING_LENGTH = 260;
       sideWeight: clamp01(Number(cfg.sideWeight) || 0.42),
       bottomBandRatio: clamp01(Number(cfg.bottomBandRatio) || 0.22),
       sideBandRatio: clamp01(Number(cfg.sideBandRatio) || 0.16),
-      tint: String(cfg.tint || "#DFDFC4"),
+      // Default to desolate danger red for smoke tinting.
+      tint: String(cfg.tint || "#D44E52"),
       debugVisible: cfg.debugVisible === true,
     };
   }
@@ -329,6 +330,9 @@ const MELEE_SWING_LENGTH = 260;
     ctx.save();
     ctx.translate(0, effectiveCameraY);
     ctx.globalCompositeOperation = "source-over";
+    if (!config.debugVisible) {
+      ctx.filter = "blur(5.8px)";
+    }
     for (let i = 0; i < puffs.length; i += 1) {
       const p = puffs[i];
       const lifeT = clamp01(p.life / Math.max(0.001, p.maxLife));
@@ -347,9 +351,11 @@ const MELEE_SWING_LENGTH = 260;
         ctx.strokeStyle = "rgba(255, 64, 64, 0.95)";
         ctx.stroke();
       } else {
-        const grad = ctx.createRadialGradient(p.x, p.y, r * 0.12, p.x, p.y, r);
+        // Keep the feather beyond the puff edge so circles do not show a hard rim.
+        const grad = ctx.createRadialGradient(p.x, p.y, r * 0.08, p.x, p.y, r * 1.28);
         grad.addColorStop(0, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.8).toFixed(3)})`);
-        grad.addColorStop(0.55, `rgba(148, 192, 216, ${(alpha * 0.35).toFixed(3)})`);
+        grad.addColorStop(0.45, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.26).toFixed(3)})`);
+        grad.addColorStop(0.86, `rgba(178, 46, 46, ${(alpha * 0.08).toFixed(3)})`);
         grad.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = grad;
         ctx.beginPath();

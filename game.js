@@ -4551,7 +4551,7 @@ const AMBIENT_SMOKE_CONFIG = Object.freeze({
   sideWeight: Math.max(0, Math.min(1, Number(_gb("ambientSmoke.sideWeight", 0.42)) || 0.42)),
   bottomBandRatio: Math.max(0.03, Math.min(0.6, Number(_gb("ambientSmoke.bottomBandRatio", 0.22)) || 0.22)),
   sideBandRatio: Math.max(0.02, Math.min(0.5, Number(_gb("ambientSmoke.sideBandRatio", 0.16)) || 0.16)),
-  tint: String(_gb("ambientSmoke.tint", "#DFDFC4") || "#DFDFC4"),
+  tint: String(_gb("ambientSmoke.tint", "#D44E52") || "#D44E52"),
   debugVisible: Boolean(_gb("ambientSmoke.debugVisible", false)),
 });
 const PROJECTILE_CONFIG = projectileSettings.config || {};
