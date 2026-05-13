@@ -7923,6 +7923,40 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawEdgeShadowEnemyBlur(ctx, canvas, enemies, cameraX, cameraY, levelStatus) {
+    if (!ctx || !canvas || !Array.isArray(enemies) || !enemies.length || !levelStatus) return;
+    const stage = levelStatus.stage || "";
+    const combatStage =
+      stage === "waveIntro" ||
+      stage === "waveActive" ||
+      stage === "allKillBreak" ||
+      stage === "waveCleared" ||
+      stage === "bossIntro" ||
+      stage === "bossActive";
+    if (!combatStage) return;
+
+    const leftZone = canvas.width * 0.18;
+    const rightZone = canvas.width * 0.82;
+    const bottomZone = canvas.height * 0.8;
+    const maxBlurred = 14; // hard cap for safety on low-end devices
+
+    let blurredCount = 0;
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.filter = "blur(1.6px)";
+    for (let i = 0; i < enemies.length; i += 1) {
+      if (blurredCount >= maxBlurred) break;
+      const enemy = enemies[i];
+      if (!enemy || enemy.dead || typeof enemy.draw !== "function") continue;
+      const sx = enemy.x - cameraX;
+      const sy = enemy.y + cameraY;
+      if (sx > leftZone && sx < rightZone && sy < bottomZone) continue;
+      enemy.draw();
+      blurredCount += 1;
+    }
+    ctx.restore();
+  }
+
   function getEmberButtonGradient(ctx, y, height) {
     const gradient = ctx.createLinearGradient(0, y, 0, y + height);
     gradient.addColorStop(0, EMBER_BUTTON_PALETTE.top);
@@ -10757,6 +10791,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
       });
       orderedEnemies.forEach((enemy) => enemy.draw());
+      drawEdgeShadowEnemyBlur(ctx, canvas, orderedEnemies, effectiveCameraX, effectiveCameraY, levelStatus);
       drawSwarmGroupCounters(ctx, orderedEnemies);
       if (activeBoss) activeBoss.draw(ctx);
       drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);
