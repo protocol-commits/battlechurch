@@ -278,7 +278,8 @@ const MELEE_SWING_LENGTH = 260;
   }
 
   function drawAmbientSmoke(effectiveCameraY = 0) {
-    const { ctx, canvas } = requireBindings();
+    const bindings = requireBindings();
+    const { ctx, canvas } = bindings;
     const config = getAmbientSmokeConfig();
     if (config.debugVisible) {
       ctx.save();
@@ -297,32 +298,57 @@ const MELEE_SWING_LENGTH = 260;
       return;
     }
 
+    const activeAnnouncement = Array.isArray(bindings.levelAnnouncements)
+      ? bindings.levelAnnouncements[0]
+      : null;
+    const missionIntroActive = Boolean(
+      activeAnnouncement && (activeAnnouncement.battlefieldIntro || activeAnnouncement.exteriorShot),
+    );
+    const hideSmokeForScene = Boolean(
+      bindings.mapActive ||
+      bindings.titleScreenActive ||
+      bindings.districtIntroTransitionActive ||
+      missionIntroActive,
+    );
+    if (hideSmokeForScene) return;
+
     const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
     if (!ambientSmokeState.lastNowSec) ambientSmokeState.lastNowSec = nowSec;
-    const dt = Math.max(0, Math.min(0.05, nowSec - ambientSmokeState.lastNowSec));
+    const freezeSmoke = Boolean(
+      bindings.paused ||
+      bindings.isModalActive ||
+      bindings.pauseRestartConfirmActive,
+    );
+    const dt = freezeSmoke
+      ? 0
+      : Math.max(0, Math.min(0.05, nowSec - ambientSmokeState.lastNowSec));
     ambientSmokeState.lastNowSec = nowSec;
 
-    ambientSmokeState.spawnCarry += config.spawnPerSecond * dt;
-    let toSpawn = Math.floor(ambientSmokeState.spawnCarry);
-    ambientSmokeState.spawnCarry -= toSpawn;
-    const capacity = Math.max(0, config.maxPuffs - ambientSmokeState.puffs.length);
-    toSpawn = Math.min(toSpawn, capacity);
-    for (let i = 0; i < toSpawn; i += 1) {
-      spawnAmbientSmokePuff(canvas, config, effectiveCameraY);
+    if (!freezeSmoke) {
+      ambientSmokeState.spawnCarry += config.spawnPerSecond * dt;
+      let toSpawn = Math.floor(ambientSmokeState.spawnCarry);
+      ambientSmokeState.spawnCarry -= toSpawn;
+      const capacity = Math.max(0, config.maxPuffs - ambientSmokeState.puffs.length);
+      toSpawn = Math.min(toSpawn, capacity);
+      for (let i = 0; i < toSpawn; i += 1) {
+        spawnAmbientSmokePuff(canvas, config, effectiveCameraY);
+      }
     }
 
     const puffs = ambientSmokeState.puffs;
-    for (let i = puffs.length - 1; i >= 0; i -= 1) {
-      const p = puffs[i];
-      p.life -= dt;
-      if (p.life <= 0) {
-        puffs.splice(i, 1);
-        continue;
-      }
-      p.x += p.vx * dt + Math.sin(nowSec * p.wobbleFreq + i * 0.37) * p.wobbleAmp * dt;
-      p.y += p.vy * dt;
-      if (p.y + p.size < -20 || p.x < -p.size * 2 || p.x > canvas.width + p.size * 2) {
-        puffs.splice(i, 1);
+    if (!freezeSmoke) {
+      for (let i = puffs.length - 1; i >= 0; i -= 1) {
+        const p = puffs[i];
+        p.life -= dt;
+        if (p.life <= 0) {
+          puffs.splice(i, 1);
+          continue;
+        }
+        p.x += p.vx * dt + Math.sin(nowSec * p.wobbleFreq + i * 0.37) * p.wobbleAmp * dt;
+        p.y += p.vy * dt;
+        if (p.y + p.size < -20 || p.x < -p.size * 2 || p.x > canvas.width + p.size * 2) {
+          puffs.splice(i, 1);
+        }
       }
     }
 
@@ -7550,8 +7576,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     emberMaxAlpha: 0.24,
     bossPhase3EmberMaxAlpha: 0.34,
     emberColor: "rgba(255, 52, 28, 1)",
-    ashBaseMinAlpha: 0.45,
-    ashBaseMaxAlpha: 0.9,
+    ashBaseMinAlpha: 0.92,
+    ashBaseMaxAlpha: 0.96,
     bossPhase3AshMaxAlpha: 1.0,
   });
   const CONGREGATION_ATMOSPHERE_CONFIG = Object.freeze({
@@ -10816,7 +10842,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       (ashMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
     if (ashOverlay && typeof ashOverlay.draw === "function") {
-      const baseParticleCount = bossPhase3TargetActive ? 180 : (maxHeatEmberBoost ? 180 : 100);
+      const baseParticleCount = bossPhase3TargetActive ? 190 : (maxHeatEmberBoost ? 180 : 150);
       const targetParticleCount = preserveEmberComposition
         ? (Number.isFinite(ashEmberTuneState.particleCount) ? ashEmberTuneState.particleCount : baseParticleCount)
         : Math.max(
@@ -10824,14 +10850,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             Math.round(baseParticleCount * victoryHeatFadeRatio),
           );
       const phase3EmberRatio = 0.72;
-      const nonPhase3EmberRatio = maxHeatEmberBoost ? 0.82 : 0.55;
+      const nonPhase3EmberRatio = maxHeatEmberBoost ? 0.82 : 0.72;
       const baseEmberRatio =
         nonPhase3EmberRatio + (phase3EmberRatio - nonPhase3EmberRatio) * bossPhase3HeatBlend;
       const targetEmberRatio = preserveEmberComposition
         ? (Number.isFinite(ashEmberTuneState.emberRatio) ? ashEmberTuneState.emberRatio : baseEmberRatio)
         : Math.max(0.12, baseEmberRatio * victoryHeatFadeRatio);
       const phase3Intensity = 1.72;
-      const nonPhase3Intensity = maxHeatEmberBoost ? 1.55 : 1.0;
+      const nonPhase3Intensity = maxHeatEmberBoost ? 1.85 : 1.52;
       const baseIntensity =
         nonPhase3Intensity + (phase3Intensity - nonPhase3Intensity) * bossPhase3HeatBlend;
       const targetIntensity = Math.max(0.2, baseIntensity * victoryHeatFadeRatio);
