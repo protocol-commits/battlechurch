@@ -300,19 +300,46 @@ const MELEE_SWING_LENGTH = 260;
       return;
     }
 
+    const levelStatus = bindings.levelManager?.getStatus?.() || null;
+    const stageName = levelStatus?.stage || "";
     const activeAnnouncement = Array.isArray(bindings.levelAnnouncements)
       ? bindings.levelAnnouncements[0]
       : null;
     const missionIntroActive = Boolean(
       activeAnnouncement && (activeAnnouncement.battlefieldIntro || activeAnnouncement.exteriorShot),
     );
+    const demonClearedStage = Boolean(
+      stageName === "victoryCelebrate" ||
+      stageName === "graceRush" ||
+      stageName === "bossVictoryCelebrate" ||
+      stageName === "bossBonusTransition" ||
+      stageName === "levelSummary",
+    );
+    const recapOrBonusOverlayActive = Boolean(
+      activeAnnouncement &&
+      (
+        activeAnnouncement.levelSummary ||
+        activeAnnouncement.recapData ||
+        activeAnnouncement.recapPrepared ||
+        activeAnnouncement.pastorFinal ||
+        activeAnnouncement.pastorPostRecap
+      ),
+    );
     const hideSmokeForScene = Boolean(
       bindings.mapActive ||
       bindings.titleScreenActive ||
+      bindings.epilogueActive ||
+      bindings.districtVictoryActive ||
       bindings.districtIntroTransitionActive ||
-      missionIntroActive,
+      missionIntroActive ||
+      demonClearedStage ||
+      recapOrBonusOverlayActive
     );
-    if (hideSmokeForScene) return;
+    if (hideSmokeForScene) {
+      ambientSmokeState.puffs.length = 0;
+      ambientSmokeState.spawnCarry = 0;
+      return;
+    }
 
     const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
     if (!ambientSmokeState.lastNowSec) ambientSmokeState.lastNowSec = nowSec;
@@ -326,8 +353,6 @@ const MELEE_SWING_LENGTH = 260;
       : Math.max(0, Math.min(0.05, nowSec - ambientSmokeState.lastNowSec));
     ambientSmokeState.lastNowSec = nowSec;
 
-    const levelStatus = bindings.levelManager?.getStatus?.() || null;
-    const stageName = levelStatus?.stage || "";
     const waveNumber = Math.max(1, Number(levelStatus?.waveNum) || Number(levelStatus?.wave) || 1);
     const bossSmokeStage =
       stageName === "bossIntro" ||
@@ -10861,7 +10886,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       (ashMaxAlpha - WAVE_ATMOSPHERE_CONFIG.ashBaseMinAlpha) * waveProgress;
     const ashOverlay = requireBindings().ashOverlay;
     const waveSmokeTuning = requireBindings().waveSmokeTuning || {};
-    if (ashOverlay && typeof ashOverlay.draw === "function") {
+    const suppressAshForOutcomeStage = Boolean(
+      stageName === "victoryCelebrate" ||
+      stageName === "graceRush" ||
+      stageName === "bossVictoryCelebrate" ||
+      stageName === "bossBonusTransition" ||
+      stageName === "levelSummary",
+    );
+    if (!suppressAshForOutcomeStage && ashOverlay && typeof ashOverlay.draw === "function") {
       const baseParticleCount = bossPhase3TargetActive
         ? Math.max(40, Math.round(Number(waveSmokeTuning.bossParticleCount) || 190))
         : maxHeatEmberBoost
