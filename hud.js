@@ -77,6 +77,8 @@
       crimson: "#D44E52",
       teal: "#8BD0BA",
       muted: "#7D6C57",
+      hpBarBg: "rgba(10,15,31,0.6)",
+      healthFill: "#B22E2E",
     };
 
     if (typeof window !== 'undefined') {
@@ -210,7 +212,7 @@
       const iconGap = 8;
       ctx.save();
       ctx.globalAlpha = 0.95;
-      ctx.fillStyle = 'rgba(10,15,31,0.6)';
+      ctx.fillStyle = PALETTE.hpBarBg || 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
       const inFlight = iconKey && typeof window !== 'undefined'
@@ -311,7 +313,7 @@
       const displayLabel = truncateToWidth(baseLabel, maxScenarioWidth);
       ctx.fillText(displayLabel, hpBarX, panelY + 14);
       ctx.restore();
-      ctx.fillStyle = 'rgba(10,15,31,0.6)';
+      ctx.fillStyle = PALETTE.hpBarBg || 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = PALETTE.ice;
       roundRect(ctx, hpBarX, hpBarY, hpBarWidth, hpBarHeight, 6, true, true);
@@ -321,7 +323,7 @@
         const g = Math.round(140 + 90 * pulse);
         const b = Math.round(80 + 20 * (1 - pulse));
         return `rgb(255, ${g}, ${b})`;
-      })() : '#B23A3A';
+      })() : (PALETTE.healthFill || '#B23A3A');
       ctx.fillStyle = hpFillColor;
       roundRect(
         ctx,
@@ -443,7 +445,7 @@
       const meterRadius = 6;
       ctx.save();
       ctx.globalAlpha = 0.95;
-      ctx.fillStyle = 'rgba(10,15,31,0.6)';
+      ctx.fillStyle = PALETTE.hpBarBg || 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = 'rgba(0,0,0,0)';
       roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);
@@ -1075,7 +1077,7 @@
       const meterRadius = 6;
       ctx.save();
       ctx.globalAlpha = 0.95;
-      ctx.fillStyle = 'rgba(10,15,31,0.6)';
+      ctx.fillStyle = PALETTE.hpBarBg || 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = 'rgba(0,0,0,0)';
       roundRect(ctx, meterX, meterY, meterWidth, meterHeight, meterRadius, true, true);

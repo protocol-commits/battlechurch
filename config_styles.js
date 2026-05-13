@@ -11,6 +11,25 @@
  * - Access via window.UIStyles.* (e.g., UIStyles.colors.gold)
  */
 (function(global) {
+  const DESOLATE_PALETTE_HEX = [
+    "#000000","#131013","#101024","#390904","#0f1527","#171723","#071e38","#1b1b1b",
+    "#391313","#560e05","#33181e","#231a5b","#25212a","#351d20","#0c2197","#252526",
+    "#272727","#3c212c","#162c50","#512020","#282d39","#4b2340","#332c30","#731e11",
+    "#1b3629","#5e271c","#482b4a","#293836","#3c3633","#343744","#4d3232","#9c1f0c",
+    "#303e23","#323a50","#6c2e2b","#3b3b3b","#184450","#4d3744","#234734","#413f46",
+    "#364159","#324179","#523c4e","#8b2d4c","#923212","#723756","#653c46","#7a363f",
+    "#63402c","#055682","#823b2a","#733e44","#4a4a4a","#b22e2e","#5e4b37","#3e5442",
+    "#4d48a3","#544f4f","#af391e","#465926","#4b5367","#69513f","#346132","#864658",
+    "#4c5870","#8344a7","#825045","#635945","#38607c","#6d546b","#825737","#5f5f5f",
+    "#8e5728","#835761","#af5128","#636a49","#7b6840","#d44e52","#567087","#796699",
+    "#7d6c57","#4e7e3a","#786d7b","#b2652e","#5c7a56","#b65d6e","#54814e","#3a7ebb",
+    "#92725f","#a87048","#a66d73","#9a745f","#aa735a","#808080","#ba7830","#b0766d",
+    "#868831","#f36c52","#d07575","#65929e","#a5857b","#b88450","#ce862c","#c1856d",
+    "#a38f80","#55a894","#61a3c7","#ec8a4b","#80ac40","#c58cc6","#b79c71","#be9d58",
+    "#32c879","#39c4d0","#80b5c7","#dda677","#94c0d8","#67df53","#8bd0ba","#dfc449",
+    "#f0c542","#ddccc6","#ffcc68","#b4d8de","#e1d895","#ffd09e","#d5ea63","#ffffff",
+  ];
+
   const UIStyles = {
     // =====================
     // FONTS
@@ -90,6 +109,32 @@
 
       // Name tags
       nameTag: "#DDA677",
+
+      // Compatibility aliases / semantic UI tokens
+      hpBarBg: "rgba(10,15,31,0.6)",
+      hpBarBorder: "#94C0D8",
+      hpBarFill: "#B22E2E",
+      speechBubbleText: "#DFDFC4",
+      damageCounter: "#FFE7A1",
+      comboMilestone: "#DDA677",
+    },
+
+    // =====================
+    // THEME (CSS-LIKE TOKENS)
+    // =====================
+    theme: {
+      name: "desolate",
+      palette: DESOLATE_PALETTE_HEX,
+      vars: {
+        "--color-bg-0": "#101024",
+        "--color-bg-1": "#162c50",
+        "--color-text-0": "#DFDFC4",
+        "--color-text-1": "#DDA677",
+        "--color-accent-0": "#94C0D8",
+        "--color-accent-1": "#8BD0BA",
+        "--color-danger-0": "#D44E52",
+        "--color-meter-fill": "#B22E2E",
+      },
     },
 
     // =====================
@@ -141,7 +186,7 @@
     // PANEL SYSTEM
     // =====================
     panels: {
-      hellfire: {
+      desolate: {
         shell: {
           radius: 18,
           shadowColor: "rgba(0, 0, 0, 0.45)",
@@ -250,6 +295,13 @@
 
   // Export to global namespace
   global.UIStyles = UIStyles;
+  // Back-compat alias so existing panel lookups keep working.
+  if (UIStyles.panels?.desolate) UIStyles.panels.hellfire = UIStyles.panels.desolate;
+  global.UIStyles.getThemeVar = function getThemeVar(name, fallback = "") {
+    const vars = global.UIStyles?.theme?.vars || {};
+    const value = vars[name];
+    return typeof value === "string" && value ? value : fallback;
+  };
 
   // Convenience: Also expose PALETTE for backwards compatibility
   global.UIStyles.PALETTE = UIStyles.colors;

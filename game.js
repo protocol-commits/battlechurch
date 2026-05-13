@@ -37,6 +37,151 @@ const _gb = (path, fallback) => {
   return val !== undefined ? val : fallback;
 };
 
+const _uiColor = (key, fallback) => {
+  if (typeof window === "undefined") return fallback;
+  const raw = window.UIStyles?.colors?.[key];
+  return typeof raw === "string" && raw ? raw : fallback;
+};
+
+const UI_COLOR = Object.freeze({
+  softWhite: _uiColor("softWhite", "#DFDFC4"),
+  ice: _uiColor("ice", "#94C0D8"),
+  teal: _uiColor("teal", "#8BD0BA"),
+  crimson: _uiColor("crimson", "#D44E52"),
+  gold: _uiColor("gold", "#DDA677"),
+  healthFill: _uiColor("healthFill", "#B22E2E"),
+  hpBarBg: _uiColor("hpBarBg", "rgba(10,15,31,0.6)"),
+  hpBarBorder: _uiColor("hpBarBorder", "#94C0D8"),
+  speechBubbleText: _uiColor("speechBubbleText", "#DFDFC4"),
+  damageEnemy: _uiColor("damageEnemy", "#D44E52"),
+  damageCounter: _uiColor("damageCounter", "#FFE7A1"),
+  comboMilestone: _uiColor("comboMilestone", "#DDA677"),
+});
+
+function installDesolateCanvasColorLock() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (!_gb("masterRenderStyle.enforceDesolatePalette", true)) return;
+  const Ctx = window.CanvasRenderingContext2D;
+  if (!Ctx || !Ctx.prototype || Ctx.prototype.__battlechurchDesolatePaletteLocked) return;
+
+  const paletteHex = Array.isArray(window.UIStyles?.theme?.palette)
+    ? window.UIStyles.theme.palette.filter((c) => typeof c === "string" && c)
+    : [UI_COLOR.softWhite, UI_COLOR.gold, UI_COLOR.ice, UI_COLOR.teal, UI_COLOR.crimson, UI_COLOR.healthFill];
+  if (!paletteHex.length) return;
+
+  const toRgb = (hex) => {
+    const raw = String(hex || "").trim().replace(/^#/, "");
+    if (raw.length !== 6) return null;
+    const r = parseInt(raw.slice(0, 2), 16);
+    const g = parseInt(raw.slice(2, 4), 16);
+    const b = parseInt(raw.slice(4, 6), 16);
+    if (![r, g, b].every(Number.isFinite)) return null;
+    return { r, g, b };
+  };
+
+  const palette = paletteHex
+    .map((hex) => ({ hex: hex[0] === "#" ? hex.toLowerCase() : `#${hex.toLowerCase()}`, rgb: toRgb(hex) }))
+    .filter((entry) => entry.rgb);
+  if (!palette.length) return;
+
+  const parserCanvas = document.createElement("canvas");
+  parserCanvas.width = 1;
+  parserCanvas.height = 1;
+  const parserCtx = parserCanvas.getContext("2d");
+  if (!parserCtx) return;
+
+  const parseCache = new Map();
+  const outputCache = new Map();
+
+  const parseColor = (input) => {
+    if (typeof input !== "string") return null;
+    if (parseCache.has(input)) return parseCache.get(input);
+    let normalized = "";
+    try {
+      parserCtx.fillStyle = "#000000";
+      parserCtx.fillStyle = input;
+      normalized = String(parserCtx.fillStyle || "");
+    } catch (_e) {
+      parseCache.set(input, null);
+      return null;
+    }
+    if (!normalized) {
+      parseCache.set(input, null);
+      return null;
+    }
+    if (normalized.startsWith("#")) {
+      const rgb = toRgb(normalized);
+      const parsed = rgb ? { ...rgb, a: 1 } : null;
+      parseCache.set(input, parsed);
+      return parsed;
+    }
+    const match = normalized.match(/^rgba?\(([^)]+)\)$/i);
+    if (!match) {
+      parseCache.set(input, null);
+      return null;
+    }
+    const parts = match[1].split(",").map((p) => p.trim());
+    if (parts.length < 3) {
+      parseCache.set(input, null);
+      return null;
+    }
+    const r = Number(parts[0]);
+    const g = Number(parts[1]);
+    const b = Number(parts[2]);
+    const a = parts.length > 3 ? Number(parts[3]) : 1;
+    const parsed = [r, g, b, a].every(Number.isFinite)
+      ? { r: Math.max(0, Math.min(255, r)), g: Math.max(0, Math.min(255, g)), b: Math.max(0, Math.min(255, b)), a: Math.max(0, Math.min(1, a)) }
+      : null;
+    parseCache.set(input, parsed);
+    return parsed;
+  };
+
+  const remapColor = (value) => {
+    if (typeof value !== "string") return value;
+    if (outputCache.has(value)) return outputCache.get(value);
+    const parsed = parseColor(value);
+    if (!parsed) {
+      outputCache.set(value, value);
+      return value;
+    }
+    let best = palette[0];
+    let bestDist = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < palette.length; i += 1) {
+      const p = palette[i].rgb;
+      const dr = parsed.r - p.r;
+      const dg = parsed.g - p.g;
+      const db = parsed.b - p.b;
+      const dist = dr * dr + dg * dg + db * db;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = palette[i];
+      }
+    }
+    const out = parsed.a < 0.999
+      ? `rgba(${best.rgb.r}, ${best.rgb.g}, ${best.rgb.b}, ${parsed.a.toFixed(3)})`
+      : best.hex;
+    outputCache.set(value, out);
+    return out;
+  };
+
+  ["fillStyle", "strokeStyle", "shadowColor"].forEach((prop) => {
+    const descriptor = Object.getOwnPropertyDescriptor(Ctx.prototype, prop);
+    if (!descriptor || typeof descriptor.get !== "function" || typeof descriptor.set !== "function") return;
+    Object.defineProperty(Ctx.prototype, prop, {
+      configurable: true,
+      enumerable: descriptor.enumerable,
+      get: function getColorStyle() {
+        return descriptor.get.call(this);
+      },
+      set: function setColorStyle(value) {
+        descriptor.set.call(this, remapColor(value));
+      },
+    });
+  });
+
+  Ctx.prototype.__battlechurchDesolatePaletteLocked = true;
+}
+
 const CLASS_SELECTION_STORAGE_KEY = "battlechurch.selectedClassId";
 const CLASS_SELECTION_HINT_SEEN_KEY = "battlechurch.classHintShown";
 const classConfig =
@@ -455,7 +600,7 @@ const devStatus = { text: "", timer: 0 };
 const weaponPickupAnnouncement = {
   title: "",
   description: "",
-  color: "#DFDFC4",
+  color: UI_COLOR.softWhite,
   timer: 0,
   duration: 0,
 };
@@ -3370,7 +3515,7 @@ function showWaveHealthSnapshot() {
   }
 
   speakers.forEach(({ npc, line, life }) => {
-    npcCheer(npc, line, "#f4fbff", { life });
+    npcCheer(npc, line, UI_COLOR.speechBubbleText, { life });
   });
 }
 
@@ -3435,7 +3580,7 @@ function queueCongregationWaveIntroDialogue(levelStatus) {
         const npc = randomChoice(candidates);
         if (!npc) return;
         used.add(npc);
-        npcCheer(npc, response.text, "#f4fbff", {
+        npcCheer(npc, response.text, UI_COLOR.speechBubbleText, {
           life: Number(response.life) || 3.2,
         });
       },
@@ -3528,7 +3673,7 @@ function triggerNpcPowerupDialogue(effectKey) {
   if (!name) return false;
   const speaker = getNpcPowerupDialogueSpeaker();
   if (!speaker) return false;
-  npcCheer(speaker, name, "#f4fbff", { life: 3.2 });
+  npcCheer(speaker, name, UI_COLOR.speechBubbleText, { life: 3.2 });
   return true;
 }
 
@@ -3603,7 +3748,7 @@ function updateBattleVictoryNpcDialogue(dt) {
       event.speaker.graceRushNpcFadeDurationMs = 1200;
       event.speaker.graceRushNpcFadeAlpha = 1;
     }
-    npcCheer(event.speaker, event.line, "#f4fbff", {
+    npcCheer(event.speaker, event.line, UI_COLOR.speechBubbleText, {
       life: event.life,
       fadeDelay: event.fadeDelay || 0,
       vy: 0,
@@ -4692,7 +4837,7 @@ function showDevArenaSkeletonHint(target) {
   devArenaSkeletonHintNextAt = now + hintLifeSec * 1000;
   devArenaSkeletonHintBubble = addFloatingTextAt(
     target.x, target.y - (target.radius || 30) - 28,
-    text, "#f4fbff",
+    text, UI_COLOR.speechBubbleText,
     {
       speechBubble: true,
       bubbleTheme: "npc",
@@ -6531,7 +6676,7 @@ function setWeaponPickupAnnouncement({ title, description, color, duration } = {
   if (!title && !description) return;
   weaponPickupAnnouncement.title = title || "";
   weaponPickupAnnouncement.description = description || "";
-  weaponPickupAnnouncement.color = color || "#DFDFC4";
+  weaponPickupAnnouncement.color = color || UI_COLOR.softWhite;
   weaponPickupAnnouncement.duration = Number.isFinite(duration) ? duration : 2.6;
   weaponPickupAnnouncement.timer = weaponPickupAnnouncement.duration;
 }
@@ -10121,7 +10266,7 @@ function applyWeaponPickupEffect(pickup) {
         typeof def.healAmount === "number" ? def.healAmount : Math.round(HERO_HEALTH_PER_HEART);
       player.health = Math.min(player.maxHealth, player.health + healAmount);
       addStatusText(player, "Health Up!", {
-        color: "#8BD0BA",
+        color: UI_COLOR.teal,
         bgColor: "rgba(30, 70, 50, 0.85)",
         life: 1.8,
       });
@@ -10295,7 +10440,7 @@ function applyWeaponPickupEffect(pickup) {
       triggerNpcPowerupDialogue("npcWisdomWeapon");
       showWeaponPowerupConfigText({
         text: "Apply Wisdom",
-        textColor: "#94C0D8",
+        textColor: UI_COLOR.ice,
         description: "NPCs launch wisdom missiles temporarily.",
         spokenName: "Wisdom",
       });
@@ -10353,7 +10498,7 @@ function applyUtilityPowerUp(powerUp) {
   setWeaponPickupAnnouncement({
     title: utilityTitle,
     description: powerUp.definition.description || "",
-    color: powerUp.definition.color || "#DFDFC4",
+    color: powerUp.definition.color || UI_COLOR.softWhite,
   });
   playerYell(utilitySpokenName, 3.2);
   switch (effect) {
@@ -13048,7 +13193,7 @@ function shouldEnemyHuntNpcs(type, config = {}) {
   return false;
 }
 
-function drawPickupLabel(context, text, x, y, color = "#DFDFC4") {
+function drawPickupLabel(context, text, x, y, color = UI_COLOR.softWhite) {
   if (!context || !text) return;
   context.save();
   context.font = `12px ${UI_FONT_FAMILY}`;
@@ -13069,7 +13214,7 @@ const POWERUP_ICON_STYLES = {
 };
 const POWERUP_ICON_OUTLINE = "rgba(10, 15, 31, 0.7)";
 const POWERUP_ICON_HIGHLIGHT = "rgba(255, 215, 64, 0.95)";
-const POWERUP_ICON_TEXT_COLOR = "#DFDFC4";
+const POWERUP_ICON_TEXT_COLOR = UI_COLOR.softWhite;
 
 function resolvePowerupIconCategory(effect = "") {
   if (String(effect).startsWith("npc")) return "npc";
@@ -13826,7 +13971,7 @@ class CozyNpc {
     this.animator.setState("walk", { restart: true });
     this.animator.setMoving(true);
     this.updateFaithVisibility(true);
-    this.setStatusBubble("I'm outta here!", { color: "#D44E52", persist: true, critical: true });
+    this.setStatusBubble("I'm outta here!", { color: UI_COLOR.crimson, persist: true, critical: true });
     if (typeof captureNpcPortrait === "function") {
       this.pendingLossPortrait = captureNpcPortrait(this);
     } else {
@@ -13844,7 +13989,7 @@ class CozyNpc {
     this.animator.setMoving(true);
     this.updateFaithVisibility(this.faith < this.maxFaith);
     const returnLine = randomChoice(NPC_RETURN_LINES) || "I'm heading back.";
-    this.setStatusBubble(returnLine, { color: "#94C0D8", duration: 2.6 });
+    this.setStatusBubble(returnLine, { color: UI_COLOR.ice, duration: 2.6 });
     this.pendingLossPortrait = null;
     this.lossRecorded = false;
     if (announce && this.recoveryTextCooldown <= 0) {
@@ -14115,7 +14260,7 @@ class CozyNpc {
   // Visual debug: floating text showing faith lost
     try {
       showDamage(this, scaledLoss, {
-        color: "#DFDFC4",
+        color: UI_COLOR.softWhite,
         fadeDelay: 0.5,
       });
     } catch (e) {}
@@ -14147,7 +14292,7 @@ class CozyNpc {
     this.faithBarVisible = force || this.faith < this.maxFaith || this.state !== "wander";
   }
 
-  setStatusBubble(message, { color = "#DFDFC4", duration = 2.5, persist = false, critical = false } = {}) {
+  setStatusBubble(message, { color = UI_COLOR.softWhite, duration = 2.5, persist = false, critical = false } = {}) {
     if (this.statusBubble) this.statusBubble.life = 0;
     if (!message) {
       this.statusBubble = null;
@@ -16141,7 +16286,7 @@ class BossEncounter {
     const defaultDamageOffset =
       (hpBar?.offsetY || 0) + (hpBar?.height || 0) / 2;
     showDamage(this, amount, {
-      color: damageText?.color || "#D44E52",
+      color: damageText?.color || UI_COLOR.damageEnemy,
       fontSize: damageText?.fontSize || null,
       fontWeight: damageText?.fontWeight || null,
       offsetY:
@@ -16505,13 +16650,13 @@ class BossEncounter {
     const label = `${labelName} (${hpValue}/${hpMax})`;
     context.save();
     context.globalAlpha *= Math.max(0, Math.min(1, alpha));
-    context.fillStyle = "rgba(10,15,31,0.6)";
+    context.fillStyle = UI_COLOR.hpBarBg;
     context.lineWidth = 2.5;
-    context.strokeStyle = "#94C0D8";
+    context.strokeStyle = UI_COLOR.hpBarBorder;
     roundRect(context, barX, barY, width, height, 6, true, true);
     const fillWidth = Math.max(0, Math.floor((width - 4) * ratio));
     if (fillWidth > 0) {
-      context.fillStyle = "#B23A3A";
+      context.fillStyle = UI_COLOR.healthFill;
       context.fillRect(barX + 2, barY + 2, fillWidth, height - 4);
     }
     const hpFlash = this.hpDamageFlash;
@@ -16530,7 +16675,7 @@ class BossEncounter {
       }
     }
     context.font = `12px ${UI_FONT_FAMILY}`;
-    context.fillStyle = "#DFDFC4";
+    context.fillStyle = UI_COLOR.softWhite;
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillText(label, barX + width / 2, barY + height / 2 + 1);
@@ -18164,7 +18309,7 @@ function updateVisitorBlockers(dt) {
         visitorSession.lockingBlockers.delete(blocker.id);
         visitorSession.movementLock = visitorSession.lockingBlockers.size > 0;
         visitorSession.quietedBlockers += 1;
-        npcCheer(blocker, "Thanks, pastor!", "#f4fbff", { life: 0.9 });
+        npcCheer(blocker, "Thanks, pastor!", UI_COLOR.speechBubbleText, { life: 0.9 });
       }
     }
     resolveEntityObstacles(blocker);
@@ -18258,7 +18403,7 @@ function updateVisitorProjectiles(dt) {
 function showBlockerSpeech(blocker) {
   if (!blocker || blocker.speechBubble) return;
   const line = blocker.chattyLine || ensureChattyLine(blocker);
-  blocker.speechBubble = addFloatingTextAt(blocker.x, blocker.y - blocker.radius - 24, line, "#f4fbff", {
+  blocker.speechBubble = addFloatingTextAt(blocker.x, blocker.y - blocker.radius - 24, line, UI_COLOR.speechBubbleText, {
     speechBubble: true,
     bubbleTheme: "npc",
     entity: blocker,
@@ -18285,7 +18430,7 @@ function markVisitorGuestSaved(guest) {
   seasonStats.visitorAdded = (seasonStats.visitorAdded || 0) + 1;
   adjustCongregationSize(1);
   spawnRayboltEffect(guest.x, guest.y - guest.radius / 2, (guest.radius || 28) * 1.5);
-  npcCheer(guest, "I love it here!", "#f4fbff", { life: 1.3 });
+  npcCheer(guest, "I love it here!", UI_COLOR.speechBubbleText, { life: 1.3 });
 }
 
 function applyHeartToEntity(entity, options = {}) {
@@ -18301,7 +18446,7 @@ function applyHeartToEntity(entity, options = {}) {
       heroSay("Welcome!", { life: 1.8 });
       visitorWelcomeSayCooldown = 2.5;
     }
-    addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Welcome +1", "#8BD0BA", {
+    addFloatingTextAt(entity.x, entity.y - entity.radius - 18, "Welcome +1", UI_COLOR.teal, {
       life: 0.6,
       vy: -18,
     });
@@ -18327,7 +18472,7 @@ function applyHeartToEntity(entity, options = {}) {
       if (isActiveChatty) {
         try {
           if (typeof entity.animator?.flash === "function") {
-            entity.animator.flash({ color: "#94C0D8", duration: 0.35, intensity: 1.6 });
+            entity.animator.flash({ color: UI_COLOR.ice, duration: 0.35, intensity: 1.6 });
           }
         } catch (e) {}
         spawnMagicImpactEffect(entity.x, entity.y - (entity.radius || 26) / 2);
@@ -18359,7 +18504,7 @@ function applyHeartToEntity(entity, options = {}) {
         entity.speechBubble = null;
       }
       visitorSession.quietedBlockers += 1;
-      npcCheer(entity, "Thanks, pastor!", "#f4fbff", { life: 0.9 });
+      npcCheer(entity, "Thanks, pastor!", UI_COLOR.speechBubbleText, { life: 0.9 });
     }
   }
 }
@@ -18379,7 +18524,7 @@ function boostVisitorFaithFromPrayerBomb(ratio = 0.5) {
     guest.faith = nextFaith;
     guest.highlightTimer = 0.6;
     const percent = Math.round((gain / maxFaith) * 100);
-    addFloatingTextAt(guest.x, guest.y - guest.radius - 24, `Prayer Boost +${percent}%`, "#DFDFC4", {
+    addFloatingTextAt(guest.x, guest.y - guest.radius - 24, `Prayer Boost +${percent}%`, UI_COLOR.softWhite, {
       life: 0.9,
       vy: -14,
     });
@@ -18683,7 +18828,7 @@ function triggerCongregationMemberDialogue(member) {
     member.x,
     member.y - member.radius - 20,
     line,
-    "#f4fbff",
+    UI_COLOR.speechBubbleText,
     {
       speechBubble: true,
       vy: 0,
@@ -19816,7 +19961,7 @@ function updatePlayerRespawn(dt) {
   respawnIndicatorTimer -= dt;
   if (player && respawnIndicatorTimer <= 0) {
     addStatusText(player, "Exhausted", {
-      color: "#D44E52",
+      color: UI_COLOR.crimson,
       bgColor: "rgba(60, 20, 20, 0.88)",
       life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
       offsetY: player.radius + 34,
@@ -21450,7 +21595,7 @@ function updateCongregationStage(dt, levelStatus) {
         member.x,
         member.y - member.radius - 20,
         line,
-        "#f4fbff",
+        UI_COLOR.speechBubbleText,
         { speechBubble: true, vy: 0, life: 3.5, fadeDelay: 2.5, entity: member, offsetY: -member.radius - 20, bubbleTheme: "npc" }
       );
       member.dialogueBubble = bubble || null;
@@ -22527,8 +22672,8 @@ function getChainLabelColor(hits) {
   if (tier >= 4) return "#FFF0C9";
   if (tier >= 3) return "#FFE6A3";
   if (tier >= 2) return "#FFD982";
-  if (tier >= 1) return "#DFDFC4";
-  return "#E4D6B2";
+  if (tier >= 1) return UI_COLOR.softWhite;
+  return UI_COLOR.gold;
 }
 
 function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
@@ -22545,7 +22690,7 @@ function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
   const crossedMilestone = newMilestone > prevMilestone && newMilestone > 0;
   hudComboDisplay = {
     labelText,
-    color: color || "#DFDFC4",
+    color: color || UI_COLOR.softWhite,
     fontSize: fontSize || 32,
     updatedAt: now,
     expiresAt: now + (Number.isFinite(durationMs) ? durationMs : 1100),
@@ -22559,7 +22704,7 @@ function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
     const milestoneCount = newMilestone * 100;
     const px = typeof player !== "undefined" && Number.isFinite(player?.x) ? player.x : (typeof cameraOffsetX !== "undefined" ? cameraOffsetX + canvas.width / 2 : 0);
     const py = typeof player !== "undefined" && Number.isFinite(player?.y) ? player.y - (player.radius || 24) - 20 : canvas.height / 2;
-    addFloatingTextAt(px, py, `${milestoneCount}`, "#FFE566", {
+    addFloatingTextAt(px, py, `${milestoneCount}`, UI_COLOR.comboMilestone, {
       vy: -90,
       life: 1.2,
       fontSize: 52,
@@ -23755,7 +23900,7 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
       isCounterHit: true,
       isPunishCounter: true,
       damageText: {
-        color: "#FFE7A1",
+        color: UI_COLOR.damageCounter,
         offsetY: 8,
         fontWeight: "800",
         priority: 1,
@@ -23781,7 +23926,7 @@ function getCounterHitResult(target, baseDamage, meleeAttackState = null) {
     isCounterHit: true,
     isPunishCounter: false,
     damageText: {
-      color: "#FFE7A1",
+      color: UI_COLOR.damageCounter,
       offsetY: 8,
       fontWeight: "800",
       priority: 1,
@@ -23933,7 +24078,7 @@ function getMeleeCombatLabelConfig(meleeAttackState, target) {
       specialKind === "punish"
         ? "#FFD84F"
         : specialKind === "counter"
-          ? "#FFE7A1"
+          ? UI_COLOR.damageCounter
           : "#FFE083",
     fontSize: 28,
     fontWeight: specialKind === "punish" ? "900" : "800",
@@ -24260,7 +24405,7 @@ function updateDivineShotKillLabel(meleeAttackState, now) {
   }
   const labelX = clampedSx + cameraOffsetX;
   const labelY = clampedSy;
-  let textColor = "#DFDFC4";
+  let textColor = UI_COLOR.softWhite;
   if (Number.isFinite(meleeAttackState.divineKillFadeStartAt)) {
     const fadeMs = 700;
     const t = Math.max(0, Math.min(1, (now - meleeAttackState.divineKillFadeStartAt) / fadeMs));
@@ -25210,7 +25355,7 @@ function npcsYell(text, life = 1.6) {
   if (!Array.isArray(npcs)) return;
   npcs.forEach((npc) => {
     if (npc && !npc.departed && npc.active) {
-      window.FloatingText?.npcCheer(npc, text, "#fffbe8", { life });
+      window.FloatingText?.npcCheer(npc, text, UI_COLOR.speechBubbleText, { life });
     }
   });
 }
@@ -27310,7 +27455,7 @@ function onPlayerDeath() {
       respawnIndicatorTimer = 0;
       if (player) {
         addStatusText(player, "Exhausted", {
-          color: "#D44E52",
+          color: UI_COLOR.crimson,
           bgColor: "rgba(60, 20, 20, 0.88)",
           life: Math.min(0.6, RESPAWN_STATUS_INTERVAL),
           offsetY: player.radius + 34,
@@ -27637,6 +27782,7 @@ function renderDebugOverlay(ctx) {
 
 async function init() {
   try {
+    installDesolateCanvasColorLock();
     resetMusicState();
     if (typeof window !== "undefined") startMusicOnFirstClick();
     resetCongregationSize();
@@ -27867,7 +28013,7 @@ async function init() {
     ctx.save();
     ctx.fillStyle = "#0b0e16";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#D44E52";
+    ctx.fillStyle = UI_COLOR.crimson;
     ctx.font = `28px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.fillText("Failed to start Battlefield Church", canvas.width / 2, canvas.height / 2 - 20);
