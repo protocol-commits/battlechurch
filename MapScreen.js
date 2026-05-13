@@ -11,7 +11,7 @@
     body: "#E7B066",
     dim: "rgba(231, 176, 102, 0.68)",
   });
-  const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0.42;
+  const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0;
   const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.7;
 
   let mapImage = null;
@@ -82,18 +82,7 @@
   }
 
   function maybeApplyMapScreenShadowCrush(image) {
-    if (!image || !image.width || !image.height) return image;
-    const style = getMapScreenShadowStyle();
-    if (style.shadowCrush <= 0) return image;
-    if (typeof document === "undefined" || typeof document.createElement !== "function") return image;
-    const canvas = document.createElement("canvas");
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const ctx2d = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx2d) return image;
-    ctx2d.imageSmoothingEnabled = false;
-    ctx2d.drawImage(image, 0, 0);
-    return applyShadowCrushToCanvas(canvas, style);
+    return image;
   }
 
   const state = {

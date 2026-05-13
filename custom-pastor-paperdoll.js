@@ -2,7 +2,7 @@
 (function initPastorPaperdollConfig(global) {
   const FILE_DEFAULT = {
   "renderStyle": {
-    "shadowCrush": 0.58,
+    "shadowCrush": 0,
     "shadowThreshold": 0.75
   },
   "customFace": {

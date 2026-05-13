@@ -185,39 +185,7 @@
   }
 
   function applyShadowCrushToPaperdoll(context2d, width, height, renderStyle) {
-    if (!context2d || !width || !height) return;
-    const shadowCrush =
-      Number.isFinite(renderStyle?.shadowCrush)
-        ? Math.max(0, Math.min(1, renderStyle.shadowCrush))
-        : 0;
-    if (shadowCrush <= 0) return;
-    const shadowThreshold =
-      Number.isFinite(renderStyle?.shadowThreshold)
-        ? Math.max(0.02, Math.min(1, renderStyle.shadowThreshold))
-        : 0.5;
-    let imageData = null;
-    try {
-      imageData = context2d.getImageData(0, 0, width, height);
-    } catch (e) {
-      return;
-    }
-    const pixels = imageData.data;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const a = pixels[i + 3];
-      if (!a) continue;
-      const r = pixels[i];
-      const g = pixels[i + 1];
-      const b = pixels[i + 2];
-      const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-      if (luminance >= shadowThreshold) continue;
-      const under = (shadowThreshold - luminance) / shadowThreshold;
-      const darken = Math.max(0, Math.min(1, under * shadowCrush));
-      const mult = 1 - darken;
-      pixels[i] = Math.max(0, Math.min(255, Math.round(r * mult)));
-      pixels[i + 1] = Math.max(0, Math.min(255, Math.round(g * mult)));
-      pixels[i + 2] = Math.max(0, Math.min(255, Math.round(b * mult)));
-    }
-    context2d.putImageData(imageData, 0, 0);
+    return;
   }
 
   function getRuntimeBattleState() {

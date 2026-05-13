@@ -216,6 +216,16 @@
     },
 
     // =====================
+    // MASTER RENDER STYLE
+    // =====================
+    masterRenderStyle: {
+      // Single global shadow crush pass applied before HUD render.
+      // Set to 0 to disable entirely.
+      shadowCrush: 0.12,
+      shadowThreshold: 0.72,
+    },
+
+    // =====================
     // VISITOR MINIGAME
     // =====================
     visitor: {

@@ -4372,7 +4372,7 @@ const HERO_HEALTH_PER_HEART = HERO_MAX_HEALTH / HERO_BASE_HEARTS;
 const LOG_NPC_FAITH_BAR = false;
 const ENEMY_SHADOW_CRUSH = Math.max(
   0,
-  Math.min(1, Number(_gb("enemyRenderStyle.shadowCrush", 0.52)) || 0),
+  Math.min(1, Number(_gb("enemyRenderStyle.shadowCrush", 0)) || 0),
 );
 const ENEMY_SHADOW_THRESHOLD = Math.max(
   0.02,
@@ -4380,7 +4380,7 @@ const ENEMY_SHADOW_THRESHOLD = Math.max(
 );
 const ARENA_BG_SHADOW_CRUSH = Math.max(
   0,
-  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowCrush", 0.5)) || 0),
+  Math.min(1, Number(_gb("arenaBackgroundRenderStyle.shadowCrush", 0)) || 0),
 );
 const ARENA_BG_SHADOW_THRESHOLD = Math.max(
   0.02,
@@ -4388,11 +4388,19 @@ const ARENA_BG_SHADOW_THRESHOLD = Math.max(
 );
 const TITLE_BG_SHADOW_CRUSH = Math.max(
   0,
-  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowCrush", 0.42)) || 0.42),
+  Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowCrush", 0)) || 0),
 );
 const TITLE_BG_SHADOW_THRESHOLD = Math.max(
   0.02,
   Math.min(1, Number(_gb("titleBackgroundRenderStyle.shadowThreshold", 0.7)) || 0.7),
+);
+const MASTER_SHADOW_CRUSH = Math.max(
+  0,
+  Math.min(1, Number(_gb("masterRenderStyle.shadowCrush", 0)) || 0),
+);
+const MASTER_SHADOW_THRESHOLD = Math.max(
+  0.02,
+  Math.min(1, Number(_gb("masterRenderStyle.shadowThreshold", 0.72)) || 0.72),
 );
 const PROJECTILE_CONFIG = projectileSettings.config || {};
 const PROJECTILE_PATH =
@@ -5523,6 +5531,12 @@ Renderer.initialize({
   get titleCloudSaveRows() { return titleCloudSaveRows; },
   get titleCloudActiveSaveId() { return titleCloudActiveSaveId; },
   get titleCloudSelectedSaveId() { return titleCloudSelectedSaveId; },
+  get masterShadowCrushStyle() {
+    return {
+      shadowCrush: MASTER_SHADOW_CRUSH,
+      shadowThreshold: MASTER_SHADOW_THRESHOLD,
+    };
+  },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
@@ -7004,15 +7018,7 @@ async function loadAnimationClip(definition, cache, options = {}) {
     }
   }
 
-  const useEnemyShadowCrush =
-    Boolean(options?.isEnemy) &&
-    ENEMY_SHADOW_CRUSH > 0;
-  const imageForClip = useEnemyShadowCrush
-    ? buildShadowCrushedImageCopy(image, {
-        shadowCrush: ENEMY_SHADOW_CRUSH,
-        shadowThreshold: ENEMY_SHADOW_THRESHOLD,
-      })
-    : image;
+  const imageForClip = image;
   const clip = new AnimationClip(imageForClip, frameWidth, frameHeight, definition.frameRate, definition);
   if (Array.isArray(definition.frameMap) && definition.frameMap.length) {
     clip.frameMap = definition.frameMap.slice();
@@ -7073,21 +7079,11 @@ function buildShadowCrushedImageCopy(image, renderStyle) {
 }
 
 function maybeApplyArenaBackgroundShadowCrush(image) {
-  if (!image) return image;
-  if (ARENA_BG_SHADOW_CRUSH <= 0) return image;
-  return buildShadowCrushedImageCopy(image, {
-    shadowCrush: ARENA_BG_SHADOW_CRUSH,
-    shadowThreshold: ARENA_BG_SHADOW_THRESHOLD,
-  });
+  return image;
 }
 
 function maybeApplyTitleBackgroundShadowCrush(image) {
-  if (!image) return image;
-  if (TITLE_BG_SHADOW_CRUSH <= 0) return image;
-  return buildShadowCrushedImageCopy(image, {
-    shadowCrush: TITLE_BG_SHADOW_CRUSH,
-    shadowThreshold: TITLE_BG_SHADOW_THRESHOLD,
-  });
+  return image;
 }
 
 function extractFrame(image, frameWidth, frameHeight, frameIndex = 0) {
@@ -16925,48 +16921,11 @@ function normalizeNpcPixelRenderStyle(style) {
 }
 
 function resolveNpcPixelRenderStyle(config) {
-  if (!config || typeof config !== "object") return { shadowCrush: 0, shadowThreshold: 0.5 };
-  const raw =
-    config.renderStyle ||
-    config.paperdollRenderStyle ||
-    config.harmonizer ||
-    null;
-  const style = normalizeNpcPixelRenderStyle(raw);
-  return style || { shadowCrush: 0, shadowThreshold: 0.5 };
+  return { shadowCrush: 0, shadowThreshold: 0.5 };
 }
 
 function applyShadowCrushToNpcSheet(context2d, width, height, renderStyle) {
-  if (!context2d || !width || !height) return;
-  const shadowCrush = Number.isFinite(renderStyle?.shadowCrush)
-    ? Math.max(0, Math.min(1, renderStyle.shadowCrush))
-    : 0;
-  if (shadowCrush <= 0) return;
-  const shadowThreshold = Number.isFinite(renderStyle?.shadowThreshold)
-    ? Math.max(0.02, Math.min(1, renderStyle.shadowThreshold))
-    : 0.5;
-  let imageData = null;
-  try {
-    imageData = context2d.getImageData(0, 0, width, height);
-  } catch (e) {
-    return;
-  }
-  const pixels = imageData.data;
-  for (let i = 0; i < pixels.length; i += 4) {
-    const a = pixels[i + 3];
-    if (!a) continue;
-    const r = pixels[i];
-    const g = pixels[i + 1];
-    const b = pixels[i + 2];
-    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-    if (luminance >= shadowThreshold) continue;
-    const under = (shadowThreshold - luminance) / shadowThreshold;
-    const darken = Math.max(0, Math.min(1, under * shadowCrush));
-    const mult = 1 - darken;
-    pixels[i] = Math.max(0, Math.min(255, Math.round(r * mult)));
-    pixels[i + 1] = Math.max(0, Math.min(255, Math.round(g * mult)));
-    pixels[i + 2] = Math.max(0, Math.min(255, Math.round(b * mult)));
-  }
-  context2d.putImageData(imageData, 0, 0);
+  return;
 }
 
 function buildNpcPixelAllowedPool(gender, layerKey, config, seed = []) {
