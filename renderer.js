@@ -5975,6 +5975,37 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawWarmVictoryParticles(ctx, canvas, nowMs) {
+    if (!ctx || !canvas) return;
+    const t = (Number.isFinite(nowMs) ? nowMs : (typeof performance !== "undefined" ? performance.now() : Date.now())) * 0.001;
+    const count = 42;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < count; i += 1) {
+      const seed = i * 97.37;
+      const x = ((seed * 131.1) % w + Math.sin(t * 0.22 + seed) * 24 + w) % w;
+      const speed = 18 + (i % 7) * 6;
+      const yBase = (h + (seed * 53.7) % h) - ((t * speed) % (h + 120));
+      const y = yBase;
+      if (y < -24 || y > h + 24) continue;
+      const pulse = 0.55 + 0.45 * Math.sin(t * 1.9 + seed * 0.17);
+      const r = 1.2 + (i % 3) * 0.65 + pulse * 0.7;
+      const alpha = 0.11 + pulse * 0.17;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 4.2);
+      g.addColorStop(0, `rgba(255, 243, 180, ${Math.min(0.45, alpha + 0.12)})`);
+      g.addColorStop(0.45, `rgba(255, 212, 120, ${alpha})`);
+      g.addColorStop(1, "rgba(255, 176, 92, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 4.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawHudComboUnderlay(ctx, canvas, uiFontFamily, hudHeight) {
     if (typeof window === "undefined") return;
     const bindings = requireBindings();
@@ -10622,6 +10653,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
       }
       ctx.restore();
+      if (pastorPostRecapActive) {
+        const floorBandHeight = assets?.backgroundLayers?.floor?.height || 200;
+        drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX, 2);
+        drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX, 2);
+        drawArenaGodRays(ctx, canvas, floorBandHeight, effectiveCameraX, 2);
+        drawWarmVictoryParticles(ctx, canvas, nowMs);
+      }
 
       drawHUD();
       drawHUD();

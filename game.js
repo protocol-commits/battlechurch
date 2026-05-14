@@ -8008,7 +8008,7 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.mission3 = null;
     });
-  const districtCompleteCongregationPromise = loadImage("assets/backgrounds/disctrict-complete-congregation.png")
+  const districtCompleteCongregationPromise = loadImage("assets/backgrounds/district-complete-congregation.png")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.districtCompleteCongregation = maybeApplyArenaBackgroundShadowCrush(img);
