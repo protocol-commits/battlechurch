@@ -29,12 +29,18 @@
   const defaultWeaponIcon = new Image();
   defaultWeaponIcon.src = "assets/sprites/items/Weapons/W43_Recurve_Bow.png";
 
-  function drawOutlinedText(ctx, text, x, y, font, align, fillColor) {
+  function drawOutlinedText(ctx, text, x, y, font, align, fillColor, options = {}) {
     ctx.font = font;
     ctx.textAlign = align;
+    ctx.textBaseline = options.baseline || ctx.textBaseline || "alphabetic";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    ctx.strokeStyle = options.strokeColor || "rgba(0,0,0,0.92)";
+    ctx.lineWidth = Number.isFinite(options.strokeWidth) ? options.strokeWidth : 3;
     const fallbackSoftWhite =
       (typeof UIStyles !== "undefined" && UIStyles.colors?.softWhite) || "#DFDFC4";
     ctx.fillStyle = fillColor || fallbackSoftWhite;
+    ctx.strokeText(text, x, y);
     ctx.fillText(text, x, y);
   }
 
@@ -311,7 +317,15 @@
       };
       const baseLabel = toUpper(scenarioTitle);
       const displayLabel = truncateToWidth(baseLabel, maxScenarioWidth);
-      ctx.fillText(displayLabel, hpBarX, panelY + 14);
+      drawOutlinedText(
+        ctx,
+        displayLabel,
+        hpBarX,
+        panelY + 14,
+        `12px ${UI_FONT_FAMILY}`,
+        "left",
+        PALETTE.softWhite,
+      );
       ctx.restore();
       ctx.fillStyle = PALETTE.hpBarBg || 'rgba(10,15,31,0.6)';
       ctx.lineWidth = 2.5;
@@ -729,7 +743,15 @@
       const playerName = window.MapScreen?.getPlayerName?.() || '';
       const playerClassTitle = window.BattlechurchClasses?.getActive?.()?.classTitle || '';
       const playerLabel = `Pastor ${playerName}${playerClassTitle ? ` [${playerClassTitle}]` : ''}`.trim();
-      ctx.fillText(playerLabel, x, playerRowY);
+      drawOutlinedText(
+        ctx,
+        playerLabel,
+        x,
+        playerRowY,
+        `12px ${UI_FONT_FAMILY}`,
+        "left",
+        PALETTE.softWhite,
+      );
 
       ctx.restore();
 
@@ -892,7 +914,15 @@
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       const congregationLabel = (typeof GameText !== 'undefined' && GameText.hud?.congregation) || 'CONGREGATION';
-      ctx.fillText(`${congregationLabel}: ${congregationTotal}`, x, panelY + 14);
+      drawOutlinedText(
+        ctx,
+        `${congregationLabel}: ${congregationTotal}`,
+        x,
+        panelY + 14,
+        `12px ${UI_FONT_FAMILY}`,
+        "left",
+        PALETTE.softWhite,
+      );
       ctx.restore();
 
       const rows = [];
@@ -1017,8 +1047,34 @@
       ctx.fillStyle = PALETTE.softWhite;
       ctx.font = `12px ${UI_FONT_FAMILY}`;
       const districtRowY = panelY + 14;
-      const districtLabelText = districtName.toUpperCase();
-      ctx.fillText(districtLabelText, x, districtRowY);
+      const battlefieldNum = Math.max(
+        1,
+        Math.floor(
+          Number.isFinite(levelStatus.battlefieldNum) ? levelStatus.battlefieldNum : 1,
+        ),
+      );
+      const waveNum = Math.max(
+        1,
+        Math.floor(
+          Number.isFinite(levelStatus.waveNum)
+            ? levelStatus.waveNum
+            : (Number.isFinite(levelStatus.wave) ? levelStatus.wave : 1),
+        ),
+      );
+      const hordeNum = Math.max(
+        1,
+        Math.floor(Number.isFinite(levelStatus.hordeNum) ? levelStatus.hordeNum : 1),
+      );
+      const districtLabelText = `${districtName} [${battlefieldNum}.${waveNum}.${hordeNum}]`;
+      drawOutlinedText(
+        ctx,
+        districtLabelText,
+        x,
+        districtRowY,
+        `12px ${UI_FONT_FAMILY}`,
+        "left",
+        PALETTE.softWhite,
+      );
       if (typeof window !== "undefined") {
         window.__comboFeedFixedX = x + width;
         // Keep combo callout directly under the district progress meter.
