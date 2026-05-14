@@ -9050,6 +9050,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.restore();
     };
     const { loadingProgress } = requireBindings();
+    const canvasMenuType = window.UIStyles?.typography?.canvasTitleMenu || {};
     const progress = Math.max(0, Math.min(100, loadingProgress || 0));
     if (titleDemoSaveMenuActive) {
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
@@ -9112,14 +9113,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         text: "Choose Save",
         x: panelX + PAD_X,
         y: headerMidY,
-        font: `700 28px ${UI_FONT_FAMILY}`,
+        font: `700 ${canvasMenuType.saveHeader ?? 28}px ${UI_FONT_FAMILY}`,
         fillStyle: HELLFIRE_TEXT_PALETTE.title,
         textAlign: "left",
         textBaseline: "middle",
       });
 
       // account email right-aligned before avatar
-      ctx.font = `500 14px ${UI_FONT_FAMILY}`;
+      ctx.font = `500 ${canvasMenuType.saveAccountMeta ?? 14}px ${UI_FONT_FAMILY}`;
       ctx.textAlign = "right";
       const accountTextMaxW = panelW - PAD_X * 2 - avatarSize - 16 - (ctx.measureText("Choose Save").width + 16);
       const fitText = (text, maxWidth) => {
@@ -9137,7 +9138,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         text: fitText(accountText, Math.max(60, accountTextMaxW)),
         x: avatarX - Math.round(avatarSize / 2) - 10,
         y: headerMidY,
-        font: `500 14px ${UI_FONT_FAMILY}`,
+        font: `500 ${canvasMenuType.saveAccountMeta ?? 14}px ${UI_FONT_FAMILY}`,
         fillStyle: isSignedIn ? HELLFIRE_UI_TOKENS.meta : "rgba(231,176,102,0.42)",
         textAlign: "right",
         textBaseline: "middle",
@@ -9202,7 +9203,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const textMaxW = cardW - (textX - cardX) - moreChipW - 12;
 
         // Save name (direct draw, no glow/outline)
-        ctx.font = `700 28px ${UI_FONT_FAMILY}`;
+        ctx.font = `700 ${canvasMenuType.saveRowTitle ?? 28}px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
         ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
@@ -9217,7 +9218,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             text: fitText(meta, textMaxW),
             x: textX,
             y: cardY + 50,
-            font: `400 18px ${UI_FONT_FAMILY}`,
+            font: `400 ${canvasMenuType.saveRowMeta ?? 18}px ${UI_FONT_FAMILY}`,
             fillStyle: HELLFIRE_UI_TOKENS.meta,
             textAlign: "left",
             textBaseline: "alphabetic",
@@ -9227,7 +9228,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         // Active badge
         if (config?.isActive) {
           const badgeText = "ACTIVE";
-          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.font = `700 ${canvasMenuType.saveActiveBadge ?? 12}px ${UI_FONT_FAMILY}`;
           const badgeW = ctx.measureText(badgeText).width + 10;
           const badgeH = 20;
           const badgeX = cardX + cardW - moreChipW - badgeW - (moreChipW > 0 ? 6 : 10);
@@ -9236,7 +9237,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.strokeStyle = "rgba(242, 200, 125, 0.5)";
           ctx.lineWidth = 1;
           roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 4, true, true);
-          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.font = `700 ${canvasMenuType.saveActiveBadge ?? 12}px ${UI_FONT_FAMILY}`;
           ctx.fillStyle = "rgba(242, 200, 125, 0.95)";
           ctx.shadowColor = "transparent";
           ctx.shadowBlur = 0;
@@ -9306,7 +9307,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillStyle = HELLFIRE_UI_TOKENS.accent;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `700 16px ${UI_FONT_FAMILY}`;
+        ctx.font = `700 ${canvasMenuType.saveScrollGlyph ?? 16}px ${UI_FONT_FAMILY}`;
         if (showScrollUp) ctx.fillText("▲", panelX + panelW - 18, listStartY + 12);
         if (showScrollDown) ctx.fillText("▼", panelX + panelW - 18, listStartY + listH);
         ctx.restore();
@@ -9356,7 +9357,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             text: fitText(config.label, actionBtnW - 16),
             x: ax + actionBtnW / 2,
             y: actionY + ACTION_H / 2,
-            font: `700 16px ${UI_FONT_FAMILY}`,
+            font: `700 ${canvasMenuType.saveActionButton ?? 16}px ${UI_FONT_FAMILY}`,
             fillStyle: isPrimary ? "#DDA677" : isBack ? "rgba(253,241,217,0.55)" : EMBER_BUTTON_PALETTE.text,
             textAlign: "center",
             textBaseline: "middle",
@@ -9379,7 +9380,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       // ── Hint line ────────────────────────────────────────────────────────
       const hintY = panelY + panelH - 14;
       ctx.save();
-      ctx.font = `500 12px ${UI_FONT_FAMILY}`;
+      ctx.font = `500 ${canvasMenuType.saveFooterHint ?? 12}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "rgba(231,176,102,0.5)";
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
@@ -9447,9 +9448,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 0;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `700 ${hintStyle.titleFontSize ?? 34}px ${PIXEL_UI_FONT_FAMILY}`;
+      ctx.font = `700 ${(canvasMenuType.classTitle ?? hintStyle.titleFontSize) ?? 34}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.fillText("CHOOSE YOUR DENOMINATION", panelX + panelW / 2, titleY);
-      ctx.font = `600 ${hintStyle.hintFontSize ?? 15}px ${PIXEL_UI_FONT_FAMILY}`;
+      ctx.font = `600 ${(canvasMenuType.classHint ?? hintStyle.hintFontSize) ?? 15}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.fillStyle = hintStyle.hintColor || "rgba(231,176,102,0.82)";
       ctx.fillText("W / S move  ·  SPACE select  ·  ESC back", panelX + panelW / 2, hintY);
       ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
@@ -9496,13 +9497,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowOffsetY = 0;
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `600 22px ${PIXEL_UI_FONT_FAMILY}`;
+        ctx.font = `600 ${canvasMenuType.classRowTitle ?? 22}px ${PIXEL_UI_FONT_FAMILY}`;
         const focusPrefix = focused ? "> " : "";
         const selectedSuffix = selected && !isBack ? "  [Selected]" : "";
         const labelText = `${focusPrefix}${config.label}${selectedSuffix}`;
         ctx.fillText(labelText, rowX + 40, y + 20);
         if (!isBack && config?.meta) {
-          ctx.font = `500 14px ${PIXEL_UI_FONT_FAMILY}`;
+          ctx.font = `500 ${canvasMenuType.classRowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`;
           ctx.fillStyle = "rgba(231, 176, 102, 0.82)";
           ctx.fillText(String(config.meta), rowX + 40, y + 38);
         }
@@ -9538,7 +9539,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
-        ctx.font = `700 18px ${PIXEL_UI_FONT_FAMILY}`;
+        ctx.font = `700 ${canvasMenuType.classScrollGlyph ?? 18}px ${PIXEL_UI_FONT_FAMILY}`;
         if (showScrollUp) {
           ctx.fillText("▲", panelX + panelW - 16, listStartY - 4);
         }
@@ -9594,7 +9595,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           text: config.label,
           x: x + buttonWidth / 2,
           y: buttonY + 42,
-          font: `600 38px ${PIXEL_UI_FONT_FAMILY}`,
+          font: `600 ${canvasMenuType.mainButtonLabel ?? 38}px ${PIXEL_UI_FONT_FAMILY}`,
           fillStyle: EMBER_BUTTON_PALETTE.text,
           textAlign: "center",
           textBaseline: "alphabetic",

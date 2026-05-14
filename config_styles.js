@@ -67,6 +67,31 @@
       bold: "700",
     },
 
+    // Centralized typography for canvas-rendered title/save/load/class menus.
+    typography: {
+      canvasTitleMenu: {
+        // Save picker
+        saveHeader: 28,
+        saveAccountMeta: 14,
+        saveRowTitle: 28,
+        saveRowMeta: 18,
+        saveActiveBadge: 12,
+        saveScrollGlyph: 16,
+        saveActionButton: 16,
+        saveFooterHint: 12,
+
+        // Class picker
+        classTitle: 34,
+        classHint: 15,
+        classRowTitle: 22,
+        classRowMeta: 14,
+        classScrollGlyph: 18,
+
+        // Main title buttons
+        mainButtonLabel: 38,
+      },
+    },
+
     // =====================
     // COLOR PALETTE
     // =====================

@@ -20255,52 +20255,96 @@ function showSettingsOverlay({ source = "title" } = {}) {
   const bodyHtml = `
     <div class="settings-panel">
       <div class="settings-row">
-        <div class="settings-row__label">Music</div>
-        <label class="settings-toggle">
-          <input type="checkbox" data-setting="musicEnabled">
-          <span>On</span>
-        </label>
+        <span class="settings-row__icon">🎵</span>
+        <div class="settings-row__text">
+          <div class="settings-row__label">Music</div>
+          <div class="settings-row__desc">Enable or disable background music</div>
+        </div>
+        <div class="settings-row__control">
+          <label class="settings-toggle">
+            <input type="checkbox" data-setting="musicEnabled">
+            <span>On</span>
+          </label>
+        </div>
       </div>
       <div class="settings-row settings-row--slider">
-        <label class="settings-row__label" for="settingsMusicVolume">Music Volume</label>
-        <div class="settings-slider">
-          <input type="range" id="settingsMusicVolume" min="0" max="100" value="100" step="1" data-setting="musicVolume">
-          <span class="settings-slider__value" data-setting-value="musicVolume">100%</span>
+        <span class="settings-row__icon">🎚️</span>
+        <div class="settings-row__text">
+          <label class="settings-row__label" for="settingsMusicVolume">Music Volume</label>
+          <div class="settings-row__desc">Set soundtrack level</div>
+          <div class="settings-slider">
+            <input type="range" id="settingsMusicVolume" min="0" max="100" value="100" step="1" data-setting="musicVolume">
+            <span class="settings-slider__value" data-setting-value="musicVolume">100%</span>
+          </div>
         </div>
       </div>
       <div class="settings-row">
-        <div class="settings-row__label">Sound Effects</div>
-        <label class="settings-toggle">
-          <input type="checkbox" data-setting="sfxEnabled">
-          <span>On</span>
-        </label>
+        <span class="settings-row__icon">🔊</span>
+        <div class="settings-row__text">
+          <div class="settings-row__label">Sound Effects</div>
+          <div class="settings-row__desc">Enable or disable SFX</div>
+        </div>
+        <div class="settings-row__control">
+          <label class="settings-toggle">
+            <input type="checkbox" data-setting="sfxEnabled">
+            <span>On</span>
+          </label>
+        </div>
       </div>
       <div class="settings-row settings-row--slider">
-        <label class="settings-row__label" for="settingsSfxVolume">SFX Volume</label>
-        <div class="settings-slider">
-          <input type="range" id="settingsSfxVolume" min="0" max="100" value="100" step="1" data-setting="sfxVolume">
-          <span class="settings-slider__value" data-setting-value="sfxVolume">100%</span>
+        <span class="settings-row__icon">📢</span>
+        <div class="settings-row__text">
+          <label class="settings-row__label" for="settingsSfxVolume">SFX Volume</label>
+          <div class="settings-row__desc">Set effects level</div>
+          <div class="settings-slider">
+            <input type="range" id="settingsSfxVolume" min="0" max="100" value="100" step="1" data-setting="sfxVolume">
+            <span class="settings-slider__value" data-setting-value="sfxVolume">100%</span>
+          </div>
         </div>
       </div>
       <div class="settings-row">
-        <div class="settings-row__label">Speedrun Timer</div>
-        <label class="settings-toggle">
-          <input type="checkbox" data-setting="showSpeedrunTimer">
-          <span>On</span>
-        </label>
+        <span class="settings-row__icon">⏱️</span>
+        <div class="settings-row__text">
+          <div class="settings-row__label">Speedrun Timer</div>
+          <div class="settings-row__desc">Show run timer during gameplay</div>
+        </div>
+        <div class="settings-row__control">
+          <label class="settings-toggle">
+            <input type="checkbox" data-setting="showSpeedrunTimer">
+            <span>On</span>
+          </label>
+        </div>
       </div>
       <div class="settings-row">
-        <div class="settings-row__label">About</div>
-        <button class="settings-btn--hellfire" id="settingsAboutBtn">About</button>
+        <span class="settings-row__icon">📘</span>
+        <div class="settings-row__text">
+          <div class="settings-row__label">About</div>
+          <div class="settings-row__desc">View controls and gameplay guide</div>
+        </div>
+        <div class="settings-row__control">
+          <button class="settings-btn--hellfire" id="settingsAboutBtn">About</button>
+        </div>
       </div>
       ${source === "title" ? `
       <div class="settings-row">
-        <div class="settings-row__label">Customize Character</div>
-        <button class="settings-btn--hellfire" id="settingsCustomizeBtn">Customize</button>
+        <span class="settings-row__icon">🎭</span>
+        <div class="settings-row__text">
+          <div class="settings-row__label">Customize Character</div>
+          <div class="settings-row__desc">Open face and style customization</div>
+        </div>
+        <div class="settings-row__control">
+          <button class="settings-btn--hellfire" id="settingsCustomizeBtn">Customize</button>
+        </div>
       </div>` : ""}
       <div class="settings-row">
-        <div class="settings-row__label">Developer</div>
-        <button class="settings-btn--hellfire" id="settingsDeveloperBtn">Developer</button>
+        <span class="settings-row__icon">🛠️</span>
+        <div class="settings-row__text">
+          <div class="settings-row__label">Developer</div>
+          <div class="settings-row__desc">Open debug and development tools</div>
+        </div>
+        <div class="settings-row__control">
+          <button class="settings-btn--hellfire" id="settingsDeveloperBtn">Developer</button>
+        </div>
       </div>
     </div>
   `;
