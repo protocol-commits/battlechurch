@@ -4417,8 +4417,42 @@ const UI_FONT_FAMILY =
 const PIXEL_UI_FONT_FAMILY =
   (typeof window !== "undefined" && window.UIStyles?.fonts?.pixel) ||
   "'VT323', 'Press Start 2P', monospace";
+const PIXEL_FONT_SIZE_MULTIPLIER = 1.23;
 if (typeof document !== "undefined" && document.fonts?.load) {
   document.fonts.load(`16px ${PIXEL_UI_FONT_FAMILY}`).catch(() => {});
+}
+if (
+  typeof window !== "undefined" &&
+  typeof CanvasRenderingContext2D !== "undefined" &&
+  !window.__battlechurchPixelFontScalePatched
+) {
+  const fontDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, "font");
+  const nativeGet = fontDesc && typeof fontDesc.get === "function" ? fontDesc.get : null;
+  const nativeSet = fontDesc && typeof fontDesc.set === "function" ? fontDesc.set : null;
+  if (nativeGet && nativeSet) {
+    const scalePixelFontDeclaration = (fontValue) => {
+      if (typeof fontValue !== "string") return fontValue;
+      const hasPixelFamily =
+        fontValue.includes("VT323") || fontValue.includes("Press Start 2P");
+      if (!hasPixelFamily) return fontValue;
+      return fontValue.replace(/(\d+(?:\.\d+)?)px/g, (_, n) => {
+        const scaled = Math.max(1, Number(n) * PIXEL_FONT_SIZE_MULTIPLIER);
+        const rounded = Math.round(scaled * 100) / 100;
+        return `${rounded}px`;
+      });
+    };
+    Object.defineProperty(CanvasRenderingContext2D.prototype, "font", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return nativeGet.call(this);
+      },
+      set(value) {
+        nativeSet.call(this, scalePixelFontDeclaration(value));
+      },
+    });
+    window.__battlechurchPixelFontScalePatched = true;
+  }
 }
 
 // Debug overlay toggle (DEV-ONLY)

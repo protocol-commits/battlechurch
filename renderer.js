@@ -1095,11 +1095,18 @@ const MELEE_SWING_LENGTH = 260;
   const RECAP_FLASH_DURATION = 0.6;
   const RECAP_CONTINUE_DELAY = 1.0;
   const SHOW_TEXT_SOURCE_LABELS = false;
-  const TEXT_STYLES = {
+  const PIXEL_FONT_SIZE_MULTIPLIER = 1.23;
+  const BASE_TEXT_STYLES = {
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
     h2: { size: 40, weight: 800, lineHeight: 1.2 },
     h3: { size: 28, weight: 700, lineHeight: 1.2 },
     body: { size: 20, weight: 600, lineHeight: 1.3 },
+  };
+  const TEXT_STYLES = {
+    h1: { ...BASE_TEXT_STYLES.h1, size: Math.round(BASE_TEXT_STYLES.h1.size * PIXEL_FONT_SIZE_MULTIPLIER) },
+    h2: { ...BASE_TEXT_STYLES.h2, size: Math.round(BASE_TEXT_STYLES.h2.size * PIXEL_FONT_SIZE_MULTIPLIER) },
+    h3: { ...BASE_TEXT_STYLES.h3, size: Math.round(BASE_TEXT_STYLES.h3.size * PIXEL_FONT_SIZE_MULTIPLIER) },
+    body: { ...BASE_TEXT_STYLES.body, size: Math.round(BASE_TEXT_STYLES.body.size * PIXEL_FONT_SIZE_MULTIPLIER) },
   };
   const announcementReveal = new Map();
 

@@ -42,23 +42,23 @@
 
     fontSizes: {
       // HUD elements
-      hudLabel: 12,
-      hudMeter: 12,
-      hudSmall: 9,
-      hudMedium: 11,
+      hudLabel: 15,
+      hudMeter: 15,
+      hudSmall: 11,
+      hudMedium: 14,
 
       // Screen text
-      screenTitle: 48,
-      screenSubtitle: 32,
-      screenBody: 18,
+      screenTitle: 59,
+      screenSubtitle: 39,
+      screenBody: 22,
 
       // Floating text
       floatingDamagePlayer: 90,
       floatingDamageNpc: 50,
-      floatingDamageEnemy: 18,
+      floatingDamageEnemy: 22,
 
       // Buttons
-      button: 16,
+      button: 20,
     },
 
     fontWeights: {
