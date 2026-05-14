@@ -9028,6 +9028,144 @@ async function refreshTitleCloudSaveOption() {
   }
 }
 
+async function openMapFromCloudSave(saveId) {
+  if (!saveId) return;
+  setDemoSandboxRunActive(false);
+  titleDemoSaveOverride = null;
+  titleCloudSelectedSaveId = saveId || titleCloudSelectedSaveId;
+  if (saveId && typeof window.MapScreen?.setActiveSave === "function") {
+    await window.MapScreen.setActiveSave(saveId);
+  }
+  const selectedRow =
+    titleCloudSaveRows.find((row) => row.id === saveId) ||
+    titleCloudSaveRows.find((row) => row.id === titleCloudSelectedSaveId) ||
+    null;
+  const suggestedDistrictId = selectedRow?.suggestedDistrictId || null;
+  titleScreenActive = false;
+  mapActive = true;
+  if (window.MapScreen) {
+    window.MapScreen.open();
+    if (typeof window.MapScreen.reloadProgress === "function") {
+      await window.MapScreen.reloadProgress();
+    }
+    if (suggestedDistrictId && typeof window.MapScreen.selectDistrict === "function") {
+      window.MapScreen.selectDistrict(suggestedDistrictId);
+    }
+  }
+  if (suggestedDistrictId) {
+    activeDistrictId = suggestedDistrictId;
+    if (typeof window !== "undefined") {
+      window.activeDistrictId = activeDistrictId;
+    }
+  }
+  titleDemoSaveMenuActive = false;
+}
+
+async function showTitleSavePickerOverlay() {
+  if (!window.DialogOverlay?.show) return false;
+  titleDemoSaveMenuActive = false;
+  await refreshTitleCloudSaveOption();
+  const isSignedIn = typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail;
+  const rows = Array.isArray(titleCloudSaveRows) ? titleCloudSaveRows : [];
+  const rowsHtml = rows.length
+    ? rows
+        .map((row) => {
+          const selected = row?.id === titleCloudSelectedSaveId ? " save-picker__item--selected" : "";
+          const activeBadge = row?.isActive ? '<span class="save-picker__badge">ACTIVE</span>' : "";
+          return `
+            <button type="button" class="save-picker__item${selected}" data-save-id="${escapeHtml(row.id)}">
+              <span class="save-picker__item-icon">💾</span>
+              <span class="save-picker__item-text">
+                <span class="save-picker__item-title">${escapeHtml(row.label || "Save")}</span>
+                <span class="save-picker__item-meta">${escapeHtml(row.meta || "")}</span>
+              </span>
+              ${activeBadge}
+            </button>
+          `;
+        })
+        .join("")
+    : `
+      <div class="settings-row">
+        <span class="settings-row__icon">ℹ️</span>
+        <div class="settings-row__text">
+          <div class="settings-row__label">No Save Files</div>
+          <div class="settings-row__desc">Create a new save to start playing.</div>
+        </div>
+      </div>
+    `;
+
+  const bodyHtml = `
+    <div class="settings-panel save-picker">
+      <div class="save-picker__list">${rowsHtml}</div>
+      <div class="save-picker__actions">
+        ${
+          isSignedIn
+            ? `
+            <button type="button" class="settings-btn--hellfire" data-save-picker-action="new">New Save</button>
+            <button type="button" class="settings-btn--hellfire" data-save-picker-action="logout">Logout</button>
+            `
+            : `
+            <button type="button" class="settings-btn--hellfire" data-save-picker-action="login">Login with Google</button>
+            `
+        }
+        <button type="button" class="settings-btn--hellfire" data-save-picker-action="back">Back</button>
+      </div>
+    </div>
+  `;
+
+  window.DialogOverlay.show({
+    title: "Choose Save",
+    bodyHtml,
+    buttonText: "",
+    variant: "settings",
+    onRender: ({ bodyEl, overlay }) => {
+      if (overlay) {
+        applyDefaultHellfirePanelStyle(overlay, true, "default");
+      }
+      if (!bodyEl) return;
+      const closeOverlay = () => window.DialogOverlay?.hide?.();
+      bodyEl.querySelectorAll("[data-save-id]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const saveId = String(button.getAttribute("data-save-id") || "");
+          if (!saveId) return;
+          titleCloudSelectedSaveId = saveId;
+          closeOverlay();
+          void openMapFromCloudSave(saveId);
+        });
+      });
+
+      bodyEl.querySelector('[data-save-picker-action="new"]')?.addEventListener("click", () => {
+        closeOverlay();
+        showNewCloudSaveDialog();
+      });
+      bodyEl.querySelector('[data-save-picker-action="logout"]')?.addEventListener("click", () => {
+        closeOverlay();
+        void (async () => {
+          try {
+            if (window.Cloud?.signOut) await window.Cloud.signOut();
+            await refreshTitleCloudSaveOption();
+            await showTitleSavePickerOverlay();
+          } catch (_e) {}
+        })();
+      });
+      bodyEl.querySelector('[data-save-picker-action="login"]')?.addEventListener("click", () => {
+        closeOverlay();
+        void (async () => {
+          try {
+            if (window.Cloud?.signInWithGoogle) await window.Cloud.signInWithGoogle();
+            await refreshTitleCloudSaveOption();
+            await showTitleSavePickerOverlay();
+          } catch (_e) {}
+        })();
+      });
+      bodyEl.querySelector('[data-save-picker-action="back"]')?.addEventListener("click", () => {
+        closeOverlay();
+      });
+    },
+  });
+  return true;
+}
+
 function showNewCloudSaveDialog() {
   if (!window.DialogOverlay?.show) return false;
   const classOptions = getSortedClassMenuEntries(classEntries);
@@ -20824,11 +20962,11 @@ function handleTitleScreen() {
         }
         if (button.key === "continue" || button.key === "play") {
           setDemoSandboxRunActive(false);
-          titleDemoSaveMenuActive = true;
+          titleDemoSaveMenuActive = false;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
-          void refreshTitleCloudSaveOption();
+          void showTitleSavePickerOverlay();
           return;
         }
         if (button.key === "back") {
@@ -20964,36 +21102,8 @@ function handleTitleScreen() {
         }
         if (String(button.key || "").startsWith("cloudsave:")) {
           void (async () => {
-            setDemoSandboxRunActive(false);
-            titleDemoSaveOverride = null;
             const saveId = String(button.key).slice("cloudsave:".length);
-            titleCloudSelectedSaveId = saveId || titleCloudSelectedSaveId;
-            if (saveId && typeof window.MapScreen?.setActiveSave === "function") {
-              await window.MapScreen.setActiveSave(saveId);
-            }
-            const selectedRow =
-              titleCloudSaveRows.find((row) => row.id === saveId) ||
-              titleCloudSaveRows.find((row) => row.id === titleCloudSelectedSaveId) ||
-              null;
-            const suggestedDistrictId = selectedRow?.suggestedDistrictId || null;
-            titleScreenActive = false;
-            mapActive = true;
-            if (window.MapScreen) {
-              window.MapScreen.open();
-              if (typeof window.MapScreen.reloadProgress === "function") {
-                await window.MapScreen.reloadProgress();
-              }
-              if (suggestedDistrictId && typeof window.MapScreen.selectDistrict === "function") {
-                window.MapScreen.selectDistrict(suggestedDistrictId);
-              }
-            }
-            if (suggestedDistrictId) {
-              activeDistrictId = suggestedDistrictId;
-              if (typeof window !== "undefined") {
-                window.activeDistrictId = activeDistrictId;
-              }
-            }
-            titleDemoSaveMenuActive = false;
+            await openMapFromCloudSave(saveId);
           })();
           return;
         }

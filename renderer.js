@@ -9016,6 +9016,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonCount: buttonConfigs.length,
       HUD_HEIGHT: HUD_HEIGHT || 54,
     });
+    // Render Save/Load at native scale to keep panel geometry and text crisp.
+    if (titleDemoSaveMenuActive) {
+      layout.scale = 1;
+      layout.offsetX = 0;
+      layout.offsetY = 0;
+    }
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
@@ -9208,15 +9214,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         const moreChipW = isCloudSaveRow ? 42 : 0;
         const textMaxW = cardW - (textX - cardX) - moreChipW - 12;
 
-        // Save name (direct draw, no glow/outline)
+        // Save name (draw with crisp screen-space text to avoid scaled blur)
         ctx.font = `700 ${canvasMenuType.saveRowTitle ?? 28}px ${UI_FONT_FAMILY}`;
-        ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetY = 0;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "alphabetic";
-        ctx.fillText(fitText(config.label, textMaxW), textX, cardY + 30);
+        fillTextCrisp({
+          text: fitText(config.label, textMaxW),
+          x: textX,
+          y: cardY + 30,
+          font: `700 ${canvasMenuType.saveRowTitle ?? 28}px ${UI_FONT_FAMILY}`,
+          fillStyle: EMBER_BUTTON_PALETTE.text,
+          textAlign: "left",
+          textBaseline: "alphabetic",
+        });
 
         // Meta line
         if (meta) {
@@ -9243,14 +9251,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.strokeStyle = "rgba(242, 200, 125, 0.5)";
           ctx.lineWidth = 1;
           roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 4, true, true);
-          ctx.font = `700 ${canvasMenuType.saveActiveBadge ?? 12}px ${UI_FONT_FAMILY}`;
-          ctx.fillStyle = "rgba(242, 200, 125, 0.95)";
-          ctx.shadowColor = "transparent";
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2);
+          fillTextCrisp({
+            text: badgeText,
+            x: badgeX + badgeW / 2,
+            y: badgeY + badgeH / 2,
+            font: `700 ${canvasMenuType.saveActiveBadge ?? 12}px ${UI_FONT_FAMILY}`,
+            fillStyle: "rgba(242, 200, 125, 0.95)",
+            textAlign: "center",
+            textBaseline: "middle",
+          });
         }
 
         // More chip (•••)
@@ -9310,12 +9319,28 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       // Scroll indicators
       if (showScrollUp || showScrollDown) {
         ctx.save();
-        ctx.fillStyle = HELLFIRE_UI_TOKENS.accent;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "alphabetic";
-        ctx.font = `700 ${canvasMenuType.saveScrollGlyph ?? 16}px ${UI_FONT_FAMILY}`;
-        if (showScrollUp) ctx.fillText("▲", panelX + panelW - 18, listStartY + 12);
-        if (showScrollDown) ctx.fillText("▼", panelX + panelW - 18, listStartY + listH);
+        if (showScrollUp) {
+          fillTextCrisp({
+            text: "▲",
+            x: panelX + panelW - 18,
+            y: listStartY + 12,
+            font: `700 ${canvasMenuType.saveScrollGlyph ?? 16}px ${UI_FONT_FAMILY}`,
+            fillStyle: HELLFIRE_UI_TOKENS.accent,
+            textAlign: "center",
+            textBaseline: "alphabetic",
+          });
+        }
+        if (showScrollDown) {
+          fillTextCrisp({
+            text: "▼",
+            x: panelX + panelW - 18,
+            y: listStartY + listH,
+            font: `700 ${canvasMenuType.saveScrollGlyph ?? 16}px ${UI_FONT_FAMILY}`,
+            fillStyle: HELLFIRE_UI_TOKENS.accent,
+            textAlign: "center",
+            textBaseline: "alphabetic",
+          });
+        }
         ctx.restore();
       }
 
@@ -9385,13 +9410,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
       // ── Hint line ────────────────────────────────────────────────────────
       const hintY = panelY + panelH - 14;
-      ctx.save();
-      ctx.font = `500 ${canvasMenuType.saveFooterHint ?? 12}px ${UI_FONT_FAMILY}`;
-      ctx.fillStyle = "rgba(231,176,102,0.5)";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-      ctx.fillText("W·S / ↑↓  move  ·  Space  select  ·  D / →  more  ·  Esc  back", panelX + panelW / 2, hintY);
-      ctx.restore();
+      fillTextCrisp({
+        text: "W·S / ↑↓  move  ·  Space  select  ·  D / →  more  ·  Esc  back",
+        x: panelX + panelW / 2,
+        y: hintY,
+        font: `500 ${canvasMenuType.saveFooterHint ?? 12}px ${UI_FONT_FAMILY}`,
+        fillStyle: "rgba(231,176,102,0.5)",
+        textAlign: "center",
+        textBaseline: "alphabetic",
+      });
 
       boundsByIndex.forEach((item) => { if (item) bounds.push(item); });
       rowActionBounds.forEach((item) => bounds.push(item));
