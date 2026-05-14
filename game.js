@@ -4451,6 +4451,10 @@ if (
         return nativeGet.call(this);
       },
       set(value) {
+        if (this && this.__battlechurchSkipPixelFontScale === true) {
+          nativeSet.call(this, value);
+          return;
+        }
         nativeSet.call(this, scalePixelFontDeclaration(value));
       },
     });

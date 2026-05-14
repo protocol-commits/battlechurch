@@ -72,6 +72,8 @@
       playerDashState,
     } = bindings;
     if (!ctx || !canvas) return;
+    const prevSkipPixelFontScale = ctx.__battlechurchSkipPixelFontScale === true;
+    ctx.__battlechurchSkipPixelFontScale = true;
 
     // Use centralized styles if available, fallback to inline
     const PALETTE = (typeof UIStyles !== 'undefined' && UIStyles.colors) ? UIStyles.colors : {
@@ -86,6 +88,24 @@
       hpBarBg: "rgba(10,15,31,0.6)",
       healthFill: "#B22E2E",
     };
+    const HUD_FONTS = {
+      topLabel: 18,            // Problem / Player / Congregation / Town
+      pillText: 16,            // text inside pill bars
+      meterLabel: 15,          // Health/Prayer row labels and scoreboard row
+      chip: 14,                // tiny level chips / small helper labels
+      devTitle: 18,            // dev panel section titles
+      devBody: 15,             // dev panel main body rows
+      devMeta: 11,             // dev panel compact labels
+      comboBig: 15,            // dev combo headline values
+      comboTag: 10,            // dev combo tiny headers
+      gameplayComboSub: 12,    // gameplay combo subtext
+      bannerTitle: 36,         // move banner title
+      bannerBody: 16,          // move banner tokens (A/B arrows, etc.)
+      bannerSub: 14,           // move banner denom/charge
+      devHint: 11,             // bottom dev hint line
+      districtMeterLabel: 12,  // text inside district progress bar segments
+    };
+    const hudFont = (px, weight = "") => `${weight ? `${weight} ` : ""}${px}px ${UI_FONT_FAMILY}`;
 
     if (typeof window !== 'undefined') {
       window.__hudTouchToggleBounds = null;
@@ -209,6 +229,8 @@
     };
 
     const drawPillMeterRow = (x, y, width, label, ratio, color, iconImage, iconKey, capRatio) => {
+      // FONT MAP (pill rows):
+      // 15px = text inside each pill meter row (player/npc powerup bars).
       const barHeight = 18;
       const barWidth = Math.max(60, width - 8);
       const barX = x;
@@ -269,15 +291,22 @@
         );
         applyMeterGloss(barX + 1, barY + 1, fillWidth, barHeight - 2);
       }
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.pillText);
       ctx.fillStyle = PALETTE.softWhite;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.strokeStyle = 'rgba(0,0,0,0.82)';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(label, barX + barWidth / 2, barY + barHeight / 2 + 1);
       ctx.fillText(label, barX + barWidth / 2, barY + barHeight / 2 + 1);
       ctx.restore();
     };
 
     const drawTopHPAndLives = () => {
+      // FONT MAP (left/top HUD - "Problem" section):
+      // 15px = scenario/problem title above HP bar.
+      // 15px = "Health" text centered inside HP bar.
       const hpBarX = columnXs[0] + 6;
       const hpBarY = panelY + 24;
       const hpBarWidth = Math.min(210, Math.max(120, columnWidth - 12));
@@ -285,7 +314,7 @@
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.meterLabel);
       let scenarioTitle = '';
       if (typeof window !== 'undefined') {
         const scenario = window.__lastMissionBriefScenario;
@@ -322,7 +351,7 @@
         displayLabel,
         hpBarX,
         panelY + 14,
-        `12px ${UI_FONT_FAMILY}`,
+        hudFont(HUD_FONTS.topLabel),
         "left",
         PALETTE.softWhite,
       );
@@ -389,7 +418,7 @@
 
       const hpValueText = (typeof GameText !== 'undefined' && GameText.hud?.health) || 'Health';
       ctx.save();
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.meterLabel);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.strokeStyle = 'rgba(0,0,0,0.7)';
@@ -451,6 +480,9 @@
     drawTopHPAndLives();
 
     const drawPrayerBombMeter = () => {
+      // FONT MAP (left/bottom HUD - prayer + scoreboard row):
+      // 15px = "Prayer" / "Smite Ready" text inside prayer meter.
+      // 15px = grace/enemies/damage/max-chain numbers under the meter.
       if (!player) return;
       const meterX = columnXs[0] + 6;
       const meterY = panelY + 46;
@@ -634,7 +666,7 @@
           const readyText = "Smite Ready";
           const flashPulse = 0.5 + 0.5 * Math.sin(performance.now() * 0.012);
           ctx.save();
-          ctx.font = `12px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.meterLabel);
           ctx.globalAlpha = 0.55 + flashPulse * 0.45;
           ctx.fillStyle = PALETTE.softWhite;
           ctx.shadowColor = "rgba(255, 212, 124, 0.9)";
@@ -648,7 +680,7 @@
           ctx.restore();
         } else {
           ctx.save();
-          ctx.font = `12px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.meterLabel);
           ctx.strokeStyle = 'rgba(0,0,0,0.7)';
           ctx.lineWidth = 3;
           ctx.lineJoin = 'round';
@@ -658,7 +690,7 @@
           ctx.restore();
         }
       }
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.meterLabel);
       ctx.fillStyle = ready
         ? (Math.sin(performance.now() * 0.01) > 0 ? PALETTE.gold : PALETTE.ice)
         : PALETTE.softWhite;
@@ -679,7 +711,10 @@
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.meterLabel);
+      ctx.strokeStyle = 'rgba(0,0,0,0.82)';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
       let x = meterX + 4;
       if (scoreboardIcons.grace && scoreboardIcons.grace.complete) {
         ctx.drawImage(scoreboardIcons.grace, x, rowY - iconSize / 2, iconSize, iconSize);
@@ -692,6 +727,7 @@
         x += iconSize + gap;
       }
       const graceText = formatNumber(graceCount);
+      ctx.strokeText(graceText, x, rowY);
       ctx.fillText(graceText, x, rowY);
       x += ctx.measureText(graceText).width + 14;
       if (scoreboardIcons.enemies && scoreboardIcons.enemies.complete) {
@@ -699,6 +735,7 @@
         x += iconSize + gap;
       }
       const enemyText = formatNumber(enemyKills);
+      ctx.strokeText(enemyText, x, rowY);
       ctx.fillText(enemyText, x, rowY);
       x += ctx.measureText(enemyText).width + 14;
       if (scoreboardIcons.damageDealt && scoreboardIcons.damageDealt.complete) {
@@ -706,15 +743,18 @@
         x += iconSize + gap;
       }
       const damageDealtText = formatNumber(damageDealt);
+      ctx.strokeText(damageDealtText, x, rowY);
       ctx.fillText(damageDealtText, x, rowY);
       x += ctx.measureText(damageDealtText).width + 14;
       const comboLabel = (typeof GameText !== 'undefined' && GameText.hud?.maxChain) || "Max Chain:";
       const comboValue = Number.isFinite(maxChainThisTown) ? Math.max(0, Math.round(maxChainThisTown)) : 0;
       const comboText = formatNumber(comboValue);
       ctx.fillStyle = PALETTE.muted;
+      ctx.strokeText(comboLabel, x, rowY);
       ctx.fillText(comboLabel, x, rowY);
       x += ctx.measureText(comboLabel).width + 6;
       ctx.fillStyle = PALETTE.softWhite;
+      ctx.strokeText(comboText, x, rowY);
       ctx.fillText(comboText, x, rowY);
       if (typeof window !== 'undefined') {
         const comboWidth = ctx.measureText(comboText).width || 0;
@@ -732,13 +772,16 @@
     drawPrayerBombMeter();
 
     const drawPlayerInfo = () => {
+      // FONT MAP (2nd column - Player):
+      // 15px = player header line ("Pastor ...").
+      // Pill row text uses drawPillMeterRow() 15px mapping above.
       if (!player) return;
       const x = columnXs[1] + 6;
       const width = columnWidth - 12;
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.meterLabel);
       const playerRowY = panelY + 14;
       const playerName = window.MapScreen?.getPlayerName?.() || '';
       const playerClassTitle = window.BattlechurchClasses?.getActive?.()?.classTitle || '';
@@ -748,7 +791,7 @@
         playerLabel,
         x,
         playerRowY,
-        `12px ${UI_FONT_FAMILY}`,
+        hudFont(HUD_FONTS.topLabel),
         "left",
         PALETTE.softWhite,
       );
@@ -902,6 +945,9 @@
     };
 
     const drawNpcInfo = () => {
+      // FONT MAP (3rd column - Congregation):
+      // 15px = congregation header line ("CONGREGATION: N").
+      // Pill row text uses drawPillMeterRow() 15px mapping above.
       const x = columnXs[2] + 6;
       const width = columnWidth - 12;
       const congregationProvider = typeof getCongregationSize === 'function' ? getCongregationSize : null;
@@ -912,14 +958,14 @@
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.meterLabel);
       const congregationLabel = (typeof GameText !== 'undefined' && GameText.hud?.congregation) || 'CONGREGATION';
       drawOutlinedText(
         ctx,
         `${congregationLabel}: ${congregationTotal}`,
         x,
         panelY + 14,
-        `12px ${UI_FONT_FAMILY}`,
+        hudFont(HUD_FONTS.topLabel),
         "left",
         PALETTE.softWhite,
       );
@@ -984,6 +1030,9 @@
     };
 
     const drawDistrictProgress = () => {
+      // FONT MAP (4th column - Town/District progress):
+      // 15px = top district label ("Town [battlefield.wave.horde]").
+      // 11-12px (weighted below) = small church powerup level chips.
       const levelStatus = levelManager?.getStatus ? levelManager.getStatus() : null;
       if (!levelStatus) return;
       const x = columnXs[3] + 6;
@@ -1045,7 +1094,7 @@
       ctx.save();
       ctx.textAlign = 'left';
       ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `12px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.meterLabel);
       const districtRowY = panelY + 14;
       const battlefieldNum = Math.max(
         1,
@@ -1071,7 +1120,7 @@
         districtLabelText,
         x,
         districtRowY,
-        `12px ${UI_FONT_FAMILY}`,
+        hudFont(HUD_FONTS.topLabel),
         "left",
         PALETTE.softWhite,
       );
@@ -1108,6 +1157,7 @@
         const gap = 4;
         const itemGap = 10;
         const textPadding = 2;
+        ctx.font = hudFont(HUD_FONTS.chip, "600");
         let chipX = x + districtLabelWidth + 12;
         const chipMaxX = x + width;
         churchUpgradeEntries.forEach((entry) => {
@@ -1234,7 +1284,7 @@
         const isActiveBattle = (i + 1) === currentBattlefield;
         const label = isActiveBattle ? `Wave ${activeWaveNum}` : `Battlefield ${i + 1}`;
         const maxLabelWidth = Math.max(26, segWidths[i] - 8);
-        const fontSize = fitFontSize(label, 8, maxLabelWidth, "");
+        const fontSize = fitFontSize(label, HUD_FONTS.districtMeterLabel, maxLabelWidth, "");
         ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
         ctx.fillText(label, centerX, innerY + innerH / 2 + 0.5);
       }
@@ -1312,6 +1362,10 @@
     };
 
     const drawDevArenaMoveReference = () => {
+      // FONT MAP (DEV arena panel):
+      // 15px / 11px / 12px = row labels and values.
+      // 700 15px = section title emphasis.
+      // 700 11px = back button label.
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
       const ref = window.__devArenaDamageReference || {};
       const mod = ref.modifiers || {};
@@ -1378,7 +1432,7 @@
 
       // Title
       ctx.fillStyle = PALETTE.softWhite;
-      ctx.font = `700 15px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.devTitle, "700");
       ctx.fillText('Moves List', panelX + 14, panelY + 12);
 
       let rowY = panelY + 32;
@@ -1396,7 +1450,7 @@
           rowY += 4;
           // Section label
           ctx.fillStyle = 'rgba(155,217,255,0.9)';
-          ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.devMeta, "700");
           ctx.fillText(row.section.toUpperCase(), panelX + 14, rowY);
           rowY += 14;
           return;
@@ -1407,12 +1461,12 @@
         const colInputX  = colDamageX - 48;            // input right edge, leaving room for damage
 
         ctx.fillStyle = 'rgba(234,246,255,0.85)';
-        ctx.font = `12px ${UI_FONT_FAMILY}`;
+        ctx.font = hudFont(HUD_FONTS.devBody);
         ctx.fillText(row.label, panelX + 14, rowY);
 
         if (row.input) {
           ctx.fillStyle = 'rgba(155,217,255,0.7)';
-          ctx.font = `11px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.devMeta);
           ctx.textAlign = 'right';
           ctx.fillText(row.input, colInputX, rowY + 1);
           ctx.textAlign = 'left';
@@ -1424,7 +1478,7 @@
             : (Number.isFinite(row.value) ? String(row.value) : '--');
           ctx.textAlign = 'right';
           ctx.fillStyle = 'rgba(255,220,120,0.95)';
-          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.gameplayComboSub, "700");
           ctx.fillText(display, colDamageX, rowY);
           ctx.textAlign = 'left';
         }
@@ -1439,7 +1493,7 @@
       ctx.fillStyle = 'rgba(180,60,20,0.85)';
       roundRect(ctx, panelX, btnY, btnW, btnH, 7, true, false);
       ctx.fillStyle = PALETTE.gold;
-      ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.devMeta, "700");
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('← Back to Title', panelX + btnW / 2, btnY + btnH / 2);
@@ -1451,6 +1505,10 @@
     };
 
     const drawDevArenaMoveFeed = () => {
+      // FONT MAP (DEV arena live combo feed):
+      // 700 10px = "LAST MOVE" / small tags.
+      // 700 15px = emphasized move/combo lines.
+      // 15px = per-hit detail lines.
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
 
       const COMBO_LIFETIME_MS = 15000;
@@ -1483,11 +1541,11 @@
         const tagSuffix = latestTag && latestBonus > 0 ? ` (+${latestBonus}${latestTag})` : "";
 
         ctx.fillStyle = 'rgba(155,217,255,0.7)';
-        ctx.font = `700 10px ${UI_FONT_FAMILY}`;
+        ctx.font = hudFont(HUD_FONTS.comboTag, "700");
         ctx.fillText('LAST MOVE', textX, rowY);
         rowY += 14;
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.font = `700 15px ${UI_FONT_FAMILY}`;
+        ctx.font = hudFont(HUD_FONTS.comboBig, "700");
         ctx.fillText(`${latestMove}: ${latestBase}${tagSuffix}`, textX, rowY);
         rowY += lineHeight + 8;
       }
@@ -1512,7 +1570,7 @@
         ctx.globalAlpha = alpha;
         const enemyLabel = combo.enemyName ? ` · ${combo.enemyName}` : "";
         ctx.fillStyle = 'rgba(255,200,106,0.92)';
-        ctx.font = `700 11px ${UI_FONT_FAMILY}`;
+        ctx.font = hudFont(HUD_FONTS.devMeta, "700");
         ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}${enemyLabel}`, textX, rowY);
         rowY += lineHeight;
 
@@ -1523,7 +1581,7 @@
           const entryTag = entry?.isPunishCounter ? "PC" : entry?.isCounterHit ? "CA" : "";
           const entryTagSuffix = entryTag && entryBonus > 0 ? ` (+${entryBonus}${entryTag})` : "";
           ctx.fillStyle = 'rgba(234,246,255,0.88)';
-          ctx.font = `12px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.devBody);
           ctx.fillText(`  ${moveName}: ${entryBase}${entryTagSuffix}`, textX, rowY);
           rowY += lineHeight;
         });
@@ -1536,6 +1594,10 @@
     };
 
     const drawDevArenaBestCombo = () => {
+      // FONT MAP (DEV arena best combo panel):
+      // 700 10px = "BEST COMBO" label.
+      // 700 15px = combo headline.
+      // 15px = per-hit detail lines.
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode !== true) return;
       const best = window.__devArenaBestCombo || null;
       if (!best || !best.hits || best.hits < 2) return;
@@ -1559,12 +1621,12 @@
       ctx.textBaseline = 'top';
 
       ctx.fillStyle = 'rgba(255,220,80,0.6)';
-      ctx.font = `700 10px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.comboTag, "700");
       ctx.fillText('BEST COMBO', textX, rowY);
       rowY += 14;
 
       ctx.fillStyle = 'rgba(255,200,106,0.95)';
-      ctx.font = `700 15px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.comboBig, "700");
       ctx.fillText(`COMBO ${hits}  —  ${totalDamage}${tagSuffix}`, textX, rowY);
       rowY += lineHeight;
 
@@ -1575,7 +1637,7 @@
         const entryTag = entry?.isPunishCounter ? "PC" : entry?.isCounterHit ? "CA" : "";
         const entryTagSuffix = entryTag && entryBonus > 0 ? ` (+${entryBonus}${entryTag})` : "";
         ctx.fillStyle = 'rgba(234,246,255,0.88)';
-        ctx.font = `12px ${UI_FONT_FAMILY}`;
+        ctx.font = hudFont(HUD_FONTS.devBody);
         ctx.fillText(`  ${moveName}: ${entryBase}${entryTagSuffix}`, textX, rowY);
         rowY += lineHeight;
       });
@@ -1584,6 +1646,9 @@
     };
 
     const drawGameplayComboFeed = () => {
+      // FONT MAP (live gameplay combo callout):
+      // 800 24px (chainSize) = main "Hit Combo [damage]" line.
+      // 700 12px = optional subtext ("Counter Attack"/"Punish Counter").
       if (typeof window === "undefined" || window.__battlechurchDevMeleeArenaMode === true) return;
       const combos = Array.isArray(window.__hudConfirmedCombos)
         ? window.__hudConfirmedCombos
@@ -1630,7 +1695,7 @@
         ctx.fillText(text, textX, lineY);
         if (subtext) {
           ctx.fillStyle = "rgba(234,246,255,0.78)";
-          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.gameplayComboSub, "700");
           ctx.fillText(subtext, textX, lineY + chainSize + 2);
         }
       });
@@ -1638,6 +1703,10 @@
     };
 
     const drawMoveAnnouncementBanner = () => {
+      // FONT MAP (move announcement banner):
+      // 800 36px = move name title.
+      // 800/700 16px = button token glyphs and separators.
+      // 600 14px / italic 14px = denominator line and "Charge" token.
       if (typeof window === "undefined") return;
       if (window.__battlechurchDevMeleeArenaMode === true) return;
       const banner = window.__moveAnnouncementBanner;
@@ -1677,7 +1746,7 @@
       const LINE_GAP = 8;
 
       ctx.save();
-      ctx.font = `800 36px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.bannerTitle, "800");
       const nameW = ctx.measureText(banner.moveName.toUpperCase()).width;
 
       let tokenRowW = 0;
@@ -1695,7 +1764,7 @@
       const multSign = multPct >= 0 ? "+" : "";
       const denomLine = hasMoveMult ? `${denomLabel}: ${multSign}${multPct}%` : "";
 
-      ctx.font = `600 14px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.bannerSub, "600");
       const denomLineW = denomLine ? ctx.measureText(denomLine).width : 0;
 
       const innerW = Math.max(nameW, tokenRowW, denomLineW);
@@ -1731,7 +1800,7 @@
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillStyle = PALETTE.gold;
-      ctx.font = `800 36px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.bannerTitle, "800");
       ctx.shadowColor = "rgba(20, 6, 4, 0.92)";
       ctx.shadowBlur = 4;
       ctx.fillText(banner.moveName.toUpperCase(), panelX + PAD_X, panelY + PAD_Y);
@@ -1751,7 +1820,7 @@
           roundRect(ctx, tx, tokenCenterY - PILL_H / 2, PILL_W, PILL_H, 5, true, true);
           // Letter
           ctx.fillStyle = PALETTE.softWhite;
-          ctx.font = `800 16px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.bannerBody, "800");
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(tok.label, tx + PILL_W / 2, tokenCenterY);
@@ -1760,7 +1829,7 @@
           tx += PILL_W;
         } else if (tok.type === "seq") {
           ctx.fillStyle = "rgba(230, 210, 160, 0.75)";
-          ctx.font = `700 16px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.bannerBody, "700");
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("→", tx + SEP_W / 2, tokenCenterY);
@@ -1769,7 +1838,7 @@
           tx += SEP_W;
         } else if (tok.type === "sim") {
           ctx.fillStyle = "rgba(230, 210, 160, 0.75)";
-          ctx.font = `700 16px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.bannerBody, "700");
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("+", tx + SEP_W / 2, tokenCenterY);
@@ -1778,7 +1847,7 @@
           tx += SEP_W;
         } else if (tok.type === "chg") {
           ctx.fillStyle = "rgba(220, 200, 140, 0.6)";
-          ctx.font = `italic 14px ${UI_FONT_FAMILY}`;
+          ctx.font = hudFont(HUD_FONTS.bannerSub, "italic");
           ctx.textBaseline = "middle";
           ctx.fillText("Charge", tx, tokenCenterY);
           tx += ctx.measureText("Charge").width + 8;
@@ -1789,7 +1858,7 @@
       if (denomLine) {
         const denomY = tokenY + tokenLineH + denomLineGap;
         ctx.globalAlpha = alpha * 0.72;
-        ctx.font = `600 14px ${UI_FONT_FAMILY}`;
+        ctx.font = hudFont(HUD_FONTS.bannerSub, "600");
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         ctx.fillStyle = multPct > 0 ? "#e8c87a" : "#b0c8e8";
@@ -1815,7 +1884,7 @@
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
-        ctx.font = `600 11px ${UI_FONT_FAMILY}`;
+        ctx.font = hudFont(HUD_FONTS.chip, "600");
         slots.forEach((slot) => {
           if (!slot.pickup) return;
           const label = kindLabels[slot.kind];
@@ -1837,7 +1906,7 @@
       const hintText = window.Renderer?.getControlsHintText?.() ||
         'Keyboard: Navigation/Movement: WASD | Action Buttons: Left (A), Down (B), Right (C) | Select: Space | Back: Esc';
       ctx.save();
-      ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+      ctx.font = hudFont(HUD_FONTS.devHint, "500");
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillStyle = 'rgba(231, 176, 102, 0.68)';
@@ -1852,6 +1921,7 @@
 
     const savedCount = stats?.npcsRescued ?? 0;
     const lostCount = stats?.npcsLost ?? 0;
+    ctx.__battlechurchSkipPixelFontScale = prevSkipPixelFontScale;
   }
 
   const ns = global.BattlechurchHUD || (global.BattlechurchHUD = {});
