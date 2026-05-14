@@ -703,7 +703,7 @@ body.layout-rotate-warning #rotatePrompt {
   grid-template-columns: 1fr;
 }
 .settings-row__label {
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--hf-label);
@@ -712,7 +712,7 @@ body.layout-rotate-warning #rotatePrompt {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(253, 241, 217, 0.92);
@@ -736,7 +736,7 @@ body.layout-rotate-warning #rotatePrompt {
 .settings-slider__value {
   min-width: 56px;
   text-align: right;
-  font-size: 12px;
+  font-size: 14px;
   color: rgba(253, 241, 217, 0.88);
 }
 
@@ -747,7 +747,7 @@ body.layout-rotate-warning #rotatePrompt {
   background: linear-gradient(160deg, var(--hf-btn-primary-top) 0%, var(--hf-btn-primary-bottom) 100%);
   color: var(--hf-text);
   font-family: var(--ui-font-family);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
