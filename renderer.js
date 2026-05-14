@@ -11836,6 +11836,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       ctx.globalAlpha = compositeAlpha;
       const style = ft.style || (ft.speechBubble ? "speech" : "plain");
+      const prevSkipPixelFontScale = ctx.__battlechurchSkipPixelFontScale === true;
+      if (style === "speech") {
+        ctx.__battlechurchSkipPixelFontScale = true;
+      }
       const fontSize = ft.fontSize || (style === "speech" ? 12 : 14);
       const fontWeight = ft.fontWeight || (style === "speech" ? "500" : "600");
       const fontFamily = ft.fontFamily || UI_FONT_FAMILY;
@@ -12120,6 +12124,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           }
         }
       }
+      ctx.__battlechurchSkipPixelFontScale = prevSkipPixelFontScale;
       ctx.restore();
     });
     ctx.restore();

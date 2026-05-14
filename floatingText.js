@@ -10,6 +10,10 @@
   const DAMAGE_JITTER_RADIUS = 5;
   const HERO_SPEECH_PRIORITY = 220;
   const NPC_SPEECH_PRIORITY = 140;
+  // Centralized speech bubble typography defaults.
+  const SPEECH_BUBBLE_FONT_SIZE = 18;
+  const SPEECH_BUBBLE_FONT_WEIGHT = "600";
+  const SPEECH_BUBBLE_MAX_WIDTH = 240;
 
   function getDamageJitter(entity) {
     if (!entity) return { x: 0, y: 0 };
@@ -108,15 +112,15 @@
     }
     const finalFontSize =
       finalStyle === "speech"
-        ? (fontSize || 13)
+        ? (fontSize || SPEECH_BUBBLE_FONT_SIZE)
         : fontSize;
     const finalFontWeight =
       finalStyle === "speech"
-        ? (fontWeight || "600")
+        ? (fontWeight || SPEECH_BUBBLE_FONT_WEIGHT)
         : fontWeight;
     const finalBubbleMaxWidth =
       finalStyle === "speech"
-        ? (bubbleMaxWidth || 240)
+        ? (bubbleMaxWidth || SPEECH_BUBBLE_MAX_WIDTH)
         : bubbleMaxWidth;
 
     const fadeLength = Math.max(0.0001, life - fadeDelay);
