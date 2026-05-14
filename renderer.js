@@ -6110,6 +6110,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       width: canvas.width,
       height: canvas.height,
     });
+    drawCongregationEdgeVignette(ctx, {
+      x: 0,
+      y: 0,
+      width: canvas.width,
+      height: canvas.height,
+    });
     const congregationTextHoldAfterHandoff = 0.45;
     const typewriterReady = !congregationIntroBlockedByAnnouncement;
     const handoffAnimDuration = 0.65;
@@ -7625,15 +7631,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     bossPhase3AshMaxAlpha: 1.0,
   });
   const CONGREGATION_ATMOSPHERE_CONFIG = Object.freeze({
-    tintColor: "rgba(148, 192, 216, 1)",
-    glowColor: "rgba(139, 208, 186, 1)",
-    vignetteColor: "rgba(16, 16, 36, 1)",
-    tintMinAlpha: 0.05,
-    tintMaxAlpha: 0.1,
-    glowMinAlpha: 0.015,
-    glowMaxAlpha: 0.05,
-    vignetteMinAlpha: 0.04,
-    vignetteMaxAlpha: 0.09,
+    tintColor: "rgba(214, 170, 104, 1)",
+    glowColor: "rgba(248, 214, 156, 1)",
+    vignetteColor: "rgba(42, 28, 14, 1)",
+    tintMinAlpha: 0.08,
+    tintMaxAlpha: 0.15,
+    glowMinAlpha: 0.02,
+    glowMaxAlpha: 0.06,
+    vignetteMinAlpha: 0.03,
+    vignetteMaxAlpha: 0.07,
     rampDurationSec: 1.8,
   });
   const waveAtmosphereTweenState = {
@@ -7788,7 +7794,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.beginPath();
     ctx.rect(x, y, width, height);
     ctx.clip();
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = "soft-light";
     ctx.globalAlpha = Math.max(0, Math.min(1, tintAlpha));
     ctx.fillStyle = CONGREGATION_ATMOSPHERE_CONFIG.tintColor;
     ctx.fillRect(x, y, width, height);
@@ -7822,6 +7828,44 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.globalAlpha = Math.max(0, Math.min(1, vignetteAlpha));
     ctx.fillStyle = vignette;
     ctx.fillRect(x, y, width, height);
+    ctx.restore();
+  }
+
+  function drawCongregationEdgeVignette(ctx, bounds) {
+    if (!ctx || !bounds) return;
+    const width = Math.max(0, bounds.width || 0);
+    const height = Math.max(0, bounds.height || 0);
+    if (width <= 0 || height <= 0) return;
+    const x = Number.isFinite(bounds.x) ? bounds.x : 0;
+    const y = Number.isFinite(bounds.y) ? bounds.y : 0;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+
+    // Left edge shadow
+    const leftGrad = ctx.createLinearGradient(x, 0, x + width * 0.2, 0);
+    leftGrad.addColorStop(0, "rgba(0, 0, 0, 0.22)");
+    leftGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.1)");
+    leftGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = leftGrad;
+    ctx.fillRect(x, y, width * 0.24, height);
+
+    // Right edge shadow
+    const rightGrad = ctx.createLinearGradient(x + width, 0, x + width - width * 0.2, 0);
+    rightGrad.addColorStop(0, "rgba(0, 0, 0, 0.22)");
+    rightGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.1)");
+    rightGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = rightGrad;
+    ctx.fillRect(x + width - width * 0.24, y, width * 0.24, height);
+
+    // Bottom shadow
+    const bottomGrad = ctx.createLinearGradient(0, y + height, 0, y + height - height * 0.24);
+    bottomGrad.addColorStop(0, "rgba(0, 0, 0, 0.26)");
+    bottomGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.12)");
+    bottomGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = bottomGrad;
+    ctx.fillRect(x, y + height - height * 0.28, width, height * 0.28);
+
     ctx.restore();
   }
 

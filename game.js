@@ -779,7 +779,7 @@ const BOSS_LIGHTNING_THUNDER_SFX_SRCS = [
 ];
 const BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE = 6;
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
-const POWERUP_SPAWN_SFX_SRC = "assets/sfx/utility/utility12.mp3";
+const POWERUP_SPAWN_SFX_SRC = "assets/sfx/utility/spell7.mp3";
 const GRACE_PICKUP_SFX_SRC = "assets/sfx/utility/utility10.mp3";
 const GRACE_LAND_SFX_SRC = "assets/sfx/utility/diamond.mp3";
 const SAVE_PROGRESS_SFX_SRC = "assets/sfx/utility/utility16.mp3";
@@ -1527,7 +1527,7 @@ function playPowerupPickupSfx(volume = 1.2) {
   playPooledSfx(powerupPickupSfxPool, POWERUP_PICKUP_SFX_SRC, POWERUP_PICKUP_SFX_POOL_SIZE, { volume });
 }
 
-function playPowerupSpawnSfx(volume = 0.4) {
+function playPowerupSpawnSfx(volume = 0.8) {
   playPooledSfx(powerupSpawnSfxPool, POWERUP_SPAWN_SFX_SRC, POWERUP_SPAWN_SFX_POOL_SIZE, {
     volume,
     matchSrc: true,
