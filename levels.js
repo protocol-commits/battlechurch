@@ -1127,8 +1127,14 @@
       const _missionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
       const actMissionLabels = _missionsByPhase[_camp] || _missionsByPhase.p1 || {};
       const battlefieldNumber = battlefieldOrdinal;
-      const missionLabelText = actMissionLabels[battlefieldOrdinal] || `Mission ${battlefieldOrdinal}`;
-      const missionBriefTitle = `Mission ${battlefieldOrdinal}: ${missionLabelText}`;
+      const missionIndex = Math.max(1, Math.floor(Number(state.level) || 1));
+      const missionLabelText = String(
+        actMissionLabels[missionIndex] || `Mission ${missionIndex}`,
+      ).trim();
+      const missionPrefixPattern = new RegExp(`^Mission\\s+${missionIndex}\\b`, "i");
+      const missionBriefTitle = missionPrefixPattern.test(missionLabelText)
+        ? missionLabelText
+        : `Mission ${missionIndex}: ${missionLabelText}`;
       const missionBriefHeading = `Mission ${battlefieldNumber}`;
       if (typeof window !== "undefined") {
         window.__lastMissionBriefScenario = state.currentBattleScenario;
@@ -1813,16 +1819,11 @@
       const _bCamp = typeof window !== "undefined" ? (window.activeCampaign || "p1") : "p1";
       const _bMissionsByPhase = window?.BattlechurchCampaignLabels?.missions || {};
       const actMissionLabels = _bMissionsByPhase[_bCamp] || _bMissionsByPhase.p1 || {};
-      const currentActNum = Math.min(
-        Math.max(1, Number(BATTLES_PER_DISTRICT) || 1),
-        getBattlefieldNumber(state.battlefieldIndex),
-      );
-      const missionBriefTitle = `Mission ${currentActNum}: ${actMissionLabels[currentActNum] || `Mission ${currentActNum}`}`;
+      const currentActNum = Math.max(1, Math.floor(Number(state.level) || 1));
       queueLevelAnnouncement("Boss Battle", state.currentBossProblem, {
         duration: LEVEL_INTRO_DURATION,
         requiresConfirm: true,
         bossMissionBrief: true,
-        missionBriefTitle,
         missionNumber: 1,
       });
       resetStage("bossIntro", LEVEL_INTRO_DURATION);

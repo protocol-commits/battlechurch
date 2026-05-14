@@ -1122,7 +1122,17 @@
         1,
         Math.floor(Number.isFinite(levelStatus.hordeNum) ? levelStatus.hordeNum : 1),
       );
-      const districtLabelText = `${districtName} [${battlefieldNum}.${waveNum}.${hordeNum}]`;
+      const inBossPhaseLabelMode =
+        levelStatus.stage === "bossIntro" ||
+        levelStatus.stage === "bossActive" ||
+        (levelStatus.stage === "graceRush" && Number.isFinite(levelStatus.bossPhase) && levelStatus.bossPhase > 0);
+      let districtProgressText = `${battlefieldNum}.${waveNum}.${hordeNum}`;
+      if (inBossPhaseLabelMode) {
+        const bossPhase = Math.max(1, Math.min(3, Math.floor(Number(levelStatus.bossPhase) || 1)));
+        const bossBattlefieldNum = Math.max(1, battlefieldNum + 1);
+        districtProgressText = `${bossBattlefieldNum}.${bossPhase}`;
+      }
+      const districtLabelText = `${districtName} [${districtProgressText}]`;
       drawOutlinedText(
         ctx,
         districtLabelText,

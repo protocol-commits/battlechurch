@@ -2159,13 +2159,13 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       maxWidthScale,
       blockAlign: blockAlign || "full",
     });
-    if (eyebrowText && fullTextLayout.titleLines.length >= 2) {
+    if (eyebrowText) {
       const scaleHint = Math.min(
         1,
         Math.max(0.6, Math.min(layout.virtualCanvas.width / 1280, layout.virtualCanvas.height / 720)),
       );
-      const secondLineBaseline = layout.titleY + (fullTextLayout.titleLineHeights[0] || fullTextLayout.titleLineHeight);
-      const eyebrowY = Math.round(secondLineBaseline + eyebrowOffset * scaleHint);
+      const firstLineBaseline = layout.titleY;
+      const eyebrowY = Math.round(firstLineBaseline + eyebrowOffset * scaleHint);
       const effectiveEyebrowSize = Math.max(8, Math.round(eyebrowSize * scaleHint));
       const eyebrowLineHeight = Math.round(effectiveEyebrowSize * 1.18);
       ctx.save();
@@ -4973,32 +4973,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     const bossAnnouncement = levelAnnouncements[0] || {};
-    const bossActNum = Number.isFinite(currentLevelStatus?.battlefieldNum)
-      ? currentLevelStatus.battlefieldNum
-      : 1;
-    const _bfLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
-    const _bfRoman = { 1: 'I', 2: 'II', 3: 'III' };
-    const bossFallbackMissionLabel = `${_bfLabel} ${_bfRoman[bossActNum] || bossActNum}`;
-    const missionLabel =
-      String(bossAnnouncement.missionBriefTitle || "").trim() || bossFallbackMissionLabel;
     const bossBattleLabel = String(bossAnnouncement.title || "").trim() || "Boss Battle";
     const pastorProblem = formatScenarioForTitle(String(bossAnnouncement.subtitle || "").trim());
     const bossProblemLine = pastorProblem
       ? `${bossBattleLabel}: ${pastorProblem}`
       : bossBattleLabel;
     drawMissionBriefScreen(ctx, canvas, {
-      title: `${missionLabel}\n${bossProblemLine}`,
+      title: bossProblemLine,
       subtitle: "",
       showFormation: false,
       showButtons: true,
       blockAlign: "fullCenter",
       uiFontFamily: UI_FONT_FAMILY,
-      maxWidthScale: 0.86,
-      topMargin: 52,
+      maxWidthScale: 0.76,
+      topMargin: 254,
       eyebrowText: "A Pastor's Personal Struggles",
       eyebrowSize: 14,
-      eyebrowOffset: -8,
-      titleLineGap: 10,
+      eyebrowOffset: -54,
+      titleLineGap: 6,
+      titleSize: Math.max(24, Math.round(TEXT_STYLES.h1.size * 0.78)),
       titleLineEmphasis: {
         mode: "shimmer",
         matchPrefix: "Boss Battle ",
@@ -5007,10 +5000,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         peakColor: "#FFF2CF",
         glowColor: "rgba(235, 189, 102, 0.95)",
       },
-      titleLineSizes: [
-        Math.max(16, Math.round(TEXT_STYLES.h2.size * 0.76)),
-        Math.round(TEXT_STYLES.h1.size * 1.14),
-      ],
+      titleLineSizes: [Math.max(24, Math.round(TEXT_STYLES.h1.size * 0.78))],
     });
     ctx.restore();
     return;
