@@ -1612,16 +1612,16 @@
       const panelTopY = comboFeedY + comboFeedHeight + (liveComboCount > 0 ? 8 : 0);
 
       // Measure tokens to compute panel width
-      const PILL_W = 22;
-      const PILL_H = 17;
-      const SEP_W = 14;
-      const PREFIX_W = 40;
-      const PAD_X = 10;
-      const PAD_Y = 8;
-      const LINE_GAP = 6;
+      const PILL_W = 34;
+      const PILL_H = 26;
+      const SEP_W = 20;
+      const PREFIX_W = 62;
+      const PAD_X = 14;
+      const PAD_Y = 12;
+      const LINE_GAP = 8;
 
       ctx.save();
-      ctx.font = `800 26px ${UI_FONT_FAMILY}`;
+      ctx.font = `800 36px ${UI_FONT_FAMILY}`;
       const nameW = ctx.measureText(banner.moveName.toUpperCase()).width;
 
       let tokenRowW = 0;
@@ -1639,15 +1639,15 @@
       const multSign = multPct >= 0 ? "+" : "";
       const denomLine = hasMoveMult ? `${denomLabel}: ${multSign}${multPct}%` : "";
 
-      ctx.font = `600 10px ${UI_FONT_FAMILY}`;
+      ctx.font = `600 14px ${UI_FONT_FAMILY}`;
       const denomLineW = denomLine ? ctx.measureText(denomLine).width : 0;
 
       const innerW = Math.max(nameW, tokenRowW, denomLineW);
       const panelW = innerW + PAD_X * 2;
-      const nameLineH = 26;
+      const nameLineH = 38;
       const tokenLineH = PILL_H;
-      const denomLineH = denomLine ? 14 : 0;
-      const denomLineGap = denomLine ? 5 : 0;
+      const denomLineH = denomLine ? 18 : 0;
+      const denomLineGap = denomLine ? 7 : 0;
       const panelH = PAD_Y + nameLineH + LINE_GAP + tokenLineH + denomLineGap + denomLineH + PAD_Y;
 
       const panelRight = comboFeedX;
@@ -1675,7 +1675,7 @@
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
       ctx.fillStyle = PALETTE.gold;
-      ctx.font = `800 26px ${UI_FONT_FAMILY}`;
+      ctx.font = `800 36px ${UI_FONT_FAMILY}`;
       ctx.shadowColor = "rgba(20, 6, 4, 0.92)";
       ctx.shadowBlur = 4;
       ctx.fillText(banner.moveName.toUpperCase(), panelX + PAD_X, panelY + PAD_Y);
@@ -1695,7 +1695,7 @@
           roundRect(ctx, tx, tokenCenterY - PILL_H / 2, PILL_W, PILL_H, 5, true, true);
           // Letter
           ctx.fillStyle = PALETTE.softWhite;
-          ctx.font = `800 11px ${UI_FONT_FAMILY}`;
+          ctx.font = `800 16px ${UI_FONT_FAMILY}`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(tok.label, tx + PILL_W / 2, tokenCenterY);
@@ -1704,7 +1704,7 @@
           tx += PILL_W;
         } else if (tok.type === "seq") {
           ctx.fillStyle = "rgba(230, 210, 160, 0.75)";
-          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.font = `700 16px ${UI_FONT_FAMILY}`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("→", tx + SEP_W / 2, tokenCenterY);
@@ -1713,7 +1713,7 @@
           tx += SEP_W;
         } else if (tok.type === "sim") {
           ctx.fillStyle = "rgba(230, 210, 160, 0.75)";
-          ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+          ctx.font = `700 16px ${UI_FONT_FAMILY}`;
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText("+", tx + SEP_W / 2, tokenCenterY);
@@ -1722,7 +1722,7 @@
           tx += SEP_W;
         } else if (tok.type === "chg") {
           ctx.fillStyle = "rgba(220, 200, 140, 0.6)";
-          ctx.font = `italic 11px ${UI_FONT_FAMILY}`;
+          ctx.font = `italic 14px ${UI_FONT_FAMILY}`;
           ctx.textBaseline = "middle";
           ctx.fillText("Charge", tx, tokenCenterY);
           tx += ctx.measureText("Charge").width + 8;
@@ -1733,7 +1733,7 @@
       if (denomLine) {
         const denomY = tokenY + tokenLineH + denomLineGap;
         ctx.globalAlpha = alpha * 0.72;
-        ctx.font = `600 10px ${UI_FONT_FAMILY}`;
+        ctx.font = `600 14px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "left";
         ctx.textBaseline = "top";
         ctx.fillStyle = multPct > 0 ? "#e8c87a" : "#b0c8e8";
