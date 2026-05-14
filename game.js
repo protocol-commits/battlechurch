@@ -16838,6 +16838,7 @@ class BossEncounter {
 
   drawHealthBar(context, alpha = 1) {
     if (alpha <= 0) return;
+    const hpLabelType = window.UIStyles?.typography?.enemyHealthBarLabel || {};
     const ratio = this.maxHealth > 0 ? Math.max(0, this.health / this.maxHealth) : 0;
     const metrics = this.getHpBarMetrics();
     const width = metrics.width;
@@ -16874,7 +16875,7 @@ class BossEncounter {
         context.fillRect(segmentX, barY + 2, segmentW, height - 4);
       }
     }
-    context.font = `12px ${UI_FONT_FAMILY}`;
+    context.font = `${hpLabelType.weight ?? 400} ${hpLabelType.size ?? 12}px ${PIXEL_UI_FONT_FAMILY}`;
     context.fillStyle = UI_COLOR.softWhite;
     context.textAlign = "center";
     context.textBaseline = "middle";

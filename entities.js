@@ -4828,6 +4828,11 @@
         if (maxHp > 100 && typeof window !== "undefined" && window.__battlechurchShowEnemyDevLabels) {
           try {
             const hpValue = Math.max(0, Math.round(this.health || 0));
+            const hpType = window.UIStyles?.typography?.enemyPersistentHpLabel || {};
+            const hpFontFamily =
+              window.UIStyles?.fonts?.pixel ||
+              window.UIStyles?.fonts?.primary ||
+              "'VT323', 'Press Start 2P', monospace";
             // Mirror the exact anchor showDamage uses so HP sits right below the damage pop.
             const hitbox = this.config?.hitbox || null;
             const hasHitbox = hitbox &&
@@ -4838,7 +4843,7 @@
               : -(this.radius || 0);
             const labelY = drawY + damageAnchorOffsetY + 0;
             ctx.save();
-            ctx.font = "600 14px Arial";
+            ctx.font = `${hpType.weight ?? 600} ${hpType.size ?? 14}px ${hpFontFamily}`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.strokeStyle = "rgba(0,0,0,0.85)";
