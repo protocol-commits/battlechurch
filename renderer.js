@@ -7631,15 +7631,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     bossPhase3AshMaxAlpha: 1.0,
   });
   const CONGREGATION_ATMOSPHERE_CONFIG = Object.freeze({
-    tintColor: "rgba(214, 170, 104, 1)",
-    glowColor: "rgba(248, 214, 156, 1)",
-    vignetteColor: "rgba(42, 28, 14, 1)",
-    tintMinAlpha: 0.08,
-    tintMaxAlpha: 0.15,
-    glowMinAlpha: 0.02,
-    glowMaxAlpha: 0.06,
-    vignetteMinAlpha: 0.03,
-    vignetteMaxAlpha: 0.07,
+    tintColor: "rgba(165, 14, 22, 1)",
+    glowColor: "rgba(255, 52, 28, 1)",
+    vignetteColor: "rgba(24, 6, 8, 1)",
+    tintMinAlpha: 0.18,
+    tintMaxAlpha: 0.24,
+    glowMinAlpha: 0.03,
+    glowMaxAlpha: 0.08,
+    vignetteMinAlpha: 0.05,
+    vignetteMaxAlpha: 0.1,
     rampDurationSec: 1.8,
   });
   const waveAtmosphereTweenState = {
@@ -7780,9 +7780,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       0,
       Math.min(1, (Number(elapsedSec) || 0) / Math.max(0.001, CONGREGATION_ATMOSPHERE_CONFIG.rampDurationSec)),
     );
-    const tintAlpha =
-      CONGREGATION_ATMOSPHERE_CONFIG.tintMinAlpha +
-      (CONGREGATION_ATMOSPHERE_CONFIG.tintMaxAlpha - CONGREGATION_ATMOSPHERE_CONFIG.tintMinAlpha) * ramp;
+    // Match wave-1 darkness/tint target from battle atmosphere.
+    const wave1Progress = 1 / Math.max(1, WAVE_ATMOSPHERE_CONFIG.assumedWavesPerBattle);
+    const wave1TintAlpha =
+      WAVE_ATMOSPHERE_CONFIG.tintMinAlpha +
+      (WAVE_ATMOSPHERE_CONFIG.tintMaxAlpha - WAVE_ATMOSPHERE_CONFIG.tintMinAlpha) * wave1Progress;
+    const tintAlpha = wave1TintAlpha * ramp;
     const glowAlpha =
       CONGREGATION_ATMOSPHERE_CONFIG.glowMinAlpha +
       (CONGREGATION_ATMOSPHERE_CONFIG.glowMaxAlpha - CONGREGATION_ATMOSPHERE_CONFIG.glowMinAlpha) * ramp;
@@ -7844,24 +7847,24 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     // Left edge shadow
     const leftGrad = ctx.createLinearGradient(x, 0, x + width * 0.2, 0);
-    leftGrad.addColorStop(0, "rgba(0, 0, 0, 0.22)");
-    leftGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.1)");
+    leftGrad.addColorStop(0, "rgba(0, 0, 0, 0.3)");
+    leftGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.14)");
     leftGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = leftGrad;
     ctx.fillRect(x, y, width * 0.24, height);
 
     // Right edge shadow
     const rightGrad = ctx.createLinearGradient(x + width, 0, x + width - width * 0.2, 0);
-    rightGrad.addColorStop(0, "rgba(0, 0, 0, 0.22)");
-    rightGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.1)");
+    rightGrad.addColorStop(0, "rgba(0, 0, 0, 0.3)");
+    rightGrad.addColorStop(0.55, "rgba(0, 0, 0, 0.14)");
     rightGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = rightGrad;
     ctx.fillRect(x + width - width * 0.24, y, width * 0.24, height);
 
     // Bottom shadow
     const bottomGrad = ctx.createLinearGradient(0, y + height, 0, y + height - height * 0.24);
-    bottomGrad.addColorStop(0, "rgba(0, 0, 0, 0.26)");
-    bottomGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.12)");
+    bottomGrad.addColorStop(0, "rgba(0, 0, 0, 0.34)");
+    bottomGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.16)");
     bottomGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = bottomGrad;
     ctx.fillRect(x, y + height - height * 0.28, width, height * 0.28);
@@ -10587,7 +10590,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       const effectiveCameraX = resolveCameraX();
       const effectiveCameraY = 0;
-      drawBackground(effectiveCameraX, effectiveCameraY);
+      const pastorPostRecapBg = assets?.backgrounds?.districtCompleteCongregation || null;
+      if (pastorPostRecapActive && pastorPostRecapBg) {
+        drawCoverImage(ctx, canvas, pastorPostRecapBg, 1, 0.5, 0.5);
+      } else {
+        drawBackground(effectiveCameraX, effectiveCameraY);
+      }
 
       ctx.save();
       ctx.translate(-effectiveCameraX, effectiveCameraY);
@@ -10655,7 +10663,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.translate(-effectiveCameraX, effectiveCameraY);
 
-    const bandImg = assets?.backgroundLayers?.floor || null;
+    const bandImg = isCongregationStage
+      ? (assets?.backgroundLayers?.floorCongregation || assets?.backgroundLayers?.floor || null)
+      : (assets?.backgroundLayers?.floor || null);
     const floorBandHeight = bandImg?.height || 200;
     if (bandImg) {
       ctx.save();

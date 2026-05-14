@@ -8008,6 +8008,15 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = {};
       assets.backgrounds.mission3 = null;
     });
+  const districtCompleteCongregationPromise = loadImage("assets/backgrounds/disctrict-complete-congregation.png")
+    .then((img) => {
+      if (!assets.backgrounds) assets.backgrounds = {};
+      assets.backgrounds.districtCompleteCongregation = maybeApplyArenaBackgroundShadowCrush(img);
+    })
+    .catch(() => {
+      if (!assets.backgrounds) assets.backgrounds = {};
+      assets.backgrounds.districtCompleteCongregation = null;
+    });
   const gameOverBackgroundPromise = loadImage("assets/backgrounds/mission-1.png")
     .then((img) => {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
@@ -8023,6 +8032,9 @@ async function loadBackgroundAssets(cache, assets) {
   const floorPromise = loadImage("assets/backgrounds/floor.png")
     .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floor = null; });
+  const floorCongregationPromise = loadImage("assets/backgrounds/floor-congregation-1.png")
+    .then((img) => { assets.backgroundLayers.floorCongregation = maybeApplyArenaBackgroundShadowCrush(img); })
+    .catch(() => { assets.backgroundLayers.floorCongregation = null; });
   const titleBackgroundPromise = loadImage(TITLE_BACKGROUND_PATH)
     .then((img) => { assets.titleBackground = maybeApplyTitleBackgroundShadowCrush(img); })
     .catch(() => { assets.titleBackground = null; });
@@ -8032,9 +8044,11 @@ async function loadBackgroundAssets(cache, assets) {
     epiloguePromise,
     act2Promise,
     act3Promise,
+    districtCompleteCongregationPromise,
     gameOverBackgroundPromise,
     midPromise,
     floorPromise,
+    floorCongregationPromise,
     titleBackgroundPromise,
   ]);
 }
@@ -8053,7 +8067,7 @@ async function loadTitleMapAssets() {
     effects: {},
     background: null,
     backgrounds: { districtIntro: null },
-    backgroundLayers: { far: null, mid: null, floor: null },
+    backgroundLayers: { far: null, mid: null, floor: null, floorCongregation: null },
     npcs: null,
     items: {},
   };
