@@ -1069,10 +1069,18 @@
           Number.isFinite(levelStatus.battlefieldNum) ? levelStatus.battlefieldNum : 1,
         ),
       );
-      // wave = waveIndex + 1 (1-based horde index). Hordes completed = wave - 1, or full count if final wave cleared.
-      const hordesCompletedInBattle = levelStatus.finalWaveCleared
-        ? getBattleHordeCount(currentBattlefield)
-        : Math.max(0, (levelStatus.wave || 1) - 1);
+      // Use current horde position directly for stable per-battle progress.
+      // This avoids transition-frame bleed where `finalWaveCleared` from the
+      // previous battlefield can temporarily overfill the next one.
+      const currentHordeNumForProgress = Math.max(
+        1,
+        Math.floor(
+          Number.isFinite(levelStatus.wave)
+            ? levelStatus.wave
+            : (Number.isFinite(levelStatus.hordeNum) ? levelStatus.hordeNum : 1),
+        ),
+      );
+      const hordesCompletedInBattle = Math.max(0, currentHordeNumForProgress - 1);
 
       let progressUnits = 0;
       for (let i = 1; i < currentBattlefield; i += 1) {
@@ -1337,8 +1345,13 @@
         }
 
         const drawPastorPaperdoll = typeof window !== "undefined" ? window.Entities?.drawPastorPaperdoll : null;
-        if (drawPastorPaperdoll && player && fillW >= 4) {
-          const pastorX = Math.min(innerX + fillW, innerX + innerW - 4);
+        if (drawPastorPaperdoll && player) {
+          // Reserve a tiny right-edge zone for the boss icon so the player icon
+          // ends beside it at full town completion instead of overlapping it.
+          const BOSS_ICON_RESERVED_ZONE_PX = 20;
+          const pastorMaxX = innerX + innerW - BOSS_ICON_RESERVED_ZONE_PX;
+          const pastorMinX = innerX + 2;
+          const pastorX = Math.max(pastorMinX, Math.min(innerX + fillW, pastorMaxX));
           const pastorY = innerY + innerH / 2;
           const savedFacing = player.facing;
           const savedAttackFacing = player._paperdollAttackFacing;
