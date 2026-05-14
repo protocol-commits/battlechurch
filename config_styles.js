@@ -90,6 +90,36 @@
         // Main title buttons
         mainButtonLabel: 38,
       },
+      playingInstructions: {
+        loading: 14,
+        h1: 20,
+        h2: 15,
+        body: 13,
+        bullet: 13,
+        link: 13,
+        lineH1: 32,
+        lineH2: 26,
+        lineBody: 20,
+        lineBullet: 20,
+        lineSpacer: 10,
+        lineLink: 22,
+        scrollArrow: 11,
+      },
+      howToPlayScene: {
+        title: 48,
+        basics: 16,
+        sectionLabel: 13,
+        moveName: 13,
+        moveInput: 12,
+        moveDamage: 13,
+        moveDamageUnit: 11,
+        moveDesc: 11,
+      },
+      devArena: {
+        breadcrumb: 12,
+        label: 11,
+        detail: 11,
+      },
     },
 
     // =====================
