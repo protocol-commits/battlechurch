@@ -35,7 +35,8 @@
     // FONTS
     // =====================
     fonts: {
-      primary: "'Orbitron', sans-serif",
+      primary: "'VT323', 'Press Start 2P', monospace",
+      pixel: "'VT323', 'Press Start 2P', monospace",
       fallback: "sans-serif",
     },
 

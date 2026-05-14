@@ -4413,7 +4413,13 @@ const CANVAS_BASE_HEIGHT = 720;
 const HUD_HEIGHT = 43;
 const UI_FONT_FAMILY =
   (typeof window !== "undefined" && window.UIStyles?.fonts?.primary) ||
-  "'Orbitron', sans-serif";
+  "'VT323', 'Press Start 2P', monospace";
+const PIXEL_UI_FONT_FAMILY =
+  (typeof window !== "undefined" && window.UIStyles?.fonts?.pixel) ||
+  "'VT323', 'Press Start 2P', monospace";
+if (typeof document !== "undefined" && document.fonts?.load) {
+  document.fonts.load(`16px ${PIXEL_UI_FONT_FAMILY}`).catch(() => {});
+}
 
 // Debug overlay toggle (DEV-ONLY)
 const DEBUG = true;

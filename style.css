@@ -1,3 +1,19 @@
+@font-face {
+  font-family: "Press Start 2P";
+  src: url("assets/fonts/PressStart2P-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "VT323";
+  src: url("assets/fonts/VT323-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 #touchControls {
   display: none;
 }
@@ -79,7 +95,8 @@ body.touch-enabled .joystick-handle {
   --swatch-accent-2: #9BD9FF;
   --swatch-border: rgba(234, 246, 255, 0.15);
   --swatch-button-gradient: linear-gradient(135deg, #FFC86A, #FF6B6B);
-  --ui-font-family: "Orbitron", sans-serif;
+  --ui-font-family: var(--ui-font-family-pixel);
+  --ui-font-family-pixel: "VT323", "Press Start 2P", monospace;
   --ui-text-color: #EAF6FF;
   --ui-text-color-dark: #0A0F1F;
   --ui-h1-size: 56px;
@@ -134,6 +151,16 @@ body.touch-enabled .joystick-handle {
   --hf-danger-border: rgba(200, 60, 40, 0.3);
 }
 
+#appRoot button,
+.dialog-overlay__button,
+.settings-btn--hellfire,
+.save-dialog__btn-primary,
+.save-dialog__btn-cancel,
+.more-menu__item {
+  font-family: var(--ui-font-family-pixel);
+  letter-spacing: 0.02em;
+}
+
 /* Global reset */
 html, body {
   margin: 0;
@@ -142,7 +169,7 @@ html, body {
   color: #EAF6FF;
   height: 100%;
   overflow: hidden;
-  font-family: 'Orbitron', sans-serif;
+  font-family: var(--ui-font-family);
 }
 
 body {
@@ -409,7 +436,7 @@ body.layout-rotate-warning #rotatePrompt {
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 26px 70px rgba(0, 0, 0, 0.75);
   color: #EAF6FF;
-  font-family: "Orbitron", sans-serif;
+  font-family: var(--ui-font-family);
 }
 
 .magazine-title {
@@ -592,7 +619,7 @@ body.layout-rotate-warning #rotatePrompt {
   background: rgba(16, 8, 6, 0.92);
   border: 1px solid rgba(242, 200, 125, 0.35);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.7);
-  font-family: "Orbitron", sans-serif;
+  font-family: var(--ui-font-family);
   text-align: left;
 }
 .dialog-overlay--settings {
@@ -1038,7 +1065,7 @@ body.layout-rotate-warning .pause-hotkeys__list {
   background: rgba(8, 16, 28, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
-  font-family: "Orbitron", sans-serif;
+  font-family: var(--ui-font-family);
   text-align: center;
 }
 .dialog-overlay--district-intro .dialog-overlay__body {
@@ -1098,7 +1125,7 @@ body.layout-rotate-warning .pause-hotkeys__list {
 }
 .dialog-overlay--title .dialog-overlay__panel,
 .dialog-overlay--pause .dialog-overlay__panel {
-  font-family: "Orbitron", sans-serif;
+  font-family: var(--ui-font-family);
 }
 
 .dialog-overlay--title .dialog-overlay__panel {

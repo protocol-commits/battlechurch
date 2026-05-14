@@ -114,7 +114,7 @@
 
     const stats = getStats();
     const graceCount = getGraceCount();
-    const uiFontFamily = window.UI_FONT_FAMILY || "'Orbitron', sans-serif";
+    const uiFontFamily = window.UI_FONT_FAMILY || "'VT323', 'Press Start 2P', monospace";
 
     // Use renderer's drawChurchUpgradeScreen
     if (window.Renderer?.drawChurchUpgradeScreen) {

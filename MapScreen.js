@@ -5,7 +5,9 @@
   const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.png";
   const DISTRICT_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.png";
   const HIT_RADIUS_BASE = 10;
-  const UI_FONT_FAMILY = "'Orbitron', sans-serif";
+  const UI_FONT_FAMILY =
+    (typeof window !== "undefined" && window.UIStyles?.fonts?.primary) ||
+    "'VT323', 'Press Start 2P', monospace";
   const MAP_HELLFIRE_TEXT = Object.freeze({
     title: "#F2C87D",
     body: "#E7B066",
@@ -2552,7 +2554,9 @@
       .map(function(entry) {
         return { key: entry[0], label: entry[1].label, description: entry[1].description, iconSrc: entry[1].iconSrc };
       });
-    const uiFontFamily = (typeof window !== "undefined" && window.UI_FONT_FAMILY) || "'Orbitron', sans-serif";
+    const uiFontFamily =
+      (typeof window !== "undefined" && window.UI_FONT_FAMILY) ||
+      "'VT323', 'Press Start 2P', monospace";
     window.Renderer.drawDenomUpgradeScreen(ctx, canvas, {
       stats: stats,
       selectedKeys: du.selectedKeys,

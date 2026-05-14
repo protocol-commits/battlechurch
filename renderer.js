@@ -1132,7 +1132,10 @@ const MELEE_SWING_LENGTH = 260;
     ctx.restore();
   }
 
-  const ANNOUNCEMENT_FONT_FAMILY = "'Orbitron', sans-serif";
+  const PIXEL_UI_FONT_FAMILY =
+    (typeof window !== "undefined" && window.UIStyles?.fonts?.pixel) ||
+    "'VT323', 'Press Start 2P', monospace";
+  const ANNOUNCEMENT_FONT_FAMILY = PIXEL_UI_FONT_FAMILY;
   const waveClearWipes = [];
   let lastStageForWipe = null;
 
@@ -2255,7 +2258,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = "#DFDFC4";
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.font = `${TEXT_STYLES.h2.weight} ${promptSize}px 'Orbitron', sans-serif`;
+    ctx.font = `${TEXT_STYLES.h2.weight} ${promptSize}px ${PIXEL_UI_FONT_FAMILY}`;
     ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
     ctx.shadowBlur = 18;
     ctx.fillText(promptText, layout.virtualCanvas.width / 2, promptY);
@@ -5506,7 +5509,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const y = group.sumY / group.count;
       const fontSize = Math.max(28, Math.min(50, 10 + group.initialCount * 0.22));
       const label = String(group.count);
-      ctx.font = `500 ${Math.round(fontSize)}px 'Orbitron', sans-serif`;
+      ctx.font = `500 ${Math.round(fontSize)}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.lineWidth = Math.max(6, Math.round(fontSize * 0.16));
       ctx.strokeStyle = counterStroke;
       ctx.fillStyle = counterFill;
@@ -6379,7 +6382,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowBlur = 10;
       ctx.shadowOffsetY = 2;
       ctx.textAlign = "center";
-      ctx.font = `900 26px 'Orbitron', ${UI_FONT_FAMILY}`;
+      ctx.font = `900 26px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.textBaseline = "middle";
       const mainTextY = buttonY + buttonHeight / 2 + 1;
       ctx.strokeStyle = "rgba(73, 18, 12, 0.95)";
@@ -9383,9 +9386,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.font = `700 ${hintStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
+      ctx.font = `700 ${hintStyle.titleFontSize ?? 28}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.fillText("CHOOSE YOUR DENOMINATION", panelX + panelW / 2, titleY);
-      ctx.font = `600 ${hintStyle.hintFontSize ?? 12}px ${UI_FONT_FAMILY}`;
+      ctx.font = `600 ${hintStyle.hintFontSize ?? 12}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.fillStyle = hintStyle.hintColor || "rgba(231,176,102,0.82)";
       ctx.fillText("W / S move  ·  SPACE select  ·  ESC back", panelX + panelW / 2, hintY);
       ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
@@ -9432,13 +9435,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowOffsetY = 0;
         ctx.textAlign = "left";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `600 16px ${UI_FONT_FAMILY}`;
+        ctx.font = `600 16px ${PIXEL_UI_FONT_FAMILY}`;
         const focusPrefix = focused ? "> " : "";
         const selectedSuffix = selected && !isBack ? "  [Selected]" : "";
         const labelText = `${focusPrefix}${config.label}${selectedSuffix}`;
         ctx.fillText(labelText, rowX + 40, y + 20);
         if (!isBack && config?.meta) {
-          ctx.font = `500 11px ${UI_FONT_FAMILY}`;
+          ctx.font = `500 11px ${PIXEL_UI_FONT_FAMILY}`;
           ctx.fillStyle = "rgba(231, 176, 102, 0.82)";
           ctx.fillText(String(config.meta), rowX + 40, y + 38);
         }
@@ -9474,7 +9477,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
-        ctx.font = `700 14px ${UI_FONT_FAMILY}`;
+        ctx.font = `700 14px ${PIXEL_UI_FONT_FAMILY}`;
         if (showScrollUp) {
           ctx.fillText("▲", panelX + panelW - 16, listStartY - 4);
         }
@@ -9532,7 +9535,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowOffsetY = 1;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+        ctx.font = `600 22px ${PIXEL_UI_FONT_FAMILY}`;
         ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 42);
         ctx.restore();
         bounds.push({
@@ -10483,7 +10486,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowBlur = 6;
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
-      ctx.font = `18px ${UI_FONT_FAMILY}`;
+      ctx.font = `18px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.textBaseline = "alphabetic";
       ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
       ctx.restore();
@@ -11687,7 +11690,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lines.push(`${split.name} ${formatTime(split.duration || 0)}`);
     });
     ctx.save();
-    ctx.font = "10px 'Orbitron', sans-serif";
+    ctx.font = `10px ${PIXEL_UI_FONT_FAMILY}`;
     ctx.fillStyle = "rgba(234, 246, 255, 0.8)";
     ctx.textAlign = "right";
     ctx.textBaseline = "bottom";
@@ -12141,7 +12144,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const { cameraOffsetX = 0, cameraOffsetY = 0 } = requireBindings();
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.font = "600 16px 'Orbitron', sans-serif";
+    ctx.font = `600 16px ${PIXEL_UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.strokeStyle = "rgba(0, 0, 0, 0.85)";
