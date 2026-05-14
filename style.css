@@ -149,6 +149,20 @@ body.touch-enabled .joystick-handle {
   --hf-btn-primary-glow: rgba(220, 100, 20, 0.4);
   --hf-danger: #f07060;
   --hf-danger-border: rgba(200, 60, 40, 0.3);
+
+  /* DOM overlay typography scale (Settings / Save / More / Edit dialogs) */
+  --overlay-font-title: 40px;
+  --overlay-font-label: 20px;
+  --overlay-font-toggle: 20px;
+  --overlay-font-value: 20px;
+  --overlay-font-button: 20px;
+  --overlay-font-input-label: 18px;
+  --overlay-font-input: 20px;
+  --overlay-font-hint: 16px;
+  --overlay-font-action: 16px;
+  --overlay-font-more-icon: 22px;
+  --overlay-font-more-name: 24px;
+  --overlay-font-more-desc: 20px;
 }
 
 #appRoot button,
@@ -629,7 +643,7 @@ body.layout-rotate-warning #rotatePrompt {
 }
 .dialog-overlay--settings .dialog-overlay__title {
   text-align: left;
-  font-size: clamp(26px, 3vw, 34px);
+  font-size: clamp(26px, 3vw, var(--overlay-font-title));
   color: #f2c87d;
 }
 .dialog-overlay--settings .dialog-overlay__button {
@@ -703,7 +717,7 @@ body.layout-rotate-warning #rotatePrompt {
   grid-template-columns: 1fr;
 }
 .settings-row__label {
-  font-size: 16px;
+  font-size: var(--overlay-font-label);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--hf-label);
@@ -712,7 +726,7 @@ body.layout-rotate-warning #rotatePrompt {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: var(--overlay-font-toggle);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(253, 241, 217, 0.92);
@@ -736,7 +750,7 @@ body.layout-rotate-warning #rotatePrompt {
 .settings-slider__value {
   min-width: 56px;
   text-align: right;
-  font-size: 14px;
+  font-size: var(--overlay-font-value);
   color: rgba(253, 241, 217, 0.88);
 }
 
@@ -747,7 +761,7 @@ body.layout-rotate-warning #rotatePrompt {
   background: linear-gradient(160deg, var(--hf-btn-primary-top) 0%, var(--hf-btn-primary-bottom) 100%);
   color: var(--hf-text);
   font-family: var(--ui-font-family);
-  font-size: 14px;
+  font-size: var(--overlay-font-button);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -793,7 +807,7 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .save-dialog__label {
-  font-size: 11px;
+  font-size: var(--overlay-font-input-label);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--hf-label);
@@ -808,7 +822,7 @@ body.layout-rotate-warning #rotatePrompt {
   background: var(--hf-input-bg);
   color: var(--hf-text);
   font-family: var(--ui-font-family);
-  font-size: 13px;
+  font-size: var(--overlay-font-input);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   appearance: none;
@@ -827,7 +841,7 @@ body.layout-rotate-warning #rotatePrompt {
 
 
 .save-dialog__hint {
-  font-size: 11px;
+  font-size: var(--overlay-font-hint);
   color: rgba(255, 255, 255, 0.45);
   text-align: center;
   margin-top: 10px;
@@ -849,7 +863,7 @@ body.layout-rotate-warning #rotatePrompt {
   background: var(--hf-row-bg);
   color: rgba(253, 241, 217, 0.7);
   font-family: var(--ui-font-family);
-  font-size: 11px;
+  font-size: var(--overlay-font-action);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -868,7 +882,7 @@ body.layout-rotate-warning #rotatePrompt {
   background: linear-gradient(160deg, var(--hf-btn-primary-top) 0%, var(--hf-btn-primary-bottom) 100%);
   color: var(--hf-text);
   font-family: var(--ui-font-family);
-  font-size: 11px;
+  font-size: var(--overlay-font-action);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -889,7 +903,8 @@ body.layout-rotate-warning #rotatePrompt {
 /* More menu action cards */
 .more-menu {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  font-size: var(--overlay-font-more-name);
 }
 
 .more-menu__item {
@@ -905,6 +920,8 @@ body.layout-rotate-warning #rotatePrompt {
   cursor: pointer;
   text-align: left;
   width: 100%;
+  font-size: var(--overlay-font-more-name);
+  line-height: 1.25;
   transition: filter 0.12s ease, border-color 0.12s ease;
 }
 
@@ -931,7 +948,7 @@ body.layout-rotate-warning #rotatePrompt {
 }
 
 .more-menu__icon {
-  font-size: 22px;
+  font-size: var(--overlay-font-more-icon);
   flex-shrink: 0;
   width: 28px;
   text-align: center;
@@ -940,18 +957,18 @@ body.layout-rotate-warning #rotatePrompt {
 
 .more-menu__text {
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 
 .more-menu__name {
-  font-size: 12px;
+  font-size: var(--overlay-font-more-name);
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .more-menu__desc {
-  font-size: 11px;
+  font-size: var(--overlay-font-more-desc);
   letter-spacing: 0.03em;
   color: rgba(253, 241, 217, 0.55);
   text-transform: none;
