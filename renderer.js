@@ -1095,7 +1095,10 @@ const MELEE_SWING_LENGTH = 260;
   const RECAP_FLASH_DURATION = 0.6;
   const RECAP_CONTINUE_DELAY = 1.0;
   const SHOW_TEXT_SOURCE_LABELS = false;
-  const PIXEL_FONT_SIZE_MULTIPLIER = 1.23;
+  const PIXEL_FONT_SIZE_MULTIPLIER =
+    (typeof window !== "undefined" && Number.isFinite(window.__battlechurchPixelFontSizeMultiplier))
+      ? Number(window.__battlechurchPixelFontSizeMultiplier)
+      : 1;
   const BASE_TEXT_STYLES = {
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
     h2: { size: 40, weight: 800, lineHeight: 1.2 },
@@ -10738,8 +10741,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } catch (e) {}
     }
 
-    drawHudComboUnderlay(ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT);
-
   drawSpawnPointDebug(ctx);
   drawNpcHomeBounds(ctx);
 
@@ -11501,6 +11502,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawMeleeSwingOverlay(ctx, player);
     drawSpeedrunTimer();
     drawCongregationOverlay();
+    drawHudComboUnderlay(ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT);
     // Effects are drawn earlier in the world pass so the player stays on top.
     if (paused && !gameOver && !mapLaunchHandoffActive) {
       drawPauseOverlay();

@@ -4417,7 +4417,10 @@ const UI_FONT_FAMILY =
 const PIXEL_UI_FONT_FAMILY =
   (typeof window !== "undefined" && window.UIStyles?.fonts?.pixel) ||
   "'VT323', 'Press Start 2P', monospace";
-const PIXEL_FONT_SIZE_MULTIPLIER = 1.23;
+const PIXEL_FONT_SIZE_MULTIPLIER = 1.4;
+if (typeof window !== "undefined") {
+  window.__battlechurchPixelFontSizeMultiplier = PIXEL_FONT_SIZE_MULTIPLIER;
+}
 if (typeof document !== "undefined" && document.fonts?.load) {
   document.fonts.load(`16px ${PIXEL_UI_FONT_FAMILY}`).catch(() => {});
 }
