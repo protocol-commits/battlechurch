@@ -194,9 +194,13 @@ const MELEE_SWING_LENGTH = 260;
   };
   const MOBILE_SMOKE_PROFILE = {
     enabled: true,
-    maxPuffsCap: 48,
-    spawnRateScale: 0.55,
-    blurPxCap: 2.4,
+    maxPuffsCap: 28,
+    spawnRateScale: 0.42,
+    blurPxCap: 0,
+    lifeScale: 1.9,
+    minLifeFloor: 3.2,
+    riseSpeedScale: 0.58,
+    driftSpeedScale: 0.62,
   };
   const ADAPTIVE_SMOKE_PROFILE = {
     enabled: true,
@@ -231,6 +235,10 @@ const MELEE_SWING_LENGTH = 260;
     fadeInSeconds: 0.5,
     dissipateSeconds: 8.0,
     tint: "#A83538",
+  };
+  const ambientSmokeSpriteState = {
+    tintHex: "",
+    sprites: [],
   };
 
   function requireBindings() {
@@ -280,7 +288,101 @@ const MELEE_SWING_LENGTH = 260;
     return { r, g, b };
   }
 
-  function spawnAmbientSmokePuff(canvas, config, effectiveCameraY = 0) {
+  function buildAmbientSmokeSprites(tintHex) {
+    const tint = parseHexToRgb(tintHex, { r: 212, g: 78, b: 82 });
+    const spriteSize = 192;
+    const makeSprite = (drawFn) => {
+      const c = document.createElement("canvas");
+      c.width = spriteSize;
+      c.height = spriteSize;
+      const cctx = c.getContext("2d");
+      if (!cctx) return null;
+      cctx.clearRect(0, 0, spriteSize, spriteSize);
+      cctx.imageSmoothingEnabled = true;
+      drawFn(cctx, tint, spriteSize);
+      // Hard guarantee: clip any accidental corners to a soft ellipse mask.
+      cctx.globalCompositeOperation = "destination-in";
+      const maskCx = spriteSize * 0.5;
+      const maskCy = spriteSize * 0.5;
+      const maskRx = spriteSize * 0.47;
+      const maskRy = spriteSize * 0.44;
+      const maskGrad = cctx.createRadialGradient(maskCx, maskCy, spriteSize * 0.05, maskCx, maskCy, spriteSize * 0.52);
+      maskGrad.addColorStop(0, "rgba(255,255,255,1)");
+      maskGrad.addColorStop(0.64, "rgba(255,255,255,0.68)");
+      maskGrad.addColorStop(0.88, "rgba(255,255,255,0.18)");
+      maskGrad.addColorStop(1, "rgba(255,255,255,0)");
+      cctx.fillStyle = maskGrad;
+      cctx.beginPath();
+      cctx.ellipse(maskCx, maskCy, maskRx, maskRy, 0, 0, Math.PI * 2);
+      cctx.fill();
+      cctx.globalCompositeOperation = "source-over";
+      return c;
+    };
+    const sprites = [
+      // Round soft blob.
+      makeSprite((cctx, t, s) => {
+        const cx = s * 0.5;
+        const cy = s * 0.5;
+        const gradA = cctx.createRadialGradient(cx, cy, s * 0.05, cx, cy, s * 0.5);
+        gradA.addColorStop(0, `rgba(${t.r},${t.g},${t.b},0.58)`);
+        gradA.addColorStop(0.42, `rgba(${t.r},${t.g},${t.b},0.20)`);
+        gradA.addColorStop(0.78, `rgba(${t.r},${t.g},${t.b},0.06)`);
+        gradA.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.fillStyle = gradA;
+        cctx.fillRect(0, 0, s, s);
+      }),
+      // Offset lopsided blob.
+      makeSprite((cctx, t, s) => {
+        const cx = s * 0.46;
+        const cy = s * 0.54;
+        const grad = cctx.createRadialGradient(cx, cy, s * 0.1, cx, cy, s * 0.54);
+        grad.addColorStop(0, `rgba(${t.r},${t.g},${t.b},0.56)`);
+        grad.addColorStop(0.44, `rgba(${t.r},${t.g},${t.b},0.18)`);
+        grad.addColorStop(0.84, `rgba(${t.r},${t.g},${t.b},0.05)`);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.save();
+        cctx.translate(cx, cy);
+        cctx.scale(1.15, 0.85);
+        cctx.fillStyle = grad;
+        cctx.fillRect(-s, -s, s * 2, s * 2);
+        cctx.restore();
+      }),
+      // Donut-ish center with wispy edge.
+      makeSprite((cctx, t, s) => {
+        const cx = s * 0.52;
+        const cy = s * 0.48;
+        const outer = cctx.createRadialGradient(cx, cy, s * 0.14, cx, cy, s * 0.52);
+        outer.addColorStop(0, `rgba(${t.r},${t.g},${t.b},0.34)`);
+        outer.addColorStop(0.58, `rgba(${t.r},${t.g},${t.b},0.18)`);
+        outer.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.fillStyle = outer;
+        cctx.fillRect(0, 0, s, s);
+        cctx.globalCompositeOperation = "destination-out";
+        const inner = cctx.createRadialGradient(cx, cy, 0, cx, cy, s * 0.2);
+        inner.addColorStop(0, "rgba(0,0,0,0.8)");
+        inner.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.fillStyle = inner;
+        cctx.fillRect(0, 0, s, s);
+        cctx.globalCompositeOperation = "source-over";
+      }),
+    ].filter(Boolean);
+    return sprites;
+  }
+
+  function getAmbientSmokeSprites(tintHex) {
+    const normalizedTint = String(tintHex || "").toLowerCase();
+    if (!ambientSmokeSpriteState.sprites.length || ambientSmokeSpriteState.tintHex !== normalizedTint) {
+      ambientSmokeSpriteState.tintHex = normalizedTint;
+      ambientSmokeSpriteState.sprites = buildAmbientSmokeSprites(normalizedTint);
+    }
+    return ambientSmokeSpriteState.sprites;
+  }
+
+  function spawnAmbientSmokePuff(canvas, config, effectiveCameraY = 0, options = null) {
+    const riseScale = Math.max(0.15, Number(options?.riseScale) || 1);
+    const driftScale = Math.max(0.15, Number(options?.driftScale) || 1);
+    const lifeScale = Math.max(0.2, Number(options?.lifeScale) || 1);
+    const lifeFloor = Math.max(0, Number(options?.minLifeFloor) || 0);
     const sideSpawn = Math.random() < config.sideWeight;
     const bottomBand = Math.max(20, canvas.height * config.bottomBandRatio);
     const sideBand = Math.max(16, canvas.width * config.sideBandRatio);
@@ -294,16 +396,17 @@ const MELEE_SWING_LENGTH = 260;
         ? Math.random() * sideBand
         : canvas.width - Math.random() * sideBand;
       y = canvas.height - Math.random() * bottomBand;
-      const drift = config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin);
+      const drift = (config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin)) * driftScale;
       vx = leftSide ? drift : -drift;
     } else {
       x = Math.random() * canvas.width;
       y = canvas.height - Math.random() * bottomBand;
-      const drift = (Math.random() * 2 - 1) * (config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin));
+      const drift = (Math.random() * 2 - 1) * (config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin)) * driftScale;
       vx = drift * 0.45;
     }
-    const vy = -(config.riseSpeedMin + Math.random() * Math.max(1, config.riseSpeedMax - config.riseSpeedMin));
-    const life = config.minLife + Math.random() * Math.max(0.01, config.maxLife - config.minLife);
+    const vy = -(config.riseSpeedMin + Math.random() * Math.max(1, config.riseSpeedMax - config.riseSpeedMin)) * riseScale;
+    const baseLife = config.minLife + Math.random() * Math.max(0.01, config.maxLife - config.minLife);
+    const life = Math.max(lifeFloor, baseLife * lifeScale);
     ambientSmokeState.puffs.push({
       x,
       y: y - effectiveCameraY,
@@ -316,6 +419,7 @@ const MELEE_SWING_LENGTH = 260;
       maxLife: life,
       alpha: config.baseAlpha * (0.72 + Math.random() * 0.55),
       tint: config.tint,
+      spriteVariant: Math.floor(Math.random() * 3),
     });
   }
 
@@ -486,7 +590,12 @@ const MELEE_SWING_LENGTH = 260;
       const capacity = Math.max(0, stageMaxPuffs - ambientSmokeState.puffs.length);
       toSpawn = Math.min(toSpawn, capacity);
       for (let i = 0; i < toSpawn; i += 1) {
-        spawnAmbientSmokePuff(canvas, config, effectiveCameraY);
+        spawnAmbientSmokePuff(canvas, config, effectiveCameraY, isMobileLike ? {
+          riseScale: MOBILE_SMOKE_PROFILE.riseSpeedScale,
+          driftScale: MOBILE_SMOKE_PROFILE.driftSpeedScale,
+          lifeScale: MOBILE_SMOKE_PROFILE.lifeScale,
+          minLifeFloor: MOBILE_SMOKE_PROFILE.minLifeFloor,
+        } : null);
       }
     }
 
@@ -508,20 +617,26 @@ const MELEE_SWING_LENGTH = 260;
     }
 
     if (!puffs.length) return;
+    const spritePool = getAmbientSmokeSprites(config.tint);
+    const hasSprites = Array.isArray(spritePool) && spritePool.length > 0;
     ctx.save();
     ctx.translate(0, effectiveCameraY);
     ctx.globalCompositeOperation = "source-over";
-    if (!config.debugVisible) {
-      const targetBlur = isMobileLike
-        ? Math.min(5.8, MOBILE_SMOKE_PROFILE.blurPxCap)
-        : 5.8;
+    const targetBlur = isMobileLike
+      ? Math.min(5.8, MOBILE_SMOKE_PROFILE.blurPxCap)
+      : 5.8;
+    if (!config.debugVisible && targetBlur > 0.05) {
       ctx.filter = `blur(${Math.max(0.8, targetBlur * adaptiveBlurScale).toFixed(2)}px)`;
+    } else {
+      ctx.filter = "none";
     }
     for (let i = 0; i < puffs.length; i += 1) {
       const p = puffs[i];
       const lifeT = clamp01(p.life / Math.max(0.001, p.maxLife));
-      const fadeIn = clamp01((1 - lifeT) / 0.22);
-      const fadeOut = clamp01(lifeT / 0.92);
+      // Smooth bell-style fade curve to avoid visible popping on low-end devices.
+      const ageT = 1 - lifeT;
+      const fadeIn = clamp01(ageT / 0.35);
+      const fadeOut = clamp01(lifeT / 0.55);
       const alpha = p.alpha * fadeIn * fadeOut * stageAlphaMultiplier;
       if (alpha <= 0.002) continue;
       const r = p.size;
@@ -534,6 +649,19 @@ const MELEE_SWING_LENGTH = 260;
         ctx.lineWidth = 1;
         ctx.strokeStyle = "rgba(255, 64, 64, 0.95)";
         ctx.stroke();
+      } else if (hasSprites) {
+        const spriteIndexRaw = Number.isFinite(p.spriteVariant) ? p.spriteVariant : i;
+        const sprite = spritePool[((Math.floor(spriteIndexRaw) % spritePool.length) + spritePool.length) % spritePool.length];
+        const wobbleScaleY = 0.62 + Math.sin(nowSec + i) * 0.08;
+        const drawW = r * 2.15;
+        const drawH = drawW * wobbleScaleY;
+        const angle = Math.sin(nowSec * (0.08 + p.wobbleFreq * 0.025) + i * 0.61) * 0.06;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(angle);
+        ctx.globalAlpha = Math.max(0.01, Math.min(1, alpha * 0.95));
+        ctx.drawImage(sprite, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
       } else {
         // Keep the feather beyond the puff edge so circles do not show a hard rim.
         const grad = ctx.createRadialGradient(p.x, p.y, r * 0.08, p.x, p.y, r * 1.28);
@@ -10081,15 +10209,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           const isDanger = config?.danger === true;
           ctx.save();
           ctx.fillStyle = focused
-            ? "rgba(182, 98, 38, 0.96)"
-            : isDanger
-              ? "rgba(76, 20, 20, 0.9)"
-              : "rgba(14, 12, 16, 0.88)";
+            ? (isDanger ? "rgba(140, 30, 30, 0.92)" : "rgba(182, 98, 38, 0.96)")
+            : "rgba(14, 12, 16, 0.88)";
           ctx.strokeStyle = focused
-            ? "rgba(255, 244, 190, 1)"
-            : isDanger
-              ? "rgba(255, 170, 170, 0.55)"
-              : "rgba(242, 200, 125, 0.35)";
+            ? (isDanger ? "rgba(255, 140, 140, 0.85)" : "rgba(255, 244, 190, 1)")
+            : "rgba(242, 200, 125, 0.35)";
           ctx.lineWidth = focused ? 3.2 : 1.2;
           roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
           if (focused) {
@@ -12920,8 +13044,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
-    ctx.filter = `blur(${(TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * (0.75 + 0.25 * presence)).toFixed(2)}px)`;
-    for (let i = 0; i < TEASER_SMOKE_WIPE_CONFIG.puffCount; i += 1) {
+    const isMobileLike = Boolean(
+      MOBILE_SMOKE_PROFILE.enabled &&
+      typeof window !== "undefined" &&
+      (
+        (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) ||
+        Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900
+      ),
+    );
+    const teaserPuffCount = isMobileLike
+      ? Math.max(36, Math.round(TEASER_SMOKE_WIPE_CONFIG.puffCount * 0.26))
+      : TEASER_SMOKE_WIPE_CONFIG.puffCount;
+    const teaserBlurPx = isMobileLike
+      ? Math.min(2.2, TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * 0.34)
+      : TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * (0.75 + 0.25 * presence);
+    ctx.filter = teaserBlurPx > 0.05 ? `blur(${teaserBlurPx.toFixed(2)}px)` : "none";
+    for (let i = 0; i < teaserPuffCount; i += 1) {
       const phase = i * 12.9898;
       const seedA = (Math.sin(phase) + 1) * 0.5;
       const seedB = (Math.sin(phase * 1.91 + 4.7) + 1) * 0.5;

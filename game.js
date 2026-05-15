@@ -569,24 +569,6 @@ const TITLE_DEMO_SAVE_SLOTS = [
       restoredChurchPowerupLevels: {},
     },
   },
-  {
-    key: "slot3",
-    label: "Demo: Area 2 Cleared",
-    districtId: "lowmoor",
-    completedDistricts: 6,
-    playerName: "DemoName",
-    cityName: "DemoTown",
-    classId: "class9",
-    campaignData: {
-      campaign: "p2",
-      startCount: 120,
-      campaignMultiplier: 1.15,
-      restoredChurchPowerupLevels: {
-        spreadGun: 5,
-        halo: 5,
-      },
-    },
-  },
 ];
 
 function setDemoSandboxRunActive(active) {
