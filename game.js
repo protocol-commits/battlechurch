@@ -21167,6 +21167,7 @@ function handleTitleScreen() {
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
+          void refreshTitleCloudSaveOption();
           return;
         }
         if (button.key === "back") {
