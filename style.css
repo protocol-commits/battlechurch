@@ -1532,6 +1532,81 @@ body.layout-rotate-warning .dialog-overlay--mission .dialog-overlay__button {
   outline-offset: 3px;
 }
 
+/* Mobile/small viewport overrides for DOM overlays (Save/Load/Settings/More). */
+body.layout-mobile,
+body.layout-square,
+body.layout-rotate-warning {
+  --overlay-font-title: 28px;
+  --overlay-font-label: 16px;
+  --overlay-font-toggle: 16px;
+  --overlay-font-value: 16px;
+  --overlay-font-button: 16px;
+  --overlay-font-input-label: 14px;
+  --overlay-font-input: 16px;
+  --overlay-font-hint: 13px;
+  --overlay-font-action: 14px;
+  --overlay-font-more-icon: 18px;
+  --overlay-font-more-name: 18px;
+  --overlay-font-more-desc: 14px;
+}
+
+body.layout-mobile .dialog-overlay__panel,
+body.layout-square .dialog-overlay__panel,
+body.layout-rotate-warning .dialog-overlay__panel,
+body.layout-mobile .dialog-overlay--settings .dialog-overlay__panel,
+body.layout-square .dialog-overlay--settings .dialog-overlay__panel,
+body.layout-rotate-warning .dialog-overlay--settings .dialog-overlay__panel,
+body.layout-mobile .dialog-overlay--panel-default .dialog-overlay__panel,
+body.layout-square .dialog-overlay--panel-default .dialog-overlay__panel,
+body.layout-rotate-warning .dialog-overlay--panel-default .dialog-overlay__panel {
+  width: min(96vw, 720px);
+  max-height: calc(100% - 20px);
+  padding: 16px;
+  overflow: auto;
+}
+
+body.layout-mobile .dialog-overlay--title-page .dialog-overlay__panel,
+body.layout-square .dialog-overlay--title-page .dialog-overlay__panel,
+body.layout-rotate-warning .dialog-overlay--title-page .dialog-overlay__panel {
+  width: min(98vw, 920px);
+  max-height: calc(100% - 20px);
+  padding: 12px 12px 16px;
+}
+
+body.layout-mobile .save-picker__list,
+body.layout-square .save-picker__list,
+body.layout-rotate-warning .save-picker__list {
+  max-height: min(54dvh, 420px);
+}
+
+body.layout-mobile .save-picker__item,
+body.layout-square .save-picker__item,
+body.layout-rotate-warning .save-picker__item {
+  grid-template-columns: auto 1fr;
+}
+
+body.layout-mobile .save-picker__actions,
+body.layout-square .save-picker__actions,
+body.layout-rotate-warning .save-picker__actions,
+body.layout-mobile .save-dialog__actions,
+body.layout-square .save-dialog__actions,
+body.layout-rotate-warning .save-dialog__actions {
+  justify-content: stretch;
+}
+
+body.layout-mobile .save-picker__actions .settings-btn--hellfire,
+body.layout-square .save-picker__actions .settings-btn--hellfire,
+body.layout-rotate-warning .save-picker__actions .settings-btn--hellfire,
+body.layout-mobile .save-dialog__actions .save-dialog__btn-cancel,
+body.layout-mobile .save-dialog__actions .save-dialog__btn-primary,
+body.layout-square .save-dialog__actions .save-dialog__btn-cancel,
+body.layout-square .save-dialog__actions .save-dialog__btn-primary,
+body.layout-rotate-warning .save-dialog__actions .save-dialog__btn-cancel,
+body.layout-rotate-warning .save-dialog__actions .save-dialog__btn-primary {
+  flex: 1 1 0;
+  min-height: 42px;
+}
+
 .settings-toggle input:focus-visible,
 .settings-slider input[type="range"]:focus-visible {
   outline: 3px solid rgba(255, 244, 161, 0.95);
