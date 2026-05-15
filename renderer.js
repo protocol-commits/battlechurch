@@ -11720,6 +11720,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     // Keep this near the end so congregation UI (text/button) also fades.
     drawCongregationToTeaserFade(levelStatus);
+    if (levelStatus?.stage === "briefingTeaser") {
+      // Keep teaser caption above the smoke wipe layer for readability.
+      drawLevelAnnouncements();
+    }
 
     // Debug overlay (DEV-ONLY)
     const bindings = requireBindings();
