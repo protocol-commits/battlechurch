@@ -5427,6 +5427,82 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawCongregationPlayerBoundsDebug(ctx) {
+    const {
+      canvas,
+      HUD_HEIGHT = 0,
+      levelManager,
+      player,
+      showCongregationPlayerBoundsDebug,
+      congregationPlayerCornerCutoffSideInset,
+      congregationPlayerCornerCutoffDepth,
+      congregationPlayerTopY,
+      UI_FONT_FAMILY = "sans-serif",
+    } = requireBindings();
+    if (!showCongregationPlayerBoundsDebug) return;
+    if (!canvas || !ctx) return;
+    const stage = levelManager?.getStatus?.()?.stage || "";
+    const isCongregationStage = stage === "levelIntro" || stage === "congregationToTeaser" || stage === "npcArrival";
+    if (!isCongregationStage) return;
+
+    const topY = Math.max(HUD_HEIGHT + 1, Number(congregationPlayerTopY) || (HUD_HEIGHT + 8));
+    const sideInset = Math.max(8, Number(congregationPlayerCornerCutoffSideInset) || 150);
+    const depth = Math.max(8, Number(congregationPlayerCornerCutoffDepth) || 300);
+    const topCutY = topY + depth;
+    const worldW = canvas.width || 0;
+    const worldH = canvas.height || 0;
+
+    ctx.save();
+    // Shade the blocked corner wedges so it is obvious what area is cut off.
+    ctx.fillStyle = "rgba(255, 70, 70, 0.16)";
+    ctx.beginPath();
+    ctx.moveTo(0, topY);
+    ctx.lineTo(sideInset, topY);
+    ctx.lineTo(0, topCutY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(worldW, topY);
+    ctx.lineTo(worldW - sideInset, topY);
+    ctx.lineTo(worldW, topCutY);
+    ctx.closePath();
+    ctx.fill();
+
+    // Top boundary guide.
+    ctx.strokeStyle = "rgba(255, 212, 120, 0.95)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 6]);
+    ctx.beginPath();
+    ctx.moveTo(0, topY);
+    ctx.lineTo(worldW, topY);
+    ctx.stroke();
+
+    // Corner cutoff diagonals.
+    ctx.strokeStyle = "rgba(255, 95, 95, 0.98)";
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, topCutY);
+    ctx.lineTo(sideInset, topY);
+    ctx.moveTo(worldW, topCutY);
+    ctx.lineTo(worldW - sideInset, topY);
+    ctx.stroke();
+
+    // Text readout for easy tuning.
+    ctx.setLineDash([]);
+    ctx.font = `700 12px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "rgba(255, 235, 205, 0.95)";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(
+      `CONG BOUNDS  sideInset:${Math.round(sideInset)}  depth:${Math.round(depth)}  topY:${Math.round(topY)}`,
+      14,
+      Math.max(HUD_HEIGHT + 6, 6),
+    );
+    ctx.restore();
+  }
+
   function getEnemyWeaponHitboxRect(enemy) {
     const weapon = enemy?.config?.weaponHitbox || null;
     if (!weapon) return null;
@@ -10828,6 +10904,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
 
   drawSpawnPointDebug(ctx);
+  drawCongregationPlayerBoundsDebug(ctx);
   drawNpcHomeBounds(ctx);
 
     obstacles.forEach((obstacle) => obstacle.draw(ctx));
@@ -11248,6 +11325,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   // ...existing code...
   drawSpawnPointDebug(ctx);
+  drawCongregationPlayerBoundsDebug(ctx);
   drawNpcHomeBounds(ctx);
   // drawAimAssistOverlay(); // Aim assist cone hidden for now
     // Reticle hidden while auto-aim is active.

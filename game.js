@@ -5732,6 +5732,15 @@ const aimAssist = {
 const SHOW_ENEMY_SPAWN_DEBUG = false;
 const PLAYER_CORNER_CUTOFF_SIDE_INSET = 200;
 const PLAYER_CORNER_CUTOFF_DEPTH = 200;
+// Congregation-only player walk bounds (top corners cut for perspective background).
+const CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET = 270;
+const CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH = 200;
+const CONGREGATION_PLAYER_TOP_Y = 236;
+const SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG = true;
+
+function isCongregationBoundsStage(stage) {
+  return stage === "levelIntro" || stage === "congregationToTeaser" || stage === "npcArrival";
+}
 
 function toggleHudHitboxDebug(key) {
   if (typeof window === "undefined" || !window.BattlechurchHitboxDebug) return false;
@@ -5787,6 +5796,10 @@ Renderer.initialize({
   get waveSmokeTuning() { return WAVE_SMOKE_TUNING; },
   get playerCornerCutoffSideInset() { return PLAYER_CORNER_CUTOFF_SIDE_INSET; },
   get playerCornerCutoffDepth() { return PLAYER_CORNER_CUTOFF_DEPTH; },
+  get congregationPlayerCornerCutoffSideInset() { return CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET; },
+  get congregationPlayerCornerCutoffDepth() { return CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH; },
+  get congregationPlayerTopY() { return CONGREGATION_PLAYER_TOP_Y; },
+  get showCongregationPlayerBoundsDebug() { return SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG; },
   get mapActive() { return mapActive; },
   get assetsLoaded() { return assetsLoaded; },
   get mapReady() { return mapReady; },
@@ -13284,13 +13297,18 @@ function clampEntityToBounds(entity) {
   // up and the player can get closer to the HUD. Use a smaller radius-based
   // multiplier and a low absolute minimum to avoid clipping into HUD.
   const defaultTopPadding = Math.max(verticalMargin, Math.floor(radius * 2), 8);
+  const stage = levelManager?.getStatus?.()?.stage || "";
+  const isCongregationStage = isCongregationBoundsStage(stage);
+  const congregationTopY = Math.max(HUD_HEIGHT + 1, Number(CONGREGATION_PLAYER_TOP_Y) || (HUD_HEIGHT + defaultTopPadding));
   const topPadding =
-    typeof entity.safeTopMargin === "number"
+    entity?.isPlayer && isCongregationStage
+      ? null
+      : typeof entity.safeTopMargin === "number"
       ? Math.max(entity.safeTopMargin, verticalMargin)
       : defaultTopPadding;
   // Strict top limit: do not allow entities above the HUD line. Keep a
   // consistent top padding so entities don't clip into HUD elements.
-  const topLimit = HUD_HEIGHT + topPadding;
+  const topLimit = entity?.isPlayer && isCongregationStage ? congregationTopY : HUD_HEIGHT + topPadding;
   const bottomLimit = canvas.height - verticalMargin;
   const clampedY = Math.max(topLimit, Math.min(bottomLimit, centerY));
   let adjustedCenterX = clampedX;
@@ -13311,10 +13329,18 @@ function clampEntityToBounds(entity) {
 }
 
 function getPlayerCornerCutoffBounds(topY) {
+  const stage = levelManager?.getStatus?.()?.stage || "";
+  const isCongregationStage = isCongregationBoundsStage(stage);
+  const sideInset = isCongregationStage
+    ? CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET
+    : PLAYER_CORNER_CUTOFF_SIDE_INSET;
+  const depth = isCongregationStage
+    ? CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH
+    : PLAYER_CORNER_CUTOFF_DEPTH;
   return {
     topY,
-    sideInset: PLAYER_CORNER_CUTOFF_SIDE_INSET,
-    depth: PLAYER_CORNER_CUTOFF_DEPTH,
+    sideInset,
+    depth,
   };
 }
 
@@ -19186,7 +19212,12 @@ function resolveCongregationCollisions() {
       player.x += nx * overlap;
       player.y += ny * overlap;
       player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
-      player.y = Math.max(HUD_HEIGHT + player.radius, Math.min(canvas.height - player.radius, player.y));
+      const stage = levelManager?.getStatus?.()?.stage || "";
+      const isCongregationStage = isCongregationBoundsStage(stage);
+      const congregationTopLimit = Math.max(HUD_HEIGHT + 1, Number(CONGREGATION_PLAYER_TOP_Y) || (HUD_HEIGHT + (player.radius || 0)));
+      const defaultTopLimit = HUD_HEIGHT + (player.radius || 0);
+      const topLimit = isCongregationStage ? congregationTopLimit : defaultTopLimit;
+      player.y = Math.max(topLimit, Math.min(canvas.height - player.radius, player.y));
       member.baseX -= nx * overlap * 0.35;
       member.baseY -= ny * overlap * 0.35;
       clampToWanderBounds(member);
