@@ -12322,7 +12322,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const isFadeInStage = stage === "congregationToTeaser" || stage === "upgradeToTeaser";
     const isDissipateStage = stage === "briefingTeaser" || stage === "briefing";
     const allowTeaserSmokeStage = isFadeInStage || isDissipateStage;
-    if (!allowTeaserSmokeStage) {
+    const devArenaActive = typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode === true;
+    if (!allowTeaserSmokeStage || devArenaActive) {
       // Prevent teaser smoke from leaking into unrelated screens (Dev Arena / How To / etc).
       teaserSmokeWipeState.active = false;
       teaserSmokeWipeState.mode = "fadeIn";

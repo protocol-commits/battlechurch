@@ -5439,6 +5439,7 @@ function activateDevMeleeArenaMode() {
   pendingDistrictIntroStart = false;
   suppressInitialAnnouncements = false;
   if (Array.isArray(levelAnnouncements)) levelAnnouncements.length = 0;
+  if (levelManager?.reset) levelManager.reset();
   clearCongregationMembers();
   clearCongregationSpeechBubbles();
   npcsSuspended = false;
