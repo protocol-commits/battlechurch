@@ -192,6 +192,12 @@ const MELEE_SWING_LENGTH = 260;
     spawnCarry: 0,
     lastNowSec: 0,
   };
+  const teaserSmokeWipeState = {
+    active: false,
+    mode: "fadeIn", // fadeIn | hold | dissipate
+    startedAtSec: 0,
+    dissipateStartedAtSec: 0,
+  };
   const TEASER_SMOKE_WIPE_CONFIG = {
     // Tweak here for the congregation->battle teaser smoke wipe.
     puffCount: 320,
@@ -338,18 +344,25 @@ const MELEE_SWING_LENGTH = 260;
       stageName === "upgradeToTeaser" ||
       stageName === "briefingTeaser",
     );
-    const hideSmokeForScene = Boolean(
-      bindings.mapActive ||
+    const hardClearSmokeForScene = Boolean(
       bindings.titleScreenActive ||
-      bindings.epilogueActive ||
+      bindings.mapActive ||
+      bindings.epilogueActive
+    );
+    if (hardClearSmokeForScene) {
+      ambientSmokeState.puffs.length = 0;
+      ambientSmokeState.spawnCarry = 0;
+      return;
+    }
+    const hideSmokeForScene = Boolean(
       bindings.districtVictoryActive ||
       bindings.districtIntroTransitionActive ||
       demonClearedStage ||
       (recapOrBonusOverlayActive && !teaserTransitionStage)
     );
     if (hideSmokeForScene) {
-      ambientSmokeState.puffs.length = 0;
-      ambientSmokeState.spawnCarry = 0;
+      // Keep existing puffs alive in memory so brief/transition overlays
+      // don't hard-reset the field; just skip rendering/updating this frame.
       return;
     }
 
@@ -11869,24 +11882,40 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawTeaserSmokeWipe(stage, timer, duration) {
     const { ctx, canvas } = requireBindings();
     if (!ctx || !canvas) return;
-    if (stage !== "congregationToTeaser" && stage !== "upgradeToTeaser" && stage !== "briefingTeaser") return;
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const isFadeInStage = stage === "congregationToTeaser" || stage === "upgradeToTeaser";
+    const isDissipateStage = stage === "briefingTeaser" || stage === "briefing";
+    if (!isFadeInStage && !isDissipateStage && !teaserSmokeWipeState.active) return;
+
+    if (isFadeInStage) {
+      if (!teaserSmokeWipeState.active || teaserSmokeWipeState.mode === "dissipate") {
+        teaserSmokeWipeState.active = true;
+        teaserSmokeWipeState.mode = "fadeIn";
+        teaserSmokeWipeState.startedAtSec = nowSec;
+        teaserSmokeWipeState.dissipateStartedAtSec = 0;
+      }
+    } else if (isDissipateStage && teaserSmokeWipeState.active && teaserSmokeWipeState.mode !== "dissipate") {
+      teaserSmokeWipeState.mode = "dissipate";
+      teaserSmokeWipeState.dissipateStartedAtSec = nowSec;
+    }
 
     const fadeInSec = Math.max(0.01, Number(TEASER_SMOKE_WIPE_CONFIG.fadeInSeconds) || 0.5);
     const dissipateSec = Math.max(0.01, Number(TEASER_SMOKE_WIPE_CONFIG.dissipateSeconds) || 8);
     let presence = 0;
-    if (stage === "congregationToTeaser" || stage === "upgradeToTeaser") {
-      // Fade smoke in during the black transition.
-      const elapsed = Math.max(0, Math.max(0, duration) - Math.max(0, timer));
-      presence = Math.max(0, Math.min(1, elapsed / fadeInSec));
-    } else if (stage === "briefingTeaser") {
-      // Dissipate over a fixed cinematic window after reveal starts.
-      const elapsed = Math.max(0, Math.max(0, duration) - Math.max(0, timer));
-      const clearT = Math.max(0, Math.min(1, elapsed / dissipateSec));
-      presence = 1 - clearT;
+    if (teaserSmokeWipeState.active) {
+      if (teaserSmokeWipeState.mode === "fadeIn") {
+        const elapsed = Math.max(0, nowSec - teaserSmokeWipeState.startedAtSec);
+        presence = Math.max(0, Math.min(1, elapsed / fadeInSec));
+      } else if (teaserSmokeWipeState.mode === "dissipate") {
+        const elapsed = Math.max(0, nowSec - teaserSmokeWipeState.dissipateStartedAtSec);
+        const clearT = Math.max(0, Math.min(1, elapsed / dissipateSec));
+        presence = 1 - clearT;
+      } else {
+        presence = 1;
+      }
     }
     if (presence <= 0.001) return;
 
-    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
     const tint = parseHexToRgb(TEASER_SMOKE_WIPE_CONFIG.tint, { r: 168, g: 53, b: 56 });
 
     ctx.save();
@@ -11921,6 +11950,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.fill();
     }
     ctx.restore();
+
+    if (teaserSmokeWipeState.mode === "dissipate" && presence <= 0.002) {
+      teaserSmokeWipeState.active = false;
+      teaserSmokeWipeState.mode = "fadeIn";
+      teaserSmokeWipeState.startedAtSec = 0;
+      teaserSmokeWipeState.dissipateStartedAtSec = 0;
+    }
   }
 
   function drawSpeedrunTimer() {
