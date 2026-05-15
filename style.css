@@ -87,6 +87,7 @@ body.touch-enabled .joystick-handle {
 :root {
   --game-width: 0px;
   --game-height: 0px;
+  --dialog-frame-scale: 1;
   --swatch-dark: #0A0F1F;
   --swatch-dark-2: #0A0F1F;
   --swatch-mid: #233152;
@@ -1263,9 +1264,9 @@ body.layout-rotate-warning .pause-hotkeys__list {
 }
 
 .dialog-overlay__panel {
-  width: min(900px, 94%);
+  width: min(calc(900px * var(--dialog-frame-scale, 1)), 94%);
   max-height: 92%;
-  padding: 32px;
+  padding: clamp(16px, calc(32px * var(--dialog-frame-scale, 1)), 32px);
   background: var(--swatch-mid);
   border-radius: 20px;
   border: 1px solid var(--swatch-border);
@@ -1305,7 +1306,7 @@ body.layout-rotate-warning .pause-hotkeys__list {
 }
 
 .dialog-overlay__title {
-  font-size: var(--ui-h1-size);
+  font-size: calc(var(--ui-h1-size) * var(--dialog-frame-scale, 1));
   line-height: var(--ui-h1-line);
   margin: 0;
   color: var(--ui-text-color);
@@ -1326,7 +1327,7 @@ body.layout-rotate-warning .pause-hotkeys__list {
 }
 
 .dialog-overlay__body {
-  font-size: var(--ui-body-size);
+  font-size: calc(var(--ui-body-size) * var(--dialog-frame-scale, 1));
   line-height: var(--ui-body-line);
   color: var(--ui-text-color);
   margin-top: 12px;
@@ -1504,13 +1505,13 @@ body.layout-rotate-warning .formation-picker {
 
 
 .dialog-overlay__button {
+  font-size: calc(var(--overlay-font-button) * var(--dialog-frame-scale, 1));
   margin-top: 28px;
   padding: 12px 24px;
   border-radius: 14px;
   border: none;
   background: var(--swatch-accent-2);
   color: var(--ui-text-color-dark);
-  font-size: var(--ui-body-size);
   font-weight: var(--ui-body-weight);
   cursor: pointer;
   transition: transform 0.12s ease;

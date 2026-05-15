@@ -28,6 +28,8 @@
   let navNextTime = 0;
   let confirmHeld = false;
   let backHeld = false;
+  let boundsRafId = null;
+  let lastBoundsKey = "";
   const PANEL_DEFAULT_CSS_VARS = [
     "--hellfire-default-panel-width-max",
     "--hellfire-default-panel-width-ratio",
@@ -38,6 +40,61 @@
     "--hellfire-default-divider-inset-x",
     "--hellfire-default-divider-margin-top",
   ];
+
+  function getFrameRect() {
+    const canvas = document.getElementById("gameCanvas");
+    if (canvas && typeof canvas.getBoundingClientRect === "function") {
+      const rect = canvas.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        return rect;
+      }
+    }
+    const rootRect = root && typeof root.getBoundingClientRect === "function"
+      ? root.getBoundingClientRect()
+      : null;
+    if (rootRect && rootRect.width > 0 && rootRect.height > 0) {
+      return rootRect;
+    }
+    return {
+      left: 0,
+      top: 0,
+      width: window.innerWidth || 0,
+      height: window.innerHeight || 0,
+    };
+  }
+
+  function syncOverlayBounds() {
+    const rect = getFrameRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    const left = Math.round(rect.left);
+    const top = Math.round(rect.top);
+    const boundsKey = `${left}|${top}|${width}|${height}`;
+    if (boundsKey === lastBoundsKey) return;
+    lastBoundsKey = boundsKey;
+    overlay.style.left = `${left}px`;
+    overlay.style.top = `${top}px`;
+    overlay.style.width = `${width}px`;
+    overlay.style.height = `${height}px`;
+    const scale = Math.max(0.65, Math.min(1.25, width / 1280));
+    overlay.style.setProperty("--dialog-frame-scale", String(scale));
+  }
+
+  function startBoundsSync() {
+    if (boundsRafId !== null) return;
+    const tick = () => {
+      boundsRafId = window.requestAnimationFrame(tick);
+      syncOverlayBounds();
+    };
+    boundsRafId = window.requestAnimationFrame(tick);
+  }
+
+  function stopBoundsSync() {
+    if (boundsRafId === null) return;
+    window.cancelAnimationFrame(boundsRafId);
+    boundsRafId = null;
+    lastBoundsKey = "";
+  }
 
   function getNavigableControls() {
     return Array.from(
@@ -179,6 +236,8 @@
       variantClass = `dialog-overlay--${variant}`;
       overlay.classList.add(variantClass);
     }
+    syncOverlayBounds();
+    startBoundsSync();
     if (typeof onRender === "function") {
       try {
         onRender({ overlay, bodyEl, buttonEl: button, variant });
@@ -215,6 +274,7 @@
       }
     }
     visible = false;
+    stopBoundsSync();
     if (variantClass) {
       const classToRemove = variantClass;
       hideTimer = setTimeout(() => {
@@ -382,6 +442,8 @@
 
   button.addEventListener("click", handleContinue);
   window.addEventListener("keydown", handleKeyDown, { passive: false });
+  window.addEventListener("resize", syncOverlayBounds, { passive: true });
+  window.addEventListener("orientationchange", syncOverlayBounds, { passive: true });
   window.requestAnimationFrame(updateNavigation);
 
   window.DialogOverlay = {
