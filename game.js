@@ -527,6 +527,7 @@ let titleDemoSaveMenuActive = false;
 let titleClassMenuActive = false;
 let titleUtilityPanelMode = null;
 let titleEditSaveDraft = null;
+let titleNewSaveDraft = null;
 const TITLE_EDIT_SAVE_FIELD_LIMITS = Object.freeze({
   playerName: 24,
   cityName: 24,
@@ -5671,7 +5672,7 @@ Input.initialize({
       addGrace(500);
       setDevStatus("Dev: +500 grace");
     }
-    if (key === "h" && titleScreenActive) {
+    if (key === "h" && titleScreenActive && !titleUtilityPanelMode) {
       const editor = window.BattlechurchHitboxEditor;
       const next = typeof editor?.toggle === "function" ? editor.toggle() : false;
       if (next && window.DialogOverlay?.isVisible?.()) {
@@ -5788,6 +5789,7 @@ Renderer.initialize({
   get titleClassMenuActive() { return titleClassMenuActive; },
   get titleUtilityPanelMode() { return titleUtilityPanelMode; },
   get titleEditSaveDraft() { return titleEditSaveDraft; },
+  get titleNewSaveDraft() { return titleNewSaveDraft; },
   get titleSelectedClassId() {
     return window.BattlechurchClasses?.getActiveId?.() || null;
   },
@@ -8887,6 +8889,7 @@ function startDevLevelTestFromEditor({
   titleDemoSaveMenuActive = false;
   titleUtilityPanelMode = null;
   titleEditSaveDraft = null;
+  titleNewSaveDraft = null;
   if (typeof window !== "undefined" && window.MapScreen?.open) {
     window.MapScreen.selectDistrict?.(districtId);
     window.MapScreen.open();
@@ -9489,8 +9492,81 @@ function openCanvasEditSavePanel(saveId) {
       activeEl.blur();
     }
   } catch (_e) {}
+  if (typeof window !== "undefined") {
+    window.__announcementFocus = { key: "title", index: 0 };
+    window.__announcementFocusedButtonKey = "editSavePlayerName";
+  }
   titleUtilityPanelMode = "editSave";
   return true;
+}
+
+function openCanvasNewSavePanel() {
+  const classOptions = getSortedClassMenuEntries(classEntries);
+  const defaultClassId = String(classOptions[0]?.id || "class9");
+  titleNewSaveDraft = {
+    playerName: "",
+    cityName: "",
+    classId: defaultClassId,
+    editingField: "playerName",  // auto-activate name field on open
+  };
+  try {
+    const activeEl = typeof document !== "undefined" ? document.activeElement : null;
+    if (
+      activeEl &&
+      (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" ||
+        activeEl.tagName === "SELECT" || activeEl.isContentEditable) &&
+      typeof activeEl.blur === "function"
+    ) {
+      activeEl.blur();
+    }
+  } catch (_e) {}
+  if (typeof window !== "undefined") {
+    window.__announcementFocus = { key: "title", index: 0 };
+    window.__announcementFocusedButtonKey = "newSavePlayerName";
+  }
+  titleUtilityPanelMode = "newSave";
+  return true;
+}
+
+function applyTitleNewSaveTypingKey(rawKey) {
+  if (titleUtilityPanelMode !== "newSave" || !titleNewSaveDraft) return false;
+  const editingField = String(titleNewSaveDraft.editingField || "");
+  if (!editingField || (editingField !== "playerName" && editingField !== "cityName")) return false;
+  const key = String(rawKey || "");
+  if (!key) return false;
+  if (key === "escape" || key === "Escape") {
+    titleNewSaveDraft.editingField = null;
+    return true;
+  }
+  if (key === "enter" || key === "Enter") {
+    titleNewSaveDraft.editingField = null;
+    if (editingField === "playerName") {
+      const trimmed = String(titleNewSaveDraft.playerName || "").trim();
+      titleNewSaveDraft.playerName = trimmed;
+    } else if (editingField === "cityName") {
+      titleNewSaveDraft.cityName = String(titleNewSaveDraft.cityName || "").trim();
+    }
+    return true;
+  }
+  if (key === "backspace" || key === "Backspace") {
+    const current = String(titleNewSaveDraft[editingField] || "");
+    titleNewSaveDraft[editingField] = current.slice(0, Math.max(0, current.length - 1));
+    return true;
+  }
+  if (key.length === 1) {
+    if (!/[a-z0-9 .,'-]/i.test(key)) return false;
+    const maxLen =
+      editingField === "playerName"
+        ? Number(TITLE_EDIT_SAVE_FIELD_LIMITS.playerName) || 24
+        : Number(TITLE_EDIT_SAVE_FIELD_LIMITS.cityName) || 24;
+    const current = String(titleNewSaveDraft[editingField] || "");
+    if (current.length >= maxLen) return true;
+    const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
+    const nextChar = modifiers?.shift ? key.toUpperCase() : key;
+    titleNewSaveDraft[editingField] = current + nextChar;
+    return true;
+  }
+  return false;
 }
 
 function applyTitleEditSaveTypingKey(rawKey) {
@@ -21148,12 +21224,26 @@ function handleTitleScreen() {
       titleEditSaveDraft.classId = String(classOptions[nextIdx]?.id || titleEditSaveDraft.classId || "");
       return true;
     };
+    const cycleNewSaveClass = (delta) => {
+      if (titleUtilityPanelMode !== "newSave" || !titleNewSaveDraft) return false;
+      const classOptions = getSortedClassMenuEntries(classEntries);
+      if (!classOptions.length) return false;
+      const currentId = String(titleNewSaveDraft.classId || "");
+      const currentIdx = Math.max(0, classOptions.findIndex((entry) => String(entry?.id || "") === currentId));
+      const nextIdx = (currentIdx + (delta > 0 ? 1 : -1) + classOptions.length) % classOptions.length;
+      titleNewSaveDraft.classId = String(classOptions[nextIdx]?.id || titleNewSaveDraft.classId || "");
+      return true;
+    };
     const editFieldActive =
       titleUtilityPanelMode === "editSave" &&
       titleEditSaveDraft &&
       (titleEditSaveDraft.editingField === "playerName" || titleEditSaveDraft.editingField === "cityName");
+    const newSaveFieldActive =
+      titleUtilityPanelMode === "newSave" &&
+      titleNewSaveDraft &&
+      (titleNewSaveDraft.editingField === "playerName" || titleNewSaveDraft.editingField === "cityName");
+    // Tab navigation for editSave
     if (titleUtilityPanelMode === "editSave" && (keysJustPressed.has("Tab") || keysJustPressed.has("tab"))) {
-      const tabKey = keysJustPressed.has("Tab") ? "Tab" : "tab";
       keysJustPressed.delete("Tab");
       keysJustPressed.delete("tab");
       const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
@@ -21164,7 +21254,36 @@ function handleTitleScreen() {
       const nextIndex = reverse
         ? (currentIndex - 1 + editOrder.length) % editOrder.length
         : (currentIndex + 1) % editOrder.length;
-      setTitleFocusByButtonKey(editOrder[nextIndex]);
+      const nextKey = editOrder[nextIndex];
+      setTitleFocusByButtonKey(nextKey);
+      // Auto-activate text fields on Tab; clear editingField for non-text rows
+      if (titleEditSaveDraft) {
+        if (nextKey === "editSavePlayerName") titleEditSaveDraft.editingField = "playerName";
+        else if (nextKey === "editSaveCity") titleEditSaveDraft.editingField = "cityName";
+        else titleEditSaveDraft.editingField = null;
+      }
+      return true;
+    }
+    // Tab navigation for newSave
+    if (titleUtilityPanelMode === "newSave" && (keysJustPressed.has("Tab") || keysJustPressed.has("tab"))) {
+      keysJustPressed.delete("Tab");
+      keysJustPressed.delete("tab");
+      const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
+      const reverse = Boolean(modifiers?.shift);
+      const newSaveOrder = ["newSavePlayerName", "newSaveCity", "newSaveClass", "newSaveCreate", "newSaveCancel"];
+      const focusedKey = getFocusedTitleRowKey();
+      const currentIndex = Math.max(0, newSaveOrder.indexOf(focusedKey));
+      const nextIndex = reverse
+        ? (currentIndex - 1 + newSaveOrder.length) % newSaveOrder.length
+        : (currentIndex + 1) % newSaveOrder.length;
+      const nextKey = newSaveOrder[nextIndex];
+      setTitleFocusByButtonKey(nextKey);
+      // Auto-activate text fields on Tab; clear editingField for non-text rows
+      if (titleNewSaveDraft) {
+        if (nextKey === "newSavePlayerName") titleNewSaveDraft.editingField = "playerName";
+        else if (nextKey === "newSaveCity") titleNewSaveDraft.editingField = "cityName";
+        else titleNewSaveDraft.editingField = null;
+      }
       return true;
     }
     if (editFieldActive) {
@@ -21174,7 +21293,6 @@ function handleTitleScreen() {
           keysJustPressed.delete(key);
         }
       }
-      // While typing in a field, suppress menu navigation/activation input.
       [
         "w", "a", "s", "d",
         "arrowup", "arrowdown", "arrowleft", "arrowright",
@@ -21184,9 +21302,25 @@ function handleTitleScreen() {
       const stillEditing =
         titleEditSaveDraft &&
         (titleEditSaveDraft.editingField === "playerName" || titleEditSaveDraft.editingField === "cityName");
-      if (stillEditing) {
-        return true;
+      if (stillEditing) return true;
+    }
+    if (newSaveFieldActive) {
+      const pressedKeys = Array.from(keysJustPressed);
+      for (const key of pressedKeys) {
+        if (applyTitleNewSaveTypingKey(key)) {
+          keysJustPressed.delete(key);
+        }
       }
+      [
+        "w", "a", "s", "d",
+        "arrowup", "arrowdown", "arrowleft", "arrowright",
+        "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+        " ", "enter", "Enter",
+      ].forEach((k) => keysJustPressed.delete(k));
+      const stillEditing =
+        titleNewSaveDraft &&
+        (titleNewSaveDraft.editingField === "playerName" || titleNewSaveDraft.editingField === "cityName");
+      if (stillEditing) return true;
     }
     if (titleUtilityPanelMode === "settings") {
       const sliderStep = 0.05;
@@ -21207,6 +21341,35 @@ function handleTitleScreen() {
         if (focusedKey === "editSaveClass" && cycleEditSaveClass(1)) return true;
       }
     }
+    if (titleUtilityPanelMode === "newSave") {
+      if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
+        const focusedKey = getFocusedTitleRowKey();
+        if (focusedKey === "newSaveClass" && cycleNewSaveClass(-1)) return true;
+      }
+      if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
+        const focusedKey = getFocusedTitleRowKey();
+        if (focusedKey === "newSaveClass" && cycleNewSaveClass(1)) return true;
+      }
+    }
+    // Esc closes editSave / newSave panels when not actively typing
+    if (
+      (titleUtilityPanelMode === "editSave" || titleUtilityPanelMode === "newSave") &&
+      (keysJustPressed.has("Escape") || keysJustPressed.has("escape"))
+    ) {
+      keysJustPressed.delete("Escape");
+      keysJustPressed.delete("escape");
+      if (titleUtilityPanelMode === "editSave") {
+        titleUtilityPanelMode = "more";
+        titleEditSaveDraft = null;
+      } else {
+        titleUtilityPanelMode = null;
+        titleNewSaveDraft = null;
+      }
+      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+        window.playMenuAdvanceSfx(0.55);
+      }
+      return true;
+    }
     const escapeHtml = (value) =>
       String(value ?? "")
         .replaceAll("&", "&amp;")
@@ -21219,7 +21382,7 @@ function handleTitleScreen() {
       resolveFocusIndex: ({ buttons, focusIndex, direction }) => {
         if (!Array.isArray(buttons) || buttons.length === 0) return focusIndex;
         if (!titleDemoSaveMenuActive) {
-          if (titleUtilityPanelMode === "settings" || titleUtilityPanelMode === "editSave") {
+          if (titleUtilityPanelMode === "settings" || titleUtilityPanelMode === "editSave" || titleUtilityPanelMode === "newSave") {
             const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
             return (focusIndex + linearDirection + buttons.length) % buttons.length;
           }
@@ -21231,7 +21394,7 @@ function handleTitleScreen() {
           return (focusIndex + linearDirection + buttons.length) % buttons.length;
         }
         const current = buttons[focusIndex] || null;
-        if (titleUtilityPanelMode === "more") {
+        if (titleUtilityPanelMode === "more" || titleUtilityPanelMode === "newSave") {
           const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
           return (focusIndex + linearDirection + buttons.length) % buttons.length;
         }
@@ -21330,6 +21493,7 @@ function handleTitleScreen() {
           titleDemoSaveMenuActive = true;
           titleUtilityPanelMode = null;
           titleEditSaveDraft = null;
+          titleNewSaveDraft = null;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
@@ -21341,6 +21505,9 @@ function handleTitleScreen() {
             if (titleUtilityPanelMode === "editSave") {
               titleUtilityPanelMode = "more";
               titleEditSaveDraft = null;
+            } else if (titleUtilityPanelMode === "newSave") {
+              titleUtilityPanelMode = null;
+              titleNewSaveDraft = null;
             } else {
               titleUtilityPanelMode = null;
               titleEditSaveDraft = null;
@@ -21488,9 +21655,8 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "newCloudSave") {
-          titleUtilityPanelMode = null;
           titleEditSaveDraft = null;
-          showNewCloudSaveDialog();
+          openCanvasNewSavePanel();
           return;
         }
         if (String(button.key || "").startsWith("cloudrowmore:")) {
@@ -21504,6 +21670,9 @@ function handleTitleScreen() {
         if (button.key === "utilityPanelClose") {
           if (titleUtilityPanelMode === "editSave") {
             titleUtilityPanelMode = "more";
+          } else if (titleUtilityPanelMode === "newSave") {
+            titleUtilityPanelMode = null;
+            titleNewSaveDraft = null;
           } else {
             titleUtilityPanelMode = null;
             titleEditSaveDraft = null;
@@ -21587,6 +21756,59 @@ function handleTitleScreen() {
         if (button.key === "editSaveCancel") {
           titleUtilityPanelMode = "more";
           titleEditSaveDraft = null;
+          return;
+        }
+        if (button.key === "newSavePlayerName") {
+          if (!titleNewSaveDraft) return;
+          titleNewSaveDraft.editingField = "playerName";
+          return;
+        }
+        if (button.key === "newSaveCity") {
+          if (!titleNewSaveDraft) return;
+          titleNewSaveDraft.editingField = "cityName";
+          return;
+        }
+        if (button.key === "newSaveClass") {
+          cycleNewSaveClass(1);
+          return;
+        }
+        if (button.key === "newSaveCreate") {
+          if (!titleNewSaveDraft) return;
+          const draft = { ...titleNewSaveDraft };
+          const playerName = String(draft.playerName || "").trim();
+          const cityName = String(draft.cityName || "").trim();
+          const classId = String(draft.classId || "").trim();
+          if (!playerName || !classId) {
+            if (typeof setDevStatus === "function") {
+              setDevStatus("Please enter a Pastor Name and choose a Denomination.", 2.5);
+            }
+            return;
+          }
+          titleUtilityPanelMode = null;
+          titleNewSaveDraft = null;
+          void (async () => {
+            try {
+              if (typeof window.MapScreen?.createSaveFile === "function") {
+                const newId = await window.MapScreen.createSaveFile({
+                  saveName: playerName,
+                  playerName,
+                  cityName,
+                  classId,
+                  setActive: true,
+                });
+                if (newId) titleCloudSelectedSaveId = newId;
+              }
+              if (typeof window.BattlechurchClasses?.setActive === "function") {
+                window.BattlechurchClasses.setActive(classId);
+              }
+              await refreshTitleCloudSaveOption();
+            } catch (_e) {}
+          })();
+          return;
+        }
+        if (button.key === "newSaveCancel") {
+          titleUtilityPanelMode = null;
+          titleNewSaveDraft = null;
           return;
         }
 

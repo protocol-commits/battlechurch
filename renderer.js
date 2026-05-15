@@ -9455,7 +9455,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
       const displayValue = fieldValue + (isEditing && cursor ? "│" : "");
-      ctx.fillText(String(displayValue || fieldLabel), textX, midY);
+      ctx.fillText(String(displayValue || ""), textX, midY);
 
     } else if (isSlider) {
       // — Label + value on one line —
@@ -9554,6 +9554,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       titleClassMenuActive,
       titleUtilityPanelMode,
       titleEditSaveDraft,
+      titleNewSaveDraft,
       titleDemoSaveSlots,
       titleCloudSaveLoading,
       titleCloudSaveRows,
@@ -9664,6 +9665,35 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "editSaveClass", label: `Denomination: ${classTitle}`, meta: "Use A/D or Space to cycle" },
         { key: "editSaveApply", label: "Apply Changes", meta: "Save metadata updates" },
         { key: "editSaveCancel", label: "Cancel", meta: "Discard and return to Save Options" },
+      ];
+    } else if (titleUtilityPanelMode === "newSave") {
+      const draft = titleNewSaveDraft || {};
+      const classId = String(draft.classId || "");
+      const classTitle =
+        String(window.BattlechurchClassConfig?.byId?.[classId]?.classTitle || classId || "Class");
+      const editingField = String(draft.editingField || "");
+      const editingPlayer = editingField === "playerName";
+      const editingCity = editingField === "cityName";
+      const playerValue = String(draft.playerName || "");
+      const cityValue = String(draft.cityName || "");
+      buttonConfigs = [
+        {
+          key: "newSavePlayerName",
+          label: playerValue,
+          meta: editingPlayer ? "Typing... Enter confirm / Esc cancel / Backspace delete" : "Press Space to type",
+          isEditing: editingPlayer,
+          placeholder: "Your pastor's name",
+        },
+        {
+          key: "newSaveCity",
+          label: cityValue,
+          meta: editingCity ? "Typing... Enter confirm / Esc cancel / Backspace delete" : "Press Space to type",
+          isEditing: editingCity,
+          placeholder: "Your city (optional)",
+        },
+        { key: "newSaveClass", label: classTitle, meta: "A/D or Space to cycle" },
+        { key: "newSaveCreate", label: "Create Save" },
+        { key: "newSaveCancel", label: "Cancel" },
       ];
     } else if (titleUtilityPanelMode === "settings") {
       const audioSettings = (typeof window !== "undefined" && window.audioSettings) ? window.audioSettings : {};
@@ -9843,15 +9873,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const utilityTypography = window.UIStyles?.typography?.canvasUtilityPanels || {};
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
       const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
-      const utilityTitle = utilityType === "more" ? "Save Options" : "Settings";
+      const utilityResolvedTitle =
+        utilityType === "more" ? "Save Options"
+        : utilityType === "editSave" ? "Edit Save"
+        : utilityType === "newSave" ? "New Save"
+        : "Settings";
+      const utilityEyebrow =
+        utilityType === "editSave" ? "EDIT SAVE FILE"
+        : utilityType === "newSave" ? "NEW SAVE FILE"
+        : "";
       const utilityHint =
         utilityType === "more"
           ? "W / S move  ·  SPACE select  ·  ESC back"
-          : utilityType === "editSave"
-            ? "TAB next field  ·  W/S move  ·  A/D cycle class  ·  SPACE edit/apply  ·  ESC back"
+          : (utilityType === "editSave" || utilityType === "newSave")
+            ? "TAB next field  ·  A/D cycle class  ·  SPACE edit  ·  ESC back"
             : "W / S move  ·  A/D adjust sliders  ·  SPACE select  ·  ESC back";
-      const utilityResolvedTitle =
-        utilityType === "more" ? "Save Options" : utilityType === "editSave" ? "Edit Save" : "Settings";
       const panelW = Math.round(Math.min(760, layout.virtualCanvas.width * 0.62));
       const panelH = Math.round(Math.min(620, layout.virtualCanvas.height * 0.72));
       const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
@@ -9897,151 +9933,201 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
 
+      // eyebrow sits at top; title shifts down when eyebrow present
+      const effectiveTitleY = utilityEyebrow ? panelY + 48 : titleY;
+      const effectiveHintY  = utilityEyebrow ? panelY + 68 : hintY;
+      const effectiveDividerY = utilityEyebrow ? panelY + 90 : dividerY;
+      if (utilityEyebrow) {
+        fillTextCrisp({
+          text: utilityEyebrow,
+          x: panelX + panelW / 2,
+          y: panelY + 22,
+          font: `600 ${(window.UIStyles?.typography?.utilityPanel?.eyebrow ?? 13)}px ${PIXEL_UI_FONT_FAMILY}`,
+          fillStyle: getUT().eyebrow,
+          textAlign: "center",
+          textBaseline: "alphabetic",
+        });
+      }
       fillTextCrisp({
         text: utilityResolvedTitle,
         x: panelX + panelW / 2,
-        y: titleY,
+        y: effectiveTitleY,
         font: `700 ${utilityTypography.title ?? 30}px ${PIXEL_UI_FONT_FAMILY}`,
-        fillStyle: EMBER_BUTTON_PALETTE.text,
+        fillStyle: getUT().title,
         textAlign: "center",
         textBaseline: "alphabetic",
       });
       fillTextCrisp({
         text: utilityHint,
         x: panelX + panelW / 2,
-        y: hintY,
+        y: effectiveHintY,
         font: `600 ${utilityTypography.hint ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
-        fillStyle: "rgba(231,176,102,0.82)",
+        fillStyle: getUT().meta,
         textAlign: "center",
         textBaseline: "alphabetic",
       });
       ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
       ctx.lineWidth = dividerStyle.width ?? 1;
       ctx.beginPath();
-      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), dividerY);
-      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), dividerY);
+      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), effectiveDividerY);
+      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), effectiveDividerY);
       ctx.stroke();
 
-      if (utilityType === "editSave") {
-        const draft = titleEditSaveDraft || {};
+      if (utilityType === "editSave" || utilityType === "newSave") {
+        // ── Shared form layout for editSave / newSave ──────────────────────
+        const isNewSave = utilityType === "newSave";
+        const draft = isNewSave ? (titleNewSaveDraft || {}) : (titleEditSaveDraft || {});
         const editingField = String(draft.editingField || "");
-        const fieldRows = [
-          { key: "editSavePlayerName", title: "Pastor Name", value: String(draft.playerName || "Pastor"), editableField: "playerName" },
-          { key: "editSaveCity", title: "City", value: String(draft.cityName || ""), placeholder: "(None)", editableField: "cityName" },
-          { key: "editSaveClass", title: "Denomination", value: String(buttonConfigs.find((b) => b.key === "editSaveClass")?.label || "").replace(/^Denomination:\s*/i, ""), meta: "A/D or Space to cycle" },
-        ];
-        const fieldLabelH = 16;
-        const fieldInputH = 38;
-        const fieldGap = 12;
-        const fieldRowH = fieldLabelH + fieldInputH + fieldGap;
-        const fieldStartY = listStartY + 8;
-        const fieldInsetX = rowX + 10;
-        const fieldW = rowW - 20;
+        const ut = getUT();
+        const ty = window.UIStyles?.typography?.utilityPanel || {};
+        const sc = layout.scale;
 
-        fieldRows.forEach((field, idx) => {
-          const fieldY = Math.round(fieldStartY + idx * fieldRowH);
-          const focused = isAnnouncementButtonFocused("title", buttonConfigs.findIndex((b) => b.key === field.key));
-          const isEditing = editingField === field.editableField;
-          const valueText = field.value || field.placeholder || "";
+        const LABEL_H  = 18;  // height reserved for the field eyebrow label
+        const INPUT_H  = 44;  // height of the input box itself
+        const FIELD_H  = LABEL_H + INPUT_H;  // total slot per text field
+        const NAV_H    = 52;
+        const ACTION_H = 46;
+        const ROW_GAP  = 12;
+        const ACTION_GAP = 12;
+        const fieldW = rowW;
+        // Content starts just below the divider (which moved down for eyebrow panels)
+        const contentStartY = effectiveDividerY + 18;
+
+        // ── Helper: draw one text-input field ──────────────────────────────
+        const drawInputField = ({ key, labelText, value, placeholder, editing, focused, y }) => {
+          const idx = buttonConfigs.findIndex((b) => b.key === key);
+          // Label
           fillTextCrisp({
-            text: field.title,
-            x: fieldInsetX,
-            y: fieldY + 2,
-            font: `600 ${utilityTypography.rowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
-            fillStyle: "rgba(231, 176, 102, 0.9)",
+            text: String(labelText).toUpperCase(),
+            x: rowX + 4,
+            y: y + LABEL_H - 4,
+            font: `600 ${ty.eyebrow ?? 13}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: ut.eyebrow,
             textAlign: "left",
-            textBaseline: "top",
+            textBaseline: "alphabetic",
           });
+          // Box
+          const boxY = y + LABEL_H;
           ctx.save();
-          ctx.fillStyle = "rgba(14, 12, 16, 0.9)";
-          ctx.strokeStyle = isEditing
-            ? "rgba(255, 244, 190, 0.95)"
-            : focused
-              ? "rgba(255, 214, 130, 0.8)"
-              : "rgba(242, 200, 125, 0.35)";
-          ctx.lineWidth = isEditing ? 2.8 : focused ? 2 : 1.2;
-          roundRect(ctx, fieldInsetX, fieldY + fieldLabelH, fieldW, fieldInputH, 8, true, true);
+          ctx.fillStyle = ut.inputBg;
+          ctx.strokeStyle = editing ? ut.inputBorderEditing : focused ? ut.inputBorderFocused : ut.inputBorder;
+          ctx.lineWidth = Math.max(1, (editing || focused ? 2 : 1.2) * sc);
+          roundRect(ctx, rowX, boxY, fieldW, INPUT_H, Math.round(8 * sc), true, true);
           ctx.restore();
+          // Value or placeholder
+          const hasValue = String(value || "").length > 0;
+          const displayText = editing ? (value + "│") : (hasValue ? value : placeholder);
           fillTextCrisp({
-            text: `${valueText}${isEditing ? " |" : ""}`,
-            x: fieldInsetX + 10,
-            y: fieldY + fieldLabelH + 25,
-            font: `600 ${utilityTypography.rowTitle ?? 24}px ${PIXEL_UI_FONT_FAMILY}`,
-            fillStyle: valueText ? EMBER_BUTTON_PALETTE.text : "rgba(231,176,102,0.55)",
+            text: String(displayText || ""),
+            x: rowX + 14,
+            y: boxY + INPUT_H / 2,
+            font: `500 ${ty.input ?? 18}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: (hasValue || editing) ? ut.inputText : ut.inputPlaceholder,
             textAlign: "left",
             textBaseline: "middle",
-            maxWidth: fieldW - 18,
+            maxWidth: fieldW - 28,
           });
-          if (isEditing) {
-            fillTextCrisp({
-              text: "Typing... Enter save · Esc cancel · Backspace delete",
-              x: fieldInsetX + fieldW,
-              y: fieldY + fieldLabelH - 2,
-              font: `500 ${Math.max(11, (utilityTypography.rowMeta ?? 14) - 1)}px ${PIXEL_UI_FONT_FAMILY}`,
-              fillStyle: "rgba(255,214,130,0.9)",
-              textAlign: "right",
-              textBaseline: "bottom",
-            });
-          } else if (field.meta) {
-            fillTextCrisp({
-              text: field.meta,
-              x: fieldInsetX + fieldW,
-              y: fieldY + fieldLabelH - 2,
-              font: `500 ${Math.max(11, (utilityTypography.rowMeta ?? 14) - 1)}px ${PIXEL_UI_FONT_FAMILY}`,
-              fillStyle: "rgba(231,176,102,0.75)",
-              textAlign: "right",
-              textBaseline: "bottom",
-            });
-          }
-
-          const buttonIndex = buttonConfigs.findIndex((b) => b.key === field.key);
-          if (buttonIndex >= 0) {
-            boundsByIndex[buttonIndex] = {
-              key: field.key,
-              x: layout.offsetX + fieldInsetX * layout.scale,
-              y: layout.offsetY + (fieldY + fieldLabelH) * layout.scale,
-              width: fieldW * layout.scale,
-              height: fieldInputH * layout.scale,
+          if (idx >= 0) {
+            boundsByIndex[idx] = {
+              key,
+              x: layout.offsetX + rowX * sc,
+              y: layout.offsetY + boxY * sc,
+              width: fieldW * sc,
+              height: INPUT_H * sc,
             };
           }
+        };
+
+        // Pastor Name
+        const nameKey = isNewSave ? "newSavePlayerName" : "editSavePlayerName";
+        drawInputField({
+          key: nameKey,
+          labelText: "Pastor Name",
+          value: String(draft.playerName || ""),
+          placeholder: isNewSave ? "Your pastor's name" : "Pastor",
+          editing: editingField === "playerName",
+          focused: isAnnouncementButtonFocused("title", buttonConfigs.findIndex((b) => b.key === nameKey)),
+          y: contentStartY,
         });
 
-        const actionY = panelY + panelH - 76;
-        const actionGap = 12;
-        const actionW = Math.round((rowW - actionGap) / 2);
-        const actionH = 44;
-        [
-          { key: "editSaveApply", label: "Apply Changes", x: rowX },
-          { key: "editSaveCancel", label: "Cancel", x: rowX + actionW + actionGap },
-        ].forEach((action) => {
-          const idx = buttonConfigs.findIndex((b) => b.key === action.key);
-          if (idx < 0) return;
-          const focused = isAnnouncementButtonFocused("title", idx);
-          ctx.save();
-          ctx.fillStyle = action.key === "editSaveApply"
-            ? focused ? "rgba(182, 98, 38, 0.96)" : "rgba(126, 62, 24, 0.9)"
-            : focused ? "rgba(78, 54, 34, 0.96)" : "rgba(24, 20, 18, 0.9)";
-          ctx.strokeStyle = focused ? "rgba(255, 244, 190, 1)" : "rgba(242, 200, 125, 0.35)";
-          ctx.lineWidth = focused ? 2.8 : 1.2;
-          roundRect(ctx, action.x, actionY, actionW, actionH, 8, true, true);
-          ctx.restore();
-          fillTextCrisp({
-            text: action.label,
-            x: action.x + actionW / 2,
-            y: actionY + actionH / 2,
-            font: `700 ${Math.max(16, (utilityTypography.rowTitle ?? 24) - 4)}px ${PIXEL_UI_FONT_FAMILY}`,
-            fillStyle: EMBER_BUTTON_PALETTE.text,
-            textAlign: "center",
-            textBaseline: "middle",
-          });
-          boundsByIndex[idx] = {
-            key: action.key,
-            x: layout.offsetX + action.x * layout.scale,
-            y: layout.offsetY + actionY * layout.scale,
-            width: actionW * layout.scale,
-            height: actionH * layout.scale,
-          };
+        // City
+        const cityKey = isNewSave ? "newSaveCity" : "editSaveCity";
+        const cityY = contentStartY + FIELD_H + ROW_GAP;
+        drawInputField({
+          key: cityKey,
+          labelText: "City",
+          value: String(draft.cityName || ""),
+          placeholder: "Your city (optional)",
+          editing: editingField === "cityName",
+          focused: isAnnouncementButtonFocused("title", buttonConfigs.findIndex((b) => b.key === cityKey)),
+          y: cityY,
         });
+
+        // Denomination (nav row — A/D to cycle)
+        const classKey   = isNewSave ? "newSaveClass" : "editSaveClass";
+        const classIdx   = buttonConfigs.findIndex((b) => b.key === classKey);
+        const classFocus = isAnnouncementButtonFocused("title", classIdx);
+        const classConfig = buttonConfigs.find((b) => b.key === classKey);
+        const classLabel = String(classConfig?.label || "—");
+        const classY = cityY + FIELD_H + ROW_GAP;
+        drawUtilityRow(ctx, layout, {
+          x: rowX, y: classY, w: fieldW, h: NAV_H,
+          variant: "nav",
+          label: classLabel,
+          meta: "A / D to cycle",
+          focused: classFocus,
+        });
+        if (classIdx >= 0) {
+          boundsByIndex[classIdx] = {
+            key: classKey,
+            x: layout.offsetX + rowX * sc,
+            y: layout.offsetY + classY * sc,
+            width: fieldW * sc,
+            height: NAV_H * sc,
+          };
+        }
+
+        // Action buttons
+        const actionRowY = classY + NAV_H + ROW_GAP + 4;
+        const actionW = Math.round((fieldW - ACTION_GAP) / 2);
+        const primaryKey   = isNewSave ? "newSaveCreate" : "editSaveApply";
+        const primaryLabel = isNewSave ? "Create Save"   : "Apply Changes";
+        const cancelKey    = isNewSave ? "newSaveCancel" : "editSaveCancel";
+
+        const primaryIdx   = buttonConfigs.findIndex((b) => b.key === primaryKey);
+        drawUtilityRow(ctx, layout, {
+          x: rowX, y: actionRowY, w: actionW, h: ACTION_H,
+          variant: "action", actionStyle: "primary",
+          label: primaryLabel,
+          focused: isAnnouncementButtonFocused("title", primaryIdx),
+        });
+        if (primaryIdx >= 0) {
+          boundsByIndex[primaryIdx] = {
+            key: primaryKey,
+            x: layout.offsetX + rowX * sc,
+            y: layout.offsetY + actionRowY * sc,
+            width: actionW * sc,
+            height: ACTION_H * sc,
+          };
+        }
+
+        const cancelIdx   = buttonConfigs.findIndex((b) => b.key === cancelKey);
+        const cancelX = rowX + actionW + ACTION_GAP;
+        drawUtilityRow(ctx, layout, {
+          x: cancelX, y: actionRowY, w: actionW, h: ACTION_H,
+          variant: "action", actionStyle: "secondary",
+          label: "Cancel",
+          focused: isAnnouncementButtonFocused("title", cancelIdx),
+        });
+        if (cancelIdx >= 0) {
+          boundsByIndex[cancelIdx] = {
+            key: cancelKey,
+            x: layout.offsetX + cancelX * sc,
+            y: layout.offsetY + actionRowY * sc,
+            width: actionW * sc,
+            height: ACTION_H * sc,
+          };
+        }
       } else {
         for (let index = visibleStart; index < visibleEnd; index += 1) {
           const config = buttonConfigs[index];
