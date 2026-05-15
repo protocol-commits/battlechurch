@@ -16790,6 +16790,7 @@ class BossEncounter {
     lastEnemyDeathPosition = { x: this.x, y: this.y };
     if (!this.deathNotified) {
       levelManager?.notifyEnemyDefeated();
+      checkKillMilestoneBurst();
       const bossBaseHp = Math.max(0, Number(this.maxHealth) || Number(this.config?.health) || 0);
       if (bossBaseHp > 0) levelManager?.notifyEnemyDamaged?.(bossBaseHp);
       spawnPowerUpDrops(4 + Math.min(3, this.level));
@@ -23340,6 +23341,29 @@ function drawHudMilestoneBurst() {
   ctx.fillText(burst.label, burst.screenX, y);
   ctx.restore();
 }
+
+function checkKillMilestoneBurst() {
+  const total = levelManager?.getStats?.()?.enemiesDefeated;
+  if (!Number.isFinite(total) || total <= 0) return;
+  const prev = window.__killMilestoneLastTotal ?? 0;
+  window.__killMilestoneLastTotal = total;
+  const prevMilestone = Math.floor(prev / 500);
+  const newMilestone = Math.floor(total / 500);
+  if (newMilestone <= prevMilestone || newMilestone === 0) return;
+  const milestoneCount = newMilestone * 500;
+  const px = typeof player !== "undefined" && Number.isFinite(player?.x) ? player.x : (cameraOffsetX + canvas.width / 2);
+  const py = typeof player !== "undefined" && Number.isFinite(player?.y) ? player.y - (player.radius || 24) - 20 : canvas.height / 2;
+  addFloatingTextAt(px, py, `${milestoneCount} Kills`, "#76D98F", {
+    vy: -80,
+    life: 1.6,
+    fontSize: 48,
+    fontWeight: "900",
+    fadeDelay: 0.6,
+    speechBubble: false,
+    priority: 9,
+  });
+}
+window.checkKillMilestoneBurst = checkKillMilestoneBurst;
 
 function withAlpha(hexColor, alpha) {
   if (!hexColor || hexColor[0] !== "#" || hexColor.length !== 7) return hexColor;

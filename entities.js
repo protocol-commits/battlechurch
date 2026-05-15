@@ -4554,6 +4554,7 @@
           this.radius = 0;
           if (levelManager && typeof levelManager.notifyEnemyDefeated === "function") {
             levelManager.notifyEnemyDefeated();
+            window.checkKillMilestoneBurst?.();
             const baseHp = Math.max(0, Number(this.maxHealth) || Number(this.config?.health) || 0);
             if (baseHp > 0 && typeof levelManager.notifyEnemyDamaged === "function") {
               levelManager.notifyEnemyDamaged(baseHp);
@@ -4596,6 +4597,7 @@
         }
         if (levelManager && typeof levelManager.notifyEnemyDefeated === "function") {
           levelManager.notifyEnemyDefeated();
+          window.checkKillMilestoneBurst?.();
           const baseHp = Math.max(0, Number(this.maxHealth) || Number(this.config?.health) || 0);
           if (baseHp > 0 && typeof levelManager.notifyEnemyDamaged === "function") {
             levelManager.notifyEnemyDamaged(baseHp);
