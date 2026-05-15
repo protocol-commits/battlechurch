@@ -9176,6 +9176,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       titleDemoSaveMenuActive,
       titleClassMenuActive,
       titleUtilityPanelMode,
+      titleEditSaveDraft,
       titleDemoSaveSlots,
       titleCloudSaveLoading,
       titleCloudSaveRows,
@@ -9261,6 +9262,31 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "resetGoogleSave", label: "Reset Save Progress", meta: "Wipe progress and start fresh", danger: true },
         { key: "deleteCloudSave", label: "Delete Save", meta: "Permanently remove this save file", danger: true },
         { key: "utilityPanelClose", label: "Close", meta: "Return to save list" },
+      ];
+    } else if (titleUtilityPanelMode === "editSave") {
+      const draft = titleEditSaveDraft || {};
+      const classId = String(draft.classId || "");
+      const classTitle =
+        String(window.BattlechurchClassConfig?.byId?.[classId]?.classTitle || classId || "Class");
+      const editingField = String(draft.editingField || "");
+      const editingPlayer = editingField === "playerName";
+      const editingCity = editingField === "cityName";
+      const playerValue = String(draft.playerName || "Pastor");
+      const cityValue = String(draft.cityName || "(None)");
+      buttonConfigs = [
+        {
+          key: "editSavePlayerName",
+          label: `Pastor Name: ${playerValue}${editingPlayer ? " |" : ""}`,
+          meta: editingPlayer ? "Typing... Enter save / Esc cancel / Backspace delete" : "Press Space to edit text",
+        },
+        {
+          key: "editSaveCity",
+          label: `City: ${cityValue}${editingCity ? " |" : ""}`,
+          meta: editingCity ? "Typing... Enter save / Esc cancel / Backspace delete" : "Press Space to edit text",
+        },
+        { key: "editSaveClass", label: `Denomination: ${classTitle}`, meta: "Use A/D or Space to cycle" },
+        { key: "editSaveApply", label: "Apply Changes", meta: "Save metadata updates" },
+        { key: "editSaveCancel", label: "Cancel", meta: "Discard and return to Save Options" },
       ];
     } else if (titleUtilityPanelMode === "settings") {
       const audioSettings = (typeof window !== "undefined" && window.audioSettings) ? window.audioSettings : {};
@@ -9449,7 +9475,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const utilityHint =
         utilityType === "more"
           ? "W / S move  ·  SPACE select  ·  ESC back"
-          : "W / S move  ·  A/D adjust sliders  ·  SPACE select  ·  ESC back";
+          : utilityType === "editSave"
+            ? "TAB next field  ·  W/S move  ·  A/D cycle class  ·  SPACE edit/apply  ·  ESC back"
+            : "W / S move  ·  A/D adjust sliders  ·  SPACE select  ·  ESC back";
+      const utilityResolvedTitle =
+        utilityType === "more" ? "Save Options" : utilityType === "editSave" ? "Edit Save" : "Settings";
       const panelW = Math.round(Math.min(760, layout.virtualCanvas.width * 0.62));
       const panelH = Math.round(Math.min(620, layout.virtualCanvas.height * 0.72));
       const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
@@ -9496,7 +9526,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 0;
 
       fillTextCrisp({
-        text: utilityTitle,
+        text: utilityResolvedTitle,
         x: panelX + panelW / 2,
         y: titleY,
         font: `700 ${utilityTypography.title ?? 30}px ${PIXEL_UI_FONT_FAMILY}`,
@@ -9520,74 +9550,196 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), dividerY);
       ctx.stroke();
 
-      for (let index = visibleStart; index < visibleEnd; index += 1) {
-        const config = buttonConfigs[index];
-        const visibleRow = index - visibleStart;
-        const y = Math.round(listStartY + visibleRow * rowStep);
-        const focused = isAnnouncementButtonFocused("title", index);
-        const isDanger = config?.danger === true;
-        ctx.save();
-        ctx.fillStyle = focused
-          ? "rgba(182, 98, 38, 0.96)"
-          : isDanger
-            ? "rgba(76, 20, 20, 0.9)"
-            : "rgba(14, 12, 16, 0.88)";
-        ctx.strokeStyle = focused
-          ? "rgba(255, 244, 190, 1)"
-          : isDanger
-            ? "rgba(255, 170, 170, 0.55)"
-            : "rgba(242, 200, 125, 0.35)";
-        ctx.lineWidth = focused ? 3.2 : 1.2;
-        roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
-        if (focused) {
-          ctx.fillStyle = "rgba(255, 245, 196, 1)";
-          ctx.fillRect(rowX + 6, y + 7, 5, rowH - 14);
-        }
-        fillTextCrisp({
-          text: String(config?.label || ""),
-          x: rowX + 20,
-          y: y + 22,
-          font: `600 ${utilityTypography.rowTitle ?? 24}px ${PIXEL_UI_FONT_FAMILY}`,
-          fillStyle: EMBER_BUTTON_PALETTE.text,
-          textAlign: "left",
-          textBaseline: "alphabetic",
-        });
-        if (config?.meta) {
+      if (utilityType === "editSave") {
+        const draft = titleEditSaveDraft || {};
+        const editingField = String(draft.editingField || "");
+        const fieldRows = [
+          { key: "editSavePlayerName", title: "Pastor Name", value: String(draft.playerName || "Pastor"), editableField: "playerName" },
+          { key: "editSaveCity", title: "City", value: String(draft.cityName || ""), placeholder: "(None)", editableField: "cityName" },
+          { key: "editSaveClass", title: "Denomination", value: String(buttonConfigs.find((b) => b.key === "editSaveClass")?.label || "").replace(/^Denomination:\s*/i, ""), meta: "A/D or Space to cycle" },
+        ];
+        const fieldLabelH = 16;
+        const fieldInputH = 38;
+        const fieldGap = 12;
+        const fieldRowH = fieldLabelH + fieldInputH + fieldGap;
+        const fieldStartY = listStartY + 8;
+        const fieldInsetX = rowX + 10;
+        const fieldW = rowW - 20;
+
+        fieldRows.forEach((field, idx) => {
+          const fieldY = Math.round(fieldStartY + idx * fieldRowH);
+          const focused = isAnnouncementButtonFocused("title", buttonConfigs.findIndex((b) => b.key === field.key));
+          const isEditing = editingField === field.editableField;
+          const valueText = field.value || field.placeholder || "";
           fillTextCrisp({
-            text: String(config.meta),
+            text: field.title,
+            x: fieldInsetX,
+            y: fieldY + 2,
+            font: `600 ${utilityTypography.rowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: "rgba(231, 176, 102, 0.9)",
+            textAlign: "left",
+            textBaseline: "top",
+          });
+          ctx.save();
+          ctx.fillStyle = "rgba(14, 12, 16, 0.9)";
+          ctx.strokeStyle = isEditing
+            ? "rgba(255, 244, 190, 0.95)"
+            : focused
+              ? "rgba(255, 214, 130, 0.8)"
+              : "rgba(242, 200, 125, 0.35)";
+          ctx.lineWidth = isEditing ? 2.8 : focused ? 2 : 1.2;
+          roundRect(ctx, fieldInsetX, fieldY + fieldLabelH, fieldW, fieldInputH, 8, true, true);
+          ctx.restore();
+          fillTextCrisp({
+            text: `${valueText}${isEditing ? " |" : ""}`,
+            x: fieldInsetX + 10,
+            y: fieldY + fieldLabelH + 25,
+            font: `600 ${utilityTypography.rowTitle ?? 24}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: valueText ? EMBER_BUTTON_PALETTE.text : "rgba(231,176,102,0.55)",
+            textAlign: "left",
+            textBaseline: "middle",
+            maxWidth: fieldW - 18,
+          });
+          if (isEditing) {
+            fillTextCrisp({
+              text: "Typing... Enter save · Esc cancel · Backspace delete",
+              x: fieldInsetX + fieldW,
+              y: fieldY + fieldLabelH - 2,
+              font: `500 ${Math.max(11, (utilityTypography.rowMeta ?? 14) - 1)}px ${PIXEL_UI_FONT_FAMILY}`,
+              fillStyle: "rgba(255,214,130,0.9)",
+              textAlign: "right",
+              textBaseline: "bottom",
+            });
+          } else if (field.meta) {
+            fillTextCrisp({
+              text: field.meta,
+              x: fieldInsetX + fieldW,
+              y: fieldY + fieldLabelH - 2,
+              font: `500 ${Math.max(11, (utilityTypography.rowMeta ?? 14) - 1)}px ${PIXEL_UI_FONT_FAMILY}`,
+              fillStyle: "rgba(231,176,102,0.75)",
+              textAlign: "right",
+              textBaseline: "bottom",
+            });
+          }
+
+          const buttonIndex = buttonConfigs.findIndex((b) => b.key === field.key);
+          if (buttonIndex >= 0) {
+            boundsByIndex[buttonIndex] = {
+              key: field.key,
+              x: layout.offsetX + fieldInsetX * layout.scale,
+              y: layout.offsetY + (fieldY + fieldLabelH) * layout.scale,
+              width: fieldW * layout.scale,
+              height: fieldInputH * layout.scale,
+            };
+          }
+        });
+
+        const actionY = panelY + panelH - 76;
+        const actionGap = 12;
+        const actionW = Math.round((rowW - actionGap) / 2);
+        const actionH = 44;
+        [
+          { key: "editSaveApply", label: "Apply Changes", x: rowX },
+          { key: "editSaveCancel", label: "Cancel", x: rowX + actionW + actionGap },
+        ].forEach((action) => {
+          const idx = buttonConfigs.findIndex((b) => b.key === action.key);
+          if (idx < 0) return;
+          const focused = isAnnouncementButtonFocused("title", idx);
+          ctx.save();
+          ctx.fillStyle = action.key === "editSaveApply"
+            ? focused ? "rgba(182, 98, 38, 0.96)" : "rgba(126, 62, 24, 0.9)"
+            : focused ? "rgba(78, 54, 34, 0.96)" : "rgba(24, 20, 18, 0.9)";
+          ctx.strokeStyle = focused ? "rgba(255, 244, 190, 1)" : "rgba(242, 200, 125, 0.35)";
+          ctx.lineWidth = focused ? 2.8 : 1.2;
+          roundRect(ctx, action.x, actionY, actionW, actionH, 8, true, true);
+          ctx.restore();
+          fillTextCrisp({
+            text: action.label,
+            x: action.x + actionW / 2,
+            y: actionY + actionH / 2,
+            font: `700 ${Math.max(16, (utilityTypography.rowTitle ?? 24) - 4)}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: EMBER_BUTTON_PALETTE.text,
+            textAlign: "center",
+            textBaseline: "middle",
+          });
+          boundsByIndex[idx] = {
+            key: action.key,
+            x: layout.offsetX + action.x * layout.scale,
+            y: layout.offsetY + actionY * layout.scale,
+            width: actionW * layout.scale,
+            height: actionH * layout.scale,
+          };
+        });
+      } else {
+        for (let index = visibleStart; index < visibleEnd; index += 1) {
+          const config = buttonConfigs[index];
+          const visibleRow = index - visibleStart;
+          const y = Math.round(listStartY + visibleRow * rowStep);
+          const focused = isAnnouncementButtonFocused("title", index);
+          const isDanger = config?.danger === true;
+          ctx.save();
+          ctx.fillStyle = focused
+            ? "rgba(182, 98, 38, 0.96)"
+            : isDanger
+              ? "rgba(76, 20, 20, 0.9)"
+              : "rgba(14, 12, 16, 0.88)";
+          ctx.strokeStyle = focused
+            ? "rgba(255, 244, 190, 1)"
+            : isDanger
+              ? "rgba(255, 170, 170, 0.55)"
+              : "rgba(242, 200, 125, 0.35)";
+          ctx.lineWidth = focused ? 3.2 : 1.2;
+          roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
+          if (focused) {
+            ctx.fillStyle = "rgba(255, 245, 196, 1)";
+            ctx.fillRect(rowX + 6, y + 7, 5, rowH - 14);
+          }
+          fillTextCrisp({
+            text: String(config?.label || ""),
             x: rowX + 20,
-            y: y + 42,
-            font: `500 ${utilityTypography.rowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
-            fillStyle: "rgba(231, 176, 102, 0.82)",
+            y: y + 22,
+            font: `600 ${utilityTypography.rowTitle ?? 24}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: EMBER_BUTTON_PALETTE.text,
             textAlign: "left",
             textBaseline: "alphabetic",
           });
-        }
-        if (Number.isFinite(config?.sliderValue)) {
-          const sliderPadX = 18;
-          const sliderW = Math.max(40, rowW - sliderPadX * 2);
-          const sliderH = 8;
-          const sliderX = rowX + sliderPadX;
-          const sliderY = y + rowH - 14;
-          const pct = Math.max(0, Math.min(1, Number(config.sliderValue)));
-          ctx.fillStyle = "rgba(255,255,255,0.14)";
-          roundRect(ctx, sliderX, sliderY, sliderW, sliderH, 4, true, false);
-          const fillW = Math.max(6, sliderW * pct);
-          const grad = ctx.createLinearGradient(sliderX, sliderY, sliderX + sliderW, sliderY);
-          grad.addColorStop(0, "#ffcc68");
-          grad.addColorStop(1, "#d44e52");
-          ctx.fillStyle = grad;
-          roundRect(ctx, sliderX, sliderY, fillW, sliderH, 4, true, false);
-        }
-        ctx.restore();
+          if (config?.meta) {
+            fillTextCrisp({
+              text: String(config.meta),
+              x: rowX + 20,
+              y: y + 42,
+              font: `500 ${utilityTypography.rowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
+              fillStyle: "rgba(231, 176, 102, 0.82)",
+              textAlign: "left",
+              textBaseline: "alphabetic",
+            });
+          }
+          if (Number.isFinite(config?.sliderValue)) {
+            const sliderPadX = 18;
+            const sliderW = Math.max(40, rowW - sliderPadX * 2);
+            const sliderH = 8;
+            const sliderX = rowX + sliderPadX;
+            const sliderY = y + rowH - 14;
+            const pct = Math.max(0, Math.min(1, Number(config.sliderValue)));
+            ctx.fillStyle = "rgba(255,255,255,0.14)";
+            roundRect(ctx, sliderX, sliderY, sliderW, sliderH, 4, true, false);
+            const fillW = Math.max(6, sliderW * pct);
+            const grad = ctx.createLinearGradient(sliderX, sliderY, sliderX + sliderW, sliderY);
+            grad.addColorStop(0, "#ffcc68");
+            grad.addColorStop(1, "#d44e52");
+            ctx.fillStyle = grad;
+            roundRect(ctx, sliderX, sliderY, fillW, sliderH, 4, true, false);
+          }
+          ctx.restore();
 
-        boundsByIndex[index] = {
-          key: config.key,
-          x: layout.offsetX + rowX * layout.scale,
-          y: layout.offsetY + y * layout.scale,
-          width: rowW * layout.scale,
-          height: rowH * layout.scale,
-        };
+          boundsByIndex[index] = {
+            key: config.key,
+            x: layout.offsetX + rowX * layout.scale,
+            y: layout.offsetY + y * layout.scale,
+            width: rowW * layout.scale,
+            height: rowH * layout.scale,
+          };
+        }
       }
       for (let index = 0; index < totalRows; index += 1) {
         if (boundsByIndex[index]) continue;

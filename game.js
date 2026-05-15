@@ -526,6 +526,11 @@ let titleScreenActive = true;
 let titleDemoSaveMenuActive = false;
 let titleClassMenuActive = false;
 let titleUtilityPanelMode = null;
+let titleEditSaveDraft = null;
+const TITLE_EDIT_SAVE_FIELD_LIMITS = Object.freeze({
+  playerName: 24,
+  cityName: 24,
+});
 let titleDemoSaveOverride = null;
 let demoSandboxRunActive = false;
 let titleCloudSaveLoading = false;
@@ -5781,6 +5786,7 @@ Renderer.initialize({
   get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
   get titleClassMenuActive() { return titleClassMenuActive; },
   get titleUtilityPanelMode() { return titleUtilityPanelMode; },
+  get titleEditSaveDraft() { return titleEditSaveDraft; },
   get titleSelectedClassId() {
     return window.BattlechurchClasses?.getActiveId?.() || null;
   },
@@ -8879,6 +8885,7 @@ function startDevLevelTestFromEditor({
   titleScreenActive = false;
   titleDemoSaveMenuActive = false;
   titleUtilityPanelMode = null;
+  titleEditSaveDraft = null;
   if (typeof window !== "undefined" && window.MapScreen?.open) {
     window.MapScreen.selectDistrict?.(districtId);
     window.MapScreen.open();
@@ -9447,6 +9454,87 @@ function showEditCloudSaveDialog(saveId) {
     },
   });
   return true;
+}
+
+function openCanvasEditSavePanel(saveId) {
+  const row = titleCloudSaveRows.find((entry) => entry.id === saveId) || null;
+  if (!row) return false;
+  const details = row.details || {};
+  const currentClassId =
+    String(details.classId || "").trim() ||
+    String(window.BattlechurchClasses?.getActiveId?.() || "").trim() ||
+    String(window.BattlechurchClassConfig?.defaultClassId || "").trim() ||
+    "class1";
+  const currentPlayerName = String(details.playerName || "Pastor").trim() || "Pastor";
+  const currentCityName = String(details.cityName || "").trim();
+  titleEditSaveDraft = {
+    saveId,
+    saveName: currentPlayerName,
+    playerName: currentPlayerName,
+    cityName: currentCityName,
+    classId: currentClassId,
+    editingField: null,
+  };
+  try {
+    const activeEl = typeof document !== "undefined" ? document.activeElement : null;
+    if (
+      activeEl &&
+      (activeEl.tagName === "INPUT" ||
+        activeEl.tagName === "TEXTAREA" ||
+        activeEl.tagName === "SELECT" ||
+        activeEl.isContentEditable) &&
+      typeof activeEl.blur === "function"
+    ) {
+      activeEl.blur();
+    }
+  } catch (_e) {}
+  titleUtilityPanelMode = "editSave";
+  return true;
+}
+
+function applyTitleEditSaveTypingKey(rawKey) {
+  if (titleUtilityPanelMode !== "editSave" || !titleEditSaveDraft) return false;
+  const editingField = String(titleEditSaveDraft.editingField || "");
+  if (!editingField || (editingField !== "playerName" && editingField !== "cityName")) return false;
+  const key = String(rawKey || "");
+  if (!key) return false;
+  if (key === "escape" || key === "Escape") {
+    titleEditSaveDraft.editingField = null;
+    return true;
+  }
+  if (key === "enter" || key === "Enter") {
+    titleEditSaveDraft.editingField = null;
+    if (editingField === "playerName") {
+      const trimmed = String(titleEditSaveDraft.playerName || "").trim();
+      titleEditSaveDraft.playerName = trimmed || "Pastor";
+      titleEditSaveDraft.saveName = titleEditSaveDraft.playerName;
+    } else if (editingField === "cityName") {
+      titleEditSaveDraft.cityName = String(titleEditSaveDraft.cityName || "").trim();
+    }
+    return true;
+  }
+  if (key === "backspace" || key === "Backspace") {
+    const current = String(titleEditSaveDraft[editingField] || "");
+    titleEditSaveDraft[editingField] = current.slice(0, Math.max(0, current.length - 1));
+    return true;
+  }
+  if (key.length === 1) {
+    if (!/[a-z0-9 .,'-]/i.test(key)) return false;
+    const maxLen =
+      editingField === "playerName"
+        ? Number(TITLE_EDIT_SAVE_FIELD_LIMITS.playerName) || 24
+        : Number(TITLE_EDIT_SAVE_FIELD_LIMITS.cityName) || 24;
+    const current = String(titleEditSaveDraft[editingField] || "");
+    if (current.length >= maxLen) return true;
+    const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
+    const nextChar = modifiers?.shift ? key.toUpperCase() : key;
+    titleEditSaveDraft[editingField] = current + nextChar;
+    if (editingField === "playerName") {
+      titleEditSaveDraft.saveName = titleEditSaveDraft.playerName;
+    }
+    return true;
+  }
+  return false;
 }
 
 function showCloudSaveDetailsDialog(saveId) {
@@ -12890,7 +12978,13 @@ function _triggerProgressSavedEffects() {
   if (typeof playProgressSavedSfx === "function") playProgressSavedSfx(0.7);
 }
 
+function shouldShowProgressSaveToast() {
+  // Keep title/utility navigation deterministic: no transient toast overlays there.
+  return !titleScreenActive;
+}
+
 function showProgressSaveToast(text = "Progress Saved", duration = 5.5) {
+  if (!shouldShowProgressSaveToast()) return;
   const isProgressSaved = text === "Progress Saved" || text === "progress saved";
   progressSaveToast.text = String(text || "Progress Saved");
   progressSaveToast.duration = Number.isFinite(duration) ? Math.max(0.8, duration) : 5.5;
@@ -12904,6 +12998,7 @@ function showProgressSaveToast(text = "Progress Saved", duration = 5.5) {
 }
 
 function startSaveProgressBar() {
+  if (!shouldShowProgressSaveToast()) return;
   progressSaveToast.text = "Saving...";
   progressSaveToast.duration = 999;
   progressSaveToast.timer = 999;
@@ -21013,6 +21108,14 @@ function handleTitleScreen() {
       const focusedButton = buttons[focus.index] || null;
       return String(focusedButton?.key || "") || null;
     };
+    const setTitleFocusByButtonKey = (targetKey) => {
+      if (!targetKey || !Array.isArray(buttons) || typeof window === "undefined") return false;
+      const idx = buttons.findIndex((btn) => String(btn?.key || "") === String(targetKey));
+      if (idx < 0) return false;
+      window.__announcementFocus = { key: "title", index: idx };
+      window.__announcementFocusedButtonKey = String(buttons[idx]?.key || "");
+      return true;
+    };
     const updateAudioSetting = (key, value) => {
       audioSettings[key] = value;
       saveAudioSettings();
@@ -21034,6 +21137,56 @@ function handleTitleScreen() {
       }
       return false;
     };
+    const cycleEditSaveClass = (delta) => {
+      if (titleUtilityPanelMode !== "editSave" || !titleEditSaveDraft) return false;
+      const classOptions = getSortedClassMenuEntries(classEntries);
+      if (!classOptions.length) return false;
+      const currentId = String(titleEditSaveDraft.classId || "");
+      const currentIdx = Math.max(0, classOptions.findIndex((entry) => String(entry?.id || "") === currentId));
+      const nextIdx = (currentIdx + (delta > 0 ? 1 : -1) + classOptions.length) % classOptions.length;
+      titleEditSaveDraft.classId = String(classOptions[nextIdx]?.id || titleEditSaveDraft.classId || "");
+      return true;
+    };
+    const editFieldActive =
+      titleUtilityPanelMode === "editSave" &&
+      titleEditSaveDraft &&
+      (titleEditSaveDraft.editingField === "playerName" || titleEditSaveDraft.editingField === "cityName");
+    if (titleUtilityPanelMode === "editSave" && (keysJustPressed.has("Tab") || keysJustPressed.has("tab"))) {
+      const tabKey = keysJustPressed.has("Tab") ? "Tab" : "tab";
+      keysJustPressed.delete("Tab");
+      keysJustPressed.delete("tab");
+      const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
+      const reverse = Boolean(modifiers?.shift);
+      const editOrder = ["editSavePlayerName", "editSaveCity", "editSaveClass", "editSaveApply", "editSaveCancel"];
+      const focusedKey = getFocusedTitleRowKey();
+      const currentIndex = Math.max(0, editOrder.indexOf(focusedKey));
+      const nextIndex = reverse
+        ? (currentIndex - 1 + editOrder.length) % editOrder.length
+        : (currentIndex + 1) % editOrder.length;
+      setTitleFocusByButtonKey(editOrder[nextIndex]);
+      return true;
+    }
+    if (editFieldActive) {
+      const pressedKeys = Array.from(keysJustPressed);
+      for (const key of pressedKeys) {
+        if (applyTitleEditSaveTypingKey(key)) {
+          keysJustPressed.delete(key);
+        }
+      }
+      // While typing in a field, suppress menu navigation/activation input.
+      [
+        "w", "a", "s", "d",
+        "arrowup", "arrowdown", "arrowleft", "arrowright",
+        "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+        " ", "enter", "Enter",
+      ].forEach((k) => keysJustPressed.delete(k));
+      const stillEditing =
+        titleEditSaveDraft &&
+        (titleEditSaveDraft.editingField === "playerName" || titleEditSaveDraft.editingField === "cityName");
+      if (stillEditing) {
+        return true;
+      }
+    }
     if (titleUtilityPanelMode === "settings") {
       const sliderStep = 0.05;
       if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
@@ -21041,6 +21194,16 @@ function handleTitleScreen() {
       }
       if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
         if (adjustCanvasSettingByFocusedKey(sliderStep)) return true;
+      }
+    }
+    if (titleUtilityPanelMode === "editSave") {
+      if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
+        const focusedKey = getFocusedTitleRowKey();
+        if (focusedKey === "editSaveClass" && cycleEditSaveClass(-1)) return true;
+      }
+      if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
+        const focusedKey = getFocusedTitleRowKey();
+        if (focusedKey === "editSaveClass" && cycleEditSaveClass(1)) return true;
       }
     }
     const escapeHtml = (value) =>
@@ -21055,7 +21218,7 @@ function handleTitleScreen() {
       resolveFocusIndex: ({ buttons, focusIndex, direction }) => {
         if (!Array.isArray(buttons) || buttons.length === 0) return focusIndex;
         if (!titleDemoSaveMenuActive) {
-          if (titleUtilityPanelMode === "settings") {
+          if (titleUtilityPanelMode === "settings" || titleUtilityPanelMode === "editSave") {
             const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
             return (focusIndex + linearDirection + buttons.length) % buttons.length;
           }
@@ -21165,6 +21328,7 @@ function handleTitleScreen() {
           setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = true;
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
@@ -21173,7 +21337,13 @@ function handleTitleScreen() {
         }
         if (button.key === "back") {
           if (titleUtilityPanelMode) {
-            titleUtilityPanelMode = null;
+            if (titleUtilityPanelMode === "editSave") {
+              titleUtilityPanelMode = "more";
+              titleEditSaveDraft = null;
+            } else {
+              titleUtilityPanelMode = null;
+              titleEditSaveDraft = null;
+            }
             if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
               window.playMenuAdvanceSfx(0.55);
             }
@@ -21318,6 +21488,7 @@ function handleTitleScreen() {
         }
         if (button.key === "newCloudSave") {
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           showNewCloudSaveDialog();
           return;
         }
@@ -21330,7 +21501,12 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "utilityPanelClose") {
-          titleUtilityPanelMode = null;
+          if (titleUtilityPanelMode === "editSave") {
+            titleUtilityPanelMode = "more";
+          } else {
+            titleUtilityPanelMode = null;
+            titleEditSaveDraft = null;
+          }
           return;
         }
         if (button.key === "settingsMusicEnabled") {
@@ -21362,14 +21538,60 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "editCloudSave") {
-          titleUtilityPanelMode = null;
           const saveId = resolveCloudTargetSaveId();
-          if (saveId) showEditCloudSaveDialog(saveId);
+          if (saveId) openCanvasEditSavePanel(saveId);
+          return;
+        }
+        if (button.key === "editSavePlayerName") {
+          if (!titleEditSaveDraft) return;
+          titleEditSaveDraft.editingField = "playerName";
+          return;
+        }
+        if (button.key === "editSaveCity") {
+          if (!titleEditSaveDraft) return;
+          titleEditSaveDraft.editingField = "cityName";
+          return;
+        }
+        if (button.key === "editSaveClass") {
+          cycleEditSaveClass(1);
+          return;
+        }
+        if (button.key === "editSaveApply") {
+          if (!titleEditSaveDraft?.saveId) return;
+          const draft = { ...titleEditSaveDraft };
+          if (!String(draft.playerName || "").trim() || !String(draft.classId || "").trim()) {
+            if (typeof setDevStatus === "function") {
+              setDevStatus("Pastor Name and Denomination are required.", 2.5);
+            }
+            return;
+          }
+          void (async () => {
+            try {
+              if (typeof window.MapScreen?.updateSaveFileMetadata === "function") {
+                await window.MapScreen.updateSaveFileMetadata(draft.saveId, {
+                  saveName: draft.playerName,
+                  playerName: draft.playerName,
+                  cityName: draft.cityName,
+                  classId: draft.classId,
+                });
+              }
+              await refreshTitleCloudSaveOption();
+              titleCloudSelectedSaveId = draft.saveId;
+            } catch (_e) {}
+          })();
+          titleUtilityPanelMode = "more";
+          titleEditSaveDraft = null;
+          return;
+        }
+        if (button.key === "editSaveCancel") {
+          titleUtilityPanelMode = "more";
+          titleEditSaveDraft = null;
           return;
         }
 
         if (button.key === "renameCloudSave") {
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId) return;
@@ -21388,6 +21610,7 @@ function handleTitleScreen() {
         }
         if (button.key === "deleteCloudSave") {
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId || typeof window.MapScreen?.deleteSaveFile !== "function") return;
@@ -21412,6 +21635,7 @@ function handleTitleScreen() {
         }
         if (button.key === "resetGoogleSave") {
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId) return;
@@ -28651,6 +28875,7 @@ async function init() {
     titleScreenActive = true;
     titleDemoSaveMenuActive = false;
     titleUtilityPanelMode = null;
+    titleEditSaveDraft = null;
     paused = true;
     gameStarted = false;
     levelManager = Levels.createLevelManager();
