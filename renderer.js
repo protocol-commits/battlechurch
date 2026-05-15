@@ -8296,6 +8296,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     clipPool,
     existingApparitions = [],
     congregationMembers = [],
+    topPlayableY = 0,
     allowAttack = true,
     forceAttack = false,
   ) {
@@ -8332,6 +8333,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const targetMember = canAttack
       ? lowCrowdTargets[Math.floor(Math.random() * lowCrowdTargets.length)] || null
       : null;
+    const minY = Math.max(0, Number(topPlayableY) || 0);
     for (let attempt = 0; attempt < CONGREGATION_THREAT_SPAWN_ATTEMPTS; attempt += 1) {
       const pad = 42;
       let edge = "left";
@@ -8347,15 +8349,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         if (minDist === leftDist) {
           edge = "left";
           x = pad;
-          y = Math.max(pad, Math.min(height - pad, targetMember.y + randomInRange(-60, 60)));
+          y = Math.max(minY, Math.max(pad, Math.min(height - pad, targetMember.y + randomInRange(-60, 60))));
         } else if (minDist === rightDist) {
           edge = "right";
           x = width - pad;
-          y = Math.max(pad, Math.min(height - pad, targetMember.y + randomInRange(-60, 60)));
+          y = Math.max(minY, Math.max(pad, Math.min(height - pad, targetMember.y + randomInRange(-60, 60))));
         } else if (minDist === topDist) {
           edge = "top";
           x = Math.max(pad, Math.min(width - pad, targetMember.x + randomInRange(-80, 80)));
-          y = pad;
+          y = Math.max(minY, pad);
         } else {
           edge = "bottom";
           x = Math.max(pad, Math.min(width - pad, targetMember.x + randomInRange(-80, 80)));
@@ -8365,13 +8367,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         edge = ["left", "right", "top", "bottom"][Math.floor(Math.random() * 4)];
         if (edge === "left") {
           x = pad;
-          y = Math.random() * (height - 2 * pad) + pad;
+          y = Math.max(minY, Math.random() * (height - 2 * pad) + pad);
         } else if (edge === "right") {
           x = width - pad;
-          y = Math.random() * (height - 2 * pad) + pad;
+          y = Math.max(minY, Math.random() * (height - 2 * pad) + pad);
         } else if (edge === "top") {
           x = Math.random() * (width - 2 * pad) + pad;
-          y = pad;
+          y = Math.max(minY, pad);
         } else {
           x = Math.random() * (width - 2 * pad) + pad;
           y = height - pad;
@@ -8420,6 +8422,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawCongregationThreatApparitions(ctx, virtualCanvas, nowMs, introKey, congregationMembers = []) {
+    const topPlayableY = Math.max(
+      Number(requireBindings().HUD_HEIGHT || 0) + 1,
+      Number(requireBindings().congregationPlayerTopY || 0),
+    );
     const clipPool = getCongregationThreatClipPool();
     if (!clipPool.length) return;
     const nowSec = nowMs / 1000;
@@ -8450,6 +8456,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         clipPool,
         congregationThreatState.apparitions,
         congregationMembers,
+        topPlayableY,
         !hasAttackInFlight,
         !hasAttackInFlight,
       );

@@ -5736,7 +5736,7 @@ const PLAYER_CORNER_CUTOFF_DEPTH = 200;
 const CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET = 270;
 const CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH = 200;
 const CONGREGATION_PLAYER_TOP_Y = 236;
-const SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG = true;
+const SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG = false;
 
 function isCongregationBoundsStage(stage) {
   return stage === "levelIntro" || stage === "congregationToTeaser" || stage === "npcArrival";
@@ -13309,8 +13309,12 @@ function clampEntityToBounds(entity) {
   // Strict top limit: do not allow entities above the HUD line. Keep a
   // consistent top padding so entities don't clip into HUD elements.
   const topLimit = entity?.isPlayer && isCongregationStage ? congregationTopY : HUD_HEIGHT + topPadding;
+  const enemyTopLimit =
+    isCongregationStage && isEnemyEntity(entity)
+      ? Math.max(HUD_HEIGHT + 1, Number(CONGREGATION_PLAYER_TOP_Y) || (HUD_HEIGHT + 1))
+      : topLimit;
   const bottomLimit = canvas.height - verticalMargin;
-  const clampedY = Math.max(topLimit, Math.min(bottomLimit, centerY));
+  const clampedY = Math.max(enemyTopLimit, Math.min(bottomLimit, centerY));
   let adjustedCenterX = clampedX;
   let adjustedCenterY = clampedY;
   if (entity?.isPlayer) {
@@ -19018,8 +19022,20 @@ function buildCongregationMembers(count = CONGREGATION_MEMBER_COUNT) {
     const row = Math.floor(i / columns);
     const jitterX = (Math.random() - 0.5) * cellWidth * 0.3;
     const jitterY = (Math.random() - 0.5) * cellHeight * 0.3;
-    const baseX = bounds.minX + cellWidth * (column + 0.5) + jitterX;
-    const baseY = bounds.minY + cellHeight * (row + 0.5) + jitterY;
+    const rawBaseX = bounds.minX + cellWidth * (column + 0.5) + jitterX;
+    const rawBaseY = bounds.minY + cellHeight * (row + 0.5) + jitterY;
+    const baseResolved = resolvePointAgainstCornerCutoffs(
+      rawBaseX,
+      rawBaseY,
+      {
+        topY: Math.max(HUD_HEIGHT + 1, Number(CONGREGATION_PLAYER_TOP_Y) || HUD_HEIGHT + 1),
+        sideInset: CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET,
+        depth: CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH,
+      },
+      canvas.width,
+    );
+    const baseX = baseResolved.x;
+    const baseY = baseResolved.y;
     const name = pickNameForGender(gender) || `Friend ${i + 1}`;
     const member = {
       animator,
@@ -19062,8 +19078,20 @@ function clearCongregationSpeechBubbles() {
 
 function assignCongregationTarget(member, { immediate = false } = {}) {
   if (!congregationWanderBounds) return;
-  member.targetX = randomInRange(congregationWanderBounds.minX, congregationWanderBounds.maxX);
-  member.targetY = randomInRange(congregationWanderBounds.minY, congregationWanderBounds.maxY);
+  const targetX = randomInRange(congregationWanderBounds.minX, congregationWanderBounds.maxX);
+  const targetY = randomInRange(congregationWanderBounds.minY, congregationWanderBounds.maxY);
+  const resolved = resolvePointAgainstCornerCutoffs(
+    targetX,
+    targetY,
+    {
+      topY: Math.max(HUD_HEIGHT + 1, Number(CONGREGATION_PLAYER_TOP_Y) || HUD_HEIGHT + 1),
+      sideInset: CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET,
+      depth: CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH,
+    },
+    canvas.width,
+  );
+  member.targetX = resolved.x;
+  member.targetY = resolved.y;
   member.wanderPause = immediate ? 0 : randomInRange(0.18, 0.65);
 }
 
@@ -19186,6 +19214,18 @@ function clampToWanderBounds(member) {
   if (!congregationWanderBounds || !member) return;
   member.baseX = Math.max(congregationWanderBounds.minX, Math.min(congregationWanderBounds.maxX, member.baseX));
   member.baseY = Math.max(congregationWanderBounds.minY, Math.min(congregationWanderBounds.maxY, member.baseY));
+  const resolved = resolvePointAgainstCornerCutoffs(
+    member.baseX,
+    member.baseY,
+    {
+      topY: Math.max(HUD_HEIGHT + 1, Number(CONGREGATION_PLAYER_TOP_Y) || HUD_HEIGHT + 1),
+      sideInset: CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET,
+      depth: CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH,
+    },
+    canvas.width,
+  );
+  member.baseX = resolved.x;
+  member.baseY = resolved.y;
 }
 
 function getCongregationBobOffset(member) {
