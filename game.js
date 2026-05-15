@@ -5907,6 +5907,8 @@ Renderer.initialize({
   getEnemyHitboxRect,
   get districtIntroTransitionActive() { return districtIntroTransitionActive; },
   get districtIntroTransitionTimer() { return districtIntroTransitionTimer; },
+  get devMeleeArenaActive() { return isDevMeleeArenaActive(); },
+  get pendingDevMeleeArenaLaunch() { return pendingDevMeleeArenaLaunch === true; },
   DISTRICT_INTRO_ZOOM_DURATION,
   DISTRICT_INTRO_FADE_DURATION,
   renderDebugOverlay,

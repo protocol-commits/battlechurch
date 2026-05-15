@@ -347,7 +347,10 @@ const MELEE_SWING_LENGTH = 260;
     const hardClearSmokeForScene = Boolean(
       bindings.titleScreenActive ||
       bindings.mapActive ||
-      bindings.epilogueActive
+      bindings.epilogueActive ||
+      bindings.devMeleeArenaActive ||
+      bindings.pendingDevMeleeArenaLaunch ||
+      (typeof window !== "undefined" && window.PlayingInstructions?.state?.open === true)
     );
     if (hardClearSmokeForScene) {
       ambientSmokeState.puffs.length = 0;
@@ -11889,7 +11892,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
     const isFadeInStage = stage === "congregationToTeaser" || stage === "upgradeToTeaser";
     const isDissipateStage = stage === "briefingTeaser" || stage === "briefing";
-    if (!isFadeInStage && !isDissipateStage && !teaserSmokeWipeState.active) return;
+    const allowTeaserSmokeStage = isFadeInStage || isDissipateStage;
+    if (!allowTeaserSmokeStage) {
+      // Prevent teaser smoke from leaking into unrelated screens (Dev Arena / How To / etc).
+      teaserSmokeWipeState.active = false;
+      teaserSmokeWipeState.mode = "fadeIn";
+      teaserSmokeWipeState.startedAtSec = 0;
+      teaserSmokeWipeState.dissipateStartedAtSec = 0;
+      return;
+    }
 
     if (isFadeInStage) {
       if (!teaserSmokeWipeState.active || teaserSmokeWipeState.mode === "dissipate") {
