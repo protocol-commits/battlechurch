@@ -192,6 +192,32 @@ const MELEE_SWING_LENGTH = 260;
     spawnCarry: 0,
     lastNowSec: 0,
   };
+  const MOBILE_SMOKE_PROFILE = {
+    enabled: true,
+    maxPuffsCap: 48,
+    spawnRateScale: 0.55,
+    blurPxCap: 2.4,
+  };
+  const ADAPTIVE_SMOKE_PROFILE = {
+    enabled: true,
+    minFps: 50,
+    recoverFps: 56,
+    downHoldSec: 0.45,
+    upHoldSec: 2.0,
+    qualityPresets: [
+      { puffsScale: 0.45, spawnScale: 0.5, blurScale: 0.4 },  // low
+      { puffsScale: 0.62, spawnScale: 0.68, blurScale: 0.58 }, // med
+      { puffsScale: 0.8, spawnScale: 0.84, blurScale: 0.78 },   // high
+      { puffsScale: 1.0, spawnScale: 1.0, blurScale: 1.0 },     // ultra
+    ],
+  };
+  const adaptiveSmokeState = {
+    qualityIndex: Math.max(0, (ADAPTIVE_SMOKE_PROFILE.qualityPresets?.length || 1) - 1),
+    smoothedFps: 60,
+    lastFrameSec: 0,
+    lowFpsHoldSec: 0,
+    goodFpsHoldSec: 0,
+  };
   const teaserSmokeWipeState = {
     active: false,
     mode: "fadeIn", // fadeIn | hold | dissipate
@@ -313,6 +339,14 @@ const MELEE_SWING_LENGTH = 260;
       ambientSmokeState.spawnCarry = 0;
       return;
     }
+    const isMobileLike = Boolean(
+      MOBILE_SMOKE_PROFILE.enabled &&
+      typeof window !== "undefined" &&
+      (
+        (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) ||
+        Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900
+      ),
+    );
 
     const levelStatus = bindings.levelManager?.getStatus?.() || null;
     const stageName = levelStatus?.stage || "";
@@ -370,6 +404,38 @@ const MELEE_SWING_LENGTH = 260;
     }
 
     const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    if (ADAPTIVE_SMOKE_PROFILE.enabled) {
+      if (!adaptiveSmokeState.lastFrameSec) {
+        adaptiveSmokeState.lastFrameSec = nowSec;
+      }
+      const frameDt = Math.max(0.001, Math.min(0.2, nowSec - adaptiveSmokeState.lastFrameSec));
+      adaptiveSmokeState.lastFrameSec = nowSec;
+      const instantFps = 1 / frameDt;
+      adaptiveSmokeState.smoothedFps += (instantFps - adaptiveSmokeState.smoothedFps) * 0.12;
+      if (adaptiveSmokeState.smoothedFps < ADAPTIVE_SMOKE_PROFILE.minFps) {
+        adaptiveSmokeState.lowFpsHoldSec += frameDt;
+        adaptiveSmokeState.goodFpsHoldSec = 0;
+      } else if (adaptiveSmokeState.smoothedFps > ADAPTIVE_SMOKE_PROFILE.recoverFps) {
+        adaptiveSmokeState.goodFpsHoldSec += frameDt;
+        adaptiveSmokeState.lowFpsHoldSec = 0;
+      } else {
+        adaptiveSmokeState.lowFpsHoldSec = 0;
+        adaptiveSmokeState.goodFpsHoldSec = 0;
+      }
+      if (
+        adaptiveSmokeState.lowFpsHoldSec >= ADAPTIVE_SMOKE_PROFILE.downHoldSec &&
+        adaptiveSmokeState.qualityIndex > 0
+      ) {
+        adaptiveSmokeState.qualityIndex -= 1;
+        adaptiveSmokeState.lowFpsHoldSec = 0;
+      } else if (
+        adaptiveSmokeState.goodFpsHoldSec >= ADAPTIVE_SMOKE_PROFILE.upHoldSec &&
+        adaptiveSmokeState.qualityIndex < ADAPTIVE_SMOKE_PROFILE.qualityPresets.length - 1
+      ) {
+        adaptiveSmokeState.qualityIndex += 1;
+        adaptiveSmokeState.goodFpsHoldSec = 0;
+      }
+    }
     if (!ambientSmokeState.lastNowSec) ambientSmokeState.lastNowSec = nowSec;
     const freezeSmoke = Boolean(
       bindings.paused ||
@@ -392,8 +458,25 @@ const MELEE_SWING_LENGTH = 260;
       : wave3SmokeStage
         ? config.wave3StageMultiplier
         : 1;
-    const stageMaxPuffs = Math.max(0, Math.round(config.maxPuffs * stageSmokeMultiplier));
-    const stageSpawnPerSecond = Math.max(0, config.spawnPerSecond * stageSmokeMultiplier);
+    const stageMaxPuffsRaw = Math.max(0, Math.round(config.maxPuffs * stageSmokeMultiplier));
+    const stageSpawnPerSecondRaw = Math.max(0, config.spawnPerSecond * stageSmokeMultiplier);
+    const adaptivePreset = ADAPTIVE_SMOKE_PROFILE.enabled
+      ? ADAPTIVE_SMOKE_PROFILE.qualityPresets[
+          Math.max(0, Math.min(ADAPTIVE_SMOKE_PROFILE.qualityPresets.length - 1, adaptiveSmokeState.qualityIndex))
+        ]
+      : null;
+    const adaptivePuffsScale = adaptivePreset ? adaptivePreset.puffsScale : 1;
+    const adaptiveSpawnScale = adaptivePreset ? adaptivePreset.spawnScale : 1;
+    const adaptiveBlurScale = adaptivePreset ? adaptivePreset.blurScale : 1;
+
+    const stageMaxPuffsAdaptive = Math.max(0, Math.round(stageMaxPuffsRaw * adaptivePuffsScale));
+    const stageSpawnPerSecondAdaptive = Math.max(0, stageSpawnPerSecondRaw * adaptiveSpawnScale);
+    const stageMaxPuffs = isMobileLike
+      ? Math.min(stageMaxPuffsAdaptive, MOBILE_SMOKE_PROFILE.maxPuffsCap)
+      : stageMaxPuffsAdaptive;
+    const stageSpawnPerSecond = isMobileLike
+      ? stageSpawnPerSecondAdaptive * MOBILE_SMOKE_PROFILE.spawnRateScale
+      : stageSpawnPerSecondAdaptive;
     const stageAlphaMultiplier = 1 + Math.max(0, stageSmokeMultiplier - 1) * 0.85;
 
     if (!freezeSmoke) {
@@ -429,7 +512,10 @@ const MELEE_SWING_LENGTH = 260;
     ctx.translate(0, effectiveCameraY);
     ctx.globalCompositeOperation = "source-over";
     if (!config.debugVisible) {
-      ctx.filter = "blur(5.8px)";
+      const targetBlur = isMobileLike
+        ? Math.min(5.8, MOBILE_SMOKE_PROFILE.blurPxCap)
+        : 5.8;
+      ctx.filter = `blur(${Math.max(0.8, targetBlur * adaptiveBlurScale).toFixed(2)}px)`;
     }
     for (let i = 0; i < puffs.length; i += 1) {
       const p = puffs[i];
@@ -13080,3 +13166,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     getControlsHintText,
   };
 })(typeof window !== "undefined" ? window : null);
+    const isMobileLike = Boolean(
+      MOBILE_SMOKE_PROFILE.enabled &&
+      typeof window !== "undefined" &&
+      (
+        (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) ||
+        Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900
+      ),
+    );
