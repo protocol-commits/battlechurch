@@ -21120,11 +21120,10 @@ function handleTitleScreen() {
         }
         if (button.key === "continue" || button.key === "play") {
           setDemoSandboxRunActive(false);
-          titleDemoSaveMenuActive = false;
+          titleDemoSaveMenuActive = true;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
-          void showTitleSavePickerOverlay();
           return;
         }
         if (button.key === "back") {
