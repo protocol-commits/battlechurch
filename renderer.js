@@ -192,6 +192,14 @@ const MELEE_SWING_LENGTH = 260;
     spawnCarry: 0,
     lastNowSec: 0,
   };
+  const TEASER_SMOKE_WIPE_CONFIG = {
+    // Tweak here for the congregation->battle teaser smoke wipe.
+    puffCount: 320,
+    maxBlurPx: 10.5,
+    fadeInSeconds: 0.5,
+    dissipateSeconds: 8.0,
+    tint: "#A83538",
+  };
 
   function requireBindings() {
     if (!bindings) {
@@ -325,15 +333,19 @@ const MELEE_SWING_LENGTH = 260;
         activeAnnouncement.pastorPostRecap
       ),
     );
+    const teaserTransitionStage = Boolean(
+      stageName === "congregationToTeaser" ||
+      stageName === "upgradeToTeaser" ||
+      stageName === "briefingTeaser",
+    );
     const hideSmokeForScene = Boolean(
       bindings.mapActive ||
       bindings.titleScreenActive ||
       bindings.epilogueActive ||
       bindings.districtVictoryActive ||
       bindings.districtIntroTransitionActive ||
-      missionIntroActive ||
       demonClearedStage ||
-      recapOrBonusOverlayActive
+      (recapOrBonusOverlayActive && !teaserTransitionStage)
     );
     if (hideSmokeForScene) {
       ambientSmokeState.puffs.length = 0;
@@ -11843,10 +11855,71 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
     }
 
-    if (alpha <= 0.001) return;
+    if (alpha > 0.001) {
+      ctx.save();
+      ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, Math.min(1, alpha))})`;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
+    // Draw smoke after black fade so it does not disappear into the blackout.
+    drawTeaserSmokeWipe(stage, timer, duration);
+  }
+
+  function drawTeaserSmokeWipe(stage, timer, duration) {
+    const { ctx, canvas } = requireBindings();
+    if (!ctx || !canvas) return;
+    if (stage !== "congregationToTeaser" && stage !== "upgradeToTeaser" && stage !== "briefingTeaser") return;
+
+    const fadeInSec = Math.max(0.01, Number(TEASER_SMOKE_WIPE_CONFIG.fadeInSeconds) || 0.5);
+    const dissipateSec = Math.max(0.01, Number(TEASER_SMOKE_WIPE_CONFIG.dissipateSeconds) || 8);
+    let presence = 0;
+    if (stage === "congregationToTeaser" || stage === "upgradeToTeaser") {
+      // Fade smoke in during the black transition.
+      const elapsed = Math.max(0, Math.max(0, duration) - Math.max(0, timer));
+      presence = Math.max(0, Math.min(1, elapsed / fadeInSec));
+    } else if (stage === "briefingTeaser") {
+      // Dissipate over a fixed cinematic window after reveal starts.
+      const elapsed = Math.max(0, Math.max(0, duration) - Math.max(0, timer));
+      const clearT = Math.max(0, Math.min(1, elapsed / dissipateSec));
+      presence = 1 - clearT;
+    }
+    if (presence <= 0.001) return;
+
+    const nowSec = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    const tint = parseHexToRgb(TEASER_SMOKE_WIPE_CONFIG.tint, { r: 168, g: 53, b: 56 });
+
     ctx.save();
-    ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, Math.min(1, alpha))})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.filter = `blur(${(TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * (0.75 + 0.25 * presence)).toFixed(2)}px)`;
+    for (let i = 0; i < TEASER_SMOKE_WIPE_CONFIG.puffCount; i += 1) {
+      const phase = i * 12.9898;
+      const seedA = (Math.sin(phase) + 1) * 0.5;
+      const seedB = (Math.sin(phase * 1.91 + 4.7) + 1) * 0.5;
+      const seedC = (Math.sin(phase * 2.27 + 9.4) + 1) * 0.5;
+      const baseX = seedA * canvas.width;
+      const inBottomBand = i % 4 === 0;
+      const baseY = inBottomBand
+        ? (0.8 + seedB * 0.2) * canvas.height
+        : (0.08 + seedB * 0.86) * canvas.height;
+      const driftX = Math.sin(nowSec * (0.5 + seedC * 0.7) + phase) * (10 + seedB * 36);
+      const verticalDriftScale = inBottomBand ? 0.45 : 1;
+      const driftY = (-presence * (22 + seedC * 55) - nowSec * (4 + seedA * 6)) * verticalDriftScale;
+      const x = baseX + driftX;
+      const y = baseY + driftY;
+      const r = 40 + seedC * 115;
+      const alphaBoost = inBottomBand ? 1.25 : 1;
+      const alpha = (0.12 + seedA * 0.22) * presence * alphaBoost;
+      const grad = ctx.createRadialGradient(x, y, r * 0.08, x, y, r * 1.28);
+      grad.addColorStop(0, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.95).toFixed(3)})`);
+      grad.addColorStop(0.48, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.34).toFixed(3)})`);
+      grad.addColorStop(0.9, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.08).toFixed(3)})`);
+      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * (0.58 + seedB * 0.26), 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 
