@@ -3453,6 +3453,7 @@ function showWaveHealthSnapshot() {
   if (player && player.state !== "death" && Number.isFinite(player.health)) {
     heroSay(`HP ${Math.max(0, Math.round(player.health))}`, { life: 5.0 });
   }
+  showWaveKillCountBurst();
 
   const formationLabel =
     FORMATION_PRESETS?.[formationState?.current]?.label || "formation";
@@ -23588,6 +23589,22 @@ function checkKillMilestoneBurst() {
   });
 }
 window.checkKillMilestoneBurst = checkKillMilestoneBurst;
+
+function showWaveKillCountBurst() {
+  const total = levelManager?.getStats?.()?.enemiesDefeated;
+  if (!Number.isFinite(total) || total <= 0) return;
+  const px = typeof player !== "undefined" && Number.isFinite(player?.x) ? player.x : (cameraOffsetX + canvas.width / 2);
+  const py = typeof player !== "undefined" && Number.isFinite(player?.y) ? player.y - (player.radius || 24) - 20 : canvas.height / 2;
+  addFloatingTextAt(px, py, `${total} Kills`, "#76D98F", {
+    vy: -70,
+    life: 1.4,
+    fontSize: 40,
+    fontWeight: "700",
+    fadeDelay: 0.4,
+    speechBubble: false,
+    priority: 8,
+  });
+}
 
 function withAlpha(hexColor, alpha) {
   if (!hexColor || hexColor[0] !== "#" || hexColor.length !== 7) return hexColor;

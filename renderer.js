@@ -7969,19 +7969,89 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   });
 
   // Shared canvas tokens — mirror the --hf-* CSS vars so canvas and HTML panels stay in sync.
-  const HELLFIRE_UI_TOKENS = Object.freeze({
-    text: "#fdf1d9",
-    label: "rgba(242, 210, 146, 0.8)",
-    meta: "rgba(231, 176, 102, 0.78)",
-    accent: "rgba(242, 200, 125, 0.9)",
-    rowBg: "rgba(28, 14, 10, 0.82)",
-    rowBgFocused: "rgba(82, 44, 20, 0.92)",
-    rowBgSelected: "rgba(46, 32, 26, 0.88)",
-    rowBorder: "rgba(242, 200, 125, 0.22)",
-    rowBorderFocused: "rgba(242, 200, 125, 0.95)",
-    rowBorderSelected: "rgba(242, 200, 125, 0.55)",
-    danger: "#f07060",
-  });
+  // ─── Utility UI color tokens ─────────────────────────────────────────────
+  // All values derived from UIStyles.colors (desolate-guest palette).
+  // Nothing in the utility screens should hardcode a hex string — use these.
+  function buildUtilityTokens() {
+    const c = window.UIStyles?.colors || {};
+    // Helper: apply opacity to a hex color token.
+    function hex(token, alpha) {
+      const raw = String(c[token] || "#000000").replace("#", "");
+      const r = parseInt(raw.slice(0, 2), 16);
+      const g = parseInt(raw.slice(2, 4), 16);
+      const b = parseInt(raw.slice(4, 6), 16);
+      return alpha == null ? `#${raw}` : `rgba(${r},${g},${b},${alpha})`;
+    }
+    return Object.freeze({
+      // Text hierarchy
+      text:          hex("softWhite"),          // primary body text
+      textMuted:     hex("softWhite", 0.80),    // row meta / descriptions
+      eyebrow:       hex("gold", 0.70),         // eyebrow labels
+      title:         hex("gold"),               // h1 panel titles
+      accent:        hex("gold", 0.90),         // focused labels, icons
+      meta:          hex("muted", 0.90),        // captions, timestamps
+      danger:        hex("crimson"),            // danger row text
+      activeBadge:   hex("teal"),               // "ACTIVE" badge text
+      activeBadgeBg: hex("teal", 0.18),         // "ACTIVE" badge fill
+
+      // Row surfaces
+      rowBg:              hex("deepNavy", 0.70),   // default row background
+      rowBgFocused:       hex("slate", 0.55),      // focused row background
+      rowBgSelected:      hex("slate", 0.30),      // selected row background
+      rowBgDanger:        hex("crimson", 0.28),    // danger row focused
+      rowBorder:          hex("gold", 0.22),       // default row border
+      rowBorderFocused:   hex("gold", 0.95),       // focused row border
+      rowBorderSelected:  hex("gold", 0.55),       // selected row border
+      rowBorderDanger:    hex("crimson", 0.55),    // danger row border
+
+      // Input fields
+      inputBg:            hex("deepNavy", 0.70),
+      inputBorder:        hex("gold", 0.35),
+      inputBorderFocused: hex("gold", 0.90),
+      inputBorderEditing: hex("softWhite", 0.95),
+      inputText:          hex("softWhite"),
+      inputPlaceholder:   hex("muted", 0.60),
+
+      // Buttons
+      btnPrimaryBg:       hex("gold", 0.18),
+      btnPrimaryBorder:   hex("gold", 0.80),
+      btnPrimaryText:     hex("gold"),
+      btnSecondaryBg:     hex("deepNavy", 0.60),
+      btnSecondaryBorder: hex("muted", 0.40),
+      btnSecondaryText:   hex("muted", 0.90),
+
+      // Slider
+      sliderTrack: hex("softWhite", 0.14),
+      sliderFill:  hex("ice"),
+
+      // Panel shell (mirrors panels.desolate.shell)
+      panelBgTop:    hex("deepNavy", 0.97),
+      panelBgBottom: "rgba(8,9,18,0.97)",
+      panelBorder:   hex("gold", 0.34),
+      divider:       hex("gold", 0.22),
+    });
+  }
+  // Evaluated once at draw time so UIStyles is guaranteed loaded.
+  let _utilityTokens = null;
+  function getUT() {
+    if (!_utilityTokens) _utilityTokens = buildUtilityTokens();
+    return _utilityTokens;
+  }
+
+  // Back-compat alias — existing callers keep working unchanged.
+  const HELLFIRE_UI_TOKENS = {
+    get text()              { return getUT().text; },
+    get label()             { return getUT().eyebrow; },
+    get meta()              { return getUT().meta; },
+    get accent()            { return getUT().accent; },
+    get rowBg()             { return getUT().rowBg; },
+    get rowBgFocused()      { return getUT().rowBgFocused; },
+    get rowBgSelected()     { return getUT().rowBgSelected; },
+    get rowBorder()         { return getUT().rowBorder; },
+    get rowBorderFocused()  { return getUT().rowBorderFocused; },
+    get rowBorderSelected() { return getUT().rowBorderSelected; },
+    get danger()            { return getUT().danger; },
+  };
 
   const HELLFIRE_TEXT_PALETTE = Object.freeze({
     title: "#DDA677",
@@ -9164,6 +9234,313 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  // ─── drawUtilityPanel ────────────────────────────────────────────────────
+  // Draws the shared panel shell used by all utility screens.
+  // All coordinates are in virtual space (1280×720).
+  // Returns a contentRect { x, y, w, h } for callers to fill.
+  //
+  // Options:
+  //   ctx, layout       — canvas context + layout from getAnnouncementScreenLayout
+  //   x, y, w, h        — panel bounds in virtual space
+  //   eyebrow           — small caps label above the title (optional)
+  //   title             — h1 panel title
+  //   hint              — caption below the title (controls hint)
+  //   headerH           — total height of the header area (default 96)
+  function drawUtilityPanel(ctx, layout, {
+    x, y, w, h,
+    eyebrow = "",
+    title = "",
+    hint = "",
+    headerH = 96,
+  } = {}) {
+    const ut = getUT();
+    const ty = window.UIStyles?.typography?.utilityPanel || {};
+    const shell = window.UIStyles?.panels?.desolate?.shell || {};
+    const dividerCfg = window.UIStyles?.panels?.desolate?.divider || {};
+    const sc = layout.scale;
+    const ox = layout.offsetX;
+    const oy = layout.offsetY;
+
+    // — Panel background —
+    const sx = Math.round(ox + x * sc);
+    const sy = Math.round(oy + y * sc);
+    const sw = Math.round(w * sc);
+    const sh = Math.round(h * sc);
+    const radius = Math.round((shell.radius ?? 18) * sc);
+
+    ctx.save();
+    ctx.shadowColor = shell.shadowColor ?? "rgba(0,0,0,0.45)";
+    ctx.shadowBlur = (shell.shadowBlur ?? 24) * sc;
+    ctx.shadowOffsetY = (shell.shadowOffsetY ?? 10) * sc;
+    const grad = ctx.createLinearGradient(sx, sy, sx, sy + sh);
+    grad.addColorStop(0, ut.panelBgTop);
+    grad.addColorStop(1, ut.panelBgBottom);
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = ut.panelBorder;
+    ctx.lineWidth = (shell.borderWidth ?? 2) * sc;
+    roundRect(ctx, sx, sy, sw, sh, radius, true, true);
+    ctx.restore();
+
+    // — Eyebrow —
+    const eyebrowY = y + 20;
+    const titleY   = eyebrow ? y + 44 : y + 32;
+    const hintY    = titleY + (ty.h1 ?? 36) + 10;
+    const dividerY = headerH ? y + headerH - 10 : hintY + (ty.caption ?? 13) + 12;
+
+    if (eyebrow) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.font = `600 ${Math.round((ty.eyebrow ?? 13) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = ut.eyebrow;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        String(eyebrow).toUpperCase(),
+        Math.round(ox + (x + w / 2) * sc),
+        Math.round(oy + eyebrowY * sc),
+      );
+      ctx.restore();
+    }
+
+    // — H1 Title —
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = `700 ${Math.round((ty.h1 ?? 36) * sc)}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = ut.title;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(
+      String(title),
+      Math.round(ox + (x + w / 2) * sc),
+      Math.round(oy + titleY * sc),
+    );
+    ctx.restore();
+
+    // — Hint caption —
+    if (hint) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.font = `400 ${Math.round((ty.caption ?? 13) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = ut.meta;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        String(hint),
+        Math.round(ox + (x + w / 2) * sc),
+        Math.round(oy + hintY * sc),
+      );
+      ctx.restore();
+    }
+
+    // — Divider —
+    const divInset = dividerCfg.insetX ?? 24;
+    const divSx = Math.round(ox + (x + divInset) * sc);
+    const divEx = Math.round(ox + (x + w - divInset) * sc);
+    const divSy = Math.round(oy + dividerY * sc);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.strokeStyle = ut.divider;
+    ctx.lineWidth = Math.max(1, (dividerCfg.width ?? 1) * sc);
+    ctx.beginPath();
+    ctx.moveTo(divSx, divSy);
+    ctx.lineTo(divEx, divSy);
+    ctx.stroke();
+    ctx.restore();
+
+    // Return the content area below the header
+    const contentY = y + headerH;
+    return { x: x + 16, y: contentY, w: w - 32, h: h - headerH - 12 };
+  }
+
+  // ─── drawUtilityRow ──────────────────────────────────────────────────────
+  // Draws a single row inside a utility panel.
+  // All coordinates are in virtual space.
+  //
+  // variant:
+  //   "nav"     — label + meta + optional right chevron
+  //   "save"    — label (h2) + meta + optional ACTIVE badge
+  //   "danger"  — nav row with crimson danger tint
+  //   "slider"  — label + meta + filled track bar
+  //   "action"  — full-width button (primary or secondary)
+  //   "input"   — eyebrow label above + text input box
+  function drawUtilityRow(ctx, layout, {
+    x, y, w, h = 64,
+    variant = "nav",
+    label = "",
+    meta = "",
+    focused = false,
+    selected = false,
+    // nav / save
+    showChevron = false,
+    // save
+    isActive = false,
+    // slider
+    sliderValue = 0,
+    // action
+    actionStyle = "primary",
+    // input
+    fieldLabel = "",
+    fieldValue = "",
+    isEditing = false,
+    cursor = true,
+  } = {}) {
+    const ut = getUT();
+    const ty = window.UIStyles?.typography?.utilityPanel || {};
+    const sc = layout.scale;
+    const ox = layout.offsetX;
+    const oy = layout.offsetY;
+
+    const isDanger  = variant === "danger";
+    const isAction  = variant === "action";
+    const isSlider  = variant === "slider";
+    const isInput   = variant === "input";
+    const isSave    = variant === "save";
+
+    const sx = Math.round(ox + x * sc);
+    const sy = Math.round(oy + y * sc);
+    const sw = Math.round(w * sc);
+    const sh = Math.round(h * sc);
+    const radius = Math.round(10 * sc);
+
+    // — Row background + border —
+    ctx.save();
+    if (isAction) {
+      const isPrimary = actionStyle === "primary";
+      ctx.fillStyle   = isPrimary ? ut.btnPrimaryBg   : ut.btnSecondaryBg;
+      ctx.strokeStyle = isPrimary ? ut.btnPrimaryBorder : ut.btnSecondaryBorder;
+    } else if (isInput) {
+      const editBorder = isEditing  ? ut.inputBorderEditing
+                       : focused    ? ut.inputBorderFocused
+                       :              ut.inputBorder;
+      ctx.fillStyle   = ut.inputBg;
+      ctx.strokeStyle = editBorder;
+    } else if (isDanger) {
+      ctx.fillStyle   = focused ? ut.rowBgDanger   : ut.rowBg;
+      ctx.strokeStyle = focused ? ut.rowBorderDanger : ut.rowBorder;
+    } else {
+      ctx.fillStyle   = focused ? ut.rowBgFocused  : selected ? ut.rowBgSelected  : ut.rowBg;
+      ctx.strokeStyle = focused ? ut.rowBorderFocused : selected ? ut.rowBorderSelected : ut.rowBorder;
+    }
+    ctx.lineWidth = Math.max(1, (focused || isEditing ? 2 : 1.2) * sc);
+    roundRect(ctx, sx, sy, sw, sh, radius, true, true);
+    ctx.restore();
+
+    const padX  = Math.round(16 * sc);
+    const midY  = Math.round(oy + (y + h / 2) * sc);
+    const textX = sx + padX;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    if (isAction) {
+      // — Full-width centred button label —
+      const isPrimary = actionStyle === "primary";
+      ctx.font = `600 ${Math.round((ty.button ?? 18) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = isPrimary ? ut.btnPrimaryText : ut.btnSecondaryText;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(label), sx + Math.round(sw / 2), midY);
+
+    } else if (isInput) {
+      // — Eyebrow field label above box —
+      const labelSy = Math.round(oy + (y - 18) * sc);
+      ctx.font = `600 ${Math.round((ty.eyebrow ?? 13) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = ut.eyebrow;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(fieldLabel).toUpperCase(), textX, labelSy);
+      // — Value + cursor —
+      ctx.font = `500 ${Math.round((ty.input ?? 18) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = fieldValue ? ut.inputText : ut.inputPlaceholder;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const displayValue = fieldValue + (isEditing && cursor ? "│" : "");
+      ctx.fillText(String(displayValue || fieldLabel), textX, midY);
+
+    } else if (isSlider) {
+      // — Label + value on one line —
+      ctx.font = `600 ${Math.round((ty.h3 ?? 20) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = focused ? ut.accent : ut.text;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(label), textX, midY - Math.round(8 * sc));
+      // Track
+      const trackX = textX;
+      const trackY = Math.round(oy + (y + h - 18) * sc);
+      const trackW = sw - padX * 2;
+      const trackH = Math.round(8 * sc);
+      ctx.fillStyle = ut.sliderTrack;
+      roundRect(ctx, trackX, trackY, trackW, trackH, Math.round(4 * sc), true, false);
+      const fillW = Math.max(0, Math.round(trackW * Math.max(0, Math.min(1, sliderValue))));
+      if (fillW > 0) {
+        const fillGrad = ctx.createLinearGradient(trackX, trackY, trackX + trackW, trackY);
+        fillGrad.addColorStop(0, ut.sliderFill);
+        fillGrad.addColorStop(1, ut.title);
+        ctx.fillStyle = fillGrad;
+        roundRect(ctx, trackX, trackY, fillW, trackH, Math.round(4 * sc), true, false);
+      }
+
+    } else {
+      // — nav / save / danger: label on top, meta below —
+      const hasOnlyLabel = !meta;
+      const labelBaseY = hasOnlyLabel
+        ? midY
+        : Math.round(oy + (y + h * 0.38) * sc);
+      const metaBaseY = Math.round(oy + (y + h * 0.68) * sc);
+
+      const labelSize = isSave ? (ty.h2 ?? 26) : (ty.h3 ?? 20);
+      ctx.font = `${isSave ? 600 : 600} ${Math.round(labelSize * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = isDanger ? ut.danger : (focused ? ut.accent : ut.text);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      // Clamp label so it doesn't overlap badge/chevron
+      const labelMaxW = sw - padX * 2 - (isActive ? Math.round(64 * sc) : 0) - (showChevron ? Math.round(20 * sc) : 0);
+      ctx.fillText(String(label), textX, labelBaseY, Math.max(1, labelMaxW));
+
+      if (meta) {
+        ctx.font = `400 ${Math.round((ty.body ?? 16) * sc)}px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = isDanger ? ut.danger : ut.textMuted;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(meta), textX, metaBaseY, Math.max(1, sw - padX * 2));
+      }
+
+      // — ACTIVE badge —
+      if (isActive) {
+        const badgeText = "ACTIVE";
+        const badgeFontSize = Math.round((ty.badge ?? 12) * sc);
+        ctx.font = `700 ${badgeFontSize}px ${UI_FONT_FAMILY}`;
+        const badgeTW = ctx.measureText(badgeText).width;
+        const badgePadX = Math.round(8 * sc);
+        const badgePadY = Math.round(4 * sc);
+        const badgeW = badgeTW + badgePadX * 2;
+        const badgeH = badgeFontSize + badgePadY * 2;
+        const badgeX = sx + sw - Math.round(12 * sc) - badgeW;
+        const badgeY = midY - badgeH / 2;
+        ctx.fillStyle = ut.activeBadgeBg;
+        ctx.strokeStyle = ut.activeBadge;
+        ctx.lineWidth = Math.max(1, sc);
+        roundRect(ctx, badgeX, badgeY, badgeW, badgeH, Math.round(4 * sc), true, true);
+        ctx.fillStyle = ut.activeBadge;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(badgeText, badgeX + badgeW / 2, midY);
+      }
+
+      // — Chevron —
+      if (showChevron) {
+        ctx.font = `400 ${Math.round(18 * sc)}px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = focused ? ut.accent : ut.eyebrow;
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText("›", sx + sw - Math.round(12 * sc), midY);
+      }
+    }
+
+    ctx.restore();
+    return { x, y, w, h };
+  }
+
   function drawTitleScreen() {
     const {
       ctx,
@@ -9418,12 +9795,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonCount: buttonConfigs.length,
       HUD_HEIGHT: HUD_HEIGHT || 54,
     });
-    // Render Save/Load at native scale to keep panel geometry and text crisp.
-    if (titleDemoSaveMenuActive && !titleUtilityPanelMode) {
-      layout.scale = 1;
-      layout.offsetX = 0;
-      layout.offsetY = 0;
-    }
+    // Save/Load uses the virtual canvas system — no scale bypass needed.
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
