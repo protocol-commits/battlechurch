@@ -9061,42 +9061,79 @@ async function openMapFromCloudSave(saveId) {
   titleDemoSaveMenuActive = false;
 }
 
+async function openMapFromDemoSlot(slot) {
+  if (!slot?.districtId) return;
+  setDemoSandboxRunActive(true);
+  await seedDemoSlotProgress(slot);
+  titleDemoSaveOverride = {
+    districtId: slot.districtId,
+    campaignData: slot.campaignData || null,
+  };
+  if (typeof window !== "undefined" && window.MapScreen?.selectDistrict) {
+    window.MapScreen.selectDistrict(slot.districtId);
+  }
+  activeDistrictId = slot.districtId;
+  if (typeof window !== "undefined") {
+    window.activeDistrictId = activeDistrictId;
+  }
+  titleScreenActive = false;
+  mapActive = true;
+  if (window.MapScreen?.open) window.MapScreen.open();
+  titleDemoSaveMenuActive = false;
+}
+
 async function showTitleSavePickerOverlay() {
   if (!window.DialogOverlay?.show) return false;
   titleDemoSaveMenuActive = false;
   await refreshTitleCloudSaveOption();
   const isSignedIn = typeof window !== "undefined" && window.cloudAuthProvider === "google" && window.cloudEmail;
   const rows = Array.isArray(titleCloudSaveRows) ? titleCloudSaveRows : [];
-  const rowsHtml = rows.length
-    ? rows
-        .map((row) => {
-          const selected = row?.id === titleCloudSelectedSaveId ? " save-picker__item--selected" : "";
-          const activeBadge = row?.isActive ? '<span class="save-picker__badge">ACTIVE</span>' : "";
-          return `
-            <button type="button" class="save-picker__item${selected}" data-save-id="${escapeHtml(row.id)}">
-              <span class="save-picker__item-icon">💾</span>
-              <span class="save-picker__item-text">
-                <span class="save-picker__item-title">${escapeHtml(row.label || "Save")}</span>
-                <span class="save-picker__item-meta">${escapeHtml(row.meta || "")}</span>
-              </span>
-              ${activeBadge}
-            </button>
-          `;
-        })
-        .join("")
-    : `
-      <div class="settings-row">
-        <span class="settings-row__icon">ℹ️</span>
-        <div class="settings-row__text">
-          <div class="settings-row__label">No Save Files</div>
-          <div class="settings-row__desc">Create a new save to start playing.</div>
-        </div>
+  const demoSlots = Array.isArray(TITLE_DEMO_SAVE_SLOTS) ? TITLE_DEMO_SAVE_SLOTS : [];
+  const totalRowsCount = rows.length + demoSlots.length;
+  const cloudRowsHtml = rows
+    .map((row) => {
+      const selected = row?.id === titleCloudSelectedSaveId ? " save-picker__item--selected" : "";
+      const activeBadge = row?.isActive ? '<span class="save-picker__badge">ACTIVE</span>' : "";
+      return `
+        <button type="button" class="save-picker__item${selected}" data-save-id="${escapeHtml(row.id)}">
+          <span class="save-picker__item-icon">💾</span>
+          <span class="save-picker__item-text">
+            <span class="save-picker__item-title">${escapeHtml(row.label || "Save")}</span>
+            <span class="save-picker__item-meta">${escapeHtml(row.meta || "")}</span>
+          </span>
+          ${activeBadge}
+        </button>
+      `;
+    })
+    .join("");
+  const demoRowsHtml = demoSlots
+    .map((slot, idx) => `
+      <button type="button" class="save-picker__item save-picker__item--demo" data-demo-slot="${escapeHtml(slot?.key || `slot${idx + 1}`)}">
+        <span class="save-picker__item-icon">🧪</span>
+        <span class="save-picker__item-text">
+          <span class="save-picker__item-title">${escapeHtml(slot?.label || `Demo Slot ${idx + 1}`)}</span>
+          <span class="save-picker__item-meta">Demo profile for QA/testing</span>
+        </span>
+      </button>
+    `)
+    .join("");
+  const rowsHtml = `${cloudRowsHtml}${demoRowsHtml}` || `
+    <div class="settings-row">
+      <span class="settings-row__icon">ℹ️</span>
+      <div class="settings-row__text">
+        <div class="settings-row__label">No Save Files</div>
+        <div class="settings-row__desc">Create a new save to start playing.</div>
       </div>
-    `;
+    </div>
+  `;
 
   const bodyHtml = `
     <div class="settings-panel save-picker">
-      <div class="save-picker__list">${rowsHtml}</div>
+      <div class="save-picker__scrollbar">
+        <button type="button" class="save-picker__scroll-btn" data-save-picker-scroll="up">▲</button>
+        <button type="button" class="save-picker__scroll-btn" data-save-picker-scroll="down">▼</button>
+      </div>
+      <div class="save-picker__list" tabindex="0" role="listbox" aria-label="Save files">${rowsHtml}</div>
       <div class="save-picker__actions">
         ${
           isSignedIn
@@ -9124,6 +9161,45 @@ async function showTitleSavePickerOverlay() {
       }
       if (!bodyEl) return;
       const closeOverlay = () => window.DialogOverlay?.hide?.();
+      const listEl = bodyEl.querySelector(".save-picker__list");
+      const scrollStepPx = 180;
+      if (listEl) {
+        setTimeout(() => {
+          try { listEl.focus({ preventScroll: true }); } catch (_e) {}
+        }, 0);
+        listEl.addEventListener("keydown", (event) => {
+          const k = String(event.key || "");
+          if (k === "ArrowDown" || k === "s" || k === "S") {
+            listEl.scrollBy({ top: scrollStepPx, behavior: "smooth" });
+            event.preventDefault();
+          } else if (k === "ArrowUp" || k === "w" || k === "W") {
+            listEl.scrollBy({ top: -scrollStepPx, behavior: "smooth" });
+            event.preventDefault();
+          } else if (k === "PageDown") {
+            listEl.scrollBy({ top: Math.max(220, listEl.clientHeight - 40), behavior: "smooth" });
+            event.preventDefault();
+          } else if (k === "PageUp") {
+            listEl.scrollBy({ top: -Math.max(220, listEl.clientHeight - 40), behavior: "smooth" });
+            event.preventDefault();
+          }
+        });
+      }
+      const toggleScrollButtons = () => {
+        const upBtn = bodyEl.querySelector('[data-save-picker-scroll="up"]');
+        const downBtn = bodyEl.querySelector('[data-save-picker-scroll="down"]');
+        const canScroll = totalRowsCount > 6 && listEl;
+        if (upBtn) upBtn.style.display = canScroll ? "inline-flex" : "none";
+        if (downBtn) downBtn.style.display = canScroll ? "inline-flex" : "none";
+      };
+      toggleScrollButtons();
+      bodyEl.querySelector('[data-save-picker-scroll="up"]')?.addEventListener("click", () => {
+        if (!listEl) return;
+        listEl.scrollBy({ top: -scrollStepPx, behavior: "smooth" });
+      });
+      bodyEl.querySelector('[data-save-picker-scroll="down"]')?.addEventListener("click", () => {
+        if (!listEl) return;
+        listEl.scrollBy({ top: scrollStepPx, behavior: "smooth" });
+      });
       bodyEl.querySelectorAll("[data-save-id]").forEach((button) => {
         button.addEventListener("click", () => {
           const saveId = String(button.getAttribute("data-save-id") || "");
@@ -9131,6 +9207,15 @@ async function showTitleSavePickerOverlay() {
           titleCloudSelectedSaveId = saveId;
           closeOverlay();
           void openMapFromCloudSave(saveId);
+        });
+      });
+      bodyEl.querySelectorAll("[data-demo-slot]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = String(button.getAttribute("data-demo-slot") || "");
+          const slot = TITLE_DEMO_SAVE_SLOTS.find((entry) => String(entry?.key || "") === key);
+          if (!slot?.districtId) return;
+          closeOverlay();
+          void openMapFromDemoSlot(slot);
         });
       });
 

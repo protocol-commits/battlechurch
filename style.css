@@ -809,12 +809,41 @@ body.layout-rotate-warning #rotatePrompt {
   gap: 14px;
 }
 
+.save-picker__scrollbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.save-picker__scroll-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--hf-row-border);
+  background: var(--hf-row-bg);
+  color: var(--hf-text);
+  font-family: var(--ui-font-family);
+  cursor: pointer;
+}
+
+.save-picker__scroll-btn:hover,
+.save-picker__scroll-btn:focus-visible {
+  border-color: var(--hf-row-border-focused);
+  filter: brightness(1.08);
+  outline: none;
+}
+
 .save-picker__list {
   display: grid;
   gap: 10px;
   max-height: min(56vh, 520px);
   overflow-y: auto;
   padding-right: 2px;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable both-edges;
 }
 
 .save-picker__item {
@@ -844,6 +873,10 @@ body.layout-rotate-warning #rotatePrompt {
 .save-picker__item--selected {
   border-color: rgba(255, 200, 100, 0.72);
   box-shadow: inset 3px 0 0 rgba(255, 200, 100, 0.9);
+}
+
+.save-picker__item--demo {
+  border-style: dashed;
 }
 
 .save-picker__item-icon {
