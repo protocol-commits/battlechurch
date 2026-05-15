@@ -9174,6 +9174,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       mapReady,
       titleDemoSaveMenuActive,
       titleClassMenuActive,
+      titleUtilityPanelMode,
       titleDemoSaveSlots,
       titleCloudSaveLoading,
       titleCloudSaveRows,
@@ -9238,7 +9239,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       fireOverlay.draw(ctx);
     }
-    if (titleDemoSaveMenuActive || titleClassMenuActive) {
+    if (titleDemoSaveMenuActive || titleClassMenuActive || titleUtilityPanelMode) {
       ctx.save();
       ctx.fillStyle = "rgba(0, 0, 0, 0.74)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -9252,7 +9253,32 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
     // Show either the fake-save picker or the normal title actions.
     let buttonConfigs;
-    if (titleDemoSaveMenuActive) {
+    if (titleUtilityPanelMode === "more") {
+      buttonConfigs = [
+        { key: "viewCloudSaveDetails", label: "View Full Details", meta: "Town breakdown, congregation totals, upgrades" },
+        { key: "editCloudSave", label: "Edit Save", meta: "Rename file, player name, city, denomination" },
+        { key: "resetGoogleSave", label: "Reset Save Progress", meta: "Wipe progress and start fresh", danger: true },
+        { key: "deleteCloudSave", label: "Delete Save", meta: "Permanently remove this save file", danger: true },
+        { key: "utilityPanelClose", label: "Close", meta: "Return to save list" },
+      ];
+    } else if (titleUtilityPanelMode === "settings") {
+      const audioSettings = (typeof window !== "undefined" && window.audioSettings) ? window.audioSettings : {};
+      const musicEnabled = audioSettings.musicEnabled !== false;
+      const sfxEnabled = audioSettings.sfxEnabled !== false;
+      const timerEnabled = audioSettings.showSpeedrunTimer === true;
+      const musicVolPct = Math.round(Math.max(0, Math.min(100, Number(audioSettings.musicVolume ?? 1) * 100)));
+      const sfxVolPct = Math.round(Math.max(0, Math.min(100, Number(audioSettings.sfxVolume ?? 1) * 100)));
+      buttonConfigs = [
+        { key: "settingsMusicEnabled", label: `Music: ${musicEnabled ? "On" : "Off"}`, meta: "Toggle background music" },
+        { key: "settingsMusicVolume", label: `Music Volume: ${musicVolPct}%`, meta: "Adjust with A/D or \u2190/\u2192", sliderValue: musicVolPct / 100 },
+        { key: "settingsSfxEnabled", label: `SFX: ${sfxEnabled ? "On" : "Off"}`, meta: "Toggle sound effects" },
+        { key: "settingsSfxVolume", label: `SFX Volume: ${sfxVolPct}%`, meta: "Adjust with A/D or \u2190/\u2192", sliderValue: sfxVolPct / 100 },
+        { key: "settingsSpeedrunTimer", label: `Speedrun Timer: ${timerEnabled ? "On" : "Off"}`, meta: "Show run timer during gameplay" },
+        { key: "settingsAbout", label: "About", meta: "View controls and gameplay guide" },
+        { key: "settingsDeveloper", label: "Developer", meta: "Open debug and development tools" },
+        { key: "back", label: "Back", meta: "Return to title menu" },
+      ];
+    } else if (titleDemoSaveMenuActive) {
       const slots = Array.isArray(titleDemoSaveSlots) ? titleDemoSaveSlots : [];
       const cloudRows = Array.isArray(titleCloudSaveRows) ? titleCloudSaveRows : [];
       const cloudButtons = titleCloudSaveLoading
@@ -9293,7 +9319,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
       }
       buttonConfigs.push({ key: "back", label: "Back" });
-    } else if (titleClassMenuActive) {
+    } else if (titleClassMenuActive && !titleUtilityPanelMode) {
       const classes = Array.isArray(window.BattlechurchClassConfig?.classes)
         ? window.BattlechurchClassConfig.classes
         : [];
@@ -9366,7 +9392,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       HUD_HEIGHT: HUD_HEIGHT || 54,
     });
     // Render Save/Load at native scale to keep panel geometry and text crisp.
-    if (titleDemoSaveMenuActive) {
+    if (titleDemoSaveMenuActive && !titleUtilityPanelMode) {
       layout.scale = 1;
       layout.offsetX = 0;
       layout.offsetY = 0;
@@ -9413,7 +9439,172 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const { loadingProgress } = requireBindings();
     const canvasMenuType = window.UIStyles?.typography?.canvasTitleMenu || {};
     const progress = Math.max(0, Math.min(100, loadingProgress || 0));
-    if (titleDemoSaveMenuActive) {
+    if (titleUtilityPanelMode) {
+      const utilityType = String(titleUtilityPanelMode || "");
+      const utilityTypography = window.UIStyles?.typography?.canvasUtilityPanels || {};
+      const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
+      const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
+      const utilityTitle = utilityType === "more" ? "Save Options" : "Settings";
+      const utilityHint =
+        utilityType === "more"
+          ? "W / S move  ·  SPACE select  ·  ESC back"
+          : "W / S move  ·  A/D adjust sliders  ·  SPACE select  ·  ESC back";
+      const panelW = Math.round(Math.min(760, layout.virtualCanvas.width * 0.62));
+      const panelH = Math.round(Math.min(620, layout.virtualCanvas.height * 0.72));
+      const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
+      const panelY = Math.round(layout.virtualCanvas.height / 2 - panelH / 2);
+      const titleY = panelY + 34;
+      const hintY = panelY + 56;
+      const dividerY = panelY + 82;
+      const rowH = 58;
+      const rowGap = 8;
+      const rowX = panelX + 22;
+      const rowW = panelW - 44;
+      const listStartY = panelY + 102;
+      const listBottomY = panelY + panelH - 16;
+      const rowStep = rowH + rowGap;
+      const maxVisibleRows = Math.max(1, Math.floor((listBottomY - listStartY) / rowStep));
+      const totalRows = buttonConfigs.length;
+      const rawFocus =
+        typeof window !== "undefined" && window.__announcementFocus?.key === "title"
+          ? Number(window.__announcementFocus.index)
+          : 0;
+      const focusIndex = Number.isFinite(rawFocus)
+        ? Math.max(0, Math.min(totalRows - 1, Math.floor(rawFocus)))
+        : 0;
+      const maxScrollStart = Math.max(0, totalRows - maxVisibleRows);
+      const scrollStart = Math.max(0, Math.min(maxScrollStart, focusIndex - Math.floor(maxVisibleRows / 2)));
+      const visibleStart = scrollStart;
+      const visibleEnd = Math.min(totalRows, visibleStart + maxVisibleRows);
+      const showScrollUp = visibleStart > 0;
+      const showScrollDown = visibleEnd < totalRows;
+      const boundsByIndex = new Array(totalRows);
+
+      ctx.shadowColor = shellStyle.shadowColor || "rgba(0, 0, 0, 0.45)";
+      ctx.shadowBlur = shellStyle.shadowBlur ?? 24;
+      ctx.shadowOffsetY = shellStyle.shadowOffsetY ?? 10;
+      const panelGradient = ctx.createLinearGradient(0, panelY, 0, panelY + panelH);
+      panelGradient.addColorStop(0, shellStyle.gradientTop || "rgba(12, 18, 30, 0.95)");
+      panelGradient.addColorStop(1, shellStyle.gradientBottom || "rgba(7, 10, 18, 0.95)");
+      ctx.fillStyle = panelGradient;
+      ctx.strokeStyle = shellStyle.borderColor || "rgba(255, 218, 162, 0.34)";
+      ctx.lineWidth = shellStyle.borderWidth ?? 2;
+      roundRect(ctx, panelX, panelY, panelW, panelH, shellStyle.radius ?? 18, true, true);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      fillTextCrisp({
+        text: utilityTitle,
+        x: panelX + panelW / 2,
+        y: titleY,
+        font: `700 ${utilityTypography.title ?? 30}px ${PIXEL_UI_FONT_FAMILY}`,
+        fillStyle: EMBER_BUTTON_PALETTE.text,
+        textAlign: "center",
+        textBaseline: "alphabetic",
+      });
+      fillTextCrisp({
+        text: utilityHint,
+        x: panelX + panelW / 2,
+        y: hintY,
+        font: `600 ${utilityTypography.hint ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
+        fillStyle: "rgba(231,176,102,0.82)",
+        textAlign: "center",
+        textBaseline: "alphabetic",
+      });
+      ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
+      ctx.lineWidth = dividerStyle.width ?? 1;
+      ctx.beginPath();
+      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), dividerY);
+      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), dividerY);
+      ctx.stroke();
+
+      for (let index = visibleStart; index < visibleEnd; index += 1) {
+        const config = buttonConfigs[index];
+        const visibleRow = index - visibleStart;
+        const y = Math.round(listStartY + visibleRow * rowStep);
+        const focused = isAnnouncementButtonFocused("title", index);
+        const isDanger = config?.danger === true;
+        ctx.save();
+        ctx.fillStyle = focused
+          ? "rgba(182, 98, 38, 0.96)"
+          : isDanger
+            ? "rgba(76, 20, 20, 0.9)"
+            : "rgba(14, 12, 16, 0.88)";
+        ctx.strokeStyle = focused
+          ? "rgba(255, 244, 190, 1)"
+          : isDanger
+            ? "rgba(255, 170, 170, 0.55)"
+            : "rgba(242, 200, 125, 0.35)";
+        ctx.lineWidth = focused ? 3.2 : 1.2;
+        roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
+        if (focused) {
+          ctx.fillStyle = "rgba(255, 245, 196, 1)";
+          ctx.fillRect(rowX + 6, y + 7, 5, rowH - 14);
+        }
+        fillTextCrisp({
+          text: String(config?.label || ""),
+          x: rowX + 20,
+          y: y + 22,
+          font: `600 ${utilityTypography.rowTitle ?? 24}px ${PIXEL_UI_FONT_FAMILY}`,
+          fillStyle: EMBER_BUTTON_PALETTE.text,
+          textAlign: "left",
+          textBaseline: "alphabetic",
+        });
+        if (config?.meta) {
+          fillTextCrisp({
+            text: String(config.meta),
+            x: rowX + 20,
+            y: y + 42,
+            font: `500 ${utilityTypography.rowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: "rgba(231, 176, 102, 0.82)",
+            textAlign: "left",
+            textBaseline: "alphabetic",
+          });
+        }
+        if (Number.isFinite(config?.sliderValue)) {
+          const sliderPadX = 18;
+          const sliderW = Math.max(40, rowW - sliderPadX * 2);
+          const sliderH = 8;
+          const sliderX = rowX + sliderPadX;
+          const sliderY = y + rowH - 14;
+          const pct = Math.max(0, Math.min(1, Number(config.sliderValue)));
+          ctx.fillStyle = "rgba(255,255,255,0.14)";
+          roundRect(ctx, sliderX, sliderY, sliderW, sliderH, 4, true, false);
+          const fillW = Math.max(6, sliderW * pct);
+          const grad = ctx.createLinearGradient(sliderX, sliderY, sliderX + sliderW, sliderY);
+          grad.addColorStop(0, "#ffcc68");
+          grad.addColorStop(1, "#d44e52");
+          ctx.fillStyle = grad;
+          roundRect(ctx, sliderX, sliderY, fillW, sliderH, 4, true, false);
+        }
+        ctx.restore();
+
+        boundsByIndex[index] = {
+          key: config.key,
+          x: layout.offsetX + rowX * layout.scale,
+          y: layout.offsetY + y * layout.scale,
+          width: rowW * layout.scale,
+          height: rowH * layout.scale,
+        };
+      }
+      for (let index = 0; index < totalRows; index += 1) {
+        if (boundsByIndex[index]) continue;
+        boundsByIndex[index] = { key: buttonConfigs[index]?.key, x: -99999, y: -99999, width: 0, height: 0 };
+      }
+      boundsByIndex.forEach((entry) => { if (entry) bounds.push(entry); });
+
+      if (showScrollUp || showScrollDown) {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "rgba(242, 200, 125, 0.9)";
+        ctx.font = `700 ${utilityTypography.scrollGlyph ?? 18}px ${PIXEL_UI_FONT_FAMILY}`;
+        if (showScrollUp) ctx.fillText("▲", panelX + panelW - 16, listStartY - 4);
+        if (showScrollDown) ctx.fillText("▼", panelX + panelW - 16, listBottomY - 2);
+        ctx.restore();
+      }
+    } else if (titleDemoSaveMenuActive) {
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
       const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
 
@@ -9771,7 +9962,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
       boundsByIndex.forEach((item) => { if (item) bounds.push(item); });
       rowActionBounds.forEach((item) => bounds.push(item));
-    } else if (titleClassMenuActive) {
+    } else if (titleClassMenuActive && !titleUtilityPanelMode) {
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
       const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
       const hintStyle = window.UIStyles?.panels?.hellfire?.withHint || {};

@@ -525,6 +525,7 @@ const bossHazards = [];
 let titleScreenActive = true;
 let titleDemoSaveMenuActive = false;
 let titleClassMenuActive = false;
+let titleUtilityPanelMode = null;
 let titleDemoSaveOverride = null;
 let demoSandboxRunActive = false;
 let titleCloudSaveLoading = false;
@@ -5778,6 +5779,7 @@ Renderer.initialize({
   get titleScreenActive() { return titleScreenActive; },
   get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
   get titleClassMenuActive() { return titleClassMenuActive; },
+  get titleUtilityPanelMode() { return titleUtilityPanelMode; },
   get titleSelectedClassId() {
     return window.BattlechurchClasses?.getActiveId?.() || null;
   },
@@ -8875,6 +8877,7 @@ function startDevLevelTestFromEditor({
   mapActive = true;
   titleScreenActive = false;
   titleDemoSaveMenuActive = false;
+  titleUtilityPanelMode = null;
   if (typeof window !== "undefined" && window.MapScreen?.open) {
     window.MapScreen.selectDistrict?.(districtId);
     window.MapScreen.open();
@@ -21008,6 +21011,36 @@ function handleTitleScreen() {
       const focusedButton = buttons[focus.index] || null;
       return String(focusedButton?.key || "") || null;
     };
+    const updateAudioSetting = (key, value) => {
+      audioSettings[key] = value;
+      saveAudioSettings();
+      applyAudioSettings();
+    };
+    const adjustCanvasSettingByFocusedKey = (delta) => {
+      if (titleUtilityPanelMode !== "settings") return false;
+      const focusedKey = getFocusedTitleRowKey();
+      if (!focusedKey) return false;
+      if (focusedKey === "settingsMusicVolume") {
+        const next = clamp01((Number(audioSettings.musicVolume) || 0) + delta);
+        updateAudioSetting("musicVolume", next);
+        return true;
+      }
+      if (focusedKey === "settingsSfxVolume") {
+        const next = clamp01((Number(audioSettings.sfxVolume) || 0) + delta);
+        updateAudioSetting("sfxVolume", next);
+        return true;
+      }
+      return false;
+    };
+    if (titleUtilityPanelMode === "settings") {
+      const sliderStep = 0.05;
+      if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
+        if (adjustCanvasSettingByFocusedKey(-sliderStep)) return true;
+      }
+      if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
+        if (adjustCanvasSettingByFocusedKey(sliderStep)) return true;
+      }
+    }
     const escapeHtml = (value) =>
       String(value ?? "")
         .replaceAll("&", "&amp;")
@@ -21020,6 +21053,10 @@ function handleTitleScreen() {
       resolveFocusIndex: ({ buttons, focusIndex, direction }) => {
         if (!Array.isArray(buttons) || buttons.length === 0) return focusIndex;
         if (!titleDemoSaveMenuActive) {
+          if (titleUtilityPanelMode === "settings") {
+            const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
+            return (focusIndex + linearDirection + buttons.length) % buttons.length;
+          }
           if (buttons.length <= 1) return focusIndex;
           const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
           if (titleClassMenuActive) {
@@ -21028,6 +21065,10 @@ function handleTitleScreen() {
           return (focusIndex + linearDirection + buttons.length) % buttons.length;
         }
         const current = buttons[focusIndex] || null;
+        if (titleUtilityPanelMode === "more") {
+          const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
+          return (focusIndex + linearDirection + buttons.length) % buttons.length;
+        }
         // Save rows: navZone "rows". More chips + action buttons: navZone "actions".
         const saveRows = buttons
           .map((button, index) => ({ button, index }))
@@ -21121,12 +21162,20 @@ function handleTitleScreen() {
         if (button.key === "continue" || button.key === "play") {
           setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = true;
+          titleUtilityPanelMode = null;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
           return;
         }
         if (button.key === "back") {
+          if (titleUtilityPanelMode) {
+            titleUtilityPanelMode = null;
+            if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
+              window.playMenuAdvanceSfx(0.55);
+            }
+            return;
+          }
           setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = false;
           titleClassMenuActive = false;
@@ -21265,6 +21314,7 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "newCloudSave") {
+          titleUtilityPanelMode = null;
           showNewCloudSaveDialog();
           return;
         }
@@ -21272,17 +21322,51 @@ function handleTitleScreen() {
           const saveId = String(button.key).slice("cloudrowmore:".length);
           if (saveId) {
             titleCloudSelectedSaveId = saveId;
-            showCloudSaveMoreMenu(saveId);
+            titleUtilityPanelMode = "more";
           }
           return;
         }
+        if (button.key === "utilityPanelClose") {
+          titleUtilityPanelMode = null;
+          return;
+        }
+        if (button.key === "settingsMusicEnabled") {
+          updateAudioSetting("musicEnabled", !audioSettings.musicEnabled);
+          return;
+        }
+        if (button.key === "settingsMusicVolume" || button.key === "settingsSfxVolume") {
+          return;
+        }
+        if (button.key === "settingsSfxEnabled") {
+          updateAudioSetting("sfxEnabled", !audioSettings.sfxEnabled);
+          return;
+        }
+        if (button.key === "settingsSpeedrunTimer") {
+          updateAudioSetting("showSpeedrunTimer", !audioSettings.showSpeedrunTimer);
+          return;
+        }
+        if (button.key === "settingsAbout") {
+          if (window.PlayingInstructions) window.PlayingInstructions.open();
+          return;
+        }
+        if (button.key === "settingsCustomize") {
+          window.PaperdollSandbox?.loadCustomFaceFromStorage?.();
+          window.PaperdollSandbox?.openCustomize?.();
+          return;
+        }
+        if (button.key === "settingsDeveloper") {
+          showDeveloperOverlay();
+          return;
+        }
         if (button.key === "editCloudSave") {
+          titleUtilityPanelMode = null;
           const saveId = resolveCloudTargetSaveId();
           if (saveId) showEditCloudSaveDialog(saveId);
           return;
         }
 
         if (button.key === "renameCloudSave") {
+          titleUtilityPanelMode = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId) return;
@@ -21300,6 +21384,7 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "deleteCloudSave") {
+          titleUtilityPanelMode = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId || typeof window.MapScreen?.deleteSaveFile !== "function") return;
@@ -21323,6 +21408,7 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "resetGoogleSave") {
+          titleUtilityPanelMode = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId) return;
@@ -21390,7 +21476,9 @@ function handleTitleScreen() {
             })();
           }
         } else if (button.key === "settings") {
-          showSettingsOverlay({ source: "title" });
+          titleDemoSaveMenuActive = false;
+          titleClassMenuActive = false;
+          titleUtilityPanelMode = "settings";
         } else if (button.key === "customizeCharacter") {
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
@@ -28512,6 +28600,7 @@ async function init() {
     npcsSuspended = false;
     titleScreenActive = true;
     titleDemoSaveMenuActive = false;
+    titleUtilityPanelMode = null;
     paused = true;
     gameStarted = false;
     levelManager = Levels.createLevelManager();

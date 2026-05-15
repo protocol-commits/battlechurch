@@ -90,6 +90,13 @@
         // Main title buttons
         mainButtonLabel: 38,
       },
+      canvasUtilityPanels: {
+        title: 30,
+        hint: 14,
+        rowTitle: 24,
+        rowMeta: 14,
+        scrollGlyph: 18,
+      },
       playingInstructions: {
         loading: 14,
         h1: 20,
