@@ -660,95 +660,91 @@ body.layout-rotate-warning #rotatePrompt {
   background: rgba(0, 0, 0, 0.78);
 }
 .dialog-overlay--save-form .dialog-overlay__panel {
-  width: min(560px, 92%);
+  width: min(520px, 92%);
   background: linear-gradient(170deg, rgba(18, 9, 6, 0.97) 0%, rgba(10, 5, 3, 0.97) 100%);
   border: 2px solid rgba(255, 218, 162, 0.34);
-  border-radius: 18px;
-  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.7), 0 0 40px rgba(180, 80, 20, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 32px rgba(180, 80, 20, 0.08);
   font-family: var(--ui-font-family);
   text-align: left;
-  padding: clamp(20px, 4vw, 36px);
+  padding: 18px 20px 16px;
 }
 .dialog-overlay--save-form .dialog-overlay__title {
-  font-size: clamp(24px, 3.5vw, 34px);
-  color: #FFD978;
-  text-align: center;
-  letter-spacing: 0.04em;
-  margin-bottom: 0;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 214, 148, 0.22);
+  display: none;
 }
 .dialog-overlay--save-form .dialog-overlay__body {
-  margin-top: 18px;
+  margin-top: 0;
 }
 .dialog-overlay--save-form .dialog-overlay__button {
   display: none;
 }
+/* Form layout — compact grid, no per-field labels */
 .save-form {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
-.save-form__eyebrow {
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(231, 176, 102, 0.68);
-  text-align: center;
-  margin-bottom: -6px;
+/* Name + City side-by-side, wraps when too narrow */
+.save-form__pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
-.save-form__field {
+.save-form__pair .save-form__input {
+  flex: 1 1 120px;
+  width: auto;
+  min-width: 0;
+}
+/* Denomination: label above, select below */
+.save-form__inline {
   display: grid;
-  gap: 6px;
+  gap: 5px;
 }
-.save-form__label {
-  font-size: 13px;
+.save-form__inline-label {
+  font-size: 12px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(242, 210, 146, 0.8);
+  color: rgba(242, 210, 146, 0.68);
 }
 .save-form__input {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 9px 12px;
+  border-radius: 7px;
   border: 1.5px solid rgba(242, 200, 125, 0.3);
   background: rgba(10, 5, 3, 0.72);
   color: #fdf1d9;
   font-family: var(--ui-font-family);
-  font-size: clamp(17px, 2.5vw, 20px);
+  font-size: clamp(16px, 2.2vw, 19px);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   -webkit-appearance: none;
   appearance: none;
+}
+.save-form__inline .save-form__input {
+  width: 100%;
 }
 .save-form__input:focus {
   border-color: rgba(242, 200, 125, 0.75);
   box-shadow: 0 0 0 3px rgba(242, 200, 125, 0.1);
 }
 .save-form__input::placeholder {
-  color: rgba(253, 241, 217, 0.3);
+  color: rgba(253, 241, 217, 0.28);
 }
 .save-form__input option {
   background: #1a0a05;
   color: #fdf1d9;
 }
-.save-form__hint {
-  font-size: 13px;
-  color: rgba(231, 176, 102, 0.55);
-  text-align: center;
-  letter-spacing: 0.02em;
-}
 .save-form__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 .save-form__btn {
-  padding: 11px 16px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 9px;
   font-family: var(--ui-font-family);
-  font-size: clamp(15px, 2vw, 18px);
+  font-size: clamp(14px, 2vw, 17px);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -767,7 +763,7 @@ body.layout-rotate-warning #rotatePrompt {
   border: 1.5px solid rgba(255, 180, 60, 0.7);
   background: linear-gradient(160deg, #c85a10 0%, #7a2a08 100%);
   color: #fdf1d9;
-  box-shadow: 0 0 12px rgba(220, 100, 20, 0.35);
+  box-shadow: 0 0 10px rgba(220, 100, 20, 0.35);
 }
 .save-form__btn--primary:hover {
   filter: brightness(1.2);
@@ -777,8 +773,10 @@ body.layout-rotate-warning #rotatePrompt {
   filter: brightness(0.9);
 }
 @media (max-width: 420px) {
-  .save-form__actions {
-    grid-template-columns: 1fr;
+  .dialog-overlay--save-form .dialog-overlay__panel {
+    border-width: 1px;
+    border-radius: 10px;
+    padding: 14px 14px 12px;
   }
 }
 .dialog-overlay--panel-default .dialog-overlay__panel {

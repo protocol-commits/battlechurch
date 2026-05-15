@@ -9305,20 +9305,14 @@ function showNewCloudSaveDialog() {
     variant: "save-form",
     bodyHtml: `
       <div class="save-form">
-        <p class="save-form__eyebrow">NEW SAVE FILE</p>
-        <div class="save-form__field">
-          <label class="save-form__label" for="sf-playerName">Pastor Name</label>
-          <input id="sf-playerName" class="save-form__input" type="text" placeholder="Your pastor's name" autocomplete="off" maxlength="32" />
+        <div class="save-form__pair">
+          <input id="sf-playerName" class="save-form__input" type="text" placeholder="Pastor name" autocomplete="off" maxlength="32" />
+          <input id="sf-cityName" class="save-form__input" type="text" placeholder="City (optional)" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-form__field">
-          <label class="save-form__label" for="sf-cityName">City</label>
-          <input id="sf-cityName" class="save-form__input" type="text" placeholder="Your city (optional)" autocomplete="off" maxlength="32" />
-        </div>
-        <div class="save-form__field">
-          <label class="save-form__label" for="sf-classId">Denomination</label>
+        <div class="save-form__inline">
+          <span class="save-form__inline-label">Denomination</span>
           <select id="sf-classId" class="save-form__input">${optionsHtml}</select>
         </div>
-        <p class="save-form__hint">Tab · next field &nbsp;·&nbsp; Enter · confirm</p>
         <div class="save-form__actions">
           <button type="button" id="sf-cancel" class="save-form__btn save-form__btn--cancel">Cancel</button>
           <button type="button" id="sf-submit" class="save-form__btn save-form__btn--primary">Create Save</button>
@@ -9351,6 +9345,7 @@ function showNewCloudSaveDialog() {
               window.BattlechurchClasses.setActive(classId);
             }
             await refreshTitleCloudSaveOption();
+            titleUtilityPanelMode = null;
           } catch (_e) {}
         })();
       };
@@ -9384,20 +9379,14 @@ function showEditCloudSaveDialog(saveId) {
     variant: "save-form",
     bodyHtml: `
       <div class="save-form">
-        <p class="save-form__eyebrow">EDIT SAVE FILE</p>
-        <div class="save-form__field">
-          <label class="save-form__label" for="ef-playerName">Pastor Name</label>
-          <input id="ef-playerName" class="save-form__input" type="text" value="${esc(currentPlayerName)}" autocomplete="off" maxlength="32" />
+        <div class="save-form__pair">
+          <input id="ef-playerName" class="save-form__input" type="text" value="${esc(currentPlayerName)}" placeholder="Pastor name" autocomplete="off" maxlength="32" />
+          <input id="ef-cityName" class="save-form__input" type="text" value="${esc(currentCityName)}" placeholder="City (optional)" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-form__field">
-          <label class="save-form__label" for="ef-cityName">City</label>
-          <input id="ef-cityName" class="save-form__input" type="text" value="${esc(currentCityName)}" placeholder="Your city (optional)" autocomplete="off" maxlength="32" />
-        </div>
-        <div class="save-form__field">
-          <label class="save-form__label" for="ef-classId">Denomination</label>
+        <div class="save-form__inline">
+          <span class="save-form__inline-label">Denomination</span>
           <select id="ef-classId" class="save-form__input">${optionsHtml}</select>
         </div>
-        <p class="save-form__hint">Tab · next field &nbsp;·&nbsp; Enter · confirm</p>
         <div class="save-form__actions">
           <button type="button" id="ef-cancel" class="save-form__btn save-form__btn--cancel">Cancel</button>
           <button type="button" id="ef-submit" class="save-form__btn save-form__btn--primary">Apply Changes</button>
@@ -20960,12 +20949,13 @@ function handleTitleScreen() {
     return true;
   }
   if (window.DialogOverlay?.isVisible?.()) {
-    // While any dialog is open, block title-menu navigation/confirm keys underneath it.
+    // While any dialog is open, block title-menu navigation/confirm keys and canvas clicks underneath it.
     keysJustPressed.delete(" ");
     keysJustPressed.delete("enter");
     keysJustPressed.delete("Enter");
     keysJustPressed.delete("escape");
     keysJustPressed.delete("Escape");
+    Input.consumeCanvasClick?.();
     window.DialogOverlay?.consumeAction?.();
     return true;
   }
