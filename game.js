@@ -8738,6 +8738,10 @@ function startRunForDistrict(districtId) {
   if (typeof window !== "undefined") {
     window.activeDistrictId = activeDistrictId;
   }
+  // Starting a new district/town should always begin at full pastor health.
+  if (player && Number.isFinite(player.maxHealth) && player.maxHealth > 0) {
+    player.health = player.maxHealth;
+  }
   // activeCampaign and activeCampaignMultiplier are set inside startGameFromTitle via getDistrictCampaignData
   startGameFromTitle();
 }
