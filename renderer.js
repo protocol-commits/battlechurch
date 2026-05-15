@@ -2378,7 +2378,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     ? buttonWidth * buttonCount + buttonGap * (buttonCount - 1)
     : buttonWidth;
   const buttonStartX = Math.round((layout.virtualCanvas.width - buttonRowWidth) / 2);
-  const buttonY = showFormation ? Math.round(layout.virtualCanvas.height - 148 - 22) : Math.round(layout.buttonY || 0);
+  let buttonY = showFormation ? Math.round(layout.virtualCanvas.height - 148 - 22) : Math.round(layout.buttonY || 0);
   const promptY = layout.promptY;
 
   if (!showFormation && promptText && promptY) {
@@ -2395,11 +2395,56 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
 
   const bounds = [];
   const { powerupIconStyles } = requireBindings();
-  const formationButtonHeight = showFormation ? 148 : buttonHeight;
+  let formationButtonHeight = showFormation ? 148 : buttonHeight;
+  if (showFormation) {
+    const measureFormationCardHeight = (config) => {
+      const cardType = window.UIStyles?.typography?.cardUi || {};
+      const contentInsetLeft = Number.isFinite(cardType.contentInsetLeft) ? cardType.contentInsetLeft : 12;
+      const contentInsetRight = Number.isFinite(cardType.contentInsetRight) ? cardType.contentInsetRight : 12;
+      const iconTextGap = Number.isFinite(cardType.iconTextGap) ? cardType.iconTextGap : 10;
+      const headerHeight = 42;
+      const iconSize = 30;
+      const textLeft = contentInsetLeft + iconSize + iconTextGap;
+      const textRight = buttonWidth - contentInsetRight;
+      const textWidth = Math.max(20, textRight - textLeft);
+      const descLineH = Math.max(1, Math.round((cardType.description ?? 13) * (cardType.descriptionLineHeight ?? 1.25)));
+      ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
+      const descriptionLines = wrapAnnouncementText(ctx, config?.desc || "", textWidth);
+      const maxDescLines = Math.max(
+        1,
+        Math.min(
+          Number.isFinite(cardType.maxDescriptionLines) ? Math.max(1, Math.floor(cardType.maxDescriptionLines)) : 6,
+          descriptionLines.length || 1,
+        ),
+      );
+      const hasStat = Boolean(config?.stat);
+      const statBlockHeight = hasStat ? 24 : 0;
+      return Math.max(
+        148,
+        Number.isFinite(cardType.minHeight) ? Math.max(0, Number(cardType.minHeight)) : 0,
+        Math.round(
+          headerHeight +
+          24 + // description top offset
+          maxDescLines * descLineH +
+          (hasStat ? 14 + statBlockHeight : 0) +
+          14 // bottom padding
+        ),
+      );
+    };
+    for (let i = 0; i < buttonConfigs.length; i += 1) {
+      formationButtonHeight = Math.max(formationButtonHeight, measureFormationCardHeight(buttonConfigs[i]));
+    }
+    // Re-anchor formation cards after dynamic height resolution so they stay on-screen.
+    buttonY = Math.round(layout.virtualCanvas.height - formationButtonHeight - 22);
+  }
     buttonConfigs.forEach((config, index) => {
+      const cardType = window.UIStyles?.typography?.cardUi || {};
       const x = showFormation ? buttonStartX + index * (buttonWidth + buttonGap) : buttonStartX;
       ctx.save();
       if (showFormation) {
+        const contentInsetLeft = Number.isFinite(cardType.contentInsetLeft) ? cardType.contentInsetLeft : 12;
+        const contentInsetRight = Number.isFinite(cardType.contentInsetRight) ? cardType.contentInsetRight : 12;
+        const iconTextGap = Number.isFinite(cardType.iconTextGap) ? cardType.iconTextGap : 10;
         const cardX = x;
         const cardY = buttonY;
         const cardW = buttonWidth;
@@ -2451,12 +2496,12 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           style: powerupIconStyles?.player || CHURCH_POWERUP_ICON_DEFAULT,
         });
 
-        const textLeft = cardX + 24 + iconSize;
-        const textRight = cardX + cardW - 14;
+        const textLeft = cardX + contentInsetLeft + iconSize + iconTextGap;
+        const textRight = cardX + cardW - contentInsetRight;
         const textWidth = Math.max(20, textRight - textLeft);
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        ctx.font = `800 15px ${uiFontFamily}`;
+        ctx.font = `800 ${cardType.title ?? 15}px ${uiFontFamily}`;
         ctx.fillStyle = "#F3E2C4";
         ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
         ctx.shadowBlur = 3;
@@ -2465,12 +2510,17 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
 
         ctx.shadowBlur = 0;
         ctx.shadowOffsetY = 0;
-        ctx.font = `600 13px ${uiFontFamily}`;
+        ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
         const descriptionLines = wrapAnnouncementText(ctx, config.desc || "", textWidth);
         ctx.fillStyle = "rgba(235, 220, 195, 0.9)";
         const descTop = cardY + headerHeight + 24;
-        const descLineH = 16;
-        descriptionLines.slice(0, 3).forEach((line, lineIndex) => {
+        const descLineH = Math.max(1, Math.round((cardType.description ?? 13) * (cardType.descriptionLineHeight ?? 1.25)));
+        const formationSafeBottomY = cardY + cardH - 44;
+        const maxFormationLines = Math.max(
+          1,
+          Math.floor((formationSafeBottomY - descTop) / Math.max(1, descLineH)),
+        );
+        descriptionLines.slice(0, maxFormationLines).forEach((line, lineIndex) => {
           ctx.fillText(line, textLeft, descTop + lineIndex * descLineH);
         });
 
@@ -2478,7 +2528,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         if (statText) {
           const badgePadX = 12;
           const badgeH = 24;
-          ctx.font = `700 13px ${uiFontFamily}`;
+          ctx.font = `700 ${cardType.badge ?? 13}px ${uiFontFamily}`;
           const badgeW = ctx.measureText(statText).width + badgePadX * 2;
           const badgeX = textLeft;
           const badgeY = cardY + cardH - 34;
@@ -4692,7 +4742,70 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const buttonY = baseButtonY + graceRowHeight;
 
   const bounds = [];
+  const measureCardRequiredHeight = (stat) => {
+    const cardType = window.UIStyles?.typography?.cardUi || {};
+    const sublabelLineH = Math.max(1, Math.round((cardType.sublabel ?? 11) * (cardType.sublabelLineHeight ?? 1.15)));
+    const descriptionLineH = Math.max(1, Math.round((cardType.description ?? 13) * (cardType.descriptionLineHeight ?? 1.25)));
+    const titleLineH = Math.max(1, Math.round((cardType.title ?? 18) * (cardType.titleLineHeight ?? 1.05)));
+    const headerHeight = Math.max(
+      52,
+      Math.round(
+        18 +
+        titleLineH +
+        (stat?.weaponName ? sublabelLineH + 8 : 0),
+      ),
+    );
+    const contentInsetLeft = Number.isFinite(cardType.contentInsetLeft) ? cardType.contentInsetLeft : 12;
+    const contentInsetRight = Number.isFinite(cardType.contentInsetRight) ? cardType.contentInsetRight : 12;
+    const iconTextGap = Number.isFinite(cardType.iconTextGap) ? cardType.iconTextGap : 10;
+    const textLeftForMeasure = contentInsetLeft + 34 + iconTextGap;
+    const textRightForMeasure = buttonWidth - contentInsetRight;
+    const level = Number.isFinite(stat?.level) ? stat.level : (stat?.owned ? 1 : 0);
+    const maxLevel = Number.isFinite(stat?.maxLevel) ? stat.maxLevel : 1;
+    const levelLabelForMeasure = maxLevel > 1 ? `${level}/${maxLevel}` : "";
+    const levelPillPadXForMeasure = 14;
+    const levelPillReservedWidth = levelLabelForMeasure
+      ? (() => {
+          ctx.font = `700 ${cardType.levelPill ?? 12}px ${uiFontFamily}`;
+          return ctx.measureText(levelLabelForMeasure).width + levelPillPadXForMeasure * 2 + 8;
+        })()
+      : 0;
+    const bodyTextWidthForMeasure = Math.max(10, textRightForMeasure - textLeftForMeasure);
+    ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
+    const descLinesForMeasure = wrapAnnouncementText(ctx, stat?.description || "", bodyTextWidthForMeasure);
+    const descLineCountForMeasure = Math.max(
+      1,
+      Math.min(
+        Number.isFinite(cardType.maxDescriptionLines) ? Math.max(1, Math.floor(cardType.maxDescriptionLines)) : 6,
+        descLinesForMeasure.length || 1,
+      ),
+    );
+    const detailBadgeHeight = stat?.detail ? 22 : 0;
+    const bottomCostPillHeight = 24;
+    return Math.max(
+      buttonHeight,
+      Number.isFinite(cardType.minHeight) ? Math.max(0, Number(cardType.minHeight)) : 0,
+      Math.round(
+        headerHeight +
+        18 +
+        8 +
+        descLineCountForMeasure * descriptionLineH +
+        6 +
+        (detailBadgeHeight ? 18 + detailBadgeHeight : 0) +
+        14 +
+        bottomCostPillHeight +
+        14
+      ),
+    );
+  };
+  let maxRenderedCardHeight = buttonHeight;
+  for (let i = 0; i < stats.length; i += 1) {
+    maxRenderedCardHeight = Math.max(maxRenderedCardHeight, measureCardRequiredHeight(stats[i]));
+  }
   stats.forEach((stat, index) => {
+    const cardType = window.UIStyles?.typography?.cardUi || {};
+    const sublabelLineH = Math.max(1, Math.round((cardType.sublabel ?? 11) * (cardType.sublabelLineHeight ?? 1.15)));
+    const descriptionLineH = Math.max(1, Math.round((cardType.description ?? 13) * (cardType.descriptionLineHeight ?? 1.25)));
     const x = buttonStartX + index * (buttonWidth + buttonGap);
     const level = Number.isFinite(stat.level) ? stat.level : (stat.owned ? 1 : 0);
     const maxLevel = Number.isFinite(stat.maxLevel) ? stat.maxLevel : 1;
@@ -4709,8 +4822,42 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const cardX = x;
     const cardY = buttonY;
     const cardW = buttonWidth;
-    const cardH = buttonHeight;
-    const headerHeight = 52;
+    const titleLineH = Math.max(1, Math.round((cardType.title ?? 18) * (cardType.titleLineHeight ?? 1.05)));
+    const headerHeight = Math.max(
+      52,
+      Math.round(
+        18 +
+        titleLineH +
+        (stat.weaponName ? sublabelLineH + 8 : 0),
+      ),
+    );
+    const contentInsetLeft = Number.isFinite(cardType.contentInsetLeft) ? cardType.contentInsetLeft : 12;
+    const contentInsetRight = Number.isFinite(cardType.contentInsetRight) ? cardType.contentInsetRight : 12;
+    const iconTextGap = Number.isFinite(cardType.iconTextGap) ? cardType.iconTextGap : 10;
+    const textLeftForMeasure = cardX + contentInsetLeft + 34 + iconTextGap; // icon size + gap
+    const textRightForMeasure = cardX + cardW - contentInsetRight;
+    const levelLabelForMeasure = maxLevel > 1 ? `${level}/${maxLevel}` : "";
+    const levelPillPadXForMeasure = 14;
+    const levelPillReservedWidth = levelLabelForMeasure
+      ? (() => {
+          ctx.font = `700 ${cardType.levelPill ?? 12}px ${uiFontFamily}`;
+          return ctx.measureText(levelLabelForMeasure).width + levelPillPadXForMeasure * 2 + 8;
+        })()
+      : 0;
+    const headerTextWidthForMeasure = Math.max(10, textRightForMeasure - textLeftForMeasure - levelPillReservedWidth);
+    const bodyTextWidthForMeasure = Math.max(10, textRightForMeasure - textLeftForMeasure);
+    ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
+    const descLinesForMeasure = wrapAnnouncementText(ctx, stat.description || "", bodyTextWidthForMeasure);
+    const descLineCountForMeasure = Math.max(
+      1,
+      Math.min(
+        Number.isFinite(cardType.maxDescriptionLines) ? Math.max(1, Math.floor(cardType.maxDescriptionLines)) : 6,
+        descLinesForMeasure.length || 1,
+      ),
+    );
+    const detailBadgeHeight = stat.detail ? 22 : 0;
+    const bottomCostPillHeight = 24;
+    const cardH = maxRenderedCardHeight;
     const bodyTop = cardY + headerHeight + 18;
     const baseGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
     if (canAfford) {
@@ -4770,7 +4917,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
 
     if (isAnnouncementButtonFocused("churchUpgradeScreen", index)) {
-      drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
+      drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, cardH + 6, 20);
     }
 
     const powerupIcon = getChurchPowerupIcon(stat.iconSrc);
@@ -4786,17 +4933,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       style: iconStyle,
     });
 
-    const textLeft = cardX + 24 + iconSize;
-    const textRight = cardX + cardW - 22;
+    const textLeft = cardX + contentInsetLeft + iconSize + iconTextGap;
+    const textRight = cardX + cardW - contentInsetRight;
     const levelLabel = maxLevel > 1 ? `${level}/${maxLevel}` : "";
     const pillPadX = 14;
     const pillReservedWidth = levelLabel
-      ? (() => { ctx.font = `700 12px ${uiFontFamily}`; return ctx.measureText(levelLabel).width + pillPadX * 2 + 8; })()
+      ? (() => { ctx.font = `700 ${cardType.levelPill ?? 12}px ${uiFontFamily}`; return ctx.measureText(levelLabel).width + pillPadX * 2 + 8; })()
       : 0;
-    const textWidth = Math.max(10, textRight - textLeft - pillReservedWidth);
+    const headerTextWidth = Math.max(10, textRight - textLeft - pillReservedWidth);
+    const bodyTextWidth = Math.max(10, textRight - textLeft);
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    const titleSize = fitTextSize(stat.label, 18, textWidth);
+    const titleSize = fitTextSize(stat.label, cardType.title ?? 18, headerTextWidth);
     ctx.font = `800 ${titleSize}px ${uiFontFamily}`;
     ctx.fillStyle = "#F3E2C4";
     ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
@@ -4805,11 +4953,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const titleY = cardY + headerHeight / 2 + (stat.weaponName ? -6 : 1);
     ctx.fillText(stat.label, textLeft, titleY);
     if (stat.weaponName) {
-      ctx.font = `600 11px ${uiFontFamily}`;
+      ctx.font = `600 ${cardType.sublabel ?? 11}px ${uiFontFamily}`;
       ctx.fillStyle = canAfford ? "rgba(180, 220, 255, 0.75)" : "rgba(150, 175, 200, 0.45)";
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
-      ctx.fillText(stat.weaponName, textLeft, titleY + 15);
+      ctx.fillText(stat.weaponName, textLeft, titleY + sublabelLineH);
       ctx.font = `800 ${titleSize}px ${uiFontFamily}`;
       ctx.fillStyle = "#F3E2C4";
       ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
@@ -4819,7 +4967,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (levelLabel) {
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
-      ctx.font = `700 12px ${uiFontFamily}`;
+      ctx.font = `700 ${cardType.levelPill ?? 12}px ${uiFontFamily}`;
       const pillPadX = 14;
       const pillWidth = ctx.measureText(levelLabel).width + pillPadX * 2;
       const pillHeight = 24;
@@ -4840,12 +4988,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
     ctx.shadowBlur = 3;
     ctx.shadowOffsetY = 1;
-    ctx.font = `600 13px ${uiFontFamily}`;
+    ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "rgba(235, 220, 195, 0.9)" : "rgba(200, 190, 170, 0.65)";
     const descriptionY = bodyTop + 8;
-    const descriptionLines = wrapAnnouncementText(ctx, stat.description || "", textWidth);
-    const maxDescriptionLines = 3;
-    const descriptionLineHeight = 16;
+    const descriptionLines = wrapAnnouncementText(ctx, stat.description || "", bodyTextWidth);
+    const descriptionLineHeight = descriptionLineH;
+    const safeBottomY = cardY + cardH - 56;
+    const maxDescriptionLines = Math.max(
+      1,
+      Math.floor((safeBottomY - descriptionY) / Math.max(1, descriptionLineHeight)),
+    );
     descriptionLines.slice(0, maxDescriptionLines).forEach((line, lineIndex) => {
       const lineY = descriptionY + lineIndex * descriptionLineHeight;
       ctx.fillText(line, textLeft, lineY);
@@ -4873,7 +5025,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 0;
       const badgePadX = 12;
       const badgePadY = 6;
-      ctx.font = `700 13px ${uiFontFamily}`;
+      ctx.font = `700 ${cardType.badge ?? 13}px ${uiFontFamily}`;
       const badgeWidth = ctx.measureText(detailText).width + badgePadX * 2;
       const badgeHeight = 22;
       const badgeX = textLeft;
@@ -4900,7 +5052,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const costY = cardY + cardH - 26;
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
-    ctx.font = `700 13px ${uiFontFamily}`;
+    ctx.font = `700 ${cardType.badge ?? 13}px ${uiFontFamily}`;
     const costPadX = 14;
     const costWidth = ctx.measureText(costLabel).width + costPadX * 2;
     const costHeight = 24;
@@ -4933,12 +5085,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       x: layout.offsetX + x * layout.scale,
       y: layout.offsetY + buttonY * layout.scale,
       width: buttonWidth * layout.scale,
-      height: buttonHeight * layout.scale,
+      height: cardH * layout.scale,
       canAfford,
     });
   });
 
-  const continueY = buttonY + buttonHeight + 30;
+  const continueY = buttonY + maxRenderedCardHeight + 30;
   const continueHeight = 56;
 
   const actionGap = 22;
@@ -12652,6 +12804,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const bounds = [];
     stats.forEach((stat, index) => {
+      const cardType = window.UIStyles?.typography?.cardUi || {};
+      const descriptionLineH = Math.max(1, Math.round((cardType.description ?? 13) * (cardType.descriptionLineHeight ?? 1.25)));
+      const contentInsetLeft = Number.isFinite(cardType.contentInsetLeft) ? cardType.contentInsetLeft : 12;
+      const contentInsetRight = Number.isFinite(cardType.contentInsetRight) ? cardType.contentInsetRight : 12;
+      const iconTextGap = Number.isFinite(cardType.iconTextGap) ? cardType.iconTextGap : 10;
       const x = buttonStartX + index * (buttonWidth + buttonGap);
       const isSelected = selectedKeys.includes(stat.key);
       const isDimmed = !isSelected && selectedKeys.length >= maxPicks;
@@ -12663,8 +12820,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const cardH = buttonHeight;
       const headerHeight = 52;
       const bodyTop = cardY + headerHeight + 18;
-      const textLeft = cardX + 24 + 34; // 34 = icon size
-      const textRight = cardX + cardW - 22;
+      const textLeft = cardX + contentInsetLeft + 34 + iconTextGap; // icon size + gap
+      const textRight = cardX + cardW - contentInsetRight;
       const textWidth = textRight - textLeft;
 
       ctx.save();
@@ -12741,9 +12898,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       // Label
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.font = `800 18px ${uiFontFamily}`;
+      ctx.font = `800 ${cardType.title ?? 18}px ${uiFontFamily}`;
       const labelMeasured = ctx.measureText(stat.label || "").width;
-      const labelSize = labelMeasured > textWidth ? Math.max(9, Math.floor(18 * (textWidth / labelMeasured))) : 18;
+      const baseLabelSize = cardType.title ?? 18;
+      const labelSize = labelMeasured > textWidth ? Math.max(9, Math.floor(baseLabelSize * (textWidth / labelMeasured))) : baseLabelSize;
       ctx.font = `800 ${labelSize}px ${uiFontFamily}`;
       ctx.fillStyle = isDimmed ? "rgba(200, 185, 155, 0.6)" : "#F3E2C4";
       ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
@@ -12754,18 +12912,23 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       // Description
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
-      ctx.font = `600 13px ${uiFontFamily}`;
+      ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
       ctx.fillStyle = isDimmed ? "rgba(175, 165, 145, 0.5)" : "rgba(235, 220, 195, 0.9)";
       const descLines = wrapAnnouncementText(ctx, stat.description || "", textWidth);
-      descLines.slice(0, 3).forEach((line, i) => {
-        ctx.fillText(line, textLeft, bodyTop + 8 + i * 16);
+      const denomSafeBottomY = cardY + cardH - 44;
+      const maxDenomLines = Math.max(
+        1,
+        Math.floor((denomSafeBottomY - (bodyTop + 8)) / Math.max(1, descriptionLineH)),
+      );
+      descLines.slice(0, maxDenomLines).forEach((line, i) => {
+        ctx.fillText(line, textLeft, bodyTop + 8 + i * descriptionLineH);
       });
 
       // "Selected" badge
       if (isSelected) {
         ctx.shadowBlur = 0;
         ctx.shadowOffsetY = 0;
-        ctx.font = `700 13px ${uiFontFamily}`;
+        ctx.font = `700 ${cardType.badge ?? 13}px ${uiFontFamily}`;
         const badgeText = "\u2713 Selected";
         const badgePadX = 14;
         const badgeWidth = ctx.measureText(badgeText).width + badgePadX * 2;

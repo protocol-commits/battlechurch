@@ -132,6 +132,22 @@
         size: 20,
         weight: 600,
       },
+      // Shared typography for card-style UI (formation cards + church upgrade cards).
+      cardUi: {
+        title: 36,
+        description: 22,
+        badge: 28,
+        sublabel: 28,
+        levelPill: 28,
+        titleLineHeight: 1.05,
+        descriptionLineHeight: 1.25,
+        sublabelLineHeight: 1.15,
+        minHeight: 0,
+        maxDescriptionLines: 6,
+        contentInsetLeft: 12,
+        contentInsetRight: 12,
+        iconTextGap: 10,
+      },
       footerControlsHint: {
         size: 16,
         weight: 500,
