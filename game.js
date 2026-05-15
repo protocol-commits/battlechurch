@@ -23304,18 +23304,41 @@ function updateHudComboDisplay({ hits, damage, fontSize, color, durationMs }) {
   }
   if (crossedMilestone) {
     const milestoneCount = newMilestone * 100;
-    const px = typeof player !== "undefined" && Number.isFinite(player?.x) ? player.x : (typeof cameraOffsetX !== "undefined" ? cameraOffsetX + canvas.width / 2 : 0);
-    const py = typeof player !== "undefined" && Number.isFinite(player?.y) ? player.y - (player.radius || 24) - 20 : canvas.height / 2;
-    addFloatingTextAt(px, py, `${milestoneCount}`, UI_COLOR.comboMilestone, {
-      vy: -90,
+    window.__hudMilestoneBurst = {
+      label: `${milestoneCount}`,
+      startedAt: now,
       life: 1.2,
-      fontSize: 52,
-      fontWeight: "900",
       fadeDelay: 0.5,
-      speechBubble: false,
-      priority: 8,
-    });
+      vy: -90,
+      screenX: Number.isFinite(window.__comboTextFixedX) ? window.__comboTextFixedX : canvas.width * 0.5,
+      screenY: Number.isFinite(window.__comboTextFixedY) ? window.__comboTextFixedY : 90,
+    };
   }
+}
+
+function drawHudMilestoneBurst() {
+  const burst = window.__hudMilestoneBurst;
+  if (!burst) return;
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  const elapsed = (now - burst.startedAt) / 1000;
+  if (elapsed >= burst.life) {
+    window.__hudMilestoneBurst = null;
+    return;
+  }
+  const fadeStart = burst.fadeDelay;
+  const alpha = elapsed < fadeStart ? 1 : Math.max(0, 1 - (elapsed - fadeStart) / (burst.life - fadeStart));
+  const y = burst.screenY + burst.vy * elapsed;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = alpha;
+  ctx.font = `900 52px ${UI_FONT_FAMILY}`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = UI_COLOR.comboMilestone;
+  ctx.shadowColor = "rgba(255, 200, 80, 0.85)";
+  ctx.shadowBlur = 18;
+  ctx.fillText(burst.label, burst.screenX, y);
+  ctx.restore();
 }
 
 function withAlpha(hexColor, alpha) {
@@ -28263,6 +28286,7 @@ function gameLoop(timestamp) {
     window.UpgradeScreen.draw();
     Renderer.drawGraceSpendFlyEffectsOverlay?.();
   }
+  drawHudMilestoneBurst();
   drawGlobalTeaserTransitionOverlay();
   drawProgressSaveToast();
   keysJustPressed.clear();
