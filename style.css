@@ -652,6 +652,133 @@ body.layout-rotate-warning #rotatePrompt {
   color: var(--hf-text);
   border: 1px solid var(--hf-btn-primary-border);
 }
+
+/* ── Save-form dialog (New Save / Edit Save) ──────────────────────────────── */
+.dialog-overlay--save-form {
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.78);
+}
+.dialog-overlay--save-form .dialog-overlay__panel {
+  width: min(520px, 92%);
+  background: linear-gradient(170deg, rgba(18, 9, 6, 0.97) 0%, rgba(10, 5, 3, 0.97) 100%);
+  border: 2px solid rgba(255, 218, 162, 0.34);
+  border-radius: 14px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 32px rgba(180, 80, 20, 0.08);
+  font-family: var(--ui-font-family);
+  text-align: left;
+  padding: 18px 20px 16px;
+}
+.dialog-overlay--save-form .dialog-overlay__title {
+  display: none;
+}
+.dialog-overlay--save-form .dialog-overlay__body {
+  margin-top: 0;
+}
+.dialog-overlay--save-form .dialog-overlay__button {
+  display: none;
+}
+/* Form layout — compact grid, no per-field labels */
+.save-form {
+  display: grid;
+  gap: 10px;
+}
+/* Name + City side-by-side, wraps when too narrow */
+.save-form__pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.save-form__pair .save-form__input {
+  flex: 1 1 120px;
+  width: auto;
+  min-width: 0;
+}
+/* Denomination: label above, select below */
+.save-form__inline {
+  display: grid;
+  gap: 5px;
+}
+.save-form__inline-label {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(242, 210, 146, 0.68);
+}
+.save-form__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border-radius: 7px;
+  border: 1.5px solid rgba(242, 200, 125, 0.3);
+  background: rgba(10, 5, 3, 0.72);
+  color: #fdf1d9;
+  font-family: var(--ui-font-family);
+  font-size: clamp(16px, 2.2vw, 19px);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.save-form__inline .save-form__input {
+  width: 100%;
+}
+.save-form__input:focus {
+  border-color: rgba(242, 200, 125, 0.75);
+  box-shadow: 0 0 0 3px rgba(242, 200, 125, 0.1);
+}
+.save-form__input::placeholder {
+  color: rgba(253, 241, 217, 0.28);
+}
+.save-form__input option {
+  background: #1a0a05;
+  color: #fdf1d9;
+}
+.save-form__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 2px;
+}
+.save-form__btn {
+  padding: 10px 14px;
+  border-radius: 9px;
+  font-family: var(--ui-font-family);
+  font-size: clamp(14px, 2vw, 17px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 0.12s ease, transform 0.1s ease;
+}
+.save-form__btn--cancel {
+  border: 1.5px solid rgba(242, 200, 125, 0.25);
+  background: rgba(28, 14, 10, 0.82);
+  color: rgba(253, 241, 217, 0.7);
+}
+.save-form__btn--cancel:hover {
+  filter: brightness(1.3);
+}
+.save-form__btn--primary {
+  border: 1.5px solid rgba(255, 180, 60, 0.7);
+  background: linear-gradient(160deg, #c85a10 0%, #7a2a08 100%);
+  color: #fdf1d9;
+  box-shadow: 0 0 10px rgba(220, 100, 20, 0.35);
+}
+.save-form__btn--primary:hover {
+  filter: brightness(1.2);
+}
+.save-form__btn--primary:active {
+  transform: translateY(1px);
+  filter: brightness(0.9);
+}
+@media (max-width: 420px) {
+  .dialog-overlay--save-form .dialog-overlay__panel {
+    border-width: 1px;
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+  }
+}
 .dialog-overlay--panel-default .dialog-overlay__panel {
   width: min(var(--hellfire-default-panel-width-max), var(--hellfire-default-panel-width-ratio));
   background: linear-gradient(180deg, rgba(12, 18, 30, 0.95) 0%, rgba(7, 10, 18, 0.95) 100%);

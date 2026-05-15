@@ -526,6 +526,12 @@ let titleScreenActive = true;
 let titleDemoSaveMenuActive = false;
 let titleClassMenuActive = false;
 let titleUtilityPanelMode = null;
+let titleEditSaveDraft = null;
+let titleNewSaveDraft = null;
+const TITLE_EDIT_SAVE_FIELD_LIMITS = Object.freeze({
+  playerName: 24,
+  cityName: 24,
+});
 let titleDemoSaveOverride = null;
 let demoSandboxRunActive = false;
 let titleCloudSaveLoading = false;
@@ -561,24 +567,6 @@ const TITLE_DEMO_SAVE_SLOTS = [
       startCount: 85,
       campaignMultiplier: 1.0,
       restoredChurchPowerupLevels: {},
-    },
-  },
-  {
-    key: "slot3",
-    label: "Demo: Area 2 Cleared",
-    districtId: "lowmoor",
-    completedDistricts: 6,
-    playerName: "DemoName",
-    cityName: "DemoTown",
-    classId: "class9",
-    campaignData: {
-      campaign: "p2",
-      startCount: 120,
-      campaignMultiplier: 1.15,
-      restoredChurchPowerupLevels: {
-        spreadGun: 5,
-        halo: 5,
-      },
     },
   },
 ];
@@ -3448,6 +3436,7 @@ function showWaveHealthSnapshot() {
   if (player && player.state !== "death" && Number.isFinite(player.health)) {
     heroSay(`HP ${Math.max(0, Math.round(player.health))}`, { life: 5.0 });
   }
+  showWaveKillCountBurst();
 
   const formationLabel =
     FORMATION_PRESETS?.[formationState?.current]?.label || "formation";
@@ -5665,7 +5654,7 @@ Input.initialize({
       addGrace(500);
       setDevStatus("Dev: +500 grace");
     }
-    if (key === "h" && titleScreenActive) {
+    if (key === "h" && titleScreenActive && !titleUtilityPanelMode) {
       const editor = window.BattlechurchHitboxEditor;
       const next = typeof editor?.toggle === "function" ? editor.toggle() : false;
       if (next && window.DialogOverlay?.isVisible?.()) {
@@ -5781,6 +5770,8 @@ Renderer.initialize({
   get titleDemoSaveMenuActive() { return titleDemoSaveMenuActive; },
   get titleClassMenuActive() { return titleClassMenuActive; },
   get titleUtilityPanelMode() { return titleUtilityPanelMode; },
+  get titleEditSaveDraft() { return titleEditSaveDraft; },
+  get titleNewSaveDraft() { return titleNewSaveDraft; },
   get titleSelectedClassId() {
     return window.BattlechurchClasses?.getActiveId?.() || null;
   },
@@ -8879,6 +8870,8 @@ function startDevLevelTestFromEditor({
   titleScreenActive = false;
   titleDemoSaveMenuActive = false;
   titleUtilityPanelMode = null;
+  titleEditSaveDraft = null;
+  titleNewSaveDraft = null;
   if (typeof window !== "undefined" && window.MapScreen?.open) {
     window.MapScreen.selectDistrict?.(districtId);
     window.MapScreen.open();
@@ -9270,81 +9263,63 @@ async function showTitleSavePickerOverlay() {
   return true;
 }
 
-function showNewCloudSaveDialog() {
-  if (!window.DialogOverlay?.show) return false;
-  const classOptions = getSortedClassMenuEntries(classEntries);
-  const defaultSaveName = `Save ${Math.max(1, (titleCloudSaveRows?.length || 0) + 1)}`;
-  const activeClassIdForDefault = classOptions[0]?.id || "class9";
-  const optionsHtml = classOptions
+function _buildSaveFormOptionsHtml(classOptions, selectedId) {
+  return classOptions
     .map((entry) => {
       const id = String(entry?.id || "");
       const title = String(entry?.classTitle || id || "Class");
       const desc = String(window.BattlechurchClassConfig?.byId?.[id]?.classDescription || "");
       const label = desc ? `${title}  —  ${desc}` : title;
-      const selected = id === activeClassIdForDefault ? " selected" : "";
+      const selected = id === selectedId ? " selected" : "";
       return `<option value="${id}"${selected}>${label}</option>`;
     })
     .join("");
+}
+
+function showNewCloudSaveDialog() {
+  if (!window.DialogOverlay?.show) return false;
+  const classOptions = getSortedClassMenuEntries(classEntries);
+  const defaultClassId = String(classOptions[0]?.id || "");
+  const optionsHtml = _buildSaveFormOptionsHtml(classOptions, defaultClassId);
   window.DialogOverlay.show({
-    title: "Create New Save",
+    title: "New Save",
     buttonText: "",
-    variant: "settings",
+    variant: "save-form",
     bodyHtml: `
-      <div class="settings-panel">
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Pastor Name</span>
-          <input id="newSavePlayerName" type="text" value="" placeholder="Your pastor's name" class="save-dialog__input" />
+      <div class="save-form">
+        <div class="save-form__pair">
+          <input id="sf-playerName" class="save-form__input" type="text" placeholder="Pastor name" autocomplete="off" maxlength="32" />
+          <input id="sf-cityName" class="save-form__input" type="text" placeholder="City (optional)" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">City</span>
-          <input id="newSaveCityName" type="text" value="" placeholder="Your city" class="save-dialog__input" />
+        <div class="save-form__inline">
+          <span class="save-form__inline-label">Denomination</span>
+          <select id="sf-classId" class="save-form__input">${optionsHtml}</select>
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Denomination</span>
-          <select id="newSaveClassId" class="save-dialog__input">${optionsHtml}</select>
-        </div>
-        <div class="save-dialog__actions">
-          <button type="button" id="newSaveCancelBtn" class="save-dialog__btn-cancel">Cancel</button>
-          <button type="button" id="newSaveCreateBtn" class="save-dialog__btn-primary">Create Save</button>
+        <div class="save-form__actions">
+          <button type="button" id="sf-cancel" class="save-form__btn save-form__btn--cancel">Cancel</button>
+          <button type="button" id="sf-submit" class="save-form__btn save-form__btn--primary">Create Save</button>
         </div>
       </div>
     `,
     onRender: ({ bodyEl }) => {
-      const playerNameInput = bodyEl?.querySelector("#newSavePlayerName");
-      const cityNameInput = bodyEl?.querySelector("#newSaveCityName");
-      const classSelect = bodyEl?.querySelector("#newSaveClassId");
-      const cancelBtn = bodyEl?.querySelector("#newSaveCancelBtn");
-      const createBtn = bodyEl?.querySelector("#newSaveCreateBtn");
-      if (playerNameInput) {
-        setTimeout(() => {
-          try {
-            playerNameInput.focus();
-          } catch (_e) {}
-        }, 0);
-      }
-      cancelBtn?.addEventListener("click", () => {
-        window.DialogOverlay?.hide?.();
-      });
-      createBtn?.addEventListener("click", () => {
-        const playerName = String(playerNameInput?.value || "").trim();
-        const cityName = String(cityNameInput?.value || "").trim();
-        const classId = String(classSelect?.value || "").trim();
-        if (!playerName || !classId) {
-          if (typeof setDevStatus === "function") {
-            setDevStatus("Please enter a Pastor Name and choose a Denomination.", 2.5);
-          }
-          return;
-        }
+      const nameInput  = bodyEl?.querySelector("#sf-playerName");
+      const cityInput  = bodyEl?.querySelector("#sf-cityName");
+      const classInput = bodyEl?.querySelector("#sf-classId");
+      const cancelBtn  = bodyEl?.querySelector("#sf-cancel");
+      const submitBtn  = bodyEl?.querySelector("#sf-submit");
+      setTimeout(() => { try { nameInput?.focus(); } catch (_e) {} }, 60);
+      cancelBtn?.addEventListener("click", () => window.DialogOverlay?.hide?.());
+      const doSubmit = () => {
+        const playerName = String(nameInput?.value || "").trim();
+        const cityName   = String(cityInput?.value  || "").trim();
+        const classId    = String(classInput?.value || "").trim();
+        if (!playerName) { nameInput?.focus(); return; }
         window.DialogOverlay?.hide?.();
         void (async () => {
           try {
             if (typeof window.MapScreen?.createSaveFile === "function") {
               const newId = await window.MapScreen.createSaveFile({
-                saveName: playerName,
-                playerName,
-                cityName,
-                classId,
-                setActive: true,
+                saveName: playerName, playerName, cityName, classId, setActive: true,
               });
               if (newId) titleCloudSelectedSaveId = newId;
             }
@@ -9352,8 +9327,13 @@ function showNewCloudSaveDialog() {
               window.BattlechurchClasses.setActive(classId);
             }
             await refreshTitleCloudSaveOption();
+            titleUtilityPanelMode = null;
           } catch (_e) {}
         })();
+      };
+      submitBtn?.addEventListener("click", doSubmit);
+      bodyEl?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target?.tagName !== "BUTTON") { e.preventDefault(); doSubmit(); }
       });
     },
   });
@@ -9371,78 +9351,59 @@ function showEditCloudSaveDialog(saveId) {
     String(window.BattlechurchClasses?.getActiveId?.() || "").trim() ||
     String(window.BattlechurchClassConfig?.defaultClassId || "").trim() ||
     "class1";
-  const optionsHtml = classOptions
-    .map((entry) => {
-      const id = String(entry?.id || "");
-      const title = String(entry?.classTitle || id || "Class");
-      const desc = String(window.BattlechurchClassConfig?.byId?.[id]?.classDescription || "");
-      const label = desc ? `${title}  —  ${desc}` : title;
-      const selected = id === currentClassId ? " selected" : "";
-      return `<option value="${id}"${selected}>${label}</option>`;
-    })
-    .join("");
-  const currentSaveName = String(details.saveName || row.label || "").trim() || "Save";
   const currentPlayerName = String(details.playerName || "Pastor").trim() || "Pastor";
-  const currentCityName = String(details.cityName || "").trim();
+  const currentCityName   = String(details.cityName || "").trim();
+  const optionsHtml = _buildSaveFormOptionsHtml(classOptions, currentClassId);
+  const esc = (v) => String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   window.DialogOverlay.show({
     title: "Edit Save",
     buttonText: "",
-    variant: "settings",
+    variant: "save-form",
     bodyHtml: `
-      <div class="settings-panel">
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Pastor Name</span>
-          <input id="editSavePlayerName" type="text" value="${escapeHtml(currentPlayerName)}" class="save-dialog__input" />
+      <div class="save-form">
+        <div class="save-form__pair">
+          <input id="ef-playerName" class="save-form__input" type="text" value="${esc(currentPlayerName)}" placeholder="Pastor name" autocomplete="off" maxlength="32" />
+          <input id="ef-cityName" class="save-form__input" type="text" value="${esc(currentCityName)}" placeholder="City (optional)" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">City</span>
-          <input id="editSaveCityName" type="text" value="${escapeHtml(currentCityName)}" class="save-dialog__input" />
+        <div class="save-form__inline">
+          <span class="save-form__inline-label">Denomination</span>
+          <select id="ef-classId" class="save-form__input">${optionsHtml}</select>
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Denomination</span>
-          <select id="editSaveClassId" class="save-dialog__input">${optionsHtml}</select>
-        </div>
-        <div class="save-dialog__hint">Press Tab to move between fields — W/S navigate buttons</div>
-        <div class="save-dialog__actions">
-          <button type="button" id="editSaveCancelBtn" class="save-dialog__btn-cancel">Cancel</button>
-          <button type="button" id="editSaveApplyBtn" class="save-dialog__btn-primary">Apply Changes</button>
+        <div class="save-form__actions">
+          <button type="button" id="ef-cancel" class="save-form__btn save-form__btn--cancel">Cancel</button>
+          <button type="button" id="ef-submit" class="save-form__btn save-form__btn--primary">Apply Changes</button>
         </div>
       </div>
     `,
     onRender: ({ bodyEl }) => {
-      const playerNameInput = bodyEl?.querySelector("#editSavePlayerName");
-      const cityNameInput = bodyEl?.querySelector("#editSaveCityName");
-      const classSelect = bodyEl?.querySelector("#editSaveClassId");
-      const cancelBtn = bodyEl?.querySelector("#editSaveCancelBtn");
-      const applyBtn = bodyEl?.querySelector("#editSaveApplyBtn");
-      cancelBtn?.addEventListener("click", () => {
-        window.DialogOverlay?.hide?.();
-      });
-      applyBtn?.addEventListener("click", () => {
-        const playerName = String(playerNameInput?.value || "").trim();
-        const cityName = String(cityNameInput?.value || "").trim();
-        const classId = String(classSelect?.value || "").trim();
-        if (!playerName || !classId) {
-          if (typeof setDevStatus === "function") {
-            setDevStatus("Pastor Name and Denomination are required.", 2.5);
-          }
-          return;
-        }
+      const nameInput  = bodyEl?.querySelector("#ef-playerName");
+      const cityInput  = bodyEl?.querySelector("#ef-cityName");
+      const classInput = bodyEl?.querySelector("#ef-classId");
+      const cancelBtn  = bodyEl?.querySelector("#ef-cancel");
+      const submitBtn  = bodyEl?.querySelector("#ef-submit");
+      setTimeout(() => { try { nameInput?.focus(); } catch (_e) {} }, 60);
+      cancelBtn?.addEventListener("click", () => window.DialogOverlay?.hide?.());
+      const doSubmit = () => {
+        const playerName = String(nameInput?.value  || "").trim();
+        const cityName   = String(cityInput?.value  || "").trim();
+        const classId    = String(classInput?.value || "").trim();
+        if (!playerName) { nameInput?.focus(); return; }
         window.DialogOverlay?.hide?.();
         void (async () => {
           try {
             if (typeof window.MapScreen?.updateSaveFileMetadata === "function") {
               await window.MapScreen.updateSaveFileMetadata(saveId, {
-                saveName: playerName,
-                playerName,
-                cityName,
-                classId,
+                saveName: playerName, playerName, cityName, classId,
               });
             }
             await refreshTitleCloudSaveOption();
             titleCloudSelectedSaveId = saveId;
           } catch (_e) {}
         })();
+      };
+      submitBtn?.addEventListener("click", doSubmit);
+      bodyEl?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target?.tagName !== "BUTTON") { e.preventDefault(); doSubmit(); }
       });
     },
   });
@@ -12890,7 +12851,13 @@ function _triggerProgressSavedEffects() {
   if (typeof playProgressSavedSfx === "function") playProgressSavedSfx(0.7);
 }
 
+function shouldShowProgressSaveToast() {
+  // Keep title/utility navigation deterministic: no transient toast overlays there.
+  return !titleScreenActive;
+}
+
 function showProgressSaveToast(text = "Progress Saved", duration = 5.5) {
+  if (!shouldShowProgressSaveToast()) return;
   const isProgressSaved = text === "Progress Saved" || text === "progress saved";
   progressSaveToast.text = String(text || "Progress Saved");
   progressSaveToast.duration = Number.isFinite(duration) ? Math.max(0.8, duration) : 5.5;
@@ -12904,6 +12871,7 @@ function showProgressSaveToast(text = "Progress Saved", duration = 5.5) {
 }
 
 function startSaveProgressBar() {
+  if (!shouldShowProgressSaveToast()) return;
   progressSaveToast.text = "Saving...";
   progressSaveToast.duration = 999;
   progressSaveToast.timer = 999;
@@ -20963,12 +20931,13 @@ function handleTitleScreen() {
     return true;
   }
   if (window.DialogOverlay?.isVisible?.()) {
-    // While any dialog is open, block title-menu navigation/confirm keys underneath it.
+    // While any dialog is open, block title-menu navigation/confirm keys and canvas clicks underneath it.
     keysJustPressed.delete(" ");
     keysJustPressed.delete("enter");
     keysJustPressed.delete("Enter");
     keysJustPressed.delete("escape");
     keysJustPressed.delete("Escape");
+    Input.consumeCanvasClick?.();
     window.DialogOverlay?.consumeAction?.();
     return true;
   }
@@ -21013,6 +20982,14 @@ function handleTitleScreen() {
       const focusedButton = buttons[focus.index] || null;
       return String(focusedButton?.key || "") || null;
     };
+    const setTitleFocusByButtonKey = (targetKey) => {
+      if (!targetKey || !Array.isArray(buttons) || typeof window === "undefined") return false;
+      const idx = buttons.findIndex((btn) => String(btn?.key || "") === String(targetKey));
+      if (idx < 0) return false;
+      window.__announcementFocus = { key: "title", index: idx };
+      window.__announcementFocusedButtonKey = String(buttons[idx]?.key || "");
+      return true;
+    };
     const updateAudioSetting = (key, value) => {
       audioSettings[key] = value;
       saveAudioSettings();
@@ -21043,11 +21020,6 @@ function handleTitleScreen() {
         if (adjustCanvasSettingByFocusedKey(sliderStep)) return true;
       }
     }
-    const escapeHtml = (value) =>
-      String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
     const handled = handleAnnouncementButtons({
       key: "title",
       buttons,
@@ -21317,7 +21289,6 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "newCloudSave") {
-          titleUtilityPanelMode = null;
           showNewCloudSaveDialog();
           return;
         }
@@ -21330,7 +21301,15 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "utilityPanelClose") {
-          titleUtilityPanelMode = null;
+          if (titleUtilityPanelMode === "editSave") {
+            titleUtilityPanelMode = "more";
+          } else if (titleUtilityPanelMode === "newSave") {
+            titleUtilityPanelMode = null;
+            titleNewSaveDraft = null;
+          } else {
+            titleUtilityPanelMode = null;
+            titleEditSaveDraft = null;
+          }
           return;
         }
         if (button.key === "settingsMusicEnabled") {
@@ -21362,14 +21341,13 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "editCloudSave") {
-          titleUtilityPanelMode = null;
           const saveId = resolveCloudTargetSaveId();
           if (saveId) showEditCloudSaveDialog(saveId);
           return;
         }
-
         if (button.key === "renameCloudSave") {
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId) return;
@@ -21388,6 +21366,7 @@ function handleTitleScreen() {
         }
         if (button.key === "deleteCloudSave") {
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId || typeof window.MapScreen?.deleteSaveFile !== "function") return;
@@ -21412,6 +21391,7 @@ function handleTitleScreen() {
         }
         if (button.key === "resetGoogleSave") {
           titleUtilityPanelMode = null;
+          titleEditSaveDraft = null;
           void (async () => {
             const saveId = resolveCloudTargetSaveId();
             if (!saveId) return;
@@ -23364,6 +23344,22 @@ function checkKillMilestoneBurst() {
   });
 }
 window.checkKillMilestoneBurst = checkKillMilestoneBurst;
+
+function showWaveKillCountBurst() {
+  const total = levelManager?.getStats?.()?.enemiesDefeated;
+  if (!Number.isFinite(total) || total <= 0) return;
+  const px = typeof player !== "undefined" && Number.isFinite(player?.x) ? player.x : (cameraOffsetX + canvas.width / 2);
+  const py = typeof player !== "undefined" && Number.isFinite(player?.y) ? player.y - (player.radius || 24) - 20 : canvas.height / 2;
+  addFloatingTextAt(px, py, `${total} Kills`, "#76D98F", {
+    vy: -70,
+    life: 1.4,
+    fontSize: 40,
+    fontWeight: "700",
+    fadeDelay: 0.4,
+    speechBubble: false,
+    priority: 8,
+  });
+}
 
 function withAlpha(hexColor, alpha) {
   if (!hexColor || hexColor[0] !== "#" || hexColor.length !== 7) return hexColor;
@@ -28651,6 +28647,7 @@ async function init() {
     titleScreenActive = true;
     titleDemoSaveMenuActive = false;
     titleUtilityPanelMode = null;
+    titleEditSaveDraft = null;
     paused = true;
     gameStarted = false;
     levelManager = Levels.createLevelManager();

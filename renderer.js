@@ -194,9 +194,13 @@ const MELEE_SWING_LENGTH = 260;
   };
   const MOBILE_SMOKE_PROFILE = {
     enabled: true,
-    maxPuffsCap: 48,
-    spawnRateScale: 0.55,
-    blurPxCap: 2.4,
+    maxPuffsCap: 28,
+    spawnRateScale: 0.42,
+    blurPxCap: 0,
+    lifeScale: 1.9,
+    minLifeFloor: 3.2,
+    riseSpeedScale: 0.58,
+    driftSpeedScale: 0.62,
   };
   const ADAPTIVE_SMOKE_PROFILE = {
     enabled: true,
@@ -231,6 +235,10 @@ const MELEE_SWING_LENGTH = 260;
     fadeInSeconds: 0.5,
     dissipateSeconds: 8.0,
     tint: "#A83538",
+  };
+  const ambientSmokeSpriteState = {
+    tintHex: "",
+    sprites: [],
   };
 
   function requireBindings() {
@@ -280,7 +288,101 @@ const MELEE_SWING_LENGTH = 260;
     return { r, g, b };
   }
 
-  function spawnAmbientSmokePuff(canvas, config, effectiveCameraY = 0) {
+  function buildAmbientSmokeSprites(tintHex) {
+    const tint = parseHexToRgb(tintHex, { r: 212, g: 78, b: 82 });
+    const spriteSize = 192;
+    const makeSprite = (drawFn) => {
+      const c = document.createElement("canvas");
+      c.width = spriteSize;
+      c.height = spriteSize;
+      const cctx = c.getContext("2d");
+      if (!cctx) return null;
+      cctx.clearRect(0, 0, spriteSize, spriteSize);
+      cctx.imageSmoothingEnabled = true;
+      drawFn(cctx, tint, spriteSize);
+      // Hard guarantee: clip any accidental corners to a soft ellipse mask.
+      cctx.globalCompositeOperation = "destination-in";
+      const maskCx = spriteSize * 0.5;
+      const maskCy = spriteSize * 0.5;
+      const maskRx = spriteSize * 0.47;
+      const maskRy = spriteSize * 0.44;
+      const maskGrad = cctx.createRadialGradient(maskCx, maskCy, spriteSize * 0.05, maskCx, maskCy, spriteSize * 0.52);
+      maskGrad.addColorStop(0, "rgba(255,255,255,1)");
+      maskGrad.addColorStop(0.64, "rgba(255,255,255,0.68)");
+      maskGrad.addColorStop(0.88, "rgba(255,255,255,0.18)");
+      maskGrad.addColorStop(1, "rgba(255,255,255,0)");
+      cctx.fillStyle = maskGrad;
+      cctx.beginPath();
+      cctx.ellipse(maskCx, maskCy, maskRx, maskRy, 0, 0, Math.PI * 2);
+      cctx.fill();
+      cctx.globalCompositeOperation = "source-over";
+      return c;
+    };
+    const sprites = [
+      // Round soft blob.
+      makeSprite((cctx, t, s) => {
+        const cx = s * 0.5;
+        const cy = s * 0.5;
+        const gradA = cctx.createRadialGradient(cx, cy, s * 0.05, cx, cy, s * 0.5);
+        gradA.addColorStop(0, `rgba(${t.r},${t.g},${t.b},0.58)`);
+        gradA.addColorStop(0.42, `rgba(${t.r},${t.g},${t.b},0.20)`);
+        gradA.addColorStop(0.78, `rgba(${t.r},${t.g},${t.b},0.06)`);
+        gradA.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.fillStyle = gradA;
+        cctx.fillRect(0, 0, s, s);
+      }),
+      // Offset lopsided blob.
+      makeSprite((cctx, t, s) => {
+        const cx = s * 0.46;
+        const cy = s * 0.54;
+        const grad = cctx.createRadialGradient(cx, cy, s * 0.1, cx, cy, s * 0.54);
+        grad.addColorStop(0, `rgba(${t.r},${t.g},${t.b},0.56)`);
+        grad.addColorStop(0.44, `rgba(${t.r},${t.g},${t.b},0.18)`);
+        grad.addColorStop(0.84, `rgba(${t.r},${t.g},${t.b},0.05)`);
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.save();
+        cctx.translate(cx, cy);
+        cctx.scale(1.15, 0.85);
+        cctx.fillStyle = grad;
+        cctx.fillRect(-s, -s, s * 2, s * 2);
+        cctx.restore();
+      }),
+      // Donut-ish center with wispy edge.
+      makeSprite((cctx, t, s) => {
+        const cx = s * 0.52;
+        const cy = s * 0.48;
+        const outer = cctx.createRadialGradient(cx, cy, s * 0.14, cx, cy, s * 0.52);
+        outer.addColorStop(0, `rgba(${t.r},${t.g},${t.b},0.34)`);
+        outer.addColorStop(0.58, `rgba(${t.r},${t.g},${t.b},0.18)`);
+        outer.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.fillStyle = outer;
+        cctx.fillRect(0, 0, s, s);
+        cctx.globalCompositeOperation = "destination-out";
+        const inner = cctx.createRadialGradient(cx, cy, 0, cx, cy, s * 0.2);
+        inner.addColorStop(0, "rgba(0,0,0,0.8)");
+        inner.addColorStop(1, "rgba(0,0,0,0)");
+        cctx.fillStyle = inner;
+        cctx.fillRect(0, 0, s, s);
+        cctx.globalCompositeOperation = "source-over";
+      }),
+    ].filter(Boolean);
+    return sprites;
+  }
+
+  function getAmbientSmokeSprites(tintHex) {
+    const normalizedTint = String(tintHex || "").toLowerCase();
+    if (!ambientSmokeSpriteState.sprites.length || ambientSmokeSpriteState.tintHex !== normalizedTint) {
+      ambientSmokeSpriteState.tintHex = normalizedTint;
+      ambientSmokeSpriteState.sprites = buildAmbientSmokeSprites(normalizedTint);
+    }
+    return ambientSmokeSpriteState.sprites;
+  }
+
+  function spawnAmbientSmokePuff(canvas, config, effectiveCameraY = 0, options = null) {
+    const riseScale = Math.max(0.15, Number(options?.riseScale) || 1);
+    const driftScale = Math.max(0.15, Number(options?.driftScale) || 1);
+    const lifeScale = Math.max(0.2, Number(options?.lifeScale) || 1);
+    const lifeFloor = Math.max(0, Number(options?.minLifeFloor) || 0);
     const sideSpawn = Math.random() < config.sideWeight;
     const bottomBand = Math.max(20, canvas.height * config.bottomBandRatio);
     const sideBand = Math.max(16, canvas.width * config.sideBandRatio);
@@ -294,16 +396,17 @@ const MELEE_SWING_LENGTH = 260;
         ? Math.random() * sideBand
         : canvas.width - Math.random() * sideBand;
       y = canvas.height - Math.random() * bottomBand;
-      const drift = config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin);
+      const drift = (config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin)) * driftScale;
       vx = leftSide ? drift : -drift;
     } else {
       x = Math.random() * canvas.width;
       y = canvas.height - Math.random() * bottomBand;
-      const drift = (Math.random() * 2 - 1) * (config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin));
+      const drift = (Math.random() * 2 - 1) * (config.driftSpeedMin + Math.random() * Math.max(1, config.driftSpeedMax - config.driftSpeedMin)) * driftScale;
       vx = drift * 0.45;
     }
-    const vy = -(config.riseSpeedMin + Math.random() * Math.max(1, config.riseSpeedMax - config.riseSpeedMin));
-    const life = config.minLife + Math.random() * Math.max(0.01, config.maxLife - config.minLife);
+    const vy = -(config.riseSpeedMin + Math.random() * Math.max(1, config.riseSpeedMax - config.riseSpeedMin)) * riseScale;
+    const baseLife = config.minLife + Math.random() * Math.max(0.01, config.maxLife - config.minLife);
+    const life = Math.max(lifeFloor, baseLife * lifeScale);
     ambientSmokeState.puffs.push({
       x,
       y: y - effectiveCameraY,
@@ -316,6 +419,7 @@ const MELEE_SWING_LENGTH = 260;
       maxLife: life,
       alpha: config.baseAlpha * (0.72 + Math.random() * 0.55),
       tint: config.tint,
+      spriteVariant: Math.floor(Math.random() * 3),
     });
   }
 
@@ -486,7 +590,12 @@ const MELEE_SWING_LENGTH = 260;
       const capacity = Math.max(0, stageMaxPuffs - ambientSmokeState.puffs.length);
       toSpawn = Math.min(toSpawn, capacity);
       for (let i = 0; i < toSpawn; i += 1) {
-        spawnAmbientSmokePuff(canvas, config, effectiveCameraY);
+        spawnAmbientSmokePuff(canvas, config, effectiveCameraY, isMobileLike ? {
+          riseScale: MOBILE_SMOKE_PROFILE.riseSpeedScale,
+          driftScale: MOBILE_SMOKE_PROFILE.driftSpeedScale,
+          lifeScale: MOBILE_SMOKE_PROFILE.lifeScale,
+          minLifeFloor: MOBILE_SMOKE_PROFILE.minLifeFloor,
+        } : null);
       }
     }
 
@@ -508,20 +617,26 @@ const MELEE_SWING_LENGTH = 260;
     }
 
     if (!puffs.length) return;
+    const spritePool = getAmbientSmokeSprites(config.tint);
+    const hasSprites = Array.isArray(spritePool) && spritePool.length > 0;
     ctx.save();
     ctx.translate(0, effectiveCameraY);
     ctx.globalCompositeOperation = "source-over";
-    if (!config.debugVisible) {
-      const targetBlur = isMobileLike
-        ? Math.min(5.8, MOBILE_SMOKE_PROFILE.blurPxCap)
-        : 5.8;
+    const targetBlur = isMobileLike
+      ? Math.min(5.8, MOBILE_SMOKE_PROFILE.blurPxCap)
+      : 5.8;
+    if (!config.debugVisible && targetBlur > 0.05) {
       ctx.filter = `blur(${Math.max(0.8, targetBlur * adaptiveBlurScale).toFixed(2)}px)`;
+    } else {
+      ctx.filter = "none";
     }
     for (let i = 0; i < puffs.length; i += 1) {
       const p = puffs[i];
       const lifeT = clamp01(p.life / Math.max(0.001, p.maxLife));
-      const fadeIn = clamp01((1 - lifeT) / 0.22);
-      const fadeOut = clamp01(lifeT / 0.92);
+      // Smooth bell-style fade curve to avoid visible popping on low-end devices.
+      const ageT = 1 - lifeT;
+      const fadeIn = clamp01(ageT / 0.35);
+      const fadeOut = clamp01(lifeT / 0.55);
       const alpha = p.alpha * fadeIn * fadeOut * stageAlphaMultiplier;
       if (alpha <= 0.002) continue;
       const r = p.size;
@@ -534,6 +649,19 @@ const MELEE_SWING_LENGTH = 260;
         ctx.lineWidth = 1;
         ctx.strokeStyle = "rgba(255, 64, 64, 0.95)";
         ctx.stroke();
+      } else if (hasSprites) {
+        const spriteIndexRaw = Number.isFinite(p.spriteVariant) ? p.spriteVariant : i;
+        const sprite = spritePool[((Math.floor(spriteIndexRaw) % spritePool.length) + spritePool.length) % spritePool.length];
+        const wobbleScaleY = 0.62 + Math.sin(nowSec + i) * 0.08;
+        const drawW = r * 2.15;
+        const drawH = drawW * wobbleScaleY;
+        const angle = Math.sin(nowSec * (0.08 + p.wobbleFreq * 0.025) + i * 0.61) * 0.06;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(angle);
+        ctx.globalAlpha = Math.max(0.01, Math.min(1, alpha * 0.95));
+        ctx.drawImage(sprite, -drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
       } else {
         // Keep the feather beyond the puff edge so circles do not show a hard rim.
         const grad = ctx.createRadialGradient(p.x, p.y, r * 0.08, p.x, p.y, r * 1.28);
@@ -7969,19 +8097,89 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   });
 
   // Shared canvas tokens — mirror the --hf-* CSS vars so canvas and HTML panels stay in sync.
-  const HELLFIRE_UI_TOKENS = Object.freeze({
-    text: "#fdf1d9",
-    label: "rgba(242, 210, 146, 0.8)",
-    meta: "rgba(231, 176, 102, 0.78)",
-    accent: "rgba(242, 200, 125, 0.9)",
-    rowBg: "rgba(28, 14, 10, 0.82)",
-    rowBgFocused: "rgba(82, 44, 20, 0.92)",
-    rowBgSelected: "rgba(46, 32, 26, 0.88)",
-    rowBorder: "rgba(242, 200, 125, 0.22)",
-    rowBorderFocused: "rgba(242, 200, 125, 0.95)",
-    rowBorderSelected: "rgba(242, 200, 125, 0.55)",
-    danger: "#f07060",
-  });
+  // ─── Utility UI color tokens ─────────────────────────────────────────────
+  // All values derived from UIStyles.colors (desolate-guest palette).
+  // Nothing in the utility screens should hardcode a hex string — use these.
+  function buildUtilityTokens() {
+    const c = window.UIStyles?.colors || {};
+    // Helper: apply opacity to a hex color token.
+    function hex(token, alpha) {
+      const raw = String(c[token] || "#000000").replace("#", "");
+      const r = parseInt(raw.slice(0, 2), 16);
+      const g = parseInt(raw.slice(2, 4), 16);
+      const b = parseInt(raw.slice(4, 6), 16);
+      return alpha == null ? `#${raw}` : `rgba(${r},${g},${b},${alpha})`;
+    }
+    return Object.freeze({
+      // Text hierarchy
+      text:          hex("softWhite"),          // primary body text
+      textMuted:     hex("softWhite", 0.80),    // row meta / descriptions
+      eyebrow:       hex("gold", 0.70),         // eyebrow labels
+      title:         hex("gold"),               // h1 panel titles
+      accent:        hex("gold", 0.90),         // focused labels, icons
+      meta:          hex("muted", 0.90),        // captions, timestamps
+      danger:        hex("crimson"),            // danger row text
+      activeBadge:   hex("teal"),               // "ACTIVE" badge text
+      activeBadgeBg: hex("teal", 0.18),         // "ACTIVE" badge fill
+
+      // Row surfaces
+      rowBg:              hex("deepNavy", 0.70),   // default row background
+      rowBgFocused:       hex("slate", 0.55),      // focused row background
+      rowBgSelected:      hex("slate", 0.30),      // selected row background
+      rowBgDanger:        hex("crimson", 0.28),    // danger row focused
+      rowBorder:          hex("gold", 0.22),       // default row border
+      rowBorderFocused:   hex("gold", 0.95),       // focused row border
+      rowBorderSelected:  hex("gold", 0.55),       // selected row border
+      rowBorderDanger:    hex("crimson", 0.55),    // danger row border
+
+      // Input fields
+      inputBg:            hex("deepNavy", 0.70),
+      inputBorder:        hex("gold", 0.35),
+      inputBorderFocused: hex("gold", 0.90),
+      inputBorderEditing: hex("softWhite", 0.95),
+      inputText:          hex("softWhite"),
+      inputPlaceholder:   hex("muted", 0.60),
+
+      // Buttons
+      btnPrimaryBg:       hex("gold", 0.18),
+      btnPrimaryBorder:   hex("gold", 0.80),
+      btnPrimaryText:     hex("gold"),
+      btnSecondaryBg:     hex("deepNavy", 0.60),
+      btnSecondaryBorder: hex("muted", 0.40),
+      btnSecondaryText:   hex("muted", 0.90),
+
+      // Slider
+      sliderTrack: hex("softWhite", 0.14),
+      sliderFill:  hex("ice"),
+
+      // Panel shell (mirrors panels.desolate.shell)
+      panelBgTop:    hex("deepNavy", 0.97),
+      panelBgBottom: "rgba(8,9,18,0.97)",
+      panelBorder:   hex("gold", 0.34),
+      divider:       hex("gold", 0.22),
+    });
+  }
+  // Evaluated once at draw time so UIStyles is guaranteed loaded.
+  let _utilityTokens = null;
+  function getUT() {
+    if (!_utilityTokens) _utilityTokens = buildUtilityTokens();
+    return _utilityTokens;
+  }
+
+  // Back-compat alias — existing callers keep working unchanged.
+  const HELLFIRE_UI_TOKENS = {
+    get text()              { return getUT().text; },
+    get label()             { return getUT().eyebrow; },
+    get meta()              { return getUT().meta; },
+    get accent()            { return getUT().accent; },
+    get rowBg()             { return getUT().rowBg; },
+    get rowBgFocused()      { return getUT().rowBgFocused; },
+    get rowBgSelected()     { return getUT().rowBgSelected; },
+    get rowBorder()         { return getUT().rowBorder; },
+    get rowBorderFocused()  { return getUT().rowBorderFocused; },
+    get rowBorderSelected() { return getUT().rowBorderSelected; },
+    get danger()            { return getUT().danger; },
+  };
 
   const HELLFIRE_TEXT_PALETTE = Object.freeze({
     title: "#DDA677",
@@ -9164,6 +9362,313 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  // ─── drawUtilityPanel ────────────────────────────────────────────────────
+  // Draws the shared panel shell used by all utility screens.
+  // All coordinates are in virtual space (1280×720).
+  // Returns a contentRect { x, y, w, h } for callers to fill.
+  //
+  // Options:
+  //   ctx, layout       — canvas context + layout from getAnnouncementScreenLayout
+  //   x, y, w, h        — panel bounds in virtual space
+  //   eyebrow           — small caps label above the title (optional)
+  //   title             — h1 panel title
+  //   hint              — caption below the title (controls hint)
+  //   headerH           — total height of the header area (default 96)
+  function drawUtilityPanel(ctx, layout, {
+    x, y, w, h,
+    eyebrow = "",
+    title = "",
+    hint = "",
+    headerH = 96,
+  } = {}) {
+    const ut = getUT();
+    const ty = window.UIStyles?.typography?.utilityPanel || {};
+    const shell = window.UIStyles?.panels?.desolate?.shell || {};
+    const dividerCfg = window.UIStyles?.panels?.desolate?.divider || {};
+    const sc = layout.scale;
+    const ox = layout.offsetX;
+    const oy = layout.offsetY;
+
+    // — Panel background —
+    const sx = Math.round(ox + x * sc);
+    const sy = Math.round(oy + y * sc);
+    const sw = Math.round(w * sc);
+    const sh = Math.round(h * sc);
+    const radius = Math.round((shell.radius ?? 18) * sc);
+
+    ctx.save();
+    ctx.shadowColor = shell.shadowColor ?? "rgba(0,0,0,0.45)";
+    ctx.shadowBlur = (shell.shadowBlur ?? 24) * sc;
+    ctx.shadowOffsetY = (shell.shadowOffsetY ?? 10) * sc;
+    const grad = ctx.createLinearGradient(sx, sy, sx, sy + sh);
+    grad.addColorStop(0, ut.panelBgTop);
+    grad.addColorStop(1, ut.panelBgBottom);
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = ut.panelBorder;
+    ctx.lineWidth = (shell.borderWidth ?? 2) * sc;
+    roundRect(ctx, sx, sy, sw, sh, radius, true, true);
+    ctx.restore();
+
+    // — Eyebrow —
+    const eyebrowY = y + 20;
+    const titleY   = eyebrow ? y + 44 : y + 32;
+    const hintY    = titleY + (ty.h1 ?? 36) + 10;
+    const dividerY = headerH ? y + headerH - 10 : hintY + (ty.caption ?? 13) + 12;
+
+    if (eyebrow) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.font = `600 ${Math.round((ty.eyebrow ?? 13) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = ut.eyebrow;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        String(eyebrow).toUpperCase(),
+        Math.round(ox + (x + w / 2) * sc),
+        Math.round(oy + eyebrowY * sc),
+      );
+      ctx.restore();
+    }
+
+    // — H1 Title —
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = `700 ${Math.round((ty.h1 ?? 36) * sc)}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = ut.title;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillText(
+      String(title),
+      Math.round(ox + (x + w / 2) * sc),
+      Math.round(oy + titleY * sc),
+    );
+    ctx.restore();
+
+    // — Hint caption —
+    if (hint) {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.font = `400 ${Math.round((ty.caption ?? 13) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = ut.meta;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(
+        String(hint),
+        Math.round(ox + (x + w / 2) * sc),
+        Math.round(oy + hintY * sc),
+      );
+      ctx.restore();
+    }
+
+    // — Divider —
+    const divInset = dividerCfg.insetX ?? 24;
+    const divSx = Math.round(ox + (x + divInset) * sc);
+    const divEx = Math.round(ox + (x + w - divInset) * sc);
+    const divSy = Math.round(oy + dividerY * sc);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.strokeStyle = ut.divider;
+    ctx.lineWidth = Math.max(1, (dividerCfg.width ?? 1) * sc);
+    ctx.beginPath();
+    ctx.moveTo(divSx, divSy);
+    ctx.lineTo(divEx, divSy);
+    ctx.stroke();
+    ctx.restore();
+
+    // Return the content area below the header
+    const contentY = y + headerH;
+    return { x: x + 16, y: contentY, w: w - 32, h: h - headerH - 12 };
+  }
+
+  // ─── drawUtilityRow ──────────────────────────────────────────────────────
+  // Draws a single row inside a utility panel.
+  // All coordinates are in virtual space.
+  //
+  // variant:
+  //   "nav"     — label + meta + optional right chevron
+  //   "save"    — label (h2) + meta + optional ACTIVE badge
+  //   "danger"  — nav row with crimson danger tint
+  //   "slider"  — label + meta + filled track bar
+  //   "action"  — full-width button (primary or secondary)
+  //   "input"   — eyebrow label above + text input box
+  function drawUtilityRow(ctx, layout, {
+    x, y, w, h = 64,
+    variant = "nav",
+    label = "",
+    meta = "",
+    focused = false,
+    selected = false,
+    // nav / save
+    showChevron = false,
+    // save
+    isActive = false,
+    // slider
+    sliderValue = 0,
+    // action
+    actionStyle = "primary",
+    // input
+    fieldLabel = "",
+    fieldValue = "",
+    isEditing = false,
+    cursor = true,
+  } = {}) {
+    const ut = getUT();
+    const ty = window.UIStyles?.typography?.utilityPanel || {};
+    const sc = layout.scale;
+    const ox = layout.offsetX;
+    const oy = layout.offsetY;
+
+    const isDanger  = variant === "danger";
+    const isAction  = variant === "action";
+    const isSlider  = variant === "slider";
+    const isInput   = variant === "input";
+    const isSave    = variant === "save";
+
+    const sx = Math.round(ox + x * sc);
+    const sy = Math.round(oy + y * sc);
+    const sw = Math.round(w * sc);
+    const sh = Math.round(h * sc);
+    const radius = Math.round(10 * sc);
+
+    // — Row background + border —
+    ctx.save();
+    if (isAction) {
+      const isPrimary = actionStyle === "primary";
+      ctx.fillStyle   = isPrimary ? ut.btnPrimaryBg   : ut.btnSecondaryBg;
+      ctx.strokeStyle = isPrimary ? ut.btnPrimaryBorder : ut.btnSecondaryBorder;
+    } else if (isInput) {
+      const editBorder = isEditing  ? ut.inputBorderEditing
+                       : focused    ? ut.inputBorderFocused
+                       :              ut.inputBorder;
+      ctx.fillStyle   = ut.inputBg;
+      ctx.strokeStyle = editBorder;
+    } else if (isDanger) {
+      ctx.fillStyle   = focused ? ut.rowBgDanger   : ut.rowBg;
+      ctx.strokeStyle = focused ? ut.rowBorderDanger : ut.rowBorder;
+    } else {
+      ctx.fillStyle   = focused ? ut.rowBgFocused  : selected ? ut.rowBgSelected  : ut.rowBg;
+      ctx.strokeStyle = focused ? ut.rowBorderFocused : selected ? ut.rowBorderSelected : ut.rowBorder;
+    }
+    ctx.lineWidth = Math.max(1, (focused || isEditing ? 2 : 1.2) * sc);
+    roundRect(ctx, sx, sy, sw, sh, radius, true, true);
+    ctx.restore();
+
+    const padX  = Math.round(16 * sc);
+    const midY  = Math.round(oy + (y + h / 2) * sc);
+    const textX = sx + padX;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+    if (isAction) {
+      // — Full-width centred button label —
+      const isPrimary = actionStyle === "primary";
+      ctx.font = `600 ${Math.round((ty.button ?? 18) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = isPrimary ? ut.btnPrimaryText : ut.btnSecondaryText;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(label), sx + Math.round(sw / 2), midY);
+
+    } else if (isInput) {
+      // — Eyebrow field label above box —
+      const labelSy = Math.round(oy + (y - 18) * sc);
+      ctx.font = `600 ${Math.round((ty.eyebrow ?? 13) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = ut.eyebrow;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(fieldLabel).toUpperCase(), textX, labelSy);
+      // — Value + cursor —
+      ctx.font = `500 ${Math.round((ty.input ?? 18) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = fieldValue ? ut.inputText : ut.inputPlaceholder;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      const displayValue = fieldValue + (isEditing && cursor ? "│" : "");
+      ctx.fillText(String(displayValue || ""), textX, midY);
+
+    } else if (isSlider) {
+      // — Label + value on one line —
+      ctx.font = `600 ${Math.round((ty.h3 ?? 20) * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = focused ? ut.accent : ut.text;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(label), textX, midY - Math.round(8 * sc));
+      // Track
+      const trackX = textX;
+      const trackY = Math.round(oy + (y + h - 18) * sc);
+      const trackW = sw - padX * 2;
+      const trackH = Math.round(8 * sc);
+      ctx.fillStyle = ut.sliderTrack;
+      roundRect(ctx, trackX, trackY, trackW, trackH, Math.round(4 * sc), true, false);
+      const fillW = Math.max(0, Math.round(trackW * Math.max(0, Math.min(1, sliderValue))));
+      if (fillW > 0) {
+        const fillGrad = ctx.createLinearGradient(trackX, trackY, trackX + trackW, trackY);
+        fillGrad.addColorStop(0, ut.sliderFill);
+        fillGrad.addColorStop(1, ut.title);
+        ctx.fillStyle = fillGrad;
+        roundRect(ctx, trackX, trackY, fillW, trackH, Math.round(4 * sc), true, false);
+      }
+
+    } else {
+      // — nav / save / danger: label on top, meta below —
+      const hasOnlyLabel = !meta;
+      const labelBaseY = hasOnlyLabel
+        ? midY
+        : Math.round(oy + (y + h * 0.38) * sc);
+      const metaBaseY = Math.round(oy + (y + h * 0.68) * sc);
+
+      const labelSize = isSave ? (ty.h2 ?? 26) : (ty.h3 ?? 20);
+      ctx.font = `${isSave ? 600 : 600} ${Math.round(labelSize * sc)}px ${UI_FONT_FAMILY}`;
+      ctx.fillStyle = isDanger ? ut.danger : (focused ? ut.accent : ut.text);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      // Clamp label so it doesn't overlap badge/chevron
+      const labelMaxW = sw - padX * 2 - (isActive ? Math.round(64 * sc) : 0) - (showChevron ? Math.round(20 * sc) : 0);
+      ctx.fillText(String(label), textX, labelBaseY, Math.max(1, labelMaxW));
+
+      if (meta) {
+        ctx.font = `400 ${Math.round((ty.body ?? 16) * sc)}px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = isDanger ? ut.danger : ut.textMuted;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(meta), textX, metaBaseY, Math.max(1, sw - padX * 2));
+      }
+
+      // — ACTIVE badge —
+      if (isActive) {
+        const badgeText = "ACTIVE";
+        const badgeFontSize = Math.round((ty.badge ?? 12) * sc);
+        ctx.font = `700 ${badgeFontSize}px ${UI_FONT_FAMILY}`;
+        const badgeTW = ctx.measureText(badgeText).width;
+        const badgePadX = Math.round(8 * sc);
+        const badgePadY = Math.round(4 * sc);
+        const badgeW = badgeTW + badgePadX * 2;
+        const badgeH = badgeFontSize + badgePadY * 2;
+        const badgeX = sx + sw - Math.round(12 * sc) - badgeW;
+        const badgeY = midY - badgeH / 2;
+        ctx.fillStyle = ut.activeBadgeBg;
+        ctx.strokeStyle = ut.activeBadge;
+        ctx.lineWidth = Math.max(1, sc);
+        roundRect(ctx, badgeX, badgeY, badgeW, badgeH, Math.round(4 * sc), true, true);
+        ctx.fillStyle = ut.activeBadge;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(badgeText, badgeX + badgeW / 2, midY);
+      }
+
+      // — Chevron —
+      if (showChevron) {
+        ctx.font = `400 ${Math.round(18 * sc)}px ${UI_FONT_FAMILY}`;
+        ctx.fillStyle = focused ? ut.accent : ut.eyebrow;
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText("›", sx + sw - Math.round(12 * sc), midY);
+      }
+    }
+
+    ctx.restore();
+    return { x, y, w, h };
+  }
+
   function drawTitleScreen() {
     const {
       ctx,
@@ -9392,12 +9897,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonCount: buttonConfigs.length,
       HUD_HEIGHT: HUD_HEIGHT || 54,
     });
-    // Render Save/Load at native scale to keep panel geometry and text crisp.
-    if (titleDemoSaveMenuActive && !titleUtilityPanelMode) {
-      layout.scale = 1;
-      layout.offsetX = 0;
-      layout.offsetY = 0;
-    }
+    // Save/Load uses the virtual canvas system — no scale bypass needed.
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
@@ -9445,11 +9945,21 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const utilityTypography = window.UIStyles?.typography?.canvasUtilityPanels || {};
       const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
       const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
-      const utilityTitle = utilityType === "more" ? "Save Options" : "Settings";
+      const utilityResolvedTitle =
+        utilityType === "more" ? "Save Options"
+        : utilityType === "editSave" ? "Edit Save"
+        : utilityType === "newSave" ? "New Save"
+        : "Settings";
+      const utilityEyebrow =
+        utilityType === "editSave" ? "EDIT SAVE FILE"
+        : utilityType === "newSave" ? "NEW SAVE FILE"
+        : "";
       const utilityHint =
         utilityType === "more"
           ? "W / S move  ·  SPACE select  ·  ESC back"
-          : "W / S move  ·  A/D adjust sliders  ·  SPACE select  ·  ESC back";
+          : (utilityType === "editSave" || utilityType === "newSave")
+            ? "TAB next field  ·  A/D cycle class  ·  SPACE edit  ·  ESC back"
+            : "W / S move  ·  A/D adjust sliders  ·  SPACE select  ·  ESC back";
       const panelW = Math.round(Math.min(760, layout.virtualCanvas.width * 0.62));
       const panelH = Math.round(Math.min(620, layout.virtualCanvas.height * 0.72));
       const panelX = Math.round(layout.virtualCanvas.width / 2 - panelW / 2);
@@ -9495,99 +10005,267 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
 
+      // eyebrow sits at top; title shifts down when eyebrow present
+      const effectiveTitleY = utilityEyebrow ? panelY + 48 : titleY;
+      const effectiveHintY  = utilityEyebrow ? panelY + 68 : hintY;
+      const effectiveDividerY = utilityEyebrow ? panelY + 90 : dividerY;
+      if (utilityEyebrow) {
+        fillTextCrisp({
+          text: utilityEyebrow,
+          x: panelX + panelW / 2,
+          y: panelY + 22,
+          font: `600 ${(window.UIStyles?.typography?.utilityPanel?.eyebrow ?? 13)}px ${PIXEL_UI_FONT_FAMILY}`,
+          fillStyle: getUT().eyebrow,
+          textAlign: "center",
+          textBaseline: "alphabetic",
+        });
+      }
       fillTextCrisp({
-        text: utilityTitle,
+        text: utilityResolvedTitle,
         x: panelX + panelW / 2,
-        y: titleY,
+        y: effectiveTitleY,
         font: `700 ${utilityTypography.title ?? 30}px ${PIXEL_UI_FONT_FAMILY}`,
-        fillStyle: EMBER_BUTTON_PALETTE.text,
+        fillStyle: getUT().title,
         textAlign: "center",
         textBaseline: "alphabetic",
       });
       fillTextCrisp({
         text: utilityHint,
         x: panelX + panelW / 2,
-        y: hintY,
+        y: effectiveHintY,
         font: `600 ${utilityTypography.hint ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
-        fillStyle: "rgba(231,176,102,0.82)",
+        fillStyle: getUT().meta,
         textAlign: "center",
         textBaseline: "alphabetic",
       });
       ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
       ctx.lineWidth = dividerStyle.width ?? 1;
       ctx.beginPath();
-      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), dividerY);
-      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), dividerY);
+      ctx.moveTo(panelX + (dividerStyle.insetX ?? 24), effectiveDividerY);
+      ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), effectiveDividerY);
       ctx.stroke();
 
-      for (let index = visibleStart; index < visibleEnd; index += 1) {
-        const config = buttonConfigs[index];
-        const visibleRow = index - visibleStart;
-        const y = Math.round(listStartY + visibleRow * rowStep);
-        const focused = isAnnouncementButtonFocused("title", index);
-        const isDanger = config?.danger === true;
-        ctx.save();
-        ctx.fillStyle = focused
-          ? "rgba(182, 98, 38, 0.96)"
-          : isDanger
-            ? "rgba(76, 20, 20, 0.9)"
-            : "rgba(14, 12, 16, 0.88)";
-        ctx.strokeStyle = focused
-          ? "rgba(255, 244, 190, 1)"
-          : isDanger
-            ? "rgba(255, 170, 170, 0.55)"
-            : "rgba(242, 200, 125, 0.35)";
-        ctx.lineWidth = focused ? 3.2 : 1.2;
-        roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
-        if (focused) {
-          ctx.fillStyle = "rgba(255, 245, 196, 1)";
-          ctx.fillRect(rowX + 6, y + 7, 5, rowH - 14);
-        }
-        fillTextCrisp({
-          text: String(config?.label || ""),
-          x: rowX + 20,
-          y: y + 22,
-          font: `600 ${utilityTypography.rowTitle ?? 24}px ${PIXEL_UI_FONT_FAMILY}`,
-          fillStyle: EMBER_BUTTON_PALETTE.text,
-          textAlign: "left",
-          textBaseline: "alphabetic",
-        });
-        if (config?.meta) {
+      if (false) {
+        // ── Shared form layout for editSave / newSave ──────────────────────
+        const isNewSave = utilityType === "newSave";
+        const draft = isNewSave ? (titleNewSaveDraft || {}) : (titleEditSaveDraft || {});
+        const editingField = String(draft.editingField || "");
+        const ut = getUT();
+        const ty = window.UIStyles?.typography?.utilityPanel || {};
+        const sc = layout.scale;
+
+        const LABEL_H  = 18;  // height reserved for the field eyebrow label
+        const INPUT_H  = 44;  // height of the input box itself
+        const FIELD_H  = LABEL_H + INPUT_H;  // total slot per text field
+        const NAV_H    = 52;
+        const ACTION_H = 46;
+        const ROW_GAP  = 12;
+        const ACTION_GAP = 12;
+        const fieldW = rowW;
+        // Content starts just below the divider (which moved down for eyebrow panels)
+        const contentStartY = effectiveDividerY + 18;
+
+        // ── Helper: draw one text-input field ──────────────────────────────
+        const drawInputField = ({ key, labelText, value, placeholder, editing, focused, y }) => {
+          const idx = buttonConfigs.findIndex((b) => b.key === key);
+          // Label
           fillTextCrisp({
-            text: String(config.meta),
-            x: rowX + 20,
-            y: y + 42,
-            font: `500 ${utilityTypography.rowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
-            fillStyle: "rgba(231, 176, 102, 0.82)",
+            text: String(labelText).toUpperCase(),
+            x: rowX + 4,
+            y: y + LABEL_H - 4,
+            font: `600 ${ty.eyebrow ?? 13}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: ut.eyebrow,
             textAlign: "left",
             textBaseline: "alphabetic",
           });
-        }
-        if (Number.isFinite(config?.sliderValue)) {
-          const sliderPadX = 18;
-          const sliderW = Math.max(40, rowW - sliderPadX * 2);
-          const sliderH = 8;
-          const sliderX = rowX + sliderPadX;
-          const sliderY = y + rowH - 14;
-          const pct = Math.max(0, Math.min(1, Number(config.sliderValue)));
-          ctx.fillStyle = "rgba(255,255,255,0.14)";
-          roundRect(ctx, sliderX, sliderY, sliderW, sliderH, 4, true, false);
-          const fillW = Math.max(6, sliderW * pct);
-          const grad = ctx.createLinearGradient(sliderX, sliderY, sliderX + sliderW, sliderY);
-          grad.addColorStop(0, "#ffcc68");
-          grad.addColorStop(1, "#d44e52");
-          ctx.fillStyle = grad;
-          roundRect(ctx, sliderX, sliderY, fillW, sliderH, 4, true, false);
-        }
-        ctx.restore();
-
-        boundsByIndex[index] = {
-          key: config.key,
-          x: layout.offsetX + rowX * layout.scale,
-          y: layout.offsetY + y * layout.scale,
-          width: rowW * layout.scale,
-          height: rowH * layout.scale,
+          // Box
+          const boxY = y + LABEL_H;
+          ctx.save();
+          ctx.fillStyle = ut.inputBg;
+          ctx.strokeStyle = editing ? ut.inputBorderEditing : focused ? ut.inputBorderFocused : ut.inputBorder;
+          ctx.lineWidth = Math.max(1, (editing || focused ? 2 : 1.2) * sc);
+          roundRect(ctx, rowX, boxY, fieldW, INPUT_H, Math.round(8 * sc), true, true);
+          ctx.restore();
+          // Value or placeholder
+          const hasValue = String(value || "").length > 0;
+          const displayText = editing ? (value + "│") : (hasValue ? value : placeholder);
+          fillTextCrisp({
+            text: String(displayText || ""),
+            x: rowX + 14,
+            y: boxY + INPUT_H / 2,
+            font: `500 ${ty.input ?? 18}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: (hasValue || editing) ? ut.inputText : ut.inputPlaceholder,
+            textAlign: "left",
+            textBaseline: "middle",
+            maxWidth: fieldW - 28,
+          });
+          if (idx >= 0) {
+            boundsByIndex[idx] = {
+              key,
+              x: layout.offsetX + rowX * sc,
+              y: layout.offsetY + boxY * sc,
+              width: fieldW * sc,
+              height: INPUT_H * sc,
+            };
+          }
         };
+
+        // Pastor Name
+        const nameKey = isNewSave ? "newSavePlayerName" : "editSavePlayerName";
+        drawInputField({
+          key: nameKey,
+          labelText: "Pastor Name",
+          value: String(draft.playerName || ""),
+          placeholder: isNewSave ? "Your pastor's name" : "Pastor",
+          editing: editingField === "playerName",
+          focused: isAnnouncementButtonFocused("title", buttonConfigs.findIndex((b) => b.key === nameKey)),
+          y: contentStartY,
+        });
+
+        // City
+        const cityKey = isNewSave ? "newSaveCity" : "editSaveCity";
+        const cityY = contentStartY + FIELD_H + ROW_GAP;
+        drawInputField({
+          key: cityKey,
+          labelText: "City",
+          value: String(draft.cityName || ""),
+          placeholder: "Your city (optional)",
+          editing: editingField === "cityName",
+          focused: isAnnouncementButtonFocused("title", buttonConfigs.findIndex((b) => b.key === cityKey)),
+          y: cityY,
+        });
+
+        // Denomination (nav row — A/D to cycle)
+        const classKey   = isNewSave ? "newSaveClass" : "editSaveClass";
+        const classIdx   = buttonConfigs.findIndex((b) => b.key === classKey);
+        const classFocus = isAnnouncementButtonFocused("title", classIdx);
+        const classConfig = buttonConfigs.find((b) => b.key === classKey);
+        const classLabel = String(classConfig?.label || "—");
+        const classY = cityY + FIELD_H + ROW_GAP;
+        drawUtilityRow(ctx, layout, {
+          x: rowX, y: classY, w: fieldW, h: NAV_H,
+          variant: "nav",
+          label: classLabel,
+          meta: "A / D to cycle",
+          focused: classFocus,
+        });
+        if (classIdx >= 0) {
+          boundsByIndex[classIdx] = {
+            key: classKey,
+            x: layout.offsetX + rowX * sc,
+            y: layout.offsetY + classY * sc,
+            width: fieldW * sc,
+            height: NAV_H * sc,
+          };
+        }
+
+        // Action buttons
+        const actionRowY = classY + NAV_H + ROW_GAP + 4;
+        const actionW = Math.round((fieldW - ACTION_GAP) / 2);
+        const primaryKey   = isNewSave ? "newSaveCreate" : "editSaveApply";
+        const primaryLabel = isNewSave ? "Create Save"   : "Apply Changes";
+        const cancelKey    = isNewSave ? "newSaveCancel" : "editSaveCancel";
+
+        const primaryIdx   = buttonConfigs.findIndex((b) => b.key === primaryKey);
+        drawUtilityRow(ctx, layout, {
+          x: rowX, y: actionRowY, w: actionW, h: ACTION_H,
+          variant: "action", actionStyle: "primary",
+          label: primaryLabel,
+          focused: isAnnouncementButtonFocused("title", primaryIdx),
+        });
+        if (primaryIdx >= 0) {
+          boundsByIndex[primaryIdx] = {
+            key: primaryKey,
+            x: layout.offsetX + rowX * sc,
+            y: layout.offsetY + actionRowY * sc,
+            width: actionW * sc,
+            height: ACTION_H * sc,
+          };
+        }
+
+        const cancelIdx   = buttonConfigs.findIndex((b) => b.key === cancelKey);
+        const cancelX = rowX + actionW + ACTION_GAP;
+        drawUtilityRow(ctx, layout, {
+          x: cancelX, y: actionRowY, w: actionW, h: ACTION_H,
+          variant: "action", actionStyle: "secondary",
+          label: "Cancel",
+          focused: isAnnouncementButtonFocused("title", cancelIdx),
+        });
+        if (cancelIdx >= 0) {
+          boundsByIndex[cancelIdx] = {
+            key: cancelKey,
+            x: layout.offsetX + cancelX * sc,
+            y: layout.offsetY + actionRowY * sc,
+            width: actionW * sc,
+            height: ACTION_H * sc,
+          };
+        }
+      } else {
+        for (let index = visibleStart; index < visibleEnd; index += 1) {
+          const config = buttonConfigs[index];
+          const visibleRow = index - visibleStart;
+          const y = Math.round(listStartY + visibleRow * rowStep);
+          const focused = isAnnouncementButtonFocused("title", index);
+          const isDanger = config?.danger === true;
+          ctx.save();
+          ctx.fillStyle = focused
+            ? (isDanger ? "rgba(140, 30, 30, 0.92)" : "rgba(182, 98, 38, 0.96)")
+            : "rgba(14, 12, 16, 0.88)";
+          ctx.strokeStyle = focused
+            ? (isDanger ? "rgba(255, 140, 140, 0.85)" : "rgba(255, 244, 190, 1)")
+            : "rgba(242, 200, 125, 0.35)";
+          ctx.lineWidth = focused ? 3.2 : 1.2;
+          roundRect(ctx, rowX, y, rowW, rowH, 8, true, true);
+          if (focused) {
+            ctx.fillStyle = "rgba(255, 245, 196, 1)";
+            ctx.fillRect(rowX + 6, y + 7, 5, rowH - 14);
+          }
+          fillTextCrisp({
+            text: String(config?.label || ""),
+            x: rowX + 20,
+            y: y + 22,
+            font: `600 ${utilityTypography.rowTitle ?? 24}px ${PIXEL_UI_FONT_FAMILY}`,
+            fillStyle: EMBER_BUTTON_PALETTE.text,
+            textAlign: "left",
+            textBaseline: "alphabetic",
+          });
+          if (config?.meta) {
+            fillTextCrisp({
+              text: String(config.meta),
+              x: rowX + 20,
+              y: y + 42,
+              font: `500 ${utilityTypography.rowMeta ?? 14}px ${PIXEL_UI_FONT_FAMILY}`,
+              fillStyle: "rgba(231, 176, 102, 0.82)",
+              textAlign: "left",
+              textBaseline: "alphabetic",
+            });
+          }
+          if (Number.isFinite(config?.sliderValue)) {
+            const sliderPadX = 18;
+            const sliderW = Math.max(40, rowW - sliderPadX * 2);
+            const sliderH = 8;
+            const sliderX = rowX + sliderPadX;
+            const sliderY = y + rowH - 14;
+            const pct = Math.max(0, Math.min(1, Number(config.sliderValue)));
+            ctx.fillStyle = "rgba(255,255,255,0.14)";
+            roundRect(ctx, sliderX, sliderY, sliderW, sliderH, 4, true, false);
+            const fillW = Math.max(6, sliderW * pct);
+            const grad = ctx.createLinearGradient(sliderX, sliderY, sliderX + sliderW, sliderY);
+            grad.addColorStop(0, "#ffcc68");
+            grad.addColorStop(1, "#d44e52");
+            ctx.fillStyle = grad;
+            roundRect(ctx, sliderX, sliderY, fillW, sliderH, 4, true, false);
+          }
+          ctx.restore();
+
+          boundsByIndex[index] = {
+            key: config.key,
+            x: layout.offsetX + rowX * layout.scale,
+            y: layout.offsetY + y * layout.scale,
+            width: rowW * layout.scale,
+            height: rowH * layout.scale,
+          };
+        }
       }
       for (let index = 0; index < totalRows; index += 1) {
         if (boundsByIndex[index]) continue;
@@ -12366,8 +13044,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
-    ctx.filter = `blur(${(TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * (0.75 + 0.25 * presence)).toFixed(2)}px)`;
-    for (let i = 0; i < TEASER_SMOKE_WIPE_CONFIG.puffCount; i += 1) {
+    const isMobileLike = Boolean(
+      MOBILE_SMOKE_PROFILE.enabled &&
+      typeof window !== "undefined" &&
+      (
+        (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) ||
+        Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900
+      ),
+    );
+    const teaserPuffCount = isMobileLike
+      ? Math.max(36, Math.round(TEASER_SMOKE_WIPE_CONFIG.puffCount * 0.26))
+      : TEASER_SMOKE_WIPE_CONFIG.puffCount;
+    const teaserBlurPx = isMobileLike
+      ? Math.min(2.2, TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * 0.34)
+      : TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * (0.75 + 0.25 * presence);
+    ctx.filter = teaserBlurPx > 0.05 ? `blur(${teaserBlurPx.toFixed(2)}px)` : "none";
+    for (let i = 0; i < teaserPuffCount; i += 1) {
       const phase = i * 12.9898;
       const seedA = (Math.sin(phase) + 1) * 0.5;
       const seedB = (Math.sin(phase * 1.91 + 4.7) + 1) * 0.5;

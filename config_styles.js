@@ -69,33 +69,52 @@
 
     // Centralized typography for canvas-rendered title/save/load/class menus.
     typography: {
-      canvasTitleMenu: {
-        // Save picker
-        saveHeader: 28,
-        saveAccountMeta: 14,
-        saveRowTitle: 28,
-        saveRowMeta: 18,
-        saveActiveBadge: 12,
-        saveScrollGlyph: 16,
-        saveActionButton: 16,
-        saveFooterHint: 12,
-
-        // Class picker
-        classTitle: 34,
-        classHint: 15,
-        classRowTitle: 22,
-        classRowMeta: 14,
-        classScrollGlyph: 18,
-
-        // Main title buttons
-        mainButtonLabel: 38,
+      // ─── Utility Panel Scale ──────────────────────────────────────────────
+      // Single source of truth for all utility screens (Save/Load, More,
+      // Settings, Edit Save, New Save). Body = 16px; all other sizes derive
+      // from it. Colors reference UIStyles.colors tokens — no inline hex here.
+      utilityPanel: {
+        eyebrow:  13,   // 600  gold@70%     — screen category label "SAVE FILES"
+        h1:       36,   // 700  gold         — panel title "Choose Save"
+        h2:       26,   // 600  softWhite    — save file name, card title
+        h3:       20,   // 600  softWhite    — settings row label, section header
+        body:     16,   // 400  softWhite@80% — row meta, descriptions
+        caption:  13,   // 400  muted        — footer hints, timestamps
+        badge:    12,   // 700  teal/crimson  — "ACTIVE" / danger labels
+        input:    18,   // 500  softWhite    — text inside input fields
+        button:   18,   // 600  softWhite    — action button labels
+        scroll:   18,   // 600  gold@70%     — ▲ ▼ scroll glyphs
       },
-      canvasUtilityPanels: {
-        title: 30,
-        hint: 14,
-        rowTitle: 24,
-        rowMeta: 14,
-        scrollGlyph: 18,
+
+      // ─── Aliases (back-compat — existing code keeps working) ─────────────
+      get canvasTitleMenu() {
+        const u = UIStyles.typography.utilityPanel;
+        return {
+          saveHeader:       u.h1,
+          saveAccountMeta:  u.caption,
+          saveRowTitle:     u.h2,
+          saveRowMeta:      u.body,
+          saveActiveBadge:  u.badge,
+          saveScrollGlyph:  u.scroll,
+          saveActionButton: u.button,
+          saveFooterHint:   u.caption,
+          classTitle:       u.h1,
+          classHint:        u.caption,
+          classRowTitle:    u.h2,
+          classRowMeta:     u.body,
+          classScrollGlyph: u.scroll,
+          mainButtonLabel:  42,
+        };
+      },
+      get canvasUtilityPanels() {
+        const u = UIStyles.typography.utilityPanel;
+        return {
+          title:       u.h1,
+          hint:        u.caption,
+          rowTitle:    u.h3,
+          rowMeta:     u.body,
+          scrollGlyph: u.scroll,
+        };
       },
       playingInstructions: {
         loading: 14,
