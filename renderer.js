@@ -8918,6 +8918,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   }
 
   function drawMissionBriefInArena() {
+    return;
     if (typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode) return;
     const {
       ctx,
