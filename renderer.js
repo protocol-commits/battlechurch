@@ -9553,8 +9553,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       titleDemoSaveMenuActive,
       titleClassMenuActive,
       titleUtilityPanelMode,
-      titleEditSaveDraft,
-      titleNewSaveDraft,
       titleDemoSaveSlots,
       titleCloudSaveLoading,
       titleCloudSaveRows,
@@ -9640,60 +9638,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "resetGoogleSave", label: "Reset Save Progress", meta: "Wipe progress and start fresh", danger: true },
         { key: "deleteCloudSave", label: "Delete Save", meta: "Permanently remove this save file", danger: true },
         { key: "utilityPanelClose", label: "Close", meta: "Return to save list" },
-      ];
-    } else if (titleUtilityPanelMode === "editSave") {
-      const draft = titleEditSaveDraft || {};
-      const classId = String(draft.classId || "");
-      const classTitle =
-        String(window.BattlechurchClassConfig?.byId?.[classId]?.classTitle || classId || "Class");
-      const editingField = String(draft.editingField || "");
-      const editingPlayer = editingField === "playerName";
-      const editingCity = editingField === "cityName";
-      const playerValue = String(draft.playerName || "Pastor");
-      const cityValue = String(draft.cityName || "(None)");
-      buttonConfigs = [
-        {
-          key: "editSavePlayerName",
-          label: `Pastor Name: ${playerValue}${editingPlayer ? " |" : ""}`,
-          meta: editingPlayer ? "Typing... Enter save / Esc cancel / Backspace delete" : "Press Space to edit text",
-        },
-        {
-          key: "editSaveCity",
-          label: `City: ${cityValue}${editingCity ? " |" : ""}`,
-          meta: editingCity ? "Typing... Enter save / Esc cancel / Backspace delete" : "Press Space to edit text",
-        },
-        { key: "editSaveClass", label: `Denomination: ${classTitle}`, meta: "Use A/D or Space to cycle" },
-        { key: "editSaveApply", label: "Apply Changes", meta: "Save metadata updates" },
-        { key: "editSaveCancel", label: "Cancel", meta: "Discard and return to Save Options" },
-      ];
-    } else if (titleUtilityPanelMode === "newSave") {
-      const draft = titleNewSaveDraft || {};
-      const classId = String(draft.classId || "");
-      const classTitle =
-        String(window.BattlechurchClassConfig?.byId?.[classId]?.classTitle || classId || "Class");
-      const editingField = String(draft.editingField || "");
-      const editingPlayer = editingField === "playerName";
-      const editingCity = editingField === "cityName";
-      const playerValue = String(draft.playerName || "");
-      const cityValue = String(draft.cityName || "");
-      buttonConfigs = [
-        {
-          key: "newSavePlayerName",
-          label: playerValue,
-          meta: editingPlayer ? "Typing... Enter confirm / Esc cancel / Backspace delete" : "Press Space to type",
-          isEditing: editingPlayer,
-          placeholder: "Your pastor's name",
-        },
-        {
-          key: "newSaveCity",
-          label: cityValue,
-          meta: editingCity ? "Typing... Enter confirm / Esc cancel / Backspace delete" : "Press Space to type",
-          isEditing: editingCity,
-          placeholder: "Your city (optional)",
-        },
-        { key: "newSaveClass", label: classTitle, meta: "A/D or Space to cycle" },
-        { key: "newSaveCreate", label: "Create Save" },
-        { key: "newSaveCancel", label: "Cancel" },
       ];
     } else if (titleUtilityPanelMode === "settings") {
       const audioSettings = (typeof window !== "undefined" && window.audioSettings) ? window.audioSettings : {};
@@ -9973,7 +9917,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.lineTo(panelX + panelW - (dividerStyle.insetX ?? 24), effectiveDividerY);
       ctx.stroke();
 
-      if (utilityType === "editSave" || utilityType === "newSave") {
+      if (false) {
         // ── Shared form layout for editSave / newSave ──────────────────────
         const isNewSave = utilityType === "newSave";
         const draft = isNewSave ? (titleNewSaveDraft || {}) : (titleEditSaveDraft || {});

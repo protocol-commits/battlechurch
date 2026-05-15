@@ -9281,81 +9281,69 @@ async function showTitleSavePickerOverlay() {
   return true;
 }
 
-function showNewCloudSaveDialog() {
-  if (!window.DialogOverlay?.show) return false;
-  const classOptions = getSortedClassMenuEntries(classEntries);
-  const defaultSaveName = `Save ${Math.max(1, (titleCloudSaveRows?.length || 0) + 1)}`;
-  const activeClassIdForDefault = classOptions[0]?.id || "class9";
-  const optionsHtml = classOptions
+function _buildSaveFormOptionsHtml(classOptions, selectedId) {
+  return classOptions
     .map((entry) => {
       const id = String(entry?.id || "");
       const title = String(entry?.classTitle || id || "Class");
       const desc = String(window.BattlechurchClassConfig?.byId?.[id]?.classDescription || "");
       const label = desc ? `${title}  —  ${desc}` : title;
-      const selected = id === activeClassIdForDefault ? " selected" : "";
+      const selected = id === selectedId ? " selected" : "";
       return `<option value="${id}"${selected}>${label}</option>`;
     })
     .join("");
+}
+
+function showNewCloudSaveDialog() {
+  if (!window.DialogOverlay?.show) return false;
+  const classOptions = getSortedClassMenuEntries(classEntries);
+  const defaultClassId = String(classOptions[0]?.id || "");
+  const optionsHtml = _buildSaveFormOptionsHtml(classOptions, defaultClassId);
   window.DialogOverlay.show({
-    title: "Create New Save",
+    title: "New Save",
     buttonText: "",
-    variant: "settings",
+    variant: "save-form",
     bodyHtml: `
-      <div class="settings-panel">
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Pastor Name</span>
-          <input id="newSavePlayerName" type="text" value="" placeholder="Your pastor's name" class="save-dialog__input" />
+      <div class="save-form">
+        <p class="save-form__eyebrow">NEW SAVE FILE</p>
+        <div class="save-form__field">
+          <label class="save-form__label" for="sf-playerName">Pastor Name</label>
+          <input id="sf-playerName" class="save-form__input" type="text" placeholder="Your pastor's name" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">City</span>
-          <input id="newSaveCityName" type="text" value="" placeholder="Your city" class="save-dialog__input" />
+        <div class="save-form__field">
+          <label class="save-form__label" for="sf-cityName">City</label>
+          <input id="sf-cityName" class="save-form__input" type="text" placeholder="Your city (optional)" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Denomination</span>
-          <select id="newSaveClassId" class="save-dialog__input">${optionsHtml}</select>
+        <div class="save-form__field">
+          <label class="save-form__label" for="sf-classId">Denomination</label>
+          <select id="sf-classId" class="save-form__input">${optionsHtml}</select>
         </div>
-        <div class="save-dialog__actions">
-          <button type="button" id="newSaveCancelBtn" class="save-dialog__btn-cancel">Cancel</button>
-          <button type="button" id="newSaveCreateBtn" class="save-dialog__btn-primary">Create Save</button>
+        <p class="save-form__hint">Tab · next field &nbsp;·&nbsp; Enter · confirm</p>
+        <div class="save-form__actions">
+          <button type="button" id="sf-cancel" class="save-form__btn save-form__btn--cancel">Cancel</button>
+          <button type="button" id="sf-submit" class="save-form__btn save-form__btn--primary">Create Save</button>
         </div>
       </div>
     `,
     onRender: ({ bodyEl }) => {
-      const playerNameInput = bodyEl?.querySelector("#newSavePlayerName");
-      const cityNameInput = bodyEl?.querySelector("#newSaveCityName");
-      const classSelect = bodyEl?.querySelector("#newSaveClassId");
-      const cancelBtn = bodyEl?.querySelector("#newSaveCancelBtn");
-      const createBtn = bodyEl?.querySelector("#newSaveCreateBtn");
-      if (playerNameInput) {
-        setTimeout(() => {
-          try {
-            playerNameInput.focus();
-          } catch (_e) {}
-        }, 0);
-      }
-      cancelBtn?.addEventListener("click", () => {
-        window.DialogOverlay?.hide?.();
-      });
-      createBtn?.addEventListener("click", () => {
-        const playerName = String(playerNameInput?.value || "").trim();
-        const cityName = String(cityNameInput?.value || "").trim();
-        const classId = String(classSelect?.value || "").trim();
-        if (!playerName || !classId) {
-          if (typeof setDevStatus === "function") {
-            setDevStatus("Please enter a Pastor Name and choose a Denomination.", 2.5);
-          }
-          return;
-        }
+      const nameInput  = bodyEl?.querySelector("#sf-playerName");
+      const cityInput  = bodyEl?.querySelector("#sf-cityName");
+      const classInput = bodyEl?.querySelector("#sf-classId");
+      const cancelBtn  = bodyEl?.querySelector("#sf-cancel");
+      const submitBtn  = bodyEl?.querySelector("#sf-submit");
+      setTimeout(() => { try { nameInput?.focus(); } catch (_e) {} }, 60);
+      cancelBtn?.addEventListener("click", () => window.DialogOverlay?.hide?.());
+      const doSubmit = () => {
+        const playerName = String(nameInput?.value || "").trim();
+        const cityName   = String(cityInput?.value  || "").trim();
+        const classId    = String(classInput?.value || "").trim();
+        if (!playerName) { nameInput?.focus(); return; }
         window.DialogOverlay?.hide?.();
         void (async () => {
           try {
             if (typeof window.MapScreen?.createSaveFile === "function") {
               const newId = await window.MapScreen.createSaveFile({
-                saveName: playerName,
-                playerName,
-                cityName,
-                classId,
-                setActive: true,
+                saveName: playerName, playerName, cityName, classId, setActive: true,
               });
               if (newId) titleCloudSelectedSaveId = newId;
             }
@@ -9365,6 +9353,10 @@ function showNewCloudSaveDialog() {
             await refreshTitleCloudSaveOption();
           } catch (_e) {}
         })();
+      };
+      submitBtn?.addEventListener("click", doSubmit);
+      bodyEl?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target?.tagName !== "BUTTON") { e.preventDefault(); doSubmit(); }
       });
     },
   });
@@ -9382,236 +9374,69 @@ function showEditCloudSaveDialog(saveId) {
     String(window.BattlechurchClasses?.getActiveId?.() || "").trim() ||
     String(window.BattlechurchClassConfig?.defaultClassId || "").trim() ||
     "class1";
-  const optionsHtml = classOptions
-    .map((entry) => {
-      const id = String(entry?.id || "");
-      const title = String(entry?.classTitle || id || "Class");
-      const desc = String(window.BattlechurchClassConfig?.byId?.[id]?.classDescription || "");
-      const label = desc ? `${title}  —  ${desc}` : title;
-      const selected = id === currentClassId ? " selected" : "";
-      return `<option value="${id}"${selected}>${label}</option>`;
-    })
-    .join("");
-  const currentSaveName = String(details.saveName || row.label || "").trim() || "Save";
   const currentPlayerName = String(details.playerName || "Pastor").trim() || "Pastor";
-  const currentCityName = String(details.cityName || "").trim();
+  const currentCityName   = String(details.cityName || "").trim();
+  const optionsHtml = _buildSaveFormOptionsHtml(classOptions, currentClassId);
+  const esc = (v) => String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   window.DialogOverlay.show({
     title: "Edit Save",
     buttonText: "",
-    variant: "settings",
+    variant: "save-form",
     bodyHtml: `
-      <div class="settings-panel">
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Pastor Name</span>
-          <input id="editSavePlayerName" type="text" value="${escapeHtml(currentPlayerName)}" class="save-dialog__input" />
+      <div class="save-form">
+        <p class="save-form__eyebrow">EDIT SAVE FILE</p>
+        <div class="save-form__field">
+          <label class="save-form__label" for="ef-playerName">Pastor Name</label>
+          <input id="ef-playerName" class="save-form__input" type="text" value="${esc(currentPlayerName)}" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">City</span>
-          <input id="editSaveCityName" type="text" value="${escapeHtml(currentCityName)}" class="save-dialog__input" />
+        <div class="save-form__field">
+          <label class="save-form__label" for="ef-cityName">City</label>
+          <input id="ef-cityName" class="save-form__input" type="text" value="${esc(currentCityName)}" placeholder="Your city (optional)" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-dialog__field">
-          <span class="save-dialog__label">Denomination</span>
-          <select id="editSaveClassId" class="save-dialog__input">${optionsHtml}</select>
+        <div class="save-form__field">
+          <label class="save-form__label" for="ef-classId">Denomination</label>
+          <select id="ef-classId" class="save-form__input">${optionsHtml}</select>
         </div>
-        <div class="save-dialog__hint">Press Tab to move between fields — W/S navigate buttons</div>
-        <div class="save-dialog__actions">
-          <button type="button" id="editSaveCancelBtn" class="save-dialog__btn-cancel">Cancel</button>
-          <button type="button" id="editSaveApplyBtn" class="save-dialog__btn-primary">Apply Changes</button>
+        <p class="save-form__hint">Tab · next field &nbsp;·&nbsp; Enter · confirm</p>
+        <div class="save-form__actions">
+          <button type="button" id="ef-cancel" class="save-form__btn save-form__btn--cancel">Cancel</button>
+          <button type="button" id="ef-submit" class="save-form__btn save-form__btn--primary">Apply Changes</button>
         </div>
       </div>
     `,
     onRender: ({ bodyEl }) => {
-      const playerNameInput = bodyEl?.querySelector("#editSavePlayerName");
-      const cityNameInput = bodyEl?.querySelector("#editSaveCityName");
-      const classSelect = bodyEl?.querySelector("#editSaveClassId");
-      const cancelBtn = bodyEl?.querySelector("#editSaveCancelBtn");
-      const applyBtn = bodyEl?.querySelector("#editSaveApplyBtn");
-      cancelBtn?.addEventListener("click", () => {
-        window.DialogOverlay?.hide?.();
-      });
-      applyBtn?.addEventListener("click", () => {
-        const playerName = String(playerNameInput?.value || "").trim();
-        const cityName = String(cityNameInput?.value || "").trim();
-        const classId = String(classSelect?.value || "").trim();
-        if (!playerName || !classId) {
-          if (typeof setDevStatus === "function") {
-            setDevStatus("Pastor Name and Denomination are required.", 2.5);
-          }
-          return;
-        }
+      const nameInput  = bodyEl?.querySelector("#ef-playerName");
+      const cityInput  = bodyEl?.querySelector("#ef-cityName");
+      const classInput = bodyEl?.querySelector("#ef-classId");
+      const cancelBtn  = bodyEl?.querySelector("#ef-cancel");
+      const submitBtn  = bodyEl?.querySelector("#ef-submit");
+      setTimeout(() => { try { nameInput?.focus(); } catch (_e) {} }, 60);
+      cancelBtn?.addEventListener("click", () => window.DialogOverlay?.hide?.());
+      const doSubmit = () => {
+        const playerName = String(nameInput?.value  || "").trim();
+        const cityName   = String(cityInput?.value  || "").trim();
+        const classId    = String(classInput?.value || "").trim();
+        if (!playerName) { nameInput?.focus(); return; }
         window.DialogOverlay?.hide?.();
         void (async () => {
           try {
             if (typeof window.MapScreen?.updateSaveFileMetadata === "function") {
               await window.MapScreen.updateSaveFileMetadata(saveId, {
-                saveName: playerName,
-                playerName,
-                cityName,
-                classId,
+                saveName: playerName, playerName, cityName, classId,
               });
             }
             await refreshTitleCloudSaveOption();
             titleCloudSelectedSaveId = saveId;
           } catch (_e) {}
         })();
+      };
+      submitBtn?.addEventListener("click", doSubmit);
+      bodyEl?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target?.tagName !== "BUTTON") { e.preventDefault(); doSubmit(); }
       });
     },
   });
   return true;
-}
-
-function openCanvasEditSavePanel(saveId) {
-  const row = titleCloudSaveRows.find((entry) => entry.id === saveId) || null;
-  if (!row) return false;
-  const details = row.details || {};
-  const currentClassId =
-    String(details.classId || "").trim() ||
-    String(window.BattlechurchClasses?.getActiveId?.() || "").trim() ||
-    String(window.BattlechurchClassConfig?.defaultClassId || "").trim() ||
-    "class1";
-  const currentPlayerName = String(details.playerName || "Pastor").trim() || "Pastor";
-  const currentCityName = String(details.cityName || "").trim();
-  titleEditSaveDraft = {
-    saveId,
-    saveName: currentPlayerName,
-    playerName: currentPlayerName,
-    cityName: currentCityName,
-    classId: currentClassId,
-    editingField: null,
-  };
-  try {
-    const activeEl = typeof document !== "undefined" ? document.activeElement : null;
-    if (
-      activeEl &&
-      (activeEl.tagName === "INPUT" ||
-        activeEl.tagName === "TEXTAREA" ||
-        activeEl.tagName === "SELECT" ||
-        activeEl.isContentEditable) &&
-      typeof activeEl.blur === "function"
-    ) {
-      activeEl.blur();
-    }
-  } catch (_e) {}
-  if (typeof window !== "undefined") {
-    window.__announcementFocus = { key: "title", index: 0 };
-    window.__announcementFocusedButtonKey = "editSavePlayerName";
-  }
-  titleUtilityPanelMode = "editSave";
-  return true;
-}
-
-function openCanvasNewSavePanel() {
-  const classOptions = getSortedClassMenuEntries(classEntries);
-  const defaultClassId = String(classOptions[0]?.id || "class9");
-  titleNewSaveDraft = {
-    playerName: "",
-    cityName: "",
-    classId: defaultClassId,
-    editingField: "playerName",  // auto-activate name field on open
-  };
-  try {
-    const activeEl = typeof document !== "undefined" ? document.activeElement : null;
-    if (
-      activeEl &&
-      (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" ||
-        activeEl.tagName === "SELECT" || activeEl.isContentEditable) &&
-      typeof activeEl.blur === "function"
-    ) {
-      activeEl.blur();
-    }
-  } catch (_e) {}
-  if (typeof window !== "undefined") {
-    window.__announcementFocus = { key: "title", index: 0 };
-    window.__announcementFocusedButtonKey = "newSavePlayerName";
-  }
-  titleUtilityPanelMode = "newSave";
-  return true;
-}
-
-function applyTitleNewSaveTypingKey(rawKey) {
-  if (titleUtilityPanelMode !== "newSave" || !titleNewSaveDraft) return false;
-  const editingField = String(titleNewSaveDraft.editingField || "");
-  if (!editingField || (editingField !== "playerName" && editingField !== "cityName")) return false;
-  const key = String(rawKey || "");
-  if (!key) return false;
-  if (key === "escape" || key === "Escape") {
-    titleNewSaveDraft.editingField = null;
-    return true;
-  }
-  if (key === "enter" || key === "Enter") {
-    titleNewSaveDraft.editingField = null;
-    if (editingField === "playerName") {
-      const trimmed = String(titleNewSaveDraft.playerName || "").trim();
-      titleNewSaveDraft.playerName = trimmed;
-    } else if (editingField === "cityName") {
-      titleNewSaveDraft.cityName = String(titleNewSaveDraft.cityName || "").trim();
-    }
-    return true;
-  }
-  if (key === "backspace" || key === "Backspace") {
-    const current = String(titleNewSaveDraft[editingField] || "");
-    titleNewSaveDraft[editingField] = current.slice(0, Math.max(0, current.length - 1));
-    return true;
-  }
-  if (key.length === 1) {
-    if (!/[a-z0-9 .,'-]/i.test(key)) return false;
-    const maxLen =
-      editingField === "playerName"
-        ? Number(TITLE_EDIT_SAVE_FIELD_LIMITS.playerName) || 24
-        : Number(TITLE_EDIT_SAVE_FIELD_LIMITS.cityName) || 24;
-    const current = String(titleNewSaveDraft[editingField] || "");
-    if (current.length >= maxLen) return true;
-    const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
-    const nextChar = modifiers?.shift ? key.toUpperCase() : key;
-    titleNewSaveDraft[editingField] = current + nextChar;
-    return true;
-  }
-  return false;
-}
-
-function applyTitleEditSaveTypingKey(rawKey) {
-  if (titleUtilityPanelMode !== "editSave" || !titleEditSaveDraft) return false;
-  const editingField = String(titleEditSaveDraft.editingField || "");
-  if (!editingField || (editingField !== "playerName" && editingField !== "cityName")) return false;
-  const key = String(rawKey || "");
-  if (!key) return false;
-  if (key === "escape" || key === "Escape") {
-    titleEditSaveDraft.editingField = null;
-    return true;
-  }
-  if (key === "enter" || key === "Enter") {
-    titleEditSaveDraft.editingField = null;
-    if (editingField === "playerName") {
-      const trimmed = String(titleEditSaveDraft.playerName || "").trim();
-      titleEditSaveDraft.playerName = trimmed || "Pastor";
-      titleEditSaveDraft.saveName = titleEditSaveDraft.playerName;
-    } else if (editingField === "cityName") {
-      titleEditSaveDraft.cityName = String(titleEditSaveDraft.cityName || "").trim();
-    }
-    return true;
-  }
-  if (key === "backspace" || key === "Backspace") {
-    const current = String(titleEditSaveDraft[editingField] || "");
-    titleEditSaveDraft[editingField] = current.slice(0, Math.max(0, current.length - 1));
-    return true;
-  }
-  if (key.length === 1) {
-    if (!/[a-z0-9 .,'-]/i.test(key)) return false;
-    const maxLen =
-      editingField === "playerName"
-        ? Number(TITLE_EDIT_SAVE_FIELD_LIMITS.playerName) || 24
-        : Number(TITLE_EDIT_SAVE_FIELD_LIMITS.cityName) || 24;
-    const current = String(titleEditSaveDraft[editingField] || "");
-    if (current.length >= maxLen) return true;
-    const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
-    const nextChar = modifiers?.shift ? key.toUpperCase() : key;
-    titleEditSaveDraft[editingField] = current + nextChar;
-    if (editingField === "playerName") {
-      titleEditSaveDraft.saveName = titleEditSaveDraft.playerName;
-    }
-    return true;
-  }
-  return false;
 }
 
 function showCloudSaveDetailsDialog(saveId) {
@@ -21214,114 +21039,6 @@ function handleTitleScreen() {
       }
       return false;
     };
-    const cycleEditSaveClass = (delta) => {
-      if (titleUtilityPanelMode !== "editSave" || !titleEditSaveDraft) return false;
-      const classOptions = getSortedClassMenuEntries(classEntries);
-      if (!classOptions.length) return false;
-      const currentId = String(titleEditSaveDraft.classId || "");
-      const currentIdx = Math.max(0, classOptions.findIndex((entry) => String(entry?.id || "") === currentId));
-      const nextIdx = (currentIdx + (delta > 0 ? 1 : -1) + classOptions.length) % classOptions.length;
-      titleEditSaveDraft.classId = String(classOptions[nextIdx]?.id || titleEditSaveDraft.classId || "");
-      return true;
-    };
-    const cycleNewSaveClass = (delta) => {
-      if (titleUtilityPanelMode !== "newSave" || !titleNewSaveDraft) return false;
-      const classOptions = getSortedClassMenuEntries(classEntries);
-      if (!classOptions.length) return false;
-      const currentId = String(titleNewSaveDraft.classId || "");
-      const currentIdx = Math.max(0, classOptions.findIndex((entry) => String(entry?.id || "") === currentId));
-      const nextIdx = (currentIdx + (delta > 0 ? 1 : -1) + classOptions.length) % classOptions.length;
-      titleNewSaveDraft.classId = String(classOptions[nextIdx]?.id || titleNewSaveDraft.classId || "");
-      return true;
-    };
-    const editFieldActive =
-      titleUtilityPanelMode === "editSave" &&
-      titleEditSaveDraft &&
-      (titleEditSaveDraft.editingField === "playerName" || titleEditSaveDraft.editingField === "cityName");
-    const newSaveFieldActive =
-      titleUtilityPanelMode === "newSave" &&
-      titleNewSaveDraft &&
-      (titleNewSaveDraft.editingField === "playerName" || titleNewSaveDraft.editingField === "cityName");
-    // Tab navigation for editSave
-    if (titleUtilityPanelMode === "editSave" && (keysJustPressed.has("Tab") || keysJustPressed.has("tab"))) {
-      keysJustPressed.delete("Tab");
-      keysJustPressed.delete("tab");
-      const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
-      const reverse = Boolean(modifiers?.shift);
-      const editOrder = ["editSavePlayerName", "editSaveCity", "editSaveClass", "editSaveApply", "editSaveCancel"];
-      const focusedKey = getFocusedTitleRowKey();
-      const currentIndex = Math.max(0, editOrder.indexOf(focusedKey));
-      const nextIndex = reverse
-        ? (currentIndex - 1 + editOrder.length) % editOrder.length
-        : (currentIndex + 1) % editOrder.length;
-      const nextKey = editOrder[nextIndex];
-      setTitleFocusByButtonKey(nextKey);
-      // Auto-activate text fields on Tab; clear editingField for non-text rows
-      if (titleEditSaveDraft) {
-        if (nextKey === "editSavePlayerName") titleEditSaveDraft.editingField = "playerName";
-        else if (nextKey === "editSaveCity") titleEditSaveDraft.editingField = "cityName";
-        else titleEditSaveDraft.editingField = null;
-      }
-      return true;
-    }
-    // Tab navigation for newSave
-    if (titleUtilityPanelMode === "newSave" && (keysJustPressed.has("Tab") || keysJustPressed.has("tab"))) {
-      keysJustPressed.delete("Tab");
-      keysJustPressed.delete("tab");
-      const modifiers = typeof Input !== "undefined" ? Input.modifiers : null;
-      const reverse = Boolean(modifiers?.shift);
-      const newSaveOrder = ["newSavePlayerName", "newSaveCity", "newSaveClass", "newSaveCreate", "newSaveCancel"];
-      const focusedKey = getFocusedTitleRowKey();
-      const currentIndex = Math.max(0, newSaveOrder.indexOf(focusedKey));
-      const nextIndex = reverse
-        ? (currentIndex - 1 + newSaveOrder.length) % newSaveOrder.length
-        : (currentIndex + 1) % newSaveOrder.length;
-      const nextKey = newSaveOrder[nextIndex];
-      setTitleFocusByButtonKey(nextKey);
-      // Auto-activate text fields on Tab; clear editingField for non-text rows
-      if (titleNewSaveDraft) {
-        if (nextKey === "newSavePlayerName") titleNewSaveDraft.editingField = "playerName";
-        else if (nextKey === "newSaveCity") titleNewSaveDraft.editingField = "cityName";
-        else titleNewSaveDraft.editingField = null;
-      }
-      return true;
-    }
-    if (editFieldActive) {
-      const pressedKeys = Array.from(keysJustPressed);
-      for (const key of pressedKeys) {
-        if (applyTitleEditSaveTypingKey(key)) {
-          keysJustPressed.delete(key);
-        }
-      }
-      [
-        "w", "a", "s", "d",
-        "arrowup", "arrowdown", "arrowleft", "arrowright",
-        "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
-        " ", "enter", "Enter",
-      ].forEach((k) => keysJustPressed.delete(k));
-      const stillEditing =
-        titleEditSaveDraft &&
-        (titleEditSaveDraft.editingField === "playerName" || titleEditSaveDraft.editingField === "cityName");
-      if (stillEditing) return true;
-    }
-    if (newSaveFieldActive) {
-      const pressedKeys = Array.from(keysJustPressed);
-      for (const key of pressedKeys) {
-        if (applyTitleNewSaveTypingKey(key)) {
-          keysJustPressed.delete(key);
-        }
-      }
-      [
-        "w", "a", "s", "d",
-        "arrowup", "arrowdown", "arrowleft", "arrowright",
-        "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
-        " ", "enter", "Enter",
-      ].forEach((k) => keysJustPressed.delete(k));
-      const stillEditing =
-        titleNewSaveDraft &&
-        (titleNewSaveDraft.editingField === "playerName" || titleNewSaveDraft.editingField === "cityName");
-      if (stillEditing) return true;
-    }
     if (titleUtilityPanelMode === "settings") {
       const sliderStep = 0.05;
       if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
@@ -21331,50 +21048,6 @@ function handleTitleScreen() {
         if (adjustCanvasSettingByFocusedKey(sliderStep)) return true;
       }
     }
-    if (titleUtilityPanelMode === "editSave") {
-      if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
-        const focusedKey = getFocusedTitleRowKey();
-        if (focusedKey === "editSaveClass" && cycleEditSaveClass(-1)) return true;
-      }
-      if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
-        const focusedKey = getFocusedTitleRowKey();
-        if (focusedKey === "editSaveClass" && cycleEditSaveClass(1)) return true;
-      }
-    }
-    if (titleUtilityPanelMode === "newSave") {
-      if (keysJustPressed.has("ArrowLeft") || keysJustPressed.has("a") || keysJustPressed.has("A")) {
-        const focusedKey = getFocusedTitleRowKey();
-        if (focusedKey === "newSaveClass" && cycleNewSaveClass(-1)) return true;
-      }
-      if (keysJustPressed.has("ArrowRight") || keysJustPressed.has("d") || keysJustPressed.has("D")) {
-        const focusedKey = getFocusedTitleRowKey();
-        if (focusedKey === "newSaveClass" && cycleNewSaveClass(1)) return true;
-      }
-    }
-    // Esc closes editSave / newSave panels when not actively typing
-    if (
-      (titleUtilityPanelMode === "editSave" || titleUtilityPanelMode === "newSave") &&
-      (keysJustPressed.has("Escape") || keysJustPressed.has("escape"))
-    ) {
-      keysJustPressed.delete("Escape");
-      keysJustPressed.delete("escape");
-      if (titleUtilityPanelMode === "editSave") {
-        titleUtilityPanelMode = "more";
-        titleEditSaveDraft = null;
-      } else {
-        titleUtilityPanelMode = null;
-        titleNewSaveDraft = null;
-      }
-      if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
-        window.playMenuAdvanceSfx(0.55);
-      }
-      return true;
-    }
-    const escapeHtml = (value) =>
-      String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;");
     const handled = handleAnnouncementButtons({
       key: "title",
       buttons,
@@ -21382,7 +21055,7 @@ function handleTitleScreen() {
       resolveFocusIndex: ({ buttons, focusIndex, direction }) => {
         if (!Array.isArray(buttons) || buttons.length === 0) return focusIndex;
         if (!titleDemoSaveMenuActive) {
-          if (titleUtilityPanelMode === "settings" || titleUtilityPanelMode === "editSave" || titleUtilityPanelMode === "newSave") {
+          if (titleUtilityPanelMode === "settings") {
             const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
             return (focusIndex + linearDirection + buttons.length) % buttons.length;
           }
@@ -21394,7 +21067,7 @@ function handleTitleScreen() {
           return (focusIndex + linearDirection + buttons.length) % buttons.length;
         }
         const current = buttons[focusIndex] || null;
-        if (titleUtilityPanelMode === "more" || titleUtilityPanelMode === "newSave") {
+        if (titleUtilityPanelMode === "more") {
           const linearDirection = direction === "left" || direction === "up" ? -1 : 1;
           return (focusIndex + linearDirection + buttons.length) % buttons.length;
         }
@@ -21492,8 +21165,6 @@ function handleTitleScreen() {
           setDemoSandboxRunActive(false);
           titleDemoSaveMenuActive = true;
           titleUtilityPanelMode = null;
-          titleEditSaveDraft = null;
-          titleNewSaveDraft = null;
           if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
             window.playMenuItemPickSfx(0.55);
           }
@@ -21502,16 +21173,7 @@ function handleTitleScreen() {
         }
         if (button.key === "back") {
           if (titleUtilityPanelMode) {
-            if (titleUtilityPanelMode === "editSave") {
-              titleUtilityPanelMode = "more";
-              titleEditSaveDraft = null;
-            } else if (titleUtilityPanelMode === "newSave") {
-              titleUtilityPanelMode = null;
-              titleNewSaveDraft = null;
-            } else {
-              titleUtilityPanelMode = null;
-              titleEditSaveDraft = null;
-            }
+            titleUtilityPanelMode = null;
             if (typeof window !== "undefined" && typeof window.playMenuAdvanceSfx === "function") {
               window.playMenuAdvanceSfx(0.55);
             }
@@ -21655,8 +21317,7 @@ function handleTitleScreen() {
           return;
         }
         if (button.key === "newCloudSave") {
-          titleEditSaveDraft = null;
-          openCanvasNewSavePanel();
+          showNewCloudSaveDialog();
           return;
         }
         if (String(button.key || "").startsWith("cloudrowmore:")) {
@@ -21709,109 +21370,9 @@ function handleTitleScreen() {
         }
         if (button.key === "editCloudSave") {
           const saveId = resolveCloudTargetSaveId();
-          if (saveId) openCanvasEditSavePanel(saveId);
+          if (saveId) showEditCloudSaveDialog(saveId);
           return;
         }
-        if (button.key === "editSavePlayerName") {
-          if (!titleEditSaveDraft) return;
-          titleEditSaveDraft.editingField = "playerName";
-          return;
-        }
-        if (button.key === "editSaveCity") {
-          if (!titleEditSaveDraft) return;
-          titleEditSaveDraft.editingField = "cityName";
-          return;
-        }
-        if (button.key === "editSaveClass") {
-          cycleEditSaveClass(1);
-          return;
-        }
-        if (button.key === "editSaveApply") {
-          if (!titleEditSaveDraft?.saveId) return;
-          const draft = { ...titleEditSaveDraft };
-          if (!String(draft.playerName || "").trim() || !String(draft.classId || "").trim()) {
-            if (typeof setDevStatus === "function") {
-              setDevStatus("Pastor Name and Denomination are required.", 2.5);
-            }
-            return;
-          }
-          void (async () => {
-            try {
-              if (typeof window.MapScreen?.updateSaveFileMetadata === "function") {
-                await window.MapScreen.updateSaveFileMetadata(draft.saveId, {
-                  saveName: draft.playerName,
-                  playerName: draft.playerName,
-                  cityName: draft.cityName,
-                  classId: draft.classId,
-                });
-              }
-              await refreshTitleCloudSaveOption();
-              titleCloudSelectedSaveId = draft.saveId;
-            } catch (_e) {}
-          })();
-          titleUtilityPanelMode = "more";
-          titleEditSaveDraft = null;
-          return;
-        }
-        if (button.key === "editSaveCancel") {
-          titleUtilityPanelMode = "more";
-          titleEditSaveDraft = null;
-          return;
-        }
-        if (button.key === "newSavePlayerName") {
-          if (!titleNewSaveDraft) return;
-          titleNewSaveDraft.editingField = "playerName";
-          return;
-        }
-        if (button.key === "newSaveCity") {
-          if (!titleNewSaveDraft) return;
-          titleNewSaveDraft.editingField = "cityName";
-          return;
-        }
-        if (button.key === "newSaveClass") {
-          cycleNewSaveClass(1);
-          return;
-        }
-        if (button.key === "newSaveCreate") {
-          if (!titleNewSaveDraft) return;
-          const draft = { ...titleNewSaveDraft };
-          const playerName = String(draft.playerName || "").trim();
-          const cityName = String(draft.cityName || "").trim();
-          const classId = String(draft.classId || "").trim();
-          if (!playerName || !classId) {
-            if (typeof setDevStatus === "function") {
-              setDevStatus("Please enter a Pastor Name and choose a Denomination.", 2.5);
-            }
-            return;
-          }
-          titleUtilityPanelMode = null;
-          titleNewSaveDraft = null;
-          void (async () => {
-            try {
-              if (typeof window.MapScreen?.createSaveFile === "function") {
-                const newId = await window.MapScreen.createSaveFile({
-                  saveName: playerName,
-                  playerName,
-                  cityName,
-                  classId,
-                  setActive: true,
-                });
-                if (newId) titleCloudSelectedSaveId = newId;
-              }
-              if (typeof window.BattlechurchClasses?.setActive === "function") {
-                window.BattlechurchClasses.setActive(classId);
-              }
-              await refreshTitleCloudSaveOption();
-            } catch (_e) {}
-          })();
-          return;
-        }
-        if (button.key === "newSaveCancel") {
-          titleUtilityPanelMode = null;
-          titleNewSaveDraft = null;
-          return;
-        }
-
         if (button.key === "renameCloudSave") {
           titleUtilityPanelMode = null;
           titleEditSaveDraft = null;
