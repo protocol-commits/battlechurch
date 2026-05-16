@@ -1903,11 +1903,19 @@
     }
   }
 
+  const BETA_MAX_DISTRICT_ID = "red_creek";
+
   function ensureNextDistrictUnlocked(progress, mapData) {
     if (!progress || !mapData) return;
     const allDistricts = mapData.districts || [];
     const regularDistricts = allDistricts.filter((t) => t.type !== "capital");
     const unlockIds = new Set(progress.unlockedDistrictIds || []);
+
+    // In beta (non-dev), cap unlocks at BETA_MAX_DISTRICT_ID
+    const isBeta = typeof window !== "undefined" && !window.IS_DEV;
+    const betaMaxIndex = isBeta
+      ? regularDistricts.findIndex((t) => t.id === BETA_MAX_DISTRICT_ID)
+      : -1;
 
     // First district is always unlocked
     const firstDistrictId = mapData.getFirstDistrictId ? mapData.getFirstDistrictId() : mapData.getFirstTownId();
@@ -1915,7 +1923,8 @@
 
     // For each P1-completed regular town, unlock the next regular town in sequence
     let allRegularP1Done = regularDistricts.length > 0;
-    for (const district of regularDistricts) {
+    for (let i = 0; i < regularDistricts.length; i++) {
+      const district = regularDistricts[i];
       const p1Done = progress.districts[district.id]?.p1?.completed === true;
       if (!p1Done) {
         allRegularP1Done = false;
@@ -1924,12 +1933,17 @@
       const nextId = getNextDistrictInOrder(district.id);
       if (nextId) {
         const nextDistrict = allDistricts.find((t) => t.id === nextId);
-        if (nextDistrict && nextDistrict.type !== "capital") unlockIds.add(nextId);
+        if (nextDistrict && nextDistrict.type !== "capital") {
+          // Beta: don't unlock anything past the max district
+          const nextIndex = regularDistricts.findIndex((t) => t.id === nextId);
+          if (isBeta && betaMaxIndex >= 0 && nextIndex > betaMaxIndex) continue;
+          unlockIds.add(nextId);
+        }
       }
     }
 
-    // Capital unlocks only when all 9 regular towns have P1 done
-    if (allRegularP1Done) {
+    // Capital unlocks only when all 9 regular towns have P1 done (never in beta)
+    if (!isBeta && allRegularP1Done) {
       const capital = allDistricts.find((t) => t.type === "capital");
       if (capital) unlockIds.add(capital.id);
     }

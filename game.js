@@ -1874,6 +1874,24 @@ function queuePastorBossPostRecapAnnouncement(levelNumber, upgradeAfter = false)
   });
 }
 
+const BETA_EPILOGUE_DISTRICT_ID = "red_creek";
+
+function activateBetaEpilogue() {
+  epilogueTitle = "Thanks for Playing!";
+  epilogueBackgroundKey = "epilogue";
+  epilogueText =
+    "Thanks for beta testing the demo. Please leave feedback on how to improve the game. Links in the About section.";
+  epilogueScroll.phase = "epilogue";
+  epilogueScroll.scrollY = 0;
+  epilogueScroll.delayTimer = 0;
+  epilogueScroll.contentHeight = 0;
+  epilogueScroll.showButton = false;
+  epilogueScroll.paused = false;
+  epilogueActive = true;
+  pauseAllMusic();
+  startEpilogueMusic();
+}
+
 function activateEpilogue() {
   const ministryOptions = [
     "rehab clinics",
@@ -21999,6 +22017,10 @@ function handleLevelAnnouncements() {
       allowSpace: true,
       onActivate: () => {
         dismissCurrentLevelAnnouncement();
+        if (!IS_DEV && activeDistrictId === BETA_EPILOGUE_DISTRICT_ID) {
+          activateBetaEpilogue();
+          return;
+        }
         // Activate town victory scene before returning to map
         const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
         const districtName = mapData?.districts?.find((t) => t.id === activeDistrictId)?.name || "This town";
@@ -22010,6 +22032,10 @@ function handleLevelAnnouncements() {
     const clickPos = Input.consumeCanvasClick?.();
     if (clickPos) {
       dismissCurrentLevelAnnouncement();
+      if (!IS_DEV && activeDistrictId === BETA_EPILOGUE_DISTRICT_ID) {
+        activateBetaEpilogue();
+        return true;
+      }
       // Activate town victory scene before returning to map
       const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
       const districtName = mapData?.districts?.find((t) => t.id === activeDistrictId)?.name || "This town";
