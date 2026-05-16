@@ -1,5 +1,9 @@
 /* Top-down adventure sandbox | Version 2025-10-30b */
 
+// Dev mode: only active on localhost. All developer tools and hotkeys are hidden in production.
+const IS_DEV = typeof location !== "undefined" && (location.hostname === "localhost" || location.hostname === "127.0.0.1");
+if (typeof window !== "undefined") window.IS_DEV = IS_DEV;
+
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 ctx.imageSmoothingEnabled = false;
@@ -19851,6 +19855,7 @@ if (typeof window !== "undefined") {
 }
 
 function handleDeveloperHotkeys() {
+  if (!IS_DEV) return;
   if (typeof window !== "undefined" && window.DialogOverlay?.isVisible?.()) {
     return;
   }
@@ -20599,6 +20604,7 @@ function showSettingsOverlay({ source = "title" } = {}) {
           <button class="settings-btn--hellfire" id="settingsAboutBtn">About</button>
         </div>
       </div>
+      ${IS_DEV ? `
       <div class="settings-row">
         <span class="settings-row__icon">🛠️</span>
         <div class="settings-row__text">
@@ -20608,7 +20614,7 @@ function showSettingsOverlay({ source = "title" } = {}) {
         <div class="settings-row__control">
           <button class="settings-btn--hellfire" id="settingsDeveloperBtn">Developer</button>
         </div>
-      </div>
+      </div>` : ""}
     </div>
   `;
   window.DialogOverlay.show({
@@ -20761,6 +20767,7 @@ function showDeveloperShortcutsOverlay() {
 }
 
 function showDeveloperOverlay() {
+  if (!IS_DEV) return;
   if (!window.DialogOverlay) return;
   const bodyHtml = `
     <div class="settings-panel settings-panel--developer">

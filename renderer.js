@@ -9975,7 +9975,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "settingsSfxVolume", label: `SFX Volume: ${sfxVolPct}%`, meta: "Adjust with A/D or \u2190/\u2192", sliderValue: sfxVolPct / 100 },
         { key: "settingsSpeedrunTimer", label: `Speedrun Timer: ${timerEnabled ? "On" : "Off"}`, meta: "Show run timer during gameplay" },
         { key: "settingsAbout", label: "About", meta: "View controls and gameplay guide" },
-        { key: "settingsDeveloper", label: "Developer", meta: "Open debug and development tools" },
+        ...(window.IS_DEV ? [{ key: "settingsDeveloper", label: "Developer", meta: "Open debug and development tools" }] : []),
         { key: "back", label: "Back", meta: "Return to title menu" },
       ];
     } else if (titleDemoSaveMenuActive) {
@@ -14144,8 +14144,43 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawBetaBadge() {
+    const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
+    if (!ctx || !canvas) return;
+    const label = "Early Access Beta";
+    const fontSize = 15;
+    const pad = { x: 10, y: 6 };
+    ctx.save();
+    ctx.font = `600 ${fontSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+    const textW = ctx.measureText(label).width;
+    const badgeW = textW + pad.x * 2;
+    const badgeH = fontSize + pad.y * 2;
+    const margin = 12;
+    const bx = margin;
+    const by = canvas.height - badgeH - margin;
+    const hovered = (() => {
+      const m = typeof window !== "undefined" && window.__betaBadgeHover;
+      return m && m.x >= bx && m.x <= bx + badgeW && m.y >= by && m.y <= by + badgeH;
+    })();
+    ctx.globalAlpha = hovered ? 0.85 : 0.55;
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, badgeW, badgeH, 6);
+    ctx.fill();
+    ctx.globalAlpha = hovered ? 1.0 : 0.8;
+    ctx.fillStyle = "#f0d9a0";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, bx + pad.x, by + badgeH / 2);
+    ctx.restore();
+    if (typeof window !== "undefined") {
+      window.__betaBadgeBounds = { x: bx, y: by, w: badgeW, h: badgeH };
+    }
+  }
+
   function drawFrame() {
     drawGame();
+    drawBetaBadge();
   }
 
   function drawTypographyDebugOverlay() {

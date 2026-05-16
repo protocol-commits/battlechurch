@@ -262,12 +262,14 @@
     pointerState.y = coords.y;
     pointerState.active = true;
     aimState.usingPointer = true;
+    if (typeof window !== "undefined") window.__betaBadgeHover = coords;
   }
 
   function handleMouseLeave() {
     pointerState.active = false;
     aimState.usingPointer = false;
     aimState.triggerPress = false;
+    if (typeof window !== "undefined") window.__betaBadgeHover = null;
   }
 
   function preventContextMenu(event) {
@@ -279,6 +281,11 @@
       const coords = getCanvasCoordinates(event);
       if (typeof window !== "undefined" && window.PlayingInstructions?.state?.open) {
         if (window.PlayingInstructions.handleClick(coords.x, coords.y)) return;
+      }
+      const bb = typeof window !== "undefined" && window.__betaBadgeBounds;
+      if (bb && coords.x >= bb.x && coords.x <= bb.x + bb.w && coords.y >= bb.y && coords.y <= bb.y + bb.h) {
+        if (typeof window !== "undefined" && window.PlayingInstructions) window.PlayingInstructions.open();
+        return;
       }
       if (typeof window !== "undefined" && window.__battlechurchDevMeleeArenaMode) {
         const b = window.__devArenaBackBtnRect;
