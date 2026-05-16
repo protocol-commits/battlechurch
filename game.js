@@ -560,18 +560,13 @@ const TITLE_DEMO_SAVE_SLOTS = [
   },
   {
     key: "slot2",
-    label: "Demo: Area 1 Cleared",
+    label: "Demo: Frontline 1 Cleared",
     districtId: "red_creek",
     completedDistricts: 3,
     playerName: "DemoName",
     cityName: "DemoTown",
     classId: "class9",
-    campaignData: {
-      campaign: "p2",
-      startCount: 100,
-      campaignMultiplier: 1.15,
-      restoredChurchPowerupLevels: {},
-    },
+    campaignData: null,
     districtPowerups: {
       pine_hollow:  { spreadGun: 5 },
       stone_ridge:  { halo: 5 },
