@@ -1136,7 +1136,7 @@
     if (displayCount != null) {
       ctx.save();
       const districtLabelType = getCanvasSemanticForMap("districtLabel", "h3");
-      const nameSize = Math.round((districtLabelType.size * 0.5) * (rect.w / 1280));
+      const nameSize = Math.round(districtLabelType.size * (rect.w / 1280));
       ctx.font = `${districtLabelType.weight} ${nameSize}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
       ctx.textAlign = "center";
@@ -1149,7 +1149,7 @@
     } else if (selected) {
       ctx.save();
       const districtLabelType = getCanvasSemanticForMap("districtLabel", "h3");
-      ctx.font = `${districtLabelType.weight} ${Math.round((districtLabelType.size * 0.57) * (rect.w / 1280))}px ${UI_FONT_FAMILY}`;
+      ctx.font = `${districtLabelType.weight} ${Math.round(districtLabelType.size * (rect.w / 1280))}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = unlocked ? MAP_HELLFIRE_TEXT.title : MAP_HELLFIRE_TEXT.dim;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";

@@ -1544,6 +1544,7 @@ const MELEE_SWING_LENGTH = 260;
     titleLineGap = 0,
     subtitleSize = TEXT_STYLES.body.size,
     lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+    titleLineHeightMultiplier = TEXT_STYLES.h2.lineHeight,
     weight = TEXT_STYLES.h2.weight,
     maxWidthScale = 0.96,
   }) {
@@ -1567,11 +1568,11 @@ const MELEE_SWING_LENGTH = 260;
     const titleLineHeights = titleLines.map((_, index) => {
       const lineSize = effectiveTitleLineSizes?.[Math.min(index, effectiveTitleLineSizes.length - 1)]
         || effectiveTitleSize;
-      const baseHeight = Math.round(lineSize * TEXT_STYLES.h2.lineHeight);
+      const baseHeight = Math.round(lineSize * titleLineHeightMultiplier);
       const isLast = index >= titleLines.length - 1;
       return baseHeight + (isLast ? 0 : effectiveTitleLineGap);
     });
-    const titleLineHeight = titleLineHeights[0] || Math.round(effectiveTitleSize * TEXT_STYLES.h2.lineHeight);
+    const titleLineHeight = titleLineHeights[0] || Math.round(effectiveTitleSize * titleLineHeightMultiplier);
     const lastTitleLineHeight = titleLineHeights[titleLineHeights.length - 1] || titleLineHeight;
     const subtitleLineHeight = Math.round(effectiveSubtitleSize * TEXT_STYLES.body.lineHeight);
     const gapAfterTitle = subtitleLines.length ? Math.max(0, effectiveLineGap - lastTitleLineHeight) : 0;
@@ -1605,6 +1606,7 @@ const MELEE_SWING_LENGTH = 260;
       titleLineGap = 0,
       subtitleSize = TEXT_STYLES.body.size,
       lineGap = Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
+      titleLineHeightMultiplier = TEXT_STYLES.h2.lineHeight,
       weight = TEXT_STYLES.h2.weight,
       maxWidthScale = 0.96,
       virtualWidth = 1280,
@@ -1631,6 +1633,7 @@ const MELEE_SWING_LENGTH = 260;
       titleLineGap,
       subtitleSize,
       lineGap,
+      titleLineHeightMultiplier,
       weight,
       maxWidthScale,
     });
@@ -2221,13 +2224,13 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     uiFontFamily = "sans-serif",
     buttonKey = "missionBrief",
     setMissionBriefActive = true,
-    titleSize = TEXT_STYLES.h1.size,
+    titleSize = getCanvasSemanticForScreen("missionIntro", "title", "h1").size,
     titleLineSizes = null,
     titleLineGap = 0,
     titleLineEmphasis = null,
-    titleWeight = TEXT_STYLES.h1.weight,
-    bodySize = TEXT_STYLES.h2.size,
-    bodyWeight = TEXT_STYLES.h2.weight,
+    titleWeight = getCanvasSemanticForScreen("missionIntro", "title", "h1").weight,
+    bodySize = getCanvasSemanticForScreen("missionIntro", "subtitle", "h2").size,
+    bodyWeight = getCanvasSemanticForScreen("missionIntro", "subtitle", "h2").weight,
     topMargin = 90,
     maxWidthScale = 0.96,
     blockAlign = null,
@@ -2261,6 +2264,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   // Kill any active camera shake so the background doesn't shake while the player reads the brief.
   requireBindings().clearCameraShake?.();
+  const _missionTitleToken = getCanvasSemanticForScreen("missionIntro", "title", "h1");
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
     subtitle: combinedSubtitle,
@@ -2268,7 +2272,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     titleLineSizes,
     titleLineGap,
     subtitleSize: bodySize,
-    lineGap: Math.round(titleSize * TEXT_STYLES.h1.lineHeight),
+    lineGap: Math.round(titleSize * (_missionTitleToken.lineHeight || 1.05)),
+    titleLineHeightMultiplier: _missionTitleToken.lineHeight || 1.05,
     weight: titleWeight,
     maxWidthScale,
     position: "top",
@@ -2315,7 +2320,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitle: combinedSubtitle,
       titleSize: bodySize,
       subtitleSize: bodySize,
-      lineGap: Math.round(bodySize * TEXT_STYLES.h2.lineHeight),
+      lineGap: Math.round(bodySize * (getCanvasSemanticForScreen("missionIntro", "subtitle", "h2").lineHeight || 1.2)),
       weight: bodyWeight,
       maxWidthScale,
     });
@@ -2337,7 +2342,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       titleLineSizes: [fittingTitleSize],
       titleLineGap,
       subtitleSize: bodySize,
-      lineGap: Math.round(fittingTitleSize * TEXT_STYLES.h1.lineHeight),
+      lineGap: Math.round(fittingTitleSize * (_missionTitleToken.lineHeight || 1.2)),
+      titleLineHeightMultiplier: _missionTitleToken.lineHeight || 1.2,
       weight: titleWeight,
       maxWidthScale,
     });
@@ -2350,7 +2356,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         titleLineSizes: [fittingTitleSize],
         titleLineGap,
         subtitleSize: bodySize,
-        lineGap: Math.round(fittingTitleSize * TEXT_STYLES.h1.lineHeight),
+        lineGap: Math.round(fittingTitleSize * (_missionTitleToken.lineHeight || 1.2)),
+        titleLineHeightMultiplier: _missionTitleToken.lineHeight || 1.2,
         weight: titleWeight,
         maxWidthScale,
       });
@@ -2415,7 +2422,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       subtitleSize: bodySize,
       weight: titleWeight,
       subtitleWeight: bodyWeight,
-      lineGap: Math.round(fittingTitleSize * TEXT_STYLES.h1.lineHeight),
+      lineGap: Math.round(fittingTitleSize * (_missionTitleToken.lineHeight || 1.2)),
       alpha: 1,
       typewriter: true,
       highlight,
@@ -5480,10 +5487,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       maxWidthScale: 0.76,
       topMargin: 254,
       eyebrowText: "A Pastor's Personal Struggles",
-      eyebrowSize: 14,
+      eyebrowSize: getCanvasSemanticForScreen("bossIntro", "eyebrow", "eyebrow").size,
       eyebrowOffset: -54,
       titleLineGap: 6,
-      titleSize: Math.max(24, Math.round(TEXT_STYLES.h1.size * 0.78)),
+      titleSize: getCanvasSemanticForScreen("bossIntro", "title", "h1").size,
       titleLineEmphasis: {
         mode: "shimmer",
         matchPrefix: "Boss Battle ",
@@ -5492,7 +5499,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         peakColor: "#FFF2CF",
         glowColor: "rgba(235, 189, 102, 0.95)",
       },
-      titleLineSizes: [Math.max(24, Math.round(TEXT_STYLES.h1.size * 0.78))],
+      titleLineSizes: [getCanvasSemanticForScreen("bossIntro", "title", "h1").size],
     });
     ctx.restore();
     return;
@@ -5553,15 +5560,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         uiFontFamily: UI_FONT_FAMILY,
         maxWidthScale: 0.86,
         topMargin: Math.max(HUD_HEIGHT + 28, 120),
-        titleSize: Math.max(32, Math.round(TEXT_STYLES.h1.size * 0.6)),
-        bodySize: Math.max(22, Math.round(TEXT_STYLES.body.size * 0.85)),
-        bodyWeight: TEXT_STYLES.body.weight,
+        titleSize: getCanvasSemanticForScreen("missionIntro", "title", "h1").size,
+        bodySize: getCanvasSemanticForScreen("missionIntro", "subtitle", "h2").size,
+        bodyWeight: getCanvasSemanticForScreen("missionIntro", "subtitle", "h2").weight,
         titleLineGap: 8,
-        eyebrowSize: 19,
+        eyebrowSize: getCanvasSemanticForScreen("missionIntro", "eyebrow", "eyebrow").size,
         eyebrowOffset: -4,
         sectionGap: 18,
         titleLineSizes: [
-          Math.max(32, Math.round(TEXT_STYLES.h1.size * 0.6)),
+          getCanvasSemanticForScreen("missionIntro", "title", "h1").size,
         ],
       });
       ctx.restore();
@@ -5645,16 +5652,17 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
       }
       const distroTitleType = getCanvasSemanticForScreen("districtIntro", "title", "h1");
+      const _pastorSpeechType = getCanvasSemanticForScreen("missionIntro", "subtitle", "h2");
       const titleSize = isPastorSpeech
-        ? Math.max(20, TEXT_STYLES.h2.size * 0.95)
-        : Math.max(28, distroTitleType.size * 1.35);
-      const titleWeight = isPastorSpeech ? TEXT_STYLES.h2.weight : distroTitleType.weight;
+        ? _pastorSpeechType.size
+        : distroTitleType.size;
+      const titleWeight = isPastorSpeech ? _pastorSpeechType.weight : distroTitleType.weight;
       const buttonCount = isPastorSpeech ? 1 : 0;
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: displayTitle || "",
         subtitle: "",
         titleSize,
-        subtitleSize: TEXT_STYLES.h2.size,
+        subtitleSize: _pastorSpeechType.size,
         lineGap: Math.round(titleSize * (distroTitleType.lineHeight || 1.05)),
         weight: titleWeight,
         maxWidthScale: 0.92,
@@ -7947,8 +7955,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const panelPadY = 14;
       const panelPadX = 14;
       const iconText = "💡";
-      const tipFontSize = 15;
-      const lineH = tipFontSize * 1.5;
+      const tipFontSize = pauseCaptionType.size;
+      const lineH = tipFontSize * (pauseCaptionType.lineHeight || 1.5);
       const iconColW = 26;
       const iconTextGap = 8;
 
