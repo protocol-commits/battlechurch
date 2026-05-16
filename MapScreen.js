@@ -2449,7 +2449,7 @@
     };
   }
 
-  function setDemoProfile({ completedDistricts = 0, playerName = null, cityName = null, classId = null } = {}) {
+  function setDemoProfile({ completedDistricts = 0, playerName = null, cityName = null, classId = null, districtPowerups = null, districtStartCounts = null } = {}) {
     const mapData = window.BattlechurchMapData;
     if (!mapData?.districts?.length) return false;
     const progress = createFreshMapProgress(mapData);
@@ -2460,10 +2460,12 @@
     const targetIds = regularDistrictIds.slice(0, Math.max(0, Number(completedDistricts) || 0));
     targetIds.forEach((districtId) => {
       if (!progress.districts[districtId]) progress.districts[districtId] = {};
+      const powerups = (districtPowerups && districtPowerups[districtId]) ? districtPowerups[districtId] : {};
+      const bestCount = (districtStartCounts && Number.isFinite(districtStartCounts[districtId])) ? districtStartCounts[districtId] : 100;
       progress.districts[districtId].p1 = {
         completed: true,
-        bestCount: 100,
-        churchPowerupLevels: {},
+        bestCount,
+        churchPowerupLevels: powerups,
       };
     });
     ensureNextDistrictUnlocked(progress, mapData);

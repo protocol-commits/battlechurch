@@ -563,10 +563,20 @@ const TITLE_DEMO_SAVE_SLOTS = [
     cityName: "DemoTown",
     classId: "class9",
     campaignData: {
-      campaign: "p1",
-      startCount: 85,
-      campaignMultiplier: 1.0,
+      campaign: "p2",
+      startCount: 100,
+      campaignMultiplier: 1.15,
       restoredChurchPowerupLevels: {},
+    },
+    districtPowerups: {
+      pine_hollow:  { spreadGun: 5 },
+      stone_ridge:  { halo: 5 },
+      northvale:    { spear: 5 },
+    },
+    districtStartCounts: {
+      pine_hollow: 100,
+      stone_ridge: 100,
+      northvale:   100,
     },
   },
 ];
@@ -8956,6 +8966,8 @@ async function seedDemoSlotProgress(slot) {
     playerName: slot.playerName || null,
     cityName: slot.cityName || null,
     classId: slot.classId || null,
+    districtPowerups: slot.districtPowerups || null,
+    districtStartCounts: slot.districtStartCounts || null,
   });
 }
 
@@ -9282,6 +9294,7 @@ function _buildSaveFormOptionsHtml(classOptions, selectedId) {
 
 function showNewCloudSaveDialog() {
   if (!window.DialogOverlay?.show) return false;
+  if (titleCloudSaveRows.length >= 3) return false;
   const classOptions = getSortedClassMenuEntries(classEntries);
   const defaultClassId = String(classOptions[0]?.id || "");
   const optionsHtml = _buildSaveFormOptionsHtml(classOptions, defaultClassId);

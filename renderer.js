@@ -5566,15 +5566,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       } else if (npcNames.length > 2) {
         nameSentence = npcNames.slice(0, -1).join(', ') + ' and ' + npcNames[npcNames.length - 1];
       }
-      const missionNumber = Number.isFinite(announcement?.missionNumber)
-        ? announcement.missionNumber
-        : null;
-      const battlefieldNumber = missionNumber || 1;
       const needVerb = npcNames.length === 1 ? "needs" : "need";
       const missionHeading = scenarioTitle
         ? `${nameSentence} ${needVerb} your help as they battle personal demons while facing ${scenarioTitle.toUpperCase()}.`
         : `${nameSentence} ${needVerb} your help as they battle personal demons.`;
-      const callForHelpLine = `Battlefield ${battlefieldNumber}`;
+      const _mCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
+      const _mLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
+      const _mPhase = _mLabels.phases?.[_mCamp] || _mCamp.toUpperCase();
+      const _mNum = _mCamp === "p3" ? 3 : _mCamp === "p2" ? 2 : 1;
+      const _mPhaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
+      const callForHelpLine = `${_mPhaseLabel} ${_mNum}: ${_mPhase}`;
       if (window.UpgradeScreen?.isVisible?.()) {
         ctx.restore();
         return;
@@ -9455,9 +9456,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const _cbCamp = window.activeCampaign || "p1";
     const phaseName = _cbLabels.phases?.[_cbCamp] || _cbCamp.toUpperCase();
-    const districtNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
+    const missionNum = _cbCamp === "p3" ? 3 : _cbCamp === "p2" ? 2 : 1;
     const _phaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
-    const eyebrowText = `${_phaseLabel} ${districtNumber}: ${phaseName}`;
+    const eyebrowText = `${_phaseLabel} ${missionNum}: ${phaseName}`;
     const briefEyebrowType = getCanvasSemanticForScreen("battlefieldBrief", "eyebrow", "subhead");
     const briefTitleType = getCanvasSemanticForScreen("battlefieldBrief", "title", "h1");
     const briefButtonType = getCanvasSemanticForScreen("battlefieldBrief", "button", "button");
@@ -10008,14 +10009,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ),
         },
       })));
-      const loginLabel =
-        typeof window !== "undefined" && window.cloudAuthProvider === "google"
-          ? "Sync Google Saves"
-          : "Login with Google";
-      buttonConfigs.push({ key: "loginGoogle", label: loginLabel });
+      if (typeof window !== "undefined" && window.cloudAuthProvider !== "google") {
+        buttonConfigs.push({ key: "loginGoogle", label: "Login with Google" });
+      }
       if (typeof window !== "undefined" && window.cloudAuthProvider === "google") {
         buttonConfigs.push({ key: "logoutGoogle", label: "Logout" });
-        buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
+        if (cloudRows.length < 3) {
+          buttonConfigs.push({ key: "newCloudSave", label: "New Save" });
+        }
       }
       buttonConfigs.push({ key: "back", label: "Back" });
     } else if (titleClassMenuActive && !titleUtilityPanelMode) {
@@ -10776,17 +10777,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         actionEntries.forEach(({ config, index }, ai) => {
           const ax = cardX + ai * (actionBtnW + actionGap);
           const focused = isAnnouncementButtonFocused("title", index);
-          const isPrimary = config.key === "newCloudSave";
           const isBack = config.key === "back";
 
           ctx.save();
-          if (isPrimary) {
-            const grad = ctx.createLinearGradient(ax, actionY, ax, actionY + ACTION_H);
-            grad.addColorStop(0, focused ? "#e06818" : "#c85a10");
-            grad.addColorStop(1, focused ? "#8f3010" : "#7a2a08");
-            ctx.fillStyle = grad;
-            ctx.strokeStyle = focused ? "rgba(255,200,100,0.9)" : "rgba(255,180,60,0.6)";
-          } else if (isBack) {
+          if (isBack) {
             ctx.fillStyle = focused ? HELLFIRE_UI_TOKENS.rowBgFocused : "rgba(14,10,8,0.5)";
             ctx.strokeStyle = focused ? HELLFIRE_UI_TOKENS.rowBorderFocused : "rgba(242,200,125,0.12)";
           } else {
@@ -10801,7 +10795,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
             x: ax + actionBtnW / 2,
             y: actionY + ACTION_H / 2,
             font: `700 ${canvasMenuType.saveActionButton ?? 16}px ${UI_FONT_FAMILY}`,
-            fillStyle: isPrimary ? "#DDA677" : isBack ? "rgba(253,241,217,0.55)" : EMBER_BUTTON_PALETTE.text,
+            fillStyle: isBack ? "rgba(253,241,217,0.55)" : EMBER_BUTTON_PALETTE.text,
             textAlign: "center",
             textBaseline: "middle",
           });
@@ -11855,7 +11849,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
         fireOverlay.draw(ctx);
       }
-      // Chapter Break (aka Battle Break) screen: Battlefield I/II/III + exterior shot.
+      // Chapter Break (aka Battle Break, Town Intro) screen: Battlefield I/II/III + exterior shot.
       const _bhLabels = window.BattlechurchCampaignLabels || {};
       const _bhStageLabel = (typeof window !== "undefined" && window.STAGE_LABEL) || "Battlefield";
       const _bhPhaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
@@ -11872,9 +11866,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         : inferredUpcomingNumber;
       const _bhRoman = { 1: 'I', 2: 'II', 3: 'III' };
       const battleHeading = `${_bhStageLabel} ${_bhRoman[orderNumber] || orderNumber}`;
-      const _bhPhaseName = _bhLabels.phases?.[window.activeCampaign || "p1"] || "";
-      const _bhDistrictNumber = levelStatus?.level || 1;
-      const eyebrowText = `${_bhPhaseLabel} ${_bhDistrictNumber}: ${_bhPhaseName}`;
+      const _bhCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
+      const _bhPhaseName = _bhLabels.phases?.[_bhCamp] || "";
+      const _bhMissionNum = _bhCamp === "p3" ? 3 : _bhCamp === "p2" ? 2 : 1;
+      const eyebrowText = `${_bhPhaseLabel} ${_bhMissionNum}: ${_bhPhaseName}`;
       const headerSubtitleText = "";
       const eyebrowDone = isAnnouncementRevealComplete(eyebrowText, "");
       const headerDone = isAnnouncementRevealComplete(battleHeading, headerSubtitleText);
@@ -12038,7 +12033,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       return;
     }
     if (exteriorShotActive) {
-      const announcementTitle = levelAnnouncements?.[0]?.title || "";
+      const _extCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
+      const _extLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
+      const _extPhase = _extLabels.phases?.[_extCamp] || _extCamp.toUpperCase();
+      const _extNum = _extCamp === "p3" ? 3 : _extCamp === "p2" ? 2 : 1;
+      const _extPhaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
+      const announcementTitle = `${_extPhaseLabel} ${_extNum}: ${_extPhase}`;
       const img = assets?.backgrounds?.mission1 || null;
       const mapLaunchFadeAlpha = Number(getMapLaunchFadeInAlpha()) || 0;
       ctx.save();
