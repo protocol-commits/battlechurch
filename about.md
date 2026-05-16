@@ -1,3 +1,9 @@
+# Beta Feedback
+
+Thanks for playing the Early Access Beta! Please take a moment to share your thoughts — it helps a lot.
+
+https://docs.google.com/forms/d/e/1FAIpQLSdMCo6jqUQ7d1mPX3_W_qzNq9WnIQZKBUJNSgbR3XFtrLVZJA/viewform?usp=publish-editor
+
 # Excuses 
 - This game has a long way to go. 
 - Levels are not balanced. 
