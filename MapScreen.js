@@ -15,6 +15,27 @@
   });
   const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0;
   const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.72;
+  const CANVAS_SEMANTIC_DEFAULTS = {
+    eyebrow: { size: 13, weight: 600, lineHeight: 1.15 },
+    h1: { size: 56, weight: 900, lineHeight: 1.05 },
+    h2: { size: 40, weight: 800, lineHeight: 1.2 },
+    h3: { size: 28, weight: 700, lineHeight: 1.2 },
+    subhead: { size: 22, weight: 600, lineHeight: 1.25 },
+    body: { size: 20, weight: 600, lineHeight: 1.3 },
+    caption: { size: 14, weight: 500, lineHeight: 1.25 },
+    button: { size: 18, weight: 600, lineHeight: 1.1 },
+  };
+
+  function getCanvasSemanticToken(role) {
+    const semantic = window.UIStyles?.typography?.canvasSemantic || {};
+    return semantic[role] || CANVAS_SEMANTIC_DEFAULTS[role] || CANVAS_SEMANTIC_DEFAULTS.body;
+  }
+
+  function getCanvasSemanticForMap(usageKey, fallbackRole) {
+    const usage = window.UIStyles?.typography?.canvasSemanticUsage?.mapScreen || {};
+    const role = usage[usageKey] || fallbackRole || "body";
+    return getCanvasSemanticToken(role);
+  }
 
   let mapImage = null;
   let mapImageLoaded = false;
@@ -1109,8 +1130,9 @@
     }
     if (displayCount != null) {
       ctx.save();
-      const nameSize = Math.round(14 * (rect.w / 1280));
-      ctx.font = `600 ${nameSize}px ${UI_FONT_FAMILY}`;
+      const districtLabelType = getCanvasSemanticForMap("districtLabel", "h3");
+      const nameSize = Math.round((districtLabelType.size * 0.5) * (rect.w / 1280));
+      ctx.font = `${districtLabelType.weight} ${nameSize}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -1120,7 +1142,8 @@
       ctx.restore();
     } else if (selected) {
       ctx.save();
-      ctx.font = `600 ${Math.round(16 * (rect.w / 1280))}px ${UI_FONT_FAMILY}`;
+      const districtLabelType = getCanvasSemanticForMap("districtLabel", "h3");
+      ctx.font = `${districtLabelType.weight} ${Math.round((districtLabelType.size * 0.57) * (rect.w / 1280))}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = unlocked ? MAP_HELLFIRE_TEXT.title : MAP_HELLFIRE_TEXT.dim;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
@@ -1190,12 +1213,14 @@
     ctx.lineWidth = 2;
     roundRect(ctx, x, y, badgeW, badgeH, 12, true, true);
     ctx.fillStyle = "rgba(255, 206, 136, 0.92)";
-    ctx.font = `600 13px ${UI_FONT_FAMILY}`;
+    const eyebrowType = getCanvasSemanticForMap("eyebrow", "eyebrow");
+    const valueType = getCanvasSemanticForMap("title", "h3");
+    ctx.font = `${eyebrowType.weight} ${eyebrowType.size}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(label, x + 14, y + 10);
     ctx.fillStyle = "#FFE7B8";
-    ctx.font = `700 24px ${UI_FONT_FAMILY}`;
+    ctx.font = `${valueType.weight} ${Math.max(20, Math.round(valueType.size * 0.86))}px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
     ctx.fillText(value, x + 14, y + badgeH - 12);
     ctx.restore();
@@ -1382,15 +1407,21 @@
     ctx.shadowOffsetY = 0;
 
     const centerX = canvas.width / 2;
+    const mapEyebrowType = getCanvasSemanticForMap("eyebrow", "eyebrow");
+    const mapTitleType = getCanvasSemanticForMap("title", "h3");
+    const mapAreaType = getCanvasSemanticForMap("areaLabel", "caption");
+    const mapPrimaryType = getCanvasSemanticForMap("primary", "subhead");
+    const mapSecondaryType = getCanvasSemanticForMap("secondary", "caption");
+    const mapButtonType = getCanvasSemanticForMap("button", "button");
     ctx.fillStyle = panelStyle.eyebrowColor || MAP_HELLFIRE_TEXT.dim;
-    ctx.font = `700 ${panelStyle.eyebrowFontSize ?? 11}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${mapEyebrowType.weight} ${panelStyle.eyebrowFontSize ?? mapEyebrowType.size}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     const _eyebrowDistrictTerm = window.BattlechurchCampaignLabels?.terms?.district || "District";
     ctx.fillText(panelStyle.eyebrowText || `${_eyebrowDistrictTerm.toUpperCase()} TARGETED`, centerX, panelY + (panelStyle.eyebrowY ?? 14));
 
     ctx.fillStyle = panelStyle.titleColor || "#FFD978";
-    ctx.font = `700 ${panelStyle.titleFontSize ?? 28}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${mapTitleType.weight} ${panelStyle.titleFontSize ?? mapTitleType.size}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(district.name, centerX, panelY + (panelStyle.titleY ?? 34));
@@ -1404,7 +1435,7 @@
     if (hasAreaLabel) {
       const areaY = panelY + (panelStyle.titleY ?? 34) + (panelStyle.titleFontSize ?? 28) + 4;
       ctx.fillStyle = panelStyle.eyebrowColor || MAP_HELLFIRE_TEXT.dim;
-      ctx.font = `600 ${Math.max(10, (panelStyle.eyebrowFontSize ?? 11) + 1)}px ${UI_FONT_FAMILY}`;
+      ctx.font = `${mapAreaType.weight} ${Math.max(10, panelStyle.eyebrowFontSize ?? mapAreaType.size)}px ${UI_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillText(areaLabel, centerX, areaY);
@@ -1453,10 +1484,10 @@
       }
     }
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
-    ctx.font = `600 ${panelStyle.primaryFontSize ?? 17}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${mapPrimaryType.weight} ${panelStyle.primaryFontSize ?? mapPrimaryType.size}px ${UI_FONT_FAMILY}`;
     ctx.fillText(primaryLine, centerX, panelY + (panelStyle.primaryY ?? 94) + areaVerticalOffset);
     ctx.fillStyle = panelStyle.secondaryColor || MAP_HELLFIRE_TEXT.body;
-    ctx.font = `500 ${panelStyle.secondaryFontSize ?? 14}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${mapSecondaryType.weight} ${panelStyle.secondaryFontSize ?? mapSecondaryType.size}px ${UI_FONT_FAMILY}`;
     ctx.fillText(secondaryLine, centerX, panelY + (panelStyle.secondaryY ?? 124) + areaVerticalOffset);
 
     const buttonW = 140;
@@ -1520,7 +1551,7 @@
       ctx.shadowColor = buttonPalette.textShadow;
       ctx.shadowBlur = 5;
       ctx.shadowOffsetY = 1;
-      ctx.font = `600 16px ${UI_FONT_FAMILY}`;
+      ctx.font = `${mapButtonType.weight} ${mapButtonType.size}px ${UI_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(btn.label, btn.x + buttonW / 2, buttonY + buttonH / 2);

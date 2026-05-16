@@ -69,6 +69,61 @@
 
     // Centralized typography for canvas-rendered title/save/load/class menus.
     typography: {
+      // Semantic typography tokens for canvas-rendered game UI.
+      // Use these like CSS typography roles (h1/h2/body/button/etc).
+      canvasSemantic: {
+        eyebrow: { size: 13, weight: 600, lineHeight: 1.15 },
+        h1: { size: 56, weight: 900, lineHeight: 1.05 },
+        h2: { size: 40, weight: 800, lineHeight: 1.2 },
+        h3: { size: 28, weight: 700, lineHeight: 1.2 },
+        subhead: { size: 22, weight: 600, lineHeight: 1.25 },
+        body: { size: 20, weight: 600, lineHeight: 1.3 },
+        caption: { size: 14, weight: 500, lineHeight: 1.25 },
+        button: { size: 18, weight: 600, lineHeight: 1.1 },
+      },
+      // Per-screen role map so each screen can bind to semantic roles.
+      canvasSemanticUsage: {
+        mapScreen: {
+          eyebrow: "eyebrow",
+          title: "h3",
+          areaLabel: "caption",
+          primary: "subhead",
+          secondary: "caption",
+          button: "button",
+          districtLabel: "h3",
+        },
+        missionIntro: {
+          eyebrow: "eyebrow",
+          title: "h1",
+          subtitle: "h2",
+          button: "button",
+        },
+        battlefieldBrief: {
+          eyebrow: "subhead",
+          title: "h1",
+          button: "button",
+        },
+        devArenaHowToPlay: {
+          title: "h1",
+          basics: "body",
+          sectionLabel: "eyebrow",
+          moveName: "eyebrow",
+          moveInput: "caption",
+          moveDamage: "eyebrow",
+          moveDamageUnit: "caption",
+          moveDesc: "caption",
+        },
+        battleRecap: {
+          heading: "h1",
+          label: "h3",
+          body: "body",
+          score: "h2",
+          button: "button",
+        },
+        buttons: {
+          default: "button",
+        },
+      },
       // ─── Utility Panel Scale ──────────────────────────────────────────────
       // Single source of truth for all utility screens (Save/Load, More,
       // Settings, Edit Save, New Save). Body = 16px; all other sizes derive

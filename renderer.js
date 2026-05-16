@@ -1346,10 +1346,10 @@ const MELEE_SWING_LENGTH = 260;
       ? Number(window.__battlechurchPixelFontSizeMultiplier)
       : 1;
   const BASE_TEXT_STYLES = {
-    h1: { size: 56, weight: 900, lineHeight: 1.05 },
-    h2: { size: 40, weight: 800, lineHeight: 1.2 },
-    h3: { size: 28, weight: 700, lineHeight: 1.2 },
-    body: { size: 20, weight: 600, lineHeight: 1.3 },
+    h1: { ...getCanvasSemanticToken("h1") },
+    h2: { ...getCanvasSemanticToken("h2") },
+    h3: { ...getCanvasSemanticToken("h3") },
+    body: { ...getCanvasSemanticToken("body") },
   };
   const TEXT_STYLES = {
     h1: { ...BASE_TEXT_STYLES.h1, size: Math.round(BASE_TEXT_STYLES.h1.size * PIXEL_FONT_SIZE_MULTIPLIER) },
@@ -1392,6 +1392,25 @@ const MELEE_SWING_LENGTH = 260;
     (typeof window !== "undefined" && window.UIStyles?.fonts?.pixel) ||
     "'VT323', 'Press Start 2P', monospace";
   const ANNOUNCEMENT_FONT_FAMILY = PIXEL_UI_FONT_FAMILY;
+  const CANVAS_SEMANTIC_DEFAULTS = {
+    eyebrow: { size: 13, weight: 600, lineHeight: 1.15 },
+    h1: { size: 56, weight: 900, lineHeight: 1.05 },
+    h2: { size: 40, weight: 800, lineHeight: 1.2 },
+    h3: { size: 28, weight: 700, lineHeight: 1.2 },
+    subhead: { size: 22, weight: 600, lineHeight: 1.25 },
+    body: { size: 20, weight: 600, lineHeight: 1.3 },
+    caption: { size: 14, weight: 500, lineHeight: 1.25 },
+    button: { size: 18, weight: 600, lineHeight: 1.1 },
+  };
+  function getCanvasSemanticToken(role) {
+    const semantic = window.UIStyles?.typography?.canvasSemantic || {};
+    return semantic[role] || CANVAS_SEMANTIC_DEFAULTS[role] || CANVAS_SEMANTIC_DEFAULTS.body;
+  }
+  function getCanvasSemanticForScreen(screenKey, usageKey, fallbackRole) {
+    const usage = window.UIStyles?.typography?.canvasSemanticUsage?.[screenKey] || {};
+    const role = usage[usageKey] || fallbackRole || "body";
+    return getCanvasSemanticToken(role);
+  }
   const waveClearWipes = [];
   let lastStageForWipe = null;
 
@@ -7552,6 +7571,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (window.DialogOverlay?.isVisible?.()) return;
     const { ctx, canvas, UI_FONT_FAMILY, HUD_HEIGHT } = requireBindings();
     const howToPlayType = window.UIStyles?.typography?.howToPlayScene || {};
+    const howToPlaySemantic = {
+      title: getCanvasSemanticForScreen("devArenaHowToPlay", "title", "h1"),
+      basics: getCanvasSemanticForScreen("devArenaHowToPlay", "basics", "body"),
+      sectionLabel: getCanvasSemanticForScreen("devArenaHowToPlay", "sectionLabel", "eyebrow"),
+      moveName: getCanvasSemanticForScreen("devArenaHowToPlay", "moveName", "eyebrow"),
+      moveInput: getCanvasSemanticForScreen("devArenaHowToPlay", "moveInput", "caption"),
+      moveDamage: getCanvasSemanticForScreen("devArenaHowToPlay", "moveDamage", "eyebrow"),
+      moveDamageUnit: getCanvasSemanticForScreen("devArenaHowToPlay", "moveDamageUnit", "caption"),
+      moveDesc: getCanvasSemanticForScreen("devArenaHowToPlay", "moveDesc", "caption"),
+    };
     ctx.save();
     drawBackground();
     ctx.fillStyle = 'rgba(4,8,14,0.82)';
@@ -7560,12 +7589,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const cx = canvas.width / 2;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#DFDFC4';
-    ctx.font = `${howToPlayType.title ?? 48}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${howToPlayType.title ?? howToPlaySemantic.title.size}px ${UI_FONT_FAMILY}`;
     const title = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to Play';
     ctx.fillText(title, cx, HUD_HEIGHT + 66);
 
     // ── Basics ───────────────────────────────────────────────────────────────
-    ctx.font = `${howToPlayType.basics ?? 16}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${howToPlayType.basics ?? howToPlaySemantic.basics.size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = '#A8C8E8';
     let y = HUD_HEIGHT + 106;
     ['Move: WASD / virtual stick', 'Aim: mouse / right stick', 'Prayer Meter: 6 prayers total'].forEach((l) => {
@@ -7591,7 +7620,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     function drawMoveSection(label, list, startX, startY) {
       ctx.textAlign = 'left';
-      ctx.font = `bold ${howToPlayType.sectionLabel ?? 13}px ${UI_FONT_FAMILY}`;
+      ctx.font = `bold ${howToPlayType.sectionLabel ?? howToPlaySemantic.sectionLabel.size}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = '#DDA677';
       ctx.fillText(label.toUpperCase(), startX, startY);
 
@@ -7601,11 +7630,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.fillStyle = 'rgba(255,255,255,0.08)';
         ctx.fillRect(startX, ry, colW, ROW_H - 4);
 
-        ctx.font = `bold ${howToPlayType.moveName ?? 13}px ${UI_FONT_FAMILY}`;
+        ctx.font = `bold ${howToPlayType.moveName ?? howToPlaySemantic.moveName.size}px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = '#DDA677';
         ctx.fillText(move.publicName, startX + 8, ry + 15);
 
-        ctx.font = `${howToPlayType.moveInput ?? 12}px ${UI_FONT_FAMILY}`;
+        ctx.font = `${howToPlayType.moveInput ?? howToPlaySemantic.moveInput.size}px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = '#7ABCDD';
         ctx.fillText(`[${move.input}]`, startX + 8, ry + 29);
 
@@ -7614,16 +7643,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         if (dmgStr !== '—') {
           ctx.textAlign = 'right';
           ctx.fillStyle = '#FF9966';
-          ctx.font = `bold ${howToPlayType.moveDamage ?? 13}px ${UI_FONT_FAMILY}`;
+          ctx.font = `bold ${howToPlayType.moveDamage ?? howToPlaySemantic.moveDamage.size}px ${UI_FONT_FAMILY}`;
           ctx.fillText(dmgStr, startX + colW - 8, ry + 15);
           ctx.fillStyle = '#888';
-          ctx.font = `${howToPlayType.moveDamageUnit ?? 11}px ${UI_FONT_FAMILY}`;
+          ctx.font = `${howToPlayType.moveDamageUnit ?? howToPlaySemantic.moveDamageUnit.size}px ${UI_FONT_FAMILY}`;
           ctx.fillText('dmg', startX + colW - 8, ry + 28);
           ctx.textAlign = 'left';
         }
 
         // Description
-        ctx.font = `${howToPlayType.moveDesc ?? 11}px ${UI_FONT_FAMILY}`;
+        ctx.font = `${howToPlayType.moveDesc ?? howToPlaySemantic.moveDesc.size}px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = '#BCD8EC';
         // Truncate to fit column
         let desc = move.desc;
@@ -9271,12 +9300,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const districtNumber = requireBindings().levelManager?.getStatus?.()?.level || 1;
     const _phaseLabel = (typeof window !== "undefined" && window.PHASE_LABEL) || "Mission";
     const eyebrowText = `${_phaseLabel} ${districtNumber}: ${phaseName}`;
-    const eyebrowSize = 18;
+    const briefEyebrowType = getCanvasSemanticForScreen("battlefieldBrief", "eyebrow", "subhead");
+    const briefTitleType = getCanvasSemanticForScreen("battlefieldBrief", "title", "h1");
+    const briefButtonType = getCanvasSemanticForScreen("battlefieldBrief", "button", "button");
+    const eyebrowSize = briefEyebrowType.size;
     const eyebrowGap = 16;
 
     const centerX = canvas.width / 2;
 
-    const chapterTitleSize = 64;
+    const chapterTitleSize = briefTitleType.size;
     const textGroupHeight = eyebrowSize + eyebrowGap + chapterTitleSize * 1.4;
     const textGroupTopY = Math.max(90, Math.round((canvas.height - textGroupHeight) / 2));
     const eyebrowY = textGroupTopY + eyebrowSize;
@@ -9301,7 +9333,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `600 ${eyebrowSize}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${briefEyebrowType.weight} ${eyebrowSize}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = HELLFIRE_TEXT_PALETTE.subtitle;
     ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
     ctx.shadowBlur = 10;
@@ -9313,7 +9345,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `bold ${chapterTitleSize}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${briefTitleType.weight} ${chapterTitleSize}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
     ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
     ctx.shadowBlur = 12;
@@ -9356,7 +9388,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowBlur = 6;
     ctx.shadowOffsetY = 1;
     ctx.textAlign = "center";
-    ctx.font = `18px ${UI_FONT_FAMILY}`;
+    ctx.font = `${briefButtonType.weight} ${briefButtonType.size}px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
     ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
     ctx.restore();
@@ -10913,10 +10945,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const scaleHint = Math.min(1, Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)));
 
     // Text styling
-    const headingSize = Math.round(TEXT_STYLES.h1.size * scaleHint);
-    const labelSize = Math.round(TEXT_STYLES.h3.size * scaleHint);
-    const bodySize = Math.round(TEXT_STYLES.body.size * 1.1 * scaleHint);
-    const nameSize = Math.round(TEXT_STYLES.h2.size * scaleHint);
+    const recapHeadingType = getCanvasSemanticForScreen("battleRecap", "heading", "h1");
+    const recapLabelType = getCanvasSemanticForScreen("battleRecap", "label", "h3");
+    const recapBodyType = getCanvasSemanticForScreen("battleRecap", "body", "body");
+    const recapScoreType = getCanvasSemanticForScreen("battleRecap", "score", "h2");
+    const recapButtonType = getCanvasSemanticForScreen("battleRecap", "button", "button");
+    const headingSize = Math.round(recapHeadingType.size * scaleHint);
+    const labelSize = Math.round(recapLabelType.size * scaleHint);
+    const bodySize = Math.round(recapBodyType.size * 1.1 * scaleHint);
+    const nameSize = Math.round(recapScoreType.size * scaleHint);
     const lineHeight = 1.5;
     const maxWidth = canvas.width * 0.85;
     const centerX = canvas.width / 2;
@@ -10932,13 +10969,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       text: epilogueTitle || "Epilogue",
       y: totalHeight,
       size: headingSize,
-      weight: TEXT_STYLES.h1.weight,
+      weight: recapHeadingType.weight,
       color: "#ffd978",
     });
     totalHeight += headingSize * lineHeight + 40;
 
     // Add epilogue text (wrap it)
-    ctx.font = `${TEXT_STYLES.body.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `${recapBodyType.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     const epilogueLines = wrapAnnouncementText(ctx, epilogueText || "", maxWidth);
     epilogueLines.forEach((line) => {
       renderItems.push({
@@ -10946,7 +10983,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         text: line,
         y: totalHeight,
         size: bodySize,
-        weight: TEXT_STYLES.body.weight,
+        weight: recapBodyType.weight,
         color: "#DFDFC4",
       });
       totalHeight += bodySize * lineHeight;
@@ -10972,28 +11009,28 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       switch (item.type) {
         case "heading":
           size = headingSize;
-          weight = TEXT_STYLES.h1.weight;
+          weight = recapHeadingType.weight;
           color = "#ffd978";
           break;
         case "label":
           size = labelSize;
-          weight = TEXT_STYLES.h3.weight;
+          weight = recapLabelType.weight;
           color = "rgba(255, 255, 255, 0.6)";
           break;
         case "name":
           size = nameSize;
-          weight = TEXT_STYLES.h2.weight;
+          weight = recapScoreType.weight;
           color = "#FFFFFF";
           break;
         case "thankyou":
           size = nameSize;
-          weight = TEXT_STYLES.h2.weight;
+          weight = recapScoreType.weight;
           color = "#ffd978";
           thankYouItemY = totalHeight; // Track this position
           break;
         default: // credit
           size = bodySize;
-          weight = TEXT_STYLES.body.weight;
+          weight = recapBodyType.weight;
           color = "#DFDFC4";
       }
 
@@ -11095,7 +11132,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.save();
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = `600 ${Math.round(22 * scaleHint)}px ${UI_FONT_FAMILY}`;
+      ctx.font = `${recapButtonType.weight} ${Math.round(recapButtonType.size * 1.22 * scaleHint)}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "#FFFFFF";
       ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
       ctx.shadowBlur = 8;
@@ -11148,9 +11185,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const scaleHint = Math.min(1, Math.max(0.6, Math.min(canvas.width / 1280, canvas.height / 720)));
 
     // Text styling
-    const headingSize = Math.round(TEXT_STYLES.h1.size * scaleHint);
-    const bodySize = Math.round(TEXT_STYLES.body.size * 1.15 * scaleHint);
-    const scoreSize = Math.round(TEXT_STYLES.h2.size * 0.9 * scaleHint);
+    const recapHeadingType = getCanvasSemanticForScreen("battleRecap", "heading", "h1");
+    const recapBodyType = getCanvasSemanticForScreen("battleRecap", "body", "body");
+    const recapScoreType = getCanvasSemanticForScreen("battleRecap", "score", "h2");
+    const recapButtonType = getCanvasSemanticForScreen("battleRecap", "button", "button");
+    const headingSize = Math.round(recapHeadingType.size * scaleHint);
+    const bodySize = Math.round(recapBodyType.size * 1.15 * scaleHint);
+    const scoreSize = Math.round(recapScoreType.size * 0.9 * scaleHint);
     const lineHeight = 1.6;
     const maxWidth = canvas.width * 0.8;
     const centerX = canvas.width / 2;
@@ -11269,7 +11310,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
       ctx.save();
       ctx.globalAlpha = alpha;
-      const weight = item.type === "heading" || item.type === "score" ? TEXT_STYLES.h1.weight : TEXT_STYLES.body.weight;
+      const weight = item.type === "heading" || item.type === "score" ? recapHeadingType.weight : recapBodyType.weight;
       ctx.font = `${weight} ${item.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.fillStyle = item.color;
       ctx.fillText(item.text, centerX, itemY);
@@ -11301,7 +11342,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = `600 ${Math.round(22 * scaleHint)}px ${UI_FONT_FAMILY}`;
+      ctx.font = `${recapButtonType.weight} ${Math.round(recapButtonType.size * 1.22 * scaleHint)}px ${UI_FONT_FAMILY}`;
       const continueLabel3 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue";
       ctx.fillText(continueLabel3, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
       ctx.restore();
