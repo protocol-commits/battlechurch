@@ -9737,7 +9737,8 @@ function activateDistrictVictory(districtName, score, campaign = "p1") {
   districtVictoryScroll.contentHeight = 0;
   districtVictoryScroll.showButton = false;
   districtVictoryActive = true;
-  // Continue recap music - don't change music
+  stopRecapMusic();
+  startMapMusic();
 }
 
 const CREDITS_CONTENT = [
@@ -27643,6 +27644,7 @@ function updateGame(dt) {
         keysJustPressed.delete("enter");
         keysJustPressed.delete("Enter");
         districtVictoryActive = false;
+        stopRecapMusic();
         returnToMapWithNextTown();
         return;
       }
