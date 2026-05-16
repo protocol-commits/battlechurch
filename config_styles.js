@@ -72,7 +72,7 @@
       // Semantic typography tokens for canvas-rendered game UI.
       // Use these like CSS typography roles (h1/h2/body/button/etc).
       canvasSemantic: {
-        eyebrow: { size: 16, weight: 600, lineHeight: 1.15 },
+        eyebrow: { size: 20, weight: 600, lineHeight: 1.15 },
         h1: { size: 76, weight: 900, lineHeight: 1.05 },
         h2: { size: 60, weight: 800, lineHeight: 1.2 },
         h3: { size: 38, weight: 700, lineHeight: 1.2 },
@@ -99,7 +99,7 @@
           button: "button",
         },
         battlefieldBrief: {
-          eyebrow: "subhead",
+          eyebrow: "eyebrow",
           title: "h1",
           button: "button",
         },
@@ -146,6 +146,7 @@
           button: "button",
         },
         districtIntro: {
+          eyebrow: "eyebrow",
           title: "h1",
           button: "button",
         },

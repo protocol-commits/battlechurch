@@ -1445,6 +1445,8 @@ const MELEE_SWING_LENGTH = 260;
     ctx.restore();
   }
   window.__bcPushTypographyDebugLabel = pushTypographyDebugLabel;
+  window.__bcGetCanvasSemanticToken = getCanvasSemanticToken;
+  window.__bcGetCanvasSemanticForScreen = getCanvasSemanticForScreen;
   const waveClearWipes = [];
   let lastStageForWipe = null;
 
@@ -1674,8 +1676,8 @@ const MELEE_SWING_LENGTH = 260;
     title,
     subtitle,
     eyebrowText = "",
-    eyebrowSize = Math.max(11, Math.round(TEXT_STYLES.body.size * 0.52)),
-    eyebrowWeight = 700,
+    eyebrowSize = getCanvasSemanticToken("eyebrow").size,
+    eyebrowWeight = getCanvasSemanticToken("eyebrow").weight,
     eyebrowColor = "rgba(231, 196, 126, 0.92)",
     eyebrowGap = 18,
     yBase,
@@ -2282,6 +2284,32 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
   ctx.scale(layout.scale, layout.scale);
   let revealComplete = false;
   if (showFormation) {
+    // Pre-measure formation card height so text layout respects the actual card size.
+    const _preMeasureCardH = (() => {
+      const cardType = window.UIStyles?.typography?.cardUi || {};
+      const contentInsetLeft = Number.isFinite(cardType.contentInsetLeft) ? cardType.contentInsetLeft : 12;
+      const contentInsetRight = Number.isFinite(cardType.contentInsetRight) ? cardType.contentInsetRight : 12;
+      const iconTextGap = Number.isFinite(cardType.iconTextGap) ? cardType.iconTextGap : 10;
+      const headerHeight = 42;
+      const iconSize = 30;
+      const sidePaddingPre = 90;
+      const totalAvailPre = layout.virtualCanvas.width - sidePaddingPre * 2;
+      const buttonCountPre = showFormation ? 3 : 1;
+      const buttonGapPre = showFormation ? 22 : 0;
+      const buttonWidthPre = Math.floor((totalAvailPre - buttonGapPre * (buttonCountPre - 1)) / buttonCountPre);
+      const textLeft = contentInsetLeft + iconSize + iconTextGap;
+      const textRight = buttonWidthPre - contentInsetRight;
+      const textWidth = Math.max(20, textRight - textLeft);
+      const descLineH = Math.max(1, Math.round((cardType.description ?? 13) * (cardType.descriptionLineHeight ?? 1.25)));
+      ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
+      const sampleDesc = "Meet weekly for group Bible study.";
+      const descLines = wrapAnnouncementText(ctx, sampleDesc, textWidth);
+      const maxDescLines = Math.max(1, Math.min(
+        Number.isFinite(cardType.maxDescriptionLines) ? Math.max(1, Math.floor(cardType.maxDescriptionLines)) : 6,
+        descLines.length || 1,
+      ));
+      return Math.max(148, Math.round(headerHeight + 24 + maxDescLines * descLineH + 14 + 24 + 14));
+    })();
     const lowerLayout = getAnnouncementTextLayout(ctx, layout.virtualCanvas, {
       title: "",
       subtitle: combinedSubtitle,
@@ -2291,8 +2319,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       weight: bodyWeight,
       maxWidthScale,
     });
-    // Fixed button position anchored from canvas bottom — independent of text layout.
-    const fixedButtonY = Math.round(layout.virtualCanvas.height - 148 - 22);
+    // Use measured card height so text block never overlaps formation cards.
+    const fixedButtonY = Math.round(layout.virtualCanvas.height - _preMeasureCardH - 22);
     const lowerBlockBottomLimit = fixedButtonY - 14;
     const lowerBlockHeight = Math.max(0, lowerLayout.textBlockHeight - lowerLayout.subtitleLineHeight);
     // Lower block is anchored a fixed gap above the formation cards.
@@ -5707,12 +5735,15 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const eyebrowText = formatScenarioForTitle(getScenarioTitle(eyebrowSource));
       const announceTitleType = getCanvasSemanticForScreen("levelAnnouncement", "title", "h2");
       const announceSubtitleType = getCanvasSemanticForScreen("levelAnnouncement", "subtitle", "body");
+      const announceEyebrowType = getCanvasSemanticForScreen("levelAnnouncement", "eyebrow", "eyebrow");
       // Increase this to add more vertical space between eyebrow and wave title.
       const waveEyebrowGap = 30;
       drawAnnouncementText(ctx, canvas, {
         title: displayTitle || "",
         subtitle: shouldShowSubtitle ? String(subtitle || "") : "",
         eyebrowText,
+        eyebrowSize: announceEyebrowType.size,
+        eyebrowWeight: announceEyebrowType.weight,
         eyebrowGap: waveEyebrowGap,
         yBase: titleY,
         alpha,
@@ -9425,7 +9456,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
     ctx.fillText(eyebrowText, centerX, eyebrowY);
-    pushTypographyDebugLabel("subhead", centerX, eyebrowY);
+    pushTypographyDebugLabel("eyebrow", centerX, eyebrowY);
     ctx.restore();
 
     ctx.save();
@@ -11805,11 +11836,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const headerSubtitleText = "";
       const eyebrowDone = isAnnouncementRevealComplete(eyebrowText, "");
       const headerDone = isAnnouncementRevealComplete(battleHeading, headerSubtitleText);
-      const eyebrowSize = 18;
+      const _diEyebrowType = getCanvasSemanticForScreen("districtIntro", "eyebrow", "eyebrow");
+      const _diTitleType = getCanvasSemanticForScreen("districtIntro", "title", "h1");
+      const _diBtnType = getCanvasSemanticForScreen("districtIntro", "button", "button");
+      const eyebrowSize = _diEyebrowType.size;
       const eyebrowGap = 16;
-      const headerTitleSize = 64;
-      const headerSubtitleSize = 34;
-      const bodyTitleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
+      const headerTitleSize = _diTitleType.size;
+      const headerSubtitleSize = Math.round(_diTitleType.size * 0.53);
+      const bodyTitleSize = _diTitleType.size;
       const headerLayout = getAnnouncementTextLayout(ctx, canvas, {
         title: battleHeading,
         subtitle: upcomingNumber > 1 ? `Battle ${upcomingNumber}` : "",
@@ -11843,6 +11877,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         maxWidthScale: 0.9,
         blockAlign: "center",
       });
+      pushTypographyDebugLabel("districtIntro.eyebrow", canvas.width / 2, eyebrowY - eyebrowSize);
       {
         drawAnnouncementText(ctx, canvas, {
           title: battleHeading,
@@ -11860,6 +11895,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           maxWidthScale: 0.9,
           blockAlign: "center",
         });
+        pushTypographyDebugLabel("districtIntro.title", canvas.width / 2, headerYBase - headerTitleSize);
       }
       const showContinueButton = eyebrowDone && headerDone;
       if (!showContinueButton) {
@@ -11884,14 +11920,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       ctx.save();
       const buttonText = "Continue";
-      const titleSize = Math.max(20, TEXT_STYLES.h1.size * 0.85);
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: battleHeading,
         subtitle: "",
-        titleSize,
+        titleSize: headerTitleSize,
         subtitleSize: 0,
         lineGap: 0,
-        weight: TEXT_STYLES.h1.weight,
+        weight: _diTitleType.weight || "bold",
         maxWidthScale: 0.92,
         position: "bottom",
         topMargin: 90,
@@ -11939,9 +11974,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowBlur = 6;
       ctx.shadowOffsetY = 1;
       ctx.textAlign = "center";
-      ctx.font = `18px ${PIXEL_UI_FONT_FAMILY}`;
+      ctx.font = `${_diBtnType.weight || "bold"} ${_diBtnType.size}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.textBaseline = "alphabetic";
       ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
+      pushTypographyDebugLabel("districtIntro.button", layout.offsetX + (buttonX + buttonWidth / 2) * layout.scale, layout.offsetY + buttonY * layout.scale);
       ctx.restore();
       if (districtIntroOverlay && districtIntroOverlay.alpha > 0.001) {
         const _coverImg = assets?.backgrounds?.mission1 || null;
