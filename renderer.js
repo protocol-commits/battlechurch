@@ -2732,6 +2732,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         ctx.shadowBlur = 3;
         ctx.shadowOffsetY = 1;
         ctx.fillText(config.label, textLeft, cardY + headerHeight / 2 + 1);
+        pushTypographyDebugLabel("cardTitle", layout.offsetX + textLeft * layout.scale, layout.offsetY + (cardY + headerHeight / 2) * layout.scale);
 
         ctx.shadowBlur = 0;
         ctx.shadowOffsetY = 0;
@@ -2747,16 +2748,18 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         );
         descriptionLines.slice(0, maxFormationLines).forEach((line, lineIndex) => {
           ctx.fillText(line, textLeft, descTop + lineIndex * descLineH);
+          if (lineIndex === 0) pushTypographyDebugLabel("cardBody", layout.offsetX + textLeft * layout.scale, layout.offsetY + descTop * layout.scale);
         });
 
         const statText = config.stat || "";
         if (statText) {
+          const badgeFontSize = cardType.badge ?? 13;
           const badgePadX = 12;
-          const badgeH = 24;
-          ctx.font = `700 ${cardType.badge ?? 13}px ${uiFontFamily}`;
+          const badgeH = badgeFontSize + 8;
+          ctx.font = `700 ${badgeFontSize}px ${uiFontFamily}`;
           const badgeW = ctx.measureText(statText).width + badgePadX * 2;
           const badgeX = textLeft;
-          const badgeY = cardY + cardH - 34;
+          const badgeY = cardY + cardH - badgeH - 10;
           ctx.fillStyle = "rgba(120, 34, 34, 0.95)";
           ctx.strokeStyle = "rgba(255, 220, 170, 0.8)";
           ctx.lineWidth = 1.5;
@@ -2765,6 +2768,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           ctx.fillText(statText, badgeX + badgeW / 2, badgeY + badgeH / 2);
+          pushTypographyDebugLabel("cardBody", layout.offsetX + badgeX * layout.scale, layout.offsetY + badgeY * layout.scale);
         }
       } else {
         ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
@@ -5196,6 +5200,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetY = 1;
     const titleY = cardY + headerHeight / 2 + (stat.weaponName ? -6 : 1);
     ctx.fillText(stat.label, textLeft, titleY);
+    pushTypographyDebugLabel("cardTitle", textLeft, titleY - titleSize);
     if (stat.weaponName) {
       ctx.font = `600 ${cardType.sublabel ?? 11}px ${uiFontFamily}`;
       ctx.fillStyle = canAfford ? "rgba(180, 220, 255, 0.75)" : "rgba(150, 175, 200, 0.45)";
@@ -5225,6 +5230,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(levelLabel, pillX + pillWidth / 2, titleY);
+      pushTypographyDebugLabel("cardBody", pillX, pillY);
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
     }
@@ -5235,6 +5241,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
     ctx.fillStyle = canAfford ? "rgba(235, 220, 195, 0.9)" : "rgba(200, 190, 170, 0.65)";
     const descriptionY = bodyTop + 8;
+    pushTypographyDebugLabel("cardBody", textLeft, descriptionY);
     const descriptionLines = wrapAnnouncementText(ctx, stat.description || "", bodyTextWidth);
     const descriptionLineHeight = descriptionLineH;
     const safeBottomY = cardY + cardH - 56;
@@ -5293,13 +5300,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         : level > 0
           ? `Upgrade to Level ${level + 1}: ${displayCost}`
           : `Cost: ${displayCost}`;
-    const costY = cardY + cardH - 26;
+    const costBadgeFontSize = cardType.badge ?? 13;
+    const costHeight = costBadgeFontSize + 8;
+    const costY = cardY + cardH - costHeight / 2 - 10;
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
-    ctx.font = `700 ${cardType.badge ?? 13}px ${uiFontFamily}`;
+    ctx.font = `700 ${costBadgeFontSize}px ${uiFontFamily}`;
     const costPadX = 14;
     const costWidth = ctx.measureText(costLabel).width + costPadX * 2;
-    const costHeight = 24;
     const costX = cardX + cardW - 22 - costWidth;
     const costYPos = costY - costHeight / 2;
     // Record pill center in screen coords for the spend fly effect target
@@ -5320,6 +5328,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(costLabel, costX + costWidth / 2, costY);
+    pushTypographyDebugLabel("cardBody", costX, costYPos);
     ctx.textAlign = "left";
 
     ctx.restore();
@@ -5335,7 +5344,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   });
 
   const continueY = buttonY + maxRenderedCardHeight + 30;
-  const continueHeight = 56;
+  const _upgradeBtn = getCanvasSemanticForScreen("churchUpgrade", "button", "button");
+  const continueHeight = Math.round(_upgradeBtn.size * 1.8);
 
   const actionGap = 22;
   const actionButtonWidth = Math.min(320, (totalAvailable - actionGap) / 2);
@@ -5358,9 +5368,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ctx.shadowOffsetY = 1;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `600 22px ${uiFontFamily}`;
+  ctx.font = `${_upgradeBtn.weight} ${_upgradeBtn.size}px ${uiFontFamily}`;
   const continueLabel2 = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue";
   ctx.fillText(continueLabel2, continueX2 + actionButtonWidth / 2, continueY + continueHeight / 2);
+  pushTypographyDebugLabel("churchUpgrade.button", layout.offsetX + (continueX2 + actionButtonWidth / 2) * layout.scale, layout.offsetY + continueY * layout.scale);
   ctx.restore();
 
   ctx.save();
@@ -5378,8 +5389,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ctx.fillStyle = undoAvailable ? EMBER_BUTTON_PALETTE.text : EMBER_BUTTON_PALETTE.textDisabled;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `600 22px ${uiFontFamily}`;
+  ctx.font = `${_upgradeBtn.weight} ${_upgradeBtn.size}px ${uiFontFamily}`;
   ctx.fillText("Reset", resetX + actionButtonWidth / 2, continueY + continueHeight / 2);
+  pushTypographyDebugLabel("churchUpgrade.button", layout.offsetX + (resetX + actionButtonWidth / 2) * layout.scale, layout.offsetY + continueY * layout.scale);
   ctx.restore();
 
   bounds.push({
@@ -13998,12 +14010,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.shadowBlur = 3;
       ctx.shadowOffsetY = 1;
       ctx.fillText(stat.label || "", textLeft, cardY + headerHeight / 2 + 1);
+      pushTypographyDebugLabel("cardTitle", textLeft, cardY + headerHeight / 2 - labelSize);
 
       // Description
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
       ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
       ctx.fillStyle = isDimmed ? "rgba(175, 165, 145, 0.5)" : "rgba(235, 220, 195, 0.9)";
+      pushTypographyDebugLabel("cardBody", textLeft, bodyTop + 8);
       const descLines = wrapAnnouncementText(ctx, stat.description || "", textWidth);
       const denomSafeBottomY = cardY + cardH - 44;
       const maxDenomLines = Math.max(

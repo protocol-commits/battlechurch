@@ -285,20 +285,28 @@
         weight: 600,
       },
       // Shared typography for card-style UI (formation cards + church upgrade cards).
-      cardUi: {
-        title: 36,
-        description: 22,
-        badge: 28,
-        sublabel: 28,
-        levelPill: 28,
-        titleLineHeight: 1.05,
-        descriptionLineHeight: 1.25,
-        sublabelLineHeight: 1.15,
-        minHeight: 0,
-        maxDescriptionLines: 6,
-        contentInsetLeft: 12,
-        contentInsetRight: 12,
-        iconTextGap: 10,
+      get cardUi() {
+        const s = UIStyles.typography.canvasSemantic;
+        const usage = UIStyles.typography.canvasSemanticUsage?.churchUpgrade || {};
+        const titleRole = usage.cardTitle || "subhead";
+        const bodyRole = usage.cardBody || "caption";
+        const titleToken = s[titleRole] || s.subhead;
+        const bodyToken = s[bodyRole] || s.caption;
+        return {
+          title: titleToken.size,
+          description: bodyToken.size,
+          badge: Math.round(bodyToken.size * 1.1),
+          sublabel: bodyToken.size,
+          levelPill: bodyToken.size,
+          titleLineHeight: titleToken.lineHeight || 1.05,
+          descriptionLineHeight: bodyToken.lineHeight || 1.25,
+          sublabelLineHeight: bodyToken.lineHeight || 1.15,
+          minHeight: 0,
+          maxDescriptionLines: 6,
+          contentInsetLeft: 12,
+          contentInsetRight: 12,
+          iconTextGap: 10,
+        };
       },
       footerControlsHint: {
         size: 16,
