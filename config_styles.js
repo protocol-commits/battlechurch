@@ -79,7 +79,7 @@
         subhead: { size: 32, weight: 600, lineHeight: 1.25 },
         body: { size: 30, weight: 600, lineHeight: 1.3 },
         caption: { size: 20, weight: 500, lineHeight: 1.25 },
-        button: { size: 20, weight: 600, lineHeight: 1.1 },
+        button: { size: 30, weight: 600, lineHeight: 1.1 },
       },
       // Per-screen role map so each screen can bind to semantic roles.
       canvasSemanticUsage: {
@@ -221,7 +221,7 @@
           classRowTitle:    u.h2,
           classRowMeta:     u.body,
           classScrollGlyph: u.scroll,
-          mainButtonLabel:  Math.round(btnToken.size * 2.0),
+          mainButtonLabel:  Math.round(btnToken.size),
         };
       },
       get canvasUtilityPanels() {
