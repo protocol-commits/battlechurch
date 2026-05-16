@@ -918,17 +918,19 @@ const MELEE_SWING_LENGTH = 260;
     const tailWidth = 14;
     const tailHeight = 10;
     const padX = 10;
+    const bubbleCaptionType = getCanvasSemanticForScreen("battleRecap", "caption", "caption");
+    const bubbleFontSize = bubbleCaptionType.size;
+    const bubbleHeight = Math.round(bubbleFontSize * 2.0);
     recapTallyState.inviteBubbles.forEach((bubble) => {
       const fadeAlpha = Math.max(0, Math.min(1, (bubble.life || 0) / Math.max(0.001, bubble.maxLife || 1)));
       if (fadeAlpha <= 0) return;
       const text = bubble.text || "";
       ctx.save();
-      ctx.font = `600 13px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.font = `${bubbleCaptionType.weight} ${bubbleFontSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       const textWidth = ctx.measureText(text).width;
       const bubbleWidth = textWidth + padX * 2;
-      const bubbleHeight = 30;
       const bubbleX = bubble.x - bubbleWidth / 2;
       const bubbleY = bubble.y - bubbleHeight - 10;
       ctx.globalAlpha = fadeAlpha * 0.9;
@@ -955,7 +957,7 @@ const MELEE_SWING_LENGTH = 260;
       ctx.stroke();
       ctx.restore();
       ctx.save();
-      ctx.font = `600 13px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.font = `${bubbleCaptionType.weight} ${bubbleFontSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.globalAlpha = fadeAlpha;
@@ -3665,23 +3667,31 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     buttonKey = "recap",
   } = options;
 
-  const titleSize = 32;
-  const bodySize = 28;
+  const _gs = (usage, fallback) => (window.__bcGetCanvasSemanticForScreen || (() => ({ size: 0, weight: "600", lineHeight: 1.2 })))("battleRecap", usage, fallback);
+  const _debugLabel = (role, x, y) => { if (window.__bcPushTypographyDebugLabel) window.__bcPushTypographyDebugLabel(role, x, y); };
+  const recapHeadingType = _gs("heading", "h1");
+  const recapLabelType = _gs("label", "h3");
+  const recapBodyType = _gs("body", "body");
+  const recapScoreType = _gs("score", "h2");
+  const recapCaptionType = _gs("caption", "caption");
+  const recapBtnType = _gs("button", "button");
+  const titleSize = recapHeadingType.size;
+  const bodySize = recapLabelType.size;
   const lineGap = Math.round(titleSize * 1.08);
   ctx.save();
   const layout = getAnnouncementScreenLayout(ctx, canvas, {
     title,
     subtitle: "",
     titleSize,
-    subtitleSize: TEXT_STYLES.h2.size,
+    subtitleSize: recapScoreType.size,
     lineGap,
-    weight: TEXT_STYLES.h1.weight,
+    weight: recapHeadingType.weight,
     maxWidthScale: 0.84,
     position: "top",
     topMargin: 72,
     bottomMargin: 88,
     rowGap: 36,
-    buttonHeight: 72,
+    buttonHeight: Math.round(recapBtnType.size * 1.8),
     buttonCount: 1,
   });
   ctx.translate(layout.offsetX, layout.offsetY);
@@ -3875,7 +3885,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const nameY = slotY + slotSize + 16;
       ctx.save();
       ctx.fillStyle = "rgba(234,246,255,0.85)";
-      ctx.font = `600 12px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.font = `${recapCaptionType.weight} ${recapCaptionType.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.fillText(entry?.name || "", slotX + slotSize / 2, nameY);
       ctx.restore();
@@ -3952,7 +3962,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       if (displayedHealth !== null) {
         ctx.save();
         ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.82)";
-        ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        ctx.font = `${recapScoreType.weight} ${Math.round(recapScoreType.size * 0.42)}px ${ANNOUNCEMENT_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.fillText(`${displayedHealth}`, slotX + stripSlotSize / 2, healthBaselineY);
         ctx.restore();
@@ -4030,7 +4040,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
       const npcNameBaselineY = portraitStripY + stripSlotSize + 18;
       ctx.save();
       ctx.fillStyle = isCurrent ? highlightValueColor : "rgba(234, 246, 255, 0.85)";
-      ctx.font = `600 12px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.font = `${recapCaptionType.weight} ${recapCaptionType.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       ctx.fillText(entry?.name || "", slotX + stripSlotSize / 2, npcNameBaselineY);
       ctx.restore();
@@ -4071,7 +4081,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
 
     ctx.save();
     ctx.fillStyle = "rgba(234, 246, 255, 0.7)";
-    ctx.font = `600 16px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `${recapBodyType.weight} ${recapBodyType.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
     ctx.restore();
 
@@ -4175,7 +4185,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     const badgeCenterY = rowTopY + 64;
     ctx.save();
     ctx.fillStyle = baseLabelColor;
-    ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+    ctx.font = `${recapLabelType.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
     ctx.textAlign = "left";
     drawHighlightedLabel(line.label || "Performance Bonuses:", x, labelY);
     ctx.restore();
@@ -4209,14 +4219,14 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         if (entry?.rawStat != null) {
           ctx.save();
           ctx.fillStyle = "rgba(234, 246, 255, 0.5)";
-          ctx.font = `500 12px ${ANNOUNCEMENT_FONT_FAMILY}`;
+          ctx.font = `${recapCaptionType.weight} ${recapCaptionType.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
           ctx.textAlign = "center";
           ctx.fillText(formatNumber(entry.rawStat), badgeCenterX, rowTopY - 2);
           ctx.restore();
         }
         ctx.save();
         ctx.fillStyle = badgeValueColor;
-        ctx.font = `700 24px ${ANNOUNCEMENT_FONT_FAMILY}`;
+        ctx.font = `${recapScoreType.weight} ${Math.round(recapScoreType.size * 0.42)}px ${ANNOUNCEMENT_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.fillText(`${formatNumber(displayedBadgeValue)}`, badgeCenterX, rowTopY + 18);
         ctx.restore();
@@ -4239,7 +4249,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
         .filter(Boolean);
       ctx.save();
       ctx.fillStyle = "rgba(234, 246, 255, 0.9)";
-      ctx.font = `600 13px ${ANNOUNCEMENT_FONT_FAMILY}`;
+      ctx.font = `${recapCaptionType.weight} ${recapCaptionType.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.textAlign = "center";
       const nameStartY = rowTopY + 116;
       nameLines.forEach((textLine, lineIndex) => {
@@ -4357,8 +4367,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   roundRect(ctx, panelX, panelTop, panelWidth, panelHeight, 26, true, true);
   ctx.restore();
 
-  const countSize = 58;
-  const headingTitleLineHeight = Math.round(titleSize * 1.02);
+  const countSize = recapScoreType.size;
+  const headingTitleLineHeight = Math.round(titleSize * (recapHeadingType.lineHeight || 1.02));
   const getFontMetrics = (sampleText, fontSize) => {
     const metrics = ctx.measureText(sampleText);
     const ascent = Number.isFinite(metrics.actualBoundingBoxAscent)
@@ -4370,16 +4380,17 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     return { ascent, descent };
   };
   ctx.fillStyle = highlightValueColor;
-  ctx.font = `${TEXT_STYLES.h1.weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.font = `${recapHeadingType.weight} ${titleSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const wrappedHeadingTitle = wrapText(ctx, headingCombined, contentWidth);
   const titleMetrics = getFontMetrics("Battlefield Report", titleSize);
-  wrappedHeadingTitle.forEach((textLine) => {
+  wrappedHeadingTitle.forEach((textLine, _ti) => {
     ctx.fillText(textLine, contentX, cursorY);
+    if (_ti === 0) _debugLabel("battleRecap.heading", layout.offsetX + contentX * layout.scale, layout.offsetY + cursorY * layout.scale);
     cursorY += headingTitleLineHeight;
   });
   const lastTitleBaselineY = cursorY - headingTitleLineHeight;
   const headerBottomY = lastTitleBaselineY + titleMetrics.descent;
-  ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.font = `${recapScoreType.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const countMetrics = getFontMetrics("Congregation Count", countSize);
   const countBaselineY = headerBottomY + 2 * 28 + countMetrics.ascent;
   const countTopY = countBaselineY - countMetrics.ascent;
@@ -4409,7 +4420,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
     return;
   }
 
-  ctx.font = `${TEXT_STYLES.h1.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.font = `${recapScoreType.weight} ${countSize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   const totalValue = recapTallyState.totalValue;
   const startCount = Number.isFinite(recapData?.startCount) ? recapData.startCount : 0;
   const deltaAdded = Math.max(0, Math.round(totalValue - startCount));
@@ -4417,9 +4428,11 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.fillStyle = baseLabelColor;
   ctx.textAlign = "left";
   ctx.fillText(countLabel, contentX, cursorY);
+  _debugLabel("battleRecap.body", layout.offsetX + contentX * layout.scale, layout.offsetY + cursorY * layout.scale);
   countNumberX = recapTotalColumnX;
   ctx.fillStyle = recapTallyState.flashTimer > 0 ? highlightValueFlash : highlightValueColor;
   ctx.fillText(formatNumber(totalValue || 0), countNumberX, cursorY);
+  _debugLabel("battleRecap.score", layout.offsetX + countNumberX * layout.scale, layout.offsetY + cursorY * layout.scale);
   if (deltaAdded > 0) {
     const totalValueWidth = ctx.measureText(formatNumber(totalValue || 0)).width;
     ctx.save();
@@ -4446,7 +4459,8 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   const activeIndex = recapTallyState.stepIndex;
   const maxVisible = recapTallyState.done ? lines.length : Math.min(lines.length, activeIndex + 1);
   ctx.fillStyle = baseLabelColor;
-  ctx.font = `${TEXT_STYLES.h3.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.font = `${recapLabelType.weight} ${bodySize}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  _debugLabel("battleRecap.label", layout.offsetX + contentX * layout.scale, layout.offsetY + cursorY * layout.scale);
   for (let i = 0; i < maxVisible; i += 1) {
     const line = lines[i];
     const isLastLine = i === maxVisible - 1;
@@ -4689,7 +4703,7 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   }
 
   const buttonWidth = Math.min(420, Math.round(layout.virtualCanvas.width * 0.6));
-  const buttonHeight = 72;
+  const buttonHeight = Math.round(recapBtnType.size * 1.8);
   const buttonX = Math.round((layout.virtualCanvas.width - buttonWidth) / 2);
   const buttonY = Math.round(Math.max(layout.buttonY || 0, cursorY + 16));
 
@@ -4697,10 +4711,10 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.fillStyle = getEmberButtonGradient(ctx, buttonY, buttonHeight);
   ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
   ctx.lineWidth = 2;
-  roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, true, true);
+  roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, true, true);
   if (isAnnouncementButtonFocused(buttonKey, 0)) {
-    drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
-    drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 18, 0.45);
+    drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
+    drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
   }
   ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
   ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
@@ -4708,9 +4722,10 @@ function drawRecapBonusScreen(ctx, canvas, options = {}) {
   ctx.shadowOffsetY = 1;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `600 24px ${uiFontFamily}`;
+  ctx.font = `${recapBtnType.weight} ${recapBtnType.size}px ${uiFontFamily}`;
   const continueLabel = (typeof GameText !== 'undefined' && GameText.buttons?.continue) || "Continue";
   ctx.fillText(continueLabel, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+  _debugLabel("battleRecap.button", layout.offsetX + (buttonX + buttonWidth / 2) * layout.scale, layout.offsetY + buttonY * layout.scale);
   ctx.restore();
 
   if (typeof window !== "undefined") {
@@ -7631,6 +7646,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawVisitorIntroOverlay() {
     const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
     drawBackground();
+    const _viTitleType = getCanvasSemanticForScreen("welcomeVisitors", "title", "h1");
+    const _viSubtitleType = getCanvasSemanticForScreen("welcomeVisitors", "subtitle", "body");
+    const _viBtnType = getCanvasSemanticForScreen("welcomeVisitors", "button", "button");
     drawMissionBriefScreen(ctx, canvas, {
       title: "Welcome Visitors",
       subtitle: "Welcome the visitors while politely keeping your members happy.",
@@ -7638,6 +7656,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       uiFontFamily: UI_FONT_FAMILY,
       buttonKey: "visitorIntro",
       setMissionBriefActive: false,
+      titleSize: _viTitleType.size,
+      titleWeight: _viTitleType.weight,
+      bodySize: _viSubtitleType.size,
+      bodyWeight: _viSubtitleType.weight,
     });
   }
 

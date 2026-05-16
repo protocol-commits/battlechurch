@@ -74,7 +74,7 @@
       canvasSemantic: {
         eyebrow: { size: 20, weight: 600, lineHeight: 1.15 },
         h1: { size: 76, weight: 900, lineHeight: 1.05 },
-        h2: { size: 60, weight: 800, lineHeight: 1.2 },
+        h2: { size: 60, weight: 800, lineHeight: 1.0 },
         h3: { size: 38, weight: 700, lineHeight: 1.2 },
         subhead: { size: 32, weight: 600, lineHeight: 1.25 },
         body: { size: 30, weight: 600, lineHeight: 1.3 },
@@ -130,10 +130,11 @@
           hint: "caption",
         },
         battleRecap: {
-          heading: "h1",
+          heading: "h3",
           label: "h3",
           body: "body",
           score: "h2",
+          caption: "caption",
           button: "button",
         },
         buttons: {
