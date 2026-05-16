@@ -72,14 +72,14 @@
       // Semantic typography tokens for canvas-rendered game UI.
       // Use these like CSS typography roles (h1/h2/body/button/etc).
       canvasSemantic: {
-        eyebrow: { size: 13, weight: 600, lineHeight: 1.15 },
-        h1: { size: 56, weight: 900, lineHeight: 1.05 },
-        h2: { size: 40, weight: 800, lineHeight: 1.2 },
-        h3: { size: 28, weight: 700, lineHeight: 1.2 },
-        subhead: { size: 22, weight: 600, lineHeight: 1.25 },
-        body: { size: 20, weight: 600, lineHeight: 1.3 },
-        caption: { size: 14, weight: 500, lineHeight: 1.25 },
-        button: { size: 18, weight: 600, lineHeight: 1.1 },
+        eyebrow: { size: 16, weight: 600, lineHeight: 1.15 },
+        h1: { size: 76, weight: 900, lineHeight: 1.05 },
+        h2: { size: 60, weight: 800, lineHeight: 1.2 },
+        h3: { size: 38, weight: 700, lineHeight: 1.2 },
+        subhead: { size: 32, weight: 600, lineHeight: 1.25 },
+        body: { size: 30, weight: 600, lineHeight: 1.3 },
+        caption: { size: 20, weight: 500, lineHeight: 1.25 },
+        button: { size: 20, weight: 600, lineHeight: 1.1 },
       },
       // Per-screen role map so each screen can bind to semantic roles.
       canvasSemanticUsage: {
@@ -113,6 +113,22 @@
           moveDamageUnit: "caption",
           moveDesc: "caption",
         },
+        mapHeading: {
+          title: "h3",
+          subtitle: "subhead",
+        },
+        pauseMenu: {
+          title: "h1",
+          button: "button",
+          caption: "caption",
+        },
+        countdown: {
+          label: "h1",
+        },
+        playingInstructions: {
+          title: "h3",
+          hint: "caption",
+        },
         battleRecap: {
           heading: "h1",
           label: "h3",
@@ -123,27 +139,73 @@
         buttons: {
           default: "button",
         },
+        levelAnnouncement: {
+          title: "h2",
+          subtitle: "body",
+          eyebrow: "eyebrow",
+          button: "button",
+        },
+        districtIntro: {
+          title: "h1",
+          button: "button",
+        },
+        titleScreen: {
+          title: "h1",
+          button: "button",
+          hint: "caption",
+        },
+        congregation: {
+          title: "h1",
+          button: "button",
+          hint: "caption",
+        },
+        churchUpgrade: {
+          title: "h1",
+          graceLabel: "h2",
+          cardTitle: "subhead",
+          cardBody: "caption",
+          button: "button",
+        },
+        bossIntro: {
+          eyebrow: "eyebrow",
+          title: "h1",
+          button: "button",
+        },
+        welcomeVisitors: {
+          title: "h1",
+          subtitle: "body",
+          button: "button",
+        },
       },
       // ─── Utility Panel Scale ──────────────────────────────────────────────
       // Single source of truth for all utility screens (Save/Load, More,
       // Settings, Edit Save, New Save). Body = 16px; all other sizes derive
       // from it. Colors reference UIStyles.colors tokens — no inline hex here.
-      utilityPanel: {
-        eyebrow:  13,   // 600  gold@70%     — screen category label "SAVE FILES"
-        h1:       36,   // 700  gold         — panel title "Choose Save"
-        h2:       26,   // 600  softWhite    — save file name, card title
-        h3:       20,   // 600  softWhite    — settings row label, section header
-        body:     16,   // 400  softWhite@80% — row meta, descriptions
-        caption:  13,   // 400  muted        — footer hints, timestamps
-        badge:    12,   // 700  teal/crimson  — "ACTIVE" / danger labels
-        input:    18,   // 500  softWhite    — text inside input fields
-        button:   18,   // 600  softWhite    — action button labels
-        scroll:   18,   // 600  gold@70%     — ▲ ▼ scroll glyphs
+      get utilityPanel() {
+        const s = UIStyles.typography.canvasSemantic;
+        // Utility/title menus derive from semantic roles so one typography
+        // system drives both in-world and utility canvas UI.
+        return {
+          eyebrow: Math.round(s.eyebrow.size),
+          h1: Math.round(s.h3.size * 1.28),
+          h2: Math.round(s.h3.size * 0.93),
+          h3: Math.round(s.subhead.size * 0.9),
+          body: Math.round(s.body.size * 0.8),
+          caption: Math.round(s.caption.size),
+          badge: Math.round(s.caption.size * 0.92),
+          input: Math.round(s.button.size),
+          button: Math.round(s.button.size),
+          scroll: Math.round(s.button.size),
+        };
       },
 
       // ─── Aliases (back-compat — existing code keeps working) ─────────────
       get canvasTitleMenu() {
         const u = UIStyles.typography.utilityPanel;
+        const s = UIStyles.typography.canvasSemantic;
+        const titleUsage = UIStyles.typography.canvasSemanticUsage?.titleScreen || {};
+        const btnRole = titleUsage.button || "button";
+        const btnToken = s[btnRole] || s.button;
         return {
           saveHeader:       u.h1,
           saveAccountMeta:  u.caption,
@@ -158,7 +220,7 @@
           classRowTitle:    u.h2,
           classRowMeta:     u.body,
           classScrollGlyph: u.scroll,
-          mainButtonLabel:  42,
+          mainButtonLabel:  Math.round(btnToken.size * 2.0),
         };
       },
       get canvasUtilityPanels() {
@@ -171,20 +233,27 @@
           scrollGlyph: u.scroll,
         };
       },
-      playingInstructions: {
-        loading: 14,
-        h1: 20,
-        h2: 15,
-        body: 18,
-        bullet: 18,
-        link: 18,
-        lineH1: 32,
-        lineH2: 26,
-        lineBody: 20,
-        lineBullet: 20,
-        lineSpacer: 10,
-        lineLink: 22,
-        scrollArrow: 11,
+      get playingInstructions() {
+        const s = UIStyles.typography.canvasSemantic;
+        const h1 = Math.round(s.h3.size * 0.72);
+        const h2 = Math.round(s.subhead.size * 0.68);
+        const body = Math.round(s.body.size * 0.9);
+        const caption = Math.round(s.caption.size);
+        return {
+          loading: caption,
+          h1,
+          h2,
+          body,
+          bullet: body,
+          link: body,
+          lineH1: Math.round(h1 * 1.6),
+          lineH2: Math.round(h2 * 1.73),
+          lineBody: Math.round(body * 1.12),
+          lineBullet: Math.round(body * 1.12),
+          lineSpacer: 10,
+          lineLink: Math.round(body * 1.22),
+          scrollArrow: Math.max(10, Math.round(caption * 0.85)),
+        };
       },
       howToPlayScene: {
         title: 48,
@@ -294,6 +363,11 @@
     // =====================
     // THEME (CSS-LIKE TOKENS)
     // =====================
+    debug: {
+      // Draw small typography role tags (H1, BODY, etc.) on canvas text.
+      typographyLabels: false,
+    },
+
     theme: {
       name: "desolate",
       palette: DESOLATE_PALETTE_HEX,

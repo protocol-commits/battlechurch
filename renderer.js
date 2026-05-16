@@ -1411,6 +1411,40 @@ const MELEE_SWING_LENGTH = 260;
     const role = usage[usageKey] || fallbackRole || "body";
     return getCanvasSemanticToken(role);
   }
+  function isTypographyDebugEnabled() {
+    return Boolean(window.UIStyles?.debug?.typographyLabels);
+  }
+  function pushTypographyDebugLabel(role, x, y) {
+    if (!isTypographyDebugEnabled()) return;
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (!window.__bcTypographyDebugLabels) window.__bcTypographyDebugLabels = [];
+    window.__bcTypographyDebugLabels.push({ role: String(role || "body").toUpperCase(), x, y });
+  }
+  function clearTypographyDebugLabels() {
+    window.__bcTypographyDebugLabels = [];
+  }
+  function drawTypographyDebugLabels(ctx) {
+    if (!isTypographyDebugEnabled()) return;
+    const labels = window.__bcTypographyDebugLabels || [];
+    if (!labels.length) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `700 10px ${PIXEL_UI_FONT_FAMILY}`;
+    labels.forEach((entry) => {
+      const x = Math.round(entry.x + 4);
+      const y = Math.round(entry.y - 4);
+      const tag = entry.role;
+      const w = ctx.measureText(tag).width + 6;
+      ctx.fillStyle = "rgba(0,0,0,0.55)";
+      ctx.fillRect(x - 2, y - 10, w, 12);
+      ctx.fillStyle = "rgba(255,215,145,0.92)";
+      ctx.fillText(tag, x, y);
+    });
+    ctx.restore();
+  }
+  window.__bcPushTypographyDebugLabel = pushTypographyDebugLabel;
   const waveClearWipes = [];
   let lastStageForWipe = null;
 
@@ -2175,6 +2209,7 @@ function showMissionBriefDialog(title, body, identifier, highlight = null, optio
 }
 
 function drawMissionBriefScreen(ctx, canvas, options = {}) {
+  const missionEyebrowType = getCanvasSemanticForScreen("missionIntro", "eyebrow", "eyebrow");
   const {
     title = "",
     subtitle = "",
@@ -2195,7 +2230,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
     maxWidthScale = 0.96,
     blockAlign = null,
     eyebrowText = "",
-    eyebrowSize = 11,
+    eyebrowSize = missionEyebrowType.size,
     eyebrowOffset = -8,
     eyebrowColor = "rgba(231, 196, 126, 0.9)",
     sectionGap = 22,
@@ -2334,6 +2369,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           ctx.fillText(line, lineX, lineY);
           lineY += eyebrowLineHeight;
         });
+        pushTypographyDebugLabel("eyebrow", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + eyebrowY * layout.scale);
         ctx.restore();
       }
     }
@@ -2359,6 +2395,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       maxWidthScale,
       blockAlign: "fullCenter",
     });
+    pushTypographyDebugLabel("h1", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + titleYBase * layout.scale);
 
     const upperRevealComplete = isAnnouncementRevealComplete(title, "");
 
@@ -2379,6 +2416,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         maxWidthScale,
         blockAlign: "fullCenter",
       });
+      pushTypographyDebugLabel("body", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + lowerYBase * layout.scale);
     }
 
     revealComplete =
@@ -2424,6 +2462,8 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
       maxWidthScale,
       blockAlign: blockAlign || "full",
     });
+    pushTypographyDebugLabel("h1", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + layout.titleY * layout.scale);
+    if (combinedSubtitle) pushTypographyDebugLabel("body", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + (layout.titleY + Math.round(titleSize * TEXT_STYLES.h1.lineHeight)) * layout.scale);
     if (eyebrowText) {
       const scaleHint = Math.min(
         1,
@@ -2455,6 +2495,7 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
         ctx.fillText(line, lineX, lineY);
         lineY += eyebrowLineHeight;
       });
+      pushTypographyDebugLabel("eyebrow", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + eyebrowY * layout.scale);
       ctx.restore();
     }
     revealComplete = isAnnouncementRevealComplete(title, combinedSubtitle);
@@ -2697,14 +2738,16 @@ function drawMissionBriefScreen(ctx, canvas, options = {}) {
           drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 20);
           drawButtonReflection(ctx, x, buttonY, buttonWidth, buttonHeight, 18, 0.45);
         }
+        const missionBtnType = getCanvasSemanticForScreen("missionIntro", "button", "button");
         ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
         ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
         ctx.shadowBlur = 6;
         ctx.shadowOffsetY = 1;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `600 24px ${uiFontFamily}`;
+        ctx.font = `${missionBtnType.weight} ${Math.max(18, missionBtnType.size)}px ${uiFontFamily}`;
         ctx.fillText(config.label, x + buttonWidth / 2, buttonY + 40);
+        pushTypographyDebugLabel("button", layout.offsetX + (x + buttonWidth / 2) * layout.scale, layout.offsetY + (buttonY + 40) * layout.scale);
       }
       ctx.restore();
 
@@ -4836,22 +4879,25 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   ctx.translate(layout.offsetX, layout.offsetY);
   ctx.scale(layout.scale, layout.scale);
 
+  const churchUpgradeTitleType = getCanvasSemanticForScreen("churchUpgrade", "title", "h1");
+  const churchUpgradeGraceType = getCanvasSemanticForScreen("churchUpgrade", "graceLabel", "h2");
   // Draw static title and subtitle with typewriter
   drawAnnouncementText(ctx, layout.virtualCanvas, {
     title,
     subtitle: staticSubtitle,
     yBase: layout.titleY,
-    titleSize: TEXT_STYLES.h1.size,
+    titleSize: churchUpgradeTitleType.size,
     subtitleSize: TEXT_STYLES.h2.size,
-    weight: TEXT_STYLES.h1.weight,
+    weight: churchUpgradeTitleType.weight,
     subtitleWeight: TEXT_STYLES.h2.weight,
-    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    lineGap: Math.round(churchUpgradeTitleType.size * churchUpgradeTitleType.lineHeight),
     alpha: 1,
     typewriter: true,
     textPalette: HELLFIRE_TEXT_PALETTE,
     maxWidthScale: 0.96,
     blockAlign: "center",
   });
+  pushTypographyDebugLabel("h1", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + layout.titleY * layout.scale);
 
   const revealComplete = isAnnouncementRevealComplete(title, staticSubtitle);
   if (!revealComplete) {
@@ -4877,12 +4923,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const graceY = baseButtonY + 10;
   ctx.save();
   ctx.fillStyle = "#DDA677";
-  ctx.font = `${TEXT_STYLES.h2.weight} ${TEXT_STYLES.h2.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.font = `${churchUpgradeGraceType.weight} ${churchUpgradeGraceType.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
   ctx.shadowBlur = 20;
   ctx.fillText(graceText, layout.virtualCanvas.width / 2, graceY);
+  pushTypographyDebugLabel("h2", layout.offsetX + layout.virtualCanvas.width / 2 * layout.scale, layout.offsetY + graceY * layout.scale);
   ctx.restore();
 
   // Buttons start after grace row
@@ -5569,17 +5616,19 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           fireOverlay.draw(ctx);
         }
       }
+      const distroTitleType = getCanvasSemanticForScreen("districtIntro", "title", "h1");
       const titleSize = isPastorSpeech
         ? Math.max(20, TEXT_STYLES.h2.size * 0.95)
-        : Math.max(28, TEXT_STYLES.h1.size * 1.35);
+        : Math.max(28, distroTitleType.size * 1.35);
+      const titleWeight = isPastorSpeech ? TEXT_STYLES.h2.weight : distroTitleType.weight;
       const buttonCount = isPastorSpeech ? 1 : 0;
       const layout = getAnnouncementScreenLayout(ctx, canvas, {
         title: displayTitle || "",
         subtitle: "",
         titleSize,
         subtitleSize: TEXT_STYLES.h2.size,
-        lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
-        weight: TEXT_STYLES.h1.weight,
+        lineGap: Math.round(titleSize * (distroTitleType.lineHeight || 1.05)),
+        weight: titleWeight,
         maxWidthScale: 0.92,
         position: "bottom",
         topMargin: 90,
@@ -5598,11 +5647,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         alpha,
         typewriter: true,
         titleSize,
-        weight: TEXT_STYLES.h1.weight,
+        weight: titleWeight,
         textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale: 0.92,
       });
+      pushTypographyDebugLabel(isPastorSpeech ? "h2" : "h1", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + layout.titleY * layout.scale);
       if (isPastorSpeech) {
+        const pastorBtnType = getCanvasSemanticForScreen("districtIntro", "button", "button");
         const buttonText = "Continue";
         const buttonWidth = Math.min(240, layout.virtualCanvas.width * 0.5);
         const buttonHeight = 50;
@@ -5635,9 +5686,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowBlur = 6;
         ctx.shadowOffsetY = 1;
         ctx.textAlign = "center";
-        ctx.font = `18px ${UI_FONT_FAMILY}`;
+        ctx.font = `${pastorBtnType.weight} ${Math.max(16, pastorBtnType.size)}px ${UI_FONT_FAMILY}`;
         ctx.textBaseline = "alphabetic";
         ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
+        pushTypographyDebugLabel("button", layout.offsetX + (buttonX + buttonWidth / 2) * layout.scale, layout.offsetY + (buttonY + buttonHeight / 2 + 6) * layout.scale);
       }
       ctx.restore();
     } else {
@@ -5653,6 +5705,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         return "";
       })();
       const eyebrowText = formatScenarioForTitle(getScenarioTitle(eyebrowSource));
+      const announceTitleType = getCanvasSemanticForScreen("levelAnnouncement", "title", "h2");
+      const announceSubtitleType = getCanvasSemanticForScreen("levelAnnouncement", "subtitle", "body");
       // Increase this to add more vertical space between eyebrow and wave title.
       const waveEyebrowGap = 30;
       drawAnnouncementText(ctx, canvas, {
@@ -5663,13 +5717,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         yBase: titleY,
         alpha,
         typewriter: true,
-        titleSize: TEXT_STYLES.h2.size,
-        subtitleSize: TEXT_STYLES.body.size,
-        lineGap: Math.round(TEXT_STYLES.h2.size * TEXT_STYLES.h2.lineHeight),
-        weight: TEXT_STYLES.h2.weight,
-        subtitleWeight: TEXT_STYLES.body.weight,
+        titleSize: announceTitleType.size,
+        subtitleSize: announceSubtitleType.size,
+        lineGap: Math.round(announceTitleType.size * announceTitleType.lineHeight),
+        weight: announceTitleType.weight,
+        subtitleWeight: announceSubtitleType.weight,
         textPalette: HELLFIRE_TEXT_PALETTE,
       });
+      pushTypographyDebugLabel("h2", canvas.width / 2, titleY);
+      if (eyebrowText) pushTypographyDebugLabel("eyebrow", canvas.width / 2, titleY - waveEyebrowGap);
+      if (shouldShowSubtitle && subtitle) pushTypographyDebugLabel("body", canvas.width / 2, titleY + Math.round(announceTitleType.size * announceTitleType.lineHeight));
     }
     // Dev label hidden for announcements per request.
     ctx.restore();
@@ -6663,15 +6720,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const titleAlpha = canShowCongregationText ? handoffAnimProgress : 0;
     const titleYOffset = (1 - handoffAnimProgress) * 48;
 
-    const titleSize = TEXT_STYLES.h1.size;
-    const lineGap = Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight);
+    const congregationTitleType = getCanvasSemanticForScreen("congregation", "title", "h1");
+    const titleSize = congregationTitleType.size;
+    const lineGap = Math.round(congregationTitleType.size * congregationTitleType.lineHeight);
     const layout = getAnnouncementScreenLayout(ctx, canvas, {
       title: titleText,
       subtitle: "",
       titleSize,
       subtitleSize: TEXT_STYLES.h2.size,
       lineGap,
-      weight: TEXT_STYLES.h1.weight,
+      weight: congregationTitleType.weight,
       maxWidthScale: 0.86,
       position: "top",
       topMargin: 70,
@@ -6807,13 +6865,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         title: titleText,
         yBase: layout.titleY + titleYOffset,
         titleSize,
-        weight: TEXT_STYLES.h1.weight,
+        weight: congregationTitleType.weight,
         lineGap,
         alpha: titleAlpha,
         typewriter: true,
         textPalette: HELLFIRE_TEXT_PALETTE,
         maxWidthScale: 0.86,
       });
+      pushTypographyDebugLabel("h1", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + (layout.titleY + titleYOffset) * layout.scale);
     }
     if (SHOW_TEXT_SOURCE_LABELS) {
       drawDevLabel(ctx, "DEV: CongregationScreen", canvas.width / 2, layout.titleY - 32, 1, UI_FONT_FAMILY);
@@ -6870,25 +6929,30 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         drawFocusRing(ctx, buttonX - 3, buttonY - 3, buttonWidth + 6, buttonHeight + 6, 18);
         drawButtonReflection(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 16, 0.45);
       }
+      const congregationBtnType = getCanvasSemanticForScreen("congregation", "button", "button");
+      const congregationHintType = getCanvasSemanticForScreen("congregation", "hint", "caption");
       ctx.fillStyle = "#FFF2CF";
       ctx.shadowColor = "rgba(24, 6, 5, 0.9)";
       ctx.shadowBlur = 10;
       ctx.shadowOffsetY = 2;
       ctx.textAlign = "center";
-      ctx.font = `900 26px ${PIXEL_UI_FONT_FAMILY}`;
+      ctx.font = `${congregationBtnType.weight} ${Math.max(20, Math.round(congregationBtnType.size * 1.4))}px ${PIXEL_UI_FONT_FAMILY}`;
       ctx.textBaseline = "middle";
       const mainTextY = buttonY + buttonHeight / 2 + 1;
       ctx.strokeStyle = "rgba(73, 18, 12, 0.95)";
       ctx.lineWidth = 3;
       ctx.strokeText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
       ctx.fillText(buttonText, layout.virtualCanvas.width / 2, mainTextY);
+      pushTypographyDebugLabel("button", layout.offsetX + layout.virtualCanvas.width / 2 * layout.scale, layout.offsetY + mainTextY * layout.scale);
       const fightHintText = gamepadConnected ? "Press Menu button to start" : "Press Space to start";
       ctx.fillStyle = "rgba(231, 176, 102, 0.86)";
       ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
       ctx.shadowBlur = 2;
       ctx.shadowOffsetY = 1;
-      ctx.font = `700 12px ${UI_FONT_FAMILY}`;
-      ctx.fillText(fightHintText, layout.virtualCanvas.width / 2, buttonY + buttonHeight + 16);
+      ctx.font = `${congregationHintType.weight} ${Math.max(10, congregationHintType.size)}px ${UI_FONT_FAMILY}`;
+      const hintY = buttonY + buttonHeight + 16;
+      ctx.fillText(fightHintText, layout.virtualCanvas.width / 2, hintY);
+      pushTypographyDebugLabel("caption", layout.offsetX + layout.virtualCanvas.width / 2 * layout.scale, layout.offsetY + hintY * layout.scale);
     }
 
     drawFooterControlsHint(
@@ -7545,13 +7609,16 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawBackground();
   // Removed dark translucent overlay for Mission Brief popup
 
+    const briefingTitleType = getCanvasSemanticForScreen("devArenaHowToPlay", "title", "h1");
+    const briefingBodyType = getCanvasSemanticForScreen("devArenaHowToPlay", "basics", "body");
     ctx.textAlign = 'center';
     ctx.fillStyle = '#DFDFC4';
-    ctx.font = `44px ${UI_FONT_FAMILY}`;
+    ctx.font = `${briefingTitleType.weight} ${Math.max(30, Math.round(briefingTitleType.size * 0.8))}px ${UI_FONT_FAMILY}`;
     const howToPlayTitle = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'About';
     ctx.fillText(howToPlayTitle, canvas.width / 2, HUD_HEIGHT + 60);
+    pushTypographyDebugLabel("h1", canvas.width / 2, HUD_HEIGHT + 60);
 
-    ctx.font = `18px ${UI_FONT_FAMILY}`;
+    ctx.font = `${briefingBodyType.weight} ${Math.max(15, Math.round(briefingBodyType.size * 0.9))}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = '#DFDFC4';
     const lines = [
       'Move with WASD, aim with arrow keys or mouse.',
@@ -7561,6 +7628,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     let y = HUD_HEIGHT + 110;
     lines.forEach((l) => {
       ctx.fillText(l, canvas.width / 2, y);
+      pushTypographyDebugLabel("body", canvas.width / 2, y);
       y += 28;
     });
 
@@ -7592,6 +7660,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.font = `${howToPlayType.title ?? howToPlaySemantic.title.size}px ${UI_FONT_FAMILY}`;
     const title = (typeof GameText !== 'undefined' && GameText.screens?.howToPlay?.title) || 'How to Play';
     ctx.fillText(title, cx, HUD_HEIGHT + 66);
+    pushTypographyDebugLabel("h1", cx, HUD_HEIGHT + 66);
 
     // ── Basics ───────────────────────────────────────────────────────────────
     ctx.font = `${howToPlayType.basics ?? howToPlaySemantic.basics.size}px ${UI_FONT_FAMILY}`;
@@ -7599,6 +7668,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     let y = HUD_HEIGHT + 106;
     ['Move: WASD / virtual stick', 'Aim: mouse / right stick', 'Prayer Meter: 6 prayers total'].forEach((l) => {
       ctx.fillText(l, cx, y);
+      pushTypographyDebugLabel("body", cx, y);
       y += 22;
     });
 
@@ -7623,6 +7693,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.font = `bold ${howToPlayType.sectionLabel ?? howToPlaySemantic.sectionLabel.size}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = '#DDA677';
       ctx.fillText(label.toUpperCase(), startX, startY);
+      pushTypographyDebugLabel("eyebrow", startX, startY);
 
       let ry = startY + 16;
       list.forEach((move) => {
@@ -7633,10 +7704,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.font = `bold ${howToPlayType.moveName ?? howToPlaySemantic.moveName.size}px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = '#DDA677';
         ctx.fillText(move.publicName, startX + 8, ry + 15);
+        pushTypographyDebugLabel("eyebrow", startX + 8, ry + 15);
 
         ctx.font = `${howToPlayType.moveInput ?? howToPlaySemantic.moveInput.size}px ${UI_FONT_FAMILY}`;
         ctx.fillStyle = '#7ABCDD';
         ctx.fillText(`[${move.input}]`, startX + 8, ry + 29);
+        pushTypographyDebugLabel("caption", startX + 8, ry + 29);
 
         // Damage
         const dmgStr = mc.damageLabel(move.key);
@@ -7645,9 +7718,11 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           ctx.fillStyle = '#FF9966';
           ctx.font = `bold ${howToPlayType.moveDamage ?? howToPlaySemantic.moveDamage.size}px ${UI_FONT_FAMILY}`;
           ctx.fillText(dmgStr, startX + colW - 8, ry + 15);
+          pushTypographyDebugLabel("eyebrow", startX + colW - 8, ry + 15);
           ctx.fillStyle = '#888';
           ctx.font = `${howToPlayType.moveDamageUnit ?? howToPlaySemantic.moveDamageUnit.size}px ${UI_FONT_FAMILY}`;
           ctx.fillText('dmg', startX + colW - 8, ry + 28);
+          pushTypographyDebugLabel("caption", startX + colW - 8, ry + 28);
           ctx.textAlign = 'left';
         }
 
@@ -7660,6 +7735,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           desc = desc.slice(0, -4) + '…';
         }
         ctx.fillText(desc, startX + (dmgStr !== '—' ? 60 : 8) + (dmgStr !== '—' ? 0 : 0), ry + 28);
+        pushTypographyDebugLabel("caption", startX + (dmgStr !== '—' ? 60 : 8), ry + 28);
 
         ry += ROW_H;
       });
@@ -7707,9 +7783,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.textAlign = "center";
     ctx.fillStyle = label === "FIGHT!" ? "#DDA677" : "#DFDFC4";
-    const fontSize = label === "FIGHT!" ? 64 : 72;
-    ctx.font = `${fontSize}px ${UI_FONT_FAMILY}`;
+    const countdownType = getCanvasSemanticForScreen("countdown", "label", "h1");
+    const fontSize = label === "FIGHT!"
+      ? Math.max(44, Math.round(countdownType.size * 1.15))
+      : Math.max(50, Math.round(countdownType.size * 1.3));
+    ctx.font = `${countdownType.weight} ${fontSize}px ${UI_FONT_FAMILY}`;
     ctx.fillText(label, canvas.width / 2, canvas.height / 2);
+    pushTypographyDebugLabel("h1", canvas.width / 2, canvas.height / 2);
     ctx.restore();
   }
 
@@ -7771,11 +7851,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       textPalette: HELLFIRE_TEXT_PALETTE,
       maxWidthScale: 0.9,
     });
+    pushTypographyDebugLabel("h1", layout.offsetX + layout.virtualCanvas.width / 2, layout.offsetY + layout.titleY * layout.scale);
 
     const row1Configs = [
       { key: "resume", label: "Resume" },
       { key: "settings", label: "Settings" },
     ];
+    const pauseButtonType = getCanvasSemanticForScreen("pauseMenu", "button", "button");
+    const pauseCaptionType = getCanvasSemanticForScreen("pauseMenu", "caption", "caption");
     const buttonWidth = 240;
     const buttonHeight = 64;
     const buttonGap = 28;
@@ -7803,8 +7886,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowOffsetY = 1;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
-        ctx.font = `600 22px ${UI_FONT_FAMILY}`;
+        ctx.font = `${pauseButtonType.weight} ${Math.max(16, Math.round(pauseButtonType.size * 1.22))}px ${UI_FONT_FAMILY}`;
         ctx.fillText(config.label, x + buttonWidth / 2, rowY + 42);
+        pushTypographyDebugLabel("button", layout.offsetX + x + buttonWidth / 2, layout.offsetY + rowY + 42);
         ctx.restore();
         bounds.push({
           key: config.key,
@@ -7842,7 +7926,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const textAreaW = panelW - panelPadX * 2 - (arrowW + arrowGap) * 2 - iconColW - iconTextGap;
 
       // Word-wrap within the text column only
-      ctx.font = `400 ${tipFontSize}px ${UI_FONT_FAMILY}`;
+      ctx.font = `${pauseCaptionType.weight} ${tipFontSize}px ${UI_FONT_FAMILY}`;
       const words = tipText.split(" ");
       const lines = [];
       let current = "";
@@ -7871,7 +7955,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const iconX = panelX + panelPadX + arrowW + arrowGap;
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.font = `${tipFontSize}px ${UI_FONT_FAMILY}`;
+      ctx.font = `${pauseCaptionType.weight} ${tipFontSize}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "rgba(242, 200, 125, 0.85)";
       ctx.shadowColor = "rgba(20, 6, 4, 0.8)";
       ctx.shadowBlur = 4;
@@ -7879,7 +7963,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
       // Tip text lines, top-aligned within the panel
       ctx.textBaseline = "alphabetic";
-      ctx.font = `400 ${tipFontSize}px ${UI_FONT_FAMILY}`;
+      ctx.font = `${pauseCaptionType.weight} ${tipFontSize}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = "#fdf1d9";
       ctx.shadowColor = "rgba(20, 6, 4, 0.72)";
       ctx.shadowBlur = 3;
@@ -7887,6 +7971,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       lines.forEach((line, i) => {
         ctx.fillText(line, textX, textTopY + i * lineH);
       });
+      if (lines.length) pushTypographyDebugLabel("caption", layout.offsetX + textX * layout.scale, layout.offsetY + textTopY * layout.scale);
       ctx.restore();
 
       // Arrow buttons, vertically centred on the panel
@@ -7903,7 +7988,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.lineWidth = 1.5;
         roundRect(ctx, ax, ay, arrowW, arrowW, 8, true, true);
         ctx.fillStyle = focused ? "#DDA677" : "rgba(242, 200, 125, 0.55)";
-        ctx.font = `600 17px ${UI_FONT_FAMILY}`;
+        ctx.font = `${pauseCaptionType.weight} ${Math.max(12, Math.round(pauseCaptionType.size * 1.2))}px ${UI_FONT_FAMILY}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.shadowColor = "rgba(20,6,4,0.7)";
@@ -9340,6 +9425,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
     ctx.fillText(eyebrowText, centerX, eyebrowY);
+    pushTypographyDebugLabel("subhead", centerX, eyebrowY);
     ctx.restore();
 
     ctx.save();
@@ -9352,6 +9438,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
     ctx.fillText(battleTitle, centerX, titleY);
+    pushTypographyDebugLabel("h1", centerX, titleY);
     ctx.restore();
 
     ctx.save();
@@ -9391,6 +9478,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.font = `${briefButtonType.weight} ${briefButtonType.size}px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
     ctx.fillText(buttonText, buttonX + buttonWidth / 2, buttonY + buttonHeight / 2 + 6);
+    pushTypographyDebugLabel("button", layout.offsetX + buttonX + buttonWidth / 2, layout.offsetY + buttonY + buttonHeight / 2 + 6);
     ctx.restore();
   }
 
@@ -10884,6 +10972,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
           textAlign: "center",
           textBaseline: "alphabetic",
         });
+        pushTypographyDebugLabel("button", layout.offsetX + (x + buttonWidth / 2) * layout.scale, layout.offsetY + (buttonY + 42) * layout.scale);
         ctx.restore();
         bounds.push({
           key: config.key,
@@ -11096,6 +11185,10 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.font = `${item.weight} ${item.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.fillStyle = item.color;
       ctx.fillText(item.text, centerX, itemY);
+      if (item.type === "heading") pushTypographyDebugLabel("h1", centerX, itemY + item.size);
+      else if (item.type === "label") pushTypographyDebugLabel("h3", centerX, itemY + item.size);
+      else if (item.type === "name" || item.type === "thankyou") pushTypographyDebugLabel("h2", centerX, itemY + item.size);
+      else pushTypographyDebugLabel("body", centerX, itemY + item.size);
       ctx.restore();
     });
 
@@ -11314,6 +11407,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.font = `${weight} ${item.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
       ctx.fillStyle = item.color;
       ctx.fillText(item.text, centerX, itemY);
+      if (item.type === "heading") pushTypographyDebugLabel("h1", centerX, itemY + item.size);
+      else if (item.type === "score") pushTypographyDebugLabel("h2", centerX, itemY + item.size);
+      else pushTypographyDebugLabel("body", centerX, itemY + item.size);
       ctx.restore();
     });
 
@@ -11406,6 +11502,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (typeof window !== "undefined") {
       window.__announcementButtons = null;
     }
+    clearTypographyDebugLabels();
     const dynamicNameTags = [];
     const npcFadeAlpha = Math.max(0, 1 - Math.min(1, battlefieldIntroFadeAlpha));
     npcFaithOverlays.length = 0;
@@ -13683,6 +13780,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
 
     const confirmEnabled = selectedKeys.length >= maxPicks;
+    const actionButtonType = getCanvasSemanticForScreen("buttons", "default", "button");
     const picksLeft = Math.max(0, maxPicks - selectedKeys.length);
     const title = "How Will You Equip Your Church?";
     const buttonHeight = 200;
@@ -13916,8 +14014,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `600 22px ${uiFontFamily}`;
+    ctx.font = `${actionButtonType.weight} ${Math.max(16, Math.round(actionButtonType.size * 1.22))}px ${uiFontFamily}`;
     ctx.fillText(confirmLabel, confirmX + confirmWidth / 2, confirmY + confirmHeight / 2);
+    pushTypographyDebugLabel("button", layout.offsetX + confirmX + confirmWidth / 2, layout.offsetY + confirmY + confirmHeight / 2);
     ctx.restore();
 
     bounds.push({
@@ -13944,8 +14043,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.fillStyle = resetEnabled ? EMBER_BUTTON_PALETTE.text : EMBER_BUTTON_PALETTE.textDisabled;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `600 20px ${uiFontFamily}`;
+    ctx.font = `${actionButtonType.weight} ${Math.max(15, Math.round(actionButtonType.size * 1.11))}px ${uiFontFamily}`;
     ctx.fillText("Reset Picks", resetX + resetWidth / 2, confirmY + confirmHeight / 2);
+    pushTypographyDebugLabel("button", layout.offsetX + resetX + resetWidth / 2, layout.offsetY + confirmY + confirmHeight / 2);
     ctx.restore();
 
     bounds.push({
@@ -13968,6 +14068,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawGame();
   }
 
+  function drawTypographyDebugOverlay() {
+    const { ctx } = requireBindings();
+    if (!ctx) return;
+    drawTypographyDebugLabels(ctx);
+  }
+
   function drawPlayingInstructionsOverlay() {
     const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
     const pi = typeof window !== "undefined" ? window.PlayingInstructions : null;
@@ -13975,6 +14081,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const panelStyle = window.UIStyles?.panels?.hellfire?.withHint || {};
     const typeStyle = window.UIStyles?.typography?.playingInstructions || {};
+    const panelTitleType = getCanvasSemanticForScreen("playingInstructions", "title", "h3");
+    const panelHintType = getCanvasSemanticForScreen("playingInstructions", "hint", "caption");
     const shellStyle = window.UIStyles?.panels?.hellfire?.shell || {};
     const dividerStyle = window.UIStyles?.panels?.hellfire?.divider || {};
     const vw = canvas.width;
@@ -14022,16 +14130,18 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     // Title
     ctx.fillStyle = panelStyle.titleColor || "#FFD978";
-    ctx.font = `700 ${panelStyle.titleFontSize ?? 24}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${panelTitleType.weight} ${panelStyle.titleFontSize ?? panelTitleType.size}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(panelStyle.titleText || "ABOUT", panelX + panelW / 2, panelY + (panelStyle.titleY ?? 44));
+    pushTypographyDebugLabel("h3", panelX + panelW / 2, panelY + (panelStyle.titleY ?? 44));
 
     // Header hint
     ctx.fillStyle = panelStyle.hintColor || "rgba(231,176,102,0.82)";
-    ctx.font = `600 ${panelStyle.hintFontSize ?? 12}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${panelHintType.weight} ${panelStyle.hintFontSize ?? panelHintType.size}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.fillText(panelStyle.hintText || "W / S to scroll  ·  SPACE or ESC to close", panelX + panelW / 2, panelY + (panelStyle.hintY ?? 66));
+    pushTypographyDebugLabel("caption", panelX + panelW / 2, panelY + (panelStyle.hintY ?? 66));
 
     // Clip content area
     ctx.save();
@@ -14252,6 +14362,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawPlayingInstructionsOverlay,
     drawGraceSpendFlyEffectsOverlay,
     drawAmbientSmokeOverlay,
+    drawTypographyDebugOverlay,
     getControlsHintText,
   };
 })(typeof window !== "undefined" ? window : null);

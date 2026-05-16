@@ -36,6 +36,11 @@
     const role = usage[usageKey] || fallbackRole || "body";
     return getCanvasSemanticToken(role);
   }
+  function pushTypographyDebugLabel(role, x, y) {
+    if (!window.UIStyles?.debug?.typographyLabels) return;
+    if (typeof window.__bcPushTypographyDebugLabel !== "function") return;
+    window.__bcPushTypographyDebugLabel(role, x, y);
+  }
 
   let mapImage = null;
   let mapImageLoaded = false;
@@ -1139,6 +1144,7 @@
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
       ctx.fillText(`${district.name} (${Math.round(displayCount)})`, position.x, position.y - radius - 10);
+      pushTypographyDebugLabel("h3", position.x, position.y - radius - 10);
       ctx.restore();
     } else if (selected) {
       ctx.save();
@@ -1150,6 +1156,7 @@
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
       ctx.fillText(district.name, position.x, position.y - radius - 10);
+      pushTypographyDebugLabel("h3", position.x, position.y - radius - 10);
       ctx.restore();
     }
 
@@ -1168,9 +1175,15 @@
   function drawMapHeadingText(ctx, canvas) {
     const cityName = getActiveSave()?.cityName?.trim() || "";
     const cx = canvas.width * 0.5;
+    const mapHeadingTitleType = getCanvasSemanticToken(
+      window.UIStyles?.typography?.canvasSemanticUsage?.mapHeading?.title || "h3",
+    );
+    const mapHeadingSubtitleType = getCanvasSemanticToken(
+      window.UIStyles?.typography?.canvasSemanticUsage?.mapHeading?.subtitle || "subhead",
+    );
     const scale = canvas.width / 1280;
-    const line1Size = Math.round(30 * scale);
-    const line2Size = Math.round(20 * scale);
+    const line1Size = Math.round(Math.max(18, mapHeadingTitleType.size) * scale);
+    const line2Size = Math.round(Math.max(14, mapHeadingSubtitleType.size) * scale);
     const topY = Math.round(38 * scale);
     const lineGap = Math.round(10 * scale);
 
@@ -1184,14 +1197,16 @@
     ctx.shadowColor = "rgba(0,0,0,0.85)";
     ctx.shadowBlur = 8;
 
-    ctx.font = `700 ${line1Size}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${mapHeadingTitleType.weight} ${line1Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
     ctx.fillText(line1, cx, topY);
+    pushTypographyDebugLabel("h3", cx, topY);
 
     const playerName = getActiveSave()?.playerName?.trim() || "Pastor";
-    ctx.font = `700 ${line2Size}px ${UI_FONT_FAMILY}`;
+    ctx.font = `${mapHeadingSubtitleType.weight} ${line2Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.dim;
     ctx.fillText(`Pastor ${playerName}, you have been called to liberate it.`, cx, topY + line1Size + lineGap);
+    pushTypographyDebugLabel("subhead", cx, topY + line1Size + lineGap);
 
     ctx.restore();
   }
@@ -1219,10 +1234,12 @@
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
     ctx.fillText(label, x + 14, y + 10);
+    pushTypographyDebugLabel("eyebrow", x + 14, y + 10);
     ctx.fillStyle = "#FFE7B8";
     ctx.font = `${valueType.weight} ${Math.max(20, Math.round(valueType.size * 0.86))}px ${UI_FONT_FAMILY}`;
     ctx.textBaseline = "alphabetic";
     ctx.fillText(value, x + 14, y + badgeH - 12);
+    pushTypographyDebugLabel("h3", x + 14, y + badgeH - 12);
     ctx.restore();
   }
 
@@ -1419,12 +1436,14 @@
     ctx.textBaseline = "top";
     const _eyebrowDistrictTerm = window.BattlechurchCampaignLabels?.terms?.district || "District";
     ctx.fillText(panelStyle.eyebrowText || `${_eyebrowDistrictTerm.toUpperCase()} TARGETED`, centerX, panelY + (panelStyle.eyebrowY ?? 14));
+    pushTypographyDebugLabel("eyebrow", centerX, panelY + (panelStyle.eyebrowY ?? 14));
 
     ctx.fillStyle = panelStyle.titleColor || "#FFD978";
     ctx.font = `${mapTitleType.weight} ${panelStyle.titleFontSize ?? mapTitleType.size}px ${UI_FONT_FAMILY}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(district.name, centerX, panelY + (panelStyle.titleY ?? 34));
+    pushTypographyDebugLabel("h3", centerX, panelY + (panelStyle.titleY ?? 34));
 
     const front = district.frontId ? getFrontById(district.frontId) : null;
     const areaNumber = Number.isFinite(front?.order) ? front.order + 1 : null;
@@ -1439,6 +1458,7 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillText(areaLabel, centerX, areaY);
+      pushTypographyDebugLabel("caption", centerX, areaY);
     }
 
     ctx.strokeStyle = dividerStyle.color || "rgba(255, 214, 148, 0.22)";
@@ -1486,9 +1506,11 @@
     ctx.fillStyle = panelStyle.primaryColor || MAP_HELLFIRE_TEXT.title;
     ctx.font = `${mapPrimaryType.weight} ${panelStyle.primaryFontSize ?? mapPrimaryType.size}px ${UI_FONT_FAMILY}`;
     ctx.fillText(primaryLine, centerX, panelY + (panelStyle.primaryY ?? 94) + areaVerticalOffset);
+    pushTypographyDebugLabel("subhead", centerX, panelY + (panelStyle.primaryY ?? 94) + areaVerticalOffset);
     ctx.fillStyle = panelStyle.secondaryColor || MAP_HELLFIRE_TEXT.body;
     ctx.font = `${mapSecondaryType.weight} ${panelStyle.secondaryFontSize ?? mapSecondaryType.size}px ${UI_FONT_FAMILY}`;
     ctx.fillText(secondaryLine, centerX, panelY + (panelStyle.secondaryY ?? 124) + areaVerticalOffset);
+    pushTypographyDebugLabel("caption", centerX, panelY + (panelStyle.secondaryY ?? 124) + areaVerticalOffset);
 
     const buttonW = 140;
     const buttonH = 44;
@@ -1555,6 +1577,7 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(btn.label, btn.x + buttonW / 2, buttonY + buttonH / 2);
+      pushTypographyDebugLabel("button", btn.x + buttonW / 2, buttonY + buttonH / 2);
       ctx.restore();
     });
 

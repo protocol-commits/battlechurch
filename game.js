@@ -20841,6 +20841,7 @@ function showDeveloperOverlay() {
           { key: "npcZones", label: "NPC Zones", custom: true },
           { key: "spawnDebug", label: "Spawn Borders", custom: true },
           { key: "cameraScroll", label: "Camera Scroll", custom: true },
+          { key: "typographyLabels", label: "Typography Labels", custom: true },
           { key: "playerMelee", label: "Player / Melee" },
           { key: "npcs", label: "NPCs" },
           { key: "enemies", label: "Enemies" },
@@ -20861,7 +20862,9 @@ function showDeveloperOverlay() {
                   ? Boolean(devTools.showSpawnDebug)
                   : key === "cameraScroll"
                     ? !Boolean(devTools.disableCameraScroll)
-                  : false
+                    : key === "typographyLabels"
+                      ? Boolean(window.UIStyles?.debug?.typographyLabels)
+                    : false
               : Boolean(window.BattlechurchHitboxDebug?.[key]);
             button.textContent = `${label}: ${active ? "On" : "Off"}`;
             button.style.opacity = active ? "1" : "0.7";
@@ -20875,6 +20878,10 @@ function showDeveloperOverlay() {
                 devTools.showSpawnDebug = !devTools.showSpawnDebug;
               } else if (key === "cameraScroll") {
                 devTools.disableCameraScroll = !devTools.disableCameraScroll;
+              } else if (key === "typographyLabels") {
+                if (window.UIStyles?.debug) {
+                  window.UIStyles.debug.typographyLabels = !window.UIStyles.debug.typographyLabels;
+                }
               }
             } else {
               window.BattlechurchToggleHitboxDebug?.(key);
@@ -28313,6 +28320,7 @@ function gameLoop(timestamp) {
   drawHudMilestoneBurst();
   drawGlobalTeaserTransitionOverlay();
   drawProgressSaveToast();
+  Renderer.drawTypographyDebugOverlay?.();
   keysJustPressed.clear();
 
   gameLoopHandle = requestAnimationFrame(gameLoop);
