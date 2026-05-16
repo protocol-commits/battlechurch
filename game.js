@@ -20577,19 +20577,6 @@ function showSettingsOverlay({ source = "title" } = {}) {
         </div>
       </div>
       <div class="settings-row">
-        <span class="settings-row__icon">⏱️</span>
-        <div class="settings-row__text">
-          <div class="settings-row__label">Speedrun Timer</div>
-          <div class="settings-row__desc">Show run timer during gameplay</div>
-        </div>
-        <div class="settings-row__control">
-          <label class="settings-toggle">
-            <input type="checkbox" data-setting="showSpeedrunTimer">
-            <span>On</span>
-          </label>
-        </div>
-      </div>
-      <div class="settings-row">
         <span class="settings-row__icon">📘</span>
         <div class="settings-row__text">
           <div class="settings-row__label">About</div>
@@ -20599,17 +20586,6 @@ function showSettingsOverlay({ source = "title" } = {}) {
           <button class="settings-btn--hellfire" id="settingsAboutBtn">About</button>
         </div>
       </div>
-      ${source === "title" ? `
-      <div class="settings-row">
-        <span class="settings-row__icon">🎭</span>
-        <div class="settings-row__text">
-          <div class="settings-row__label">Customize Character</div>
-          <div class="settings-row__desc">Open face and style customization</div>
-        </div>
-        <div class="settings-row__control">
-          <button class="settings-btn--hellfire" id="settingsCustomizeBtn">Customize</button>
-        </div>
-      </div>` : ""}
       <div class="settings-row">
         <span class="settings-row__icon">🛠️</span>
         <div class="settings-row__text">
@@ -20657,9 +20633,6 @@ function showSettingsOverlay({ source = "title" } = {}) {
       if (sfxSlider) sfxSlider.value = String(Math.round(audioSettings.sfxVolume * 100));
       setSliderValue("musicVolume", audioSettings.musicVolume);
       setSliderValue("sfxVolume", audioSettings.sfxVolume);
-      const timerToggle = bodyEl.querySelector('[data-setting="showSpeedrunTimer"]');
-      if (timerToggle) timerToggle.checked = Boolean(audioSettings.showSpeedrunTimer);
-
       const updateSetting = (key, value) => {
         audioSettings[key] = value;
         saveAudioSettings();
@@ -20690,24 +20663,11 @@ function showSettingsOverlay({ source = "title" } = {}) {
           updateSetting("sfxVolume", next);
         });
       }
-      if (timerToggle) {
-        timerToggle.addEventListener("change", (event) => {
-          updateSetting("showSpeedrunTimer", event.target.checked);
-        });
-      }
       const aboutBtn = bodyEl.querySelector("#settingsAboutBtn");
       if (aboutBtn) {
         aboutBtn.addEventListener("click", () => {
           window.DialogOverlay?.hide?.();
           if (window.PlayingInstructions) window.PlayingInstructions.open();
-        });
-      }
-      const customizeBtn = bodyEl.querySelector("#settingsCustomizeBtn");
-      if (customizeBtn) {
-        customizeBtn.addEventListener("click", () => {
-          window.DialogOverlay?.hide?.();
-          window.PaperdollSandbox?.loadCustomFaceFromStorage?.();
-          window.PaperdollSandbox?.openCustomize?.();
         });
       }
       const developerBtn = bodyEl.querySelector("#settingsDeveloperBtn");
@@ -20842,6 +20802,7 @@ function showDeveloperOverlay() {
           { key: "spawnDebug", label: "Spawn Borders", custom: true },
           { key: "cameraScroll", label: "Camera Scroll", custom: true },
           { key: "typographyLabels", label: "Typography Labels", custom: true },
+          { key: "speedrunTimer", label: "Speedrun Timer", custom: true },
           { key: "playerMelee", label: "Player / Melee" },
           { key: "npcs", label: "NPCs" },
           { key: "enemies", label: "Enemies" },
@@ -20864,7 +20825,9 @@ function showDeveloperOverlay() {
                     ? !Boolean(devTools.disableCameraScroll)
                     : key === "typographyLabels"
                       ? Boolean(window.UIStyles?.debug?.typographyLabels)
-                    : false
+                      : key === "speedrunTimer"
+                        ? Boolean(speedrunTimer.visible)
+                        : false
               : Boolean(window.BattlechurchHitboxDebug?.[key]);
             button.textContent = `${label}: ${active ? "On" : "Off"}`;
             button.style.opacity = active ? "1" : "0.7";
@@ -20882,6 +20845,8 @@ function showDeveloperOverlay() {
                 if (window.UIStyles?.debug) {
                   window.UIStyles.debug.typographyLabels = !window.UIStyles.debug.typographyLabels;
                 }
+              } else if (key === "speedrunTimer") {
+                speedrunTimer.visible = !speedrunTimer.visible;
               }
             } else {
               window.BattlechurchToggleHitboxDebug?.(key);
@@ -21472,13 +21437,7 @@ function handleTitleScreen() {
         } else if (button.key === "settings") {
           titleDemoSaveMenuActive = false;
           titleClassMenuActive = false;
-          titleUtilityPanelMode = "settings";
-        } else if (button.key === "customizeCharacter") {
-          if (typeof window !== "undefined" && typeof window.playMenuItemPickSfx === "function") {
-            window.playMenuItemPickSfx(0.55);
-          }
-          window.PaperdollSandbox?.loadCustomFaceFromStorage?.();
-          window.PaperdollSandbox?.openCustomize?.();
+          showSettingsOverlay({ source: "title" });
         } else if (button.key === "developer") {
           showDeveloperOverlay();
         } else if (button.key === "howtoplay") {
