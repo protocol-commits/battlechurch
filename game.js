@@ -9620,17 +9620,21 @@ function showNewCloudSaveDialog() {
         window.DialogOverlay?.hide?.();
         void (async () => {
           try {
+            let newId = null;
             if (typeof window.MapScreen?.createSaveFile === "function") {
-              const newId = await window.MapScreen.createSaveFile({
+              newId = await window.MapScreen.createSaveFile({
                 saveName: playerName, playerName, cityName, classId, setActive: true,
               });
-              if (newId) titleCloudSelectedSaveId = newId;
             }
             if (typeof window.BattlechurchClasses?.setActive === "function") {
               window.BattlechurchClasses.setActive(classId);
             }
-            await refreshTitleCloudSaveOption();
-            titleUtilityPanelMode = null;
+            if (newId) {
+              await openMapFromCloudSave(newId);
+            } else {
+              await refreshTitleCloudSaveOption();
+              titleUtilityPanelMode = null;
+            }
           } catch (_e) {}
         })();
       };
