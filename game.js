@@ -3208,7 +3208,7 @@ const PASTOR_POWERUP_DEFS = {
       const byLevel = window.GameBalance?.pastorPowerups?.prayerBarsByLevel ?? PASTOR_PICKUP_PRAYER_BARS_BY_LEVEL;
       const level = getPastorPowerupLevel("prayer");
       const bars = getPastorPickupValue(byLevel, Math.max(1, level));
-      const barsText = bars === 1 ? "your entire Prayer Meter" : `${bars} bars of your Prayer Meter`;
+      const barsText = bars === 6 ? "your entire Prayer Meter" : `${bars} bar${bars !== 1 ? "s" : ""} of your Prayer Meter`;
       return `Fills ${barsText} when picked up. Higher levels fill more.`;
     },
     iconSrc: "assets/sprites/items/icons/016-revive.png",
@@ -3258,7 +3258,7 @@ function applyPastorPowerupPickup(type) {
     const byLevel = window.GameBalance?.pastorPowerups?.prayerBarsByLevel ?? PASTOR_PICKUP_PRAYER_BARS_BY_LEVEL;
     const bars = getPastorPickupValue(byLevel, level);
     const required = Math.max(1, player.prayerChargeRequired || PRAYER_BOMB_CHARGE_REQUIRED || 60000);
-    player.prayerCharge = Math.min(required, (player.prayerCharge || 0) + bars * required);
+    player.prayerCharge = Math.min(required, (player.prayerCharge || 0) + (bars / 6) * required);
   } else if (type === "hp") {
     const byLevel = window.GameBalance?.pastorPowerups?.hpAmountByLevel ?? PASTOR_PICKUP_HP_AMOUNT_BY_LEVEL;
     const hp = getPastorPickupValue(byLevel, level);
