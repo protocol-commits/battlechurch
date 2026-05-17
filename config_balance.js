@@ -27,6 +27,7 @@
       damageDuration: 0.25,
       swingDuration: 0.2,
       doubleTapWindow: 0.18,
+      comboWindowMs: 750,       // ms the combo chain stays alive after each hit
       holdChargeTime: 1.5,
       swooshDamageScale: 1.2,
       swooshExitInvulnerability: 0.2,

@@ -4635,7 +4635,7 @@ const RING_OF_FIRE_DAMAGE = 34;
 const RING_OF_FIRE_BOSS_DAMAGE = 18;
 const RING_OF_FIRE_HIT_COOLDOWN = 0.38;
 const RING_OF_FIRE_INVULNERABILITY = 0.72;
-const MELEE_COMBO_WINDOW_MS = 400;  // melee button chain window
+const MELEE_COMBO_WINDOW_MS = _gb('melee.comboWindowMs', 750);
 const HIT_CHAIN_WINDOW_MS = 400;    // enemy hit chain window
 const DASH_DISTANCE = 400 * WORLD_SCALE;
 const DASH_SPEED = 1400 * SPEED_SCALE;
@@ -25197,7 +25197,7 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const existing = map.get(target);
   const chainActive = existing && existing.expiresAt >= now;
   const previousHits = chainActive ? existing.hits : 0;
-  const newHits = chainActive ? previousHits + 1 : 1;
+  let newHits = chainActive ? previousHits + 1 : 1;
   const comboId = chainActive && existing.comboId
     ? existing.comboId
     : (() => { devMeleeComboSerial += 1; return `confirmed-${devMeleeComboSerial}`; })();
@@ -25210,6 +25210,9 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   meleeAttackState.comboMoveNames = names;
   meleeAttackState.devArenaComboEntries = detailEntries;
   const moveName = getComboMoveNameForHit(meleeAttackState, moveNameOverride);
+  const lastMoveName = names.length > 0 ? names[names.length - 1] : null;
+  const isRepeatMove = chainActive && lastMoveName === moveName;
+  if (isRepeatMove) { newHits = previousHits; }
   names.push(moveName);
   detailEntries.push({
     move: moveName,
