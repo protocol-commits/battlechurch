@@ -2440,6 +2440,10 @@ if (typeof window !== "undefined") {
   };
 }
 const DEFAULT_HERO_LIVES = 1;
+// Runtime dev session — activated via Shift+Cmd+D on any build.
+let devSessionActive = IS_DEV;
+if (typeof window !== "undefined") window.devSessionActive = devSessionActive;
+
 const DEV_OVERRIDE_HERO_LIVES = 3;
 const DEV_THREE_LIVES_STORAGE_KEY = "battlechurch.devThreeLivesMode";
 function loadDevThreeLivesMode() {
@@ -19868,8 +19872,24 @@ if (typeof window !== "undefined") {
   window.triggerCongregationCommand = triggerCongregationCommand;
 }
 
+const _devActivationSequence = { count: 0, lastTime: 0 };
+function checkDevActivationSequence() {
+  if (keysJustPressed.has("`")) {
+    const now = Date.now();
+    if (now - _devActivationSequence.lastTime > 2000) _devActivationSequence.count = 0;
+    _devActivationSequence.count += 1;
+    _devActivationSequence.lastTime = now;
+    keysJustPressed.delete("`");
+    if (_devActivationSequence.count >= 3) {
+      _devActivationSequence.count = 0;
+      devSessionActive = !devSessionActive;
+      if (typeof window !== "undefined") window.devSessionActive = devSessionActive;
+      setDevStatus(devSessionActive ? "Dev session ON" : "Dev session OFF", 2.5);
+    }
+  }
+}
 function handleDeveloperHotkeys() {
-  if (!IS_DEV) return;
+  if (!devSessionActive) return;
   if (typeof window !== "undefined" && window.DialogOverlay?.isVisible?.()) {
     return;
   }
@@ -20618,7 +20638,7 @@ function showSettingsOverlay({ source = "title" } = {}) {
           <button class="settings-btn--hellfire" id="settingsAboutBtn">About</button>
         </div>
       </div>
-      ${IS_DEV ? `
+      ${devSessionActive ? `
       <div class="settings-row">
         <span class="settings-row__icon">🛠️</span>
         <div class="settings-row__text">
@@ -20781,7 +20801,7 @@ function showDeveloperShortcutsOverlay() {
 }
 
 function showDeveloperOverlay() {
-  if (!IS_DEV) return;
+  if (!devSessionActive) return;
   if (!window.DialogOverlay) return;
   const bodyHtml = `
     <div class="settings-panel settings-panel--developer">
@@ -28288,6 +28308,7 @@ function drawGlobalTeaserTransitionOverlay() {
 function gameLoop(timestamp) {
   const delta = Math.min((timestamp - lastTime) / 1000, 0.1);
   lastTime = timestamp;
+  checkDevActivationSequence();
   updateProgressSaveToast(delta);
 
   if (typeof window !== "undefined") {

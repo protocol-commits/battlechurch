@@ -9975,7 +9975,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         { key: "settingsSfxVolume", label: `SFX Volume: ${sfxVolPct}%`, meta: "Adjust with A/D or \u2190/\u2192", sliderValue: sfxVolPct / 100 },
         { key: "settingsSpeedrunTimer", label: `Speedrun Timer: ${timerEnabled ? "On" : "Off"}`, meta: "Show run timer during gameplay" },
         { key: "settingsAbout", label: "About", meta: "View controls and gameplay guide" },
-        ...(window.IS_DEV ? [{ key: "settingsDeveloper", label: "Developer", meta: "Open debug and development tools" }] : []),
+        ...(window.devSessionActive ? [{ key: "settingsDeveloper", label: "Developer", meta: "Open debug and development tools" }] : []),
         { key: "back", label: "Back", meta: "Return to title menu" },
       ];
     } else if (titleDemoSaveMenuActive) {
@@ -14144,6 +14144,72 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawTotalCongregationPill() {
+    const b = requireBindings();
+    const { ctx, canvas, UI_FONT_FAMILY, getCongregationSize, gameStarted } = b;
+    if (!ctx || !canvas || !gameStarted) return;
+
+    const levelStatus = b.levelManager?.getStatus?.() || null;
+    const stage = levelStatus?.stage;
+    if (!stage) return;
+    const hiddenStages = new Set(["districtIntro", "districtVictory", "briefing", "npcArrival"]);
+    if (hiddenStages.has(stage)) return;
+
+    const activeDistrictId = typeof window !== "undefined" ? window.activeDistrictId : null;
+    const savedTotal =
+      typeof window !== "undefined" && typeof window.MapScreen?.getMapSavedTotal === "function"
+        ? window.MapScreen.getMapSavedTotal(activeDistrictId)
+        : 0;
+    const isRecapStage = stage === "graceRush";
+    const live = isRecapStage
+      ? (recapTallyState.totalValue || 0)
+      : typeof getCongregationSize === "function" ? getCongregationSize() : 0;
+    const total = savedTotal + live;
+
+    const colors = (typeof window !== "undefined" && window.UIStyles?.colors) || {};
+    const semantic = (typeof window !== "undefined" && window.UIStyles?.typography?.canvasSemantic) || {};
+    const captionSize = Math.round((semantic.caption?.size || 20) * 0.72);
+
+    const label = "Total Congregation";
+    const valueText = String(total);
+
+    ctx.save();
+    ctx.font = `500 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+    const labelW = ctx.measureText(label).width;
+    ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+    const valueW = ctx.measureText(valueText).width;
+    const gap = 6;
+    const padX = 10;
+    const padY = 6;
+    const pillW = padX + labelW + gap + valueW + padX;
+    const pillH = captionSize + padY * 2;
+    const margin = 12;
+    const px = margin;
+    const py = canvas.height - pillH - margin;
+
+    ctx.globalAlpha = 0.82;
+    ctx.fillStyle = colors.hudPanelBg || "rgba(16,16,36,0.6)";
+    ctx.beginPath();
+    ctx.roundRect(px, py, pillW, pillH, 6);
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+
+    const midY = py + pillH / 2;
+    ctx.textBaseline = "middle";
+
+    ctx.font = `500 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+    ctx.fillStyle = colors.softWhite || "#DFDFC4";
+    ctx.textAlign = "left";
+    ctx.fillText(label, px + padX, midY);
+
+    ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
+    ctx.fillStyle = colors.gold || "#DDA677";
+    ctx.textAlign = "right";
+    ctx.fillText(valueText, px + pillW - padX, midY);
+
+    ctx.restore();
+  }
+
   function drawBetaBadge() {
     const { ctx, canvas, UI_FONT_FAMILY } = requireBindings();
     if (!ctx || !canvas) return;
@@ -14156,7 +14222,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const badgeW = textW + pad.x * 2;
     const badgeH = fontSize + pad.y * 2;
     const margin = 12;
-    const bx = margin;
+    const bx = canvas.width - badgeW - margin;
     const by = canvas.height - badgeH - margin;
     const hovered = (() => {
       const m = typeof window !== "undefined" && window.__betaBadgeHover;
@@ -14180,6 +14246,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
   function drawFrame() {
     drawGame();
+    drawTotalCongregationPill();
     drawBetaBadge();
   }
 

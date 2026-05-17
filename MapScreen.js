@@ -780,6 +780,27 @@
     return isDistrictUnlocked(districtId) ? 0 : null;
   }
 
+  // Returns the saved congregation total across all districts except excludeDistrictId.
+  // Per district: uses the most recently completed campaign's bestCount (p3 > p2 > p1).
+  function getMapSavedTotal(excludeDistrictId) {
+    const progress = ensureProgress();
+    const mapData = window.BattlechurchMapData;
+    if (!progress || !mapData?.districts?.length) return 0;
+    let total = 0;
+    for (const district of mapData.districts) {
+      if (!district?.id || district.id === excludeDistrictId) continue;
+      const entry = progress.districts?.[district.id];
+      if (!entry) continue;
+      const count =
+        (entry.p3?.completed && Number.isFinite(entry.p3?.bestCount)) ? entry.p3.bestCount :
+        (entry.p2?.completed && Number.isFinite(entry.p2?.bestCount)) ? entry.p2.bestCount :
+        (entry.p1?.completed && Number.isFinite(entry.p1?.bestCount)) ? entry.p1.bestCount :
+        0;
+      total += Math.max(0, Math.round(count));
+    }
+    return total;
+  }
+
   function getTotalCongregationCount() {
     const mapData = window.BattlechurchMapData;
     if (!mapData?.districts?.length) return 0;
@@ -3339,6 +3360,7 @@
     ensureDistrictStartCount,
     getDistrictCampaignData,
     getTotalCongregationCount,
+    getMapSavedTotal,
     saveMissionCheckpoint,
     clearMissionCheckpoint,
     getDenomPickCountForDistrict,
