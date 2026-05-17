@@ -2112,11 +2112,15 @@
     const savedGraceCount = canResumeFromCheckpoint && Number.isFinite(activeRun?.graceCount)
       ? Math.max(0, Math.round(activeRun.graceCount))
       : baseGraceCount;
+    const restoredPastorPowerupLevels = progress.pastorPowerupLevels && typeof progress.pastorPowerupLevels === "object"
+      ? { ...progress.pastorPowerupLevels }
+      : null;
     return {
       campaign,
       startCount: resolvedStartCount,
       campaignMultiplier: multiplier,
       restoredChurchPowerupLevels,
+      restoredPastorPowerupLevels,
       savedGraceCount,
       resumeLocalBattleNumber: canResumeFromCheckpoint
         ? Math.max(1, Math.floor(activeRun.resumeLocalBattleNumber))
@@ -2163,6 +2167,11 @@
     if (progress.activeRun && progress.activeRun.districtId === districtId && progress.activeRun.campaign === activeCampaign) {
       progress.activeRun = null;
     }
+    // Save pastor powerup levels (persist across all districts)
+    const livePastorLevels = typeof window !== "undefined" && window.pastorPowerupLevels instanceof Map
+      ? Object.fromEntries(window.pastorPowerupLevels)
+      : null;
+    if (livePastorLevels) progress.pastorPowerupLevels = livePastorLevels;
 
     // Recompute sequential town unlocks
     ensureNextDistrictUnlocked(progress, mapData);
@@ -2204,6 +2213,12 @@
       graceCount: Number.isFinite(graceCount) ? Math.max(0, Math.round(graceCount)) : 0,
       savedAt: Date.now(),
     };
+    // Save pastor powerup levels at checkpoint
+    const livePastorLevels = typeof window !== "undefined" && window.pastorPowerupLevels instanceof Map
+      ? Object.fromEntries(window.pastorPowerupLevels)
+      : null;
+    if (livePastorLevels) progress.pastorPowerupLevels = livePastorLevels;
+
     if (Number.isFinite(graceCount) && graceCount >= 0) {
       progress.graceCount = Math.max(0, Math.round(graceCount));
     }

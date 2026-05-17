@@ -796,6 +796,57 @@
         PALETTE.softWhite,
       );
 
+      // Pastor powerup diamond badges inline after player label
+      const pastorLevels = (window.pastorPowerupLevels instanceof Map ? window.pastorPowerupLevels : new Map());
+      const pastorAssets = assets?.pastorPowerups || {};
+      const pastorOrder = ['prayer', 'hp', 'dash'];
+      const pastorEntries = pastorOrder
+        .map((key) => ({
+          key,
+          level: pastorLevels.get(key) || 0,
+          icon: pastorAssets[key]?.iconImage || null,
+        }))
+        .filter((e) => e.level > 0);
+      if (pastorEntries.length) {
+        ctx.font = hudFont(HUD_FONTS.chip, "600");
+        const labelWidth = ctx.measureText(playerLabel).width || 0;
+        const iconSize = 14;
+        const gap = 4;
+        const itemGap = 10;
+        const textPadding = 2;
+        const diamondHalf = iconSize / 2;
+        let chipX = x + labelWidth + 12;
+        const chipMaxX = x + width;
+        pastorEntries.forEach((entry) => {
+          const levelText = `${entry.level}`;
+          const levelTextWidth = ctx.measureText(levelText).width || 0;
+          const itemWidth = iconSize + gap + levelTextWidth + textPadding;
+          if (chipX + itemWidth > chipMaxX) return;
+          // Diamond shape
+          ctx.save();
+          ctx.translate(chipX + diamondHalf, playerRowY - iconSize / 2 - 5 + diamondHalf);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillStyle = "rgba(30,45,100,0.9)";
+          ctx.strokeStyle = "rgba(160,190,255,0.85)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.rect(-diamondHalf * 0.72, -diamondHalf * 0.72, diamondHalf * 1.44, diamondHalf * 1.44);
+          ctx.fill();
+          ctx.stroke();
+          ctx.rotate(-Math.PI / 4);
+          if (entry.icon && entry.icon.complete) {
+            const iScale = (iconSize * 0.65) / Math.max(entry.icon.width || iconSize, entry.icon.height || iconSize);
+            ctx.globalAlpha = 0.9;
+            ctx.drawImage(entry.icon, -entry.icon.width * iScale / 2, -entry.icon.height * iScale / 2, entry.icon.width * iScale, entry.icon.height * iScale);
+          }
+          ctx.restore();
+          chipX += iconSize + gap;
+          ctx.fillStyle = PALETTE.softWhite;
+          ctx.fillText(levelText, chipX, playerRowY);
+          chipX += levelTextWidth + itemGap;
+        });
+      }
+
       ctx.restore();
 
       const rows = [];

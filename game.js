@@ -22,6 +22,7 @@ const obstacles = [];
 const weaponPickups = [];
 const utilityPowerUps = [];
 const churchPowerupPickups = [];
+const pastorPowerupPickups = [];
 const ringOfFireHazards = [];
 const prayerStormGroundFires = [];
 const gracePickups = [];
@@ -374,6 +375,8 @@ const POWERUP_REFILL_DELAY = _gb('powerups.refillDelay', 4);
 let powerUpRespawnTimer = 0;
 let powerUpStaggerTimer = 0;
 let churchPowerupEnsureTimer = 0;
+let pastorPowerupWaveSpawned = false;
+let pastorDashBuffTimer = 0;
 let queuedPowerUpDrops = 0;
 let powerUpEnsureCycleIndex = 0;
 let playerGraceCount = 0;
@@ -3118,6 +3121,8 @@ function clearAllPowerUps() {
     pickup.life = 0;
   });
   churchPowerupPickups.splice(0, churchPowerupPickups.length);
+  pastorPowerupPickups.splice(0, pastorPowerupPickups.length);
+  pastorPowerupWaveSpawned = false;
   utilityPowerUps.forEach((powerUp) => {
     if (!powerUp) return;
     powerUp.active = false;
@@ -3163,6 +3168,133 @@ if (typeof window !== "undefined") {
 }
 
 const CHURCH_POWERUP_MAX_LEVEL = 10;
+
+const PASTOR_POWERUP_MAX_LEVEL = 5;
+const PASTOR_POWERUP_DEFS = {
+  prayer: {
+    key: "prayer",
+    label: "Fervent Prayer",
+    description: "Strengthen the spirit. Each level fills more of your Prayer Meter when you find a prayer pickup.",
+    iconSrc: "assets/sprites/items/icons/016-revive.png",
+  },
+  hp: {
+    key: "hp",
+    label: "Endurance",
+    description: "Fortify the flesh. Each level restores more HP when you find a healing pickup.",
+    iconSrc: "assets/sprites/items/icons/031-life.png",
+  },
+  dash: {
+    key: "dash",
+    label: "Swiftness",
+    description: "Move like the wind. Each level deepens your Dash cooldown reduction for 20 seconds when you find a swiftness pickup.",
+    iconSrc: "assets/sprites/items/icons/003-dagger.png",
+  },
+};
+const pastorPowerupLevels = new Map([["prayer", 0], ["hp", 0], ["dash", 0]]);
+let pendingPastorUpgradeScreen = false;
+
+function getPastorPowerupLevel(key) {
+  return Math.max(0, Math.min(PASTOR_POWERUP_MAX_LEVEL, pastorPowerupLevels.get(key) || 0));
+}
+
+function setPastorPowerupLevel(key, level) {
+  if (!PASTOR_POWERUP_DEFS[key]) return;
+  pastorPowerupLevels.set(key, Math.max(0, Math.min(PASTOR_POWERUP_MAX_LEVEL, Math.round(level))));
+  if (typeof window !== "undefined") window.pastorPowerupLevels = pastorPowerupLevels;
+}
+
+function applyPastorPowerupPickup(type) {
+  if (!player) return;
+  const level = getPastorPowerupLevel(type);
+  const effectiveLevel = level + 1; // base 1 even before any upgrade; maxes at 6 which clamps fine
+  if (type === "prayer") {
+    const required = Math.max(1, player.prayerChargeRequired || PRAYER_BOMB_CHARGE_REQUIRED || 60000);
+    const gain = (effectiveLevel / (PASTOR_POWERUP_MAX_LEVEL + 1)) * required;
+    player.prayerCharge = Math.min(required, (player.prayerCharge || 0) + gain);
+  } else if (type === "hp") {
+    const gain = effectiveLevel * 2;
+    player.health = Math.min(player.maxHealth || HERO_MAX_HEALTH, (player.health || 0) + gain);
+  } else if (type === "dash") {
+    pastorDashBuffTimer = 20.0;
+    if (typeof window !== "undefined") window.pastorDashBuffTimer = pastorDashBuffTimer;
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.pastorPowerupLevels = pastorPowerupLevels;
+  window.PASTOR_POWERUP_DEFS = PASTOR_POWERUP_DEFS;
+  window.PASTOR_POWERUP_MAX_LEVEL = PASTOR_POWERUP_MAX_LEVEL;
+  window.getPastorPowerupLevel = getPastorPowerupLevel;
+  window.setPastorPowerupLevel = setPastorPowerupLevel;
+}
+
+const PastorUpgradeScreen = (() => {
+  let _visible = false;
+  let _onClose = null;
+  let _focusedIndex = 0;
+  let _consumedAction = false;
+
+  function show(callback) {
+    _onClose = typeof callback === "function" ? callback : null;
+    _visible = true;
+    _focusedIndex = 0;
+    _consumedAction = false;
+  }
+
+  function hide() {
+    _visible = false;
+    if (typeof _onClose === "function") {
+      const cb = _onClose;
+      _onClose = null;
+      cb();
+    }
+  }
+
+  function activate(btn) {
+    if (!btn) return;
+    if (btn.key === "__skip__" || btn.maxed) {
+      hide();
+    } else {
+      const currentLevel = getPastorPowerupLevel(btn.key);
+      if (currentLevel < PASTOR_POWERUP_MAX_LEVEL) {
+        setPastorPowerupLevel(btn.key, currentLevel + 1);
+        if (typeof window?.playMenuItemPickSfx === "function") window.playMenuItemPickSfx(0.6);
+      }
+      hide();
+    }
+  }
+
+  function handleCanvasClick() {} // handled by update via handleAnnouncementButtons
+
+  function update() {
+    if (!_visible) return;
+    const buttons = window.__pastorUpgradeScreenButtons?.buttons || [];
+    if (!buttons.length) return;
+    handleAnnouncementButtons({
+      key: "pastorUpgradeScreen",
+      buttons,
+      onActivate: activate,
+    });
+  }
+
+  function draw() {
+    if (!_visible) return;
+    const r = window.Renderer;
+    if (!r?.drawPastorUpgradeScreen) return;
+    r.drawPastorUpgradeScreen(ctx, canvas, {
+      uiFontFamily: UI_FONT_FAMILY,
+      backgroundMode: "image",
+    });
+  }
+
+  function consumeAction() {
+    const was = _consumedAction;
+    _consumedAction = false;
+    return was;
+  }
+
+  return { show, hide, draw, isVisible: () => _visible, handleCanvasClick, update, consumeAction };
+})();
 
 function getChurchPowerupLevelCost(def, level) {
   // level is the CURRENT level (0-9); returns cost to purchase the next level
@@ -5604,7 +5736,8 @@ function syncDevPlaytestQuickActions() {
     !epilogueActive &&
     !districtVictoryActive &&
     !window.DialogOverlay?.isVisible?.() &&
-    !window.UpgradeScreen?.isVisible?.();
+    !window.UpgradeScreen?.isVisible?.() &&
+    !PastorUpgradeScreen.isVisible();
   root.style.display = shouldShow ? "flex" : "none";
   root.setAttribute("data-scope", scopeLabel);
 }
@@ -5837,6 +5970,7 @@ Renderer.initialize({
   utilityPowerUps,
   weaponPickups,
   churchPowerupPickups,
+  pastorPowerupPickups,
   gracePickups,
   enemies,
   get activeBoss() { return activeBoss; },
@@ -5868,6 +6002,10 @@ Renderer.initialize({
   get npcHarmonyBuffTimer() { return npcHarmonyBuffTimer; },
   get npcHarmonyBuffDuration() { return npcHarmonyBuffDuration; },
   get powerupIconStyles() { return POWERUP_ICON_STYLES; },
+  get pastorPowerupLevels() { return pastorPowerupLevels; },
+  get pastorDashBuffTimer() { return pastorDashBuffTimer; },
+  get PASTOR_POWERUP_DEFS() { return PASTOR_POWERUP_DEFS; },
+  get PASTOR_POWERUP_MAX_LEVEL() { return PASTOR_POWERUP_MAX_LEVEL; },
   get graceHudFlyEffects() { return graceHudFlyEffects; },
   get powerupHudFlyEffects() { return powerupHudFlyEffects; },
   get graceSpendFlyEffects() { return graceSpendFlyEffects; },
@@ -6745,6 +6883,7 @@ Levels.initialize({
       levelAnnouncements.length ||
       window.DialogOverlay?.isVisible?.() ||
       window.UpgradeScreen?.isVisible?.() ||
+      PastorUpgradeScreen.isVisible() ||
       battlefieldIntroActive ||
       pendingUpgradeAfterSummary ||
       pendingPostUpgradeTransition ||
@@ -7872,6 +8011,15 @@ async function loadChurchPowerupAssets(cache, assets) {
   await Promise.all(powerupEntries);
 }
 
+async function loadPastorPowerupAssets(cache, assets) {
+  const entries = Object.entries(PASTOR_POWERUP_DEFS).map(async ([key, def]) => {
+    if (!cache.has(def.iconSrc)) cache.set(def.iconSrc, loadImage(def.iconSrc));
+    const iconImage = await cache.get(def.iconSrc);
+    assets.pastorPowerups[key] = { iconImage, ...def };
+  });
+  await Promise.all(entries);
+}
+
 async function loadProjectileFrames(cache, assets, projectileFrames) {
   // Faith cannon frames
   const faithCannonClip = assets.projectiles?.faith_cannon;
@@ -8150,6 +8298,7 @@ async function loadTitleMapAssets() {
     obstacles: {},
     weaponPickups: {},
     churchPowerups: {},
+    pastorPowerups: {},
     utility: {},
     effects: {},
     background: null,
@@ -8232,6 +8381,7 @@ async function loadGameplayAssets(cache, assets) {
     loadObstacleAssets(cache, assets),
     loadWeaponDropAssets(cache, assets),
     loadChurchPowerupAssets(cache, assets),
+    loadPastorPowerupAssets(cache, assets),
     loadUtilityAssets(cache, assets),
     loadBackgroundAssets(cache, assets),
     npcAssetsPromise,
@@ -8681,6 +8831,16 @@ function startGameFromTitle() {
         churchPowerupLevels.set(id, level);
         unlockedChurchPowerups.add(id);
       }
+    }
+    // Restore persistent pastor powerup levels
+    const restoredPastor = campaignData?.restoredPastorPowerupLevels;
+    if (restoredPastor && typeof restoredPastor === "object") {
+      for (const [key, level] of Object.entries(restoredPastor)) {
+        if (PASTOR_POWERUP_DEFS[key] && Number.isFinite(level)) {
+          pastorPowerupLevels.set(key, Math.max(0, Math.min(PASTOR_POWERUP_MAX_LEVEL, Math.round(level))));
+        }
+      }
+      if (typeof window !== "undefined") window.pastorPowerupLevels = pastorPowerupLevels;
     }
   } else {
     setDemoSandboxRunActive(false);
@@ -11096,6 +11256,81 @@ function updateChurchPowerupPickups(dt) {
     if (distance <= (pickup.radius || 0) + player.radius) {
       applyWeaponPickupEffect(pickup);
       churchPowerupPickups.splice(i, 1);
+    }
+  }
+}
+
+function spawnPastorPowerupPickup(type) {
+  if (!assets?.pastorPowerups?.[type]?.iconImage) return null;
+  const def = assets.pastorPowerups[type];
+  const areaPadding = 120;
+  const minX = areaPadding;
+  const maxX = Math.max(minX, canvas.width - areaPadding);
+  const minY = Math.max(HUD_HEIGHT + POWERUP_PLAYFIELD_MARGIN, areaPadding);
+  const maxY = Math.max(minY, canvas.height - areaPadding);
+  const homeBounds = getNpcHomeBounds();
+  const isInsideHome = (x, y) => Math.hypot(x - homeBounds.x, y - homeBounds.y) <= homeBounds.radius;
+  const spanX = Math.max(0, maxX - minX);
+  const spanY = Math.max(0, maxY - minY);
+  let spawnX, spawnY, attempts = 0;
+  do {
+    spawnX = minX + (spanX > 0 ? Math.random() * spanX : 0);
+    spawnY = minY + (spanY > 0 ? Math.random() * spanY : 0);
+    attempts++;
+  } while (isInsideHome(spawnX, spawnY) && attempts < 50);
+
+  const iconImg = def.iconImage;
+  const iconSize = Math.max(iconImg?.width || 32, iconImg?.height || 32);
+  const scale = 1.4;
+  const radius = 22;
+  const pickup = {
+    type,
+    iconImage: iconImg,
+    x: spawnX,
+    y: spawnY,
+    baseY: spawnY,
+    width: iconSize * scale,
+    height: iconSize * scale,
+    scale,
+    radius,
+    floatTimer: Math.random() * Math.PI * 2,
+    life: POWERUP_ACTIVE_LIFETIME,
+    blinkWindow: POWERUP_BLINK_DURATION,
+    blinkTimer: 0,
+    spawnBlinkTimer: POWERUP_SPAWN_BLINK_DURATION,
+    visible: true,
+    active: true,
+    expired: false,
+  };
+  clampEntityToBounds(pickup);
+  pastorPowerupPickups.push(pickup);
+  playPowerupSpawnSfx();
+  return pickup;
+}
+
+function updatePastorPowerupPickups(dt) {
+  for (let i = pastorPowerupPickups.length - 1; i >= 0; i--) {
+    const pickup = pastorPowerupPickups[i];
+    if (!pickup) { pastorPowerupPickups.splice(i, 1); continue; }
+    pickup.life -= dt;
+    pickup.floatTimer += dt;
+    pickup.y = pickup.baseY + Math.sin(pickup.floatTimer * 1.8) * 6;
+    if (pickup.spawnBlinkTimer > 0) pickup.spawnBlinkTimer -= dt;
+    if (pickup.life <= pickup.blinkWindow) {
+      pickup.blinkTimer += dt;
+      pickup.visible = Math.floor(pickup.blinkTimer / 0.15) % 2 === 0;
+    }
+    if (pickup.life <= 0) {
+      pastorPowerupPickups.splice(i, 1);
+      continue;
+    }
+    if (!player) continue;
+    const dx = pickup.x - player.x;
+    const dy = pickup.y - player.y;
+    if (Math.hypot(dx, dy) <= pickup.radius + (player.radius || 0)) {
+      applyPastorPowerupPickup(pickup.type);
+      pastorPowerupPickups.splice(i, 1);
+      playPowerupSpawnSfx();
     }
   }
 }
@@ -20222,19 +20457,22 @@ function checkDialogOverlays() {
     keysJustPressed.delete("ArrowDown");
     return true;
   }
-  if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible()) {
+  if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible() && !PastorUpgradeScreen.isVisible()) {
     clearAllPowerUps();
     Effects.clear();
 
-    // Check if this is final town level - show pastor post-recap after upgrade
+    // Check if this is final town level - show pastor upgrade first, then church upgrade, then pastor post-recap
     if (pendingPastorPostRecapAfterUpgrade) {
       const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
-      window.UpgradeScreen.show(() => {
-        stopRecapMusic();
-        pendingPostUpgradeTransition = true;
-        runPostUpgradeSaveThen(() => {
-          pendingPostUpgradeTransition = false;
-          queuePastorBossPostRecapAnnouncement(targetLevel, false);
+      PastorUpgradeScreen.show(() => {
+        // After pastor upgrade, show church upgrade
+        window.UpgradeScreen.show(() => {
+          stopRecapMusic();
+          pendingPostUpgradeTransition = true;
+          runPostUpgradeSaveThen(() => {
+            pendingPostUpgradeTransition = false;
+            queuePastorBossPostRecapAnnouncement(targetLevel, false);
+          });
         });
       });
       pendingPastorPostRecapAfterUpgrade = false;
@@ -20354,6 +20592,11 @@ function updateFadeEffects(dt) {
         if (!ft.critical) ft.life = 0;
       });
     } catch (e) {}
+  }
+
+  if (pastorDashBuffTimer > 0) {
+    pastorDashBuffTimer = Math.max(0, pastorDashBuffTimer - dt);
+    if (typeof window !== "undefined") window.pastorDashBuffTimer = pastorDashBuffTimer;
   }
 
   if (bossBonusTransitionFadeTimer > 0) {
@@ -23801,8 +24044,17 @@ function getHeldMovementDirection() {
   return normalizeVector(x, y);
 }
 
+function getPastorDashCooldownMultiplier() {
+  if (pastorDashBuffTimer > 0) {
+    const level = getPastorPowerupLevel("dash");
+    const effectiveLevel = level + 1; // base 10% reduction before any upgrade
+    return Math.max(0.5, 1 - effectiveLevel * 0.1);
+  }
+  return 1;
+}
+
 function setSharedBButtonCooldown(duration) {
-  const scaledDuration = applyPlayerCooldownClassMultiplier(duration);
+  const scaledDuration = applyPlayerCooldownClassMultiplier(duration * getPastorDashCooldownMultiplier());
   const next = Math.max(
     Number(scaledDuration) || 0,
     playerDashState?.dashCooldown || 0,
@@ -27697,6 +27949,11 @@ function updateGame(dt) {
     weaponPickupAnnouncement.timer = Math.max(0, weaponPickupAnnouncement.timer - dt);
   }
 
+  if (PastorUpgradeScreen.isVisible()) {
+    PastorUpgradeScreen.update();
+    return;
+  }
+
   if (window.UpgradeScreen?.isVisible?.() && typeof Input?.consumeCanvasClick === "function") {
     const clickPos = Input.consumeCanvasClick();
     if (clickPos && typeof window.UpgradeScreen.handleCanvasClick === "function") {
@@ -27931,6 +28188,7 @@ function updateGame(dt) {
   // Process pickups BEFORE player update so weapon changes apply immediately
   if (!isDevMeleeArenaActive()) {
     updateChurchPowerupPickups(dt);
+    updatePastorPowerupPickups(dt);
   }
   updateWeaponPickups(dt);
   updateUtilityPowerUps(dt);
@@ -28018,6 +28276,14 @@ function updateGame(dt) {
           spawnChurchPowerupPickup();
         }
         churchPowerupEnsureTimer = POWERUP_STAGGER_DELAY * 2;
+      }
+      // Pastor powerup — spawns every 10 seconds during active gameplay.
+      pastorPowerupWaveSpawned = Math.max(0, pastorPowerupWaveSpawned - dt);
+      if (pastorPowerupWaveSpawned <= 0) {
+        const keys = Object.keys(PASTOR_POWERUP_DEFS);
+        const type = keys[Math.floor(Math.random() * keys.length)];
+        spawnPastorPowerupPickup(type);
+        pastorPowerupWaveSpawned = 10;
       }
     }
   } catch (err) {
@@ -28192,6 +28458,7 @@ function restartGame() {
   projectiles.splice(0, projectiles.length);
   weaponPickups.splice(0, weaponPickups.length);
   churchPowerupPickups.splice(0, churchPowerupPickups.length);
+  pastorPowerupPickups.splice(0, pastorPowerupPickups.length);
   utilityPowerUps.splice(0, utilityPowerUps.length);
   ringOfFireHazards.splice(0, ringOfFireHazards.length);
   prayerStormGroundFires.splice(0, prayerStormGroundFires.length);
@@ -28335,6 +28602,9 @@ function gameLoop(timestamp) {
     ctx.textBaseline = "middle";
     ctx.fillText("GAMELOOP DEBUG ACTIVE", 18, 29);
     ctx.restore();
+  }
+  if (PastorUpgradeScreen.isVisible()) {
+    PastorUpgradeScreen.draw();
   }
   if (window.UpgradeScreen?.isVisible?.()) {
     window.UpgradeScreen.draw();

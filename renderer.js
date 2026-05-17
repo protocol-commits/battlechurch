@@ -4869,6 +4869,332 @@ function drawChurchBadgeShimmer(ctx, size, style) {
   ctx.restore();
 }
 
+function drawPastorUpgradeScreen(ctx, canvas, options = {}) {
+  const {
+    uiFontFamily = "sans-serif",
+    backgroundMode = "image",
+    dimAlpha = 0,
+  } = options;
+
+  if (backgroundMode !== "transparent") {
+    const { assets } = requireBindings();
+    const backgroundImage = assets?.backgrounds?.gameOver || null;
+    ctx.save();
+    if (backgroundImage) {
+      drawCoverImage(ctx, canvas, backgroundImage, 1, 0.5, 0.5);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    ctx.restore();
+  } else if (dimAlpha > 0) {
+    ctx.save();
+    ctx.fillStyle = `rgba(0, 0, 0, ${Math.max(0, Math.min(1, dimAlpha))})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  const DEFS = (typeof window !== "undefined" && window.PASTOR_POWERUP_DEFS) || {};
+  const MAX_LEVEL = (typeof window !== "undefined" && window.PASTOR_POWERUP_MAX_LEVEL) || 5;
+  const levels = (typeof window !== "undefined" && window.pastorPowerupLevels) || new Map();
+  const { assets } = requireBindings();
+
+  const stats = Object.values(DEFS).map((def) => ({
+    key: def.key,
+    label: def.label,
+    description: def.description,
+    iconSrc: def.iconSrc,
+    iconImage: assets?.pastorPowerups?.[def.key]?.iconImage || null,
+    level: levels.get(def.key) || 0,
+    maxLevel: MAX_LEVEL,
+  }));
+
+  const title = "Pastor Upgrades";
+  const buttonHeight = 200;
+  const buttonCount = stats.length;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const fitTextSize = (text, size, maxWidth) => {
+    if (!text) return size;
+    ctx.font = `${size}px ${uiFontFamily}`;
+    const width = ctx.measureText(text).width || 0;
+    if (!width || width <= maxWidth) return size;
+    return Math.max(9, Math.floor(size * (maxWidth / width)));
+  };
+
+  ctx.save();
+  const layout = getAnnouncementScreenLayout(ctx, canvas, {
+    title,
+    subtitle: "",
+    titleSize: TEXT_STYLES.h1.size,
+    subtitleSize: TEXT_STYLES.h2.size,
+    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    weight: TEXT_STYLES.h1.weight,
+    maxWidthScale: 0.96,
+    position: "top",
+    topMargin: 90,
+    bottomMargin: 70,
+    rowGap: 20,
+    buttonHeight,
+    buttonCount: buttonCount + 2,
+  });
+  ctx.translate(layout.offsetX, layout.offsetY);
+  ctx.scale(layout.scale, layout.scale);
+
+  const titleType = getCanvasSemanticForScreen("churchUpgrade", "title", "h1");
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `${titleType.weight} ${titleType.size}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
+  ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
+  ctx.shadowBlur = 20;
+  ctx.fillText(title, layout.virtualCanvas.width / 2, layout.titleY);
+  ctx.restore();
+
+  const buttonGap = 18;
+  const sidePadding = 60;
+  const totalAvailable = layout.virtualCanvas.width - sidePadding * 2;
+  const buttonWidth = Math.floor((totalAvailable - buttonGap * (buttonCount - 1)) / buttonCount);
+  const buttonRowWidth = buttonWidth * buttonCount + buttonGap * (buttonCount - 1);
+  const buttonStartX = Math.round((layout.virtualCanvas.width - buttonRowWidth) / 2);
+  const buttonY = Math.round(layout.buttonY || 0);
+
+  const cardType = window.UIStyles?.typography?.cardUi || {};
+  const descriptionLineH = Math.max(1, Math.round((cardType.description ?? 13) * (cardType.descriptionLineHeight ?? 1.25)));
+  const titleLineH = Math.max(1, Math.round((cardType.title ?? 18) * (cardType.titleLineHeight ?? 1.05)));
+  const headerHeight = Math.max(52, Math.round(18 + titleLineH));
+  const contentInsetLeft = Number.isFinite(cardType.contentInsetLeft) ? cardType.contentInsetLeft : 12;
+  const contentInsetRight = Number.isFinite(cardType.contentInsetRight) ? cardType.contentInsetRight : 12;
+  const iconTextGap = Number.isFinite(cardType.iconTextGap) ? cardType.iconTextGap : 10;
+  const iconSize = 34;
+
+  const measureCardHeight = (stat) => {
+    const bodyTextWidth = Math.max(10, buttonWidth - contentInsetLeft - iconSize - iconTextGap - contentInsetRight);
+    ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
+    const descLines = wrapAnnouncementText(ctx, stat.description || "", bodyTextWidth);
+    const descLineCount = Math.max(1, Math.min(6, descLines.length));
+    return Math.max(buttonHeight, Math.round(headerHeight + 18 + 8 + descLineCount * descriptionLineH + 6 + 14 + 24 + 14));
+  };
+  let maxCardH = buttonHeight;
+  stats.forEach((s) => { maxCardH = Math.max(maxCardH, measureCardHeight(s)); });
+
+  const bounds = [];
+
+  stats.forEach((stat, index) => {
+    const x = buttonStartX + index * (buttonWidth + buttonGap);
+    const level = stat.level;
+    const maxLevel = stat.maxLevel;
+    const maxed = level >= maxLevel;
+    const cardRadius = 16;
+    const cardX = x;
+    const cardY = buttonY;
+    const cardW = buttonWidth;
+    const cardH = maxCardH;
+    const bodyTop = cardY + headerHeight + 18;
+
+    ctx.save();
+    const baseGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+    if (!maxed) {
+      baseGradient.addColorStop(0, "#1E2030");
+      baseGradient.addColorStop(0.55, "#272B40");
+      baseGradient.addColorStop(1, "#161825");
+    } else {
+      baseGradient.addColorStop(0, "rgba(55, 45, 35, 0.7)");
+      baseGradient.addColorStop(1, "rgba(40, 34, 28, 0.65)");
+    }
+    ctx.shadowColor = "rgba(8, 6, 4, 0.55)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 8;
+    ctx.fillStyle = baseGradient;
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = maxed ? "rgba(120, 100, 70, 0.35)" : "rgba(130, 160, 220, 0.75)";
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, true);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+    roundRect(ctx, cardX + 3, cardY + 3, cardW - 6, cardH - 6, Math.max(8, cardRadius - 4), false, true);
+
+    ctx.save();
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, false, false);
+    ctx.clip();
+    const headerGradient = ctx.createLinearGradient(0, cardY, 0, cardY + headerHeight);
+    if (!maxed) {
+      headerGradient.addColorStop(0, "#283055");
+      headerGradient.addColorStop(1, "#1E2540");
+    } else {
+      headerGradient.addColorStop(0, "rgba(90, 70, 50, 0.7)");
+      headerGradient.addColorStop(1, "rgba(70, 55, 40, 0.6)");
+    }
+    ctx.fillStyle = headerGradient;
+    ctx.fillRect(cardX, cardY, cardW, headerHeight);
+    ctx.fillStyle = maxed ? "rgba(230, 195, 130, 0.3)" : "rgba(160, 190, 255, 0.3)";
+    ctx.fillRect(cardX, cardY + headerHeight - 2, cardW, 2);
+    ctx.restore();
+    if (maxed) {
+      ctx.fillStyle = "rgba(12, 10, 8, 0.35)";
+      roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius, true, false);
+    }
+
+    if (isAnnouncementButtonFocused("pastorUpgradeScreen", index)) {
+      drawFocusRing(ctx, x - 3, buttonY - 3, buttonWidth + 6, cardH + 6, 20);
+    }
+
+    // Diamond icon badge
+    const iconCenterX = cardX + 28;
+    const iconCenterY = cardY + headerHeight / 2;
+    const diamondHalf = iconSize / 2;
+    ctx.save();
+    ctx.translate(iconCenterX, iconCenterY);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = maxed ? "rgba(80,70,55,0.9)" : "rgba(30,45,100,0.95)";
+    ctx.strokeStyle = maxed ? "rgba(180,160,100,0.5)" : "rgba(160,190,255,0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.rect(-diamondHalf * 0.72, -diamondHalf * 0.72, diamondHalf * 1.44, diamondHalf * 1.44);
+    ctx.fill();
+    ctx.stroke();
+    ctx.rotate(-Math.PI / 4);
+    if (stat.iconImage) {
+      const iw = stat.iconImage.width || iconSize;
+      const ih = stat.iconImage.height || iconSize;
+      const scale = Math.min((iconSize * 0.7) / iw, (iconSize * 0.7) / ih);
+      ctx.globalAlpha = maxed ? 0.45 : 0.9;
+      ctx.drawImage(stat.iconImage, -iw * scale / 2, -ih * scale / 2, iw * scale, ih * scale);
+    }
+    ctx.restore();
+
+    const textLeft = cardX + contentInsetLeft + iconSize + iconTextGap;
+    const textRight = cardX + cardW - contentInsetRight;
+    const levelLabel = `${level}/${maxLevel}`;
+    const pillPadX = 14;
+    ctx.font = `700 ${cardType.levelPill ?? 12}px ${uiFontFamily}`;
+    const pillWidth = ctx.measureText(levelLabel).width + pillPadX * 2;
+    const pillHeight = 24;
+    const titleSize = fitTextSize(stat.label, cardType.title ?? 18, Math.max(10, textRight - textLeft - pillWidth - 8));
+    ctx.font = `800 ${titleSize}px ${uiFontFamily}`;
+    ctx.fillStyle = maxed ? "rgba(200,190,170,0.65)" : "#D8E8FF";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = "rgba(0,0,0,0.6)";
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetY = 1;
+    const titleY = cardY + headerHeight / 2 + 1;
+    ctx.fillText(stat.label, textLeft, titleY);
+
+    // Level pill
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.font = `700 ${cardType.levelPill ?? 12}px ${uiFontFamily}`;
+    const pillX = textRight - pillWidth;
+    const pillY = titleY - pillHeight / 2;
+    ctx.fillStyle = maxed ? "rgba(70,55,45,0.55)" : "rgba(25,40,100,0.95)";
+    ctx.strokeStyle = maxed ? "rgba(255,255,255,0.2)" : "rgba(160,200,255,0.8)";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, pillX, pillY, pillWidth, pillHeight, 10, true, true);
+    ctx.fillStyle = maxed ? "rgba(220,210,190,0.7)" : "#C8DCFF";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(levelLabel, pillX + pillWidth / 2, titleY);
+    ctx.textAlign = "left";
+
+    // Description
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur = 3;
+    ctx.shadowOffsetY = 1;
+    ctx.font = `600 ${cardType.description ?? 13}px ${uiFontFamily}`;
+    ctx.fillStyle = maxed ? "rgba(200,190,170,0.65)" : "rgba(210,225,255,0.9)";
+    const bodyTextWidth = Math.max(10, textRight - textLeft);
+    const descLines = wrapAnnouncementText(ctx, stat.description || "", bodyTextWidth);
+    const safeBottomY = cardY + cardH - 56;
+    const descriptionY = bodyTop + 8;
+    const maxDescLines = Math.max(1, Math.floor((safeBottomY - descriptionY) / Math.max(1, descriptionLineH)));
+    descLines.slice(0, maxDescLines).forEach((line, li) => {
+      ctx.fillText(line, textLeft, descriptionY + li * descriptionLineH);
+    });
+
+    // Bottom cost/status pill
+    const costLabel = maxed ? "Maxed" : level > 0 ? `Upgrade to Level ${level + 1}` : "Level Up";
+    const costBadgeFontSize = cardType.badge ?? 13;
+    const costHeight = costBadgeFontSize + 8;
+    const costY = cardY + cardH - costHeight / 2 - 10;
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.font = `700 ${costBadgeFontSize}px ${uiFontFamily}`;
+    const costPadX = 14;
+    const costWidth = ctx.measureText(costLabel).width + costPadX * 2;
+    const costX = cardX + cardW - 22 - costWidth;
+    const costYPos = costY - costHeight / 2;
+    ctx.fillStyle = maxed ? "rgba(70,55,45,0.55)" : "rgba(25,40,100,0.95)";
+    ctx.strokeStyle = maxed ? "rgba(255,255,255,0.2)" : "rgba(160,200,255,0.8)";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, costX, costYPos, costWidth, costHeight, 12, true, true);
+    ctx.fillStyle = maxed ? "rgba(220,210,190,0.7)" : "#C8DCFF";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(costLabel, costX + costWidth / 2, costY);
+    ctx.textAlign = "left";
+    ctx.restore();
+
+    bounds.push({
+      key: stat.key,
+      x: layout.offsetX + x * layout.scale,
+      y: layout.offsetY + buttonY * layout.scale,
+      width: buttonWidth * layout.scale,
+      height: cardH * layout.scale,
+      maxed,
+    });
+  });
+
+  // Continue / Skip button
+  const continueY = buttonY + maxCardH + 30;
+  const _btn = getCanvasSemanticForScreen("churchUpgrade", "button", "button");
+  const continueHeight = Math.round(_btn.size * 1.8);
+  const actionButtonWidth = Math.min(320, totalAvailable * 0.45);
+  const continueX = Math.round((layout.virtualCanvas.width - actionButtonWidth) / 2);
+
+  ctx.save();
+  ctx.fillStyle = getEmberButtonGradient(ctx, continueY, continueHeight);
+  ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+  ctx.lineWidth = 2;
+  roundRect(ctx, continueX, continueY, actionButtonWidth, continueHeight, 18, true, true);
+  if (isAnnouncementButtonFocused("pastorUpgradeScreen", buttonCount)) {
+    drawFocusRing(ctx, continueX - 3, continueY - 3, actionButtonWidth + 6, continueHeight + 6, 20);
+  }
+  ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+  ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 1;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `${_btn.weight} ${Math.max(16, Math.round(_btn.size * 1.1))}px ${ANNOUNCEMENT_FONT_FAMILY}`;
+  ctx.fillText("Skip", continueX + actionButtonWidth / 2, continueY + continueHeight / 2);
+  ctx.restore();
+
+  const continueScreenX = layout.offsetX + continueX * layout.scale;
+  const continueScreenY = layout.offsetY + continueY * layout.scale;
+  const continueScreenW = actionButtonWidth * layout.scale;
+  const continueScreenH = continueHeight * layout.scale;
+  bounds.push({
+    key: "__skip__",
+    x: continueScreenX,
+    y: continueScreenY,
+    width: continueScreenW,
+    height: continueScreenH,
+    maxed: false,
+  });
+
+  ctx.restore();
+
+  if (typeof window !== "undefined") {
+    window.__pastorUpgradeScreenButtons = { buttons: bounds };
+  }
+}
+
 function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const {
     graceCount = 0,
@@ -7488,6 +7814,51 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.rotate(angle + Math.PI * 0.5);
       ctx.globalAlpha = baseAlpha * (0.65 + 0.25 * Math.sin(frameNow * 0.008 + i * 0.7));
       ctx.drawImage(frame, -size * 0.5, -size * 0.5, size, size);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawPastorPowerupPickups(pickups) {
+    if (!ctx || !Array.isArray(pickups) || !pickups.length) return;
+    const now = (typeof performance !== "undefined" ? performance.now() : Date.now()) * 0.001;
+    ctx.save();
+    for (const pickup of pickups) {
+      if (!pickup || !pickup.visible) continue;
+      const { x, y, iconImage, radius } = pickup;
+      const r = radius || 22;
+      // Diamond background
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = "rgba(20, 30, 100, 0.88)";
+      ctx.strokeStyle = "rgba(160, 190, 255, 0.9)";
+      ctx.lineWidth = 2.5;
+      const side = r * 1.42;
+      ctx.beginPath();
+      ctx.rect(-side / 2, -side / 2, side, side);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      // Icon
+      if (iconImage && iconImage.complete) {
+        const iconSize = r * 1.1;
+        ctx.drawImage(iconImage, x - iconSize / 2, y - iconSize / 2, iconSize, iconSize);
+      }
+      // Glow pulse
+      const pulse = 0.3 + 0.15 * Math.sin(now * 3.5 + pickup.floatTimer);
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.shadowColor = "rgba(120, 160, 255, 1)";
+      ctx.shadowBlur = 18;
+      ctx.translate(x, y);
+      ctx.rotate(Math.PI / 4);
+      ctx.strokeStyle = "rgba(160, 190, 255, 0.6)";
+      ctx.lineWidth = 1.5;
+      const side2 = r * 1.42;
+      ctx.beginPath();
+      ctx.rect(-side2 / 2, -side2 / 2, side2, side2);
+      ctx.stroke();
       ctx.restore();
     }
     ctx.restore();
@@ -11530,6 +11901,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       utilityPowerUps,
       weaponPickups,
       churchPowerupPickups,
+      pastorPowerupPickups,
       gracePickups,
       enemies,
       activeBoss,
@@ -12556,6 +12928,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     utilityPowerUps.forEach((powerUp) => powerUp.draw(ctx));
     weaponPickups.forEach((pickup) => pickup.draw());
     churchPowerupPickups.forEach((pickup) => pickup.draw());
+    drawPastorPowerupPickups(pastorPowerupPickups);
     drawPrayerStormGroundFires();
     drawRingOfFireEffects(player);
     drawCongregationCommandMeter(player, battleNpcs);
@@ -14540,6 +14913,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawFrame,
     drawCountdownOverlay,
     drawChurchUpgradeScreen,
+    drawPastorUpgradeScreen,
     drawDenomUpgradeScreen,
     drawPlayingInstructionsOverlay,
     drawGraceSpendFlyEffectsOverlay,
