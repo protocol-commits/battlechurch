@@ -784,8 +784,7 @@
       ctx.font = hudFont(HUD_FONTS.meterLabel);
       const playerRowY = panelY + 14;
       const playerName = window.MapScreen?.getPlayerName?.() || '';
-      const playerClassTitle = window.BattlechurchClasses?.getActive?.()?.classTitle || '';
-      const playerLabel = `Pastor ${playerName}${playerClassTitle ? ` [${playerClassTitle}]` : ''}`.trim();
+      const playerLabel = `Pastor ${playerName}`.trim();
       drawOutlinedText(
         ctx,
         playerLabel,
@@ -796,7 +795,7 @@
         PALETTE.softWhite,
       );
 
-      // Pastor powerup diamond badges inline after player label
+      // Pastor powerup icons inline after player label (same style as church upgrade icons)
       const pastorLevels = (window.pastorPowerupLevels instanceof Map ? window.pastorPowerupLevels : new Map());
       const pastorAssets = assets?.pastorPowerups || {};
       const pastorOrder = ['prayer', 'hp', 'dash'];
@@ -808,49 +807,28 @@
           level: pastorLevels.get(key) || 0,
           icon: pastorAssets[key]?.iconImage || null,
         }))
-        .filter((e) => e.level > 0 || (e.key === 'dash' && dashBuffTimer > 0));
+        .filter((e) => e.level > 0);
       if (pastorEntries.length) {
-        ctx.font = hudFont(HUD_FONTS.chip, "600");
+        ctx.font = hudFont(HUD_FONTS.topLabel);
         const labelWidth = ctx.measureText(playerLabel).width || 0;
         const iconSize = 14;
         const gap = 4;
         const itemGap = 10;
         const textPadding = 2;
-        const diamondHalf = iconSize / 2;
-        let chipX = x + labelWidth + 12;
+        let chipX = x + labelWidth + 8;
         const chipMaxX = x + width;
+        ctx.fillStyle = PALETTE.softWhite;
         pastorEntries.forEach((entry) => {
-          const isDashActive = entry.key === 'dash' && dashBuffTimer > 0;
-          const levelText = entry.level > 0 ? `${entry.level}` : '';
-          const levelTextWidth = levelText ? ctx.measureText(levelText).width || 0 : 0;
-          const itemWidth = iconSize + (levelText ? gap + levelTextWidth + textPadding : 0);
+          const levelText = `${entry.level}`;
+          const levelTextWidth = ctx.measureText(levelText).width || 0;
+          const itemWidth = (entry.icon && entry.icon.complete ? iconSize + gap : 0) + levelTextWidth + textPadding;
           if (chipX + itemWidth > chipMaxX) return;
-          const diamondCY = playerRowY - iconSize / 2 - 5 + diamondHalf;
-          // Diamond shape — pulse blue when dash buff is active
-          ctx.save();
-          ctx.translate(chipX + diamondHalf, diamondCY);
-          ctx.rotate(Math.PI / 4);
-          ctx.fillStyle = isDashActive ? "rgba(50,80,200,0.95)" : "rgba(30,45,100,0.9)";
-          ctx.strokeStyle = isDashActive ? "rgba(200,220,255,1)" : "rgba(160,190,255,0.85)";
-          ctx.lineWidth = isDashActive ? 1.5 : 1;
-          ctx.beginPath();
-          ctx.rect(-diamondHalf * 0.72, -diamondHalf * 0.72, diamondHalf * 1.44, diamondHalf * 1.44);
-          ctx.fill();
-          ctx.stroke();
-          ctx.rotate(-Math.PI / 4);
           if (entry.icon && entry.icon.complete) {
-            const iScale = (iconSize * 0.65) / Math.max(entry.icon.width || iconSize, entry.icon.height || iconSize);
-            ctx.globalAlpha = isDashActive ? 1.0 : 0.9;
-            ctx.drawImage(entry.icon, -entry.icon.width * iScale / 2, -entry.icon.height * iScale / 2, entry.icon.width * iScale, entry.icon.height * iScale);
+            ctx.drawImage(entry.icon, chipX, playerRowY - iconSize / 2 - 5, iconSize, iconSize);
+            chipX += iconSize + gap;
           }
-          ctx.restore();
-          chipX += iconSize + gap;
-          if (levelText) {
-            ctx.fillStyle = PALETTE.softWhite;
-            ctx.fillText(levelText, chipX, playerRowY);
-            chipX += levelTextWidth + textPadding;
-          }
-          chipX += itemGap;
+          ctx.fillText(levelText, chipX, playerRowY);
+          chipX += levelTextWidth + itemGap;
         });
       }
 
