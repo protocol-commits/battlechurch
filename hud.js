@@ -800,7 +800,9 @@
       const pastorAssets = assets?.pastorPowerups || {};
       const pastorOrder = ['prayer', 'hp', 'dash'];
       const dashBuffTimer = Math.max(0, typeof window.pastorDashBuffTimer === 'number' ? window.pastorDashBuffTimer : 0);
-      const DASH_BUFF_DURATION = window.PASTOR_PICKUP_DASH_DURATION || 20.0;
+      const _dashByLevel = window.GameBalance?.pastorPowerups?.dashDurationByLevel || [20, 22, 24, 27, 30];
+      const _dashLevel = Math.max(1, (window.pastorPowerupLevels instanceof Map ? window.pastorPowerupLevels.get('dash') : 0) || 1);
+      const DASH_BUFF_DURATION = _dashByLevel[Math.min(_dashByLevel.length - 1, _dashLevel - 1)] || 20.0;
       const pastorEntries = pastorOrder
         .map((key) => ({
           key,
@@ -938,7 +940,7 @@
 
       if (dashBuffTimer > 0) {
         upgradeRows.push({
-          label: 'Dash Boost',
+          label: 'Stamina Boost',
           ratio: dashBuffTimer / DASH_BUFF_DURATION,
           color: getIconStyleColor('player', PALETTE.ice),
           iconImage: pastorAssets['dash']?.iconImage || null,

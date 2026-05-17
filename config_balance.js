@@ -216,6 +216,29 @@
     },
 
     // =====================
+    // PASTOR POWERUPS
+    // =====================
+    pastorPowerups: {
+      maxLevel: 5,
+
+      // One shared pool — spawns one random pickup from all unlocked types (level > 0).
+      // Fixed interval regardless of how many types are unlocked or their level.
+      spawnInterval: 20, // seconds between spawns
+
+      // Prayer pickup — bars granted at each level (level 1 → level 5)
+      prayerBarsByLevel: [1, 1.25, 1.5, 1.75, 2],
+
+      // HP pickup — HP healed at each level (level 1 → level 5)
+      hpAmountByLevel: [5, 6, 7, 8, 10],
+
+      // Stamina pickup — buff duration (seconds) at each level (level 1 → level 5)
+      dashDurationByLevel: [20, 22, 24, 27, 30],
+
+      // Stamina cooldown multiplier while buff is active (fixed regardless of level)
+      dashCooldownMultiplier: 0.5,  // 0.5 = half cooldown (twice as fast)
+    },
+
+    // =====================
     // MASTER RENDER STYLE
     // =====================
     masterRenderStyle: {
