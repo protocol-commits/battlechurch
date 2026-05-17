@@ -16632,6 +16632,8 @@ class BossEncounter {
     this.phase = 1;
     this.phaseNotified = { 2: false, 3: false };
     this.projectileTimer = 1.5;
+    this.meleeAttackTimer = 0;
+    this.meleeAttackHitApplied = false;
     this.summonTimer = 7.5;
     this.hazardTimer = 9;
     this.touchCooldown = 0;
@@ -16906,13 +16908,20 @@ class BossEncounter {
   }
 
   getProjectileDamage() {
-    if (this.phase === 1) return 0.8;
-    if (this.phase === 2) return 1.0;
-    return 1.4;
+    const base = Number.isFinite(this.config?.attackDamage) && this.config.attackDamage > 0
+      ? this.config.attackDamage
+      : (Number.isFinite(this.config?.damage) && this.config.damage > 0 ? this.config.damage : 1);
+    const phaseScale = this.phase === 1 ? 1.0 : this.phase === 2 ? 1.25 : 1.75;
+    return base * phaseScale;
   }
 
   performProjectileAttack() {
     if (!player) return;
+    const catalogDef =
+      window.BattlechurchEnemyCatalog?.catalog?.[this.type] ||
+      window.BattlechurchEnemyDefinitions?.[this.type] ||
+      null;
+    if (catalogDef && !catalogDef.ranged) return;
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dir = normalizeVector(dx, dy);
@@ -16989,7 +16998,7 @@ class BossEncounter {
       const projectile = spawnProjectile("fire", this.x, this.y, dirX, dirY, {
         friendly: false,
         speed: PROJECTILE_CONFIG.fire.speed * 1.1,
-        damage: 1.2,
+        damage: this.getProjectileDamage(),
         radius: PROJECTILE_CONFIG.fire.radius,
         source: this,
       });
@@ -16999,10 +17008,60 @@ class BossEncounter {
     }
   }
 
+  performMeleeAttack() {
+    const catalogDef =
+      window.BattlechurchEnemyCatalog?.catalog?.[this.type] ||
+      window.BattlechurchEnemyDefinitions?.[this.type] ||
+      null;
+    if (!catalogDef || catalogDef.ranged) return;
+    if (!player || player.state === "death") return;
+    if (this.meleeAttackTimer > 0) return;
+    if (this.state === "attack") return;
+    const attackRange = (this.config?.desiredRange || 80) + (this.radius || 28);
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist > attackRange) return;
+    this.state = "attack";
+    this.animator.play("attack", { restart: true });
+    this.meleeAttackHitApplied = false;
+    const cooldown = this.config?.cooldown || this.config?.attackCooldown || 1.5;
+    this.meleeAttackTimer = cooldown;
+  }
+
+  tickMeleeAttackHit() {
+    if (this.state !== "attack" || this.meleeAttackHitApplied) return;
+    const hitFrame = Number.isFinite(this.config?.attackHitFrame) && this.config.attackHitFrame > 0
+      ? this.config.attackHitFrame : null;
+    if (hitFrame) {
+      const currentFrame = (Number.isFinite(this.animator?.frameIndex) ? this.animator.frameIndex : 0) + 1;
+      if (currentFrame < hitFrame) return;
+    }
+    this.meleeAttackHitApplied = true;
+    if (!player || player.state === "death") return;
+    const attackRange = (this.config?.desiredRange || 80) + (this.radius || 28) + 20;
+    const dx = player.x - this.x;
+    const dy = player.y - this.y;
+    if (Math.hypot(dx, dy) > attackRange) return;
+    if (player.invulnerableTimer > 0) return;
+    if (player.shieldTimer > 0) {
+      applyShieldImpact(this);
+      return;
+    }
+    const baseHit = Number.isFinite(this.config?.attackHitDamage) && this.config.attackHitDamage > 0
+      ? this.config.attackHitDamage
+      : (Number.isFinite(this.config?.attackDamage) && this.config.attackDamage > 0 ? this.config.attackDamage : 5);
+    const damage = this.phase === 3 ? Math.round(baseHit * 1.5) : baseHit;
+    player.takeDamage(damage);
+    cameraShakeTimer = CAMERA_SHAKE_DURATION;
+    cameraShakeMagnitude = CAMERA_SHAKE_INTENSITY * 1.2;
+  }
+
   applyContactDamage() {
     if (!player || player.state === "death") return;
     if (!circleIntersectsPlayerHurtbox(this.x, this.y, this.radius, player)) return;
     if (this.touchCooldown > 0) return;
+    if (this.state === "attack") return;
     if (player.invulnerableTimer > 0) {
       this.touchCooldown = Math.max(this.touchCooldown, 0.35);
       return;
@@ -17012,7 +17071,10 @@ class BossEncounter {
       this.touchCooldown = Math.max(this.touchCooldown, SHIELD_LARGE_COOLDOWN);
       return;
     }
-    const damage = this.phase === 3 ? 3 : 2;
+    const baseContact = Number.isFinite(this.config?.contactDamage) && this.config.contactDamage > 0
+      ? this.config.contactDamage
+      : 2;
+    const damage = this.phase === 3 ? Math.round(baseContact * 1.5) : baseContact;
     player.takeDamage(damage);
     this.touchCooldown = 2.2 - this.phase * 0.3;
     cameraShakeTimer = CAMERA_SHAKE_DURATION;
@@ -17109,7 +17171,7 @@ class BossEncounter {
       this.beginDeath();
       return;
     }
-    if (this.state !== "hurt") {
+    if (this.state !== "hurt" && this.state !== "attack") {
       this.state = "hurt";
       this.animator.play("hurt", { restart: true });
     }
@@ -17311,6 +17373,7 @@ class BossEncounter {
     }
 
     this.projectileTimer -= dt;
+    this.meleeAttackTimer = Math.max(0, (this.meleeAttackTimer || 0) - dt);
     this.summonTimer -= dt;
     this.hazardTimer -= dt;
     this.touchCooldown = Math.max(0, this.touchCooldown - dt);
@@ -17318,6 +17381,8 @@ class BossEncounter {
     this.tauntCooldown = Math.max(0, (this.tauntCooldown || 0) - dt);
 
     if (player && player.state !== "death") {
+      this.performMeleeAttack();
+      this.tickMeleeAttackHit();
       this.moveTowardPlayer(dt);
       this.applyContactDamage();
     } else {

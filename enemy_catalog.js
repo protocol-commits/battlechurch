@@ -1242,8 +1242,8 @@
         77
       ]
     },
-    "contactDamage": 5,
-    "attackDamage": 5
+    "contactDamage": 10,
+    "attackDamage": 10
   },
   "bossHighDemon": {
     "displayName": "High Demon",
@@ -1328,8 +1328,8 @@
         47
       ]
     },
-    "contactDamage": 5,
-    "attackDamage": 5
+    "contactDamage": 10,
+    "attackDamage": 10
   },
   "miniGhost": {
     "displayName": "Mini Ghost",

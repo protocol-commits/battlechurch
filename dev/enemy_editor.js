@@ -1707,7 +1707,6 @@
     }
     const keys = Object.keys(catalog).sort();
     keys.forEach((key) => {
-      if (/^boss/i.test(String(key || ""))) return;
       const enemy = catalog[key] || {};
       if (!getEnemyFilterTags(enemy).has(state.filter)) return;
       if (state.search) {
