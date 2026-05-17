@@ -375,7 +375,7 @@ const POWERUP_REFILL_DELAY = _gb('powerups.refillDelay', 4);
 let powerUpRespawnTimer = 0;
 let powerUpStaggerTimer = 0;
 let churchPowerupEnsureTimer = 0;
-let pastorPowerupWaveSpawned = false;
+const pastorPowerupSpawnTimers = { prayer: 0, hp: 0, dash: 0 };
 let pastorDashBuffTimer = 0;
 let queuedPowerUpDrops = 0;
 let powerUpEnsureCycleIndex = 0;
@@ -3122,7 +3122,9 @@ function clearAllPowerUps() {
   });
   churchPowerupPickups.splice(0, churchPowerupPickups.length);
   pastorPowerupPickups.splice(0, pastorPowerupPickups.length);
-  pastorPowerupWaveSpawned = false;
+  pastorPowerupSpawnTimers.prayer = 0;
+  pastorPowerupSpawnTimers.hp = 0;
+  pastorPowerupSpawnTimers.dash = 0;
   utilityPowerUps.forEach((powerUp) => {
     if (!powerUp) return;
     powerUp.active = false;
@@ -3170,23 +3172,35 @@ if (typeof window !== "undefined") {
 const CHURCH_POWERUP_MAX_LEVEL = 10;
 
 const PASTOR_POWERUP_MAX_LEVEL = 5;
+
+// --- Pastor powerup spawn intervals (seconds) per level ---
+// Level 0 = no spawns. Level 1–5 interpolates between MAX and MIN interval.
+const PASTOR_PICKUP_SPAWN_INTERVAL_MAX = 30; // seconds at level 1
+const PASTOR_PICKUP_SPAWN_INTERVAL_MIN = 10; // seconds at level 5
+
+// --- Pastor powerup fixed pickup values ---
+const PASTOR_PICKUP_PRAYER_BARS = 1;       // full prayer bars granted per pickup
+const PASTOR_PICKUP_HP_AMOUNT  = 5;        // HP healed per pickup
+const PASTOR_PICKUP_DASH_DURATION  = 20.0; // seconds of dash buff per pickup
+const PASTOR_PICKUP_DASH_REDUCTION = 0.5;  // cooldown multiplier while buff active (0.5 = half cooldown)
+
 const PASTOR_POWERUP_DEFS = {
   prayer: {
     key: "prayer",
     label: "Fervent Prayer",
-    description: "Strengthen the spirit. Each level fills more of your Prayer Meter when you find a prayer pickup.",
+    description: "Fills your entire Prayer Meter. Higher levels make prayer pickups drop more often.",
     iconSrc: "assets/sprites/items/icons/016-revive.png",
   },
   hp: {
     key: "hp",
     label: "Endurance",
-    description: "Fortify the flesh. Each level restores more HP when you find a healing pickup.",
+    description: "Restores 5 HP instantly. Higher levels make healing pickups drop more often.",
     iconSrc: "assets/sprites/items/icons/031-life.png",
   },
   dash: {
     key: "dash",
     label: "Swiftness",
-    description: "Move like the wind. Each level deepens your Dash cooldown reduction for 20 seconds when you find a swiftness pickup.",
+    description: "Halves your Dash cooldown for 20 seconds. Higher levels make swiftness pickups drop more often.",
     iconSrc: "assets/sprites/items/icons/003-dagger.png",
   },
 };
@@ -3205,17 +3219,14 @@ function setPastorPowerupLevel(key, level) {
 
 function applyPastorPowerupPickup(type) {
   if (!player) return;
-  const level = getPastorPowerupLevel(type);
-  const effectiveLevel = level + 1; // base 1 even before any upgrade; maxes at 6 which clamps fine
   if (type === "prayer") {
     const required = Math.max(1, player.prayerChargeRequired || PRAYER_BOMB_CHARGE_REQUIRED || 60000);
-    const gain = (effectiveLevel / (PASTOR_POWERUP_MAX_LEVEL + 1)) * required;
+    const gain = PASTOR_PICKUP_PRAYER_BARS * required;
     player.prayerCharge = Math.min(required, (player.prayerCharge || 0) + gain);
   } else if (type === "hp") {
-    const gain = effectiveLevel * 2;
-    player.health = Math.min(player.maxHealth || HERO_MAX_HEALTH, (player.health || 0) + gain);
+    player.health = Math.min(player.maxHealth || HERO_MAX_HEALTH, (player.health || 0) + PASTOR_PICKUP_HP_AMOUNT);
   } else if (type === "dash") {
-    pastorDashBuffTimer = 20.0;
+    pastorDashBuffTimer = PASTOR_PICKUP_DASH_DURATION;
     if (typeof window !== "undefined") window.pastorDashBuffTimer = pastorDashBuffTimer;
   }
 }
@@ -3224,6 +3235,7 @@ if (typeof window !== "undefined") {
   window.pastorPowerupLevels = pastorPowerupLevels;
   window.PASTOR_POWERUP_DEFS = PASTOR_POWERUP_DEFS;
   window.PASTOR_POWERUP_MAX_LEVEL = PASTOR_POWERUP_MAX_LEVEL;
+  window.PASTOR_PICKUP_DASH_DURATION = PASTOR_PICKUP_DASH_DURATION;
   window.getPastorPowerupLevel = getPastorPowerupLevel;
   window.setPastorPowerupLevel = setPastorPowerupLevel;
 }
@@ -24045,13 +24057,7 @@ function getHeldMovementDirection() {
 }
 
 function getPastorDashCooldownMultiplier() {
-  if (pastorDashBuffTimer > 0) {
-    const level = getPastorPowerupLevel("dash");
-    // level 0 = 20% reduction (0.8), level 5 = 50% reduction (0.5)
-    const reduction = 0.2 + (level / PASTOR_POWERUP_MAX_LEVEL) * 0.3;
-    return 1 - reduction;
-  }
-  return 1;
+  return pastorDashBuffTimer > 0 ? PASTOR_PICKUP_DASH_REDUCTION : 1;
 }
 
 function setSharedBButtonCooldown(duration) {
@@ -28278,13 +28284,17 @@ function updateGame(dt) {
         }
         churchPowerupEnsureTimer = POWERUP_STAGGER_DELAY * 2;
       }
-      // Pastor powerup — spawns every 10 seconds during active gameplay.
-      pastorPowerupWaveSpawned = Math.max(0, pastorPowerupWaveSpawned - dt);
-      if (pastorPowerupWaveSpawned <= 0) {
-        const keys = Object.keys(PASTOR_POWERUP_DEFS);
-        const type = keys[Math.floor(Math.random() * keys.length)];
-        spawnPastorPowerupPickup(type);
-        pastorPowerupWaveSpawned = 10;
+      // Pastor powerups — each type has its own independent spawn timer based on level.
+      // Interval: PASTOR_PICKUP_SPAWN_INTERVAL_MAX (level 1) → PASTOR_PICKUP_SPAWN_INTERVAL_MIN (level 5).
+      for (const type of Object.keys(PASTOR_POWERUP_DEFS)) {
+        const level = getPastorPowerupLevel(type);
+        if (level === 0) continue;
+        pastorPowerupSpawnTimers[type] = Math.max(0, pastorPowerupSpawnTimers[type] - dt);
+        if (pastorPowerupSpawnTimers[type] <= 0) {
+          spawnPastorPowerupPickup(type);
+          const t = (level - 1) / (PASTOR_POWERUP_MAX_LEVEL - 1); // 0 at level 1, 1 at level 5
+          pastorPowerupSpawnTimers[type] = PASTOR_PICKUP_SPAWN_INTERVAL_MAX - t * (PASTOR_PICKUP_SPAWN_INTERVAL_MAX - PASTOR_PICKUP_SPAWN_INTERVAL_MIN);
+        }
       }
     }
   } catch (err) {

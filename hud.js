@@ -801,7 +801,7 @@
       const pastorAssets = assets?.pastorPowerups || {};
       const pastorOrder = ['prayer', 'hp', 'dash'];
       const dashBuffTimer = Math.max(0, typeof window.pastorDashBuffTimer === 'number' ? window.pastorDashBuffTimer : 0);
-      const DASH_BUFF_DURATION = 20.0;
+      const DASH_BUFF_DURATION = window.PASTOR_PICKUP_DASH_DURATION || 20.0;
       const pastorEntries = pastorOrder
         .map((key) => ({
           key,
