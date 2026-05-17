@@ -223,7 +223,7 @@
 
       // One shared pool — spawns one random pickup from all unlocked types (level > 0).
       // Fixed interval regardless of how many types are unlocked or their level.
-      spawnInterval: 20, // seconds between spawns
+      spawnInterval: 30, // seconds between spawns
 
       // Prayer pickup — bars granted at each level (level 1 → level 5)
       prayerBarsByLevel: [1, 1.25, 1.5, 1.75, 2],
