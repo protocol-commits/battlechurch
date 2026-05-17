@@ -253,12 +253,15 @@ function markClassSelectionHintShown() {
 }
 
 function getSortedClassMenuEntries(list) {
-  const entries = Array.isArray(list) ? list.slice() : [];
+  // Only show top-level traditions at character creation; pin Independent first.
+  const all = Array.isArray(list) ? list : [];
+  const topLevel = all.filter((c) => c?.isTopLevel);
+  const entries = topLevel.length > 0 ? topLevel : all.slice();
   entries.sort((a, b) => {
     const aLabel = String(a?.classTitle || a?.id || "");
     const bLabel = String(b?.classTitle || b?.id || "");
-    const aPinned = aLabel.toLowerCase() === "non-denominational";
-    const bPinned = bLabel.toLowerCase() === "non-denominational";
+    const aPinned = aLabel.toLowerCase() === "independent";
+    const bPinned = bLabel.toLowerCase() === "independent";
     if (aPinned && !bPinned) return -1;
     if (!aPinned && bPinned) return 1;
     return aLabel.localeCompare(bLabel, undefined, { sensitivity: "base" });
@@ -3330,6 +3333,72 @@ const PastorUpgradeScreen = (() => {
   }
 
   return { show, hide, draw, isVisible: () => _visible, handleCanvasClick, update, consumeAction };
+})();
+
+const DenominationScreen = (() => {
+  let _visible = false;
+  let _onClose = null;
+  let _focusedIndex = 0;
+
+  function show(callback) {
+    _onClose = typeof callback === "function" ? callback : null;
+    _visible = true;
+    _focusedIndex = 0;
+  }
+
+  function hide() {
+    _visible = false;
+    if (typeof _onClose === "function") {
+      const cb = _onClose;
+      _onClose = null;
+      cb();
+    }
+  }
+
+  function activate(btn) {
+    if (!btn || btn.key === "__skip__") { hide(); return; }
+    if (typeof window.MapScreen?.setDenominationForActiveSave === "function") {
+      window.MapScreen.setDenominationForActiveSave(btn.key);
+    }
+    hide();
+  }
+
+  function shouldShow() {
+    const classId = window.BattlechurchClasses?.getActiveId?.() || "";
+    const cls = window.BattlechurchClasses?.getById?.(classId);
+    // Only show for Protestant top-level (not already a sub-denom)
+    if (!cls?.isProtestant || cls?.isProtestantSub) return false;
+    // Check if already unlocked in a previous run — never show again
+    if (window.MapScreen?.areDenominationsUnlocked?.()) return false;
+    // Check if we're finishing District 1 right now using activeDistrictId
+    const mapData = window.BattlechurchMapData;
+    if (!mapData) return false;
+    const fronts = (mapData.fronts || []).slice().sort((a, b) => a.order - b.order);
+    const firstFront = fronts[0];
+    if (!firstFront) return false;
+    const firstFrontDistricts = (mapData.districts || []).filter((d) => d.frontId === firstFront.id);
+    return firstFrontDistricts.some((d) => d.id === activeDistrictId);
+  }
+
+  function update() {
+    if (!_visible) return;
+    const buttons = window.__denominationScreenButtons?.buttons || [];
+    if (!buttons.length) return;
+    handleAnnouncementButtons({
+      key: "denominationScreen",
+      buttons,
+      onActivate: activate,
+    });
+  }
+
+  function draw() {
+    if (!_visible) return;
+    const r = window.Renderer;
+    if (!r?.drawDenominationScreen) return;
+    r.drawDenominationScreen(ctx, canvas, { uiFontFamily: UI_FONT_FAMILY });
+  }
+
+  return { show, hide, draw, isVisible: () => _visible, update, shouldShow };
 })();
 
 function getChurchPowerupLevelCost(def, level) {
@@ -20493,15 +20562,14 @@ function checkDialogOverlays() {
     keysJustPressed.delete("ArrowDown");
     return true;
   }
-  if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible() && !PastorUpgradeScreen.isVisible()) {
+  if (pendingUpgradeAfterSummary && window.UpgradeScreen && !window.UpgradeScreen.isVisible() && !PastorUpgradeScreen.isVisible() && !DenominationScreen.isVisible()) {
     clearAllPowerUps();
     Effects.clear();
 
     // Check if this is final town level - show pastor upgrade first, then church upgrade, then pastor post-recap
     if (pendingPastorPostRecapAfterUpgrade) {
       const targetLevel = lastCompletedLevel || levelManager?.getLevelNumber?.() || 1;
-      PastorUpgradeScreen.show(() => {
-        // After pastor upgrade, show church upgrade
+      const showChurchUpgrade = () => {
         window.UpgradeScreen.show(() => {
           stopRecapMusic();
           pendingPostUpgradeTransition = true;
@@ -20510,7 +20578,15 @@ function checkDialogOverlays() {
             queuePastorBossPostRecapAnnouncement(targetLevel, false);
           });
         });
-      });
+      };
+      const showDenomThenChurch = () => {
+        if (DenominationScreen.shouldShow()) {
+          DenominationScreen.show(showChurchUpgrade);
+        } else {
+          showChurchUpgrade();
+        }
+      };
+      PastorUpgradeScreen.show(showDenomThenChurch);
       pendingPastorPostRecapAfterUpgrade = false;
     // Check if we need to show chapter break after upgrade
     // lastCompletedLevel was set when the battle summary showed
@@ -27985,6 +28061,11 @@ function updateGame(dt) {
     return;
   }
 
+  if (DenominationScreen.isVisible()) {
+    DenominationScreen.update();
+    return;
+  }
+
   if (window.UpgradeScreen?.isVisible?.() && typeof Input?.consumeCanvasClick === "function") {
     const clickPos = Input.consumeCanvasClick();
     if (clickPos && typeof window.UpgradeScreen.handleCanvasClick === "function") {
@@ -28639,6 +28720,9 @@ function gameLoop(timestamp) {
   }
   if (PastorUpgradeScreen.isVisible()) {
     PastorUpgradeScreen.draw();
+  }
+  if (DenominationScreen.isVisible()) {
+    DenominationScreen.draw();
   }
   if (window.UpgradeScreen?.isVisible?.()) {
     window.UpgradeScreen.draw();

@@ -4,11 +4,13 @@
   const DEFAULT_CLASS_ID = "class1";
 
   const classes = [
+  // ── TOP-LEVEL TRADITIONS (shown at character creation) ──────────────────
   {
     "id": "class1",
-    "classTitle": "Baptist",
-    "classDescription": "Personal conviction, biblical fidelity, independence",
-    "classFlavor": "Build a faithful church one committed soul at a time.",
+    "classTitle": "Independent",
+    "classDescription": "Adaptability, mission clarity, rapid mobilization",
+    "classFlavor": "Live with watchfulness, mission, and hopeful endurance.",
+    "isTopLevel": true,
     "tuning": {
       "player": {
         "meleeDamageMultiplier": 1,
@@ -17,67 +19,24 @@
         "moveSpeedMultiplier": 1,
         "prayerGainMultiplier": 1,
         "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1,
-        "moves": {
-          "Slash": 1,
-          "Cleave": 1,
-          "Smash": 1,
-          "Crash": 1,
-          "Blast": 1,
-          "Thrash": 1,
-          "Clash": 1,
-          "Reap": 1,
-          "Hedge": 1,
-          "Flash": 1,
-          "Unity Strike": 1,
-          "Pastor Protect": 1,
-          "Smite Bomb": 1,
-          "Purge": 1
-        }
+        "smiteDamageMultiplier": 1
       },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1,
-        "npcWisdomWeightMultiplier": 1,
-        "npcWisdomRofMultiplier": 1,
-        "npcScriptureWeightMultiplier": 1,
-        "npcScriptureRofMultiplier": 1,
-        "npcFaithWeightMultiplier": 1,
-        "npcFaithRofMultiplier": 1,
-        "npcWisdomDamageMultiplier": 1,
-        "npcScriptureDamageMultiplier": 1,
-        "npcFaithDamageMultiplier": 1
-      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
       "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1,
-        "wisdomRofMultiplier": 1,
-        "scriptureRofMultiplier": 1,
-        "faithRofMultiplier": 1,
-        "wisdomDamageMultiplier": 1,
-        "scriptureDamageMultiplier": 1,
-        "faithDamageMultiplier": 1,
-        "wisdomMaxShotsMultiplier": 1,
-        "scriptureMaxShotsMultiplier": 1,
-        "faithMaxShotsMultiplier": 1
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
       },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
     }
   },
   {
     "id": "class2",
-    "classTitle": "Catholic",
-    "classDescription": "Institutional strength, sacramental depth, unity",
-    "classFlavor": "Hold the line through sacrament, mercy, and enduring unity.",
+    "classTitle": "Protestant",
+    "classDescription": "Scripture, faith, reform — choose your tradition after District 1",
+    "classFlavor": "Stand on the Word alone. Your denomination will reveal itself in battle.",
+    "isTopLevel": true,
+    "isProtestant": true,
     "tuning": {
       "player": {
         "meleeDamageMultiplier": 1,
@@ -88,340 +47,210 @@
         "smiteChargeRateMultiplier": 1,
         "smiteDamageMultiplier": 1
       },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
       "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
       },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
     }
   },
   {
     "id": "class3",
+    "classTitle": "Catholic",
+    "classDescription": "Institutional strength, sacramental depth, unity",
+    "classFlavor": "Hold the line through sacrament, mercy, and enduring unity.",
+    "isTopLevel": true,
+    "tuning": {
+      "player": {
+        "meleeDamageMultiplier": 1,
+        "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1,
+        "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1,
+        "smiteChargeRateMultiplier": 1,
+        "smiteDamageMultiplier": 1
+      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
+      "powerups": {
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
+      },
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
+    }
+  },
+
+  // ── PROTESTANT SUB-DENOMINATIONS (unlocked after District 1) ────────────
+  {
+    "id": "class_nondenominational",
+    "classTitle": "Non-Denominational",
+    "classDescription": "Gospel-centered, locally governed, no creedal ties",
+    "classFlavor": "Build the church on the Word alone, free from institutional walls.",
+    "isProtestantSub": true,
+    "tuning": {
+      "player": {
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
+      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
+      "powerups": {
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
+      },
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
+    }
+  },
+  {
+    "id": "class_baptist",
+    "classTitle": "Baptist",
+    "classDescription": "Personal conviction, biblical fidelity, independence",
+    "classFlavor": "Build a faithful church one committed soul at a time.",
+    "isProtestantSub": true,
+    "tuning": {
+      "player": {
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
+      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
+      "powerups": {
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
+      },
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
+    }
+  },
+  {
+    "id": "class_methodist",
     "classTitle": "Methodist",
     "classDescription": "Outreach, social reform, disciplined community",
     "classFlavor": "Strengthen the weary through compassion, discipline, and service.",
+    "isProtestantSub": true,
     "tuning": {
       "player": {
-        "meleeDamageMultiplier": 1,
-        "projectileDamageMultiplier": 1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
       },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
       "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
       },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
     }
   },
   {
-    "id": "class4",
-    "classTitle": "Reformed",
-    "classDescription": "Theological rigor, sovereignty, long-term resilience",
-    "classFlavor": "Stand firm through truth, discipline, and spiritual endurance.",
-    "tuning": {
-      "player": {
-        "meleeDamageMultiplier": 1.1,
-        "projectileDamageMultiplier": 1.1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1.2,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1,
-        "moves": {
-          "Slash": 1,
-          "Cleave": 1,
-          "Smash": 1,
-          "Crash": 1,
-          "Blast": 1,
-          "Thrash": 1,
-          "Clash": 1,
-          "Reap": 1,
-          "Hedge": 1,
-          "Flash": 1,
-          "Unity Strike": 1,
-          "Pastor Protect": 1,
-          "Smite Bomb": 1,
-          "Purge": 1
-        }
-      },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1,
-        "npcWisdomWeightMultiplier": 1,
-        "npcWisdomRofMultiplier": 5,
-        "npcScriptureWeightMultiplier": 1,
-        "npcScriptureRofMultiplier": 5,
-        "npcFaithWeightMultiplier": 1,
-        "npcFaithRofMultiplier": 5,
-        "npcWisdomDamageMultiplier": 3,
-        "npcScriptureDamageMultiplier": 3,
-        "npcFaithDamageMultiplier": 3
-      },
-      "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1,
-        "wisdomRofMultiplier": 4,
-        "scriptureRofMultiplier": 4,
-        "faithRofMultiplier": 4,
-        "wisdomDamageMultiplier": 2,
-        "scriptureDamageMultiplier": 2,
-        "faithDamageMultiplier": 2,
-        "wisdomMaxShotsMultiplier": 1,
-        "scriptureMaxShotsMultiplier": 1,
-        "faithMaxShotsMultiplier": 1
-      },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 10
-      }
-    }
-  },
-  {
-    "id": "class5",
+    "id": "class_liturgical",
     "classTitle": "Liturgical",
     "classDescription": "Sacred order, ancient rhythm, structural endurance",
     "classFlavor": "Preserve sacred order against the collapse of the world.",
+    "isProtestantSub": true,
     "tuning": {
       "player": {
-        "meleeDamageMultiplier": 1,
-        "projectileDamageMultiplier": 1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
       },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
       "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
       },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
     }
   },
   {
-    "id": "class6",
+    "id": "class_lutheran",
     "classTitle": "Lutheran",
     "classDescription": "Grace alone, Word and Sacrament, doctrinal steadiness",
     "classFlavor": "Stand on grace alone, word alone, faith alone.",
+    "isProtestantSub": true,
     "tuning": {
       "player": {
-        "meleeDamageMultiplier": 1,
-        "projectileDamageMultiplier": 1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
       },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
       "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
       },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
     }
   },
   {
-    "id": "class7",
+    "id": "class_reformed",
+    "classTitle": "Reformed",
+    "classDescription": "Theological rigor, sovereignty, long-term resilience",
+    "classFlavor": "Stand firm through truth, discipline, and spiritual endurance.",
+    "isProtestantSub": true,
+    "tuning": {
+      "player": {
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
+      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
+      "powerups": {
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
+      },
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
+    }
+  },
+  {
+    "id": "class_charismatic",
     "classTitle": "Charismatic",
     "classDescription": "Spirit-empowered, direct revelation, prophetic faith",
     "classFlavor": "Expect God to move powerfully in the middle of chaos.",
+    "isProtestantSub": true,
     "tuning": {
       "player": {
-        "meleeDamageMultiplier": 1,
-        "projectileDamageMultiplier": 1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
       },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
       "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
       },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
     }
   },
   {
-    "id": "class8",
-    "classTitle": "Orthodox",
-    "classDescription": "Ancient tradition, contemplative depth, transformation",
-    "classFlavor": "Become holy through endurance, mystery, and ancient faith.",
-    "tuning": {
-      "player": {
-        "meleeDamageMultiplier": 1,
-        "projectileDamageMultiplier": 1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
-      },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
-      "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
-      },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
-    }
-  },
-  {
-    "id": "class9",
-    "classTitle": "Non-Denominational",
-    "classDescription": "Adaptability, mission clarity, rapid mobilization",
-    "classFlavor": "Live with watchfulness, mission, and hopeful endurance.",
-    "tuning": {
-      "player": {
-        "meleeDamageMultiplier": 1,
-        "projectileDamageMultiplier": 1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
-      },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
-      "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
-      },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
-    }
-  },
-  {
-    "id": "class10",
+    "id": "class_evangelical",
     "classTitle": "Evangelical",
     "classDescription": "Evangelism, personal conversion, urgency",
     "classFlavor": "Bring the lost home before the darkness takes them.",
+    "isProtestantSub": true,
     "tuning": {
       "player": {
-        "meleeDamageMultiplier": 1,
-        "projectileDamageMultiplier": 1,
-        "cooldownMultiplier": 1,
-        "moveSpeedMultiplier": 1,
-        "prayerGainMultiplier": 1,
-        "smiteChargeRateMultiplier": 1,
-        "smiteDamageMultiplier": 1
+        "meleeDamageMultiplier": 1, "projectileDamageMultiplier": 1,
+        "cooldownMultiplier": 1, "moveSpeedMultiplier": 1,
+        "prayerGainMultiplier": 1, "smiteChargeRateMultiplier": 1, "smiteDamageMultiplier": 1
       },
-      "npc": {
-        "rofMultiplier": 1,
-        "damageMultiplier": 1,
-        "faithGainMultiplier": 1
-      },
+      "npc": { "rofMultiplier": 1, "damageMultiplier": 1, "faithGainMultiplier": 1 },
       "powerups": {
-        "wisdomWeightMultiplier": 1,
-        "scriptureWeightMultiplier": 1,
-        "faithWeightMultiplier": 1,
-        "perseveranceWeightMultiplier": 1
+        "wisdomWeightMultiplier": 1, "scriptureWeightMultiplier": 1,
+        "faithWeightMultiplier": 1, "perseveranceWeightMultiplier": 1
       },
-      "churchUpgrades": {
-        "costMultiplier": 1,
-        "effectMultiplier": 1
-      },
-      "economy": {
-        "graceGainMultiplier": 1
-      }
+      "churchUpgrades": { "costMultiplier": 1, "effectMultiplier": 1 },
+      "economy": { "graceGainMultiplier": 1 }
     }
-  }
+  },
 ];
 
   const byId = Object.freeze(
@@ -433,21 +262,35 @@
   );
 
   const legacyIdMap = Object.freeze({
-  "baptist": "class1",
-  "catholic": "class2",
-  "methodist": "class3",
-  "presbyterian": "class4",
-  "lutheran": "class5",
-  "anglican": "class6",
-  "pentecostal": "class7",
-  "orthodox": "class8",
-  "adventist": "class9",
-  "nondenominational": "class10"
-});
+    // Top-level
+    "independent":        "class1",
+    "nondenominational":  "class1",
+    "protestant":         "class2",
+    "catholic":           "class3",
+    // Protestant subs (old numeric IDs)
+    "class4":             "class_reformed",
+    "class5":             "class_evangelical",
+    // Legacy string keys
+    "nondenominational":  "class_nondenominational",
+    "baptist":            "class_baptist",
+    "methodist":          "class_methodist",
+    "liturgical":         "class_liturgical",
+    "lutheran":           "class_lutheran",
+    "reformed":           "class_reformed",
+    "presbyterian":       "class_reformed",
+    "charismatic":        "class_charismatic",
+    "pentecostal":        "class_charismatic",
+    "evangelical":        "class_evangelical",
+  });
+
+  const topLevelClasses   = Object.freeze(classes.filter((c) => c.isTopLevel));
+  const protestantSubDenoms = Object.freeze(classes.filter((c) => c.isProtestantSub));
 
   global.BattlechurchClassConfig = Object.freeze({
     defaultClassId: DEFAULT_CLASS_ID,
     classes: Object.freeze(classes.map((entry) => byId[entry.id])),
+    topLevelClasses,
+    protestantSubDenoms,
     byId,
     legacyIdMap,
   });

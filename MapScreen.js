@@ -2173,6 +2173,17 @@
       : null;
     if (livePastorLevels) progress.pastorPowerupLevels = livePastorLevels;
 
+    // Mark denominations unlocked once first district is completed (for Protestant players)
+    if (!progress.denominationsUnlocked) {
+      const firstFront = (mapData.fronts || []).find((f) => f.order === 0);
+      if (firstFront) {
+        const firstFrontDistricts = (mapData.districts || []).filter((d) => d.frontId === firstFront.id);
+        const firstDistrictDone = firstFrontDistricts.length > 0 &&
+          firstFrontDistricts.every((d) => progress.districts?.[d.id]?.p1?.completed === true);
+        if (firstDistrictDone) progress.denominationsUnlocked = true;
+      }
+    }
+
     // Recompute sequential town unlocks
     ensureNextDistrictUnlocked(progress, mapData);
 
@@ -3411,5 +3422,15 @@
     isActive: () => state.active,
     get mapRect() { return { ...state.mapRect }; },
     getPlayerName: () => (getActiveSave()?.playerName?.trim() || "Pastor"),
+    areDenominationsUnlocked: () => !!(ensureProgress()?.denominationsUnlocked),
+    getProgress: () => ensureProgress(),
+    setDenominationForActiveSave: (classId) => {
+      if (typeof window.BattlechurchClasses?.setActive === "function") {
+        window.BattlechurchClasses.setActive(classId);
+      }
+      const activeSave = getActiveSave();
+      if (activeSave) activeSave.classId = classId;
+      void persistPlayerDoc();
+    },
   };
 })(typeof window !== "undefined" ? window : null);

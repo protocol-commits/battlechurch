@@ -5195,6 +5195,226 @@ function drawPastorUpgradeScreen(ctx, canvas, options = {}) {
   }
 }
 
+function drawDenominationScreen(ctx, canvas, options = {}) {
+  const { uiFontFamily = "sans-serif" } = options;
+
+  const subDenoms = (typeof window !== "undefined" && window.BattlechurchClassConfig?.protestantSubDenoms) || [];
+
+  // Background — same as church upgrade screen
+  const { assets } = requireBindings();
+  const backgroundImage = assets?.backgrounds?.gameOver || null;
+  ctx.save();
+  if (backgroundImage) {
+    drawCoverImage(ctx, canvas, backgroundImage, 1, 0.5, 0.5);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  } else {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.restore();
+
+  const title = "Choose Your Denomination";
+  const staticSubtitle = "";
+
+  // Card grid dimensions (8 cards: 4 top + 4 bottom)
+  const COLS = 4;
+  const cardH = 150;
+  const cardGap = 14;
+  const sidePadding = 60;
+  const cardCount = subDenoms.length;
+
+  ctx.save();
+  const layout = getAnnouncementScreenLayout(ctx, canvas, {
+    title,
+    subtitle: staticSubtitle,
+    titleSize: TEXT_STYLES.h1.size,
+    subtitleSize: TEXT_STYLES.h2.size,
+    lineGap: Math.round(TEXT_STYLES.h1.size * TEXT_STYLES.h1.lineHeight),
+    weight: TEXT_STYLES.h1.weight,
+    maxWidthScale: 0.96,
+    position: "top",
+    topMargin: 90,
+    bottomMargin: 80,
+    rowGap: 30,
+    buttonHeight: cardH,
+    buttonCount: Math.ceil(cardCount / COLS) + 1,
+  });
+  ctx.translate(layout.offsetX, layout.offsetY);
+  ctx.scale(layout.scale, layout.scale);
+
+  const denomTitleType = getCanvasSemanticForScreen("churchUpgrade", "title", "h1");
+  drawAnnouncementText(ctx, layout.virtualCanvas, {
+    title,
+    subtitle: staticSubtitle,
+    yBase: layout.titleY,
+    titleSize: denomTitleType.size,
+    subtitleSize: TEXT_STYLES.h2.size,
+    weight: denomTitleType.weight,
+    subtitleWeight: TEXT_STYLES.h2.weight,
+    lineGap: Math.round(denomTitleType.size * denomTitleType.lineHeight),
+    alpha: 1,
+    typewriter: true,
+    textPalette: HELLFIRE_TEXT_PALETTE,
+    maxWidthScale: 0.96,
+    blockAlign: "center",
+  });
+
+  const revealComplete = isAnnouncementRevealComplete(title, staticSubtitle);
+  if (!revealComplete) {
+    window.__denominationScreenButtons = { buttons: [] };
+    ctx.restore();
+    return;
+  }
+
+  const cardType = window.UIStyles?.typography?.cardUi || {};
+  const totalAvailable = layout.virtualCanvas.width - sidePadding * 2;
+  const cardW = Math.floor((totalAvailable - cardGap * (COLS - 1)) / COLS);
+  const gridStartY = layout.buttonY || 0;
+
+  const bounds = [];
+
+  // Lay out cards row by row
+  let cardIndex = 0;
+  let rowY = gridStartY;
+  while (cardIndex < subDenoms.length) {
+    const rowCards = subDenoms.slice(cardIndex, cardIndex + COLS);
+    const rowCount = rowCards.length;
+    const rowWidth = rowCount * cardW + (rowCount - 1) * cardGap;
+    const rowStartX = Math.round((layout.virtualCanvas.width - rowWidth) / 2);
+
+    rowCards.forEach((cls, colIdx) => {
+      const globalIdx = cardIndex + colIdx;
+      const cx = rowStartX + colIdx * (cardW + cardGap);
+      const cy = rowY;
+      const isFocused = isAnnouncementButtonFocused("denominationScreen", globalIdx);
+      const cardRadius = 14;
+
+      ctx.save();
+
+      // Card base gradient (always "affordable" warm style since there's no cost)
+      const baseGradient = ctx.createLinearGradient(0, cy, 0, cy + cardH);
+      baseGradient.addColorStop(0, "#2A2118");
+      baseGradient.addColorStop(0.55, "#3A2E21");
+      baseGradient.addColorStop(1, "#1E1812");
+      ctx.shadowColor = "rgba(8, 6, 4, 0.55)";
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 8;
+      ctx.fillStyle = baseGradient;
+      roundRect(ctx, cx, cy, cardW, cardH, cardRadius, true, false);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // Border
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(200, 160, 90, 0.85)";
+      roundRect(ctx, cx, cy, cardW, cardH, cardRadius, false, true);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      roundRect(ctx, cx + 3, cy + 3, cardW - 6, cardH - 6, Math.max(8, cardRadius - 4), false, true);
+
+      // Header band
+      const headerH = 44;
+      ctx.save();
+      roundRect(ctx, cx, cy, cardW, cardH, cardRadius, false, false);
+      ctx.clip();
+      const headerGradient = ctx.createLinearGradient(0, cy, 0, cy + headerH);
+      headerGradient.addColorStop(0, "#5B4328");
+      headerGradient.addColorStop(1, "#3E2E1D");
+      ctx.fillStyle = headerGradient;
+      ctx.fillRect(cx, cy, cardW, headerH);
+      ctx.fillStyle = "rgba(230, 195, 130, 0.3)";
+      ctx.fillRect(cx, cy + headerH - 2, cardW, 2);
+      ctx.restore();
+
+      if (isFocused) {
+        drawFocusRing(ctx, cx - 3, cy - 3, cardW + 6, cardH + 6, 18);
+      }
+
+      // Title in header
+      const titleFontSize = cardType.title ?? 18;
+      const titlePadX = 14;
+      ctx.font = `800 ${titleFontSize}px ${uiFontFamily}`;
+      ctx.fillStyle = "#F3E2C4";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(cls.classTitle || "", cx + titlePadX, cy + headerH / 2);
+
+      // Description below header
+      const descFontSize = cardType.description ?? 13;
+      const descLineH = Math.round(descFontSize * (cardType.descriptionLineHeight ?? 1.25));
+      ctx.font = `600 ${descFontSize}px ${uiFontFamily}`;
+      ctx.fillStyle = "rgba(235, 220, 195, 0.9)";
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetY = 1;
+      const descMaxWidth = cardW - titlePadX * 2;
+      const descLines = wrapAnnouncementText(ctx, cls.classDescription || "", descMaxWidth);
+      const descStartY = cy + headerH + 10;
+      descLines.forEach((line, li) => {
+        ctx.fillText(line, cx + titlePadX, descStartY + li * descLineH);
+      });
+
+      ctx.restore();
+
+      bounds.push({
+        key: cls.id,
+        x: layout.offsetX + cx * layout.scale,
+        y: layout.offsetY + cy * layout.scale,
+        width: cardW * layout.scale,
+        height: cardH * layout.scale,
+      });
+    });
+
+    cardIndex += rowCards.length;
+    rowY += cardH + cardGap;
+  }
+
+  // "Decide Later" button — ember style
+  const _btn = getCanvasSemanticForScreen("churchUpgrade", "button", "button");
+  const skipH = Math.round(_btn.size * 1.8);
+  const skipW = Math.min(300, totalAvailable * 0.45);
+  const skipX = Math.round((layout.virtualCanvas.width - skipW) / 2);
+  const skipY = rowY + 10;
+  const skipFocused = isAnnouncementButtonFocused("denominationScreen", subDenoms.length);
+
+  ctx.save();
+  ctx.fillStyle = getEmberButtonGradient(ctx, skipY, skipH);
+  ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+  ctx.lineWidth = 2;
+  roundRect(ctx, skipX, skipY, skipW, skipH, 18, true, true);
+  if (skipFocused) {
+    drawFocusRing(ctx, skipX - 3, skipY - 3, skipW + 6, skipH + 6, 20);
+  }
+  ctx.fillStyle = EMBER_BUTTON_PALETTE.text;
+  ctx.shadowColor = EMBER_BUTTON_PALETTE.textShadow;
+  ctx.shadowBlur = 6;
+  ctx.shadowOffsetY = 1;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `${_btn.weight} ${_btn.size}px ${uiFontFamily}`;
+  ctx.fillText("Decide Later", skipX + skipW / 2, skipY + skipH / 2);
+  ctx.restore();
+
+  bounds.push({
+    key: "__skip__",
+    x: layout.offsetX + skipX * layout.scale,
+    y: layout.offsetY + skipY * layout.scale,
+    width: skipW * layout.scale,
+    height: skipH * layout.scale,
+  });
+
+  ctx.restore();
+
+  if (typeof window !== "undefined") {
+    window.__denominationScreenButtons = { buttons: bounds };
+  }
+}
+
 function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   const {
     graceCount = 0,
@@ -14914,6 +15134,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     drawCountdownOverlay,
     drawChurchUpgradeScreen,
     drawPastorUpgradeScreen,
+    drawDenominationScreen,
     drawDenomUpgradeScreen,
     drawPlayingInstructionsOverlay,
     drawGraceSpendFlyEffectsOverlay,
