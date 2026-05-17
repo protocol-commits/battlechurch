@@ -1665,6 +1665,18 @@ function playMusic(audio, { volume = 0.7, loop = false } = {}) {
   if (!audio) return;
   const effectiveVolume = getEffectiveMusicVolume(volume);
   if (effectiveVolume <= 0) return;
+  // Stop all other tracks before starting this one
+  const allTracks = [
+    musicState.intro, musicState.battle, musicState.battleWave3,
+    musicState.battleBossPhase3, musicState.recap, musicState.visitor,
+    musicState.exterior, musicState.exteriorBoss, musicState.bossDeath,
+    musicState.congregation,
+  ];
+  allTracks.forEach((track) => {
+    if (track && track !== audio && !track.paused) {
+      try { track.pause(); } catch (e) {}
+    }
+  });
   audio.loop = loop;
   audio.volume = effectiveVolume;
   try {
