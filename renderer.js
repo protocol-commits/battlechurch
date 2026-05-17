@@ -5568,8 +5568,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       }
       const needVerb = npcNames.length === 1 ? "needs" : "need";
       const missionHeading = scenarioTitle
-        ? `${nameSentence} ${needVerb} your help as they battle personal demons while facing ${scenarioTitle.toUpperCase()}.`
-        : `${nameSentence} ${needVerb} your help as they battle personal demons.`;
+        ? `${nameSentence} ${npcNames.length === 1 ? "is" : "are"} under attack as they battle their personal demons while facing ${scenarioTitle.toUpperCase()}.`
+        : `${nameSentence} ${npcNames.length === 1 ? "is" : "are"} under attack as they battle their personal demons.`;
       const _mCamp = (typeof window !== "undefined" && window.activeCampaign) || "p1";
       const _mLabels = (typeof window !== "undefined" && window.BattlechurchCampaignLabels) || {};
       const _mPhase = _mLabels.phases?.[_mCamp] || _mCamp.toUpperCase();
@@ -6714,8 +6714,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const fullTitleText = isDevArena
       ? "Learn the Moves"
       : isFirstPlaythroughForDistrict
-        ? `Welcome to ${districtName} Church`
-        : `Welcome back to ${districtName} Church`;
+        ? `${districtName} Church is Under Attack`
+        : `${districtName} Church is Under Attack Again`;
     const now = typeof performance !== "undefined" ? performance.now() : Date.now();
     const stage = levelStatus?.stage || "";
     const activeAnnouncement = Array.isArray(levelAnnouncements) ? levelAnnouncements[0] : null;
