@@ -24047,8 +24047,9 @@ function getHeldMovementDirection() {
 function getPastorDashCooldownMultiplier() {
   if (pastorDashBuffTimer > 0) {
     const level = getPastorPowerupLevel("dash");
-    const effectiveLevel = level + 1; // base 10% reduction before any upgrade
-    return Math.max(0.5, 1 - effectiveLevel * 0.1);
+    // level 0 = 20% reduction (0.8), level 5 = 50% reduction (0.5)
+    const reduction = 0.2 + (level / PASTOR_POWERUP_MAX_LEVEL) * 0.3;
+    return 1 - reduction;
   }
   return 1;
 }
