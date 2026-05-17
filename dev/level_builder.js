@@ -700,6 +700,11 @@
             <div id="lb-assumedUpgrades" class="lb-upgrade-grid"></div>
             <button id="lb-clearAssumedUpgrades" class="secondary" type="button">Reset Upgrades</button>
           </div>
+          <div class="group" style="margin-left:16px;">
+            <span class="lb-upgrades-label">Pastor Powerups</span>
+            <div id="lb-assumedPastorUpgrades" class="lb-upgrade-grid"></div>
+            <button id="lb-clearPastorUpgrades" class="secondary" type="button">Reset Pastor</button>
+          </div>
         </div>
         <div id="lb-status" style="margin-top:8px;font-size:12px;color:var(--lb-hint);"></div>
       </div>
@@ -721,6 +726,8 @@
     battleNotes: overlay.querySelector("#lb-battleNotes"),
     assumedUpgrades: overlay.querySelector("#lb-assumedUpgrades"),
     clearAssumedUpgrades: overlay.querySelector("#lb-clearAssumedUpgrades"),
+    assumedPastorUpgrades: overlay.querySelector("#lb-assumedPastorUpgrades"),
+    clearPastorUpgrades: overlay.querySelector("#lb-clearPastorUpgrades"),
     status:      overlay.querySelector("#lb-status"),
     close:       overlay.querySelector("#lb-close"),
     copyMenuWrap: overlay.querySelector("#lb-copyMenuWrap"),
@@ -811,6 +818,7 @@
       }
     }
     renderAssumedUpgradeInputs(missionObj);
+    renderAssumedPastorUpgradeInputs(missionObj);
     const catalog = (window.BattlechurchEnemyCatalog && window.BattlechurchEnemyCatalog.catalog) || {};
     const enemyKeys = Object.keys(catalog);
     const filterOptions = buildEnemyFilterOptions(catalog);
@@ -1231,6 +1239,71 @@
     else delete current[powerupKey];
     if (Object.keys(current).length) missionObj.assumedChurchPowerupLevels = current;
     else delete missionObj.assumedChurchPowerupLevels;
+  }
+
+  function getPastorPowerupDefs() {
+    return (typeof window !== "undefined" && window.PASTOR_POWERUP_DEFS) || {
+      prayer: { label: "Prayer" },
+      hp:     { label: "HP" },
+      dash:   { label: "Stamina" },
+    };
+  }
+
+  function getPastorMaxLevel() {
+    return (typeof window !== "undefined" && window.PASTOR_POWERUP_MAX_LEVEL) || 5;
+  }
+
+  function getMissionAssumedPastorLevels(missionObj) {
+    const raw = missionObj?.assumedPastorPowerupLevels;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    return raw;
+  }
+
+  function setMissionAssumedPastorLevel(missionObj, key, level) {
+    const max = getPastorMaxLevel();
+    const nextLevel = Math.max(0, Math.min(max, Math.floor(Number(level) || 0)));
+    const current =
+      missionObj?.assumedPastorPowerupLevels && typeof missionObj.assumedPastorPowerupLevels === "object"
+        ? missionObj.assumedPastorPowerupLevels
+        : {};
+    if (nextLevel > 0) current[key] = nextLevel;
+    else delete current[key];
+    if (Object.keys(current).length) missionObj.assumedPastorPowerupLevels = current;
+    else delete missionObj.assumedPastorPowerupLevels;
+  }
+
+  function renderAssumedPastorUpgradeInputs(missionObj) {
+    if (!els?.assumedPastorUpgrades) return;
+    const defs = getPastorPowerupDefs();
+    const max = getPastorMaxLevel();
+    const assumed = getMissionAssumedPastorLevels(missionObj);
+    els.assumedPastorUpgrades.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+    Object.entries(defs).forEach(([key, def]) => {
+      const label = String(def?.label || def?.displayName || key);
+      const pill = document.createElement("label");
+      pill.className = "lb-upgrade-pill";
+      const name = document.createElement("span");
+      name.textContent = label;
+      name.title = key;
+      const input = document.createElement("input");
+      input.type = "number";
+      input.min = "0";
+      input.max = String(max);
+      input.step = "1";
+      input.value = String(Math.max(0, Math.min(max, Math.floor(Number(assumed[key] || 0)))));
+      input.addEventListener("change", () => {
+        const nextLevel = Math.max(0, Math.min(max, Math.floor(Number(input.value) || 0)));
+        input.value = String(nextLevel);
+        pushUndoSnapshot();
+        setMissionAssumedPastorLevel(missionObj, key, nextLevel);
+        saveToStorage(state.config);
+      });
+      pill.appendChild(name);
+      pill.appendChild(input);
+      fragment.appendChild(pill);
+    });
+    els.assumedPastorUpgrades.appendChild(fragment);
   }
 
   function renderAssumedUpgradeInputs(missionObj) {
@@ -1858,6 +1931,18 @@
         saveToStorage(state.config);
         renderAssumedUpgradeInputs(missionObj);
         setStatus("Cleared assumed upgrades for this encounter");
+      });
+    }
+    if (els.clearPastorUpgrades) {
+      els.clearPastorUpgrades.addEventListener("click", () => {
+        const { missionObj } = getOrCreateMission();
+        const existing = getMissionAssumedPastorLevels(missionObj);
+        if (!Object.keys(existing).length) return;
+        pushUndoSnapshot();
+        delete missionObj.assumedPastorPowerupLevels;
+        saveToStorage(state.config);
+        renderAssumedPastorUpgradeInputs(missionObj);
+        setStatus("Cleared pastor powerup levels for this encounter");
       });
     }
 

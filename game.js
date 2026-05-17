@@ -9071,9 +9071,11 @@ function startDevLevelTestFromEditor({
     if (!cfg || typeof cfg !== "object") return {};
     const districtList = Array.isArray(cfg?.districts)
       ? cfg.districts
-      : Array.isArray(cfg?.levels)
-        ? cfg.levels
-        : [];
+      : Array.isArray(cfg?.towns)
+        ? cfg.towns
+        : Array.isArray(cfg?.levels)
+          ? cfg.levels
+          : [];
     const districtCfg =
       districtList.find((entry) => Number(entry?.index) === districtNum) || districtList[districtNum - 1] || null;
     const battleList = Array.isArray(districtCfg?.battles)
@@ -9109,6 +9111,43 @@ function startDevLevelTestFromEditor({
     return sanitized;
   };
 
+  const getDevEditorAssumedPastorPowerups = ({ districtNum, battlefieldNum }) => {
+    const cfg =
+      (typeof window !== "undefined" && window.BattlechurchLevelBuilder?.getConfig?.()) ||
+      (typeof window !== "undefined" ? window.BattlechurchLevelData : null);
+    if (!cfg || typeof cfg !== "object") return {};
+    const districtList = Array.isArray(cfg?.districts)
+      ? cfg.districts
+      : Array.isArray(cfg?.towns)
+        ? cfg.towns
+        : Array.isArray(cfg?.levels)
+          ? cfg.levels
+          : [];
+    const districtCfg =
+      districtList.find((entry) => Number(entry?.index) === districtNum) || districtList[districtNum - 1] || null;
+    const battleList = Array.isArray(districtCfg?.battles)
+      ? districtCfg.battles
+      : Array.isArray(districtCfg?.months)
+        ? districtCfg.months
+        : [];
+    const battlefieldCfg =
+      battleList.find((entry) => Number(entry?.index) === battlefieldNum) ||
+      battleList[battlefieldNum - 1] ||
+      null;
+    const assumedLevels =
+      battlefieldCfg?.assumedPastorPowerupLevels ??
+      battlefieldCfg?.missions?.[0]?.assumedPastorPowerupLevels;
+    if (!assumedLevels || typeof assumedLevels !== "object" || Array.isArray(assumedLevels)) return {};
+    const maxLevel = Number.isFinite(PASTOR_POWERUP_MAX_LEVEL) ? PASTOR_POWERUP_MAX_LEVEL : 5;
+    const sanitized = {};
+    for (const [key, value] of Object.entries(assumedLevels)) {
+      if (!PASTOR_POWERUP_DEFS[key]) continue;
+      const level = Math.max(0, Math.min(maxLevel, Math.floor(Number(value) || 0)));
+      if (level > 0) sanitized[key] = level;
+    }
+    return sanitized;
+  };
+
   const mapData = typeof window !== "undefined" ? window.BattlechurchMapData : null;
   const districts = Array.isArray(mapData?.districts) ? mapData.districts : [];
   if (!districts.length) {
@@ -9129,10 +9168,15 @@ function startDevLevelTestFromEditor({
     districtNum: districtNumber,
     battlefieldNum: battlefieldNumber,
   });
+  const assumedPastorLevels = getDevEditorAssumedPastorPowerups({
+    districtNum: districtNumber,
+    battlefieldNum: battlefieldNumber,
+  });
   pendingDevCampaignDataOverride = {
     districtId,
     campaignData: {
       restoredChurchPowerupLevels: assumedPowerupLevels,
+      restoredPastorPowerupLevels: Object.keys(assumedPastorLevels).length ? assumedPastorLevels : undefined,
     },
   };
   setDevPlaytestSession(true, {
