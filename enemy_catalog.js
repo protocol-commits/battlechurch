@@ -1259,7 +1259,7 @@
     "attackBonus": 36,
     "cooldown": 1.8,
     "score": 180,
-    "ranged": false,
+    "ranged": true,
     "projectileType": null,
     "preferEdges": false,
     "desiredRange": 110,
@@ -1278,7 +1278,7 @@
       "offsetY": 9
     },
     "attackHitFrame": 4,
-    "attackHitDamage": 15,
+    "attackHitDamage": 7,
     "weaponHitbox": {
       "width": 15,
       "height": 24,
@@ -1328,8 +1328,9 @@
         47
       ]
     },
-    "contactDamage": 10,
-    "attackDamage": 10
+    "contactDamage": 4,
+    "attackDamage": 6,
+    "p2MinionCount": 10
   },
   "miniGhost": {
     "displayName": "Mini Ghost",

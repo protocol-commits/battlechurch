@@ -16857,6 +16857,10 @@ class BossEncounter {
   }
 
   getHazardCooldown() {
+    const catalogDef = this.getCatalogDef();
+    if (this.phase >= 3 && Number.isFinite(catalogDef?.p3SunburstCooldown) && catalogDef.p3SunburstCooldown > 0) {
+      return catalogDef.p3SunburstCooldown;
+    }
     return Math.max(5, 7.5 - this.level * 0.4);
   }
 
@@ -16955,9 +16959,20 @@ class BossEncounter {
     }
   }
 
+  getCatalogDef() {
+    return (
+      window.BattlechurchEnemyCatalog?.catalog?.[this.type] ||
+      window.BattlechurchEnemyDefinitions?.[this.type] ||
+      null
+    );
+  }
+
   summonMinions() {
-    const minionType = "miniFireImp";
-    const count = Math.min(3, 2 + Math.floor(this.level / 2));
+    const catalogDef = this.getCatalogDef();
+    const minionType = (catalogDef?.p2MinionType) || "miniFireImp";
+    const count = Number.isFinite(catalogDef?.p2MinionCount) && catalogDef.p2MinionCount > 0
+      ? catalogDef.p2MinionCount
+      : Math.min(3, 2 + Math.floor(this.level / 2));
     if (enemies.length >= MAX_ACTIVE_ENEMIES + 2) return;
     for (let i = 0; i < count; i += 1) {
       const offset = randomInRange(60, 140);
@@ -16990,7 +17005,13 @@ class BossEncounter {
       return;
     }
 
-    const fanCount = 6;
+    const catalogDef = this.getCatalogDef();
+    const fanCount = Number.isFinite(catalogDef?.p3SunburstCount) && catalogDef.p3SunburstCount >= 2
+      ? catalogDef.p3SunburstCount
+      : 6;
+    const sunburstDamage = Number.isFinite(catalogDef?.p3SunburstDamage) && catalogDef.p3SunburstDamage > 0
+      ? catalogDef.p3SunburstDamage
+      : this.getProjectileDamage();
     for (let i = 0; i < fanCount; i += 1) {
       const angle = (Math.PI * 2 * i) / fanCount;
       const dirX = Math.cos(angle);
@@ -16998,7 +17019,7 @@ class BossEncounter {
       const projectile = spawnProjectile("fire", this.x, this.y, dirX, dirY, {
         friendly: false,
         speed: PROJECTILE_CONFIG.fire.speed * 1.1,
-        damage: this.getProjectileDamage(),
+        damage: sunburstDamage,
         radius: PROJECTILE_CONFIG.fire.radius,
         source: this,
       });
@@ -17395,12 +17416,20 @@ class BossEncounter {
       this.projectileTimer = this.getProjectileCooldown();
     }
 
-    if (this.phase >= 2 && this.summonTimer <= 0) {
+    const _bcd = this.getCatalogDef();
+    const _p2SummonOk = _bcd?.p2SummonEnabled !== false;
+    const _p3SummonOk = _bcd?.p3SummonEnabled !== false;
+    const _p3SunburstOk = _bcd?.p3SunburstEnabled !== false;
+
+    if (this.phase === 2 && _p2SummonOk && this.summonTimer <= 0) {
+      this.summonMinions();
+      this.summonTimer = this.getSummonCooldown();
+    } else if (this.phase >= 3 && _p3SummonOk && this.summonTimer <= 0) {
       this.summonMinions();
       this.summonTimer = this.getSummonCooldown();
     }
 
-    if (this.phase >= 3 && this.hazardTimer <= 0) {
+    if (this.phase >= 3 && _p3SunburstOk && this.hazardTimer <= 0) {
       this.spawnHazard();
       this.hazardTimer = this.getHazardCooldown();
     }
@@ -21234,6 +21263,7 @@ function showDeveloperOverlay() {
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
 <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="hitbox">Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="bossHitbox">Boss Hitbox Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="boss">Boss Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="shortcuts">Developer Shortcuts</button>
       </div>
       <div class="settings-row"><div class="settings-row__label"><strong>Run Rules</strong></div></div>
@@ -21357,6 +21387,9 @@ function showDeveloperOverlay() {
           } else if (action === "bossHitbox") {
             window.DialogOverlay.hide();
             window.BattlechurchBossHitboxEditor?.setActive?.(true);
+          } else if (action === "boss") {
+            window.DialogOverlay.hide();
+            window.BattlechurchBossEditor?.show?.();
           } else if (action === "shortcuts") {
             showDeveloperShortcutsOverlay();
           }
