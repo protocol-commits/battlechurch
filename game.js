@@ -3254,20 +3254,26 @@ function setPastorPowerupLevel(key, level) {
 function applyPastorPowerupPickup(type) {
   if (!player) return;
   const level = Math.max(1, getPastorPowerupLevel(type));
+  let speechText = null;
   if (type === "prayer") {
     const byLevel = window.GameBalance?.pastorPowerups?.prayerBarsByLevel ?? PASTOR_PICKUP_PRAYER_BARS_BY_LEVEL;
     const bars = getPastorPickupValue(byLevel, level);
     const required = Math.max(1, player.prayerChargeRequired || PRAYER_BOMB_CHARGE_REQUIRED || 60000);
     player.prayerCharge = Math.min(required, (player.prayerCharge || 0) + (bars / 6) * required);
+    speechText = `Prayer +${bars} Bar${bars !== 1 ? "s" : ""}`;
   } else if (type === "hp") {
     const byLevel = window.GameBalance?.pastorPowerups?.hpAmountByLevel ?? PASTOR_PICKUP_HP_AMOUNT_BY_LEVEL;
     const hp = getPastorPickupValue(byLevel, level);
     player.health = Math.min(player.maxHealth || HERO_MAX_HEALTH, (player.health || 0) + hp);
+    speechText = `HP +${hp}`;
   } else if (type === "dash") {
     const byLevel = window.GameBalance?.pastorPowerups?.dashDurationByLevel ?? PASTOR_PICKUP_DASH_DURATION_BY_LEVEL;
-    pastorDashBuffTimer = getPastorPickupValue(byLevel, level);
+    const duration = getPastorPickupValue(byLevel, level);
+    pastorDashBuffTimer = duration;
     if (typeof window !== "undefined") window.pastorDashBuffTimer = pastorDashBuffTimer;
+    speechText = `Stamina Boost ${Math.round(duration)}s`;
   }
+  if (speechText) heroSay(speechText, { life: 2.2 });
 }
 
 if (typeof window !== "undefined") {
