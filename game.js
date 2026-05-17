@@ -9648,15 +9648,8 @@ function showEditCloudSaveDialog(saveId) {
   const row = titleCloudSaveRows.find((entry) => entry.id === saveId) || null;
   if (!row) return false;
   const details = row.details || {};
-  const classOptions = getSortedClassMenuEntries(classEntries);
-  const currentClassId =
-    String(details.classId || "").trim() ||
-    String(window.BattlechurchClasses?.getActiveId?.() || "").trim() ||
-    String(window.BattlechurchClassConfig?.defaultClassId || "").trim() ||
-    "class1";
   const currentPlayerName = String(details.playerName || "Pastor").trim() || "Pastor";
   const currentCityName   = String(details.cityName || "").trim();
-  const optionsHtml = _buildSaveFormOptionsHtml(classOptions, currentClassId);
   const esc = (v) => String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   window.DialogOverlay.show({
     title: "Edit Save",
@@ -9668,10 +9661,6 @@ function showEditCloudSaveDialog(saveId) {
           <input id="ef-playerName" class="save-form__input" type="text" value="${esc(currentPlayerName)}" placeholder="Pastor name" autocomplete="off" maxlength="32" />
           <input id="ef-cityName" class="save-form__input" type="text" value="${esc(currentCityName)}" placeholder="City (optional)" autocomplete="off" maxlength="32" />
         </div>
-        <div class="save-form__inline">
-          <span class="save-form__inline-label">Denomination</span>
-          <select id="ef-classId" class="save-form__input">${optionsHtml}</select>
-        </div>
         <div class="save-form__actions">
           <button type="button" id="ef-cancel" class="save-form__btn save-form__btn--cancel">Cancel</button>
           <button type="button" id="ef-submit" class="save-form__btn save-form__btn--primary">Apply Changes</button>
@@ -9681,7 +9670,6 @@ function showEditCloudSaveDialog(saveId) {
     onRender: ({ bodyEl }) => {
       const nameInput  = bodyEl?.querySelector("#ef-playerName");
       const cityInput  = bodyEl?.querySelector("#ef-cityName");
-      const classInput = bodyEl?.querySelector("#ef-classId");
       const cancelBtn  = bodyEl?.querySelector("#ef-cancel");
       const submitBtn  = bodyEl?.querySelector("#ef-submit");
       setTimeout(() => { try { nameInput?.focus(); } catch (_e) {} }, 60);
@@ -9689,14 +9677,13 @@ function showEditCloudSaveDialog(saveId) {
       const doSubmit = () => {
         const playerName = String(nameInput?.value  || "").trim();
         const cityName   = String(cityInput?.value  || "").trim();
-        const classId    = String(classInput?.value || "").trim();
         if (!playerName) { nameInput?.focus(); return; }
         window.DialogOverlay?.hide?.();
         void (async () => {
           try {
             if (typeof window.MapScreen?.updateSaveFileMetadata === "function") {
               await window.MapScreen.updateSaveFileMetadata(saveId, {
-                saveName: playerName, playerName, cityName, classId,
+                saveName: playerName, playerName, cityName,
               });
             }
             await refreshTitleCloudSaveOption();
