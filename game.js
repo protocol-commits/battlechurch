@@ -10304,7 +10304,7 @@ function showBattleSummaryDialog(announcement, savedCount, lostCount, upgradeAft
   if (congregationalPrayersPerformanceValue > 0) {
     performanceBadgeBreakdown.push({
       id: "congregationalPrayers",
-      label: "Smite",
+      label: "Purify",
       iconSrc: PERFORMANCE_BONUS_BADGE_SRCS.congregationalPrayers,
       value: congregationalPrayersPerformanceValue,
     });
@@ -11284,6 +11284,7 @@ function applyUtilityPowerUp(powerUp) {
       });
       break;
     case "smiteBomb": {
+      // Utility pickup internally remains "smiteBomb", but player-facing term is Purify.
       const bombDamage = Math.max(0, Math.round(Number(powerUp.definition?.damage) || 200));
       if (typeof playPrayerBombSfx === "function") {
         playPrayerBombSfx(0.85);
@@ -19701,7 +19702,9 @@ function updatePlayerDuringCongregation(dt) {
       (aFullyCharged && player.prayerHoldLocked && (player.prayerCharge || 0) >= prayerSuperCost) ||
       (aFullyCharged && keysPressed.has("ArrowRight"));
     const acPostReleaseBlocking = (_ms.acSuperPrayerBombBlockTimer || 0) > 0;
-    if (acComboActive || acPostReleaseBlocking || _ms.spinButtonDown || _ms.bcTeleportArmed) {
+    const cHeldNow = keysPressed.has("ArrowRight");
+    const bCInterceptActive = Boolean((_ms.spinButtonDown || _ms.spinCharging) && cHeldNow);
+    if (acComboActive || acPostReleaseBlocking || bCInterceptActive || _ms.bcTeleportArmed) {
       Input.prayerBombClickQueued = false;
     }
     if ((acComboActive || acPostReleaseBlocking) && typeof cancelCongregationTap === "function") {
@@ -22942,7 +22945,13 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000) / 12;
 
     // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
-    const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0 || _ms.blankaRollActive);
+    const bChargingSuppressBomb = Boolean(
+      ((_ms.spinButtonDown || _ms.spinCharging) && keysPressed.has("ArrowRight")) ||
+      _ms.bcTeleportArmed ||
+      (_ms.bcTeleportBlockTimer || 0) > 0 ||
+      (_ms.cBHolyDashBlockTimer || 0) > 0 ||
+      _ms.blankaRollActive
+    );
     const acPostReleaseBlocking = (_ms.acSuperPrayerBombBlockTimer || 0) > 0;
     if (_ms.acSuperArmed || prayerStrikeBlocking || acPostReleaseBlocking || bChargingSuppressBomb) {
       Input.prayerBombClickQueued = false;
@@ -26606,7 +26615,8 @@ const MOVE_BANNER_TOKENS = Object.freeze({
   Cleave:          [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
   "Unity Strike":  [_MB.btn("C")],
   "Pastor Protect":[_MB.btn("C"), _MB.seq(), _MB.btn("C")],
-  "Smite Bomb":    [_MB.chg(), _MB.btn("C")],
+  // Purify is the unified player-facing label for Charged-C prayer actions.
+  "Purify":        [_MB.chg(), _MB.btn("C")],
   "Purge":         [_MB.chg(), _MB.btn("C")],
 });
 
@@ -27890,6 +27900,10 @@ function updateMeleeAttackSystem(dt) {
     const bFull =
       Boolean(meleeAttackState.spinButtonDown && meleeAttackState.spinCharging) &&
       (meleeAttackState.spinChargeTimer || 0) >= holdBForAbc;
+    // Prevent stale combo-intercept flags from suppressing Charged-C Purify input.
+    if (!(meleeAttackState.buttonDown && meleeAttackState.isCharging)) {
+      meleeAttackState.acSuperArmed = false;
+    }
     const cHeldForAbc = keysPressed.has("ArrowRight");
     const cJustReleasedForAbc = !cHeldForAbc && Boolean(meleeAttackState.abcPrevCHeld);
     meleeAttackState.abcPrevCHeld = cHeldForAbc;
@@ -27927,9 +27941,9 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.abcSmiteArmed = false;
       meleeAttackState.abcSmitePendingRelease = false;
       if (casted) {
-        meleeAttackState.abcSmiteLatch = true;
+        meleeAttackState.abcSmiteLatch = false;
         window.FloatingText?.heroSay?.("Smite");
-        window.showMoveBanner?.("Smite Bomb");
+        window.showMoveBanner?.("Smite");
         meleeAttackState.buttonDown = false;
         meleeAttackState.isCharging = false;
         meleeAttackState.chargeTimer = 0;
@@ -27938,6 +27952,11 @@ function updateMeleeAttackSystem(dt) {
         meleeAttackState.spinChargeTimer = 0;
         meleeAttackState.abSuperArmed = false;
         meleeAttackState.acSuperArmed = false;
+        meleeAttackState.acSuperPrayerBombBlockTimer = 0;
+        meleeAttackState.bcTeleportArmed = false;
+        meleeAttackState.bcTeleportBlockTimer = 0;
+        meleeAttackState.cBHolyDashBlockTimer = 0;
+        meleeAttackState.holyDashArmUntil = 0;
         if (meleeAttackState.lastComboTimes) {
           meleeAttackState.lastComboTimes.A = 0;
           meleeAttackState.lastComboTimes.B = 0;

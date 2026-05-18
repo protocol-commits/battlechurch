@@ -2309,8 +2309,8 @@
     if (!suppressPrayerBombInput && consumePrayerBombClick()) {
       const isFullCharge = typeof this.getPrayerChargeRatio === "function" && this.getPrayerChargeRatio() >= 1.0;
       this.castPrayerBomb();
-      window.FloatingText?.heroSay?.(isFullCharge ? "Smite" : "Purge");
-      window.showMoveBanner?.(isFullCharge ? "Smite Bomb" : "Purge");
+      window.FloatingText?.heroSay?.("Purify");
+      window.showMoveBanner?.("Purify");
     }
 
       // Visitor mini-game: autolock on closest visitor or chatty NPC
@@ -2685,6 +2685,10 @@
   }
 
   castPrayerBomb(options = {}) {
+    // Naming/behavior note:
+    // - Player-facing non-full Charged-C cast is "Purify".
+    // - Full A+B+C forced cast is surfaced as "Smite" by melee combo flow.
+    // - Internal identifiers still use prayerBomb/smite keys for compatibility.
     const forceLevel3 = Boolean(options?.forceLevel3);
     if (this.invulnerableTimer > 0 || gameOver) return false;
     const ratio = this.getPrayerChargeRatio();
@@ -2695,6 +2699,8 @@
     const level3Threshold =
       typeof PRAYER_BOMB_LEVEL3_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL3_THRESHOLD : 1.0;
     if (!forceLevel3 && ratio < level1Threshold) return false;
+    // Design choice: there is no separate runtime "level 1" Purify anymore.
+    // Any non-full cast resolves to level 2 values; level 3 only when forced.
     const level = forceLevel3 ? 3 : 2;
     const bossScale =
       typeof PRAYER_BOMB_BOSS_DAMAGE_SCALE === "number" ? PRAYER_BOMB_BOSS_DAMAGE_SCALE : 0.5;

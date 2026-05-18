@@ -19,7 +19,7 @@
     "Intermediate Sword Combo: Charge-A, A, B/A, A (Blast / Slash / Smash / Slash).",
     "Make a enemy whiff to Counter Hit or Punish Counter for bonus damage.",
     "Different Denominations prioritize different attributes.",
-    "A fully charged Smite Bomb (Charged-C, Full Prayer Meter) gives a huge congregation bonus, so don't let it go to waste.",
+    "A fully charged Purify (Charged-C, Full Prayer Meter) gives a huge congregation bonus, so don't let it go to waste.",
     "Can't reach a powerup? Have the congregants clear a path for you by double tapping C.",
     "To unlock Missions 2 and 3 of a District, clear the entire frontline.",
     "Smash attack (B/A) is your most useful attack. Does big damage, clears area, slight invunerability. Good for getting to powerups.",
