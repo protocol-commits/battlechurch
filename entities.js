@@ -647,6 +647,24 @@
   }
 
   function updatePastorPaperdollState(player, dt) {
+    // Blanka Roll: lock to thrust preset, frame 3 (index 2), for the entire duration
+    if (window._meleeAttackState?.blankaRollActive) {
+      const cfg = getPastorConfig();
+      const thrustPreset = cfg && Array.isArray(cfg.presets)
+        ? cfg.presets.find((p) => normalizePresetKey(String(p?.name || "")) === "thrust")
+        : null;
+      if (thrustPreset) {
+        const dir = window._meleeAttackState?.rushDir;
+        const forcedFacing = dir ? facingFromVector(dir.x, dir.y, String(player.facing || "down")) : String(player.facing || "down");
+        player._paperdollAttackFacing = forcedFacing;
+        if (!player._paperdollState) player._paperdollState = { key: "", frameCursor: 0, elapsedMs: 0 };
+        const pd = player._paperdollState;
+        pd.key = "__blankaRoll__";
+        pd.frameCursor = 2; // frame 3 (0-indexed) — sword fully extended
+        pd.elapsedMs = 0;
+      }
+      return;
+    }
     const preset = resolvePastorPaperdollPreset(player);
     if (!preset) return;
     const cfg = getPastorConfig();
@@ -894,8 +912,16 @@
   }
 
   function drawPastorPaperdoll(player, context, x, y, { alpha = 1 } = {}) {
-    const preset = resolvePastorPaperdollPreset(player);
+    let preset = resolvePastorPaperdollPreset(player);
     if (!preset) return false;
+    // Blanka Roll: force thrust preset so the sword-extended frame is used
+    if (window._meleeAttackState?.blankaRollActive) {
+      const cfg = getPastorConfig();
+      const thrustPreset = cfg && Array.isArray(cfg.presets)
+        ? cfg.presets.find((p) => normalizePresetKey(String(p?.name || "")) === "thrust")
+        : null;
+      if (thrustPreset) preset = thrustPreset;
+    }
     const cfg = getPastorConfig();
     const renderStyle = resolvePastorPaperdollRenderStyle(cfg, preset);
     const animKey = String(preset.animation || "combat_idle");
@@ -2359,7 +2385,21 @@
         this.updateFacing(moveX, moveY);
       }
 
-    if (this.isAttacking() && this.animator.isFinished()) {
+    if (window._meleeAttackState?.blankaRollActive) {
+      // Keep player locked in sword-out pose for the entire Blanka Roll
+      this.state = "attackMelee";
+      if (this.animator?.currentName !== "attackMelee") {
+        this.animator?.play("attackMelee", { restart: true });
+      }
+      const _hitFrame = Math.max(0,
+        (Number.isFinite(this.config?.attackHitFrame) ? this.config.attackHitFrame : 2) - 1
+      );
+      if (this.animator) {
+        this.animator.frameIndex = _hitFrame;
+        this.animator.accumulator = 0;
+        this.animator.finished = true;
+      }
+    } else if (this.isAttacking() && this.animator.isFinished()) {
       this.state = moving ? "walk" : "idle";
       this.animator.play(this.state);
     }
@@ -2385,6 +2425,16 @@
 
     updatePastorPaperdollState(this, dt);
     this.animator.update(dt);
+
+    // Final frame lock for Blanka Roll — runs after animator.update so it wins
+    if (window._meleeAttackState?.blankaRollActive && this.animator) {
+      const _hitFrame = Math.max(0,
+        (Number.isFinite(this.config?.attackHitFrame) ? this.config.attackHitFrame : 2) - 1
+      );
+      this.animator.frameIndex = _hitFrame;
+      this.animator.accumulator = 0;
+      this.animator.finished = true;
+    }
   }
 
   updateAimFromPointer() {
@@ -3120,9 +3170,22 @@
       });
       ctx.restore();
     }
-    const drewPaperdoll = drawPastorPaperdoll(this, ctx, this.x, drawY, { alpha: flicker });
-    if (!drewPaperdoll) {
-      this.animator.draw(ctx, this.x, drawY, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
+    const blankaRolling = Boolean(window._meleeAttackState?.blankaRollActive);
+    if (blankaRolling) {
+      const rollAngle = (performance.now() / 1000) * (Math.PI * 2) * 4.5;
+      ctx.save();
+      ctx.translate(this.x, drawY);
+      ctx.rotate(rollAngle);
+      const drewPaperdoll = drawPastorPaperdoll(this, ctx, 0, 0, { alpha: flicker });
+      if (!drewPaperdoll) {
+        this.animator.draw(ctx, 0, 0, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
+      }
+      ctx.restore();
+    } else {
+      const drewPaperdoll = drawPastorPaperdoll(this, ctx, this.x, drawY, { alpha: flicker });
+      if (!drewPaperdoll) {
+        this.animator.draw(ctx, this.x, drawY, { flipX: flip, alpha: flicker, flashWhite: flashStrength });
+      }
     }
   }
 }

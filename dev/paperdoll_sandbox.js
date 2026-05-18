@@ -182,6 +182,7 @@
   let ctx = null;
   let controlsRoot = null;
   let controlsDirty = true;
+  let presetsDirty = true;
   let faceCropOverlay = null;
   const faceCropState = {
     slot: null, // "front" | "side" | "back"
@@ -518,7 +519,7 @@
     ].join(";");
 
     overlay.innerHTML = `
-      <div id="paperdollSandboxGrid" style="display:grid;grid-template-columns:460px minmax(380px, 0.8fr) 380px;gap:16px;height:100%;padding:16px;box-sizing:border-box;">
+      <div id="paperdollSandboxGrid" style="display:grid;grid-template-columns:440px 1fr 300px;gap:12px;height:100%;padding:12px;box-sizing:border-box;">
         <div style="background:rgba(12,16,24,0.86);border:1px solid #2a334a;border-radius:10px;padding:12px;overflow:auto;">
           <div style="font-size:18px;font-weight:700;margin-bottom:8px;">Paperdoll Sandbox</div>
           <div id="paperdollSandboxControls" style="margin-top:10px;background:#0d1220;border:1px solid #2a334a;padding:10px;border-radius:8px;font-size:12px;max-height:76vh;overflow:auto;"></div>
@@ -549,7 +550,7 @@
     overlay.querySelector("#paperdollSaveGameConfig")?.addEventListener("click", saveConfigFileWithPrompt);
     controlsRoot?.addEventListener("click", onControlsClick);
     controlsRoot?.addEventListener("change", onControlsInput);
-    overlay.querySelector("#paperdollPresetControls")?.addEventListener("click", onPresetControlsClick);
+    overlay.addEventListener("click", onPresetControlsClick);
   }
 
   function getPresetNameInput() {
@@ -597,6 +598,7 @@
     const parsed = safeParse(raw, []);
     state.presets = Array.isArray(parsed) ? parsed.slice(0, MAX_PRESET_SLOTS) : [];
     state.selectedPresetIndex = clampWrap(state.selectedPresetIndex, Math.max(1, state.presets.length || 1));
+    presetsDirty = true;
   }
 
   function getAppearanceSelectionFromState() {
@@ -857,6 +859,7 @@
     state.presets[idx] = entry;
     state.selectedPresetIndex = idx;
     savePresetsToStorage();
+    presetsDirty = true;
   }
 
   function loadPresetSlot(slotIndex) {
@@ -868,6 +871,7 @@
     state.selectedPresetIndex = idx;
     const nameInput = getPresetNameInput();
     if (nameInput) nameInput.value = String(entry.name || `Preset ${idx + 1}`);
+    presetsDirty = true;
     return true;
   }
 
@@ -876,6 +880,7 @@
     if (!state.presets[idx]) return;
     state.presets[idx] = null;
     savePresetsToStorage();
+    presetsDirty = true;
   }
 
   function renderPresetControls() {
@@ -887,24 +892,53 @@
       return;
     }
     root.style.display = "flex";
-    const rows = [];
+    if (!presetsDirty) return;
+    presetsDirty = false;
+    root.innerHTML = '<div style="font-size:12px;opacity:.9;margin-bottom:4px;">Pastor Presets (local)</div>';
+    const btnStyle = "padding:3px 6px;background:#1b2740;color:#e8edf7;border:1px solid #3a4b72;border-radius:6px;cursor:pointer;font-size:11px;";
     for (let i = 0; i < MAX_PRESET_SLOTS; i += 1) {
       const preset = state.presets[i];
       const selected = state.selectedPresetIndex === i;
       const label = preset?.name || `Empty Slot ${i + 1}`;
-      rows.push(`
-        <div style="display:grid;grid-template-columns:1fr 58px 58px 28px;gap:6px;align-items:center;">
-          <div style="padding:4px 6px;border:1px solid ${selected ? "#5f78b5" : "#2a334a"};border-radius:6px;background:${selected ? "#16213a" : "#0d1220"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;" title="${label}">${label}</div>
-          ${buttonHtml(`preset-save:${i}`, "Save", `Save to slot ${i + 1}`)}
-          ${buttonHtml(`preset-load:${i}`, "Load", `Load slot ${i + 1}`)}
-          ${buttonHtml(`preset-del:${i}`, "×", `Delete slot ${i + 1}`)}
-        </div>
-      `);
+      const row = document.createElement("div");
+      row.style.cssText = "display:grid;grid-template-columns:1fr 44px 44px 22px;gap:3px;align-items:center;";
+      const nameDiv = document.createElement("div");
+      nameDiv.style.cssText = `padding:3px 5px;border:1px solid ${selected ? "#5f78b5" : "#2a334a"};border-radius:6px;background:${selected ? "#16213a" : "#0d1220"};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px;`;
+      nameDiv.title = label;
+      nameDiv.textContent = label;
+      const makeBtn = (text, title, handler) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.style.cssText = btnStyle;
+        b.textContent = text;
+        b.title = title;
+        b.addEventListener("click", (e) => { e.stopPropagation(); handler(); });
+        return b;
+      };
+      const idx = i;
+      row.appendChild(nameDiv);
+      row.appendChild(makeBtn("Save", `Save to slot ${idx + 1}`, () => {
+        saveCurrentToPresetSlot(idx);
+        controlsDirty = true;
+        refreshPanels();
+        render();
+      }));
+      row.appendChild(makeBtn("Load", `Load slot ${idx + 1}`, () => {
+        console.log("[PaperdollSandbox] Load clicked slot", idx, state.presets[idx]);
+        const ok = loadPresetSlot(idx);
+        console.log("[PaperdollSandbox] loadPresetSlot result:", ok);
+        controlsDirty = true;
+        refreshPanels();
+        render();
+      }));
+      row.appendChild(makeBtn("×", `Delete slot ${idx + 1}`, () => {
+        deletePresetSlot(idx);
+        controlsDirty = true;
+        refreshPanels();
+        render();
+      }));
+      root.appendChild(row);
     }
-    root.innerHTML = `
-      <div style="font-size:12px;opacity:.9;margin-bottom:4px;">Pastor Presets (local)</div>
-      ${rows.join("")}
-    `;
   }
 
   function onPresetControlsClick(e) {
@@ -913,13 +947,16 @@
     const btn = e.target?.closest?.("button[data-action]");
     if (!btn) return;
     const action = String(btn.getAttribute("data-action") || "");
+    console.log("[PaperdollSandbox] preset click action:", action);
     if (!action) return;
     if (action.startsWith("preset-save:")) {
       const idx = Number(action.slice("preset-save:".length)) || 0;
       saveCurrentToPresetSlot(idx);
     } else if (action.startsWith("preset-load:")) {
-      const idx = Number(action.slice("preset-load:".length)) || 0;
-      loadPresetSlot(idx);
+      const idx = Number(action.slice("preset-load:".length));
+      console.log("[PaperdollSandbox] loading slot", idx, "entry:", state.presets[idx]);
+      const ok = loadPresetSlot(idx);
+      console.log("[PaperdollSandbox] loadPresetSlot result:", ok, "layerSelection after:", JSON.stringify(state.layerSelection));
     } else if (action.startsWith("preset-del:")) {
       const idx = Number(action.slice("preset-del:".length)) || 0;
       deletePresetSlot(idx);
@@ -1856,7 +1893,7 @@
       if (presetNameRow) presetNameRow.style.display = "none";
       if (saveConfigButton) saveConfigButton.style.display = "none";
     } else {
-      if (grid) grid.style.gridTemplateColumns = "460px minmax(380px, 0.8fr) 380px";
+      if (grid) grid.style.gridTemplateColumns = "440px 1fr 300px";
       if (rightCol) rightCol.style.display = "";
       if (presetNameRow) presetNameRow.style.display = "";
       if (saveConfigButton) saveConfigButton.style.display = "";

@@ -20498,6 +20498,9 @@ function handleDeveloperHotkeys() {
       setDevStatus(`Touch controls ${nextEnabled ? "ON" : "OFF"}`, 1.4);
     }
   }
+  if (keysJustPressed.has("n")) {
+    window.NpcPaperdollSandbox?.toggle?.();
+  }
   if (keysJustPressed.has("p")) {
     if (devSwapPowerups()) {
       setDevStatus("Powerups swapped", 1.6);
@@ -21309,11 +21312,13 @@ function showDeveloperOverlay() {
     <div class="settings-panel settings-panel--developer">
       <div class="dev-action-grid">
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="classDev">Class Dev Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="pastorDev">Pastor Paperdoll</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="enemy">Enemy Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="level">Level Editor</button>
 <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="hitbox">Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="bossHitbox">Boss Hitbox Editor</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="boss">Boss Editor</button>
+        <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="npcPaperdoll">NPC Paperdoll (Shift+N)</button>
         <button class="dialog-overlay__button dev-action-grid__button" data-dev-action="shortcuts">Developer Shortcuts</button>
       </div>
       <div class="settings-row"><div class="settings-row__label"><strong>Run Rules</strong></div></div>
@@ -21440,6 +21445,9 @@ function showDeveloperOverlay() {
           } else if (action === "boss") {
             window.DialogOverlay.hide();
             window.BattlechurchBossEditor?.show?.();
+          } else if (action === "npcPaperdoll") {
+            window.DialogOverlay.hide();
+            window.NpcPaperdollSandbox?.open?.();
           } else if (action === "shortcuts") {
             showDeveloperShortcutsOverlay();
           }
@@ -22932,7 +22940,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000) / 12;
 
     // Suppress prayer bomb whenever either intercept is active, or B is charging (holdB+holdC teleport)
-    const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0);
+    const bChargingSuppressBomb = Boolean(_ms.spinButtonDown || _ms.bcTeleportArmed || (_ms.bcTeleportBlockTimer || 0) > 0 || (_ms.cBHolyDashBlockTimer || 0) > 0 || _ms.blankaRollActive);
     const acPostReleaseBlocking = (_ms.acSuperPrayerBombBlockTimer || 0) > 0;
     if (_ms.acSuperArmed || prayerStrikeBlocking || acPostReleaseBlocking || bChargingSuppressBomb) {
       Input.prayerBombClickQueued = false;
@@ -26548,32 +26556,99 @@ function npcsYell(text, life = 1.6) {
 window.npcsYell = npcsYell;
 window.showMoveBanner = showMoveBanner;
 
-function executePowerupTeleport(meleeAttackState) {
+const BLANKA_ROLL_DURATION = 4.0;
+
+function executeBlankaRoll(meleeAttackState) {
   if (!player) return;
-  const target = meleeAttackState.teleportGhostTarget || getNearestActivePowerup();
-  if (!target) return;
-  showDualChargeReadyPreview(meleeAttackState, "Flash", { executed: true });
-  showMoveBanner("Flash");
-  player.x = target.x;
-  player.y = target.y;
-  resolveEntityObstacles(player);
-  clampEntityToBounds(player);
-  if (player.lockedPosition) {
-    player.lockedPosition.x = player.x;
-    player.lockedPosition.y = player.y;
-  }
-  applyMeleeInvulnerability(meleeAttackState, "rush", TELEPORT_INVULNERABILITY_DURATION);
-  spawnFlashEffect(player.x, player.y);
-  applyCameraShake(0.18, 0.5);
-  const teleportCost = (player.prayerChargeRequired || 6000) / 6;
-  player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - teleportCost);
+  showDualChargeReadyPreview(meleeAttackState, "Roll", { executed: true });
+  showMoveBanner("Roll");
+  const rollCost = (player.prayerChargeRequired || 6000) / 6;
+  player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - rollCost);
   player.prayerHoldTimer = 0;
   player.prayerHoldLocked = false;
   if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+  meleeAttackState.blankaRollActive = true;
+  meleeAttackState.blankaRollTimer = BLANKA_ROLL_DURATION;
+  // Kick off rush state so all existing damage/invuln/hitbox systems are live
+  const dir = getMeleeAttackDirection();
+  meleeAttackState.isRushing = true;
+  meleeAttackState.rushDamageEnabled = true;
+  meleeAttackState.rushInvulnerable = true;
+  meleeAttackState.rushDir = { x: dir.x, y: dir.y };
+  meleeAttackState.rushDistanceRemaining = RUSH_SPEED; // will be refreshed every frame
+  meleeAttackState.rushHitEntities = new Set();
+  meleeAttackState.rushHitstopConsumed = false;
+  meleeAttackState.rushKillCount = 0;
+  meleeAttackState.rushKillSumX = 0;
+  meleeAttackState.rushKillSumY = 0;
+  meleeAttackState.rushDustAccumulator = 0;
+  meleeAttackState.thrashFeedbackCooldown = 0;
+  meleeAttackState.thrashHitAccum = 0;
+  meleeAttackState.swordRushActive = false;
+  meleeAttackState.swordRushBlastHitEntities = null;
+  meleeAttackState.rushForceEndAt = Infinity; // we control the end
+  meleeAttackState.rushLockTimer = 0;
+  player.ignoreEntityCollisions = true;
   meleeAttackState.bcTeleportArmed = false;
-  meleeAttackState.teleportGhostTarget = null;
-  meleeAttackState.teleportTargetIndex = -1;
   meleeAttackState.bcTeleportBlockTimer = 0.4;
+  spawnFlashEffect(player.x, player.y);
+  applyCameraShake(0.15, 0.4);
+}
+
+function updateBlankaRoll(dt) {
+  const ms = window._meleeAttackState;
+  if (!ms?.blankaRollActive || !player) return;
+
+  ms.blankaRollTimer = Math.max(0, ms.blankaRollTimer - dt);
+
+  // Lock player into the attack animation, pinned on the hit frame (sword-out pose)
+  player.state = "attackMelee";
+  if (player.animator?.currentName !== "attackMelee") {
+    player.animator?.play("attackMelee", { restart: true });
+  }
+  const _hitFrame = Math.max(0,
+    (Number.isFinite(player.config?.attackHitFrame) ? player.config.attackHitFrame : DEFAULT_PLAYER_ATTACK_HIT_FRAME) - 1
+  );
+  if (player.animator && Number.isFinite(player.animator.frameIndex)) {
+    player.animator.frameIndex = _hitFrame;
+    player.animator.accumulator = 0;
+    player.animator.finished = true;
+  }
+
+  // Steer: redirect rush direction to live input each frame
+  const liveInput = window.Input?.movementDirection;
+  const len = liveInput ? Math.hypot(liveInput.x, liveInput.y) : 0;
+  if (len > 0.01) {
+    ms.rushDir = { x: liveInput.x / len, y: liveInput.y / len };
+  }
+
+  // Keep rush alive: cap distance per frame to walk speed so movement feels like rolling, not blasting
+  ms.rushDistanceRemaining = (player.config?.speed || 299 * SPEED_SCALE) * dt;
+  // Keep flags alive
+  ms.rushInvulnerable = true;
+  ms.rushDamageEnabled = true;
+  ms.isRushing = true;
+  // Fresh hit set every frame so enemies can be hit each pass as the player spins through them
+  ms.rushHitEntities = new Set();
+
+  // Let the existing rush system handle movement, damage, and invuln this frame
+  // (called by the main loop right after this returns)
+
+  if (ms.blankaRollTimer <= 0) {
+    endBlankaRoll(ms);
+  }
+}
+
+function endBlankaRoll(ms) {
+  if (!ms) return;
+  ms.blankaRollActive = false;
+  ms.blankaRollTimer = 0;
+  ms.isRushing = false;
+  ms.rushDamageEnabled = false;
+  ms.rushInvulnerable = false;
+  ms.rushDistanceRemaining = 0;
+  ms.rushHitEntities = null;
+  if (player) player.ignoreEntityCollisions = false;
 }
 
 function spawnRingOfFireHazard(centerX, centerY, radius) {
@@ -27056,7 +27131,7 @@ function updateChargeState(dt, meleeAttackState) {
     Boolean(aFull && player && player.prayerHoldLocked && (player.prayerCharge || 0) >= prayerSuperCost);
   const abReady = Boolean(meleeAttackState.abSuperArmed) || Boolean(aFull && bFull);
   const teleportReady = Boolean(meleeAttackState.bcTeleportArmed);
-  const readyMove = abReady ? "Thrash" : acReady ? "Hedge" : teleportReady ? "Flash" : "";
+  const readyMove = abReady ? "Thrash" : acReady ? "Hedge" : teleportReady ? "Roll" : "";
   if (readyMove) {
     showDualChargeReadyPreview(meleeAttackState, readyMove);
   } else {
@@ -27193,10 +27268,11 @@ function updateMeleeAttackSystem(dt) {
     dualChargeReadyBubble: null,
     acSuperPrayerBombBlockTimer: 0,
     bcTeleportArmed: false,
-    teleportGhostTarget: null,
-    teleportTargetIndex: -1,
     bcTeleportBlockTimer: 0,
     cBHolyDashBlockTimer: 0,
+    blankaRollActive: false,
+    blankaRollTimer: 0,
+    blankaRollHitEntities: null,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;
@@ -27303,6 +27379,10 @@ function updateMeleeAttackSystem(dt) {
       if (meleeAttackState.isRushing) {
         updateRushMovement(dt, direction, meleeAttackState);
       }
+    }
+
+    if (meleeAttackState.blankaRollActive) {
+      updateBlankaRoll(dt);
     }
 
     // A-cancel for Crash/Clash: pressing A during the dash stops it and fires a melee (same pattern as Thrash → A)
@@ -27689,52 +27769,23 @@ function updateMeleeAttackSystem(dt) {
     }
     if (meleeAttackState.spinButtonDown && bHeld && meleeAttackState.spinCharging) {
       meleeAttackState.spinChargeTimer += dt;
-      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 6 : 20;
+      const rollCost = player ? (player.prayerChargeRequired || 6000) / 6 : 20;
       const bFullyCharged = meleeAttackState.spinChargeTimer >= (meleeAttackState.spinHoldTime || 0);
       const cHeld = keysPressed.has("ArrowRight");
-      const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
-      if (!meleeAttackState.bcTeleportArmed && bFullyCharged && cHeld && hasPrayerForTeleport) {
+      const hasPrayerForRoll = player && (player.prayerCharge || 0) >= rollCost;
+      if (!meleeAttackState.bcTeleportArmed && bFullyCharged && cHeld && hasPrayerForRoll) {
         meleeAttackState.bcTeleportArmed = true;
-        meleeAttackState.teleportTargetIndex = -1;
-        showDualChargeReadyPreview(meleeAttackState, "Flash");
+        showDualChargeReadyPreview(meleeAttackState, "Roll");
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
-      }
-      if (meleeAttackState.bcTeleportArmed) {
-        const teleportTargets = getActiveTeleportPowerups();
-        if (teleportTargets.length) {
-          let targetIndex = Number.isFinite(meleeAttackState.teleportTargetIndex)
-            ? Math.round(meleeAttackState.teleportTargetIndex)
-            : -1;
-          if (targetIndex < 0 || targetIndex >= teleportTargets.length) {
-            targetIndex = getNearestTeleportTargetIndex(teleportTargets);
-          } else {
-            const cycleLeft = keysJustPressed.has("a");
-            const cycleRight = keysJustPressed.has("d");
-            if (cycleLeft || cycleRight) {
-              const step = (cycleRight ? 1 : 0) - (cycleLeft ? 1 : 0);
-              targetIndex = (targetIndex + step + teleportTargets.length) % teleportTargets.length;
-              keysJustPressed.delete("a");
-              keysJustPressed.delete("d");
-            }
-          }
-          meleeAttackState.teleportTargetIndex = targetIndex;
-          const selectedTarget = teleportTargets[targetIndex] || null;
-          if (selectedTarget) {
-            meleeAttackState.teleportGhostTarget = { x: selectedTarget.x, y: selectedTarget.y };
-          }
-        } else {
-          meleeAttackState.teleportTargetIndex = -1;
-          meleeAttackState.teleportGhostTarget = getTeleportFallbackTarget();
-        }
       }
     }
     if (meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
       const cHeldOnBRelease = keysPressed.has("ArrowRight");
-      const teleportCost = player ? (player.prayerChargeRequired || 6000) / 6 : 40;
-      const hasPrayerForTeleport = player && (player.prayerCharge || 0) >= teleportCost;
-      const shouldTeleport = meleeAttackState.bcTeleportArmed ||
-        (fullyCharged && cHeldOnBRelease && hasPrayerForTeleport);
+      const rollCost = player ? (player.prayerChargeRequired || 6000) / 6 : 40;
+      const hasPrayerForRoll = player && (player.prayerCharge || 0) >= rollCost;
+      const shouldRoll = meleeAttackState.bcTeleportArmed ||
+        (fullyCharged && cHeldOnBRelease && hasPrayerForRoll);
       const canABSuper = Boolean(meleeAttackState.abSuperArmed);
       meleeAttackState.abSuperArmed = false;
       meleeAttackState.spinButtonDown = false;
@@ -27748,8 +27799,8 @@ function updateMeleeAttackSystem(dt) {
           meleeAttackState.acSuperArmed = false;
           clearDivineChargeSparkVisual();
           executeSwordRush(meleeAttackState);
-        } else if (shouldTeleport) {
-          executePowerupTeleport(meleeAttackState);
+        } else if (shouldRoll) {
+          executeBlankaRoll(meleeAttackState);
         } else if (fullyCharged) {
           executeProtectedDash(meleeAttackState);
         } else if (!meleeAttackState.isRushing) {
@@ -27757,8 +27808,6 @@ function updateMeleeAttackSystem(dt) {
         }
       }
       meleeAttackState.bcTeleportArmed = false;
-      meleeAttackState.teleportGhostTarget = null;
-      meleeAttackState.teleportTargetIndex = -1;
       if (!meleeAttackState.isCharging) {
         clearDivineChargeSparkVisual();
       }
