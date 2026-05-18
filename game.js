@@ -25744,7 +25744,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     player.state = "attackMelee";
     player.animator.play("attackMelee", { restart: true });
   }
-  if (player && typeof spawnSlashBurstEffect === "function") {
+  if (player && typeof spawnSlashBurstEffect === "function" && !options.skipSlash) {
     const attackAngle = Math.atan2(dir.y, dir.x);
     const wHitbox = player.config?.weaponHitbox;
     const hbOffsetX = (wHitbox && Number.isFinite(wHitbox.offsetX)) ? wHitbox.offsetX : 0;
@@ -26028,8 +26028,8 @@ function executeCleaveAttack(dir, meleeAttackState) {
     damageMultiplier: CLEAVE_DAMAGE_MULTIPLIER,
     rangeMultiplier: CLEAVE_RANGE_MULTIPLIER,
     flipSlash: true,
-    slashTint: "#9933ff",
-    slashTintAlpha: 0.6,
+    slashTint: "#ffe866",
+    slashTintAlpha: 0.7,
   });
   return true;
 }

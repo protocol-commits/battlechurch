@@ -13754,80 +13754,65 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const dur = state.cleaveArcDuration || 0.45;
       const progress = 1 - Math.min(1, state.cleaveArcTimer / dur);
       const arcDir = (state.cleaveArcDir || 1);
-      // Canvas coords: 0=right, π/2=down, π=left, 3π/2=up
-      // Facing right: start SW (135°=π*0.75), sweep CCW (-1) 270° → ends NW (225°=π*1.25)
+      const ccw = arcDir < 0;
+      // Facing right: start SSE (pi*0.1), sweep CCW 90° through 0° (front) to NNE
+      // Bell peak at t=0.5 = directly in front of player
       const startAngle = (() => {
         const f = player?.facing || "right";
-        if (f === "right") return Math.PI * 0.75;  // SW
-        if (f === "left")  return Math.PI * 0.25;  // SE (mirror)
-        if (f === "down")  return Math.PI * 1.25;  // NW (mirror for down)
-        return Math.PI * 1.75;                      // NE (mirror for up)
+        if (f === "right") return Math.PI * 0.1;    // SSE
+        if (f === "left")  return Math.PI * 0.9;    // SSW
+        if (f === "down")  return Math.PI * 0.6;    // SSW-ish
+        return Math.PI * 1.4;                         // NNW-ish
       })();
-      const sweepTotal = Math.PI * 1.5 * arcDir; // 270°
-      const leadingAngle = startAngle + sweepTotal * progress;
-      const arcSpan = Math.PI * (70 / 180);
+      const sweepTotal = Math.PI * 0.5 * arcDir; // 90°
+      const totalSweep = sweepTotal * progress;
+      const leadingAngle = startAngle + totalSweep;
       const originX = player.x - cameraOffsetX + shakeX;
       const originY = player.y - cameraOffsetY + shakeY;
       const radius = meleeRange * 0.75;
       const fadeStart = 0.5;
       const alpha = progress < fadeStart ? 1.0 : 1.0 - ((progress - fadeStart) / (1 - fadeStart));
-      // Trail: draw from start all the way to the leading edge
-      const trailA0 = arcDir > 0 ? startAngle : leadingAngle;
-      const trailA1 = arcDir > 0 ? leadingAngle : startAngle;
-      // Leading edge bright tip (70° slice at the front)
-      const a0 = arcDir > 0 ? leadingAngle - arcSpan : leadingAngle;
-      const a1 = arcDir > 0 ? leadingAngle : leadingAngle + arcSpan;
 
-      // Draw filled annular wedge segments — thick in the radial direction, tapering from thin tail to fat tip.
-      // Each segment is a filled path: outer arc forward + inner arc backward = donut slice.
-      const TRAIL_SEGMENTS = 16;
-      const totalSweep = sweepTotal * progress;
-      const segAngle = totalSweep / TRAIL_SEGMENTS;
-      // Helper: draw a filled annular sector from angle a0→a1 (absolute, ordered), inner/outer radii
-      const drawSector = (cx, cy, rInner, rOuter, a0, a1, ccw) => {
-        ctx.beginPath();
-        ctx.arc(cx, cy, rOuter, a0, a1, ccw);
-        ctx.arc(cx, cy, rInner, a1, a0, !ccw);
-        ctx.closePath();
-      };
-      const ccwSweep = arcDir < 0; // true when sweeping CCW
-      for (let s = 0; s < TRAIL_SEGMENTS; s++) {
-        const segT = (s + 1) / TRAIL_SEGMENTS; // 0→1, tip at end
-        const segAlpha = alpha * segT * segT * segT;
-        // Radial thickness: near zero at tail, fat at tip
-        const halfThick = 2 + segT * segT * 38; // 2px→40px radial half-thickness
-        const segStart = startAngle + segAngle * s;
-        const segEnd   = startAngle + segAngle * (s + 1);
-        const sA = Math.min(segStart, segEnd);
-        const sB = Math.max(segStart, segEnd);
-        const rInner = Math.max(1, radius - halfThick);
-        const rOuter = radius + halfThick;
-        // Outer glow
+      // Simple arc: glow + gold core + white highlight
+      const N = 40;
+      for (let s = 0; s < N; s++) {
+        const t = (s + 0.5) / N; // 0→1 across the arc
+        const bell = Math.sin(t * Math.PI); // 0 at ends, 1 at middle
+        const segRadius = radius; // fixed radius, no outward bulge
+        const segStart = startAngle + totalSweep * (s / N);
+        const segEnd   = startAngle + totalSweep * ((s + 1) / N);
+
         ctx.save();
-        ctx.globalAlpha = segAlpha * 0.4;
-        ctx.fillStyle = "rgba(255, 160, 20, 1)";
+        ctx.globalAlpha = alpha * 0.5;
+        ctx.strokeStyle = "rgba(255, 180, 20, 1)";
+        ctx.lineWidth = bell * 120;
+        ctx.lineCap = "butt";
         ctx.filter = "blur(8px)";
-        drawSector(originX, originY, rInner - 8, rOuter + 8, sA, sB, false);
-        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(originX, originY, segRadius, segStart, segEnd, ccw);
+        ctx.stroke();
         ctx.filter = "none";
         ctx.restore();
-        // Gold fill
+
         ctx.save();
-        ctx.globalAlpha = segAlpha * 0.85;
-        ctx.fillStyle = "rgba(255, 220, 60, 1)";
-        drawSector(originX, originY, rInner, rOuter, sA, sB, false);
-        ctx.fill();
+        ctx.globalAlpha = alpha * 0.9;
+        ctx.strokeStyle = "rgba(255, 220, 50, 1)";
+        ctx.lineWidth = bell * 80;
+        ctx.lineCap = "butt";
+        ctx.beginPath();
+        ctx.arc(originX, originY, segRadius, segStart, segEnd, ccw);
+        ctx.stroke();
         ctx.restore();
-        // White core highlight (front half only)
-        if (segT > 0.45) {
-          ctx.save();
-          ctx.globalAlpha = segAlpha * 0.7;
-          ctx.fillStyle = "rgba(255, 255, 200, 1)";
-          const coreThick = halfThick * 0.35;
-          drawSector(originX, originY, radius - coreThick, radius + coreThick, sA, sB, false);
-          ctx.fill();
-          ctx.restore();
-        }
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = "rgba(255, 255, 220, 1)";
+        ctx.lineWidth = bell * 40;
+        ctx.lineCap = "butt";
+        ctx.beginPath();
+        ctx.arc(originX, originY, segRadius, segStart, segEnd, ccw);
+        ctx.stroke();
+        ctx.restore();
       }
     }
 
