@@ -24641,6 +24641,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
     if (player?.animator) {
       player.animator.frameIndex = 2;
       player.animator.accumulator = 0;
+      player.animator.finished = false;
     }
     applyRushHitstopOnce(enemy, counterHit);
     if (Number.isFinite(meleeAttackState.rushForceEndAt) && meleeAttackState.rushForceEndAt > 0) {
@@ -24847,6 +24848,10 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
 function updateRushMovement(dt, direction, meleeAttackState) {
   if (!meleeAttackState.isRushing || !player) return;
   if (!Number.isFinite(dt) || dt <= 0) return;
+  if (player.animator) {
+    // Prevent rare stuck frame after rush hitfreeze.
+    player.animator.finished = false;
+  }
 
   const resetRushState = () => {
     meleeAttackState.isRushing = false;
@@ -24863,6 +24868,14 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     meleeAttackState.cooldown = 0;
     meleeAttackState.rushLockTimer = 0;
     meleeAttackState.rushDistanceRemaining = 0;
+    meleeAttackState.pendingComboMoveName = null;
+    if (player) {
+      player._paperdollSmashFrame3HoldUntil = 0;
+      player._paperdollThrustHoldUntil = 0;
+      if (player.animator) {
+        player.animator.finished = false;
+      }
+    }
     if (player) player.ignoreEntityCollisions = false;
   };
 
@@ -27888,6 +27901,12 @@ function updateMeleeAttackSystem(dt) {
         meleeAttackState.cooldown = 0;
         meleeAttackState.rushLockTimer = 0;
         meleeAttackState.rushDistanceRemaining = 0;
+        meleeAttackState.pendingComboMoveName = null;
+        if (player) {
+          player._paperdollSmashFrame3HoldUntil = 0;
+          player._paperdollThrustHoldUntil = 0;
+          player.animator && (player.animator.finished = false);
+        }
         rushCancelledIntoMove = true;
         if (cJustPressed) {
           meleeAttackState.lastComboTimes.C = now;
