@@ -25867,7 +25867,7 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
       meleeAttackState.rushComboTarget = null;
     }
     if (!enemy.dead && enemy.state !== "death") {
-      if (!repeatedSlashPressure) {
+      if (!repeatedSlashPressure || options.forceKnockback) {
         applyEnemyMeleeKnockback(enemy, swingCenterX, swingCenterY, MELEE_PUSHBACK_STRENGTH);
       }
       survivorHit = true;
@@ -26030,6 +26030,7 @@ function executeCleaveAttack(dir, meleeAttackState) {
     flipSlash: true,
     slashTint: "#ffe866",
     slashTintAlpha: 0.7,
+    forceKnockback: true,
   });
   return true;
 }
