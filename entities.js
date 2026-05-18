@@ -535,6 +535,9 @@
     return img;
   }
 
+  const dizzyStarSprite = new Image();
+  dizzyStarSprite.src = "assets/sprites/items/icons/Star.png";
+
   function drawCustomFaceOverlay(targetCtx, cfg, facing, frameScale = 1, originX = 0, originY = 0) {
     if (!targetCtx || !cfg || typeof cfg !== "object") return;
     const customFace = cfg.customFace;
@@ -1201,6 +1204,11 @@
     Boolean(enemy && Number.isFinite(enemy.knockbackTimer) && enemy.knockbackTimer > 0);
 
   const KNOCKBACK_VISUAL_LIFT = 18;
+  const COMBO_KNOCKDOWN_FRAME_RATE = 18;
+  const COMBO_KNOCKDOWN_DOWN_RATIO = 0.58;
+  const DIZZY_BACKSTEP_SPEED_MULTIPLIER = 1.05;
+  const DIZZY_WOBBLE_SPEED = 7.2;
+  const DIZZY_WOBBLE_DISTANCE = 14;
   const DEMON_LORD_JUMP_COOLDOWN = 2.4;
   const DEMON_LORD_JUMP_DURATION = 0.58;
   const DEMON_LORD_JUMP_MIN_DISTANCE = 220;
@@ -3263,6 +3271,10 @@
       this.knockbackTimer = 0;
       this.knockbackDuration = 0;
       this.knockbackLift = KNOCKBACK_VISUAL_LIFT;
+      this.comboKnockdown = null;
+      this.dizzyTimer = 0;
+      this.dizzyDuration = 0;
+      this.dizzyUntil = 0;
       this.hurtTimer = 0;
       this.hurtTimerActive = false;
       this.jumpCooldown = 0;
@@ -3299,6 +3311,70 @@
       if (this.type === "tormentorFlame") {
         this.ignoreEntityCollisions = true;
       }
+    }
+
+    updateComboKnockdownAnimation(dt) {
+      const kd = this.comboKnockdown;
+      if (!kd || kd.active !== true) return false;
+      const deathClip = this.animator?.clips?.death || null;
+      if (!deathClip) {
+        this.comboKnockdown = null;
+        return false;
+      }
+      const logicalFrames =
+        Array.isArray(deathClip.frameMap) && deathClip.frameMap.length
+          ? deathClip.frameMap.length
+          : deathClip.frameCount || 0;
+      if (logicalFrames <= 1) {
+        this.comboKnockdown = null;
+        return false;
+      }
+      if (this.animator.currentName !== "death" || this.animator.currentClip !== deathClip) {
+        this.animator.currentClip = deathClip;
+        this.animator.currentName = "death";
+        this.animator.accumulator = 0;
+        this.animator.finished = false;
+      }
+
+      if (!Number.isFinite(kd.frame)) kd.frame = 0;
+      if (!Number.isFinite(kd.direction) || kd.direction === 0) kd.direction = 1;
+      if (!Number.isFinite(kd.accumulator)) kd.accumulator = 0;
+      const downRatio = Number.isFinite(kd.downRatio) ? kd.downRatio : COMBO_KNOCKDOWN_DOWN_RATIO;
+      const downFrame = Math.max(1, Math.min(logicalFrames - 1, Math.round((logicalFrames - 1) * downRatio)));
+      const frameRate = Number.isFinite(kd.frameRate) && kd.frameRate > 0
+        ? kd.frameRate
+        : Number.isFinite(deathClip.frameRate) && deathClip.frameRate > 0
+          ? deathClip.frameRate
+          : COMBO_KNOCKDOWN_FRAME_RATE;
+      const frameDuration = 1 / Math.max(1, frameRate);
+
+      kd.accumulator += Math.max(0, dt);
+      while (kd.accumulator >= frameDuration) {
+        kd.accumulator -= frameDuration;
+        kd.frame += kd.direction;
+        if (kd.direction > 0 && kd.frame >= downFrame) {
+          kd.frame = downFrame;
+          kd.direction = -1;
+        } else if (kd.direction < 0 && kd.frame <= 0) {
+          kd.frame = 0;
+          kd.active = false;
+          break;
+        }
+      }
+
+      this.animator.frameIndex = Math.max(0, Math.min(logicalFrames - 1, Math.round(kd.frame)));
+      this.animator.accumulator = 0;
+      this.animator.finished = kd.active !== true;
+      if (kd.active !== true) {
+        this.comboKnockdown = null;
+        if (this.state !== "death") {
+          this.state = "hurt";
+          this.hurtTimer = Math.max(0.08, Number(this.hurtTimer) || 0);
+          this.hurtTimerActive = this.hurtTimer > 0;
+          this.animator.play("hurt", { restart: true });
+        }
+      }
+      return true;
     }
 
     update(dt) {
@@ -3422,12 +3498,16 @@
           this.knockbackTimer = 0;
           this.knockbackDuration = 0;
         }
-        this.animator.update(dt);
+        if (!this.updateComboKnockdownAnimation(dt)) {
+          this.animator.update(dt);
+        }
         return;
       }
 
       if (this.state === "hurt") {
-        this.animator.update(dt);
+        if (!this.updateComboKnockdownAnimation(dt)) {
+          this.animator.update(dt);
+        }
         if (this.hurtTimerActive) {
           this.hurtTimer = Math.max(0, this.hurtTimer - dt);
           if (this.hurtTimer <= 0) {
@@ -3443,6 +3523,43 @@
           this.hurtTimerActive = false;
           this.state = "walk";
           this.animator.play("walk");
+        }
+        return;
+      }
+
+      if (this.state === "dizzy") {
+        this.dizzyTimer = Math.max(0, (this.dizzyTimer || 0) - dt);
+        const toPlayerX = (player?.x || this.x) - this.x;
+        const toPlayerY = (player?.y || this.y) - this.y;
+        const away = normalizeVector(-toPlayerX, -toPlayerY);
+        const backSpeed = Math.max(
+          26,
+          (Number(this.config?.speed) || 60) * DIZZY_BACKSTEP_SPEED_MULTIPLIER,
+        );
+        const wobblePhase =
+          ((typeof performance !== "undefined" && typeof performance.now === "function"
+            ? performance.now()
+            : Date.now()) * 0.001) * DIZZY_WOBBLE_SPEED;
+        const perpX = -away.y;
+        const perpY = away.x;
+        const wobble = Math.sin(wobblePhase) * DIZZY_WOBBLE_DISTANCE;
+        this.x += (away.x * backSpeed + perpX * wobble) * dt;
+        this.y += (away.y * backSpeed + perpY * wobble * 0.65) * dt;
+        if (typeof resolveEntityObstacles === "function") resolveEntityObstacles(this);
+        if (typeof clampEntityToBounds === "function") clampEntityToBounds(this);
+        this.attackTimer = Math.max(this.attackTimer || 0, 0.28);
+        this.touchCooldown = Math.max(this.touchCooldown || 0, 0.16);
+        this.updateFacing(toPlayerX, toPlayerY);
+        if (this.animator?.currentName !== "walk") {
+          this.animator.play("walk", { restart: true });
+        }
+        this.animator.update(dt);
+        if (this.dizzyTimer <= 0) {
+          this.dizzyTimer = 0;
+          this.dizzyDuration = 0;
+          this.dizzyUntil = 0;
+          this.state = "walk";
+          this.animator.play("walk", { restart: true });
         }
         return;
       }
@@ -4848,6 +4965,51 @@
       }
       if (showDemonessBind) {
         this._pendingFrontDemonessBindOverlay = true;
+      }
+      if (this.state === "dizzy" && (this.dizzyTimer || 0) > 0) {
+        const dizzyRatio = this.dizzyDuration > 0
+          ? Math.max(0, Math.min(1, this.dizzyTimer / this.dizzyDuration))
+          : 1;
+        const starCount = 3;
+        const orbitRadius = Math.max(22, this.radius * 0.9);
+        const hitbox = this.config?.hitbox || null;
+        const hbOffsetX = hitbox && Number.isFinite(hitbox.offsetX) ? hitbox.offsetX : 0;
+        const hbOffsetY = hitbox && Number.isFinite(hitbox.offsetY) ? hitbox.offsetY : 0;
+        const hbHalfH =
+          hitbox && Number.isFinite(hitbox.height) && hitbox.height > 0
+            ? hitbox.height * 0.5
+            : this.radius;
+        const centerX = this.x + hbOffsetX;
+        const centerY = drawY + hbOffsetY - Math.max(18, hbHalfH + this.radius * 0.15);
+        const spin =
+          ((typeof performance !== "undefined" && typeof performance.now === "function"
+            ? performance.now()
+            : Date.now()) * 0.001) * 6.2;
+        ctx.save();
+        for (let i = 0; i < starCount; i += 1) {
+          const angle = spin + (i / starCount) * Math.PI * 2;
+          const sx = centerX + Math.cos(angle) * orbitRadius;
+          const sy = centerY + Math.sin(angle) * orbitRadius * 0.42;
+          const size = 5 + (i % 2);
+          const drawSize = size * 3.2;
+          ctx.globalAlpha = 0.55 + 0.4 * dizzyRatio;
+          if (dizzyStarSprite.complete && dizzyStarSprite.naturalWidth > 0) {
+            ctx.drawImage(
+              dizzyStarSprite,
+              sx - drawSize * 0.5,
+              sy - drawSize * 0.5,
+              drawSize,
+              drawSize,
+            );
+          } else {
+            // Fallback while star sprite is still loading.
+            ctx.fillStyle = i % 2 ? "rgba(255,235,170,0.95)" : "rgba(255,208,94,0.9)";
+            ctx.beginPath();
+            ctx.arc(sx, sy, size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.restore();
       }
       if (
         this.type === "miniDemonLord" &&

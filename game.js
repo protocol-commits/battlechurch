@@ -4623,6 +4623,14 @@ const PUNISH_COUNTER_GRACE_GEMS = 3;
 const MELEE_COMBO_GRACE_GEMS = 1;
 const MELEE_HITSTOP_DURATION = 0.09;
 const MELEE_COMBO_HITSTOP_DURATION = 0.11;
+const MELEE_KNOCKDOWN_MIN_HITS = 4;
+const MELEE_KNOCKDOWN_REPEAT_INTERVAL = 4;
+const MELEE_KNOCKDOWN_LAUNCH_MULTIPLIER = 2.2;
+const MELEE_KNOCKDOWN_LAUNCH_DURATION = 0.34;
+const MELEE_KNOCKDOWN_HURT_LOCK = 0.62;
+const MELEE_KNOCKDOWN_LIFT = 36;
+const MELEE_DIZZY_MIN_CHAIN_HITS = 4;
+const MELEE_DIZZY_DURATION = 4.05;
 const MELEE_COUNTER_HITSTOP_DURATION = MELEE_HITSTOP_DURATION;
 const MELEE_PUNISH_HITSTOP_DURATION = MELEE_HITSTOP_DURATION;
 const MELEE_HITSTOP_SHAKE = 10;
@@ -24883,19 +24891,34 @@ function updateRushMovement(dt, direction, meleeAttackState) {
   }
 }
 
-function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
+function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength, options = null) {
   if (!enemy || enemy.dead || enemy.state === "death") return;
+  const knockOptions = options && typeof options === "object" ? options : null;
+  const consumeQueuedKnockdown = enemy.pendingComboKnockdownLaunch === true;
+  if (consumeQueuedKnockdown) {
+    enemy.pendingComboKnockdownLaunch = false;
+  }
+  const effectiveStrength = consumeQueuedKnockdown
+    ? Math.max(strength, strength * MELEE_KNOCKDOWN_LAUNCH_MULTIPLIER)
+    : strength;
   const dx = enemy.x - sourceX;
   const dy = enemy.y - sourceY;
   const distance = Math.hypot(dx, dy);
   if (!distance) return;
   const nx = dx / distance;
   const ny = dy / distance;
-  const knockDuration = 0.16;
-  const knockStrength = strength * 6.0;
+  const knockDurationBase = Number.isFinite(knockOptions?.duration)
+    ? Math.max(0.02, knockOptions.duration)
+    : 0.16;
+  const knockDuration = consumeQueuedKnockdown
+    ? Math.max(knockDurationBase, MELEE_KNOCKDOWN_LAUNCH_DURATION)
+    : knockDurationBase;
+  const knockStrength = effectiveStrength * 6.0;
   const vx = nx * knockStrength;
   const vy = ny * knockStrength;
-  const nudge = (typeof WORLD_SCALE === "number" ? WORLD_SCALE : 1) * 30;
+  const nudgeScaleBase = Number.isFinite(knockOptions?.nudgeScale) ? Math.max(0, knockOptions.nudgeScale) : 1;
+  const nudgeScale = consumeQueuedKnockdown ? Math.max(nudgeScaleBase, 1.35) : nudgeScaleBase;
+  const nudge = (typeof WORLD_SCALE === "number" ? WORLD_SCALE : 1) * 30 * nudgeScale;
   enemy.x += nx * nudge;
   enemy.y += ny * nudge;
   enemy.knockbackVx = vx;
@@ -24904,12 +24927,77 @@ function applyEnemyMeleeKnockback(enemy, sourceX, sourceY, strength) {
   enemy.knockbackDuration = Math.max(enemy.knockbackDuration || 0, knockDuration);
   enemy.knockbackLift = Math.max(
     enemy.knockbackLift || 0,
-    Math.min(28, Math.max(12, strength * 0.24)),
+    Number.isFinite(knockOptions?.lift)
+      ? Math.max(
+        0,
+        consumeQueuedKnockdown
+          ? Math.max(knockOptions.lift, MELEE_KNOCKDOWN_LIFT)
+          : knockOptions.lift,
+      )
+      : Math.min(28, Math.max(12, strength * 0.24)),
   );
   enemy.scatterVx = vx;
   enemy.scatterVy = vy;
   enemy.scatterTimer = Math.max(enemy.scatterTimer || 0, knockDuration);
   enemy.scatterDuration = Math.max(enemy.scatterDuration || 0, knockDuration);
+}
+
+function triggerMeleeComboKnockdown(target, meleeAttackState, comboHits) {
+  if (!target || !meleeAttackState || target.dead || target.state === "death") return;
+  if (target === activeBoss || target.isBoss === true) return;
+  const hits = Math.max(0, Math.round(comboHits || 0));
+  if (hits < MELEE_KNOCKDOWN_MIN_HITS) return;
+  const localHits = hits - MELEE_KNOCKDOWN_MIN_HITS;
+  if (localHits % MELEE_KNOCKDOWN_REPEAT_INTERVAL !== 0) return;
+  const comboId = meleeAttackState.devArenaComboId || null;
+  if (comboId && target.lastComboKnockdownComboId === comboId) {
+    const lastThreshold = Math.max(0, Math.round(target.lastComboKnockdownHitThreshold || 0));
+    if (lastThreshold >= hits) return;
+  }
+
+  target.lastComboKnockdownComboId = comboId;
+  target.lastComboKnockdownHitThreshold = hits;
+  target.knockdownActive = true;
+  target.knockdownEndAt = Date.now() + Math.round(MELEE_KNOCKDOWN_HURT_LOCK * 1000);
+  target.hurtTimer = Math.max(Number(target.hurtTimer) || 0, MELEE_KNOCKDOWN_HURT_LOCK);
+  target.hurtTimerActive = true;
+  if (target.state !== "death") {
+    target.state = "hurt";
+    if (typeof target.animator?.play === "function") {
+      target.animator.play("hurt", { restart: true });
+    }
+  }
+  target.comboKnockdown = {
+    active: true,
+    source: "meleeCombo",
+    downRatio: 0.58,
+    frameRate: 18,
+  };
+  target.pendingComboKnockdownLaunch = true;
+}
+
+function triggerEnemyComboDizzy(target, comboHits = 0) {
+  if (!target || target.dead || target.state === "death") return;
+  if (target === activeBoss || target.isBoss === true) return;
+  const hits = Math.max(0, Math.round(comboHits || 0));
+  if (hits < MELEE_DIZZY_MIN_CHAIN_HITS) return;
+  const now =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+  if (Number.isFinite(target.dizzyUntil) && target.dizzyUntil > now + 120) return;
+  target.dizzyTimer = Math.max(Number(target.dizzyTimer) || 0, MELEE_DIZZY_DURATION);
+  target.dizzyDuration = Math.max(Number(target.dizzyDuration) || 0, MELEE_DIZZY_DURATION);
+  target.dizzyUntil = now + Math.round(MELEE_DIZZY_DURATION * 1000);
+  target.state = "dizzy";
+  target.hurtTimer = 0;
+  target.hurtTimerActive = false;
+  target.knockbackTimer = 0;
+  target.scatterTimer = 0;
+  target.pendingComboKnockdownLaunch = false;
+  if (typeof target.animator?.play === "function") {
+    target.animator.play("walk", { restart: true });
+  }
 }
 
 function markCounterHitWindow(target, duration = COUNTER_HIT_WINDOW) {
@@ -25365,6 +25453,10 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const existing = map.get(target);
   const chainActive = existing && existing.expiresAt >= now;
   const previousHits = chainActive ? existing.hits : 0;
+  const previousTotalHits = chainActive
+    ? Math.max(0, Math.round(existing.totalHits || existing.hits || 0))
+    : 0;
+  const newTotalHits = previousTotalHits + 1;
   let newHits = chainActive ? previousHits + 1 : 1;
   const comboId = chainActive && existing.comboId
     ? existing.comboId
@@ -25435,7 +25527,17 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   while (detailEntries.length > targetLen) detailEntries.shift();
   const existingLabel = chainActive ? (existing?.label || null) : null;
   if (!chainActive && existing?.label) releaseEntryComboLabel(existing);
-  map.set(target, { hits: newHits, expiresAt: now + MELEE_COMBO_WINDOW_MS, comboId, names, details: detailEntries, label: existingLabel, enemy: target });
+  map.set(target, {
+    hits: newHits,
+    totalHits: newTotalHits,
+    expiresAt: now + MELEE_COMBO_WINDOW_MS,
+    comboId,
+    names,
+    details: detailEntries,
+    label: existingLabel,
+    enemy: target,
+  });
+  triggerMeleeComboKnockdown(target, meleeAttackState, newTotalHits);
   meleeAttackState.meleeComboHits = getMaxLiveMeleeComboHits(meleeAttackState, now);
   meleeAttackState.comboMoveNames = names;
   meleeAttackState.devArenaComboEntries = detailEntries;
@@ -27992,6 +28094,11 @@ function updateMeleeAttackSystem(dt) {
       if (meleeAttackState.meleeComboMap) {
         for (const [enemy, entry] of meleeAttackState.meleeComboMap) {
           if (entry.expiresAt < comboNow) {
+            const chainHits = Math.max(
+              0,
+              Math.round(entry.totalHits || entry.hits || 0),
+            );
+            triggerEnemyComboDizzy(enemy, chainHits);
             releaseEntryComboLabel(entry);
             meleeAttackState.meleeComboMap.delete(enemy);
           }
