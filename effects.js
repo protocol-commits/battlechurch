@@ -27,11 +27,13 @@
   }
 
   class Effect {
-    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0, flipY = false, delay = 0 } = {}) {
+    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, scaleX = 1, scaleY = 1, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0, flipY = false, delay = 0 } = {}) {
       this.frames = Array.isArray(frames) ? frames : [];
       this.x = x;
       this.y = y;
       this.scale = scale;
+      this.scaleX = Number.isFinite(scaleX) ? scaleX : 1;
+      this.scaleY = Number.isFinite(scaleY) ? scaleY : 1;
       this.frameDuration = frameDuration;
       this.timer = 0;
       this.frameIndex = 0;
@@ -89,8 +91,8 @@
       if (!frame) return;
       const ctx = resolveContext();
       if (!ctx) return;
-      const width = frame.width * this.scale;
-      const height = frame.height * this.scale;
+      const width = frame.width * this.scale * this.scaleX;
+      const height = frame.height * this.scale * this.scaleY;
       ctx.save();
       ctx.translate(this.x, this.y);
       if (this.rotation) ctx.rotate(this.rotation);
@@ -315,14 +317,23 @@
     return null;
   }
 
-  function spawnSlashBurstEffect(x, y, angle, scale = 3.5, { flipY: forceFlipY, tintColor, tintAlpha } = {}) {
+  function spawnSlashBurstEffect(x, y, angle, scale = 3.5, { flipY: forceFlipY, tintColor, tintAlpha, scaleX = 1, scaleY = 1 } = {}) {
     const frames = resolveAssets()?.effects?.swordSlash;
     if (!frames || !frames.length) return null;
     const facingLeft = Math.cos(angle) < 0;
     const flipY = forceFlipY !== undefined ? forceFlipY : facingLeft;
     const defaultTint = "#aaddff";
     const defaultTintAlpha = 0.5;
-    return spawnEffectFromFrames(frames, x, y, { frameDuration: 0.04, scale, rotation: angle, flipY, tintColor: tintColor || defaultTint, tintAlpha: tintAlpha ?? defaultTintAlpha });
+    return spawnEffectFromFrames(frames, x, y, {
+      frameDuration: 0.04,
+      scale,
+      scaleX,
+      scaleY,
+      rotation: angle,
+      flipY,
+      tintColor: tintColor || defaultTint,
+      tintAlpha: tintAlpha ?? defaultTintAlpha,
+    });
   }
 
   function spawnPuffEffect(x, y, radius = null, options = {}) {

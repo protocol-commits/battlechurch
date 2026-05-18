@@ -4701,6 +4701,10 @@ const BLITZ_DAMAGE = _gb("rush.blitzDamage", RUSH_DAMAGE + SWORD_RUSH_BLAST_DAMA
 const THRASH_FLURRY_STEP_SEQUENCE = Object.freeze(["SlashDown", "SlashUp", "SlashBash", "Thrust", "SlashUp"]);
 const THRASH_FLURRY_CYCLES = 2;
 const THRASH_FLURRY_STEP_INTERVAL = 0.08;
+const THRASH_FLURRY_VFX_SCALE = 2.35;
+const THRASH_FLURRY_VFX_OFFSET = 350 * WORLD_SCALE;
+const THRASH_FLURRY_VFX_THICKNESS_SCALE_Y = 0.72;
+const THRASH_FLURRY_HITBOX_THICKNESS = 84 * WORLD_SCALE;
 const THRASH_FLURRY_HITBOX_RADIUS = 122 * WORLD_SCALE;
 const THRASH_FLURRY_HITBOX_ARC_DOT = -0.08;
 const THRASH_FLURRY_REHIT_COOLDOWN = 0.065;
@@ -27026,6 +27030,7 @@ function executeSwordRush(meleeAttackState) {
   meleeAttackState.thrashFlurryStepIndex = 0;
   meleeAttackState.thrashFlurryTotalSteps = THRASH_FLURRY_STEP_SEQUENCE.length * THRASH_FLURRY_CYCLES;
   meleeAttackState.thrashFlurryHitCooldowns = new WeakMap();
+  meleeAttackState.thrashFlurryTouchedEntities = new Set();
   // Keep legacy rush flags off so paperdoll doesn't lock to thrust frame 3.
   meleeAttackState.swordRushActive = false;
   meleeAttackState.swordRushBlastHitEntities = null;
@@ -27033,6 +27038,115 @@ function executeSwordRush(meleeAttackState) {
   if (player && player.animator) {
     player.state = "attackMelee";
     player.animator.play("attackMelee", { restart: true });
+  }
+}
+
+function finalizeThrashFlurryKnockback(meleeAttackState) {
+  if (!player || !(meleeAttackState?.thrashFlurryTouchedEntities instanceof Set)) return;
+  meleeAttackState.thrashFlurryTouchedEntities.forEach((entity) => {
+    if (!entity) return;
+    if (entity === activeBoss) {
+      if (activeBoss.dead || activeBoss.defeated || activeBoss.removed) return;
+      if (typeof activeBoss.knockbackVx === "number") {
+        applyEnemyMeleeKnockback(activeBoss, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+      }
+      return;
+    }
+    if (entity.dead || entity.state === "death") return;
+    applyEnemyMeleeKnockback(entity, player.x, player.y, MELEE_DAMAGE_KNOCKBACK);
+  });
+  meleeAttackState.thrashFlurryTouchedEntities.clear();
+}
+
+function applyThrashFlurryLaneDamage(meleeAttackState, laneCenterX, laneCenterY, laneAngle, laneLength, laneThickness) {
+  if (!player || !meleeAttackState) return;
+  const nowSec = (typeof performance !== "undefined" && typeof performance.now === "function"
+    ? performance.now()
+    : Date.now()) / 1000;
+  if (!(meleeAttackState.thrashFlurryHitCooldowns instanceof WeakMap)) {
+    meleeAttackState.thrashFlurryHitCooldowns = new WeakMap();
+  }
+  const hitCooldowns = meleeAttackState.thrashFlurryHitCooldowns;
+  const cos = Math.cos(-laneAngle);
+  const sin = Math.sin(-laneAngle);
+  const laneRect = {
+    x: -laneLength * 0.5,
+    y: -laneThickness * 0.5,
+    width: laneLength,
+    height: laneThickness,
+  };
+  const hitMoveName = "Thrash";
+  const hitMoveMultiplier = getMoveMultiplier(hitMoveName);
+  const hitDamage = Math.max(1, Math.round(THRASH_FLURRY_STEP_DAMAGE * hitMoveMultiplier));
+
+  enemies.forEach((enemy) => {
+    if (!enemy || enemy.dead || enemy.state === "death") return;
+    const lastHitAt = Number(hitCooldowns.get(enemy) || 0);
+    if ((nowSec - lastHitAt) < THRASH_FLURRY_REHIT_COOLDOWN) return;
+    const hitCenter = getEnemyHitboxCenter(enemy);
+    const relX = hitCenter.x - laneCenterX;
+    const relY = hitCenter.y - laneCenterY;
+    const localX = relX * cos - relY * sin;
+    const localY = relX * sin + relY * cos;
+    const hitRadius = getEnemyHitboxRadius(enemy) || enemy.radius || 0;
+    if (!circleIntersectsRect(localX, localY, hitRadius, laneRect)) return;
+    hitCooldowns.set(enemy, nowSec);
+    const counterHit = getCounterHitResult(enemy, hitDamage, meleeAttackState);
+    const appliedDamage = counterHit.damage;
+    enemy.takeDamage(appliedDamage, {
+      damageType: "melee",
+      damageText: counterHit.damageText,
+    });
+    applyMeleeHitstop(enemy, meleeAttackState, counterHit);
+    registerPunishComboDamage(enemy, appliedDamage, meleeAttackState);
+    registerMeleeComboHit(enemy, meleeAttackState, hitMoveName, {
+      damage: appliedDamage,
+      isCounterHit: Boolean(counterHit?.isCounterHit),
+      isPunishCounter: Boolean(counterHit?.isPunishCounter),
+      baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
+    });
+    registerChainHit(enemy, appliedDamage);
+    if (!enemy.dead && enemy.state !== "death" && meleeAttackState.thrashFlurryTouchedEntities instanceof Set) {
+      meleeAttackState.thrashFlurryTouchedEntities.add(enemy);
+    }
+    spawnEnemyHitEffect(enemy);
+    if (typeof playEnemyHitSfx === "function") playEnemyHitSfx(0.62);
+  });
+
+  if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
+    const lastHitAt = Number(hitCooldowns.get(activeBoss) || 0);
+    if ((nowSec - lastHitAt) >= THRASH_FLURRY_REHIT_COOLDOWN) {
+      const relX = activeBoss.x - laneCenterX;
+      const relY = activeBoss.y - laneCenterY;
+      const localX = relX * cos - relY * sin;
+      const localY = relX * sin + relY * cos;
+      const hitRadius = activeBoss.radius || 0;
+      if (circleIntersectsRect(localX, localY, hitRadius, laneRect)) {
+        hitCooldowns.set(activeBoss, nowSec);
+        const counterHit = getCounterHitResult(activeBoss, hitDamage, meleeAttackState);
+        const appliedDamage = counterHit.damage;
+        activeBoss.takeDamage(appliedDamage, {
+          hitX: activeBoss.x,
+          hitY: activeBoss.y,
+          damageType: "melee",
+          damageText: counterHit.damageText,
+        });
+        applyMeleeHitstop(activeBoss, meleeAttackState, counterHit);
+        registerPunishComboDamage(activeBoss, appliedDamage, meleeAttackState);
+        registerMeleeComboHit(activeBoss, meleeAttackState, hitMoveName, {
+          damage: appliedDamage,
+          isCounterHit: Boolean(counterHit?.isCounterHit),
+          isPunishCounter: Boolean(counterHit?.isPunishCounter),
+          baseDamage: Math.max(0, Math.round(Number(counterHit?.baseDamage) || 0)),
+        });
+        registerChainHit(activeBoss, appliedDamage);
+        if (meleeAttackState.thrashFlurryTouchedEntities instanceof Set) {
+          meleeAttackState.thrashFlurryTouchedEntities.add(activeBoss);
+        }
+        spawnEnemyHitEffect(activeBoss);
+        if (typeof playEnemyHitSfx === "function") playEnemyHitSfx(0.62);
+      }
+    }
   }
 }
 
@@ -27052,11 +27166,13 @@ function updateThrashFlurry(dt, meleeAttackState) {
   const stepIndex = Number(meleeAttackState.thrashFlurryStepIndex || 0);
   const totalSteps = Math.max(1, Number(meleeAttackState.thrashFlurryTotalSteps || 0));
   if (stepIndex >= totalSteps) {
+    finalizeThrashFlurryKnockback(meleeAttackState);
     meleeAttackState.thrashFlurryActive = false;
     meleeAttackState.swordRushActive = false;
     meleeAttackState.currentAttackHitboxType = "slash";
     meleeAttackState.thrashFlurryStepIndex = 0;
     meleeAttackState.thrashFlurryStepTimer = 0;
+    meleeAttackState.thrashFlurryTouchedEntities = null;
     player._paperdollThrashFlurryFrameCursor = null;
     meleeAttackState.pendingComboMoveName = "Thrash";
     return;
@@ -27066,6 +27182,44 @@ function updateThrashFlurry(dt, meleeAttackState) {
   // Animation-only pass: drive paperdoll preset sequence and lock to frames 2/3.
   meleeAttackState.pendingComboMoveName = movePreset;
   player._paperdollThrashFlurryFrameCursor = stepIndex % 2 === 0 ? 1 : 2;
+  if (typeof spawnSlashBurstEffect === "function") {
+    const baseAngle = Math.atan2(
+      Number(meleeAttackState?.thrashFlurryDir?.y) || 0,
+      Number(meleeAttackState?.thrashFlurryDir?.x) || 1,
+    );
+    const isDown = movePreset === "SlashDown";
+    const isUp = movePreset === "SlashUp";
+    const isBash = movePreset === "SlashBash";
+    const isThrust = movePreset === "Thrust";
+    const slashAngle = isDown
+      ? baseAngle + 0.9
+      : isUp
+        ? baseAngle - 0.9
+        : isBash
+          ? baseAngle + Math.PI / 2
+          : baseAngle;
+    const maxOffset = isThrust ? THRASH_FLURRY_VFX_OFFSET * 1.25 : THRASH_FLURRY_VFX_OFFSET;
+    const centerX = player.x + Math.cos(baseAngle) * (maxOffset * 0.5);
+    const centerY = player.y + Math.sin(baseAngle) * (maxOffset * 0.5);
+    const slashFrames = assets?.effects?.swordSlash;
+    const baseFrameWidth = Math.max(1, Number(slashFrames?.[0]?.width) || 1);
+    // One elongated swoosh from player -> edge of the hit lane.
+    const scaleX = Math.max(1, maxOffset / Math.max(1, baseFrameWidth * THRASH_FLURRY_VFX_SCALE));
+    spawnSlashBurstEffect(centerX, centerY, slashAngle, THRASH_FLURRY_VFX_SCALE, {
+      scaleX,
+      scaleY: THRASH_FLURRY_VFX_THICKNESS_SCALE_Y,
+      tintColor: "#ffd37a",
+      tintAlpha: 0.82,
+    });
+    applyThrashFlurryLaneDamage(
+      meleeAttackState,
+      centerX,
+      centerY,
+      slashAngle,
+      maxOffset,
+      THRASH_FLURRY_HITBOX_THICKNESS,
+    );
+  }
   // Restart melee animation each step for stronger body motion readability.
   if (player.animator) {
     player.animator.play("attackMelee", { restart: true });
@@ -27461,6 +27615,7 @@ function updateMeleeAttackSystem(dt) {
       thrashFlurryStepIndex: 0,
       thrashFlurryTotalSteps: 0,
       thrashFlurryHitCooldowns: null,
+      thrashFlurryTouchedEntities: null,
       spinTimer: 0,
       spinDuration: 0,
       spinHitEntities: null,
