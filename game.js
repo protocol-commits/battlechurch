@@ -450,9 +450,9 @@ let prayerBombScreenFadeTimer = 0;
 let prayerBombScreenFadeDuration = 0.8;
 let smiteBombFlashTimer = 0;
 const SMITE_BOMB_FLASH_DURATION = 0.22;
-const SMITE_BOMB_SWEEP_DURATION = 2.8;
+const SMITE_BOMB_SWEEP_DURATION = 1.3;
 const SMITE_BOMB_SWEEP_BAND = 30;
-const SMITE_BOMB_SWEEP_HAZARD_LIFE = 0.24;
+const SMITE_BOMB_SWEEP_HAZARD_LIFE = .5;
 let smiteBombSweepState = null;
 let prayerStormGroundFireTargetThisCast = 0;
 let prayerStormGroundFireSpawnedThisCast = 0;
@@ -26821,7 +26821,7 @@ function startSmiteBombSweep({
     radius: 0,
     maxRadius: computedMaxRadius,
     speed,
-    spawnStride: Math.max(6, sweepBand * 0.6),
+    spawnStride: Math.max(6, sweepBand * 3.6),
     nextSpawnRadius: 0,
     band: sweepBand,
     sourceTag,

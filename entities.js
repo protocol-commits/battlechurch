@@ -2718,6 +2718,10 @@
         typeof PRAYER_BOMB_LEVEL2_BOSS_DAMAGE === "number"
           ? PRAYER_BOMB_LEVEL2_BOSS_DAMAGE
           : damage * bossScale;
+      const sweepDuration =
+        typeof PRAYER_BOMB_LEVEL2_SWEEP_DURATION === "number"
+          ? PRAYER_BOMB_LEVEL2_SWEEP_DURATION
+          : 1.3;
 
       if (typeof window !== "undefined" && typeof window.startPurifyShockwave === "function") {
         window.startPurifyShockwave({
@@ -2726,7 +2730,7 @@
           damage,
           bossDamage,
           maxRadius: radius,
-          duration: 1.08,
+          duration: sweepDuration,
           sourceTag: "prayerBomb",
         });
       } else {
