@@ -4698,6 +4698,13 @@ const DIVINE_SHOT_AUTO_AIM_MIN_DOT = 0.25;
 const DIVINE_SHOT_PROJECTILE_PRIORITY = 5;
 const SWORD_RUSH_BLAST_DAMAGE = DIVINE_SHOT_DAMAGE;
 const BLITZ_DAMAGE = _gb("rush.blitzDamage", RUSH_DAMAGE + SWORD_RUSH_BLAST_DAMAGE);
+const THRASH_FLURRY_STEP_SEQUENCE = Object.freeze(["SlashDown", "SlashUp", "SlashBash", "Thrust", "SlashUp"]);
+const THRASH_FLURRY_CYCLES = 2;
+const THRASH_FLURRY_STEP_INTERVAL = 0.08;
+const THRASH_FLURRY_HITBOX_RADIUS = 122 * WORLD_SCALE;
+const THRASH_FLURRY_HITBOX_ARC_DOT = -0.08;
+const THRASH_FLURRY_REHIT_COOLDOWN = 0.065;
+const THRASH_FLURRY_STEP_DAMAGE = Math.max(1, Math.round(SWORD_RUSH_BLAST_DAMAGE * 0.5));
 
 const CANVAS_BASE_WIDTH = 1280;
 const CANVAS_BASE_HEIGHT = 720;
@@ -27001,30 +27008,70 @@ function flushPendingDivineShot(meleeAttackState, dt) {
 function executeSwordRush(meleeAttackState) {
   if (!player) return;
   const dir = getDashButtonDirection();
-  const startedRush = executeRushAttack(dir, meleeAttackState, {
-    skipYell: true,
-    moveName: "Thrash",
-  });
-  if (!startedRush) return;
+  const normDir = normalizeVector(dir.x, dir.y);
+  showMoveBanner("Thrash");
+  registerComboMoveName(meleeAttackState, "Thrash");
   showDualChargeReadyPreview(meleeAttackState, "Thrash", { executed: true });
-  const screenTravel = Math.max(canvas?.width || 0, canvas?.height || 0) * 1.1;
-  meleeAttackState.rushDistanceRemaining = Math.max(
-    RUSH_DISTANCE * SWORD_RUSH_DISTANCE_MULTIPLIER,
-    screenTravel,
+  // Thrash refactor: stationary rapid slash flurry (no dash travel).
+  meleeAttackState.isRushing = false;
+  meleeAttackState.rushJustEnded = false;
+  meleeAttackState.rushDamageEnabled = false;
+  meleeAttackState.rushInvulnerable = false;
+  meleeAttackState.rushHitEntities = null;
+  meleeAttackState.rushDistanceRemaining = 0;
+  meleeAttackState.rushLockTimer = 0;
+  meleeAttackState.thrashFlurryActive = true;
+  meleeAttackState.thrashFlurryDir = normDir;
+  meleeAttackState.thrashFlurryStepTimer = 0;
+  meleeAttackState.thrashFlurryStepIndex = 0;
+  meleeAttackState.thrashFlurryTotalSteps = THRASH_FLURRY_STEP_SEQUENCE.length * THRASH_FLURRY_CYCLES;
+  meleeAttackState.thrashFlurryHitCooldowns = new WeakMap();
+  // Keep legacy rush flags off so paperdoll doesn't lock to thrust frame 3.
+  meleeAttackState.swordRushActive = false;
+  meleeAttackState.swordRushBlastHitEntities = null;
+  meleeAttackState.currentAttackHitboxType = "slash";
+  if (player && player.animator) {
+    player.state = "attackMelee";
+    player.animator.play("attackMelee", { restart: true });
+  }
+}
+
+function updateThrashFlurry(dt, meleeAttackState) {
+  if (!player || !meleeAttackState?.thrashFlurryActive) return;
+  // Keep body animation pinned to melee while flurry is active.
+  player.state = "attackMelee";
+  if (player.animator?.currentName !== "attackMelee") {
+    player.animator.play("attackMelee", { restart: true });
+  }
+  meleeAttackState.thrashFlurryStepTimer = Math.max(
+    0,
+    Number(meleeAttackState.thrashFlurryStepTimer || 0) - Math.max(0, Number(dt) || 0),
   );
-  const now =
-    typeof performance !== "undefined" && typeof performance.now === "function"
-      ? performance.now()
-      : Date.now();
-  const blitzTravelMs = Math.ceil(
-    (meleeAttackState.rushDistanceRemaining / Math.max(1, RUSH_SPEED || 1)) * 1000,
-  );
-  meleeAttackState.rushForceEndAt = now + blitzTravelMs + 300;
-  meleeAttackState.swordRushActive = true;
-  meleeAttackState.swordRushBlastHitEntities = new Set();
-  meleeAttackState.currentAttackHitboxType = "swordRush";
-  meleeAttackState.wardFeedbackCooldown = 0;
-  meleeAttackState.wardHitAccum = 0;
+  if (meleeAttackState.thrashFlurryStepTimer > 0) return;
+
+  const stepIndex = Number(meleeAttackState.thrashFlurryStepIndex || 0);
+  const totalSteps = Math.max(1, Number(meleeAttackState.thrashFlurryTotalSteps || 0));
+  if (stepIndex >= totalSteps) {
+    meleeAttackState.thrashFlurryActive = false;
+    meleeAttackState.swordRushActive = false;
+    meleeAttackState.currentAttackHitboxType = "slash";
+    meleeAttackState.thrashFlurryStepIndex = 0;
+    meleeAttackState.thrashFlurryStepTimer = 0;
+    player._paperdollThrashFlurryFrameCursor = null;
+    meleeAttackState.pendingComboMoveName = "Thrash";
+    return;
+  }
+  const movePreset = THRASH_FLURRY_STEP_SEQUENCE[stepIndex % THRASH_FLURRY_STEP_SEQUENCE.length];
+  meleeAttackState.currentAttackHitboxType = "slash";
+  // Animation-only pass: drive paperdoll preset sequence and lock to frames 2/3.
+  meleeAttackState.pendingComboMoveName = movePreset;
+  player._paperdollThrashFlurryFrameCursor = stepIndex % 2 === 0 ? 1 : 2;
+  // Restart melee animation each step for stronger body motion readability.
+  if (player.animator) {
+    player.animator.play("attackMelee", { restart: true });
+  }
+  meleeAttackState.thrashFlurryStepIndex += 1;
+  meleeAttackState.thrashFlurryStepTimer = THRASH_FLURRY_STEP_INTERVAL;
 }
 
 function updateRingOfFireMotion(dt, meleeAttackState) {
@@ -27408,6 +27455,12 @@ function updateMeleeAttackSystem(dt) {
       rushInvulnerable: false,
       swordRushActive: false,
       swordRushBlastHitEntities: null,
+      thrashFlurryActive: false,
+      thrashFlurryDir: { x: 1, y: 0 },
+      thrashFlurryStepTimer: 0,
+      thrashFlurryStepIndex: 0,
+      thrashFlurryTotalSteps: 0,
+      thrashFlurryHitCooldowns: null,
       spinTimer: 0,
       spinDuration: 0,
       spinHitEntities: null,
@@ -27523,6 +27576,8 @@ function updateMeleeAttackSystem(dt) {
       clearDualChargeReadyPreview(meleeAttackState, { force: true });
       meleeAttackState.buttonDown = false;
       meleeAttackState.isCharging = false;
+      meleeAttackState.thrashFlurryActive = false;
+      meleeAttackState.swordRushActive = false;
       meleeAttackState.awaitRush = false;
       clearMeleeComboLabel(meleeAttackState);
       resetComboMoveNames(meleeAttackState);
@@ -27623,6 +27678,14 @@ function updateMeleeAttackSystem(dt) {
 
     if (meleeAttackState.blankaRollActive) {
       updateBlankaRoll(dt);
+    }
+
+    if (meleeAttackState.thrashFlurryActive) {
+      updateThrashFlurry(dt, meleeAttackState);
+      keysJustPressed.delete("ArrowDown");
+      keysJustPressed.delete("ArrowLeft");
+      keysJustPressed.delete(" ");
+      return;
     }
 
     // A-cancel for Crash/Clash: pressing A during the dash stops it and fires a melee (same pattern as Thrash → A)

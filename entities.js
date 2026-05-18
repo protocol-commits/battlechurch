@@ -287,6 +287,12 @@
     const congregationCommandVisualActive =
       Number.isFinite(player?._paperdollCongregationCommandUntil) &&
       nowMs <= player._paperdollCongregationCommandUntil;
+    if (Boolean(melee?.thrashFlurryActive)) {
+      if (pendingComboMoveName.includes("slashbash")) return actionMap.slashBash;
+      if (pendingComboMoveName.includes("slashup")) return actionMap.cleave;
+      if (pendingComboMoveName.includes("slashdown")) return actionMap.normalSlash;
+      if (pendingComboMoveName.includes("thrust")) return actionMap.thrust;
+    }
     const movingNow = Boolean(player?._paperdollMoving);
     const chargingA = Boolean(melee?.buttonDown) || Boolean(melee?.isCharging);
     const blastChargeReady =
@@ -792,6 +798,8 @@
     const usingSmashPreset = normalizePresetKey(String(preset?.name || "")) === "smash";
     const usingSlashDownPreset = normalizePresetKey(String(preset?.name || "")) === "slashdown";
     const usingSlashUpPreset = normalizePresetKey(String(preset?.name || "")) === "slashup";
+    const usingSlashBashPreset = normalizePresetKey(String(preset?.name || "")) === "slashbash";
+    const usingThrustPreset = normalizePresetKey(String(preset?.name || "")) === "thrust";
     const usingThrustMagicPreset = normalizePresetKey(String(preset?.name || "")) === "thrustmagic";
     const hedgeFrame4LockActive =
       usingThrustMagicPreset &&
@@ -852,6 +860,17 @@
     }
     if (hedgeFrame4LockActive) {
       pd.frameCursor = Math.min(3, Math.max(0, frames.length - 1));
+      pd.elapsedMs = 0;
+      return;
+    }
+    if (
+      Boolean(melee?.thrashFlurryActive) &&
+      (usingSlashDownPreset || usingSlashUpPreset || usingSlashBashPreset || usingThrustPreset)
+    ) {
+      const forcedFrameCursor = Number.isFinite(player?._paperdollThrashFlurryFrameCursor)
+        ? Number(player._paperdollThrashFlurryFrameCursor)
+        : 1;
+      pd.frameCursor = Math.max(1, Math.min(2, forcedFrameCursor));
       pd.elapsedMs = 0;
       return;
     }
