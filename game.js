@@ -26013,6 +26013,12 @@ function executeCleaveAttack(dir, meleeAttackState) {
   if (!player || !dir) return false;
   playerYell("Cleave");
   showMoveBanner("Cleave");
+  const CLEAVE_ARC_DURATION = 0.18;
+  meleeAttackState.cleaveArcDuration = CLEAVE_ARC_DURATION;
+  meleeAttackState.cleaveArcTimer = CLEAVE_ARC_DURATION;
+  // Clockwise if facing right/down, counter-clockwise if facing left/up
+  const f = player.facing || "right";
+  meleeAttackState.cleaveArcDir = (f === "right" || f === "down") ? -1 : 1;
   const angleRad = Math.atan2(dir.y, dir.x);
   const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
   const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
@@ -26966,6 +26972,9 @@ function updateMeleeTimers(dt, meleeAttackState) {
   if (meleeAttackState.swooshTimer > 0) {
     meleeAttackState.swooshTimer = Math.max(0, meleeAttackState.swooshTimer - dt);
   }
+  if (meleeAttackState.cleaveArcTimer > 0) {
+    meleeAttackState.cleaveArcTimer = Math.max(0, meleeAttackState.cleaveArcTimer - dt);
+  }
   if (meleeAttackState.swooshShieldDebugTimer > 0) {
     meleeAttackState.swooshShieldDebugTimer = Math.max(0, meleeAttackState.swooshShieldDebugTimer - dt);
   }
@@ -27273,6 +27282,9 @@ function updateMeleeAttackSystem(dt) {
     blankaRollActive: false,
     blankaRollTimer: 0,
     blankaRollHitEntities: null,
+    cleaveArcTimer: 0,
+    cleaveArcDuration: 0,
+    cleaveArcDir: 1,
   };
   const meleeAttackState = window._meleeAttackState;
   const input = window.Input;

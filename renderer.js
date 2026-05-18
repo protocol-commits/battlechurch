@@ -13656,7 +13656,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
   function drawMeleeSwingOverlay(ctx, player) {
     if (!ctx || !player) return;
     const state = window._meleeAttackState;
-    if (!state || (state.swooshTimer <= 0 && !state.isRushing && !state.rushDamageEnabled && state.spinTimer <= 0)) return;
+    if (!state || (state.swooshTimer <= 0 && !state.isRushing && !state.rushDamageEnabled && state.spinTimer <= 0 && (state.cleaveArcTimer || 0) <= 0)) return;
     const bindings = requireBindings();
     const closeRange = bindings?.MELEE_CLOSE_RANGE ?? 0;
     const meleeRange = bindings?.MELEE_SWING_RANGE ?? 0;
@@ -13749,6 +13749,88 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     if (state.spinTimer > 0) {
       return;
     }
+    // Cleave arc — draw before the rush-only early return
+    if ((state.cleaveArcTimer || 0) > 0) {
+      const dur = state.cleaveArcDuration || 0.45;
+      const progress = 1 - Math.min(1, state.cleaveArcTimer / dur);
+      const arcDir = (state.cleaveArcDir || 1);
+      // Canvas coords: 0=right, π/2=down, π=left, 3π/2=up
+      // Facing right: start SW (135°=π*0.75), sweep CCW (-1) 270° → ends NW (225°=π*1.25)
+      const startAngle = (() => {
+        const f = player?.facing || "right";
+        if (f === "right") return Math.PI * 0.75;  // SW
+        if (f === "left")  return Math.PI * 0.25;  // SE (mirror)
+        if (f === "down")  return Math.PI * 1.25;  // NW (mirror for down)
+        return Math.PI * 1.75;                      // NE (mirror for up)
+      })();
+      const sweepTotal = Math.PI * 1.5 * arcDir; // 270°
+      const leadingAngle = startAngle + sweepTotal * progress;
+      const arcSpan = Math.PI * (70 / 180);
+      const originX = player.x - cameraOffsetX + shakeX;
+      const originY = player.y - cameraOffsetY + shakeY;
+      const radius = meleeRange * 0.75;
+      const fadeStart = 0.5;
+      const alpha = progress < fadeStart ? 1.0 : 1.0 - ((progress - fadeStart) / (1 - fadeStart));
+      // Trail: draw from start all the way to the leading edge
+      const trailA0 = arcDir > 0 ? startAngle : leadingAngle;
+      const trailA1 = arcDir > 0 ? leadingAngle : startAngle;
+      // Leading edge bright tip (70° slice at the front)
+      const a0 = arcDir > 0 ? leadingAngle - arcSpan : leadingAngle;
+      const a1 = arcDir > 0 ? leadingAngle : leadingAngle + arcSpan;
+
+      // Draw filled annular wedge segments — thick in the radial direction, tapering from thin tail to fat tip.
+      // Each segment is a filled path: outer arc forward + inner arc backward = donut slice.
+      const TRAIL_SEGMENTS = 16;
+      const totalSweep = sweepTotal * progress;
+      const segAngle = totalSweep / TRAIL_SEGMENTS;
+      // Helper: draw a filled annular sector from angle a0→a1 (absolute, ordered), inner/outer radii
+      const drawSector = (cx, cy, rInner, rOuter, a0, a1, ccw) => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, rOuter, a0, a1, ccw);
+        ctx.arc(cx, cy, rInner, a1, a0, !ccw);
+        ctx.closePath();
+      };
+      const ccwSweep = arcDir < 0; // true when sweeping CCW
+      for (let s = 0; s < TRAIL_SEGMENTS; s++) {
+        const segT = (s + 1) / TRAIL_SEGMENTS; // 0→1, tip at end
+        const segAlpha = alpha * segT * segT * segT;
+        // Radial thickness: near zero at tail, fat at tip
+        const halfThick = 2 + segT * segT * 38; // 2px→40px radial half-thickness
+        const segStart = startAngle + segAngle * s;
+        const segEnd   = startAngle + segAngle * (s + 1);
+        const sA = Math.min(segStart, segEnd);
+        const sB = Math.max(segStart, segEnd);
+        const rInner = Math.max(1, radius - halfThick);
+        const rOuter = radius + halfThick;
+        // Outer glow
+        ctx.save();
+        ctx.globalAlpha = segAlpha * 0.4;
+        ctx.fillStyle = "rgba(255, 160, 20, 1)";
+        ctx.filter = "blur(8px)";
+        drawSector(originX, originY, rInner - 8, rOuter + 8, sA, sB, false);
+        ctx.fill();
+        ctx.filter = "none";
+        ctx.restore();
+        // Gold fill
+        ctx.save();
+        ctx.globalAlpha = segAlpha * 0.85;
+        ctx.fillStyle = "rgba(255, 220, 60, 1)";
+        drawSector(originX, originY, rInner, rOuter, sA, sB, false);
+        ctx.fill();
+        ctx.restore();
+        // White core highlight (front half only)
+        if (segT > 0.45) {
+          ctx.save();
+          ctx.globalAlpha = segAlpha * 0.7;
+          ctx.fillStyle = "rgba(255, 255, 200, 1)";
+          const coreThick = halfThick * 0.35;
+          drawSector(originX, originY, radius - coreThick, radius + coreThick, sA, sB, false);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+
     // Rush attack now uses the animated explosion burst via Effects — only keep hitbox debug.
     if (!state.isRushing && !state.rushDamageEnabled) return;
     if (showMeleeHitboxDebug && rushHitbox && Number.isFinite(rushHitbox.width) && Number.isFinite(rushHitbox.height)) {
@@ -13770,6 +13852,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       ctx.strokeRect(rectX, rectY, rushHitbox.width, rushHitbox.height);
       ctx.restore();
     }
+
   }
 
   function drawCongregationToTeaserFade(levelStatus) {
