@@ -450,6 +450,10 @@ let prayerBombScreenFadeTimer = 0;
 let prayerBombScreenFadeDuration = 0.8;
 let smiteBombFlashTimer = 0;
 const SMITE_BOMB_FLASH_DURATION = 0.22;
+const SMITE_BOMB_SWEEP_DURATION = 2.8;
+const SMITE_BOMB_SWEEP_BAND = 30;
+const SMITE_BOMB_SWEEP_HAZARD_LIFE = 0.24;
+let smiteBombSweepState = null;
 let prayerStormGroundFireTargetThisCast = 0;
 let prayerStormGroundFireSpawnedThisCast = 0;
 let prayerStormRainImpactCountThisCast = 0;
@@ -11283,32 +11287,19 @@ function applyUtilityPowerUp(powerUp) {
       }
       smiteBombFlashTimer = Math.max(smiteBombFlashTimer, SMITE_BOMB_FLASH_DURATION);
       applyCameraShake(CAMERA_SHAKE_DURATION, CAMERA_SHAKE_INTENSITY * 1.35);
-      let hitAny = false;
       projectiles.forEach((projectile) => {
         if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
         projectile.dead = true;
         spawnImpactEffect(projectile.x, projectile.y);
         spawnFlashEffect(projectile.x, projectile.y);
-        hitAny = true;
       });
-      enemies.forEach((enemy) => {
-        if (!enemy || enemy.dead || enemy.state === "death") return;
-        enemy.takeDamage(bombDamage, { damageType: "charged" });
-        spawnEnemyHitEffect(enemy);
-        hitAny = true;
+      const bossDamage = Math.max(0, Math.round(bombDamage * 0.8));
+      startSmiteBombSweep({
+        centerX: player?.x ?? powerUp.x,
+        centerY: player?.y ?? powerUp.y,
+        damage: bombDamage,
+        bossDamage,
       });
-      if (activeBoss && !activeBoss.dead && !activeBoss.defeated && !activeBoss.removed) {
-        activeBoss.takeDamage(bombDamage, {
-          hitX: activeBoss.x,
-          hitY: activeBoss.y,
-          damageType: "charged",
-        });
-        spawnEnemyHitEffect(activeBoss);
-        hitAny = true;
-      }
-      if (hitAny && typeof playEnemyHitSfx === "function") {
-        playEnemyHitSfx(0.75);
-      }
       break;
     }
     default:
@@ -26760,23 +26751,93 @@ function endBlankaRoll(ms) {
   if (player) player.ignoreEntityCollisions = false;
 }
 
-function spawnRingOfFireHazard(centerX, centerY, radius) {
+function spawnRingOfFireHazard(centerX, centerY, radius, options = null) {
+  const opts = options && typeof options === "object" ? options : null;
+  const life = Number.isFinite(opts?.life) ? Math.max(0.05, opts.life) : RING_OF_FIRE_LINGER_DURATION;
+  const band = Number.isFinite(opts?.band) ? Math.max(1, opts.band) : RING_OF_FIRE_BAND;
+  const damage = Number.isFinite(opts?.damage) ? Math.max(0, opts.damage) : RING_OF_FIRE_DAMAGE;
+  const bossDamage = Number.isFinite(opts?.bossDamage) ? Math.max(0, opts.bossDamage) : RING_OF_FIRE_BOSS_DAMAGE;
+  const hitCooldown = Number.isFinite(opts?.hitCooldown)
+    ? Math.max(0, opts.hitCooldown)
+    : RING_OF_FIRE_HIT_COOLDOWN;
   ringOfFireHazards.push({
     x: centerX,
     y: centerY,
     radius,
-    life: RING_OF_FIRE_LINGER_DURATION,
-    duration: RING_OF_FIRE_LINGER_DURATION,
-    band: RING_OF_FIRE_BAND,
-    damage: RING_OF_FIRE_DAMAGE,
-    bossDamage: RING_OF_FIRE_BOSS_DAMAGE,
-    hitCooldown: RING_OF_FIRE_HIT_COOLDOWN,
+    life,
+    duration: life,
+    band,
+    damage,
+    bossDamage,
+    hitCooldown,
     hitMap: new WeakMap(),
-    blinkWindow: Math.min(1.2, RING_OF_FIRE_LINGER_DURATION),
+    blinkWindow: Math.min(1.2, life),
     blinkTimer: 0,
     visible: true,
     blinkAlpha: 1,
   });
+}
+
+function startSmiteBombSweep({
+  centerX,
+  centerY,
+  damage,
+  bossDamage,
+  duration = SMITE_BOMB_SWEEP_DURATION,
+} = {}) {
+  if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) return;
+  const playWidth = Math.max(1, canvas?.width || 1);
+  const playHeight = Math.max(1, canvas?.height || 1);
+  const corners = [
+    { x: 0, y: HUD_HEIGHT },
+    { x: playWidth, y: HUD_HEIGHT },
+    { x: 0, y: playHeight },
+    { x: playWidth, y: playHeight },
+  ];
+  let maxRadius = 0;
+  for (const corner of corners) {
+    const d = Math.hypot(corner.x - centerX, corner.y - centerY);
+    if (d > maxRadius) maxRadius = d;
+  }
+  const sweepDuration = Math.max(0.2, Number(duration) || SMITE_BOMB_SWEEP_DURATION);
+  const speed = maxRadius / sweepDuration;
+  const worldScale = Number.isFinite(WORLD_SCALE) && WORLD_SCALE > 0 ? WORLD_SCALE : 1;
+  const sweepBand = SMITE_BOMB_SWEEP_BAND * worldScale;
+  smiteBombSweepState = {
+    active: true,
+    x: centerX,
+    y: centerY,
+    damage: Math.max(0, Math.round(Number(damage) || 0)),
+    bossDamage: Math.max(0, Math.round(Number(bossDamage) || Number(damage) || 0)),
+    radius: 0,
+    maxRadius,
+    speed,
+    spawnStride: Math.max(6, sweepBand * 0.6),
+    nextSpawnRadius: 0,
+    band: sweepBand,
+  };
+}
+
+function updateSmiteBombSweep(dt) {
+  const wave = smiteBombSweepState;
+  if (!wave || !wave.active) return;
+  const step = Math.max(0, Number(dt) || 0);
+  wave.radius = Math.min(wave.maxRadius, wave.radius + wave.speed * step);
+  while (wave.nextSpawnRadius <= wave.radius) {
+    spawnRingOfFireHazard(wave.x, wave.y, wave.nextSpawnRadius, {
+      life: SMITE_BOMB_SWEEP_HAZARD_LIFE,
+      band: wave.band,
+      damage: wave.damage,
+      bossDamage: wave.bossDamage,
+      // Effectively one impact per entity as the wave crosses.
+      hitCooldown: 99,
+    });
+    wave.nextSpawnRadius += wave.spawnStride;
+  }
+  if (wave.radius >= wave.maxRadius) {
+    wave.active = false;
+    smiteBombSweepState = null;
+  }
 }
 
 function executeRingOfFireAttack(meleeAttackState) {
@@ -26998,7 +27059,8 @@ function updateRingOfFireHazards(dt) {
     const innerRadius = Math.max(0, (hazard.radius || RING_OF_FIRE_RADIUS) - band * 0.5);
     const canHit = (entity) => {
       if (!entity || entity.dead || entity.state === "death") return false;
-      const lastAt = hazard.hitMap?.get(entity) || 0;
+      const lastAtRaw = hazard.hitMap?.get(entity);
+      const lastAt = Number.isFinite(lastAtRaw) ? lastAtRaw : -Infinity;
       return now - lastAt >= (hazard.hitCooldown || RING_OF_FIRE_HIT_COOLDOWN) * 1000;
     };
     const markHit = (entity) => {
@@ -28642,6 +28704,7 @@ function updateGame(dt) {
   }
 
   updateEnemiesAndEntities(dt);
+  updateSmiteBombSweep(dt);
   updateRingOfFireHazards(dt);
   updatePrayerStormGroundFires(dt);
 
