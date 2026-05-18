@@ -26665,7 +26665,7 @@ function npcsYell(text, life = 1.6) {
 window.npcsYell = npcsYell;
 window.showMoveBanner = showMoveBanner;
 
-const BLANKA_ROLL_DURATION = 4.0;
+const BLANKA_ROLL_DURATION = 3.0;
 
 function executeBlankaRoll(meleeAttackState) {
   if (!player) return;
