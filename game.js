@@ -4805,10 +4805,10 @@ const PRAYER_BOMB_LEVEL1_THRESHOLD = _gb('prayerBomb.level1Threshold', 2 / 6);
 const PRAYER_BOMB_LEVEL2_THRESHOLD = _gb('prayerBomb.level2Threshold', 4 / 6);
 const PRAYER_BOMB_LEVEL3_THRESHOLD = _gb('prayerBomb.level3Threshold', 1.0);
 const PRAYER_BOMB_LEVEL1_DAMAGE = _gb('prayerBomb.level1Damage', 250);
-const PRAYER_BOMB_LEVEL2_DAMAGE = _gb('prayerBomb.level2Damage', 400);
+const PRAYER_BOMB_LEVEL2_DAMAGE = _gb('prayerBomb.level2Damage', 100);
 const PRAYER_BOMB_LEVEL3_DAMAGE = _gb('prayerBomb.level3Damage', 250);
 const PRAYER_BOMB_LEVEL1_BOSS_DAMAGE = _gb('prayerBomb.level1BossDamage', 1000);
-const PRAYER_BOMB_LEVEL2_BOSS_DAMAGE = _gb('prayerBomb.level2BossDamage', 2000);
+const PRAYER_BOMB_LEVEL2_BOSS_DAMAGE = _gb('prayerBomb.level2BossDamage', 1000);
 const PRAYER_BOMB_LEVEL2_RADIUS = Math.max(0, Math.hypot(CANVAS_BASE_WIDTH, CANVAS_BASE_HEIGHT));
 const PRAYER_BOMB_RAIN_DURATION = _gb('prayerBomb.rainDuration', 7);
 const PRAYER_BOMB_RAIN_INTERVAL = _gb('prayerBomb.rainInterval', 0.12);
@@ -26760,6 +26760,7 @@ function spawnRingOfFireHazard(centerX, centerY, radius, options = null) {
   const hitCooldown = Number.isFinite(opts?.hitCooldown)
     ? Math.max(0, opts.hitCooldown)
     : RING_OF_FIRE_HIT_COOLDOWN;
+  const sourceTag = String(opts?.sourceTag || "churchPowerup");
   ringOfFireHazards.push({
     x: centerX,
     y: centerY,
@@ -26771,6 +26772,7 @@ function spawnRingOfFireHazard(centerX, centerY, radius, options = null) {
     bossDamage,
     hitCooldown,
     hitMap: new WeakMap(),
+    sourceTag,
     blinkWindow: Math.min(1.2, life),
     blinkTimer: 0,
     visible: true,
@@ -26784,6 +26786,8 @@ function startSmiteBombSweep({
   damage,
   bossDamage,
   duration = SMITE_BOMB_SWEEP_DURATION,
+  maxRadius: maxRadiusLimit = null,
+  sourceTag = "churchPowerup",
 } = {}) {
   if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) return;
   const playWidth = Math.max(1, canvas?.width || 1);
@@ -26794,13 +26798,17 @@ function startSmiteBombSweep({
     { x: 0, y: playHeight },
     { x: playWidth, y: playHeight },
   ];
-  let maxRadius = 0;
+  let computedMaxRadius = 0;
   for (const corner of corners) {
     const d = Math.hypot(corner.x - centerX, corner.y - centerY);
-    if (d > maxRadius) maxRadius = d;
+    if (d > computedMaxRadius) computedMaxRadius = d;
+  }
+  const capRadius = Number.isFinite(maxRadiusLimit) ? Math.max(0, Number(maxRadiusLimit)) : null;
+  if (capRadius !== null) {
+    computedMaxRadius = Math.min(computedMaxRadius, capRadius);
   }
   const sweepDuration = Math.max(0.2, Number(duration) || SMITE_BOMB_SWEEP_DURATION);
-  const speed = maxRadius / sweepDuration;
+  const speed = computedMaxRadius / sweepDuration;
   const worldScale = Number.isFinite(WORLD_SCALE) && WORLD_SCALE > 0 ? WORLD_SCALE : 1;
   const sweepBand = SMITE_BOMB_SWEEP_BAND * worldScale;
   smiteBombSweepState = {
@@ -26810,11 +26818,12 @@ function startSmiteBombSweep({
     damage: Math.max(0, Math.round(Number(damage) || 0)),
     bossDamage: Math.max(0, Math.round(Number(bossDamage) || Number(damage) || 0)),
     radius: 0,
-    maxRadius,
+    maxRadius: computedMaxRadius,
     speed,
     spawnStride: Math.max(6, sweepBand * 0.6),
     nextSpawnRadius: 0,
     band: sweepBand,
+    sourceTag,
   };
 }
 
@@ -26831,6 +26840,7 @@ function updateSmiteBombSweep(dt) {
       bossDamage: wave.bossDamage,
       // Effectively one impact per entity as the wave crosses.
       hitCooldown: 99,
+      sourceTag: wave.sourceTag,
     });
     wave.nextSpawnRadius += wave.spawnStride;
   }
@@ -27076,7 +27086,11 @@ function updateRingOfFireHazards(dt) {
       const ringWasAlive = !enemy.dead && enemy.state !== "death";
       enemy.takeDamage(hazard.damage, { damageType: "charged" });
       if (ringWasAlive && (enemy.dead || enemy.state === "death")) {
-        enemy.killedByChurchPowerup = true;
+        if (hazard.sourceTag === "prayerBomb") {
+          enemy.killedByPrayerBomb = true;
+        } else {
+          enemy.killedByChurchPowerup = true;
+        }
       }
       if (!enemy.dead && enemy.state !== "death") {
         applyEnemyMeleeKnockback(enemy, hazard.x, hazard.y, MELEE_DAMAGE_KNOCKBACK * 0.75);
@@ -27113,6 +27127,14 @@ function updateRingOfFireHazards(dt) {
       ringOfFireHazards.splice(i, 1);
     }
   }
+}
+
+if (typeof window !== "undefined") {
+  window.startPurifyShockwave = (options = {}) =>
+    startSmiteBombSweep({
+      ...options,
+      sourceTag: options?.sourceTag || "prayerBomb",
+    });
 }
 
 function maybeFireWordOfGodProjectile(dir, angleRad) {
