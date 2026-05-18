@@ -4751,7 +4751,7 @@ const THRASH_FLURRY_HITBOX_THICKNESS = 84 * WORLD_SCALE;
 const THRASH_FLURRY_HITBOX_RADIUS = 122 * WORLD_SCALE;
 const THRASH_FLURRY_HITBOX_ARC_DOT = -0.08;
 const THRASH_FLURRY_REHIT_COOLDOWN = 0.065;
-const THRASH_FLURRY_STEP_DAMAGE = Math.max(1, Math.round(SWORD_RUSH_BLAST_DAMAGE * 0.5));
+const THRASH_FLURRY_STEP_DAMAGE = 250;
 
 const CANVAS_BASE_WIDTH = 1280;
 const CANVAS_BASE_HEIGHT = 720;
@@ -27120,8 +27120,8 @@ function applyThrashFlurryLaneDamage(meleeAttackState, laneCenterX, laneCenterY,
     height: laneThickness,
   };
   const hitMoveName = "Thrash";
-  const hitMoveMultiplier = getMoveMultiplier(hitMoveName);
-  const hitDamage = Math.max(1, Math.round(THRASH_FLURRY_STEP_DAMAGE * hitMoveMultiplier));
+  // Flurry design: flat per-hit damage, no Thrash move multiplier.
+  const hitDamage = Math.max(1, Math.round(THRASH_FLURRY_STEP_DAMAGE));
 
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
