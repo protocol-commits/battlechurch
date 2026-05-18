@@ -23840,7 +23840,16 @@ function getMeleeAttackDirection() {
   if (moveDir.x !== 0 || moveDir.y !== 0) {
     return normalizeVector(moveDir.x, moveDir.y);
   }
-  // Otherwise use player.aim, which is kept current each frame by autoaim, pointer, or last move.
+  // No live directional input: use last movement/facing, not aim (aim may be auto-target-adjusted).
+  const lastMoveDir = input.lastMovementDirection || { x: 0, y: 0 };
+  if (lastMoveDir.x !== 0 || lastMoveDir.y !== 0) {
+    return normalizeVector(lastMoveDir.x, lastMoveDir.y);
+  }
+  const facing = String(player.facing || "right").toLowerCase();
+  if (facing === "left") return { x: -1, y: 0 };
+  if (facing === "up") return { x: 0, y: -1 };
+  if (facing === "down") return { x: 0, y: 1 };
+  if (facing === "right") return { x: 1, y: 0 };
   const aim = player.aim || { x: 1, y: 0 };
   if (aim.x !== 0 || aim.y !== 0) {
     return normalizeVector(aim.x, aim.y);
