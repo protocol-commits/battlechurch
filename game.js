@@ -453,6 +453,9 @@ const SMITE_BOMB_FLASH_DURATION = 0.22;
 const SMITE_BOMB_SWEEP_DURATION = 1.3;
 const SMITE_BOMB_SWEEP_BAND = 30;
 const SMITE_BOMB_SWEEP_HAZARD_LIFE = .5;
+const SMITE_BOMB_SWEEP_RING_COUNT = 3;
+const SMITE_BOMB_SWEEP_RING_DAMAGE = 100;
+const SMITE_BOMB_SWEEP_RING_DELAY = 0.22;
 let smiteBombSweepState = null;
 let prayerStormGroundFireTargetThisCast = 0;
 let prayerStormGroundFireSpawnedThisCast = 0;
@@ -11285,7 +11288,6 @@ function applyUtilityPowerUp(powerUp) {
       if (typeof playPrayerBombSfx === "function") {
         playPrayerBombSfx(0.85);
       }
-      smiteBombFlashTimer = Math.max(smiteBombFlashTimer, SMITE_BOMB_FLASH_DURATION);
       applyCameraShake(CAMERA_SHAKE_DURATION, CAMERA_SHAKE_INTENSITY * 1.35);
       projectiles.forEach((projectile) => {
         if (!projectile || projectile.dead || projectile.friendly || projectile.visualOnly) return;
@@ -26762,6 +26764,9 @@ function spawnRingOfFireHazard(centerX, centerY, radius, options = null) {
     ? Math.max(0, opts.hitCooldown)
     : RING_OF_FIRE_HIT_COOLDOWN;
   const sourceTag = String(opts?.sourceTag || "churchPowerup");
+  const growthSpeed = Number.isFinite(opts?.growthSpeed) ? Math.max(0, opts.growthSpeed) : 0;
+  const maxRadius = Number.isFinite(opts?.maxRadius) ? Math.max(0, opts.maxRadius) : Infinity;
+  const spawnDelay = Number.isFinite(opts?.spawnDelay) ? Math.max(0, opts.spawnDelay) : 0;
   ringOfFireHazards.push({
     x: centerX,
     y: centerY,
@@ -26774,6 +26779,9 @@ function spawnRingOfFireHazard(centerX, centerY, radius, options = null) {
     hitCooldown,
     hitMap: new WeakMap(),
     sourceTag,
+    growthSpeed,
+    maxRadius,
+    spawnDelay,
     blinkWindow: Math.min(1.2, life),
     blinkTimer: 0,
     visible: true,
@@ -26809,46 +26817,32 @@ function startSmiteBombSweep({
     computedMaxRadius = Math.min(computedMaxRadius, capRadius);
   }
   const sweepDuration = Math.max(0.2, Number(duration) || SMITE_BOMB_SWEEP_DURATION);
-  const speed = computedMaxRadius / sweepDuration;
   const worldScale = Number.isFinite(WORLD_SCALE) && WORLD_SCALE > 0 ? WORLD_SCALE : 1;
   const sweepBand = SMITE_BOMB_SWEEP_BAND * worldScale;
-  smiteBombSweepState = {
-    active: true,
-    x: centerX,
-    y: centerY,
-    damage: Math.max(0, Math.round(Number(damage) || 0)),
-    bossDamage: Math.max(0, Math.round(Number(bossDamage) || Number(damage) || 0)),
-    radius: 0,
-    maxRadius: computedMaxRadius,
-    speed,
-    spawnStride: Math.max(6, sweepBand * 3.6),
-    nextSpawnRadius: 0,
-    band: sweepBand,
-    sourceTag,
-  };
+  const ringCount = Math.max(1, Math.round(Number(SMITE_BOMB_SWEEP_RING_COUNT) || 3));
+  const ringDamage = Math.max(0, Math.round(Number(SMITE_BOMB_SWEEP_RING_DAMAGE) || 100));
+  const ringDelay = Math.max(0, Number(SMITE_BOMB_SWEEP_RING_DELAY) || 0.22);
+  const growthSpeed = computedMaxRadius / sweepDuration;
+  const ringLife = sweepDuration + ringDelay * Math.max(0, ringCount - 1) + 0.25;
+  for (let i = 0; i < ringCount; i += 1) {
+    spawnRingOfFireHazard(centerX, centerY, 0, {
+      life: ringLife,
+      band: sweepBand,
+      damage: ringDamage,
+      bossDamage: ringDamage,
+      // One impact per ring crossing.
+      hitCooldown: 99,
+      sourceTag,
+      growthSpeed,
+      maxRadius: computedMaxRadius,
+      spawnDelay: i * ringDelay,
+    });
+  }
+  smiteBombSweepState = null;
 }
 
 function updateSmiteBombSweep(dt) {
-  const wave = smiteBombSweepState;
-  if (!wave || !wave.active) return;
-  const step = Math.max(0, Number(dt) || 0);
-  wave.radius = Math.min(wave.maxRadius, wave.radius + wave.speed * step);
-  while (wave.nextSpawnRadius <= wave.radius) {
-    spawnRingOfFireHazard(wave.x, wave.y, wave.nextSpawnRadius, {
-      life: SMITE_BOMB_SWEEP_HAZARD_LIFE,
-      band: wave.band,
-      damage: wave.damage,
-      bossDamage: wave.bossDamage,
-      // Effectively one impact per entity as the wave crosses.
-      hitCooldown: 99,
-      sourceTag: wave.sourceTag,
-    });
-    wave.nextSpawnRadius += wave.spawnStride;
-  }
-  if (wave.radius >= wave.maxRadius) {
-    wave.active = false;
-    smiteBombSweepState = null;
-  }
+  return;
 }
 
 function executeRingOfFireAttack(meleeAttackState) {
@@ -27052,6 +27046,17 @@ function updateRingOfFireHazards(dt) {
     : Date.now();
   for (let i = ringOfFireHazards.length - 1; i >= 0; i -= 1) {
     const hazard = ringOfFireHazards[i];
+    if ((hazard.spawnDelay || 0) > 0) {
+      hazard.spawnDelay = Math.max(0, (hazard.spawnDelay || 0) - dt);
+      continue;
+    }
+    if ((hazard.growthSpeed || 0) > 0) {
+      hazard.radius = (hazard.radius || 0) + hazard.growthSpeed * dt;
+    }
+    if (Number.isFinite(hazard.maxRadius) && (hazard.radius || 0) > hazard.maxRadius + (hazard.band || 0)) {
+      ringOfFireHazards.splice(i, 1);
+      continue;
+    }
     hazard.life = Math.max(0, (hazard.life || 0) - dt);
     const exiting = hazard.life <= Math.max(0, hazard.blinkWindow || 0);
     if (exiting) {
@@ -27082,7 +27087,7 @@ function updateRingOfFireHazards(dt) {
       const center = getEnemyHitboxCenter(enemy);
       const dist = Math.hypot(center.x - hazard.x, center.y - hazard.y);
       const targetRadius = getEnemyHitboxRadius(enemy);
-      if (dist - targetRadius > outerRadius) return;
+      if (dist + targetRadius < innerRadius || dist - targetRadius > outerRadius) return;
       markHit(enemy);
       const ringWasAlive = !enemy.dead && enemy.state !== "death";
       enemy.takeDamage(hazard.damage, { damageType: "charged" });
@@ -27102,7 +27107,7 @@ function updateRingOfFireHazards(dt) {
       const center = getEnemyHitboxCenter(activeBoss);
       const dist = Math.hypot(center.x - hazard.x, center.y - hazard.y);
       const targetRadius = activeBoss.radius || 0;
-      if (dist - targetRadius <= outerRadius) {
+      if (dist + targetRadius >= innerRadius && dist - targetRadius <= outerRadius) {
         markHit(activeBoss);
         activeBoss.takeDamage(hazard.bossDamage, {
           hitX: center.x,

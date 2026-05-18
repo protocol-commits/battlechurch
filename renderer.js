@@ -8241,8 +8241,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     ringOfFireHazards.forEach((hazard) => {
       if (!hazard || !hazard.life || hazard.life <= 0) return;
-      const fadeWindow = 2.0;
-      const domeFade = hazard.life >= fadeWindow ? 1 : Math.max(0, hazard.life / fadeWindow);
+      if ((hazard.spawnDelay || 0) > 0) return;
+      if ((hazard.growthSpeed || 0) > 0) return;
+      const domeFade = Math.max(
+        0,
+        Math.min(1, hazard.life / Math.max(0.001, hazard.duration || hazard.life || 0.001)),
+      );
       drawWardDomeFill(ctx, hazard.x, hazard.y, hazard.radius, domeFade);
     });
   }

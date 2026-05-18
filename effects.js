@@ -101,7 +101,7 @@
   }
 
   class DebugCircle {
-    constructor(x, y, radius, duration = 0.4) {
+    constructor(x, y, radius, duration = 0.2) {
       this.x = x;
       this.y = y;
       this.radius = radius;
@@ -134,7 +134,7 @@
   }
 
   class PrayerBombGlow {
-    constructor(x, y, radius, duration = 0.45) {
+    constructor(x, y, radius, duration = 0.2) {
       this.x = x;
       this.y = y;
       this.radius = radius;
