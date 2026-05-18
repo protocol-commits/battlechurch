@@ -4752,6 +4752,9 @@ const THRASH_FLURRY_HITBOX_RADIUS = 122 * WORLD_SCALE;
 const THRASH_FLURRY_HITBOX_ARC_DOT = -0.08;
 const THRASH_FLURRY_REHIT_COOLDOWN = 0.065;
 const THRASH_FLURRY_STEP_DAMAGE = 250;
+const NORMAL_SLASH_VFX_GLOW_BLUR = 20;
+const NORMAL_SLASH_VFX_GLOW_ALPHA = 0.88;
+const NORMAL_SLASH_VFX_DOWNWARD_ANGLE_OFFSET = 0;
 
 const CANVAS_BASE_WIDTH = 1280;
 const CANVAS_BASE_HEIGHT = 720;
@@ -25926,7 +25929,28 @@ function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCente
     const burstX = player.x + cos * hbOffsetX;
     const burstY = player.y + sin * hbOffsetX;
     const burstScale = hbWidth / 48;
-    spawnSlashBurstEffect(burstX, burstY, attackAngle, burstScale, { flipY: Boolean(options.flipSlash), tintColor: options.slashTint || null, tintAlpha: options.slashTintAlpha });
+    const isNormalSlash = moveName === "Slash";
+    const slashAngle = isNormalSlash
+      ? attackAngle + NORMAL_SLASH_VFX_DOWNWARD_ANGLE_OFFSET
+      : attackAngle;
+    const normalSlashFlipY = Math.cos(attackAngle) < 0;
+    if (isNormalSlash) {
+      spawnSlashBurstEffect(burstX, burstY, slashAngle, burstScale, {
+        flipY: normalSlashFlipY,
+        tintColor: options.slashTint || "#ffd37a",
+        tintAlpha: options.slashTintAlpha ?? 0.82,
+        glowColor: "#ffe7a6",
+        glowBlur: NORMAL_SLASH_VFX_GLOW_BLUR,
+        glowAlpha: NORMAL_SLASH_VFX_GLOW_ALPHA,
+        blendMode: "lighter",
+      });
+    } else {
+      spawnSlashBurstEffect(burstX, burstY, slashAngle, burstScale, {
+        flipY: Boolean(options.flipSlash),
+        tintColor: options.slashTint || null,
+        tintAlpha: options.slashTintAlpha,
+      });
+    }
   }
   maybeFireWordOfGodProjectile(dir, Math.atan2(dir.y, dir.x));
 
