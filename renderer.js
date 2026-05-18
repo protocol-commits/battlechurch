@@ -15143,11 +15143,3 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     getControlsHintText,
   };
 })(typeof window !== "undefined" ? window : null);
-    const isMobileLike = Boolean(
-      MOBILE_SMOKE_PROFILE.enabled &&
-      typeof window !== "undefined" &&
-      (
-        (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) ||
-        Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900
-      ),
-    );
