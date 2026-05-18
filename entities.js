@@ -2684,7 +2684,8 @@
     }
   }
 
-  castPrayerBomb() {
+  castPrayerBomb(options = {}) {
+    const forceLevel3 = Boolean(options?.forceLevel3);
     if (this.invulnerableTimer > 0 || gameOver) return false;
     const ratio = this.getPrayerChargeRatio();
     const level1Threshold =
@@ -2693,8 +2694,8 @@
       typeof PRAYER_BOMB_LEVEL2_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL2_THRESHOLD : 0.8;
     const level3Threshold =
       typeof PRAYER_BOMB_LEVEL3_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL3_THRESHOLD : 1.0;
-    if (ratio < level1Threshold) return false;
-    const level = ratio >= level3Threshold ? 3 : 2;
+    if (!forceLevel3 && ratio < level1Threshold) return false;
+    const level = forceLevel3 ? 3 : 2;
     const bossScale =
       typeof PRAYER_BOMB_BOSS_DAMAGE_SCALE === "number" ? PRAYER_BOMB_BOSS_DAMAGE_SCALE : 0.5;
     const playPrayerBombSfx =

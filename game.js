@@ -22929,7 +22929,8 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       _ms.spinButtonDown &&
       _ms.spinCharging &&
       _ms.spinChargeTimer >= (_ms.spinHoldTime || 0);
-    if (abBothFull) _ms.abSuperArmed = true;
+    const cHeldForAbc = keysPressed.has("ArrowRight");
+    if (abBothFull && !cHeldForAbc) _ms.abSuperArmed = true;
 
     // C→A combo: C was pressed recently and A is being pressed this frame
     const cLastPressed = (_ms.lastComboTimes && _ms.lastComboTimes.C) || 0;
@@ -27327,7 +27328,28 @@ function updateChargeState(dt, meleeAttackState) {
     Boolean(aFull && player && player.prayerHoldLocked && (player.prayerCharge || 0) >= prayerSuperCost);
   const abReady = Boolean(meleeAttackState.abSuperArmed) || Boolean(aFull && bFull);
   const teleportReady = Boolean(meleeAttackState.bcTeleportArmed);
-  const readyMove = abReady ? "Thrash" : acReady ? "Hedge" : teleportReady ? "Roll" : "";
+  const abcFullReadyNow = Boolean(
+    aFull &&
+    bFull &&
+    keysPressed.has("ArrowRight") &&
+    player &&
+    player.prayerHoldLocked &&
+    (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000),
+  );
+  const abcReady = Boolean(
+    abcFullReadyNow ||
+    meleeAttackState.abcSmiteArmed ||
+    meleeAttackState.abcSmitePendingRelease,
+  );
+  const readyMove = abcReady
+    ? "Smite"
+    : abReady
+      ? "Thrash"
+      : acReady
+        ? "Hedge"
+        : teleportReady
+          ? "Roll"
+          : "";
   if (readyMove) {
     showDualChargeReadyPreview(meleeAttackState, readyMove);
   } else {
@@ -27364,6 +27386,10 @@ function updateMeleeAttackSystem(dt) {
       rushShieldDebugTimer: 0,
       chargeFlashTriggered: false,
       spinChargeFlashTriggered: false,
+      abcSmiteArmed: false,
+      abcSmiteLatch: false,
+      abcSmitePendingRelease: false,
+      abcPrevCHeld: false,
       rushInvulnerable: false,
       swordRushActive: false,
       swordRushBlastHitEntities: null,
@@ -27850,9 +27876,88 @@ function updateMeleeAttackSystem(dt) {
     }
 
     const comboSwipe = input?.consumeComboSwipe?.();
+    let comboTriggered = false;
+    const holdAForAbc = Math.max(0.001, meleeAttackState.holdTime || 0);
+    const holdBForAbc = Math.max(0.001, meleeAttackState.spinHoldTime || 0);
+    const aFull =
+      Boolean(meleeAttackState.buttonDown && meleeAttackState.isCharging) &&
+      (meleeAttackState.chargeTimer || 0) >= holdAForAbc;
+    const bFull =
+      Boolean(meleeAttackState.spinButtonDown && meleeAttackState.spinCharging) &&
+      (meleeAttackState.spinChargeTimer || 0) >= holdBForAbc;
+    const cHeldForAbc = keysPressed.has("ArrowRight");
+    const cJustReleasedForAbc = !cHeldForAbc && Boolean(meleeAttackState.abcPrevCHeld);
+    meleeAttackState.abcPrevCHeld = cHeldForAbc;
+    const aHeldForAbc = Boolean(meleeAttackState.buttonDown);
+    const bHeldForAbc = Boolean(meleeAttackState.spinButtonDown);
+    const allThreeHeldForAbc = aHeldForAbc && bHeldForAbc && cHeldForAbc;
+    const fullPrayerReady =
+      Boolean(player?.prayerHoldLocked) &&
+      Number(player?.prayerCharge || 0) >= Number(player?.prayerChargeRequired || 6000);
+    if (!allThreeHeldForAbc) {
+      meleeAttackState.abcSmiteLatch = false;
+    }
+    const abcChargeReady =
+      !meleeAttackState.isRushing &&
+      !playerDashState.isDashing &&
+      aFull &&
+      bFull &&
+      allThreeHeldForAbc &&
+      fullPrayerReady;
+    if (abcChargeReady) {
+      meleeAttackState.abcSmiteArmed = true;
+      meleeAttackState.abcSmitePendingRelease = true;
+    }
+    if (
+      meleeAttackState.abcSmitePendingRelease &&
+      cJustReleasedForAbc &&
+      !meleeAttackState.isRushing &&
+      !playerDashState.isDashing
+    ) {
+      if (typeof cancelCongregationTap === "function") cancelCongregationTap();
+      if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
+      const casted = typeof player?.castPrayerBomb === "function"
+        ? player.castPrayerBomb({ forceLevel3: true })
+        : false;
+      meleeAttackState.abcSmiteArmed = false;
+      meleeAttackState.abcSmitePendingRelease = false;
+      if (casted) {
+        meleeAttackState.abcSmiteLatch = true;
+        window.FloatingText?.heroSay?.("Smite");
+        window.showMoveBanner?.("Smite Bomb");
+        meleeAttackState.buttonDown = false;
+        meleeAttackState.isCharging = false;
+        meleeAttackState.chargeTimer = 0;
+        meleeAttackState.spinButtonDown = false;
+        meleeAttackState.spinCharging = false;
+        meleeAttackState.spinChargeTimer = 0;
+        meleeAttackState.abSuperArmed = false;
+        meleeAttackState.acSuperArmed = false;
+        if (meleeAttackState.lastComboTimes) {
+          meleeAttackState.lastComboTimes.A = 0;
+          meleeAttackState.lastComboTimes.B = 0;
+          meleeAttackState.lastComboTimes.C = 0;
+        }
+        clearDivineChargeSparkVisual();
+        keysJustPressed.delete("ArrowRight");
+        keysJustPressed.delete("ArrowDown");
+        keysJustPressed.delete("ArrowLeft");
+        keysJustPressed.delete(" ");
+        return;
+      }
+    }
+    if (meleeAttackState.abcSmitePendingRelease && allThreeHeldForAbc) {
+      // Keep other combo resolvers from claiming this input stack.
+      comboTriggered = true;
+    }
+    const abcStateActive = Boolean(
+      meleeAttackState.abcSmitePendingRelease || meleeAttackState.abcSmiteArmed,
+    );
     const comboRush =
       (!meleeAttackState.isRushing &&
         !meleeAttackState.ringFireActive &&
+        !abcStateActive &&
+        !keysPressed.has("ArrowRight") &&
         !(meleeAttackState.spinCharging && !comboRushKeyOrder) &&
         !(meleeAttackState.spinButtonDown && !comboRushKeyOrder) &&
         meleeAttackState.rushLockTimer <= 0 &&
@@ -27860,7 +27965,6 @@ function updateMeleeAttackSystem(dt) {
         !playerDashState.isDashing &&
         (comboRushKeyOrder ||
           (comboSwipe && comboSwipe.from === "B" && comboSwipe.to === "A")));
-    let comboTriggered = false;
     if (comboRush && !comboTriggered) {
       playerDashState.pendingDashTimer = 0;
       meleeAttackState.spinButtonDown = false;
@@ -27887,6 +27991,7 @@ function updateMeleeAttackSystem(dt) {
       now <= meleeAttackState.holyDashArmUntil;
     const comboHolyDash =
       !comboTriggered &&
+      !abcStateActive &&
       !playerDashState.isDashing &&
       holyDashArmed &&
       bJustPressedRaw &&
@@ -27911,6 +28016,7 @@ function updateMeleeAttackSystem(dt) {
     }
     const comboDoubleStrike =
       !comboTriggered &&
+      !abcStateActive &&
       comboDoubleStrikeOrder &&
       !meleeAttackState.isRushing &&
       !meleeAttackState.spinButtonDown &&
@@ -27926,6 +28032,7 @@ function updateMeleeAttackSystem(dt) {
     const prayerStrikeCost = player ? (player.prayerChargeRequired || 6000) / 6 : 5;
     const comboPrayerStrike =
       !comboTriggered &&
+      !abcStateActive &&
       comboPrayerStrikeOrder &&
       !meleeAttackState.isRushing &&
       !meleeAttackState.spinCharging &&
@@ -27978,14 +28085,16 @@ function updateMeleeAttackSystem(dt) {
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       }
     }
-    if (meleeAttackState.spinButtonDown && !bHeld) {
+    if (!abcStateActive && meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
       const cHeldOnBRelease = keysPressed.has("ArrowRight");
       const rollCost = player ? (player.prayerChargeRequired || 6000) / 6 : 40;
       const hasPrayerForRoll = player && (player.prayerCharge || 0) >= rollCost;
       const shouldRoll = meleeAttackState.bcTeleportArmed ||
         (fullyCharged && cHeldOnBRelease && hasPrayerForRoll);
-      const canABSuper = Boolean(meleeAttackState.abSuperArmed);
+      const canABSuper = Boolean(meleeAttackState.abSuperArmed) &&
+        !meleeAttackState.abcSmitePendingRelease &&
+        !meleeAttackState.abcSmiteArmed;
       meleeAttackState.abSuperArmed = false;
       meleeAttackState.spinButtonDown = false;
       if (meleeAttackState.spinCharging) {
@@ -28076,7 +28185,7 @@ function updateMeleeAttackSystem(dt) {
       meleeAttackState.chargeFlashTriggered = false;
       }
     }
-    if (!spaceHeld && meleeAttackState.buttonDown) {
+    if (!abcStateActive && !spaceHeld && meleeAttackState.buttonDown) {
       meleeAttackState.buttonDown = false;
       const fullyCharged = meleeAttackState.chargeTimer >= meleeAttackState.holdTime;
       const divineShotFollowUpActive =
@@ -28085,7 +28194,9 @@ function updateMeleeAttackSystem(dt) {
       if (meleeAttackState.isCharging) {
         meleeAttackState.isCharging = false;
         clearDivineChargeSparkVisual();
-        const canABSuper = Boolean(meleeAttackState.abSuperArmed);
+        const canABSuper = Boolean(meleeAttackState.abSuperArmed) &&
+          !meleeAttackState.abcSmitePendingRelease &&
+          !meleeAttackState.abcSmiteArmed;
         meleeAttackState.abSuperArmed = false;
         const canACSuper = Boolean(meleeAttackState.acSuperArmed);
         meleeAttackState.acSuperArmed = false;
