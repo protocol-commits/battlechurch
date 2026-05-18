@@ -3211,7 +3211,7 @@ const PASTOR_POWERUP_DEFS = {
       const barsText = bars === 6 ? "your entire Prayer Meter" : `${bars} bar${bars !== 1 ? "s" : ""} of your Prayer Meter`;
       return `Fills ${barsText} when picked up. Higher levels fill more.`;
     },
-    iconSrc: "assets/sprites/items/icons/016-revive.png",
+    iconSrc: "assets/sprites/items/icons/Light.png",
   },
   hp: {
     key: "hp",
@@ -3222,7 +3222,7 @@ const PASTOR_POWERUP_DEFS = {
       const hp = getPastorPickupValue(byLevel, Math.max(1, level));
       return `Restores ${hp} HP instantly when picked up. Higher levels restore more.`;
     },
-    iconSrc: "assets/sprites/items/icons/031-life.png",
+    iconSrc: "assets/sprites/items/icons/Heart.png",
   },
   dash: {
     key: "dash",
@@ -3235,7 +3235,7 @@ const PASTOR_POWERUP_DEFS = {
       const pct = Math.round((1 - mult) * 100);
       return `Reduces your Dash cooldown by ${pct}% for ${dur} seconds when picked up. Higher levels last longer.`;
     },
-    iconSrc: "assets/sprites/items/icons/003-dagger.png",
+    iconSrc: "assets/sprites/items/Armour/A38_Iron_Boots.png",
   },
 };
 const pastorPowerupLevels = new Map([["prayer", 0], ["hp", 0], ["dash", 0]]);
@@ -3264,7 +3264,7 @@ function applyPastorPowerupPickup(type) {
   } else if (type === "hp") {
     const byLevel = window.GameBalance?.pastorPowerups?.hpAmountByLevel ?? PASTOR_PICKUP_HP_AMOUNT_BY_LEVEL;
     const hp = getPastorPickupValue(byLevel, level);
-    player.health = Math.min(player.maxHealth || HERO_MAX_HEALTH, (player.health || 0) + hp);
+    player.health = (player.health || 0) + hp;
     speechText = `HP +${hp}`;
   } else if (type === "dash") {
     const byLevel = window.GameBalance?.pastorPowerups?.dashDurationByLevel ?? PASTOR_PICKUP_DASH_DURATION_BY_LEVEL;

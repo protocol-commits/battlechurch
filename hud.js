@@ -416,7 +416,11 @@
         } catch (err) {}
       }
 
-      const hpValueText = (typeof GameText !== 'undefined' && GameText.hud?.health) || 'Health';
+      const hpBaseText = (typeof GameText !== 'undefined' && GameText.hud?.health) || 'Health';
+      const currentHp = Number.isFinite(player?.health) ? Math.max(0, Math.round(player.health)) : 0;
+      const maxHp = Number.isFinite(player?.maxHealth) ? Math.max(1, Math.round(player.maxHealth)) : 1;
+      const overheal = Math.max(0, currentHp - maxHp);
+      const hpValueText = overheal > 0 ? `${hpBaseText}+${overheal}` : hpBaseText;
       ctx.save();
       ctx.font = hudFont(HUD_FONTS.meterLabel);
       ctx.textAlign = 'center';
