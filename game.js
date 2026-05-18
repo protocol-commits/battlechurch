@@ -26556,7 +26556,7 @@ function npcsYell(text, life = 1.6) {
 window.npcsYell = npcsYell;
 window.showMoveBanner = showMoveBanner;
 
-const BLANKA_ROLL_DURATION = 8.0;
+const BLANKA_ROLL_DURATION = 4.0;
 
 function executeBlankaRoll(meleeAttackState) {
   if (!player) return;
@@ -27376,12 +27376,13 @@ function updateMeleeAttackSystem(dt) {
           }
         }
       }
-      if (meleeAttackState.blankaRollActive) {
-        updateBlankaRoll(dt);
-      }
       if (meleeAttackState.isRushing) {
         updateRushMovement(dt, direction, meleeAttackState);
       }
+    }
+
+    if (meleeAttackState.blankaRollActive) {
+      updateBlankaRoll(dt);
     }
 
     // A-cancel for Crash/Clash: pressing A during the dash stops it and fires a melee (same pattern as Thrash → A)

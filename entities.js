@@ -647,6 +647,24 @@
   }
 
   function updatePastorPaperdollState(player, dt) {
+    // Blanka Roll: lock to thrust preset, frame 3 (index 2), for the entire duration
+    if (window._meleeAttackState?.blankaRollActive) {
+      const cfg = getPastorConfig();
+      const thrustPreset = cfg && Array.isArray(cfg.presets)
+        ? cfg.presets.find((p) => normalizePresetKey(String(p?.name || "")) === "thrust")
+        : null;
+      if (thrustPreset) {
+        const dir = window._meleeAttackState?.rushDir;
+        const forcedFacing = dir ? facingFromVector(dir.x, dir.y, String(player.facing || "down")) : String(player.facing || "down");
+        player._paperdollAttackFacing = forcedFacing;
+        if (!player._paperdollState) player._paperdollState = { key: "", frameCursor: 0, elapsedMs: 0 };
+        const pd = player._paperdollState;
+        pd.key = "__blankaRoll__";
+        pd.frameCursor = 2; // frame 3 (0-indexed) — sword fully extended
+        pd.elapsedMs = 0;
+      }
+      return;
+    }
     const preset = resolvePastorPaperdollPreset(player);
     if (!preset) return;
     const cfg = getPastorConfig();
@@ -894,8 +912,16 @@
   }
 
   function drawPastorPaperdoll(player, context, x, y, { alpha = 1 } = {}) {
-    const preset = resolvePastorPaperdollPreset(player);
+    let preset = resolvePastorPaperdollPreset(player);
     if (!preset) return false;
+    // Blanka Roll: force thrust preset so the sword-extended frame is used
+    if (window._meleeAttackState?.blankaRollActive) {
+      const cfg = getPastorConfig();
+      const thrustPreset = cfg && Array.isArray(cfg.presets)
+        ? cfg.presets.find((p) => normalizePresetKey(String(p?.name || "")) === "thrust")
+        : null;
+      if (thrustPreset) preset = thrustPreset;
+    }
     const cfg = getPastorConfig();
     const renderStyle = resolvePastorPaperdollRenderStyle(cfg, preset);
     const animKey = String(preset.animation || "combat_idle");
@@ -3146,7 +3172,7 @@
     }
     const blankaRolling = Boolean(window._meleeAttackState?.blankaRollActive);
     if (blankaRolling) {
-      const rollAngle = (performance.now() / 1000) * (Math.PI * 2) * 3;
+      const rollAngle = (performance.now() / 1000) * (Math.PI * 2) * 4.5;
       ctx.save();
       ctx.translate(this.x, drawY);
       ctx.rotate(rollAngle);
