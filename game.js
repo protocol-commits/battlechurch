@@ -4755,6 +4755,11 @@ const THRASH_FLURRY_STEP_DAMAGE = 250;
 const NORMAL_SLASH_VFX_GLOW_BLUR = 20;
 const NORMAL_SLASH_VFX_GLOW_ALPHA = 0.88;
 const NORMAL_SLASH_VFX_DOWNWARD_ANGLE_OFFSET = 0;
+const RUSH_GLOW_TRAIL_SCALE = 2.6;
+const RUSH_GLOW_TRAIL_SCALE_X = 1.7;
+const RUSH_GLOW_TRAIL_SCALE_Y = 0.85;
+const RUSH_GLOW_TRAIL_GLOW_BLUR = 22;
+const RUSH_GLOW_TRAIL_GLOW_ALPHA = 0.88;
 
 const CANVAS_BASE_WIDTH = 1280;
 const CANVAS_BASE_HEIGHT = 720;
@@ -24942,7 +24947,24 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     if (meleeAttackState.swordRushActive) {
       spawnFlashEffect(player.x, player.y);
     } else {
-      spawnPuffEffect(player.x, player.y + player.radius * 0.5, 18 * WORLD_SCALE);
+      const rushAngle = Math.atan2(direction.y, direction.x);
+      const trailOffset = Math.max(18, (player.radius || 24) * 0.8);
+      const trailX = player.x + Math.cos(rushAngle) * trailOffset;
+      const trailY = player.y + Math.sin(rushAngle) * trailOffset;
+      if (typeof spawnSlashBurstEffect === "function") {
+        spawnSlashBurstEffect(trailX, trailY, rushAngle, RUSH_GLOW_TRAIL_SCALE, {
+          scaleX: RUSH_GLOW_TRAIL_SCALE_X,
+          scaleY: RUSH_GLOW_TRAIL_SCALE_Y,
+          tintColor: "#ffd37a",
+          tintAlpha: 0.8,
+          glowColor: "#ffe7a6",
+          glowBlur: RUSH_GLOW_TRAIL_GLOW_BLUR,
+          glowAlpha: RUSH_GLOW_TRAIL_GLOW_ALPHA,
+          blendMode: "lighter",
+        });
+      } else {
+        spawnPuffEffect(player.x, player.y + player.radius * 0.5, 18 * WORLD_SCALE);
+      }
     }
   }
 
