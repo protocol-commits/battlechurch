@@ -79,7 +79,7 @@
       speed: 690 * WORLD_SCALE,
       damage: 1000,
       life: 3.0,
-      radius: 60 * WORLD_SCALE,
+      radius: 85 * WORLD_SCALE,
       scale: 2.5,
       pierce: true,
       priority: 100,

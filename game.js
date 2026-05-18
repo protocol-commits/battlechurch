@@ -4755,6 +4755,11 @@ const THRASH_FLURRY_STEP_DAMAGE = 250;
 const NORMAL_SLASH_VFX_GLOW_BLUR = 20;
 const NORMAL_SLASH_VFX_GLOW_ALPHA = 0.88;
 const NORMAL_SLASH_VFX_DOWNWARD_ANGLE_OFFSET = 0;
+const DIVINE_CHAKRAM_SPIN_SPEED = 18.5;
+const DIVINE_CHAKRAM_SCALE = 3.25;
+const DIVINE_CHAKRAM_TRAIL_STEP = 18;
+const DIVINE_CHAKRAM_TRAIL_COUNT = 3;
+const DIVINE_CHAKRAM_HIT_RADIUS = 130 * WORLD_SCALE;
 const RUSH_GLOW_TRAIL_SCALE = 2.6;
 const RUSH_GLOW_TRAIL_SCALE_X = 1.7;
 const RUSH_GLOW_TRAIL_SCALE_Y = 0.85;
@@ -16441,17 +16446,29 @@ class Projectile {
           this._tintCache[key] = oc;
           return oc;
         };
-        const slashScale = 3.5;
+        const slashScale = DIVINE_CHAKRAM_SCALE;
         const facingLeft = Math.cos(this.rotation || 0) < 0;
         const cos = Math.cos(this.rotation || 0);
         const sin = Math.sin(this.rotation || 0);
-        const trailStep = 28;
+        const trailStep = DIVINE_CHAKRAM_TRAIL_STEP;
         const totalFrames = slashFrames.length;
-        const layers = [
-          { offset: trailStep * 2, frameOffset: 3, tint: null,     alpha: 0.55 },
-          { offset: trailStep,     frameOffset: 2, tint: "#aaddff", alpha: 0.70 },
-          { offset: 0,             frameOffset: 0, tint: "#ffffff", alpha: 0.90 },
-        ];
+        const nowSec =
+          (typeof performance !== "undefined" && typeof performance.now === "function"
+            ? performance.now()
+            : Date.now()) / 1000;
+        const spinDir = facingLeft ? -1 : 1;
+        const spin = nowSec * DIVINE_CHAKRAM_SPIN_SPEED * spinDir;
+        const layers = [];
+        for (let i = DIVINE_CHAKRAM_TRAIL_COUNT - 1; i >= 0; i -= 1) {
+          const alpha = i === 0 ? 0.95 : (0.46 + (DIVINE_CHAKRAM_TRAIL_COUNT - i - 1) * 0.16);
+          layers.push({
+            offset: trailStep * i,
+            frameOffset: i + 1,
+            tint: i === 0 ? "#fff7dc" : "#aaddff",
+            alpha,
+            spinOffset: -i * 0.18,
+          });
+        }
         for (const layer of layers) {
           const lx = this.x - cos * layer.offset;
           const ly = this.y - sin * layer.offset;
@@ -16465,11 +16482,29 @@ class Projectile {
           ctx.save();
           ctx.globalAlpha = layer.alpha * fadeAlpha;
           ctx.translate(lx, ly);
-          ctx.rotate(this.rotation || 0);
+          ctx.globalCompositeOperation = "lighter";
+          ctx.rotate((this.rotation || 0) + spin + layer.spinOffset);
+          ctx.shadowColor = "rgba(255, 232, 180, 0.95)";
+          ctx.shadowBlur = 16;
           if (facingLeft) ctx.scale(1, -1);
+          ctx.drawImage(frame, -w / 2, -h / 2, w, h);
+          // Cross-cut layer makes the projectile read like a rotating slicer/chakram.
+          ctx.rotate(Math.PI * 0.5);
+          ctx.globalAlpha *= 0.75;
           ctx.drawImage(frame, -w / 2, -h / 2, w, h);
           ctx.restore();
         }
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        drawProjectileGlow(120, 120, {
+          radiusScale: 1.06,
+          baseAlpha: 0.27 * fadeAlpha,
+          pulseScale: 0.22,
+          colorCenter: "rgba(255,240,185,0.36)",
+          colorMid: "rgba(255,198,120,0.2)",
+          colorEdge: "rgba(255,165,95,0)",
+        });
+        ctx.restore();
       }
       return;
     }
@@ -27106,6 +27141,7 @@ function flushPendingDivineShot(meleeAttackState, dt) {
     damage: applyPlayerProjectileClassMultiplier(DIVINE_SHOT_DAMAGE) * getMoveMultiplier("Blast"),
     life: DIVINE_SHOT_LIFE,
     speed: DIVINE_SHOT_SPEED,
+    radius: DIVINE_CHAKRAM_HIT_RADIUS,
     source: player,
     damageType: "charged",
     autoAimDuration: DIVINE_SHOT_AUTO_AIM_DURATION,
