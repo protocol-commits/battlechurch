@@ -756,7 +756,22 @@ const THRASH_HIT_SFX_SRCS = [
   "assets/sfx/rpg/Impacts/impact_5.wav",
   "assets/sfx/rpg/Impacts/impact_6.wav",
 ];
+const THRASH_SWIPE_SFX_SRCS = [
+  "assets/sfx/Weapons/swoosh-pool/sword_swosh_2.wav",
+  "assets/sfx/Weapons/swoosh-pool/sword_swosh_10.wav",
+  "assets/sfx/Weapons/swoosh-pool/sword_swosh_17.wav",
+  "assets/sfx/Weapons/swoosh-pool/sword_swosh_18.wav",
+  "assets/sfx/Weapons/swoosh-pool/sword_swosh_19.wav",
+];
 const THRASH_HIT_SFX_POOL_SIZE = 6;
+const THRASH_SWIPE_SFX_POOL_SIZE = 6;
+const THRASH_LAND_SFX_SRCS = [
+  "assets/sfx/Weapons/splatter/impact_1.wav",
+  "assets/sfx/Weapons/splatter/impact_2.wav",
+  "assets/sfx/Weapons/splatter/impact_3.wav",
+  "assets/sfx/Weapons/splatter/impact_4.wav",
+];
+const THRASH_LAND_SFX_POOL_SIZE = 6;
 const SENTRY_BEAM_SFX_SRCS = [
   "assets/sfx/Weapons/spell11.mp3",
   "assets/sfx/Weapons/spell12.mp3",
@@ -907,6 +922,8 @@ const powerupSpawnSfxPool = [];
 const wisdomHitSfxPool = [];
 const faithHitSfxPool = [];
 const thrashHitSfxPool = [];
+const thrashSwipeSfxPool = [];
+const thrashLandSfxPool = [];
 const prayerBombSfxPool = [];
 const prayerBombRainSfxPool = [];
 const bossDeathExplosionSfxPool = [];
@@ -1532,6 +1549,24 @@ if (typeof window !== "undefined") {
 
 function playThrashHitSfx(volume = 0.8) {
   playPooledSfx(thrashHitSfxPool, THRASH_HIT_SFX_SRCS, THRASH_HIT_SFX_POOL_SIZE, { volume });
+}
+
+function playThrashSwipeSfx(stepIndex = 0, volume = 0.78) {
+  const list = Array.isArray(THRASH_SWIPE_SFX_SRCS) ? THRASH_SWIPE_SFX_SRCS : [];
+  if (!list.length) return;
+  const safeIndex = Math.max(0, Number(stepIndex) || 0) % list.length;
+  const src = list[safeIndex];
+  playPooledSfx(thrashSwipeSfxPool, src, THRASH_SWIPE_SFX_POOL_SIZE, {
+    volume,
+    matchSrc: true,
+  });
+}
+
+function playThrashLandSfx(volume = 0.82) {
+  playPooledSfx(thrashLandSfxPool, THRASH_LAND_SFX_SRCS, THRASH_LAND_SFX_POOL_SIZE, {
+    volume,
+    matchSrc: true,
+  });
 }
 
 function playPowerupPickupSfx(volume = 1.2) {
@@ -4704,6 +4739,14 @@ const THRASH_FLURRY_STEP_INTERVAL = 0.08;
 const THRASH_FLURRY_VFX_SCALE = 2.35;
 const THRASH_FLURRY_VFX_OFFSET = 350 * WORLD_SCALE;
 const THRASH_FLURRY_VFX_THICKNESS_SCALE_Y = 0.72;
+const THRASH_FLURRY_VFX_GLOW_BLUR = 24;
+const THRASH_FLURRY_VFX_GLOW_ALPHA = 0.92;
+const THRASH_FLURRY_AFTERIMAGE_TAIL_STEPS = 3;
+const THRASH_FLURRY_AFTERIMAGE_COUNT = 2;
+const THRASH_FLURRY_AFTERIMAGE_DELAY = 0.05;
+const THRASH_FLURRY_AFTERIMAGE_ALPHA_FALLOFF = 0.5;
+const THRASH_FLURRY_VFX_FRAME_DURATION_BASE = 0.04;
+const THRASH_FLURRY_VFX_FRAME_DURATION_TAIL = 0.08;
 const THRASH_FLURRY_HITBOX_THICKNESS = 84 * WORLD_SCALE;
 const THRASH_FLURRY_HITBOX_RADIUS = 122 * WORLD_SCALE;
 const THRASH_FLURRY_HITBOX_ARC_DOT = -0.08;
@@ -27059,7 +27102,8 @@ function finalizeThrashFlurryKnockback(meleeAttackState) {
 }
 
 function applyThrashFlurryLaneDamage(meleeAttackState, laneCenterX, laneCenterY, laneAngle, laneLength, laneThickness) {
-  if (!player || !meleeAttackState) return;
+  if (!player || !meleeAttackState) return false;
+  let didHitAny = false;
   const nowSec = (typeof performance !== "undefined" && typeof performance.now === "function"
     ? performance.now()
     : Date.now()) / 1000;
@@ -27091,6 +27135,7 @@ function applyThrashFlurryLaneDamage(meleeAttackState, laneCenterX, laneCenterY,
     const hitRadius = getEnemyHitboxRadius(enemy) || enemy.radius || 0;
     if (!circleIntersectsRect(localX, localY, hitRadius, laneRect)) return;
     hitCooldowns.set(enemy, nowSec);
+    didHitAny = true;
     const counterHit = getCounterHitResult(enemy, hitDamage, meleeAttackState);
     const appliedDamage = counterHit.damage;
     enemy.takeDamage(appliedDamage, {
@@ -27123,6 +27168,7 @@ function applyThrashFlurryLaneDamage(meleeAttackState, laneCenterX, laneCenterY,
       const hitRadius = activeBoss.radius || 0;
       if (circleIntersectsRect(localX, localY, hitRadius, laneRect)) {
         hitCooldowns.set(activeBoss, nowSec);
+        didHitAny = true;
         const counterHit = getCounterHitResult(activeBoss, hitDamage, meleeAttackState);
         const appliedDamage = counterHit.damage;
         activeBoss.takeDamage(appliedDamage, {
@@ -27148,6 +27194,7 @@ function applyThrashFlurryLaneDamage(meleeAttackState, laneCenterX, laneCenterY,
       }
     }
   }
+  return didHitAny;
 }
 
 function updateThrashFlurry(dt, meleeAttackState) {
@@ -27201,6 +27248,11 @@ function updateThrashFlurry(dt, meleeAttackState) {
     const maxOffset = isThrust ? THRASH_FLURRY_VFX_OFFSET * 1.25 : THRASH_FLURRY_VFX_OFFSET;
     const centerX = player.x + Math.cos(baseAngle) * (maxOffset * 0.5);
     const centerY = player.y + Math.sin(baseAngle) * (maxOffset * 0.5);
+    const stepsRemaining = Math.max(0, totalSteps - stepIndex);
+    const isTailStep = stepsRemaining <= THRASH_FLURRY_AFTERIMAGE_TAIL_STEPS;
+    const frameDuration = isTailStep
+      ? THRASH_FLURRY_VFX_FRAME_DURATION_TAIL
+      : THRASH_FLURRY_VFX_FRAME_DURATION_BASE;
     const slashFrames = assets?.effects?.swordSlash;
     const baseFrameWidth = Math.max(1, Number(slashFrames?.[0]?.width) || 1);
     // One elongated swoosh from player -> edge of the hit lane.
@@ -27210,8 +27262,30 @@ function updateThrashFlurry(dt, meleeAttackState) {
       scaleY: THRASH_FLURRY_VFX_THICKNESS_SCALE_Y,
       tintColor: "#ffd37a",
       tintAlpha: 0.82,
+      glowColor: "#ffe7a6",
+      glowBlur: THRASH_FLURRY_VFX_GLOW_BLUR,
+      glowAlpha: THRASH_FLURRY_VFX_GLOW_ALPHA,
+      blendMode: "lighter",
+      frameDuration,
     });
-    applyThrashFlurryLaneDamage(
+    if (isTailStep) {
+      for (let i = 1; i <= THRASH_FLURRY_AFTERIMAGE_COUNT; i += 1) {
+        const fade = Math.pow(THRASH_FLURRY_AFTERIMAGE_ALPHA_FALLOFF, i);
+        spawnSlashBurstEffect(centerX, centerY, slashAngle, THRASH_FLURRY_VFX_SCALE, {
+          scaleX,
+          scaleY: THRASH_FLURRY_VFX_THICKNESS_SCALE_Y,
+          tintColor: "#ffd37a",
+          tintAlpha: 0.82 * fade,
+          glowColor: "#ffe7a6",
+          glowBlur: Math.max(0, THRASH_FLURRY_VFX_GLOW_BLUR * fade),
+          glowAlpha: THRASH_FLURRY_VFX_GLOW_ALPHA * fade,
+          blendMode: "lighter",
+          delay: i * THRASH_FLURRY_AFTERIMAGE_DELAY,
+          frameDuration,
+        });
+      }
+    }
+    const didLandHit = applyThrashFlurryLaneDamage(
       meleeAttackState,
       centerX,
       centerY,
@@ -27219,6 +27293,11 @@ function updateThrashFlurry(dt, meleeAttackState) {
       maxOffset,
       THRASH_FLURRY_HITBOX_THICKNESS,
     );
+    if (didLandHit) {
+      playThrashLandSfx(0.86);
+    } else {
+      playThrashSwipeSfx(stepIndex, 0.82);
+    }
   }
   // Restart melee animation each step for stronger body motion readability.
   if (player.animator) {

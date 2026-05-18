@@ -27,7 +27,7 @@
   }
 
   class Effect {
-    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, scaleX = 1, scaleY = 1, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0, flipY = false, delay = 0 } = {}) {
+    constructor(frames, x, y, { frameDuration = 0.05, scale = 2, scaleX = 1, scaleY = 1, loop = false, tintColor = null, tintAlpha = 0.65, rotation = 0, flipY = false, delay = 0, glowColor = null, glowBlur = 0, glowAlpha = 1, blendMode = null } = {}) {
       this.frames = Array.isArray(frames) ? frames : [];
       this.x = x;
       this.y = y;
@@ -45,6 +45,10 @@
       this.rotation = rotation || 0;
       this.flipY = Boolean(flipY);
       this.delay = Math.max(0, delay || 0);
+      this.glowColor = typeof glowColor === "string" ? glowColor : null;
+      this.glowBlur = Number.isFinite(glowBlur) ? Math.max(0, glowBlur) : 0;
+      this.glowAlpha = Number.isFinite(glowAlpha) ? Math.max(0, Math.min(1, glowAlpha)) : 1;
+      this.blendMode = typeof blendMode === "string" ? blendMode : null;
     }
 
     getFrame(frameIndex) {
@@ -95,6 +99,12 @@
       const height = frame.height * this.scale * this.scaleY;
       ctx.save();
       ctx.translate(this.x, this.y);
+      if (this.blendMode) ctx.globalCompositeOperation = this.blendMode;
+      if (this.glowColor && this.glowBlur > 0) {
+        ctx.shadowColor = this.glowColor;
+        ctx.shadowBlur = this.glowBlur;
+        ctx.globalAlpha *= this.glowAlpha;
+      }
       if (this.rotation) ctx.rotate(this.rotation);
       if (this.flipY) ctx.scale(1, -1);
       ctx.drawImage(frame, -width / 2, -height / 2, width, height);
@@ -317,7 +327,7 @@
     return null;
   }
 
-  function spawnSlashBurstEffect(x, y, angle, scale = 3.5, { flipY: forceFlipY, tintColor, tintAlpha, scaleX = 1, scaleY = 1 } = {}) {
+  function spawnSlashBurstEffect(x, y, angle, scale = 3.5, { flipY: forceFlipY, tintColor, tintAlpha, scaleX = 1, scaleY = 1, glowColor = null, glowBlur = 0, glowAlpha = 1, blendMode = null, delay = 0, frameDuration = 0.04 } = {}) {
     const frames = resolveAssets()?.effects?.swordSlash;
     if (!frames || !frames.length) return null;
     const facingLeft = Math.cos(angle) < 0;
@@ -325,7 +335,7 @@
     const defaultTint = "#aaddff";
     const defaultTintAlpha = 0.5;
     return spawnEffectFromFrames(frames, x, y, {
-      frameDuration: 0.04,
+      frameDuration,
       scale,
       scaleX,
       scaleY,
@@ -333,6 +343,11 @@
       flipY,
       tintColor: tintColor || defaultTint,
       tintAlpha: tintAlpha ?? defaultTintAlpha,
+      glowColor,
+      glowBlur,
+      glowAlpha,
+      blendMode,
+      delay,
     });
   }
 
