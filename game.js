@@ -24307,9 +24307,6 @@ function registerChainHit(target, damage) {
   if (prayerBombComboState.active && target) {
     recordPrayerBombComboHits(1);
   }
-  if (isDevMeleeArenaActive() && target?.devArenaPrimaryDummy === true) {
-    showDevArenaSkeletonHint(target);
-  }
   if (!window.BattlechurchComboTrackerEnabled) return;
   if (prayerBombComboState.active) return;
   chainTracker.registerHit(target, damage);
@@ -24318,9 +24315,6 @@ function registerChainHit(target, damage) {
 function registerProjectileComboHit(target, damage, projectile) {
   if (prayerBombComboState.active && target) {
     recordPrayerBombComboHits(1);
-  }
-  if (isDevMeleeArenaActive() && target?.devArenaPrimaryDummy === true) {
-    showDevArenaSkeletonHint(target);
   }
   if (!window.BattlechurchComboTrackerEnabled) return;
   if (prayerBombComboState.active) return;
@@ -25665,9 +25659,6 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
       isPunishCounter,
       counterMultiplier,
     };
-  }
-  if (isDevMeleeArenaActive() && target.devArenaPrimaryDummy === true) {
-    showDevArenaSkeletonHint(target);
   }
   const targetLen = 8;
   while (names.length > targetLen) names.shift();
