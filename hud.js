@@ -1786,6 +1786,7 @@
       if (window.__battlechurchDevMeleeArenaMode === true) return;
       const banner = window.__moveAnnouncementBanner;
       if (!banner || !banner.moveName || !Array.isArray(banner.tokens)) return;
+      const isCMove = banner.tokens.some((tok) => tok?.type === "btn" && String(tok.label || "").toUpperCase() === "C");
       const now = typeof performance !== "undefined" ? performance.now() : Date.now();
       const elapsed = now - (banner.shownAt || now);
       const duration = banner.duration || 2000;
@@ -1799,6 +1800,26 @@
         ? Math.min(1, elapsed / 120)
         : Math.max(0, 1 - (elapsed - duration) / fadeOutMs);
       if (alpha <= 0) return;
+
+      // Stream readability: quick pop-in (overscale) then snap back.
+      const popInMs = isCMove ? 140 : 110;
+      const settleMs = isCMove ? 220 : 170;
+      const popTotalMs = popInMs + settleMs;
+      let popScale = 1;
+      if (elapsed < popTotalMs) {
+        if (elapsed <= popInMs) {
+          const t = Math.max(0, Math.min(1, elapsed / popInMs));
+          popScale = isCMove
+            ? 0.9 + (1.33 - 0.9) * t
+            : 0.9 + (1.24 - 0.9) * t; // punchy grow
+        } else {
+          const t = Math.max(0, Math.min(1, (elapsed - popInMs) / settleMs));
+          popScale = isCMove
+            ? 1.33 + (1 - 1.33) * t
+            : 1.24 + (1 - 1.24) * t; // snap/settle
+        }
+      }
+      const burst = Math.max(0, 1 - elapsed / (isCMove ? 320 : 220));
 
       // Y position: sit below the combo feed if it has live entries, else at combo feed Y
       const comboFeedX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
@@ -1821,7 +1842,7 @@
       const LINE_GAP = 8;
 
       ctx.save();
-      ctx.font = hudFont(HUD_FONTS.bannerTitle, "800");
+      ctx.font = hudFont(isCMove ? Math.round(HUD_FONTS.bannerTitle * 1.16) : HUD_FONTS.bannerTitle, "800");
       const nameW = ctx.measureText(banner.moveName.toUpperCase()).width;
 
       let tokenRowW = 0;
@@ -1853,20 +1874,45 @@
       const panelRight = comboFeedX;
       const panelX = panelRight - panelW;
       const panelY = panelTopY;
+      const panelCx = panelX + panelW / 2;
+      const panelCy = panelY + panelH / 2;
 
       // Background + border
+      ctx.save();
+      ctx.translate(panelCx, panelCy);
+      ctx.scale(popScale, popScale);
+      ctx.translate(-panelCx, -panelCy);
+
       ctx.globalAlpha = alpha * 0.95;
       ctx.fillStyle = "rgba(28, 10, 5, 0.88)";
-      ctx.shadowColor = "rgba(255, 160, 40, 0.45)";
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = isCMove ? "rgba(255, 210, 95, 0.72)" : "rgba(255, 160, 40, 0.45)";
+      ctx.shadowBlur = isCMove ? 16 : 10;
       roundRect(ctx, panelX, panelY, panelW, panelH, 8, true, false);
+
+      if (burst > 0) {
+        ctx.globalAlpha = alpha * burst * (isCMove ? 0.78 : 0.52);
+        ctx.strokeStyle = isCMove ? "rgba(255, 245, 190, 0.98)" : "rgba(255, 220, 140, 0.95)";
+        ctx.lineWidth = (isCMove ? 3 : 2) + burst * (isCMove ? 3 : 2);
+        roundRect(
+          ctx,
+          panelX - (8 * burst),
+          panelY - (6 * burst),
+          panelW + (16 * burst),
+          panelH + (12 * burst),
+          10,
+          false,
+          true,
+        );
+      }
 
       const pulseSpeed = 0.005;
       const stylePulse = 0.55 + 0.45 * Math.sin(now * pulseSpeed);
-      ctx.strokeStyle = `rgba(255, ${Math.round(175 + 25 * stylePulse)}, ${Math.round(60 + 20 * stylePulse)}, ${0.7 + 0.25 * stylePulse})`;
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = "rgba(255, 160, 40, 0.3)";
-      ctx.shadowBlur = 6;
+      ctx.strokeStyle = isCMove
+        ? `rgba(255, ${Math.round(220 + 18 * stylePulse)}, ${Math.round(120 + 32 * stylePulse)}, ${0.9 + 0.1 * stylePulse})`
+        : `rgba(255, ${Math.round(175 + 25 * stylePulse)}, ${Math.round(60 + 20 * stylePulse)}, ${0.7 + 0.25 * stylePulse})`;
+      ctx.lineWidth = isCMove ? 2.4 : 1.5;
+      ctx.shadowColor = isCMove ? "rgba(255, 210, 95, 0.55)" : "rgba(255, 160, 40, 0.3)";
+      ctx.shadowBlur = isCMove ? 12 : 6;
       roundRect(ctx, panelX, panelY, panelW, panelH, 8, false, true);
       ctx.shadowBlur = 0;
 
@@ -1874,10 +1920,10 @@
       ctx.globalAlpha = alpha;
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
-      ctx.fillStyle = PALETTE.gold;
-      ctx.font = hudFont(HUD_FONTS.bannerTitle, "800");
+      ctx.fillStyle = isCMove ? "#FFE8A6" : PALETTE.gold;
+      ctx.font = hudFont(isCMove ? Math.round(HUD_FONTS.bannerTitle * 1.16) : HUD_FONTS.bannerTitle, "800");
       ctx.shadowColor = "rgba(20, 6, 4, 0.92)";
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = isCMove ? 10 : 4;
       ctx.fillText(banner.moveName.toUpperCase(), panelX + PAD_X, panelY + PAD_Y);
       ctx.shadowBlur = 0;
 
@@ -1889,12 +1935,17 @@
       banner.tokens.forEach((tok) => {
         if (tok.type === "btn") {
           // Pill background
-          ctx.fillStyle = "rgba(160, 50, 15, 0.9)";
-          ctx.strokeStyle = "rgba(255, 190, 70, 0.85)";
-          ctx.lineWidth = 1.2;
+          const isCToken = String(tok.label || "").toUpperCase() === "C";
+          ctx.fillStyle = isCToken
+            ? "rgba(214, 82, 12, 0.95)"
+            : "rgba(160, 50, 15, 0.9)";
+          ctx.strokeStyle = isCToken
+            ? "rgba(255, 245, 185, 0.95)"
+            : "rgba(255, 190, 70, 0.85)";
+          ctx.lineWidth = isCToken ? 2.1 : 1.2;
           roundRect(ctx, tx, tokenCenterY - PILL_H / 2, PILL_W, PILL_H, 5, true, true);
           // Letter
-          ctx.fillStyle = PALETTE.softWhite;
+          ctx.fillStyle = isCToken ? "#FFF3CC" : PALETTE.softWhite;
           ctx.font = hudFont(HUD_FONTS.bannerBody, "800");
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
@@ -1940,6 +1991,7 @@
         ctx.fillText(denomLine, panelX + PAD_X, denomY);
       }
 
+      ctx.restore();
       ctx.restore();
     };
 
