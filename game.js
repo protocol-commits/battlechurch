@@ -817,6 +817,7 @@ const WAVE3_BATTLE_MUSIC_SRC = "assets/music/boss-fight-4.mp3";
 const BOSS_PHASE3_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
 const CONGREGATION_MUSIC_SRC = "assets/music/suspense.mp3";
 const SPIRIT_REALM_AMBIENT_SRC = "assets/sfx/environment/spirit_realm.mp3";
+const BATTLE_TEASER_CREEPY_SFX_SRC = "assets/sfx/environment/creepy-1.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
@@ -956,12 +957,16 @@ const spearHitSfxPool = [];
 const bossLightningThunderSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
 const spiritRealmAmbientAudio = typeof Audio !== "undefined" ? new Audio(SPIRIT_REALM_AMBIENT_SRC) : null;
+const battleTeaserCreepyAudio = typeof Audio !== "undefined" ? new Audio(BATTLE_TEASER_CREEPY_SFX_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
 let playerDeathBellResume = null;
 let playerDeathBellActive = false;
 let spiritRealmAmbientPlaying = false;
 let spiritRealmAmbientFadingOut = false;
+const SPIRIT_REALM_AMBIENT_VOLUME_SCALE = 0.54; // 25% lower than previous 0.72 mix
+const BATTLE_TEASER_CREEPY_VOLUME_SCALE = 2.0; // loud teaser bed
+let battleTeaserCreepyPlaying = false;
 if (playerDeathBellAudio) {
   playerDeathBellAudio.preload = "auto";
   playerDeathBellAudio.volume = 1;
@@ -969,6 +974,10 @@ if (playerDeathBellAudio) {
 if (spiritRealmAmbientAudio) {
   spiritRealmAmbientAudio.preload = "auto";
   spiritRealmAmbientAudio.loop = true;
+}
+if (battleTeaserCreepyAudio) {
+  battleTeaserCreepyAudio.preload = "auto";
+  battleTeaserCreepyAudio.loop = true;
 }
 const DEV_ARENA_MUSIC_SRC = "assets/music/suspense.mp3";
 const musicState = {
@@ -1151,7 +1160,10 @@ function refreshMusicPlayback() {
     }
   });
   if (spiritRealmAmbientAudio) {
-    spiritRealmAmbientAudio.volume = getEffectiveMusicVolume(MUSIC_VOLUME_INTRO * 0.72);
+    spiritRealmAmbientAudio.volume = getEffectiveMusicVolume(MUSIC_VOLUME_INTRO * SPIRIT_REALM_AMBIENT_VOLUME_SCALE);
+  }
+  if (battleTeaserCreepyAudio) {
+    battleTeaserCreepyAudio.volume = getEffectiveMusicVolume(MUSIC_VOLUME_BATTLE * BATTLE_TEASER_CREEPY_VOLUME_SCALE);
   }
 }
 
@@ -1173,7 +1185,7 @@ function syncSpiritRealmAmbient() {
     return;
   }
   spiritRealmAmbientFadingOut = false;
-  spiritRealmAmbientAudio.volume = getEffectiveMusicVolume(MUSIC_VOLUME_INTRO * 0.72);
+  spiritRealmAmbientAudio.volume = getEffectiveMusicVolume(MUSIC_VOLUME_INTRO * SPIRIT_REALM_AMBIENT_VOLUME_SCALE);
   if (shouldPlay) {
     cancelFade(spiritRealmAmbientAudio);
     if (!spiritRealmAmbientPlaying || spiritRealmAmbientAudio.paused) {
@@ -1190,6 +1202,35 @@ function syncSpiritRealmAmbient() {
     try {
       spiritRealmAmbientAudio.pause();
     } catch (e) {}
+  }
+}
+
+function syncBattleTeaserCreepyAmbient() {
+  if (!battleTeaserCreepyAudio) return;
+  const stage = levelManager?.getStatus ? String(levelManager.getStatus()?.stage || "") : "";
+  const inTeaserStage =
+    stage === "congregationToTeaser" ||
+    stage === "upgradeToTeaser" ||
+    stage === "briefingTeaser";
+  const targetVolume = getEffectiveMusicVolume(MUSIC_VOLUME_BATTLE * BATTLE_TEASER_CREEPY_VOLUME_SCALE);
+  if (musicState.unlocked && audioSettings.musicEnabled && inTeaserStage) {
+    if (!battleTeaserCreepyPlaying || battleTeaserCreepyAudio.paused) {
+      battleTeaserCreepyPlaying = true;
+      battleTeaserCreepyAudio.volume = 0;
+      cancelFade(battleTeaserCreepyAudio);
+      try {
+        const playPromise = battleTeaserCreepyAudio.play();
+        if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+      } catch (e) {}
+      fadeAudio(battleTeaserCreepyAudio, { to: targetVolume, durationMs: 420, stopOnZero: false });
+      return;
+    }
+    battleTeaserCreepyAudio.volume = targetVolume;
+    return;
+  }
+  if (battleTeaserCreepyPlaying || !battleTeaserCreepyAudio.paused) {
+    battleTeaserCreepyPlaying = false;
+    fadeAudio(battleTeaserCreepyAudio, { to: 0, durationMs: 280, stopOnZero: true });
   }
 }
 
@@ -1229,12 +1270,13 @@ function playPooledSfx(pool, src, maxPoolSize, options = {}) {
   const {
     volume = 1.0,
     playbackRate = 1.0,
-    matchSrc = false
+    matchSrc = false,
+    allowSilentStart = false,
   } = options;
 
   if (typeof Audio === "undefined") return null;
   const effectiveVolume = getEffectiveSfxVolume(volume);
-  if (effectiveVolume <= 0) return null;
+  if (effectiveVolume <= 0 && !allowSilentStart) return null;
 
   // Handle random source selection from array
   const selectedSrc = Array.isArray(src)
@@ -2114,8 +2156,10 @@ function pauseAllMusic() {
   if (musicState.exteriorBoss) musicState.exteriorBoss.pause();
   if (musicState.bossDeath) musicState.bossDeath.pause();
   if (spiritRealmAmbientAudio) spiritRealmAmbientAudio.pause();
+  if (battleTeaserCreepyAudio) battleTeaserCreepyAudio.pause();
   spiritRealmAmbientPlaying = false;
   spiritRealmAmbientFadingOut = false;
+  battleTeaserCreepyPlaying = false;
 }
 
 function resumeBattleMusicIfNeeded() {
@@ -22882,6 +22926,20 @@ function updateCongregationStage(dt, levelStatus) {
     mapAmbientFadeQueued = true;
     window.MapScreen.stopAmbient({ fade: true });
   }
+  const congregationSpiritRealmActive = Boolean(
+    typeof window !== "undefined" && window.__congregationSpiritRealmActive === true,
+  );
+  const congregationMonsterAmbientBaseVolume = 0.45;
+  const updateCongregationMonsterAmbientMix = (rawVolume) => {
+    const effective = Math.max(0, Math.min(1, getEffectiveSfxVolume(rawVolume)));
+    for (const audio of enemySpawnSfxPool) {
+      if (!audio || audio.paused || audio.ended) continue;
+      const src = String(audio.src || "");
+      const isCongregationAmbient = CONGREGATION_MONSTER_AMBIENT_SRCS.some((entry) => src.includes(entry));
+      if (!isCongregationAmbient) continue;
+      audio.volume = effective;
+    }
+  };
 
   const buttons =
     typeof window !== "undefined" && window.__announcementButtons?.key === "congregation"
@@ -22936,9 +22994,17 @@ function updateCongregationStage(dt, levelStatus) {
       CONGREGATION_MONSTER_AMBIENT_SRCS[
         Math.floor(Math.random() * CONGREGATION_MONSTER_AMBIENT_SRCS.length)
       ] || CONGREGATION_MONSTER_AMBIENT_SRCS[0];
-    playPooledSfx(enemySpawnSfxPool, src, ENEMY_SPAWN_SFX_POOL_SIZE, { volume: 0.45 });
+    const spawnVolume = congregationSpiritRealmActive ? congregationMonsterAmbientBaseVolume : 0;
+    playPooledSfx(enemySpawnSfxPool, src, ENEMY_SPAWN_SFX_POOL_SIZE, {
+      volume: spawnVolume,
+      allowSilentStart: true,
+    });
     congregationMonsterAmbientTimer = 0.6 + Math.random() * 0.9;
   }
+  // Keep growls running continuously and only gate audibility by spirit-realm state.
+  updateCongregationMonsterAmbientMix(
+    congregationSpiritRealmActive ? congregationMonsterAmbientBaseVolume : 0,
+  );
   congregationWelcomeTimer -= dt;
   if (congregationWelcomeTimer <= 0 && congregationGreetingCount < welcomeHintLimit && activeWelcomeLines.length && congregationMembers.length) {
     const now = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
@@ -23018,6 +23084,7 @@ function updateCongregationStage(dt, levelStatus) {
     mapAmbientFadeQueued = false;
     congregationTutorialPrayerInit = false;
     congregationMonsterAmbientTimer = 0;
+    updateCongregationMonsterAmbientMix(0);
     if (typeof window !== "undefined") window.__congregationTutorialActive = false;
   }
   return { updated: true, levelStatus };
@@ -29962,6 +30029,7 @@ function gameLoop(timestamp) {
   }
   updateGame(delta);
   syncSpiritRealmAmbient();
+  syncBattleTeaserCreepyAmbient();
   Renderer.drawFrame();
   if (AMBIENT_SMOKE_CONFIG.enabled) {
     Renderer.drawAmbientSmokeOverlay?.();
