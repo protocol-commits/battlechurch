@@ -13265,6 +13265,31 @@ function setPlayerPrayerToLevelStartBars(bars = 2) {
   player.prayerHoldLocked = false;
 }
 
+let lastPrayerFloorBattleKey = "";
+function ensurePlayerPrayerFloorForBattleStart(levelStatus, bars = 2) {
+  if (!player || !levelStatus) return;
+  const stage = String(levelStatus.stage || "");
+  const waveNum = Number(levelStatus.waveNum || levelStatus.wave || 0);
+  if (stage !== "waveIntro" || waveNum !== 1) return;
+  const battleKey = [
+    Number(levelStatus.level) || 0,
+    Number(levelStatus.battle) || 0,
+    Number(levelStatus.year) || 0,
+    Number(levelStatus.season) || 0,
+  ].join(":");
+  if (lastPrayerFloorBattleKey === battleKey) return;
+  lastPrayerFloorBattleKey = battleKey;
+
+  const required = Math.max(
+    1,
+    Number(player.prayerChargeRequired) || Number(PRAYER_BOMB_CHARGE_REQUIRED) || 6000,
+  );
+  const minimumCharge = Math.round((Math.max(0, Math.min(6, Number(bars) || 0)) / 6) * required);
+  if ((player.prayerCharge || 0) < minimumCharge) {
+    player.prayerCharge = minimumCharge;
+  }
+}
+
 function dismissCurrentLevelAnnouncement() {
   if (!levelAnnouncements.length) return;
   // Clear any pending prayer bomb input to prevent accidental activation after dismissal
@@ -29443,6 +29468,7 @@ function updateGame(dt) {
     levelStatus = levelManager.getStatus ? levelManager.getStatus() : null;
     stage = levelStatus?.stage;
   }
+  ensurePlayerPrayerFloorForBattleStart(levelStatus, 2);
 
   updateCongregationWaveIntroDialogue(dt, levelStatus);
 
