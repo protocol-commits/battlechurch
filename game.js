@@ -4755,6 +4755,14 @@ const THRASH_FLURRY_STEP_DAMAGE = 250;
 const NORMAL_SLASH_VFX_GLOW_BLUR = 20;
 const NORMAL_SLASH_VFX_GLOW_ALPHA = 0.88;
 const NORMAL_SLASH_VFX_DOWNWARD_ANGLE_OFFSET = 0;
+const CLEAVE_VFX_UPSLASH_ANGLE_OFFSET = 0;
+const CLEAVE_VFX_SCALE = 3.05;
+const CLEAVE_VFX_SCALE_X = 1.5;
+const CLEAVE_VFX_SCALE_Y = 0.92;
+const CLEAVE_VFX_GLOW_BLUR = 26;
+const CLEAVE_VFX_GLOW_ALPHA = 0.94;
+const CLEAVE_VFX_SECONDARY_FORWARD_OFFSET = 30 * WORLD_SCALE;
+const CLEAVE_VFX_SECONDARY_VERTICAL_OFFSET = 14 * WORLD_SCALE;
 const DIVINE_CHAKRAM_SPIN_SPEED = 18.5;
 const DIVINE_CHAKRAM_SCALE = 3.25;
 const DIVINE_CHAKRAM_TRAIL_STEP = 18;
@@ -26275,21 +26283,56 @@ function executeCleaveAttack(dir, meleeAttackState) {
   if (!player || !dir) return false;
   playerYell("Cleave");
   showMoveBanner("Cleave");
-  const CLEAVE_ARC_DURATION = 0.18;
-  meleeAttackState.cleaveArcDuration = CLEAVE_ARC_DURATION;
-  meleeAttackState.cleaveArcTimer = CLEAVE_ARC_DURATION;
-  // Clockwise if facing right/down, counter-clockwise if facing left/up
-  const f = player.facing || "right";
-  meleeAttackState.cleaveArcDir = (f === "right" || f === "down") ? -1 : 1;
+  // Retire legacy arc renderer for Cleave; use slash-based glow VFX instead.
+  meleeAttackState.cleaveArcDuration = 0;
+  meleeAttackState.cleaveArcTimer = 0;
+  meleeAttackState.cleaveArcDir = 1;
   const angleRad = Math.atan2(dir.y, dir.x);
   const swingCenterX = player.x + Math.cos(angleRad) * MELEE_OFFSET;
   const swingCenterY = player.y + Math.sin(angleRad) * MELEE_OFFSET;
+  if (typeof spawnSlashBurstEffect === "function") {
+    const upslashAngle = angleRad + CLEAVE_VFX_UPSLASH_ANGLE_OFFSET;
+    const downslashAngle = angleRad;
+    const cleaveFlipY = Math.cos(angleRad) >= 0;
+    const wHitbox = player.config?.weaponHitbox;
+    const hbOffsetX = (wHitbox && Number.isFinite(wHitbox.offsetX)) ? wHitbox.offsetX : 0;
+    const hbWidth = (wHitbox && Number.isFinite(wHitbox.width) && wHitbox.width > 0) ? wHitbox.width : 80;
+    const vfxX = player.x + Math.cos(angleRad) * hbOffsetX;
+    const vfxY = player.y + Math.sin(angleRad) * hbOffsetX;
+    const baseScale = hbWidth / 48;
+    spawnSlashBurstEffect(vfxX, vfxY, upslashAngle, Math.max(baseScale, CLEAVE_VFX_SCALE), {
+      scaleX: Math.max(CLEAVE_VFX_SCALE_X, 1),
+      scaleY: CLEAVE_VFX_SCALE_Y,
+      flipY: cleaveFlipY,
+      tintColor: "#c53a3a",
+      tintAlpha: 0.78,
+      glowColor: "#ff7a7a",
+      glowBlur: CLEAVE_VFX_GLOW_BLUR,
+      glowAlpha: CLEAVE_VFX_GLOW_ALPHA * 0.72,
+      blendMode: "lighter",
+    });
+    // Extra crossing cut to sell Cleave's heavy/double-damage identity.
+    const vfx2X = vfxX + Math.cos(angleRad) * CLEAVE_VFX_SECONDARY_FORWARD_OFFSET;
+    const vfx2Y = vfxY + Math.sin(angleRad) * CLEAVE_VFX_SECONDARY_FORWARD_OFFSET + CLEAVE_VFX_SECONDARY_VERTICAL_OFFSET;
+    spawnSlashBurstEffect(vfx2X, vfx2Y, downslashAngle, Math.max(baseScale * 0.9, CLEAVE_VFX_SCALE * 0.78), {
+      scaleX: Math.max(CLEAVE_VFX_SCALE_X * 0.94, 0.9),
+      scaleY: CLEAVE_VFX_SCALE_Y * 0.84,
+      flipY: !cleaveFlipY,
+      tintColor: "#a8d7ff",
+      tintAlpha: 0.78,
+      glowColor: "#cfe8ff",
+      glowBlur: CLEAVE_VFX_GLOW_BLUR * 0.68,
+      glowAlpha: CLEAVE_VFX_GLOW_ALPHA * 0.82,
+      blendMode: "lighter",
+      delay: 0.22,
+    });
+  }
   executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY, {
     missSwingSfx: "rush",
     moveNameOverride: "Cleave",
     damageMultiplier: CLEAVE_DAMAGE_MULTIPLIER,
     rangeMultiplier: CLEAVE_RANGE_MULTIPLIER,
-    flipSlash: true,
+    skipSlash: true,
     slashTint: "#ffe866",
     slashTintAlpha: 0.7,
     forceKnockback: true,
