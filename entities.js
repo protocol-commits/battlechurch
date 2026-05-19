@@ -2052,9 +2052,10 @@
   }
 
     update(dt) {
-    const timerDrainScale = 1;
-    this.arrowCooldown = Math.max(0, this.arrowCooldown - dt);
-    this.magicCooldown = Math.max(0, this.magicCooldown - dt);
+    const timerDrainScale =
+      typeof window !== "undefined" && window.__battlechurchFreezeResourceMeters ? 0 : 1;
+    this.arrowCooldown = Math.max(0, this.arrowCooldown - dt * timerDrainScale);
+    this.magicCooldown = Math.max(0, this.magicCooldown - dt * timerDrainScale);
     this.invulnerableTimer = Math.max(0, this.invulnerableTimer - dt);
     this.shieldTimer = Math.max(0, this.shieldTimer - dt * timerDrainScale);
     this.speedBoostTimer = Math.max(0, this.speedBoostTimer - dt * timerDrainScale);
@@ -2096,7 +2097,7 @@
       this.spreadGunLevel = 0;
       this.spreadGunAlternate = false;
     }
-    this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt);
+    this.spreadGunExtraTimer = Math.max(0, this.spreadGunExtraTimer - dt * timerDrainScale);
     this.haloTimer = Math.max(0, this.haloTimer - dt * timerDrainScale);
     this.haloTimerSecondary = Math.max(0, this.haloTimerSecondary - dt * timerDrainScale);
     this.haloTimerBonus = Math.max(0, this.haloTimerBonus - dt * timerDrainScale);
@@ -2178,13 +2179,13 @@
     if (this.wordOfGodTimer <= 0) {
       this.wordOfGodDuration = 0;
     }
-    this.wordOfGodCooldown = Math.max(0, this.wordOfGodCooldown - dt);
+    this.wordOfGodCooldown = Math.max(0, this.wordOfGodCooldown - dt * timerDrainScale);
     this.congregationCommandCharge = Math.min(
       Math.max(0.001, this.congregationCommandChargeRequired || 1),
-      Math.max(0, (this.congregationCommandCharge || 0) + dt),
+      Math.max(0, (this.congregationCommandCharge || 0) + dt * timerDrainScale),
     );
 
-    this.armorTimer = Math.max(0, this.armorTimer - dt);
+    this.armorTimer = Math.max(0, this.armorTimer - dt * timerDrainScale);
     if (this.armorTimer <= 0) this.armorReduction = 0;
 
     let moveX = 0;

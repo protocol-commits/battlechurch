@@ -20024,6 +20024,9 @@ function updateCozyNpcs(dt, options = {}) {
     typeof performance !== "undefined" && typeof performance.now === "function"
       ? performance.now()
       : Date.now();
+  const freezeResourceMeters =
+    typeof window !== "undefined" && Boolean(window.__battlechurchFreezeResourceMeters);
+  const npcResourceDt = freezeResourceMeters ? 0 : dt;
   if (npcsSuspended) return;
   if (!previewOnly && formationState) {
     formationState.swapCooldown = Math.max(0, (formationState.swapCooldown || 0) - dt);
@@ -20032,7 +20035,7 @@ function updateCozyNpcs(dt, options = {}) {
     updateNpcFormationPressure(dt);
   }
   if (!previewOnly && npcWeaponState.timer > 0) {
-    npcWeaponState.timer = Math.max(0, npcWeaponState.timer - dt);
+    npcWeaponState.timer = Math.max(0, npcWeaponState.timer - npcResourceDt);
     if (npcWeaponState.timer <= 0) {
       npcWeaponState.mode = null;
       npcWeaponState.duration = 0;
@@ -23125,6 +23128,24 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
     if (player && player.state === "death") {
       player.animator.update(dt);
     }
+  }
+}
+
+function shouldFreezeResourceMetersForStage(stageName, hasBlockingConfirmAnnouncement = false) {
+  if (hasBlockingConfirmAnnouncement) return true;
+  switch (stageName) {
+    case "waveIntro":
+    case "waveCleared":
+    case "allKillBreak":
+    case "briefing":
+    case "briefingTeaser":
+    case "bossIntro":
+    case "npcArrival":
+    case "levelIntro":
+    case "congregationToTeaser":
+      return true;
+    default:
+      return false;
   }
 }
 
@@ -29406,6 +29427,10 @@ function updateGame(dt) {
 
   const blockingConfirmAnnouncement =
     Boolean(levelAnnouncements.length && levelAnnouncements[0]?.requiresConfirm);
+  const meterFreezeActive = shouldFreezeResourceMetersForStage(stage, blockingConfirmAnnouncement);
+  if (typeof window !== "undefined") {
+    window.__battlechurchFreezeResourceMeters = meterFreezeActive;
+  }
   if (
     !isDevMeleeArenaActive() &&
     !gameOver &&
