@@ -23059,8 +23059,7 @@ function updatePlayer(dt, deathFreezeActive, playerUpdatedDuringCongregation) {
       ((_ms.spinButtonDown || _ms.spinCharging) && keysPressed.has("ArrowRight")) ||
       _ms.bcTeleportArmed ||
       (_ms.bcTeleportBlockTimer || 0) > 0 ||
-      (_ms.cBHolyDashBlockTimer || 0) > 0 ||
-      _ms.blankaRollActive
+      (_ms.cBHolyDashBlockTimer || 0) > 0
     );
     const acPostReleaseBlocking = (_ms.acSuperPrayerBombBlockTimer || 0) > 0;
     if (_ms.acSuperArmed || prayerStrikeBlocking || acPostReleaseBlocking || bChargingSuppressBomb) {
@@ -26882,6 +26881,11 @@ function executeBlankaRoll(meleeAttackState) {
   if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
   meleeAttackState.blankaRollActive = true;
   meleeAttackState.blankaRollTimer = BLANKA_ROLL_DURATION;
+  meleeAttackState.blankaRollStartedAt =
+    (typeof performance !== "undefined" && typeof performance.now === "function")
+      ? performance.now()
+      : Date.now();
+  meleeAttackState.blankaRollSawCHeld = false;
   // Kick off rush state so all existing damage/invuln/hitbox systems are live
   const dir = getMeleeAttackDirection();
   meleeAttackState.isRushing = true;
@@ -26911,6 +26915,9 @@ function executeBlankaRoll(meleeAttackState) {
 function updateBlankaRoll(dt) {
   const ms = window._meleeAttackState;
   if (!ms?.blankaRollActive || !player) return;
+  if (keysPressed.has("ArrowRight")) {
+    ms.blankaRollSawCHeld = true;
+  }
 
   ms.blankaRollTimer = Math.max(0, ms.blankaRollTimer - dt);
 
@@ -26956,6 +26963,8 @@ function endBlankaRoll(ms) {
   if (!ms) return;
   ms.blankaRollActive = false;
   ms.blankaRollTimer = 0;
+  ms.blankaRollSawCHeld = false;
+  ms.blankaRollStartedAt = 0;
   ms.isRushing = false;
   ms.rushDamageEnabled = false;
   ms.rushInvulnerable = false;
@@ -28011,7 +28020,7 @@ function updateMeleeAttackSystem(dt) {
     if (!meleeAttackState.isRushing && keysJustPressed.has("ArrowDown")) {
       meleeAttackState.lastComboTimes.B = now;
     }
-    if (!meleeAttackState.isRushing && keysJustPressed.has("ArrowRight")) {
+    if ((!meleeAttackState.isRushing || meleeAttackState.blankaRollActive) && keysJustPressed.has("ArrowRight")) {
       meleeAttackState.lastComboTimes.C = now;
       meleeAttackState.holyDashArmUntil = now + HOLY_DASH_COMBO_WINDOW * 1000;
     }
@@ -28116,7 +28125,8 @@ function updateMeleeAttackSystem(dt) {
       }
     }
 
-    if (!rushCancelledIntoMove && (meleeAttackState.isRushing || meleeAttackState.rushJustEnded)) {
+    const trashActive = Boolean(meleeAttackState.blankaRollActive);
+    if (!rushCancelledIntoMove && (meleeAttackState.isRushing || meleeAttackState.rushJustEnded) && !trashActive) {
       keysJustPressed.delete("ArrowDown");
       keysJustPressed.delete("ArrowLeft");
       keysJustPressed.delete(" ");
@@ -28370,6 +28380,27 @@ function updateMeleeAttackSystem(dt) {
     const cHeldForAbc = keysPressed.has("ArrowRight");
     const cJustReleasedForAbc = !cHeldForAbc && Boolean(meleeAttackState.abcPrevCHeld);
     meleeAttackState.abcPrevCHeld = cHeldForAbc;
+    // Allow Charged-C Purify to fire during Trash lifetime without relying on click-queue plumbing.
+    if (
+      cJustReleasedForAbc &&
+      meleeAttackState.blankaRollActive &&
+      meleeAttackState.blankaRollSawCHeld === true &&
+      ((typeof performance !== "undefined" && typeof performance.now === "function"
+        ? performance.now()
+        : Date.now()) - (Number(meleeAttackState.blankaRollStartedAt) || 0)) > 120 &&
+      !meleeAttackState.abcSmitePendingRelease &&
+      !meleeAttackState.abcSmiteArmed &&
+      !playerDashState.isDashing &&
+      player &&
+      typeof player.castPrayerBomb === "function"
+    ) {
+      const castedDuringTrash = player.castPrayerBomb({ allowWhileInvulnerable: true });
+      if (castedDuringTrash) {
+        window.FloatingText?.heroSay?.("Purify");
+        window.showMoveBanner?.("Purify");
+        comboTriggered = true;
+      }
+    }
     if (cJustReleasedForAbc) {
       meleeAttackState.holyDashArmUntil = now + HOLY_DASH_COMBO_WINDOW * 1000;
       if (
@@ -28568,8 +28599,8 @@ function updateMeleeAttackSystem(dt) {
       keysJustPressed.delete(" ");
       comboTriggered = true;
     }
-    const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
-    const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
+    const bJustPressed = keysJustPressed.has("ArrowDown") && (!meleeAttackState.isRushing || trashActive) && !meleeAttackState.ringFireActive;
+    const bHeld = keysPressed.has("ArrowDown") && (!meleeAttackState.isRushing || trashActive) && !meleeAttackState.ringFireActive;
     if (bJustPressed && !meleeAttackState.spinButtonDown && !comboTriggered) {
       meleeAttackState.cbHeldAtBPress = Boolean(keysPressed.has("ArrowRight"));
       const clashPreempt =
@@ -28684,10 +28715,10 @@ function updateMeleeAttackSystem(dt) {
     }
     const spaceJustPressed =
       (keysJustPressed.has(" ") || keysJustPressed.has("ArrowLeft")) &&
-      !meleeAttackState.isRushing &&
+      (!meleeAttackState.isRushing || trashActive) &&
       !meleeAttackState.ringFireActive &&
       meleeAttackState.rushLockTimer <= 0;
-    const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
+    const spaceHeld = (keysPressed.has(" ") || keysPressed.has("ArrowLeft")) && (!meleeAttackState.isRushing || trashActive) && !meleeAttackState.ringFireActive;
     const rushLockActive = meleeAttackState.rushLockTimer > 0;
     const rushBypassActive =
       meleeAttackState.rushBypassUntil && now <= meleeAttackState.rushBypassUntil;

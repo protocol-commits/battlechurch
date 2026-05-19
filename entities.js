@@ -2326,10 +2326,11 @@
       window.Input.prayerBombClickQueued = false;
     }
     if (!suppressPrayerBombInput && consumePrayerBombClick()) {
-      const isFullCharge = typeof this.getPrayerChargeRatio === "function" && this.getPrayerChargeRatio() >= 1.0;
-      this.castPrayerBomb();
-      window.FloatingText?.heroSay?.("Purify");
-      window.showMoveBanner?.("Purify");
+      const casted = this.castPrayerBomb();
+      if (casted) {
+        window.FloatingText?.heroSay?.("Purify");
+        window.showMoveBanner?.("Purify");
+      }
     }
 
       // Visitor mini-game: autolock on closest visitor or chatty NPC
@@ -2709,7 +2710,8 @@
     // - Full A+B+C forced cast is surfaced as "Smite" by melee combo flow.
     // - Internal identifiers still use prayerBomb/smite keys for compatibility.
     const forceLevel3 = Boolean(options?.forceLevel3);
-    if (this.invulnerableTimer > 0 || gameOver) return false;
+    const allowWhileInvulnerable = Boolean(options?.allowWhileInvulnerable);
+    if ((this.invulnerableTimer > 0 && !allowWhileInvulnerable) || gameOver) return false;
     const ratio = this.getPrayerChargeRatio();
     const level1Threshold =
       typeof PRAYER_BOMB_LEVEL1_THRESHOLD === "number" ? PRAYER_BOMB_LEVEL1_THRESHOLD : 0.5;
