@@ -6103,10 +6103,14 @@ const SHOW_ENEMY_SPAWN_DEBUG = false;
 const PLAYER_CORNER_CUTOFF_SIDE_INSET = 200;
 const PLAYER_CORNER_CUTOFF_DEPTH = 200;
 // Congregation-only player walk bounds (top corners cut for perspective background).
-const CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET = 270;
-const CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH = 200;
+// Congregation walk bounds tuning (also shown by debug overlay text):
+// sideInset: horizontal cut-in from left/right at the top boundary (current 270px)
+const CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET = 370;
+// depth: vertical depth of each diagonal corner cutoff wedge (current 200px)
+const CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH = 500;
+// topY: absolute top walkable Y line (current 236px)
 const CONGREGATION_PLAYER_TOP_Y = 236;
-const SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG = false;
+const SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG = true;
 
 function isCongregationBoundsStage(stage) {
   return stage === "levelIntro" || stage === "congregationToTeaser" || stage === "npcArrival";
