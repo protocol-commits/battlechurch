@@ -27855,7 +27855,6 @@ function updateChargeState(dt, meleeAttackState) {
     bFull &&
     keysPressed.has("ArrowRight") &&
     player &&
-    player.prayerHoldLocked &&
     (player.prayerCharge || 0) >= (player.prayerChargeRequired || 6000),
   );
   const abcReady = Boolean(
@@ -28491,7 +28490,6 @@ function updateMeleeAttackSystem(dt) {
     const bHeldForAbc = Boolean(meleeAttackState.spinButtonDown);
     const allThreeHeldForAbc = aHeldForAbc && bHeldForAbc && cHeldForAbc;
     const fullPrayerReady =
-      Boolean(player?.prayerHoldLocked) &&
       Number(player?.prayerCharge || 0) >= Number(player?.prayerChargeRequired || 6000);
     if (!allThreeHeldForAbc) {
       meleeAttackState.abcSmiteLatch = false;
@@ -28727,9 +28725,13 @@ function updateMeleeAttackSystem(dt) {
       const hasPrayerForRoll = player && (player.prayerCharge || 0) >= rollCost;
       const shouldRoll = meleeAttackState.bcTeleportArmed ||
         (fullyCharged && cHeldOnBRelease && hasPrayerForRoll);
+      const abcIntentActiveOnBRelease =
+        Boolean(cHeldAtBPress || cHeldOnBRelease) &&
+        Number(player?.prayerCharge || 0) >= Number(player?.prayerChargeRequired || 6000);
       const canABSuper = Boolean(meleeAttackState.abSuperArmed) &&
         !meleeAttackState.abcSmitePendingRelease &&
-        !meleeAttackState.abcSmiteArmed;
+        !meleeAttackState.abcSmiteArmed &&
+        !abcIntentActiveOnBRelease;
       meleeAttackState.abSuperArmed = false;
       meleeAttackState.spinButtonDown = false;
       if (meleeAttackState.spinCharging) {
@@ -28846,9 +28848,13 @@ function updateMeleeAttackSystem(dt) {
       if (meleeAttackState.isCharging) {
         meleeAttackState.isCharging = false;
         clearDivineChargeSparkVisual();
+        const abcIntentActiveOnARelease =
+          keysPressed.has("ArrowRight") &&
+          Number(player?.prayerCharge || 0) >= Number(player?.prayerChargeRequired || 6000);
         const canABSuper = Boolean(meleeAttackState.abSuperArmed) &&
           !meleeAttackState.abcSmitePendingRelease &&
-          !meleeAttackState.abcSmiteArmed;
+          !meleeAttackState.abcSmiteArmed &&
+          !abcIntentActiveOnARelease;
         meleeAttackState.abSuperArmed = false;
         const canACSuper = Boolean(meleeAttackState.acSuperArmed);
         meleeAttackState.acSuperArmed = false;
