@@ -8482,7 +8482,16 @@ async function loadBackgroundAssets(cache, assets) {
   const floorPromise = loadImage("assets/backgrounds/floor.png")
     .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floor = null; });
-  const floorCongregationPromise = loadImage("assets/backgrounds/floor-congregation-1.png")
+  const floorBossPromise = loadImage("assets/backgrounds/floors-boss/boss-1.png")
+    .then((img) => { assets.backgroundLayers.floorBoss = maybeApplyArenaBackgroundShadowCrush(img); })
+    .catch(() => { assets.backgroundLayers.floorBoss = null; });
+  const floorCongregationNormalPromise = loadImage("assets/backgrounds/floors/floor_normal.png")
+    .then((img) => { assets.backgroundLayers.floorCongregationNormal = maybeApplyArenaBackgroundShadowCrush(img); })
+    .catch(() => { assets.backgroundLayers.floorCongregationNormal = null; });
+  const floorCongregationDemonPromise = loadImage("assets/backgrounds/floors/floor_demon.png")
+    .then((img) => { assets.backgroundLayers.floorCongregationDemon = maybeApplyArenaBackgroundShadowCrush(img); })
+    .catch(() => { assets.backgroundLayers.floorCongregationDemon = null; });
+  const floorCongregationLegacyPromise = loadImage("assets/backgrounds/floor-congregation-1.png")
     .then((img) => { assets.backgroundLayers.floorCongregation = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floorCongregation = null; });
   const titleBackgroundPromise = loadImage(TITLE_BACKGROUND_PATH)
@@ -8498,7 +8507,10 @@ async function loadBackgroundAssets(cache, assets) {
     gameOverBackgroundPromise,
     midPromise,
     floorPromise,
-    floorCongregationPromise,
+    floorBossPromise,
+    floorCongregationNormalPromise,
+    floorCongregationDemonPromise,
+    floorCongregationLegacyPromise,
     titleBackgroundPromise,
   ]);
 }
@@ -8518,7 +8530,15 @@ async function loadTitleMapAssets() {
     effects: {},
     background: null,
     backgrounds: { districtIntro: null },
-    backgroundLayers: { far: null, mid: null, floor: null, floorCongregation: null },
+    backgroundLayers: {
+      far: null,
+      mid: null,
+      floor: null,
+      floorBoss: null,
+      floorCongregation: null,
+      floorCongregationNormal: null,
+      floorCongregationDemon: null,
+    },
     npcs: null,
     items: {},
   };

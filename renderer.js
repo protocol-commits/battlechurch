@@ -7301,18 +7301,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     congregationIntroState.lastStage = stage;
     const introElapsed = Math.max(0, (now - (congregationIntroState.startTime || now)) / 1000);
-    drawCongregationAtmosphere(ctx, introElapsed, {
-      x: 0,
-      y: 0,
-      width: canvas.width,
-      height: canvas.height,
-    });
-    drawCongregationEdgeVignette(ctx, {
-      x: 0,
-      y: 0,
-      width: canvas.width,
-      height: canvas.height,
-    });
+    const realmMode = getCongregationRealmMode(levelStatus, now);
+    const spiritRealmVisible = realmMode.spiritActive || stage === "congregationToTeaser";
+    if (spiritRealmVisible) {
+      drawCongregationAtmosphere(ctx, introElapsed, {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height,
+      });
+      drawCongregationEdgeVignette(ctx, {
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height,
+      });
+    }
     const congregationTextHoldAfterHandoff = 0.45;
     const typewriterReady = !congregationIntroBlockedByAnnouncement;
     const handoffAnimDuration = 0.65;
@@ -7472,7 +7476,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.translate(layout.offsetX, layout.offsetY);
     ctx.scale(layout.scale, layout.scale);
-    drawCongregationThreatApparitions(ctx, layout.virtualCanvas, now, introKey, congregationMembers);
+    if (spiritRealmVisible) {
+      drawCongregationThreatApparitions(ctx, layout.virtualCanvas, now, introKey, congregationMembers);
+    }
     if (canShowCongregationText) {
       drawAnnouncementText(ctx, layout.virtualCanvas, {
         title: titleText,
@@ -9469,6 +9475,88 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     startTime: 0,
     lastStage: null,
   };
+  const CONGREGATION_REALM_TIMING = {
+    normalHoldSec: 2.0,
+    spiritHoldSec: 6.0,
+    flickerToSpiritSec: 0.65,
+    flickerToNormalSec: 0.65,
+    flickerMinMs: 45,
+    flickerMaxMs: 120,
+  };
+  const congregationRealmState = {
+    key: null,
+    phase: "normal_hold",
+    phaseStartMs: 0,
+    realm: "normal",
+    nextToggleMs: 0,
+  };
+  function _nextCongregationRealmFlickerDelayMs() {
+    const min = CONGREGATION_REALM_TIMING.flickerMinMs;
+    const max = CONGREGATION_REALM_TIMING.flickerMaxMs;
+    return min + Math.random() * (max - min);
+  }
+  function getCongregationRealmMode(levelStatus, nowMs) {
+    const stage = String(levelStatus?.stage || "");
+    const isCongregationRealmStage = stage === "levelIntro" || stage === "congregationToTeaser";
+    if (!isCongregationRealmStage) {
+      congregationRealmState.key = null;
+      congregationRealmState.phase = "normal_hold";
+      congregationRealmState.realm = "normal";
+      congregationRealmState.phaseStartMs = nowMs;
+      congregationRealmState.nextToggleMs = nowMs;
+      return { realm: "normal", phase: "off", spiritActive: false };
+    }
+    // Keep spirit realm visible while fading into the red battle teaser.
+    if (stage === "congregationToTeaser") {
+      return { realm: "spirit", phase: "teaser_lock", spiritActive: true };
+    }
+
+    const key = `realm-${levelStatus?.level || 1}-${levelStatus?.battle || 0}`;
+    if (congregationRealmState.key !== key) {
+      congregationRealmState.key = key;
+      congregationRealmState.phase = "normal_hold";
+      congregationRealmState.realm = "normal";
+      congregationRealmState.phaseStartMs = nowMs;
+      congregationRealmState.nextToggleMs = nowMs + _nextCongregationRealmFlickerDelayMs();
+    }
+
+    const elapsedSec = Math.max(0, (nowMs - congregationRealmState.phaseStartMs) / 1000);
+    if (congregationRealmState.phase === "normal_hold" && elapsedSec >= CONGREGATION_REALM_TIMING.normalHoldSec) {
+      congregationRealmState.phase = "to_spirit_flicker";
+      congregationRealmState.phaseStartMs = nowMs;
+      congregationRealmState.realm = "normal";
+      congregationRealmState.nextToggleMs = nowMs + _nextCongregationRealmFlickerDelayMs();
+    } else if (
+      congregationRealmState.phase === "to_spirit_flicker" &&
+      elapsedSec >= CONGREGATION_REALM_TIMING.flickerToSpiritSec
+    ) {
+      congregationRealmState.phase = "spirit_hold";
+      congregationRealmState.phaseStartMs = nowMs;
+      congregationRealmState.realm = "spirit";
+    } else if (congregationRealmState.phase === "spirit_hold" && elapsedSec >= CONGREGATION_REALM_TIMING.spiritHoldSec) {
+      congregationRealmState.phase = "to_normal_flicker";
+      congregationRealmState.phaseStartMs = nowMs;
+      congregationRealmState.realm = "spirit";
+      congregationRealmState.nextToggleMs = nowMs + _nextCongregationRealmFlickerDelayMs();
+    } else if (
+      congregationRealmState.phase === "to_normal_flicker" &&
+      elapsedSec >= CONGREGATION_REALM_TIMING.flickerToNormalSec
+    ) {
+      congregationRealmState.phase = "normal_hold";
+      congregationRealmState.phaseStartMs = nowMs;
+      congregationRealmState.realm = "normal";
+    }
+
+    if (
+      (congregationRealmState.phase === "to_spirit_flicker" || congregationRealmState.phase === "to_normal_flicker") &&
+      nowMs >= congregationRealmState.nextToggleMs
+    ) {
+      congregationRealmState.realm = congregationRealmState.realm === "spirit" ? "normal" : "spirit";
+      congregationRealmState.nextToggleMs = nowMs + _nextCongregationRealmFlickerDelayMs();
+    }
+    const spiritActive = congregationRealmState.realm === "spirit";
+    return { realm: congregationRealmState.realm, phase: congregationRealmState.phase, spiritActive };
+  }
   const CONGREGATION_THREAT_MAX_ACTIVE = 4;
   const CONGREGATION_THREAT_HOLD_SEC = 3.0;
   const CONGREGATION_THREAT_FADE_IN_SEC = 1.25;
@@ -12820,6 +12908,9 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       !gameOver &&
       !visitorStageActive &&
       !window.__battlechurchDevMeleeArenaMode;
+    const congregationRealmMode = isCongregationStage
+      ? getCongregationRealmMode(levelStatus, nowMs)
+      : { realm: "normal", phase: "off", spiritActive: false };
     const shakeOffset = getCameraShakeOffset();
     sharedShakeOffset.x = shakeOffset.x;
     sharedShakeOffset.y = shakeOffset.y;
@@ -12831,9 +12922,28 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.save();
     ctx.translate(-effectiveCameraX, effectiveCameraY);
 
+    const isBossFloorStage =
+      levelStatus?.stage === "bossIntro" ||
+      levelStatus?.stage === "bossActive" ||
+      levelStatus?.stage === "bossVictoryCelebrate" ||
+      levelStatus?.stage === "bossBonusTransition";
     const bandImg = isCongregationStage
-      ? (assets?.backgroundLayers?.floorCongregation || assets?.backgroundLayers?.floor || null)
-      : (assets?.backgroundLayers?.floor || null);
+      ? (
+          congregationRealmMode.spiritActive
+            ? (
+                assets?.backgroundLayers?.floorCongregationDemon ||
+                assets?.backgroundLayers?.floorCongregation ||
+                assets?.backgroundLayers?.floor
+              )
+            : (
+                assets?.backgroundLayers?.floorCongregationNormal ||
+                assets?.backgroundLayers?.floorCongregation ||
+                assets?.backgroundLayers?.floor
+              )
+        )
+      : isBossFloorStage
+        ? (assets?.backgroundLayers?.floorBoss || assets?.backgroundLayers?.floor || null)
+        : (assets?.backgroundLayers?.floor || null);
     const floorBandHeight = bandImg?.height || 200;
     if (bandImg) {
       ctx.save();
@@ -13331,7 +13441,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       stageName === "bossBonusTransition" ||
       stageName === "levelSummary",
     );
-    if (!suppressAshForOutcomeStage && ashOverlay && typeof ashOverlay.draw === "function") {
+    const congregationSpiritAshAllowed = !isCongregationStage || congregationRealmMode.spiritActive;
+    if (!suppressAshForOutcomeStage && congregationSpiritAshAllowed && ashOverlay && typeof ashOverlay.draw === "function") {
       const baseParticleCount = bossPhase3TargetActive
         ? Math.max(40, Math.round(Number(waveSmokeTuning.bossParticleCount) || 190))
         : maxHeatEmberBoost
