@@ -246,7 +246,7 @@
       // Single global shadow crush style applied once at asset-load time
       // (sprites/backgrounds/map/title). HUD colors are not post-processed.
       // Set shadowCrush to 0 to disable.
-      shadowCrush: 0.52,
+      shadowCrush: 0.32,
       shadowThreshold: 0.35,
       // Global runtime color lock: remap all canvas colors to nearest
       // desolate palette swatch for visual consistency.
