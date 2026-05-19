@@ -184,7 +184,7 @@
     "damage": 5,
     "speed": 70,
     "baseRadius": 8,
-    "scale": 4,
+    "scale": 4.4,
     "attackBonus": 18,
     "cooldown": 0.9,
     "score": 18,
@@ -482,7 +482,7 @@
     "damage": 5,
     "speed": 45,
     "baseRadius": 12,
-    "scale": 5,
+    "scale": 5.5,
     "attackBonus": 24,
     "cooldown": 1.3,
     "score": 55,
@@ -1242,8 +1242,8 @@
         77
       ]
     },
-    "contactDamage": 10,
-    "attackDamage": 10
+    "contactDamage": 5,
+    "attackDamage": 5
   },
   "bossHighDemon": {
     "displayName": "High Demon",
@@ -1259,7 +1259,7 @@
     "attackBonus": 36,
     "cooldown": 1.8,
     "score": 180,
-    "ranged": true,
+    "ranged": false,
     "projectileType": null,
     "preferEdges": false,
     "desiredRange": 110,
@@ -1278,7 +1278,7 @@
       "offsetY": 9
     },
     "attackHitFrame": 4,
-    "attackHitDamage": 7,
+    "attackHitDamage": 15,
     "weaponHitbox": {
       "width": 15,
       "height": 24,
@@ -1328,8 +1328,8 @@
         47
       ]
     },
-    "contactDamage": 4,
-    "attackDamage": 6,
+    "contactDamage": 5,
+    "attackDamage": 5,
     "p2MinionCount": 10
   },
   "miniGhost": {
