@@ -12911,6 +12911,12 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     const congregationRealmMode = isCongregationStage
       ? getCongregationRealmMode(levelStatus, nowMs)
       : { realm: "normal", phase: "off", spiritActive: false };
+    if (typeof window !== "undefined") {
+      window.__congregationSpiritRealmActive = Boolean(
+        isCongregationStage &&
+        (congregationRealmMode.spiritActive || levelStatus?.stage === "congregationToTeaser"),
+      );
+    }
     const shakeOffset = getCameraShakeOffset();
     sharedShakeOffset.x = shakeOffset.x;
     sharedShakeOffset.y = shakeOffset.y;

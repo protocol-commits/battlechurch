@@ -816,6 +816,7 @@ const BATTLE_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
 const WAVE3_BATTLE_MUSIC_SRC = "assets/music/boss-fight-4.mp3";
 const BOSS_PHASE3_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
 const CONGREGATION_MUSIC_SRC = "assets/music/suspense.mp3";
+const SPIRIT_REALM_AMBIENT_SRC = "assets/sfx/environment/spirit_realm.mp3";
 const RECAP_MUSIC_SRC = "assets/music/town-cleared-music.mp3";
 const VISITOR_MUSIC_SRC = "assets/music/visitor-music-2.mp3";
 const EXTERIOR_MUSIC_SRC = "assets/music/boss-fight-1.mp3";
@@ -954,13 +955,20 @@ const spearTurnSfxPool = [];
 const spearHitSfxPool = [];
 const bossLightningThunderSfxPool = [];
 const playerDeathBellAudio = typeof Audio !== "undefined" ? new Audio(PLAYER_DEATH_BELL_SFX_SRC) : null;
+const spiritRealmAmbientAudio = typeof Audio !== "undefined" ? new Audio(SPIRIT_REALM_AMBIENT_SRC) : null;
 let playerDeathBellFadeTimer = 0;
 let playerDeathBellFadeVolume = 1;
 let playerDeathBellResume = null;
 let playerDeathBellActive = false;
+let spiritRealmAmbientPlaying = false;
+let spiritRealmAmbientFadingOut = false;
 if (playerDeathBellAudio) {
   playerDeathBellAudio.preload = "auto";
   playerDeathBellAudio.volume = 1;
+}
+if (spiritRealmAmbientAudio) {
+  spiritRealmAmbientAudio.preload = "auto";
+  spiritRealmAmbientAudio.loop = true;
 }
 const DEV_ARENA_MUSIC_SRC = "assets/music/suspense.mp3";
 const musicState = {
@@ -1142,6 +1150,47 @@ function refreshMusicPlayback() {
       playMusic(track.audio, { volume: track.volume, loop: track.audio.loop });
     }
   });
+  if (spiritRealmAmbientAudio) {
+    spiritRealmAmbientAudio.volume = getEffectiveMusicVolume(MUSIC_VOLUME_INTRO * 0.72);
+  }
+}
+
+function syncSpiritRealmAmbient() {
+  if (!spiritRealmAmbientAudio) return;
+  const stage = levelManager?.getStatus ? String(levelManager.getStatus()?.stage || "") : "";
+  const isCongregationToTeaser = stage === "congregationToTeaser";
+  const shouldPlay = Boolean(
+    musicState.unlocked &&
+      audioSettings.musicEnabled &&
+      typeof window !== "undefined" &&
+      window.__congregationSpiritRealmActive === true,
+  );
+  if (isCongregationToTeaser && (spiritRealmAmbientPlaying || !spiritRealmAmbientAudio.paused)) {
+    if (!spiritRealmAmbientFadingOut) {
+      spiritRealmAmbientFadingOut = true;
+      fadeAudio(spiritRealmAmbientAudio, { to: 0, durationMs: 700, stopOnZero: true });
+    }
+    return;
+  }
+  spiritRealmAmbientFadingOut = false;
+  spiritRealmAmbientAudio.volume = getEffectiveMusicVolume(MUSIC_VOLUME_INTRO * 0.72);
+  if (shouldPlay) {
+    cancelFade(spiritRealmAmbientAudio);
+    if (!spiritRealmAmbientPlaying || spiritRealmAmbientAudio.paused) {
+      spiritRealmAmbientPlaying = true;
+      try {
+        const playPromise = spiritRealmAmbientAudio.play();
+        if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+      } catch (e) {}
+    }
+    return;
+  }
+  if (spiritRealmAmbientPlaying || !spiritRealmAmbientAudio.paused) {
+    spiritRealmAmbientPlaying = false;
+    try {
+      spiritRealmAmbientAudio.pause();
+    } catch (e) {}
+  }
 }
 
 function applyAudioSettings() {
@@ -2064,6 +2113,9 @@ function pauseAllMusic() {
   if (musicState.exterior) musicState.exterior.pause();
   if (musicState.exteriorBoss) musicState.exteriorBoss.pause();
   if (musicState.bossDeath) musicState.bossDeath.pause();
+  if (spiritRealmAmbientAudio) spiritRealmAmbientAudio.pause();
+  spiritRealmAmbientPlaying = false;
+  spiritRealmAmbientFadingOut = false;
 }
 
 function resumeBattleMusicIfNeeded() {
@@ -6110,7 +6162,7 @@ const CONGREGATION_PLAYER_CORNER_CUTOFF_SIDE_INSET = 370;
 const CONGREGATION_PLAYER_CORNER_CUTOFF_DEPTH = 500;
 // topY: absolute top walkable Y line (current 236px)
 const CONGREGATION_PLAYER_TOP_Y = 236;
-const SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG = true;
+const SHOW_CONGREGATION_PLAYER_BOUNDS_DEBUG = false
 
 function isCongregationBoundsStage(stage) {
   return stage === "levelIntro" || stage === "congregationToTeaser" || stage === "npcArrival";
@@ -29909,6 +29961,7 @@ function gameLoop(timestamp) {
     Input.pollGamepad();
   }
   updateGame(delta);
+  syncSpiritRealmAmbient();
   Renderer.drawFrame();
   if (AMBIENT_SMOKE_CONFIG.enabled) {
     Renderer.drawAmbientSmokeOverlay?.();
