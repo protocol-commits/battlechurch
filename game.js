@@ -8579,9 +8579,12 @@ async function loadBackgroundAssets(cache, assets) {
   const midPromise = loadImage(BACKGROUND_MID_PATH)
     .then((img) => { assets.backgroundLayers.mid = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.mid = null; });
-  const floorPromise = loadImage("assets/backgrounds/floor.png")
+  const floorPromise = loadImage("assets/backgrounds/floors/floor-demon-2.png")
     .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floor = null; });
+  const floorVictoryNormalPromise = loadImage("assets/backgrounds/floors/floor-game-normal.png")
+    .then((img) => { assets.backgroundLayers.floorVictoryNormal = maybeApplyArenaBackgroundShadowCrush(img); })
+    .catch(() => { assets.backgroundLayers.floorVictoryNormal = null; });
   const floorBossPromise = loadImage("assets/backgrounds/floors-boss/boss-1.png")
     .then((img) => { assets.backgroundLayers.floorBoss = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floorBoss = null; });
@@ -8607,6 +8610,7 @@ async function loadBackgroundAssets(cache, assets) {
     gameOverBackgroundPromise,
     midPromise,
     floorPromise,
+    floorVictoryNormalPromise,
     floorBossPromise,
     floorCongregationNormalPromise,
     floorCongregationDemonPromise,
@@ -8634,6 +8638,7 @@ async function loadTitleMapAssets() {
       far: null,
       mid: null,
       floor: null,
+      floorVictoryNormal: null,
       floorBoss: null,
       floorCongregation: null,
       floorCongregationNormal: null,

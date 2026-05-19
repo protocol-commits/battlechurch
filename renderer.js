@@ -12933,6 +12933,8 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       levelStatus?.stage === "bossActive" ||
       levelStatus?.stage === "bossVictoryCelebrate" ||
       levelStatus?.stage === "bossBonusTransition";
+    const isVictoryFloorTransitionStage = levelStatus?.stage === "victoryCelebrate";
+    const isGraceRushFloorStage = levelStatus?.stage === "graceRush";
     const bandImg = isCongregationStage
       ? (
           congregationRealmMode.spiritActive
@@ -12950,6 +12952,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       : isBossFloorStage
         ? (assets?.backgroundLayers?.floorBoss || assets?.backgroundLayers?.floor || null)
         : (assets?.backgroundLayers?.floor || null);
+    const victoryTargetFloorImg = assets?.backgroundLayers?.floorVictoryNormal || null;
     const floorBandHeight = bandImg?.height || 200;
     if (bandImg) {
       ctx.save();
@@ -12963,6 +12966,33 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const drawX = Math.round((canvas.width - drawW) / 2);
       const drawY = canvas.height - drawH;
       ctx.drawImage(bandImg, 0, 0, imgW, imgH, drawX, drawY, drawW, drawH);
+      if ((isVictoryFloorTransitionStage || isGraceRushFloorStage) && victoryTargetFloorImg) {
+        const transitionDuration = Math.max(0.001, Number(levelStatus?.stageDuration) || 0.001);
+        const transitionTimer = Math.max(0, Number(levelStatus?.stageTimer) || 0);
+        const transitionProgress = isGraceRushFloorStage
+          ? 1
+          : Math.max(0, Math.min(1, 1 - transitionTimer / transitionDuration));
+        const targetW = victoryTargetFloorImg.width || 1;
+        const targetH = victoryTargetFloorImg.height || 1;
+        const targetScale = canvas.width / Math.max(1, targetW);
+        const targetDrawW = Math.round(targetW * targetScale);
+        const targetDrawH = Math.round(targetH * targetScale);
+        const targetDrawX = Math.round((canvas.width - targetDrawW) / 2);
+        const targetDrawY = canvas.height - targetDrawH;
+        ctx.globalAlpha = transitionProgress;
+        ctx.drawImage(
+          victoryTargetFloorImg,
+          0,
+          0,
+          targetW,
+          targetH,
+          targetDrawX,
+          targetDrawY,
+          targetDrawW,
+          targetDrawH,
+        );
+        ctx.globalAlpha = 1;
+      }
       ctx.restore();
     } else {
       console.debug && console.debug("drawGame: band image missing", { layer: assets?.backgroundLayers?.floor });
@@ -13449,16 +13479,27 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     );
     const congregationSpiritAshAllowed = !isCongregationStage || congregationRealmMode.spiritActive;
     if (!suppressAshForOutcomeStage && congregationSpiritAshAllowed && ashOverlay && typeof ashOverlay.draw === "function") {
+      const congregationSpiritAshBoost =
+        isCongregationStage && congregationRealmMode.spiritActive
+          ? {
+              particleCountMul: 2.1,
+              emberRatioAdd: 0.12,
+              intensityMul: 1.65,
+            }
+          : null;
       const baseParticleCount = bossPhase3TargetActive
         ? Math.max(40, Math.round(Number(waveSmokeTuning.bossParticleCount) || 190))
         : maxHeatEmberBoost
           ? Math.max(40, Math.round(Number(waveSmokeTuning.wave3ParticleCount) || 180))
           : Math.max(40, Math.round(Number(waveSmokeTuning.baseParticleCount) || 150));
+      const boostedBaseParticleCount = congregationSpiritAshBoost
+        ? Math.max(40, Math.round(baseParticleCount * congregationSpiritAshBoost.particleCountMul))
+        : baseParticleCount;
       const targetParticleCount = preserveEmberComposition
-        ? (Number.isFinite(ashEmberTuneState.particleCount) ? ashEmberTuneState.particleCount : baseParticleCount)
+        ? (Number.isFinite(ashEmberTuneState.particleCount) ? ashEmberTuneState.particleCount : boostedBaseParticleCount)
         : Math.max(
             40,
-            Math.round(baseParticleCount * victoryHeatFadeRatio),
+            Math.round(boostedBaseParticleCount * victoryHeatFadeRatio),
           );
       const phase3EmberRatio = Math.max(0, Math.min(1, Number(waveSmokeTuning.bossEmberRatio) || 0.9));
       const nonPhase3EmberRatio = maxHeatEmberBoost
@@ -13466,16 +13507,22 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         : Math.max(0, Math.min(1, Number(waveSmokeTuning.baseEmberRatio) || 0.72));
       const baseEmberRatio =
         nonPhase3EmberRatio + (phase3EmberRatio - nonPhase3EmberRatio) * bossPhase3HeatBlend;
+      const boostedBaseEmberRatio = congregationSpiritAshBoost
+        ? Math.max(0, Math.min(1, baseEmberRatio + congregationSpiritAshBoost.emberRatioAdd))
+        : baseEmberRatio;
       const targetEmberRatio = preserveEmberComposition
-        ? (Number.isFinite(ashEmberTuneState.emberRatio) ? ashEmberTuneState.emberRatio : baseEmberRatio)
-        : Math.max(0.12, baseEmberRatio * victoryHeatFadeRatio);
+        ? (Number.isFinite(ashEmberTuneState.emberRatio) ? ashEmberTuneState.emberRatio : boostedBaseEmberRatio)
+        : Math.max(0.12, boostedBaseEmberRatio * victoryHeatFadeRatio);
       const phase3Intensity = Math.max(0.1, Number(waveSmokeTuning.bossIntensity) || 1.72);
       const nonPhase3Intensity = maxHeatEmberBoost
         ? Math.max(0.1, Number(waveSmokeTuning.wave3Intensity) || 1.55)
         : Math.max(0.1, Number(waveSmokeTuning.baseIntensity) || 1.32);
       const baseIntensity =
         nonPhase3Intensity + (phase3Intensity - nonPhase3Intensity) * bossPhase3HeatBlend;
-      const targetIntensity = Math.max(0.2, baseIntensity * victoryHeatFadeRatio);
+      const boostedBaseIntensity = congregationSpiritAshBoost
+        ? baseIntensity * congregationSpiritAshBoost.intensityMul
+        : baseIntensity;
+      const targetIntensity = Math.max(0.2, boostedBaseIntensity * victoryHeatFadeRatio);
       const targetSizeScale = 1.0;
       if (typeof ashOverlay.setParticleCount === "function" && ashEmberTuneState.particleCount !== targetParticleCount) {
         ashOverlay.setParticleCount(targetParticleCount);
