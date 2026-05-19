@@ -24541,7 +24541,7 @@ function forceStartHolyDash(direction, distance = DASH_DISTANCE * 2.5 + 200 * WO
   playerDashState.dashDustAccumulator = 0;
   playerDashState.crashDashActive = true;
   playerDashState.crashDashHitEntities = new Set();
-  playerDashState.crashDashDamage = 100;
+  playerDashState.crashDashDamage = 250;
   playerDashState.clashFeedbackCooldown = 0;
   playerDashState.clashHitAccum = 0;
   setSharedBButtonCooldown(DASH_COOLDOWN);
@@ -24998,9 +24998,9 @@ function updateRushMovement(dt, direction, meleeAttackState) {
         spawnSlashBurstEffect(trailX, trailY, rushAngle, RUSH_GLOW_TRAIL_SCALE, {
           scaleX: RUSH_GLOW_TRAIL_SCALE_X,
           scaleY: RUSH_GLOW_TRAIL_SCALE_Y,
-          tintColor: "#ffd37a",
-          tintAlpha: 0.8,
-          glowColor: "#ffe7a6",
+          tintColor: "#ff9a2f",
+          tintAlpha: 0.97,
+          glowColor: "#ffb25a",
           glowBlur: RUSH_GLOW_TRAIL_GLOW_BLUR,
           glowAlpha: RUSH_GLOW_TRAIL_GLOW_ALPHA,
           blendMode: "lighter",
@@ -25619,7 +25619,7 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const moveName = getComboMoveNameForHit(meleeAttackState, moveNameOverride);
   const lastMoveName = names.length > 0 ? names[names.length - 1] : null;
   const isRepeatMove = chainActive && lastMoveName === moveName;
-  const suppressRepeatCalloutMove = isRepeatMove && moveName === "Roll";
+  const suppressRepeatCalloutMove = isRepeatMove && (moveName === "Roll" || moveName === "Thrash");
   if (isRepeatMove) { newHits = previousHits; }
   if (!suppressRepeatCalloutMove) {
     names.push(moveName);
@@ -26304,9 +26304,9 @@ function executeCleaveAttack(dir, meleeAttackState) {
       scaleX: Math.max(CLEAVE_VFX_SCALE_X, 1),
       scaleY: CLEAVE_VFX_SCALE_Y,
       flipY: cleaveFlipY,
-      tintColor: "#c53a3a",
-      tintAlpha: 0.78,
-      glowColor: "#ff7a7a",
+      tintColor: "#5faeff",
+      tintAlpha: 0.8,
+      glowColor: "#9cd0ff",
       glowBlur: CLEAVE_VFX_GLOW_BLUR,
       glowAlpha: CLEAVE_VFX_GLOW_ALPHA * 0.72,
       blendMode: "lighter",
@@ -26318,9 +26318,9 @@ function executeCleaveAttack(dir, meleeAttackState) {
       scaleX: Math.max(CLEAVE_VFX_SCALE_X * 0.94, 0.9),
       scaleY: CLEAVE_VFX_SCALE_Y * 0.84,
       flipY: !cleaveFlipY,
-      tintColor: "#a8d7ff",
-      tintAlpha: 0.78,
-      glowColor: "#cfe8ff",
+      tintColor: "#2f7fff",
+      tintAlpha: 0.84,
+      glowColor: "#6fb0ff",
       glowBlur: CLEAVE_VFX_GLOW_BLUR * 0.68,
       glowAlpha: CLEAVE_VFX_GLOW_ALPHA * 0.82,
       blendMode: "lighter",
@@ -26769,7 +26769,7 @@ function executeProtectedDash(meleeAttackState) {
     applyMeleeInvulnerability(meleeAttackState, "rush", dashDuration + RUSH_EXIT_INVULNERABILITY);
     playerDashState.crashDashActive = true;
     playerDashState.crashDashHitEntities = new Set();
-    playerDashState.crashDashDamage = 20;
+    playerDashState.crashDashDamage = 100;
     player.ignoreEntityCollisions = true;
   }
 }
@@ -27812,7 +27812,7 @@ function updateChargeState(dt, meleeAttackState) {
 
 function updateMeleeAttackSystem(dt) {
   // Melee attack logic: only trigger once per key press, deal damage once, and disappear
-  if (!window._meleeAttackState)
+    if (!window._meleeAttackState)
     window._meleeAttackState = {
       active: false,
       fade: 0,
@@ -27955,6 +27955,8 @@ function updateMeleeAttackSystem(dt) {
     blankaRollActive: false,
     blankaRollTimer: 0,
     blankaRollHitEntities: null,
+    cbHeldAtBPress: false,
+    cbClashPendingOnCRelease: false,
     cleaveArcTimer: 0,
     cleaveArcDuration: 0,
     cleaveArcDir: 1,
@@ -28368,6 +28370,32 @@ function updateMeleeAttackSystem(dt) {
     const cHeldForAbc = keysPressed.has("ArrowRight");
     const cJustReleasedForAbc = !cHeldForAbc && Boolean(meleeAttackState.abcPrevCHeld);
     meleeAttackState.abcPrevCHeld = cHeldForAbc;
+    if (cJustReleasedForAbc) {
+      meleeAttackState.holyDashArmUntil = now + HOLY_DASH_COMBO_WINDOW * 1000;
+      if (
+        meleeAttackState.cbClashPendingOnCRelease &&
+        !meleeAttackState.isRushing &&
+        !playerDashState.isDashing &&
+        player &&
+        (player.prayerCharge || 0) >= ((player.prayerChargeRequired || 6000) / 12)
+      ) {
+        const holyDir = getDashButtonDirection();
+        if (forceStartHolyDash(holyDir, DASH_DISTANCE * 2.5 + 200 * WORLD_SCALE)) {
+          if (typeof cancelCongregationTap === "function") cancelCongregationTap();
+          player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - ((player.prayerChargeRequired || 6000) / 12));
+          playerYell("Clash");
+          showMoveBanner("Clash");
+          registerComboMoveName(meleeAttackState, "Clash");
+          meleeAttackState.clashVisualActive = true;
+          keysJustPressed.delete("ArrowDown");
+          meleeAttackState.cBHolyDashBlockTimer = 0.5;
+          meleeAttackState.cbClashPendingOnCRelease = false;
+          comboTriggered = true;
+        }
+      } else {
+        meleeAttackState.cbClashPendingOnCRelease = false;
+      }
+    }
     const aHeldForAbc = Boolean(meleeAttackState.buttonDown);
     const bHeldForAbc = Boolean(meleeAttackState.spinButtonDown);
     const allThreeHeldForAbc = aHeldForAbc && bHeldForAbc && cHeldForAbc;
@@ -28468,22 +28496,25 @@ function updateMeleeAttackSystem(dt) {
       }
     }
     const holyDashCost = player ? (player.prayerChargeRequired || 6000) / 12 : 5;
-    // C/B Holy Dash: C must have been tapped (released) recently, then B pressed.
-    // Holding C then pressing B routes to the B-charge path for Teleport instead.
+    // C/B Holy Dash mirrors the working B/A style:
+    // detect ordered key timing (C then B) and require C not currently held.
     const bJustPressedRaw = keysJustPressed.has("ArrowDown");
     const holyDashArmed =
       Number.isFinite(meleeAttackState.holyDashArmUntil) &&
       now <= meleeAttackState.holyDashArmUntil;
+    const comboHolyDashOrder = holyDashArmed && !cCurrentlyHeld;
+    const comboHolyDashSwipe = comboSwipe && comboSwipe.from === "C" && comboSwipe.to === "B";
     const comboHolyDash =
       !comboTriggered &&
       !abcStateActive &&
       !playerDashState.isDashing &&
-      holyDashArmed &&
-      bJustPressedRaw &&
-      !meleeAttackState.spinButtonDown &&
       !meleeAttackState.isRushing &&
       player &&
-      (player.prayerCharge || 0) >= holyDashCost;
+      (player.prayerCharge || 0) >= holyDashCost &&
+      (
+        (comboHolyDashOrder && bJustPressedRaw) ||
+        comboHolyDashSwipe
+      );
     if (comboHolyDash) {
       const holyDir = getDashButtonDirection();
       if (forceStartHolyDash(holyDir, DASH_DISTANCE * 2.5 + 200 * WORLD_SCALE)) {
@@ -28540,6 +28571,33 @@ function updateMeleeAttackSystem(dt) {
     const bJustPressed = keysJustPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     const bHeld = keysPressed.has("ArrowDown") && !meleeAttackState.isRushing && !meleeAttackState.ringFireActive;
     if (bJustPressed && !meleeAttackState.spinButtonDown && !comboTriggered) {
+      meleeAttackState.cbHeldAtBPress = Boolean(keysPressed.has("ArrowRight"));
+      const clashPreempt =
+        !abcStateActive &&
+        !playerDashState.isDashing &&
+        holyDashArmed &&
+        !keysPressed.has("ArrowRight") &&
+        player &&
+        (player.prayerCharge || 0) >= holyDashCost;
+      if (clashPreempt) {
+        const holyDir = getDashButtonDirection();
+        if (forceStartHolyDash(holyDir, DASH_DISTANCE * 2.5 + 200 * WORLD_SCALE)) {
+          if (typeof cancelCongregationTap === "function") cancelCongregationTap();
+          player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - holyDashCost);
+          playerYell("Clash");
+          showMoveBanner("Clash");
+          registerComboMoveName(meleeAttackState, "Clash");
+          meleeAttackState.clashVisualActive = true;
+          meleeAttackState.holyDashArmUntil = 0;
+          keysJustPressed.delete("ArrowDown");
+          meleeAttackState.cBHolyDashBlockTimer = 0.5;
+          comboTriggered = true;
+        }
+      }
+      if (comboTriggered) {
+        // Clash consumed B press; do not enter normal B dash/charge pipeline.
+        return;
+      }
       const startedCancelRush =
         meleeAttackState.meleeCancelUntil &&
         now <= meleeAttackState.meleeCancelUntil &&
@@ -28573,6 +28631,7 @@ function updateMeleeAttackSystem(dt) {
     if (!abcStateActive && meleeAttackState.spinButtonDown && !bHeld) {
       const fullyCharged = meleeAttackState.spinChargeTimer >= meleeAttackState.spinHoldTime;
       const cHeldOnBRelease = keysPressed.has("ArrowRight");
+      const cHeldAtBPress = Boolean(meleeAttackState.cbHeldAtBPress);
       const rollCost = player ? (player.prayerChargeRequired || 6000) / 6 : 40;
       const hasPrayerForRoll = player && (player.prayerCharge || 0) >= rollCost;
       const shouldRoll = meleeAttackState.bcTeleportArmed ||
@@ -28594,12 +28653,29 @@ function updateMeleeAttackSystem(dt) {
           executeSwordRush(meleeAttackState);
         } else if (shouldRoll) {
           executeBlankaRoll(meleeAttackState);
+        } else if (cHeldAtBPress && !fullyCharged) {
+          const clashCost = player ? (player.prayerChargeRequired || 6000) / 12 : 5;
+          if (!cHeldOnBRelease && player && (player.prayerCharge || 0) >= clashCost) {
+            const holyDir = getDashButtonDirection();
+            if (forceStartHolyDash(holyDir, DASH_DISTANCE * 2.5 + 200 * WORLD_SCALE)) {
+              if (typeof cancelCongregationTap === "function") cancelCongregationTap();
+              player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - clashCost);
+              playerYell("Clash");
+              showMoveBanner("Clash");
+              registerComboMoveName(meleeAttackState, "Clash");
+              meleeAttackState.clashVisualActive = true;
+              meleeAttackState.cBHolyDashBlockTimer = 0.5;
+            }
+          } else {
+            meleeAttackState.cbClashPendingOnCRelease = true;
+          }
         } else if (fullyCharged) {
           executeProtectedDash(meleeAttackState);
         } else if (!meleeAttackState.isRushing) {
           tryStartDash(getDashButtonDirection());
         }
       }
+      meleeAttackState.cbHeldAtBPress = false;
       meleeAttackState.bcTeleportArmed = false;
       if (!meleeAttackState.isCharging) {
         clearDivineChargeSparkVisual();
