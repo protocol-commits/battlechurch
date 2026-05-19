@@ -13253,6 +13253,18 @@ function updateLevelAnnouncements(dt) {
   }
 }
 
+function setPlayerPrayerToLevelStartBars(bars = 2) {
+  if (!player) return;
+  const required = Math.max(
+    1,
+    Number(player.prayerChargeRequired) || Number(PRAYER_BOMB_CHARGE_REQUIRED) || 6000,
+  );
+  const clampedBars = Math.max(0, Math.min(6, Number(bars) || 0));
+  player.prayerCharge = Math.round((clampedBars / 6) * required);
+  player.prayerHoldTimer = 0;
+  player.prayerHoldLocked = false;
+}
+
 function dismissCurrentLevelAnnouncement() {
   if (!levelAnnouncements.length) return;
   // Clear any pending prayer bomb input to prevent accidental activation after dismissal
@@ -13272,6 +13284,8 @@ function dismissCurrentLevelAnnouncement() {
     completeVisitorSession(reason);
   }
   if (current.battlefieldIntro) {
+    // Every new battlefield/level starts with 2 bars (2/6) of prayer meter.
+    setPlayerPrayerToLevelStartBars(2);
     pendingDistrictIntroStart = true;
     districtIntroDismissedAt =
       typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
@@ -26868,7 +26882,7 @@ function npcsYell(text, life = 1.6) {
 window.npcsYell = npcsYell;
 window.showMoveBanner = showMoveBanner;
 
-const BLANKA_ROLL_DURATION = 3.0;
+const BLANKA_ROLL_DURATION = 2.0;
 
 function executeBlankaRoll(meleeAttackState) {
   if (!player) return;
