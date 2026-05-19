@@ -27613,7 +27613,18 @@ function updateMeleeTimers(dt, meleeAttackState) {
         if (prevSpin > entry.fireAt && meleeAttackState.spinTimer <= entry.fireAt) {
           const bx = player.x + Math.cos(entry.angle) * hbOffsetX;
           const by = player.y + Math.sin(entry.angle) * hbOffsetX;
-          spawnSlashBurstEffect(bx, by, entry.angle, burstScale, { tintColor: "#ff8800", tintAlpha: 0.75 });
+          const warmPass = i % 2 === 0;
+          spawnSlashBurstEffect(bx, by, entry.angle, burstScale, {
+            scaleX: 1.18,
+            scaleY: 0.92,
+            tintColor: warmPass ? "#ff9d4d" : "#ffd37a",
+            tintAlpha: 0.84,
+            glowColor: warmPass ? "#ffbf7a" : "#ffe7a6",
+            glowBlur: 16,
+            glowAlpha: 0.92,
+            blendMode: "lighter",
+            frameDuration: 0.036,
+          });
           queue.splice(i, 1);
         }
       }
