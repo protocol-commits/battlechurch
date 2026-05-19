@@ -4926,6 +4926,8 @@ const CONGREGATION_COMMAND_CHARGE_TIME = _gb('congregationCommand.chargeTime', 7
 const CONGREGATION_COMMAND_DAMAGE = _gb('congregationCommand.damage', 30);
 const CONGREGATION_COMMAND_SPEED_MULTIPLIER = _gb('congregationCommand.speedMultiplier', 1.1);
 const CONGREGATION_COMMAND_SCALE = _gb('congregationCommand.scale', 1.15);
+const CONGREGATION_COMMAND_VISUAL_SCALE_MULTIPLIER = _gb('congregationCommand.visualScaleMultiplier', 2.0);
+const CONGREGATION_COMMAND_RADIUS_MULTIPLIER = _gb('congregationCommand.radiusMultiplier', 3.4);
 const CONGREGATION_COMMAND_STAGGER = _gb('congregationCommand.stagger', 0.14);
 const CONGREGATION_COMMAND_SHAKE_DURATION = _gb('congregationCommand.shakeDuration', 0.12);
 const CONGREGATION_COMMAND_SHAKE_MAGNITUDE = _gb('congregationCommand.shakeMagnitude', 8);
@@ -20364,9 +20366,12 @@ function fireCongregationVolleyShot(npc, volley) {
   const speed = baseSpeed * CONGREGATION_COMMAND_SPEED_MULTIPLIER;
   const life = travel / Math.max(1, speed);
   const fireFrames = assets?.projectiles?.fire?.frames || null;
+  const baseFireRadius = PROJECTILE_CONFIG.fire?.radius || 18;
+  const widenedRadius = Math.max(1, baseFireRadius * CONGREGATION_COMMAND_RADIUS_MULTIPLIER);
   spawnProjectile("fire", originX, originY, dir.x, dir.y, {
     friendly: true,
     damage: CONGREGATION_COMMAND_DAMAGE,
+    radius: widenedRadius,
     speed,
     life,
     pierce: true,
@@ -20374,7 +20379,7 @@ function fireCongregationVolleyShot(npc, volley) {
     frameDuration: 0.05,
     flipHorizontal: dir.x < 0,
     source: npc,
-    scale: CONGREGATION_COMMAND_SCALE,
+    scale: CONGREGATION_COMMAND_SCALE * CONGREGATION_COMMAND_VISUAL_SCALE_MULTIPLIER,
   });
   npc.projectileGlowTimer = Math.max(npc.projectileGlowTimer || 0, 0.2);
   if (npc.animator) {
