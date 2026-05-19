@@ -1467,10 +1467,10 @@
         { label: "Hedge",               input: "Charge A+C", value: null },
 
         { section: "Dash" },
-        { label: "Crash",               input: "B Charge", value: null },
+        { label: "Crash",               input: "B Charge", value: 100 },
         { label: "Smash",               input: "B/A",      value: ref.rushAttack },
-        { label: "Clash",               input: "C/B",      value: null },
-        { label: "Flash",               input: "Charge B+C", value: null },
+        { label: "Clash",               input: "C/B",      value: 250 },
+        { label: "Trash",               input: "Charge B+C", value: null },
 
         { section: "Prayer" },
         { label: "Unity Strike",        input: "C",        value: null },

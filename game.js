@@ -24654,7 +24654,7 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
   if (!player) return;
   const isBlitz = Boolean(meleeAttackState.swordRushActive);
   const isRoll = Boolean(meleeAttackState.blankaRollActive);
-  const rushMoveName = isBlitz ? "Thrash" : (isRoll ? "Roll" : "Smash");
+  const rushMoveName = isBlitz ? "Thrash" : (isRoll ? "Trash" : "Smash");
   const rushHitDamage = (isBlitz ? BLITZ_DAMAGE : RUSH_DAMAGE) * getMoveMultiplier(rushMoveName);
   meleeAttackState.currentAttackHitboxType = isBlitz ? "swordRush" : "rush";
   const dir = normalizeVector(direction.x, direction.y);
@@ -25619,7 +25619,7 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const moveName = getComboMoveNameForHit(meleeAttackState, moveNameOverride);
   const lastMoveName = names.length > 0 ? names[names.length - 1] : null;
   const isRepeatMove = chainActive && lastMoveName === moveName;
-  const suppressRepeatCalloutMove = isRepeatMove && (moveName === "Roll" || moveName === "Thrash");
+  const suppressRepeatCalloutMove = isRepeatMove && (moveName === "Trash" || moveName === "Thrash");
   if (isRepeatMove) { newHits = previousHits; }
   if (!suppressRepeatCalloutMove) {
     names.push(moveName);
@@ -26810,7 +26810,7 @@ const MOVE_BANNER_TOKENS = Object.freeze({
   Thrash:          [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("A")],
   Reap:            [_MB.btn("C"), _MB.seq(), _MB.btn("A")],
   Clash:           [_MB.btn("C"), _MB.seq(), _MB.btn("B")],
-  Flash:           [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
+  Trash:           [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
   Hedge:           [_MB.chg(), _MB.btn("A"), _MB.sim(), _MB.btn("C")],
   Cleave:          [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
   "Unity Strike":  [_MB.btn("C")],
@@ -26873,8 +26873,8 @@ const BLANKA_ROLL_DURATION = 3.0;
 
 function executeBlankaRoll(meleeAttackState) {
   if (!player) return;
-  showDualChargeReadyPreview(meleeAttackState, "Roll", { executed: true });
-  showMoveBanner("Roll");
+  showDualChargeReadyPreview(meleeAttackState, "Trash", { executed: true });
+  showMoveBanner("Trash");
   const rollCost = (player.prayerChargeRequired || 6000) / 6;
   player.prayerCharge = Math.max(0, (player.prayerCharge || 0) - rollCost);
   player.prayerHoldTimer = 0;
@@ -27801,7 +27801,7 @@ function updateChargeState(dt, meleeAttackState) {
       : acReady
         ? "Hedge"
         : teleportReady
-          ? "Roll"
+          ? "Trash"
           : "";
   if (readyMove) {
     showDualChargeReadyPreview(meleeAttackState, readyMove);
@@ -28624,7 +28624,7 @@ function updateMeleeAttackSystem(dt) {
       const hasPrayerForRoll = player && (player.prayerCharge || 0) >= rollCost;
       if (!meleeAttackState.bcTeleportArmed && bFullyCharged && cHeld && hasPrayerForRoll) {
         meleeAttackState.bcTeleportArmed = true;
-        showDualChargeReadyPreview(meleeAttackState, "Roll");
+        showDualChargeReadyPreview(meleeAttackState, "Trash");
         if (typeof cancelCongregationTap === "function") cancelCongregationTap();
       }
     }
