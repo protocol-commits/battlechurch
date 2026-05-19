@@ -24648,7 +24648,8 @@ function applyRushDamageFromSwoosh(direction, meleeAttackState) {
   if (!meleeAttackState.rushDamageEnabled || !meleeAttackState.rushHitEntities) return;
   if (!player) return;
   const isBlitz = Boolean(meleeAttackState.swordRushActive);
-  const rushMoveName = isBlitz ? "Thrash" : "Smash";
+  const isRoll = Boolean(meleeAttackState.blankaRollActive);
+  const rushMoveName = isBlitz ? "Thrash" : (isRoll ? "Roll" : "Smash");
   const rushHitDamage = (isBlitz ? BLITZ_DAMAGE : RUSH_DAMAGE) * getMoveMultiplier(rushMoveName);
   meleeAttackState.currentAttackHitboxType = isBlitz ? "swordRush" : "rush";
   const dir = normalizeVector(direction.x, direction.y);
@@ -25613,8 +25614,11 @@ function registerMeleeComboHit(target, meleeAttackState, moveNameOverride = null
   const moveName = getComboMoveNameForHit(meleeAttackState, moveNameOverride);
   const lastMoveName = names.length > 0 ? names[names.length - 1] : null;
   const isRepeatMove = chainActive && lastMoveName === moveName;
+  const suppressRepeatCalloutMove = isRepeatMove && moveName === "Roll";
   if (isRepeatMove) { newHits = previousHits; }
-  names.push(moveName);
+  if (!suppressRepeatCalloutMove) {
+    names.push(moveName);
+  }
   detailEntries.push({
     move: moveName,
     damage: Math.max(0, Math.round(Number(hitMeta?.damage) || 0)),
