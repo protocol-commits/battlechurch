@@ -8940,7 +8940,7 @@ function getStartCountdownLabel() {
 }
 
 const uiTexts =
-  (typeof window !== "undefined" && window.BattlechurchUIText) || {};
+  (typeof window !== "undefined" && window.GameText?.screens) || {};
 const TITLE_OVERLAY_BODY = "";
 
 function typewriterElement(overlay, selector, text, msPerChar = 18) {
@@ -10190,7 +10190,7 @@ function showCloudSaveMoreMenu(saveId) {
 }
 
 const PAUSE_BODY =
-  uiTexts.pauseBody ||
+  uiTexts.pause?.body ||
   [
     "Game paused. Take a breather, then press Continue or Space to resume.",
     "Your congregation will hold its place while you choose to keep fighting.",
@@ -10213,7 +10213,7 @@ const PAUSE_HOTKEYS_HTML = `
 `;
 
 const GAME_OVER_BODY =
-  uiTexts.gameOverBody ||
+  uiTexts.gameOver?.body ||
   "You have no strength to continue the battle.\nThe church plant and the town are lost to darkness.";
 
 
