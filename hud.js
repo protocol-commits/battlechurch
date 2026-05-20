@@ -1833,8 +1833,8 @@
       const panelTopY = comboFeedY + comboFeedHeight + (liveComboCount > 0 ? 8 : 0);
 
       // Measure tokens to compute panel width
-      const PILL_W = 34;
-      const PILL_H = 26;
+      const PILL_W = 30;
+      const PILL_H = 30;
       const SEP_W = 20;
       const PREFIX_W = 62;
       const PAD_X = 14;
@@ -1932,24 +1932,49 @@
       const tokenCenterY = tokenY + PILL_H / 2;
       let tx = panelX + PAD_X;
 
+      const buttonChargeStyles = {
+        A: {
+          fill: "rgba(88, 154, 186, 0.95)",
+          stroke: "rgba(198, 232, 255, 0.95)",
+          text: "#F2FCFF",
+        },
+        B: {
+          fill: "rgba(85, 168, 144, 0.95)",
+          stroke: "rgba(197, 248, 230, 0.95)",
+          text: "#F2FFF9",
+        },
+        C: {
+          fill: "rgba(206, 140, 79, 0.97)",
+          stroke: "rgba(255, 236, 178, 0.98)",
+          text: "#FFF8DF",
+        },
+      };
+
       banner.tokens.forEach((tok) => {
         if (tok.type === "btn") {
-          // Pill background
-          const isCToken = String(tok.label || "").toUpperCase() === "C";
-          ctx.fillStyle = isCToken
-            ? "rgba(214, 82, 12, 0.95)"
-            : "rgba(160, 50, 15, 0.9)";
-          ctx.strokeStyle = isCToken
-            ? "rgba(255, 245, 185, 0.95)"
-            : "rgba(255, 190, 70, 0.85)";
-          ctx.lineWidth = isCToken ? 2.1 : 1.2;
-          roundRect(ctx, tx, tokenCenterY - PILL_H / 2, PILL_W, PILL_H, 5, true, true);
+          const label = String(tok.label || "").toUpperCase();
+          const style = buttonChargeStyles[label] || {
+            fill: "rgba(160, 50, 15, 0.9)",
+            stroke: "rgba(255, 190, 70, 0.85)",
+            text: PALETTE.softWhite,
+          };
+          const cx = tx + PILL_W / 2;
+          const cy = tokenCenterY;
+          const radius = Math.min(PILL_W, PILL_H) * 0.5 - 1;
+          // Circular token background (matches button identity, not move color).
+          ctx.fillStyle = style.fill;
+          ctx.strokeStyle = style.stroke;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
           // Letter
-          ctx.fillStyle = isCToken ? "#FFF3CC" : PALETTE.softWhite;
+          ctx.fillStyle = style.text;
           ctx.font = hudFont(HUD_FONTS.bannerBody, "800");
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(tok.label, tx + PILL_W / 2, tokenCenterY);
+          ctx.fillText(label, cx, tokenCenterY);
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
           tx += PILL_W;

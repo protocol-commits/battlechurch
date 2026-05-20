@@ -27076,7 +27076,8 @@ function npcsYell(text, life = 1.6) {
 window.npcsYell = npcsYell;
 window.showMoveBanner = showMoveBanner;
 
-const BLANKA_ROLL_DURATION = 2.0;
+// Duration (seconds) for the Charged C+B move, also called "Trash" / "Roll".
+const BLANKA_ROLL_DURATION = 2.5;
 
 function executeBlankaRoll(meleeAttackState) {
   if (!player) return;
