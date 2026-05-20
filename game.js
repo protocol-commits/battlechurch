@@ -16384,6 +16384,8 @@ class Projectile {
     this.friendly = config.friendly ?? true;
     this.visualOnly = Boolean(config.visualOnly);
     this.lightSpreadShot = Boolean(config.lightSpreadShot);
+    this.splashRadius = Number.isFinite(config.splashRadius) && config.splashRadius > 0 ? config.splashRadius : 0;
+    this.splashDamageRatio = Number.isFinite(config.splashDamageRatio) ? config.splashDamageRatio : 0;
     this.collisionDisabled = Boolean(config.collisionDisabled);
     this.damageType = config.damageType || null;
     this.source = config.source || null;
@@ -23885,6 +23887,13 @@ function processProjectileCollisions(dt) {
           const center = getEnemyHitboxCenter(enemy);
           spawnPuffEffect(center.x, center.y, puffRadius);
         }
+        if (projectile.lightSpreadShot && projectile.splashRadius > 0 && projectile.splashDamageRatio > 0) {
+          const splashDmg = projectile.getDamage() * projectile.splashDamageRatio;
+          applyProjectileSplashDamage(projectile, projectile.x, projectile.y, projectile.splashRadius, splashDmg, {
+            skipBossImpact: true,
+            skipEnemy: enemy,
+          });
+        }
         projectile.onHit(enemy);
         if (shouldDeflect) projectile.dead = true;
         if (projectile.dead) break;
@@ -24676,7 +24685,7 @@ function applyProjectileSplashDamage(
   centerY,
   radius,
   damage,
-  { skipBossImpact = false, churchPowerup = false } = {},
+  { skipBossImpact = false, churchPowerup = false, skipEnemy = null } = {},
 ) {
   if (!projectile) return;
   const fromPlayer = Boolean(projectile?.source?.isPlayer);
@@ -24684,6 +24693,7 @@ function applyProjectileSplashDamage(
   enemies.forEach((enemy) => {
     if (enemy.dead || enemy.state === "death") return;
     if (!isEnemyTargetableForAutoAim(enemy)) return;
+    if (skipEnemy && enemy === skipEnemy) return;
     const center = getEnemyHitboxCenter(enemy);
     const distance = Math.hypot(center.x - centerX, center.y - centerY);
     const threshold = radius + getEnemyHitboxRadius(enemy) * 0.6;

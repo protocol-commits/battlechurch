@@ -201,8 +201,12 @@
       shopDescription: "Multiply ministry through small groups.",
       levelCosts: CHURCH_LEVEL_COSTS,
       tuning: {
+        damage: 30,                  // damage per tracer shot (overrides arrow damage)
+        cooldown: 0.05,               // seconds between tracer bursts (lower = faster)
         spreadStep: 0.15,            // radians between each tracer pair
-        tracerSpeedMultiplier: 1.9,  // tracer speed multiplier vs base arrow speed
+        tracerSpeedMultiplier: 3.3,  // tracer speed multiplier vs base arrow speed
+        splashRadius: 80,            // splash radius in game pixels (world scale applied at runtime)
+        splashDamageRatio: 0.7,      // splash damage as fraction of direct hit damage
       },
     },
     halo: {
@@ -235,7 +239,7 @@
       shopDescription: "Mobilize a Care Ministry.",
       levelCosts: CHURCH_LEVEL_COSTS,
       tuning: {
-        damage: 20,
+        damage: 10,
         speed: 1000,           // pixels/sec (world scale applied at runtime)
         hitCooldown: 0.15,     // seconds between hits on the same target
         pauseDuration: 0.04,   // seconds the spear pauses at its target before retargeting
@@ -254,9 +258,9 @@
       shopDescription: "Grow leaders to take initiative.",
       levelCosts: CHURCH_LEVEL_COSTS,
       tuning: {
-        damage: 10,
-        hitInterval: 0.02,       // seconds between damage ticks (lower = more DPS)
-        beamCooldown: 0.55,      // gap between beam pulses
+        damage: 30,
+        hitInterval: 0.1,       // seconds between damage ticks (lower = more DPS)
+        beamCooldown: 0.6,      // gap between beam pulses
         beamPulseDuration: 0.34, // how long each beam pulse lasts
         sweepStep: 0.349,        // radians rotated per target scan step (~20deg, Math.PI/9)
         pulseSweepAmount: 0.15, // arc swept across locked target per pulse (~18deg, Math.PI/10)

@@ -2862,7 +2862,7 @@
     const life = Number.isFinite(PROJECTILE_CONFIG.arrow?.life)
       ? PROJECTILE_CONFIG.arrow.life * bossRangeMultiplier
       : undefined;
-    const damage = this.getArrowDamage();
+    const damage = Number.isFinite(this.spreadGunTuning?.damage) ? this.spreadGunTuning.damage : this.getArrowDamage();
     const scale = this.getArrowProjectileScale();
     const level = Math.max(1, Math.min(10, this.spreadGunLevel || 1));
     // streamCount = individual extra shots (1–5). Even counts = symmetric pairs. Odd = pairs + 1 alternating.
@@ -2870,7 +2870,8 @@
     const bonusStreams = this.spreadGunBonusTimer > 0 ? 2 : 0;
     const effectiveStreamCount = Math.min(7, streamCount + bonusStreams);
     const rateMultiplier = Math.max(0.7, ((level / 2) / effectiveStreamCount) * 2.0); // faster spread cadence for machine-gun feel
-    this.spreadGunExtraTimer = this.getArrowCooldown() / rateMultiplier;
+    const baseCooldown = Number.isFinite(this.spreadGunTuning?.cooldown) ? this.spreadGunTuning.cooldown : this.getArrowCooldown();
+    this.spreadGunExtraTimer = baseCooldown / rateMultiplier;
     const spreadStep = this.spreadGunTuning?.spreadStep ?? 0.15;
     const perp = { x: -direction.y, y: direction.x };
     const pairs = Math.floor(effectiveStreamCount / 2);
@@ -2891,6 +2892,11 @@
           }
         }
         overrides.lightSpreadShot = true;
+        const splashR = this.spreadGunTuning?.splashRadius ?? 0;
+        if (splashR > 0) {
+          overrides.splashRadius = splashR * WORLD_SCALE;
+          overrides.splashDamageRatio = this.spreadGunTuning?.splashDamageRatio ?? 0;
+        }
       }
       return overrides;
     };
