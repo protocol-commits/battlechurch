@@ -7310,14 +7310,20 @@ function resolveWeaponPowerupConfig(effect, def = {}) {
       overrides.speedMultiplier ?? def.speedMultiplier ?? defaults.speedMultiplier ?? 1,
     damageMultiplier:
       overrides.damageMultiplier ?? def.damageMultiplier ?? defaults.damageMultiplier ?? 1,
-    text: overrides.text ?? defaults.text ?? effect,
+    text: overrides.text ?? overrides.label ?? defaults.text ?? effect,
     textColor: overrides.textColor ?? defaults.textColor ?? "#fff",
     statusBgColor: overrides.statusBgColor ?? defaults.statusBgColor,
     statusLife: overrides.statusLife ?? defaults.statusLife,
-    hudTitle: overrides.hudTitle ?? defaults.hudTitle ?? overrides.text ?? defaults.text ?? effect,
+    hudTitle:
+      overrides.hudTitle ??
+      defaults.hudTitle ??
+      overrides.text ??
+      overrides.label ??
+      defaults.text ??
+      effect,
     description: overrides.description ?? defaults.description ?? "",
     hudDuration: overrides.hudDuration ?? defaults.hudDuration ?? 2.6,
-    spokenName: overrides.spokenName ?? defaults.spokenName ?? null,
+    spokenName: overrides.spokenName ?? defaults.spokenName ?? overrides.label ?? null,
     iconSrc: overrides.iconSrc ?? defaults.iconSrc ?? "",
   };
 }

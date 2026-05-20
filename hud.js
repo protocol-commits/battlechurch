@@ -184,7 +184,28 @@
       return Math.max(10, Math.floor(baseSize * scale));
     };
 
+    const weaponDefs = (typeof window !== "undefined" && window.BattlechurchPowerupDefinitions?.weaponDropDefs) || {};
+    const getWeaponLabelFromDefs = (mode, npc = false) => {
+      const modeToEffect = npc
+        ? {
+            fire: "npcScriptureWeapon",
+            wisdom_missle: "npcWisdomWeapon",
+            faith_cannon: "npcFaithWeapon",
+          }
+        : {
+            fire: "scriptureWeapon",
+            wisdom_missle: "wisdomWeapon",
+            faith_cannon: "cannonWeapon",
+          };
+      const targetEffect = modeToEffect[mode];
+      if (!targetEffect) return "";
+      const match = Object.values(weaponDefs).find((def) => def?.effect === targetEffect);
+      return match?.label || "";
+    };
+
     const getWeaponBaseLabel = (mode) => {
+      const defLabel = getWeaponLabelFromDefs(mode, false);
+      if (defLabel) return defLabel;
       // Use centralized text if available
       const weaponModes = (typeof GameText !== 'undefined' && GameText.weapons?.modes) || {};
       if (weaponModes[mode] !== undefined) return weaponModes[mode];
@@ -225,6 +246,8 @@
       return base;
     };
     const getNpcWeaponBaseLabel = (mode) => {
+      const defLabel = getWeaponLabelFromDefs(mode, true);
+      if (defLabel) return defLabel;
       // Use centralized text if available (same labels as player weapons)
       const weaponModes = (typeof GameText !== 'undefined' && GameText.weapons?.modes) || {};
       if (weaponModes[mode] !== undefined) return weaponModes[mode];
