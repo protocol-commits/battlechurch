@@ -2245,6 +2245,24 @@
     loadCustomFaceFromStorage,
   };
 
+  function seedPresetsFromJson() {
+    const raw = window.localStorage?.getItem?.(PRESET_STORAGE_KEY);
+    const parsed = safeParse(raw, []);
+    const existing = Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    if (existing.length > 0) return;
+    fetch("pastor-presets.json")
+      .then((r) => r.json())
+      .then((data) => {
+        const incoming = Array.isArray(data?.presets) ? data.presets.filter(Boolean) : [];
+        if (!incoming.length) return;
+        state.presets = incoming.slice(0, MAX_PRESET_SLOTS);
+        savePresetsToStorage();
+        presetsDirty = true;
+      })
+      .catch(() => {});
+  }
+
   loadCustomFaceFromStorage();
+  seedPresetsFromJson();
   window.PaperdollSandbox = api;
 })(typeof window !== "undefined" ? window : null, typeof document !== "undefined" ? document : null);
