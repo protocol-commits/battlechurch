@@ -6427,7 +6427,7 @@ if (typeof window !== "undefined") {
 }
 
 const PLAYER_SPRITE_PATH = "assets/sprites/npcs/mana-seed/";
-const BACKGROUND_MID_PATH = "assets/backgrounds/mid-bg.png";
+const BACKGROUND_MID_PATH = "";
 const BACKGROUND_FLOOR_PATH = "assets/backgrounds/background-6.png";
 const TITLE_BACKGROUND_PATH = "assets/backgrounds/title.png";
 const DISTRICT_INTRO_BACKGROUND_PATH = "assets/backgrounds/mission-1.png";
@@ -7865,12 +7865,17 @@ async function loadCozyNpcAssets(cache) {
   const mapHurtFilename = (filename) =>
     NPC_HURT_FILENAME_OVERRIDES[filename] || filename.replace("_walk.png", "_hurt.png");
 
+  // Only load separate-sprite NPC assets when explicitly opted-in via npc_variants.js.
+  const separateAssetsAvailable = Boolean(window.BattlechurchNpcVariants?.enabled);
+
   let baseWalk = null;
   let baseHurt = null;
   let eyes = null;
-  try { baseWalk = await loadCachedImage(cache, `${NPC_WALK_ROOT}/${NPC_BASE_VARIANT}`); } catch (_e) {}
-  try { baseHurt = await loadCachedImage(cache, `${NPC_COZY_HURT_ROOT}/${NPC_BASE_HURT_VARIANT}`); } catch (_e) {}
-  try { eyes = await loadCachedImage(cache, `${NPC_WALK_ROOT}/eyes/${NPC_EYE_LAYER}`); } catch (_e) {}
+  if (separateAssetsAvailable) {
+    try { baseWalk = await loadCachedImage(cache, `${NPC_WALK_ROOT}/${NPC_BASE_VARIANT}`); } catch (_e) {}
+    try { baseHurt = await loadCachedImage(cache, `${NPC_COZY_HURT_ROOT}/${NPC_BASE_HURT_VARIANT}`); } catch (_e) {}
+    try { eyes = await loadCachedImage(cache, `${NPC_WALK_ROOT}/eyes/${NPC_EYE_LAYER}`); } catch (_e) {}
+  }
 
   const loadVariantGroup = async (folder, filenames) => {
     const walkRoot = `${NPC_WALK_ROOT}/${folder}`;
@@ -8008,11 +8013,11 @@ async function loadCozyNpcAssets(cache) {
     }
   };
 
-  const hairVariants = await loadVariantGroup("hair", NPC_HAIR_VARIANTS);
-  const clothingVariants = await loadVariantGroup("clothes", NPC_CLOTHING_VARIANTS);
-  const accessoryVariants = await loadVariantGroup("acc", NPC_ACCESSORY_VARIANTS);
-  const shoesWalk = await loadShoes("walk");
-  const shoesHurt = await loadShoes("hurt");
+  const hairVariants = separateAssetsAvailable ? await loadVariantGroup("hair", NPC_HAIR_VARIANTS) : { walk: {}, hurt: {} };
+  const clothingVariants = separateAssetsAvailable ? await loadVariantGroup("clothes", NPC_CLOTHING_VARIANTS) : { walk: {}, hurt: {} };
+  const accessoryVariants = separateAssetsAvailable ? await loadVariantGroup("acc", NPC_ACCESSORY_VARIANTS) : { walk: {}, hurt: {} };
+  const shoesWalk = separateAssetsAvailable ? await loadShoes("walk") : null;
+  const shoesHurt = separateAssetsAvailable ? await loadShoes("hurt") : null;
 
   let shadow = null;
   try {
@@ -8132,14 +8137,10 @@ async function loadPlayerAssets(cache, assets) {
       renderScale: Number(baseDef.renderScale) || 1,
     };
   };
-  const playerEntries = Object.entries(ASSET_MANIFEST.player).map(async ([key, def]) => {
-    try {
-      assets.player[key] = await loadAnimationClip(def, cache);
-    } catch (_e) {
-      assets.player[key] = buildFallbackClip(def, key);
-    }
-  });
-  await Promise.all(playerEntries);
+  // Player is rendered by the paperdoll system; skip legacy sprite network requests.
+  for (const [key, def] of Object.entries(ASSET_MANIFEST.player)) {
+    assets.player[key] = buildFallbackClip(def, key);
+  }
 }
 
 async function loadProjectileAssets(cache, assets) {
@@ -8577,9 +8578,11 @@ async function loadBackgroundAssets(cache, assets) {
       if (!assets.backgrounds) assets.backgrounds = { gameOver: null };
       assets.backgrounds.gameOver = null;
     });
-  const midPromise = loadImage(BACKGROUND_MID_PATH)
-    .then((img) => { assets.backgroundLayers.mid = maybeApplyArenaBackgroundShadowCrush(img); })
-    .catch(() => { assets.backgroundLayers.mid = null; });
+  const midPromise = BACKGROUND_MID_PATH
+    ? loadImage(BACKGROUND_MID_PATH)
+        .then((img) => { assets.backgroundLayers.mid = maybeApplyArenaBackgroundShadowCrush(img); })
+        .catch(() => { assets.backgroundLayers.mid = null; })
+    : Promise.resolve().then(() => { assets.backgroundLayers.mid = null; });
   const floorPromise = loadImage("assets/backgrounds/floors/floor-demon-2.png")
     .then((img) => { assets.backgroundLayers.floor = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floor = null; });

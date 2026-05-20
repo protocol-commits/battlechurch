@@ -522,6 +522,7 @@
 
   function paperdollLayerPath(page, layerKey, token) {
     if (!token || token === "none") return null;
+    if (page === "p1" && (layerKey === "6tla" || layerKey === "7tlb")) return null;
     const clean = String(token || "").trim();
     if (!clean) return null;
     const filename = clean.endsWith(".png")
