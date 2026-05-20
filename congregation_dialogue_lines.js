@@ -110,18 +110,18 @@
 
 
   const lostFaith = [
-    "I can't do this anymore.",
-    "I'm done with all this.",
-    "This isn't worth it.",
-    "Nobody noticed I was struggling.",
-    "I tried. I really tried.",
-    "I'm not strong enough for this.",
-    "I can't keep pretending anymore.",
-    "Please don't follow me.",
-    "I just need to get out of here.",
-    "I'm sorry. This just didn't work.",
-    "I thought I could hold on.",
-    "Nobody truly cared for me.",
+"I can't do this anymore.",
+"I'm just... tired.",
+"I tried. I really tried.",
+"I thought I could hold on.",
+"I'm not strong enough for this.",
+"I don't have anything left.",
+"I need to step away.",
+"I can't keep up anymore.",
+"I wasn't ready for this.",
+"I think I need to leave.",
+"I don't feel like myself anymore.",
+"I wanted this to work.",
   ];
 
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
