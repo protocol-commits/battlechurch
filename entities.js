@@ -2871,7 +2871,7 @@
     const effectiveStreamCount = Math.min(7, streamCount + bonusStreams);
     const rateMultiplier = Math.max(0.7, ((level / 2) / effectiveStreamCount) * 2.0); // faster spread cadence for machine-gun feel
     this.spreadGunExtraTimer = this.getArrowCooldown() / rateMultiplier;
-    const spreadStep = 0.15;
+    const spreadStep = this.spreadGunTuning?.spreadStep ?? 0.15;
     const perp = { x: -direction.y, y: direction.x };
     const pairs = Math.floor(effectiveStreamCount / 2);
     const hasAlternating = (effectiveStreamCount % 2) === 1;
@@ -2884,7 +2884,7 @@
           : null;
         if (baseArrowSpeed && baseArrowSpeed > 0) {
           // Laser tracers should feel snappy and precise.
-          overrides.speed = baseArrowSpeed * 1.9;
+          overrides.speed = baseArrowSpeed * (this.spreadGunTuning?.tracerSpeedMultiplier ?? 1.9);
           const travelDistance = Number.isFinite(life) ? baseArrowSpeed * life : null;
           if (travelDistance && travelDistance > 0) {
             overrides.life = travelDistance / overrides.speed;

@@ -11315,6 +11315,7 @@ function applyWeaponPickupEffect(pickup) {
       player.spreadGunDuration = Math.max(player.spreadGunDuration, sgDuration);
       player.spreadGunMaxDuration = config.duration;
       player.spreadGunLevel = Math.max(player.spreadGunLevel || 0, sgLevel);
+      if (def?.tuning) player.spreadGunTuning = { ...def.tuning };
       showWeaponPowerupConfigText(config);
       break;
     }
@@ -11333,6 +11334,15 @@ function applyWeaponPickupEffect(pickup) {
       player.haloMaxDuration = config.duration;
       player.haloTimerSecondary = Math.max(player.haloTimerSecondary || 0, haloSecondaryDur);
       player.haloLevel = Math.max(player.haloLevel || 0, haloLevel);
+      if (def?.tuning) {
+        const t = def.tuning;
+        for (const state of [haloBladeState, haloBladeStateSecondary, haloBladeStateBonus]) {
+          if (Number.isFinite(t.damage)) state.damage = t.damage;
+          if (Number.isFinite(t.orbitRadius)) state.radius = t.orbitRadius * WORLD_SCALE;
+          if (Number.isFinite(t.rotationSpeed)) state.speed = t.rotationSpeed;
+          if (Number.isFinite(t.hitCooldown)) state.hitCooldown = t.hitCooldown;
+        }
+      }
       showWeaponPowerupConfigText(config);
       break;
     }
@@ -11351,6 +11361,16 @@ function applyWeaponPickupEffect(pickup) {
       player.spearMaxDuration = config.duration;
       player.spearTimerSecondary = Math.max(player.spearTimerSecondary || 0, spearSecondaryDur);
       player.spearLevel = Math.max(player.spearLevel || 0, spearLevel);
+      if (def?.tuning) {
+        const t = def.tuning;
+        for (const state of [spearState, spearStateSecondary, spearStateBonus]) {
+          if (Number.isFinite(t.damage)) state.damage = t.damage;
+          if (Number.isFinite(t.speed)) state.speed = t.speed * WORLD_SCALE;
+          if (Number.isFinite(t.hitCooldown)) state.hitCooldown = t.hitCooldown;
+          if (Number.isFinite(t.pauseDuration)) state.pauseDuration = t.pauseDuration;
+          if (Number.isFinite(t.searchSpinSpeed)) state.searchSpinSpeed = t.searchSpinSpeed;
+        }
+      }
       showWeaponPowerupConfigText(config);
       break;
     }
@@ -11369,6 +11389,18 @@ function applyWeaponPickupEffect(pickup) {
       player.sentryMaxDuration = config.duration;
       player.sentryTimerSecondary = Math.max(player.sentryTimerSecondary || 0, sentrySecondaryDur);
       player.sentryLevel = Math.max(player.sentryLevel || 0, sentryLevel);
+      if (def?.tuning) {
+        const t = def.tuning;
+        for (const state of [sentryState, sentryStateSecondary, sentryStateBonus]) {
+          if (Number.isFinite(t.damage)) state.damage = t.damage;
+          if (Number.isFinite(t.hitInterval)) state.hitInterval = t.hitInterval;
+          if (Number.isFinite(t.beamCooldown)) state.beamCooldown = t.beamCooldown;
+          if (Number.isFinite(t.beamPulseDuration)) state.beamPulseDuration = t.beamPulseDuration;
+          if (Number.isFinite(t.sweepStep)) state.sweepStep = t.sweepStep;
+          if (Number.isFinite(t.pulseSweepAmount)) state.pulseSweepAmount = t.pulseSweepAmount;
+          if (Number.isFinite(t.pulseSweepSpeed)) state.pulseSweepSpeed = t.pulseSweepSpeed;
+        }
+      }
       showWeaponPowerupConfigText(config);
       break;
     }

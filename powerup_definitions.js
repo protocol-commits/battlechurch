@@ -200,6 +200,10 @@
       iconSrc: `${CHURCH_POWERUP_ROOT}/Spread.png`,
       shopDescription: "Multiply ministry through small groups.",
       levelCosts: CHURCH_LEVEL_COSTS,
+      tuning: {
+        spreadStep: 0.15,            // radians between each tracer pair
+        tracerSpeedMultiplier: 1.9,  // tracer speed multiplier vs base arrow speed
+      },
     },
     halo: {
       src: `${CHURCH_POWERUP_ROOT}/Dagger.png`,
@@ -212,6 +216,12 @@
       iconSrc: "assets/sprites/items/icons/A13_Headband.png",
       shopDescription: "Establish a prayer chain",
       levelCosts: CHURCH_LEVEL_COSTS,
+      tuning: {
+        damage: 20,
+        orbitRadius: 288,   // game pixels (world scale applied at runtime)
+        rotationSpeed: 5.6, // radians/sec
+        hitCooldown: 0.25,  // seconds between hits on the same target
+      },
     },
     spear: {
       src: `${CHURCH_POWERUP_ROOT}/Spear.png`,
@@ -224,6 +234,13 @@
       iconSrc: `${CHURCH_POWERUP_ROOT}/Spear.png`,
       shopDescription: "Mobilize a Care Ministry.",
       levelCosts: CHURCH_LEVEL_COSTS,
+      tuning: {
+        damage: 20,
+        speed: 1000,           // pixels/sec (world scale applied at runtime)
+        hitCooldown: 0.15,     // seconds between hits on the same target
+        pauseDuration: 0.04,   // seconds the spear pauses at its target before retargeting
+        searchSpinSpeed: 1.2,  // radians/sec spin speed while searching for a target
+      },
     },
     sentry: {
       src: `${CHURCH_POWERUP_ROOT}/Lantern.png`,
@@ -236,6 +253,15 @@
       iconSrc: `${CHURCH_POWERUP_ROOT}/Lantern.png`,
       shopDescription: "Grow leaders to take initiative.",
       levelCosts: CHURCH_LEVEL_COSTS,
+      tuning: {
+        damage: 10,
+        hitInterval: 0.02,       // seconds between damage ticks (lower = more DPS)
+        beamCooldown: 0.55,      // gap between beam pulses
+        beamPulseDuration: 0.34, // how long each beam pulse lasts
+        sweepStep: 0.349,        // radians rotated per target scan step (~20deg, Math.PI/9)
+        pulseSweepAmount: 0.15, // arc swept across locked target per pulse (~18deg, Math.PI/10)
+        pulseSweepSpeed: 0.4,    // radians/sec sweep speed during pulse
+      },
     },
   };
 
