@@ -3952,7 +3952,7 @@ function showWaveHealthSnapshot() {
     const longLine =
       typeof waveEndConfig.longLine === "function"
         ? waveEndConfig.longLine(faith, formationLabel)
-        : `${faith}: This ${formationLabel} is really helping me.`;
+        : "Doing fine";
     addSpeaker(longLineNpc, longLine, longLineLife);
   }
 
@@ -3989,7 +3989,9 @@ function showWaveHealthSnapshot() {
   }
 
   speakers.forEach(({ npc, line, life }) => {
-    npcCheer(npc, line, UI_COLOR.speechBubbleText, { life });
+    const faith = Math.max(0, Math.round(npc?.faith || 0));
+    const shortLine = String(line || "").trim() || "Holding on";
+    npcCheer(npc, `${faith}\n${shortLine}`, UI_COLOR.speechBubbleText, { life });
   });
 }
 

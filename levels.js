@@ -11,6 +11,8 @@
   const HERO_ENCOURAGEMENT_LINES = levelData.heroEncouragementLines || [];
   const NPC_AGREEMENT_LINES = levelData.npcAgreementLines || [];
   const CONGREGATION_WAVE_INTRO = congregationDialogue.waveIntro || {};
+  const MISSION_BRIEF_SCENARIOS =
+    ((typeof window !== "undefined" && window.BattlechurchMissionBrief?.scenarios) || []);
   const BATTLE_SCENARIOS = levelData.battleScenarios || [];
   function getAvailableBattleScenarios() {
     if (Array.isArray(BATTLE_SCENARIOS) && BATTLE_SCENARIOS.length) {
@@ -36,103 +38,22 @@
     }
     return _battleScenarioPool.pop();
   }
-  const BATTLE_SCENARIO_WAVE_ARCS = Object.freeze({
-    "death of a close family member": [
-      "Shock and Numbness",
-      "Waves of Grief",
-      "Holding On in Grief with Steady Trust",
-    ],
-    "death of a spouse": [
-      "Grief and Emptiness",
-      "Role Loss and Loneliness",
-      "Holding On in Faith While Relearning Life",
-    ],
-    "divorce": [
-      "Acute Grief",
-      "Rejection Wounds and Future Fear",
-      "Fighting Forward in Trust Toward Healing and Peace",
-    ],
-    "ongoing marital conflict": [
-      "Escalating Tension",
-      "Emotional Exhaustion",
-      "Standing Firm in Faith for Repair and Forgiveness",
-    ],
-    "loss of a job": [
-      "Panic and Loss of Security",
-      "Vocational Shame and Self-Doubt",
-      "Fighting Forward in Faith for New Direction",
-    ],
-    "long-term unemployment": [
-      "Discouragement Loop",
-      "Identity Erosion and Hopelessness",
-      "Fighting in Faith with Renewed Hope",
-    ],
-    "severe financial hardship": [
-      "Financial Anxiety and Decision Fatigue",
-      "Fear of Not Having Enough",
-      "Fighting in Trust for Daily Provision",
-    ],
-    "foreclosure or loss of a home": [
-      "Shock and Disorientation",
-      "Displacement Grief and Rootlessness",
-      "Fighting in Faith for Shelter and Steady Ground",
-    ],
-    "chronic illness": [
-      "Weariness and Uncertainty",
-      "Fatigue and Frustration",
-      "Holding On in Trust for Strength Today",
-    ],
-    "caring for a terminally ill loved one": [
-      "Anticipatory Grief",
-      "Caregiver Burnout",
-      "Holding On in Faith with Meaningful Presence",
-    ],
-    "mental health struggles": [
-      "Racing Thoughts and Emotional Numbness",
-      "Isolation Spiral",
-      "Holding On in Trust for Light and Help",
-    ],
-    "addiction": [
-      "Cravings and Triggers",
-      "Guilt, Shame, and Self-Condemnation",
-      "Fighting in Faith for Recovery and Integrity",
-    ],
-    "relapse after recovery": [
-      "Setback Shock and Relapse Despair",
-      "Shame and Self-Condemnation",
-      "Fighting Back in Trust Toward Restoration",
-    ],
-    "caring for an aging parent": [
-      "Role Reversal Grief and Overwhelm",
-      "Compassion Fatigue",
-      "Fighting in Trust for Grace in Daily Care",
-    ],
-    "parenting a child with special needs": [
-      "Constant Vigilance and Emotional Exhaustion",
-      "Decision Fatigue and Advocacy Burnout",
-      "Fighting in Faith for Sustainable Support",
-    ],
-    "parenting a troubled child": [
-      "Inner Turmoil and Relational Conflict",
-      "Helplessness and Heartbreak",
-      "Fighting in Trust with Patient Hope",
-    ],
-    "betrayal by a close friend": [
-      "Shock and Anger",
-      "Mistrust and Bitterness",
-      "Holding On in Faith with Forgiveness and Boundaries",
-    ],
-    "deep loneliness": [
-      "Silent Isolation",
-      "Rejection Fear and Self-Worth Doubt",
-      "Holding On in Trust for Belonging",
-    ],
-    "workplace hostility": [
-      "Moral Injury and Chronic Stress",
-      "Fear and Hypervigilance",
-      "Standing Firm in Faith with Courage and Clarity",
-    ],
-  });
+  function buildScenarioWaveArcMap(scenarios) {
+    const out = {};
+    if (!Array.isArray(scenarios)) return out;
+    scenarios.forEach((entry) => {
+      if (!entry || typeof entry !== "object") return;
+      const title = typeof entry.title === "string" ? entry.title.trim() : "";
+      if (!title) return;
+      const waveArc = Array.isArray(entry.waveArc)
+        ? entry.waveArc.map((line) => String(line || "").trim()).filter(Boolean)
+        : [];
+      if (!waveArc.length) return;
+      out[normalizeScenarioKey(title)] = waveArc;
+    });
+    return out;
+  }
+  const BATTLE_SCENARIO_WAVE_ARCS = Object.freeze(buildScenarioWaveArcMap(MISSION_BRIEF_SCENARIOS));
   const BOSS_BATTLE_THEMES = levelData.bossBattleThemes || [];
   const BOSS_PASTOR_PROBLEMS =
     levelData.bossPastorProblems || [

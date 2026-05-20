@@ -82,7 +82,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -181,7 +180,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -284,7 +282,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -397,7 +394,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -540,7 +536,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -683,7 +678,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -839,7 +833,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -982,7 +975,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -1125,7 +1117,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -1281,7 +1272,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -1529,7 +1519,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -1652,7 +1641,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -1783,7 +1771,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -1936,7 +1923,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -2075,7 +2061,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -2226,7 +2211,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -2402,7 +2386,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -2533,7 +2516,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -2684,7 +2666,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -2864,7 +2845,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -3112,7 +3092,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -3251,7 +3230,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -3410,7 +3388,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -3590,7 +3567,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -3733,7 +3709,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -3888,7 +3863,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -4072,7 +4046,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -4223,7 +4196,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -4390,7 +4362,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -4578,7 +4549,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -4826,7 +4796,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -4949,7 +4918,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -5076,7 +5044,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -5220,7 +5187,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -5351,7 +5317,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -5482,7 +5447,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -5626,7 +5590,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -5761,7 +5724,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -5892,7 +5854,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -6036,7 +5997,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -6284,7 +6244,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -6399,7 +6358,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -6522,7 +6480,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -6655,7 +6612,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -6790,7 +6746,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -6933,7 +6888,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -7101,7 +7055,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -7236,7 +7189,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -7379,7 +7331,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -7547,7 +7498,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -7795,7 +7745,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -7910,7 +7859,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -8033,7 +7981,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -8177,7 +8124,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -8312,7 +8258,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -8455,7 +8400,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -8623,7 +8567,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -8758,7 +8701,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -8901,7 +8843,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -9069,7 +9010,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -9317,7 +9257,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -9500,7 +9439,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -9603,7 +9541,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -9720,7 +9657,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -9855,7 +9791,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -9998,7 +9933,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -10166,7 +10100,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -10301,7 +10234,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -10444,7 +10376,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -10612,7 +10543,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -10860,7 +10790,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -10927,7 +10856,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -10989,7 +10917,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -11057,7 +10984,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -11192,7 +11118,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -11335,7 +11260,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -11503,7 +11427,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle!",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -11638,7 +11561,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "In our next session, let's focus our faith.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -11781,7 +11703,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "In our final session, encourage one another.",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -11949,7 +11870,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -12197,7 +12117,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle! 9.1.1.A",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -12312,7 +12231,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "9.1.1.B",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -12447,7 +12365,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "9.1.1.C",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -12588,7 +12505,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle! 9.1.1.A",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -12703,7 +12619,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "9.1.1.B",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -12838,7 +12753,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "9.1.1.C",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -12979,7 +12893,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle! 9.1.1.A",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -13094,7 +13007,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "9.1.1.B",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -13229,7 +13141,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "9.1.1.C",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -13370,7 +13281,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -13618,7 +13528,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle! 9.1.1.A",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -13801,7 +13710,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "9.1.1.B",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -13956,7 +13864,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "9.1.1.C",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -14117,7 +14024,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle! 9.1.1.A",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -14252,7 +14158,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "9.1.1.B",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -14387,7 +14292,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "9.1.1.C",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -14538,7 +14442,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "Prepare for battle! 9.1.1.A",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -14653,7 +14556,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 2,
-              "introText": "9.1.1.B",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -14788,7 +14690,6 @@ window.BattlechurchLevelData = {
             },
             {
               "index": 3,
-              "introText": "9.1.1.C",
               "breakerDuration": 3,
               "hordes": [
                 {
@@ -14929,7 +14830,6 @@ window.BattlechurchLevelData = {
           "waves": [
             {
               "index": 1,
-              "introText": "",
               "breakerDuration": 3,
               "hordes": [
                 {

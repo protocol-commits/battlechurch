@@ -13223,7 +13223,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         }
       });
       orderedEnemies.forEach((enemy) => enemy.draw());
-      drawEdgeShadowEnemyBlur(ctx, canvas, orderedEnemies, effectiveCameraX, effectiveCameraY, levelStatus);
       drawSwarmGroupCounters(ctx, orderedEnemies);
       if (activeBoss) activeBoss.draw(ctx);
       drawEnemyWeaponHitboxDebugs(ctx, orderedEnemies, activeBoss);
@@ -14341,20 +14340,38 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       if (style === "speech") {
         ctx.textBaseline = "middle";
         const wrapWidth = Number.isFinite(ft.bubbleMaxWidth) && ft.bubbleMaxWidth > 0 ? ft.bubbleMaxWidth : 220;
-        const speechLines = rawText
-          .split("\n")
+        const rawSpeechLines = rawText.split("\n");
+        const isNpcHpStatusBubble =
+          (ft.bubbleTheme || "default") === "npc" &&
+          /^\d+$/i.test(String(rawSpeechLines[0] || "").trim());
+        let speechLines = rawSpeechLines
           .flatMap((line) => {
             const wrapped = wrapText(ctx, line, wrapWidth);
             return wrapped.length ? wrapped : [""];
           });
-        const bubbleTextWidth = speechLines.reduce((max, line) => {
+        let bubbleTextWidth = speechLines.reduce((max, line) => {
           const width = ctx.measureText(line).width;
           return Math.max(max, width);
         }, 0);
         const paddingX = 10;
         const paddingY = 8;
+        const hpFontSize = Math.max(fontSize + 5, Math.round(fontSize * 1.4));
+        const statusFontSize = fontSize;
+        let bubbleHeight = speechLines.length * lineHeight + paddingY * 2;
+        if (isNpcHpStatusBubble) {
+          const hpLine = String(rawSpeechLines[0] || "").trim();
+          const statusLine = String(rawSpeechLines[1] || "").trim();
+          speechLines = [hpLine, statusLine || ""];
+          const previousFont = ctx.font;
+          ctx.font = `700 ${hpFontSize}px ${fontFamily}`;
+          const hpWidth = ctx.measureText(hpLine).width;
+          ctx.font = `${fontWeight} ${statusFontSize}px ${fontFamily}`;
+          const statusWidth = ctx.measureText(statusLine || "").width;
+          ctx.font = previousFont;
+          bubbleTextWidth = Math.max(hpWidth, statusWidth);
+          bubbleHeight = Math.round(hpFontSize * 1.05 + statusFontSize * 1.15 + paddingY * 2 + 4);
+        }
         const bubbleWidth = bubbleTextWidth + paddingX * 2;
-        const bubbleHeight = speechLines.length * lineHeight + paddingY * 2;
         const bubbleX = drawX - bubbleWidth / 2;
         const bubbleY = drawY - bubbleHeight - 10;
         const cornerRadius = 10;
@@ -14438,15 +14455,29 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
         ctx.shadowBlur = 4;
         ctx.shadowOffsetY = 1;
-        speechLines.forEach((line, index) => {
-          const lineY =
-            bubbleY +
-            paddingY +
-            lineHeight * index +
-            lineHeight / 2;
-          ctx.strokeText(line, drawX, lineY);
-          ctx.fillText(line, drawX, lineY);
-        });
+        if (isNpcHpStatusBubble) {
+          const hpLine = speechLines[0] || "";
+          const statusLine = speechLines[1] || "";
+          const hpLineY = bubbleY + paddingY + Math.round(hpFontSize * 0.55);
+          const statusLineY = bubbleY + bubbleHeight - paddingY - Math.round(statusFontSize * 0.45);
+          ctx.font = `700 ${hpFontSize}px ${fontFamily}`;
+          ctx.strokeText(hpLine, drawX, hpLineY);
+          ctx.fillText(hpLine, drawX, hpLineY);
+          ctx.font = `${fontWeight} ${statusFontSize}px ${fontFamily}`;
+          ctx.strokeText(statusLine, drawX, statusLineY);
+          ctx.fillText(statusLine, drawX, statusLineY);
+          ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        } else {
+          speechLines.forEach((line, index) => {
+            const lineY =
+              bubbleY +
+              paddingY +
+              lineHeight * index +
+              lineHeight / 2;
+            ctx.strokeText(line, drawX, lineY);
+            ctx.fillText(line, drawX, lineY);
+          });
+        }
         ctx.restore();
       } else if (style === "status") {
         ctx.textBaseline = "middle";
