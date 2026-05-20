@@ -1,0 +1,448 @@
+{
+  "presets": [
+    {
+      "name": "idle",
+      "pageIndex": 2,
+      "facingIndex": 2,
+      "animIndex": 6,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 0,
+        "7tlb": 0
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778079759415
+    },
+    {
+      "name": "Smash",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 14,
+      "behaviorIndex": 1,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 6
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778092457029
+    },
+    {
+      "name": "SlashBash",
+      "pageIndex": 1,
+      "facingIndex": 2,
+      "animIndex": 5,
+      "behaviorIndex": 0,
+      "playbackSpeed": 0.9,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": false
+      },
+      "savedAt": 1778090856416
+    },
+    {
+      "name": "SlashUp",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 12,
+      "behaviorIndex": 2,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 0
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778100088398
+    },
+    {
+      "name": "Run",
+      "pageIndex": 0,
+      "facingIndex": 2,
+      "animIndex": 1,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778076804828
+    },
+    null,
+    {
+      "name": "SlashDown",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 13,
+      "behaviorIndex": 2,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 0
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778100079265
+    },
+    {
+      "name": "ShieldBash",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 15,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778076723677
+    },
+    null,
+    {
+      "name": "walk",
+      "pageIndex": 0,
+      "facingIndex": 2,
+      "animIndex": 0,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 6
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778077032313
+    },
+    {
+      "name": "ProjectileWand",
+      "pageIndex": 1,
+      "facingIndex": 2,
+      "animIndex": 5,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 15,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778077428309
+    },
+    {
+      "name": "ProjectileEmpty",
+      "pageIndex": 1,
+      "facingIndex": 2,
+      "animIndex": 5,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 0,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778077449942
+    },
+    {
+      "name": "ProjectileWandFast",
+      "pageIndex": 1,
+      "facingIndex": 2,
+      "animIndex": 5,
+      "behaviorIndex": 0,
+      "playbackSpeed": 2.000000000000001,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 15,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778077498504
+    },
+    {
+      "name": "thrust",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 14,
+      "behaviorIndex": 1,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 6
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778087057593
+    },
+    {
+      "name": "projectiledown",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 13,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 15,
+        "7tlb": 0
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778079978100
+    },
+    {
+      "name": "projectileup",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 12,
+      "behaviorIndex": 0,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 15,
+        "7tlb": 0
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778079990775
+    },
+    {
+      "name": "Blast",
+      "pageIndex": 1,
+      "facingIndex": 2,
+      "animIndex": 5,
+      "behaviorIndex": 0,
+      "playbackSpeed": 0.9,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 5,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": false
+      },
+      "savedAt": 1778091928092
+    },
+    {
+      "name": "readytofire",
+      "pageIndex": 2,
+      "facingIndex": 0,
+      "animIndex": 7,
+      "behaviorIndex": 0,
+      "playbackSpeed": 0.9,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 15,
+        "7tlb": 3
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": false
+      },
+      "savedAt": 1778094594846
+    },
+    {
+      "name": "thrustmagic",
+      "pageIndex": 3,
+      "facingIndex": 2,
+      "animIndex": 14,
+      "behaviorIndex": 1,
+      "playbackSpeed": 1,
+      "loop": true,
+      "layerSelection": {
+        "0bas": 0,
+        "1out": 7,
+        "4har": 18,
+        "5hat": 0,
+        "6tla": 15,
+        "7tlb": 6
+      },
+      "layerVisible": {
+        "0bas": true,
+        "1out": true,
+        "4har": true,
+        "5hat": true,
+        "6tla": true,
+        "7tlb": true
+      },
+      "savedAt": 1778094997275
+    }
+  ]
+}
