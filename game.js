@@ -2623,6 +2623,7 @@ const devTools = {
   showCombatDebug: false,
   showNpcZones: false,
   showSpawnDebug: false,
+  ambientSmokeEnabled: false,
   disableCameraScroll: true,
   threeLivesMode: loadDevThreeLivesMode(),
   enemyHpBarThreshold: 100,
@@ -21643,6 +21644,7 @@ function showDeveloperOverlay() {
         const defs = [
           { key: "npcZones", label: "NPC Zones", custom: true },
           { key: "spawnDebug", label: "Spawn Borders", custom: true },
+          { key: "ambientSmoke", label: "Red Smoke", custom: true },
           { key: "cameraScroll", label: "Camera Scroll", custom: true },
           { key: "typographyLabels", label: "Typography Labels", custom: true },
           { key: "speedrunTimer", label: "Speedrun Timer", custom: true },
@@ -21664,6 +21666,8 @@ function showDeveloperOverlay() {
                 ? Boolean(devTools.showNpcZones)
                 : key === "spawnDebug"
                   ? Boolean(devTools.showSpawnDebug)
+                  : key === "ambientSmoke"
+                    ? Boolean(devTools.ambientSmokeEnabled)
                   : key === "cameraScroll"
                     ? !Boolean(devTools.disableCameraScroll)
                     : key === "typographyLabels"
@@ -21682,6 +21686,8 @@ function showDeveloperOverlay() {
                 devTools.showNpcZones = !devTools.showNpcZones;
               } else if (key === "spawnDebug") {
                 devTools.showSpawnDebug = !devTools.showSpawnDebug;
+              } else if (key === "ambientSmoke") {
+                devTools.ambientSmokeEnabled = !devTools.ambientSmokeEnabled;
               } else if (key === "cameraScroll") {
                 devTools.disableCameraScroll = !devTools.disableCameraScroll;
               } else if (key === "typographyLabels") {
@@ -30036,7 +30042,7 @@ function gameLoop(timestamp) {
   syncSpiritRealmAmbient();
   syncBattleTeaserCreepyAmbient();
   Renderer.drawFrame();
-  if (AMBIENT_SMOKE_CONFIG.enabled) {
+  if (AMBIENT_SMOKE_CONFIG.enabled && devTools.ambientSmokeEnabled) {
     Renderer.drawAmbientSmokeOverlay?.();
   }
   if (AMBIENT_SMOKE_CONFIG.debugVisible) {

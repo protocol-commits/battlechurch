@@ -537,6 +537,11 @@
           <div style="display:flex;gap:8px;margin-top:8px;">
             <button id="paperdollSaveGameConfig" type="button" style="flex:1;padding:8px;background:#254122;color:#e8edf7;border:1px solid #4f8d45;border-radius:8px;cursor:pointer;">Save Config File</button>
           </div>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <button id="paperdollExportPresets" type="button" style="flex:1;padding:6px;background:#1a2340;color:#e8edf7;border:1px solid #3a4a6a;border-radius:8px;cursor:pointer;font-size:11px;">Export Presets</button>
+            <button id="paperdollImportPresets" type="button" style="flex:1;padding:6px;background:#1a2340;color:#e8edf7;border:1px solid #3a4a6a;border-radius:8px;cursor:pointer;font-size:11px;">Import Presets</button>
+            <input id="paperdollImportPresetsFile" type="file" accept=".json" style="display:none;">
+          </div>
         </div>
       </div>
     `;
@@ -548,6 +553,9 @@
     controlsRoot = overlay.querySelector("#paperdollSandboxControls");
 
     overlay.querySelector("#paperdollSaveGameConfig")?.addEventListener("click", saveConfigFileWithPrompt);
+    overlay.querySelector("#paperdollExportPresets")?.addEventListener("click", exportPresetsToFile);
+    overlay.querySelector("#paperdollImportPresets")?.addEventListener("click", () => overlay.querySelector("#paperdollImportPresetsFile")?.click());
+    overlay.querySelector("#paperdollImportPresetsFile")?.addEventListener("change", onImportPresetsFileChange);
     controlsRoot?.addEventListener("click", onControlsClick);
     controlsRoot?.addEventListener("change", onControlsInput);
     overlay.addEventListener("click", onPresetControlsClick);
@@ -1842,6 +1850,55 @@
       "})(typeof window !== \"undefined\" ? window : globalThis);",
       "",
     ].join("\n");
+  }
+
+  function exportPresetsToFile() {
+    const data = { presets: deepClone(state.presets, []) };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pastor-presets.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function onImportPresetsFileChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      let parsed;
+      try { parsed = JSON.parse(ev.target.result); } catch (_) {
+        alert("Could not read preset file — make sure it's a valid .json file exported from this tool.");
+        return;
+      }
+      const incoming = Array.isArray(parsed?.presets) ? parsed.presets : [];
+      if (!incoming.length) { alert("No presets found in that file."); return; }
+
+      // Merge: for each slot, keep existing preset if it's non-null; fill empty slots with incoming ones.
+      // Incoming presets that have no matching empty slot are appended up to MAX_PRESET_SLOTS.
+      const merged = deepClone(state.presets, []);
+      const pending = incoming.filter((p) => p != null);
+      // First pass: fill null/empty slots in order
+      for (let i = 0; i < MAX_PRESET_SLOTS && pending.length; i++) {
+        if (merged[i] == null) merged[i] = pending.shift();
+      }
+      // Second pass: append any remaining into new slots
+      while (merged.length < MAX_PRESET_SLOTS && pending.length) {
+        merged.push(pending.shift());
+      }
+      state.presets = merged.slice(0, MAX_PRESET_SLOTS);
+      savePresetsToStorage();
+      presetsDirty = true;
+      renderPresetControls();
+      const added = incoming.filter((p) => p != null).length - pending.length;
+      alert(`Imported ${added} preset(s). Your existing presets were kept in their slots.`);
+    };
+    reader.readAsText(file);
   }
 
   async function saveConfigFileWithPrompt() {
