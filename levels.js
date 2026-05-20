@@ -11,8 +11,6 @@
   const HERO_ENCOURAGEMENT_LINES = levelData.heroEncouragementLines || [];
   const NPC_AGREEMENT_LINES = levelData.npcAgreementLines || [];
   const CONGREGATION_WAVE_INTRO = congregationDialogue.waveIntro || {};
-  const MISSION_BRIEF_SCENARIOS =
-    ((typeof window !== "undefined" && window.BattlechurchMissionBrief?.scenarios) || []);
   const BATTLE_SCENARIOS = levelData.battleScenarios || [];
   function getAvailableBattleScenarios() {
     if (Array.isArray(BATTLE_SCENARIOS) && BATTLE_SCENARIOS.length) {
@@ -53,7 +51,11 @@
     });
     return out;
   }
-  const BATTLE_SCENARIO_WAVE_ARCS = Object.freeze(buildScenarioWaveArcMap(MISSION_BRIEF_SCENARIOS));
+  function getBattleScenarioWaveArcs() {
+    const scenarios =
+      ((typeof window !== "undefined" && window.BattlechurchMissionBrief?.scenarios) || []);
+    return buildScenarioWaveArcMap(scenarios);
+  }
   const BOSS_BATTLE_THEMES = levelData.bossBattleThemes || [];
   const BOSS_PASTOR_PROBLEMS =
     levelData.bossPastorProblems || [
@@ -277,8 +279,9 @@
       "Choosing the Next Step",
     ];
     const key = normalizeScenarioKey(scenarioTitle);
-    const base = Array.isArray(BATTLE_SCENARIO_WAVE_ARCS[key])
-      ? [...BATTLE_SCENARIO_WAVE_ARCS[key]]
+    const scenarioWaveArcs = getBattleScenarioWaveArcs();
+    const base = Array.isArray(scenarioWaveArcs[key])
+      ? [...scenarioWaveArcs[key]]
       : [...defaultArc];
     const safeCount = Math.max(1, Number(waveCount) || 1);
     while (base.length < safeCount) {

@@ -13,7 +13,7 @@
       title: "Death of a spouse",
       waveArc: [
         "Grief and Emptiness",
-        "Loneliness and Identity Loss",
+        "Feeling Alone",
         "Fighting for Faith Through Loneliness",
       ],
       recap: "Helped the members through the death of a spouse.\nThey went on to help others, and some were added to the church plant:",
@@ -22,7 +22,7 @@
       title: "Divorce",
       waveArc: [
         "Acute Grief",
-        "Rejection and Future Fear",
+        "Rejection and Fear of the Future",
         "Fighting for Peace and Healing",
       ],
       recap: "Helped the members through divorce.\nThey went on to help others, and some were added to the church plant:",
@@ -30,7 +30,7 @@
     {
       title: "Ongoing marital conflict",
       waveArc: [
-        "Escalating Tension",
+        "Resentment and Bitterness",
         "Emotional Exhaustion",
         "Fighting for Reconciliation",
       ],
@@ -49,7 +49,7 @@
       title: "Long-term unemployment",
       waveArc: [
         "Discouragement",
-        "Loss of Purpose and Hopelessness",
+        "Feeling Hopeless and Left Behind",
         "Fighting for Purpose and Hope",
       ],
       recap: "Helped the members through long-term unemployment.\nThey went on to help others, and some were added to the church plant:",
@@ -57,8 +57,8 @@
     {
       title: "Severe financial hardship",
       waveArc: [
-        "Financial Pressure",
-        "Fear of Running Out",
+        "Anxiety and Despair",
+        "Fear and Shame",
         "Fighting for Daily Trust",
       ],
       recap: "Helped the members through severe financial hardship.\nThey went on to help others, and some were added to the church plant:",
@@ -66,9 +66,9 @@
     {
       title: "Foreclosure or loss of a home",
       waveArc: [
-        "Shock and Disorientation",
-        "Fear of Having No Home",
-        "Fighting for Stability and Peace",
+        "Shock and Instability",
+        "Fear and Shame",
+        "Fighting for Peace and Stability",
       ],
       recap: "Helped the members through foreclosure or loss of a home.\nThey went on to help others, and some were added to the church plant:",
     },
@@ -95,7 +95,7 @@
       title: "Mental health struggles",
       waveArc: [
         "Racing Thoughts and Numbness",
-        "Isolation",
+        "Feeling Alone and Trapped",
         "Fighting for Light and Help",
       ],
       recap: "Helped the members through mental health struggles.\nThey went on to help others, and some were added to the church plant:",
@@ -131,8 +131,8 @@
     {
       title: "Raising a child with special needs",
       waveArc: [
-        "Constant Vigilance and Exhaustion",
-        "Burnout from Constant Care",
+        "Fear and Helplessness",
+        "Isolation and Burnout",
         "Fighting for Enduring Love and Patience",
       ],
       recap: "Helped the members through raising a child with special needs.\nThey went on to help others, and some were added to the church plant:",
@@ -140,7 +140,7 @@
     {
       title: "Raising a troubled child",
       waveArc: [
-        "Conflict and Emotional Turmoil",
+        "Fear and Turmoil",
         "Helplessness and Heartbreak",
         "Fighting for Hope for Their Child",
       ],
@@ -158,7 +158,7 @@
     {
       title: "Deep loneliness",
       waveArc: [
-        "Isolation",
+        "Feeling Alone",
         "Fear of Rejection",
         "Fighting for Belonging and Connection",
       ],
