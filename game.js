@@ -25634,7 +25634,7 @@ function getComboMoveNameForHit(meleeAttackState, explicitMoveName = null) {
   const hitboxType = String(meleeAttackState?.currentAttackHitboxType || "").trim();
   if (hitboxType === "swordRush") return "Thrash";
   if (hitboxType === "rush") return "Smash";
-  if (hitboxType === "holyGround") return "Hedge";
+  if (hitboxType === "holyGround") return MOVE_NAME_AC_SUPER;
   if (hitboxType === "slash" || hitboxType === "dashSlash") return "Slash";
   if (hitboxType === "spin") return "Reap";
   return "Slash";
@@ -26178,6 +26178,7 @@ function showComboTextAt(entity, comboDamage, hitCount, lastHitDamage = 0, force
 function executeBasicMeleeAttack(dir, meleeAttackState, swingCenterX, swingCenterY, options = {}) {
   // Canonical move name: "Slash" is the default A melee attack.
   const moveName = String(options?.moveNameOverride || "Slash");
+  showMoveBanner(moveName);
   registerComboMoveName(meleeAttackState, moveName);
   const damageMultiplier = Math.max(0.1, Number(options?.damageMultiplier) || 1) * getMoveMultiplier(moveName);
   const rangeMultiplier = Math.max(0.5, Number(options?.rangeMultiplier) || 1);
@@ -27010,7 +27011,10 @@ const _MB = {
   sim: () => ({ type: "sim" }),
   chg: () => ({ type: "chg" }),
 };
+const MOVE_NAME_AC_SUPER = "Hedge";
 const MOVE_BANNER_TOKENS = Object.freeze({
+  Slash:           [_MB.btn("A")],
+  Dash:            [_MB.btn("B")],
   Blast:           [_MB.chg(), _MB.btn("A")],
   Crash:           [_MB.chg(), _MB.btn("B")],
   Smash:           [_MB.btn("B"), _MB.seq(), _MB.btn("A")],
@@ -27018,7 +27022,7 @@ const MOVE_BANNER_TOKENS = Object.freeze({
   Reap:            [_MB.btn("C"), _MB.seq(), _MB.btn("A")],
   Clash:           [_MB.btn("C"), _MB.seq(), _MB.btn("B")],
   Trash:           [_MB.chg(), _MB.btn("B"), _MB.sim(), _MB.btn("C")],
-  Hedge:           [_MB.chg(), _MB.btn("A"), _MB.sim(), _MB.btn("C")],
+  [MOVE_NAME_AC_SUPER]: [_MB.chg(), _MB.btn("A"), _MB.sim(), _MB.btn("C")],
   Cleave:          [_MB.btn("A"), _MB.sim(), _MB.btn("B")],
   "Unity Strike":  [_MB.btn("C")],
   "Pastor Protect":[_MB.btn("C"), _MB.seq(), _MB.btn("C")],
@@ -27278,9 +27282,11 @@ function executeRingOfFireAttack(meleeAttackState) {
   const centerX = player.x;
   const centerY = player.y;
   executeSpinAttack(meleeAttackState, null, { skipYell: true });
+  // executeSpinAttack announces the base spin move ("Reap"); override to AC-super label.
+  showMoveBanner(MOVE_NAME_AC_SUPER);
   // Preserve Refuge identity for callouts/feed instead of generic Spin.
   meleeAttackState.currentAttackHitboxType = "holyGround";
-  registerComboMoveName(meleeAttackState, "Hedge");
+  registerComboMoveName(meleeAttackState, MOVE_NAME_AC_SUPER);
   meleeAttackState.ringFireActive = true;
   meleeAttackState.ringFirePhase = "trace";
   meleeAttackState.ringFireCenterX = centerX;
@@ -28016,7 +28022,7 @@ function updateChargeState(dt, meleeAttackState) {
     : abReady
       ? "Thrash"
       : acReady
-        ? "Hedge"
+        ? MOVE_NAME_AC_SUPER
         : teleportReady
           ? "Trash"
           : "";
@@ -28393,7 +28399,7 @@ function updateMeleeAttackSystem(dt) {
       const hitSet = meleeAttackState.spinHitEntities || new Set();
       meleeAttackState.spinHitEntities = hitSet;
       const spinHitboxType = String(meleeAttackState.currentAttackHitboxType || "");
-      const spinMoveName = spinHitboxType === "holyGround" ? "Hedge" : "Reap";
+      const spinMoveName = spinHitboxType === "holyGround" ? MOVE_NAME_AC_SUPER : "Reap";
       const spinMoveMultiplier = getMoveMultiplier(spinMoveName);
       const cos = Math.cos(-angle);
       const sin = Math.sin(-angle);
@@ -28914,7 +28920,9 @@ function updateMeleeAttackSystem(dt) {
         } else if (fullyCharged) {
           executeProtectedDash(meleeAttackState);
         } else if (!meleeAttackState.isRushing) {
-          tryStartDash(getDashButtonDirection());
+          if (tryStartDash(getDashButtonDirection())) {
+            showMoveBanner("Dash");
+          }
         }
       }
       meleeAttackState.cbHeldAtBPress = false;
@@ -29023,8 +29031,8 @@ function updateMeleeAttackSystem(dt) {
           );
           if (typeof Input !== "undefined") Input.prayerBombClickQueued = false;
           if (typeof cancelCongregationTap === "function") cancelCongregationTap();
-          showDualChargeReadyPreview(meleeAttackState, "Hedge", { executed: true });
-          showMoveBanner("Hedge");
+          showDualChargeReadyPreview(meleeAttackState, MOVE_NAME_AC_SUPER, { executed: true });
+          showMoveBanner(MOVE_NAME_AC_SUPER);
           executeRingOfFireAttack(meleeAttackState);
         } else if (fullyCharged) {
           const angleRad = Math.atan2(dir.y, dir.x);
