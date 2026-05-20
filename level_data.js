@@ -8159,7 +8159,18 @@ window.BattlechurchLevelData = {
               ]
             }
           ],
-          "editorNotes": "Ghost Attack!"
+          "editorNotes": "Ghost Attack!",
+          "assumedChurchPowerupLevels": {
+            "halo": 1,
+            "sentry": 1,
+            "spear": 1,
+            "spreadGun": 1
+          },
+          "assumedPastorPowerupLevels": {
+            "prayer": 1,
+            "hp": 1,
+            "dash": 1
+          }
         },
         {
           "index": 2,

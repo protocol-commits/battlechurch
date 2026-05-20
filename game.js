@@ -612,6 +612,7 @@ const weaponPickupAnnouncement = {
   title: "",
   description: "",
   color: UI_COLOR.softWhite,
+  iconSrc: "",
   timer: 0,
   duration: 0,
 };
@@ -3348,7 +3349,7 @@ const PASTOR_POWERUP_DEFS = {
       const level = getPastorPowerupLevel("prayer");
       const bars = getPastorPickupValue(byLevel, Math.max(1, level));
       const barsText = bars === 6 ? "your entire Prayer Meter" : `${bars} bar${bars !== 1 ? "s" : ""} of your Prayer Meter`;
-      return `Fills ${barsText} when picked up. Higher levels fill more.`;
+      return `+${bars} Prayer Meter`;
     },
     iconSrc: "assets/sprites/items/icons/Light.png",
   },
@@ -3359,7 +3360,7 @@ const PASTOR_POWERUP_DEFS = {
       const byLevel = window.GameBalance?.pastorPowerups?.hpAmountByLevel ?? PASTOR_PICKUP_HP_AMOUNT_BY_LEVEL;
       const level = getPastorPowerupLevel("hp");
       const hp = getPastorPickupValue(byLevel, Math.max(1, level));
-      return `Restores ${hp} HP instantly when picked up. Higher levels restore more.`;
+      return `+${hp} HP`;
     },
     iconSrc: "assets/sprites/items/icons/Heart.png",
   },
@@ -3372,7 +3373,7 @@ const PASTOR_POWERUP_DEFS = {
       const level = getPastorPowerupLevel("dash");
       const dur = getPastorPickupValue(byLevel, Math.max(1, level));
       const pct = Math.round((1 - mult) * 100);
-      return `Reduces your Dash cooldown by ${pct}% for ${dur} seconds when picked up. Higher levels last longer.`;
+      return `Faster dash recovery by ${pct}% for ${dur}s`;
     },
     iconSrc: "assets/sprites/items/Armour/A38_Iron_Boots.png",
   },
@@ -3413,6 +3414,15 @@ function applyPastorPowerupPickup(type) {
     speechText = `Stamina Boost ${Math.round(duration)}s`;
   }
   if (speechText) heroSay(speechText, { life: 2.2 });
+  const pastorDef = PASTOR_POWERUP_DEFS[type];
+  if (pastorDef) {
+    setWeaponPickupAnnouncement({
+      title: pastorDef.label || speechText || "Power Up",
+      description: pastorDef.description || "",
+      color: UI_COLOR.teal,
+      iconSrc: pastorDef.iconSrc || "",
+    });
+  }
 }
 
 if (typeof window !== "undefined") {
@@ -7281,14 +7291,16 @@ function resolveWeaponPowerupConfig(effect, def = {}) {
     description: overrides.description ?? defaults.description ?? "",
     hudDuration: overrides.hudDuration ?? defaults.hudDuration ?? 2.6,
     spokenName: overrides.spokenName ?? defaults.spokenName ?? null,
+    iconSrc: overrides.iconSrc ?? defaults.iconSrc ?? "",
   };
 }
 
-function setWeaponPickupAnnouncement({ title, description, color, duration } = {}) {
+function setWeaponPickupAnnouncement({ title, description, color, duration, iconSrc } = {}) {
   if (!title && !description) return;
   weaponPickupAnnouncement.title = title || "";
   weaponPickupAnnouncement.description = description || "";
   weaponPickupAnnouncement.color = color || UI_COLOR.softWhite;
+  weaponPickupAnnouncement.iconSrc = iconSrc || "";
   weaponPickupAnnouncement.duration = Number.isFinite(duration) ? duration : 2.6;
   weaponPickupAnnouncement.timer = weaponPickupAnnouncement.duration;
 }
@@ -7301,6 +7313,7 @@ function showWeaponPowerupConfigText(config) {
     description: config.description || "",
     color: config.textColor || "#fff",
     duration: config.hudDuration,
+    iconSrc: config.iconSrc || "",
   });
   playerYell(config.spokenName || announcementTitle, 3.2);
 }
@@ -11341,8 +11354,9 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText({
         text: "Quote Scripture",
         textColor: "#ffa45a",
-        description: "NPCs fire scripture shots for a short time.",
+        description: "Congregants fire piercing flames.",
         spokenName: "Scripture",
+        iconSrc: def?.iconSrc || "",
       });
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -11358,8 +11372,9 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText({
         text: "Apply Wisdom",
         textColor: UI_COLOR.ice,
-        description: "NPCs launch wisdom missiles temporarily.",
+        description: "Congregants fire wisdom cannons.",
         spokenName: "Wisdom",
+        iconSrc: def?.iconSrc || "",
       });
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -11375,8 +11390,9 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText({
         text: "Act in Faith",
         textColor: "#ff9bf7",
-        description: "NPCs fire faith cannon blasts briefly.",
+        description: "Congregants fire barrage shots.",
         spokenName: "Faith",
+        iconSrc: def?.iconSrc || "",
       });
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -11416,6 +11432,7 @@ function applyUtilityPowerUp(powerUp) {
     title: utilityTitle,
     description: powerUp.definition.description || "",
     color: powerUp.definition.color || UI_COLOR.softWhite,
+    iconSrc: powerUp.definition.iconSrc || "",
   });
   playerYell(utilitySpokenName, 3.2);
   switch (effect) {
@@ -29991,6 +30008,7 @@ function restartGame() {
   weaponPickupAnnouncement.timer = 0;
   weaponPickupAnnouncement.title = "";
   weaponPickupAnnouncement.description = "";
+  weaponPickupAnnouncement.iconSrc = "";
   npcHarmonyBuffTimer = 0;
   npcHarmonyBuffDuration = 0;
   levelManager = Levels.createLevelManager();
@@ -30406,6 +30424,7 @@ async function init() {
     weaponPickupAnnouncement.timer = 0;
     weaponPickupAnnouncement.title = "";
     weaponPickupAnnouncement.description = "";
+    weaponPickupAnnouncement.iconSrc = "";
     npcHarmonyBuffTimer = 0;
     npcHarmonyBuffDuration = 0;
     npcWeaponState.mode = null;

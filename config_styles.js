@@ -113,6 +113,10 @@
           moveDamageUnit: "caption",
           moveDesc: "caption",
         },
+        pickupAnnouncement: {
+          title: "eyebrow",
+          description: "caption",
+        },
         mapHeading: {
           title: "h3",
           subtitle: "subhead",

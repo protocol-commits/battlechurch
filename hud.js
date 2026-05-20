@@ -32,6 +32,35 @@
   const defaultWeaponIcon = new Image();
   defaultWeaponIcon.src = "assets/sprites/items/Weapons/W43_Recurve_Bow.png";
 
+  const pickupAnnouncementIconCache = new Map();
+  let pickupOverlayCanvas = null;
+
+  function ensurePickupOverlayCanvas(mainCanvas) {
+    if (!mainCanvas || typeof document === "undefined") return null;
+    if (!pickupOverlayCanvas || !document.body.contains(pickupOverlayCanvas)) {
+      pickupOverlayCanvas = document.createElement("canvas");
+      pickupOverlayCanvas.style.cssText = "position:fixed;top:0;left:0;pointer-events:none;z-index:1500;";
+      document.body.appendChild(pickupOverlayCanvas);
+    }
+    const rect = mainCanvas.getBoundingClientRect();
+    pickupOverlayCanvas.style.left = rect.left + "px";
+    pickupOverlayCanvas.style.top = rect.top + "px";
+    pickupOverlayCanvas.style.width = rect.width + "px";
+    pickupOverlayCanvas.style.height = rect.height + "px";
+    if (pickupOverlayCanvas.width !== mainCanvas.width) pickupOverlayCanvas.width = mainCanvas.width;
+    if (pickupOverlayCanvas.height !== mainCanvas.height) pickupOverlayCanvas.height = mainCanvas.height;
+    return pickupOverlayCanvas;
+  }
+
+  function getPickupAnnouncementIcon(src) {
+    if (!src) return null;
+    if (pickupAnnouncementIconCache.has(src)) return pickupAnnouncementIconCache.get(src);
+    const img = new Image();
+    img.src = src;
+    pickupAnnouncementIconCache.set(src, img);
+    return img;
+  }
+
   function drawOutlinedText(ctx, text, x, y, font, align, fillColor, options = {}) {
     ctx.font = font;
     ctx.textAlign = align;
@@ -1780,6 +1809,139 @@
       ctx.restore();
     };
 
+    const drawPickupAnnouncement = () => {
+      if (typeof window === "undefined") return;
+      if (window.__battlechurchDevMeleeArenaMode === true) return;
+
+      // Draw on a separate overlay canvas so it appears above DOM elements (e.g. Back to Editor panel).
+      const overlayCanvas = ensurePickupOverlayCanvas(canvas);
+      const octx = overlayCanvas ? overlayCanvas.getContext("2d") : null;
+      if (!octx) return;
+      octx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+
+      const ann = weaponPickupAnnouncement;
+      if (!ann || !ann.timer || ann.timer <= 0) return;
+
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const duration = (ann.duration || 4) * 1000;
+      const elapsed = duration - ann.timer * 1000;
+      const remaining = ann.timer * 1000;
+      const fadeInMs = 120;
+      const fadeOutMs = 300;
+
+      let alpha;
+      if (elapsed < fadeInMs) {
+        alpha = Math.min(1, elapsed / fadeInMs);
+      } else if (remaining < fadeOutMs) {
+        alpha = Math.max(0, remaining / fadeOutMs);
+      } else {
+        alpha = 1;
+      }
+      if (alpha <= 0) return;
+
+      const popInMs = 110;
+      const settleMs = 170;
+      const popTotalMs = popInMs + settleMs;
+      let popScale = 1;
+      if (elapsed < popTotalMs) {
+        if (elapsed <= popInMs) {
+          const t = Math.max(0, Math.min(1, elapsed / popInMs));
+          popScale = 0.9 + (1.12 - 0.9) * t;
+        } else {
+          const t = Math.max(0, Math.min(1, (elapsed - popInMs) / settleMs));
+          popScale = 1.12 + (1 - 1.12) * t;
+        }
+      }
+
+      // Resolve typography from canvasSemanticUsage
+      const semUsage = (typeof UIStyles !== "undefined" && UIStyles.typography?.canvasSemanticUsage?.pickupAnnouncement) || {};
+      const semTokens = (typeof UIStyles !== "undefined" && UIStyles.typography?.canvasSemantic) || {};
+      const titleToken = semTokens[semUsage.title] || semTokens.eyebrow || { size: 20, weight: 600 };
+      const descToken = semTokens[semUsage.description] || semTokens.caption || { size: 20, weight: 500 };
+
+      const PAD = 12;
+      const ICON_SIZE = 36;
+      const ICON_RIGHT_GAP = 10;
+
+      octx.save();
+      octx.font = hudFont(titleToken.size, String(titleToken.weight || "600"));
+      const titleW = octx.measureText(ann.title || "").width;
+      octx.font = hudFont(descToken.size, String(descToken.weight || "500"));
+      const descW = octx.measureText(ann.description || "").width;
+      const contentW = Math.max(titleW, descW, 120);
+      const finalPanelW = PAD + ICON_SIZE + ICON_RIGHT_GAP + contentW + PAD;
+
+      const titleLineH = titleToken.size * (titleToken.lineHeight || 1.15);
+      const descLineH = descToken.size * (descToken.lineHeight || 1.25);
+      const textH = titleLineH + 4 + descLineH;
+      const panelH = Math.max(ICON_SIZE + PAD * 2, PAD * 2 + textH);
+
+      const panelRight = overlayCanvas.width - 16;
+      const panelBottom = overlayCanvas.height - 16;
+      const panelX = panelRight - finalPanelW;
+      const panelY = panelBottom - panelH;
+      const panelCx = panelX + finalPanelW / 2;
+      const panelCy = panelY + panelH / 2;
+
+      octx.save();
+      octx.translate(panelCx, panelCy);
+      octx.scale(popScale, popScale);
+      octx.translate(-panelCx, -panelCy);
+
+      // Background
+      octx.globalAlpha = alpha * 0.95;
+      octx.fillStyle = "rgba(28, 10, 5, 0.88)";
+      octx.shadowColor = "rgba(255, 160, 40, 0.35)";
+      octx.shadowBlur = 10;
+      roundRect(octx, panelX, panelY, finalPanelW, panelH, 8, true, false);
+
+      // Border
+      const pulseSpeed = 0.005;
+      const stylePulse = 0.55 + 0.45 * Math.sin(now * pulseSpeed);
+      octx.strokeStyle = ann.color
+        ? ann.color
+        : `rgba(255, ${Math.round(175 + 25 * stylePulse)}, ${Math.round(60 + 20 * stylePulse)}, ${0.7 + 0.25 * stylePulse})`;
+      octx.lineWidth = 1.5;
+      octx.shadowColor = "rgba(255, 160, 40, 0.3)";
+      octx.shadowBlur = 6;
+      roundRect(octx, panelX, panelY, finalPanelW, panelH, 8, false, true);
+      octx.shadowBlur = 0;
+
+      // Icon
+      const iconX = panelX + PAD;
+      const iconY = panelY + (panelH - ICON_SIZE) / 2;
+      const iconImg = getPickupAnnouncementIcon(ann.iconSrc);
+      octx.globalAlpha = alpha;
+      if (iconImg && iconImg.complete && iconImg.naturalWidth > 0) {
+        octx.drawImage(iconImg, iconX, iconY, ICON_SIZE, ICON_SIZE);
+      } else {
+        octx.fillStyle = "rgba(255,255,255,0.15)";
+        roundRect(octx, iconX, iconY, ICON_SIZE, ICON_SIZE, 4, true, false);
+      }
+
+      // Text
+      const textX = iconX + ICON_SIZE + ICON_RIGHT_GAP;
+      const textTop = panelY + (panelH - textH) / 2;
+
+      octx.textAlign = "left";
+      octx.textBaseline = "top";
+
+      octx.font = hudFont(titleToken.size, String(titleToken.weight || "600"));
+      octx.shadowColor = "rgba(20, 6, 4, 0.92)";
+      octx.shadowBlur = 4;
+      octx.fillStyle = PALETTE.gold || "#DDA677";
+      octx.fillText(ann.title || "", textX, textTop);
+
+      octx.font = hudFont(descToken.size, String(descToken.weight || "500"));
+      octx.shadowBlur = 3;
+      octx.fillStyle = (typeof UIStyles !== "undefined" && UIStyles.colors?.softWhite) || "#DFDFC4";
+      octx.fillText(ann.description || "", textX, textTop + titleLineH + 4);
+
+      octx.shadowBlur = 0;
+      octx.restore();
+      octx.restore();
+    };
+
     const drawMoveAnnouncementBanner = () => {
       // FONT MAP (move announcement banner):
       // 800 36px = move name title.
@@ -2113,6 +2275,7 @@
     drawGameplayComboFeed();
     drawPersistentInputButtons();
     drawMoveAnnouncementBanner();
+    drawPickupAnnouncement();
     drawDevArenaMoveReference();
     drawDevArenaMoveFeed();
     drawDevArenaBestCombo();
