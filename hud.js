@@ -14,6 +14,9 @@
     lastTime: 0,
     clipKeys: {},
   };
+  const inputHoldPulseState = {
+    holdStartedAtMs: { A: 0, B: 0, C: 0 },
+  };
   const scoreboardIconSources = {
     congregation: "assets/sprites/items/icons/I28_Idol.png",
     grace: "assets/sprites/items/icons/I62_Gem_L.png",
@@ -1821,7 +1824,7 @@
       }
       const burst = Math.max(0, 1 - elapsed / (isCMove ? 320 : 220));
 
-      // Y position: sit below the combo feed if it has live entries, else at combo feed Y
+      // Shared anchor: persistent A/B/C row sits above this panel.
       const comboFeedX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
       const comboFeedY = Number.isFinite(window.__comboFeedFixedY) ? window.__comboFeedFixedY : (hudHeight + 34);
       const liveCombos = Array.isArray(window.__hudConfirmedCombos) ? window.__hudConfirmedCombos : [];
@@ -1830,11 +1833,16 @@
         (c) => Number.isFinite(c?.recordedAt) && (now - c.recordedAt) < COMBO_LIFETIME_MS,
       ).length;
       const comboFeedHeight = liveComboCount > 0 ? liveComboCount * (24 + 18) : 0;
-      const panelTopY = comboFeedY + comboFeedHeight + (liveComboCount > 0 ? 8 : 0);
+      const anchorTopY = liveComboCount > 0
+        ? (comboFeedY + comboFeedHeight + 8)
+        : (hudHeight + 4);
+      const inputRowButtonSize = 22;
+      const inputRowGapBelow = 12;
+      const panelTopY = anchorTopY + inputRowButtonSize + inputRowGapBelow;
 
       // Measure tokens to compute panel width
-      const PILL_W = 34;
-      const PILL_H = 26;
+      const PILL_W = 30;
+      const PILL_H = 30;
       const SEP_W = 20;
       const PREFIX_W = 62;
       const PAD_X = 14;
@@ -1932,24 +1940,49 @@
       const tokenCenterY = tokenY + PILL_H / 2;
       let tx = panelX + PAD_X;
 
+      const buttonChargeStyles = {
+        A: {
+          fill: "rgba(88, 154, 186, 0.95)",
+          stroke: "rgba(198, 232, 255, 0.95)",
+          text: "#F2FCFF",
+        },
+        B: {
+          fill: "rgba(85, 168, 144, 0.95)",
+          stroke: "rgba(197, 248, 230, 0.95)",
+          text: "#F2FFF9",
+        },
+        C: {
+          fill: "rgba(206, 140, 79, 0.97)",
+          stroke: "rgba(255, 236, 178, 0.98)",
+          text: "#FFF8DF",
+        },
+      };
+
       banner.tokens.forEach((tok) => {
         if (tok.type === "btn") {
-          // Pill background
-          const isCToken = String(tok.label || "").toUpperCase() === "C";
-          ctx.fillStyle = isCToken
-            ? "rgba(214, 82, 12, 0.95)"
-            : "rgba(160, 50, 15, 0.9)";
-          ctx.strokeStyle = isCToken
-            ? "rgba(255, 245, 185, 0.95)"
-            : "rgba(255, 190, 70, 0.85)";
-          ctx.lineWidth = isCToken ? 2.1 : 1.2;
-          roundRect(ctx, tx, tokenCenterY - PILL_H / 2, PILL_W, PILL_H, 5, true, true);
+          const label = String(tok.label || "").toUpperCase();
+          const style = buttonChargeStyles[label] || {
+            fill: "rgba(160, 50, 15, 0.9)",
+            stroke: "rgba(255, 190, 70, 0.85)",
+            text: PALETTE.softWhite,
+          };
+          const cx = tx + PILL_W / 2;
+          const cy = tokenCenterY;
+          const radius = Math.min(PILL_W, PILL_H) * 0.5 - 1;
+          // Circular token background (matches button identity, not move color).
+          ctx.fillStyle = style.fill;
+          ctx.strokeStyle = style.stroke;
+          ctx.lineWidth = 1.8;
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
           // Letter
-          ctx.fillStyle = isCToken ? "#FFF3CC" : PALETTE.softWhite;
+          ctx.fillStyle = style.text;
           ctx.font = hudFont(HUD_FONTS.bannerBody, "800");
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText(tok.label, tx + PILL_W / 2, tokenCenterY);
+          ctx.fillText(label, cx, tokenCenterY);
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
           tx += PILL_W;
@@ -1958,7 +1991,7 @@
           ctx.font = hudFont(HUD_FONTS.bannerBody, "700");
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("→", tx + SEP_W / 2, tokenCenterY);
+          ctx.fillText("→", tx + SEP_W / 2, tokenCenterY + 1.2);
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
           tx += SEP_W;
@@ -1995,10 +2028,90 @@
       ctx.restore();
     };
 
+    const drawPersistentInputButtons = () => {
+      if (typeof window === "undefined") return;
+      if (window.__battlechurchDevMeleeArenaMode === true) return;
+      const input = window.Input;
+      if (!input) return;
+      const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+      const comboFeedX = Number.isFinite(window.__comboFeedFixedX) ? window.__comboFeedFixedX : (canvas.width - 12);
+      const comboFeedY = Number.isFinite(window.__comboFeedFixedY) ? window.__comboFeedFixedY : (hudHeight + 34);
+      const liveCombos = Array.isArray(window.__hudConfirmedCombos) ? window.__hudConfirmedCombos : [];
+      const COMBO_LIFETIME_MS = 3800;
+      const liveComboCount = liveCombos.filter(
+        (c) => Number.isFinite(c?.recordedAt) && (now - c.recordedAt) < COMBO_LIFETIME_MS,
+      ).length;
+      const comboFeedHeight = liveComboCount > 0 ? liveComboCount * (24 + 18) : 0;
+      const helperTopY = liveComboCount > 0
+        ? (comboFeedY + comboFeedHeight + 8)
+        : (hudHeight + 4);
+
+      const labels = ["A", "B", "C"];
+      const keyByLabel = { A: "ArrowLeft", B: "ArrowDown", C: "ArrowRight" };
+      const pressedSet = input.keysPressed instanceof Set ? input.keysPressed : new Set();
+      const buttonChargeStyles = {
+        A: { fill: "rgba(88, 154, 186, 0.95)", stroke: "rgba(198, 232, 255, 0.95)", text: "#F2FCFF" },
+        B: { fill: "rgba(85, 168, 144, 0.95)", stroke: "rgba(197, 248, 230, 0.95)", text: "#F2FFF9" },
+        C: { fill: "rgba(206, 140, 79, 0.97)", stroke: "rgba(255, 236, 178, 0.98)", text: "#FFF8DF" },
+      };
+      const idleStyle = {
+        fill: "rgba(36, 28, 22, 0.9)",
+        stroke: "rgba(170, 145, 110, 0.7)",
+        text: "rgba(231, 214, 184, 0.92)",
+      };
+
+      const buttonSize = 22;
+      const gap = 8;
+      const rowWidth = labels.length * buttonSize + (labels.length - 1) * gap;
+      const rowRight = comboFeedX;
+      const rowX = rowRight - rowWidth;
+      const rowY = Math.max(hudHeight + 4, helperTopY);
+
+      ctx.save();
+      labels.forEach((label, idx) => {
+        const isPressed = pressedSet.has(keyByLabel[label]);
+        const style = isPressed ? buttonChargeStyles[label] : idleStyle;
+        const x = rowX + idx * (buttonSize + gap);
+        const cx = x + buttonSize / 2;
+        const cy = rowY + buttonSize / 2;
+        const baseRadius = buttonSize * 0.5 - 1;
+        let radius = baseRadius;
+        if (isPressed) {
+          if (!inputHoldPulseState.holdStartedAtMs[label]) {
+            inputHoldPulseState.holdStartedAtMs[label] = now;
+          }
+          const heldForMs = now - inputHoldPulseState.holdStartedAtMs[label];
+          if (heldForMs >= 110) {
+            const pulse = 0.5 + 0.5 * Math.sin(now * 0.017);
+            const scale = 1 + pulse * 0.34;
+            radius = baseRadius * scale;
+          }
+        } else {
+          inputHoldPulseState.holdStartedAtMs[label] = 0;
+        }
+
+        ctx.fillStyle = style.fill;
+        ctx.strokeStyle = style.stroke;
+        ctx.lineWidth = isPressed ? 1.9 : 1.2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = style.text;
+        ctx.font = hudFont(13, "800");
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(label, cx, cy + 0.2);
+      });
+      ctx.restore();
+    };
+
     drawPlayerInfo();
     drawNpcInfo();
     drawDistrictProgress();
     drawGameplayComboFeed();
+    drawPersistentInputButtons();
     drawMoveAnnouncementBanner();
     drawDevArenaMoveReference();
     drawDevArenaMoveFeed();

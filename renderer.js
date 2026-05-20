@@ -230,8 +230,8 @@ const MELEE_SWING_LENGTH = 260;
   };
   const TEASER_SMOKE_WIPE_CONFIG = {
     // Tweak here for the congregation->battle teaser smoke wipe.
-    puffCount: 320,
-    maxBlurPx: 10.5,
+    puffCount: 120,
+    maxBlurPx: 4.8,
     fadeInSeconds: 0.5,
     dissipateSeconds: 8.0,
     tint: "#A83538",
@@ -14085,8 +14085,6 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     }
     if (presence <= 0.001) return;
 
-    const tint = parseHexToRgb(TEASER_SMOKE_WIPE_CONFIG.tint, { r: 168, g: 53, b: 56 });
-
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     const isMobileLike = Boolean(
@@ -14097,13 +14095,26 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
         Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900
       ),
     );
-    const teaserPuffCount = isMobileLike
+    const adaptivePreset = ADAPTIVE_SMOKE_PROFILE.enabled
+      ? ADAPTIVE_SMOKE_PROFILE.qualityPresets[
+          Math.max(0, Math.min(ADAPTIVE_SMOKE_PROFILE.qualityPresets.length - 1, adaptiveSmokeState.qualityIndex))
+        ]
+      : null;
+    const adaptivePuffsScale = adaptivePreset ? adaptivePreset.puffsScale : 1;
+    const adaptiveBlurScale = adaptivePreset ? adaptivePreset.blurScale : 1;
+    const teaserPuffCountBase = isMobileLike
       ? Math.max(36, Math.round(TEASER_SMOKE_WIPE_CONFIG.puffCount * 0.26))
       : TEASER_SMOKE_WIPE_CONFIG.puffCount;
+    const teaserPuffCount = Math.max(24, Math.round(teaserPuffCountBase * adaptivePuffsScale));
     const teaserBlurPx = isMobileLike
-      ? Math.min(2.2, TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * 0.34)
-      : TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * (0.75 + 0.25 * presence);
+      ? Math.min(2.2, TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * 0.34 * adaptiveBlurScale)
+      : TEASER_SMOKE_WIPE_CONFIG.maxBlurPx * (0.75 + 0.25 * presence) * adaptiveBlurScale;
     ctx.filter = teaserBlurPx > 0.05 ? `blur(${teaserBlurPx.toFixed(2)}px)` : "none";
+    const teaserSprites = getAmbientSmokeSprites(TEASER_SMOKE_WIPE_CONFIG.tint);
+    if (!teaserSprites.length) {
+      ctx.restore();
+      return;
+    }
     for (let i = 0; i < teaserPuffCount; i += 1) {
       const phase = i * 12.9898;
       const seedA = (Math.sin(phase) + 1) * 0.5;
@@ -14122,16 +14133,13 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       const r = 40 + seedC * 115;
       const alphaBoost = inBottomBand ? 1.25 : 1;
       const alpha = (0.12 + seedA * 0.22) * presence * alphaBoost;
-      const grad = ctx.createRadialGradient(x, y, r * 0.08, x, y, r * 1.28);
-      grad.addColorStop(0, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.95).toFixed(3)})`);
-      grad.addColorStop(0.48, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.34).toFixed(3)})`);
-      grad.addColorStop(0.9, `rgba(${tint.r}, ${tint.g}, ${tint.b}, ${(alpha * 0.08).toFixed(3)})`);
-      grad.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.ellipse(x, y, r, r * (0.58 + seedB * 0.26), 0, 0, Math.PI * 2);
-      ctx.fill();
+      const sprite = teaserSprites[i % teaserSprites.length];
+      if (!sprite) continue;
+      const scaleY = 0.58 + seedB * 0.26;
+      ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+      ctx.drawImage(sprite, x - r, y - r * scaleY, r * 2, r * 2 * scaleY);
     }
+    ctx.globalAlpha = 1;
     ctx.restore();
 
     if (teaserSmokeWipeState.mode === "dissipate" && presence <= 0.002) {
