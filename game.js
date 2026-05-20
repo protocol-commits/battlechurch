@@ -573,27 +573,7 @@ const TITLE_DEMO_SAVE_SLOTS = [
   },
   {
     key: "slot2",
-    label: "Demo: Frontline 1 Cleared",
-    districtId: "red_creek",
-    completedDistricts: 3,
-    playerName: "DemoName",
-    cityName: "DemoTown",
-    classId: "class9",
-    campaignData: null,
-    districtPowerups: {
-      pine_hollow:  { spreadGun: 5 },
-      stone_ridge:  { halo: 5 },
-      northvale:    { spear: 5 },
-    },
-    districtStartCounts: {
-      pine_hollow: 100,
-      stone_ridge: 100,
-      northvale:   100,
-    },
-  },
-  {
-    key: "slot3",
-    label: "Demo: 2 Districts Cleared",
+    label: "Demo: District 3 (Demon Overload)",
     districtId: "northvale",
     completedDistricts: 2,
     playerName: "DemoName",
@@ -613,6 +593,27 @@ const TITLE_DEMO_SAVE_SLOTS = [
     districtStartCounts: {
       pine_hollow: 100,
       stone_ridge: 100,
+    },
+  },
+  {
+    key: "slot3",
+    label: "Demo: District 4 (Armor Town)",
+    description: "Mainly for QA testing melee combos",
+    districtId: "red_creek",
+    completedDistricts: 3,
+    playerName: "DemoName",
+    cityName: "DemoTown",
+    classId: "class9",
+    campaignData: null,
+    districtPowerups: {
+      pine_hollow:  { spreadGun: 5 },
+      stone_ridge:  { halo: 5 },
+      northvale:    { spear: 5 },
+    },
+    districtStartCounts: {
+      pine_hollow: 100,
+      stone_ridge: 100,
+      northvale:   100,
     },
   },
 ];
@@ -9746,7 +9747,7 @@ async function showTitleSavePickerOverlay() {
         <span class="save-picker__item-icon">🧪</span>
         <span class="save-picker__item-text">
           <span class="save-picker__item-title">${escapeHtml(slot?.label || `Demo Slot ${idx + 1}`)}</span>
-          <span class="save-picker__item-meta">Demo profile for QA/testing</span>
+          <span class="save-picker__item-meta">${escapeHtml(slot?.description || "Demo profile for QA/testing")}</span>
         </span>
       </button>
     `)

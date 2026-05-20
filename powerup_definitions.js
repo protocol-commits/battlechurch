@@ -206,7 +206,7 @@
         spreadStep: 0.15,            // radians between each tracer pair
         tracerSpeedMultiplier: 3.3,  // tracer speed multiplier vs base arrow speed
         splashRadius: 80,            // splash radius in game pixels (world scale applied at runtime)
-        splashDamageRatio: 0.7,      // splash damage as fraction of direct hit damage
+        splashDamageRatio: 0.5,      // splash damage as fraction of direct hit damage
       },
     },
     halo: {

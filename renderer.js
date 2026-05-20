@@ -10676,7 +10676,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       buttonConfigs = cloudButtons.concat(slots.map((slot, index) => ({
         key: slot?.key || `slot${index + 1}`,
         label: slot?.label || `Slot ${index + 1}`,
-        meta: "Demo profile for QA/testing",
+        meta: slot?.description || "Demo profile for QA/testing",
         demoDetails: {
           key: slot?.key || `slot${index + 1}`,
           districtId: slot?.districtId || null,
