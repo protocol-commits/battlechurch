@@ -2669,7 +2669,7 @@
     const stats = Object.entries(defs)
       .filter(function(entry) { return !entry[1].disabled; })
       .map(function(entry) {
-        return { key: entry[0], label: entry[1].label, description: entry[1].description, iconSrc: entry[1].iconSrc };
+        return { key: entry[0], label: entry[1].label, description: entry[1].shopDescription || entry[1].description, iconSrc: entry[1].iconSrc };
       });
     const uiFontFamily =
       (typeof window !== "undefined" && window.UI_FONT_FAMILY) ||

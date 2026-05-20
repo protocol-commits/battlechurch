@@ -11354,7 +11354,7 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText({
         text: "Quote Scripture",
         textColor: "#ffa45a",
-        description: "Congregants fire piercing flames.",
+        description: "Congregants fire piercing flames",
         spokenName: "Scripture",
         iconSrc: def?.iconSrc || "",
       });
@@ -11372,7 +11372,7 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText({
         text: "Apply Wisdom",
         textColor: UI_COLOR.ice,
-        description: "Congregants fire wisdom cannons.",
+        description: "Congregants fire wisdom cannons",
         spokenName: "Wisdom",
         iconSrc: def?.iconSrc || "",
       });
@@ -11390,7 +11390,7 @@ function applyWeaponPickupEffect(pickup) {
       showWeaponPowerupConfigText({
         text: "Act in Faith",
         textColor: "#ff9bf7",
-        description: "Congregants fire barrage shots.",
+        description: "Congregants fire barrage shots",
         spokenName: "Faith",
         iconSrc: def?.iconSrc || "",
       });

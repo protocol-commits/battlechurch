@@ -22,7 +22,7 @@
       radius: 28 * WORLD_SCALE,
       label: "Act in Faith",
       iconSrc: "assets/sprites/items/icons/I41_Candle.png",
-      description: "High-pressure barrage fire.",
+      description: "High-pressure barrage fire",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.65,
       speedMultiplier: 1.2,
@@ -42,7 +42,7 @@
       duration: 10,
       label: "Quote Scripture",
       iconSrc: "assets/sprites/items/icons/I25_Book.png",
-      description: "Fast piercing flames.",
+      description: "Fast piercing flames",
       damageMultiplier: 1.0,
       cooldownMultiplier: 0.95,
       speedMultiplier: 1.15,
@@ -50,7 +50,7 @@
       speed: 0,
     },
     wisdom: {
-      description: "Powerful methodical cannon.",
+      description: "Powerful methodical cannon",
       frameSources: [
         `${UTILITY_POWERUP_ROOT}/I57_Coin.png`,
         `${UTILITY_POWERUP_ROOT}/I57_Coin.png`,
@@ -126,7 +126,7 @@
       iconSrc: "assets/sprites/items/Armour/A29_Iron_Shield.png",
       color: "#9BD9FF",
       hudTitle: "Shield of Faith",
-      description: "Blocks damage.",
+      description: "Blocks damage",
     },
     haste: {
       src: `${UTILITY_POWERUP_ROOT}/I27_Rune.png`,
@@ -140,7 +140,7 @@
       color: "#5FE3C0",
       speedMultiplier: 1.4,
       hudTitle: "Speed Boost",
-      description: "Move faster.",
+      description: "Move faster",
     },
     extender: {
       src: `${UTILITY_POWERUP_ROOT}/I36_Hammer.png`,
@@ -154,7 +154,7 @@
       color: "#FFC86A",
       extendMultiplier: 1.5,
       hudTitle: "Perseverance",
-      description: "Extends your current weapon power.",
+      description: "Extends your current weapon power",
     },
     harmony: {
       src: `${UTILITY_POWERUP_ROOT}/I10_Flower.png`,
@@ -167,7 +167,7 @@
       iconSrc: "assets/sprites/items/icons/I10_Flower.png",
       color: "#5FE3C0",
       hudTitle: "Encouragement",
-      description: "Congregants fight harder together.",
+      description: "Congregants fight harder together",
     },
     smiteBomb: {
       src: `${UTILITY_POWERUP_ROOT}/I02_HP_Potion_M.png`,
@@ -180,7 +180,7 @@
       iconSrc: "assets/sprites/items/icons/I02_HP_Potion_M.png",
       color: "#FF9D5C",
       hudTitle: "Purify",
-      description: "Damages all enemies.",
+      description: "Damages all enemies",
     },
   };
 
@@ -198,7 +198,7 @@
       label: "Tracer",
       weaponName: "Spread Gun",
       iconSrc: `${CHURCH_POWERUP_ROOT}/Spread.png`,
-      description: "Multiply ministry through small groups.",
+      shopDescription: "Multiply ministry through small groups.",
       levelCosts: CHURCH_LEVEL_COSTS,
     },
     halo: {
@@ -210,7 +210,7 @@
       label: "Halo",
       weaponName: "Orbiting Blades",
       iconSrc: "assets/sprites/items/icons/A13_Headband.png",
-      description: "Establish a prayer chain",
+      shopDescription: "Establish a prayer chain",
       levelCosts: CHURCH_LEVEL_COSTS,
     },
     spear: {
@@ -222,7 +222,7 @@
       label: "Lance",
       weaponName: "Homing Spear",
       iconSrc: `${CHURCH_POWERUP_ROOT}/Spear.png`,
-      description: "Mobilize a Care Ministry.",
+      shopDescription: "Mobilize a Care Ministry.",
       levelCosts: CHURCH_LEVEL_COSTS,
     },
     sentry: {
@@ -234,7 +234,7 @@
       label: "Sentry",
       weaponName: "Targeting Laser",
       iconSrc: `${CHURCH_POWERUP_ROOT}/Lantern.png`,
-      description: "Grow leaders to take initiative.",
+      shopDescription: "Grow leaders to take initiative.",
       levelCosts: CHURCH_LEVEL_COSTS,
     },
   };
