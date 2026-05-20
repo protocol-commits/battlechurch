@@ -591,6 +591,30 @@ const TITLE_DEMO_SAVE_SLOTS = [
       northvale:   100,
     },
   },
+  {
+    key: "slot3",
+    label: "Demo: 2 Districts Cleared",
+    districtId: "northvale",
+    completedDistricts: 2,
+    playerName: "DemoName",
+    cityName: "DemoTown",
+    classId: "class9",
+    campaignData: {
+      campaign: "p1",
+      startCount: 50,
+      campaignMultiplier: 1.0,
+      restoredChurchPowerupLevels: { spreadGun: 3, halo: 3, spear: 3, sentry: 3 },
+      restoredPastorPowerupLevels: { prayer: 1, hp: 1 },
+    },
+    districtPowerups: {
+      pine_hollow: { spreadGun: 2 },
+      stone_ridge: { halo: 2 },
+    },
+    districtStartCounts: {
+      pine_hollow: 100,
+      stone_ridge: 100,
+    },
+  },
 ];
 
 function setDemoSandboxRunActive(active) {
