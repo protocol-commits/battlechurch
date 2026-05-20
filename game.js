@@ -15151,7 +15151,11 @@ class CozyNpc {
     this.animator.setState("walk", { restart: true });
     this.animator.setMoving(true);
     this.updateFaithVisibility(true);
-    this.setStatusBubble("I'm outta here!", { color: UI_COLOR.crimson, persist: true, critical: true });
+    const _lostFaithLines = window.BattlechurchCongregationDialogue?.lostFaith;
+    const _lostFaithText = Array.isArray(_lostFaithLines) && _lostFaithLines.length
+      ? _lostFaithLines[Math.floor(Math.random() * _lostFaithLines.length)]
+      : "I'm outta here!";
+    this.setStatusBubble(_lostFaithText, { color: UI_COLOR.crimson, persist: true, critical: true });
     if (typeof captureNpcPortrait === "function") {
       this.pendingLossPortrait = captureNpcPortrait(this);
     } else {
@@ -15425,7 +15429,6 @@ class CozyNpc {
     const damageScale = 1;
     const scaledLoss = Math.max(1, Math.round(cappedLoss * damageScale));
     this.faith = Math.max(0, this.faith - scaledLoss);
-    this.maybeSpeakRedFaithDialogue(prevFaith);
     if (scaledLoss > 0 && (this.maxFaith || 0) > 0) {
       const startRatio = prevFaith / this.maxFaith;
       const endRatio = this.faith / this.maxFaith;
@@ -15764,7 +15767,6 @@ class CozyNpc {
     if (draining) {
       const prevFaith = this.faith;
       this.faith = Math.max(0, this.faith - NPC_FAITH_DRAIN_RATE * dt);
-      this.maybeSpeakRedFaithDialogue(prevFaith);
       if (this.faith <= 0) {
         this.loseFaith();
         return;

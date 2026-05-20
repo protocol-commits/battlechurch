@@ -109,10 +109,26 @@
   };
 
 
+  const lostFaith = [
+    "I can't do this anymore.",
+    "I'm done with all this.",
+    "This isn't worth it.",
+    "Nobody noticed I was struggling.",
+    "I tried. I really tried.",
+    "I'm not strong enough for this.",
+    "I can't keep pretending anymore.",
+    "Please don't follow me.",
+    "I just need to get out of here.",
+    "I'm sorry. This just didn't work.",
+    "I thought I could hold on.",
+    "Nobody truly cared for me.",
+  ];
+
   const ns = global.BattlechurchCongregationDialogue || (global.BattlechurchCongregationDialogue = {});
   ns.lines = lines;
   ns.linesByCampaign = linesByCampaign;
   ns.waveIntro = waveIntro;
   ns.waveEnd = waveEnd;
   ns.redFaith = redFaith;
+  ns.lostFaith = lostFaith;
 })(typeof window !== "undefined" ? window : globalThis);
