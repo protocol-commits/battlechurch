@@ -1235,18 +1235,29 @@
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
+      ctx.lineWidth = Math.max(2, Math.round(nameSize * 0.16));
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.strokeText(`${district.name} (${Math.round(displayCount)})`, position.x, position.y - radius - 10);
       ctx.fillText(`${district.name} (${Math.round(displayCount)})`, position.x, position.y - radius - 10);
       pushTypographyDebugLabel("h3", position.x, position.y - radius - 10);
       ctx.restore();
     } else if (selected) {
       ctx.save();
       const districtLabelType = getCanvasSemanticForMap("districtLabel", "h3");
-      ctx.font = `${districtLabelType.weight} ${Math.round(districtLabelType.size * (rect.w / 1280))}px ${UI_FONT_FAMILY}`;
+      const selectedNameSize = Math.round(districtLabelType.size * (rect.w / 1280));
+      ctx.font = `${districtLabelType.weight} ${selectedNameSize}px ${UI_FONT_FAMILY}`;
       ctx.fillStyle = unlocked ? MAP_HELLFIRE_TEXT.title : MAP_HELLFIRE_TEXT.dim;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.shadowColor = "rgba(6, 10, 18, 0.85)";
       ctx.shadowBlur = 10;
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.95)";
+      ctx.lineWidth = Math.max(2, Math.round(selectedNameSize * 0.16));
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.strokeText(district.name, position.x, position.y - radius - 10);
       ctx.fillText(district.name, position.x, position.y - radius - 10);
       pushTypographyDebugLabel("h3", position.x, position.y - radius - 10);
       ctx.restore();
@@ -1286,17 +1297,24 @@
     ctx.save();
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.shadowColor = "rgba(0,0,0,0.85)";
-    ctx.shadowBlur = 8;
+    ctx.shadowColor = "rgba(0,0,0,0)";
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(0,0,0,0.95)";
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
 
     ctx.font = `${mapHeadingTitleType.weight} ${line1Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.title;
+    ctx.lineWidth = Math.max(2, Math.round(line1Size * 0.15));
+    ctx.strokeText(line1, cx, topY);
     ctx.fillText(line1, cx, topY);
     pushTypographyDebugLabel("h3", cx, topY);
 
     const playerName = getActiveSave()?.playerName?.trim() || "Pastor";
     ctx.font = `${mapHeadingSubtitleType.weight} ${line2Size}px ${UI_FONT_FAMILY}`;
     ctx.fillStyle = MAP_HELLFIRE_TEXT.dim;
+    ctx.lineWidth = Math.max(2, Math.round(line2Size * 0.15));
+    ctx.strokeText(`Pastor ${playerName}, you have been called to liberate it.`, cx, topY + line1Size + lineGap);
     ctx.fillText(`Pastor ${playerName}, you have been called to liberate it.`, cx, topY + line1Size + lineGap);
     pushTypographyDebugLabel("subhead", cx, topY + line1Size + lineGap);
 
