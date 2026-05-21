@@ -37,7 +37,7 @@
       damage: 100,           // MELEE_BASE_DAMAGE
       cooldown: 0.4,         // MELEE_COOLDOWN
       prayerCost: null,
-      desc: "Quick sword slash. Your fastest attack and backbone of every combo.",
+      desc: "Quick sword slash",
     },
     {
       key: "Blast",
@@ -47,7 +47,7 @@
       damage: 120,           // MELEE_BASE_DAMAGE * MELEE_SWOOSH_DAMAGE_SCALE (1.2)
       cooldown: null,
       prayerCost: null,
-      desc: "Charged horizontal slash with a wide arc and brief forward lunge.",
+      desc: "Throws a powerful slash",
     },
     {
       key: "Smash",
@@ -57,7 +57,7 @@
       damage: 200,           // RUSH_DAMAGE (MELEE_BASE_DAMAGE * 2)
       cooldown: 3.0,         // RUSH_COOLDOWN
       prayerCost: null,
-      desc: "Dash forward then slam. Clears a path and gives brief invincibility frames.",
+      desc: "Smash into enemies with brief invincibility",
     },
     {
       key: "Cleave",
@@ -67,7 +67,7 @@
       damage: 300,           // MELEE_BASE_DAMAGE * CLEAVE_DAMAGE_MULTIPLIER (3.0)
       cooldown: null,
       prayerCost: null,
-      desc: "Simultaneous press delivers a powerful cleaving blow — highest raw sword damage.",
+      desc: "A powerful double-slash",
     },
     {
       key: "Thrash",
@@ -77,7 +77,7 @@
       damage: 300,           // BLITZ_DAMAGE (RUSH_DAMAGE + DIVINE_SHOT_DAMAGE)
       cooldown: null,
       prayerCost: null,
-      desc: "Rush forward and fire a projectile on impact — big damage at mid range.",
+      desc: "Thrash armored enemies with multiple slashes",
     },
     {
       key: "Crash",
@@ -87,7 +87,7 @@
       damage: null,          // knockback/dash — no direct damage value
       cooldown: 2.0,         // DASH_COOLDOWN
       prayerCost: null,
-      desc: "Protected shoulder dash that breaks through enemy lines with strong knockback.",
+      desc: "Crash through enemies with brief invulnerability",
     },
     {
       key: "Reap",
@@ -97,7 +97,7 @@
       damage: 200,           // MELEE_BASE_DAMAGE * MELEE_SPIN_DAMAGE_MULTIPLIER (2)
       cooldown: 2.0,         // MELEE_SPIN_COOLDOWN
       prayerCost: null,
-      desc: "Spinning sword attack that hits all enemies around you.",
+      desc: "Spinning sword attack that hits all enemies around you",
     },
     {
       key: "Clash",
@@ -107,17 +107,17 @@
       damage: null,          // holy dash — repositions, does not deal direct damage
       cooldown: null,
       prayerCost: 0.5,       // 1/12 of prayer meter per use
-      desc: "Quick prayer-powered dash that teleports through enemies.",
+      desc: "Clash with enemies by slicing through their swarm",
     },
     {
       key: "Flash",
-      publicName: "Flash",
+      publicName: "Trash",
       input: "Charge B + C",
       category: "combo",
       damage: null,          // teleport — repositions behind target
       cooldown: null,
       prayerCost: 1,         // 1/6 of prayer meter
-      desc: "Teleport behind a nearby enemy for a positional reset.",
+      desc: "Trash your enemies with this spinning attack",
     },
     {
       key: "Hedge",
@@ -127,7 +127,7 @@
       damage: 34,            // RING_OF_FIRE_DAMAGE per tick (boss: 18)
       cooldown: null,
       prayerCost: 2,         // 1/3 of prayer meter
-      desc: "Summon a ring of holy fire that deals sustained damage to all nearby enemies.",
+      desc: "Protective ring of fire",
     },
 
     // ── PRAYER MOVES ────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@
       damage: 30,            // CONGREGATION_COMMAND_DAMAGE per congregant hit
       cooldown: null,
       prayerCost: null,      // charges over time; costs congregation command charge
-      desc: "Command your congregation to charge nearby enemies. Double-tap to clear a path.",
+      desc: "Focus your congregation's prayer to attack nearby enemies",
     },
     {
       key: "Pastor Protect",
@@ -149,27 +149,27 @@
       damage: null,
       cooldown: null,
       prayerCost: null,
-      desc: "Order the congregation to bodyguard you — they intercept enemies near the pastor.",
+      desc: "Congregants pray for you and attack enemies near you",
     },
     {
       key: "Purge",
-      publicName: "Purge",
+      publicName: "Purify",
       input: "Charge C (2 prayers)",
       category: "prayer",
       damage: 250,           // PRAYER_BOMB_LEVEL1_DAMAGE (boss: 1000)
       cooldown: null,
       prayerCost: 2,
-      desc: "Targeted prayer blast. Spends 2 prayers for a focused hit. Good for elites.",
+      desc: "Prayer blast",
     },
     {
       key: "Smite Bomb",
-      publicName: "Smite Bomb",
-      input: "Charge C (full meter)",
+      publicName: "Prayer Storm",
+      input: "Charge A B C (full meter)",
       category: "prayer",
       damage: 400,           // PRAYER_BOMB_LEVEL2_DAMAGE at full charge (boss: 2000)
       cooldown: null,
       prayerCost: 6,         // full meter
-      desc: "Expend all 6 prayers for a massive explosion. Big congregation bonus on kill.",
+      desc: "Unleash a prayer storm from your entire church",
     },
   ];
 
