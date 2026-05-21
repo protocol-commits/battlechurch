@@ -263,7 +263,8 @@
       },
       howToPlayScene: {
         title: 48,
-        basics: 16,
+        basics: 20,
+        controlsHint: 24,
         sectionLabel: 13,
         moveName: 16,
         moveInput: 16,
@@ -313,8 +314,8 @@
         };
       },
       footerControlsHint: {
-        size: 16,
-        weight: 500,
+        size: 20,
+        weight: 600,
       },
     },
 

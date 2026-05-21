@@ -725,7 +725,8 @@ const MELEE_SWING_LENGTH = 260;
     ctx.globalAlpha = hintAlpha;
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
-    ctx.font = `${hintType.weight ?? 500} ${hintType.size ?? 11}px ${fontFamily}`;
+    const hintSize = Math.max(14, Number(hintType.size) || 11);
+    ctx.font = `${hintType.weight ?? 500} ${hintSize}px ${fontFamily}`;
     ctx.fillStyle = hintColor;
     ctx.shadowColor = hintShadow;
     ctx.shadowBlur = 2;
@@ -8346,6 +8347,14 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
       pushTypographyDebugLabel("body", cx, y);
       y += 22;
     });
+    const controlsHintTop = getControlsHintText();
+    const controlsHintSize = Math.max(16, howToPlayType.controlsHint ?? howToPlaySemantic.basics.size);
+    y += 8;
+    ctx.font = `600 ${controlsHintSize}px ${UI_FONT_FAMILY}`;
+    ctx.fillStyle = "#DFDFC4";
+    ctx.fillText(controlsHintTop, cx, y);
+    pushTypographyDebugLabel("body", cx, y);
+    y += Math.round(controlsHintSize * 1.25);
 
     // ── Move table from catalog ──────────────────────────────────────────────
     const mc = window.BattlechurchMoveCatalog;

@@ -135,6 +135,8 @@
       bannerBody: 16,          // move banner tokens (A/B arrows, etc.)
       bannerSub: 14,           // move banner denom/charge
       devHint: 11,             // bottom dev hint line
+      devControlsHint: 20,     // dev arena controls line (keyboard/xbox)
+      devControllerNote: 16,   // "Xbox Controller Supported" line
       districtMeterLabel: 12,  // text inside district progress bar segments
     };
     const hudFont = (px, weight = "") => `${weight ? `${weight} ` : ""}${px}px ${UI_FONT_FAMILY}`;
@@ -2332,13 +2334,14 @@
       const hintText = window.Renderer?.getControlsHintText?.() ||
         'Keyboard: Navigation/Movement: WASD | Action Buttons: Left (A), Down (B), Right (C) | Select: Space | Back: Esc';
       ctx.save();
-      ctx.font = hudFont(HUD_FONTS.devHint, "500");
+      ctx.font = hudFont(HUD_FONTS.devControlsHint, "500");
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillStyle = 'rgba(231, 176, 102, 0.68)';
       ctx.shadowColor = 'rgba(0,0,0,0.45)';
       ctx.shadowBlur = 2;
       ctx.fillText(hintText, canvas.width / 2, 8 + 84 + 16);
+      ctx.font = hudFont(HUD_FONTS.devControllerNote, "500");
       ctx.fillStyle = 'rgba(231, 176, 102, 0.45)';
       ctx.fillText('Xbox Controller Supported', canvas.width / 2, 8 + 84 + 30);
       ctx.shadowBlur = 0;
