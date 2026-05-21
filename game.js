@@ -836,8 +836,13 @@ const BOSS_DEATH_EXPLOSION_SFX_SRCS = [
   "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
 const BOSS_LIGHTNING_THUNDER_SFX_SRCS = [
+  // Boss lightning core hits
   "assets/sfx/rpg/Explosions/Explosions_8.wav",
   "assets/sfx/rpg/Explosions/Explosions_40.wav",
+  // Layer in Smite/Purify-adjacent explosions so rapid flickers feel varied
+  "assets/sfx/rpg/Explosions/Explosions_22.wav",
+  "assets/sfx/rpg/Explosions/Explosions_23.wav",
+  "assets/sfx/rpg/Explosions/Explosions_24.wav",
 ];
 const BOSS_DEATH_EXPLOSION_SFX_POOL_SIZE = 6;
 const POWERUP_PICKUP_SFX_SRC = "assets/sfx/utility/utility16.mp3";
@@ -926,7 +931,7 @@ const SENTRY_BEAM_SFX_POOL_SIZE = 3;
 const SENTRY_BORE_LOOP_SFX_POOL_SIZE = 4;
 const SPEAR_TURN_SFX_POOL_SIZE = 4;
 const SPEAR_HIT_SFX_POOL_SIZE = 4;
-const BOSS_LIGHTNING_THUNDER_SFX_POOL_SIZE = 4;
+const BOSS_LIGHTNING_THUNDER_SFX_POOL_SIZE = 8;
 const PLAYER_DEATH_BELL_FADE_DELAY = 7;
 const PLAYER_DEATH_BELL_FADE_DURATION = 1.2;
 const MUSIC_VOLUME_INTRO = 0.65;
@@ -1409,12 +1414,14 @@ function playBossLightningThunderSfx(volume = 0.5) {
     bossLightningThunderSfxPool,
     BOSS_LIGHTNING_THUNDER_SFX_SRCS,
     BOSS_LIGHTNING_THUNDER_SFX_POOL_SIZE,
-    { volume, matchSrc: true },
+    // Keep overlaps layered; do not force same-src matching for this stuttery lightning use-case.
+    { volume, matchSrc: false },
   );
 }
 
 if (typeof window !== "undefined") {
   window.playEnemyHitSfx = playEnemyHitSfx;
+  window.playBossLightningThunderSfx = playBossLightningThunderSfx;
 }
 
 function playHighHealthEnemyDeathSfx(volume = 1.0) {

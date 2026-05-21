@@ -66,6 +66,16 @@
     toNormalFlickerMs: 700,
     flickerStepMs: 80,
   });
+  const MAP_REALM_LIGHTNING = Object.freeze({
+    flashDurationMs: 150,
+    flashMinIntensity: 0.14,
+    flashMaxIntensity: 0.26,
+    thunderVolume: 0.62,
+    finalThunderVolume: 0.8,
+    finalTrailDelayMinMs: 110,
+    finalTrailDelayMaxMs: 220,
+    finalTrailVolume: 0.56,
+  });
 
   function readMapScreenRenderStyleNumber(key, fallback) {
     const root = (() => {
@@ -199,6 +209,16 @@
       crossfadeRatio: 0.24,
       handoffRatio: 0.68,
       launched: false,
+    },
+    realmLightning: {
+      initialized: false,
+      lastDemon: false,
+      lastPhase: "normal_hold",
+      flashTimerMs: 0,
+      flashDurationMs: MAP_REALM_LIGHTNING.flashDurationMs,
+      flashIntensity: 0,
+      flashAlpha: 0,
+      pendingTrailAtMs: 0,
     },
   };
   const DEFAULT_SAVE_ID = "main";
@@ -576,16 +596,93 @@
       cfg.demonHoldMs +
       cfg.toNormalFlickerMs;
     const t = ((nowMs % total) + total) % total;
-    if (t < cfg.normalHoldMs) return { demon: false };
+    if (t < cfg.normalHoldMs) return { demon: false, phase: "normal_hold" };
     if (t < cfg.normalHoldMs + cfg.toDemonFlickerMs) {
       const step = Math.floor((t - cfg.normalHoldMs) / Math.max(1, cfg.flickerStepMs));
-      return { demon: step % 2 === 1 };
+      return { demon: step % 2 === 1, phase: "to_demon_flicker" };
     }
-    if (t < cfg.normalHoldMs + cfg.toDemonFlickerMs + cfg.demonHoldMs) return { demon: true };
+    if (t < cfg.normalHoldMs + cfg.toDemonFlickerMs + cfg.demonHoldMs) {
+      return { demon: true, phase: "demon_hold" };
+    }
     const step = Math.floor(
       (t - (cfg.normalHoldMs + cfg.toDemonFlickerMs + cfg.demonHoldMs)) / Math.max(1, cfg.flickerStepMs),
     );
-    return { demon: step % 2 === 0 };
+    return { demon: step % 2 === 0, phase: "to_normal_flicker" };
+  }
+
+  function triggerMapRealmLightningStrike(nowMs, { finalFlipToDemon = false } = {}) {
+    const fx = state.realmLightning;
+    const cfg = MAP_REALM_LIGHTNING;
+    const intensity =
+      cfg.flashMinIntensity +
+      Math.random() * Math.max(0.001, cfg.flashMaxIntensity - cfg.flashMinIntensity);
+    fx.flashDurationMs = cfg.flashDurationMs;
+    fx.flashTimerMs = cfg.flashDurationMs;
+    fx.flashIntensity = intensity;
+    if (typeof window.playBossLightningThunderSfx === "function") {
+      window.playBossLightningThunderSfx(finalFlipToDemon ? cfg.finalThunderVolume : cfg.thunderVolume);
+    }
+    if (finalFlipToDemon) {
+      const delay =
+        cfg.finalTrailDelayMinMs +
+        Math.random() * Math.max(1, cfg.finalTrailDelayMaxMs - cfg.finalTrailDelayMinMs);
+      fx.pendingTrailAtMs = nowMs + delay;
+    }
+  }
+
+  function updateMapRealmLightningEffects(dt) {
+    const fx = state.realmLightning;
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const realm = resolveMapRealmState(nowMs);
+    if (!fx.initialized) {
+      fx.initialized = true;
+      fx.lastDemon = Boolean(realm.demon);
+      fx.lastPhase = realm.phase || "normal_hold";
+    } else if (realm.demon !== fx.lastDemon) {
+      const enteringDemonHold =
+        realm.demon &&
+        realm.phase === "demon_hold" &&
+        fx.lastPhase === "to_demon_flicker";
+      const fromFlicker =
+        realm.phase === "to_demon_flicker" ||
+        realm.phase === "to_normal_flicker" ||
+        enteringDemonHold;
+      if (fromFlicker) {
+        triggerMapRealmLightningStrike(nowMs, { finalFlipToDemon: enteringDemonHold });
+      }
+      fx.lastDemon = Boolean(realm.demon);
+      fx.lastPhase = realm.phase || fx.lastPhase;
+    } else {
+      fx.lastPhase = realm.phase || fx.lastPhase;
+    }
+    if (fx.pendingTrailAtMs > 0 && nowMs >= fx.pendingTrailAtMs) {
+      fx.pendingTrailAtMs = 0;
+      if (typeof window.playBossLightningThunderSfx === "function") {
+        window.playBossLightningThunderSfx(MAP_REALM_LIGHTNING.finalTrailVolume);
+      }
+    }
+    if (fx.flashTimerMs > 0) {
+      fx.flashTimerMs = Math.max(0, fx.flashTimerMs - Math.max(0, dt || 0) * 1000);
+      const t = fx.flashDurationMs > 0 ? fx.flashTimerMs / fx.flashDurationMs : 0;
+      const eased = Math.max(0, Math.min(1, t * t));
+      fx.flashAlpha = fx.flashIntensity * eased;
+    } else {
+      fx.flashAlpha = 0;
+    }
+  }
+
+  function drawMapRealmLightningFlash(ctx, canvas) {
+    if (!ctx || !canvas) return;
+    const alphaBase = Number(state.realmLightning?.flashAlpha) || 0;
+    if (alphaBase <= 0.001) return;
+    const flicker = 0.86 + Math.random() * 0.24;
+    const alpha = Math.max(0, Math.min(0.45, alphaBase * flicker));
+    if (alpha <= 0.001) return;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#f3ecdf";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
   }
 
   function getActiveMapImage(preferDemonRealm) {
@@ -2712,6 +2809,10 @@
     state.mapLaunchTransition.districtId = null;
     state.mapLaunchTransition.timer = 0;
     state.mapLaunchTransition.launched = false;
+    state.realmLightning.initialized = false;
+    state.realmLightning.flashTimerMs = 0;
+    state.realmLightning.flashAlpha = 0;
+    state.realmLightning.pendingTrailAtMs = 0;
     stopMapAmbient();
   }
 
@@ -2719,6 +2820,7 @@
     if (!state.active) return;
     loadMapImages();
     loadDistrictExteriorImage();
+    updateMapRealmLightningEffects(dt);
     updateArmyMarchAnimation(dt);
     handleMapInput();
     const mapData = window.BattlechurchMapData;
@@ -2896,6 +2998,7 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
     }
+    drawMapRealmLightningFlash(ctx, canvas);
     ctx.restore();
   }
 
