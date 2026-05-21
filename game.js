@@ -4620,6 +4620,8 @@ const createHaloBladeState = () => ({
   maxTrail: 18,
   tetherDamageMultiplier: 0.65,
   tetherHitRadius: 12 * WORLD_SCALE,
+  bladeImpactSfxCooldown: 0.05,
+  lastBladeImpactSfxAt: 0,
 });
 const haloBladeState = createHaloBladeState();
 const haloBladeStateSecondary = createHaloBladeState();
@@ -11377,6 +11379,17 @@ function applyWeaponPickupEffect(pickup) {
           if (Number.isFinite(t.orbitRadius)) state.radius = t.orbitRadius * WORLD_SCALE;
           if (Number.isFinite(t.rotationSpeed)) state.speed = t.rotationSpeed;
           if (Number.isFinite(t.hitCooldown)) state.hitCooldown = t.hitCooldown;
+          if (Number.isFinite(t.hitRadius)) state.hitRadius = t.hitRadius * WORLD_SCALE;
+          if (Number.isFinite(t.tetherDamageMultiplier)) state.tetherDamageMultiplier = t.tetherDamageMultiplier;
+          if (Number.isFinite(t.tetherHitRadius)) state.tetherHitRadius = t.tetherHitRadius * WORLD_SCALE;
+          if (Number.isFinite(t.armoredDamageMultiplier)) state.armoredDamageMultiplier = t.armoredDamageMultiplier;
+          if (Number.isFinite(t.armoredHitCooldown)) state.armoredHitCooldown = t.armoredHitCooldown;
+          if (Number.isFinite(t.armoredMaxHitsPerSecond)) state.armoredMaxHitsPerSecond = t.armoredMaxHitsPerSecond;
+          if (Number.isFinite(t.armoredHitWindowSeconds)) state.armoredHitWindowSeconds = t.armoredHitWindowSeconds;
+          if (Number.isFinite(t.spriteScale)) state.scale = t.spriteScale * WORLD_SCALE;
+          if (Number.isFinite(t.trailSpacing)) state.trailSpacing = t.trailSpacing * WORLD_SCALE;
+          if (Number.isFinite(t.trailLife)) state.trailLife = t.trailLife;
+          if (Number.isFinite(t.maxTrail)) state.maxTrail = Math.max(1, Math.floor(t.maxTrail));
         }
       }
       showWeaponPowerupConfigText(config);
@@ -12051,6 +12064,17 @@ function updateHaloBladeInstance(state, angle, dt) {
   const tetherStartY = player.y - (player.radius || 24) * 0.18;
   const tetherEndX = state.x;
   const tetherEndY = state.y;
+  const playHaloBladeImpactFeedback = () => {
+    const sfxCooldown = Math.max(0.01, Number(state.bladeImpactSfxCooldown) || 0.05);
+    if (now - (state.lastBladeImpactSfxAt || 0) < sfxCooldown) return;
+    state.lastBladeImpactSfxAt = now;
+    if (typeof playFaithHitSfx === "function") {
+      playFaithHitSfx(0.8);
+    }
+    if (typeof applyCameraShake === "function") {
+      applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE * 1.6);
+    }
+  };
 
   enemies.forEach((enemy) => {
     if (!enemy || enemy.dead || enemy.state === "death") return;
@@ -12114,6 +12138,9 @@ function updateHaloBladeInstance(state, angle, dt) {
       bladeHit ? center.x : tetherImpactX,
       bladeHit ? center.y - targetRadius * 0.3 : tetherImpactY,
     );
+    if (bladeHit) {
+      playHaloBladeImpactFeedback();
+    }
   });
 
   projectiles.forEach((proj) => {
@@ -12180,6 +12207,9 @@ function updateHaloBladeInstance(state, angle, dt) {
           bossBladeHit ? state.x : bossImpactX,
           bossBladeHit ? state.y : bossImpactY,
         );
+        if (bossBladeHit) {
+          playHaloBladeImpactFeedback();
+        }
       }
     }
   }
@@ -12192,6 +12222,7 @@ function resetHaloBladeState(state) {
   state.lastHit = new WeakMap();
   state.lastBladeHit = new WeakMap();
   state.hitWindowStats = new WeakMap();
+  state.lastBladeImpactSfxAt = 0;
 }
 
 function updateHaloBlade(dt) {

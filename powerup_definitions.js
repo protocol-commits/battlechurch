@@ -221,10 +221,21 @@
       shopDescription: "Establish a prayer chain",
       levelCosts: CHURCH_LEVEL_COSTS,
       tuning: {
-        damage: 20,
-        orbitRadius: 388,   // game pixels (world scale applied at runtime)
-        rotationSpeed: 5.6, // radians/sec
-        hitCooldown: 0.25,  // seconds between hits on the same target
+        damage: 20,                     // Blade contact damage per hit.
+        orbitRadius: 350,               // Orbit radius in game pixels (world scale applied at runtime).
+        rotationSpeed: 5.6,             // Orbit speed in radians/sec.
+        hitCooldown: 0.25,              // Seconds between normal hits on same target.
+        hitRadius: 22,                  // Blade hit radius in game pixels (world scale applied at runtime).
+        tetherDamageMultiplier: 0.6,   // Rope/tether damage as fraction of blade damage.
+        tetherHitRadius: 22,            // Rope/tether hit radius in game pixels (world scale applied at runtime).
+        armoredDamageMultiplier: 5.0,   // Extra blade damage multiplier vs armored/tank classes.
+        armoredHitCooldown: 0.004,      // Cooldown per armored blade hit (seconds).
+        armoredMaxHitsPerSecond: 120,   // Hard cap on armored blade hits per second.
+        armoredHitWindowSeconds: 1,     // Rolling window length for armored hit cap.
+        spriteScale: 3.4,               // Halo sprite draw scale (world scale applied at runtime).
+        trailSpacing: 10,               // Distance between trail points in game pixels (world scale applied).
+        trailLife: 0.4,                 // Seconds each trail segment persists.
+        maxTrail: 18,                   // Maximum trail points retained.
       },
     },
     spear: {
