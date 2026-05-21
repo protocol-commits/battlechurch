@@ -15295,68 +15295,87 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  // Persistent state for the wave pill crossfade.
+  const _wavePill = { text: "", alpha: 0 };
+
   function drawTotalCongregationPill() {
     const b = requireBindings();
-    const { ctx, canvas, UI_FONT_FAMILY, getCongregationSize, gameStarted } = b;
+    const { ctx, canvas, UI_FONT_FAMILY, gameStarted, levelAnnouncements } = b;
     if (!ctx || !canvas || !gameStarted) return;
 
     const levelStatus = b.levelManager?.getStatus?.() || null;
     const stage = levelStatus?.stage;
-    if (!stage) return;
-    const hiddenStages = new Set(["districtIntro", "districtVictory", "briefing", "npcArrival"]);
-    if (hiddenStages.has(stage)) return;
+    const activeStages = new Set([
+      "waveIntro", "waveActive", "allKillBreak", "waveCleared",
+      "bossIntro", "bossActive", "graceRush",
+    ]);
+    if (!stage || !activeStages.has(stage)) {
+      _wavePill.alpha = 0;
+      return;
+    }
 
-    const activeDistrictId = typeof window !== "undefined" ? window.activeDistrictId : null;
-    const savedTotal =
-      typeof window !== "undefined" && typeof window.MapScreen?.getMapSavedTotal === "function"
-        ? window.MapScreen.getMapSavedTotal(activeDistrictId)
-        : 0;
-    const isRecapStage = stage === "graceRush";
-    const live = isRecapStage
-      ? (recapTallyState.totalValue || 0)
-      : typeof getCongregationSize === "function" ? getCongregationSize() : 0;
-    const total = savedTotal + live;
+    // Pull the current wave text from the active horde.
+    const currentHorde = b.levelManager?.getCurrentWave?.() || null;
+    const currentWaveText = currentHorde?.waveIntroText || "";
+
+    // Check if there's an active wave intro announcement (skipMissionBrief = wave intro banner).
+    const ann = Array.isArray(levelAnnouncements) ? levelAnnouncements[0] : null;
+    const isWaveAnnouncement = ann && Boolean(ann.skipMissionBrief) && ann.timer != null;
+
+    if (isWaveAnnouncement) {
+      // The big banner is showing. Update our stored text so it's ready to show.
+      if (currentWaveText) _wavePill.text = currentWaveText;
+
+      // Compute how far into the fade-out the banner is.
+      const dur = Math.max(0.001, ann.duration || 1);
+      const fadeDur = Math.min(dur, Math.max(0.05, ann.fadeOutDuration || 1.5));
+      const fadeStart = dur - fadeDur;
+      // timer counts down: when timer < fadeStart the banner is fading out.
+      const bannerAlpha = ann.timer > fadeStart
+        ? 1
+        : Math.max(0, Math.min(1, ann.timer / Math.max(0.001, fadeDur)));
+      // Pill is the inverse — fades in as banner fades out.
+      _wavePill.alpha = Math.max(0, 1 - bannerAlpha);
+    } else {
+      // No wave announcement active. If we have text, stay fully visible.
+      if (currentWaveText) _wavePill.text = currentWaveText;
+      // Last wave cleared — fade out.
+      if (stage === "graceRush" || (levelStatus?.finalWaveCleared && stage === "waveCleared")) {
+        _wavePill.alpha = Math.max(0, _wavePill.alpha - 0.008);
+      } else {
+        _wavePill.alpha = 1;
+      }
+    }
+
+    if (_wavePill.alpha <= 0 || !_wavePill.text) return;
 
     const colors = (typeof window !== "undefined" && window.UIStyles?.colors) || {};
     const semantic = (typeof window !== "undefined" && window.UIStyles?.typography?.canvasSemantic) || {};
     const captionSize = Math.round((semantic.caption?.size || 20) * 0.72);
 
-    const label = "Total Congregation";
-    const valueText = String(total);
-
     ctx.save();
-    ctx.font = `500 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
-    const labelW = ctx.measureText(label).width;
     ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
-    const valueW = ctx.measureText(valueText).width;
-    const gap = 6;
+    const textW = ctx.measureText(_wavePill.text).width;
     const padX = 10;
     const padY = 6;
-    const pillW = padX + labelW + gap + valueW + padX;
+    const pillW = padX + textW + padX;
     const pillH = captionSize + padY * 2;
     const margin = 12;
     const px = margin;
     const py = canvas.height - pillH - margin;
 
-    ctx.globalAlpha = 0.82;
+    ctx.globalAlpha = _wavePill.alpha * 0.82;
     ctx.fillStyle = colors.hudPanelBg || "rgba(16,16,36,0.6)";
     ctx.beginPath();
     ctx.roundRect(px, py, pillW, pillH, 6);
     ctx.fill();
-    ctx.globalAlpha = 1.0;
 
-    const midY = py + pillH / 2;
-    ctx.textBaseline = "middle";
-
-    ctx.font = `500 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
-    ctx.fillStyle = colors.softWhite || "#DFDFC4";
-    ctx.textAlign = "left";
-    ctx.fillText(label, px + padX, midY);
-
+    ctx.globalAlpha = _wavePill.alpha;
     ctx.font = `700 ${captionSize}px ${UI_FONT_FAMILY || "sans-serif"}`;
     ctx.fillStyle = colors.gold || "#DDA677";
-    ctx.textAlign = "right";
-    ctx.fillText(valueText, px + pillW - padX, midY);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(_wavePill.text, px + padX, py + pillH / 2);
 
     ctx.restore();
   }

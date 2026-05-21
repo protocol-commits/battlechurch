@@ -20440,7 +20440,8 @@ function updateCozyNpcs(dt, options = {}) {
         // NPCs should collide with the player (can be pushed), enemies (allow push),
         // other weapon pickups, and utility power-ups so they can't pass through pickups.
         if (!previewOnly) {
-          if (player && !npc.departed && npc.active) {
+          const trashPhasingThroughNpcs = Boolean(window?._meleeAttackState?.blankaRollActive);
+          if (player && !npc.departed && npc.active && !trashPhasingThroughNpcs) {
             resolveEntityCollisions(npc, [player], { allowPush: true, overlapScale: 0.85 });
           }
           resolveEntityCollisions(npc, enemies, { allowPush: true, overlapScale: 0.85 });
@@ -25325,17 +25326,27 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     if (meleeAttackState.swordRushActive) {
       spawnFlashEffect(player.x, player.y);
     } else {
-      const rushAngle = Math.atan2(direction.y, direction.x);
-      const trailOffset = Math.max(18, (player.radius || 24) * 0.8);
-      const trailX = player.x + Math.cos(rushAngle) * trailOffset;
-      const trailY = player.y + Math.sin(rushAngle) * trailOffset;
+      const rushAngle = meleeAttackState.blankaRollActive && Number.isFinite(meleeAttackState.blankaRollVisualAngle)
+        ? meleeAttackState.blankaRollVisualAngle
+        : Math.atan2(direction.y, direction.x);
+      const forwardAngle = Math.atan2(direction.y, direction.x);
+      // Anchor at the rush hitbox front so Trash reads as a forward clearing blade, not a rear trail.
+      const rushBox = getPlayerRushHitboxLocalRect(player);
+      const frontOffset = rushBox
+        ? Math.max(24, (rushBox.x || 0) + (rushBox.width || 0) * 0.9)
+        : Math.max(24, (player.radius || 24) * 1.8);
+      const trailX = player.x + Math.cos(forwardAngle) * frontOffset;
+      const trailY = player.y + Math.sin(forwardAngle) * frontOffset;
       if (typeof spawnSlashBurstEffect === "function") {
+        const isTrashRush = Boolean(meleeAttackState.blankaRollActive);
+        const slashTint = isTrashRush ? "#67b8ff" : "#ff9a2f";
+        const slashGlow = isTrashRush ? "#8fd3ff" : "#ffb25a";
         spawnSlashBurstEffect(trailX, trailY, rushAngle, RUSH_GLOW_TRAIL_SCALE, {
           scaleX: RUSH_GLOW_TRAIL_SCALE_X,
           scaleY: RUSH_GLOW_TRAIL_SCALE_Y,
-          tintColor: "#ff9a2f",
+          tintColor: slashTint,
           tintAlpha: 0.97,
-          glowColor: "#ffb25a",
+          glowColor: slashGlow,
           glowBlur: RUSH_GLOW_TRAIL_GLOW_BLUR,
           glowAlpha: RUSH_GLOW_TRAIL_GLOW_ALPHA,
           blendMode: "lighter",
@@ -27210,6 +27221,8 @@ window.showMoveBanner = showMoveBanner;
 
 // Duration (seconds) for the Charged C+B move, also called "Trash" / "Roll".
 const BLANKA_ROLL_DURATION = 2.5;
+// Visual-only spin rate for Trash slash swooshes (turns per second).
+const BLANKA_ROLL_SWOOSH_TURNS_PER_SECOND = 5.5;
 
 function executeBlankaRoll(meleeAttackState) {
   if (!player) return;
@@ -27249,6 +27262,7 @@ function executeBlankaRoll(meleeAttackState) {
   player.ignoreEntityCollisions = true;
   meleeAttackState.bcTeleportArmed = false;
   meleeAttackState.bcTeleportBlockTimer = 0.4;
+  meleeAttackState.blankaRollVisualAngle = Math.atan2(dir.y, dir.x);
   spawnFlashEffect(player.x, player.y);
   applyCameraShake(0.15, 0.4);
 }
@@ -27289,6 +27303,11 @@ function updateBlankaRoll(dt) {
   ms.rushInvulnerable = true;
   ms.rushDamageEnabled = true;
   ms.isRushing = true;
+  // Rotate the slash visual continuously so Trash reads like a spinning blade.
+  const spinStep = (Math.PI * 2) * BLANKA_ROLL_SWOOSH_TURNS_PER_SECOND * Math.max(0, Number(dt) || 0);
+  ms.blankaRollVisualAngle = Number.isFinite(ms.blankaRollVisualAngle)
+    ? ms.blankaRollVisualAngle + spinStep
+    : Math.atan2(ms.rushDir?.y || 0, ms.rushDir?.x || 1);
   // Fresh hit set every frame so enemies can be hit each pass as the player spins through them
   ms.rushHitEntities = new Set();
 
@@ -27306,6 +27325,7 @@ function endBlankaRoll(ms) {
   ms.blankaRollTimer = 0;
   ms.blankaRollSawCHeld = false;
   ms.blankaRollStartedAt = 0;
+  ms.blankaRollVisualAngle = null;
   ms.isRushing = false;
   ms.rushDamageEnabled = false;
   ms.rushInvulnerable = false;
@@ -28306,6 +28326,7 @@ function updateMeleeAttackSystem(dt) {
     blankaRollActive: false,
     blankaRollTimer: 0,
     blankaRollHitEntities: null,
+    blankaRollVisualAngle: null,
     cbHeldAtBPress: false,
     cbClashPendingOnCRelease: false,
     cleaveArcTimer: 0,
