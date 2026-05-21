@@ -28,6 +28,7 @@
       speedMultiplier: 1.2,
       maxShots: 3,
       speed: 0,
+      hitShakeMultiplier: 0.82,
       // Faith cannon weapon fires the torch-based projectile and now shares the flash hit effect meant
       // for wisdom/flash hits so the animation is tracked next to the fireball assets above.
     },
@@ -48,6 +49,7 @@
       speedMultiplier: 1.15,
       maxShots: 2,
       speed: 0,
+      hitShakeMultiplier: 0.84,
     },
     wisdom: {
       description: "Powerful methodical cannon",
@@ -69,6 +71,7 @@
       speedMultiplier: 1.4,
       maxShots: 2,
       speed: 0,
+      hitShakeMultiplier: 0.83,
     },
     npcScripture: {
       src: `${UTILITY_POWERUP_ROOT}/I25_Book.png`,

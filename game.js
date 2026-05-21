@@ -5099,11 +5099,12 @@ const HIT_FREEZE_DURATION = 0.08;
 const CAMERA_SHAKE_DURATION = 0.3;
 const CAMERA_SHAKE_INTENSITY = 18;
 const WISDOM_HIT_SHAKE_DURATION = 0.2;
-const WISDOM_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.72;
+const WISDOM_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.6;
 const FAITH_HIT_SHAKE_DURATION = 0.16;
 const FAITH_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.36;
+const FAITH_WEAPON_HIT_SHAKE_MAGNITUDE = FAITH_HIT_SHAKE_MAGNITUDE * 0.82;
 const SCRIPTURE_HIT_SHAKE_DURATION = 0.16;
-const SCRIPTURE_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.62;
+const SCRIPTURE_HIT_SHAKE_MAGNITUDE = CAMERA_SHAKE_INTENSITY * 0.52;
 const SCRIPTURE_HIT_BURST_WINDOW_MS = 160;
 const SCRIPTURE_HIT_BURST_MAX_SFX = 20;
 let scriptureHitBurstStartedAt = 0;
@@ -7352,6 +7353,8 @@ function resolveWeaponPowerupConfig(effect, def = {}) {
     hudDuration: overrides.hudDuration ?? defaults.hudDuration ?? 2.6,
     spokenName: overrides.spokenName ?? defaults.spokenName ?? overrides.label ?? null,
     iconSrc: overrides.iconSrc ?? defaults.iconSrc ?? "",
+    hitShakeMultiplier:
+      overrides.hitShakeMultiplier ?? def.hitShakeMultiplier ?? defaults.hitShakeMultiplier ?? 1,
   };
 }
 
@@ -11293,6 +11296,9 @@ function applyWeaponPickupEffect(pickup) {
       player.magicSpeedMultiplier = config.speedMultiplier;
       player.magicBuffTimer = config.duration;
       player.magicCooldown = 0;
+      player.wisdomHitShakeMultiplier = Number.isFinite(config.hitShakeMultiplier)
+        ? config.hitShakeMultiplier
+        : 1;
       showWeaponPowerupConfigText(config);
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -11313,6 +11319,9 @@ function applyWeaponPickupEffect(pickup) {
       player.faithCannonSpeedMultiplier = config.speedMultiplier;
       player.faithCannonDamageMultiplier = config.damageMultiplier * getActiveClassMultiplier("powerups.faithDamageMultiplier", 1);
       player.magicCooldown = 0;
+      player.faithHitShakeMultiplier = Number.isFinite(config.hitShakeMultiplier)
+        ? config.hitShakeMultiplier
+        : 1;
       showWeaponPowerupConfigText(config);
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -11333,6 +11342,9 @@ function applyWeaponPickupEffect(pickup) {
       player.fireSpeedMultiplier = config.speedMultiplier;
       player.fireDamageMultiplier = config.damageMultiplier * getActiveClassMultiplier("powerups.scriptureDamageMultiplier", 1);
       player.magicCooldown = 0;
+      player.scriptureHitShakeMultiplier = Number.isFinite(config.hitShakeMultiplier)
+        ? config.hitShakeMultiplier
+        : 1;
       showWeaponPowerupConfigText(config);
       spawnPowerupHudFlyEffect({
         x: pickup.x,
@@ -13953,7 +13965,8 @@ function detonateWisdomMissleProjectile(projectile) {
   });
   spawnMagicSplashEffect(centerX, centerY, radius);
   projectile.dead = true;
-  applyCameraShake(WISDOM_HIT_SHAKE_DURATION, WISDOM_HIT_SHAKE_MAGNITUDE);
+  const shakeMult = Number.isFinite(projectile?.hitShakeMultiplier) ? projectile.hitShakeMultiplier : 1;
+  applyCameraShake(WISDOM_HIT_SHAKE_DURATION, WISDOM_HIT_SHAKE_MAGNITUDE * shakeMult);
 }
 
 function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) {
@@ -13978,10 +13991,11 @@ function detonateFaithCannonProjectile(projectile, { endOfRange = false } = {}) 
     spawnPuffEffect(centerX, centerY);
   }
   projectile.dead = true;
-  applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+  const shakeMult = Number.isFinite(projectile?.hitShakeMultiplier) ? projectile.hitShakeMultiplier : 1;
+  applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_WEAPON_HIT_SHAKE_MAGNITUDE * shakeMult);
 }
 
-function triggerScriptureHitFeedback(hitX, hitY, { isBoss = false } = {}) {
+function triggerScriptureHitFeedback(hitX, hitY, { isBoss = false, shakeScale = 1 } = {}) {
   const now = typeof performance !== "undefined" && typeof performance.now === "function"
     ? performance.now()
     : Date.now();
@@ -13997,7 +14011,7 @@ function triggerScriptureHitFeedback(hitX, hitY, { isBoss = false } = {}) {
     }
   }
   spawnPuffEffect(hitX, hitY, isBoss ? 22 : 20);
-  applyCameraShake(SCRIPTURE_HIT_SHAKE_DURATION, SCRIPTURE_HIT_SHAKE_MAGNITUDE);
+  applyCameraShake(SCRIPTURE_HIT_SHAKE_DURATION, SCRIPTURE_HIT_SHAKE_MAGNITUDE * Math.max(0, shakeScale));
 }
 
 function updateAimAssist() {
@@ -16459,6 +16473,7 @@ class Projectile {
     this.isDivineShot = Boolean(config.isDivineShot);
     this.scriptureFeedback = Boolean(config.scriptureFeedback);
     this.perseveranceFeedback = Boolean(config.perseveranceFeedback);
+    this.hitShakeMultiplier = Number.isFinite(config.hitShakeMultiplier) ? config.hitShakeMultiplier : 1;
     this.fireThrowerBomb = Boolean(config.fireThrowerBomb);
     this.fireThrowerBombState = this.fireThrowerBomb ? "flight" : null;
     this.fireThrowerFlightTimer = Math.max(0, Number(config.flightDuration) || 0);
@@ -18094,6 +18109,15 @@ function spawnProjectile(type, x, y, dx, dy, overrides = {}) {
     (config.source.isPlayer || config.source.isCozyNpc)
   ) {
     config.source.projectileGlowTimer = Math.max(config.source.projectileGlowTimer || 0, 0.22);
+  }
+  if (config.friendly && config.source?.isPlayer) {
+    if (type === "faith_cannon") {
+      config.hitShakeMultiplier = Number.isFinite(player?.faithHitShakeMultiplier) ? player.faithHitShakeMultiplier : 1;
+    } else if (type === "wisdom_missle") {
+      config.hitShakeMultiplier = Number.isFinite(player?.wisdomHitShakeMultiplier) ? player.wisdomHitShakeMultiplier : 1;
+    } else if (type === "fire") {
+      config.hitShakeMultiplier = Number.isFinite(player?.scriptureHitShakeMultiplier) ? player.scriptureHitShakeMultiplier : 1;
+    }
   }
   if (bossRangeMultiplier > 1) {
     if (Number.isFinite(config.life)) {
@@ -23948,15 +23972,18 @@ function processProjectileCollisions(dt) {
             if (typeof playFaithHitSfx === "function") {
               playFaithHitSfx(0.8);
             }
-            applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+            applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_WEAPON_HIT_SHAKE_MAGNITUDE);
           } else if (projectile.perseveranceFeedback) {
             if (typeof playFaithHitSfx === "function") {
               playFaithHitSfx(0.75);
             }
-            applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+            applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_WEAPON_HIT_SHAKE_MAGNITUDE);
           }
           if (projectile.scriptureFeedback) {
-            triggerScriptureHitFeedback(hitX, hitY, { isBoss: false });
+            triggerScriptureHitFeedback(hitX, hitY, {
+              isBoss: false,
+              shakeScale: Number.isFinite(projectile.hitShakeMultiplier) ? projectile.hitShakeMultiplier : 1,
+            });
           }
         }
         if (enemy.health > 0 && enemy.type !== "tormentorFlame") {
@@ -24058,15 +24085,18 @@ function processProjectileCollisions(dt) {
                 if (typeof playFaithHitSfx === "function") {
                   playFaithHitSfx(0.8);
                 }
-                applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+                applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_WEAPON_HIT_SHAKE_MAGNITUDE);
               } else if (projectile.perseveranceFeedback) {
                 if (typeof playFaithHitSfx === "function") {
                   playFaithHitSfx(0.75);
                 }
-                applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_HIT_SHAKE_MAGNITUDE);
+                applyCameraShake(FAITH_HIT_SHAKE_DURATION, FAITH_WEAPON_HIT_SHAKE_MAGNITUDE);
               }
               if (projectile.scriptureFeedback) {
-                triggerScriptureHitFeedback(hitX, hitY, { isBoss: true });
+                triggerScriptureHitFeedback(hitX, hitY, {
+                  isBoss: true,
+                  shakeScale: Number.isFinite(projectile.hitShakeMultiplier) ? projectile.hitShakeMultiplier : 1,
+                });
               }
             }
             projectile.onHit(activeBoss);
