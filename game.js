@@ -4143,8 +4143,12 @@ const NPC_POWERUP_EFFECT_NAMES = {
   npcFaithWeapon: "Faith",
   harmony: "Encouragement",
 };
+// Toggle for pickup/powerup speech bubbles only (player + NPC).
+// Keep false for now; flip to true to restore the old behavior quickly.
+const POWERUP_SPEECH_BUBBLES_ENABLED = false;
 
 function triggerNpcPowerupDialogue(effectKey) {
+  if (!POWERUP_SPEECH_BUBBLES_ENABLED) return false;
   const name = NPC_POWERUP_EFFECT_NAMES[effectKey];
   if (!name) return false;
   const speaker = getNpcPowerupDialogueSpeaker();
@@ -7348,7 +7352,9 @@ function showWeaponPowerupConfigText(config) {
     duration: config.hudDuration,
     iconSrc: config.iconSrc || "",
   });
-  playerYell(config.spokenName || announcementTitle, 3.2);
+  if (POWERUP_SPEECH_BUBBLES_ENABLED) {
+    playerYell(config.spokenName || announcementTitle, 3.2);
+  }
 }
 
 function getWeaponPowerName(effect, fallback = "Weapon") {
@@ -11499,7 +11505,9 @@ function applyUtilityPowerUp(powerUp) {
     color: powerUp.definition.color || UI_COLOR.softWhite,
     iconSrc: powerUp.definition.iconSrc || "",
   });
-  playerYell(utilitySpokenName, 3.2);
+  if (POWERUP_SPEECH_BUBBLES_ENABLED) {
+    playerYell(utilitySpokenName, 3.2);
+  }
   switch (effect) {
     case "shield":
       player.shieldTimer = Math.max(player.shieldTimer, duration);
