@@ -29877,7 +29877,7 @@ function updateGame(dt) {
   updateDevStatus(dt);
   updateAimAssist();
   updateEffects(visualDt);
-  if (!levelManager?.isActive()) {
+  if (!isDevMeleeArenaActive() && !levelManager?.isActive()) {
     maintainMiniImpHorde(levelStatus);
   }
 
