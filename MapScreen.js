@@ -60,16 +60,24 @@
   let mapAssets = null;
   const districtAnimators = new Map();
   const MAP_REALM_FLICKER = Object.freeze({
-    normalHoldMs: 2750,
-    toDemonFlickerMs: 500,
-    demonHoldMs: 3500,
-    toNormalFlickerMs: 700,
-    flickerStepMs: 80,
+    // Per-cycle random ranges to avoid rhythmic/metronome flicker.
+    normalHoldMinMs: 400,
+    normalHoldMaxMs: 1000,
+    demonHoldMinMs: 2500,
+    demonHoldMaxMs: 4700,
+    // Random number of realm flips for each glitch section.
+    toDemonGlitchMinFlips: 3,
+    toDemonGlitchMaxFlips: 6,
+    toNormalGlitchMinFlips: 4,
+    toNormalGlitchMaxFlips: 7,
+    // Random speed per individual glitch step.
+    glitchStepMinMs: 75,
+    glitchStepMaxMs: 150,
   });
   const MAP_REALM_LIGHTNING = Object.freeze({
-    flashDurationMs: 150,
-    flashMinIntensity: 0.14,
-    flashMaxIntensity: 0.26,
+    flashDurationMs: 185,
+    flashMinIntensity: 0.3,
+    flashMaxIntensity: 0.52,
     thunderVolume: 0.62,
     finalThunderVolume: 0.8,
     finalTrailDelayMinMs: 110,
@@ -219,6 +227,14 @@
       flashIntensity: 0,
       flashAlpha: 0,
       pendingTrailAtMs: 0,
+    },
+    realmCycle: {
+      initialized: false,
+      phaseStartMs: 0,
+      normalHoldMs: 2750,
+      demonHoldMs: 3500,
+      toDemonStepsMs: [],
+      toNormalStepsMs: [],
     },
   };
   const DEFAULT_SAVE_ID = "main";
@@ -588,25 +604,87 @@
     }
   }
 
-  function resolveMapRealmState(nowMs) {
+  function randIntInclusive(min, max) {
+    const lo = Math.floor(Math.min(min, max));
+    const hi = Math.floor(Math.max(min, max));
+    return lo + Math.floor(Math.random() * (hi - lo + 1));
+  }
+
+  function randMsInRange(min, max) {
+    const lo = Number.isFinite(min) ? min : 0;
+    const hi = Number.isFinite(max) ? max : lo;
+    return lo + Math.random() * Math.max(0, hi - lo);
+  }
+
+  function makeRandomRealmCycle() {
     const cfg = MAP_REALM_FLICKER;
-    const total =
-      cfg.normalHoldMs +
-      cfg.toDemonFlickerMs +
-      cfg.demonHoldMs +
-      cfg.toNormalFlickerMs;
-    const t = ((nowMs % total) + total) % total;
-    if (t < cfg.normalHoldMs) return { demon: false, phase: "normal_hold" };
-    if (t < cfg.normalHoldMs + cfg.toDemonFlickerMs) {
-      const step = Math.floor((t - cfg.normalHoldMs) / Math.max(1, cfg.flickerStepMs));
+    const toDemonFlipCount = randIntInclusive(cfg.toDemonGlitchMinFlips, cfg.toDemonGlitchMaxFlips);
+    const toNormalFlipCount = randIntInclusive(cfg.toNormalGlitchMinFlips, cfg.toNormalGlitchMaxFlips);
+    const toDemonStepsMs = Array.from({ length: Math.max(1, toDemonFlipCount) }, () =>
+      randMsInRange(cfg.glitchStepMinMs, cfg.glitchStepMaxMs),
+    );
+    const toNormalStepsMs = Array.from({ length: Math.max(1, toNormalFlipCount) }, () =>
+      randMsInRange(cfg.glitchStepMinMs, cfg.glitchStepMaxMs),
+    );
+    return {
+      normalHoldMs: randMsInRange(cfg.normalHoldMinMs, cfg.normalHoldMaxMs),
+      demonHoldMs: randMsInRange(cfg.demonHoldMinMs, cfg.demonHoldMaxMs),
+      toDemonStepsMs,
+      toNormalStepsMs,
+    };
+  }
+
+  function getRealmCycleTotalMs(cycle) {
+    if (!cycle) return 0;
+    const toDemonTotal = Array.isArray(cycle.toDemonStepsMs)
+      ? cycle.toDemonStepsMs.reduce((sum, ms) => sum + Math.max(1, ms || 0), 0)
+      : 0;
+    const toNormalTotal = Array.isArray(cycle.toNormalStepsMs)
+      ? cycle.toNormalStepsMs.reduce((sum, ms) => sum + Math.max(1, ms || 0), 0)
+      : 0;
+    return Math.max(1, cycle.normalHoldMs + toDemonTotal + cycle.demonHoldMs + toNormalTotal);
+  }
+
+  function getRandomizedRealmStepIndex(elapsedMs, stepDurations) {
+    if (!Array.isArray(stepDurations) || stepDurations.length === 0) return 0;
+    let acc = 0;
+    for (let i = 0; i < stepDurations.length; i += 1) {
+      acc += Math.max(1, stepDurations[i] || 0);
+      if (elapsedMs < acc) return i;
+    }
+    return stepDurations.length - 1;
+  }
+
+  function resolveMapRealmState(nowMs) {
+    const cycle = state.realmCycle;
+    if (!cycle.initialized) {
+      Object.assign(cycle, makeRandomRealmCycle());
+      cycle.initialized = true;
+      cycle.phaseStartMs = nowMs;
+    }
+    let elapsed = nowMs - cycle.phaseStartMs;
+    let total = getRealmCycleTotalMs(cycle);
+    while (elapsed >= total) {
+      cycle.phaseStartMs += total;
+      Object.assign(cycle, makeRandomRealmCycle());
+      elapsed = nowMs - cycle.phaseStartMs;
+      total = getRealmCycleTotalMs(cycle);
+    }
+
+    if (elapsed < cycle.normalHoldMs) return { demon: false, phase: "normal_hold" };
+    elapsed -= cycle.normalHoldMs;
+
+    const toDemonTotal = cycle.toDemonStepsMs.reduce((sum, ms) => sum + Math.max(1, ms || 0), 0);
+    if (elapsed < toDemonTotal) {
+      const step = getRandomizedRealmStepIndex(elapsed, cycle.toDemonStepsMs);
       return { demon: step % 2 === 1, phase: "to_demon_flicker" };
     }
-    if (t < cfg.normalHoldMs + cfg.toDemonFlickerMs + cfg.demonHoldMs) {
-      return { demon: true, phase: "demon_hold" };
-    }
-    const step = Math.floor(
-      (t - (cfg.normalHoldMs + cfg.toDemonFlickerMs + cfg.demonHoldMs)) / Math.max(1, cfg.flickerStepMs),
-    );
+    elapsed -= toDemonTotal;
+
+    if (elapsed < cycle.demonHoldMs) return { demon: true, phase: "demon_hold" };
+    elapsed -= cycle.demonHoldMs;
+
+    const step = getRandomizedRealmStepIndex(elapsed, cycle.toNormalStepsMs);
     return { demon: step % 2 === 0, phase: "to_normal_flicker" };
   }
 
@@ -676,11 +754,21 @@
     const alphaBase = Number(state.realmLightning?.flashAlpha) || 0;
     if (alphaBase <= 0.001) return;
     const flicker = 0.86 + Math.random() * 0.24;
-    const alpha = Math.max(0, Math.min(0.45, alphaBase * flicker));
+    const alpha = Math.max(0, Math.min(0.72, alphaBase * flicker));
     if (alpha <= 0.001) return;
     ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const cx = canvas.width * 0.5;
+    const cy = canvas.height * 0.36;
+    const radius = Math.max(canvas.width, canvas.height) * 0.82;
+    const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    bloom.addColorStop(0, `rgba(255, 254, 246, ${Math.min(0.9, alpha * 1.28)})`);
+    bloom.addColorStop(0.5, `rgba(244, 235, 220, ${Math.min(0.66, alpha * 0.92)})`);
+    bloom.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = bloom;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = "#f3ecdf";
+    ctx.fillStyle = "#f8f0df";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
   }
@@ -2813,6 +2901,7 @@
     state.realmLightning.flashTimerMs = 0;
     state.realmLightning.flashAlpha = 0;
     state.realmLightning.pendingTrailAtMs = 0;
+    state.realmCycle.initialized = false;
     stopMapAmbient();
   }
 
