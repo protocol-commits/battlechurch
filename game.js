@@ -8635,7 +8635,7 @@ async function loadBackgroundAssets(cache, assets) {
   const floorVictoryNormalPromise = loadImage("assets/backgrounds/floors/floor-game-normal.png")
     .then((img) => { assets.backgroundLayers.floorVictoryNormal = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floorVictoryNormal = null; });
-  const floorBossPromise = loadImage("assets/backgrounds/floors-boss/boss-1.png")
+  const floorBossPromise = loadImage("assets/backgrounds/floors-boss/boss_1.png")
     .then((img) => { assets.backgroundLayers.floorBoss = maybeApplyArenaBackgroundShadowCrush(img); })
     .catch(() => { assets.backgroundLayers.floorBoss = null; });
   const floorCongregationNormalPromise = loadImage("assets/backgrounds/floors/floor_normal.png")
