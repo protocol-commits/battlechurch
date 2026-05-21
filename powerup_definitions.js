@@ -120,7 +120,7 @@
       scale: 3.2 * WORLD_SCALE,
       radius: 30 * WORLD_SCALE,
       effect: "shield",
-      duration: 9,
+      duration: 7,
       label: "Shield of Faith",
       spokenName: "Shield of Faith",
       iconSrc: "assets/sprites/items/Armour/A29_Iron_Shield.png",
