@@ -15,8 +15,12 @@
     body: "#E7B066",
     dim: "rgba(231, 176, 102, 0.68)",
   });
-  const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0;
-  const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.72;
+  const MAP_SCREEN_SHADOW_CRUSH_DEFAULT = 0.8;
+  const MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT = 0.32;
+  const MAP_SCREEN_RENDER_STYLE_FALLBACK = Object.freeze({
+    shadowCrush: MAP_SCREEN_SHADOW_CRUSH_DEFAULT,
+    shadowThreshold: MAP_SCREEN_SHADOW_THRESHOLD_DEFAULT,
+  });
   const CANVAS_SEMANTIC_DEFAULTS = {
     eyebrow: { size: 13, weight: 600, lineHeight: 1.15 },
     h1: { size: 56, weight: 900, lineHeight: 1.05 },
@@ -68,11 +72,11 @@
       if (typeof window === "undefined") return null;
       const cfg = window.GameBalance || window.BattlechurchBalanceConfig || null;
       if (!cfg) return null;
-      return cfg.masterRenderStyle
-        || cfg.mapScreenRenderStyle
-        || null;
+      // Map-only style bucket. Intentionally do NOT inherit from masterRenderStyle
+      // so map tweaks never affect (or get affected by) gameplay shadow crush.
+      return cfg.mapScreenRenderStyle || null;
     })();
-    const raw = root ? Number(root[key]) : NaN;
+    const raw = root ? Number(root[key]) : Number(MAP_SCREEN_RENDER_STYLE_FALLBACK[key]);
     return Number.isFinite(raw) ? raw : fallback;
   }
 
