@@ -25241,6 +25241,22 @@ function applySwordRushBlastWaveDamage(direction, meleeAttackState) {
   }
 }
 
+function releasePlayerFromRushPoseLock(playerEntity) {
+  if (!playerEntity) return;
+  playerEntity._paperdollSmashFrame3HoldUntil = 0;
+  playerEntity._paperdollThrustHoldUntil = 0;
+  if (playerEntity.animator) {
+    playerEntity.animator.finished = false;
+  }
+  if (playerEntity.state === "attackMelee") {
+    const moveDir = window.Input?.movementDirection;
+    const moving = Boolean(moveDir) && (Math.hypot(moveDir.x || 0, moveDir.y || 0) > 0.01);
+    const nextState = moving ? "walk" : "idle";
+    playerEntity.state = nextState;
+    playerEntity.animator?.play(nextState, { restart: true });
+  }
+}
+
 function updateRushMovement(dt, direction, meleeAttackState) {
   if (!meleeAttackState.isRushing || !player) return;
   if (!Number.isFinite(dt) || dt <= 0) return;
@@ -25265,13 +25281,7 @@ function updateRushMovement(dt, direction, meleeAttackState) {
     meleeAttackState.rushLockTimer = 0;
     meleeAttackState.rushDistanceRemaining = 0;
     meleeAttackState.pendingComboMoveName = null;
-    if (player) {
-      player._paperdollSmashFrame3HoldUntil = 0;
-      player._paperdollThrustHoldUntil = 0;
-      if (player.animator) {
-        player.animator.finished = false;
-      }
-    }
+    releasePlayerFromRushPoseLock(player);
     if (player) player.ignoreEntityCollisions = false;
   };
 
@@ -28055,6 +28065,7 @@ function updateMeleeTimers(dt, meleeAttackState) {
     meleeAttackState.swordRushBlastHitEntities = null;
     meleeAttackState.rushDistanceRemaining = 0;
     meleeAttackState.rushLockTimer = 0;
+    releasePlayerFromRushPoseLock(player);
     if (player) player.ignoreEntityCollisions = false;
   }
   if (rushForcedExpired) {
@@ -28070,6 +28081,7 @@ function updateMeleeTimers(dt, meleeAttackState) {
     meleeAttackState.swordRushBlastHitEntities = null;
     meleeAttackState.rushDistanceRemaining = 0;
     meleeAttackState.rushForceEndAt = 0;
+    releasePlayerFromRushPoseLock(player);
     if (player) player.ignoreEntityCollisions = false;
   }
 }
@@ -28421,11 +28433,7 @@ function updateMeleeAttackSystem(dt) {
         meleeAttackState.rushLockTimer = 0;
         meleeAttackState.rushDistanceRemaining = 0;
         meleeAttackState.pendingComboMoveName = null;
-        if (player) {
-          player._paperdollSmashFrame3HoldUntil = 0;
-          player._paperdollThrustHoldUntil = 0;
-          player.animator && (player.animator.finished = false);
-        }
+        releasePlayerFromRushPoseLock(player);
         rushCancelledIntoMove = true;
         if (cJustPressed) {
           meleeAttackState.lastComboTimes.C = now;
