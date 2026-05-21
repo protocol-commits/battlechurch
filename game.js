@@ -396,11 +396,26 @@ const GRACE_PICKUP_GRAVITY = _gb('grace.gravity', 520);
 const GRACE_PICKUP_AIR_DRAG = _gb('grace.airDrag', 0.88);
 const GRACE_PICKUP_FLOOR_Y = () => canvas.height - 36;
 const GRACE_DROP_BASE_CHANCE = _gb('grace.dropBaseChance', 0.18);
-const GRACE_DROP_HIGH_VALUE_BONUS = _gb('grace.dropHighValueBonus', 0.12);
 const GRACE_DROP_MINION_SCALE = _gb('grace.dropMinionScale', 0.35);
 const GRACE_DROP_MAX_STACK = _gb('grace.dropMaxStack', 3);
 const GRACE_DROP_SIZE_CHANCE_FACTOR = _gb('grace.dropSizeChanceFactor', 0.15);
 const GRACE_DROP_SIZE_STACK_FACTOR = _gb('grace.dropSizeStackFactor', 0.9);
+const GRACE_GUARANTEED_HEALTH_THRESHOLD = _gb('grace.guaranteedHealthThreshold', 100);
+const GRACE_GUARANTEED_HEALTH_CHUNK = _gb('grace.guaranteedHealthChunk', 100);
+const GRACE_GUARANTEED_GEMS_PER_CHUNK = _gb('grace.guaranteedGemsPerChunk', 1);
+const GRACE_COUNTER_HIT_GEMS = _gb('grace.counterHitGems', 1);
+const GRACE_PUNISH_COUNTER_GEMS = _gb('grace.punishCounterGems', 3);
+const GRACE_MELEE_COMBO_GEMS = _gb('grace.meleeComboGems', 1);
+const GRACE_VICTORY_BURST_AMOUNT = _gb('grace.victoryBurstAmount', 20);
+const GRACE_BOSS_DEATH_BURST_AMOUNT = _gb('grace.bossDeathBurstAmount', 18);
+const GRACE_BOSS_DEATH_BURST_LIFE = _gb('grace.bossDeathBurstLife', 22);
+const GRACE_RUSH_BATTLE_BURST_AMOUNT = _gb('grace.rushBattleBurstAmount', 16);
+const GRACE_RUSH_BOSS_BURST_AMOUNT = _gb('grace.rushBossBurstAmount', 26);
+const GRACE_RUSH_BATTLE_SPAWN_INTERVAL = _gb('grace.rushBattleSpawnInterval', 1.1);
+const GRACE_RUSH_BOSS_SPAWN_INTERVAL = _gb('grace.rushBossSpawnInterval', 0.65);
+const GRACE_BOSS_DEATH_RAIN_INTERVAL_IDLE = _gb('grace.bossDeathRainIntervalIdle', 0.22);
+const GRACE_BOSS_DEATH_RAIN_INTERVAL_ACTIVE = _gb('grace.bossDeathRainIntervalActive', 0.18);
+const GRACE_BOSS_DEATH_RAIN_INITIAL_DELAY = _gb('grace.bossDeathRainInitialDelay', 0.08);
 const GRACE_RUSH_DURATION = _gb('grace.rushDuration', 8);
 const GRACE_BONUS_MULTIPLIER = _gb('grace.bonusMultiplier', 5);
 const POST_DEATH_HANG = 5;
@@ -3697,10 +3712,20 @@ function startBattleGraceRush(duration = GRACE_RUSH_DURATION, options = {}) {
   graceRushState.duration = Math.max(0, duration);
   graceRushState.elapsed = 0;
   graceRushState.reason = options.reason || "battle";
-  graceRushState.burstAmount = Math.max(1, Math.round(options.burstAmount ?? (graceRushState.reason === "boss" ? 26 : 16)));
+  graceRushState.burstAmount = Math.max(
+    1,
+    Math.round(
+      options.burstAmount ??
+        (graceRushState.reason === "boss" ? GRACE_RUSH_BOSS_BURST_AMOUNT : GRACE_RUSH_BATTLE_BURST_AMOUNT),
+    ),
+  );
   graceRushState.spawnInterval = Math.max(
     0.2,
-    Number.isFinite(options.spawnInterval) ? options.spawnInterval : graceRushState.reason === "boss" ? 0.65 : 1.1,
+    Number.isFinite(options.spawnInterval)
+      ? options.spawnInterval
+      : graceRushState.reason === "boss"
+        ? GRACE_RUSH_BOSS_SPAWN_INTERVAL
+        : GRACE_RUSH_BATTLE_SPAWN_INTERVAL,
   );
   graceRushState.spawnTimer = 0;
   graceRushState.centerX = Number.isFinite(options.centerX) ? options.centerX : null;
@@ -4798,9 +4823,9 @@ const PUNISH_COUNTER_MULTIPLIER = 1.30;
 const COUNTER_HIT_TEXT_LIFE = 2.9;
 const PUNISH_COUNTER_TEXT_LIFE = 2.9;
 const MELEE_COMBO_TEXT_LIFE = 4.2;
-const COUNTER_HIT_GRACE_GEMS = 1;
-const PUNISH_COUNTER_GRACE_GEMS = 3;
-const MELEE_COMBO_GRACE_GEMS = 1;
+const COUNTER_HIT_GRACE_GEMS = GRACE_COUNTER_HIT_GEMS;
+const PUNISH_COUNTER_GRACE_GEMS = GRACE_PUNISH_COUNTER_GEMS;
+const MELEE_COMBO_GRACE_GEMS = GRACE_MELEE_COMBO_GEMS;
 const MELEE_HITSTOP_DURATION = 0.09;
 const MELEE_COMBO_HITSTOP_DURATION = 0.11;
 const MELEE_KNOCKDOWN_MIN_HITS = 4;
@@ -13206,7 +13231,7 @@ function spawnGraceRainBurst(
 
 function spawnVictoryGraceBurst(options = {}) {
   const {
-    amount = 20,
+    amount = GRACE_VICTORY_BURST_AMOUNT,
     reason = "battle",
     centerX: overrideX = null,
     centerY: overrideY = null,
@@ -13238,12 +13263,9 @@ function maybeDropGraceFromEnemy(enemy) {
     : Number.isFinite(enemy.config?.health)
       ? enemy.config.health
       : enemy.health;
-  if (Number.isFinite(baseHealth) && baseHealth > 100) {
-    const blocks = Math.max(1, Math.floor(baseHealth / 100));
-    let guaranteed = 0;
-    for (let i = 0; i < blocks; i += 1) {
-      guaranteed += 1;
-    }
+  if (Number.isFinite(baseHealth) && baseHealth > GRACE_GUARANTEED_HEALTH_THRESHOLD) {
+    const blocks = Math.max(1, Math.floor(baseHealth / Math.max(1, GRACE_GUARANTEED_HEALTH_CHUNK)));
+    const guaranteed = Math.max(1, blocks * Math.max(1, Math.round(GRACE_GUARANTEED_GEMS_PER_CHUNK)));
     spawnGraceArcBurst(enemy.x, enemy.y, guaranteed);
     return;
   }
@@ -17071,7 +17093,7 @@ class BossEncounter {
     this.deathPostDelay = 0;
     this.deathVisualTotal = 0;
     this.deathGraceRainTimer = 0;
-    this.deathGraceRainInterval = 0.22;
+    this.deathGraceRainInterval = GRACE_BOSS_DEATH_RAIN_INTERVAL_IDLE;
     this.deathStageNotified = false;
     this.victoryAnnounced = false;
     this.safeTopMargin = Math.max(this.radius * 0.8, 160);
@@ -17657,8 +17679,8 @@ class BossEncounter {
     this.deathPostDelay = 1;
     this.deathExplosionAccumulator = 0;
     this.deathVisualTotal = this.deathExplosionTimer + this.deathPostDelay;
-    this.deathGraceRainTimer = 0.08;
-    this.deathGraceRainInterval = 0.18;
+    this.deathGraceRainTimer = GRACE_BOSS_DEATH_RAIN_INITIAL_DELAY;
+    this.deathGraceRainInterval = GRACE_BOSS_DEATH_RAIN_INTERVAL_ACTIVE;
     if (!this.deathStageNotified) {
       levelManager?.markBossDefeated?.();
       this.deathStageNotified = true;
@@ -17716,8 +17738,8 @@ class BossEncounter {
         this.deathGraceRainTimer += this.deathGraceRainInterval;
         spawnVictoryGraceBurst({
           reason: "boss",
-          amount: 18,
-          life: 22,
+          amount: GRACE_BOSS_DEATH_BURST_AMOUNT,
+          life: GRACE_BOSS_DEATH_BURST_LIFE,
           centerX: this.x,
           centerY: this.y,
         });

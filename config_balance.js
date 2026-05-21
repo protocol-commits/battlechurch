@@ -185,24 +185,48 @@
     // GRACE PICKUPS
     // =====================
     grace: {
-      pickupRadius: 18,
-      lifetime: 15,
-      attractDistance: 170,
-      attractForce: 460,
-      gravity: 520,
-      airDrag: 0.88,
+      pickupRadius: 18,            // Collision radius to collect a grace gem (pixels).
+      lifetime: 15,                // Seconds before an uncollected gem despawns.
+      attractDistance: 170,        // Distance from player where gem magnetism starts (pixels).
+      attractForce: 460,           // Pull strength toward player once inside attractDistance.
+      gravity: 520,                // Downward gravity applied to spawned gems.
+      airDrag: 0.88,               // Velocity damping factor per tick (lower = slows faster).
 
       // Drop chances
-      dropBaseChance: 0.18,
-      dropHighValueBonus: 0.12,
-      dropMinionScale: 0.35,
-      dropMaxStack: 3,
-      dropSizeChanceFactor: 0.15,
-      dropSizeStackFactor: 0.9,
+      dropBaseChance: 0.18,        // Base chance an enemy drops grace on death (0-1).
+      dropMinionScale: 0.35,       // Multiplier to reduce drop chance for mini/minion enemies.
+      dropMaxStack: 3,             // Max extra random stack count added when a drop succeeds.
+      dropSizeChanceFactor: 0.15,  // Extra drop chance based on enemy size (radius over baseline).
+      dropSizeStackFactor: 0.5,    // Extra stack scaling based on enemy size.
+      // Enemies above this HP threshold guarantee floor(hp / guaranteedHealthChunk) gems.
+      guaranteedHealthThreshold: 500, // If enemy HP is above this, use guaranteed-drop path.
+      guaranteedHealthChunk: 250,     // HP per guaranteed-drop block.
+      guaranteedGemsPerChunk: 1,      // Gems granted per guaranteed-drop block.
+
+      // Bonus gem bursts from melee systems.
+      counterHitGems: 1,           // Gems spawned on counter-hit reward burst.
+      punishCounterGems: 3,        // Gems spawned on punish-counter reward burst.
+      meleeComboGems: 1,           // Gems spawned when melee combo reward triggers.
+
+      // Victory burst defaults.
+      victoryBurstAmount: 20,      // Default gem count for generic victory burst.
+      bossDeathBurstAmount: 18,    // Gem count per boss death rain burst pulse.
+      bossDeathBurstLife: 22,      // Lifetime (seconds) for boss death burst gems.
+
+      // Grace rush burst cadence.
+      rushBattleBurstAmount: 16,   // Gems per burst during normal grace-rush.
+      rushBossBurstAmount: 26,     // Gems per burst during boss grace-rush.
+      rushBattleSpawnInterval: 1.1, // Seconds between bursts in normal grace-rush.
+      rushBossSpawnInterval: 0.65,  // Seconds between bursts in boss grace-rush.
+
+      // Boss death rain cadence.
+      bossDeathRainIntervalIdle: 0.22,   // Initial interval before boss death sequence ramps up.
+      bossDeathRainIntervalActive: 0.18, // Active interval while boss death rain is running.
+      bossDeathRainInitialDelay: 0.08,   // Delay before first boss death rain burst fires.
 
       // Grace rush
-      rushDuration: 5,
-      bonusMultiplier: 5,
+      rushDuration: 5,             // Duration of grace-rush phase (seconds).
+      bonusMultiplier: 5,          // General grace-rush multiplier hook (used by reward systems).
     },
 
     // =====================
