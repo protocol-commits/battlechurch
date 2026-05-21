@@ -192,16 +192,11 @@
       gravity: 520,                // Downward gravity applied to spawned gems.
       airDrag: 0.88,               // Velocity damping factor per tick (lower = slows faster).
 
-      // Drop chances
-      dropBaseChance: 0.18,        // Base chance an enemy drops grace on death (0-1).
-      dropMinionScale: 0.35,       // Multiplier to reduce drop chance for mini/minion enemies.
-      dropMaxStack: 3,             // Max extra random stack count added when a drop succeeds.
-      dropSizeChanceFactor: 0.15,  // Extra drop chance based on enemy size (radius over baseline).
-      dropSizeStackFactor: 0.5,    // Extra stack scaling based on enemy size.
-      // Enemies above this HP threshold guarantee floor(hp / guaranteedHealthChunk) gems.
-      guaranteedHealthThreshold: 500, // If enemy HP is above this, use guaranteed-drop path.
-      guaranteedHealthChunk: 250,     // HP per guaranteed-drop block.
-      guaranteedGemsPerChunk: 1,      // Gems granted per guaranteed-drop block.
+      // HP-budget drop system:
+      // Every enemy death adds (enemyMaxHp * dropPerHp) into a global grace budget.
+      // Whole gems are emitted from that budget; fractions roll forward to future kills.
+      dropPerHp: 0.005,            // Grace gems per 1 HP defeated (600 HP ~= 3 gems).
+      dropMaxPerKill: 3,           // Safety cap: max gems emitted from one kill.
 
       // Bonus gem bursts from melee systems.
       counterHitGems: 1,           // Gems spawned on counter-hit reward burst.

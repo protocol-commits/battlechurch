@@ -222,7 +222,7 @@
       levelCosts: CHURCH_LEVEL_COSTS,
       tuning: {
         damage: 20,
-        orbitRadius: 288,   // game pixels (world scale applied at runtime)
+        orbitRadius: 388,   // game pixels (world scale applied at runtime)
         rotationSpeed: 5.6, // radians/sec
         hitCooldown: 0.25,  // seconds between hits on the same target
       },

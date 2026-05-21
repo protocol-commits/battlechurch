@@ -383,6 +383,7 @@ let pastorDashBuffTimer = 0;
 let queuedPowerUpDrops = 0;
 let powerUpEnsureCycleIndex = 0;
 let playerGraceCount = 0;
+let graceDropHpBudget = 0;
 let maxChainThisTown = 0;
 let hudComboDisplay = null;
 const unlockedChurchPowerups = new Set();
@@ -395,14 +396,8 @@ const GRACE_PICKUP_ATTRACT_FORCE = _gb('grace.attractForce', 460);
 const GRACE_PICKUP_GRAVITY = _gb('grace.gravity', 520);
 const GRACE_PICKUP_AIR_DRAG = _gb('grace.airDrag', 0.88);
 const GRACE_PICKUP_FLOOR_Y = () => canvas.height - 36;
-const GRACE_DROP_BASE_CHANCE = _gb('grace.dropBaseChance', 0.18);
-const GRACE_DROP_MINION_SCALE = _gb('grace.dropMinionScale', 0.35);
-const GRACE_DROP_MAX_STACK = _gb('grace.dropMaxStack', 3);
-const GRACE_DROP_SIZE_CHANCE_FACTOR = _gb('grace.dropSizeChanceFactor', 0.15);
-const GRACE_DROP_SIZE_STACK_FACTOR = _gb('grace.dropSizeStackFactor', 0.9);
-const GRACE_GUARANTEED_HEALTH_THRESHOLD = _gb('grace.guaranteedHealthThreshold', 100);
-const GRACE_GUARANTEED_HEALTH_CHUNK = _gb('grace.guaranteedHealthChunk', 100);
-const GRACE_GUARANTEED_GEMS_PER_CHUNK = _gb('grace.guaranteedGemsPerChunk', 1);
+const GRACE_DROP_PER_HP = _gb('grace.dropPerHp', 0.005);
+const GRACE_DROP_MAX_PER_KILL = _gb('grace.dropMaxPerKill', 3);
 const GRACE_COUNTER_HIT_GEMS = _gb('grace.counterHitGems', 1);
 const GRACE_PUNISH_COUNTER_GEMS = _gb('grace.punishCounterGems', 3);
 const GRACE_MELEE_COMBO_GEMS = _gb('grace.meleeComboGems', 1);
@@ -11842,6 +11837,7 @@ function spawnGracePickup(x, y, options = {}) {
     floorY: Number.isFinite(options.floorY) ? options.floorY : GRACE_PICKUP_FLOOR_Y(),
     bounceDamp: Number.isFinite(options.bounceDamp) ? options.bounceDamp : 0.5,
     airDrag: Number.isFinite(options.airDrag) ? options.airDrag : GRACE_PICKUP_AIR_DRAG,
+    disableAttraction: Boolean(options.disableAttraction),
     collected: false,
     landSfxPlayed: false,
     spawnBlink: 0.2,
@@ -13221,7 +13217,6 @@ function spawnGraceRainBurst(
       floorY,
       bounceDamp: 0.55,
       airDrag: 0.985,
-      disableAttraction: true,
       trackViewportXBounds: fullWidth,
       minX: minRainX,
       maxX: maxRainX,
@@ -13263,34 +13258,22 @@ function maybeDropGraceFromEnemy(enemy) {
     : Number.isFinite(enemy.config?.health)
       ? enemy.config.health
       : enemy.health;
-  if (Number.isFinite(baseHealth) && baseHealth > GRACE_GUARANTEED_HEALTH_THRESHOLD) {
-    const blocks = Math.max(1, Math.floor(baseHealth / Math.max(1, GRACE_GUARANTEED_HEALTH_CHUNK)));
-    const guaranteed = Math.max(1, blocks * Math.max(1, Math.round(GRACE_GUARANTEED_GEMS_PER_CHUNK)));
-    spawnGraceArcBurst(enemy.x, enemy.y, guaranteed);
-    return;
-  }
-  let chance = GRACE_DROP_BASE_CHANCE * Math.max(0, getActiveClassMultiplier("economy.graceGainMultiplier", 1));
-  const referenceRadius = enemy.radius || enemy.config?.radius || 24;
-  const sizeRatio = Math.max(0, referenceRadius - 24) / 48;
-  chance += sizeRatio * GRACE_DROP_SIZE_CHANCE_FACTOR;
-  const normalizedChance = Math.min(0.95, chance);
-  chance = normalizedChance;
-  const popcornTypes = new Set([
-    "miniImp",
-    "miniImpLevel2",
-    "miniImpLevel3",
-    "miniFireImp",
-    "miniDemon",
-    "miniDemoness",
-  ]);
-  if (popcornTypes.has(enemy.type)) {
-    chance *= GRACE_DROP_MINION_SCALE;
-  }
-  if (Math.random() > chance) return;
-  const stacks = 1 +
-    Math.floor(Math.random() * GRACE_DROP_MAX_STACK) +
-    Math.floor(sizeRatio * GRACE_DROP_SIZE_STACK_FACTOR * GRACE_DROP_MAX_STACK);
-  spawnGraceArcBurst(enemy.x, enemy.y, stacks);
+  const hpForDrop = Math.max(0, Number.isFinite(baseHealth) ? baseHealth : 0);
+  if (hpForDrop <= 0) return;
+
+  const classMult = Math.max(0, getActiveClassMultiplier("economy.graceGainMultiplier", 1));
+  const perHp = Math.max(0, GRACE_DROP_PER_HP) * classMult;
+  graceDropHpBudget += hpForDrop * perHp;
+
+  const maxPerKill = Math.max(0, Math.floor(GRACE_DROP_MAX_PER_KILL));
+  const wholeFromBudget = Math.floor(graceDropHpBudget);
+  const gemsToSpawn = maxPerKill > 0
+    ? Math.min(maxPerKill, wholeFromBudget)
+    : wholeFromBudget;
+  if (gemsToSpawn <= 0) return;
+
+  graceDropHpBudget = Math.max(0, graceDropHpBudget - gemsToSpawn);
+  spawnGraceArcBurst(enemy.x, enemy.y, gemsToSpawn);
 }
 
 function updateGracePickups(dt) {
@@ -13357,7 +13340,11 @@ function updateGracePickups(dt) {
       const dx = player.x - pickup.x;
       const dy = player.y - pickup.y;
       const distance = Math.hypot(dx, dy);
-      if (false && distance < GRACE_PICKUP_ATTRACT_DISTANCE && player.state !== "death") {
+      if (
+        !pickup.disableAttraction &&
+        distance < GRACE_PICKUP_ATTRACT_DISTANCE &&
+        player.state !== "death"
+      ) {
         const attract = GRACE_PICKUP_ATTRACT_FORCE * (1 - distance / GRACE_PICKUP_ATTRACT_DISTANCE);
         pickup.vx += (dx / Math.max(distance, 0.001)) * attract * dt;
         pickup.vy += (dy / Math.max(distance, 0.001)) * attract * dt;
@@ -24718,7 +24705,6 @@ function spawnGraceArcBurst(baseX, baseY, count, spread) {
         floorY,
         bounceDamp: 0.55,
         airDrag: 0.985,
-        disableAttraction: true,
       },
     );
   }
@@ -30098,6 +30084,7 @@ function restartGame() {
   clearGracePickups();
   resetChurchPowerups();
   playerGraceCount = 0;
+  graceDropHpBudget = 0;
   Spawner.resetAllFlags();
   Effects.clear();
   bossHazards.splice(0, bossHazards.length);
