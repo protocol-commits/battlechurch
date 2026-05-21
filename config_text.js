@@ -23,6 +23,13 @@
       howToPlay: {
         title: "How to Play",
       },
+      movesList: {
+        title: "Moves List",
+        hint: "Press Escape or Back to close",
+        colSword: "Sword (A)",
+        colDash: "Dash (B)",
+        colPrayer: "Prayer (C)",
+      },
     },
 
     hud: {

@@ -8468,6 +8468,278 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     ctx.restore();
   }
 
+  function drawMovesListOverlay() {
+    if (typeof window === "undefined" || !window.MovesList?.isOpen) return;
+    const catalog = window.BattlechurchMoveCatalog?.catalog;
+    if (!catalog) return;
+
+    const texts = (typeof GameText !== "undefined" && GameText.screens?.movesList) || {};
+    const title   = texts.title || "Moves List";
+    const hint    = texts.hint  || "Press Escape or Back to close";
+    const colLabels = [
+      texts.colSword  || "Sword (A)",
+      texts.colDash   || "Dash (B)",
+      texts.colPrayer || "Prayer (C)",
+    ];
+
+    const byKey = window.BattlechurchMoveCatalog.byKey;
+    const SWORD_KEYS  = ["Slash", "Blast", "Cleave", "Reap", "Hedge"];
+    const DASH_KEYS   = ["Crash", "Smash", "Thrash", "Clash", "Flash"];
+    const PRAYER_KEYS = ["Unity Strike", "Pastor Protect", "Purge", "Smite Bomb"];
+    const columns = [SWORD_KEYS, DASH_KEYS, PRAYER_KEYS].map((keys) =>
+      keys.map((k) => byKey[k]).filter(Boolean)
+    );
+
+    const cw = canvas.width;
+    const ch = canvas.height;
+
+    // Dim
+    ctx.save();
+    ctx.fillStyle = "rgba(4, 7, 14, 0.82)";
+    ctx.fillRect(0, 0, cw, ch);
+
+    // Panel dimensions — wide, not tall
+    const panelW = Math.min(1180, cw - 60);
+    const panelH = Math.min(600, ch - 80);
+    const panelX = Math.round((cw - panelW) / 2);
+    const panelY = Math.round((ch - panelH) / 2);
+    const radius = 18;
+
+    // Panel background
+    const panelGrad = ctx.createLinearGradient(panelX, panelY, panelX, panelY + panelH);
+    panelGrad.addColorStop(0, "rgba(18, 22, 42, 0.98)");
+    panelGrad.addColorStop(1, "rgba(10, 13, 26, 0.98)");
+    ctx.fillStyle = panelGrad;
+    ctx.strokeStyle = EMBER_BUTTON_PALETTE.border;
+    ctx.lineWidth = 2;
+    roundRect(ctx, panelX, panelY, panelW, panelH, radius, true, true);
+
+    // Title
+    const titleType = getCanvasSemanticForScreen("pauseMenu", "title", "h1");
+    ctx.fillStyle = HELLFIRE_TEXT_PALETTE.title;
+    ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
+    ctx.shadowBlur = 8;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = `${titleType.weight} ${Math.round(titleType.size * 0.55)}px ${UI_FONT_FAMILY}`;
+    ctx.fillText(title, cw / 2, panelY + 46);
+
+    // Hint
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(188, 216, 236, 0.55)";
+    ctx.font = `400 18px ${UI_FONT_FAMILY}`;
+    ctx.fillText(hint, cw / 2, panelY + 68);
+
+    // Column layout
+    const colPadding = 24;
+    const colAreaX = panelX + colPadding;
+    const colAreaW = panelW - colPadding * 2;
+    const colW = Math.floor(colAreaW / 3);
+    const colStartY = panelY + 86;
+    const colEndY   = panelY + panelH - 16;
+
+    // Column colors
+    const COL_HEADER   = "#DDA677"; // gold
+    const MOVE_NAME    = "#DDA677";
+    const MOVE_DESC    = "rgba(188, 216, 236, 0.78)";
+    const DIVIDER      = "rgba(255, 210, 148, 0.18)";
+
+    // Input button circle styles — matches HUD persistent buttons
+    const BTN_STYLES = {
+      A: { fill: "rgba(88, 154, 186, 0.95)",  stroke: "rgba(198, 232, 255, 0.95)",  text: "#F2FCFF" },
+      B: { fill: "rgba(85, 168, 144, 0.95)",  stroke: "rgba(197, 248, 230, 0.95)",  text: "#F2FFF9" },
+      C: { fill: "rgba(206, 140, 79, 0.97)",  stroke: "rgba(255, 236, 178, 0.98)",  text: "#FFF8DF" },
+    };
+    const BTN_NEUTRAL = {
+      fill: "rgba(36, 28, 22, 0.9)", stroke: "rgba(170, 145, 110, 0.7)", text: "rgba(231, 214, 184, 0.92)",
+    };
+    const BTN_R = 10; // circle radius
+    const BTN_FONT_SIZE = 13;
+    const CHARGE_COLOR = "rgba(231, 214, 184, 0.70)";
+    const CONNECTOR_COLOR = "rgba(188, 216, 236, 0.55)";
+
+    // Renders a move input string as circles + connectors, returns total width drawn.
+    // Tokens: "A"|"B"|"C" → colored circle; "Charge" → italic label; "→"|"+" → connector symbol.
+    function drawMoveInputBadges(inputStr, x, y) {
+      // Parse into tokens: split on spaces, group "Charge" with next letter
+      const raw = inputStr.split(/\s+/);
+      const tokens = [];
+      for (let i = 0; i < raw.length; i++) {
+        const t = raw[i];
+        if (t === "Charge" && i + 1 < raw.length) {
+          // "Charge A" or "Charge B + C" — emit "Charge" label + next token
+          tokens.push({ type: "charge" });
+          i += 1;
+          tokens.push({ type: "btn", label: raw[i] });
+        } else if (t === "A" || t === "B" || t === "C") {
+          tokens.push({ type: "btn", label: t });
+        } else if (t === "→" || t === "+" || t === "/") {
+          tokens.push({ type: "conn", label: t });
+        }
+      }
+
+      let curX = x;
+      ctx.save();
+      ctx.textBaseline = "middle";
+      const midY = y;
+
+      tokens.forEach((tok) => {
+        if (tok.type === "btn") {
+          const style = BTN_STYLES[tok.label] || BTN_NEUTRAL;
+          ctx.fillStyle = style.fill;
+          ctx.strokeStyle = style.stroke;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(curX + BTN_R, midY, BTN_R, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = style.text;
+          ctx.font = `800 ${BTN_FONT_SIZE}px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = "center";
+          ctx.fillText(tok.label, curX + BTN_R, midY + 0.5);
+          curX += BTN_R * 2 + 4;
+        } else if (tok.type === "charge") {
+          ctx.fillStyle = CHARGE_COLOR;
+          ctx.font = `italic 600 12px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = "left";
+          const w = ctx.measureText("Hold").width;
+          ctx.fillText("Hold", curX, midY + 0.5);
+          curX += w + 4;
+        } else if (tok.type === "conn") {
+          ctx.fillStyle = CONNECTOR_COLOR;
+          ctx.font = `600 13px ${UI_FONT_FAMILY}`;
+          ctx.textAlign = "left";
+          const w = ctx.measureText(tok.label).width;
+          ctx.fillText(tok.label, curX, midY + 0.5);
+          curX += w + 4;
+        }
+      });
+      ctx.restore();
+      return curX - x;
+    }
+
+    const ROW_H        = 90;
+    const HEADER_H     = 34;
+
+    columns.forEach((moves, colIdx) => {
+      const cx = colAreaX + colIdx * colW;
+
+      // Vertical divider between columns
+      if (colIdx > 0) {
+        ctx.save();
+        ctx.strokeStyle = DIVIDER;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, colStartY);
+        ctx.lineTo(cx, colEndY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      const innerX = cx + (colIdx === 0 ? 0 : 14);
+      const innerW = colW - (colIdx === 0 ? 14 : 28);
+
+      // Column header — word label + colored button circle
+      const COL_BTN_LABELS = ["A", "B", "C"];
+      const COL_LABEL_WORDS = ["SWORD", "DASH", "PRAYER"];
+      const headerMidY = colStartY + 13;
+      const headerFontSize = 20;
+      ctx.save();
+      ctx.fillStyle = COL_HEADER;
+      ctx.shadowColor = HELLFIRE_TEXT_PALETTE.shadow;
+      ctx.shadowBlur = 4;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.font = `700 ${headerFontSize}px ${UI_FONT_FAMILY}`;
+      const labelWord = COL_LABEL_WORDS[colIdx];
+      const labelW = ctx.measureText(labelWord).width;
+      ctx.fillText(labelWord, innerX, headerMidY);
+      ctx.restore();
+      // Circle after the label word
+      const circBtnLabel = COL_BTN_LABELS[colIdx];
+      const circStyle = BTN_STYLES[circBtnLabel];
+      const circR = 11;
+      const circX = innerX + labelW + 8 + circR;
+      ctx.save();
+      ctx.fillStyle = circStyle.fill;
+      ctx.strokeStyle = circStyle.stroke;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(circX, headerMidY, circR, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = circStyle.text;
+      ctx.font = `800 ${BTN_FONT_SIZE}px ${UI_FONT_FAMILY}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(circBtnLabel, circX, headerMidY + 0.5);
+      ctx.restore();
+
+      // Header underline
+      ctx.save();
+      ctx.strokeStyle = "rgba(221, 166, 119, 0.4)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(innerX, colStartY + HEADER_H);
+      ctx.lineTo(innerX + innerW, colStartY + HEADER_H);
+      ctx.stroke();
+      ctx.restore();
+
+      // Move rows
+      moves.forEach((move, rowIdx) => {
+        const rowY = colStartY + HEADER_H + 10 + rowIdx * ROW_H;
+        if (rowY + ROW_H > colEndY) return;
+
+        // Move name
+        ctx.save();
+        ctx.fillStyle = MOVE_NAME;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `700 19px ${UI_FONT_FAMILY}`;
+        ctx.fillText(move.publicName, innerX, rowY + 18);
+
+        // Input badges — colored circles for A/B/C
+        drawMoveInputBadges(move.input, innerX, rowY + 36);
+
+        // Description — word-wrap to column width
+        ctx.fillStyle = MOVE_DESC;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `400 14px ${UI_FONT_FAMILY}`;
+        const words = move.desc.split(" ");
+        let line = "";
+        let descY = rowY + 58;
+        for (const word of words) {
+          const test = line ? line + " " + word : word;
+          if (ctx.measureText(test).width > innerW && line) {
+            ctx.fillText(line, innerX, descY);
+            descY += 16;
+            line = word;
+          } else {
+            line = test;
+          }
+        }
+        if (line) ctx.fillText(line, innerX, descY);
+
+        ctx.restore();
+
+        // Row divider
+        if (rowIdx < moves.length - 1) {
+          ctx.save();
+          ctx.strokeStyle = DIVIDER;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(innerX, rowY + ROW_H - 4);
+          ctx.lineTo(innerX + innerW, rowY + ROW_H - 4);
+          ctx.stroke();
+          ctx.restore();
+        }
+      });
+    });
+
+    ctx.restore();
+  }
+
   function drawPauseOverlay() {
     const {
       ctx,
@@ -8530,6 +8802,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
 
     const row1Configs = [
       { key: "resume", label: "Resume" },
+      { key: "movesList", label: "Moves" },
       { key: "settings", label: "Settings" },
     ];
     const pauseButtonType = getCanvasSemanticForScreen("pauseMenu", "button", "button");
@@ -13789,6 +14062,7 @@ function drawChurchUpgradeScreen(ctx, canvas, options = {}) {
     // Effects are drawn earlier in the world pass so the player stays on top.
     if (paused && !gameOver && !mapLaunchHandoffActive) {
       drawPauseOverlay();
+      drawMovesListOverlay();
       drawPlayingInstructionsOverlay();
       return;
     }

@@ -6199,6 +6199,7 @@ window.consumePauseAction = () => {
 };
 window.isMissionBriefOverlayActive = false;
 window.isPauseOverlayActive = false;
+window.MovesList = { isOpen: false };
 window.shouldShowGameOverMessage = false;
 window.gameOverReady = false;
 window.gameOverDialogShown = false;
@@ -23242,6 +23243,15 @@ function handlePauseMenu() {
     }
     return true;
   }
+  if (typeof window !== "undefined" && window.MovesList?.isOpen) {
+    if (keysJustPressed.has("Escape") || keysJustPressed.has("escape") || keysJustPressed.has(" ")) {
+      window.MovesList.isOpen = false;
+      keysJustPressed.delete("Escape");
+      keysJustPressed.delete("escape");
+      keysJustPressed.delete(" ");
+    }
+    return true;
+  }
   if (window.DialogOverlay?.consumeAction?.() || window.UpgradeScreen?.consumeAction?.()) {
     return true;
   }
@@ -23292,6 +23302,13 @@ function handlePauseMenu() {
           pauseRestartConfirmActive = false;
           if (typeof window !== "undefined" && window.PlayingInstructions) {
             window.PlayingInstructions.open();
+          }
+          return;
+        }
+        if (button.key === "movesList") {
+          pauseRestartConfirmActive = false;
+          if (typeof window !== "undefined" && window.MovesList) {
+            window.MovesList.isOpen = true;
           }
           return;
         }
