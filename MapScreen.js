@@ -1,8 +1,10 @@
 (function setupMapScreen(window) {
   if (!window) return;
 
-  const MAP_IMAGE_PRIMARY = "./assets/backgrounds/map.png";
-  const MAP_IMAGE_FALLBACK = "./assets/backgrounds/map.png";
+  const MAP_IMAGE_NORMAL_PRIMARY = "./assets/backgrounds/map/map_normal.png";
+  const MAP_IMAGE_NORMAL_FALLBACK = "./assets/backgrounds/map.png";
+  const MAP_IMAGE_DEMON_PRIMARY = "./assets/backgrounds/map/map_demon.png";
+  const MAP_IMAGE_DEMON_FALLBACK = "./assets/backgrounds/map.png";
   const DISTRICT_EXTERIOR_IMAGE_PRIMARY = "./assets/backgrounds/mission-1.png";
   const HIT_RADIUS_BASE = 10;
   const UI_FONT_FAMILY =
@@ -42,14 +44,24 @@
     window.__bcPushTypographyDebugLabel(role, x, y);
   }
 
-  let mapImage = null;
-  let mapImageLoaded = false;
-  let mapImageFailed = false;
+  let mapNormalImage = null;
+  let mapNormalImageLoaded = false;
+  let mapNormalImageFailed = false;
+  let mapDemonImage = null;
+  let mapDemonImageLoaded = false;
+  let mapDemonImageFailed = false;
   let districtExteriorImage = null;
   let districtExteriorImageLoaded = false;
   let districtExteriorImageFailed = false;
   let mapAssets = null;
   const districtAnimators = new Map();
+  const MAP_REALM_FLICKER = Object.freeze({
+    normalHoldMs: 2750,
+    toDemonFlickerMs: 500,
+    demonHoldMs: 3500,
+    toNormalFlickerMs: 700,
+    flickerStepMs: 80,
+  });
 
   function readMapScreenRenderStyleNumber(key, fallback) {
     const root = (() => {
@@ -519,21 +531,68 @@
     if (stroke) ctx.stroke();
   }
 
-  function loadMapImage() {
-    if (mapImage || mapImageLoaded || mapImageFailed) return;
-    mapImage = new Image();
-    mapImage.onload = () => {
-      mapImageLoaded = true;
-      mapImage = maybeApplyMapScreenShadowCrush(mapImage);
-    };
-    mapImage.onerror = () => {
-      if (mapImage && mapImage.src === MAP_IMAGE_PRIMARY) {
-        mapImage.src = MAP_IMAGE_FALLBACK;
-        return;
-      }
-      mapImageFailed = true;
-    };
-    mapImage.src = MAP_IMAGE_PRIMARY;
+  function loadMapImages() {
+    if (!mapNormalImage && !mapNormalImageLoaded && !mapNormalImageFailed) {
+      mapNormalImage = new Image();
+      mapNormalImage.onload = () => {
+        mapNormalImageLoaded = true;
+        mapNormalImage = maybeApplyMapScreenShadowCrush(mapNormalImage);
+      };
+      mapNormalImage.onerror = () => {
+        if (mapNormalImage && mapNormalImage.src === MAP_IMAGE_NORMAL_PRIMARY) {
+          mapNormalImage.src = MAP_IMAGE_NORMAL_FALLBACK;
+          return;
+        }
+        mapNormalImageFailed = true;
+      };
+      mapNormalImage.src = MAP_IMAGE_NORMAL_PRIMARY;
+    }
+    if (!mapDemonImage && !mapDemonImageLoaded && !mapDemonImageFailed) {
+      mapDemonImage = new Image();
+      mapDemonImage.onload = () => {
+        mapDemonImageLoaded = true;
+        mapDemonImage = maybeApplyMapScreenShadowCrush(mapDemonImage);
+      };
+      mapDemonImage.onerror = () => {
+        if (mapDemonImage && mapDemonImage.src === MAP_IMAGE_DEMON_PRIMARY) {
+          mapDemonImage.src = MAP_IMAGE_DEMON_FALLBACK;
+          return;
+        }
+        mapDemonImageFailed = true;
+      };
+      mapDemonImage.src = MAP_IMAGE_DEMON_PRIMARY;
+    }
+  }
+
+  function resolveMapRealmState(nowMs) {
+    const cfg = MAP_REALM_FLICKER;
+    const total =
+      cfg.normalHoldMs +
+      cfg.toDemonFlickerMs +
+      cfg.demonHoldMs +
+      cfg.toNormalFlickerMs;
+    const t = ((nowMs % total) + total) % total;
+    if (t < cfg.normalHoldMs) return { demon: false };
+    if (t < cfg.normalHoldMs + cfg.toDemonFlickerMs) {
+      const step = Math.floor((t - cfg.normalHoldMs) / Math.max(1, cfg.flickerStepMs));
+      return { demon: step % 2 === 1 };
+    }
+    if (t < cfg.normalHoldMs + cfg.toDemonFlickerMs + cfg.demonHoldMs) return { demon: true };
+    const step = Math.floor(
+      (t - (cfg.normalHoldMs + cfg.toDemonFlickerMs + cfg.demonHoldMs)) / Math.max(1, cfg.flickerStepMs),
+    );
+    return { demon: step % 2 === 0 };
+  }
+
+  function getActiveMapImage(preferDemonRealm) {
+    if (preferDemonRealm) {
+      if (mapDemonImageLoaded && mapDemonImage) return mapDemonImage;
+      if (mapNormalImageLoaded && mapNormalImage) return mapNormalImage;
+      return null;
+    }
+    if (mapNormalImageLoaded && mapNormalImage) return mapNormalImage;
+    if (mapDemonImageLoaded && mapDemonImage) return mapDemonImage;
+    return null;
   }
 
   function loadDistrictExteriorImage() {
@@ -832,8 +891,9 @@
     };
   }
 
-  function computeMapRect(canvas) {
-    if (!mapImageLoaded || !mapImage) {
+  function computeMapRect(canvas, activeImage = null) {
+    const mapImage = activeImage || mapDemonImage || mapNormalImage || null;
+    if (!mapImage) {
       state.mapRect = { x: 0, y: 0, w: canvas.width, h: canvas.height };
       return state.mapRect;
     }
@@ -847,9 +907,10 @@
     return state.mapRect;
   }
 
-  function drawMapBackground(ctx, canvas) {
-    const rect = computeMapRect(canvas);
-    if (mapImageLoaded && mapImage) {
+  function drawMapBackground(ctx, canvas, activeImage = null) {
+    const mapImage = activeImage || null;
+    const rect = computeMapRect(canvas, mapImage);
+    if (mapImage) {
       const stripHeight = 14;
       const time = (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
       const amp = 0.9;
@@ -1009,10 +1070,19 @@
     ctx.restore();
   }
 
-  function drawDistrictNode(ctx, district, rect, pulse) {
+  function drawDistrictNode(ctx, district, rect, pulse, options = {}) {
+    const showDemonIcons = options.showDemonIcons !== false;
     const position = getDistrictPosition(district, rect);
     const dpr = window.devicePixelRatio || 1;
     const radius = HIT_RADIUS_BASE * dpr;
+    if (
+      !Number.isFinite(position?.x) ||
+      !Number.isFinite(position?.y) ||
+      !Number.isFinite(radius) ||
+      radius <= 0
+    ) {
+      return;
+    }
     const unlocked = isDistrictUnlocked(district.id);
     const selected = state.selectedDistrictId === district.id;
     const completionCount = getDistrictCampaignCompletionCount(district.id);
@@ -1020,6 +1090,7 @@
     const displayCount = getDistrictDisplayCount(district.id);
     const isCapital = district.type === "capital";
     const nodeRadius = isCapital ? radius * 3.6 : radius;
+    if (!Number.isFinite(nodeRadius) || nodeRadius <= 0) return;
     const frontId = district.frontId || "";
     const districtStyles = {
       northwest: { core: "#FFD978", glow: "rgba(255, 217, 120, 0.8)", ring: "rgba(255, 235, 180, 0.9)" },
@@ -1142,7 +1213,7 @@
     const animState = getDistrictAnimatorState(district, bestCount);
     const animator = animState?.animator || null;
     const clip = animator?.currentClip || null;
-    if (animator && clip && (district.type === "capital" || bestCount == null)) {
+    if (showDemonIcons && animator && clip && (district.type === "capital" || bestCount == null)) {
       let baseTarget = district.type === "capital" ? radius * 8.4 : radius * 3.75;
       if (district.frontId === "northeast") {
         baseTarget *= 0.75;
@@ -2624,7 +2695,7 @@
 
   function update(dt) {
     if (!state.active) return;
-    loadMapImage();
+    loadMapImages();
     loadDistrictExteriorImage();
     updateArmyMarchAnimation(dt);
     handleMapInput();
@@ -2714,7 +2785,10 @@
           ),
         );
     const easedCrossfadeT = crossfadeT * crossfadeT * (3 - 2 * crossfadeT);
-    let rect = computeMapRect(canvas);
+    const nowMs = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const realmState = resolveMapRealmState(nowMs);
+    const activeMapImage = getActiveMapImage(realmState.demon);
+    let rect = computeMapRect(canvas, activeMapImage);
     if (transitionActive) {
       const district = getDistrictById(transition.districtId || state.selectedDistrictId);
       if (district) {
@@ -2733,13 +2807,13 @@
         }
       }
     }
-    rect = drawMapBackground(ctx, canvas);
+    rect = drawMapBackground(ctx, canvas, activeMapImage);
     if (transitionActive) {
       const mapEmberAlpha = Math.max(0, Math.min(1, 1 - easedCrossfadeT));
-      if (mapEmberAlpha > 0.001) {
+      if (realmState.demon && mapEmberAlpha > 0.001) {
         drawFireOverlayInCurrentTransform(ctx, canvas, 1.8, 1.0, mapEmberAlpha, rect);
       }
-    } else {
+    } else if (realmState.demon) {
       const fireOverlay = typeof window !== "undefined" ? window.fireOverlay : null;
       if (fireOverlay && typeof fireOverlay.draw === "function") {
         if (typeof fireOverlay.setBounds === "function") {
@@ -2764,7 +2838,9 @@
     drawFrontlineBoundary(ctx, rect);
     const mapData = window.BattlechurchMapData;
     if (mapData) {
-      mapData.districts.forEach((district) => drawDistrictNode(ctx, district, rect, pulse));
+      mapData.districts.forEach((district) =>
+        drawDistrictNode(ctx, district, rect, pulse, { showDemonIcons: realmState.demon }),
+      );
     }
     drawInitialMarchOriginMarker(ctx);
     drawArmyMarchOverlay(ctx);
