@@ -62,7 +62,7 @@
     {
       key: "Cleave",
       publicName: "Cleave",
-      input: "A + B",
+      input: "A → B",
       category: "combo",
       damage: 300,           // MELEE_BASE_DAMAGE * CLEAVE_DAMAGE_MULTIPLIER (3.0)
       cooldown: null,
@@ -144,7 +144,7 @@
     {
       key: "Pastor Protect",
       publicName: "Pastor Protect",
-      input: "C → C",
+      input: "C C",
       category: "prayer",
       damage: null,
       cooldown: null,
@@ -154,7 +154,7 @@
     {
       key: "Purge",
       publicName: "Purify",
-      input: "Charge C (2 prayers)",
+      input: "Charge C",
       category: "prayer",
       damage: 250,           // PRAYER_BOMB_LEVEL1_DAMAGE (boss: 1000)
       cooldown: null,
